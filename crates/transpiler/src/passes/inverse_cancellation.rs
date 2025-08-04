@@ -174,17 +174,18 @@ static INVERSE_PAIRS_FOR_CANCELLATION: [[StandardGate; 2]; 3] = [
     [StandardGate::SX, StandardGate::SXdg],
 ];
 
-#[pyfunction]
-pub fn run_inverse_cancellation_standard_gates(dag: &mut DAGCircuit) {
+fn std_self_inverse(dag: &mut DAGCircuit) {
     if !SELF_INVERSE_GATES_FOR_CANCELLATION
         .iter()
-        .chain(INVERSE_PAIRS_FOR_CANCELLATION.iter().flatten())
         .any(|gate| dag.get_op_counts().contains_key(gate.name()))
     {
         return;
     }
-
+    // Handle self inverse gates
     for self_inv_gate in SELF_INVERSE_GATES_FOR_CANCELLATION {
+        if dag.get_op_counts().get(self_inv_gate.name()).unwrap_or(&0) <= &1 {
+            continue;
+        }
         let filter = |inst: &PackedInstruction| -> bool {
             match inst.op.view() {
                 OperationRef::StandardGate(gate) => gate == self_inv_gate,
@@ -224,7 +225,16 @@ pub fn run_inverse_cancellation_standard_gates(dag: &mut DAGCircuit) {
             }
         }
     }
+}
 
+fn std_inverse_pairs(dag: &mut DAGCircuit) {
+    if !INVERSE_PAIRS_FOR_CANCELLATION
+        .iter()
+        .flatten()
+        .any(|gate| dag.get_op_counts().contains_key(gate.name()))
+    {
+        return;
+    }
     // Handle inverse pairs
     for [gate_0, gate_1] in INVERSE_PAIRS_FOR_CANCELLATION {
         let filter = |inst: &PackedInstruction| -> bool {
@@ -240,7 +250,7 @@ pub fn run_inverse_cancellation_standard_gates(dag: &mut DAGCircuit) {
                 let NodeType::Operation(inst) = &dag[nodes[i]] else {
                     unreachable!("Not an op node");
                 };
-                let NodeType::Operation(next_inst) = &dag[nodes[i]] else {
+                let NodeType::Operation(next_inst) = &dag[nodes[i + 1]] else {
                     unreachable!("Not an op node");
                 };
                 if inst.qubits == next_inst.qubits
@@ -258,6 +268,12 @@ pub fn run_inverse_cancellation_standard_gates(dag: &mut DAGCircuit) {
             }
         }
     }
+}
+
+#[pyfunction]
+pub fn run_inverse_cancellation_standard_gates(dag: &mut DAGCircuit) {
+    std_self_inverse(dag);
+    std_inverse_pairs(dag);
 }
 
 #[pyfunction]
