@@ -1907,29 +1907,31 @@ pub fn qpy_replay(
             }
         }
         SymbolExpr::Binary { op, lhs, rhs } => {
-            let lhs_value = ParameterValueType::extract_from_expr(lhs);
-            let rhs_value = ParameterValueType::extract_from_expr(rhs);
-
             // keep rational in replay
             if let Some((numerator, denominator)) = lhs.rational() {
                 if let symbol_expr::BinaryOp::Mul | symbol_expr::BinaryOp::Div = op {
+                    let lhs = Arc::new(SymbolExpr::Binary {
+                        op: op.clone(),
+                        lhs: Arc::new(SymbolExpr::Value(Value::Int(numerator))),
+                        rhs: Arc::clone(rhs),
+                    });
+                    let lhs_value = ParameterValueType::extract_from_expr(&lhs);
+
                     // recurse on the parameter expressions for right hand side
-                    let frhs = filter_name_map(rhs, name_map);
-                    qpy_replay(&frhs, name_map, replay);
+                    let lhs = filter_name_map(&lhs, name_map);
+                    qpy_replay(&lhs, name_map, replay);
 
                     // add expressions keeping rational
                     replay.push(OPReplay {
                         op: OpCode::DIV,
-                        lhs: ParameterValueType::extract_from_expr(&Arc::new(SymbolExpr::Binary {
-                            op: op.clone(),
-                            lhs: Arc::new(SymbolExpr::Value(Value::Int(numerator))),
-                            rhs: Arc::clone(rhs),
-                        })),
+                        lhs: lhs_value,
                         rhs: Some(ParameterValueType::Int(denominator)),
                     });
                     return;
                 }
             }
+            let lhs_value = ParameterValueType::extract_from_expr(lhs);
+            let rhs_value = ParameterValueType::extract_from_expr(rhs);
 
             // recurse on the parameter expressions
             let lhs = filter_name_map(lhs, name_map);
