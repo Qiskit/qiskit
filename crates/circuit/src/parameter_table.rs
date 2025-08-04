@@ -61,7 +61,7 @@ pub struct ParameterInfo {
     uses: HashSet<ParameterUse>,
     name: String, // TODO probably redundant, just get Symbol.name(), which is cheap
     element: Option<VectorElement>, // TODO maybe this is redundant now and can be removed
-    symbol: Symbol, // TODO rename this to symbol
+    object: Symbol, // TODO rename this to symbol
 }
 
 /// Rust-space information on a Python `ParameterVector` and its uses in the table.
@@ -185,7 +185,7 @@ impl ParameterTable {
                 }
             }
             Entry::Vacant(entry) => {
-                let name = param_ob.name();
+                let name = param_ob.repr(false);
                 if self.by_name.contains_key(&name) {
                     return Err(CircuitError::new_err(format!(
                         "name conflict adding parameter '{}'",
@@ -225,7 +225,7 @@ impl ParameterTable {
                     name,
                     uses,
                     element,
-                    symbol: param_ob.clone(),
+                    object: param_ob.clone(),
                 });
                 self.invalidate_cache();
             }
@@ -244,12 +244,12 @@ impl ParameterTable {
     pub fn parameter_by_name(&self, name: &String) -> Option<&Symbol> {
         self.by_name
             .get(name)
-            .map(|uuid| &self.by_uuid[uuid].symbol)
+            .map(|uuid| &self.by_uuid[uuid].object)
     }
 
     /// Lookup the Python parameter object by uuid.
     pub fn parameter_by_uuid(&self, uuid: ParameterUuid) -> Option<&Symbol> {
-        self.by_uuid.get(&uuid).map(|param| &param.symbol)
+        self.by_uuid.get(&uuid).map(|param| &param.object)
     }
 
     /// Get the (maybe cached) Python list of the sorted `Parameter` objects.
@@ -258,14 +258,14 @@ impl ParameterTable {
             self.order_cache
                 .get_or_init(|| self.sorted_order())
                 .iter()
-                .map(|uuid| self.by_uuid[uuid].symbol.clone())
+                .map(|uuid| self.by_uuid[uuid].object.clone())
                 .collect()
         })
     }
 
     /// Get a Python set of all tracked `Parameter` objects.
     pub fn parameters_unsorted(&self) -> HashSet<&Symbol> {
-        HashSet::from_iter(self.by_uuid.values().map(|info| &info.symbol))
+        HashSet::from_iter(self.by_uuid.values().map(|info| &info.object))
     }
 
     /// Get the sorted order of the `ParameterTable`.  This does not access the cache.
@@ -273,11 +273,9 @@ impl ParameterTable {
         let mut out = self.by_uuid.keys().copied().collect::<Vec<_>>();
         out.sort_unstable_by_key(|uuid| {
             let info = &self.by_uuid[uuid];
-            if let Some(vec) = info.element.as_ref() {
-                (&self.vectors[&vec.vector_uuid].name, vec.index)
-            } else {
-                (&info.name, 0)
-            }
+            let index = info.object.index.unwrap_or(0);
+            let name = info.object.name();
+            (name, index)
         });
         out
     }
@@ -424,7 +422,7 @@ impl Iterator for ParameterTableDrain {
                 .by_uuid
                 .remove(&uuid)
                 .expect("tracked UUIDs should be consistent");
-            (info.symbol, info.uses)
+            (info.object, info.uses)
         })
     }
 

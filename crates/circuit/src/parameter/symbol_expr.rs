@@ -43,7 +43,7 @@ pub struct Symbol {
 /// Custom implementations of Eq, PartialEq, PartialOrd and Hash to ignore the ``vector`` field
 impl PartialEq for Symbol {
     fn eq(&self, other: &Self) -> bool {
-        self.name() == other.name() && self.uuid == other.uuid && self.index == other.index
+        self.name == other.name && self.uuid == other.uuid && self.index == other.index
     }
 }
 
@@ -119,10 +119,15 @@ impl Symbol {
     }
 
     pub fn name(&self) -> String {
-        let base_name = &self.name;
-        match self.index {
-            Some(i) => format!("{base_name}[{i}]"),
-            None => base_name.clone(),
+        self.name.clone()
+    }
+
+    pub fn repr(&self, with_uuid: bool) -> String {
+        match (self.index, with_uuid) {
+            (Some(i), true) => format!("{}[{}]_{}", self.name, i, self.uuid.as_u128()),
+            (Some(i), false) => format!("{}[{}]", self.name, i),
+            (None, true) => format!("{}_{}", self.name, self.uuid.as_u128()),
+            (None, false) => self.name.clone(),
         }
     }
 
@@ -694,7 +699,7 @@ impl SymbolExpr {
     pub fn name_map(&self) -> HashMap<String, Symbol> {
         self.symbols()
             .iter()
-            .map(|param| (param.name(), param.clone()))
+            .map(|param| (param.repr(false), param.clone()))
             .collect()
     }
 
@@ -2518,10 +2523,7 @@ impl SymbolExpr {
 
     fn repr(&self, with_uuid: bool) -> String {
         match self {
-            SymbolExpr::Symbol(e) => match with_uuid {
-                true => format!("{}_{}", e.name(), e.uuid.as_u128()),
-                false => e.name(),
-            },
+            SymbolExpr::Symbol(e) => e.repr(with_uuid),
             SymbolExpr::Value(e) => e.to_string(),
             SymbolExpr::Unary { op, expr } => {
                 let s = expr.repr(with_uuid);
@@ -3660,7 +3662,7 @@ impl PartialOrd for Value {
 pub fn replace_symbol(symbol_expr: &SymbolExpr, name_map: &HashMap<String, Symbol>) -> SymbolExpr {
     match symbol_expr {
         SymbolExpr::Symbol(existing_symbol) => {
-            let name = existing_symbol.name();
+            let name = existing_symbol.repr(false);
             if let Some(new_symbol) = name_map.get(&name) {
                 SymbolExpr::Symbol(new_symbol.clone())
             } else {

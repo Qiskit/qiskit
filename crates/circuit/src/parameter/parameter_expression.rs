@@ -119,7 +119,7 @@ impl fmt::Display for ParameterExpression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", {
             if let SymbolExpr::Symbol(s) = &self.expr {
-                s.name()
+                s.repr(false)
             } else {
                 match self.expr.eval(true) {
                     Some(e) => e.to_string(),
@@ -169,7 +169,7 @@ impl ParameterExpression {
     pub fn from_symbol(symbol: Symbol) -> Self {
         Self {
             expr: SymbolExpr::Symbol(symbol.clone()),
-            name_map: [(symbol.name(), symbol)].into(),
+            name_map: [(symbol.repr(false), symbol)].into(),
         }
     }
 
@@ -1423,7 +1423,7 @@ impl PyParameter {
     /// Returns the name of the :class:`.Parameter`.
     #[getter]
     fn name<'py>(&self, py: Python<'py>) -> Bound<'py, PyString> {
-        PyString::new(py, &self.symbol.name())
+        PyString::new(py, &self.symbol.repr(false))
     }
 
     /// Returns the :class:`~uuid.UUID` of the :class:`Parameter`.
@@ -1437,16 +1437,16 @@ impl PyParameter {
     }
 
     pub fn __repr__<'py>(&self, py: Python<'py>) -> Bound<'py, PyString> {
-        let str = format!("Parameter({})", self.symbol.name(),);
+        let str = format!("Parameter({})", self.symbol.repr(false),);
         PyString::new(py, str.as_str())
     }
 
     pub fn __getnewargs__(&self) -> (String, u128) {
-        (self.symbol.name(), self.symbol.uuid.as_u128())
+        (self.symbol.repr(false), self.symbol.uuid.as_u128())
     }
 
     pub fn __getstate__(&self) -> (String, u128) {
-        (self.symbol.name(), self.symbol.uuid.as_u128())
+        (self.symbol.repr(false), self.symbol.uuid.as_u128())
     }
 
     pub fn __setstate__(&mut self, state: (String, u128)) {
@@ -1640,7 +1640,7 @@ impl PyParameterVectorElement {
     }
 
     pub fn __repr__<'py>(&self, py: Python<'py>) -> Bound<'py, PyString> {
-        let str = format!("ParameterVectorElement({})", self.symbol.name(),);
+        let str = format!("ParameterVectorElement({})", self.symbol.repr(false),);
         PyString::new(py, str.as_str())
     }
 
