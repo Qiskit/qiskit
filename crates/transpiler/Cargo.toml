@@ -28,6 +28,7 @@ qiskit-synthesis.workspace = true
 qiskit-quantum-info.workspace = true
 thiserror.workspace = true
 bytemuck.workspace = true
+fixedbitset = "0.5.7"
 
 [dependencies.uuid]
 workspace = true

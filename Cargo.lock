@@ -1636,6 +1636,7 @@ dependencies = [
  "ahash 0.8.12",
  "approx",
  "bytemuck",
+ "fixedbitset 0.5.7",
  "hashbrown 0.15.4",
  "indexmap",
  "itertools 0.14.0",
