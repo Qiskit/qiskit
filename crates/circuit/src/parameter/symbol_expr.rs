@@ -122,6 +122,10 @@ impl Symbol {
         self.name.clone()
     }
 
+    pub fn name_ref(&self) -> &String {
+        &self.name
+    }
+
     pub fn repr(&self, with_uuid: bool) -> String {
         match (self.index, with_uuid) {
             (Some(i), true) => format!("{}[{}]_{}", self.name, i, self.uuid.as_u128()),

@@ -1276,11 +1276,11 @@ impl CircuitData {
     fn assign_parameters_mapping(&mut self, mapping: Bound<PyAny>) -> PyResult<()> {
         let mut items = Vec::new();
         for item in mapping.call_method0("items")?.try_iter()? {
-            let (param_ob, value) = item?.extract::<(Symbol, AssignParam)>()?;
-            let uuid = ParameterUuid::from_symbol(&param_ob);
+            let (symbol, value) = item?.extract::<(Symbol, AssignParam)>()?;
+            let uuid = ParameterUuid::from_symbol(&symbol);
             // It's fine if the mapping contains parameters that we don't have - just skip those.
             if let Ok(uses) = self.param_table.pop(uuid) {
-                items.push((param_ob, value.0, uses));
+                items.push((symbol, value.0, uses));
             }
         }
         self.assign_parameters_inner(items)
@@ -1461,9 +1461,9 @@ impl CircuitData {
     #[setter]
     pub fn set_global_phase(&mut self, angle: Param) -> PyResult<()> {
         if let Param::ParameterExpression(expr) = &self.global_phase {
-            for param_ob in expr.iter_symbols() {
+            for symbol in expr.iter_symbols() {
                 match self.param_table.remove_use(
-                    ParameterUuid::from_symbol(&param_ob),
+                    ParameterUuid::from_symbol(&symbol),
                     ParameterUse::GlobalPhase,
                 ) {
                     Ok(_)
@@ -1479,9 +1479,9 @@ impl CircuitData {
                 Ok(())
             }
             Param::ParameterExpression(expr) => {
-                for param_ob in expr.iter_symbols() {
+                for symbol in expr.iter_symbols() {
                     self.param_table
-                        .track(&param_ob, Some(ParameterUse::GlobalPhase))?;
+                        .track(&symbol, Some(ParameterUse::GlobalPhase))?;
                 }
                 self.global_phase = angle;
                 Ok(())
@@ -2098,8 +2098,8 @@ impl CircuitData {
                 instruction: instruction_index,
                 parameter: index as u32,
             };
-            for param_ob in param.iter_parameters()? {
-                self.param_table.track(&param_ob, Some(usage))?;
+            for symbol in param.iter_parameters()? {
+                self.param_table.track(&symbol, Some(usage))?;
             }
         }
         Ok(())
@@ -2120,8 +2120,8 @@ impl CircuitData {
                 instruction: instruction_index,
                 parameter: index as u32,
             };
-            for param_ob in param.iter_parameters()? {
-                self.param_table.untrack(&param_ob, usage)?;
+            for symbol in param.iter_parameters()? {
+                self.param_table.untrack(&symbol, usage)?;
             }
         }
         Ok(())
@@ -2140,9 +2140,9 @@ impl CircuitData {
         if matches!(self.global_phase, Param::Float(_)) {
             return Ok(());
         }
-        for param_ob in self.global_phase.iter_parameters()? {
+        for symbol in self.global_phase.iter_parameters()? {
             self.param_table
-                .track(&param_ob, Some(ParameterUse::GlobalPhase))?;
+                .track(&symbol, Some(ParameterUse::GlobalPhase))?;
         }
         Ok(())
     }
@@ -2201,7 +2201,7 @@ impl CircuitData {
             slice
                 .iter()
                 .zip(old_table.drain_ordered())
-                .map(|(value, (param_ob, uses))| (param_ob, value.clone(), uses)),
+                .map(|(value, (symbol, uses))| (symbol, value.clone(), uses)),
         )
     }
 
@@ -2216,11 +2216,11 @@ impl CircuitData {
         let mut items = Vec::new();
         for (param_uuid, value) in iter {
             // Assume all the Parameters are already in the circuit
-            let param_obj = self.get_parameter_by_uuid(param_uuid);
-            if let Some(param_obj) = param_obj {
+            let symbolj = self.get_parameter_by_uuid(param_uuid);
+            if let Some(symbolj) = symbolj {
                 // Copy or increase ref_count for Parameter, avoid acquiring the GIL.
                 items.push((
-                    param_obj.clone(),
+                    symbolj.clone(),
                     value.as_ref().clone(),
                     self.param_table.pop(param_uuid)?,
                 ));
@@ -2315,19 +2315,19 @@ impl CircuitData {
 
         // Bind a single `Parameter` into a `ParameterExpression`.
         let bind_expr = |expr: &ParameterExpression,
-                         param_ob: &Symbol,
+                         symbol: &Symbol,
                          value: &Param,
                          coerce: bool|
          -> PyResult<Param> {
             let new_expr = match value {
                 Param::Float(f) => {
                     let map: HashMap<Symbol, Value> =
-                        HashMap::from([(param_ob.clone(), Value::Real(*f))]);
+                        HashMap::from([(symbol.clone(), Value::Real(*f))]);
                     expr.bind(&map, false)?
                 }
                 Param::ParameterExpression(e) => {
                     let map: HashMap<Symbol, ParameterExpression> =
-                        HashMap::from([(param_ob.clone(), e.clone())]);
+                        HashMap::from([(symbol.clone(), e.clone())]);
                     expr.subs(&map, false)?
                 }
                 Param::Obj(ob) => panic!("Cannot assign object ({ob:?}) Param::Obj to parameter."),
@@ -2337,11 +2337,11 @@ impl CircuitData {
 
         let mut user_operations = HashMap::new();
         let mut uuids = Vec::new();
-        for (param_ob, value, uses) in iter {
+        for (symbol, value, uses) in iter {
             debug_assert!(!uses.is_empty());
             uuids.clear();
-            for inner_param_ob in value.as_ref().iter_parameters()? {
-                uuids.push(self.param_table.track(&inner_param_ob, None)?)
+            for inner_symbol in value.as_ref().iter_parameters()? {
+                uuids.push(self.param_table.track(&inner_symbol, None)?)
             }
             for usage in uses {
                 match usage {
@@ -2349,7 +2349,7 @@ impl CircuitData {
                         let Param::ParameterExpression(expr) = &self.global_phase else {
                             return Err(inconsistent());
                         };
-                        self.set_global_phase(bind_expr(expr, &param_ob, value.as_ref(), true)?)?;
+                        self.set_global_phase(bind_expr(expr, &symbol, value.as_ref(), true)?)?;
                     }
                     ParameterUse::Index {
                         instruction,
@@ -2362,7 +2362,7 @@ impl CircuitData {
                             let Param::ParameterExpression(expr) = &params[parameter] else {
                                 return Err(inconsistent());
                             };
-                            let new_param = bind_expr(expr, &param_ob, value.as_ref(), true)?;
+                            let new_param = bind_expr(expr, &symbol, value.as_ref(), true)?;
 
                             // standard gates don't allow for complex parameters
                             if let Param::ParameterExpression(expr) = &new_param {
@@ -2396,7 +2396,7 @@ impl CircuitData {
                             user_operations
                                 .entry(instruction)
                                 .or_insert_with(Vec::new)
-                                .push((param_ob.clone(), value.as_ref().clone()));
+                                .push((symbol.clone(), value.as_ref().clone()));
 
                             // this is a Python-only path, since we don't have custom Rust gates
                             Python::with_gil(|py| {
@@ -2411,7 +2411,7 @@ impl CircuitData {
                                         // For user gates, we don't coerce floats to integers in `Param`
                                         // so that users can use them if they choose.
                                         let new_param =
-                                            bind_expr(expr, &param_ob, value.as_ref(), false)?;
+                                            bind_expr(expr, &symbol, value.as_ref(), false)?;
                                         // Historically, `assign_parameters` called `validate_parameter`
                                         // only when a `ParameterExpression` became fully bound.  Some
                                         // "generalised" (or user) gates fail without this, though
@@ -2451,7 +2451,7 @@ impl CircuitData {
                                         Param::extract_no_coerce(
                                             &obj.call_method(
                                                 assign_parameters_attr,
-                                                ([(param_ob.coerce_into_py(py)?, value.as_ref())]
+                                                ([(symbol.coerce_into_py(py)?, value.as_ref())]
                                                     .into_py_dict(py)?,),
                                                 Some(
                                                     &[("inplace", false), ("flat_input", true)]

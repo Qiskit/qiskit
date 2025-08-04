@@ -17,11 +17,10 @@ use hashbrown::{HashMap, HashSet};
 use thiserror::Error;
 
 use pyo3::exceptions::PyTypeError;
+use pyo3::import_exception;
 use pyo3::prelude::*;
 use pyo3::types::PySet;
-use pyo3::{import_exception, intern};
 
-use crate::imports::UUID;
 use crate::parameter::parameter_expression::{PyParameter, PyParameterExpression};
 use crate::parameter::symbol_expr::Symbol;
 
@@ -51,13 +50,12 @@ pub enum ParameterUse {
 #[derive(Clone, Debug)]
 pub struct ParameterInfo {
     uses: HashSet<ParameterUse>,
-    name: String,   // TODO probably redundant, just get Symbol.name(), which is cheap
-    object: Symbol, // TODO rename this to symbol
+    symbol: Symbol, // TODO rename this to symbol
 }
 
-/// Type-safe UUID for a symbolic parameter.  This does not track the name of the `Parameter`; it
-/// can't be used alone to reconstruct a Python instance.  That tracking remains only withing the
-/// `ParameterTable`.
+/// Type-safe UUID for a symbolic parameter.  This does not track the name of a [Symbol]; it
+/// can't be used alone to reconstruct one.  That tracking remains only withing the
+/// [ParameterTable].
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
 pub struct ParameterUuid(u128);
 impl ParameterUuid {
@@ -86,24 +84,12 @@ impl ParameterUuid {
     }
 }
 
-/// This implementation of `FromPyObject` is for the UUID itself, which is what the `ParameterUuid`
-/// struct actually encapsulates.
-impl<'py> FromPyObject<'py> for ParameterUuid {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if ob.is_exact_instance(UUID.get_bound(ob.py())) {
-            ob.getattr(intern!(ob.py(), "int"))?.extract().map(Self)
-        } else {
-            Err(PyTypeError::new_err("not a UUID"))
-        }
-    }
-}
-
 #[derive(Clone, Default, Debug)]
 pub struct ParameterTable {
     /// Mapping of the parameter key (its UUID) to the information on it tracked by this table.
     by_uuid: HashMap<ParameterUuid, ParameterInfo>,
     /// Mapping of the parameter names to the UUID that represents them.  
-    by_name: HashMap<String, ParameterUuid>,
+    by_repr: HashMap<String, ParameterUuid>,
     /// Cache of the sort order of the parameters.  This is lexicographical for most parameters,
     /// except elements of a `ParameterVector` are sorted within the vector by numerical index.  We
     /// calculate this on demand and cache it.
@@ -127,18 +113,17 @@ impl ParameterTable {
         self.by_uuid.len()
     }
 
-    /// Add a new usage of a parameter coming in from Python space, optionally adding a first usage
-    /// to it.
+    /// Add a new usage of a parameter coming in, optionally adding a first usage to it.
     ///
     /// The no-use form is useful when doing parameter assignments from Rust space, where the
     /// replacement is itself parametric; the replacement can be extracted once, then subsequent
     /// lookups and updates done without interaction with Python.
     pub fn track(
         &mut self,
-        param_ob: &Symbol, // TODO rename param_ob
+        symbol: &Symbol,
         usage: Option<ParameterUse>,
     ) -> PyResult<ParameterUuid> {
-        let uuid = ParameterUuid::from_symbol(param_ob);
+        let uuid = ParameterUuid::from_symbol(symbol);
         match self.by_uuid.entry(uuid) {
             Entry::Occupied(mut entry) => {
                 if let Some(usage) = usage {
@@ -146,14 +131,14 @@ impl ParameterTable {
                 }
             }
             Entry::Vacant(entry) => {
-                let name = param_ob.repr(false);
-                if self.by_name.contains_key(&name) {
+                let repr = symbol.repr(false);
+                if self.by_repr.contains_key(&repr) {
                     return Err(CircuitError::new_err(format!(
                         "name conflict adding parameter '{}'",
-                        &name
+                        &repr
                     )));
                 }
-                self.by_name.insert(name.clone(), uuid);
+                self.by_repr.insert(repr.clone(), uuid);
                 let mut uses = HashSet::new();
                 if let Some(usage) = usage {
                     unsafe {
@@ -161,9 +146,8 @@ impl ParameterTable {
                     }
                 };
                 entry.insert(ParameterInfo {
-                    name,
                     uses,
-                    object: param_ob.clone(),
+                    symbol: symbol.clone(),
                 });
                 self.invalidate_cache();
             }
@@ -171,23 +155,23 @@ impl ParameterTable {
         Ok(uuid)
     }
 
-    /// Untrack one use of a single Python-space `Parameter` object from the table, discarding all
-    /// other tracking of that `Parameter` if this was the last usage of it.
-    pub fn untrack(&mut self, param_ob: &Symbol, usage: ParameterUse) -> PyResult<()> {
-        self.remove_use(ParameterUuid::from_symbol(param_ob), usage)
+    /// Untrack one use of a single [Symbol] object from the table, discarding all
+    /// other tracking of that [Symbol] if this was the last usage of it.
+    pub fn untrack(&mut self, symbol: &Symbol, usage: ParameterUse) -> PyResult<()> {
+        self.remove_use(ParameterUuid::from_symbol(symbol), usage)
             .map_err(PyErr::from)
     }
 
     /// Lookup the Python parameter object by name.
     pub fn parameter_by_name(&self, name: &String) -> Option<&Symbol> {
-        self.by_name
+        self.by_repr
             .get(name)
-            .map(|uuid| &self.by_uuid[uuid].object)
+            .map(|uuid| &self.by_uuid[uuid].symbol)
     }
 
     /// Lookup the Python parameter object by uuid.
     pub fn parameter_by_uuid(&self, uuid: ParameterUuid) -> Option<&Symbol> {
-        self.by_uuid.get(&uuid).map(|param| &param.object)
+        self.by_uuid.get(&uuid).map(|param| &param.symbol)
     }
 
     /// Get the (maybe cached) Python list of the sorted `Parameter` objects.
@@ -196,14 +180,14 @@ impl ParameterTable {
             self.order_cache
                 .get_or_init(|| self.sorted_order())
                 .iter()
-                .map(|uuid| self.by_uuid[uuid].object.clone())
+                .map(|uuid| self.by_uuid[uuid].symbol.clone())
                 .collect()
         })
     }
 
-    /// Get a Python set of all tracked `Parameter` objects.
+    /// Get a set of all tracked [Symbol] objects.
     pub fn parameters_unsorted(&self) -> HashSet<&Symbol> {
-        HashSet::from_iter(self.by_uuid.values().map(|info| &info.object))
+        HashSet::from_iter(self.by_uuid.values().map(|info| &info.symbol))
     }
 
     /// Get the sorted order of the `ParameterTable`.  This does not access the cache.
@@ -211,8 +195,8 @@ impl ParameterTable {
         let mut out = self.by_uuid.keys().copied().collect::<Vec<_>>();
         out.sort_unstable_by_key(|uuid| {
             let info = &self.by_uuid[uuid];
-            let index = info.object.index.unwrap_or(0);
-            let name = info.object.name();
+            let index = info.symbol.index.unwrap_or(0);
+            let name = info.symbol.name_ref();
             (name, index)
         });
         out
@@ -248,7 +232,7 @@ impl ParameterTable {
             return Err(ParameterTableError::UsageNotTracked(usage));
         }
         if info.uses.is_empty() {
-            self.by_name.remove(&info.name);
+            self.by_repr.remove(&info.symbol.repr(false));
             entry.remove_entry();
             self.invalidate_cache();
         }
@@ -264,8 +248,8 @@ impl ParameterTable {
             .by_uuid
             .remove(&uuid)
             .ok_or(ParameterTableError::ParameterNotTracked(uuid))?;
-        self.by_name
-            .remove(&info.name)
+        self.by_repr
+            .remove(&info.symbol.repr(false))
             .expect("each parameter should be tracked by both UUID and name");
         self.invalidate_cache();
         Ok(info.uses)
@@ -282,7 +266,7 @@ impl ParameterTable {
             .take()
             .unwrap_or_else(|| self.sorted_order());
         let by_uuid = ::std::mem::take(&mut self.by_uuid);
-        self.by_name.clear();
+        self.by_repr.clear();
         self.parameters_cache.take();
         ParameterTableDrain {
             order: order.into_iter(),
@@ -294,7 +278,7 @@ impl ParameterTable {
     /// internal data storage.
     pub fn clear(&mut self) {
         self.by_uuid.clear();
-        self.by_name.clear();
+        self.by_repr.clear();
         self.invalidate_cache();
     }
 
@@ -341,7 +325,7 @@ impl Iterator for ParameterTableDrain {
                 .by_uuid
                 .remove(&uuid)
                 .expect("tracked UUIDs should be consistent");
-            (info.object, info.uses)
+            (info.symbol, info.uses)
         })
     }
 
