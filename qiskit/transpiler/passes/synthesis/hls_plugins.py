@@ -1615,24 +1615,16 @@ class ModularAdderSynthesisDefault(HighLevelSynthesisPlugin):
         if not isinstance(high_level_object, ModularAdderGate):
             return None
 
-        # For up to 5 qubits, the QFT-based adder is best
-        if high_level_object.num_state_qubits <= 5:
+        # For up to 4 qubits, the QFT-based adder is best
+        if high_level_object.num_state_qubits <= 4:
             decomposition = ModularAdderSynthesisD00().run(
                 high_level_object, coupling_map, target, qubits, **options
             )
             if decomposition is not None:
                 return decomposition
 
-        # Otherwise, the following decomposition is best (if there are enough ancillas)
-        if (
-            decomposition := ModularAdderSynthesisC04().run(
-                high_level_object, coupling_map, target, qubits, **options
-            )
-        ) is not None:
-            return decomposition
-
-        # Otherwise, use the QFT-adder again
-        return ModularAdderSynthesisD00().run(
+        # Otherwise, use V17 synthesis
+        return ModularAdderSynthesisV17().run(
             high_level_object, coupling_map, target, qubits, **options
         )
 

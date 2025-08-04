@@ -310,22 +310,14 @@ class TestAdder(QiskitTestCase):
             synth = hls(circuit)
             ops = set(synth.count_ops().keys())
             self.assertTrue("cp" in ops)
-        with self.subTest(name="ModularAdder_also_use_qft_d00"):
+        with self.subTest(name="ModularAdder_use_v17"):
             adder = ModularAdderGate(6)
             circuit = QuantumCircuit(12)
             circuit.append(adder, range(12))
             hls = HighLevelSynthesis()
             synth = hls(circuit)
             ops = set(synth.count_ops().keys())
-            self.assertTrue("cp" in ops)
-        with self.subTest(name="ModularAdder_use_ripple_c04"):
-            adder = ModularAdderGate(6)
-            circuit = QuantumCircuit(16)
-            circuit.append(adder, range(12))
-            hls = HighLevelSynthesis()
-            synth = hls(circuit)
-            ops = set(synth.count_ops().keys())
-            self.assertTrue("MAJ" in ops)
+            self.assertTrue("rccx" in ops)
 
 
 if __name__ == "__main__":
