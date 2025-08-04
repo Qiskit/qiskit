@@ -116,8 +116,6 @@ fn apply_scheduled_delay_op(
         node_start_time_dict.set_item(&py_new_node, t_start)?;
     } else {
         // use dt
-        // let py_start: PyObject = (*t_start as usize).into_pyobject(py).unwrap().into();
-        // node_start_time_dict.set_item(&py_new_node, py_start)?;
         node_start_time_dict.set_item(&py_new_node, *t_start as usize)?;
     }
 
