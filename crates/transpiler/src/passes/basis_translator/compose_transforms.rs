@@ -26,7 +26,7 @@ use qiskit_circuit::operations::{
     get_standard_gate_names, ArrayType, StandardGate, StandardInstruction, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::parameter::parameter_expression::{ParameterError, ParameterExpression};
+use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::Symbol;
 use qiskit_circuit::parameter_table::ParameterUuid;
 use qiskit_circuit::Qubit;
@@ -61,7 +61,7 @@ pub(super) fn compose_transforms<'a>(
         let num_params = gate_param_counts[&(gate_name.clone(), gate_num_qubits)];
 
         // The last usage of Python left is the parameter vector here.
-        let placeholder_params: SmallVec<[Param; 3]> = (0..num_params as u32)
+        let mut placeholder_params: SmallVec<[Param; 3]> = (0..num_params as u32)
             .map(|idx| {
                 Param::ParameterExpression(ParameterExpression::from_symbol(Symbol::new(
                     &gate_name,
@@ -78,12 +78,13 @@ pub(super) fn compose_transforms<'a>(
         let gate = if let Some(op) = name_to_packed_operation(&gate_name, gate_num_qubits) {
             op
         } else {
-            Python::with_gil(|py| -> PyResult<OperationFromPython> {
+            let extract_py = Python::with_gil(|py| -> PyResult<OperationFromPython> {
                 GATE.get_bound(py)
                     .call1((&gate_name, gate_num_qubits, placeholder_params.as_ref()))?
                     .extract()
-            })?
-            .operation
+            })?;
+            placeholder_params = extract_py.params;
+            extract_py.operation
         };
         let qubits: Vec<Qubit> = (0..dag.num_qubits() as u32).map(Qubit).collect();
         dag.apply_operation_back(
@@ -125,18 +126,13 @@ pub(super) fn compose_transforms<'a>(
                         .iter()
                         .map(|x| match x {
                             Param::ParameterExpression(parameter_expression) => {
-                                let Ok(symbol) = parameter_expression.try_to_symbol() else {
-                                    return Err(ParameterError::NotASymbol);
-                                };
-                                Ok(ParameterUuid::from_symbol(&symbol))
+                                let symbol = parameter_expression.try_to_symbol().unwrap();
+                                ParameterUuid::from_symbol(&symbol)
                             }
-                            _ => Err(ParameterError::NotASymbol),
+                            _ => panic!("A non parameter-expression has suck in"),
                         })
                         .zip(params)
-                        .map(|(uuid, param)| -> PyResult<(ParameterUuid, Param)> {
-                            Ok((uuid?, param.clone()))
-                        })
-                        .collect::<PyResult<_>>()?;
+                        .collect();
                 let mut replacement = equiv.clone();
                 replacement
                     .0

@@ -631,13 +631,18 @@ fn replace_node(
         }
         dag.add_global_phase(target_dag.global_phase())?;
     } else {
-        let parameter_map: IndexMap<ParameterExpression, Param> =
-            IndexMap::from_iter(target_params.iter().zip(node.params_view()).filter_map(
-                |(key, val)| match key {
-                    Param::ParameterExpression(param) => Some((param.clone(), val.clone())),
-                    _ => None
-                },
-            ));
+        let parameter_map: HashMap<Symbol, Param> = HashMap::from_iter(
+            target_params
+                .iter()
+                .zip(node.params_view())
+                .filter_map(|(key, val)| match key {
+                    Param::ParameterExpression(param) => param
+                        .try_to_symbol()
+                        .ok()
+                        .map(|param| (param.clone(), val.clone())),
+                    _ => None,
+                }),
+        );
         for inner_index in target_dag.topological_op_nodes()? {
             let inner_node = &target_dag[inner_index].unwrap_operation();
             let old_qargs = dag.qargs_interner().get(node.qubits);
@@ -679,11 +684,8 @@ fn replace_node(
                     if let Param::ParameterExpression(param_obj) = param {
                         let new_value: Param = {
                             let mut bind_dict = HashMap::new();
-                            for key in param.iter_parameters()? {
-                                bind_dict.insert(
-                                    key.clone(),
-                                    parameter_map[&ParameterExpression::from_symbol(key)].clone(),
-                                );
+                            for key in param_obj.iter_symbols() {
+                                bind_dict.insert(key.clone(), parameter_map[&key].clone());
                             }
                             let mut new_value: ParameterExpression;
                             if bind_dict
@@ -708,27 +710,31 @@ fn replace_node(
                             } else {
                                 let parsed_bind_dict = bind_dict
                                     .into_iter()
-                                    .map(|(key, param)| match param {
-                                        Param::ParameterExpression(parameter_expression) => {
-                                            parameter_expression
-                                                .try_to_value(false)
-                                                .map(|val| (key, val))
-                                        }
-                                        Param::Float(val) => Ok((key, Value::Real(val))),
+                                    .filter_map(|(key, param)| match param {
+                                        Param::Float(val) => Some(Ok((key, Value::Real(val)))),
                                         Param::Obj(py_obj) => Python::with_gil(|py| {
-                                            py_obj.extract::<Value>(py).map(|val| (key, val))
+                                            py_obj.extract::<Value>(py).map(|val| Some((key, val)))
                                         })
-                                        .map_err(|_| ParameterError::InvalidValue),
+                                        .map_err(|_| ParameterError::InvalidValue)
+                                        .transpose(),
+                                        _ => None,
                                     })
                                     .collect::<Result<_, ParameterError>>()?;
                                 new_value = param_obj.bind(&parsed_bind_dict, false)?;
                             }
                             if new_value.iter_symbols().next().is_none() {
-                                new_value = ParameterExpression::from_symbol_expr(
-                                    SymbolExpr::Value(new_value.try_to_value(false)?),
-                                );
+                                match new_value.try_to_value(false) {
+                                    Ok(Value::Real(num)) => Param::Float(num),
+                                    Ok(parsed) => Param::ParameterExpression(
+                                        ParameterExpression::from_symbol_expr(SymbolExpr::Value(
+                                            parsed,
+                                        )),
+                                    ),
+                                    Err(_) => Param::ParameterExpression(new_value),
+                                }
+                            } else {
+                                Param::ParameterExpression(new_value)
                             }
-                            Param::ParameterExpression(new_value)
                         };
                         new_params.push(new_value);
                     } else {
@@ -777,10 +783,7 @@ fn replace_node(
                 let new_phase: Param = {
                     let mut bind_dict = HashMap::new();
                     for key in old_phase.iter_symbols() {
-                        bind_dict.insert(
-                            key.clone(),
-                            parameter_map[&ParameterExpression::from_symbol(key)].clone(),
-                        );
+                        bind_dict.insert(key.clone(), parameter_map[&key].clone());
                     }
                     let mut new_phase: ParameterExpression;
                     if bind_dict
@@ -805,33 +808,35 @@ fn replace_node(
                     } else {
                         let parsed_bind_dict = bind_dict
                             .into_iter()
-                            .map(|(key, param)| match param {
-                                Param::ParameterExpression(parameter_expression) => {
-                                    parameter_expression
-                                        .try_to_value(false)
-                                        .map(|val| (key, val))
-                                }
-                                Param::Float(val) => Ok((key, Value::Real(val))),
+                            .filter_map(|(key, param)| match param {
+                                Param::Float(val) => Some(Ok((key, Value::Real(val)))),
                                 Param::Obj(py_obj) => Python::with_gil(|py| {
-                                    py_obj.extract::<Value>(py).map(|val| (key, val))
+                                    py_obj.extract::<Value>(py).map(|val| Some((key, val)))
                                 })
-                                .map_err(|_| ParameterError::InvalidValue),
+                                .map_err(|_| ParameterError::InvalidValue)
+                                .transpose(),
+                                _ => None,
                             })
                             .collect::<Result<_, ParameterError>>()?;
                         new_phase = old_phase.bind(&parsed_bind_dict, false)?;
                     }
                     if new_phase.iter_symbols().next().is_none() {
-                        let parsed = new_phase.try_to_value(false)?;
-                        if matches!(parsed, Value::Complex(_)) {
-                            return Err(TranspilerError::new_err(format!(
-                                "Global phase must be real, but got {}",
-                                parsed
-                            )));
+                        match new_phase.try_to_value(false) {
+                            Ok(Value::Real(num)) => Param::Float(num),
+                            Ok(Value::Complex(parsed)) => {
+                                return Err(TranspilerError::new_err(format!(
+                                    "Global phase must be real, but got {}",
+                                    parsed
+                                )))
+                            }
+                            Ok(parsed) => Param::ParameterExpression(
+                                ParameterExpression::from_symbol_expr(SymbolExpr::Value(parsed)),
+                            ),
+                            Err(_) => Param::ParameterExpression(new_phase),
                         }
-                        new_phase =
-                            ParameterExpression::from_symbol_expr(SymbolExpr::Value(parsed));
+                    } else {
+                        Param::ParameterExpression(new_phase)
                     }
-                    Param::ParameterExpression(new_phase)
                 };
                 dag.add_global_phase(&new_phase)?;
             }
