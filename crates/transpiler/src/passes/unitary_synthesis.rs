@@ -785,7 +785,7 @@ fn get_2q_decomposers_from_target(
             return Ok(Some(decomposers));
         } else {
             return Err(QiskitError::new_err(
-                "Target has no gates available on qubits to synthesize over without python",
+                "Target has no gates available on qubits to synthesize over without Python",
             ));
         }
     }
@@ -1255,7 +1255,7 @@ fn synth_error(
 /// Perform 2q unitary synthesis for a given `unitary`. If some `target` is provided,
 /// the decomposition will be hardware-aware and take into the account the reported
 /// gate errors to select the best method among the options. If `target` is `None``,
-/// the decompostion will use the given `basis_gates` and the first valid decomposition
+/// the decomposition will use the given `basis_gates` and the first valid decomposition
 /// will be returned (no selection).
 fn run_2q_unitary_synthesis(
     unitary: ArrayView2<Complex64>,
