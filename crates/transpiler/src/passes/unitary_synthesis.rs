@@ -56,12 +56,12 @@ const PI4: f64 = PI / 4.;
 
 /// The matcher for the set of standard gates that the TwoQubitControlledUDecomposer
 /// supports
-// Make sure that this is kept in sync with get_2q_decomposer_from_basis()
 macro_rules! PARAM_SET {
+    // Make sure that this is kept in sync with the static array PARAM_GATES below
     () => {
-        StandardGate::RZZ
-            | StandardGate::RXX
+        StandardGate::RXX
             | StandardGate::RYY
+            | StandardGate::RZZ
             | StandardGate::RZX
             | StandardGate::CRX
             | StandardGate::CRY
@@ -70,20 +70,43 @@ macro_rules! PARAM_SET {
     };
 }
 
+// Make sure that this is kept in sync with the macro PARAM_SET above
+static PARAM_SET_BASIS_GATES: [StandardGate; 8] = [
+    StandardGate::RXX,
+    StandardGate::RYY,
+    StandardGate::RZZ,
+    StandardGate::RZX,
+    StandardGate::CRX,
+    StandardGate::CRY,
+    StandardGate::CRZ,
+    StandardGate::CPhase,
+];
+
 /// The matcher for the set of standard gates that the TwoQubitBasisDecomposer
 /// supports
-// Make sure that this is kept in sync with get_2q_decomposer_from_basis()
 macro_rules! TWO_QUBIT_BASIS_SET {
+    // Make sure that this is kept in sync with the static array TWO_QUBIT_BASIS_SET_GATES below
     () => {
         StandardGate::CX
             | StandardGate::CY
             | StandardGate::CZ
-            | StandardGate::ECR
+            | StandardGate::CH
             | StandardGate::DCX
             | StandardGate::ISwap
-            | StandardGate::CH
+            | StandardGate::ECR
     };
 }
+
+// Make sure this is kept in sync with the macro TWO_QUBIT_BASIS_SET above
+static TWO_QUBIT_BASIS_SET_GATES: [StandardGate; 7] = [
+    StandardGate::CX,
+    StandardGate::CY,
+    StandardGate::CZ,
+    StandardGate::CH,
+    StandardGate::DCX,
+    StandardGate::ISwap,
+    StandardGate::ECR,
+];
 
 #[derive(Clone, Debug)]
 enum DecomposerType {
@@ -488,33 +511,16 @@ fn get_2q_decomposer_from_basis(
     pulse_optimize: Option<bool>,
 ) -> PyResult<Option<DecomposerElement>> {
     // Non-parametrized 2q basis candidates (TwoQubitBasisDecomposer)
-    // Make sure this is kept in sync with: TWO_QUBIT_BASIS_SET
-    let basis_names: IndexMap<&str, StandardGate, ::ahash::RandomState> = [
-        ("cx", StandardGate::CX),
-        ("cy", StandardGate::CY),
-        ("cz", StandardGate::CZ),
-        ("cz", StandardGate::CZ),
-        ("ch", StandardGate::CH),
-        ("dcx", StandardGate::DCX),
-        ("iswap", StandardGate::ISwap),
-        ("ecr", StandardGate::ECR),
-    ]
-    .into_iter()
-    .collect();
+    let basis_names: IndexMap<&str, StandardGate, ::ahash::RandomState> = TWO_QUBIT_BASIS_SET_GATES
+        .iter()
+        .map(|x| (x.name(), *x))
+        .collect();
     // Parametrized 2q basis candidates (TwoQubitControlledUDecomposer)
-    // Make sure this is kept in sync with PARAM_SET
-    let param_basis_names: IndexMap<&str, StandardGate, ::ahash::RandomState> = [
-        ("rxx", StandardGate::RXX),
-        ("rzx", StandardGate::RZX),
-        ("rzz", StandardGate::RZZ),
-        ("ryy", StandardGate::RYY),
-        ("cphase", StandardGate::CPhase),
-        ("crx", StandardGate::CRX),
-        ("cry", StandardGate::CRY),
-        ("crz", StandardGate::CRZ),
-    ]
-    .into_iter()
-    .collect();
+    let param_basis_names: IndexMap<&str, StandardGate, ::ahash::RandomState> =
+        PARAM_SET_BASIS_GATES
+            .iter()
+            .map(|x| (x.name(), *x))
+            .collect();
     // 1q basis (both decomposers)
     let euler_basis = match get_euler_basis_set(basis_gates.clone())
         .get_bases()
