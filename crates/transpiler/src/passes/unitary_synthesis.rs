@@ -215,7 +215,7 @@ fn apply_synth_sequence(
 }
 
 /// Iterate over `DAGCircuit` to perform unitary synthesis.
-/// For each elegible gate: find decomposers, select the synthesis
+/// For each eligible gate: find decomposers, select the synthesis
 /// method with the highest fidelity score and apply decompositions. The available methods are:
 ///     * 1q synthesis: OneQubitEulerDecomposer
 ///     * 2q synthesis: TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer, XXDecomposer (Python, only if target is provided)
