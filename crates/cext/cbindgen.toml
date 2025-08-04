@@ -16,12 +16,12 @@ after_includes = """
 #define QISKIT_RELEASE_LEVEL_FINAL 0xF // final release
 
 #define QISKIT_VERSION_MAJOR 2
-#define QISKIT_VERSION_MINOR 1
+#define QISKIT_VERSION_MINOR 2
 #define QISKIT_VERSION_PATCH 0
-#define QISKIT_RELEASE_LEVEL QISKIT_RELEASE_LEVEL_RC
-#define QISKIT_RELEASE_SERIAL 1  // 0 for dev or final
+#define QISKIT_RELEASE_LEVEL QISKIT_RELEASE_LEVEL_DEV
+#define QISKIT_RELEASE_SERIAL 0  // for the final release, this should be 0
 
-#define QISKIT_VERSION "2.1.0rc1"
+#define QISKIT_VERSION "2.2.0dev"
 
 #define QISKIT_GET_VERSION_HEX(major, minor, patch, level, serial) (\
     (major & 0xff) << 24 | \
