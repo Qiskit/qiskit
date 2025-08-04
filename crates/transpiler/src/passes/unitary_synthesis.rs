@@ -442,13 +442,12 @@ pub fn run_unitary_synthesis(
             }
             // Run 3q+ synthesis
             _ => {
-                if !run_python_decomposers {
+                if basis_gates.is_empty() && target.is_none() {
+                    out_dag.push_back(packed_instr.clone())?;
+                } else if !run_python_decomposers {
                     return Err(TranspilerError::new_err(
                         "3q+ unitary decomposition requires Python",
                     ));
-                }
-                if basis_gates.is_empty() && target.is_none() {
-                    out_dag.push_back(packed_instr.clone())?;
                 } else {
                     let synth_dag = Python::with_gil(|py| {
                         let qs_decomposition: &Bound<'_, PyAny> =
