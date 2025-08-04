@@ -574,7 +574,7 @@ class TemplateSubstitution:
 
                 if isinstance(circuit_param, ParameterExpression):
                     for param in circuit_param.parameters:
-                        circ_dict[param] = param.sympify()
+                        circ_dict[param.name] = param
             elif template_param != circuit_param:
                 # Both are numeric parameters, but aren't equal.
                 return None
