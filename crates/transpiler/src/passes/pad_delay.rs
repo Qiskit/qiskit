@@ -27,8 +27,6 @@ pub fn run_pad_delay(
     py: Python,
     dag: &mut DAGCircuit,
     qubit: ShareableQubit,
-    // t_start: usize,
-    // t_end: usize,
     t_start: f64,
     t_end: f64,
     fill_very_end: bool,
@@ -52,8 +50,6 @@ pub fn run_pad_delay(
         dag,
         &t_start,
         &time_interval,
-        // &(t_start as f64),
-        // &(time_interval as f64),
         &qubit,
         &property_set,
     )?;
@@ -67,8 +63,6 @@ pub fn run_pad_delay(
 fn apply_scheduled_delay_op(
     py: Python,
     dag: &mut DAGCircuit,
-    // t_start: &usize,
-    // time_interval: &usize,
     t_start: &f64,
     time_interval: &f64,
     qubit: &ShareableQubit,
@@ -81,13 +75,11 @@ fn apply_scheduled_delay_op(
             .and_then(|s| DelayUnit::from_str(&s).map_err(PyErr::from))
             .unwrap_or(DelayUnit::DT);
         StandardInstruction::Delay(u)
-    };
-    
-    
+    };        
 
-    let use_secs = delay_instr != StandardInstruction::Delay(DelayUnit::DT);
     // Handle case where dt never told:
     // test.python.circuit.test_scheduled_circuit.TestScheduledCircuit.test_schedule_circuit_in_sec_when_no_one_tells_dt
+    let use_secs = delay_instr != StandardInstruction::Delay(DelayUnit::DT);    
     let params = if use_secs {
         // seconds mode → float
         let secs = *time_interval;
@@ -118,20 +110,15 @@ fn apply_scheduled_delay_op(
     let node_start_time_obj = property_set.get_item("node_start_time")?;
     let node_start_time_dict = node_start_time_obj.downcast::<PyDict>()?;
     
-    // This seems to add a decimal point to the time interval when passing it back to python.
-    // Again, the difference in internal representation breaks some tests
-    // using f64
-    // node_start_time_dict.set_item(&py_new_node, t_start)?;
-
-    // using pyobject
-    // let py_start: PyObject = (*t_start as usize).into_pyobject(py).unwrap().into();
-    // node_start_time_dict.set_item(&py_new_node, py_start)?;
+    // Required for tests like 
+    // `test.python.transpiler.test_context_aware_dd.TestContextAwareDD.test_collecting_donut`
     if use_secs {
         node_start_time_dict.set_item(&py_new_node, t_start)?;
     } else {
         // use dt
-        let py_start: PyObject = (*t_start as usize).into_pyobject(py).unwrap().into();
-        node_start_time_dict.set_item(&py_new_node, py_start)?;
+        // let py_start: PyObject = (*t_start as usize).into_pyobject(py).unwrap().into();
+        // node_start_time_dict.set_item(&py_new_node, py_start)?;
+        node_start_time_dict.set_item(&py_new_node, *t_start as usize)?;
     }
 
     Ok(())
@@ -141,18 +128,3 @@ pub fn pad_delay_mod(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(run_pad_delay))?;
     Ok(())
 }
-
-
-// TODO use a function like this or the *new* Impl from_str in operations::DelayUnit ?
-// fn map_delay_str_to_enum(delay_str: &str) -> DelayUnit {
-//     match delay_str {
-//         "ns" => DelayUnit::NS,
-//         "ps" => DelayUnit::PS,
-//         "us" => DelayUnit::US,
-//         "ms" => DelayUnit::MS,
-//         "s" => DelayUnit::S,
-//         "dt" => DelayUnit::DT,
-//         "expr" => DelayUnit::EXPR,
-//         _ => unreachable!(),
-//     }
-// }

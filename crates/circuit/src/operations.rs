@@ -366,8 +366,8 @@ impl<'py> FromPyObject<'py> for DelayUnit {
     }
 }
 
-// TODO use this or a function map_delay_str_to_enum instead?
-// We cannot do a 
+// NOTE: use this or a non-impl function map_delay_str_to_enum instead?
+// We cannot do 
 // ```
 // impl<T> TryFrom<T> for DelayUnit
 // where

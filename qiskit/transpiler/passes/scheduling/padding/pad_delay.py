@@ -13,14 +13,13 @@
 """Padding pass to insert Delay to the empty slots."""
 
 from qiskit.circuit import Qubit
-from qiskit.circuit.delay import Delay
-from qiskit.dagcircuit import DAGCircuit, DAGNode, DAGOutNode
+from qiskit.dagcircuit import DAGCircuit, DAGNode
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.instruction_durations import InstructionDurations
 
 from qiskit._accelerate.pad_delay import (
     pad_delay,
-)  # is this making a circular import? _accelerate fails to load in py39 and py312
+)
 
 from .base_padding import BasePadding
 
