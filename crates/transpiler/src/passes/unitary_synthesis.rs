@@ -54,6 +54,37 @@ use std::sync::OnceLock;
 const PI2: f64 = PI / 2.;
 const PI4: f64 = PI / 4.;
 
+/// The matcher for the set of standard gates that the TwoQubitControlledUDecomposer
+/// supports
+// Make sure that this is kept in sync with get_2q_decomposer_from_basis()
+macro_rules! PARAM_SET {
+    () => {
+        StandardGate::RZZ
+            | StandardGate::RXX
+            | StandardGate::RYY
+            | StandardGate::RZX
+            | StandardGate::CRX
+            | StandardGate::CRY
+            | StandardGate::CRZ
+            | StandardGate::CPhase
+    };
+}
+
+/// The matcher for the set of standard gates that the TwoQubitBasisDecomposer
+/// supports
+// Make sure that this is kept in sync with get_2q_decomposer_from_basis()
+macro_rules! TWO_QUBIT_BASIS_SET {
+    () => {
+        StandardGate::CX
+            | StandardGate::CY
+            | StandardGate::CZ
+            | StandardGate::ECR
+            | StandardGate::DCX
+            | StandardGate::ISwap
+            | StandardGate::CH
+    };
+}
+
 #[derive(Clone, Debug)]
 enum DecomposerType {
     TwoQubitBasis(Box<TwoQubitBasisDecomposer>),
@@ -458,15 +489,21 @@ fn get_2q_decomposer_from_basis(
     pulse_optimize: Option<bool>,
 ) -> PyResult<Option<DecomposerElement>> {
     // Non-parametrized 2q basis candidates (TwoQubitBasisDecomposer)
+    // Make sure this is kept in sync with: TWO_QUBIT_BASIS_SET
     let basis_names: IndexMap<&str, StandardGate, ::ahash::RandomState> = [
         ("cx", StandardGate::CX),
+        ("cy", StandardGate::CY),
         ("cz", StandardGate::CZ),
+        ("cz", StandardGate::CZ),
+        ("ch", StandardGate::CH),
+        ("dcx", StandardGate::DCX),
         ("iswap", StandardGate::ISwap),
         ("ecr", StandardGate::ECR),
     ]
     .into_iter()
     .collect();
     // Parametrized 2q basis candidates (TwoQubitControlledUDecomposer)
+    // Make sure this is kept in sync with PARAM_SET
     let param_basis_names: IndexMap<&str, StandardGate, ::ahash::RandomState> = [
         ("rxx", StandardGate::RXX),
         ("rzx", StandardGate::RZX),
@@ -663,21 +700,10 @@ fn get_2q_decomposers_from_target(
             };
         }
     }
-    if available_2q_param_basis.values().all(|(gate, _props)| {
-        matches!(
-            gate.operation.try_standard_gate(),
-            Some(
-                StandardGate::RZZ
-                    | StandardGate::RXX
-                    | StandardGate::RYY
-                    | StandardGate::RZX
-                    | StandardGate::CRX
-                    | StandardGate::CRY
-                    | StandardGate::CRZ
-                    | StandardGate::CPhase
-            )
-        )
-    }) && !available_2q_param_basis.is_empty()
+    if available_2q_param_basis
+        .values()
+        .all(|(gate, _props)| matches!(gate.operation.try_standard_gate(), Some(PARAM_SET!())))
+        && !available_2q_param_basis.is_empty()
     {
         return Ok(Some(decomposers));
     }
@@ -703,15 +729,7 @@ fn get_2q_decomposers_from_target(
         .filter_map(|(k, (gate, props))| {
             if matches!(
                 gate.operation.try_standard_gate(),
-                Some(
-                    StandardGate::CX
-                        | StandardGate::CY
-                        | StandardGate::CZ
-                        | StandardGate::ECR
-                        | StandardGate::DCX
-                        | StandardGate::ISwap
-                        | StandardGate::CH
-                )
+                Some(TWO_QUBIT_BASIS_SET!())
             ) || is_supercontrolled(gate)
             {
                 Some((*k, (gate.clone(), *props)))
@@ -754,15 +772,7 @@ fn get_2q_decomposers_from_target(
     if available_2q_basis.values().all(|(gate, _props)| {
         matches!(
             gate.operation.try_standard_gate(),
-            Some(
-                StandardGate::CX
-                    | StandardGate::CY
-                    | StandardGate::CZ
-                    | StandardGate::ECR
-                    | StandardGate::DCX
-                    | StandardGate::ISwap
-                    | StandardGate::CH
-            )
+            Some(TWO_QUBIT_BASIS_SET!())
         )
     }) && !available_2q_basis.is_empty()
     {
