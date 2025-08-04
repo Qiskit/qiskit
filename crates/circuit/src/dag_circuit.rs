@@ -1887,7 +1887,7 @@ impl DAGCircuit {
         let normalize_param = |param: &Param| {
             if let Param::ParameterExpression(ob) = param {
                 // try casting ParameterExpression to Param, prioritizing Float
-                Param::from_expr(ob.clone(), true)
+                Param::from_expr(ob.as_ref().clone(), true)
             } else {
                 param.clone()
             }
@@ -7630,13 +7630,13 @@ pub(crate) fn add_global_phase(phase: &Param, other: &Param) -> PyResult<Param> 
     Ok(match [phase, other] {
         [Param::Float(a), Param::Float(b)] => Param::Float(a + b),
         [Param::Float(a), Param::ParameterExpression(b)] => {
-            Param::ParameterExpression(b.add(&ParameterExpression::from_f64(*a)).unwrap())
+            Param::ParameterExpression(Box::new(b.add(&ParameterExpression::from_f64(*a)).unwrap()))
         }
         [Param::ParameterExpression(a), Param::Float(b)] => {
-            Param::ParameterExpression(a.add(&ParameterExpression::from_f64(*b)).unwrap())
+            Param::ParameterExpression(Box::new(a.add(&ParameterExpression::from_f64(*b)).unwrap()))
         }
         [Param::ParameterExpression(a), Param::ParameterExpression(b)] => {
-            Param::ParameterExpression(a.add(b).expect("Name conflict in add."))
+            Param::ParameterExpression(Box::new(a.add(b).expect("Name conflict in add.")))
         }
         _ => panic!("Invalid global phase"),
     })

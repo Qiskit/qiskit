@@ -39,7 +39,7 @@ use pyo3::{intern, IntoPyObjectExt, Python};
 
 #[derive(Clone, Debug)]
 pub enum Param {
-    ParameterExpression(ParameterExpression),
+    ParameterExpression(Box<ParameterExpression>),
     Float(f64),
     Obj(PyObject),
 }
@@ -54,7 +54,7 @@ impl<'py> IntoPyObject<'py> for &Param {
             Param::Float(value) => value.into_bound_py_any(py),
             Param::Obj(py_obj) => py_obj.into_bound_py_any(py),
             Param::ParameterExpression(expr) => {
-                let py_expr = PyParameterExpression::from(expr.clone());
+                let py_expr = PyParameterExpression::from(expr.as_ref().clone());
                 py_expr.coerce_into_py(py)?.into_bound_py_any(py)
             }
         }
@@ -74,7 +74,7 @@ impl<'py> IntoPyObject<'py> for Param {
 impl<'py> FromPyObject<'py> for Param {
     fn extract_bound(b: &Bound<'py, PyAny>) -> Result<Self, PyErr> {
         Ok(if let Ok(py_expr) = b.extract::<PyParameterExpression>() {
-            Param::ParameterExpression(py_expr.inner)
+            Param::ParameterExpression(Box::new(py_expr.inner))
         } else if let Ok(val) = b.extract::<f64>() {
             Param::Float(val)
         } else {
@@ -88,17 +88,17 @@ impl Param {
         match [self, other] {
             [Self::Float(a), Self::Float(b)] => Ok(a == b),
             [Self::Float(a), Self::ParameterExpression(b)] => {
-                Ok(&ParameterExpression::from_f64(*a) == b)
+                Ok(&ParameterExpression::from_f64(*a) == b.as_ref())
             }
             [Self::ParameterExpression(a), Self::Float(b)] => {
-                Ok(a == &ParameterExpression::from_f64(*b))
+                Ok(a.as_ref() == &ParameterExpression::from_f64(*b))
             }
             [Self::ParameterExpression(a), Self::ParameterExpression(b)] => Ok(a == b),
             [Self::Obj(_), Self::Float(_)] => Ok(false),
             [Self::Float(_), Self::Obj(_)] => Ok(false),
-            [Self::Obj(a), Self::ParameterExpression(b)] => a.bind(py).eq(b),
+            [Self::Obj(a), Self::ParameterExpression(b)] => a.bind(py).eq(b.as_ref()),
             [Self::Obj(a), Self::Obj(b)] => a.bind(py).eq(b),
-            [Self::ParameterExpression(a), Self::Obj(b)] => a.into_bound_py_any(py)?.eq(b),
+            [Self::ParameterExpression(a), Self::Obj(b)] => a.as_ref().into_bound_py_any(py)?.eq(b),
         }
     }
 
@@ -158,7 +158,7 @@ impl Param {
                     if coerce_to_float {
                         Self::Float(i as f64) // coerce integer to float
                     } else {
-                        Self::ParameterExpression(expr) // keep integer inside the expression
+                        Self::ParameterExpression(Box::new(expr)) // keep integer inside the expression
                     }
                 }
                 Value::Real(f) => Self::Float(f),
@@ -166,11 +166,11 @@ impl Param {
                     if coerce_to_float && value.is_real() {
                         Self::Float(c.re)
                     } else {
-                        Self::ParameterExpression(expr)
+                        Self::ParameterExpression(Box::new(expr))
                     }
                 }
             },
-            Err(_) => Self::ParameterExpression(expr),
+            Err(_) => Self::ParameterExpression(Box::new(expr)),
         }
     }
 
@@ -183,7 +183,7 @@ impl Param {
         } else if let Ok(py_expr) = PyParameterExpression::extract_coerce(ob) {
             // don't get confused by the `coerce` name here -- we promise to not coerce to
             // Param::Float, but we do want all numeric types to be PyParameterExpression
-            Param::ParameterExpression(py_expr.inner)
+            Param::ParameterExpression(Box::new(py_expr.inner))
         } else {
             Param::Obj(ob.clone().unbind())
         })
@@ -2377,7 +2377,9 @@ pub fn multiply_param(param: &Param, mult: f64) -> Param {
         Param::Float(theta) => Param::Float(theta * mult),
         Param::ParameterExpression(theta) => {
             // safe to unwrap as multiplication with float does not have name conflicts
-            Param::ParameterExpression(theta.mul(&ParameterExpression::from_f64(mult)).unwrap())
+            Param::ParameterExpression(Box::new(
+                theta.mul(&ParameterExpression::from_f64(mult)).unwrap(),
+            ))
         }
         Param::Obj(_) => unreachable!("Unsupported multiplication of a Param::Obj."),
     }
@@ -2391,7 +2393,7 @@ pub fn multiply_params(param1: Param, param2: Param) -> Param {
         (Param::Float(theta), param) => multiply_param(param, *theta),
         (Param::ParameterExpression(p1), Param::ParameterExpression(p2)) => {
             // TODO we could properly propagate the error here
-            Param::ParameterExpression(p1.mul(p2).expect("Name conflict during mul."))
+            Param::ParameterExpression(Box::new(p1.mul(p2).expect("Name conflict during mul.")))
         }
         _ => unreachable!("Unsupported multiplication."),
     }
@@ -2402,7 +2404,7 @@ pub fn add_param(param: &Param, summand: f64) -> Param {
         Param::Float(theta) => Param::Float(*theta + summand),
         Param::ParameterExpression(theta) => Param::ParameterExpression(
             // safe to unwrap as addition with float does not have name conflicts
-            theta.add(&ParameterExpression::from_f64(summand)).unwrap(),
+            Box::new(theta.add(&ParameterExpression::from_f64(summand)).unwrap()),
         ),
         Param::Obj(_) => unreachable!("Unsupported addition of a Param::Obj."),
     }
@@ -2415,7 +2417,9 @@ pub fn radd_param(param1: Param, param2: Param) -> Param {
         [Param::ParameterExpression(_theta), Param::Float(lambda)] => add_param(&param1, *lambda),
         [Param::ParameterExpression(theta), Param::ParameterExpression(lambda)] => {
             // TODO we could properly propagate the error here
-            Param::ParameterExpression(theta.add(lambda).expect("Name conflict during add."))
+            Param::ParameterExpression(Box::new(
+                theta.add(lambda).expect("Name conflict during add."),
+            ))
         }
         _ => unreachable!("Unsupported addition."),
     }

@@ -2328,7 +2328,7 @@ impl CircuitData {
                 }
                 Param::ParameterExpression(e) => {
                     let map: HashMap<Symbol, ParameterExpression> =
-                        HashMap::from([(symbol.clone(), e.clone())]);
+                        HashMap::from([(symbol.clone(), e.as_ref().clone())]);
                     expr.subs(&map, false)?
                 }
                 Param::Obj(ob) => panic!("Cannot assign object ({ob:?}) Param::Obj to parameter."),
