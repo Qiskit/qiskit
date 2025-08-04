@@ -370,7 +370,7 @@ Modular Adder Synthesis
       - Plugin class
       - Number of clean ancillas
       - Description
-    * - ``"v17"``
+    * - ``"modular_v17"``
       - :class:`.ModularAdderSynthesisV17`
       - 0
       - a modular adder without any ancillary qubits

@@ -183,6 +183,7 @@ class TestAdder(QiskitTestCase):
         adder_ripple_v95,
         adder_ripple_r25,
         adder_qft_d00,
+        adder_modular_v17,
     )
     def test_raises_on_wrong_num_bits(self, adder):
         """Test an error is raised for a bad number of qubits."""
