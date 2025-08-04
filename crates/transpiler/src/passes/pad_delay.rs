@@ -75,12 +75,6 @@ fn apply_scheduled_delay_op(
     property_set: &Bound<PyAny>,
 ) -> PyResult<()> {
 
-    // let delay_instr = StandardInstruction::Delay(map_delay_str_to_enum(
-    //     &dag.get_internal_unit()
-    //         .unwrap_or("dt".to_string())
-    //         .to_string(),
-    // ));
-
     let delay_instr = {
         let u = dag
             .get_internal_unit()
@@ -88,19 +82,26 @@ fn apply_scheduled_delay_op(
             .unwrap_or(DelayUnit::DT);
         StandardInstruction::Delay(u)
     };
+    
+    
 
-    
-    // This seems to add a decimal point to dt when passing it back to python.
-    // let params = Some(smallvec![Param::Float(*time_interval)]); // if passing a float directly
-    
-    // Why PyInt conversion? The internal representation of time 
-    // added a decimal when passing a float back to python. The 
-    // difference in internal representation breaks some tests such as:
-    // `test.python.transpiler.test_context_aware_dd.TestContextAwareDD.test_collecting_diamond_with_initial`
-    let py_dur: PyObject = (*time_interval as usize).into_pyobject(py).unwrap().into();
-    let params = Some(smallvec![Param::Obj(py_dur)]);
-    // let params = Some(smallvec![Param::Obj(time_interval.into_pyobject(py).unwrap().into())]); // python ints from usize
-    // let params = Some(smallvec![Param::Float(*time_interval as f64)]); // casting usize to f64
+    // Handle case where dt never told:
+    // test.python.circuit.test_scheduled_circuit.TestScheduledCircuit.test_schedule_circuit_in_sec_when_no_one_tells_dt
+    let params = if delay_instr != StandardInstruction::Delay(DelayUnit::DT) {
+        // seconds mode → float
+        let secs = *time_interval;
+        Some(smallvec![Param::Float(secs)])
+    } else {
+        // dt mode → Python int. use usize, i64, u64... ?
+        let ticks: usize = *time_interval as usize;      
+        // Why PyInt conversion? The internal representation of time 
+        // added a decimal when passing a float back to python. The 
+        // difference in internal representation breaks some tests such as:
+        // `test.python.transpiler.test_context_aware_dd.TestContextAwareDD.test_collecting_diamond_with_initial`
+        // and there is no Param::Int variant.
+        let py_ticks: PyObject = ticks.into_pyobject(py).unwrap().into();
+        Some(smallvec![Param::Obj(py_ticks)])
+    };
 
     let new_node = dag.apply_operation_back(
         delay_instr.into(), 

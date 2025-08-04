@@ -18,7 +18,9 @@ from qiskit.dagcircuit import DAGCircuit, DAGNode, DAGOutNode
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.instruction_durations import InstructionDurations
 
-from qiskit._accelerate.pad_delay import pad_delay # is this making a circular import? _accelerate fails to load in py39 and py312
+from qiskit._accelerate.pad_delay import (
+    pad_delay,
+)  # is this making a circular import? _accelerate fails to load in py39 and py312
 
 from .base_padding import BasePadding
 
@@ -86,7 +88,7 @@ class PadDelay(BasePadding):
         prev_node: DAGNode,
     ):
         # NOTE: The :meth:`._pad` method is currently being ported as it is the core logic within the ``PadDelay`` pass
-        # and the :meth:`.run` method would need to be ported along with the :class:`.BasePadding` class when the ``PadDynamicDecoupling`` pass 
+        # and the :meth:`.run` method would need to be ported along with the :class:`.BasePadding` class when the ``PadDynamicDecoupling`` pass
         # is finished being ported.
 
         pad_delay(
