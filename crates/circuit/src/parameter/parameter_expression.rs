@@ -54,6 +54,8 @@ pub enum ParameterError {
     InvalidU8ToOpCode(u8),
     #[error("Could not cast to Symbol.")]
     NotASymbol,
+    #[error("Derivative not supported on expression: {0}")]
+    DerivativeNotSupported(String),
 }
 
 impl From<ParameterError> for PyErr {
@@ -121,7 +123,7 @@ impl fmt::Display for ParameterExpression {
             } else {
                 match self.expr.eval(true) {
                     Some(e) => e.to_string(),
-                    None => self.expr.optimize().to_string(),
+                    None => self.expr.to_string(),
                 }
             }
         })
@@ -443,9 +445,12 @@ impl ParameterExpression {
     /// Note that this keeps the name map unchanged. Meaning that computing the derivative
     /// of ``x`` will yield ``1`` but the expression still owns the symbol ``x``. This is
     /// done such that we can still bind the value ``x`` in an automated process.
-    pub fn derivative(&self, param: &Symbol) -> Result<Self, String> {
+    pub fn derivative(&self, param: &Symbol) -> Result<Self, ParameterError> {
         Ok(Self {
-            expr: self.expr.derivative(param)?,
+            expr: self
+                .expr
+                .derivative(param)
+                .map_err(ParameterError::DerivativeNotSupported)?,
             name_map: self.name_map.clone(),
         })
     }
@@ -455,10 +460,10 @@ impl ParameterExpression {
     /// # Arguments
     ///
     /// * map - A hashmap with [Symbol] keys and [ParameterExpression]s to replace these
-    ///     symbols with.
+    ///   symbols with.
     /// * allow_unknown_parameters - If `false`, returns an error if any symbol in the
-    ///     hashmap is not present in the expression. If `true`, unknown symbols are ignored.
-    ///     Setting to `true` is slightly faster as it does not involve additional checks.
+    ///   hashmap is not present in the expression. If `true`, unknown symbols are ignored.
+    ///   Setting to `true` is slightly faster as it does not involve additional checks.
     ///
     /// # Returns
     ///
@@ -537,10 +542,10 @@ impl ParameterExpression {
     /// # Arguments
     ///
     /// * map - A hashmap with [Symbol] keys and [Value]s to replace these
-    ///     symbols with.
+    ///   symbols with.
     /// * allow_unknown_parameter - If `false`, returns an error if any symbol in the
-    ///     hashmap is not present in the expression. If `true`, unknown symbols are ignored.
-    ///     Setting to `true` is slightly faster as it does not involve additional checks.
+    ///   hashmap is not present in the expression. If `true`, unknown symbols are ignored.
+    ///   Setting to `true` is slightly faster as it does not involve additional checks.
     ///
     /// # Returns
     ///
@@ -675,19 +680,6 @@ impl From<ParameterExpression> for PyParameterExpression {
     }
 }
 
-// This needs to be implemented manually, since PyO3 does not provide this conversion
-// for subclasses.
-impl<'py> IntoPyObject<'py> for &PyParameterExpression {
-    type Target = PyParameterExpression;
-    type Output = Bound<'py, Self::Target>;
-    type Error = PyErr;
-
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        let expr = self.clone();
-        Ok(Py::new(py, expr)?.into_bound(py))
-    }
-}
-
 impl PyParameterExpression {
     /// Attempt to extract a `PyParameterExpression` from a bound `PyAny`.
     ///
@@ -738,7 +730,7 @@ impl PyParameterExpression {
                 Ok(Py::new(py, PyParameter::from_symbol(symbol))?.into_any())
             }
         } else {
-            self.into_py_any(py)
+            self.clone().into_py_any(py)
         }
     }
 }
@@ -944,10 +936,7 @@ impl PyParameterExpression {
     ///     The derivative.
     pub fn gradient(&self, param: &Bound<'_, PyAny>) -> PyResult<Self> {
         let symbol = symbol_from_py_parameter(param)?;
-        let d_expr = self
-            .inner
-            .derivative(&symbol)
-            .map_err(PyRuntimeError::new_err)?;
+        let d_expr = self.inner.derivative(&symbol)?;
         Ok(d_expr.into())
     }
 

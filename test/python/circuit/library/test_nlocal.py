@@ -269,6 +269,8 @@ class TestNLocal(QiskitTestCase):
             nlocal = NLocal(1, entanglement_blocks=circuit, reps=1)
         nlocal.assign_parameters(params, inplace=True)
 
+        nlocal = circuit.assign_parameters(params)
+
         param_set = {p for p in params if isinstance(p, ParameterExpression)}
         with self.subTest(msg="Test the parameters of the non-transpiled circuit"):
             # check the parameters of the final circuit

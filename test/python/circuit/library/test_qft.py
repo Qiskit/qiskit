@@ -219,6 +219,27 @@ class TestQFT(QiskitTestCase):
                 with self.assertRaises(SentinelException):
                     qft._build()
 
+    def test_name_after_inverse_rebuild(self):
+        """Test the inverse QFT is correctly labeled, even after triggering rebuilds.
+
+        Regression test of #14758.
+        """
+        with self.assertWarns(DeprecationWarning):
+            qft = QFT(2)
+
+        iqft = qft.inverse()  # name is IQFT
+        iqft.num_qubits = 1  # name should still be IQFT, and not display IQFT_dg
+
+        expect = "\n".join(
+            [
+                "   ┌──────┐",
+                "q: ┤ IQFT ├",
+                "   └──────┘",
+            ]
+        )
+        out = str(iqft.draw())
+        self.assertEqual(expect, out)
+
 
 @ddt
 class TestQFTGate(QiskitTestCase):
