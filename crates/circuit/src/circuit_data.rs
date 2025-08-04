@@ -584,7 +584,7 @@ impl CircuitData {
 
     pub fn get_parameter_by_name(&self, py: Python, name: &str) -> Option<Py<PyAny>> {
         self.param_table
-            .parameter_by_name(&name)
+            .parameter_by_name(name)
             .map(|ob| ob.coerce_into_py(py).unwrap())
     }
 
@@ -1461,7 +1461,7 @@ impl CircuitData {
         if let Param::ParameterExpression(expr) = &self.global_phase {
             for symbol in expr.iter_symbols() {
                 match self.param_table.remove_use(
-                    ParameterUuid::from_symbol(&symbol),
+                    ParameterUuid::from_symbol(symbol),
                     ParameterUse::GlobalPhase,
                 ) {
                     Ok(_)
@@ -1479,7 +1479,7 @@ impl CircuitData {
             Param::ParameterExpression(expr) => {
                 for symbol in expr.iter_symbols() {
                     self.param_table
-                        .track(&symbol, Some(ParameterUse::GlobalPhase))?;
+                        .track(symbol, Some(ParameterUse::GlobalPhase))?;
                 }
                 self.global_phase = angle;
                 Ok(())

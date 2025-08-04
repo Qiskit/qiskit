@@ -145,8 +145,8 @@ impl Param {
     ///
     /// * expr - The expression to construct the [Param] from.
     /// * coerce_to_float - If `true`, coerce integers and complex (with 0 imaginary part) types to
-    ///     [Param::Float]. If `false`, only float types are [Param::Float] and integers and
-    ///     complex numbers are represented as [Param::ParameterExpression].
+    ///   [Param::Float]. If `false`, only float types are [Param::Float] and integers and
+    ///   complex numbers are represented as [Param::ParameterExpression].
     ///
     /// # Returns
     ///

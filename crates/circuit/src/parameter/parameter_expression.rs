@@ -191,9 +191,9 @@ impl ParameterExpression {
     /// # Arguments
     ///
     /// * strict - If ``true``, only allow returning a value if all symbols are bound. If
-    ///     ``false``, allow casting expressions to values, even though symbols might still exist.
-    ///     For example, ``0 * x`` will return ``0`` for ``strict=false`` and otherwise return
-    ///     an error.
+    ///   ``false``, allow casting expressions to values, even though symbols might still exist.
+    ///   For example, ``0 * x`` will return ``0`` for ``strict=false`` and otherwise return
+    ///   an error.
     pub fn try_to_value(&self, strict: bool) -> Result<Value, ParameterError> {
         if strict && !self.name_map.is_empty() {
             let free_symbols = self.expr.iter_symbols().cloned().collect();
@@ -815,7 +815,7 @@ impl PyParameterExpression {
     /// Get the parameters present in the expression.
     ///
     /// .. note::
-    ///     
+    ///
     ///     Qiskit guarantees equality (via ``==``) of parameters retrieved from an expression
     ///     with the original :class:`.Parameter` objects used to create this expression,
     ///     but does **not guarantee** ``is`` comparisons to succeed.
@@ -1287,15 +1287,13 @@ impl PyParameterExpression {
             let from_qpy = ParameterExpression::from_qpy(&state.0)?;
             self.inner = from_qpy;
         // otherwise, load from the ParameterValueType
+        } else if let Some(value) = state.1 {
+            let expr = ParameterExpression::from(value);
+            self.inner = expr;
         } else {
-            if let Some(value) = state.1 {
-                let expr = ParameterExpression::from(value);
-                self.inner = expr;
-            } else {
-                return Err(PyValueError::new_err(
-                    "Failed to read QPY replay or extract value.",
-                ));
-            }
+            return Err(PyValueError::new_err(
+                "Failed to read QPY replay or extract value.",
+            ));
         }
         Ok(())
     }
