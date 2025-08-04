@@ -85,9 +85,10 @@ fn apply_scheduled_delay_op(
     
     
 
+    let use_secs = delay_instr != StandardInstruction::Delay(DelayUnit::DT);
     // Handle case where dt never told:
     // test.python.circuit.test_scheduled_circuit.TestScheduledCircuit.test_schedule_circuit_in_sec_when_no_one_tells_dt
-    let params = if delay_instr != StandardInstruction::Delay(DelayUnit::DT) {
+    let params = if use_secs {
         // seconds mode → float
         let secs = *time_interval;
         Some(smallvec![Param::Float(secs)])
@@ -123,8 +124,15 @@ fn apply_scheduled_delay_op(
     // node_start_time_dict.set_item(&py_new_node, t_start)?;
 
     // using pyobject
-    let py_start: PyObject = (*t_start as usize).into_pyobject(py).unwrap().into();
-    node_start_time_dict.set_item(&py_new_node, py_start)?;
+    // let py_start: PyObject = (*t_start as usize).into_pyobject(py).unwrap().into();
+    // node_start_time_dict.set_item(&py_new_node, py_start)?;
+    if use_secs {
+        node_start_time_dict.set_item(&py_new_node, t_start)?;
+    } else {
+        // use dt
+        let py_start: PyObject = (*t_start as usize).into_pyobject(py).unwrap().into();
+        node_start_time_dict.set_item(&py_new_node, py_start)?;
+    }
 
     Ok(())
 }
