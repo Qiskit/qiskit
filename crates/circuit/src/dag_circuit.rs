@@ -4077,7 +4077,7 @@ impl DAGCircuit {
 
     /// Total number of stretches tracked by the circuit.
     #[getter]
-    fn num_stretches(&self) -> usize {
+    pub fn num_stretches(&self) -> usize {
         self.num_captured_stretches() + self.num_declared_stretches()
     }
 

@@ -161,7 +161,7 @@ class UnitaryGate(Gate):
             )
 
             self.definition = qs_decomposition(self.to_matrix())
-            # Since iterative cosine-sine decomposition may provide imprecise matrices,
+            # Since iterative Quantum Shannon Decomposition may provide imprecise matrices,
             # we use the Isometry decomposition in this case
             # pylint: disable=cyclic-import
             from qiskit.quantum_info.operators import Operator
