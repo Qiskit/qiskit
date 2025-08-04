@@ -144,7 +144,7 @@ impl Symbol {
 /// node types of expression tree
 #[derive(Debug, Clone)]
 pub enum SymbolExpr {
-    Symbol(Symbol),
+    Symbol(Arc<Symbol>),
     Value(Value),
     Unary {
         op: UnaryOp,
@@ -310,7 +310,7 @@ impl SymbolExpr {
     /// bind value to symbol node
     pub fn bind(&self, maps: &HashMap<&Symbol, Value>) -> SymbolExpr {
         match self {
-            SymbolExpr::Symbol(e) => match maps.get(e) {
+            SymbolExpr::Symbol(e) => match maps.get(e.as_ref()) {
                 Some(v) => SymbolExpr::Value(*v),
                 None => self.clone(),
             },
@@ -338,7 +338,7 @@ impl SymbolExpr {
     /// does not allow duplicate names with different UUID
     pub fn subs(&self, maps: &HashMap<Symbol, SymbolExpr>) -> SymbolExpr {
         match self {
-            SymbolExpr::Symbol(e) => match maps.get(e) {
+            SymbolExpr::Symbol(e) => match maps.get(e.as_ref()) {
                 Some(v) => v.clone(),
                 None => self.clone(),
             },
@@ -454,7 +454,7 @@ impl SymbolExpr {
     /// calculate derivative of the equantion for a symbol passed by param
     pub fn derivative(&self, param: &Symbol) -> Result<SymbolExpr, String> {
         if let SymbolExpr::Symbol(s) = self {
-            if s == param {
+            if s.as_ref() == param {
                 return Ok(SymbolExpr::Value(Value::Real(1.0)));
             }
         }
@@ -670,7 +670,7 @@ impl SymbolExpr {
     pub fn iter_symbols(&self) -> Box<dyn Iterator<Item = &Symbol> + '_> {
         // This could maybe be more elegantly resolved with a SymbolIter type>
         match self {
-            SymbolExpr::Symbol(e) => Box::new(::std::iter::once(e)),
+            SymbolExpr::Symbol(e) => Box::new(::std::iter::once(e.as_ref())),
             SymbolExpr::Value(_) => Box::new(::std::iter::empty()),
             SymbolExpr::Unary { op: _, expr } => expr.iter_symbols(),
             SymbolExpr::Binary { op: _, lhs, rhs } => {
@@ -704,7 +704,7 @@ impl SymbolExpr {
     /// check if a symbol is in this equation
     pub fn has_symbol(&self, param: &Symbol) -> bool {
         match self {
-            SymbolExpr::Symbol(e) => e.eq(param),
+            SymbolExpr::Symbol(e) => e.as_ref().eq(param),
             SymbolExpr::Value(_) => false,
             SymbolExpr::Unary { op: _, expr } => expr.has_symbol(param),
             SymbolExpr::Binary { op: _, lhs, rhs } => lhs.has_symbol(param) | rhs.has_symbol(param),
@@ -2899,7 +2899,7 @@ impl PartialOrd for SymbolExpr {
 
 impl From<&str> for SymbolExpr {
     fn from(v: &str) -> Self {
-        SymbolExpr::Symbol(Symbol::new(v, None, None))
+        SymbolExpr::Symbol(Arc::new(Symbol::new(v, None, None)))
     }
 }
 
@@ -3347,7 +3347,7 @@ impl Value {
                 SymbolExpr::Value(Value::Real(c.re)),
                 _mul(
                     SymbolExpr::Value(Value::Real(c.im)),
-                    SymbolExpr::Symbol(Symbol::new("I", None, None)),
+                    SymbolExpr::Symbol(Arc::new(Symbol::new("I", None, None))),
                 ),
             ),
             _ => SymbolExpr::Value(*self),
@@ -3647,7 +3647,7 @@ pub fn replace_symbol(symbol_expr: &SymbolExpr, name_map: &HashMap<String, Symbo
         SymbolExpr::Symbol(existing_symbol) => {
             let name = existing_symbol.repr(false);
             if let Some(new_symbol) = name_map.get(&name) {
-                SymbolExpr::Symbol(new_symbol.clone())
+                SymbolExpr::Symbol(Arc::new(new_symbol.clone()))
             } else {
                 symbol_expr.clone()
             }

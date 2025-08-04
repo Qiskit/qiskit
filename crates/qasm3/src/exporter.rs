@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::sync::Arc;
+
 use crate::ast::{
     Alias, Barrier, BitArray, Break, ClassicalDeclaration, ClassicalType, Continue, Delay,
     Designator, DurationLiteral, DurationUnit, Expression, Float, GateCall, Header, IODeclaration,
@@ -1319,7 +1321,7 @@ impl<'a> QASM3Builder {
                 let name = format!("{}_{}", self._gate_param_prefix, i);
                 // TODO this need to be achievable more easily
                 let symbol = symbol_expr::Symbol::new(name.as_str(), None, None);
-                let symbol_expr = symbol_expr::SymbolExpr::Symbol(symbol);
+                let symbol_expr = symbol_expr::SymbolExpr::Symbol(Arc::new(symbol));
                 let expr = ParameterExpression::from_symbol_expr(symbol_expr);
                 Param::ParameterExpression(expr)
             })

@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::sync::Arc;
+
 use hashbrown::hash_map::Entry;
 use hashbrown::{HashMap, HashSet};
 use num_complex::Complex64;
@@ -168,7 +170,7 @@ impl ParameterExpression {
     /// Construct from a [Symbol].
     pub fn from_symbol(symbol: Symbol) -> Self {
         Self {
-            expr: SymbolExpr::Symbol(symbol.clone()),
+            expr: SymbolExpr::Symbol(Arc::new(symbol.clone())),
             name_map: [(symbol.repr(false), symbol)].into(),
         }
     }
@@ -178,7 +180,7 @@ impl ParameterExpression {
     /// This only succeeds if the underlying expression is, in fact, only a symbol.
     pub fn try_to_symbol(&self) -> Result<Symbol, ParameterError> {
         if let SymbolExpr::Symbol(symbol) = &self.expr {
-            Ok(symbol.clone())
+            Ok(symbol.as_ref().clone())
         } else {
             Err(ParameterError::NotASymbol)
         }
@@ -1360,7 +1362,7 @@ impl<'py> IntoPyObject<'py> for PyParameter {
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         let symbol = &self.symbol;
-        let symbol_expr = SymbolExpr::Symbol(symbol.clone());
+        let symbol_expr = SymbolExpr::Symbol(Arc::new(symbol.clone()));
         let expr = ParameterExpression::from_symbol_expr(symbol_expr);
         let py_expr = PyParameterExpression::from(expr);
 
@@ -1371,7 +1373,7 @@ impl<'py> IntoPyObject<'py> for PyParameter {
 impl PyParameter {
     /// Get a Python class initialization from a symbol.
     pub fn from_symbol(symbol: Symbol) -> PyClassInitializer<Self> {
-        let expr = SymbolExpr::Symbol(symbol.clone());
+        let expr = SymbolExpr::Symbol(Arc::new(symbol.clone()));
 
         let py_parameter = Self { symbol };
         let py_expr: PyParameterExpression = ParameterExpression::from_symbol_expr(expr).into();
@@ -1405,7 +1407,7 @@ impl PyParameter {
     ) -> PyResult<PyClassInitializer<Self>> {
         let uuid = uuid_from_py(py, uuid)?;
         let symbol = Symbol::new(name.as_str(), uuid, None);
-        let expr = SymbolExpr::Symbol(symbol.clone());
+        let expr = SymbolExpr::Symbol(Arc::new(symbol.clone()));
 
         let py_parameter = Self { symbol };
         let py_expr: PyParameterExpression = ParameterExpression::from_symbol_expr(expr).into();
@@ -1750,13 +1752,13 @@ impl ParameterValueType {
             match symbol.index {
                 None => {
                     let param = PyParameter {
-                        symbol: symbol.clone(),
+                        symbol: symbol.as_ref().clone(),
                     };
                     Some(ParameterValueType::Parameter(param))
                 }
                 Some(_) => {
                     let param = PyParameterVectorElement {
-                        symbol: symbol.clone(),
+                        symbol: symbol.as_ref().clone(),
                     };
                     Some(ParameterValueType::VectorElement(param))
                 }
@@ -1772,11 +1774,11 @@ impl From<ParameterValueType> for ParameterExpression {
     fn from(value: ParameterValueType) -> Self {
         match value {
             ParameterValueType::Parameter(param) => {
-                let expr = SymbolExpr::Symbol(param.symbol);
+                let expr = SymbolExpr::Symbol(Arc::new(param.symbol));
                 Self::from_symbol_expr(expr)
             }
             ParameterValueType::VectorElement(param) => {
-                let expr = SymbolExpr::Symbol(param.symbol);
+                let expr = SymbolExpr::Symbol(Arc::new(param.symbol));
                 Self::from_symbol_expr(expr)
             }
             ParameterValueType::Int(i) => {
