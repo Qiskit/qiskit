@@ -1001,7 +1001,7 @@ pub unsafe extern "C" fn qk_circuit_to_python(circuit: *mut CircuitData) -> *mut
 ///
 /// Units for circuit delays.
 #[repr(u8)]
-pub enum QkDelayUnit {
+pub enum CDelayUnit {
     /// Seconds.
     S = 0,
     /// Milliseconds.
@@ -1014,14 +1014,14 @@ pub enum QkDelayUnit {
     PS = 4,
 }
 
-impl From<QkDelayUnit> for DelayUnit {
-    fn from(value: QkDelayUnit) -> Self {
+impl From<CDelayUnit> for DelayUnit {
+    fn from(value: CDelayUnit) -> Self {
         match value {
-            QkDelayUnit::S => DelayUnit::S,
-            QkDelayUnit::MS => DelayUnit::MS,
-            QkDelayUnit::US => DelayUnit::US,
-            QkDelayUnit::NS => DelayUnit::NS,
-            QkDelayUnit::PS => DelayUnit::PS,
+            CDelayUnit::S => DelayUnit::S,
+            CDelayUnit::MS => DelayUnit::MS,
+            CDelayUnit::US => DelayUnit::US,
+            CDelayUnit::NS => DelayUnit::NS,
+            CDelayUnit::PS => DelayUnit::PS,
         }
     }
 }
@@ -1050,7 +1050,7 @@ pub unsafe extern "C" fn qk_circuit_delay(
     circuit: *mut CircuitData,
     qubit: u32,
     duration: f64,
-    unit: QkDelayUnit,
+    unit: CDelayUnit,
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
