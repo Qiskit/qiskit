@@ -194,9 +194,8 @@ class PassManager(BasePassManager):
 
                 .. note::
 
-                    Beware that the keyword arguments here are different to those
-                    used by the generic :class:`.BasePassManager`.
-                    This pass manager will translate those
+                    Beware that the keyword arguments here are different to those used by the
+                    generic :class:`.BasePassManager`.  This pass manager will translate those
                     arguments into the form described above.
 
                 The exact arguments pass expose the internals of the pass
