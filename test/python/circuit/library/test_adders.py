@@ -33,6 +33,7 @@ from qiskit.synthesis.arithmetic import (
     adder_ripple_v95,
     adder_ripple_r25,
     adder_qft_d00,
+    adder_modular_v17,
 )
 from qiskit.transpiler.passes import HLSConfig, HighLevelSynthesis
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -42,6 +43,7 @@ ADDERS = {
     "cdkm": adder_ripple_c04,
     "rv": adder_ripple_r25,
     "draper": adder_qft_d00,
+    "vrg": adder_modular_v17,
 }
 
 ADDER_CIRCUITS = {
@@ -151,6 +153,9 @@ class TestAdder(QiskitTestCase):
         (1, "vbe", "fixed"),
         (2, "vbe", "fixed"),
         (4, "vbe", "fixed"),
+        (1, "vrg", "fixed"),
+        (3, "vrg", "fixed"),
+        (5, "vrg", "fixed"),
     )
     @unpack
     def test_summation(self, num_state_qubits, adder, kind):
@@ -158,12 +163,15 @@ class TestAdder(QiskitTestCase):
         for use_function in [True, False]:
             with self.subTest(use_function=use_function):
                 if use_function:
-                    if adder == "rv":  # no kind for this. we still need kind for the test result
+                    if adder in [
+                        "rv",
+                        "vrg",
+                    ]:  # no kind for this. we still need kind for the test result
                         circuit = ADDERS[adder](num_state_qubits)
                     else:
                         circuit = ADDERS[adder](num_state_qubits, kind)
                 else:
-                    if adder == "rv":  # no adder circuit for this
+                    if adder in ["rv", "vrg"]:  # no adder circuit for this
                         continue
                     with self.assertWarns(DeprecationWarning):
                         circuit = ADDER_CIRCUITS[adder](num_state_qubits, kind)
@@ -194,7 +202,10 @@ class TestAdder(QiskitTestCase):
 
         # all gates with the plugins we check
         modes = {
-            "ModularAdder": (ModularAdderGate, ["ripple_c04", "ripple_v95", "qft_d00"]),
+            "ModularAdder": (
+                ModularAdderGate,
+                ["ripple_c04", "ripple_v95", "qft_d00", "modular_v17"],
+            ),
             "HalfAdder": (HalfAdderGate, ["ripple_c04", "ripple_v95", "ripple_r25", "qft_d00"]),
             "FullAdder": (FullAdderGate, ["ripple_c04", "ripple_v95"]),
         }
@@ -205,6 +216,7 @@ class TestAdder(QiskitTestCase):
             "ripple_v95": "Carry",
             "ripple_r25": "ccx",
             "qft_d00": "cp",
+            "modular_v17": "rccx",
         }
 
         num_state_qubits = 3

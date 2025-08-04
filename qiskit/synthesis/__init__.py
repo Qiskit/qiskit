@@ -150,6 +150,7 @@ Adders
 .. autofunction:: adder_ripple_c04
 .. autofunction:: adder_ripple_v95
 .. autofunction:: adder_ripple_r25
+.. autofunction:: adder_modular_v17
 
 Multipliers
 -----------
