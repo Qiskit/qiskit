@@ -218,8 +218,7 @@ pub fn dumps(
 
     let stream = exporter.dumps(&circuit_data, islayout).map_err(|err| {
         QASM3ImporterError::new_err(format!(
-            "failed to export circuit using qasm3.dumps_experimental: {:?}",
-            err
+            "failed to export circuit using qasm3.dumps_experimental: {err:?}"
         ))
     })?;
 
@@ -273,13 +272,12 @@ pub fn dump(
         .dump(&circuit_data, islayout, &mut output)
         .map_err(|err| {
             QASM3ImporterError::new_err(format!(
-                "failed to export circuit using qasm3.dump_experimental: {:?}",
-                err
+                "failed to export circuit using qasm3.dump_experimental: {err:?}"
             ))
         })?;
 
     let output_str = String::from_utf8(output)
-        .map_err(|e| QASM3ImporterError::new_err(format!("invalid utf-8 output: {:?}", e)))?;
+        .map_err(|e| QASM3ImporterError::new_err(format!("invalid utf-8 output: {e:?}")))?;
 
     stream.call_method1("write", (output_str,))?;
 

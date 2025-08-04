@@ -32,7 +32,7 @@ use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::imports::ImportOnceCell;
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardInstruction};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::{Clbit, PhysicalQubit, Qubit, VirtualQubit};
+use qiskit_circuit::{Clbit, PhysicalQubit, Qubit, VarsMode, VirtualQubit};
 
 use crate::target::{Qargs, Target};
 use crate::TranspilerError;
@@ -371,7 +371,7 @@ fn build_interaction_graph<Ty: EdgeType>(
                     for (outer, inner) in node_qargs.iter().zip(0..inst.op.num_qubits()) {
                         inner_wire_map[inner as usize] = wire_map[outer.index()]
                     }
-                    let block_dag = circuit_to_dag(py, block.extract()?, false, None, None)?;
+                    let block_dag = circuit_to_dag(block.extract()?, false, None, None)?;
                     build_interaction_graph(
                         &block_dag,
                         &inner_wire_map,
@@ -446,7 +446,7 @@ fn separate_dag(dag: &mut DAGCircuit) -> PyResult<Vec<DAGCircuit>> {
     let decomposed_dags: PyResult<Vec<DAGCircuit>> = component_qubits
         .into_iter()
         .map(|dag_qubits| -> PyResult<DAGCircuit> {
-            let mut new_dag = dag.copy_empty_like("alike")?;
+            let mut new_dag = dag.copy_empty_like(VarsMode::Alike)?;
             let qubits_to_revmove: Vec<Qubit> = qubits.difference(&dag_qubits).copied().collect();
 
             new_dag.remove_qubits(qubits_to_revmove)?;

@@ -50,6 +50,7 @@ if sys.version_info < (3, 10):
         "Support for running Qiskit with Python 3.9 will be removed in the "
         "2.3.0 release, which coincides with when Python 3.9 goes end of life.",
         DeprecationWarning,
+        stacklevel=2,
     )
 
 from . import _accelerate
@@ -117,6 +118,9 @@ sys.modules["qiskit._accelerate.synthesis.multi_controlled"] = (
 sys.modules["qiskit._accelerate.synthesis.qft"] = _accelerate.synthesis.qft
 sys.modules["qiskit._accelerate.split_2q_unitaries"] = _accelerate.split_2q_unitaries
 sys.modules["qiskit._accelerate.gate_direction"] = _accelerate.gate_direction
+sys.modules["qiskit._accelerate.instruction_duration_check"] = (
+    _accelerate.instruction_duration_check
+)
 sys.modules["qiskit._accelerate.inverse_cancellation"] = _accelerate.inverse_cancellation
 sys.modules["qiskit._accelerate.check_map"] = _accelerate.check_map
 sys.modules["qiskit._accelerate.filter_op_nodes"] = _accelerate.filter_op_nodes

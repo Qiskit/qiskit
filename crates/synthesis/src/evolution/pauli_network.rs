@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use crate::clifford::greedy_synthesis::resynthesize_clifford_circuit;
+use crate::QiskitError;
 
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PyString, PyTuple};
@@ -310,6 +311,8 @@ pub fn pauli_network_synthesis_inner(
     let mut paulis: Vec<String> = Vec::with_capacity(pauli_network.len());
     let mut angles: Vec<Param> = Vec::with_capacity(pauli_network.len());
 
+    let allowed_chars = ['I', 'X', 'Y', 'Z'];
+
     // go over the input pauli network and extract a list of pauli rotations and
     // the corresponding rotation angles
     for item in pauli_network {
@@ -318,6 +321,12 @@ pub fn pauli_network_synthesis_inner(
         let sparse_pauli: String = tuple.get_item(0)?.downcast::<PyString>()?.extract()?;
         let qubits: Vec<u32> = tuple.get_item(1)?.extract()?;
         let angle: Param = tuple.get_item(2)?.extract()?;
+
+        if sparse_pauli.chars().any(|c| !allowed_chars.contains(&c)) {
+            return Err(QiskitError::new_err(format!(
+                "Pauli network contains invalid Pauli string {sparse_pauli}"
+            )));
+        }
 
         paulis.push(expand_pauli(sparse_pauli, &qubits, num_qubits));
         angles.push(angle);
@@ -352,5 +361,5 @@ pub fn pauli_network_synthesis_inner(
         }
     }
 
-    CircuitData::from_standard_gates(py, num_qubits as u32, gates, global_phase)
+    CircuitData::from_standard_gates(num_qubits as u32, gates, global_phase)
 }

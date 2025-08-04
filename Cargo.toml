@@ -3,7 +3,7 @@ members = ["crates/*"]
 resolver = "2"
 
 [workspace.package]
-version = "2.1.0-rc1"
+version = "2.2.0"
 edition = "2021"
 rust-version = "1.79"  # Keep in sync with README.md, rust-toolchain.toml, and tools/install_rust_msrv.sh
 license = "Apache-2.0"
@@ -16,7 +16,7 @@ license = "Apache-2.0"
 [workspace.dependencies]
 bytemuck = "1.23"
 bitfield-struct = "0.9.5"
-indexmap.version = "2.9.0"
+indexmap.version = "2.10.0"
 hashbrown.version = "0.15.2"
 num-bigint = "0.4"
 num-complex = "0.4"
@@ -43,7 +43,7 @@ uuid = { version = "1.17", features = ["v4", "fast-rng"], default-features = fal
 # distributions).  We only activate that feature when building the C extension module; we still need
 # it disabled for Rust-only tests to avoid linker errors with it not being loaded.  See
 # https://pyo3.rs/main/features#extension-module for more.
-pyo3 = { version = "0.25", features = ["abi3-py39"] }
+pyo3 = { version = "0.25.1", features = ["abi3-py39"] }
 
 # These are our own crates.
 qiskit-accelerate = { path = "crates/accelerate" }

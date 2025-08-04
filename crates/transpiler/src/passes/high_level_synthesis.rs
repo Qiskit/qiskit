@@ -35,8 +35,7 @@ use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::{radd_param, Param};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::Clbit;
-use qiskit_circuit::Qubit;
+use qiskit_circuit::{Clbit, Qubit, VarsMode};
 use smallvec::SmallVec;
 
 use crate::equivalence::EquivalenceLibrary;
@@ -47,9 +46,6 @@ use qiskit_circuit::PhysicalQubit;
 use qiskit_synthesis::euler_one_qubit_decomposer::angles_from_unitary;
 use qiskit_synthesis::euler_one_qubit_decomposer::EulerBasis;
 use qiskit_synthesis::two_qubit_decompose::TwoQubitBasisDecomposer;
-
-#[cfg(feature = "cache_pygates")]
-use std::sync::OnceLock;
 
 /// Track global qubits by their state.
 /// The global qubits are numbered by consecutive integers starting at `0`,
@@ -464,7 +460,8 @@ fn run_on_circuitdata(
     // all available ancilla qubits to the current operation ("the-first-takes-all" approach).
     // It does not distribute ancilla qubits between different operations present in the circuit.
 
-    let mut output_circuit: CircuitData = CircuitData::clone_empty_like(input_circuit, None)?;
+    let mut output_circuit: CircuitData =
+        CircuitData::copy_empty_like(input_circuit, VarsMode::Alike)?;
     let mut output_qubits = input_qubits.to_vec();
 
     // The "inverse" map from the global qubits to the output circuit's qubits.
@@ -479,19 +476,20 @@ fn run_on_circuitdata(
             .iter()
             .map(|q| input_qubits[q.index()])
             .collect::<Vec<usize>>();
+        let op_clbits = input_circuit.get_cargs(inst.clbits);
 
         // Start by handling special operations.
         // In the future, we can also consider other possible optimizations, e.g.:
         //   - improved qubit tracking after a SWAP gate
         //   - automatically simplify control gates with control at 0.
         if ["id", "delay", "barrier"].contains(&inst.op.name()) {
-            output_circuit.push(py, inst.clone())?;
+            output_circuit.push(inst.clone())?;
             // tracker is not updated, these are no-ops
             continue;
         }
 
         if inst.op.name() == "reset" {
-            output_circuit.push(py, inst.clone())?;
+            output_circuit.push(inst.clone())?;
             tracker.set_clean(op_qubits);
             continue;
         }
@@ -499,7 +497,7 @@ fn run_on_circuitdata(
         // Check if synthesis for this operation can be skipped
         let op_qargs: Vec<Qubit> = op_qubits.iter().map(|q| Qubit::new(*q)).collect();
         if definitely_skip_op(py, data, &inst.op, &op_qargs) {
-            output_circuit.push(py, inst.clone())?;
+            output_circuit.push(inst.clone())?;
             tracker.set_dirty(op_qubits);
             continue;
         }
@@ -563,7 +561,7 @@ fn run_on_circuitdata(
                     #[cfg(feature = "cache_pygates")]
                     py_op: std::sync::OnceLock::new(),
                 };
-                output_circuit.push(py, packed_instruction)?;
+                output_circuit.push(packed_instruction)?;
                 tracker.set_dirty(op_qubits);
                 continue;
             }
@@ -588,7 +586,7 @@ fn run_on_circuitdata(
             None => {
                 // If the synthesis did not change anything, we add the operation to the output circuit
                 // and update the qubit tracker.
-                output_circuit.push(py, inst.clone())?;
+                output_circuit.push(inst.clone())?;
                 tracker.set_dirty(op_qubits);
             }
             Some((synthesized_circuit, synthesized_circuit_qubits)) => {
@@ -631,8 +629,10 @@ fn run_on_circuitdata(
                         .iter()
                         .map(|q| Qubit::new(qubit_map[&q.index()]))
                         .collect();
-                    let inst_outer_clbits: Vec<Clbit> =
-                        inst_inner_clbits.iter().map(|c| Clbit(c.0)).collect();
+                    let inst_outer_clbits: Vec<Clbit> = inst_inner_clbits
+                        .iter()
+                        .map(|c| op_clbits[c.0 as usize])
+                        .collect();
 
                     output_circuit.push_packed_operation(
                         inst_inner.op.clone(),
@@ -697,7 +697,8 @@ fn extract_definition(
                 // Run 2q synthesis
                 [4, 4] => {
                     let decomposer = TwoQubitBasisDecomposer::new_inner(
-                        "cx".to_string(),
+                        StandardGate::CX.into(),
+                        SmallVec::new(),
                         aview2(&CX_GATE),
                         1.0,
                         "U",
@@ -705,17 +706,16 @@ fn extract_definition(
                     )?;
                     let two_qubit_sequence =
                         decomposer.call_inner(unitary.view(), None, false, None)?;
-                    let circuit_data = CircuitData::from_standard_gates(
-                        py,
+                    let circuit_data = CircuitData::from_packed_operations(
                         2,
+                        0,
                         two_qubit_sequence.gates().iter().map(
                             |(gate, params_floats, qubit_indices)| {
-                                let unwrapped_gate = gate.unwrap_or(StandardGate::CX);
                                 let params: SmallVec<[Param; 3]> =
                                     params_floats.iter().map(|p| Param::Float(*p)).collect();
                                 let qubits =
                                     qubit_indices.iter().map(|q| Qubit(*q as u32)).collect();
-                                (unwrapped_gate, params, qubits)
+                                Ok((gate.clone(), params, qubits, vec![]))
                             },
                         ),
                         Param::Float(two_qubit_sequence.global_phase()),
@@ -971,7 +971,7 @@ pub fn run_high_level_synthesis(
         // Regular-path: we synthesize the circuit recursively. Except for
         // this conversion from DAGCircuit to CircuitData and back, all
         // the recursive functions work with CircuitData objects only.
-        let circuit = dag_to_circuit(py, dag, false)?;
+        let circuit = dag_to_circuit(dag, false)?;
 
         let num_qubits = circuit.num_qubits();
         let input_qubits: Vec<usize> = (0..num_qubits).collect();
@@ -980,37 +980,20 @@ pub fn run_high_level_synthesis(
         let (output_circuit, _) =
             run_on_circuitdata(py, &circuit, &input_qubits, data, &mut tracker)?;
 
-        let new_dag = convert_circuit_to_dag_with_data(dag, &output_circuit)?;
+        // Using this constructor so name and metadata are not lost
+        let new_dag = DAGCircuit::from_circuit(
+            QuantumCircuitData {
+                data: output_circuit,
+                name: dag.get_name().cloned(),
+                metadata: dag.get_metadata().map(|m| m.bind(py)).cloned(),
+            },
+            false,
+            None,
+            None,
+        )?;
 
         Ok(Some(new_dag))
     }
-}
-
-/// Converts circuit to DAGCircuit, while taking the missing python data from dag.
-fn convert_circuit_to_dag_with_data(
-    dag: &DAGCircuit,
-    circuit: &CircuitData,
-) -> PyResult<DAGCircuit> {
-    // Calling copy_empty_like makes sure that all the python-space information (qregs, cregs, input variables)
-    // get copied correctly.
-    let mut new_dag = dag.copy_empty_like("alike")?;
-    new_dag.set_global_phase(circuit.global_phase().clone())?;
-    let qarg_map = new_dag.merge_qargs(circuit.qargs_interner(), |bit| Some(*bit));
-    let carg_map = new_dag.merge_cargs(circuit.cargs_interner(), |bit: &Clbit| Some(*bit));
-
-    new_dag.try_extend(circuit.iter().map(|instr| -> PyResult<PackedInstruction> {
-        Ok(PackedInstruction {
-            // SHould this be: op: instr.op.py_deepcopy(py, None)?,
-            op: instr.op.clone(),
-            qubits: qarg_map[instr.qubits],
-            clbits: carg_map[instr.clbits],
-            params: instr.params.clone(),
-            label: instr.label.clone(),
-            #[cfg(feature = "cache_pygates")]
-            py_op: OnceLock::new(),
-        })
-    }))?;
-    Ok(new_dag)
 }
 
 pub fn high_level_synthesis_mod(m: &Bound<PyModule>) -> PyResult<()> {

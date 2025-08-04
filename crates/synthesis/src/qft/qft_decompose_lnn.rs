@@ -51,7 +51,6 @@ use std::f64::consts::PI;
 #[pyfunction]
 #[pyo3(signature=(num_qubits, do_swaps=true, approximation_degree=0))]
 pub fn synth_qft_line(
-    py: Python,
     num_qubits: usize,
     do_swaps: bool,
     approximation_degree: usize,
@@ -98,7 +97,7 @@ pub fn synth_qft_line(
         _append_reverse_permutation_lnn_kms(&mut instructions, num_qubits);
     }
 
-    CircuitData::from_standard_gates(py, num_qubits as u32, instructions, Param::Float(0.0))
+    CircuitData::from_standard_gates(num_qubits as u32, instructions, Param::Float(0.0))
 }
 
 #[inline]

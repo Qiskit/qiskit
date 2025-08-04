@@ -47,7 +47,7 @@ impl std::fmt::Display for &Position<'_> {
 /// string inputs, this can be a placeholder.
 pub fn message_generic(position: Option<&Position>, message: &str) -> String {
     if let Some(position) = position {
-        format!("{}: {}", position, message)
+        format!("{position}: {message}")
     } else {
         message.to_owned()
     }
@@ -75,7 +75,7 @@ pub fn message_incorrect_requirement(
 pub fn message_bad_eof(position: Option<&Position>, required: &str) -> String {
     message_generic(
         position,
-        &format!("unexpected end-of-file when expecting to see {}", required),
+        &format!("unexpected end-of-file when expecting to see {required}"),
     )
 }
 
