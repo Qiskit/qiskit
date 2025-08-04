@@ -174,7 +174,7 @@ impl ParameterTable {
         self.by_uuid.get(&uuid).map(|param| &param.symbol)
     }
 
-    /// Get the (maybe cached) Python list of the sorted `Parameter` objects.
+    /// Get the (maybe cached) list of the sorted `Parameter` objects.
     pub fn parameters(&self) -> &[Symbol] {
         self.parameters_cache.get_or_init(|| {
             self.order_cache

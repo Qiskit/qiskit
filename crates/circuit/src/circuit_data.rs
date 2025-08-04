@@ -563,8 +563,7 @@ impl CircuitData {
     pub fn get_parameters<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
         PyList::new(
             py,
-            self.param_table
-                .parameters()
+            self.parameters()
                 .iter()
                 .map(|symbol| symbol.coerce_into_py(py).unwrap()),
         )
@@ -2186,6 +2185,11 @@ impl CircuitData {
     /// Returns an iterator over all the instructions present in the circuit.
     pub fn iter(&self) -> impl Iterator<Item = &PackedInstruction> {
         self.data.iter()
+    }
+
+    /// Returns an iterator over the [Symbol]s in the circuit.
+    pub fn parameters(&self) -> &[Symbol] {
+        self.param_table.parameters()
     }
 
     /// Assigns parameters to circuit data based on a slice of `Param`.
