@@ -1148,7 +1148,7 @@ fn synth_su4_xx_decomposer(
 }
 
 /// Apply reverse synthesis for decomposers that return a DAG (XX).
-/// This function is called by `synth_su4_dag`` if the "direct" synthesis
+/// This function is called by `synth_su4_xx_decomposer` if the "direct" synthesis
 /// doesn't match the hardware restrictions.
 fn reversed_synth_su4_dag(
     py: Python<'_>,
