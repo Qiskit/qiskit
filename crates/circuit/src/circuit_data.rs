@@ -12,8 +12,6 @@
 
 use std::fmt::Debug;
 use std::hash::{Hash, RandomState};
-#[cfg(feature = "cache_pygates")]
-use std::sync::OnceLock;
 
 use crate::bit::{
     BitLocations, ClassicalRegister, PyBit, QuantumRegister, Register, ShareableClbit,
@@ -705,7 +703,7 @@ impl CircuitData {
         if deepcopy {
             let memo = PyDict::new(py);
             for inst in &self.data {
-                let new_op = match inst.op.view() {
+                let new_op: PackedOperation = match inst.op().view() {
                     OperationRef::Gate(gate) => gate.py_deepcopy(py, Some(&memo))?.into(),
                     OperationRef::Instruction(instruction) => {
                         instruction.py_deepcopy(py, Some(&memo))?.into()
@@ -717,19 +715,18 @@ impl CircuitData {
                     OperationRef::StandardInstruction(instruction) => instruction.into(),
                     OperationRef::Unitary(unitary) => unitary.clone().into(),
                 };
-                res.data.push(PackedInstruction {
-                    op: new_op,
-                    qubits: inst.qubits,
-                    clbits: inst.clbits,
-                    params: inst.params.clone(),
-                    label: inst.label.clone(),
-                    #[cfg(feature = "cache_pygates")]
-                    py_op: OnceLock::new(),
-                });
+                let mut new_packed = PackedInstruction::new(new_op, inst.qubits, inst.clbits);
+                if let Some(params) = inst.params_raw() {
+                    new_packed = new_packed.with_params(params.clone());
+                }
+                if let Some(label) = inst.label() {
+                    new_packed = new_packed.with_label(label.to_string());
+                }
+                res.data.push(new_packed);
             }
         } else if copy_instructions {
             for inst in &self.data {
-                let new_op = match inst.op.view() {
+                let new_op: PackedOperation = match inst.op().view() {
                     OperationRef::Gate(gate) => gate.py_copy(py)?.into(),
                     OperationRef::Instruction(instruction) => instruction.py_copy(py)?.into(),
                     OperationRef::Operation(operation) => operation.py_copy(py)?.into(),
@@ -737,15 +734,14 @@ impl CircuitData {
                     OperationRef::StandardInstruction(instruction) => instruction.into(),
                     OperationRef::Unitary(unitary) => unitary.clone().into(),
                 };
-                res.data.push(PackedInstruction {
-                    op: new_op,
-                    qubits: inst.qubits,
-                    clbits: inst.clbits,
-                    params: inst.params.clone(),
-                    label: inst.label.clone(),
-                    #[cfg(feature = "cache_pygates")]
-                    py_op: OnceLock::new(),
-                });
+                let mut new_packed = PackedInstruction::new(new_op, inst.qubits, inst.clbits);
+                if let Some(params) = inst.params_raw() {
+                    new_packed = new_packed.with_params(params.clone());
+                }
+                if let Some(label) = inst.label() {
+                    new_packed = new_packed.with_label(label.to_string());
+                }
+                res.data.push(new_packed);
             }
         } else {
             res.data.extend(self.data.iter().cloned());
@@ -901,18 +897,22 @@ impl CircuitData {
     #[pyo3(signature = (func))]
     pub fn map_nonstandard_ops(&mut self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
         for inst in self.data.iter_mut() {
-            if inst.op.try_standard_gate().is_some() {
+            if inst.op().try_standard_gate().is_some() {
                 continue;
             }
             let py_op = func.call1((inst.unpack_py_op(py)?,))?;
             let result = py_op.extract::<OperationFromPython>()?;
-            inst.op = result.operation;
-            inst.params = (!result.params.is_empty()).then(|| Box::new(result.params));
-            inst.label = result.label;
+
+            let mut temp_inst = PackedInstruction::new(result.operation, inst.qubits, inst.clbits)
+                .with_params(result.params);
+            if let Some(label) = result.label {
+                temp_inst = temp_inst.with_label(*label);
+            };
             #[cfg(feature = "cache_pygates")]
             {
-                inst.py_op = py_op.unbind().into();
+                temp_inst = temp_inst.with_py_cache(py_op.unbind().into());
             }
+            *inst = temp_inst;
         }
         Ok(())
     }
@@ -920,7 +920,7 @@ impl CircuitData {
     /// Checks whether the circuit has an instance of :class:`.ControlFlowOp`
     /// present amongst its operations.
     pub fn has_control_flow_op(&self) -> bool {
-        self.data.iter().any(|inst| inst.op.control_flow())
+        self.data.iter().any(|inst| inst.op().control_flow())
     }
 
     /// Replaces the bits of this container with the given ``qubits``
@@ -1038,7 +1038,7 @@ impl CircuitData {
             let qubits = self.qargs_interner.get(inst.qubits);
             let clbits = self.cargs_interner.get(inst.clbits);
             CircuitInstruction {
-                operation: inst.op.clone(),
+                operation: inst.op().clone(),
                 qubits: PyTuple::new(py, self.qubits.map_indices(qubits))
                     .unwrap()
                     .unbind(),
@@ -1046,9 +1046,9 @@ impl CircuitData {
                     .unwrap()
                     .unbind(),
                 params: inst.params_view().iter().cloned().collect(),
-                label: inst.label.clone(),
+                label: inst.label().map(|label| label.to_string().into()),
                 #[cfg(feature = "cache_pygates")]
-                py_op: inst.py_op.clone(),
+                py_op: inst.py_op().clone(),
             }
             .into_py_any(py)
             .unwrap()
@@ -1207,15 +1207,21 @@ impl CircuitData {
                 let new_index = self.data.len();
                 let qubits_id = self.qargs_interner.insert_owned(qubits);
                 let clbits_id = self.cargs_interner.insert_owned(clbits);
-                self.data.push(PackedInstruction {
-                    op: inst.op.clone(),
-                    qubits: qubits_id,
-                    clbits: clbits_id,
-                    params: inst.params.clone(),
-                    label: inst.label.clone(),
-                    #[cfg(feature = "cache_pygates")]
-                    py_op: inst.py_op.clone(),
-                });
+                let mut packed_inst =
+                    PackedInstruction::new(inst.op().clone(), qubits_id, clbits_id);
+                if let Some(params) = inst.params_raw().cloned() {
+                    packed_inst = packed_inst.with_params(params);
+                }
+                if let Some(label) = inst.label().map(|label| label.to_string()) {
+                    packed_inst = packed_inst.with_label(label);
+                }
+                #[cfg(feature = "cache_pygates")]
+                {
+                    if let Some(py_op) = inst.py_op().get() {
+                        packed_inst = packed_inst.with_py_cache(py_op.clone());
+                    }
+                }
+                self.data.push(packed_inst);
                 self.track_instruction_parameters(new_index)?;
             }
             return Ok(());
@@ -1289,7 +1295,7 @@ impl CircuitData {
     pub fn count_ops(&self) -> IndexMap<&str, usize, ::ahash::RandomState> {
         let mut ops_count: IndexMap<&str, usize, ::ahash::RandomState> = IndexMap::default();
         for instruction in &self.data {
-            *ops_count.entry(instruction.op.name()).or_insert(0) += 1;
+            *ops_count.entry(instruction.op().name()).or_insert(0) += 1;
         }
         ops_count.par_sort_by(|_k1, v1, _k2, v2| v2.cmp(v1));
         ops_count
@@ -1489,7 +1495,7 @@ impl CircuitData {
     pub fn num_nonlocal_gates(&self) -> usize {
         self.data
             .iter()
-            .filter(|inst| inst.op.num_qubits() > 1 && !inst.op.directive())
+            .filter(|inst| inst.op().num_qubits() > 1 && !inst.op().directive())
             .count()
     }
 
@@ -1839,16 +1845,8 @@ impl CircuitData {
             let (operation, params, qargs, cargs) = item?;
             let qubits = res.qargs_interner.insert_owned(qargs);
             let clbits = res.cargs_interner.insert_owned(cargs);
-            let params = (!params.is_empty()).then(|| Box::new(params));
-            res.data.push(PackedInstruction {
-                op: operation,
-                qubits,
-                clbits,
-                params,
-                label: None,
-                #[cfg(feature = "cache_pygates")]
-                py_op: OnceLock::new(),
-            });
+            res.data
+                .push(PackedInstruction::new(operation, qubits, clbits).with_params(params));
             res.track_instruction_parameters(res.data.len() - 1)?;
         }
         Ok(res)
@@ -2065,18 +2063,13 @@ impl CircuitData {
         qargs: &[Qubit],
         cargs: &[Clbit],
     ) {
-        let params = (!params.is_empty()).then(|| Box::new(params.iter().cloned().collect()));
         let qubits = self.qargs_interner.insert(qargs);
         let clbits = self.cargs_interner.insert(cargs);
-        self.data.push(PackedInstruction {
-            op: operation,
-            qubits,
-            clbits,
-            params,
-            label: None,
-            #[cfg(feature = "cache_pygates")]
-            py_op: OnceLock::new(),
-        });
+        let mut packed = PackedInstruction::new(operation, qubits, clbits);
+        if !params.is_empty() {
+            packed = packed.with_params(params.iter().cloned().collect());
+        }
+        self.data.push(packed);
     }
 
     /// Add the entries from the `PackedInstruction` at the given index to the internal parameter
@@ -2176,15 +2169,18 @@ impl CircuitData {
                 .map_objects(inst.clbits.extract::<Vec<ShareableClbit>>(py)?.into_iter())?
                 .collect(),
         );
-        Ok(PackedInstruction {
-            op: inst.operation.clone(),
-            qubits,
-            clbits,
-            params: (!inst.params.is_empty()).then(|| Box::new(inst.params.clone())),
-            label: inst.label.clone(),
-            #[cfg(feature = "cache_pygates")]
-            py_op: inst.py_op.clone(),
-        })
+        let mut packed_inst = PackedInstruction::new(inst.operation.clone(), qubits, clbits)
+            .with_params(inst.params.clone());
+        if let Some(label) = inst.label.as_deref() {
+            packed_inst = packed_inst.with_label(label.clone())
+        }
+        #[cfg(feature = "cache_pygates")]
+        {
+            if let Some(py_op) = inst.py_op.get() {
+                packed_inst = packed_inst.with_py_cache(py_op.clone())
+            }
+        }
+        Ok(packed_inst)
     }
 
     /// Returns an iterator over all the instructions present in the circuit.
@@ -2392,16 +2388,6 @@ impl CircuitData {
                             for uuid in uuids.iter() {
                                 self.param_table.add_use(*uuid, usage)?
                             }
-                            #[cfg(feature = "cache_pygates")]
-                            {
-                                // Standard gates can all rebuild their definitions, so if the
-                                // cached py_op exists, discard it to prompt the instruction
-                                // to rebuild its cached python gate upon request later on. This is
-                                // done to avoid an unintentional duplicated reference to the same gate
-                                // instance in python. For more information, see
-                                // https://github.com/Qiskit/qiskit/issues/13504
-                                previous.py_op.take();
-                            }
                         } else {
                             // Track user operations we've seen so we can rebind their definitions.
                             // Strictly this can add the same binding pair more than once, if an
@@ -2461,14 +2447,21 @@ impl CircuitData {
                                 }
                             };
                             op.getattr(params_attr)?.set_item(parameter, new_param)?;
-                            let mut new_op = op.extract::<OperationFromPython>()?;
-                            previous.op = new_op.operation;
-                            previous.params_mut().swap_with_slice(&mut new_op.params);
-                            previous.label = new_op.label;
+                            let new_op = op.extract::<OperationFromPython>()?;
+                            let mut new_inst = PackedInstruction::new(
+                                new_op.operation,
+                                previous.qubits,
+                                previous.clbits,
+                            )
+                            .with_params(new_op.params);
+                            if let Some(label) = new_op.label.as_deref() {
+                                new_inst = new_inst.with_label(label.clone());
+                            }
                             #[cfg(feature = "cache_pygates")]
                             {
-                                previous.py_op = op.unbind().into();
+                                new_inst = new_inst.with_py_cache(op.unbind().into());
                             }
+                            *previous = new_inst;
                             for uuid in uuids.iter() {
                                 self.param_table.add_use(*uuid, usage)?
                             }
@@ -2487,7 +2480,8 @@ impl CircuitData {
             // We only put non-standard gates in `user_operations`, so we're not risking creating a
             // previously non-existent Python object.
             let instruction = &self.data[instruction];
-            let definition_cache = if matches!(instruction.op.view(), OperationRef::Operation(_)) {
+            let definition_cache = if matches!(instruction.op().view(), OperationRef::Operation(_))
+            {
                 // `Operation` instances don't have a `definition` as part of their interfaces, but
                 // they might be an `AnnotatedOperation`, which is one of our special built-ins.
                 // This should be handled more completely in the user-customisation interface by a
