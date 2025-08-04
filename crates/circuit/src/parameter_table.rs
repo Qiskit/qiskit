@@ -50,7 +50,7 @@ pub enum ParameterUse {
 #[derive(Clone, Debug)]
 pub struct ParameterInfo {
     uses: HashSet<ParameterUse>,
-    symbol: Symbol, // TODO rename this to symbol
+    symbol: Symbol,
 }
 
 /// Type-safe UUID for a symbolic parameter.  This does not track the name of a [Symbol]; it
@@ -64,7 +64,7 @@ impl ParameterUuid {
     pub fn from_parameter(ob: &Bound<PyAny>) -> PyResult<Self> {
         let uuid = if let Ok(param) = ob.downcast::<PyParameter>() {
             // this downcast should cover both PyParameterVectorElement and PyParameter
-            param.borrow().symbol_ref().uuid.as_u128()
+            param.borrow().symbol().uuid.as_u128()
         } else if let Ok(expr) = ob.downcast::<PyParameterExpression>() {
             let expr_borrowed = expr.borrow();
             // We know the ParameterExpression is in fact representing a single Symbol
@@ -163,7 +163,7 @@ impl ParameterTable {
     }
 
     /// Lookup the Python parameter object by name.
-    pub fn parameter_by_name(&self, name: &String) -> Option<&Symbol> {
+    pub fn parameter_by_name(&self, name: &str) -> Option<&Symbol> {
         self.by_repr
             .get(name)
             .map(|uuid| &self.by_uuid[uuid].symbol)
@@ -187,7 +187,12 @@ impl ParameterTable {
 
     /// Get a set of all tracked [Symbol] objects.
     pub fn parameters_unsorted(&self) -> HashSet<&Symbol> {
-        HashSet::from_iter(self.by_uuid.values().map(|info| &info.symbol))
+        HashSet::from_iter(self.iter_parameters())
+    }
+
+    /// Iterate over the [Symbol]s in the circuit. These are iterated in unsorted order.
+    pub fn iter_parameters(&self) -> impl Iterator<Item = &Symbol> {
+        self.by_uuid.values().map(|info| &info.symbol)
     }
 
     /// Get the sorted order of the `ParameterTable`.  This does not access the cache.
@@ -196,7 +201,7 @@ impl ParameterTable {
         out.sort_unstable_by_key(|uuid| {
             let info = &self.by_uuid[uuid];
             let index = info.symbol.index.unwrap_or(0);
-            let name = info.symbol.name_ref();
+            let name = info.symbol.name();
             (name, index)
         });
         out

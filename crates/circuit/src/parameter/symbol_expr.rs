@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use hashbrown::{HashMap, HashSet};
+use hashbrown::HashMap;
 use pyo3::exceptions::PyTypeError;
 use pyo3::exceptions::PyValueError;
 use pyo3::IntoPyObjectExt;
@@ -64,9 +64,9 @@ impl Hash for Symbol {
 impl<'py> FromPyObject<'py> for Symbol {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         if let Ok(py_vector_element) = ob.extract::<PyParameterVectorElement>() {
-            Ok(py_vector_element.symbol())
+            Ok(py_vector_element.symbol().clone())
         } else if let Ok(py_param) = ob.extract::<PyParameter>() {
-            Ok(py_param.symbol())
+            Ok(py_param.symbol().clone())
         } else {
             Err(PyTypeError::new_err("Cannot extract Symbol from {ob:?}"))
         }
@@ -118,11 +118,7 @@ impl Symbol {
         })
     }
 
-    pub fn name(&self) -> String {
-        self.name.clone()
-    }
-
-    pub fn name_ref(&self) -> &String {
+    pub fn name(&self) -> &str {
         &self.name
     }
 
@@ -312,7 +308,7 @@ impl fmt::Display for SymbolExpr {
 
 impl SymbolExpr {
     /// bind value to symbol node
-    pub fn bind(&self, maps: &HashMap<Symbol, Value>) -> SymbolExpr {
+    pub fn bind(&self, maps: &HashMap<&Symbol, Value>) -> SymbolExpr {
         match self {
             SymbolExpr::Symbol(e) => match maps.get(e) {
                 Some(v) => SymbolExpr::Value(*v),
@@ -670,27 +666,11 @@ impl SymbolExpr {
         }
     }
 
-    /// Return hashset of all parameters this equation contains.
-    /// TODO This should just be iter_symbols.collect()
-    pub fn symbols(&self) -> HashSet<Symbol> {
+    /// Iterate over all symbols this equation contains.
+    pub fn iter_symbols(&self) -> Box<dyn Iterator<Item = &Symbol> + '_> {
+        // This could maybe be more elegantly resolved with a SymbolIter type>
         match self {
-            SymbolExpr::Symbol(e) => HashSet::from_iter([e.clone()]),
-            SymbolExpr::Value(_) => HashSet::<Symbol>::new(),
-            SymbolExpr::Unary { op: _, expr } => expr.symbols(),
-            SymbolExpr::Binary { op: _, lhs, rhs } => {
-                let mut parameters = HashSet::<Symbol>::new();
-                for s in lhs.symbols().union(&rhs.symbols()) {
-                    parameters.insert(s.clone());
-                }
-                parameters
-            }
-        }
-    }
-
-    /// This could maybe be more elegantly resolved with a SymbolIter type>
-    pub fn iter_symbols(&self) -> Box<dyn Iterator<Item = Symbol>> {
-        match self {
-            SymbolExpr::Symbol(e) => Box::new(::std::iter::once(e.clone())),
+            SymbolExpr::Symbol(e) => Box::new(::std::iter::once(e)),
             SymbolExpr::Value(_) => Box::new(::std::iter::empty()),
             SymbolExpr::Unary { op: _, expr } => expr.iter_symbols(),
             SymbolExpr::Binary { op: _, lhs, rhs } => {
@@ -701,8 +681,7 @@ impl SymbolExpr {
 
     /// Map of parameter name to the parameter.
     pub fn name_map(&self) -> HashMap<String, Symbol> {
-        self.symbols()
-            .iter()
+        self.iter_symbols()
             .map(|param| (param.repr(false), param.clone()))
             .collect()
     }

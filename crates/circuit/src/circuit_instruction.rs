@@ -381,7 +381,7 @@ impl CircuitInstruction {
                     Param::Float(left) => match right {
                         Param::Float(right) => left == right,
                         Param::ParameterExpression(right) => {
-                            right == &ParameterExpression::from_f64(*left)
+                            &ParameterExpression::from_f64(*left) == right
                         }
                         Param::Obj(right) => right.bind(py).eq(left)?,
                     },

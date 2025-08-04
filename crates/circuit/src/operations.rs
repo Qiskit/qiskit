@@ -88,7 +88,7 @@ impl Param {
         match [self, other] {
             [Self::Float(a), Self::Float(b)] => Ok(a == b),
             [Self::Float(a), Self::ParameterExpression(b)] => {
-                Ok(b == &ParameterExpression::from_f64(*a))
+                Ok(&ParameterExpression::from_f64(*a) == b)
             }
             [Self::ParameterExpression(a), Self::Float(b)] => {
                 Ok(a == &ParameterExpression::from_f64(*b))
@@ -113,7 +113,7 @@ impl Param {
     pub fn iter_parameters(&self) -> PyResult<Box<dyn Iterator<Item = Symbol> + '_>> {
         match self {
             Param::Float(_) => Ok(Box::new(::std::iter::empty())),
-            Param::ParameterExpression(expr) => Ok(Box::new(expr.iter_symbols())),
+            Param::ParameterExpression(expr) => Ok(Box::new(expr.iter_symbols().cloned())),
             Param::Obj(obj) => {
                 Python::with_gil(|py| -> PyResult<Box<dyn Iterator<Item = Symbol>>> {
                     let parameters_attr = intern!(py, "parameters");
@@ -126,7 +126,7 @@ impl Param {
                                 let elem = elem?;
                                 let py_param_bound = elem.downcast::<PyParameter>()?;
                                 let py_param = py_param_bound.borrow();
-                                let symbol = py_param.symbol_ref();
+                                let symbol = py_param.symbol();
                                 Ok(symbol.clone())
                             })
                             .collect::<PyResult<_>>()?;

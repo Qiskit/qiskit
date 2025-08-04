@@ -573,8 +573,7 @@ impl CircuitData {
         PySet::new(
             py,
             self.param_table
-                .parameters_unsorted()
-                .iter()
+                .iter_parameters()
                 .map(|symbol| symbol.coerce_into_py(py).unwrap()),
         )
     }
@@ -583,7 +582,7 @@ impl CircuitData {
         self.param_table._py_raw_entry(param)
     }
 
-    pub fn get_parameter_by_name(&self, py: Python, name: String) -> Option<Py<PyAny>> {
+    pub fn get_parameter_by_name(&self, py: Python, name: &str) -> Option<Py<PyAny>> {
         self.param_table
             .parameter_by_name(&name)
             .map(|ob| ob.coerce_into_py(py).unwrap())
@@ -2187,7 +2186,7 @@ impl CircuitData {
         self.data.iter()
     }
 
-    /// Returns an iterator over the [Symbol]s in the circuit.
+    /// Get the sorted symbols in this circuit.
     pub fn parameters(&self) -> &[Symbol] {
         self.param_table.parameters()
     }
@@ -2222,7 +2221,6 @@ impl CircuitData {
             // Assume all the Parameters are already in the circuit
             let symbolj = self.get_parameter_by_uuid(param_uuid);
             if let Some(symbolj) = symbolj {
-                // Copy or increase ref_count for Parameter, avoid acquiring the GIL.
                 items.push((
                     symbolj.clone(),
                     value.as_ref().clone(),
@@ -2325,8 +2323,7 @@ impl CircuitData {
          -> PyResult<Param> {
             let new_expr = match value {
                 Param::Float(f) => {
-                    let map: HashMap<Symbol, Value> =
-                        HashMap::from([(symbol.clone(), Value::Real(*f))]);
+                    let map: HashMap<&Symbol, Value> = HashMap::from([(symbol, Value::Real(*f))]);
                     expr.bind(&map, false)?
                 }
                 Param::ParameterExpression(e) => {

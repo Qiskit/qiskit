@@ -196,7 +196,7 @@ impl ParameterExpression {
     ///     an error.
     pub fn try_to_value(&self, strict: bool) -> Result<Value, ParameterError> {
         if strict && !self.name_map.is_empty() {
-            let free_symbols = self.expr.symbols();
+            let free_symbols = self.expr.iter_symbols().cloned().collect();
             return Err(ParameterError::UnboundParameters(free_symbols));
         }
 
@@ -212,7 +212,7 @@ impl ParameterExpression {
                 Ok(value)
             }
             None => {
-                let free_symbols = self.expr.symbols();
+                let free_symbols = self.expr.iter_symbols().cloned().collect();
                 Err(ParameterError::UnboundParameters(free_symbols))
             }
         }
@@ -294,8 +294,8 @@ impl ParameterExpression {
             .expect("Invalid QPY replay encountered during deserialization: empty OPReplay."))
     }
 
-    pub fn iter_symbols(&self) -> impl Iterator<Item = Symbol> + '_ {
-        self.name_map.values().cloned()
+    pub fn iter_symbols(&self) -> impl Iterator<Item = &Symbol> + '_ {
+        self.name_map.values()
     }
 
     /// Whether the expression represents a complex number. None if cannot be determined.
@@ -553,17 +553,16 @@ impl ParameterExpression {
     /// * `Err(ParameterError)` - An error if binding failed.
     pub fn bind(
         &self,
-        map: &HashMap<Symbol, Value>,
+        map: &HashMap<&Symbol, Value>,
         allow_unknown_parameters: bool,
     ) -> Result<Self, ParameterError> {
         // The set of symbols we will bind. Used twice, hence pre-computed here.
-        let bind_symbols: HashSet<&Symbol> = map.keys().collect();
+        let bind_symbols: HashSet<&Symbol> = map.keys().cloned().collect();
 
         // If we don't allow for unknown parameters, check if there are any.
         if !allow_unknown_parameters {
             let existing: HashSet<&Symbol> = self.name_map.values().collect();
-            let to_replace: HashSet<&Symbol> = map.keys().collect();
-            let mut difference = to_replace.difference(&existing).peekable();
+            let mut difference = bind_symbols.difference(&existing).peekable();
 
             if difference.peek().is_some() {
                 let different_symbols = difference.map(|s| (**s).clone()).collect();
@@ -1019,10 +1018,10 @@ impl PyParameterExpression {
     ) -> PyResult<Self> {
         // reduce the map to a HashMap<Symbol, Value>
         let map = parameter_values
-            .into_iter()
+            .iter()
             .map(|(param, value)| {
                 let value = value.extract()?;
-                Ok((param.symbol, value))
+                Ok((param.symbol(), value))
             })
             .collect::<PyResult<_>>()?;
 
@@ -1273,9 +1272,9 @@ impl PyParameterExpression {
         } else {
             let value = ParameterValueType::extract_from_expr(&self.inner.expr);
             if value.is_none() {
-                Err(PyValueError::new_err(
-                    "Failed to get QPY replay or extract value.",
-                ))
+                Err(PyValueError::new_err(format!(
+                    "Failed to serialize the parameter expression: {self:?}"
+                )))
             } else {
                 Ok((qpy, value))
             }
@@ -1283,8 +1282,12 @@ impl PyParameterExpression {
     }
 
     fn __setstate__(&mut self, state: (Vec<OPReplay>, Option<ParameterValueType>)) -> PyResult<()> {
-        // if there is no replay, load from the ParameterValueType
-        if state.0.is_empty() {
+        // if there a replay, load from the replay
+        if !state.0.is_empty() {
+            let from_qpy = ParameterExpression::from_qpy(&state.0)?;
+            self.inner = from_qpy;
+        // otherwise, load from the ParameterValueType
+        } else {
             if let Some(value) = state.1 {
                 let expr = ParameterExpression::from(value);
                 self.inner = expr;
@@ -1293,10 +1296,6 @@ impl PyParameterExpression {
                     "Failed to read QPY replay or extract value.",
                 ));
             }
-        // otherwise, load from the replay
-        } else {
-            let from_qpy = ParameterExpression::from_qpy(&state.0)?;
-            self.inner = from_qpy;
         }
         Ok(())
     }
@@ -1382,12 +1381,8 @@ impl PyParameter {
         PyClassInitializer::from(py_expr).add_subclass(py_parameter)
     }
 
-    pub fn symbol(&self) -> Symbol {
-        self.symbol.clone()
-    }
-
     /// Get a reference to the underlying symbol.
-    pub fn symbol_ref(&self) -> &Symbol {
+    pub fn symbol(&self) -> &Symbol {
         &self.symbol
     }
 }
@@ -1585,8 +1580,8 @@ impl<'py> IntoPyObject<'py> for PyParameterVectorElement {
 }
 
 impl PyParameterVectorElement {
-    pub fn symbol(&self) -> Symbol {
-        self.symbol.clone()
+    pub fn symbol(&self) -> &Symbol {
+        &self.symbol
     }
 
     pub fn from_symbol(symbol: Symbol) -> PyClassInitializer<Self> {
@@ -1930,7 +1925,7 @@ fn filter_name_map(
     sub_expr: &SymbolExpr,
     name_map: &HashMap<String, Symbol>,
 ) -> ParameterExpression {
-    let sub_symbols = sub_expr.symbols();
+    let sub_symbols: HashSet<&Symbol> = sub_expr.iter_symbols().collect();
     let restricted_name_map: HashMap<String, Symbol> = name_map
         .iter()
         .filter(|(_, symbol)| sub_symbols.contains(*symbol))
