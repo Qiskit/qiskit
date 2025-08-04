@@ -47,29 +47,12 @@ pub enum ParameterUse {
     GlobalPhase,
 }
 
-/// Rust-space extra information that a `ParameterVectorElement` has.  This is used most heavily
-/// during sorting; vector elements are sorted by their parent name, and index within that.
-#[derive(Clone, Debug)]
-struct VectorElement {
-    vector_uuid: VectorUuid,
-    index: u32,
-}
-
 /// Tracked data tied to each parameter's UUID in the table.
 #[derive(Clone, Debug)]
 pub struct ParameterInfo {
     uses: HashSet<ParameterUse>,
-    name: String, // TODO probably redundant, just get Symbol.name(), which is cheap
-    element: Option<VectorElement>, // TODO maybe this is redundant now and can be removed
+    name: String,   // TODO probably redundant, just get Symbol.name(), which is cheap
     object: Symbol, // TODO rename this to symbol
-}
-
-/// Rust-space information on a Python `ParameterVector` and its uses in the table.
-#[derive(Clone, Debug)]
-struct VectorInfo {
-    name: String,
-    /// Number of elements of the vector tracked within the parameter table.
-    refcount: usize,
 }
 
 /// Type-safe UUID for a symbolic parameter.  This does not track the name of the `Parameter`; it
@@ -115,34 +98,12 @@ impl<'py> FromPyObject<'py> for ParameterUuid {
     }
 }
 
-/// Type-safe UUID for a parameter vector.  This is just used internally for tracking.
-#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
-struct VectorUuid(u128);
-impl VectorUuid {
-    /// Extract a UUID from a Python-space `ParameterVector` object. This assumes that the object is
-    /// the correct type.
-    fn from_vector(ob: &Bound<PyAny>) -> PyResult<Self> {
-        ob.getattr(intern!(ob.py(), "_root_uuid"))?.extract()
-    }
-}
-impl<'py> FromPyObject<'py> for VectorUuid {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if ob.is_exact_instance(UUID.get_bound(ob.py())) {
-            ob.getattr(intern!(ob.py(), "int"))?.extract().map(Self)
-        } else {
-            Err(PyTypeError::new_err("not a UUID"))
-        }
-    }
-}
-
 #[derive(Clone, Default, Debug)]
 pub struct ParameterTable {
     /// Mapping of the parameter key (its UUID) to the information on it tracked by this table.
     by_uuid: HashMap<ParameterUuid, ParameterInfo>,
     /// Mapping of the parameter names to the UUID that represents them.  
     by_name: HashMap<String, ParameterUuid>,
-    /// Additional information on any `ParameterVector` instances that have elements in the circuit.
-    vectors: HashMap<VectorUuid, VectorInfo>,
     /// Cache of the sort order of the parameters.  This is lexicographical for most parameters,
     /// except elements of a `ParameterVector` are sorted within the vector by numerical index.  We
     /// calculate this on demand and cache it.
@@ -192,28 +153,6 @@ impl ParameterTable {
                         &name
                     )));
                 }
-                let element = if let Some(vector) = &param_ob.vector {
-                    Python::with_gil(|py| -> PyResult<Option<VectorElement>> {
-                        let vector_bound = vector.bind(py);
-                        let vector_uuid = VectorUuid::from_vector(vector_bound)?;
-                        let py_name_attr = intern!(py, "name");
-                        match self.vectors.entry(vector_uuid) {
-                            Entry::Occupied(mut entry) => entry.get_mut().refcount += 1,
-                            Entry::Vacant(entry) => {
-                                entry.insert(VectorInfo {
-                                    name: vector_bound.getattr(py_name_attr)?.extract()?,
-                                    refcount: 1,
-                                });
-                            }
-                        }
-                        Ok(Some(VectorElement {
-                            vector_uuid,
-                            index: param_ob.index.unwrap(), // we now the index exists
-                        }))
-                    })?
-                } else {
-                    None
-                };
                 self.by_name.insert(name.clone(), uuid);
                 let mut uses = HashSet::new();
                 if let Some(usage) = usage {
@@ -224,7 +163,6 @@ impl ParameterTable {
                 entry.insert(ParameterInfo {
                     name,
                     uses,
-                    element,
                     object: param_ob.clone(),
                 });
                 self.invalidate_cache();
@@ -311,15 +249,6 @@ impl ParameterTable {
         }
         if info.uses.is_empty() {
             self.by_name.remove(&info.name);
-            if let Some(vec) = info.element.as_ref() {
-                let Entry::Occupied(mut vec_entry) = self.vectors.entry(vec.vector_uuid) else {
-                    unreachable!()
-                };
-                vec_entry.get_mut().refcount -= 1;
-                if vec_entry.get().refcount == 0 {
-                    vec_entry.remove_entry();
-                }
-            }
             entry.remove_entry();
             self.invalidate_cache();
         }
@@ -338,14 +267,6 @@ impl ParameterTable {
         self.by_name
             .remove(&info.name)
             .expect("each parameter should be tracked by both UUID and name");
-        if let Some(element) = info.element {
-            self.vectors
-                .entry(element.vector_uuid)
-                .and_replace_entry_with(|_k, mut vector_info| {
-                    vector_info.refcount -= 1;
-                    (vector_info.refcount > 0).then_some(vector_info)
-                });
-        }
         self.invalidate_cache();
         Ok(info.uses)
     }
@@ -362,7 +283,6 @@ impl ParameterTable {
             .unwrap_or_else(|| self.sorted_order());
         let by_uuid = ::std::mem::take(&mut self.by_uuid);
         self.by_name.clear();
-        self.vectors.clear();
         self.parameters_cache.take();
         ParameterTableDrain {
             order: order.into_iter(),
@@ -375,7 +295,6 @@ impl ParameterTable {
     pub fn clear(&mut self) {
         self.by_uuid.clear();
         self.by_name.clear();
-        self.vectors.clear();
         self.invalidate_cache();
     }
 
