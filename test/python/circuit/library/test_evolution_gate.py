@@ -540,7 +540,7 @@ class TestEvolutionGate(QiskitTestCase):
         evo = PauliEvolutionGate(Z, time=time)
 
         angle = evo.definition.data[0].operation.params[0]
-        expected = (2.0 * time).sympify()
+        expected = (2 * time).sympify()
         self.assertEqual(expected, angle.sympify())
 
     def test_zero(self):
@@ -725,6 +725,21 @@ class TestEvolutionGate(QiskitTestCase):
         self.assertLess(cx_count, exponential_cx)
         # we should also be less (or equal) to this
         self.assertLessEqual(cx_count, num_cx)
+
+    def test_raises_on_empty_list(self):
+        """Test that an error gets raised when a Pauli evolution gate is created from an empty list."""
+        with self.assertRaises(ValueError):
+            PauliEvolutionGate([], time=1)
+
+    def test_raises_on_list_with_different_num_qubits(self):
+        """Test that an error gets raised when a Pauli evolution gate is created from a list,
+        where not all of the operators have the same number of qubits.
+        """
+
+        with self.assertRaises(ValueError):
+            pauli = Pauli("XYZ")  # 3 qubits
+            op = SparsePauliOp(["XYIZ"], [1])  # 4 qubits
+            PauliEvolutionGate([pauli, op], time=1)
 
 
 def exact_atomic_evolution(circuit, pauli, time):
