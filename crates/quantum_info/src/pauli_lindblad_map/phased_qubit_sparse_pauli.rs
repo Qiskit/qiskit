@@ -121,6 +121,22 @@ impl PhasedQubitSparsePauliList {
         self.qubit_sparse_pauli_list.clear();
         self.phases.clear();
     }
+
+    // Check equality of operators
+    fn eq(&self, other: &PhasedQubitSparsePauliList) -> bool {
+        if self.qubit_sparse_pauli_list != other.qubit_sparse_pauli_list {
+            return false
+        }
+
+        // assume here number of terms is equal
+        for (self_phase, other_phase) in self.phases.iter().zip(other.phases.iter()) {
+            if (self_phase - other_phase).rem_euclid(4) != 0 {
+                return false
+            }
+        }
+
+        return true
+    }
 }
 
 /// A view object onto a single term of a `QubitSparsePauliList`.
