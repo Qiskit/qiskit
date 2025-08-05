@@ -2220,10 +2220,10 @@ impl CircuitData {
         let mut items = Vec::new();
         for (param_uuid, value) in iter {
             // Assume all the Parameters are already in the circuit
-            let symbolj = self.get_parameter_by_uuid(param_uuid);
-            if let Some(symbolj) = symbolj {
+            let symbol = self.get_parameter_by_uuid(param_uuid);
+            if let Some(symbol) = symbol {
                 items.push((
-                    symbolj.clone(),
+                    symbol.clone(),
                     value.as_ref().clone(),
                     self.param_table.pop(param_uuid)?,
                 ));
