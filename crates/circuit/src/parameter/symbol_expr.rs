@@ -278,12 +278,12 @@ impl SymbolExpr {
             SymbolExpr::Binary { op, lhs, rhs } => {
                 let new_lhs = lhs.bind(maps);
                 let new_rhs = rhs.bind(maps);
-                let make_bin = |lhs: &SymbolExpr, rhs: &SymbolExpr, op: &BinaryOp| match op {
-                    BinaryOp::Add => lhs + rhs,
-                    BinaryOp::Sub => lhs - rhs,
-                    BinaryOp::Mul => lhs * rhs,
-                    BinaryOp::Div => lhs / rhs,
-                    BinaryOp::Pow => _pow(lhs.clone(), rhs.clone()),
+                let make_bin = |l: &SymbolExpr, r: &SymbolExpr, op: &BinaryOp| match op {
+                    BinaryOp::Add => l + r,
+                    BinaryOp::Sub => l - r,
+                    BinaryOp::Mul => l * r,
+                    BinaryOp::Div => l / r,
+                    BinaryOp::Pow => _pow(l.clone(), r.clone()),
                 };
 
                 match (new_lhs, new_rhs) {
@@ -310,12 +310,12 @@ impl SymbolExpr {
             SymbolExpr::Binary { op, lhs, rhs } => {
                 let new_lhs = lhs.subs(maps);
                 let new_rhs = rhs.subs(maps);
-                let make_bin = |lhs: &SymbolExpr, rhs: &SymbolExpr, op: &BinaryOp| match op {
-                    BinaryOp::Add => lhs + rhs,
-                    BinaryOp::Sub => lhs - rhs,
-                    BinaryOp::Mul => lhs * rhs,
-                    BinaryOp::Div => lhs / rhs,
-                    BinaryOp::Pow => _pow(lhs.clone(), rhs.clone()),
+                let make_bin = |l: &SymbolExpr, r: &SymbolExpr, op: &BinaryOp| match op {
+                    BinaryOp::Add => l + r,
+                    BinaryOp::Sub => l - r,
+                    BinaryOp::Mul => l * r,
+                    BinaryOp::Div => l / r,
+                    BinaryOp::Pow => _pow(l.clone(), r.clone()),
                 };
 
                 match (new_lhs, new_rhs) {

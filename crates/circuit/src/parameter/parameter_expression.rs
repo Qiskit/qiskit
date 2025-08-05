@@ -545,52 +545,51 @@ impl ParameterExpression {
         }
 
         // bind the symbol expression and then check the outcome for inf/nan, or numeric values
-        match self.expr.bind(map) {
-            Some(bound_expr) => {
-                let bound = match bound_expr.eval(true) {
-                    Some(v) => match &v {
-                        Value::Real(r) => {
-                            if r.is_infinite() {
-                                Err(ParameterError::BindingInf)
-                            } else if r.is_nan() {
-                                Err(ParameterError::BindingNaN)
-                            } else {
-                                Ok(SymbolExpr::Value(v))
-                            }
-                        }
-                        Value::Int(_) => Ok(SymbolExpr::Value(v)),
-                        Value::Complex(c) => {
-                            if c.re.is_infinite() || c.im.is_infinite() {
-                                Err(ParameterError::BindingInf)
-                            } else if c.re.is_nan() || c.im.is_nan() {
-                                Err(ParameterError::BindingNaN)
-                            } else if (-symbol_expr::SYMEXPR_EPSILON..symbol_expr::SYMEXPR_EPSILON)
-                                .contains(&c.im)
-                            {
-                                Ok(SymbolExpr::Value(Value::Real(c.re)))
-                            } else {
-                                Ok(SymbolExpr::Value(v))
-                            }
-                        }
-                    },
-                    None => Ok(bound_expr),
-                }?;
+        let bound_expr = match self.expr.bind(map) {
+            Some(e) => e,
+            None => self.expr.clone(),
+        };
+        let bound = match bound_expr.eval(true) {
+            Some(v) => match &v {
+                Value::Real(r) => {
+                    if r.is_infinite() {
+                        Err(ParameterError::BindingInf)
+                    } else if r.is_nan() {
+                        Err(ParameterError::BindingNaN)
+                    } else {
+                        Ok(SymbolExpr::Value(v))
+                    }
+                }
+                Value::Int(_) => Ok(SymbolExpr::Value(v)),
+                Value::Complex(c) => {
+                    if c.re.is_infinite() || c.im.is_infinite() {
+                        Err(ParameterError::BindingInf)
+                    } else if c.re.is_nan() || c.im.is_nan() {
+                        Err(ParameterError::BindingNaN)
+                    } else if (-symbol_expr::SYMEXPR_EPSILON..symbol_expr::SYMEXPR_EPSILON)
+                        .contains(&c.im)
+                    {
+                        Ok(SymbolExpr::Value(Value::Real(c.re)))
+                    } else {
+                        Ok(SymbolExpr::Value(v))
+                    }
+                }
+            },
+            None => Ok(bound_expr),
+        }?;
 
-                // update the name map by removing the bound parameters
-                let bound_name_map: HashMap<String, Symbol> = self
-                    .name_map
-                    .iter()
-                    .filter(|(_, symbol)| !bind_symbols.contains(symbol))
-                    .map(|(name, symbol)| (name.clone(), symbol.clone()))
-                    .collect();
+        // update the name map by removing the bound parameters
+        let bound_name_map: HashMap<String, Symbol> = self
+            .name_map
+            .iter()
+            .filter(|(_, symbol)| !bind_symbols.contains(symbol))
+            .map(|(name, symbol)| (name.clone(), symbol.clone()))
+            .collect();
 
-                Ok(Self {
-                    expr: bound,
-                    name_map: bound_name_map,
-                })
-            }
-            None => Ok(self.clone()),
-        }
+        Ok(Self {
+            expr: bound,
+            name_map: bound_name_map,
+        })
     }
 
     /// Merge name maps.
