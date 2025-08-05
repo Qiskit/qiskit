@@ -14,10 +14,10 @@
 #include <stdio.h>
 
 // Creates a target for the the testing functions below
-static QkTarget* create_target() {
+static QkTarget *create_target() {
     QkTarget *target = qk_target_new(3);
 
-    uint32_t qargs[3] = {0,1,2};
+    uint32_t qargs[3] = {0, 1, 2};
     QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
 
     double rzx_params[1] = {1.5};
@@ -27,8 +27,7 @@ static QkTarget* create_target() {
         qk_target_entry_add_property(cx_entry, &qargs[1], 2, 0.0, 0.0) != Ok ||
         qk_target_add_instruction(target, cx_entry) != Ok ||
         qk_target_entry_add_property(rzx_entry, qargs, 2, 0.0, 0.0) != Ok ||
-        qk_target_add_instruction(target, rzx_entry) != Ok)
-    {
+        qk_target_add_instruction(target, rzx_entry) != Ok) {
         printf("Unexpected error encountered in create_target.");
         qk_target_free(target);
         return NULL;
@@ -42,7 +41,7 @@ static QkTarget* create_target() {
  */
 int test_check_gate_direction(void) {
     QkTarget *target = create_target();
-    if ( !target )
+    if (!target)
         return RuntimeError;
 
     enum TestResult result = Ok;
@@ -50,21 +49,22 @@ int test_check_gate_direction(void) {
     uint32_t qargs[4] = {0, 1, 2, 1};
 
     if ((result = qk_circuit_gate(circuit, QkGate_CX, qargs, NULL)) != Ok ||
-        (result = qk_circuit_gate(circuit, QkGate_CX, &qargs[1], NULL)) != Ok ) {
+        (result = qk_circuit_gate(circuit, QkGate_CX, &qargs[1], NULL)) != Ok) {
         printf("Unexpected error encountered while adding CX gates in test_check_gate_direction.");
         goto cleanup;
     }
 
     bool check_pass = qk_transpiler_pass_standalone_check_gate_direction(circuit, target);
-    if ( !check_pass )
+    if (!check_pass)
         result = EqualityError;
     else {
-        if ((result = qk_circuit_gate(circuit, QkGate_CX, &qargs[2], NULL)) != Ok ) {
-            printf("Unexpected error encountered while adding a CX gate in test_check_gate_direction.");
+        if ((result = qk_circuit_gate(circuit, QkGate_CX, &qargs[2], NULL)) != Ok) {
+            printf("Unexpected error encountered while adding a CX gate in "
+                   "test_check_gate_direction.");
             goto cleanup;
         }
         check_pass = qk_transpiler_pass_standalone_check_gate_direction(circuit, target);
-        if ( check_pass )
+        if (check_pass)
             result = EqualityError;
     }
 
@@ -79,7 +79,7 @@ cleanup:
  */
 int test_gate_direction(void) {
     QkTarget *target = create_target();
-    if ( !target )
+    if (!target)
         return RuntimeError;
 
     enum TestResult result = Ok;
@@ -91,10 +91,10 @@ int test_gate_direction(void) {
     if ((result = qk_circuit_gate(circuit, QkGate_CX, qargs, NULL)) != Ok ||
         (result = qk_circuit_gate(circuit, QkGate_CX, &qargs[1], NULL)) != Ok ||
         (result = qk_circuit_gate(circuit, QkGate_CX, &qargs[2], NULL)) != Ok ||
-        (result = qk_circuit_gate(circuit, QkGate_RZX, &qargs[3], params)) != Ok ) {
+        (result = qk_circuit_gate(circuit, QkGate_RZX, &qargs[3], params)) != Ok) {
         printf("Unexpected error encountered while adding gates in test_gate_direction.");
         goto cleanup;
-   }
+    }
 
     QkCircuit *fixed_circuit = qk_transpiler_pass_standalone_gate_direction(circuit, target);
 

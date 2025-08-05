@@ -2,5 +2,5 @@
 features_c:
   - |
     Added new standalone transpiler pass functions ``qk_transpiler_pass_standalone_check_gate_direction`` and
-    ``qk_transpiler_pass_standalone_gate_direction``, which can be used for for running the
+    ``qk_transpiler_pass_standalone_gate_direction``, which can be used for running the
     :class:`.CheckGateDirection` and :class:`.GateDirection`, passes respectively.
