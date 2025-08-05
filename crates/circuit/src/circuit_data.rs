@@ -2417,7 +2417,14 @@ impl CircuitData {
                                 .or_insert_with(Vec::new)
                                 .push((symbol.clone(), value.as_ref().clone()));
 
-                            // this is a Python-only path, since we don't have custom Rust gates
+                            // This is a Python-only path, since we don't have any operations in
+                            // Rust that accept a `Param::ParameterExpression` which aren't standard
+                            // gates. Technically `StandardInstruction::Delay` could, but in
+                            // practice that's not a common path, and it's only supported for
+                            // backwards compatability from before Stretch was introduced. If we did
+                            // it in rust without Python that's a mistake and this with_gil() call
+                            // will panic and point out the error of your ways when this comment is
+                            // read.
                             Python::with_gil(|py| {
                                 let validate_parameter_attr = intern!(py, "validate_parameter");
                                 let assign_parameters_attr = intern!(py, "assign_parameters");
