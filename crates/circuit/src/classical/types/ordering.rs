@@ -10,6 +10,7 @@
 use crate::classical::types::types::Type;
 use crate::imports;
 
+use pyo3::types::PyDict;
 use pyo3::{intern, prelude::*};
 use pyo3::exceptions::PyTypeError;
 
@@ -268,6 +269,52 @@ impl PyCastKind {
 fn py_cast_kind(from: Type, to: Type) -> CastKind {
     CastKind::cast_kind(from, to)
 }
+
+// #[pymodule]
+// fn qiskit_accelerate_circuit_classical_types(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
+//     // Build Python’s enum.Enum metaclass
+//     let enum_mod = py.import("enum")?;
+//     let enum_meta = enum_mod.getattr("Enum")?;
+
+//     // Create the Ordering class
+//     let members = PyDict::new(py);
+//     members.set_item("LESS",    Ordering::Less    as u8)?;
+//     members.set_item("EQUAL",   Ordering::Equal   as u8)?;
+//     members.set_item("GREATER", Ordering::Greater as u8)?;
+//     members.set_item("NONE",    Ordering::None    as u8)?;
+//     let ordering_cls = enum_meta.call1(("Ordering", members))?;
+//     // patch repr so repr(x) == "Ordering.LESS"
+//     use std::ffi::CString;
+//     ordering_cls.setattr(
+//         "__repr__",
+//         py.eval(
+//             CString::new("lambda self: f'Ordering.{self.name}'").unwrap().as_c_str(),
+//             None,
+//             None
+//         )?
+//     )?;
+//     m.add("Ordering", ordering_cls)?;
+
+//     // 3) Create the CastKind class
+//     let members = PyDict::new(py);
+//     members.set_item("EQUAL",     CastKind::Equal     as u8)?;
+//     members.set_item("IMPLICIT",  CastKind::Implicit  as u8)?;
+//     members.set_item("LOSSLESS",  CastKind::Lossless  as u8)?;
+//     members.set_item("DANGEROUS", CastKind::Dangerous as u8)?;
+//     members.set_item("NONE",      CastKind::None      as u8)?;
+//     let castkind_cls = enum_meta.call1(("CastKind", members))?;
+//     // default repr "<CastKind.EQUAL: 1>" is fine, or override similarly:
+//     m.add("CastKind", castkind_cls)?;
+
+//     // 4) Export your functions
+//     m.add_function(wrap_pyfunction!(py_order, m)?)?;
+//     m.add_function(wrap_pyfunction!(py_is_subtype, m)?)?;
+//     m.add_function(wrap_pyfunction!(py_is_supertype, m)?)?;
+//     m.add_function(wrap_pyfunction!(py_greater, m)?)?;
+//     m.add_function(wrap_pyfunction!(py_cast_kind, m)?)?;
+
+//     Ok(())
+// }
 
 pub(crate) fn register_python(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<PyOrdering>()?;

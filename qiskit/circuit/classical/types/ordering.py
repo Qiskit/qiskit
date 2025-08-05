@@ -29,19 +29,18 @@ import enum
 # from .types import Type, Bool, Duration, Float, Uint
 
 from qiskit._accelerate.circuit.classical.types.ordering import (
-    Ordering as OxOrdering,
+    # Ordering as OxOrdering,
     order,
     is_subtype,
     is_supertype,
     greater,
-    CastKind as OxCastKind,
+    # CastKind as OxCastKind,
     cast_kind,
 )
 
-# TODO test if this breaks __get__
 # OxOrdering.__repr__ = lambda self: str(self).capitalize()
-Ordering = OxOrdering
-CastKind = OxCastKind
+# Ordering = OxOrdering
+# CastKind = OxCastKind
 
 class _Ordering(enum.Enum):
     """Enumeration listing the possible relations between two types.  Types only have a partial
@@ -83,3 +82,6 @@ class _CastKind(enum.Enum):
     data.  A user would need to manually specify casts."""
     NONE = 5
     """There is no casting permitted from the 'from' type to the 'to' type."""
+
+Ordering = _Ordering
+CastKind = _CastKind
