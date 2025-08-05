@@ -455,9 +455,7 @@ pub unsafe extern "C" fn qk_circuit_gate(
             // There are no ``QkGate``s that take > 4 params
             _ => unreachable!(),
         };
-        circuit
-            .push_standard_gate(gate, params, qargs)
-            .expect("Parameterized gates aren't supported by this function");
+        circuit.push_standard_gate(gate, params, qargs).unwrap()
     }
     ExitCode::Success
 }
@@ -529,7 +527,7 @@ pub unsafe extern "C" fn qk_circuit_measure(
             &[Qubit(qubit)],
             &[Clbit(clbit)],
         )
-        .expect("Measurements don't take parameters");
+        .unwrap();
     ExitCode::Success
 }
 
@@ -561,7 +559,7 @@ pub unsafe extern "C" fn qk_circuit_reset(circuit: *mut CircuitData, qubit: u32)
             &[Qubit(qubit)],
             &[],
         )
-        .expect("Reset doesn't take parameters");
+        .unwrap();
     ExitCode::Success
 }
 
@@ -608,7 +606,7 @@ pub unsafe extern "C" fn qk_circuit_barrier(
             &qubits,
             &[],
         )
-        .expect("Barrier doesn't take parameters");
+        .unwrap();
     ExitCode::Success
 }
 
@@ -739,9 +737,7 @@ pub unsafe extern "C" fn qk_circuit_unitary(
     // Create PackedOperation -> push to circuit_data
     let u_gate = Box::new(UnitaryGate { array: mat });
     let op = PackedOperation::from_unitary(u_gate);
-    circuit
-        .push_packed_operation(op, &[], qargs, &[])
-        .expect("UnitaryGate doesn't take Parameters");
+    circuit.push_packed_operation(op, &[], qargs, &[]).unwrap();
     // Return success
     ExitCode::Success
 }
@@ -1077,7 +1073,7 @@ pub unsafe extern "C" fn qk_circuit_delay(
             &[Qubit(qubit)],
             &[],
         )
-        .expect("This function doesn't support parameterized delay");
+        .unwrap();
 
     ExitCode::Success
 }
