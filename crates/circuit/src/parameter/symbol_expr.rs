@@ -130,15 +130,6 @@ impl Symbol {
             (None, false) => self.name.clone(),
         }
     }
-
-    pub fn coerce_into_py(&self, py: Python) -> PyResult<PyObject> {
-        match (&self.index, &self.vector) {
-            (Some(_index), Some(_vector)) => {
-                Ok(Py::new(py, PyParameterVectorElement::from_symbol(self.clone()))?.into_any())
-            }
-            _ => Ok(Py::new(py, PyParameter::from_symbol(self.clone()))?.into_any()),
-        }
-    }
 }
 
 /// node types of expression tree

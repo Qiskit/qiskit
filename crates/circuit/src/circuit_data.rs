@@ -562,21 +562,11 @@ impl CircuitData {
     /// data's parameter table.
     #[getter]
     pub fn get_parameters<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
-        PyList::new(
-            py,
-            self.parameters()
-                .iter()
-                .map(|symbol| symbol.coerce_into_py(py).unwrap()),
-        )
+        PyList::new(py, self.parameters().iter().cloned())
     }
 
     pub fn unsorted_parameters<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PySet>> {
-        PySet::new(
-            py,
-            self.param_table
-                .iter_symbols()
-                .map(|symbol| symbol.coerce_into_py(py).unwrap()),
-        )
+        PySet::new(py, self.param_table.iter_symbols().cloned())
     }
 
     fn _raw_parameter_table_entry(&self, param: Bound<PyAny>) -> PyResult<Py<PySet>> {
@@ -586,7 +576,7 @@ impl CircuitData {
     pub fn get_parameter_by_name(&self, py: Python, name: &str) -> Option<Py<PyAny>> {
         self.param_table
             .parameter_by_name(name)
-            .map(|ob| ob.coerce_into_py(py).unwrap())
+            .map(|ob| ob.clone().into_py_any(py).unwrap())
     }
 
     /// Return the width of the circuit. This is the number of qubits plus the
@@ -2475,7 +2465,7 @@ impl CircuitData {
                                         Param::extract_no_coerce(
                                             &obj.call_method(
                                                 assign_parameters_attr,
-                                                ([(symbol.coerce_into_py(py)?, value.as_ref())]
+                                                ([(symbol.clone(), value.as_ref())]
                                                     .into_py_dict(py)?,),
                                                 Some(
                                                     &[("inplace", false), ("flat_input", true)]

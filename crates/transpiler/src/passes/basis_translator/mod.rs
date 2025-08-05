@@ -696,9 +696,7 @@ fn replace_node(
                         let exp_params = param.iter_parameters()?;
                         let bind_dict = PyDict::new(py);
                         for key in exp_params {
-                            // TODO this should work without Py coercion
-                            let py_key = key.coerce_into_py(py)?;
-                            bind_dict.set_item(&py_key, parameter_map.get_item(&py_key)?)?;
+                            bind_dict.set_item(key.clone(), parameter_map.get_item(key)?)?;
                         }
                         let mut new_value: Bound<PyAny>;
                         let comparison = bind_dict.values().iter().any(|param| {
@@ -766,8 +764,7 @@ fn replace_node(
 
                 let bind_dict = PyDict::new(py);
                 for key in target_dag.global_phase().iter_parameters()? {
-                    let py_key = key.coerce_into_py(py)?;
-                    bind_dict.set_item(&py_key, parameter_map.get_item(&py_key)?)?;
+                    bind_dict.set_item(key.clone(), parameter_map.get_item(key)?)?;
                 }
                 let mut new_phase: Bound<PyAny>;
                 if bind_dict.values().iter().any(|param| {
