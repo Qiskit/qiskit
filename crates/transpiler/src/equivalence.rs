@@ -362,7 +362,7 @@ impl EquivalenceLibrary {
     ///         be referenced if an entry is not found in this library.
     #[new]
     #[pyo3(signature= (base=None))]
-    fn new(base: Option<&EquivalenceLibrary>) -> Self {
+    pub fn new(base: Option<&EquivalenceLibrary>) -> Self {
         if let Some(base) = base {
             Self {
                 graph: base.graph.clone(),
