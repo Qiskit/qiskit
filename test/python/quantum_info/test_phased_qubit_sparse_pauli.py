@@ -509,67 +509,67 @@ class TestPhasedQubitSparsePauliList(QiskitTestCase):
         self.assertEqual(
             PhasedQubitSparsePauliList(Pauli("")), PhasedQubitSparsePauliList.from_pauli(Pauli(""))
         )
-    '''
+
     def test_default_constructor_list(self):
         data = ["IXIIZ", "XIXII", "IIXYI"]
-        self.assertEqual(QubitSparsePauliList(data), QubitSparsePauliList.from_list(data))
+        self.assertEqual(PhasedQubitSparsePauliList(data), PhasedQubitSparsePauliList.from_list(data))
         self.assertEqual(
-            QubitSparsePauliList(data, num_qubits=5), QubitSparsePauliList.from_list(data)
+            PhasedQubitSparsePauliList(data, num_qubits=5), PhasedQubitSparsePauliList.from_list(data)
         )
         with self.assertRaisesRegex(ValueError, "label with length 5 cannot be added"):
-            QubitSparsePauliList(data, num_qubits=4)
+            PhasedQubitSparsePauliList(data, num_qubits=4)
         with self.assertRaisesRegex(ValueError, "label with length 5 cannot be added"):
-            QubitSparsePauliList(data, num_qubits=6)
+            PhasedQubitSparsePauliList(data, num_qubits=6)
         self.assertEqual(
-            QubitSparsePauliList([], num_qubits=5), QubitSparsePauliList.from_list([], num_qubits=5)
+            PhasedQubitSparsePauliList([], num_qubits=5), PhasedQubitSparsePauliList.from_list([], num_qubits=5)
         )
 
     def test_default_constructor_sparse_list(self):
-        data = [("ZX", (0, 3)), ("XY", (2, 4)), ("ZY", (2, 1))]
+        data = [(0, "ZX", (0, 3)), (1, "XY", (2, 4)), (2, "ZY", (2, 1))]
         self.assertEqual(
-            QubitSparsePauliList(data, num_qubits=5),
-            QubitSparsePauliList.from_sparse_list(data, num_qubits=5),
+            PhasedQubitSparsePauliList(data, num_qubits=5),
+            PhasedQubitSparsePauliList.from_sparse_list(data, num_qubits=5),
         )
         self.assertEqual(
-            QubitSparsePauliList(data, num_qubits=10),
-            QubitSparsePauliList.from_sparse_list(data, num_qubits=10),
+            PhasedQubitSparsePauliList(data, num_qubits=10),
+            PhasedQubitSparsePauliList.from_sparse_list(data, num_qubits=10),
         )
         with self.assertRaisesRegex(ValueError, "'num_qubits' must be provided"):
-            QubitSparsePauliList(data)
+            PhasedQubitSparsePauliList(data)
         self.assertEqual(
-            QubitSparsePauliList([], num_qubits=5),
-            QubitSparsePauliList.from_sparse_list([], num_qubits=5),
+            PhasedQubitSparsePauliList([], num_qubits=5),
+            PhasedQubitSparsePauliList.from_sparse_list([], num_qubits=5),
         )
 
     def test_default_constructor_label(self):
         data = "IIXIXXIZZYYIYZ"
-        self.assertEqual(QubitSparsePauliList(data), QubitSparsePauliList.from_label(data))
+        self.assertEqual(PhasedQubitSparsePauliList(data), PhasedQubitSparsePauliList.from_label(data))
         self.assertEqual(
-            QubitSparsePauliList(data, num_qubits=len(data)), QubitSparsePauliList.from_label(data)
+            PhasedQubitSparsePauliList(data, num_qubits=len(data)), PhasedQubitSparsePauliList.from_label(data)
         )
         with self.assertRaisesRegex(ValueError, "explicitly given 'num_qubits'"):
-            QubitSparsePauliList(data, num_qubits=len(data) + 1)
+            PhasedQubitSparsePauliList(data, num_qubits=len(data) + 1)
 
     def test_default_constructor_copy(self):
-        base = QubitSparsePauliList.from_list(["IXIZIY", "XYZIII"])
-        copied = QubitSparsePauliList(base)
+        base = PhasedQubitSparsePauliList.from_list(["IXIZIY", "XYZIII"])
+        copied = PhasedQubitSparsePauliList(base)
         self.assertEqual(base, copied)
         self.assertIsNot(base, copied)
 
         with self.assertRaisesRegex(ValueError, "explicitly given 'num_qubits'"):
-            QubitSparsePauliList(base, num_qubits=base.num_qubits + 1)
+            PhasedQubitSparsePauliList(base, num_qubits=base.num_qubits + 1)
 
     def test_default_constructor_term(self):
-        expected = QubitSparsePauliList.from_list(["IIZXII"])
-        self.assertEqual(QubitSparsePauliList(expected[0]), expected)
+        expected = PhasedQubitSparsePauliList.from_list(["IIZXII"])
+        self.assertEqual(PhasedQubitSparsePauliList(expected[0]), expected)
 
     def test_default_constructor_term_iterable(self):
-        expected = QubitSparsePauliList.from_list(["IIZXII", "IIIIII"])
+        expected = PhasedQubitSparsePauliList.from_list(["IIZXII", "IIIIII"])
         terms = [expected[0], expected[1]]
-        self.assertEqual(QubitSparsePauliList(list(terms)), expected)
-        self.assertEqual(QubitSparsePauliList(tuple(terms)), expected)
-        self.assertEqual(QubitSparsePauliList(term for term in terms), expected)
-    '''
+        self.assertEqual(PhasedQubitSparsePauliList(list(terms)), expected)
+        self.assertEqual(PhasedQubitSparsePauliList(tuple(terms)), expected)
+        self.assertEqual(PhasedQubitSparsePauliList(term for term in terms), expected)
+
     def test_from_label(self):
         # The label is interpreted like a bitstring, with the right-most item associated with qubit
         # 0, and increasing as we move to the left (like `Pauli`, and other bitstring conventions).
@@ -755,29 +755,28 @@ class TestPhasedQubitSparsePauliList(QiskitTestCase):
             PhasedQubitSparsePauliList.from_sparse_list([(0, "XZ", (3, 3))], num_qubits=5)
         with self.assertRaisesRegex(ValueError, "index 3 is duplicated"):
             PhasedQubitSparsePauliList.from_sparse_list([(0, "XYZXZ", (3, 0, 1, 2, 3))], num_qubits=5)
-    '''
+
     def test_from_pauli(self):
         # This function should be infallible provided `Pauli` doesn't change its interface and the
         # user doesn't violate the typing.
 
         # Simple check that the labels are interpreted in the same order.
         self.assertEqual(
-            QubitSparsePauliList.from_pauli(Pauli("IIXZI")),
-            QubitSparsePauliList.from_label("IIXZI"),
+            PhasedQubitSparsePauliList.from_pauli(Pauli("IIXZI")),
+            PhasedQubitSparsePauliList.from_label("IIXZI"),
         )
 
-        # `Pauli` accepts a phase in its label, which gets dropped
         self.assertEqual(
-            QubitSparsePauliList.from_pauli(Pauli("iIXZIX")),
-            QubitSparsePauliList.from_list(["IXZIX"]),
+            PhasedQubitSparsePauliList.from_pauli(Pauli("iIXZIX")),
+            PhasedQubitSparsePauli((3, "XZX", (0, 2, 3)), 5).to_phased_qubit_sparse_pauli_list(),
         )
         self.assertEqual(
-            QubitSparsePauliList.from_pauli(Pauli("-iIXZIX")),
-            QubitSparsePauliList.from_list(["IXZIX"]),
+            PhasedQubitSparsePauliList.from_pauli(Pauli("-iIXZIX")),
+            PhasedQubitSparsePauli((1, "XZX", (0, 2, 3)), 5).to_phased_qubit_sparse_pauli_list(),
         )
         self.assertEqual(
-            QubitSparsePauliList.from_pauli(Pauli("-IXZIX")),
-            QubitSparsePauliList.from_list(["IXZIX"]),
+            PhasedQubitSparsePauliList.from_pauli(Pauli("-IXZIX")),
+            PhasedQubitSparsePauli((2, "XZX", (0, 2, 3)), 5).to_phased_qubit_sparse_pauli_list(),
         )
 
         # `Pauli` has its internal phase convention for how it stores `Y`; we should get this right
@@ -785,50 +784,42 @@ class TestPhasedQubitSparsePauliList(QiskitTestCase):
         paulis = {"IXYZ" * n: Pauli("IXYZ" * n) for n in range(1, 5)}
         from_paulis, from_labels = zip(
             *(
-                (QubitSparsePauliList.from_pauli(pauli), QubitSparsePauliList.from_label(label))
+                (PhasedQubitSparsePauliList.from_pauli(pauli), PhasedQubitSparsePauliList.from_label(label))
                 for label, pauli in paulis.items()
             )
         )
         self.assertEqual(from_paulis, from_labels)
 
-        phased_paulis = {"IXYZ" * n: Pauli("j" + "IXYZ" * n) for n in range(1, 5)}
-        from_paulis, from_lists = zip(
-            *(
-                (QubitSparsePauliList.from_pauli(pauli), QubitSparsePauliList.from_list([label]))
-                for label, pauli in phased_paulis.items()
-            )
-        )
-        self.assertEqual(from_paulis, from_lists)
-    
+
     def test_from_phased_qubit_sparse_paulis(self):
         self.assertEqual(
-            QubitSparsePauliList.from_qubit_sparse_paulis([], num_qubits=5),
-            QubitSparsePauliList.empty(5),
+            PhasedQubitSparsePauliList.from_phased_qubit_sparse_paulis([], num_qubits=5),
+            PhasedQubitSparsePauliList.empty(5),
         )
         self.assertEqual(
-            QubitSparsePauliList.from_qubit_sparse_paulis((), num_qubits=0),
-            QubitSparsePauliList.empty(0),
+            PhasedQubitSparsePauliList.from_phased_qubit_sparse_paulis((), num_qubits=0),
+            PhasedQubitSparsePauliList.empty(0),
         )
         self.assertEqual(
-            QubitSparsePauliList.from_qubit_sparse_paulis((None for _ in []), num_qubits=3),
-            QubitSparsePauliList.empty(3),
+            PhasedQubitSparsePauliList.from_phased_qubit_sparse_paulis((None for _ in []), num_qubits=3),
+            PhasedQubitSparsePauliList.empty(3),
         )
 
-        expected = QubitSparsePauliList.from_sparse_list(
+        expected = PhasedQubitSparsePauliList.from_sparse_list(
             [
-                ("XYZ", (4, 2, 1)),
-                ("XXYY", (8, 5, 3, 2)),
-                ("ZZ", (5, 0)),
+                (0, "XYZ", (4, 2, 1)),
+                (0, "XXYY", (8, 5, 3, 2)),
+                (0, "ZZ", (5, 0)),
             ],
             num_qubits=10,
         )
-        self.assertEqual(QubitSparsePauliList.from_qubit_sparse_paulis(list(expected)), expected)
-        self.assertEqual(QubitSparsePauliList.from_qubit_sparse_paulis(tuple(expected)), expected)
+        self.assertEqual(PhasedQubitSparsePauliList.from_phased_qubit_sparse_paulis(list(expected)), expected)
+        self.assertEqual(PhasedQubitSparsePauliList.from_phased_qubit_sparse_paulis(tuple(expected)), expected)
         self.assertEqual(
-            QubitSparsePauliList.from_qubit_sparse_paulis(term for term in expected), expected
+            PhasedQubitSparsePauliList.from_phased_qubit_sparse_paulis(term for term in expected), expected
         )
         self.assertEqual(
-            QubitSparsePauliList.from_qubit_sparse_paulis(
+            PhasedQubitSparsePauliList.from_phased_qubit_sparse_paulis(
                 (term for term in expected), num_qubits=expected.num_qubits
             ),
             expected,
@@ -836,79 +827,48 @@ class TestPhasedQubitSparsePauliList(QiskitTestCase):
 
     def test_from_qubit_sparse_paulis_failures(self):
         with self.assertRaisesRegex(ValueError, "cannot construct.*without knowing `num_qubits`"):
-            QubitSparsePauliList.from_qubit_sparse_paulis([])
+            PhasedQubitSparsePauliList.from_phased_qubit_sparse_paulis([])
 
         left, right = (
-            QubitSparsePauliList(["IIXYI"])[0],
-            QubitSparsePauliList(["IIIIIIIIX"])[0],
+            PhasedQubitSparsePauliList(["IIXYI"])[0],
+            PhasedQubitSparsePauliList(["IIIIIIIIX"])[0],
         )
         with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits"):
-            QubitSparsePauliList.from_qubit_sparse_paulis([left, right])
+            PhasedQubitSparsePauliList.from_phased_qubit_sparse_paulis([left, right])
         with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits"):
-            QubitSparsePauliList.from_qubit_sparse_paulis([left], num_qubits=100)
+            PhasedQubitSparsePauliList.from_phased_qubit_sparse_paulis([left], num_qubits=100)
 
     def test_default_constructor_failed_inference(self):
         with self.assertRaises(TypeError):
             # Mixed dense/sparse list.
-            QubitSparsePauliList(["IIXIZ", ("IZ", (2, 3))], num_qubits=5)
+            PhasedQubitSparsePauliList(["IIXIZ", (0, "IZ", (2, 3))], num_qubits=5)
 
     def test_num_qubits(self):
-        self.assertEqual(QubitSparsePauliList.empty(0).num_qubits, 0)
-        self.assertEqual(QubitSparsePauliList.empty(10).num_qubits, 10)
+        self.assertEqual(PhasedQubitSparsePauliList.empty(0).num_qubits, 0)
+        self.assertEqual(PhasedQubitSparsePauliList.empty(10).num_qubits, 10)
 
     def test_num_terms(self):
-        self.assertEqual(QubitSparsePauliList.empty(0).num_terms, 0)
-        self.assertEqual(QubitSparsePauliList.empty(10).num_terms, 0)
-        self.assertEqual(QubitSparsePauliList.from_list(["IIIXIZ", "YYXXII"]).num_terms, 2)
+        self.assertEqual(PhasedQubitSparsePauliList.empty(0).num_terms, 0)
+        self.assertEqual(PhasedQubitSparsePauliList.empty(10).num_terms, 0)
+        self.assertEqual(PhasedQubitSparsePauliList.from_list(["IIIXIZ", "YYXXII"]).num_terms, 2)
 
     def test_empty(self):
-        empty_5 = QubitSparsePauliList.empty(5)
+        empty_5 = PhasedQubitSparsePauliList.empty(5)
         self.assertEqual(empty_5.num_qubits, 5)
         self.assertEqual(len(empty_5), 0)
         self.assertEqual(empty_5.to_sparse_list(), [])
 
-        empty_0 = QubitSparsePauliList.empty(0)
+        empty_0 = PhasedQubitSparsePauliList.empty(0)
         self.assertEqual(empty_0.num_qubits, 0)
         self.assertEqual(len(empty_0), 0)
         self.assertEqual(empty_0.to_sparse_list(), [])
 
     def test_len(self):
-        self.assertEqual(len(QubitSparsePauliList.empty(0)), 0)
-        self.assertEqual(len(QubitSparsePauliList.empty(10)), 0)
-        self.assertEqual(len(QubitSparsePauliList.from_list(["IIIXIZ", "YYXXII"])), 2)
+        self.assertEqual(len(PhasedQubitSparsePauliList.empty(0)), 0)
+        self.assertEqual(len(PhasedQubitSparsePauliList.empty(10)), 0)
+        self.assertEqual(len(PhasedQubitSparsePauliList.from_list(["IIIXIZ", "YYXXII"])), 2)
 
-    def test_pauli_enum(self):
-        # These are very explicit tests that effectively just duplicate magic numbers, but the point
-        # is that those magic numbers are required to be constant as their values are part of the
-        # public interface.
-
-        self.assertEqual(
-            set(QubitSparsePauli.Pauli),
-            {
-                QubitSparsePauli.Pauli.X,
-                QubitSparsePauli.Pauli.Y,
-                QubitSparsePauli.Pauli.Z,
-            },
-        )
-        # All the enumeration items should also be integers.
-        self.assertIsInstance(QubitSparsePauli.Pauli.X, int)
-        values = {
-            "X": 0b10,
-            "Y": 0b11,
-            "Z": 0b01,
-        }
-        self.assertEqual({name: getattr(QubitSparsePauli.Pauli, name) for name in values}, values)
-
-        # The single-character label aliases can be accessed with index notation.
-        labels = {
-            "X": QubitSparsePauli.Pauli.X,
-            "Y": QubitSparsePauli.Pauli.Y,
-            "Z": QubitSparsePauli.Pauli.Z,
-        }
-        self.assertEqual({label: QubitSparsePauli.Pauli[label] for label in labels}, labels)
-        # The `label` property returns known values.
-        self.assertEqual({pauli.label: pauli for pauli in QubitSparsePauli.Pauli}, labels)
-
+    '''
     @ddt.idata(single_cases_list())
     def test_pickle(self, qubit_sparse_pauli_list):
         self.assertEqual(qubit_sparse_pauli_list, copy.copy(qubit_sparse_pauli_list))
