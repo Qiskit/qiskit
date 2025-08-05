@@ -485,31 +485,31 @@ class TestPhasedQubitSparsePauli(QiskitTestCase):
 
 @ddt.ddt
 class TestPhasedQubitSparsePauliList(QiskitTestCase):
-    pass
-    '''
+
+    
     def test_default_constructor_pauli(self):
         data = Pauli("IXYIZ")
-        self.assertEqual(QubitSparsePauliList(data), QubitSparsePauliList.from_pauli(data))
+        self.assertEqual(PhasedQubitSparsePauliList(data), PhasedQubitSparsePauliList.from_pauli(data))
         self.assertEqual(
-            QubitSparsePauliList(data, num_qubits=data.num_qubits),
-            QubitSparsePauliList.from_pauli(data),
+            PhasedQubitSparsePauliList(data, num_qubits=data.num_qubits),
+            PhasedQubitSparsePauliList.from_pauli(data),
         )
         with self.assertRaisesRegex(ValueError, "explicitly given 'num_qubits'"):
-            QubitSparsePauliList(data, num_qubits=data.num_qubits + 1)
+            PhasedQubitSparsePauliList(data, num_qubits=data.num_qubits + 1)
 
         with_phase = Pauli("-jIYYXY")
         self.assertEqual(
-            QubitSparsePauliList(with_phase), QubitSparsePauliList.from_pauli(with_phase)
+            PhasedQubitSparsePauliList(with_phase), PhasedQubitSparsePauliList.from_pauli(with_phase)
         )
         self.assertEqual(
-            QubitSparsePauliList(with_phase, num_qubits=data.num_qubits),
-            QubitSparsePauliList.from_pauli(with_phase),
+            PhasedQubitSparsePauliList(with_phase, num_qubits=data.num_qubits),
+            PhasedQubitSparsePauliList.from_pauli(with_phase),
         )
 
         self.assertEqual(
-            QubitSparsePauliList(Pauli("")), QubitSparsePauliList.from_pauli(Pauli(""))
+            PhasedQubitSparsePauliList(Pauli("")), PhasedQubitSparsePauliList.from_pauli(Pauli(""))
         )
-
+    '''
     def test_default_constructor_list(self):
         data = ["IXIIZ", "XIXII", "IIXYI"]
         self.assertEqual(QubitSparsePauliList(data), QubitSparsePauliList.from_list(data))
@@ -755,7 +755,7 @@ class TestPhasedQubitSparsePauliList(QiskitTestCase):
             QubitSparsePauliList.from_sparse_list([("XZ", (3, 3))], num_qubits=5)
         with self.assertRaisesRegex(ValueError, "index 3 is duplicated"):
             QubitSparsePauliList.from_sparse_list([("XYZXZ", (3, 0, 1, 2, 3))], num_qubits=5)
-
+    
     def test_from_pauli(self):
         # This function should be infallible provided `Pauli` doesn't change its interface and the
         # user doesn't violate the typing.
