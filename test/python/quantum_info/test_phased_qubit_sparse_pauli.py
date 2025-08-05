@@ -672,7 +672,7 @@ class TestPhasedQubitSparsePauliList(QiskitTestCase):
             QubitSparsePauliList.from_list(["IIZ", "IXI"], num_qubits=4)
         with self.assertRaisesRegex(ValueError, "cannot construct.*without knowing `num_qubits`"):
             QubitSparsePauliList.from_list([])
-
+    
     def test_from_sparse_list(self):
         self.assertEqual(
             QubitSparsePauliList.from_sparse_list(
@@ -799,8 +799,8 @@ class TestPhasedQubitSparsePauliList(QiskitTestCase):
             )
         )
         self.assertEqual(from_paulis, from_lists)
-
-    def test_from_qubit_sparse_paulis(self):
+    
+    def test_from_phased_qubit_sparse_paulis(self):
         self.assertEqual(
             QubitSparsePauliList.from_qubit_sparse_paulis([], num_qubits=5),
             QubitSparsePauliList.empty(5),
