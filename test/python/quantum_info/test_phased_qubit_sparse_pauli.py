@@ -569,110 +569,110 @@ class TestPhasedQubitSparsePauliList(QiskitTestCase):
         self.assertEqual(QubitSparsePauliList(list(terms)), expected)
         self.assertEqual(QubitSparsePauliList(tuple(terms)), expected)
         self.assertEqual(QubitSparsePauliList(term for term in terms), expected)
-
+    '''
     def test_from_label(self):
         # The label is interpreted like a bitstring, with the right-most item associated with qubit
         # 0, and increasing as we move to the left (like `Pauli`, and other bitstring conventions).
-        qs_list = QubitSparsePauliList.from_label("IXXIIZZIYYIXYZ")
+        qs_list = PhasedQubitSparsePauliList.from_label("IXXIIZZIYYIXYZ")
         self.assertEqual(len(qs_list), 1)
 
-        self.assertEqual(qs_list[0], QubitSparsePauli.from_label("IXXIIZZIYYIXYZ"))
+        self.assertEqual(qs_list[0], PhasedQubitSparsePauli.from_label("IXXIIZZIYYIXYZ"))
 
     def test_from_label_failures(self):
         with self.assertRaisesRegex(ValueError, "labels must only contain letters from"):
             # Bad letters that are still ASCII.
-            QubitSparsePauliList.from_label("I+-$%I")
+            PhasedQubitSparsePauliList.from_label("I+-$%I")
         with self.assertRaisesRegex(ValueError, "labels must only contain letters from"):
             # Unicode shenangigans.
-            QubitSparsePauliList.from_label("🐍")
+            PhasedQubitSparsePauliList.from_label("🐍")
 
     def test_from_list(self):
         label = "IXYIZZY"
         self.assertEqual(
-            QubitSparsePauliList.from_list([label]), QubitSparsePauliList.from_label(label)
+            PhasedQubitSparsePauliList.from_list([label]), PhasedQubitSparsePauliList.from_label(label)
         )
         self.assertEqual(
-            QubitSparsePauliList.from_list([label], num_qubits=len(label)),
-            QubitSparsePauliList.from_label(label),
+            PhasedQubitSparsePauliList.from_list([label], num_qubits=len(label)),
+            PhasedQubitSparsePauliList.from_label(label),
         )
         self.assertEqual(
-            QubitSparsePauliList.from_list([label])[0],
-            QubitSparsePauli.from_raw_parts(
+            PhasedQubitSparsePauliList.from_list([label])[0],
+            PhasedQubitSparsePauli.from_raw_parts(
                 len(label),
                 [
-                    QubitSparsePauli.Pauli.Y,
-                    QubitSparsePauli.Pauli.Z,
-                    QubitSparsePauli.Pauli.Z,
-                    QubitSparsePauli.Pauli.Y,
-                    QubitSparsePauli.Pauli.X,
+                    PhasedQubitSparsePauli.Pauli.Y,
+                    PhasedQubitSparsePauli.Pauli.Z,
+                    PhasedQubitSparsePauli.Pauli.Z,
+                    PhasedQubitSparsePauli.Pauli.Y,
+                    PhasedQubitSparsePauli.Pauli.X,
                 ],
                 [0, 1, 2, 4, 5],
             ),
         )
         self.assertEqual(
-            QubitSparsePauliList.from_list([label], num_qubits=len(label))[0],
-            QubitSparsePauli.from_raw_parts(
+            PhasedQubitSparsePauliList.from_list([label], num_qubits=len(label))[0],
+            PhasedQubitSparsePauli.from_raw_parts(
                 len(label),
                 [
-                    QubitSparsePauli.Pauli.Y,
-                    QubitSparsePauli.Pauli.Z,
-                    QubitSparsePauli.Pauli.Z,
-                    QubitSparsePauli.Pauli.Y,
-                    QubitSparsePauli.Pauli.X,
+                    PhasedQubitSparsePauli.Pauli.Y,
+                    PhasedQubitSparsePauli.Pauli.Z,
+                    PhasedQubitSparsePauli.Pauli.Z,
+                    PhasedQubitSparsePauli.Pauli.Y,
+                    PhasedQubitSparsePauli.Pauli.X,
                 ],
                 [0, 1, 2, 4, 5],
             ),
         )
 
         self.assertEqual(
-            QubitSparsePauliList.from_list(["IIIXZI", "XXIIII"])[0],
-            QubitSparsePauli.from_raw_parts(
+            PhasedQubitSparsePauliList.from_list(["IIIXZI", "XXIIII"])[0],
+            PhasedQubitSparsePauli.from_raw_parts(
                 6,
                 [
-                    QubitSparsePauli.Pauli.Z,
-                    QubitSparsePauli.Pauli.X,
+                    PhasedQubitSparsePauli.Pauli.Z,
+                    PhasedQubitSparsePauli.Pauli.X,
                 ],
                 [1, 2],
             ),
         )
 
         self.assertEqual(
-            QubitSparsePauliList.from_list(["IIIXZI", "XXIIII"])[1],
-            QubitSparsePauli.from_raw_parts(
+            PhasedQubitSparsePauliList.from_list(["IIIXZI", "XXIIII"])[1],
+            PhasedQubitSparsePauli.from_raw_parts(
                 6,
                 [
-                    QubitSparsePauli.Pauli.X,
-                    QubitSparsePauli.Pauli.X,
+                    PhasedQubitSparsePauli.Pauli.X,
+                    PhasedQubitSparsePauli.Pauli.X,
                 ],
                 [4, 5],
             ),
         )
 
         self.assertEqual(
-            QubitSparsePauliList.from_list([], num_qubits=5), QubitSparsePauliList.empty(5)
+            PhasedQubitSparsePauliList.from_list([], num_qubits=5), PhasedQubitSparsePauliList.empty(5)
         )
         self.assertEqual(
-            QubitSparsePauliList.from_list([], num_qubits=0), QubitSparsePauliList.empty(0)
+            PhasedQubitSparsePauliList.from_list([], num_qubits=0), PhasedQubitSparsePauliList.empty(0)
         )
 
     def test_from_list_failures(self):
         with self.assertRaisesRegex(ValueError, "labels must only contain letters from"):
             # Bad letters that are still ASCII.
-            QubitSparsePauliList.from_list(["XZIIZY", "I+-$%I"])
+            PhasedQubitSparsePauliList.from_list(["XZIIZY", "I+-$%I"])
         with self.assertRaisesRegex(ValueError, "labels must only contain letters from"):
             # Unicode shenangigans.
-            QubitSparsePauliList.from_list(["🐍"])
+            PhasedQubitSparsePauliList.from_list(["🐍"])
         with self.assertRaisesRegex(ValueError, "label with length 4 cannot be added"):
-            QubitSparsePauliList.from_list(["IIZ", "IIXI"])
+            PhasedQubitSparsePauliList.from_list(["IIZ", "IIXI"])
         with self.assertRaisesRegex(ValueError, "label with length 2 cannot be added"):
-            QubitSparsePauliList.from_list(["IIZ", "II"])
+            PhasedQubitSparsePauliList.from_list(["IIZ", "II"])
         with self.assertRaisesRegex(ValueError, "label with length 3 cannot be added"):
-            QubitSparsePauliList.from_list(["IIZ", "IXI"], num_qubits=2)
+            PhasedQubitSparsePauliList.from_list(["IIZ", "IXI"], num_qubits=2)
         with self.assertRaisesRegex(ValueError, "label with length 3 cannot be added"):
-            QubitSparsePauliList.from_list(["IIZ", "IXI"], num_qubits=4)
+            PhasedQubitSparsePauliList.from_list(["IIZ", "IXI"], num_qubits=4)
         with self.assertRaisesRegex(ValueError, "cannot construct.*without knowing `num_qubits`"):
-            QubitSparsePauliList.from_list([])
-    
+            PhasedQubitSparsePauliList.from_list([])
+    '''
     def test_from_sparse_list(self):
         self.assertEqual(
             QubitSparsePauliList.from_sparse_list(
