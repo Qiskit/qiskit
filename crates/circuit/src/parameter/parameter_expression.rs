@@ -701,22 +701,28 @@ impl PyParameterExpression {
     /// * `Ok(Self)` - The extracted expression.
     /// * `Err(PyResult)` - An error if extraction to all above types failed.
     pub fn extract_coerce(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
-        if let Ok(i) = ob.extract::<i64>() {
-            Ok(ParameterExpression::new(SymbolExpr::Value(Value::from(i)), HashMap::new()).into())
-        } else if let Ok(r) = ob.extract::<f64>() {
+        if let Ok(i) = ob.downcast::<PyInt>() {
+            Ok(ParameterExpression::new(
+                SymbolExpr::Value(Value::from(i.extract::<i64>()?)),
+                HashMap::new(),
+            )
+            .into())
+        } else if let Ok(r) = ob.downcast::<PyFloat>() {
+            let r: f64 = r.extract()?;
             if r.is_infinite() || r.is_nan() {
                 return Err(ParameterError::InvalidValue.into());
             }
             Ok(ParameterExpression::new(SymbolExpr::Value(Value::from(r)), HashMap::new()).into())
-        } else if let Ok(c) = ob.extract::<Complex64>() {
+        } else if let Ok(c) = ob.downcast::<PyComplex>() {
+            let c: Complex64 = c.extract()?;
             if c.is_infinite() || c.is_nan() {
                 return Err(ParameterError::InvalidValue.into());
             }
             Ok(ParameterExpression::new(SymbolExpr::Value(Value::from(c)), HashMap::new()).into())
-        } else if let Ok(element) = ob.extract::<PyParameterVectorElement>() {
-            Ok(ParameterExpression::from_symbol(element.symbol.clone()).into())
-        } else if let Ok(parameter) = ob.extract::<PyParameter>() {
-            Ok(ParameterExpression::from_symbol(parameter.symbol.clone()).into())
+        } else if let Ok(element) = ob.downcast::<PyParameterVectorElement>() {
+            Ok(ParameterExpression::from_symbol(element.borrow().symbol.clone()).into())
+        } else if let Ok(parameter) = ob.downcast::<PyParameter>() {
+            Ok(ParameterExpression::from_symbol(parameter.borrow().symbol.clone()).into())
         } else {
             ob.extract::<PyParameterExpression>()
         }
