@@ -113,6 +113,10 @@ pub static UNARY_OP: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.classical.expr.expr", "_UnaryOp");
 pub static BINARY_OP: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.classical.expr.expr", "_BinaryOp");
+pub static ORDERING: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.classical.types.ordering", "_Ordering"); // TODO test this implementation!
+pub static CAST_KIND: ImportOnceCell = 
+    ImportOnceCell::new("qiskit.circuit.classical.types.ordering", "_CastKind"); // TODO test this implementation!
 pub static UNITARY_GATE: ImportOnceCell = ImportOnceCell::new(
     "qiskit.circuit.library.generalized_gates.unitary",
     "UnitaryGate",
