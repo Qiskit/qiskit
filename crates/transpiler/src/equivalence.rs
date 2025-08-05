@@ -10,9 +10,11 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use hashbrown::HashSet;
 use itertools::Itertools;
 
 use pyo3::exceptions::PyTypeError;
+use qiskit_circuit::parameter::symbol_expr::Symbol;
 use qiskit_circuit::parameter_table::ParameterUuid;
 use rustworkx_core::petgraph::csr::IndexType;
 use rustworkx_core::petgraph::stable_graph::StableDiGraph;
@@ -28,7 +30,7 @@ use exceptions::CircuitError;
 use ahash::RandomState;
 use indexmap::{IndexMap, IndexSet};
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyList, PySet, PyString};
+use pyo3::types::{PyDict, PyList, PyString};
 
 use rustworkx_core::petgraph::{
     graph::{EdgeIndex, NodeIndex},
@@ -393,11 +395,10 @@ impl EquivalenceLibrary {
     #[pyo3(name = "add_equivalence")]
     fn py_add_equivalence(
         &mut self,
-        py: Python,
         gate: GateOper,
         equivalent_circuit: CircuitFromPython,
     ) -> PyResult<()> {
-        self.add_equivalence(py, &gate.operation, &gate.params, equivalent_circuit)
+        self.add_equivalence(&gate.operation, &gate.params, equivalent_circuit)
     }
 
     /// Check if a library contains any decompositions for gate.
@@ -425,13 +426,8 @@ impl EquivalenceLibrary {
     ///     entry (List['QuantumCircuit']) : A list of :class:`.QuantumCircuit` instances, each
     ///         equivalently implementing the given Gate.
     #[pyo3(name = "set_entry")]
-    fn py_set_entry(
-        &mut self,
-        py: Python,
-        gate: GateOper,
-        entry: Vec<CircuitFromPython>,
-    ) -> PyResult<()> {
-        self.set_entry(py, &gate.operation, &gate.params, entry)
+    fn py_set_entry(&mut self, gate: GateOper, entry: Vec<CircuitFromPython>) -> PyResult<()> {
+        self.set_entry(&gate.operation, &gate.params, entry)
     }
 
     /// Gets the set of :class:`.QuantumCircuit` instances circuits from the
@@ -590,13 +586,12 @@ impl EquivalenceLibrary {
     /// (including those from base).
     pub fn add_equivalence(
         &mut self,
-        py: Python,
         gate: &PackedOperation,
         params: &[Param],
         equivalent_circuit: CircuitFromPython,
     ) -> PyResult<()> {
         raise_if_shape_mismatch(gate, &equivalent_circuit)?;
-        raise_if_param_mismatch(py, params, equivalent_circuit.0.unsorted_parameters(py)?)?;
+        raise_if_param_mismatch(params, equivalent_circuit.0.parameters())?;
         let key: Key = Key::from_operation(gate);
         let equiv = Equivalence {
             circuit: equivalent_circuit.clone(),
@@ -637,14 +632,13 @@ impl EquivalenceLibrary {
     /// will return only the circuits provided.
     pub fn set_entry(
         &mut self,
-        py: Python,
         gate: &PackedOperation,
         params: &[Param],
         entry: Vec<CircuitFromPython>,
     ) -> PyResult<()> {
         for equiv in entry.iter() {
             raise_if_shape_mismatch(gate, equiv)?;
-            raise_if_param_mismatch(py, params, equiv.0.unsorted_parameters(py)?)?;
+            raise_if_param_mismatch(params, equiv.0.parameters())?;
         }
         let key = Key::from_operation(gate);
         let node_index = self.set_default_node(key);
@@ -662,7 +656,7 @@ impl EquivalenceLibrary {
             self.graph.remove_edge(edge);
         }
         for equiv in entry {
-            self.add_equivalence(py, gate, params, equiv)?
+            self.add_equivalence(gate, params, equiv)?
         }
         self._graph = None;
         Ok(())
@@ -709,18 +703,17 @@ impl EquivalenceLibrary {
     }
 }
 
-fn raise_if_param_mismatch(
-    py: Python,
-    gate_params: &[Param],
-    circuit_parameters: Bound<PySet>,
-) -> PyResult<()> {
-    let gate_params_obj = PySet::new(
-        py,
-        gate_params
-            .iter()
-            .filter(|param| matches!(param, Param::ParameterExpression(_))),
-    )?;
-    if !gate_params_obj.eq(&circuit_parameters)? {
+fn raise_if_param_mismatch(gate_params: &[Param], circuit_parameters: &[Symbol]) -> PyResult<()> {
+    let parsed_gate_params: HashSet<Symbol> = gate_params
+        .iter()
+        .filter_map(|param| match param {
+            Param::ParameterExpression(parameter_expression) => {
+                parameter_expression.try_to_symbol().ok()
+            }
+            _ => None,
+        })
+        .collect();
+    if parsed_gate_params != circuit_parameters.iter().cloned().collect() {
         return Err(CircuitError::new_err(format!(
             "Cannot add equivalence between circuit and gate \
             of different parameters. Gate params: {gate_params:?}. \
