@@ -185,6 +185,19 @@ impl PhasedQubitSparsePauliList {
 
         return true
     }
+    /// Apply a transpiler layout.
+    pub fn apply_layout(
+        &self,
+        layout: Option<&[u32]>,
+        num_qubits: u32,
+    ) -> Result<Self, CoherenceError> {
+        let new_qubit_sparse_pauli_list = self.qubit_sparse_pauli_list.apply_layout(layout, num_qubits)?;
+
+        Ok(PhasedQubitSparsePauliList {
+            qubit_sparse_pauli_list: new_qubit_sparse_pauli_list,
+            phases: self.phases.clone()
+        })
+    }
 }
 
 /// A view object onto a single term of a `QubitSparsePauliList`.
@@ -1284,6 +1297,69 @@ impl PyPhasedQubitSparsePauliList {
             out.append(to_py_tuple(view)?)?;
         }
         Ok(out.unbind())
+    }
+
+    /// Apply a transpiler layout to this qubit sparse Pauli list.
+    ///
+    /// This enables remapping of qubit indices, e.g. if the list is defined in terms of virtual
+    /// qubit labels.
+    ///
+    /// Args:
+    ///     layout (TranspileLayout | list[int] | None): The layout to apply.  Most uses of this
+    ///         function should pass the :attr:`.QuantumCircuit.layout` field from a circuit that
+    ///         was transpiled for hardware.  In addition, you can pass a list of new qubit indices.
+    ///         If given as explicitly ``None``, no remapping is applied (but you can still use
+    ///         ``num_qubits`` to expand the qubits in the list).
+    ///     num_qubits (int | None): The number of qubits to expand the list elements to.  If not
+    ///         supplied, the output will be as wide as the given :class:`.TranspileLayout`, or the
+    ///         same width as the input if the ``layout`` is given in another form.
+    ///
+    /// Returns:
+    ///     A new :class:`QubitSparsePauli` with the provided layout applied.
+    #[pyo3(signature = (/, layout, num_qubits=None))]
+    fn apply_layout(&self, layout: Bound<PyAny>, num_qubits: Option<u32>) -> PyResult<Self> {
+        let py = layout.py();
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+
+        // A utility to check the number of qubits is compatible with the map.
+        let check_inferred_qubits = |inferred: u32| -> PyResult<u32> {
+            if inferred < inner.num_qubits() {
+                return Err(CoherenceError::NotEnoughQubits {
+                    current: inner.num_qubits() as usize,
+                    target: inferred as usize,
+                }
+                .into());
+            }
+            Ok(inferred)
+        };
+
+        // Normalize the number of qubits in the layout and the layout itself, depending on the
+        // input types, before calling PhasedQubitSparsePauliList.apply_layout to do the actual work.
+        let (num_qubits, layout): (u32, Option<Vec<u32>>) = if layout.is_none() {
+            (num_qubits.unwrap_or(inner.num_qubits()), None)
+        } else if layout.is_instance(
+            &py.import(intern!(py, "qiskit.transpiler"))?
+                .getattr(intern!(py, "TranspileLayout"))?,
+        )? {
+            (
+                check_inferred_qubits(
+                    layout.getattr(intern!(py, "_output_qubit_list"))?.len()? as u32
+                )?,
+                Some(
+                    layout
+                        .call_method0(intern!(py, "final_index_layout"))?
+                        .extract::<Vec<u32>>()?,
+                ),
+            )
+        } else {
+            (
+                check_inferred_qubits(num_qubits.unwrap_or(inner.num_qubits()))?,
+                Some(layout.extract()?),
+            )
+        };
+
+        let out = inner.apply_layout(layout.as_deref(), num_qubits)?;
+        Ok(out.into())
     }
 
     fn __len__(&self) -> PyResult<usize> {
