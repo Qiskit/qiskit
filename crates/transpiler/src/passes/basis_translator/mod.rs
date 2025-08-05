@@ -691,7 +691,7 @@ fn replace_node(
                     if let Param::ParameterExpression(param_obj) = param {
                         // TODO make this use ParameterExpression via Rust directly, this is
                         // just a placeholder right now
-                        let bound_param = param_obj.into_bound_py_any(py)?;
+                        let bound_param = param_obj.as_ref().clone().into_bound_py_any(py)?;
 
                         let exp_params = param.iter_parameters()?;
                         let bind_dict = PyDict::new(py);
@@ -760,9 +760,9 @@ fn replace_node(
         }
 
         match target_dag.global_phase() {
-            Param::ParameterExpression(old_phase) => {
+            Param::ParameterExpression(ref old_phase) => {
                 // TODO make this use Rust
-                let bound_old_phase = old_phase.into_bound_py_any(py)?;
+                let bound_old_phase = old_phase.as_ref().clone().into_bound_py_any(py)?;
 
                 let bind_dict = PyDict::new(py);
                 for key in target_dag.global_phase().iter_parameters()? {

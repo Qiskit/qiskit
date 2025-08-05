@@ -97,9 +97,11 @@ impl Param {
             [Self::ParameterExpression(a), Self::ParameterExpression(b)] => Ok(a == b),
             [Self::Obj(_), Self::Float(_)] => Ok(false),
             [Self::Float(_), Self::Obj(_)] => Ok(false),
-            [Self::Obj(a), Self::ParameterExpression(b)] => a.bind(py).eq(b.as_ref()),
+            [Self::Obj(a), Self::ParameterExpression(b)] => a.bind(py).eq(b.as_ref().clone()),
             [Self::Obj(a), Self::Obj(b)] => a.bind(py).eq(b),
-            [Self::ParameterExpression(a), Self::Obj(b)] => a.as_ref().into_bound_py_any(py)?.eq(b),
+            [Self::ParameterExpression(a), Self::Obj(b)] => {
+                a.as_ref().clone().into_bound_py_any(py)?.eq(b)
+            }
         }
     }
 

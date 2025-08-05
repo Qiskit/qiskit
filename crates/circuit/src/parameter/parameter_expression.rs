@@ -134,7 +134,7 @@ impl fmt::Display for ParameterExpression {
 
 // This needs to be implemented manually, since PyO3 does not provide this conversion
 // for subclasses.
-impl<'py> IntoPyObject<'py> for &ParameterExpression {
+impl<'py> IntoPyObject<'py> for ParameterExpression {
     type Target = PyParameterExpression;
     type Output = Bound<'py, Self::Target>;
     type Error = PyErr;
