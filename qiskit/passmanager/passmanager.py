@@ -302,16 +302,19 @@ def _run_workflow(
     flow_controller = pass_manager.to_flow_controller()
     initial_status = WorkflowStatus()
 
+    property_set = (
+        PropertySet() if initial_property_set is None else PropertySet(initial_property_set)
+    )
+    pass_manager.property_set = property_set
     passmanager_ir = pass_manager._passmanager_frontend(
         input_program=program,
         **kwargs,
     )
-    property_set = (
-        PropertySet() if initial_property_set is None else PropertySet(initial_property_set)
-    )
     passmanager_ir, final_state = flow_controller.execute(
         passmanager_ir=passmanager_ir,
-        state=PassManagerState(workflow_status=initial_status, property_set=property_set),
+        state=PassManagerState(
+            workflow_status=initial_status, property_set=pass_manager.property_set
+        ),
         callback=kwargs.get("callback", None),
     )
     # The `property_set` has historically been returned as a mutable attribute on `PassManager`
