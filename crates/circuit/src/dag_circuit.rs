@@ -2621,7 +2621,7 @@ impl DAGCircuit {
             Some(&qubit_wire_map),
             Some(&clbit_wire_map),
             Some(&var_map),
-                                )?;
+        )?;
 
         let out_dict = PyDict::new(py);
         for (old_index, new_index) in node_map {
