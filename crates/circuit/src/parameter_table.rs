@@ -88,7 +88,7 @@ impl ParameterUuid {
 pub struct ParameterTable {
     /// Mapping of the parameter key (its UUID) to the information on it tracked by this table.
     by_uuid: HashMap<ParameterUuid, ParameterInfo>,
-    /// Mapping of the parameter names to the UUID that represents them.  
+    /// Mapping of the parameter names to the UUID that represents them.
     by_repr: HashMap<String, ParameterUuid>,
     /// Cache of the sort order of the parameters.  This is lexicographical for most parameters,
     /// except elements of a `ParameterVector` are sorted within the vector by numerical index.  We
@@ -96,8 +96,9 @@ pub struct ParameterTable {
     ///
     /// Any method that adds or removes a parameter needs to invalidate this.
     order_cache: OnceLock<Vec<ParameterUuid>>,
-    /// Cache of a Python-space list of the parameter objects, in order.  We only generate this
-    /// specifically when asked.
+    /// Cache of a [Symbol] objects, in order.  We only generate this specifically when asked.
+    /// Typically to provide a list to Python of all the Python space `Parameter` objects
+    /// (which are 1:1 with a Rust space [Symbol] object).
     ///
     /// Any method that adds or removes a parameter needs to invalidate this.
     parameters_cache: OnceLock<Vec<Symbol>>,
