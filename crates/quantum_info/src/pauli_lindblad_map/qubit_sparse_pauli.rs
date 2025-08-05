@@ -581,10 +581,10 @@ impl QubitSparsePauliView<'_> {
 
     pub fn num_ys(self) -> isize {
         let mut num_ys = 0;
-        for pauli in self.paulis{
+        for pauli in self.paulis {
             num_ys += (*pauli == Pauli::Y) as isize;
         }
-        return num_ys
+        return num_ys;
     }
 
     pub fn to_sparse_str(self) -> String {
@@ -655,11 +655,13 @@ impl QubitSparsePauli {
                 }
             }
         }
-        Ok(unsafe {QubitSparsePauli::new_unchecked(
-            num_qubits,
-            paulis.into_boxed_slice(),
-            indices.into_boxed_slice(),
-        )})
+        Ok(unsafe {
+            QubitSparsePauli::new_unchecked(
+                num_qubits,
+                paulis.into_boxed_slice(),
+                indices.into_boxed_slice(),
+            )
+        })
     }
 
     /// Create a new [QubitSparsePauli] from the raw components without checking data coherence.

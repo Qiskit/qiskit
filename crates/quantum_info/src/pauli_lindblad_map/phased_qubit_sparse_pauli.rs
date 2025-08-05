@@ -10,7 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-
 use hashbrown::HashSet;
 
 use numpy::{PyArray1, PyArrayMethods, PyReadonlyArray1};
@@ -29,7 +28,9 @@ use std::{
 use thiserror::Error;
 
 use qiskit_circuit::{
-    bit::PyQubit, imports::ImportOnceCell, slice::{PySequenceIndex, SequenceIndex}
+    bit::PyQubit,
+    imports::ImportOnceCell,
+    slice::{PySequenceIndex, SequenceIndex},
 };
 
 use crate::pauli_lindblad_map::qubit_sparse_pauli;
@@ -37,7 +38,7 @@ use crate::pauli_lindblad_map::qubit_sparse_pauli;
 use super::qubit_sparse_pauli::{
     raw_parts_from_sparse_list, ArithmeticError, CoherenceError, InnerReadError, InnerWriteError,
     LabelError, Pauli, PyQubitSparsePauli, PyQubitSparsePauliList, QubitSparsePauli,
-    QubitSparsePauliList, QubitSparsePauliView
+    QubitSparsePauliList, QubitSparsePauliView,
 };
 
 static PAULI_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "Pauli");
@@ -95,22 +96,24 @@ impl PhasedQubitSparsePauliList {
     #[inline]
     pub fn with_capacity(num_qubits: u32, num_terms: usize, num_paulis: usize) -> Self {
         Self {
-            qubit_sparse_pauli_list: QubitSparsePauliList::with_capacity(num_qubits, num_terms, num_paulis),
-            phases: Vec::with_capacity(num_terms)
+            qubit_sparse_pauli_list: QubitSparsePauliList::with_capacity(
+                num_qubits, num_terms, num_paulis,
+            ),
+            phases: Vec::with_capacity(num_terms),
         }
     }
 
     /// Get an iterator over the individual elements of the list.
     pub fn iter(&'_ self) -> impl ExactSizeIterator<Item = PhasedQubitSparsePauliView<'_>> + '_ {
-        self.phases.iter().zip(self.qubit_sparse_pauli_list.iter()).map(|(phase, qspv)| {
-            PhasedQubitSparsePauliView {
+        self.phases
+            .iter()
+            .zip(self.qubit_sparse_pauli_list.iter())
+            .map(|(phase, qspv)| PhasedQubitSparsePauliView {
                 qubit_sparse_pauli_view: qspv,
-                phase: &phase
-            }
-        })
+                phase: &phase,
+            })
     }
 
-    
     /// Get the number of qubits the paulis are defined on.
     #[inline]
     pub fn num_qubits(&self) -> u32 {
@@ -148,14 +151,17 @@ impl PhasedQubitSparsePauliList {
         debug_assert!(index < self.num_terms(), "index {index} out of bounds");
         PhasedQubitSparsePauliView {
             qubit_sparse_pauli_view: self.qubit_sparse_pauli_list.term(index),
-            phase: &self.phases[index]
+            phase: &self.phases[index],
         }
     }
 
     /// Add an element to the list implied by a dense string label.
     pub fn add_dense_label<L: AsRef<[u8]>>(&mut self, label: L) -> Result<(), LabelError> {
         self.qubit_sparse_pauli_list.add_dense_label(label)?;
-        let num_ys = self.qubit_sparse_pauli_list.term(self.qubit_sparse_pauli_list.num_terms() - 1).num_ys();
+        let num_ys = self
+            .qubit_sparse_pauli_list
+            .term(self.qubit_sparse_pauli_list.num_terms() - 1)
+            .num_ys();
         self.phases.push(num_ys.rem_euclid(4));
         Ok(())
     }
@@ -165,7 +171,8 @@ impl PhasedQubitSparsePauliList {
         &mut self,
         term: PhasedQubitSparsePauliView,
     ) -> Result<(), ArithmeticError> {
-        self.qubit_sparse_pauli_list.add_qubit_sparse_pauli(term.qubit_sparse_pauli_view)?;
+        self.qubit_sparse_pauli_list
+            .add_qubit_sparse_pauli(term.qubit_sparse_pauli_view)?;
         self.phases.push(*term.phase);
         Ok(())
     }
@@ -173,17 +180,17 @@ impl PhasedQubitSparsePauliList {
     // Check equality of operators
     fn eq(&self, other: &PhasedQubitSparsePauliList) -> bool {
         if self.qubit_sparse_pauli_list != other.qubit_sparse_pauli_list {
-            return false
+            return false;
         }
 
         // assume here number of terms is equal
         for (self_phase, other_phase) in self.phases.iter().zip(other.phases.iter()) {
             if (self_phase - other_phase).rem_euclid(4) != 0 {
-                return false
+                return false;
             }
         }
 
-        return true
+        return true;
     }
     /// Apply a transpiler layout.
     pub fn apply_layout(
@@ -191,11 +198,13 @@ impl PhasedQubitSparsePauliList {
         layout: Option<&[u32]>,
         num_qubits: u32,
     ) -> Result<Self, CoherenceError> {
-        let new_qubit_sparse_pauli_list = self.qubit_sparse_pauli_list.apply_layout(layout, num_qubits)?;
+        let new_qubit_sparse_pauli_list = self
+            .qubit_sparse_pauli_list
+            .apply_layout(layout, num_qubits)?;
 
         Ok(PhasedQubitSparsePauliList {
             qubit_sparse_pauli_list: new_qubit_sparse_pauli_list,
-            phases: self.phases.clone()
+            phases: self.phases.clone(),
         })
     }
 }
@@ -214,10 +223,10 @@ impl PhasedQubitSparsePauliView<'_> {
     pub fn to_term(&self) -> PhasedQubitSparsePauli {
         PhasedQubitSparsePauli {
             qubit_sparse_pauli: self.qubit_sparse_pauli_view.to_term(),
-            phase: *self.phase
+            phase: *self.phase,
         }
     }
-    
+
     pub fn to_sparse_str(self) -> String {
         let num_ys = self.qubit_sparse_pauli_view.num_ys();
         let phase_str = match (self.phase - num_ys).rem_euclid(4) {
@@ -244,11 +253,7 @@ pub struct PhasedQubitSparsePauli {
 
 impl PhasedQubitSparsePauli {
     /// Create a new phased qubit-sparse Pauli from the raw components that make it up.
-    pub fn new(
-        qubit_sparse_pauli: QubitSparsePauli,
-        phase: isize,
-    ) -> Self {
-
+    pub fn new(qubit_sparse_pauli: QubitSparsePauli, phase: isize) -> Self {
         Self {
             qubit_sparse_pauli,
             phase,
@@ -265,12 +270,15 @@ impl PhasedQubitSparsePauli {
     pub fn identity(num_qubits: u32) -> Self {
         Self {
             qubit_sparse_pauli: QubitSparsePauli::identity(num_qubits),
-            phase: 0
+            phase: 0,
         }
     }
-    
+
     // Composition of two pauli operators self @ other.
-    pub fn compose(&self, other: &PhasedQubitSparsePauli) -> Result<PhasedQubitSparsePauli, ArithmeticError> {
+    pub fn compose(
+        &self,
+        other: &PhasedQubitSparsePauli,
+    ) -> Result<PhasedQubitSparsePauli, ArithmeticError> {
         if self.num_qubits() != other.num_qubits() {
             return Err(ArithmeticError::MismatchedQubits {
                 left: self.num_qubits(),
@@ -281,16 +289,16 @@ impl PhasedQubitSparsePauli {
         // if either are proportional to the identity, return a clone of the other with corrected
         // phase
         if self.qubit_sparse_pauli.indices().is_empty() {
-            return Ok(PhasedQubitSparsePauli { 
-                qubit_sparse_pauli: other.qubit_sparse_pauli.clone(), 
-                phase: self.phase + other.phase 
+            return Ok(PhasedQubitSparsePauli {
+                qubit_sparse_pauli: other.qubit_sparse_pauli.clone(),
+                phase: self.phase + other.phase,
             });
         }
 
         if other.qubit_sparse_pauli.indices().is_empty() {
-            return Ok(PhasedQubitSparsePauli { 
-                qubit_sparse_pauli: self.qubit_sparse_pauli.clone(), 
-                phase: self.phase + other.phase 
+            return Ok(PhasedQubitSparsePauli {
+                qubit_sparse_pauli: self.qubit_sparse_pauli.clone(),
+                phase: self.phase + other.phase,
             });
         }
 
@@ -305,7 +313,7 @@ impl PhasedQubitSparsePauli {
         let self_paulis = self.qubit_sparse_pauli.paulis();
         let other_indices = other.qubit_sparse_pauli.indices();
         let other_paulis = other.qubit_sparse_pauli.paulis();
-        
+
         // iterate through each entry of self and other one time, incrementing based on the ordering
         // or equality of self_idx and other_idx, until one of them runs out of entries
         while self_idx < self_indices.len() && other_idx < other_indices.len() {
@@ -326,7 +334,9 @@ impl PhasedQubitSparsePauli {
                     }?);
                     indices.push(self_indices[self_idx])
                 }
-                if (self_paulis[self_idx] == Pauli::X || self_paulis[self_idx] == Pauli::Y) && (other_paulis[other_idx] == Pauli::Z || other_paulis[other_idx] == Pauli::Y) {
+                if (self_paulis[self_idx] == Pauli::X || self_paulis[self_idx] == Pauli::Y)
+                    && (other_paulis[other_idx] == Pauli::Z || other_paulis[other_idx] == Pauli::Y)
+                {
                     new_phase += 2;
                 }
                 self_idx += 1;
@@ -348,13 +358,15 @@ impl PhasedQubitSparsePauli {
             indices.append(&mut self_indices[self_idx..].to_vec());
         }
 
-        Ok(PhasedQubitSparsePauli { 
-            qubit_sparse_pauli: unsafe {QubitSparsePauli::new_unchecked(
-                self.num_qubits(),
-                paulis.into_boxed_slice(),
-                indices.into_boxed_slice(),
-            )}, 
-            phase: new_phase
+        Ok(PhasedQubitSparsePauli {
+            qubit_sparse_pauli: unsafe {
+                QubitSparsePauli::new_unchecked(
+                    self.num_qubits(),
+                    paulis.into_boxed_slice(),
+                    indices.into_boxed_slice(),
+                )
+            },
+            phase: new_phase,
         })
     }
 
@@ -362,7 +374,7 @@ impl PhasedQubitSparsePauli {
     pub fn view(&self) -> PhasedQubitSparsePauliView<'_> {
         PhasedQubitSparsePauliView {
             qubit_sparse_pauli_view: self.qubit_sparse_pauli.view(),
-            phase: &self.phase
+            phase: &self.phase,
         }
     }
 
@@ -383,12 +395,13 @@ impl PhasedQubitSparsePauli {
             });
         }
 
-        return self.qubit_sparse_pauli.commutes(&other.qubit_sparse_pauli)
+        return self.qubit_sparse_pauli.commutes(&other.qubit_sparse_pauli);
     }
 
     // Check equality of operators
     fn eq(&self, other: &PhasedQubitSparsePauli) -> bool {
-        ((self.phase - other.phase).rem_euclid(4) == 0) && self.qubit_sparse_pauli == other.qubit_sparse_pauli
+        ((self.phase - other.phase).rem_euclid(4) == 0)
+            && self.qubit_sparse_pauli == other.qubit_sparse_pauli
     }
 }
 
@@ -399,16 +412,16 @@ impl PhasedQubitSparsePauli {
 ///
 /// A Pauli operator is a tensor product of single-qubit Pauli operators of the form :math:`P =
 /// (-i)^n \bigotimes_n A^{(n)}_i`, for :math:`A^{(n)}_i \in \{I, X, Y, Z\}` and an integer
-/// :math:`n`. The internal representation of a :class:`PhasedQubitSparsePauli` stores only the
-/// non-identity single-qubit Pauli operators.
+/// :math:`n` called the phase exponent. The internal representation of a
+/// :class:`PhasedQubitSparsePauli` stores only the non-identity single-qubit Pauli operators.
 ///
 /// Internally, each single-qubit Pauli operator is stored with a numeric value. See the
 /// documentation of :class:`QubitSparsePauli` for a description of the formatting of the numeric
-/// value associated with each Pauli, as well as descriptions of the :attr:`paulis` and 
+/// value associated with each Pauli, as well as descriptions of the :attr:`paulis` and
 /// :attr:`indices` attributes that store each Pauli and its associated qubit index.
 ///
 /// Additionally, the phase of the operator can be retrieved through the :attr:`phase` attribute,
-/// which returns the group phase exponent, matching the behaviour of the same attribute in 
+/// which returns the group phase exponent, matching the behaviour of the same attribute in
 /// :class:`.Pauli`.
 ///
 /// Construction
@@ -424,10 +437,10 @@ impl PhasedQubitSparsePauli {
 ///   ============================  ================================================================
 ///   Method                        Summary
 ///   ============================  ================================================================
-///   :meth:`from_label`            Convert a dense string label into a 
+///   :meth:`from_label`            Convert a dense string label into a
 ///                                 :class:`~.PhasedQubitSparsePauli`.
 ///
-///   :meth:`from_sparse_label`     Build a :class:`.PhasedQubitSparsePauli` from a tuple of a 
+///   :meth:`from_sparse_label`     Build a :class:`.PhasedQubitSparsePauli` from a tuple of a
 ///                                 phase, a sparse string label, and the qubits they apply to.
 ///
 ///   :meth:`from_pauli`            Raise a single :class:`~.quantum_info.Pauli` into a
@@ -442,7 +455,7 @@ impl PhasedQubitSparsePauli {
 ///     The default constructor of :class:`QubitSparsePauli`.
 ///
 ///     This delegates to one of :ref:`the explicit conversion-constructor methods
-///     <phased-qubit-sparse-pauli-convert-constructors>`, based on the type of the ``data`` 
+///     <phased-qubit-sparse-pauli-convert-constructors>`, based on the type of the ``data``
 ///     argument. If ``num_qubits`` is supplied and constructor implied by the type of ``data`` does
 ///     not accept a number, the given integer must match the input.
 ///
@@ -452,7 +465,11 @@ impl PhasedQubitSparsePauli {
 ///     :param int|None num_qubits: Optional number of qubits for the operator.  For most data
 ///         inputs, this can be inferred and need not be passed.  It is only necessary for the
 ///         sparse-label format.  If given unnecessarily, it must match the data input.
-#[pyclass(name = "PhasedQubitSparsePauli", frozen, module = "qiskit.quantum_info")]
+#[pyclass(
+    name = "PhasedQubitSparsePauli",
+    frozen,
+    module = "qiskit.quantum_info"
+)]
 #[derive(Clone, Debug)]
 pub struct PyPhasedQubitSparsePauli {
     inner: PhasedQubitSparsePauli,
@@ -536,7 +553,12 @@ impl PyPhasedQubitSparsePauli {
     ///         <PhasedQubitSparsePauli on 100 qubits: Z_50>
     #[staticmethod]
     #[pyo3(signature = (/, num_qubits, paulis, indices, phase=0))]
-    fn from_raw_parts(num_qubits: u32, paulis: Vec<Pauli>, indices: Vec<u32>, phase: isize) -> PyResult<Self> {
+    fn from_raw_parts(
+        num_qubits: u32,
+        paulis: Vec<Pauli>,
+        indices: Vec<u32>,
+        phase: isize,
+    ) -> PyResult<Self> {
         if paulis.len() != indices.len() {
             return Err(CoherenceError::MismatchedItemCount {
                 paulis: paulis.len(),
@@ -559,7 +581,8 @@ impl PyPhasedQubitSparsePauli {
             }
             sorted_indices.push(index)
         }
-        let qubit_sparse_pauli = QubitSparsePauli::new(num_qubits, paulis, sorted_indices.into_boxed_slice())?;
+        let qubit_sparse_pauli =
+            QubitSparsePauli::new(num_qubits, paulis, sorted_indices.into_boxed_slice())?;
         let num_ys = qubit_sparse_pauli.view().num_ys();
         let inner = PhasedQubitSparsePauli::new(qubit_sparse_pauli, (phase + num_ys).rem_euclid(4));
         Ok(PyPhasedQubitSparsePauli { inner })
@@ -617,7 +640,7 @@ impl PyPhasedQubitSparsePauli {
                 paulis.into_boxed_slice(),
                 indices.into_boxed_slice(),
             )?,
-            group_phase
+            group_phase,
         );
         Ok(inner.into())
     }
@@ -655,7 +678,10 @@ impl PyPhasedQubitSparsePauli {
     ///         >>> assert from_label == from_sparse_label
     #[staticmethod]
     #[pyo3(signature = (/, sparse_label, num_qubits))]
-    fn from_sparse_label(sparse_label: (isize, String, Vec<u32>), num_qubits: u32) -> PyResult<Self> {
+    fn from_sparse_label(
+        sparse_label: (isize, String, Vec<u32>),
+        num_qubits: u32,
+    ) -> PyResult<Self> {
         let phase = sparse_label.0;
         let label = sparse_label.1;
         let indices = sparse_label.2;
@@ -721,16 +747,14 @@ impl PyPhasedQubitSparsePauli {
     #[staticmethod]
     #[pyo3(signature = (label, /))]
     fn from_label(label: &str) -> PyResult<Self> {
-        
         let qubit_sparse_pauli: QubitSparsePauli = QubitSparsePauli::from_dense_label(label)?;
         let num_ys = qubit_sparse_pauli.view().num_ys();
         let inner = PhasedQubitSparsePauli {
             qubit_sparse_pauli: qubit_sparse_pauli,
-            phase: num_ys.rem_euclid(4)
+            phase: num_ys.rem_euclid(4),
         };
         Ok(inner.into())
     }
-
 
     /// Get the identity operator for a given number of qubits.
     ///
@@ -753,7 +777,7 @@ impl PyPhasedQubitSparsePauli {
         let phase = borrowed.inner.phase;
 
         let num_ys = borrowed.inner.qubit_sparse_pauli.view().num_ys();
-        return (phase - num_ys).rem_euclid(4)
+        return (phase - num_ys).rem_euclid(4);
     }
 
     /// Convert this Pauli into a single element :class:`PhasedQubitSparsePauliList`.
@@ -817,7 +841,7 @@ impl PyPhasedQubitSparsePauli {
             borrowed.inner.num_qubits(),
             Self::get_paulis(slf_.clone()),
             Self::get_indices(slf_.clone()),
-            Self::get_phase(slf_)
+            Self::get_phase(slf_),
         )
             .into_pyobject(py)
     }
@@ -830,7 +854,7 @@ impl PyPhasedQubitSparsePauli {
                 self.inner.num_qubits(),
                 PyArray1::from_slice(py, paulis),
                 PyArray1::from_slice(py, self.inner.qubit_sparse_pauli.indices()),
-                (self.inner.phase - self.inner.qubit_sparse_pauli.view().num_ys()).rem_euclid(4)
+                (self.inner.phase - self.inner.qubit_sparse_pauli.view().num_ys()).rem_euclid(4),
             ),
         )
             .into_pyobject(py)
@@ -891,6 +915,87 @@ impl PyPhasedQubitSparsePauli {
     }
 }
 
+/// A list of Pauli operators with phases stored in a qubit-sparse format.
+///
+/// Representation
+/// ==============
+///
+/// Each individual Pauli operator in the list is a tensor product of single-qubit Pauli operators
+/// of the form :math:`P = (-i)^n\bigotimes_n A^{(n)}_i`, for :math:`A^{(n)}_i \in \{I, X, Y, Z\}`,
+/// and an integer :math:`n` called the phase exponent. The
+/// internal representation of a :class:`PhasedQubitSparsePauliList` stores only the non-identity
+/// single-qubit Pauli operators.
+///
+/// Indexing
+/// --------
+///
+/// :class:`PhasedQubitSparsePauliList` behaves as `a Python sequence
+/// <https://docs.python.org/3/glossary.html#term-sequence>`__ (the standard form, not the expanded
+/// :class:`collections.abc.Sequence`).  The elements of the list can be indexed by integers, as
+/// well as iterated through. Whether through indexing or iterating, elements of the list are
+/// returned as :class:`PhasedQubitSparsePauli` instances.
+///
+/// Construction
+/// ============
+///
+/// :class:`PhasedQubitSparsePauliList` defines several constructors.  The default constructor will
+/// attempt to delegate to one of the more specific constructors, based on the type of the input.
+/// You can always use the specific constructors to have more control over the construction.
+///
+/// .. _phased-qubit-sparse-pauli-list-convert-constructors:
+/// .. table:: Construction from other objects
+///
+///   =======================================  =====================================================
+///   Method                                   Summary
+///   =======================================  =====================================================
+///   :meth:`from_label`                       Convert a dense string label into a single-element
+///                                            :class:`.PhasedQubitSparsePauliList`.
+///
+///   :meth:`from_list`                        Construct from a list of dense string labels.
+///
+///   :meth:`from_sparse_list`                 Elements given as a list of tuples of the phase
+///                                            exponent, sparse string labels, and the qubits they
+///                                            apply to.
+///
+///   :meth:`from_pauli`                       Raise a single :class:`~.quantum_info.Pauli` into a
+///                                            single-element :class:`.PhasedQubitSparsePauliList`.
+///
+///   :meth:`from_phased_qubit_sparse_paulis`  Construct from a list of
+///                                            :class:`.PhasedQubitSparsePauli`\s.
+///   =======================================  =====================================================
+///
+/// .. py:function:: PhasedQubitSparsePauliList.__new__(data, /, num_qubits=None)
+///
+///     The default constructor of :class:`PhasedQubitSparsePauliList`.
+///
+///     This delegates to one of :ref:`the explicit conversion-constructor methods
+///     <phased-qubit-sparse-pauli-list-convert-constructors>`, based on the type of the ``data``
+///     argument. If ``num_qubits`` is supplied and constructor implied by the type of ``data`` does
+///     not accept a number, the given integer must match the input.
+///
+///     :param data: The data type of the input.  This can be another
+///         :class:`PhasedQubitSparsePauliList`, in which case the input is copied, or it can be a
+///         list in a valid format for either :meth:`from_list` or :meth:`from_sparse_list`.
+///     :param int|None num_qubits: Optional number of qubits for the list.  For most data
+///         inputs, this can be inferred and need not be passed.  It is only necessary for empty
+///         lists or the sparse-list format.  If given unnecessarily, it must match the data input.
+///
+/// In addition to the conversion-based constructors, the method :meth:`empty` can be used to
+/// construct an empty list of phased qubit-sparse Paulis acting on a given number of qubits.
+///
+/// Conversions
+/// ===========
+///
+/// An existing :class:`PhasedQubitSparsePauliList` can be converted into other formats.
+///
+/// .. table:: Conversion methods to other observable forms.
+///
+///   ===========================  =================================================================
+///   Method                       Summary
+///   ===========================  =================================================================
+///   :meth:`to_sparse_list`       Express the observable in a sparse list format with elements
+///                                ``(phase, paulis, indices)``.
+///   ===========================  =================================================================
 #[pyclass(
     name = "PhasedQubitSparsePauliList",
     module = "qiskit.quantum_info",
@@ -972,9 +1077,9 @@ impl PyPhasedQubitSparsePauliList {
     ///
     ///     .. code-block:: python
     ///
-    ///         >>> qubit_sparse_pauli_list = QubitSparsePauliList.from_list(["IXZXYYZZ", "ZXIXYYZZ"])
-    ///         >>> assert qubit_sparse_pauli_list == qubit_sparse_pauli_list.copy()
-    ///         >>> assert qubit_sparse_pauli_list is not qubit_sparse_pauli_list.copy()
+    ///         >>> phased_qubit_sparse_pauli_list = PhasedQubitSparsePauliList.from_list(["IXZXYYZZ", "ZXIXYYZZ"])
+    ///         >>> assert phased_qubit_sparse_pauli_list == phased_qubit_sparse_pauli_list.copy()
+    ///         >>> assert phased_qubit_sparse_pauli_list is not phased_qubit_sparse_pauli_list.copy()
     fn copy(&self) -> PyResult<Self> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         Ok(inner.clone().into())
@@ -1002,21 +1107,21 @@ impl PyPhasedQubitSparsePauliList {
     /// Get the empty list for a given number of qubits.
     ///
     /// The empty list contains no elements, and is the identity element for joining two
-    /// :class:`QubitSparsePauliList` instances.
+    /// :class:`PhasedQubitSparsePauliList` instances.
     ///
     /// Examples:
     ///
     ///     Get the empty list on 100 qubits::
     ///
-    ///         >>> QubitSparsePauliList.empty(100)
-    ///         <QubitSparsePauliList with 0 elements on 100 qubits: []>
+    ///         >>> PhasedQubitSparsePauliList.empty(100)
+    ///         <PhasedQubitSparsePauliList with 0 elements on 100 qubits: []>
     #[pyo3(signature = (/, num_qubits))]
     #[staticmethod]
     pub fn empty(num_qubits: u32) -> Self {
         PhasedQubitSparsePauliList::empty(num_qubits).into()
     }
 
-    /// Construct a :class:`.QubitSparsePauliList` from a single :class:`~.quantum_info.Pauli`
+    /// Construct a :class:`.PhasedQubitSparsePauliList` from a single :class:`~.quantum_info.Pauli`
     /// instance.
     ///
     /// The output list will have a single term. Note that the phase is dropped.
@@ -1030,9 +1135,9 @@ impl PyPhasedQubitSparsePauliList {
     ///
     ///         >>> label = "IYXZI"
     ///         >>> pauli = Pauli(label)
-    ///         >>> QubitSparsePauliList.from_pauli(pauli)
-    ///         <QubitSparsePauliList with 1 element on 5 qubits: [Y_3 X_2 Z_1]>
-    ///         >>> assert QubitSparsePauliList.from_label(label) == QubitSparsePauliList.from_pauli(pauli)
+    ///         >>> PhasedQubitSparsePauliList.from_pauli(pauli)
+    ///         <PhasedQubitSparsePauliList with 1 element on 5 qubits: [Y_3 X_2 Z_1]>
+    ///         >>> assert PhasedQubitSparsePauliList.from_label(label) == PhasedQubitSparsePauliList.from_pauli(pauli)
     #[staticmethod]
     #[pyo3(signature = (pauli, /))]
     fn from_pauli(pauli: &Bound<PyAny>) -> PyResult<Self> {
@@ -1054,11 +1159,11 @@ impl PyPhasedQubitSparsePauliList {
     ///
     ///     .. code-block:: python
     ///
-    ///         >>> QubitSparsePauliList.from_label("IIIIXZI")
-    ///         <QubitSparsePauliList with 1 element on 7 qubits: [X_2 Z_1]>
+    ///         >>> PhasedQubitSparsePauliList.from_label("IIIIXZI")
+    ///         <PhasedQubitSparsePauliList with 1 element on 7 qubits: [X_2 Z_1]>
     ///         >>> label = "IYXZI"
     ///         >>> pauli = Pauli(label)
-    ///         >>> assert QubitSparsePauliList.from_label(label) == QubitSparsePauliList.from_pauli(pauli)
+    ///         >>> assert PhasedQubitSparsePauliList.from_label(label) == PhasedQubitSparsePauliList.from_pauli(pauli)
     ///
     /// See also:
     ///     :meth:`from_list`
@@ -1070,7 +1175,7 @@ impl PyPhasedQubitSparsePauliList {
         singleton.to_phased_qubit_sparse_pauli_list()
     }
 
-    /// Construct a qubit-sparse Pauli list from a list of dense labels.
+    /// Construct a phased qubit-sparse Pauli list from a list of dense labels.
     ///
     /// This is analogous to :meth:`.SparsePauliOp.from_list`. In this dense form, you must supply
     /// all identities explicitly in each label.
@@ -1092,26 +1197,26 @@ impl PyPhasedQubitSparsePauliList {
     ///
     ///     Construct a qubit sparse Pauli list from a list of labels::
     ///
-    ///         >>> QubitSparsePauliList.from_list([
+    ///         >>> PhasedQubitSparsePauliList.from_list([
     ///         ...     "IIIXX",
     ///         ...     "IIYYI",
     ///         ...     "IXXII",
     ///         ...     "ZZIII",
     ///         ... ])
-    ///         <QubitSparsePauliList with 4 elements on 5 qubits:
+    ///         <PhasedQubitSparsePauliList with 4 elements on 5 qubits:
     ///             [X_1 X_0, Y_2 Y_1, X_3 X_2, Z_4 Z_3]>
     ///
     ///     Use ``num_qubits`` to disambiguate potentially empty inputs::
     ///
-    ///         >>> QubitSparsePauliList.from_list([], num_qubits=10)
-    ///         <QubitSparsePauliList with 0 elements on 10 qubits: []>
+    ///         >>> PhasedQubitSparsePauliList.from_list([], num_qubits=10)
+    ///         <PhasedQubitSparsePauliList with 0 elements on 10 qubits: []>
     ///
     ///     This method is equivalent to calls to :meth:`from_sparse_list` with the explicit
     ///     qubit-arguments field set to decreasing integers::
     ///
     ///         >>> labels = ["XYXZ", "YYZZ", "XYXZ"]
-    ///         >>> from_list = QubitSparsePauliList.from_list(labels)
-    ///         >>> from_sparse_list = QubitSparsePauliList.from_sparse_list([
+    ///         >>> from_list = PhasedQubitSparsePauliList.from_list(labels)
+    ///         >>> from_sparse_list = PhasedQubitSparsePauliList.from_sparse_list([
     ///         ...     (label, (3, 2, 1, 0))
     ///         ...     for label in labels
     ///         ... ])
@@ -1140,8 +1245,8 @@ impl PyPhasedQubitSparsePauliList {
         Ok(inner.into())
     }
 
-    /// Construct a :class:`PhasedQubitSparsePauliList` out of individual :class:`PhasedQubitSparsePauli`
-    /// instances.
+    /// Construct a :class:`PhasedQubitSparsePauliList` out of individual
+    /// :class:`PhasedQubitSparsePauli` instances.
     ///
     /// All the terms must have the same number of qubits.  If supplied, the ``num_qubits`` argument
     /// must match the terms.
@@ -1156,7 +1261,10 @@ impl PyPhasedQubitSparsePauliList {
     ///     The corresponding list.
     #[staticmethod]
     #[pyo3(signature = (obj, /, num_qubits=None))]
-    fn from_phased_qubit_sparse_paulis(obj: &Bound<PyAny>, num_qubits: Option<u32>) -> PyResult<Self> {
+    fn from_phased_qubit_sparse_paulis(
+        obj: &Bound<PyAny>,
+        num_qubits: Option<u32>,
+    ) -> PyResult<Self> {
         let mut iter = obj.try_iter()?;
         let mut inner = match num_qubits {
             Some(num_qubits) => PhasedQubitSparsePauliList::empty(num_qubits),
@@ -1171,7 +1279,9 @@ impl PyPhasedQubitSparsePauliList {
             }
         };
         for bound_py_term in iter {
-            let py_term = bound_py_term?.downcast::<PyPhasedQubitSparsePauli>()?.borrow();
+            let py_term = bound_py_term?
+                .downcast::<PyPhasedQubitSparsePauli>()?
+                .borrow();
             inner.add_phased_qubit_sparse_pauli(py_term.inner.view())?;
         }
         Ok(inner.into())
@@ -1186,17 +1296,17 @@ impl PyPhasedQubitSparsePauliList {
     ///
     ///     .. code-block:: python
     ///
-    ///         >>> pauli_list = QubitSparsePauliList.from_list(["IXXXYY", "ZZYZII"])
+    ///         >>> pauli_list = PhasedQubitSparsePauliList.from_list(["IXXXYY", "ZZYZII"])
     ///         >>> pauli_list.clear()
-    ///         >>> assert pauli_list == QubitSparsePauliList.empty(pauli_list.num_qubits)
+    ///         >>> assert pauli_list == PhasedQubitSparsePauliList.empty(pauli_list.num_qubits)
     pub fn clear(&mut self) -> PyResult<()> {
         let mut inner = self.inner.write().map_err(|_| InnerWriteError)?;
         inner.clear();
         Ok(())
     }
 
-    /// Construct a phased qubit sparse Pauli list from a list of labels and the qubits each item applies
-    /// to.
+    /// Construct a phased qubit sparse Pauli list from a list of labels and the qubits each item
+    /// applies to.
     ///
     /// This is analogous to :meth:`.SparsePauliOp.from_sparse_list`.
     ///
@@ -1219,7 +1329,7 @@ impl PyPhasedQubitSparsePauliList {
     ///         ...     [(0, "ZX", (1, 4)), (1, "YY", (0, 3))],
     ///         ...     num_qubits=5,
     ///         ... )
-    ///         <QubitSparsePauliList with 2 elements on 5 qubits: [X_4 Z_1, (-i)Y_3 Y_0]>
+    ///         <PhasedQubitSparsePauliList with 2 elements on 5 qubits: [X_4 Z_1, (-i)Y_3 Y_0]>
     ///
     ///     This method can replicate the behavior of :meth:`from_list`, if the qubit-arguments
     ///     field of the tuple is set to decreasing integers::
@@ -1238,7 +1348,6 @@ impl PyPhasedQubitSparsePauliList {
     #[staticmethod]
     #[pyo3(signature = (iter, /, num_qubits))]
     fn from_sparse_list(iter: Vec<(isize, String, Vec<u32>)>, num_qubits: u32) -> PyResult<Self> {
-        
         // separate group phases and build QubitSparsePauliList
         let mut group_phases = Vec::with_capacity(iter.len());
         let mut sub_iter = Vec::with_capacity(iter.len());
@@ -1248,28 +1357,31 @@ impl PyPhasedQubitSparsePauliList {
         }
 
         let (paulis, indices, boundaries) = raw_parts_from_sparse_list(sub_iter, num_qubits)?;
-        let qubit_sparse_pauli_list = QubitSparsePauliList::new(num_qubits, paulis, indices, boundaries)?;
-        
+        let qubit_sparse_pauli_list =
+            QubitSparsePauliList::new(num_qubits, paulis, indices, boundaries)?;
+
         // Build zx phases
         let mut phases = Vec::with_capacity(qubit_sparse_pauli_list.num_terms());
-        for (group_phase, qubit_sparse_pauli) in group_phases.iter().zip(qubit_sparse_pauli_list.iter()) {
+        for (group_phase, qubit_sparse_pauli) in
+            group_phases.iter().zip(qubit_sparse_pauli_list.iter())
+        {
             phases.push((group_phase + qubit_sparse_pauli.num_ys()).rem_euclid(4))
         }
-        
+
         let inner = PhasedQubitSparsePauliList::new(qubit_sparse_pauli_list, phases)?;
         Ok(inner.into())
     }
 
     /// Express the list in terms of a sparse list format.
     ///
-    /// This can be seen as counter-operation of :meth:`.QubitSparsePauliList.from_sparse_list`,
-    /// however the order of terms is not guaranteed to be the same at after a roundtrip to a sparse
-    /// list and back.
+    /// This can be seen as counter-operation of
+    /// :meth:`.PhasedQubitSparsePauliList.from_sparse_list`, however the order of terms is not
+    /// guaranteed to be the same at after a roundtrip to a sparse list and back.
     ///
     /// Examples:
     ///
-    ///     >>> qubit_sparse_list = QubitSparsePauliList.from_list(["IIXIZ", "IIZIX"])
-    ///     >>> reconstructed = QubitSparsePauliList.from_sparse_list(qubit_sparse_list.to_sparse_list(), qubit_sparse_list.num_qubits)
+    ///     >>> phased_qubit_sparse_list = PhasedQubitSparsePauliList.from_list(["IIXIZ", "IIZIX"])
+    ///     >>> reconstructed = PhasedQubitSparsePauliList.from_sparse_list(phased_qubit_sparse_list.to_sparse_list(), qubit_sparse_list.num_qubits)
     ///
     /// See also:
     ///     :meth:`from_sparse_list`
@@ -1285,11 +1397,18 @@ impl PyPhasedQubitSparsePauliList {
             for bit in view.qubit_sparse_pauli_view.paulis.iter() {
                 pauli_string.push_str(bit.py_label());
             }
-            let py_int = PyInt::new(py, (view.phase - view.qubit_sparse_pauli_view.num_ys()).rem_euclid(4)).unbind();
+            let py_int = PyInt::new(
+                py,
+                (view.phase - view.qubit_sparse_pauli_view.num_ys()).rem_euclid(4),
+            )
+            .unbind();
             let py_string = PyString::new(py, &pauli_string).unbind();
             let py_indices = PyList::new(py, view.qubit_sparse_pauli_view.indices.iter())?.unbind();
 
-            PyTuple::new(py, vec![py_int.as_any(), py_string.as_any(), py_indices.as_any()])
+            PyTuple::new(
+                py,
+                vec![py_int.as_any(), py_string.as_any(), py_indices.as_any()],
+            )
         };
 
         let out = PyList::empty(py);
@@ -1299,7 +1418,7 @@ impl PyPhasedQubitSparsePauliList {
         Ok(out.unbind())
     }
 
-    /// Apply a transpiler layout to this qubit sparse Pauli list.
+    /// Apply a transpiler layout to this phased qubit sparse Pauli list.
     ///
     /// This enables remapping of qubit indices, e.g. if the list is defined in terms of virtual
     /// qubit labels.
