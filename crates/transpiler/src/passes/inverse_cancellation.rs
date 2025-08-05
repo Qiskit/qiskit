@@ -192,7 +192,7 @@ fn std_self_inverse(dag: &mut DAGCircuit) {
                 _ => false,
             }
         };
-        let run_nodes: Vec<_> = dag.collect_1q_runs_by(filter).collect();
+        let run_nodes: Vec<_> = dag.collect_runs_by(filter).collect();
         for gate_cancel_run in run_nodes {
             let mut partitions: Vec<Vec<NodeIndex>> = Vec::new();
             let mut chunk: Vec<NodeIndex> = Vec::new();
@@ -243,7 +243,7 @@ fn std_inverse_pairs(dag: &mut DAGCircuit) {
                 _ => false,
             }
         };
-        let run_nodes: Vec<_> = dag.collect_1q_runs_by(filter).collect();
+        let run_nodes: Vec<_> = dag.collect_runs_by(filter).collect();
         for nodes in run_nodes {
             let mut i = 0;
             while i < nodes.len() - 1 {

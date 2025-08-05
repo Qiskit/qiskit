@@ -4370,7 +4370,7 @@ impl DAGCircuit {
 
 impl<'a> DAGCircuit {
     /// Return an iterator of gate runs with op nodes that match a specified filter function
-    pub fn collect_1q_runs_by<F: Fn(&PackedInstruction) -> bool + 'a>(
+    pub fn collect_runs_by<F: Fn(&PackedInstruction) -> bool + 'a>(
         &'a self,
         filter: F,
     ) -> impl Iterator<Item = Vec<NodeIndex>> + 'a {
