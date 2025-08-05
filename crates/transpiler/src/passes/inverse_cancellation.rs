@@ -183,7 +183,7 @@ fn std_self_inverse(dag: &mut DAGCircuit) {
     }
     // Handle self inverse gates
     for self_inv_gate in SELF_INVERSE_GATES_FOR_CANCELLATION {
-        if dag.get_op_counts().get(self_inv_gate.name()).unwrap_or(&0) <= &1 {
+        if *dag.get_op_counts().get(self_inv_gate.name()).unwrap_or(&0) <= 1 {
             continue;
         }
         let filter = |inst: &PackedInstruction| -> bool {
@@ -228,15 +228,19 @@ fn std_self_inverse(dag: &mut DAGCircuit) {
 }
 
 fn std_inverse_pairs(dag: &mut DAGCircuit) {
-    if !INVERSE_PAIRS_FOR_CANCELLATION
-        .iter()
-        .flatten()
-        .any(|gate| dag.get_op_counts().contains_key(gate.name()))
-    {
+    if !INVERSE_PAIRS_FOR_CANCELLATION.iter().any(|gate| {
+        dag.get_op_counts().contains_key(gate[0].name())
+            && dag.get_op_counts().contains_key(gate[1].name())
+    }) {
         return;
     }
     // Handle inverse pairs
     for [gate_0, gate_1] in INVERSE_PAIRS_FOR_CANCELLATION {
+        if !dag.get_op_counts().contains_key(gate_0.name())
+            || !dag.get_op_counts().contains_key(gate_1.name())
+        {
+            continue;
+        }
         let filter = |inst: &PackedInstruction| -> bool {
             match inst.op.view() {
                 OperationRef::StandardGate(gate) => gate == gate_0 || gate == gate_1,
