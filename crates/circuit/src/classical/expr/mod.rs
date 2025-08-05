@@ -14,6 +14,7 @@ use pyo3::prelude::*;
 
 mod binary;
 mod cast;
+mod constructors;
 #[allow(clippy::module_inception)]
 mod expr;
 mod index;
