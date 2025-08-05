@@ -455,7 +455,9 @@ pub unsafe extern "C" fn qk_circuit_gate(
             // There are no ``QkGate``s that take > 4 params
             _ => unreachable!(),
         };
-        circuit.push_standard_gate(gate, params, qargs);
+        circuit
+            .push_standard_gate(gate, params, qargs)
+            .expect("Parameterized gates aren't supported by this function");
     }
     ExitCode::Success
 }
@@ -520,12 +522,14 @@ pub unsafe extern "C" fn qk_circuit_measure(
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
-    circuit.push_packed_operation(
-        PackedOperation::from_standard_instruction(StandardInstruction::Measure),
-        &[],
-        &[Qubit(qubit)],
-        &[Clbit(clbit)],
-    );
+    circuit
+        .push_packed_operation(
+            PackedOperation::from_standard_instruction(StandardInstruction::Measure),
+            &[],
+            &[Qubit(qubit)],
+            &[Clbit(clbit)],
+        )
+        .expect("Measurements don't take parameters");
     ExitCode::Success
 }
 
@@ -550,12 +554,14 @@ pub unsafe extern "C" fn qk_circuit_measure(
 pub unsafe extern "C" fn qk_circuit_reset(circuit: *mut CircuitData, qubit: u32) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
-    circuit.push_packed_operation(
-        PackedOperation::from_standard_instruction(StandardInstruction::Reset),
-        &[],
-        &[Qubit(qubit)],
-        &[],
-    );
+    circuit
+        .push_packed_operation(
+            PackedOperation::from_standard_instruction(StandardInstruction::Reset),
+            &[],
+            &[Qubit(qubit)],
+            &[],
+        )
+        .expect("Reset doesn't take parameters");
     ExitCode::Success
 }
 
@@ -595,12 +601,14 @@ pub unsafe extern "C" fn qk_circuit_barrier(
             .map(|idx| Qubit(*qubits.wrapping_add(idx as usize)))
             .collect()
     };
-    circuit.push_packed_operation(
-        PackedOperation::from_standard_instruction(StandardInstruction::Barrier(num_qubits)),
-        &[],
-        &qubits,
-        &[],
-    );
+    circuit
+        .push_packed_operation(
+            PackedOperation::from_standard_instruction(StandardInstruction::Barrier(num_qubits)),
+            &[],
+            &qubits,
+            &[],
+        )
+        .expect("Barrier doesn't take parameters");
     ExitCode::Success
 }
 
@@ -731,7 +739,9 @@ pub unsafe extern "C" fn qk_circuit_unitary(
     // Create PackedOperation -> push to circuit_data
     let u_gate = Box::new(UnitaryGate { array: mat });
     let op = PackedOperation::from_unitary(u_gate);
-    circuit.push_packed_operation(op, &[], qargs, &[]);
+    circuit
+        .push_packed_operation(op, &[], qargs, &[])
+        .expect("UnitaryGate doesn't take Parameters");
     // Return success
     ExitCode::Success
 }
@@ -1060,12 +1070,14 @@ pub unsafe extern "C" fn qk_circuit_delay(
     let duration_param: Param = duration.into();
     let delay_instruction = StandardInstruction::Delay(delay_unit_variant);
 
-    circuit.push_packed_operation(
-        PackedOperation::from_standard_instruction(delay_instruction),
-        &[duration_param],
-        &[Qubit(qubit)],
-        &[],
-    );
+    circuit
+        .push_packed_operation(
+            PackedOperation::from_standard_instruction(delay_instruction),
+            &[duration_param],
+            &[Qubit(qubit)],
+            &[],
+        )
+        .expect("This function doesn't support parameterized delay");
 
     ExitCode::Success
 }

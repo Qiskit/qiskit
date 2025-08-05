@@ -639,7 +639,7 @@ fn run_on_circuitdata(
                         inst_inner.params_view(),
                         &inst_outer_qubits,
                         &inst_outer_clbits,
-                    );
+                    )?;
                 }
 
                 let updated_global_phase = radd_param(
@@ -690,7 +690,7 @@ fn extract_definition(
                         StandardGate::U,
                         &[Param::Float(theta), Param::Float(phi), Param::Float(lam)],
                         &[Qubit(0)],
-                    );
+                    )?;
                     Ok(Some(circuit_data))
                 }
                 // Run 2q synthesis
