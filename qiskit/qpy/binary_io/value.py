@@ -974,7 +974,6 @@ def dumps_value(
     Raises:
         QpyError: Serializer for given format is not ready.
     """
-    # patch to ensure Parameter objects are treated as such
     type_key = type_keys.Value.assign(obj)
 
     if type_key == type_keys.Value.INTEGER:
