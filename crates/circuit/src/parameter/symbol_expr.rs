@@ -267,26 +267,36 @@ impl fmt::Display for SymbolExpr {
 
 impl SymbolExpr {
     /// bind value to symbol node
-    pub fn bind(&self, maps: &HashMap<Symbol, Value>) -> SymbolExpr {
+    pub fn bind(&self, maps: &HashMap<Symbol, Value>) -> Option<SymbolExpr> {
         match self {
             SymbolExpr::Symbol(e) => match maps.get(e) {
-                Some(v) => SymbolExpr::Value(*v),
-                None => self.clone(),
+                Some(v) => Some(SymbolExpr::Value(*v)),
+                None => None,
             },
-            SymbolExpr::Value(e) => SymbolExpr::Value(*e),
-            SymbolExpr::Unary { op, expr } => SymbolExpr::Unary {
-                op: op.clone(),
-                expr: Arc::new(expr.bind(maps)),
+            SymbolExpr::Value(e) => None,
+            SymbolExpr::Unary { op, expr } => match expr.bind(maps) {
+                Some(expr) => Some(SymbolExpr::Unary {
+                    op: op.clone(),
+                    expr: Arc::new(expr),
+                }),
+                None => None,
             },
             SymbolExpr::Binary { op, lhs, rhs } => {
                 let new_lhs = lhs.bind(maps);
                 let new_rhs = rhs.bind(maps);
-                match op {
-                    BinaryOp::Add => new_lhs + new_rhs,
-                    BinaryOp::Sub => new_lhs - new_rhs,
-                    BinaryOp::Mul => new_lhs * new_rhs,
-                    BinaryOp::Div => new_lhs / new_rhs,
-                    BinaryOp::Pow => _pow(new_lhs, new_rhs),
+                let make_bin = |lhs: &SymbolExpr, rhs: &SymbolExpr, op: &BinaryOp| match op {
+                    BinaryOp::Add => lhs + rhs,
+                    BinaryOp::Sub => lhs - rhs,
+                    BinaryOp::Mul => lhs * rhs,
+                    BinaryOp::Div => lhs / rhs,
+                    BinaryOp::Pow => _pow(lhs.clone(), rhs.clone()),
+                };
+
+                match (new_lhs, new_rhs) {
+                    (None, None) => None,
+                    (Some(lhs), None) => Some(make_bin(&lhs, rhs.as_ref(), op)),
+                    (None, Some(rhs)) => Some(make_bin(lhs.as_ref(), &rhs, op)),
+                    (Some(lhs), Some(rhs)) => Some(make_bin(&lhs, &rhs, op)),
                 }
             }
         }
@@ -295,26 +305,36 @@ impl SymbolExpr {
     /// substitute symbol node to other expression
     /// allows unknown expressions
     /// does not allow duplicate names with different UUID
-    pub fn subs(&self, maps: &HashMap<Symbol, SymbolExpr>) -> SymbolExpr {
+    pub fn subs(&self, maps: &HashMap<Symbol, SymbolExpr>) -> Option<SymbolExpr> {
         match self {
             SymbolExpr::Symbol(e) => match maps.get(e) {
-                Some(v) => v.clone(),
-                None => self.clone(),
+                Some(v) => Some(v.clone()),
+                None => None,
             },
-            SymbolExpr::Value(e) => SymbolExpr::Value(*e),
-            SymbolExpr::Unary { op, expr } => SymbolExpr::Unary {
-                op: op.clone(),
-                expr: Arc::new(expr.subs(maps)),
+            SymbolExpr::Value(e) => None,
+            SymbolExpr::Unary { op, expr } => match expr.subs(maps) {
+                Some(expr) => Some(SymbolExpr::Unary {
+                    op: op.clone(),
+                    expr: Arc::new(expr),
+                }),
+                None => None,
             },
             SymbolExpr::Binary { op, lhs, rhs } => {
                 let new_lhs = lhs.subs(maps);
                 let new_rhs = rhs.subs(maps);
-                match op {
-                    BinaryOp::Add => new_lhs + new_rhs,
-                    BinaryOp::Sub => new_lhs - new_rhs,
-                    BinaryOp::Mul => new_lhs * new_rhs,
-                    BinaryOp::Div => new_lhs / new_rhs,
-                    BinaryOp::Pow => _pow(new_lhs, new_rhs),
+                let make_bin = |lhs: &SymbolExpr, rhs: &SymbolExpr, op: &BinaryOp| match op {
+                    BinaryOp::Add => lhs + rhs,
+                    BinaryOp::Sub => lhs - rhs,
+                    BinaryOp::Mul => lhs * rhs,
+                    BinaryOp::Div => lhs / rhs,
+                    BinaryOp::Pow => _pow(lhs.clone(), rhs.clone()),
+                };
+
+                match (new_lhs, new_rhs) {
+                    (None, None) => None,
+                    (Some(lhs), None) => Some(make_bin(&lhs, rhs.as_ref(), op)),
+                    (None, Some(rhs)) => Some(make_bin(lhs.as_ref(), &rhs, op)),
+                    (Some(lhs), Some(rhs)) => Some(make_bin(&lhs, &rhs, op)),
                 }
             }
         }
@@ -377,31 +397,7 @@ impl SymbolExpr {
                             lval = left;
                             rval = right;
                         }
-                        _ => {
-                            // if there are still some unbound parameters
-                            // we try to optimize equation if we can eliminate some
-                            let val = match op {
-                                BinaryOp::Add => lhs.add_opt(rhs, true),
-                                BinaryOp::Sub => lhs.sub_opt(rhs, true),
-                                BinaryOp::Mul => lhs.mul_opt(rhs, true),
-                                BinaryOp::Div => lhs.div_opt(rhs, true),
-                                BinaryOp::Pow => None,
-                            };
-                            return match val {
-                                Some(SymbolExpr::Value(val)) => match val {
-                                    Value::Real(_) => Some(val),
-                                    Value::Int(_) => Some(val),
-                                    Value::Complex(c) => {
-                                        if (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im) {
-                                            Some(Value::Real(c.re))
-                                        } else {
-                                            Some(val)
-                                        }
-                                    }
-                                },
-                                _ => None,
-                            };
-                        }
+                        (_, _) => return None,
                     }
                 } else {
                     match (lhs.as_ref(), rhs.as_ref()) {
