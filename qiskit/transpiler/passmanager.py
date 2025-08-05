@@ -59,6 +59,10 @@ class PassManager(BasePassManager):
         input_program: QuantumCircuit,
         **kwargs,
     ) -> DAGCircuit:
+        self.property_set["original_qubit_indices"] = {
+            bit: i for i, bit in enumerate(input_program.qubits)
+        }
+        self.property_set["num_input_qubits"] = input_program.num_qubits
         return circuit_to_dag(input_program, copy_operations=True)
 
     def _passmanager_backend(
