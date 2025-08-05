@@ -152,6 +152,14 @@ impl PhasedQubitSparsePauliList {
         }
     }
 
+    /// Add an element to the list implied by a dense string label.
+    pub fn add_dense_label<L: AsRef<[u8]>>(&mut self, label: L) -> Result<(), LabelError> {
+        self.qubit_sparse_pauli_list.add_dense_label(label)?;
+        let num_ys = self.qubit_sparse_pauli_list.term(self.qubit_sparse_pauli_list.num_terms() - 1).num_ys();
+        self.phases.push(num_ys.rem_euclid(4));
+        Ok(())
+    }
+
     /// Add a single phased sparse Pauli term to the list.
     pub fn add_phased_qubit_sparse_pauli(
         &mut self,
@@ -989,11 +997,11 @@ impl PyPhasedQubitSparsePauliList {
     ///
     ///         >>> QubitSparsePauliList.empty(100)
     ///         <QubitSparsePauliList with 0 elements on 100 qubits: []>
-    //#[pyo3(signature = (/, num_qubits))]
-    //#[staticmethod]
-    //pub fn empty(num_qubits: u32) -> Self {
-    //    PhasedQubitSparsePauliList::empty(num_qubits).into()
-    //}
+    #[pyo3(signature = (/, num_qubits))]
+    #[staticmethod]
+    pub fn empty(num_qubits: u32) -> Self {
+        PhasedQubitSparsePauliList::empty(num_qubits).into()
+    }
 
     /// Construct a :class:`.QubitSparsePauliList` from a single :class:`~.quantum_info.Pauli`
     /// instance.
@@ -1017,6 +1025,106 @@ impl PyPhasedQubitSparsePauliList {
     fn from_pauli(pauli: &Bound<PyAny>) -> PyResult<Self> {
         let x = PyPhasedQubitSparsePauli::from_pauli(pauli)?;
         x.to_phased_qubit_sparse_pauli_list()
+    }
+
+    /// Construct a list with a single-term from a dense string label.
+    ///
+    /// The label must be a sequence of the alphabet ``'IXYZ'``.  The label is interpreted
+    /// analogously to a bitstring.  In other words, the right-most letter is associated with qubit
+    /// 0, and so on.  This is the same as the labels for :class:`~.quantum_info.Pauli` and
+    /// :class:`.SparsePauliOp`.
+    ///
+    /// Args:
+    ///     label (str): the dense label.
+    ///
+    /// Examples:
+    ///
+    ///     .. code-block:: python
+    ///
+    ///         >>> QubitSparsePauliList.from_label("IIIIXZI")
+    ///         <QubitSparsePauliList with 1 element on 7 qubits: [X_2 Z_1]>
+    ///         >>> label = "IYXZI"
+    ///         >>> pauli = Pauli(label)
+    ///         >>> assert QubitSparsePauliList.from_label(label) == QubitSparsePauliList.from_pauli(pauli)
+    ///
+    /// See also:
+    ///     :meth:`from_list`
+    ///         A generalization of this method that constructs a list from multiple labels.
+    #[staticmethod]
+    #[pyo3(signature = (label, /))]
+    fn from_label(label: &str) -> PyResult<Self> {
+        let singleton = PyPhasedQubitSparsePauli::from_label(label)?;
+        singleton.to_phased_qubit_sparse_pauli_list()
+    }
+
+    /// Construct a qubit-sparse Pauli list from a list of dense labels.
+    ///
+    /// This is analogous to :meth:`.SparsePauliOp.from_list`. In this dense form, you must supply
+    /// all identities explicitly in each label.
+    ///
+    /// The label must be a sequence of the alphabet ``'IXYZ'``.  The label is interpreted
+    /// analogously to a bitstring.  In other words, the right-most letter is associated with qubit
+    /// 0, and so on.  This is the same as the labels for :class:`~.quantum_info.Pauli` and
+    /// :class:`.SparsePauliOp`.
+    ///
+    /// Args:
+    ///     iter (list[str]): List of dense string labels.
+    ///     num_qubits (int | None): It is not necessary to specify this if you are sure that
+    ///         ``iter`` is not an empty sequence, since it can be inferred from the label lengths.
+    ///         If ``iter`` may be empty, you must specify this argument to disambiguate how many
+    ///         qubits the operators act on.  If this is given and ``iter`` is not empty, the value
+    ///         must match the label lengths.
+    ///
+    /// Examples:
+    ///
+    ///     Construct a qubit sparse Pauli list from a list of labels::
+    ///
+    ///         >>> QubitSparsePauliList.from_list([
+    ///         ...     "IIIXX",
+    ///         ...     "IIYYI",
+    ///         ...     "IXXII",
+    ///         ...     "ZZIII",
+    ///         ... ])
+    ///         <QubitSparsePauliList with 4 elements on 5 qubits:
+    ///             [X_1 X_0, Y_2 Y_1, X_3 X_2, Z_4 Z_3]>
+    ///
+    ///     Use ``num_qubits`` to disambiguate potentially empty inputs::
+    ///
+    ///         >>> QubitSparsePauliList.from_list([], num_qubits=10)
+    ///         <QubitSparsePauliList with 0 elements on 10 qubits: []>
+    ///
+    ///     This method is equivalent to calls to :meth:`from_sparse_list` with the explicit
+    ///     qubit-arguments field set to decreasing integers::
+    ///
+    ///         >>> labels = ["XYXZ", "YYZZ", "XYXZ"]
+    ///         >>> from_list = QubitSparsePauliList.from_list(labels)
+    ///         >>> from_sparse_list = QubitSparsePauliList.from_sparse_list([
+    ///         ...     (label, (3, 2, 1, 0))
+    ///         ...     for label in labels
+    ///         ... ])
+    ///         >>> assert from_list == from_sparse_list
+    ///
+    /// See also:
+    ///     :meth:`from_sparse_list`
+    ///         Construct the list from labels without explicit identities, but with the qubits each
+    ///         single-qubit operator term applies to listed explicitly.
+    #[staticmethod]
+    #[pyo3(signature = (iter, /, *, num_qubits=None))]
+    fn from_list(iter: Vec<String>, num_qubits: Option<u32>) -> PyResult<Self> {
+        if iter.is_empty() && num_qubits.is_none() {
+            return Err(PyValueError::new_err(
+                "cannot construct a PhasedQubitSparsePauliList from an empty list without knowing `num_qubits`",
+            ));
+        }
+        let num_qubits = match num_qubits {
+            Some(num_qubits) => num_qubits,
+            None => iter[0].len() as u32,
+        };
+        let mut inner = PhasedQubitSparsePauliList::with_capacity(num_qubits, iter.len(), 0);
+        for label in iter {
+            inner.add_dense_label(&label)?;
+        }
+        Ok(inner.into())
     }
 
     /// Construct a :class:`PhasedQubitSparsePauliList` out of individual :class:`PhasedQubitSparsePauli`
@@ -1143,6 +1251,28 @@ impl PyPhasedQubitSparsePauliList {
     //    )
     //        .into_pyobject(py)
     //}
+
+    fn __getitem__<'py>(
+        &self,
+        py: Python<'py>,
+        index: PySequenceIndex<'py>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let indices = match index.with_len(inner.num_terms())? {
+            SequenceIndex::Int(index) => {
+                return PyPhasedQubitSparsePauli {
+                    inner: inner.term(index).to_term(),
+                }
+                .into_bound_py_any(py)
+            }
+            indices => indices,
+        };
+        let mut out = PhasedQubitSparsePauliList::empty(inner.num_qubits());
+        for index in indices.iter() {
+            out.add_phased_qubit_sparse_pauli(inner.term(index))?;
+        }
+        out.into_bound_py_any(py)
+    }
 
     fn __eq__(slf: Bound<Self>, other: Bound<PyAny>) -> PyResult<bool> {
         // this is also important to check before trying to read both slf and other
