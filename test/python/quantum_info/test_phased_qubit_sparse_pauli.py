@@ -40,17 +40,18 @@ def single_cases():
         PhasedQubitSparsePauli(Pauli("iZZYYXX")),
     ]
 
-"""
+
 def single_cases_list():
     return [
-        QubitSparsePauliList.empty(0),
-        QubitSparsePauliList.empty(10),
-        QubitSparsePauliList.from_label("IIXIZI"),
-        QubitSparsePauliList.from_list(["YIXZII", "ZZYYXX"]),
+        PhasedQubitSparsePauliList.empty(0),
+        PhasedQubitSparsePauliList.empty(10),
+        PhasedQubitSparsePauliList.from_label("IIXIZI"),
+        PhasedQubitSparsePauliList.from_list(["YIXZII", "ZZYYXX"]),
         # Includes a duplicate entry.
-        QubitSparsePauliList.from_list(["IXZ", "ZZI", "IXZ"]),
+        PhasedQubitSparsePauliList.from_list(["IXZ", "ZZI", "IXZ"]),
+        PhasedQubitSparsePauli(Pauli("iZZYYXX")).to_phased_qubit_sparse_pauli_list()
     ]
-"""
+
 
 @ddt.ddt
 class TestPhasedQubitSparsePauli(QiskitTestCase):
@@ -868,7 +869,7 @@ class TestPhasedQubitSparsePauliList(QiskitTestCase):
         self.assertEqual(len(PhasedQubitSparsePauliList.empty(10)), 0)
         self.assertEqual(len(PhasedQubitSparsePauliList.from_list(["IIIXIZ", "YYXXII"])), 2)
 
-    '''
+    
     @ddt.idata(single_cases_list())
     def test_pickle(self, qubit_sparse_pauli_list):
         self.assertEqual(qubit_sparse_pauli_list, copy.copy(qubit_sparse_pauli_list))
@@ -877,7 +878,7 @@ class TestPhasedQubitSparsePauliList(QiskitTestCase):
         self.assertEqual(
             qubit_sparse_pauli_list, pickle.loads(pickle.dumps(qubit_sparse_pauli_list))
         )
-
+    '''
     @ddt.data(
         QubitSparsePauliList.empty(0),
         QubitSparsePauliList.empty(1),

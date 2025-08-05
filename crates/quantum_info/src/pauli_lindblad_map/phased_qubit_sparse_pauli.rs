@@ -1272,7 +1272,7 @@ impl PyPhasedQubitSparsePauliList {
             for bit in view.qubit_sparse_pauli_view.paulis.iter() {
                 pauli_string.push_str(bit.py_label());
             }
-            let py_int = PyInt::new(py, view.phase).unbind();
+            let py_int = PyInt::new(py, (view.phase - view.qubit_sparse_pauli_view.num_ys()).rem_euclid(4)).unbind();
             let py_string = PyString::new(py, &pauli_string).unbind();
             let py_indices = PyList::new(py, view.qubit_sparse_pauli_view.indices.iter())?.unbind();
 
@@ -1290,14 +1290,14 @@ impl PyPhasedQubitSparsePauliList {
         self.num_terms()
     }
 
-    //fn __reduce__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
-    //    let inner = self.inner.read().map_err(|_| InnerReadError)?;
-    //    (
-    //        py.get_type::<Self>().getattr("from_sparse_list")?,
-    //        (self.to_sparse_list(py)?, inner.num_qubits()),
-    //    )
-    //        .into_pyobject(py)
-    //}
+    fn __reduce__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        (
+            py.get_type::<Self>().getattr("from_sparse_list")?,
+            (self.to_sparse_list(py)?, inner.num_qubits()),
+        )
+            .into_pyobject(py)
+    }
 
     fn __getitem__<'py>(
         &self,
