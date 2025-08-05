@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use std::hash::Hash;
+use std::sync::Arc;
 
 use ahash::RandomState;
 use approx::relative_eq;
@@ -7630,13 +7631,13 @@ pub(crate) fn add_global_phase(phase: &Param, other: &Param) -> PyResult<Param> 
     Ok(match [phase, other] {
         [Param::Float(a), Param::Float(b)] => Param::Float(a + b),
         [Param::Float(a), Param::ParameterExpression(b)] => {
-            Param::ParameterExpression(Box::new(b.add(&ParameterExpression::from_f64(*a)).unwrap()))
+            Param::ParameterExpression(Arc::new(b.add(&ParameterExpression::from_f64(*a)).unwrap()))
         }
         [Param::ParameterExpression(a), Param::Float(b)] => {
-            Param::ParameterExpression(Box::new(a.add(&ParameterExpression::from_f64(*b)).unwrap()))
+            Param::ParameterExpression(Arc::new(a.add(&ParameterExpression::from_f64(*b)).unwrap()))
         }
         [Param::ParameterExpression(a), Param::ParameterExpression(b)] => {
-            Param::ParameterExpression(Box::new(a.add(b).expect("Name conflict in add.")))
+            Param::ParameterExpression(Arc::new(a.add(b).expect("Name conflict in add.")))
         }
         _ => panic!("Invalid global phase"),
     })

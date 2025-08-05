@@ -12,6 +12,7 @@
 
 use approx::relative_eq;
 use std::f64::consts::PI;
+use std::sync::Arc;
 use std::{fmt, vec};
 
 use crate::circuit_data::CircuitData;
@@ -39,7 +40,7 @@ use pyo3::{intern, IntoPyObjectExt, Python};
 
 #[derive(Clone, Debug)]
 pub enum Param {
-    ParameterExpression(Box<ParameterExpression>),
+    ParameterExpression(Arc<ParameterExpression>),
     Float(f64),
     Obj(PyObject),
 }
@@ -74,7 +75,7 @@ impl<'py> IntoPyObject<'py> for Param {
 impl<'py> FromPyObject<'py> for Param {
     fn extract_bound(b: &Bound<'py, PyAny>) -> Result<Self, PyErr> {
         Ok(if let Ok(py_expr) = b.extract::<PyParameterExpression>() {
-            Param::ParameterExpression(Box::new(py_expr.inner))
+            Param::ParameterExpression(Arc::new(py_expr.inner))
         } else if let Ok(val) = b.extract::<f64>() {
             Param::Float(val)
         } else {
@@ -175,7 +176,7 @@ impl Param {
                     }
                 }
             },
-            Err(_) => Ok(Self::ParameterExpression(Box::new(expr))),
+            Err(_) => Ok(Self::ParameterExpression(Arc::new(expr))),
         }
     }
 
@@ -191,7 +192,7 @@ impl Param {
             if Some(true) == py_expr.inner.is_int() || Some(true) == py_expr.inner.is_complex() {
                 Param::Obj(ob.clone().unbind())
             } else {
-                Param::ParameterExpression(Box::new(py_expr.inner))
+                Param::ParameterExpression(Arc::new(py_expr.inner))
             }
         } else {
             Param::Obj(ob.clone().unbind())
@@ -2386,7 +2387,7 @@ pub fn multiply_param(param: &Param, mult: f64) -> Param {
         Param::Float(theta) => Param::Float(theta * mult),
         Param::ParameterExpression(theta) => {
             // safe to unwrap as multiplication with float does not have name conflicts
-            Param::ParameterExpression(Box::new(
+            Param::ParameterExpression(Arc::new(
                 theta.mul(&ParameterExpression::from_f64(mult)).unwrap(),
             ))
         }
@@ -2402,7 +2403,7 @@ pub fn multiply_params(param1: Param, param2: Param) -> Param {
         (Param::Float(theta), param) => multiply_param(param, *theta),
         (Param::ParameterExpression(p1), Param::ParameterExpression(p2)) => {
             // TODO we could properly propagate the error here
-            Param::ParameterExpression(Box::new(p1.mul(p2).expect("Name conflict during mul.")))
+            Param::ParameterExpression(Arc::new(p1.mul(p2).expect("Name conflict during mul.")))
         }
         _ => unreachable!("Unsupported multiplication."),
     }
@@ -2413,7 +2414,7 @@ pub fn add_param(param: &Param, summand: f64) -> Param {
         Param::Float(theta) => Param::Float(*theta + summand),
         Param::ParameterExpression(theta) => Param::ParameterExpression(
             // safe to unwrap as addition with float does not have name conflicts
-            Box::new(theta.add(&ParameterExpression::from_f64(summand)).unwrap()),
+            Arc::new(theta.add(&ParameterExpression::from_f64(summand)).unwrap()),
         ),
         Param::Obj(_) => unreachable!("Unsupported addition of a Param::Obj."),
     }
@@ -2426,7 +2427,7 @@ pub fn radd_param(param1: Param, param2: Param) -> Param {
         [Param::ParameterExpression(_theta), Param::Float(lambda)] => add_param(&param1, *lambda),
         [Param::ParameterExpression(theta), Param::ParameterExpression(lambda)] => {
             // TODO we could properly propagate the error here
-            Param::ParameterExpression(Box::new(
+            Param::ParameterExpression(Arc::new(
                 theta.add(lambda).expect("Name conflict during add."),
             ))
         }

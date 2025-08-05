@@ -1323,7 +1323,7 @@ impl<'a> QASM3Builder {
                 let symbol = symbol_expr::Symbol::new(name.as_str(), None, None);
                 let symbol_expr = symbol_expr::SymbolExpr::Symbol(Arc::new(symbol));
                 let expr = ParameterExpression::from_symbol_expr(symbol_expr);
-                Param::ParameterExpression(Box::new(expr))
+                Param::ParameterExpression(Arc::new(expr))
             })
             .collect();
         if let Some(instruction) = operation.definition(&params) {
