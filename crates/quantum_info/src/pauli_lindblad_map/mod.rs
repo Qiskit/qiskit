@@ -13,7 +13,6 @@
 use pauli_lindblad_map_class::PyPauliLindbladMap;
 use phased_qubit_sparse_pauli::{PyPhasedQubitSparsePauli, PyPhasedQubitSparsePauliList};
 use pyo3::prelude::*;
-use qiskit_circuit::bit::PyQubit;
 use qubit_sparse_pauli::{PyQubitSparsePauli, PyQubitSparsePauliList};
 
 pub mod pauli_lindblad_map_class;

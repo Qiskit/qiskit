@@ -10,39 +10,31 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use hashbrown::HashSet;
-
 use numpy::{PyArray1, PyArrayMethods, PyReadonlyArray1};
 use pyo3::{
-    exceptions::{PyRuntimeError, PyTypeError, PyValueError},
+    exceptions::{PyTypeError, PyValueError},
     intern,
     prelude::*,
-    sync::GILOnceCell,
-    types::{IntoPyDict, PyInt, PyList, PyString, PyTuple, PyType},
+    types::{PyInt, PyList, PyString, PyTuple, PyType},
     IntoPyObjectExt, PyErr,
 };
 use std::{
     collections::btree_map,
     sync::{Arc, RwLock},
 };
-use thiserror::Error;
 
 use qiskit_circuit::{
-    bit::PyQubit,
     imports::ImportOnceCell,
     slice::{PySequenceIndex, SequenceIndex},
 };
 
-use crate::pauli_lindblad_map::qubit_sparse_pauli;
-
 use super::qubit_sparse_pauli::{
     raw_parts_from_sparse_list, ArithmeticError, CoherenceError, InnerReadError, InnerWriteError,
-    LabelError, Pauli, PyQubitSparsePauli, PyQubitSparsePauliList, QubitSparsePauli,
-    QubitSparsePauliList, QubitSparsePauliView,
+    LabelError, Pauli, PyQubitSparsePauli, QubitSparsePauli, QubitSparsePauliList,
+    QubitSparsePauliView,
 };
 
 static PAULI_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "Pauli");
-static PAULI_PY_ENUM: GILOnceCell<Py<PyType>> = GILOnceCell::new();
 
 /// A list of Pauli operators stored in a qubit-sparse format.
 ///
@@ -110,7 +102,7 @@ impl PhasedQubitSparsePauliList {
             .zip(self.qubit_sparse_pauli_list.iter())
             .map(|(phase, qspv)| PhasedQubitSparsePauliView {
                 qubit_sparse_pauli_view: qspv,
-                phase: &phase,
+                phase,
             })
     }
 
@@ -190,7 +182,7 @@ impl PhasedQubitSparsePauliList {
             }
         }
 
-        return true;
+        true
     }
     /// Apply a transpiler layout.
     pub fn apply_layout(
@@ -395,7 +387,7 @@ impl PhasedQubitSparsePauli {
             });
         }
 
-        return self.qubit_sparse_pauli.commutes(&other.qubit_sparse_pauli);
+        self.qubit_sparse_pauli.commutes(&other.qubit_sparse_pauli)
     }
 
     // Check equality of operators
@@ -750,7 +742,7 @@ impl PyPhasedQubitSparsePauli {
         let qubit_sparse_pauli: QubitSparsePauli = QubitSparsePauli::from_dense_label(label)?;
         let num_ys = qubit_sparse_pauli.view().num_ys();
         let inner = PhasedQubitSparsePauli {
-            qubit_sparse_pauli: qubit_sparse_pauli,
+            qubit_sparse_pauli,
             phase: num_ys.rem_euclid(4),
         };
         Ok(inner.into())
@@ -777,7 +769,7 @@ impl PyPhasedQubitSparsePauli {
         let phase = borrowed.inner.phase;
 
         let num_ys = borrowed.inner.qubit_sparse_pauli.view().num_ys();
-        return (phase - num_ys).rem_euclid(4);
+        (phase - num_ys).rem_euclid(4)
     }
 
     /// Convert this Pauli into a single element :class:`PhasedQubitSparsePauliList`.

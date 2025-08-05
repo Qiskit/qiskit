@@ -1062,8 +1062,9 @@ class TestPhasedQubitSparsePauliList(QiskitTestCase):
             ),
             PhasedQubitSparsePauliList.from_sparse_list(terms, num_qubits=12),
         )
-        # We've already tested elsewhere that `PhasedQubitSparsePauliList.from_sparse_list` produces termwise
-        # sorted indices, so these tests also ensure `apply_layout` is maintaining that invariant.
+        # We've already tested elsewhere that `PhasedQubitSparsePauliList.from_sparse_list` produces
+        # termwise sorted indices, so these tests also ensure `apply_layout` is maintaining that
+        # invariant.
         backwards = list(range(12))[::-1]
         self.assertEqual(
             PhasedQubitSparsePauliList.from_sparse_list(terms, num_qubits=12).apply_layout(

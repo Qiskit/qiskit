@@ -584,7 +584,7 @@ impl QubitSparsePauliView<'_> {
         for pauli in self.paulis {
             num_ys += (*pauli == Pauli::Y) as isize;
         }
-        return num_ys;
+        num_ys
     }
 
     pub fn to_sparse_str(self) -> String {
