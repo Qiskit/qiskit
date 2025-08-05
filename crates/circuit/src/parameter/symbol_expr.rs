@@ -269,18 +269,12 @@ impl SymbolExpr {
     /// bind value to symbol node
     pub fn bind(&self, maps: &HashMap<Symbol, Value>) -> Option<SymbolExpr> {
         match self {
-            SymbolExpr::Symbol(e) => match maps.get(e) {
-                Some(v) => Some(SymbolExpr::Value(*v)),
-                None => None,
-            },
-            SymbolExpr::Value(e) => None,
-            SymbolExpr::Unary { op, expr } => match expr.bind(maps) {
-                Some(expr) => Some(SymbolExpr::Unary {
-                    op: op.clone(),
-                    expr: Arc::new(expr),
-                }),
-                None => None,
-            },
+            SymbolExpr::Symbol(e) => maps.get(e).map(|v| SymbolExpr::Value(*v)),
+            SymbolExpr::Value(_) => None,
+            SymbolExpr::Unary { op, expr } => expr.bind(maps).map(|expr| SymbolExpr::Unary {
+                op: op.clone(),
+                expr: Arc::new(expr),
+            }),
             SymbolExpr::Binary { op, lhs, rhs } => {
                 let new_lhs = lhs.bind(maps);
                 let new_rhs = rhs.bind(maps);
@@ -307,18 +301,12 @@ impl SymbolExpr {
     /// does not allow duplicate names with different UUID
     pub fn subs(&self, maps: &HashMap<Symbol, SymbolExpr>) -> Option<SymbolExpr> {
         match self {
-            SymbolExpr::Symbol(e) => match maps.get(e) {
-                Some(v) => Some(v.clone()),
-                None => None,
-            },
-            SymbolExpr::Value(e) => None,
-            SymbolExpr::Unary { op, expr } => match expr.subs(maps) {
-                Some(expr) => Some(SymbolExpr::Unary {
-                    op: op.clone(),
-                    expr: Arc::new(expr),
-                }),
-                None => None,
-            },
+            SymbolExpr::Symbol(e) => maps.get(e).cloned(),
+            SymbolExpr::Value(_) => None,
+            SymbolExpr::Unary { op, expr } => expr.subs(maps).map(|expr| SymbolExpr::Unary {
+                op: op.clone(),
+                expr: Arc::new(expr),
+            }),
             SymbolExpr::Binary { op, lhs, rhs } => {
                 let new_lhs = lhs.subs(maps);
                 let new_rhs = rhs.subs(maps);

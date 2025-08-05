@@ -506,9 +506,7 @@ impl ParameterExpression {
                 expr: res,
                 name_map,
             }),
-            None => Err(ParameterError::UnboundParameters(
-                map.keys().cloned().collect(),
-            )),
+            None => Ok(self.clone()),
         }
     }
 
@@ -591,9 +589,7 @@ impl ParameterExpression {
                     name_map: bound_name_map,
                 })
             }
-            None => Err(ParameterError::UnboundParameters(
-                map.keys().cloned().collect(),
-            )),
+            None => Ok(self.clone()),
         }
     }
 
