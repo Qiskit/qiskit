@@ -19,7 +19,7 @@ use pyo3::{
     intern,
     prelude::*,
     sync::GILOnceCell,
-    types::{IntoPyDict, PyList, PyString, PyTuple, PyType},
+    types::{IntoPyDict, PyInt, PyList, PyString, PyTuple, PyType},
     IntoPyObjectExt, PyErr,
 };
 use std::{
@@ -910,43 +910,43 @@ impl PyPhasedQubitSparsePauliList {
             check_num_qubits(data)?;
             return Self::from_pauli(data);
         }
-        //if let Ok(label) = data.extract::<String>() {
-        //    let num_qubits = num_qubits.unwrap_or(label.len() as u32);
-        //    if num_qubits as usize != label.len() {
-        //        return Err(PyValueError::new_err(format!(
-        //            "explicitly given 'num_qubits' ({}) does not match label ({})",
-        //            num_qubits,
-        //            label.len(),
-        //        )));
-        //    }
-        //    return Self::from_label(&label).map_err(PyErr::from);
-        //}
-        //if let Ok(pauli_list) = data.downcast_exact::<Self>() {
-        //    check_num_qubits(data)?;
-        //    let borrowed = pauli_list.borrow();
-        //    let inner = borrowed.inner.read().map_err(|_| InnerReadError)?;
-        //    return Ok(inner.clone().into());
-        //}
+        if let Ok(label) = data.extract::<String>() {
+            let num_qubits = num_qubits.unwrap_or(label.len() as u32);
+            if num_qubits as usize != label.len() {
+                return Err(PyValueError::new_err(format!(
+                    "explicitly given 'num_qubits' ({}) does not match label ({})",
+                    num_qubits,
+                    label.len(),
+                )));
+            }
+            return Self::from_label(&label).map_err(PyErr::from);
+        }
+        if let Ok(pauli_list) = data.downcast_exact::<Self>() {
+            check_num_qubits(data)?;
+            let borrowed = pauli_list.borrow();
+            let inner = borrowed.inner.read().map_err(|_| InnerReadError)?;
+            return Ok(inner.clone().into());
+        }
         // The type of `vec` is inferred from the subsequent calls to `Self::from_list` or
         // `Self::from_sparse_list` to be either the two-tuple or the three-tuple form during the
         // `extract`.  The empty list will pass either, but it means the same to both functions.
-        //if let Ok(vec) = data.extract() {
-        //    return Self::from_list(vec, num_qubits);
-        //}
-        //if let Ok(vec) = data.extract() {
-        //    let Some(num_qubits) = num_qubits else {
-        //        return Err(PyValueError::new_err(
-        //            "if using the sparse-list form, 'num_qubits' must be provided",
-        //        ));
-        //    };
-        //    return Self::from_sparse_list(vec, num_qubits);
-        //}
+        if let Ok(vec) = data.extract() {
+            return Self::from_list(vec, num_qubits);
+        }
+        if let Ok(vec) = data.extract() {
+            let Some(num_qubits) = num_qubits else {
+                return Err(PyValueError::new_err(
+                    "if using the sparse-list form, 'num_qubits' must be provided",
+                ));
+            };
+            return Self::from_sparse_list(vec, num_qubits);
+        }
         if let Ok(term) = data.downcast_exact::<PyPhasedQubitSparsePauli>() {
             return term.borrow().to_phased_qubit_sparse_pauli_list();
         };
-        //if let Ok(pauli_list) = Self::from_qubit_sparse_paulis(data, num_qubits) {
-        //    return Ok(pauli_list);
-        //}
+        if let Ok(pauli_list) = Self::from_phased_qubit_sparse_paulis(data, num_qubits) {
+            return Ok(pauli_list);
+        }
         Err(PyTypeError::new_err(format!(
             "unknown input format for 'PhasedQubitSparsePauliList': {}",
             data.get_type().repr()?,
@@ -1245,6 +1245,45 @@ impl PyPhasedQubitSparsePauliList {
         
         let inner = PhasedQubitSparsePauliList::new(qubit_sparse_pauli_list, phases)?;
         Ok(inner.into())
+    }
+
+    /// Express the list in terms of a sparse list format.
+    ///
+    /// This can be seen as counter-operation of :meth:`.QubitSparsePauliList.from_sparse_list`,
+    /// however the order of terms is not guaranteed to be the same at after a roundtrip to a sparse
+    /// list and back.
+    ///
+    /// Examples:
+    ///
+    ///     >>> qubit_sparse_list = QubitSparsePauliList.from_list(["IIXIZ", "IIZIX"])
+    ///     >>> reconstructed = QubitSparsePauliList.from_sparse_list(qubit_sparse_list.to_sparse_list(), qubit_sparse_list.num_qubits)
+    ///
+    /// See also:
+    ///     :meth:`from_sparse_list`
+    ///         The constructor that can interpret these lists.
+    #[pyo3(signature = ())]
+    fn to_sparse_list(&self, py: Python) -> PyResult<Py<PyList>> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+
+        // turn a SparseView into a Python tuple of (phase, paulis, indices)
+        let to_py_tuple = |view: PhasedQubitSparsePauliView| {
+            let mut pauli_string = String::with_capacity(view.qubit_sparse_pauli_view.paulis.len());
+
+            for bit in view.qubit_sparse_pauli_view.paulis.iter() {
+                pauli_string.push_str(bit.py_label());
+            }
+            let py_int = PyInt::new(py, view.phase).unbind();
+            let py_string = PyString::new(py, &pauli_string).unbind();
+            let py_indices = PyList::new(py, view.qubit_sparse_pauli_view.indices.iter())?.unbind();
+
+            PyTuple::new(py, vec![py_int.as_any(), py_string.as_any(), py_indices.as_any()])
+        };
+
+        let out = PyList::empty(py);
+        for view in inner.iter() {
+            out.append(to_py_tuple(view)?)?;
+        }
+        Ok(out.unbind())
     }
 
     fn __len__(&self) -> PyResult<usize> {
