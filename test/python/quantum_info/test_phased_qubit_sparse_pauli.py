@@ -672,90 +672,90 @@ class TestPhasedQubitSparsePauliList(QiskitTestCase):
             PhasedQubitSparsePauliList.from_list(["IIZ", "IXI"], num_qubits=4)
         with self.assertRaisesRegex(ValueError, "cannot construct.*without knowing `num_qubits`"):
             PhasedQubitSparsePauliList.from_list([])
-    '''
+
     def test_from_sparse_list(self):
         self.assertEqual(
-            QubitSparsePauliList.from_sparse_list(
+            PhasedQubitSparsePauliList.from_sparse_list(
                 [
-                    ("XY", (0, 1)),
-                    ("XX", (1, 3)),
-                    ("YYZ", (0, 2, 4)),
+                    (0, "XY", (0, 1)),
+                    (0, "XX", (1, 3)),
+                    (0, "YYZ", (0, 2, 4)),
                 ],
                 num_qubits=5,
             ),
-            QubitSparsePauliList.from_list(["IIIYX", "IXIXI", "ZIYIY"]),
+            PhasedQubitSparsePauliList.from_list(["IIIYX", "IXIXI", "ZIYIY"]),
         )
 
         # The indices should be allowed to be given in unsorted order, but they should be term-wise
         # sorted in the output.
-        from_unsorted = QubitSparsePauliList.from_sparse_list(
+        from_unsorted = PhasedQubitSparsePauliList.from_sparse_list(
             [
-                ("XYZ", (2, 1, 0)),
-                ("XYZ", (2, 0, 1)),
+                (0, "XYZ", (2, 1, 0)),
+                (0, "XYZ", (2, 0, 1)),
             ],
             num_qubits=3,
         )
-        self.assertEqual(from_unsorted, QubitSparsePauliList.from_list(["XYZ", "XZY"]))
+        self.assertEqual(from_unsorted, PhasedQubitSparsePauliList.from_list(["XYZ", "XZY"]))
         np.testing.assert_equal(from_unsorted[0].indices, np.array([0, 1, 2], dtype=np.uint32))
         np.testing.assert_equal(from_unsorted[1].indices, np.array([0, 1, 2], dtype=np.uint32))
 
         # Explicit identities should still work, just be skipped over.
-        explicit_identity = QubitSparsePauliList.from_sparse_list(
+        explicit_identity = PhasedQubitSparsePauliList.from_sparse_list(
             [
-                ("ZXI", (0, 1, 2)),
-                ("XYIII", (0, 1, 2, 3, 8)),
+                (0, "ZXI", (0, 1, 2)),
+                (0, "XYIII", (0, 1, 2, 3, 8)),
             ],
             num_qubits=10,
         )
         self.assertEqual(
             explicit_identity,
-            QubitSparsePauliList.from_sparse_list([("XZ", (1, 0)), ("YX", (1, 0))], num_qubits=10),
+            PhasedQubitSparsePauliList.from_sparse_list([(0, "XZ", (1, 0)), (0, "YX", (1, 0))], num_qubits=10),
         )
         np.testing.assert_equal(explicit_identity[0].indices, np.array([0, 1], dtype=np.uint32))
         np.testing.assert_equal(explicit_identity[1].indices, np.array([0, 1], dtype=np.uint32))
 
         self.assertEqual(
-            QubitSparsePauliList.from_sparse_list([], num_qubits=1_000_000),
-            QubitSparsePauliList.empty(1_000_000),
+            PhasedQubitSparsePauliList.from_sparse_list([], num_qubits=1_000_000),
+            PhasedQubitSparsePauliList.empty(1_000_000),
         )
         self.assertEqual(
-            QubitSparsePauliList.from_sparse_list([], num_qubits=0),
-            QubitSparsePauliList.empty(0),
+            PhasedQubitSparsePauliList.from_sparse_list([], num_qubits=0),
+            PhasedQubitSparsePauliList.empty(0),
         )
 
     def test_from_sparse_list_failures(self):
         with self.assertRaisesRegex(ValueError, "labels must only contain letters from"):
             # Bad letters that are still ASCII.
-            QubitSparsePauliList.from_sparse_list(
-                [("XZZY", (5, 3, 1, 0)), ("+$", (2, 1))], num_qubits=8
+            PhasedQubitSparsePauliList.from_sparse_list(
+                [(0, "XZZY", (5, 3, 1, 0)), (0, "+$", (2, 1))], num_qubits=8
             )
         # Unicode shenangigans.  These two should fail with a `ValueError`, but the exact message
         # isn't important.  "\xff" is "ÿ", which is two bytes in UTF-8 (so has a length of 2 in
         # Rust), but has a length of 1 in Python, so try with both a length-1 and length-2 index
         # sequence, and both should still raise `ValueError`.
         with self.assertRaises(ValueError):
-            QubitSparsePauliList.from_sparse_list([("\xff", (1,))], num_qubits=5)
+            PhasedQubitSparsePauliList.from_sparse_list([(0, "\xff", (1,))], num_qubits=5)
         with self.assertRaises(ValueError):
-            QubitSparsePauliList.from_sparse_list([("\xff", (1, 2))], num_qubits=5)
+            PhasedQubitSparsePauliList.from_sparse_list([(0, "\xff", (1, 2))], num_qubits=5)
 
         with self.assertRaisesRegex(ValueError, "label with length 2 does not match indices"):
-            QubitSparsePauliList.from_sparse_list([("XZ", (0,))], num_qubits=5)
+            PhasedQubitSparsePauliList.from_sparse_list([(0, "XZ", (0,))], num_qubits=5)
         with self.assertRaisesRegex(ValueError, "label with length 2 does not match indices"):
-            QubitSparsePauliList.from_sparse_list([("XZ", (0, 1, 2))], num_qubits=5)
+            PhasedQubitSparsePauliList.from_sparse_list([(0, "XZ", (0, 1, 2))], num_qubits=5)
 
         with self.assertRaisesRegex(ValueError, "index 3 is out of range for a 3-qubit operator"):
-            QubitSparsePauliList.from_sparse_list([("XZY", (0, 1, 3))], num_qubits=3)
+            PhasedQubitSparsePauliList.from_sparse_list([(0, "XZY", (0, 1, 3))], num_qubits=3)
         with self.assertRaisesRegex(ValueError, "index 4 is out of range for a 3-qubit operator"):
-            QubitSparsePauliList.from_sparse_list([("XZY", (0, 1, 4))], num_qubits=3)
+            PhasedQubitSparsePauliList.from_sparse_list([(0, "XZY", (0, 1, 4))], num_qubits=3)
         with self.assertRaisesRegex(ValueError, "index 3 is out of range for a 3-qubit operator"):
             # ... even if it's for an explicit identity.
-            QubitSparsePauliList.from_sparse_list([("XXI", (0, 1, 3))], num_qubits=3)
+            PhasedQubitSparsePauliList.from_sparse_list([(0, "XXI", (0, 1, 3))], num_qubits=3)
 
         with self.assertRaisesRegex(ValueError, "index 3 is duplicated"):
-            QubitSparsePauliList.from_sparse_list([("XZ", (3, 3))], num_qubits=5)
+            PhasedQubitSparsePauliList.from_sparse_list([(0, "XZ", (3, 3))], num_qubits=5)
         with self.assertRaisesRegex(ValueError, "index 3 is duplicated"):
-            QubitSparsePauliList.from_sparse_list([("XYZXZ", (3, 0, 1, 2, 3))], num_qubits=5)
-    
+            PhasedQubitSparsePauliList.from_sparse_list([(0, "XYZXZ", (3, 0, 1, 2, 3))], num_qubits=5)
+    '''
     def test_from_pauli(self):
         # This function should be infallible provided `Pauli` doesn't change its interface and the
         # user doesn't violate the typing.
