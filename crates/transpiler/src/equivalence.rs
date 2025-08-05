@@ -398,7 +398,7 @@ impl EquivalenceLibrary {
         gate: GateOper,
         equivalent_circuit: CircuitFromPython,
     ) -> PyResult<()> {
-        self.add_equivalence(&gate.operation, &gate.params, equivalent_circuit)
+        self.add_equivalence(&gate.operation, &gate.params, equivalent_circuit.0)
     }
 
     /// Check if a library contains any decompositions for gate.
@@ -427,7 +427,11 @@ impl EquivalenceLibrary {
     ///         equivalently implementing the given Gate.
     #[pyo3(name = "set_entry")]
     fn py_set_entry(&mut self, gate: GateOper, entry: Vec<CircuitFromPython>) -> PyResult<()> {
-        self.set_entry(&gate.operation, &gate.params, entry)
+        self.set_entry(
+            &gate.operation,
+            &gate.params,
+            entry.into_iter().map(|circ| circ.0).collect(),
+        )
     }
 
     /// Gets the set of :class:`.QuantumCircuit` instances circuits from the
@@ -588,13 +592,13 @@ impl EquivalenceLibrary {
         &mut self,
         gate: &PackedOperation,
         params: &[Param],
-        equivalent_circuit: CircuitFromPython,
+        equivalent_circuit: CircuitData,
     ) -> PyResult<()> {
         raise_if_shape_mismatch(gate, &equivalent_circuit)?;
-        raise_if_param_mismatch(params, equivalent_circuit.0.parameters())?;
+        raise_if_param_mismatch(params, equivalent_circuit.parameters())?;
         let key: Key = Key::from_operation(gate);
         let equiv = Equivalence {
-            circuit: equivalent_circuit.clone(),
+            circuit: CircuitFromPython(equivalent_circuit.clone()),
             params: params.into(),
         };
 
@@ -604,7 +608,6 @@ impl EquivalenceLibrary {
         }
         let sources: IndexSet<Key, RandomState> = IndexSet::from_iter(
             equivalent_circuit
-                .0
                 .iter()
                 .map(|inst| Key::from_operation(&inst.op)),
         );
@@ -634,11 +637,11 @@ impl EquivalenceLibrary {
         &mut self,
         gate: &PackedOperation,
         params: &[Param],
-        entry: Vec<CircuitFromPython>,
+        entry: Vec<CircuitData>,
     ) -> PyResult<()> {
         for equiv in entry.iter() {
             raise_if_shape_mismatch(gate, equiv)?;
-            raise_if_param_mismatch(params, equiv.0.parameters())?;
+            raise_if_param_mismatch(params, equiv.parameters())?;
         }
         let key = Key::from_operation(gate);
         let node_index = self.set_default_node(key);
@@ -723,10 +726,10 @@ fn raise_if_param_mismatch(gate_params: &[Param], circuit_parameters: &[Symbol])
     Ok(())
 }
 
-fn raise_if_shape_mismatch(gate: &PackedOperation, circuit: &CircuitFromPython) -> PyResult<()> {
+fn raise_if_shape_mismatch(gate: &PackedOperation, circuit: &CircuitData) -> PyResult<()> {
     let op_ref = gate.view();
-    if op_ref.num_qubits() != circuit.0.num_qubits() as u32
-        || op_ref.num_clbits() != circuit.0.num_clbits() as u32
+    if op_ref.num_qubits() != circuit.num_qubits() as u32
+        || op_ref.num_clbits() != circuit.num_clbits() as u32
     {
         return Err(CircuitError::new_err(format!(
             "Cannot add equivalence between circuit and gate \
@@ -734,8 +737,8 @@ fn raise_if_shape_mismatch(gate: &PackedOperation, circuit: &CircuitFromPython) 
             Circuit: {} qubits and {} clbits.",
             op_ref.num_qubits(),
             op_ref.num_clbits(),
-            circuit.0.num_qubits(),
-            circuit.0.num_clbits()
+            circuit.num_qubits(),
+            circuit.num_clbits()
         )));
     }
     Ok(())
