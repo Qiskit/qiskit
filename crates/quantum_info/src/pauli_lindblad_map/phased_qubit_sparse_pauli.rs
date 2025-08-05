@@ -1362,7 +1362,7 @@ impl PyPhasedQubitSparsePauliList {
                 .join(", ")
         };
         Ok(format!(
-            "<QubitSparsePauliList with {str_num_terms} on {str_num_qubits}: [{str_terms}]>"
+            "<PhasedQubitSparsePauliList with {str_num_terms} on {str_num_qubits}: [{str_terms}]>"
         ))
     }
 }
