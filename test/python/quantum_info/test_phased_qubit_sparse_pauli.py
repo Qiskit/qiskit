@@ -964,65 +964,65 @@ class TestPhasedQubitSparsePauliList(QiskitTestCase):
         num_qubits = pauli_list.num_qubits
         pauli_list.clear()
         self.assertEqual(pauli_list, PhasedQubitSparsePauliList.empty(num_qubits))
-    '''
+
     def test_apply_layout_list(self):
         self.assertEqual(
-            QubitSparsePauliList.empty(5).apply_layout([4, 3, 2, 1, 0]),
-            QubitSparsePauliList.empty(5),
+            PhasedQubitSparsePauliList.empty(5).apply_layout([4, 3, 2, 1, 0]),
+            PhasedQubitSparsePauliList.empty(5),
         )
         self.assertEqual(
-            QubitSparsePauliList.empty(3).apply_layout([0, 2, 1], 8), QubitSparsePauliList.empty(8)
+            PhasedQubitSparsePauliList.empty(3).apply_layout([0, 2, 1], 8), PhasedQubitSparsePauliList.empty(8)
         )
         self.assertEqual(
-            QubitSparsePauliList.empty(2).apply_layout([1, 0]), QubitSparsePauliList.empty(2)
+            PhasedQubitSparsePauliList.empty(2).apply_layout([1, 0]), PhasedQubitSparsePauliList.empty(2)
         )
         self.assertEqual(
-            QubitSparsePauliList.empty(3).apply_layout([100, 10_000, 3], 100_000_000),
-            QubitSparsePauliList.empty(100_000_000),
+            PhasedQubitSparsePauliList.empty(3).apply_layout([100, 10_000, 3], 100_000_000),
+            PhasedQubitSparsePauliList.empty(100_000_000),
         )
 
         terms = [
-            ("ZYX", (4, 2, 1)),
-            ("", ()),
-            ("XXYYZZ", (10, 8, 6, 4, 2, 0)),
+            (0, "ZYX", (4, 2, 1)),
+            (1, "", ()),
+            (2, "XXYYZZ", (10, 8, 6, 4, 2, 0)),
         ]
 
         def map_indices(terms, layout):
-            return [(terms, tuple(layout[bit] for bit in bits)) for terms, bits in terms]
+            return [(phase, terms, tuple(layout[bit] for bit in bits)) for phase, terms, bits in terms]
 
         identity = list(range(12))
         self.assertEqual(
-            QubitSparsePauliList.from_sparse_list(terms, num_qubits=12).apply_layout(identity),
-            QubitSparsePauliList.from_sparse_list(terms, num_qubits=12),
+            PhasedQubitSparsePauliList.from_sparse_list(terms, num_qubits=12).apply_layout(identity),
+            PhasedQubitSparsePauliList.from_sparse_list(terms, num_qubits=12),
         )
-        # We've already tested elsewhere that `QubitSparsePauliList.from_sparse_list` produces termwise
+        # We've already tested elsewhere that `PhasedQubitSparsePauliList.from_sparse_list` produces termwise
         # sorted indices, so these tests also ensure `apply_layout` is maintaining that invariant.
         backwards = list(range(12))[::-1]
         self.assertEqual(
-            QubitSparsePauliList.from_sparse_list(terms, num_qubits=12).apply_layout(backwards),
-            QubitSparsePauliList.from_sparse_list(map_indices(terms, backwards), num_qubits=12),
+            PhasedQubitSparsePauliList.from_sparse_list(terms, num_qubits=12).apply_layout(backwards),
+            PhasedQubitSparsePauliList.from_sparse_list(map_indices(terms, backwards), num_qubits=12),
         )
         shuffled = [4, 7, 1, 10, 0, 11, 3, 2, 8, 5, 6, 9]
         self.assertEqual(
-            QubitSparsePauliList.from_sparse_list(terms, num_qubits=12).apply_layout(shuffled),
-            QubitSparsePauliList.from_sparse_list(map_indices(terms, shuffled), num_qubits=12),
+            PhasedQubitSparsePauliList.from_sparse_list(terms, num_qubits=12).apply_layout(shuffled),
+            PhasedQubitSparsePauliList.from_sparse_list(map_indices(terms, shuffled), num_qubits=12),
         )
         self.assertEqual(
-            QubitSparsePauliList.from_sparse_list(terms, num_qubits=12).apply_layout(shuffled, 100),
-            QubitSparsePauliList.from_sparse_list(map_indices(terms, shuffled), num_qubits=100),
+            PhasedQubitSparsePauliList.from_sparse_list(terms, num_qubits=12).apply_layout(shuffled, 100),
+            PhasedQubitSparsePauliList.from_sparse_list(map_indices(terms, shuffled), num_qubits=100),
         )
         expanded = [78, 69, 82, 68, 32, 97, 108, 101, 114, 116, 33]
         self.assertEqual(
-            QubitSparsePauliList.from_sparse_list(terms, num_qubits=11).apply_layout(expanded, 120),
-            QubitSparsePauliList.from_sparse_list(map_indices(terms, expanded), num_qubits=120),
+            PhasedQubitSparsePauliList.from_sparse_list(terms, num_qubits=11).apply_layout(expanded, 120),
+            PhasedQubitSparsePauliList.from_sparse_list(map_indices(terms, expanded), num_qubits=120),
         )
 
     def test_apply_layout_transpiled(self):
-        base = QubitSparsePauliList.from_sparse_list(
+        base = PhasedQubitSparsePauliList.from_sparse_list(
             [
-                ("ZYX", (4, 2, 1)),
-                ("", ()),
-                ("XXY", (3, 2, 0)),
+                (0, "ZYX", (4, 2, 1)),
+                (1, "", ()),
+                (2, "XXY", (3, 2, 0)),
             ],
             num_qubits=5,
         )
@@ -1065,49 +1065,49 @@ class TestPhasedQubitSparsePauliList(QiskitTestCase):
 
     def test_apply_layout_none(self):
         self.assertEqual(
-            QubitSparsePauliList.empty(0).apply_layout(None), QubitSparsePauliList.empty(0)
+            PhasedQubitSparsePauliList.empty(0).apply_layout(None), PhasedQubitSparsePauliList.empty(0)
         )
         self.assertEqual(
-            QubitSparsePauliList.empty(0).apply_layout(None, 3), QubitSparsePauliList.empty(3)
+            PhasedQubitSparsePauliList.empty(0).apply_layout(None, 3), PhasedQubitSparsePauliList.empty(3)
         )
         self.assertEqual(
-            QubitSparsePauliList.empty(5).apply_layout(None), QubitSparsePauliList.empty(5)
+            PhasedQubitSparsePauliList.empty(5).apply_layout(None), PhasedQubitSparsePauliList.empty(5)
         )
         self.assertEqual(
-            QubitSparsePauliList.empty(3).apply_layout(None, 8), QubitSparsePauliList.empty(8)
+            PhasedQubitSparsePauliList.empty(3).apply_layout(None, 8), PhasedQubitSparsePauliList.empty(8)
         )
         self.assertEqual(
-            QubitSparsePauliList.empty(0).apply_layout(None), QubitSparsePauliList.empty(0)
+            PhasedQubitSparsePauliList.empty(0).apply_layout(None), PhasedQubitSparsePauliList.empty(0)
         )
         self.assertEqual(
-            QubitSparsePauliList.empty(0).apply_layout(None, 8), QubitSparsePauliList.empty(8)
+            PhasedQubitSparsePauliList.empty(0).apply_layout(None, 8), PhasedQubitSparsePauliList.empty(8)
         )
         self.assertEqual(
-            QubitSparsePauliList.empty(2).apply_layout(None), QubitSparsePauliList.empty(2)
+            PhasedQubitSparsePauliList.empty(2).apply_layout(None), PhasedQubitSparsePauliList.empty(2)
         )
         self.assertEqual(
-            QubitSparsePauliList.empty(3).apply_layout(None, 100_000_000),
-            QubitSparsePauliList.empty(100_000_000),
+            PhasedQubitSparsePauliList.empty(3).apply_layout(None, 100_000_000),
+            PhasedQubitSparsePauliList.empty(100_000_000),
         )
 
         terms = [
-            ("ZYX", (2, 1, 0)),
-            ("", ()),
-            ("XXYYZZ", (10, 8, 6, 4, 2, 0)),
+            (0, "ZYX", (2, 1, 0)),
+            (1, "", ()),
+            (3, "XXYYZZ", (10, 8, 6, 4, 2, 0)),
         ]
         self.assertEqual(
-            QubitSparsePauliList.from_sparse_list(terms, num_qubits=12).apply_layout(None),
-            QubitSparsePauliList.from_sparse_list(terms, num_qubits=12),
+            PhasedQubitSparsePauliList.from_sparse_list(terms, num_qubits=12).apply_layout(None),
+            PhasedQubitSparsePauliList.from_sparse_list(terms, num_qubits=12),
         )
         self.assertEqual(
-            QubitSparsePauliList.from_sparse_list(terms, num_qubits=12).apply_layout(
+            PhasedQubitSparsePauliList.from_sparse_list(terms, num_qubits=12).apply_layout(
                 None, num_qubits=200
             ),
-            QubitSparsePauliList.from_sparse_list(terms, num_qubits=200),
+            PhasedQubitSparsePauliList.from_sparse_list(terms, num_qubits=200),
         )
 
     def test_apply_layout_failures(self):
-        obs = QubitSparsePauliList.from_list(["IIYI", "IIIX"])
+        obs = PhasedQubitSparsePauliList.from_list(["IIYI", "IIIX"])
         with self.assertRaisesRegex(ValueError, "duplicate"):
             obs.apply_layout([0, 0, 1, 2])
         with self.assertRaisesRegex(ValueError, "does not account for all contained qubits"):
@@ -1128,29 +1128,29 @@ class TestPhasedQubitSparsePauliList(QiskitTestCase):
             obs.apply_layout(layout, num_qubits=2)
 
     def test_iteration(self):
-        self.assertEqual(list(QubitSparsePauliList.empty(5)), [])
-        self.assertEqual(tuple(QubitSparsePauliList.empty(0)), ())
+        self.assertEqual(list(PhasedQubitSparsePauliList.empty(5)), [])
+        self.assertEqual(tuple(PhasedQubitSparsePauliList.empty(0)), ())
 
-        pauli_list = QubitSparsePauliList.from_sparse_list(
+        pauli_list = PhasedQubitSparsePauliList.from_sparse_list(
             [
-                ("XYY", (4, 2, 1)),
-                ("", ()),
-                ("ZZ", (3, 0)),
-                ("XX", (2, 1)),
-                ("YZ", (4, 1)),
+                (0, "XYY", (4, 2, 1)),
+                (2, "", ()),
+                (0, "ZZ", (3, 0)),
+                (3, "XX", (2, 1)),
+                (0, "YZ", (4, 1)),
             ],
             num_qubits=5,
         )
-        pauli = QubitSparsePauli.Pauli
+        pauli = PhasedQubitSparsePauli.Pauli
         expected = [
-            QubitSparsePauli.from_raw_parts(5, [pauli.Y, pauli.Y, pauli.X], [1, 2, 4]),
-            QubitSparsePauli.from_raw_parts(5, [], []),
-            QubitSparsePauli.from_raw_parts(5, [pauli.Z, pauli.Z], [0, 3]),
-            QubitSparsePauli.from_raw_parts(5, [pauli.X, pauli.X], [1, 2]),
-            QubitSparsePauli.from_raw_parts(5, [pauli.Z, pauli.Y], [1, 4]),
+            PhasedQubitSparsePauli.from_raw_parts(5, [pauli.Y, pauli.Y, pauli.X], [1, 2, 4]),
+            PhasedQubitSparsePauli.from_raw_parts(5, [], [], 2),
+            PhasedQubitSparsePauli.from_raw_parts(5, [pauli.Z, pauli.Z], [0, 3]),
+            PhasedQubitSparsePauli.from_raw_parts(5, [pauli.X, pauli.X], [1, 2], 3),
+            PhasedQubitSparsePauli.from_raw_parts(5, [pauli.Z, pauli.Y], [1, 4]),
         ]
         self.assertEqual(list(pauli_list), expected)
-
+    '''
     def test_indexing(self):
         pauli_list = QubitSparsePauliList.from_sparse_list(
             [
@@ -1215,7 +1215,7 @@ def canonicalize_sparse_list(sparse_list):
     canonicalized_terms = [canonicalize_term(*term) for term in sparse_list]
     return sorted(canonicalized_terms)
 
-
+'''
 def lnn_target(num_qubits):
     """Create a simple `Target` object with an arbitrary basis-gate set, and open-path
     connectivity."""
@@ -1232,4 +1232,3 @@ def lnn_target(num_qubits):
         },
     )
     return out
-    '''

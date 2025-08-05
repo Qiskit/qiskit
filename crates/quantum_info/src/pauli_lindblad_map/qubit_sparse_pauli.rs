@@ -2062,7 +2062,7 @@ impl PyQubitSparsePauliList {
         };
 
         // Normalize the number of qubits in the layout and the layout itself, depending on the
-        // input types, before calling PauliLindbladMap.apply_layout to do the actual work.
+        // input types, before calling QubitSparsePauliList.apply_layout to do the actual work.
         let (num_qubits, layout): (u32, Option<Vec<u32>>) = if layout.is_none() {
             (num_qubits.unwrap_or(inner.num_qubits()), None)
         } else if layout.is_instance(
