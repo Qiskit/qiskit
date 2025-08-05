@@ -1226,15 +1226,23 @@ impl PyPhasedQubitSparsePauliList {
     #[pyo3(signature = (iter, /, num_qubits))]
     fn from_sparse_list(iter: Vec<(isize, String, Vec<u32>)>, num_qubits: u32) -> PyResult<Self> {
         
-        let mut phases = Vec::with_capacity(iter.len());
+        // separate group phases and build QubitSparsePauliList
+        let mut group_phases = Vec::with_capacity(iter.len());
         let mut sub_iter = Vec::with_capacity(iter.len());
         for (phase, label, indices) in iter {
-            phases.push(phase);
+            group_phases.push(phase);
             sub_iter.push((label, indices));
         }
 
         let (paulis, indices, boundaries) = raw_parts_from_sparse_list(sub_iter, num_qubits)?;
         let qubit_sparse_pauli_list = QubitSparsePauliList::new(num_qubits, paulis, indices, boundaries)?;
+        
+        // Build zx phases
+        let mut phases = Vec::with_capacity(qubit_sparse_pauli_list.num_terms());
+        for (group_phase, qubit_sparse_pauli) in group_phases.iter().zip(qubit_sparse_pauli_list.iter()) {
+            phases.push((group_phase + qubit_sparse_pauli.num_ys()).rem_euclid(4))
+        }
+        
         let inner = PhasedQubitSparsePauliList::new(qubit_sparse_pauli_list, phases)?;
         Ok(inner.into())
     }
