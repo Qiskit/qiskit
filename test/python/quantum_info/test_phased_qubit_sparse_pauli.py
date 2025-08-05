@@ -1150,63 +1150,63 @@ class TestPhasedQubitSparsePauliList(QiskitTestCase):
             PhasedQubitSparsePauli.from_raw_parts(5, [pauli.Z, pauli.Y], [1, 4]),
         ]
         self.assertEqual(list(pauli_list), expected)
-    '''
+
     def test_indexing(self):
-        pauli_list = QubitSparsePauliList.from_sparse_list(
+        pauli_list = PhasedQubitSparsePauliList.from_sparse_list(
             [
-                ("XYY", (4, 2, 1)),
-                ("", ()),
-                ("ZZ", (3, 0)),
-                ("XX", (2, 1)),
-                ("YZ", (4, 1)),
+                (0, "XYY", (4, 2, 1)),
+                (1, "", ()),
+                (1, "ZZ", (3, 0)),
+                (2, "XX", (2, 1)),
+                (0, "YZ", (4, 1)),
             ],
             num_qubits=5,
         )
-        pauli = QubitSparsePauli.Pauli
+        pauli = PhasedQubitSparsePauli.Pauli
         expected = [
-            QubitSparsePauli.from_raw_parts(5, [pauli.Y, pauli.Y, pauli.X], [1, 2, 4]),
-            QubitSparsePauli.from_raw_parts(5, [], []),
-            QubitSparsePauli.from_raw_parts(5, [pauli.Z, pauli.Z], [0, 3]),
-            QubitSparsePauli.from_raw_parts(5, [pauli.X, pauli.X], [1, 2]),
-            QubitSparsePauli.from_raw_parts(5, [pauli.Z, pauli.Y], [1, 4]),
+            PhasedQubitSparsePauli.from_raw_parts(5, [pauli.Y, pauli.Y, pauli.X], [1, 2, 4]),
+            PhasedQubitSparsePauli.from_raw_parts(5, [], [], 1),
+            PhasedQubitSparsePauli.from_raw_parts(5, [pauli.Z, pauli.Z], [0, 3], 1),
+            PhasedQubitSparsePauli.from_raw_parts(5, [pauli.X, pauli.X], [1, 2], 2),
+            PhasedQubitSparsePauli.from_raw_parts(5, [pauli.Z, pauli.Y], [1, 4]),
         ]
         self.assertEqual(pauli_list[0], expected[0])
         self.assertEqual(pauli_list[-2], expected[-2])
-        self.assertEqual(pauli_list[2:4], QubitSparsePauliList(expected[2:4]))
-        self.assertEqual(pauli_list[1::2], QubitSparsePauliList(expected[1::2]))
-        self.assertEqual(pauli_list[:], QubitSparsePauliList(expected))
-        self.assertEqual(pauli_list[-1:-4:-1], QubitSparsePauliList(expected[-1:-4:-1]))
+        self.assertEqual(pauli_list[2:4], PhasedQubitSparsePauliList(expected[2:4]))
+        self.assertEqual(pauli_list[1::2], PhasedQubitSparsePauliList(expected[1::2]))
+        self.assertEqual(pauli_list[:], PhasedQubitSparsePauliList(expected))
+        self.assertEqual(pauli_list[-1:-4:-1], PhasedQubitSparsePauliList(expected[-1:-4:-1]))
 
     def test_to_sparse_list(self):
         """Test converting to a sparse list."""
         with self.subTest(msg="empty"):
-            pauli_list = QubitSparsePauliList.empty(100)
+            pauli_list = PhasedQubitSparsePauliList.empty(100)
             expected = []
             self.assertEqual(expected, pauli_list.to_sparse_list())
 
         with self.subTest(msg="IXYZ"):
-            pauli_list = QubitSparsePauliList(["IXYZ"])
-            expected = [("ZYX", [0, 1, 2])]
+            pauli_list = PhasedQubitSparsePauliList(Pauli("-iIXYZ"))
+            expected = [(1, "ZYX", [0, 1, 2])]
             self.assertEqual(
                 canonicalize_sparse_list(expected),
                 canonicalize_sparse_list(pauli_list.to_sparse_list()),
             )
 
         with self.subTest(msg="multiple"):
-            pauli_list = QubitSparsePauliList.from_list(["XXIZ", "YYIZ"])
-            expected = [("XXZ", [3, 2, 0]), ("ZYY", [0, 2, 3])]
+            pauli_list = PhasedQubitSparsePauliList.from_list(["XXIZ", "YYIZ"])
+            expected = [(0, "XXZ", [3, 2, 0]), (0, "ZYY", [0, 2, 3])]
             self.assertEqual(
                 canonicalize_sparse_list(expected),
                 canonicalize_sparse_list(pauli_list.to_sparse_list()),
             )
 
 
-def canonicalize_term(pauli, indices):
+def canonicalize_term(phase, pauli, indices):
     # canonicalize a sparse list term by sorting by indices (which is unique as
     # indices cannot be repeated)
     idcs = np.argsort(indices)
     sorted_paulis = "".join(pauli[i] for i in idcs)
-    return (sorted_paulis, np.asarray(indices)[idcs].tolist())
+    return (phase, sorted_paulis, np.asarray(indices)[idcs].tolist())
 
 
 def canonicalize_sparse_list(sparse_list):
@@ -1215,7 +1215,7 @@ def canonicalize_sparse_list(sparse_list):
     canonicalized_terms = [canonicalize_term(*term) for term in sparse_list]
     return sorted(canonicalized_terms)
 
-'''
+
 def lnn_target(num_qubits):
     """Create a simple `Target` object with an arbitrary basis-gate set, and open-path
     connectivity."""
