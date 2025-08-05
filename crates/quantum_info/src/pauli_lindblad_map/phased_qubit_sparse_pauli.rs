@@ -90,6 +90,16 @@ impl PhasedQubitSparsePauliList {
         }
     }
 
+    /// Get an iterator over the individual elements of the list.
+    pub fn iter(&'_ self) -> impl ExactSizeIterator<Item = PhasedQubitSparsePauliView<'_>> + '_ {
+        self.phases.iter().zip(self.qubit_sparse_pauli_list.iter()).map(|(phase, qspv)| {
+            PhasedQubitSparsePauliView {
+                qubit_sparse_pauli_view: qspv,
+                phase: &phase
+            }
+        })
+    }
+
     
     /// Get the number of qubits the paulis are defined on.
     #[inline]
@@ -949,32 +959,8 @@ impl PyPhasedQubitSparsePauliList {
     #[staticmethod]
     #[pyo3(signature = (pauli, /))]
     fn from_pauli(pauli: &Bound<PyAny>) -> PyResult<Self> {
-        let py = pauli.py();
-        let num_qubits = pauli.getattr(intern!(py, "num_qubits"))?.extract::<u32>()?;
-        let z = pauli
-            .getattr(intern!(py, "z"))?
-            .extract::<PyReadonlyArray1<bool>>()?;
-        let x = pauli
-            .getattr(intern!(py, "x"))?
-            .extract::<PyReadonlyArray1<bool>>()?;
-        let mut paulis = Vec::new();
-        let mut indices = Vec::new();
-        for (i, (x, z)) in x.as_array().iter().zip(z.as_array().iter()).enumerate() {
-            // The only failure case possible here is the identity, because of how we're
-            // constructing the value to convert.
-            let Ok(term) = ::bytemuck::checked::try_cast(((*x as u8) << 1) | (*z as u8)) else {
-                continue;
-            };
-            indices.push(i as u32);
-            paulis.push(term);
-        }
-        let boundaries = vec![0, indices.len()];
-        let qspl = QubitSparsePauliList::new(num_qubits, paulis, indices, boundaries)?;
-        let inner = PhasedQubitSparsePauliList{
-            qubit_sparse_pauli_list: qspl,
-            phases: vec![0] //needs to be corrected ***************************************************
-        };
-        Ok(inner.into())
+        let x = PyPhasedQubitSparsePauli::from_pauli(pauli)?;
+        x.to_phased_qubit_sparse_pauli_list()
     }
 
     /// Clear all the elements from the list, making it equal to the empty list again.
@@ -1021,6 +1007,36 @@ impl PyPhasedQubitSparsePauliList {
         let slf_inner = slf_borrowed.inner.read().map_err(|_| InnerReadError)?;
         let other_inner = other_borrowed.inner.read().map_err(|_| InnerReadError)?;
         Ok(slf_inner.eq(&other_inner))
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        let num_terms = self.num_terms()?;
+        let num_qubits = self.num_qubits()?;
+
+        let str_num_terms = format!(
+            "{} element{}",
+            num_terms,
+            if num_terms == 1 { "" } else { "s" }
+        );
+        let str_num_qubits = format!(
+            "{} qubit{}",
+            num_qubits,
+            if num_qubits == 1 { "" } else { "s" }
+        );
+
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let str_terms = if num_terms == 0 {
+            "".to_owned()
+        } else {
+            inner
+                .iter()
+                .map(PhasedQubitSparsePauliView::to_sparse_str)
+                .collect::<Vec<_>>()
+                .join(", ")
+        };
+        Ok(format!(
+            "<QubitSparsePauliList with {str_num_terms} on {str_num_qubits}: [{str_terms}]>"
+        ))
     }
 }
 
