@@ -21,12 +21,8 @@ use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::{
-    dag_circuit::DAGCircuit,
-    operations::Operation,
-    operations::Param,
-    operations::StandardGate,
-    packed_instruction::PackedInstruction,
-    Qubit,
+    dag_circuit::DAGCircuit, operations::Operation, operations::Param, operations::StandardGate,
+    packed_instruction::PackedInstruction, Qubit,
 };
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::{smallvec, SmallVec};
@@ -215,7 +211,7 @@ pub fn fix_direction_target(dag: &mut DAGCircuit, target: &Target) -> PyResult<D
     fix_gate_direction(dag, &target_check, None).cloned()
 }
 
-// The main routine for fixing gate direction. Same parameters are check_gate_direction
+// The main routine for fixing gate direction. Same parameters as check_gate_direction
 fn fix_gate_direction<'a, T>(
     dag: &'a mut DAGCircuit,
     gate_complies: &T,

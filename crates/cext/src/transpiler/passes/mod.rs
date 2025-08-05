@@ -1,2 +1,3 @@
+pub mod elide_permutations;
 pub mod gate_direction;
-pub mod vf2;
+pub mod remove_identity_equiv;
