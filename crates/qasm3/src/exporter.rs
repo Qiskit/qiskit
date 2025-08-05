@@ -1190,11 +1190,10 @@ impl<'a> QASM3Builder {
         let duration: f64 = Python::with_gil(|py| match param {
             Param::Float(val) => *val,
             Param::ParameterExpression(p) => {
-                // TODO this should probably use p.try_numeric
-                let name = p.to_string();
-                match name.parse::<f64>() {
-                    Ok(val) => val,
-                    Err(_) => panic!("Failed to parse parameter value"),
+                if let Ok(symbol_expr::Value::Real(val)) = p.try_to_value(true) {
+                    val
+                } else {
+                    panic!("Failed to parse parameter value")
                 }
             }
             Param::Obj(obj) => {
