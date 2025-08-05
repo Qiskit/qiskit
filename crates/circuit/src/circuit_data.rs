@@ -574,7 +574,7 @@ impl CircuitData {
         PySet::new(
             py,
             self.param_table
-                .iter_parameters()
+                .iter_symbols()
                 .map(|symbol| symbol.coerce_into_py(py).unwrap()),
         )
     }
@@ -2189,7 +2189,7 @@ impl CircuitData {
 
     /// Get the sorted symbols in this circuit.
     pub fn parameters(&self) -> &[Symbol] {
-        self.param_table.parameters()
+        self.param_table.symbols()
     }
 
     /// Assigns parameters to circuit data based on a slice of `Param`.

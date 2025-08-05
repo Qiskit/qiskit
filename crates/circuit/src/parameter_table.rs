@@ -176,7 +176,7 @@ impl ParameterTable {
     }
 
     /// Get the (maybe cached) list of the sorted `Parameter` objects.
-    pub fn parameters(&self) -> &[Symbol] {
+    pub fn symbols(&self) -> &[Symbol] {
         self.parameters_cache.get_or_init(|| {
             self.order_cache
                 .get_or_init(|| self.sorted_order())
@@ -188,11 +188,11 @@ impl ParameterTable {
 
     /// Get a set of all tracked [Symbol] objects.
     pub fn parameters_unsorted(&self) -> HashSet<&Symbol> {
-        HashSet::from_iter(self.iter_parameters())
+        HashSet::from_iter(self.iter_symbols())
     }
 
     /// Iterate over the [Symbol]s in the circuit. These are iterated in unsorted order.
-    pub fn iter_parameters(&self) -> impl Iterator<Item = &Symbol> {
+    pub fn iter_symbols(&self) -> impl Iterator<Item = &Symbol> {
         self.by_uuid.values().map(|info| &info.symbol)
     }
 
