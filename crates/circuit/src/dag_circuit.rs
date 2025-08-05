@@ -1889,13 +1889,13 @@ impl DAGCircuit {
                 // try casting ParameterExpression to Param, prioritizing Float
                 Param::from_expr(ob.as_ref().clone(), true)
             } else {
-                param.clone()
+                Ok(param.clone())
             }
         };
 
         let phase_eq = match [
-            normalize_param(&self.global_phase),
-            normalize_param(&other.global_phase),
+            normalize_param(&self.global_phase)?,
+            normalize_param(&other.global_phase)?,
         ] {
             [Param::Float(self_phase), Param::Float(other_phase)] => {
                 Ok(phase_is_close(self_phase, other_phase))

@@ -305,6 +305,11 @@ impl ParameterExpression {
         self.expr.is_complex()
     }
 
+    /// Whether the expression represents a int. None if cannot be determined.
+    pub fn is_int(&self) -> Option<bool> {
+        self.expr.is_int()
+    }
+
     /// Add an expression; ``self + rhs``.
     pub fn add(&self, rhs: &ParameterExpression) -> Result<Self, ParameterError> {
         let name_map = self.merged_name_map(rhs)?;

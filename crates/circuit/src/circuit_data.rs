@@ -35,6 +35,7 @@ use crate::register_data::RegisterData;
 use crate::slice::{PySequenceIndex, SequenceIndex};
 use crate::{Clbit, Qubit, Stretch, Var, VarsMode};
 
+use num_complex::Complex64;
 use numpy::PyReadonlyArray1;
 use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
@@ -2331,9 +2332,28 @@ impl CircuitData {
                         HashMap::from([(symbol.clone(), e.as_ref().clone())]);
                     expr.subs(&map, false)?
                 }
-                Param::Obj(ob) => panic!("Cannot assign object ({ob:?}) Param::Obj to parameter."),
+                Param::Obj(ob) => {
+                    Python::with_gil(|py| {
+                        // The integer handling is only needed to support the case where an int is
+                        // passed in directly instead of a float. This will be handled when we add
+                        // int to the param enum to support dt target.
+                        if let Ok(int) = ob.extract::<i64>(py) {
+                            let map: HashMap<&Symbol, Value> =
+                                HashMap::from([(symbol, Value::Int(int))]);
+                            expr.bind(&map, false).map_err(|x| x.into())
+                        } else if let Ok(c) = ob.extract::<Complex64>(py) {
+                            let map: HashMap<&Symbol, Value> =
+                                HashMap::from([(symbol, Value::Complex(c))]);
+                            expr.bind(&map, false).map_err(|x| x.into())
+                        } else {
+                            Err(PyTypeError::new_err(format!(
+                                "Cannot assign object ({ob}) object to parameter."
+                            )))
+                        }
+                    })?
+                }
             };
-            Ok(Param::from_expr(new_expr, coerce))
+            Param::from_expr(new_expr, coerce)
         };
 
         let mut user_operations = HashMap::new();
@@ -2366,14 +2386,12 @@ impl CircuitData {
                             let new_param = bind_expr(expr, &symbol, value.as_ref(), true)?;
 
                             // standard gates don't allow for complex parameters
-                            if let Param::ParameterExpression(expr) = &new_param {
-                                if expr.is_complex().is_some_and(|val| val) {
-                                    return Err(CircuitError::new_err(format!(
-                                        "bad type after binding for gate '{}': '{:?}'",
-                                        standard.name(),
-                                        expr,
-                                    )));
-                                }
+                            if let Param::Obj(expr) = &new_param {
+                                return Err(CircuitError::new_err(format!(
+                                    "bad type after binding for gate '{}': '{:?}'",
+                                    standard.name(),
+                                    expr,
+                                )));
                             }
                             params[parameter] = new_param.clone();
                             for uuid in uuids.iter() {
@@ -2409,8 +2427,6 @@ impl CircuitData {
                                 let new_param = match previous_param {
                                     Param::Float(_) => return Err(inconsistent()),
                                     Param::ParameterExpression(expr) => {
-                                        // For user gates, we don't coerce floats to integers in `Param`
-                                        // so that users can use them if they choose.
                                         let new_param =
                                             bind_expr(expr, &symbol, value.as_ref(), false)?;
                                         // Historically, `assign_parameters` called `validate_parameter`

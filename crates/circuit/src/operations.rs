@@ -151,26 +151,31 @@ impl Param {
     /// # Returns
     ///
     /// - `Param` - The [Param] object.
-    pub fn from_expr(expr: ParameterExpression, coerce_to_float: bool) -> Self {
+    pub fn from_expr(expr: ParameterExpression, coerce_to_float: bool) -> PyResult<Self> {
         match expr.try_to_value(true) {
             Ok(value) => match value {
                 Value::Int(i) => {
                     if coerce_to_float {
-                        Self::Float(i as f64) // coerce integer to float
+                        Ok(Self::Float(i as f64)) // coerce integer to float
                     } else {
-                        Self::ParameterExpression(Box::new(expr)) // keep integer inside the expression
+                        // Int is not a param type and only comes from Python so dump it in
+                        // there until we support DT unit delay from C
+                        Python::with_gil(|py| Ok(Self::Obj(i.into_py_any(py)?)))
                     }
                 }
-                Value::Real(f) => Self::Float(f),
+                Value::Real(f) => Ok(Self::Float(f)),
                 Value::Complex(c) => {
                     if coerce_to_float && value.is_real() {
-                        Self::Float(c.re)
+                        Ok(Self::Float(c.re))
                     } else {
-                        Self::ParameterExpression(Box::new(expr))
+                        // Complex numbers are only defined in Python custom
+                        // objects and aren't valid gate parameters for
+                        // anything else so return it as an object
+                        Python::with_gil(|py| Ok(Self::Obj(c.into_py_any(py)?)))
                     }
                 }
             },
-            Err(_) => Self::ParameterExpression(Box::new(expr)),
+            Err(_) => Ok(Self::ParameterExpression(Box::new(expr))),
         }
     }
 
@@ -182,8 +187,12 @@ impl Param {
             Param::Float(ob.extract()?)
         } else if let Ok(py_expr) = PyParameterExpression::extract_coerce(ob) {
             // don't get confused by the `coerce` name here -- we promise to not coerce to
-            // Param::Float, but we do want all numeric types to be PyParameterExpression
-            Param::ParameterExpression(Box::new(py_expr.inner))
+            // Param::Float. But if it's an int or complex we need to store it as an Obj.
+            if Some(true) == py_expr.inner.is_int() || Some(true) == py_expr.inner.is_complex() {
+                Param::Obj(ob.clone().unbind())
+            } else {
+                Param::ParameterExpression(Box::new(py_expr.inner))
+            }
         } else {
             Param::Obj(ob.clone().unbind())
         })
