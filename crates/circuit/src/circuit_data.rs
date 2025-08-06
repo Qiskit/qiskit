@@ -1581,6 +1581,13 @@ impl CircuitData {
         Ok(())
     }
 
+    // draw quantum circuit as an ASCII string art 
+    #[pyo3(name = "draw")]
+    fn py_drawer(&self, py: Python) -> PyResult<Py<PyString>> {
+        let ret = self.circuit_draw();
+        Ok(PyString::new(py, &ret).unbind())
+    }
+
     /// Add a captured variable to the circuit.
     ///
     /// Args:
@@ -2870,6 +2877,24 @@ impl CircuitData {
             }),
         );
         Ok(var_idx)
+    }
+
+    pub fn circuit_draw(&self) -> String {
+        //"12346 vewfdvch.".to_string()
+        let mut res = String::new();
+        res.push_str(& format!("{} Qubits and {} Instructions\n",
+            self.num_qubits(), self.data.len()));
+        for (i, inst) in self.data.iter().enumerate() {
+            let qubits = self.qargs_interner.get(inst.qubits);
+        
+        // Print qubit indices as numbers
+            let qubit_indices: Vec<String> = qubits.iter()
+                .map(|qubit| qubit.0.to_string()) // Qubit wraps a u32 index
+                .collect();
+
+            res.push_str(&format!("{}: {} {:?} {:?}\n", i, inst.op.name(), qubits, inst.clbits));
+        }
+        return res;
     }
 
     /// Return a variable given its unique [Var] index in the circuit or
