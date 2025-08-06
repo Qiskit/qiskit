@@ -101,6 +101,7 @@ int test_gate_direction(void) {
 cleanup:
     qk_target_free(target);
     qk_circuit_free(circuit);
+    qk_circuit_free(fixed_circuit);
     return result;
 }
 
