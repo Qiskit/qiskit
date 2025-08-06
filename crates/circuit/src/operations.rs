@@ -112,6 +112,8 @@ impl Param {
         }
     }
 
+    // TODO: Replace `Box<dyn Iterator>` with a custom iterator struct. The
+    // Box<dyn Iterator> is an anti-pattern which shouldn't really be needed.
     /// Get an iterator over any `Symbol` instances tracked within this `Param`.
     pub fn iter_parameters(&self) -> PyResult<Box<dyn Iterator<Item = Symbol> + '_>> {
         match self {
