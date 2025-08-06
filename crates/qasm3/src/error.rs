@@ -11,5 +11,21 @@
 // that they have been altered from the originals.
 
 use pyo3::import_exception;
+use pyo3::prelude::*;
+use thiserror::Error;
 
 import_exception!(qiskit.qasm3.exceptions, QASM3ImporterError);
+
+#[derive(Error, Debug)]
+pub enum QASM3ExporterError {
+    #[error("Error: {0}")]
+    Error(String),
+    #[error("PyError: {0}")]
+    PyErr(PyErr),
+}
+
+impl From<PyErr> for QASM3ExporterError {
+    fn from(err: PyErr) -> Self {
+        QASM3ExporterError::PyErr(err)
+    }
+}
