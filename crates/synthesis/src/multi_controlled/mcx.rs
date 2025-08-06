@@ -76,27 +76,27 @@ fn c3sx() -> PyResult<CircuitData> {
 /// that make the code easier to read and that are used only for synthesis.
 trait CircuitDataForSynthesis {
     /// Appends H to the circuit.
-    fn h(&mut self, q: u32);
+    fn h(&mut self, q: u32) -> PyResult<()>;
 
     /// Appends X to the circuit.
     #[allow(dead_code)]
-    fn x(&mut self, q: u32);
+    fn x(&mut self, q: u32) -> PyResult<()>;
 
     /// Appends T to the circuit.
-    fn t(&mut self, q: u32);
+    fn t(&mut self, q: u32) -> PyResult<()>;
 
     /// Appends Tdg to the circuit.
-    fn tdg(&mut self, q: u32);
+    fn tdg(&mut self, q: u32) -> PyResult<()>;
 
     /// Appends Phase to the circuit.
     #[allow(dead_code)]
-    fn p(&mut self, theta: f64, q: u32);
+    fn p(&mut self, theta: f64, q: u32) -> PyResult<()>;
 
     /// Appends CX to the circuit.
-    fn cx(&mut self, q1: u32, q2: u32);
+    fn cx(&mut self, q1: u32, q2: u32) -> PyResult<()>;
 
     /// Appends CPhase to the circuit.
-    fn cp(&mut self, theta: f64, q1: u32, q2: u32);
+    fn cp(&mut self, theta: f64, q1: u32, q2: u32) -> PyResult<()>;
 
     /// Appends CCX to the circuit.
     fn ccx(&mut self, q1: u32, q2: u32, q3: u32) -> PyResult<()>;
@@ -115,48 +115,48 @@ trait CircuitDataForSynthesis {
 impl CircuitDataForSynthesis for CircuitData {
     /// Appends H to the circuit.
     #[inline]
-    fn h(&mut self, q: u32) {
-        self.push_standard_gate(StandardGate::H, &[], &[Qubit(q)]);
+    fn h(&mut self, q: u32) -> PyResult<()> {
+        self.push_standard_gate(StandardGate::H, &[], &[Qubit(q)])
     }
 
     /// Appends X to the circuit.
     #[inline]
-    fn x(&mut self, q: u32) {
-        self.push_standard_gate(StandardGate::X, &[], &[Qubit(q)]);
+    fn x(&mut self, q: u32) -> PyResult<()> {
+        self.push_standard_gate(StandardGate::X, &[], &[Qubit(q)])
     }
 
     /// Appends T to the circuit.
     #[inline]
-    fn t(&mut self, q: u32) {
-        self.push_standard_gate(StandardGate::T, &[], &[Qubit(q)]);
+    fn t(&mut self, q: u32) -> PyResult<()> {
+        self.push_standard_gate(StandardGate::T, &[], &[Qubit(q)])
     }
 
     /// Appends Tdg to the circuit.
     #[inline]
-    fn tdg(&mut self, q: u32) {
-        self.push_standard_gate(StandardGate::Tdg, &[], &[Qubit(q)]);
+    fn tdg(&mut self, q: u32) -> PyResult<()> {
+        self.push_standard_gate(StandardGate::Tdg, &[], &[Qubit(q)])
     }
 
     /// Appends Phase to the circuit.
     #[inline]
-    fn p(&mut self, theta: f64, q: u32) {
-        self.push_standard_gate(StandardGate::Phase, &[Param::Float(theta)], &[Qubit(q)]);
+    fn p(&mut self, theta: f64, q: u32) -> PyResult<()> {
+        self.push_standard_gate(StandardGate::Phase, &[Param::Float(theta)], &[Qubit(q)])
     }
 
     /// Appends CX to the circuit.
     #[inline]
-    fn cx(&mut self, q1: u32, q2: u32) {
-        self.push_standard_gate(StandardGate::CX, &[], &[Qubit(q1), Qubit(q2)]);
+    fn cx(&mut self, q1: u32, q2: u32) -> PyResult<()> {
+        self.push_standard_gate(StandardGate::CX, &[], &[Qubit(q1), Qubit(q2)])
     }
 
     /// Appends CPhase to the circuit.
     #[inline]
-    fn cp(&mut self, theta: f64, q1: u32, q2: u32) {
+    fn cp(&mut self, theta: f64, q1: u32, q2: u32) -> PyResult<()> {
         self.push_standard_gate(
             StandardGate::CPhase,
             &[Param::Float(theta)],
             &[Qubit(q1), Qubit(q2)],
-        );
+        )
     }
 
     /// Appends the decomposition of the CCX to the circuit.
@@ -189,7 +189,7 @@ impl CircuitDataForSynthesis for CircuitData {
                 inst.params_view(),
                 &remapped_qubits,
                 &remapped_clbits,
-            );
+            )?;
         }
 
         self.add_global_phase(other.global_phase())?;
@@ -198,8 +198,7 @@ impl CircuitDataForSynthesis for CircuitData {
 
     /// Construct the inverse circuit
     fn inverse(&self) -> PyResult<CircuitData> {
-        let inverse_global_phase =
-            Python::with_gil(|py| -> Param { multiply_param(self.global_phase(), -1.0, py) });
+        let inverse_global_phase = multiply_param(self.global_phase(), -1.0);
 
         let mut inverse_circuit = CircuitData::copy_empty_like(self, VarsMode::Alike)?;
         inverse_circuit.set_global_phase(inverse_global_phase)?;
@@ -228,7 +227,7 @@ impl CircuitDataForSynthesis for CircuitData {
                 &inverse_op_params,
                 self.get_qargs(inst.qubits),
                 self.get_cargs(inst.clbits),
-            );
+            )?;
         }
         Ok(inverse_circuit)
     }
@@ -238,13 +237,13 @@ impl CircuitDataForSynthesis for CircuitData {
 #[pyfunction]
 pub fn c4x() -> PyResult<CircuitData> {
     let mut circuit = CircuitData::with_capacity(5, 0, 0, Param::Float(0.0))?;
-    circuit.h(4);
-    circuit.cp(PI2, 3, 4);
-    circuit.h(4);
+    circuit.h(4)?;
+    circuit.cp(PI2, 3, 4)?;
+    circuit.h(4)?;
     circuit.compose(&rc3x()?, &[Qubit(0), Qubit(1), Qubit(2), Qubit(3)], &[])?;
-    circuit.h(4);
-    circuit.cp(-PI2, 3, 4);
-    circuit.h(4);
+    circuit.h(4)?;
+    circuit.cp(-PI2, 3, 4)?;
+    circuit.h(4)?;
     circuit.compose(
         &rc3x()?.inverse()?,
         &[Qubit(0), Qubit(1), Qubit(2), Qubit(3)],
@@ -255,21 +254,21 @@ pub fn c4x() -> PyResult<CircuitData> {
 }
 
 /// Adds gates of the "action gadget" to the circuit
-fn add_action_gadget(circuit: &mut CircuitData, q0: u32, q1: u32, q2: u32) {
-    circuit.h(q2);
-    circuit.t(q2);
-    circuit.cx(q0, q2);
-    circuit.tdg(q2);
-    circuit.cx(q1, q2);
+fn add_action_gadget(circuit: &mut CircuitData, q0: u32, q1: u32, q2: u32) -> PyResult<()> {
+    circuit.h(q2)?;
+    circuit.t(q2)?;
+    circuit.cx(q0, q2)?;
+    circuit.tdg(q2)?;
+    circuit.cx(q1, q2)
 }
 
 /// Adds gates of the "reset gadget" to the circuit
-fn add_reset_gadget(circuit: &mut CircuitData, q0: u32, q1: u32, q2: u32) {
-    circuit.cx(q1, q2);
-    circuit.t(q2);
-    circuit.cx(q0, q2);
-    circuit.tdg(q2);
-    circuit.h(q2);
+fn add_reset_gadget(circuit: &mut CircuitData, q0: u32, q1: u32, q2: u32) -> PyResult<()> {
+    circuit.cx(q1, q2)?;
+    circuit.t(q2)?;
+    circuit.cx(q0, q2)?;
+    circuit.tdg(q2)?;
+    circuit.h(q2)
 }
 
 /// Synthesize a multi-controlled X gate with :math:`k` controls based on the paper
@@ -297,7 +296,7 @@ pub fn synth_mcx_n_dirty_i15(
 ) -> PyResult<CircuitData> {
     if num_controls == 1 {
         let mut circuit = CircuitData::with_capacity(2, 0, 1, Param::Float(0.0))?;
-        circuit.cx(0, 1);
+        circuit.cx(0, 1)?;
         Ok(circuit)
     } else if num_controls == 2 {
         ccx()
@@ -325,26 +324,26 @@ pub fn synth_mcx_n_dirty_i15(
                     controls[num_controls - 1],
                     ancillas[num_controls - 3],
                     target,
-                );
+                )?;
             } else if j == 1 {
                 add_reset_gadget(
                     &mut circuit,
                     controls[num_controls - 1],
                     ancillas[num_controls - 3],
                     target,
-                );
+                )?;
             }
 
             // action part
             for i in (0..num_controls - 3).rev() {
-                add_action_gadget(&mut circuit, controls[i + 2], ancillas[i], ancillas[i + 1]);
+                add_action_gadget(&mut circuit, controls[i + 2], ancillas[i], ancillas[i + 1])?;
             }
 
             circuit.rccx(controls[0], controls[1], ancillas[0])?;
 
             // reset part
             for i in 0..num_controls - 3 {
-                add_reset_gadget(&mut circuit, controls[i + 2], ancillas[i], ancillas[i + 1]);
+                add_reset_gadget(&mut circuit, controls[i + 2], ancillas[i], ancillas[i + 1])?;
             }
 
             if action_only {
@@ -389,7 +388,7 @@ pub fn synth_mcx_noaux_v24(py: Python, num_controls: usize) -> PyResult<CircuitD
         let target = num_controls as u32;
 
         let mut circuit = CircuitData::with_capacity(num_qubits, 0, 0, Param::Float(0.0))?;
-        circuit.h(target);
+        circuit.h(target)?;
 
         let mcphase_cls = imports::MCPHASE_GATE.get_bound(py);
         let mcphase_gate = mcphase_cls.call1((PI, num_controls))?;
@@ -407,9 +406,9 @@ pub fn synth_mcx_noaux_v24(py: Python, num_controls: usize) -> PyResult<CircuitD
             &[],
             &(0..num_qubits).map(Qubit).collect::<Vec<Qubit>>(),
             &[],
-        );
+        )?;
 
-        circuit.h(target);
+        circuit.h(target)?;
 
         Ok(circuit)
     }
