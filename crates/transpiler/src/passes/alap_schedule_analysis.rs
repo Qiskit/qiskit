@@ -127,6 +127,7 @@ pub fn run_alap_schedule_analysis<T: TimeOps>(
             op_view,
             OperationRef::StandardInstruction(StandardInstruction::Measure)
         ) {
+            // clbit time is always right (alap) justified
             let &t0 = qargs
                 .iter()
                 .chain(cargs.iter())
@@ -134,6 +135,12 @@ pub fn run_alap_schedule_analysis<T: TimeOps>(
                 .fold(&zero, |acc, x| T::max(acc, x));
 
             let t1 = t0 + op_duration;
+            //
+            //        |t1 = t0 + duration
+            // Q ░░░░░▒▒▒▒▒▒▒▒▒▒▒
+            // C ░░░░░░░░░▒▒▒▒▒▒▒
+            //            |t0 + (duration - clbit_write_latency)
+
             for clbit in cargs.iter() {
                 idle_before.insert(*clbit, t0 + op_duration - clbit_write_latency);
             }
@@ -175,7 +182,7 @@ pub fn run_alap_schedule_analysis<T: TimeOps>(
 /// Args:
 ///     dag (DAGCircuit): DAG to schedule.
 ///     clbit_write_latency (u64): The latency to write classical bits.
-///     node_durations (HashMap<usize, f64>): Mapping from node indices to operation durations.
+///     node_durations (PyDict): Mapping from node indices to operation durations.
 ///
 /// Returns:
 ///     PyDict: A dictionary mapping each DAGOpNode to its scheduled start time.
