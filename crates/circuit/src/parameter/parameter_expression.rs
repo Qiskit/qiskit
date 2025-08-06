@@ -506,7 +506,10 @@ impl ParameterExpression {
                 expr: res,
                 name_map,
             }),
-            None => Ok(self.clone()),
+            None => Ok(Self {
+                expr: self.expr.clone(),
+                name_map,
+            }),
         }
     }
 

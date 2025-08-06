@@ -286,11 +286,11 @@ impl SymbolExpr {
                     BinaryOp::Pow => _pow(l.clone(), r.clone()),
                 };
 
-                match (new_lhs, new_rhs) {
+                match (&new_lhs, &new_rhs) {
                     (None, None) => None,
-                    (Some(lhs), None) => Some(make_bin(&lhs, rhs.as_ref(), op)),
-                    (None, Some(rhs)) => Some(make_bin(lhs.as_ref(), &rhs, op)),
-                    (Some(lhs), Some(rhs)) => Some(make_bin(&lhs, &rhs, op)),
+                    (Some(lhs), None) => Some(make_bin(lhs, rhs.as_ref(), op)),
+                    (None, Some(rhs)) => Some(make_bin(lhs.as_ref(), rhs, op)),
+                    (Some(lhs), Some(rhs)) => Some(make_bin(lhs, rhs, op)),
                 }
             }
         }
@@ -318,11 +318,11 @@ impl SymbolExpr {
                     BinaryOp::Pow => _pow(l.clone(), r.clone()),
                 };
 
-                match (new_lhs, new_rhs) {
+                match (&new_lhs, &new_rhs) {
                     (None, None) => None,
-                    (Some(lhs), None) => Some(make_bin(&lhs, rhs.as_ref(), op)),
-                    (None, Some(rhs)) => Some(make_bin(lhs.as_ref(), &rhs, op)),
-                    (Some(lhs), Some(rhs)) => Some(make_bin(&lhs, &rhs, op)),
+                    (Some(lhs), None) => Some(make_bin(lhs, rhs.as_ref(), op)),
+                    (None, Some(rhs)) => Some(make_bin(lhs.as_ref(), rhs, op)),
+                    (Some(lhs), Some(rhs)) => Some(make_bin(lhs, rhs, op)),
                 }
             }
         }
@@ -384,6 +384,20 @@ impl SymbolExpr {
                         (Some(left), Some(right)) => {
                             lval = left;
                             rval = right;
+                        }
+                        (Some(left), None) => {
+                            if left.is_zero() {
+                                return Some(left);
+                            } else {
+                                return None;
+                            }
+                        }
+                        (None, Some(right)) => {
+                            if right.is_zero() {
+                                return Some(right);
+                            } else {
+                                return None;
+                            }
                         }
                         (_, _) => return None,
                     }
