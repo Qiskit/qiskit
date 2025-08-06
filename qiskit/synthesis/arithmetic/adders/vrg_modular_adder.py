@@ -51,11 +51,9 @@ def adder_modular_v17(num_qubits: int) -> QuantumCircuit:
         qc.cx(qr_a[0], qr_b[0])
         return qc
 
-    mcmt_a = MCMTGate(XGate(), 1, num_qubits - 1)
-    mcmt_b = MCMTGate(XGate(), 1, num_qubits)
+    mcmt = MCMTGate(XGate(), 1, 2 * num_qubits - 1)
 
-    qc.compose(mcmt_a, [qr_a[-1]] + qr_a[:-1], inplace=True)
-    qc.compose(mcmt_b, [qr_a[-1]] + qr_b[:], inplace=True)
+    qc.compose(mcmt, [qr_a[-1]] + qr_a[:-1] + qr_b[:], inplace=True)
 
     # Ripple forward.
     for i in range(num_qubits - 1):
@@ -73,7 +71,6 @@ def adder_modular_v17(num_qubits: int) -> QuantumCircuit:
         qc.cx(qr_a[i], qr_a[-1])
         qc.cx(qr_a[i], qr_b[i])
 
-    qc.compose(mcmt_b, [qr_a[-1]] + qr_b[:], inplace=True)
-    qc.compose(mcmt_a, [qr_a[-1]] + qr_a[:-1], inplace=True)
+    qc.compose(mcmt, [qr_a[-1]] + qr_a[:-1] + qr_b[:], inplace=True)
 
     return qc
