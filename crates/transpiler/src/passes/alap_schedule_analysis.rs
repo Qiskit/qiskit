@@ -24,7 +24,6 @@ use std::ops::{Add, Sub};
 pub trait TimeOps: Copy + PartialOrd + Add<Output = Self> + Sub<Output = Self> {
     fn zero() -> Self;
     fn max<'a>(a: &'a Self, b: &'a Self) -> &'a Self;
-    fn from_u64(val: u64) -> Self;
 }
 
 impl TimeOps for u64 {
@@ -37,9 +36,6 @@ impl TimeOps for u64 {
         } else {
             b
         }
-    }
-    fn from_u64(val: u64) -> Self {
-        val
     }
 }
 
@@ -54,14 +50,11 @@ impl TimeOps for f64 {
             b
         }
     }
-    fn from_u64(val: u64) -> Self {
-        val as f64
-    }
 }
 
 pub fn run_alap_schedule_analysis<T: TimeOps>(
     dag: &DAGCircuit,
-    clbit_write_latency: u64,
+    clbit_write_latency: T,
     node_durations: HashMap<NodeIndex, T>,
 ) -> PyResult<HashMap<NodeIndex, T>> {
     if dag.qregs().len() != 1 || !dag.qregs_data().contains_key("q") {
@@ -74,8 +67,6 @@ pub fn run_alap_schedule_analysis<T: TimeOps>(
     let mut idle_before: HashMap<Wire, T> = HashMap::new();
 
     let zero = T::zero();
-
-    let clbit_write_latency = T::from_u64(clbit_write_latency);
 
     for index in 0..dag.qubits().len() {
         idle_before.insert(Wire::Qubit(Qubit::new(index)), zero);
@@ -197,14 +188,13 @@ pub fn py_run_alap_schedule_analysis(
     node_durations: &Bound<PyDict>,
 ) -> PyResult<Py<PyDict>> {
     // Extract indices and durations from PyDict
-    let mut op_durations_int: Option<HashMap<NodeIndex, u64>> = None;
-    let mut op_durations_float: Option<HashMap<NodeIndex, f64>> = None;
-
     // Get the first duration type
     let mut iter = node_durations.iter();
+    let py_dict = PyDict::new(py);
     if let Some((_, first_duration)) = iter.next() {
         if first_duration.extract::<u64>().is_ok() {
-            let mut map = HashMap::new();
+            // All durations are of type u64
+            let mut op_durations = HashMap::new();
             for (py_node, py_duration) in node_durations.iter() {
                 let node_idx = py_node
                     .downcast_into::<DAGOpNode>()?
@@ -212,11 +202,17 @@ pub fn py_run_alap_schedule_analysis(
                     .node
                     .expect("Node index not found.");
                 let val = py_duration.extract::<u64>()?;
-                map.insert(node_idx, val);
+                op_durations.insert(node_idx, val);
             }
-            op_durations_int = Some(map);
+            let node_start_time =
+                run_alap_schedule_analysis::<u64>(dag, clbit_write_latency, op_durations)?;
+            for (node_idx, t1) in node_start_time {
+                let node = dag.get_node(py, node_idx)?;
+                py_dict.set_item(node, t1)?;
+            }
         } else if first_duration.extract::<f64>().is_ok() {
-            let mut map = HashMap::new();
+            // All durations are of type f64
+            let mut op_durations = HashMap::new();
             for (py_node, py_duration) in node_durations.iter() {
                 let node_idx = py_node
                     .downcast_into::<DAGOpNode>()?
@@ -224,31 +220,19 @@ pub fn py_run_alap_schedule_analysis(
                     .node
                     .expect("Node index not found.");
                 let val = py_duration.extract::<f64>()?;
-                map.insert(node_idx, val);
+                op_durations.insert(node_idx, val);
             }
-            op_durations_float = Some(map);
+            let node_start_time =
+                run_alap_schedule_analysis::<f64>(dag, clbit_write_latency as f64, op_durations)?;
+            for (node_idx, t1) in node_start_time {
+                let node = dag.get_node(py, node_idx)?;
+                py_dict.set_item(node, t1)?;
+            }
         } else {
             return Err(TranspilerError::new_err("Duration must be int or float"));
         }
     } else {
         return Err(TranspilerError::new_err("No durations provided"));
-    }
-
-    let py_dict = PyDict::new(py);
-    if let Some(op_durations) = op_durations_int {
-        let node_start_time =
-            run_alap_schedule_analysis::<u64>(dag, clbit_write_latency, op_durations)?;
-        for (node_idx, t1) in node_start_time {
-            let node = dag.get_node(py, node_idx)?;
-            py_dict.set_item(node, t1)?;
-        }
-    } else if let Some(op_durations) = op_durations_float {
-        let node_start_time =
-            run_alap_schedule_analysis::<f64>(dag, clbit_write_latency, op_durations)?;
-        for (node_idx, t1) in node_start_time {
-            let node = dag.get_node(py, node_idx)?;
-            py_dict.set_item(node, t1)?;
-        }
     }
 
     Ok(py_dict.into())
