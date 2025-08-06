@@ -15,6 +15,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.scheduling.scheduling.base_scheduler import BaseScheduler
 from qiskit._accelerate.asap_schedule_analysis import asap_schedule_analysis
 
+
 class ASAPScheduleAnalysis(BaseScheduler):
     """ASAP Scheduling pass, which schedules the start time of instructions as early as possible.
 
@@ -39,6 +40,10 @@ class ASAPScheduleAnalysis(BaseScheduler):
         if self.property_set["time_unit"] == "stretch":
             raise TranspilerError("Scheduling cannot run on circuits with stretch durations.")
 
-        node_durations = {node: self._get_node_duration(node, dag) for node in dag.topological_op_nodes()}
+        node_durations = {
+            node: self._get_node_duration(node, dag) for node in dag.topological_op_nodes()
+        }
         clbit_write_latency = self.property_set.get("clbit_write_latency", 0)
-        self.property_set["node_start_time"] = asap_schedule_analysis(dag, clbit_write_latency, node_durations)
+        self.property_set["node_start_time"] = asap_schedule_analysis(
+            dag, clbit_write_latency, node_durations
+        )
