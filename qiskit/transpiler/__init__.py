@@ -22,7 +22,7 @@ Overview
 
 Transpilation is the process of rewriting a given input circuit to match
 the topology of a specific quantum device, and/or to optimize the circuit
-for execution on present day noisy quantum systems.
+for execution on quantum systems.
 
 Most circuits must undergo a series of transformations that make them compatible with
 a given target device, and optimize them to reduce the effects of noise on the

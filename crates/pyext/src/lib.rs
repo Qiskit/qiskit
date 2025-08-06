@@ -29,6 +29,7 @@ where
 #[rustfmt::skip]
 #[pymodule]
 fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
+    add_submodule(m, ::qiskit_transpiler::passes::alap_schedule_analysis_mod, "alap_schedule_analysis")?;
     add_submodule(m, ::qiskit_transpiler::passes::barrier_before_final_measurements_mod, "barrier_before_final_measurement")?;
     add_submodule(m, ::qiskit_transpiler::passes::basis_translator_mod, "basis_translator")?;
     add_submodule(m, ::qiskit_transpiler::passes::check_map_mod, "check_map")?;
@@ -48,6 +49,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_transpiler::passes::filter_op_nodes_mod, "filter_op_nodes")?;
     add_submodule(m, ::qiskit_transpiler::passes::gate_direction_mod, "gate_direction")?;
     add_submodule(m, ::qiskit_transpiler::passes::gates_in_basis_mod, "gates_in_basis")?;
+    add_submodule(m, ::qiskit_transpiler::passes::instruction_duration_check_mod, "instruction_duration_check")?;
     add_submodule(m, ::qiskit_transpiler::passes::inverse_cancellation_mod, "inverse_cancellation")?;
     add_submodule(m, ::qiskit_accelerate::isometry::isometry, "isometry")?;
     add_submodule(m, ::qiskit_circuit::nlayout::nlayout, "nlayout")?;

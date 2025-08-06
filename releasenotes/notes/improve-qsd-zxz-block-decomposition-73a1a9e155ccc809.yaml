@@ -1,0 +1,18 @@
+---
+features_synthesis:
+  - |
+    Improve the :func:`.qs_decomposition` function which was originally based on
+    Shende et. al. (https://arxiv.org/abs/quant-ph/0406176).
+    The new synthesis method is based on Krol and Al-Ars (https://arxiv.org/abs/2403.13692),
+    and reduce the total number of :class:`.CXGate`\ s of a general n-qubit unitary by
+    (4 ** (n − 2) − 1) / 3 :class:`.CXGate`\ s.
+    With the improved decomposition, a general 3-qubit unitary can be decomposed using 19
+    :class:`.CXGate`\ s (rather than 20).
+upgrade_synthesis:
+  - |
+    The default values of the arguments ``opt_a1`` and ``opt_a2`` of :func:`.qs_decomposition`
+    are now ``opt_a1 = None`` and ``opt_a2 = None``. The new defaults will choose the
+    optimal value based on whether the input unitary for the ``mat`` argument is controlled
+    or not to result in the minimal :class:`.CXGate` count by default. If you require the previous
+    behavior you can explicitly call ``opt_a1 = True`` and ``opt_a2 = True`` to maintain the same
+    behavior as previous releases.

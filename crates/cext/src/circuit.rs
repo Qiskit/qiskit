@@ -455,7 +455,7 @@ pub unsafe extern "C" fn qk_circuit_gate(
             // There are no ``QkGate``s that take > 4 params
             _ => unreachable!(),
         };
-        circuit.push_standard_gate(gate, params, qargs);
+        circuit.push_standard_gate(gate, params, qargs).unwrap()
     }
     ExitCode::Success
 }
@@ -520,12 +520,14 @@ pub unsafe extern "C" fn qk_circuit_measure(
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
-    circuit.push_packed_operation(
-        PackedOperation::from_standard_instruction(StandardInstruction::Measure),
-        &[],
-        &[Qubit(qubit)],
-        &[Clbit(clbit)],
-    );
+    circuit
+        .push_packed_operation(
+            PackedOperation::from_standard_instruction(StandardInstruction::Measure),
+            &[],
+            &[Qubit(qubit)],
+            &[Clbit(clbit)],
+        )
+        .unwrap();
     ExitCode::Success
 }
 
@@ -550,12 +552,14 @@ pub unsafe extern "C" fn qk_circuit_measure(
 pub unsafe extern "C" fn qk_circuit_reset(circuit: *mut CircuitData, qubit: u32) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
-    circuit.push_packed_operation(
-        PackedOperation::from_standard_instruction(StandardInstruction::Reset),
-        &[],
-        &[Qubit(qubit)],
-        &[],
-    );
+    circuit
+        .push_packed_operation(
+            PackedOperation::from_standard_instruction(StandardInstruction::Reset),
+            &[],
+            &[Qubit(qubit)],
+            &[],
+        )
+        .unwrap();
     ExitCode::Success
 }
 
@@ -595,12 +599,14 @@ pub unsafe extern "C" fn qk_circuit_barrier(
             .map(|idx| Qubit(*qubits.wrapping_add(idx as usize)))
             .collect()
     };
-    circuit.push_packed_operation(
-        PackedOperation::from_standard_instruction(StandardInstruction::Barrier(num_qubits)),
-        &[],
-        &qubits,
-        &[],
-    );
+    circuit
+        .push_packed_operation(
+            PackedOperation::from_standard_instruction(StandardInstruction::Barrier(num_qubits)),
+            &[],
+            &qubits,
+            &[],
+        )
+        .unwrap();
     ExitCode::Success
 }
 
@@ -731,7 +737,7 @@ pub unsafe extern "C" fn qk_circuit_unitary(
     // Create PackedOperation -> push to circuit_data
     let u_gate = Box::new(UnitaryGate { array: mat });
     let op = PackedOperation::from_unitary(u_gate);
-    circuit.push_packed_operation(op, &[], qargs, &[]);
+    circuit.push_packed_operation(op, &[], qargs, &[]).unwrap();
     // Return success
     ExitCode::Success
 }
@@ -833,11 +839,11 @@ pub struct CInstruction {
 ///
 /// # Example
 ///
-///     QkCircuitInstruction *inst = malloc(sizeof(QkCircuitInstruction));
+///     QkCircuitInstruction inst;
 ///     QkCircuit *qc = qk_circuit_new(100);
 ///     uint32_t qubit[1] = {0};
 ///     qk_circuit_gate(qc, QkGate_H, qubit, NULL);
-///     QkCircuitInstruction inst = qk_circuit_get_instruction(qc, 0);
+///     qk_circuit_get_instruction(qc, 0, &inst);
 ///
 /// # Safety
 ///
@@ -992,7 +998,7 @@ pub unsafe extern "C" fn qk_circuit_to_python(circuit: *mut CircuitData) -> *mut
         QUANTUM_CIRCUIT
             .get_bound(py)
             .call_method1(intern!(py, "_from_circuit_data"), (*circuit,))
-            .expect("Unabled to create a Python circuit")
+            .expect("Unable to create a Python circuit")
             .into_ptr()
     }
 }
@@ -1060,12 +1066,14 @@ pub unsafe extern "C" fn qk_circuit_delay(
     let duration_param: Param = duration.into();
     let delay_instruction = StandardInstruction::Delay(delay_unit_variant);
 
-    circuit.push_packed_operation(
-        PackedOperation::from_standard_instruction(delay_instruction),
-        &[duration_param],
-        &[Qubit(qubit)],
-        &[],
-    );
+    circuit
+        .push_packed_operation(
+            PackedOperation::from_standard_instruction(delay_instruction),
+            &[duration_param],
+            &[Qubit(qubit)],
+            &[],
+        )
+        .unwrap();
 
     ExitCode::Success
 }
