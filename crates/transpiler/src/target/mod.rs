@@ -15,19 +15,19 @@
 mod errors;
 mod instruction_properties;
 mod qargs;
+mod qubit_properties;
 
-use errors::TargetError;
+pub use errors::TargetError;
 pub use instruction_properties::InstructionProperties;
 pub use qargs::{Qargs, QargsRef};
+pub use qubit_properties::QubitProperties;
 
 use std::{ops::Index, sync::OnceLock};
 
 use ahash::RandomState;
-
 use hashbrown::HashSet;
 use indexmap::IndexMap;
 use itertools::Itertools;
-
 use pyo3::{
     exceptions::{PyAttributeError, PyIndexError, PyKeyError, PyValueError},
     prelude::*,
@@ -35,10 +35,13 @@ use pyo3::{
     types::{PyDict, PyList, PySet},
     IntoPyObjectExt,
 };
+use rustworkx_core::petgraph::prelude::*;
+use smallvec::SmallVec;
+use thiserror::Error;
+
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use smallvec::SmallVec;
 
 use qiskit_circuit::PhysicalQubit;
 
@@ -198,18 +201,18 @@ pub struct Target {
     #[pyo3(get, set)]
     pub description: Option<String>,
     #[pyo3(get)]
-    pub num_qubits: Option<usize>,
+    pub num_qubits: Option<u32>,
     pub dt: Option<f64>,
     #[pyo3(get, set)]
     pub granularity: u32,
     #[pyo3(get, set)]
-    pub min_length: usize,
+    pub min_length: u32,
     #[pyo3(get, set)]
     pub pulse_alignment: u32,
     #[pyo3(get, set)]
     pub acquire_alignment: u32,
     #[pyo3(get, set)]
-    pub qubit_properties: Option<Vec<PyObject>>,
+    pub qubit_properties: Option<Vec<QubitProperties>>,
     #[pyo3(get, set)]
     pub concurrent_measurements: Option<Vec<Vec<PhysicalQubit>>>,
     gate_map: GateMap,
@@ -275,27 +278,27 @@ impl Target {
         qubit_properties = None,
         concurrent_measurements = None,
     ))]
-    fn new(
+    pub fn new(
         description: Option<String>,
-        mut num_qubits: Option<usize>,
+        mut num_qubits: Option<u32>,
         dt: Option<f64>,
         granularity: Option<u32>,
-        min_length: Option<usize>,
+        min_length: Option<u32>,
         pulse_alignment: Option<u32>,
         acquire_alignment: Option<u32>,
-        qubit_properties: Option<Vec<PyObject>>,
+        qubit_properties: Option<Vec<QubitProperties>>,
         concurrent_measurements: Option<Vec<Vec<PhysicalQubit>>>,
     ) -> PyResult<Self> {
         if let Some(qubit_properties) = qubit_properties.as_ref() {
             if num_qubits.is_some_and(|num_qubits| num_qubits > 0) {
-                if num_qubits.unwrap() != qubit_properties.len() {
+                if num_qubits.unwrap() as usize != qubit_properties.len() {
                     return Err(PyValueError::new_err(
                         "The value of num_qubits specified does not match the \
                             length of the input qubit_properties list",
                     ));
                 }
             } else {
-                num_qubits = Some(qubit_properties.len())
+                num_qubits = Some(qubit_properties.len() as u32)
             }
         }
         Ok(Target {
@@ -305,7 +308,7 @@ impl Target {
             granularity: granularity.unwrap_or(1),
             min_length: min_length.unwrap_or(1),
             pulse_alignment: pulse_alignment.unwrap_or(1),
-            acquire_alignment: acquire_alignment.unwrap_or(0),
+            acquire_alignment: acquire_alignment.unwrap_or(1),
             qubit_properties,
             concurrent_measurements,
             gate_map: GateMap::default(),
@@ -337,8 +340,7 @@ impl Target {
     ) -> PyResult<()> {
         if self.gate_map.contains_key(&name) {
             return Err(PyAttributeError::new_err(format!(
-                "Instruction {} is already in the target",
-                name
+                "Instruction {name} is already in the target"
             )));
         }
         let props_map = if let Some(props_map) = properties {
@@ -520,7 +522,6 @@ impl Target {
     )]
     pub fn py_instruction_supported(
         &self,
-        py: Python,
         operation_name: Option<String>,
         qargs: Qargs,
         operation_class: Option<&Bound<PyAny>>,
@@ -543,13 +544,14 @@ impl Target {
                             // If qargs set then validate no duplicates and all indices are valid on device
                             return Ok(qargs
                                 .iter()
-                                .all(|qarg| qarg.index() <= self.num_qubits.unwrap_or_default())
+                                .all(|qarg| qarg.0 <= self.num_qubits.unwrap_or_default())
                                 && qarg_set.len() == qargs.len());
                         } else {
                             return Ok(true);
                         }
                     }
                     TargetOperation::Normal(normal) => {
+                        let py = _operation_class.py();
                         if normal.into_pyobject(py)?.is_instance(_operation_class)? {
                             if let Some(parameters) = &parameters {
                                 if parameters.len() != normal.params.len() {
@@ -570,15 +572,15 @@ impl Target {
                                             self._gate_name_map[op_name].num_qubits();
                                         return Ok(qubit_comparison == qargs_as_vec.len() as u32
                                             && qargs_as_vec.iter().all(|x| {
-                                                x.index() < self.num_qubits.unwrap_or_default()
+                                                x.0 < self.num_qubits.unwrap_or_default()
                                             }));
                                     }
                                 } else {
                                     let qubit_comparison = obj.num_qubits();
                                     return Ok(qubit_comparison == qargs_as_vec.len() as u32
-                                        && qargs_as_vec.iter().all(|x| {
-                                            x.index() < self.num_qubits.unwrap_or_default()
-                                        }));
+                                        && qargs_as_vec
+                                            .iter()
+                                            .all(|x| x.0 < self.num_qubits.unwrap_or_default()));
                                 }
                             } else {
                                 return Ok(true);
@@ -597,7 +599,7 @@ impl Target {
                                 qargs_vec.iter().cloned().collect();
                             return Ok(qargs_vec
                                 .iter()
-                                .all(|qarg| qarg.index() <= self.num_qubits.unwrap_or_default())
+                                .all(|qarg| qarg.0 <= self.num_qubits.unwrap_or_default())
                                 && qarg_set.len() == qargs_vec.len());
                         } else {
                             return Ok(true);
@@ -608,19 +610,21 @@ impl Target {
                     if parameters.len() != obj_params.len() {
                         return Ok(false);
                     }
+
                     for (index, params) in parameters.iter().enumerate() {
-                        let mut matching_params = false;
                         let obj_at_index = &obj_params[index];
-                        if matches!(obj_at_index, Param::ParameterExpression(_))
-                            || python_compare(py, params, &obj_params[index])?
-                        {
-                            matching_params = true;
-                        }
+                        let matching_params = match (obj_at_index, params) {
+                            (Param::Float(obj_f), Param::Float(param_f)) => obj_f == param_f,
+                            (Param::ParameterExpression(_), _) => true,
+                            _ => Python::with_gil(|py| {
+                                python_compare(py, params, &obj_params[index])
+                            })?,
+                        };
+
                         if !matching_params {
                             return Ok(false);
                         }
                     }
-                    return Ok(true);
                 }
             }
             Ok(self.instruction_supported(&operation_name, &qargs))
@@ -674,8 +678,7 @@ impl Target {
             }
         }
         Err(PyIndexError::new_err(format!(
-            "Index: {:?} is out of range.",
-            index
+            "Index: {index:?} is out of range."
         )))
     }
 
@@ -842,10 +845,10 @@ impl Target {
         self.num_qubits = state
             .get_item("num_qubits")?
             .unwrap()
-            .extract::<Option<usize>>()?;
+            .extract::<Option<u32>>()?;
         self.dt = state.get_item("dt")?.unwrap().extract::<Option<f64>>()?;
         self.granularity = state.get_item("granularity")?.unwrap().extract::<u32>()?;
-        self.min_length = state.get_item("min_length")?.unwrap().extract::<usize>()?;
+        self.min_length = state.get_item("min_length")?.unwrap().extract::<u32>()?;
         self.pulse_alignment = state
             .get_item("pulse_alignment")?
             .unwrap()
@@ -857,7 +860,7 @@ impl Target {
         self.qubit_properties = state
             .get_item("qubit_properties")?
             .unwrap()
-            .extract::<Option<Vec<PyObject>>>()?;
+            .extract::<Option<Vec<QubitProperties>>>()?;
         self.concurrent_measurements = state
             .get_item("concurrent_measurements")?
             .unwrap()
@@ -915,7 +918,7 @@ impl Target {
     /// # Examples
     ///
     /// ```rust
-    /// use qiskit_accelerate::target_transpiler::Target;
+    /// use qiskit_transpiler::target::Target;
     /// use qiskit_circuit::operations::StandardGate;
     ///
     /// let mut target = Target::default();
@@ -977,18 +980,22 @@ impl Target {
                         if qarg_slice.len() != instruction.num_qubits() as usize {
                             return Err(TargetError::QargsMismatch {
                                 instruction: name,
-                                arguments: format!("{:?}", qarg),
+                                arguments: format!("{qarg:?}"),
                             });
                         }
-                        self.num_qubits = Some(self.num_qubits.unwrap_or_default().max(
-                            qarg_slice.iter().fold(0, |acc, x| {
-                                if acc > x.index() {
-                                    acc
-                                } else {
-                                    x.index()
-                                }
-                            }) + 1,
-                        ));
+                        self.num_qubits =
+                            Some(self.num_qubits.unwrap_or_default().max(
+                                qarg_slice.iter().fold(
+                                    0,
+                                    |acc, x| {
+                                        if acc > x.0 {
+                                            acc
+                                        } else {
+                                            x.0
+                                        }
+                                    },
+                                ) + 1,
+                            ));
                     }
                     if let Some(Some(value)) = self.qarg_gate_map.get_mut(&qarg.as_ref()) {
                         value.insert(name.to_string());
@@ -1023,9 +1030,9 @@ impl Target {
     /// # Examples
     ///
     /// ```rust
-    /// use qiskit_accelerate::target_transpiler::{Target, InstructionProperties, Qargs};
+    /// use qiskit_transpiler::target::{Target, InstructionProperties, Qargs};
     /// use qiskit_circuit::operations::StandardGate;
-    /// use qiskit_accelerate::nlayout::PhysicalQubit;
+    /// use qiskit_circuit::PhysicalQubit;
     /// use indexmap::IndexMap;
     ///
     /// let mut target = Target::default();
@@ -1056,7 +1063,7 @@ impl Target {
         if !prop_map.contains_key(&qargs) {
             return Err(TargetError::InvalidQargsKey {
                 instruction: instruction.to_string(),
-                arguments: format!("{:?}", qargs),
+                arguments: format!("{qargs:?}"),
             });
         }
         if let Some(e) = prop_map.get_mut(&qargs) {
@@ -1131,8 +1138,8 @@ impl Target {
     }
 
     /// Get an iterator over the indices of all physical qubits of the target
-    pub fn physical_qubits(&self) -> impl ExactSizeIterator<Item = usize> {
-        0..self.num_qubits.unwrap_or_default()
+    pub fn physical_qubits(&self) -> impl ExactSizeIterator<Item = PhysicalQubit> {
+        (0..self.num_qubits.unwrap_or_default()).map(PhysicalQubit)
     }
 
     /// Generate non global operations if missing
@@ -1166,7 +1173,7 @@ impl Target {
             }
         }
         let mut incomplete_basis_gates: Vec<String> = vec![];
-        let mut size_dict: IndexMap<usize, usize, RandomState> = IndexMap::default();
+        let mut size_dict: IndexMap<u32, u32, RandomState> = IndexMap::default();
         *size_dict
             .entry(1)
             .or_insert(self.num_qubits.unwrap_or_default()) = self.num_qubits.unwrap_or_default();
@@ -1174,10 +1181,10 @@ impl Target {
             if qarg.len() == 1 {
                 continue;
             }
-            *size_dict.entry(qarg.len()).or_insert(0) += 1;
+            *size_dict.entry(qarg.len() as u32).or_insert(0) += 1;
         }
         for (inst, qargs_props) in self.gate_map.iter() {
-            let mut qarg_len = qargs_props.len();
+            let mut qarg_len = qargs_props.len() as u32;
             let mut qargs_keys = qargs_props.keys().peekable();
             let qarg_sample = qargs_keys.peek().cloned();
             if let Some(qarg_sample) = qarg_sample {
@@ -1195,10 +1202,10 @@ impl Target {
                         ordered_qargs.sort_unstable();
                         deduplicated_qargs.insert(ordered_qargs);
                     }
-                    qarg_len = deduplicated_qargs.len();
+                    qarg_len = deduplicated_qargs.len() as u32;
                 }
                 if let Qargs::Concrete(qarg_sample) = qarg_sample {
-                    if qarg_len != *size_dict.entry(qarg_sample.len()).or_insert(0) {
+                    if qarg_len != *size_dict.entry(qarg_sample.len() as u32).or_insert(0) {
                         incomplete_basis_gates.push(inst.clone());
                     }
                 }
@@ -1239,9 +1246,9 @@ impl Target {
         if let QargsRef::Concrete(qargs) = qargs {
             if qargs
                 .iter()
-                .any(|x| !(0..self.num_qubits.unwrap_or_default()).contains(&x.index()))
+                .any(|x| !(0..self.num_qubits.unwrap_or_default()).contains(&x.0))
             {
-                return Err(TargetError::QargsWithoutInstruction(format!("{:?}", qargs)));
+                return Err(TargetError::QargsWithoutInstruction(format!("{qargs:?}")));
             }
         }
         if let Some(Some(qarg_gate_map_arg)) = self.qarg_gate_map.get(&qargs).as_ref() {
@@ -1258,7 +1265,7 @@ impl Target {
             }
         }
         if res.is_empty() {
-            return Err(TargetError::QargsWithoutInstruction(format!("{:?}", qargs)));
+            return Err(TargetError::QargsWithoutInstruction(format!("{qargs:?}")));
         }
         Ok(res)
     }
@@ -1281,6 +1288,10 @@ impl Target {
                     _ => None,
                 })
         })
+    }
+
+    pub fn num_qargs(&self) -> usize {
+        self.qarg_gate_map.len()
     }
 
     /// Gets an iterator with all the qargs used by the specified operation name.
@@ -1315,10 +1326,6 @@ impl Target {
         Some(qargs)
     }
 
-    pub fn num_qargs(&self) -> usize {
-        self.qarg_gate_map.len()
-    }
-
     /// Checks whether an instruction is supported by the Target based on instruction name and qargs.
     pub fn instruction_supported<'a, T>(&self, operation_name: &str, qargs: T) -> bool
     where
@@ -1345,15 +1352,15 @@ impl Target {
                         TargetOperation::Variadic(_) => {
                             return qargs_as_vec
                                 .iter()
-                                .all(|qarg| qarg.index() <= self.num_qubits.unwrap_or_default())
+                                .all(|qarg| qarg.0 <= self.num_qubits.unwrap_or_default())
                                 && qarg_set.len() == qargs_as_vec.len();
                         }
                         TargetOperation::Normal(obj) => {
                             let qubit_comparison = obj.operation.num_qubits();
                             return qubit_comparison == qargs_as_vec.len() as u32
-                                && qargs_as_vec.iter().all(|qarg| {
-                                    qarg.index() < self.num_qubits.unwrap_or_default()
-                                });
+                                && qargs_as_vec
+                                    .iter()
+                                    .all(|qarg| qarg.0 < self.num_qubits.unwrap_or_default());
                         }
                     }
                 }
@@ -1365,7 +1372,7 @@ impl Target {
                         return qargs.is_global()
                             || qargs_as_vec
                                 .iter()
-                                .all(|qarg| qarg.index() <= self.num_qubits.unwrap_or_default())
+                                .all(|qarg| qarg.0 <= self.num_qubits.unwrap_or_default())
                                 && qarg_set.len() == qargs_as_vec.len();
                     }
                     TargetOperation::Normal(obj) => {
@@ -1373,12 +1380,51 @@ impl Target {
                         return qubit_comparison == qargs_as_vec.len() as u32
                             && qargs_as_vec
                                 .iter()
-                                .all(|qarg| qarg.index() < self.num_qubits.unwrap_or_default());
+                                .all(|qarg| qarg.0 < self.num_qubits.unwrap_or_default());
                     }
                 }
             }
         }
         false
+    }
+
+    /// Get a directionless coupling-graph representation of the target connectivity.
+    ///
+    /// This only makes sense for targets without all-to-all connectivity, and that do not have any
+    /// interactions that are more than 2q.  In either of these cases, the relevant error state is
+    /// returned.
+    ///
+    /// Since information about the actual instructions is erased, it does not make sense to attempt
+    /// to preserve directionality.
+    pub fn coupling_graph(&self) -> Result<Graph<(), (), Undirected>, TargetCouplingError> {
+        let Some(num_qubits) = self.num_qubits else {
+            // Actually, this mostly means that nothing has set it yet, so there's no explicit
+            // number given, and the only possible operations are all-to-all.  It doesn't matter a
+            // lot, though, because `None` mostly just means that nothing has initialised it, so
+            // construction of the object isn't complete.
+            return Err(TargetCouplingError::AllToAll);
+        };
+        let num_qubits = num_qubits as usize;
+        let mut coupling = Graph::with_capacity(num_qubits, num_qubits);
+        for _ in 0..num_qubits {
+            coupling.add_node(());
+        }
+        let Some(qargs) = self.qargs() else {
+            return Err(TargetCouplingError::AllToAll);
+        };
+        for qargs in qargs {
+            let Qargs::Concrete(qargs) = qargs else {
+                return Err(TargetCouplingError::AllToAll);
+            };
+            match qargs.as_slice() {
+                &[] | &[_] => (),
+                &[a, b] => {
+                    coupling.update_edge(NodeIndex::new(a.index()), NodeIndex::new(b.index()), ());
+                }
+                _ => return Err(TargetCouplingError::MultiQ),
+            }
+        }
+        Ok(coupling)
     }
 
     // IndexMap methods
@@ -1441,6 +1487,14 @@ impl Default for Target {
     }
 }
 
+#[derive(Error, Debug)]
+pub enum TargetCouplingError {
+    #[error("target contains short-hand all-to-all connectivity")]
+    AllToAll,
+    #[error("target contains multi-qubit operations")]
+    MultiQ,
+}
+
 // For instruction_supported
 fn check_obj_params(parameters: &[Param], obj: &NormalOperation) -> bool {
     for (index, param) in parameters.iter().enumerate() {
@@ -1471,6 +1525,7 @@ where
 pub fn target(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<InstructionProperties>()?;
     m.add_class::<Target>()?;
+    m.add_class::<QubitProperties>()?;
     Ok(())
 }
 
@@ -1564,7 +1619,7 @@ mod test {
             None,
             Some([(qargs.clone(), None)].into_iter().collect()),
         );
-        assert!(result.is_ok(), "Error message: {:?}", result);
+        assert!(result.is_ok(), "Error message: {result:?}");
 
         assert_eq!(test_target["cx"][&qargs], None);
 
@@ -1574,7 +1629,7 @@ mod test {
             &qargs,
             Some(InstructionProperties::new(Some(0.00122), Some(0.00001023))),
         );
-        assert!(result.is_ok(), "Error message: {:?}", result);
+        assert!(result.is_ok(), "Error message: {result:?}");
 
         assert_eq!(
             test_target["cx"][&qargs],
@@ -1583,7 +1638,7 @@ mod test {
 
         // Modify instruction property back to None.
         let result = test_target.update_instruction_properties("cx", &qargs, None);
-        assert!(result.is_ok(), "Error message: {:?}", result);
+        assert!(result.is_ok(), "Error message: {result:?}");
         assert_eq!(test_target["cx"][&qargs], None);
     }
 
@@ -1598,7 +1653,7 @@ mod test {
             None,
             Some([(qargs.clone().into(), None)].into_iter().collect()),
         );
-        assert!(result.is_ok(), "Error message: {:?}", result);
+        assert!(result.is_ok(), "Error message: {result:?}");
 
         assert_eq!(test_target["cx"][&QargsRef::from(&qargs)], None);
 
@@ -1636,5 +1691,56 @@ mod test {
         assert_eq!(res.to_string(), expected_message);
         // Check that no changes were made.
         assert_eq!(test_target["cx"][&QargsRef::from(&qargs)], None);
+    }
+
+    #[test]
+    fn test_set_and_get_qubit_properties() {
+        use super::QubitProperties;
+        let props = vec![
+            QubitProperties {
+                t1: Some(10.0),
+                t2: Some(20.0),
+                frequency: Some(5.0),
+            },
+            QubitProperties {
+                t1: Some(11.0),
+                t2: Some(21.0),
+                frequency: Some(6.0),
+            },
+        ];
+        let target = Target {
+            qubit_properties: Some(props.clone()),
+            num_qubits: Some(2),
+            ..Default::default()
+        };
+        assert_eq!(target.qubit_properties.as_ref().unwrap().len(), 2);
+        assert_eq!(target.qubit_properties.as_ref().unwrap()[0].t1, Some(10.0));
+        assert_eq!(
+            target.qubit_properties.as_ref().unwrap()[1].frequency,
+            Some(6.0)
+        );
+    }
+
+    #[test]
+    fn test_qubit_properties_num_qubits_mismatch() {
+        use super::QubitProperties;
+        let props = vec![QubitProperties {
+            t1: Some(10.0),
+            t2: Some(20.0),
+            frequency: Some(5.0),
+        }];
+        // num_qubits is 2, but only 1 qubit_properties
+        let result = Target::new(
+            None,
+            Some(2),
+            None,
+            Some(1),
+            Some(1),
+            Some(1),
+            Some(1),
+            Some(props),
+            None,
+        );
+        assert!(result.is_err());
     }
 }

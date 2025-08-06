@@ -25,7 +25,7 @@ use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::Qubit;
 
 use super::analyze_commutations;
-use qiskit_accelerate::{euler_one_qubit_decomposer, QiskitError};
+use qiskit_synthesis::{euler_one_qubit_decomposer, QiskitError};
 
 const _CUTOFF_PRECISION: f64 = 1e-5;
 static ROTATION_GATES: [&str; 4] = ["p", "u1", "rz", "rx"];
@@ -235,8 +235,7 @@ pub fn cancel_commutations(
                         Ok(PI / 4.0)
                     } else {
                         Err(PyRuntimeError::new_err(format!(
-                            "Angle for operation {} is not defined",
-                            node_op_name
+                            "Angle for operation {node_op_name} is not defined"
                         )))
                     };
                     total_angle += node_angle?;

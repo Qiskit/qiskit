@@ -49,6 +49,7 @@ visualization = [
     "Pillow >= 4.2.1",
     "pylatexenc >= 1.4",
     "seaborn >= 0.9.0",
+    "sympy>=1.3",
 ]
 crosstalk-pass = [
     "z3-solver >= 4.7",
@@ -56,23 +57,28 @@ crosstalk-pass = [
 csp-layout-pass = [
     "python-constraint >= 1.4",
 ]
+qpy-compat = [
+    "symengine>=0.11,<0.14",
+    "sympy>1.3"
+]
 # This will make the resolution work for installers from PyPI, but `pip install .[all]` will be
 # unreliable because `qiskit` will resolve to the PyPI version, so local changes in the
 # optionals won't be reflected.
-all = ["qiskit[qasm3-import,visualization,crosstalk-pass,csp-layout-pass]"]
+all = ["qiskit[qasm3-import,visualization,crosstalk-pass,csp-layout-pass,qpy-compat]"]
 
 [project.urls]
 Homepage = "https://www.ibm.com/quantum/qiskit"
-Documentation = "https://docs.quantum.ibm.com"
-"API Reference" = "https://docs.quantum.ibm.com/api/qiskit"
+Documentation = "https://quantum.cloud.ibm.com/docs"
+"API Reference" = "https://quantum.cloud.ibm.com/docs/api/qiskit"
 Repository = "https://github.com/Qiskit/qiskit"
 Issues = "https://github.com/Qiskit/qiskit/issues"
-Changelog = "https://docs.quantum.ibm.com/api/qiskit/release-notes"
+Changelog = "https://quantum.cloud.ibm.com/docs/api/qiskit/release-notes"
 
 [project.entry-points."qiskit.unitary_synthesis"]
 default = "qiskit.transpiler.passes.synthesis.default_unitary_synth_plugin:DefaultUnitarySynthesis"
 aqc = "qiskit.transpiler.passes.synthesis.aqc_plugin:AQCSynthesisPlugin"
 sk = "qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis:SolovayKitaevSynthesis"
+clifford = "qiskit.transpiler.passes.synthesis.clifford_unitary_synth_plugin:CliffordUnitarySynthesis"
 
 [project.entry-points."qiskit.synthesis"]
 "clifford.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:DefaultSynthesisClifford"
@@ -97,6 +103,7 @@ sk = "qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis:SolovayKitaevS
 "mcmt.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCMTSynthesisDefault"
 "mcmt.noaux" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCMTSynthesisNoAux"
 "mcmt.vchain" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCMTSynthesisVChain"
+"mcmt.xgate" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCMTSynthesisXGate"
 "permutation.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:BasicSynthesisPermutation"
 "permutation.kms" = "qiskit.transpiler.passes.synthesis.hls_plugins:KMSSynthesisPermutation"
 "permutation.basic" = "qiskit.transpiler.passes.synthesis.hls_plugins:BasicSynthesisPermutation"
@@ -174,8 +181,10 @@ target-version = ['py39', 'py310', 'py311']
 
 [tool.cibuildwheel]
 manylinux-x86_64-image = "manylinux2014"
-manylinux-aarch64-image = "quay.io/pypa/manylinux2014_aarch64:latest"
-skip = "pp* cp36-* cp37-* cp38-* *musllinux* *win32 *i686 cp38-macosx_arm64"
+manylinux-aarch64-image = "manylinux2014"
+manylinux-ppc64le-image = "manylinux2014"
+manylinux-s390x-image = "manylinux2014"
+skip = "cp38-* *musllinux* *win32 *i686 cp38-macosx_arm64"
 test-skip = "*win32 *linux_i686"
 test-command = "cp -r {project}/test . && QISKIT_PARALLEL=FALSE stestr --test-path test/python run --abbreviate"
 # We need to use pre-built versions of Numpy and Scipy in the tests; they have a

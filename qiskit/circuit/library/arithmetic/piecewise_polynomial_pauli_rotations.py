@@ -13,11 +13,13 @@
 """Piecewise-polynomially-controlled Pauli rotations."""
 
 from __future__ import annotations
+import warnings
 from typing import List, Optional
 import numpy as np
 
 from qiskit.circuit import QuantumRegister, AncillaRegister, QuantumCircuit, Gate
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.utils.deprecation import deprecate_func
 
 from .functional_pauli_rotations import FunctionalPauliRotations
 from .polynomial_pauli_rotations import PolynomialPauliRotations, PolynomialPauliRotationsGate
@@ -87,6 +89,11 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
              `ACM Transactions on Quantum Computing 3, 1, Article 2 <https://doi.org/10.1145/3490631>`_
     """
 
+    @deprecate_func(
+        since="2.2",
+        additional_msg="Use the class PiecewisePolynomialPauliRotationsGate instead.",
+        removal_timeline="in Qiskit 3.0",
+    )
     def __init__(
         self,
         num_state_qubits: Optional[int] = None,
@@ -271,17 +278,22 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
         # apply comparators and controlled linear rotations
         for i, point in enumerate(self.breakpoints[:-1]):
             if i == 0 and self.contains_zero_breakpoint:
-                # apply rotation
-                poly_r = PolynomialPauliRotations(
-                    num_state_qubits=self.num_state_qubits,
-                    coeffs=self.mapped_coeffs[i],
-                    basis=self.basis,
-                )
+                # the class itself is deprecated, no need to raise additional warnings during runtime
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+                    poly_r = PolynomialPauliRotations(
+                        num_state_qubits=self.num_state_qubits,
+                        coeffs=self.mapped_coeffs[i],
+                        basis=self.basis,
+                    )
                 circuit.append(poly_r.to_gate(), qr_state[:] + qr_target)
 
             else:
-                # apply Comparator
-                comp = IntegerComparator(num_state_qubits=self.num_state_qubits, value=point)
+                # the class itself is deprecated, no need to raise additional warnings during runtime
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+                    comp = IntegerComparator(num_state_qubits=self.num_state_qubits, value=point)
+
                 qr_state_full = qr_state[:] + [qr_ancilla[0]]  # add compare qubit
                 qr_remaining_ancilla = qr_ancilla[1:]  # take remaining ancillas
 
@@ -289,12 +301,14 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
                     comp.to_gate(), qr_state_full[:] + qr_remaining_ancilla[: comp.num_ancillas]
                 )
 
-                # apply controlled rotation
-                poly_r = PolynomialPauliRotations(
-                    num_state_qubits=self.num_state_qubits,
-                    coeffs=self.mapped_coeffs[i],
-                    basis=self.basis,
-                )
+                # the class itself is deprecated, no need to raise additional warnings during runtime
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+                    poly_r = PolynomialPauliRotations(
+                        num_state_qubits=self.num_state_qubits,
+                        coeffs=self.mapped_coeffs[i],
+                        basis=self.basis,
+                    )
                 circuit.append(
                     poly_r.to_gate().control(), [qr_ancilla[0]] + qr_state[:] + qr_target
                 )
@@ -314,6 +328,7 @@ class PiecewisePolynomialPauliRotationsGate(Gate):
     This class implements a piecewise polynomial (not necessarily continuous) function,
     :math:`f(x)`, on qubit amplitudes, which is defined through breakpoints and coefficients as
     follows.
+
     Suppose the breakpoints :math:`(x_0, ..., x_J)` are a subset of :math:`[0, 2^n-1]`, where
     :math:`n` is the number of state qubits. Further on, denote the corresponding coefficients by
     :math:`[a_{j,1},...,a_{j,d}]`, where :math:`d` is the highest degree among all polynomials.
@@ -338,14 +353,14 @@ class PiecewisePolynomialPauliRotationsGate(Gate):
     Examples:
         >>> from qiskit import QuantumCircuit
         >>> from qiskit.circuit.library.arithmetic.piecewise_polynomial_pauli_rotations import\
-        ... PiecewisePolynomialPauliRotations
+        ... PiecewisePolynomialPauliRotationsGate
         >>> qubits, breakpoints, coeffs = (2, [0, 2], [[0, -1.2],[-1, 1, 3]])
-        >>> poly_r = PiecewisePolynomialPauliRotations(num_state_qubits=qubits,
+        >>> poly_r = PiecewisePolynomialPauliRotationsGate(num_state_qubits=qubits,
         ...breakpoints=breakpoints, coeffs=coeffs)
         >>>
         >>> qc = QuantumCircuit(poly_r.num_qubits)
         >>> qc.h(list(range(qubits)));
-        >>> qc.append(poly_r.to_instruction(), list(range(qc.num_qubits)));
+        >>> qc.append(poly_r, list(range(qc.num_qubits)));
         >>> qc.draw()
              ┌───┐┌──────────┐
         q_0: ┤ H ├┤0         ├

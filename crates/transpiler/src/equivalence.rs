@@ -163,7 +163,7 @@ impl Display for Equivalence {
             "Equivalence(params=[{}], circuit={:?})",
             self.params
                 .iter()
-                .map(|param| format!("{:?}", param))
+                .map(|param| format!("{param:?}"))
                 .format(", "),
             self.circuit
         )
@@ -300,7 +300,7 @@ impl<'py> FromPyObject<'py> for GateOper {
 /// called from Python, or once the API is able to seamlessly accept instances
 /// of [CircuitData].
 ///
-/// [`QuantumCircuit`]: https://docs.quantum.ibm.com/api/qiskit/qiskit.circuit.QuantumCircuit
+/// [`QuantumCircuit`]: https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.circuit.QuantumCircuit
 #[derive(Debug, Clone)]
 pub struct CircuitFromPython(pub CircuitData);
 
@@ -723,9 +723,8 @@ fn raise_if_param_mismatch(
     if !gate_params_obj.eq(&circuit_parameters)? {
         return Err(CircuitError::new_err(format!(
             "Cannot add equivalence between circuit and gate \
-            of different parameters. Gate params: {:?}. \
-            Circuit params: {:?}.",
-            gate_params, circuit_parameters
+            of different parameters. Gate params: {gate_params:?}. \
+            Circuit params: {circuit_parameters:?}."
         )));
     }
     Ok(())

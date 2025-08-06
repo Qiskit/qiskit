@@ -13,16 +13,15 @@
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyType};
+use pyo3::types::PyType;
 
 use ndarray::Array2;
 use num_complex::Complex64;
 use smallvec::SmallVec;
 
 use crate::circuit_data::CircuitData;
-use crate::imports::{get_std_gate_class, BARRIER, DEEPCOPY, DELAY, MEASURE, RESET, UNITARY_GATE};
+use crate::imports::{get_std_gate_class, BARRIER, DELAY, MEASURE, RESET, UNITARY_GATE};
 use crate::interner::Interned;
 use crate::operations::{
     Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
@@ -379,7 +378,7 @@ impl PackedOperation {
 
     /// Get a safe view onto the packed data within, without assuming ownership.
     #[inline]
-    pub fn view(&self) -> OperationRef {
+    pub fn view(&self) -> OperationRef<'_> {
         match self.discriminant() {
             PackedOperationType::StandardGate => OperationRef::StandardGate(self.standard_gate()),
             PackedOperationType::StandardInstruction => {
@@ -448,85 +447,6 @@ impl PackedOperation {
             }
             (OperationRef::Unitary(left), OperationRef::Unitary(right)) => Ok(left == right),
             _ => Ok(false),
-        }
-    }
-
-    /// Copy this operation, including a Python-space deep copy, if required.
-    pub fn py_deepcopy<'py>(
-        &self,
-        py: Python<'py>,
-        memo: Option<&Bound<'py, PyDict>>,
-    ) -> PyResult<Self> {
-        let deepcopy = DEEPCOPY.get_bound(py);
-        match self.view() {
-            OperationRef::StandardGate(standard) => Ok(standard.into()),
-            OperationRef::StandardInstruction(instruction) => {
-                Ok(Self::from_standard_instruction(instruction))
-            }
-            OperationRef::Gate(gate) => Ok(PyGate {
-                gate: deepcopy.call1((&gate.gate, memo))?.unbind(),
-                qubits: gate.qubits,
-                clbits: gate.clbits,
-                params: gate.params,
-                op_name: gate.op_name.clone(),
-            }
-            .into()),
-            OperationRef::Instruction(instruction) => Ok(PyInstruction {
-                instruction: deepcopy.call1((&instruction.instruction, memo))?.unbind(),
-                qubits: instruction.qubits,
-                clbits: instruction.clbits,
-                params: instruction.params,
-                control_flow: instruction.control_flow,
-                op_name: instruction.op_name.clone(),
-            }
-            .into()),
-            OperationRef::Operation(operation) => Ok(PyOperation {
-                operation: deepcopy.call1((&operation.operation, memo))?.unbind(),
-                qubits: operation.qubits,
-                clbits: operation.clbits,
-                params: operation.params,
-                op_name: operation.op_name.clone(),
-            }
-            .into()),
-            OperationRef::Unitary(unitary) => Ok(unitary.clone().into()),
-        }
-    }
-
-    /// Copy this operation, including a Python-space call to `copy` on the `Operation` subclass, if
-    /// any.
-    pub fn py_copy(&self, py: Python) -> PyResult<Self> {
-        let copy_attr = intern!(py, "copy");
-        match self.view() {
-            OperationRef::StandardGate(standard) => Ok(standard.into()),
-            OperationRef::StandardInstruction(instruction) => {
-                Ok(Self::from_standard_instruction(instruction))
-            }
-            OperationRef::Gate(gate) => Ok(Box::new(PyGate {
-                gate: gate.gate.call_method0(py, copy_attr)?,
-                qubits: gate.qubits,
-                clbits: gate.clbits,
-                params: gate.params,
-                op_name: gate.op_name.clone(),
-            })
-            .into()),
-            OperationRef::Instruction(instruction) => Ok(Box::new(PyInstruction {
-                instruction: instruction.instruction.call_method0(py, copy_attr)?,
-                qubits: instruction.qubits,
-                clbits: instruction.clbits,
-                params: instruction.params,
-                control_flow: instruction.control_flow,
-                op_name: instruction.op_name.clone(),
-            })
-            .into()),
-            OperationRef::Operation(operation) => Ok(Box::new(PyOperation {
-                operation: operation.operation.call_method0(py, copy_attr)?,
-                qubits: operation.qubits,
-                clbits: operation.clbits,
-                params: operation.params,
-                op_name: operation.op_name.clone(),
-            })
-            .into()),
-            OperationRef::Unitary(unitary) => Ok(unitary.clone().into()),
         }
     }
 
@@ -633,6 +553,10 @@ impl Operation for PackedOperation {
     fn directive(&self) -> bool {
         self.view().directive()
     }
+    #[inline]
+    fn matrix_as_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+        self.view().matrix_as_static_1q(params)
+    }
 }
 
 impl Clone for PackedOperation {
@@ -702,6 +626,23 @@ pub struct PackedInstruction {
 }
 
 impl PackedInstruction {
+    /// Pack a [StandardGate] into a complete instruction.
+    pub fn from_standard_gate(
+        gate: StandardGate,
+        params: Option<Box<SmallVec<[Param; 3]>>>,
+        qubits: Interned<[Qubit]>,
+    ) -> Self {
+        Self {
+            op: gate.into(),
+            qubits,
+            clbits: Default::default(),
+            params,
+            label: None,
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
+        }
+    }
+
     /// Access the standard gate in this `PackedInstruction`, if it is one.  If the instruction
     /// refers to a Python-space object, `None` is returned.
     #[inline]

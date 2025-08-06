@@ -21,6 +21,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumcircuit import ParameterValueType
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.quantum_info import Pauli, SparsePauliOp, SparseObservable
+import qiskit.quantum_info
 
 if TYPE_CHECKING:
     from qiskit.synthesis.evolution import EvolutionSynthesis
@@ -91,10 +92,10 @@ class PauliEvolutionGate(Gate):
     def __init__(
         self,
         operator: (
-            Pauli
+            qiskit.quantum_info.Pauli
             | SparsePauliOp
             | SparseObservable
-            | list[Pauli | SparsePauliOp | SparseObservable]
+            | list[qiskit.quantum_info.Pauli | SparsePauliOp | SparseObservable]
         ),
         time: ParameterValueType = 1.0,
         label: str | None = None,
@@ -121,7 +122,19 @@ class PauliEvolutionGate(Gate):
         if label is None:
             label = _get_default_label(operator)
 
-        num_qubits = operator[0].num_qubits if isinstance(operator, list) else operator.num_qubits
+        if isinstance(operator, list):
+            if len(operator) == 0:
+                raise ValueError("The argument 'operator' cannot be an empty list.")
+            num_qubits = operator[0].num_qubits
+            for op in operator[1:]:
+                if op.num_qubits != num_qubits:
+                    raise ValueError(
+                        "When represented as a list of operators, all of these operators "
+                        "must have the same number of qubits."
+                    )
+        else:
+            num_qubits = operator.num_qubits
+
         super().__init__(name="PauliEvolution", num_qubits=num_qubits, params=[time], label=label)
         self.operator = operator
 

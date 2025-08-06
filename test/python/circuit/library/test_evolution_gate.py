@@ -27,6 +27,7 @@ from qiskit.synthesis.evolution.product_formula import reorder_paulis
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info import Operator, SparsePauliOp, Pauli, Statevector, SparseObservable
 from qiskit.transpiler.passes import HLSConfig, HighLevelSynthesis
+from qiskit.utils import optionals
 from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
 
 X = SparsePauliOp("X")
@@ -527,6 +528,7 @@ class TestEvolutionGate(QiskitTestCase):
         with self.subTest(msg="check correctness"):
             self.assertEqual(Operator(exact), Operator(bound))
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
     def test_sympify_is_real(self):
         """Test converting the parameters to sympy is real.
 
@@ -538,7 +540,7 @@ class TestEvolutionGate(QiskitTestCase):
         evo = PauliEvolutionGate(Z, time=time)
 
         angle = evo.definition.data[0].operation.params[0]
-        expected = (2.0 * time).sympify()
+        expected = (2 * time).sympify()
         self.assertEqual(expected, angle.sympify())
 
     def test_zero(self):
@@ -723,6 +725,21 @@ class TestEvolutionGate(QiskitTestCase):
         self.assertLess(cx_count, exponential_cx)
         # we should also be less (or equal) to this
         self.assertLessEqual(cx_count, num_cx)
+
+    def test_raises_on_empty_list(self):
+        """Test that an error gets raised when a Pauli evolution gate is created from an empty list."""
+        with self.assertRaises(ValueError):
+            PauliEvolutionGate([], time=1)
+
+    def test_raises_on_list_with_different_num_qubits(self):
+        """Test that an error gets raised when a Pauli evolution gate is created from a list,
+        where not all of the operators have the same number of qubits.
+        """
+
+        with self.assertRaises(ValueError):
+            pauli = Pauli("XYZ")  # 3 qubits
+            op = SparsePauliOp(["XYIZ"], [1])  # 4 qubits
+            PauliEvolutionGate([pauli, op], time=1)
 
 
 def exact_atomic_evolution(circuit, pauli, time):
