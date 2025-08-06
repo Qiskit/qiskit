@@ -127,7 +127,6 @@ pub fn run_asap_schedule_analysis<T: TimeOps>(
                 .iter()
                 .map(|c| *idle_after.get(c).unwrap_or(&zero))
                 .fold(zero, |acc, x| *T::max(&acc, &x));
-            
             // Assume following case (t0c > t0q)
             //
             //       |t0q
@@ -149,8 +148,6 @@ pub fn run_asap_schedule_analysis<T: TimeOps>(
             // Q ▒▒▒▒░░░░▒▒▒▒▒▒▒▒
             // C ▒▒▒▒▒▒▒▒░░░▒▒▒▒▒
             //              |t0c' = t0c + clbut_write_latency
-
-
             let t0 = *T::max(&t0q, &(t0c - clbit_write_latency));
             let t1 = t0 + op_duration;
             for clbit in cargs.iter() {
