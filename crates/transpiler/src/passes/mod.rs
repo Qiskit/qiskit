@@ -21,6 +21,7 @@
 //! crate. These are public to be passed to qiskit-pyext and are only used
 //! for building Python submodules.
 
+mod asap_schedule_analysis;
 mod barrier_before_final_measurement;
 mod basis_translator;
 mod check_map;
@@ -43,6 +44,7 @@ mod split_2q_unitaries;
 mod unitary_synthesis;
 mod vf2;
 
+pub use asap_schedule_analysis::{asap_schedule_analysis_mod, run_asap_schedule_analysis};
 pub use barrier_before_final_measurement::{
     barrier_before_final_measurements_mod, run_barrier_before_final_measurements,
 };
