@@ -118,6 +118,7 @@ pub enum Value {
     Real(f64),
     Int(i64),
     Complex(Complex64),
+    Rational { numerator: i64, denominator: i64 },
 }
 
 impl<'py> FromPyObject<'py> for Value {
@@ -374,6 +375,7 @@ impl SymbolExpr {
                             Some(ret)
                         }
                     }
+                    Value::Rational { .. } => Some(ret),
                 }
             }
             SymbolExpr::Binary { op, lhs, rhs } => {
@@ -427,6 +429,7 @@ impl SymbolExpr {
                             Some(ret)
                         }
                     }
+                    Value::Rational { .. } => Some(ret),
                 }
             }
         }
@@ -635,6 +638,10 @@ impl SymbolExpr {
                 Value::Real(r) => Some(r),
                 Value::Int(r) => Some(r as f64),
                 Value::Complex(c) => Some(c.re),
+                Value::Rational {
+                    numerator,
+                    denominator,
+                } => Some(numerator as f64 / denominator as f64),
             },
             None => None,
         }
@@ -646,6 +653,7 @@ impl SymbolExpr {
                 Value::Real(_) => Some(0.0),
                 Value::Int(_) => Some(0.0),
                 Value::Complex(c) => Some(c.im),
+                Value::Rational { .. } => Some(0.0),
             },
             None => None,
         }
@@ -657,6 +665,10 @@ impl SymbolExpr {
                 Value::Real(r) => Some(r.into()),
                 Value::Int(i) => Some((i as f64).into()),
                 Value::Complex(c) => Some(c),
+                Value::Rational {
+                    numerator,
+                    denominator,
+                } => Some((numerator as f64 / denominator as f64).into()),
             },
             None => None,
         }
@@ -738,7 +750,7 @@ impl SymbolExpr {
                 SymbolExpr::Symbol(e.clone()),
             ),
             SymbolExpr::Value(e) => match e {
-                Value::Int(i) => _rational(1, *i),
+                Value::Int(i) => SymbolExpr::Value(_rational(1, *i)),
                 _ => SymbolExpr::Value(e.rcp()),
             },
             SymbolExpr::Unary { .. } => _div(SymbolExpr::Value(Value::Int(1)), self.clone()),
@@ -804,7 +816,7 @@ impl SymbolExpr {
     pub fn is_real(&self) -> Option<bool> {
         match self.eval(true) {
             Some(v) => match v {
-                Value::Real(_) | Value::Int(_) => Some(true),
+                Value::Real(_) | Value::Int(_) | Value::Rational { .. } => Some(true),
                 Value::Complex(c) => Some((-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im)),
             },
             None => None,
@@ -825,24 +837,15 @@ impl SymbolExpr {
     /// check if the type of the node is a value; that is it matches Value or is an integer fraction
     #[inline(always)]
     pub fn is_value(&self) -> bool {
-        self.is_rational() || matches!(self, SymbolExpr::Value(_))
+        matches!(self, SymbolExpr::Value(_))
     }
 
     /// check if integer rational number or not
     #[inline(always)]
     pub fn is_rational(&self) -> bool {
-        match self {
-            SymbolExpr::Binary { op, lhs, rhs } => match (op, lhs.as_ref(), rhs.as_ref()) {
-                (
-                    BinaryOp::Div,
-                    SymbolExpr::Value(Value::Int(_)),
-                    SymbolExpr::Value(Value::Int(_)),
-                ) => true,
-                (_, _, _) => false,
-            },
-            _ => false,
-        }
+        matches!(self, SymbolExpr::Value(Value::Rational { .. }))
     }
+
     /// check if evaluated result is 0
     pub fn is_zero(&self, recursive: bool) -> bool {
         match self.eval(recursive) {
@@ -877,12 +880,7 @@ impl SymbolExpr {
                 UnaryOp::Neg => true,
                 _ => false, // TO DO add heuristic determination
             },
-            SymbolExpr::Binary { .. } => {
-                if let Some((numerator, denominator)) = self.rational() {
-                    return numerator * denominator < 0;
-                }
-                false
-            }
+            SymbolExpr::Binary { .. } => false,
         }
     }
 
@@ -894,175 +892,99 @@ impl SymbolExpr {
                 op: UnaryOp::Abs | UnaryOp::Neg,
                 expr,
             } => expr.abs(),
-            _ => {
-                if let Some((numerator, denominator)) = self.rational() {
-                    _rational(numerator.abs(), denominator.abs())
-                } else {
-                    SymbolExpr::Unary {
-                        op: UnaryOp::Abs,
-                        expr: Arc::new(self.clone()),
-                    }
-                }
-            }
+            _ => SymbolExpr::Unary {
+                op: UnaryOp::Abs,
+                expr: Arc::new(self.clone()),
+            },
         }
     }
     pub fn sin(&self) -> SymbolExpr {
         match self {
             SymbolExpr::Value(l) => SymbolExpr::Value(l.sin()),
-            _ => {
-                if let Some((numerator, denominator)) = self.rational() {
-                    SymbolExpr::Value(Value::Real(numerator as f64 / denominator as f64).sin())
-                } else {
-                    SymbolExpr::Unary {
-                        op: UnaryOp::Sin,
-                        expr: Arc::new(self.clone()),
-                    }
-                }
-            }
+            _ => SymbolExpr::Unary {
+                op: UnaryOp::Sin,
+                expr: Arc::new(self.clone()),
+            },
         }
     }
     pub fn asin(&self) -> SymbolExpr {
         match self {
             SymbolExpr::Value(l) => SymbolExpr::Value(l.asin()),
-            _ => {
-                if let Some((numerator, denominator)) = self.rational() {
-                    SymbolExpr::Value(Value::Real(numerator as f64 / denominator as f64).asin())
-                } else {
-                    SymbolExpr::Unary {
-                        op: UnaryOp::Asin,
-                        expr: Arc::new(self.clone()),
-                    }
-                }
-            }
+            _ => SymbolExpr::Unary {
+                op: UnaryOp::Asin,
+                expr: Arc::new(self.clone()),
+            },
         }
     }
     pub fn cos(&self) -> SymbolExpr {
         match self {
             SymbolExpr::Value(l) => SymbolExpr::Value(l.cos()),
-            _ => {
-                if let Some((numerator, denominator)) = self.rational() {
-                    SymbolExpr::Value(Value::Real(numerator as f64 / denominator as f64).cos())
-                } else {
-                    SymbolExpr::Unary {
-                        op: UnaryOp::Cos,
-                        expr: Arc::new(self.clone()),
-                    }
-                }
-            }
+            _ => SymbolExpr::Unary {
+                op: UnaryOp::Cos,
+                expr: Arc::new(self.clone()),
+            },
         }
     }
     pub fn acos(&self) -> SymbolExpr {
         match self {
             SymbolExpr::Value(l) => SymbolExpr::Value(l.acos()),
-            _ => {
-                if let Some((numerator, denominator)) = self.rational() {
-                    SymbolExpr::Value(Value::Real(numerator as f64 / denominator as f64).acos())
-                } else {
-                    SymbolExpr::Unary {
-                        op: UnaryOp::Acos,
-                        expr: Arc::new(self.clone()),
-                    }
-                }
-            }
+            _ => SymbolExpr::Unary {
+                op: UnaryOp::Acos,
+                expr: Arc::new(self.clone()),
+            },
         }
     }
     pub fn tan(&self) -> SymbolExpr {
         match self {
             SymbolExpr::Value(l) => SymbolExpr::Value(l.tan()),
-            _ => {
-                if let Some((numerator, denominator)) = self.rational() {
-                    SymbolExpr::Value(Value::Real(numerator as f64 / denominator as f64).tan())
-                } else {
-                    SymbolExpr::Unary {
-                        op: UnaryOp::Tan,
-                        expr: Arc::new(self.clone()),
-                    }
-                }
-            }
+            _ => SymbolExpr::Unary {
+                op: UnaryOp::Tan,
+                expr: Arc::new(self.clone()),
+            },
         }
     }
     pub fn atan(&self) -> SymbolExpr {
         match self {
             SymbolExpr::Value(l) => SymbolExpr::Value(l.atan()),
-            _ => {
-                if let Some((numerator, denominator)) = self.rational() {
-                    SymbolExpr::Value(Value::Real(numerator as f64 / denominator as f64).atan())
-                } else {
-                    SymbolExpr::Unary {
-                        op: UnaryOp::Atan,
-                        expr: Arc::new(self.clone()),
-                    }
-                }
-            }
+            _ => SymbolExpr::Unary {
+                op: UnaryOp::Atan,
+                expr: Arc::new(self.clone()),
+            },
         }
     }
     pub fn exp(&self) -> SymbolExpr {
         match self {
             SymbolExpr::Value(l) => SymbolExpr::Value(l.exp()),
-            _ => {
-                if let Some((numerator, denominator)) = self.rational() {
-                    SymbolExpr::Value(Value::Real(numerator as f64 / denominator as f64).exp())
-                } else {
-                    SymbolExpr::Unary {
-                        op: UnaryOp::Exp,
-                        expr: Arc::new(self.clone()),
-                    }
-                }
-            }
+            _ => SymbolExpr::Unary {
+                op: UnaryOp::Exp,
+                expr: Arc::new(self.clone()),
+            },
         }
     }
     pub fn log(&self) -> SymbolExpr {
         match self {
             SymbolExpr::Value(l) => SymbolExpr::Value(l.log()),
-            _ => {
-                if let Some((numerator, denominator)) = self.rational() {
-                    SymbolExpr::Value(Value::Real(numerator as f64 / denominator as f64).log())
-                } else {
-                    SymbolExpr::Unary {
-                        op: UnaryOp::Log,
-                        expr: Arc::new(self.clone()),
-                    }
-                }
-            }
+            _ => SymbolExpr::Unary {
+                op: UnaryOp::Log,
+                expr: Arc::new(self.clone()),
+            },
         }
     }
     pub fn pow(&self, rhs: &SymbolExpr) -> SymbolExpr {
         match self {
             SymbolExpr::Value(l) => match rhs {
                 SymbolExpr::Value(r) => SymbolExpr::Value(l.pow(r)),
-                _ => {
-                    if let Some((numerator, denominator)) = rhs.rational() {
-                        SymbolExpr::Value(
-                            l.pow(&Value::Real(numerator as f64 / denominator as f64)),
-                        )
-                    } else {
-                        SymbolExpr::Binary {
-                            op: BinaryOp::Pow,
-                            lhs: Arc::new(SymbolExpr::Value(*l)),
-                            rhs: Arc::new(rhs.clone()),
-                        }
-                    }
-                }
-            },
-            _ => {
-                if let Some((numerator, denominator)) = self.rational() {
-                    if let SymbolExpr::Value(r) = rhs {
-                        return match r {
-                            Value::Int(r) => {
-                                _rational(numerator.pow(*r as u32), denominator.pow(*r as u32))
-                            }
-                            _ => SymbolExpr::Value(
-                                Value::Real(numerator as f64 / denominator as f64).pow(r),
-                            ),
-                        };
-                    }
-                }
-                SymbolExpr::Binary {
+                _ => SymbolExpr::Binary {
                     op: BinaryOp::Pow,
-                    lhs: Arc::new(self.clone()),
+                    lhs: Arc::new(SymbolExpr::Value(*l)),
                     rhs: Arc::new(rhs.clone()),
-                }
-            }
+                },
+            },
+            _ => SymbolExpr::Binary {
+                op: BinaryOp::Pow,
+                lhs: Arc::new(self.clone()),
+                rhs: Arc::new(rhs.clone()),
+            },
         }
     }
 
@@ -1073,24 +995,6 @@ impl SymbolExpr {
             if let SymbolExpr::Value(l) = self {
                 if let SymbolExpr::Value(r) = rhs {
                     return Some(SymbolExpr::Value(l + r));
-                } else if let Some((rn, rd)) = rhs.rational() {
-                    if let Value::Int(l) = l {
-                        return Some(_rational(*l * rd + rn, rd));
-                    } else {
-                        return Some(SymbolExpr::Value(
-                            (l * &Value::Int(rd) + Value::Int(rn)) / Value::Int(rd),
-                        ));
-                    }
-                }
-            } else if let Some((ln, ld)) = self.rational() {
-                if let Some((rn, rd)) = rhs.rational() {
-                    return Some(_rational(ln * rd + rn * ld, ld * rd));
-                } else if let SymbolExpr::Value(Value::Int(r)) = rhs {
-                    return Some(_rational(ln + *r * ld, ld));
-                } else if let SymbolExpr::Value(r) = rhs {
-                    return Some(SymbolExpr::Value(
-                        (Value::Int(ln) + r * &Value::Int(ld)) / Value::Int(ld),
-                    ));
                 }
             } else if let SymbolExpr::Binary {
                 op,
@@ -1204,24 +1108,6 @@ impl SymbolExpr {
             if let SymbolExpr::Value(l) = self {
                 if let SymbolExpr::Value(r) = rhs {
                     return Some(SymbolExpr::Value(l - r));
-                } else if let Some((rn, rd)) = rhs.rational() {
-                    if let Value::Int(l) = l {
-                        return Some(_rational(*l * rd - rn, rd));
-                    } else {
-                        return Some(SymbolExpr::Value(
-                            (l * &Value::Int(rd) - Value::Int(rn)) / Value::Int(rd),
-                        ));
-                    }
-                }
-            } else if let Some((ln, ld)) = self.rational() {
-                if let Some((rn, rd)) = rhs.rational() {
-                    return Some(_rational(ln * rd - rn * ld, ld * rd));
-                } else if let SymbolExpr::Value(Value::Int(r)) = rhs {
-                    return Some(_rational(ln - *r * ld, ld));
-                } else if let SymbolExpr::Value(r) = rhs {
-                    return Some(SymbolExpr::Value(
-                        (Value::Int(ln) - r * &Value::Int(ld)) / Value::Int(ld),
-                    ));
                 }
             } else if let SymbolExpr::Binary {
                 op,
@@ -1335,20 +1221,6 @@ impl SymbolExpr {
             if let SymbolExpr::Value(l) = self {
                 if let SymbolExpr::Value(r) = rhs {
                     return Some(SymbolExpr::Value(l * r));
-                } else if let Some((rn, rd)) = rhs.rational() {
-                    if let Value::Int(l) = l {
-                        return Some(_rational(*l * rn, rd));
-                    } else {
-                        return Some(SymbolExpr::Value(l * &Value::Int(rn) / Value::Int(rd)));
-                    }
-                }
-            } else if let Some((ln, ld)) = self.rational() {
-                if let Some((rn, rd)) = rhs.rational() {
-                    return Some(_rational(ln * rn, ld * rd));
-                } else if let SymbolExpr::Value(Value::Int(r)) = rhs {
-                    return Some(_rational(ln * *r, ld));
-                } else if let SymbolExpr::Value(r) = rhs {
-                    return Some(SymbolExpr::Value(&Value::Int(ln) * r / Value::Int(ld)));
                 }
             } else if let SymbolExpr::Binary {
                 op,
@@ -1459,24 +1331,7 @@ impl SymbolExpr {
         if rhs.is_value() {
             if let SymbolExpr::Value(l) = self {
                 if let SymbolExpr::Value(r) = rhs {
-                    return match (l, r) {
-                        (Value::Int(l), Value::Int(r)) => Some(_rational(*l, *r)),
-                        (_, _) => Some(SymbolExpr::Value(l / r)),
-                    };
-                } else if let Some((rn, rd)) = rhs.rational() {
-                    if let Value::Int(l) = l {
-                        return Some(_rational(*l * rd, rn));
-                    } else {
-                        return Some(SymbolExpr::Value(l * &Value::Int(rd) / Value::Int(rn)));
-                    }
-                }
-            } else if let Some((ln, ld)) = self.rational() {
-                if let Some((rn, rd)) = rhs.rational() {
-                    return Some(_rational(ln * rd, ld * rn));
-                } else if let SymbolExpr::Value(Value::Int(r)) = rhs {
-                    return Some(_rational(ln, ld * *r));
-                } else if let SymbolExpr::Value(r) = rhs {
-                    return Some(SymbolExpr::Value(Value::Int(ln) / (&Value::Int(ld) * r)));
+                    return Some(SymbolExpr::Value(l / r));
                 }
             } else if let SymbolExpr::Binary {
                 op,
@@ -1590,7 +1445,7 @@ impl SymbolExpr {
                     return Some(e);
                 }
             }
-            if recursive && !rhs.is_rational() {
+            if recursive {
                 if let SymbolExpr::Binary {
                     op,
                     lhs: r_lhs,
@@ -1767,7 +1622,7 @@ impl SymbolExpr {
                         rhs: r_rhs,
                     } = rhs
                     {
-                        if op == rop && !rhs.is_rational() {
+                        if op == rop {
                             if let BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow = op {
                                 if let Some(v) = l_lhs.add_values(r_lhs, false) {
                                     // check equality only for symbols if recursive is not true for performance
@@ -1956,7 +1811,7 @@ impl SymbolExpr {
                     return Some(e);
                 }
             }
-            if recursive && !rhs.is_rational() {
+            if recursive {
                 if let SymbolExpr::Binary {
                     op,
                     lhs: r_lhs,
@@ -2013,59 +1868,54 @@ impl SymbolExpr {
                         op: rop,
                         lhs: r_lhs,
                         rhs: r_rhs,
-                    } => {
-                        if rhs.is_rational() {
-                            return Some(_add(_neg(rhs.clone()), self.clone()));
+                    } => match rop {
+                        BinaryOp::Add => {
+                            if let SymbolExpr::Symbol(s) = r_lhs.as_ref() {
+                                if l == s {
+                                    return Some(_neg(r_rhs.as_ref().clone()));
+                                }
+                            }
+                            if let SymbolExpr::Symbol(s) = r_rhs.as_ref() {
+                                if l == s {
+                                    return Some(_neg(r_lhs.as_ref().clone()));
+                                }
+                            }
+                            None
                         }
-                        match rop {
-                            BinaryOp::Add => {
-                                if let SymbolExpr::Symbol(s) = r_lhs.as_ref() {
-                                    if l == s {
-                                        return Some(_neg(r_rhs.as_ref().clone()));
-                                    }
+                        BinaryOp::Sub => {
+                            if let SymbolExpr::Symbol(s) = r_lhs.as_ref() {
+                                if l == s {
+                                    return Some(_neg(r_rhs.as_ref().clone()));
                                 }
-                                if let SymbolExpr::Symbol(s) = r_rhs.as_ref() {
-                                    if l == s {
-                                        return Some(_neg(r_lhs.as_ref().clone()));
-                                    }
-                                }
-                                None
                             }
-                            BinaryOp::Sub => {
-                                if let SymbolExpr::Symbol(s) = r_lhs.as_ref() {
-                                    if l == s {
-                                        return Some(_neg(r_rhs.as_ref().clone()));
-                                    }
+                            if let SymbolExpr::Symbol(s) = r_rhs.as_ref() {
+                                if l == s {
+                                    return Some(_sub(
+                                        _mul(SymbolExpr::Value(Value::Int(2)), self.clone()),
+                                        r_lhs.as_ref().clone(),
+                                    ));
                                 }
-                                if let SymbolExpr::Symbol(s) = r_rhs.as_ref() {
-                                    if l == s {
-                                        return Some(_sub(
-                                            _mul(SymbolExpr::Value(Value::Int(2)), self.clone()),
-                                            r_lhs.as_ref().clone(),
-                                        ));
-                                    }
-                                }
-                                None
                             }
-                            BinaryOp::Mul => {
-                                if let SymbolExpr::Symbol(s) = r_rhs.as_ref() {
-                                    if l == s {
-                                        if let Some(v) = SymbolExpr::Value(Value::Int(1))
-                                            .sub_values(r_lhs, false)
-                                        {
-                                            if v.is_zero(recursive) {
-                                                return Some(SymbolExpr::Value(Value::Int(0)));
-                                            } else {
-                                                return Some(_mul(v, self.clone()));
-                                            }
+                            None
+                        }
+                        BinaryOp::Mul => {
+                            if let SymbolExpr::Symbol(s) = r_rhs.as_ref() {
+                                if l == s {
+                                    if let Some(v) =
+                                        SymbolExpr::Value(Value::Int(1)).sub_values(r_lhs, false)
+                                    {
+                                        if v.is_zero(recursive) {
+                                            return Some(SymbolExpr::Value(Value::Int(0)));
+                                        } else {
+                                            return Some(_mul(v, self.clone()));
                                         }
                                     }
                                 }
-                                None
                             }
-                            _ => None,
+                            None
                         }
-                    }
+                        _ => None,
+                    },
                     _ => None,
                 },
                 SymbolExpr::Unary { op, expr } => {
@@ -2128,7 +1978,7 @@ impl SymbolExpr {
                         rhs: r_rhs,
                     } = rhs
                     {
-                        if op == rop && !rhs.is_rational() {
+                        if op == rop {
                             if let BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow = op {
                                 if let Some(v) = l_lhs.sub_values(r_lhs, false) {
                                     // check equality only for symbols if recursive is not true for performance
@@ -2325,7 +2175,7 @@ impl SymbolExpr {
                 return Some(v);
             }
 
-            if matches!(rhs, SymbolExpr::Value(_) | SymbolExpr::Symbol(_)) || rhs.is_rational() {
+            if matches!(rhs, SymbolExpr::Value(_) | SymbolExpr::Symbol(_)) {
                 if let SymbolExpr::Unary { .. } = self {
                     return match rhs.mul_opt(self, recursive) {
                         Some(e) => Some(e),
@@ -2348,9 +2198,6 @@ impl SymbolExpr {
                         }
                     }
                     SymbolExpr::Binary { op, lhs: l, rhs: r } => {
-                        if rhs.is_rational() {
-                            return self.mul_values(rhs, recursive);
-                        }
                         if recursive {
                             match op {
                                 BinaryOp::Mul => match self.mul_opt(l, recursive) {
@@ -2428,13 +2275,6 @@ impl SymbolExpr {
                         },
                         _ => None,
                     },
-                    SymbolExpr::Binary { .. } => {
-                        if rhs.is_rational() {
-                            Some(_mul(rhs.clone(), self.clone()))
-                        } else {
-                            None
-                        }
-                    }
                     _ => None,
                 },
                 SymbolExpr::Unary { op, expr } => match op {
@@ -2468,7 +2308,7 @@ impl SymbolExpr {
                     lhs: l_lhs,
                     rhs: l_rhs,
                 } => {
-                    if recursive && !rhs.is_rational() {
+                    if recursive {
                         if let SymbolExpr::Binary {
                             op: rop,
                             lhs: r_lhs,
@@ -2724,17 +2564,15 @@ impl SymbolExpr {
                 };
             }
             if let BinaryOp::Div = &rop {
-                if !rhs.is_rational() {
-                    return match self.mul_expand(r_lhs) {
-                        Some(e) => match e.mul_expand(r_rhs) {
-                            Some(ee) => Some(ee),
-                            None => Some(_mul(e, r_rhs.as_ref().clone())),
-                        },
-                        None => self
-                            .div_expand(r_rhs)
-                            .map(|e| _div(e, r_lhs.as_ref().clone())),
-                    };
-                }
+                return match self.mul_expand(r_lhs) {
+                    Some(e) => match e.mul_expand(r_rhs) {
+                        Some(ee) => Some(ee),
+                        None => Some(_mul(e, r_rhs.as_ref().clone())),
+                    },
+                    None => self
+                        .div_expand(r_rhs)
+                        .map(|e| _div(e, r_lhs.as_ref().clone())),
+                };
             }
         }
         if let SymbolExpr::Unary {
@@ -2824,18 +2662,12 @@ impl SymbolExpr {
                         None => None,
                     },
                 },
-                BinaryOp::Div => {
-                    if self.is_rational() {
-                        None
-                    } else {
-                        match l_lhs.div_expand(rhs) {
-                            Some(e) => Some(_div(e, l_rhs.as_ref().clone())),
-                            None => l_rhs
-                                .div_expand(rhs)
-                                .map(|e| _div(l_lhs.as_ref().clone(), e)),
-                        }
-                    }
-                }
+                BinaryOp::Div => match l_lhs.div_expand(rhs) {
+                    Some(e) => Some(_div(e, l_rhs.as_ref().clone())),
+                    None => l_rhs
+                        .div_expand(rhs)
+                        .map(|e| _div(l_lhs.as_ref().clone(), e)),
+                },
                 _ => None,
             },
             _ => None,
@@ -2861,22 +2693,22 @@ impl SymbolExpr {
                 },
             }
         } else {
-            if let SymbolExpr::Value(Value::Real(r)) = rhs {
-                let t = 1.0 / r;
-                if &(1.0 / t) == r {
-                    return match self.mul_opt(&SymbolExpr::Value(Value::Real(t)), recursive) {
+            if let SymbolExpr::Value(v) = rhs {
+                if let Value::Int(_) | Value::Rational { .. } = v {
+                    let t = v.rcp();
+                    return match self.mul_opt(&SymbolExpr::Value(t), recursive) {
                         Some(e) => Some(e),
-                        None => Some(_mul(SymbolExpr::Value(Value::Real(t)), self.clone())),
+                        None => Some(_mul(SymbolExpr::Value(t), self.clone())),
                     };
+                } else if let Value::Real(r) = v {
+                    let t = 1.0 / r;
+                    if &(1.0 / t) == r {
+                        return match self.mul_opt(&SymbolExpr::Value(Value::Real(t)), recursive) {
+                            Some(e) => Some(e),
+                            None => Some(_mul(SymbolExpr::Value(Value::Real(t)), self.clone())),
+                        };
+                    }
                 }
-            } else if let SymbolExpr::Value(Value::Int(i)) = rhs {
-                let t = _rational(1, *i);
-                return match self.mul_opt(&t, recursive) {
-                    Some(e) => Some(e),
-                    None => Some(_mul(t, self.clone())),
-                };
-            } else if let Some((numerator, denominator)) = rhs.rational() {
-                return self.mul_opt(&_rational(denominator, numerator), recursive);
             }
             if let Some(v) = self.div_values(rhs, recursive) {
                 return Some(v);
@@ -2895,30 +2727,25 @@ impl SymbolExpr {
                             None
                         }
                     }
-                    SymbolExpr::Binary { op, lhs: l, rhs: r } => {
-                        if rhs.is_rational() {
-                            return self.div_values(rhs, recursive);
-                        }
-                        match op {
-                            BinaryOp::Mul => {
-                                if let Some(v) = self.div_values(l, recursive) {
-                                    Some(_div(v, r.as_ref().clone()))
-                                } else {
-                                    self.div_values(r, recursive)
-                                        .map(|v| _div(v, l.as_ref().clone()))
-                                }
+                    SymbolExpr::Binary { op, lhs: l, rhs: r } => match op {
+                        BinaryOp::Mul => {
+                            if let Some(v) = self.div_values(l, recursive) {
+                                Some(_div(v, r.as_ref().clone()))
+                            } else {
+                                self.div_values(r, recursive)
+                                    .map(|v| _div(v, l.as_ref().clone()))
                             }
-                            BinaryOp::Div => {
-                                if let Some(v) = self.div_values(l, recursive) {
-                                    Some(_mul(v, r.as_ref().clone()))
-                                } else {
-                                    self.mul_values(r, recursive)
-                                        .map(|v| _div(v, l.as_ref().clone()))
-                                }
-                            }
-                            _ => None,
                         }
-                    }
+                        BinaryOp::Div => {
+                            if let Some(v) = self.div_values(l, recursive) {
+                                Some(_mul(v, r.as_ref().clone()))
+                            } else {
+                                self.mul_values(r, recursive)
+                                    .map(|v| _div(v, l.as_ref().clone()))
+                            }
+                        }
+                        _ => None,
+                    },
                     _ => None,
                 };
             }
@@ -2957,7 +2784,7 @@ impl SymbolExpr {
                     lhs: l_lhs,
                     rhs: l_rhs,
                 } => {
-                    if recursive && !rhs.is_rational() {
+                    if recursive {
                         if let SymbolExpr::Binary {
                             op: rop,
                             lhs: r_lhs,
@@ -3128,13 +2955,7 @@ impl SymbolExpr {
                         },
                     }
                 }
-                _ => {
-                    if self.is_rational() {
-                        self.div_opt(rhs, true)
-                    } else {
-                        None
-                    }
-                }
+                _ => None,
             },
             _ => self.div_opt(rhs, true),
         }
@@ -3142,9 +2963,6 @@ impl SymbolExpr {
 
     /// optimization for neg
     fn neg_opt(&self) -> Option<SymbolExpr> {
-        if let Some((n, d)) = self.rational() {
-            return Some(_rational(-n, d));
-        }
         match self {
             SymbolExpr::Value(v) => Some(SymbolExpr::Value(-v)),
             SymbolExpr::Unary {
@@ -3283,6 +3101,10 @@ impl SymbolExpr {
                         Value::Real(v) => *v < 0.0,
                         Value::Int(v) => *v < 0,
                         Value::Complex(_) => true,
+                        Value::Rational {
+                            numerator,
+                            denominator,
+                        } => numerator * denominator < 0,
                     },
                     _ => false,
                 };
@@ -3295,6 +3117,10 @@ impl SymbolExpr {
                         Value::Real(v) => *v < 0.0,
                         Value::Int(v) => *v < 0,
                         Value::Complex(_) => true,
+                        Value::Rational {
+                            numerator,
+                            denominator,
+                        } => numerator * denominator < 0,
                     },
                     _ => false,
                 };
@@ -3764,6 +3590,10 @@ impl fmt::Display for Value {
                         e.to_string()
                     }
                 }
+                Value::Rational {
+                    numerator,
+                    denominator,
+                } => format!("{numerator}/{denominator}"),
             }
         )
     }
@@ -3778,6 +3608,10 @@ impl Value {
             Value::Real(e) => *e,
             Value::Int(e) => *e as f64,
             Value::Complex(e) => e.re,
+            Value::Rational {
+                numerator,
+                denominator,
+            } => *numerator as f64 / *denominator as f64,
         }
     }
 
@@ -3786,6 +3620,10 @@ impl Value {
             Value::Real(e) => Value::Real(e.abs()),
             Value::Int(e) => Value::Int(e.abs()),
             Value::Complex(e) => Value::Real((e.re * e.re + e.im * e.im).sqrt()),
+            Value::Rational {
+                numerator,
+                denominator,
+            } => _rational(numerator.abs(), denominator.abs()),
         }
     }
 
@@ -3800,6 +3638,7 @@ impl Value {
                     None => t,
                 }
             }
+            Value::Rational { .. } => Value::Real(self.as_real().sin()),
         }
     }
     pub fn asin(&self) -> Value {
@@ -3813,6 +3652,7 @@ impl Value {
                     None => t,
                 }
             }
+            Value::Rational { .. } => Value::Real(self.as_real().asin()),
         }
     }
     pub fn cos(&self) -> Value {
@@ -3826,6 +3666,7 @@ impl Value {
                     None => t,
                 }
             }
+            Value::Rational { .. } => Value::Real(self.as_real().cos()),
         }
     }
     pub fn acos(&self) -> Value {
@@ -3839,6 +3680,7 @@ impl Value {
                     None => t,
                 }
             }
+            Value::Rational { .. } => Value::Real(self.as_real().acos()),
         }
     }
     pub fn tan(&self) -> Value {
@@ -3852,6 +3694,7 @@ impl Value {
                     None => t,
                 }
             }
+            Value::Rational { .. } => Value::Real(self.as_real().tan()),
         }
     }
     pub fn atan(&self) -> Value {
@@ -3865,6 +3708,7 @@ impl Value {
                     None => t,
                 }
             }
+            Value::Rational { .. } => Value::Real(self.as_real().atan()),
         }
     }
     pub fn exp(&self) -> Value {
@@ -3878,6 +3722,7 @@ impl Value {
                     None => t,
                 }
             }
+            Value::Rational { .. } => Value::Real(self.as_real().exp()),
         }
     }
     pub fn log(&self) -> Value {
@@ -3897,6 +3742,7 @@ impl Value {
                     None => t,
                 }
             }
+            Value::Rational { .. } => Value::Real(self.as_real()).log(),
         }
     }
     pub fn sqrt(&self) -> Value {
@@ -3928,6 +3774,7 @@ impl Value {
                     None => t,
                 }
             }
+            Value::Rational { .. } => Value::Real(self.as_real().sqrt()),
         }
     }
     pub fn pow(&self, p: &Value) -> Value {
@@ -3942,6 +3789,7 @@ impl Value {
                 }
                 Value::Int(i) => Value::Real(e.powf(*i as f64)),
                 Value::Complex(_) => Value::Complex(Complex64::from(e)).pow(p),
+                Value::Rational { .. } => self.pow(&Value::Real(p.as_real())),
             },
             Value::Int(e) => match p {
                 Value::Real(r) => {
@@ -3965,33 +3813,42 @@ impl Value {
                     }
                 }
                 Value::Complex(_) => Value::Complex(Complex64::from(*e as f64)).pow(p),
+                Value::Rational { .. } => self.pow(&Value::Real(p.as_real())),
             },
             Value::Complex(e) => {
                 let t = match p {
                     Value::Real(r) => Value::Complex(e.powf(*r)),
                     Value::Int(r) => Value::Complex(e.powf(*r as f64)),
                     Value::Complex(r) => Value::Complex(e.powc(*r)),
+                    Value::Rational { .. } => self.pow(&Value::Real(p.as_real())),
                 };
                 match t.opt_complex() {
                     Some(v) => v,
                     None => t,
                 }
             }
+            Value::Rational {
+                numerator,
+                denominator,
+            } => {
+                if let Value::Int(i) = p {
+                    if *i >= 0 {
+                        return _rational(numerator.pow(*i as u32), denominator.pow(*i as u32));
+                    }
+                }
+                Value::Real(self.as_real()).pow(p)
+            }
         }
     }
     pub fn rcp(&self) -> Value {
         match self {
             Value::Real(e) => Value::Real(1.0 / e),
-            Value::Int(e) => {
-                let t = 1.0 / (*e as f64);
-                let d = t.floor() - t;
-                if (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&d) {
-                    Value::Int(t as i64)
-                } else {
-                    Value::Real(t)
-                }
-            }
+            Value::Int(e) => _rational(1, *e),
             Value::Complex(e) => Value::Complex(1.0 / e),
+            Value::Rational {
+                numerator,
+                denominator,
+            } => _rational(*denominator, *numerator),
         }
     }
     pub fn sign(&self) -> Value {
@@ -4015,6 +3872,24 @@ impl Value {
                 }
             }
             Value::Complex(_) => *self,
+            Value::Rational {
+                numerator,
+                denominator,
+            } => {
+                if *numerator > 0 {
+                    if *denominator > 0 {
+                        Value::Int(1)
+                    } else {
+                        Value::Int(-1)
+                    }
+                } else if *numerator == 0 {
+                    Value::Int(0)
+                } else if *denominator > 0 {
+                    Value::Int(-1)
+                } else {
+                    Value::Int(1)
+                }
+            }
         }
     }
 
@@ -4026,6 +3901,7 @@ impl Value {
                 (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.re)
                     && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im)
             }
+            Value::Rational { numerator, .. } => *numerator == 0,
         }
     }
     pub fn is_one(&self) -> bool {
@@ -4036,6 +3912,10 @@ impl Value {
                 (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&(c.re - 1.0))
                     && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im)
             }
+            Value::Rational {
+                numerator,
+                denominator,
+            } => *numerator == *denominator,
         }
     }
     pub fn is_minus_one(&self) -> bool {
@@ -4046,6 +3926,10 @@ impl Value {
                 (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&(c.re + 1.0))
                     && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im)
             }
+            Value::Rational {
+                numerator,
+                denominator,
+            } => *numerator == -denominator,
         }
     }
 
@@ -4057,8 +3941,10 @@ impl Value {
                 (c.re < 0.0 && c.im < SYMEXPR_EPSILON && c.im > -SYMEXPR_EPSILON)
                     || (c.im < 0.0 && c.re < SYMEXPR_EPSILON && c.re > -SYMEXPR_EPSILON)
             }
+            Value::Rational { .. } => self.sign() == Value::Int(-1),
         }
     }
+
     pub fn opt_complex(&self) -> Option<Value> {
         match self {
             Value::Complex(c) => {
@@ -4125,16 +4011,46 @@ impl Add for Value {
                 Value::Real(r) => Value::Real(l + r),
                 Value::Int(r) => Value::Real(l + r as f64),
                 Value::Complex(r) => Value::Complex(l + r),
+                Value::Rational {
+                    numerator,
+                    denominator,
+                } => Value::Real((l * denominator as f64 + numerator as f64) / denominator as f64),
             },
             Value::Int(l) => match rhs {
                 Value::Real(r) => Value::Real(l as f64 + r),
                 Value::Int(r) => Value::Int(l + r),
                 Value::Complex(r) => Value::Complex(l as f64 + r),
+                Value::Rational {
+                    numerator,
+                    denominator,
+                } => _rational(l * denominator + numerator, denominator),
             },
             Value::Complex(l) => match rhs {
                 Value::Real(r) => Value::Complex(l + r),
                 Value::Int(r) => Value::Complex(l + r as f64),
                 Value::Complex(r) => Value::Complex(l + r),
+                Value::Rational {
+                    numerator,
+                    denominator,
+                } => {
+                    Value::Complex((l * denominator as f64 + numerator as f64) / denominator as f64)
+                }
+            },
+            Value::Rational {
+                numerator,
+                denominator,
+            } => match rhs {
+                Value::Real(r) => {
+                    Value::Real((numerator as f64 + r * denominator as f64) / denominator as f64)
+                }
+                Value::Int(r) => _rational(numerator + r * denominator, denominator),
+                Value::Complex(r) => {
+                    Value::Complex((numerator as f64 + r * denominator as f64) / denominator as f64)
+                }
+                Value::Rational {
+                    numerator: rn,
+                    denominator: rd,
+                } => _rational(rd * numerator + denominator * rn, denominator * rd),
             },
         };
         match t.opt_complex() {
@@ -4159,16 +4075,46 @@ impl Sub for Value {
                 Value::Real(r) => Value::Real(l - r),
                 Value::Int(r) => Value::Real(l - r as f64),
                 Value::Complex(r) => Value::Complex(l - r),
+                Value::Rational {
+                    numerator,
+                    denominator,
+                } => Value::Real((l * denominator as f64 - numerator as f64) / denominator as f64),
             },
             Value::Int(l) => match rhs {
                 Value::Real(r) => Value::Real(l as f64 - r),
                 Value::Int(r) => Value::Int(l - r),
                 Value::Complex(r) => Value::Complex(l as f64 - r),
+                Value::Rational {
+                    numerator,
+                    denominator,
+                } => _rational(l * denominator - numerator, denominator),
             },
             Value::Complex(l) => match rhs {
                 Value::Real(r) => Value::Complex(l - r),
                 Value::Int(r) => Value::Complex(l - r as f64),
                 Value::Complex(r) => Value::Complex(l - r),
+                Value::Rational {
+                    numerator,
+                    denominator,
+                } => {
+                    Value::Complex((l * denominator as f64 - numerator as f64) / denominator as f64)
+                }
+            },
+            Value::Rational {
+                numerator,
+                denominator,
+            } => match rhs {
+                Value::Real(r) => {
+                    Value::Real((numerator as f64 - r * denominator as f64) / denominator as f64)
+                }
+                Value::Int(r) => _rational(numerator - r * denominator, denominator),
+                Value::Complex(r) => {
+                    Value::Complex((numerator as f64 - r * denominator as f64) / denominator as f64)
+                }
+                Value::Rational {
+                    numerator: rn,
+                    denominator: rd,
+                } => _rational(rd * numerator - denominator * rn, denominator * rd),
             },
         };
         match t.opt_complex() {
@@ -4193,16 +4139,40 @@ impl Mul for Value {
                 Value::Real(r) => Value::Real(l * r),
                 Value::Int(r) => Value::Real(l * r as f64),
                 Value::Complex(r) => Value::Complex(l * r),
+                Value::Rational {
+                    numerator,
+                    denominator,
+                } => Value::Real((l * numerator as f64) / denominator as f64),
             },
             Value::Int(l) => match rhs {
                 Value::Real(r) => Value::Real(l as f64 * r),
                 Value::Int(r) => Value::Int(l * r),
                 Value::Complex(r) => Value::Complex(l as f64 * r),
+                Value::Rational {
+                    numerator,
+                    denominator,
+                } => _rational(l * numerator, denominator),
             },
             Value::Complex(l) => match rhs {
                 Value::Real(r) => Value::Complex(l * r),
                 Value::Int(r) => Value::Complex(l * r as f64),
                 Value::Complex(r) => Value::Complex(l * r),
+                Value::Rational {
+                    numerator,
+                    denominator,
+                } => Value::Complex((l * numerator as f64) / denominator as f64),
+            },
+            Value::Rational {
+                numerator,
+                denominator,
+            } => match rhs {
+                Value::Real(r) => Value::Real((numerator as f64 * r) / denominator as f64),
+                Value::Int(r) => _rational(numerator * r, denominator),
+                Value::Complex(r) => Value::Complex((numerator as f64 * r) / denominator as f64),
+                Value::Rational {
+                    numerator: rn,
+                    denominator: rd,
+                } => _rational(numerator * rn, denominator * rd),
             },
         };
         match t.opt_complex() {
@@ -4227,6 +4197,10 @@ impl Div for Value {
                 Value::Real(r) => Value::Real(l / r),
                 Value::Int(r) => Value::Real(l / r as f64),
                 Value::Complex(r) => Value::Complex(l / r),
+                Value::Rational {
+                    numerator,
+                    denominator,
+                } => Value::Real(l * denominator as f64 / numerator as f64),
             },
             Value::Int(l) => {
                 if rhs.is_zero() {
@@ -4244,12 +4218,32 @@ impl Div for Value {
                         }
                     }
                     Value::Complex(r) => Value::Complex(l as f64 / r),
+                    Value::Rational {
+                        numerator,
+                        denominator,
+                    } => _rational(l * denominator, numerator),
                 }
             }
             Value::Complex(l) => match rhs {
                 Value::Real(r) => Value::Complex(l / r),
                 Value::Int(r) => Value::Complex(l / r as f64),
                 Value::Complex(r) => Value::Complex(l / r),
+                Value::Rational {
+                    numerator,
+                    denominator,
+                } => Value::Complex((l * denominator as f64) / numerator as f64),
+            },
+            Value::Rational {
+                numerator,
+                denominator,
+            } => match rhs {
+                Value::Real(r) => Value::Real(numerator as f64 / (denominator as f64 * r)),
+                Value::Int(r) => _rational(numerator, denominator * r),
+                Value::Complex(r) => Value::Complex(numerator as f64 / (denominator as f64 * r)),
+                Value::Rational {
+                    numerator: rn,
+                    denominator: rd,
+                } => _rational(numerator * rd, denominator * rn),
             },
         };
         match t.opt_complex() {
@@ -4273,6 +4267,10 @@ impl Neg for Value {
             Value::Real(v) => Value::Real(-v),
             Value::Int(v) => Value::Int(-v),
             Value::Complex(v) => Value::Complex(-v),
+            Value::Rational {
+                numerator,
+                denominator,
+            } => _rational(-numerator, denominator),
         }
     }
 }
@@ -4288,6 +4286,11 @@ impl PartialEq for Value {
                     (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
                         && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
                 }
+                Value::Rational {
+                    numerator,
+                    denominator,
+                } => (-SYMEXPR_EPSILON..SYMEXPR_EPSILON)
+                    .contains(&(e * *denominator as f64 - *numerator as f64)),
             },
             Value::Int(e) => match r {
                 Value::Int(rv) => e == rv,
@@ -4297,6 +4300,10 @@ impl PartialEq for Value {
                     (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
                         && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
                 }
+                Value::Rational {
+                    numerator,
+                    denominator,
+                } => e * *denominator == *numerator,
             },
             Value::Complex(e) => match r {
                 Value::Real(rv) => {
@@ -4314,6 +4321,31 @@ impl PartialEq for Value {
                     (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
                         && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
                 }
+                Value::Rational {
+                    numerator,
+                    denominator,
+                } => {
+                    let t = *e * *denominator as f64 - *numerator as f64;
+                    (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
+                        && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
+                }
+            },
+            Value::Rational {
+                numerator,
+                denominator,
+            } => match r {
+                Value::Int(rv) => *numerator == rv * *denominator,
+                Value::Real(rv) => (-SYMEXPR_EPSILON..SYMEXPR_EPSILON)
+                    .contains(&(*numerator as f64 - rv * *denominator as f64)),
+                Value::Complex(rv) => {
+                    let t = rv * *denominator as f64 - *numerator as f64;
+                    (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
+                        && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
+                }
+                Value::Rational {
+                    numerator: rn,
+                    denominator: rd,
+                } => *denominator * *rn == *numerator * *rd,
             },
         }
     }
@@ -4329,6 +4361,11 @@ impl PartialEq<f64> for Value {
                 (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
                     && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
             }
+            Value::Rational {
+                numerator,
+                denominator,
+            } => (-SYMEXPR_EPSILON..SYMEXPR_EPSILON)
+                .contains(&(*numerator as f64 - r * *denominator as f64)),
         }
     }
 }
@@ -4351,6 +4388,14 @@ impl PartialEq<Complex64> for Value {
                 (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
                     && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
             }
+            Value::Rational {
+                numerator,
+                denominator,
+            } => {
+                let t = r * *denominator as f64 - *numerator as f64;
+                (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
+                    && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
+            }
         }
     }
 }
@@ -4362,13 +4407,33 @@ impl PartialOrd for Value {
                 Value::Real(r) => l.partial_cmp(r),
                 Value::Int(r) => l.partial_cmp(&(*r as f64)),
                 Value::Complex(_) => None,
+                Value::Rational {
+                    numerator,
+                    denominator,
+                } => (l * *denominator as f64).partial_cmp(&(*numerator as f64)),
             },
             Value::Int(l) => match rhs {
                 Value::Real(r) => (*l as f64).partial_cmp(r),
                 Value::Int(r) => l.partial_cmp(r),
                 Value::Complex(_) => None,
+                Value::Rational {
+                    numerator,
+                    denominator,
+                } => (l * *denominator).partial_cmp(numerator),
             },
             Value::Complex(_) => None,
+            Value::Rational {
+                numerator,
+                denominator,
+            } => match rhs {
+                Value::Real(r) => (*numerator as f64).partial_cmp(&(r * *denominator as f64)),
+                Value::Int(r) => numerator.partial_cmp(&(r * *denominator)),
+                Value::Complex(_) => None,
+                Value::Rational {
+                    numerator: rn,
+                    denominator: rd,
+                } => (rd * *numerator).partial_cmp(&(rn * *denominator)),
+            },
         }
     }
 }
@@ -4411,9 +4476,9 @@ fn _gcd(a: u64, b: u64) -> u64 {
 }
 
 // make new integer rational number as Binary div
-fn _rational(numerator: i64, denominator: i64) -> SymbolExpr {
+fn _rational(numerator: i64, denominator: i64) -> Value {
     if numerator == 0 {
-        return SymbolExpr::Value(Value::Int(0));
+        return Value::Int(0);
     }
     let mut ret_n = numerator;
     let mut ret_d = denominator;
@@ -4426,8 +4491,8 @@ fn _rational(numerator: i64, denominator: i64) -> SymbolExpr {
         ret_n = -ret_n;
         ret_d = -ret_d;
     }
-    _div(
-        SymbolExpr::Value(Value::Int(ret_n)),
-        SymbolExpr::Value(Value::Int(ret_d)),
-    )
+    Value::Rational {
+        numerator: ret_n,
+        denominator: ret_d,
+    }
 }

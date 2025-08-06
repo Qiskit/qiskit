@@ -577,6 +577,19 @@ impl ParameterExpression {
                         Ok(SymbolExpr::Value(v))
                     }
                 }
+                Value::Rational {
+                    numerator,
+                    denominator,
+                } => {
+                    if *denominator == 0 {
+                        Err(ParameterError::BindingInf)
+                    } else {
+                        // TO DO : return Rational as is when pyo3 supports converting Python's Rational
+                        Ok(SymbolExpr::Value(Value::Real(
+                            *numerator as f64 / *denominator as f64,
+                        )))
+                    }
+                }
             },
             None => Ok(bound_expr),
         }?;
@@ -762,6 +775,10 @@ impl PyParameterExpression {
             Value::Real(r) => r.into_py_any(py),
             Value::Int(i) => i.into_py_any(py),
             Value::Complex(c) => c.into_py_any(py),
+            Value::Rational {
+                numerator,
+                denominator,
+            } => (numerator as f64 / denominator as f64).into_py_any(py),
         }
     }
 
@@ -911,6 +928,10 @@ impl PyParameterExpression {
                 Value::Real(r) => r.into_py_any(py),
                 Value::Int(i) => i.into_py_any(py),
                 Value::Complex(c) => c.into_py_any(py),
+                Value::Rational {
+                    numerator,
+                    denominator,
+                } => (*numerator as f64 / *denominator as f64).into_py_any(py),
             })
             .collect()
     }
@@ -1172,6 +1193,10 @@ impl PyParameterExpression {
                 Ok(rounded as i64)
             }
             Value::Int(i) => Ok(i),
+            Value::Rational {
+                numerator,
+                denominator,
+            } => Ok(numerator / denominator),
         }
     }
 
@@ -1188,6 +1213,10 @@ impl PyParameterExpression {
             }
             Value::Real(r) => Ok(r),
             Value::Int(i) => Ok(i as f64),
+            Value::Rational {
+                numerator,
+                denominator,
+            } => Ok(numerator as f64 / denominator as f64),
         }
     }
 
@@ -1196,6 +1225,10 @@ impl PyParameterExpression {
             Value::Complex(c) => Ok(c),
             Value::Real(r) => Ok(Complex64::new(r, 0.)),
             Value::Int(i) => Ok(Complex64::new(i as f64, 0.)),
+            Value::Rational {
+                numerator,
+                denominator,
+            } => Ok(Complex64::new(numerator as f64 / denominator as f64, 0.)),
         }
     }
 
@@ -1212,6 +1245,10 @@ impl PyParameterExpression {
                     Value::Complex(c) => py_hash.call1((c,))?.extract::<u64>(),
                     Value::Real(r) => py_hash.call1((r,))?.extract::<u64>(),
                     Value::Int(i) => py_hash.call1((i,))?.extract::<u64>(),
+                    Value::Rational {
+                        numerator,
+                        denominator,
+                    } => py_hash.call1((numerator, denominator))?.extract::<u64>(),
                 }
             }
             Err(_) => {
@@ -1676,6 +1713,12 @@ impl ParameterValueType {
                 Value::Int(i) => Some(ParameterValueType::Int(i)),
                 Value::Real(r) => Some(ParameterValueType::Float(r)),
                 Value::Complex(c) => Some(ParameterValueType::Complex(c)),
+                Value::Rational {
+                    numerator,
+                    denominator,
+                } => Some(ParameterValueType::Float(
+                    numerator as f64 / denominator as f64,
+                )),
             }
         } else if let SymbolExpr::Symbol(symbol) = expr {
             match symbol.index {
