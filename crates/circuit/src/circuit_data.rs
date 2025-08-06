@@ -2880,21 +2880,45 @@ impl CircuitData {
     }
 
     pub fn circuit_draw(&self) -> String {
-        //"12346 vewfdvch.".to_string()
-        let mut res = String::new();
-        res.push_str(& format!("{} Qubits and {} Instructions\n",
-            self.num_qubits(), self.data.len()));
-        for (i, inst) in self.data.iter().enumerate() {
-            let qubits = self.qargs_interner.get(inst.qubits);
+        // let mut res = String::new();
+        // res.push_str(& format!("{} Qubits and {} Instructions\n",
+        //     self.num_qubits(), self.data.len()));
+        // for (i, inst) in self.data.iter().enumerate() {
+        //     let qubits = self.qargs_interner.get(inst.qubits);
         
-        // Print qubit indices as numbers
-            let qubit_indices: Vec<String> = qubits.iter()
-                .map(|qubit| qubit.0.to_string()) // Qubit wraps a u32 index
-                .collect();
+        // // Print qubit indices as numbers
+        //     let qubit_indices: Vec<String> = qubits.iter()
+        //         .map(|qubit| qubit.0.to_string())
+        //         .collect();
 
-            res.push_str(&format!("{}: {} {:?} {:?}\n", i, inst.op.name(), qubits, inst.clbits));
+        //     res.push_str(&format!("{}: {} {:?} {:?}\n", i, inst.op.name(), qubits, inst.clbits));
+        // }
+        // return res;
+        let ct_qubits = self.qubits.len();
+        let ct_clbits = self.clbits.len();
+        // vector of strings with capacity (qubits + clbit) x 3
+        let mut res = vec![" ".to_string(); (ct_qubits + ct_clbits) * 3];
+        
+        // concatinating all strings into one string with \n as separator
+        for i in 0..ct_qubits {
+            if (i-1) % 3 == 0 {
+                res[i].push_str(format!("q_{}", i).as_str());
+            } else {
+                res[i].push_str("   ");
+            }
         }
-        return res;
+
+        for i in 0..ct_clbits {
+            if (i-1) % 3 == 0 {
+                res[ct_qubits + i].push_str(format!("c_{}", i).as_str());
+            } else {
+                res[ct_qubits + i].push_str("   ");
+            }
+        }
+       
+        //collect all strings and return
+        res.iter().map(|s| s.as_str()).collect::<Vec<&str>>().join("\n")
+        
     }
 
     /// Return a variable given its unique [Var] index in the circuit or
