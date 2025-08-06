@@ -540,7 +540,7 @@ class TestEvolutionGate(QiskitTestCase):
         evo = PauliEvolutionGate(Z, time=time)
 
         angle = evo.definition.data[0].operation.params[0]
-        expected = (2.0 * time).sympify()
+        expected = (2 * time).sympify()
         self.assertEqual(expected, angle.sympify())
 
     def test_zero(self):

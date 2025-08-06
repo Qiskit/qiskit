@@ -42,6 +42,15 @@ def synth_mcmt_vchain(
         q_6: ─────┤ X ├──■────■──┤ X ├─────
                   └───┘          └───┘
 
+    Args:
+        gate: Base gate to be applied to the targets.
+        num_ctrl_qubits: Number of control qubits.
+        num_target_qubits: Number of target qubits.
+        ctrl_state: Optional control state as an integer.
+
+    Returns:
+        The synthesized circuit for the MCMT gate.
+
     """
     if gate.num_qubits != 1:
         raise ValueError("Only single qubit gates are supported as input.")

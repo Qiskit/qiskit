@@ -23,6 +23,7 @@ use pyo3::types::{PyList, PySet};
 use pyo3::{import_exception, intern, PyTraverseError, PyVisit};
 
 use crate::imports::UUID;
+use crate::parameter::parameter_expression::{PyParameter, PyParameterExpression};
 
 import_exception!(qiskit.circuit, CircuitError);
 
@@ -80,7 +81,20 @@ impl ParameterUuid {
     /// Extract a UUID from a Python-space `Parameter` object. This assumes that the object is known
     /// to be a parameter.
     pub fn from_parameter(ob: &Bound<PyAny>) -> PyResult<Self> {
-        ob.getattr(intern!(ob.py(), "_uuid"))?.extract()
+        let uuid = if let Ok(param) = ob.downcast::<PyParameter>() {
+            param.borrow().symbol_ref().uuid.as_u128()
+        } else if let Ok(expr) = ob.downcast::<PyParameterExpression>() {
+            let expr_borrowed = expr.borrow();
+            // We know the ParameterExpression is in fact representing a single Symbol
+            let symbol = &expr_borrowed.inner.try_to_symbol()?;
+            symbol.uuid.as_u128()
+        } else {
+            return Err(PyTypeError::new_err(
+                "Could not downcast to Parameter or Expression",
+            ));
+        };
+
+        Ok(Self(uuid))
     }
 }
 

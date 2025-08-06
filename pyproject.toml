@@ -103,6 +103,7 @@ clifford = "qiskit.transpiler.passes.synthesis.clifford_unitary_synth_plugin:Cli
 "mcmt.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCMTSynthesisDefault"
 "mcmt.noaux" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCMTSynthesisNoAux"
 "mcmt.vchain" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCMTSynthesisVChain"
+"mcmt.xgate" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCMTSynthesisXGate"
 "permutation.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:BasicSynthesisPermutation"
 "permutation.kms" = "qiskit.transpiler.passes.synthesis.hls_plugins:KMSSynthesisPermutation"
 "permutation.basic" = "qiskit.transpiler.passes.synthesis.hls_plugins:BasicSynthesisPermutation"

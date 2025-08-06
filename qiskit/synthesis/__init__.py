@@ -127,6 +127,7 @@ Multi Controlled Synthesis
 ==========================
 
 .. autofunction:: synth_mcmt_vchain
+.. autofunction:: synth_mcmt_xgate
 .. autofunction:: synth_mcx_1_clean_kg24
 .. autofunction:: synth_mcx_1_dirty_kg24
 .. autofunction:: synth_mcx_2_clean_kg24
@@ -225,6 +226,7 @@ from .two_qubit.two_qubit_decompose import (
 )
 from .multi_controlled import (
     synth_mcmt_vchain,
+    synth_mcmt_xgate,
     synth_mcx_1_clean_kg24,
     synth_mcx_1_dirty_kg24,
     synth_mcx_2_clean_kg24,
