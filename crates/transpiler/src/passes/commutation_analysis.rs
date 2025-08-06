@@ -21,6 +21,7 @@ use pyo3::prelude::*;
 
 use pyo3::types::{PyDict, PyList};
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
+use qiskit_circuit::instruction::IntoInstructionView;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 // Custom types to store the commutation sets and node indices,
@@ -85,8 +86,14 @@ pub fn analyze_commutations(
                     {
                         let op1 = packed_inst0.op.view();
                         let op2 = packed_inst1.op.view();
-                        let params1 = packed_inst0.params_view();
-                        let params2 = packed_inst1.params_view();
+
+                        if packed_inst0.try_view_control_flow().is_some()
+                            || packed_inst1.try_view_control_flow().is_some()
+                        {
+                            all_commute = false;
+                            break;
+                        }
+
                         let qargs1 = dag.get_qargs(packed_inst0.qubits);
                         let qargs2 = dag.get_qargs(packed_inst1.qubits);
                         let cargs1 = dag.get_cargs(packed_inst0.clbits);
@@ -95,11 +102,11 @@ pub fn analyze_commutations(
                         all_commute = commutation_checker.commute_inner(
                             py,
                             &op1,
-                            params1,
+                            packed_inst0.params.as_deref(),
                             qargs1,
                             cargs1,
                             &op2,
-                            params2,
+                            packed_inst1.params.as_deref(),
                             qargs2,
                             cargs2,
                             MAX_NUM_QUBITS,

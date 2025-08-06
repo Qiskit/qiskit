@@ -18,6 +18,7 @@ import typing
 
 from qiskit.circuit.delay import Delay
 from qiskit.circuit.exceptions import CircuitError
+from qiskit._accelerate.circuit import ControlFlowType
 from .control_flow import ControlFlowOp
 
 if typing.TYPE_CHECKING:
@@ -39,6 +40,8 @@ class BoxOp(ControlFlowOp):
 
     Typically you create this by using the builder-interface form of :meth:`.QuantumCircuit.box`.
     """
+
+    _control_flow_type = ControlFlowType.Box
 
     def __init__(
         self,
