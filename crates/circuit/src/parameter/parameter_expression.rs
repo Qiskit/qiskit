@@ -132,8 +132,11 @@ impl fmt::Display for ParameterExpression {
     }
 }
 
-// This needs to be implemented manually, since PyO3 does not provide this conversion
-// for subclasses.
+// This needs to be implemented manually, because PyO3 does not provide built-in
+// conversions for the subclasses of ParameterExpression in Python. Specifically
+// the Python classes Parameter and ParameterVector are subclasses of
+// ParameterExpression and the default trait impl would not handle the specialization
+// there.
 impl<'py> IntoPyObject<'py> for ParameterExpression {
     type Target = PyParameterExpression;
     type Output = Bound<'py, Self::Target>;
