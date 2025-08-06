@@ -23,24 +23,47 @@ use numpy::PyReadonlyArray2;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::types::{PyBool, PyDict, PySequence, PyTuple};
+use pyo3::types::{PyBool, PyDict, PyTuple};
 use pyo3::BoundObject;
 
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_node::DAGOpNode;
 use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::object_registry::ObjectRegistry;
-use qiskit_circuit::operations::OperationRef::{Gate as PyGateType, Operation as PyOperationType};
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, StandardGate, STANDARD_GATE_SIZE,
 };
 use qiskit_circuit::{Clbit, Qubit};
+use qiskit_quantum_info::unitary_compose;
+use thiserror::Error;
 
 use crate::gate_metrics;
 use crate::standard_gates_commutations;
 use crate::QiskitError;
 
-use qiskit_quantum_info::unitary_compose;
+#[derive(Error, Debug)]
+pub enum CommutationError {
+    #[error("Einsum error: {0}")]
+    EinsumError(&'static str),
+    #[error("First instruction must have at most as many qubits as the second instruction")]
+    FirstInstructionTooLarge,
+    #[error("Invalid hash value: NaN or inf")]
+    HashingNaN,
+    #[error("Invalid hash type: parameterized")]
+    HashingParameter,
+}
+
+impl From<CommutationError> for PyErr {
+    fn from(value: CommutationError) -> Self {
+        match value {
+            // For backward compatibility we keep these two errors as QiskitErrors
+            CommutationError::HashingParameter | CommutationError::FirstInstructionTooLarge => {
+                QiskitError::new_err(value.to_string())
+            }
+            _ => PyRuntimeError::new_err(value.to_string()),
+        }
+    }
+}
 
 const fn build_supported_ops() -> [bool; STANDARD_GATE_SIZE] {
     let mut lut = [false; STANDARD_GATE_SIZE];
@@ -98,7 +121,10 @@ const fn build_supported_rotations() -> [Option<Option<StandardGate>>; STANDARD_
 static SUPPORTED_ROTATIONS: [Option<Option<StandardGate>>; STANDARD_GATE_SIZE] =
     build_supported_rotations();
 
-fn get_bits<T>(bits1: &Bound<PyTuple>, bits2: &Bound<PyTuple>) -> PyResult<(Vec<T>, Vec<T>)>
+fn get_bits_from_py<T>(
+    py_bits1: &Bound<'_, PyTuple>,
+    py_bits2: &Bound<'_, PyTuple>,
+) -> PyResult<(Vec<T>, Vec<T>)>
 where
     T: From<u32> + Copy,
     u32: From<T>,
@@ -107,16 +133,16 @@ where
     // larger refactor of the commutation checker.
     let mut registry: ObjectRegistry<T, PyObjectAsKey> = ObjectRegistry::new();
 
-    for bit in bits1.iter().chain(bits2.iter()) {
+    for bit in py_bits1.iter().chain(py_bits2.iter()) {
         registry.add(bit.into(), false)?;
     }
 
     Ok((
         registry
-            .map_objects(bits1.iter().map(|bit| bit.into()))?
+            .map_objects(py_bits1.iter().map(|bit| bit.into()))?
             .collect(),
         registry
-            .map_objects(bits2.iter().map(|bit| bit.into()))?
+            .map_objects(py_bits2.iter().map(|bit| bit.into()))?
             .collect(),
     ))
 }
@@ -144,14 +170,8 @@ impl CommutationChecker {
         cache_max_entries: usize,
         gates: Option<HashSet<String>>,
     ) -> Self {
-        // Initialize sets before they are used in the commutation checker
-        CommutationChecker {
-            library: CommutationLibrary::new(standard_gate_commutations),
-            cache: HashMap::new(),
-            cache_max_entries,
-            current_cache_entries: 0,
-            gates,
-        }
+        let library = CommutationLibrary::py_new(standard_gate_commutations);
+        CommutationChecker::new(Some(library), cache_max_entries, gates)
     }
 
     #[pyo3(signature=(op1, op2, max_num_qubits=3, approximation_degree=1.))]
@@ -163,17 +183,16 @@ impl CommutationChecker {
         max_num_qubits: u32,
         approximation_degree: f64,
     ) -> PyResult<bool> {
-        let (qargs1, qargs2) = get_bits::<Qubit>(
+        let (qargs1, qargs2) = get_bits_from_py::<Qubit>(
             op1.instruction.qubits.bind(py),
             op2.instruction.qubits.bind(py),
         )?;
-        let (cargs1, cargs2) = get_bits::<Clbit>(
+        let (cargs1, cargs2) = get_bits_from_py::<Clbit>(
             op1.instruction.clbits.bind(py),
             op2.instruction.clbits.bind(py),
         )?;
 
-        self.commute_inner(
-            py,
+        Ok(self.commute(
             &op1.instruction.operation.view(),
             &op1.instruction.params,
             &qargs1,
@@ -184,33 +203,26 @@ impl CommutationChecker {
             &cargs2,
             max_num_qubits,
             approximation_degree,
-        )
+        )?)
     }
 
-    #[pyo3(signature=(op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits=3, approximation_degree=1.))]
+    #[pyo3(name="commute", signature=(op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits=3, approximation_degree=1.))]
     #[allow(clippy::too_many_arguments)]
-    fn commute(
+    fn py_commute(
         &mut self,
-        py: Python,
         op1: OperationFromPython,
-        qargs1: Option<&Bound<PySequence>>,
-        cargs1: Option<&Bound<PySequence>>,
+        qargs1: &Bound<'_, PyTuple>,
+        cargs1: &Bound<'_, PyTuple>,
         op2: OperationFromPython,
-        qargs2: Option<&Bound<PySequence>>,
-        cargs2: Option<&Bound<PySequence>>,
+        qargs2: &Bound<'_, PyTuple>,
+        cargs2: &Bound<'_, PyTuple>,
         max_num_qubits: u32,
         approximation_degree: f64,
     ) -> PyResult<bool> {
-        let qargs1 = qargs1.map_or_else(|| Ok(PyTuple::empty(py)), PySequenceMethods::to_tuple)?;
-        let cargs1 = cargs1.map_or_else(|| Ok(PyTuple::empty(py)), PySequenceMethods::to_tuple)?;
-        let qargs2 = qargs2.map_or_else(|| Ok(PyTuple::empty(py)), PySequenceMethods::to_tuple)?;
-        let cargs2 = cargs2.map_or_else(|| Ok(PyTuple::empty(py)), PySequenceMethods::to_tuple)?;
+        let (qargs1, qargs2) = get_bits_from_py::<Qubit>(qargs1, qargs2)?;
+        let (cargs1, cargs2) = get_bits_from_py::<Clbit>(cargs1, cargs2)?;
 
-        let (qargs1, qargs2) = get_bits::<Qubit>(&qargs1, &qargs2)?;
-        let (cargs1, cargs2) = get_bits::<Clbit>(&cargs1, &cargs2)?;
-
-        self.commute_inner(
-            py,
+        Ok(self.commute(
             &op1.operation.view(),
             &op1.params,
             &qargs1,
@@ -221,7 +233,7 @@ impl CommutationChecker {
             &cargs2,
             max_num_qubits,
             approximation_degree,
-        )
+        )?)
     }
 
     /// Return the current number of cache entries
@@ -276,10 +288,32 @@ impl CommutationChecker {
 }
 
 impl CommutationChecker {
+    /// Create a new commutation checker.
+    ///
+    /// # Arguments
+    ///
+    /// - `library`: An optional existing [CommutationLibrary] with cached entries.
+    /// - `cache_max_entries`: The maximum size of the cache.
+    /// - `gates`: An optional set of gates (by name) to check commutations for. If `None`,
+    ///   commutation is cached and checked for all gates.
+    pub fn new(
+        library: Option<CommutationLibrary>,
+        cache_max_entries: usize,
+        gates: Option<HashSet<String>>,
+    ) -> Self {
+        // Initialize sets before they are used in the commutation checker
+        CommutationChecker {
+            library: library.unwrap_or(CommutationLibrary { library: None }),
+            cache: HashMap::new(),
+            cache_max_entries,
+            current_cache_entries: 0,
+            gates,
+        }
+    }
+
     #[allow(clippy::too_many_arguments)]
-    pub fn commute_inner(
+    pub fn commute(
         &mut self,
-        py: Python,
         op1: &OperationRef,
         params1: &[Param],
         qargs1: &[Qubit],
@@ -290,7 +324,7 @@ impl CommutationChecker {
         cargs2: &[Clbit],
         max_num_qubits: u32,
         approximation_degree: f64,
-    ) -> PyResult<bool> {
+    ) -> Result<bool, CommutationError> {
         // If the average gate infidelity is below this tolerance, they commute. The tolerance
         // is set to max(1e-12, 1 - approximation_degree), to account for roundoffs and for
         // consistency with other places in Qiskit.
@@ -372,7 +406,6 @@ impl CommutationChecker {
 
         if !check_cache {
             return self.commute_matmul(
-                py,
                 first_op,
                 first_params,
                 first_qargs,
@@ -407,7 +440,6 @@ impl CommutationChecker {
 
         // Perform matrix multiplication to determine commutation
         let is_commuting = self.commute_matmul(
-            py,
             first_op,
             first_params,
             first_qargs,
@@ -442,7 +474,6 @@ impl CommutationChecker {
     #[allow(clippy::too_many_arguments)]
     fn commute_matmul(
         &self,
-        py: Python,
         first_op: &OperationRef,
         first_params: &[Param],
         first_qargs: &[Qubit],
@@ -450,7 +481,7 @@ impl CommutationChecker {
         second_params: &[Param],
         second_qargs: &[Qubit],
         tol: f64,
-    ) -> PyResult<bool> {
+    ) -> Result<bool, CommutationError> {
         // Compute relative positioning of qargs of the second gate to the first gate.
         // Since the qargs come out the same BitData, we already know there are no accidential
         // bit-duplications, but this code additionally maps first_qargs to [0..n] and then
@@ -476,16 +507,14 @@ impl CommutationChecker {
         let second_qarg: Vec<Qubit> = second_qargs.iter().map(|q| qarg[q]).collect();
 
         if first_qarg.len() > second_qarg.len() {
-            return Err(QiskitError::new_err(
-                "first instructions must have at most as many qubits as the second instruction",
-            ));
+            return Err(CommutationError::FirstInstructionTooLarge);
         };
-        let first_mat = match get_matrix(py, first_op, first_params)? {
+        let first_mat = match get_matrix(first_op, first_params) {
             Some(matrix) => matrix,
             None => return Ok(false),
         };
 
-        let second_mat = match get_matrix(py, second_op, second_params)? {
+        let second_mat = match get_matrix(second_op, second_params) {
             Some(matrix) => matrix,
             None => return Ok(false),
         };
@@ -514,7 +543,7 @@ impl CommutationChecker {
             false,
         ) {
             Ok(matrix) => matrix,
-            Err(e) => return Err(PyRuntimeError::new_err(e)),
+            Err(e) => return Err(CommutationError::EinsumError(e)),
         };
         let op21 = match unitary_compose::compose(
             &first_mat.view(),
@@ -523,7 +552,7 @@ impl CommutationChecker {
             true,
         ) {
             Ok(matrix) => matrix,
-            Err(e) => return Err(PyRuntimeError::new_err(e)),
+            Err(e) => return Err(CommutationError::EinsumError(e)),
         };
         let (fid, phase) = gate_metrics::gate_fidelity(&op12.view(), &op21.view(), None);
 
@@ -591,29 +620,42 @@ fn commutation_precheck(
     None
 }
 
-fn get_matrix(
-    py: Python,
-    operation: &OperationRef,
-    params: &[Param],
-) -> PyResult<Option<Array2<Complex64>>> {
-    match operation.matrix(params) {
-        Some(matrix) => Ok(Some(matrix)),
-        None => match operation {
-            PyGateType(gate) => Ok(Some(matrix_via_operator(py, &gate.gate)?)),
-            PyOperationType(op) => Ok(Some(matrix_via_operator(py, &op.operation)?)),
-            _ => Ok(None),
-        },
+fn get_matrix(operation: &OperationRef, params: &[Param]) -> Option<Array2<Complex64>> {
+    if let Some(matrix) = operation.matrix(params) {
+        Some(matrix)
+    } else {
+        match operation {
+            OperationRef::Gate(gate) => Python::with_gil(|py| -> Option<_> {
+                Some(
+                    QI_OPERATOR
+                        .get_bound(py)
+                        .call1((gate.gate.clone_ref(py),))
+                        .ok()?
+                        .getattr(intern!(py, "data"))
+                        .ok()?
+                        .extract::<PyReadonlyArray2<Complex64>>()
+                        .ok()?
+                        .as_array()
+                        .to_owned(),
+                )
+            }),
+            OperationRef::Operation(operation) => Python::with_gil(|py| -> Option<_> {
+                Some(
+                    QI_OPERATOR
+                        .get_bound(py)
+                        .call1((operation.operation.clone_ref(py),))
+                        .ok()?
+                        .getattr(intern!(py, "data"))
+                        .ok()?
+                        .extract::<PyReadonlyArray2<Complex64>>()
+                        .ok()?
+                        .as_array()
+                        .to_owned(),
+                )
+            }),
+            _ => None,
+        }
     }
-}
-
-fn matrix_via_operator(py: Python, py_obj: &PyObject) -> PyResult<Array2<Complex64>> {
-    Ok(QI_OPERATOR
-        .get_bound(py)
-        .call1((py_obj,))?
-        .getattr(intern!(py, "data"))?
-        .extract::<PyReadonlyArray2<Complex64>>()?
-        .as_array()
-        .to_owned())
 }
 
 fn is_parameterized(params: &[Param]) -> bool {
@@ -729,7 +771,7 @@ impl CommutationLibrary {
 impl CommutationLibrary {
     #[new]
     #[pyo3(signature=(py_any=None))]
-    fn new(py_any: Option<Bound<PyAny>>) -> Self {
+    fn py_new(py_any: Option<Bound<PyAny>>) -> Self {
         match py_any {
             Some(pyob) => CommutationLibrary {
                 library: pyob
@@ -861,7 +903,7 @@ impl std::hash::Hash for ParameterKey {
 
 impl Eq for ParameterKey {}
 
-fn hashable_params(params: &[Param]) -> PyResult<SmallVec<[ParameterKey; 3]>> {
+fn hashable_params(params: &[Param]) -> Result<SmallVec<[ParameterKey; 3]>, CommutationError> {
     params
         .iter()
         .map(|x| {
@@ -871,16 +913,12 @@ fn hashable_params(params: &[Param]) -> PyResult<SmallVec<[ParameterKey; 3]>> {
                 // the cache HashMap don't take these into account. So return
                 // an error to Python if we encounter these values.
                 if x.is_nan() || x.is_infinite() {
-                    Err(PyRuntimeError::new_err(
-                        "Can't hash parameters that are infinite or NaN",
-                    ))
+                    Err(CommutationError::HashingNaN)
                 } else {
                     Ok(ParameterKey(*x))
                 }
             } else {
-                Err(QiskitError::new_err(
-                    "Unable to hash a non-float instruction parameter.",
-                ))
+                Err(CommutationError::HashingParameter)
             }
         })
         .collect()
