@@ -22,7 +22,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain:  nightly-2024-05-24
+          toolchain:  nightly-2025-08-10
           components: miri
 
       - name: Prepare Miri
