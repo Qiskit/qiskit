@@ -34,6 +34,7 @@ use crate::operations::{
     StandardInstruction, StandardInstructionType, UnitaryGate,
 };
 use crate::packed_instruction::PackedOperation;
+use crate::parameter::parameter_expression::ParameterExpression;
 
 /// A single instruction in a :class:`.QuantumCircuit`, comprised of the :attr:`operation` and
 /// various operands.
@@ -379,16 +380,19 @@ impl CircuitInstruction {
                 let eq = match left {
                     Param::Float(left) => match right {
                         Param::Float(right) => left == right,
-                        Param::ParameterExpression(right) | Param::Obj(right) => {
-                            right.bind(py).eq(left)?
+                        Param::ParameterExpression(right) => {
+                            &ParameterExpression::from_f64(*left) == right.as_ref()
                         }
+                        Param::Obj(right) => right.bind(py).eq(left)?,
                     },
-                    Param::ParameterExpression(left) | Param::Obj(left) => match right {
-                        Param::Float(right) => left.bind(py).eq(right)?,
-                        Param::ParameterExpression(right) | Param::Obj(right) => {
-                            left.bind(py).eq(right)?
+                    Param::ParameterExpression(left) => match right {
+                        Param::Float(right) => {
+                            left.as_ref() == &ParameterExpression::from_f64(*right)
                         }
+                        Param::ParameterExpression(right) => left == right,
+                        Param::Obj(right) => right.bind(py).eq(left.as_ref().clone())?,
                     },
+                    Param::Obj(left) => left.bind(py).eq(right)?,
                 };
                 if !eq {
                     return Ok(false);
