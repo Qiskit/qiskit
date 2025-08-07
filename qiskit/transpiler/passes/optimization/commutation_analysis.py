@@ -27,9 +27,9 @@ class CommutationAnalysis(AnalysisPass):
     Args:
         _commutation_checker: Optional commutation checker to use. If None,
             uses the default SessionCommutationChecker.
-        approximation_degree (float): If the average gate fidelity in between two operations
-            is above this number (up to ``1e-12``) they are assumed to commute.
-            Defaults to 1.0 (no approximation).
+        approximation_degree (float): Heuristic dial between 0.0 and 1.0 to control the degree of approximation.
+            0.0 means maximum supported approximation, 1.0 means no approximation (default, with a numerical tolerance of 1e-12).
+            For more details, see the documentation for RemoveIdentityEquivalent and related passes.
     """
 
     def __init__(self, *, _commutation_checker=None, approximation_degree=1.0):

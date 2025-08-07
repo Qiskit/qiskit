@@ -46,9 +46,9 @@ class CommutativeCancellation(TransformationPass):
             target (Target): The :class:`~.Target` representing the target backend, if both
                 ``basis_gates`` and ``target`` are specified then this argument will take
                 precedence and ``basis_gates`` will be ignored.
-            approximation_degree (float): If the average gate fidelity in between two operations
-                is above this number (up to ``1e-12``) they are assumed to commute.
-                Defaults to 1.0 (no approximation).
+            approximation_degree (float): Heuristic dial between 0.0 and 1.0 to control the degree of approximation.
+                0.0 means maximum supported approximation, 1.0 means no approximation (default, with a numerical tolerance of 1e-12).
+                For more details, see the documentation for RemoveIdentityEquivalent and related passes.
         """
         super().__init__()
         if basis_gates:
