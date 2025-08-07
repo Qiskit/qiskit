@@ -678,6 +678,10 @@ impl SymbolExpr {
     #[inline(always)]
     pub fn rational(&self) -> Option<(i64, i64)> {
         match self {
+            SymbolExpr::Value(Value::Rational {
+                numerator,
+                denominator,
+            }) => Some((*numerator, *denominator)),
             SymbolExpr::Binary { op, lhs, rhs } => match (op, lhs.as_ref(), rhs.as_ref()) {
                 (
                     BinaryOp::Div,
@@ -4208,15 +4212,7 @@ impl Div for Value {
                 }
                 match rhs {
                     Value::Real(r) => Value::Real(l as f64 / r),
-                    Value::Int(r) => {
-                        let t = l as f64 / r as f64;
-                        let d = t.floor() - t;
-                        if (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&d) {
-                            Value::Int(t as i64)
-                        } else {
-                            Value::Real(t)
-                        }
-                    }
+                    Value::Int(r) => _rational(l, r),
                     Value::Complex(r) => Value::Complex(l as f64 / r),
                     Value::Rational {
                         numerator,
