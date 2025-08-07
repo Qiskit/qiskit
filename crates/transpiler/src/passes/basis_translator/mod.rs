@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::sync::Arc;
+
 use compose_transforms::BasisTransformIn;
 use compose_transforms::BasisTransformOut;
 use compose_transforms::GateIdentifier;
@@ -685,9 +687,9 @@ fn replace_node(
                         let new_value: Param = {
                             let mut bind_dict = HashMap::new();
                             for key in param_obj.iter_symbols() {
-                                bind_dict.insert(key.clone(), parameter_map[&key].clone());
+                                bind_dict.insert(key.clone(), parameter_map[key].clone());
                             }
-                            let mut new_value: ParameterExpression;
+                            let mut new_value: Arc<ParameterExpression>;
                             if bind_dict
                                 .values()
                                 .any(|param| matches!(param, Param::ParameterExpression(_)))
@@ -698,20 +700,22 @@ fn replace_node(
                                         continue;
                                     };
                                     new_value = if let Ok(value) = val.try_to_value(false) {
-                                        let map: HashMap<Symbol, Value> =
-                                            [(symbol.clone(), value)].into_iter().collect();
-                                        new_value.bind(&map, false)?
+                                        let map: HashMap<&Symbol, Value> =
+                                            [(symbol, value)].into_iter().collect();
+                                        new_value.bind(&map, false)?.into()
                                     } else {
                                         let map: HashMap<Symbol, ParameterExpression> =
-                                            [(symbol.clone(), val.clone())].into_iter().collect();
-                                        new_value.subs(&map, false)?
+                                            [(symbol.clone(), ParameterExpression::clone(val))]
+                                                .into_iter()
+                                                .collect();
+                                        new_value.subs(&map, false)?.into()
                                     }
                                 }
                             } else {
                                 let parsed_bind_dict = bind_dict
-                                    .into_iter()
+                                    .iter()
                                     .filter_map(|(key, param)| match param {
-                                        Param::Float(val) => Some(Ok((key, Value::Real(val)))),
+                                        Param::Float(val) => Some(Ok((key, Value::Real(*val)))),
                                         Param::Obj(py_obj) => Python::with_gil(|py| {
                                             py_obj.extract::<Value>(py).map(|val| Some((key, val)))
                                         })
@@ -720,7 +724,7 @@ fn replace_node(
                                         _ => None,
                                     })
                                     .collect::<Result<_, ParameterError>>()?;
-                                new_value = param_obj.bind(&parsed_bind_dict, false)?;
+                                new_value = param_obj.bind(&parsed_bind_dict, false)?.into();
                             }
                             if new_value.iter_symbols().next().is_none() {
                                 match new_value.try_to_value(false) {
@@ -728,7 +732,8 @@ fn replace_node(
                                     Ok(parsed) => Param::ParameterExpression(
                                         ParameterExpression::from_symbol_expr(SymbolExpr::Value(
                                             parsed,
-                                        )),
+                                        ))
+                                        .into(),
                                     ),
                                     Err(_) => Param::ParameterExpression(new_value),
                                 }
@@ -783,9 +788,9 @@ fn replace_node(
                 let new_phase: Param = {
                     let mut bind_dict = HashMap::new();
                     for key in old_phase.iter_symbols() {
-                        bind_dict.insert(key.clone(), parameter_map[&key].clone());
+                        bind_dict.insert(key.clone(), parameter_map[key].clone());
                     }
-                    let mut new_phase: ParameterExpression;
+                    let mut new_phase: Arc<ParameterExpression>;
                     if bind_dict
                         .values()
                         .any(|param| matches!(param, Param::ParameterExpression(_)))
@@ -796,20 +801,22 @@ fn replace_node(
                                 continue;
                             };
                             new_phase = if let Ok(value) = val.try_to_value(false) {
-                                let map: HashMap<Symbol, Value> =
-                                    [(key.clone(), value)].into_iter().collect();
-                                new_phase.bind(&map, false)?
+                                let map: HashMap<&Symbol, Value> =
+                                    [(key, value)].into_iter().collect();
+                                new_phase.bind(&map, false)?.into()
                             } else {
                                 let map: HashMap<Symbol, ParameterExpression> =
-                                    [(key.clone(), val.clone())].into_iter().collect();
-                                new_phase.subs(&map, false)?
+                                    [(key.clone(), ParameterExpression::clone(val))]
+                                        .into_iter()
+                                        .collect();
+                                new_phase.subs(&map, false)?.into()
                             }
                         }
                     } else {
                         let parsed_bind_dict = bind_dict
-                            .into_iter()
+                            .iter()
                             .filter_map(|(key, param)| match param {
-                                Param::Float(val) => Some(Ok((key, Value::Real(val)))),
+                                Param::Float(val) => Some(Ok((key, Value::Real(*val)))),
                                 Param::Obj(py_obj) => Python::with_gil(|py| {
                                     py_obj.extract::<Value>(py).map(|val| Some((key, val)))
                                 })
@@ -818,7 +825,7 @@ fn replace_node(
                                 _ => None,
                             })
                             .collect::<Result<_, ParameterError>>()?;
-                        new_phase = old_phase.bind(&parsed_bind_dict, false)?;
+                        new_phase = old_phase.bind(&parsed_bind_dict, false)?.into();
                     }
                     if new_phase.iter_symbols().next().is_none() {
                         match new_phase.try_to_value(false) {
@@ -830,7 +837,8 @@ fn replace_node(
                                 )))
                             }
                             Ok(parsed) => Param::ParameterExpression(
-                                ParameterExpression::from_symbol_expr(SymbolExpr::Value(parsed)),
+                                ParameterExpression::from_symbol_expr(SymbolExpr::Value(parsed))
+                                    .into(),
                             ),
                             Err(_) => Param::ParameterExpression(new_phase),
                         }
