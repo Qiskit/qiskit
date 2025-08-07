@@ -101,7 +101,7 @@ trait CircuitDataForSynthesis {
     fn cp(&mut self, theta: f64, q1: u32, q2: u32) -> PyResult<()>;
 
     /// Appends CCPhase to the circuit.
-    fn ccp(&mut self, theta: f64, q1: u32, q2: u32, q3: u32);
+    fn ccp(&mut self, theta: f64, q1: u32, q2: u32, q3: u32) -> PyResult<()>;
 
     /// Appends CCX to the circuit.
     fn ccx(&mut self, q1: u32, q2: u32, q3: u32) -> PyResult<()>;
@@ -164,20 +164,21 @@ impl CircuitDataForSynthesis for CircuitData {
         )
     }
 
-    fn ccp(&mut self, theta: f64, q1: u32, q2: u32, q3: u32) {
-        self.cx(q1, q3);
-        self.p(-theta / 4., q3);
-        self.cx(q2, q3);
-        self.p(theta / 4., q3);
-        self.cx(q1, q3);
-        self.p(-theta / 4., q3);
-        self.cx(q2, q3);
-        self.p(theta / 4., q3);
-        self.p(theta / 4., q1);
-        self.p(theta / 4., q2);
-        self.cx(q1, q2);
-        self.p(-theta / 4., q2);
-        self.cx(q1, q2);
+    fn ccp(&mut self, theta: f64, q1: u32, q2: u32, q3: u32) -> PyResult<()> {
+        self.cx(q1, q3)?;
+        self.p(-theta / 4., q3)?;
+        self.cx(q2, q3)?;
+        self.p(theta / 4., q3)?;
+        self.cx(q1, q3)?;
+        self.p(-theta / 4., q3)?;
+        self.cx(q2, q3)?;
+        self.p(theta / 4., q3)?;
+        self.p(theta / 4., q1)?;
+        self.p(theta / 4., q2)?;
+        self.cx(q1, q2)?;
+        self.p(-theta / 4., q2)?;
+        self.cx(q1, q2)?;
+        Ok(())
     }
 
     /// Appends the decomposition of the CCX to the circuit.
@@ -457,75 +458,83 @@ pub fn synth_mcx_noaux_v24(py: Python, num_controls: usize) -> PyResult<CircuitD
 /// Best suitable when n is large.
 fn increment_n_dirty_large(n: u32) -> PyResult<CircuitData> {
     // U_x^3-gate from Fig. 22 in [2].
-    fn ux(circuit: &mut CircuitData, q1: u32, q2: u32, q3: u32) {
-        circuit.cx(q1, q3);
-        circuit.cx(q1, q2);
-        circuit.ccx(q2, q3, q1).expect("CCX not added successfully");
+    fn ux(circuit: &mut CircuitData, q1: u32, q2: u32, q3: u32) -> PyResult<()> {
+        circuit.cx(q1, q3)?;
+        circuit.cx(q1, q2)?;
+        circuit.ccx(q2, q3, q1)?;
+        Ok(())
     }
 
     // U_z^3-gate from Fig. 24 in [2].
-    fn uz(circuit: &mut CircuitData, q1: u32, q2: u32, q3: u32) {
-        circuit.ccx(q2, q3, q1).expect("CCX not added successfully");
-        circuit.cx(q1, q2);
-        circuit.cx(q2, q3);
+    fn uz(circuit: &mut CircuitData, q1: u32, q2: u32, q3: u32) -> PyResult<()> {
+        circuit.ccx(q2, q3, q1)?;
+        circuit.cx(q1, q2)?;
+        circuit.cx(q2, q3)?;
+        Ok(())
     }
 
     let mut circuit = CircuitData::with_capacity(2 * n, 0, 0, Param::Float(0.0))?;
     let qubits: Vec<u32> = (0..n).collect();
     let ancillas: Vec<u32> = (n..2 * n).collect();
 
-    circuit.x(ancillas[0]);
-    qubits
-        .iter()
-        .for_each(|q: &u32| circuit.cx(ancillas[0], *q));
-    circuit.x(ancillas[0]);
+    circuit.x(ancillas[0])?;
+    for q in qubits.iter() {
+        circuit.cx(ancillas[0], *q)?;
+    }
+    circuit.x(ancillas[0])?;
 
     // This implements U^{n}_{z+y+x} in Fig.19 and Fig.23 from the supplementary material for [1].
-    (0..n - 1).for_each(|i| {
+    for i in 0..n - 1 {
         ux(
             &mut circuit,
             ancillas[0],
             ancillas[(i + 1) as usize],
             qubits[i as usize],
-        )
-    });
-    circuit.cx(ancillas[0], qubits[(n - 1) as usize]);
-    (0..n - 1).rev().for_each(|i| {
+        )?;
+    }
+
+    circuit.cx(ancillas[0], qubits[(n - 1) as usize])?;
+    for i in (0..n - 1).rev() {
         uz(
             &mut circuit,
             ancillas[0],
             ancillas[(i + 1) as usize],
             qubits[i as usize],
-        )
-    });
-    (0..n - 1).for_each(|i| circuit.x(ancillas[(i + 1) as usize]));
+        )?;
+    }
+
+    for i in 0..n - 1 {
+        circuit.x(ancillas[(i + 1) as usize])?;
+    }
 
     // This implements U^{n}_{z+y+x} in Fig.19 and Fig.23 from the supplementary material for [1].
-    (0..n - 1).for_each(|i| {
+    for i in 0..n - 1 {
         ux(
             &mut circuit,
             ancillas[0],
             ancillas[(i + 1) as usize],
             qubits[i as usize],
-        )
-    });
-    circuit.cx(ancillas[0], qubits[(n - 1) as usize]);
-    (0..n - 1).rev().for_each(|i| {
+        )?;
+    }
+    circuit.cx(ancillas[0], qubits[(n - 1) as usize])?;
+    for i in (0..n - 1).rev() {
         uz(
             &mut circuit,
             ancillas[0],
             ancillas[(i + 1) as usize],
             qubits[i as usize],
-        )
-    });
-    (0..n - 1).for_each(|i| circuit.x(ancillas[(i + 1) as usize]));
+        )?;
+    }
+    for i in 0..n - 1 {
+        circuit.x(ancillas[(i + 1) as usize])?;
+    }
 
-    circuit.x(qubits[(n - 1) as usize]);
-    circuit.x(ancillas[0]);
-    qubits
-        .iter()
-        .for_each(|q: &u32| circuit.cx(ancillas[0], *q));
-    circuit.x(ancillas[0]);
+    circuit.x(qubits[(n - 1) as usize])?;
+    circuit.x(ancillas[0])?;
+    for q in qubits.iter() {
+        circuit.cx(ancillas[0], *q)?;
+    }
+    circuit.x(ancillas[0])?;
 
     Ok(circuit)
 }
@@ -543,7 +552,7 @@ fn increment_n_dirty_small(n: u32) -> PyResult<CircuitData> {
         let k_mcx_qubits: Vec<Qubit> = (0..k + 1).chain(n + 1..2 * n).map(Qubit).collect();
         circuit.compose(&k_mcx, &k_mcx_qubits, &[])?;
     }
-    circuit.x(0);
+    circuit.x(0)?;
 
     Ok(circuit)
 }
@@ -581,7 +590,7 @@ fn synth_relative_mcx(num_controls: usize) -> PyResult<CircuitData> {
             ));
         }
         1 => {
-            circuit.cx(0, 1);
+            circuit.cx(0, 1)?;
         }
         2 => {
             circuit.rccx(0, 1, 2)?;
@@ -609,24 +618,24 @@ fn synth_relative_mcx(num_controls: usize) -> PyResult<CircuitData> {
             let circuit2 = synth_relative_mcx(num2)?;
             let circuit3 = synth_relative_mcx(num3)?;
 
-            circuit.h(target);
-            circuit.p(PI / 8., target);
+            circuit.h(target)?;
+            circuit.p(PI / 8., target)?;
             circuit.compose(&circuit3, &qubits3, &[])?;
-            circuit.p(-PI / 8., target);
+            circuit.p(-PI / 8., target)?;
             circuit.compose(&circuit2, &qubits2, &[])?;
-            circuit.p(PI / 8., target);
+            circuit.p(PI / 8., target)?;
             circuit.compose(&circuit3, &qubits3, &[])?;
-            circuit.p(-PI / 8., target);
+            circuit.p(-PI / 8., target)?;
             circuit.compose(&circuit1, &qubits1, &[])?;
-            circuit.p(PI / 8., target);
+            circuit.p(PI / 8., target)?;
             circuit.compose(&circuit3, &qubits3, &[])?;
-            circuit.p(-PI / 8., target);
+            circuit.p(-PI / 8., target)?;
             circuit.compose(&circuit2, &qubits2, &[])?;
-            circuit.p(PI / 8., target);
+            circuit.p(PI / 8., target)?;
             circuit.compose(&circuit3, &qubits3, &[])?;
-            circuit.p(-PI / 8., target);
+            circuit.p(-PI / 8., target)?;
             circuit.compose(&circuit1, &qubits1, &[])?;
-            circuit.h(target);
+            circuit.h(target)?;
         }
     }
     Ok(circuit)
@@ -679,7 +688,9 @@ fn increment_1_dirty(n: u32, flag_add: bool) -> PyResult<CircuitData> {
     let mut circuit = CircuitData::with_capacity(n + 1, 0, 0, Param::Float(0.0))?;
 
     if !flag_add {
-        (0..n).for_each(|i| circuit.x(i));
+        for i in 0..n {
+            circuit.x(i)?;
+        }
     }
 
     let k_incrementer = increment_n_dirty(k)?;
@@ -694,9 +705,11 @@ fn increment_1_dirty(n: u32, flag_add: bool) -> PyResult<CircuitData> {
 
     circuit.compose(&k_incrementer, &k12_incrementer_qubits, &[])?;
 
-    circuit.x(ancilla);
+    circuit.x(ancilla)?;
 
-    (k..n).for_each(|q| circuit.cx(ancilla, q));
+    for q in k..n {
+        circuit.cx(ancilla, q)?;
+    }
 
     let k_mcx = synth_relative_mcx_n_dirty(k as usize)?;
 
@@ -711,11 +724,13 @@ fn increment_1_dirty(n: u32, flag_add: bool) -> PyResult<CircuitData> {
 
     circuit.compose(&k_incrementer, &k12_incrementer_qubits, &[])?;
 
-    circuit.x(ancilla);
+    circuit.x(ancilla)?;
 
     circuit.compose(&k_mcx, &k_mcx_qubits, &[])?;
 
-    (k..n).for_each(|q| circuit.cx(ancilla, q));
+    for q in k..n {
+        circuit.cx(ancilla, q)?;
+    }
 
     let k3_incrementer = increment_n_dirty(k)?;
 
@@ -730,7 +745,9 @@ fn increment_1_dirty(n: u32, flag_add: bool) -> PyResult<CircuitData> {
     circuit.compose(&k3_incrementer, &k3_incrementer_qubits, &[])?;
 
     if !flag_add {
-        (0..n).for_each(|i| circuit.x(i));
+        for i in 0..n {
+            circuit.x(i)?;
+        }
     }
 
     Ok(circuit)
@@ -770,7 +787,9 @@ fn increment_2_dirty(n: u32, flag_add: bool) -> PyResult<CircuitData> {
     let mut circuit = CircuitData::with_capacity(n + 2, 0, 0, Param::Float(0.0))?;
 
     if !flag_add {
-        (0..n).for_each(|i| circuit.x(i));
+        for i in 0..n {
+            circuit.x(i)?;
+        }
     }
 
     let k12_incrementer = increment_n_dirty(1 + n - k)?;
@@ -786,9 +805,11 @@ fn increment_2_dirty(n: u32, flag_add: bool) -> PyResult<CircuitData> {
 
     circuit.compose(&k12_incrementer, &k12_incrementer_qubits, &[])?;
 
-    circuit.x(ancilla1);
+    circuit.x(ancilla1)?;
 
-    (k..n).for_each(|q| circuit.cx(ancilla1, q));
+    for q in k..n {
+        circuit.cx(ancilla1, q)?;
+    }
 
     let k_mcx = synth_relative_mcx_n_dirty(k as usize)?;
 
@@ -804,11 +825,13 @@ fn increment_2_dirty(n: u32, flag_add: bool) -> PyResult<CircuitData> {
 
     circuit.compose(&k12_incrementer, &k12_incrementer_qubits, &[])?;
 
-    circuit.x(ancilla1);
+    circuit.x(ancilla1)?;
 
     circuit.compose(&k_mcx, &k_mcx_qubits, &[])?;
 
-    (k..n).for_each(|q| circuit.cx(ancilla1, q));
+    for q in k..n {
+        circuit.cx(ancilla1, q)?;
+    }
 
     let k3_incrementer = increment_n_dirty(k)?;
 
@@ -824,7 +847,9 @@ fn increment_2_dirty(n: u32, flag_add: bool) -> PyResult<CircuitData> {
     circuit.compose(&k3_incrementer, &k3_incrementer_qubits, &[])?;
 
     if !flag_add {
-        (0..n).for_each(|i| circuit.x(i));
+        for i in 0..n {
+            circuit.x(i)?;
+        }
     }
 
     Ok(circuit)
@@ -853,9 +878,9 @@ pub fn synth_mcx_noaux_hp24(num_controls: usize) -> PyResult<CircuitData> {
 
     // Handle small cases explicitly
     if n == 2 {
-        circuit.cx(0, 1);
+        circuit.cx(0, 1)?;
     } else {
-        circuit.h(num_controls as u32);
+        circuit.h(num_controls as u32)?;
 
         // The construction described in Fig.7 of the paper only works for even values of n.
         // The construction described in Fig.8 of the paper works for all values of n and is better than the one
@@ -875,7 +900,7 @@ pub fn synth_mcx_noaux_hp24(num_controls: usize) -> PyResult<CircuitData> {
             let mut phi = -PI;
             for q in (1..n - 1).rev() {
                 phi /= 2.;
-                circuit.cp(phi, q as u32, (n - 1) as u32);
+                circuit.cp(phi, q as u32, (n - 1) as u32)?;
             }
 
             circuit.compose(&increment_minus_1, &increment_qubits, &[])?;
@@ -884,10 +909,10 @@ pub fn synth_mcx_noaux_hp24(num_controls: usize) -> PyResult<CircuitData> {
             let mut phi = PI;
             for q in (1..n - 1).rev() {
                 phi /= 2.;
-                circuit.cp(phi, q as u32, (n - 1) as u32);
+                circuit.cp(phi, q as u32, (n - 1) as u32)?;
             }
 
-            circuit.cp(phi, 0, (n - 1) as u32);
+            circuit.cp(phi, 0, (n - 1) as u32)?;
         } else {
             // This implements C^{n-1}(V) in Fig.8.
 
@@ -902,7 +927,7 @@ pub fn synth_mcx_noaux_hp24(num_controls: usize) -> PyResult<CircuitData> {
             let mut phi = -PI;
             for q in (1..n - 2).rev() {
                 phi /= 2.;
-                circuit.ccp(phi, q as u32, (n - 2) as u32, (n - 1) as u32);
+                circuit.ccp(phi, q as u32, (n - 2) as u32, (n - 1) as u32)?;
             }
 
             circuit.compose(&increment_minus_1, &increment_qubits, &[])?;
@@ -911,13 +936,13 @@ pub fn synth_mcx_noaux_hp24(num_controls: usize) -> PyResult<CircuitData> {
             let mut phi = PI;
             for q in (1..n - 2).rev() {
                 phi /= 2.;
-                circuit.ccp(phi, q as u32, (n - 2) as u32, (n - 1) as u32);
+                circuit.ccp(phi, q as u32, (n - 2) as u32, (n - 1) as u32)?;
             }
 
-            circuit.ccp(phi, 0, (n - 2) as u32, (n - 1) as u32);
+            circuit.ccp(phi, 0, (n - 2) as u32, (n - 1) as u32)?;
         }
 
-        circuit.h(num_controls as u32);
+        circuit.h(num_controls as u32)?;
     }
 
     Ok(circuit)
