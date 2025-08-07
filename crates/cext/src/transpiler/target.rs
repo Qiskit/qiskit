@@ -475,7 +475,7 @@ impl TargetEntry {
 /// Creates an entry to the ``QkTarget`` based on a ``QkGate`` instance.
 ///
 /// @param operation The ``QkGate`` whose properties this target entry defines. If the ``QkGate``
-/// takes parameters (which can be checked with ``qk_gate_num_params``) this will be added as a
+/// takes parameters (which can be checked with ``qk_gate_num_params``) it will be added as a
 /// an instruction on the target which accepts any parameter value. If the gate only accepts a
 /// fixed parameter value you can use ``qk_target_entry_new_fixed`` instead.
 ///
