@@ -6,6 +6,9 @@ upgrade_circuits:
     performance degradation shown in #14653, now the equation is calculated
     as `a + 1.7` that saves memory usages and improves the performance.
 
-    Also integer fractional is supported to calculate exactly.
+    Also integer rational number `Value::Rational` is introduced to calculate
+    rational numbers exactly without loss.
     `a/3 + 2*a/3` was not calculated as `a` previously, now SymbolExpr can
-    calculate as `a` exactly.
+    calculate as `a` exactly. When Parameter is evaluated as numerical value
+    to Python, rational number is converted to float currently.
+    But we can return rational in the future release of pyo3.
