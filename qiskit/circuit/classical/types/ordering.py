@@ -29,18 +29,17 @@ import enum
 # from .types import Type, Bool, Duration, Float, Uint
 
 from qiskit._accelerate.circuit.classical.types.ordering import (
-    # Ordering as OxOrdering,
+    # Ordering,
     order,
     is_subtype,
     is_supertype,
     greater,
-    # CastKind as OxCastKind,
+    CastKind,
     cast_kind,
 )
 
-# OxOrdering.__repr__ = lambda self: str(self).capitalize()
-# Ordering = OxOrdering
-# CastKind = OxCastKind
+# Ordering
+CastKind
 
 class _Ordering(enum.Enum):
     """Enumeration listing the possible relations between two types.  Types only have a partial
@@ -63,25 +62,25 @@ class _Ordering(enum.Enum):
     def __repr__(self):
         return str(self)
 
-class _CastKind(enum.Enum):
-    """A return value indicating the type of cast that can occur from one type to another."""
+# class _CastKind(enum.Enum):
+#     """A return value indicating the type of cast that can occur from one type to another."""
 
-    # !!! YOU MUST ALSO UPDATE the underlying Rust enum if you touch this.
+#     # !!! YOU MUST ALSO UPDATE the underlying Rust enum if you touch this.
 
-    EQUAL = 1
-    """The two types are equal; no cast node is required at all."""
-    IMPLICIT = 2
-    """The 'from' type can be cast to the 'to' type implicitly.  A :class:`~.expr.Cast` node with
-    ``implicit==True`` is the minimum required to specify this."""
-    LOSSLESS = 3
-    """The 'from' type can be cast to the 'to' type explicitly, and the cast will be lossless.  This
-    requires a :class:`~.expr.Cast`` node with ``implicit=False``, but there's no danger from
-    inserting one."""
-    DANGEROUS = 4
-    """The 'from' type has a defined cast to the 'to' type, but depending on the value, it may lose
-    data.  A user would need to manually specify casts."""
-    NONE = 5
-    """There is no casting permitted from the 'from' type to the 'to' type."""
+#     EQUAL = 1
+#     """The two types are equal; no cast node is required at all."""
+#     IMPLICIT = 2
+#     """The 'from' type can be cast to the 'to' type implicitly.  A :class:`~.expr.Cast` node with
+#     ``implicit==True`` is the minimum required to specify this."""
+#     LOSSLESS = 3
+#     """The 'from' type can be cast to the 'to' type explicitly, and the cast will be lossless.  This
+#     requires a :class:`~.expr.Cast`` node with ``implicit=False``, but there's no danger from
+#     inserting one."""
+#     DANGEROUS = 4
+#     """The 'from' type has a defined cast to the 'to' type, but depending on the value, it may lose
+#     data.  A user would need to manually specify casts."""
+#     NONE = 5
+#     """There is no casting permitted from the 'from' type to the 'to' type."""
 
 Ordering = _Ordering
-CastKind = _CastKind
+# CastKind = _CastKind

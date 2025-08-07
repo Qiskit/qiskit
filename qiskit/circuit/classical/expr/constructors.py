@@ -65,6 +65,17 @@ def _coerce_lossless(expr: Expr, type: types.Type) -> Expr | None:
         return Cast(expr, type, implicit=False)
     return None
 
+# TODO remove debug function
+def _coerce_debug(expr: Expr, type: types.Type) -> Expr:
+    kind = cast_kind(expr.type, type)
+    if kind is CastKind.EQUAL:
+        return expr
+    if kind is CastKind.IMPLICIT:
+        return Cast(expr, type, implicit=True)
+    if kind is CastKind.LOSSLESS:
+        return Cast(expr, type, implicit=False)
+    return kind
+
 
 def lift_legacy_condition(
     condition: tuple[qiskit.circuit.Clbit | qiskit.circuit.ClassicalRegister, int], /
@@ -200,7 +211,8 @@ Bool())
     operand = lift(operand)
     coerced_operand = _coerce_lossless(operand, types.Bool())
     if coerced_operand is None:
-        raise TypeError(f"cannot apply '{Unary.Op.LOGIC_NOT}' to type '{operand.type}'")
+        debug_operand = _coerce_debug(operand, types.Bool())
+        raise TypeError(f"kind: ({debug_operand}) cannot apply ({operand}) '{Unary.Op.LOGIC_NOT}' to type '{operand.type}'") # TODO remove ({operand.type}) from error message
     return Unary(Unary.Op.LOGIC_NOT, coerced_operand, coerced_operand.type)
 
 

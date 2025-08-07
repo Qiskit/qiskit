@@ -113,10 +113,11 @@ pub static UNARY_OP: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.classical.expr.expr", "_UnaryOp");
 pub static BINARY_OP: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.classical.expr.expr", "_BinaryOp");
+// TODO remove [ORDERING, CAST_KIND] once fully oxidized
 pub static ORDERING: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.classical.types.ordering", "_Ordering");
-pub static CAST_KIND: ImportOnceCell = 
-    ImportOnceCell::new("qiskit.circuit.classical.types.ordering", "_CastKind");
+// pub static CAST_KIND: ImportOnceCell = 
+//     ImportOnceCell::new("qiskit.circuit.classical.types.ordering", "_CastKind");
 pub static UNITARY_GATE: ImportOnceCell = ImportOnceCell::new(
     "qiskit.circuit.library.generalized_gates.unitary",
     "UnitaryGate",
