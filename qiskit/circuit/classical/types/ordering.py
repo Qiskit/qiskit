@@ -24,10 +24,6 @@ __all__ = [
     "cast_kind",
 ]
 
-import enum
-
-# from .types import Type, Bool, Duration, Float, Uint
-
 from qiskit._accelerate.circuit.classical.types.ordering import (
     Ordering,
     order,
