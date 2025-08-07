@@ -948,7 +948,7 @@ pub fn synth_mcx_noaux_hp24(num_controls: usize) -> PyResult<CircuitData> {
     Ok(circuit)
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(miri)))]
 mod test {
     use approx::abs_diff_eq;
     use qiskit_quantum_info::unitary_sim::sim_unitary_circuit;
