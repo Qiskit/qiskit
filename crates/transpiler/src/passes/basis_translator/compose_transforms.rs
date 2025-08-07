@@ -63,11 +63,10 @@ pub(super) fn compose_transforms<'a>(
         // The last usage of Python left is the parameter vector here.
         let mut placeholder_params: SmallVec<[Param; 3]> = (0..num_params as u32)
             .map(|idx| {
-                Param::ParameterExpression(ParameterExpression::from_symbol(Symbol::new(
-                    &gate_name,
-                    None,
-                    Some(idx),
-                )))
+                Param::ParameterExpression(
+                    ParameterExpression::from_symbol(Symbol::new(&gate_name, None, Some(idx)))
+                        .into(),
+                )
             })
             .collect();
 
