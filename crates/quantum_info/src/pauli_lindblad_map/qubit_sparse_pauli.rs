@@ -1479,6 +1479,31 @@ impl PyQubitSparsePauli {
             .into_pyobject(py)
     }
 
+    fn to_pauli<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let quantum_info_module = py.import("qiskit.quantum_info")?;
+        let py_pauli = quantum_info_module.getattr("Pauli")?;
+
+        let mut pauli_str = "".to_string();
+
+        let mut current_idx = 0;
+
+        for (index, pauli) in self.inner.indices().iter().zip(self.inner.paulis().iter()) {
+            if *index > current_idx {
+                pauli_str = (0..(index - current_idx)).map(|_| "I").collect::<String>() + &pauli_str;
+                current_idx = *index;
+            }
+            pauli_str = pauli.py_label().to_string() + &pauli_str;
+            current_idx += 1;
+        }
+
+        if current_idx < self.inner.num_qubits() {
+            pauli_str = (0..(self.inner.num_qubits() - current_idx)).map(|_| "I").collect::<String>() + &pauli_str;
+        }
+
+        let pauli = py_pauli.call1((pauli_str,)).expect("wow");
+        Ok(pauli.extract()?)
+    }
+
     /// Get a copy of this term.
     fn copy(&self) -> Self {
         self.clone()
