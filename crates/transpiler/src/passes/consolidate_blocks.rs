@@ -19,13 +19,16 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::gate_matrix::{ONE_QUBIT_IDENTITY, TWO_QUBIT_IDENTITY};
+use qiskit_circuit::gate_matrix::{CX_GATE, ONE_QUBIT_IDENTITY, TWO_QUBIT_IDENTITY};
 use qiskit_circuit::imports::{QI_OPERATOR, QUANTUM_CIRCUIT};
+use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::{ArrayType, Operation, Param, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::Qubit;
+use qiskit_synthesis::two_qubit_decompose::RXXEquivalent;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::smallvec;
+use smallvec::SmallVec;
 
 use super::optimize_1q_gates_decomposition::matmul_1q;
 use qiskit_quantum_info::convert_2q_block_matrix::{blocks_to_matrix, get_matrix_from_inst};
@@ -42,6 +45,91 @@ use qiskit_circuit::PhysicalQubit;
 pub enum DecomposerType {
     TwoQubitBasis(TwoQubitBasisDecomposer),
     TwoQubitControlledU(TwoQubitControlledUDecomposer),
+}
+
+/// The collection of compatible KAK decomposition gates in a set in order
+/// of priority.
+static KAK_GATES: [StandardGate; 4] = [
+    StandardGate::CX,
+    StandardGate::CZ,
+    StandardGate::ECR,
+    StandardGate::ISwap,
+];
+
+/// The collection of compatible KAK decomposition parametric gates in a set
+/// in order of priority.
+static KAK_GATES_PARAM: [StandardGate; 8] = [
+    StandardGate::RXX,
+    StandardGate::RZZ,
+    StandardGate::RYY,
+    StandardGate::RZX,
+    StandardGate::CPhase,
+    StandardGate::CRX,
+    StandardGate::CRY,
+    StandardGate::CRZ,
+];
+
+/// Helper function that extracts the decomposer and basis gate directly from the [Target].
+#[inline]
+fn get_decomposer_and_basis_gate(
+    target: Option<&Target>,
+    approximation_degree: f64,
+) -> (DecomposerType, StandardGate) {
+    if let Some(target) = target {
+        // Targets from C should only support Standard gates.
+        if let Some(gate) = target.operations().find_map(|op| {
+            op.operation
+                .try_standard_gate()
+                .and_then(|gate| KAK_GATES_PARAM.contains(&gate).then_some(gate))
+        }) {
+            return (
+                DecomposerType::TwoQubitControlledU(
+                    TwoQubitControlledUDecomposer::new(RXXEquivalent::Standard(gate), "ZXZ")
+                        .unwrap_or_else(|_| {
+                            panic!(
+                                "Error while creating Controlled U decomposer using a {} gate.",
+                                gate.name()
+                            )
+                        }),
+                ),
+                gate,
+            );
+        }
+        if let Some(gate) = target.operations().find_map(|op| {
+            op.operation
+                .try_standard_gate()
+                .and_then(|gate| KAK_GATES.contains(&gate).then_some(gate))
+        }) {
+            return (DecomposerType::TwoQubitBasis(
+                TwoQubitBasisDecomposer::new_inner(
+                    gate.into(),
+                    SmallVec::default(),
+                    gate.matrix(&[]).unwrap_or_else(|| panic!("Error while obtaining the matrix form of gate '{}' without params.", gate.name())).view(),
+                    approximation_degree,
+                    "U",
+                    None,
+                )
+                .unwrap_or_else(|_| panic!("Error while creating Basis Decomposer using a {} gate.",
+                    gate.name()))),
+                gate
+            );
+        }
+    }
+    let gate = StandardGate::CX;
+    (
+        DecomposerType::TwoQubitBasis(
+            TwoQubitBasisDecomposer::new_inner(
+                gate.into(),
+                SmallVec::default(),
+                aview2(&CX_GATE),
+                1.0,
+                "U",
+                None,
+            )
+            .expect("Error while creating Basis Decomposer using a 'cx' gate."),
+        ),
+        gate,
+    )
 }
 
 fn is_supported(
@@ -68,7 +156,7 @@ const MAX_2Q_DEPTH: usize = 20;
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
 #[pyo3(name = "consolidate_blocks", signature = (dag, decomposer, basis_gate_name, force_consolidate, target=None, basis_gates=None, blocks=None, runs=None))]
-pub fn run_consolidate_blocks(
+fn py_run_consolidate_blocks(
     dag: &mut DAGCircuit,
     decomposer: DecomposerType,
     basis_gate_name: &str,
@@ -352,7 +440,40 @@ pub fn run_consolidate_blocks(
     Ok(())
 }
 
+/// Replaces each block of consecutive gates by a single unitary node.
+///
+/// This is function is the Rust entry point for the `ConsolidateBlocks` transpiler pass
+/// which replaces uninterrupted sequences of gates acting on the same pair of qubits
+/// into a [`UnitaryGate`] representing the unitary of that two qubit block if it estimated to
+/// to optimize the circuit. This [`UnitaryGate`] subsequently will be synthesized by the
+/// unitary synthesis pass into a more optimal subcircuit to replace that block.
+///
+/// # Arguments
+/// * `dag` - The circuit for which we will consolidate gates.
+/// * `force_consolidate` - Decides whether to force all consolidations or not.
+/// * `approximation_degree` - A float between `[0.0, 1.0]`. Lower approximates more.
+/// * `target` - The target representing the backend for which the pass is consolidating.
+pub fn run_consolidate_blocks(
+    dag: &mut DAGCircuit,
+    force_consolidate: bool,
+    approximation_degree: Option<f64>,
+    target: Option<&Target>,
+) -> PyResult<()> {
+    let approximation_degree = approximation_degree.unwrap_or(1.0);
+    let (decomposer, basis_gate) = get_decomposer_and_basis_gate(target, approximation_degree);
+    py_run_consolidate_blocks(
+        dag,
+        decomposer,
+        basis_gate.name(),
+        force_consolidate,
+        target,
+        None,
+        None,
+        None,
+    )
+}
+
 pub fn consolidate_blocks_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(run_consolidate_blocks))?;
+    m.add_wrapped(wrap_pyfunction!(py_run_consolidate_blocks))?;
     Ok(())
 }
