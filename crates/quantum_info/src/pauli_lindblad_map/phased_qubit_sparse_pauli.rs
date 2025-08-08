@@ -855,7 +855,7 @@ impl PyPhasedQubitSparsePauli {
     fn to_pauli<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let quantum_info_module = py.import("qiskit.quantum_info")?;
         let py_pauli = quantum_info_module.getattr("Pauli")?;
-        let pauli = py_pauli.call1((self.inner.qubit_sparse_pauli.to_dense_label(),)).expect("wow");
+        let pauli = py_pauli.call1((self.inner.qubit_sparse_pauli.to_dense_label(),))?;
         pauli.setattr("phase", self.inner.phase - self.inner.qubit_sparse_pauli.view().num_ys())?;
         Ok(pauli.extract()?)
     }
