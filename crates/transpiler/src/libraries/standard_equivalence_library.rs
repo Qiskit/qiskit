@@ -1160,7 +1160,7 @@ fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equival
     //                      └───┘└─────────────┘└───┘
     create_standard_equivalence(
         StandardGate::RZZ,
-        &[Param::ParameterExpression(theta.clone()), 0.0.into()],
+        &[Param::ParameterExpression(theta.clone())],
         2,
         &[
             (StandardGate::H, &[Qubit(0)], &[]),
@@ -3192,15 +3192,4 @@ static STANDARD_EQUIVALENCE_LIBRARY: OnceLock<EquivalenceLibrary> = OnceLock::ne
 
 pub fn get_standard_equivalence_library() -> &'static EquivalenceLibrary {
     STANDARD_EQUIVALENCE_LIBRARY.get_or_init(|| generate_standard_equivalence_library().unwrap())
-}
-
-#[cfg(test)]
-mod test {
-    use crate::libraries::standard_equivalence_library::get_standard_equivalence_library;
-    #[test]
-    fn test_std_equiv_lib() {
-        let keys: Vec<&crate::equivalence::Key> =
-            get_standard_equivalence_library().keys().collect();
-        println!("{:?}", keys);
-    }
 }
