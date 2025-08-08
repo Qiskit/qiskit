@@ -481,6 +481,16 @@ impl QubitSparsePauliList {
         Ok(())
     }
 
+    // Return a Vec of dense labels representing this Pauli list
+    pub fn to_dense_label_list(&self) -> Vec<String> {
+        let mut dense_label_list = Vec::with_capacity(self.num_terms());
+
+        for qubit_sparse_pauli in self.iter() {
+            dense_label_list.push(qubit_sparse_pauli.to_term().to_dense_label());
+        }
+        dense_label_list
+    }
+
     /// Apply a transpiler layout.
     pub fn apply_layout(
         &self,
@@ -664,6 +674,31 @@ impl QubitSparsePauli {
                 indices.into_boxed_slice(),
             )
         })
+    }
+
+    // Return a dense label representing this Pauli
+    pub fn to_dense_label(&self) -> String {
+        let mut pauli_str = "".to_string();
+
+        let mut current_idx = 0;
+
+        for (index, pauli) in self.indices().iter().zip(self.paulis().iter()) {
+            if *index > current_idx {
+                pauli_str =
+                    (0..(index - current_idx)).map(|_| "I").collect::<String>() + &pauli_str;
+                current_idx = *index;
+            }
+            pauli_str = pauli.py_label().to_string() + &pauli_str;
+            current_idx += 1;
+        }
+
+        if current_idx < self.num_qubits() {
+            pauli_str = (0..(self.num_qubits() - current_idx))
+                .map(|_| "I")
+                .collect::<String>()
+                + &pauli_str;
+        }
+        pauli_str
     }
 
     /// Create a new [QubitSparsePauli] from the raw components without checking data coherence.
@@ -1481,6 +1516,14 @@ impl PyQubitSparsePauli {
             .into_pyobject(py)
     }
 
+    /// Return a :class:`~.quantum_info.Pauli` representing the same phaseless Pauli.
+    fn to_pauli<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let quantum_info_module = py.import("qiskit.quantum_info")?;
+        let py_pauli = quantum_info_module.getattr("Pauli")?;
+        let pauli = py_pauli.call1((self.inner.to_dense_label(),))?;
+        pauli.extract()
+    }
+
     /// Get a copy of this term.
     fn copy(&self) -> Self {
         self.clone()
@@ -2053,6 +2096,15 @@ impl PyQubitSparsePauliList {
             }
         }
         Ok(out.into_pyarray(py).unbind())
+    }
+
+    /// Return a :class:`~.quantum_info.PauliList` representing the same phaseless list of Paulis.
+    fn to_pauli_list<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let quantum_info_module = py.import("qiskit.quantum_info")?;
+        let py_pauli_list = quantum_info_module.getattr("PauliList")?;
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let pauli_list = py_pauli_list.call1((inner.to_dense_label_list(),))?;
+        pauli_list.extract()
     }
 
     /// Apply a transpiler layout to this qubit sparse Pauli list.
