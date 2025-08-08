@@ -22,6 +22,7 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::TWO_QUBIT_IDENTITY;
 use qiskit_circuit::imports::QI_OPERATOR;
+use qiskit_circuit::interner::Interner;
 use qiskit_circuit::operations::{ArrayType, Operation, OperationRef};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::Qubit;
@@ -136,6 +137,15 @@ pub fn blocks_to_matrix(
     op_list: &[NodeIndex],
     block_index_map: [Qubit; 2],
 ) -> PyResult<Array2<Complex64>> {
+    let inst_iter = op_list.iter().map(|node| dag[*node].unwrap_operation());
+    instructions_to_matrix(inst_iter, block_index_map, dag.qargs_interner())
+}
+
+pub fn instructions_to_matrix<'a>(
+    op_list: impl Iterator<Item = &'a PackedInstruction>,
+    block_index_map: [Qubit; 2],
+    qargs_interner: &'a Interner<[Qubit]>,
+) -> PyResult<Array2<Complex64>> {
     #[derive(Clone, Copy, PartialEq, Eq)]
     enum Qarg {
         Q0 = 0,
@@ -144,18 +154,14 @@ pub fn blocks_to_matrix(
         Q10 = 3,
     }
     let qarg_vals = [Qarg::Q0, Qarg::Q1, Qarg::Q01, Qarg::Q10];
-    let interned_default = dag.qargs_interner().get_default();
+    let interned_default = qargs_interner.get_default();
     let interned_map = [
         &[block_index_map[0]],
         &[block_index_map[1]],
         block_index_map.as_slice(),
         &[block_index_map[1], block_index_map[0]],
     ]
-    .map(|qubits| {
-        dag.qargs_interner()
-            .try_key(qubits)
-            .unwrap_or(interned_default)
-    });
+    .map(|qubits| qargs_interner.try_key(qubits).unwrap_or(interned_default));
     let qarg_lookup = |qargs| {
         qarg_vals[interned_map
             .iter()
@@ -166,8 +172,7 @@ pub fn blocks_to_matrix(
     let mut work: [[Complex64; 4]; 4] = Default::default();
     let mut qubits_1q: Option<Separable1q> = None;
     let mut output_matrix: Option<Array2<Complex64>> = None;
-    for node in op_list {
-        let inst = dag[*node].unwrap_operation();
+    for inst in op_list {
         let qarg = qarg_lookup(inst.qubits);
         match qarg {
             Qarg::Q0 | Qarg::Q1 => {

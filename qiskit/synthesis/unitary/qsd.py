@@ -28,6 +28,7 @@ from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.circuit.library.standard_gates import CXGate
 from qiskit.circuit.library.generalized_gates.uc_pauli_rot import UCPauliRotGate, _EPS
 from qiskit._accelerate.two_qubit_decompose import two_qubit_decompose_up_to_diagonal
+from qiskit._accelerate import qsd
 
 # pylint: disable=invalid-name
 
@@ -106,6 +107,13 @@ def qs_decomposition(
            n-Qubit Gates Based on Block ZXZ-Decomposition*,
            `arXiv:2403.13692 <https://arxiv.org/abs/2403.13692>`_
     """
+    if decomposer_1q is None and decomposer_2q is None:
+        array = np.asarray(mat, dtype=complex)
+        return QuantumCircuit._from_circuit_data(qsd.qs_decomposition(array, opt_a1, opt_a2))
+
+    # TODO call rust if decomposer_1q or decomposer_2q are OneQubitEulerDecomposer or TwoQubitBasisDecomposer
+    # deprecate otherwise
+
     #  _depth (int): Internal use parameter to track recursion depth.
     dim = mat.shape[0]
     nqubits = dim.bit_length() - 1
