@@ -22,12 +22,7 @@ import numpy as np
 
 from qiskit import transpile
 from qiskit.circuit import Measure, Parameter, library, QuantumCircuit
-from qiskit.quantum_info import (
-    QubitSparsePauli,
-    QubitSparsePauliList,
-    Pauli,
-    PauliList
-)
+from qiskit.quantum_info import QubitSparsePauli, QubitSparsePauliList, Pauli, PauliList
 from qiskit.transpiler import Target
 
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -480,11 +475,11 @@ class TestQubitSparsePauli(QiskitTestCase):
             p0.commutes(p1)
         with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits: 3, 4"):
             p1.commutes(p0)
-    
+
     def test_to_pauli(self):
         pauli = Pauli("XIZIY")
         self.assertEqual(pauli, QubitSparsePauli(pauli).to_pauli())
-        
+
         # leading identities
         pauli = Pauli("IIZIY")
         self.assertEqual(pauli, QubitSparsePauli(pauli).to_pauli())
@@ -1205,7 +1200,7 @@ class TestQubitSparsePauliList(QiskitTestCase):
                 canonicalize_sparse_list(expected),
                 canonicalize_sparse_list(pauli_list.to_sparse_list()),
             )
-   
+
     def test_to_pauli_list(self):
         pauli_strings = ["XIZIY", "IIZIY", "ZIYII", "IIZII"]
         pauli_list = PauliList(pauli_strings)
