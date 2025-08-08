@@ -433,3 +433,32 @@ class BindingsArrayTestCase(QiskitTestCase):
         np.testing.assert_allclose(ba[...].as_array(params), data)
         np.testing.assert_allclose(ba[0].as_array(params), data[0])
         np.testing.assert_allclose(ba[6:2:-1, -1].as_array(params), data[6:2:-1, -1])
+
+    def test_outer_valid(self):
+        """Test the outer function on two valid BindingsArrays."""
+        a_vals = np.arange(6).reshape((2, 3))
+        ba1 = BindingsArray({Parameter("a"): a_vals}, shape=(2, 3))
+
+        b_vals = np.arange(20).reshape((4, 5))
+        ba2 = BindingsArray({Parameter("b"): b_vals}, shape=(4, 5))
+
+        ba_outer = ba1.outer(ba2)
+        self.assertEqual(ba_outer.shape, (2, 3, 4, 5))
+        self.assertEqual(ba_outer.num_parameters, 2)
+
+        outer_array = ba_outer.as_array()
+        self.assertEqual(outer_array.shape, (2, 3, 4, 5, 2))
+
+        expected_a = np.broadcast_to(a_vals.reshape((2, 3) + (1, 1)), (2, 3, 4, 5))
+
+        expected_b = np.broadcast_to(b_vals.reshape((1, 1) + (4, 5)), (2, 3, 4, 5))
+
+        expected = np.concatenate([expected_a[..., None], expected_b[..., None]], axis=-1)
+        np.testing.assert_allclose(outer_array, expected)
+
+    def test_outer_shared_parameters(self):
+        """Test that outer raises a ValueError when BindingsArrays share parameters."""
+        ba1 = BindingsArray({Parameter("a"): 1.0})
+        ba2 = BindingsArray({Parameter("a"): 2.0})
+        with self.assertRaises(ValueError):
+            ba1.outer(ba2)
