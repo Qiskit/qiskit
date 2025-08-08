@@ -479,6 +479,7 @@ impl QubitSparsePauliList {
         Ok(())
     }
 
+    // Return a Vec of dense labels representing this Pauli list
     pub fn to_dense_label_list(&self) -> Vec<String> {
         let mut dense_label_list = Vec::with_capacity(self.num_terms());
 
@@ -673,6 +674,7 @@ impl QubitSparsePauli {
         })
     }
 
+    // Return a dense label representing this Pauli
     pub fn to_dense_label(&self) -> String {
         let mut pauli_str = "".to_string();
 
@@ -1508,6 +1510,7 @@ impl PyQubitSparsePauli {
             .into_pyobject(py)
     }
 
+    /// Return a :class:`~.quantum_info.Pauli` representing the same phaseless Pauli.
     fn to_pauli<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let quantum_info_module = py.import("qiskit.quantum_info")?;
         let py_pauli = quantum_info_module.getattr("Pauli")?;
@@ -2065,6 +2068,7 @@ impl PyQubitSparsePauliList {
         Ok(out.unbind())
     }
 
+    /// Return a :class:`~.quantum_info.PauliList` representing the same phaseless list of Paulis.
     fn to_pauli_list<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let quantum_info_module = py.import("qiskit.quantum_info")?;
         let py_pauli_list = quantum_info_module.getattr("PauliList")?;
