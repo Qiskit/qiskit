@@ -1726,6 +1726,11 @@ impl DAGCircuit {
         Ok(PyTuple::new(py, result)?.into_any().try_iter()?.unbind())
     }
 
+    /// Return `true` if there are no operation nodes in the graph.
+    fn is_empty(&self) -> bool {
+        self.dag.node_count() == 2 * (self.qubits.len() + self.clbits.len() + self.vars.len())
+    }
+
     /// Return the number of operations.  If there is control flow present, this count may only
     /// be an estimate, as the complete control-flow path cannot be statically known.
     ///

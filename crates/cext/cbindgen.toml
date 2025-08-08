@@ -81,6 +81,7 @@ prefix_with_name = true
 "Target" = "QkTarget"
 "TargetEntry" = "QkTargetEntry"
 "VF2LayoutResult" = "QkVF2LayoutResult"
+"VF2LayoutConfiguration" = "QkVF2LayoutConfiguration"
 "ElidePermutationsResult" = "QkElidePermutationsResult"
 "TranspileLayout" = "QkTranspileLayout"
 "TranspileResult" = "QkTranspileResult"
