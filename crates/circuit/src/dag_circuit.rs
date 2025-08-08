@@ -4367,6 +4367,27 @@ impl DAGCircuit {
     }
 }
 
+impl<'a> DAGCircuit {
+    /// Return an iterator of gate runs with op nodes that match a specified filter function
+    pub fn collect_runs_by<F: Fn(&PackedInstruction) -> bool + 'a>(
+        &'a self,
+        filter: F,
+    ) -> impl Iterator<Item = Vec<NodeIndex>> + 'a {
+        let filter_fn = move |node_index: NodeIndex| -> Result<bool, Infallible> {
+            let node = &self.dag[node_index];
+            match node {
+                NodeType::Operation(inst) => Ok(filter(inst)),
+                _ => Ok(false),
+            }
+        };
+
+        match rustworkx_core::dag_algo::collect_runs(&self.dag, filter_fn) {
+            Some(iter) => iter.map(|result| result.unwrap()),
+            None => panic!("Invalid DAG cycle(s) detected"),
+        }
+    }
+}
+
 impl DAGCircuit {
     pub fn new() -> PyResult<Self> {
         Ok(DAGCircuit {
