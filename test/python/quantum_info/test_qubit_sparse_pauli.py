@@ -26,6 +26,7 @@ from qiskit.quantum_info import (
     QubitSparsePauli,
     QubitSparsePauliList,
     Pauli,
+    PauliList
 )
 from qiskit.transpiler import Target
 
@@ -1204,6 +1205,16 @@ class TestQubitSparsePauliList(QiskitTestCase):
                 canonicalize_sparse_list(expected),
                 canonicalize_sparse_list(pauli_list.to_sparse_list()),
             )
+   
+    def test_to_pauli_list(self):
+        pauli_strings = ["XIZIY", "IIZIY", "ZIYII", "IIZII"]
+        pauli_list = PauliList(pauli_strings)
+        self.assertEqual(pauli_list, QubitSparsePauliList.from_list(pauli_strings).to_pauli_list())
+
+        # single element
+        pauli_strings = ["XIZIY"]
+        pauli_list = PauliList(pauli_strings)
+        self.assertEqual(pauli_list, QubitSparsePauliList.from_list(pauli_strings).to_pauli_list())
 
 
 def canonicalize_term(pauli, indices):
