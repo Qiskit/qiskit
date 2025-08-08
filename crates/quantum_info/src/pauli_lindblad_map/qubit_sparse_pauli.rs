@@ -479,6 +479,15 @@ impl QubitSparsePauliList {
         Ok(())
     }
 
+    pub fn to_dense_label_list(&self) -> Vec<String> {
+        let mut dense_label_list = Vec::with_capacity(self.num_terms());
+
+        for qubit_sparse_pauli in self.iter() {
+            dense_label_list.push(qubit_sparse_pauli.to_term().to_dense_label());
+        }
+        dense_label_list
+    }
+
     /// Apply a transpiler layout.
     pub fn apply_layout(
         &self,
@@ -2054,6 +2063,14 @@ impl PyQubitSparsePauliList {
             out.append(to_py_tuple(view)?)?;
         }
         Ok(out.unbind())
+    }
+
+    fn to_pauli_list<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let quantum_info_module = py.import("qiskit.quantum_info")?;
+        let py_pauli_list = quantum_info_module.getattr("PauliList")?;
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let pauli_list = py_pauli_list.call1((inner.to_dense_label_list(),))?;
+        Ok(pauli_list.extract()?)
     }
 
     /// Apply a transpiler layout to this qubit sparse Pauli list.
