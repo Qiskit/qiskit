@@ -682,7 +682,8 @@ impl QubitSparsePauli {
 
         for (index, pauli) in self.indices().iter().zip(self.paulis().iter()) {
             if *index > current_idx {
-                pauli_str = (0..(index - current_idx)).map(|_| "I").collect::<String>() + &pauli_str;
+                pauli_str =
+                    (0..(index - current_idx)).map(|_| "I").collect::<String>() + &pauli_str;
                 current_idx = *index;
             }
             pauli_str = pauli.py_label().to_string() + &pauli_str;
@@ -690,7 +691,10 @@ impl QubitSparsePauli {
         }
 
         if current_idx < self.num_qubits() {
-            pauli_str = (0..(self.num_qubits() - current_idx)).map(|_| "I").collect::<String>() + &pauli_str;
+            pauli_str = (0..(self.num_qubits() - current_idx))
+                .map(|_| "I")
+                .collect::<String>()
+                + &pauli_str;
         }
         pauli_str
     }
@@ -1515,7 +1519,7 @@ impl PyQubitSparsePauli {
         let quantum_info_module = py.import("qiskit.quantum_info")?;
         let py_pauli = quantum_info_module.getattr("Pauli")?;
         let pauli = py_pauli.call1((self.inner.to_dense_label(),))?;
-        Ok(pauli.extract()?)
+        pauli.extract()
     }
 
     /// Get a copy of this term.
@@ -2074,7 +2078,7 @@ impl PyQubitSparsePauliList {
         let py_pauli_list = quantum_info_module.getattr("PauliList")?;
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         let pauli_list = py_pauli_list.call1((inner.to_dense_label_list(),))?;
-        Ok(pauli_list.extract()?)
+        pauli_list.extract()
     }
 
     /// Apply a transpiler layout to this qubit sparse Pauli list.
