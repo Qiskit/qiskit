@@ -26,6 +26,7 @@ from qiskit.quantum_info import (
     PhasedQubitSparsePauli,
     PhasedQubitSparsePauliList,
     Pauli,
+    PauliList
 )
 from qiskit.transpiler import Target
 
@@ -1306,6 +1307,24 @@ class TestPhasedQubitSparsePauliList(QiskitTestCase):
                 canonicalize_sparse_list(expected),
                 canonicalize_sparse_list(pauli_list.to_sparse_list()),
             )
+    
+    def test_to_pauli_list(self):
+        pauli_strings = ["XIZIY", "iIIZIY", "-iZIYII", "-IIZII"]
+        pauli_list = PauliList(pauli_strings)
+        phased_qubit_sparse_pauli_list = PhasedQubitSparsePauliList.from_phased_qubit_sparse_paulis([PhasedQubitSparsePauli(x) for x in pauli_list])
+        self.assertEqual(pauli_list, phased_qubit_sparse_pauli_list.to_pauli_list())
+
+        # single element
+        pauli_strings = ["XIZIY"]
+        pauli_list = PauliList(pauli_strings)
+        phased_qubit_sparse_pauli_list = PhasedQubitSparsePauliList.from_phased_qubit_sparse_paulis([PhasedQubitSparsePauli(x) for x in pauli_list])
+        self.assertEqual(pauli_list, phased_qubit_sparse_pauli_list.to_pauli_list())
+
+        # single element with phase
+        pauli_strings = ["iXIZIY"]
+        pauli_list = PauliList(pauli_strings)
+        phased_qubit_sparse_pauli_list = PhasedQubitSparsePauliList.from_phased_qubit_sparse_paulis([PhasedQubitSparsePauli(x) for x in pauli_list])
+        self.assertEqual(pauli_list, phased_qubit_sparse_pauli_list.to_pauli_list())
 
 
 def canonicalize_term(phase, pauli, indices):
