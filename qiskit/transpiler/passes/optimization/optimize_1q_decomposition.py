@@ -19,7 +19,6 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils import control_flow
 from qiskit.synthesis.one_qubit import one_qubit_decompose
 from qiskit._accelerate import euler_one_qubit_decomposer
-from qiskit._accelerate import optimize_1q_gates_decomposition
 from qiskit.circuit.library.standard_gates import (
     UGate,
     PhaseGate,
@@ -129,7 +128,16 @@ class Optimize1qGatesDecomposition(TransformationPass):
             if qubits_tuple in self._local_decomposers_cache:
                 decomposers = self._local_decomposers_cache[qubits_tuple]
             else:
-                available_1q_basis = set(self._target.operation_names_for_qargs(qubits_tuple))
+                inst_objects = self._target.operations_for_qargs(qubits_tuple)
+
+                available_1q_basis = {
+                    op.name
+                    for op in inst_objects
+                    # Safely check .parameters, some gates (like SX, Phase) don’t have it
+                    if (not getattr(op, "parameters", None))
+                    or any(hasattr(param, "name") for param in getattr(op, "parameters", []))
+                }
+
                 decomposers = _possible_decomposers(available_1q_basis)
         else:
             decomposers = self._global_decomposers
@@ -208,7 +216,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
-        optimize_1q_gates_decomposition.optimize_1q_gates_decomposition(
+        euler_one_qubit_decomposer.optimize_1q_gates_decomposition(
             dag,
             target=self._target,
             global_decomposers=self._global_decomposers,
