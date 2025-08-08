@@ -674,7 +674,7 @@ fn increment_1_dirty(n: u32, flag_add: bool) -> PyResult<CircuitData> {
         ));
     }
 
-    let k = (n + 1) / 2;
+    let k = n.div_ceil(2);
 
     // This construction is described in Fig. 6 of [1].
     //
@@ -870,7 +870,7 @@ fn increment_2_dirty(n: u32, flag_add: bool) -> PyResult<CircuitData> {
 /// # References:
 ///
 /// 1. Huang and Palsberg, *Compiling Conditional Quantum Gates without Using Helper Qubits*, PLDI (2024),
-/// https://dl.acm.org/doi/10.1145/3656436.
+///    https://dl.acm.org/doi/10.1145/3656436.
 pub fn synth_mcx_noaux_hp24(num_controls: usize) -> PyResult<CircuitData> {
     let n = num_controls + 1;
 
