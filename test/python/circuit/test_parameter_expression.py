@@ -452,7 +452,8 @@ class TestParameterExpression(QiskitTestCase):
                 with self.subTest(method=method, value=value):
                     ref = reference(value)
                     if isinstance(d_expr, ParameterExpression):
-                        val = d_expr.bind({x: value}).numeric()
+                        # allow unknown parameters since the derivative could evaluate to a const
+                        val = d_expr.bind({x: value}, allow_unknown_parameters=True).numeric()
                     else:
                         val = d_expr  # d/dx conj(x) == 1
 
@@ -477,7 +478,7 @@ class TestParameterExpression(QiskitTestCase):
         c = Parameter("c")
         d = Parameter("d")
 
-        expression = (a + b.sin() / 4) * c**2
+        expression = (a + b.sin() * 0.25) * c**2
         final_expr = (
             (expression.cos() + d.arccos() - d.arcsin() + d.arctan() + d.tan()) / d.exp()
             + expression.gradient(a)
@@ -493,7 +494,7 @@ class TestParameterExpression(QiskitTestCase):
         b = sympy.Symbol("b")
         c = sympy.Symbol("c")
         d = sympy.Symbol("d")
-        expression = (a + sympy.sin(b) / 4) * c**2
+        expression = (a + sympy.sin(b) * 0.25) * c**2
         expected = (
             (sympy.cos(expression) + sympy.acos(d) - sympy.asin(d) + sympy.atan(d) + sympy.tan(d))
             / sympy.exp(d)
@@ -504,6 +505,7 @@ class TestParameterExpression(QiskitTestCase):
         )
         expected = sympy.Abs(expected)
         expected = expected.subs({c: a})
+
         self.assertEqual(result, expected)
 
     @unittest.skipUnless(HAS_SYMPY, "Sympy is required for this test")

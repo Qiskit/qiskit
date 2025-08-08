@@ -88,6 +88,7 @@ from qiskit.transpiler.passes.synthesis.hls_plugins import (
     MCXSynthesisGrayCode,
     MCXSynthesisDefault,
     MCXSynthesisNoAuxV24,
+    MCXSynthesisNoAuxHP24,
 )
 from qiskit.circuit.annotated_operation import (
     AnnotatedOperation,
@@ -2843,9 +2844,23 @@ class TestMCXSynthesisPlugins(QiskitTestCase):
             )
             self.assertIsNotNone(decomposition)
 
+        with self.subTest(method="noaux_hp24", num_clean_ancillas=1, num_dirty_ancillas=1):
+            # should have a decomposition
+            decomposition = MCXSynthesisNoAuxHP24().run(
+                gate, num_clean_ancillas=1, num_dirty_ancillas=1
+            )
+            self.assertIsNotNone(decomposition)
+
         with self.subTest(method="noaux_v24", num_clean_ancillas=0, num_dirty_ancillas=0):
             # should have a decomposition
             decomposition = MCXSynthesisNoAuxV24().run(
+                gate, num_clean_ancillas=0, num_dirty_ancillas=0
+            )
+            self.assertIsNotNone(decomposition)
+
+        with self.subTest(method="noaux_hp24", num_clean_ancillas=0, num_dirty_ancillas=0):
+            # should have a decomposition
+            decomposition = MCXSynthesisNoAuxHP24().run(
                 gate, num_clean_ancillas=0, num_dirty_ancillas=0
             )
             self.assertIsNotNone(decomposition)

@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use std::hash::Hash;
+use std::sync::Arc;
 
 use ahash::RandomState;
 use approx::relative_eq;
@@ -34,6 +35,7 @@ use crate::operations::{
     ArrayType, Operation, OperationRef, Param, PyInstruction, PythonOperation, StandardGate,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
+use crate::parameter::parameter_expression::ParameterExpression;
 use crate::register_data::RegisterData;
 use crate::rustworkx_core_vnext::isomorphism;
 use crate::slice::PySequenceIndex;
@@ -1885,11 +1887,8 @@ impl DAGCircuit {
         };
         let normalize_param = |param: &Param| {
             if let Param::ParameterExpression(ob) = param {
-                ob.bind(py)
-                    .call_method0(intern!(py, "numeric"))
-                    .ok()
-                    .map(|ob| ob.extract::<Param>())
-                    .unwrap_or_else(|| Ok(param.clone()))
+                // try casting ParameterExpression to Param, prioritizing Float
+                Param::from_expr(ob.as_ref().clone(), true)
             } else {
                 Ok(param.clone())
             }
@@ -1902,7 +1901,7 @@ impl DAGCircuit {
             [Param::Float(self_phase), Param::Float(other_phase)] => {
                 Ok(phase_is_close(self_phase, other_phase))
             }
-            _ => self.global_phase.eq(py, &other.global_phase),
+            _ => self.global_phase.eq(&other.global_phase),
         }?;
         if !phase_eq {
             return Ok(false);
@@ -2082,7 +2081,7 @@ impl DAGCircuit {
                                     .params_view()
                                     .iter()
                                     .zip(inst2.params_view().iter())
-                                    .all(|(a, b)| a.is_close(py, b, 1e-10).unwrap()))
+                                    .all(|(a, b)| a.is_close(b, 1e-10).unwrap()))
                         }
                         [OperationRef::Instruction(op1), OperationRef::Instruction(op2)] => {
                             if op1.control_flow() && op2.control_flow() {
@@ -4365,6 +4364,27 @@ impl DAGCircuit {
                 }
             })
             .collect()
+    }
+}
+
+impl<'a> DAGCircuit {
+    /// Return an iterator of gate runs with op nodes that match a specified filter function
+    pub fn collect_runs_by<F: Fn(&PackedInstruction) -> bool + 'a>(
+        &'a self,
+        filter: F,
+    ) -> impl Iterator<Item = Vec<NodeIndex>> + 'a {
+        let filter_fn = move |node_index: NodeIndex| -> Result<bool, Infallible> {
+            let node = &self.dag[node_index];
+            match node {
+                NodeType::Operation(inst) => Ok(filter(inst)),
+                _ => Ok(false),
+            }
+        };
+
+        match rustworkx_core::dag_algo::collect_runs(&self.dag, filter_fn) {
+            Some(iter) => iter.map(|result| result.unwrap()),
+            None => panic!("Invalid DAG cycle(s) detected"),
+        }
     }
 }
 
@@ -7611,26 +7631,18 @@ impl ::std::ops::Index<NodeIndex> for DAGCircuit {
 
 /// Add to global phase. Global phase can only be Float or ParameterExpression so this
 /// does not handle the full possibility of parameter values.
+/// TODO replace/merge this with add_param/radd_param
 pub(crate) fn add_global_phase(phase: &Param, other: &Param) -> PyResult<Param> {
     Ok(match [phase, other] {
         [Param::Float(a), Param::Float(b)] => Param::Float(a + b),
         [Param::Float(a), Param::ParameterExpression(b)] => {
-            Param::ParameterExpression(Python::with_gil(|py| -> PyResult<PyObject> {
-                b.clone_ref(py)
-                    .call_method1(py, intern!(py, "__radd__"), (*a,))
-            })?)
+            Param::ParameterExpression(Arc::new(b.add(&ParameterExpression::from_f64(*a)).unwrap()))
         }
         [Param::ParameterExpression(a), Param::Float(b)] => {
-            Param::ParameterExpression(Python::with_gil(|py| -> PyResult<PyObject> {
-                a.clone_ref(py)
-                    .call_method1(py, intern!(py, "__add__"), (*b,))
-            })?)
+            Param::ParameterExpression(Arc::new(a.add(&ParameterExpression::from_f64(*b)).unwrap()))
         }
         [Param::ParameterExpression(a), Param::ParameterExpression(b)] => {
-            Param::ParameterExpression(Python::with_gil(|py| -> PyResult<PyObject> {
-                a.clone_ref(py)
-                    .call_method1(py, intern!(py, "__add__"), (b,))
-            })?)
+            Param::ParameterExpression(Arc::new(a.add(b).expect("Name conflict in add.")))
         }
         _ => panic!("Invalid global phase"),
     })
