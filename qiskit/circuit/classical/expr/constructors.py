@@ -65,7 +65,6 @@ def _coerce_lossless(expr: Expr, type: types.Type) -> Expr | None:
         return Cast(expr, type, implicit=False)
     return None
 
-
 def lift_legacy_condition(
     condition: tuple[qiskit.circuit.Clbit | qiskit.circuit.ClassicalRegister, int], /
 ) -> Expr:
@@ -200,7 +199,7 @@ Bool())
     operand = lift(operand)
     coerced_operand = _coerce_lossless(operand, types.Bool())
     if coerced_operand is None:
-        raise TypeError(f"cannot apply '{Unary.Op.LOGIC_NOT}' to type '{operand.type}'")
+        raise TypeError(f"cannot apply ({operand}) '{Unary.Op.LOGIC_NOT}' to type '{operand.type}'")
     return Unary(Unary.Op.LOGIC_NOT, coerced_operand, coerced_operand.type)
 
 

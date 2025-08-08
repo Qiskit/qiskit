@@ -20,5 +20,6 @@ pub(crate) fn register_python(m: &Bound<PyModule>) -> PyResult<()> {
     let types_mod = PyModule::new(m.py(), "types")?;
     types::register_python(&types_mod)?;
     m.add_submodule(&types_mod)?;
+
     Ok(())
 }
