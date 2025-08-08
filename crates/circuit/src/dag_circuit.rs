@@ -1901,7 +1901,7 @@ impl DAGCircuit {
             [Param::Float(self_phase), Param::Float(other_phase)] => {
                 Ok(phase_is_close(self_phase, other_phase))
             }
-            _ => self.global_phase.eq(py, &other.global_phase),
+            _ => self.global_phase.eq(&other.global_phase),
         }?;
         if !phase_eq {
             return Ok(false);
@@ -2081,7 +2081,7 @@ impl DAGCircuit {
                                     .params_view()
                                     .iter()
                                     .zip(inst2.params_view().iter())
-                                    .all(|(a, b)| a.is_close(py, b, 1e-10).unwrap()))
+                                    .all(|(a, b)| a.is_close(b, 1e-10).unwrap()))
                         }
                         [OperationRef::Instruction(op1), OperationRef::Instruction(op2)] => {
                             if op1.control_flow() && op2.control_flow() {
