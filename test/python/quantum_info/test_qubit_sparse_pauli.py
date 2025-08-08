@@ -479,6 +479,22 @@ class TestQubitSparsePauli(QiskitTestCase):
             p0.commutes(p1)
         with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits: 3, 4"):
             p1.commutes(p0)
+    
+    def test_to_pauli(self):
+        pauli = Pauli("XIZIY")
+        self.assertEqual(pauli, QubitSparsePauli(pauli).to_pauli())
+        
+        # leading identities
+        pauli = Pauli("IIZIY")
+        self.assertEqual(pauli, QubitSparsePauli(pauli).to_pauli())
+
+        # trailing identities
+        pauli = Pauli("XIZIYII")
+        self.assertEqual(pauli, QubitSparsePauli(pauli).to_pauli())
+
+        # both
+        pauli = Pauli("IIXIZIYII")
+        self.assertEqual(pauli, QubitSparsePauli(pauli).to_pauli())
 
 
 @ddt.ddt
