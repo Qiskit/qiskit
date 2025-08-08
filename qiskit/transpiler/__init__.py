@@ -1272,6 +1272,7 @@ Hardware description
 
    Target
    InstructionProperties
+   WrapAngleRegistry
 
 Pass Manager Definition
 -----------------------
@@ -1331,6 +1332,8 @@ from qiskit.passmanager import (
     DoWhileController,
 )
 from qiskit.passmanager.compilation_status import PropertySet
+
+from qiskit._accelerate.angle_bound_registry import WrapAngleRegistry
 
 from .passmanager import PassManager, StagedPassManager
 from .passmanager_config import PassManagerConfig

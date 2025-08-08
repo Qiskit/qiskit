@@ -44,6 +44,7 @@ pub mod sabre;
 mod split_2q_unitaries;
 mod unitary_synthesis;
 mod vf2;
+mod wrap_angles;
 
 pub use alap_schedule_analysis::{alap_schedule_analysis_mod, run_alap_schedule_analysis};
 pub use barrier_before_final_measurement::{
@@ -80,3 +81,4 @@ pub use remove_identity_equiv::{remove_identity_equiv_mod, run_remove_identity_e
 pub use split_2q_unitaries::{run_split_2q_unitaries, split_2q_unitaries_mod};
 pub use unitary_synthesis::{run_unitary_synthesis, unitary_synthesis_mod};
 pub use vf2::{error_map_mod, score_layout, vf2_layout_mod, vf2_layout_pass, ErrorMap};
+pub use wrap_angles::{run_wrap_angles, wrap_angles_mod};
