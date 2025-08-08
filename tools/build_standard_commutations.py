@@ -15,7 +15,7 @@
    depending on the present commutation relation.
 """
 
-
+import io
 import itertools
 from functools import lru_cache
 from typing import List
@@ -214,10 +214,23 @@ def _simplify_commuting_dict(commuting_dict: dict) -> dict:
     return commuting_dict
 
 
+def format_entry(key, value):
+    """Generate a string for a commutation entry."""
+    with io.StringIO() as buf:
+        buf.write("(smallvec![")
+        for qubit in key:
+            if qubit is None:
+                buf.write("None, ")
+            else:
+                buf.write(f"Some(Qubit({qubit})), ")
+        buf.write(f"], {str(value).lower()})")
+        return buf.getvalue()
+
+
 def _dump_commuting_dict_as_python(
-    commutations: dict, file_name: str = "../_standard_gates_commutations.py"
+    commutations: dict, file_name: str = "../standard_gates_commutations.rs"
 ):
-    """Write commutation dictionary as python object to ./qiskit/circuit/_standard_gates_commutations.py.
+    """Write commutation dictionary as python object to ../standard_gates_commutations.rs.
 
     Args:
         commutations (dict): a dictionary that includes the commutation relation for
@@ -225,21 +238,47 @@ def _dump_commuting_dict_as_python(
 
     """
     with open(file_name, "w") as fp:
-        dir_str = "standard_gates_commutations = {\n"
+        simple_commutations = {}
+        other_commutations = {}
         for k, v in commutations.items():
             if not isinstance(v, dict):
-                # pylint: disable-next=consider-using-f-string
-                dir_str += '    ("{}", "{}"): {},\n'.format(*k, v)
+                simple_commutations[k] = v
             else:
-                # pylint: disable-next=consider-using-f-string
-                dir_str += '    ("{}", "{}"): {{\n'.format(*k)
+                other_commutations[k] = v
+        fp.write("use smallvec::smallvec;\n\n")
+        fp.write("use qiskit_circuit::Qubit;\n")
+        fp.write(
+            "use crate::commutation_checker::{CommutationLibrary, CommutationLibraryEntry};\n\n"
+        )
+        fp.write(f"static SIMPLE_COMMUTE: [([&str; 2], bool); {len(simple_commutations)}] = [\n")
+        for k, v in simple_commutations.items():
+            fp.write(f'    (["{k[0]}", "{k[1]}"], {str(v).lower()}),\n')
+        fp.write("];\n\n")
 
-                for entry_key, entry_val in v.items():
-                    dir_str += f"        {entry_key}: {entry_val},\n"
+        fp.write("pub fn get_commutation_library() -> CommutationLibrary {\n")
+        fp.write(
+            "    let mut commutation_library = CommutationLibrary::with_capacity("
+            f"{len(simple_commutations) + len(other_commutations)});\n"
+        )
+        fp.write("     for (key, value) in SIMPLE_COMMUTE {\n")
+        fp.write(
+            "          commutation_library.add_entry(key, CommutationLibraryEntry::Commutes(value));"
+        )
+        fp.write("     }\n")
+        for k, v in other_commutations.items():
+            fp.write("    let commutation_map = [\n")
+            for entry_key, entry_val in v.items():
 
-                dir_str += "    },\n"
-        dir_str += "}\n"
-        fp.write(dir_str.replace("'", ""))
+                fp.write(f"        {format_entry(entry_key, entry_val)},\n")
+            fp.write("    ]\n")
+            fp.write("    .into_iter()\n")
+            fp.write("    .collect();\n")
+            fp.write(
+                f'    commutation_library.add_entry(["{k[0]}", "{k[1]}"], '
+                "CommutationLibraryEntry::QubitMapping(commutation_map));\n"
+            )
+        fp.write("    commutation_library")
+        fp.write("}\n")
 
 
 if __name__ == "__main__":

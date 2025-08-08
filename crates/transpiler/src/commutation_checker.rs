@@ -37,7 +37,9 @@ use qiskit_circuit::operations::{
 use qiskit_circuit::{Clbit, Qubit};
 
 use crate::gate_metrics;
+use crate::standard_gates_commutations;
 use crate::QiskitError;
+
 use qiskit_quantum_info::unitary_compose;
 
 const fn build_supported_ops() -> [bool; STANDARD_GATE_SIZE] {
@@ -687,6 +689,22 @@ pub struct CommutationLibrary {
 }
 
 impl CommutationLibrary {
+    pub(crate) fn with_capacity(size: usize) -> Self {
+        CommutationLibrary {
+            library: Some(HashMap::with_capacity(size)),
+        }
+    }
+
+    pub(crate) fn add_entry(&mut self, key: [&str; 2], value: CommutationLibraryEntry) {
+        if let Some(library) = &mut self.library {
+            library.insert((key[0].to_string(), key[1].to_string()), value);
+        } else {
+            let mut library = HashMap::new();
+            library.insert((key[0].to_string(), key[1].to_string()), value);
+            self.library = Some(library);
+        }
+    }
+
     fn check_commutation_entries(
         &self,
         first_op: &OperationRef,
@@ -868,8 +886,21 @@ fn hashable_params(params: &[Param]) -> PyResult<SmallVec<[ParameterKey; 3]>> {
         .collect()
 }
 
+#[pyfunction]
+pub fn get_standard_commutation_checker() -> CommutationChecker {
+    let library = standard_gates_commutations::get_commutation_library();
+    CommutationChecker {
+        library,
+        cache_max_entries: 1_000_000,
+        cache: HashMap::new(),
+        current_cache_entries: 0,
+        gates: None,
+    }
+}
+
 pub fn commutation_checker(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<CommutationLibrary>()?;
     m.add_class::<CommutationChecker>()?;
+    m.add_wrapped(wrap_pyfunction!(get_standard_commutation_checker))?;
     Ok(())
 }

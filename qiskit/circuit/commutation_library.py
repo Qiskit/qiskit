@@ -15,6 +15,8 @@
 from qiskit.circuit import CommutationChecker
 
 from qiskit.circuit._standard_gates_commutations import standard_gates_commutations
+from qiskit._accelerate.commutation_checker import get_standard_commutation_checker
 
 StandardGateCommutations = standard_gates_commutations
-SessionCommutationChecker = CommutationChecker(StandardGateCommutations)
+SessionCommutationChecker = CommutationChecker()
+SessionCommutationChecker.cc = get_standard_commutation_checker()
