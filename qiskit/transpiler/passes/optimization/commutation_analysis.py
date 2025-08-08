@@ -23,9 +23,16 @@ class CommutationAnalysis(AnalysisPass):
     This sets ``property_set['commutation_set']`` to a dictionary that describes
     the commutation relations on a given wire: all the gates on a wire
     are grouped into a set of gates that commute.
+
+    Args:
+        _commutation_checker: Optional commutation checker to use. If None,
+            uses the default SessionCommutationChecker.
+        approximation_degree (float): Heuristic dial between 0.0 and 1.0 to control the degree of approximation.
+            0.0 means maximum supported approximation, 1.0 means no approximation (default, with a numerical tolerance of 1e-12).
+            For more details, see the documentation for RemoveIdentityEquivalent and related passes.
     """
 
-    def __init__(self, *, _commutation_checker=None):
+    def __init__(self, *, _commutation_checker=None, approximation_degree=1.0):
         super().__init__()
         # allow setting a private commutation checker, this allows better performance if we
         # do not care about commutations of all gates, but just a subset
@@ -33,6 +40,7 @@ class CommutationAnalysis(AnalysisPass):
             _commutation_checker = scc
 
         self.comm_checker = _commutation_checker
+        self.approximation_degree = approximation_degree
 
     def run(self, dag):
         """Run the CommutationAnalysis pass on `dag`.
@@ -41,4 +49,6 @@ class CommutationAnalysis(AnalysisPass):
         into the ``property_set``.
         """
         # Initiate the commutation set
-        self.property_set["commutation_set"] = analyze_commutations(dag, self.comm_checker.cc)
+        self.property_set["commutation_set"] = analyze_commutations(
+            dag, self.comm_checker.cc, approximation_degree=self.approximation_degree
+        )
