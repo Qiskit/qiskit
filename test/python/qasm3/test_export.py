@@ -25,7 +25,16 @@ from ddt import ddt, data
 
 from qiskit.exceptions import ExperimentalWarning
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
-from qiskit.circuit import Parameter, Qubit, Clbit, Duration, Gate, ParameterVector, annotation
+from qiskit.circuit import (
+    Parameter,
+    Qubit,
+    Clbit,
+    Duration,
+    Gate,
+    ParameterVector,
+    annotation,
+    Instruction,
+)
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import CASE_DEFAULT
 from qiskit.circuit.library import PauliEvolutionGate
@@ -36,6 +45,7 @@ from qiskit.qasm3 import (
     dumps_experimental,
     QASM3ExporterError,
     ExperimentalFeatures,
+    DefcalInstruction,
 )
 from qiskit.qasm3.exporter import QASM3Builder
 from qiskit.qasm3.printer import BasicPrinter
@@ -3247,3 +3257,43 @@ box {
         )
         self.assertEqual(prog.strip(), expected.strip())
         self.assertTrue(skip_triggered)
+
+    def test_simple_defcal(self):
+        class MyMeasure(Instruction):
+            def __init__(self):
+                super().__init__("measure_2", 1, 1, [])
+
+        class MyReset(Instruction):
+            def __init__(self, angle):
+                super().__init__("reset_2", 1, 0, [angle])
+
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+        qc.append(MyMeasure(), [0], [0])
+        with qc.if_test(expr.lift(qc.clbits[0])):
+            qc.append(MyReset(2.5), [0])
+        qc.measure(0, 0)
+
+        defcals = {
+            "measure_2": DefcalInstruction("measure_2", 0, 1, types.Bool()),
+            "reset_2": DefcalInstruction("reset_2", 1, 1, None),
+        }
+        prog = dumps(
+            qc,
+            includes=(),
+            basis_gates=("h", "cx"),
+            disable_constants=True,
+            implicit_defcals=defcals,
+        )
+        expected = """
+OPENQASM 3.0;
+bit[1] c;
+qubit[1] q;
+h q[0];
+c[0] = measure_2 q[0];
+if (c[0]) {
+  reset_2(2.5) q[0];
+}
+c[0] = measure q[0];
+"""
+        self.assertEqual(expected.strip(), prog.strip())
