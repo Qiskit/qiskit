@@ -664,6 +664,26 @@ impl QubitSparsePauli {
         })
     }
 
+    pub fn to_dense_label(&self) -> String {
+        let mut pauli_str = "".to_string();
+
+        let mut current_idx = 0;
+
+        for (index, pauli) in self.indices().iter().zip(self.paulis().iter()) {
+            if *index > current_idx {
+                pauli_str = (0..(index - current_idx)).map(|_| "I").collect::<String>() + &pauli_str;
+                current_idx = *index;
+            }
+            pauli_str = pauli.py_label().to_string() + &pauli_str;
+            current_idx += 1;
+        }
+
+        if current_idx < self.num_qubits() {
+            pauli_str = (0..(self.num_qubits() - current_idx)).map(|_| "I").collect::<String>() + &pauli_str;
+        }
+        pauli_str
+    }
+
     /// Create a new [QubitSparsePauli] from the raw components without checking data coherence.
     ///
     /// # Safety
@@ -1482,25 +1502,7 @@ impl PyQubitSparsePauli {
     fn to_pauli<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let quantum_info_module = py.import("qiskit.quantum_info")?;
         let py_pauli = quantum_info_module.getattr("Pauli")?;
-
-        let mut pauli_str = "".to_string();
-
-        let mut current_idx = 0;
-
-        for (index, pauli) in self.inner.indices().iter().zip(self.inner.paulis().iter()) {
-            if *index > current_idx {
-                pauli_str = (0..(index - current_idx)).map(|_| "I").collect::<String>() + &pauli_str;
-                current_idx = *index;
-            }
-            pauli_str = pauli.py_label().to_string() + &pauli_str;
-            current_idx += 1;
-        }
-
-        if current_idx < self.inner.num_qubits() {
-            pauli_str = (0..(self.inner.num_qubits() - current_idx)).map(|_| "I").collect::<String>() + &pauli_str;
-        }
-
-        let pauli = py_pauli.call1((pauli_str,)).expect("wow");
+        let pauli = py_pauli.call1((self.inner.to_dense_label(),)).expect("wow");
         Ok(pauli.extract()?)
     }
 
