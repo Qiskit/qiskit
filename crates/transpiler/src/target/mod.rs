@@ -1588,6 +1588,38 @@ mod test {
     }
 
     #[test]
+    fn test_mismatch_params_count_instruction() {
+        let params: [Param; 3] = [
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
+                "ϴ", None, None,
+            )))),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
+                "φ", None, None,
+            )))),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
+                "λ", None, None,
+            )))),
+        ];
+        let mut target = Target::default();
+        let result = target.add_instruction(
+            PackedOperation::from_standard_gate(StandardGate::RZ),
+            &params,
+            None,
+            None,
+        );
+        let Err(res) = result else {
+            panic!("The operation was unexpectedly successful");
+        };
+        if !matches!(res, TargetError::ParamsMismatch { .. }) {
+            panic!("Returned an unexpected error type");
+        }
+        assert_eq!(
+            res.to_string(),
+            "The number of parameters for rz: 1 does not match the provided number of parameters: 3.",
+        );
+    }
+
+    #[test]
     fn test_add_invalid_qargs_insruction() {
         let qargs: SmallVec<[PhysicalQubit; 2]> = (0..4).map(PhysicalQubit).collect();
         let inst_prop: Option<InstructionProperties> = None;
