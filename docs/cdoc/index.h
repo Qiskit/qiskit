@@ -45,3 +45,7 @@
 /**
  * @defgroup QkElidePermutationsResult QkElidePermutationsResult
  */
+
+/**
+ * @defgroup QkSplit2qUnitariesResult QkSplit2qUnitariesResult
+ */
