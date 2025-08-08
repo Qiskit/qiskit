@@ -53,12 +53,19 @@ class InverseCancellation(TransformationPass):
                   * :class:`.ZGate`
                   * :class:`.HGate`
                   * :class:`.SwapGate`
+                  * :class:`.CHGate`
+                  * :class:`.CCXGate`
+                  * :class:`.CCZGate`
+                  * :class:`.RCCXGate`
+                  * :class:`.CSwapGate`
+                  * :class:`.C3XGate`
 
                 and the default list of inverse gate pairs is:
 
-                  * :class:`TGate` and :class:`Tdg`
-                  * :class:`SGate` and :class:`Sdg`
-                  * :class:`SXGate` and :class:`SXdg`
+                  * :class:`.TGate` and :class:`.TdgGate`
+                  * :class:`.SGate` and :class:`.SdgGate`
+                  * :class:`.SXGate` and :class:`.SXdgGate`
+                  * :class:`.CSGate` and :class:`.CSdgGate`
 
         Raises:
             TranspilerError: Input is not a self-inverse gate or a pair of inverse gates.

@@ -156,7 +156,7 @@ fn run_on_inverse_pairs(
     Ok(())
 }
 
-static SELF_INVERSE_GATES_FOR_CANCELLATION: [StandardGate; 9] = [
+static SELF_INVERSE_GATES_FOR_CANCELLATION: [StandardGate; 15] = [
     StandardGate::CX,
     StandardGate::ECR,
     StandardGate::CY,
@@ -166,12 +166,19 @@ static SELF_INVERSE_GATES_FOR_CANCELLATION: [StandardGate; 9] = [
     StandardGate::Z,
     StandardGate::H,
     StandardGate::Swap,
+    StandardGate::CH,
+    StandardGate::CCX,
+    StandardGate::CCZ,
+    StandardGate::RCCX,
+    StandardGate::CSwap,
+    StandardGate::C3X,
 ];
 
-static INVERSE_PAIRS_FOR_CANCELLATION: [[StandardGate; 2]; 3] = [
+static INVERSE_PAIRS_FOR_CANCELLATION: [[StandardGate; 2]; 4] = [
     [StandardGate::T, StandardGate::Tdg],
     [StandardGate::S, StandardGate::Sdg],
     [StandardGate::SX, StandardGate::SXdg],
+    [StandardGate::CS, StandardGate::CSdg],
 ];
 
 fn std_self_inverse(dag: &mut DAGCircuit) {

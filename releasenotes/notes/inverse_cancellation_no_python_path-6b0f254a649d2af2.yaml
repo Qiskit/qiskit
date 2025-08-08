@@ -15,11 +15,18 @@ features_transpiler:
       * :class:`.ZGate`
       * :class:`.HGate`
       * :class:`.SwapGate`
+      * :class:`.CHGate`
+      * :class:`.CCXGate`
+      * :class:`.CCZGate`
+      * :class:`.RCCXGate`
+      * :class:`.CSwapGate`
+      * :class:`.C3XGate`
 
     and the inverse pairs:
 
-      * :class:`TGate` and :class:`Tdg`
-      * :class:`SGate` and :class:`Sdg`
-      * :class:`SXGate` and :class:`SXdg`
+      * :class:`.TGate` and :class:`.TdgGate`
+      * :class:`.SGate` and :class:`.SdgGate`
+      * :class:`.SXGate` and :class:`.SXdgGate`
+      * :class:`.CSGate` and :class:`.CSdgGate`
 
     will be cancelled by the pass.
