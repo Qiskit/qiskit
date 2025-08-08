@@ -1418,6 +1418,22 @@ impl PyPhasedQubitSparsePauliList {
         Ok(out.unbind())
     }
 
+    fn to_pauli_list<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let quantum_info_module = py.import("qiskit.quantum_info")?;
+        let py_pauli_list = quantum_info_module.getattr("PauliList")?;
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let pauli_list = py_pauli_list.call1((inner.qubit_sparse_pauli_list.to_dense_label_list(),))?;
+        
+        let mut phases = Vec::with_capacity(inner.num_terms());
+        for phased_qubit_sparse_pauli_view in inner.iter() {
+            phases.push(phased_qubit_sparse_pauli_view.phase - phased_qubit_sparse_pauli_view.qubit_sparse_pauli_view.num_ys());
+        }
+        
+        pauli_list.setattr("phase", phases)?;
+
+        Ok(pauli_list.extract()?)
+    }
+
     /// Apply a transpiler layout to this phased qubit sparse Pauli list.
     ///
     /// This enables remapping of qubit indices, e.g. if the list is defined in terms of virtual
