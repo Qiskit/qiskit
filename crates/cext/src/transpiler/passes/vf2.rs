@@ -15,7 +15,9 @@ use crate::pointers::const_ptr_as_ref;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::VirtualQubit;
-use qiskit_transpiler::passes::vf2::{vf2_layout_pass, Vf2PassConfiguration, Vf2PassReturn};
+use qiskit_transpiler::passes::vf2::{
+    vf2_layout_pass_average, Vf2PassConfiguration, Vf2PassReturn,
+};
 use qiskit_transpiler::target::Target;
 
 /// The result from ``qk_transpiler_pass_standalone_vf2_layout()``.
@@ -281,10 +283,6 @@ pub unsafe extern "C" fn qk_vf2_layout_configuration_score_initial(
 /// This function corresponds to the Python-space ``VF2Layout`` pass.
 ///
 /// This function is suitable for use on circuits that have not yet been fully lowered to hardware.
-/// If your circuit has already been completely lowered to hardware and you are looking to _improve_
-/// the layout for an exact interaction graph, use ``qk_transpile_pass_standalone_vf2_layout_exact``
-/// instead.
-///
 /// If this pass finds a solution that means there is a "perfect layout" and that no
 /// further swap mapping or routing is needed. However, there is not always a possible
 /// solution, or a solution might exist but it is not found within the limits specified
@@ -357,7 +355,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout(
     } else {
         unsafe { &const_ptr_as_ref(config).0 }
     };
-    vf2_layout_pass(&dag, target, config, strict_direction, None)
+    vf2_layout_pass_average(&dag, target, config, strict_direction, None)
         .map(|result| Box::into_raw(Box::new(VF2LayoutResult(result))))
         .unwrap()
 }
