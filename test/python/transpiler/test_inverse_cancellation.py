@@ -514,6 +514,35 @@ class TestInverseCancellation(QiskitTestCase):
 
         self.assertEqual(pass_(test), expected)
 
+    @ddt.data(True, False)
+    def test_custom_gates_and_default(self, run_default):
+        """Test default cancellation rules evaluated if user requests it in addition to custom rules."""
+        qc = QuantumCircuit(2, 2)
+        qc.p(np.pi / 4, 0)
+        qc.p(-np.pi / 4, 0)
+        qc.p(np.pi / 4, 0)
+        qc.p(-np.pi / 4, 0)
+        qc.cx(0, 1)
+        qc.cx(0, 1)
+        qc.t(1)
+        qc.tdg(1)
+        qc.h(0)
+        qc.h(0)
+        pass_ = InverseCancellation(
+            [(PhaseGate(np.pi / 4), PhaseGate(-np.pi / 4))], run_default=run_default
+        )
+        pm = PassManager(pass_)
+        new_circ = pm.run(qc)
+        gates_after = new_circ.count_ops()
+        if run_default:
+            self.assertEqual(gates_after, {})
+        else:
+            self.assertIn("cx", gates_after)
+            self.assertIn("t", gates_after)
+            self.assertIn("tdg", gates_after)
+            self.assertIn("h", gates_after)
+            self.assertNotIn("p", gates_after)
+
 
 @ddt.ddt
 class TestCXCancellation(QiskitTestCase):

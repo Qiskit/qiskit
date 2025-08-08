@@ -30,3 +30,10 @@ features_transpiler:
       * :class:`.CSGate` and :class:`.CSdgGate`
 
     will be cancelled by the pass.
+
+  - |
+    Added a new argument to the :class:`.InverseCancellation` constructor,
+    ``run_default``, which when set to ``True`` will run the new default
+    inverse cancellation gate list in addition to the any custom gates provided.
+    This is intended for use cases where you want to run a custom set of inverse
+    cancellations in addition to the default gates.

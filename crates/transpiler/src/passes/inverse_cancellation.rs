@@ -296,6 +296,7 @@ pub fn py_run_inverse_cancellation(
     self_inverse_gates: Vec<OperationFromPython>,
     inverse_gate_names: HashSet<String>,
     self_inverse_gate_names: HashSet<String>,
+    run_defaults: bool,
 ) -> PyResult<()> {
     if self_inverse_gate_names.is_empty() && inverse_gate_names.is_empty() {
         return Ok(());
@@ -312,6 +313,10 @@ pub fn py_run_inverse_cancellation(
     }
     if !inverse_gate_names.is_empty() {
         run_on_inverse_pairs(py, dag, &op_counts, inverse_gate_names, inverse_gates)?;
+    }
+    if run_defaults {
+        std_self_inverse(dag);
+        std_inverse_pairs(dag);
     }
     Ok(())
 }
