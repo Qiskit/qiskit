@@ -342,7 +342,7 @@ impl ParameterExpression {
 
     /// Divide by another expression; ``self / rhs``.
     pub fn div(&self, rhs: &ParameterExpression) -> Result<Self, ParameterError> {
-        if rhs.expr.is_zero() {
+        if rhs.expr.is_zero(true) {
             return Err(ParameterError::ZeroDivisionError);
         }
 
@@ -540,11 +540,16 @@ impl ParameterExpression {
             }
         }
 
-        let res = self.expr.subs(&symbol_map);
-        Ok(Self {
-            expr: res,
-            name_map,
-        })
+        match self.expr.subs(&symbol_map) {
+            Some(res) => Ok(Self {
+                expr: res,
+                name_map,
+            }),
+            None => Ok(Self {
+                expr: self.expr.clone(),
+                name_map,
+            }),
+        }
     }
 
     /// Bind symbols to values.
@@ -581,7 +586,10 @@ impl ParameterExpression {
         }
 
         // bind the symbol expression and then check the outcome for inf/nan, or numeric values
-        let bound_expr = self.expr.bind(map);
+        let bound_expr = match self.expr.bind(map) {
+            Some(e) => e,
+            None => self.expr.clone(),
+        };
         let bound = match bound_expr.eval(true) {
             Some(v) => match &v {
                 Value::Real(r) => {
@@ -605,6 +613,19 @@ impl ParameterExpression {
                         Ok(SymbolExpr::Value(Value::Real(c.re)))
                     } else {
                         Ok(SymbolExpr::Value(v))
+                    }
+                }
+                Value::Rational {
+                    numerator,
+                    denominator,
+                } => {
+                    if *denominator == 0 {
+                        Err(ParameterError::BindingInf)
+                    } else {
+                        // TO DO : return Rational as is when pyo3 supports converting Python's Rational
+                        Ok(SymbolExpr::Value(Value::Real(
+                            *numerator as f64 / *denominator as f64,
+                        )))
                     }
                 }
             },
@@ -737,6 +758,12 @@ impl PyParameterExpression {
                 Value::Int(i) => Ok(PyInt::new(py, i).unbind().into_any()),
                 Value::Real(r) => Ok(PyFloat::new(py, r).unbind().into_any()),
                 Value::Complex(c) => Ok(PyComplex::from_complex_bound(py, c).unbind().into_any()),
+                Value::Rational {
+                    numerator,
+                    denominator,
+                } => Ok(PyFloat::new(py, numerator as f64 / denominator as f64)
+                    .unbind()
+                    .into_any()),
             }
         } else if let Ok(symbol) = self.inner.try_to_symbol() {
             if symbol.index.is_some() {
@@ -816,6 +843,10 @@ impl PyParameterExpression {
             Value::Real(r) => r.into_py_any(py),
             Value::Int(i) => i.into_py_any(py),
             Value::Complex(c) => c.into_py_any(py),
+            Value::Rational {
+                numerator,
+                denominator,
+            } => (numerator as f64 / denominator as f64).into_py_any(py),
         }
     }
 
@@ -965,6 +996,10 @@ impl PyParameterExpression {
                 Value::Real(r) => r.into_py_any(py),
                 Value::Int(i) => i.into_py_any(py),
                 Value::Complex(c) => c.into_py_any(py),
+                Value::Rational {
+                    numerator,
+                    denominator,
+                } => (*numerator as f64 / *denominator as f64).into_py_any(py),
             })
             .collect()
     }
@@ -1226,6 +1261,10 @@ impl PyParameterExpression {
                 Ok(rounded as i64)
             }
             Value::Int(i) => Ok(i),
+            Value::Rational {
+                numerator,
+                denominator,
+            } => Ok(numerator / denominator),
         }
     }
 
@@ -1242,6 +1281,10 @@ impl PyParameterExpression {
             }
             Value::Real(r) => Ok(r),
             Value::Int(i) => Ok(i as f64),
+            Value::Rational {
+                numerator,
+                denominator,
+            } => Ok(numerator as f64 / denominator as f64),
         }
     }
 
@@ -1250,6 +1293,10 @@ impl PyParameterExpression {
             Value::Complex(c) => Ok(c),
             Value::Real(r) => Ok(Complex64::new(r, 0.)),
             Value::Int(i) => Ok(Complex64::new(i as f64, 0.)),
+            Value::Rational {
+                numerator,
+                denominator,
+            } => Ok(Complex64::new(numerator as f64 / denominator as f64, 0.)),
         }
     }
 
@@ -1266,6 +1313,10 @@ impl PyParameterExpression {
                     Value::Complex(c) => py_hash.call1((c,))?.extract::<u64>(),
                     Value::Real(r) => py_hash.call1((r,))?.extract::<u64>(),
                     Value::Int(i) => py_hash.call1((i,))?.extract::<u64>(),
+                    Value::Rational {
+                        numerator,
+                        denominator,
+                    } => py_hash.call1((numerator, denominator))?.extract::<u64>(),
                 }
             }
             Err(_) => {
@@ -1761,6 +1812,12 @@ impl ParameterValueType {
                 Value::Int(i) => Some(ParameterValueType::Int(i)),
                 Value::Real(r) => Some(ParameterValueType::Float(r)),
                 Value::Complex(c) => Some(ParameterValueType::Complex(c)),
+                Value::Rational {
+                    numerator,
+                    denominator,
+                } => Some(ParameterValueType::Float(
+                    numerator as f64 / denominator as f64,
+                )),
             }
         } else if let SymbolExpr::Symbol(symbol) = expr {
             match symbol.index {
@@ -2000,6 +2057,29 @@ pub fn qpy_replay(
             }
         }
         SymbolExpr::Binary { op, lhs, rhs } => {
+            // keep rational in replay
+            if let Some((numerator, denominator)) = lhs.rational() {
+                if let symbol_expr::BinaryOp::Mul | symbol_expr::BinaryOp::Div = op {
+                    let lhs = Arc::new(SymbolExpr::Binary {
+                        op: op.clone(),
+                        lhs: Arc::new(SymbolExpr::Value(Value::Int(numerator))),
+                        rhs: Arc::clone(rhs),
+                    });
+                    let lhs_value = ParameterValueType::extract_from_expr(&lhs);
+
+                    // recurse on the parameter expressions for right hand side
+                    let lhs = filter_name_map(&lhs, name_map);
+                    qpy_replay(&lhs, name_map, replay);
+
+                    // add expressions keeping rational
+                    replay.push(OPReplay {
+                        op: OpCode::DIV,
+                        lhs: lhs_value,
+                        rhs: Some(ParameterValueType::Int(denominator)),
+                    });
+                    return;
+                }
+            }
             let lhs_value = ParameterValueType::extract_from_expr(lhs);
             let rhs_value = ParameterValueType::extract_from_expr(rhs);
 
