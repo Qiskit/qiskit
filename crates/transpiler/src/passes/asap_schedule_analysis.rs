@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use crate::passes::alap_schedule_analysis::TimeOps;
 use crate::TranspilerError;
 use hashbrown::HashMap;
 use pyo3::prelude::*;
@@ -19,38 +20,6 @@ use qiskit_circuit::dag_node::{DAGNode, DAGOpNode};
 use qiskit_circuit::operations::{OperationRef, StandardInstruction};
 use qiskit_circuit::{Clbit, Qubit};
 use rustworkx_core::petgraph::prelude::NodeIndex;
-use std::ops::{Add, Sub};
-
-pub trait TimeOps: Copy + PartialOrd + Add<Output = Self> + Sub<Output = Self> {
-    fn zero() -> Self;
-    fn max<'a>(a: &'a Self, b: &'a Self) -> &'a Self;
-}
-
-impl TimeOps for u64 {
-    fn zero() -> Self {
-        0
-    }
-    fn max<'a>(a: &'a Self, b: &'a Self) -> &'a Self {
-        if a >= b {
-            a
-        } else {
-            b
-        }
-    }
-}
-
-impl TimeOps for f64 {
-    fn zero() -> Self {
-        0.0
-    }
-    fn max<'a>(a: &'a Self, b: &'a Self) -> &'a Self {
-        if a >= b {
-            a
-        } else {
-            b
-        }
-    }
-}
 
 pub fn run_asap_schedule_analysis<T: TimeOps>(
     dag: &DAGCircuit,
