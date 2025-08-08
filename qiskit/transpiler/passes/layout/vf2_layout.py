@@ -83,15 +83,26 @@ class VF2Layout(AnalysisPass):
             coupling_map (CouplingMap): Directed graph representing a coupling map.
             strict_direction (bool): If True, considers the direction of the coupling map.
                                      Default is False.
-            seed (int): Sets the seed of the PRNG. -1 Means no node shuffling.
-            call_limit (int): The number of state visits to attempt in each execution of
-                VF2.
-            time_limit (float): The total time limit in seconds to run ``VF2Layout``
-            max_trials (int): The maximum number of trials to run VF2 to find
-                a layout. If this is not specified the number of trials will be limited
-                based on the number of edges in the interaction graph or the coupling graph
-                (whichever is larger) if no other limits are set. If set to a value <= 0 no
-                limit on the number of trials will be set.
+            seed (int | None): shuffle the labelling of physical qubits to node indices in the
+                coupling graph, using a given pRNG seed.  ``None`` seeds using OS entropy (and so is
+                non-deterministic).  Using ``-1`` disables the shuffling.
+            call_limit (None | int | tuple[int | None, int | None]): The maximum number of times
+                that the inner VF2 isomorphism will attempt to extend the mapping.  If ``None``,
+                then no limit.  If a 2-tuple, then the first value is the number of extensions
+                allowed when trying to find the first isomorphism, and the second is the budget for
+                extensions trying to improve the score.  Extensions made to find the first
+                isomorphism also count against the budget for improvement, so that you can specify a
+                long search for _any_ isomorphism, but only a short search to improve it.
+            time_limit (float): The total time limit in seconds to run ``VF2Layout``.  This is not
+                completely strict; execution will finish on the first isomorphism found (if any)
+                _after_ the time limit has been exceeded.  Setting this option breaks determinism of
+                the pass.
+            max_trials (int): If set, the algorithm terminates after this many _complete_ layouts
+                have been seen.  Since the scoring is now done on-the-fly, the vast majority of
+                candidate layouts are pruned out of the search before ever becoming complete, so
+                this option has little meaning.  To set a low limit on the amount of time spent
+                improving an initial limit, set a low value for the second item in the
+                ``call_limit`` 2-tuple form.
             target (Target): A target representing the backend device to run ``VF2Layout`` on.
                 If specified it will supersede a set value for
                 ``coupling_map`` if the :class:`.Target` contains connectivity constraints. If the value
@@ -140,9 +151,9 @@ class VF2Layout(AnalysisPass):
             output = vf2_layout_pass(
                 dag,
                 target,
-                config=config,
                 strict_direction=self.strict_direction,
                 avg_error_map=self.avg_error_map,
+                config=config,
             )
         except MultiQEncountered:
             self.property_set["VF2Layout_stop_reason"] = VF2LayoutStopReason.MORE_THAN_2Q

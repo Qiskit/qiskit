@@ -162,10 +162,14 @@ pub unsafe extern "C" fn qk_vf2_layout_configuration_free(config: *mut VF2Layout
     }
 }
 /// @ingroup QkVF2LayoutConfiguration
-/// Limit the numbers of times that the VF2 algorithm will attempt to extend its mapping.
+/// Limit the numbers of times that the VF2 algorithm will attempt to extend its mapping before and
+/// after it finds the first match.
 ///
 /// @param config The configuration to update.
-/// @param limit The number of attempts to allow.  Set to a negative number to have no bound.
+/// @param before The number of attempts to allow before the first match is found.  Set to a
+///     negative number to have no bound.
+/// @param after The number of attempts to allow after the first match (if any) is found.  Set to a
+///     negative number to have no bound.
 ///
 /// # Safety
 ///
@@ -175,13 +179,14 @@ pub unsafe extern "C" fn qk_vf2_layout_configuration_free(config: *mut VF2Layout
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_vf2_layout_configuration_set_call_limit(
     config: *mut VF2LayoutConfiguration,
-    limit: i64,
+    before: i64,
+    after: i64,
 ) {
     let lift = |limit: i64| -> Option<usize> {
         (limit > 0).then(|| limit.try_into().unwrap_or(usize::MAX))
     };
     // SAFETY: per documentation this is a valid configuration pointer.
-    unsafe { (*config).0.call_limit = lift(limit) };
+    unsafe { (*config).0.call_limit = (lift(before), lift(after)) };
 }
 /// @ingroup QkVF2LayoutConfiguration
 /// Limit the runtime of the VF2 search.
@@ -311,7 +316,7 @@ pub unsafe extern "C" fn qk_vf2_layout_configuration_set_shuffle_seed(
 ///         }
 ///     }
 ///     QkVF2LayoutConfiguration *config = qk_vf2_layout_configuration_new();
-///     qk_vf2_layout_configuration_set_call_limit(config, 10000);
+///     qk_vf2_layout_configuration_set_call_limit(config, 10000, 10000);
 ///     QkVF2LayoutResult *layout_result = qk_transpiler_pass_standalone_vf2_layout(qc, target, config, false);
 ///     qk_vf2_layout_result_free(layout_result);
 ///     qk_vf2_layout_configuration_free(config);
