@@ -134,6 +134,15 @@ where
         Self::new()
     }
 }
+// The stronger `Eq` restriction here on `B` (not `PartialEq`) is because it's necessary for the
+// hashmap to function correctly and consequently to implement `PartialEq`.
+impl<T: PartialEq, B: Eq + Hash> PartialEq for ObjectRegistry<T, B> {
+    fn eq(&self, other: &Self) -> bool {
+        (self.objects == other.objects) && (self.indices == other.indices)
+    }
+}
+impl<T: Eq, B: Eq + Hash> Eq for ObjectRegistry<T, B> {}
+
 impl<T, B> ObjectRegistry<T, B>
 where
     T: From<u32> + Copy,
