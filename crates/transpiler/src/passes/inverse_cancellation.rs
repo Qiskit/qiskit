@@ -153,7 +153,7 @@ fn run_on_inverse_pairs(
     Ok(())
 }
 
-static SELF_INVERSE_GATES_FOR_CANCELLATION: [StandardGate; 9] = [
+static SELF_INVERSE_GATES_FOR_CANCELLATION: [StandardGate; 15] = [
     StandardGate::CX,
     StandardGate::ECR,
     StandardGate::CY,
@@ -163,12 +163,19 @@ static SELF_INVERSE_GATES_FOR_CANCELLATION: [StandardGate; 9] = [
     StandardGate::Z,
     StandardGate::H,
     StandardGate::Swap,
+    StandardGate::CH,
+    StandardGate::CCX,
+    StandardGate::CCZ,
+    StandardGate::RCCX,
+    StandardGate::CSwap,
+    StandardGate::C3X,
 ];
 
-static INVERSE_PAIRS_FOR_CANCELLATION: [[StandardGate; 2]; 3] = [
+static INVERSE_PAIRS_FOR_CANCELLATION: [[StandardGate; 2]; 4] = [
     [StandardGate::T, StandardGate::Tdg],
     [StandardGate::S, StandardGate::Sdg],
     [StandardGate::SX, StandardGate::SXdg],
+    [StandardGate::CS, StandardGate::CSdg],
 ];
 
 fn std_self_inverse(dag: &mut DAGCircuit) {
@@ -286,6 +293,7 @@ pub fn py_run_inverse_cancellation(
     self_inverse_gates: Vec<OperationFromPython>,
     inverse_gate_names: HashSet<String>,
     self_inverse_gate_names: HashSet<String>,
+    run_defaults: bool,
 ) -> PyResult<()> {
     if self_inverse_gate_names.is_empty() && inverse_gate_names.is_empty() {
         return Ok(());
@@ -296,6 +304,10 @@ pub fn py_run_inverse_cancellation(
     }
     if !inverse_gate_names.is_empty() {
         run_on_inverse_pairs(dag, &op_counts, inverse_gate_names, inverse_gates)?;
+    }
+    if run_defaults {
+        std_self_inverse(dag);
+        std_inverse_pairs(dag);
     }
     Ok(())
 }

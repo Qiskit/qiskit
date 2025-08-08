@@ -33,7 +33,11 @@ class InverseCancellation(TransformationPass):
     """Cancel specific Gates which are inverses of each other when they occur back-to-
     back."""
 
-    def __init__(self, gates_to_cancel: List[Union[Gate, Tuple[Gate, Gate]]] | None = None):
+    def __init__(
+        self,
+        gates_to_cancel: List[Union[Gate, Tuple[Gate, Gate]]] | None = None,
+        run_default: bool = False,
+    ):
         """Initialize InverseCancellation pass.
 
         Args:
@@ -53,12 +57,27 @@ class InverseCancellation(TransformationPass):
                   * :class:`.ZGate`
                   * :class:`.HGate`
                   * :class:`.SwapGate`
+                  * :class:`.CHGate`
+                  * :class:`.CCXGate`
+                  * :class:`.CCZGate`
+                  * :class:`.RCCXGate`
+                  * :class:`.CSwapGate`
+                  * :class:`.C3XGate`
 
                 and the default list of inverse gate pairs is:
 
-                  * :class:`TGate` and :class:`Tdg`
-                  * :class:`SGate` and :class:`Sdg`
-                  * :class:`SXGate` and :class:`SXdg`
+                  * :class:`.TGate` and :class:`.TdgGate`
+                  * :class:`.SGate` and :class:`.SdgGate`
+                  * :class:`.SXGate` and :class:`.SXdgGate`
+                  * :class:`.CSGate` and :class:`.CSdgGate`
+
+            run_default: If set to true and ``gates_to_cancel`` is set to a list then in
+                addition to the gates listed in ``gates_to_cancel`` the default list of gate
+                inverses (the same as when ``gates_to_cancel`` is set to ``None``) will be
+                run. The order of evaluation is significant in how sequences of gates are
+                cancelled and the default gates will be evaluated after the provided gates
+                in ``gates_to_cancel``. If ``gates_to_cancel`` is ``None`` this option has
+                no impact.
 
         Raises:
             TranspilerError: Input is not a self-inverse gate or a pair of inverse gates.
@@ -67,6 +86,7 @@ class InverseCancellation(TransformationPass):
         self.inverse_gate_pairs = []
         self.self_inverse_gate_names = set()
         self.inverse_gate_pairs_names = set()
+        self._also_default = run_default
         if gates_to_cancel is None:
             self._use_standard_gates = True
         else:
@@ -118,5 +138,6 @@ class InverseCancellation(TransformationPass):
                 self.self_inverse_gates,
                 self.inverse_gate_pairs_names,
                 self.self_inverse_gate_names,
+                self._also_default,
             )
         return dag
