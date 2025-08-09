@@ -20,8 +20,29 @@ use qiskit_transpiler::passes::run_inverse_cancellation_standard_gates;
 /// @ingroup QkTranspilerPasses
 /// Run the InverseCancellation transpiler pass on a circuit.
 ///
-/// Cancels specific gates which are inverses of each other when they occur
-/// back-to-back.
+/// Cancels pairs of consecutive gates that are inverses of each other.
+/// The cancelled gates consist of pairs of self-inverse gates:
+///    - QkGate_H
+///    - QkGate_X
+///    - QkGate_Y
+///    - QkGate_Z
+///    - QkGate_CH
+///    - QkGate_CX
+///    - QkGate_CY
+///    - QkGate_CZ
+///    - QkGate_ECR
+///    - QkGate_Swap
+///    - QkGate_CCX
+///    - QkGate_CCZ
+///    - QkGate_CSwap
+///    - QkGate_RCCX
+///    - QkGate_C3X
+///
+/// and pairs of inverse gates:
+///    - (QkGate_T, QkGate_Tdg)
+///    - (QkGate_S, QkGate_Sdg)
+///    - (QkGate_SX, QkGate_SXdg)
+///    - (QkGate_CS, QkGate_CSdg)
 ///
 /// @param circuit A pointer to the circuit to run InverseCancellation on. This circuit
 /// pointed to will be updated with the modified circuit if the pass is able to remove any gates.
@@ -50,13 +71,14 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_inverse_cancellation(
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
     let mut dag = match DAGCircuit::from_circuit_data(circuit, false, None, None, None, None) {
         Ok(dag) => dag,
-        Err(e) => panic!("{}", e),
+        Err(_e) => panic!("Internal Circuit -> DAG conversion failed"),
     };
 
     run_inverse_cancellation_standard_gates(&mut dag);
+
     let out_circuit = match dag_to_circuit(&dag, false) {
         Ok(qc) => qc,
-        Err(e) => panic!("{}", e),
+        Err(_e) => panic!("Internal DAG -> Circuit conversion failed"),
     };
     *circuit = out_circuit;
 }
