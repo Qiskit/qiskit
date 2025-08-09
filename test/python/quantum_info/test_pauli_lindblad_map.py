@@ -937,6 +937,76 @@ class TestPauliLindbladMap(QiskitTestCase):
         ):
             pauli_map_in.keep_paulis([0, 8])
 
+    def test_drop_qubits(self):
+        """Test the `drop_qubits` method."""
+        pauli_map_in = PauliLindbladMap.from_list(
+            [("XXIZI", 2.0), ("IIIYZ", 0.5), ("ZIIXY", -0.25)]
+        )
+        self.assertEqual(pauli_map_in, pauli_map_in.drop_qubits([]))
+
+        pauli_map_out = pauli_map_in.drop_qubits([0])
+        expected = PauliLindbladMap.from_list([("XXIZ", 2.0), ("IIIY", 0.5), ("ZIIX", -0.25)])
+        self.assertEqual(pauli_map_out, expected)
+
+        pauli_map_out = pauli_map_in.drop_qubits([0, 3])
+        expected = PauliLindbladMap.from_list([("XIZ", 2.0), ("IIY", 0.5), ("ZIX", -0.25)])
+        self.assertEqual(pauli_map_out, expected)
+
+        pauli_map_out = pauli_map_in.drop_qubits([0, 4])
+        expected = PauliLindbladMap.from_list([("XIZ", 2.0), ("IIY", 0.5), ("IIX", -0.25)])
+        self.assertEqual(pauli_map_out, expected)
+
+    def test_drop_qubits_raises(self):
+        """Test that `drop_qubits` raises."""
+        pauli_map_in = PauliLindbladMap.from_list(
+            [("XXIZI", 2.0), ("IIIYZ", 0.5), ("ZIIXY", -0.25)]
+        )
+
+        with self.assertRaisesRegex(
+            ValueError, "cannot drop qubits for index 5 in a 5-qubit PauliLindbladMap"
+        ):
+            pauli_map_in.drop_qubits([0, 5])
+
+        with self.assertRaisesRegex(
+            ValueError, "cannot drop qubits for index 8 in a 5-qubit PauliLindbladMap"
+        ):
+            pauli_map_in.drop_qubits([0, 8])
+
+    def test_keep_qubits(self):
+        """Test the `keep_qubits` method."""
+        pauli_map_in = PauliLindbladMap.from_list(
+            [("XXIZI", 2.0), ("IIIYZ", 0.5), ("ZIIXY", -0.25)]
+        )
+        self.assertEqual(pauli_map_in, pauli_map_in.keep_qubits(range(5)))
+
+        pauli_map_out = pauli_map_in.keep_qubits(range(1, 5))
+        expected = PauliLindbladMap.from_list([("XXIZ", 2.0), ("IIIY", 0.5), ("ZIIX", -0.25)])
+        self.assertEqual(pauli_map_out, expected)
+
+        pauli_map_out = pauli_map_in.keep_qubits([4, 1, 2])
+        expected = PauliLindbladMap.from_list([("XIZ", 2.0), ("IIY", 0.5), ("ZIX", -0.25)])
+        self.assertEqual(pauli_map_out, expected)
+
+        pauli_map_out = pauli_map_in.keep_qubits([1, 2, 3])
+        expected = PauliLindbladMap.from_list([("XIZ", 2.0), ("IIY", 0.5), ("IIX", -0.25)])
+        self.assertEqual(pauli_map_out, expected)
+
+    def test_keep_qubits_raises(self):
+        """Test that `keep_qubits` raises."""
+        pauli_map_in = PauliLindbladMap.from_list(
+            [("XXIZI", 2.0), ("IIIYZ", 0.5), ("ZIIXY", -0.25)]
+        )
+
+        with self.assertRaisesRegex(
+            ValueError, "cannot keep qubits for index 5 in a 5-qubit PauliLindbladMap"
+        ):
+            pauli_map_in.keep_qubits([5])
+
+        with self.assertRaisesRegex(
+            ValueError, "cannot keep qubits for index 8 in a 5-qubit PauliLindbladMap"
+        ):
+            pauli_map_in.keep_qubits([0, 8])
+
     def test_simplify(self):
         duplicate = PauliLindbladMap([("IXYZXYZXYZ", 1.0), ("IXYZXYZXYZ", 2.0)])
         self.assertEqual(duplicate.simplify(), PauliLindbladMap([("IXYZXYZXYZ", 3.0)]))
