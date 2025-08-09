@@ -972,6 +972,11 @@ class TestPauliLindbladMap(QiskitTestCase):
         ):
             pauli_map_in.drop_qubits([0, 8])
 
+        with self.assertRaisesRegex(
+            ValueError, "cannot drop every qubit in the given PauliLindbladMap"
+        ):
+            pauli_map_in.drop_qubits([0, 1, 2, 3, 4])
+
     def test_keep_qubits(self):
         """Test the `keep_qubits` method."""
         pauli_map_in = PauliLindbladMap.from_list(
@@ -1006,6 +1011,11 @@ class TestPauliLindbladMap(QiskitTestCase):
             ValueError, "cannot keep qubits for index 8 in a 5-qubit PauliLindbladMap"
         ):
             pauli_map_in.keep_qubits([0, 8])
+
+        with self.assertRaisesRegex(
+            ValueError, "cannot drop every qubit in the given PauliLindbladMap"
+        ):
+            pauli_map_in.keep_qubits([])
 
     def test_simplify(self):
         duplicate = PauliLindbladMap([("IXYZXYZXYZ", 1.0), ("IXYZXYZXYZ", 2.0)])
