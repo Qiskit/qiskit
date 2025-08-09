@@ -1375,7 +1375,7 @@ impl PyPauliLindbladMap {
     ///
     ///         >>> pauli_map_in = PauliLindbladMap.from_list([("XXIZI", 2.0), ("IIIYZ", 0.5), ("ZIIXY", -0.25)])
     ///         >>> pauli_map_out = pauli_map_in.keep_paulis([0, 3])
-    ///         >>> pauli_map_out == PauliLindbladMap.from_list([("IXIII", 2.0), ("IIIIZ", 0.5), ("IIIIY", -0.25)])
+    ///         >>> assert pauli_map_out == PauliLindbladMap.from_list([("IXIII", 2.0), ("IIIIZ", 0.5), ("IIIIY", -0.25)])
     #[pyo3(signature = (/, indices))]
     pub fn keep_paulis(&self, indices: Vec<u32>) -> PyResult<Self> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
