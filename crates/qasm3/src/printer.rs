@@ -135,7 +135,7 @@ impl<'a> BasicPrinter<'a> {
 
     fn write_statement(&mut self, line: &str) {
         self.start_line();
-        write!(self.stream, "{}", line).unwrap();
+        write!(self.stream, "{line}").unwrap();
         self.end_statement();
     }
 
@@ -244,17 +244,17 @@ impl<'a> BasicPrinter<'a> {
         separator: &str,
     ) {
         if !start.is_empty() {
-            write!(self.stream, "{}", start).unwrap();
+            write!(self.stream, "{start}").unwrap();
         }
         for node in nodes.iter().take(nodes.len() - 1) {
             self.visit_quantum_gate_modifier(node);
-            write!(self.stream, "{}", separator).unwrap();
+            write!(self.stream, "{separator}").unwrap();
         }
         if let Some(last) = nodes.last() {
             self.visit_quantum_gate_modifier(last);
         }
         if !end.is_empty() {
-            write!(self.stream, "{}", end).unwrap();
+            write!(self.stream, "{end}").unwrap();
         }
     }
 
@@ -374,17 +374,17 @@ impl<'a> BasicPrinter<'a> {
         separator: &str,
     ) {
         if !start.is_empty() {
-            write!(self.stream, "{}", start).unwrap();
+            write!(self.stream, "{start}").unwrap();
         }
         for node in nodes.iter().take(nodes.len() - 1) {
             self.visit_expression(node);
-            write!(self.stream, "{}", separator).unwrap();
+            write!(self.stream, "{separator}").unwrap();
         }
         if let Some(last) = nodes.last() {
             self.visit_expression(last);
         }
         if !end.is_empty() {
-            write!(self.stream, "{}", end).unwrap();
+            write!(self.stream, "{end}").unwrap();
         }
     }
 
@@ -439,14 +439,14 @@ impl<'a> BasicPrinter<'a> {
     fn visit_int_type(&mut self, type_: &Int) {
         write!(self.stream, "int").unwrap();
         if let Some(size) = type_.size {
-            write!(self.stream, "[{}]", size).unwrap();
+            write!(self.stream, "[{size}]").unwrap();
         }
     }
 
     fn visit_uint_type(&mut self, type_: &Uint) {
         write!(self.stream, "uint").unwrap();
         if let Some(size) = type_.size {
-            write!(self.stream, "[{}]", size).unwrap();
+            write!(self.stream, "[{size}]").unwrap();
         }
     }
 

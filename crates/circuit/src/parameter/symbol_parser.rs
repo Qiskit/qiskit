@@ -26,7 +26,9 @@ use nom::Parser;
 
 use num_complex::c64;
 
-use crate::symbol_expr::{BinaryOp, SymbolExpr, UnaryOp, Value};
+use crate::parameter::symbol_expr::{BinaryOp, SymbolExpr, UnaryOp, Value};
+
+use super::symbol_expr::Symbol;
 
 // parsing value as real
 fn parse_value(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
@@ -73,10 +75,14 @@ fn parse_symbol(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
                     // currently array index is stored as string
                     // if array indexing is required in the future
                     // add indexing in Symbol struct
-                    let s = format!("{}[{}]", v, i);
-                    Ok(SymbolExpr::Symbol(Arc::new(s)))
+                    let i_u32 = i.parse::<u32>().map_err(|_| "Failed to parse index.")?;
+                    Ok(SymbolExpr::Symbol(Arc::new(Symbol::new(
+                        v,
+                        None,
+                        Some(i_u32),
+                    ))))
                 }
-                None => Ok(SymbolExpr::Symbol(Arc::new(v.to_string()))),
+                None => Ok(SymbolExpr::Symbol(Arc::new(Symbol::new(v, None, None)))),
             }
         },
     )(s)
@@ -248,7 +254,7 @@ pub fn parse_expression(s: &str) -> Result<SymbolExpr, String> {
         Ok(o) => Ok(o.1),
         Err(e) => match e {
             nom::Err::Error(e) => Err(convert_error(s, e)),
-            _ => Err(format!(" Error occurs while parsing expression {}.", s)),
+            _ => Err(format!(" Error occurs while parsing expression {s}.")),
         },
     }
 }

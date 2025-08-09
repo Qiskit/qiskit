@@ -253,7 +253,7 @@ impl<B: ManifestableBit> RegisterInfo<B> {
         }
     }
     /// Iterate over the bits in the register.
-    fn iter(&self) -> RegisterInfoIter<B> {
+    fn iter(&self) -> RegisterInfoIter<'_, B> {
         RegisterInfoIter {
             base: self,
             index: 0,

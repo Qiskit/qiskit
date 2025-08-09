@@ -13,6 +13,8 @@
 """Test library of multi-controlled multi-target circuits."""
 
 import unittest
+from functools import reduce
+from itertools import repeat
 from ddt import ddt, data, unpack
 import numpy as np
 
@@ -38,9 +40,9 @@ from qiskit.quantum_info import Statevector
 from qiskit.quantum_info.states import state_fidelity
 from qiskit.quantum_info.operators.operator_utils import _equal_with_ancillas
 from qiskit.transpiler.passes import HighLevelSynthesis, HLSConfig
-from qiskit.synthesis.multi_controlled import synth_mcmt_vchain
+from qiskit.synthesis.multi_controlled import synth_mcmt_vchain, synth_mcmt_xgate
 from qiskit.quantum_info import Operator
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
 
 
 @ddt
@@ -184,7 +186,7 @@ class TestMCMT(QiskitTestCase):
         num_target = 2
         num_vchain_ancillas = num_controls - 1
 
-        gate = XGate()
+        gate = ZGate()  # Anything other than XGate as XGate has special handling
         mcmt = MCMTGate(gate, num_controls, num_target)
 
         # make sure MCX-synthesis does not use ancilla qubits
@@ -267,6 +269,31 @@ class TestMCMT(QiskitTestCase):
             )
         )
 
+    @combine(num_ctrl=range(1, 3), num_targ=range(2, 4))
+    def test_mcmt_x_gate(self, num_ctrl, num_targ):
+        """Test the MCMT X gate synthesis."""
+        ctrl_state = None
+
+        synthesized = synth_mcmt_xgate(num_ctrl, num_targ, ctrl_state)
+        result = Operator(synthesized).data
+
+        x_gate_matrix = XGate().to_matrix()
+        target_gate_matrix = reduce(np.kron, repeat(x_gate_matrix, num_targ))
+
+        expected = _compute_control_matrix(target_gate_matrix, num_ctrl, ctrl_state)
+        self.assertTrue(np.allclose(result, expected))
+
+    @combine(num_ctrl=range(1, 6), num_targ=range(2, 6))
+    def test_mcmt_x_gate_counts(self, num_ctrl, num_targ):
+        """Test MCMT gate uses `synth_mcmt_x` for X gate synthesis."""
+        mcmt_x_gate = MCMTGate(XGate(), num_ctrl_qubits=num_ctrl, num_target_qubits=num_targ)
+        qc = QuantumCircuit(num_ctrl + num_targ)
+        qc.append(mcmt_x_gate, range(num_ctrl + num_targ))
+
+        qc_transpiled = transpile(qc, basis_gates=["u", "cx"], qubits_initially_zero=False)
+        expected_cx_count = 12 * num_ctrl + 2 * (num_targ - 1)  # 1 MCX + 2(num_targ - 1) CX gates
+        self.assertLessEqual(qc_transpiled.count_ops().get("cx", 0), expected_cx_count)
+
     def test_invalid_base_gate_width(self):
         """Test only 1-qubit base gates are accepted."""
         for gate in [GlobalPhaseGate(0.2), SwapGate()]:
@@ -290,7 +317,7 @@ class TestMCMT(QiskitTestCase):
 
         self.assertEqual(circuit.count_ops().get("cry", 0), num_target)
         self.assertEqual(circuit.num_parameters, 1)
-        self.assertIs(circuit.parameters[0], theta)
+        self.assertEqual(circuit.parameters[0], theta)
 
     def test_mcmt_circuit_as_gate(self):
         """Test the MCMT plugin is only triggered for the gate, not the same-named circuit.

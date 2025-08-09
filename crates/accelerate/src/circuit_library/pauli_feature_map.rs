@@ -105,7 +105,6 @@ pub fn pauli_feature_map(
 
         // add evolutions
         let evo_layer = _get_evolution_layer(
-            py,
             feature_dimension,
             rep,
             alpha,
@@ -123,7 +122,6 @@ pub fn pauli_feature_map(
     }
 
     CircuitData::from_packed_operations(
-        py,
         feature_dimension,
         0,
         packed_insts.into_iter().map(Ok),
@@ -144,7 +142,6 @@ fn _get_h_layer(feature_dimension: u32) -> impl Iterator<Item = Instruction> {
 
 #[allow(clippy::too_many_arguments)]
 fn _get_evolution_layer<'a>(
-    py: Python<'a>,
     feature_dimension: u32,
     rep: usize,
     alpha: f64,
@@ -170,7 +167,7 @@ fn _get_evolution_layer<'a>(
 
             let angle = match data_map_func {
                 Some(fun) => fun.call1((active_parameters,))?.extract()?,
-                None => _default_reduce(py, active_parameters),
+                None => _default_reduce(active_parameters),
             };
 
             // Get the pauli evolution and map it into
@@ -181,7 +178,7 @@ fn _get_evolution_layer<'a>(
             let evo = pauli_evolution::sparse_term_evolution(
                 pauli,
                 indices.into_iter().rev().collect(),
-                multiply_param(&angle, alpha, py),
+                multiply_param(&angle, alpha),
                 true,
                 false,
             );
@@ -196,17 +193,17 @@ fn _get_evolution_layer<'a>(
 /// implements
 ///   (pi - x1) (pi - x2) ... (pi - xN)
 /// unless there is only one parameter, in which case it returns just the value.
-fn _default_reduce(py: Python, parameters: Vec<Param>) -> Param {
+fn _default_reduce(parameters: Vec<Param>) -> Param {
     if parameters.len() == 1 {
         parameters[0].clone()
     } else {
         let acc = parameters.iter().fold(Param::Float(1.0), |acc, param| {
-            multiply_params(acc, add_param(param, -PI, py), py)
+            multiply_params(acc, add_param(param, -PI))
         });
         if parameters.len() % 2 == 0 {
             acc
         } else {
-            multiply_param(&acc, -1.0, py) // take care of parity
+            multiply_param(&acc, -1.0) // take care of parity
         }
     }
 }
@@ -236,8 +233,7 @@ fn _get_paulis(
                     let as_string = (*el.downcast::<PyString>()?).to_string();
                     if as_string.len() > feature_dimension as usize {
                         Err(QiskitError::new_err(format!(
-                            "feature_dimension ({}) smaller than the Pauli ({})",
-                            feature_dimension, as_string
+                            "feature_dimension ({feature_dimension}) smaller than the Pauli ({as_string})"
                         )))
                     } else {
                         Ok(as_string)

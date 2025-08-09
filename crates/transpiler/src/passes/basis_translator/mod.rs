@@ -26,21 +26,21 @@ mod basis_search;
 mod compose_transforms;
 
 use pyo3::types::{IntoPyDict, PyComplex, PyDict, PyTuple};
+use pyo3::IntoPyObjectExt;
 use pyo3::PyTypeInfo;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::circuit_to_dag;
-use qiskit_circuit::dag_circuit::{DAGCircuitBuilder, VarsMode};
+use qiskit_circuit::dag_circuit::DAGCircuitBuilder;
 use qiskit_circuit::imports::DAG_TO_CIRCUIT;
 use qiskit_circuit::imports::PARAMETER_EXPRESSION;
 use qiskit_circuit::operations::Param;
-use qiskit_circuit::packed_instruction::PackedInstruction;
-use qiskit_circuit::PhysicalQubit;
+use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::{
     circuit_data::CircuitData,
     dag_circuit::DAGCircuit,
-    operations::{Operation, OperationRef},
+    operations::{Operation, OperationRef, PythonOperation},
 };
-use qiskit_circuit::{Clbit, Qubit};
+use qiskit_circuit::{Clbit, PhysicalQubit, Qubit, VarsMode};
 use smallvec::SmallVec;
 
 use crate::equivalence::EquivalenceLibrary;
@@ -57,16 +57,16 @@ type PhysicalQargs = SmallVec<[PhysicalQubit; 2]>;
 #[pyfunction(name = "base_run", signature = (dag, equiv_lib, qargs_with_non_global_operation, min_qubits, target_basis=None, target=None, non_global_operations=None))]
 pub fn run_basis_translator(
     py: Python<'_>,
-    dag: DAGCircuit,
+    dag: &DAGCircuit,
     equiv_lib: &mut EquivalenceLibrary,
     qargs_with_non_global_operation: HashMap<Qargs, HashSet<String>>,
     min_qubits: usize,
     target_basis: Option<HashSet<String>>,
     target: Option<&Target>,
     non_global_operations: Option<HashSet<String>>,
-) -> PyResult<DAGCircuit> {
+) -> PyResult<Option<DAGCircuit>> {
     if target_basis.is_none() && target.is_none() {
-        return Ok(dag);
+        return Ok(None);
     }
 
     let qargs_with_non_global_operation: IndexMap<
@@ -109,7 +109,7 @@ pub fn run_basis_translator(
             .collect();
         extract_basis_target(
             py,
-            &dag,
+            dag,
             &mut source_basis,
             &mut qargs_local_source_basis,
             min_qubits,
@@ -120,7 +120,7 @@ pub fn run_basis_translator(
             .into_iter()
             .map(|x| x.to_string())
             .collect();
-        source_basis = extract_basis(py, &dag, min_qubits)?;
+        source_basis = extract_basis(py, dag, min_qubits)?;
         new_target_basis = target_basis.unwrap().into_iter().collect();
     }
     new_target_basis = new_target_basis
@@ -132,7 +132,7 @@ pub fn run_basis_translator(
     // translate and we can exit early.
     let source_basis_names: IndexSet<String> = source_basis.iter().map(|x| x.0.clone()).collect();
     if source_basis_names.is_subset(&new_target_basis) && qargs_local_source_basis.is_empty() {
-        return Ok(dag);
+        return Ok(None);
     }
     let basis_transforms = basis_search(equiv_lib, &source_basis, &new_target_basis);
     let mut qarg_local_basis_transforms: IndexMap<
@@ -199,27 +199,27 @@ pub fn run_basis_translator(
         )));
     };
 
-    let instr_map: InstMap = compose_transforms(py, &basis_transforms, &source_basis, &dag)?;
+    let instr_map: InstMap = compose_transforms(py, &basis_transforms, &source_basis, dag)?;
     let extra_inst_map: ExtraInstructionMap = qarg_local_basis_transforms
         .iter()
         .map(|(qarg, transform)| -> PyResult<_> {
             Ok((
                 *qarg,
-                compose_transforms(py, transform, &qargs_local_source_basis[*qarg], &dag)?,
+                compose_transforms(py, transform, &qargs_local_source_basis[*qarg], dag)?,
             ))
         })
         .collect::<PyResult<_>>()?;
 
     let (out_dag, _) = apply_translation(
         py,
-        &dag,
+        dag,
         &new_target_basis,
         &instr_map,
         &extra_inst_map,
         min_qubits,
         &qargs_with_non_global_operation,
     )?;
-    Ok(out_dag)
+    Ok(Some(out_dag))
 }
 
 /// Method that extracts all gate instances identifiers from a DAGCircuit.
@@ -497,8 +497,7 @@ fn apply_translation(
                 let blocks = bound_obj.getattr("blocks")?;
                 for block in blocks.try_iter()? {
                     let block = block?;
-                    let dag_block: DAGCircuit =
-                        circuit_to_dag(py, block.extract()?, true, None, None)?;
+                    let dag_block: DAGCircuit = circuit_to_dag(block.extract()?, true, None, None)?;
                     let updated_dag: DAGCircuit;
                     (updated_dag, is_updated) = apply_translation(
                         py,
@@ -621,10 +620,13 @@ fn replace_node(
                 .iter()
                 .map(|clbit| old_cargs[clbit.0 as usize])
                 .collect();
-            let new_op = if inner_node.op.try_standard_gate().is_none() {
-                inner_node.op.py_copy(py)?
-            } else {
-                inner_node.op.clone()
+            let new_op = match inner_node.op.view() {
+                OperationRef::Gate(gate) => gate.py_copy(py)?.into(),
+                OperationRef::Instruction(instruction) => instruction.py_copy(py)?.into(),
+                OperationRef::Operation(operation) => operation.py_copy(py)?.into(),
+                OperationRef::StandardGate(gate) => gate.into(),
+                OperationRef::StandardInstruction(instruction) => instruction.into(),
+                OperationRef::Unitary(unitary) => unitary.clone().into(),
             };
             let new_params: SmallVec<[Param; 3]> = inner_node
                 .params_view()
@@ -665,11 +667,15 @@ fn replace_node(
                 .iter()
                 .map(|clbit| old_cargs[clbit.0 as usize])
                 .collect();
-            let new_op = if inner_node.op.try_standard_gate().is_none() {
-                inner_node.op.py_copy(py)?
-            } else {
-                inner_node.op.clone()
+            let new_op: PackedOperation = match inner_node.op.view() {
+                OperationRef::Gate(gate) => gate.py_copy(py)?.into(),
+                OperationRef::Instruction(instruction) => instruction.py_copy(py)?.into(),
+                OperationRef::Operation(operation) => operation.py_copy(py)?.into(),
+                OperationRef::StandardGate(gate) => gate.into(),
+                OperationRef::StandardInstruction(instruction) => instruction.into(),
+                OperationRef::Unitary(unitary) => unitary.clone().into(),
             };
+
             let mut new_params: SmallVec<[Param; 3]> = inner_node
                 .params_view()
                 .iter()
@@ -683,12 +689,14 @@ fn replace_node(
                 new_params = SmallVec::new();
                 for param in inner_node.params_view() {
                     if let Param::ParameterExpression(param_obj) = param {
-                        let bound_param = param_obj.bind(py);
-                        let exp_params = param.iter_parameters(py)?;
+                        // TODO make this use ParameterExpression via Rust directly, this is
+                        // just a placeholder right now
+                        let bound_param = param_obj.as_ref().clone().into_bound_py_any(py)?;
+
+                        let exp_params = param.iter_parameters()?;
                         let bind_dict = PyDict::new(py);
                         for key in exp_params {
-                            let key = key?;
-                            bind_dict.set_item(&key, parameter_map.get_item(&key)?)?;
+                            bind_dict.set_item(key.clone(), parameter_map.get_item(key)?)?;
                         }
                         let mut new_value: Bound<PyAny>;
                         let comparison = bind_dict.values().iter().any(|param| {
@@ -750,12 +758,13 @@ fn replace_node(
         }
 
         match target_dag.global_phase() {
-            Param::ParameterExpression(old_phase) => {
-                let bound_old_phase = old_phase.bind(py);
+            Param::ParameterExpression(ref old_phase) => {
+                // TODO make this use Rust
+                let bound_old_phase = old_phase.as_ref().clone().into_bound_py_any(py)?;
+
                 let bind_dict = PyDict::new(py);
-                for key in target_dag.global_phase().iter_parameters(py)? {
-                    let key = key?;
-                    bind_dict.set_item(&key, parameter_map.get_item(&key)?)?;
+                for key in target_dag.global_phase().iter_parameters()? {
+                    bind_dict.set_item(key.clone(), parameter_map.get_item(key)?)?;
                 }
                 let mut new_phase: Bound<PyAny>;
                 if bind_dict.values().iter().any(|param| {

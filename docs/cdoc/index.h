@@ -33,3 +33,15 @@
 /**
  * @defgroup QkTargetEntry QkTargetEntry
  */
+
+/**
+ * @defgroup QkTranspilerPasses QkTranspilerPasses
+ */
+
+/**
+ * @defgroup QkVF2LayoutResult QkVF2LayoutResult
+ */
+
+/**
+ * @defgroup QkElidePermutationsResult QkElidePermutationsResult
+ */

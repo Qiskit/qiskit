@@ -220,9 +220,9 @@ pub fn n_local(
             ledger.get_parameters(LayerType::Rotation, reps),
             &skipped_qubits,
         ));
-        CircuitData::from_packed_operations(py, num_qubits, 0, packed_insts, Param::Float(0.0))
+        CircuitData::from_packed_operations(num_qubits, 0, packed_insts, Param::Float(0.0))
     } else {
-        CircuitData::from_packed_operations(py, num_qubits, 0, packed_insts, Param::Float(0.0))
+        CircuitData::from_packed_operations(num_qubits, 0, packed_insts, Param::Float(0.0))
     }
 }
 

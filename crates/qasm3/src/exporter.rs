@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::sync::Arc;
+
 use crate::ast::{
     Alias, Barrier, BitArray, Break, ClassicalDeclaration, ClassicalType, Continue, Delay,
     Designator, DurationLiteral, DurationUnit, Expression, Float, GateCall, Header, IODeclaration,
@@ -32,6 +34,8 @@ use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{DelayUnit, StandardInstruction};
 use qiskit_circuit::operations::{Operation, Param};
 use qiskit_circuit::packed_instruction::PackedInstruction;
+use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
+use qiskit_circuit::parameter::symbol_expr;
 use thiserror::Error;
 
 use lazy_static::lazy_static;
@@ -272,8 +276,7 @@ impl SymbolTable {
             }
         } else {
             return Err(QASM3ExporterError::Error(format!(
-                "Symbol table is empty, cannot bind '{}'",
-                name
+                "Symbol table is empty, cannot bind '{name}'"
             )));
         }
 
@@ -335,38 +338,33 @@ impl SymbolTable {
         }
         if !VALID_IDENTIFIER.is_match(&name) {
             return Err(QASM3ExporterError::Error(format!(
-                "cannot use '{}' as a name; it is not a valid identifier",
-                name
+                "cannot use '{name}' as a name; it is not a valid identifier"
             )));
         }
 
         if RESERVED_KEYWORDS.contains(name.as_str()) {
             return Err(QASM3ExporterError::Error(format!(
-                "cannot use the keyword '{}' as a variable name",
-                name
+                "cannot use the keyword '{name}' as a variable name"
             )));
         }
 
         if !name_allowed(&name, self) {
             if self.gates.contains_key(name.as_str()) {
                 return Err(QASM3ExporterError::Error(format!(
-                    "cannot shadow variable '{}', as it is already defined as a gate",
-                    name
+                    "cannot shadow variable '{name}', as it is already defined as a gate"
                 )));
             }
 
             for scope in self.symbols.iter().rev() {
                 if let Some(other) = scope.get(&name) {
                     return Err(QASM3ExporterError::Error(format!(
-                        "cannot shadow variable '{}', as it is already defined as '{:?}'",
-                        name, other
+                        "cannot shadow variable '{name}', as it is already defined as '{other:?}'"
                     )));
                 }
             }
 
             return Err(QASM3ExporterError::Error(format!(
-                "internal error: could not locate unshadowable '{}'",
-                name
+                "internal error: could not locate unshadowable '{name}'"
             )));
         }
 
@@ -449,8 +447,7 @@ impl SymbolTable {
         if allow_hardware_qubit && _VALID_HARDWARE_QUBIT.is_match(&name) {
             if self.symbol_defined(&name) {
                 return Err(QASM3ExporterError::Error(format!(
-                    "internal error: cannot redeclare hardware qubit {}",
-                    name
+                    "internal error: cannot redeclare hardware qubit {name}"
                 )));
             }
         } else {
@@ -729,12 +726,12 @@ impl<'a> QASM3Builder {
 
     fn lookup_bit(&self, bit: &BitType) -> ExporterResult<&IdentifierOrSubscripted> {
         let qubit_ref = self.circuit_scope.bit_map.get(bit).ok_or_else(|| {
-            QASM3ExporterError::Error(format!("Bit mapping not found for {:?}", bit))
+            QASM3ExporterError::Error(format!("Bit mapping not found for {bit:?}"))
         })?;
         let id = self
             .symbol_table
             .get_bitinfo(qubit_ref)
-            .ok_or_else(|| QASM3ExporterError::Error(format!("Bit not found: {:?}", bit)))?;
+            .ok_or_else(|| QASM3ExporterError::Error(format!("Bit not found: {bit:?}")))?;
         Ok(id)
     }
 
@@ -797,7 +794,7 @@ impl<'a> QASM3Builder {
 
     fn hoist_global_params(&mut self) -> ExporterResult<()> {
         Python::with_gil(|py| {
-            for param in self.circuit_scope.circuit_data.get_parameters(py) {
+            for param in self.circuit_scope.circuit_data.get_parameters(py)? {
                 let raw_name: String = match param.getattr("name") {
                     Ok(attr) => match attr.extract() {
                         Ok(name) => name,
@@ -918,7 +915,7 @@ impl<'a> QASM3Builder {
             self.loose_qubit_prefix = "$";
             for (i, qubit) in qubits.iter().enumerate() {
                 self.symbol_table.register_bits(
-                    format!("${}", i),
+                    format!("${i}"),
                     &BitType::ShareableQubit(qubit.clone()),
                     false,
                     true,
@@ -1039,8 +1036,7 @@ impl<'a> QASM3Builder {
 
         if instruction.op.control_flow() {
             Err(QASM3ExporterError::Error(format!(
-                "Control flow {} is not supported",
-                name
+                "Control flow {name} is not supported"
             )))
         } else {
             match name {
@@ -1194,15 +1190,10 @@ impl<'a> QASM3Builder {
         let duration: f64 = Python::with_gil(|py| match param {
             Param::Float(val) => *val,
             Param::ParameterExpression(p) => {
-                let py_obj = p.bind(py);
-                let py_str = py_obj.str().expect("Failed to call str() on Parameter");
-                let name = py_str
-                    .str()
-                    .expect("Failed to convert PyString to &str")
-                    .to_string();
-                match name.parse::<f64>() {
-                    Ok(val) => val,
-                    Err(_) => panic!("Failed to parse parameter value"),
+                if let Ok(symbol_expr::Value::Real(val)) = p.try_to_value(true) {
+                    val
+                } else {
+                    panic!("Failed to parse parameter value")
                 }
             }
             Param::Obj(obj) => {
@@ -1239,8 +1230,7 @@ impl<'a> QASM3Builder {
                     }
                 } else {
                     return Err(QASM3ExporterError::Error(format!(
-                        "Unknown delay unit: {}",
-                        delay_unit
+                        "Unknown delay unit: {delay_unit}"
                     )));
                 }
             }
@@ -1286,15 +1276,7 @@ impl<'a> QASM3Builder {
                             obj: val.to_string(),
                         }),
                         Param::ParameterExpression(p) => {
-                            let name = Python::with_gil(|py| {
-                                let py_obj = p.bind(py);
-                                let py_str =
-                                    py_obj.str().expect("Failed to call str() on Parameter");
-                                py_str
-                                    .str()
-                                    .expect("Failed to convert PyString to &str")
-                                    .to_string()
-                            });
+                            let name = p.to_string();
                             Expression::Parameter(Parameter { obj: name })
                         }
                         Param::Obj(_) => panic!("Objects not supported yet"),
@@ -1333,23 +1315,16 @@ impl<'a> QASM3Builder {
     #[allow(dead_code)]
     fn define_gate(&mut self, instr: &PackedInstruction) -> ExporterResult<()> {
         let operation = &instr.op;
-        let params: Vec<Param> = Python::with_gil(|py| {
-            let qiskit_circuit =
-                PyModule::import(py, "qiskit.circuit").expect("Failed to import qiskit.circuit");
-            let parameter_class = qiskit_circuit
-                .getattr("Parameter")
-                .expect("No Parameter class in qiskit.circuit");
-
-            (0..instr.params_view().len())
-                .map(|i| {
-                    let name = format!("{}_{}", self._gate_param_prefix, i);
-                    let py_param = parameter_class
-                        .call1((name,))
-                        .expect("Failed to create Parameter");
-                    Param::ParameterExpression(py_param.into())
-                })
-                .collect()
-        });
+        let params: Vec<Param> = (0..instr.params_view().len())
+            .map(|i| {
+                let name = format!("{}_{}", self._gate_param_prefix, i);
+                // TODO this need to be achievable more easily
+                let symbol = symbol_expr::Symbol::new(name.as_str(), None, None);
+                let symbol_expr = symbol_expr::SymbolExpr::Symbol(Arc::new(symbol));
+                let expr = ParameterExpression::from_symbol_expr(symbol_expr);
+                Param::ParameterExpression(Arc::new(expr))
+            })
+            .collect();
         if let Some(instruction) = operation.definition(&params) {
             let params_def = params
                 .iter()

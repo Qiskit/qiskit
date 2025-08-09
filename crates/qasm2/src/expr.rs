@@ -402,8 +402,7 @@ impl ExprParser<'_> {
                                 token.col,
                             )),
                             &format!(
-                                "failure in constant folding: cannot take ln of non-positive {}",
-                                val
+                                "failure in constant folding: cannot take ln of non-positive {val}"
                             ),
                         )))
                     }
@@ -420,8 +419,7 @@ impl ExprParser<'_> {
                                 token.col,
                             )),
                             &format!(
-                                "failure in constant folding: cannot take sqrt of negative {}",
-                                val
+                                "failure in constant folding: cannot take sqrt of negative {val}"
                             ),
                         )))
                     }
@@ -535,7 +533,7 @@ impl ExprParser<'_> {
                     Some(GateSymbol::Qubit { .. }) => {
                         Err(QASM2ParseError::new_err(message_generic(
                             Some(&Position::new(self.current_filename(), token.line, token.col)),
-                            &format!("'{}' is a gate qubit, not a parameter", id),
+                            &format!("'{id}' is a gate qubit, not a parameter"),
                         )))
                     }
                     None => {
@@ -547,8 +545,7 @@ impl ExprParser<'_> {
                             Err(QASM2ParseError::new_err(message_generic(
                             Some(&Position::new(self.current_filename(), token.line, token.col)),
                             &format!(
-                                "'{}' is not a parameter or custom instruction defined in this scope",
-                                id,
+                                "'{id}' is not a parameter or custom instruction defined in this scope",
                             ))))
                             }
                     }

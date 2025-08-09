@@ -127,7 +127,7 @@ class BasisTranslator(TransformationPass):
             DAGCircuit: translated circuit.
         """
 
-        return base_run(
+        out = base_run(
             dag,
             self._equiv_lib,
             self._qargs_with_non_global_operation,
@@ -136,3 +136,6 @@ class BasisTranslator(TransformationPass):
             self._target,
             None if self._non_global_operations is None else set(self._non_global_operations),
         )
+        # If Rust-space basis translation returns `None`, it's because the input DAG is already
+        # suitable and it didn't need to modify anything.
+        return dag if out is None else out

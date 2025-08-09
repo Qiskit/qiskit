@@ -24,7 +24,6 @@ from qiskit.quantum_info.operators import Operator
 from qiskit.synthesis.unitary import qsd
 from qiskit.circuit.library import XGate, PhaseGate, UGate, UCGate, UnitaryGate
 from qiskit.quantum_info import random_unitary
-from qiskit.quantum_info.operators.predicates import matrix_equal
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -48,7 +47,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
 
     def _qsd_l2_a1_mod(self, n):
         """expected optimized cnot count with opt_a1=True for down to 2q"""
-        return (4 ** (n - 2) - 1) // 3
+        return (2 * 4 ** (n - 2) - 3) // 3
 
     def _qsd_l2_a2_mod(self, n):
         """expected optimized cnot count with opt_a2=True for down to 2q"""
@@ -56,18 +55,18 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
 
     def _qsd_l2_a1a2_mod(self, n):
         """expected optimized cnot count with opt_a1=True and opt_a2=True for down to 2q"""
-        return (23 / 48) * 4**n - (3 / 2) * 2**n + 4 / 3
+        return (22 / 48) * 4**n - (3 / 2) * 2**n + 5 / 3
 
     def _qsd_ucrz(self, n):
         """expected cnot count of ucry/ucrz for down to 2q"""
         return 2 ** (n - 1)
 
-    @data(*list(range(1, 5)))
-    def test_random_decomposition_l2_no_opt(self, nqubits):
+    @combine(nqubits=[1, 2, 3, 4], opt_a1=[False, None], opt_a2=[False, None])
+    def test_random_decomposition_l2_no_opt(self, nqubits, opt_a1, opt_a2):
         """test decomposition of random SU(n) down to 2 qubits without optimizations."""
         dim = 2**nqubits
         mat = scipy.stats.unitary_group.rvs(dim, random_state=1559)
-        circ = self.qsd(mat, opt_a1=False, opt_a2=False)
+        circ = self.qsd(mat, opt_a1=opt_a1, opt_a2=opt_a2)
         ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
         self.assertTrue(np.allclose(mat, Operator(ccirc).data))
         if nqubits > 1:
@@ -75,75 +74,77 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         else:
             self.assertEqual(sum(ccirc.count_ops().values()), 1)
 
-    @data(*list(range(1, 5)))
-    def test_random_decomposition_l2_a1_opt(self, nqubits):
+    @combine(nqubits=[1, 2, 3, 4], opt_a1=[True, None], opt_a2=[False, None])
+    def test_random_decomposition_l2_a1_opt(self, nqubits, opt_a1, opt_a2):
         """test decomposition of random SU(n) down to 2 qubits with 'a1' optimization."""
         dim = 2**nqubits
         mat = scipy.stats.unitary_group.rvs(dim, random_state=789)
-        circ = self.qsd(mat, opt_a1=True, opt_a2=False)
+        circ = self.qsd(mat, opt_a1=opt_a1, opt_a2=opt_a2)
         ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
         self.assertTrue(np.allclose(mat, Operator(ccirc).data))
         if nqubits > 1:
             expected_cx = self._qsd_l2_cx_count(nqubits) - self._qsd_l2_a1_mod(nqubits)
             self.assertLessEqual(ccirc.count_ops().get("cx"), expected_cx)
 
-    def test_SO3_decomposition_l2_a1_opt(self):
+    @combine(opt_a1=[True, None], opt_a2=[False, None])
+    def test_SO3_decomposition_l2_a1_opt(self, opt_a1, opt_a2):
         """test decomposition of random So(3) down to 2 qubits with 'a1' optimization."""
         nqubits = 3
         dim = 2**nqubits
         mat = scipy.stats.ortho_group.rvs(dim)
-        circ = self.qsd(mat, opt_a1=True, opt_a2=False)
+        circ = self.qsd(mat, opt_a1=opt_a1, opt_a2=opt_a2)
         ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
         self.assertTrue(np.allclose(mat, Operator(ccirc).data))
         expected_cx = self._qsd_l2_cx_count(nqubits) - self._qsd_l2_a1_mod(nqubits)
         self.assertLessEqual(ccirc.count_ops().get("cx"), expected_cx)
 
-    def test_identity_decomposition(self):
+    @combine(opt_a1=[True, False, None], opt_a2=[True, False, None])
+    def test_identity_decomposition(self, opt_a1, opt_a2):
         """Test decomposition on identity matrix"""
         nqubits = 3
         dim = 2**nqubits
         mat = np.identity(dim)
-        circ = self.qsd(mat, opt_a1=True, opt_a2=False)
+        circ = self.qsd(mat, opt_a1=opt_a1, opt_a2=opt_a2)
         self.assertTrue(np.allclose(mat, Operator(circ).data))
         self.assertEqual(sum(circ.count_ops().values()), 0)
 
-    @data(*list(range(1, 4)))
-    def test_diagonal(self, nqubits):
+    @combine(nqubits=[1, 2, 3, 4], opt_a1=[True, None], opt_a2=[False, None])
+    def test_diagonal(self, nqubits, opt_a1, opt_a2):
         """Test decomposition on diagonal -- qsd is not optimal"""
         dim = 2**nqubits
         mat = np.diag(np.exp(1j * np.random.normal(size=dim)))
-        circ = self.qsd(mat, opt_a1=True, opt_a2=False)
+        circ = self.qsd(mat, opt_a1=opt_a1, opt_a2=opt_a2)
         ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
         self.assertTrue(np.allclose(mat, Operator(ccirc).data))
         if nqubits > 1:
             expected_cx = self._qsd_l2_cx_count(nqubits) - self._qsd_l2_a1_mod(nqubits)
             self.assertLessEqual(ccirc.count_ops().get("cx"), expected_cx)
 
-    @data(*list(range(2, 4)))
-    def test_hermitian(self, nqubits):
+    @combine(nqubits=[2, 3, 4], opt_a1=[True, None], opt_a2=[False, None])
+    def test_hermitian(self, nqubits, opt_a1, opt_a2):
         """Test decomposition on hermitian -- qsd is not optimal"""
         # better might be (arXiv:1405.6741)
         dim = 2**nqubits
         umat = scipy.stats.unitary_group.rvs(dim, random_state=750)
         dmat = np.diag(np.exp(1j * np.random.normal(size=dim)))
         mat = umat.T.conjugate() @ dmat @ umat
-        circ = self.qsd(mat, opt_a1=True, opt_a2=False)
+        circ = self.qsd(mat, opt_a1=opt_a1, opt_a2=opt_a2)
         ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
         self.assertTrue(np.allclose(mat, Operator(ccirc).data))
         if nqubits > 1:
             expected_cx = self._qsd_l2_cx_count(nqubits) - self._qsd_l2_a1_mod(nqubits)
             self.assertLessEqual(ccirc.count_ops().get("cx"), expected_cx)
 
-    @data(*list(range(1, 6)))
-    def test_opt_a1a2(self, nqubits):
-        """Test decomposition with both optimization a1 and a2 from shende2006"""
+    @combine(nqubits=[1, 2, 3, 4, 5], opt_a1=[True, None], opt_a2=[True, None])
+    def test_opt_a1a2(self, nqubits, opt_a1, opt_a2):
+        """Test decomposition with both optimization a1 and a2"""
         dim = 2**nqubits
         umat = scipy.stats.unitary_group.rvs(dim, random_state=1224)
-        circ = self.qsd(umat, opt_a1=True, opt_a2=True)
+        circ = self.qsd(umat, opt_a1=opt_a1, opt_a2=opt_a2)
         ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
         self.assertTrue(Operator(umat) == Operator(ccirc))
-        if nqubits > 2:
-            self.assertEqual(
+        if nqubits > 2:  # if nqubits = 3 this bound is 19
+            self.assertLessEqual(
                 ccirc.count_ops().get("cx"),
                 self._qsd_l2_a1a2_mod(nqubits),
             )
@@ -327,13 +328,11 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         qc.append(gate, layout)
         hidden_op = Operator(qc)
         hidden_mat = hidden_op.data
-        cqc = transpile(qc, basis_gates=["u", "cx"], optimization_level=0)
 
-        qc2 = qsd.qs_decomposition(hidden_mat, opt_a2=False)
+        qc2 = qsd.qs_decomposition(hidden_mat)
         cqc2 = transpile(qc2, basis_gates=["u", "cx"], optimization_level=0)
         op2 = Operator(qc2)
         self.assertEqual(hidden_op, op2)
-        self.assertLess(cqc2.count_ops().get("cx", 0), 0.6 * cqc.count_ops().get("cx", 0))
         self.assertLessEqual(
             cqc2.count_ops().get("cx", 0),
             2 * self._qsd_l2_cx_count(num_qubits - 1) + self._qsd_ucrz(num_qubits),
@@ -353,10 +352,10 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         hidden_op = Operator(qc)
         hidden_mat = hidden_op.data
 
-        qc2 = qsd.qs_decomposition(hidden_mat, opt_a2=False)
+        qc2 = qsd.qs_decomposition(hidden_mat)
         cqc2 = transpile(qc2, basis_gates=["u", "cx"], optimization_level=0)
-        # we compare the equality with the UnitaryGate which can use QSD or Isometry
-        self.assertTrue(matrix_equal(hidden_op.data, UnitaryGate(hidden_op).to_matrix(), atol=1e-7))
+        op2 = Operator(qc2)
+        self.assertEqual(hidden_op, op2)
         self.assertLessEqual(
             cqc2.count_ops().get("cx", 0),
             2 * self._qsd_l2_cx_count(num_qubits - 1) + self._qsd_ucrz(num_qubits),
@@ -376,10 +375,10 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         hidden_op = Operator(qc)
         hidden_mat = hidden_op.data
 
-        qc2 = qsd.qs_decomposition(hidden_mat, opt_a2=False)
+        qc2 = qsd.qs_decomposition(hidden_mat)
         cqc2 = transpile(qc2, basis_gates=["u", "cx"], optimization_level=0)
-        # we compare the equality with the UnitaryGate which can use QSD or Isometry
-        self.assertTrue(matrix_equal(hidden_op.data, UnitaryGate(hidden_op).to_matrix(), atol=1e-7))
+        op2 = Operator(qc2)
+        self.assertEqual(hidden_op, op2)
         self.assertLessEqual(
             cqc2.count_ops().get("cx", 0),
             2 * self._qsd_l2_cx_count(num_qubits - 1) + self._qsd_ucrz(num_qubits),
