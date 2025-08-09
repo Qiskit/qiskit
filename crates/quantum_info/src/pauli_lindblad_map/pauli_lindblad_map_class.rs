@@ -1431,7 +1431,9 @@ impl PyPauliLindbladMap {
         }
 
         if (indices.len() as u32) == inner.num_qubits() {
-            return Err(PyValueError::new_err("cannot drop every qubit in the given PauliLindbladMap"));
+            return Err(PyValueError::new_err(
+                "cannot drop every qubit in the given PauliLindbladMap",
+            ));
         }
 
         Ok(inner.drop_qubits(indices.into_iter().collect())?.into())
@@ -1470,8 +1472,10 @@ impl PyPauliLindbladMap {
             )));
         }
 
-        if indices.len() == 0 {
-            return Err(PyValueError::new_err("cannot drop every qubit in the given PauliLindbladMap"));
+        if indices.is_empty() {
+            return Err(PyValueError::new_err(
+                "cannot drop every qubit in the given PauliLindbladMap",
+            ));
         }
 
         Ok(inner
