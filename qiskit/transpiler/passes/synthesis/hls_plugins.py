@@ -1630,7 +1630,9 @@ class ModularAdderSynthesisDefault(HighLevelSynthesisPlugin):
 
 
 class ModularAdderSynthesisV17(HighLevelSynthesisPlugin):
-    r"""The plugin name is :``ModularAdder.v17`` which can be used as the key on
+    r"""A modular adder (modulo :math:`2^n`) without any ancillary qubits.
+
+    The plugin name is :``ModularAdder.v17`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
 
     This plugin requires no auxiliary qubits.
