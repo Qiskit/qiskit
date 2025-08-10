@@ -63,7 +63,7 @@ pub fn run_optimize_1q_gates_decomposition(
     let runs: Vec<Vec<NodeIndex>> = dag.collect_1q_runs().unwrap().collect();
     let dag_qubits = dag.num_qubits();
     let mut target_basis_per_qubit: Vec<EulerBasisSet> = vec![EulerBasisSet::new(); dag_qubits];
-    let mut basis_gates_per_qubit: Vec<Option<HashSet<&str>>> = vec![None; dag_qubits];
+    let mut basis_gates_per_qubit: Vec<Option<HashSet<String>>> = vec![None; dag_qubits];
     for raw_run in runs {
         let mut error = match target {
             Some(_) => 1.,
@@ -74,16 +74,25 @@ pub fn run_optimize_1q_gates_decomposition(
         } else {
             unreachable!("nodes in runs will always be op nodes")
         };
+
         if basis_gates_per_qubit[qubit.index()].is_none() {
             let basis_gates = match target {
-                Some(target) => Some(target.operation_names_for_qargs(&[qubit]).unwrap()),
-                None => {
-                    let basis = basis_gates.as_ref();
-                    basis.map(|basis| basis.iter().map(|x| x.as_str()).collect())
+                Some(target) => {
+                    let qargs = [qubit];
+                    let iterator = target
+                        .operations_for_qargs(&qargs)
+                        .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
+
+                    let filtered: HashSet<String> =
+                        iterator.map(|op| op.operation.name().to_string()).collect();
+
+                    Some(filtered)
                 }
+                None => basis_gates.clone(),
             };
             basis_gates_per_qubit[qubit.index()] = basis_gates;
         }
+
         let basis_gates = &basis_gates_per_qubit[qubit.index()].as_ref();
 
         let target_basis_set = &mut target_basis_per_qubit[qubit.index()];
@@ -95,7 +104,7 @@ pub fn run_optimize_1q_gates_decomposition(
                     .filter_map(|(idx, gates)| {
                         if !gates
                             .iter()
-                            .all(|gate| basis_gates.as_ref().unwrap().contains(gate))
+                            .all(|gate| basis_gates.as_ref().unwrap().contains(*gate))
                         {
                             return None;
                         }
@@ -113,7 +122,7 @@ pub fn run_optimize_1q_gates_decomposition(
                             .iter()
                             .enumerate()
                             .filter_map(|(idx, basis_gates)| {
-                                if !gates.iter().all(|gate| basis_gates.as_ref().contains(gate)) {
+                                if !basis_gates.iter().all(|gate| gates.contains(*gate)) {
                                     return None;
                                 }
                                 let basis = EULER_BASIS_NAMES[idx];
