@@ -5927,7 +5927,7 @@ impl DAGCircuit {
             Some(var_map) => var_map,
             None => {
                 if self.num_vars() > 0 || other.num_vars() > 0 {
-                    unimplemented!("Inferring variable mapping in substitute_node_with_dag is not implemented yet. Consider using py_substitute_node instead.");
+                    unimplemented!("Inferring variable mapping in substitute_node_with_dag is not implemented yet. Consider using py_substitute_node_with_dag instead.");
                     // TODO: implement once additional_wires becomes Python-free
                 }
                 &HashMap::<expr::Var, expr::Var>::new()
@@ -5954,90 +5954,89 @@ impl DAGCircuit {
 
         for (old_node_index, new_node_index) in out_map.iter() {
             let old_node = &other.dag[*old_node_index];
-            if let NodeType::Operation(old_inst) = old_node {
-                if let OperationRef::Instruction(old_op) = old_inst.op.view() {
-                    if old_op.name() == "switch_case" {
-                        Python::with_gil(|py| -> PyResult<()> {
-                            let target =
-                                old_op.instruction.bind(py).getattr("target")?.extract()?;
-                            let kwargs = PyDict::new(py);
-                            kwargs.set_item(
-                                "label",
-                                old_inst
-                                    .label
-                                    .as_ref()
-                                    .map(|x| PyString::new(py, x.as_str())),
-                            )?;
+            let NodeType::Operation(old_inst) = old_node else {
+                continue;
+            };
+            let OperationRef::Instruction(old_op) = old_inst.op.view() else {
+                continue;
+            };
 
-                            let mapped_target = variable_mapper
-                                .map_target(&target, |new_reg| self.add_creg(new_reg.clone()))?;
-                            let new_op = imports::SWITCH_CASE_OP.get_bound(py).call(
-                                (
-                                    mapped_target,
-                                    old_op.instruction.call_method0(py, "cases_specifier")?,
-                                ),
-                                Some(&kwargs),
-                            )?;
+            if old_op.name() == "switch_case" {
+                Python::with_gil(|py| -> PyResult<()> {
+                    let target = old_op.instruction.bind(py).getattr("target")?.extract()?;
+                    let kwargs = PyDict::new(py);
+                    kwargs.set_item(
+                        "label",
+                        old_inst
+                            .label
+                            .as_ref()
+                            .map(|x| PyString::new(py, x.as_str())),
+                    )?;
+
+                    let mapped_target = variable_mapper
+                        .map_target(&target, |new_reg| self.add_creg(new_reg.clone()))?;
+                    let new_op = imports::SWITCH_CASE_OP.get_bound(py).call(
+                        (
+                            mapped_target,
+                            old_op.instruction.call_method0(py, "cases_specifier")?,
+                        ),
+                        Some(&kwargs),
+                    )?;
+
+                    if let NodeType::Operation(ref mut new_inst) = &mut self.dag[*new_node_index] {
+                        new_inst.op = PyInstruction {
+                            qubits: old_op.num_qubits(),
+                            clbits: old_op.num_clbits(),
+                            params: old_op.num_params(),
+                            control_flow: old_op.control_flow(),
+                            op_name: old_op.name().to_string(),
+                            instruction: new_op.clone().unbind(),
+                        }
+                        .into();
+                        #[cfg(feature = "cache_pygates")]
+                        {
+                            new_inst.py_op = new_op.unbind().into();
+                        }
+                    }
+
+                    Ok(())
+                })?;
+            } else if old_inst.op.control_flow() {
+                Python::with_gil(|py| -> PyResult<()> {
+                    if let Ok(condition) = old_op
+                        .instruction
+                        .bind(py)
+                        .getattr(intern!(py, "condition"))
+                        .and_then(|c| c.extract())
+                    {
+                        if old_inst.op.name() != "switch_case" {
+                            let new_condition =
+                                variable_mapper.map_condition(&condition, false, |new_reg| {
+                                    self.add_creg(new_reg.clone())
+                                })?;
 
                             if let NodeType::Operation(ref mut new_inst) =
                                 &mut self.dag[*new_node_index]
                             {
-                                new_inst.op = PyInstruction {
-                                    qubits: old_op.num_qubits(),
-                                    clbits: old_op.num_clbits(),
-                                    params: old_op.num_params(),
-                                    control_flow: old_op.control_flow(),
-                                    op_name: old_op.name().to_string(),
-                                    instruction: new_op.clone().unbind(),
-                                }
-                                .into();
                                 #[cfg(feature = "cache_pygates")]
                                 {
-                                    new_inst.py_op = new_op.unbind().into();
+                                    new_inst.py_op.take();
                                 }
-                            }
-
-                            Ok(())
-                        })?;
-                    } else if old_inst.op.control_flow() {
-                        Python::with_gil(|py| -> PyResult<()> {
-                            if let Ok(condition) = old_op
-                                .instruction
-                                .bind(py)
-                                .getattr(intern!(py, "condition"))
-                                .and_then(|c| c.extract())
-                            {
-                                if old_inst.op.name() != "switch_case" {
-                                    let new_condition = variable_mapper.map_condition(
-                                        &condition,
-                                        false,
-                                        |new_reg| self.add_creg(new_reg.clone()),
-                                    )?;
-
-                                    if let NodeType::Operation(ref mut new_inst) =
-                                        &mut self.dag[*new_node_index]
-                                    {
-                                        #[cfg(feature = "cache_pygates")]
-                                        {
-                                            new_inst.py_op.take();
-                                        }
-                                        match new_inst.op.view() {
-                                            OperationRef::Instruction(py_inst) => {
-                                                py_inst.instruction.setattr(
-                                                    py,
-                                                    "condition",
-                                                    new_condition,
-                                                )?;
-                                            }
-                                            _ => panic!("Instruction mismatch"),
-                                        }
+                                match new_inst.op.view() {
+                                    OperationRef::Instruction(py_inst) => {
+                                        py_inst.instruction.setattr(
+                                            py,
+                                            "condition",
+                                            new_condition,
+                                        )?;
                                     }
+                                    _ => panic!("Instruction mismatch"),
                                 }
                             }
-                            Ok(())
-                        })?;
+                        }
                     }
-                }
+                    Ok(())
+                })?;
             }
         }
 
