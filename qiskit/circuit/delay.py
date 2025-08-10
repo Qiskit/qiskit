@@ -23,11 +23,7 @@ from qiskit._accelerate.circuit import StandardInstructionType
 
 
 class Delay(Instruction):
-    """Do nothing and just delay/wait/idle for a specified duration.
-
-    This version supports variadic qubits (multi-qubit delay) to match
-    OpenQASM 3 semantics. All specified qubits are delayed simultaneously.
-    """
+    """Do nothing and just delay/wait/idle for a specified duration."""
 
     _standard_instruction_type = StandardInstructionType.Delay
 
