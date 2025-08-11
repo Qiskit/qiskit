@@ -608,9 +608,8 @@ class TestPassesInspection(QiskitTestCase):
             basis_gates=["cx", "id", "rz", "sx", "x"],
             coupling_map=LAGOS_CMAP,
             seed=42,
+            control_flow=True,
         )
-        _target = target.target
-        target._target.add_instruction(ForLoopOp, name="for_loop")
         qc = QuantumCircuit(5)
         qc.h(0)
         qc.cy(0, 1)
@@ -638,9 +637,8 @@ class TestPassesInspection(QiskitTestCase):
             basis_gates=["cx", "id", "rz", "sx", "x"],
             coupling_map=LAGOS_CMAP,
             seed=42,
+            control_flow=True,
         )
-        _target = target.target
-        target._target.add_instruction(ForLoopOp, name="for_loop")
         qc = QuantumCircuit(5)
         qc.h(0)
         qc.cy(0, 1)
@@ -667,9 +665,8 @@ class TestPassesInspection(QiskitTestCase):
             basis_gates=["cx", "id", "rz", "sx", "x"],
             coupling_map=LAGOS_CMAP,
             seed=42,
+            control_flow=True,
         )
-        _target = target.target
-        target._target.add_instruction(ForLoopOp, name="for_loop")
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.cx(0, 1)
@@ -690,9 +687,8 @@ class TestPassesInspection(QiskitTestCase):
             basis_gates=["cx", "id", "rz", "sx", "x"],
             coupling_map=LAGOS_CMAP,
             seed=42,
+            control_flow=True,
         )
-        _target = target.target
-        target._target.add_instruction(ForLoopOp, name="for_loop")
         qc = QuantumCircuit(4)
         qc.h(0)
         qc.cx(0, 1)
@@ -715,9 +711,8 @@ class TestPassesInspection(QiskitTestCase):
             basis_gates=["cx", "id", "rz", "sx", "x"],
             coupling_map=LAGOS_CMAP,
             seed=42,
+            control_flow=True,
         )
-        _target = target.target
-        target._target.add_instruction(ForLoopOp, name="for_loop")
         qc = QuantumCircuit(4)
         qc.h(0)
         qc.cx(0, 1)
@@ -741,9 +736,8 @@ class TestPassesInspection(QiskitTestCase):
             basis_gates=["cx", "id", "rz", "sx", "x"],
             coupling_map=LAGOS_CMAP,
             seed=42,
+            control_flow=True,
         )
-        _target = target.target
-        target._target.add_instruction(ForLoopOp, name="for_loop")
         qc = QuantumCircuit(4)
         qc.h(0)
         qc.cx(0, 1)
