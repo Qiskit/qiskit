@@ -26,6 +26,7 @@ mod basis_search;
 mod compose_transforms;
 
 use pyo3::types::{IntoPyDict, PyComplex, PyDict, PyTuple};
+use pyo3::IntoPyObjectExt;
 use pyo3::PyTypeInfo;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::circuit_to_dag;
@@ -688,12 +689,14 @@ fn replace_node(
                 new_params = SmallVec::new();
                 for param in inner_node.params_view() {
                     if let Param::ParameterExpression(param_obj) = param {
-                        let bound_param = param_obj.bind(py);
-                        let exp_params = param.iter_parameters(py)?;
+                        // TODO make this use ParameterExpression via Rust directly, this is
+                        // just a placeholder right now
+                        let bound_param = param_obj.as_ref().clone().into_bound_py_any(py)?;
+
+                        let exp_params = param.iter_parameters()?;
                         let bind_dict = PyDict::new(py);
                         for key in exp_params {
-                            let key = key?;
-                            bind_dict.set_item(&key, parameter_map.get_item(&key)?)?;
+                            bind_dict.set_item(key.clone(), parameter_map.get_item(key)?)?;
                         }
                         let mut new_value: Bound<PyAny>;
                         let comparison = bind_dict.values().iter().any(|param| {
@@ -755,12 +758,13 @@ fn replace_node(
         }
 
         match target_dag.global_phase() {
-            Param::ParameterExpression(old_phase) => {
-                let bound_old_phase = old_phase.bind(py);
+            Param::ParameterExpression(ref old_phase) => {
+                // TODO make this use Rust
+                let bound_old_phase = old_phase.as_ref().clone().into_bound_py_any(py)?;
+
                 let bind_dict = PyDict::new(py);
-                for key in target_dag.global_phase().iter_parameters(py)? {
-                    let key = key?;
-                    bind_dict.set_item(&key, parameter_map.get_item(&key)?)?;
+                for key in target_dag.global_phase().iter_parameters()? {
+                    bind_dict.set_item(key.clone(), parameter_map.get_item(key)?)?;
                 }
                 let mut new_phase: Bound<PyAny>;
                 if bind_dict.values().iter().any(|param| {

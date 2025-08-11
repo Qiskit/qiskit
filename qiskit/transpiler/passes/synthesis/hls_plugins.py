@@ -183,7 +183,12 @@ not sufficient, the corresponding synthesis method will return `None`.
       - :class:`~.MCXSynthesisNoAuxV24`
       - `0`
       - `0`
-      - quadratic number of CX gates; use instead of ``"gray_code"`` for large values of `k`
+      - quadratic number of CX gates
+    * - ``"noaux_hp24"``
+      - :class:`~.MCXSynthesisNoAuxHP24`
+      - `0`
+      - `0`
+      - linear number of CX gates; use instead of ``"noaux_v24"`` or ``"gray_code"`` for `k>5`
     * - ``"n_clean_m15"``
       - :class:`~.MCXSynthesisNCleanM15`
       - `k-2`
@@ -198,22 +203,22 @@ not sufficient, the corresponding synthesis method will return `None`.
       - :class:`~.MCXSynthesis2CleanKG24`
       - `2`
       - `0`
-      - at most `12*k-18` CX gates
+      - at most `6*k-6` CX gates
     * - ``"2_dirty_kg24"``
       - :class:`~.MCXSynthesis2DirtyKG24`
       - `0`
       - `2`
-      - at most `24*k-48` CX gates
+      - at most `12*k-18` CX gates
     * - ``"1_clean_kg24"``
       - :class:`~.MCXSynthesis1CleanKG24`
       - `1`
       - `0`
-      - at most `12*k-18` CX gates
+      - at most `6*k-6` CX gates
     * - ``"1_dirty_kg24"``
       - :class:`~.MCXSynthesis1DirtyKG24`
       - `0`
       - `1`
-      - at most `24*k-48` CX gates
+      - at most `12*k-18` CX gates
     * - ``"1_clean_b95"``
       - :class:`~.MCXSynthesis1CleanB95`
       - `1`
@@ -230,6 +235,7 @@ not sufficient, the corresponding synthesis method will return `None`.
 
    MCXSynthesisGrayCode
    MCXSynthesisNoAuxV24
+   MCXSynthesisNoAuxHP24
    MCXSynthesisNCleanM15
    MCXSynthesisNDirtyI15
    MCXSynthesis2CleanKG24
@@ -261,6 +267,11 @@ MCMT Synthesis
       - `0`
       - `0`
       - uses Qiskit's standard control mechanism
+    * - ``"xgate"``
+      - :class:`.MCMTSynthesisXGate`
+      - `0`
+      - `0`
+      - uses a linear number of Toffoli gates
     * - ``"default"``
       - :class:`~.MCMTSynthesisDefault`
       - any
@@ -272,6 +283,7 @@ MCMT Synthesis
 
    MCMTSynthesisVChain
    MCMTSynthesisNoAux
+   MCMTSynthesisXGate
    MCMTSynthesisDefault
 
    
@@ -498,6 +510,7 @@ from qiskit.circuit.operation import Operation
 from qiskit.circuit.library import (
     LinearFunction,
     QFTGate,
+    XGate,
     MCXGate,
     C3XGate,
     C4XGate,
@@ -559,7 +572,9 @@ from qiskit.synthesis.multi_controlled import (
     synth_mcx_1_clean_b95,
     synth_mcx_gray_code,
     synth_mcx_noaux_v24,
+    synth_mcx_noaux_hp24,
     synth_mcmt_vchain,
+    synth_mcmt_xgate,
 )
 from qiskit.synthesis.evolution import ProductFormula, synth_pauli_network_rustiq
 from qiskit.synthesis.arithmetic import (
@@ -1189,8 +1204,8 @@ class MCXSynthesis2CleanKG24(HighLevelSynthesisPlugin):
     object to use this method with :class:`~.HighLevelSynthesis`.
 
     For a multi-controlled X gate with :math:`k\ge 3` control qubits this synthesis method requires
-    :math:`2` additional clean ancillary qubits. The synthesized circuit consists of :math:`k + 2`
-    qubits and at most :math:`12 * k - 18` CX gates.
+    :math:`2` additional clean ancillary qubits. The synthesized circuit consists of :math:`k + 3`
+    qubits and at most :math:`6 * k - 6` CX gates.
 
     The plugin supports the following plugin-specific options:
 
@@ -1231,8 +1246,8 @@ class MCXSynthesis2DirtyKG24(HighLevelSynthesisPlugin):
     object to use this method with :class:`~.HighLevelSynthesis`.
 
     For a multi-controlled X gate with :math:`k\ge 3` control qubits this synthesis method requires
-    :math:`2` additional dirty ancillary qubits. The synthesized circuit consists of :math:`k + 2`
-    qubits and at most :math:`24 * k - 48` CX gates.
+    :math:`2` additional dirty ancillary qubits. The synthesized circuit consists of :math:`k + 3`
+    qubits and at most :math:`12 * k - 18` CX gates.
 
     The plugin supports the following plugin-specific options:
 
@@ -1276,7 +1291,7 @@ class MCXSynthesis1CleanKG24(HighLevelSynthesisPlugin):
 
     For a multi-controlled X gate with :math:`k\ge 3` control qubits this synthesis method requires
     :math:`1` additional clean ancillary qubit. The synthesized circuit consists of :math:`k + 2`
-    qubits and at most :math:`12 * k - 18` CX gates.
+    qubits and at most :math:`6 * k - 6` CX gates.
 
     The plugin supports the following plugin-specific options:
 
@@ -1318,7 +1333,7 @@ class MCXSynthesis1DirtyKG24(HighLevelSynthesisPlugin):
 
     For a multi-controlled X gate with :math:`k\ge 3` control qubits this synthesis method requires
     :math:`1` additional dirty ancillary qubit. The synthesized circuit consists of :math:`k + 2`
-    qubits and at most :math:`24 * k - 48` CX gates.
+    qubits and at most :math:`12 * k - 18` CX gates.
 
     The plugin supports the following plugin-specific options:
 
@@ -1392,7 +1407,8 @@ class MCXSynthesisNoAuxV24(HighLevelSynthesisPlugin):
 
     For a multi-controlled X gate with :math:`k` control qubits this synthesis
     method requires no additional clean auxiliary qubits. The synthesized
-    circuit consists of :math:`k + 1` qubits.
+    circuit consists of :math:`k + 1` qubits. The number of CX-gates is quadratic in
+    :math:`k`.
 
     References:
         1. Vale et. al., *Circuit Decomposition of Multicontrolled Special Unitary
@@ -1415,6 +1431,41 @@ class MCXSynthesisNoAuxV24(HighLevelSynthesisPlugin):
         return decomposition
 
 
+class MCXSynthesisNoAuxHP24(HighLevelSynthesisPlugin):
+    r"""Synthesis plugin for a multi-controlled X gate based on the
+    paper by Huang and Palsberg.
+
+    See [1] for details.
+
+    This plugin name is :``mcx.noaux_hp24`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    For a multi-controlled X gate with :math:`k` control qubits this synthesis
+    method requires no additional clean auxiliary qubits. The synthesized
+    circuit consists of :math:`k + 1` qubits. The number of CX-gates is linear in
+    :math:`k`.
+
+    References:
+        1. Huang and Palsberg, *Compiling Conditional Quantum Gates without Using
+           Helper Qubits*, PLDI (2024),
+           <https://dl.acm.org/doi/10.1145/3656436>`_
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Run synthesis for the given MCX gate."""
+
+        if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
+            # Unfortunately we occasionally have custom instructions called "mcx"
+            # which get wrongly caught by the plugin interface. A simple solution is
+            # to return None in this case, since HLS would proceed to examine
+            # their definition as it should.
+            return None
+
+        num_ctrl_qubits = high_level_object.num_ctrl_qubits
+        decomposition = synth_mcx_noaux_hp24(num_ctrl_qubits)
+        return decomposition
+
+
 class MCXSynthesisDefault(HighLevelSynthesisPlugin):
     r"""The default synthesis plugin for a multi-controlled X gate.
 
@@ -1433,7 +1484,7 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
             return None
 
         # Iteratively run other synthesis methods available
-
+        # (note that all of these methods require at least one auxiliary qubit)
         for synthesis_method in [
             MCXSynthesis2CleanKG24,
             MCXSynthesis1CleanKG24,
@@ -1450,26 +1501,33 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
             ) is not None:
                 return decomposition
 
-        # If no synthesis method was successful, fall back to the default
-        return MCXSynthesisNoAuxV24().run(
-            high_level_object, coupling_map, target, qubits, **options
+        # If no synthesis method was successful, use the methods that do not
+        # require auxiliary qubits
+        no_aux_method = (
+            MCXSynthesisNoAuxV24
+            if high_level_object.num_ctrl_qubits <= 5
+            else MCXSynthesisNoAuxHP24
         )
+        return no_aux_method().run(high_level_object, coupling_map, target, qubits, **options)
 
 
 class MCMTSynthesisDefault(HighLevelSynthesisPlugin):
     """A default decomposition for MCMT gates."""
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
-        # first try to use the V-chain synthesis if enough auxiliary qubits are available
         if not isinstance(high_level_object, MCMTGate):
             return None
 
-        if (
-            decomposition := MCMTSynthesisVChain().run(
-                high_level_object, coupling_map, target, qubits, **options
-            )
-        ) is not None:
-            return decomposition
+        for synthesis_method in [
+            MCMTSynthesisXGate,
+            MCMTSynthesisVChain,
+        ]:
+            if (
+                decomposition := synthesis_method().run(
+                    high_level_object, coupling_map, target, qubits, **options
+                )
+            ) is not None:
+                return decomposition
 
         return MCMTSynthesisNoAux().run(high_level_object, coupling_map, target, qubits, **options)
 
@@ -1519,6 +1577,22 @@ class MCMTSynthesisVChain(HighLevelSynthesisPlugin):
             high_level_object.num_ctrl_qubits,
             high_level_object.num_target_qubits,
             ctrl_state,
+        )
+
+
+class MCMTSynthesisXGate(HighLevelSynthesisPlugin):
+    """A synthesis for ``MCMTGate`` with X gate as the base gate."""
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, MCMTGate):
+            return None
+
+        if not isinstance(high_level_object.base_gate, XGate):
+            return None  # this plugin only supports X gates
+
+        ctrl_state = options.get("ctrl_state", None)
+        return synth_mcmt_xgate(
+            high_level_object.num_ctrl_qubits, high_level_object.num_target_qubits, ctrl_state
         )
 
 
