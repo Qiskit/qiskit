@@ -14,14 +14,13 @@
 
 from __future__ import annotations
 import unittest
+from test import QiskitTestCase
 from ddt import ddt, data
 
 from qiskit.synthesis.arithmetic.adders import (
     adder_modular_v17,
 )
 from qiskit.transpiler import generate_preset_pass_manager
-
-from test import QiskitTestCase
 
 
 @ddt
