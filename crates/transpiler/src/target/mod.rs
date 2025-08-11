@@ -939,11 +939,12 @@ impl Target {
         } else {
             operation.name().to_string()
         };
-        if params.len() != operation.num_params() as usize {
+        let argument_num = params.as_ref().map(|p| p.len()).unwrap_or(0);
+        if argument_num != operation.num_params() as usize {
             return Err(TargetError::ParamsMismatch {
                 instruction: parsed_name,
                 instruction_num: operation.num_params() as usize,
-                argument_num: params.len(),
+                argument_num,
             });
         }
 
@@ -1547,13 +1548,13 @@ mod test {
     use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
     use qiskit_circuit::parameter::symbol_expr::Symbol;
     use qiskit_circuit::PhysicalQubit;
-    use smallvec::SmallVec;
+    use smallvec::{smallvec, SmallVec};
 
     use super::{instruction_properties::InstructionProperties, Qargs, Target, TargetError};
 
     #[test]
     fn test_invalid_params_instruction() {
-        let params: [Param; 3] = [
+        let params = smallvec![
             Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
                 "ϴ", None, None,
             )))),
@@ -1567,7 +1568,7 @@ mod test {
         let mut target = Target::default();
         let result = target.add_instruction(
             PackedOperation::from_standard_gate(StandardGate::CX),
-            &params,
+            Some(Parameters::Params(params)),
             None,
             None,
         );

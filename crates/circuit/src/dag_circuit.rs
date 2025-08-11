@@ -2258,7 +2258,7 @@ impl DAGCircuit {
             let normalize_param = |param: &Param| {
                 if let Param::ParameterExpression(ob) = param {
                     // try casting ParameterExpression to Param, prioritizing Float
-                Param::from_expr(ob.as_ref().clone(), true)
+                    Param::from_expr(ob.as_ref().clone(), true)
                 } else {
                     Ok(param.clone())
                 }
@@ -2434,7 +2434,7 @@ impl DAGCircuit {
                                     && params1
                                         .iter()
                                         .zip(params2)
-                                        .all(|(a, b)| a.is_close(py, b, 1e-10).unwrap()))
+                                        .all(|(a, b)| a.is_close(b, 1e-10).unwrap()))
                             }
                             [InstructionView::StandardInstruction(inst1), InstructionView::StandardInstruction(inst2)] => {
                                 Ok(match [inst1, inst2] {
@@ -2447,10 +2447,7 @@ impl DAGCircuit {
                                     }, StandardInstructionView::Delay {
                                         duration: duration2,
                                         unit: unit2,
-                                    }] => {
-                                        unit1 == unit2
-                                            && duration1.is_close(py, duration2, 1e-10)?
-                                    }
+                                    }] => unit1 == unit2 && duration1.is_close(duration2, 1e-10)?,
                                     [StandardInstructionView::Measure, StandardInstructionView::Measure] => {
                                         true
                                     }
@@ -2663,18 +2660,19 @@ impl DAGCircuit {
                                                 let mut body_a_circuit =
                                                     converters::dag_to_circuit(body_a, false)?;
                                                 if body_a_circuit
-                                                    .get_parameters(py)
+                                                    .get_parameters(py)?
                                                     .contains(loop_param_a)?
                                                 {
                                                     body_a_circuit.assign_parameters_from_mapping(
-                                                        py,
                                                         [(
                                                             ParameterUuid::from_parameter(
                                                                 loop_param_a.bind(py),
                                                             )?,
-                                                            Param::ParameterExpression(
-                                                                sentinel.clone().unbind(),
-                                                            ),
+                                                            Param::ParameterExpression(Arc::new(
+                                                                ParameterExpression::from_symbol(
+                                                                    sentinel.clone().extract()?,
+                                                                ),
+                                                            )),
                                                         )],
                                                     )?;
                                                 }
@@ -2695,18 +2693,19 @@ impl DAGCircuit {
                                                 let mut body_b_circuit =
                                                     converters::dag_to_circuit(body_b, false)?;
                                                 if body_b_circuit
-                                                    .get_parameters(py)
+                                                    .get_parameters(py)?
                                                     .contains(loop_param_b)?
                                                 {
                                                     body_b_circuit.assign_parameters_from_mapping(
-                                                        py,
                                                         [(
                                                             ParameterUuid::from_parameter(
                                                                 loop_param_b.bind(py),
                                                             )?,
-                                                            Param::ParameterExpression(
-                                                                sentinel.unbind(),
-                                                            ),
+                                                            Param::ParameterExpression(Arc::new(
+                                                                ParameterExpression::from_symbol(
+                                                                    sentinel.clone().extract()?,
+                                                                ),
+                                                            )),
                                                         )],
                                                     )?;
                                                 }
@@ -5134,7 +5133,7 @@ impl DAGCircuit {
 
 impl<'a> DAGCircuit {
     /// Return an iterator of gate runs with op nodes that match a specified filter function
-    pub fn collect_runs_by<F: Fn(&PackedInstruction) -> bool + 'a>(
+    pub fn collect_runs_by<F: Fn(&DAGInstruction) -> bool + 'a>(
         &'a self,
         filter: F,
     ) -> impl Iterator<Item = Vec<NodeIndex>> + 'a {

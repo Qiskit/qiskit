@@ -21,7 +21,7 @@ use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction, NodeType};
 use qiskit_circuit::instruction::IntoInstructionView;
 use qiskit_circuit::operations::{Operation, OperationRef, StandardGate};
 
-fn gate_eq(py: Python, gate_a: &PackedInstruction, gate_b: &OperationFromPython) -> PyResult<bool> {
+fn gate_eq(gate_a: &DAGInstruction, gate_b: &OperationFromPython) -> PyResult<bool> {
     if gate_a.op.name() != gate_b.operation.name() {
         return Ok(false);
     }
@@ -191,7 +191,7 @@ fn std_self_inverse(dag: &mut DAGCircuit) {
         if *dag.get_op_counts().get(self_inv_gate.name()).unwrap_or(&0) <= 1 {
             continue;
         }
-        let filter = |inst: &PackedInstruction| -> bool {
+        let filter = |inst: &DAGInstruction| -> bool {
             match inst.op.view() {
                 OperationRef::StandardGate(gate) => gate == self_inv_gate,
                 _ => false,
@@ -246,7 +246,7 @@ fn std_inverse_pairs(dag: &mut DAGCircuit) {
         {
             continue;
         }
-        let filter = |inst: &PackedInstruction| -> bool {
+        let filter = |inst: &DAGInstruction| -> bool {
             match inst.op.view() {
                 OperationRef::StandardGate(gate) => gate == gate_0 || gate == gate_1,
                 _ => false,
@@ -288,7 +288,6 @@ pub fn run_inverse_cancellation_standard_gates(dag: &mut DAGCircuit) {
 #[pyfunction]
 #[pyo3(name = "inverse_cancellation")]
 pub fn py_run_inverse_cancellation(
-    py: Python,
     dag: &mut DAGCircuit,
     inverse_gates: Vec<[OperationFromPython; 2]>,
     self_inverse_gates: Vec<OperationFromPython>,

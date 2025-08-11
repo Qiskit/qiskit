@@ -110,6 +110,23 @@ pub enum Parameters<T> {
 }
 
 impl<T> Parameters<T> {
+    /// Get the number of parameters in this parameter list.
+    pub fn len(&self) -> usize {
+        match self {
+            Parameters::Params(params) => params.len(),
+            Parameters::Box { .. } => 1,
+            Parameters::ForLoop { .. } => 3,
+            Parameters::IfElse { .. } => 2,
+            Parameters::Switch { cases, .. } => cases.len(),
+            Parameters::While { .. } => 1,
+        }
+    }
+
+    /// Check if the parameter list is empty.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Replace all blocks of this parameter set, in order.
     ///
     /// Panics if `blocks` does not contain exactly the expected number of blocks

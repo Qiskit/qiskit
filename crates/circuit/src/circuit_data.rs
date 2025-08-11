@@ -2095,7 +2095,7 @@ impl CircuitData {
                     };
                     for symbol in param.iter_parameters()? {
                         self.param_table.track(&symbol, Some(usage))?;
-		    }
+                    }
                 }
             }
             Parameters::Box { body } => {
@@ -2109,7 +2109,7 @@ impl CircuitData {
                         .getattr(intern!(py, "parameters"))?
                         .try_iter()?
                     {
-                        self.param_table.track(&param_ob?, Some(usage))?;
+                        self.param_table.track(&param_ob?.extract()?, Some(usage))?;
                     }
                     Ok(())
                 })?;
@@ -2120,7 +2120,7 @@ impl CircuitData {
                 Python::with_gil(|py| -> PyResult<_> {
                     if let Some(loop_param) = loop_param {
                         self.param_table.track(
-                            loop_param.bind(py),
+                            &loop_param.bind(py).extract()?,
                             Some(ParameterUse::Index {
                                 instruction: instruction_index,
                                 parameter: 1,
@@ -2136,7 +2136,7 @@ impl CircuitData {
                         .getattr(intern!(py, "parameters"))?
                         .try_iter()?
                     {
-                        self.param_table.track(&param_ob?, Some(usage))?;
+                        self.param_table.track(&param_ob?.extract()?, Some(usage))?;
                     }
                     Ok(())
                 })?;
@@ -2155,7 +2155,8 @@ impl CircuitData {
                         .getattr(intern!(py, "parameters"))?
                         .try_iter()?
                     {
-                        self.param_table.track(&param_ob?, Some(true_usage))?;
+                        self.param_table
+                            .track(&param_ob?.extract()?, Some(true_usage))?;
                     }
                     if let Some(false_body) = false_body {
                         let false_usage = ParameterUse::Index {
@@ -2167,7 +2168,8 @@ impl CircuitData {
                             .getattr(intern!(py, "parameters"))?
                             .try_iter()?
                         {
-                            self.param_table.track(&param_ob?, Some(false_usage))?;
+                            self.param_table
+                                .track(&param_ob?.extract()?, Some(false_usage))?;
                         }
                     }
                     Ok(())
@@ -2185,7 +2187,7 @@ impl CircuitData {
                             .getattr(intern!(py, "parameters"))?
                             .try_iter()?
                         {
-                            self.param_table.track(&param_ob?, Some(usage))?;
+                            self.param_table.track(&param_ob?.extract()?, Some(usage))?;
                         }
                     }
                     Ok(())
@@ -2202,7 +2204,7 @@ impl CircuitData {
                         .getattr(intern!(py, "parameters"))?
                         .try_iter()?
                     {
-                        self.param_table.track(&param_ob?, Some(usage))?;
+                        self.param_table.track(&param_ob?.extract()?, Some(usage))?;
                     }
                     Ok(())
                 })?;
@@ -2244,7 +2246,7 @@ impl CircuitData {
                         .getattr(intern!(py, "parameters"))?
                         .try_iter()?
                     {
-                        self.param_table.untrack(&param_ob?, usage)?;
+                        self.param_table.untrack(&param_ob?.extract()?, usage)?;
                     }
                     Ok(())
                 })?;
@@ -2255,7 +2257,7 @@ impl CircuitData {
                 Python::with_gil(|py| -> PyResult<_> {
                     if let Some(loop_param) = loop_param {
                         self.param_table.untrack(
-                            loop_param.bind(py),
+                            &loop_param.bind(py).extract()?,
                             ParameterUse::Index {
                                 instruction: instruction_index,
                                 parameter: 1,
@@ -2271,7 +2273,7 @@ impl CircuitData {
                         .getattr(intern!(py, "parameters"))?
                         .try_iter()?
                     {
-                        self.param_table.untrack(&param_ob?, usage)?;
+                        self.param_table.untrack(&param_ob?.extract()?, usage)?;
                     }
                     Ok(())
                 })?;
@@ -2290,7 +2292,8 @@ impl CircuitData {
                         .getattr(intern!(py, "parameters"))?
                         .try_iter()?
                     {
-                        self.param_table.untrack(&param_ob?, true_usage)?;
+                        self.param_table
+                            .untrack(&param_ob?.extract()?, true_usage)?;
                     }
                     if let Some(false_body) = false_body {
                         let false_usage = ParameterUse::Index {
@@ -2302,7 +2305,8 @@ impl CircuitData {
                             .getattr(intern!(py, "parameters"))?
                             .try_iter()?
                         {
-                            self.param_table.untrack(&param_ob?, false_usage)?;
+                            self.param_table
+                                .untrack(&param_ob?.extract()?, false_usage)?;
                         }
                     }
                     Ok(())
@@ -2320,7 +2324,7 @@ impl CircuitData {
                             .getattr(intern!(py, "parameters"))?
                             .try_iter()?
                         {
-                            self.param_table.untrack(&param_ob?, usage)?;
+                            self.param_table.untrack(&param_ob?.extract()?, usage)?;
                         }
                     }
                     Ok(())
@@ -2337,7 +2341,7 @@ impl CircuitData {
                         .getattr(intern!(py, "parameters"))?
                         .try_iter()?
                     {
-                        self.param_table.untrack(&param_ob?, usage)?;
+                        self.param_table.untrack(&param_ob?.extract()?, usage)?;
                     }
                     Ok(())
                 })?;
@@ -2631,49 +2635,55 @@ impl CircuitData {
                                 previous.py_op.take();
                             }
                         } else if let OperationRef::ControlFlow(_) = previous.op.view() {
-                            let map_block = |obj: &PyObject| -> PyResult<PyObject> {
-                                obj.call_method(
-                                    py,
-                                    assign_parameters_attr,
-                                    ([(&param_ob, value.as_ref().clone_ref(py))]
-                                        .into_py_dict(py)?,),
-                                    Some(
-                                        &[("inplace", false), ("flat_input", true)]
-                                            .into_py_dict(py)?,
-                                    ),
-                                )
-                            };
-                            match (parameter, previous.params.as_deref_mut().unwrap()) {
-                                (0, Parameters::Box { body }) => {
-                                    *body = map_block(body)?;
+                            Python::with_gil(|py| -> PyResult<()> {
+                                let assign_parameters_attr = intern!(py, "assign_parameters");
+                                let map_block = |obj: &PyObject| -> PyResult<PyObject> {
+                                    obj.call_method(
+                                        py,
+                                        assign_parameters_attr,
+                                        ([(symbol.clone(), value.as_ref().clone_ref(py))]
+                                            .into_py_dict(py)?,),
+                                        Some(
+                                            &[("inplace", false), ("flat_input", true)]
+                                                .into_py_dict(py)?,
+                                        ),
+                                    )
+                                };
+                                match (parameter, previous.params.as_deref_mut().unwrap()) {
+                                    (0, Parameters::Box { body }) => {
+                                        *body = map_block(body)?;
+                                    }
+                                    (2, Parameters::ForLoop { body, .. }) => {
+                                        *body = map_block(body)?;
+                                    }
+                                    (0, Parameters::IfElse { true_body, .. }) => {
+                                        *true_body = map_block(true_body)?;
+                                    }
+                                    (1, Parameters::IfElse { false_body, .. }) => {
+                                        *false_body = match false_body {
+                                            Some(false_body) => Some(map_block(false_body)?),
+                                            None => None,
+                                        };
+                                    }
+                                    (_, Parameters::Switch { cases })
+                                        if parameter < cases.len() =>
+                                    {
+                                        cases[parameter] = map_block(&cases[parameter])?;
+                                    }
+                                    (0, Parameters::While { body }) => {
+                                        *body = map_block(body)?;
+                                    }
+                                    _ => return Err(inconsistent()),
+                                };
+                                for uuid in uuids.iter() {
+                                    self.param_table.add_use(*uuid, usage)?
                                 }
-                                (2, Parameters::ForLoop { body, .. }) => {
-                                    *body = map_block(body)?;
+                                #[cfg(feature = "cache_pygates")]
+                                {
+                                    previous.py_op.take();
                                 }
-                                (0, Parameters::IfElse { true_body, .. }) => {
-                                    *true_body = map_block(true_body)?;
-                                }
-                                (1, Parameters::IfElse { false_body, .. }) => {
-                                    *false_body = match false_body {
-                                        Some(false_body) => Some(map_block(false_body)?),
-                                        None => None,
-                                    };
-                                }
-                                (_, Parameters::Switch { cases }) if parameter < cases.len() => {
-                                    cases[parameter] = map_block(&cases[parameter])?;
-                                }
-                                (0, Parameters::While { body }) => {
-                                    *body = map_block(body)?;
-                                }
-                                _ => return Err(inconsistent()),
-                            };
-                            for uuid in uuids.iter() {
-                                self.param_table.add_use(*uuid, usage)?
-                            }
-                            #[cfg(feature = "cache_pygates")]
-                            {
-                                previous.py_op.take();
-                            }
+                                Ok(())
+                            })?;
                         } else {
                             // Track user operations we've seen so we can rebind their definitions.
                             // Strictly this can add the same binding pair more than once, if an
@@ -2698,7 +2708,8 @@ impl CircuitData {
 
                                 let op = previous.unpack_py_op(py)?.into_bound(py);
                                 // All "user" operations (e.g. PyOperation) use Parameters::Param.
-                                let previous_param = &previous.try_legacy_params().unwrap()[parameter];
+                                let previous_param =
+                                    &previous.try_legacy_params().unwrap()[parameter];
                                 let new_param = match previous_param {
                                     Param::Float(_) => return Err(inconsistent()),
                                     Param::ParameterExpression(expr) => {
@@ -2735,17 +2746,17 @@ impl CircuitData {
                                             }
                                         }
                                     }
-                                // TODO: remove this, assuming only control flow needed it
-                                Param::Obj(block) => {
-                                    let obj = block.bind_borrowed(py);
-                                    if !obj.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
-                                        return Err(inconsistent());
-                                    }
-                                    Param::extract_no_coerce(
-                                        &obj.call_method(
-                                            assign_parameters_attr,
-                                            ([(symbol.clone(), value.as_ref().clone_ref(py))]
-                                                .into_py_dict(py)?,),
+                                    // TODO: remove this, assuming only control flow needed it
+                                    Param::Obj(block) => {
+                                        let obj = block.bind_borrowed(py);
+                                        if !obj.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
+                                            return Err(inconsistent());
+                                        }
+                                        Param::extract_no_coerce(
+                                            &obj.call_method(
+                                                assign_parameters_attr,
+                                                ([(symbol.clone(), value.as_ref().clone_ref(py))]
+                                                    .into_py_dict(py)?,),
                                                 Some(
                                                     &[("inplace", false), ("flat_input", true)]
                                                         .into_py_dict(py)?,

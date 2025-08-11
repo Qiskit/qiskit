@@ -1328,7 +1328,7 @@ impl<'a> QASM3Builder {
                 Param::ParameterExpression(Arc::new(expr))
             })
             .collect();
-        if let Some(instruction) = inst.view().try_definition() {
+        if let Some(instruction) = instr.view().try_definition() {
             let params_def = params
                 .iter()
                 .enumerate()

@@ -530,10 +530,10 @@ fn replace_node(
                     let mut new_params_inner = SmallVec::new();
                     for param in inner_node_params {
                         if let Param::ParameterExpression(param_obj) = param {
-                        // TODO make this use ParameterExpression via Rust directly, this is
-                        // just a placeholder right now
-                        let bound_param = param_obj.as_ref().clone().into_bound_py_any(py)?;
-                        let exp_params = param.iter_parameters()?;
+                            // TODO make this use ParameterExpression via Rust directly, this is
+                            // just a placeholder right now
+                            let bound_param = param_obj.as_ref().clone().into_bound_py_any(py)?;
+                            let exp_params = param.iter_parameters()?;
                             let bind_dict = PyDict::new(py);
                             for key in exp_params {
                                 bind_dict.set_item(key.clone(), parameter_map.get_item(key)?)?;
