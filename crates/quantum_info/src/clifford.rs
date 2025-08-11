@@ -160,7 +160,7 @@ impl Clifford {
     /// Returns the evolved Pauli and the sign.
     pub fn get_inverse_z(&self, qbit: usize) -> (bool, String) {
         let mut string = String::new();
-        let mut as_vec_bool = vec![false; 2 * self.num_qubits];
+        let mut pauli = vec![false; 2 * self.num_qubits];
 
         for i in 0..self.num_qubits {
             let x_bit = self.tableau[[i + self.num_qubits, qbit]];
@@ -171,59 +171,57 @@ impl Clifford {
                 }
                 (true, false) => {
                     string.push('X');
-                    as_vec_bool[i] = true;
+                    pauli[i] = true;
                 }
                 (false, true) => {
                     string.push('Z');
-                    as_vec_bool[i + self.num_qubits] = true;
+                    pauli[i + self.num_qubits] = true;
                 }
                 (true, true) => {
                     string.push('Y');
-                    as_vec_bool[i] = true;
-                    as_vec_bool[i + self.num_qubits] = true;
+                    pauli[i] = true;
+                    pauli[i + self.num_qubits] = true;
                 }
             }
         }
 
-        let phase = compute_phase_product_pauli(self, &as_vec_bool);
+        let phase = compute_phase_product_pauli(self, &pauli);
         (phase, string)
     }
 }
 
-const LOOKUP_0: [(bool, bool, bool, bool); 3] = [
-    (false, true, true, true),
-    (true, false, false, true),
-    (true, true, true, false),
-];
-
-const LOOKUP_1: [(bool, bool, bool, bool); 3] = [
-    (false, true, true, false),
-    (true, false, true, true),
-    (true, true, false, true),
-];
-fn compute_phase_product_pauli(clifford: &Clifford, vec: &[bool]) -> bool {
-    let phase = vec.iter().enumerate().fold(false, |acc, (j, &item)| {
+/// Computes the sign (either +1 or -1) when conjugating a Pauli by a Clifford
+fn compute_phase_product_pauli(clifford: &Clifford, pauli: &[bool]) -> bool {
+    let phase = pauli.iter().enumerate().fold(false, |acc, (j, &item)| {
         acc ^ (clifford.tableau[[j, 2 * clifford.num_qubits]] & item)
     });
 
     let mut ifact: u8 = (0..clifford.num_qubits)
-        .filter(|&i| vec[i] & vec[i + clifford.num_qubits])
+        .filter(|&i| pauli[i] & pauli[i + clifford.num_qubits])
         .count() as u8
         % 4;
 
     for j in 0..clifford.num_qubits {
         let mut x = false;
         let mut z = false;
-        for (i, &item) in vec.iter().enumerate() {
+        for (i, &item) in pauli.iter().enumerate() {
             if item {
                 let x1: bool = clifford.tableau[[i, j]];
                 let z1: bool = clifford.tableau[[i, j + clifford.num_qubits]];
-                let entry = (x1, z1, x, z);
-                if LOOKUP_0.contains(&entry) {
-                    ifact += 1;
-                } else if LOOKUP_1.contains(&entry) {
-                    ifact += 3;
-                }
+
+                match (x1, z1, x, z) {
+                    (false, true, true, true)
+                    | (true, false, false, true)
+                    | (true, true, true, false) => {
+                        ifact += 1;
+                    }
+                    (false, true, true, false)
+                    | (true, false, true, true)
+                    | (true, true, false, true) => {
+                        ifact += 3;
+                    }
+                    _ => {}
+                };
                 x ^= x1;
                 z ^= z1;
                 ifact %= 4;
