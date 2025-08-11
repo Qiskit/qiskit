@@ -156,7 +156,8 @@ impl Clifford {
         azip!((x in &mut x, z in &mut z)  (*x, *z) = (*z, *x ^ *z));
     }
 
-    /// Evolving the single-qubit Pauli-Z with Z on qubit qbit
+    /// Evolving the single-qubit Pauli-Z with Z on qubit qbit.
+    /// Returns the evolved Pauli and the sign.
     pub fn get_inverse_z(&self, qbit: usize) -> (bool, String) {
         let mut string = String::new();
         let mut as_vec_bool = vec![false; 2 * self.num_qubits];
@@ -201,10 +202,9 @@ const LOOKUP_1: [(bool, bool, bool, bool); 3] = [
     (true, true, false, true),
 ];
 fn compute_phase_product_pauli(clifford: &Clifford, vec: &[bool]) -> bool {
-    let phase = vec
-        .iter()
-        .enumerate()
-        .fold(false, |acc, (j, &item)| acc ^ (clifford.tableau[[j, 2 * clifford.num_qubits]] & item));
+    let phase = vec.iter().enumerate().fold(false, |acc, (j, &item)| {
+        acc ^ (clifford.tableau[[j, 2 * clifford.num_qubits]] & item)
+    });
 
     let mut ifact: u8 = (0..clifford.num_qubits)
         .filter(|&i| vec[i] & vec[i + clifford.num_qubits])

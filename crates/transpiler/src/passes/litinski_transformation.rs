@@ -43,13 +43,7 @@ pub fn extract_rotations(circuit: &[(String, Vec<usize>)], nqubits: usize) -> Ve
     let mut clifford = Clifford::identity(nqubits);
     let mut rotations: Vec<(bool, String)> = Vec::new();
 
-    // println!("clifford = {:?}", clifford);
-    // println!("rotations = {:?}!", rotations);
-    // println!("=====");
-
     for (gate_name, qbits) in circuit.iter() {
-        // println!("=> processing gate {:?}", gate_name.as_str());
-
         match gate_name.as_str() {
             "cx" => clifford.append_cx(qbits[0], qbits[1]),
             "cz" => clifford.append_cz(qbits[0], qbits[1]),
@@ -77,13 +71,8 @@ pub fn extract_rotations(circuit: &[(String, Vec<usize>)], nqubits: usize) -> Ve
             }
             _ => panic!("Unsupported gate {}", gate_name),
         }
-
-        // println!("clifford = {:?}", clifford);
-        // println!("rotations = {:?}!", rotations);
-        // println!("=====");
     }
 
-    // println!("Result: rotations = {:?}!", rotations);
     rotations
 }
 
@@ -159,9 +148,9 @@ pub fn run_litinski_transformation(
     }
 
     // Apply the Litinski transformation.
-    // This returns a list of rotations with +1/-1 signs and a final Clifford operator.
-    // Since we aim to preserve the global phase of the circuit, we ignore the returned Clifford operator,
-    // and instead append the Clifford gates from the original circuit.
+    // This returns a list of rotations with +1/-1 signs. Since we aim to preserve the
+    // global phase of the circuit, we ignore the final Clifford operator, and instead
+    // append the Clifford gates from the original circuit.
     let rotations = extract_rotations(&rustiq_circuit, num_qubits);
 
     let py_evo_cls = PAULI_EVOLUTION_GATE.get_bound(py);
