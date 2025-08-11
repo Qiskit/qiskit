@@ -1065,7 +1065,7 @@ impl PyParameterExpression {
     ///     values: mapping of parameters to numeric values.
     #[pyo3(name = "bind_all")]
     #[pyo3(signature = (values, *))]
-    pub fn py_bind_all<'py>(&self, values: Bound<'py, PyAny>) -> PyResult<Value> {
+    pub fn py_bind_all(&self, values: Bound<PyAny>) -> PyResult<Value> {
         let mut partial_map = HashMap::with_capacity(self.inner.name_map.len());
         for symbol in self.inner.name_map.values() {
             let py_parameter = symbol.clone().into_pyobject(values.py())?;
