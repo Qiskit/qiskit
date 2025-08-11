@@ -27,7 +27,6 @@ qiskit-circuit.workspace = true
 qiskit-synthesis.workspace = true
 qiskit-quantum-info.workspace = true
 thiserror.workspace = true
-rustiq-core = "0.0.11"
 fixedbitset = "0.5.7"
 
 [dependencies.uuid]

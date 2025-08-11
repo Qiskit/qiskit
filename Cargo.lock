@@ -1651,7 +1651,6 @@ dependencies = [
  "rand_pcg 0.9.0",
  "rayon",
  "rayon-cond 0.4.0",
- "rustiq-core",
  "rustworkx-core",
  "smallvec",
  "thiserror 2.0.12",
