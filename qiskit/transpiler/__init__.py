@@ -179,7 +179,7 @@ compilation can be repeated later.  There are limits on this:
   Python environment changes (such as a dependent package updating), or if the system mathematical
   libraries change (such as a different implementation of OpenBLAS is available).
 
-* The output of a pass for a fixed seed is not required to be equal between operation systems
+* The output of a pass for a fixed seed is not required to be equal between operating systems
   (although typically, it is the implementation of the system mathematical library that is the root
   cause of operating-system-related differences).
 
@@ -188,6 +188,13 @@ compilation can be repeated later.  There are limits on this:
   mathematical kernels may produce different behavior if different CPU instructions are available,
   such as fused multiply-add instructions having different rounding characteristics to two separate
   floating-point multiply and add instructions.
+
+* The output of a pass for a fixed seed must be the same, regardless of the number of threads it is
+  allowed to use, unless the user specifically opts out of this behavior.  For example in the preset
+  passmanagers, the Sabre layout and routing methods need to run the same number of trials by
+  default, no matter if there is a single thread allowed or even more threads than trials, though
+  this behavior can be explicitly overridden by setting the ``QISKIT_SABRE_ALL_THREADS`` environment
+  variable to opt in to becoming sensitive to the thread count.
 
 * All the above rules apply even between separate Python interpreter sessions, even when
   ``PYTHONHASHSEED`` has not been explicitly set.
