@@ -14,6 +14,7 @@ use hashbrown::HashMap;
 
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::nlayout::{NLayout, PhysicalQubit, VirtualQubit};
+use qiskit_circuit::Qubit;
 
 // TODO: Conditionally compile these imports for Python builds
 use pyo3::intern;
@@ -39,7 +40,7 @@ pub struct TranspileLayout {
     /// represents the permutation caused by routing or permutation elision during
     /// transpilation. This vector maps the qubits at the start of the circuit to their
     /// final position/physical qubit at the end of the circuit.
-    output_permutation: Option<Vec<PhysicalQubit>>,
+    output_permutation: Option<Vec<Qubit>>,
     /// The virtual qubits [`ShareableQubit`] objects from the input circuit to the transpiler.
     /// This vec should be arranged in order as in the original circuit, the index of the `Vec`
     /// corresponds to the [`VirtualQubit`] in the `initial_layout` attribute. This should include
@@ -71,7 +72,7 @@ impl TranspileLayout {
     /// - `num_input_qubits` - The number of qubits in the original input circuit
     pub fn new(
         initial_layout: Option<NLayout>,
-        output_permutation: Option<Vec<PhysicalQubit>>,
+        output_permutation: Option<Vec<Qubit>>,
         virtual_qubits: Vec<ShareableQubit>,
         num_input_qubits: u32,
     ) -> Self {
@@ -99,7 +100,7 @@ impl TranspileLayout {
         }
     }
 
-    /// Generate an initial layout as an array of PhysicalQubit indices.
+    /// Generate an initial layout as an array of Qubit indices.
     ///
     /// # Args
     ///     `filter_ancillas` - If set to `true` any ancilla qubits added to
@@ -131,13 +132,13 @@ impl TranspileLayout {
     /// was a permutation introduced by the transpiler typically caused
     /// by either routing or permutation elision. The slice contained
     /// in the return represents the mapping of the qubits at the start
-    /// of the circuit for each index to their final position/physical
-    /// qubit at the end of the circuit.
+    /// of the circuit for each index to their final position
+    /// at the end of the circuit.
     ///
     /// If you would instead prefer to represent no permutation case with
     /// an explicit trivial permutation (e.g. `[0, 1, 2, 3]`) then you can
     /// use [`explicit_output_permutation`] which always returns a slice.
-    pub fn output_permutation(&self) -> Option<&[PhysicalQubit]> {
+    pub fn output_permutation(&self) -> Option<&[Qubit]> {
         self.output_permutation.as_deref()
     }
 
@@ -146,18 +147,18 @@ impl TranspileLayout {
     /// This method returns a slice, of the permutation introduced by the
     /// transpiler typically caused by either routing or permutation elision.
     /// The slice contained in the return represents the mapping of the qubits
-    /// at the start of the circuit for each index to their final position/physical
-    /// qubit at the end of the circuit.
+    /// at the start of the circuit for each index to their final position
+    /// at the end of the circuit.
     ///
     /// If you would instead prefer to represent no permutation case with
     /// a `None` then you can use [`output_permutation`] which returns an
-    /// `Option<&[PhysicalQubit]>`.
-    pub fn explicit_output_permutation(&self) -> std::borrow::Cow<'_, [PhysicalQubit]> {
+    /// `Option<&[Qubit]>`.
+    pub fn explicit_output_permutation(&self) -> std::borrow::Cow<'_, [Qubit]> {
         match self.output_permutation {
             Some(ref perm) => std::borrow::Cow::Borrowed(perm),
             None => std::borrow::Cow::Owned(
-                (0..self.num_output_qubits())
-                    .map(PhysicalQubit::new)
+                (0..self.num_output_qubits() as usize)
+                    .map(Qubit::new)
                     .collect(),
             ),
         }
@@ -219,7 +220,7 @@ impl TranspileLayout {
                     .map(|x| x.virtual_to_physical(VirtualQubit::new(idx)))
                     .unwrap_or_else(|| PhysicalQubit::new(idx));
                 if let Some(ref output_permutation) = self.output_permutation {
-                    qubit_idx = output_permutation[qubit_idx.index()]
+                    qubit_idx = PhysicalQubit::new(output_permutation[qubit_idx.index()].0)
                 }
                 qubit_idx
             })
@@ -285,7 +286,7 @@ impl TranspileLayout {
     ///
     /// * `other` - The other permutation array to compose with
     /// * `reverse` - Whether to compose in reverse order
-    pub fn compose_output_permutation(&mut self, other: &[PhysicalQubit], reverse: bool) {
+    pub fn compose_output_permutation(&mut self, other: &[Qubit], reverse: bool) {
         if let Some(ref output_permutation) = self.output_permutation {
             let new_perm = if !reverse {
                 let mut new_perm = output_permutation.clone();
@@ -338,7 +339,7 @@ impl TranspileLayout {
             .map(|perm| -> PyResult<Bound<PyAny>> {
                 let final_layout_dict = PyDict::new(py);
                 for (idx, bit) in output_qubits.iter().enumerate() {
-                    final_layout_dict.set_item(bit, perm[idx])?;
+                    final_layout_dict.set_item(bit, perm[idx].0)?;
                 }
                 LAYOUT.get_bound(py).call1((final_layout_dict,))
             })
@@ -367,7 +368,7 @@ impl TranspileLayout {
             .map(NLayout::from_virtual_to_physical)
             .transpose()?;
         let output_permutation = if !py_layout.getattr(intern!(py, "final_layout"))?.is_none() {
-            let permutation: Vec<PhysicalQubit> = py_layout
+            let permutation: Vec<Qubit> = py_layout
                 .call_method0(intern!(py, "output_permutation"))?
                 .extract()?;
             Some(permutation)
@@ -411,12 +412,13 @@ mod test_transpile_layout {
     use super::TranspileLayout;
     use qiskit_circuit::bit::ShareableQubit;
     use qiskit_circuit::nlayout::{NLayout, PhysicalQubit};
+    use qiskit_circuit::Qubit;
 
     #[test]
     fn test_final_index_layout() {
         let initial_layout_vec = vec![PhysicalQubit(2), PhysicalQubit(1), PhysicalQubit(0)];
         let initial_layout = NLayout::from_virtual_to_physical(initial_layout_vec).unwrap();
-        let output_permutation = vec![PhysicalQubit(1), PhysicalQubit(0), PhysicalQubit(2)];
+        let output_permutation = vec![Qubit(1), Qubit(0), Qubit(2)];
         let initial_qubits = vec![ShareableQubit::new_anonymous(); 3];
         let layout = TranspileLayout::new(
             Some(initial_layout),
@@ -435,7 +437,7 @@ mod test_transpile_layout {
     fn test_final_layout() {
         let initial_layout_vec = vec![PhysicalQubit(2), PhysicalQubit(1), PhysicalQubit(0)];
         let initial_layout = NLayout::from_virtual_to_physical(initial_layout_vec).unwrap();
-        let output_permutation = vec![PhysicalQubit(1), PhysicalQubit(0), PhysicalQubit(2)];
+        let output_permutation = vec![Qubit(1), Qubit(0), Qubit(2)];
         let initial_qubits = vec![ShareableQubit::new_anonymous(); 3];
         let layout = TranspileLayout::new(
             Some(initial_layout),
@@ -459,7 +461,7 @@ mod test_transpile_layout {
     fn test_initial_layout() {
         let initial_layout_vec = vec![PhysicalQubit(2), PhysicalQubit(1), PhysicalQubit(0)];
         let initial_layout = NLayout::from_virtual_to_physical(initial_layout_vec).unwrap();
-        let output_permutation = vec![PhysicalQubit(1), PhysicalQubit(0), PhysicalQubit(2)];
+        let output_permutation = vec![Qubit(1), Qubit(0), Qubit(2)];
         let initial_qubits = vec![ShareableQubit::new_anonymous(); 3];
         let layout = TranspileLayout::new(
             Some(initial_layout),
@@ -478,7 +480,7 @@ mod test_transpile_layout {
     fn test_output_permutation() {
         let initial_layout_vec = vec![PhysicalQubit(2), PhysicalQubit(1), PhysicalQubit(0)];
         let initial_layout = NLayout::from_virtual_to_physical(initial_layout_vec).unwrap();
-        let output_permutation = vec![PhysicalQubit(1), PhysicalQubit(0), PhysicalQubit(2)];
+        let output_permutation = vec![Qubit(1), Qubit(0), Qubit(2)];
         let initial_qubits = vec![ShareableQubit::new_anonymous(); 3];
         let layout = TranspileLayout::new(
             Some(initial_layout),
@@ -487,17 +489,14 @@ mod test_transpile_layout {
             3,
         );
         let result = layout.output_permutation();
-        assert_eq!(
-            Some([PhysicalQubit(1), PhysicalQubit(0), PhysicalQubit(2)].as_slice()),
-            result
-        );
+        assert_eq!(Some([Qubit(1), Qubit(0), Qubit(2)].as_slice()), result);
     }
 
     #[test]
     fn test_output_permutation_explicit() {
         let initial_layout_vec = vec![PhysicalQubit(2), PhysicalQubit(1), PhysicalQubit(0)];
         let initial_layout = NLayout::from_virtual_to_physical(initial_layout_vec).unwrap();
-        let output_permutation = vec![PhysicalQubit(1), PhysicalQubit(0), PhysicalQubit(2)];
+        let output_permutation = vec![Qubit(1), Qubit(0), Qubit(2)];
         let initial_qubits = vec![ShareableQubit::new_anonymous(); 3];
         let layout = TranspileLayout::new(
             Some(initial_layout),
@@ -507,7 +506,7 @@ mod test_transpile_layout {
         );
         let result = layout.explicit_output_permutation();
         assert_eq!(
-            std::borrow::Cow::Borrowed(&[PhysicalQubit(1), PhysicalQubit(0), PhysicalQubit(2)]),
+            std::borrow::Cow::Borrowed(&[Qubit(1), Qubit(0), Qubit(2)]),
             result
         );
     }
@@ -528,16 +527,16 @@ mod test_transpile_layout {
         ];
         let initial_layout = NLayout::from_virtual_to_physical(initial_layout_vec).unwrap();
         let output_permutation = vec![
-            PhysicalQubit(2),
-            PhysicalQubit(0),
-            PhysicalQubit(1),
-            PhysicalQubit(4),
-            PhysicalQubit(5),
-            PhysicalQubit(6),
-            PhysicalQubit(7),
-            PhysicalQubit(8),
-            PhysicalQubit(9),
-            PhysicalQubit(3),
+            Qubit(2),
+            Qubit(0),
+            Qubit(1),
+            Qubit(4),
+            Qubit(5),
+            Qubit(6),
+            Qubit(7),
+            Qubit(8),
+            Qubit(9),
+            Qubit(3),
         ];
         let initial_qubits = vec![ShareableQubit::new_anonymous(); 10];
         let layout = TranspileLayout::new(
@@ -569,16 +568,16 @@ mod test_transpile_layout {
         ];
         let initial_layout = NLayout::from_virtual_to_physical(initial_layout_vec).unwrap();
         let output_permutation = vec![
-            PhysicalQubit(2),
-            PhysicalQubit(0),
-            PhysicalQubit(1),
-            PhysicalQubit(4),
-            PhysicalQubit(5),
-            PhysicalQubit(6),
-            PhysicalQubit(7),
-            PhysicalQubit(8),
-            PhysicalQubit(9),
-            PhysicalQubit(3),
+            Qubit(2),
+            Qubit(0),
+            Qubit(1),
+            Qubit(4),
+            Qubit(5),
+            Qubit(6),
+            Qubit(7),
+            Qubit(8),
+            Qubit(9),
+            Qubit(3),
         ];
         let initial_qubits = vec![ShareableQubit::new_anonymous(); 10];
         let layout = TranspileLayout::new(
@@ -610,16 +609,16 @@ mod test_transpile_layout {
         ];
         let initial_layout = NLayout::from_virtual_to_physical(initial_layout_vec).unwrap();
         let output_permutation = vec![
-            PhysicalQubit(2),
-            PhysicalQubit(0),
-            PhysicalQubit(1),
-            PhysicalQubit(4),
-            PhysicalQubit(5),
-            PhysicalQubit(6),
-            PhysicalQubit(7),
-            PhysicalQubit(8),
-            PhysicalQubit(9),
-            PhysicalQubit(3),
+            Qubit(2),
+            Qubit(0),
+            Qubit(1),
+            Qubit(4),
+            Qubit(5),
+            Qubit(6),
+            Qubit(7),
+            Qubit(8),
+            Qubit(9),
+            Qubit(3),
         ];
         let expected = output_permutation.clone();
         let initial_qubits = vec![ShareableQubit::new_anonymous(); 10];
@@ -649,16 +648,16 @@ mod test_transpile_layout {
         ];
         let initial_layout = NLayout::from_virtual_to_physical(initial_layout_vec).unwrap();
         let output_permutation = vec![
-            PhysicalQubit(2),
-            PhysicalQubit(0),
-            PhysicalQubit(1),
-            PhysicalQubit(4),
-            PhysicalQubit(5),
-            PhysicalQubit(6),
-            PhysicalQubit(7),
-            PhysicalQubit(8),
-            PhysicalQubit(9),
-            PhysicalQubit(3),
+            Qubit(2),
+            Qubit(0),
+            Qubit(1),
+            Qubit(4),
+            Qubit(5),
+            Qubit(6),
+            Qubit(7),
+            Qubit(8),
+            Qubit(9),
+            Qubit(3),
         ];
         let expected_vec = output_permutation.clone();
         let expected: std::borrow::Cow<_> = expected_vec.as_slice().into();
@@ -689,16 +688,16 @@ mod test_transpile_layout {
         ];
         let initial_layout = NLayout::from_virtual_to_physical(initial_layout_vec).unwrap();
         let output_permutation = vec![
-            PhysicalQubit(2),
-            PhysicalQubit(0),
-            PhysicalQubit(1),
-            PhysicalQubit(4),
-            PhysicalQubit(5),
-            PhysicalQubit(6),
-            PhysicalQubit(7),
-            PhysicalQubit(8),
-            PhysicalQubit(9),
-            PhysicalQubit(3),
+            Qubit(2),
+            Qubit(0),
+            Qubit(1),
+            Qubit(4),
+            Qubit(5),
+            Qubit(6),
+            Qubit(7),
+            Qubit(8),
+            Qubit(9),
+            Qubit(3),
         ];
         let initial_qubits = vec![ShareableQubit::new_anonymous(); 10];
         let layout = TranspileLayout::new(
@@ -739,16 +738,16 @@ mod test_transpile_layout {
         ];
         let initial_layout = NLayout::from_virtual_to_physical(initial_layout_vec).unwrap();
         let output_permutation = vec![
-            PhysicalQubit(2),
-            PhysicalQubit(0),
-            PhysicalQubit(1),
-            PhysicalQubit(4),
-            PhysicalQubit(5),
-            PhysicalQubit(6),
-            PhysicalQubit(7),
-            PhysicalQubit(8),
-            PhysicalQubit(9),
-            PhysicalQubit(3),
+            Qubit(2),
+            Qubit(0),
+            Qubit(1),
+            Qubit(4),
+            Qubit(5),
+            Qubit(6),
+            Qubit(7),
+            Qubit(8),
+            Qubit(9),
+            Qubit(3),
         ];
         let initial_qubits = vec![ShareableQubit::new_anonymous(); 10];
         let layout = TranspileLayout::new(
@@ -791,16 +790,16 @@ mod test_transpile_layout {
         let expected = initial_layout_vec.clone();
         let initial_layout = NLayout::from_virtual_to_physical(initial_layout_vec).unwrap();
         let output_permutation = vec![
-            PhysicalQubit(2),
-            PhysicalQubit(0),
-            PhysicalQubit(1),
-            PhysicalQubit(4),
-            PhysicalQubit(5),
-            PhysicalQubit(6),
-            PhysicalQubit(7),
-            PhysicalQubit(8),
-            PhysicalQubit(9),
-            PhysicalQubit(3),
+            Qubit(2),
+            Qubit(0),
+            Qubit(1),
+            Qubit(4),
+            Qubit(5),
+            Qubit(6),
+            Qubit(7),
+            Qubit(8),
+            Qubit(9),
+            Qubit(3),
         ];
         let initial_qubits = vec![ShareableQubit::new_anonymous(); 10];
         let layout = TranspileLayout::new(
@@ -863,8 +862,7 @@ mod test_transpile_layout {
         let initial_qubits = vec![ShareableQubit::new_anonymous(); 3];
         let layout = TranspileLayout::new(Some(initial_layout), None, initial_qubits, 3);
         let result = layout.explicit_output_permutation();
-        let expected: std::borrow::Cow<[PhysicalQubit]> =
-            (0..3u32).map(PhysicalQubit::new).collect();
+        let expected: std::borrow::Cow<[Qubit]> = (0..3).map(Qubit::new).collect();
         assert_eq!(expected, result);
     }
 
@@ -935,7 +933,7 @@ mod test_transpile_layout {
         let initial_qubits = vec![ShareableQubit::new_anonymous(); 5];
         let layout = TranspileLayout::new(Some(initial_layout), None, initial_qubits, 3);
         let result = layout.explicit_output_permutation();
-        let expected = std::borrow::Cow::from_iter((0..5u32).map(PhysicalQubit::new));
+        let expected = std::borrow::Cow::from_iter((0..5).map(Qubit::new));
         assert_eq!(expected, result);
     }
 
@@ -992,105 +990,43 @@ mod test_transpile_layout {
 
     #[test]
     fn test_compose() {
-        let first = vec![
-            PhysicalQubit(0),
-            PhysicalQubit(3),
-            PhysicalQubit(1),
-            PhysicalQubit(2),
-        ];
-        let second = vec![
-            PhysicalQubit(2),
-            PhysicalQubit(3),
-            PhysicalQubit(1),
-            PhysicalQubit(0),
-        ];
+        let first = vec![Qubit(0), Qubit(3), Qubit(1), Qubit(2)];
+        let second = vec![Qubit(2), Qubit(3), Qubit(1), Qubit(0)];
         let initial_qubits = vec![ShareableQubit::new_anonymous(); 4];
         let mut layout = TranspileLayout::new(None, Some(first), initial_qubits, 4);
         layout.compose_output_permutation(&second, true);
         let result = layout.output_permutation();
-        let expected = Some(
-            [
-                PhysicalQubit(1),
-                PhysicalQubit(2),
-                PhysicalQubit(3),
-                PhysicalQubit(0),
-            ]
-            .as_slice(),
-        );
+        let expected = Some([Qubit(1), Qubit(2), Qubit(3), Qubit(0)].as_slice());
         assert_eq!(expected, result);
-        let first = vec![
-            PhysicalQubit(1),
-            PhysicalQubit(2),
-            PhysicalQubit(3),
-            PhysicalQubit(0),
-        ];
-        let second = vec![
-            PhysicalQubit(0),
-            PhysicalQubit(2),
-            PhysicalQubit(1),
-            PhysicalQubit(3),
-        ];
+        let first = vec![Qubit(1), Qubit(2), Qubit(3), Qubit(0)];
+        let second = vec![Qubit(0), Qubit(2), Qubit(1), Qubit(3)];
         let initial_qubits = vec![ShareableQubit::new_anonymous(); 4];
         let mut layout = TranspileLayout::new(None, Some(first), initial_qubits, 4);
         layout.compose_output_permutation(&second, false);
         let result = layout.output_permutation();
-        let expected = Some(
-            [
-                PhysicalQubit(2),
-                PhysicalQubit(1),
-                PhysicalQubit(3),
-                PhysicalQubit(0),
-            ]
-            .as_slice(),
-        );
+        let expected = Some([Qubit(2), Qubit(1), Qubit(3), Qubit(0)].as_slice());
         assert_eq!(expected, result);
     }
 
     #[test]
     fn test_compose_no_permutation_original() {
-        let second = vec![
-            PhysicalQubit(2),
-            PhysicalQubit(3),
-            PhysicalQubit(1),
-            PhysicalQubit(0),
-        ];
+        let second = vec![Qubit(2), Qubit(3), Qubit(1), Qubit(0)];
         let initial_qubits = vec![ShareableQubit::new_anonymous(); 4];
         let mut layout = TranspileLayout::new(None, None, initial_qubits, 4);
         layout.compose_output_permutation(&second, false);
         let result = layout.output_permutation();
-        let expected = Some(
-            [
-                PhysicalQubit(2),
-                PhysicalQubit(3),
-                PhysicalQubit(1),
-                PhysicalQubit(0),
-            ]
-            .as_slice(),
-        );
+        let expected = Some([Qubit(2), Qubit(3), Qubit(1), Qubit(0)].as_slice());
         assert_eq!(expected, result);
     }
 
     #[test]
     fn test_compose_no_permutation_second() {
-        let second = [
-            PhysicalQubit(2),
-            PhysicalQubit(3),
-            PhysicalQubit(1),
-            PhysicalQubit(0),
-        ];
+        let second = [Qubit(2), Qubit(3), Qubit(1), Qubit(0)];
         let initial_qubits = vec![ShareableQubit::new_anonymous(); 4];
         let mut layout = TranspileLayout::new(None, None, initial_qubits, 4);
         layout.compose_output_permutation(&second, true);
         let result = layout.output_permutation();
-        let expected = Some(
-            [
-                PhysicalQubit(2),
-                PhysicalQubit(3),
-                PhysicalQubit(1),
-                PhysicalQubit(0),
-            ]
-            .as_slice(),
-        );
+        let expected = Some([Qubit(2), Qubit(3), Qubit(1), Qubit(0)].as_slice());
         assert_eq!(expected, result);
     }
 }
