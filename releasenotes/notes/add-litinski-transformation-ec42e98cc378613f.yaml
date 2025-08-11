@@ -1,0 +1,38 @@
+---
+features_transpiler:
+  - |
+    Added a new transpiler pass :class:`qiskit.transpiler.passes.LitinskiTransformation`
+    that implements the transform described in `arXiv:1808.02892 <https://arxiv.org/abs/1808.02892>`__.
+
+    The input to the pass is a circuit with Clifford and single-qubit RZ-rotation gates, and the output
+    is a circuit with multi-qubit Pauli rotations (implemented as :class:`.PauliEvolutionGate` gates)
+    followed by Clifford gates. 
+
+    Currently the set of supported Clifford gates is ``["cx", "cz", "h", "s", "sdg", "sx", "sxdg", "x", "y", "z"]``
+    and the set of supported RZ-rotations is ``["t", "tdg", "rz"]`` (we automatically convert T and Tdg gates
+    to RZ-rotations).
+
+    For example::
+
+      from qiskit.circuit import QuantumCircuit
+      from qiskit.transpiler.passes import LitinskiTransformation
+      from qiskit.quantum_info import Operator
+
+      # The following quantum circuit consists of 5 Clifford gates
+      # and two single-qubits RZ-rotation gates (note that Tdg is
+      # an RZ-rotation).
+      qc = QuantumCircuit(2)
+      qc.cx(0, 1)
+      qc.rz(0.1, 0)
+      qc.cz(0, 1)
+      qc.tdg(1)
+      qc.h(1)
+      qc.s(1)
+      qc.cz(1, 0)
+
+      # The transformed circuit consists of two PauliEvolution gates
+      # and the same Clifford gates as in the original circuit.
+      qct = LitinskiTransformation()(qc)
+
+      # The circuits before and after the transformation are equivalent
+      assert Operator(qc) == Operator(qct)
