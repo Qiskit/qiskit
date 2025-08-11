@@ -1586,7 +1586,7 @@ mod test {
 
     #[test]
     fn test_mismatch_params_count_instruction() {
-        let params: [Param; 3] = [
+        let params = smallvec![
             Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
                 "ϴ", None, None,
             )))),
@@ -1600,7 +1600,7 @@ mod test {
         let mut target = Target::default();
         let result = target.add_instruction(
             PackedOperation::from_standard_gate(StandardGate::RZ),
-            &params,
+            Some(Parameters::Params(params)),
             None,
             None,
         );
