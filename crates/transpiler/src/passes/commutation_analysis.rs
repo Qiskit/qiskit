@@ -52,7 +52,6 @@ const MAX_NUM_QUBITS: u32 = 3;
 ///     node_indices = {(0, 0): 0, (1, 0): 3, (2, 0): 1, (3, 0): 1, (4, 0): 2}
 ///
 pub fn analyze_commutations(
-    py: Python,
     dag: &mut DAGCircuit,
     commutation_checker: &mut CommutationChecker,
     approximation_degree: f64,
@@ -99,8 +98,7 @@ pub fn analyze_commutations(
                         let cargs1 = dag.get_cargs(packed_inst0.clbits);
                         let cargs2 = dag.get_cargs(packed_inst1.clbits);
 
-                        all_commute = commutation_checker.commute_inner(
-                            py,
+                        all_commute = commutation_checker.commute(
                             &op1,
                             packed_inst0.params.as_deref(),
                             qargs1,
@@ -150,7 +148,7 @@ pub fn py_analyze_commutations(
     //   * The index in which commutation set a given node is located on a wire: {(node, wire): index}
     // The Python dict will store both of these dictionaries in one.
     let (commutation_set, node_indices) =
-        analyze_commutations(py, dag, commutation_checker, approximation_degree)?;
+        analyze_commutations(dag, commutation_checker, approximation_degree)?;
 
     let out_dict = PyDict::new(py);
 
