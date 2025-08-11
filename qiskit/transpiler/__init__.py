@@ -151,7 +151,7 @@ algorithms are often more appropriate.  This leads to problems of reproducibilit
 
 The preset pass managers almost always include stochastic, heuristic-based passes.  If you need
 to ensure reproducibility of a compilation, pass a known integer to the ``seed_transpiler``
-argument to the generator functions.
+argument of the generator functions.
 
 All built-in plugins to Qiskit are required to produce their analyses and modify the
 :class:`.DAGCircuit` in deterministic ways if they randomization (if any) is seeded, so that a
