@@ -161,8 +161,14 @@ compilation can be repeated later.  There are limits on this:
   if seeded, they must respect the rules of deterministic output.
 
 * All built-in passes without stochastic components must respect the rules of deterministic
-  output for identical input (they must be observably pure, though it is permissible to keep a cache
-  for efficiency).
+  output for identical input. It is permissible to keep a cache for efficiency, but given the same
+  set of inputs, the pass's returns must be the same if the pass is called multiple times, unless
+  something outside the pass's control mutates one of its inputs in-place (for example, the
+  :class:`.BasisTranslator` uses the :data:`.SessionEquivalenceLibrary` by default in the preset
+  pass managers, and it is not a bug to get different results if new entries are added to the
+  equivalence library).  An "output" is anything the pass writes out for further consumption; this
+  can be the explicit ``return`` value from the pass, but also includes properties intended for
+  later consumption in the :class:`.PropertySet`.
 
 * The output of a pass should be deterministic on a given machine for a given version of Qiskit and
   a frozen environment, no matter how many threads are available for the pass.  Many built-in Qiskit
