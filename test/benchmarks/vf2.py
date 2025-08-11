@@ -108,7 +108,10 @@ class VF2LayoutSuite:
 
     def time_heavy_hex_line(self, state: State, num_physical_qubits, directional, line_qubits):
         pass_ = VF2Layout(
-            seed=-1, target=state.heavy_hex[num_physical_qubits], strict_direction=directional
+            seed=-1,
+            target=state.heavy_hex[num_physical_qubits],
+            strict_direction=directional,
+            max_trials=-1,
         )
         pass_.run(state.dag["line", line_qubits])
 
@@ -117,7 +120,10 @@ class VF2LayoutSuite:
 
     def time_heavy_hex_trivial(self, state: State, num_physical_qubits):
         pass_ = VF2Layout(
-            seed=-1, target=state.heavy_hex[num_physical_qubits], strict_direction=False
+            seed=-1,
+            target=state.heavy_hex[num_physical_qubits],
+            strict_direction=False,
+            max_trials=0,
         )
         pass_.run(state.dag["heavy hex", num_physical_qubits])
 
@@ -126,7 +132,10 @@ class VF2LayoutSuite:
 
     def time_heavy_hex_impossible(self, state: State, num_physical_qubits):
         pass_ = VF2Layout(
-            seed=-1, target=state.heavy_hex[num_physical_qubits], strict_direction=False
+            seed=-1,
+            target=state.heavy_hex[num_physical_qubits],
+            strict_direction=False,
+            max_trials=0,
         )
         pass_.run(state.dag["line", num_physical_qubits])
 
@@ -137,7 +146,10 @@ class VF2LayoutSuite:
 
     def time_grid_line(self, state: State, num_physical_qubits, directional, line_qubits):
         pass_ = VF2Layout(
-            seed=-1, target=state.grid[num_physical_qubits], strict_direction=directional
+            seed=-1,
+            target=state.grid[num_physical_qubits],
+            strict_direction=directional,
+            max_trials=0,
         )
         pass_.run(state.dag["line", line_qubits])
 
@@ -145,7 +157,9 @@ class VF2LayoutSuite:
     time_grid_line.param_names = ("num_physical_qubits", "directional", "line_qubits")
 
     def time_grid_trivial(self, state: State, num_physical_qubits):
-        pass_ = VF2Layout(seed=-1, target=state.grid[num_physical_qubits], strict_direction=False)
+        pass_ = VF2Layout(
+            seed=-1, target=state.grid[num_physical_qubits], strict_direction=False, max_trials=0
+        )
         pass_.run(state.dag["grid", num_physical_qubits])
 
     time_grid_trivial.params = ((49,),)
