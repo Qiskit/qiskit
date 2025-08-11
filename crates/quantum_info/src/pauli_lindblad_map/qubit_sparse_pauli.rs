@@ -2030,10 +2030,10 @@ impl PyQubitSparsePauliList {
     #[pyo3(signature = ())]
     fn to_dense_array(&self, py: Python) -> PyResult<Py<PyArray2<u8>>> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        let mut out = Array2::zeros((inner.num_qubits.try_into().unwrap(), inner.num_terms()));
+        let mut out = Array2::zeros((inner.num_terms(), inner.num_qubits.try_into().unwrap()));
         for (idx, paulis) in inner.iter().enumerate() {
             for (p, p_idx) in zip(paulis.paulis, paulis.indices) {
-                out[[*p_idx as usize, idx]] = *p as u8;
+                out[[idx, *p_idx as usize]] = *p as u8;
             }
         }
         Ok(out.into_pyarray(py).unbind())
