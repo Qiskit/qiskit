@@ -46,7 +46,6 @@ static STD_GATE_MAPPING: OnceLock<HashMap<&str, StandardGate>> = OnceLock::new()
 static STD_INST_MAPPING: OnceLock<HashSet<&str>> = OnceLock::new();
 
 pub(super) fn compose_transforms<'a>(
-    py: Python,
     basis_transforms: &'a [(GateIdentifier, BasisTransformIn)],
     source_basis: &'a IndexSet<GateIdentifier, ahash::RandomState>,
     source_dag: &'a DAGCircuit,
@@ -138,8 +137,7 @@ pub(super) fn compose_transforms<'a>(
                     .assign_parameters_from_mapping(param_mapping)?;
                 let replace_dag: DAGCircuit =
                     DAGCircuit::from_circuit_data(&replacement.0, true, None, None, None, None)?;
-                let op_node = dag.get_node(py, node)?;
-                dag.py_substitute_node_with_dag(py, op_node.bind(py), &replace_dag, None, None)?;
+                dag.substitute_node_with_dag(node, &replace_dag, None, None, None)?;
             }
         }
     }
