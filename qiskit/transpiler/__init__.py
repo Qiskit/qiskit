@@ -177,7 +177,7 @@ compilation can be repeated later.  There are limits on this:
 
 * The output of a pass for a fixed seed is not required to be equal if some part of the underlying
   Python environment changes (such as a dependent package updating), or if the system mathematical
-  libraries change (such as a different implementation of OpenBLAS is available).
+  libraries change (such as a different implementation of BLAS is available).
 
 * The output of a pass for a fixed seed is not required to be equal between operating systems
   (although typically, it is the implementation of the system mathematical library that is the root
