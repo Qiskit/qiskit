@@ -37,6 +37,7 @@ from warnings import warn
 from qiskit import user_config
 from qiskit.circuit import ControlFlowOp, Measure
 from qiskit.utils import optionals as _optionals
+from qiskit._accelerate.circuit import CircuitData
 
 from ..exceptions import VisualizationError
 from ..utils import _trim as trim_image

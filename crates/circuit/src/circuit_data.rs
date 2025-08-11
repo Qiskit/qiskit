@@ -1582,10 +1582,23 @@ impl CircuitData {
     }
 
     // draw quantum circuit as an ASCII string art 
+
+    #[staticmethod]
     #[pyo3(name = "draw")]
-    fn py_drawer(&self, py: Python) -> PyResult<Py<PyString>> {
-        let ret = self.circuit_draw();
-        Ok(PyString::new(py, &ret).unbind())
+    fn py_drawer(py: Python, quantum_circuit: &Bound<PyAny>) -> PyResult<Py<PyString>> {
+
+        if !quantum_circuit.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
+            return Err(PyTypeError::new_err(
+                "Expected a QuantumCircuit instance"
+            ));
+        }
+        
+        let circuit_data: CircuitData = quantum_circuit.getattr("_data")?.extract()?;
+        
+        // Execute the drawing logic on the extracted CircuitData
+        let drawing = circuit_data.circuit_draw();
+        
+        Ok(PyString::new(py, &drawing).unbind())
     }
 
     /// Add a captured variable to the circuit.
@@ -2880,29 +2893,19 @@ impl CircuitData {
     }
 
     pub fn circuit_draw(&self) -> String {
-        // let mut res = String::new();
-        // res.push_str(& format!("{} Qubits and {} Instructions\n",
-        //     self.num_qubits(), self.data.len()));
-        // for (i, inst) in self.data.iter().enumerate() {
-        //     let qubits = self.qargs_interner.get(inst.qubits);
-        
-        // // Print qubit indices as numbers
-        //     let qubit_indices: Vec<String> = qubits.iter()
-        //         .map(|qubit| qubit.0.to_string())
-        //         .collect();
 
-        //     res.push_str(&format!("{}: {} {:?} {:?}\n", i, inst.op.name(), qubits, inst.clbits));
-        // }
-        // return res;
         let ct_qubits = self.qubits.len();
         let ct_clbits = self.clbits.len();
-        // vector of strings with capacity (qubits + clbit) x 3
+        println!("ct_qubits: {}, ct_clbits: {}", ct_qubits, ct_clbits);
+        let q_wires_rep: usize = ct_qubits * 3;
+        let c_wires_rep = ct_clbits * 3;
+        println!("q_wires: {}, c_wires: {}", q_wires_rep, c_wires_rep);
+
         let mut res = vec![" ".to_string(); (ct_qubits + ct_clbits) * 3];
         
-        // concatinating all strings into one string with \n as separator
-        for i in 0..ct_qubits {
-            if (i-1) % 3 == 0 {
-                res[i].push_str(format!("q_{}", i).as_str());
+        for i in 1..q_wires_rep {
+            if (i-1) % 3 == 0 && (i-1) % 3 <= ct_qubits as usize {
+                res[i].push_str(format!("q_{}", (i-1)/3).as_str());
             } else {
                 res[i].push_str("   ");
             }
@@ -2915,10 +2918,31 @@ impl CircuitData {
                 res[ct_qubits + i].push_str("   ");
             }
         }
-       
+        
+        for i in self.data().iter() {
+            println!("op: {}, qubits: {:?}, clbits: {:?}", i.op.name(), i.qubits, i.clbits);
+        }
+
+        for (i, inst) in self.data.iter().enumerate(){
+            let name = inst.op.name().to_ascii_uppercase();
+            let qubits = self.qargs_interner.get(inst.qubits);
+            let clbits = self.cargs_interner.get(inst.clbits);
+            for (j, qubit) in qubits.iter().enumerate() {
+                let index: usize = (qubit.0 * 3 + 1) as usize;
+                for k in 0..q_wires_rep {
+                    if k == index {
+                        res[index].push_str(&format!("-{}-", name));
+                    } else if (k - 1)%3 == 0{
+                        res[k].push_str("---");
+                    } else {
+                        res[k].push_str("   ");
+                    }
+                }  
+            }
+        }
         //collect all strings and return
         res.iter().map(|s| s.as_str()).collect::<Vec<&str>>().join("\n")
-        
+
     }
 
     /// Return a variable given its unique [Var] index in the circuit or
