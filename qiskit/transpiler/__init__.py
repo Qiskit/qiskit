@@ -956,8 +956,8 @@ General principles of pass authorship
 
 If you want to modify or create a new :class:`.DAGCircuit`, you must write a
 :class:`TransformationPass`.  If you only want to write into the :class:`PropertySet` and not modify
-the :class:`.DAGCircuit`, you should write an :class:`AnalysisPass`.  If you want to do poth, write
-a :class:`TransformationPass`.  In both cases, the only required method is :class:`.BasePass.run`,
+the :class:`.DAGCircuit`, you should write an :class:`AnalysisPass`.  If you want to do both, write
+a :class:`TransformationPass`.  In both cases, the only required method is :meth:`.BasePass.run`,
 which is the meat of your pass.  This should accept a single argument (other than ``self``), ``dag:
 DAGCircuit``.  If a :class:`TranspilerPass`, it should return a :class:`DAGCircuit` (which can be
 the input, if modified in place), whereas if a :class:`AnalysisPass`, it should return ``None``.
@@ -992,7 +992,7 @@ reproducibility, and debugging is a nightmare when you can't reproduce previousl
 
 When writing a transpiler pass, you can rely on the following (representative, and non-exhaustive)
 examples being deterministic, even though the exact semantics of the ordering may not be fully
-specified, and passes should not rely on any *particular* order:
+specified, and passes should **not** rely on any particular order:
 
 * The order nodes are encountered in :meth:`.DAGCircuit.op_nodes`.  By contrast,
   :meth:`~.DAGCircuit.topological_op_nodes` by default includes an ordering key that makes its order
@@ -1027,7 +1027,7 @@ Some tips for ensuring this include:
       have been deterministic removals.
 
   In Python, if you need to create a :class:`set` and then iterate over it, consider instead using a
-  :class:`dict` with all the keys being ``None`` as a substitute.  Using a :class:`set` purely for
+  :class:`dict` with all the values being ``None`` as a substitute.  Using a :class:`set` purely for
   membership testing is no trouble.
 
   In Rust, use ``indexmap`` and its structs ``IndexMap`` and ``IndexSet`` as replacements for
