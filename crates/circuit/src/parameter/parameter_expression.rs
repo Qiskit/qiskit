@@ -1048,6 +1048,37 @@ impl PyParameterExpression {
         }
     }
 
+    /// Bind all of the parameters in ``self`` to numeric values in the dictionary, returning a
+    /// numeric value.
+    ///
+    /// This is a special case of :meth:`bind` which can reach higher performance.  It is no problem
+    /// for the ``values`` dictionary to contain parameters that are not used in this expression;
+    /// the expectation is that the same bindings dictionary will be fed to other expressions as
+    /// well.
+    ///
+    /// It is an error to call this method with a ``values`` dictionary that does not bind all of
+    /// the values, or to call this method with non-numeric values, but this is not explicitly
+    /// checked, since this method is intended for performance-sensitive use.  Passing an incorrect
+    /// dictionary may result in unexpected behavior.
+    ///
+    /// Args:
+    ///     values: mapping of parameters to numeric values.
+    #[pyo3(name = "bind_all")]
+    #[pyo3(signature = (values, *))]
+    pub fn py_bind_all<'py>(&self, values: Bound<'py, PyAny>) -> PyResult<Value> {
+        let mut partial_map = HashMap::with_capacity(self.inner.name_map.len());
+        for symbol in self.inner.name_map.values() {
+            let py_parameter = symbol.clone().into_pyobject(values.py())?;
+            partial_map.insert(symbol, values.get_item(py_parameter)?.extract()?);
+        }
+        let bound = self.inner.expr.bind(&partial_map);
+        bound.eval(true).ok_or_else(|| {
+            PyTypeError::new_err(format!(
+                "binding did not produce a numeric quantity: {bound:?}"
+            ))
+        })
+    }
+
     /// Assign one parameter to a value, which can either be numeric or another parameter
     /// expression.
     ///
@@ -1545,6 +1576,15 @@ impl PyParameter {
                 }
             }
         }
+    }
+
+    #[pyo3(name = "bind_all")]
+    #[pyo3(signature = (values, *))]
+    pub fn py_bind_all<'py>(
+        slf_: Bound<'py, Self>,
+        values: Bound<'py, PyAny>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        values.get_item(slf_)
     }
 
     #[pyo3(name = "assign")]
