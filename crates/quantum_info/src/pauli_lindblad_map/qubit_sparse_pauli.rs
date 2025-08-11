@@ -2017,8 +2017,8 @@ impl PyQubitSparsePauliList {
 
     /// Express the list in a dense array format.
     ///
-    /// Each entry is a u8 following the :class:`Pauli` representation, while the columns index
-    /// distinct Paulis and the rows distinct qubits.
+    /// Each entry is a u8 following the :class:`Pauli` representation, while the rows index
+    /// distinct Paulis and the columns distinct qubits.
     ///
     /// Examples:
     ///
