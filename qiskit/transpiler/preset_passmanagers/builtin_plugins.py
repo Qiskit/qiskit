@@ -18,6 +18,7 @@ from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayout
 from qiskit.transpiler.passes.optimization.split_2q_unitaries import Split2QUnitaries
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import BasicSwap
 from qiskit.transpiler.passes import LookaheadSwap
 from qiskit.transpiler.passes import SabreSwap
@@ -622,6 +623,11 @@ class OptimizationPassManager(PassManagerStagePlugin):
                             call_limit=vf2_call_limit,
                             max_trials=vf2_max_trials,
                             strict_direction=True,
+                        )
+                    )
+                    optimization.append(
+                        ConditionalController(
+                            ApplyLayout(), condition=common._apply_post_layout_condition
                         )
                     )
 

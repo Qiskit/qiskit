@@ -13,3 +13,11 @@ fixes:
     selecting a different layout than was requested. This has been fixed so the pass is not
     run when those arguments are set
     Fixes `#14867 <https://github.com/Qiskit/qiskit/issues/14867>`__
+  - |
+    Fixed an issue with the :func:`.transpile` function and the generated pass manager
+    objects returned by the :func:`.generate_preset_pass_manager` function when
+    ``optimization_level`` argument is set as ``optimization_level=3``. Previously, the
+    :class:`.VF2PostLayout` transpiler pass was run at the end of the ``optimization`` stage
+    by default but the results from that were never applied to the circuit. If the pass managed
+    to find a better layout it would never be used. This has been corrected so that an improved
+    layout found in the optimization stage is applied to the cirucit.
