@@ -37,7 +37,6 @@ from typing import (
     Any,
     Literal,
     overload,
-    List
 )
 from math import pi
 import numpy as np
@@ -3556,39 +3555,6 @@ class QuantumCircuit:
             raise CircuitError(
                 f"Could not locate provided bit: {bit}. Has it been added to the QuantumCircuit?"
             ) from err
-        
-    def find_bits(self, bits: Union[Iterable[Bit], Instruction, Bit]) -> List[BitLocations]:
-        """Find locations in the circuit for multiple bits or an instruction.
-
-        Args:
-            bits (Iterable[Bit] | Instruction | Bit):
-                - An iterable of Bit objects (Qubit or Clbit)
-                - An instruction, from which qubits and clbits will be taken
-                - A single Bit
-
-        Returns:
-            list[BitLocations]: A list of BitLocations in the same order as the input bits.
-        """
-
-        if hasattr(bits, "qubits") or hasattr(bits, "clbits"):
-            bits = list(getattr(bits, "qubits", [])) + list(getattr(bits, "clbits", []))
-        elif isinstance(bits, Bit):
-            bits = [bits]  
-        else:
-            bits = list(bits)  
-
-
-        results = []
-        for b in bits:
-            try:
-                results.append(self.find_bit(b))
-            except CircuitError as err:
-                raise CircuitError(
-                    f"Could not locate provided bit: {b}. "
-                    f"Has it been added to the QuantumCircuit?"
-                ) from err
-
-        return results
 
     def _check_dups(self, qubits: Sequence[Qubit]) -> None:
         """Raise exception if list of qubits contains duplicates."""
