@@ -278,8 +278,7 @@ fn multi_qubit_evolution(
         // Here we purely have projectors, meaning the target rotation is a phase gate. Remember
         // we have to adjust the rotation angle to account for the different conventions;
         // RZ(t) = exp(-i t/2 Z) vs. P(t) = diag(1, exp(i t)).
-        let params: SmallVec<[Param; 3]> =
-            Python::with_gil(|py| smallvec![multiply_param(&time, -0.5, py)]);
+        let params: SmallVec<[Param; 3]> = smallvec![multiply_param(&time, -0.5)];
         let (packed, qubits) = if control_qubits.len() == 1 {
             let gate: PackedOperation = StandardGate::Phase.into();
             (gate, vec![control_qubits[0]])
@@ -351,7 +350,6 @@ pub fn py_pauli_evolution(
     insert_barriers: bool,
     do_fountain: bool,
 ) -> PyResult<CircuitData> {
-    let py = sparse_paulis.py();
     let num_paulis = sparse_paulis.len();
     let mut paulis: Vec<String> = Vec::with_capacity(num_paulis);
     let mut indices: Vec<Vec<u32>> = Vec::with_capacity(num_paulis);
@@ -365,7 +363,7 @@ pub fn py_pauli_evolution(
         let time = Param::extract_no_coerce(&tuple.get_item(2)?)?;
 
         if pauli.as_str().chars().all(|p| p == 'i') {
-            global_phase = radd_param(global_phase, time, py);
+            global_phase = radd_param(global_phase, time);
             modified_phase = true;
             continue;
         }
@@ -400,7 +398,7 @@ pub fn py_pauli_evolution(
     // exp(-i t I). To only use a single multiplication, we apply a factor of -0.5 here.
     // This is faster, in particular as long as the parameter expressions are in Python.
     if modified_phase {
-        global_phase = multiply_param(&global_phase, -0.5, py);
+        global_phase = multiply_param(&global_phase, -0.5);
     }
 
     CircuitData::from_packed_operations(num_qubits as u32, 0, evos, global_phase)

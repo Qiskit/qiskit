@@ -52,23 +52,6 @@ from qiskit.transpiler.passes.synthesis.unitary_synthesis import UnitarySynthesi
 from qiskit.passmanager.flow_controllers import ConditionalController, DoWhileController
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
-from qiskit.circuit.library.standard_gates import (
-    CXGate,
-    ECRGate,
-    CZGate,
-    XGate,
-    YGate,
-    ZGate,
-    TGate,
-    TdgGate,
-    SwapGate,
-    SGate,
-    SdgGate,
-    HGate,
-    CYGate,
-    SXGate,
-    SXdgGate,
-)
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 from qiskit.utils import default_num_processes
 from qiskit import user_config
@@ -131,22 +114,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 )
             init.append(
                 [
-                    InverseCancellation(
-                        [
-                            CXGate(),
-                            ECRGate(),
-                            CZGate(),
-                            CYGate(),
-                            XGate(),
-                            YGate(),
-                            ZGate(),
-                            HGate(),
-                            SwapGate(),
-                            (TGate(), TdgGate()),
-                            (SGate(), SdgGate()),
-                            (SXGate(), SXdgGate()),
-                        ]
-                    ),
+                    InverseCancellation(),
                     ContractIdleWiresInControlFlow(),
                 ]
             )
@@ -171,22 +139,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     RemoveIdentityEquivalent(
                         approximation_degree=pass_manager_config.approximation_degree
                     ),
-                    InverseCancellation(
-                        [
-                            CXGate(),
-                            ECRGate(),
-                            CZGate(),
-                            CYGate(),
-                            XGate(),
-                            YGate(),
-                            ZGate(),
-                            HGate(),
-                            SwapGate(),
-                            (TGate(), TdgGate()),
-                            (SGate(), SdgGate()),
-                            (SXGate(), SXdgGate()),
-                        ]
-                    ),
+                    InverseCancellation(),
                     ContractIdleWiresInControlFlow(),
                 ]
             )
@@ -553,22 +506,7 @@ class OptimizationPassManager(PassManagerStagePlugin):
                     Optimize1qGatesDecomposition(
                         basis=pass_manager_config.basis_gates, target=pass_manager_config.target
                     ),
-                    InverseCancellation(
-                        [
-                            CXGate(),
-                            ECRGate(),
-                            CZGate(),
-                            CYGate(),
-                            XGate(),
-                            YGate(),
-                            ZGate(),
-                            HGate(),
-                            SwapGate(),
-                            (TGate(), TdgGate()),
-                            (SGate(), SdgGate()),
-                            (SXGate(), SXdgGate()),
-                        ]
-                    ),
+                    InverseCancellation(),
                     ContractIdleWiresInControlFlow(),
                 ]
 
@@ -1063,22 +1001,7 @@ class CliffordTOptimizationPassManager(PassManagerStagePlugin):
 
             if optimization_level == 1:
                 _opt = [
-                    InverseCancellation(
-                        [
-                            CXGate(),
-                            ECRGate(),
-                            CZGate(),
-                            CYGate(),
-                            XGate(),
-                            YGate(),
-                            ZGate(),
-                            HGate(),
-                            SwapGate(),
-                            (TGate(), TdgGate()),
-                            (SGate(), SdgGate()),
-                            (SXGate(), SXdgGate()),
-                        ]
-                    ),
+                    InverseCancellation(),
                     ContractIdleWiresInControlFlow(),
                 ]
             elif optimization_level in [2, 3]:
