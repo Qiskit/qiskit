@@ -190,17 +190,19 @@ impl RoutingResult<'_> {
             for swap in item.initial_swaps() {
                 apply_swap(swap, &mut layout, &mut dag)?;
             }
-            let Some((head, rest)) = self.sabre.dag[item.node].indices.split_first() else {
-                // In theory this should never actually trigger: we're in a state where there was a
-                // Sabre routing-related interaction with no DAG node backing it.  That said, we do
-                // sometimes construct interaction graphs in this state (via
-                // [SabreDAG::only_interactions]), and either way, there's a meaningful way to
-                // handle it safely.
+            // In theory, `indices` will always have at least one entry if you're rebuilding the
+            // DAG from a Sabre result, because there wouldn't be a Sabre node without at least one
+            // DAG node backing it.  That said, we _do_ allow construction of Sabre graphs that have
+            // thrown away this information ([SabreDAG::only_interactions]), and there's still a
+            // well-defined behaviour to take.
+            let split = self.sabre.dag[item.node].indices.split_first();
+            let Some((head, rest)) = split else {
                 continue;
             };
             let NodeType::Operation(inst) = &self.dag[*head] else {
                 panic!("Sabre DAG should only contain op nodes");
             };
+
             match item.kind {
                 RoutedItemKind::Simple => apply_op(inst, &layout, &mut dag)?,
                 RoutedItemKind::ControlFlow(num_blocks) => {
