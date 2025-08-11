@@ -46,6 +46,15 @@ def calc_final_ops(dag: DAGCircuit, final_op_names: set[str]) -> list[DAGOpNode]
                 # Record the encounter, and bail!
                 barrier_encounters_remaining[node] -= 1
                 continue
+
+        if node.op.name == "measure":
+            # Skip if any classical successor is a control flow operation
+            if any(
+                isinstance(successor, DAGOpNode) and successor.is_control_flow()
+                for successor in dag.classical_successors(node)
+            ):
+                continue
+
         if node.name in final_op_names:
             # Current node is either a measure, or a barrier with all final op children.
             final_ops.append(node)
@@ -60,7 +69,9 @@ class RemoveFinalMeasurements(TransformationPass):
     This pass removes final barriers and final measurements, as well as all
     unused classical registers and bits they are connected to.
     Measurements and barriers are considered final if they are
-    followed by no other operations (aside from other measurements or barriers.)
+    followed by no other operations (aside from other measurements or barriers).
+    Furthermore, a measurement is not considered final if its classical output
+    is used to condition a control flow gate.
 
     Classical registers are removed iff they reference at least one bit
     that has become unused by the circuit as a result of the operation, and all
