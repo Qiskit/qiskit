@@ -53,8 +53,9 @@ int test_consolidate_small_block(void) {
     }
 
 cleanup:
-    qk_circuit_free(circuit);
+    qk_opcounts_free(counts);
     qk_circuit_free(circ_result);
+    qk_circuit_free(circuit);
     return result;
 }
 
@@ -92,6 +93,7 @@ int test_wire_order(void) {
 clean_instr:
     qk_circuit_instruction_clear(instruction);
 cleanup:
+    qk_opcounts_free(counts);
     qk_circuit_free(circuit);
     qk_circuit_free(circ_result);
     return result;
@@ -129,6 +131,7 @@ int test_3q_blocks(void) {
     }
 
 cleanup:
+    qk_opcounts_free(counts);
     qk_circuit_free(circuit);
     qk_circuit_free(circ_result);
     return result;
