@@ -156,26 +156,14 @@ impl Clifford {
         azip!((x in &mut x, z in &mut z)  (*x, *z) = (*z, *x ^ *z));
     }
 
-    #[inline]
-    pub fn get_entry(&self, row: usize, col: usize) -> bool {
-        self.tableau[[col, row]]
-    }
-
-    #[inline]
-    pub fn get_phase(&self, row: usize) -> bool {
-        self.tableau[[row, 2 * self.num_qubits]]
-    }
-
-    /// ToDo: not sure if this is correct or whether row & column need to be switched somewhere
-    /// Get the inverse Z output of the tableau
-    /// Get the inverse Z output of the tableau
+    /// Evolving the single-qubit Pauli-Z with Z on qubit qbit
     pub fn get_inverse_z(&self, qbit: usize) -> (bool, String) {
         let mut string = String::new();
         let mut as_vec_bool = vec![false; 2 * self.num_qubits];
 
         for i in 0..self.num_qubits {
-            let x_bit = self.get_entry(qbit, i + self.num_qubits);
-            let z_bit = self.get_entry(qbit, i);
+            let x_bit = self.tableau[[i + self.num_qubits, qbit]];
+            let z_bit = self.tableau[[i, qbit]];
             match (x_bit, z_bit) {
                 (false, false) => {
                     string.push('I');
@@ -212,24 +200,24 @@ const LOOKUP_1: [(bool, bool, bool, bool); 3] = [
     (true, false, true, true),
     (true, true, false, true),
 ];
-fn compute_phase_product_pauli(tableau: &Clifford, vec: &[bool]) -> bool {
+fn compute_phase_product_pauli(clifford: &Clifford, vec: &[bool]) -> bool {
     let phase = vec
         .iter()
         .enumerate()
-        .fold(false, |acc, (j, &item)| acc ^ (tableau.get_phase(j) & item));
+        .fold(false, |acc, (j, &item)| acc ^ (clifford.tableau[[j, 2 * clifford.num_qubits]] & item));
 
-    let mut ifact: u8 = (0..tableau.num_qubits)
-        .filter(|&i| vec[i] & vec[i + tableau.num_qubits])
+    let mut ifact: u8 = (0..clifford.num_qubits)
+        .filter(|&i| vec[i] & vec[i + clifford.num_qubits])
         .count() as u8
         % 4;
 
-    for j in 0..tableau.num_qubits {
+    for j in 0..clifford.num_qubits {
         let mut x = false;
         let mut z = false;
         for (i, &item) in vec.iter().enumerate() {
             if item {
-                let x1: bool = tableau.get_entry(j, i);
-                let z1: bool = tableau.get_entry(j + tableau.num_qubits, i);
+                let x1: bool = clifford.tableau[[i, j]];
+                let z1: bool = clifford.tableau[[i, j + clifford.num_qubits]];
                 let entry = (x1, z1, x, z);
                 if LOOKUP_0.contains(&entry) {
                     ifact += 1;
@@ -250,14 +238,10 @@ impl fmt::Debug for Clifford {
         writeln!(f)?;
         writeln!(f, "Tableau:")?;
         for i in 0..2 * self.num_qubits {
-            for j in 0..2 * self.num_qubits {
-                write!(f, "{} ", self.get_entry(i, j) as u8)?;
+            for j in 0..2 * self.num_qubits + 1 {
+                write!(f, "{} ", self.tableau[[i, j]] as u8)?;
             }
             writeln!(f)?;
-        }
-        writeln!(f, "Phases:")?;
-        for i in 0..2 * self.num_qubits {
-            write!(f, "{} ", self.get_phase(i) as u8)?;
         }
         writeln!(f)?;
         Ok(())
