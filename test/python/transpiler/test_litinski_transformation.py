@@ -12,12 +12,17 @@
 
 """Test Litinski transformation pass"""
 
+from ddt import ddt, data
+
 from qiskit.circuit import QuantumCircuit, Parameter
+from qiskit.circuit.library import QFTGate
+from qiskit.compiler import transpile
 from qiskit.transpiler.passes import LitinskiTransformation
 from qiskit.quantum_info import Operator
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
+@ddt
 class TestLitinskiTransformation(QiskitTestCase):
     """Test the Litinski Transformation pass."""
 
@@ -74,3 +79,20 @@ class TestLitinskiTransformation(QiskitTestCase):
         qc_bound = qc.assign_parameters([0.123, -1.234])
         qct_bound = qct.assign_parameters([0.123, -1.234])
         self.assertEqual(Operator(qct_bound), Operator(qc_bound))
+
+    @data(2, 3, 4, 5, 6, 7, 8)
+    def test_qft_circuits(self, num_qubits):
+        """Test more complex circuits produced by transpiling QFT gates into [cx, sx, rz] basis."""
+        qc = QuantumCircuit(num_qubits)
+        qc.append(QFTGate(num_qubits), range(num_qubits))
+
+        # transpile the circuit into ["cx", "rz", "sx"] so that Litinski's transform can be applied
+        qc = transpile(qc, basis_gates=["cx", "rz", "sx"])
+
+        # apply Litinski's transform
+        qc_litinski = LitinskiTransformation()(qc)
+
+        # make sure the transform was applied
+        self.assertNotIn("rz", qc_litinski.count_ops())
+        # make sure the result is correct
+        self.assertEqual(Operator(qc_litinski), Operator(qc))
