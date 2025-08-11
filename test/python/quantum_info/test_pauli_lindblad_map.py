@@ -956,6 +956,10 @@ class TestPauliLindbladMap(QiskitTestCase):
         expected = PauliLindbladMap.from_list([("XIZ", 2.0), ("IIY", 0.5), ("IIX", -0.25)])
         self.assertEqual(pauli_map_out, expected)
 
+        pauli_map_out = pauli_map_in.drop_qubits([0, 1, 3, 4])
+        expected = PauliLindbladMap.from_list([("I", 2.0), ("I", 0.5), ("I", -0.25)])
+        self.assertEqual(pauli_map_out, expected)
+
     def test_drop_qubits_raises(self):
         """Test that `drop_qubits` raises."""
         pauli_map_in = PauliLindbladMap.from_list(

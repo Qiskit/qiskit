@@ -1327,6 +1327,9 @@ impl PyPauliLindbladMap {
     ///
     /// Drop every Pauli on the given `indices`, effectively replacing them with an identity.
     ///
+    /// The resulting map may contain duplicates, which can be removed using the :meth:`PauliLindbladMap.simplify`
+    /// method.
+    ///
     /// Args:
     ///     indices (Sequence[int]): The indices for which Paulis must be dropped.
     ///
@@ -1401,6 +1404,9 @@ impl PyPauliLindbladMap {
     }
 
     /// Drop qubits out of this Pauli Lindblad map, effectively performing a trace-out operation.
+    ///
+    /// The resulting map may contain duplicates, which can be removed using the :meth:`PauliLindbladMap.simplify`
+    /// method.
     ///
     /// Args:
     ///     indices (Sequence[int]): The indices of the qubits to trace out.
