@@ -87,7 +87,7 @@ pub fn run_litinski_transformation(
                 "tdg" => ("RZ", Some(Param::Float(-PI / 8.0)), -PI / 8.),
                 "rz" => {
                     let param = &inst.params_view()[0];
-                    ("RZ", Some(multiply_param(param, 0.5, py)), 0.)
+                    ("RZ", Some(multiply_param(param, 0.5)), 0.)
                 }
                 _ => {
                     return Err(CircuitError::new_err(format!(
@@ -143,7 +143,7 @@ pub fn run_litinski_transformation(
             PySparseObservable::from_label(paulis.chars().rev().collect::<String>().as_str())?;
 
         let time = if *sign {
-            multiply_param(&angle, -1., py)
+            multiply_param(&angle, -1.)
         } else {
             angle
         };
