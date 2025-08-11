@@ -613,15 +613,17 @@ class OptimizationPassManager(PassManagerStagePlugin):
                     pass_manager_config.layout_method,
                     pass_manager_config.initial_layout,
                 )
-                optimization.append(
-                    VF2PostLayout(
-                        target=pass_manager_config.target,
-                        seed=-1,
-                        call_limit=vf2_call_limit,
-                        max_trials=vf2_max_trials,
-                        strict_direction=True,
+                is_vf2_fully_bounded = vf2_call_limit and vf2_max_trials
+                if is_vf2_fully_bounded:
+                    optimization.append(
+                        VF2PostLayout(
+                            target=pass_manager_config.target,
+                            seed=-1,
+                            call_limit=vf2_call_limit,
+                            max_trials=vf2_max_trials,
+                            strict_direction=True,
+                        )
                     )
-                )
 
             return optimization
         else:

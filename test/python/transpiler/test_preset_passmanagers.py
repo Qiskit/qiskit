@@ -708,6 +708,59 @@ class TestPassesInspection(QiskitTestCase):
         self.assertNotIn("VF2PostLayout", self.passes)
         self.assertNotIn("SabreSwap", self.passes)
 
+    def test_level3_does_not_run_vf2post_layout_when_initial_layout_set(self):
+        """Test that level 3 does not run VF2PostLayout when an initial layout is set."""
+        target = GenericBackendV2(
+            num_qubits=7,
+            basis_gates=["cx", "id", "rz", "sx", "x"],
+            coupling_map=LAGOS_CMAP,
+            seed=42,
+        )
+        _target = target.target
+        target._target.add_instruction(ForLoopOp, name="for_loop")
+        qc = QuantumCircuit(4)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        with qc.for_loop((1,)):
+            qc.cx(0, 1)
+        qc.measure_all()
+        _ = transpile(
+            qc, target, optimization_level=1, callback=self.callback, initial_layout=[0, 1, 5, 6]
+        )
+        self.assertIn("SetLayout", self.passes)
+        self.assertNotIn("VF2Layout", self.passes)
+        self.assertNotIn("SabreLayout", self.passes)
+        self.assertNotIn("VF2PostLayout", self.passes)
+
+    def test_level3_does_not_run_vf2post_layout_when_layout_method_set(self):
+        """Test that level 3 does not run VF2PostLayout when layout_method is set."""
+        target = GenericBackendV2(
+            num_qubits=7,
+            basis_gates=["cx", "id", "rz", "sx", "x"],
+            coupling_map=LAGOS_CMAP,
+            seed=42,
+        )
+        _target = target.target
+        target._target.add_instruction(ForLoopOp, name="for_loop")
+        qc = QuantumCircuit(4)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        with qc.for_loop((1,)):
+            qc.cx(0, 1)
+        qc.measure_all()
+        _ = transpile(
+            qc, target, optimization_level=1, callback=self.callback, layout_method="dense"
+        )
+        self.assertIn("SetLayout", self.passes)
+        self.assertNotIn("VF2Layout", self.passes)
+        self.assertNotIn("SabreLayout", self.passes)
+        self.assertNotIn("VF2PostLayout", self.passes)
+        self.assertIn("DenseLayout", self.passes)
+
 
 @ddt
 class TestInitialLayouts(QiskitTestCase):

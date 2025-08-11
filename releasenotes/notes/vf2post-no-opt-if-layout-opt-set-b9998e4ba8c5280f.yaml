@@ -1,0 +1,15 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :func:`.transpile` function and the generated pass manager
+    objects returned by the :func:`.generate_preset_pass_manager` function when
+    ``optimization_level`` argument is set as ``optimization_level=3`` and either an
+    ``initial_layout`` or ``layout_method`` argument are set. The intent of the
+    ``initial_layout`` argument or the ``layout_method`` arguments are for the transpiler
+    to use those arguments for the layout and not use any other layout passes to try
+    and use a different layout. However, for ``optimization_level=3`` the
+    :class:`.VF2PostLayout` transpiler pass was being run at the end of the ``optimization``
+    stage regardless of those arguments which could potentially lead to the transpiler
+    selecting a different layout than was requested. This has been fixed so the pass is not
+    run when those arguments are set
+    Fixes `#14867 <https://github.com/Qiskit/qiskit/issues/14867>`__
