@@ -15,7 +15,7 @@ use crate::classical::types::Type;
 use crate::duration::Duration;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
-use pyo3::{intern, IntoPyObjectExt};
+use pyo3::{IntoPyObjectExt, intern};
 
 /// A single scalar value expression.
 #[derive(Clone, Debug, PartialEq)]
@@ -52,12 +52,12 @@ impl PyValue {
     #[new]
     #[pyo3(text_signature = "(value, type)")]
     fn new(py: Python, value: Bound<PyAny>, ty: Type) -> PyResult<Py<Self>> {
-        let value = if let Ok(raw) = value.extract::<u64>() {
-            Value::Uint { raw, ty }
-        } else if let Ok(raw) = value.extract::<f64>() {
-            Value::Float { raw, ty }
-        } else {
-            Value::Duration(value.extract()?)
+        let value = match value.extract::<u64>() {
+            Ok(raw) => Value::Uint { raw, ty },
+            _ => match value.extract::<f64>() {
+                Ok(raw) => Value::Float { raw, ty },
+                _ => Value::Duration(value.extract()?),
+            },
         };
         Py::new(py, (PyValue(value), PyExpr(ExprKind::Value)))
     }

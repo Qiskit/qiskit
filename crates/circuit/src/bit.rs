@@ -15,16 +15,16 @@
 use std::{
     fmt::Debug,
     hash::Hash,
-    sync::atomic::{AtomicU32, AtomicU64, Ordering},
     sync::Arc,
+    sync::atomic::{AtomicU32, AtomicU64, Ordering},
 };
 
 use hashbrown::HashSet;
 use pyo3::prelude::*;
 use pyo3::{
+    IntoPyObjectExt, PyTypeInfo,
     exceptions::{PyIndexError, PyTypeError, PyValueError},
     types::{PyList, PyType},
-    IntoPyObjectExt, PyTypeInfo,
 };
 
 use crate::circuit_data::CircuitError;
@@ -324,12 +324,12 @@ macro_rules! create_bit_object {
         $bit_struct:ident,
         $subclass_ty:ty,
         $pybit_struct:ident,
-        $pybit_name:expr,
-        $bit_desc:expr,
+        $pybit_name:expr_2021,
+        $bit_desc:expr_2021,
         $reg_struct:ident,
         $pyreg_struct:ident,
-        $pyreg_name:expr,
-        $pyreg_prefix:expr,
+        $pyreg_name:expr_2021,
+        $pyreg_prefix:expr_2021,
         $bit_counter_name:ident,
         $reg_counter_name:ident
     ) => {

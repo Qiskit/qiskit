@@ -16,8 +16,8 @@ use std::convert::Infallible;
 use std::num::NonZero;
 
 use numpy::{PyArray2, ToPyArray};
-use pyo3::prelude::*;
 use pyo3::Python;
+use pyo3::prelude::*;
 
 use hashbrown::HashSet;
 use indexmap::IndexMap;
@@ -30,17 +30,17 @@ use rustworkx_core::petgraph::prelude::*;
 use rustworkx_core::petgraph::visit::{EdgeCount, EdgeRef};
 use rustworkx_core::shortest_path::dijkstra;
 use rustworkx_core::token_swapper::token_swapper;
-use smallvec::{smallvec, SmallVec};
+use smallvec::{SmallVec, smallvec};
 
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder, NodeType, Wire};
 use qiskit_circuit::nlayout::NLayout;
 use qiskit_circuit::operations::{OperationRef, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
-use qiskit_circuit::{getenv_use_multiple_threads, imports, PhysicalQubit, Qubit, VirtualQubit};
+use qiskit_circuit::{PhysicalQubit, Qubit, VirtualQubit, getenv_use_multiple_threads, imports};
 
-use crate::target::{Target, TargetCouplingError};
 use crate::TranspilerError;
+use crate::target::{Target, TargetCouplingError};
 
 use super::dag::{InteractionKind, SabreDAG};
 use super::distance::distance_matrix;
@@ -306,7 +306,7 @@ impl PyRoutingTarget {
             Ok(coupling) => coupling,
             Err(TargetCouplingError::AllToAll) => return Ok(Self(None)),
             Err(e @ TargetCouplingError::MultiQ) => {
-                return Err(TranspilerError::new_err(e.to_string()))
+                return Err(TranspilerError::new_err(e.to_string()));
             }
         };
         Ok(Self(Some(RoutingTarget::from_neighbors(

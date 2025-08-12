@@ -33,7 +33,7 @@ pub struct ElidePermutationsResult {
 ///
 /// Behavior is undefined if ``result`` is not a valid, non-null pointer to a
 /// ``QkElidePermutationsResult``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_elide_permutations_result_elided_gates(
     result: *const ElidePermutationsResult,
@@ -56,7 +56,7 @@ pub unsafe extern "C" fn qk_elide_permutations_result_elided_gates(
 /// ``QkElidePermutationsResult``. The pointer to the returned circuit is owned by the
 /// result object, it should not be passed to ``qk_circuit_free()`` as it will
 /// be freed by ``qk_elide_permutations_result_free()``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_elide_permutations_result_circuit(
     result: *const ElidePermutationsResult,
@@ -91,7 +91,7 @@ pub unsafe extern "C" fn qk_elide_permutations_result_circuit(
 /// there must be a result found. The pointer to the permutation array is owned by the
 /// result object, it should not be passed to ``free()`` as it will be freed by
 /// ``qk_elide_permutations_result_free()`` when that is called.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_elide_permutations_result_permutation(
     result: *const ElidePermutationsResult,
@@ -113,7 +113,7 @@ pub unsafe extern "C" fn qk_elide_permutations_result_permutation(
 ///
 /// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a
 /// ``QkElidePermutationsResult``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_elide_permutations_result_free(result: *mut ElidePermutationsResult) {
     if !result.is_null() {
@@ -161,7 +161,7 @@ pub unsafe extern "C" fn qk_elide_permutations_result_free(result: *mut ElidePer
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit``  is not a valid, non-null pointer to a ``QkCircuit``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_elide_permutations(
     circuit: *const CircuitData,

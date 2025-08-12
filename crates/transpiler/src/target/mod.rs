@@ -29,11 +29,11 @@ use hashbrown::HashSet;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use pyo3::{
+    IntoPyObjectExt,
     exceptions::{PyAttributeError, PyIndexError, PyKeyError, PyValueError},
     prelude::*,
     pyclass,
     types::{PyDict, PyList, PySet},
-    IntoPyObjectExt,
 };
 use rustworkx_core::petgraph::prelude::*;
 use smallvec::SmallVec;
@@ -743,11 +743,12 @@ impl Target {
     #[getter]
     #[pyo3(name = "qargs")]
     fn py_qargs(&self, py: Python) -> PyResult<PyObject> {
-        if let Some(qargs) = self.qargs() {
-            let set = PySet::new(py, qargs)?;
-            Ok(set.into_any().unbind())
-        } else {
-            Ok(py.None())
+        match self.qargs() {
+            Some(qargs) => {
+                let set = PySet::new(py, qargs)?;
+                Ok(set.into_any().unbind())
+            }
+            _ => Ok(py.None()),
         }
     }
 
@@ -996,11 +997,7 @@ impl Target {
                                 qarg_slice.iter().fold(
                                     0,
                                     |acc, x| {
-                                        if acc > x.0 {
-                                            acc
-                                        } else {
-                                            x.0
-                                        }
+                                        if acc > x.0 { acc } else { x.0 }
                                     },
                                 ) + 1,
                             ));
@@ -1146,7 +1143,7 @@ impl Target {
     }
 
     /// Get an iterator over the indices of all physical qubits of the target
-    pub fn physical_qubits(&self) -> impl ExactSizeIterator<Item = PhysicalQubit> {
+    pub fn physical_qubits(&self) -> impl ExactSizeIterator<Item = PhysicalQubit> + use<> {
         (0..self.num_qubits.unwrap_or_default()).map(PhysicalQubit)
     }
 
@@ -1284,7 +1281,7 @@ impl Target {
     pub fn operations_for_qargs<'a, T>(
         &self,
         qargs: T,
-    ) -> Result<impl Iterator<Item = &NormalOperation>, TargetError>
+    ) -> Result<impl Iterator<Item = &NormalOperation> + use<'_, T>, TargetError>
     where
         T: Into<QargsRef<'a>>,
     {
@@ -1308,7 +1305,7 @@ impl Target {
     pub fn qargs_for_operation_name(
         &self,
         operation: &str,
-    ) -> Result<Option<impl Iterator<Item = &Qargs>>, TargetError> {
+    ) -> Result<Option<impl Iterator<Item = &Qargs> + use<'_>>, TargetError> {
         if let Some(gate_map_oper) = self.gate_map.get(operation) {
             if gate_map_oper.contains_key(&Qargs::Global) {
                 return Ok(None);
@@ -1543,7 +1540,7 @@ mod test {
     use std::sync::Arc;
 
     use qiskit_circuit::operations::{
-        get_standard_gate_names, Operation, Param, StandardGate, STANDARD_GATE_SIZE,
+        Operation, Param, STANDARD_GATE_SIZE, StandardGate, get_standard_gate_names,
     };
     use qiskit_circuit::packed_instruction::PackedOperation;
     use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
@@ -1553,7 +1550,7 @@ mod test {
     use crate::target::QargsRef;
     use qiskit_circuit::PhysicalQubit;
 
-    use super::{instruction_properties::InstructionProperties, Qargs, Target, TargetError};
+    use super::{Qargs, Target, TargetError, instruction_properties::InstructionProperties};
 
     #[test]
     fn test_invalid_params_instruction() {
@@ -1634,7 +1631,10 @@ mod test {
         let Err(res) = result else {
             panic!("The operation did not fail as expected.");
         };
-        let expected_message = format!("The number of qubits for cz does not match the number of qubits in the properties dictionary: {:?}.", Qargs::Concrete(qargs));
+        let expected_message = format!(
+            "The number of qubits for cz does not match the number of qubits in the properties dictionary: {:?}.",
+            Qargs::Concrete(qargs)
+        );
         assert_eq!(res.to_string(), expected_message);
     }
 

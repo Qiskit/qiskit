@@ -14,12 +14,12 @@ use hashbrown::HashSet;
 
 use numpy::{PyArray1, PyArrayMethods, PyReadonlyArray1};
 use pyo3::{
+    IntoPyObjectExt, PyErr,
     exceptions::{PyRuntimeError, PyTypeError, PyValueError},
     intern,
     prelude::*,
     sync::GILOnceCell,
     types::{IntoPyDict, PyList, PyString, PyTuple, PyType},
-    IntoPyObjectExt, PyErr,
 };
 use std::{
     collections::btree_map,
@@ -167,7 +167,9 @@ pub enum CoherenceError {
     MismatchedItemCount { paulis: usize, indices: usize },
     #[error("the first item of `boundaries` ({0}) must be 0")]
     BadInitialBoundary(usize),
-    #[error("the last item of `boundaries` ({last}) must match the length of `paulis` and `indices` ({items})")]
+    #[error(
+        "the last item of `boundaries` ({last}) must match the length of `paulis` and `indices` ({items})"
+    )]
     BadFinalBoundary { last: usize, items: usize },
     #[error("all qubit indices must be less than the number of qubits")]
     BitIndexTooHigh,
@@ -2100,7 +2102,7 @@ impl PyQubitSparsePauliList {
                 return PyQubitSparsePauli {
                     inner: inner.term(index).to_term(),
                 }
-                .into_bound_py_any(py)
+                .into_bound_py_any(py);
             }
             indices => indices,
         };

@@ -16,7 +16,7 @@ use crate::classical::types::Type;
 use crate::imports::UUID;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyTuple};
-use pyo3::{intern, IntoPyObjectExt};
+use pyo3::{IntoPyObjectExt, intern};
 use uuid::Uuid;
 
 /// A classical variable expression.
@@ -90,11 +90,12 @@ impl PyVar {
                 name,
                 ty,
             }
-        } else if let Ok(register) = var.extract::<ClassicalRegister>() {
-            Var::Register { register, ty }
         } else {
-            Var::Bit {
-                bit: var.extract()?,
+            match var.extract::<ClassicalRegister>() {
+                Ok(register) => Var::Register { register, ty },
+                _ => Var::Bit {
+                    bit: var.extract()?,
+                },
             }
         };
         Py::new(var.py(), (PyVar(v), PyExpr(ExprKind::Var)))

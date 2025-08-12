@@ -16,13 +16,13 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use crate::gate_metrics::rotation_trace_and_dim;
 use crate::target::Target;
+use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::packed_instruction::PackedInstruction;
-use qiskit_circuit::PhysicalQubit;
 
 const MINIMUM_TOL: f64 = 1e-12;
 
@@ -108,15 +108,16 @@ pub fn run_remove_identity_equiv(
                             continue;
                         }
                     }
-                    _ => {
-                        if let Some(matrix) = gate.matrix(inst.params_view()) {
+                    _ => match gate.matrix(inst.params_view()) {
+                        Some(matrix) => {
                             let dim = matrix.shape()[0] as f64;
                             let tr_over_dim = matrix.diag().iter().sum::<Complex64>() / dim;
                             (tr_over_dim, dim)
-                        } else {
+                        }
+                        _ => {
                             continue;
                         }
-                    }
+                    },
                 };
                 let error = get_error_cutoff(inst);
                 let f_pro = tr_over_dim.abs().powi(2);

@@ -14,8 +14,8 @@ use num_complex::Complex64;
 use std::f64::consts::FRAC_1_SQRT_2;
 
 use crate::util::{
-    c64, GateArray0Q, GateArray1Q, GateArray2Q, GateArray3Q, GateArray4Q, C_M_ONE, C_ONE, C_ZERO,
-    IM, M_IM,
+    C_M_ONE, C_ONE, C_ZERO, GateArray0Q, GateArray1Q, GateArray2Q, GateArray3Q, GateArray4Q, IM,
+    M_IM, c64,
 };
 
 pub static ONE_QUBIT_IDENTITY: GateArray1Q = [[C_ONE, C_ZERO], [C_ZERO, C_ONE]];
@@ -31,7 +31,7 @@ pub static TWO_QUBIT_IDENTITY: GateArray2Q = [
 // 1. the reference "gate-matrix" is a single-qubit gate matrix (2x2)
 // 2. the first "n" qubits are controls and the last qubit is the target
 macro_rules! make_n_controlled_gate {
-    ($gate_matrix:expr, $n_control_qubits:expr) => {{
+    ($gate_matrix:expr_2021, $n_control_qubits:expr_2021) => {{
         const DIM: usize = 2_usize.pow($n_control_qubits as u32 + 1_u32);
         // DIM x DIM matrix of all zeros
         let mut matrix: [[Complex64; DIM]; DIM] = [[C_ZERO; DIM]; DIM];

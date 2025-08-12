@@ -19,9 +19,9 @@ use numpy::IntoPyArray;
 use numpy::PyReadonlyArray2;
 use rayon::prelude::*;
 
+use pyo3::Python;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
-use pyo3::Python;
 
 use qiskit_circuit::getenv_use_multiple_threads;
 

@@ -14,7 +14,7 @@ use crate::classical::expr::{Expr, ExprKind, PyExpr};
 use crate::classical::types::Type;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
-use pyo3::{intern, IntoPyObjectExt};
+use pyo3::{IntoPyObjectExt, intern};
 
 /// A cast from one type to another, implied by the use of an expression in a different
 /// context.

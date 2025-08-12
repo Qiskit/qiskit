@@ -1002,7 +1002,7 @@ pub mod isomorphism {
                     };
                 }
                 macro_rules! rule {
-                    ($arr:ident, $j:tt, $dir:expr) => {{
+                    ($arr:ident, $j:tt, $dir:expr_2021) => {{
                         let mut count = 0;
                         for n_neigh in field!(st, $j).graph.neighbors_directed(nodes[$j], $dir) {
                             let index = n_neigh.index();

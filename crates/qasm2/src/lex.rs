@@ -29,7 +29,7 @@ use pyo3::prelude::PyResult;
 
 use std::path::Path;
 
-use crate::error::{message_generic, Position, QASM2ParseError};
+use crate::error::{Position, QASM2ParseError, message_generic};
 
 /// Tokenized version information data.  This is more structured than the real number suggested by
 /// the specification.
@@ -557,7 +557,7 @@ impl TokenStream {
                     )))
                 } else {
                     self.lex_float_exponent(start_col)
-                }
+                };
             }
             _ => (),
         }
@@ -591,8 +591,9 @@ impl TokenStream {
                 b"OPENQASM" => Ok(TokenType::OpenQASM),
                 b"U" | b"CX" => Ok(TokenType::Id),
                 _ => Err(QASM2ParseError::new_err(message_generic(
-                        Some(&Position::new(&self.filename, self.line, start_col)),
-                        "identifiers cannot start with capital letters except for the builtins 'U' and 'CX'"))),
+                    Some(&Position::new(&self.filename, self.line, start_col)),
+                    "identifiers cannot start with capital letters except for the builtins 'U' and 'CX'",
+                ))),
             }
         } else {
             match text {
@@ -626,13 +627,13 @@ impl TokenStream {
                     return Err(QASM2ParseError::new_err(message_generic(
                         Some(&Position::new(&self.filename, self.line, start_col)),
                         "unexpected end-of-file while lexing string literal",
-                    )))
+                    )));
                 }
                 Some(b'\n' | b'\r') => {
                     return Err(QASM2ParseError::new_err(message_generic(
                         Some(&Position::new(&self.filename, self.line, start_col)),
                         "unexpected line break while lexing string literal",
-                    )))
+                    )));
                 }
                 Some(c) if c == terminator => {
                     return Ok(TokenType::Filename);
@@ -684,24 +685,24 @@ impl TokenStream {
                     TokenType::Slash
                 }
             }
-            b'-' => {
-                if let Ok(Some(b'>')) = self.peek_byte() {
+            b'-' => match self.peek_byte() {
+                Ok(Some(b'>')) => {
                     self.col += 1;
                     TokenType::Arrow
-                } else {
-                    TokenType::Minus
                 }
-            }
-            b'=' => {
-                if let Ok(Some(b'=')) = self.peek_byte() {
+                _ => TokenType::Minus,
+            },
+            b'=' => match self.peek_byte() {
+                Ok(Some(b'=')) => {
                     self.col += 1;
                     TokenType::Equals
-                } else {
+                }
+                _ => {
                     return Err(QASM2ParseError::new_err(
                         "single equals '=' is never valid".to_owned(),
                     ));
                 }
-            }
+            },
             b'0'..=b'9' | b'.' => self.lex_numeric(start_col)?,
             b'a'..=b'z' | b'A'..=b'Z' => self.lex_textlike(start_col)?,
             c @ (b'"' | b'\'') => {

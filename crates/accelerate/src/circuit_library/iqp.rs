@@ -16,13 +16,13 @@ use ndarray::{Array2, ArrayView2};
 use numpy::PyReadonlyArray2;
 use pyo3::prelude::*;
 use qiskit_circuit::{
+    Qubit,
     circuit_data::CircuitData,
     operations::{Param, StandardGate},
-    Qubit,
 };
 use rand::{Rng, SeedableRng};
 use rand_pcg::Pcg64Mcg;
-use smallvec::{smallvec, SmallVec};
+use smallvec::{SmallVec, smallvec};
 
 use crate::CircuitError;
 

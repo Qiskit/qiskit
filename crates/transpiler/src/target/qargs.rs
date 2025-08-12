@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use indexmap::Equivalent;
-use pyo3::{prelude::*, types::PyTuple, IntoPyObject};
+use pyo3::{IntoPyObject, prelude::*, types::PyTuple};
 use smallvec::SmallVec;
 
 use qiskit_circuit::PhysicalQubit;
