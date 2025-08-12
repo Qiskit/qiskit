@@ -21,7 +21,7 @@ from ddt import ddt, data
 import numpy as np
 
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-from qiskit.circuit import Qubit, Gate, ControlFlowOp, ForLoopOp, Measure, library as lib, Parameter
+from qiskit.circuit import Qubit, Gate, ControlFlowOp, Measure, library as lib, Parameter
 from qiskit.compiler import transpile
 from qiskit.transpiler import (
     CouplingMap,
