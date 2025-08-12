@@ -77,9 +77,6 @@ Optimizations
    CommutativeInverseCancellation
    ConsolidateBlocks
    ContractIdleWiresInControlFlow
-<<<<<<< HEAD
-   OptimizeCliffordT
-=======
    ElidePermutations
    HoareOptimizer
    InverseCancellation
@@ -97,7 +94,6 @@ Optimizations
    ResetAfterMeasureSimplification
    Split2QUnitaries
    TemplateOptimization
->>>>>>> 7ce436872 (Document missing passes in `qiskit.transpiler.passes` (#14781))
 
 Scheduling
 =============
