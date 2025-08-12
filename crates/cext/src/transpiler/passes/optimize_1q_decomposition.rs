@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::pointers::const_ptr_as_ref;
+use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 use qiskit_circuit::{
     circuit_data::CircuitData, converters::dag_to_circuit, dag_circuit::DAGCircuit,
 };
@@ -31,7 +31,10 @@ use qiskit_transpiler::{passes::run_optimize_1q_gates_decomposition, target::Tar
 /// qubit it operates on.
 ///
 /// @param circuit A pointer to the ``QkCircuit`` object to transform.
-/// @param target A pointer to the ``QkTarget`` object.
+/// @param target A pointer to the ``QkTarget`` object or a null pointer.
+/// In the case a null pointer is provided the pass calculates the error
+/// of each instruction based on each one-qubit sequence's length, and
+/// will support all basis gates on its Euler basis set.
 ///
 /// @return The circuit after applying the optimizations.
 ///
@@ -79,9 +82,9 @@ use qiskit_transpiler::{passes::run_optimize_1q_gates_decomposition, target::Tar
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_standalone_optimize_1q_gates_decomposition(
-    circuit: *const CircuitData,
+    circuit: *mut CircuitData,
     target: *const Target,
-) -> *mut CircuitData {
+) {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe {
         if target.is_null() {
@@ -91,7 +94,7 @@ pub unsafe extern "C" fn qk_transpiler_standalone_optimize_1q_gates_decompositio
         }
     };
     // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let circuit = unsafe { const_ptr_as_ref(circuit) };
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
 
     // Convert the circuit to a DAG.
     let mut circuit_as_dag = DAGCircuit::from_circuit_data(circuit, false, None, None, None, None)
@@ -106,5 +109,5 @@ pub unsafe extern "C" fn qk_transpiler_standalone_optimize_1q_gates_decompositio
         .expect("Error while converting the dag to a circuit.");
 
     // Convert to pointer.
-    Box::into_raw(Box::new(dag_to_circuit))
+    *circuit = dag_to_circuit;
 }
