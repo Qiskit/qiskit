@@ -128,8 +128,7 @@ impl Display for Key {
 pub struct Equivalence {
     #[pyo3(get)]
     pub params: SmallVec<[Param; 3]>,
-    #[pyo3(get)]
-    pub circuit: CircuitFromPython,
+    pub circuit: CircuitData,
 }
 
 #[pymethods]
@@ -137,7 +136,10 @@ impl Equivalence {
     #[new]
     #[pyo3(signature = (params, circuit))]
     fn new(params: SmallVec<[Param; 3]>, circuit: CircuitFromPython) -> Self {
-        Self { circuit, params }
+        Self {
+            circuit: circuit.0,
+            params,
+        }
     }
 
     fn __repr__(&self) -> String {
@@ -149,6 +151,11 @@ impl Equivalence {
         let other_circuit = other.getattr("circuit")?;
         Ok(other_params.eq(&slf.getattr("params")?)?
             && other_circuit.eq(&slf.getattr("circuit")?)?)
+    }
+
+    #[getter]
+    fn get_circuit<'py>(slf: &'py Bound<'py, Self>) -> CircuitFromPython {
+        CircuitFromPython(slf.borrow().circuit.clone())
     }
 
     fn __getnewargs__<'py>(
@@ -461,7 +468,7 @@ impl EquivalenceLibrary {
             .filter_map(|equivalence| rebind_equiv(equivalence, &query_params).ok());
         let return_list = PyList::empty(py);
         for equiv in bound_equivalencies {
-            return_list.append(equiv)?;
+            return_list.append(CircuitFromPython(equiv))?;
         }
         Ok(return_list.unbind())
     }
@@ -595,10 +602,10 @@ impl EquivalenceLibrary {
         equivalent_circuit: CircuitData,
     ) -> PyResult<()> {
         raise_if_shape_mismatch(gate, &equivalent_circuit)?;
-        raise_if_param_mismatch(params, equivalent_circuit.parameters())?;
+        raise_if_param_mismatch(params, equivalent_circuit.iter_parameters())?;
         let key: Key = Key::from_operation(gate);
         let equiv = Equivalence {
-            circuit: CircuitFromPython(equivalent_circuit.clone()),
+            circuit: equivalent_circuit.clone(),
             params: params.into(),
         };
 
@@ -641,7 +648,7 @@ impl EquivalenceLibrary {
     ) -> PyResult<()> {
         for equiv in entry.iter() {
             raise_if_shape_mismatch(gate, equiv)?;
-            raise_if_param_mismatch(params, equiv.parameters())?;
+            raise_if_param_mismatch(params, equiv.iter_parameters())?;
         }
         let key = Key::from_operation(gate);
         let node_index = self.set_default_node(key);
@@ -706,7 +713,10 @@ impl EquivalenceLibrary {
     }
 }
 
-fn raise_if_param_mismatch(gate_params: &[Param], circuit_parameters: &[Symbol]) -> PyResult<()> {
+fn raise_if_param_mismatch<'a>(
+    gate_params: &[Param],
+    circuit_parameters: impl Iterator<Item = &'a Symbol>,
+) -> PyResult<()> {
     let parsed_gate_params: HashSet<Symbol> = gate_params
         .iter()
         .filter_map(|param| match param {
@@ -716,11 +726,13 @@ fn raise_if_param_mismatch(gate_params: &[Param], circuit_parameters: &[Symbol])
             _ => None,
         })
         .collect();
-    if parsed_gate_params != circuit_parameters.iter().cloned().collect() {
+    let circuit_parameters: HashSet<Symbol> = circuit_parameters.cloned().collect();
+    if parsed_gate_params != circuit_parameters {
         return Err(CircuitError::new_err(format!(
             "Cannot add equivalence between circuit and gate \
             of different parameters. Gate params: {gate_params:?}. \
-            Circuit params: {circuit_parameters:?}."
+            Circuit params: {:?}.",
+            circuit_parameters,
         )));
     }
     Ok(())
@@ -744,7 +756,7 @@ fn raise_if_shape_mismatch(gate: &PackedOperation, circuit: &CircuitData) -> PyR
     Ok(())
 }
 
-fn rebind_equiv(equiv: Equivalence, query_params: &[Param]) -> PyResult<CircuitFromPython> {
+fn rebind_equiv(equiv: Equivalence, query_params: &[Param]) -> PyResult<CircuitData> {
     let (equiv_params, mut equiv_circuit) = (equiv.params, equiv.circuit);
     let param_mapping: PyResult<IndexMap<ParameterUuid, &Param, ::ahash::RandomState>> =
         equiv_params
@@ -763,9 +775,7 @@ fn rebind_equiv(equiv: Equivalence, query_params: &[Param]) -> PyResult<CircuitF
                 _ => None,
             })
             .collect();
-    equiv_circuit
-        .0
-        .assign_parameters_from_mapping(param_mapping?)?;
+    equiv_circuit.assign_parameters_from_mapping(param_mapping?)?;
     Ok(equiv_circuit)
 }
 
