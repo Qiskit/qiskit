@@ -706,7 +706,7 @@ fn is_unitary(matrix: &ArrayType, tol: f64) -> bool {
 ///
 ///   QkCircuit *circuit = qk_circuit_new(1, 0);  // 1 qubit circuit
 ///   uint32_t qubit[1] = {0};  // qubit to apply the unitary on
-///   qk_circuit_unitary(circuit, unitary, qubit, num_qubits, true
+///   qk_circuit_unitary(circuit, unitary, qubit, num_qubits, true);
 /// ```
 ///
 /// # Safety
