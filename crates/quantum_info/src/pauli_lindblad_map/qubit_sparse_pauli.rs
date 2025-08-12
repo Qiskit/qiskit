@@ -229,6 +229,7 @@ pub struct QubitSparsePauliList {
     boundaries: Vec<usize>,
 }
 
+/// Interfaces for a struct containing a list of qubit sparse Paulis
 pub trait QubitSparsePauliListLike {
     fn pauli_list(&self) -> &QubitSparsePauliList;
     fn pauli_list_mut(&mut self) -> &mut QubitSparsePauliList;
@@ -262,9 +263,14 @@ pub trait QubitSparsePauliListLike {
     fn paulis(&self) -> &[Pauli] {
         &self.pauli_list().paulis()
     }
+
+    /// Drop every Pauli on the given `indices`, effectively replacing them with an identity.
+    ///
+    /// Ignores all the indices that are larger than `self.num_qubits`.
+    fn drop_paulis(&self, indices: HashSet<u32>) -> Result<Self, CoherenceError> where Self: Sized;
 }
 
-
+///Implementation of QubitSparsePauliListLike for QubitSparsePauliList
 impl QubitSparsePauliListLike for QubitSparsePauliList {
 
     fn pauli_list(&self) -> &QubitSparsePauliList {
@@ -304,6 +310,40 @@ impl QubitSparsePauliListLike for QubitSparsePauliList {
     fn paulis(&self) -> &[Pauli] {
         &self.paulis
     }
+
+    /// Drop every Pauli on the given `indices`, effectively replacing them with an identity.
+    ///
+    /// It ignores all the indices that are larger than `self.num_qubits`.
+    fn drop_paulis(&self, indices: HashSet<u32>) -> Result<Self, CoherenceError> {
+        let mut new_paulis: Vec<Pauli> = Vec::with_capacity(self.paulis().len());
+        let mut new_indices: Vec<u32> = Vec::with_capacity(self.indices().len());
+        let mut new_boundaries: Vec<usize> = Vec::with_capacity(self.boundaries().len());
+
+        new_boundaries.push(0);
+        let mut boundaries_idx = 1;
+        let mut current_boundary = self.boundaries()[boundaries_idx];
+
+        let mut num_dropped_paulis = 0;
+        for (i, (&pauli, &index)) in self.paulis().iter().zip(self.indices().iter()).enumerate() {
+            if current_boundary == i {
+                new_boundaries.push(current_boundary - num_dropped_paulis);
+
+                boundaries_idx += 1;
+                current_boundary = self.boundaries()[boundaries_idx]
+            }
+
+            if indices.contains(&index) {
+                num_dropped_paulis += 1;
+            } else {
+                new_indices.push(index);
+                new_paulis.push(pauli);
+            }
+        }
+        new_boundaries.push(current_boundary - num_dropped_paulis);
+
+        Self::new(self.num_qubits(), new_paulis, new_indices, new_boundaries)
+    }
+
 }
 
 impl QubitSparsePauliList {

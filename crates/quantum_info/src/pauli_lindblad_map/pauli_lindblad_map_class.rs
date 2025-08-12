@@ -56,6 +56,26 @@ pub struct PauliLindbladMap {
     non_negative_rates: Vec<bool>,
 }
 
+impl QubitSparsePauliListLike for PauliLindbladMap {
+    fn pauli_list(&self) -> &QubitSparsePauliList {
+        &self.qubit_sparse_pauli_list
+    }
+
+    fn pauli_list_mut(&mut self) -> &mut QubitSparsePauliList {
+        &mut self.qubit_sparse_pauli_list
+    }
+
+    /// Drop every Pauli on the given `indices`, effectively replacing them with an identity.
+    ///
+    /// It ignores all the indices that are larger than `self.num_qubits`.
+    fn drop_paulis(&self, indices: HashSet<u32>) -> Result<Self, CoherenceError> {
+        Self::new(
+            self.rates().to_vec(),
+            self.pauli_list().drop_paulis(indices)?
+        )
+    }
+}
+
 impl PauliLindbladMap {
     pub fn new(
         rates: Vec<f64>,
@@ -93,18 +113,6 @@ impl PauliLindbladMap {
             })
     }
 
-    /// Get the number of qubits the map is defined on.
-    #[inline]
-    pub fn num_qubits(&self) -> u32 {
-        self.qubit_sparse_pauli_list.num_qubits()
-    }
-
-    /// Get the number of generator terms in the map.
-    #[inline]
-    pub fn num_terms(&self) -> usize {
-        self.rates.len()
-    }
-
     /// Get the rates of the generator terms.
     #[inline]
     pub fn rates(&self) -> &[f64] {
@@ -121,24 +129,6 @@ impl PauliLindbladMap {
     #[inline]
     pub fn non_negative_rates(&self) -> &[bool] {
         &self.non_negative_rates
-    }
-
-    /// Get the indices of each [Pauli].
-    #[inline]
-    pub fn indices(&self) -> &[u32] {
-        self.qubit_sparse_pauli_list.indices()
-    }
-
-    /// Get the boundaries of each term.
-    #[inline]
-    pub fn boundaries(&self) -> &[usize] {
-        self.qubit_sparse_pauli_list.boundaries()
-    }
-
-    /// Get the [Pauli]s in the map.
-    #[inline]
-    pub fn paulis(&self) -> &[Pauli] {
-        self.qubit_sparse_pauli_list.paulis()
     }
 
     /// Create a [PauliLindbladMap] representing the identity map on ``num_qubits`` qubits.
