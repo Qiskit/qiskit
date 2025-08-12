@@ -31,7 +31,7 @@ use qiskit_circuit::{
 use super::qubit_sparse_pauli::{
     raw_parts_from_sparse_list, ArithmeticError, CoherenceError, InnerReadError, InnerWriteError,
     LabelError, Pauli, PyQubitSparsePauli, QubitSparsePauli, QubitSparsePauliList,
-    QubitSparsePauliView,
+    QubitSparsePauliView, QubitSparsePauliListLike
 };
 
 static PAULI_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "Pauli");

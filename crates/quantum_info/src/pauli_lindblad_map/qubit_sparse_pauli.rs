@@ -229,6 +229,83 @@ pub struct QubitSparsePauliList {
     boundaries: Vec<usize>,
 }
 
+pub trait QubitSparsePauliListLike {
+    fn pauli_list(&self) -> &QubitSparsePauliList;
+    fn pauli_list_mut(&mut self) -> &mut QubitSparsePauliList;
+
+    /// Get the number of qubits the paulis are defined on.
+    #[inline]
+    fn num_qubits(&self) -> u32 {
+        self.pauli_list().num_qubits()
+    }
+
+    /// Get the number of elements in the list.
+    #[inline]
+    fn num_terms(&self) -> usize {
+        self.pauli_list().boundaries().len() - 1
+    }
+
+    /// Get the indices of each [Pauli].
+    #[inline]
+    fn indices(&self) -> &[u32] {
+        &self.pauli_list().indices()
+    }
+
+    /// Get the boundaries of each term.
+    #[inline]
+    fn boundaries(&self) -> &[usize] {
+        &self.pauli_list().boundaries()
+    }
+
+    /// Get the [Pauli]s in the list.
+    #[inline]
+    fn paulis(&self) -> &[Pauli] {
+        &self.pauli_list().paulis()
+    }
+}
+
+
+impl QubitSparsePauliListLike for QubitSparsePauliList {
+
+    fn pauli_list(&self) -> &QubitSparsePauliList {
+        &self
+    }
+
+    fn pauli_list_mut(&mut self) -> &mut QubitSparsePauliList {
+        self
+    }
+
+    /// Get the number of qubits the paulis are defined on.
+    #[inline]
+    fn num_qubits(&self) -> u32 {
+        self.num_qubits
+    }
+
+    /// Get the number of elements in the list.
+    #[inline]
+    fn num_terms(&self) -> usize {
+        self.boundaries.len() - 1
+    }
+
+    /// Get the indices of each [Pauli].
+    #[inline]
+    fn indices(&self) -> &[u32] {
+        &self.indices
+    }
+
+    /// Get the boundaries of each term.
+    #[inline]
+    fn boundaries(&self) -> &[usize] {
+        &self.boundaries
+    }
+
+    /// Get the [Pauli]s in the list.
+    #[inline]
+    fn paulis(&self) -> &[Pauli] {
+        &self.paulis
+    }
+}
+
 impl QubitSparsePauliList {
     /// Create a new qubit-sparse Pauli list from the raw components that make it up.
     ///
@@ -330,36 +407,6 @@ impl QubitSparsePauliList {
                 indices: &self.indices[start..end],
             }
         })
-    }
-
-    /// Get the number of qubits the paulis are defined on.
-    #[inline]
-    pub fn num_qubits(&self) -> u32 {
-        self.num_qubits
-    }
-
-    /// Get the number of elements in the list.
-    #[inline]
-    pub fn num_terms(&self) -> usize {
-        self.boundaries.len() - 1
-    }
-
-    /// Get the indices of each [Pauli].
-    #[inline]
-    pub fn indices(&self) -> &[u32] {
-        &self.indices
-    }
-
-    /// Get the boundaries of each term.
-    #[inline]
-    pub fn boundaries(&self) -> &[usize] {
-        &self.boundaries
-    }
-
-    /// Get the [Pauli]s in the list.
-    #[inline]
-    pub fn paulis(&self) -> &[Pauli] {
-        &self.paulis
     }
 
     /// Create a [QubitSparsePauliList] representing the empty list on ``num_qubits`` qubits.

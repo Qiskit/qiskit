@@ -33,7 +33,7 @@ use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 use super::qubit_sparse_pauli::{
     raw_parts_from_sparse_list, ArithmeticError, CoherenceError, InnerReadError, InnerWriteError,
     LabelError, Pauli, PyQubitSparsePauli, PyQubitSparsePauliList, QubitSparsePauli,
-    QubitSparsePauliList, QubitSparsePauliView,
+    QubitSparsePauliList, QubitSparsePauliListLike, QubitSparsePauliView,
 };
 
 /// A Pauli Lindblad map that stores its data in a qubit-sparse format. Note that gamma,
