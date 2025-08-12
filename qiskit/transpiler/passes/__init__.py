@@ -42,9 +42,10 @@ Routing
    :toctree: ../stubs/
 
    BasicSwap
+   Commuting2qGateRouter
+   LayoutTransformation
    LookaheadSwap
    SabreSwap
-   Commuting2qGateRouter
    StarPreRouting
 
 Basis Change
@@ -65,33 +66,34 @@ Optimizations
 .. autosummary::
    :toctree: ../stubs/
 
-   Optimize1qGates
-   Optimize1qGatesDecomposition
    Collect1qRuns
    Collect2qBlocks
-   CollectMultiQBlocks
    CollectAndCollapse
-   CollectLinearFunctions
    CollectCliffords
-   ConsolidateBlocks
-   InverseCancellation
+   CollectLinearFunctions
+   CollectMultiQBlocks
    CommutationAnalysis
    CommutativeCancellation
    CommutativeInverseCancellation
-   Optimize1qGatesSimpleCommutation
-   RemoveDiagonalGatesBeforeMeasure
-   RemoveResetInZeroState
-   RemoveFinalReset
-   HoareOptimizer
-   TemplateOptimization
-   ResetAfterMeasureSimplification
-   OptimizeCliffords
-   ElidePermutations
-   OptimizeAnnotated
-   Split2QUnitaries
-   RemoveIdentityEquivalent
+   ConsolidateBlocks
    ContractIdleWiresInControlFlow
+   ElidePermutations
+   HoareOptimizer
+   InverseCancellation
+   Optimize1qGates
+   Optimize1qGatesDecomposition
+   Optimize1qGatesSimpleCommutation
+   OptimizeAnnotated
    OptimizeCliffordT
+   OptimizeCliffords
+   OptimizeSwapBeforeMeasure
+   RemoveDiagonalGatesBeforeMeasure
+   RemoveFinalReset
+   RemoveIdentityEquivalent
+   RemoveResetInZeroState
+   ResetAfterMeasureSimplification
+   Split2QUnitaries
+   TemplateOptimization
 
 Scheduling
 =============
@@ -99,15 +101,15 @@ Scheduling
 .. autosummary::
    :toctree: ../stubs/
 
-   TimeUnitConversion
    ALAPScheduleAnalysis
    ASAPScheduleAnalysis
-   ContextAwareDynamicalDecoupling
-   PadDynamicalDecoupling
-   PadDelay
    ConstrainedReschedule
+   ContextAwareDynamicalDecoupling
    InstructionDurationCheck
+   PadDelay
+   PadDynamicalDecoupling
    SetIOLatency
+   TimeUnitConversion
 
 Circuit Analysis
 ================
@@ -115,13 +117,14 @@ Circuit Analysis
 .. autosummary::
    :toctree: ../stubs/
 
-   Width
-   Depth
-   Size
    CountOps
    CountOpsLongestPath
-   NumTensorFactors
    DAGLongestPath
+   Depth
+   NumTensorFactors
+   ResourceEstimation
+   Size
+   Width
 
 Synthesis
 =========
@@ -132,11 +135,11 @@ The synthesis transpiler plugin documentation can be found in the
 .. autosummary::
    :toctree: ../stubs/
 
-   UnitarySynthesis
-   LinearFunctionsToPermutations
-   HighLevelSynthesis
    HLSConfig
+   HighLevelSynthesis
+   LinearFunctionsToPermutations
    SolovayKitaev
+   UnitarySynthesis
 
 Post Layout
 ===========
@@ -154,20 +157,21 @@ Additional Passes
 .. autosummary::
    :toctree: ../stubs/
 
-   CheckMap
-   CheckGateDirection
-   GateDirection
-   MergeAdjacentBarriers
-   RemoveBarriers
    BarrierBeforeFinalMeasurements
-   RemoveFinalMeasurements
-   DAGFixedPoint
-   FixedPoint
-   MinimumPoint
+   CheckGateDirection
+   CheckMap
    ContainsInstruction
-   GatesInBasis
-   UnrollForLoops
+   DAGFixedPoint
+   Error
    FilterOpNodes
+   FixedPoint
+   GateDirection
+   GatesInBasis
+   MergeAdjacentBarriers
+   MinimumPoint
+   RemoveBarriers
+   RemoveFinalMeasurements
+   UnrollForLoops
 """
 
 # layout selection (placement)
@@ -186,94 +190,94 @@ from .layout import SabrePreLayout
 
 # routing
 from .routing import BasicSwap
+from .routing import Commuting2qGateRouter
 from .routing import LayoutTransformation
 from .routing import LookaheadSwap
 from .routing import SabreSwap
-from .routing import Commuting2qGateRouter
 from .routing import StarPreRouting
 
 # basis change
-from .basis import Decompose
-from .basis import UnrollCustomDefinitions
-from .basis import Unroll3qOrMore
 from .basis import BasisTranslator
+from .basis import Decompose
 from .basis import TranslateParameterizedGates
+from .basis import Unroll3qOrMore
+from .basis import UnrollCustomDefinitions
 
 # optimization
-from .optimization import Optimize1qGates
-from .optimization import Optimize1qGatesDecomposition
-from .optimization import Collect2qBlocks
 from .optimization import Collect1qRuns
+from .optimization import Collect2qBlocks
+from .optimization import CollectAndCollapse
+from .optimization import CollectCliffords
+from .optimization import CollectLinearFunctions
 from .optimization import CollectMultiQBlocks
-from .optimization import ConsolidateBlocks
 from .optimization import CommutationAnalysis
 from .optimization import CommutativeCancellation
 from .optimization import CommutativeInverseCancellation
-from .optimization import Optimize1qGatesSimpleCommutation
-from .optimization import OptimizeSwapBeforeMeasure
-from .optimization import RemoveResetInZeroState
-from .optimization import RemoveFinalReset
-from .optimization import RemoveDiagonalGatesBeforeMeasure
-from .optimization import HoareOptimizer
-from .optimization import TemplateOptimization
-from .optimization import InverseCancellation
-from .optimization import CollectAndCollapse
-from .optimization import CollectLinearFunctions
-from .optimization import CollectCliffords
-from .optimization import ResetAfterMeasureSimplification
-from .optimization import OptimizeCliffords
-from .optimization import ElidePermutations
-from .optimization import OptimizeAnnotated
-from .optimization import RemoveIdentityEquivalent
-from .optimization import Split2QUnitaries
+from .optimization import ConsolidateBlocks
 from .optimization import ContractIdleWiresInControlFlow
+from .optimization import ElidePermutations
+from .optimization import HoareOptimizer
+from .optimization import InverseCancellation
+from .optimization import Optimize1qGates
+from .optimization import Optimize1qGatesDecomposition
+from .optimization import Optimize1qGatesSimpleCommutation
+from .optimization import OptimizeAnnotated
 from .optimization import OptimizeCliffordT
+from .optimization import OptimizeCliffords
+from .optimization import OptimizeSwapBeforeMeasure
+from .optimization import RemoveDiagonalGatesBeforeMeasure
+from .optimization import RemoveFinalReset
+from .optimization import RemoveIdentityEquivalent
+from .optimization import RemoveResetInZeroState
+from .optimization import ResetAfterMeasureSimplification
+from .optimization import Split2QUnitaries
+from .optimization import TemplateOptimization
 
 # circuit analysis
-from .analysis import ResourceEstimation
-from .analysis import Depth
-from .analysis import Size
-from .analysis import Width
 from .analysis import CountOps
 from .analysis import CountOpsLongestPath
-from .analysis import NumTensorFactors
 from .analysis import DAGLongestPath
+from .analysis import Depth
+from .analysis import NumTensorFactors
+from .analysis import ResourceEstimation
+from .analysis import Size
+from .analysis import Width
 
 # synthesis
-from .synthesis import UnitarySynthesis
-from .synthesis import unitary_synthesis_plugin_names
-from .synthesis import LinearFunctionsToPermutations
-from .synthesis import HighLevelSynthesis
+from .synthesis import AQCSynthesisPlugin
+from .synthesis import CliffordUnitarySynthesis
 from .synthesis import HLSConfig
+from .synthesis import HighLevelSynthesis
+from .synthesis import LinearFunctionsToPermutations
 from .synthesis import SolovayKitaev
 from .synthesis import SolovayKitaevSynthesis
-from .synthesis import CliffordUnitarySynthesis
-from .synthesis import AQCSynthesisPlugin
+from .synthesis import UnitarySynthesis
+from .synthesis import unitary_synthesis_plugin_names
 
 # circuit scheduling
-from .scheduling import TimeUnitConversion
 from .scheduling import ALAPScheduleAnalysis
 from .scheduling import ASAPScheduleAnalysis
-from .scheduling import PadDynamicalDecoupling
-from .scheduling import PadDelay
 from .scheduling import ConstrainedReschedule
-from .scheduling import InstructionDurationCheck
-from .scheduling import SetIOLatency
 from .scheduling import ContextAwareDynamicalDecoupling
+from .scheduling import InstructionDurationCheck
+from .scheduling import PadDelay
+from .scheduling import PadDynamicalDecoupling
+from .scheduling import SetIOLatency
+from .scheduling import TimeUnitConversion
 
 # additional utility passes
-from .utils import CheckMap
-from .utils import CheckGateDirection
-from .utils import GateDirection
 from .utils import BarrierBeforeFinalMeasurements
-from .utils import RemoveFinalMeasurements
-from .utils import MergeAdjacentBarriers
-from .utils import DAGFixedPoint
-from .utils import FixedPoint
-from .utils import MinimumPoint
-from .utils import Error
-from .utils import RemoveBarriers
+from .utils import CheckGateDirection
+from .utils import CheckMap
 from .utils import ContainsInstruction
-from .utils import GatesInBasis
-from .utils import UnrollForLoops
+from .utils import DAGFixedPoint
+from .utils import Error
 from .utils import FilterOpNodes
+from .utils import FixedPoint
+from .utils import GateDirection
+from .utils import GatesInBasis
+from .utils import MergeAdjacentBarriers
+from .utils import MinimumPoint
+from .utils import RemoveBarriers
+from .utils import RemoveFinalMeasurements
+from .utils import UnrollForLoops
