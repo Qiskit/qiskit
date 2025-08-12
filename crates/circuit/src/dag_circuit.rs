@@ -5860,7 +5860,7 @@ impl DAGCircuit {
     ///
     /// # Arguments:
     /// * node_index: The node in the DAGCircuit to replace.
-    ///     other: The replacement DAGCircuit.
+    /// * other: The replacement DAGCircuit.
     /// * qubit_map: A mapping from the replacement DAGCircuit qubits to the replaced node's qargs.
     ///         If None, trivial mapping will be used.
     /// * clbit_map: A mapping from the replacement DAGCircuit clbits to the replaced node's clbits.
