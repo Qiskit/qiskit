@@ -16,7 +16,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.target import Target
-from qiskit._accelerate import constrained_reschedule
+from qiskit._accelerate.constrained_reschedule import constrained_reschedule
 
 
 class ConstrainedReschedule(AnalysisPass):
@@ -125,7 +125,13 @@ class ConstrainedReschedule(AnalysisPass):
                 f"The input circuit {dag.name} is not scheduled. Call one of scheduling passes "
                 f"before running the {self.__class__.__name__} pass."
             )
-
         node_start_time = self.property_set["node_start_time"]
-        clbit_write_latency = self.property_set.get("clbit_write_latency", 0)     
-        constrained_reschedule(dag, node_start_time, clbit_write_latency, self.acquire_align, self.pulse_align, self.target)
+        clbit_write_latency = self.property_set.get("clbit_write_latency", 0)
+        self.property_set["node_start_time"] = constrained_reschedule(
+            dag,
+            node_start_time,
+            clbit_write_latency,
+            self.acquire_align,
+            self.pulse_align,
+            self.target,
+        )
