@@ -12,6 +12,7 @@
 
 use hashbrown::{HashMap, HashSet};
 use nalgebra::Matrix2;
+use ndarray::ArrayView2;
 use ndarray::{aview2, Array2};
 use num_complex::Complex64;
 use numpy::PyReadonlyArray2;
@@ -19,7 +20,9 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::gate_matrix::{CX_GATE, ONE_QUBIT_IDENTITY, TWO_QUBIT_IDENTITY};
+use qiskit_circuit::gate_matrix::{
+    CX_GATE, CZ_GATE, ECR_GATE, ISWAP_GATE, ONE_QUBIT_IDENTITY, TWO_QUBIT_IDENTITY,
+};
 use qiskit_circuit::imports::{QI_OPERATOR, QUANTUM_CIRCUIT};
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::{ArrayType, Operation, Param, UnitaryGate};
@@ -69,6 +72,16 @@ static KAK_GATES_PARAM: [StandardGate; 8] = [
     StandardGate::CRZ,
 ];
 
+fn get_matrix(gate: &StandardGate) -> ArrayView2<Complex64> {
+    match gate {
+        StandardGate::CX => aview2(&CX_GATE),
+        StandardGate::CZ => aview2(&CZ_GATE),
+        StandardGate::ECR => aview2(&ECR_GATE),
+        StandardGate::ISwap => aview2(&ISWAP_GATE),
+        _ => unreachable!("Unsupported gate"),
+    }
+}
+
 /// Helper function that extracts the decomposer and basis gate directly from the [Target].
 #[inline]
 fn get_decomposer_and_basis_gate(
@@ -100,18 +113,24 @@ fn get_decomposer_and_basis_gate(
                 .try_standard_gate()
                 .and_then(|gate| KAK_GATES.contains(&gate).then_some(gate))
         }) {
-            return (DecomposerType::TwoQubitBasis(
-                TwoQubitBasisDecomposer::new_inner(
-                    gate.into(),
-                    SmallVec::default(),
-                    gate.matrix(&[]).unwrap_or_else(|| panic!("Error while obtaining the matrix form of gate '{}' without params.", gate.name())).view(),
-                    approximation_degree,
-                    "U",
-                    None,
-                )
-                .unwrap_or_else(|_| panic!("Error while creating Basis Decomposer using a {} gate.",
-                    gate.name()))),
-                gate
+            return (
+                DecomposerType::TwoQubitBasis(
+                    TwoQubitBasisDecomposer::new_inner(
+                        gate.into(),
+                        SmallVec::default(),
+                        get_matrix(&gate),
+                        approximation_degree,
+                        "U",
+                        None,
+                    )
+                    .unwrap_or_else(|_| {
+                        panic!(
+                            "Error while creating Basis Decomposer using a {} gate.",
+                            gate.name()
+                        )
+                    }),
+                ),
+                gate,
             );
         }
     }
