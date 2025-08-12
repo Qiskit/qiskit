@@ -1585,7 +1585,7 @@ impl CircuitData {
 
     #[staticmethod]
     #[pyo3(name = "draw")]
-    fn py_drawer(py: Python, quantum_circuit: &Bound<PyAny>) -> PyResult<Py<PyString>> {
+    fn py_drawer(py: Python, quantum_circuit: &Bound<PyAny>) -> PyResult<()> {
 
         if !quantum_circuit.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
             return Err(PyTypeError::new_err(
@@ -1595,10 +1595,9 @@ impl CircuitData {
         
         let circuit_data: CircuitData = quantum_circuit.getattr("_data")?.extract()?;
         
-        // Execute the drawing logic on the extracted CircuitData
-        let drawing = circuit_data.circuit_draw();
+        circuit_data.circuit_draw();
         
-        Ok(PyString::new(py, &drawing).unbind())
+        Ok(())
     }
 
     /// Add a captured variable to the circuit.
@@ -2892,57 +2891,126 @@ impl CircuitData {
         Ok(var_idx)
     }
 
-    pub fn circuit_draw(&self) -> String {
+    // pub fn circuit_draw(&self) -> String {
 
-        let ct_qubits = self.qubits.len();
-        let ct_clbits = self.clbits.len();
-        println!("ct_qubits: {}, ct_clbits: {}", ct_qubits, ct_clbits);
-        let q_wires_rep: usize = ct_qubits * 3;
-        let c_wires_rep = ct_clbits * 3;
-        println!("q_wires: {}, c_wires: {}", q_wires_rep, c_wires_rep);
+    //     let ct_qubits = self.qubits.len();
+    //     let ct_clbits = self.clbits.len();
+    //     println!("ct_qubits: {}, ct_clbits: {}", ct_qubits, ct_clbits);
+    //     let q_wires_rep: usize = ct_qubits * 3;
+    //     let c_wires_rep = ct_clbits * 3;
+    //     println!("q_wires: {}, c_wires: {}", q_wires_rep, c_wires_rep);
 
-        let mut res = vec![" ".to_string(); (ct_qubits + ct_clbits) * 3];
+    //     let mut res = vec![" ".to_string(); (ct_qubits + ct_clbits) * 3];
         
-        for i in 1..q_wires_rep {
-            if (i-1) % 3 == 0 && (i-1) % 3 <= ct_qubits as usize {
-                res[i].push_str(format!("q_{}", (i-1)/3).as_str());
-            } else {
-                res[i].push_str("   ");
-            }
-        }
+    //     for i in 1..q_wires_rep {
+    //         if (i-1) % 3 == 0 && (i-1) % 3 <= ct_qubits as usize {
+    //             res[i].push_str(format!("q_{}", (i-1)/3).as_str());
+    //         } else {
+    //             res[i].push_str("   ");
+    //         }
+    //     }
 
-        for i in 0..ct_clbits {
-            if (i-1) % 3 == 0 {
-                res[ct_qubits + i].push_str(format!("c_{}", i).as_str());
-            } else {
-                res[ct_qubits + i].push_str("   ");
-            }
+    //     for i in 0..ct_clbits {
+    //         if (i-1) % 3 == 0 {
+    //             res[ct_qubits + i].push_str(format!("c_{}", i).as_str());
+    //         } else {
+    //             res[ct_qubits + i].push_str("   ");
+    //         }
+    //     }
+        
+    //     for i in self.data().iter() {
+    //         println!("op: {}, qubits: {:?}, clbits: {:?}", i.op.name(), i.qubits, i.clbits);
+    //     }
+
+    //     for (i, inst) in self.data.iter().enumerate(){
+    //         let name = inst.op.name().to_ascii_uppercase();
+    //         let qubits = self.qargs_interner.get(inst.qubits);
+    //         let clbits = self.cargs_interner.get(inst.clbits);
+    //         for (j, qubit) in qubits.iter().enumerate() {
+    //             let index: usize = (qubit.0 * 3 + 1) as usize;
+    //             for k in 0..q_wires_rep {
+    //                 if k == index {
+    //                     res[index].push_str(&format!("-{}-", name));
+    //                 } else if (k - 1)%3 == 0{
+    //                     res[k].push_str("---");
+    //                 } else {
+    //                     res[k].push_str("   ");
+    //                 }
+    //             }  
+    //         }
+    //     }
+    //     //collect all strings and return
+    //     res.iter().map(|s| s.as_str()).collect::<Vec<&str>>().join("\n")
+
+    // }
+
+    pub fn circuit_draw(&self) {
+        use crate::converters::circuit_to_dag;
+        use crate::converters::QuantumCircuitData;
+        use crate::dag_circuit::NodeType;
+        
+        let quantum_circuit_data = QuantumCircuitData {
+            data: self.clone(),
+            name: None,
+            metadata: None,
+        };
+        let dag_circuit = circuit_to_dag(quantum_circuit_data, true, None, None)
+            .expect("Failed to convert circuit data to DAGCircuit");
+
+        let mut output = String::new();
+        output.push_str("DAG Circuit Operations:\n");
+        output.push_str(&format!("Number of qubits: {}\n", dag_circuit.num_qubits()));
+        output.push_str(&format!("Number of operations: {}\n", dag_circuit.num_ops()));
+        output.push_str("Operations:\n");
+
+        let layer_iterator = dag_circuit.multigraph_layers();
+        for (layer_index, layer) in layer_iterator.enumerate() {
+        output.push_str(&format!("Layer {}:\n", layer_index));
+        
+        // Filter for operation nodes only
+        let operations: Vec<_> = layer
+            .into_iter()
+            .filter_map(|node_index| {
+                match &dag_circuit.dag()[node_index] {
+                    NodeType::Operation(instruction) => Some((node_index, instruction)),
+                    _ => None, // Skip input/output nodes
+                }
+            })
+            .collect();
+        
+        if operations.is_empty() {
+            continue; // Skip layers with no operations
         }
         
-        for i in self.data().iter() {
-            println!("op: {}, qubits: {:?}, clbits: {:?}", i.op.name(), i.qubits, i.clbits);
-        }
-
-        for (i, inst) in self.data.iter().enumerate(){
-            let name = inst.op.name().to_ascii_uppercase();
-            let qubits = self.qargs_interner.get(inst.qubits);
-            let clbits = self.cargs_interner.get(inst.clbits);
-            for (j, qubit) in qubits.iter().enumerate() {
-                let index: usize = (qubit.0 * 3 + 1) as usize;
-                for k in 0..q_wires_rep {
-                    if k == index {
-                        res[index].push_str(&format!("-{}-", name));
-                    } else if (k - 1)%3 == 0{
-                        res[k].push_str("---");
-                    } else {
-                        res[k].push_str("   ");
-                    }
-                }  
+        for (node_index, instruction) in operations {
+            let op_name = instruction.op.name();
+            let qubits = dag_circuit.qargs_interner().get(instruction.qubits);
+            let clbits = dag_circuit.cargs_interner().get(instruction.clbits);
+            
+            let qubit_str = qubits.iter()
+                .map(|q| q.0.to_string())
+                .collect::<Vec<_>>()
+                .join(",");
+                
+            let clbit_str = clbits.iter()
+                .map(|c| c.0.to_string())
+                .collect::<Vec<_>>()
+                .join(",");
+            
+            output.push_str(&format!(
+                "  Node {}: {} qubits=[{}] clbits=[{}]\n",
+                node_index.index(), op_name, qubit_str, clbit_str
+            ));
+            
+            // Print parameters if any
+            let params = instruction.params_view();
+            if !params.is_empty() {
+                output.push_str(&format!("    params: {:?}\n", params));
             }
         }
-        //collect all strings and return
-        res.iter().map(|s| s.as_str()).collect::<Vec<&str>>().join("\n")
+    }
 
+        println!("{}",output);
     }
 
     /// Return a variable given its unique [Var] index in the circuit or
