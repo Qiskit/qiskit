@@ -636,40 +636,38 @@ fn commutation_precheck(
 }
 
 fn get_matrix(operation: &OperationRef, params: &[Param]) -> Option<Array2<Complex64>> {
-    if let Some(matrix) = operation.matrix(params) {
-        Some(matrix)
-    } else {
-        match operation {
-            OperationRef::Gate(gate) => Python::with_gil(|py| -> Option<_> {
-                Some(
-                    QI_OPERATOR
-                        .get_bound(py)
-                        .call1((gate.gate.clone_ref(py),))
-                        .ok()?
-                        .getattr(intern!(py, "data"))
-                        .ok()?
-                        .extract::<PyReadonlyArray2<Complex64>>()
-                        .ok()?
-                        .as_array()
-                        .to_owned(),
-                )
-            }),
-            OperationRef::Operation(operation) => Python::with_gil(|py| -> Option<_> {
-                Some(
-                    QI_OPERATOR
-                        .get_bound(py)
-                        .call1((operation.operation.clone_ref(py),))
-                        .ok()?
-                        .getattr(intern!(py, "data"))
-                        .ok()?
-                        .extract::<PyReadonlyArray2<Complex64>>()
-                        .ok()?
-                        .as_array()
-                        .to_owned(),
-                )
-            }),
-            _ => None,
-        }
+    match operation {
+        OperationRef::StandardGate(gate) => gate.matrix(params),
+        OperationRef::Unitary(unitary) => unitary.matrix(),
+        OperationRef::Gate(gate) => Python::with_gil(|py| -> Option<_> {
+            Some(
+                QI_OPERATOR
+                    .get_bound(py)
+                    .call1((gate.gate.clone_ref(py),))
+                    .ok()?
+                    .getattr(intern!(py, "data"))
+                    .ok()?
+                    .extract::<PyReadonlyArray2<Complex64>>()
+                    .ok()?
+                    .as_array()
+                    .to_owned(),
+            )
+        }),
+        OperationRef::Operation(operation) => Python::with_gil(|py| -> Option<_> {
+            Some(
+                QI_OPERATOR
+                    .get_bound(py)
+                    .call1((operation.operation.clone_ref(py),))
+                    .ok()?
+                    .getattr(intern!(py, "data"))
+                    .ok()?
+                    .extract::<PyReadonlyArray2<Complex64>>()
+                    .ok()?
+                    .as_array()
+                    .to_owned(),
+            )
+        }),
+        _ => None,
     }
 }
 
