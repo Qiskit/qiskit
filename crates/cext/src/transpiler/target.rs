@@ -31,11 +31,7 @@ use smallvec::{smallvec, SmallVec};
 /// @return A pointer to the new ``QkTarget``
 ///
 /// # Example
-<<<<<<< HEAD
-///     
-=======
 /// ```c
->>>>>>> f57bd12b3 (Address C API documentation issues (#14851))
 ///     QkTarget *target = qk_target_new(5);
 /// ```
 ///
@@ -65,11 +61,7 @@ pub extern "C" fn qk_target_new(num_qubits: u32) -> *mut Target {
 /// @return The number of qubits this target can use.
 ///
 /// # Example
-<<<<<<< HEAD
-///     
-=======
 /// ```c
->>>>>>> f57bd12b3 (Address C API documentation issues (#14851))
 ///     QkTarget *target = qk_target_new(5);
 ///     uint32_t num_qubits = qk_target_num_qubits(target);
 /// ```
@@ -368,11 +360,7 @@ pub unsafe extern "C" fn qk_target_set_acquire_alignment(
 /// @return A pointer to the new copy of the ``QkTarget``.
 ///
 /// # Example
-<<<<<<< HEAD
-///     
-=======
 /// ```c
->>>>>>> f57bd12b3 (Address C API documentation issues (#14851))
 ///     QkTarget *target = qk_target_new(5);
 ///     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
 ///     uint32_t qargs[2] = {0, 1};
@@ -400,11 +388,7 @@ pub unsafe extern "C" fn qk_target_copy(target: *mut Target) -> *mut Target {
 /// @param target A pointer to the ``QkTarget`` to free.
 ///
 /// # Example
-<<<<<<< HEAD
-///     
-=======
 /// ```c
->>>>>>> f57bd12b3 (Address C API documentation issues (#14851))
 ///     QkTarget *target = qk_target_new(5);
 ///     qk_target_free(target);
 /// ```
@@ -525,7 +509,7 @@ pub extern "C" fn qk_target_entry_new(operation: StandardGate) -> *mut TargetEnt
 ///         uint32_t qargs[1] = {i};
 ///         qk_target_entry_add_property(entry, qargs, 1, 1.928e-10, 7.9829e-11);
 ///     }
-///     
+///
 ///     // Add the entry to a target with 5 qubits
 ///     QkTarget *measure_target = qk_target_new(5);
 ///     qk_target_add_instruction(measure_target, entry);
@@ -552,7 +536,7 @@ pub extern "C" fn qk_target_entry_new_measure() -> *mut TargetEntry {
 ///         uint32_t qargs[1] = {i};
 ///         qk_target_entry_add_property(entry, qargs, 1, 1.2e-11, 5.9e-13);
 ///     }
-///     
+///
 ///     // Add the entry to a target with 3 qubits
 ///     QkTarget *reset_target = qk_target_new(3);
 ///     qk_target_add_instruction(reset_target, entry);
@@ -725,11 +709,7 @@ pub unsafe extern "C" fn qk_target_entry_add_property(
 /// @return ``QkExitCode`` specifying if the operation was successful.
 ///
 /// # Example
-<<<<<<< HEAD
-///     
-=======
 /// ```c
->>>>>>> f57bd12b3 (Address C API documentation issues (#14851))
 ///     QkTarget *target = qk_target_new(5);
 ///     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
 ///     uint32_t qargs[2] = {0, 1};
@@ -795,11 +775,7 @@ pub unsafe extern "C" fn qk_target_add_instruction(
 /// @return ``QkExitCode`` specifying if the operation was successful.
 ///
 /// # Example
-<<<<<<< HEAD
-///     
-=======
 /// ```c
->>>>>>> f57bd12b3 (Address C API documentation issues (#14851))
 ///     QkTarget *target = qk_target_new(5);
 ///     double params[1] = {3.1415};
 ///     QkTargetEntry *entry = qk_target_entry_new_fixed(QkGate_CRX, params);
@@ -860,11 +836,7 @@ pub unsafe extern "C" fn qk_target_update_property(
 /// @return The length of the target.
 ///
 /// # Example
-<<<<<<< HEAD
-///     
-=======
 /// ```c
->>>>>>> f57bd12b3 (Address C API documentation issues (#14851))
 ///     QkTarget *target = qk_target_new(5);
 ///     QkTargetEntry *target_entry = qk_target_entry_new(QkGate_H);
 ///     qk_target_add_instruction(target, target_entry);
