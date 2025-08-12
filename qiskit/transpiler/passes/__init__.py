@@ -117,14 +117,14 @@ Circuit Analysis
 .. autosummary::
    :toctree: ../stubs/
 
-   Width
-   Depth
-   Size
    CountOps
    CountOpsLongestPath
-   NumTensorFactors
    DAGLongestPath
+   Depth
+   NumTensorFactors
    ResourceEstimation
+   Size
+   Width
 
 Synthesis
 =========
@@ -234,14 +234,14 @@ from .optimization import Split2QUnitaries
 from .optimization import TemplateOptimization
 
 # circuit analysis
-from .analysis import ResourceEstimation
-from .analysis import Depth
-from .analysis import Size
-from .analysis import Width
 from .analysis import CountOps
 from .analysis import CountOpsLongestPath
-from .analysis import NumTensorFactors
 from .analysis import DAGLongestPath
+from .analysis import Depth
+from .analysis import NumTensorFactors
+from .analysis import ResourceEstimation
+from .analysis import Size
+from .analysis import Width
 
 # synthesis
 from .synthesis import AQCSynthesisPlugin
