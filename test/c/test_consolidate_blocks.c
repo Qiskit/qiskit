@@ -42,10 +42,9 @@ int test_consolidate_small_block(void) {
     qk_circuit_gate(circuit, QkGate_CX, cx_qargs, NULL);
 
     // Run pass, without Target
-    QkCircuit *circ_result =
-        qk_transpiler_pass_standalone_consolidate_blocks(circuit, NULL, 1.0, true);
+    qk_transpiler_pass_standalone_consolidate_blocks(circuit, NULL, 1.0, true);
 
-    QkOpCounts counts = qk_circuit_count_ops(circ_result);
+    QkOpCounts counts = qk_circuit_count_ops(circuit);
 
     if (counts.len != 1) {
         result = EqualityError;
@@ -54,7 +53,6 @@ int test_consolidate_small_block(void) {
 
 cleanup:
     qk_opcounts_free(counts);
-    qk_circuit_free(circ_result);
     qk_circuit_free(circuit);
     return result;
 }
@@ -72,10 +70,9 @@ int test_wire_order(void) {
     qk_circuit_gate(circuit, QkGate_CX, cx_qargs, NULL);
 
     // Run pass, without Target
-    QkCircuit *circ_result =
-        qk_transpiler_pass_standalone_consolidate_blocks(circuit, NULL, 1.0, true);
+    qk_transpiler_pass_standalone_consolidate_blocks(circuit, NULL, 1.0, true);
 
-    QkOpCounts counts = qk_circuit_count_ops(circ_result);
+    QkOpCounts counts = qk_circuit_count_ops(circuit);
 
     if (counts.len != 1) {
         result = EqualityError;
@@ -83,7 +80,7 @@ int test_wire_order(void) {
     }
 
     QkCircuitInstruction *instruction = malloc(sizeof(QkCircuitInstruction));
-    qk_circuit_get_instruction(circ_result, 0, instruction);
+    qk_circuit_get_instruction(circuit, 0, instruction);
 
     uint32_t new_cx_qargs[2] = {0, 1};
     if (!args_cmp(new_cx_qargs, 2, instruction->qubits, instruction->num_qubits)) {
@@ -95,7 +92,6 @@ clean_instr:
 cleanup:
     qk_opcounts_free(counts);
     qk_circuit_free(circuit);
-    qk_circuit_free(circ_result);
     return result;
 }
 
@@ -121,10 +117,9 @@ int test_3q_blocks(void) {
     qk_circuit_gate(circuit, QkGate_CX, cx_qargs_1, NULL);
 
     // Run pass, without Target
-    QkCircuit *circ_result =
-        qk_transpiler_pass_standalone_consolidate_blocks(circuit, NULL, 1.0, true);
+    qk_transpiler_pass_standalone_consolidate_blocks(circuit, NULL, 1.0, true);
 
-    QkOpCounts counts = qk_circuit_count_ops(circ_result);
+    QkOpCounts counts = qk_circuit_count_ops(circuit);
     if (counts.len != 1) {
         result = EqualityError;
         goto cleanup;
@@ -133,7 +128,6 @@ int test_3q_blocks(void) {
 cleanup:
     qk_opcounts_free(counts);
     qk_circuit_free(circuit);
-    qk_circuit_free(circ_result);
     return result;
 }
 

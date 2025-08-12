@@ -15,7 +15,7 @@ use qiskit_circuit::{
 };
 use qiskit_transpiler::{passes::run_consolidate_blocks, target::Target};
 
-use crate::pointers::const_ptr_as_ref;
+use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 
 /// @ingroup QkTranspilerPasses
 /// Run the ConsolidateBlocks pass on a circuit.
@@ -36,12 +36,12 @@ use crate::pointers::const_ptr_as_ref;
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_consolidate_blocks(
-    circuit: *const CircuitData,
+    circuit: *mut CircuitData,
     target: *const Target,
     approximation_degree: f64,
     force_consolidate: bool,
-) -> *mut CircuitData {
-    let circuit = unsafe { const_ptr_as_ref(circuit) };
+) {
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
     let target = unsafe {
         if target.is_null() {
             None
@@ -68,5 +68,5 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_consolidate_blocks(
 
     let result_circuit = dag_to_circuit(&circ_as_dag, true)
         .expect("Error while converting from DAGCircuit to CircuitData.");
-    Box::into_raw(Box::new(result_circuit))
+    *circuit = result_circuit;
 }
