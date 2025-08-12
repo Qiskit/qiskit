@@ -227,7 +227,7 @@ def format_entry(key, value):
         return buf.getvalue()
 
 
-def _dump_commuting_dict_as_python(
+def _dump_commuting_dict_as_rust(
     commutations: dict, file_name: str = "../standard_gates_commutations.rs"
 ):
     """Write commutation dictionary as python object to ../standard_gates_commutations.rs.
@@ -268,7 +268,6 @@ def _dump_commuting_dict_as_python(
         for k, v in other_commutations.items():
             fp.write("    let commutation_map = [\n")
             for entry_key, entry_val in v.items():
-
                 fp.write(f"        {format_entry(entry_key, entry_val)},\n")
             fp.write("    ]\n")
             fp.write("    .into_iter()\n")
