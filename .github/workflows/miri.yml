@@ -14,7 +14,7 @@ jobs:
     name: Miri
     runs-on: ubuntu-latest
     env:
-      RUSTUP_TOOLCHAIN: nightly-2025-08-11
+      RUSTUP_TOOLCHAIN: nightly-2025-06-11
 
     steps:
       - uses: actions/checkout@v4
@@ -22,7 +22,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain:  nightly-2025-08-11
+          toolchain:  nightly-2025-06-11
           components: miri
 
       - name: Prepare Miri
