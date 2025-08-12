@@ -1,0 +1,61 @@
+// (C) Copyright IBM 2025
+//
+// This code is licensed under the Apache License, Version 2.0. You may
+// obtain a copy of this license in the LICENSE.txt file in the root directory
+// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+//
+// Any modifications or derivative works of this code must retain this
+// copyright notice, and modified files need to carry a notice indicating
+// that they have been altered from the originals.
+use crate::pointers::mut_ptr_as_ref;
+use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::converters::dag_to_circuit;
+use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_transpiler::passes::run_basis_translator;
+use qiskit_transpiler::standard_equivalence_library::generate_standard_equivalence_library;
+use qiskit_transpiler::target::Target;
+
+/// @ingroup QkTranspilerPasses
+/// Run the BasisTranslator transpiler pass on a circuit.
+///
+/// The BasisTranslator transpiler pass translates gates to a target basis by
+/// searching for a set of translations from the standard EquivalenceLibrary.
+///
+/// @param circuit A pointer to the circuit to run BasisTranslator on
+/// @param min_qubits The minimum number of qubits for operations in the input
+/// ciruit to translate.
+/// @param target The target where we will obtain basis gates from.
+///
+/// @returns A pointer to the resulting circuit from running the pass. If no
+/// modifications are made, it will return a pointer to the same circuit it was
+/// provided. Otherwise it will point to a new circuit instance.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` and/or ``target`` are not valid, non-null
+/// pointers to a ``QkCircuit`` or ``QkTarget``.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_transpiler_pass_standalone_basis_translator(
+    circuit: *mut CircuitData,
+    min_qubits: usize,
+    target: *mut Target,
+) -> *mut CircuitData {
+    let circ_from_ptr = unsafe { mut_ptr_as_ref(circuit) };
+    let target = unsafe { mut_ptr_as_ref(target) };
+    let dag = match DAGCircuit::from_circuit_data(circ_from_ptr, false, None, None, None, None) {
+        Ok(dag) => dag,
+        Err(e) => panic!("{}", e),
+    };
+
+    let mut equiv_lib = generate_standard_equivalence_library();
+
+    let result_dag =
+        match run_basis_translator(&dag, &mut equiv_lib, min_qubits, Some(target), None) {
+            Ok(Some(dag)) => dag,
+            Ok(None) => return circuit,
+            Err(e) => panic!("{}", e),
+        };
+    let result_circ = dag_to_circuit(&result_dag, false).expect("DAG to Circuit conversion failed");
+    Box::into_raw(Box::new(result_circ))
+}

@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+pub mod basis_translator;
 pub mod elide_permutations;
 pub mod gate_direction;
 pub mod inverse_cancellation;
