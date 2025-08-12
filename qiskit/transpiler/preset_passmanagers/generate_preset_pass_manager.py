@@ -263,13 +263,14 @@ def generate_preset_pass_manager(
                 )
 
     # Update loose constraints to populate pm options
+    # Added the new is_empty method to the TimingConstraints class
     if coupling_map is None:
         coupling_map = target.build_coupling_map()
     if basis_gates is None and len(target.operation_names) > 0:
         basis_gates = target.operation_names
     if instruction_durations is None:
         instruction_durations = target.durations()
-    if timing_constraints is None:
+    if timing_constraints is None or timing_constraints.is_empty():
         timing_constraints = target.timing_constraints()
 
     # Parse non-target dependent pm options
