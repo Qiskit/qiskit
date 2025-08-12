@@ -40,24 +40,13 @@ use qiskit_transpiler::{passes::run_optimize_1q_gates_decomposition, target::Tar
 ///
 /// # Example
 ///
-///     QkTarget *target_u1_u2_u3 = qk_target_new(1);
+///     QkTarget *target = qk_target_new(1);
 ///
 ///     double u_errors[3] = {0., 1e-4, 1e-4};
-///     QkGate u_gates[3] = {QkGate_U1, QkGate_U2, QkGate_U3};
-///     // TODO: Update this part to use parameters once we support them.
-///     double u1_params[1] = {3.14};
-///     double u2_params[2] = {3.14, 3.14 / 2.};
-///     double u3_params[3] = {3.14, 3.14 / 2., 3.14 / 4.};
-///
-///     double **u_params = {u1_params, u2_params, u3_params};
-///     for (int idx = 0; idx < 3; idx++) {
-///         QkTargetEntry *u_entry = qk_target_entry_new_fixed(u_gates[idx], u_params[idx]);
-///         uint32_t qargs[1] = {
-///             0,
-///         };
+///         QkTargetEntry *u_entry = qk_target_entry_new(QkGate_U);
+///         uint32_t qargs[1] = {0,};
 ///         qk_target_entry_add_property(u_entry, qargs, 1, NAN, u_errors[idx]);
-///         qk_target_add_instruction(target_u1_u2_u3, u_entry);
-///     }
+///         qk_target_add_instruction(target, u_entry);
 ///
 ///     // Build circuit
 ///     QkCircuit *circuit = qk_circuit_new(1, 0);
@@ -71,7 +60,7 @@ use qiskit_transpiler::{passes::run_optimize_1q_gates_decomposition, target::Tar
 ///         qk_transpiler_standalone_optimize_1q_gates_decomposition(circuit, target);
 ///     
 ///     // Clean up
-///     qk_target_free(target_u1_u2_u3);
+///     qk_target_free(target);
 ///     qk_circuit_free(circuit);
 ///     qk_circuit_free(circuit_result);
 ///
