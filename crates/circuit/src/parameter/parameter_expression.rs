@@ -890,23 +890,14 @@ impl PyParameterExpression {
     pub fn gradient(&self, param: &Bound<'_, PyAny>) -> PyResult<PyObject> {
         let symbol = symbol_from_py_parameter(param)?;
         let d_expr = self.inner.derivative(&symbol)?;
-    
-        if d_expr.expr.parameters().is_empty() {
-            if let Some(val) = d_expr.expr.eval(true) {
-                match val {
-                    Value::Real(r) => Ok(r.into_py_any(param.py())?),
-                    Value::Int(i) => Ok(i.into_py_any(param.py())?),
-                    Value::Complex(c) => Ok(c.into_py_any(param.py())?),
-                }
-            } else {
-                Ok(Py::new(param.py(), PyParameterExpression::from(d_expr))?
-                    .into_any()
-                    .into())
-            }
-        } else {
-            Ok(Py::new(param.py(), PyParameterExpression::from(d_expr))?
-                .into_any()
-                .into())
+
+        match d_expr.try_to_value(true) {
+            Ok(val) => match val {
+                Value::Real(r) => Ok(r.into_py_any(param.py())?),
+                Value::Int(i) => Ok(i.into_py_any(param.py())?),
+                Value::Complex(c) => Ok(c.into_py_any(param.py())?),
+            },
+            Err(_) => Ok(Py::new(param.py(), PyParameterExpression::from(d_expr))?.into_any()),
         }
     }
 
