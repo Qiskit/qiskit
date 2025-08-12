@@ -21,6 +21,8 @@ from qiskit.synthesis.arithmetic.adders import (
     adder_modular_v17,
 )
 from qiskit.transpiler import generate_preset_pass_manager
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit.library.arithmetic.adders import ModularAdderGate
 
 
 @ddt
@@ -29,11 +31,24 @@ class TestAdderSynthesisCounts(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
+        # Need optimization level 2 for small modular adder counts
         self.pm = generate_preset_pass_manager(
-            optimization_level=0, basis_gates=["u", "cx"], seed_transpiler=12345
+            optimization_level=2, basis_gates=["u", "cx"], seed_transpiler=12345
         )
 
-    @data(*range(2, 12, 2))
+    @data(*range(1, 6))
+    def test_small_modular_adder_cx_count(self, num_ctrl_gates: int):
+        """Test gate counts of small modular adder."""
+
+        qc = QuantumCircuit(2 * num_ctrl_gates)
+        qc.append(ModularAdderGate(num_ctrl_gates), range(2 * num_ctrl_gates))
+        transpiled = self.pm.run(qc)
+        cx_count = transpiled.count_ops().get("cx", 0)
+
+        expected = {1: 1, 2: 10, 3: 21, 4: 40, 5: 65}
+        self.assertLessEqual(cx_count, expected[num_ctrl_gates])
+
+    @data(*range(2, 15, 2))
     def test_vrg_modular_adder_counts(self, num_qubits):
         """Test gate counts of VRG modular adder."""
         qc = adder_modular_v17(num_qubits)
