@@ -53,81 +53,75 @@ use crate::target::Qargs;
 use crate::target::QargsRef;
 use crate::target::Target;
 
-type InstMap = IndexMap<GateIdentifier, BasisTransformOut, ahash::RandomState>;
-type ExtraInstructionMap<'a> = IndexMap<&'a PhysicalQargs, InstMap, ahash::RandomState>;
+type AhashIndexMap<K, V> = IndexMap<K, V, ahash::RandomState>;
+type AhashIndexSet<O> = IndexSet<O, ahash::RandomState>;
+type InstMap = AhashIndexMap<GateIdentifier, BasisTransformOut>;
+type ExtraInstructionMap<'a> = AhashIndexMap<&'a PhysicalQargs, InstMap>;
 type PhysicalQargs = SmallVec<[PhysicalQubit; 2]>;
 
-#[allow(clippy::too_many_arguments)]
-#[pyfunction(name = "base_run", signature = (dag, equiv_lib, qargs_with_non_global_operation, min_qubits, target_basis=None, target=None, non_global_operations=None))]
+#[pyfunction(name = "base_run", signature = (dag, equiv_lib, min_qubits, target=None, target_basis=None))]
 fn py_run_basis_translator(
     dag: DAGCircuit,
     equiv_lib: &mut EquivalenceLibrary,
-    qargs_with_non_global_operation: HashMap<Qargs, HashSet<String>>,
     min_qubits: usize,
+    target: Option<&mut Target>,
     target_basis: Option<HashSet<String>>,
-    target: Option<&Target>,
-    non_global_operations: Option<HashSet<String>>,
 ) -> PyResult<Option<DAGCircuit>> {
-    run_basis_translator(
-        dag,
-        equiv_lib,
-        qargs_with_non_global_operation,
-        min_qubits,
-        target_basis,
-        target,
-        non_global_operations,
-    )
-    .map_err(|e| e.to_py_err())
+    run_basis_translator(dag, equiv_lib, min_qubits, target, target_basis)
+        .map_err(|e| e.to_py_err())
 }
 
-#[allow(clippy::too_many_arguments)]
 pub fn run_basis_translator(
     dag: DAGCircuit,
     equiv_lib: &mut EquivalenceLibrary,
-    qargs_with_non_global_operation: HashMap<Qargs, HashSet<String>>,
     min_qubits: usize,
+    mut target: Option<&mut Target>,
     target_basis: Option<HashSet<String>>,
-    target: Option<&Target>,
-    non_global_operations: Option<HashSet<String>>,
 ) -> Result<Option<DAGCircuit>, BasisTranslatorError> {
     if target_basis.is_none() && target.is_none() {
         return Ok(None);
     }
 
-    let qargs_with_non_global_operation: IndexMap<
-        Qargs,
-        IndexSet<String, ahash::RandomState>,
-        ahash::RandomState,
-    > = qargs_with_non_global_operation
-        .into_iter()
-        .map(|(k, v)| {
-            (
-                k,
-                v.into_iter().collect::<IndexSet<_, ahash::RandomState>>(),
-            )
-        })
-        .collect();
+    let (non_global_operations, qargs_with_non_global_operation): (
+        Option<AhashIndexSet<String>>,
+        AhashIndexMap<Qargs, AhashIndexSet<String>>,
+    ) = if let Some(target) = target.as_deref_mut() {
+        let mut qargs_mapping: AhashIndexMap<Qargs, AhashIndexSet<String>> =
+            AhashIndexMap::default();
+        let global_set: AhashIndexSet<String> =
+            AhashIndexSet::from_iter(target.get_non_global_operation_names(false).iter().cloned());
+        for name in global_set.iter() {
+            for qarg in target[name].keys().cloned() {
+                qargs_mapping
+                    .entry(qarg)
+                    .and_modify(|val| {
+                        val.insert(name.clone());
+                    })
+                    .or_insert(AhashIndexSet::from_iter([name.clone()]));
+            }
+        }
+        (Some(global_set), qargs_mapping)
+    } else {
+        (None, AhashIndexMap::default())
+    };
 
-    let basic_instrs: IndexSet<String, ahash::RandomState>;
-    let mut source_basis: IndexSet<GateIdentifier, ahash::RandomState> = IndexSet::default();
-    let mut new_target_basis: IndexSet<String, ahash::RandomState>;
-    let mut qargs_local_source_basis: IndexMap<
-        PhysicalQargs,
-        IndexSet<GateIdentifier, ahash::RandomState>,
-        ahash::RandomState,
-    > = IndexMap::default();
-    if let Some(target) = target.as_ref() {
+    let basic_instrs: AhashIndexSet<String>;
+    let mut source_basis: AhashIndexSet<GateIdentifier> = AhashIndexSet::default();
+    let mut new_target_basis: AhashIndexSet<String>;
+    let mut qargs_local_source_basis: AhashIndexMap<PhysicalQargs, AhashIndexSet<GateIdentifier>> =
+        AhashIndexMap::default();
+    if let Some(target) = target {
         basic_instrs = ["barrier", "snapshot", "store"]
             .into_iter()
             .map(|x| x.to_string())
             .collect();
-        let non_global_str: IndexSet<&str, ahash::RandomState> =
+        let non_global_str: AhashIndexSet<&str> =
             if let Some(operations) = non_global_operations.as_ref() {
                 operations.iter().map(|x| x.as_str()).collect()
             } else {
-                IndexSet::default()
+                AhashIndexSet::default()
             };
-        let target_keys = target.keys().collect::<IndexSet<_, ahash::RandomState>>();
+        let target_keys = target.keys().collect::<AhashIndexSet<_>>();
         new_target_basis = target_keys
             .difference(&non_global_str)
             .map(|x| x.to_string())
@@ -154,16 +148,16 @@ pub fn run_basis_translator(
     // If the source basis is a subset of the target basis and we have no circuit
     // instructions on qargs that have non-global operations there is nothing to
     // translate and we can exit early.
-    let source_basis_names: IndexSet<String> = source_basis.iter().map(|x| x.0.clone()).collect();
+    let source_basis_names: AhashIndexSet<String> =
+        source_basis.iter().map(|x| x.0.clone()).collect();
     if source_basis_names.is_subset(&new_target_basis) && qargs_local_source_basis.is_empty() {
         return Ok(None);
     }
     let basis_transforms = basis_search(equiv_lib, &source_basis, &new_target_basis);
-    let mut qarg_local_basis_transforms: IndexMap<
+    let mut qarg_local_basis_transforms: AhashIndexMap<
         &PhysicalQargs,
         Vec<(GateIdentifier, BasisTransformIn)>,
-        ahash::RandomState,
-    > = IndexMap::default();
+    > = AhashIndexMap::default();
     for (qargs, local_source_basis) in qargs_local_source_basis.iter() {
         // For any multiqubit operation that contains a subset of qubits that
         // has a non-local operation, include that non-local operation in the
@@ -172,11 +166,12 @@ pub fn run_basis_translator(
         let mut expanded_target = new_target_basis.clone();
         // Qargs are always guaranteed to be concrete based on `extract_basis_target`.
         if qargs.len() > 1 {
-            let qarg_as_set: IndexSet<PhysicalQubit> = IndexSet::from_iter(qargs.iter().copied());
+            let qarg_as_set: AhashIndexSet<PhysicalQubit> =
+                AhashIndexSet::from_iter(qargs.iter().copied());
             for (non_local_qarg, local_basis) in qargs_with_non_global_operation.iter() {
                 if let Qargs::Concrete(non_local_qarg) = non_local_qarg {
-                    let non_local_qarg_as_set: IndexSet<PhysicalQubit, ahash::RandomState> =
-                        IndexSet::from_iter(non_local_qarg.iter().copied());
+                    let non_local_qarg_as_set: AhashIndexSet<PhysicalQubit> =
+                        AhashIndexSet::from_iter(non_local_qarg.iter().copied());
                     if qarg_as_set.is_superset(&non_local_qarg_as_set) {
                         expanded_target = expanded_target.union(local_basis).cloned().collect();
                     }
@@ -229,15 +224,12 @@ pub fn run_basis_translator(
 }
 
 /// Method that extracts all gate instances identifiers from a DAGCircuit.
-fn extract_basis(
-    circuit: &DAGCircuit,
-    min_qubits: usize,
-) -> IndexSet<GateIdentifier, ahash::RandomState> {
-    let mut basis = IndexSet::default();
+fn extract_basis(circuit: &DAGCircuit, min_qubits: usize) -> AhashIndexSet<GateIdentifier> {
+    let mut basis = AhashIndexSet::default();
     // Recurse for DAGCircuit
     fn recurse_dag(
         circuit: &DAGCircuit,
-        basis: &mut IndexSet<GateIdentifier, ahash::RandomState>,
+        basis: &mut AhashIndexSet<GateIdentifier>,
         min_qubits: usize,
     ) {
         for (_node, operation) in circuit.op_nodes(true) {
@@ -255,7 +247,7 @@ fn extract_basis(
     // Recurse for QuantumCircuit
     fn recurse_circuit(
         circuit: &CircuitData,
-        basis: &mut IndexSet<GateIdentifier, ahash::RandomState>,
+        basis: &mut AhashIndexSet<GateIdentifier>,
         min_qubits: usize,
     ) {
         for inst in circuit.iter() {
@@ -280,18 +272,10 @@ fn extract_basis(
 /// to a variant design to handle instances of `QuantumCircuit`.
 fn extract_basis_target(
     dag: &DAGCircuit,
-    source_basis: &mut IndexSet<GateIdentifier, ahash::RandomState>,
-    qargs_local_source_basis: &mut IndexMap<
-        PhysicalQargs,
-        IndexSet<GateIdentifier, ahash::RandomState>,
-        ahash::RandomState,
-    >,
+    source_basis: &mut AhashIndexSet<GateIdentifier>,
+    qargs_local_source_basis: &mut AhashIndexMap<PhysicalQargs, AhashIndexSet<GateIdentifier>>,
     min_qubits: usize,
-    qargs_with_non_global_operation: &IndexMap<
-        Qargs,
-        IndexSet<String, ahash::RandomState>,
-        ahash::RandomState,
-    >,
+    qargs_with_non_global_operation: &AhashIndexMap<Qargs, AhashIndexSet<String>>,
 ) {
     for (_, node_obj) in dag.op_nodes(true) {
         let qargs: &[Qubit] = dag.get_qargs(node_obj.qubits);
@@ -308,8 +292,8 @@ fn extract_basis_target(
         // true for > 2q ops too (so for 4q operations we need to check for 3q, 2q,
         // and 1q operations in the same manner)
         let physical_qargs: PhysicalQargs = qargs.iter().map(|x| PhysicalQubit(x.0)).collect();
-        let physical_qargs_as_set: IndexSet<PhysicalQubit, ahash::RandomState> =
-            IndexSet::from_iter(physical_qargs.iter().copied());
+        let physical_qargs_as_set: AhashIndexSet<PhysicalQubit> =
+            AhashIndexSet::from_iter(physical_qargs.iter().copied());
         let physical_qargs: Qargs = physical_qargs.into();
         if qargs_with_non_global_operation.contains_key(&physical_qargs)
             || qargs_with_non_global_operation
@@ -322,8 +306,8 @@ fn extract_basis_target(
                     }
                 })
                 .any(|incomplete_qargs| {
-                    let incomplete_qargs: IndexSet<PhysicalQubit, ahash::RandomState> =
-                        IndexSet::from_iter(incomplete_qargs.iter().copied());
+                    let incomplete_qargs: AhashIndexSet<PhysicalQubit> =
+                        AhashIndexSet::from_iter(incomplete_qargs.iter().copied());
                     physical_qargs_as_set.is_superset(&incomplete_qargs)
                 })
         {
@@ -333,7 +317,7 @@ fn extract_basis_target(
                 .and_modify(|set| {
                     set.insert((node_obj.op.name().to_string(), node_obj.op.num_qubits()));
                 })
-                .or_insert(IndexSet::from_iter([(
+                .or_insert(AhashIndexSet::from_iter([(
                     node_obj.op.name().to_string(),
                     node_obj.op.num_qubits(),
                 )]));
@@ -361,18 +345,10 @@ fn extract_basis_target(
 /// TODO: pulse is removed, we can use op.blocks
 fn extract_basis_target_circ(
     circuit: &CircuitData,
-    source_basis: &mut IndexSet<GateIdentifier, ahash::RandomState>,
-    qargs_local_source_basis: &mut IndexMap<
-        PhysicalQargs,
-        IndexSet<GateIdentifier, ahash::RandomState>,
-        ahash::RandomState,
-    >,
+    source_basis: &mut AhashIndexSet<GateIdentifier>,
+    qargs_local_source_basis: &mut AhashIndexMap<PhysicalQargs, AhashIndexSet<GateIdentifier>>,
     min_qubits: usize,
-    qargs_with_non_global_operation: &IndexMap<
-        Qargs,
-        IndexSet<String, ahash::RandomState>,
-        ahash::RandomState,
-    >,
+    qargs_with_non_global_operation: &AhashIndexMap<Qargs, AhashIndexSet<String>>,
 ) {
     for node_obj in circuit.iter() {
         let qargs = circuit.get_qargs(node_obj.qubits);
@@ -389,8 +365,8 @@ fn extract_basis_target_circ(
         // true for > 2q ops too (so for 4q operations we need to check for 3q, 2q,
         // and 1q operations in the same manner)
         let physical_qargs: PhysicalQargs = qargs.iter().map(|x| PhysicalQubit(x.0)).collect();
-        let physical_qargs_as_set: IndexSet<PhysicalQubit, ahash::RandomState> =
-            IndexSet::from_iter(physical_qargs.iter().copied());
+        let physical_qargs_as_set: AhashIndexSet<PhysicalQubit> =
+            AhashIndexSet::from_iter(physical_qargs.iter().copied());
         let physical_qargs: Qargs = physical_qargs.into();
         if qargs_with_non_global_operation.contains_key(&physical_qargs)
             || qargs_with_non_global_operation
@@ -403,8 +379,8 @@ fn extract_basis_target_circ(
                     }
                 })
                 .any(|incomplete_qargs| {
-                    let incomplete_qargs: IndexSet<PhysicalQubit, ahash::RandomState> =
-                        IndexSet::from_iter(incomplete_qargs.iter().copied());
+                    let incomplete_qargs: AhashIndexSet<PhysicalQubit> =
+                        AhashIndexSet::from_iter(incomplete_qargs.iter().copied());
                     physical_qargs_as_set.is_superset(&incomplete_qargs)
                 })
         {
@@ -414,7 +390,7 @@ fn extract_basis_target_circ(
                 .and_modify(|set| {
                     set.insert((node_obj.op.name().to_string(), node_obj.op.num_qubits()));
                 })
-                .or_insert(IndexSet::from_iter([(
+                .or_insert(AhashIndexSet::from_iter([(
                     node_obj.op.name().to_string(),
                     node_obj.op.num_qubits(),
                 )]));
@@ -437,15 +413,11 @@ fn extract_basis_target_circ(
 
 fn apply_translation(
     dag: &DAGCircuit,
-    target_basis: &IndexSet<String, ahash::RandomState>,
+    target_basis: &AhashIndexSet<String>,
     instr_map: &InstMap,
     extra_inst_map: &ExtraInstructionMap,
     min_qubits: usize,
-    qargs_with_non_global_operation: &IndexMap<
-        Qargs,
-        IndexSet<String, ahash::RandomState>,
-        ahash::RandomState,
-    >,
+    qargs_with_non_global_operation: &AhashIndexMap<Qargs, AhashIndexSet<String>>,
 ) -> Result<(DAGCircuit, bool), BasisTranslatorError> {
     let mut is_updated = false;
     let out_dag = dag
@@ -459,8 +431,7 @@ fn apply_translation(
         let node_obj = dag[node].unwrap_operation();
         let node_qarg = dag.get_qargs(node_obj.qubits);
         let node_carg = dag.get_cargs(node_obj.clbits);
-        let qubit_set: IndexSet<Qubit, ahash::RandomState> =
-            IndexSet::from_iter(node_qarg.iter().copied());
+        let qubit_set: AhashIndexSet<Qubit> = AhashIndexSet::from_iter(node_qarg.iter().copied());
         let mut new_op: Option<OperationFromPython> = None;
         if target_basis.contains(node_obj.op.name()) || node_qarg.len() < min_qubits {
             if node_obj.op.control_flow() {
@@ -581,7 +552,7 @@ fn apply_translation(
 fn replace_node(
     dag: &mut DAGCircuitBuilder,
     node: PackedInstruction,
-    instr_map: &IndexMap<GateIdentifier, (SmallVec<[Param; 3]>, DAGCircuit), ahash::RandomState>,
+    instr_map: &AhashIndexMap<GateIdentifier, (SmallVec<[Param; 3]>, DAGCircuit)>,
 ) -> Result<(), BasisTranslatorError> {
     // Method to check if the operation is Rust native.
     // Should be removed in the future.
@@ -595,7 +566,7 @@ fn replace_node(
     if node.params_view().len() != target_params.len() {
         return Err(BasisTranslatorError::ReplaceNodeParamMismatch {
             node_params: format!("{:?}", node.params_view()),
-            node_name: format!("{:?}", node.op.name()),
+            node_name: node.op.name().to_string(),
             target_params: format!("{:?}", target_params),
             target_dag: format!("{:?}", target_dag),
         });

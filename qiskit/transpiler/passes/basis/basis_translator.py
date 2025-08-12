@@ -107,12 +107,6 @@ class BasisTranslator(TransformationPass):
         self._non_global_operations = None
         self._qargs_with_non_global_operation = {}
         self._min_qubits = min_qubits
-        if self._target is not None:
-            self._non_global_operations = self._target.get_non_global_operation_names()
-            self._qargs_with_non_global_operation = defaultdict(set)
-            for gate in self._non_global_operations:
-                for qarg in self._target[gate]:
-                    self._qargs_with_non_global_operation[qarg].add(gate)
 
     def run(self, dag):
         """Translate an input DAGCircuit to the target basis.
@@ -130,11 +124,9 @@ class BasisTranslator(TransformationPass):
         out = base_run(
             dag,
             self._equiv_lib,
-            self._qargs_with_non_global_operation,
             self._min_qubits,
-            None if self._target_basis is None else set(self._target_basis),
             self._target,
-            None if self._non_global_operations is None else set(self._non_global_operations),
+            None if self._target_basis is None else set(self._target_basis),
         )
         # If Rust-space basis translation returns `None`, it's because the input DAG is already
         # suitable and it didn't need to modify anything.
