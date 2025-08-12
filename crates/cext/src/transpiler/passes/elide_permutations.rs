@@ -138,7 +138,7 @@ pub unsafe extern "C" fn qk_elide_permutations_result_free(result: *mut ElidePer
 /// set during the transpilation pipeline. This pass iterates over the circuit
 /// and when a Swap gate is encountered it permutes the virtual qubits in
 /// the circuit and removes the swap gate. This will effectively remove any
-/// swap gates in the cirucit prior to running layout. This optimization is
+/// swap gates in the circuit prior to running layout. This optimization is
 /// not valid after a layout has been set and should not be run in this case.
 ///
 /// @param circuit A pointer to the circuit to run ElidePermutations on

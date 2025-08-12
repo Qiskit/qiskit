@@ -51,7 +51,8 @@ use qiskit_transpiler::target::Target;
 /// # Example
 ///
 /// ```c
-///     QkTarget *target = qk_target_new(5)
+///     QkTarget *target = qk_target_new(5);
+///     uint32_t current_num_qubits = qk_target_num_qubits(target);
 ///     QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
 ///     for (uint32_t i = 0; i < current_num_qubits - 1; i++) {
 ///         uint32_t qargs[2] = {i, i + 1};
