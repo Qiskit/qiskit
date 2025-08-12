@@ -74,6 +74,18 @@ impl QubitSparsePauliListLike for PauliLindbladMap {
             self.pauli_list().drop_paulis(indices)?
         )
     }
+
+    /// Apply a transpiler layout.
+    fn apply_layout(
+        &self,
+        layout: Option<&[u32]>,
+        num_qubits: u32,
+    ) -> Result<Self, CoherenceError> {
+        let qubit_sparse_pauli_list = self
+            .pauli_list()
+            .apply_layout(layout, num_qubits)?;
+        PauliLindbladMap::new(self.rates.clone(), qubit_sparse_pauli_list)
+    }
 }
 
 impl PauliLindbladMap {
@@ -150,18 +162,6 @@ impl PauliLindbladMap {
         self.probabilities.push(p);
         self.non_negative_rates.push(pr);
         Ok(())
-    }
-
-    /// Apply a transpiler layout.
-    pub fn apply_layout(
-        &self,
-        layout: Option<&[u32]>,
-        num_qubits: u32,
-    ) -> Result<Self, CoherenceError> {
-        let qubit_sparse_pauli_list = self
-            .qubit_sparse_pauli_list
-            .apply_layout(layout, num_qubits)?;
-        PauliLindbladMap::new(self.rates.clone(), qubit_sparse_pauli_list)
     }
 
     /// Create a new identity map (with zero generator) with pre-allocated space for the given

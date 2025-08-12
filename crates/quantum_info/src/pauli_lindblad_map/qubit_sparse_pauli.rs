@@ -268,6 +268,9 @@ pub trait QubitSparsePauliListLike {
     ///
     /// Ignores all the indices that are larger than `self.num_qubits`.
     fn drop_paulis(&self, indices: HashSet<u32>) -> Result<Self, CoherenceError> where Self: Sized;
+
+    /// Apply a transpiler layout.
+    fn apply_layout(&self, layout: Option<&[u32]>, num_qubits: u32) -> Result<Self, CoherenceError> where Self: Sized;
 }
 
 ///Implementation of QubitSparsePauliListLike for QubitSparsePauliList
@@ -344,6 +347,41 @@ impl QubitSparsePauliListLike for QubitSparsePauliList {
         Self::new(self.num_qubits(), new_paulis, new_indices, new_boundaries)
     }
 
+    /// Apply a transpiler layout.
+    fn apply_layout(
+        &self,
+        layout: Option<&[u32]>,
+        num_qubits: u32,
+    ) -> Result<Self, CoherenceError> {
+        match layout {
+            None => {
+                let mut out = self.clone();
+                if num_qubits < self.num_qubits {
+                    return Err(CoherenceError::NotEnoughQubits {
+                        current: self.num_qubits as usize,
+                        target: num_qubits as usize,
+                    });
+                }
+                out.num_qubits = num_qubits;
+                Ok(out)
+            }
+            Some(layout) => {
+                if layout.len() < self.num_qubits as usize {
+                    return Err(CoherenceError::IndexMapTooSmall);
+                }
+                if layout.iter().any(|qubit| *qubit >= num_qubits) {
+                    return Err(CoherenceError::BitIndexTooHigh);
+                }
+                if layout.iter().collect::<HashSet<_>>().len() != layout.len() {
+                    return Err(CoherenceError::DuplicateIndices);
+                }
+                let mut out = self.clone();
+                out.num_qubits = num_qubits;
+                out.relabel_qubits_from_slice(layout)?;
+                Ok(out)
+            }
+        }
+    }
 }
 
 impl QubitSparsePauliList {
@@ -564,42 +602,6 @@ impl QubitSparsePauliList {
             order.clear();
         }
         Ok(())
-    }
-
-    /// Apply a transpiler layout.
-    pub fn apply_layout(
-        &self,
-        layout: Option<&[u32]>,
-        num_qubits: u32,
-    ) -> Result<Self, CoherenceError> {
-        match layout {
-            None => {
-                let mut out = self.clone();
-                if num_qubits < self.num_qubits {
-                    return Err(CoherenceError::NotEnoughQubits {
-                        current: self.num_qubits as usize,
-                        target: num_qubits as usize,
-                    });
-                }
-                out.num_qubits = num_qubits;
-                Ok(out)
-            }
-            Some(layout) => {
-                if layout.len() < self.num_qubits as usize {
-                    return Err(CoherenceError::IndexMapTooSmall);
-                }
-                if layout.iter().any(|qubit| *qubit >= num_qubits) {
-                    return Err(CoherenceError::BitIndexTooHigh);
-                }
-                if layout.iter().collect::<HashSet<_>>().len() != layout.len() {
-                    return Err(CoherenceError::DuplicateIndices);
-                }
-                let mut out = self.clone();
-                out.num_qubits = num_qubits;
-                out.relabel_qubits_from_slice(layout)?;
-                Ok(out)
-            }
-        }
     }
 }
 
