@@ -19,25 +19,25 @@ use numpy::ndarray::{arr2, aview2, Array2, ArrayView2, ArrayViewMut2};
 use numpy::PyReadonlyArray2;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction};
 use qiskit_circuit::gate_matrix::TWO_QUBIT_IDENTITY;
 use qiskit_circuit::imports::QI_OPERATOR;
-use qiskit_circuit::operations::{ArrayType, Operation, OperationRef};
-use qiskit_circuit::packed_instruction::PackedInstruction;
+use qiskit_circuit::instruction::{InstructionView, IntoInstructionView, StandardGateView};
+use qiskit_circuit::operations::ArrayType;
 use qiskit_circuit::Qubit;
 
 use crate::versor_u2::{VersorSU2, VersorU2, VersorU2Error};
 use crate::QiskitError;
 
 #[inline]
-pub fn get_matrix_from_inst(inst: &PackedInstruction) -> PyResult<Array2<Complex64>> {
-    if let Some(mat) = inst.op.matrix(inst.params_view()) {
+pub fn get_matrix_from_inst(inst: &DAGInstruction) -> PyResult<Array2<Complex64>> {
+    if let Some(mat) = inst.view().try_matrix() {
         Ok(mat)
-    } else if inst.op.try_standard_gate().is_some() {
+    } else if inst.try_view_standard_gate().is_some() {
         Err(QiskitError::new_err(
             "Parameterized gates can't be consolidated",
         ))
-    } else if let OperationRef::Gate(gate) = inst.op.view() {
+    } else if let InstructionView::Gate(gate) = inst.view() {
         // If the operation is a custom python gate, we will acquire the gil
         // and use an Operator. Otherwise, using op.matrix() should work.
         // A user should not be able to reach this condition in Rust standalone
@@ -112,11 +112,13 @@ impl Separable1q {
 }
 
 /// Extract a versor representation of an arbitrary 1q DAG instruction.
-fn versor_from_1q_gate(inst: &PackedInstruction) -> PyResult<VersorU2> {
+fn versor_from_1q_gate(inst: &DAGInstruction) -> PyResult<VersorU2> {
     let tol = 1e-12;
-    match inst.op.view() {
-        OperationRef::StandardGate(gate) => VersorU2::from_standard(gate, inst.params_view()),
-        OperationRef::Unitary(gate) => match &gate.array {
+    match inst.view() {
+        InstructionView::StandardGate(StandardGateView(gate, params)) => {
+            VersorU2::from_standard(gate, params)
+        }
+        InstructionView::Unitary(gate) => match &gate.array {
             ArrayType::NDArray(arr) => Ok(VersorU2::from_ndarray_unchecked(&arr.view())),
             ArrayType::OneQ(arr) => Ok(VersorU2::from_nalgebra_unchecked(arr)),
             ArrayType::TwoQ(_) => Err(VersorU2Error::MultiQubit),

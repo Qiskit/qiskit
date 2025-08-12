@@ -17,20 +17,21 @@ use pyo3::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction, NodeType};
+use qiskit_circuit::instruction::IntoInstructionView;
 use qiskit_circuit::operations::{Operation, OperationRef, StandardGate};
-use qiskit_circuit::packed_instruction::PackedInstruction;
 
-fn gate_eq(gate_a: &PackedInstruction, gate_b: &OperationFromPython) -> PyResult<bool> {
+fn gate_eq(gate_a: &DAGInstruction, gate_b: &OperationFromPython) -> PyResult<bool> {
     if gate_a.op.name() != gate_b.operation.name() {
         return Ok(false);
     }
-    let a_params = gate_a.params_view();
-    if a_params.len() != gate_b.params.len() {
+    let a_params = gate_a.try_legacy_params().expect("expected gate");
+    let b_params = gate_b.try_legacy_params().expect("expected gate");
+    if a_params.len() != b_params.len() {
         return Ok(false);
     }
     let mut param_eq = true;
-    for (a, b) in a_params.iter().zip(&gate_b.params) {
+    for (a, b) in a_params.iter().zip(b_params) {
         if !a.is_close(b, 1e-10)? {
             param_eq = false;
             break;
@@ -190,7 +191,7 @@ fn std_self_inverse(dag: &mut DAGCircuit) {
         if *dag.get_op_counts().get(self_inv_gate.name()).unwrap_or(&0) <= 1 {
             continue;
         }
-        let filter = |inst: &PackedInstruction| -> bool {
+        let filter = |inst: &DAGInstruction| -> bool {
             match inst.op.view() {
                 OperationRef::StandardGate(gate) => gate == self_inv_gate,
                 _ => false,
@@ -245,7 +246,7 @@ fn std_inverse_pairs(dag: &mut DAGCircuit) {
         {
             continue;
         }
-        let filter = |inst: &PackedInstruction| -> bool {
+        let filter = |inst: &DAGInstruction| -> bool {
             match inst.op.view() {
                 OperationRef::StandardGate(gate) => gate == gate_0 || gate == gate_1,
                 _ => false,
@@ -287,7 +288,6 @@ pub fn run_inverse_cancellation_standard_gates(dag: &mut DAGCircuit) {
 #[pyfunction]
 #[pyo3(name = "inverse_cancellation")]
 pub fn py_run_inverse_cancellation(
-    py: Python,
     dag: &mut DAGCircuit,
     inverse_gates: Vec<[OperationFromPython; 2]>,
     self_inverse_gates: Vec<OperationFromPython>,
@@ -298,7 +298,7 @@ pub fn py_run_inverse_cancellation(
     if self_inverse_gate_names.is_empty() && inverse_gate_names.is_empty() {
         return Ok(());
     }
-    let op_counts = dag.count_ops(py, true)?;
+    let op_counts = dag.count_ops(true)?;
     if !self_inverse_gate_names.is_empty() {
         run_on_self_inverse(dag, &op_counts, self_inverse_gate_names, self_inverse_gates)?;
     }
