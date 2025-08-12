@@ -23,12 +23,12 @@ use numpy::{
     PyReadonlyArray1, PyReadonlyArray2, PyUntypedArrayMethods,
 };
 use pyo3::{
+    IntoPyObjectExt, PyErr,
     exceptions::{PyRuntimeError, PyTypeError, PyValueError, PyZeroDivisionError},
     intern,
     prelude::*,
     sync::GILOnceCell,
     types::{IntoPyDict, PyList, PyString, PyTuple, PyType},
-    IntoPyObjectExt, PyErr,
 };
 use std::{
     cmp::Ordering,
@@ -243,7 +243,9 @@ pub enum CoherenceError {
     MismatchedItemCount { bit_terms: usize, indices: usize },
     #[error("the first item of `boundaries` ({0}) must be 0")]
     BadInitialBoundary(usize),
-    #[error("the last item of `boundaries` ({last}) must match the length of `bit_terms` and `indices` ({items})")]
+    #[error(
+        "the last item of `boundaries` ({last}) must match the length of `bit_terms` and `indices` ({items})"
+    )]
     BadFinalBoundary { last: usize, items: usize },
     #[error("all qubit indices must be less than the number of qubits")]
     BitIndexTooHigh,
@@ -3604,7 +3606,7 @@ impl PySparseObservable {
                 return PySparseTerm {
                     inner: inner.term(index).to_term(),
                 }
-                .into_bound_py_any(py)
+                .into_bound_py_any(py);
             }
             indices => indices,
         };
@@ -4015,25 +4017,28 @@ impl ArrayView {
                     Ok(())
                 }
                 indices => {
-                    if let Ok(value) = values.extract::<S>() {
-                        let value = value.try_into()?;
-                        for index in indices {
-                            slice[index] = value;
+                    match values.extract::<S>() {
+                        Ok(value) => {
+                            let value = value.try_into()?;
+                            for index in indices {
+                                slice[index] = value;
+                            }
                         }
-                    } else {
-                        let values = values
-                            .try_iter()?
-                            .map(|value| value?.extract::<S>()?.try_into().map_err(PyErr::from))
-                            .collect::<PyResult<Vec<_>>>()?;
-                        if indices.len() != values.len() {
-                            return Err(PyValueError::new_err(format!(
-                                "tried to set a slice of length {} with a sequence of length {}",
-                                indices.len(),
-                                values.len(),
-                            )));
-                        }
-                        for (index, value) in indices.into_iter().zip(values) {
-                            slice[index] = value;
+                        _ => {
+                            let values = values
+                                .try_iter()?
+                                .map(|value| value?.extract::<S>()?.try_into().map_err(PyErr::from))
+                                .collect::<PyResult<Vec<_>>>()?;
+                            if indices.len() != values.len() {
+                                return Err(PyValueError::new_err(format!(
+                                    "tried to set a slice of length {} with a sequence of length {}",
+                                    indices.len(),
+                                    values.len(),
+                                )));
+                            }
+                            for (index, value) in indices.into_iter().zip(values) {
+                                slice[index] = value;
+                            }
                         }
                     }
                     Ok(())

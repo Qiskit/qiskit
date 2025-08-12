@@ -13,5 +13,5 @@
 mod error_map;
 mod vf2_layout;
 
-pub use error_map::{error_map_mod, ErrorMap};
+pub use error_map::{ErrorMap, error_map_mod};
 pub use vf2_layout::{score_layout, vf2_layout_mod, vf2_layout_pass};

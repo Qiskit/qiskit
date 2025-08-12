@@ -15,17 +15,17 @@ use std::f64::consts::PI;
 use hashbrown::{HashMap, HashSet};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
-use pyo3::{pyfunction, wrap_pyfunction, Bound, PyResult};
+use pyo3::{Bound, PyResult, pyfunction, wrap_pyfunction};
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
-use smallvec::{smallvec, SmallVec};
+use smallvec::{SmallVec, smallvec};
 
 use crate::commutation_checker::CommutationChecker;
+use qiskit_circuit::Qubit;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
-use qiskit_circuit::Qubit;
 
 use super::analyze_commutations;
-use qiskit_synthesis::{euler_one_qubit_decomposer, QiskitError};
+use qiskit_synthesis::{QiskitError, euler_one_qubit_decomposer};
 
 const _CUTOFF_PRECISION: f64 = 1e-5;
 static ROTATION_GATES: [&str; 4] = ["p", "u1", "rz", "rx"];
@@ -221,10 +221,12 @@ pub fn cancel_commutations(
                     let node_angle = if ROTATION_GATES.contains(&node_op_name) {
                         match node_op.params_view().first() {
                             Some(Param::Float(f)) => Ok(*f),
-                            _ => return Err(QiskitError::new_err(format!(
-                                "Rotational gate with parameter expression encountered in cancellation {:?}",
-                                node_op.op
-                            )))
+                            _ => {
+                                return Err(QiskitError::new_err(format!(
+                                    "Rotational gate with parameter expression encountered in cancellation {:?}",
+                                    node_op.op
+                                )));
+                            }
                         }
                     } else if HALF_TURNS.contains(&node_op_name) {
                         Ok(PI)

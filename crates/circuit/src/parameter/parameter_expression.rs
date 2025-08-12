@@ -24,8 +24,8 @@ use std::collections::hash_map::DefaultHasher;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
-use pyo3::prelude::*;
 use pyo3::IntoPyObjectExt;
+use pyo3::prelude::*;
 
 use crate::circuit_data::CircuitError;
 use crate::imports::{BUILTIN_HASH, SYMPIFY_PARAMETER_EXPRESSION, UUID};
@@ -33,7 +33,7 @@ use crate::parameter::symbol_expr;
 use crate::parameter::symbol_expr::SymbolExpr;
 use crate::parameter::symbol_parser::parse_expression;
 
-use super::symbol_expr::{Symbol, Value, SYMEXPR_EPSILON};
+use super::symbol_expr::{SYMEXPR_EPSILON, Symbol, Value};
 
 /// Errors for dealing with parameters and parameter expressions.
 #[derive(Error, Debug)]
@@ -732,20 +732,22 @@ impl PyParameterExpression {
     }
 
     pub fn coerce_into_py(&self, py: Python) -> PyResult<PyObject> {
-        if let Ok(value) = self.inner.try_to_value(true) {
-            match value {
+        match self.inner.try_to_value(true) {
+            Ok(value) => match value {
                 Value::Int(i) => Ok(PyInt::new(py, i).unbind().into_any()),
                 Value::Real(r) => Ok(PyFloat::new(py, r).unbind().into_any()),
                 Value::Complex(c) => Ok(PyComplex::from_complex_bound(py, c).unbind().into_any()),
-            }
-        } else if let Ok(symbol) = self.inner.try_to_symbol() {
-            if symbol.index.is_some() {
-                Ok(Py::new(py, PyParameterVectorElement::from_symbol(symbol))?.into_any())
-            } else {
-                Ok(Py::new(py, PyParameter::from_symbol(symbol))?.into_any())
-            }
-        } else {
-            self.clone().into_py_any(py)
+            },
+            _ => match self.inner.try_to_symbol() {
+                Ok(symbol) => {
+                    if symbol.index.is_some() {
+                        Ok(Py::new(py, PyParameterVectorElement::from_symbol(symbol))?.into_any())
+                    } else {
+                        Ok(Py::new(py, PyParameter::from_symbol(symbol))?.into_any())
+                    }
+                }
+                _ => self.clone().into_py_any(py),
+            },
         }
     }
 }
@@ -1085,16 +1087,15 @@ impl PyParameterExpression {
     }
 
     pub fn __eq__(&self, rhs: &Bound<PyAny>) -> PyResult<bool> {
-        if let Ok(rhs) = Self::extract_coerce(rhs) {
-            match rhs.inner.expr {
+        match Self::extract_coerce(rhs) {
+            Ok(rhs) => match rhs.inner.expr {
                 SymbolExpr::Value(v) => match self.inner.try_to_value(false) {
                     Ok(e) => Ok(e == v),
                     Err(_) => Ok(false),
                 },
                 _ => Ok(self.inner.expr == rhs.inner.expr),
-            }
-        } else {
-            Ok(false)
+            },
+            _ => Ok(false),
         }
     }
 
@@ -1115,104 +1116,94 @@ impl PyParameterExpression {
     }
 
     pub fn __add__(&self, rhs: &Bound<PyAny>) -> PyResult<Self> {
-        if let Ok(rhs) = Self::extract_coerce(rhs) {
-            Ok(self.inner.add(&rhs.inner)?.into())
-        } else {
-            Err(pyo3::exceptions::PyTypeError::new_err(
+        match Self::extract_coerce(rhs) {
+            Ok(rhs) => Ok(self.inner.add(&rhs.inner)?.into()),
+            _ => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __add__",
-            ))
+            )),
         }
     }
 
     pub fn __radd__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
-        if let Ok(lhs) = Self::extract_coerce(lhs) {
-            Ok(lhs.inner.add(&self.inner)?.into())
-        } else {
-            Err(pyo3::exceptions::PyTypeError::new_err(
+        match Self::extract_coerce(lhs) {
+            Ok(lhs) => Ok(lhs.inner.add(&self.inner)?.into()),
+            _ => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __radd__",
-            ))
+            )),
         }
     }
 
     pub fn __sub__(&self, rhs: &Bound<PyAny>) -> PyResult<Self> {
-        if let Ok(rhs) = Self::extract_coerce(rhs) {
-            Ok(self.inner.sub(&rhs.inner)?.into())
-        } else {
-            Err(pyo3::exceptions::PyTypeError::new_err(
+        match Self::extract_coerce(rhs) {
+            Ok(rhs) => Ok(self.inner.sub(&rhs.inner)?.into()),
+            _ => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __sub__",
-            ))
+            )),
         }
     }
 
     pub fn __rsub__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
-        if let Ok(lhs) = Self::extract_coerce(lhs) {
-            Ok(lhs.inner.sub(&self.inner)?.into())
-        } else {
-            Err(pyo3::exceptions::PyTypeError::new_err(
+        match Self::extract_coerce(lhs) {
+            Ok(lhs) => Ok(lhs.inner.sub(&self.inner)?.into()),
+            _ => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __rsub__",
-            ))
+            )),
         }
     }
 
     pub fn __mul__<'py>(&self, rhs: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
         let py = rhs.py();
-        if let Ok(rhs) = Self::extract_coerce(rhs) {
-            match self.inner.mul(&rhs.inner) {
+        match Self::extract_coerce(rhs) {
+            Ok(rhs) => match self.inner.mul(&rhs.inner) {
                 Ok(result) => PyParameterExpression::from(result).into_bound_py_any(py),
                 Err(e) => Err(PyErr::from(e)),
-            }
-        } else {
-            PyNotImplemented::get(py).into_bound_py_any(py)
+            },
+            _ => PyNotImplemented::get(py).into_bound_py_any(py),
         }
     }
 
     pub fn __rmul__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
-        if let Ok(lhs) = Self::extract_coerce(lhs) {
-            Ok(lhs.inner.mul(&self.inner)?.into())
-        } else {
-            Err(pyo3::exceptions::PyTypeError::new_err(
+        match Self::extract_coerce(lhs) {
+            Ok(lhs) => Ok(lhs.inner.mul(&self.inner)?.into()),
+            _ => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __rmul__",
-            ))
+            )),
         }
     }
 
     pub fn __truediv__(&self, rhs: &Bound<PyAny>) -> PyResult<Self> {
-        if let Ok(rhs) = Self::extract_coerce(rhs) {
-            Ok(self.inner.div(&rhs.inner)?.into())
-        } else {
-            Err(pyo3::exceptions::PyTypeError::new_err(
+        match Self::extract_coerce(rhs) {
+            Ok(rhs) => Ok(self.inner.div(&rhs.inner)?.into()),
+            _ => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __truediv__",
-            ))
+            )),
         }
     }
 
     pub fn __rtruediv__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
-        if let Ok(lhs) = Self::extract_coerce(lhs) {
-            Ok(lhs.inner.div(&self.inner)?.into())
-        } else {
-            Err(pyo3::exceptions::PyTypeError::new_err(
+        match Self::extract_coerce(lhs) {
+            Ok(lhs) => Ok(lhs.inner.div(&self.inner)?.into()),
+            _ => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __rtruediv__",
-            ))
+            )),
         }
     }
 
     pub fn __pow__(&self, rhs: &Bound<PyAny>, _modulo: Option<i32>) -> PyResult<Self> {
-        if let Ok(rhs) = Self::extract_coerce(rhs) {
-            Ok(self.inner.pow(&rhs.inner)?.into())
-        } else {
-            Err(pyo3::exceptions::PyTypeError::new_err(
+        match Self::extract_coerce(rhs) {
+            Ok(rhs) => Ok(self.inner.pow(&rhs.inner)?.into()),
+            _ => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __pow__",
-            ))
+            )),
         }
     }
 
     pub fn __rpow__(&self, lhs: &Bound<PyAny>, _modulo: Option<i32>) -> PyResult<Self> {
-        if let Ok(lhs) = Self::extract_coerce(lhs) {
-            Ok(lhs.inner.pow(&self.inner)?.into())
-        } else {
-            Err(pyo3::exceptions::PyTypeError::new_err(
+        match Self::extract_coerce(lhs) {
+            Ok(lhs) => Ok(lhs.inner.pow(&self.inner)?.into()),
+            _ => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __rpow__",
-            ))
+            )),
         }
     }
 
@@ -1709,14 +1700,19 @@ impl PyParameterVectorElement {
 fn uuid_from_py(py: Python<'_>, uuid: Option<PyObject>) -> PyResult<Option<Uuid>> {
     if let Some(val) = uuid {
         // construct from u128
-        let as_u128 = if let Ok(as_u128) = val.extract::<u128>(py) {
-            as_u128
-        // construct from Python UUID type
-        } else if val.bind(py).is_exact_instance(UUID.get_bound(py)) {
-            val.getattr(py, "int")?.extract::<u128>(py)?
-        // invalid format
-        } else {
-            return Err(PyTypeError::new_err("not a UUID!"));
+        let as_u128 = match val.extract::<u128>(py) {
+            Ok(as_u128) => {
+                as_u128
+                // construct from Python UUID type
+            }
+            _ => {
+                if val.bind(py).is_exact_instance(UUID.get_bound(py)) {
+                    val.getattr(py, "int")?.extract::<u128>(py)?
+                // invalid format
+                } else {
+                    return Err(PyTypeError::new_err("not a UUID!"));
+                }
+            }
         };
         Ok(Some(Uuid::from_u128(as_u128)))
     } else {
@@ -1734,12 +1730,12 @@ fn uuid_to_py(py: Python<'_>, uuid: Uuid) -> PyResult<PyObject> {
 /// Extract a [Symbol] for a Python object, which could either be a Parameter or a
 /// ParameterVectorElement.
 fn symbol_from_py_parameter(param: &Bound<'_, PyAny>) -> PyResult<Symbol> {
-    if let Ok(element) = param.extract::<PyParameterVectorElement>() {
-        Ok(element.symbol.clone())
-    } else if let Ok(parameter) = param.extract::<PyParameter>() {
-        Ok(parameter.symbol.clone())
-    } else {
-        Err(PyValueError::new_err("Could not extract parameter"))
+    match param.extract::<PyParameterVectorElement>() {
+        Ok(element) => Ok(element.symbol.clone()),
+        _ => match param.extract::<PyParameter>() {
+            Ok(parameter) => Ok(parameter.symbol.clone()),
+            _ => Err(PyValueError::new_err("Could not extract parameter")),
+        },
     }
 }
 

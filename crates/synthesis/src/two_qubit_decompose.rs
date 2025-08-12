@@ -21,31 +21,31 @@
 use approx::{abs_diff_eq, relative_eq};
 use num_complex::{Complex, Complex64, ComplexFloat};
 use num_traits::Zero;
-use smallvec::{smallvec, SmallVec};
+use smallvec::{SmallVec, smallvec};
 use std::f64::consts::{FRAC_1_SQRT_2, PI};
 use std::ops::Deref;
 
 use faer::Side::Lower;
-use faer::{prelude::*, scale, ComplexField, Mat, MatRef};
-use faer_ext::{IntoFaer, IntoFaerComplex, IntoNdarray, IntoNdarrayComplex};
+use faer::{Mat, MatRef, Scale, prelude::*};
+use faer_ext::{IntoFaer, IntoNdarray};
+use ndarray::Zip;
 use ndarray::linalg::kron;
 use ndarray::prelude::*;
-use ndarray::Zip;
 use numpy::{IntoPyArray, ToPyArray};
 use numpy::{PyArray2, PyArrayLike2, PyReadonlyArray1, PyReadonlyArray2};
 
+use pyo3::IntoPyObjectExt;
 use pyo3::exceptions::PyValueError;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
 use pyo3::types::PyType;
-use pyo3::IntoPyObjectExt;
 
-use crate::euler_one_qubit_decomposer::{
-    angles_from_unitary, det_one_qubit, unitary_to_gate_sequence_inner, EulerBasis, EulerBasisSet,
-    OneQubitGateSequence, ANGLE_ZERO_EPSILON,
-};
 use crate::QiskitError;
+use crate::euler_one_qubit_decomposer::{
+    ANGLE_ZERO_EPSILON, EulerBasis, EulerBasisSet, OneQubitGateSequence, angles_from_unitary,
+    det_one_qubit, unitary_to_gate_sequence_inner,
+};
 use qiskit_quantum_info::convert_2q_block_matrix::change_basis;
 
 use rand::prelude::*;
@@ -56,11 +56,11 @@ use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::gate_matrix::{CX_GATE, H_GATE, ONE_QUBIT_IDENTITY, SDG_GATE, S_GATE};
+use qiskit_circuit::gate_matrix::{CX_GATE, H_GATE, ONE_QUBIT_IDENTITY, S_GATE, SDG_GATE};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::util::{c64, GateArray1Q, GateArray2Q, C_M_ONE, C_ONE, C_ZERO, IM, M_IM};
-use qiskit_circuit::{impl_intopyobject_for_copy_pyclass, Qubit};
+use qiskit_circuit::util::{C_M_ONE, C_ONE, C_ZERO, GateArray1Q, GateArray2Q, IM, M_IM, c64};
+use qiskit_circuit::{Qubit, impl_intopyobject_for_copy_pyclass};
 
 const PI2: f64 = PI / 2.;
 const PI4: f64 = PI / 4.;
@@ -107,10 +107,10 @@ fn magic_basis_transform(
 }
 
 fn transform_from_magic_basis(u: Mat<c64>) -> Mat<c64> {
-    let unitary: ArrayView2<Complex64> = u.as_ref().into_ndarray_complex();
+    let unitary: ArrayView2<Complex64> = u.as_ref().into_ndarray();
     magic_basis_transform(unitary, MagicBasisTransform::OutOf)
         .view()
-        .into_faer_complex()
+        .into_faer()
         .to_owned()
 }
 
@@ -118,26 +118,6 @@ fn transform_from_magic_basis(u: Mat<c64>) -> Mat<c64> {
 // holding two f64's. But several functions are not defined for
 // c64. So we implement them here. These things should be contribute
 // upstream.
-
-pub trait PowF {
-    fn powf(self, pow: f64) -> c64;
-}
-
-impl PowF for c64 {
-    fn powf(self, pow: f64) -> c64 {
-        c64::from(self.to_num_complex().powf(pow))
-    }
-}
-
-pub trait Arg {
-    fn arg(self) -> f64;
-}
-
-impl Arg for c64 {
-    fn arg(self) -> f64 {
-        self.to_num_complex().arg()
-    }
-}
 
 #[inline(always)]
 fn transpose_conjugate(mat: ArrayView2<Complex64>) -> Array2<Complex64> {
@@ -153,12 +133,6 @@ pub trait TraceToFidelity {
 impl TraceToFidelity for Complex64 {
     fn trace_to_fid(self) -> f64 {
         (4.0 + self.abs().powi(2)) / 20.0
-    }
-}
-
-impl TraceToFidelity for c64 {
-    fn trace_to_fid(self) -> f64 {
-        (4.0 + self.faer_abs2()) / 20.0
     }
 }
 
@@ -241,22 +215,23 @@ fn py_decompose_two_qubit_product_gate(
 /// Returns:
 ///     np.ndarray: Array of the 3 Weyl coordinates.
 #[pyfunction]
-fn weyl_coordinates(py: Python, unitary: PyReadonlyArray2<Complex64>) -> PyObject {
+fn weyl_coordinates(py: Python, unitary: PyReadonlyArray2<Complex64>) -> PyResult<PyObject> {
     let array = unitary.as_array();
-    __weyl_coordinates(array.into_faer_complex())
+    Ok(__weyl_coordinates(array.into_faer())?
         .to_vec()
         .into_pyarray(py)
         .into_any()
-        .unbind()
+        .unbind())
 }
 
-fn __weyl_coordinates(unitary: MatRef<c64>) -> [f64; 3] {
-    let uscaled = scale(C1 / unitary.determinant().powf(0.25)) * unitary;
+fn __weyl_coordinates(unitary: MatRef<c64>) -> PyResult<[f64; 3]> {
+    let uscaled = Scale(C1 / unitary.determinant().powf(0.25)) * unitary;
     let uup = transform_from_magic_basis(uscaled);
     let mut darg: Vec<_> = (uup.transpose() * &uup)
-        .complex_eigenvalues()
+        .eigenvalues()
+        .map_err(|e| QiskitError::new_err(format!("{e:?}")))?
         .into_iter()
-        .map(|x: c64| -x.arg() / 2.0)
+        .map(|x| -x.arg() / 2.0)
         .collect();
     darg[3] = -darg[0] - darg[1] - darg[2];
     let mut cs: Vec<_> = (0..3)
@@ -296,7 +271,7 @@ fn __weyl_coordinates(unitary: MatRef<c64>) -> [f64; 3] {
     if cs[2] > PI4 {
         cs[2] -= PI2;
     }
-    [cs[1], cs[0], cs[2]]
+    Ok([cs[1], cs[0], cs[2]])
 }
 
 #[pyfunction]
@@ -305,13 +280,13 @@ pub fn _num_basis_gates(
     basis_b: f64,
     basis_fidelity: f64,
     unitary: PyReadonlyArray2<Complex<f64>>,
-) -> usize {
-    let u = unitary.as_array().into_faer_complex();
+) -> PyResult<usize> {
+    let u = unitary.as_array().into_faer();
     __num_basis_gates(basis_b, basis_fidelity, u)
 }
 
-fn __num_basis_gates(basis_b: f64, basis_fidelity: f64, unitary: MatRef<c64>) -> usize {
-    let [a, b, c] = __weyl_coordinates(unitary);
+fn __num_basis_gates(basis_b: f64, basis_fidelity: f64, unitary: MatRef<c64>) -> PyResult<usize> {
+    let [a, b, c] = __weyl_coordinates(unitary)?;
     let traces = [
         c64::new(
             4.0 * (a.cos() * b.cos() * c.cos()),
@@ -329,13 +304,13 @@ fn __num_basis_gates(basis_b: f64, basis_fidelity: f64, unitary: MatRef<c64>) ->
     // `max_by` and `min_by` return the highest and lowest indices respectively, in case of ties.
     // So to reproduce `np.argmax`, we use `min_by` and switch the order of the
     // arguments in the comparison.
-    traces
+    Ok(traces
         .into_iter()
         .enumerate()
         .map(|(idx, trace)| (idx, trace.trace_to_fid() * basis_fidelity.powi(idx as i32)))
         .min_by(|(_idx1, fid1), (_idx2, fid2)| fid2.partial_cmp(fid1).unwrap())
         .unwrap()
-        .0
+        .0)
 }
 
 /// A good approximation to the best value x to get the minimum
@@ -614,7 +589,7 @@ impl TwoQubitWeylDecomposition {
 
         let mut u = unitary_matrix.to_owned();
         let unitary_matrix = unitary_matrix.to_owned();
-        let det_u = u.view().into_faer_complex().determinant().to_num_complex();
+        let det_u = u.view().into_faer().determinant();
         let det_pow = det_u.powf(-0.25);
         u.mapv_inplace(|x| x * det_pow);
         let mut global_phase = det_u.arg() / 4.;
@@ -657,8 +632,9 @@ impl TwoQubitWeylDecomposition {
             let p_inner = m2_real
                 .view()
                 .into_faer()
-                .selfadjoint_eigendecomposition(Lower)
-                .u()
+                .self_adjoint_eigen(Lower)
+                .map_err(|e| QiskitError::new_err(format!("{e:?}")))?
+                .U()
                 .into_ndarray()
                 .mapv(Complex64::from);
             let d_inner = p_inner.t().dot(&m2).dot(&p_inner).diag().to_owned();
@@ -702,7 +678,7 @@ impl TwoQubitWeylDecomposition {
             let slice_b = p_orig.slice_mut(s![.., *item]);
             Zip::from(slice_a).and(slice_b).for_each(::std::mem::swap);
         }
-        if p.view().into_faer_complex().determinant().re < 0. {
+        if p.view().into_faer().determinant().re < 0. {
             p.slice_mut(s![.., -1]).mapv_inplace(|x| -x);
         }
         let mut temp: Array2<Complex64> = Array2::zeros((4, 4));
@@ -1070,9 +1046,7 @@ impl TwoQubitWeylDecomposition {
             if specialized.calculated_fidelity + 1.0e-13 < fid {
                 return Err(QiskitError::new_err(format!(
                     "Specialization: {:?} calculated fidelity: {} is worse than requested fidelity: {}",
-                    specialized.specialization,
-                    specialized.calculated_fidelity,
-                    fid
+                    specialized.specialization, specialized.calculated_fidelity, fid
                 )));
             }
         }
@@ -1345,8 +1319,8 @@ impl TwoQubitBasisDecomposer {
     }
 
     /// Compute the number of basis gates needed for a given unitary
-    pub fn num_basis_gates_inner(&self, unitary: ArrayView2<Complex64>) -> usize {
-        let u = unitary.into_faer_complex();
+    pub fn num_basis_gates_inner(&self, unitary: ArrayView2<Complex64>) -> PyResult<usize> {
+        let u = unitary.into_faer();
         __num_basis_gates(self.basis_decomposer.b, self.basis_fidelity, u)
     }
 
@@ -1496,7 +1470,7 @@ impl TwoQubitBasisDecomposer {
         global_phase -= 3. * self.basis_decomposer.global_phase;
         global_phase = global_phase.rem_euclid(TWO_PI);
         let atol = 1e-10; // absolute tolerance for floats
-                          // Decompose source unitaries to zxz
+        // Decompose source unitaries to zxz
         let euler_q0: Vec<[f64; 3]> = decomposition
             .iter()
             .step_by(2)
@@ -2295,13 +2269,13 @@ impl TwoQubitBasisDecomposer {
         )
     }
 
-    fn num_basis_gates(&self, unitary: PyReadonlyArray2<Complex64>) -> usize {
+    fn num_basis_gates(&self, unitary: PyReadonlyArray2<Complex64>) -> PyResult<usize> {
         _num_basis_gates(self.basis_decomposer.b, self.basis_fidelity, unitary)
     }
 }
 
 fn u4_to_su4(u4: ArrayView2<Complex64>) -> (Array2<Complex64>, f64) {
-    let det_u = u4.into_faer_complex().determinant().to_num_complex();
+    let det_u = u4.into_faer().determinant();
     let phase_factor = det_u.powf(-0.25).conj();
     let su4 = u4.mapv(|x| x / phase_factor);
     (su4, phase_factor.arg())
@@ -2429,11 +2403,7 @@ pub fn two_qubit_local_invariants(unitary: PyReadonlyArray2<Complex64>) -> [f64;
     // Transform to bell basis
     let bell_basis_unitary = aview2(&MAGIC_DAGGER).dot(&mat.dot(&aview2(&MAGIC)));
     // Get determinate since +- one is allowed.
-    let det_bell_basis = bell_basis_unitary
-        .view()
-        .into_faer_complex()
-        .determinant()
-        .to_num_complex();
+    let det_bell_basis = bell_basis_unitary.view().into_faer().determinant();
     let m = bell_basis_unitary.t().dot(&bell_basis_unitary);
     let mut m_tr2 = m.diag().sum();
     m_tr2 *= m_tr2;

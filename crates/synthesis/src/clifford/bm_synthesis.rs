@@ -12,9 +12,9 @@
 
 use crate::clifford::utils::{Clifford, CliffordGatesVec};
 use itertools::iproduct;
-use ndarray::{arr1, arr2, s, ArrayView2};
-use qiskit_circuit::operations::StandardGate;
+use ndarray::{ArrayView2, arr1, arr2, s};
 use qiskit_circuit::Qubit;
+use qiskit_circuit::operations::StandardGate;
 use smallvec::smallvec;
 
 /// Return the number of CX-gates required for Clifford decomposition,
@@ -42,11 +42,7 @@ fn cx_cost2(clifford: &Clifford) -> usize {
         clifford.tableau[[2, 1]],
         clifford.tableau[[2, 3]],
     );
-    if r00 == 2 {
-        r01
-    } else {
-        r01 + 1 - r00
-    }
+    if r00 == 2 { r01 } else { r01 + 1 - r00 }
 }
 
 /// Return the rank of a 2x2 boolean matrix.

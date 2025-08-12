@@ -25,9 +25,9 @@ use pyo3::prelude::*;
 mod basis_search;
 mod compose_transforms;
 
-use pyo3::types::{IntoPyDict, PyComplex, PyDict, PyTuple};
 use pyo3::IntoPyObjectExt;
 use pyo3::PyTypeInfo;
+use pyo3::types::{IntoPyDict, PyComplex, PyDict, PyTuple};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::circuit_to_dag;
 use qiskit_circuit::dag_circuit::DAGCircuitBuilder;
@@ -35,19 +35,19 @@ use qiskit_circuit::imports::DAG_TO_CIRCUIT;
 use qiskit_circuit::imports::PARAMETER_EXPRESSION;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
+use qiskit_circuit::{Clbit, PhysicalQubit, Qubit, VarsMode};
 use qiskit_circuit::{
     circuit_data::CircuitData,
     dag_circuit::DAGCircuit,
     operations::{Operation, OperationRef, PythonOperation},
 };
-use qiskit_circuit::{Clbit, PhysicalQubit, Qubit, VarsMode};
 use smallvec::SmallVec;
 
+use crate::TranspilerError;
 use crate::equivalence::EquivalenceLibrary;
 use crate::target::Qargs;
 use crate::target::QargsRef;
 use crate::target::Target;
-use crate::TranspilerError;
 
 type InstMap = IndexMap<GateIdentifier, BasisTransformOut, ahash::RandomState>;
 type ExtraInstructionMap<'a> = IndexMap<&'a PhysicalQargs, InstMap, ahash::RandomState>;
@@ -490,7 +490,10 @@ fn apply_translation(
         if target_basis.contains(node_obj.op.name()) || node_qarg.len() < min_qubits {
             if node_obj.op.control_flow() {
                 let OperationRef::Instruction(control_op) = node_obj.op.view() else {
-                    unreachable!("This instruction {} says it is of control flow type, but is not an Instruction instance", node_obj.op.name())
+                    unreachable!(
+                        "This instruction {} says it is of control flow type, but is not an Instruction instance",
+                        node_obj.op.name()
+                    )
                 };
                 let mut flow_blocks = vec![];
                 let bound_obj = control_op.instruction.bind(py);
@@ -758,7 +761,7 @@ fn replace_node(
         }
 
         match target_dag.global_phase() {
-            Param::ParameterExpression(ref old_phase) => {
+            Param::ParameterExpression(old_phase) => {
                 // TODO make this use Rust
                 let bound_old_phase = old_phase.as_ref().clone().into_bound_py_any(py)?;
 

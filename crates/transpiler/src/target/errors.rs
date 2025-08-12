@@ -28,7 +28,9 @@ pub enum TargetError {
         instruction: String,
         arguments: String,
     },
-    #[error("The number of parameters for {instruction}: {instruction_num} does not match the provided number of parameters: {argument_num}.")]
+    #[error(
+        "The number of parameters for {instruction}: {instruction_num} does not match the provided number of parameters: {argument_num}."
+    )]
     ParamsMismatch {
         instruction: String,
         instruction_num: usize,

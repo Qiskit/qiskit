@@ -12,7 +12,7 @@
 
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::PyModule;
-use pyo3::{pyfunction, wrap_pyfunction, Bound, PyResult, Python};
+use pyo3::{Bound, PyResult, Python, pyfunction, wrap_pyfunction};
 use qiskit_circuit::Qubit;
 
 use crate::commutation_checker::CommutationChecker;

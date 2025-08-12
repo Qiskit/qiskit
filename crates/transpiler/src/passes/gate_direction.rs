@@ -10,17 +10,18 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::target::Target;
 use crate::TranspilerError;
+use crate::target::Target;
 use hashbrown::HashSet;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
+use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::bit::{QuantumRegister, Register};
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::{
-    converters::{circuit_to_dag, QuantumCircuitData},
+    Qubit,
+    converters::{QuantumCircuitData, circuit_to_dag},
     dag_circuit::DAGCircuit,
     imports,
     imports::get_std_gate_class,
@@ -28,10 +29,9 @@ use qiskit_circuit::{
     operations::Param,
     operations::StandardGate,
     packed_instruction::PackedInstruction,
-    Qubit,
 };
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
-use smallvec::{smallvec, SmallVec};
+use smallvec::{SmallVec, smallvec};
 use std::f64::consts::PI;
 
 //#########################################################################
@@ -219,7 +219,7 @@ pub fn fix_direction_target(
                             ),
                             Some(inst.params_view().to_vec()),
                         )
-                        .unwrap_or(false)
+                        .unwrap_or(false);
                 }
                 _ => {}
             }
@@ -328,7 +328,12 @@ where
         }
         // No matching replacement found
         if gate_complies(packed_inst, &[op_args1, op_args0]) {
-            return Err(TranspilerError::new_err(format!("{} would be supported on {:?} if the direction was swapped, but no rules are known to do that. {:?} can be automatically flipped.", packed_inst.op.name(), op_args, vec!["cx", "cz", "ecr", "swap", "rzx", "rxx", "ryy", "rzz"])));
+            return Err(TranspilerError::new_err(format!(
+                "{} would be supported on {:?} if the direction was swapped, but no rules are known to do that. {:?} can be automatically flipped.",
+                packed_inst.op.name(),
+                op_args,
+                vec!["cx", "cz", "ecr", "swap", "rzx", "rxx", "ryy", "rzz"]
+            )));
             // NOTE: Make sure to update the list of the supported gates if adding more replacements
         } else {
             return Err(TranspilerError::new_err(format!(
@@ -370,7 +375,7 @@ where
 // TODO: optimize it by caching the DAGs of the non-parametric gates and caching and
 // mutating upon request the DAGs of the parametric gates
 fn replace_dag(std_gate: StandardGate, inst: &PackedInstruction) -> PyResult<DAGCircuit> {
-    let replacement_dag = match std_gate {
+    match std_gate {
         StandardGate::CX => cx_replacement_dag(),
         StandardGate::ECR => ecr_replacement_dag(),
         StandardGate::CZ => cz_replacement_dag(),
@@ -380,9 +385,7 @@ fn replace_dag(std_gate: StandardGate, inst: &PackedInstruction) -> PyResult<DAG
         StandardGate::RZZ => rzz_replacement_dag(inst.params_view()),
         StandardGate::RZX => rzx_replacement_dag(inst.params_view()),
         _ => panic!("Mismatch in supported gates assumption"),
-    };
-
-    replacement_dag
+    }
 }
 
 //###################################################

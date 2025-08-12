@@ -25,7 +25,7 @@ static BIT_TERMS: [BitTerm; 9] = [X, Plus, Minus, Y, Right, Left, Z, Zero, One];
 
 /// Create a full binary lookup table for all valid combinations of `BitTerm`.
 macro_rules! expand_lookup_binary {
-    (static $table:ident: [$ty:ty], $generate:ident, $dummy:expr) => {
+    (static $table:ident: [$ty:ty], $generate:ident, $dummy:expr_2021) => {
         static $table: [$ty; 256] = {
             let mut out = [const { $dummy }; 256];
             let mut i = 0;

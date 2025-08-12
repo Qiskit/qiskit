@@ -11,9 +11,9 @@
 // that they have been altered from the originals.
 
 use hashbrown::HashMap;
+use pyo3::IntoPyObjectExt;
 use pyo3::exceptions::PyTypeError;
 use pyo3::exceptions::PyValueError;
-use pyo3::IntoPyObjectExt;
 use std::cmp::Ordering;
 use std::cmp::PartialOrd;
 use std::convert::From;
@@ -63,12 +63,12 @@ impl Hash for Symbol {
 
 impl<'py> FromPyObject<'py> for Symbol {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if let Ok(py_vector_element) = ob.extract::<PyParameterVectorElement>() {
-            Ok(py_vector_element.symbol().clone())
-        } else if let Ok(py_param) = ob.extract::<PyParameter>() {
-            Ok(py_param.symbol().clone())
-        } else {
-            Err(PyTypeError::new_err("Cannot extract Symbol from {ob:?}"))
+        match ob.extract::<PyParameterVectorElement>() {
+            Ok(py_vector_element) => Ok(py_vector_element.symbol().clone()),
+            _ => match ob.extract::<PyParameter>() {
+                Ok(py_param) => Ok(py_param.symbol().clone()),
+                _ => Err(PyTypeError::new_err("Cannot extract Symbol from {ob:?}")),
+            },
         }
     }
 }
@@ -158,16 +158,17 @@ pub enum Value {
 
 impl<'py> FromPyObject<'py> for Value {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if let Ok(i) = ob.extract::<i64>() {
-            Ok(Value::Int(i))
-        } else if let Ok(r) = ob.extract::<f64>() {
-            Ok(Value::Real(r))
-        } else if let Ok(c) = ob.extract::<Complex64>() {
-            Ok(Value::Complex(c))
-        } else {
-            Err(PyValueError::new_err(
-                "Could not cast Bound<PyAny> to Value.",
-            ))
+        match ob.extract::<i64>() {
+            Ok(i) => Ok(Value::Int(i)),
+            _ => match ob.extract::<f64>() {
+                Ok(r) => Ok(Value::Real(r)),
+                _ => match ob.extract::<Complex64>() {
+                    Ok(c) => Ok(Value::Complex(c)),
+                    _ => Err(PyValueError::new_err(
+                        "Could not cast Bound<PyAny> to Value.",
+                    )),
+                },
+            },
         }
     }
 }
@@ -1127,19 +1128,19 @@ impl SymbolExpr {
                                             return match t.mul_opt(l_rhs, recursive) {
                                                 Some(e) => Some(e),
                                                 None => Some(_mul(t, l_rhs.as_ref().clone())),
-                                            }
+                                            };
                                         }
                                         (BinaryOp::Div, BinaryOp::Div) => {
                                             return match t.div_opt(l_rhs, recursive) {
                                                 Some(e) => Some(e),
                                                 None => Some(_div(t, l_rhs.as_ref().clone())),
-                                            }
+                                            };
                                         }
                                         (BinaryOp::Pow, BinaryOp::Pow) => {
                                             return match t.pow_opt(l_rhs) {
                                                 Some(e) => Some(e),
                                                 None => Some(_pow(t, l_rhs.as_ref().clone())),
-                                            }
+                                            };
                                         }
                                         (_, _) => (),
                                     }
@@ -1492,19 +1493,19 @@ impl SymbolExpr {
                                             return match t.mul_opt(l_rhs, recursive) {
                                                 Some(e) => Some(e),
                                                 None => Some(_mul(t, l_rhs.as_ref().clone())),
-                                            }
+                                            };
                                         }
                                         (BinaryOp::Div, BinaryOp::Div) => {
                                             return match t.div_opt(l_rhs, recursive) {
                                                 Some(e) => Some(e),
                                                 None => Some(_div(t, l_rhs.as_ref().clone())),
-                                            }
+                                            };
                                         }
                                         (BinaryOp::Pow, BinaryOp::Pow) => {
                                             return match t.pow_opt(l_rhs) {
                                                 Some(e) => Some(e),
                                                 None => Some(_pow(t, l_rhs.as_ref().clone())),
-                                            }
+                                            };
                                         }
                                         (_, _) => (),
                                     }

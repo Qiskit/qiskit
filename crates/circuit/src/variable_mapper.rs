@@ -29,12 +29,12 @@ pub(crate) enum Condition {
 
 impl<'py> FromPyObject<'py> for Condition {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if let Ok((bit, value)) = ob.extract::<(ShareableClbit, usize)>() {
-            Ok(Condition::Bit(bit, value))
-        } else if let Ok((register, value)) = ob.extract::<(ClassicalRegister, usize)>() {
-            Ok(Condition::Register(register, value))
-        } else {
-            Ok(Condition::Expr(ob.extract()?))
+        match ob.extract::<(ShareableClbit, usize)>() {
+            Ok((bit, value)) => Ok(Condition::Bit(bit, value)),
+            _ => match ob.extract::<(ClassicalRegister, usize)>() {
+                Ok((register, value)) => Ok(Condition::Register(register, value)),
+                _ => Ok(Condition::Expr(ob.extract()?)),
+            },
         }
     }
 }
@@ -51,12 +51,12 @@ pub(crate) enum Target {
 
 impl<'py> FromPyObject<'py> for Target {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if let Ok(bit) = ob.extract::<ShareableClbit>() {
-            Ok(Target::Bit(bit))
-        } else if let Ok(register) = ob.extract::<ClassicalRegister>() {
-            Ok(Target::Register(register))
-        } else {
-            Ok(Target::Expr(ob.extract()?))
+        match ob.extract::<ShareableClbit>() {
+            Ok(bit) => Ok(Target::Bit(bit)),
+            _ => match ob.extract::<ClassicalRegister>() {
+                Ok(register) => Ok(Target::Register(register)),
+                _ => Ok(Target::Expr(ob.extract()?)),
+            },
         }
     }
 }

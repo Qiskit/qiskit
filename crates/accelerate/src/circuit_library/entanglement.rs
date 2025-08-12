@@ -14,8 +14,8 @@ use itertools::Itertools;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use pyo3::{
-    types::{PyAnyMethods, PyList, PyListMethods, PyString, PyTuple},
     Bound, PyAny, PyResult,
+    types::{PyAnyMethods, PyList, PyListMethods, PyString, PyTuple},
 };
 
 use crate::QiskitError;
@@ -172,11 +172,14 @@ pub fn get_entanglement<'a>(
             get_entanglement_from_str(num_qubits, block_size, as_str.as_str(), offset)?.map(Ok),
         ));
     } else if let Ok(dict) = entanglement.downcast::<PyDict>() {
-        if let Some(value) = dict.get_item(block_size)? {
-            let list = value.downcast::<PyList>()?;
-            return _check_entanglement_list(list.to_owned(), block_size);
-        } else {
-            return Ok(Box::new(std::iter::empty()));
+        match dict.get_item(block_size)? {
+            Some(value) => {
+                let list = value.downcast::<PyList>()?;
+                return _check_entanglement_list(list.to_owned(), block_size);
+            }
+            _ => {
+                return Ok(Box::new(std::iter::empty()));
+            }
         }
     } else if let Ok(list) = entanglement.downcast::<PyList>() {
         return _check_entanglement_list(list.to_owned(), block_size);
