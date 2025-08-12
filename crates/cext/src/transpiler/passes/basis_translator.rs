@@ -40,7 +40,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_basis_translator(
     circuit: *mut CircuitData,
     min_qubits: usize,
     target: *mut Target,
-) -> *mut CircuitData {
+) {
     let circ_from_ptr = unsafe { mut_ptr_as_ref(circuit) };
     let target = unsafe { mut_ptr_as_ref(target) };
     let dag = match DAGCircuit::from_circuit_data(circ_from_ptr, false, None, None, None, None) {
@@ -53,9 +53,9 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_basis_translator(
     let result_dag =
         match run_basis_translator(&dag, &mut equiv_lib, min_qubits, Some(target), None) {
             Ok(Some(dag)) => dag,
-            Ok(None) => return circuit,
+            Ok(None) => return,
             Err(e) => panic!("{}", e),
         };
     let result_circ = dag_to_circuit(&result_dag, false).expect("DAG to Circuit conversion failed");
-    Box::into_raw(Box::new(result_circ))
+    *circ_from_ptr = result_circ
 }

@@ -30,9 +30,9 @@ int test_basic_basis_translator(void) {
     qk_target_add_instruction(target, qk_target_entry_new(QkGate_U));
 
     // Run pass
-    QkCircuit *result_circ = qk_transpiler_pass_standalone_basis_translator(circuit, 0, target);
+    qk_transpiler_pass_standalone_basis_translator(circuit, 0, target);
 
-    QkOpCounts result_op_counts = qk_circuit_count_ops(result_circ);
+    QkOpCounts result_op_counts = qk_circuit_count_ops(circuit);
 
     if (result_op_counts.len != 1) {
         result = EqualityError;
@@ -53,7 +53,6 @@ int test_basic_basis_translator(void) {
 
 cleanup:
     qk_opcounts_free(result_op_counts);
-    qk_circuit_free(result_circ);
     qk_circuit_free(circuit);
     return result;
 }
@@ -62,7 +61,7 @@ int test_toffoli_basis_translator(void) {
     // Create circuit
     int result = Ok;
     QkCircuit *circuit = qk_circuit_new(3, 0);
-    qk_circuit_gate(circuit, QkGate_CCX, (uint32_t[3]){0,1,2}, NULL);
+    qk_circuit_gate(circuit, QkGate_CCX, (uint32_t[3]){0, 1, 2}, NULL);
 
     // Create Target compatible with only U gates, with global props.
     QkTarget *target = qk_target_new(3);
@@ -72,9 +71,9 @@ int test_toffoli_basis_translator(void) {
     qk_target_add_instruction(target, qk_target_entry_new(QkGate_CX));
 
     // Run pass
-    QkCircuit *result_circ = qk_transpiler_pass_standalone_basis_translator(circuit, 0, target);
+    qk_transpiler_pass_standalone_basis_translator(circuit, 0, target);
 
-    QkOpCounts result_op_counts = qk_circuit_count_ops(result_circ);
+    QkOpCounts result_op_counts = qk_circuit_count_ops(circuit);
 
     if (result_op_counts.len != 4) {
         result = EqualityError;
@@ -85,23 +84,22 @@ int test_toffoli_basis_translator(void) {
     }
 
     // Represent the Equivalence of CCX with op counts
-    char* gates[4] = {"cx", "t", "tdg", "h"};
+    char *gates[4] = {"cx", "t", "tdg", "h"};
     int freqs[4] = {6, 4, 3, 2};
     for (int idx = 0; idx < 4; idx++) {
         QkOpCount gate_count = result_op_counts.data[idx];
         if (gate_count.count != freqs[idx] || strcmp(gate_count.name, gates[idx]) != 0) {
             result = EqualityError;
-            printf("The operation resulting from this translation was incorrect. Expected '%s' gate, "
+            printf(
+                "The operation resulting from this translation was incorrect. Expected '%s' gate, "
                 "got '%s'",
-                gates[idx],
-                gate_count.name);
+                gates[idx], gate_count.name);
             goto cleanup;
         }
     }
 
 cleanup:
     qk_opcounts_free(result_op_counts);
-    qk_circuit_free(result_circ);
     qk_circuit_free(circuit);
     return result;
 }
