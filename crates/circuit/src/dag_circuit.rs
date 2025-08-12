@@ -37,10 +37,9 @@ use crate::operations::{
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::ParameterExpression;
 use crate::register_data::RegisterData;
-use crate::rustworkx_core_vnext::isomorphism;
 use crate::slice::PySequenceIndex;
 use crate::variable_mapper::VariableMapper;
-use crate::{imports, Clbit, Qubit, Stretch, TupleLikeArg, Var, VarsMode};
+use crate::{imports, vf2, Clbit, Qubit, Stretch, TupleLikeArg, Var, VarsMode};
 
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
@@ -74,7 +73,6 @@ use rustworkx_core::traversal::{
     bfs_successors as core_bfs_successors, descendants as core_descendants,
 };
 
-use std::cmp::Ordering;
 use std::collections::{BTreeMap, VecDeque};
 use std::convert::Infallible;
 use std::f64::consts::PI;
@@ -1681,6 +1679,11 @@ impl DAGCircuit {
         Ok(PyTuple::new(py, result)?.into_any().try_iter()?.unbind())
     }
 
+    /// Return `true` if there are no operation nodes in the graph.
+    fn is_empty(&self) -> bool {
+        self.dag.node_count() == 2 * (self.qubits.len() + self.clbits.len() + self.vars.len())
+    }
+
     /// Return the number of operations.  If there is control flow present, this count may only
     /// be an estimate, as the complete control-flow path cannot be statically known.
     ///
@@ -2197,22 +2200,21 @@ impl DAGCircuit {
                 _ => Ok(false),
             }
         };
+        let node_match = |n1: &NodeType, n2: &NodeType| -> PyResult<Option<()>> {
+            node_match(n1, n2).map(|ok| ok.then_some(()))
+        };
 
-        isomorphism::vf2::is_isomorphic(
+        vf2::is_isomorphic_with_semantics(
             &self.dag,
             &other.dag,
-            node_match,
-            isomorphism::vf2::NoSemanticMatch,
+            (node_match, vf2::NoSemantics::new()),
             true,
-            Ordering::Equal,
-            true,
+            vf2::Problem::Exact,
             None,
         )
         .map_err(|e| match e {
-            isomorphism::vf2::IsIsomorphicError::NodeMatcherErr(e) => e,
-            _ => {
-                unreachable!()
-            }
+            vf2::IsIsomorphicError::NodeMatcher(e) => e,
+            vf2::IsIsomorphicError::EdgeMatcher(_) => unreachable!(),
         })
     }
 
