@@ -1520,9 +1520,10 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
         # Check to ensure that one of the tasks is of the type 'InstructionDurationsCheck'
         for task in pm.scheduling.__dict__["_tasks"]:
             if isinstance(task[0], InstructionDurationCheck):
+                self.assertEqual(task[0].acquire_align, 2)
                 timing_constraint_from_target = True
 
-        self.assertIs(timing_constraint_from_target, True)
+        self.assertTrue(timing_constraint_from_target)
 
 
 @ddt
