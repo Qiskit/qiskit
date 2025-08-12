@@ -15,8 +15,6 @@
 
 import logging
 
-from collections import defaultdict
-
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit._accelerate.basis_translator import base_run
 
