@@ -5392,7 +5392,7 @@ impl DAGCircuit {
     }
 
     #[inline]
-    fn has_control_flow(&self) -> bool {
+    pub fn has_control_flow(&self) -> bool {
         CONTROL_FLOW_OP_NAMES
             .iter()
             .any(|x| self.op_names.contains_key(&x.to_string()))

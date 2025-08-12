@@ -12,6 +12,8 @@
 
 """Check if a DAG circuit is already mapped to a coupling map."""
 
+import warnings
+
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.target import Target
 
@@ -45,16 +47,30 @@ class CheckMap(AnalysisPass):
         else:
             self.property_set_field = property_set_field
         if isinstance(coupling_map, Target):
-            cmap = coupling_map.build_coupling_map()
+            self._target = coupling_map
         else:
-            cmap = coupling_map
+            self._target = Target.from_configuration(["u", "cx"], coupling_map=coupling_map)
+        self._qargs = None
+
+    @property
+    def qargs(self):
+        """DEPRECATED: A set of the qargs being checked."""
+        warnings.warn(
+            "The qargs attribute is deprecated and will be removed in Qiskit 3.0",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if self._qargs is not None:
+            return self._qargs
+        cmap = self._target.build_coupling_map()
         if cmap is None:
-            self.qargs = None
-        else:
-            self.qargs = set()
-            for edge in cmap.get_edges():
-                self.qargs.add(edge)
-                self.qargs.add((edge[1], edge[0]))
+            return None
+        qargs = set()
+        for edge in cmap.get_edges():
+            qargs.add(edge)
+            qargs.add((edge[1], edge[0]))
+        self._qargs = qargs
+        return self._qargs
 
     def run(self, dag):
         """Run the CheckMap pass on `dag`.
@@ -65,10 +81,12 @@ class CheckMap(AnalysisPass):
         Args:
             dag (DAGCircuit): DAG to map.
         """
-        if not self.qargs:
+        if self._target.qargs is None or not any(
+            len(x) == 2 for x in self._target.qargs if x is not None
+        ):
             self.property_set[self.property_set_field] = True
             return
-        res = check_map.check_map(dag, self.qargs)
+        res = check_map.check_map(dag, self._target)
         if res is None:
             self.property_set[self.property_set_field] = True
             return
