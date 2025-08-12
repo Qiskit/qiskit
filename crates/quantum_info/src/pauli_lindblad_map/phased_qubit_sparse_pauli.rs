@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use hashbrown::HashSet;
+
 use numpy::{PyArray1, PyArrayMethods, PyReadonlyArray1};
 use pyo3::{
     exceptions::{PyTypeError, PyValueError},
@@ -45,6 +47,42 @@ pub struct PhasedQubitSparsePauliList {
     qubit_sparse_pauli_list: QubitSparsePauliList,
     /// Phases.
     phases: Vec<isize>,
+}
+
+impl QubitSparsePauliListLike for PhasedQubitSparsePauliList {
+    fn pauli_list(&self) -> &QubitSparsePauliList {
+        &self.qubit_sparse_pauli_list
+    }
+
+    fn pauli_list_mut(&mut self) -> &mut QubitSparsePauliList {
+        &mut self.qubit_sparse_pauli_list
+    }
+
+    /// Drop every Pauli on the given `indices`, effectively replacing them with an identity.
+    ///
+    /// It ignores all the indices that are larger than `self.num_qubits`.
+    fn drop_paulis(&self, indices: HashSet<u32>) -> Result<Self, CoherenceError> {
+        Self::new(
+            self.pauli_list().drop_paulis(indices)?,
+            self.phases.to_vec(),
+        )
+    }
+
+    /// Apply a transpiler layout.
+    fn apply_layout(
+        &self,
+        layout: Option<&[u32]>,
+        num_qubits: u32,
+    ) -> Result<Self, CoherenceError> {
+        let new_qubit_sparse_pauli_list = self
+            .pauli_list()
+            .apply_layout(layout, num_qubits)?;
+
+        Ok(PhasedQubitSparsePauliList {
+            qubit_sparse_pauli_list: new_qubit_sparse_pauli_list,
+            phases: self.phases.clone(),
+        })
+    }
 }
 
 impl PhasedQubitSparsePauliList {
@@ -104,18 +142,6 @@ impl PhasedQubitSparsePauliList {
                 qubit_sparse_pauli_view: qspv,
                 phase,
             })
-    }
-
-    /// Get the number of qubits the paulis are defined on.
-    #[inline]
-    pub fn num_qubits(&self) -> u32 {
-        self.qubit_sparse_pauli_list.num_qubits()
-    }
-
-    /// Get the number of elements in the list.
-    #[inline]
-    pub fn num_terms(&self) -> usize {
-        self.phases.len()
     }
 
     /// Create a [PhasedQubitSparsePauliList] representing the empty list on ``num_qubits`` qubits.
@@ -183,21 +209,6 @@ impl PhasedQubitSparsePauliList {
         }
 
         true
-    }
-    /// Apply a transpiler layout.
-    pub fn apply_layout(
-        &self,
-        layout: Option<&[u32]>,
-        num_qubits: u32,
-    ) -> Result<Self, CoherenceError> {
-        let new_qubit_sparse_pauli_list = self
-            .qubit_sparse_pauli_list
-            .apply_layout(layout, num_qubits)?;
-
-        Ok(PhasedQubitSparsePauliList {
-            qubit_sparse_pauli_list: new_qubit_sparse_pauli_list,
-            phases: self.phases.clone(),
-        })
     }
 }
 
