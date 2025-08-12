@@ -287,4 +287,4 @@ if __name__ == "__main__":
     cgates += _get_rotation_gates()
     commutation_dict = _generate_commutation_dict(considered_gates=cgates)
     commutation_dict = _simplify_commuting_dict(commutation_dict)
-    _dump_commuting_dict_as_python(commutation_dict)
+    _dump_commuting_dict_as_rust(commutation_dict)

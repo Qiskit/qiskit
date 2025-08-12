@@ -21,6 +21,7 @@
 //! crate. These are public to be passed to qiskit-pyext and are only used
 //! for building Python submodules.
 
+mod alap_schedule_analysis;
 mod barrier_before_final_measurement;
 mod basis_translator;
 mod check_map;
@@ -44,6 +45,7 @@ mod split_2q_unitaries;
 mod unitary_synthesis;
 mod vf2;
 
+pub use alap_schedule_analysis::{alap_schedule_analysis_mod, run_alap_schedule_analysis};
 pub use barrier_before_final_measurement::{
     barrier_before_final_measurements_mod, run_barrier_before_final_measurements,
 };
@@ -67,7 +69,7 @@ pub use high_level_synthesis::{
 pub use instruction_duration_check::{
     instruction_duration_check_mod, run_instruction_duration_check,
 };
-pub use inverse_cancellation::{inverse_cancellation_mod, run_inverse_cancellation};
+pub use inverse_cancellation::{inverse_cancellation_mod, run_inverse_cancellation_standard_gates};
 pub use optimize_1q_gates_decomposition::{
     optimize_1q_gates_decomposition_mod, run_optimize_1q_gates_decomposition,
 };
