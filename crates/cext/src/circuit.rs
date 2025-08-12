@@ -85,8 +85,9 @@ pub extern "C" fn qk_circuit_new(num_qubits: u32, num_clbits: u32) -> *mut Circu
 /// @return A pointer to the created register
 ///
 /// # Example
-///
+/// ```c
 ///     QkQuantumRegister *qr = qk_quantum_register_new(5, "five_qubits");
+/// ```
 ///
 /// # Safety
 ///
@@ -116,9 +117,10 @@ pub unsafe extern "C" fn qk_quantum_register_new(
 /// @param reg A pointer to the register to free.
 ///
 /// # Example
-///
+/// ```c
 ///     QkQuantumRegister *qr = qk_quantum_register_new(1024, "qreg");
 ///     qk_quantum_register_free(qr);
+/// ```
 ///
 /// # Safety
 ///
@@ -146,9 +148,10 @@ pub unsafe extern "C" fn qk_quantum_register_free(reg: *mut QuantumRegister) {
 /// @param reg A pointer to the register to free.
 ///
 /// # Example
-///
+/// ```c
 ///     QkClassicalRegister *cr = qk_classical_register_new(1024, "creg");
 ///     qk_classical_register_free(cr);
+/// ```
 ///
 /// # Safety
 ///
@@ -180,8 +183,9 @@ pub unsafe extern "C" fn qk_classical_register_free(reg: *mut ClassicalRegister)
 /// @return A pointer to the created register
 ///
 /// # Example
-///
+/// ```c
 ///     QkClassicalRegister *cr = qk_classical_register_new(5, "five_qubits");
+/// ```
 ///
 /// # Safety
 ///
@@ -212,12 +216,13 @@ pub unsafe extern "C" fn qk_classical_register_new(
 /// @param reg A pointer to the quantum register
 ///
 /// # Example
-///
+/// ```c
 ///     QkCircuit *qc = qk_circuit_new(0, 0);
 ///     QkQuantumRegister *qr = qk_quantum_register_new(1024, "my_little_register");
 ///     qk_circuit_add_quantum_register(qc, qr);
 ///     qk_quantum_register_free(qr);
-///     qk_circuit_free(qc)
+///     qk_circuit_free(qc);
+/// ```
 ///
 /// # Safety
 ///
@@ -245,12 +250,13 @@ pub unsafe extern "C" fn qk_circuit_add_quantum_register(
 /// @param reg A pointer to the classical register
 ///
 /// # Example
-///
+/// ```c
 ///     QkCircuit *qc = qk_circuit_new(0, 0);
 ///     QkClassicalRegister *cr = qk_classical_register_new(24, "my_big_register");
 ///     qk_circuit_add_classical_register(qc, cr);
 ///     qk_classical_register_free(cr);
-///     qk_circuit_free(qc)
+///     qk_circuit_free(qc);
+/// ```
 ///
 /// # Safety
 ///
@@ -279,9 +285,10 @@ pub unsafe extern "C" fn qk_circuit_add_classical_register(
 /// @return A new pointer to a copy of the input ``circuit``.
 ///
 /// # Example
-///
+/// ```c
 ///     QkCircuit *qc = qk_circuit_new(100, 100);
 ///     QkCircuit *copy = qk_circuit_copy(qc);
+/// ```
 ///
 /// # Safety
 ///
@@ -302,9 +309,10 @@ pub unsafe extern "C" fn qk_circuit_copy(circuit: *const CircuitData) -> *mut Ci
 /// @return The number of qubits the circuit is defined on.
 ///
 /// # Example
-///
+/// ```c
 ///     QkCircuit *qc = qk_circuit_new(100, 100);
 ///     uint32_t num_qubits = qk_circuit_num_qubits(qc);  // num_qubits==100
+/// ```
 ///
 /// # Safety
 ///
@@ -326,9 +334,10 @@ pub unsafe extern "C" fn qk_circuit_num_qubits(circuit: *const CircuitData) -> u
 /// @return The number of qubits the circuit is defined on.
 ///
 /// # Example
-///
+/// ```c
 ///     QkCircuit *qc = qk_circuit_new(100, 50);
 ///     uint32_t num_clbits = qk_circuit_num_clbits(qc);  // num_clbits==50
+/// ```
 ///
 /// # Safety
 ///
@@ -348,9 +357,10 @@ pub unsafe extern "C" fn qk_circuit_num_clbits(circuit: *const CircuitData) -> u
 /// @param circuit A pointer to the circuit to free.
 ///
 /// # Example
-///
+/// ```c
 ///     QkCircuit *qc = qk_circuit_new(100, 100);
 ///     qk_circuit_free(qc);
+/// ```
 ///
 /// # Safety
 ///
@@ -385,16 +395,17 @@ pub unsafe extern "C" fn qk_circuit_free(circuit: *mut CircuitData) {
 /// @return An exit code.
 ///
 /// # Example
-///
+/// ```c
 ///     QkCircuit *qc = qk_circuit_new(100, 0);
 ///     uint32_t qubit[1] = {0};
 ///     qk_circuit_gate(qc, QkGate_H, qubit, NULL);
+/// ```
 ///
 /// # Safety
 ///
 /// The ``qubits`` and ``params`` types are expected to be a pointer to an array of ``uint32_t``
 /// and ``double`` respectively where the length is matching the expectations for the standard
-/// gate. If the array is insufficently long the behavior of this function is undefined as this
+/// gate. If the array is insufficiently long the behavior of this function is undefined as this
 /// will read outside the bounds of the array. It can be a null pointer if there are no qubits
 /// or params for a given gate. You can check ``qk_gate_num_qubits`` and ``qk_gate_num_params`` to
 /// determine how many qubits and params are required for a given gate.
@@ -455,7 +466,7 @@ pub unsafe extern "C" fn qk_circuit_gate(
             // There are no ``QkGate``s that take > 4 params
             _ => unreachable!(),
         };
-        circuit.push_standard_gate(gate, params, qargs);
+        circuit.push_standard_gate(gate, params, qargs).unwrap()
     }
     ExitCode::Success
 }
@@ -468,8 +479,9 @@ pub unsafe extern "C" fn qk_circuit_gate(
 /// @return The number of qubits the gate acts on.
 ///
 /// # Example
-///
+/// ```c
 ///     uint32_t num_qubits = qk_gate_num_qubits(QkGate_CCX);
+/// ```
 ///
 #[no_mangle]
 #[cfg(feature = "cbinding")]
@@ -485,8 +497,9 @@ pub extern "C" fn qk_gate_num_qubits(gate: StandardGate) -> u32 {
 /// @return The number of parameters the gate has.
 ///
 /// # Example
-///
+/// ```c
 ///     uint32_t num_params = qk_gate_num_params(QkGate_R);
+/// ```
 ///
 #[no_mangle]
 #[cfg(feature = "cbinding")]
@@ -504,9 +517,10 @@ pub extern "C" fn qk_gate_num_params(gate: StandardGate) -> u32 {
 /// @return An exit code.
 ///
 /// # Example
-///
+/// ```c
 ///     QkCircuit *qc = qk_circuit_new(100, 1);
 ///     qk_circuit_measure(qc, 0, 0);
+/// ```
 ///
 /// # Safety
 ///
@@ -520,12 +534,14 @@ pub unsafe extern "C" fn qk_circuit_measure(
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
-    circuit.push_packed_operation(
-        PackedOperation::from_standard_instruction(StandardInstruction::Measure),
-        &[],
-        &[Qubit(qubit)],
-        &[Clbit(clbit)],
-    );
+    circuit
+        .push_packed_operation(
+            PackedOperation::from_standard_instruction(StandardInstruction::Measure),
+            &[],
+            &[Qubit(qubit)],
+            &[Clbit(clbit)],
+        )
+        .unwrap();
     ExitCode::Success
 }
 
@@ -538,9 +554,10 @@ pub unsafe extern "C" fn qk_circuit_measure(
 /// @return An exit code.
 ///
 /// # Example
-///
+/// ```c
 ///     QkCircuit *qc = qk_circuit_new(100, 0);
 ///     qk_circuit_reset(qc, 0);
+/// ```
 ///
 /// # Safety
 ///
@@ -550,12 +567,14 @@ pub unsafe extern "C" fn qk_circuit_measure(
 pub unsafe extern "C" fn qk_circuit_reset(circuit: *mut CircuitData, qubit: u32) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
-    circuit.push_packed_operation(
-        PackedOperation::from_standard_instruction(StandardInstruction::Reset),
-        &[],
-        &[Qubit(qubit)],
-        &[],
-    );
+    circuit
+        .push_packed_operation(
+            PackedOperation::from_standard_instruction(StandardInstruction::Reset),
+            &[],
+            &[Qubit(qubit)],
+            &[],
+        )
+        .unwrap();
     ExitCode::Success
 }
 
@@ -569,10 +588,11 @@ pub unsafe extern "C" fn qk_circuit_reset(circuit: *mut CircuitData, qubit: u32)
 /// @return An exit code.
 ///
 /// # Example
-///
+/// ```c
 ///     QkCircuit *qc = qk_circuit_new(100, 1);
 ///     uint32_t qubits[5] = {0, 1, 2, 3, 4};
 ///     qk_circuit_barrier(qc, qubits, 5);
+/// ```
 ///
 /// # Safety
 ///
@@ -595,12 +615,14 @@ pub unsafe extern "C" fn qk_circuit_barrier(
             .map(|idx| Qubit(*qubits.wrapping_add(idx as usize)))
             .collect()
     };
-    circuit.push_packed_operation(
-        PackedOperation::from_standard_instruction(StandardInstruction::Barrier(num_qubits)),
-        &[],
-        &qubits,
-        &[],
-    );
+    circuit
+        .push_packed_operation(
+            PackedOperation::from_standard_instruction(StandardInstruction::Barrier(num_qubits)),
+            &[],
+            &qubits,
+            &[],
+        )
+        .unwrap();
     ExitCode::Success
 }
 
@@ -674,18 +696,18 @@ fn is_unitary(matrix: &ArrayType, tol: f64) -> bool {
 ///     the matrix is not unitary this is undefined behavior and will result in a corrupt
 ///     circuit.
 /// # Example
+/// ```c
+///   QkComplex64 c0 = {0, 0};  // 0+0i
+///   QkComplex64 c1 = {1, 0};  // 1+0i
 ///
-///     QkComplex64 c0 = qk_complex64_from_native(0);  // 0+0i
-///     QkComplex64 c1 = qk_complex64_from_native(1);  // 1+0i
+///   const uint32_t num_qubits = 1;
+///   QkComplex64 unitary[2*2] = {c0, c1,  // row 0
+///                                     c1, c0}; // row 1
 ///
-///     const uint32_t num_qubits = 1;
-///     const uint32_t dim = 2;
-///     QkComplex64[dim * dim] unitary = {c0, c1,  // row 0
-///                                       c1, c0}; // row 1
-///
-///     QkCircuit *circuit = qk_circuit_new(1, 0);  // 1 qubit circuit
-///     uint32_t qubit = {0};  // qubit to apply the unitary on
-///     qk_circuit_unitary(circuit, unitary, qubit, num_qubits);
+///   QkCircuit *circuit = qk_circuit_new(1, 0);  // 1 qubit circuit
+///   uint32_t qubit[1] = {0};  // qubit to apply the unitary on
+///   qk_circuit_unitary(circuit, unitary, qubit, num_qubits, true);
+/// ```
 ///
 /// # Safety
 ///
@@ -731,7 +753,7 @@ pub unsafe extern "C" fn qk_circuit_unitary(
     // Create PackedOperation -> push to circuit_data
     let u_gate = Box::new(UnitaryGate { array: mat });
     let op = PackedOperation::from_unitary(u_gate);
-    circuit.push_packed_operation(op, &[], qargs, &[]);
+    circuit.push_packed_operation(op, &[], qargs, &[]).unwrap();
     // Return success
     ExitCode::Success
 }
@@ -744,11 +766,12 @@ pub unsafe extern "C" fn qk_circuit_unitary(
 /// @return An ``OpCounts`` struct containing the circuit operation counts.
 ///
 /// # Example
-///
+/// ```c
 ///     QkCircuit *qc = qk_circuit_new(100, 0);
-///     uint32_t qubit[1] = {0};
+///     uint32_t qubits[1] = {0};
 ///     qk_circuit_gate(qc, QkGate_H, qubits, NULL);
 ///     QkOpCounts counts = qk_circuit_count_ops(qc);
+/// ```
 ///
 /// # Safety
 ///
@@ -780,11 +803,12 @@ pub unsafe extern "C" fn qk_circuit_count_ops(circuit: *const CircuitData) -> Op
 /// @return The total number of instructions in the circuit.
 ///
 /// # Example
-///
+/// ```c
 ///     QkCircuit *qc = qk_circuit_new(100, 0);
 ///     uint32_t qubit[1] = {0};
 ///     qk_circuit_gate(qc, QkGate_H, qubit, NULL);
 ///     size_t num = qk_circuit_num_instructions(qc); // 1
+/// ```
 ///
 /// # Safety
 ///
@@ -832,12 +856,13 @@ pub struct CInstruction {
 ///
 ///
 /// # Example
-///
-///     QkCircuitInstruction *inst = malloc(sizeof(QkCircuitInstruction));
-///     QkCircuit *qc = qk_circuit_new(100);
+/// ```c
+///     QkCircuitInstruction inst;
+///     QkCircuit *qc = qk_circuit_new(100, 0);
 ///     uint32_t qubit[1] = {0};
 ///     qk_circuit_gate(qc, QkGate_H, qubit, NULL);
-///     QkCircuitInstruction inst = qk_circuit_get_instruction(qc, 0);
+///     qk_circuit_get_instruction(qc, 0, &inst);
+/// ```
 ///
 /// # Safety
 ///
@@ -906,15 +931,16 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
 /// @param inst A pointer to the instruction to free.
 ///
 /// # Example
-///
+/// ```c
 ///     QkCircuitInstruction *inst = malloc(sizeof(QkCircuitInstruction));
-///     QkCircuit *qc = qk_circuit_new(100);
-///     uint32_t q0 = {0};
+///     QkCircuit *qc = qk_circuit_new(100, 0);
+///     uint32_t q0[1] = {0};
 ///     qk_circuit_gate(qc, QkGate_H, q0, NULL);
 ///     qk_circuit_get_instruction(qc, 0, inst);
 ///     qk_circuit_instruction_clear(inst); // free the data
 ///     free(inst); // free the pointer
 ///     qk_circuit_free(qc); // free the circuit
+/// ```
 ///
 /// # Safety
 ///
@@ -992,7 +1018,7 @@ pub unsafe extern "C" fn qk_circuit_to_python(circuit: *mut CircuitData) -> *mut
         QUANTUM_CIRCUIT
             .get_bound(py)
             .call_method1(intern!(py, "_from_circuit_data"), (*circuit,))
-            .expect("Unabled to create a Python circuit")
+            .expect("Unable to create a Python circuit")
             .into_ptr()
     }
 }
@@ -1037,9 +1063,10 @@ impl From<QkDelayUnit> for DelayUnit {
 /// @return An exit code.
 ///
 /// # Example
-///
+/// ```c
 ///     QkCircuit *qc = qk_circuit_new(1, 0);
 ///     qk_circuit_delay(qc, 0, 100.0, QkDelayUnit_NS);
+/// ```
 ///
 /// # Safety
 ///
@@ -1060,12 +1087,14 @@ pub unsafe extern "C" fn qk_circuit_delay(
     let duration_param: Param = duration.into();
     let delay_instruction = StandardInstruction::Delay(delay_unit_variant);
 
-    circuit.push_packed_operation(
-        PackedOperation::from_standard_instruction(delay_instruction),
-        &[duration_param],
-        &[Qubit(qubit)],
-        &[],
-    );
+    circuit
+        .push_packed_operation(
+            PackedOperation::from_standard_instruction(delay_instruction),
+            &[duration_param],
+            &[Qubit(qubit)],
+            &[],
+        )
+        .unwrap();
 
     ExitCode::Success
 }

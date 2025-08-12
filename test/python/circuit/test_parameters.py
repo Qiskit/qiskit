@@ -191,7 +191,7 @@ class TestParameters(QiskitTestCase):
         rxg = RXGate(theta)
         qc.append(rxg, [qr[0]], [])
         self.assertEqual(qc._data.num_parameters(), 1)
-        self.assertIs(theta, next(iter(qc._data.unsorted_parameters())))
+        self.assertEqual(theta, next(iter(qc._data.unsorted_parameters())))
         ((instruction_index, _),) = list(qc._data._raw_parameter_table_entry(theta))
         self.assertEqual(rxg, qc.data[instruction_index].operation)
 
@@ -245,10 +245,10 @@ class TestParameters(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.rx(x + y + z + sum(v), 0)
 
-        self.assertIs(qc.get_parameter("x"), x)
-        self.assertIs(qc.get_parameter("y"), y)
-        self.assertIs(qc.get_parameter("z"), z)
-        self.assertIs(qc.get_parameter(v[1].name), v[1])
+        self.assertEqual(qc.get_parameter("x"), x)
+        self.assertEqual(qc.get_parameter("y"), y)
+        self.assertEqual(qc.get_parameter("z"), z)
+        self.assertEqual(qc.get_parameter(v[1].name), v[1])
 
         self.assertIsNone(qc.get_parameter("abc", None))
         self.assertEqual(qc.get_parameter("jfkdla", "not present"), "not present")
@@ -261,7 +261,7 @@ class TestParameters(QiskitTestCase):
         x = Parameter("x")
         qc = QuantumCircuit(0, global_phase=x)
 
-        self.assertIs(qc.get_parameter("x"), x)
+        self.assertEqual(qc.get_parameter("x"), x)
         self.assertIsNone(qc.get_parameter("y", None), None)
 
     def test_setting_global_phase_invalidates_cache(self):
@@ -371,6 +371,15 @@ class TestParameters(QiskitTestCase):
         qc.assign_parameters(binds, inplace=True)
 
         self.assertAlmostEqual(binds[0], qc.data[0].operation.params[0])
+
+    def test_assign_parameters_with_string_values_and_strict_equals_false(self):
+        """Test that a string parameter with strict=False does not return an error"""
+        qc = QuantumCircuit(1)
+        a = Parameter("a")
+        qc.rz(a, 0)
+        bound = qc.assign_parameters({"a": 1.0, "b": 2.0}, strict=False)
+        expected = qc.assign_parameters({a: 1.0})
+        self.assertEqual(bound, expected)
 
     def test_bind_parameters_custom_definition_global_phase(self):
         """Test that a custom gate with a parametrized `global_phase` is assigned correctly."""
@@ -888,8 +897,8 @@ class TestParameters(QiskitTestCase):
         self.assertNotEqual(x1[0], x2_p[0])
         self.assertNotEqual(x2[0], x1_p[0])
 
-        self.assertIs(x1_p[0].vector, x1_p)
-        self.assertIs(x2_p[0].vector, x2_p)
+        self.assertEqual(x1_p[0].vector, x1_p)
+        self.assertEqual(x2_p[0].vector, x2_p)
         self.assertEqual([p.index for p in x1_p], list(range(len(x1_p))))
         self.assertEqual([p.index for p in x2_p], list(range(len(x2_p))))
 
@@ -1507,7 +1516,9 @@ class TestParameterExpressions(QiskitTestCase):
         imaginary part, with a sensible error message."""
         x = Parameter("x")
         bound_expr = (x + 1.0j).bind({x: 1.0})
-        with self.assertRaisesRegex(TypeError, "could not cast expression to float"):
+        with self.assertRaisesRegex(
+            TypeError, "Could not cast complex parameter expression to float"
+        ):
             float(bound_expr)
 
     def test_raise_if_cast_to_float_when_not_fully_bound(self):
@@ -1793,7 +1804,6 @@ class TestParameterExpressions(QiskitTestCase):
 
     def test_name_collision(self):
         """Verify Expressions of distinct Parameters of shared name raises."""
-
         x = Parameter("p")
         y = Parameter("p")
 
@@ -2154,6 +2164,14 @@ class TestParameterEquality(QiskitTestCase):
 
         self.assertEqual(expr1, expr2)
 
+    def test_parameter_expression_equal_floats_to_divide_by_int(self):
+        """Verify an expression with float and division by int is identical."""
+        theta = Parameter("theta")
+        expr1 = 0.25 * theta
+        expr2 = theta / 4
+
+        self.assertEqual(expr1, expr2)
+
     def test_parameter_expression_not_equal_if_params_differ(self):
         """Verify expressions not equal if parameters are different."""
         theta1 = Parameter("theta")
@@ -2172,13 +2190,6 @@ class TestParameterEquality(QiskitTestCase):
 
         self.assertEqual(expr, theta)
         self.assertEqual(theta, expr)
-
-    def test_parameter_symbol_equal_after_ufunc(self):
-        """Verify ParameterExpression phi
-        and ParameterExpression cos(phi) have the same symbol map"""
-        phi = Parameter("phi")
-        cos_phi = numpy.cos(phi)
-        self.assertEqual(phi._parameter_symbols, cos_phi._parameter_symbols)
 
 
 class TestParameterView(QiskitTestCase):

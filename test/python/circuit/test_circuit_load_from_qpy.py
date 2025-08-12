@@ -1165,7 +1165,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qc = QuantumCircuit(7)
         entanglement = [[i, i + 1] for i in range(7 - 1)]
         input_params = ParameterVector("x_par", 14)
-        user_params = ParameterVector("\u03B8_par", 1)
+        user_params = ParameterVector("\u03b8_par", 1)
 
         for i in range(qc.num_qubits):
             qc.ry(user_params[0], qc.qubits[i])
@@ -1902,6 +1902,28 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(box_1_0.duration, 2.5)
         self.assertEqual(box_1_0.unit, "s")
         self.assertEqual(box_1_0.label, "world")
+
+    def test_box_with_stretch(self):
+        """Test that box's duration and unit round-trip with stretches."""
+        qc = QuantumCircuit(2)
+        a = qc.add_stretch("a")
+        b = qc.add_stretch("b")
+        with qc.box(duration=a):
+            with qc.box(duration=expr.mul(2, b)):
+                pass
+
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            out = load(fptr)[0]
+
+        box_outer = out.data[0].operation
+        self.assertEqual(box_outer.duration, a)
+        self.assertEqual(box_outer.unit, "expr")
+        box_inner = box_outer.blocks[0].data[0].operation
+        self.assertEqual(box_inner.duration, expr.mul(2, b))
+        self.assertEqual(box_inner.unit, "expr")
+        self.assertEqual(qc, out)
 
     def test_multiple_nested_control_custom_definitions(self):
         """Test that circuits with multiple controlled custom gates that in turn depend on custom
