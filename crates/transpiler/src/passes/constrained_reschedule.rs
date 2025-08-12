@@ -85,7 +85,8 @@ fn push_node_back(
         OperationRef::Gate(_) | OperationRef::StandardGate(_) => Some(pulse_align),
         OperationRef::StandardInstruction(StandardInstruction::Reset)
         | OperationRef::StandardInstruction(StandardInstruction::Measure) => Some(acquire_align),
-        OperationRef::StandardInstruction(StandardInstruction::Delay(_)) | _ => None,
+        OperationRef::StandardInstruction(StandardInstruction::Delay(_)) => None,
+        _ => None,
     };
 
     let obj = node_start_time.get_item(node_index.index())?;
