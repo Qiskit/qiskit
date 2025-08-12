@@ -5858,7 +5858,8 @@ impl DAGCircuit {
 
     /// Substitutes a node by a given DAGCircuit and adds the replacement DAG's global phase to the current DAG.
     ///
-    /// # Arguments:
+    /// # Arguments
+    ///
     /// * node_index: The node in the DAGCircuit to replace.
     /// * other: The replacement DAGCircuit.
     /// * qubit_map: A mapping from the replacement DAGCircuit qubits to the replaced node's qargs.
@@ -5868,7 +5869,8 @@ impl DAGCircuit {
     /// * var_map: A mapping from the replacement DAGCircuit variables to the replaced node's variables.
     ///         Note: Inferring variable mapping automatically is currently not implemented.
     ///
-    /// # Returns:
+    /// # Returns
+    ///
     /// A mapping of the node indices in the replacement DAGCircuit to their corresponding node indices in the
     /// current DAGCircuit.
     pub fn substitute_node_with_dag(
