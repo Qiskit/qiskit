@@ -13,6 +13,7 @@
 pub mod commutation_checker;
 pub mod equivalence;
 pub mod passes;
+pub mod standard_gates_commutations;
 pub mod target;
 
 mod gate_metrics;

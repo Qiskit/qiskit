@@ -561,16 +561,16 @@ impl TwoQubitWeylDecomposition {
     ) -> PyResult<()> {
         match self.specialization {
             Specialization::MirrorControlledEquiv => {
-                sequence.push_standard_gate(StandardGate::Swap, &[], &[Qubit(0), Qubit(1)]);
+                sequence.push_standard_gate(StandardGate::Swap, &[], &[Qubit(0), Qubit(1)])?;
                 sequence.push_standard_gate(
                     StandardGate::RZZ,
                     &[Param::Float((PI4 - self.c) * 2.)],
                     &[Qubit(0), Qubit(1)],
-                );
+                )?;
                 *global_phase += PI4
             }
             Specialization::SWAPEquiv => {
-                sequence.push_standard_gate(StandardGate::Swap, &[], &[Qubit(0), Qubit(1)]);
+                sequence.push_standard_gate(StandardGate::Swap, &[], &[Qubit(0), Qubit(1)])?;
                 *global_phase -= 3. * PI / 4.
             }
             _ => {
@@ -579,21 +579,21 @@ impl TwoQubitWeylDecomposition {
                         StandardGate::RXX,
                         &[Param::Float(-self.a * 2.)],
                         &[Qubit(0), Qubit(1)],
-                    );
+                    )?;
                 }
                 if !simplify || self.b.abs() > atol {
                     sequence.push_standard_gate(
                         StandardGate::RYY,
                         &[Param::Float(-self.b * 2.)],
                         &[Qubit(0), Qubit(1)],
-                    );
+                    )?;
                 }
                 if !simplify || self.c.abs() > atol {
                     sequence.push_standard_gate(
                         StandardGate::RZZ,
                         &[Param::Float(-self.c * 2.)],
                         &[Qubit(0), Qubit(1)],
-                    );
+                    )?;
                 }
             }
         }
@@ -1206,7 +1206,7 @@ impl TwoQubitWeylDecomposition {
                 gate.0,
                 &gate.1.into_iter().map(Param::Float).collect::<Vec<_>>(),
                 &[Qubit(0)],
-            )
+            )?;
         }
         global_phase += c2r.global_phase;
         let c2l = unitary_to_gate_sequence_inner(
@@ -1223,7 +1223,7 @@ impl TwoQubitWeylDecomposition {
                 gate.0,
                 &gate.1.into_iter().map(Param::Float).collect::<Vec<_>>(),
                 &[Qubit(1)],
-            )
+            )?;
         }
         global_phase += c2l.global_phase;
         self.weyl_gate(
@@ -1246,7 +1246,7 @@ impl TwoQubitWeylDecomposition {
                 gate.0,
                 &gate.1.into_iter().map(Param::Float).collect::<Vec<_>>(),
                 &[Qubit(0)],
-            )
+            )?;
         }
         global_phase += c2r.global_phase;
         let c1l = unitary_to_gate_sequence_inner(
@@ -1263,7 +1263,7 @@ impl TwoQubitWeylDecomposition {
                 gate.0,
                 &gate.1.into_iter().map(Param::Float).collect::<Vec<_>>(),
                 &[Qubit(1)],
-            )
+            )?;
         }
         gate_sequence.set_global_phase(Param::Float(global_phase))?;
         Ok(gate_sequence)
@@ -1409,6 +1409,7 @@ impl TwoQubitBasisDecomposer {
         &self,
         decomposition: &SmallVec<[Array2<Complex64>; 8]>,
         target_decomposed: &TwoQubitWeylDecomposition,
+        use_xgate: bool,
     ) -> Option<TwoQubitGateSequence> {
         let mut gates = Vec::new();
         let mut global_phase = target_decomposed.global_phase;
@@ -1439,13 +1440,22 @@ impl TwoQubitBasisDecomposer {
         euler_matrix_q1 = rx_matrix(euler_q1[0][2] + euler_q1[1][0]).dot(&euler_matrix_q1);
         self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q1.view(), 1);
         gates.push((StandardGate::CX.into(), smallvec![], smallvec![0, 1]));
-        gates.push((StandardGate::SX.into(), smallvec![], smallvec![0]));
-        gates.push((
-            StandardGate::RZ.into(),
-            smallvec![euler_q0[1][1] - PI],
-            smallvec![0],
-        ));
-        gates.push((StandardGate::SX.into(), smallvec![], smallvec![0]));
+        if (euler_q0[1][1] - PI).abs() < ANGLE_ZERO_EPSILON {
+            if use_xgate {
+                gates.push((StandardGate::X.into(), smallvec![], smallvec![0]));
+            } else {
+                gates.push((StandardGate::SX.into(), smallvec![], smallvec![0]));
+                gates.push((StandardGate::SX.into(), smallvec![], smallvec![0]));
+            }
+        } else {
+            gates.push((StandardGate::SX.into(), smallvec![], smallvec![0]));
+            gates.push((
+                StandardGate::RZ.into(),
+                smallvec![euler_q0[1][1] - PI],
+                smallvec![0],
+            ));
+            gates.push((StandardGate::SX.into(), smallvec![], smallvec![0]));
+        }
         gates.push((
             StandardGate::RZ.into(),
             smallvec![euler_q1[1][1]],
@@ -1668,9 +1678,12 @@ impl TwoQubitBasisDecomposer {
         {
             return Ok(None);
         }
+        let mut use_xgate = false;
         match self.euler_basis {
             EulerBasis::ZSX => (),
-            EulerBasis::ZSXX => (),
+            EulerBasis::ZSXX => {
+                use_xgate = true;
+            }
             _ => {
                 if self.pulse_optimize.is_some() {
                     return Err(QiskitError::new_err(format!(
@@ -1697,7 +1710,7 @@ impl TwoQubitBasisDecomposer {
         let res = if best_nbasis == 3 {
             self.get_sx_vz_3cx_efficient_euler(decomposition, target_decomposed)
         } else if best_nbasis == 2 {
-            self.get_sx_vz_2cx_efficient_euler(decomposition, target_decomposed)
+            self.get_sx_vz_2cx_efficient_euler(decomposition, target_decomposed, use_xgate)
         } else {
             None
         };

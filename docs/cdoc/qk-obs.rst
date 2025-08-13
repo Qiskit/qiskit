@@ -149,7 +149,7 @@ can be in any order while representing the same observable, since addition is co
 the summation order).
 
 These two categories of representation degeneracy can cause the operator equality,
-``qk_obs_equal``, to claim that two observables are not equal, despite representating the same
+``qk_obs_equal``, to claim that two observables are not equal, despite representing the same
 object.  In these cases, it can be convenient to define some *canonical form*, which allows
 observables to be compared structurally.
 You can put a ``QkObs`` in canonical form by using the ``qk_obs_canonicalize`` function.
@@ -165,19 +165,19 @@ structurally by comparing their simplified forms.
     .. code-block:: c
 
         bool equivalent(QkObs *left, QkObs *right, double tol) {
-            // compare a canonicalized version of left - right to the zero observable
-            QkObs *neg_right = qk_obs_mul(right, -1);
-            QkObs *diff = qk_obs_add(left, neg_right);
-            QkObs *canonical = qk_obs_canonicalize(diff, tol);
+          // compare a canonicalized version of left - right to the zero observable
+          QkObs *neg_right = qk_obs_multiply(right, &(QkComplex64){-1, 0});
+          QkObs *diff = qk_obs_add(left, neg_right);
+          QkObs *canonical = qk_obs_canonicalize(diff, tol);
 
-            QkObs *zero = qk_obs_zero(qk_obs_num_qubits(left));
-            bool equiv = qk_obs_equal(diff, zero);
-            // free all temporary variables
-            qk_obs_free(neg_right);
-            qk_obs_free(diff);
-            qk_obs_free(canonical);
-            qk_obs_free(zero);
-            return equiv;
+          QkObs *zero = qk_obs_zero(qk_obs_num_qubits(left));
+          bool equiv = qk_obs_equal(diff, zero);
+          // free all temporary variables
+          qk_obs_free(neg_right);
+          qk_obs_free(diff);
+          qk_obs_free(canonical);
+          qk_obs_free(zero);
+          return equiv;
         }
 
 .. note::

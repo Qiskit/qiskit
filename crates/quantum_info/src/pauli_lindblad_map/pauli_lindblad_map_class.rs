@@ -329,6 +329,44 @@ impl PauliLindbladMap {
         )
     }
 
+    /// Drop qubits corresponding to the given `indices`.
+    ///
+    /// It ignores all the indices that are larger than `self.num_qubits`.
+    pub fn drop_qubits(&self, indices: HashSet<u32>) -> Result<Self, CoherenceError> {
+        let mut new_paulis: Vec<Pauli> = Vec::with_capacity(self.paulis().len());
+        let mut new_indices: Vec<u32> = Vec::with_capacity(self.indices().len());
+        let mut new_boundaries: Vec<usize> = Vec::with_capacity(self.boundaries().len());
+
+        new_boundaries.push(0);
+        let mut boundaries_idx = 1;
+        let mut current_boundary = self.boundaries()[boundaries_idx];
+
+        let mut num_dropped_paulis = 0;
+        for (i, (&pauli, &index)) in self.paulis().iter().zip(self.indices().iter()).enumerate() {
+            if current_boundary == i {
+                new_boundaries.push(current_boundary - num_dropped_paulis);
+
+                boundaries_idx += 1;
+                current_boundary = self.boundaries()[boundaries_idx]
+            }
+
+            if indices.contains(&index) {
+                num_dropped_paulis += 1;
+            } else {
+                new_indices.push(index - (indices.iter().filter(|&&x| x < index).count() as u32));
+                new_paulis.push(pauli);
+            }
+        }
+        new_boundaries.push(current_boundary - num_dropped_paulis);
+
+        let new_num_qubits = self.num_qubits() - (indices.len() as u32);
+        Self::new(
+            self.rates().to_vec(),
+            QubitSparsePauliList::new(new_num_qubits, new_paulis, new_indices, new_boundaries)
+                .unwrap(),
+        )
+    }
+
     /// Compute the fidelity of the map for a single pauli
     pub fn pauli_fidelity(
         &self,
@@ -1289,6 +1327,9 @@ impl PyPauliLindbladMap {
     ///
     /// Drop every Pauli on the given `indices`, effectively replacing them with an identity.
     ///
+    /// The resulting map may contain duplicates, which can be removed using the :meth:`PauliLindbladMap.simplify`
+    /// method.
+    ///
     /// Args:
     ///     indices (Sequence[int]): The indices for which Paulis must be dropped.
     ///
@@ -1301,7 +1342,7 @@ impl PyPauliLindbladMap {
     ///
     ///         >>> pauli_map_in = PauliLindbladMap.from_list([("XXIZI", 2.0), ("IIIYZ", 0.5), ("ZIIXY", -0.25)])
     ///         >>> pauli_map_out = pauli_map_in.keep_paulis([1, 2, 4])
-    ///         >>> assert pauli_map_out == PauliLindbladMap.from_list([("XIIZI", 2.0), ("IIIYI", 0.5), ("ZIIXI", -0.25)])
+    ///         >>> assert pauli_map_out == PauliLindbladMap.from_list([("IXIII", 2.0), ("IIIIZ", 0.5), ("IIIIY", -0.25)])
     #[pyo3(signature = (/, indices))]
     pub fn drop_paulis(&self, indices: Vec<u32>) -> PyResult<Self> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
@@ -1336,8 +1377,8 @@ impl PyPauliLindbladMap {
     ///     .. code-block:: python
     ///
     ///         >>> pauli_map_in = PauliLindbladMap.from_list([("XXIZI", 2.0), ("IIIYZ", 0.5), ("ZIIXY", -0.25)])
-    ///         >>> pauli_map_out = pauli_map_in.keep_paulis([1, 2, 4])
-    ///         >>> assert pauli_map_out == PauliLindbladMap.from_list([("XIIZI", 2.0), ("IIIYI", 0.5), ("ZIIXI", -0.25)])
+    ///         >>> pauli_map_out = pauli_map_in.keep_paulis([0, 3])
+    ///         >>> assert pauli_map_out == PauliLindbladMap.from_list([("IXIII", 2.0), ("IIIIZ", 0.5), ("IIIIY", -0.25)])
     #[pyo3(signature = (/, indices))]
     pub fn keep_paulis(&self, indices: Vec<u32>) -> PyResult<Self> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
@@ -1355,6 +1396,96 @@ impl PyPauliLindbladMap {
 
         Ok(inner
             .drop_paulis(
+                (0..self.num_qubits()?)
+                    .filter(|index| !indices.contains(index))
+                    .collect(),
+            )?
+            .into())
+    }
+
+    /// Drop qubits out of this Pauli Lindblad map, effectively performing a trace-out operation.
+    ///
+    /// The resulting map may contain duplicates, which can be removed using the :meth:`PauliLindbladMap.simplify`
+    /// method.
+    ///
+    /// Args:
+    ///     indices (Sequence[int]): The indices of the qubits to trace out.
+    ///
+    /// Returns:
+    ///     A new Pauli Lindblad map where every Pauli on the given `indices` has been traced out.
+    ///
+    /// Examples:
+    ///
+    ///     .. code-block:: python
+    ///
+    ///         >>> pauli_map_in = PauliLindbladMap.from_list([("XXIZI", 2.0), ("IIIYZ", 0.5), ("ZIIXY", -0.25)])
+    ///         >>> pauli_map_out = pauli_map_in.drop_qubits([1, 2, 4])
+    ///         >>> assert pauli_map_out == PauliLindbladMap.from_list([("XI", 2.0), ("IZ", 0.5), ("IY", -0.25)])
+    #[pyo3(signature = (/, indices))]
+    pub fn drop_qubits(&self, indices: Vec<u32>) -> PyResult<Self> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+
+        let max_index = match indices.iter().max() {
+            Some(&index) => index,
+            None => 0,
+        };
+        if max_index >= inner.num_qubits() {
+            let num_qubits = inner.num_qubits();
+            return Err(PyValueError::new_err(format!(
+                "cannot drop qubits for index {max_index} in a {num_qubits}-qubit PauliLindbladMap"
+            )));
+        }
+
+        if (indices.len() as u32) == inner.num_qubits() {
+            return Err(PyValueError::new_err(
+                "cannot drop every qubit in the given PauliLindbladMap",
+            ));
+        }
+
+        Ok(inner.drop_qubits(indices.into_iter().collect())?.into())
+    }
+
+    /// Keep every qubit on the given `indices` and trace out all other qubits.
+    ///
+    /// This is equivalent to using :meth:`PauliLindbladMap.drop_qubits` on the complement set of indices.
+    ///
+    /// Args:
+    ///     indices (Sequence[int]): The indices for which qubits must be kept.
+    ///
+    /// Returns:
+    ///     A new Pauli Lindblad map where every qubit on the given `indices` has been kept and all other
+    ///     qubits have been traced out.
+    ///
+    /// Examples:
+    ///
+    ///     .. code-block:: python
+    ///
+    ///         >>> pauli_map_in = PauliLindbladMap.from_list([("XXIZI", 2.0), ("IIIYZ", 0.5), ("ZIIXY", -0.25)])
+    ///         >>> pauli_map_out = pauli_map_in.keep_qubits([0, 3])
+    ///         >>> assert pauli_map_out == PauliLindbladMap.from_list([("XI", 2.0), ("IZ", 0.5), ("IY", -0.25)])
+    #[pyo3(signature = (/, indices))]
+    pub fn keep_qubits(&self, indices: Vec<u32>) -> PyResult<Self> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+
+        let max_index = match indices.iter().max() {
+            Some(&index) => index,
+            None => 0,
+        };
+        if max_index >= inner.num_qubits() {
+            let num_qubits = inner.num_qubits();
+            return Err(PyValueError::new_err(format!(
+                "cannot keep qubits for index {max_index} in a {num_qubits}-qubit PauliLindbladMap"
+            )));
+        }
+
+        if indices.is_empty() {
+            return Err(PyValueError::new_err(
+                "cannot drop every qubit in the given PauliLindbladMap",
+            ));
+        }
+
+        Ok(inner
+            .drop_qubits(
                 (0..self.num_qubits()?)
                     .filter(|index| !indices.contains(index))
                     .collect(),
