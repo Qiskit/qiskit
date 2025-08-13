@@ -447,7 +447,7 @@ pub enum OP<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::ast::DurationUnit;
+    use super::DurationUnit;
 
     #[test]
     fn duration_unit_display_formats_correctly() {
