@@ -68,6 +68,16 @@ impl QubitSparsePauliListLike for PhasedQubitSparsePauliList {
         )
     }
 
+    /// Drop qubits corresponding to the given `indices`.
+    ///
+    /// It ignores all the indices that are larger than `self.num_qubits`.
+    fn drop_qubits(&self, indices: HashSet<u32>) -> Result<Self, CoherenceError> {
+        Self::new(
+            self.pauli_list().drop_qubits(indices)?,
+            self.phases.to_vec(),
+        )
+    }
+
     /// Apply a transpiler layout.
     fn apply_layout(
         &self,

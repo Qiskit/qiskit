@@ -271,6 +271,11 @@ pub trait QubitSparsePauliListLike {
 
     /// Apply a transpiler layout.
     fn apply_layout(&self, layout: Option<&[u32]>, num_qubits: u32) -> Result<Self, CoherenceError> where Self: Sized;
+
+    /// Drop qubits corresponding to the given `indices`.
+    ///
+    /// It ignores all the indices that are larger than `self.num_qubits`.
+    fn drop_qubits(&self, indices: HashSet<u32>) -> Result<Self, CoherenceError> where Self: Sized;
 }
 
 ///Implementation of QubitSparsePauliListLike for QubitSparsePauliList
@@ -345,6 +350,40 @@ impl QubitSparsePauliListLike for QubitSparsePauliList {
         new_boundaries.push(current_boundary - num_dropped_paulis);
 
         Self::new(self.num_qubits(), new_paulis, new_indices, new_boundaries)
+    }
+
+    /// Drop qubits corresponding to the given `indices`.
+    ///
+    /// It ignores all the indices that are larger than `self.num_qubits`.
+    fn drop_qubits(&self, indices: HashSet<u32>) -> Result<Self, CoherenceError> {
+        let mut new_paulis: Vec<Pauli> = Vec::with_capacity(self.paulis().len());
+        let mut new_indices: Vec<u32> = Vec::with_capacity(self.indices().len());
+        let mut new_boundaries: Vec<usize> = Vec::with_capacity(self.boundaries().len());
+
+        new_boundaries.push(0);
+        let mut boundaries_idx = 1;
+        let mut current_boundary = self.boundaries()[boundaries_idx];
+
+        let mut num_dropped_paulis = 0;
+        for (i, (&pauli, &index)) in self.paulis().iter().zip(self.indices().iter()).enumerate() {
+            if current_boundary == i {
+                new_boundaries.push(current_boundary - num_dropped_paulis);
+
+                boundaries_idx += 1;
+                current_boundary = self.boundaries()[boundaries_idx]
+            }
+
+            if indices.contains(&index) {
+                num_dropped_paulis += 1;
+            } else {
+                new_indices.push(index - (indices.iter().filter(|&&x| x < index).count() as u32));
+                new_paulis.push(pauli);
+            }
+        }
+        new_boundaries.push(current_boundary - num_dropped_paulis);
+
+        let new_num_qubits = self.num_qubits() - (indices.len() as u32);
+        Self::new(new_num_qubits, new_paulis, new_indices, new_boundaries)
     }
 
     /// Apply a transpiler layout.
