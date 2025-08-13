@@ -131,11 +131,152 @@ cleanup:
     return result;
 }
 
+/**
+ * Test a non-cx kak gate is consolidated correctly with a target.
+ */
+int test_non_cx_target(void) {
+    int result = Ok;
+
+    // Create circuit
+    QkCircuit *qc = qk_circuit_new(2, 0);
+    // Add gates
+    qk_circuit_gate(qc, QkGate_CZ, (uint32_t[2]){0, 1}, NULL);
+    qk_circuit_gate(qc, QkGate_X,
+                    (uint32_t[1]){
+                        0,
+                    },
+                    NULL);
+    qk_circuit_gate(qc, QkGate_H,
+                    (uint32_t[1]){
+                        1,
+                    },
+                    NULL);
+    qk_circuit_gate(qc, QkGate_Z,
+                    (uint32_t[1]){
+                        1,
+                    },
+                    NULL);
+    qk_circuit_gate(qc, QkGate_T,
+                    (uint32_t[1]){
+                        1,
+                    },
+                    NULL);
+    qk_circuit_gate(qc, QkGate_H,
+                    (uint32_t[1]){
+                        0,
+                    },
+                    NULL);
+    qk_circuit_gate(qc, QkGate_T,
+                    (uint32_t[1]){
+                        0,
+                    },
+                    NULL);
+    qk_circuit_gate(qc, QkGate_CZ, (uint32_t[2]){0, 1}, NULL);
+    qk_circuit_gate(qc, QkGate_SX,
+                    (uint32_t[1]){
+                        0,
+                    },
+                    NULL);
+    qk_circuit_gate(qc, QkGate_SX,
+                    (uint32_t[1]){
+                        1,
+                    },
+                    NULL);
+    qk_circuit_gate(qc, QkGate_CZ, (uint32_t[2]){0, 1}, NULL);
+    qk_circuit_gate(qc, QkGate_SX,
+                    (uint32_t[1]){
+                        0,
+                    },
+                    NULL);
+    qk_circuit_gate(qc, QkGate_SX,
+                    (uint32_t[1]){
+                        1,
+                    },
+                    NULL);
+    qk_circuit_gate(qc, QkGate_CZ, (uint32_t[2]){0, 1}, NULL);
+    qk_circuit_gate(qc, QkGate_X,
+                    (uint32_t[1]){
+                        0,
+                    },
+                    NULL);
+    qk_circuit_gate(qc, QkGate_H,
+                    (uint32_t[1]){
+                        1,
+                    },
+                    NULL);
+    qk_circuit_gate(qc, QkGate_Z,
+                    (uint32_t[1]){
+                        1,
+                    },
+                    NULL);
+    qk_circuit_gate(qc, QkGate_T,
+                    (uint32_t[1]){
+                        1,
+                    },
+                    NULL);
+    qk_circuit_gate(qc, QkGate_H,
+                    (uint32_t[1]){
+                        0,
+                    },
+                    NULL);
+    qk_circuit_gate(qc, QkGate_T,
+                    (uint32_t[1]){
+                        0,
+                    },
+                    NULL);
+    qk_circuit_gate(qc, QkGate_CZ, (uint32_t[2]){0, 1}, NULL);
+
+    // Build target
+    QkTarget *target = qk_target_new(2);
+    QkGate gates[4] = {QkGate_SX, QkGate_X, QkGate_RZ, QkGate_CZ};
+    for (int idx = 0; idx < 4; idx++) {
+        QkTargetEntry *entry = qk_target_entry_new(gates[idx]);
+        if (gates[idx] == QkGate_CZ) {
+            qk_target_entry_add_property(entry, (uint32_t[2]){0, 1}, 2, NAN, NAN);
+            qk_target_entry_add_property(entry, (uint32_t[2]){1, 0}, 2, NAN, NAN);
+        } else {
+            qk_target_entry_add_property(entry, (uint32_t[1]){0}, 1, NAN, NAN);
+            qk_target_entry_add_property(entry, (uint32_t[1]){1}, 1, NAN, NAN);
+        }
+        qk_target_add_instruction(target, entry);
+    }
+
+    // Run the pass
+    qk_transpiler_pass_standalone_consolidate_blocks(qc, target, 1.0, true);
+
+    QkOpCounts counts = qk_circuit_count_ops(qc);
+    if (counts.len != 1) {
+        result = EqualityError;
+        printf("The pass run did not result in a circuit with one unitary gate. Expected 1 gate, "
+               "got %i.",
+               counts.len);
+        goto cleanup;
+    }
+
+    QkCircuitInstruction *unitary = malloc(sizeof(QkCircuitInstruction));
+    qk_circuit_get_instruction(qc, 0, unitary);
+    if (strcmp(unitary->name, "unitary") != 0) {
+        result = EqualityError;
+        printf("The pass run did not result in a circuit with one unitary gate. Expected 'unitary' "
+               "gate, got '%s'.",
+               unitary->name);
+        goto cleanup_inst;
+    }
+cleanup_inst:
+    qk_circuit_instruction_clear(unitary);
+cleanup:
+    qk_opcounts_free(counts);
+    qk_target_free(target);
+    qk_circuit_free(qc);
+    return result;
+}
+
 int test_consolidate_blocks(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_consolidate_small_block);
     num_failed += RUN_TEST(test_wire_order);
     num_failed += RUN_TEST(test_3q_blocks);
+    num_failed += RUN_TEST(test_non_cx_target);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
