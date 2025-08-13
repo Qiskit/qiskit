@@ -14,7 +14,7 @@ circuit to interchange languages.
 
 You can create a register by calling ``qk_quantum_register_new()``, for example:
 
-.. code-block: c
+.. code-block:: c
 
     #include <qiskit.h>
 
@@ -25,7 +25,7 @@ Which creates a new 5 qubit register named ``"my_qreg"``.
 Then to add the register to a circuit you use the
 ``qk_circuit_add_quantum_register()`` function:
 
-.. code-block: c
+.. code-block:: c
 
     QkCircuit *qc = qk_circuit_new(0, 0);
     qk_circuit_add_quantum_register(qc, qreg);
