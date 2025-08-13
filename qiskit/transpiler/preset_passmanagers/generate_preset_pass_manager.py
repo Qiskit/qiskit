@@ -27,7 +27,6 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers.common import is_clifford_t_basis
 from qiskit.transpiler.target import Target, _FakeTarget
-from qiskit.transpiler.timing_constraints import TimingConstraints
 
 from .level0 import level_0_pass_manager
 from .level1 import level_1_pass_manager
@@ -408,11 +407,11 @@ def _parse_instruction_durations(backend, dt):
 
 
 def _parse_timing_constraints(backend):
+    # If backend is None, we get timing constraints from Target later
     if backend is None:
-        timing_constraints = TimingConstraints()
+        return None
     else:
-        timing_constraints = backend.target.timing_constraints()
-    return timing_constraints
+        return backend.target.timing_constraints()
 
 
 def _parse_initial_layout(initial_layout):
