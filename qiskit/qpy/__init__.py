@@ -444,6 +444,19 @@ byte offsets of each circuit payload in the file. The motivation for this change
 enable a more efficient loading of circuits using multi-threading in a future Rust
 implementation of the QPY deserializer.
 
+Changes to DURATION
+~~~~~~~~~~~~~~~~~~~
+
+A new variant has been added to the existing DURATION type encoding for picoseconds. This
+is encoded as follows, and is in addition to the previously supported variants.
+
+==============================  =========  =========================================================
+Qiskit class                    Type code  Payload
+==============================  =========  =========================================================
+:class:`~.circuit.Duration.ps`    ``p``    One ``double value``.
+
+==============================  =========  =========================================================
+
 .. _qpy_version_15:
 
 Version 15

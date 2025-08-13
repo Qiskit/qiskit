@@ -43,6 +43,7 @@ use pyo3::PyTypeInfo;
 #[allow(non_camel_case_types)]
 pub enum Duration {
     dt(i64),
+    ps(f64),
     ns(f64),
     us(f64),
     ms(f64),
@@ -55,6 +56,7 @@ impl Duration {
     fn unit(&self) -> &'static str {
         match self {
             Duration::dt(_) => "dt",
+            Duration::ps(_) => "ps",
             Duration::us(_) => "us",
             Duration::ns(_) => "ns",
             Duration::ms(_) => "ms",
@@ -70,14 +72,17 @@ impl Duration {
     fn py_value(&self, py: Python) -> PyResult<PyObject> {
         match self {
             Duration::dt(v) => v.into_py_any(py),
-            Duration::us(v) | Duration::ns(v) | Duration::ms(v) | Duration::s(v) => {
-                v.into_py_any(py)
-            }
+            Duration::ps(v)
+            | Duration::us(v)
+            | Duration::ns(v)
+            | Duration::ms(v)
+            | Duration::s(v) => v.into_py_any(py),
         }
     }
 
     fn __repr__(&self) -> String {
         match self {
+            Duration::ps(t) => format!("Duration::ps({t})"),
             Duration::ns(t) => format!("Duration.ns({t})"),
             Duration::us(t) => format!("Duration.us({t})"),
             Duration::ms(t) => format!("Duration.ms({t})"),
