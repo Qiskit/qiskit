@@ -1,0 +1,9 @@
+---
+features_c:
+  - |
+    Added a new standalone transpiler pass function
+    ``qk_transpiler_pass_standalone_vf2_layout`` which is for running the
+    :class:`.VF2Layout` transpiler pass. Calling this function in C is equivalent
+    to running the pass in Python like::
+
+      VF2Layout(..)(circuit)

@@ -55,6 +55,7 @@ from qiskit.synthesis.multi_controlled import (
     synth_mcx_2_dirty_kg24,
     synth_mcx_gray_code,
     synth_mcx_noaux_v24,
+    synth_mcx_noaux_hp24,
     synth_c3x,
     synth_c4x,
 )
@@ -193,6 +194,14 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
     def test_mcx_noaux_v24(self, num_ctrl_qubits: int):
         """Test synth_mcx_noaux_v24 by comparing synthesized and expected matrices."""
         synthesized_circuit = synth_mcx_noaux_v24(num_ctrl_qubits)
+        self.assertSynthesisCorrect(
+            XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False
+        )
+
+    @data(1, 2, 3, 4, 5, 6, 7, 8)
+    def test_mcx_noaux_hp24(self, num_ctrl_qubits: int):
+        """Test synth_mcx_noaux_hp24 by comparing synthesized and expected matrices."""
+        synthesized_circuit = synth_mcx_noaux_hp24(num_ctrl_qubits)
         self.assertSynthesisCorrect(
             XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False
         )
@@ -408,6 +417,20 @@ class TestMCSynthesisCounts(QiskitTestCase):
         #     16*n*(n+1)/2 - 24*n = 8n^2 - 16*n.
         self.assertLessEqual(cx_count, 8 * num_ctrl_qubits**2 - 16 * num_ctrl_qubits)
 
+    @data(25, 30, 35, 40, 45, 50, 55, 60)
+    def test_mcx_noaux_hp24_cx_count(self, num_ctrl_qubits: int):
+        """Test synth_mcx_noaux_hp24 bound on CX count (for large values of ``num_ctrl_qubits``."""
+        synthesized_circuit = synth_mcx_noaux_hp24(num_ctrl_qubits)
+        transpiled_circuit = self.pm.run(synthesized_circuit)
+        cx_count = transpiled_circuit.count_ops()["cx"]
+        num_qubits = num_ctrl_qubits + 1
+        # bound from the paper
+        if num_qubits % 2 == 0:
+            expected_cx_bound = 124 * num_qubits - 214
+        else:
+            expected_cx_bound = 132 * num_qubits - 358
+        self.assertLessEqual(cx_count, expected_cx_bound)
+
     @combine(
         num_ctrl_qubits=[5, 8, 10, 13, 15],
         base_gate=[
@@ -497,7 +520,7 @@ class TestMCSynthesisCounts(QiskitTestCase):
 
         if isinstance(base_gate, (XGate, YGate, ZGate, HGate)):
             # MCX gate and other locally equivalent multi-controlled gates
-            expected = {1: 1, 2: 6, 3: 14, 4: 36, 5: 84, 6: 140, 7: 220, 8: 324}
+            expected = {1: 1, 2: 6, 3: 14, 4: 36, 5: 84, 6: 136, 7: 192, 8: 264}
         elif isinstance(
             base_gate, (PhaseGate, SGate, SdgGate, TGate, TdgGate, SXGate, SXdgGate, U1Gate)
         ):

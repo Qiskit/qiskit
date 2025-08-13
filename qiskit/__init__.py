@@ -60,6 +60,8 @@ import qiskit._numpy_compat
 # in _accelerate because it relies on file paths, but PyO3 generates only one shared library file.
 # We manually define them on import so people can directly import qiskit._accelerate.* submodules
 # and not have to rely on attribute access.  No action needed for top-level extension packages.
+
+sys.modules["qiskit._accelerate.alap_schedule_analysis"] = _accelerate.alap_schedule_analysis
 sys.modules["qiskit._accelerate.circuit"] = _accelerate.circuit
 sys.modules["qiskit._accelerate.circuit.classical"] = _accelerate.circuit.classical
 sys.modules["qiskit._accelerate.circuit.classical.expr"] = _accelerate.circuit.classical.expr
@@ -118,6 +120,9 @@ sys.modules["qiskit._accelerate.synthesis.multi_controlled"] = (
 sys.modules["qiskit._accelerate.synthesis.qft"] = _accelerate.synthesis.qft
 sys.modules["qiskit._accelerate.split_2q_unitaries"] = _accelerate.split_2q_unitaries
 sys.modules["qiskit._accelerate.gate_direction"] = _accelerate.gate_direction
+sys.modules["qiskit._accelerate.instruction_duration_check"] = (
+    _accelerate.instruction_duration_check
+)
 sys.modules["qiskit._accelerate.inverse_cancellation"] = _accelerate.inverse_cancellation
 sys.modules["qiskit._accelerate.check_map"] = _accelerate.check_map
 sys.modules["qiskit._accelerate.filter_op_nodes"] = _accelerate.filter_op_nodes

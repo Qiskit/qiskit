@@ -285,6 +285,28 @@ class TestVF2LayoutSimple(LayoutTestCase):
         vf2_pass.run(dag)
         self.assertLayout(dag, target.build_coupling_map(), vf2_pass.property_set)
 
+    def test_determinism_all_1q(self):
+        """Test that running vf2layout on a circuit with all single qubit gates is deterministic."""
+
+        circ = QuantumCircuit(3)
+        for i in range(3):
+            circ.rx(3.14159, i)
+        circ.measure_all()
+
+        backend = GenericBackendV2(10, noise_info=True, seed=123456789)
+        layouts = []
+        for _ in range(10):
+            layout_pass = VF2Layout(target=backend.target)
+            property_set = {}
+            layout_pass(circ, property_set=property_set)
+            layouts.append(property_set["layout"])
+        self.assertEqual(10, len(layouts), "Expected 10 layouts from 10 pass executions")
+        for i, layout in enumerate(layouts):
+            self.assertIsNotNone(layout, f"A layout was not found for layout {i}")
+            self.assertEqual(
+                layouts[0], layout, f"Layout for execution {i} differs from the expected"
+            )
+
 
 @ddt.ddt
 class TestVF2LayoutLattice(LayoutTestCase):
