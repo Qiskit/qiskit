@@ -2259,10 +2259,9 @@ impl DAGCircuit {
     ///     The ``==`` operator
     ///         :class:`DAGCircuit` implements :func:`~object.__eq__` between itself and other
     ///         :class:`DAGCircuit` instances (this same method also powers
-    ///         :class:`.QuantumCircuit`'s equality check).  This implements a basic semantic
+    ///         :class:`.QuantumCircuit`'s equality check).  This implements a semantic
     ///         data-flow equality check, which is less sensitive to the order operations were
-    ///         defined.  This is more usually what a circuit user cares about with respect to
-    ///         equality.
+    ///         defined.  This is typically what a user cares about with respect to equality.
     fn structurally_equal(&self, other: &DAGCircuit) -> PyResult<bool> {
         if self.qubits != other.qubits {
             return Ok(false);
