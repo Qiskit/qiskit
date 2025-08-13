@@ -1221,8 +1221,8 @@ class QuantumCircuit:
         """Attach owning ``q`` and ``c`` registers to the circuit.
 
         If the circuit has qubits or clbits but lacks corresponding registers,
-        this will create new :class:`.QuantumRegister` and
-        :class:`.ClassicalRegister` instances whose bits are freshly generated
+        this will create new :class:`QuantumRegister` and
+        :class:`ClassicalRegister` instances whose bits are freshly generated
         and owned by the circuit. Existing registers are replaced.
         """
 
