@@ -1,13 +1,15 @@
 ---
 features_c:
   - |
-    Add support for the ``Optimize1qGatesDecomposition`` transpiler pass through
-    the C API, via the ``qk_transpiler_standalone_optimize_1q_gates_decomposition``
+    Add support for the :class:`.Optimize1qGatesDecomposition` transpiler pass through
+    the C API, via the :cpp:func:`qk_transpiler_standalone_optimize_1q_gates_decomposition`
     method.
 
     Here's an example:
 
     .. code-block:: C
+      
+      #include <qiskit.h>
 
       // Build a circuit
       QkCircuit *circuit = qk_circuit_new(1, 0);
@@ -17,10 +19,8 @@ features_c:
       qk_circuit_gate(circuit, QkGate_RY, qubits, params_pos);
       qk_circuit_gate(circuit, QkGate_RY, qubits, params_neg);
 
-      // Run the transpiler pass
-      QkCircuit *circuit_result =
-          qk_transpiler_standalone_optimize_1q_gates_decomposition(circuit, NULL);
+      // Run the transpiler pass with no Target
+      qk_transpiler_standalone_optimize_1q_gates_decomposition(circuit, NULL);
 
       // Free both circuits
       qk_circuit_free(circuit);
-      qk_circuit_free(circuit_result);
