@@ -99,6 +99,62 @@ class TestQuantumCircuitData(QiskitTestCase):
         data.add_clbit(clbits[0], strict=False)
         self.assertEqual(data.clbits, clbits)
 
+    def test_from_circuit_data_add_regs_creates_owned_registers(self):
+        """QuantumCircuit._from_circuit_data should create owning registers."""
+        qubits = [Qubit(), Qubit()]
+        clbits = [Clbit(), Clbit()]
+        data = CircuitData(
+            qubits=qubits,
+            clbits=clbits,
+            data=[CircuitInstruction(XGate(), [qubits[0]], [clbits[0]])],
+        )
+
+        original_qubits = list(data.qubits)
+        original_clbits = list(data.clbits)
+
+        qc = QuantumCircuit._from_circuit_data(data, add_regs=True)
+
+        self.assertEqual(data.qregs, [])
+        self.assertEqual(data.cregs, [])
+        self.assertEqual(data.qubits, original_qubits)
+        self.assertEqual(data.clbits, original_clbits)
+
+        self.assertEqual(qc.qregs[0].name, "q")
+        self.assertEqual(len(qc.qregs[0]), qc.num_qubits)
+        self.assertEqual(qc.cregs[0].name, "c")
+        self.assertEqual(len(qc.cregs[0]), qc.num_clbits)
+
+        self.assertEqual(list(qc.qregs[0]), qc.qubits)
+        self.assertEqual(list(qc.cregs[0]), qc.clbits)
+        self.assertIsNot(qc.qubits[0], qubits[0])
+        self.assertIsNot(qc.clbits[0], clbits[0])
+
+    def test_make_physical_creates_owned_registers(self):
+        """QuantumCircuit.make_physical should create owning registers."""
+        qubits = [Qubit(), Qubit()]
+        clbits = [Clbit(), Clbit()]
+        data = CircuitData(
+            qubits=qubits,
+            clbits=clbits,
+            data=[CircuitInstruction(XGate(), [qubits[0]], [clbits[0]])],
+        )
+
+        qc = QuantumCircuit._from_circuit_data(data)
+        self.assertEqual(len(qc.qregs), 0)
+        self.assertEqual(len(qc.cregs), 0)
+
+        qc.make_physical()
+
+        self.assertEqual(qc.qregs[0].name, "q")
+        self.assertEqual(len(qc.qregs[0]), qc.num_qubits)
+        self.assertEqual(qc.cregs[0].name, "c")
+        self.assertEqual(len(qc.cregs[0]), qc.num_clbits)
+
+        self.assertEqual(list(qc.qregs[0]), qc.qubits)
+        self.assertEqual(list(qc.cregs[0]), qc.clbits)
+        self.assertIsNot(qc.qubits[0], qubits[0])
+        self.assertIsNot(qc.clbits[0], clbits[0])
+
     def test_copy(self):
         """Test shallow copy behavior."""
         qr = QuantumRegister(2)

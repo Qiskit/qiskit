@@ -1217,23 +1217,42 @@ class QuantumCircuit:
     def unit(self, value):
         self._unit = value
 
+    def make_physical(self) -> None:
+        """Attach owning ``q`` and ``c`` registers to the circuit.
+
+        If the circuit has qubits or clbits but lacks corresponding registers,
+        this will create new :class:`.QuantumRegister` and
+        :class:`.ClassicalRegister` instances whose bits are freshly generated
+        and owned by the circuit. Existing registers are replaced.
+        """
+
+        data = self._data
+
+        if data.num_qubits > 0:
+            qreg = QuantumRegister(data.num_qubits, "q")
+            data.replace_bits(qubits=list(qreg))
+            data.qregs = [qreg]
+
+        if data.num_clbits > 0:
+            creg = ClassicalRegister(data.num_clbits, "c")
+            data.replace_bits(clbits=list(creg))
+            data.cregs = [creg]
+
     @classmethod
     def _from_circuit_data(
         cls, data: CircuitData, add_regs: bool = False, name: str | None = None
     ) -> typing.Self:
         """A private constructor from rust space circuit data."""
+
         out = QuantumCircuit(name=name)
 
-        if data.num_qubits > 0:
-            if add_regs:
-                data.qregs = [QuantumRegister(name="q", bits=data.qubits)]
-
-        if data.num_clbits > 0:
-            if add_regs:
-                data.creg = [ClassicalRegister(name="c", bits=data.clbits)]
-
-        out._data = data
-
+        # Work on a shallow copy to avoid mutating the provided CircuitData.
+        out._data = data.copy(copy_instructions=True, deepcopy=False)
+        if add_regs and (
+            (out._data.num_qubits > 0 and len(out._data.qregs) == 0)
+            or (out._data.num_clbits > 0 and len(out._data.cregs) == 0)
+        ):
+            out.make_physical()
         return out
 
     @staticmethod
