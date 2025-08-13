@@ -86,7 +86,9 @@ class TestLayoutTransformation(QiskitTestCase):
         self.assertEqual(circuit_to_dag(expected), output_dag)
 
     def test_full_connected_coupling_map(self):
-        """Test if the permutation {0->3,1->2,2->1,3->0} is implemented correctly in a fully connected map."""
+        """Test if the permutation {0->3,1->2,2->1,3->0} is implemented correctly in
+        a fully connected map.
+        """
         v = QuantumRegister(4, "v")  # virtual qubits
         from_layout = Layout({v[0]: 0, v[1]: 1, v[2]: 2, v[3]: 3})
         to_layout = Layout({v[0]: 3, v[1]: 2, v[2]: 1, v[3]: 0})
