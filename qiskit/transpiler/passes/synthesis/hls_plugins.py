@@ -1483,32 +1483,45 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
             # their definition as it should.
             return None
 
-        # Iteratively run other synthesis methods available
-        # (note that all of these methods require at least one auxiliary qubit)
-        for synthesis_method in [
-            MCXSynthesis2CleanKG24,
-            MCXSynthesis1CleanKG24,
-            MCXSynthesisNCleanM15,
-            MCXSynthesisNDirtyI15,
-            MCXSynthesis2DirtyKG24,
-            MCXSynthesis1DirtyKG24,
-            MCXSynthesis1CleanB95,
-        ]:
+        if options["optimize_clifford_t"]:
+            methods = [
+                MCXSynthesis2CleanKG24,
+                MCXSynthesis1CleanKG24,
+                MCXSynthesis2DirtyKG24,
+                MCXSynthesis1DirtyKG24,
+                MCXSynthesis1CleanB95,
+                MCXSynthesisNCleanM15,
+                MCXSynthesisNDirtyI15,
+                (
+                    MCXSynthesisNoAuxV24
+                    if high_level_object.num_ctrl_qubits <= 5
+                    else MCXSynthesisNoAuxHP24
+                ),
+            ]
+        else:
+            methods = [
+                MCXSynthesis2CleanKG24,
+                MCXSynthesis1CleanKG24,
+                MCXSynthesisNCleanM15,
+                MCXSynthesisNDirtyI15,
+                MCXSynthesis2DirtyKG24,
+                MCXSynthesis1DirtyKG24,
+                MCXSynthesis1CleanB95,
+                (
+                    MCXSynthesisNoAuxV24
+                    if high_level_object.num_ctrl_qubits <= 5
+                    else MCXSynthesisNoAuxHP24
+                ),
+            ]
+
+        for synthesis_method in methods:
             if (
                 decomposition := synthesis_method().run(
                     high_level_object, coupling_map, target, qubits, **options
                 )
             ) is not None:
                 return decomposition
-
-        # If no synthesis method was successful, use the methods that do not
-        # require auxiliary qubits
-        no_aux_method = (
-            MCXSynthesisNoAuxV24
-            if high_level_object.num_ctrl_qubits <= 5
-            else MCXSynthesisNoAuxHP24
-        )
-        return no_aux_method().run(high_level_object, coupling_map, target, qubits, **options)
+        return None
 
 
 class MCMTSynthesisDefault(HighLevelSynthesisPlugin):
@@ -2167,6 +2180,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
             use_physical_indices=data.use_physical_indices,
             min_qubits=0,
             unroll_definitions=data.unroll_definitions,
+            optimize_clifford_t=data.optimize_clifford_t,
         )
 
         num_ctrl = sum(mod.num_ctrl_qubits for mod in modifiers if isinstance(mod, ControlModifier))
