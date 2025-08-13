@@ -484,9 +484,6 @@ class Statevector(QuantumState, TolerancesMixin):
         z_mask = np.dot(1 << qubits, pauli.z)
         pauli_phase = (-1j) ** pauli.phase if pauli.phase else 1
 
-        if x_mask + z_mask == 0:
-            return pauli_phase * np.linalg.norm(self.data) ** 2
-
         if x_mask == 0:
             return pauli_phase * expval_pauli_no_x(self.data, self.num_qubits, z_mask)
 
