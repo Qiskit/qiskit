@@ -81,7 +81,7 @@ use std::f64::consts::PI;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-static CONTROL_FLOW_OP_NAMES: [&str; 4] = ["for_loop", "while_loop", "if_else", "switch_case"];
+static CONTROL_FLOW_OP_NAMES: [&str; 5] = ["for_loop", "while_loop", "if_else", "switch_case", "box"];
 static SEMANTIC_EQ_SYMMETRIC: [&str; 4] = ["barrier", "swap", "break_loop", "continue_loop"];
 
 #[derive(Clone, Debug)]
