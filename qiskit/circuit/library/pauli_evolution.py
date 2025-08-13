@@ -36,15 +36,19 @@ if TYPE_CHECKING:
 class PauliEvolutionGate(Gate):
     r"""Time-evolution of an operator consisting of Paulis.
 
-    For an operator :math:`H` consisting of Pauli terms and (real) evolution time :math:`t`
-    this gate implements
+    For an Hermitian operator :math:`H` consisting of Pauli terms and (real) evolution time :math:`t`
+    this gate represents the unitary
 
     .. math::
 
         U(t) = e^{-itH}.
 
     This gate serves as a high-level definition of the evolution and can be synthesized into
-    a circuit using different algorithms.
+    a circuit using different algorithms, such as :class:`.LieTrotter` (see :mod:`qiskit.synthesis`
+    for more details). Note that most synthesis methods *approximately* implement the target unintary
+    :math:`U(t)`. This implies that calling methods such as :meth:`inverse`, :meth:`power` or
+    :meth:`control` prior to synthesis may lead to different results as calling them after
+    the synthesis.
 
     The evolution gates are related to the Pauli rotation gates by a factor of 2. For example
     the time evolution of the Pauli :math:`X` operator is connected to the Pauli :math:`X` rotation
@@ -226,11 +230,15 @@ class PauliEvolutionGate(Gate):
         if not annotated:  # captures both None and False
             if ctrl_state is None:
                 ctrl_state = "1" * num_ctrl_qubits
+            elif isinstance(ctrl_state, int):
+                ctrl_state = bin(ctrl_state)[2:].zfill(num_ctrl_qubits)
+            else:
+                if len(ctrl_state) != num_ctrl_qubits:
+                    raise ValueError(
+                        f"Length of ctrl_state ({len(ctrl_state)}) must match "
+                        f"num_ctrl_qubits ({num_ctrl_qubits})"
+                    )
 
-            # We implement the controlled version by tensoring corresponding |0><0| (control state 0)
-            # or |1><1| (control state 1) projectors to the observable. This will result in a
-            # circuit that only controls the central Pauli rotation. For example, calling
-            # PauliEvolutionGate(Z).control(2) will produce PauliEvolutionGate(11Z).
             control_op = SparseObservable(ctrl_state)
 
             if isinstance(self.operator, SparsePauliOp):
@@ -238,7 +246,16 @@ class PauliEvolutionGate(Gate):
             else:
                 op = self.operator
 
+            # Implementing the controlled version of an evolution,
+            #   |0><0| \otimes 1 + |1><1| \otimes exp(it H),
+            # equals the evolution of the Hamiltonian extended by the |1><1| projector,
+            #   exp(it |1><1| \otimes H).
+            # For open controls, the control states are flipped.
+            # We use the projector formalism here, which will result in a
+            # circuit that only controls the central Pauli rotation. For example, calling
+            # PauliEvolutionGate(Z).control(2) will produce PauliEvolutionGate(11Z).
             op ^= control_op
+
             return PauliEvolutionGate(op, self.time, label, synthesis=self.synthesis)
 
         else:

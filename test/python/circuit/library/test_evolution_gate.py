@@ -21,13 +21,14 @@ from ddt import ddt, data, unpack
 
 from qiskit import transpile
 from qiskit.circuit import QuantumCircuit, Parameter
-from qiskit.circuit.library import PauliEvolutionGate, HamiltonianGate, PhaseGate
+from qiskit.circuit.library import PauliEvolutionGate, HamiltonianGate, PhaseGate, RZGate
 from qiskit.synthesis import LieTrotter, SuzukiTrotter, MatrixExponential, QDrift
 from qiskit.synthesis.evolution.product_formula import reorder_paulis
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info import Operator, SparsePauliOp, Pauli, Statevector, SparseObservable
 from qiskit.transpiler.passes import HLSConfig, HighLevelSynthesis
 from qiskit.utils import optionals
+from qiskit.circuit._utils import _compute_control_matrix
 from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
 
 X = SparsePauliOp("X")
@@ -419,10 +420,9 @@ class TestEvolutionGate(QiskitTestCase):
         with self.assertRaises(ValueError):
             _ = PauliEvolutionGate(SparsePauliOp("Z", np.array(Parameter("t"))))
 
-    @data(LieTrotter, MatrixExponential)
-    def test_inverse(self, synth_cls):
-        """Test calculating the inverse is correct."""
-        evo = PauliEvolutionGate(X + Y, time=0.12, synthesis=synth_cls())
+    def test_inverse(self):
+        """Test calculating the inverse for exact methods is correct."""
+        evo = PauliEvolutionGate(X + Y, time=0.12, synthesis=MatrixExponential())
 
         circuit = QuantumCircuit(1)
         circuit.append(evo, circuit.qubits)
@@ -725,6 +725,27 @@ class TestEvolutionGate(QiskitTestCase):
         self.assertLess(cx_count, exponential_cx)
         # we should also be less (or equal) to this
         self.assertLessEqual(cx_count, num_cx)
+
+    @data("110", 6)
+    def test_ctrl_state(self, ctrl_state):
+        """Test controlled evolution gate with a control state."""
+        obs = SparseObservable("ZZ")
+        evo = PauliEvolutionGate(obs)
+        controlled = evo.control(num_ctrl_qubits=3, ctrl_state=ctrl_state)
+        qc = controlled.definition
+
+        reference = QuantumCircuit(*qc.qregs)
+        reference.cx(4, 3)
+        reference.append(RZGate(2).control(3, ctrl_state="011"), [2, 1, 0, 3])
+        reference.cx(4, 3)
+        with self.subTest("check decomp"):
+            self.assertEqual(reference, qc)
+
+        zz_mat = np.diag([1, -1, -1, 1])
+        rzz_mat = scipy.linalg.expm(-1j * zz_mat)
+        ctrl_mat = _compute_control_matrix(rzz_mat, 3, ctrl_state)
+        with self.subTest("check correctness"):
+            self.assertTrue(np.allclose(ctrl_mat, Operator(qc).data))
 
 
 def exact_atomic_evolution(circuit, pauli, time):
