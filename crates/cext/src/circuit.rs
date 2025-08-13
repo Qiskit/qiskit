@@ -909,6 +909,10 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
             .collect();
         params_vec.into_boxed_slice()
     };
+    // These lists (e.g. 'qargs') are Box<[T]>, so we use .as_mut_ptr()
+    // to get a mutable pointer to the underlying slice/array on
+    // the heap and Box::into_raw() to consume the Box without freeing
+    // it (so the underlying array doesn't get freed when we return)
     let out_qargs = qargs.as_mut_ptr();
     let out_qargs_len = qargs.len() as u32;
     let _ = Box::into_raw(qargs);
@@ -965,10 +969,6 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_instruction_clear(inst: *mut CInstruction) {
-    if inst.is_null() {
-        return;
-    }
-
     // SAFETY: Loading the data from pointers contained in a CInstruction. These should only be
     // created by rust code and are constructed from Vecs internally or CStrings.
     unsafe {
