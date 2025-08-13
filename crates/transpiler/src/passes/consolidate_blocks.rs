@@ -480,7 +480,7 @@ pub fn consolidate_blocks_mod(m: &Bound<PyModule>) -> PyResult<()> {
     Ok(())
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(miri)))]
 mod test_consolidate_blocks {
     use std::sync::Arc;
 
