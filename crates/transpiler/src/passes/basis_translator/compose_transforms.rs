@@ -131,14 +131,7 @@ pub(super) fn compose_transforms<'a>(
                         None,
                         None,
                     )?;
-                    let op_node = dag.get_node(py, node)?;
-                    dag.py_substitute_node_with_dag(
-                        py,
-                        op_node.bind(py),
-                        &replace_dag,
-                        None,
-                        None,
-                    )?;
+                    dag.substitute_node_with_dag(node, &replace_dag, None, None, None)?;
                 }
             }
         }
