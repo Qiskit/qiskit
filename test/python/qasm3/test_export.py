@@ -880,7 +880,14 @@ if (c[0]) {
                 "OPENQASM 3.0;",
                 "qubit[2] qr;",
                 "delay[100ms] qr[0];",
+<<<<<<< HEAD
                 "delay[2000ns] qr[1];",
+=======
+                "delay[100.0ms] qr[0];",
+                "delay[0.002ns] qr[1];",
+                "delay[s / 2.0] qr[1];",
+                "delay[s * (1000dt / 200.0ns) + t] qr[0];",
+>>>>>>> 1e7a3fe35 (Fix QASM3 export of Delay with 'ps' units. (#14895))
                 "",
             ]
         )
