@@ -2245,10 +2245,6 @@ impl DAGCircuit {
     /// but does consider many low-level implementation details of the internal representation, many
     /// of which do not change the semantics of the circuit.
     ///
-    /// ..
-    ///
-    ///     Note to devs: the internal details referred to are things like the interners.
-    ///
     /// This method should, in general, be much faster than graph-equivalence checks, but will
     /// return ``False`` in many more situations.  This method should never return ``True`` when a
     /// graph-equivalence check would return ``False``.
@@ -2258,6 +2254,15 @@ impl DAGCircuit {
     ///     This currently does not handle control flow, because of technical limitations in the
     ///     internal representation of control flow, and will return `false` if any control-flow
     ///     operation is present, even if they are individually equal.
+    ///
+    /// .. seealso::
+    ///     The ``==`` operator
+    ///         :class:`DAGCircuit` implements :func:`~object.__eq__` between itself and other
+    ///         :class:`DAGCircuit` instances (this same method also powers
+    ///         :class:`.QuantumCircuit`'s equality check).  This implements a basic semantic
+    ///         data-flow equality check, which is less sensitive to the order operations were
+    ///         defined.  This is more usually what a circuit user cares about with respect to
+    ///         equality.
     fn structurally_equal(&self, other: &DAGCircuit) -> PyResult<bool> {
         if self.qubits != other.qubits {
             return Ok(false);
@@ -2277,8 +2282,8 @@ impl DAGCircuit {
         if self.cregs != other.cregs {
             return Ok(false);
         }
-        // Checking the identfiier information should handle all different methods of declaration
-        // for all identfiiers, whether var or stretch.  We do a manual iteration-based check here
+        // Checking the identifier information should handle all different methods of declaration
+        // for all identifiers, whether var or stretch.  We do a manual iteration-based check here
         // because `IndexMap`'s default is order-insensitive, but we actually do care about order
         // for the structural check.
         if self.identifier_info.len() != other.identifier_info.len() {
