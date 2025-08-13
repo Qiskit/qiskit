@@ -37,13 +37,12 @@ use qiskit_transpiler::target::Target;
 /// # Example
 ///
 /// ```c
-///     QkCircuit *qc = qk_circuit_new(4, 0);
-///     uint32_t cx_qargs[2] = {0, 1};
-///     qk_circuit_gate(qc, QkGate_CX, cx_qargs, NULL);
-///     qk_circuit_gate(qc, QkGate_Z, &0, NULL);
-///     qk_circuit_gate(qc, QkGate_CX, cx_qargs, NULL);
-///
-///     int return = qk_transpiler_pass_standalone_commutative_cancellation(qc, NULL, 1.0);
+/// QkCircuit *qc = qk_circuit_new(4, 0);
+/// uint32_t cx_qargs[2] = {0, 1};
+/// qk_circuit_gate(qc, QkGate_CX, cx_qargs, NULL);
+/// qk_circuit_gate(qc, QkGate_Z, (uint32_t[]){0}, NULL);
+/// qk_circuit_gate(qc, QkGate_CX, cx_qargs, NULL);
+/// qk_transpiler_pass_standalone_commutative_cancellation(qc, NULL, 1.0);
 /// ```
 ///
 /// # Safety
