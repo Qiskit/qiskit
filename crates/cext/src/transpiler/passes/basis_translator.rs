@@ -30,6 +30,29 @@ use qiskit_transpiler::target::Target;
 /// modifications are made, it will return a pointer to the same circuit it was
 /// provided. Otherwise it will point to a new circuit instance.
 ///
+/// # Example
+/// 
+/// ```c
+///    #include <qiskit.h>
+///
+///    QkCircuit *circuit = qk_circuit_new(3, 0);
+///    qk_circuit_gate(circuit, QkGate_CCX, (uint32_t[3]){0, 1, 2}, NULL);
+///
+///    // Create Target compatible with only U gates, with global props.
+///    QkTarget *target = qk_target_new(3);
+///    qk_target_add_instruction(target, qk_target_entry_new(QkGate_H));
+///    qk_target_add_instruction(target, qk_target_entry_new(QkGate_T));
+///    qk_target_add_instruction(target, qk_target_entry_new(QkGate_Tdg));
+///    qk_target_add_instruction(target, qk_target_entry_new(QkGate_CX));
+///
+///    // Run pass
+///    qk_transpiler_pass_standalone_basis_translator(circuit, 0, target);
+///
+///    // Free the circuit and target pointers once you're done
+///    qk_circuit_free(circuit);
+///    qk_target_free(circuit);
+/// ```
+/// 
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` and/or ``target`` are not valid, non-null
