@@ -1136,8 +1136,7 @@ class QASM3Builder:
             )
         duration_value, unit = instruction.operation.duration, instruction.operation.unit
         if unit == "ps":
-<<<<<<< HEAD
-            duration = ast.DurationLiteral(1000 * duration_value, ast.DurationUnit.NANOSECOND)
+            duration = ast.DurationLiteral(duration_value / 1000, ast.DurationUnit.NANOSECOND)
         else:
             unit_map = {
                 "ns": ast.DurationUnit.NANOSECOND,
@@ -1148,17 +1147,6 @@ class QASM3Builder:
             }
             duration = ast.DurationLiteral(duration_value, unit_map[unit])
         return ast.QuantumDelay(duration, [self._lookup_bit(qubit) for qubit in instruction.qubits])
-=======
-            return ast.DurationLiteral(duration / 1000, ast.DurationUnit.NANOSECOND)
-        unit_map = {
-            "ns": ast.DurationUnit.NANOSECOND,
-            "us": ast.DurationUnit.MICROSECOND,
-            "ms": ast.DurationUnit.MILLISECOND,
-            "s": ast.DurationUnit.SECOND,
-            "dt": ast.DurationUnit.SAMPLE,
-        }
-        return ast.DurationLiteral(duration, unit_map[unit])
->>>>>>> 1e7a3fe35 (Fix QASM3 export of Delay with 'ps' units. (#14895))
 
     def build_integer(self, value) -> ast.IntegerLiteral:
         """Build an integer literal, raising a :obj:`.QASM3ExporterError` if the input is not
