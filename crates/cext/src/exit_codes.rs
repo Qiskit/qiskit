@@ -54,6 +54,8 @@ pub enum ExitCode {
     TargetInvalidQargsKey = 303,
     /// Querying an operation that doesn't exist in the Target.
     TargetInvalidInstKey = 304,
+    /// Running the transpiler failed.
+    TranspileError = 405,
 }
 
 impl From<ArithmeticError> for ExitCode {

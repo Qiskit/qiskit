@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use crate::exit_codes::ExitCode;
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 
 use qiskit_circuit::circuit_data::CircuitData;
@@ -55,7 +56,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_commutative_cancellation(
     circuit: *mut CircuitData,
     target: *const Target,
     approximation_degree: f64,
-) -> i32 {
+) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
     let target = if target.is_null() {
@@ -80,14 +81,14 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_commutative_cancellation(
     )
     .is_err()
     {
-        return 1;
+        return ExitCode::TranspileError;
     }
     let out_circuit = match dag_to_circuit(&dag, false) {
         Ok(qc) => qc,
         Err(e) => panic!("{}", e),
     };
     *circuit = out_circuit;
-    0
+    ExitCode::Success
 }
 
 #[cfg(test)]
@@ -114,7 +115,7 @@ mod tests {
         let result = unsafe {
             qk_transpiler_pass_standalone_commutative_cancellation(&mut qc, std::ptr::null(), 1.0)
         };
-        assert_eq!(result, 0);
+        assert_eq!(result, ExitCode::Success);
         assert_eq!(qc.__len__(), 1);
         let Some(gate) = qc.data()[0].op.try_standard_gate() else {
             panic!("Not a standard gate");
