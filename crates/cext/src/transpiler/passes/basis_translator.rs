@@ -31,7 +31,7 @@ use qiskit_transpiler::target::Target;
 /// provided. Otherwise it will point to a new circuit instance.
 ///
 /// # Example
-/// 
+///
 /// ```c
 ///    #include <qiskit.h>
 ///
@@ -52,7 +52,7 @@ use qiskit_transpiler::target::Target;
 ///    qk_circuit_free(circuit);
 ///    qk_target_free(circuit);
 /// ```
-/// 
+///
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` and/or ``target`` are not valid, non-null
