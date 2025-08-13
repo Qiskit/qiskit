@@ -349,7 +349,7 @@ class SparsePauliOp(LinearOp):
         # This method is the outer version of `BasePauli.compose`.
         # `x1` and `z1` have shape `(self.size, num_qubits)`.
         # `x2` and `z2` have shape `(other.size, num_qubits)`.
-        # `x1[:, no.newaxis]` results in shape `(self.size, 1, num_qubits)`.
+        # `x1[:, np.newaxis]` results in shape `(self.size, 1, num_qubits)`.
         # `ar = ufunc(x1[:, np.newaxis], x2)` will be in shape `(self.size, other.size, num_qubits)`.
         # So, `ar.reshape((-1, num_qubits))` will be in shape `(self.size * other.size, num_qubits)`.
         # Ref: https://numpy.org/doc/stable/user/theory.broadcasting.html
@@ -1226,7 +1226,7 @@ class SparsePauliOp(LinearOp):
 
 
 def sparsify_label(pauli_string):
-    """Return a sparse format of a Pauli string, e.g. "XIIIZ" -> ("XZ", [0, 4])."""
+    """Return a sparse format of a Pauli string, e.g. "XIIIZ" -> ("ZX", [0, 4])."""
     qubits = [i for i, label in enumerate(reversed(pauli_string)) if label != "I"]
     sparse_label = "".join(pauli_string[~i] for i in qubits)
 
