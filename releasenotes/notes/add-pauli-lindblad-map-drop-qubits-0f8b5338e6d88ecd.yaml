@@ -1,0 +1,5 @@
+---
+features_primitives:
+  - |
+    Added the :func:`.PauliLindbladMap.drop_qubits` method to trace subsystems out of
+    Pauli Lindblad maps.
