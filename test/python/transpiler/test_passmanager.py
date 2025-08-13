@@ -50,6 +50,13 @@ class TestPassManager(QiskitTestCase):
         expected_start.append(U2Gate(0, np.pi), [qr[0]])
         expected_start_dag = circuit_to_dag(expected_start)
 
+        base_property_set = PropertySet(
+            {
+                "original_qubit_indices": {bit: i for i, bit in enumerate(circuit.qubits)},
+                "num_input_qubits": circuit.num_qubits,
+            }
+        )
+
         expected_end = QuantumCircuit(qr)
         expected_end.append(U2Gate(0, np.pi), [qr[0]])
         expected_end_dag = circuit_to_dag(expected_end)
@@ -71,14 +78,14 @@ class TestPassManager(QiskitTestCase):
         self.assertEqual(calls[0]["pass_"].name(), "BasisTranslator")
         self.assertEqual(expected_start_dag, calls[0]["dag"])
         self.assertIsInstance(calls[0]["time"], float)
-        self.assertEqual(calls[0]["property_set"], PropertySet())
+        self.assertEqual(calls[0]["property_set"], base_property_set)
         self.assertEqual("MyCircuit", calls[0]["dag"].name)
         self.assertEqual(len(calls[1]), 5)
         self.assertEqual(calls[1]["count"], 1)
         self.assertEqual(calls[1]["pass_"].name(), "Optimize1qGates")
         self.assertEqual(expected_end_dag, calls[1]["dag"])
-        self.assertIsInstance(calls[0]["time"], float)
-        self.assertEqual(calls[0]["property_set"], PropertySet())
+        self.assertIsInstance(calls[1]["time"], float)
+        self.assertEqual(calls[1]["property_set"], base_property_set)
         self.assertEqual("MyCircuit", calls[1]["dag"].name)
 
     def test_callback_multi_circuits(self):
