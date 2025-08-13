@@ -2679,6 +2679,20 @@ class TestQASM3ExporterFailurePaths(QiskitTestCase):
         self.assertIsInstance(cm.exception.__cause__, QASM3ExporterError)
         self.assertRegex(cm.exception.__cause__.message, "cannot use the keyword 'reset'")
 
+    def test_duration_builder_rejects_unknown_unit(self):
+        """Test the builder rejects unknown duration units."""
+        builder = QASM3Builder(
+            QuantumCircuit(),
+            includeslist=(),
+            basis_gates=("U",),
+            disable_constants=False,
+            allow_aliasing=False,
+        )
+        with self.assertRaisesRegex(
+            QASM3ExporterError, "Unsupported duration unit: 'lightyear'"
+        ):
+            builder.build_duration(1, "lightyear")
+
 
 class TestQASM3ExporterRust(QiskitTestCase):
     """Tests of the Rust QASM3 exporter."""
