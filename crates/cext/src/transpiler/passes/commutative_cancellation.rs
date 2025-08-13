@@ -64,13 +64,13 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_commutative_cancellation(
     } else {
         Some(unsafe { const_ptr_as_ref(target) })
     };
+    if !(0.0..=1.0).contains(&approximation_degree) {
+        panic!("Invalid value provided for approximation degree, only NAN or values between 0.0 and 1.0 inclusive are valid");
+    }
     let mut dag = match DAGCircuit::from_circuit_data(circuit, false, None, None, None, None) {
         Ok(dag) => dag,
         Err(e) => panic!("{}", e),
     };
-    if !(0.0..=1.0).contains(&approximation_degree) {
-        panic!("Invalid value provided for approximation degree, only NAN or values between 0.0 and 1.0 inclusive are valid");
-    }
     let mut commutation_checker = get_standard_commutation_checker();
     let basis = target.map(|t| t.operation_names().map(|n| n.to_string()).collect());
     if cancel_commutations(
