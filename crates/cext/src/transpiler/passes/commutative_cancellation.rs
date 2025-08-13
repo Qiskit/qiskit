@@ -108,9 +108,12 @@ mod tests {
             (0.).into(),
         )
         .unwrap();
-        qc.push_standard_gate(StandardGate::CX, &[], &[Qubit(0), Qubit(1)]);
-        qc.push_standard_gate(StandardGate::Z, &[], &[Qubit(0)]);
-        qc.push_standard_gate(StandardGate::CX, &[], &[Qubit(0), Qubit(1)]);
+        qc.push_standard_gate(StandardGate::CX, &[], &[Qubit(0), Qubit(1)])
+            .unwrap();
+        qc.push_standard_gate(StandardGate::Z, &[], &[Qubit(0)])
+            .unwrap();
+        qc.push_standard_gate(StandardGate::CX, &[], &[Qubit(0), Qubit(1)])
+            .unwrap();
         let result = unsafe {
             qk_transpiler_pass_standalone_commutative_cancellation(&mut qc, std::ptr::null(), 1.0)
         };
