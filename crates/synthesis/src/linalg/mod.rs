@@ -48,3 +48,29 @@ pub fn closest_unitary(mat: DMatrix<Complex64>) -> DMatrix<Complex64> {
     let v_t = svd.v_t.unwrap();
     &u * &v_t
 }
+
+/// Calculate the condition number of a matrix w.r.t the L2 norm
+/// using SVD
+pub fn condition_number(mat: DMatrix<Complex64>) -> Option<f64> {
+    let svd = mat.svd(false, false);
+    let singular_values = svd.singular_values;
+
+    if singular_values.is_empty() {
+        return None;
+    }
+
+    let max_sv = singular_values
+        .iter()
+        .cloned()
+        .fold(f64::NEG_INFINITY, f64::max);
+    let min_sv = singular_values
+        .iter()
+        .cloned()
+        .fold(f64::INFINITY, f64::min);
+
+    if min_sv == 0.0 {
+        return None; // Singular matrix
+    }
+
+    Some(max_sv / min_sv)
+}
