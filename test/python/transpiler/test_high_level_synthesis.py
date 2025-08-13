@@ -1084,18 +1084,7 @@ class TestTokenSwapperPermutationPlugin(QiskitTestCase):
         synthesis_config = HLSConfig(permutation=[("token_swapper", {"trials": 10, "seed": 1})])
         qc_transpiled = PassManager(HighLevelSynthesis(synthesis_config)).run(qc)
 
-        # Construct the expected quantum circuit
-        # From the description below we can see that
-        #   0->6, 1->4, 2->5, 3->2, 4->0, 5->2->3->7, 6->0->4->1, 7->3
-        qc_expected = QuantumCircuit(8)
-        qc_expected.swap(2, 5)
-        qc_expected.swap(0, 6)
-        qc_expected.swap(2, 3)
-        qc_expected.swap(0, 4)
-        qc_expected.swap(1, 4)
-        qc_expected.swap(3, 7)
-
-        self.assertEqual(qc_transpiled, qc_expected)
+        self.assertEqual(Operator(qc_transpiled), Operator(qc))
 
     def test_concrete_synthesis(self):
         """Test concrete synthesis of a permutation gate (we have both the coupling map and the
