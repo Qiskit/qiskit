@@ -15,7 +15,7 @@
 import warnings
 
 from qiskit.transpiler.basepasses import AnalysisPass
-from qiskit.transpiler.target import Target
+from qiskit.transpiler.target import Target, _FakeTarget
 
 from qiskit._accelerate import check_map
 
@@ -47,7 +47,12 @@ class CheckMap(AnalysisPass):
         else:
             self.property_set_field = property_set_field
         if isinstance(coupling_map, Target):
-            self._target = coupling_map
+            if isinstance(coupling_map, _FakeTarget):
+                self._target = Target.from_configuration(
+                    ["u", "cx"], coupling_map=coupling_map.build_coupling_map()
+                )
+            else:
+                self._target = coupling_map
         else:
             self._target = Target.from_configuration(["u", "cx"], coupling_map=coupling_map)
         self._qargs = None
