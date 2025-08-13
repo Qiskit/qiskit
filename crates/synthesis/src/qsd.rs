@@ -13,9 +13,10 @@
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
+use crate::QiskitError;
 use approx::abs_diff_eq;
 use hashbrown::HashMap;
-use nalgebra::{DMatrix, DVector, Matrix4, QR, SVD};
+use nalgebra::{stack, DMatrix, DVector, Matrix4, QR, SVD};
 use ndarray::prelude::*;
 use num_complex::Complex64;
 use numpy::PyReadonlyArray2;
@@ -258,6 +259,14 @@ fn qsd_inner(
     let mut out = CircuitData::new(Some(out_qubits), None, None, 0, Param::Float(0.)).unwrap();
     // perform block ZXZ decomposition from [2]
     let (a1, a2, b, c) = _block_zxz_decomp(mat);
+    // TODO: remove this verification in favor of a test
+    let verify_mat = _zxz_decomp_verify(mat, &a1, &a2, &b, &c);
+    if !verify_mat {
+        return Err(QiskitError::new_err(
+            "The matrix after ZXZ decomposition is not the same.",
+        ));
+    }
+
     let iden = DMatrix::<Complex64>::identity(dim / 2, dim / 2);
     let (left_circuit, vmat_c, _) = demultiplex(
         &iden,
@@ -315,16 +324,6 @@ fn _zxz_decomp_svd(a: DMatrix<Complex64>) -> (DMatrix<Complex64>, DMatrix<Comple
     (s, u)
 }
 
-// fn _zxz_decomp_verify(
-//     mat: &DMatrix<Complex64>,
-//     A1: &DMatrix<Complex64>,
-//     A2: &DMatrix<Complex64>,
-//     B: &DMatrix<Complex64>,
-//     C: &DMatrix<Complex64>,
-// ) -> Result<(), ()> {
-
-// }
-
 /// Block ZXZ decomposition method, by Krol and Al-Ars [2]
 fn _block_zxz_decomp(
     mat: &DMatrix<Complex64>,
@@ -347,6 +346,33 @@ fn _block_zxz_decomp(
     let a2 = u21 + (u22 * (uy.adjoint() * ux) * i);
     let b = (a1.adjoint() * x) * Complex64::from(2.0) - DMatrix::<Complex64>::identity(n, n);
     (a1, a2, b, c)
+}
+
+/// Verify ZXZ decomposition gives the same unitary
+fn _zxz_decomp_verify(
+    mat: &DMatrix<Complex64>,
+    a1: &DMatrix<Complex64>,
+    a2: &DMatrix<Complex64>,
+    b: &DMatrix<Complex64>,
+    c: &DMatrix<Complex64>,
+) -> bool {
+    let n = mat.shape().0 / 2;
+    let zero = DMatrix::<Complex64>::zeros(n, n);
+    let iden = DMatrix::<Complex64>::identity(n, n);
+
+    let a_blcok = stack![a1, zero; zero, a2];
+
+    let b1 = iden.clone() + b;
+    let b2 = iden.clone() - b;
+    let b_block = stack![b1, b2; b2, b1];
+
+    let c_block = stack![iden, zero; zero, c];
+
+    let mat_check = a_blcok * b_block * c_block * Complex64::from(0.5);
+
+    const EPS: f64 = 1e-7;
+    let close = abs_diff_eq!(mat, &mat_check, epsilon = EPS);
+    close
 }
 
 ///  Decompose a generic multiplexer.
@@ -401,14 +427,22 @@ fn demultiplex(
         let orthonormal_eigenvectors = QR::new(eigh.eigenvectors).q();
         (eigvals, orthonormal_eigenvectors)
     } else {
-        let shur = nalgebra::linalg::Schur::try_new(um0um1, 1e-12, 100000).unwrap();
-        let (vmat, evals) = shur.unpack();
+        let schur = nalgebra::linalg::Schur::try_new(um0um1, 1e-12, 100000).unwrap();
+        let (vmat, evals) = schur.unpack();
         let eigvals = evals.diagonal();
         (eigvals, vmat)
     };
     let d_values: DVector<Complex64> = eigvals.map(|x| x.sqrt());
     let d_mat: DMatrix<Complex64> = DMatrix::from_diagonal(&d_values);
-    let wmat = d_mat * vmat.adjoint() * um1;
+    let wmat = d_mat.clone() * vmat.adjoint() * um1;
+
+    // TODO: remove this verification in favor of a test
+    let verify_mat = _demultiplex_verify(um0, um1, &vmat, &wmat, &d_mat);
+    if !verify_mat {
+        return Err(QiskitError::new_err(
+            "The matrix after Schur decomposition is not the same.",
+        ));
+    }
 
     let out_qubits = (0..num_qubits)
         .map(|_| ShareableQubit::new_anonymous())
@@ -457,6 +491,29 @@ fn demultiplex(
         VWType::OnlyW => (),
     }
     Ok((out, vmat, wmat))
+}
+
+fn _demultiplex_verify(
+    um0: &DMatrix<Complex64>,
+    um1: &DMatrix<Complex64>,
+    vmat: &DMatrix<Complex64>,
+    wmat: &DMatrix<Complex64>,
+    dmat: &DMatrix<Complex64>,
+) -> bool {
+    let n = um0.shape().0;
+    let zero = DMatrix::<Complex64>::zeros(n, n);
+
+    let u_block = stack![um0, zero; zero, um1];
+    let v_block = stack![vmat, zero; zero, vmat];
+    let w_block = stack![wmat, zero; zero, wmat];
+    let d_inv = dmat.adjoint();
+    let d_block = stack![dmat, zero; zero, d_inv];
+
+    let u_check = v_block * d_block * w_block;
+
+    const EPS: f64 = 1e-7;
+    let close = abs_diff_eq!(u_block, u_check, epsilon = EPS);
+    close
 }
 
 /// This function synthesizes UCRZ without the final CX gate,
