@@ -21,7 +21,8 @@ use pyo3::prelude::*;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::{
-    CX_GATE, CZ_GATE, ECR_GATE, ISWAP_GATE, ONE_QUBIT_IDENTITY, TWO_QUBIT_IDENTITY,
+    CH_GATE, CX_GATE, CY_GATE, CZ_GATE, DCX_GATE, ECR_GATE, ISWAP_GATE, ONE_QUBIT_IDENTITY,
+    TWO_QUBIT_IDENTITY,
 };
 use qiskit_circuit::imports::{QI_OPERATOR, QUANTUM_CIRCUIT};
 use qiskit_circuit::operations::StandardGate;
@@ -34,6 +35,7 @@ use smallvec::smallvec;
 use smallvec::SmallVec;
 
 use super::optimize_1q_gates_decomposition::matmul_1q;
+use super::unitary_synthesis::{PARAM_SET_BASIS_GATES, TWO_QUBIT_BASIS_SET_GATES};
 use qiskit_quantum_info::convert_2q_block_matrix::{blocks_to_matrix, get_matrix_from_inst};
 use qiskit_synthesis::two_qubit_decompose::{
     TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer,
@@ -50,34 +52,15 @@ pub enum DecomposerType {
     TwoQubitControlledU(TwoQubitControlledUDecomposer),
 }
 
-/// The collection of compatible KAK decomposition gates in a set in order
-/// of priority.
-static KAK_GATES: [StandardGate; 4] = [
-    StandardGate::CX,
-    StandardGate::CZ,
-    StandardGate::ECR,
-    StandardGate::ISwap,
-];
-
-/// The collection of compatible KAK decomposition parametric gates in a set
-/// in order of priority.
-static KAK_GATES_PARAM: [StandardGate; 8] = [
-    StandardGate::RXX,
-    StandardGate::RZZ,
-    StandardGate::RYY,
-    StandardGate::RZX,
-    StandardGate::CPhase,
-    StandardGate::CRX,
-    StandardGate::CRY,
-    StandardGate::CRZ,
-];
-
 fn get_matrix(gate: &StandardGate) -> ArrayView2<Complex64> {
     match gate {
         StandardGate::CX => aview2(&CX_GATE),
+        StandardGate::CY => aview2(&CY_GATE),
         StandardGate::CZ => aview2(&CZ_GATE),
-        StandardGate::ECR => aview2(&ECR_GATE),
+        StandardGate::CH => aview2(&CH_GATE),
+        StandardGate::DCX => aview2(&DCX_GATE),
         StandardGate::ISwap => aview2(&ISWAP_GATE),
+        StandardGate::ECR => aview2(&ECR_GATE),
         _ => unreachable!("Unsupported gate"),
     }
 }
@@ -93,17 +76,13 @@ fn get_decomposer_and_basis_gate(
         if let Some(gate) = target.operations().find_map(|op| {
             op.operation
                 .try_standard_gate()
-                .and_then(|gate| KAK_GATES_PARAM.contains(&gate).then_some(gate))
+                .and_then(|gate| PARAM_SET_BASIS_GATES.contains(&gate).then_some(gate))
         }) {
             return (
                 DecomposerType::TwoQubitControlledU(
                     TwoQubitControlledUDecomposer::new(RXXEquivalent::Standard(gate), "ZXZ")
-                        .unwrap_or_else(|_| {
-                            panic!(
-                                "Error while creating Controlled U decomposer using a {} gate.",
-                                gate.name()
-                            )
-                        }),
+                        .unwrap_or_else(|_| panic!("Error while creating Controlled U decomposer using a {} gate.",
+                            gate.name())),
                 ),
                 gate,
             );
@@ -111,7 +90,7 @@ fn get_decomposer_and_basis_gate(
         if let Some(gate) = target.operations().find_map(|op| {
             op.operation
                 .try_standard_gate()
-                .and_then(|gate| KAK_GATES.contains(&gate).then_some(gate))
+                .and_then(|gate| TWO_QUBIT_BASIS_SET_GATES.contains(&gate).then_some(gate))
         }) {
             return (
                 DecomposerType::TwoQubitBasis(
@@ -123,12 +102,8 @@ fn get_decomposer_and_basis_gate(
                         "U",
                         None,
                     )
-                    .unwrap_or_else(|_| {
-                        panic!(
-                            "Error while creating Basis Decomposer using a {} gate.",
-                            gate.name()
-                        )
-                    }),
+                    .unwrap_or_else(|_| panic!("Error while creating Basis Decomposer using a {} gate.",
+                        gate.name())),
                 ),
                 gate,
             );

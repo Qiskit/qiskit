@@ -71,7 +71,7 @@ macro_rules! PARAM_SET {
 }
 
 // Make sure that this is kept in sync with the macro PARAM_SET above
-static PARAM_SET_BASIS_GATES: [StandardGate; 8] = [
+pub static PARAM_SET_BASIS_GATES: [StandardGate; 8] = [
     StandardGate::RXX,
     StandardGate::RYY,
     StandardGate::RZZ,
@@ -98,7 +98,7 @@ macro_rules! TWO_QUBIT_BASIS_SET {
 }
 
 // Make sure this is kept in sync with the macro TWO_QUBIT_BASIS_SET above
-static TWO_QUBIT_BASIS_SET_GATES: [StandardGate; 7] = [
+pub static TWO_QUBIT_BASIS_SET_GATES: [StandardGate; 7] = [
     StandardGate::CX,
     StandardGate::CY,
     StandardGate::CZ,
