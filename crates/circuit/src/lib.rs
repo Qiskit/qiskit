@@ -36,8 +36,8 @@ pub mod parameter_table;
 pub mod register_data;
 pub mod slice;
 pub mod util;
+pub mod vf2;
 
-pub mod rustworkx_core_vnext;
 mod variable_mapper;
 
 use pyo3::exceptions::PyValueError;
