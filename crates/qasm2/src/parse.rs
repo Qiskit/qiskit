@@ -482,7 +482,7 @@ impl State {
                         name_token.line,
                         name_token.col,
                     )),
-                    &format!("'{}' is not defined in this scope", name),
+                    &format!("'{name}' is not defined in this scope"),
                 )))
             }
         };
@@ -505,7 +505,7 @@ impl State {
                     name_token.line,
                     name_token.col,
                 )),
-                &format!("'{}' is a parameter, not a qubit", name),
+                &format!("'{name}' is a parameter, not a qubit"),
             ))),
             None => {
                 if let Some(symbol) = self.symbols.get(&name) {
@@ -524,7 +524,7 @@ impl State {
                             name_token.line,
                             name_token.col,
                         )),
-                        &format!("'{}' is not defined in this scope", name),
+                        &format!("'{name}' is not defined in this scope"),
                     )))
                 }
             }
@@ -590,7 +590,7 @@ impl State {
                         name_token.line,
                         name_token.col,
                     )),
-                    &format!("'{}' is not defined in this scope", name),
+                    &format!("'{name}' is not defined in this scope"),
                 )))
             }
         };
@@ -651,8 +651,7 @@ impl State {
                     index_token.col,
                 )),
                 &format!(
-                    "index {} is out-of-range for register '{}' of size {}",
-                    index, name, register_size
+                    "index {index} is out-of-range for register '{name}' of size {register_size}"
                 ),
             )))
         }
@@ -915,12 +914,9 @@ impl State {
             None => {
                 let pos = Position::new(self.current_filename(), name_token.line, name_token.col);
                 let message = if self.overridable_gates.contains_key(&name) {
-                    format!(
-                        "cannot use non-builtin custom instruction '{}' before definition",
-                        name,
-                    )
+                    format!("cannot use non-builtin custom instruction '{name}' before definition",)
                 } else {
-                    format!("'{}' is not defined in this scope", name)
+                    format!("'{name}' is not defined in this scope")
                 };
                 Err(QASM2ParseError::new_err(message_generic(
                     Some(&pos),
@@ -1289,7 +1285,7 @@ impl State {
                     name_token.line,
                     name_token.col,
                 )),
-                &format!("'{}' is not defined in this scope", name),
+                &format!("'{name}' is not defined in this scope"),
             ))),
         }?;
         let condition = Some(Condition { creg, value });
@@ -1650,12 +1646,12 @@ impl State {
             let pos = owner.map(|tok| Position::new(state.current_filename(), tok.line, tok.col));
             Err(QASM2ParseError::new_err(message_generic(
                 pos.as_ref(),
-                &format!("'{}' is already defined", name),
+                &format!("'{name}' is already defined"),
             )))
         };
         let mismatched_definitions = |state: &Self, name: String, previous: OverridableGate| {
             let plural = |count: usize, singular: &str| {
-                let mut out = format!("{} {}", count, singular);
+                let mut out = format!("{count} {singular}");
                 if count != 1 {
                     out.push('s');
                 }

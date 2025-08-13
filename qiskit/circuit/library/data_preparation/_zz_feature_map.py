@@ -98,7 +98,7 @@ class ZZFeatureMap(PauliFeatureMap):
     @deprecate_func(
         since="2.1",
         additional_msg=(
-            "Use the z_feature_map function as a replacement. Note that this will no longer "
+            "Use the zz_feature_map function as a replacement. Note that this will no longer "
             "return a BlueprintCircuit, but just a plain QuantumCircuit."
         ),
         removal_timeline="in Qiskit 3.0",

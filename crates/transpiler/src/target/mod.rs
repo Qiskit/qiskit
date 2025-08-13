@@ -15,19 +15,19 @@
 mod errors;
 mod instruction_properties;
 mod qargs;
+mod qubit_properties;
 
 pub use errors::TargetError;
 pub use instruction_properties::InstructionProperties;
 pub use qargs::{Qargs, QargsRef};
+pub use qubit_properties::QubitProperties;
 
 use std::{ops::Index, sync::OnceLock};
 
 use ahash::RandomState;
-
 use hashbrown::HashSet;
 use indexmap::IndexMap;
 use itertools::Itertools;
-
 use pyo3::{
     exceptions::{PyAttributeError, PyIndexError, PyKeyError, PyValueError},
     prelude::*,
@@ -35,10 +35,13 @@ use pyo3::{
     types::{PyDict, PyList, PySet},
     IntoPyObjectExt,
 };
+use rustworkx_core::petgraph::prelude::*;
+use smallvec::SmallVec;
+use thiserror::Error;
+
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use smallvec::SmallVec;
 
 use qiskit_circuit::PhysicalQubit;
 
@@ -209,7 +212,7 @@ pub struct Target {
     #[pyo3(get, set)]
     pub acquire_alignment: u32,
     #[pyo3(get, set)]
-    pub qubit_properties: Option<Vec<PyObject>>,
+    pub qubit_properties: Option<Vec<QubitProperties>>,
     #[pyo3(get, set)]
     pub concurrent_measurements: Option<Vec<Vec<PhysicalQubit>>>,
     gate_map: GateMap,
@@ -283,7 +286,7 @@ impl Target {
         min_length: Option<u32>,
         pulse_alignment: Option<u32>,
         acquire_alignment: Option<u32>,
-        qubit_properties: Option<Vec<PyObject>>,
+        qubit_properties: Option<Vec<QubitProperties>>,
         concurrent_measurements: Option<Vec<Vec<PhysicalQubit>>>,
     ) -> PyResult<Self> {
         if let Some(qubit_properties) = qubit_properties.as_ref() {
@@ -337,8 +340,7 @@ impl Target {
     ) -> PyResult<()> {
         if self.gate_map.contains_key(&name) {
             return Err(PyAttributeError::new_err(format!(
-                "Instruction {} is already in the target",
-                name
+                "Instruction {name} is already in the target"
             )));
         }
         let props_map = if let Some(props_map) = properties {
@@ -520,7 +522,6 @@ impl Target {
     )]
     pub fn py_instruction_supported(
         &self,
-        py: Python,
         operation_name: Option<String>,
         qargs: Qargs,
         operation_class: Option<&Bound<PyAny>>,
@@ -550,6 +551,7 @@ impl Target {
                         }
                     }
                     TargetOperation::Normal(normal) => {
+                        let py = _operation_class.py();
                         if normal.into_pyobject(py)?.is_instance(_operation_class)? {
                             if let Some(parameters) = &parameters {
                                 if parameters.len() != normal.params.len() {
@@ -608,19 +610,21 @@ impl Target {
                     if parameters.len() != obj_params.len() {
                         return Ok(false);
                     }
+
                     for (index, params) in parameters.iter().enumerate() {
-                        let mut matching_params = false;
                         let obj_at_index = &obj_params[index];
-                        if matches!(obj_at_index, Param::ParameterExpression(_))
-                            || python_compare(py, params, &obj_params[index])?
-                        {
-                            matching_params = true;
-                        }
+                        let matching_params = match (obj_at_index, params) {
+                            (Param::Float(obj_f), Param::Float(param_f)) => obj_f == param_f,
+                            (Param::ParameterExpression(_), _) => true,
+                            _ => Python::with_gil(|py| {
+                                python_compare(py, params, &obj_params[index])
+                            })?,
+                        };
+
                         if !matching_params {
                             return Ok(false);
                         }
                     }
-                    return Ok(true);
                 }
             }
             Ok(self.instruction_supported(&operation_name, &qargs))
@@ -674,8 +678,7 @@ impl Target {
             }
         }
         Err(PyIndexError::new_err(format!(
-            "Index: {:?} is out of range.",
-            index
+            "Index: {index:?} is out of range."
         )))
     }
 
@@ -857,7 +860,7 @@ impl Target {
         self.qubit_properties = state
             .get_item("qubit_properties")?
             .unwrap()
-            .extract::<Option<Vec<PyObject>>>()?;
+            .extract::<Option<Vec<QubitProperties>>>()?;
         self.concurrent_measurements = state
             .get_item("concurrent_measurements")?
             .unwrap()
@@ -940,6 +943,14 @@ impl Target {
         } else {
             operation.name().to_string()
         };
+        if params.len() != operation.num_params() as usize {
+            return Err(TargetError::ParamsMismatch {
+                instruction: parsed_name,
+                instruction_num: operation.num_params() as usize,
+                argument_num: params.len(),
+            });
+        }
+
         if self.gate_map.contains_key(&parsed_name) {
             return Err(TargetError::AlreadyExists(parsed_name));
         }
@@ -977,7 +988,7 @@ impl Target {
                         if qarg_slice.len() != instruction.num_qubits() as usize {
                             return Err(TargetError::QargsMismatch {
                                 instruction: name,
-                                arguments: format!("{:?}", qarg),
+                                arguments: format!("{qarg:?}"),
                             });
                         }
                         self.num_qubits =
@@ -1060,7 +1071,7 @@ impl Target {
         if !prop_map.contains_key(&qargs) {
             return Err(TargetError::InvalidQargsKey {
                 instruction: instruction.to_string(),
-                arguments: format!("{:?}", qargs),
+                arguments: format!("{qargs:?}"),
             });
         }
         if let Some(e) = prop_map.get_mut(&qargs) {
@@ -1245,7 +1256,7 @@ impl Target {
                 .iter()
                 .any(|x| !(0..self.num_qubits.unwrap_or_default()).contains(&x.0))
             {
-                return Err(TargetError::QargsWithoutInstruction(format!("{:?}", qargs)));
+                return Err(TargetError::QargsWithoutInstruction(format!("{qargs:?}")));
             }
         }
         if let Some(Some(qarg_gate_map_arg)) = self.qarg_gate_map.get(&qargs).as_ref() {
@@ -1262,7 +1273,7 @@ impl Target {
             }
         }
         if res.is_empty() {
-            return Err(TargetError::QargsWithoutInstruction(format!("{:?}", qargs)));
+            return Err(TargetError::QargsWithoutInstruction(format!("{qargs:?}")));
         }
         Ok(res)
     }
@@ -1385,6 +1396,45 @@ impl Target {
         false
     }
 
+    /// Get a directionless coupling-graph representation of the target connectivity.
+    ///
+    /// This only makes sense for targets without all-to-all connectivity, and that do not have any
+    /// interactions that are more than 2q.  In either of these cases, the relevant error state is
+    /// returned.
+    ///
+    /// Since information about the actual instructions is erased, it does not make sense to attempt
+    /// to preserve directionality.
+    pub fn coupling_graph(&self) -> Result<Graph<(), (), Undirected>, TargetCouplingError> {
+        let Some(num_qubits) = self.num_qubits else {
+            // Actually, this mostly means that nothing has set it yet, so there's no explicit
+            // number given, and the only possible operations are all-to-all.  It doesn't matter a
+            // lot, though, because `None` mostly just means that nothing has initialised it, so
+            // construction of the object isn't complete.
+            return Err(TargetCouplingError::AllToAll);
+        };
+        let num_qubits = num_qubits as usize;
+        let mut coupling = Graph::with_capacity(num_qubits, num_qubits);
+        for _ in 0..num_qubits {
+            coupling.add_node(());
+        }
+        let Some(qargs) = self.qargs() else {
+            return Err(TargetCouplingError::AllToAll);
+        };
+        for qargs in qargs {
+            let Qargs::Concrete(qargs) = qargs else {
+                return Err(TargetCouplingError::AllToAll);
+            };
+            match qargs.as_slice() {
+                &[] | &[_] => (),
+                &[a, b] => {
+                    coupling.update_edge(NodeIndex::new(a.index()), NodeIndex::new(b.index()), ());
+                }
+                _ => return Err(TargetCouplingError::MultiQ),
+            }
+        }
+        Ok(coupling)
+    }
+
     // IndexMap methods
 
     /// Retreive all the gate names in the Target
@@ -1445,6 +1495,14 @@ impl Default for Target {
     }
 }
 
+#[derive(Error, Debug)]
+pub enum TargetCouplingError {
+    #[error("target contains short-hand all-to-all connectivity")]
+    AllToAll,
+    #[error("target contains multi-qubit operations")]
+    MultiQ,
+}
+
 // For instruction_supported
 fn check_obj_params(parameters: &[Param], obj: &NormalOperation) -> bool {
     for (index, param) in parameters.iter().enumerate() {
@@ -1475,22 +1533,91 @@ where
 pub fn target(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<InstructionProperties>()?;
     m.add_class::<Target>()?;
+    m.add_class::<QubitProperties>()?;
     Ok(())
 }
 
 #[cfg(test)]
 mod test {
     use std::f64::consts::PI;
+    use std::sync::Arc;
 
     use qiskit_circuit::operations::{
         get_standard_gate_names, Operation, Param, StandardGate, STANDARD_GATE_SIZE,
     };
+    use qiskit_circuit::packed_instruction::PackedOperation;
+    use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
+    use qiskit_circuit::parameter::symbol_expr::Symbol;
     use smallvec::SmallVec;
 
     use crate::target::QargsRef;
     use qiskit_circuit::PhysicalQubit;
 
-    use super::{instruction_properties::InstructionProperties, Qargs, Target};
+    use super::{instruction_properties::InstructionProperties, Qargs, Target, TargetError};
+
+    #[test]
+    fn test_invalid_params_instruction() {
+        let params: [Param; 3] = [
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
+                "ϴ", None, None,
+            )))),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
+                "φ", None, None,
+            )))),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
+                "λ", None, None,
+            )))),
+        ];
+        let mut target = Target::default();
+        let result = target.add_instruction(
+            PackedOperation::from_standard_gate(StandardGate::CX),
+            &params,
+            None,
+            None,
+        );
+        let Err(res) = result else {
+            panic!("The operation was unexpectedly successful");
+        };
+        if !matches!(res, TargetError::ParamsMismatch { .. }) {
+            panic!("Returned an unexpected error type");
+        }
+        assert_eq!(
+            res.to_string(),
+            "The number of parameters for cx: 0 does not match the provided number of parameters: 3.",
+        );
+    }
+
+    #[test]
+    fn test_mismatch_params_count_instruction() {
+        let params: [Param; 3] = [
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
+                "ϴ", None, None,
+            )))),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
+                "φ", None, None,
+            )))),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
+                "λ", None, None,
+            )))),
+        ];
+        let mut target = Target::default();
+        let result = target.add_instruction(
+            PackedOperation::from_standard_gate(StandardGate::RZ),
+            &params,
+            None,
+            None,
+        );
+        let Err(res) = result else {
+            panic!("The operation was unexpectedly successful");
+        };
+        if !matches!(res, TargetError::ParamsMismatch { .. }) {
+            panic!("Returned an unexpected error type");
+        }
+        assert_eq!(
+            res.to_string(),
+            "The number of parameters for rz: 1 does not match the provided number of parameters: 3.",
+        );
+    }
 
     #[test]
     fn test_add_invalid_qargs_insruction() {
@@ -1568,7 +1695,7 @@ mod test {
             None,
             Some([(qargs.clone(), None)].into_iter().collect()),
         );
-        assert!(result.is_ok(), "Error message: {:?}", result);
+        assert!(result.is_ok(), "Error message: {result:?}");
 
         assert_eq!(test_target["cx"][&qargs], None);
 
@@ -1578,7 +1705,7 @@ mod test {
             &qargs,
             Some(InstructionProperties::new(Some(0.00122), Some(0.00001023))),
         );
-        assert!(result.is_ok(), "Error message: {:?}", result);
+        assert!(result.is_ok(), "Error message: {result:?}");
 
         assert_eq!(
             test_target["cx"][&qargs],
@@ -1587,7 +1714,7 @@ mod test {
 
         // Modify instruction property back to None.
         let result = test_target.update_instruction_properties("cx", &qargs, None);
-        assert!(result.is_ok(), "Error message: {:?}", result);
+        assert!(result.is_ok(), "Error message: {result:?}");
         assert_eq!(test_target["cx"][&qargs], None);
     }
 
@@ -1602,7 +1729,7 @@ mod test {
             None,
             Some([(qargs.clone().into(), None)].into_iter().collect()),
         );
-        assert!(result.is_ok(), "Error message: {:?}", result);
+        assert!(result.is_ok(), "Error message: {result:?}");
 
         assert_eq!(test_target["cx"][&QargsRef::from(&qargs)], None);
 
@@ -1640,5 +1767,56 @@ mod test {
         assert_eq!(res.to_string(), expected_message);
         // Check that no changes were made.
         assert_eq!(test_target["cx"][&QargsRef::from(&qargs)], None);
+    }
+
+    #[test]
+    fn test_set_and_get_qubit_properties() {
+        use super::QubitProperties;
+        let props = vec![
+            QubitProperties {
+                t1: Some(10.0),
+                t2: Some(20.0),
+                frequency: Some(5.0),
+            },
+            QubitProperties {
+                t1: Some(11.0),
+                t2: Some(21.0),
+                frequency: Some(6.0),
+            },
+        ];
+        let target = Target {
+            qubit_properties: Some(props.clone()),
+            num_qubits: Some(2),
+            ..Default::default()
+        };
+        assert_eq!(target.qubit_properties.as_ref().unwrap().len(), 2);
+        assert_eq!(target.qubit_properties.as_ref().unwrap()[0].t1, Some(10.0));
+        assert_eq!(
+            target.qubit_properties.as_ref().unwrap()[1].frequency,
+            Some(6.0)
+        );
+    }
+
+    #[test]
+    fn test_qubit_properties_num_qubits_mismatch() {
+        use super::QubitProperties;
+        let props = vec![QubitProperties {
+            t1: Some(10.0),
+            t2: Some(20.0),
+            frequency: Some(5.0),
+        }];
+        // num_qubits is 2, but only 1 qubit_properties
+        let result = Target::new(
+            None,
+            Some(2),
+            None,
+            Some(1),
+            Some(1),
+            Some(1),
+            Some(1),
+            Some(props),
+            None,
+        );
+        assert!(result.is_err());
     }
 }

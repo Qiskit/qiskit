@@ -15,7 +15,7 @@ use std::f64::consts::PI;
 use hashbrown::{HashMap, HashSet};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
-use pyo3::{pyfunction, wrap_pyfunction, Bound, PyResult, Python};
+use pyo3::{pyfunction, wrap_pyfunction, Bound, PyResult};
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::{smallvec, SmallVec};
 
@@ -72,7 +72,6 @@ struct CancellationSetKey {
 #[pyfunction]
 #[pyo3(signature = (dag, commutation_checker, basis_gates=None, approximation_degree=1.))]
 pub fn cancel_commutations(
-    py: Python,
     dag: &mut DAGCircuit,
     commutation_checker: &mut CommutationChecker,
     basis_gates: Option<HashSet<String>>,
@@ -112,7 +111,7 @@ pub fn cancel_commutations(
         qubits and commutation sets.
     */
     let (commutation_set, node_indices) =
-        analyze_commutations(py, dag, commutation_checker, approximation_degree)?;
+        analyze_commutations(dag, commutation_checker, approximation_degree)?;
     let mut cancellation_sets: HashMap<CancellationSetKey, Vec<NodeIndex>> = HashMap::new();
 
     (0..dag.num_qubits() as u32).for_each(|qubit| {
@@ -235,8 +234,7 @@ pub fn cancel_commutations(
                         Ok(PI / 4.0)
                     } else {
                         Err(PyRuntimeError::new_err(format!(
-                            "Angle for operation {} is not defined",
-                            node_op_name
+                            "Angle for operation {node_op_name} is not defined"
                         )))
                     };
                     total_angle += node_angle?;

@@ -10,7 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-/// Parser for equation strings to generate symbolic expression
+//! Parser for equation strings to generate symbolic expression
+use std::sync::Arc;
+
 use nom::branch::{alt, permutation};
 use nom::bytes::complete::tag;
 use nom::character::complete::{char, digit1, multispace0};
@@ -24,7 +26,9 @@ use nom::Parser;
 
 use num_complex::c64;
 
-use crate::symbol_expr::{BinaryOp, SymbolExpr, UnaryOp, Value};
+use crate::parameter::symbol_expr::{BinaryOp, SymbolExpr, UnaryOp, Value};
+
+use super::symbol_expr::Symbol;
 
 // parsing value as real
 fn parse_value(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
@@ -71,10 +75,14 @@ fn parse_symbol(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
                     // currently array index is stored as string
                     // if array indexing is required in the future
                     // add indexing in Symbol struct
-                    let s = format!("{}[{}]", v, i);
-                    Ok(SymbolExpr::Symbol(Box::new(s)))
+                    let i_u32 = i.parse::<u32>().map_err(|_| "Failed to parse index.")?;
+                    Ok(SymbolExpr::Symbol(Arc::new(Symbol::new(
+                        v,
+                        None,
+                        Some(i_u32),
+                    ))))
                 }
-                None => Ok(SymbolExpr::Symbol(Box::new(v.to_string()))),
+                None => Ok(SymbolExpr::Symbol(Arc::new(Symbol::new(v, None, None)))),
             }
         },
     )(s)
@@ -108,7 +116,7 @@ fn parse_unary(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
             };
             Ok(SymbolExpr::Unary {
                 op,
-                expr: Box::new(expr),
+                expr: Arc::new(expr),
             })
         },
     )(s)
@@ -137,7 +145,7 @@ fn parse_sign(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
             } else {
                 Ok(SymbolExpr::Unary {
                     op: UnaryOp::Neg,
-                    expr: Box::new(expr),
+                    expr: Arc::new(expr),
                 })
             }
         },
@@ -246,7 +254,7 @@ pub fn parse_expression(s: &str) -> Result<SymbolExpr, String> {
         Ok(o) => Ok(o.1),
         Err(e) => match e {
             nom::Err::Error(e) => Err(convert_error(s, e)),
-            _ => Err(format!(" Error occurs while parsing expression {}.", s)),
+            _ => Err(format!(" Error occurs while parsing expression {s}.")),
         },
     }
 }

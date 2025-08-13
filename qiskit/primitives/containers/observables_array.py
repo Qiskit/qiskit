@@ -106,7 +106,7 @@ class ObservablesArray(ShapedMixin):
 
     @staticmethod
     def _obs_to_dict(obs: SparseObservable) -> Mapping[str, float]:
-        """Convert a sparse observable to a mapping from Pauli strings to coefficients."""
+        """Convert a simplified sparse observable to a mapping from Pauli strings to coefficients."""
         result = {}
         for sparse_pauli_str, pauli_qubits, coeff in obs.to_sparse_list():
 
@@ -260,7 +260,7 @@ class ObservablesArray(ShapedMixin):
 
         Raises:
             TypeError: If the input cannot be formatted because its type is not valid.
-            ValueError: If the input observable is invalid.
+            ValueError: If the input observable is invalid or empty.
         """
         # Pauli-type conversions
         if isinstance(observable, SparsePauliOp):
@@ -282,21 +282,28 @@ class ObservablesArray(ShapedMixin):
             observable = SparseObservable.from_list(term_list)
 
         if isinstance(observable, SparseObservable):
-            # Check that the operator has real coeffs
+            observable = observable.simplify()
+
+            # Check that the simplified operator has real coeffs
             coeffs = np.real_if_close(observable.coeffs)
             if np.iscomplexobj(coeffs):
                 raise ValueError(
-                    "Non-Hermitian input observable: the input SparsePauliOp has non-zero"
+                    "Non-Hermitian input observable: the simplified input observable has a non-zero"
                     " imaginary part in its coefficients."
                 )
 
-            return SparseObservable.from_raw_parts(
+            observable = SparseObservable.from_raw_parts(
                 observable.num_qubits,
                 coeffs,
                 observable.bit_terms,
                 observable.indices,
                 observable.boundaries,
-            ).simplify(tol=0)
+            )
+
+            if observable == SparseObservable.zero(observable.num_qubits):
+                raise ValueError("Empty observable was detected.")
+
+            return observable
 
         raise TypeError(f"Invalid observable type: {type(observable)}")
 
