@@ -1019,6 +1019,9 @@ pub struct PyPhasedQubitSparsePauliList {
     // This class keeps a pointer to a pure Rust-SparseTerm and serves as interface from Python.
     pub inner: Arc<RwLock<PhasedQubitSparsePauliList>>,
 }
+
+impl_py_qspl_methods!(PyPhasedQubitSparsePauliList);
+
 #[pymethods]
 impl PyPhasedQubitSparsePauliList {
     #[pyo3(signature = (data, /, num_qubits=None))]
@@ -1096,25 +1099,6 @@ impl PyPhasedQubitSparsePauliList {
     fn copy(&self) -> PyResult<Self> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         Ok(inner.clone().into())
-    }
-
-    /// The number of qubits the operators in the list act on.
-    ///
-    /// This is not inferable from any other shape or values, since identities are not stored
-    /// explicitly.
-    #[getter]
-    #[inline]
-    pub fn num_qubits(&self) -> PyResult<u32> {
-        let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        Ok(inner.num_qubits())
-    }
-
-    /// The number of elements in the list.
-    #[getter]
-    #[inline]
-    pub fn num_terms(&self) -> PyResult<usize> {
-        let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        Ok(inner.num_terms())
     }
 
     /// Get the empty list for a given number of qubits.

@@ -33,7 +33,7 @@ use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 use super::qubit_sparse_pauli::{
     raw_parts_from_sparse_list, ArithmeticError, CoherenceError, InnerReadError, InnerWriteError,
     LabelError, Pauli, PyQubitSparsePauli, PyQubitSparsePauliList, QubitSparsePauli,
-    QubitSparsePauliList, QubitSparsePauliListLike, QubitSparsePauliView,
+    QubitSparsePauliList, QubitSparsePauliListLike, QubitSparsePauliView
 };
 
 /// A Pauli Lindblad map that stores its data in a qubit-sparse format. Note that gamma,
@@ -791,6 +791,8 @@ pub struct PyPauliLindbladMap {
     inner: Arc<RwLock<PauliLindbladMap>>,
 }
 
+impl_py_qspl_methods!(PyPauliLindbladMap);
+
 #[pymethods]
 impl PyPauliLindbladMap {
     #[pyo3(signature = (data, /, num_qubits=None))]
@@ -1069,25 +1071,6 @@ impl PyPauliLindbladMap {
     fn copy(&self) -> PyResult<Self> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         Ok(inner.clone().into())
-    }
-
-    /// The number of qubits the map acts on.
-    ///
-    /// This is not inferable from any other shape or values, since identities are not stored
-    /// explicitly.
-    #[getter]
-    #[inline]
-    pub fn num_qubits(&self) -> PyResult<u32> {
-        let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        Ok(inner.num_qubits())
-    }
-
-    /// The number of generator terms in the exponent for this map.
-    #[getter]
-    #[inline]
-    pub fn num_terms(&self) -> PyResult<usize> {
-        let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        Ok(inner.num_terms())
     }
 
     /// Calculate the :math:`\gamma` for the map.
