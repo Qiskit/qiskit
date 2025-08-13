@@ -25,7 +25,7 @@ use qiskit_transpiler::target::Target;
 /// This pass cancels the redundant (self-adjoint) gates through commutation relations.
 ///
 /// @param circuit A pointer to the circuit to run CommutativeCancellation on. This circuit
-/// pointed to will be updated with the modified circuit if the pass is able to remove any gates.
+/// pointer to will be updated with the modified circuit if the pass is able to remove any gates.
 /// @param target The target for the CommutativeCancellation pass. The target is used to specify
 /// as fallback Z rotation gate to use for cancellations if one can't be identified in the circuit.
 /// This can be a null pointer which indicates there isn't a target to use.
@@ -37,7 +37,7 @@ use qiskit_transpiler::target::Target;
 ///
 /// ```c
 ///     QkCircuit *qc = qk_circuit_new(4, 0);
-///     uint_t cx_qargs[2] = {0, 1};
+///     uint32_t cx_qargs[2] = {0, 1};
 ///     qk_circuit_gate(qc, QkGate_CX, cx_qargs, NULL);
 ///     qk_circuit_gate(qc, QkGate_Z, &0, NULL);
 ///     qk_circuit_gate(qc, QkGate_CX, cx_qargs, NULL);
