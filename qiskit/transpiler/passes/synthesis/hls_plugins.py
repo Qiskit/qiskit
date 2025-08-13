@@ -490,12 +490,17 @@ Multiplier Synthesis
       - :class:`.MultiplierSynthesisR17`
       - 0
       - a QFT-based multiplier
+    * - ``"default"``
+      - :class:`~.MultiplierSynthesisDefault`
+      - any
+      - chooses the best algorithm based on the ancillas available
 
 .. autosummary::
    :toctree: ../stubs/
 
    MultiplierSynthesisH18
    MultiplierSynthesisR17
+   MultiplierSynthesisDefault
 
 """
 
@@ -1483,7 +1488,9 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
             # their definition as it should.
             return None
 
-        if options["optimize_clifford_t"]:
+        if options.get("optimize_clifford_t", False):
+            # The order is optimized towards Clifford+T -friendly synthesis methods.
+            # In particular, we run 2DirtyKG24 and 1DirtyKG24 before NCleanM15 and NDirtyI15.
             methods = [
                 MCXSynthesis2CleanKG24,
                 MCXSynthesis1CleanKG24,
@@ -1499,6 +1506,8 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
                 ),
             ]
         else:
+            # The order is optimized towards CX-count -friendly synthesis methods.
+            # In particular, we run NCleanM15 and NDirtyI15 before 2DirtyKG24 and 1DirtyKG24.
             methods = [
                 MCXSynthesis2CleanKG24,
                 MCXSynthesis1CleanKG24,
@@ -1514,9 +1523,9 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
                 ),
             ]
 
-        for synthesis_method in methods:
+        for method in methods:
             if (
-                decomposition := synthesis_method().run(
+                decomposition := method().run(
                     high_level_object, coupling_map, target, qubits, **options
                 )
             ) is not None:
@@ -1794,13 +1803,13 @@ class HalfAdderSynthesisDefault(HighLevelSynthesisPlugin):
         ):
             return decomposition
 
-        # The next best option is to use ripple_c04 (if there are enough ancilla qubits)
-        if (
-            decomposition := HalfAdderSynthesisC04().run(
-                high_level_object, coupling_map, target, qubits, **options
-            )
-        ) is not None:
-            return decomposition
+        # # The next best option is to use ripple_c04 (if there are enough ancilla qubits)
+        # if (
+        #     decomposition := HalfAdderSynthesisC04().run(
+        #         high_level_object, coupling_map, target, qubits, **options
+        #     )
+        # ) is not None:
+        #     return decomposition
 
         # The ripple_rv_25 adder does not require ancilla qubits and should always succeed
         return HalfAdderSynthesisR25().run(
@@ -1988,6 +1997,27 @@ class MultiplierSynthesisR17(HighLevelSynthesisPlugin):
         return multiplier_qft_r17(
             high_level_object.num_state_qubits, high_level_object.num_result_qubits
         )
+
+
+class MultiplierSynthesisDefault(HighLevelSynthesisPlugin):
+    """A QFT-based multiplier.
+
+    This plugin name is:``Multiplier.default`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, MultiplierGate):
+            return None
+
+        if options.get("optimize_clifford_t", False):
+            return multiplier_cumulative_h18(
+                high_level_object.num_state_qubits, high_level_object.num_result_qubits
+            )
+        else:
+            return multiplier_qft_r17(
+                high_level_object.num_state_qubits, high_level_object.num_result_qubits
+            )
 
 
 class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
