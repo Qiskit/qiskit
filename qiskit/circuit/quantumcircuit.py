@@ -37,7 +37,7 @@ from typing import (
     Any,
     Literal,
     overload,
-    List
+    List,
 )
 from math import pi
 import numpy as np
@@ -3556,7 +3556,7 @@ class QuantumCircuit:
             raise CircuitError(
                 f"Could not locate provided bit: {bit}. Has it been added to the QuantumCircuit?"
             ) from err
-        
+
     def find_bits(self, bits: Union[Iterable[Bit], Instruction, Bit]) -> List[BitLocations]:
         """Find locations in the circuit for multiple bits or an instruction.
 
@@ -3573,10 +3573,9 @@ class QuantumCircuit:
         if hasattr(bits, "qubits") or hasattr(bits, "clbits"):
             bits = list(getattr(bits, "qubits", [])) + list(getattr(bits, "clbits", []))
         elif isinstance(bits, Bit):
-            bits = [bits]  
+            bits = [bits]
         else:
-            bits = list(bits)  
-
+            bits = list(bits)
 
         results = []
         for b in bits:
