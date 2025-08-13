@@ -10,13 +10,12 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-// TODO: delete once we move to a version of Rustworkx which includes
-//   this implementation as part of rustworkx-core.
-//   PR: https://github.com/Qiskit/rustworkx/pull/1235
+// This module was originally forked into Rustworkx from petgraph's isomorphism module @ v0.5.0
+// to handle Rustworkx PyDiGraph inputs instead of petgraph's generic Graph.  It was modified
+// substantially in Rustworkx.  It was then forked from Rustworkx to Qiskit from
+//
+//    https://github.com/Qiskit/rustworkx/blob/9f0646e8886cfecc55e59b96532c6f7f798524c0/src/isomorphism/vf2.rs
 #![allow(clippy::too_many_arguments)]
-// This module was originally forked from petgraph's isomorphism module @ v0.5.0
-// to handle PyDiGraph inputs instead of petgraph's generic Graph. However it has
-// since diverged significantly from the original petgraph implementation.
 
 use std::cmp::{Ordering, Reverse};
 use std::convert::Infallible;
