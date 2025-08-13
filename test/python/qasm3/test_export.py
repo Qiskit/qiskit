@@ -753,7 +753,7 @@ c[1] = measure q[1];
                 "delay[2000ns] qr[1];",
                 "delay[s / 2.0] qr[1];",
                 "delay[s * (1000dt / 200.0ns) + t] qr[0];",
-                "delay[s * (1000dt / 2000.0ns) + t] qr[0];",
+                "delay[s * (1000dt / 0.002ns) + t] qr[0];",
                 "",
             ]
         )
@@ -1387,7 +1387,7 @@ box[a] {
   }
 }
 box[a] {
-  box[2 * a + 2000.0ns] {
+  box[2 * a + 0.002ns] {
   }
 }
 """
