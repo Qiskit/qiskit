@@ -107,14 +107,14 @@ However, for convenience, let's put names to two main scenarios for a release:
 
 Verify that the milestone is in a suitable place to release:
 
- - Set the due date for an estimated time for release, if not set already (for example, in patch release cases).
+ - Set the due date for an estimated time for the release, if not set already (for example, in patch release cases).
  - All the blocking issues/PR should be merged the day before the release.
  - You can leave there non-blocking issues/PR until the end of the process.
 
 ### 2. Audit `Changelog:*` labels
 
-> ![NOTE]
-> In this section, `(x.y.z)~1` refers to the **the previous version tag**, since the tool needs to consider changes _since_ the version supplied.
+> [!NOTE]
+> In this section, `(x.y.z)-1` refers to the **the previous version tag**, since the tool needs to consider changes _since_ the version supplied.
 > Examples:
 > 
 >  * For the second release candidate `1.3.0rc2`, `(x.y.z)-1` is previous release candidate `1.3.0rc1`.   
@@ -126,13 +126,13 @@ Generate the short-form changelog using [this script](https://github.com/Qiskit/
 If this is a **_first_ release** scenario, run `generate_changelog.py` with the following parameters:
 
 ```bash
-python generate_changelog.py Qiskit/qiskit (x.y.z)~1 -t $MY_GITHUB_API_TOKEN
+python generate_changelog.py Qiskit/qiskit (x.y.z)-1 -t $MY_GITHUB_API_TOKEN
 ```
 
 The default behavior of `generate_changelog.py` is to check for changes on the `main` branch of `upstream`. If you are doing a **_follow-up_ release**, run `generate_changelog.py` using the existing `'stable/x.y'` branch:
 
 ```bash
-python generate_changelog.py Qiskit/qiskit (x.y.z)~1 -b 'stable/x.y' -t $MY_GITHUB_API_TOKEN
+python generate_changelog.py Qiskit/qiskit (x.y.z)-1 -b 'stable/x.y' -t $MY_GITHUB_API_TOKEN
 ```
     
 In both scenarios, if there are entries under `Missing changelog entry`, label the PRs (the main and the backport) with the `Changelog:<something>` label and repeat `generate_changelog.py` until all the entries have a changelog label and `Missing changelog` section is not shown.
@@ -219,9 +219,9 @@ In the busy pre-RC period, your time is likely better spent coordinating and doi
 However, if this is a **_follow-up_ release** keep the loose files in `/releasenotes/notes` and spend some time looking for typos, broken links, and any broken example code blocks in these files.
 It's convenient to [build the docs locally](https://github.com/Qiskit/qiskit/blob/main/CONTRIBUTING.md#building-release-notes-locally) and read through the page, trying the links and code blocks.
 
-#### 3.6 Submit the PR for revision
+#### 3.6 Submit the PR for review
 
-As a regular PR, commit your changes (don't forget to add the prelude release note), push the branch, and create a PR.
+As any other regular PR, commit your changes (don't forget to add the prelude release note), push the branch, and create a PR.
 
 > [!IMPORTANT]
 > Pay attention to the base: if you are working in a **_follow-up_ release**, the base is `stable/x.y`.
@@ -239,19 +239,19 @@ This PR undergoes the regular review process - use the reviewers to help with ch
 
 Once the PR from the previous section is merged, the release manager tags the commit of that PR.  The tag should have:
 
-- a tag name exactly equal to the version number
-- a tag message that says "Qiskit x.y.z"
-- ideally, [sign your tagging using GPG](https://docs.github.com/authentication/managing-commit-signature-verification/signing-tags)
+- A tag name exactly equal to the version number
+- A tag message that says "Qiskit x.y.z"
+- Ideally, [sign your tagging using GPG](https://docs.github.com/authentication/managing-commit-signature-verification/signing-tags)
 
 #### 4.1 Create the tag locally
 
-Following, the recommended steps for tagging the "Prepare x.y.z release" commit:
+The following are the recommended steps for tagging the "Prepare x.y.z release" commit:
 
-1. sync with the Qiskit-owned remote: `git fetch upstream`
-2. make sure your commit from previous section is `HEAD` in the stable branch:  `git show upstream/stable/x.y` (in case of **_follow-up_ release**) or `git show upstream/main` (in case of **_first_ release**)
-3. tag with a signature and message : `git tag -s -m "Qiskit x.y.z" x.y.z upstream/stable/x.y` (in case of **_follow-up_ release**) or `git tag -s -m "Qiskit x.y.z" x.y.z upstream/main` (in case of **_first_ release**)
+1. Sync with the Qiskit-owned remote: `git fetch upstream`
+2. Make sure your commit from previous section is `HEAD` in the stable branch:  `git show upstream/stable/x.y` (in case of **_follow-up_ release**) or `git show upstream/main` (in case of **_first_ release**)
+3. Tag with a signature and message: `git tag -s -m "Qiskit x.y.z" x.y.z upstream/stable/x.y` (in case of **_follow-up_ release**) or `git tag -s -m "Qiskit x.y.z" x.y.z upstream/main` (in case of **_first_ release**)
 
->![TIP]
+>[!TIP]
 > Signing the tag is optional but highly recommended. Omit `-s` in `git tag` if you are not signing the tag.
 
 For example, here is the workflow for creating the tag for the 2.0.3 patch release, immediately after the "Prepare 2.0.3 release" PR has been merged:
@@ -375,7 +375,7 @@ The places to update are:
 * `qiskit/VERSION.txt`: the only line in the file.
 * `docs/conf.py`: the variables `version` and `release`.
 * `Cargo.toml` (only the file in the repository root and none of the other `**/Cargo.toml`s): the variable `version` and run `cargo build`.
-* `crates/cext/cbindgen.toml`: the `QISKIT_VERSION_xxx` macros.
+* `crates/cext/cbindgen.toml`: the `#define QISKIT_VERSION_*` macros.
 * `.mergify.yml`: change the `backport` action to target the new stable branch that `qiskit-bot` created as part of the release (see [*Backporting* section](#Backporting) for details on Mergify).
 
 This opens the `main` branch for feature development for the next release.
