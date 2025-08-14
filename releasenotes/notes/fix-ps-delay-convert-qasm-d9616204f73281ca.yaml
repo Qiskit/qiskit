@@ -2,4 +2,4 @@
 fixes:
   - |
     Fixed a correctness bug when exporting circuits with delay instructions
-    using 'ps' units to QASM3.
+    using ``'ps'`` units to QASM3.
