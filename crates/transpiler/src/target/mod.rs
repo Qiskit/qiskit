@@ -1441,8 +1441,8 @@ impl Target {
                 }
             }
         }
-        if coupling.edge_count() == 0 && multi_q {
-            Err(TargetCouplingError::MultiQ)
+        if multi_q {
+            Err(TargetCouplingError::MultiQ(coupling))
         } else {
             Ok(coupling)
         }
@@ -1513,7 +1513,7 @@ pub enum TargetCouplingError {
     #[error("target contains short-hand all-to-all connectivity")]
     AllToAll,
     #[error("target contains multi-qubit operations")]
-    MultiQ,
+    MultiQ(Graph<(), (), Undirected>),
 }
 
 // For instruction_supported
