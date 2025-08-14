@@ -498,6 +498,22 @@ def _read_parameter_expression(file_obj):
     return ParameterExpression(name_map, expr_)
 
 
+def _to_sympy(expr_se: Any) -> Any:
+    """
+    Convert a SymEngine expression (or similar) to a SymPy expression.
+    Uses explicit compatibility hooks when available and falls back to
+    string round-trip via sympy.sympify.
+    """
+    import sympy as sp
+
+    if hasattr(expr_se, "_sympy_") and callable(getattr(expr_se, "_sympy_")):
+        return expr_se._sympy_()
+    if hasattr(expr_se, "__sympy__") and callable(getattr(expr_se, "__sympy__")):
+        return expr_se.__sympy__()
+    # fallback
+    return sp.sympify(str(expr_se))
+
+
 def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
     data = formats.PARAMETER_EXPR(
         *struct.unpack(formats.PARAMETER_EXPR_PACK, file_obj.read(formats.PARAMETER_EXPR_SIZE))
@@ -506,8 +522,7 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
     payload = file_obj.read(data.expr_size)
     if use_symengine:
         expr_se = common.load_symengine_payload(payload)
-        from symengine import sympy as symengine_to_sympy  # type: ignore
-        expr_ = symengine_to_sympy(expr_se)
+        expr_ = _to_sympy(expr_se)
     else:
         sympy_str = payload.decode(common.ENCODE)
         expr_ = parse_sympy_repr(sympy_str)
