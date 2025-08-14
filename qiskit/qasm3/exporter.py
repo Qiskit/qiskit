@@ -1136,7 +1136,7 @@ class QASM3Builder:
             )
         duration_value, unit = instruction.operation.duration, instruction.operation.unit
         if unit == "ps":
-            duration = ast.DurationLiteral(1000 * duration_value, ast.DurationUnit.NANOSECOND)
+            duration = ast.DurationLiteral(duration_value / 1000, ast.DurationUnit.NANOSECOND)
         else:
             unit_map = {
                 "ns": ast.DurationUnit.NANOSECOND,

@@ -880,7 +880,7 @@ if (c[0]) {
                 "OPENQASM 3.0;",
                 "qubit[2] qr;",
                 "delay[100ms] qr[0];",
-                "delay[2000ns] qr[1];",
+                "delay[0.002ns] qr[1];",
                 "",
             ]
         )
