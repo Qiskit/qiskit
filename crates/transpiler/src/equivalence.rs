@@ -602,7 +602,7 @@ impl EquivalenceLibrary {
         equivalent_circuit: CircuitData,
     ) -> PyResult<()> {
         raise_if_shape_mismatch(gate, &equivalent_circuit)?;
-        raise_if_param_mismatch(params, equivalent_circuit.iter_parameters())?;
+        raise_if_param_mismatch(params, &equivalent_circuit)?;
         let key: Key = Key::from_operation(gate);
         let equiv = Equivalence {
             circuit: equivalent_circuit.clone(),
@@ -648,7 +648,7 @@ impl EquivalenceLibrary {
     ) -> PyResult<()> {
         for equiv in entry.iter() {
             raise_if_shape_mismatch(gate, equiv)?;
-            raise_if_param_mismatch(params, equiv.iter_parameters())?;
+            raise_if_param_mismatch(params, equiv)?;
         }
         let key = Key::from_operation(gate);
         let node_index = self.set_default_node(key);
@@ -713,10 +713,7 @@ impl EquivalenceLibrary {
     }
 }
 
-fn raise_if_param_mismatch<'a>(
-    gate_params: &[Param],
-    circuit_parameters: impl Iterator<Item = &'a Symbol>,
-) -> PyResult<()> {
+fn raise_if_param_mismatch(gate_params: &[Param], circuit: &CircuitData) -> PyResult<()> {
     let parsed_gate_params: HashSet<Symbol> = gate_params
         .iter()
         .filter_map(|param| match param {
@@ -726,13 +723,14 @@ fn raise_if_param_mismatch<'a>(
             _ => None,
         })
         .collect();
-    let circuit_parameters: HashSet<Symbol> = circuit_parameters.cloned().collect();
-    if parsed_gate_params != circuit_parameters {
+    if circuit.iter_parameters().enumerate().any(|(idx, symbol)| {
+        idx >= parsed_gate_params.len() || !parsed_gate_params.contains(symbol)
+    }) {
         return Err(CircuitError::new_err(format!(
             "Cannot add equivalence between circuit and gate \
-            of different parameters. Gate params: {gate_params:?}. \
-            Circuit params: {:?}.",
-            circuit_parameters,
+        of different parameters. Gate params: {gate_params:?}. \
+        Circuit params: {:?}.",
+            circuit.iter_parameters().collect::<Vec<_>>(),
         )));
     }
     Ok(())
