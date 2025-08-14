@@ -320,7 +320,7 @@ impl PyRoutingTarget {
         let coupling = match target.coupling_graph() {
             Ok(coupling) => coupling,
             Err(TargetCouplingError::AllToAll) => return Ok(Self(None)),
-            Err(e @ TargetCouplingError::MultiQ) => {
+            Err(e @ TargetCouplingError::MultiQ(_)) => {
                 return Err(TranspilerError::new_err(e.to_string()))
             }
         };
