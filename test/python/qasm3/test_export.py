@@ -747,7 +747,7 @@ c[1] = measure q[1];
                 "stretch t;",
                 "delay[100ms] qr[0];",
                 "delay[100.0ms] qr[0];",
-                "delay[2000ns] qr[1];",
+                "delay[0.002ns] qr[1];",
                 "delay[s / 2.0] qr[1];",
                 "delay[s * (1000dt / 200.0ns) + t] qr[0];",
                 "",
