@@ -6,12 +6,12 @@ QkTranspileLayout
 
    typedef struct QkTranspileLayout QkTranspileLayout
 
-The ``QkTranspileLayout`` type is used to module the permutations introduced by
+The ``QkTranspileLayout`` type is used to model the permutations introduced by
 the transpiler. In general Qiskit's transpiler is unitary-preserving up to the
 initial layout and output permutations. The initial layout permutation is
 caused by setting and applying the initial layout (the mapping from virtual
-circuit qubits to physical qubits on the target) and the output permtuations
-are caused by swap gate insertion or permutation ellision prior to the initial
+circuit qubits to physical qubits on the target) and the output permutation
+is caused by swap gate insertion or permutation elision prior to the initial
 layout being set in the transpiler pipeline. This type tracks these details and
 provide an interface to reason about these permutations.
 
@@ -32,7 +32,8 @@ For example if you had a circuit constructed like:
 and during the layout stage the transpiler maps the virtual qubits in that
 circuit to the physical circuits as:
 
-0 -> 2, 1 -> 1, 2 -> 0
+.. code-block:: text
+    0 -> 2, 1 -> 1, 2 -> 0
 
 so the circuit would look like:
 
@@ -83,7 +84,7 @@ following the initial layout and then any routing permutation the final position
 qubit 0 in the input circuit is now physical qubit 2, virtual qubit 1 in the input circuit is
 physical qubit 0, and virtual qubit 2 in the input circuit is physical qubit 1.
 
-The transpiler will also allocate ancillas qubits to the circuit if the target
+The transpiler will also allocate ancilla qubits to the circuit if the target
 has more qubits available than the original input circuit. This is what
 results in two functions ``qk_transpile_layout_num_input_qubits()`` and
 ``qk_transpile_layout_num_output_qubits()`` being necessary which tracks the
