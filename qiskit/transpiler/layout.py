@@ -823,7 +823,6 @@ class TranspileLayout:
             initial_layout = Layout(dict(enumerate(dag.qubits)))
         if final_layout is None:
             final_layout = Layout(dict(enumerate(dag.qubits)))
-
         input_qubits = sorted(input_qubit_indices, key=input_qubit_indices.get)
 
         num_qubits = len(dag.qubits)
