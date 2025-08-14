@@ -154,8 +154,8 @@ impl Equivalence {
     }
 
     #[getter]
-    fn get_circuit<'py>(slf: &'py Bound<'py, Self>) -> CircuitFromPython {
-        CircuitFromPython(slf.borrow().circuit.clone())
+    fn get_circuit(&self) -> CircuitFromPython {
+        CircuitFromPython(self.circuit.clone())
     }
 
     fn __getnewargs__<'py>(
