@@ -161,7 +161,11 @@ impl PyRange {
         let step_expr = if step_expr.is_none() {
             // Create a default step value of 1 in the target type
             let default_step = match target_ty {
-                Type::Uint(_) => Value::Uint { raw: 1, ty: target_ty }.into(),
+                Type::Uint(_) => Value::Uint {
+                    raw: 1,
+                    ty: target_ty,
+                }
+                .into(),
                 _ => {
                     return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
                         "Range type must be an unsigned integer type",
@@ -282,7 +286,17 @@ impl PyRange {
     fn __repr__(&self, py: Python) -> PyResult<String> {
         let start = self.0.start.clone().into_py_any(py)?.bind(py).repr()?;
         let stop = self.0.stop.clone().into_py_any(py)?.bind(py).repr()?;
-        let step = format!(", step={}", self.0.step.as_ref().unwrap().clone().into_py_any(py)?.bind(py).repr()?);
+        let step = format!(
+            ", step={}",
+            self.0
+                .step
+                .as_ref()
+                .unwrap()
+                .clone()
+                .into_py_any(py)?
+                .bind(py)
+                .repr()?
+        );
         let ty = self.0.ty.into_py_any(py)?.bind(py).repr()?;
         Ok(format!(
             "R(start={}, stop={}{}, ty={})",
