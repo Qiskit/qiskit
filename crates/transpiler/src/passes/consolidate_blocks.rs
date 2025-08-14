@@ -12,6 +12,7 @@
 
 use hashbrown::{HashMap, HashSet};
 use nalgebra::Matrix2;
+use ndarray::ArrayView2;
 use ndarray::{aview2, Array2};
 use num_complex::Complex64;
 use numpy::PyReadonlyArray2;
@@ -19,13 +20,19 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::gate_matrix::{ONE_QUBIT_IDENTITY, TWO_QUBIT_IDENTITY};
+use qiskit_circuit::gate_matrix::{
+    CH_GATE, CX_GATE, CY_GATE, CZ_GATE, DCX_GATE, ECR_GATE, ISWAP_GATE, ONE_QUBIT_IDENTITY,
+    TWO_QUBIT_IDENTITY,
+};
 use qiskit_circuit::imports::{QI_OPERATOR, QUANTUM_CIRCUIT};
+use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::{ArrayType, Operation, Param, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::Qubit;
+use qiskit_synthesis::two_qubit_decompose::RXXEquivalent;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::smallvec;
+use smallvec::SmallVec;
 
 use super::optimize_1q_gates_decomposition::matmul_1q;
 use qiskit_quantum_info::convert_2q_block_matrix::{blocks_to_matrix, get_matrix_from_inst};
@@ -33,6 +40,7 @@ use qiskit_synthesis::two_qubit_decompose::{
     TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer,
 };
 
+use crate::passes::unitary_synthesis::{PARAM_SET, TWO_QUBIT_BASIS_SET};
 use crate::target::Qargs;
 use crate::target::Target;
 use qiskit_circuit::PhysicalQubit;
@@ -42,6 +50,88 @@ use qiskit_circuit::PhysicalQubit;
 pub enum DecomposerType {
     TwoQubitBasis(TwoQubitBasisDecomposer),
     TwoQubitControlledU(TwoQubitControlledUDecomposer),
+}
+
+fn get_matrix(gate: &StandardGate) -> ArrayView2<Complex64> {
+    match gate {
+        StandardGate::CX => aview2(&CX_GATE),
+        StandardGate::CY => aview2(&CY_GATE),
+        StandardGate::CZ => aview2(&CZ_GATE),
+        StandardGate::CH => aview2(&CH_GATE),
+        StandardGate::DCX => aview2(&DCX_GATE),
+        StandardGate::ISwap => aview2(&ISWAP_GATE),
+        StandardGate::ECR => aview2(&ECR_GATE),
+        _ => unreachable!("Unsupported gate"),
+    }
+}
+
+/// Helper function that extracts the decomposer and basis gate directly from the [Target].
+#[inline]
+fn get_decomposer_and_basis_gate(
+    target: Option<&Target>,
+    approximation_degree: f64,
+) -> (DecomposerType, StandardGate) {
+    if let Some(target) = target {
+        // Targets from C should only support Standard gates.
+        if let Some(gate) = target.operations().find_map(|op| {
+            op.operation
+                .try_standard_gate()
+                .and_then(|gate| matches!(gate, PARAM_SET!()).then_some(gate))
+        }) {
+            return (
+                DecomposerType::TwoQubitControlledU(
+                    TwoQubitControlledUDecomposer::new(RXXEquivalent::Standard(gate), "ZXZ")
+                        .unwrap_or_else(|_| {
+                            panic!(
+                                "Error while creating Controlled U decomposer using a {} gate.",
+                                gate.name()
+                            )
+                        }),
+                ),
+                gate,
+            );
+        }
+        if let Some(gate) = target.operations().find_map(|op| {
+            op.operation
+                .try_standard_gate()
+                .and_then(|gate| matches!(gate, TWO_QUBIT_BASIS_SET!()).then_some(gate))
+        }) {
+            return (
+                DecomposerType::TwoQubitBasis(
+                    TwoQubitBasisDecomposer::new_inner(
+                        gate.into(),
+                        SmallVec::default(),
+                        get_matrix(&gate),
+                        approximation_degree,
+                        "U",
+                        None,
+                    )
+                    .unwrap_or_else(|_| {
+                        panic!(
+                            "Error while creating Basis Decomposer using a {} gate.",
+                            gate.name()
+                        )
+                    }),
+                ),
+                gate,
+            );
+        }
+    }
+    let gate = StandardGate::CX;
+    (
+        DecomposerType::TwoQubitBasis(
+            TwoQubitBasisDecomposer::new_inner(
+                gate.into(),
+                SmallVec::default(),
+                aview2(&CX_GATE),
+                1.0,
+                "U",
+                None,
+            )
+            .expect("Error while creating Basis Decomposer using a 'cx' gate."),
+        ),
+        gate,
+    )
 }
 
 fn is_supported(
@@ -68,7 +158,7 @@ const MAX_2Q_DEPTH: usize = 20;
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
 #[pyo3(name = "consolidate_blocks", signature = (dag, decomposer, basis_gate_name, force_consolidate, target=None, basis_gates=None, blocks=None, runs=None))]
-pub fn run_consolidate_blocks(
+fn py_run_consolidate_blocks(
     dag: &mut DAGCircuit,
     decomposer: DecomposerType,
     basis_gate_name: &str,
@@ -352,7 +442,189 @@ pub fn run_consolidate_blocks(
     Ok(())
 }
 
+/// Replaces each block of consecutive gates by a single unitary node.
+///
+/// This is function is the Rust entry point for the `ConsolidateBlocks` transpiler pass
+/// which replaces uninterrupted sequences of gates acting on the same pair of qubits
+/// into a [`UnitaryGate`] representing the unitary of that two qubit block if it estimated to
+/// to optimize the circuit. This [`UnitaryGate`] subsequently will be synthesized by the
+/// unitary synthesis pass into a more optimal subcircuit to replace that block.
+///
+/// # Arguments
+/// * `dag` - The circuit for which we will consolidate gates.
+/// * `force_consolidate` - Decides whether to force all consolidations or not.
+/// * `approximation_degree` - A float between `[0.0, 1.0]`. Lower approximates more.
+/// * `target` - The target representing the backend for which the pass is consolidating.
+pub fn run_consolidate_blocks(
+    dag: &mut DAGCircuit,
+    force_consolidate: bool,
+    approximation_degree: Option<f64>,
+    target: Option<&Target>,
+) -> PyResult<()> {
+    let approximation_degree = approximation_degree.unwrap_or(1.0);
+    let (decomposer, basis_gate) = get_decomposer_and_basis_gate(target, approximation_degree);
+    py_run_consolidate_blocks(
+        dag,
+        decomposer,
+        basis_gate.name(),
+        force_consolidate,
+        target,
+        None,
+        None,
+        None,
+    )
+}
+
 pub fn consolidate_blocks_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(run_consolidate_blocks))?;
+    m.add_wrapped(wrap_pyfunction!(py_run_consolidate_blocks))?;
     Ok(())
+}
+
+#[cfg(all(test, not(miri)))]
+mod test_consolidate_blocks {
+    use std::sync::Arc;
+
+    use indexmap::IndexMap;
+    use qiskit_circuit::{
+        circuit_data::CircuitData,
+        converters::dag_to_circuit,
+        dag_circuit::DAGCircuit,
+        operations::{Operation, Param, StandardGate},
+        parameter::{parameter_expression::ParameterExpression, symbol_expr::Symbol},
+        PhysicalQubit, Qubit,
+    };
+    use smallvec::smallvec;
+
+    use crate::target::{Qargs, Target};
+
+    use super::run_consolidate_blocks;
+
+    #[test]
+    fn test_consolidate_blocks_non_cx_target() {
+        let circuit: CircuitData = CircuitData::from_standard_gates(
+            2,
+            [
+                (StandardGate::CZ, smallvec![], smallvec![Qubit(0), Qubit(1)]),
+                (StandardGate::X, smallvec![], smallvec![Qubit(0)]),
+                (StandardGate::H, smallvec![], smallvec![Qubit(1)]),
+                (StandardGate::Z, smallvec![], smallvec![Qubit(1)]),
+                (StandardGate::T, smallvec![], smallvec![Qubit(1)]),
+                (StandardGate::H, smallvec![], smallvec![Qubit(0)]),
+                (StandardGate::T, smallvec![], smallvec![Qubit(0)]),
+                (StandardGate::CZ, smallvec![], smallvec![Qubit(0), Qubit(1)]),
+                (StandardGate::SX, smallvec![], smallvec![Qubit(0)]),
+                (StandardGate::SX, smallvec![], smallvec![Qubit(1)]),
+                (StandardGate::CZ, smallvec![], smallvec![Qubit(0), Qubit(1)]),
+                (StandardGate::SX, smallvec![], smallvec![Qubit(0)]),
+                (StandardGate::SX, smallvec![], smallvec![Qubit(1)]),
+                (StandardGate::CZ, smallvec![], smallvec![Qubit(0), Qubit(1)]),
+                (StandardGate::X, smallvec![], smallvec![Qubit(0)]),
+                (StandardGate::H, smallvec![], smallvec![Qubit(1)]),
+                (StandardGate::Z, smallvec![], smallvec![Qubit(1)]),
+                (StandardGate::T, smallvec![], smallvec![Qubit(1)]),
+                (StandardGate::H, smallvec![], smallvec![Qubit(0)]),
+                (StandardGate::T, smallvec![], smallvec![Qubit(0)]),
+                (StandardGate::CZ, smallvec![], smallvec![Qubit(0), Qubit(1)]),
+            ],
+            0.0.into(),
+        )
+        .expect("Error while creating the circuit");
+
+        let phi = Arc::new(ParameterExpression::from_symbol(Symbol::new(
+            "phi", None, None,
+        )));
+        let mut target = Target::default();
+        target
+            .add_instruction(
+                StandardGate::SX.into(),
+                &[],
+                None,
+                Some(IndexMap::from_iter([
+                    (
+                        Qargs::Concrete(smallvec![PhysicalQubit(0)]).to_owned(),
+                        None,
+                    ),
+                    (
+                        Qargs::Concrete(smallvec![PhysicalQubit(1)]).to_owned(),
+                        None,
+                    ),
+                ])),
+            )
+            .expect("Error while adding SXGate to target");
+        target
+            .add_instruction(
+                StandardGate::X.into(),
+                &[],
+                None,
+                Some(IndexMap::from_iter([
+                    (
+                        Qargs::Concrete(smallvec![PhysicalQubit(0)]).to_owned(),
+                        None,
+                    ),
+                    (
+                        Qargs::Concrete(smallvec![PhysicalQubit(1)]).to_owned(),
+                        None,
+                    ),
+                ])),
+            )
+            .expect("Error while adding XGate to target");
+        target
+            .add_instruction(
+                StandardGate::RZ.into(),
+                &[Param::ParameterExpression(phi)],
+                None,
+                Some(IndexMap::from_iter([
+                    (
+                        Qargs::Concrete(smallvec![PhysicalQubit(0)]).to_owned(),
+                        None,
+                    ),
+                    (
+                        Qargs::Concrete(smallvec![PhysicalQubit(1)]).to_owned(),
+                        None,
+                    ),
+                ])),
+            )
+            .expect("Error while adding RXGate to target");
+        target
+            .add_instruction(
+                StandardGate::CZ.into(),
+                &[],
+                None,
+                Some(IndexMap::from_iter([
+                    (
+                        Qargs::Concrete(smallvec![PhysicalQubit(0), PhysicalQubit(1)]).to_owned(),
+                        None,
+                    ),
+                    (
+                        Qargs::Concrete(smallvec![PhysicalQubit(1), PhysicalQubit(0)]).to_owned(),
+                        None,
+                    ),
+                ])),
+            )
+            .expect("Error while adding CZGate to target");
+
+        // Convert the circuit to a DAG.
+        let mut circ_as_dag =
+            DAGCircuit::from_circuit_data(&circuit, false, None, None, None, None)
+                .expect("Error converting circuit to DAG.");
+        // Run the pass
+        run_consolidate_blocks(&mut circ_as_dag, true, None, Some(&target))
+            .expect("Error while running the consolidate blocks pass.");
+
+        let circ_result = dag_to_circuit(&circ_as_dag, false)
+            .expect("Error while converting the DAG to a circuit.");
+
+        if let Some(op) = circ_result.iter().next() {
+            if op.op.name() != "unitary" {
+                panic!("The pass did not correctly extract into a unitary");
+            }
+            if circ_result.__len__() != 1 {
+                panic!(
+                    "The resulting circuit from our run did not result in one single unitary gate."
+                );
+            }
+        } else {
+            panic!("The resulting circuit was unexpectedly empty.");
+        };
+    }
 }
