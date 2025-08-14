@@ -14,7 +14,6 @@
 
 import os
 
-from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayout
 from qiskit.transpiler.passes.optimization.split_2q_unitaries import Split2QUnitaries
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
@@ -668,23 +667,6 @@ class OptimizationPassManager(PassManagerStagePlugin):
                 else _opt + _unroll_if_out_of_basis + _depth_check + _size_check
             )
             optimization.append(DoWhileController(opt_loop, do_while=_opt_control))
-
-            if optimization_level == 3 and pass_manager_config.coupling_map:
-                vf2_call_limit, vf2_max_trials = common.get_vf2_limits(
-                    optimization_level,
-                    pass_manager_config.layout_method,
-                    pass_manager_config.initial_layout,
-                )
-                optimization.append(
-                    VF2PostLayout(
-                        target=pass_manager_config.target,
-                        seed=-1,
-                        call_limit=vf2_call_limit,
-                        max_trials=vf2_max_trials,
-                        strict_direction=True,
-                    )
-                )
-
             return optimization
         else:
             return None

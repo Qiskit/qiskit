@@ -36,8 +36,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     The pass manager then transforms the circuit to match the coupling constraints.
     It is then unrolled to the basis, and any flipped cx directions are fixed.
     Finally, optimizations in the form of commutative gate cancellation, resynthesis
-    of two-qubit unitary blocks, redundant reset removal and final layout improvements are
-    performed.
+    of two-qubit unitary blocks, and redundant reset removal are performed.
 
     Args:
         pass_manager_config: configuration of the pass manager.
