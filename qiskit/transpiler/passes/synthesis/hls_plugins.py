@@ -1530,6 +1530,7 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
                 )
             ) is not None:
                 return decomposition
+
         return None
 
 
@@ -2010,14 +2011,10 @@ class MultiplierSynthesisDefault(HighLevelSynthesisPlugin):
         if not isinstance(high_level_object, MultiplierGate):
             return None
 
-        if options.get("optimize_clifford_t", False):
-            return multiplier_cumulative_h18(
-                high_level_object.num_state_qubits, high_level_object.num_result_qubits
-            )
-        else:
-            return multiplier_qft_r17(
-                high_level_object.num_state_qubits, high_level_object.num_result_qubits
-            )
+        # The H18 algorithm is better both for CX-count and T-count
+        return multiplier_cumulative_h18(
+            high_level_object.num_state_qubits, high_level_object.num_result_qubits
+        )
 
 
 class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):

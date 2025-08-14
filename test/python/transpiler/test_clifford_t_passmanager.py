@@ -17,7 +17,7 @@ from ddt import ddt, data
 
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import QFTGate, iqp, GraphStateGate
+from qiskit.circuit.library import QFTGate, iqp, GraphStateGate, MCXGate, MultiplierGate
 from qiskit.transpiler.passes.utils import CheckGateDirection
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler import CouplingMap
@@ -264,6 +264,47 @@ class TestCliffordTPassManager(QiskitTestCase):
         pm = generate_preset_pass_manager(basis_gates=basis_gates)
         transpiled = pm.run(qc)
         self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
+
+    @data(2, 3, 4, 5, 6, 7)
+    def test_mcx_gate_1_clean_ancilla(self, n):
+        """Clifford+T transpilation of a circuit with an mcx gate."""
+        # Create a circuit with an mcx gate and 1 additional clean ancilla qubit
+        gate = MCXGate(n)
+        nq = gate.num_qubits
+        qc = QuantumCircuit(nq + 1)
+        qc.append(gate, qc.qubits[0:nq])
+
+        # Transpile to a Clifford+T basis set
+        basis_gates = get_clifford_gate_names() + ["t", "tdg"]
+        pm = generate_preset_pass_manager(basis_gates=basis_gates, optimization_level=0)
+        transpiled = pm.run(qc)
+        self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
+
+        # The resulting decomposition should be efficient in terms of T-count
+        # provided 1 ancilla qubit is available
+        t_count = _get_t_count(transpiled)
+        expected_t_count = {1: 0, 2: 7, 3: 15, 4: 27, 5: 39, 6: 51, 7: 63}
+        self.assertLessEqual(t_count, expected_t_count[n])
+
+    @data(2, 3, 4, 5, 6, 7)
+    def test_multiplier_gate(self, n):
+        """Clifford+T transpilation of a circuit with a multiplier gate."""
+        # Create a circuit with a multiplier gate
+        gate = MultiplierGate(n)
+        qc = QuantumCircuit(gate.num_qubits)
+        qc.append(gate, qc.qubits)
+
+        # Transpile to a Clifford+T basis set
+        basis_gates = get_clifford_gate_names() + ["t", "tdg"]
+        pm = generate_preset_pass_manager(basis_gates=basis_gates, optimization_level=0)
+        transpiled = pm.run(qc)
+        self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
+
+        # The resulting decomposition should be efficient in terms of T-count,
+        # except surprisingly for the case n=1 (which is why it is not used in this test)
+        t_count = _get_t_count(transpiled)
+        expected_t_count = {2: 153, 3: 501, 4: 1114, 5: 2005, 6: 2596, 7: 3850}
+        self.assertLessEqual(t_count, expected_t_count[n])
 
 
 def _get_t_count(qc):
