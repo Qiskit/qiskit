@@ -55,7 +55,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     layout_method = pass_manager_config.layout_method or "default"
     routing_method = pass_manager_config.routing_method or "default"
     translation_method = pass_manager_config.translation_method or "default"
-    scheduling_method = pass_manager_config.scheduling_method
     optimization_method = pass_manager_config.optimization_method or "default"
     scheduling_method = pass_manager_config.scheduling_method or "default"
     target = pass_manager_config.target
