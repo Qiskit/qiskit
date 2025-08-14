@@ -24,11 +24,9 @@ use qiskit_circuit::{
 };
 use smallvec::SmallVec;
 
-use crate::equivalence::CircuitFromPython;
-
 // Custom types
 pub type GateIdentifier = (String, u32);
-pub type BasisTransformIn = (SmallVec<[Param; 3]>, CircuitFromPython);
+pub type BasisTransformIn = (SmallVec<[Param; 3]>, CircuitData);
 pub type BasisTransformOut = (SmallVec<[Param; 3]>, DAGCircuit);
 
 pub(super) fn compose_transforms<'a>(
@@ -120,17 +118,9 @@ pub(super) fn compose_transforms<'a>(
                             .map(|(uuid, param)| (uuid, param.clone_ref(py)))
                             .collect();
                     let mut replacement = equiv.clone();
-                    replacement
-                        .0
-                        .assign_parameters_from_mapping(param_mapping)?;
-                    let replace_dag: DAGCircuit = DAGCircuit::from_circuit_data(
-                        &replacement.0,
-                        true,
-                        None,
-                        None,
-                        None,
-                        None,
-                    )?;
+                    replacement.assign_parameters_from_mapping(param_mapping)?;
+                    let replace_dag: DAGCircuit =
+                        DAGCircuit::from_circuit_data(&replacement, true, None, None, None, None)?;
                     dag.substitute_node_with_dag(node, &replace_dag, None, None, None)?;
                 }
             }
