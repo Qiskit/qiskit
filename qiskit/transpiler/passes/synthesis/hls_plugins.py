@@ -1804,13 +1804,13 @@ class HalfAdderSynthesisDefault(HighLevelSynthesisPlugin):
         ):
             return decomposition
 
-        # # The next best option is to use ripple_c04 (if there are enough ancilla qubits)
-        # if (
-        #     decomposition := HalfAdderSynthesisC04().run(
-        #         high_level_object, coupling_map, target, qubits, **options
-        #     )
-        # ) is not None:
-        #     return decomposition
+        # The next best option is to use ripple_c04 (if there are enough ancilla qubits)
+        if (
+            decomposition := HalfAdderSynthesisC04().run(
+                high_level_object, coupling_map, target, qubits, **options
+            )
+        ) is not None:
+            return decomposition
 
         # The ripple_rv_25 adder does not require ancilla qubits and should always succeed
         return HalfAdderSynthesisR25().run(
