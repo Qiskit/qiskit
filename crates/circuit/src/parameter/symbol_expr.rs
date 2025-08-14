@@ -2487,6 +2487,9 @@ impl SymbolExpr {
                 let name: String = expr.getattr("name")?.extract()?;
                 Ok(SymbolExpr::Symbol(Arc::new(Symbol::new(&name, None, None))))
             }
+            "NegativeOne" => Ok(SymbolExpr::Value(Value::Int(-1))),
+            "One" => Ok(SymbolExpr::Value(Value::Int(1))),
+            "Zero" => Ok(SymbolExpr::Value(Value::Int(0))),
             "Integer" => {
                 let val: i64 = expr.extract()?;
                 Ok(SymbolExpr::Value(Value::Int(val)))
