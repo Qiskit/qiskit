@@ -22,6 +22,7 @@ from math import pi
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, qasm2
 from qiskit.circuit import Parameter, Qubit, Clbit, Gate, library as lib
+from qiskit.circuit.classical import expr
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 # Regex pattern to match valid OpenQASM identifiers
@@ -44,6 +45,12 @@ class TestQASM2Export(QiskitTestCase):
         qc.barrier(qr2)
         qc.cx(qr2[1], qr1[0])
         qc.h(qr2[1])
+        with qc.if_test((cr, 0)):
+            qc.x(qr2[1])
+        with qc.if_test((cr, 1)):
+            qc.y(qr1[0])
+        with qc.if_test((cr, 2)):
+            qc.z(qr1[0])
         qc.barrier(qr1, qr2)
         qc.measure(qr1[0], cr[0])
         qc.measure(qr2[0], cr[1])
@@ -62,6 +69,9 @@ cx qr1[0],qr2[1];
 barrier qr2[0],qr2[1];
 cx qr2[1],qr1[0];
 h qr2[1];
+if (cr == 0) x qr2[1];
+if (cr == 1) y qr1[0];
+if (cr == 2) z qr1[0];
 barrier qr1[0],qr2[0],qr2[1];
 measure qr1[0] -> cr[0];
 measure qr2[0] -> cr[1];
@@ -853,6 +863,128 @@ class TestDumpStream(QiskitTestCase):
             qasm2.dump(qc, stream)
             written = stream.getvalue()
         self.assertEqual(qasm2.loads(written), qc)
+
+    def test_measure_can_be_conditioned(self):
+        qr = QuantumRegister(1, "qr")
+        cr = ClassicalRegister(1, "cr")
+        qc = QuantumCircuit(qr, cr)
+        with qc.if_test((cr, 0)):
+            qc.measure(0, 0)
+        expected = """\
+OPENQASM 2.0;
+include "qelib1.inc";
+qreg qr[1];
+creg cr[1];
+if (cr == 0) measure qr[0] -> cr[0];"""
+        self.assertEqual(qasm2.dumps(qc), expected)
+
+    def test_reset_can_be_conditioned(self):
+        qr = QuantumRegister(1, "qr")
+        cr = ClassicalRegister(1, "cr")
+        qc = QuantumCircuit(qr, cr)
+        with qc.if_test((cr, 0)):
+            qc.reset(0)
+        expected = """\
+OPENQASM 2.0;
+include "qelib1.inc";
+qreg qr[1];
+creg cr[1];
+if (cr == 0) reset qr[0];"""
+        self.assertEqual(qasm2.dumps(qc), expected)
+
+    def test_escaped_register_name_works_in_conditional(self):
+        qr = QuantumRegister(1, "qr")
+        # This is an invalid register name in OpenQASM 2 because it collides with a keyword.
+        cr = ClassicalRegister(1, "measure")
+        qc = QuantumCircuit(qr, cr)
+        with qc.if_test((cr, 0)):
+            qc.x(0)
+        expected = r"""OPENQASM 2\.0;
+include "qelib1\.inc";
+qreg qr\[1\];
+creg (\w+)\[1\];
+if \(\1 == 0\) x qr\[0\];"""
+        match = re.fullmatch(expected, qasm2.dumps(qc), flags=re.MULTILINE)
+        self.assertIsNotNone(match)
+        self.assertNotEqual(match.group(0), "measure")
+
+    def test_while_loop_fails(self):
+        qc = QuantumCircuit(1, 1)
+        with qc.while_loop((qc.cregs[0], 0)):
+            qc.x(0)
+        with self.assertRaisesRegex(
+            qasm2.QASM2ExportError, "does not support control-flow constructs"
+        ):
+            qasm2.dumps(qc)
+
+    def test_for_loop_fails(self):
+        qc = QuantumCircuit(1)
+        with qc.for_loop(range(3)):
+            qc.x(0)
+        with self.assertRaisesRegex(
+            qasm2.QASM2ExportError, "does not support control-flow constructs"
+        ):
+            qasm2.dumps(qc)
+
+    def test_switch_case_fails(self):
+        qc = QuantumCircuit(1, 2)
+        with qc.switch(qc.cregs[0]) as case:
+            with case(0):
+                qc.x(0)
+            with case(1):
+                qc.z(0)
+            with case(case.DEFAULT):
+                qc.h(0)
+        with self.assertRaisesRegex(
+            qasm2.QASM2ExportError, "does not support control-flow constructs"
+        ):
+            qasm2.dumps(qc)
+
+    def test_else_fails(self):
+        qc = QuantumCircuit(1, 2)
+        with qc.if_test((qc.cregs[0], 0)) as else_:
+            qc.x(0)
+        with else_:
+            qc.z(0)
+        with self.assertRaisesRegex(qasm2.QASM2ExportError, "does not support 'else' statements"):
+            qasm2.dumps(qc)
+
+    def test_compound_if_fails(self):
+        # This test could be relaxed in the future by unrolling the `if` into multiple statements.
+        qc = QuantumCircuit(1, 1)
+        with qc.if_test((qc.cregs[0], 0)):
+            qc.x(0)
+            qc.z(0)
+        with self.assertRaisesRegex(qasm2.QASM2ExportError, "only supports conditionals on single"):
+            qasm2.dumps(qc)
+
+    def test_bit_condition_fails(self):
+        qc = QuantumCircuit(1, 2)
+        with qc.if_test((qc.clbits[0], False)):
+            qc.x(0)
+        with self.assertRaisesRegex(qasm2.QASM2ExportError, "only supports register-equality"):
+            qasm2.dumps(qc)
+
+    def test_expr_condition_fails(self):
+        qc = QuantumCircuit(1)
+        with qc.if_test(expr.lift(True)):
+            qc.x(0)
+        with self.assertRaisesRegex(qasm2.QASM2ExportError, "only supports register-equality"):
+            qasm2.dumps(qc)
+
+    def test_conditional_barrier_fails(self):
+        qc = QuantumCircuit(1, 1)
+        with qc.if_test((qc.cregs[0], 0)):
+            qc.barrier()
+        with self.assertRaisesRegex(qasm2.QASM2ExportError, "barriers cannot be conditional"):
+            qasm2.dumps(qc)
+
+    def test_nested_if_fails(self):
+        qc = QuantumCircuit(1, 1)
+        with qc.if_test((qc.cregs[0], 0)), qc.if_test((qc.cregs[0], 1)):
+            qc.x(0)
+        with self.assertRaisesRegex(qasm2.QASM2ExportError, "does not support nested conditionals"):
+            qasm2.dumps(qc)
 
 
 if __name__ == "__main__":
