@@ -609,7 +609,7 @@ impl DAGCircuit {
     ///
     /// To be removed with get_unit.
     #[getter("_unit")]
-    fn get_internal_unit(&self) -> PyResult<String> {
+    pub fn get_internal_unit(&self) -> PyResult<String> {
         Ok(self.unit.clone())
     }
 
@@ -7594,7 +7594,7 @@ impl DAGCircuit {
         Ok(())
     }
 
-    /// Substitute a give node in the dag with a new operation from python
+    /// Substitute a given node in the dag with a new operation from python
     pub fn substitute_node_with_py_op(
         &mut self,
         node_index: NodeIndex,
