@@ -56,6 +56,7 @@ const PI4: f64 = PI / 4.;
 
 /// The matcher for the set of standard gates that the TwoQubitControlledUDecomposer
 /// supports
+#[macro_export]
 macro_rules! PARAM_SET {
     // Make sure that this is kept in sync with the static array PARAM_GATES below
     () => {
@@ -71,7 +72,7 @@ macro_rules! PARAM_SET {
 }
 
 // Make sure that this is kept in sync with the macro PARAM_SET above
-pub static PARAM_SET_BASIS_GATES: [StandardGate; 8] = [
+static PARAM_SET_BASIS_GATES: [StandardGate; 8] = [
     StandardGate::RXX,
     StandardGate::RYY,
     StandardGate::RZZ,
@@ -84,6 +85,7 @@ pub static PARAM_SET_BASIS_GATES: [StandardGate; 8] = [
 
 /// The matcher for the set of standard gates that the TwoQubitBasisDecomposer
 /// supports
+#[macro_export]
 macro_rules! TWO_QUBIT_BASIS_SET {
     // Make sure that this is kept in sync with the static array TWO_QUBIT_BASIS_SET_GATES below
     () => {
@@ -98,7 +100,7 @@ macro_rules! TWO_QUBIT_BASIS_SET {
 }
 
 // Make sure this is kept in sync with the macro TWO_QUBIT_BASIS_SET above
-pub static TWO_QUBIT_BASIS_SET_GATES: [StandardGate; 7] = [
+static TWO_QUBIT_BASIS_SET_GATES: [StandardGate; 7] = [
     StandardGate::CX,
     StandardGate::CY,
     StandardGate::CZ,

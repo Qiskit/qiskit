@@ -35,7 +35,6 @@ use smallvec::smallvec;
 use smallvec::SmallVec;
 
 use super::optimize_1q_gates_decomposition::matmul_1q;
-use super::unitary_synthesis::{PARAM_SET_BASIS_GATES, TWO_QUBIT_BASIS_SET_GATES};
 use qiskit_quantum_info::convert_2q_block_matrix::{blocks_to_matrix, get_matrix_from_inst};
 use qiskit_synthesis::two_qubit_decompose::{
     TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer,
@@ -43,6 +42,7 @@ use qiskit_synthesis::two_qubit_decompose::{
 
 use crate::target::Qargs;
 use crate::target::Target;
+use crate::{PARAM_SET, TWO_QUBIT_BASIS_SET};
 use qiskit_circuit::PhysicalQubit;
 
 #[allow(clippy::large_enum_variant)]
@@ -76,7 +76,7 @@ fn get_decomposer_and_basis_gate(
         if let Some(gate) = target.operations().find_map(|op| {
             op.operation
                 .try_standard_gate()
-                .and_then(|gate| PARAM_SET_BASIS_GATES.contains(&gate).then_some(gate))
+                .and_then(|gate| matches!(gate, PARAM_SET!()).then_some(gate))
         }) {
             return (
                 DecomposerType::TwoQubitControlledU(
@@ -94,7 +94,7 @@ fn get_decomposer_and_basis_gate(
         if let Some(gate) = target.operations().find_map(|op| {
             op.operation
                 .try_standard_gate()
-                .and_then(|gate| TWO_QUBIT_BASIS_SET_GATES.contains(&gate).then_some(gate))
+                .and_then(|gate| matches!(gate, TWO_QUBIT_BASIS_SET!()).then_some(gate))
         }) {
             return (
                 DecomposerType::TwoQubitBasis(
