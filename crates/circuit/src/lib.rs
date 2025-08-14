@@ -209,6 +209,10 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     // to the module so that pickle can find them during deserialization.
     m.add_class::<duration::Duration>()?;
     m.add(
+        "Duration_ps",
+        duration::Duration::type_object(m.py()).getattr("ps")?,
+    )?;
+    m.add(
         "Duration_ns",
         duration::Duration::type_object(m.py()).getattr("ns")?,
     )?;

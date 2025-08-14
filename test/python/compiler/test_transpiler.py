@@ -2403,6 +2403,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
         bits = [Qubit(), Qubit(), Clbit()]
         base = QuantumCircuit(*regs, bits)
         base.h(0)
+        base.delay(expr.lift(Duration.ps(1234)), 0)
         base.measure(0, 0)
         with base.if_test(expr.equal(base.cregs[0], 1)) as else_:
             base.cx(0, 1)
@@ -2553,7 +2554,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
             control_flow=True,
         )
         transpiled = transpile(
-            self._control_flow_circuit(),
+            self._control_flow_expr_circuit(),
             backend=backend,
             optimization_level=optimization_level,
             seed_transpiler=2023_07_26,
@@ -2635,7 +2636,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
         """Test that the output of a transpiled circuit with control flow and `Expr` nodes can be
         dumped into OpenQASM 3."""
         transpiled = transpile(
-            self._control_flow_circuit(),
+            self._control_flow_expr_circuit(),
             backend=GenericBackendV2(
                 num_qubits=27, coupling_map=MUMBAI_CMAP, control_flow=True, seed=2025_05_28
             ),
