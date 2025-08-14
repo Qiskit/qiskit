@@ -26,7 +26,7 @@ use std::time::Instant;
 use qiskit_circuit::converters::circuit_to_dag;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
-use qiskit_circuit::rustworkx_core_vnext::isomorphism::vf2;
+use qiskit_circuit::vf2;
 use qiskit_circuit::Qubit;
 
 use super::error_map::ErrorMap;
@@ -347,10 +347,14 @@ fn map_free_qubits(
             .get(&[PhysicalQubit::new(*qubit_b), PhysicalQubit::new(*qubit_b)])
             .unwrap_or(&0.);
         // Reverse comparison so lower error rates are at the end of the vec.
-        score_b.partial_cmp(&score_a).unwrap()
+        match score_b.partial_cmp(&score_a).unwrap() {
+            Ordering::Equal => qubit_b.cmp(qubit_a),
+            Ordering::Less => Ordering::Less,
+            Ordering::Greater => Ordering::Greater,
+        }
     });
     let mut free_indices: Vec<NodeIndex> = free_nodes.keys().copied().collect();
-    free_indices.par_sort_by_key(|index| free_nodes[index].values().sum::<usize>());
+    free_indices.par_sort_by_key(|index| (free_nodes[index].values().sum::<usize>(), *index));
     for im_index in free_indices {
         let selected_qubit = free_qubits.pop()?;
         partial_layout.insert(

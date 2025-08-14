@@ -16,6 +16,7 @@ use std::sync::OnceLock;
 use pyo3::intern;
 use pyo3::prelude::*;
 
+use crate::bit::{ShareableClbit, ShareableQubit};
 use crate::circuit_data::{CircuitData, CircuitVar};
 use crate::dag_circuit::DAGIdentifierInfo;
 use crate::dag_circuit::{DAGCircuit, NodeType};
@@ -48,8 +49,8 @@ impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
 pub fn circuit_to_dag(
     quantum_circuit: QuantumCircuitData,
     copy_operations: bool,
-    qubit_order: Option<Vec<Bound<PyAny>>>,
-    clbit_order: Option<Vec<Bound<PyAny>>>,
+    qubit_order: Option<Vec<ShareableQubit>>,
+    clbit_order: Option<Vec<ShareableClbit>>,
 ) -> PyResult<DAGCircuit> {
     DAGCircuit::from_circuit(quantum_circuit, copy_operations, qubit_order, clbit_order)
 }

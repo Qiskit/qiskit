@@ -58,6 +58,7 @@ impl ImportOnceCell {
 
 pub static BUILTIN_LIST: ImportOnceCell = ImportOnceCell::new("builtins", "list");
 pub static BUILTIN_SET: ImportOnceCell = ImportOnceCell::new("builtins", "set");
+pub static BUILTIN_HASH: ImportOnceCell = ImportOnceCell::new("builtins", "hash");
 pub static OPERATION: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.operation", "Operation");
 pub static INSTRUCTION: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.instruction", "Instruction");
@@ -134,6 +135,11 @@ pub static CONTROL_FLOW_CONDITION_RESOURCES: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.controlflow", "condition_resources");
 pub static CONTROL_FLOW_NODE_RESOURCES: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.controlflow", "node_resources");
+pub static SYMPIFY_PARAMETER_EXPRESSION: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.parameterexpression", "sympify");
+pub static LAYOUT: ImportOnceCell = ImportOnceCell::new("qiskit.transpiler.layout", "Layout");
+pub static TRANSPILE_LAYOUT: ImportOnceCell =
+    ImportOnceCell::new("qiskit.transpiler.layout", "TranspileLayout");
 
 /// A mapping from the enum variant in crate::operations::StandardGate to the python
 /// module path and class name to import it. This is used to populate the conversion table

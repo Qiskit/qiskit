@@ -1165,7 +1165,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qc = QuantumCircuit(7)
         entanglement = [[i, i + 1] for i in range(7 - 1)]
         input_params = ParameterVector("x_par", 14)
-        user_params = ParameterVector("\u03B8_par", 1)
+        user_params = ParameterVector("\u03b8_par", 1)
 
         for i in range(qc.num_qubits):
             qc.ry(user_params[0], qc.qubits[i])
