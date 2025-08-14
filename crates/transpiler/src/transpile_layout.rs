@@ -107,23 +107,17 @@ impl TranspileLayout {
     ///     the circuit by the transpiler will not be included in the output
     ///     array.
     pub fn initial_layout(&self, filter_ancillas: bool) -> Option<Vec<PhysicalQubit>> {
-        if filter_ancillas {
-            (0..self.num_input_qubits())
-                .map(|x| {
-                    self.initial_layout
-                        .as_ref()
-                        .map(|y| y.virtual_to_physical(VirtualQubit::new(x)))
-                })
-                .collect()
-        } else {
-            (0..self.num_output_qubits())
-                .map(|x| {
-                    self.initial_layout
-                        .as_ref()
-                        .map(|y| y.virtual_to_physical(VirtualQubit::new(x)))
-                })
-                .collect()
-        }
+        self.initial_layout.as_ref().map(|layout| {
+            if filter_ancillas {
+                (0..self.num_input_qubits())
+                    .map(|x| VirtualQubit::new(x).to_phys(layout))
+                    .collect()
+            } else {
+                (0..self.num_output_qubits())
+                    .map(|x| VirtualQubit::new(x).to_phys(layout))
+                    .collect()
+            }
+        })
     }
 
     /// Return the routing permutation
@@ -369,16 +363,13 @@ impl TranspileLayout {
             .transpose()?;
         let output_permutation = if !py_layout.getattr(intern!(py, "final_layout"))?.is_none() {
             let permutation: Vec<Qubit> = py_layout
-                .call_method0(intern!(py, "output_permutation"))?
+                .call_method0(intern!(py, "routing_permutation"))?
                 .extract()?;
             Some(permutation)
         } else {
             None
         };
-        let num_input_qubits: u32 = py_layout
-            .getattr(intern!(py, "_input_qubit_count"))?
-            .extract()?;
-        let index_map: PyResult<HashMap<usize, ShareableQubit>> = py_layout
+        let index_map = py_layout
             .getattr(intern!(py, "input_qubit_mapping"))?
             .downcast::<PyDict>()?
             .iter()
@@ -387,8 +378,11 @@ impl TranspileLayout {
                 let value: ShareableQubit = k.extract()?;
                 Ok((index, value))
             })
-            .collect();
-        let index_map = index_map?;
+            .collect::<PyResult<HashMap<usize, ShareableQubit>>>()?;
+        let num_input_qubits = py_layout
+            .getattr(intern!(py, "_input_qubit_count"))?
+            .extract::<Option<u32>>()?
+            .unwrap_or_else(|| index_map.len() as u32);
         let virtual_qubits: Vec<ShareableQubit> = if let Some(ref initial_layout) = initial_layout {
             (0..initial_layout.num_qubits())
                 .map(|x| index_map[&x].clone())
