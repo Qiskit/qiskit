@@ -16,6 +16,7 @@ use hashbrown::hash_map::Entry;
 use hashbrown::{HashMap, HashSet};
 use num_complex::Complex64;
 use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError, PyZeroDivisionError};
+use pyo3::types::PyStringMethods;
 use pyo3::types::{IntoPyDict, PyComplex, PyFloat, PyInt, PyNotImplemented, PySet, PyString};
 use thiserror::Error;
 use uuid::Uuid;
@@ -31,6 +32,7 @@ use crate::circuit_data::CircuitError;
 use crate::imports::{BUILTIN_HASH, SYMPIFY_PARAMETER_EXPRESSION, UUID};
 use crate::parameter::symbol_expr;
 use crate::parameter::symbol_expr::SymbolExpr;
+use crate::parameter::symbol_parser::parse_expression;
 
 use super::symbol_expr::{Symbol, Value, SYMEXPR_EPSILON};
 
@@ -765,17 +767,28 @@ impl PyParameterExpression {
     ) -> PyResult<Self> {
         match (name_map, expr) {
             (None, None) => Ok(Self::default()),
-            (Some(name_map), Some(expr)) => {
-                let expr = SymbolExpr::from_sympy(&expr)?;
+            (Some(name_map), Some(expr_obj)) => {
+                // Build symbol map from the provided Python Parameters.
                 let symbol_map: HashMap<String, Symbol> = name_map
                     .iter()
                     .map(|(string, param)| (string.clone(), param.symbol.clone()))
                     .collect();
 
-                let replaced_expr = symbol_expr::replace_symbol(&expr, &symbol_map);
-
-                let inner = ParameterExpression::new(replaced_expr, symbol_map);
-                Ok(Self { inner })
+                // If the input is a string, fall back to string parsing for backward compatibility.
+                if let Ok(expr_str) = expr_obj.downcast::<PyString>() {
+                    let expr_str = expr_str.to_string_lossy();
+                    let parsed = parse_expression(expr_str.as_ref())
+                        .map_err(|_| PyRuntimeError::new_err("Failed parsing input expression"))?;
+                    let replaced_expr = symbol_expr::replace_symbol(&parsed, &symbol_map);
+                    let inner = ParameterExpression::from_symbol_expr(replaced_expr);
+                    Ok(Self { inner })
+                } else {
+                    // Prefer converting directly from a SymPy expression.
+                    let expr = SymbolExpr::from_sympy(&expr_obj)?;
+                    let replaced_expr = symbol_expr::replace_symbol(&expr, &symbol_map);
+                    let inner = ParameterExpression::from_symbol_expr(replaced_expr);
+                    Ok(Self { inner })
+                }
             }
             _ => Err(PyValueError::new_err(
                 "Pass either both a name_map and expr, or neither",
