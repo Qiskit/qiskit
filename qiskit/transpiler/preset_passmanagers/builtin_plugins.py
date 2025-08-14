@@ -143,7 +143,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     ContractIdleWiresInControlFlow(),
                 ]
             )
-            init.append(CommutativeCancellation())
+            init.append(CommutativeCancellation(approximation_degree=pass_manager_config.approximation_degree))
 
             # We do not want to consolidate blocks for a Clifford+T basis set,
             # since this involves resynthesizing 2-qubit unitaries.
@@ -157,12 +157,6 @@ class DefaultInitPassManager(PassManagerStagePlugin):
             split_2q_unitaries_swap = False
             if pass_manager_config.routing_method != "none":
                 split_2q_unitaries_swap = True
-            if pass_manager_config.approximation_degree is not None:
-                init.append(
-                    Split2QUnitaries(
-                        pass_manager_config.approximation_degree, split_swap=split_2q_unitaries_swap
-                    )
-                )
             else:
                 init.append(Split2QUnitaries(split_swap=split_2q_unitaries_swap))
         else:
@@ -523,7 +517,10 @@ class OptimizationPassManager(PassManagerStagePlugin):
                     Optimize1qGatesDecomposition(
                         basis=pass_manager_config.basis_gates, target=pass_manager_config.target
                     ),
-                    CommutativeCancellation(target=pass_manager_config.target),
+                    CommutativeCancellation(
+                        target=pass_manager_config.target,
+                        approximation_degree=pass_manager_config.approximation_degree
+                    ),
                     ContractIdleWiresInControlFlow(),
                 ]
 
@@ -555,7 +552,10 @@ class OptimizationPassManager(PassManagerStagePlugin):
                     Optimize1qGatesDecomposition(
                         basis=pass_manager_config.basis_gates, target=pass_manager_config.target
                     ),
-                    CommutativeCancellation(target=pass_manager_config.target),
+                    CommutativeCancellation(
+                        target=pass_manager_config.target,
+                        approximation_degree=pass_manager_config.approximation_degree
+                    ),
                     ContractIdleWiresInControlFlow(),
                 ]
 
@@ -1013,7 +1013,10 @@ class CliffordTOptimizationPassManager(PassManagerStagePlugin):
                         target=pass_manager_config.target,
                     ),
                     OptimizeCliffordT(),
-                    CommutativeCancellation(target=pass_manager_config.target),
+                    CommutativeCancellation(
+                        target=pass_manager_config.target,
+                        approximation_degree=pass_manager_config.approximation_degree
+                    ),
                     ContractIdleWiresInControlFlow(),
                 ]
 
