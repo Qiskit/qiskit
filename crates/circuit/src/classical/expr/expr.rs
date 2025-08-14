@@ -295,7 +295,7 @@ impl<'a> Iterator for ExprIterator<'a> {
             Expr::Range(r) => {
                 self.stack.push(&r.stop);
                 self.stack.push(&r.start);
-                self.stack.push(&r.step.as_ref().unwrap());
+                self.stack.push(r.step.as_ref().unwrap());
             }
         }
         Some(expr.as_ref())
