@@ -46,7 +46,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_remove_diagonal_gates_bef
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
     let mut dag = DAGCircuit::from_circuit_data(circuit, false, None, None, None, None)
-        .expect("DAG to Circuit conversion failed");
+        .expect("Circuit to DAG conversion failed");
     run_remove_diagonal_before_measure(&mut dag);
     let result = dag_to_circuit(&dag, false).expect("DAG to Circuit conversion failed");
     *circuit = result;
