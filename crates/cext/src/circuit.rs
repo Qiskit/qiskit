@@ -823,7 +823,7 @@ pub unsafe extern "C" fn qk_circuit_num_instructions(circuit: *const CircuitData
 #[repr(C)]
 pub struct CInstruction {
     /// The instruction name
-    name: *const c_char,
+    name: *mut c_char,
     /// A pointer to an array of qubit indices this instruction operates on.
     qubits: *mut u32,
     /// A pointer to an array of clbit indices this instruction operates on.
@@ -844,6 +844,10 @@ pub struct CInstruction {
 /// This function is used to get the instruction details for a given instruction in
 /// the circuit.
 ///
+/// This function allocates memory internally for the provided ``QkCircuitInstruction``
+/// and thus you are responsible for calling ``qk_circuit_instruction_clear`` to
+/// free it.
+///
 /// @param circuit A pointer to the circuit to get the instruction details for.
 /// @param index The instruction index to get the instruction details of.
 /// @param instruction A pointer to where to write out the ``QkCircuitInstruction``
@@ -856,6 +860,7 @@ pub struct CInstruction {
 ///     uint32_t qubit[1] = {0};
 ///     qk_circuit_gate(qc, QkGate_H, qubit, NULL);
 ///     qk_circuit_get_instruction(qc, 0, &inst);
+///     qk_circuit_instruction_clear(&inst);
 /// ```
 ///
 /// # Safety
@@ -877,24 +882,40 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
         panic!("Invalid index")
     }
     let packed_inst = &circuit.data()[index];
-    let qargs = circuit.get_qargs(packed_inst.qubits);
-    let mut qargs_vec: Vec<u32> = qargs.iter().map(|x| x.0).collect();
-    let cargs = circuit.get_cargs(packed_inst.clbits);
-    let mut cargs_vec: Vec<u32> = cargs.iter().map(|x| x.0).collect();
-    let params = packed_inst.params_view();
-    let mut params_vec: Vec<f64> = params
-        .iter()
-        .map(|x| match x {
-            Param::Float(val) => *val,
-            _ => unreachable!("Invalid parameter on instruction"),
-        })
-        .collect();
-    let out_qargs = qargs_vec.as_mut_ptr();
-    std::mem::forget(qargs_vec);
-    let out_cargs = cargs_vec.as_mut_ptr();
-    std::mem::forget(cargs_vec);
-    let out_params = params_vec.as_mut_ptr();
-    std::mem::forget(params_vec);
+    let mut qargs = {
+        let qargs = circuit.get_qargs(packed_inst.qubits);
+        let qargs_vec: Vec<u32> = qargs.iter().map(|x| x.0).collect();
+        qargs_vec.into_boxed_slice()
+    };
+    let mut cargs = {
+        let cargs = circuit.get_cargs(packed_inst.clbits);
+        let cargs_vec: Vec<u32> = cargs.iter().map(|x| x.0).collect();
+        cargs_vec.into_boxed_slice()
+    };
+    let mut params = {
+        let params = packed_inst.params_view();
+        let params_vec: Vec<f64> = params
+            .iter()
+            .map(|x| match x {
+                Param::Float(val) => *val,
+                _ => panic!("Invalid parameter on instruction"),
+            })
+            .collect();
+        params_vec.into_boxed_slice()
+    };
+    // These lists (e.g. 'qargs') are Box<[T]>, so we use .as_mut_ptr()
+    // to get a mutable pointer to the underlying slice/array on
+    // the heap and Box::into_raw() to consume the Box without freeing
+    // it (so the underlying array doesn't get freed when we return)
+    let out_qargs = qargs.as_mut_ptr();
+    let out_qargs_len = qargs.len() as u32;
+    let _ = Box::into_raw(qargs);
+    let out_cargs = cargs.as_mut_ptr();
+    let out_cargs_len = cargs.len() as u32;
+    let _ = Box::into_raw(cargs);
+    let out_params = params.as_mut_ptr();
+    let out_params_len = params.len() as u32;
+    let _ = Box::into_raw(params);
 
     // SAFETY: The pointer must point to a CInstruction size allocation
     // per the docstring.
@@ -903,11 +924,11 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
             instruction,
             CInstruction {
                 name: CString::new(packed_inst.op.name()).unwrap().into_raw(),
-                num_qubits: qargs.len() as u32,
+                num_qubits: out_qargs_len,
                 qubits: out_qargs,
-                num_clbits: cargs.len() as u32,
+                num_clbits: out_cargs_len,
                 clbits: out_cargs,
-                num_params: params.len() as u32,
+                num_params: out_params_len,
                 params: out_params,
             },
         );
@@ -931,8 +952,8 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
 ///     uint32_t q0[1] = {0};
 ///     qk_circuit_gate(qc, QkGate_H, q0, NULL);
 ///     qk_circuit_get_instruction(qc, 0, inst);
-///     qk_circuit_instruction_clear(inst); // free the data
-///     free(inst); // free the pointer
+///     qk_circuit_instruction_clear(inst); // clear internal allocations
+///     free(inst); // free struct
 ///     qk_circuit_free(qc); // free the circuit
 /// ```
 ///
@@ -941,24 +962,33 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
 /// Behavior is undefined if ``inst`` is not a valid, non-null pointer to a ``QkCircuitInstruction``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_circuit_instruction_clear(inst: *const CInstruction) {
+pub unsafe extern "C" fn qk_circuit_instruction_clear(inst: *mut CInstruction) {
     // SAFETY: Loading the data from pointers contained in a CInstruction. These should only be
     // created by rust code and are constructed from Vecs internally or CStrings.
     unsafe {
-        let inst = const_ptr_as_ref(inst);
-        if inst.num_qubits > 0 {
+        let inst = mut_ptr_as_ref(inst);
+        if inst.num_qubits > 0 && !inst.qubits.is_null() {
             let qubits = std::slice::from_raw_parts_mut(inst.qubits, inst.num_qubits as usize);
-            let _ = Box::from_raw(qubits.as_mut_ptr());
+            let _: Box<[u32]> = Box::from_raw(qubits as *mut [u32]);
+            inst.qubits = std::ptr::null_mut();
         }
-        if inst.num_clbits > 0 {
+        inst.num_qubits = 0;
+        if inst.num_clbits > 0 && !inst.clbits.is_null() {
             let clbits = std::slice::from_raw_parts_mut(inst.clbits, inst.num_clbits as usize);
-            let _ = Box::from_raw(clbits.as_mut_ptr());
+            let _: Box<[u32]> = Box::from_raw(clbits as *mut [u32]);
+            inst.clbits = std::ptr::null_mut();
         }
-        if inst.num_params > 0 {
+        inst.num_clbits = 0;
+        if inst.num_params > 0 && !inst.params.is_null() {
             let params = std::slice::from_raw_parts_mut(inst.params, inst.num_params as usize);
-            let _ = Box::from_raw(params.as_mut_ptr());
+            let _ = Box::from_raw(params as *mut [f64]);
+            inst.params = std::ptr::null_mut();
         }
-        let _: Box<CStr> = Box::from(CStr::from_ptr(inst.name));
+        inst.num_params = 0;
+        if !inst.name.is_null() {
+            let _ = CString::from_raw(inst.name);
+            inst.name = std::ptr::null_mut();
+        }
     }
 }
 
