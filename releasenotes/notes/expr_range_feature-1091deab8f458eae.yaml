@@ -8,7 +8,7 @@ features_circuits:
     but it could be extended to other expressions in the future. The index set of the `qiskit.circuit.ForLoop` can now be of type `qiskit.circuit.classical.expr.Range`,
     on top of the existing `List[int]`.
   
-features_qasm3:
+features_qasm:
   - |
     The `qiskit.qasm3.ast.ForLoopStatement` class now has a new optional parameter `type_` that can be used to specify the type of the index set of the `qiskit.circuit.ForLoop` expression.
     If not specified, the index set will be of type `qiskit.circuit.classical.types.UintType`.
