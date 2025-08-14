@@ -89,7 +89,6 @@ class TestRange(QiskitTestCase):
 
     def test_range_with_non_constant_values(self):
         """Test creating a Range with non-constant values."""
-        from qiskit import ClassicalRegister
 
         cr = ClassicalRegister(8, "c")
 
@@ -184,7 +183,6 @@ class TestRange(QiskitTestCase):
 
     def test_range_with_mixed_type_casting(self):
         """Test casting with mixed constant and non-constant expressions."""
-        from qiskit.circuit import ClassicalRegister
 
         cr = ClassicalRegister(8, "c")
         start = expr.lift(cr)  # Non-constant
