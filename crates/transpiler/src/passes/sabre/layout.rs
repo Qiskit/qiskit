@@ -74,7 +74,7 @@ pub fn sabre_layout_and_routing(
             let trivial = NLayout::generate_trivial_layout(num_physical_qubits as u32);
             return Ok((out, trivial.clone(), trivial));
         }
-        Err(e @ TargetCouplingError::MultiQ) => {
+        Err(e @ TargetCouplingError::MultiQ(_)) => {
             return Err(TranspilerError::new_err(e.to_string()))
         }
     };
