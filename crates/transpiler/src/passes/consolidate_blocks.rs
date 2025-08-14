@@ -40,9 +40,9 @@ use qiskit_synthesis::two_qubit_decompose::{
     TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer,
 };
 
+use crate::passes::unitary_synthesis::{PARAM_SET, TWO_QUBIT_BASIS_SET};
 use crate::target::Qargs;
 use crate::target::Target;
-use crate::{PARAM_SET, TWO_QUBIT_BASIS_SET};
 use qiskit_circuit::PhysicalQubit;
 
 #[allow(clippy::large_enum_variant)]

@@ -56,7 +56,6 @@ const PI4: f64 = PI / 4.;
 
 /// The matcher for the set of standard gates that the TwoQubitControlledUDecomposer
 /// supports
-#[macro_export]
 macro_rules! PARAM_SET {
     // Make sure that this is kept in sync with the static array PARAM_GATES below
     () => {
@@ -85,7 +84,6 @@ static PARAM_SET_BASIS_GATES: [StandardGate; 8] = [
 
 /// The matcher for the set of standard gates that the TwoQubitBasisDecomposer
 /// supports
-#[macro_export]
 macro_rules! TWO_QUBIT_BASIS_SET {
     // Make sure that this is kept in sync with the static array TWO_QUBIT_BASIS_SET_GATES below
     () => {
@@ -109,6 +107,8 @@ static TWO_QUBIT_BASIS_SET_GATES: [StandardGate; 7] = [
     StandardGate::ISwap,
     StandardGate::ECR,
 ];
+
+pub(crate) use {PARAM_SET, TWO_QUBIT_BASIS_SET};
 
 #[derive(Clone, Debug)]
 enum DecomposerType {
