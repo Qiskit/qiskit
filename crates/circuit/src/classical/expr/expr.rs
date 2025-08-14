@@ -175,9 +175,7 @@ impl Expr {
             Expr::Range(r) => {
                 r.start.visit_mut_impl(visitor)?;
                 r.stop.visit_mut_impl(visitor)?;
-                if let Some(step) = &mut r.step {
-                    step.visit_mut_impl(visitor)?;
-                }
+                r.step.as_mut().unwrap().visit_mut_impl(visitor)?;
             }
         }
         visitor(self.as_mut())
@@ -297,9 +295,7 @@ impl<'a> Iterator for ExprIterator<'a> {
             Expr::Range(r) => {
                 self.stack.push(&r.stop);
                 self.stack.push(&r.start);
-                if let Some(step) = &r.step {
-                    self.stack.push(step);
-                }
+                self.stack.push(&r.step.as_ref().unwrap());
             }
         }
         Some(expr.as_ref())
