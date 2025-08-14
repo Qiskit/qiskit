@@ -37,14 +37,13 @@ use crate::operations::{
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::ParameterExpression;
 use crate::register_data::RegisterData;
-use crate::rustworkx_core_vnext::isomorphism;
 use crate::slice::PySequenceIndex;
 use crate::variable_mapper::VariableMapper;
-use crate::{imports, Clbit, Qubit, Stretch, TupleLikeArg, Var, VarsMode};
+use crate::{imports, vf2, Clbit, Qubit, Stretch, TupleLikeArg, Var, VarsMode};
 
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
-use itertools::Itertools;
+use itertools::{EitherOrBoth, Itertools};
 
 use pyo3::exceptions::{
     PyDeprecationWarning, PyIndexError, PyRuntimeError, PyTypeError, PyValueError,
@@ -104,6 +103,23 @@ impl NodeType {
         match self {
             NodeType::Operation(instr) => instr,
             _ => panic!("Node is not an operation!"),
+        }
+    }
+
+    /// Are these two nodes equal, using the given closure to compare [PackedInstruction] variants.
+    pub fn equal_with<F, E>(&self, other: &Self, cmp: F) -> Result<bool, E>
+    where
+        F: FnOnce(&PackedInstruction, &PackedInstruction) -> Result<bool, E>,
+    {
+        match (self, other) {
+            (Self::QubitIn(left), Self::QubitIn(right)) => Ok(left == right),
+            (Self::QubitOut(left), Self::QubitOut(right)) => Ok(left == right),
+            (Self::ClbitIn(left), Self::ClbitIn(right)) => Ok(left == right),
+            (Self::ClbitOut(left), Self::ClbitOut(right)) => Ok(left == right),
+            (Self::VarIn(left), Self::VarIn(right)) => Ok(left == right),
+            (Self::VarOut(left), Self::VarOut(right)) => Ok(left == right),
+            (Self::Operation(left), Self::Operation(right)) => cmp(left, right),
+            _ => Ok(false),
         }
     }
 }
@@ -335,7 +351,7 @@ impl PyBitLocations {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum DAGVarType {
     Input = 0,
     Capture = 1,
@@ -352,7 +368,7 @@ impl From<CircuitVarType> for DAGVarType {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DAGVarInfo {
     var: Var,
     type_: DAGVarType,
@@ -397,7 +413,7 @@ impl DAGVarInfo {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum DAGStretchType {
     Capture = 0,
     Declare = 1,
@@ -412,7 +428,7 @@ impl From<CircuitStretchType> for DAGStretchType {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DAGStretchInfo {
     stretch: Stretch,
     type_: DAGStretchType,
@@ -446,7 +462,7 @@ impl DAGStretchInfo {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum DAGIdentifierInfo {
     Stretch(DAGStretchInfo),
     Var(DAGVarInfo),
@@ -2198,22 +2214,202 @@ impl DAGCircuit {
             }
         };
 
-        isomorphism::vf2::is_isomorphic(
+        vf2::is_isomorphic(
             &self.dag,
             &other.dag,
             node_match,
-            isomorphism::vf2::NoSemanticMatch,
+            vf2::NoSemanticMatch,
             true,
             Ordering::Equal,
             true,
             None,
         )
         .map_err(|e| match e {
-            isomorphism::vf2::IsIsomorphicError::NodeMatcherErr(e) => e,
+            vf2::IsIsomorphicError::NodeMatcherErr(e) => e,
             _ => {
                 unreachable!()
             }
         })
+    }
+
+    /// Are these two DAGs structurally equal?
+    ///
+    /// This function returns true iff the graph structures are precisely the same as each other,
+    /// including the valid node indices, edge orders, and so on.  This is a much stricter check
+    /// than graph equivalence, and is mostly useful for testing if two :class:`DAGCircuit`
+    /// instances have been constructed and manipulated in the exact same ways.  For example, this
+    /// method can be used to test whether a sequence of manipulations of a DAG is deterministic.
+    ///
+    /// This method does not consider tracking metadata such as :attr:`metadata` or :attr:`name`,
+    /// but does consider many low-level implementation details of the internal representation, many
+    /// of which do not change the semantics of the circuit.
+    ///
+    /// This method should, in general, be much faster than graph-equivalence checks, but will
+    /// return ``False`` in many more situations.  This method should never return ``True`` when a
+    /// graph-equivalence check would return ``False``.
+    ///
+    /// .. note::
+    ///
+    ///     This currently does not handle control flow, because of technical limitations in the
+    ///     internal representation of control flow, and will return `false` if any control-flow
+    ///     operation is present, even if they are individually equal.
+    ///
+    /// .. seealso::
+    ///     The ``==`` operator
+    ///         :class:`DAGCircuit` implements :func:`~object.__eq__` between itself and other
+    ///         :class:`DAGCircuit` instances (this same method also powers
+    ///         :class:`.QuantumCircuit`'s equality check).  This implements a semantic
+    ///         data-flow equality check, which is less sensitive to the order operations were
+    ///         defined.  This is typically what a user cares about with respect to equality.
+    fn structurally_equal(&self, other: &DAGCircuit) -> PyResult<bool> {
+        if self.qubits != other.qubits {
+            return Ok(false);
+        }
+        if self.clbits != other.clbits {
+            return Ok(false);
+        }
+        if self.vars != other.vars {
+            return Ok(false);
+        }
+        if self.stretches != other.stretches {
+            return Ok(false);
+        }
+        if self.qregs != other.qregs {
+            return Ok(false);
+        }
+        if self.cregs != other.cregs {
+            return Ok(false);
+        }
+        // Checking the identifier information should handle all different methods of declaration
+        // for all identifiers, whether var or stretch.  We do a manual iteration-based check here
+        // because `IndexMap`'s default is order-insensitive, but we actually do care about order
+        // for the structural check.
+        if self.identifier_info.len() != other.identifier_info.len() {
+            return Ok(false);
+        }
+        if self
+            .identifier_info
+            .iter()
+            .zip(other.identifier_info.iter())
+            .any(|(a, b)| a != b)
+        {
+            return Ok(false);
+        }
+        // This is a stricter check than `Param::eq`, since we don't allow equality between explicit
+        // floats and Python-object representations of the same float.
+        let param_eq = |left: &Param, right: &Param| -> PyResult<bool> {
+            match (left, right) {
+                (Param::Float(a), Param::Float(b)) => Ok(a.total_cmp(b) == Ordering::Equal),
+                (Param::ParameterExpression(a), Param::ParameterExpression(b)) => Ok(a.eq(b)),
+                (Param::Obj(a), Param::Obj(b)) => Python::with_gil(|py| a.bind(py).eq(b.bind(py))),
+                _ => Ok(false),
+            }
+        };
+        if !param_eq(&self.global_phase, &other.global_phase)? {
+            return Ok(false);
+        }
+        // This is stricter than `PackedInstruction::py_op_eq` because it doesn't allow equality
+        // between `StandardGate` and Python versions of that.  Additionally, it short-circuits out
+        // of control-flow, rather than recursing through while we currently don't have a clean
+        // representation of DAG-like structured control flow.
+        let inst_eq = |from_self: &PackedInstruction,
+                       from_other: &PackedInstruction|
+         -> PyResult<bool> {
+            if self.qargs_interner.get(from_self.qubits)
+                != other.qargs_interner.get(from_other.qubits)
+            {
+                return Ok(false);
+            }
+            if self.cargs_interner.get(from_self.clbits)
+                != other.cargs_interner.get(from_other.clbits)
+            {
+                return Ok(false);
+            }
+            match (from_self.params.as_ref(), from_other.params.as_ref()) {
+                (None, None) => (),
+                (Some(_), None) | (None, Some(_)) => return Ok(false),
+                (Some(left), Some(right)) => {
+                    if left.len() != right.len() {
+                        return Ok(false);
+                    }
+                    for (left, right) in left.iter().zip(right.iter()) {
+                        if !param_eq(left, right)? {
+                            return Ok(false);
+                        }
+                    }
+                }
+            }
+            match (from_self.op.view(), from_other.op.view()) {
+                (OperationRef::StandardGate(left), OperationRef::StandardGate(right)) => {
+                    Ok(left == right)
+                }
+                (
+                    OperationRef::StandardInstruction(left),
+                    OperationRef::StandardInstruction(right),
+                ) => Ok(left == right),
+                (OperationRef::Unitary(left), OperationRef::Unitary(right)) => Ok(left == right),
+                (OperationRef::Gate(left), OperationRef::Gate(right)) => {
+                    Python::with_gil(|py| left.gate.bind(py).eq(&right.gate))
+                }
+                (OperationRef::Instruction(left), OperationRef::Instruction(right)) => {
+                    Python::with_gil(|py| left.instruction.bind(py).eq(&right.instruction))
+                }
+                (OperationRef::Operation(left), OperationRef::Operation(right)) => {
+                    Python::with_gil(|py| left.operation.bind(py).eq(&right.operation))
+                }
+                _ => Ok(false),
+            }
+        };
+        // We use this helper because the default impl of `PartialEq` doesn't check the source and
+        // target, since it usually doesn't make sense to compare references between graphs.  It
+        // makes sense for us, because we're checking that the graphs are structurally identical.
+        let edgeref_eq = |left: EdgeReference<'_, Wire>, right: EdgeReference<'_, Wire>| -> bool {
+            left.source() == right.source()
+                && left.target() == right.target()
+                && left.id() == right.id()
+                && left.weight() == right.weight()
+        };
+
+        // Now the meat of the actual comparison.  This is deliberately non-topological and
+        // index-sensitive - that's exactly what we're testing for.
+        if self.dag.node_count() != other.dag.node_count()
+            || self.dag.edge_count() != other.dag.edge_count()
+        {
+            return Ok(false);
+        }
+        for (self_index, other_index) in self.dag.node_indices().zip(other.dag.node_indices()) {
+            // The `NodeIndex` values should be the same for both; for the example of two DAGs that
+            // have undergone a deterministic compilation pipeline, this means that they've seen the
+            // same sequence of additions, removals and substitutions (or at least a comparable
+            // sequence), which they should have.
+            if self_index != other_index {
+                return Ok(false);
+            }
+            if !self.dag[self_index].equal_with(&other.dag[other_index], inst_eq)? {
+                return Ok(false);
+            }
+            for pair in self
+                .dag
+                .edges_directed(self_index, Direction::Incoming)
+                .zip_longest(other.dag.edges_directed(other_index, Direction::Incoming))
+            {
+                match pair {
+                    EitherOrBoth::Both(left, right) if edgeref_eq(left, right) => (),
+                    _ => return Ok(false),
+                }
+            }
+            for pair in self
+                .dag
+                .edges_directed(self_index, Direction::Outgoing)
+                .zip_longest(other.dag.edges_directed(other_index, Direction::Outgoing))
+            {
+                match pair {
+                    EitherOrBoth::Both(left, right) if edgeref_eq(left, right) => (),
+                    _ => return Ok(false),
+                }
+            }
+        }
+        Ok(true)
     }
 
     /// Yield nodes in topological order.

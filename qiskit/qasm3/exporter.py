@@ -1188,7 +1188,7 @@ class QASM3Builder:
         if unit == "expr":
             return self.build_expression(duration)
         if unit == "ps":
-            return ast.DurationLiteral(1000 * duration, ast.DurationUnit.NANOSECOND)
+            return ast.DurationLiteral(duration / 1000, ast.DurationUnit.NANOSECOND)
         unit_map = {
             "ns": ast.DurationUnit.NANOSECOND,
             "us": ast.DurationUnit.MICROSECOND,

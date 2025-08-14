@@ -26,7 +26,7 @@ use std::time::Instant;
 use qiskit_circuit::converters::circuit_to_dag;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
-use qiskit_circuit::rustworkx_core_vnext::isomorphism::vf2;
+use qiskit_circuit::vf2;
 use qiskit_circuit::Qubit;
 
 use super::error_map::ErrorMap;
