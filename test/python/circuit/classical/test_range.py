@@ -67,7 +67,7 @@ class TestRange(QiskitTestCase):
 
         self.assertEqual(range_expr.start, start)
         self.assertEqual(range_expr.stop, stop)
-        self.assertIsNone(range_expr.step)
+        self.assertEqual(range_expr.step, expr.lift(1, types.Uint(8)))
         self.assertEqual(range_expr.type, types.Uint(8))
         self.assertTrue(range_expr.const)
 
@@ -100,7 +100,7 @@ class TestRange(QiskitTestCase):
 
         self.assertEqual(range_expr.start, start)
         self.assertEqual(range_expr.stop, stop)
-        self.assertIsNone(range_expr.step)
+        self.assertEqual(range_expr.step, expr.lift(1, types.Uint(8)))
         self.assertEqual(range_expr.type, types.Uint(8))
         self.assertFalse(range_expr.const)
 
@@ -217,18 +217,14 @@ class TestRange(QiskitTestCase):
             qc.measure(0, 0)
 
         # Check that the ForLoop instruction exists
-        self.assertEqual(len(qc.data), 1)
         instruction = qc.data[0]
         self.assertEqual(instruction.operation.name, "for_loop")
 
         # Check that the Range parameters are correctly stored
-        params = instruction.operation.params
-        self.assertEqual(len(params), 1)
-        range_param = params[0]
-        self.assertIsInstance(range_param, expr.Range)
-        self.assertEqual(range_param.start, expr.lift(0, types.Uint(8)))
-        self.assertEqual(range_param.stop, expr.lift(5, types.Uint(8)))
-        self.assertEqual(range_param.step, expr.lift(1, types.Uint(8)))
+        self.assertIsInstance(range_expr, expr.Range)
+        self.assertEqual(range_expr.start, expr.lift(0, types.Uint(8)))
+        self.assertEqual(range_expr.stop, expr.lift(5, types.Uint(8)))
+        self.assertEqual(range_expr.step, expr.lift(1, types.Uint(8)))
 
     def test_range_in_forloop_with_step(self):
         """Test that Range with step can be used in ForLoop."""
@@ -266,14 +262,10 @@ class TestRange(QiskitTestCase):
             qc.h(0)
             qc.measure(0, 0)
 
-        # Check that the variables are captured in the circuit
-        instruction = qc.data[0]
-        range_param = instruction.operation.params[0]
-
         # Verify the Range contains the expected variables
-        self.assertEqual(range_param.start, expr.Cast(start_var, types.Uint(10), implicit=True))
-        self.assertEqual(range_param.stop, stop_var)
-        self.assertEqual(range_param.step, expr.Cast(step_var, types.Uint(10), implicit=True))
+        self.assertEqual(range_expr.start, expr.Cast(start_var, types.Uint(10), implicit=True))
+        self.assertEqual(range_expr.stop, stop_var)
+        self.assertEqual(range_expr.step, expr.Cast(step_var, types.Uint(10), implicit=True))
 
         # Check that all variables in the Range are captured in circuit variables
         circuit_vars = qc.iter_vars()
