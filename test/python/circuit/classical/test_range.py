@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2023.
+# (C) Copyright IBM 2025.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,13 +12,11 @@
 
 """Test the Range expression class."""
 
-import ddt
-
 from qiskit.circuit.classical import expr, types
+from qiskit.circuit import QuantumCircuit, ClassicalRegister
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
-@ddt.ddt
 class TestRange(QiskitTestCase):
     """Test the Range expression class."""
 
@@ -91,7 +89,7 @@ class TestRange(QiskitTestCase):
 
     def test_range_with_non_constant_values(self):
         """Test creating a Range with non-constant values."""
-        from qiskit.circuit import ClassicalRegister
+        from qiskit import ClassicalRegister
 
         cr = ClassicalRegister(8, "c")
 
@@ -206,3 +204,94 @@ class TestRange(QiskitTestCase):
         self.assertFalse(range_expr.start.const)  # Non-constant
         self.assertTrue(range_expr.stop.const)  # Constant
         self.assertTrue(range_expr.step.const)  # Constant
+
+    def test_range_in_forloop_basic(self):
+        """Test that Range can be used in ForLoop with basic constant values."""
+        qc = QuantumCircuit(1, 1)
+        
+        # Create a Range with constant values
+        range_expr = expr.Range(expr.lift(0, types.Uint(8)), expr.lift(5, types.Uint(8)))
+        
+        with qc.for_loop(range_expr):
+            qc.h(0)
+            qc.measure(0, 0)
+        
+        # Check that the ForLoop instruction exists
+        self.assertEqual(len(qc.data), 1)
+        instruction = qc.data[0]
+        self.assertEqual(instruction.operation.name, "for_loop")
+        
+        # Check that the Range parameters are correctly stored
+        params = instruction.operation.params
+        self.assertEqual(len(params), 1)
+        range_param = params[0]
+        self.assertIsInstance(range_param, expr.Range)
+        self.assertEqual(range_param.start, expr.lift(0, types.Uint(8)))
+        self.assertEqual(range_param.stop, expr.lift(5, types.Uint(8)))
+        self.assertEqual(range_param.step, expr.lift(1, types.Uint(8)))
+
+    def test_range_in_forloop_with_step(self):
+        """Test that Range with step can be used in ForLoop."""
+        qc = QuantumCircuit(1, 1)
+        
+        # Create a Range with step
+        range_expr = expr.Range(
+            expr.lift(0, types.Uint(8)), 
+            expr.lift(10, types.Uint(8)), 
+            expr.lift(2, types.Uint(8))
+        )
+        
+        with qc.for_loop(range_expr):
+            qc.h(0)
+            qc.measure(0, 0)
+        
+        # Check the Range parameters
+        instruction = qc.data[0]
+        range_param = instruction.operation.params[0]
+        self.assertEqual(range_param.start, expr.lift(0, types.Uint(8)))
+        self.assertEqual(range_param.stop, expr.lift(10, types.Uint(8)))
+        self.assertEqual(range_param.step, expr.lift(2, types.Uint(8)))
+
+    def test_range_in_forloop_with_variables(self):
+        """Test that Range with variables captures them in circuit variables."""
+        qc = QuantumCircuit(1, 1)
+        
+        # Create variables for the Range
+        start_var = qc.add_var("start", expr.lift(0, types.Uint(8)))
+        stop_var = qc.add_var("stop", expr.lift(10, types.Uint(10)))
+        step_var = qc.add_var("step", expr.lift(2, types.Uint(6)))
+        
+        # Create a Range with variables
+        range_expr = expr.Range(start_var, stop_var, step_var)
+        
+        with qc.for_loop(range_expr):
+            qc.h(0)
+            qc.measure(0, 0)
+        
+        # Check that the variables are captured in the circuit
+        instruction = qc.data[0]
+        range_param = instruction.operation.params[0]
+        
+        # Verify the Range contains the expected variables
+        self.assertEqual(range_param.start, expr.Cast(start_var, types.Uint(10), implicit=True))
+        self.assertEqual(range_param.stop, stop_var)
+        self.assertEqual(range_param.step, expr.Cast(step_var, types.Uint(10), implicit=True))
+        
+        # Check that all variables in the Range are captured in circuit variables
+        circuit_vars = qc.iter_vars()
+        self.assertIn(start_var, circuit_vars)
+        self.assertIn(stop_var, circuit_vars)
+        self.assertIn(step_var, circuit_vars)
+
+def test_range_with_no_explicit_step(self):
+    """Test that Range with no explicit step is inferred correctly."""
+    qc = QuantumCircuit(1, 1)
+    start = qc.add_var("start", expr.lift(0, types.Uint(8)))
+    stop = qc.add_var("stop", expr.lift(10, types.Uint(10)))
+    range_expr = expr.Range(start, stop)
+    with qc.for_loop(range_expr):
+        qc.h(0)
+        qc.measure(0, 0)
+    self.assertEqual(range_expr.step, expr.lift(1, types.Uint(10)))
+    self.assertEqual(range_expr.start, expr.Cast(start, types.Uint(10), implicit=True))
+    self.assertEqual(range_expr.stop, stop)

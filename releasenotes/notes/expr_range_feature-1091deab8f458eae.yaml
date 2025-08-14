@@ -7,3 +7,20 @@ features_circuits:
     The `qiskit.circuit.classical.expr.Range` class can for now only be used in conjunction with `qiskit.circuit.ForLoop` expressions,
     but it could be extended to other expressions in the future. The index set of the `qiskit.circuit.ForLoop` can now be of type `qiskit.circuit.classical.expr.Range`,
     on top of the existing `List[int]`.
+  
+features_qasm3:
+  - |
+    The `qiskit.qasm3.ast.ForLoopStatement` class now has a new optional parameter `type_` that can be used to specify the type of the index set of the `qiskit.circuit.ForLoop` expression.
+    If not specified, the index set will be of type `qiskit.circuit.classical.types.UintType`.
+    This follows the latest standard OpenQASM 3 specification (https://openqasm.com/language/classical.html#for-loops).
+    The `qiskit.qasm3.exporter.QASM3Exporter` class has also been updated to export `qiskit.circuit.classical.expr.Range` objects to a format that is compatible with the latest standard OpenQASM 3 specification.
+    Furthermore, the type of the index set of the `qiskit.circuit.ForLoop` expression is now correctly exported to OpenQASM 3.
+    A typical example is:
+    ```
+    int[32] b = 0;
+    // loop over a discrete set of values
+    for int[32] i in {1, 5, 10} {
+        b += i;
+    }
+    ```
+
