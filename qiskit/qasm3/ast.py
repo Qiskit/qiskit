@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import enum
 from typing import Optional, List, Union, Iterable, Tuple, Sequence
+import warnings
 
 
 class ASTNode:
@@ -704,12 +705,22 @@ class ForLoopStatement(Statement):
         indexset: Union[Identifier, IndexSet, Range],
         parameter: Identifier,
         body: ProgramBlock,
-        type: ClassicalType,
+        type_: Optional[ClassicalType] = None,
     ):
         self.indexset = indexset
         self.parameter = parameter
         self.body = body
-        self.type = type
+        
+        if type_ is None:
+            warnings.warn(
+                "ForLoopStatement with type_=None is deprecated. "
+                "Please explicitly specify the type parameter.",
+                DeprecationWarning,
+                stacklevel=2
+            )
+            self.type = UintType()
+        else:
+            self.type = type_
 
 
 class WhileLoopStatement(Statement):
