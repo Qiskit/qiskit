@@ -31,7 +31,6 @@ use crate::circuit_data::CircuitError;
 use crate::imports::{BUILTIN_HASH, SYMPIFY_PARAMETER_EXPRESSION, UUID};
 use crate::parameter::symbol_expr;
 use crate::parameter::symbol_expr::SymbolExpr;
-use crate::parameter::symbol_parser::parse_expression;
 
 use super::symbol_expr::{Symbol, Value, SYMEXPR_EPSILON};
 
@@ -762,17 +761,12 @@ impl PyParameterExpression {
     #[pyo3(signature = (name_map=None, expr=None))]
     pub fn py_new(
         name_map: Option<HashMap<String, PyParameter>>,
-        expr: Option<String>,
+        expr: Option<Bound<'_, PyAny>>,
     ) -> PyResult<Self> {
         match (name_map, expr) {
             (None, None) => Ok(Self::default()),
             (Some(name_map), Some(expr)) => {
-                // We first parse the expression and then update the symbols with the ones
-                // the user provided. The replacement relies on the names to match.
-                // This is hacky and we likely want a more reliably conversion from a SymPy object,
-                // if we decide we want to continue supporting this.
-                let expr = parse_expression(&expr)
-                    .map_err(|_| PyRuntimeError::new_err("Failed parsing input expression"))?;
+                let expr = SymbolExpr::from_sympy(&expr)?;
                 let symbol_map: HashMap<String, Symbol> = name_map
                     .iter()
                     .map(|(string, param)| (string.clone(), param.symbol.clone()))

@@ -25,6 +25,7 @@ use uuid::Uuid;
 
 use num_complex::Complex64;
 use pyo3::prelude::*;
+use pyo3::types::PyTuple;
 
 use crate::parameter::parameter_expression::PyParameter;
 use crate::parameter::parameter_expression::PyParameterVectorElement;
@@ -2478,6 +2479,133 @@ impl SymbolExpr {
         }
     }
 
+    /// Build a `SymbolExpr` from a SymPy expression.
+    pub fn from_sympy(expr: &Bound<PyAny>) -> PyResult<Self> {
+        let func_name: String = expr.getattr("func")?.getattr("__name__")?.extract()?;
+        match func_name.as_str() {
+            "Symbol" => {
+                let name: String = expr.getattr("name")?.extract()?;
+                Ok(SymbolExpr::Symbol(Arc::new(Symbol::new(&name, None, None))))
+            }
+            "Integer" => {
+                let val: i64 = expr.extract()?;
+                Ok(SymbolExpr::Value(Value::Int(val)))
+            }
+            "Float" => {
+                let val: f64 = expr.extract()?;
+                Ok(SymbolExpr::Value(Value::Real(val)))
+            }
+            "Rational" => {
+                let p: i64 = expr.getattr("p")?.extract()?;
+                let q: i64 = expr.getattr("q")?.extract()?;
+                Ok(SymbolExpr::Value(Value::Real(p as f64 / q as f64)))
+            }
+            "Add" => {
+                let args_obj = expr.getattr("args")?;
+                let args = args_obj.downcast::<PyTuple>()?;
+                let mut iter = args.iter();
+                let first = iter
+                    .next()
+                    .ok_or_else(|| PyValueError::new_err("Add requires at least one argument"))?;
+                let mut result = SymbolExpr::from_sympy(&first)?;
+                for arg in iter {
+                    let rhs = SymbolExpr::from_sympy(&arg)?;
+                    result = &result + &rhs;
+                }
+                Ok(result)
+            }
+            "Sub" => {
+                let args_obj = expr.getattr("args")?;
+                let args = args_obj.downcast::<PyTuple>()?;
+                let lhs = SymbolExpr::from_sympy(&args.get_item(0)?)?;
+                let rhs = SymbolExpr::from_sympy(&args.get_item(1)?)?;
+                Ok(&lhs - &rhs)
+            }
+            "Mul" => {
+                let args_obj = expr.getattr("args")?;
+                let args = args_obj.downcast::<PyTuple>()?;
+                let mut iter = args.iter();
+                let first = iter
+                    .next()
+                    .ok_or_else(|| PyValueError::new_err("Mul requires at least one argument"))?;
+                let mut result = SymbolExpr::from_sympy(&first)?;
+                for arg in iter {
+                    let rhs = SymbolExpr::from_sympy(&arg)?;
+                    result = &result * &rhs;
+                }
+                Ok(result)
+            }
+            "Div" => {
+                let args_obj = expr.getattr("args")?;
+                let args = args_obj.downcast::<PyTuple>()?;
+                let lhs = SymbolExpr::from_sympy(&args.get_item(0)?)?;
+                let rhs = SymbolExpr::from_sympy(&args.get_item(1)?)?;
+                Ok(&lhs / &rhs)
+            }
+            "Pow" => {
+                let args_obj = expr.getattr("args")?;
+                let args = args_obj.downcast::<PyTuple>()?;
+                let lhs = SymbolExpr::from_sympy(&args.get_item(0)?)?;
+                let rhs = SymbolExpr::from_sympy(&args.get_item(1)?)?;
+                Ok(lhs.pow(&rhs))
+            }
+            "Abs" => {
+                let args_obj = expr.getattr("args")?;
+                let args = args_obj.downcast::<PyTuple>()?;
+                Ok(SymbolExpr::from_sympy(&args.get_item(0)?)?.abs())
+            }
+            "sin" => {
+                let args_obj = expr.getattr("args")?;
+                let args = args_obj.downcast::<PyTuple>()?;
+                Ok(SymbolExpr::from_sympy(&args.get_item(0)?)?.sin())
+            }
+            "cos" => {
+                let args_obj = expr.getattr("args")?;
+                let args = args_obj.downcast::<PyTuple>()?;
+                Ok(SymbolExpr::from_sympy(&args.get_item(0)?)?.cos())
+            }
+            "tan" => {
+                let args_obj = expr.getattr("args")?;
+                let args = args_obj.downcast::<PyTuple>()?;
+                Ok(SymbolExpr::from_sympy(&args.get_item(0)?)?.tan())
+            }
+            "asin" => {
+                let args_obj = expr.getattr("args")?;
+                let args = args_obj.downcast::<PyTuple>()?;
+                Ok(SymbolExpr::from_sympy(&args.get_item(0)?)?.asin())
+            }
+            "acos" => {
+                let args_obj = expr.getattr("args")?;
+                let args = args_obj.downcast::<PyTuple>()?;
+                Ok(SymbolExpr::from_sympy(&args.get_item(0)?)?.acos())
+            }
+            "atan" => {
+                let args_obj = expr.getattr("args")?;
+                let args = args_obj.downcast::<PyTuple>()?;
+                Ok(SymbolExpr::from_sympy(&args.get_item(0)?)?.atan())
+            }
+            "exp" => {
+                let args_obj = expr.getattr("args")?;
+                let args = args_obj.downcast::<PyTuple>()?;
+                Ok(SymbolExpr::from_sympy(&args.get_item(0)?)?.exp())
+            }
+            "log" => {
+                let args_obj = expr.getattr("args")?;
+                let args = args_obj.downcast::<PyTuple>()?;
+                Ok(SymbolExpr::from_sympy(&args.get_item(0)?)?.log())
+            }
+            "conjugate" => {
+                let args_obj = expr.getattr("args")?;
+                let args = args_obj.downcast::<PyTuple>()?;
+                Ok(SymbolExpr::from_sympy(&args.get_item(0)?)?.conjugate())
+            }
+            "ImaginaryUnit" => Ok(SymbolExpr::Value(Value::Complex(Complex64::new(0.0, 1.0)))),
+            _ => Err(PyValueError::new_err(format!(
+                "Unsupported sympy expression: {func_name}"
+            ))),
+        }
+    }
+
     // convert sympy compatible format
     pub fn sympify(&self) -> SymbolExpr {
         match self {
@@ -3631,8 +3759,10 @@ impl PartialOrd for Value {
     }
 }
 
-/// Replace [Symbol]s in a [SymbolExpr] according to the name map. This
-/// is used to reconstruct a parameter expression from a string.
+/// Replace [Symbol]s in a [SymbolExpr] according to the name map.
+/// This helper rebuilds a parameter expression by swapping temporary
+/// symbols for the canonical instances during deserialization of SymPy
+/// trees or other serialized forms.
 pub fn replace_symbol(symbol_expr: &SymbolExpr, name_map: &HashMap<String, Symbol>) -> SymbolExpr {
     match symbol_expr {
         SymbolExpr::Symbol(existing_symbol) => {
