@@ -710,13 +710,13 @@ class ForLoopStatement(Statement):
         self.indexset = indexset
         self.parameter = parameter
         self.body = body
-        
+
         if type_ is None:
             warnings.warn(
                 "ForLoopStatement with type_=None is deprecated. "
                 "Please explicitly specify the type parameter.",
                 DeprecationWarning,
-                stacklevel=2
+                stacklevel=2,
             )
             self.type = UintType()
         else:
