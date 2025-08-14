@@ -203,12 +203,21 @@ cargo +1.61 build    # Check build
 
 Add a release note called `prepare-x.y.z` with only a `prelude` section explaining the release.
 
-> TODO: add more examples
+The list of features to highlight is usually related to the major themes in the release.
+The items in the [Roadmap](https://github.com/Qiskit/qiskit/wiki/Roadmap) can be a good starting point.
+The prelude does not usually include code examples or detailed explanations, as it is TL;DR of the rest of the release notes.
 
-For patch releases, this can be something like
+Consider the following guidelines:
 
-> Qiskit x.y.z is a small patch release, fixing several bugs found
-> in the x.y series.
+* For major releases, the format is usually a bullet list of feature highlights, followed by a paragraph or two with the major API breaking changes. [Example of a prelude for the 2.0.0 major release](https://github.com/Qiskit/qiskit/blob/stable/2.0/releasenotes/notes/2.0/prepare-2.0.0-bab067ae93d40bb1.yaml)
+
+* For minor releases, use a bullet list of the major improvements and new features, including any major API deprecations. [Example of a prelude for the 2.1.0 minor release](https://github.com/Qiskit/qiskit/blob/stable/2.1/releasenotes/notes/2.1/prepare-2.1.0-409d24ecbe277062.yaml)
+
+* For patch releases, the prelude can just be something like:
+
+  > Qiskit x.y.z is a small patch release, fixing several bugs found  
+  > in the x.y series.
+
 
 #### 3.5 Prepare the release notes
 
