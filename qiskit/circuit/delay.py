@@ -43,6 +43,8 @@ class Delay(Instruction):
 
     @staticmethod
     def _validate_arguments(duration, unit):
+        # This method is a centralization of the unit-handling logic, so used elsewhere in Qiskit
+        # (e.g. in `BoxOp`).
         if isinstance(duration, expr.Expr):
             if unit is not None and unit != "expr":
                 raise CircuitError(
@@ -87,8 +89,12 @@ class Delay(Instruction):
         self.params = [duration]
 
     def to_matrix(self) -> np.ndarray:
-        """Return a Numpy.array for the unitary matrix."""
-        return np.eye(2**self.num_qubits, dtype=complex)
+        """Return a Numpy.array for the unitary matrix. This has been
+        added to enable simulation without making delay a full Gate type.
+        Returns:
+            np.ndarray: matrix representation.
+        """
+        return self.__array__(dtype=complex)
 
     def __eq__(self, other):
         return (
