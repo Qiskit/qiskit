@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    In Qiskit 2.2.0 the :class:`.VF2PostLayout` transpiler pass was added to
+    the ``optimization`` stage of the preset pass manager when
+    ``optimization_level=3``. However, the output of the pass was not ever
+    applied to the circuit. This release removes the pass from the preset pass
+    manager's ``optimization`` stage to save the runtime cost. In Qiskit 2.2.0
+    the pass will be part of the ``optimization`` stage and the output will
+    be applied if the pass finds a better layout.
