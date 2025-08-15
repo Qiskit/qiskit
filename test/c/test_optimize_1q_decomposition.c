@@ -165,7 +165,7 @@ cleanup:
 }
 
 /**
- * "U is shorter than RZ-RY-RZ or RY-RZ-RY so use it when no error given.
+ * U is shorter than RZ-RY-RZ or RY-RZ-RY so use it when no error given.
  */
 int test_optimize_error_over_target_3(void) {
     int result = Ok;
