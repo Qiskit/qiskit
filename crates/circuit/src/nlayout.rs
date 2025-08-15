@@ -267,6 +267,18 @@ impl NLayout {
         }
     }
 }
+impl ::std::ops::Index<VirtualQubit> for NLayout {
+    type Output = PhysicalQubit;
+    fn index(&self, index: VirtualQubit) -> &PhysicalQubit {
+        &self.virt_to_phys[index.index()]
+    }
+}
+impl ::std::ops::Index<PhysicalQubit> for NLayout {
+    type Output = VirtualQubit;
+    fn index(&self, index: PhysicalQubit) -> &VirtualQubit {
+        &self.phys_to_virt[index.index()]
+    }
+}
 
 pub fn nlayout(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<NLayout>()?;
