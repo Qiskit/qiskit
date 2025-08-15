@@ -73,7 +73,6 @@ use rustworkx_core::traversal::{
     bfs_successors as core_bfs_successors, descendants as core_descendants,
 };
 
-use std::cmp::Ordering;
 use std::collections::{BTreeMap, VecDeque};
 use std::convert::Infallible;
 use std::f64::consts::PI;
@@ -2213,22 +2212,21 @@ impl DAGCircuit {
                 _ => Ok(false),
             }
         };
+        let node_match = |n1: &NodeType, n2: &NodeType| -> PyResult<Option<()>> {
+            node_match(n1, n2).map(|ok| ok.then_some(()))
+        };
 
         vf2::is_isomorphic(
             &self.dag,
             &other.dag,
-            node_match,
-            vf2::NoSemanticMatch,
+            (node_match, vf2::NoSemanticMatch),
             true,
-            Ordering::Equal,
-            true,
+            vf2::Problem::Exact,
             None,
         )
         .map_err(|e| match e {
-            vf2::IsIsomorphicError::NodeMatcherErr(e) => e,
-            _ => {
-                unreachable!()
-            }
+            vf2::IsIsomorphicError::NodeMatcher(e) => e,
+            vf2::IsIsomorphicError::EdgeMatcher(_) => unreachable!(),
         })
     }
 
