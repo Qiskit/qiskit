@@ -73,17 +73,15 @@ pub enum BasisTranslatorError {
     ReplaceNodeParameterError(String),
 }
 
-pub trait ToPyError {
-    fn to_py_err(&self) -> PyErr;
-}
-
-impl ToPyError for BasisTranslatorError {
-    fn to_py_err(&self) -> PyErr {
-        match self {
-            Self::ApplyTranslationCircuitError(_)
-            | Self::ComposeTransformsCircuitError(_)
-            | Self::ReplaceNodeCircuitError(_) => CircuitError::new_err(self.to_string()),
-            _ => TranspilerError::new_err(self.to_string()),
+impl From<BasisTranslatorError> for PyErr {
+    fn from(value: BasisTranslatorError) -> Self {
+        match value {
+            BasisTranslatorError::ApplyTranslationCircuitError(_)
+            | BasisTranslatorError::ComposeTransformsCircuitError(_)
+            | BasisTranslatorError::ReplaceNodeCircuitError(_) => {
+                CircuitError::new_err(value.to_string())
+            }
+            _ => TranspilerError::new_err(value.to_string()),
         }
     }
 }

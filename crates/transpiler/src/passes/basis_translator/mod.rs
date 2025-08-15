@@ -19,7 +19,6 @@ use compose_transforms::GateIdentifier;
 use basis_search::basis_search;
 use compose_transforms::compose_transforms;
 use errors::BasisTranslatorError;
-use errors::ToPyError;
 use hashbrown::{HashMap, HashSet};
 use indexmap::{IndexMap, IndexSet};
 use pyo3::prelude::*;
@@ -67,8 +66,7 @@ fn py_run_basis_translator(
     target: Option<&mut Target>,
     target_basis: Option<HashSet<String>>,
 ) -> PyResult<Option<DAGCircuit>> {
-    run_basis_translator(dag, equiv_lib, min_qubits, target, target_basis)
-        .map_err(|e| e.to_py_err())
+    run_basis_translator(dag, equiv_lib, min_qubits, target, target_basis).map_err(|e| e.into())
 }
 
 pub fn run_basis_translator(
@@ -458,7 +456,7 @@ fn apply_translation(
                             extra_inst_map,
                             min_qubits,
                             qargs_with_non_global_operation,
-                        ).map_err(|e| e.to_py_err())?;
+                        ).map_err(PyErr::from)?;
                         let flow_circ_block = if is_updated {
                             DAG_TO_CIRCUIT
                                 .get_bound(py)
