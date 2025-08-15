@@ -17,6 +17,7 @@ import unittest
 import numpy as np
 
 from qiskit import QuantumRegister, QuantumCircuit
+from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import U1Gate, RZGate, PhaseGate, CXGate, SXGate
 from qiskit.circuit.parameter import Parameter
 from qiskit.passmanager.flow_controllers import DoWhileController
@@ -802,6 +803,29 @@ measure q0[1] -> c0[1];
         res = cancellation_pass(qc)
         # We don't cancel any gates with a custom rzz gate
         self.assertEqual(res.count_ops()["z"], 2)
+
+    def test_determinism(self):
+        """Test that the pass produces structurally equivalent circuits."""
+        # This is two CZ rings in a row.  If the cancellation order is non-deterministic and each
+        # order has an equal chance, the probability of a spurious pass is astronoomical; the edge
+        # IDs linking the in- and out-nodes will be different.
+        qc = QuantumCircuit(21)
+        for _ in range(2):
+            for a, b in zip(qc.qubits[:-1], qc.qubits[1:]):
+                qc.cz(a, b)
+            qc.cz(qc.qubits[-1], qc.qubits[0])
+
+        expected = circuit_to_dag(qc.copy_empty_like())
+
+        left = CommutativeCancellation().run(circuit_to_dag(qc))
+        right = CommutativeCancellation().run(circuit_to_dag(qc))
+
+        # Semantic sanity checks.
+        self.assertEqual(expected, left)
+        self.assertEqual(expected, right)
+
+        # The actual asseertion.
+        self.assertTrue(left.structurally_equal(right))
 
 
 if __name__ == "__main__":
