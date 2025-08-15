@@ -463,6 +463,7 @@ class SabreLayout(TransformationPass):
             sabre_result,
             circuit_to_dag_dict,
         )
+<<<<<<< HEAD
 
     def _ancilla_allocation_no_pass_manager(self, dag):
         """Run the ancilla-allocation and -enlargement passes on the DAG chained onto our
@@ -475,6 +476,19 @@ class SabreLayout(TransformationPass):
         dag = enlarge_pass.run(dag)
         self.property_set = enlarge_pass.property_set
         return dag
+=======
+        if (prev_final_layout := self.property_set.get("final_layout", None)) is None:
+            self.property_set["final_layout"] = final_layout
+        else:
+            # The "final layout" can be thought of as a "comes from" permutation that you apply at
+            # the end of the circuit to invert the routing.  So if there's an existing one, what we
+            # apply at the end of the circuit needs to set the circuit qubits so they "come from"
+            # the previous one, then those "come from" the one we've just added.
+            self.property_set["final_layout"] = prev_final_layout.compose(
+                final_layout, out_dag.qubits
+            )
+        return out_dag
+>>>>>>> dfcc5c6ce (Fix composition of `final_layout` (#14919))
 
     def _layout_and_route_passmanager(self, initial_layout):
         """Return a passmanager for a full layout and routing.
