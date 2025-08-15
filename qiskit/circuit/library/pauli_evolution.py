@@ -21,6 +21,12 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumcircuit import ParameterValueType
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.quantum_info import Pauli, SparsePauliOp, SparseObservable
+from qiskit.circuit.annotated_operation import (
+    AnnotatedOperation,
+    ControlModifier,
+    PowerModifier,
+    InverseModifier,
+)
 import qiskit.quantum_info
 
 if TYPE_CHECKING:
@@ -30,15 +36,19 @@ if TYPE_CHECKING:
 class PauliEvolutionGate(Gate):
     r"""Time-evolution of an operator consisting of Paulis.
 
-    For an operator :math:`H` consisting of Pauli terms and (real) evolution time :math:`t`
-    this gate implements
+    For an Hermitian operator :math:`H` consisting of Pauli terms and (real) evolution time :math:`t`
+    this gate represents the unitary
 
     .. math::
 
         U(t) = e^{-itH}.
 
     This gate serves as a high-level definition of the evolution and can be synthesized into
-    a circuit using different algorithms.
+    a circuit using different algorithms, such as :class:`.LieTrotter` (see :mod:`qiskit.synthesis`
+    for more details). Note that most synthesis methods *approximately* implement the target unintary
+    :math:`U(t)`. This implies that calling methods such as :meth:`inverse`, :meth:`power` or
+    :meth:`control` prior to synthesis may lead to different results as calling them after
+    the synthesis.
 
     The evolution gates are related to the Pauli rotation gates by a factor of 2. For example
     the time evolution of the Pauli :math:`X` operator is connected to the Pauli :math:`X` rotation
@@ -163,6 +173,107 @@ class PauliEvolutionGate(Gate):
             time: The evolution time.
         """
         self.params = [time]
+
+    def inverse(self, annotated: bool = False) -> Gate:
+        """Invert this instruction by negating the time.
+
+        Args:
+            annotated: If set to ``True`` the output inverse gate will be returned
+                as :class:`.AnnotatedOperation`.
+
+        Returns:
+            The inverse operation.
+        """
+        if annotated:
+            return AnnotatedOperation(self, InverseModifier())
+
+        return PauliEvolutionGate(self.operator, -self.time, synthesis=self.synthesis)
+
+    def power(self, exponent: float, annotated: bool = False) -> Gate:
+        """Raise this gate to the power of ``exponent``.
+
+        Implemented by multiplying the time by the exponent.
+
+        Args:
+            exponent: The power to raise the gate to.
+            annotated: indicates whether the power gate can be implemented
+                as an annotated operation.
+
+        Returns:
+            An operation implementing ``gate^exponent``
+        """
+        if not annotated:
+            return PauliEvolutionGate(self.operator, self.time * exponent, synthesis=self.synthesis)
+
+        return AnnotatedOperation(self, PowerModifier(exponent))
+
+    def _return_repeat(self, exponent: float) -> PauliEvolutionGate:
+        return self.power(exponent)  # same implementation
+
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
+        annotated: bool | None = None,
+    ) -> Gate:
+        r"""Return the controlled version of itself.
+
+        Implemented either by extending the observable with :math:`|0\rangle\langle 0|` and
+        :math:`|1\rangle\langle 1|` projectors, or as an annotated operation
+        (ref. :class:`.AnnotatedOperation`).
+
+        Args:
+            num_ctrl_qubits: Number of controls to add to gate (default: ``1``).
+            label: Optional gate label. Ignored if implemented as an annotated
+                operation.
+            ctrl_state: The control state in decimal or as a bitstring
+                (e.g. ``"111"``). If ``None``, use ``2**num_ctrl_qubits - 1``.
+            annotated: Indicates whether the controlled gate is implemented
+                as an annotated gate. If ``None``, this is set to ``False``
+                if the controlled gate can directly be constructed, and otherwise
+                set to ``True``. This allows defering the construction process in case the
+                synthesis of the controlled gate requires more information (e.g.
+                values of unbound parameters).
+
+        Returns:
+            Controlled version of the given operation.
+        """
+        if not annotated:  # captures both None and False
+            if ctrl_state is None:
+                ctrl_state = "1" * num_ctrl_qubits
+            elif isinstance(ctrl_state, int):
+                ctrl_state = bin(ctrl_state)[2:].zfill(num_ctrl_qubits)
+            else:
+                if len(ctrl_state) != num_ctrl_qubits:
+                    raise ValueError(
+                        f"Length of ctrl_state ({len(ctrl_state)}) must match "
+                        f"num_ctrl_qubits ({num_ctrl_qubits})"
+                    )
+
+            control_op = SparseObservable(ctrl_state)
+
+            if isinstance(self.operator, SparsePauliOp):
+                op = SparseObservable.from_sparse_pauli_op(self.operator)
+            else:
+                op = self.operator
+
+            # Implementing the controlled version of an evolution,
+            #   |0><0| \otimes 1 + |1><1| \otimes exp(it H),
+            # equals the evolution of the Hamiltonian extended by the |1><1| projector,
+            #   exp(it |1><1| \otimes H).
+            # For open controls, the control states are flipped.
+            # We use the projector formalism here, which will result in a
+            # circuit that only controls the central Pauli rotation. For example, calling
+            # PauliEvolutionGate(Z).control(2) will produce PauliEvolutionGate(11Z).
+            op ^= control_op
+
+            return PauliEvolutionGate(op, self.time, label, synthesis=self.synthesis)
+
+        else:
+            return AnnotatedOperation(
+                self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+            )
 
     def _define(self):
         """Unroll, where the default synthesis is matrix based."""
