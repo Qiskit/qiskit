@@ -12,7 +12,6 @@
 
 use std::sync::OnceLock;
 
-use crate::equivalence::CircuitFromPython;
 use hashbrown::{HashMap, HashSet};
 use indexmap::{IndexMap, IndexSet};
 use nalgebra::{Matrix2, Matrix4};
@@ -40,7 +39,7 @@ use super::errors::BasisTranslatorError;
 
 // Custom types
 pub type GateIdentifier = (String, u32);
-pub type BasisTransformIn = (SmallVec<[Param; 3]>, CircuitFromPython);
+pub type BasisTransformIn = (SmallVec<[Param; 3]>, CircuitData);
 pub type BasisTransformOut = (SmallVec<[Param; 3]>, DAGCircuit);
 
 static STD_GATE_MAPPING: OnceLock<HashMap<&str, StandardGate>> = OnceLock::new();
@@ -147,13 +146,12 @@ pub(super) fn compose_transforms<'a>(
                         .collect();
                 let mut replacement = equiv.clone();
                 replacement
-                    .0
                     .assign_parameters_from_mapping(param_mapping)
                     .map_err(|err| {
                         BasisTranslatorError::ComposeTransformsCircuitError(err.to_string())
                     })?;
                 let replace_dag: DAGCircuit =
-                    DAGCircuit::from_circuit_data(&replacement.0, true, None, None, None, None)
+                    DAGCircuit::from_circuit_data(&replacement, true, None, None, None, None)
                         .map_err(|err| {
                             BasisTranslatorError::ComposeTransformsCircuitError(err.to_string())
                         })?;
