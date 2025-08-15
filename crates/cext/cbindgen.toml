@@ -7,6 +7,7 @@ cpp_compat = true
 after_includes = """
 #ifdef QISKIT_C_PYTHON_INTERFACE
     #include <Python.h>
+    typedef PyObject QkPyObject;
 #endif
 
 #include "qiskit/complex.h"
@@ -37,20 +38,13 @@ include = ["qiskit-quantum-info", "qiskit-circuit", "qiskit-transpiler"]
 [enum]
 prefix_with_name = true
 
+[export]
+prefix = "Qk"
+
 [export.rename]
-"SparseObservable" = "QkObs"
-"CSparseTerm" = "QkObsTerm"
-"BitTerm" = "QkBitTerm"
-"Complex64" = "QkComplex64"
-"CircuitData" = "QkCircuit"
-"StandardGate" = "QkGate"
-"OpCounts" = "QkOpCounts"
-"OpCount" = "QkOpCount"
-"CInstruction" = "QkCircuitInstruction"
-"ExitCode" = "QkExitCode"
-"QuantumRegister" = "QkQuantumRegister"
-"ClassicalRegister" = "QkClassicalRegister"
-"Target" = "QkTarget"
-"TargetEntry" = "QkTargetEntry"
-"VF2LayoutResult" = "QkVF2LayoutResult"
-"ElidePermutationsResult" = "QkElidePermutationsResult"
+"SparseObservable" = "Obs"
+"CSparseTerm" = "ObsTerm"
+"CircuitData" = "Circuit"
+"StandardGate" = "Gate"
+"CInstruction" = "CircuitInstruction"
+"CDelayUnit" = "DelayUnit"
