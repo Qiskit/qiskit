@@ -49,3 +49,7 @@
 /**
  * @defgroup QkSabreLayoutResult QkSabreLayoutResult
  */
+
+/**
+ * @defgroup QkSplit2qUnitariesResult QkSplit2qUnitariesResult
+ */
