@@ -21,7 +21,7 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passes import ApplyLayout, SetLayout
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.preset_passmanagers import common
-from qiskit.transpiler import PassManager, CouplingMap
+from qiskit.transpiler import PassManager, CouplingMap, AnalysisPass
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 from ..legacy_cmaps import YORKTOWN_CMAP
@@ -50,6 +50,30 @@ class TestApplyLayout(QiskitTestCase):
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
+
+    def test_empty_layout(self):
+        """If the layout and the backend are empty, the pass should still be well behaved."""
+        qc = QuantumCircuit()
+        pm = PassManager()
+        pm.append(SetLayout(Layout()))
+        pm.append(ApplyLayout())
+        out = pm.run(qc)
+        self.assertEqual(out.layout.initial_virtual_layout(), Layout())
+
+    def test_empty_post_layout(self):
+        """If the layout and the backend are empty, the pass should still be well behaved."""
+
+        # pylint: disable=missing-class-docstring
+        class SetEmptyLayouts(AnalysisPass):
+            def run(self, dag):
+                self.property_set["layout"] = Layout()
+                self.property_set["post_layout"] = Layout()
+
+        qc = QuantumCircuit()
+        pm = PassManager()
+        pm.append(SetEmptyLayouts())
+        out = pm.run(qc)
+        self.assertEqual(out.layout.initial_virtual_layout(), Layout())
 
     def test_raise_when_no_layout_is_supplied(self):
         """Test error is raised if no layout is found in property_set."""
