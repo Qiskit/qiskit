@@ -33,7 +33,7 @@ bool compare_gate_counts(QkOpCounts counts, char **gates, uint32_t *freq, int nu
  *
  * Transpile: 0:--[H]-[H]-[H]--
  */
-int test_optimize_h_gates_inner(QkTarget *target, char **gates, uint32_t *freq, int num_gates) {
+int inner_optimize_h_gates(QkTarget *target, char **gates, uint32_t *freq, int num_gates) {
     int result = Ok;
     // Build circuit
     QkCircuit *circuit = qk_circuit_new(1, 0);
@@ -46,7 +46,6 @@ int test_optimize_h_gates_inner(QkTarget *target, char **gates, uint32_t *freq, 
     qk_transpiler_standalone_optimize_1q_gates_decomposition(circuit, target);
     if (!compare_gate_counts(qk_circuit_count_ops(circuit), gates, freq, num_gates)) {
         result = EqualityError;
-        goto cleanup;
     }
 
 cleanup:
@@ -83,15 +82,14 @@ int test_optimize_h_gates(void) {
     char *names[5] = {"u1_u2_u3", "rz_rx", "rz_sx", "rz_ry_u", "rz_ry_u_noerror"};
     printf("Optimize h gates tests.\n");
     for (int idx = 0; idx < 5; idx++) {
-        int result =
-            test_optimize_h_gates_inner(targets[idx], gates[idx], freq[idx], num_gates[idx]);
+        int result = inner_optimize_h_gates(targets[idx], gates[idx], freq[idx], num_gates[idx]);
         printf("--- Run with %-21s: %s \n", names[idx], (bool)result ? "Fail" : "Ok");
         num_failed += result;
     }
     return num_failed;
 }
 
-int test_optimize_identity_target_inner(QkTarget *target) {
+int inner_optimize_identity_target(QkTarget *target) {
     int result = Ok;
     // Build circuit
     QkCircuit *circuit = qk_circuit_new(1, 0);
@@ -105,7 +103,6 @@ int test_optimize_identity_target_inner(QkTarget *target) {
     qk_transpiler_standalone_optimize_1q_gates_decomposition(circuit, target);
     if (qk_circuit_count_ops(circuit).len != 0) {
         result = EqualityError;
-        goto cleanup;
     }
 
 cleanup:
@@ -133,7 +130,7 @@ int test_optimize_identity_target(void) {
     };
     printf("Optimize identities with target tests.\n");
     for (int idx = 0; idx < 4; idx++) {
-        int result = test_optimize_identity_target_inner(targets[idx]);
+        int result = inner_optimize_identity_target(targets[idx]);
         printf("--- Run with %-21s: %s \n", names[idx], (bool)result ? "Fail" : "Ok");
         num_failed += result;
     }
@@ -156,7 +153,6 @@ int test_optimize_identity_no_target(void) {
     qk_transpiler_standalone_optimize_1q_gates_decomposition(circuit, NULL);
     if (qk_circuit_count_ops(circuit).len != 0) {
         result = EqualityError;
-        goto cleanup;
     }
 
 cleanup:
@@ -184,7 +180,6 @@ int test_optimize_error_over_target_3(void) {
     }
     if (strcmp(counts.data[0].name, "u") != 0 || counts.data[0].count != 1) {
         result = EqualityError;
-        goto cleanup;
     }
 
 cleanup:

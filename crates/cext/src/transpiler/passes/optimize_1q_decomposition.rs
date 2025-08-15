@@ -32,11 +32,9 @@ use qiskit_transpiler::{passes::run_optimize_1q_gates_decomposition, target::Tar
 ///
 /// @param circuit A pointer to the ``QkCircuit`` object to transform.
 /// @param target A pointer to the ``QkTarget`` object or a null pointer.
-/// In the case a null pointer is provided the pass calculates the error
-/// of each instruction based on each one-qubit sequence's length, and
-/// will support all basis gates on its Euler basis set.
-///
-/// @return The circuit after applying the optimizations.
+/// In the case a null pointer is provided and gate errors are unknown
+/// the pass will choose the sequence with the least amount of gates,
+/// and will support all basis gates on its Euler basis set.
 ///
 /// # Example
 ///
