@@ -16,6 +16,7 @@ from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import QFTGate
+from qiskit.circuit.random import random_clifford_circuit
 from qiskit.compiler import transpile
 from qiskit.transpiler.passes import LitinskiTransformation
 from qiskit.quantum_info import Operator
@@ -142,3 +143,30 @@ class TestLitinskiTransformation(QiskitTestCase):
 
         # make sure the result is correct
         self.assertEqual(Operator(qc_litinski), Operator(qc))
+
+    def test_random_circuits(self):
+        """Test on random Clifford+T circuits."""
+
+        for trial in range(10):
+            start_seed = 1234 + 10 * trial
+
+            # create a circuit with multiple layers of Clifford and T/Tdg gates
+            qc = QuantumCircuit(5)
+            for layer in range(5):
+                clifford_circuit = random_clifford_circuit(
+                    num_qubits=5, num_gates=20, gates="all", seed=start_seed + layer
+                )
+                qc.compose(clifford_circuit, inplace=True)
+                qc.t(0)
+                qc.tdg(1)
+
+            # apply the transform
+            qc_litinski = LitinskiTransformation()(qc)
+            ops_litinski = qc_litinski.count_ops()
+
+            # make sure the transform was applied
+            self.assertNotIn("t", ops_litinski)
+            self.assertNotIn("tdg", ops_litinski)
+
+            # make sure the result is correct
+            self.assertEqual(Operator(qc_litinski), Operator(qc))
