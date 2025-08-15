@@ -96,3 +96,49 @@ class TestLitinskiTransformation(QiskitTestCase):
         self.assertNotIn("rz", qc_litinski.count_ops())
         # make sure the result is correct
         self.assertEqual(Operator(qc_litinski), Operator(qc))
+
+    def test_all_supported_clifford_gates(self):
+        """Test circuit with all of the supported clifford gates."""
+
+        qc = QuantumCircuit(4)
+
+        # Put all possible Clifford gates at the front of the circuit,
+        # so that the algorithm will need to combine these into a Clifford,
+        # and commute through the rotation gates.
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        qc.cx(2, 3)
+        qc.s(0)
+        qc.sdg(1)
+        qc.cz(0, 2)
+        qc.cz(1, 3)
+        qc.z(0)
+        qc.h(1)
+        qc.x(2)
+        qc.y(3)
+        qc.swap(0, 1)
+        qc.sx(0)
+        qc.sxdg(1)
+        qc.cy(1, 2)
+        qc.id(3)
+        qc.ecr(0, 3)
+        qc.iswap(1, 2)
+        qc.dcx(1, 3)
+
+        # Rotations
+        qc.t(0)
+        qc.rz(0.1, 1)
+        qc.tdg(2)
+        qc.rz(-0.2, 3)
+
+        qc_litinski = LitinskiTransformation()(qc)
+        ops_litinski = qc_litinski.count_ops()
+
+        # make sure the transform was applied
+        self.assertNotIn("t", ops_litinski)
+        self.assertNotIn("tdg", ops_litinski)
+        self.assertNotIn("rz", ops_litinski)
+
+        # make sure the result is correct
+        self.assertEqual(Operator(qc_litinski), Operator(qc))

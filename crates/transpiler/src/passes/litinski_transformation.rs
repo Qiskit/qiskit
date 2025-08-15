@@ -28,44 +28,38 @@ use std::f64::consts::PI;
 
 // List of gate names supported by the pass: the pass is skipped if the circuit
 // contains gate names outside of this list.
-const SUPPORTED_GATE_NAMES: &[&str; 13] = &[
-    "cx", "cz", "h", "s", "sdg", "sx", "sxdg", "x", "y", "z", "t", "tdg", "rz",
+const SUPPORTED_GATE_NAMES: &[&str; 19] = &[
+    "id", "x", "y", "z", "h", "s", "sdg", "sx", "sxdg", "cx", "cz", "cy", "swap", "iswap", "ecr",
+    "dcx", "t", "tdg", "rz",
 ];
 
 // List of rotation gate names: the pass is skipped if the circuit contains
 // no gate names in this list.
 const ROTATION_GATE_NAMES: &[&str; 3] = &["t", "tdg", "rz"];
 
-/// A simple function that expresses a given circuit as a sequence of Pauli rotations
-/// followed by a final Clifford operator
-
+/// Expresses a given circuit as a sequence of Pauli rotations followed by a final Clifford operator.
 pub fn extract_rotations(circuit: &[(String, Vec<usize>)], nqubits: usize) -> Vec<(bool, String)> {
     let mut clifford = Clifford::identity(nqubits);
     let mut rotations: Vec<(bool, String)> = Vec::new();
 
     for (gate_name, qbits) in circuit.iter() {
         match gate_name.as_str() {
-            "cx" => clifford.append_cx(qbits[0], qbits[1]),
-            "cz" => clifford.append_cz(qbits[0], qbits[1]),
+            "id" => {}
+            "x" => clifford.append_x(qbits[0]),
+            "y" => clifford.append_y(qbits[0]),
+            "z" => clifford.append_z(qbits[0]),
             "h" => clifford.append_h(qbits[0]),
             "s" => clifford.append_s(qbits[0]),
             "sdg" => clifford.append_sdg(qbits[0]),
             "sx" => clifford.append_sx(qbits[0]),
             "sxdg" => clifford.append_sxdg(qbits[0]),
-            "x" => {
-                clifford.append_sx(qbits[0]);
-                clifford.append_sx(qbits[0])
-            }
-            "z" => {
-                clifford.append_s(qbits[0]);
-                clifford.append_s(qbits[0])
-            }
-            "y" => {
-                clifford.append_sx(qbits[0]);
-                clifford.append_s(qbits[0]);
-                clifford.append_s(qbits[0]);
-                clifford.append_sxdg(qbits[0]);
-            }
+            "cx" => clifford.append_cx(qbits[0], qbits[1]),
+            "cz" => clifford.append_cz(qbits[0], qbits[1]),
+            "cy" => clifford.append_cy(qbits[0], qbits[1]),
+            "swap" => clifford.append_swap(qbits[0], qbits[1]),
+            "iswap" => clifford.append_iswap(qbits[0], qbits[1]),
+            "ecr" => clifford.append_ecr(qbits[0], qbits[1]),
+            "dcx" => clifford.append_dcx(qbits[0], qbits[1]),
             "rz" => {
                 rotations.push(clifford.get_inverse_z(qbits[0]));
             }

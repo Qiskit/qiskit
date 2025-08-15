@@ -8,8 +8,10 @@ features_transpiler:
     is a circuit with multi-qubit Pauli rotations (implemented as :class:`.PauliEvolutionGate` gates)
     followed by Clifford gates. 
 
-    Currently the set of supported Clifford gates is ``["cx", "cz", "h", "s", "sdg", "sx", "sxdg", "x", "y", "z"]``
-    and the set of supported RZ-rotations is ``["t", "tdg", "rz"]`` (we automatically convert T and Tdg gates
+    The pass supports all of the Clifford gates in the list returned by :func:`.get_clifford_gate_names`,
+    namely
+    ``["id", "x", "y", "z", "h", "s", "sdg", "sx", "sxdg", "cx", "cz", "cy", "swap", "iswap", "ecr", "dcx"]``.
+    The list of supported RZ-rotations is ``["t", "tdg", "rz"]`` (we automatically convert T and Tdg gates
     to RZ-rotations).
 
     For example::

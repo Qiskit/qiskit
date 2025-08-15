@@ -129,6 +129,66 @@ impl Clifford {
         azip!((z0 in &mut z0, &z1 in &z1) *z0 ^= z1);
     }
 
+    /// ToDo: rewrite the following functions using native tableau manipulations
+    ///
+    /// Modifies the tableau in-place by appending CZ-gate
+    pub fn append_cz(&mut self, i: usize, j: usize) {
+        self.append_h(j);
+        self.append_cx(i, j);
+        self.append_h(j);
+    }
+
+    /// Modifies the tableau in-place by appending CY-gate
+    pub fn append_cy(&mut self, i: usize, j: usize) {
+        self.append_sdg(j);
+        self.append_cx(i, j);
+        self.append_s(j);
+    }
+
+    /// Modifies the tableau in-place by appending X-gate
+    pub fn append_x(&mut self, i: usize) {
+        self.append_sx(i);
+        self.append_sx(i);
+    }
+
+    /// Modifies the tableau in-place by appending Z-gate
+    pub fn append_z(&mut self, i: usize) {
+        self.append_s(i);
+        self.append_s(i);
+    }
+
+    /// Modifies the tableau in-place by appending Z-gate
+    pub fn append_y(&mut self, i: usize) {
+        self.append_sx(i);
+        self.append_s(i);
+        self.append_s(i);
+        self.append_sxdg(i);
+    }
+
+    /// Modifies the tableau in-place by appending iSWAP-gate
+    pub fn append_iswap(&mut self, i: usize, j: usize) {
+        self.append_s(i);
+        self.append_s(j);
+        self.append_h(i);
+        self.append_cx(i, j);
+        self.append_cx(j, i);
+        self.append_h(j);
+    }
+
+    /// Modifies the tableau in-place by appending ECR-gate
+    pub fn append_ecr(&mut self, i: usize, j: usize) {
+        self.append_s(i);
+        self.append_sx(j);
+        self.append_cx(i, j);
+        self.append_x(i);
+    }
+
+    /// Modifies the tableau in-place by appending DCX-gate
+    pub fn append_dcx(&mut self, i: usize, j: usize) {
+        self.append_cx(i, j);
+        self.append_cx(j, i);
+    }
+
     /// Modifies the tableau in-place by appending W-gate.
     /// This is equivalent to an Sdg gate followed by an H gate.
     pub fn append_v(&mut self, qubit: usize) {
@@ -137,13 +197,6 @@ impl Clifford {
             .multi_slice_mut((s![.., qubit], s![.., self.num_qubits + qubit]));
 
         azip!((x in &mut x, z in &mut z) (*x, *z) = (*x ^ *z, *x));
-    }
-
-    /// Modifies the tableau in-place by appending CZ-gate
-    pub fn append_cz(&mut self, i: usize, j: usize) {
-        self.append_h(j);
-        self.append_cx(i, j);
-        self.append_h(j);
     }
 
     /// Modifies the tableau in-place by appending V-gate.
