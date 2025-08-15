@@ -143,9 +143,8 @@ impl Clifford {
         azip!((z0 in &mut z0, &x1 in &x1) *z0 ^= x1);
     }
 
-    /// ToDo: rewrite the following functions using native tableau manipulations
-
     /// Modifies the tableau in-place by appending CY-gate
+    /// (todo: rewrite using native tableau manipulations)
     pub fn append_cy(&mut self, qubit0: usize, qubit1: usize) {
         self.append_sdg(qubit1);
         self.append_cx(qubit0, qubit1);
@@ -154,25 +153,33 @@ impl Clifford {
 
     /// Modifies the tableau in-place by appending X-gate
     pub fn append_x(&mut self, qubit: usize) {
-        self.append_sx(qubit);
-        self.append_sx(qubit);
+        let (z, mut p) = self
+            .tableau
+            .multi_slice_mut((s![.., self.num_qubits + qubit], s![.., 2 * self.num_qubits]));
+
+        azip!((p in &mut p, &z in &z)  *p ^= z);
     }
 
     /// Modifies the tableau in-place by appending Z-gate
     pub fn append_z(&mut self, qubit: usize) {
-        self.append_s(qubit);
-        self.append_s(qubit);
+        let (x, mut p) = self
+            .tableau
+            .multi_slice_mut((s![.., qubit], s![.., 2 * self.num_qubits]));
+        azip!((p in &mut p, &x in &x)  *p ^= x);
     }
 
     /// Modifies the tableau in-place by appending Z-gate
     pub fn append_y(&mut self, qubit: usize) {
-        self.append_sx(qubit);
-        self.append_s(qubit);
-        self.append_s(qubit);
-        self.append_sxdg(qubit);
+        let (x, z, mut p) = self.tableau.multi_slice_mut((
+            s![.., qubit],
+            s![.., self.num_qubits + qubit],
+            s![.., 2 * self.num_qubits],
+        ));
+        azip!((p in &mut p, &x in &x, &z in &z)  *p ^= x ^ z);
     }
 
     /// Modifies the tableau in-place by appending iSWAP-gate
+    /// (todo: rewrite using native tableau manipulations)
     pub fn append_iswap(&mut self, qubit0: usize, qubit1: usize) {
         self.append_s(qubit0);
         self.append_s(qubit1);
@@ -183,6 +190,7 @@ impl Clifford {
     }
 
     /// Modifies the tableau in-place by appending ECR-gate
+    /// (todo: rewrite using native tableau manipulations)
     pub fn append_ecr(&mut self, qubit0: usize, qubit1: usize) {
         self.append_s(qubit0);
         self.append_sx(qubit1);
@@ -191,6 +199,7 @@ impl Clifford {
     }
 
     /// Modifies the tableau in-place by appending DCX-gate
+    /// (todo: rewrite using native tableau manipulations)
     pub fn append_dcx(&mut self, qubit0: usize, qubit1: usize) {
         self.append_cx(qubit0, qubit1);
         self.append_cx(qubit1, qubit0);
