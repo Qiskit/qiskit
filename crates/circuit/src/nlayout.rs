@@ -40,6 +40,9 @@ macro_rules! qubit_newtype {
         pub struct $id(pub u32);
 
         impl $id {
+            /// The maximum storable index.
+            pub const MAX: Self = $id($crate::Qubit::MAX.index() as _);
+
             #[inline]
             pub fn new(val: u32) -> Self {
                 Self(val)
@@ -47,6 +50,17 @@ macro_rules! qubit_newtype {
             #[inline]
             pub fn index(&self) -> usize {
                 self.0 as usize
+            }
+        }
+
+        impl From<$id> for $crate::Qubit {
+            fn from(val: $id) -> Self {
+                $crate::Qubit(val.0)
+            }
+        }
+        impl From<$crate::Qubit> for $id {
+            fn from(val: $crate::Qubit) -> Self {
+                Self(val.0)
             }
         }
 
@@ -76,7 +90,7 @@ macro_rules! qubit_newtype {
                 self.0 as usize
             }
             fn max() -> Self {
-                Self(u32::MAX)
+                Self::MAX
             }
         }
     };
