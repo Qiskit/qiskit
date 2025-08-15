@@ -61,10 +61,10 @@ type PhysicalQargs = SmallVec<[PhysicalQubit; 2]>;
 
 #[pyfunction(name = "base_run", signature = (dag, equiv_lib, min_qubits, target=None, target_basis=None))]
 fn py_run_basis_translator(
-    dag: DAGCircuit,
+    dag: &DAGCircuit,
     equiv_lib: &mut EquivalenceLibrary,
     min_qubits: usize,
-    target: Option<&mut Target>,
+    target: Option<&Target>,
     target_basis: Option<HashSet<String>>,
 ) -> PyResult<Option<DAGCircuit>> {
     run_basis_translator(dag, equiv_lib, min_qubits, target, target_basis)
@@ -72,10 +72,10 @@ fn py_run_basis_translator(
 }
 
 pub fn run_basis_translator(
-    dag: DAGCircuit,
+    dag: &DAGCircuit,
     equiv_lib: &mut EquivalenceLibrary,
     min_qubits: usize,
-    mut target: Option<&mut Target>,
+    target: Option<&Target>,
     target_basis: Option<HashSet<String>>,
 ) -> Result<Option<DAGCircuit>, BasisTranslatorError> {
     if target_basis.is_none() && target.is_none() {
@@ -85,11 +85,15 @@ pub fn run_basis_translator(
     let (non_global_operations, qargs_with_non_global_operation): (
         Option<AhashIndexSet<String>>,
         AhashIndexMap<Qargs, AhashIndexSet<String>>,
-    ) = if let Some(target) = target.as_deref_mut() {
+    ) = if let Some(target) = target.as_deref() {
         let mut qargs_mapping: AhashIndexMap<Qargs, AhashIndexSet<String>> =
             AhashIndexMap::default();
-        let global_set: AhashIndexSet<String> =
-            AhashIndexSet::from_iter(target.get_non_global_operation_names(false).iter().cloned());
+        let global_set: AhashIndexSet<String> = AhashIndexSet::from_iter(
+            target
+                .get_non_global_operation_names(false)
+                .into_iter()
+                .map(|x| x.to_string()),
+        );
         for name in global_set.iter() {
             for qarg in target[name].keys().cloned() {
                 qargs_mapping

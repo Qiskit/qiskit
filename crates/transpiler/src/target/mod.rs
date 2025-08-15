@@ -220,7 +220,6 @@ pub struct Target {
     _gate_name_map: IndexMap<String, TargetOperation, RandomState>,
     global_operations: IndexMap<u32, HashSet<String>, RandomState>,
     qarg_gate_map: IndexMap<Qargs, Option<HashSet<String>>, RandomState>,
-    non_global_strict_basis: Option<Vec<String>>,
     non_global_basis: Option<Vec<String>>,
 }
 
@@ -316,7 +315,6 @@ impl Target {
             global_operations: IndexMap::default(),
             qarg_gate_map: IndexMap::default(),
             non_global_basis: None,
-            non_global_strict_basis: None,
         })
     }
 
@@ -701,7 +699,7 @@ impl Target {
     ///     List[str]: A list of operation names for operations that aren't global in this target
     #[pyo3(name = "get_non_global_operation_names", signature = (/, strict_direction=false,))]
     fn py_get_non_global_operation_names(
-        &mut self,
+        &self,
         py: Python<'_>,
         strict_direction: bool,
     ) -> PyResult<PyObject> {
@@ -830,10 +828,6 @@ impl Target {
             self.qarg_gate_map.clone().into_iter().collect_vec(),
         )?;
         result_list.set_item("non_global_basis", self.non_global_basis.clone())?;
-        result_list.set_item(
-            "non_global_strict_basis",
-            self.non_global_strict_basis.clone(),
-        )?;
         Ok(result_list.unbind())
     }
 
@@ -882,10 +876,6 @@ impl Target {
         );
         self.non_global_basis = state
             .get_item("non_global_basis")?
-            .unwrap()
-            .extract::<Option<Vec<String>>>()?;
-        self.non_global_strict_basis = state
-            .get_item("non_global_strict_basis")?
             .unwrap()
             .extract::<Option<Vec<String>>>()?;
         Ok(())
@@ -1017,7 +1007,6 @@ impl Target {
         self._gate_name_map.insert(name.to_string(), instruction);
         self.gate_map.insert(name.to_string(), props_map);
         self.non_global_basis = None;
-        self.non_global_strict_basis = None;
         Ok(())
     }
 
@@ -1151,7 +1140,7 @@ impl Target {
     }
 
     /// Generate non global operations if missing
-    fn generate_non_global_op_names(&mut self, strict_direction: bool) -> &[String] {
+    fn generate_non_global_op_names<'a>(&'a self, strict_direction: bool) -> Vec<&str> {
         let mut search_set: HashSet<SmallVec<[PhysicalQubit; 2]>> = HashSet::default();
         if strict_direction {
             // Build search set
@@ -1180,7 +1169,7 @@ impl Target {
                 }
             }
         }
-        let mut incomplete_basis_gates: Vec<String> = vec![];
+        let mut incomplete_basis_gates: Vec<&str> = Vec::new();
         let mut size_dict: IndexMap<u32, u32, RandomState> = IndexMap::default();
         *size_dict
             .entry(1)
@@ -1214,29 +1203,16 @@ impl Target {
                 }
                 if let Qargs::Concrete(qarg_sample) = qarg_sample {
                     if qarg_len != *size_dict.entry(qarg_sample.len() as u32).or_insert(0) {
-                        incomplete_basis_gates.push(inst.clone());
+                        incomplete_basis_gates.push(inst.as_str());
                     }
                 }
             }
         }
-        if strict_direction {
-            self.non_global_strict_basis = Some(incomplete_basis_gates);
-            self.non_global_strict_basis.as_ref().unwrap()
-        } else {
-            self.non_global_basis = Some(incomplete_basis_gates.clone());
-            self.non_global_basis.as_ref().unwrap()
-        }
+        incomplete_basis_gates
     }
 
     /// Get all non_global operation names.
-    pub fn get_non_global_operation_names(&mut self, strict_direction: bool) -> &[String] {
-        if strict_direction {
-            if self.non_global_strict_basis.is_some() {
-                return self.non_global_strict_basis.as_deref().unwrap();
-            }
-        } else if self.non_global_basis.is_some() {
-            return self.non_global_basis.as_deref().unwrap();
-        }
+    pub fn get_non_global_operation_names(&self, strict_direction: bool) -> Vec<&str> {
         self.generate_non_global_op_names(strict_direction)
     }
 
@@ -1507,7 +1483,6 @@ impl Default for Target {
             _gate_name_map: Default::default(),
             global_operations: Default::default(),
             qarg_gate_map: Default::default(),
-            non_global_strict_basis: None,
             non_global_basis: None,
         }
     }

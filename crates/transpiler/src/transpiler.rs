@@ -10,18 +10,19 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use hashbrown::{HashMap, HashSet};
+use hashbrown::HashSet;
 
 use pyo3::prelude::PyResult;
 
 use crate::commutation_checker::get_standard_commutation_checker;
+use crate::passes::sabre::route::PyRoutingTarget;
 use crate::passes::*;
 use crate::target::Target;
 use crate::transpile_layout::TranspileLayout;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::{PhysicalQubit, Qubit, VirtualQubit};
+use qiskit_circuit::{PhysicalQubit, Qubit};
 
 /// A transpilation function for Rust native circuits for use in the C API. This will not cover
 /// things that only exist in the Python API such as custom gates or control flow. When those
@@ -40,7 +41,12 @@ pub fn transpile(
     let dag = DAGCircuit::from_circuit_data(circuit, false, None, None, None, None)?;
     let mut commutation_checker = get_standard_commutation_checker();
     let mut equivalence_library = get_standard_equivalence_library();
-    let mut transpile_layout: TranspileLayout = TranspileLayout::new(None, None, dag.qubits().objects().to_owned(), dag.num_qubits() as u32);
+    let mut transpile_layout: TranspileLayout = TranspileLayout::new(
+        None,
+        None,
+        dag.qubits().objects().to_owned(),
+        dag.num_qubits() as u32,
+    );
 
     let unroll_3q_or_more = |dag: &mut DAGCircuit| -> PyResult<()> {
         // This will panic if there is a 3q unitary until qsd is ported
@@ -59,16 +65,7 @@ pub fn transpile(
             None,
             false,
         )?;
-        run_unroll_3q_or_more(&mut out_dag, Some(target))?;
-        out_dag = run_basis_translator(
-            &mut out_dag,
-            equivalence_library,
-            HashMap::new(),
-            3,
-            None,
-            Some(target),
-            None,
-        )?;
+        run_unroll_3q_or_more(&mut out_dag, Some(target)).unwrap();
         *dag = out_dag;
         Ok(())
     };
@@ -93,7 +90,7 @@ pub fn transpile(
         run_remove_identity_equiv(&mut dag, approximation_degree, Some(target));
         run_inverse_cancellation_standard_gates(&mut dag);
         cancel_commutations(&mut dag, &mut commutation_checker, None, 1.0)?;
-        run_consolidate_blocks(&mut dag, 1.0, false, None)?;
+        run_consolidate_blocks(&mut dag, false, approximation_degree, None)?;
         let result = run_split_2q_unitaries(
             &mut dag,
             approximation_degree
@@ -109,33 +106,47 @@ pub fn transpile(
     }
     // layout stage
 
-    let sabre_heuristic =
-        sabre::Heuristic::new(None, None, None, 10 * target.num_qubits().unwrap())
-            .with_basic(1.0, sabre::SetScaling::Constant)
-            .with_lookahead(0.5, 20, sabre::SetScaling::Size)
-            .with_decay(0.001, 5);
+    let sabre_heuristic = sabre::Heuristic::new(
+        None,
+        None,
+        None,
+        target.num_qubits.map(|x| (x * 10) as usize),
+        1e-10,
+    )
+    .with_basic(1.0, sabre::SetScaling::Constant)
+    .with_lookahead(0.5, 20, sabre::SetScaling::Size)
+    .with_decay(0.001, 5)?;
 
     if optimization_level == 0 {
         // Apply a trivial layout
-        apply_layout(&mut dag, &mut transpile_layout, target.num_qubits(), |x| {
-            PhysicalQubit(x.0)
-        });
+        apply_layout(
+            &mut dag,
+            &mut transpile_layout,
+            target.num_qubits.unwrap(),
+            |x| PhysicalQubit(x.0),
+        );
     } else if optimization_level == 1 {
-        if run_check_map(dag, target).is_none() {
-            apply_layout(&mut dag, &mut transpile_layout, target.num_qubits(), |x| {
-                PhysicalQubit(x.0)
-            });
+        if run_check_map(&dag, target).is_none() {
+            apply_layout(
+                &mut dag,
+                &mut transpile_layout,
+                target.num_qubits.unwrap(),
+                |x| PhysicalQubit(x.0),
+            );
         } else if let Some(vf2_result) =
             vf2_layout_pass(&dag, target, false, Some(5_000_000), None, Some(2500), None)?
         {
-            apply_layout(&mut dag, &mut transpile_layout, target.num_qubits(), |x| {
-                vf2_result[x]
-            });
+            apply_layout(
+                &mut dag,
+                &mut transpile_layout,
+                target.num_qubits.unwrap(),
+                |x| vf2_result[&x],
+            );
         } else {
             let (result, initial_layout, final_layout) = sabre::sabre_layout_and_routing(
                 &mut dag,
                 target,
-                sabre_heuristic,
+                &sabre_heuristic,
                 2,
                 20,
                 20,
@@ -146,9 +157,8 @@ pub fn transpile(
             dag = result;
             transpile_layout.initial_layout = Some(initial_layout);
             let permutation: Vec<Qubit> = final_layout
-                .virt_to_phys
-                .into_iter()
-                .map(|x| Qubit(x.0))
+                .iter_virtual()
+                .map(|(_, x)| Qubit(x.0))
                 .collect();
             transpile_layout.compose_output_permutation(&permutation, true);
         }
@@ -156,14 +166,17 @@ pub fn transpile(
         if let Some(vf2_result) =
             vf2_layout_pass(&dag, target, false, Some(5_000_000), None, Some(2500), None)?
         {
-            apply_layout(&mut dag, &mut transpile_layout, target.num_qubits(), |x| {
-                vf2_result[x]
-            });
+            apply_layout(
+                &mut dag,
+                &mut transpile_layout,
+                target.num_qubits.unwrap(),
+                |x| vf2_result[&x],
+            );
         } else {
             let (result, initial_layout, final_layout) = sabre::sabre_layout_and_routing(
                 &mut dag,
                 target,
-                sabre_heuristic,
+                &sabre_heuristic,
                 2,
                 20,
                 20,
@@ -174,9 +187,8 @@ pub fn transpile(
             dag = result;
             transpile_layout.initial_layout = Some(initial_layout);
             let permutation: Vec<Qubit> = final_layout
-                .virt_to_phys
-                .into_iter()
-                .map(|x| Qubit(x.0))
+                .iter_virtual()
+                .map(|(_, x)| Qubit(x.0))
                 .collect();
             transpile_layout.compose_output_permutation(&permutation, true);
         }
@@ -190,71 +202,81 @@ pub fn transpile(
             Some(250_000),
             None,
         )? {
-            apply_layout(&mut dag, &mut transpile_layout, target.num_qubits(), |x| {
-                vf2_result[x]
-            });
+            apply_layout(
+                &mut dag,
+                &mut transpile_layout,
+                target.num_qubits.unwrap(),
+                |x| vf2_result[&x],
+            );
         } else {
             let (result, initial_layout, final_layout) = sabre::sabre_layout_and_routing(
                 &mut dag,
                 target,
-                sabre_heuristic,
+                &sabre_heuristic,
                 4,
                 20,
                 20,
                 seed,
                 Vec::new(),
                 false,
-            );
+            )?;
             dag = result;
             transpile_layout.initial_layout = Some(initial_layout);
             let permutation: Vec<Qubit> = final_layout
-                .virt_to_phys
-                .into_iter()
-                .map(|x| Qubit(x.0))
+                .iter_virtual()
+                .map(|(_, x)| Qubit(x.0))
                 .collect();
             transpile_layout.compose_output_permutation(&permutation, true);
         }
     }
     // Routing stage
-    let vf2_post_result = if optimization_level == 0 {
+    //    let vf2_post_result =
+    if optimization_level == 0 {
+        let routing_target = PyRoutingTarget::from_target(target)?;
+
         if run_check_map(&dag, &target).is_none() {
             let (out_dag, final_layout) = sabre::sabre_routing(
                 &dag,
-                target,
-                sabre_heuristic,
-                transpile_layout.initial_layout,
+                &routing_target,
+                &sabre_heuristic,
+                &transpile_layout.initial_layout.unwrap(),
                 5,
                 seed,
                 Some(true),
             )?;
             dag = out_dag;
-            transpile_layout.compose_output_permutation(final_layout.virt_to_phys, true);
+            let routing_permutation: Vec<Qubit> = final_layout
+                .iter_virtual()
+                .map(|(_, x)| Qubit(x.0))
+                .collect();
+            transpile_layout.compose_output_permutation(&routing_permutation, true);
         }
-        None
-    } else if optimization_level == 1 {
-        vf2_post_layout_pass(&dag, target, false, Some(50_000), None, Some(2_500), None).unwrap()
-    } else if optimization_level == 2 {
-        vf2_post_layout_pass(&dag, target, false, Some(50_000), None, Some(2_500), None).unwrap()
-    } else {
-        vf2_post_layout_pass(
-            &dag,
-            target,
-            false,
-            Some(30_000_000),
-            None,
-            Some(250_000),
-            None,
-        )
-        .unwrap()
-    };
-    if let Some(post_layout) = vf2_post_result {
-        update_layout(&mut dag, &mut transpile_layout, |qubit| {
-            Qubit(post_layout[VirtualQubit(qubit.0)].0)
-        });
+        //        None
     }
+    //    else if optimization_level == 1 {
+    //        vf2_post_layout_pass(&dag, target, false, Some(50_000), None, Some(2_500), None).unwrap()
+    //    } else if optimization_level == 2 {
+    //        vf2_post_layout_pass(&dag, target, false, Some(50_000), None, Some(2_500), None).unwrap()
+    //    } else {
+    //        vf2_post_layout_pass(
+    //            &dag,
+    //            target,
+    //            false,
+    //            Some(30_000_000),
+    //            None,
+    //            Some(250_000),
+    //            None,
+    //        )
+    //        .unwrap()
+    //    };
+    //    if let Some(post_layout) = vf2_post_result {
+    //        update_layout(&mut dag, &mut transpile_layout, |qubit| {
+    //            Qubit(post_layout[VirtualQubit(qubit.0)].0)
+    //        });
+    //    }
     // Translation Stage
     let translation = |dag: &mut DAGCircuit| {
-        dag = run_unitary_synthesis(
+        *dag = run_unitary_synthesis(
             &mut dag,
             (0..dag.num_qubits()).collect(),
             0,
@@ -268,29 +290,12 @@ pub fn transpile(
             false,
         )
         .unwrap();
-        dag = run_basis_translator(
-            dag,
-            equivalence_library,
-            HashMap::new(),
-            0,
-            None,
-            Some(target),
-            None,
-        )
-        .unwrap();
+        *dag = run_basis_translator(dag, equivalence_library, 0, Some(target), None)?.unwrap();
         if !check_direction_target(&dag, target).unwrap() {
-            dag = fix_direction_target(&mut dag, target).unwrap();
+            *dag = fix_direction_target(&mut dag, target).unwrap();
             if gates_missing_from_target(&dag, target)? {
-                dag = run_basis_translator(
-                    dag,
-                    equivalence_library,
-                    HashMap::new(),
-                    0,
-                    None,
-                    Some(target),
-                    None,
-                )
-                .unwrap();
+                *dag =
+                    run_basis_translator(dag, equivalence_library, 0, Some(target), None)?.unwrap();
             }
         }
         Ok(())
@@ -316,7 +321,7 @@ pub fn transpile(
             new_size = Some(dag.size(false)?);
         }
     } else if optimization_level == 2 {
-        run_consolidate_blocks(&mut dag, target, approximation_degree, false);
+        run_consolidate_blocks(&mut dag, false, approximation_degree, Some(target));
         dag = run_unitary_synthesis(
             &mut dag,
             (0..dag.num_qubits()).collect(),
@@ -372,7 +377,7 @@ pub fn transpile(
         while min_point_check() {
             depth = new_depth;
             size = new_size;
-            run_consolidate_blocks(&mut dag, target, approximation_degree, false);
+            run_consolidate_blocks(&mut dag, false, approximation_degree, Some(target));
             dag = run_unitary_synthesis(
                 &mut dag,
                 (0..dag.num_qubits()).collect(),
