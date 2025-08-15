@@ -33,7 +33,7 @@ use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 use super::qubit_sparse_pauli::{
     raw_parts_from_sparse_list, ArithmeticError, CoherenceError, InnerReadError, InnerWriteError,
     LabelError, Pauli, PyQubitSparsePauli, PyQubitSparsePauliList, QubitSparsePauli,
-    QubitSparsePauliList, QubitSparsePauliView,
+    QubitSparsePauliList, QubitSparsePauliListLike, QubitSparsePauliView
 };
 
 /// A Pauli Lindblad map that stores its data in a qubit-sparse format. Note that gamma,
@@ -54,6 +54,48 @@ pub struct PauliLindbladMap {
     probabilities: Vec<f64>,
     /// List of boolean values for the statement rate >= 0 for each rate in rates.
     non_negative_rates: Vec<bool>,
+}
+
+impl QubitSparsePauliListLike for PauliLindbladMap {
+    fn pauli_list(&self) -> &QubitSparsePauliList {
+        &self.qubit_sparse_pauli_list
+    }
+
+    fn pauli_list_mut(&mut self) -> &mut QubitSparsePauliList {
+        &mut self.qubit_sparse_pauli_list
+    }
+
+    /// Drop every Pauli on the given `indices`, effectively replacing them with an identity.
+    ///
+    /// It ignores all the indices that are larger than `self.num_qubits`.
+    fn drop_paulis(&self, indices: HashSet<u32>) -> Result<Self, CoherenceError> {
+        Self::new(
+            self.rates().to_vec(),
+            self.pauli_list().drop_paulis(indices)?
+        )
+    }
+
+    /// Drop qubits corresponding to the given `indices`.
+    ///
+    /// It ignores all the indices that are larger than `self.num_qubits`.
+    fn drop_qubits(&self, indices: HashSet<u32>) -> Result<Self, CoherenceError> {
+        Self::new(
+            self.rates().to_vec(),
+            self.pauli_list().drop_qubits(indices)?
+        )
+    }
+
+    /// Apply a transpiler layout.
+    fn apply_layout(
+        &self,
+        layout: Option<&[u32]>,
+        num_qubits: u32,
+    ) -> Result<Self, CoherenceError> {
+        let qubit_sparse_pauli_list = self
+            .pauli_list()
+            .apply_layout(layout, num_qubits)?;
+        PauliLindbladMap::new(self.rates.clone(), qubit_sparse_pauli_list)
+    }
 }
 
 impl PauliLindbladMap {
@@ -93,18 +135,6 @@ impl PauliLindbladMap {
             })
     }
 
-    /// Get the number of qubits the map is defined on.
-    #[inline]
-    pub fn num_qubits(&self) -> u32 {
-        self.qubit_sparse_pauli_list.num_qubits()
-    }
-
-    /// Get the number of generator terms in the map.
-    #[inline]
-    pub fn num_terms(&self) -> usize {
-        self.rates.len()
-    }
-
     /// Get the rates of the generator terms.
     #[inline]
     pub fn rates(&self) -> &[f64] {
@@ -121,24 +151,6 @@ impl PauliLindbladMap {
     #[inline]
     pub fn non_negative_rates(&self) -> &[bool] {
         &self.non_negative_rates
-    }
-
-    /// Get the indices of each [Pauli].
-    #[inline]
-    pub fn indices(&self) -> &[u32] {
-        self.qubit_sparse_pauli_list.indices()
-    }
-
-    /// Get the boundaries of each term.
-    #[inline]
-    pub fn boundaries(&self) -> &[usize] {
-        self.qubit_sparse_pauli_list.boundaries()
-    }
-
-    /// Get the [Pauli]s in the map.
-    #[inline]
-    pub fn paulis(&self) -> &[Pauli] {
-        self.qubit_sparse_pauli_list.paulis()
     }
 
     /// Create a [PauliLindbladMap] representing the identity map on ``num_qubits`` qubits.
@@ -160,18 +172,6 @@ impl PauliLindbladMap {
         self.probabilities.push(p);
         self.non_negative_rates.push(pr);
         Ok(())
-    }
-
-    /// Apply a transpiler layout.
-    pub fn apply_layout(
-        &self,
-        layout: Option<&[u32]>,
-        num_qubits: u32,
-    ) -> Result<Self, CoherenceError> {
-        let qubit_sparse_pauli_list = self
-            .qubit_sparse_pauli_list
-            .apply_layout(layout, num_qubits)?;
-        PauliLindbladMap::new(self.rates.clone(), qubit_sparse_pauli_list)
     }
 
     /// Create a new identity map (with zero generator) with pre-allocated space for the given
@@ -290,81 +290,6 @@ impl PauliLindbladMap {
             QubitSparsePauliList::new_unchecked(self.num_qubits(), paulis, indices, boundaries)
         };
         Ok(PauliLindbladMap::new(rates, qubit_sparse_pauli_list).unwrap())
-    }
-
-    /// Drop every Pauli on the given `indices`, effectively replacing them with an identity.
-    ///
-    /// It ignores all the indices that are larger than `self.num_qubits`.
-    pub fn drop_paulis(&self, indices: HashSet<u32>) -> Result<Self, CoherenceError> {
-        let mut new_paulis: Vec<Pauli> = Vec::with_capacity(self.paulis().len());
-        let mut new_indices: Vec<u32> = Vec::with_capacity(self.indices().len());
-        let mut new_boundaries: Vec<usize> = Vec::with_capacity(self.boundaries().len());
-
-        new_boundaries.push(0);
-        let mut boundaries_idx = 1;
-        let mut current_boundary = self.boundaries()[boundaries_idx];
-
-        let mut num_dropped_paulis = 0;
-        for (i, (&pauli, &index)) in self.paulis().iter().zip(self.indices().iter()).enumerate() {
-            if current_boundary == i {
-                new_boundaries.push(current_boundary - num_dropped_paulis);
-
-                boundaries_idx += 1;
-                current_boundary = self.boundaries()[boundaries_idx]
-            }
-
-            if indices.contains(&index) {
-                num_dropped_paulis += 1;
-            } else {
-                new_indices.push(index);
-                new_paulis.push(pauli);
-            }
-        }
-        new_boundaries.push(current_boundary - num_dropped_paulis);
-
-        Self::new(
-            self.rates().to_vec(),
-            QubitSparsePauliList::new(self.num_qubits(), new_paulis, new_indices, new_boundaries)
-                .unwrap(),
-        )
-    }
-
-    /// Drop qubits corresponding to the given `indices`.
-    ///
-    /// It ignores all the indices that are larger than `self.num_qubits`.
-    pub fn drop_qubits(&self, indices: HashSet<u32>) -> Result<Self, CoherenceError> {
-        let mut new_paulis: Vec<Pauli> = Vec::with_capacity(self.paulis().len());
-        let mut new_indices: Vec<u32> = Vec::with_capacity(self.indices().len());
-        let mut new_boundaries: Vec<usize> = Vec::with_capacity(self.boundaries().len());
-
-        new_boundaries.push(0);
-        let mut boundaries_idx = 1;
-        let mut current_boundary = self.boundaries()[boundaries_idx];
-
-        let mut num_dropped_paulis = 0;
-        for (i, (&pauli, &index)) in self.paulis().iter().zip(self.indices().iter()).enumerate() {
-            if current_boundary == i {
-                new_boundaries.push(current_boundary - num_dropped_paulis);
-
-                boundaries_idx += 1;
-                current_boundary = self.boundaries()[boundaries_idx]
-            }
-
-            if indices.contains(&index) {
-                num_dropped_paulis += 1;
-            } else {
-                new_indices.push(index - (indices.iter().filter(|&&x| x < index).count() as u32));
-                new_paulis.push(pauli);
-            }
-        }
-        new_boundaries.push(current_boundary - num_dropped_paulis);
-
-        let new_num_qubits = self.num_qubits() - (indices.len() as u32);
-        Self::new(
-            self.rates().to_vec(),
-            QubitSparsePauliList::new(new_num_qubits, new_paulis, new_indices, new_boundaries)
-                .unwrap(),
-        )
     }
 
     /// Compute the fidelity of the map for a single pauli
@@ -866,6 +791,8 @@ pub struct PyPauliLindbladMap {
     inner: Arc<RwLock<PauliLindbladMap>>,
 }
 
+impl_py_qspl_methods!(PyPauliLindbladMap);
+
 #[pymethods]
 impl PyPauliLindbladMap {
     #[pyo3(signature = (data, /, num_qubits=None))]
@@ -1144,25 +1071,6 @@ impl PyPauliLindbladMap {
     fn copy(&self) -> PyResult<Self> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         Ok(inner.clone().into())
-    }
-
-    /// The number of qubits the map acts on.
-    ///
-    /// This is not inferable from any other shape or values, since identities are not stored
-    /// explicitly.
-    #[getter]
-    #[inline]
-    pub fn num_qubits(&self) -> PyResult<u32> {
-        let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        Ok(inner.num_qubits())
-    }
-
-    /// The number of generator terms in the exponent for this map.
-    #[getter]
-    #[inline]
-    pub fn num_terms(&self) -> PyResult<usize> {
-        let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        Ok(inner.num_terms())
     }
 
     /// Calculate the :math:`\gamma` for the map.
