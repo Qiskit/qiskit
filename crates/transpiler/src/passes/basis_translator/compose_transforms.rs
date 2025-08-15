@@ -44,7 +44,7 @@ pub type BasisTransformIn = (SmallVec<[Param; 3]>, CircuitFromPython);
 pub type BasisTransformOut = (SmallVec<[Param; 3]>, DAGCircuit);
 
 static STD_GATE_MAPPING: OnceLock<HashMap<&str, StandardGate>> = OnceLock::new();
-static STD_INST_MAPPING: OnceLock<HashSet<&str>> = OnceLock::new();
+static STD_INST_SET: OnceLock<HashSet<&str>> = OnceLock::new();
 
 pub(super) fn compose_transforms<'a>(
     basis_transforms: &'a [(GateIdentifier, BasisTransformIn)],
@@ -83,12 +83,17 @@ pub(super) fn compose_transforms<'a>(
         let gate = if let Some(op) = name_to_packed_operation(&gate_name, gate_num_qubits) {
             op
         } else {
-            let extract_py = Python::with_gil(|py| -> PyResult<OperationFromPython> {
-                GATE.get_bound(py)
-                    .call1((&gate_name, gate_num_qubits, placeholder_params.as_ref()))?
-                    .extract()
-            })
-            .map_err(|err| BasisTranslatorError::ComposeTransformsGateError(err.to_string()))?;
+            let extract_py =
+                Python::with_gil(|py| -> Result<OperationFromPython, BasisTranslatorError> {
+                    let gate = || -> PyResult<OperationFromPython> {
+                        GATE.get_bound(py)
+                            .call1((&gate_name, gate_num_qubits, placeholder_params.as_ref()))?
+                            .extract()
+                    };
+                    gate().map_err(|err| {
+                        BasisTranslatorError::ComposeTransformsGateError(err.to_string())
+                    })
+                })?;
             placeholder_params = extract_py.params;
             extract_py.operation
         };
@@ -171,8 +176,8 @@ fn name_to_packed_operation(name: &str, num_qubits: u32) -> Option<PackedOperati
             .map(|(k, v)| (*v, bytemuck::checked::cast(k as u8)))
             .collect()
     });
-    let std_instruction_mapping = STD_INST_MAPPING
-        .get_or_init(|| HashSet::from_iter(["barrier", "delay", "measure", "reset"]));
+    let std_instruction_mapping =
+        STD_INST_SET.get_or_init(|| HashSet::from_iter(["barrier", "delay", "measure", "reset"]));
     if let Some(operation) = std_gate_mapping.get(name) {
         Some((*operation).into())
     } else if std_instruction_mapping.contains(name) {
