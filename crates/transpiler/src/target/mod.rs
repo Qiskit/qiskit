@@ -1229,15 +1229,15 @@ impl Target {
     }
 
     /// Get all non_global operation names.
-    pub fn get_non_global_operation_names(&mut self, strict_direction: bool) -> Option<&[String]> {
+    pub fn get_non_global_operation_names(&mut self, strict_direction: bool) -> &[String] {
         if strict_direction {
             if self.non_global_strict_basis.is_some() {
-                return self.non_global_strict_basis.as_deref();
+                return self.non_global_strict_basis.as_deref().unwrap();
             }
         } else if self.non_global_basis.is_some() {
-            return self.non_global_basis.as_deref();
+            return self.non_global_basis.as_deref().unwrap();
         }
-        Some(self.generate_non_global_op_names(strict_direction))
+        self.generate_non_global_op_names(strict_direction)
     }
 
     /// Gets all the operation names that use these qargs. Rust native equivalent of ``BaseTarget.operation_names_for_qargs()``
