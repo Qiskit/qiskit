@@ -138,7 +138,7 @@ impl Display for DurationUnit {
         let unit_str = match self {
             DurationUnit::Nanosecond => "ns",
             DurationUnit::Microsecond => "us",
-            DurationUnit::Millisecond => "us",
+            DurationUnit::Millisecond => "ms",
             DurationUnit::Second => "s",
             DurationUnit::Sample => "dt",
         };
@@ -443,4 +443,18 @@ pub struct Continue {}
 pub enum OP<'a> {
     UnaryOp(&'a UnaryOp),
     BinaryOp(&'a BinaryOp),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::DurationUnit;
+
+    #[test]
+    fn duration_unit_display_formats_correctly() {
+        assert_eq!(format!("{}", DurationUnit::Millisecond), "ms");
+        assert_eq!(format!("{}", DurationUnit::Microsecond), "us");
+        assert_eq!(format!("{}", DurationUnit::Nanosecond), "ns");
+        assert_eq!(format!("{}", DurationUnit::Second), "s");
+        assert_eq!(format!("{}", DurationUnit::Sample), "dt");
+    }
 }
