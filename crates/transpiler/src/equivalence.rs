@@ -44,6 +44,8 @@ use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::{Operation, OperationRef};
 use qiskit_circuit::packed_instruction::PackedOperation;
 
+use crate::libraries::standard_equivalence_library::get_standard_equivalence_library;
+
 mod exceptions {
     use pyo3::import_exception_bound;
     import_exception_bound! {qiskit.circuit.exceptions, CircuitError}
@@ -406,6 +408,7 @@ impl EquivalenceLibrary {
         equivalent_circuit: CircuitFromPython,
     ) -> PyResult<()> {
         self.add_equivalence(&gate.operation, &gate.params, equivalent_circuit.0)
+            .map_err(|e| CircuitError::new_err(e.message))
     }
 
     /// Check if a library contains any decompositions for gate.
@@ -439,6 +442,7 @@ impl EquivalenceLibrary {
             &gate.params,
             entry.into_iter().map(|circ| circ.0).collect(),
         )
+        .map_err(|err| CircuitError::new_err(err.message))
     }
 
     /// Gets the set of :class:`.QuantumCircuit` instances circuits from the
@@ -600,7 +604,7 @@ impl EquivalenceLibrary {
         gate: &PackedOperation,
         params: &[Param],
         equivalent_circuit: CircuitData,
-    ) -> PyResult<()> {
+    ) -> Result<(), EquivalenceError> {
         raise_if_shape_mismatch(gate, &equivalent_circuit)?;
         raise_if_param_mismatch(params, &equivalent_circuit)?;
         let key: Key = Key::from_operation(gate);
@@ -645,7 +649,7 @@ impl EquivalenceLibrary {
         gate: &PackedOperation,
         params: &[Param],
         entry: Vec<CircuitData>,
-    ) -> PyResult<()> {
+    ) -> Result<(), EquivalenceError> {
         for equiv in entry.iter() {
             raise_if_shape_mismatch(gate, equiv)?;
             raise_if_param_mismatch(params, equiv)?;
@@ -713,7 +717,10 @@ impl EquivalenceLibrary {
     }
 }
 
-fn raise_if_param_mismatch(gate_params: &[Param], circuit: &CircuitData) -> PyResult<()> {
+fn raise_if_param_mismatch(
+    gate_params: &[Param],
+    circuit: &CircuitData,
+) -> Result<(), EquivalenceError> {
     let parsed_gate_params: HashSet<Symbol> = gate_params
         .iter()
         .filter_map(|param| match param {
@@ -726,7 +733,7 @@ fn raise_if_param_mismatch(gate_params: &[Param], circuit: &CircuitData) -> PyRe
     if circuit.iter_parameters().enumerate().any(|(idx, symbol)| {
         idx >= parsed_gate_params.len() || !parsed_gate_params.contains(symbol)
     }) {
-        return Err(CircuitError::new_err(format!(
+        return Err(EquivalenceError::new_err(format!(
             "Cannot add equivalence between circuit and gate \
         of different parameters. Gate params: {gate_params:?}. \
         Circuit params: {:?}.",
@@ -736,12 +743,15 @@ fn raise_if_param_mismatch(gate_params: &[Param], circuit: &CircuitData) -> PyRe
     Ok(())
 }
 
-fn raise_if_shape_mismatch(gate: &PackedOperation, circuit: &CircuitData) -> PyResult<()> {
+fn raise_if_shape_mismatch(
+    gate: &PackedOperation,
+    circuit: &CircuitData,
+) -> Result<(), EquivalenceError> {
     let op_ref = gate.view();
     if op_ref.num_qubits() != circuit.num_qubits() as u32
         || op_ref.num_clbits() != circuit.num_clbits() as u32
     {
-        return Err(CircuitError::new_err(format!(
+        return Err(EquivalenceError::new_err(format!(
             "Cannot add equivalence between circuit and gate \
             of different shapes. Gate: {} qubits and {} clbits. \
             Circuit: {} qubits and {} clbits.",
@@ -822,11 +832,18 @@ where
     Ok(graph.unbind())
 }
 
+#[pyfunction]
+#[pyo3(name = "get_standard_equivalence_library")]
+fn py_get_standard_equivalence_library() -> EquivalenceLibrary {
+    get_standard_equivalence_library().clone()
+}
+
 pub fn equivalence(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<EquivalenceLibrary>()?;
     m.add_class::<NodeData>()?;
     m.add_class::<EdgeData>()?;
     m.add_class::<Equivalence>()?;
     m.add_class::<Key>()?;
+    m.add_wrapped(wrap_pyfunction!(py_get_standard_equivalence_library))?;
     Ok(())
 }
