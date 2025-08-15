@@ -378,10 +378,7 @@ mod test {
             PhysicalQubit(7),
             PhysicalQubit(8),
         ];
-        let expected: Vec<u32> = initial_layout_vec
-            .iter()
-            .map(|x| x.0)
-            .collect();
+        let expected: Vec<u32> = initial_layout_vec.iter().map(|x| x.0).collect();
         let initial_layout = NLayout::from_virtual_to_physical(initial_layout_vec).unwrap();
         let routing_permutation = vec![
             Qubit(2),
