@@ -8,12 +8,11 @@ QkTranspileLayout
 
 The ``QkTranspileLayout`` type is used to model the permutations introduced by
 the transpiler. In general Qiskit's transpiler is unitary-preserving up to the
-initial layout and output permutations. The initial layout permutation is
-caused by setting and applying the initial layout (the mapping from virtual
-circuit qubits to physical qubits on the target) and the output permutation
-is caused by swap gate insertion or permutation elision prior to the initial
-layout being set in the transpiler pipeline. This type tracks these details and
-provide an interface to reason about these permutations.
+initial layout and output permutations. The initial layout is the mapping
+from virtual circuit qubits to physical qubits on the target and the output
+permutation is caused by swap gate insertion or permutation elision prior to
+the initial layout being set in the transpiler pipeline. This type tracks these
+details and provide an interface to reason about these permutations.
 
 For example if you had a circuit constructed like:
 
@@ -33,6 +32,7 @@ and during the layout stage the transpiler maps the virtual qubits in that
 circuit to the physical circuits as:
 
 .. code-block:: text
+
     0 -> 2, 1 -> 1, 2 -> 0
 
 so the circuit would look like:
