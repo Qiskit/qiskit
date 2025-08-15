@@ -63,6 +63,7 @@ class TestApplyLayout(QiskitTestCase):
     def test_empty_post_layout(self):
         """If the layout and the backend are empty, the pass should still be well behaved."""
 
+        # pylint: disable=missing-class-docstring
         class SetEmptyLayouts(AnalysisPass):
             def run(self, dag):
                 self.property_set["layout"] = Layout()
