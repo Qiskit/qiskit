@@ -448,16 +448,16 @@ class Instruction(Operation):
     def __deepcopy__(self, memo=None):
         if memo is None:
             memo = {}
-        
+
         obj_id = id(self)
         if obj_id in memo:
             return memo[obj_id]
-        
+
         cpy = copy.copy(self)
         memo[obj_id] = cpy
 
         cpy._params = copy.deepcopy(self._params, memo)
-        
+
         if getattr(self, "_definition", None) is not None:
             cpy._definition = copy.deepcopy(self._definition, memo)
         else:
