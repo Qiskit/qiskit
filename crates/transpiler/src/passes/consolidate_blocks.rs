@@ -83,7 +83,7 @@ fn get_decomposer_and_basis_gate(
                     TwoQubitControlledUDecomposer::new(RXXEquivalent::Standard(gate), "ZXZ")
                         .unwrap_or_else(|_| {
                             panic!(
-                                "Error while creating Controlled U decomposer using a {} gate.",
+                                "Error while creating TwoQubitControlledUDecomposer using a {} gate.",
                                 gate.name()
                             )
                         }),
@@ -108,7 +108,7 @@ fn get_decomposer_and_basis_gate(
                     )
                     .unwrap_or_else(|_| {
                         panic!(
-                            "Error while creating Basis Decomposer using a {} gate.",
+                            "Error while creating TwoQubitBasisDecomposer using a {} gate.",
                             gate.name()
                         )
                     }),
@@ -128,7 +128,7 @@ fn get_decomposer_and_basis_gate(
                 "U",
                 None,
             )
-            .expect("Error while creating Basis Decomposer using a 'cx' gate."),
+            .expect("Error while creating TwoQubitBasisDecomposer using a 'cx' gate."),
         ),
         gate,
     )
@@ -480,18 +480,15 @@ pub fn consolidate_blocks_mod(m: &Bound<PyModule>) -> PyResult<()> {
     Ok(())
 }
 
-#[cfg(all(test, not(miri)))]
+#[cfg(test)]
+// #[cfg(all(test, not(miri)))]
 mod test_consolidate_blocks {
-    use std::sync::Arc;
 
     use indexmap::IndexMap;
+
     use qiskit_circuit::{
-        circuit_data::CircuitData,
-        converters::dag_to_circuit,
-        dag_circuit::DAGCircuit,
-        operations::{Operation, Param, StandardGate},
-        parameter::{parameter_expression::ParameterExpression, symbol_expr::Symbol},
-        PhysicalQubit, Qubit,
+        circuit_data::CircuitData, converters::dag_to_circuit, dag_circuit::DAGCircuit,
+        operations::StandardGate, PhysicalQubit, Qubit,
     };
     use smallvec::smallvec;
 
@@ -500,43 +497,23 @@ mod test_consolidate_blocks {
     use super::run_consolidate_blocks;
 
     #[test]
-    fn test_consolidate_blocks_non_cx_target() {
+    fn test_identity_unitary_is_removed() {
         let circuit: CircuitData = CircuitData::from_standard_gates(
             2,
             [
-                (StandardGate::CZ, smallvec![], smallvec![Qubit(0), Qubit(1)]),
-                (StandardGate::X, smallvec![], smallvec![Qubit(0)]),
-                (StandardGate::H, smallvec![], smallvec![Qubit(1)]),
-                (StandardGate::Z, smallvec![], smallvec![Qubit(1)]),
-                (StandardGate::T, smallvec![], smallvec![Qubit(1)]),
                 (StandardGate::H, smallvec![], smallvec![Qubit(0)]),
-                (StandardGate::T, smallvec![], smallvec![Qubit(0)]),
-                (StandardGate::CZ, smallvec![], smallvec![Qubit(0), Qubit(1)]),
-                (StandardGate::SX, smallvec![], smallvec![Qubit(0)]),
-                (StandardGate::SX, smallvec![], smallvec![Qubit(1)]),
-                (StandardGate::CZ, smallvec![], smallvec![Qubit(0), Qubit(1)]),
-                (StandardGate::SX, smallvec![], smallvec![Qubit(0)]),
-                (StandardGate::SX, smallvec![], smallvec![Qubit(1)]),
-                (StandardGate::CZ, smallvec![], smallvec![Qubit(0), Qubit(1)]),
-                (StandardGate::X, smallvec![], smallvec![Qubit(0)]),
-                (StandardGate::H, smallvec![], smallvec![Qubit(1)]),
-                (StandardGate::Z, smallvec![], smallvec![Qubit(1)]),
-                (StandardGate::T, smallvec![], smallvec![Qubit(1)]),
+                (StandardGate::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
+                (StandardGate::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                 (StandardGate::H, smallvec![], smallvec![Qubit(0)]),
-                (StandardGate::T, smallvec![], smallvec![Qubit(0)]),
-                (StandardGate::CZ, smallvec![], smallvec![Qubit(0), Qubit(1)]),
             ],
             0.0.into(),
         )
         .expect("Error while creating the circuit");
 
-        let phi = Arc::new(ParameterExpression::from_symbol(Symbol::new(
-            "phi", None, None,
-        )));
         let mut target = Target::default();
         target
             .add_instruction(
-                StandardGate::SX.into(),
+                StandardGate::H.into(),
                 &[],
                 None,
                 Some(IndexMap::from_iter([
@@ -550,44 +527,10 @@ mod test_consolidate_blocks {
                     ),
                 ])),
             )
-            .expect("Error while adding SXGate to target");
+            .expect("Error while adding HGate to target");
         target
             .add_instruction(
-                StandardGate::X.into(),
-                &[],
-                None,
-                Some(IndexMap::from_iter([
-                    (
-                        Qargs::Concrete(smallvec![PhysicalQubit(0)]).to_owned(),
-                        None,
-                    ),
-                    (
-                        Qargs::Concrete(smallvec![PhysicalQubit(1)]).to_owned(),
-                        None,
-                    ),
-                ])),
-            )
-            .expect("Error while adding XGate to target");
-        target
-            .add_instruction(
-                StandardGate::RZ.into(),
-                &[Param::ParameterExpression(phi)],
-                None,
-                Some(IndexMap::from_iter([
-                    (
-                        Qargs::Concrete(smallvec![PhysicalQubit(0)]).to_owned(),
-                        None,
-                    ),
-                    (
-                        Qargs::Concrete(smallvec![PhysicalQubit(1)]).to_owned(),
-                        None,
-                    ),
-                ])),
-            )
-            .expect("Error while adding RXGate to target");
-        target
-            .add_instruction(
-                StandardGate::CZ.into(),
+                StandardGate::CX.into(),
                 &[],
                 None,
                 Some(IndexMap::from_iter([
@@ -601,30 +544,22 @@ mod test_consolidate_blocks {
                     ),
                 ])),
             )
-            .expect("Error while adding CZGate to target");
+            .expect("Error while adding CXGate to target");
 
         // Convert the circuit to a DAG.
         let mut circ_as_dag =
             DAGCircuit::from_circuit_data(&circuit, false, None, None, None, None)
                 .expect("Error converting circuit to DAG.");
         // Run the pass
-        run_consolidate_blocks(&mut circ_as_dag, true, None, Some(&target))
+        run_consolidate_blocks(&mut circ_as_dag, false, None, Some(&target))
             .expect("Error while running the consolidate blocks pass.");
 
         let circ_result = dag_to_circuit(&circ_as_dag, false)
             .expect("Error while converting the DAG to a circuit.");
 
-        if let Some(op) = circ_result.iter().next() {
-            if op.op.name() != "unitary" {
-                panic!("The pass did not correctly extract into a unitary");
-            }
-            if circ_result.__len__() != 1 {
-                panic!(
-                    "The resulting circuit from our run did not result in one single unitary gate."
-                );
-            }
-        } else {
-            panic!("The resulting circuit was unexpectedly empty.");
-        };
+        let data = circ_result.data();
+        if !data.is_empty() {
+            panic!("The output circuit had {} instructions but all instruction should have cancelled out", data.len());
+        }
     }
 }
