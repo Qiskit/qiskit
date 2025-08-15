@@ -1,0 +1,13 @@
+---
+features_transpiler:
+  - |
+    Added a new argument ``optimize_clifford_t`` to the :class:`.HighLevelSynthesis`
+    transpiled pass. When set to ``True``, the pass chooses decompositions
+    that are more suitable for the Clifford+T gate set.
+  - |
+    The default high-level synthesis plugin for :class:`.MultiplierGate` produces
+    better T-counts when transpiling into Clifford+T basis set.
+  - |
+    The default high-level synthesis plugin for :class:`.MCXGate` produces
+    better T-counts when transpiling into Clifford+T basis set, provided at least
+    1 ancilla qubit is available.

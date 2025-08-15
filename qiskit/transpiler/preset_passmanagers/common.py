@@ -190,6 +190,7 @@ def generate_unroll_3q(
     unitary_synthesis_plugin_config=None,
     hls_config=None,
     qubits_initially_zero=True,
+    optimize_clifford_t=False,
 ):
     """Generate an unroll >3q :class:`~qiskit.transpiler.PassManager`
 
@@ -209,6 +210,8 @@ def generate_unroll_3q(
             Specifies how to synthesize various high-level objects.
         qubits_initially_zero (bool): Indicates whether the input circuit is
             zero-initialized.
+        optimize_clifford_t (bool): Indicates whether the unrolling should be
+            optimized towards Clifford+T gate set.
 
     Returns:
         PassManager: The unroll 3q or more pass manager
@@ -234,6 +237,7 @@ def generate_unroll_3q(
             basis_gates=basis_gates,
             min_qubits=3,
             qubits_initially_zero=qubits_initially_zero,
+            optimize_clifford_t=optimize_clifford_t,
         )
     )
     # If there are no target instructions revert to using unroll3qormore so
@@ -514,6 +518,7 @@ def generate_translation_passmanager(
                 equivalence_library=sel,
                 basis_gates=extended_basis_gates,
                 qubits_initially_zero=qubits_initially_zero,
+                optimize_clifford_t=True,
             ),
             # Use the BasisTranslator pass to translate all the gates into extended_basis_gates.
             # In other words, this translates the gates in the equivalence library that are not
