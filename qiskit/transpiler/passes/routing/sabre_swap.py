@@ -263,6 +263,7 @@ class SabreSwap(TransformationPass):
             self.seed,
         )
         sabre_stop = time.perf_counter()
+<<<<<<< HEAD
         logging.debug("Sabre swap algorithm execution complete in: %s", sabre_stop - sabre_start)
         final_layout = Layout(dict(zip(dag.qubits, final_permutation)))
         if self.property_set["final_layout"] is None:
@@ -280,6 +281,22 @@ class SabreSwap(TransformationPass):
             initial_layout,
             dag.qubits,
             circuit_to_dag_dict,
+=======
+        LOG.debug("Sabre swap algorithm execution complete in: %s", sabre_stop - sabre_start)
+        permutation = [
+            final_layout.virtual_to_physical(initial_layout.physical_to_virtual(i))
+            for i in range(num_dag_qubits)
+        ]
+        layout = Layout(dict(zip(dag.qubits, permutation)))
+        self.property_set["final_layout"] = (
+            layout
+            if (prev := self.property_set["final_layout"]) is None
+            # The "final layout" can be thought of as a "comes from" permutation that you apply at
+            # the end of the circuit to invert the routing.  So if there's an existing one, what we
+            # apply at the end of the circuit needs to set the circuit qubits so they "come from"
+            # the previous one, then those "come from" the one we've just added.
+            else prev.compose(layout, dag.qubits)
+>>>>>>> dfcc5c6ce (Fix composition of `final_layout` (#14919))
         )
 
 
