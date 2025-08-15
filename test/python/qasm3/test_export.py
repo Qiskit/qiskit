@@ -739,6 +739,9 @@ c[1] = measure q[1];
         qc.delay(expr.div(s, 2.0), qreg[1])
         qc.delay(expr.add(expr.mul(s, expr.div(Duration.dt(1000), Duration.ns(200))), t), qreg[0])
 
+        # "ps" is not a valid unit in OQ3, so we need to convert.
+        qc.delay(expr.add(expr.mul(s, expr.div(Duration.dt(1000), Duration.ps(2))), t), qreg[0])
+
         expected_qasm = "\n".join(
             [
                 "OPENQASM 3.0;",
@@ -747,9 +750,10 @@ c[1] = measure q[1];
                 "stretch t;",
                 "delay[100ms] qr[0];",
                 "delay[100.0ms] qr[0];",
-                "delay[2000ns] qr[1];",
+                "delay[0.002ns] qr[1];",
                 "delay[s / 2.0] qr[1];",
                 "delay[s * (1000dt / 200.0ns) + t] qr[0];",
+                "delay[s * (1000dt / 0.002ns) + t] qr[0];",
                 "",
             ]
         )
@@ -1359,6 +1363,9 @@ c[1] = measure q[1];
         with qc.box(duration=a):
             with qc.box(duration=expr.mul(2, a)):
                 pass
+        with qc.box(duration=a):
+            with qc.box(duration=expr.add(expr.mul(2, a), Duration.ps(2))):
+                pass
 
         expected = """\
 OPENQASM 3.0;
@@ -1377,6 +1384,10 @@ box[200dt] {
 }
 box[a] {
   box[2 * a] {
+  }
+}
+box[a] {
+  box[2 * a + 0.002ns] {
   }
 }
 """
