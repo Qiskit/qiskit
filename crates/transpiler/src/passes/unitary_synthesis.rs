@@ -108,6 +108,8 @@ static TWO_QUBIT_BASIS_SET_GATES: [StandardGate; 7] = [
     StandardGate::ECR,
 ];
 
+pub(crate) use {PARAM_SET, TWO_QUBIT_BASIS_SET};
+
 #[derive(Clone, Debug)]
 enum DecomposerType {
     TwoQubitBasis(Box<TwoQubitBasisDecomposer>),
