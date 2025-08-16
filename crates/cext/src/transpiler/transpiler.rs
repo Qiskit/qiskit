@@ -9,12 +9,17 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
+use std::ffi::c_char;
+use std::ffi::CString;
 
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_transpiler::target::Target;
 
-use qiskit_transpiler::{transpile, TranspileLayout};
+use qiskit_transpiler::transpile;
+use qiskit_transpiler::transpile_layout::TranspileLayout;
+
+use crate::pointers::const_ptr_as_ref;
 
 /// @ingroup QkTranspiler
 /// The container result object from ``qk_transpile``
@@ -31,7 +36,7 @@ struct TranspileResult {
 #[repr(C)]
 struct TranspileOptions {
     /// The optimization level to run the transpiler with
-    optimization_level: i8,
+    optimization_level: u8,
     /// The seed for the transpiler
     seed: i64,
     /// The approximation degree a heurstic dial where 1.0 means no approximation (up to numerical
@@ -70,49 +75,56 @@ impl Default for TranspileOptions {
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile(
-    qc: *const CiruitData,
+    qc: *const CircuitData,
     target: *const Target,
     options: *const TranspileOptions,
     result: *mut TranspileResult,
     error: *mut *mut c_char,
 ) -> i32 {
-    if ![0, 1, 2, 3].contains(options.optimization_level) {
-        panic!("Invalid optimization level specified {optimization_level}");
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let qc = unsafe { const_ptr_as_ref(qc) };
+    let target = unsafe { const_ptr_as_ref(target) };
+    let options = unsafe { const_ptr_as_ref(options) };
+    if ![0, 1, 2, 3].contains(&options.optimization_level) {
+        panic!(
+            "Invalid optimization level specified {}",
+            options.optimization_level
+        );
     }
     let seed = if options.seed < 0 {
         None
     } else {
-        seed = Some(seed as u64)
+        Some(options.seed as u64)
     };
-    if approximation_degree.is_nan() {
+    let approximation_degree = if options.approximation_degree.is_nan() {
         None
     } else {
-        if !(0.0..=1.0).contains(&approximation_degree) {
+        if !(0.0..=1.0).contains(&options.approximation_degree) {
             panic!("Invalid value provided for approximation degree, only NAN or values between 0.0 and 1.0 inclusive are valid");
         }
-        Some(approximation_degree)
+        Some(options.approximation_degree)
     };
 
-    approximation_degree = Some(1.0);
-    // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let circuit = unsafe { const_ptr_as_ref(circuit) };
-    let target = unsafe { const_ptr_as_ref(target) };
     match transpile(
-        circuit,
+        qc,
         target,
-        optimization_level,
-        seed,
+        options.optimization_level,
         approximation_degree,
+        seed,
     ) {
-        Ok(result) => {
-            *result = TranspileResult {
-                circuit: Box::into_raw(Box::new(result.0)),
-                layout: Box::into_raw(Box::new(TranspileLayout)),
-            };
+        Ok(transpile_result) => {
+            unsafe {
+                *result = TranspileResult {
+                    circuit: Box::into_raw(Box::new(transpile_result.0)),
+                    layout: Box::into_raw(Box::new(transpile_result.1)),
+                };
+            }
             0
         }
         Err(e) => {
-            *error = CString::new(e).unwrap().into_raw();
+            unsafe {
+                *error = CString::new(e.to_string()).unwrap().into_raw();
+            }
             1
         }
     }
