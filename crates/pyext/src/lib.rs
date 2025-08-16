@@ -30,6 +30,7 @@ where
 #[pymodule]
 fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_transpiler::passes::alap_schedule_analysis_mod, "alap_schedule_analysis")?;
+    add_submodule(m, ::qiskit_transpiler::passes::apply_layout_mod, "apply_layout")?;
     add_submodule(m, ::qiskit_transpiler::passes::barrier_before_final_measurements_mod, "barrier_before_final_measurement")?;
     add_submodule(m, ::qiskit_transpiler::passes::basis_translator_mod, "basis_translator")?;
     add_submodule(m, ::qiskit_transpiler::passes::check_map_mod, "check_map")?;
@@ -73,6 +74,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_synthesis::two_qubit_decompose::two_qubit_decompose, "two_qubit_decompose")?;
     add_submodule(m, ::qiskit_transpiler::passes::unitary_synthesis_mod, "unitary_synthesis")?;
     add_submodule(m, ::qiskit_accelerate::uc_gate::uc_gate, "uc_gate")?;
+    add_submodule(m, ::qiskit_transpiler::passes::unroll_3q_or_more_mod, "unroll_3q_or_more")?;
     add_submodule(m, ::qiskit_transpiler::passes::vf2_layout_mod, "vf2_layout")?;
     add_submodule(m, ::qiskit_circuit::circuit, "circuit")?;
     add_submodule(m, ::qiskit_circuit::converters::converters, "converters")?;

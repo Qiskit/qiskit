@@ -54,3 +54,5 @@ prefix_with_name = true
 "TargetEntry" = "QkTargetEntry"
 "VF2LayoutResult" = "QkVF2LayoutResult"
 "ElidePermutationsResult" = "QkElidePermutationsResult"
+"SabreLayoutResult" = "QkSabreLayoutResult"
+"Split2qUnitariesResult" = "QkSplit2qUnitariesResult"
