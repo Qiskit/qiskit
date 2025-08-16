@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Built-in transpiler passes that set the ``final_layout`` property will now correctly handle
+    updating this field if it was already set.  This can be observed as the method
+    :attr:`.TranspileLayout.routing_permutation` now returning a correct permutation after running
+    more than one pass that sets ``final_layout``.
+
+    This did not affect any normal calls to :func:`.transpile` or :func:`.generate_preset_pass_manager`
+    using Qiskit's built-in plugins; no pipeline constructed in this form would attempt to set
+    ``final_layout`` more than once.

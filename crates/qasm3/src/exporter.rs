@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::sync::Arc;
+
 use crate::ast::{
     Alias, Barrier, BitArray, Break, ClassicalDeclaration, ClassicalType, Continue, Delay,
     Designator, DurationLiteral, DurationUnit, Expression, Float, GateCall, Header, IODeclaration,
@@ -35,6 +37,9 @@ use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{DelayUnit, StandardInstruction};
 use qiskit_circuit::operations::{Operation, Param};
 use qiskit_circuit::packed_instruction::PackedInstruction;
+use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
+use qiskit_circuit::parameter::symbol_expr;
+use thiserror::Error;
 
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -491,7 +496,7 @@ impl<'a> QASM3Builder {
 
     fn hoist_global_params(&mut self) -> ExporterResult<()> {
         Python::with_gil(|py| {
-            for param in self.circuit_scope.circuit_data.get_parameters(py) {
+            for param in self.circuit_scope.circuit_data.get_parameters(py)? {
                 let raw_name: String = match param.getattr("name") {
                     Ok(attr) => match attr.extract() {
                         Ok(name) => name,
@@ -667,17 +672,13 @@ impl<'a> QASM3Builder {
             ));
         };
         let param = &instr.params_view()[0];
-        let duration: f64 = Python::with_gil(|py| -> Result<f64, QASM3ExporterError> {
-            Ok(match param {
-                Param::Float(val) => *val,
-                Param::ParameterExpression(p) => {
-                    let py_obj = p.bind(py);
-                    let py_str = py_obj.str().map_err(|e| QASM3ExporterError::Error(format!("Failed to call str() on Parameter: {}", e)))?;
-                    let name = py_str
-                        .str()
-                        .map_err(|e| QASM3ExporterError::Error(format!("Failed to convert PyString to &str: {}", e)))?
-                        .to_string();
-                    name.parse::<f64>().map_err(|e| QASM3ExporterError::Error(format!("Failed to parse parameter value: {}", e)))?
+        let duration: f64 = Python::with_gil(|py| match param {
+            Param::Float(val) => *val,
+            Param::ParameterExpression(p) => {
+                if let Ok(symbol_expr::Value::Real(val)) = p.try_to_value(true) {
+                    val
+                } else {
+                    panic!("Failed to parse parameter value")
                 }
                 Param::Obj(obj) => {
                     let py_obj = obj.bind(py);
@@ -754,15 +755,8 @@ impl<'a> QASM3Builder {
                             obj: val.to_string(),
                         })),
                         Param::ParameterExpression(p) => {
-                            let name = Python::with_gil(|py| -> Result<String, QASM3ExporterError> {
-                                let py_obj = p.bind(py);
-                                let py_str = py_obj.str().map_err(|e| QASM3ExporterError::Error(format!("Failed to call str() on Parameter: {}", e)))?;
-                                Ok(py_str
-                                    .str()
-                                    .map_err(|e| QASM3ExporterError::Error(format!("Failed to convert PyString to &str: {}", e)))?
-                                    .to_string())
-                            })?;
-                            Ok(Expression::Parameter(Parameter { obj: name }))
+                            let name = p.to_string();
+                            Expression::Parameter(Parameter { obj: name })
                         }
                         Param::Obj(_) => Err(QASM3ExporterError::Error("Objects not supported yet".to_string())),
                     })
@@ -797,23 +791,16 @@ impl<'a> QASM3Builder {
     #[allow(dead_code)]
     fn define_gate(&mut self, instr: &PackedInstruction) -> ExporterResult<()> {
         let operation = &instr.op;
-        let params: Vec<Param> = Python::with_gil(|py| -> Result<Vec<Param>, QASM3ExporterError> {
-            let qiskit_circuit = PyModule::import(py, "qiskit.circuit")
-                .map_err(|e| QASM3ExporterError::Error(format!("Failed to import qiskit.circuit: {}", e)))?;
-            let parameter_class = qiskit_circuit
-                .getattr("Parameter")
-                .map_err(|e| QASM3ExporterError::Error(format!("No Parameter class in qiskit.circuit: {}", e)))?;
-
-            (0..instr.params_view().len())
-                .map(|i| {
-                    let name = format!("{}_{}", GATE_PARAM_PREFIX, i);
-                    let py_param = parameter_class
-                        .call1((name,))
-                        .map_err(|e| QASM3ExporterError::Error(format!("Failed to create Parameter: {}", e)))?;
-                    Ok(Param::ParameterExpression(py_param.into()))
-                })
-                .collect::<Result<Vec<_>, _>>()
-        })?;
+        let params: Vec<Param> = (0..instr.params_view().len())
+            .map(|i| {
+                let name = format!("{}_{}", self._gate_param_prefix, i);
+                // TODO this need to be achievable more easily
+                let symbol = symbol_expr::Symbol::new(name.as_str(), None, None);
+                let symbol_expr = symbol_expr::SymbolExpr::Symbol(Arc::new(symbol));
+                let expr = ParameterExpression::from_symbol_expr(symbol_expr);
+                Param::ParameterExpression(Arc::new(expr))
+            })
+            .collect();
         if let Some(instruction) = operation.definition(&params) {
             let params_def = params
                 .iter()

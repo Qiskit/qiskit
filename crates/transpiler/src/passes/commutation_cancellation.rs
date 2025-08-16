@@ -12,19 +12,18 @@
 
 use std::f64::consts::PI;
 
-use hashbrown::{HashMap, HashSet};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
-use pyo3::{pyfunction, wrap_pyfunction, Bound, PyResult, Python};
-use rustworkx_core::petgraph::stable_graph::NodeIndex;
+use pyo3::{pyfunction, wrap_pyfunction, Bound, PyResult};
+
+use indexmap::IndexMap;
 use smallvec::{smallvec, SmallVec};
 
+use super::analyze_commutations;
 use crate::commutation_checker::CommutationChecker;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::Qubit;
-
-use super::analyze_commutations;
 use qiskit_synthesis::{euler_one_qubit_decomposer, QiskitError};
 
 const _CUTOFF_PRECISION: f64 = 1e-5;
@@ -72,17 +71,12 @@ struct CancellationSetKey {
 #[pyfunction]
 #[pyo3(signature = (dag, commutation_checker, basis_gates=None, approximation_degree=1.))]
 pub fn cancel_commutations(
-    py: Python,
     dag: &mut DAGCircuit,
     commutation_checker: &mut CommutationChecker,
-    basis_gates: Option<HashSet<String>>,
+    basis_gates: Option<Vec<String>>,
     approximation_degree: f64,
 ) -> PyResult<()> {
-    let basis: HashSet<String> = if let Some(basis) = basis_gates {
-        basis
-    } else {
-        HashSet::new()
-    };
+    let basis = basis_gates.unwrap_or_default();
     let z_var_gate = dag
         .get_op_counts()
         .keys()
@@ -112,8 +106,8 @@ pub fn cancel_commutations(
         qubits and commutation sets.
     */
     let (commutation_set, node_indices) =
-        analyze_commutations(py, dag, commutation_checker, approximation_degree)?;
-    let mut cancellation_sets: HashMap<CancellationSetKey, Vec<NodeIndex>> = HashMap::new();
+        analyze_commutations(dag, commutation_checker, approximation_degree)?;
+    let mut cancellation_sets = IndexMap::with_hasher(::ahash::RandomState::new());
 
     (0..dag.num_qubits() as u32).for_each(|qubit| {
         let wire = Qubit(qubit);
