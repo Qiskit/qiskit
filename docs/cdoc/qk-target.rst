@@ -27,7 +27,7 @@ Here's an example of how this structure works:
     // error = NaN
     uint32_t qargs[2] = {0, 1};
     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
-    qk_target_entry_add(entry, qargs, 2, 0.0123, NAN);
+    qk_target_entry_add_property(entry, qargs, 2, 0.0123, NAN);
 
     // Add a CX Gate to the target
     qk_target_add_instruction(target, entry);
