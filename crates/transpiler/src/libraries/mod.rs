@@ -10,21 +10,4 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-pub mod commutation_checker;
-pub mod equivalence;
-pub mod libraries;
-pub mod passes;
-pub mod standard_gates_commutations;
-pub mod target;
-pub mod transpile_layout;
-
-mod transpiler;
-
-pub use transpiler::transpile;
-
-mod gate_metrics;
-
-use pyo3::import_exception_bound;
-
-import_exception_bound! {qiskit.exceptions, QiskitError}
-import_exception_bound! {qiskit.transpiler.exceptions, TranspilerError}
+pub mod standard_equivalence_library;
