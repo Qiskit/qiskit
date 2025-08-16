@@ -25,10 +25,15 @@ class LitinskiTransformation(TransformationPass):
     and moves Clifford gates to the end of the circuit, while changing rotation gates to multi-qubit
     rotations.
 
-    The pass supports all of the Clifford gates in the list returned by :func:`.get_clifford_gate_names`,
-    namely
-    ``["id", "x", "y", "z", "h", "s", "sdg", "sx", "sxdg", "cx", "cz", "cy", "swap", "iswap", "ecr", "dcx"]``.
-    The list of supported RZ-rotations is ``["t", "tdg", "rz"]``.
+    The pass supports all of the Clifford gates in the list returned by
+    :func:`.get_clifford_gate_names`:
+
+    ``["id", "x", "y", "z", "h", "s", "sdg", "sx", "sxdg", "cx", "cz", "cy",
+    "swap","iswap", "ecr", "dcx"]``
+
+    The list of supported RZ-rotations is:
+
+    ``["t", "tdg", "rz"]``
     """
 
     def run(self, dag):
