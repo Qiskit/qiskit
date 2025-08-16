@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::pointers::const_ptr_as_ref;
+use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::converters::dag_to_circuit;
@@ -102,11 +102,11 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_check_gate_direction(
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_gate_direction(
-    circuit: *const CircuitData,
+    circuit: *mut CircuitData,
     target: *const Target,
-) -> *mut CircuitData {
+) {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let circuit = unsafe { const_ptr_as_ref(circuit) };
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
     let target = unsafe { const_ptr_as_ref(target) };
 
     let mut dag = match DAGCircuit::from_circuit_data(circuit, false, None, None, None, None) {
@@ -124,5 +124,5 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_gate_direction(
         Err(e) => panic!("{}", e),
     };
 
-    Box::into_raw(Box::new(out_circuit))
+    *circuit = out_circuit;
 }

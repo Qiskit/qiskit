@@ -88,20 +88,26 @@ int test_gate_direction(void) {
     uint32_t qargs[5] = {0, 1, 2, 1, 0};
     double params[1] = {1.5};
 
-    if ((result = qk_circuit_gate(circuit, QkGate_CX, qargs, NULL)) != Ok ||
-        (result = qk_circuit_gate(circuit, QkGate_CX, &qargs[1], NULL)) != Ok ||
-        (result = qk_circuit_gate(circuit, QkGate_CX, &qargs[2], NULL)) != Ok ||
-        (result = qk_circuit_gate(circuit, QkGate_RZX, &qargs[3], params)) != Ok) {
+    if ((result = qk_circuit_gate(circuit, QkGate_CX, qargs, NULL)) != Ok ||     // stays as is
+        (result = qk_circuit_gate(circuit, QkGate_CX, &qargs[1], NULL)) != Ok || // stays as is
+        (result = qk_circuit_gate(circuit, QkGate_CX, &qargs[2], NULL)) !=
+            Ok || // would be replaced by 5 gates
+        (result = qk_circuit_gate(circuit, QkGate_RZX, &qargs[3], params)) !=
+            Ok) { // would be replaced by 5 gates
         printf("Unexpected error encountered while adding gates in test_gate_direction.");
         goto cleanup;
     }
 
-    QkCircuit *fixed_circuit = qk_transpiler_pass_standalone_gate_direction(circuit, target);
+    qk_transpiler_pass_standalone_gate_direction(circuit, target);
+
+    if (qk_circuit_num_instructions(circuit) != 12) {
+        result = EqualityError;
+        goto cleanup;
+    }
 
 cleanup:
     qk_target_free(target);
     qk_circuit_free(circuit);
-    qk_circuit_free(fixed_circuit);
     return result;
 }
 
