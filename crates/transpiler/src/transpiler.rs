@@ -12,9 +12,10 @@
 
 use hashbrown::HashSet;
 
-use pyo3::prelude::PyResult;
+use anyhow::Result;
 
 use crate::commutation_checker::get_standard_commutation_checker;
+use crate::equivalence::EquivalenceLibrary;
 use crate::libraries::standard_equivalence_library::generate_standard_equivalence_library;
 use crate::passes::sabre::route::PyRoutingTarget;
 use crate::passes::*;
@@ -24,8 +25,6 @@ use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::{PhysicalQubit, Qubit};
-use crate::equivalence::EquivalenceLibrary;
-
 
 /// A transpilation function for Rust native circuits for use in the C API. This will not cover
 /// things that only exist in the Python API such as custom gates or control flow. When those
@@ -37,7 +36,7 @@ pub fn transpile(
     optimization_level: u8,
     approximation_degree: Option<f64>,
     seed: Option<u64>,
-) -> PyResult<(CircuitData, TranspileLayout)> {
+) -> Result<(CircuitData, TranspileLayout)> {
     if !(0..=3u8).contains(&optimization_level) {
         panic!("Invalid optimization level specified {optimization_level}");
     }
@@ -51,7 +50,7 @@ pub fn transpile(
         dag.num_qubits() as u32,
     );
 
-    let unroll_3q_or_more = |dag: &mut DAGCircuit| -> PyResult<()> {
+    let unroll_3q_or_more = |dag: &mut DAGCircuit| -> Result<()> {
         // This will panic if there is a 3q unitary until qsd is ported
         let mut out_dag = run_unitary_synthesis(
             dag,
@@ -68,19 +67,13 @@ pub fn transpile(
             None,
             false,
         )?;
-        run_unroll_3q_or_more(&mut out_dag, Some(target)).unwrap();
+        run_unroll_3q_or_more(&mut out_dag, Some(target))?;
         *dag = out_dag;
         Ok(())
     };
 
     // Init stage
-    unroll_3q_or_more(&mut dag);
-    let mut transpile_layout = TranspileLayout::new(
-        None,
-        None,
-        dag.qubits().objects().clone(),
-        dag.num_qubits() as u32,
-    );
+    unroll_3q_or_more(&mut dag)?;
     if optimization_level == 1 {
         run_inverse_cancellation_standard_gates(&mut dag);
     } else if optimization_level == 2 || optimization_level == 3 {
@@ -195,54 +188,52 @@ pub fn transpile(
                 .collect();
             transpile_layout.compose_output_permutation(&permutation, true);
         }
+    } else if let Some(vf2_result) = vf2_layout_pass(
+        &dag,
+        target,
+        false,
+        Some(30_000_000),
+        None,
+        Some(250_000),
+        None,
+    )? {
+        apply_layout(
+            &mut dag,
+            &mut transpile_layout,
+            target.num_qubits.unwrap(),
+            |x| vf2_result[&x],
+        );
     } else {
-        if let Some(vf2_result) = vf2_layout_pass(
-            &dag,
+        let (result, initial_layout, final_layout) = sabre::sabre_layout_and_routing(
+            &mut dag,
             target,
+            &sabre_heuristic,
+            4,
+            20,
+            20,
+            seed,
+            Vec::new(),
             false,
-            Some(30_000_000),
-            None,
-            Some(250_000),
-            None,
-        )? {
-            apply_layout(
-                &mut dag,
-                &mut transpile_layout,
-                target.num_qubits.unwrap(),
-                |x| vf2_result[&x],
-            );
-        } else {
-            let (result, initial_layout, final_layout) = sabre::sabre_layout_and_routing(
-                &mut dag,
-                target,
-                &sabre_heuristic,
-                4,
-                20,
-                20,
-                seed,
-                Vec::new(),
-                false,
-            )?;
-            dag = result;
-            transpile_layout.initial_layout = Some(initial_layout);
-            let permutation: Vec<Qubit> = final_layout
-                .iter_virtual()
-                .map(|(_, x)| Qubit(x.0))
-                .collect();
-            transpile_layout.compose_output_permutation(&permutation, true);
-        }
+        )?;
+        dag = result;
+        transpile_layout.initial_layout = Some(initial_layout);
+        let permutation: Vec<Qubit> = final_layout
+            .iter_virtual()
+            .map(|(_, x)| Qubit(x.0))
+            .collect();
+        transpile_layout.compose_output_permutation(&permutation, true);
     }
     // Routing stage
     //    let vf2_post_result =
     if optimization_level == 0 {
         let routing_target = PyRoutingTarget::from_target(target)?;
 
-        if run_check_map(&dag, &target).is_none() {
+        if run_check_map(&dag, target).is_none() {
             let (out_dag, final_layout) = sabre::sabre_routing(
                 &dag,
                 &routing_target,
                 &sabre_heuristic,
-                &transpile_layout.initial_layout.as_ref().unwrap(),
+                transpile_layout.initial_layout.as_ref().unwrap(),
                 5,
                 seed,
                 Some(true),
@@ -278,10 +269,10 @@ pub fn transpile(
     //        });
     //    }
     // Translation Stage
-    let mut translation = |mut dag: &mut DAGCircuit, mut equiv_lib: &mut EquivalenceLibrary| -> PyResult<()> {
+    let translation = |dag: &mut DAGCircuit, equiv_lib: &mut EquivalenceLibrary| -> Result<()> {
         let num_qubits = dag.num_qubits();
         *dag = run_unitary_synthesis(
-            &mut dag,
+            dag,
             (0..num_qubits).collect(),
             0,
             Some(target),
@@ -292,15 +283,16 @@ pub fn transpile(
             None,
             None,
             false,
-        )
-        .unwrap();
-        if let Some(out_dag) = run_basis_translator(dag, equiv_lib, 0, Some(target), None).unwrap() {
+        )?;
+        if let Some(out_dag) = run_basis_translator(dag, equiv_lib, 0, Some(target), None)? {
             *dag = out_dag;
         }
-        if !check_direction_target(&dag, target).unwrap() {
-            *dag = fix_direction_target(&mut dag, target).unwrap();
-            if gates_missing_from_target(&dag, target)? {
-                if let Some(out_dag) = run_basis_translator(dag, equiv_lib, 0, Some(target), None).unwrap() {
+        if !check_direction_target(dag, target)? {
+            *dag = fix_direction_target(dag, target)?;
+            if gates_missing_from_target(dag, target)? {
+                if let Some(out_dag) =
+                    run_basis_translator(dag, equiv_lib, 0, Some(target), None).unwrap()
+                {
                     *dag = out_dag;
                 }
             }
@@ -311,8 +303,8 @@ pub fn transpile(
     // optimization stage
     let mut depth: Option<usize> = None;
     let mut size: Option<usize> = None;
-    let mut new_depth = None;
-    let mut new_size = None;
+    let mut new_depth;
+    let mut new_size;
     if optimization_level == 1 {
         new_depth = Some(dag.depth(false)?);
         new_size = Some(dag.size(false)?);
@@ -328,7 +320,7 @@ pub fn transpile(
             new_size = Some(dag.size(false)?);
         }
     } else if optimization_level == 2 {
-        run_consolidate_blocks(&mut dag, false, approximation_degree, Some(target));
+        run_consolidate_blocks(&mut dag, false, approximation_degree, Some(target))?;
         let num_qubits = dag.num_qubits();
         dag = run_unitary_synthesis(
             &mut dag,
@@ -352,7 +344,7 @@ pub fn transpile(
             run_optimize_1q_gates_decomposition(&mut dag, Some(target), None, None)?;
             cancel_commutations(&mut dag, &mut commutation_checker, None, 1.0)?;
             if gates_missing_from_target(&dag, target)? {
-                translation(&mut dag, &mut equivalence_library);
+                translation(&mut dag, &mut equivalence_library)?;
             }
             new_depth = Some(dag.depth(false)?);
             new_size = Some(dag.size(false)?);
@@ -364,14 +356,19 @@ pub fn transpile(
             count: usize,
             best_dag: DAGCircuit,
         }
-        let mut min_state =  MinPointState {
+        let mut min_state = MinPointState {
             best_depth: None,
             best_size: None,
             count: 0,
-            best_dag: dag.clone()
+            best_dag: dag.clone(),
         };
         impl MinPointState {
-            fn check (&mut self, dag: &DAGCircuit, new_size: Option<usize>, new_depth: Option<usize>) -> bool {
+            fn check(
+                &mut self,
+                dag: &DAGCircuit,
+                new_size: Option<usize>,
+                new_depth: Option<usize>,
+            ) -> bool {
                 if self.best_depth.is_none() || self.best_size.is_none() {
                     self.best_depth = new_depth;
                     self.best_size = new_size;
@@ -385,16 +382,14 @@ pub fn transpile(
                     self.best_depth = new_depth;
                     self.best_size = new_size;
                     true
-                } else if (new_depth, new_size) == (self.best_depth, self.best_size) {
-                    false
                 } else {
-                    true
+                    (new_depth, new_size) != (self.best_depth, self.best_size)
                 }
             }
         }
         let mut continue_loop: bool = true;
         while continue_loop {
-            run_consolidate_blocks(&mut dag, false, approximation_degree, Some(target));
+            run_consolidate_blocks(&mut dag, false, approximation_degree, Some(target))?;
             let num_qubits = dag.num_qubits();
             dag = run_unitary_synthesis(
                 &mut dag,
@@ -413,7 +408,7 @@ pub fn transpile(
             run_optimize_1q_gates_decomposition(&mut dag, Some(target), None, None)?;
             cancel_commutations(&mut dag, &mut commutation_checker, None, 1.0)?;
             if gates_missing_from_target(&dag, target)? {
-                translation(&mut dag, &mut equivalence_library);
+                translation(&mut dag, &mut equivalence_library)?;
             }
             new_depth = Some(dag.depth(false)?);
             new_size = Some(dag.size(false)?);
@@ -427,44 +422,234 @@ pub fn transpile(
 #[cfg(all(test, not(miri)))]
 mod tests {
     use super::*;
-    use crate::target::Target;
     use crate::target::InstructionProperties;
+    use crate::target::Target;
     use qiskit_circuit::circuit_data::CircuitData;
-    use qiskit_circuit::operations::{Param, StandardGate, StandardInstruction};
+    use qiskit_circuit::operations::{Operation, Param, StandardGate, StandardInstruction};
     use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
     use qiskit_circuit::parameter::symbol_expr::Symbol;
-    use qiskit_circuit::{PhysicalQubit, Qubit, Clbit};
-    use std::sync::Arc;
+    use qiskit_circuit::{Clbit, PhysicalQubit, Qubit};
     use smallvec::smallvec;
+    use std::sync::Arc;
+
+    fn build_universal_star_target() -> Target {
+        let mut target = Target::default();
+        let u_params = [
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
+                "a", None, None,
+            )))),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
+                "b", None, None,
+            )))),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
+                "c", None, None,
+            )))),
+        ];
+
+        let props = (0..5)
+            .map(|i| {
+                (
+                    [PhysicalQubit(i)].into(),
+                    Some(InstructionProperties::new(
+                        Some(i as f64 * 1.2e-6),
+                        Some(i as f64 * 2.3e-5),
+                    )),
+                )
+            })
+            .collect();
+        target
+            .add_instruction(StandardGate::U.into(), &u_params, None, Some(props))
+            .unwrap();
+        let props = (0..5)
+            .map(|i| {
+                (
+                    [PhysicalQubit(i)].into(),
+                    Some(InstructionProperties::new(
+                        Some(i as f64 * 1.2e-4),
+                        Some(i as f64 * 2.3e-3),
+                    )),
+                )
+            })
+            .collect();
+        target
+            .add_instruction(StandardInstruction::Measure.into(), &[], None, Some(props))
+            .unwrap();
+        let props = (1..5)
+            .map(|i| {
+                (
+                    [PhysicalQubit(0), PhysicalQubit(i)].into(),
+                    Some(InstructionProperties::new(
+                        Some(i as f64 * 2.4e-6),
+                        Some(i as f64 * 6.2e-4),
+                    )),
+                )
+            })
+            .collect();
+        target
+            .add_instruction(StandardGate::CZ.into(), &[], None, Some(props))
+            .unwrap();
+        target
+    }
 
     #[test]
     fn test_bell_basic() {
-        let mut target = Target::default();
-        let u_params = [
-            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new("a", None, None)))),
-            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new("b", None, None)))),
-            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new("c", None, None)))),
-        ];
-
-        let props = (0..5).map(|i| {
-                ([PhysicalQubit(i),].into(), Some(InstructionProperties::new(Some(i as f64 * 1.2e-6), Some(i as f64 * 2.3e-5))))
-        }).collect();
-        target.add_instruction(StandardGate::U.into(), &u_params, None, Some(props)).unwrap();
-        let props = (0..5).map(|i| {
-                ([PhysicalQubit(i),].into(), Some(InstructionProperties::new(Some(i as f64 * 1.2e-4), Some(i as f64 * 2.3e-3))))
-        }).collect();
-        target.add_instruction(StandardInstruction::Measure.into(), &[], None, Some(props)).unwrap();
-        let props = (1..5).map(|i| {
-            ([PhysicalQubit(0), PhysicalQubit(i)].into(), Some(InstructionProperties::new(Some(i as f64 * 2.4e-6), Some(i as f64 * 6.2e-4))))
-        }).collect();
-        target.add_instruction(StandardGate::CX.into(), &[], None, Some(props)).unwrap();
-        let qc = CircuitData::from_packed_operations(2, 2, [
-            Ok((StandardGate::H.into(), smallvec![], vec![Qubit(0),], vec![])),
-            Ok((StandardGate::CX.into(), smallvec![],vec![Qubit(0), Qubit(1)], vec![])),
-            Ok((StandardInstruction::Measure.into(), smallvec![], vec![Qubit(0)], vec![Clbit(0)])),
-            Ok((StandardInstruction::Measure.into(), smallvec![], vec![Qubit(1)], vec![Clbit(1)])),
-        ], Param::Float(0.)).unwrap();
+        let target = build_universal_star_target();
+        let qc = CircuitData::from_packed_operations(
+            2,
+            2,
+            [
+                Ok((StandardGate::H.into(), smallvec![], vec![Qubit(0)], vec![])),
+                Ok((
+                    StandardGate::CX.into(),
+                    smallvec![],
+                    vec![Qubit(0), Qubit(1)],
+                    vec![],
+                )),
+                Ok((
+                    StandardInstruction::Measure.into(),
+                    smallvec![],
+                    vec![Qubit(0)],
+                    vec![Clbit(0)],
+                )),
+                Ok((
+                    StandardInstruction::Measure.into(),
+                    smallvec![],
+                    vec![Qubit(1)],
+                    vec![Clbit(1)],
+                )),
+            ],
+            Param::Float(0.),
+        )
+        .unwrap();
         let result = transpile(&qc, &target, 2, Some(1.0), Some(42)).unwrap();
+        for inst in result.0.data() {
+            if inst.op.num_qubits() == 2 {
+                assert_eq!("cz", inst.op.name());
+                target.contains_qargs(
+                    &result
+                        .0
+                        .get_qargs(inst.qubits)
+                        .iter()
+                        .map(|x| PhysicalQubit(x.0))
+                        .collect::<Vec<_>>(),
+                );
+            } else if inst.op.num_clbits() == 1 {
+                assert_eq!("measure", inst.op.name());
+            } else {
+                assert_eq!("u", inst.op.name());
+            }
+        }
+        assert!(result.1.output_permutation().is_none());
     }
 
+    #[test]
+    fn test_routing_circuit() {
+        let target = build_universal_star_target();
+        let qc = CircuitData::from_packed_operations(
+            5,
+            5,
+            [
+                Ok((StandardGate::H.into(), smallvec![], vec![Qubit(0)], vec![])),
+                Ok((
+                    StandardGate::CX.into(),
+                    smallvec![],
+                    vec![Qubit(0), Qubit(1)],
+                    vec![],
+                )),
+                Ok((
+                    StandardGate::CX.into(),
+                    smallvec![],
+                    vec![Qubit(0), Qubit(2)],
+                    vec![],
+                )),
+                Ok((
+                    StandardGate::CX.into(),
+                    smallvec![],
+                    vec![Qubit(0), Qubit(3)],
+                    vec![],
+                )),
+                Ok((
+                    StandardGate::CX.into(),
+                    smallvec![],
+                    vec![Qubit(0), Qubit(4)],
+                    vec![],
+                )),
+                Ok((
+                    StandardGate::CX.into(),
+                    smallvec![],
+                    vec![Qubit(4), Qubit(1)],
+                    vec![],
+                )),
+                Ok((
+                    StandardGate::CX.into(),
+                    smallvec![],
+                    vec![Qubit(4), Qubit(2)],
+                    vec![],
+                )),
+                Ok((
+                    StandardGate::CX.into(),
+                    smallvec![],
+                    vec![Qubit(4), Qubit(3)],
+                    vec![],
+                )),
+                Ok((
+                    StandardGate::CX.into(),
+                    smallvec![],
+                    vec![Qubit(4), Qubit(0)],
+                    vec![],
+                )),
+                Ok((
+                    StandardInstruction::Measure.into(),
+                    smallvec![],
+                    vec![Qubit(0)],
+                    vec![Clbit(0)],
+                )),
+                Ok((
+                    StandardInstruction::Measure.into(),
+                    smallvec![],
+                    vec![Qubit(1)],
+                    vec![Clbit(1)],
+                )),
+                Ok((
+                    StandardInstruction::Measure.into(),
+                    smallvec![],
+                    vec![Qubit(2)],
+                    vec![Clbit(2)],
+                )),
+                Ok((
+                    StandardInstruction::Measure.into(),
+                    smallvec![],
+                    vec![Qubit(3)],
+                    vec![Clbit(3)],
+                )),
+                Ok((
+                    StandardInstruction::Measure.into(),
+                    smallvec![],
+                    vec![Qubit(4)],
+                    vec![Clbit(4)],
+                )),
+            ],
+            Param::Float(0.),
+        )
+        .unwrap();
+        let result = transpile(&qc, &target, 2, Some(1.0), Some(42)).unwrap();
+        for inst in result.0.data() {
+            if inst.op.num_qubits() == 2 {
+                assert_eq!("cz", inst.op.name());
+                target.contains_qargs(
+                    &result
+                        .0
+                        .get_qargs(inst.qubits)
+                        .iter()
+                        .map(|x| PhysicalQubit(x.0))
+                        .collect::<Vec<_>>(),
+                );
+            } else if inst.op.num_clbits() == 1 {
+                assert_eq!("measure", inst.op.name());
+            } else {
+                assert_eq!("u", inst.op.name());
+            }
+        }
+        assert!(result.1.output_permutation().is_some());
+    }
 }

@@ -85,7 +85,7 @@ pub fn run_basis_translator(
     let (non_global_operations, qargs_with_non_global_operation): (
         Option<AhashIndexSet<String>>,
         AhashIndexMap<Qargs, AhashIndexSet<String>>,
-    ) = if let Some(target) = target.as_deref() {
+    ) = if let Some(target) = target {
         let mut qargs_mapping: AhashIndexMap<Qargs, AhashIndexSet<String>> =
             AhashIndexMap::default();
         let global_set: AhashIndexSet<String> = AhashIndexSet::from_iter(
@@ -131,7 +131,7 @@ pub fn run_basis_translator(
             .map(|x| x.to_string())
             .collect();
         extract_basis_target(
-            &dag,
+            dag,
             &mut source_basis,
             &mut qargs_local_source_basis,
             min_qubits,
@@ -142,7 +142,7 @@ pub fn run_basis_translator(
             .into_iter()
             .map(|x| x.to_string())
             .collect();
-        source_basis = extract_basis(&dag, min_qubits);
+        source_basis = extract_basis(dag, min_qubits);
         new_target_basis = target_basis.unwrap().into_iter().collect();
     }
     new_target_basis = new_target_basis
@@ -205,19 +205,19 @@ pub fn run_basis_translator(
         });
     };
 
-    let instr_map: InstMap = compose_transforms(&basis_transforms, &source_basis, &dag)?;
+    let instr_map: InstMap = compose_transforms(&basis_transforms, &source_basis, dag)?;
     let extra_inst_map: ExtraInstructionMap = qarg_local_basis_transforms
         .iter()
         .map(|(qarg, transform)| -> Result<_, BasisTranslatorError> {
             Ok((
                 *qarg,
-                compose_transforms(transform, &qargs_local_source_basis[*qarg], &dag)?,
+                compose_transforms(transform, &qargs_local_source_basis[*qarg], dag)?,
             ))
         })
         .collect::<Result<_, BasisTranslatorError>>()?;
 
     let (out_dag, _) = apply_translation(
-        &dag,
+        dag,
         &new_target_basis,
         &instr_map,
         &extra_inst_map,

@@ -1140,7 +1140,7 @@ impl Target {
     }
 
     /// Generate non global operations if missing
-    fn generate_non_global_op_names<'a>(&'a self, strict_direction: bool) -> Vec<&str> {
+    fn generate_non_global_op_names(&self, strict_direction: bool) -> Vec<&str> {
         let mut search_set: HashSet<SmallVec<[PhysicalQubit; 2]>> = HashSet::default();
         if strict_direction {
             // Build search set

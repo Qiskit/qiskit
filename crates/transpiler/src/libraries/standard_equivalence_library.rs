@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use std::f64::consts::PI;
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 
 use pyo3::prelude::*;
 use qiskit_circuit::bit::QuantumRegister;
