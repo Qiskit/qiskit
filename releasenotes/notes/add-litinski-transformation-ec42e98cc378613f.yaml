@@ -1,7 +1,7 @@
 ---
 features_transpiler:
   - |
-    Added a new transpiler pass :class:`qiskit.transpiler.passes.LitinskiTransformation`
+    Added a new transpiler pass :class:`.LitinskiTransformation`
     that implements the transform described in `arXiv:1808.02892 <https://arxiv.org/abs/1808.02892>`__.
 
     The input to the pass is a circuit with Clifford and single-qubit RZ-rotation gates, and the output
