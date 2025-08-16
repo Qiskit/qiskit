@@ -98,7 +98,7 @@ where
     eq_library.add_equivalence(&gate.into(), params, circuit)
 }
 
-fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, EquivalenceError> {
+pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, EquivalenceError> {
     let mut equiv = EquivalenceLibrary::new(None);
 
     // Import existing gate definitions
@@ -3186,10 +3186,4 @@ fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equival
     .expect("Error while addding XX_MINUS_YY gate equivalence");
 
     Ok(equiv)
-}
-
-static STANDARD_EQUIVALENCE_LIBRARY: OnceLock<EquivalenceLibrary> = OnceLock::new();
-
-pub fn get_standard_equivalence_library() -> &'static EquivalenceLibrary {
-    STANDARD_EQUIVALENCE_LIBRARY.get_or_init(|| generate_standard_equivalence_library().unwrap())
 }
