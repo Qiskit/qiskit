@@ -64,6 +64,104 @@ struct QubitTracker {
     ignored: Vec<bool>,
 }
 
+impl QubitTracker {
+    /// Sets state of the given qubits to dirty
+    fn set_dirty(&mut self, qubits: &[Qubit]) {
+        for q in qubits {
+            self.state[q.index()] = false;
+        }
+    }
+
+    /// Sets state of the given qubits to clean
+    fn set_clean(&mut self, qubits: &[Qubit]) {
+        for q in qubits {
+            self.state[q.index()] = true;
+        }
+    }
+
+    /// Disables using the given qubits
+    fn disable<T: Iterator<Item = Qubit>>(&mut self, qubits: T) {
+        for q in qubits {
+            self.enabled[q.index()] = false;
+        }
+    }
+
+    /// Enable using the given qubits
+    fn enable(&mut self, qubits: &[Qubit]) {
+        for q in qubits {
+            self.enabled[q.index()] = true;
+        }
+    }
+
+    /// Returns the number of enabled clean qubits, ignoring the given qubits
+    fn num_clean(&mut self, ignored_qubits: &[Qubit]) -> usize {
+        // TODO: check if it's faster to avoid using ignored
+        for q in ignored_qubits {
+            self.ignored[q.index()] = true;
+        }
+
+        let count = (0..self.num_qubits)
+            .filter(|q| !self.ignored[*q] && self.enabled[*q] && self.state[*q])
+            .count();
+
+        for q in ignored_qubits {
+            self.ignored[q.index()] = false;
+        }
+
+        count
+    }
+
+    /// Returns the number of enabled dirty qubits, ignoring the given qubits
+    fn num_dirty(&mut self, ignored_qubits: &[Qubit]) -> usize {
+        // TODO: check if it's faster to avoid using ignored
+        for q in ignored_qubits {
+            self.ignored[q.index()] = true;
+        }
+
+        let count = (0..self.num_qubits)
+            .filter(|q| !self.ignored[*q] && self.enabled[*q] && !self.state[*q])
+            .count();
+
+        for q in ignored_qubits {
+            self.ignored[q.index()] = false;
+        }
+
+        count
+    }
+
+    /// Get `num_qubits` enabled qubits, excluding `ignored_qubits`, and returning the
+    /// clean qubits first.
+    fn borrow(&mut self, num_qubits: usize, ignored_qubits: &[Qubit]) -> Vec<Qubit> {
+        // TODO: check if it's faster to avoid using ignored
+        for q in ignored_qubits {
+            self.ignored[q.index()] = true;
+        }
+
+        let clean_ancillas = (0..self.num_qubits)
+            .filter(|q| !self.ignored[*q] && self.enabled[*q] && self.state[*q])
+            .map(Qubit::new);
+        let dirty_ancillas = (0..self.num_qubits)
+            .filter(|q| !self.ignored[*q] && self.enabled[*q] && !self.state[*q])
+            .map(Qubit::new);
+        let out: Vec<Qubit> = clean_ancillas
+            .chain(dirty_ancillas)
+            .take(num_qubits)
+            .collect();
+
+        for q in ignored_qubits {
+            self.ignored[q.index()] = false;
+        }
+        out
+    }
+
+    /// Replaces the state of the given qubits by their state in the `other` tracker
+    fn replace_state<T: Iterator<Item = Qubit>>(&mut self, other: &QubitTracker, qubits: T) {
+        for q in qubits {
+            self.state[q.index()] = other.state[q.index()]
+        }
+    }
+}
+
 #[pymethods]
 impl QubitTracker {
     #[new]
@@ -76,95 +174,60 @@ impl QubitTracker {
         }
     }
 
-    fn num_qubits(&self) -> usize {
-        self.num_qubits
-    }
-
-    /// Sets state of the given qubits to dirty
-    fn set_dirty(&mut self, qubits: Vec<usize>) {
-        for q in qubits {
-            self.state[q] = false;
-        }
-    }
-
-    /// Sets state of the given qubits to clean
-    fn set_clean(&mut self, qubits: Vec<usize>) {
-        for q in qubits {
-            self.state[q] = true;
-        }
-    }
-
-    /// Disables using the given qubits
-    fn disable(&mut self, qubits: Vec<usize>) {
-        for q in qubits {
-            self.enabled[q] = false;
-        }
-    }
-
-    /// Enable using the given qubits
-    fn enable(&mut self, qubits: Vec<usize>) {
-        for q in qubits {
-            self.enabled[q] = true;
-        }
+    /// Returns the number of enabled dirty qubits, ignoring the given qubits
+    #[pyo3(name = "num_dirty")]
+    fn py_num_dirty(&mut self, ignored_qubits: Vec<Qubit>) -> usize {
+        self.num_dirty(&ignored_qubits)
     }
 
     /// Returns the number of enabled clean qubits, ignoring the given qubits
-    /// ToDo: check if it's faster to avoid using ignored
-    fn num_clean(&mut self, ignored_qubits: Vec<usize>) -> usize {
-        for q in &ignored_qubits {
-            self.ignored[*q] = true;
-        }
-
-        let count = (0..self.num_qubits)
-            .filter(|q| !self.ignored[*q] && self.enabled[*q] && self.state[*q])
-            .count();
-
-        for q in &ignored_qubits {
-            self.ignored[*q] = false;
-        }
-
-        count
+    #[pyo3(name = "num_clean")]
+    fn py_num_clean(&mut self, ignored_qubits: Vec<Qubit>) -> usize {
+        self.num_clean(&ignored_qubits)
     }
 
-    /// Returns the number of enabled dirty qubits, ignoring the given qubits
-    /// ToDo: check if it's faster to avoid using ignored
-    fn num_dirty(&mut self, ignored_qubits: Vec<usize>) -> usize {
-        for q in &ignored_qubits {
-            self.ignored[*q] = true;
-        }
+    /// enable using the given qubits
+    #[pyo3(name = "enable")]
+    fn py_enable(&mut self, qubits: Vec<Qubit>) {
+        self.enable(&qubits)
+    }
 
-        let count = (0..self.num_qubits)
-            .filter(|q| !self.ignored[*q] && self.enabled[*q] && !self.state[*q])
-            .count();
+    /// Disables using the given qubits
+    #[pyo3(name = "disable")]
+    fn py_disable(&mut self, qubits: Vec<Qubit>) {
+        self.disable(qubits.into_iter())
+    }
 
-        for q in &ignored_qubits {
-            self.ignored[*q] = false;
-        }
+    /// Sets state of the given qubits to dirty
+    #[pyo3(name = "set_dirty")]
+    fn py_set_dirty(&mut self, qubits: Vec<Qubit>) {
+        self.set_dirty(&qubits)
+    }
 
-        count
+    /// Sets state of the given qubits to clean
+    #[pyo3(name = "set_clean")]
+    fn py_set_clean(&mut self, qubits: Vec<Qubit>) {
+        self.set_clean(&qubits)
     }
 
     /// Get `num_qubits` enabled qubits, excluding `ignored_qubits`, and returning the
     /// clean qubits first.
-    /// ToDo: check if it's faster to avoid using ignored
-    fn borrow(&mut self, num_qubits: usize, ignored_qubits: Vec<usize>) -> Vec<usize> {
-        for q in &ignored_qubits {
-            self.ignored[*q] = true;
-        }
+    #[pyo3(name = "borrow")]
+    fn py_borrow(&mut self, num_qubits: usize, ignored_qubits: Vec<Qubit>) -> Vec<usize> {
+        self.borrow(num_qubits, &ignored_qubits)
+            .into_iter()
+            .map(|q| q.index())
+            .collect()
+    }
 
-        let clean_ancillas = (0..self.num_qubits)
-            .filter(|q| !self.ignored[*q] && self.enabled[*q] && self.state[*q]);
-        let dirty_ancillas = (0..self.num_qubits)
-            .filter(|q| !self.ignored[*q] && self.enabled[*q] && !self.state[*q]);
-        let out: Vec<usize> = clean_ancillas
-            .chain(dirty_ancillas)
-            .take(num_qubits)
-            .collect();
+    /// Replaces the state of the given qubits by their state in the `other` tracker
+    #[pyo3(name = "replace_state")]
+    fn py_replace_state(&mut self, other: &QubitTracker, qubits: Vec<Qubit>) {
+        self.replace_state(other, qubits.into_iter())
+    }
 
-        for q in &ignored_qubits {
-            self.ignored[*q] = false;
-        }
-        out
+    fn num_qubits(&self) -> usize {
+        self.num_qubits
     }
 
     /// Copies the contents
@@ -174,13 +237,6 @@ impl QubitTracker {
             state: self.state.clone(),
             enabled: self.enabled.clone(),
             ignored: self.ignored.clone(),
-        }
-    }
-
-    /// Replaces the state of the given qubits by their state in the `other` tracker
-    fn replace_state(&mut self, other: &QubitTracker, qubits: Vec<usize>) {
-        for q in qubits {
-            self.state[q] = other.state[q]
         }
     }
 
@@ -438,10 +494,10 @@ fn definitely_skip_op(
 fn run_on_circuitdata(
     py: Python,
     input_circuit: &CircuitData,
-    input_qubits: &[usize],
+    input_qubits: &[Qubit],
     data: &Bound<HighLevelSynthesisData>,
     tracker: &mut QubitTracker,
-) -> PyResult<(CircuitData, Vec<usize>)> {
+) -> PyResult<(CircuitData, Vec<Qubit>)> {
     if input_circuit.num_qubits() != input_qubits.len() {
         return Err(TranspilerError::new_err(format!(
             "HighLevelSynthesis: number of input qubits ({}) does not match the circuit size ({})",
@@ -466,8 +522,11 @@ fn run_on_circuitdata(
 
     // The "inverse" map from the global qubits to the output circuit's qubits.
     // This map may be extended if additional auxiliary qubits get used.
-    let mut global_to_local: HashMap<usize, usize> =
-        HashMap::from_iter(output_qubits.iter().enumerate().map(|(i, j)| (*j, i)));
+    let mut global_to_local: HashMap<Qubit, Qubit> = output_qubits
+        .iter()
+        .enumerate()
+        .map(|(i, j)| (*j, Qubit::new(i)))
+        .collect();
 
     for inst in input_circuit.iter() {
         // op's qubits as viewed globally
@@ -475,7 +534,7 @@ fn run_on_circuitdata(
             .get_qargs(inst.qubits)
             .iter()
             .map(|q| input_qubits[q.index()])
-            .collect::<Vec<usize>>();
+            .collect::<Vec<_>>();
         let op_clbits = input_circuit.get_cargs(inst.clbits);
 
         // Start by handling special operations.
@@ -490,15 +549,14 @@ fn run_on_circuitdata(
 
         if inst.op.name() == "reset" {
             output_circuit.push(inst.clone())?;
-            tracker.set_clean(op_qubits);
+            tracker.set_clean(&op_qubits);
             continue;
         }
 
         // Check if synthesis for this operation can be skipped
-        let op_qargs: Vec<Qubit> = op_qubits.iter().map(|q| Qubit::new(*q)).collect();
-        if definitely_skip_op(py, data, &inst.op, &op_qargs) {
+        if definitely_skip_op(py, data, &inst.op, &op_qubits) {
             output_circuit.push(inst.clone())?;
-            tracker.set_dirty(op_qubits);
+            tracker.set_dirty(&op_qubits);
             continue;
         }
 
@@ -521,11 +579,11 @@ fn run_on_circuitdata(
 
                 // We do not allow using any additional qubits outside of the block.
                 let mut block_tracker = tracker.clone();
-                let to_disable: Vec<usize> = (0..tracker.num_qubits())
-                    .filter(|q| !op_qubits.contains(q))
-                    .collect();
+                let to_disable = (0..tracker.num_qubits())
+                    .map(Qubit::new)
+                    .filter(|q| !op_qubits.contains(q));
                 block_tracker.disable(to_disable);
-                block_tracker.set_dirty(op_qubits.clone());
+                block_tracker.set_dirty(&op_qubits);
 
                 for block_py in old_blocks_py {
                     let old_block_py: QuantumCircuitData = block_py.extract()?;
@@ -562,7 +620,7 @@ fn run_on_circuitdata(
                     py_op: std::sync::OnceLock::new(),
                 };
                 output_circuit.push(packed_instruction)?;
-                tracker.set_dirty(op_qubits);
+                tracker.set_dirty(&op_qubits);
                 continue;
             }
         }
@@ -587,7 +645,7 @@ fn run_on_circuitdata(
                 // If the synthesis did not change anything, we add the operation to the output circuit
                 // and update the qubit tracker.
                 output_circuit.push(inst.clone())?;
-                tracker.set_dirty(op_qubits);
+                tracker.set_dirty(&op_qubits);
             }
             Some((synthesized_circuit, synthesized_circuit_qubits)) => {
                 // This pedantic check can possibly be removed.
@@ -604,7 +662,7 @@ fn run_on_circuitdata(
                 if synthesized_circuit_qubits.len() > op_qubits.len() {
                     for q in &synthesized_circuit_qubits {
                         if !global_to_local.contains_key(q) {
-                            global_to_local.insert(*q, output_qubits.len());
+                            global_to_local.insert(*q, Qubit::new(output_qubits.len()));
                             output_qubits.push(*q);
                             output_circuit.add_qubit(ShareableQubit::new_anonymous(), false)?;
                         }
@@ -614,24 +672,21 @@ fn run_on_circuitdata(
                 // Add the operations from the circuit synthesized for the current operation to the output circuit.
                 // The correspondence between qubits is:
                 // qubit index in the synthesized circuit -> corresponding global qubit -> corresponding qubit in the output circuit
-                let qubit_map: HashMap<usize, usize> = HashMap::from_iter(
-                    synthesized_circuit_qubits
-                        .iter()
-                        .enumerate()
-                        .map(|(i, q)| (i, global_to_local[q])),
-                );
+                let qubit_map: HashMap<Qubit, Qubit> = synthesized_circuit_qubits
+                    .iter()
+                    .enumerate()
+                    .map(|(i, q)| (Qubit::new(i), global_to_local[q]))
+                    .collect();
 
                 for inst_inner in synthesized_circuit.iter() {
                     let inst_inner_qubits = synthesized_circuit.get_qargs(inst_inner.qubits);
                     let inst_inner_clbits = synthesized_circuit.get_cargs(inst_inner.clbits);
 
-                    let inst_outer_qubits: Vec<Qubit> = inst_inner_qubits
-                        .iter()
-                        .map(|q| Qubit::new(qubit_map[&q.index()]))
-                        .collect();
+                    let inst_outer_qubits: Vec<Qubit> =
+                        inst_inner_qubits.iter().map(|q| qubit_map[q]).collect();
                     let inst_outer_clbits: Vec<Clbit> = inst_inner_clbits
                         .iter()
-                        .map(|c| op_clbits[c.0 as usize])
+                        .map(|c| op_clbits[c.index()])
                         .collect();
 
                     output_circuit.push_packed_operation(
@@ -752,11 +807,11 @@ fn synthesize_operation(
     py: Python,
     data: &Bound<HighLevelSynthesisData>,
     tracker: &mut QubitTracker,
-    input_qubits: &[usize],
+    input_qubits: &[Qubit],
     op: &PackedOperation,
     params: &[Param],
     label: Option<&str>,
-) -> PyResult<Option<(CircuitData, Vec<usize>)>> {
+) -> PyResult<Option<(CircuitData, Vec<Qubit>)>> {
     if op.num_qubits() != input_qubits.len() as u32 {
         return Err(TranspilerError::new_err(format!(
             "HighLevelSynthesis: number of operation's qubits ({}) does not match the circuit size ({})",
@@ -767,7 +822,7 @@ fn synthesize_operation(
 
     let borrowed_data: PyRef<'_, HighLevelSynthesisData> = data.borrow();
 
-    let mut output_circuit_and_qubits: Option<(CircuitData, Vec<usize>)> = None;
+    let mut output_circuit_and_qubits: Option<(CircuitData, Vec<Qubit>)> = None;
 
     // If this function is called, the operation is not supported by the target, however may have
     // high-level synthesis plugins, and/or be in the equivalence library, and/or have a definition
@@ -831,9 +886,10 @@ fn synthesize_operation(
             run_on_circuitdata(py, &current_circuit, &current_qubits, data, tracker)?;
 
         if synthesized_qubits.len() > input_qubits.len() {
-            let qubits_to_replace: Vec<usize> =
-                (input_qubits.len()..synthesized_qubits.len()).collect();
-            tracker.replace_state(&saved_tracker, qubits_to_replace);
+            tracker.replace_state(
+                &saved_tracker,
+                (input_qubits.len()..synthesized_qubits.len()).map(Qubit::new),
+            );
         }
 
         output_circuit_and_qubits = Some((synthesized_circuit, synthesized_qubits));
@@ -858,12 +914,12 @@ fn synthesize_op_using_plugins(
     py: Python,
     data: &Bound<HighLevelSynthesisData>,
     tracker: &mut QubitTracker,
-    input_qubits: &[usize],
+    input_qubits: &[Qubit],
     op: &OperationRef,
     params: &[Param],
     label: Option<&str>,
-) -> PyResult<Option<(CircuitData, Vec<usize>)>> {
-    let mut output_circuit_and_qubits: Option<(CircuitData, Vec<usize>)> = None;
+) -> PyResult<Option<(CircuitData, Vec<Qubit>)>> {
+    let mut output_circuit_and_qubits: Option<(CircuitData, Vec<Qubit>)> = None;
 
     let op_py = match op {
         OperationRef::StandardGate(standard) => {
@@ -877,11 +933,15 @@ fn synthesize_op_using_plugins(
         OperationRef::Operation(operation) => operation.operation.clone_ref(py),
         OperationRef::Unitary(unitary) => unitary.create_py_op(py, label)?.into_any(),
     };
-
     let res = HLS_SYNTHESIZE_OP_USING_PLUGINS
         .get_bound(py)
-        .call1((op_py, input_qubits, data, tracker.clone()))?
-        .extract::<Option<(QuantumCircuitData, Vec<usize>)>>()?;
+        .call1((
+            op_py,
+            input_qubits.iter().map(|x| x.0).collect::<Vec<_>>(),
+            data,
+            tracker.clone(),
+        ))?
+        .extract::<Option<(QuantumCircuitData, Vec<Qubit>)>>()?;
 
     if let Some((quantum_circuit_data, qubits)) = res {
         output_circuit_and_qubits = Some((quantum_circuit_data.data, qubits));
@@ -900,26 +960,18 @@ fn synthesize_op_using_plugins(
 fn py_synthesize_operation(
     py: Python,
     py_op: Bound<PyAny>,
-    input_qubits: Vec<usize>,
+    input_qubits: Vec<Qubit>,
     data: &Bound<HighLevelSynthesisData>,
     tracker: &mut QubitTracker,
 ) -> PyResult<Option<(CircuitData, Vec<usize>)>> {
     let op: OperationFromPython = py_op.extract()?;
 
     // Check if the operation can be skipped.
-    if definitely_skip_op(
-        py,
-        data,
-        &op.operation,
-        &input_qubits
-            .iter()
-            .map(|q| Qubit::new(*q))
-            .collect::<Vec<Qubit>>(),
-    ) {
+    if definitely_skip_op(py, data, &op.operation, &input_qubits) {
         return Ok(None);
     }
 
-    synthesize_operation(
+    let result = synthesize_operation(
         py,
         data,
         tracker,
@@ -927,7 +979,9 @@ fn py_synthesize_operation(
         &op.operation,
         &op.params,
         op.label.as_ref().map(|x| x.as_str()),
-    )
+    )?;
+
+    Ok(result.map(|res| (res.0, res.1.iter().map(|x| x.index()).collect())))
 }
 
 /// Runs HighLevelSynthesis transpiler pass.
@@ -973,7 +1027,7 @@ pub fn run_high_level_synthesis(
         let circuit = dag_to_circuit(dag, false)?;
 
         let num_qubits = circuit.num_qubits();
-        let input_qubits: Vec<usize> = (0..num_qubits).collect();
+        let input_qubits: Vec<Qubit> = (0..num_qubits).map(Qubit::new).collect();
         let mut tracker = QubitTracker::new(num_qubits, qubits_initially_zero);
 
         let (output_circuit, _) =
