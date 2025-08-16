@@ -26,6 +26,8 @@ use qiskit_quantum_info::sparse_observable::PySparseObservable;
 use smallvec::smallvec;
 use std::f64::consts::PI;
 
+use crate::TranspilerError;
+
 // List of gate names supported by the pass: the pass is skipped if the circuit
 // contains gate names outside of this list.
 const SUPPORTED_GATE_NAMES: &[&str; 19] = &[
@@ -95,7 +97,9 @@ pub fn run_litinski_transformation(
         .keys()
         .all(|k| SUPPORTED_GATE_NAMES.contains(&k.as_str()))
     {
-        return Ok(None);
+        return Err(TranspilerError::new_err(
+            "Unable to run Litinski tranformation as the circuit contains gates not supported by the pass".to_string()
+        ));
     }
 
     let num_qubits = dag.num_qubits();

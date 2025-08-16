@@ -18,6 +18,7 @@ from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import QFTGate
 from qiskit.circuit.random import random_clifford_circuit
 from qiskit.compiler import transpile
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import LitinskiTransformation
 from qiskit.quantum_info import Operator
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -170,3 +171,15 @@ class TestLitinskiTransformation(QiskitTestCase):
 
             # make sure the result is correct
             self.assertEqual(Operator(qc_litinski), Operator(qc))
+
+    def test_raises_on_unsupported_gates(self):
+        """Test that the pass returns an error when it runs on unsupported gates."""
+        qc = QuantumCircuit(4)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.rz(0.1, 0)
+        qc.cp(0.1, 0, 1)  # unsupported
+        qc.cx(0, 2)
+
+        with self.assertRaises(TranspilerError):
+            _ = LitinskiTransformation()(qc)
