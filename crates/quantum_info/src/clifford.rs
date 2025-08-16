@@ -226,28 +226,30 @@ impl Clifford {
     }
 
     /// Evolving the single-qubit Pauli-Z with Z on qubit qbit.
-    /// Returns the evolved Pauli and the sign.
-    pub fn get_inverse_z(&self, qbit: usize) -> (bool, String) {
+    /// Returns the evolved Pauli in the sparse format: (sign, paulis, indices).
+    pub fn get_inverse_z(&self, qbit: usize) -> (bool, String, Vec<u32>) {
         let mut string = String::new();
+        let mut indices = Vec::<u32>::new();
         let mut pauli = vec![false; 2 * self.num_qubits];
 
         for i in 0..self.num_qubits {
             let x_bit = self.tableau[[i + self.num_qubits, qbit]];
             let z_bit = self.tableau[[i, qbit]];
             match (x_bit, z_bit) {
-                (false, false) => {
-                    string.push('I');
-                }
+                (false, false) => {}
                 (true, false) => {
                     string.push('X');
+                    indices.push(i as u32);
                     pauli[i] = true;
                 }
                 (false, true) => {
                     string.push('Z');
+                    indices.push(i as u32);
                     pauli[i + self.num_qubits] = true;
                 }
                 (true, true) => {
                     string.push('Y');
+                    indices.push(i as u32);
                     pauli[i] = true;
                     pauli[i + self.num_qubits] = true;
                 }
@@ -255,7 +257,7 @@ impl Clifford {
         }
 
         let phase = compute_phase_product_pauli(self, &pauli);
-        (phase, string)
+        (phase, string, indices)
     }
 }
 

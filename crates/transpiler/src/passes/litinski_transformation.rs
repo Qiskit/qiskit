@@ -38,9 +38,13 @@ const SUPPORTED_GATE_NAMES: &[&str; 19] = &[
 const ROTATION_GATE_NAMES: &[&str; 3] = &["t", "tdg", "rz"];
 
 /// Expresses a given circuit as a sequence of Pauli rotations followed by a final Clifford operator.
-pub fn extract_rotations(circuit: &[(String, Vec<usize>)], nqubits: usize) -> Vec<(bool, String)> {
+/// Returns the list of rotations in the sparse format: (sign, paulis, indices).
+pub fn extract_rotations(
+    circuit: &[(String, Vec<usize>)],
+    nqubits: usize,
+) -> Vec<(bool, String, Vec<u32>)> {
     let mut clifford = Clifford::identity(nqubits);
-    let mut rotations: Vec<(bool, String)> = Vec::new();
+    let mut rotations: Vec<(bool, String, Vec<u32>)> = Vec::new();
 
     for (gate_name, qbits) in circuit.iter() {
         match gate_name.as_str() {
@@ -154,14 +158,8 @@ pub fn run_litinski_transformation(
     new_dag.add_global_phase(&Param::Float(global_phase_update))?;
 
     // Add Pauli rotation gates to the Qiskit circuit.
-    for ((sign, pauli), angle) in rotations.iter().zip(angles) {
-        // Sparsify the label.
-        let (qubits, paulis): (Vec<Qubit>, String) = pauli
-            .chars()
-            .enumerate()
-            .filter(|(_index, p)| *p != 'I')
-            .map(|(index, p)| (Qubit(index as u32), p))
-            .unzip();
+    for ((sign, paulis, indices), angle) in rotations.iter().zip(angles) {
+        let qubits: Vec<Qubit> = indices.iter().map(|index| Qubit(*index)).collect();
 
         let py_pauli =
             PySparseObservable::from_label(paulis.chars().rev().collect::<String>().as_str())?;
