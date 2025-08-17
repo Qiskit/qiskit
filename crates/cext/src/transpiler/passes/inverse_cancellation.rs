@@ -44,8 +44,8 @@ use qiskit_transpiler::passes::run_inverse_cancellation_standard_gates;
 ///    - (QkGate_SX, QkGate_SXdg)
 ///    - (QkGate_CS, QkGate_CSdg)
 ///
-/// @param circuit A pointer to the circuit to run InverseCancellation on. This circuit
-/// pointed to will be updated with the modified circuit if the pass is able to remove any gates.
+/// @param circuit A pointer to the circuit to run InverseCancellation on. If the pass is able to
+/// remove any gates, the original circuit will be replaced by the corcuit produced by this pass.
 ///
 /// # Example
 ///
@@ -71,14 +71,14 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_inverse_cancellation(
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
     let mut dag = match DAGCircuit::from_circuit_data(circuit, false, None, None, None, None) {
         Ok(dag) => dag,
-        Err(_e) => panic!("Internal Circuit -> DAG conversion failed"),
+        Err(_) => panic!("Internal Circuit -> DAG conversion failed"),
     };
 
     run_inverse_cancellation_standard_gates(&mut dag);
 
     let out_circuit = match dag_to_circuit(&dag, false) {
         Ok(qc) => qc,
-        Err(_e) => panic!("Internal DAG -> Circuit conversion failed"),
+        Err(_) => panic!("Internal DAG -> Circuit conversion failed"),
     };
     *circuit = out_circuit;
 }

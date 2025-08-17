@@ -19,6 +19,9 @@
 #include <stdio.h>
 #include <string.h>
 
+/**
+ * Test inverse cancellation.
+ */
 int test_inverse_cancellation_removes_gates(void) {
     int result = Ok;
 
