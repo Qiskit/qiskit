@@ -56,3 +56,5 @@ prefix_with_name = true
 "ElidePermutationsResult" = "QkElidePermutationsResult"
 "SabreLayoutResult" = "QkSabreLayoutResult"
 "Split2qUnitariesResult" = "QkSplit2qUnitariesResult"
+"TranspileResult" = "QkTranspileResult"
+"TranspileOptions" = "QkTranspileOptions"

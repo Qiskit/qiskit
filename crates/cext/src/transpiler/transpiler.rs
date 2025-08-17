@@ -13,7 +13,6 @@ use std::ffi::c_char;
 use std::ffi::CString;
 
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_transpiler::target::Target;
 
 use qiskit_transpiler::transpile;
@@ -27,14 +26,14 @@ use crate::pointers::const_ptr_as_ref;
 /// When the transpiler successfully compiles a quantum circuit for a given target it
 /// returns the transpiled circuit and the layout.
 #[repr(C)]
-struct TranspileResult {
+pub struct TranspileResult {
     circuit: *mut CircuitData,
     layout: *mut TranspileLayout,
 }
 
 /// The options for running the transpiler
 #[repr(C)]
-struct TranspileOptions {
+pub struct TranspileOptions {
     /// The optimization level to run the transpiler with
     optimization_level: u8,
     /// The seed for the transpiler
@@ -52,6 +51,18 @@ impl Default for TranspileOptions {
             approximation_degree: 1.0,
         }
     }
+}
+
+/// @ingroup QkTranspiler
+///
+/// Generate transpiler options defaults
+///
+/// This function generates a QkTranspileOptions with the default settings
+/// This currently is ``optimization_level`` 2, no seed, and no approximation.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_transpiler_default_options() -> TranspileOptions {
+    TranspileOptions::default()
 }
 
 /// @ingroup QkTranspiler
