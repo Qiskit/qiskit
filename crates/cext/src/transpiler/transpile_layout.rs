@@ -216,6 +216,29 @@ pub unsafe extern "C" fn qk_transpile_layout_final_layout(
     }
 }
 
+/// @ingroup QkTranspileLayout
+/// Free a ``QkTranspileLayout`` object
+///
+/// @param layout a pointer to the layout to free
+///
+/// # Safety
+///
+/// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a ``QkTranspileLayout``.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_transpile_layout_free(layout: *mut TranspileLayout) {
+    if !layout.is_null() {
+        if !layout.is_aligned() {
+            panic!("Attempted to free a non-aligned pointer.")
+        }
+        // SAFETY: We have verified the pointer is non-null and aligned, so
+        // it should be readable by Box.
+        unsafe {
+            let _ = Box::from_raw(layout);
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
