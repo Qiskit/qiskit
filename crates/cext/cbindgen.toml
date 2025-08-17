@@ -58,3 +58,4 @@ prefix_with_name = true
 "Split2qUnitariesResult" = "QkSplit2qUnitariesResult"
 "TranspileResult" = "QkTranspileResult"
 "TranspileOptions" = "QkTranspileOptions"
+"TranspileLayout" = "QkTranspilerLayout"
