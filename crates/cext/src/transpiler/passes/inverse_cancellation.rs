@@ -45,7 +45,7 @@ use qiskit_transpiler::passes::run_inverse_cancellation_standard_gates;
 ///    - (QkGate_CS, QkGate_CSdg)
 ///
 /// @param circuit A pointer to the circuit to run InverseCancellation on. If the pass is able to
-/// remove any gates, the original circuit will be replaced by the corcuit produced by this pass.
+/// remove any gates, the original circuit will be replaced by the circuit produced by this pass.
 ///
 /// # Example
 ///
