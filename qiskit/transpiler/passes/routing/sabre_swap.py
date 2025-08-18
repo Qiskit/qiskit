@@ -40,9 +40,8 @@ class SabreSwap(TransformationPass):
 
     This algorithm starts from an initial layout of virtual qubits onto physical
     qubits, and iterates over the circuit DAG until all gates are exhausted,
-    inserting SWAPs along the way. It only considers 2-qubit gates as only those
-    are germane for the mapping problem (it is assumed that 3+ qubit gates are
-    already decomposed).
+    inserting SWAPs along the way.  The routing algorithm cannot reason about multi-qubit gates;
+    these must have been decomposed into single- and two-qubit gates before calling this pass.
 
     In each iteration, it will first check if there are any gates in the
     ``front_layer`` that can be directly applied. If so, it will apply them and
@@ -217,13 +216,13 @@ class SabreSwap(TransformationPass):
             heuristic = (
                 Heuristic(attempt_limit=10 * num_dag_qubits)
                 .with_basic(1.0, SetScaling.Constant)
-                .with_lookahead(0.5, 20, SetScaling.Size)
+                .with_lookahead([0.5 / num_coupling_qubits], SetScaling.Constant)
             )
         elif self.heuristic == "decay":
             heuristic = (
                 Heuristic(attempt_limit=10 * num_dag_qubits)
                 .with_basic(1.0, SetScaling.Constant)
-                .with_lookahead(0.5, 20, SetScaling.Size)
+                .with_lookahead([0.5 / num_coupling_qubits], SetScaling.Constant)
                 .with_decay(0.001, 5)
             )
         else:
