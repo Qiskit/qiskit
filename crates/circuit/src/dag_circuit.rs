@@ -4482,6 +4482,12 @@ impl<'a> DAGCircuit {
     }
 }
 
+impl Default for DAGCircuit {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DAGCircuit {
     pub fn new() -> Self {
         DAGCircuit {
@@ -4617,7 +4623,7 @@ impl DAGCircuit {
             Some(num_ops),
             Some(num_edges),
             Some(num_stretches),
-        )?;
+        );
         target_dag.name.clone_from(&self.name);
         target_dag.global_phase = self.global_phase.clone();
         target_dag.duration.clone_from(&self.duration);
@@ -6672,7 +6678,7 @@ impl DAGCircuit {
         num_ops: Option<usize>,
         num_edges: Option<usize>,
         num_stretches: Option<usize>,
-    ) -> PyResult<Self> {
+    ) -> Self {
         let num_ops: usize = num_ops.unwrap_or_default();
         let num_vars = num_vars.unwrap_or_default();
         let num_stretches = num_stretches.unwrap_or_default();
@@ -6688,7 +6694,7 @@ impl DAGCircuit {
             num_vars * 2 +  // One input + output node per variable
             num_ops;
 
-        Ok(Self {
+        Self {
             name: None,
             metadata: None,
             dag: StableDiGraph::with_capacity(num_nodes, num_edges),
@@ -6718,7 +6724,7 @@ impl DAGCircuit {
             vars_declare: HashSet::new(),
             stretches_capture: HashSet::new(),
             stretches_declare: Vec::new(),
-        })
+        }
     }
 
     /// Get qargs from an intern index
@@ -7008,7 +7014,7 @@ impl DAGCircuit {
             Some(num_ops),
             None,
             Some(num_stretches),
-        )?;
+        );
 
         // Assign other necessary data
         new_dag.name = name;
