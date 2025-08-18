@@ -376,6 +376,10 @@ Modular Adder Synthesis
       - Plugin class
       - Number of clean ancillas
       - Description
+    * - ``"modular_v17"``
+      - :class:`.ModularAdderSynthesisV17`
+      - 0
+      - a modular adder without any ancillary qubits
     * - ``"ripple_cdkm"``
       - :class:`.ModularAdderSynthesisC04`
       - 1
@@ -396,6 +400,7 @@ Modular Adder Synthesis
 .. autosummary::
    :toctree: ../stubs/
 
+   ModularAdderSynthesisV17
    ModularAdderSynthesisC04
    ModularAdderSynthesisD00
    ModularAdderSynthesisV95
@@ -587,6 +592,7 @@ from qiskit.synthesis.arithmetic import (
     adder_qft_d00,
     adder_ripple_v95,
     adder_ripple_r25,
+    adder_modular_v17,
     multiplier_qft_r17,
     multiplier_cumulative_h18,
 )
@@ -1679,26 +1685,37 @@ class ModularAdderSynthesisDefault(HighLevelSynthesisPlugin):
         if not isinstance(high_level_object, ModularAdderGate):
             return None
 
-        # For up to 5 qubits, the QFT-based adder is best
-        if high_level_object.num_state_qubits <= 5:
+        # For up to 4 qubits, the QFT-based adder is best
+        if high_level_object.num_state_qubits <= 4:
             decomposition = ModularAdderSynthesisD00().run(
                 high_level_object, coupling_map, target, qubits, **options
             )
             if decomposition is not None:
                 return decomposition
 
-        # Otherwise, the following decomposition is best (if there are enough ancillas)
-        if (
-            decomposition := ModularAdderSynthesisC04().run(
-                high_level_object, coupling_map, target, qubits, **options
-            )
-        ) is not None:
-            return decomposition
-
-        # Otherwise, use the QFT-adder again
-        return ModularAdderSynthesisD00().run(
+        # Otherwise, use V17 synthesis
+        return ModularAdderSynthesisV17().run(
             high_level_object, coupling_map, target, qubits, **options
         )
+
+
+class ModularAdderSynthesisV17(HighLevelSynthesisPlugin):
+    r"""A modular adder (modulo :math:`2^n`) without any ancillary qubits.
+
+    The plugin name is :``ModularAdder.v17`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    This plugin requires no auxiliary qubits.
+
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, ModularAdderGate):
+            return None
+
+        num_state_qubits = high_level_object.num_state_qubits
+
+        return adder_modular_v17(num_state_qubits)
 
 
 class ModularAdderSynthesisC04(HighLevelSynthesisPlugin):
