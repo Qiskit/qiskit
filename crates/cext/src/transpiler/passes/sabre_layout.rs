@@ -8,7 +8,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::pointers::const_ptr_as_ref;
+use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::converters::dag_to_circuit;
@@ -42,10 +42,10 @@ pub struct SabreLayoutResult {
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_sabre_layout_result_circuit(
-    result: *const SabreLayoutResult,
-) -> *const CircuitData {
-    let result = unsafe { const_ptr_as_ref(result) };
-    (&result.circuit) as *const _
+    result: *mut SabreLayoutResult,
+) -> *mut CircuitData {
+    let result = unsafe { mut_ptr_as_ref(result) };
+    (&mut result.circuit) as *mut _
 }
 
 /// @ingroup QkSabreLayoutResult
