@@ -43,7 +43,7 @@ pub fn is_hermitian_matrix(mat: &DMatrix<Complex64>) -> bool {
 pub fn closest_unitary(mat: DMatrix<Complex64>) -> DMatrix<Complex64> {
     // This implementation consumes the original mat but avoids calling
     // an unnecessary clone.
-    let svd = mat.svd(true, true);
+    let svd = mat.try_svd(true, true, 1e-12, 0).unwrap();
     let u = svd.u.unwrap();
     let v_t = svd.v_t.unwrap();
     &u * &v_t

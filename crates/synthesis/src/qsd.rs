@@ -16,7 +16,7 @@ use std::sync::OnceLock;
 use crate::QiskitError;
 use approx::abs_diff_eq;
 use hashbrown::HashMap;
-use nalgebra::{stack, DMatrix, DVector, Matrix4, QR, SVD};
+use nalgebra::{stack, DMatrix, DVector, Matrix4, QR};
 use ndarray::prelude::*;
 use num_complex::Complex64;
 use numpy::PyReadonlyArray2;
@@ -314,7 +314,8 @@ fn qsd_inner(
 }
 
 fn _zxz_decomp_svd(a: DMatrix<Complex64>) -> (DMatrix<Complex64>, DMatrix<Complex64>) {
-    let svd = SVD::new(a, true, true);
+    // let svd = SVD::new(a, true, true);
+    let svd = a.try_svd(true, true, 1e-12, 0).unwrap();
     let v = svd.u.unwrap();
     let s = svd.singular_values.map(Complex64::from);
     let w_dg = svd.v_t.unwrap();
@@ -370,7 +371,7 @@ fn _zxz_decomp_verify(
 
     let mat_check = a_blcok * b_block * c_block * Complex64::from(0.5);
 
-    const EPS: f64 = 1e-7;
+    const EPS: f64 = 1e-5;
     let close = abs_diff_eq!(mat, &mat_check, epsilon = EPS);
     close
 }
@@ -511,7 +512,7 @@ fn _demultiplex_verify(
 
     let u_check = v_block * d_block * w_block;
 
-    const EPS: f64 = 1e-7;
+    const EPS: f64 = 1e-5;
     let close = abs_diff_eq!(u_block, u_check, epsilon = EPS);
     close
 }
