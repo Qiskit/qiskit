@@ -16,7 +16,6 @@ import warnings
 
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.target import Target, _FakeTarget
-
 from qiskit._accelerate import check_map
 
 
@@ -56,26 +55,6 @@ class CheckMap(AnalysisPass):
         else:
             self._target = Target.from_configuration(["u", "cx"], coupling_map=coupling_map)
         self._qargs = None
-
-    @property
-    def qargs(self):
-        """DEPRECATED: A set of the qargs being checked."""
-        warnings.warn(
-            "The qargs attribute is deprecated and will be removed in Qiskit 3.0",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if self._qargs is not None:
-            return self._qargs
-        cmap = self._target.build_coupling_map()
-        if cmap is None:
-            return None
-        qargs = set()
-        for edge in cmap.get_edges():
-            qargs.add(edge)
-            qargs.add((edge[1], edge[0]))
-        self._qargs = qargs
-        return self._qargs
 
     def run(self, dag):
         """Run the CheckMap pass on `dag`.
