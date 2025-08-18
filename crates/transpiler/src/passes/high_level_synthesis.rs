@@ -331,7 +331,6 @@ pub struct HighLevelSynthesisData {
 #[pymethods]
 impl HighLevelSynthesisData {
     #[new]
-    #[pyo3(signature=(/, hls_config, hls_plugin_manager, hls_op_names, coupling_map, target, equivalence_library, device_insts, use_physical_indices, min_qubits, unroll_definitions, optimize_clifford_t))]
     #[allow(clippy::too_many_arguments)]
     fn __new__(
         hls_config: Py<PyAny>,
