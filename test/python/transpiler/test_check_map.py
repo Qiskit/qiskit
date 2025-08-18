@@ -65,11 +65,14 @@ class TestCheckMapCX(QiskitTestCase):
 
     def test_swap_mapped_true(self):
         """Mapped is easy to check
-        qr0:--(+)-[H]-(+)-
-               |       |
-        qr1:---.-------|--
-                       |
-        qr2:-----------.--
+
+                   ┌───┐
+        qr_0: ──■──┤ H ├──■──
+              ┌─┴─┐└───┘  │
+        qr_1: ┤ X ├───────┼──
+              └───┘     ┌─┴─┐
+        qr_2: ──────────┤ X ├
+                        └───┘
 
         CouplingMap map: [1]--[0]--[2]
         """
@@ -88,9 +91,11 @@ class TestCheckMapCX(QiskitTestCase):
 
     def test_swap_mapped_false(self):
         """Needs [0]-[1] in a [0]--[2]--[1]
-        qr0:--(+)--
-               |
-        qr1:---.---
+
+        qr_0: ──■──
+              ┌─┴─┐
+        qr_1: ┤ X ├
+              └───┘
 
         CouplingMap map: [0]--[2]--[1]
         """
@@ -107,9 +112,11 @@ class TestCheckMapCX(QiskitTestCase):
 
     def test_swap_mapped_false_target(self):
         """Needs [0]-[1] in a [0]--[2]--[1]
-        qr0:--(+)--
-               |
-        qr1:---.---
+
+        qr_0: ──■──
+              ┌─┴─┐
+        qr_1: ┤ X ├
+              └───┘
 
         CouplingMap map: [0]--[2]--[1]
         """
