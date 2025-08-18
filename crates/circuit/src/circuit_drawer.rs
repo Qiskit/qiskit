@@ -108,7 +108,7 @@ impl qubit_wire {
         }
     }
 
-    // setting qubit name
+    // setting qubit names
     pub fn qubit_name(&mut self, qubit_name: &str) {
         let name_len = qubit_name.len();
         self.top.push_str(" ".repeat(name_len).as_str());
@@ -129,10 +129,10 @@ impl qubit_wire {
         wire_rep
     }
 
-    pub fn fix_len(&mut self, num: u64) {
+    pub fn fix_len(&mut self, num: u64, chr: &str) {
         self.wire_len = self.wire_len + num;
         self.top.push_str(" ".repeat(num as usize).as_str());
-        self.mid.push_str(q_wire.repeat(num as usize).as_str());
+        self.mid.push_str(chr.repeat(num as usize).as_str());
         self.bot.push_str(" ".repeat(num as usize).as_str());
     }
 }
@@ -162,7 +162,7 @@ impl circuit_rep {
         output
     }
 
-    pub fn fix_len(&mut self) {
+    pub fn fix_len(&mut self, chr: &str) {
         let mut num = 0;
         for wire in self.q_wires.iter() {
             if wire.wire_len > num {
@@ -171,7 +171,7 @@ impl circuit_rep {
         }
 
         for wire in self.q_wires.iter_mut() {
-            wire.fix_len(num - wire.wire_len);
+            wire.fix_len(num - wire.wire_len, chr);
         }
     }
 
@@ -179,7 +179,7 @@ impl circuit_rep {
         for (i, qubit) in self.dag_circ.qubits().objects().iter().enumerate() {
             let qubit_name = if let Some(locations) = self.dag_circ.qubit_locations().get(qubit) {
                 if let Some((register, reg_index)) = locations.registers().first() {
-                    format!("{}[{}]", register.name(), reg_index)
+                    format!("{}_{}", register.name(), reg_index)
                 } else {
                     format!("q_{}", i)
                 }
@@ -188,7 +188,7 @@ impl circuit_rep {
             };
             self.q_wires[i].qubit_name(&qubit_name);
         }
-        self.fix_len();
+        self.fix_len(" ");
     }
 
     pub fn build_layer(&mut self, layer: Vec<&PackedInstruction>){
@@ -213,7 +213,7 @@ impl circuit_rep {
 
             self.build_layer(operations);
 
-            self.fix_len();
+            self.fix_len(q_wire);
         }
     }
 }
