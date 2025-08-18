@@ -36,8 +36,8 @@ class CheckMap(AnalysisPass):
         Args:
             coupling_map (Union[CouplingMap, Target]): Directed graph representing a coupling map.
             property_set_field (str): An optional string to specify the property set field to
-                store the result of the check. If not default the result is stored in
-                ``"is_swap_mapped"``.
+                store the result of the check. If not provided the result is stored in
+                the property set field ``"is_swap_mapped"``.
         """
         super().__init__()
         if property_set_field is None:
@@ -59,8 +59,8 @@ class CheckMap(AnalysisPass):
     def run(self, dag):
         """Run the CheckMap pass on `dag`.
 
-        If `dag` is mapped to `coupling_map`, the property
-        `is_swap_mapped` is set to True (or to False otherwise).
+        If ``dag`` is mapped to the configured :class:`.Target`, the property whose name is
+        specified in ``self.property_set_field`` is set to ``True`` (or to ``False`` otherwise).
 
         Args:
             dag (DAGCircuit): DAG to map.
