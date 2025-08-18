@@ -77,10 +77,11 @@ pub fn extract_rotations(
 }
 
 #[pyfunction]
-#[pyo3(name = "run")]
+#[pyo3(name = "run", signature = (dag, fix_clifford=true))]
 pub fn run_litinski_transformation(
     py: Python,
     dag: &mut DAGCircuit,
+    fix_clifford: bool,
 ) -> PyResult<Option<DAGCircuit>> {
     let op_counts = dag.get_op_counts();
 
@@ -193,17 +194,19 @@ pub fn run_litinski_transformation(
         )?;
     }
 
-    // Add Clifford gates to the Qiskit circuit.
-    for inst in clifford_ops {
-        new_dag.apply_operation_back(
-            inst.op,
-            dag.get_qargs(inst.qubits),
-            dag.get_cargs(inst.clbits),
-            inst.params.as_deref().cloned(),
-            inst.label.as_ref().map(|x| x.as_ref().clone()),
-            #[cfg(feature = "cache_pygates")]
-            inst.py_op.get().map(|x| x.clone_ref(py)),
-        )?;
+    // Add Clifford gates to the Qiskit circuit (when required).
+    if fix_clifford {
+        for inst in clifford_ops {
+            new_dag.apply_operation_back(
+                inst.op,
+                dag.get_qargs(inst.qubits),
+                dag.get_cargs(inst.clbits),
+                inst.params.as_deref().cloned(),
+                inst.label.as_ref().map(|x| x.as_ref().clone()),
+                #[cfg(feature = "cache_pygates")]
+                inst.py_op.get().map(|x| x.clone_ref(py)),
+            )?;
+        }
     }
 
     Ok(Some(new_dag))

@@ -6,13 +6,19 @@ features_transpiler:
 
     The input to the pass is a circuit with Clifford and single-qubit RZ-rotation gates, and the output
     is a circuit with multi-qubit Pauli rotations (implemented as :class:`.PauliEvolutionGate` gates)
-    followed by Clifford gates. 
+    followed by Clifford gates. The pass raises a :class:`~qiskit.transpiler.exceptions.TranspilerError`
+    exception if the circuit contains non-supported gates.
 
     The pass supports all of the Clifford gates in the list returned by :func:`.get_clifford_gate_names`,
     namely
     ``["id", "x", "y", "z", "h", "s", "sdg", "sx", "sxdg", "cx", "cz", "cy", "swap", "iswap", "ecr", "dcx"]``.
     The list of supported RZ-rotations is ``["t", "tdg", "rz"]`` (we automatically convert T and Tdg gates
     to RZ-rotations).
+
+    In addition, the :class:`.LitinskiTransformation` constructor accepts an argument ``fix_clifford``.
+    When ``False`` (non-default), the returned circuit contains only :class:`.PauliEvolutionGate` gates,
+    with the final Clifford gates omitted. Note that in this case the operators of the original and
+    synthesized circuits will generally not be equivalent.
 
     For example::
 

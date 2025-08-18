@@ -61,6 +61,21 @@ class TestLitinskiTransformation(QiskitTestCase):
         self.assertEqual(qct.count_ops(), {"PauliEvolution": 3, "cx": 2, "h": 1, "s": 1})
         self.assertEqual(Operator(qct), Operator(qc))
 
+    def test_omit_clifford_gates(self):
+        """Test fix_clifford."""
+        qc = QuantumCircuit(4)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.rz(0.1, 0)
+        qc.cx(0, 2)
+        qc.rz(-0.4, 1)
+        qc.s(2)
+        qc.rz(0.1, 1)
+
+        qct = LitinskiTransformation(fix_clifford=False)(qc)
+
+        self.assertEqual(qct.count_ops(), {"PauliEvolution": 3})
+
     def test_parametric_rz_gates(self):
         """Test circuit with parameterized RZ-rotation gates."""
         alpha = Parameter("alpha")

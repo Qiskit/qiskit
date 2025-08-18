@@ -23,7 +23,7 @@ class LitinskiTransformation(TransformationPass):
 
     The transform applies to a circuit containing Clifford + RZ-rotation gates (including T and Tdg),
     and moves Clifford gates to the end of the circuit, while changing rotation gates to multi-qubit
-    rotations.
+    rotations (represented using PauliEvolution gates).
 
     The pass supports all of the Clifford gates in the list returned by
     :func:`.get_clifford_gate_names`:
@@ -36,6 +36,18 @@ class LitinskiTransformation(TransformationPass):
     ``["t", "tdg", "rz"]``
     """
 
+    def __init__(self, fix_clifford=True):
+        """LitinskiTransformation initializer.
+
+        Args:
+            fix_clifford (bool): if False (non-default), the returned circuit contains
+                only PauliEvolution gates, with the final Clifford gates omitted.
+                Note that in this case the operators of the original and synthesized
+                circuits will generally not be equivalent.
+        """
+        super().__init__()
+        self.fix_clifford = fix_clifford
+
     def run(self, dag):
         """Run the LitiskiTransformation pass on ``dag``.
 
@@ -44,8 +56,12 @@ class LitinskiTransformation(TransformationPass):
 
         Returns:
             DAGCircuit: the output DAG.
+
+        Raises:
+            TranspilerError: if the circuit contains gates
+                not supported by the pass.
         """
-        new_dag = litinski_transformation_rs.run(dag)
+        new_dag = litinski_transformation_rs.run(dag, self.fix_clifford)
 
         # If the pass did not do anything, the result is None
         if new_dag is None:
