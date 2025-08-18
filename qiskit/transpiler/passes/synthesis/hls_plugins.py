@@ -2001,7 +2001,7 @@ class MultiplierSynthesisR17(HighLevelSynthesisPlugin):
 
 
 class MultiplierSynthesisDefault(HighLevelSynthesisPlugin):
-    """A QFT-based multiplier.
+    """THe default multiplier plugin.
 
     This plugin name is:``Multiplier.default`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
