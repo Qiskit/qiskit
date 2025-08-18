@@ -260,12 +260,12 @@ fn qsd_inner(
     // perform block ZXZ decomposition from [2]
     let (a1, a2, b, c) = _block_zxz_decomp(mat);
     // TODO: remove this verification in favor of a test
-    let verify_mat = _zxz_decomp_verify(mat, &a1, &a2, &b, &c);
-    if !verify_mat {
-        return Err(QiskitError::new_err(
-            "The matrix after ZXZ decomposition is not the same.",
-        ));
-    }
+    // let verify_mat = _zxz_decomp_verify(mat, &a1, &a2, &b, &c);
+    // if !verify_mat {
+    //    return Err(QiskitError::new_err(
+    //        "The matrix after ZXZ decomposition is not the same.",
+    //    ));
+    // }
 
     let iden = DMatrix::<Complex64>::identity(dim / 2, dim / 2);
     let (left_circuit, vmat_c, _) = demultiplex(
@@ -438,12 +438,12 @@ fn demultiplex(
     let wmat = d_mat.clone() * vmat.adjoint() * um1;
 
     // TODO: remove this verification in favor of a test
-    let verify_mat = _demultiplex_verify(um0, um1, &vmat, &wmat, &d_mat);
-    if !verify_mat {
-        return Err(QiskitError::new_err(
-            "The matrix after Schur decomposition is not the same.",
-        ));
-    }
+    // let verify_mat = _demultiplex_verify(um0, um1, &vmat, &wmat, &d_mat);
+    // if !verify_mat {
+    //    return Err(QiskitError::new_err(
+    //        "The matrix after Schur decomposition is not the same.",
+    //    ));
+    // }
 
     let out_qubits = (0..num_qubits)
         .map(|_| ShareableQubit::new_anonymous())
