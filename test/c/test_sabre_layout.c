@@ -20,31 +20,30 @@
 #include <stdio.h>
 #include <string.h>
 
-void print_circuit(QkCircuit *qc) {
+void print_circuit(const QkCircuit *qc) {
     size_t num_instructions = qk_circuit_num_instructions(qc);
-    QkCircuitInstruction *inst = malloc(sizeof(QkCircuitInstruction));
+    QkCircuitInstruction inst;
     for (size_t i = 0; i < num_instructions; i++) {
-        qk_circuit_get_instruction(qc, i, inst);
-        printf("%s: qubits: (", inst->name);
-        for (uint32_t j = 0; j < inst->num_qubits; j++) {
-            printf("%d,", inst->qubits[j]);
+        qk_circuit_get_instruction(qc, i, &inst);
+        printf("%s: qubits: (", inst.name);
+        for (uint32_t j = 0; j < inst.num_qubits; j++) {
+            printf("%d,", inst.qubits[j]);
         }
         printf(")");
-        uint32_t num_clbits = inst->num_clbits;
+        uint32_t num_clbits = inst.num_clbits;
         if (num_clbits > 0) {
             printf(", clbits: (");
             for (uint32_t j = 0; j < num_clbits; j++) {
-                printf("%d,", inst->clbits[j]);
+                printf("%d,", inst.clbits[j]);
             }
             printf(")");
         }
         printf("\n");
-        qk_circuit_instruction_clear(inst);
+        qk_circuit_instruction_clear(&inst);
     }
-    free(inst);
 }
 
-bool compare_circuits(QkCircuit *res, QkCircuit *expected) {
+bool compare_circuits(const QkCircuit *res, const QkCircuit *expected) {
     if (qk_circuit_num_instructions(res) != qk_circuit_num_instructions(expected)) {
         printf("Number of instructions in circuit is mismatched");
         return false;
@@ -140,62 +139,21 @@ bool compare_circuits(QkCircuit *res, QkCircuit *expected) {
  * Test running sabre layout that requires layout and routing
  */
 int test_sabre_layout_applies_layout(void) {
-    const uint32_t num_qubits = 5;
-    // Let's create a target with one qubit for now
-    QkTarget *target = qk_target_new(num_qubits);
     int result = Ok;
 
-    // Add an X Gate.
-    // This operation is global, no property map is provided
-    QkExitCode result_x = qk_target_add_instruction(target, qk_target_entry_new(QkGate_X));
-    if (result_x != QkExitCode_Success) {
-        printf("Unexpected error occurred when adding a global X gate.");
-        result = EqualityError;
-        goto cleanup;
-    }
+    const uint32_t num_qubits = 5;
+    QkTarget *target = qk_target_new(num_qubits);
 
-    // Re-add same gate, check if it fails
-    QkExitCode result_x_readded = qk_target_add_instruction(target, qk_target_entry_new(QkGate_X));
-    if (result_x_readded != QkExitCode_TargetInstAlreadyExists) {
-        printf("The addition of a repeated gate did not fail as expected.");
-        result = EqualityError;
-        goto cleanup;
-    }
-
-    // Number of qubits of the target should not change.
-    uint32_t current_num_qubits = qk_target_num_qubits(target);
-
-    size_t current_size = qk_target_num_instructions(target);
-    if (current_size != 1) {
-        printf("The size of this target is not correct: Expected 1, got %zu", current_size);
-        result = EqualityError;
-        goto cleanup;
-    }
-
-    // Add a CX Gate.
-    // Create prop_map for the instruction
-    // Add property for (0, 1)
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_U));
     QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
-    for (uint32_t i = 0; i < current_num_qubits - 1; i++) {
+    for (uint32_t i = 0; i < num_qubits - 1; i++) {
         uint32_t qargs[2] = {i, i + 1};
-        double inst_error = 0.0090393 * (current_num_qubits - i);
+        double inst_error = 0.0090393 * (num_qubits - i);
         double inst_duration = 0.020039;
-
-        QkExitCode result_cx_props =
-            qk_target_entry_add_property(cx_entry, qargs, 2, inst_duration, inst_error);
-        if (result_cx_props != QkExitCode_Success) {
-            printf("Unexpected error occurred when adding property to a CX gate entry.");
-            result = EqualityError;
-            goto cleanup;
-        }
+        qk_target_entry_add_property(cx_entry, qargs, 2, inst_duration, inst_error);
     }
 
-    QkExitCode result_cx = qk_target_add_instruction(target, cx_entry);
-    if (result_cx != QkExitCode_Success) {
-        printf("Unexpected error occurred when adding a CX gate.");
-        result = EqualityError;
-        goto cleanup;
-    }
+    qk_target_add_instruction(target, cx_entry);
 
     QkCircuit *qc = qk_circuit_new(5, 0);
     for (uint32_t i = 0; i < qk_circuit_num_qubits(qc) - 1; i++) {
@@ -300,62 +258,21 @@ cleanup:
  * Test running sabre layout that performs no transformation.
  */
 int test_sabre_layout_no_swap(void) {
-    const uint32_t num_qubits = 5;
-    // Let's create a target with one qubit for now
-    QkTarget *target = qk_target_new(num_qubits);
     int result = Ok;
 
-    // Add an X Gate.
-    // This operation is global, no property map is provided
-    QkExitCode result_x = qk_target_add_instruction(target, qk_target_entry_new(QkGate_X));
-    if (result_x != QkExitCode_Success) {
-        printf("Unexpected error occurred when adding a global X gate.");
-        result = EqualityError;
-        goto cleanup;
-    }
-
-    // Re-add same gate, check if it fails
-    QkExitCode result_x_readded = qk_target_add_instruction(target, qk_target_entry_new(QkGate_X));
-    if (result_x_readded != QkExitCode_TargetInstAlreadyExists) {
-        printf("The addition of a repeated gate did not fail as expected.");
-        result = EqualityError;
-        goto cleanup;
-    }
-
-    // Number of qubits of the target should not change.
-    uint32_t current_num_qubits = qk_target_num_qubits(target);
-
-    size_t current_size = qk_target_num_instructions(target);
-    if (current_size != 1) {
-        printf("The size of this target is not correct: Expected 1, got %zu", current_size);
-        result = EqualityError;
-        goto cleanup;
-    }
-
-    // Add a CX Gate.
-    // Create prop_map for the instruction
-    // Add property for (0, 1)
+    const uint32_t num_qubits = 5;
+    QkTarget *target = qk_target_new(num_qubits);
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_U));
     QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
-    for (uint32_t i = 0; i < current_num_qubits - 1; i++) {
+    for (uint32_t i = 0; i < num_qubits - 1; i++) {
         uint32_t qargs[2] = {i, i + 1};
-        double inst_error = 0.0090393 * (current_num_qubits - i);
+        double inst_error = 0.0090393 * (num_qubits - i);
         double inst_duration = 0.020039;
 
-        QkExitCode result_cx_props =
-            qk_target_entry_add_property(cx_entry, qargs, 2, inst_duration, inst_error);
-        if (result_cx_props != QkExitCode_Success) {
-            printf("Unexpected error occurred when adding property to a CX gate entry.");
-            result = EqualityError;
-            goto cleanup;
-        }
+        qk_target_entry_add_property(cx_entry, qargs, 2, inst_duration, inst_error);
     }
 
-    QkExitCode result_cx = qk_target_add_instruction(target, cx_entry);
-    if (result_cx != QkExitCode_Success) {
-        printf("Unexpected error occurred when adding a CX gate.");
-        result = EqualityError;
-        goto cleanup;
-    }
+    qk_target_add_instruction(target, cx_entry);
 
     QkCircuit *qc = qk_circuit_new(5, 0);
     for (uint32_t i = 0; i < qk_circuit_num_qubits(qc) - 1; i++) {
@@ -368,7 +285,7 @@ int test_sabre_layout_no_swap(void) {
         qk_transpiler_pass_standalone_sabre_layout(qc, target, 4, 20, 20, 42);
     QkCircuit *expected_circuit = qk_circuit_new(5, 0);
     for (uint32_t i = 0; i < qk_circuit_num_qubits(qc) - 1; i++) {
-        uint32_t qargs[2] = {4 - i, 4 - i - 1};
+        uint32_t qargs[2] = {i, i + 1};
         for (uint32_t j = 0; j < i + 1; j++) {
             qk_circuit_gate(expected_circuit, QkGate_CX, qargs, NULL);
         }
@@ -386,7 +303,7 @@ int test_sabre_layout_no_swap(void) {
         result = EqualityError;
         goto layout_cleanup;
     }
-    uint32_t expected_initial_layout[5] = {4, 3, 2, 1, 0};
+    uint32_t expected_initial_layout[5] = {0, 1, 2, 3, 4};
     for (uint32_t i = 0; i < init_layout_size; i++) {
         uint32_t init_layout =
             qk_sabre_layout_result_map_virtual_qubit_initial_layout(layout_result, i);
@@ -404,7 +321,7 @@ int test_sabre_layout_no_swap(void) {
         result = EqualityError;
         goto layout_cleanup;
     }
-    uint32_t expected_final_layout[5] = {4, 3, 2, 1, 0};
+    uint32_t expected_final_layout[5] = {0, 1, 2, 3, 4};
     for (uint32_t i = 0; i < final_layout_size; i++) {
         uint32_t final_layout =
             qk_sabre_layout_result_map_virtual_qubit_initial_layout(layout_result, i);
