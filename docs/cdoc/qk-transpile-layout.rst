@@ -22,11 +22,11 @@ For example if you had a circuit constructed like:
 
     QkCircuit *qc = qk_circuit_new(3, 0)
     uint32_t h_qargs[1] = {0};
-    qk_circuit_gate(qc, QKGate_H, h_qargs, NULL);
+    qk_circuit_gate(qc, QkGate_H, h_qargs, NULL);
     uint32_t cx_0_qargs[2] = {0, 1};
-    qk_circuit_gate(qc, QKGate_CX, cx_0_qargs, NULL);
+    qk_circuit_gate(qc, QkGate_CX, cx_0_qargs, NULL);
     uint32_t cx_1_qargs[2] = {0, 2};
-    qk_circuit_gate(qc, QKGate_CX, cx_1_qargs, NULL);
+    qk_circuit_gate(qc, QkGate_CX, cx_1_qargs, NULL);
 
 and during the layout stage the transpiler maps the virtual qubits in that
 circuit to the physical circuits as:
@@ -43,11 +43,11 @@ so the circuit would look like:
 
     QkCircuit *qc = qk_circuit_new(3, 0)
     uint32_t h_qargs[1] = {2};
-    qk_circuit_gate(qc, QKGate_H, h_qargs, NULL);
+    qk_circuit_gate(qc, QkGate_H, h_qargs, NULL);
     uint32_t cx_0_qargs[2] = {2, 1};
-    qk_circuit_gate(qc, QKGate_CX, cx_0_qargs, NULL);
+    qk_circuit_gate(qc, QkGate_CX, cx_0_qargs, NULL);
     uint32_t cx_1_qargs[2] = {2, 0};
-    qk_circuit_gate(qc, QKGate_CX, cx_1_qargs, NULL);
+    qk_circuit_gate(qc, QkGate_CX, cx_1_qargs, NULL);
 
 then the result of ``qk_transpile_layout_initial_layout()`` will be an array:
 ``[2, 1, 0]``
@@ -62,18 +62,18 @@ like:
 
     QkCircuit *qc = qk_circuit_new(3, 0)
     uint32_t h_qargs[1] = {2};
-    qk_circuit_gate(qc, QKGate_H, h_qargs, NULL);
+    qk_circuit_gate(qc, QkGate_H, h_qargs, NULL);
     uint32_t cx_0_qargs[2] = {2, 1};
-    qk_circuit_gate(qc, QKGate_CX, cx_0_qargs, NULL);
+    qk_circuit_gate(qc, QkGate_CX, cx_0_qargs, NULL);
     uint32_t swap_qargs[2] = {1, 0};
-    qk_circuit_gate(qc, QKGate_Swap, swap_qargs, NULL);
+    qk_circuit_gate(qc, QkGate_Swap, swap_qargs, NULL);
     uint32_t cx_1_qargs[2] = {2, 1};
-    qk_circuit_gate(qc, QKGate_CX, cx_1_qargs, NULL);
+    qk_circuit_gate(qc, QkGate_CX, cx_1_qargs, NULL);
 
 this results in the output state of qubit 0 moving to qubit 1 and qubit 1's to qubit 0.
 This results in ``qk_transpile_layout_output_permutation()`` returning the array:
 ``[1, 0, 2]`` to indicate this is the final position of each qubit's state after the
-initial layout mapping. If no swaps or permutation ellisions were made during the
+initial layout mapping. If no swaps or permutation elisions were made during the
 transpilation this will be a trivial array of the form ``[0, 1, 2]`` as the output state
 of the qubit is not moved by the transpiler.
 
