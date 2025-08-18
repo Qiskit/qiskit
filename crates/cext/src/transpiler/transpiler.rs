@@ -34,12 +34,14 @@ pub struct TranspileResult {
 /// The options for running the transpiler
 #[repr(C)]
 pub struct TranspileOptions {
-    /// The optimization level to run the transpiler with
+    /// The optimization level to run the transpiler with. Valid values are 0, 1, 2, or 3.
     optimization_level: u8,
-    /// The seed for the transpiler
+    /// The seed for the transpiler. If set to a negative number this means no seed will be
+    /// set and the RNGs used in the transpiler will be seeded froms system entropy.
     seed: i64,
     /// The approximation degree a heurstic dial where 1.0 means no approximation (up to numerical
-    /// tolerance) and 0.0 means the maximum approximation. A `NAN` value indicates
+    /// tolerance) and 0.0 means the maximum approximation. A `NAN` value indicates that
+    /// approximation is allowed up to the reported error rate for an operation in the target.
     approximation_degree: f64,
 }
 
@@ -70,7 +72,14 @@ pub unsafe extern "C" fn qk_transpiler_default_options() -> TranspileOptions {
 ///
 /// The Qiskit transpiler is a quantum circuit compiler that rewrites a given
 /// input circuit to match the constraints of a QPU and/or optimize the circuit
-/// for execution
+/// for execution.
+///
+/// This function is multithreaded internally and will launch a thread pool
+/// with threads equal to the number of CPUs by default. You can tune the
+/// number of threads with the ``RAYON_NUM_THREADS`` environment variable.
+/// For example, setting ``RAYON_NUM_THREADS=4`` would limit the thread pool
+/// to 4 threads.
+///
 /// @param circuit A pointer to the circuit to run the transpiler on
 /// @param target A pointer to the target to compile the circuit for
 /// @params options A pointer to an options object that define user options if this is a null
