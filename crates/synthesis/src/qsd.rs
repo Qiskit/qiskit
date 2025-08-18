@@ -412,6 +412,8 @@ fn demultiplex(
     _ctrl_index: Option<usize>,
     vw_type: VWType,
 ) -> PyResult<(CircuitData, DMatrix<Complex64>, DMatrix<Complex64>)> {
+    let um0 = closest_unitary(um0.clone());
+    let um1 = closest_unitary(um1.clone());
     let dim = um0.shape().0 + um1.shape().0;
     let num_qubits = dim.ilog2() as usize;
     let _ctrl_index = _ctrl_index.unwrap_or_else(|| num_qubits - 1);
