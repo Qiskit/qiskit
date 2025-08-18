@@ -3,7 +3,7 @@ features_c:
   - |
     Added support for querying the Qiskit version via the C API using the following definitions:
 
-    * ``QISKIT_VERSION``: The version as human readable ``char*`` (e.g. ``"2.1.0rc1"``).
+    * ``QISKIT_VERSION``: The version as human readable ``char*`` (e.g. ``"2.2.0"``).
     * ``QISKIT_VERSION_HEX``: The version as HEX.
     * ``QISKIT_VERSION_MAJOR``: The major version number.
     * ``QISKIT_VERSION_MINOR``: The minor version number.
@@ -13,10 +13,15 @@ features_c:
     * ``QISKIT_GET_VERSION_HEX``: A macro returning the version a HEX, given major, minor, patch,
       level, and serial.
 
-    For example, to check if the current version is at least 2.1.0, you can use:
+    For example, to check if the current version is at least 2.2.0, you can use:
 
     .. code-block:: c
 
-        if (QISKIT_VERSION_HEX >= QISKIT_GET_VERSION_HEX(2, 1, 0, 0xF, 0)) {
-            // Code for version 2.1.0 (final) or later
+        if (QISKIT_VERSION_HEX >= QISKIT_GET_VERSION_HEX(2, 2, 0, 0xF, 0)) {
+            // Code for version 2.2.0 (final) or later
         }
+upgrade_c:
+  - |
+    Removed the macro ``QISKIT_VERSION_NUMERIC`` in favor of the direct replacement
+    ``QISKIT_GET_VERSION_HEX``. This macro can be used to generate a hexanumeric version format
+    from decimal version numbers.
