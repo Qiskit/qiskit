@@ -14,13 +14,6 @@ features_qasm:
     If not specified, the index set will be of type `qiskit.circuit.classical.types.UintType`.
     This follows the latest standard OpenQASM 3 specification (https://openqasm.com/language/classical.html#for-loops).
     The `qiskit.qasm3.exporter.QASM3Exporter` class has also been updated to export `qiskit.circuit.classical.expr.Range` objects to a format that is compatible with the latest standard OpenQASM 3 specification.
-    Furthermore, the type of the index set of the `qiskit.circuit.ForLoop` expression is now correctly exported to OpenQASM 3.
-    A typical example is:
-    ```
-    int[32] b = 0;
-    // loop over a discrete set of values
-    for int[32] i in {1, 5, 10} {
-        b += i;
-    }
+    Furthermore, the type of the index set of the `qiskit.circuit.ForLoop` expression is now correctly exported to OpenQASM 3, as per the latest specification.
     ```
 
