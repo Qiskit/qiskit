@@ -22,11 +22,11 @@ use qiskit_circuit::{PhysicalQubit, Qubit};
 
 use crate::target::Target;
 
-fn recurse<'py>(
-    py: Python<'py>,
-    dag: &'py DAGCircuit,
+fn recurse(
+    py: Python,
+    dag: &DAGCircuit,
     target: &Target,
-    wire_map: Option<&'py [Qubit]>,
+    wire_map: Option<&[Qubit]>,
 ) -> PyResult<Option<(String, [u32; 2])>> {
     let check_qubits = |qubits: &[Qubit]| -> bool {
         match wire_map {
