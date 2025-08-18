@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include <string.h>
 
-int build_unitarty_target(QkTarget *target, uint32_t num_qubits) {
+int build_unitary_target(QkTarget *target, uint32_t num_qubits) {
     // Create a target with cx connectivity in a line.
     QkExitCode result_x = qk_target_add_instruction(target, qk_target_entry_new(QkGate_X));
     if (result_x != QkExitCode_Success) {
@@ -29,13 +29,13 @@ int build_unitarty_target(QkTarget *target, uint32_t num_qubits) {
     }
     QkExitCode result_sx = qk_target_add_instruction(target, qk_target_entry_new(QkGate_SX));
     if (result_sx != QkExitCode_Success) {
-        printf("Unexpected error occurred when adding a global X gate.");
+        printf("Unexpected error occurred when adding a global SX gate.");
         return RuntimeError;
     }
 
     QkExitCode result_rz = qk_target_add_instruction(target, qk_target_entry_new(QkGate_RZ));
     if (result_rz != QkExitCode_Success) {
-        printf("Unexpected error occurred when adding a global X gate.");
+        printf("Unexpected error occurred when adding a global RZ gate.");
         return RuntimeError;
     }
 
@@ -67,7 +67,7 @@ int test_unitary_synthesis_identity_matrix(void) {
     const uint32_t num_qubits = 5;
     QkTarget *target = qk_target_new(num_qubits);
     int result = Ok;
-    result = build_unitarty_target(target, num_qubits);
+    result = build_unitary_target(target, num_qubits);
     if (result != Ok) {
         goto cleanup;
     }

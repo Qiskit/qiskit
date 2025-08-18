@@ -6,7 +6,7 @@ features_c:
     the :class:`.UnitarySynthesis` transpiler pass. Calling this function is
     the equivalent of running the pass in Python like::
 
-      UnitarySynthesis(..)(circuit
+      UnitarySynthesis(..)(circuit)
 
     with the default synthesis plugin (the C API does not support the unitary
     synthesis plugin interface).

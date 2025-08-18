@@ -21,20 +21,20 @@ use qiskit_transpiler::passes::run_unitary_synthesis;
 use qiskit_transpiler::target::Target;
 
 /// @ingroup QkTranspilerPasses
-/// Run the UnitarySynthesis transpiler pass
+/// Run the UnitarySynthesis transpiler pass.
 ///
-/// The UnitarySynthesis transpiler pass will synthesis any UnitaryGates in the circuit into gates
+/// The UnitarySynthesis transpiler pass will synthesize any UnitaryGates in the circuit into gates
 /// available in the target. The unitary gate will not be synthesize
 ///
-/// Right now from C this pass only supports 1 and 2 qubit UnitaryGates, larger unitary matrices
+/// Right now from C this pass only supports 1 and 2 qubit UnitaryGates. Larger unitary matrices
 /// will be supported in a future release.
 ///
-/// @param circuit A pointer to the circuit to run run UnitarySynthesis on
-/// @param target A pointer to the target to run the UnitarySynthesis on
+/// @param circuit A pointer to the circuit to run UnitarySynthesis on
+/// @param target A pointer to the target to run UnitarySynthesis on
 /// @param min_qubits The minimum number of qubits in the unitary to synthesize. If this is set
 ///        and the unitary is less than the specified number of qubits it will not be
 ///        synthesized.
-/// @param approximiation_degree heuristic dial used for circuit approximation
+/// @param approximation_degree heuristic dial used for circuit approximation
 ///        (1.0=no approximation, 0.0=maximal approximation). Approximation can
 ///        make the synthesized circuit cheaper at the cost of straying from
 ///        the original unitary. If NAN, the target approximation is based on gate fidelities
@@ -43,7 +43,8 @@ use qiskit_transpiler::target::Target;
 /// # Example
 ///
 /// ```c
-///     QkTarget *target = qk_target_new(2)
+///     QkTarget *target = qk_target_new(2);
+///     uint32_t current_num_qubits = qk_target_num_qubits(target);
 ///     QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
 ///     for (uint32_t i = 0; i < current_num_qubits - 1; i++) {
 ///         uint32_t qargs[2] = {i, i + 1};
@@ -52,7 +53,7 @@ use qiskit_transpiler::target::Target;
 ///         qk_target_entry_add_property(cx_entry, qargs, 2, inst_duration, inst_error);
 ///     }
 ///     QkExitCode result_cx = qk_target_add_instruction(target, cx_entry);
-///     QkCircuit *qc = qk_circuit_new(1, 0);
+///     QkCircuit *qc = qk_circuit_new(2, 0);
 ///     QkComplex64 c0 = {0., 0.};
 ///     QkComplex64 c1 = {1., 0.};
 ///     QkComplex64 unitary[16] = {c1, c0, c0, c0,  // row 0
