@@ -103,7 +103,7 @@ pub(crate) fn basis_search(
         let edge_data = edge.weight().as_ref().unwrap();
         let mut cost_tot = 0;
         let borrowed_cost = opt_cost_map.borrow();
-        for instruction in edge_data.rule.circuit.0.iter() {
+        for instruction in edge_data.rule.circuit.iter() {
             let instruction_op = instruction.op.view();
             cost_tot += borrowed_cost[&(
                 instruction_op.name().to_string(),
