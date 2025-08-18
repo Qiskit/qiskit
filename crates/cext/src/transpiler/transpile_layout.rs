@@ -114,7 +114,7 @@ pub unsafe extern "C" fn qk_transpile_layout_initial_layout(
 }
 
 /// @ingroup QkTranspileLayout
-/// Return the output permutation of a ``QkTranspileLayout``
+/// Query the output permutation of a ``QkTranspileLayout``
 ///
 /// The output array from this function represents the permutation induced by the transpiler where
 /// the index indicates the qubit at the start of the circuit and the value is the position of the
@@ -167,7 +167,7 @@ pub unsafe extern "C" fn qk_transpile_layout_output_permutation(
 }
 
 /// @ingroup QkTranspileLayout
-/// Return the final layout of a ``QkTranspileLayout``
+/// Query the final layout of a ``QkTranspileLayout``
 ///
 /// The output array represents the mapping from the virtual qubit in the original input circuit to
 /// the physical qubit at the end of the transpile circuit that has that qubit's state. The array
