@@ -494,7 +494,7 @@ impl DAGIdentifierInfo {
 impl DAGCircuit {
     #[new]
     pub fn py_new(py: Python) -> PyResult<Self> {
-        let mut out = Self::new()?;
+        let mut out = Self::new();
         out.metadata = Some(PyDict::new(py).unbind().into());
         Ok(out)
     }
@@ -4483,8 +4483,8 @@ impl<'a> DAGCircuit {
 }
 
 impl DAGCircuit {
-    pub fn new() -> PyResult<Self> {
-        Ok(DAGCircuit {
+    pub fn new() -> Self {
+        DAGCircuit {
             name: None,
             metadata: None,
             dag: StableDiGraph::default(),
@@ -4511,7 +4511,7 @@ impl DAGCircuit {
             vars_declare: HashSet::new(),
             stretches_capture: HashSet::new(),
             stretches_declare: Vec::new(),
-        })
+        }
     }
 
     /// Create an empty DAG, but with all the same qubit data, classical data and metadata
@@ -6955,7 +6955,7 @@ impl DAGCircuit {
         PyErr: From<E>,
     {
         let mut new_nodes = Vec::new();
-        let mut replacement_dag = DAGCircuit::new()?;
+        let mut replacement_dag = DAGCircuit::new();
         std::mem::swap(self, &mut replacement_dag);
         let mut dag_builder = replacement_dag.into_builder();
         for inst in iter {
@@ -7964,7 +7964,7 @@ mod test {
     fn new_dag(qubits: u32, clbits: u32) -> DAGCircuit {
         let qreg = QuantumRegister::new_owning("q".to_owned(), qubits);
         let creg = ClassicalRegister::new_owning("c".to_owned(), clbits);
-        let mut dag = DAGCircuit::new().unwrap();
+        let mut dag = DAGCircuit::new();
         dag.add_qreg(qreg).unwrap();
         dag.add_creg(creg).unwrap();
         dag
@@ -8140,7 +8140,7 @@ mod test {
 
     #[test]
     fn test_physical_empty_like() -> PyResult<()> {
-        let mut dag = DAGCircuit::new()?;
+        let mut dag = DAGCircuit::new();
         let qr = QuantumRegister::new_owning("virtual".to_owned(), 5);
         let cr = ClassicalRegister::new_owning("classical".to_owned(), 5);
         dag.name = Some("my dag".to_owned());
