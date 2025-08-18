@@ -24,16 +24,15 @@ use qiskit_transpiler::target::Target;
 /// Run the UnitarySynthesis transpiler pass.
 ///
 /// The UnitarySynthesis transpiler pass will synthesize any UnitaryGates in the circuit into gates
-/// available in the target. The unitary gate will not be synthesize
+/// available in the target.
 ///
 /// Right now from C this pass only supports 1 and 2 qubit UnitaryGates. Larger unitary matrices
 /// will be supported in a future release.
 ///
 /// @param circuit A pointer to the circuit to run UnitarySynthesis on
 /// @param target A pointer to the target to run UnitarySynthesis on
-/// @param min_qubits The minimum number of qubits in the unitary to synthesize. If this is set
-///        and the unitary is less than the specified number of qubits it will not be
-///        synthesized.
+/// @param min_qubits The minimum number of qubits in the unitary to synthesize. If the unitary
+///        is less than the specified number of qubits it will not be synthesized.
 /// @param approximation_degree heuristic dial used for circuit approximation
 ///        (1.0=no approximation, 0.0=maximal approximation). Approximation can
 ///        make the synthesized circuit cheaper at the cost of straying from
