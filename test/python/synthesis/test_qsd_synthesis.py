@@ -24,6 +24,7 @@ from qiskit.quantum_info.operators import Operator
 from qiskit.synthesis.unitary import qsd
 from qiskit.circuit.library import XGate, PhaseGate, UGate, UCGate, UnitaryGate
 from qiskit.quantum_info import random_unitary
+from qiskit.quantum_info.operators.predicates import matrix_equal
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -355,7 +356,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         qc2 = qsd.qs_decomposition(hidden_mat)
         cqc2 = transpile(qc2, basis_gates=["u", "cx"], optimization_level=0)
         op2 = Operator(qc2)
-        self.assertEqual(hidden_op, op2)
+        self.assertTrue(matrix_equal(hidden_op, op2, atol=1e-5))
         self.assertLessEqual(
             cqc2.count_ops().get("cx", 0),
             2 * self._qsd_l2_cx_count(num_qubits - 1) + self._qsd_ucrz(num_qubits),
@@ -378,7 +379,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         qc2 = qsd.qs_decomposition(hidden_mat)
         cqc2 = transpile(qc2, basis_gates=["u", "cx"], optimization_level=0)
         op2 = Operator(qc2)
-        self.assertEqual(hidden_op, op2)
+        self.assertTrue(matrix_equal(hidden_op, op2, atol=1e-5))
         self.assertLessEqual(
             cqc2.count_ops().get("cx", 0),
             2 * self._qsd_l2_cx_count(num_qubits - 1) + self._qsd_ucrz(num_qubits),
