@@ -15,5 +15,4 @@ features_qasm:
     This follows the latest standard OpenQASM 3 specification (https://openqasm.com/language/classical.html#for-loops).
     The `qiskit.qasm3.exporter.QASM3Exporter` class has also been updated to export `qiskit.circuit.classical.expr.Range` objects to a format that is compatible with the latest standard OpenQASM 3 specification.
     Furthermore, the type of the index set of the `qiskit.circuit.ForLoop` expression is now correctly exported to OpenQASM 3, as per the latest specification.
-    ```
 
