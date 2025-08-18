@@ -12,8 +12,6 @@
 
 """Check if a DAG circuit is already mapped to a coupling map."""
 
-import warnings
-
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.target import Target, _FakeTarget
 from qiskit._accelerate import check_map
