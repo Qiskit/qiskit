@@ -1347,6 +1347,9 @@ class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
             unit = node.value.unit()
             if unit == "dt":
                 return ast.DurationLiteral(node.value.value(), ast.DurationUnit.SAMPLE)
+            if unit == "ps":
+                # QASM doesn't natively support picoseconds.
+                return ast.DurationLiteral(node.value.value() / 1000, ast.DurationUnit.NANOSECOND)
             if unit == "ns":
                 return ast.DurationLiteral(node.value.value(), ast.DurationUnit.NANOSECOND)
             if unit == "us":

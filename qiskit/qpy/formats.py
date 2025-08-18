@@ -446,6 +446,10 @@ DURATION_DT = namedtuple("DURATION_DT", ["value"])
 DURATION_DT_PACK = "!Q"
 DURATION_DT_SIZE = struct.calcsize(DURATION_DT_PACK)
 
+DURATION_PS = namedtuple("DURATION_PS", ["value"])
+DURATION_PS_PACK = "!d"
+DURATION_PS_SIZE = struct.calcsize(DURATION_PS_PACK)
+
 DURATION_NS = namedtuple("DURATION_NS", ["value"])
 DURATION_NS_PACK = "!d"
 DURATION_NS_SIZE = struct.calcsize(DURATION_NS_PACK)

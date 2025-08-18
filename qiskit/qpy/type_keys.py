@@ -369,6 +369,7 @@ class CircuitDuration(TypeKeyBase):
     """Type keys for the ``DURATION`` QPY item."""
 
     DT = b"t"
+    PS = b"p"
     NS = b"n"
     US = b"u"
     MS = b"m"
@@ -380,6 +381,8 @@ class CircuitDuration(TypeKeyBase):
             unit = obj.unit()
             if unit == "dt":
                 return cls.DT
+            if unit == "ps":
+                return cls.PS
             if unit == "ns":
                 return cls.NS
             if unit == "us":

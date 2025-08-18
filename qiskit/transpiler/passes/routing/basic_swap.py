@@ -117,8 +117,12 @@ class BasicSwap(TransformationPass):
         if self.property_set["final_layout"] is None:
             self.property_set["final_layout"] = current_layout
         else:
-            self.property_set["final_layout"] = current_layout.compose(
-                self.property_set["final_layout"], dag.qubits
+            # The "final layout" can be thought of as a "comes from" permutation that you apply at
+            # the end of the circuit to invert the routing.  So if there's an existing one, what we
+            # apply at the end of the circuit needs to set the circuit qubits so they "come from"
+            # the previous one, then those "come from" the one we've just added.
+            self.property_set["final_layout"] = self.property_set["final_layout"].compose(
+                current_layout, dag.qubits
             )
 
         return new_dag
@@ -160,7 +164,11 @@ class BasicSwap(TransformationPass):
         if self.property_set["final_layout"] is None:
             self.property_set["final_layout"] = current_layout
         else:
-            self.property_set["final_layout"] = current_layout.compose(
-                self.property_set["final_layout"], dag.qubits
+            # The "final layout" can be thought of as a "comes from" permutation that you apply at
+            # the end of the circuit to invert the routing.  So if there's an existing one, what we
+            # apply at the end of the circuit needs to set the circuit qubits so they "come from"
+            # the previous one, then those "come from" the one we've just added.
+            self.property_set["final_layout"] = self.property_set["final_layout"].compose(
+                current_layout, dag.qubits
             )
         return dag
