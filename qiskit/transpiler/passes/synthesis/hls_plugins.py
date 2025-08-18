@@ -183,7 +183,12 @@ not sufficient, the corresponding synthesis method will return `None`.
       - :class:`~.MCXSynthesisNoAuxV24`
       - `0`
       - `0`
-      - quadratic number of CX gates; use instead of ``"gray_code"`` for large values of `k`
+      - quadratic number of CX gates
+    * - ``"noaux_hp24"``
+      - :class:`~.MCXSynthesisNoAuxHP24`
+      - `0`
+      - `0`
+      - linear number of CX gates; use instead of ``"noaux_v24"`` or ``"gray_code"`` for `k>5`
     * - ``"n_clean_m15"``
       - :class:`~.MCXSynthesisNCleanM15`
       - `k-2`
@@ -230,6 +235,7 @@ not sufficient, the corresponding synthesis method will return `None`.
 
    MCXSynthesisGrayCode
    MCXSynthesisNoAuxV24
+   MCXSynthesisNoAuxHP24
    MCXSynthesisNCleanM15
    MCXSynthesisNDirtyI15
    MCXSynthesis2CleanKG24
@@ -370,6 +376,10 @@ Modular Adder Synthesis
       - Plugin class
       - Number of clean ancillas
       - Description
+    * - ``"modular_v17"``
+      - :class:`.ModularAdderSynthesisV17`
+      - 0
+      - a modular adder without any ancillary qubits
     * - ``"ripple_cdkm"``
       - :class:`.ModularAdderSynthesisC04`
       - 1
@@ -390,6 +400,7 @@ Modular Adder Synthesis
 .. autosummary::
    :toctree: ../stubs/
 
+   ModularAdderSynthesisV17
    ModularAdderSynthesisC04
    ModularAdderSynthesisD00
    ModularAdderSynthesisV95
@@ -566,6 +577,7 @@ from qiskit.synthesis.multi_controlled import (
     synth_mcx_1_clean_b95,
     synth_mcx_gray_code,
     synth_mcx_noaux_v24,
+    synth_mcx_noaux_hp24,
     synth_mcmt_vchain,
     synth_mcmt_xgate,
 )
@@ -575,6 +587,7 @@ from qiskit.synthesis.arithmetic import (
     adder_qft_d00,
     adder_ripple_v95,
     adder_ripple_r25,
+    adder_modular_v17,
     multiplier_qft_r17,
     multiplier_cumulative_h18,
 )
@@ -1400,7 +1413,8 @@ class MCXSynthesisNoAuxV24(HighLevelSynthesisPlugin):
 
     For a multi-controlled X gate with :math:`k` control qubits this synthesis
     method requires no additional clean auxiliary qubits. The synthesized
-    circuit consists of :math:`k + 1` qubits.
+    circuit consists of :math:`k + 1` qubits. The number of CX-gates is quadratic in
+    :math:`k`.
 
     References:
         1. Vale et. al., *Circuit Decomposition of Multicontrolled Special Unitary
@@ -1423,6 +1437,41 @@ class MCXSynthesisNoAuxV24(HighLevelSynthesisPlugin):
         return decomposition
 
 
+class MCXSynthesisNoAuxHP24(HighLevelSynthesisPlugin):
+    r"""Synthesis plugin for a multi-controlled X gate based on the
+    paper by Huang and Palsberg.
+
+    See [1] for details.
+
+    This plugin name is :``mcx.noaux_hp24`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    For a multi-controlled X gate with :math:`k` control qubits this synthesis
+    method requires no additional clean auxiliary qubits. The synthesized
+    circuit consists of :math:`k + 1` qubits. The number of CX-gates is linear in
+    :math:`k`.
+
+    References:
+        1. Huang and Palsberg, *Compiling Conditional Quantum Gates without Using
+           Helper Qubits*, PLDI (2024),
+           <https://dl.acm.org/doi/10.1145/3656436>`_
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Run synthesis for the given MCX gate."""
+
+        if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
+            # Unfortunately we occasionally have custom instructions called "mcx"
+            # which get wrongly caught by the plugin interface. A simple solution is
+            # to return None in this case, since HLS would proceed to examine
+            # their definition as it should.
+            return None
+
+        num_ctrl_qubits = high_level_object.num_ctrl_qubits
+        decomposition = synth_mcx_noaux_hp24(num_ctrl_qubits)
+        return decomposition
+
+
 class MCXSynthesisDefault(HighLevelSynthesisPlugin):
     r"""The default synthesis plugin for a multi-controlled X gate.
 
@@ -1441,7 +1490,7 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
             return None
 
         # Iteratively run other synthesis methods available
-
+        # (note that all of these methods require at least one auxiliary qubit)
         for synthesis_method in [
             MCXSynthesis2CleanKG24,
             MCXSynthesis1CleanKG24,
@@ -1458,10 +1507,14 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
             ) is not None:
                 return decomposition
 
-        # If no synthesis method was successful, fall back to the default
-        return MCXSynthesisNoAuxV24().run(
-            high_level_object, coupling_map, target, qubits, **options
+        # If no synthesis method was successful, use the methods that do not
+        # require auxiliary qubits
+        no_aux_method = (
+            MCXSynthesisNoAuxV24
+            if high_level_object.num_ctrl_qubits <= 5
+            else MCXSynthesisNoAuxHP24
         )
+        return no_aux_method().run(high_level_object, coupling_map, target, qubits, **options)
 
 
 class MCMTSynthesisDefault(HighLevelSynthesisPlugin):
@@ -1609,26 +1662,37 @@ class ModularAdderSynthesisDefault(HighLevelSynthesisPlugin):
         if not isinstance(high_level_object, ModularAdderGate):
             return None
 
-        # For up to 5 qubits, the QFT-based adder is best
-        if high_level_object.num_state_qubits <= 5:
+        # For up to 4 qubits, the QFT-based adder is best
+        if high_level_object.num_state_qubits <= 4:
             decomposition = ModularAdderSynthesisD00().run(
                 high_level_object, coupling_map, target, qubits, **options
             )
             if decomposition is not None:
                 return decomposition
 
-        # Otherwise, the following decomposition is best (if there are enough ancillas)
-        if (
-            decomposition := ModularAdderSynthesisC04().run(
-                high_level_object, coupling_map, target, qubits, **options
-            )
-        ) is not None:
-            return decomposition
-
-        # Otherwise, use the QFT-adder again
-        return ModularAdderSynthesisD00().run(
+        # Otherwise, use V17 synthesis
+        return ModularAdderSynthesisV17().run(
             high_level_object, coupling_map, target, qubits, **options
         )
+
+
+class ModularAdderSynthesisV17(HighLevelSynthesisPlugin):
+    r"""A modular adder (modulo :math:`2^n`) without any ancillary qubits.
+
+    The plugin name is :``ModularAdder.v17`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    This plugin requires no auxiliary qubits.
+
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, ModularAdderGate):
+            return None
+
+        num_state_qubits = high_level_object.num_state_qubits
+
+        return adder_modular_v17(num_state_qubits)
 
 
 class ModularAdderSynthesisC04(HighLevelSynthesisPlugin):

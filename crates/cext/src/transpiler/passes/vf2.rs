@@ -138,7 +138,7 @@ pub unsafe extern "C" fn qk_vf2_layout_result_free(layout: *mut VF2LayoutResult)
 /// @param target A pointer to the target to run the VF2Layout pass on
 /// @param strict_direction If true the pass will consider the edge direction in the
 ///     connectivity described in the ``target``. Typically setting this to ``false``
-///     is desireable as an undirected search has more degrees of freedom and is more likely
+///     is desirable as an undirected search has more degrees of freedom and is more likely
 ///     to find a layout (or a better layout if there are multiple choices) and correcting
 ///     directionality is a simple operation for later transpilation stages.
 /// @param call_limit The number of state visits to attempt in each execution of the VF2 algorithm.
@@ -160,7 +160,8 @@ pub unsafe extern "C" fn qk_vf2_layout_result_free(layout: *mut VF2LayoutResult)
 /// # Example
 ///
 /// ```c
-///     QkTarget *target = qk_target_new(5)
+///     QkTarget *target = qk_target_new(5);
+///     uint32_t current_num_qubits = qk_target_num_qubits(target);
 ///     QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
 ///     for (uint32_t i = 0; i < current_num_qubits - 1; i++) {
 ///         uint32_t qargs[2] = {i, i + 1};

@@ -238,35 +238,6 @@ def _write_parameter_expression(file_obj, obj, use_symengine, *, version):
             file_obj.write(elem_header)
             file_obj.write(symbol_data)
             file_obj.write(value_data)
-        for symbol in extra_symbols.values():
-            symbol_key = type_keys.Value.assign(symbol)
-            # serialize key
-            if symbol_key == type_keys.Value.PARAMETER_VECTOR:
-                symbol_data = common.data_to_binary(symbol, _write_parameter_vec)
-            elif symbol_key == type_keys.Value.PARAMETER_EXPRESSION:
-                symbol_data = common.data_to_binary(
-                    symbol,
-                    _write_parameter_expression,
-                    use_symengine=use_symengine,
-                    version=version,
-                )
-            else:
-                symbol_data = common.data_to_binary(symbol, _write_parameter)
-            # serialize value
-
-            value_key, value_data = dumps_value(
-                symbol, version=version, use_symengine=use_symengine
-            )
-
-            elem_header = struct.pack(
-                formats.PARAM_EXPR_MAP_ELEM_V3_PACK,
-                symbol_key,
-                value_key,
-                len(value_data),
-            )
-            file_obj.write(elem_header)
-            file_obj.write(symbol_data)
-            file_obj.write(value_data)
 
 
 class _ExprWriter(expr.ExprVisitor[None]):
@@ -353,6 +324,10 @@ class _ExprWriter(expr.ExprVisitor[None]):
                 struct.pack(formats.EXPR_VALUE_FLOAT_PACK, *formats.EXPR_VALUE_FLOAT(node.value))
             )
         elif isinstance(node.value, Duration):
+            if self.version < 16 and node.value.unit() == "ps":
+                raise exceptions.UnsupportedFeatureForVersion(
+                    "Duration variant 'Duration.ps'", required=16, target=self.version
+                )
             self.file_obj.write(type_keys.ExprValue.DURATION)
             _write_duration(self.file_obj, node.value)
         else:
@@ -434,6 +409,11 @@ def _write_duration(file_obj, duration: Duration):
         file_obj.write(type_keys.CircuitDuration.DT)
         file_obj.write(
             struct.pack(formats.DURATION_DT_PACK, *formats.DURATION_DT(duration.value()))
+        )
+    elif unit == "ps":
+        file_obj.write(type_keys.CircuitDuration.PS)
+        file_obj.write(
+            struct.pack(formats.DURATION_PS_PACK, *formats.DURATION_PS(duration.value()))
         )
     elif unit == "ns":
         file_obj.write(type_keys.CircuitDuration.NS)
@@ -857,6 +837,11 @@ def _read_duration(file_obj) -> Duration:
             struct.unpack(formats.DURATION_DT_PACK, file_obj.read(formats.DURATION_DT_SIZE))
         )
         return Duration.dt(elem.value)
+    if type_key == type_keys.CircuitDuration.PS:
+        elem = formats.DURATION_PS._make(
+            struct.unpack(formats.DURATION_PS_PACK, file_obj.read(formats.DURATION_PS_SIZE))
+        )
+        return Duration.ps(elem.value)
     if type_key == type_keys.CircuitDuration.NS:
         elem = formats.DURATION_NS._make(
             struct.unpack(formats.DURATION_NS_PACK, file_obj.read(formats.DURATION_NS_SIZE))
