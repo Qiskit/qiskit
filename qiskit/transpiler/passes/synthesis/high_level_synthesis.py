@@ -25,6 +25,7 @@ from qiskit.circuit.operation import Operation
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit import EquivalenceLibrary
+from qiskit.transpiler.target_basis_type import TargetBasisType
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
@@ -198,7 +199,7 @@ class HighLevelSynthesis(TransformationPass):
         basis_gates: list[str] | None = None,
         min_qubits: int = 0,
         qubits_initially_zero: bool = True,
-        optimize_clifford_t: bool = False,
+        target_basis_type: TargetBasisType = TargetBasisType.DEFAULT,
     ):
         r"""
         HighLevelSynthesis initializer.
@@ -222,8 +223,8 @@ class HighLevelSynthesis(TransformationPass):
             qubits_initially_zero: Indicates whether the qubits are initially in the state
                 :math:`|0\rangle`. This allows the high-level-synthesis to use clean auxiliary qubits
                 (i.e. in the zero state) to synthesize an operation.
-            optimize_clifford_t: Indicates whether default synthesis methods for high-level-objects
-                (when available) should prioritize methods for Clifford+T basis set.
+            target_basis_type:  Specifies the type of the basis to which the default synthesis methods
+                for high-level-objects (when available) should be optimized
         """
         super().__init__()
 
@@ -263,7 +264,7 @@ class HighLevelSynthesis(TransformationPass):
             use_physical_indices=use_qubit_indices,
             min_qubits=min_qubits,
             unroll_definitions=unroll_definitions,
-            optimize_clifford_t=optimize_clifford_t,
+            optimize_clifford_t=target_basis_type == TargetBasisType.CLIFFORD_T,
         )
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
@@ -381,7 +382,10 @@ def _synthesize_op_using_plugins(
         plugin_args["qubit_tracker"] = tracker
         plugin_args["num_clean_ancillas"] = num_clean_ancillas
         plugin_args["num_dirty_ancillas"] = num_dirty_ancillas
-        plugin_args["optimize_clifford_t"] = data.optimize_clifford_t
+        if data.optimize_clifford_t:
+            plugin_args["target_basis_type"] = TargetBasisType.CLIFFORD_T
+        else:
+            plugin_args["target_basis_type"] = TargetBasisType.DEFAULT
 
         qubits = input_qubits if data.use_physical_indices else None
 

@@ -600,6 +600,7 @@ from qiskit.quantum_info.operators import Clifford
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.circuit._add_control import EFFICIENTLY_CONTROLLED_GATES
+from qiskit.transpiler.target_basis_type import TargetBasisType
 
 from qiskit._accelerate.high_level_synthesis import synthesize_operation, HighLevelSynthesisData
 from .plugin import HighLevelSynthesisPlugin
@@ -1494,7 +1495,8 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
             # their definition as it should.
             return None
 
-        if options.get("optimize_clifford_t", False):
+        target_basis_type = options.get("target_basis_type", TargetBasisType.DEFAULT)
+        if target_basis_type == TargetBasisType.CLIFFORD_T:
             # The order is optimized towards Clifford+T -friendly synthesis methods.
             # In particular, we run 2DirtyKG24 and 1DirtyKG24 before NCleanM15 and NDirtyI15.
             methods = [

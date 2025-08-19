@@ -379,7 +379,7 @@ impl HighLevelSynthesisData {
 
     fn __str__(&self) -> String {
         format!(
-            "HighLevelSynthesisData(hls_config: {:?}, hls_plugin_manager: {:?}, hls_op_names: {:?}, coupling_map: {:?}, target: {:?},  equivalence_library: {:?}, device_insts: {:?}, use_physical_indices: {:?}, min_qubits: {:?}, unroll_definitions: {:?}, , optimize_clifford_t: {:?})",
+            "HighLevelSynthesisData(hls_config: {:?}, hls_plugin_manager: {:?}, hls_op_names: {:?}, coupling_map: {:?}, target: {:?},  equivalence_library: {:?}, device_insts: {:?}, use_physical_indices: {:?}, min_qubits: {:?}, unroll_definitions: {:?}, optimize_clifford_t: {:?})",
             self.hls_config, self.hls_plugin_manager, self.hls_op_names, self.coupling_map, self.target, self.equivalence_library, self.device_insts,  self.use_physical_indices, self.min_qubits, self.unroll_definitions, self.optimize_clifford_t,
         )
     }
