@@ -98,9 +98,15 @@ pub fn run_litinski_transformation(
         .keys()
         .all(|k| SUPPORTED_GATE_NAMES.contains(&k.as_str()))
     {
-        return Err(TranspilerError::new_err(
-            "Unable to run Litinski tranformation as the circuit contains gates not supported by the pass".to_string()
-        ));
+        let unsupported: Vec<_> = op_counts
+            .keys()
+            .filter(|k| !SUPPORTED_GATE_NAMES.contains(&k.as_str()))
+            .collect();
+
+        return Err(TranspilerError::new_err(format!(
+            "Unable to run Litinski tranformation as the circuit contains gates not supported by the pass: {:?}",
+            unsupported
+        )));
     }
 
     let num_qubits = dag.num_qubits();
