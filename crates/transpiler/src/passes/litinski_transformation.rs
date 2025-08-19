@@ -80,7 +80,7 @@ pub fn extract_rotations(
 #[pyo3(name = "run", signature = (dag, fix_clifford=true))]
 pub fn run_litinski_transformation(
     py: Python,
-    dag: &mut DAGCircuit,
+    dag: &DAGCircuit,
     fix_clifford: bool,
 ) -> PyResult<Option<DAGCircuit>> {
     let op_counts = dag.get_op_counts();
@@ -111,10 +111,10 @@ pub fn run_litinski_transformation(
 
     let num_qubits = dag.num_qubits();
 
-    // Turn the Qiskit circuit into Rustiq's format: this is a vector of (Pauli string, indices).
+    // Turn the Qiskit circuit into a vector of (gate name, qubit indices).
     // Additionally, keep track of the rotation angles, an update to the global phase (produced when
     // converting T/Tdg gates to RZ-rotations), and Clifford gates in the circuit.
-    let mut rustiq_circuit: Vec<(String, Vec<usize>)> = Vec::new();
+    let mut circuit: Vec<(String, Vec<usize>)> = Vec::new();
     let mut angles: Vec<Param> = Vec::new();
     let mut global_phase_update = 0.;
     let mut clifford_ops: Vec<PackedInstruction> = Vec::new();
@@ -142,7 +142,7 @@ pub fn run_litinski_transformation(
                 .map(|q| q.index())
                 .collect();
 
-            rustiq_circuit.push((name.to_string(), qubits));
+            circuit.push((name.to_string(), qubits));
 
             if let Some(angle) = angle {
                 // This is a rotation, save the angle.
@@ -152,7 +152,7 @@ pub fn run_litinski_transformation(
                 clifford_ops.push(inst.clone());
             }
         } else {
-            unreachable!();
+            unreachable!("Gate instructions should be either Clifford or T/Tdg/RZ at this point.");
         }
     }
 
@@ -160,7 +160,7 @@ pub fn run_litinski_transformation(
     // This returns a list of rotations with +1/-1 signs. Since we aim to preserve the
     // global phase of the circuit, we ignore the final Clifford operator, and instead
     // append the Clifford gates from the original circuit.
-    let rotations = extract_rotations(&rustiq_circuit, num_qubits);
+    let rotations = extract_rotations(&circuit, num_qubits);
 
     let py_evo_cls = PAULI_EVOLUTION_GATE.get_bound(py);
     let no_clbits: Vec<Clbit> = Vec::new();
