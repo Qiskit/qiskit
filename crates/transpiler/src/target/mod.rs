@@ -1437,6 +1437,11 @@ impl Target {
     pub fn is_empty(&self) -> bool {
         self.gate_map.is_empty()
     }
+
+    /// Check that a given qargs is present in the target
+    pub fn contains_qargs<'a, T: Into<QargsRef<'a>>>(&self, qargs: T) -> bool {
+        self.qarg_gate_map.contains_key(&qargs.into())
+    }
 }
 
 // To access the Target's gate map by gate name.
