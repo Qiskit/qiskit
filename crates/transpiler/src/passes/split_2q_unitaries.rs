@@ -89,7 +89,7 @@ pub fn run_split_2q_unitaries(
                         (PackedOperation::from_unitary(k1l_gate), smallvec![])
                     }
                 };
-                dag.replace_node_with_1q_ops(py, node, insert_fn)?;
+                dag.replace_node_with_1q_ops(py, node, insert_fn);
                 dag.add_global_phase(&Param::Float(decomp.global_phase))?;
             }
         }
