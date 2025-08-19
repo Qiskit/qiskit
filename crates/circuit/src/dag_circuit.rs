@@ -3566,7 +3566,7 @@ impl DAGCircuit {
     }
 
     /// Remove all of the ancestor operation nodes of node.
-    fn remove_ancestors_of(&mut self, node: &DAGNode) -> PyResult<()> {
+    fn remove_ancestors_of(&mut self, node: &DAGNode) {
         let ancestors: Vec<_> = core_ancestors(&self.dag, node.node.unwrap())
             .filter(|next| {
                 next != &node.node.unwrap()
@@ -3576,11 +3576,10 @@ impl DAGCircuit {
         for a in ancestors {
             self.dag.remove_node(a);
         }
-        Ok(())
     }
 
     /// Remove all of the descendant operation nodes of node.
-    fn remove_descendants_of(&mut self, node: &DAGNode) -> PyResult<()> {
+    fn remove_descendants_of(&mut self, node: &DAGNode) {
         let descendants: Vec<_> = core_descendants(&self.dag, node.node.unwrap())
             .filter(|next| {
                 next != &node.node.unwrap()
@@ -3590,11 +3589,10 @@ impl DAGCircuit {
         for d in descendants {
             self.dag.remove_node(d);
         }
-        Ok(())
     }
 
     /// Remove all of the non-ancestors operation nodes of node.
-    fn remove_nonancestors_of(&mut self, node: &DAGNode) -> PyResult<()> {
+    fn remove_nonancestors_of(&mut self, node: &DAGNode) {
         let ancestors: HashSet<_> = core_ancestors(&self.dag, node.node.unwrap())
             .filter(|next| {
                 next != &node.node.unwrap()
@@ -3609,11 +3607,10 @@ impl DAGCircuit {
         for na in non_ancestors {
             self.dag.remove_node(na);
         }
-        Ok(())
     }
 
     /// Remove all of the non-descendants operation nodes of node.
-    fn remove_nondescendants_of(&mut self, node: &DAGNode) -> PyResult<()> {
+    fn remove_nondescendants_of(&mut self, node: &DAGNode) {
         let descendants: HashSet<_> = core_descendants(&self.dag, node.node.unwrap())
             .filter(|next| {
                 next != &node.node.unwrap()
@@ -3628,7 +3625,6 @@ impl DAGCircuit {
         for nd in non_descendants {
             self.dag.remove_node(nd);
         }
-        Ok(())
     }
 
     /// Return a list of op nodes in the first layer of this dag.
@@ -4883,7 +4879,7 @@ impl DAGCircuit {
 
         // Remove DAG in/out nodes etc.
         for bit in qubits.iter() {
-            self.remove_idle_wire(Wire::Qubit(*bit))?;
+            self.remove_idle_wire(Wire::Qubit(*bit));
         }
 
         // Copy the current qubit mapping so we can use it while remapping
@@ -5011,7 +5007,7 @@ impl DAGCircuit {
 
         // Remove DAG in/out nodes etc.
         for bit in clbits.iter() {
-            self.remove_idle_wire(Wire::Clbit(*bit))?;
+            self.remove_idle_wire(Wire::Clbit(*bit));
         }
 
         // Copy the current clbit mapping so we can use it while remapping
@@ -5788,7 +5784,7 @@ impl DAGCircuit {
         nodes
     }
 
-    fn remove_idle_wire(&mut self, wire: Wire) -> PyResult<()> {
+    fn remove_idle_wire(&mut self, wire: Wire) {
         let [in_node, out_node] = match wire {
             Wire::Qubit(qubit) => self.qubit_io_map[qubit.index()],
             Wire::Clbit(clbit) => self.clbit_io_map[clbit.index()],
@@ -5796,7 +5792,6 @@ impl DAGCircuit {
         };
         self.dag.remove_node(in_node);
         self.dag.remove_node(out_node);
-        Ok(())
     }
 
     pub fn add_qubit_unchecked(&mut self, bit: ShareableQubit) -> PyResult<Qubit> {
@@ -6665,12 +6660,12 @@ impl DAGCircuit {
     /// Alternative constructor, builds a DAGCircuit with a fixed capacity.
     ///
     /// # Arguments:
-    /// - `py`: Python GIL token
     /// - `num_qubits`: Number of qubits in the circuit
     /// - `num_clbits`: Number of classical bits in the circuit.
     /// - `num_vars`: (Optional) number of variables in the circuit.
     /// - `num_ops`: (Optional) number of operations in the circuit.
-    /// - `num_edges`: (Optional) If known, number of edges in the circuit.
+    /// - `num_edges`: (Optional) number of edges in the circuit.
+    /// - `num_stretches`: (Optional) number of stretches in the circuit.
     pub fn with_capacity(
         num_qubits: usize,
         num_clbits: usize,
@@ -6807,8 +6802,7 @@ impl DAGCircuit {
         py: Python, // Unused if cache_pygates isn't enabled
         node: NodeIndex,
         insert: F,
-    ) -> PyResult<()>
-    where
+    ) where
         F: Fn(Wire) -> (PackedOperation, SmallVec<[Param; 3]>),
     {
         let mut edge_list: Vec<(NodeIndex, NodeIndex, Wire)> = Vec::with_capacity(2);
@@ -6867,7 +6861,6 @@ impl DAGCircuit {
             }
             _ => panic!("Must be called with valid operation node"),
         }
-        Ok(())
     }
 
     pub fn add_global_phase(&mut self, value: &Param) -> PyResult<()> {
