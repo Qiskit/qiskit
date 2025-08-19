@@ -47,5 +47,5 @@
  */
 
 /**
- * @defgroup QkSabreLayoutResult QkSabreLayoutResult
+ * @defgroup QkTranspileLayout QkTranspileLayout
  */
