@@ -1,11 +1,17 @@
 ---
 features_transpiler:
   - |
-    Added a new class :class:`.TargetBasisType` representing the basis set
-    targeted during transpilation. Currently the two supported basis sets are
-    ``DEFAULT`` (which targets minimizing the number of two-qubit gates,
-    suitable for near-term transpilation), and ``CLIFFORD_T`` (which targets
-    minimizing the number of T-gates, suitable for fault-tolerant transpilation).
+    Added a new class :class:`.TargetBasisType` which specifies the basis set
+    targeted during transpilation. Currently the two supported basis sets are:
+
+    * ``DEFAULT``: minimizes the number of two-qubit gates, suitable for near-term
+      transpilation,
+    * ``CLIFFORD_T``: minimizes the number of T-gates, suitable for fault-tolerant
+    transpilation.
+
+    Currently this class is used by the :class:`.HighLevelSynthesis` transpiler pass
+    to select decompositions optimized either for the two-qubit-gate count or the
+    T-count.
   - |
     Added a new argument ``target_basis_type`` of type :class:`.TargetBasisType`
     to the :class:`.HighLevelSynthesis` transpiler pass. When set to ``CLIFFORD_T``,
