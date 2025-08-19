@@ -134,6 +134,8 @@ sys.modules["qiskit._accelerate.cos_sin_decomp"] = _accelerate.cos_sin_decomp
 sys.modules["qiskit._accelerate.litinski_transformation"] = (
     _accelerate.litinski_transformation
 )
+sys.modules["qiskit._accelerate.unroll_3q_or_more"] = _accelerate.unroll_3q_or_more
+
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 
 # The main qiskit operators
