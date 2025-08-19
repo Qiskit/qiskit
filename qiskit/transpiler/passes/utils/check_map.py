@@ -13,8 +13,7 @@
 """Check if a DAG circuit is already mapped to a coupling map."""
 
 from qiskit.transpiler.basepasses import AnalysisPass
-from qiskit.transpiler.target import Target
-
+from qiskit.transpiler.target import Target, _FakeTarget
 from qiskit._accelerate import check_map
 
 
@@ -45,16 +44,15 @@ class CheckMap(AnalysisPass):
         else:
             self.property_set_field = property_set_field
         if isinstance(coupling_map, Target):
-            cmap = coupling_map.build_coupling_map()
+            if isinstance(coupling_map, _FakeTarget):
+                self._target = Target.from_configuration(
+                    ["u", "cx"], coupling_map=coupling_map.build_coupling_map()
+                )
+            else:
+                self._target = coupling_map
         else:
-            cmap = coupling_map
-        if cmap is None:
-            self.qargs = None
-        else:
-            self.qargs = set()
-            for edge in cmap.get_edges():
-                self.qargs.add(edge)
-                self.qargs.add((edge[1], edge[0]))
+            self._target = Target.from_configuration(["u", "cx"], coupling_map=coupling_map)
+        self._qargs = None
 
     def run(self, dag):
         """Run the CheckMap pass on `dag`.
@@ -65,10 +63,12 @@ class CheckMap(AnalysisPass):
         Args:
             dag (DAGCircuit): DAG to map.
         """
-        if not self.qargs:
+        if self._target.qargs is None or not any(
+            len(x) == 2 for x in self._target.qargs if x is not None
+        ):
             self.property_set[self.property_set_field] = True
             return
-        res = check_map.check_map(dag, self.qargs)
+        res = check_map.check_map(dag, self._target)
         if res is None:
             self.property_set[self.property_set_field] = True
             return
