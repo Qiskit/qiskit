@@ -33,8 +33,8 @@ Qiskit's version can be queried using a set of compiler macros.
 
 .. c:macro:: QISKIT_RELEASE_SERIAL
 
-    The release serial. This can be used to indicate the release candidate number, and would be
-    set to ``1`` for ``2.1.0rc1``. This is ``0`` for the final version.
+    This can be used to indicate the pre-release number in a pre-release series. 
+    For example, this would be set to ``1`` for ``2.1.0rc1``. This is ``0`` for the final version.
 
 .. c:macro:: QISKIT_GET_VERSION_HEX(major, minor, patch, level, serial)
 

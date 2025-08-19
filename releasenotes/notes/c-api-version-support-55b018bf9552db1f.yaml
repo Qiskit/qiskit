@@ -20,8 +20,8 @@ features_c:
         if (QISKIT_VERSION_HEX >= QISKIT_GET_VERSION_HEX(2, 2, 0, 0xF, 0)) {
             // Code for version 2.2.0 (final) or later
         }
-upgrade_c:
+deprecations_c:
   - |
-    Removed the macro ``QISKIT_VERSION_NUMERIC`` in favor of the direct replacement
+    Deprecated the macro ``QISKIT_VERSION_NUMERIC`` in favor of the direct replacement
     ``QISKIT_GET_VERSION_HEX``. This macro can be used to generate a hexanumeric version format
     from decimal version numbers.
