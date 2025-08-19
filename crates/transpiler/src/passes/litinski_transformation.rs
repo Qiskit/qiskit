@@ -42,14 +42,14 @@ const ROTATION_GATE_NAMES: &[&str; 3] = &["t", "tdg", "rz"];
 /// Expresses a given circuit as a sequence of Pauli rotations followed by a final Clifford operator.
 /// Returns the list of rotations in the sparse format: (sign, paulis, indices).
 pub fn extract_rotations(
-    circuit: &[(String, Vec<usize>)],
+    circuit: &[(&str, Vec<usize>)],
     nqubits: usize,
 ) -> Vec<(bool, String, Vec<u32>)> {
     let mut clifford = Clifford::identity(nqubits);
     let mut rotations: Vec<(bool, String, Vec<u32>)> = Vec::new();
 
     for (gate_name, qbits) in circuit.iter() {
-        match gate_name.as_str() {
+        match *gate_name {
             "id" => {}
             "x" => clifford.append_x(qbits[0]),
             "y" => clifford.append_y(qbits[0]),
@@ -114,7 +114,7 @@ pub fn run_litinski_transformation(
     // Turn the Qiskit circuit into a vector of (gate name, qubit indices).
     // Additionally, keep track of the rotation angles, an update to the global phase (produced when
     // converting T/Tdg gates to RZ-rotations), and Clifford gates in the circuit.
-    let mut circuit: Vec<(String, Vec<usize>)> = Vec::new();
+    let mut circuit: Vec<(&str, Vec<usize>)> = Vec::new();
     let mut angles: Vec<Param> = Vec::new();
     let mut global_phase_update = 0.;
     let mut clifford_ops: Vec<PackedInstruction> = Vec::new();
@@ -142,7 +142,7 @@ pub fn run_litinski_transformation(
                 .map(|q| q.index())
                 .collect();
 
-            circuit.push((name.to_string(), qubits));
+            circuit.push((name, qubits));
 
             if let Some(angle) = angle {
                 // This is a rotation, save the angle.
