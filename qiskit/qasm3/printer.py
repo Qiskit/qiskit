@@ -170,7 +170,12 @@ class BasicPrinter:
         self._end_statement()
 
     def _visit_sequence(
-        self, nodes: Sequence[ast.ASTNode], *, start: str = "", end: str = "", separator: str
+        self,
+        nodes: Sequence[ast.ASTNode],
+        *,
+        start: str = "",
+        end: str = "",
+        separator: str,
     ) -> None:
         if start:
             self.stream.write(start)
@@ -495,6 +500,8 @@ class BasicPrinter:
     def _visit_ForLoopStatement(self, node: ast.ForLoopStatement) -> None:
         self._start_line()
         self.stream.write("for ")
+        self.visit(node.type)
+        self.stream.write(" ")
         self.visit(node.parameter)
         self.stream.write(" in ")
         if isinstance(node.indexset, ast.Range):
