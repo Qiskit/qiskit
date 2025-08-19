@@ -7,7 +7,7 @@ features_transpiler:
     * ``DEFAULT``: minimizes the number of two-qubit gates, suitable for near-term
       transpilation,
     * ``CLIFFORD_T``: minimizes the number of T-gates, suitable for fault-tolerant
-    transpilation.
+      transpilation.
 
     Currently this class is used by the :class:`.HighLevelSynthesis` transpiler pass
     to select decompositions optimized either for the two-qubit-gate count or the
