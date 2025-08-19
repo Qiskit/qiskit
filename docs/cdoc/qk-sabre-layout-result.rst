@@ -3,6 +3,7 @@ QkSabreLayoutResult
 ===================
 
 .. code-block:: c
+
    typedef struct QkSabreLayoutResult QkSabreLayoutResult
 
 When running the ``qk_transpiler_pass_standalone_sabre_layout`` function it returns a
