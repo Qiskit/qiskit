@@ -1,20 +1,19 @@
 ---
 features_transpiler:
   - |
-    Added a new class :class:`.TargetBasisType` which specifies the basis set
-    targeted during transpilation. Currently the two supported basis sets are:
+    Added a new class :class:`.OptimizationMetric` which specifies the optimization
+    criterion during transpilation. Currently the two supported metrics are:
 
-    * ``DEFAULT``: minimizes the number of two-qubit gates, suitable for near-term
-      transpilation,
-    * ``CLIFFORD_T``: minimizes the number of T-gates, suitable for fault-tolerant
-      transpilation.
+    * ``COUNT_2Q``: optimizes the number of two-qubit gates,
+    * ``COUNT_T``: optimizes the number of T-gates, when transpiling into a Clifford+T
+      basis set.
 
-    Currently this class is used by the :class:`.HighLevelSynthesis` transpiler pass
+    This class is used by the :class:`.HighLevelSynthesis` transpiler pass
     to select decompositions optimized either for the two-qubit-gate count or the
     T-count.
   - |
-    Added a new argument ``target_basis_type`` of type :class:`.TargetBasisType`
-    to the :class:`.HighLevelSynthesis` transpiler pass. When set to ``CLIFFORD_T``,
+    Added a new argument ``optimization_metric`` of type :class:`.OptimizationMetric`
+    to the :class:`.HighLevelSynthesis` transpiler pass. When set to ``COUNT_T``,
     the pass chooses decompositions that are more suitable for the Clifford+T gate
     set.
   - |

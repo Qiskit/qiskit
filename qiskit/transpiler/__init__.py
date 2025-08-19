@@ -1542,4 +1542,4 @@ from .preset_passmanagers import generate_preset_pass_manager
 from .target import Target
 from .target import InstructionProperties
 from .target import QubitProperties
-from .target_basis_type import TargetBasisType
+from .optimization_metric import OptimizationMetric
