@@ -22,6 +22,7 @@
 //! for building Python submodules.
 
 mod alap_schedule_analysis;
+mod apply_layout;
 mod barrier_before_final_measurement;
 mod basis_translator;
 mod check_map;
@@ -47,6 +48,7 @@ mod unroll_3q_or_more;
 mod vf2;
 
 pub use alap_schedule_analysis::{alap_schedule_analysis_mod, run_alap_schedule_analysis};
+pub use apply_layout::{apply_layout, apply_layout_mod, update_layout};
 pub use barrier_before_final_measurement::{
     barrier_before_final_measurements_mod, run_barrier_before_final_measurements,
 };

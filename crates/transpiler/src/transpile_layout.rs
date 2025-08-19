@@ -35,12 +35,12 @@ use qiskit_circuit::imports::TRANSPILE_LAYOUT;
 pub struct TranspileLayout {
     /// The initial layout which is mapping the virtual qubits in the input circuit to the
     /// transpiler to the physical qubits used on the transpilation target
-    initial_layout: Option<NLayout>,
+    pub initial_layout: Option<NLayout>,
     /// The optional routing permutation that
     /// represents the permutation caused by routing or permutation elision during
     /// transpilation. This vector maps the qubits at the start of the circuit to their
     /// final position/physical qubit at the end of the circuit.
-    output_permutation: Option<Vec<Qubit>>,
+    pub output_permutation: Option<Vec<Qubit>>,
     /// The virtual qubits [`ShareableQubit`] objects from the input circuit to the transpiler.
     /// This vec should be arranged in order as in the original circuit, the index of the `Vec`
     /// corresponds to the [`VirtualQubit`] in the `initial_layout` attribute. This should include
@@ -302,6 +302,55 @@ impl TranspileLayout {
         } else {
             self.output_permutation = Some(other.to_vec());
         }
+    }
+
+    /// Update the initial layout by permuting the output-space qubit indices from the input of the
+    /// `layout_fn` to its output.
+    ///
+    /// For example, if virtual qubit 0 is previously mapped to physical qubit 2, and this function
+    /// is called with a mapping that sends physical qubit 2 to physical qubit 4, the new layout
+    /// state will map virtual qubit 0 to physical qubit 4.
+    ///
+    /// This includes updating all of the other tracked objects.  If no `initial_layout` is set, it
+    /// is treated as equivalent to the identity mapping.
+    ///
+    /// # Panics
+    ///
+    /// If `layout_fn` returns and out-of-bounds [PhysicalQubit], or maps more than one
+    /// [PhysicalQubit] to the same new value.
+    pub fn relabel_initial_layout(
+        &mut self,
+        mut layout_fn: impl FnMut(PhysicalQubit) -> PhysicalQubit,
+    ) {
+        let initial_layout = match self.initial_layout.as_ref() {
+            Some(layout) => NLayout::from_virtual_to_physical(
+                (0..self.num_output_qubits())
+                    .map(|q| layout_fn(VirtualQubit::new(q).to_phys(layout)))
+                    .collect(),
+            )
+            .expect("all qubits should be in bounds and not duplicates"),
+            None => NLayout::from_virtual_to_physical(
+                (0..self.num_output_qubits())
+                    .map(|q| layout_fn(PhysicalQubit::new(q)))
+                    .collect(),
+            )
+            .expect("all qubits should be in bounds and not duplicates"),
+        };
+        let output_permutation = self.output_permutation.as_ref().map(|permutation| {
+            let mut new_permutation = vec![Qubit::MAX; permutation.len()];
+            for old in 0..permutation.len() as u32 {
+                let old = PhysicalQubit::new(old);
+                let new = layout_fn(old);
+                if new_permutation[new.index()] != Qubit::MAX {
+                    panic!("layout function returned duplicate qubit");
+                }
+                new_permutation[new.index()] = layout_fn(permutation[old.index()].into()).into();
+            }
+            new_permutation
+        });
+
+        self.initial_layout = Some(initial_layout);
+        self.output_permutation = output_permutation;
     }
 
     // TODO: Conditionally compile this method so we don't depend on symbols from Python

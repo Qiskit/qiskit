@@ -316,7 +316,7 @@ pub struct PyRoutingTarget(pub Option<RoutingTarget>);
 #[pymethods]
 impl PyRoutingTarget {
     #[staticmethod]
-    fn from_target(target: &Target) -> PyResult<Self> {
+    pub(crate) fn from_target(target: &Target) -> PyResult<Self> {
         let coupling = match target.coupling_graph() {
             Ok(coupling) => coupling,
             Err(TargetCouplingError::AllToAll) => return Ok(Self(None)),
