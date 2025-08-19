@@ -44,7 +44,7 @@ use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::{Operation, OperationRef};
 use qiskit_circuit::packed_instruction::PackedOperation;
 
-use crate::libraries::standard_equivalence_library::get_standard_equivalence_library;
+use crate::standard_equivalence_library::generate_standard_equivalence_library;
 
 mod exceptions {
     use pyo3::import_exception_bound;
@@ -835,7 +835,7 @@ where
 #[pyfunction]
 #[pyo3(name = "get_standard_equivalence_library")]
 fn py_get_standard_equivalence_library() -> EquivalenceLibrary {
-    get_standard_equivalence_library().clone()
+    generate_standard_equivalence_library().unwrap()
 }
 
 pub fn equivalence(m: &Bound<'_, PyModule>) -> PyResult<()> {
