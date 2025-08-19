@@ -63,12 +63,8 @@ pub(super) fn compose_transforms<'a>(
         let mut placeholder_params: SmallVec<[Param; 3]> = (0..num_params as u32)
             .map(|idx| {
                 Param::ParameterExpression(
-                    ParameterExpression::from_symbol(Symbol::new(
-                        &format!("{gate_name}-{idx}"),
-                        None,
-                        None,
-                    ))
-                    .into(),
+                    ParameterExpression::from_symbol(Symbol::new(&gate_name, None, Some(idx)))
+                        .into(),
                 )
             })
             .collect();
@@ -139,7 +135,7 @@ pub(super) fn compose_transforms<'a>(
                                 let symbol = parameter_expression.try_to_symbol().unwrap();
                                 ParameterUuid::from_symbol(&symbol)
                             }
-                            _ => panic!("A non parameter-expression has suck in"),
+                            _ => unreachable!("A non parameter-expression has suck in"),
                         })
                         .zip(params)
                         .collect();
@@ -164,7 +160,7 @@ pub(super) fn compose_transforms<'a>(
     Ok(mapped_instructions)
 }
 
-/// Creates
+/// Creates the placeholder gate as [PackedOperation].
 fn name_to_packed_operation(name: &str, num_qubits: u32) -> Option<PackedOperation> {
     let std_gate_mapping = STD_GATE_MAPPING.get_or_init(|| {
         get_standard_gate_names()

@@ -102,8 +102,6 @@ class BasisTranslator(TransformationPass):
         # Bypass target if it doesn't contain any basis gates (i.e. it's a _FakeTarget), as this
         # not part of the official target model.
         self._target = target if target is not None and len(target.operation_names) > 0 else None
-        self._non_global_operations = None
-        self._qargs_with_non_global_operation = {}
         self._min_qubits = min_qubits
 
     def run(self, dag):

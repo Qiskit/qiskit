@@ -70,7 +70,7 @@ fn py_run_basis_translator(
 }
 
 pub fn run_basis_translator(
-    dag: &mut DAGCircuit,
+    dag: &DAGCircuit,
     equiv_lib: &mut EquivalenceLibrary,
     min_qubits: usize,
     mut target: Option<&mut Target>,
@@ -336,11 +336,7 @@ fn extract_basis_target(
     }
 }
 
-/// Variant of extract_basis_target that takes an instance of QuantumCircuit.
-/// This needs to use a Python instance of `QuantumCircuit` due to it needing
-/// to access `has_calibration_for()` which is unavailable through rust. However,
-/// this API will be removed with the deprecation of `Pulse`.
-/// TODO: pulse is removed, we can use op.blocks
+/// Variant of extract_basis_target that takes an instance of [CircuitData].
 fn extract_basis_target_circ(
     circuit: &CircuitData,
     source_basis: &mut AhashIndexSet<GateIdentifier>,
@@ -448,7 +444,6 @@ fn apply_translation(
                         let dag_block: DAGCircuit =
                             circuit_to_dag(block.extract()?, true, None, None)?;
                         let updated_dag: DAGCircuit;
-                        // TODO: Change this so it makes sense
                         (updated_dag, is_updated) = apply_translation(
                             &dag_block,
                             target_basis,
