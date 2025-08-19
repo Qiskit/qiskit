@@ -1,9 +1,16 @@
 ---
 features_transpiler:
   - |
-    Added a new argument ``optimize_clifford_t`` to the :class:`.HighLevelSynthesis`
-    transpiled pass. When set to ``True``, the pass chooses decompositions
-    that are more suitable for the Clifford+T gate set.
+    Added a new class :class:`.TargetBasisType` representing the basis set
+    targeted during transpilation. Currently the two supported basis sets are
+    ``DEFAULT`` (which targets minimizing the number of two-qubit gates,
+    suitable for near-term transpilation), and ``CLIFFORD_T`` (which targets
+    minimizing the number of T-gates, suitable for fault-tolerant transpilation).
+  - |
+    Added a new argument ``target_basis_type`` of type :class:`.TargetBasisType`
+    to the :class:`.HighLevelSynthesis` transpiler pass. When set to ``CLIFFORD_T``,
+    the pass chooses decompositions that are more suitable for the Clifford+T gate
+    set.
   - |
     The default high-level synthesis plugin for :class:`.MultiplierGate` produces
     better T-counts when transpiling into Clifford+T basis set.
