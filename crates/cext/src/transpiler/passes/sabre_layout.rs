@@ -185,6 +185,11 @@ pub unsafe extern "C" fn qk_sabre_layout_result_free(result: *mut SabreLayoutRes
 /// swap calculation is the same as performing a final routing, so it's more efficient to apply it
 /// after computing it.
 ///
+/// This function is multithreaded and will launch a thread pool with threads equal to the number
+/// of CPUs by default. You can tune the number of threads with the ``RAYON_NUM_THREADS``
+/// environment variable. For example, setting ``RAYON_NUM_THREADS=4`` would limit the thread pool
+/// to 4 threads.
+///
 /// # References
 ///
 /// [1] Henry Zou and Matthew Treinish and Kevin Hartman and Alexander Ivrii and Jake Lishman.
@@ -196,6 +201,16 @@ pub unsafe extern "C" fn qk_sabre_layout_result_free(result: *mut SabreLayoutRes
 /// [`arXiv:1809.02573](https://arxiv.org/pdf/1809.02573.pdf)
 ///
 /// @param circuit A pointer to the circuit to run SabreLayout on
+/// @param target A pointer to the target to run SabreLayout on
+/// @param max_iterations The number of forward-backward iterations in the
+///     sabre routing algorithm
+/// @param num_swap_trials The number of trials to run of the sabre routing
+///     algorithm for each iteration. When > 1 the trial that routing trial
+///     that results in the output with the fewest swap gates will be selected.
+/// @param num_random_trials The number of random layout trials to run. The trial
+///     that results in the output with the fewest swap gates will be selected.
+/// @param seed A seed value for the pRNG used internally. If the value is negative
+///     the RNG will be seeded from system entropy.
 ///
 /// @return QkElidePermutationsResult object that contains the results of the pass
 ///
