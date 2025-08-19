@@ -160,14 +160,13 @@ int test_sabre_layout_applies_layout(void) {
         uint32_t qargs[2] = {0, i + 1};
         qk_circuit_gate(qc, QkGate_CX, qargs, NULL);
     }
-    QkSabreLayoutResult *layout_result =
+    QkTranspileLayout *layout_result =
         qk_transpiler_pass_standalone_sabre_layout(qc, target, 4, 20, 20, 2025);
-    QkCircuit *result_circuit = qk_sabre_layout_result_circuit(layout_result);
 
-    QkOpCounts op_counts = qk_circuit_count_ops(result_circuit);
+    QkOpCounts op_counts = qk_circuit_count_ops(qc);
     if (op_counts.len != 2) {
         printf("More than 2 types of gates in circuit, circuit's instructions are:\n");
-        print_circuit(result_circuit);
+        print_circuit(qc);
         result = EqualityError;
         goto layout_cleanup;
     }
@@ -186,37 +185,24 @@ int test_sabre_layout_applies_layout(void) {
         }
     }
     uint32_t expected_initial_layout[5] = {1, 0, 2, 3, 4};
-    uint32_t init_layout_size = qk_sabre_layout_result_initial_layout_num_qubits(layout_result);
-    if (init_layout_size != 5) {
-        printf("Initial Layout is not the correct size, expected 5 qubit the layout contains %d",
-               init_layout_size);
-        result = EqualityError;
-        goto layout_cleanup;
-    }
-    for (uint32_t i = 0; i < init_layout_size; i++) {
-        uint32_t init_layout =
-            qk_sabre_layout_result_map_virtual_qubit_initial_layout(layout_result, i);
-        if (init_layout != expected_initial_layout[i]) {
-            printf("Initial layout maps qubit %d to %d, expected %d instead", i, init_layout,
-                   expected_initial_layout[i]);
+    uint32_t result_initial_layout[5];
+    qk_transpile_layout_initial_layout(layout_result, false, result_initial_layout);
+    for (uint32_t i = 0; i < 5; i++) {
+        if (result_initial_layout[i] != expected_initial_layout[i]) {
+            printf("Initial layout maps qubit %d to %d, expected %d instead", i,
+                   result_initial_layout[i], expected_initial_layout[i]);
             result = EqualityError;
             goto layout_cleanup;
         }
     }
 
     uint32_t expected_final_layout[5] = {3, 0, 1, 2, 4};
-    uint32_t final_layout_size = qk_sabre_layout_result_final_layout_num_qubits(layout_result);
-    if (final_layout_size != 5) {
-        printf("Final Layout is not the correct size, expected 5 qubit the layout contains %d",
-               final_layout_size);
-        result = EqualityError;
-        goto layout_cleanup;
-    }
-    for (uint32_t i = 0; i < final_layout_size; i++) {
-        uint32_t final_layout = qk_sabre_layout_result_map_qubit_final_layout(layout_result, i);
-        if (final_layout != expected_final_layout[i]) {
-            printf("Final layout maps qubit %d to %d, expected %d instead", i, final_layout,
-                   expected_final_layout[i]);
+    uint32_t result_final_layout[5];
+    qk_transpile_layout_output_permutation(layout_result, result_final_layout);
+    for (uint32_t i = 0; i < 5; i++) {
+        if (result_final_layout[i] != expected_final_layout[i]) {
+            printf("Final layout maps qubit %d to %d, expected %d instead", i,
+                   result_final_layout[i], expected_final_layout[i]);
             result = EqualityError;
             goto layout_cleanup;
         }
@@ -239,14 +225,14 @@ int test_sabre_layout_applies_layout(void) {
     qargs[0] = 3;
     qargs[1] = 4;
     qk_circuit_gate(expected_circuit, QkGate_CX, qargs, NULL);
-    bool compare_result = compare_circuits(result_circuit, expected_circuit);
+    bool compare_result = compare_circuits(qc, expected_circuit);
     if (!compare_result) {
         result = EqualityError;
         goto layout_cleanup;
     }
 
 layout_cleanup:
-    qk_sabre_layout_result_free(layout_result);
+    qk_transpile_layout_free(layout_result);
 circuit_cleanup:
     qk_circuit_free(qc);
 cleanup:
@@ -281,7 +267,7 @@ int test_sabre_layout_no_swap(void) {
             qk_circuit_gate(qc, QkGate_CX, qargs, NULL);
         }
     }
-    QkSabreLayoutResult *layout_result =
+    QkTranspileLayout *layout_result =
         qk_transpiler_pass_standalone_sabre_layout(qc, target, 4, 20, 20, 42);
     QkCircuit *expected_circuit = qk_circuit_new(5, 0);
     for (uint32_t i = 0; i < qk_circuit_num_qubits(qc) - 1; i++) {
@@ -290,51 +276,36 @@ int test_sabre_layout_no_swap(void) {
             qk_circuit_gate(expected_circuit, QkGate_CX, qargs, NULL);
         }
     }
-    bool circuit_eq =
-        compare_circuits(qk_sabre_layout_result_circuit(layout_result), expected_circuit);
+    bool circuit_eq = compare_circuits(qc, expected_circuit);
     if (!circuit_eq) {
         result = EqualityError;
         goto layout_cleanup;
     }
-    uint32_t init_layout_size = qk_sabre_layout_result_initial_layout_num_qubits(layout_result);
-    if (init_layout_size != 5) {
-        printf("Initial Layout is not the correct size, expected 5 qubit the layout contains %d",
-               init_layout_size);
-        result = EqualityError;
-        goto layout_cleanup;
-    }
     uint32_t expected_initial_layout[5] = {0, 1, 2, 3, 4};
-    for (uint32_t i = 0; i < init_layout_size; i++) {
-        uint32_t init_layout =
-            qk_sabre_layout_result_map_virtual_qubit_initial_layout(layout_result, i);
-        if (init_layout != expected_initial_layout[i]) {
-            printf("Initial layout maps qubit %d to %d, expected %d instead", i, init_layout,
-                   expected_initial_layout[i]);
+    uint32_t result_initial_layout[5];
+    qk_transpile_layout_initial_layout(layout_result, false, result_initial_layout);
+    for (uint32_t i = 0; i < 5; i++) {
+        if (result_initial_layout[i] != expected_initial_layout[i]) {
+            printf("Initial layout maps qubit %d to %d, expected %d instead", i,
+                   result_initial_layout[i], expected_initial_layout[i]);
             result = EqualityError;
             goto layout_cleanup;
         }
     }
-    uint32_t final_layout_size = qk_sabre_layout_result_final_layout_num_qubits(layout_result);
-    if (final_layout_size != 5) {
-        printf("Final Layout is not the correct size, expected 5 qubit the layout contains %d",
-               final_layout_size);
-        result = EqualityError;
-        goto layout_cleanup;
-    }
     uint32_t expected_final_layout[5] = {0, 1, 2, 3, 4};
-    for (uint32_t i = 0; i < final_layout_size; i++) {
-        uint32_t final_layout =
-            qk_sabre_layout_result_map_virtual_qubit_initial_layout(layout_result, i);
-        if (final_layout != expected_final_layout[i]) {
-            printf("Final layout maps qubit %d to %d, expected %d instead", i, final_layout,
-                   expected_final_layout[i]);
+    uint32_t result_final_layout[5];
+    qk_transpile_layout_output_permutation(layout_result, result_final_layout);
+    for (uint32_t i = 0; i < 5; i++) {
+        if (result_final_layout[i] != expected_final_layout[i]) {
+            printf("Final layout maps qubit %d to %d, expected %d instead", i,
+                   result_final_layout[i], expected_final_layout[i]);
             result = EqualityError;
             goto layout_cleanup;
         }
     }
 
 layout_cleanup:
-    qk_sabre_layout_result_free(layout_result);
+    qk_transpile_layout_free(layout_result);
 circuit_cleanup:
     qk_circuit_free(qc);
 cleanup:
