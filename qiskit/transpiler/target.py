@@ -267,6 +267,20 @@ class Target(BaseTarget):
         out._non_global_basis_strict = None
         return out
 
+    def __init__(
+        self,
+        description=None,  # pylint: disable=unused-argument
+        num_qubits=0,  # pylint: disable=unused-argument
+        dt=None,  # pylint: disable=unused-argument
+        granularity=1,  # pylint: disable=unused-argument
+        min_length=1,  # pylint: disable=unused-argument
+        pulse_alignment=1,  # pylint: disable=unused-argument
+        acquire_alignment=1,  # pylint: disable=unused-argument
+        qubit_properties=None,  # pylint: disable=unused-argument
+        concurrent_measurements=None,  # pylint: disable=unused-argument
+    ):
+        super().__init__()
+
     def get_non_global_operation_names(self, strict_direction=False):
         """Return the non-global operation names for the target
 
@@ -901,10 +915,45 @@ class _FakeTarget(Target):
     This is intended to replace the use of loose constraints in the pipeline.
     """
 
-    def __new__(cls, coupling_map=None, **kwargs):  # pylint: disable=signature-differs
-        return super().__new__(cls, **kwargs)
+    def __new__(
+        cls,
+        coupling_map=None,  # pylint: disable=unused-argument
+        description=None,
+        num_qubits=0,
+        dt=None,
+        granularity=1,
+        min_length=1,
+        pulse_alignment=1,
+        acquire_alignment=1,
+        qubit_properties=None,
+        concurrent_measurements=None,
+    ):
+        return super().__new__(
+            cls,
+            description=description,
+            num_qubits=num_qubits,
+            dt=dt,
+            granularity=granularity,
+            min_length=min_length,
+            pulse_alignment=pulse_alignment,
+            acquire_alignment=acquire_alignment,
+            qubit_properties=qubit_properties,
+            concurrent_measurements=concurrent_measurements,
+        )
 
-    def __init__(self, coupling_map=None, **kwargs):  # pylint: disable=unused-argument
+    def __init__(
+        self,
+        coupling_map=None,
+        description=None,  # pylint: disable=unused-argument
+        num_qubits=0,  # pylint: disable=unused-argument
+        dt=None,  # pylint: disable=unused-argument
+        granularity=1,  # pylint: disable=unused-argument
+        min_length=1,  # pylint: disable=unused-argument
+        pulse_alignment=1,  # pylint: disable=unused-argument
+        acquire_alignment=1,  # pylint: disable=unused-argument
+        qubit_properties=None,  # pylint: disable=unused-argument
+        concurrent_measurements=None,  # pylint: disable=unused-argument
+    ):
         super().__init__()
         if coupling_map is None or isinstance(coupling_map, CouplingMap):
             self._coupling_map = coupling_map
