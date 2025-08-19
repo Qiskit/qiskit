@@ -15,13 +15,11 @@ use std::fmt::Write;
 use crate::ast::{
     Alias, Assignment, Barrier, Binary, BinaryOp, BitArray, BitstringLiteral, BooleanLiteral, Cast,
     ClassicalDeclaration, ClassicalType, Constant, Delay, DurationLiteral, Expression, Float,
-    GateCall, Header, Identifier, Include, Index, IndexSet, Int,
-    IntegerLiteral, Node, Parameter, Program, ProgramBlock, QuantumBlock, QuantumDeclaration,
-    QuantumGateDefinition, QuantumGateModifier, QuantumGateModifierName, QuantumGateSignature,
-    QuantumInstruction, QuantumMeasurementAssignment, Range, Reset, Statement,
-    Uint, Unary, UnaryOp, Version,
+    GateCall, Header, Identifier, Include, Index, IndexSet, Int, IntegerLiteral, Node, Parameter,
+    Program, ProgramBlock, QuantumBlock, QuantumDeclaration, QuantumGateDefinition,
+    QuantumGateModifier, QuantumGateModifierName, QuantumGateSignature, QuantumInstruction,
+    QuantumMeasurementAssignment, Range, Reset, Statement, Uint, Unary, UnaryOp, Version,
 };
-
 
 pub struct BasicPrinter<'a> {
     stream: &'a mut String,
@@ -148,7 +146,6 @@ impl<'a> BasicPrinter<'a> {
         write!(self.stream, "{}", expression.string).unwrap();
     }
 
-
     fn visit_integer_literal(&mut self, expression: &IntegerLiteral) {
         write!(self.stream, "{}", expression.0).unwrap();
     }
@@ -191,7 +188,13 @@ impl<'a> BasicPrinter<'a> {
     }
 
     fn visit_duration_literal(&mut self, expression: &DurationLiteral) {
-        write!(self.stream, "{}{}", expression.value, expression.unit.as_str()).unwrap();
+        write!(
+            self.stream,
+            "{}{}",
+            expression.value,
+            expression.unit.as_str()
+        )
+        .unwrap();
     }
 
     fn visit_unary(&mut self, expression: &Unary) {
@@ -285,7 +288,6 @@ impl<'a> BasicPrinter<'a> {
         self.start_line();
         write!(self.stream, "}}").unwrap();
     }
-
 
     fn visit_expression_sequence(
         &mut self,
@@ -448,11 +450,7 @@ impl<'a> BasicPrinter<'a> {
             self.visit_expression_sequence(&instruction.parameters, "(", ")", ", ");
         }
         write!(self.stream, " ").unwrap();
-        let index_identifier_list: Vec<Expression> = instruction
-            .index_identifier_list
-            .iter()
-            .cloned()
-            .collect();
+        let index_identifier_list: Vec<Expression> = instruction.index_identifier_list.to_vec();
         self.visit_expression_sequence(&index_identifier_list, "", "", ", ");
         self.end_statement();
     }
@@ -467,13 +465,8 @@ impl<'a> BasicPrinter<'a> {
     fn visit_quantum_barrier(&mut self, instruction: &Barrier) {
         self.start_line();
         write!(self.stream, "barrier ").unwrap();
-        let index_identifier_vec: Vec<Expression> = instruction
-            .index_identifier_list
-            .iter()
-            .cloned()
-            .collect();
-        let index_identifier_list: &[Expression] = &index_identifier_vec;
-        self.visit_expression_sequence(index_identifier_list, "", "", ", ");
+        let index_identifier_list: Vec<Expression> = instruction.index_identifier_list.to_vec();
+        self.visit_expression_sequence(&index_identifier_list, "", "", ", ");
         self.end_statement();
     }
 

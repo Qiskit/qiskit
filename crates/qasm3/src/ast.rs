@@ -64,6 +64,7 @@ pub enum Expression {
     IndexSet(IndexSet),
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub enum Constant {
     PI,
@@ -83,12 +84,10 @@ pub struct Range {
     pub step: Option<Box<Expression>>,
 }
 
-
 #[derive(Debug, Clone)]
 pub struct Identifier {
     pub string: String,
 }
-
 
 #[derive(Debug, Clone)]
 pub struct IntegerLiteral(pub(crate) i64);
@@ -130,7 +129,6 @@ impl DurationUnit {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct Unary {
     pub op: UnaryOp,
@@ -165,7 +163,6 @@ impl UnaryOp {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct Binary {
     pub op: BinaryOp,
@@ -173,6 +170,7 @@ pub struct Binary {
     pub right: Box<Expression>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub enum BinaryOp {
     BitAnd,
@@ -230,7 +228,6 @@ impl BinaryOp {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct Cast {
     pub type_: ClassicalType,
@@ -248,6 +245,7 @@ pub enum ClassicalType {
     BitArray(BitArray),
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Float {
     Half,
@@ -268,7 +266,6 @@ impl Float {
         }
     }
 }
-
 
 #[derive(Debug, Clone)]
 pub struct Int {
@@ -310,6 +307,7 @@ pub struct QuantumGateModifier {
     pub argument: Option<Expression>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub enum QuantumGateModifierName {
     Ctrl,
@@ -400,8 +398,8 @@ pub struct Delay {
 
 #[derive(Debug, Clone)]
 pub struct QuantumMeasurementAssignment {
-    pub target: Expression,  // classical bit to store result
-    pub qubits: Vec<Expression>,  // qubits to measure
+    pub target: Expression,      // classical bit to store result
+    pub qubits: Vec<Expression>, // qubits to measure
 }
 
 #[derive(Debug, Clone)]
@@ -434,4 +432,3 @@ pub struct Break {}
 
 #[derive(Debug, Clone)]
 pub struct Continue {}
-

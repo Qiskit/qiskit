@@ -10,36 +10,29 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use core::panic;
 use std::sync::Arc;
 
 use crate::ast::{
-    Alias, Barrier, BitArray, Break, ClassicalDeclaration, ClassicalType, Continue, Delay,
-    Designator, DurationLiteral, DurationUnit, Expression, Float, GateCall, Header, IODeclaration,
-    IOModifier, Identifier, Include, Index, IndexSet, IntegerLiteral, Node,
-    Parameter, Program, QuantumBlock, QuantumDeclaration, QuantumGateDefinition,
-    QuantumGateSignature, QuantumInstruction, QuantumMeasurementAssignment,
-    Reset, Statement, Version,
+    Barrier, Break, ClassicalType, Continue, Delay, DurationLiteral, DurationUnit, Expression,
+    Float, GateCall, Header, IODeclaration, IOModifier, Identifier, Include, Node, Parameter,
+    Program, QuantumBlock, QuantumInstruction, QuantumMeasurementAssignment, Reset, Statement,
+    Version,
 };
 
+use crate::circuit_builder::CircuitBuilder;
 use crate::error::QASM3ExporterError;
 use crate::printer::BasicPrinter;
 use crate::symbol_table::SymbolTable;
-use crate::circuit_builder::CircuitBuilder;
 use hashbrown::{HashMap, HashSet};
-use indexmap::IndexMap;
-use pyo3::prelude::*;
-use pyo3::Python;
-use qiskit_circuit::bit::{
-    ClassicalRegister, QuantumRegister, Register,
-};
-use qiskit_circuit::{Clbit, Qubit};
+use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister, Register};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{DelayUnit, StandardInstruction};
 use qiskit_circuit::operations::{Operation, Param};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr;
-use thiserror::Error;
+use qiskit_circuit::{Clbit, Qubit};
 
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -57,8 +50,8 @@ pub const GATE_QUBIT_PREFIX: &str = "_gate_q";
 // These are the gates that are defined by the standard library.
 pub const GATES_DEFINED_BY_STDGATES: &[&str] = &[
     "p", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "sx", "rx", "ry", "rz", "cx", "cy", "cz",
-    "rzz", "cp", "crx", "cry", "crz", "ch", "swap", "ccx", "cswap", "cu", "CX", "phase",
-    "cphase", "id", "u1", "u2", "u3",
+    "rzz", "cp", "crx", "cry", "crz", "ch", "swap", "ccx", "cswap", "cu", "CX", "phase", "cphase",
+    "id", "u1", "u2", "u3",
 ];
 
 // These are the reserved keywords in QASM3.
@@ -109,7 +102,7 @@ pub const RESERVED_KEYWORDS: &[&str] = &[
     "sizeof",
     "stretch",
     "uint",
-    "while"
+    "while",
 ];
 
 lazy_static! {
@@ -123,7 +116,6 @@ lazy_static! {
 lazy_static! {
     pub static ref _VALID_HARDWARE_QUBIT: Regex = Regex::new(r"\$\d+").unwrap();
 }
-
 
 #[derive(Debug, Eq, PartialEq, Hash, Clone)]
 pub enum BitType {
@@ -150,13 +142,19 @@ impl RegisterType {
             RegisterType::QuantumRegister(quantum_register) => quantum_register
                 .bits()
                 .filter_map(|shareable_qubit| {
-                    circuit_data.qubits().find(&shareable_qubit).map(BitType::Qubit)
+                    circuit_data
+                        .qubits()
+                        .find(&shareable_qubit)
+                        .map(BitType::Qubit)
                 })
                 .collect(),
             RegisterType::ClassicalRegister(classical_register) => classical_register
                 .bits()
                 .filter_map(|shareable_clbit| {
-                    circuit_data.clbits().find(&shareable_clbit).map(BitType::Clbit)
+                    circuit_data
+                        .clbits()
+                        .find(&shareable_clbit)
+                        .map(BitType::Clbit)
                 })
                 .collect(),
         }
@@ -190,29 +188,27 @@ struct BuildScope {
 }
 
 impl BuildScope {
-    fn new(
-        circuit_data: &CircuitData,
-    ) -> Self {
+    fn new(circuit_data: &CircuitData) -> Self {
         let mut bit_map: HashMap<BitType, BitType> = HashMap::new();
-        
+
         // Map all qubits in the circuit
         for i in 0..circuit_data.num_qubits() {
-            let qubit = Qubit(i.try_into().unwrap_or_else(|_| panic!("Qubit index {} exceeds u32 range", i)));
-            bit_map.insert(
-                BitType::Qubit(qubit),
-                BitType::Qubit(qubit),
+            let qubit = Qubit(
+                i.try_into()
+                    .unwrap_or_else(|_| panic!("Qubit index {} exceeds u32 range", i)),
             );
+            bit_map.insert(BitType::Qubit(qubit), BitType::Qubit(qubit));
         }
 
         // Map all clbits in the circuit
         for i in 0..circuit_data.num_clbits() {
-            let clbit = Clbit(i.try_into().unwrap_or_else(|_| panic!("Clbit index {} exceeds u32 range", i)));
-            bit_map.insert(
-                BitType::Clbit(clbit),
-                BitType::Clbit(clbit),
+            let clbit = Clbit(
+                i.try_into()
+                    .unwrap_or_else(|_| panic!("Clbit index {} exceeds u32 range", i)),
             );
+            bit_map.insert(BitType::Clbit(clbit), BitType::Clbit(clbit));
         }
-        
+
         Self {
             circuit_data: circuit_data.clone(),
             bit_map,
@@ -226,7 +222,6 @@ impl BuildScope {
         }
     }
 }
-
 
 pub struct Exporter {
     includes: Vec<String>,
@@ -272,7 +267,6 @@ impl Exporter {
             Err(e) => Err(QASM3ExporterError::Error(e.to_string())),
         }
     }
-
 }
 
 pub struct QASM3Builder {
@@ -308,9 +302,7 @@ impl<'a> QASM3Builder {
             ]
             .into_iter()
             .collect(),
-            circuit_scope: BuildScope::new(
-                circuit_data,
-            ),
+            circuit_scope: BuildScope::new(circuit_data),
             is_layout,
             symbol_table: SymbolTable::new(),
             global_io_decls: Vec::new(),
@@ -355,18 +347,18 @@ impl<'a> QASM3Builder {
         let mut new_bit_map = HashMap::new();
 
         for i in 0..circuit_data.num_qubits() {
-            let qubit = Qubit(i.try_into().unwrap_or_else(|_| panic!("Qubit index {} exceeds u32 range", i)));
-            new_bit_map.insert(
-                BitType::Qubit(qubit),
-                BitType::Qubit(qubit),
+            let qubit = Qubit(
+                i.try_into()
+                    .unwrap_or_else(|_| panic!("Qubit index {} exceeds u32 range", i)),
             );
+            new_bit_map.insert(BitType::Qubit(qubit), BitType::Qubit(qubit));
         }
         for i in 0..circuit_data.num_clbits() {
-            let clbit = Clbit(i.try_into().unwrap_or_else(|_| panic!("Clbit index {} exceeds u32 range", i)));
-            new_bit_map.insert(
-                BitType::Clbit(clbit),
-                BitType::Clbit(clbit),
+            let clbit = Clbit(
+                i.try_into()
+                    .unwrap_or_else(|_| panic!("Clbit index {} exceeds u32 range", i)),
             );
+            new_bit_map.insert(BitType::Clbit(clbit), BitType::Clbit(clbit));
         }
 
         self.symbol_table.push_scope();
@@ -390,18 +382,18 @@ impl<'a> QASM3Builder {
         let mut bit_map = HashMap::new();
 
         for i in 0..body.num_qubits() {
-            let qubit = Qubit(i.try_into().unwrap_or_else(|_| panic!("Qubit index {} exceeds u32 range", i)));
-            bit_map.insert(
-                BitType::Qubit(qubit),
-                BitType::Qubit(qubit),
+            let qubit = Qubit(
+                i.try_into()
+                    .unwrap_or_else(|_| panic!("Qubit index {} exceeds u32 range", i)),
             );
+            bit_map.insert(BitType::Qubit(qubit), BitType::Qubit(qubit));
         }
         for i in 0..body.num_clbits() {
-            let clbit = Clbit(i.try_into().unwrap_or_else(|_| panic!("Clbit index {} exceeds u32 range", i)));
-            bit_map.insert(
-                BitType::Clbit(clbit),
-                BitType::Clbit(clbit),
+            let clbit = Clbit(
+                i.try_into()
+                    .unwrap_or_else(|_| panic!("Clbit index {} exceeds u32 range", i)),
             );
+            bit_map.insert(BitType::Clbit(clbit), BitType::Clbit(clbit));
         }
 
         let new_table = self.symbol_table.new_context();
@@ -422,10 +414,12 @@ impl<'a> QASM3Builder {
         let qubit_ref = self.circuit_scope.bit_map.get(bit).ok_or_else(|| {
             QASM3ExporterError::Error(format!("Bit mapping not found for {bit:?}"))
         })?;
-        let id = self
-            .symbol_table
-            .get_bitinfo(qubit_ref)
-            .ok_or_else(|| QASM3ExporterError::Error(format!("Bit not found: {:?}, qubit_ref: {:?}", bit, qubit_ref)))?;
+        let id = self.symbol_table.get_bitinfo(qubit_ref).ok_or_else(|| {
+            QASM3ExporterError::Error(format!(
+                "Bit not found: {:?}, qubit_ref: {:?}",
+                bit, qubit_ref
+            ))
+        })?;
         Ok(id)
     }
 
@@ -434,7 +428,7 @@ impl<'a> QASM3Builder {
         let header = self.build_header();
 
         self.hoist_global_params()?;
-        
+
         let mut circuit_builder = CircuitBuilder::new(
             &self.circuit_scope.circuit_data,
             &mut self.symbol_table,
@@ -443,7 +437,7 @@ impl<'a> QASM3Builder {
         );
         let classical_decls = circuit_builder.build_classical_declarations()?;
         let qubit_decls = circuit_builder.build_qubit_declarations()?;
-        
+
         let main_stmts = self.build_top_level_stmts()?;
 
         let mut all_stmts = Vec::new();
@@ -495,27 +489,19 @@ impl<'a> QASM3Builder {
     }
 
     fn hoist_global_params(&mut self) -> ExporterResult<()> {
-        Python::with_gil(|py| {
-            for param in self.circuit_scope.circuit_data.get_parameters(py)? {
-                let raw_name: String = match param.getattr("name") {
-                    Ok(attr) => match attr.extract() {
-                        Ok(name) => name,
-                        Err(err) => return Err(QASM3ExporterError::PyErr(err)),
-                    },
-                    Err(err) => return Err(QASM3ExporterError::PyErr(err)),
-                };
-                let identifier = Identifier {
-                    string: raw_name.clone(),
-                };
-                let _ = self.symbol_table.bind(&raw_name);
-                self.global_io_decls.push(IODeclaration {
-                    modifier: IOModifier::Input,
-                    type_: ClassicalType::Float(Float::Double),
-                    identifier,
-                });
-            }
-            Ok(())
-        })
+        for param in self.circuit_scope.circuit_data.parameters() {
+            let raw_name = param.name();
+            let identifier = Identifier {
+                string: raw_name.to_string(),
+            };
+            let _ = self.symbol_table.bind(raw_name);
+            self.global_io_decls.push(IODeclaration {
+                modifier: IOModifier::Input,
+                type_: ClassicalType::Float(Float::Double),
+                identifier,
+            });
+        }
+        Ok(())
     }
 
     fn build_top_level_stmts(&mut self) -> ExporterResult<Vec<Statement>> {
@@ -552,9 +538,9 @@ impl<'a> QASM3Builder {
                     stmts.push(Statement::Continue(Continue {}));
                     Ok(())
                 }
-                "store" => {
-                    return Err(QASM3ExporterError::Error("Store is not yet supported".to_string()));
-                }
+                "store" => Err(QASM3ExporterError::Error(
+                    "Store is not yet supported".to_string(),
+                )),
                 _ => {
                     let gate_call = self.build_gate_call(instruction)?;
                     stmts.push(Statement::QuantumInstruction(QuantumInstruction::GateCall(
@@ -672,7 +658,7 @@ impl<'a> QASM3Builder {
             ));
         };
         let param = &instr.params_view()[0];
-        let duration: f64 = Python::with_gil(|py| match param {
+        let duration: f64 = match param {
             Param::Float(val) => *val,
             Param::ParameterExpression(p) => {
                 if let Ok(symbol_expr::Value::Real(val)) = p.try_to_value(true) {
@@ -680,17 +666,9 @@ impl<'a> QASM3Builder {
                 } else {
                     panic!("Failed to parse parameter value")
                 }
-                Param::Obj(obj) => {
-                    let py_obj = obj.bind(py);
-                    let py_str = py_obj.str().map_err(|e| QASM3ExporterError::Error(format!("Failed to call str() on Parameter: {}", e)))?;
-                    let name = py_str
-                        .str()
-                        .map_err(|e| QASM3ExporterError::Error(format!("Failed to convert PyString to &str: {}", e)))?
-                        .to_string();
-                    name.parse::<f64>().map_err(|e| QASM3ExporterError::Error(format!("Failed to parse parameter value: {}", e)))?
-                }
-            })
-        })?;
+            }
+            Param::Obj(obj) => panic!("Unexpected Parameter type in dumps_experimental: {:?}", obj),
+        };
 
         let mut map = HashMap::new();
         map.insert(DelayUnit::NS, DurationUnit::Nanosecond);
@@ -746,22 +724,22 @@ impl<'a> QASM3Builder {
             self.define_gate(instr)?;
         }
         let params = if self.disable_constants {
-            Python::with_gil(|_py| -> Result<Vec<Expression>, QASM3ExporterError> {
-                instr
-                    .params_view()
-                    .iter()
-                    .map(|param| match param {
-                        Param::Float(val) => Ok(Expression::Parameter(Parameter {
-                            obj: val.to_string(),
-                        })),
-                        Param::ParameterExpression(p) => {
-                            let name = p.to_string();
-                            Expression::Parameter(Parameter { obj: name })
-                        }
-                        Param::Obj(_) => Err(QASM3ExporterError::Error("Objects not supported yet".to_string())),
-                    })
-                    .collect::<Result<Vec<_>, _>>()
-            })?
+            instr
+                .params_view()
+                .iter()
+                .map(|param| match param {
+                    Param::Float(val) => Ok(Expression::Parameter(Parameter {
+                        obj: val.to_string(),
+                    })),
+                    Param::ParameterExpression(p) => Ok({
+                        let name = p.to_string();
+                        Expression::Parameter(Parameter { obj: name })
+                    }),
+                    Param::Obj(_) => Err(QASM3ExporterError::Error(
+                        "Unexpected Parameter type in dumps_experimental".to_string(),
+                    )),
+                })
+                .collect::<Result<Vec<_>, _>>()?
         } else {
             return Err(QASM3ExporterError::Error(
                 "Constant parameters not supported yet".to_string(),
@@ -793,7 +771,7 @@ impl<'a> QASM3Builder {
         let operation = &instr.op;
         let params: Vec<Param> = (0..instr.params_view().len())
             .map(|i| {
-                let name = format!("{}_{}", self._gate_param_prefix, i);
+                let name = format!("{}_{}", GATE_PARAM_PREFIX, i);
                 // TODO this need to be achievable more easily
                 let symbol = symbol_expr::Symbol::new(name.as_str(), None, None);
                 let symbol_expr = symbol_expr::SymbolExpr::Symbol(Arc::new(symbol));

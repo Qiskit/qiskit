@@ -10,9 +10,14 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::ast::{Expression, Identifier, Parameter, QuantumBlock, QuantumGateDefinition, QuantumGateSignature};
+use crate::ast::{
+    Expression, Identifier, Parameter, QuantumBlock, QuantumGateDefinition, QuantumGateSignature,
+};
 use crate::error::QASM3ExporterError;
-use crate::exporter::{BitType, RegisterType, Counter, RESERVED_KEYWORDS, GATES_DEFINED_BY_STDGATES, VALID_IDENTIFIER, _BAD_IDENTIFIER_CHARACTERS};
+use crate::exporter::{
+    BitType, Counter, RegisterType, GATES_DEFINED_BY_STDGATES, RESERVED_KEYWORDS, VALID_IDENTIFIER,
+    _BAD_IDENTIFIER_CHARACTERS,
+};
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
 
@@ -95,7 +100,8 @@ impl SymbolTable {
     }
 
     pub fn can_shadow_symbol(&self, name: &str) -> bool {
-        self.scopes.last()
+        self.scopes
+            .last()
             .map(|scope| !scope.symbols.contains_key(name))
             .unwrap_or(true)
             && !self.gates.contains_key(name)
@@ -118,7 +124,11 @@ impl SymbolTable {
                 name = format!("_{}", _BAD_IDENTIFIER_CHARACTERS.replace_all(&name, "_"));
             }
             while !name_allowed(&name, self) {
-                name = format!("{}{}", name, self._counter.next().expect("Counter should never fail"));
+                name = format!(
+                    "{}{}",
+                    name,
+                    self._counter.next().expect("Counter should never fail")
+                );
             }
             return Ok(name);
         }
@@ -236,7 +246,7 @@ impl SymbolTable {
         allow_hardware_qubit: bool,
     ) -> ExporterResult<Identifier> {
         use crate::exporter::_VALID_HARDWARE_QUBIT;
-        
+
         if allow_hardware_qubit && _VALID_HARDWARE_QUBIT.is_match(&name) {
             if self.symbol_defined(&name) {
                 return Err(QASM3ExporterError::Error(format!(

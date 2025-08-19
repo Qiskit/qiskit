@@ -14,11 +14,10 @@ use crate::ast::*;
 use crate::error::QASM3ExporterError;
 use crate::exporter::{BitType, RegisterType, BIT_PREFIX, QUBIT_PREFIX};
 use crate::symbol_table::SymbolTable;
-use hashbrown::{HashMap, HashSet};
-use pyo3::prelude::*;
-use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister, Register};
-use qiskit_circuit::{Clbit, Qubit};
+use hashbrown::HashSet;
+use qiskit_circuit::bit::Register;
 use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::{Clbit, Qubit};
 
 type ExporterResult<T> = Result<T, QASM3ExporterError>;
 
@@ -46,7 +45,7 @@ impl<'a> CircuitBuilder<'a> {
 
     pub fn build_classical_declarations(&mut self) -> ExporterResult<Vec<Statement>> {
         let num_clbits = self.circuit_data.num_clbits();
-        
+
         let mut has_multiple_registers = false;
         let registers: Vec<_> = self.circuit_data.cregs().to_vec();
         let mut bit_register_count = vec![0; num_clbits];
@@ -87,12 +86,13 @@ impl<'a> CircuitBuilder<'a> {
             }
             let registers: Vec<_> = self.circuit_data.cregs().to_vec();
             for register in registers {
-                let aliased = self.build_aliases(&RegisterType::ClassicalRegister(register.clone()))?;
+                let aliased =
+                    self.build_aliases(&RegisterType::ClassicalRegister(register.clone()))?;
                 decls.push(Statement::Alias(aliased));
             }
             return Ok(decls);
         }
-        
+
         let mut clbits_in_registers = HashSet::new();
         for creg in self.circuit_data.cregs() {
             for shareable_clbit in creg.bits() {
@@ -119,7 +119,7 @@ impl<'a> CircuitBuilder<'a> {
                 }));
             }
         }
-        
+
         // Declare registers
         for creg in self.circuit_data.cregs() {
             let identifier = self.symbol_table.register_registers(
@@ -150,7 +150,7 @@ impl<'a> CircuitBuilder<'a> {
 
     pub fn build_qubit_declarations(&mut self) -> ExporterResult<Vec<Statement>> {
         let num_qubits = self.circuit_data.num_qubits();
-        
+
         let mut has_multiple_registers = false;
         let registers: Vec<_> = self.circuit_data.qregs().to_vec();
         let mut bit_register_count = vec![0; num_qubits];
@@ -206,7 +206,8 @@ impl<'a> CircuitBuilder<'a> {
             }
             let registers: Vec<_> = self.circuit_data.qregs().to_vec();
             for register in registers {
-                let aliased = self.build_aliases(&RegisterType::QuantumRegister(register.clone()))?;
+                let aliased =
+                    self.build_aliases(&RegisterType::QuantumRegister(register.clone()))?;
                 decls.push(Statement::Alias(aliased));
             }
             return Ok(decls);
@@ -236,7 +237,7 @@ impl<'a> CircuitBuilder<'a> {
                 }));
             }
         }
-        
+
         for qreg in self.circuit_data.qregs() {
             let identifier = self.symbol_table.register_registers(
                 qreg.name().to_string(),
@@ -266,17 +267,18 @@ impl<'a> CircuitBuilder<'a> {
     }
 
     fn build_aliases(&mut self, register: &RegisterType) -> ExporterResult<Alias> {
-        let name = self.symbol_table.register_registers(
-            register.name().to_string(), 
-            register
-        )?;
+        let name = self
+            .symbol_table
+            .register_registers(register.name().to_string(), register)?;
         let mut elements = Vec::new();
-        
+
         for (i, bit) in register.bits(self.circuit_data).iter().enumerate() {
-            let id = self.symbol_table.get_bitinfo(bit)
+            let id = self
+                .symbol_table
+                .get_bitinfo(bit)
                 .ok_or_else(|| QASM3ExporterError::Error(format!("Bit not found: {:?}", bit)))?
                 .clone();
-            
+
             let id2 = Expression::Index(Index {
                 target: Box::new(Expression::Parameter(Parameter {
                     obj: name.string.clone(),

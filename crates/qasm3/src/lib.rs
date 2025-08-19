@@ -180,12 +180,9 @@ fn export_circuit_to_string(
         indent.unwrap_or_else(|| "  ".to_string()),
     );
 
-    exporter.dumps(&circuit_data, islayout).map_err(|err| {
-        QASM3ImporterError::new_err(format!(
-            "failed to export circuit: {:?}",
-            err
-        ))
-    })
+    exporter
+        .dumps(&circuit_data, islayout)
+        .map_err(|err| QASM3ImporterError::new_err(format!("failed to export circuit: {:?}", err)))
 }
 
 #[pyfunction]
@@ -198,7 +195,14 @@ pub fn dumps(
     allow_aliasing: Option<bool>,
     indent: Option<String>,
 ) -> PyResult<String> {
-    export_circuit_to_string(circuit, includes, basis_gates, disable_constants, allow_aliasing, indent)
+    export_circuit_to_string(
+        circuit,
+        includes,
+        basis_gates,
+        disable_constants,
+        allow_aliasing,
+        indent,
+    )
 }
 
 #[pyfunction]
@@ -212,7 +216,14 @@ pub fn dump(
     allow_aliasing: Option<bool>,
     indent: Option<String>,
 ) -> PyResult<()> {
-    let output_str = dumps(circuit, includes, basis_gates, disable_constants, allow_aliasing, indent)?;
+    let output_str = dumps(
+        circuit,
+        includes,
+        basis_gates,
+        disable_constants,
+        allow_aliasing,
+        indent,
+    )?;
     stream.call_method1("write", (output_str,))?;
     Ok(())
 }
