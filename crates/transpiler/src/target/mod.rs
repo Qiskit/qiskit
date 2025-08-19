@@ -696,7 +696,7 @@ impl Target {
     /// Returns:
     ///     List[str]: A list of operation names for operations that aren't global in this target
     #[pyo3(name = "_get_non_global_operation_names", signature = (/, strict_direction=false,))]
-    fn py_get_non_global_operation_names(&mut self, strict_direction: bool) -> Vec<&str> {
+    fn py_get_non_global_operation_names(&self, strict_direction: bool) -> Vec<&str> {
         self.get_non_global_operation_names(strict_direction)
     }
 
@@ -1124,8 +1124,8 @@ impl Target {
         (0..self.num_qubits.unwrap_or_default()).map(PhysicalQubit)
     }
 
-    /// Generate non global operations if missing
-    fn generate_non_global_op_names(&self, strict_direction: bool) -> Vec<&str> {
+    /// Get all non_global operation names.
+    pub fn get_non_global_operation_names(&self, strict_direction: bool) -> Vec<&str> {
         let mut search_set: HashSet<SmallVec<[PhysicalQubit; 2]>> = HashSet::default();
         if strict_direction {
             // Build search set
@@ -1194,11 +1194,6 @@ impl Target {
             }
         }
         incomplete_basis_gates
-    }
-
-    /// Get all non_global operation names.
-    pub fn get_non_global_operation_names(&mut self, strict_direction: bool) -> Vec<&str> {
-        self.generate_non_global_op_names(strict_direction)
     }
 
     /// Gets all the operation names that use these qargs. Rust native equivalent of ``BaseTarget.operation_names_for_qargs()``
