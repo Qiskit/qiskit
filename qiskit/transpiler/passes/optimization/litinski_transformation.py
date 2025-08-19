@@ -14,7 +14,8 @@
 """Move clifford gates to the end of the circuit, changing rotation gates to multi-qubit rotations."""
 
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit._accelerate import litinski_transformation as litinski_transformation_rs
+from qiskit.dagcircuit import DAGCircuit
+from qiskit._accelerate.litinski_transformation import run_litinski_transformation
 
 
 class LitinskiTransformation(TransformationPass):
@@ -40,7 +41,7 @@ class LitinskiTransformation(TransformationPass):
         """LitinskiTransformation initializer.
 
         Args:
-            fix_clifford (bool): if False (non-default), the returned circuit contains
+            fix_clifford (bool): if ``False`` (non-default), the returned circuit contains
                 only PauliEvolution gates, with the final Clifford gates omitted.
                 Note that in this case the operators of the original and synthesized
                 circuits will generally not be equivalent.
@@ -48,20 +49,20 @@ class LitinskiTransformation(TransformationPass):
         super().__init__()
         self.fix_clifford = fix_clifford
 
-    def run(self, dag):
+    def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the LitiskiTransformation pass on ``dag``.
 
         Args:
-            dag (DAGCircuit): the input DAG.
+            dag: the input DAG.
 
         Returns:
-            DAGCircuit: the output DAG.
+            The output DAG.
 
         Raises:
             TranspilerError: if the circuit contains gates
                 not supported by the pass.
         """
-        new_dag = litinski_transformation_rs.run(dag, self.fix_clifford)
+        new_dag = run_litinski_transformation(dag, self.fix_clifford)
 
         # If the pass did not do anything, the result is None
         if new_dag is None:

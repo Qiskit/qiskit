@@ -77,7 +77,7 @@ pub fn extract_rotations(
 }
 
 #[pyfunction]
-#[pyo3(name = "run", signature = (dag, fix_clifford=true))]
+#[pyo3(signature = (dag, fix_clifford=true))]
 pub fn run_litinski_transformation(
     py: Python,
     dag: &DAGCircuit,

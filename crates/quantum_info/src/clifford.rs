@@ -14,7 +14,6 @@ use std::fmt;
 use ndarray::{azip, s, Array2};
 
 /// Symplectic matrix.
-/// Currently this class is internal to the synthesis library.
 pub struct SymplecticMatrix {
     /// Number of qubits.
     pub num_qubits: usize,
@@ -23,7 +22,7 @@ pub struct SymplecticMatrix {
 }
 
 /// Clifford.
-/// Currently this class has a very different functionality from Qiskit's
+/// Currently this class offers a reduced functionality of Qiskit's
 /// python-based Clifford class.
 #[derive(Clone)]
 pub struct Clifford {
@@ -168,7 +167,7 @@ impl Clifford {
         azip!((p in &mut p, &x in &x)  *p ^= x);
     }
 
-    /// Modifies the tableau in-place by appending Z-gate
+    /// Modifies the tableau in-place by appending Y-gate
     pub fn append_y(&mut self, qubit: usize) {
         let (x, z, mut p) = self.tableau.multi_slice_mut((
             s![.., qubit],
@@ -205,7 +204,7 @@ impl Clifford {
         self.append_cx(qubit1, qubit0);
     }
 
-    /// Modifies the tableau in-place by appending W-gate.
+    /// Modifies the tableau in-place by appending V-gate.
     /// This is equivalent to an Sdg gate followed by an H gate.
     pub fn append_v(&mut self, qubit: usize) {
         let (mut x, mut z) = self
@@ -215,7 +214,7 @@ impl Clifford {
         azip!((x in &mut x, z in &mut z) (*x, *z) = (*x ^ *z, *x));
     }
 
-    /// Modifies the tableau in-place by appending V-gate.
+    /// Modifies the tableau in-place by appending W-gate.
     /// This is equivalent to two V gates.
     pub fn append_w(&mut self, qubit: usize) {
         let (mut x, mut z) = self
