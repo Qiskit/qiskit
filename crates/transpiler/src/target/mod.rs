@@ -1420,19 +1420,32 @@ impl Target {
         let Some(qargs) = self.qargs() else {
             return Err(TargetCouplingError::AllToAll);
         };
+        let mut multi_q = false;
         for qargs in qargs {
             let Qargs::Concrete(qargs) = qargs else {
-                return Err(TargetCouplingError::AllToAll);
+                if self.global_operations.keys().any(|x| *x == 2) {
+                    return Err(TargetCouplingError::AllToAll);
+                }
+                if self.global_operations.keys().any(|x| *x > 2) {
+                    multi_q = true;
+                }
+                continue;
             };
             match qargs.as_slice() {
                 &[] | &[_] => (),
                 &[a, b] => {
                     coupling.update_edge(NodeIndex::new(a.index()), NodeIndex::new(b.index()), ());
                 }
-                _ => return Err(TargetCouplingError::MultiQ),
+                _ => {
+                    multi_q = true;
+                }
             }
         }
-        Ok(coupling)
+        if multi_q {
+            Err(TargetCouplingError::MultiQ(coupling))
+        } else {
+            Ok(coupling)
+        }
     }
 
     // IndexMap methods
@@ -1462,6 +1475,11 @@ impl Target {
 
     pub fn is_empty(&self) -> bool {
         self.gate_map.is_empty()
+    }
+
+    /// Check that a given qargs is present in the target
+    pub fn contains_qargs<'a, T: Into<QargsRef<'a>>>(&self, qargs: T) -> bool {
+        self.qarg_gate_map.contains_key(&qargs.into())
     }
 }
 
@@ -1500,7 +1518,7 @@ pub enum TargetCouplingError {
     #[error("target contains short-hand all-to-all connectivity")]
     AllToAll,
     #[error("target contains multi-qubit operations")]
-    MultiQ,
+    MultiQ(Graph<(), (), Undirected>),
 }
 
 // For instruction_supported

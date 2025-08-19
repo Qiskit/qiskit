@@ -2182,6 +2182,11 @@ impl CircuitData {
         self.param_table.symbols()
     }
 
+    /// Get the unsorted symbols in this circuit.
+    pub fn iter_parameters(&self) -> impl Iterator<Item = &Symbol> {
+        self.param_table.iter_symbols()
+    }
+
     /// Assigns parameters to circuit data based on a slice of `Param`.
     pub fn assign_parameters_from_slice(&mut self, slice: &[Param]) -> PyResult<()> {
         if slice.len() != self.param_table.num_parameters() {
