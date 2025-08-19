@@ -19,8 +19,8 @@ use qiskit_transpiler::{passes::run_optimize_1q_gates_decomposition, target::Tar
 /// @ingroup QkTranspilerPasses
 /// Runs the Optimize1qGatesDecomposition pass in standalone mode on a circuit.
 ///
-/// Optimize1qGatesDecomposition, as its name implies, optimizes chains of single-qubit
-/// gates by combining them into a single gate.
+/// Optimize1qGatesDecomposition optimizes single-qubit gate sequences by re-synthesizing
+/// the unitary under the constraints of the target's basis gates and error rates.
 ///
 /// The decision of whether to replace the original chain depends on:
 /// - If the original chain was out of basis.
@@ -57,7 +57,7 @@ use qiskit_transpiler::{passes::run_optimize_1q_gates_decomposition, target::Tar
 ///     }
 ///
 ///     // Run transpiler pass
-///     qk_transpiler_standalone_optimize_1q_gates_decomposition(circuit, target);
+///     qk_transpiler_standalone_optimize_1q_sequences(circuit, target);
 ///
 ///     // Clean up
 ///     qk_target_free(target);
@@ -69,7 +69,7 @@ use qiskit_transpiler::{passes::run_optimize_1q_gates_decomposition, target::Tar
 /// if ``target`` is not a valid pointer to a ``QkTarget``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_transpiler_standalone_optimize_1q_gates_decomposition(
+pub unsafe extern "C" fn qk_transpiler_standalone_optimize_1q_sequences(
     circuit: *mut CircuitData,
     target: *const Target,
 ) {

@@ -43,12 +43,11 @@ int inner_optimize_h_gates(QkTarget *target, char **gates, uint32_t *freq, int n
     }
 
     // Run transpiler pass
-    qk_transpiler_standalone_optimize_1q_gates_decomposition(circuit, target);
+    qk_transpiler_standalone_optimize_1q_sequences(circuit, target);
     if (!compare_gate_counts(qk_circuit_count_ops(circuit), gates, freq, num_gates)) {
         result = EqualityError;
     }
 
-cleanup:
     qk_circuit_free(circuit);
     qk_target_free(target);
     return result;
@@ -100,12 +99,11 @@ int inner_optimize_identity_target(QkTarget *target) {
     qk_circuit_gate(circuit, QkGate_RY, qubits, params_neg);
 
     // Run transpiler pass
-    qk_transpiler_standalone_optimize_1q_gates_decomposition(circuit, target);
+    qk_transpiler_standalone_optimize_1q_sequences(circuit, target);
     if (qk_circuit_count_ops(circuit).len != 0) {
         result = EqualityError;
     }
 
-cleanup:
     qk_circuit_free(circuit);
     qk_target_free(target);
     return result;
@@ -150,12 +148,11 @@ int test_optimize_identity_no_target(void) {
     }
 
     // Run transpiler pass
-    qk_transpiler_standalone_optimize_1q_gates_decomposition(circuit, NULL);
+    qk_transpiler_standalone_optimize_1q_sequences(circuit, NULL);
     if (qk_circuit_count_ops(circuit).len != 0) {
         result = EqualityError;
     }
 
-cleanup:
     qk_circuit_free(circuit);
     return result;
 }
@@ -172,7 +169,7 @@ int test_optimize_error_over_target_3(void) {
     qk_circuit_gate(circuit, QkGate_U, qubits, params);
 
     // Run transpiler pass
-    qk_transpiler_standalone_optimize_1q_gates_decomposition(circuit, get_rz_ry_u_noerror_target());
+    qk_transpiler_standalone_optimize_1q_sequences(circuit, get_rz_ry_u_noerror_target());
     QkOpCounts counts = qk_circuit_count_ops(circuit);
     if (counts.len != 1) {
         result = EqualityError;

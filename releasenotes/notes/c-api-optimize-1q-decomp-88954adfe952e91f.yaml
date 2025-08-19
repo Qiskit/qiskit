@@ -2,7 +2,7 @@
 features_c:
   - |
     Add support for the :class:`.Optimize1qGatesDecomposition` transpiler pass through
-    the C API, via the :cpp:func:`qk_transpiler_standalone_optimize_1q_gates_decomposition`
+    the C API, via the :cpp:func:`qk_transpiler_standalone_optimize_1q_sequences`
     method.
 
     Here's an example:
@@ -20,7 +20,7 @@ features_c:
       qk_circuit_gate(circuit, QkGate_RY, qubits, params_neg);
 
       // Run the transpiler pass with no Target
-      qk_transpiler_standalone_optimize_1q_gates_decomposition(circuit, NULL);
+      qk_transpiler_standalone_optimize_1q_sequences(circuit, NULL);
 
       // Free both circuits
       qk_circuit_free(circuit);
