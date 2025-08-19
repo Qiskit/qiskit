@@ -80,13 +80,14 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
                   └──────────┘
 
     References:
-        [1]: Haener, T., Roetteler, M., & Svore, K. M. (2018).
-             Optimizing Quantum Circuits for Arithmetic.
-             `arXiv:1805.12445 <http://arxiv.org/abs/1805.12445>`_
 
-        [2]: Carrera Vazquez, A., Hiptmair, R., & Woerner, S. (2022).
-             Enhancing the Quantum Linear Systems Algorithm using Richardson Extrapolation.
-             `ACM Transactions on Quantum Computing 3, 1, Article 2 <https://doi.org/10.1145/3490631>`_
+    [1] Haener, T., Roetteler, M., & Svore, K. M. (2018).
+    Optimizing Quantum Circuits for Arithmetic.
+    `arXiv:1805.12445 <http://arxiv.org/abs/1805.12445>`_
+
+    [2] Carrera Vazquez, A., Hiptmair, R., & Woerner, S. (2022).
+    Enhancing the Quantum Linear Systems Algorithm using Richardson Extrapolation.
+    `ACM Transactions on Quantum Computing 3, 1, Article 2 <https://doi.org/10.1145/3490631>`_
     """
 
     @deprecate_func(
@@ -377,13 +378,14 @@ class PiecewisePolynomialPauliRotationsGate(Gate):
                   └──────────┘
 
     References:
-        [1]: Haener, T., Roetteler, M., & Svore, K. M. (2018).
-             Optimizing Quantum Circuits for Arithmetic.
-             `arXiv:1805.12445 <http://arxiv.org/abs/1805.12445>`_
 
-        [2]: Carrera Vazquez, A., Hiptmair, R., & Woerner, S. (2022).
-             Enhancing the Quantum Linear Systems Algorithm using Richardson Extrapolation.
-             `ACM Transactions on Quantum Computing 3, 1, Article 2 <https://doi.org/10.1145/3490631>`_
+    [1] Haener, T., Roetteler, M., & Svore, K. M. (2018).
+    Optimizing Quantum Circuits for Arithmetic.
+    `arXiv:1805.12445 <http://arxiv.org/abs/1805.12445>`_
+
+    [2] Carrera Vazquez, A., Hiptmair, R., & Woerner, S. (2022).
+    Enhancing the Quantum Linear Systems Algorithm using Richardson Extrapolation.
+    `ACM Transactions on Quantum Computing 3, 1, Article 2 <https://doi.org/10.1145/3490631>`_
     """
 
     def __init__(

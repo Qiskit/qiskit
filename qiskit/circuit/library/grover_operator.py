@@ -199,14 +199,17 @@ def grover_operator(
         insert_barriers: Whether barriers should be inserted between the reflections and A.
         name: The name of the circuit.
 
-    References:
-        [1]: L. K. Grover (1996), A fast quantum mechanical algorithm for database search,
-            `arXiv:quant-ph/9605043 <https://arxiv.org/abs/quant-ph/9605043>`_.
-        [2]: I. Chuang & M. Nielsen, Quantum Computation and Quantum Information,
-            Cambridge: Cambridge University Press, 2000. Chapter 6.1.2.
-        [3]: Brassard, G., Hoyer, P., Mosca, M., & Tapp, A. (2000).
-            Quantum Amplitude Amplification and Estimation.
-            `arXiv:quant-ph/0005055 <http://arxiv.org/abs/quant-ph/0005055>`_.
+    **References:**
+
+    [1] L. K. Grover (1996), A fast quantum mechanical algorithm for database search,
+    `arXiv:quant-ph/9605043 <https://arxiv.org/abs/quant-ph/9605043>`_.
+
+    [2] I. Chuang & M. Nielsen, Quantum Computation and Quantum Information,
+    Cambridge: Cambridge University Press, 2000. Chapter 6.1.2.
+
+    [3] Brassard, G., Hoyer, P., Mosca, M., & Tapp, A. (2000).
+    Quantum Amplitude Amplification and Estimation.
+    `arXiv:quant-ph/0005055 <http://arxiv.org/abs/quant-ph/0005055>`_.
     """
     # We inherit the ancillas/qubits structure from the oracle, if it is given as circuit.
     if isinstance(oracle, QuantumCircuit):
@@ -418,13 +421,16 @@ class GroverOperator(QuantumCircuit):
         wrap the circuit into an opaque gate.
 
     References:
-        [1]: L. K. Grover (1996), A fast quantum mechanical algorithm for database search,
-            `arXiv:quant-ph/9605043 <https://arxiv.org/abs/quant-ph/9605043>`_.
-        [2]: I. Chuang & M. Nielsen, Quantum Computation and Quantum Information,
-            Cambridge: Cambridge University Press, 2000. Chapter 6.1.2.
-        [3]: Brassard, G., Hoyer, P., Mosca, M., & Tapp, A. (2000).
-            Quantum Amplitude Amplification and Estimation.
-            `arXiv:quant-ph/0005055 <http://arxiv.org/abs/quant-ph/0005055>`_.
+
+    [1] L. K. Grover (1996), A fast quantum mechanical algorithm for database search,
+    `arXiv:quant-ph/9605043 <https://arxiv.org/abs/quant-ph/9605043>`_.
+
+    [2] I. Chuang & M. Nielsen, Quantum Computation and Quantum Information,
+    Cambridge: Cambridge University Press, 2000. Chapter 6.1.2.
+
+    [3] Brassard, G., Hoyer, P., Mosca, M., & Tapp, A. (2000).
+    Quantum Amplitude Amplification and Estimation.
+    `arXiv:quant-ph/0005055 <http://arxiv.org/abs/quant-ph/0005055>`_.
     """
 
     @deprecate_func(

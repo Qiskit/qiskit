@@ -76,8 +76,8 @@ def qaoa_ansatz(
 
     References:
 
-        [1]: Farhi et al., A Quantum Approximate Optimization Algorithm.
-            `arXiv:1411.4028 <https://arxiv.org/pdf/1411.4028>`_
+    [1] Farhi et al., A Quantum Approximate Optimization Algorithm.
+    `arXiv:1411.4028 <https://arxiv.org/pdf/1411.4028>`_
     """
     num_qubits = cost_operator.num_qubits
 
@@ -110,8 +110,8 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
 
     References:
 
-        [1]: Farhi et al., A Quantum Approximate Optimization Algorithm.
-            `arXiv:1411.4028 <https://arxiv.org/pdf/1411.4028>`_
+    [1] Farhi et al., A Quantum Approximate Optimization Algorithm.
+    `arXiv:1411.4028 <https://arxiv.org/pdf/1411.4028>`_
     """
 
     def __init__(

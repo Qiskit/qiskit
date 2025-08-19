@@ -117,7 +117,7 @@ def iqp(
            circuit = iqp(A)
            _generate_circuit_library_visualization(circuit)
 
-    **References:**
+    References:
 
     [1] M. J. Bremner et al. Average-case complexity versus approximate
     simulation of commuting quantum computations,

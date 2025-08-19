@@ -119,12 +119,13 @@ class GraphStateGate(Gate):
         circuit.append(GraphStateGate(rx.adjacency_matrix(G)), [0, 1, 2, 3, 4])
         circuit.decompose().draw('mpl')
 
-    **References:**
+    References:
 
     [1] M. Hein, J. Eisert, H.J. Briegel, Multi-party Entanglement in Graph States,
-        `arXiv:0307130 <https://arxiv.org/pdf/quant-ph/0307130.pdf>`_
+    `arXiv:0307130 <https://arxiv.org/pdf/quant-ph/0307130.pdf>`_
+
     [2] D. Koh, Further Extensions of Clifford Circuits & their Classical Simulation Complexities.
-        `arXiv:1512.07892 <https://arxiv.org/pdf/1512.07892.pdf>`_
+    `arXiv:1512.07892 <https://arxiv.org/pdf/1512.07892.pdf>`_
     """
 
     def __init__(self, adjacency_matrix: list | np.ndarray) -> None:

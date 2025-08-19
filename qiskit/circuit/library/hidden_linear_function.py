@@ -63,7 +63,7 @@ class HiddenLinearFunction(QuantumCircuit):
            circuit = HiddenLinearFunction(A)
            _generate_circuit_library_visualization(circuit)
 
-    **Reference:**
+    References:
 
     [1] S. Bravyi, D. Gosset, R. Koenig, Quantum Advantage with Shallow Circuits, 2017.
     `arXiv:1704.00690 <https://arxiv.org/abs/1704.00690>`_

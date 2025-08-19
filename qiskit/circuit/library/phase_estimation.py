@@ -143,18 +143,17 @@ def phase_estimation(
        circuit = phase_estimation(3, unitary)
        circuit.draw('mpl')
 
-    **References:**
+    References:
 
-    [1]: Kitaev, A. Y. (1995). Quantum measurements and the Abelian Stabilizer Problem. 1–22.
-        `quant-ph/9511026 <http://arxiv.org/abs/quant-ph/9511026>`_
+    [1] Kitaev, A. Y. (1995). Quantum measurements and the Abelian Stabilizer Problem. 1–22.
+    `quant-ph/9511026 <http://arxiv.org/abs/quant-ph/9511026>`_
 
-    [2]: Michael A. Nielsen and Isaac L. Chuang. 2011.
-         Quantum Computation and Quantum Information: 10th Anniversary Edition (10th ed.).
-         Cambridge University Press, New York, NY, USA.
+    [2] Michael A. Nielsen and Isaac L. Chuang. 2011.
+    Quantum Computation and Quantum Information: 10th Anniversary Edition (10th ed.).
+    Cambridge University Press, New York, NY, USA.
 
-    [3]: Qiskit
-        `textbook <https://github.com/Qiskit/textbook/blob/main/notebooks/ch-algorithms/
-        quantum-phase-estimation.ipynb>`_
+    [3] Qiskit `textbook <https://github.com/Qiskit/textbook/blob/main/notebooks/ch-algorithms/
+    quantum-phase-estimation.ipynb>`_
 
     """
     # pylint: disable=cyclic-import

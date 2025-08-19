@@ -256,10 +256,11 @@ def hamiltonian_variational_ansatz(
 
     References:
 
-        [1] D. Wecker et al. Progress towards practical quantum variational algorithms (2015)
-            `Phys Rev A 92, 042303 <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.92.042303>`__
-        [2] R. Wiersema et al. Exploring entanglement and optimization within the Hamiltonian
-            Variational Ansatz (2020) `arXiv:2008.02941 <https://arxiv.org/abs/2008.02941>`__
+    [1] D. Wecker et al. Progress towards practical quantum variational algorithms (2015)
+    `Phys Rev A 92, 042303 <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.92.042303>`__
+
+    [2] R. Wiersema et al. Exploring entanglement and optimization within the Hamiltonian
+    Variational Ansatz (2020) `arXiv:2008.02941 <https://arxiv.org/abs/2008.02941>`__
 
     """
     # If a single operator is given, check if it is a sum of operators (a SparsePauliOp),
