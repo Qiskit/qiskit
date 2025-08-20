@@ -420,9 +420,10 @@ class TestEvolutionGate(QiskitTestCase):
         with self.assertRaises(ValueError):
             _ = PauliEvolutionGate(SparsePauliOp("Z", np.array(Parameter("t"))))
 
-    def test_inverse(self):
-        """Test calculating the inverse for exact methods is correct."""
-        evo = PauliEvolutionGate(X + Y, time=0.12, synthesis=MatrixExponential())
+    @data(LieTrotter, MatrixExponential)
+    def test_inverse(self, synth_cls):
+        """Test calculating the inverse is correct."""
+        evo = PauliEvolutionGate(X + Y, time=0.12, synthesis=synth_cls())
 
         circuit = QuantumCircuit(1)
         circuit.append(evo, circuit.qubits)

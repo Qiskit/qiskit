@@ -25,7 +25,6 @@ from qiskit.circuit.annotated_operation import (
     AnnotatedOperation,
     ControlModifier,
     PowerModifier,
-    InverseModifier,
 )
 import qiskit.quantum_info
 
@@ -43,13 +42,6 @@ class PauliEvolutionGate(Gate):
 
         U(t) = e^{-itH}.
 
-    This gate serves as a high-level definition of the evolution and can be synthesized into
-    a circuit using different algorithms, such as :class:`.LieTrotter` (see :mod:`qiskit.synthesis`
-    for more details). Note that most synthesis methods *approximately* implement the target unintary
-    :math:`U(t)`. This implies that calling methods such as :meth:`inverse`, :meth:`power` or
-    :meth:`control` prior to synthesis may lead to different results as calling them after
-    the synthesis.
-
     The evolution gates are related to the Pauli rotation gates by a factor of 2. For example
     the time evolution of the Pauli :math:`X` operator is connected to the Pauli :math:`X` rotation
     :math:`R_X` by
@@ -57,6 +49,17 @@ class PauliEvolutionGate(Gate):
     .. math::
 
         U(t) = e^{-itX} = R_X(2t).
+
+    Compilation:
+
+    This gate represents the exact evolution :math:`U(t)`. Implementing this operation exactly,
+    however, generally requires an exponential number of gates. The compiler therefore typically
+    implements an *approximation* of the unitary :math:`U(t)`, e.g. using a product formula such
+    as defined by :class:`.LieTrotter`. By passing the ``synthesis`` argument, you can specify
+    which method the compiler should use, see :mod:`qiskit.synthesis` for the available options.
+
+    Note that the order in which the approximation and methods like :meth:`control` and
+    :meth:`power` are called matters. Changing the order can lead to different unitaries.
 
     **Examples:**
 
@@ -173,21 +176,6 @@ class PauliEvolutionGate(Gate):
             time: The evolution time.
         """
         self.params = [time]
-
-    def inverse(self, annotated: bool = False) -> Gate:
-        """Invert this instruction by negating the time.
-
-        Args:
-            annotated: If set to ``True`` the output inverse gate will be returned
-                as :class:`.AnnotatedOperation`.
-
-        Returns:
-            The inverse operation.
-        """
-        if annotated:
-            return AnnotatedOperation(self, InverseModifier())
-
-        return PauliEvolutionGate(self.operator, -self.time, synthesis=self.synthesis)
 
     def power(self, exponent: float, annotated: bool = False) -> Gate:
         """Raise this gate to the power of ``exponent``.
