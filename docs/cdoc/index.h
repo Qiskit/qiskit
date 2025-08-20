@@ -49,3 +49,7 @@
 /**
  * @defgroup QkTranspileLayout QkTranspileLayout
  */
+
+/**
+ * @defgroup QkSabreLayoutOptions QkSabreLayoutOptions
+ */

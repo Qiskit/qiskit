@@ -9,6 +9,8 @@
 // that they have been altered from the originals.
 
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
+use rand::{Rng, SeedableRng};
+use rand_pcg::Pcg64Mcg;
 
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::converters::dag_to_circuit;
@@ -18,6 +20,38 @@ use qiskit_transpiler::passes::sabre::heuristic;
 use qiskit_transpiler::passes::sabre::sabre_layout_and_routing;
 use qiskit_transpiler::target::Target;
 use qiskit_transpiler::transpile_layout::TranspileLayout;
+
+/// The options for running ``qk_transpiler_pass_standalone_sabre_layout``. This struct is used
+/// as an input to control the behavior of the
+#[repr(C)]
+pub struct QkSabreLayoutOptions {
+    /// The number of forward-backward iterations in the sabre routing algorithm
+    max_iterations: usize,
+    /// The number of trials to run of the sabre routing algorithm for each iteration. When > 1 the
+    /// trial that routing trial that results in the output with the fewest swap gates will be
+    /// selected.
+    num_swap_trials: usize,
+    /// The number of random layout trials to run. The trial that results in the output with the
+    /// fewest swap gates will be selected.
+    num_random_trials: usize,
+    /// A seed value for the pRNG used internally.
+    seed: u64,
+}
+
+/// @ingroup QkSabreLayoutOptions
+///
+/// Build a default sabre layout options object This builds a sabre layout with ``max_iterations``
+/// set to 4, both ``num_swap_trials`` and ``num_random_trials`` set to 20, and the seed selected
+/// by a RNG seeded from system entropy.
+#[no_mangle]
+pub extern "C" fn qk_sabre_layout_options_default() -> QkSabreLayoutOptions {
+    QkSabreLayoutOptions {
+        max_iterations: 4,
+        num_swap_trials: 20,
+        num_random_trials: 20,
+        seed: Pcg64Mcg::from_os_rng().random(),
+    }
+}
 
 /// @ingroup QkTranspilerPasses
 /// Run the SabreLayout transpiler pass on a circuit.
@@ -57,15 +91,7 @@ use qiskit_transpiler::transpile_layout::TranspileLayout;
 ///
 /// @param circuit A pointer to the circuit to run SabreLayout on
 /// @param target A pointer to the target to run SabreLayout on
-/// @param max_iterations The number of forward-backward iterations in the
-///     sabre routing algorithm
-/// @param num_swap_trials The number of trials to run of the sabre routing
-///     algorithm for each iteration. When > 1 the trial that routing trial
-///     that results in the output with the fewest swap gates will be selected.
-/// @param num_random_trials The number of random layout trials to run. The trial
-///     that results in the output with the fewest swap gates will be selected.
-/// @param seed A seed value for the pRNG used internally. If the value is negative
-///     the RNG will be seeded from system entropy.
+/// @param options A pointer to the options for SabreLayout
 ///
 /// @return The transpile layout that describes the layout and output permutation caused
 ///     by the pass
@@ -78,17 +104,14 @@ use qiskit_transpiler::transpile_layout::TranspileLayout;
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_sabre_layout(
     circuit: *mut CircuitData,
     target: *const Target,
-    max_iterations: usize,
-    num_swap_trials: usize,
-    num_random_trials: usize,
-    seed: i64,
+    options: *const QkSabreLayoutOptions,
 ) -> *mut TranspileLayout {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
     let target = unsafe { const_ptr_as_ref(target) };
+    let options = unsafe { const_ptr_as_ref(options) };
     let mut dag = DAGCircuit::from_circuit_data(circuit, false, None, None, None, None)
         .expect("Internal circuit to DAG conversion failed.");
-    let seed = if seed < 0 { None } else { Some(seed as u64) };
     let heuristic = heuristic::Heuristic::new(
         Some(heuristic::BasicHeuristic::new(
             1.0,
@@ -107,10 +130,10 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_sabre_layout(
         &mut dag,
         target,
         &heuristic,
-        max_iterations,
-        num_swap_trials,
-        num_random_trials,
-        seed,
+        options.max_iterations,
+        options.num_swap_trials,
+        options.num_random_trials,
+        Some(options.seed),
         Vec::new(),
         false,
     )
