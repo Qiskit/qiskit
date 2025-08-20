@@ -58,8 +58,6 @@ pub(super) fn compose_transforms<'a>(
 
     for (gate_name, gate_num_qubits) in source_basis.iter().cloned() {
         let num_params = gate_param_counts[&(gate_name.clone(), gate_num_qubits)];
-
-        // The last usage of Python left is the parameter vector here.
         let mut placeholder_params: SmallVec<[Param; 3]> = (0..num_params as u32)
             .map(|idx| {
                 Param::ParameterExpression(
@@ -70,7 +68,7 @@ pub(super) fn compose_transforms<'a>(
             .collect();
 
         let mut dag = DAGCircuit::new();
-        // Create the mock gate and add to the circuit, use Python for this.
+        // Create the mock gate and add to the circuit, use Python if necessary.
         let qubits = QuantumRegister::new_owning("q".to_string(), gate_num_qubits);
         dag.add_qreg(qubits)
             .map_err(|err| BasisTranslatorError::ComposeTransformsCircuitError(err.to_string()))?;
@@ -135,7 +133,7 @@ pub(super) fn compose_transforms<'a>(
                                 let symbol = parameter_expression.try_to_symbol().unwrap();
                                 ParameterUuid::from_symbol(&symbol)
                             }
-                            _ => unreachable!("A non parameter-expression has suck in"),
+                            _ => unreachable!("A non parameter-expression has snuck in"),
                         })
                         .zip(params)
                         .collect();

@@ -21,6 +21,7 @@ use compose_transforms::compose_transforms;
 use errors::BasisTranslatorError;
 use hashbrown::{HashMap, HashSet};
 use indexmap::{IndexMap, IndexSet};
+use pyo3::intern;
 use pyo3::prelude::*;
 
 mod basis_search;
@@ -28,9 +29,9 @@ mod compose_transforms;
 mod errors;
 
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::converters::circuit_to_dag;
 use qiskit_circuit::dag_circuit::DAGCircuitBuilder;
 use qiskit_circuit::imports::DAG_TO_CIRCUIT;
+use qiskit_circuit::imports::QUANTUM_CIRCUIT;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -60,7 +61,7 @@ type PhysicalQargs = SmallVec<[PhysicalQubit; 2]>;
 
 #[pyfunction(name = "base_run", signature = (dag, equiv_lib, min_qubits, target=None, target_basis=None))]
 fn py_run_basis_translator(
-    dag: &mut DAGCircuit,
+    dag: &DAGCircuit,
     equiv_lib: &mut EquivalenceLibrary,
     min_qubits: usize,
     target: Option<&Target>,
@@ -432,11 +433,8 @@ fn apply_translation(
                     };
                     let mut flow_blocks = vec![];
                     let bound_obj = control_op.instruction.bind(py);
-                    let blocks = bound_obj.getattr("blocks")?;
-                    for block in blocks.try_iter()? {
-                        let block = block?;
-                        let dag_block: DAGCircuit =
-                            circuit_to_dag(block.extract()?, true, None, None)?;
+                    for block in node_obj.op.blocks() {
+                        let dag_block: DAGCircuit = DAGCircuit::from_circuit_data(&block, true, None, None, None, None)?;
                         let updated_dag: DAGCircuit;
                         (updated_dag, is_updated) = apply_translation(
                             &dag_block,
@@ -450,9 +448,8 @@ fn apply_translation(
                             DAG_TO_CIRCUIT
                                 .get_bound(py)
                                 .call1((updated_dag,))?
-                                .extract()?
                         } else {
-                            block
+                            QUANTUM_CIRCUIT.get_bound(py).call_method1(intern!(py, "_from_circuit_data"), (block,))?
                         };
                         flow_blocks.push(flow_circ_block);
                     }
