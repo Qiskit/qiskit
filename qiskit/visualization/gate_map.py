@@ -1045,6 +1045,8 @@ def plot_coupling_map(
 
     if qubit_coordinates:
         qubit_coordinates = [coordinates[::-1] for coordinates in qubit_coordinates]
+        max_y = max(y for _, y in qubit_coordinates)
+        qubit_coordinates = [(x, max_y - y) for (x, y) in qubit_coordinates]
 
     if font_size is None:
         max_characters = max(1, max(len(str(x)) for x in qubit_labels))
