@@ -228,10 +228,11 @@ int test_sabre_layout_applies_layout(void) {
     bool compare_result = compare_circuits(qc, expected_circuit);
     if (!compare_result) {
         result = EqualityError;
-        goto layout_cleanup;
     }
+    qk_circuit_free(expected_circuit);
 
 layout_cleanup:
+    qk_opcounts_free(op_counts);
     qk_transpile_layout_free(layout_result);
 circuit_cleanup:
     qk_circuit_free(qc);
@@ -305,6 +306,7 @@ int test_sabre_layout_no_swap(void) {
     }
 
 layout_cleanup:
+    qk_circuit_free(expected_circuit);
     qk_transpile_layout_free(layout_result);
 circuit_cleanup:
     qk_circuit_free(qc);
