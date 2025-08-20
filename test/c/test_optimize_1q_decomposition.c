@@ -43,11 +43,13 @@ int inner_optimize_h_gates(QkTarget *target, char **gates, uint32_t *freq, int n
     }
 
     // Run transpiler pass
-    qk_transpiler_standalone_optimize_1q_sequences(circuit, target);
-    if (!compare_gate_counts(qk_circuit_count_ops(circuit), gates, freq, num_gates)) {
+    qk_transpiler_standalone_optimize_1q_gates_decomposition(circuit, target);
+    QkOpCounts counts = qk_circuit_count_ops(circuit);
+    if (!compare_gate_counts(counts, gates, freq, num_gates)) {
         result = EqualityError;
     }
 
+    qk_opcounts_free(counts);
     qk_circuit_free(circuit);
     qk_target_free(target);
     return result;
@@ -98,12 +100,14 @@ int inner_optimize_identity_target(QkTarget *target) {
     qk_circuit_gate(circuit, QkGate_RY, qubits, params_pos);
     qk_circuit_gate(circuit, QkGate_RY, qubits, params_neg);
 
+    QkOpCounts counts = qk_circuit_count_ops(circuit);
     // Run transpiler pass
     qk_transpiler_standalone_optimize_1q_sequences(circuit, target);
-    if (qk_circuit_count_ops(circuit).len != 0) {
+    if (counts.len != 0) {
         result = EqualityError;
     }
 
+    qk_opcounts_free(counts);
     qk_circuit_free(circuit);
     qk_target_free(target);
     return result;
@@ -147,12 +151,14 @@ int test_optimize_identity_no_target(void) {
         qk_circuit_gate(circuit, QkGate_H, qubits, NULL);
     }
 
+    QkOpCounts counts = qk_circuit_count_ops(circuit);
     // Run transpiler pass
     qk_transpiler_standalone_optimize_1q_sequences(circuit, NULL);
-    if (qk_circuit_count_ops(circuit).len != 0) {
+    if (counts.len != 0) {
         result = EqualityError;
     }
 
+    qk_opcounts_free(counts);
     qk_circuit_free(circuit);
     return result;
 }
@@ -167,9 +173,9 @@ int test_optimize_error_over_target_3(void) {
     uint32_t qubits[1] = {0};
     double params[3] = {3.14 / 7., 3.14 / 4., 3.14 / 3.};
     qk_circuit_gate(circuit, QkGate_U, qubits, params);
-
+    QkTarget *target = get_rz_ry_u_noerror_target();
     // Run transpiler pass
-    qk_transpiler_standalone_optimize_1q_sequences(circuit, get_rz_ry_u_noerror_target());
+    qk_transpiler_standalone_optimize_1q_sequences(circuit, target);
     QkOpCounts counts = qk_circuit_count_ops(circuit);
     if (counts.len != 1) {
         result = EqualityError;
@@ -180,6 +186,8 @@ int test_optimize_error_over_target_3(void) {
     }
 
 cleanup:
+    qk_opcounts_free(counts);
+    qk_target_free(target);
     qk_circuit_free(circuit);
     return result;
 }
