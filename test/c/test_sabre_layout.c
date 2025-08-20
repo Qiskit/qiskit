@@ -83,7 +83,7 @@ int test_sabre_layout_applies_layout(void) {
         }
     }
 
-    uint32_t expected_final_layout[5] = {3, 0, 1, 2, 4};
+    uint32_t expected_final_layout[5] = {0, 3, 1, 2, 4};
     uint32_t result_final_layout[5];
     qk_transpile_layout_output_permutation(layout_result, result_final_layout);
     for (uint32_t i = 0; i < 5; i++) {

@@ -15,7 +15,7 @@ use rand_pcg::Pcg64Mcg;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::Qubit;
+use qiskit_circuit::{PhysicalQubit, Qubit};
 use qiskit_transpiler::passes::sabre::heuristic;
 use qiskit_transpiler::passes::sabre::sabre_layout_and_routing;
 use qiskit_transpiler::target::Target;
@@ -142,14 +142,19 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_sabre_layout(
         dag_to_circuit(&result, false).expect("Internal DAG to circuit conversion failed");
     let num_input_qubits = circuit.num_qubits() as u32;
     *circuit = out_circuit;
+    let out_final_layout = (0..result.num_qubits() as u32)
+        .map(|ref q| {
+            Qubit(
+                final_layout
+                    .virtual_to_physical(initial_layout.physical_to_virtual(PhysicalQubit(*q)))
+                    .0,
+            )
+        })
+        .collect();
+
     Box::into_raw(Box::new(TranspileLayout::new(
         Some(initial_layout),
-        Some(
-            final_layout
-                .iter_virtual()
-                .map(|(_virt, phys)| Qubit(phys.0))
-                .collect(),
-        ),
+        Some(out_final_layout),
         result.qubits().objects().clone(),
         num_input_qubits,
     )))
