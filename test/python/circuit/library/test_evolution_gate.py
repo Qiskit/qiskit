@@ -431,6 +431,24 @@ class TestEvolutionGate(QiskitTestCase):
 
         self.assertTrue(Operator(circuit).equiv(np.identity(2**circuit.num_qubits)))
 
+    def test_power(self):
+        """Test calling the power method."""
+        power = 31
+        dt = 0.1
+        op = (X ^ X) + (Z ^ Z)  # pick commuting operator to check matrices
+
+        evo = PauliEvolutionGate(op, time=dt)
+        evo_pow = evo.power(power)
+
+        expect = PauliEvolutionGate(op, time=power * dt)
+
+        with self.subTest("check efficient power"):
+            self.assertEqual(expect, evo_pow)
+
+        matrix = scipy.linalg.expm(-1j * dt * power * op.to_matrix())
+        with self.subTest("check unitary"):
+            self.assertTrue(np.allclose(matrix, Operator(evo_pow).data))
+
     def test_labels_and_name(self):
         """Test the name and labels are correct."""
         operators = [
