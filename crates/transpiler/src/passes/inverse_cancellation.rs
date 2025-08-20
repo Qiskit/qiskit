@@ -18,10 +18,10 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
-use qiskit_circuit::operations::Operation;
+use qiskit_circuit::operations::{Operation, OperationRef, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 
-fn gate_eq(py: Python, gate_a: &PackedInstruction, gate_b: &OperationFromPython) -> PyResult<bool> {
+fn gate_eq(gate_a: &PackedInstruction, gate_b: &OperationFromPython) -> PyResult<bool> {
     if gate_a.op.name() != gate_b.operation.name() {
         return Ok(false);
     }
@@ -31,7 +31,7 @@ fn gate_eq(py: Python, gate_a: &PackedInstruction, gate_b: &OperationFromPython)
     }
     let mut param_eq = true;
     for (a, b) in a_params.iter().zip(&gate_b.params) {
-        if !a.is_close(py, b, 1e-10)? {
+        if !a.is_close(b, 1e-10)? {
             param_eq = false;
             break;
         }
@@ -40,7 +40,6 @@ fn gate_eq(py: Python, gate_a: &PackedInstruction, gate_b: &OperationFromPython)
 }
 
 fn run_on_self_inverse(
-    py: Python,
     dag: &mut DAGCircuit,
     op_counts: &IndexMap<String, usize, RandomState>,
     self_inverse_gate_names: HashSet<String>,
@@ -67,7 +66,7 @@ fn run_on_self_inverse(
             for (i, cancel_gate) in gate_cancel_run.iter().enumerate() {
                 let node = &dag[*cancel_gate];
                 if let NodeType::Operation(inst) = node {
-                    if gate_eq(py, inst, &gate)? {
+                    if gate_eq(inst, &gate)? {
                         chunk.push(*cancel_gate);
                     } else {
                         if !chunk.is_empty() {
@@ -105,7 +104,6 @@ fn run_on_self_inverse(
     Ok(())
 }
 fn run_on_inverse_pairs(
-    py: Python,
     dag: &mut DAGCircuit,
     op_counts: &IndexMap<String, usize, RandomState>,
     inverse_gate_names: HashSet<String>,
@@ -134,9 +132,8 @@ fn run_on_inverse_pairs(
                 if let NodeType::Operation(inst) = &dag[nodes[i]] {
                     if let NodeType::Operation(next_inst) = &dag[nodes[i + 1]] {
                         if inst.qubits == next_inst.qubits
-                            && ((gate_eq(py, inst, &gate_0)? && gate_eq(py, next_inst, &gate_1)?)
-                                || (gate_eq(py, inst, &gate_1)?
-                                    && gate_eq(py, next_inst, &gate_0)?))
+                            && ((gate_eq(inst, &gate_0)? && gate_eq(next_inst, &gate_1)?)
+                                || (gate_eq(inst, &gate_1)? && gate_eq(next_inst, &gate_0)?))
                         {
                             dag.remove_op_node(nodes[i]);
                             dag.remove_op_node(nodes[i + 1]);
@@ -156,36 +153,167 @@ fn run_on_inverse_pairs(
     Ok(())
 }
 
+static SELF_INVERSE_GATES_FOR_CANCELLATION: [StandardGate; 15] = [
+    StandardGate::CX,
+    StandardGate::ECR,
+    StandardGate::CY,
+    StandardGate::CZ,
+    StandardGate::X,
+    StandardGate::Y,
+    StandardGate::Z,
+    StandardGate::H,
+    StandardGate::Swap,
+    StandardGate::CH,
+    StandardGate::CCX,
+    StandardGate::CCZ,
+    StandardGate::RCCX,
+    StandardGate::CSwap,
+    StandardGate::C3X,
+];
+
+static INVERSE_PAIRS_FOR_CANCELLATION: [[StandardGate; 2]; 4] = [
+    [StandardGate::T, StandardGate::Tdg],
+    [StandardGate::S, StandardGate::Sdg],
+    [StandardGate::SX, StandardGate::SXdg],
+    [StandardGate::CS, StandardGate::CSdg],
+];
+
+fn std_self_inverse(dag: &mut DAGCircuit) {
+    if !SELF_INVERSE_GATES_FOR_CANCELLATION
+        .iter()
+        .any(|gate| dag.get_op_counts().contains_key(gate.name()))
+    {
+        return;
+    }
+    // Handle self inverse gates
+    for self_inv_gate in SELF_INVERSE_GATES_FOR_CANCELLATION {
+        if *dag.get_op_counts().get(self_inv_gate.name()).unwrap_or(&0) <= 1 {
+            continue;
+        }
+        let filter = |inst: &PackedInstruction| -> bool {
+            match inst.op.view() {
+                OperationRef::StandardGate(gate) => gate == self_inv_gate,
+                _ => false,
+            }
+        };
+        let run_nodes: Vec<_> = dag.collect_runs_by(filter).collect();
+        for gate_cancel_run in run_nodes {
+            let mut partitions: Vec<Vec<NodeIndex>> = Vec::new();
+            let mut chunk: Vec<NodeIndex> = Vec::new();
+            let max_index = gate_cancel_run.len() - 1;
+            for (i, cancel_gate) in gate_cancel_run.iter().enumerate() {
+                let node = &dag[*cancel_gate];
+                let NodeType::Operation(inst) = node else {
+                    unreachable!("Not an op node");
+                };
+                chunk.push(*cancel_gate);
+                if i == max_index {
+                    partitions.push(std::mem::take(&mut chunk));
+                } else {
+                    let NodeType::Operation(next_inst) = &dag[gate_cancel_run[i + 1]] else {
+                        unreachable!("Not an op node");
+                    };
+                    let next_qargs = next_inst.qubits;
+                    if inst.qubits != next_qargs {
+                        partitions.push(std::mem::take(&mut chunk));
+                    }
+                }
+            }
+            for chunk in partitions {
+                if chunk.len() % 2 == 0 {
+                    dag.remove_op_node(chunk[0]);
+                }
+                for node in &chunk[1..] {
+                    dag.remove_op_node(*node);
+                }
+            }
+        }
+    }
+}
+
+fn std_inverse_pairs(dag: &mut DAGCircuit) {
+    if !INVERSE_PAIRS_FOR_CANCELLATION.iter().any(|gate| {
+        dag.get_op_counts().contains_key(gate[0].name())
+            && dag.get_op_counts().contains_key(gate[1].name())
+    }) {
+        return;
+    }
+    // Handle inverse pairs
+    for [gate_0, gate_1] in INVERSE_PAIRS_FOR_CANCELLATION {
+        if !dag.get_op_counts().contains_key(gate_0.name())
+            || !dag.get_op_counts().contains_key(gate_1.name())
+        {
+            continue;
+        }
+        let filter = |inst: &PackedInstruction| -> bool {
+            match inst.op.view() {
+                OperationRef::StandardGate(gate) => gate == gate_0 || gate == gate_1,
+                _ => false,
+            }
+        };
+        let run_nodes: Vec<_> = dag.collect_runs_by(filter).collect();
+        for nodes in run_nodes {
+            let mut i = 0;
+            while i < nodes.len() - 1 {
+                let NodeType::Operation(inst) = &dag[nodes[i]] else {
+                    unreachable!("Not an op node");
+                };
+                let NodeType::Operation(next_inst) = &dag[nodes[i + 1]] else {
+                    unreachable!("Not an op node");
+                };
+                if inst.qubits == next_inst.qubits
+                    && (inst.op.try_standard_gate() == Some(gate_0)
+                        && next_inst.op.try_standard_gate() == Some(gate_1))
+                    || (inst.op.try_standard_gate() == Some(gate_1)
+                        && next_inst.op.try_standard_gate() == Some(gate_0))
+                {
+                    dag.remove_op_node(nodes[i]);
+                    dag.remove_op_node(nodes[i + 1]);
+                    i += 2;
+                } else {
+                    i += 1;
+                }
+            }
+        }
+    }
+}
+
+#[pyfunction]
+pub fn run_inverse_cancellation_standard_gates(dag: &mut DAGCircuit) {
+    std_self_inverse(dag);
+    std_inverse_pairs(dag);
+}
+
 #[pyfunction]
 #[pyo3(name = "inverse_cancellation")]
-pub fn run_inverse_cancellation(
+pub fn py_run_inverse_cancellation(
     py: Python,
     dag: &mut DAGCircuit,
     inverse_gates: Vec<[OperationFromPython; 2]>,
     self_inverse_gates: Vec<OperationFromPython>,
     inverse_gate_names: HashSet<String>,
     self_inverse_gate_names: HashSet<String>,
+    run_defaults: bool,
 ) -> PyResult<()> {
     if self_inverse_gate_names.is_empty() && inverse_gate_names.is_empty() {
         return Ok(());
     }
     let op_counts = dag.count_ops(py, true)?;
     if !self_inverse_gate_names.is_empty() {
-        run_on_self_inverse(
-            py,
-            dag,
-            &op_counts,
-            self_inverse_gate_names,
-            self_inverse_gates,
-        )?;
+        run_on_self_inverse(dag, &op_counts, self_inverse_gate_names, self_inverse_gates)?;
     }
     if !inverse_gate_names.is_empty() {
-        run_on_inverse_pairs(py, dag, &op_counts, inverse_gate_names, inverse_gates)?;
+        run_on_inverse_pairs(dag, &op_counts, inverse_gate_names, inverse_gates)?;
+    }
+    if run_defaults {
+        std_self_inverse(dag);
+        std_inverse_pairs(dag);
     }
     Ok(())
 }
 
 pub fn inverse_cancellation_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(run_inverse_cancellation))?;
+    m.add_wrapped(wrap_pyfunction!(py_run_inverse_cancellation))?;
+    m.add_wrapped(wrap_pyfunction!(run_inverse_cancellation_standard_gates))?;
     Ok(())
 }
