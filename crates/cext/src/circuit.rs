@@ -782,16 +782,19 @@ pub unsafe extern "C" fn qk_circuit_count_ops(circuit: *const CircuitData) -> Op
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
     let count_ops = circuit.count_ops();
-    let mut output: Vec<OpCount> = count_ops
-        .into_iter()
-        .map(|(name, count)| OpCount {
-            name: CString::new(name).unwrap().into_raw(),
-            count,
-        })
-        .collect();
+    let mut output = {
+        let vec: Vec<OpCount> = count_ops
+            .into_iter()
+            .map(|(name, count)| OpCount {
+                name: CString::new(name).unwrap().into_raw(),
+                count,
+            })
+            .collect();
+        vec.into_boxed_slice()
+    };
     let data = output.as_mut_ptr();
     let len = output.len();
-    std::mem::forget(output);
+    let _ = Box::into_raw(output);
     OpCounts { data, len }
 }
 
@@ -1008,14 +1011,17 @@ pub unsafe extern "C" fn qk_circuit_instruction_clear(inst: *mut CInstruction) {
 /// Behavior is undefined if ``op_counts`` is not the object returned by ``qk_circuit_count_ops``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_opcounts_free(op_counts: OpCounts) {
+pub unsafe extern "C" fn qk_opcounts_free(mut op_counts: OpCounts) {
     // SAFETY: Loading data contained in OpCounts as a slice which was constructed from a Vec
-    let data = unsafe { std::slice::from_raw_parts_mut(op_counts.data, op_counts.len) };
-    let data = data.as_mut_ptr();
-    // SAFETY: Loading a box from the slice pointer created above
-    unsafe {
-        let _ = Box::from_raw(data);
+    if op_counts.len > 0 && !op_counts.data.is_null() {
+        // SAFETY: We load the box from a slice pointer created from
+        // the raw parts from the OpCounts::data attribute.
+        unsafe {
+            let data = std::slice::from_raw_parts_mut(op_counts.data, op_counts.len);
+            let _ = Box::from_raw(data as *mut [OpCount]);
+        }
     }
+    op_counts.data = std::ptr::null_mut();
 }
 
 /// @ingroup QkCircuit

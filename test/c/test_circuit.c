@@ -27,6 +27,15 @@ int test_empty(void) {
     uint32_t num_qubits = qk_circuit_num_qubits(qc);
     uint32_t num_clbits = qk_circuit_num_clbits(qc);
     size_t num_instructions = qk_circuit_num_instructions(qc);
+
+    // This snippet tests that an empty ops_count is possible
+    QkOpCounts counts = qk_circuit_count_ops(qc);
+    if (counts.len != 0) {
+        printf("The number of instructions %zu is not 0", num_instructions);
+        return EqualityError;
+    }
+
+    qk_opcounts_free(counts);
     qk_circuit_free(qc);
 
     if (num_qubits != 0) {
