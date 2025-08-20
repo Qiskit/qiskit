@@ -383,9 +383,9 @@ def _synthesize_op_using_plugins(
         plugin_args["num_clean_ancillas"] = num_clean_ancillas
         plugin_args["num_dirty_ancillas"] = num_dirty_ancillas
         if data.optimize_clifford_t:
-            plugin_args["optimization_metic"] = OptimizationMetric.COUNT_T
+            plugin_args["optimization_metric"] = OptimizationMetric.COUNT_T
         else:
-            plugin_args["optimization_metic"] = OptimizationMetric.COUNT_2Q
+            plugin_args["optimization_metric"] = OptimizationMetric.COUNT_2Q
 
         qubits = input_qubits if data.use_physical_indices else None
 
