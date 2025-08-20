@@ -43,7 +43,7 @@ int inner_optimize_h_gates(QkTarget *target, char **gates, uint32_t *freq, int n
     }
 
     // Run transpiler pass
-    qk_transpiler_standalone_optimize_1q_gates_decomposition(circuit, target);
+    qk_transpiler_standalone_optimize_1q_sequences(circuit, target);
     QkOpCounts counts = qk_circuit_count_ops(circuit);
     if (!compare_gate_counts(counts, gates, freq, num_gates)) {
         result = EqualityError;
