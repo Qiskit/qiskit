@@ -35,13 +35,19 @@ class LitinskiTransformation(TransformationPass):
     The list of supported RZ-rotations is:
 
     ``["t", "tdg", "rz"]``
+
+    References:
+
+        [1]: Litinski. A Game of Surface Codes.
+             `Quantum 3, 128 (2019) <https://quantum-journal.org/papers/q-2019-03-05-128>`_
+
     """
 
-    def __init__(self, fix_clifford=True):
-        """LitinskiTransformation initializer.
+    def __init__(self, fix_clifford: bool = True):
+        """
 
         Args:
-            fix_clifford (bool): if ``False`` (non-default), the returned circuit contains
+            fix_clifford: if ``False`` (non-default), the returned circuit contains
                 only PauliEvolution gates, with the final Clifford gates omitted.
                 Note that in this case the operators of the original and synthesized
                 circuits will generally not be equivalent.
