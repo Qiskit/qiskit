@@ -220,8 +220,6 @@ pub struct Target {
     _gate_name_map: IndexMap<String, TargetOperation, RandomState>,
     global_operations: IndexMap<u32, HashSet<String>, RandomState>,
     qarg_gate_map: IndexMap<Qargs, Option<HashSet<String>>, RandomState>,
-    non_global_strict_basis: Option<Vec<String>>,
-    non_global_basis: Option<Vec<String>>,
 }
 
 #[pymethods]
@@ -315,8 +313,6 @@ impl Target {
             _gate_name_map: IndexMap::default(),
             global_operations: IndexMap::default(),
             qarg_gate_map: IndexMap::default(),
-            non_global_basis: None,
-            non_global_strict_basis: None,
         })
     }
 
@@ -699,16 +695,9 @@ impl Target {
     ///
     /// Returns:
     ///     List[str]: A list of operation names for operations that aren't global in this target
-    #[pyo3(name = "get_non_global_operation_names", signature = (/, strict_direction=false,))]
-    fn py_get_non_global_operation_names(
-        &mut self,
-        py: Python<'_>,
-        strict_direction: bool,
-    ) -> PyResult<PyObject> {
-        Ok(self
-            .get_non_global_operation_names(strict_direction)
-            .into_pyobject(py)?
-            .unbind())
+    #[pyo3(name = "_get_non_global_operation_names", signature = (/, strict_direction=false,))]
+    fn py_get_non_global_operation_names(&self, strict_direction: bool) -> Vec<&str> {
+        self.get_non_global_operation_names(strict_direction)
     }
 
     // TODO: Add flag for custom tests
@@ -829,11 +818,6 @@ impl Target {
             "qarg_gate_map",
             self.qarg_gate_map.clone().into_iter().collect_vec(),
         )?;
-        result_list.set_item("non_global_basis", self.non_global_basis.clone())?;
-        result_list.set_item(
-            "non_global_strict_basis",
-            self.non_global_strict_basis.clone(),
-        )?;
         Ok(result_list.unbind())
     }
 
@@ -880,14 +864,6 @@ impl Target {
                 .unwrap()
                 .extract::<Vec<(Qargs, Option<HashSet<String>>)>>()?,
         );
-        self.non_global_basis = state
-            .get_item("non_global_basis")?
-            .unwrap()
-            .extract::<Option<Vec<String>>>()?;
-        self.non_global_strict_basis = state
-            .get_item("non_global_strict_basis")?
-            .unwrap()
-            .extract::<Option<Vec<String>>>()?;
         Ok(())
     }
 }
@@ -1016,8 +992,6 @@ impl Target {
         }
         self._gate_name_map.insert(name.to_string(), instruction);
         self.gate_map.insert(name.to_string(), props_map);
-        self.non_global_basis = None;
-        self.non_global_strict_basis = None;
         Ok(())
     }
 
@@ -1150,8 +1124,8 @@ impl Target {
         (0..self.num_qubits.unwrap_or_default()).map(PhysicalQubit)
     }
 
-    /// Generate non global operations if missing
-    fn generate_non_global_op_names(&mut self, strict_direction: bool) -> &[String] {
+    /// Get all non_global operation names.
+    pub fn get_non_global_operation_names(&self, strict_direction: bool) -> Vec<&str> {
         let mut search_set: HashSet<SmallVec<[PhysicalQubit; 2]>> = HashSet::default();
         if strict_direction {
             // Build search set
@@ -1180,7 +1154,7 @@ impl Target {
                 }
             }
         }
-        let mut incomplete_basis_gates: Vec<String> = vec![];
+        let mut incomplete_basis_gates: Vec<&str> = Vec::new();
         let mut size_dict: IndexMap<u32, u32, RandomState> = IndexMap::default();
         *size_dict
             .entry(1)
@@ -1214,30 +1188,12 @@ impl Target {
                 }
                 if let Qargs::Concrete(qarg_sample) = qarg_sample {
                     if qarg_len != *size_dict.entry(qarg_sample.len() as u32).or_insert(0) {
-                        incomplete_basis_gates.push(inst.clone());
+                        incomplete_basis_gates.push(inst.as_str());
                     }
                 }
             }
         }
-        if strict_direction {
-            self.non_global_strict_basis = Some(incomplete_basis_gates);
-            self.non_global_strict_basis.as_ref().unwrap()
-        } else {
-            self.non_global_basis = Some(incomplete_basis_gates.clone());
-            self.non_global_basis.as_ref().unwrap()
-        }
-    }
-
-    /// Get all non_global operation names.
-    pub fn get_non_global_operation_names(&mut self, strict_direction: bool) -> Option<&[String]> {
-        if strict_direction {
-            if self.non_global_strict_basis.is_some() {
-                return self.non_global_strict_basis.as_deref();
-            }
-        } else if self.non_global_basis.is_some() {
-            return self.non_global_basis.as_deref();
-        }
-        Some(self.generate_non_global_op_names(strict_direction))
+        incomplete_basis_gates
     }
 
     /// Gets all the operation names that use these qargs. Rust native equivalent of ``BaseTarget.operation_names_for_qargs()``
@@ -1507,8 +1463,6 @@ impl Default for Target {
             _gate_name_map: Default::default(),
             global_operations: Default::default(),
             qarg_gate_map: Default::default(),
-            non_global_strict_basis: None,
-            non_global_basis: None,
         }
     }
 }
