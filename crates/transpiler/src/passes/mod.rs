@@ -37,6 +37,7 @@ mod gates_in_basis;
 mod high_level_synthesis;
 mod instruction_duration_check;
 mod inverse_cancellation;
+mod litinski_transformation;
 mod optimize_1q_gates_decomposition;
 mod remove_diagonal_gates_before_measure;
 mod remove_identity_equiv;
@@ -71,6 +72,7 @@ pub use instruction_duration_check::{
     instruction_duration_check_mod, run_instruction_duration_check,
 };
 pub use inverse_cancellation::{inverse_cancellation_mod, run_inverse_cancellation_standard_gates};
+pub use litinski_transformation::{litinski_transformation_mod, run_litinski_transformation};
 pub use optimize_1q_gates_decomposition::{
     optimize_1q_gates_decomposition_mod, run_optimize_1q_gates_decomposition,
 };

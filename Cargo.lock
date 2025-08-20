@@ -1217,7 +1217,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "198db74531d58c70a361c42201efde7e2591e976d518caf7662a47dc5720e7b6"
 dependencies = [
  "memchr",
- "thiserror 2.0.14",
+ "thiserror 2.0.16",
  "ucd-trie",
 ]
 
@@ -1501,7 +1501,7 @@ dependencies = [
  "qiskit-quantum-info",
  "qiskit-transpiler",
  "smallvec",
- "thiserror 2.0.14",
+ "thiserror 2.0.16",
 ]
 
 [[package]]
@@ -1525,7 +1525,7 @@ dependencies = [
  "rayon",
  "rustworkx-core",
  "smallvec",
- "thiserror 2.0.14",
+ "thiserror 2.0.16",
  "uuid",
 ]
 
@@ -1567,7 +1567,7 @@ dependencies = [
  "pyo3",
  "qiskit-circuit",
  "regex",
- "thiserror 2.0.14",
+ "thiserror 2.0.16",
 ]
 
 [[package]]
@@ -1593,7 +1593,7 @@ dependencies = [
  "rand_pcg 0.9.0",
  "rayon",
  "rustworkx-core",
- "thiserror 2.0.14",
+ "thiserror 2.0.16",
 ]
 
 [[package]]
@@ -1626,7 +1626,7 @@ dependencies = [
  "rustworkx-core",
  "serde",
  "smallvec",
- "thiserror 2.0.14",
+ "thiserror 2.0.16",
 ]
 
 [[package]]
@@ -1654,7 +1654,7 @@ dependencies = [
  "rayon-cond 0.4.0",
  "rustworkx-core",
  "smallvec",
- "thiserror 2.0.14",
+ "thiserror 2.0.16",
  "uuid",
 ]
 
@@ -2148,11 +2148,11 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "2.0.14"
+version = "2.0.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b0949c3a6c842cbde3f1686d6eea5a010516deb7085f79db747562d4102f41e"
+checksum = "3467d614147380f2e4e374161426ff399c91084acd2363eaf549172b3d5e60c0"
 dependencies = [
- "thiserror-impl 2.0.14",
+ "thiserror-impl 2.0.16",
 ]
 
 [[package]]
@@ -2168,9 +2168,9 @@ dependencies = [
 
 [[package]]
 name = "thiserror-impl"
-version = "2.0.14"
+version = "2.0.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc5b44b4ab9c2fdd0e0512e6bece8388e214c0749f5862b114cc5b7a25daf227"
+checksum = "6c5e1be1c48b9172ee610da68fd9cd2770e7a4056cb3fc98710ee6906f0c7960"
 dependencies = [
  "proc-macro2",
  "quote",
