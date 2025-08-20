@@ -31,19 +31,19 @@ int test_split_2q_unitaries_no_unitaries(void) {
     int result = Ok;
     if (split_result != NULL) {
         result = EqualityError;
-        printf("Permutation returned for a circuit that shouldn't split");
+        printf("Permutation returned for a circuit that shouldn't split\n");
         goto cleanup;
     }
     QkOpCounts counts = qk_circuit_count_ops(qc);
     if (counts.len != 1) {
-        printf("More than 1 type of gate in the circuit");
+        printf("More than 1 type of gate in the circuit\n");
         result = EqualityError;
         goto ops_cleanup;
     }
     for (int i = 0; i < counts.len; i++) {
         int gate = strcmp(counts.data[i].name, "cx");
         if (gate != 0) {
-            printf("gates changed when there should be no circuit changes");
+            printf("gates changed when there should be no circuit changes\n");
             result = EqualityError;
             goto cleanup;
         }
@@ -70,25 +70,25 @@ int test_split_2q_unitaries_x_y_unitary(void) {
     int result = Ok;
     if (split_result != NULL) {
         result = EqualityError;
-        printf("Permutation returned for a circuit that shouldn't isn't a swap equivalent");
+        printf("Permutation returned for a circuit that shouldn't isn't a swap equivalent\n");
         goto cleanup;
     }
     QkOpCounts counts = qk_circuit_count_ops(qc);
     if (counts.len != 1) {
-        printf("More than 1 type of gate in the circuit");
+        printf("More than 1 type of gate in the circuit\n");
         result = EqualityError;
         goto ops_cleanup;
     }
     for (int i = 0; i < counts.len; i++) {
         int gate = strcmp(counts.data[i].name, "unitary");
         if (gate != 0) {
-            printf("Gates outside expected set in output circuit");
+            printf("Gates outside expected set in output circuit\n");
             result = EqualityError;
             goto ops_cleanup;
         }
         unsigned int count = counts.data[i].count;
         if (count != 2) {
-            printf("Unexpected gate counts found");
+            printf("Unexpected gate counts found\n");
             result = EqualityError;
             goto ops_cleanup;
         }
@@ -97,7 +97,7 @@ int test_split_2q_unitaries_x_y_unitary(void) {
     for (size_t i = 0; i < qk_circuit_num_instructions(qc); i++) {
         qk_circuit_get_instruction(qc, i, &inst);
         if (inst.num_qubits != 1) {
-            printf("Gate %d operates on more than 1 qubit: %zu", i, inst.num_qubits);
+            printf("Gate %d operates on more than 1 qubit: %zu\n", i, inst.num_qubits);
             result = EqualityError;
             goto ops_cleanup;
         }
@@ -126,7 +126,7 @@ int test_split_2q_unitaries_swap_x_y_unitary(void) {
     int result = Ok;
     if (split_result == NULL) {
         result = EqualityError;
-        printf("Permutation returned for a circuit that shouldn't split");
+        printf("Permutation returned for a circuit that shouldn't split\n");
         goto cleanup;
     }
     uint32_t permutation[2];
@@ -134,7 +134,7 @@ int test_split_2q_unitaries_swap_x_y_unitary(void) {
     uint32_t expected[2] = {1, 0};
     for (int i = 0; i < 2; i++) {
         if (permutation[i] != expected[i]) {
-            printf("Permutation at position %d not as expected, found %zu expected %zu", i,
+            printf("Permutation at position %d not as expected, found %zu expected %zu\n", i,
                    permutation[i], expected[i]);
             goto cleanup;
         }
@@ -142,20 +142,20 @@ int test_split_2q_unitaries_swap_x_y_unitary(void) {
 
     QkOpCounts counts = qk_circuit_count_ops(qc);
     if (counts.len != 1) {
-        printf("More than 1 type of gate in the circuit");
+        printf("More than 1 type of gate in the circuit\n");
         result = EqualityError;
         goto ops_cleanup;
     }
     for (int i = 0; i < counts.len; i++) {
         int gate = strcmp(counts.data[i].name, "unitary");
         if (gate != 0) {
-            printf("Gates outside expected set in output circuit");
+            printf("Gates outside expected set in output circuit\n");
             result = EqualityError;
             goto ops_cleanup;
         }
         unsigned int count = counts.data[i].count;
         if (count != 2) {
-            printf("Unexpected gate counts found");
+            printf("Unexpected gate counts found\n");
             result = EqualityError;
             goto ops_cleanup;
         }
@@ -164,7 +164,7 @@ int test_split_2q_unitaries_swap_x_y_unitary(void) {
     for (size_t i = 0; i < qk_circuit_num_instructions(qc); i++) {
         qk_circuit_get_instruction(qc, i, &inst);
         if (inst.num_qubits != 1) {
-            printf("Gate %d operates on more than 1 qubit: %zu", i, inst.num_qubits);
+            printf("Gate %d operates on more than 1 qubit: %zu\n", i, inst.num_qubits);
             result = EqualityError;
             goto ops_cleanup;
         }
