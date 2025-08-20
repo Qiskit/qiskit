@@ -101,6 +101,7 @@ int test_split_2q_unitaries_x_y_unitary(void) {
             result = EqualityError;
             goto ops_cleanup;
         }
+        qk_circuit_instruction_clear(&inst);
     }
 
 ops_cleanup:
@@ -167,6 +168,7 @@ int test_split_2q_unitaries_swap_x_y_unitary(void) {
             result = EqualityError;
             goto ops_cleanup;
         }
+        qk_circuit_instruction_clear(&inst);
     }
 
 ops_cleanup:
