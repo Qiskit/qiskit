@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fix memory leakage issues during the creation of
+    :cpp:struct:`QkOpCounts` instances and during any calls to
+    :cpp:func:`qk_opcounts_free` whenever an empty instance is passed.
