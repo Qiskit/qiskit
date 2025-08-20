@@ -79,4 +79,4 @@ prefix_with_name = true
 "TargetEntry" = "QkTargetEntry"
 "VF2LayoutResult" = "QkVF2LayoutResult"
 "ElidePermutationsResult" = "QkElidePermutationsResult"
-"Split2qUnitariesResult" = "QkSplit2qUnitariesResult"
+"TranspileLayout" = "QkTranspileLayout"

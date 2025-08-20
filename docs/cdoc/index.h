@@ -47,5 +47,5 @@
  */
 
 /**
- * @defgroup QkSplit2qUnitariesResult QkSplit2qUnitariesResult
+ * @defgroup QkTranspileLayout QkTranspileLayout
  */
