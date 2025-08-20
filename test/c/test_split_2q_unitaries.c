@@ -26,32 +26,30 @@ int test_split_2q_unitaries_no_unitaries(void) {
             qk_circuit_gate(qc, QkGate_CX, qargs, NULL);
         }
     }
-    QkSplit2qUnitariesResult *split_result =
+    QkTranspileLayout *split_result =
         qk_transpiler_pass_standalone_split_2q_unitaries(qc, 1 - 1e-16, true);
     int result = Ok;
-    if (qk_split_2q_unitaries_result_permutation_len(split_result) != 0) {
+    if (split_result != NULL) {
         result = EqualityError;
         printf("Permutation returned for a circuit that shouldn't split");
-        goto result_cleanup;
+        goto cleanup;
     }
-    QkCircuit *res = qk_split_2q_unitaries_result_circuit(split_result);
-    QkOpCounts counts = qk_circuit_count_ops(res);
+    QkOpCounts counts = qk_circuit_count_ops(qc);
     if (counts.len != 1) {
         printf("More than 1 type of gate in the circuit");
         result = EqualityError;
-        goto result_cleanup;
+        goto ops_cleanup;
     }
     for (int i = 0; i < counts.len; i++) {
         int gate = strcmp(counts.data[i].name, "cx");
         if (gate != 0) {
             printf("gates changed when there should be no circuit changes");
             result = EqualityError;
-            goto result_cleanup;
+            goto cleanup;
         }
     }
-
-result_cleanup:
-    qk_split_2q_unitaries_result_free(split_result);
+ops_cleanup:
+    qk_opcounts_free(counts);
 cleanup:
     qk_circuit_free(qc);
     return result;
@@ -67,47 +65,46 @@ int test_split_2q_unitaries_x_y_unitary(void) {
     };
     uint32_t qargs[2] = {0, 1};
     qk_circuit_unitary(qc, unitary, qargs, 2, true);
-    QkSplit2qUnitariesResult *split_result =
+    QkTranspileLayout *split_result =
         qk_transpiler_pass_standalone_split_2q_unitaries(qc, 1 - 1e-16, true);
     int result = Ok;
-    if (qk_split_2q_unitaries_result_permutation_len(split_result) != 0) {
+    if (split_result != NULL) {
         result = EqualityError;
-        printf("Permutation returned for a circuit that shouldn't split");
-        goto result_cleanup;
+        printf("Permutation returned for a circuit that shouldn't isn't a swap equivalent");
+        goto cleanup;
     }
-    QkCircuit *res = qk_split_2q_unitaries_result_circuit(split_result);
-    QkOpCounts counts = qk_circuit_count_ops(res);
+    QkOpCounts counts = qk_circuit_count_ops(qc);
     if (counts.len != 1) {
         printf("More than 1 type of gate in the circuit");
         result = EqualityError;
-        goto result_cleanup;
+        goto ops_cleanup;
     }
     for (int i = 0; i < counts.len; i++) {
         int gate = strcmp(counts.data[i].name, "unitary");
         if (gate != 0) {
             printf("Gates outside expected set in output circuit");
             result = EqualityError;
-            goto result_cleanup;
+            goto ops_cleanup;
         }
         unsigned int count = counts.data[i].count;
         if (count != 2) {
             printf("Unexpected gate counts found");
             result = EqualityError;
-            goto result_cleanup;
+            goto ops_cleanup;
         }
     }
     QkCircuitInstruction inst;
-    for (size_t i = 0; i < qk_circuit_num_instructions(res); i++) {
-        qk_circuit_get_instruction(res, i, &inst);
+    for (size_t i = 0; i < qk_circuit_num_instructions(qc); i++) {
+        qk_circuit_get_instruction(qc, i, &inst);
         if (inst.num_qubits != 1) {
             printf("Gate %d operates on more than 1 qubit: %zu", i, inst.num_qubits);
             result = EqualityError;
-            goto result_cleanup;
+            goto ops_cleanup;
         }
     }
 
-result_cleanup:
-    qk_split_2q_unitaries_result_free(split_result);
+ops_cleanup:
+    qk_opcounts_free(counts);
 cleanup:
     qk_circuit_free(qc);
     return result;
@@ -123,58 +120,59 @@ int test_split_2q_unitaries_swap_x_y_unitary(void) {
     };
     uint32_t qargs[2] = {0, 1};
     qk_circuit_unitary(qc, unitary, qargs, 2, true);
-    QkSplit2qUnitariesResult *split_result =
+    QkTranspileLayout *split_result =
         qk_transpiler_pass_standalone_split_2q_unitaries(qc, 1 - 1e-16, true);
     int result = Ok;
-    if (qk_split_2q_unitaries_result_permutation_len(split_result) != 2) {
+    if (split_result == NULL) {
         result = EqualityError;
         printf("Permutation returned for a circuit that shouldn't split");
-        goto result_cleanup;
+        goto cleanup;
     }
-    uint32_t *permutation = qk_split_2q_unitaries_result_permutation(split_result);
+    uint32_t permutation[2];
+    qk_transpile_layout_output_permutation(split_result, permutation);
     uint32_t expected[2] = {1, 0};
     for (int i = 0; i < 2; i++) {
         if (permutation[i] != expected[i]) {
             printf("Permutation at position %d not as expected, found %zu expected %zu", i,
                    permutation[i], expected[i]);
-            goto result_cleanup;
+            goto cleanup;
         }
     }
 
-    QkCircuit *res = qk_split_2q_unitaries_result_circuit(split_result);
-    QkOpCounts counts = qk_circuit_count_ops(res);
+    QkOpCounts counts = qk_circuit_count_ops(qc);
     if (counts.len != 1) {
         printf("More than 1 type of gate in the circuit");
         result = EqualityError;
-        goto result_cleanup;
+        goto ops_cleanup;
     }
     for (int i = 0; i < counts.len; i++) {
         int gate = strcmp(counts.data[i].name, "unitary");
         if (gate != 0) {
             printf("Gates outside expected set in output circuit");
             result = EqualityError;
-            goto result_cleanup;
+            goto ops_cleanup;
         }
         unsigned int count = counts.data[i].count;
         if (count != 2) {
             printf("Unexpected gate counts found");
             result = EqualityError;
-            goto result_cleanup;
+            goto ops_cleanup;
         }
     }
     QkCircuitInstruction inst;
-    for (size_t i = 0; i < qk_circuit_num_instructions(res); i++) {
-        qk_circuit_get_instruction(res, i, &inst);
+    for (size_t i = 0; i < qk_circuit_num_instructions(qc); i++) {
+        qk_circuit_get_instruction(qc, i, &inst);
         if (inst.num_qubits != 1) {
             printf("Gate %d operates on more than 1 qubit: %zu", i, inst.num_qubits);
             result = EqualityError;
-            goto result_cleanup;
+            goto ops_cleanup;
         }
     }
 
-result_cleanup:
-    qk_split_2q_unitaries_result_free(split_result);
+ops_cleanup:
+    qk_opcounts_free(counts);
 cleanup:
+    qk_transpile_layout_free(split_result);
     qk_circuit_free(qc);
     return result;
 }
