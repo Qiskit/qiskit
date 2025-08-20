@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 pub mod elide_permutations;
-pub mod optimize_1q_decomposition;
+pub mod optimize_1q_sequences;
 pub mod remove_diagonal_gates_before_measure;
 pub mod remove_identity_equiv;
 pub mod vf2;
