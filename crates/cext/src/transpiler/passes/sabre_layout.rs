@@ -140,6 +140,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_sabre_layout(
     .unwrap();
     let out_circuit =
         dag_to_circuit(&result, false).expect("Internal DAG to circuit conversion failed");
+    let num_input_qubits = circuit.num_qubits() as u32;
     *circuit = out_circuit;
     Box::into_raw(Box::new(TranspileLayout::new(
         Some(initial_layout),
@@ -150,6 +151,6 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_sabre_layout(
                 .collect(),
         ),
         result.qubits().objects().clone(),
-        circuit.num_qubits() as u32,
+        num_input_qubits,
     )))
 }
