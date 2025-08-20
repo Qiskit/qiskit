@@ -14,6 +14,7 @@ use crate::linear::utils::calc_inverse_matrix_inner;
 use ndarray::{azip, s, Array1, Array2, ArrayView2};
 use qiskit_circuit::operations::{Param, StandardGate};
 use qiskit_circuit::Qubit;
+use qiskit_quantum_info::clifford::Clifford;
 use smallvec::{smallvec, SmallVec};
 
 /// Symplectic matrix.
@@ -23,18 +24,6 @@ pub struct SymplecticMatrix {
     pub num_qubits: usize,
     /// Matrix with dimensions (2 * num_qubits) x (2 * num_qubits).
     pub smat: Array2<bool>,
-}
-
-/// Clifford.
-/// Currently this class is internal to the synthesis library and
-/// has a very different functionality from Qiskit's python-based
-/// Clifford class.
-#[derive(Clone)]
-pub struct Clifford {
-    /// Number of qubits.
-    pub num_qubits: usize,
-    /// Matrix with dimensions (2 * num_qubits) x (2 * num_qubits + 1).
-    pub tableau: Array2<bool>,
 }
 
 impl SymplecticMatrix {
@@ -123,164 +112,6 @@ impl SymplecticMatrix {
     }
 }
 
-impl Clifford {
-    /// Modifies the tableau in-place by appending S-gate
-    pub fn append_s(&mut self, qubit: usize) {
-        let (x, mut z, mut p) = self.tableau.multi_slice_mut((
-            s![.., qubit],
-            s![.., self.num_qubits + qubit],
-            s![.., 2 * self.num_qubits],
-        ));
-
-        azip!((p in &mut p, &x in &x, &z in &z)  *p ^= x & z);
-        azip!((z in &mut z, &x in &x) *z ^= x);
-    }
-
-    /// Modifies the tableau in-place by appending Sdg-gate
-    #[allow(dead_code)]
-    pub fn append_sdg(&mut self, qubit: usize) {
-        let (x, mut z, mut p) = self.tableau.multi_slice_mut((
-            s![.., qubit],
-            s![.., self.num_qubits + qubit],
-            s![.., 2 * self.num_qubits],
-        ));
-
-        azip!((p in &mut p, &x in &x, &z in &z)  *p ^= x & !z);
-        azip!((z in &mut z, &x in &x) *z ^= x);
-    }
-
-    /// Modifies the tableau in-place by appending SX-gate
-    pub fn append_sx(&mut self, qubit: usize) {
-        let (mut x, z, mut p) = self.tableau.multi_slice_mut((
-            s![.., qubit],
-            s![.., self.num_qubits + qubit],
-            s![.., 2 * self.num_qubits],
-        ));
-
-        azip!((p in &mut p, &x in &x, &z in &z)  *p ^= !x & z);
-        azip!((&z in &z, x in &mut x) *x ^= z);
-    }
-
-    /// Modifies the tableau in-place by appending SXDG-gate
-    pub fn append_sxdg(&mut self, qubit: usize) {
-        let (mut x, z, mut p) = self.tableau.multi_slice_mut((
-            s![.., qubit],
-            s![.., self.num_qubits + qubit],
-            s![.., 2 * self.num_qubits],
-        ));
-
-        azip!((p in &mut p, &x in &x, &z in &z)  *p ^= x & z);
-        azip!((&z in &z, x in &mut x) *x ^= z);
-    }
-
-    /// Modifies the tableau in-place by appending H-gate
-    pub fn append_h(&mut self, qubit: usize) {
-        let (mut x, mut z, mut p) = self.tableau.multi_slice_mut((
-            s![.., qubit],
-            s![.., self.num_qubits + qubit],
-            s![.., 2 * self.num_qubits],
-        ));
-
-        azip!((p in &mut p, &x in &x, &z in &z)  *p ^= x & z);
-        azip!((x in &mut x, z in &mut z)  (*x, *z) = (*z, *x));
-    }
-
-    /// Modifies the tableau in-place by appending SWAP-gate
-    pub fn append_swap(&mut self, qubit0: usize, qubit1: usize) {
-        let (mut x0, mut z0, mut x1, mut z1) = self.tableau.multi_slice_mut((
-            s![.., qubit0],
-            s![.., self.num_qubits + qubit0],
-            s![.., qubit1],
-            s![.., self.num_qubits + qubit1],
-        ));
-        azip!((x0 in &mut x0, x1 in &mut x1)  (*x0, *x1) = (*x1, *x0));
-        azip!((z0 in &mut z0, z1 in &mut z1)  (*z0, *z1) = (*z1, *z0));
-    }
-
-    /// Modifies the tableau in-place by appending CX-gate
-    pub fn append_cx(&mut self, qubit0: usize, qubit1: usize) {
-        let (x0, mut z0, mut x1, z1, mut p) = self.tableau.multi_slice_mut((
-            s![.., qubit0],
-            s![.., self.num_qubits + qubit0],
-            s![.., qubit1],
-            s![.., self.num_qubits + qubit1],
-            s![.., 2 * self.num_qubits],
-        ));
-        azip!((p in &mut p, &x0 in &x0, &z0 in &z0, &x1 in &x1, &z1 in &z1) *p ^= (x1 ^ z0 ^ true) & z1 & x0);
-        azip!((x1 in &mut x1, &x0 in &x0) *x1 ^= x0);
-        azip!((z0 in &mut z0, &z1 in &z1) *z0 ^= z1);
-    }
-
-    /// Modifies the tableau in-place by appending W-gate.
-    /// This is equivalent to an Sdg gate followed by an H gate.
-    pub fn append_v(&mut self, qubit: usize) {
-        let (mut x, mut z) = self
-            .tableau
-            .multi_slice_mut((s![.., qubit], s![.., self.num_qubits + qubit]));
-
-        azip!((x in &mut x, z in &mut z) (*x, *z) = (*x ^ *z, *x));
-    }
-
-    /// Modifies the tableau in-place by appending V-gate.
-    /// This is equivalent to two V gates.
-    pub fn append_w(&mut self, qubit: usize) {
-        let (mut x, mut z) = self
-            .tableau
-            .multi_slice_mut((s![.., qubit], s![.., self.num_qubits + qubit]));
-
-        azip!((x in &mut x, z in &mut z)  (*x, *z) = (*z, *x ^ *z));
-    }
-
-    /// Creates a Clifford from a given sequence of Clifford gates.
-    /// In essence, starts from the identity tableau and modifies it
-    /// based on the gates in the sequence.
-    pub fn from_gate_sequence(
-        gate_seq: &CliffordGatesVec,
-        num_qubits: usize,
-    ) -> Result<Clifford, String> {
-        // create the identity
-        let mut clifford = Clifford {
-            num_qubits,
-            tableau: Array2::from_shape_fn((2 * num_qubits, 2 * num_qubits + 1), |(i, j)| i == j),
-        };
-
-        gate_seq
-            .iter()
-            .try_for_each(|(gate, _params, qubits)| match *gate {
-                StandardGate::S => {
-                    clifford.append_s(qubits[0].index());
-                    Ok(())
-                }
-                StandardGate::Sdg => {
-                    clifford.append_sdg(qubits[0].0 as usize);
-                    Ok(())
-                }
-                StandardGate::SX => {
-                    clifford.append_sx(qubits[0].0 as usize);
-                    Ok(())
-                }
-                StandardGate::SXdg => {
-                    clifford.append_sxdg(qubits[0].0 as usize);
-                    Ok(())
-                }
-                StandardGate::H => {
-                    clifford.append_h(qubits[0].index());
-                    Ok(())
-                }
-                StandardGate::CX => {
-                    clifford.append_cx(qubits[0].index(), qubits[1].index());
-                    Ok(())
-                }
-                StandardGate::Swap => {
-                    clifford.append_swap(qubits[0].index(), qubits[1].index());
-                    Ok(())
-                }
-                _ => Err(format!("Unsupported gate {gate:?}")),
-            })?;
-        Ok(clifford)
-    }
-}
-
 /// A sequence of Clifford gates.
 /// Represents the return type of Clifford synthesis algorithms.
 pub type CliffordGatesVec = Vec<(StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>)>;
@@ -294,7 +125,7 @@ pub fn adjust_final_pauli_gates(
     num_qubits: usize,
 ) -> Result<(), String> {
     // simulate the clifford circuit that we have constructed
-    let simulated_clifford = Clifford::from_gate_sequence(gate_seq, num_qubits)?;
+    let simulated_clifford = clifford_from_gate_sequence(gate_seq, num_qubits)?;
 
     // compute the phase difference
     let target_phase = target_tableau.column(2 * num_qubits);
@@ -328,4 +159,53 @@ pub fn adjust_final_pauli_gates(
     }
 
     Ok(())
+}
+
+/// Creates a Clifford from a given sequence of Clifford gates.
+/// In essence, starts from the identity tableau and modifies it
+/// based on the gates in the sequence.
+pub fn clifford_from_gate_sequence(
+    gate_seq: &CliffordGatesVec,
+    num_qubits: usize,
+) -> Result<Clifford, String> {
+    // create the identity
+    let mut clifford = Clifford {
+        num_qubits,
+        tableau: Array2::from_shape_fn((2 * num_qubits, 2 * num_qubits + 1), |(i, j)| i == j),
+    };
+
+    gate_seq
+        .iter()
+        .try_for_each(|(gate, _params, qubits)| match *gate {
+            StandardGate::S => {
+                clifford.append_s(qubits[0].index());
+                Ok(())
+            }
+            StandardGate::Sdg => {
+                clifford.append_sdg(qubits[0].0 as usize);
+                Ok(())
+            }
+            StandardGate::SX => {
+                clifford.append_sx(qubits[0].0 as usize);
+                Ok(())
+            }
+            StandardGate::SXdg => {
+                clifford.append_sxdg(qubits[0].0 as usize);
+                Ok(())
+            }
+            StandardGate::H => {
+                clifford.append_h(qubits[0].index());
+                Ok(())
+            }
+            StandardGate::CX => {
+                clifford.append_cx(qubits[0].index(), qubits[1].index());
+                Ok(())
+            }
+            StandardGate::Swap => {
+                clifford.append_swap(qubits[0].index(), qubits[1].index());
+                Ok(())
+            }
+            _ => Err(format!("Unsupported gate {gate:?}")),
+        })?;
+    Ok(clifford)
 }

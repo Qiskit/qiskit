@@ -80,6 +80,7 @@ Optimizations
    ElidePermutations
    HoareOptimizer
    InverseCancellation
+   LitinskiTransformation
    Optimize1qGates
    Optimize1qGatesDecomposition
    Optimize1qGatesSimpleCommutation
@@ -218,6 +219,7 @@ from .optimization import ContractIdleWiresInControlFlow
 from .optimization import ElidePermutations
 from .optimization import HoareOptimizer
 from .optimization import InverseCancellation
+from .optimization import LitinskiTransformation
 from .optimization import Optimize1qGates
 from .optimization import Optimize1qGatesDecomposition
 from .optimization import Optimize1qGatesSimpleCommutation
