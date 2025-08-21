@@ -17,7 +17,14 @@ from ddt import ddt, data
 
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import QFTGate, iqp, GraphStateGate, MCXGate, MultiplierGate
+from qiskit.circuit.library import (
+    QFTGate,
+    iqp,
+    GraphStateGate,
+    MCXGate,
+    MultiplierGate,
+    ModularAdderGate,
+)
 from qiskit.transpiler.passes.utils import CheckGateDirection
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler import CouplingMap
@@ -328,6 +335,25 @@ class TestCliffordTPassManager(QiskitTestCase):
         # except surprisingly for the case n=1 (which is why it is not used in this test)
         t_count = _get_t_count(transpiled)
         expected_t_count = {2: 153, 3: 501, 4: 1114, 5: 2005, 6: 2596, 7: 3850}
+        self.assertLessEqual(t_count, expected_t_count[n])
+
+    @data(1, 2, 3, 4, 5, 6, 7)
+    def test_modular_adder_gate(self, n):
+        """Clifford+T transpilation of a circuit with a modular adder gate."""
+        # Create a circuit with a multiplier gate
+        gate = ModularAdderGate(n)
+        qc = QuantumCircuit(gate.num_qubits)
+        qc.append(gate, qc.qubits)
+
+        # Transpile to a Clifford+T basis set
+        basis_gates = get_clifford_gate_names() + ["t", "tdg"]
+        pm = generate_preset_pass_manager(basis_gates=basis_gates, optimization_level=0)
+        transpiled = pm.run(qc)
+        self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
+
+        # The resulting decomposition should be efficient in terms of T-count,
+        t_count = _get_t_count(transpiled)
+        expected_t_count = {1: 0, 2: 8, 3: 16, 4: 24, 5: 32, 6: 40, 7: 48}
         self.assertLessEqual(t_count, expected_t_count[n])
 
 
