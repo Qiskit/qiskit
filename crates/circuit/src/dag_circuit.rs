@@ -80,7 +80,8 @@ use std::f64::consts::PI;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-static CONTROL_FLOW_OP_NAMES: [&str; 4] = ["for_loop", "while_loop", "if_else", "switch_case"];
+static CONTROL_FLOW_OP_NAMES: [&str; 5] =
+    ["for_loop", "while_loop", "if_else", "switch_case", "box"];
 static SEMANTIC_EQ_SYMMETRIC: [&str; 4] = ["barrier", "swap", "break_loop", "continue_loop"];
 
 #[derive(Clone, Debug)]
@@ -494,7 +495,7 @@ impl DAGIdentifierInfo {
 impl DAGCircuit {
     #[new]
     pub fn py_new(py: Python) -> PyResult<Self> {
-        let mut out = Self::new()?;
+        let mut out = Self::new();
         out.metadata = Some(PyDict::new(py).unbind().into());
         Ok(out)
     }
@@ -1714,7 +1715,7 @@ impl DAGCircuit {
     ///     DAGCircuitError: if an unknown :class:`.ControlFlowOp` is present in a call with
     ///         ``recurse=True``, or any control flow is present in a non-recursive call.
     #[pyo3(signature= (*, recurse=false))]
-    fn size(&self, py: Python, recurse: bool) -> PyResult<usize> {
+    fn size(&self, recurse: bool) -> PyResult<usize> {
         let mut length = self.num_ops();
         if !self.has_control_flow() {
             return Ok(length);
@@ -1726,44 +1727,46 @@ impl DAGCircuit {
                 " but see this method's documentation for the meaning of this."
             )));
         }
-
-        // Handle recursively.
-        let circuit_to_dag = imports::CIRCUIT_TO_DAG.get_bound(py);
-        for node in self.dag.node_weights() {
-            let NodeType::Operation(node) = node else {
-                continue;
-            };
-            if !node.op.control_flow() {
-                continue;
-            }
-            let OperationRef::Instruction(inst) = node.op.view() else {
-                panic!("control flow op must be an instruction");
-            };
-            let inst_bound = inst.instruction.bind(py);
-            if inst_bound.is_instance(imports::FOR_LOOP_OP.get_bound(py))? {
-                let blocks = inst_bound.getattr("blocks")?;
-                let block_zero = blocks.get_item(0)?;
-                let inner_dag: &DAGCircuit = &circuit_to_dag.call1((block_zero,))?.extract()?;
-                length += node.params_view().len() * inner_dag.size(py, true)?
-            } else if inst_bound.is_instance(imports::WHILE_LOOP_OP.get_bound(py))? {
-                let blocks = inst_bound.getattr("blocks")?;
-                let block_zero = blocks.get_item(0)?;
-                let inner_dag: &DAGCircuit = &circuit_to_dag.call1((block_zero,))?.extract()?;
-                length += inner_dag.size(py, true)?
-            } else if inst_bound.is_instance(imports::IF_ELSE_OP.get_bound(py))?
-                || inst_bound.is_instance(imports::SWITCH_CASE_OP.get_bound(py))?
-            {
-                let blocks = inst_bound.getattr("blocks")?;
-                for block in blocks.try_iter()? {
-                    let inner_dag: &DAGCircuit = &circuit_to_dag.call1((block?,))?.extract()?;
-                    length += inner_dag.size(py, true)?;
+        Python::with_gil(|py| -> PyResult<()> {
+            // Handle recursively.
+            let circuit_to_dag = imports::CIRCUIT_TO_DAG.get_bound(py);
+            for node in self.dag.node_weights() {
+                let NodeType::Operation(node) = node else {
+                    continue;
+                };
+                if !node.op.control_flow() {
+                    continue;
                 }
-            } else {
-                continue;
+                let OperationRef::Instruction(inst) = node.op.view() else {
+                    panic!("control flow op must be an instruction");
+                };
+                let inst_bound = inst.instruction.bind(py);
+                if inst_bound.is_instance(imports::FOR_LOOP_OP.get_bound(py))? {
+                    let blocks = inst_bound.getattr("blocks")?;
+                    let block_zero = blocks.get_item(0)?;
+                    let inner_dag: &DAGCircuit = &circuit_to_dag.call1((block_zero,))?.extract()?;
+                    length += node.params_view().len() * inner_dag.size(true)?
+                } else if inst_bound.is_instance(imports::WHILE_LOOP_OP.get_bound(py))? {
+                    let blocks = inst_bound.getattr("blocks")?;
+                    let block_zero = blocks.get_item(0)?;
+                    let inner_dag: &DAGCircuit = &circuit_to_dag.call1((block_zero,))?.extract()?;
+                    length += inner_dag.size(true)?
+                } else if inst_bound.is_instance(imports::IF_ELSE_OP.get_bound(py))?
+                    || inst_bound.is_instance(imports::SWITCH_CASE_OP.get_bound(py))?
+                {
+                    let blocks = inst_bound.getattr("blocks")?;
+                    for block in blocks.try_iter()? {
+                        let inner_dag: &DAGCircuit = &circuit_to_dag.call1((block?,))?.extract()?;
+                        length += inner_dag.size(true)?;
+                    }
+                } else {
+                    continue;
+                }
+                // We don't count a control-flow node itself!
+                length -= 1;
             }
-            // We don't count a control-flow node itself!
-            length -= 1;
-        }
+            Ok(())
+        })?;
         Ok(length)
     }
 
@@ -1787,7 +1790,7 @@ impl DAGCircuit {
     ///     DAGCircuitError: if unknown control flow is present in a recursive call, or any control
     ///         flow is present in a non-recursive call.
     #[pyo3(signature= (*, recurse=false))]
-    fn depth(&self, py: Python, recurse: bool) -> PyResult<usize> {
+    fn depth(&self, recurse: bool) -> PyResult<usize> {
         if self.qubits.is_empty() && self.clbits.is_empty() && self.num_vars() == 0 {
             return Ok(0);
         }
@@ -1805,39 +1808,40 @@ impl DAGCircuit {
                 " but see this method's documentation for the meaning of this."
             )));
         }
-
-        // Handle recursively.
-        let circuit_to_dag = imports::CIRCUIT_TO_DAG.get_bound(py);
-        let mut node_lookup: HashMap<NodeIndex, usize> = HashMap::new();
-        for (node_index, node) in self.dag.node_references() {
-            let NodeType::Operation(node) = node else {
-                continue;
-            };
-            if !node.op.control_flow() {
-                continue;
-            }
-            let OperationRef::Instruction(inst) = node.op.view() else {
-                panic!("control flow op must be an instruction")
-            };
-            let inst_bound = inst.instruction.bind(py);
-            let weight = if inst_bound.is_instance(imports::FOR_LOOP_OP.get_bound(py))? {
-                node.params_view().len()
-            } else {
-                1
-            };
-            if weight == 0 {
-                node_lookup.insert(node_index, 0);
-            } else {
-                let blocks = inst_bound.getattr("blocks")?;
-                let mut block_weights: Vec<usize> = Vec::with_capacity(blocks.len()?);
-                for block in blocks.try_iter()? {
-                    let inner_dag: &DAGCircuit = &circuit_to_dag.call1((block?,))?.extract()?;
-                    block_weights.push(inner_dag.depth(py, true)?);
+        let node_lookup = Python::with_gil(|py| -> PyResult<HashMap<NodeIndex, usize>> {
+            // Handle recursively.
+            let circuit_to_dag = imports::CIRCUIT_TO_DAG.get_bound(py);
+            let mut node_lookup: HashMap<NodeIndex, usize> = HashMap::new();
+            for (node_index, node) in self.dag.node_references() {
+                let NodeType::Operation(node) = node else {
+                    continue;
+                };
+                if !node.op.control_flow() {
+                    continue;
                 }
-                node_lookup.insert(node_index, weight * block_weights.iter().max().unwrap());
+                let OperationRef::Instruction(inst) = node.op.view() else {
+                    panic!("control flow op must be an instruction")
+                };
+                let inst_bound = inst.instruction.bind(py);
+                let weight = if inst_bound.is_instance(imports::FOR_LOOP_OP.get_bound(py))? {
+                    node.params_view().len()
+                } else {
+                    1
+                };
+                if weight == 0 {
+                    node_lookup.insert(node_index, 0);
+                } else {
+                    let blocks = inst_bound.getattr("blocks")?;
+                    let mut block_weights: Vec<usize> = Vec::with_capacity(blocks.len()?);
+                    for block in blocks.try_iter()? {
+                        let inner_dag: &DAGCircuit = &circuit_to_dag.call1((block?,))?.extract()?;
+                        block_weights.push(inner_dag.depth(true)?);
+                    }
+                    node_lookup.insert(node_index, weight * block_weights.iter().max().unwrap());
+                }
             }
-        }
-
+            Ok(node_lookup)
+        })?;
         let weight_fn = |edge: EdgeReference<'_, Wire>| -> Result<usize, Infallible> {
             Ok(*node_lookup.get(&edge.target()).unwrap_or(&1))
         };
@@ -3566,7 +3570,7 @@ impl DAGCircuit {
     }
 
     /// Remove all of the ancestor operation nodes of node.
-    fn remove_ancestors_of(&mut self, node: &DAGNode) -> PyResult<()> {
+    fn remove_ancestors_of(&mut self, node: &DAGNode) {
         let ancestors: Vec<_> = core_ancestors(&self.dag, node.node.unwrap())
             .filter(|next| {
                 next != &node.node.unwrap()
@@ -3576,11 +3580,10 @@ impl DAGCircuit {
         for a in ancestors {
             self.dag.remove_node(a);
         }
-        Ok(())
     }
 
     /// Remove all of the descendant operation nodes of node.
-    fn remove_descendants_of(&mut self, node: &DAGNode) -> PyResult<()> {
+    fn remove_descendants_of(&mut self, node: &DAGNode) {
         let descendants: Vec<_> = core_descendants(&self.dag, node.node.unwrap())
             .filter(|next| {
                 next != &node.node.unwrap()
@@ -3590,11 +3593,10 @@ impl DAGCircuit {
         for d in descendants {
             self.dag.remove_node(d);
         }
-        Ok(())
     }
 
     /// Remove all of the non-ancestors operation nodes of node.
-    fn remove_nonancestors_of(&mut self, node: &DAGNode) -> PyResult<()> {
+    fn remove_nonancestors_of(&mut self, node: &DAGNode) {
         let ancestors: HashSet<_> = core_ancestors(&self.dag, node.node.unwrap())
             .filter(|next| {
                 next != &node.node.unwrap()
@@ -3609,11 +3611,10 @@ impl DAGCircuit {
         for na in non_ancestors {
             self.dag.remove_node(na);
         }
-        Ok(())
     }
 
     /// Remove all of the non-descendants operation nodes of node.
-    fn remove_nondescendants_of(&mut self, node: &DAGNode) -> PyResult<()> {
+    fn remove_nondescendants_of(&mut self, node: &DAGNode) {
         let descendants: HashSet<_> = core_descendants(&self.dag, node.node.unwrap())
             .filter(|next| {
                 next != &node.node.unwrap()
@@ -3628,7 +3629,6 @@ impl DAGCircuit {
         for nd in non_descendants {
             self.dag.remove_node(nd);
         }
-        Ok(())
     }
 
     /// Return a list of op nodes in the first layer of this dag.
@@ -4029,8 +4029,8 @@ impl DAGCircuit {
     /// Return a dictionary of circuit properties.
     fn properties(&self, py: Python) -> PyResult<HashMap<&str, PyObject>> {
         Ok(HashMap::from_iter([
-            ("size", self.size(py, false)?.into_py_any(py)?),
-            ("depth", self.depth(py, false)?.into_py_any(py)?),
+            ("size", self.size(false)?.into_py_any(py)?),
+            ("depth", self.depth(false)?.into_py_any(py)?),
             ("width", self.width().into_py_any(py)?),
             ("qubits", self.num_qubits().into_py_any(py)?),
             ("bits", self.num_clbits().into_py_any(py)?),
@@ -4482,9 +4482,15 @@ impl<'a> DAGCircuit {
     }
 }
 
+impl Default for DAGCircuit {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DAGCircuit {
-    pub fn new() -> PyResult<Self> {
-        Ok(DAGCircuit {
+    pub fn new() -> Self {
+        DAGCircuit {
             name: None,
             metadata: None,
             dag: StableDiGraph::default(),
@@ -4511,7 +4517,7 @@ impl DAGCircuit {
             vars_declare: HashSet::new(),
             stretches_capture: HashSet::new(),
             stretches_declare: Vec::new(),
-        })
+        }
     }
 
     /// Create an empty DAG, but with all the same qubit data, classical data and metadata
@@ -4617,7 +4623,7 @@ impl DAGCircuit {
             Some(num_ops),
             Some(num_edges),
             Some(num_stretches),
-        )?;
+        );
         target_dag.name.clone_from(&self.name);
         target_dag.global_phase = self.global_phase.clone();
         target_dag.duration.clone_from(&self.duration);
@@ -4877,7 +4883,7 @@ impl DAGCircuit {
 
         // Remove DAG in/out nodes etc.
         for bit in qubits.iter() {
-            self.remove_idle_wire(Wire::Qubit(*bit))?;
+            self.remove_idle_wire(Wire::Qubit(*bit));
         }
 
         // Copy the current qubit mapping so we can use it while remapping
@@ -5005,7 +5011,7 @@ impl DAGCircuit {
 
         // Remove DAG in/out nodes etc.
         for bit in clbits.iter() {
-            self.remove_idle_wire(Wire::Clbit(*bit))?;
+            self.remove_idle_wire(Wire::Clbit(*bit));
         }
 
         // Copy the current clbit mapping so we can use it while remapping
@@ -5588,7 +5594,7 @@ impl DAGCircuit {
     }
 
     #[inline]
-    fn has_control_flow(&self) -> bool {
+    pub fn has_control_flow(&self) -> bool {
         CONTROL_FLOW_OP_NAMES
             .iter()
             .any(|x| self.op_names.contains_key(&x.to_string()))
@@ -5782,7 +5788,7 @@ impl DAGCircuit {
         nodes
     }
 
-    fn remove_idle_wire(&mut self, wire: Wire) -> PyResult<()> {
+    fn remove_idle_wire(&mut self, wire: Wire) {
         let [in_node, out_node] = match wire {
             Wire::Qubit(qubit) => self.qubit_io_map[qubit.index()],
             Wire::Clbit(clbit) => self.clbit_io_map[clbit.index()],
@@ -5790,7 +5796,6 @@ impl DAGCircuit {
         };
         self.dag.remove_node(in_node);
         self.dag.remove_node(out_node);
-        Ok(())
     }
 
     pub fn add_qubit_unchecked(&mut self, bit: ShareableQubit) -> PyResult<Qubit> {
@@ -6659,12 +6664,12 @@ impl DAGCircuit {
     /// Alternative constructor, builds a DAGCircuit with a fixed capacity.
     ///
     /// # Arguments:
-    /// - `py`: Python GIL token
     /// - `num_qubits`: Number of qubits in the circuit
     /// - `num_clbits`: Number of classical bits in the circuit.
     /// - `num_vars`: (Optional) number of variables in the circuit.
     /// - `num_ops`: (Optional) number of operations in the circuit.
-    /// - `num_edges`: (Optional) If known, number of edges in the circuit.
+    /// - `num_edges`: (Optional) number of edges in the circuit.
+    /// - `num_stretches`: (Optional) number of stretches in the circuit.
     pub fn with_capacity(
         num_qubits: usize,
         num_clbits: usize,
@@ -6672,7 +6677,7 @@ impl DAGCircuit {
         num_ops: Option<usize>,
         num_edges: Option<usize>,
         num_stretches: Option<usize>,
-    ) -> PyResult<Self> {
+    ) -> Self {
         let num_ops: usize = num_ops.unwrap_or_default();
         let num_vars = num_vars.unwrap_or_default();
         let num_stretches = num_stretches.unwrap_or_default();
@@ -6688,7 +6693,7 @@ impl DAGCircuit {
             num_vars * 2 +  // One input + output node per variable
             num_ops;
 
-        Ok(Self {
+        Self {
             name: None,
             metadata: None,
             dag: StableDiGraph::with_capacity(num_nodes, num_edges),
@@ -6718,7 +6723,7 @@ impl DAGCircuit {
             vars_declare: HashSet::new(),
             stretches_capture: HashSet::new(),
             stretches_declare: Vec::new(),
-        })
+        }
     }
 
     /// Get qargs from an intern index
@@ -6801,8 +6806,7 @@ impl DAGCircuit {
         py: Python, // Unused if cache_pygates isn't enabled
         node: NodeIndex,
         insert: F,
-    ) -> PyResult<()>
-    where
+    ) where
         F: Fn(Wire) -> (PackedOperation, SmallVec<[Param; 3]>),
     {
         let mut edge_list: Vec<(NodeIndex, NodeIndex, Wire)> = Vec::with_capacity(2);
@@ -6861,7 +6865,6 @@ impl DAGCircuit {
             }
             _ => panic!("Must be called with valid operation node"),
         }
-        Ok(())
     }
 
     pub fn add_global_phase(&mut self, value: &Param) -> PyResult<()> {
@@ -6955,7 +6958,7 @@ impl DAGCircuit {
         PyErr: From<E>,
     {
         let mut new_nodes = Vec::new();
-        let mut replacement_dag = DAGCircuit::new()?;
+        let mut replacement_dag = DAGCircuit::new();
         std::mem::swap(self, &mut replacement_dag);
         let mut dag_builder = replacement_dag.into_builder();
         for inst in iter {
@@ -7008,7 +7011,7 @@ impl DAGCircuit {
             Some(num_ops),
             None,
             Some(num_stretches),
-        )?;
+        );
 
         // Assign other necessary data
         new_dag.name = name;
@@ -7964,7 +7967,7 @@ mod test {
     fn new_dag(qubits: u32, clbits: u32) -> DAGCircuit {
         let qreg = QuantumRegister::new_owning("q".to_owned(), qubits);
         let creg = ClassicalRegister::new_owning("c".to_owned(), clbits);
-        let mut dag = DAGCircuit::new().unwrap();
+        let mut dag = DAGCircuit::new();
         dag.add_qreg(qreg).unwrap();
         dag.add_creg(creg).unwrap();
         dag
@@ -8140,7 +8143,7 @@ mod test {
 
     #[test]
     fn test_physical_empty_like() -> PyResult<()> {
-        let mut dag = DAGCircuit::new()?;
+        let mut dag = DAGCircuit::new();
         let qr = QuantumRegister::new_owning("virtual".to_owned(), 5);
         let cr = ClassicalRegister::new_owning("classical".to_owned(), 5);
         dag.name = Some("my dag".to_owned());
