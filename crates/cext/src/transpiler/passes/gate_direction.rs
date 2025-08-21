@@ -46,7 +46,7 @@ use qiskit_transpiler::target::Target;
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``circuit`` or ``target`` is not a valid, non-null pointer to a ``QkCircuit`` and ``QkTarget``.
+/// Behavior is undefined if ``circuit`` or ``target`` are not valid, non-null pointers to ``QkCircuit`` and ``QkTarget`` objects, respectively.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_check_gate_direction(
@@ -57,10 +57,8 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_check_gate_direction(
     let circuit = unsafe { const_ptr_as_ref(circuit) };
     let target = unsafe { const_ptr_as_ref(target) };
 
-    let dag = match DAGCircuit::from_circuit_data(circuit, false, None, None, None, None) {
-        Ok(dag) => dag,
-        Err(e) => panic!("{}", e),
-    };
+    let dag = DAGCircuit::from_circuit_data(circuit, false, None, None, None, None)
+        .expect("Circuit to DAG conversion failed");
 
     match check_direction_target(&dag, target) {
         Ok(result) => result,
@@ -75,7 +73,8 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_check_gate_direction(
 /// This pass supports replacements for the ``cx``, ``cz``, ``ecr``, ``swap``, ``rzx``, ``rxx``, ``ryy`` and
 /// ``rzz`` gates, using predefined identities.
 ///
-/// @param circuit A pointer to the circuit on which to run the GateDirection pass.
+/// @param circuit A pointer to the circuit on which to run the GateDirection pass. The circuit will be modified
+///     in place by the pass.
 /// @param target A pointer to the target used to check gate directions.
 ///
 /// @return QkCircuit - The updated circuit after applying the pass.
@@ -93,12 +92,12 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_check_gate_direction(
 ///    QkCircuit *circuit = qk_circuit_new(3, 0);
 ///    qk_circuit_gate(circuit, QkGate_CX, (uint32_t[]){1,0}, NULL);
 ///
-///    QkCircuit *circuit_fixed = qk_transpiler_pass_standalone_gate_direction(circuit, target);
+///    qk_transpiler_pass_standalone_gate_direction(circuit, target);
 /// ```
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``circuit`` or ``target`` is not a valid, non-null pointer to a ``QkCircuit`` and ``QkTarget``.
+/// Behavior is undefined if ``circuit`` or ``target`` are not valid, non-null pointers to ``QkCircuit`` and ``QkTarget`` objects, respectively.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_gate_direction(
@@ -109,20 +108,12 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_gate_direction(
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
     let target = unsafe { const_ptr_as_ref(target) };
 
-    let mut dag = match DAGCircuit::from_circuit_data(circuit, false, None, None, None, None) {
-        Ok(dag) => dag,
-        Err(e) => panic!("{}", e),
-    };
+    let mut dag = DAGCircuit::from_circuit_data(circuit, false, None, None, None, None)
+        .expect("Circuit to DAG conversion failed");
 
-    let new_dag = match fix_direction_target(&mut dag, target) {
-        Ok(new_dag) => new_dag,
-        Err(e) => panic!("{}", e),
-    };
+    fix_direction_target(&mut dag, target).unwrap_or_else(|e| panic!("{}", e));
 
-    let out_circuit = match dag_to_circuit(&new_dag, false) {
-        Ok(qc) => qc,
-        Err(e) => panic!("{}", e),
-    };
+    let out_circuit = dag_to_circuit(&dag, false).expect("DAG to circuit conversion failed");
 
     *circuit = out_circuit;
 }
