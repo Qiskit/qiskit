@@ -61,12 +61,12 @@ int test_sabre_layout_applies_layout(void) {
         int swap_gate = strcmp(op_counts.data[i].name, "swap");
         int cx_gate = strcmp(op_counts.data[i].name, "cx");
         if (cx_gate != 0 && swap_gate != 0) {
-            printf("Gate type of %s found in the circuit which isn't expected");
+            printf("Gate type of %s found in the circuit which isn't expected\n");
             result = EqualityError;
             goto layout_cleanup;
         }
         if (swap_gate == 0 && op_counts.data[i].count != 2) {
-            printf("Unexpected number of swaps %d found in the circuit.");
+            printf("Unexpected number of swaps %d found in the circuit.\n");
             result = EqualityError;
             goto layout_cleanup;
         }
@@ -76,7 +76,7 @@ int test_sabre_layout_applies_layout(void) {
     qk_transpile_layout_initial_layout(layout_result, false, result_initial_layout);
     for (uint32_t i = 0; i < 5; i++) {
         if (result_initial_layout[i] != expected_initial_layout[i]) {
-            printf("Initial layout maps qubit %d to %d, expected %d instead", i,
+            printf("Initial layout maps qubit %d to %d, expected %d instead\n", i,
                    result_initial_layout[i], expected_initial_layout[i]);
             result = EqualityError;
             goto layout_cleanup;
@@ -88,7 +88,7 @@ int test_sabre_layout_applies_layout(void) {
     qk_transpile_layout_output_permutation(layout_result, result_final_layout);
     for (uint32_t i = 0; i < 5; i++) {
         if (result_final_layout[i] != expected_final_layout[i]) {
-            printf("Final layout maps qubit %d to %d, expected %d instead", i,
+            printf("Final layout maps qubit %d to %d, expected %d instead\n", i,
                    result_final_layout[i], expected_final_layout[i]);
             result = EqualityError;
             goto layout_cleanup;
@@ -176,7 +176,7 @@ int test_sabre_layout_no_swap(void) {
     qk_transpile_layout_initial_layout(layout_result, false, result_initial_layout);
     for (uint32_t i = 0; i < 5; i++) {
         if (result_initial_layout[i] != expected_initial_layout[i]) {
-            printf("Initial layout maps qubit %d to %d, expected %d instead", i,
+            printf("Initial layout maps qubit %d to %d, expected %d instead\n", i,
                    result_initial_layout[i], expected_initial_layout[i]);
             result = EqualityError;
             goto layout_cleanup;
@@ -187,7 +187,7 @@ int test_sabre_layout_no_swap(void) {
     qk_transpile_layout_output_permutation(layout_result, result_final_layout);
     for (uint32_t i = 0; i < 5; i++) {
         if (result_final_layout[i] != expected_final_layout[i]) {
-            printf("Final layout maps qubit %d to %d, expected %d instead", i,
+            printf("Final layout maps qubit %d to %d, expected %d instead\n", i,
                    result_final_layout[i], expected_final_layout[i]);
             result = EqualityError;
             goto layout_cleanup;
