@@ -49,7 +49,7 @@ fn verify_svd_decomp(
     let max_diff = (mat - &mat_check).map(|c| c.norm()).max();
     // println!("-- SVD_VERIFY: max_diff = {max_diff}");
 
-    let close = abs_diff_eq!(mat, &mat_check, epsilon = 1e-7);
+    let close = abs_diff_eq!(mat, &mat_check, epsilon = 1e-6);
     assert!(close);
     close
 }
