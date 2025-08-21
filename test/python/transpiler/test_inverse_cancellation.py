@@ -17,6 +17,8 @@ Testing InverseCancellation
 import unittest
 import numpy as np
 
+import ddt
+
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import InverseCancellation
@@ -36,39 +38,43 @@ from qiskit.circuit.library import (
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
+@ddt.ddt
 class TestInverseCancellation(QiskitTestCase):
     """Test the InverseCancellation transpiler pass."""
 
-    def test_basic_self_inverse(self):
+    @ddt.data([HGate()], None)
+    def test_basic_self_inverse(self, gates_to_cancel):
         """Test that a single self-inverse gate as input can be cancelled."""
         qc = QuantumCircuit(2, 2)
         qc.h(0)
         qc.h(0)
-        pass_ = InverseCancellation([HGate()])
+        pass_ = InverseCancellation(gates_to_cancel)
         pm = PassManager(pass_)
         new_circ = pm.run(qc)
         gates_after = new_circ.count_ops()
         self.assertNotIn("h", gates_after)
 
-    def test_odd_number_self_inverse(self):
+    @ddt.data([HGate()], None)
+    def test_odd_number_self_inverse(self, gates_to_cancel):
         """Test that an odd number of self-inverse gates leaves one gate remaining."""
         qc = QuantumCircuit(2, 2)
         qc.h(0)
         qc.h(0)
         qc.h(0)
-        pass_ = InverseCancellation([HGate()])
+        pass_ = InverseCancellation(gates_to_cancel)
         pm = PassManager(pass_)
         new_circ = pm.run(qc)
         gates_after = new_circ.count_ops()
         self.assertIn("h", gates_after)
         self.assertEqual(gates_after["h"], 1)
 
-    def test_basic_cx_self_inverse(self):
+    @ddt.data([CXGate()], None)
+    def test_basic_cx_self_inverse(self, gates_to_cancel):
         """Test that a single self-inverse cx gate as input can be cancelled."""
         qc = QuantumCircuit(2, 2)
         qc.cx(0, 1)
         qc.cx(0, 1)
-        pass_ = InverseCancellation([CXGate()])
+        pass_ = InverseCancellation(gates_to_cancel)
         pm = PassManager(pass_)
         new_circ = pm.run(qc)
         gates_after = new_circ.count_ops()
@@ -113,6 +119,29 @@ class TestInverseCancellation(QiskitTestCase):
         self.assertNotIn("cx", gates_after)
         self.assertEqual(gates_after["h"], 2)
 
+    @ddt.data([CXGate(), HGate()], None)
+    def test_non_consecutive_gates_reverse_order(self, gates_to_cancel):
+        """Test that only consecutive gates cancel.
+
+        This differs from test_non_consecutive_gates because the order we
+        check is significant and the default path tests cx first.
+        """
+        qc = QuantumCircuit(2, 2)
+        qc.cx(0, 1)
+        qc.cx(0, 1)
+        qc.cx(0, 1)
+        qc.h(0)
+        qc.h(0)
+        qc.h(0)
+        qc.h(0)
+        qc.cx(0, 1)
+        pass_ = InverseCancellation(gates_to_cancel)
+        pm = PassManager(pass_)
+        new_circ = pm.run(qc)
+        gates_after = new_circ.count_ops()
+        self.assertNotIn("h", gates_after)
+        self.assertEqual(gates_after["cx"], 2)
+
     def test_gate_inverse_phase_gate(self):
         """Test that an inverse pair of a PhaseGate can be cancelled."""
         qc = QuantumCircuit(2, 2)
@@ -124,14 +153,15 @@ class TestInverseCancellation(QiskitTestCase):
         gates_after = new_circ.count_ops()
         self.assertNotIn("p", gates_after)
 
-    def test_self_inverse_on_different_qubits(self):
+    @ddt.data([HGate()], None)
+    def test_self_inverse_on_different_qubits(self, gates_to_cancel):
         """Test that self_inverse gates cancel on the correct qubits."""
         qc = QuantumCircuit(2, 2)
         qc.h(0)
         qc.h(1)
         qc.h(0)
         qc.h(1)
-        pass_ = InverseCancellation([HGate()])
+        pass_ = InverseCancellation(gates_to_cancel)
         pm = PassManager(pass_)
         new_circ = pm.run(qc)
         gates_after = new_circ.count_ops()
@@ -177,12 +207,35 @@ class TestInverseCancellation(QiskitTestCase):
         self.assertNotIn("x", gates_after)
         self.assertEqual(gates_after["h"], 2)
 
-    def test_inverse_with_different_names(self):
+    @ddt.data([XGate(), HGate()], None)
+    def test_consecutive_self_inverse_h_x_gate_reverse_order(self, gates_to_cancel):
+        """Test that only consecutive self-inverse gates cancel.
+
+        This differs from test_consecutive_self_inverse_h_x_gate_reverse_order because
+        the default evaluates XGate first and the order of cancellation is significant
+        here.
+        """
+        qc = QuantumCircuit(2, 2)
+        qc.x(0)
+        qc.x(0)
+        qc.x(0)
+        qc.h(0)
+        qc.h(0)
+        qc.x(0)
+        pass_ = InverseCancellation(gates_to_cancel)
+        pm = PassManager(pass_)
+        new_circ = pm.run(qc)
+        gates_after = new_circ.count_ops()
+        self.assertNotIn("h", gates_after)
+        self.assertEqual(gates_after["x"], 2)
+
+    @ddt.data([(TGate(), TdgGate())], None)
+    def test_inverse_with_different_names(self, gates_to_cancel):
         """Test that inverse gates that have different names."""
         qc = QuantumCircuit(2, 2)
         qc.t(0)
         qc.tdg(0)
-        pass_ = InverseCancellation([(TGate(), TdgGate())])
+        pass_ = InverseCancellation(gates_to_cancel)
         pm = PassManager(pass_)
         new_circ = pm.run(qc)
         gates_after = new_circ.count_ops()
@@ -282,23 +335,25 @@ class TestInverseCancellation(QiskitTestCase):
         self.assertIn("cx", gates_after)
         self.assertEqual(gates_after["cx"], 2)
 
-    def test_no_gates_to_cancel(self):
+    @ddt.data([HGate()], None)
+    def test_no_gates_to_cancel(self, gates_to_cancel):
         """Test when there are no gates to cancel."""
         qc = QuantumCircuit(2)
         qc.cx(0, 1)
         qc.cx(1, 0)
-        inverse_pass = InverseCancellation([HGate()])
+        inverse_pass = InverseCancellation(gates_to_cancel)
         new_circ = inverse_pass(qc)
         self.assertEqual(qc, new_circ)
 
-    def test_some_cancel_rules_to_cancel(self):
+    @ddt.data([HGate(), CXGate(), CZGate()], None)
+    def test_some_cancel_rules_to_cancel(self, gates_to_cancel):
         """Test when there are some gates to cancel."""
         qc = QuantumCircuit(2)
         qc.cx(0, 1)
         qc.cx(1, 0)
         qc.h(0)
         qc.h(0)
-        inverse_pass = InverseCancellation([HGate(), CXGate(), CZGate()])
+        inverse_pass = InverseCancellation(gates_to_cancel)
         new_circ = inverse_pass(qc)
         self.assertNotIn("h", new_circ.count_ops())
 
@@ -311,19 +366,21 @@ class TestInverseCancellation(QiskitTestCase):
         new_circ = inverse_pass(qc)
         self.assertEqual(qc, new_circ)
 
-    def test_some_inverse_pairs(self):
+    @ddt.data([(TGate(), TdgGate())], None)
+    def test_some_inverse_pairs(self, gates_to_cancel):
         """Test when there are some but not all inverse pairs to cancel."""
         qc = QuantumCircuit(1)
         qc.s(0)
         qc.sdg(0)
         qc.t(0)
         qc.tdg(0)
-        inverse_pass = InverseCancellation([(TGate(), TdgGate())])
+        inverse_pass = InverseCancellation(gates_to_cancel)
         new_circ = inverse_pass(qc)
         self.assertNotIn("t", new_circ.count_ops())
         self.assertNotIn("tdg", new_circ.count_ops())
 
-    def test_some_inverse_and_cancelled(self):
+    @ddt.data([HGate(), CXGate(), CZGate(), (TGate(), TdgGate())], None)
+    def test_some_inverse_and_cancelled(self, gates_to_cancel):
         """Test when there are some but not all pairs to cancel."""
         qc = QuantumCircuit(2)
         qc.s(0)
@@ -334,19 +391,20 @@ class TestInverseCancellation(QiskitTestCase):
         qc.cx(1, 0)
         qc.h(0)
         qc.h(0)
-        inverse_pass = InverseCancellation([HGate(), CXGate(), CZGate(), (TGate(), TdgGate())])
+        inverse_pass = InverseCancellation(gates_to_cancel)
         new_circ = inverse_pass(qc)
         self.assertNotIn("h", new_circ.count_ops())
         self.assertNotIn("t", new_circ.count_ops())
         self.assertNotIn("tdg", new_circ.count_ops())
 
-    def test_half_of_an_inverse_pair(self):
+    @ddt.data([(TGate(), TdgGate())], None)
+    def test_half_of_an_inverse_pair(self, gates_to_cancel):
         """Test that half of an inverse pair doesn't do anything."""
         qc = QuantumCircuit(1)
         qc.t(0)
         qc.t(0)
         qc.t(0)
-        inverse_pass = InverseCancellation([(TGate(), TdgGate())])
+        inverse_pass = InverseCancellation(gates_to_cancel)
         new_circ = inverse_pass(qc)
         self.assertEqual(new_circ, qc)
 
@@ -381,27 +439,30 @@ class TestInverseCancellation(QiskitTestCase):
         new_circ = inverse_pass(qc)
         self.assertEqual(qc, new_circ)
 
-    def test_controlled_gate_open_control_does_not_cancel(self):
+    @ddt.data([CXGate()], None)
+    def test_controlled_gate_open_control_does_not_cancel(self, gates_to_cancel):
         """Test that a controlled gate with an open control doesn't cancel."""
         qc = QuantumCircuit(2)
         qc.cx(0, 1)
         qc.cx(0, 1, ctrl_state=0)
-        inverse_pass = InverseCancellation([CXGate()])
+        inverse_pass = InverseCancellation(gates_to_cancel)
         new_circ = inverse_pass(qc)
         self.assertEqual(new_circ, qc)
 
-    def test_backwards_pair(self):
+    @ddt.data([(TGate(), TdgGate())], None)
+    def test_backwards_pair(self, gates_to_cancel):
         """Test a backwards inverse pair works."""
         qc = QuantumCircuit(1)
         qc.tdg(0)
         qc.t(0)
-        inverse_pass = InverseCancellation([(TGate(), TdgGate())])
+        inverse_pass = InverseCancellation(gates_to_cancel)
         new_circ = inverse_pass(qc)
         self.assertEqual(new_circ, QuantumCircuit(1))
 
-    def test_if_else(self):
+    @ddt.data([CXGate()], None)
+    def test_if_else(self, gates_to_cancel):
         """Test that the pass recurses in a simple if-else."""
-        pass_ = InverseCancellation([CXGate()])
+        pass_ = InverseCancellation(gates_to_cancel)
 
         inner_test = QuantumCircuit(4, 1)
         inner_test.cx(0, 1)
@@ -423,9 +484,10 @@ class TestInverseCancellation(QiskitTestCase):
 
         self.assertEqual(pass_(test), expected)
 
-    def test_nested_control_flow(self):
+    @ddt.data([CXGate()], None)
+    def test_nested_control_flow(self, gates_to_cancel):
         """Test that collection recurses into nested control flow."""
-        pass_ = InverseCancellation([CXGate()])
+        pass_ = InverseCancellation(gates_to_cancel)
         qubits = [Qubit() for _ in [None] * 4]
         clbit = Clbit()
 
@@ -452,7 +514,37 @@ class TestInverseCancellation(QiskitTestCase):
 
         self.assertEqual(pass_(test), expected)
 
+    @ddt.data(True, False)
+    def test_custom_gates_and_default(self, run_default):
+        """Test default cancellation rules evaluated if user requests it in addition to custom rules."""
+        qc = QuantumCircuit(2, 2)
+        qc.p(np.pi / 4, 0)
+        qc.p(-np.pi / 4, 0)
+        qc.p(np.pi / 4, 0)
+        qc.p(-np.pi / 4, 0)
+        qc.cx(0, 1)
+        qc.cx(0, 1)
+        qc.t(1)
+        qc.tdg(1)
+        qc.h(0)
+        qc.h(0)
+        pass_ = InverseCancellation(
+            [(PhaseGate(np.pi / 4), PhaseGate(-np.pi / 4))], run_default=run_default
+        )
+        pm = PassManager(pass_)
+        new_circ = pm.run(qc)
+        gates_after = new_circ.count_ops()
+        if run_default:
+            self.assertEqual(gates_after, {})
+        else:
+            self.assertIn("cx", gates_after)
+            self.assertIn("t", gates_after)
+            self.assertIn("tdg", gates_after)
+            self.assertIn("h", gates_after)
+            self.assertNotIn("p", gates_after)
 
+
+@ddt.ddt
 class TestCXCancellation(QiskitTestCase):
     """Test the former CXCancellation pass, which it was superseded by InverseCancellation.
     See: https://github.com/Qiskit/qiskit/pull/13426"""
@@ -482,7 +574,8 @@ class TestCXCancellation(QiskitTestCase):
 
         self.assertEqual(out_circuit, expected)
 
-    def test_pass_cx_cancellation_intermixed_ops(self):
+    @ddt.data([CXGate()], None)
+    def test_pass_cx_cancellation_intermixed_ops(self, gates_to_cancel):
         """Cancellation shouldn't be affected by the order of ops on different qubits."""
         qr = QuantumRegister(4)
         circuit = QuantumCircuit(qr)
@@ -494,7 +587,7 @@ class TestCXCancellation(QiskitTestCase):
         circuit.cx(qr[2], qr[3])
 
         pass_manager = PassManager()
-        pass_manager.append(InverseCancellation([CXGate()]))
+        pass_manager.append(InverseCancellation(gates_to_cancel))
         out_circuit = pass_manager.run(circuit)
 
         expected = QuantumCircuit(qr)
@@ -503,7 +596,8 @@ class TestCXCancellation(QiskitTestCase):
 
         self.assertEqual(out_circuit, expected)
 
-    def test_pass_cx_cancellation_chained_cx(self):
+    @ddt.data([CXGate()], None)
+    def test_pass_cx_cancellation_chained_cx(self, gates_to_cancel):
         """Include a test were not all operations can be cancelled."""
 
         #       ┌───┐
@@ -526,7 +620,7 @@ class TestCXCancellation(QiskitTestCase):
         circuit.cx(qr[2], qr[3])
 
         pass_manager = PassManager()
-        pass_manager.append(InverseCancellation([CXGate()]))
+        pass_manager.append(InverseCancellation(gates_to_cancel))
         out_circuit = pass_manager.run(circuit)
 
         #       ┌───┐
@@ -546,7 +640,8 @@ class TestCXCancellation(QiskitTestCase):
 
         self.assertEqual(out_circuit, expected)
 
-    def test_swapped_cx(self):
+    @ddt.data([CXGate()], None)
+    def test_swapped_cx(self, gates_to_cancel):
         """Test that CX isn't cancelled if there are intermediary ops."""
         qr = QuantumRegister(4)
         circuit = QuantumCircuit(qr)
@@ -555,11 +650,12 @@ class TestCXCancellation(QiskitTestCase):
         circuit.cx(qr[1], qr[0])
 
         pass_manager = PassManager()
-        pass_manager.append(InverseCancellation([CXGate()]))
+        pass_manager.append(InverseCancellation(gates_to_cancel))
         out_circuit = pass_manager.run(circuit)
         self.assertEqual(out_circuit, circuit)
 
-    def test_inverted_cx(self):
+    @ddt.data([CXGate()], None)
+    def test_inverted_cx(self, gates_to_cancel):
         """Test that CX order dependence is respected."""
         qr = QuantumRegister(4)
         circuit = QuantumCircuit(qr)
@@ -568,13 +664,14 @@ class TestCXCancellation(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
 
         pass_manager = PassManager()
-        pass_manager.append(InverseCancellation([CXGate()]))
+        pass_manager.append(InverseCancellation(gates_to_cancel))
         out_circuit = pass_manager.run(circuit)
         self.assertEqual(out_circuit, circuit)
 
-    def test_if_else(self):
+    @ddt.data([CXGate()], None)
+    def test_if_else(self, gates_to_cancel):
         """Test that the pass recurses in a simple if-else."""
-        pass_ = InverseCancellation([CXGate()])
+        pass_ = InverseCancellation(gates_to_cancel)
         qubits = [Qubit() for _ in [None] * 4]
         clbit = Clbit()
 
@@ -613,9 +710,10 @@ class TestCXCancellation(QiskitTestCase):
 
         self.assertEqual(pass_(test), expected)
 
-    def test_nested_control_flow(self):
+    @ddt.data([CXGate()], None)
+    def test_nested_control_flow(self, gates_to_cancel):
         """Test that collection recurses into nested control flow."""
-        pass_ = InverseCancellation([CXGate()])
+        pass_ = InverseCancellation(gates_to_cancel)
         qubits = [Qubit() for _ in [None] * 4]
         clbit = Clbit()
 

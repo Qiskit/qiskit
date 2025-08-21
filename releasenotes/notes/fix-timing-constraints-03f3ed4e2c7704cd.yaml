@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :func:`.generate_preset_pass_manager` function
+    where it would incorrectly ignore the timing constraints data contained
+    in a :class:`.Target` object provided when the ``backend`` argument was
+    not set.
+    Fixed `#14329 <https://github.com/Qiskit/qiskit/issues/14329>`__

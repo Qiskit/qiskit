@@ -353,14 +353,8 @@ where
         dag.py_substitute_node(py, dag.get_node(py, node)?.bind(py), &new_op, false, None)?;
     }
 
-    for (node, replacemanet_dag) in nodes_to_replace {
-        dag.py_substitute_node_with_dag(
-            py,
-            dag.get_node(py, node)?.bind(py),
-            &replacemanet_dag,
-            None,
-            None,
-        )?;
+    for (node, replacement_dag) in nodes_to_replace {
+        dag.substitute_node_with_dag(node, &replacement_dag, None, None, None)?;
     }
 
     Ok(dag)
@@ -427,7 +421,7 @@ fn apply_operation_back(
 }
 
 fn cx_replacement_dag() -> PyResult<DAGCircuit> {
-    let new_dag = &mut DAGCircuit::new()?;
+    let new_dag = &mut DAGCircuit::new();
     let qargs = add_qreg(new_dag, 2)?;
     let qargs = qargs.as_slice();
 
@@ -441,7 +435,7 @@ fn cx_replacement_dag() -> PyResult<DAGCircuit> {
 }
 
 fn ecr_replacement_dag() -> PyResult<DAGCircuit> {
-    let new_dag = &mut DAGCircuit::new()?;
+    let new_dag = &mut DAGCircuit::new();
     new_dag.add_global_phase(&Param::Float(-PI / 2.0))?;
     let qargs = add_qreg(new_dag, 2)?;
     let qargs = qargs.as_slice();
@@ -460,7 +454,7 @@ fn ecr_replacement_dag() -> PyResult<DAGCircuit> {
 }
 
 fn cz_replacement_dag() -> PyResult<DAGCircuit> {
-    let new_dag = &mut DAGCircuit::new()?;
+    let new_dag = &mut DAGCircuit::new();
     let qargs = add_qreg(new_dag, 2)?;
     let qargs = qargs.as_slice();
 
@@ -470,7 +464,7 @@ fn cz_replacement_dag() -> PyResult<DAGCircuit> {
 }
 
 fn swap_replacement_dag() -> PyResult<DAGCircuit> {
-    let new_dag = &mut DAGCircuit::new()?;
+    let new_dag = &mut DAGCircuit::new();
     let qargs = add_qreg(new_dag, 2)?;
     let qargs = qargs.as_slice();
 
@@ -480,7 +474,7 @@ fn swap_replacement_dag() -> PyResult<DAGCircuit> {
 }
 
 fn rxx_replacement_dag(param: &[Param]) -> PyResult<DAGCircuit> {
-    let new_dag = &mut DAGCircuit::new()?;
+    let new_dag = &mut DAGCircuit::new();
     let qargs = add_qreg(new_dag, 2)?;
     let qargs = qargs.as_slice();
 
@@ -495,7 +489,7 @@ fn rxx_replacement_dag(param: &[Param]) -> PyResult<DAGCircuit> {
 }
 
 fn ryy_replacement_dag(param: &[Param]) -> PyResult<DAGCircuit> {
-    let new_dag = &mut DAGCircuit::new()?;
+    let new_dag = &mut DAGCircuit::new();
     let qargs = add_qreg(new_dag, 2)?;
     let qargs = qargs.as_slice();
 
@@ -510,7 +504,7 @@ fn ryy_replacement_dag(param: &[Param]) -> PyResult<DAGCircuit> {
 }
 
 fn rzz_replacement_dag(param: &[Param]) -> PyResult<DAGCircuit> {
-    let new_dag = &mut DAGCircuit::new()?;
+    let new_dag = &mut DAGCircuit::new();
     let qargs = add_qreg(new_dag, 2)?;
     let qargs = qargs.as_slice();
 
@@ -525,7 +519,7 @@ fn rzz_replacement_dag(param: &[Param]) -> PyResult<DAGCircuit> {
 }
 
 fn rzx_replacement_dag(param: &[Param]) -> PyResult<DAGCircuit> {
-    let new_dag = &mut DAGCircuit::new()?;
+    let new_dag = &mut DAGCircuit::new();
     let qargs = add_qreg(new_dag, 2)?;
     let qargs = qargs.as_slice();
 
