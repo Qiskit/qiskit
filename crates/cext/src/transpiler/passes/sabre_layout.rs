@@ -22,7 +22,7 @@ use qiskit_transpiler::target::Target;
 use qiskit_transpiler::transpile_layout::TranspileLayout;
 
 /// The options for running ``qk_transpiler_pass_standalone_sabre_layout``. This struct is used
-/// as an input to control the behavior of the
+/// as an input to control the behavior of the layout and routing algorithms.
 #[repr(C)]
 pub struct QkSabreLayoutOptions {
     /// The number of forward-backward iterations in the sabre routing algorithm
@@ -40,7 +40,7 @@ pub struct QkSabreLayoutOptions {
 
 /// @ingroup QkSabreLayoutOptions
 ///
-/// Build a default sabre layout options object This builds a sabre layout with ``max_iterations``
+/// Build a default sabre layout options object. This builds a sabre layout with ``max_iterations``
 /// set to 4, both ``num_swap_trials`` and ``num_random_trials`` set to 20, and the seed selected
 /// by a RNG seeded from system entropy.
 #[no_mangle]
