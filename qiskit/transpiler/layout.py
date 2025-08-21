@@ -768,8 +768,9 @@ class TranspileLayout:
                 In all standard use, this is a required field.  However, if
                 ``virtual_permutation_layout`` is set, then a "trivial" layout will be inferred,
                 even if the circuit is not actually laid out to hardware.  This is an unfortunate
-                limitation of the circuit data model, where it is not possible to specify a final
-                permutation without also having an initial layout.
+                limitation of this class's data model, where it is not possible to specify a final
+                permutation without also having an initial layout. This deficiency will be corrected
+                in Qiskit 3.0.
 
         ``original_qubit_indices``
             **Required** (but automatically set by the :class:`.PassManager`).  The mapping
