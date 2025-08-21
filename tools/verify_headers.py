@@ -36,7 +36,7 @@ def discover_files(code_paths):
         for path in code_paths
         for file in pathlib.Path(path).glob(f"**/*.{extension}")
         # CMake generates some files inside the tree.
-        if not file.full_match("test/c/build/**")
+        if not file.is_relative_to("test/c/build")
     ]
 
 
