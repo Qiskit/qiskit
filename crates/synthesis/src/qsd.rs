@@ -26,7 +26,7 @@ use smallvec::smallvec;
 use crate::euler_one_qubit_decomposer::{
     unitary_to_gate_sequence_inner, EulerBasis, EulerBasisSet,
 };
-use crate::linalg::{closest_unitary, is_hermitian_matrix};
+use crate::linalg::{closest_unitary, is_hermitian_matrix, verify_unitary};
 use crate::two_qubit_decompose::{two_qubit_decompose_up_to_diagonal, TwoQubitBasisDecomposer};
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::CircuitData;
@@ -260,12 +260,12 @@ fn qsd_inner(
     // perform block ZXZ decomposition from [2]
     let (a1, a2, b, c) = _block_zxz_decomp(mat);
     // TODO: remove this verification in favor of a test
-    // let verify_mat = _zxz_decomp_verify(mat, &a1, &a2, &b, &c);
-    // if !verify_mat {
-    //    return Err(QiskitError::new_err(
-    //        "The matrix after ZXZ decomposition is not the same.",
-    //    ));
-    // }
+    let verify_mat = _zxz_decomp_verify(mat, &a1, &a2, &b, &c);
+    if !verify_mat {
+        return Err(QiskitError::new_err(
+            "The matrix after ZXZ decomposition is not the same.",
+        ));
+    }
 
     let iden = DMatrix::<Complex64>::identity(dim / 2, dim / 2);
     let (left_circuit, vmat_c, _) = demultiplex(
@@ -334,6 +334,9 @@ fn _block_zxz_decomp(
     DMatrix<Complex64>,
     DMatrix<Complex64>,
 ) {
+    // println!("In BLOCK_ZXZ_DECOMPOSITION");
+    verify_unitary(mat);
+
     let i = Complex64::new(0.0, 1.0);
     let n = mat.shape().0 / 2;
     let x = mat.view((0, 0), (n, n));
@@ -371,7 +374,7 @@ fn _zxz_decomp_verify(
 
     let mat_check = a_blcok * b_block * c_block * Complex64::from(0.5);
 
-    const EPS: f64 = 1e-5;
+    const EPS: f64 = 1e-6;
     let close = abs_diff_eq!(mat, &mat_check, epsilon = EPS);
     close
 }
@@ -412,8 +415,16 @@ fn demultiplex(
     _ctrl_index: Option<usize>,
     vw_type: VWType,
 ) -> PyResult<(CircuitData, DMatrix<Complex64>, DMatrix<Complex64>)> {
-    // let um0 = closest_unitary(um0.clone());
-    // let um1 = closest_unitary(um1.clone());
+    // println!("=> demultiplex, verifying inputs");
+    verify_unitary(um0);
+    verify_unitary(um1);
+
+    let um0 = closest_unitary(um0.clone());
+    let um1 = closest_unitary(um1.clone());
+    // println!("=> demultiplex, re-verifying inputs");
+    verify_unitary(&um0);
+    verify_unitary(&um1);
+
     let dim = um0.shape().0 + um1.shape().0;
     let num_qubits = dim.ilog2() as usize;
     let _ctrl_index = _ctrl_index.unwrap_or_else(|| num_qubits - 1);
@@ -422,7 +433,7 @@ fn demultiplex(
         .chain([_ctrl_index])
         .map(Qubit::new)
         .collect();
-    let um0um1 = um0 * um1.adjoint();
+    let um0um1 = um0.clone() * um1.adjoint();
     let (eigvals, vmat) = if is_hermitian_matrix(&um0um1) {
         let eigh = um0um1.symmetric_eigen();
         let evals = eigh.eigenvalues;
@@ -437,15 +448,15 @@ fn demultiplex(
     };
     let d_values: DVector<Complex64> = eigvals.map(|x| x.sqrt());
     let d_mat: DMatrix<Complex64> = DMatrix::from_diagonal(&d_values);
-    let wmat = d_mat.clone() * vmat.adjoint() * um1;
+    let wmat = d_mat.clone() * vmat.adjoint() * um1.clone();
 
     // TODO: remove this verification in favor of a test
-    // let verify_mat = _demultiplex_verify(um0, um1, &vmat, &wmat, &d_mat);
-    // if !verify_mat {
-    //    return Err(QiskitError::new_err(
-    //        "The matrix after Schur decomposition is not the same.",
-    //    ));
-    // }
+    let verify_mat = _demultiplex_verify(&um0, &um1, &vmat, &wmat, &d_mat);
+    if !verify_mat {
+        return Err(QiskitError::new_err(
+            "The matrix after Schur decomposition is not the same.",
+        ));
+    }
 
     let out_qubits = (0..num_qubits)
         .map(|_| ShareableQubit::new_anonymous())
@@ -514,7 +525,7 @@ fn _demultiplex_verify(
 
     let u_check = v_block * d_block * w_block;
 
-    const EPS: f64 = 1e-5;
+    const EPS: f64 = 1e-6;
     let close = abs_diff_eq!(u_block, u_check, epsilon = EPS);
     close
 }
