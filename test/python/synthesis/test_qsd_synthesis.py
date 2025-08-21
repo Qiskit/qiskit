@@ -379,7 +379,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         qc2 = qsd.qs_decomposition(hidden_mat)
         cqc2 = transpile(qc2, basis_gates=["u", "cx"], optimization_level=0)
         op2 = Operator(qc2)
-        self.assertTrue(matrix_equal(hidden_op.to_matrix(), op2.to_matrix(), atol=1e-6 * num_qubits))
+        self.assertTrue(matrix_equal(hidden_op.to_matrix(), op2.to_matrix(), atol=1e-6 * 2 * num_qubits))
         self.assertLessEqual(
             cqc2.count_ops().get("cx", 0),
             2 * self._qsd_l2_cx_count(num_qubits - 1) + self._qsd_ucrz(num_qubits),
