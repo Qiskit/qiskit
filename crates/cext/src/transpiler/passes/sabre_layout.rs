@@ -143,7 +143,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_sabre_layout(
         .unwrap_or_else(|_| panic!("Internal DAG to circuit conversion failed"));
     let num_input_qubits = circuit.num_qubits() as u32;
     *circuit = out_circuit;
-    let out_final_layout = (0..result.num_qubits() as u32)
+    let out_permutation = (0..result.num_qubits() as u32)
         .map(|ref q| {
             Qubit(
                 final_layout
@@ -155,7 +155,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_sabre_layout(
 
     Box::into_raw(Box::new(TranspileLayout::new(
         Some(initial_layout),
-        Some(out_final_layout),
+        Some(out_permutation),
         result.qubits().objects().clone(),
         num_input_qubits,
     )))
