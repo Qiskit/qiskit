@@ -43,10 +43,6 @@
  */
 
 /**
- * @defgroup QkElidePermutationsResult QkElidePermutationsResult
- */
-
-/**
  * @defgroup QkTranspileLayout QkTranspileLayout
  */
 
