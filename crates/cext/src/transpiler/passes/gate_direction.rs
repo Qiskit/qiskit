@@ -19,17 +19,16 @@ use qiskit_transpiler::passes::{check_direction_target, fix_direction_target};
 use qiskit_transpiler::target::Target;
 
 /// @ingroup QkTranspilerPasses
-/// Run the CheckGateDirection pass on a circuit.
+/// Run the ``CheckGateDirection`` pass on a circuit.
 ///
 /// The pass checks if the directions of two-qubit gates comply with the gate directions specified in a given target.
 ///
 /// @param circuit A pointer to the circuit on which to run the CheckGateDirection pass.
-/// @param target A pointer to the target used to check gate directions.
+/// @param target A pointer to the target used for checking gate directions.
 ///
-/// @return bool - true iff the directions of all two-qubit gates in the circuit comply with specified target constraints
+/// @return bool - true iff the directions of all two-qubit gates in the circuit comply with the specified target constraints.
 ///
 /// # Example
-///
 /// ```c
 ///    QkTarget *target = qk_target_new(2);
 ///    uint32_t qargs[3] = {0,1};
@@ -60,24 +59,19 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_check_gate_direction(
     let dag = DAGCircuit::from_circuit_data(circuit, false, None, None, None, None)
         .expect("Circuit to DAG conversion failed");
 
-    match check_direction_target(&dag, target) {
-        Ok(result) => result,
-        Err(e) => panic!("{}", e),
-    }
+    check_direction_target(&dag, target).expect("Unexpected error occurred in CheckGateDirection")
 }
 
 /// @ingroup QkTranspilerPasses
-/// Run the GateDirection pass on a circuit.
+/// Run the ``GateDirection`` pass on a circuit.
 ///
-/// The GateDirection pass modifies asymmetric gates to match the hardware coupling direction.
+/// The GateDirection pass modifies asymmetric gates to match the hardware coupling directions.
 /// This pass supports replacements for the ``cx``, ``cz``, ``ecr``, ``swap``, ``rzx``, ``rxx``, ``ryy`` and
 /// ``rzz`` gates, using predefined identities.
 ///
 /// @param circuit A pointer to the circuit on which to run the GateDirection pass. The circuit will be modified
 ///     in place by the pass.
-/// @param target A pointer to the target used to check gate directions.
-///
-/// @return QkCircuit - The updated circuit after applying the pass.
+/// @param target A pointer to the target used for checking gate directions.
 ///
 /// # Example
 /// ```c
@@ -111,7 +105,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_gate_direction(
     let mut dag = DAGCircuit::from_circuit_data(circuit, false, None, None, None, None)
         .expect("Circuit to DAG conversion failed");
 
-    fix_direction_target(&mut dag, target).unwrap_or_else(|e| panic!("{}", e));
+    fix_direction_target(&mut dag, target).expect("Unexpected error occurred in GateDirection");
 
     let out_circuit = dag_to_circuit(&dag, false).expect("DAG to circuit conversion failed");
 
