@@ -97,7 +97,7 @@ where
     eq_library.add_equivalence(&gate.into(), params, circuit)
 }
 
-pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, EquivalenceError> {
+pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
     let mut equiv = EquivalenceLibrary::new(None);
 
     // Import existing gate definitions
@@ -154,7 +154,7 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding H gate equivalence");
+    .expect("Error while addding CH gate equivalence");
 
     // PhaseGate
     //
@@ -3063,5 +3063,5 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     )
     .expect("Error while addding XX_MINUS_YY gate equivalence");
 
-    Ok(equiv)
+    equiv
 }

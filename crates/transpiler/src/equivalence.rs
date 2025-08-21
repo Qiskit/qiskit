@@ -835,7 +835,7 @@ where
 #[pyfunction]
 #[pyo3(name = "get_standard_equivalence_library")]
 fn py_get_standard_equivalence_library() -> EquivalenceLibrary {
-    generate_standard_equivalence_library().unwrap()
+    generate_standard_equivalence_library()
 }
 
 pub fn equivalence(m: &Bound<'_, PyModule>) -> PyResult<()> {
