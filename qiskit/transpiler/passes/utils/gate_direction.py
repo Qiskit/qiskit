@@ -87,9 +87,7 @@ class GateDirection(TransformationPass):
             fix_gate_direction_coupling(dag, set(self.coupling_map.get_edges()))
         elif len(self.target.operation_names) == 0:
             # A  _FakeTarget path, no basis gates, just use the coupling map
-            fix_gate_direction_coupling(
-                dag, set(self.target.build_coupling_map().get_edges())
-            )
+            fix_gate_direction_coupling(dag, set(self.target.build_coupling_map().get_edges()))
         else:
             fix_gate_direction_target(dag, self.target)
 
