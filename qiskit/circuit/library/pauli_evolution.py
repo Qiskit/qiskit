@@ -21,11 +21,6 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumcircuit import ParameterValueType
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.quantum_info import Pauli, SparsePauliOp, SparseObservable
-from qiskit.circuit.annotated_operation import (
-    AnnotatedOperation,
-    ControlModifier,
-    PowerModifier,
-)
 import qiskit.quantum_info
 
 if TYPE_CHECKING:
@@ -185,10 +180,13 @@ class PauliEvolutionGate(Gate):
 
         Args:
             exponent: The power to raise the gate to.
-            annotated: Not applicable.
+            annotated: Not applicable to this class. Usually, when this is ``True``we return an
+                :class:`.AnnotatedOperation` with a power modifier set instead of a concrete
+                :class:`.Gate`. However, we can efficiently represent powers of Pauli evolutions
+                as :class:`.PauliEvolutionGate`, which is used here.
 
         Returns:
-            An operation implementing ``gate^exponent``
+            An operation implementing ``gate^exponent``.
         """
         return PauliEvolutionGate(self.operator, self.time * exponent, synthesis=self.synthesis)
 
@@ -216,7 +214,10 @@ class PauliEvolutionGate(Gate):
                 operation.
             ctrl_state: The control state in decimal or as a bitstring
                 (e.g. ``"111"``). If ``None``, use ``2**num_ctrl_qubits - 1``.
-            annotated: Not applicable.
+            annotated: Not applicable to this class. Usually, when this is ``True``we return an
+                :class:`.AnnotatedOperation` with a control modifier set instead of a concrete
+                :class:`.Gate`. However, we can efficiently represent controlled Pauli evolutions
+                as :class:`.PauliEvolutionGate`, which is used here.
 
         Returns:
             Controlled version of the given operation.
