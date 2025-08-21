@@ -67,4 +67,3 @@ results transpiling circuits from Python via the C API.
    qk-transpile-layout
    qk-transpiler-passes
    qk-vf2-layout-result
-   qk-elide-permutations-result
