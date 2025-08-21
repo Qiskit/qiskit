@@ -177,27 +177,25 @@ class PauliEvolutionGate(Gate):
         """
         self.params = [time]
 
+    # pylint: disable=unused-argument
     def power(self, exponent: float, annotated: bool = False) -> Gate:
         """Raise this gate to the power of ``exponent``.
 
-        Implemented by multiplying the time by the exponent.
+        The outcome represents :math:`e^{-i tp H}` where :math:`p` equals ``exponent``.
 
         Args:
             exponent: The power to raise the gate to.
-            annotated: indicates whether the power gate can be implemented
-                as an annotated operation.
+            annotated: Not applicable.
 
         Returns:
             An operation implementing ``gate^exponent``
         """
-        if not annotated:
-            return PauliEvolutionGate(self.operator, self.time * exponent, synthesis=self.synthesis)
-
-        return AnnotatedOperation(self, PowerModifier(exponent))
+        return PauliEvolutionGate(self.operator, self.time * exponent, synthesis=self.synthesis)
 
     def _return_repeat(self, exponent: float) -> PauliEvolutionGate:
         return self.power(exponent)  # same implementation
 
+    # pylint: disable=unused-argument
     def control(
         self,
         num_ctrl_qubits: int = 1,
@@ -207,9 +205,10 @@ class PauliEvolutionGate(Gate):
     ) -> Gate:
         r"""Return the controlled version of itself.
 
-        Implemented either by extending the observable with :math:`|0\rangle\langle 0|` and
-        :math:`|1\rangle\langle 1|` projectors, or as an annotated operation
-        (ref. :class:`.AnnotatedOperation`).
+        The outcome is the specified controlled version of :math:`e^{-itH}`.
+        The returned gate represents :math:`e^{-it H_C}`, where :math:`H_C` is the original
+        operator :math:`H`, tensored with :math:`|0\rangle\langle 0|` and
+        :math:`|1\rangle\langle 1|` projectors (depending on the control state).
 
         Args:
             num_ctrl_qubits: Number of controls to add to gate (default: ``1``).
@@ -217,51 +216,44 @@ class PauliEvolutionGate(Gate):
                 operation.
             ctrl_state: The control state in decimal or as a bitstring
                 (e.g. ``"111"``). If ``None``, use ``2**num_ctrl_qubits - 1``.
-            annotated: Indicates whether the controlled gate is implemented
-                as an annotated gate. If ``None``, this is set to ``False``
-                if the controlled gate can directly be constructed, and otherwise
-                set to ``True``. This allows defering the construction process in case the
-                synthesis of the controlled gate requires more information (e.g.
-                values of unbound parameters).
+            annotated: Not applicable.
 
         Returns:
             Controlled version of the given operation.
         """
-        if not annotated:  # captures both None and False
-            if ctrl_state is None:
-                ctrl_state = "1" * num_ctrl_qubits
-            elif isinstance(ctrl_state, int):
-                ctrl_state = bin(ctrl_state)[2:].zfill(num_ctrl_qubits)
-            else:
-                if len(ctrl_state) != num_ctrl_qubits:
-                    raise ValueError(
-                        f"Length of ctrl_state ({len(ctrl_state)}) must match "
-                        f"num_ctrl_qubits ({num_ctrl_qubits})"
-                    )
-
-            control_op = SparseObservable(ctrl_state)
-
-            if isinstance(self.operator, SparsePauliOp):
-                op = SparseObservable.from_sparse_pauli_op(self.operator)
-            else:
-                op = self.operator
-
-            # Implementing the controlled version of an evolution,
-            #   |0><0| \otimes 1 + |1><1| \otimes exp(it H),
-            # equals the evolution of the Hamiltonian extended by the |1><1| projector,
-            #   exp(it |1><1| \otimes H).
-            # For open controls, the control states are flipped.
-            # We use the projector formalism here, which will result in a
-            # circuit that only controls the central Pauli rotation. For example, calling
-            # PauliEvolutionGate(Z).control(2) will produce PauliEvolutionGate(11Z).
-            op ^= control_op
-
-            return PauliEvolutionGate(op, self.time, label, synthesis=self.synthesis)
-
+        if ctrl_state is None:
+            ctrl_state = "1" * num_ctrl_qubits
+        elif isinstance(ctrl_state, int):
+            ctrl_state = bin(ctrl_state)[2:].zfill(num_ctrl_qubits)
         else:
-            return AnnotatedOperation(
-                self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
-            )
+            if len(ctrl_state) != num_ctrl_qubits:
+                raise ValueError(
+                    f"Length of ctrl_state ({len(ctrl_state)}) must match "
+                    f"num_ctrl_qubits ({num_ctrl_qubits})"
+                )
+
+        # Implementing the controlled version of an evolution,
+        #   |0><0| \otimes 1 + |1><1| \otimes exp(it H),
+        # equals the evolution of the Hamiltonian extended by the |1><1| projector,
+        #   exp(it |1><1| \otimes H).
+        # For open controls, the control states are flipped.
+        # We use the projector formalism here, which will result in a
+        # circuit that only controls the central Pauli rotation. For example, calling
+        # PauliEvolutionGate(Z).control(2) will produce PauliEvolutionGate(11Z).
+        control_op = SparseObservable(ctrl_state)
+
+        def extend_op(op):
+            if isinstance(op, SparsePauliOp):
+                op = SparseObservable.from_sparse_pauli_op(op)
+
+            return op ^ control_op
+
+        if isinstance(self.operator, list):
+            operator = [extend_op(op) for op in self.operator]
+        else:
+            operator = extend_op(self.operator)
+
+        return PauliEvolutionGate(operator, self.time, label, synthesis=self.synthesis)
 
     def _define(self):
         """Unroll, where the default synthesis is matrix based."""

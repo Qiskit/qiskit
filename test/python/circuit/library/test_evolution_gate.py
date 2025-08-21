@@ -449,6 +449,19 @@ class TestEvolutionGate(QiskitTestCase):
         with self.subTest("check unitary"):
             self.assertTrue(np.allclose(matrix, Operator(evo_pow).data))
 
+    def test_control_grouped(self):
+        """Test the control method on grouped operators."""
+        block_1q = (I ^ X) + (X ^ I)
+        block_2q = (Z ^ Z) + (Y ^ Y) + (X ^ X)
+
+        evo = PauliEvolutionGate([block_1q, block_2q], time=1, synthesis=LieTrotter())
+        controlled = evo.control(2, ctrl_state="01")
+
+        summed = PauliEvolutionGate(block_1q + block_2q, time=1, synthesis=LieTrotter())
+        reference = summed.control(2, ctrl_state="01")
+
+        self.assertEqual(reference, controlled)
+
     def test_labels_and_name(self):
         """Test the name and labels are correct."""
         operators = [
