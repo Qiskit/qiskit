@@ -15,8 +15,10 @@ use indexmap::IndexSet;
 use ndarray::{s, ArrayView2};
 use smallvec::smallvec;
 
-use crate::clifford::utils::{adjust_final_pauli_gates, SymplecticMatrix};
-use crate::clifford::utils::{Clifford, CliffordGatesVec};
+use crate::clifford::utils::{
+    adjust_final_pauli_gates, clifford_from_gate_sequence, CliffordGatesVec, SymplecticMatrix,
+};
+
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::Qubit;
 
@@ -107,7 +109,9 @@ pub struct GreedyCliffordSynthesis<'a> {
 }
 
 impl GreedyCliffordSynthesis<'_> {
-    pub(crate) fn new(tableau: ArrayView2<bool>) -> Result<GreedyCliffordSynthesis<'_>, String> {
+    pub(crate) fn new(
+        tableau: ArrayView2<'_, bool>,
+    ) -> Result<GreedyCliffordSynthesis<'_>, String> {
         let tableau_shape = tableau.shape();
         if (tableau_shape[0] % 2 == 1) || (tableau_shape[1] != tableau_shape[0] + 1) {
             return Err("The shape of the Clifford tableau is invalid".to_string());
@@ -403,7 +407,7 @@ pub fn resynthesize_clifford_circuit(
     num_qubits: usize,
     gates: &CliffordGatesVec,
 ) -> Result<CliffordGatesVec, String> {
-    let sim_clifford = Clifford::from_gate_sequence(gates, num_qubits)?;
+    let sim_clifford = clifford_from_gate_sequence(gates, num_qubits)?;
     let mut synthesis = GreedyCliffordSynthesis::new(sim_clifford.tableau.view())?;
     let (_, new_gates) = synthesis.run()?;
     Ok(new_gates)

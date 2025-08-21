@@ -253,7 +253,7 @@ impl<B: ManifestableBit> RegisterInfo<B> {
         }
     }
     /// Iterate over the bits in the register.
-    fn iter(&self) -> RegisterInfoIter<B> {
+    fn iter(&self) -> RegisterInfoIter<'_, B> {
         RegisterInfoIter {
             base: self,
             index: 0,
@@ -553,7 +553,14 @@ macro_rules! create_bit_object {
 
             /// Create a new aliasing register.
             #[inline]
-            pub fn new_alias(name: String, bits: Vec<$bit_struct>) -> Self {
+            pub fn new_alias(name: Option<String>, bits: Vec<$bit_struct>) -> Self {
+                let name = name.unwrap_or_else(|| {
+                    format!(
+                        "{}{}",
+                        $pyreg_prefix,
+                        $reg_struct::anonymous_instance_count().fetch_add(1, Ordering::Relaxed)
+                    )
+                });
                 Self(Arc::new(RegisterInfo::Alias {
                     name,
                     bits,
@@ -702,7 +709,7 @@ macro_rules! create_bit_object {
                                 "Register bits must not be duplicated.",
                             ));
                         }
-                        Ok((Self($reg_struct::new_alias(name, bits)), PyRegister))
+                        Ok((Self($reg_struct::new_alias(Some(name), bits)), PyRegister))
                     }
                 }
             }

@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 from collections import Counter
+import math
 import pickle
 import copy
 import io
@@ -45,6 +46,7 @@ from qiskit.circuit import (
     WhileLoopOp,
     CASE_DEFAULT,
     Store,
+    BoxOp,
 )
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.library import (
@@ -1734,6 +1736,34 @@ class TestDagEquivalence(QiskitTestCase):
 
         self.assertEqual(node1, node2)
 
+    def test_boxop_neq(self):
+        """Test non equality of nonequal DAGOpNodes and QuantumCircuits containing BoxOp gates."""
+        qc = QuantumCircuit()
+
+        box1 = BoxOp(body=qc, duration=300.0, unit="dt")
+        box2 = BoxOp(body=qc, duration=300.0, unit="ms")
+        node1 = DAGOpNode(op=box1, qargs=(), cargs=())
+        node2 = DAGOpNode(op=box2, qargs=(), cargs=())
+        self.assertNotEqual(node1, node2)
+
+        qc1 = QuantumCircuit()
+        qc2 = QuantumCircuit()
+        qc1.append(box1)
+        qc2.append(box2)
+        self.assertNotEqual(qc1, qc2)
+
+        box1 = BoxOp(body=qc, duration=300.0, unit="dt")
+        box2 = BoxOp(body=qc, duration=200.0, unit="dt")
+        node1 = DAGOpNode(op=box1, qargs=(), cargs=())
+        node2 = DAGOpNode(op=box2, qargs=(), cargs=())
+        self.assertNotEqual(node1, node2)
+
+        qc1 = QuantumCircuit()
+        qc2 = QuantumCircuit()
+        qc1.append(box1)
+        qc2.append(box2)
+        self.assertNotEqual(qc1, qc2)
+
     def test_dag_eq(self):
         """DAG equivalence check: True."""
         #        ┌───┐                ┌───┐
@@ -3415,6 +3445,250 @@ class TestDagCausalCone(QiskitTestCase):
         result = dag.quantum_causal_cone(dag.qubits[1])
         expected = {qreg[0], qreg[1], qreg[2], qreg[3]}
         self.assertEqual(result, expected)
+
+
+class TestDAGMakePhysical(QiskitTestCase):
+    """Tests of `make_physical`."""
+
+    def test_basic(self):
+        """Test basic usage of `make_physical`."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+
+        def from_qubit_circuit(qc: QuantumCircuit):
+            qc.add_register(ClassicalRegister(5, "c"))
+            qc.add_input(a)
+            qc.add_var(b, expr.lift(False))
+            qc.h(0)
+            qc.cx(0, 1)
+            qc.measure([0, 1], [0, 1])
+            return circuit_to_dag(qc, copy_operations=False)
+
+        base = from_qubit_circuit(QuantumCircuit(QuantumRegister(5, "virtuals")))
+        base.make_physical()
+        self.assertEqual(base, from_qubit_circuit(QuantumCircuit(QuantumRegister(5, "q"))))
+
+        expanded = from_qubit_circuit(QuantumCircuit([Qubit() for _ in range(3)]))
+        expanded.make_physical(10)
+        self.assertEqual(expanded, from_qubit_circuit(QuantumCircuit(QuantumRegister(10, "q"))))
+
+    def test_after_substitution(self):
+        """Make sure that having a nonsequential node ordering in the graph doesn't matter."""
+        base = DAGCircuit()
+        base.add_qreg(QuantumRegister(1, "virtuals"))
+        base.apply_operation_back(XGate(), [base.qubits[0]], [])
+        mid = base.apply_operation_back(HGate(), [base.qubits[0]], [])
+        base.apply_operation_back(XGate(), [base.qubits[0]], [])
+
+        replacement = QuantumCircuit(1, global_phase=-math.pi / 4)
+        replacement.s(0)
+        replacement.sx(0)
+        replacement.s(0)
+
+        base.substitute_node_with_dag(mid, circuit_to_dag(replacement))
+        base.make_physical(5)
+
+        expected = QuantumCircuit(QuantumRegister(5, "q"), global_phase=-math.pi / 4)
+        expected.x(0)
+        expected.s(0)
+        expected.sx(0)
+        expected.s(0)
+        expected.x(0)
+
+        raise_if_dagcircuit_invalid(base)
+        self.assertEqual(base, circuit_to_dag(expected))
+
+    def test_empty(self):
+        """An empty DAGCircuit."""
+        empty_0q = DAGCircuit()
+        empty_0q.make_physical()
+        expected = DAGCircuit()
+        expected.add_qreg(QuantumRegister(0, "q"))
+        self.assertEqual(empty_0q, expected)
+
+        empty_8q = DAGCircuit()
+        empty_8q.make_physical(8)
+        expanded = DAGCircuit()
+        expanded.add_qreg(QuantumRegister(8, "q"))
+        self.assertEqual(empty_8q, expanded)
+
+    def test_0q_with_classical(self):
+        """Classical data should still work fine even if there are no qubits."""
+        cr = ClassicalRegister(3, "cr")
+        qc = QuantumCircuit(cr)
+        a = qc.add_input("a", types.Bool())
+        b = qc.add_var("b", expr.lift(False))
+        qc.store(b, a)
+
+        def expected(num_qubits):
+            dag = DAGCircuit()
+            dag.add_qreg(QuantumRegister(num_qubits, "q"))
+            dag.add_creg(cr)
+            dag.add_input_var(a)
+            dag.add_declared_var(b)
+            dag.apply_operation_back(Store(b, expr.lift(False)), [], [])
+            dag.apply_operation_back(Store(b, a), [], [])
+            return dag
+
+        dag = circuit_to_dag(qc)
+        dag.make_physical()
+        self.assertEqual(dag, expected(0))
+
+        dag = circuit_to_dag(qc)
+        dag.make_physical(156)
+        self.assertEqual(dag, expected(156))
+
+
+class TestStructurallyEqual(QiskitTestCase):
+    """Test structural-equality checks."""
+
+    # pylint: disable=missing-function-docstring
+
+    def test_deterministic_circuit(self):
+        """Two DAGs created from the same circuit should be structurally equal."""
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.z(0)
+        qc.z(1)
+        qc.measure([0, 1], [0, 1])
+        left = circuit_to_dag(qc)
+        right = circuit_to_dag(qc)
+        # If this fails, it might be a problem with `circuit_to_dag`.
+        self.assertTrue(left.structurally_equal(right))
+
+    def test_name_does_not_matter(self):
+        left = circuit_to_dag(QuantumCircuit(name="left"))
+        right = circuit_to_dag(QuantumCircuit(name="right"))
+        self.assertTrue(left.structurally_equal(right))
+
+    def test_mismatch_global_phase(self):
+        # Explicit floats and bound parameter expressions should also be considered different,
+        # because they mean we must have done different things.
+        a = Parameter("a")
+        left = circuit_to_dag(QuantumCircuit(global_phase=2.0))
+        right = circuit_to_dag(QuantumCircuit(global_phase=a.bind({a: 2.0})))
+        self.assertFalse(left.structurally_equal(right))
+
+    def test_mismatch_qubits(self):
+        left = circuit_to_dag(QuantumCircuit([Qubit() for _ in range(4)]))
+        right = circuit_to_dag(QuantumCircuit(left.qubits[::-1]))
+        self.assertFalse(left.structurally_equal(right))
+
+    def test_mismatch_qregs(self):
+        left = circuit_to_dag(QuantumCircuit(QuantumRegister(4, "q")))
+        # ... but no register.
+        right = circuit_to_dag(QuantumCircuit(left.qubits))
+        self.assertFalse(left.structurally_equal(right))
+
+    def test_mismatch_clbits(self):
+        left = circuit_to_dag(QuantumCircuit([Clbit() for _ in range(4)]))
+        right = circuit_to_dag(QuantumCircuit(left.clbits[::-1]))
+        self.assertFalse(left.structurally_equal(right))
+
+    def test_mismatch_cregs(self):
+        left = circuit_to_dag(QuantumCircuit(ClassicalRegister(4, "c")))
+        # ... but no register.
+        right = circuit_to_dag(QuantumCircuit(left.clbits))
+        self.assertFalse(left.structurally_equal(right))
+
+    def test_mismatch_vars_types(self):
+        left = circuit_to_dag(QuantumCircuit(inputs=[expr.Var.new("a", types.Bool())]))
+        right = circuit_to_dag(QuantumCircuit(inputs=[expr.Var.new("a", types.Uint(1))]))
+        self.assertFalse(left.structurally_equal(right))
+
+    def test_mismatch_vars_names(self):
+        left = circuit_to_dag(QuantumCircuit(inputs=[expr.Var.new("a", types.Bool())]))
+        right = circuit_to_dag(QuantumCircuit(inputs=[expr.Var.new("b", types.Bool())]))
+        self.assertFalse(left.structurally_equal(right))
+
+    def test_mismatch_vars_storage(self):
+        a = expr.Var.new("a", types.Bool())
+        left = circuit_to_dag(QuantumCircuit(inputs=[a]))
+        right = circuit_to_dag(QuantumCircuit(captures=[a]))
+        self.assertFalse(left.structurally_equal(right))
+
+    def test_mismatch_vars_uuid(self):
+        # The two calls to `Var.new` produce different UUIDs.
+        left = circuit_to_dag(QuantumCircuit(inputs=[expr.Var.new("a", types.Bool())]))
+        right = circuit_to_dag(QuantumCircuit(inputs=[expr.Var.new("a", types.Bool())]))
+        self.assertFalse(left.structurally_equal(right))
+
+    def test_matching_stretches(self):
+        left = QuantumCircuit()
+        a = left.add_stretch("a")
+        left = circuit_to_dag(left)
+        right = QuantumCircuit()
+        right.add_stretch(a)
+        right = circuit_to_dag(right)
+        self.assertTrue(left.structurally_equal(right))
+
+    def test_mismatch_stretch_names(self):
+        left = QuantumCircuit()
+        left.add_stretch("a")
+        left = circuit_to_dag(left)
+        right = QuantumCircuit()
+        right.add_stretch("b")
+        right = circuit_to_dag(right)
+        self.assertFalse(left.structurally_equal(right))
+
+    def test_mismatch_stretch_uuids(self):
+        left = QuantumCircuit()
+        left.add_stretch("a")
+        left = circuit_to_dag(left)
+        right = QuantumCircuit()
+        # A new UUID.
+        right.add_stretch("a")
+        right = circuit_to_dag(right)
+        self.assertFalse(left.structurally_equal(right))
+
+    def test_mismatch_stretch_orders(self):
+        left = QuantumCircuit()
+        a = left.add_stretch("a")
+        b = left.add_stretch("b")
+        left = circuit_to_dag(left)
+        right = QuantumCircuit()
+        # Wrong order of stretches; this matters.
+        right.add_stretch(b)
+        right.add_stretch(a)
+        right = circuit_to_dag(right)
+        self.assertFalse(left.structurally_equal(right))
+
+    def test_mismatch_node_order(self):
+        left = circuit_to_dag(QuantumCircuit(2))
+        right = circuit_to_dag(QuantumCircuit(2))
+        self.assertTrue(left.structurally_equal(right))
+
+        left.apply_operation_back(XGate(), [left.qubits[0]], [])
+        left.apply_operation_back(XGate(), [left.qubits[1]], [])
+
+        # Exact same gates, but the modification order is different.
+        right.apply_operation_back(XGate(), [right.qubits[1]], [])
+        right.apply_operation_back(XGate(), [right.qubits[0]], [])
+
+        # Semantic equality should be fine.
+        self.assertEqual(left, right)
+        # ... but not structural.
+        self.assertFalse(left.structurally_equal(right))
+
+    def test_mismatch_with_node_removal(self):
+        left = circuit_to_dag(QuantumCircuit(2))
+        right = circuit_to_dag(QuantumCircuit(2))
+        self.assertTrue(left.structurally_equal(right))
+
+        left.apply_operation_back(XGate(), [left.qubits[0]], [])
+        left.apply_operation_back(XGate(), [left.qubits[1]], [])
+
+        right.apply_operation_back(XGate(), [right.qubits[0]], [])
+        to_remove = right.apply_operation_back(XGate(), [right.qubits[0]], [])
+        right.apply_operation_back(XGate(), [right.qubits[1]], [])
+        right.remove_op_node(to_remove)
+
+        # Semantic equality should be fine.
+        self.assertEqual(left, right)
+        # ... but not structural.  If the node we removed was the final node, it _might_ be ok, but
+        # that'd still be an implementation detail.
+        self.assertFalse(left.structurally_equal(right))
 
 
 if __name__ == "__main__":

@@ -10,11 +10,13 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+pub mod clifford;
 pub mod convert_2q_block_matrix;
 pub mod pauli_lindblad_map;
 pub mod sparse_observable;
 pub mod sparse_pauli_op;
 pub mod unitary_compose;
+pub mod unitary_sim;
 pub mod versor_u2;
 
 mod rayon_ext;

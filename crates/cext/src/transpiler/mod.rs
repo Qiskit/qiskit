@@ -10,4 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+pub mod passes;
 pub mod target;
+pub mod transpile_layout;

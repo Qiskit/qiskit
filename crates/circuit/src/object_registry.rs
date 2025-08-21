@@ -134,6 +134,15 @@ where
         Self::new()
     }
 }
+// The stronger `Eq` restriction here on `B` (not `PartialEq`) is because it's necessary for the
+// hashmap to function correctly and consequently to implement `PartialEq`.
+impl<T: PartialEq, B: Eq + Hash> PartialEq for ObjectRegistry<T, B> {
+    fn eq(&self, other: &Self) -> bool {
+        (self.objects == other.objects) && (self.indices == other.indices)
+    }
+}
+impl<T: Eq, B: Eq + Hash> Eq for ObjectRegistry<T, B> {}
+
 impl<T, B> ObjectRegistry<T, B>
 where
     T: From<u32> + Copy,
@@ -183,10 +192,7 @@ where
             .into_iter()
             .map(|b| {
                 self.indices.get(&b).copied().ok_or_else(|| {
-                    PyKeyError::new_err(format!(
-                        "Object {:?} has not been added to this circuit.",
-                        b
-                    ))
+                    PyKeyError::new_err(format!("Object {b:?} has not been added to this circuit."))
                 })
             })
             .collect();
@@ -216,8 +222,7 @@ where
     pub fn add(&mut self, object: B, strict: bool) -> PyResult<T> {
         let idx: u32 = self.objects.len().try_into().map_err(|_| {
             PyRuntimeError::new_err(format!(
-                "Cannot add object {:?}, which would exceed circuit capacity for its kind.",
-                object,
+                "Cannot add object {object:?}, which would exceed circuit capacity for its kind.",
             ))
         })?;
         // Dump the cache
@@ -226,8 +231,7 @@ where
             self.objects.push(object);
         } else if strict {
             return Err(PyValueError::new_err(format!(
-                "Existing object {:?} cannot be re-added in strict mode.",
-                object
+                "Existing object {object:?} cannot be re-added in strict mode."
             )));
         }
         Ok(idx.into())

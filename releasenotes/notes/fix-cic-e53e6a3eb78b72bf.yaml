@@ -1,0 +1,17 @@
+---
+fixes:
+  - |
+    Fixed several problems in the :class:`.CommutativeInverseCancellation`
+    transpiler pass: the pass now works correctly on circuits containing
+    :class:`.Clifford` operations, control-flow operations, and non-invertible
+    operations such as :class:`.Initialize`.
+
+    In addition, the pass now always first performs a syntactic (non-matrix-based)
+    check when identifying inverse gate pairs. If the gates are not syntactically
+    equal, the argument ``matrix_based`` is set to ``True``, and the operation
+    does not act on more than ``max_qubits`` qubits, then a matrix-based check
+    is also performed. This slightly improves the reduction potential of the pass.
+
+    Fixed `#14407 <https://github.com/Qiskit/qiskit-terra/issues/14407>`__
+    Fixed `#14635 <https://github.com/Qiskit/qiskit-terra/issues/14635>`__
+    Fixed `#14645 <https://github.com/Qiskit/qiskit-terra/issues/14645>`__

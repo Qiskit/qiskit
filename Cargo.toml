@@ -16,7 +16,7 @@ license = "Apache-2.0"
 [workspace.dependencies]
 bytemuck = "1.23"
 bitfield-struct = "0.9.5"
-indexmap.version = "2.9.0"
+indexmap.version = "2.10.0"
 hashbrown.version = "0.15.2"
 num-bigint = "0.4"
 num-complex = "0.4"
@@ -36,14 +36,14 @@ rand = "0.9"
 rand_pcg = "0.9"
 rand_distr = "0.5"
 num-traits = "0.2"
-uuid = { version = "1.17", features = ["v4", "fast-rng"], default-features = false }
+uuid = { version = "1.18", features = ["v4", "fast-rng"], default-features = false }
 
 # Most of the crates don't need the feature `extension-module`, since only `qiskit-pyext` builds an
 # actual C extension (the feature disables linking in `libpython`, which is forbidden in Python
 # distributions).  We only activate that feature when building the C extension module; we still need
 # it disabled for Rust-only tests to avoid linker errors with it not being loaded.  See
 # https://pyo3.rs/main/features#extension-module for more.
-pyo3 = { version = "0.25", features = ["abi3-py39"] }
+pyo3 = { version = "0.25.1", features = ["abi3-py39"] }
 
 # These are our own crates.
 qiskit-accelerate = { path = "crates/accelerate" }
