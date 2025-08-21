@@ -1687,18 +1687,27 @@ class ModularAdderSynthesisDefault(HighLevelSynthesisPlugin):
         if not isinstance(high_level_object, ModularAdderGate):
             return None
 
-        # For up to 4 qubits, the QFT-based adder is best
-        if high_level_object.num_state_qubits <= 4:
-            decomposition = ModularAdderSynthesisD00().run(
-                high_level_object, coupling_map, target, qubits, **options
-            )
-            if decomposition is not None:
+        metric = options.get("optimization_metric", OptimizationMetric.COUNT_2Q)
+        if metric == OptimizationMetric.COUNT_2Q:
+            # The order is optimized towards CX -friendly synthesis methods.
+            methods = []
+            if 2 <= high_level_object.num_state_qubits <= 4:
+                methods.append(ModularAdderSynthesisD00)
+            methods.append(ModularAdderSynthesisV17)
+        else:
+            # The order is optimized towards Clifford+T -friendly synthesis methods.
+            methods = []
+            methods.append(ModularAdderSynthesisV17)
+
+        for method in methods:
+            if (
+                decomposition := method().run(
+                    high_level_object, coupling_map, target, qubits, **options
+                )
+            ) is not None:
                 return decomposition
 
-        # Otherwise, use V17 synthesis
-        return ModularAdderSynthesisV17().run(
-            high_level_object, coupling_map, target, qubits, **options
-        )
+        return None
 
 
 class ModularAdderSynthesisV17(HighLevelSynthesisPlugin):
