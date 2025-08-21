@@ -347,10 +347,8 @@ impl CircuitData {
     /// the circuit is known to already represent a physical circuit, and we just need to assert
     /// that it is canonical physical form.
     ///
-    /// This erases any information about virtual qubits in the :class:`CircuitData`; if using this
-    /// yourself, you may need to ensure you have created and stored a suitable :class:`.Layout`.
-    /// Effectively, this applies the "trivial" layout mapping virtual qubit 0 to physical qubit 0,
-    /// and so on.
+    /// This erases any information about virtual qubits in the :class:`CircuitData`.  Effectively,
+    /// this applies the "trivial" layout mapping virtual qubit 0 to physical qubit 0, and so on.
     ///
     /// Args:
     ///     num_qubits: if given, the total number of physical qubits in the output; it must be at
