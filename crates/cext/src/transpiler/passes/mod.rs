@@ -1,3 +1,4 @@
+pub mod commutative_cancellation;
 pub mod elide_permutations;
 pub mod gate_direction;
 pub mod remove_diagonal_gates_before_measure;
