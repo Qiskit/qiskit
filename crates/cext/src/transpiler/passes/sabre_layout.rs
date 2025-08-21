@@ -112,7 +112,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_sabre_layout(
     let target = unsafe { const_ptr_as_ref(target) };
     let options = unsafe { const_ptr_as_ref(options) };
     let mut dag = DAGCircuit::from_circuit_data(circuit, false, None, None, None, None)
-        .expect("Internal circuit to DAG conversion failed.");
+        .unwrap_or_else(|_| panic!("Internal circuit to DAG conversion failed."));
     let heuristic = heuristic::Heuristic::new(
         Some(heuristic::BasicHeuristic::new(
             1.0,
@@ -138,9 +138,9 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_sabre_layout(
         Vec::new(),
         false,
     )
-    .unwrap();
-    let out_circuit =
-        dag_to_circuit(&result, false).expect("Internal DAG to circuit conversion failed");
+    .unwrap_or_else(|_| panic!("Sabre layout failed."));
+    let out_circuit = dag_to_circuit(&result, false)
+        .unwrap_or_else(|_| panic!("Internal DAG to circuit conversion failed"));
     let num_input_qubits = circuit.num_qubits() as u32;
     *circuit = out_circuit;
     let out_final_layout = (0..result.num_qubits() as u32)
