@@ -97,7 +97,7 @@ int test_split_2q_unitaries_x_y_unitary(void) {
     for (size_t i = 0; i < qk_circuit_num_instructions(qc); i++) {
         qk_circuit_get_instruction(qc, i, &inst);
         if (inst.num_qubits != 1) {
-            printf("Gate %d operates on more than 1 qubit: %zu\n", i, inst.num_qubits);
+            printf("Gate %zu operates on more than 1 qubit: %u\n", i, inst.num_qubits);
             result = EqualityError;
             goto ops_cleanup;
         }
@@ -134,7 +134,7 @@ int test_split_2q_unitaries_swap_x_y_unitary(void) {
     uint32_t expected[2] = {1, 0};
     for (int i = 0; i < 2; i++) {
         if (permutation[i] != expected[i]) {
-            printf("Permutation at position %d not as expected, found %zu expected %zu\n", i,
+            printf("Permutation at position %d not as expected, found %u expected %u\n", i,
                    permutation[i], expected[i]);
             goto cleanup;
         }
@@ -164,7 +164,7 @@ int test_split_2q_unitaries_swap_x_y_unitary(void) {
     for (size_t i = 0; i < qk_circuit_num_instructions(qc); i++) {
         qk_circuit_get_instruction(qc, i, &inst);
         if (inst.num_qubits != 1) {
-            printf("Gate %d operates on more than 1 qubit: %zu\n", i, inst.num_qubits);
+            printf("Gate %zu operates on more than 1 qubit: %u\n", i, inst.num_qubits);
             result = EqualityError;
             goto ops_cleanup;
         }
