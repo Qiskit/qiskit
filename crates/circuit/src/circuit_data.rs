@@ -365,9 +365,12 @@ impl CircuitData {
                         self.num_qubits()
                     )));
                 }
-                num_qubits as usize
+                num_qubits
             }
-            None => self.num_qubits(),
+            None => self
+                .num_qubits()
+                .try_into()
+                .expect("qubits are stored in 32-bit integers"),
         };
         self.make_physical(num_qubits);
         Ok(())
@@ -2087,15 +2090,12 @@ impl CircuitData {
     /// # Panics
     ///
     /// If `num_qubits` is less than the number of qubits in the circuit already.
-    pub fn make_physical(&mut self, num_qubits: usize) {
+    pub fn make_physical(&mut self, num_qubits: u32) {
         // If this method needs updating, `DAGCircuit::make_physical` probably does too.
         assert!(
-            num_qubits >= self.num_qubits(),
+            num_qubits as usize >= self.num_qubits(),
             "number of qubits {num_qubits} too small for circuit"
         );
-        let num_qubits: u32 = num_qubits
-            .try_into()
-            .expect("number of qubits must fit in a u32");
         // The strategy here is just to modify the qubit and quantum register objects entirely
         // inplace; we maintain all relative indices, so we don't need to modify any interner keys.
         let register = QuantumRegister::new_owning("q", num_qubits);
