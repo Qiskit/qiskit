@@ -16,7 +16,7 @@ use std::sync::Arc;
 use pyo3::prelude::*;
 use qiskit_circuit::bit::QuantumRegister;
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{Param, StandardGate};
+use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::Symbol;
 use qiskit_circuit::Qubit;
@@ -78,7 +78,6 @@ fn cnot_rxx_decompose(plus_ry: bool, plus_rxx: bool) -> PyResult<CircuitData> {
 fn create_standard_equivalence<P>(
     gate: StandardGate,
     params: &[Param],
-    eq_num_qubits: u32,
     eq_instructions: &[(StandardGate, &[Qubit], &[Param])],
     eq_global_phase: P,
     eq_library: &mut EquivalenceLibrary,
@@ -88,7 +87,7 @@ where
 {
     let mut circuit =
         CircuitData::with_capacity(0, 0, eq_instructions.len(), eq_global_phase.into()).unwrap();
-    let qreg = QuantumRegister::new_owning("q", eq_num_qubits);
+    let qreg = QuantumRegister::new_owning("q", gate.num_qubits());
     circuit.add_qreg(qreg, true).unwrap();
     for (operation, qargs, eq_params) in eq_instructions {
         circuit
@@ -111,7 +110,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::H,
         &[],
-        1,
         &[(
             StandardGate::U,
             &[Qubit(0)],
@@ -130,7 +128,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::H,
         &[],
-        1,
         &[(StandardGate::U2, &[Qubit(0)], &[0.0.into(), PI.into()])],
         0.0,
         &mut equiv,
@@ -145,7 +142,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CH,
         &[],
-        2,
         &[
             (StandardGate::S, &[Qubit(1)], &[]),
             (StandardGate::H, &[Qubit(1)], &[]),
@@ -171,7 +167,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::Phase,
         &[Param::ParameterExpression(theta.clone())],
-        1,
         &[(
             StandardGate::U1,
             &[Qubit(0)],
@@ -190,7 +185,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::Phase,
         &[Param::ParameterExpression(theta.clone())],
-        1,
         &[(
             StandardGate::U,
             &[Qubit(0)],
@@ -220,7 +214,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CPhase,
         &[Param::ParameterExpression(theta.clone())],
-        2,
         &[
             (
                 StandardGate::Phase,
@@ -253,7 +246,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CPhase,
         &[Param::ParameterExpression(theta.clone())],
-        2,
         &[(
             StandardGate::CU1,
             &[Qubit(0), Qubit(1)],
@@ -276,7 +268,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CPhase,
         &[Param::ParameterExpression(theta.clone())],
-        2,
         &[
             (
                 StandardGate::RZZ,
@@ -319,7 +310,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
             Param::ParameterExpression(theta.clone()),
             Param::ParameterExpression(phi.clone()),
         ],
-        1,
         &[(
             StandardGate::U,
             &[Qubit(0)],
@@ -341,7 +331,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::I,
         &[],
-        1,
         &[(
             StandardGate::U,
             &[Qubit(0)],
@@ -359,7 +348,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::I,
         &[],
-        1,
         &[(StandardGate::RX, &[Qubit(0)], &[0.0.into()])],
         0.0,
         &mut equiv,
@@ -373,7 +361,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::I,
         &[],
-        1,
         &[(StandardGate::RY, &[Qubit(0)], &[0.0.into()])],
         0.0,
         &mut equiv,
@@ -387,7 +374,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::I,
         &[],
-        1,
         &[(StandardGate::RZ, &[Qubit(0)], &[0.0.into()])],
         0.0,
         &mut equiv,
@@ -406,7 +392,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::RCCX,
         &[],
-        3,
         &[
             (StandardGate::H, &[Qubit(2)], &[]),
             (StandardGate::T, &[Qubit(2)], &[]),
@@ -431,7 +416,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::RX,
         &[Param::ParameterExpression(theta.clone())],
-        1,
         &[(
             StandardGate::R,
             &[Qubit(0)],
@@ -451,7 +435,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CRX,
         &[Param::ParameterExpression(theta.clone())],
-        2,
         &[
             (StandardGate::S, &[Qubit(1)], &[]),
             (StandardGate::CX, &[Qubit(0), Qubit(1)], &[]),
@@ -489,7 +472,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CRX,
         &[Param::ParameterExpression(theta.clone())],
-        2,
         &[
             (StandardGate::S, &[Qubit(1)], &[]),
             (StandardGate::CX, &[Qubit(0), Qubit(1)], &[]),
@@ -520,7 +502,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CRX,
         &[Param::ParameterExpression(theta.clone())],
-        2,
         &[
             (StandardGate::H, &[Qubit(0)], &[]),
             (
@@ -549,7 +530,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CRX,
         &[Param::ParameterExpression(theta.clone())],
-        2,
         &[
             (StandardGate::H, &[Qubit(1)], &[]),
             (
@@ -574,7 +554,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::RXX,
         &[Param::ParameterExpression(theta.clone())],
-        2,
         &[
             (StandardGate::H, &[Qubit(0)], &[]),
             (StandardGate::H, &[Qubit(1)], &[]),
@@ -602,7 +581,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::RXX,
         &[Param::ParameterExpression(theta.clone())],
-        2,
         &[
             (StandardGate::H, &[Qubit(0)], &[]),
             (
@@ -626,7 +604,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::RXX,
         &[Param::ParameterExpression(theta.clone())],
-        2,
         &[
             (StandardGate::H, &[Qubit(0)], &[]),
             (StandardGate::H, &[Qubit(1)], &[]),
@@ -653,7 +630,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::RZX,
         &[Param::ParameterExpression(theta.clone())],
-        2,
         &[
             (StandardGate::H, &[Qubit(1)], &[]),
             (StandardGate::CX, &[Qubit(0), Qubit(1)], &[]),
@@ -679,7 +655,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::RZX,
         &[Param::ParameterExpression(theta.clone())],
-        2,
         &[
             (StandardGate::H, &[Qubit(1)], &[]),
             (
@@ -702,7 +677,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::RY,
         &[Param::ParameterExpression(theta.clone())],
-        1,
         &[(
             StandardGate::R,
             &[Qubit(0)],
@@ -721,7 +695,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::RY,
         &[Param::ParameterExpression(theta.clone())],
-        1,
         &[
             (StandardGate::Sdg, &[Qubit(0)], &[]),
             (
@@ -745,7 +718,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CRY,
         &[Param::ParameterExpression(theta.clone())],
-        2,
         &[
             (
                 StandardGate::RY,
@@ -774,7 +746,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CRY,
         &[Param::ParameterExpression(theta.clone())],
-        2,
         &[
             (StandardGate::RX, &[Qubit(1)], &[(PI / 2.0).into()]),
             (
@@ -798,7 +769,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CRY,
         &[Param::ParameterExpression(theta.clone())],
-        2,
         &[
             (StandardGate::H, &[Qubit(1)], &[]),
             (StandardGate::RZ, &[Qubit(1)], &[(PI / 2.0).into()]),
@@ -824,7 +794,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CRY,
         &[Param::ParameterExpression(theta.clone())],
-        2,
         &[
             (StandardGate::Sdg, &[Qubit(1)], &[]),
             (
@@ -856,7 +825,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::RYY,
         &[Param::ParameterExpression(theta.clone())],
-        2,
         &[
             (StandardGate::RX, &[Qubit(0)], &[(PI / 2.0).into()]),
             (StandardGate::RX, &[Qubit(1)], &[(PI / 2.0).into()]),
@@ -885,7 +853,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::RYY,
         &[Param::ParameterExpression(theta.clone())],
-        2,
         &[
             (StandardGate::SXdg, &[Qubit(0)], &[]),
             (StandardGate::SXdg, &[Qubit(1)], &[]),
@@ -914,7 +881,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::RYY,
         &[Param::ParameterExpression(theta.clone())],
-        2,
         &[
             (StandardGate::RX, &[Qubit(0)], &[(PI / 2.0).into()]),
             (StandardGate::RX, &[Qubit(1)], &[(PI / 2.0).into()]),
@@ -941,7 +907,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::RYY,
         &[Param::ParameterExpression(theta.clone())],
-        2,
         &[
             (StandardGate::Sdg, &[Qubit(0)], &[]),
             (StandardGate::Sdg, &[Qubit(1)], &[]),
@@ -966,7 +931,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::RZ,
         &[Param::ParameterExpression(theta.clone())],
-        1,
         &[(
             StandardGate::Phase,
             &[Qubit(0)],
@@ -986,7 +950,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::RZ,
         &[Param::ParameterExpression(theta.clone())],
-        1,
         &[
             (StandardGate::SX, &[Qubit(0)], &[]),
             (
@@ -1009,7 +972,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::RZ,
         &[Param::ParameterExpression(theta.clone())],
-        1,
         &[
             (StandardGate::H, &[Qubit(0)], &[]),
             (
@@ -1033,7 +995,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CRZ,
         &[Param::ParameterExpression(theta.clone())],
-        2,
         &[
             (
                 StandardGate::RZ,
@@ -1062,7 +1023,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CRZ,
         &[Param::ParameterExpression(theta.clone())],
-        2,
         &[
             (StandardGate::RX, &[Qubit(1)], &[(-PI / 2.0).into()]),
             (
@@ -1086,7 +1046,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CRZ,
         &[Param::ParameterExpression(theta.clone())],
-        2,
         &[
             (StandardGate::H, &[Qubit(1)], &[]),
             (
@@ -1110,7 +1069,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CRZ,
         &[Param::ParameterExpression(theta.clone())],
-        2,
         &[
             (
                 StandardGate::RZ,
@@ -1137,7 +1095,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::RZZ,
         &[Param::ParameterExpression(theta.clone())],
-        2,
         &[
             (StandardGate::CX, &[Qubit(0), Qubit(1)], &[]),
             (
@@ -1161,7 +1118,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::RZZ,
         &[Param::ParameterExpression(theta.clone())],
-        2,
         &[
             (StandardGate::H, &[Qubit(0)], &[]),
             (StandardGate::H, &[Qubit(1)], &[]),
@@ -1187,7 +1143,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::RZZ,
         &[Param::ParameterExpression(theta.clone())],
-        2,
         &[
             (StandardGate::H, &[Qubit(1)], &[]),
             (
@@ -1214,7 +1169,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::RZZ,
         &[Param::ParameterExpression(theta.clone())],
-        2,
         &[
             (
                 StandardGate::CPhase,
@@ -1247,7 +1201,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::RZZ,
         &[Param::ParameterExpression(theta.clone())],
-        2,
         &[
             (StandardGate::RX, &[Qubit(0)], &[(-PI / 2.0).into()]),
             (StandardGate::RX, &[Qubit(1)], &[(-PI / 2.0).into()]),
@@ -1274,7 +1227,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::RZX,
         &[Param::ParameterExpression(theta.clone())],
-        2,
         &[
             (StandardGate::H, &[Qubit(1)], &[]),
             (StandardGate::CX, &[Qubit(0), Qubit(1)], &[]),
@@ -1301,7 +1253,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::ECR,
         &[],
-        2,
         &[
             (
                 StandardGate::RZX,
@@ -1331,7 +1282,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::ECR,
         &[],
-        2,
         &[
             (StandardGate::S, &[Qubit(0)], &[]),
             (StandardGate::SX, &[Qubit(1)], &[]),
@@ -1353,7 +1303,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CX,
         &[],
-        2,
         &[
             (StandardGate::Sdg, &[Qubit(0)], &[]),
             (StandardGate::SXdg, &[Qubit(1)], &[]),
@@ -1373,7 +1322,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::S,
         &[],
-        1,
         &[(StandardGate::Phase, &[Qubit(0)], &[(PI / 2.0).into()])],
         0.0,
         &mut equiv,
@@ -1388,7 +1336,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::S,
         &[],
-        1,
         &[
             (StandardGate::T, &[Qubit(0)], &[]),
             (StandardGate::T, &[Qubit(0)], &[]),
@@ -1406,7 +1353,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::Sdg,
         &[],
-        1,
         &[(StandardGate::Phase, &[Qubit(0)], &[(-PI / 2.0).into()])],
         0.0,
         &mut equiv,
@@ -1421,7 +1367,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::Sdg,
         &[],
-        1,
         &[
             (StandardGate::S, &[Qubit(0)], &[]),
             (StandardGate::Z, &[Qubit(0)], &[]),
@@ -1439,7 +1384,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::Sdg,
         &[],
-        1,
         &[
             (StandardGate::Z, &[Qubit(0)], &[]),
             (StandardGate::S, &[Qubit(0)], &[]),
@@ -1457,7 +1401,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::Sdg,
         &[],
-        1,
         &[
             (StandardGate::S, &[Qubit(0)], &[]),
             (StandardGate::S, &[Qubit(0)], &[]),
@@ -1476,7 +1419,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::Sdg,
         &[],
-        1,
         &[
             (StandardGate::Tdg, &[Qubit(0)], &[]),
             (StandardGate::Tdg, &[Qubit(0)], &[]),
@@ -1496,7 +1438,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CS,
         &[],
-        2,
         &[
             (StandardGate::T, &[Qubit(0)], &[]),
             (StandardGate::T, &[Qubit(1)], &[]),
@@ -1518,7 +1459,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CS,
         &[],
-        2,
         &[
             (StandardGate::H, &[Qubit(1)], &[]),
             (StandardGate::CSX, &[Qubit(0), Qubit(1)], &[]),
@@ -1539,7 +1479,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CSdg,
         &[],
-        2,
         &[
             (StandardGate::CX, &[Qubit(0), Qubit(1)], &[]),
             (StandardGate::T, &[Qubit(1)], &[]),
@@ -1561,7 +1500,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CSdg,
         &[],
-        2,
         &[
             (StandardGate::H, &[Qubit(1)], &[]),
             (StandardGate::CX, &[Qubit(0), Qubit(1)], &[]),
@@ -1582,7 +1520,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::Swap,
         &[],
-        2,
         &[
             (StandardGate::CX, &[Qubit(0), Qubit(1)], &[]),
             (StandardGate::CX, &[Qubit(1), Qubit(0)], &[]),
@@ -1608,7 +1545,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::Swap,
         &[],
-        2,
         &[
             (StandardGate::RZ, &[Qubit(0)], &[(-PI / 2.0).into()]),
             (StandardGate::SX, &[Qubit(1)], &[]),
@@ -1640,7 +1576,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::Swap,
         &[],
-        2,
         &[
             (StandardGate::SX, &[Qubit(0)], &[]),
             (StandardGate::SX, &[Qubit(1)], &[]),
@@ -1667,7 +1602,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::ISwap,
         &[],
-        2,
         &[
             (StandardGate::S, &[Qubit(0)], &[]),
             (StandardGate::S, &[Qubit(1)], &[]),
@@ -1689,7 +1623,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::SX,
         &[],
-        1,
         &[
             (StandardGate::Sdg, &[Qubit(0)], &[]),
             (StandardGate::H, &[Qubit(0)], &[]),
@@ -1708,7 +1641,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::H,
         &[],
-        1,
         &[
             (StandardGate::S, &[Qubit(0)], &[]),
             (StandardGate::SX, &[Qubit(0)], &[]),
@@ -1727,7 +1659,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::SX,
         &[],
-        1,
         &[(StandardGate::RX, &[Qubit(0)], &[(PI / 2.0).into()])],
         PI / 4.0,
         &mut equiv,
@@ -1742,7 +1673,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::SXdg,
         &[],
-        1,
         &[
             (StandardGate::S, &[Qubit(0)], &[]),
             (StandardGate::H, &[Qubit(0)], &[]),
@@ -1761,7 +1691,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::H,
         &[],
-        1,
         &[
             (StandardGate::Sdg, &[Qubit(0)], &[]),
             (StandardGate::SXdg, &[Qubit(0)], &[]),
@@ -1780,7 +1709,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::SXdg,
         &[],
-        1,
         &[(StandardGate::RX, &[Qubit(0)], &[(-PI / 2.0).into()])],
         -PI / 4.0,
         &mut equiv,
@@ -1796,7 +1724,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CSX,
         &[],
-        2,
         &[
             (StandardGate::H, &[Qubit(1)], &[]),
             (StandardGate::CS, &[Qubit(0), Qubit(1)], &[]),
@@ -1817,7 +1744,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CSX,
         &[],
-        2,
         &[
             (StandardGate::X, &[Qubit(0)], &[]),
             (
@@ -1844,7 +1770,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::DCX,
         &[],
-        2,
         &[
             (StandardGate::CX, &[Qubit(0), Qubit(1)], &[]),
             (StandardGate::CX, &[Qubit(1), Qubit(0)], &[]),
@@ -1864,7 +1789,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::DCX,
         &[],
-        2,
         &[
             (StandardGate::H, &[Qubit(0)], &[]),
             (StandardGate::Sdg, &[Qubit(0)], &[]),
@@ -1888,7 +1812,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CSwap,
         &[],
-        3,
         &[
             (StandardGate::CX, &[Qubit(2), Qubit(1)], &[]),
             (StandardGate::CCX, &[Qubit(0), Qubit(1), Qubit(2)], &[]),
@@ -1907,7 +1830,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::T,
         &[],
-        1,
         &[(StandardGate::Phase, &[Qubit(0)], &[(PI / 4.0).into()])],
         0.0,
         &mut equiv,
@@ -1922,7 +1844,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::T,
         &[],
-        1,
         &[
             (StandardGate::Tdg, &[Qubit(0)], &[]),
             (StandardGate::Tdg, &[Qubit(0)], &[]),
@@ -1945,7 +1866,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::Tdg,
         &[],
-        1,
         &[(StandardGate::Phase, &[Qubit(0)], &[(-PI / 4.0).into()])],
         0.0,
         &mut equiv,
@@ -1960,7 +1880,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::Tdg,
         &[],
-        1,
         &[
             (StandardGate::T, &[Qubit(0)], &[]),
             (StandardGate::T, &[Qubit(0)], &[]),
@@ -1990,7 +1909,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
             Param::ParameterExpression(phi.clone()),
             Param::ParameterExpression(lam.clone()),
         ],
-        1,
         &[(
             StandardGate::U3,
             &[Qubit(0)],
@@ -2045,7 +1963,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
             Param::ParameterExpression(lam.clone()),
             Param::ParameterExpression(gamma.clone()),
         ],
-        2,
         &[
             (
                 StandardGate::Phase,
@@ -2102,7 +2019,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
             Param::ParameterExpression(lam.clone()),
             Param::ParameterExpression(gamma.clone()),
         ],
-        2,
         &[
             (
                 StandardGate::Phase,
@@ -2132,7 +2048,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::U1,
         &[Param::ParameterExpression(theta.clone())],
-        1,
         &[(
             StandardGate::U3,
             &[Qubit(0)],
@@ -2155,7 +2070,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::U1,
         &[Param::ParameterExpression(theta.clone())],
-        1,
         &[(
             StandardGate::Phase,
             &[Qubit(0)],
@@ -2174,7 +2088,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::U1,
         &[Param::ParameterExpression(theta.clone())],
-        1,
         &[(
             StandardGate::RZ,
             &[Qubit(0)],
@@ -2194,7 +2107,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CU1,
         &[Param::ParameterExpression(theta.clone())],
-        2,
         &[
             (
                 StandardGate::Phase,
@@ -2230,7 +2142,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
             Param::ParameterExpression(phi.clone()),
             Param::ParameterExpression(lam.clone()),
         ],
-        1,
         &[(
             StandardGate::U,
             &[Qubit(0)],
@@ -2258,7 +2169,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
             Param::ParameterExpression(phi.clone()),
             Param::ParameterExpression(lam.clone()),
         ],
-        1,
         &[
             (
                 StandardGate::U1,
@@ -2301,7 +2211,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
             Param::ParameterExpression(phi.clone()),
             Param::ParameterExpression(lam.clone()),
         ],
-        1,
         &[
             (
                 StandardGate::RZ,
@@ -2338,7 +2247,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
             Param::ParameterExpression(phi.clone()),
             Param::ParameterExpression(lam.clone()),
         ],
-        1,
         &[(
             StandardGate::U,
             &[Qubit(0)],
@@ -2376,7 +2284,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
             Param::ParameterExpression(phi.clone()),
             Param::ParameterExpression(lam.clone()),
         ],
-        2,
         &[
             (
                 StandardGate::Phase,
@@ -2427,7 +2334,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
             Param::ParameterExpression(phi.clone()),
             Param::ParameterExpression(lam.clone()),
         ],
-        2,
         &[(
             StandardGate::CU,
             &[Qubit(0), Qubit(1)],
@@ -2451,7 +2357,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::X,
         &[],
-        1,
         &[(
             StandardGate::U,
             &[Qubit(0)],
@@ -2470,7 +2375,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::X,
         &[],
-        1,
         &[
             (StandardGate::H, &[Qubit(0)], &[]),
             (StandardGate::S, &[Qubit(0)], &[]),
@@ -2490,7 +2394,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::X,
         &[],
-        1,
         &[
             (StandardGate::Y, &[Qubit(0)], &[]),
             (StandardGate::Z, &[Qubit(0)], &[]),
@@ -2552,7 +2455,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CX,
         &[],
-        2,
         &[
             (StandardGate::H, &[Qubit(1)], &[]),
             (StandardGate::CZ, &[Qubit(0), Qubit(1)], &[]),
@@ -2573,7 +2475,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CX,
         &[],
-        2,
         &[
             (StandardGate::H, &[Qubit(0)], &[]),
             (StandardGate::X, &[Qubit(1)], &[]),
@@ -2604,7 +2505,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CX,
         &[],
-        2,
         &[
             (StandardGate::RZ, &[Qubit(0)], &[(-PI / 2.0).into()]),
             (StandardGate::RY, &[Qubit(0)], &[PI.into()]),
@@ -2624,7 +2524,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CX,
         &[],
-        2,
         &[
             (
                 StandardGate::U,
@@ -2652,7 +2551,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CX,
         &[],
-        2,
         &[
             (
                 StandardGate::U,
@@ -2686,7 +2584,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CX,
         &[],
-        2,
         &[
             (
                 StandardGate::RZX,
@@ -2712,7 +2609,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CCX,
         &[],
-        3,
         &[
             (StandardGate::H, &[Qubit(2)], &[]),
             (StandardGate::CX, &[Qubit(1), Qubit(2)], &[]),
@@ -2746,7 +2642,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CCX,
         &[],
-        3,
         &[
             (StandardGate::CSX, &[Qubit(1), Qubit(2)], &[]),
             (StandardGate::CX, &[Qubit(0), Qubit(1)], &[]),
@@ -2770,7 +2665,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::Y,
         &[],
-        1,
         &[(
             StandardGate::U,
             &[Qubit(0)],
@@ -2789,7 +2683,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::Y,
         &[],
-        1,
         &[
             (StandardGate::H, &[Qubit(0)], &[]),
             (StandardGate::S, &[Qubit(0)], &[]),
@@ -2811,7 +2704,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::Y,
         &[],
-        1,
         &[
             (StandardGate::S, &[Qubit(0)], &[]),
             (StandardGate::S, &[Qubit(0)], &[]),
@@ -2833,7 +2725,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::Y,
         &[],
-        1,
         &[
             (StandardGate::Z, &[Qubit(0)], &[]),
             (StandardGate::X, &[Qubit(0)], &[]),
@@ -2852,7 +2743,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CY,
         &[],
-        2,
         &[
             (StandardGate::Sdg, &[Qubit(1)], &[]),
             (StandardGate::CX, &[Qubit(0), Qubit(1)], &[]),
@@ -2871,7 +2761,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::Z,
         &[],
-        1,
         &[(StandardGate::Phase, &[Qubit(0)], &[PI.into()])],
         0.0,
         &mut equiv,
@@ -2886,7 +2775,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::Z,
         &[],
-        1,
         &[
             (StandardGate::S, &[Qubit(0)], &[]),
             (StandardGate::S, &[Qubit(0)], &[]),
@@ -2904,7 +2792,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::Z,
         &[],
-        1,
         &[
             (StandardGate::X, &[Qubit(0)], &[]),
             (StandardGate::Y, &[Qubit(0)], &[]),
@@ -2923,7 +2810,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CZ,
         &[],
-        2,
         &[
             (StandardGate::H, &[Qubit(1)], &[]),
             (StandardGate::CX, &[Qubit(0), Qubit(1)], &[]),
@@ -2945,7 +2831,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::CCZ,
         &[],
-        3,
         &[
             (StandardGate::H, &[Qubit(2)], &[]),
             (StandardGate::CCX, &[Qubit(0), Qubit(1), Qubit(2)], &[]),
@@ -2964,7 +2849,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::X,
         &[],
-        1,
         &[(StandardGate::RX, &[Qubit(0)], &[PI.into()])],
         PI / 2.0,
         &mut equiv,
@@ -2979,7 +2863,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::Y,
         &[],
-        1,
         &[(StandardGate::RY, &[Qubit(0)], &[PI.into()])],
         PI / 2.0,
         &mut equiv,
@@ -2994,7 +2877,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::H,
         &[],
-        1,
         &[
             (StandardGate::RY, &[Qubit(0)], &[(PI / 2.0).into()]),
             (StandardGate::RX, &[Qubit(0)], &[PI.into()]),
@@ -3012,7 +2894,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
     create_standard_equivalence(
         StandardGate::H,
         &[],
-        1,
         &[
             (
                 StandardGate::R,
@@ -3047,7 +2928,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
             Param::ParameterExpression(theta.clone()),
             Param::ParameterExpression(beta.clone()),
         ],
-        2,
         &[
             (
                 StandardGate::RZ,
@@ -3102,7 +2982,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
             Param::ParameterExpression(theta.clone()),
             Param::ParameterExpression(beta.clone()),
         ],
-        2,
         &[
             (
                 StandardGate::RZ,
@@ -3147,7 +3026,6 @@ pub fn generate_standard_equivalence_library() -> Result<EquivalenceLibrary, Equ
             Param::ParameterExpression(theta.clone()),
             Param::ParameterExpression(beta.clone()),
         ],
-        2,
         &[
             (
                 StandardGate::RZ,
