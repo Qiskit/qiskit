@@ -89,7 +89,8 @@ pub extern "C" fn qk_sabre_layout_options_default() -> QkSabreLayoutOptions {
 /// for NISQ-era quantum devices." ASPLOS 2019.
 /// [`arXiv:1809.02573](https://arxiv.org/pdf/1809.02573.pdf)
 ///
-/// @param circuit A pointer to the circuit to run SabreLayout on
+/// @param circuit A pointer to the circuit to run SabreLayout on. The circuit
+///     is modified in place and the original circuit's allocations are freed by this function.
 /// @param target A pointer to the target to run SabreLayout on
 /// @param options A pointer to the options for SabreLayout
 ///
