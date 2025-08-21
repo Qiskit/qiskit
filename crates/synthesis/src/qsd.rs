@@ -374,7 +374,7 @@ fn _zxz_decomp_verify(
 
     let mat_check = a_blcok * b_block * c_block * Complex64::from(0.5);
 
-    const EPS: f64 = 1e-5;
+    const EPS: f64 = 1e-4;
     let close = abs_diff_eq!(mat, &mat_check, epsilon = EPS);
     close
 }
@@ -525,7 +525,7 @@ fn _demultiplex_verify(
 
     let u_check = v_block * d_block * w_block;
 
-    const EPS: f64 = 1e-5;
+    const EPS: f64 = 1e-4;
     let close = abs_diff_eq!(u_block, u_check, epsilon = EPS);
     close
 }

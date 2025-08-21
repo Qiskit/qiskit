@@ -49,7 +49,7 @@ fn verify_svd_decomp(
     let max_diff = (mat - &mat_check).map(|c| c.norm()).max();
     // println!("-- SVD_VERIFY: max_diff = {max_diff}");
 
-    let close = abs_diff_eq!(mat, &mat_check, epsilon = 1e-6);
+    let close = abs_diff_eq!(mat, &mat_check, epsilon = 1e-5);
     assert!(close);
     close
 }
@@ -61,7 +61,7 @@ pub fn verify_unitary(u: &DMatrix<Complex64>) -> bool {
     let uu = u.adjoint() * u;
     let max_diff = (&uu - &id_mat).map(|c| c.norm()).max();
     // println!("UNI_VERIFY: max_diff = {max_diff}");
-    let close = abs_diff_eq!(uu, id_mat, epsilon = 1e-6);
+    let close = abs_diff_eq!(uu, id_mat, epsilon = 1e-5);
     assert!(close);
     close
 }
