@@ -88,7 +88,7 @@ int test_sabre_layout_applies_layout(void) {
     qk_transpile_layout_output_permutation(layout_result, result_final_layout);
     for (uint32_t i = 0; i < 5; i++) {
         if (result_final_layout[i] != expected_final_layout[i]) {
-            printf("Final layout maps qubit %d to %d, expected %d instead\n", i,
+            printf("Output permutation maps qubit %d to %d, expected %d instead\n", i,
                    result_final_layout[i], expected_final_layout[i]);
             result = EqualityError;
             goto layout_cleanup;
@@ -187,7 +187,7 @@ int test_sabre_layout_no_swap(void) {
     qk_transpile_layout_output_permutation(layout_result, result_final_layout);
     for (uint32_t i = 0; i < 5; i++) {
         if (result_final_layout[i] != expected_final_layout[i]) {
-            printf("Final layout maps qubit %d to %d, expected %d instead\n", i,
+            printf("Output permutation maps qubit %d to %d, expected %d instead\n", i,
                    result_final_layout[i], expected_final_layout[i]);
             result = EqualityError;
             goto layout_cleanup;

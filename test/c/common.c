@@ -125,8 +125,8 @@ bool compare_circuits(const QkCircuit *res, const QkCircuit *expected) {
         }
         for (uint32_t j = 0; j < res_inst.num_params; j++) {
             if (res_inst.params[j] != expected_inst.params[j]) {
-                printf("Parameter %d for gate %d are different %d was found and expected %d\n", j, i,
-                       res_inst.params[j] != expected_inst.params[j]);
+                printf("Parameter %d for gate %d are different %d was found and expected %d\n", j,
+                       i, res_inst.params[j] != expected_inst.params[j]);
                 qk_circuit_instruction_clear(&res_inst);
                 qk_circuit_instruction_clear(&expected_inst);
                 return false;
