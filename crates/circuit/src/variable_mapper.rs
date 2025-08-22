@@ -43,20 +43,20 @@ impl<'py> FromPyObject<'py> for Condition {
 ///
 /// TODO: move this to control flow mod once that's in Rust.
 #[derive(IntoPyObject)]
-pub(crate) enum Target {
+pub(crate) enum ControlFlowTarget {
     Bit(ShareableClbit),
     Register(ClassicalRegister),
     Expr(expr::Expr),
 }
 
-impl<'py> FromPyObject<'py> for Target {
+impl<'py> FromPyObject<'py> for ControlFlowTarget {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         if let Ok(bit) = ob.extract::<ShareableClbit>() {
-            Ok(Target::Bit(bit))
+            Ok(ControlFlowTarget::Bit(bit))
         } else if let Ok(register) = ob.extract::<ClassicalRegister>() {
-            Ok(Target::Register(register))
+            Ok(ControlFlowTarget::Register(register))
         } else {
-            Ok(Target::Expr(ob.extract()?))
+            Ok(ControlFlowTarget::Expr(ob.extract()?))
         }
     }
 }
@@ -179,16 +179,24 @@ impl VariableMapper {
 
     /// Map the real-time variables in a `target` of a `SwitchCaseOp` to the new
     /// circuit.
-    pub fn map_target<F>(&self, target: &Target, mut add_register: F) -> PyResult<Target>
+    pub fn map_target<F>(
+        &self,
+        target: &ControlFlowTarget,
+        mut add_register: F,
+    ) -> PyResult<ControlFlowTarget>
     where
         F: FnMut(&ClassicalRegister) -> PyResult<()>,
     {
         Ok(match target {
-            Target::Bit(bit) => Target::Bit(self.bit_map.get(bit).cloned().unwrap()),
-            Target::Register(register) => {
-                Target::Register(self.map_register(register, &mut add_register)?)
+            ControlFlowTarget::Bit(bit) => {
+                ControlFlowTarget::Bit(self.bit_map.get(bit).cloned().unwrap())
             }
-            Target::Expr(expr) => Target::Expr(self.map_expr(expr, &mut add_register)?),
+            ControlFlowTarget::Register(register) => {
+                ControlFlowTarget::Register(self.map_register(register, &mut add_register)?)
+            }
+            ControlFlowTarget::Expr(expr) => {
+                ControlFlowTarget::Expr(self.map_expr(expr, &mut add_register)?)
+            }
         })
     }
 
