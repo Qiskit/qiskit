@@ -58,15 +58,17 @@ int test_sabre_layout_applies_layout(void) {
         goto layout_cleanup;
     }
     for (int i = 0; i < op_counts.len; i++) {
-        int swap_gate = strcmp(op_counts.data[i].name, "swap");
-        int cx_gate = strcmp(op_counts.data[i].name, "cx");
+        const char *name = op_counts.data[i].name;
+        int swap_gate = strcmp(name, "swap");
+        int cx_gate = strcmp(name, "cx");
         if (cx_gate != 0 && swap_gate != 0) {
-            printf("Gate type of %s found in the circuit which isn't expected\n");
+            printf("Gate type of %s found in the circuit which isn't expected\n", name);
             result = EqualityError;
             goto layout_cleanup;
         }
-        if (swap_gate == 0 && op_counts.data[i].count != 2) {
-            printf("Unexpected number of swaps %d found in the circuit.\n");
+        size_t count = op_counts.data[i].count;
+        if (swap_gate == 0 && count != 2) {
+            printf("Unexpected number of swaps %zu found in the circuit.\n", count);
             result = EqualityError;
             goto layout_cleanup;
         }
