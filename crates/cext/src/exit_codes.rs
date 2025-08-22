@@ -38,6 +38,8 @@ pub enum ExitCode {
     AlignmentError = 102,
     /// Index out of bounds.
     IndexError = 103,
+    /// Duplicate index.
+    DuplicateIndexError = 104,
     /// Error related to arithmetic operations or similar.
     ArithmeticError = 200,
     /// Mismatching number of qubits.
@@ -54,8 +56,6 @@ pub enum ExitCode {
     TargetInvalidQargsKey = 303,
     /// Querying an operation that doesn't exist in the Target.
     TargetInvalidInstKey = 304,
-    /// Errors related to transpilation.
-    TranspilerError = 400,
 }
 
 impl From<ArithmeticError> for ExitCode {
