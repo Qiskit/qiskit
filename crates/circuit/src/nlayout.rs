@@ -91,6 +91,7 @@ impl PhysicalQubit {
         layout.phys_to_virt[self.index()]
     }
 }
+unsafe impl ::bytemuck::NoUninit for PhysicalQubit {}
 
 qubit_newtype!(VirtualQubit);
 impl VirtualQubit {

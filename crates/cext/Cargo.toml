@@ -16,6 +16,7 @@ workspace = true
 
 
 [dependencies]
+bytemuck.workspace = true
 thiserror.workspace = true
 num-complex.workspace = true
 qiskit-quantum-info.workspace = true

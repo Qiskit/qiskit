@@ -24,6 +24,8 @@ use pyo3::ffi::PyObject;
 use pyo3::{Py, Python};
 #[cfg(feature = "python_binding")]
 use qiskit_quantum_info::sparse_observable::PySparseObservable;
+#[cfg(feature = "cbinding")]
+use qiskit_transpiler::transpile_layout::TranspileLayout;
 
 /// A term in a ``QkObs``.
 ///
@@ -716,6 +718,60 @@ pub unsafe extern "C" fn qk_obs_compose_map(
 
     let result = first.compose_map(second, qargs_map);
     Box::into_raw(Box::new(result))
+}
+
+/// @ingroup QkObs
+/// Apply a ``QkTranspileLayout`` to the observable.
+///
+/// @param obs A pointer to the observable, this observable will be modified in place upon success.
+/// Check the exit code to ensure the layout was correctly applied.
+/// @param layout A pointer to the layout.
+///
+/// @return An exit code.
+///
+/// # Example
+///
+///     QkObs *obs = qk_obs_zero(4);
+///
+///     QkBitTerm bit_terms[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
+///     uint32_t qubits[3] = {1, 2, 3};
+///     complex double coeff = 1;
+///     QkObsTerm term = {coeff, 3, bit_terms, qubits, 4};
+///
+///     int err = qk_obs_add_term(obs, &term);
+///     if (err != 0) {
+///         qk_obs_free(obs);
+///         return err;
+///     }
+///
+///     uint32_t virt_to_phys[3] = {0, 3, 2, 1};
+///     QkLayout *layout = qk_layout_new(virt_to_phys, num_qubits);
+///     int exit = qk_obs_apply_layout(obs, layout);
+///
+/// # Safety
+///
+/// Behavior is undefined if ``obs`` is not a valid, non-null pointer to ``QkObs`` or if ``layout``
+/// is not a valid, non-null pointer to ``QkTranspileLayout``.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_obs_apply_layout(
+    obs: *mut SparseObservable,
+    layout: *const TranspileLayout,
+) -> ExitCode {
+    let obs = unsafe { mut_ptr_as_ref(obs) };
+    let layout = unsafe { const_ptr_as_ref(layout) };
+
+    // Cast the slice of PhysicalQubit (which is u32) to plain u32, which is required
+    // by the apply_layout method.
+    let layout = layout.final_index_layout(true);
+    let as_slice: &[u32] = ::bytemuck::cast_slice(&layout);
+    let obs_with_layout = match obs.apply_layout(Some(as_slice), obs.num_qubits()) {
+        Ok(obs_with_layout) => obs_with_layout,
+        Err(_) => return ExitCode::TranspilerError,
+    };
+
+    *obs = obs_with_layout;
+    return ExitCode::Success;
 }
 
 /// @ingroup QkObs
