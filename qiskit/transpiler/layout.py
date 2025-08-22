@@ -810,9 +810,12 @@ class TranspileLayout:
 
         output_qubits = list(dag.qubits)
 
-        if virtual_permutation_layout is None:
-            if initial_layout is None:
-                return None
+        if initial_layout is None and virtual_permutation_layout is None and final_layout is None:
+            # Nothing that truly sets a Python-space `TranspileLayout` is set.
+            return None
+        if initial_layout is not None and virtual_permutation_layout is None:
+            # This is the "happy" path where everything is already (in theory) normalised to the
+            # original state of how the transpiler handled these properties.
             return cls(
                 initial_layout, input_qubit_indices, final_layout, num_input_qubits, output_qubits
             )
@@ -822,6 +825,8 @@ class TranspileLayout:
         # an initial layout, even if there isn't actually any laying out to hardware.
         if initial_layout is None:
             initial_layout = Layout(dict(enumerate(dag.qubits)))
+        if virtual_permutation_layout is None:
+            virtual_permutation_layout = Layout(input_qubit_indices)
         if final_layout is None:
             final_layout = Layout(dict(enumerate(dag.qubits)))
 
