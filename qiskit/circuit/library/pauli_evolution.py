@@ -180,7 +180,7 @@ class PauliEvolutionGate(Gate):
 
         Args:
             exponent: The power to raise the gate to.
-            annotated: Not applicable to this class. Usually, when this is ``True``we return an
+            annotated: Not applicable to this class. Usually, when this is ``True`` we return an
                 :class:`.AnnotatedOperation` with a power modifier set instead of a concrete
                 :class:`.Gate`. However, we can efficiently represent powers of Pauli evolutions
                 as :class:`.PauliEvolutionGate`, which is used here.
@@ -214,7 +214,7 @@ class PauliEvolutionGate(Gate):
                 operation.
             ctrl_state: The control state in decimal or as a bitstring
                 (e.g. ``"111"``). If ``None``, use ``2**num_ctrl_qubits - 1``.
-            annotated: Not applicable to this class. Usually, when this is ``True``we return an
+            annotated: Not applicable to this class. Usually, when this is ``True`` we return an
                 :class:`.AnnotatedOperation` with a control modifier set instead of a concrete
                 :class:`.Gate`. However, we can efficiently represent controlled Pauli evolutions
                 as :class:`.PauliEvolutionGate`, which is used here.
