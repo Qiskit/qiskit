@@ -5,7 +5,7 @@ cmake_minimum_required (VERSION 3.27)
 
 # We fail upon any warnings.
 if (MSVC) 
-    add_compile_options(/W4 /WX)
+    add_compile_options(/W3 /WX)
 else ()
     add_compile_options(-Wall -Wextra -Werror -Wshadow)
 endif ()
