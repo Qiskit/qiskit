@@ -60,7 +60,8 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_split_2q_unitaries(
         Ok(dag) => dag,
         Err(_e) => panic!("Internal circuit -> DAG conversion failed."),
     };
-    let result = run_split_2q_unitaries(&mut dag, requested_fidelity, split_swaps).unwrap();
+    let result = run_split_2q_unitaries(&mut dag, requested_fidelity, split_swaps)
+        .unwrap_or_else(|_| panic!("Running the Split2qUnitaries pass failed"));
     match result {
         Some((out_dag, permutation)) => {
             let out_circuit = match dag_to_circuit(&out_dag, false) {
