@@ -434,7 +434,7 @@ int test_target_add_instruction(void) {
     }
     size_t num_meas = qk_target_entry_num_properties(meas);
     if (num_meas != 3) {
-        printf("Expected 3 measurement entries but got: %u", num_meas);
+        printf("Expected 3 measurement entries but got: %zu", num_meas);
         result = EqualityError;
         qk_target_entry_free(meas);
         goto cleanup;
@@ -470,7 +470,7 @@ int test_target_add_instruction(void) {
     }
     size_t num_reset = qk_target_entry_num_properties(reset);
     if (num_reset != 3) {
-        printf("Expected 3 reset entries but got: %u", num_reset);
+        printf("Expected 3 reset entries but got: %zu", num_reset);
         result = EqualityError;
         qk_target_entry_free(reset);
         goto cleanup;
