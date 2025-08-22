@@ -32,6 +32,7 @@ int test_split_2q_unitaries_no_unitaries(void) {
     if (split_result != NULL) {
         result = EqualityError;
         printf("Permutation returned for a circuit that shouldn't split\n");
+        qk_transpile_layout_free(split_result);
         goto cleanup;
     }
     QkOpCounts counts = qk_circuit_count_ops(qc);
@@ -71,6 +72,7 @@ int test_split_2q_unitaries_x_y_unitary(void) {
     if (split_result != NULL) {
         result = EqualityError;
         printf("Permutation returned for a circuit that shouldn't isn't a swap equivalent\n");
+        qk_transpile_layout_free(split_result);
         goto cleanup;
     }
     QkOpCounts counts = qk_circuit_count_ops(qc);
