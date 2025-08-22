@@ -598,10 +598,10 @@ class TranspileLayout:
             output = [None] * self._input_qubit_count
         else:
             output = [None] * len(virtual_map)
-        for index, (virt, phys) in enumerate(virtual_map.items()):
-            if filter_ancillas and index >= self._input_qubit_count:
-                break
+        for virt, phys in virtual_map.items():
             pos = self.input_qubit_mapping[virt]
+            if filter_ancillas and pos >= self._input_qubit_count:
+                continue
             output[pos] = phys
         return output
 
