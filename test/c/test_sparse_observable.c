@@ -801,7 +801,7 @@ int test_apply_layout_too_small(void) {
     int err = qk_obs_apply_layout(obs, layout, 3000);
     qk_obs_free(obs);
 
-    return err == QkExitCode_TranspilerError ? Ok : EqualityError;
+    return err == QkExitCode_MismatchedQubits ? Ok : EqualityError;
 }
 
 int test_sparse_observable(void) {
