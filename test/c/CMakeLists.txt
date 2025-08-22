@@ -4,7 +4,11 @@
 cmake_minimum_required (VERSION 3.27)
 
 # We fail upon any warnings.
-add_compile_options(-Wall -Wextra -Werror)
+if (MSVC) 
+    add_compile_options(/W4 /WX)
+else ()
+    add_compile_options(-Wall -Wextra -Werror)
+endif ()
 
 # All files in this directory (non-recursively! use GLOB_RECURSE if that becomes
 # necessary) which match the pattern `test_*.c` are discovered as test files by
