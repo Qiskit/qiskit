@@ -723,33 +723,56 @@ pub unsafe extern "C" fn qk_obs_compose_map(
 ///
 /// @param obs A pointer to the observable, this observable will be modified in place upon success.
 /// Check the exit code to ensure the layout was correctly applied.
-/// @param layout A pointer to the layout.
+/// @param layout A pointer to the layout. The pointer must point to an array to
+/// ``qk_obs_num_qubits(obs)`` elements of type ``uint32_t``.
+/// @param num_qubits The number of output qubits. This number must be at least
+/// ``max(layout_array) + 1``.
 ///
 /// @return An exit code.
 ///
 /// # Example
 ///
+/// This interface allows to relabel and extend the qubit indices:
+///
+/// ```c
 ///     QkObs *obs = qk_obs_zero(4);
 ///
+///     // add a term to the observable
 ///     QkBitTerm bit_terms[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
 ///     uint32_t qubits[3] = {1, 2, 3};
 ///     complex double coeff = 1;
 ///     QkObsTerm term = {coeff, 3, bit_terms, qubits, 4};
+///     qk_obs_add_term(obs, &term);
 ///
-///     int err = qk_obs_add_term(obs, &term);
-///     if (err != 0) {
-///         qk_obs_free(obs);
-///         return err;
-///     }
+///     uint32_t layout[3] = {0, 10, 9};
+///     uint32_t num_output_qubits = 11;
+///     int exit = qk_obs_apply_layout(obs, layout, num_output_qubits);
+/// ```
 ///
-///     uint32_t virt_to_phys[3] = {0, 3, 2, 1};
-///     QkLayout *layout = qk_layout_new(virt_to_phys, num_qubits);
-///     int exit = qk_obs_apply_layout(obs, layout);
+/// In a compiler workflow, this function can conveniently be used to apply a
+/// ``QkTranspileLayout*`` obtained from a transpiler pass, called ``transpile_layout``
+/// in the following example:
+///
+/// ```c
+///     // get the number of output qubits
+///     uint32_t num_output_qubits = qk_transpile_layout_num_output_qubits(transpile_layout);
+///
+///     // get the layout including the ancillas (hence the ``false`` in the function call)
+///     uint32_t *layout = malloc(sizeof(uint32_t) * num_output_qubits);
+///     qk_transpile_layout_final_layout(transpile_layout, false, layout);
+///
+///     // apply the layout
+///     int exit = qk_obs_apply_layout(obs, layout, num_output_qubits);
+///
+///     // free the layout array
+///     free(layout);
+/// ```
 ///
 /// # Safety
 ///
 /// Behavior is undefined if ``obs`` is not a valid, non-null pointer to ``QkObs`` or if ``layout``
-/// is not a valid, non-null pointer to ``QkTranspileLayout``.
+/// is not a valid, non-null pointer to a sequence of ``qk_obs_num_qubits(obs)`` consecutive
+/// elements of ``uint32_t``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_apply_layout(
