@@ -796,7 +796,7 @@ pub unsafe extern "C" fn qk_obs_apply_layout(
     };
 
     *obs = obs_with_layout;
-    return ExitCode::Success;
+    ExitCode::Success
 }
 
 /// @ingroup QkObs

@@ -741,6 +741,7 @@ int test_apply_layout(void) {
 
     // elide the permutations and obtain a layout which we can apply to the observable
     QkTranspileLayout *transpile_layout = qk_transpiler_pass_standalone_elide_permutations(qc);
+    qk_circuit_free(qc);
 
     // Build an observable as X1 +2 -3 Y4 Z5
     QkObs *obs = qk_obs_zero(num_qubits);
@@ -753,6 +754,7 @@ int test_apply_layout(void) {
 
     if (err != 0) {
         qk_obs_free(obs);
+        qk_transpile_layout_free(transpile_layout);
         return RuntimeError;
     }
 
@@ -764,6 +766,7 @@ int test_apply_layout(void) {
     // apply the layout and verify nothing went wrong
     err = qk_obs_apply_layout(obs, layout, num_output_qubits);
 
+    qk_transpile_layout_free(transpile_layout);
     free(layout);
     if (err != 0) {
         qk_obs_free(obs);
