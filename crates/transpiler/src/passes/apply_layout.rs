@@ -58,13 +58,17 @@ pub fn apply_layout(
         );
         physicals.push(phys);
     }
-    let unassigned = virtuals.iter_mut().enumerate().filter_map(|(i, virt)| {
-        (*virt == VirtualQubit::MAX).then_some((virt, PhysicalQubit::new(i as u32)))
-    });
-    for (ancilla, (slot, phys)) in (num_virtual_qubits..num_physical_qubits).zip(unassigned) {
-        physicals.push(phys);
-        *slot = VirtualQubit::new(ancilla);
-    }
+    // First, an iterator over the virtual indices corresponding to ancillas...
+    (num_virtual_qubits..num_physical_qubits)
+        .zip(virtuals.iter_mut().enumerate().filter_map(|(i, virt)| {
+            // ... zipped with an iterator over the "slots" in `virtuals` that haven't been filled
+            // in yet, and the physical qubits they correspond to.
+            (*virt == VirtualQubit::MAX).then_some((virt, PhysicalQubit::new(i as u32)))
+        }))
+        .for_each(|(ancilla, (slot, phys))| {
+            physicals.push(phys);
+            *slot = VirtualQubit::new(ancilla);
+        });
     let initial_layout = NLayout::from_vecs_unchecked(physicals, virtuals);
 
     let final_permutation = cur_layout.output_permutation().map(|previous| {
