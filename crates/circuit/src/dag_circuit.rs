@@ -6800,13 +6800,8 @@ impl DAGCircuit {
 
     /// Replace a node with individual operations from a provided callback
     /// function on each qubit of that node.
-    #[allow(unused_variables)]
-    pub fn replace_node_with_1q_ops<F>(
-        &mut self,
-        py: Python, // Unused if cache_pygates isn't enabled
-        node: NodeIndex,
-        insert: F,
-    ) where
+    pub fn replace_node_with_1q_ops<F>(&mut self, node: NodeIndex, insert: F)
+    where
         F: Fn(Wire) -> (PackedOperation, SmallVec<[Param; 3]>),
     {
         let mut edge_list: Vec<(NodeIndex, NodeIndex, Wire)> = Vec::with_capacity(2);
@@ -6833,17 +6828,6 @@ impl DAGCircuit {
             } else {
                 panic!("This method only works if the gate being replaced has no classical incident wires")
             };
-            #[cfg(feature = "cache_pygates")]
-            let py_op = match new_op.view() {
-                OperationRef::StandardGate(_)
-                | OperationRef::StandardInstruction(_)
-                | OperationRef::Unitary(_) => OnceLock::new(),
-                OperationRef::Gate(gate) => OnceLock::from(gate.gate.clone_ref(py)),
-                OperationRef::Instruction(instruction) => {
-                    OnceLock::from(instruction.instruction.clone_ref(py))
-                }
-                OperationRef::Operation(op) => OnceLock::from(op.operation.clone_ref(py)),
-            };
             let inst = PackedInstruction {
                 op: new_op,
                 qubits: self.qargs_interner.insert_owned(qubits),
@@ -6851,7 +6835,7 @@ impl DAGCircuit {
                 params: (!params.is_empty()).then(|| Box::new(params)),
                 label: None,
                 #[cfg(feature = "cache_pygates")]
-                py_op,
+                py_op: OnceLock::new(),
             };
             let new_index = self.dag.add_node(NodeType::Operation(inst));
             self.dag.add_edge(source, new_index, weight);
