@@ -3,6 +3,9 @@
 # https://cmake.org/cmake/help/book/mastering-cmake/chapter/Testing%20With%20CMake%20and%20CTest.html
 cmake_minimum_required (VERSION 3.27)
 
+# We fail upon any warnings.
+add_compile_options(-Wall -Wextra -Werror)
+
 # All files in this directory (non-recursively! use GLOB_RECURSE if that becomes
 # necessary) which match the pattern `test_*.c` are discovered as test files by
 # the command below. All paths are stored relative to the location of this file.

@@ -590,8 +590,8 @@ int test_get_gate_counts_bv_resets_barrier_and_measures(void) {
             if (result != 0) {
                 goto loop_exit;
             }
-            for (uint32_t j = 0; i < 1000; j++) {
-                if (inst.qubits[i] != i) {
+            for (uint32_t j = 0; j < 1000; j++) {
+                if (inst.qubits[j] != j) {
                     result = EqualityError;
                     goto loop_exit;
                 }
@@ -622,8 +622,8 @@ int test_get_gate_counts_bv_resets_barrier_and_measures(void) {
             if (result != 0) {
                 goto loop_exit;
             }
-            for (uint32_t j = 0; i < 1000; j++) {
-                if (inst.qubits[i] != i) {
+            for (uint32_t j = 0; j < 1000; j++) {
+                if (inst.qubits[j] != j) {
                     result = EqualityError;
                     goto loop_exit;
                 }

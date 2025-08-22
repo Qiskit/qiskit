@@ -441,6 +441,11 @@ int test_target_add_instruction(void) {
     }
 
     QkExitCode result_meas_props = qk_target_add_instruction(target, meas);
+    if (result_meas_props != 0) {
+        printf("Failed adding measurement instruction.");
+        result = EqualityError;
+        goto cleanup;
+    }
     // Number of qubits of the target should remain 3.
     current_num_qubits = qk_target_num_qubits(target);
     if (current_num_qubits != 3) {
