@@ -14,7 +14,7 @@
 
 """Tests the layout object"""
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
 from qiskit.transpiler.layout import Layout, TranspileLayout
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.compiler import transpile
@@ -158,6 +158,22 @@ class TranspileLayoutTest(QiskitTestCase):
         cmap = CouplingMap.from_line(6, bidirectional=False)
         tqc = transpile(qc, coupling_map=cmap, initial_layout=[5, 2, 1], seed_transpiler=42)
         self.assertEqual(tqc.layout.initial_index_layout(True), [5, 2, 1])
+
+    def test_initial_index_layout_filter_ancillas_out_of_order(self):
+        """Regression test of gh-14712."""
+        virtuals = [Qubit(), Qubit(), Qubit()]
+        ancillas = list(QuantumRegister(2, "ancilla"))
+        layout = TranspileLayout(
+            # The point here is that the virtual qubits aren't added in order.
+            initial_layout=Layout(
+                {**dict(zip(ancillas, (0, 1))), **dict(zip(virtuals, (2, 3, 4)))}
+            ),
+            input_qubit_mapping={**dict(zip(virtuals, (0, 1, 2))), **dict(zip(ancillas, (3, 4)))},
+            final_layout=None,
+            _input_qubit_count=3,
+            _output_qubit_list=list(QuantumRegister(5, "q")),
+        )
+        self.assertEqual(layout.initial_index_layout(filter_ancillas=True), [2, 3, 4])
 
     def test_initial_virtual_layout(self):
         qc = QuantumCircuit(3)
