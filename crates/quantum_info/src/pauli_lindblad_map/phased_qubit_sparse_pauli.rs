@@ -520,7 +520,7 @@ impl PyPhasedQubitSparsePauli {
         )))
     }
 
-    /// Construct a :class:`.PhasedQubitSparsePauli` from raw Numpy arrays that match :ref:`the
+    /// Construct a :class:`.PhasedQubitSparsePauli` from raw Numpy arrays that match the
     /// required data representation described in the class-level documentation.
     ///
     /// The data from each array is copied into fresh, growable Rust-space allocations.
