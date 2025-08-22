@@ -33,6 +33,8 @@ Operators
    PauliLindbladMap
    QubitSparsePauli
    QubitSparsePauliList
+   PhasedQubitSparsePauli
+   PhasedQubitSparsePauliList
    CNOTDihedral
    PauliList
    pauli_basis
