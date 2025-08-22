@@ -88,7 +88,7 @@ int test_split_2q_unitaries_x_y_unitary(void) {
             result = EqualityError;
             goto ops_cleanup;
         }
-        unsigned int count = counts.data[i].count;
+        size_t count = counts.data[i].count;
         if (count != 2) {
             printf("Unexpected gate counts found\n");
             result = EqualityError;
@@ -155,7 +155,7 @@ int test_split_2q_unitaries_swap_x_y_unitary(void) {
             result = EqualityError;
             goto ops_cleanup;
         }
-        unsigned int count = counts.data[i].count;
+        size_t count = counts.data[i].count;
         if (count != 2) {
             printf("Unexpected gate counts found\n");
             result = EqualityError;
