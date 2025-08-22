@@ -128,7 +128,7 @@ int test_split_2q_unitaries_swap_x_y_unitary(void) {
     int result = Ok;
     if (split_result == NULL) {
         result = EqualityError;
-        printf("Permutation returned for a circuit that shouldn't split\n");
+        printf("Permutation not returned for a circuit that should have one\n");
         goto cleanup;
     }
     uint32_t permutation[2];
