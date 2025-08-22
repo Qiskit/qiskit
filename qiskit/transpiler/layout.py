@@ -840,7 +840,7 @@ class TranspileLayout:
         # This is to match the convention that `PermutationGate` uses, but beware: it might not be
         # the way you think about permutations (it's not my preferred convention---Jake).
         #
-        # Now, we'll step through the tranpsilation process.  At each point, we'll relate the
+        # Now, we'll step through the transpilation process.  At each point, we'll relate the
         # objects we have back to a 3-tuple of abstract objects, which are applied in order:
         #
         #   (relabelling, explicit instructions, implicit instructions)
@@ -852,11 +852,21 @@ class TranspileLayout:
         # permutation, though you could imagine a world where we allow a lot more things to be
         # tracked, such as necessary classical post-processing steps.
         #
-        # We will attempt to always have in hand an "undoing" permutation, such that doing
-        # `qc.append(PermutationGate(permutation), qc.qubits)` to the output of the transpiler, were
-        # it to terminate at any given step, would be enough to precisely recreate the unitary of
-        # the circuit (with due hand-waviness around measurements/resets), up to the qubit
-        # relabelling of the initial layout.
+        # We will attempt to always have in hand the permutation that needs to be appended to the
+        # current explicit circuit to "undo" all the elided/added permutations.  For example, we
+        # want the permutation that adds back in what `ElidePermutations` might have removed, or
+        # "undoes" the swaps that routing added.  Explicitly, we want to have a ``permutation`` such
+        # that this sequence of operations brings us back to the same semantics as the original
+        # virtual circuit:
+        #
+        #   current = <current explicit circuit/DAG>
+        #   # Make the permutation explicit; the permutation is defined on the current qubit labels.
+        #   current.append(PermutationGate(permutation), current.qubits)
+        #   # Now revert the `initial_layout` relabelling.
+        #   relabel_qubits_from_physical_to_virtual(qc, initial_layout)
+        #
+        # where "semantics" would mean exact unitary equivalence for a unitary input, and something
+        # a bit hand-wavier once measurements are involved.
 
         # First, virtual permutation modifications happen.  For example, `ElidePermutations` or
         # `StarPreRouting`.  Note that `virtual_permutation_layout` uses an opposite convention to
