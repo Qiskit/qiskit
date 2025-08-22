@@ -29,8 +29,8 @@ mod compose_transforms;
 mod errors;
 
 use qiskit_circuit::circuit_instruction::OperationFromPython;
+use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuitBuilder;
-use qiskit_circuit::imports::DAG_TO_CIRCUIT;
 use qiskit_circuit::imports::QUANTUM_CIRCUIT;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::packed_instruction::PackedInstruction;
@@ -445,9 +445,7 @@ fn apply_translation(
                             qargs_with_non_global_operation,
                         ).map_err(PyErr::from)?;
                         let flow_circ_block = if is_updated {
-                            DAG_TO_CIRCUIT
-                                .get_bound(py)
-                                .call1((updated_dag,))?
+                            QUANTUM_CIRCUIT.get_bound(py).call_method1(intern!(py, "_from_circuit_data"), (dag_to_circuit(&updated_dag, true)?,))?
                         } else {
                             QUANTUM_CIRCUIT.get_bound(py).call_method1(intern!(py, "_from_circuit_data"), (block,))?
                         };
@@ -691,7 +689,7 @@ fn replace_node(
                                             .into_iter()
                                             .collect();
                                     new_value = new_value
-                                        .subs(&map, false)
+                                        .subs(&map, true)
                                         .map_err(|err| {
                                             BasisTranslatorError::ReplaceNodeParameterError(
                                                 err.to_string(),
@@ -718,7 +716,7 @@ fn replace_node(
                                         )
                                     })?;
                                 new_value = param_obj
-                                    .bind(&parsed_bind_dict, false)
+                                    .bind(&parsed_bind_dict, true)
                                     .map_err(|err| {
                                         BasisTranslatorError::ReplaceNodeParameterError(
                                             err.to_string(),
@@ -790,7 +788,7 @@ fn replace_node(
         match target_dag.global_phase() {
             Param::ParameterExpression(old_phase) => {
                 let new_phase: Param = {
-                    let mut bind_dict = HashMap::new();
+                    let mut bind_dict = HashMap::with_capacity(old_phase.num_symbols());
                     for key in old_phase.iter_symbols() {
                         bind_dict.insert(key.clone(), parameter_map[key].clone());
                     }
@@ -809,7 +807,7 @@ fn replace_node(
                                     .into_iter()
                                     .collect();
                             new_phase = new_phase
-                                .subs(&map, false)
+                                .subs(&map, true)
                                 .map_err(|err| {
                                     BasisTranslatorError::ReplaceNodeParameterError(err.to_string())
                                 })?
@@ -832,7 +830,7 @@ fn replace_node(
                                 BasisTranslatorError::ReplaceNodeParameterError(err.to_string())
                             })?;
                         new_phase = old_phase
-                            .bind(&parsed_bind_dict, false)
+                            .bind(&parsed_bind_dict, true)
                             .map_err(|err| {
                                 BasisTranslatorError::ReplaceNodeParameterError(err.to_string())
                             })?
