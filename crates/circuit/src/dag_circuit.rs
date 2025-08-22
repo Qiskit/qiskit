@@ -5144,9 +5144,8 @@ impl DAGCircuit {
         let mut new_io_map = vec![[<NodeIndex as IndexType>::max(); 2]; self.qubit_io_map.len()];
         for (old, [in_, out]) in self.qubit_io_map.iter().enumerate() {
             let new = map_fn(Qubit::new(old));
-            assert_eq!(
-                new_io_map[new.index()][0],
-                <NodeIndex as IndexType>::max(),
+            assert!(
+                new_io_map[new.index()][0] == <NodeIndex as IndexType>::max(),
                 "qubit {old} was reindexed to {new:?}, which was already assigned"
             );
             new_io_map[new.index()] = [*in_, *out];

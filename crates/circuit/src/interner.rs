@@ -502,7 +502,7 @@ where
         for (i, value) in values.enumerate() {
             let expected = i as u32 + 1;
             let actual = self.insert_owned(map_fn(value)).index;
-            assert_eq!(actual, expected, "mapping returned a duplicate key");
+            assert!(actual == expected, "mapping returned a duplicate key");
         }
     }
 }
