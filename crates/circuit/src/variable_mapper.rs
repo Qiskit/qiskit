@@ -43,20 +43,20 @@ impl<'py> FromPyObject<'py> for Condition {
 ///
 /// TODO: move this to control flow mod once that's in Rust.
 #[derive(IntoPyObject)]
-pub(crate) enum ControlFlowTarget {
+pub(crate) enum SwitchTarget {
     Bit(ShareableClbit),
     Register(ClassicalRegister),
     Expr(expr::Expr),
 }
 
-impl<'py> FromPyObject<'py> for ControlFlowTarget {
+impl<'py> FromPyObject<'py> for SwitchTarget {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         if let Ok(bit) = ob.extract::<ShareableClbit>() {
-            Ok(ControlFlowTarget::Bit(bit))
+            Ok(SwitchTarget::Bit(bit))
         } else if let Ok(register) = ob.extract::<ClassicalRegister>() {
-            Ok(ControlFlowTarget::Register(register))
+            Ok(SwitchTarget::Register(register))
         } else {
-            Ok(ControlFlowTarget::Expr(ob.extract()?))
+            Ok(SwitchTarget::Expr(ob.extract()?))
         }
     }
 }
@@ -181,22 +181,18 @@ impl VariableMapper {
     /// circuit.
     pub fn map_target<F>(
         &self,
-        target: &ControlFlowTarget,
+        target: &SwitchTarget,
         mut add_register: F,
-    ) -> PyResult<ControlFlowTarget>
+    ) -> PyResult<SwitchTarget>
     where
         F: FnMut(&ClassicalRegister) -> PyResult<()>,
     {
         Ok(match target {
-            ControlFlowTarget::Bit(bit) => {
-                ControlFlowTarget::Bit(self.bit_map.get(bit).cloned().unwrap())
+            SwitchTarget::Bit(bit) => SwitchTarget::Bit(self.bit_map.get(bit).cloned().unwrap()),
+            SwitchTarget::Register(register) => {
+                SwitchTarget::Register(self.map_register(register, &mut add_register)?)
             }
-            ControlFlowTarget::Register(register) => {
-                ControlFlowTarget::Register(self.map_register(register, &mut add_register)?)
-            }
-            ControlFlowTarget::Expr(expr) => {
-                ControlFlowTarget::Expr(self.map_expr(expr, &mut add_register)?)
-            }
+            SwitchTarget::Expr(expr) => SwitchTarget::Expr(self.map_expr(expr, &mut add_register)?),
         })
     }
 
