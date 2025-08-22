@@ -10,8 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::sync::Arc;
-
 use compose_transforms::BasisTransformIn;
 use compose_transforms::BasisTransformOut;
 use compose_transforms::GateIdentifier;
@@ -666,84 +664,11 @@ fn replace_node(
                 .iter()
                 .any(|param| matches!(param, Param::ParameterExpression(_)))
             {
-                new_params = SmallVec::new();
-                for param in inner_node.params_view() {
-                    if let Param::ParameterExpression(param_obj) = param {
-                        let new_value: Param = {
-                            let mut bind_dict = HashMap::new();
-                            for key in param_obj.iter_symbols() {
-                                bind_dict.insert(key.clone(), parameter_map[key].clone());
-                            }
-                            let mut new_value: Arc<ParameterExpression>;
-                            if bind_dict
-                                .values()
-                                .any(|param| matches!(param, Param::ParameterExpression(_)))
-                            {
-                                new_value = param_obj.clone();
-                                for (symbol, val) in bind_dict.iter() {
-                                    let Param::ParameterExpression(val) = val else {
-                                        continue;
-                                    };
-                                    let map: HashMap<Symbol, ParameterExpression> =
-                                        [(symbol.clone(), ParameterExpression::clone(val))]
-                                            .into_iter()
-                                            .collect();
-                                    new_value = new_value
-                                        .subs(&map, true)
-                                        .map_err(|err| {
-                                            BasisTranslatorError::ReplaceNodeParameterError(
-                                                err.to_string(),
-                                            )
-                                        })?
-                                        .into();
-                                }
-                            } else {
-                                let parsed_bind_dict = bind_dict
-                                    .iter()
-                                    .filter_map(|(key, param)| match param {
-                                        Param::Float(val) => Some(Ok((key, Value::Real(*val)))),
-                                        Param::Obj(py_obj) => Python::with_gil(|py| {
-                                            py_obj.extract::<Value>(py).map(|val| Some((key, val)))
-                                        })
-                                        .map_err(|_| ParameterError::InvalidValue)
-                                        .transpose(),
-                                        _ => None,
-                                    })
-                                    .collect::<Result<_, ParameterError>>()
-                                    .map_err(|err| {
-                                        BasisTranslatorError::ReplaceNodeParameterError(
-                                            err.to_string(),
-                                        )
-                                    })?;
-                                new_value = param_obj
-                                    .bind(&parsed_bind_dict, true)
-                                    .map_err(|err| {
-                                        BasisTranslatorError::ReplaceNodeParameterError(
-                                            err.to_string(),
-                                        )
-                                    })?
-                                    .into();
-                            }
-                            if new_value.iter_symbols().next().is_none() {
-                                match new_value.try_to_value(false) {
-                                    Ok(Value::Real(num)) => Param::Float(num),
-                                    Ok(parsed) => Param::ParameterExpression(
-                                        ParameterExpression::from_symbol_expr(SymbolExpr::Value(
-                                            parsed,
-                                        ))
-                                        .into(),
-                                    ),
-                                    Err(_) => Param::ParameterExpression(new_value),
-                                }
-                            } else {
-                                Param::ParameterExpression(new_value)
-                            }
-                        };
-                        new_params.push(new_value);
-                    } else {
-                        new_params.push(param.clone());
-                    }
-                }
+                new_params = inner_node
+                    .params_view()
+                    .iter()
+                    .map(|param| param_assignment_expr(param, &parameter_map))
+                    .collect::<Result<_, BasisTranslatorError>>()?;
                 if !is_native(&new_op) {
                     // TODO: Remove this.
                     // Acquire the gil if the operation is not native to set the operation parameters in
@@ -785,92 +710,114 @@ fn replace_node(
             .map_err(|err| BasisTranslatorError::ReplaceNodeCircuitError(err.to_string()))?;
         }
 
-        match target_dag.global_phase() {
-            Param::ParameterExpression(old_phase) => {
-                let new_phase: Param = {
-                    let mut bind_dict = HashMap::with_capacity(old_phase.num_symbols());
-                    for key in old_phase.iter_symbols() {
-                        bind_dict.insert(key.clone(), parameter_map[key].clone());
-                    }
-                    let mut new_phase: Arc<ParameterExpression>;
-                    if bind_dict
-                        .values()
-                        .any(|param| matches!(param, Param::ParameterExpression(_)))
-                    {
-                        new_phase = old_phase.clone();
-                        for (key, val) in bind_dict.iter() {
-                            let Param::ParameterExpression(val) = val else {
-                                continue;
-                            };
-                            let map: HashMap<Symbol, ParameterExpression> =
-                                [(key.clone(), ParameterExpression::clone(val))]
-                                    .into_iter()
-                                    .collect();
-                            new_phase = new_phase
-                                .subs(&map, true)
-                                .map_err(|err| {
-                                    BasisTranslatorError::ReplaceNodeParameterError(err.to_string())
-                                })?
-                                .into();
-                        }
-                    } else {
-                        let parsed_bind_dict = bind_dict
-                            .iter()
-                            .filter_map(|(key, param)| match param {
-                                Param::Float(val) => Some(Ok((key, Value::Real(*val)))),
-                                Param::Obj(py_obj) => Python::with_gil(|py| {
-                                    py_obj.extract::<Value>(py).map(|val| Some((key, val)))
-                                })
-                                .map_err(|_| ParameterError::InvalidValue)
-                                .transpose(),
-                                _ => None,
-                            })
-                            .collect::<Result<_, ParameterError>>()
-                            .map_err(|err| {
-                                BasisTranslatorError::ReplaceNodeParameterError(err.to_string())
-                            })?;
-                        new_phase = old_phase
-                            .bind(&parsed_bind_dict, true)
-                            .map_err(|err| {
-                                BasisTranslatorError::ReplaceNodeParameterError(err.to_string())
-                            })?
-                            .into();
-                    }
-                    if new_phase.iter_symbols().next().is_none() {
-                        match new_phase.try_to_value(false) {
-                            Ok(Value::Real(num)) => Param::Float(num),
-                            Ok(Value::Complex(parsed)) => {
-                                return Err(BasisTranslatorError::ReplaceNodeGlobalPhaseComplex(
-                                    parsed.to_string(),
-                                ))
-                            }
-                            Ok(parsed) => Param::ParameterExpression(
-                                ParameterExpression::from_symbol_expr(SymbolExpr::Value(parsed))
-                                    .into(),
-                            ),
-                            Err(_) => Param::ParameterExpression(new_phase),
-                        }
-                    } else {
-                        Param::ParameterExpression(new_phase)
-                    }
-                };
-                dag.add_global_phase(&new_phase).map_err(|err| {
-                    BasisTranslatorError::ReplaceNodeCircuitError(err.to_string())
-                })?;
-            }
-
-            Param::Float(_) => {
-                dag.add_global_phase(target_dag.global_phase())
-                    .map_err(|err| {
-                        BasisTranslatorError::ReplaceNodeCircuitError(err.to_string())
-                    })?;
-            }
-
-            _ => {}
-        }
+        param_assignment_global_phase(target_dag.global_phase(), &parameter_map, dag)?;
     }
 
     Ok(())
+}
+
+fn param_expr_assignment(
+    param_obj: &ParameterExpression,
+    parameter_map: &HashMap<Symbol, Param>,
+) -> Result<ParameterExpression, BasisTranslatorError> {
+    let mut bind_dict = HashMap::new();
+    for key in param_obj.iter_symbols() {
+        bind_dict.insert(key.clone(), parameter_map[key].clone());
+    }
+    let mut new_value: ParameterExpression;
+    if bind_dict
+        .values()
+        .any(|param| matches!(param, Param::ParameterExpression(_)))
+    {
+        new_value = param_obj.clone();
+        for (symbol, val) in bind_dict.iter() {
+            let Param::ParameterExpression(val) = val else {
+                continue;
+            };
+            let map: HashMap<Symbol, ParameterExpression> =
+                [(symbol.clone(), ParameterExpression::clone(val))]
+                    .into_iter()
+                    .collect();
+            new_value = new_value
+                .subs(&map, true)
+                .map_err(|err| BasisTranslatorError::ReplaceNodeParameterError(err.to_string()))?;
+        }
+        Ok(new_value)
+    } else {
+        let parsed_bind_dict = bind_dict
+            .iter()
+            .filter_map(|(key, param)| match param {
+                Param::Float(val) => Some(Ok((key, Value::Real(*val)))),
+                Param::Obj(py_obj) => {
+                    Python::with_gil(|py| py_obj.extract::<Value>(py).map(|val| Some((key, val))))
+                        .map_err(|_| ParameterError::InvalidValue)
+                        .transpose()
+                }
+                _ => None,
+            })
+            .collect::<Result<_, ParameterError>>()
+            .map_err(|err| BasisTranslatorError::ReplaceNodeParameterError(err.to_string()))?;
+        param_obj
+            .bind(&parsed_bind_dict, true)
+            .map_err(|err| BasisTranslatorError::ReplaceNodeParameterError(err.to_string()))
+    }
+}
+
+fn param_assignment_expr(
+    param: &Param,
+    parameter_map: &HashMap<Symbol, Param>,
+) -> Result<Param, BasisTranslatorError> {
+    if let Param::ParameterExpression(param_obj) = param {
+        let new_value = param_expr_assignment(param_obj, parameter_map)?;
+        if new_value.iter_symbols().next().is_none() {
+            match new_value.try_to_value(false) {
+                Ok(Value::Real(num)) => Ok(Param::Float(num)),
+                Ok(parsed) => Ok(Param::ParameterExpression(
+                    ParameterExpression::from_symbol_expr(SymbolExpr::Value(parsed)).into(),
+                )),
+                Err(_) => Ok(Param::ParameterExpression(new_value.into())),
+            }
+        } else {
+            Ok(Param::ParameterExpression(new_value.into()))
+        }
+    } else {
+        Ok(param.clone())
+    }
+}
+
+fn param_assignment_global_phase(
+    param: &Param,
+    parameter_map: &HashMap<Symbol, Param>,
+    dag: &mut DAGCircuitBuilder,
+) -> Result<(), BasisTranslatorError> {
+    match param {
+        Param::ParameterExpression(param_obj) => {
+            let new_phase = param_expr_assignment(param_obj, parameter_map)?;
+            if new_phase.iter_symbols().next().is_none() {
+                let value = match new_phase.try_to_value(false) {
+                    Ok(Value::Real(num)) => Param::Float(num),
+                    Ok(Value::Complex(parsed)) => {
+                        return Err(BasisTranslatorError::ReplaceNodeGlobalPhaseComplex(
+                            parsed.to_string(),
+                        ))
+                    }
+                    Ok(parsed) => Param::ParameterExpression(
+                        ParameterExpression::from_symbol_expr(SymbolExpr::Value(parsed)).into(),
+                    ),
+                    Err(_) => Param::ParameterExpression(new_phase.into()),
+                };
+                dag.add_global_phase(&value)
+                    .map_err(|e| BasisTranslatorError::ReplaceNodeCircuitError(e.to_string()))
+            } else {
+                dag.add_global_phase(&Param::ParameterExpression(new_phase.into()))
+                    .map_err(|e| BasisTranslatorError::ReplaceNodeCircuitError(e.to_string()))
+            }
+        }
+        Param::Float(_) => dag
+            .add_global_phase(param)
+            .map_err(|e| BasisTranslatorError::ReplaceNodeCircuitError(e.to_string())),
+        _ => Ok(()),
+    }
 }
 
 pub fn basis_translator_mod(m: &Bound<PyModule>) -> PyResult<()> {
