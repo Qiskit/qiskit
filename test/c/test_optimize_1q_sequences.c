@@ -101,12 +101,10 @@ int inner_optimize_identity_target(QkTarget *target) {
 
     // Run transpiler pass
     qk_transpiler_standalone_optimize_1q_sequences(circuit, target);
-    QkOpCounts counts = qk_circuit_count_ops(circuit);
-    if (counts.len != 0) {
+    if (qk_circuit_num_instructions(circuit) != 0) {
         result = EqualityError;
     }
 
-    qk_opcounts_free(counts);
     qk_circuit_free(circuit);
     qk_target_free(target);
     return result;
@@ -153,12 +151,10 @@ int test_optimize_identity_no_target(void) {
     // Run transpiler pass
     qk_transpiler_standalone_optimize_1q_sequences(circuit, NULL);
 
-    QkOpCounts counts = qk_circuit_count_ops(circuit);
-    if (counts.len != 0) {
+    if (qk_circuit_num_instructions(circuit) != 0) {
         result = EqualityError;
     }
 
-    qk_opcounts_free(counts);
     qk_circuit_free(circuit);
     return result;
 }
