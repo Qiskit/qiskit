@@ -719,48 +719,28 @@ fn replace_node(
 fn param_expr_assignment(
     param_obj: &ParameterExpression,
     parameter_map: &HashMap<Symbol, Param>,
-) -> Result<ParameterExpression, BasisTranslatorError> {
-    let mut bind_dict = HashMap::new();
+) -> Result<ParameterExpression, ParameterError> {
+    let mut subs_map: HashMap<Symbol, ParameterExpression> = HashMap::new();
+    let mut bind_map: HashMap<&Symbol, Value> = HashMap::new();
     for key in param_obj.iter_symbols() {
-        bind_dict.insert(key.clone(), parameter_map[key].clone());
-    }
-    let mut new_value: ParameterExpression;
-    if bind_dict
-        .values()
-        .any(|param| matches!(param, Param::ParameterExpression(_)))
-    {
-        new_value = param_obj.clone();
-        for (symbol, val) in bind_dict.iter() {
-            let Param::ParameterExpression(val) = val else {
-                continue;
-            };
-            let map: HashMap<Symbol, ParameterExpression> =
-                [(symbol.clone(), ParameterExpression::clone(val))]
-                    .into_iter()
-                    .collect();
-            new_value = new_value
-                .subs(&map, true)
-                .map_err(|err| BasisTranslatorError::ReplaceNodeParameterError(err.to_string()))?;
+        match &parameter_map[key].clone() {
+            Param::ParameterExpression(val) => {
+                subs_map.insert(key.clone(), val.as_ref().clone());
+            }
+            Param::Float(val) => {
+                bind_map.insert(key, Value::Real(*val));
+            }
+            Param::Obj(val) => {
+                let val = Python::with_gil(|py| val.extract::<Value>(py))
+                    .map_err(|_| ParameterError::InvalidValue)?;
+                bind_map.insert(key, val);
+            }
         }
-        Ok(new_value)
-    } else {
-        let parsed_bind_dict = bind_dict
-            .iter()
-            .filter_map(|(key, param)| match param {
-                Param::Float(val) => Some(Ok((key, Value::Real(*val)))),
-                Param::Obj(py_obj) => {
-                    Python::with_gil(|py| py_obj.extract::<Value>(py).map(|val| Some((key, val))))
-                        .map_err(|_| ParameterError::InvalidValue)
-                        .transpose()
-                }
-                _ => None,
-            })
-            .collect::<Result<_, ParameterError>>()
-            .map_err(|err| BasisTranslatorError::ReplaceNodeParameterError(err.to_string()))?;
-        param_obj
-            .bind(&parsed_bind_dict, true)
-            .map_err(|err| BasisTranslatorError::ReplaceNodeParameterError(err.to_string()))
     }
+    // Apply substitution and binding in that order.
+    let mut new_value: ParameterExpression = param_obj.subs(&subs_map, true)?;
+    new_value = new_value.bind(&bind_map, true)?;
+    Ok(new_value)
 }
 
 fn param_assignment_expr(
@@ -768,7 +748,8 @@ fn param_assignment_expr(
     parameter_map: &HashMap<Symbol, Param>,
 ) -> Result<Param, BasisTranslatorError> {
     if let Param::ParameterExpression(param_obj) = param {
-        let new_value = param_expr_assignment(param_obj, parameter_map)?;
+        let new_value = param_expr_assignment(param_obj, parameter_map)
+            .map_err(|err| BasisTranslatorError::ReplaceNodeParameterError(err.to_string()))?;
         if new_value.iter_symbols().next().is_none() {
             match new_value.try_to_value(false) {
                 Ok(Value::Real(num)) => Ok(Param::Float(num)),
@@ -792,7 +773,8 @@ fn param_assignment_global_phase(
 ) -> Result<(), BasisTranslatorError> {
     match param {
         Param::ParameterExpression(param_obj) => {
-            let new_phase = param_expr_assignment(param_obj, parameter_map)?;
+            let new_phase = param_expr_assignment(param_obj, parameter_map)
+                .map_err(|err| BasisTranslatorError::ReplaceNodeParameterError(err.to_string()))?;
             if new_phase.iter_symbols().next().is_none() {
                 let value = match new_phase.try_to_value(false) {
                     Ok(Value::Real(num)) => Param::Float(num),
