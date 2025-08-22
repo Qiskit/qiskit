@@ -1,0 +1,7 @@
+---
+features_circuits:
+  - |
+    Improved :meth:`.PauliEvolutionGate.control` and :meth:`.PauliEvolutionGate.power` to return
+    more efficient representations in terms of a :class:`.PauliEvolutionGate`. This change leads
+    to significantly shallower circuits and gate counts compared to the previously used
+    generic power and control mechanisms.
