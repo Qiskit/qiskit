@@ -1,0 +1,6 @@
+---
+other:
+  - |
+    Changed CircuitError exception text where number of qubit/s or classical 
+    bit/s in other QuantumCircuit being composed is more than that of the 
+    initialized QuantumCircuit.
