@@ -24,8 +24,6 @@ use pyo3::ffi::PyObject;
 use pyo3::{Py, Python};
 #[cfg(feature = "python_binding")]
 use qiskit_quantum_info::sparse_observable::PySparseObservable;
-#[cfg(feature = "cbinding")]
-use qiskit_transpiler::transpile_layout::TranspileLayout;
 
 /// A term in a ``QkObs``.
 ///
@@ -756,16 +754,20 @@ pub unsafe extern "C" fn qk_obs_compose_map(
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_apply_layout(
     obs: *mut SparseObservable,
-    layout: *const TranspileLayout,
+    layout: *const u32,
+    num_qubits: u32,
 ) -> ExitCode {
     let obs = unsafe { mut_ptr_as_ref(obs) };
-    let layout = unsafe { const_ptr_as_ref(layout) };
 
-    // Cast the slice of PhysicalQubit (which is u32) to plain u32, which is required
-    // by the apply_layout method.
-    let layout = layout.final_index_layout(true);
-    let as_slice: &[u32] = ::bytemuck::cast_slice(&layout);
-    let obs_with_layout = match obs.apply_layout(Some(as_slice), obs.num_qubits()) {
+    let layout = if layout.is_null() {
+        None
+    } else {
+        let len = obs.num_qubits() as usize;
+        let indices = unsafe { ::std::slice::from_raw_parts(layout, len) };
+        Some(indices)
+    };
+
+    let obs_with_layout = match obs.apply_layout(layout, num_qubits) {
         Ok(obs_with_layout) => obs_with_layout,
         Err(_) => return ExitCode::TranspilerError,
     };

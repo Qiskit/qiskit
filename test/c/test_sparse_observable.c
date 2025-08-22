@@ -722,10 +722,11 @@ int test_obsterm_str(void) {
 }
 
 /**
- * Get a QkTranspileLayout with final mapping [3, 2, 1, 0, 5, 4].
+ * Test applying a layout in a full workflow.
  */
-QkTranspileLayout *get_transpile_layout(void) {
-    QkCircuit *qc = qk_circuit_new(6, 0);
+int test_apply_layout(void) {
+    uint32_t num_qubits = 6;
+    QkCircuit *qc = qk_circuit_new(num_qubits, 0);
 
     // reverse the first 4 bits to [3, 2, 1, 0] and swap qubits 4 and 5, to get the final
     // permutation [3, 2, 1, 0, 5, 4]
@@ -739,15 +740,7 @@ QkTranspileLayout *get_transpile_layout(void) {
     qk_circuit_gate(qc, QkGate_Swap, (uint32_t[2]){4, 5}, NULL);
 
     // elide the permutations and obtain a layout which we can apply to the observable
-    return qk_transpiler_pass_standalone_elide_permutations(qc);
-}
-
-/**
- * Test applying a layout in a full workflow.
- */
-int test_apply_layout(void) {
-    uint32_t num_qubits = 6;
-    QkTranspileLayout *layout = get_transpile_layout();
+    QkTranspileLayout *transpile_layout = qk_transpiler_pass_standalone_elide_permutations(qc);
 
     // Build an observable as X1 +2 -3 Y4 Z5
     QkObs *obs = qk_obs_zero(num_qubits);
@@ -763,13 +756,17 @@ int test_apply_layout(void) {
         return RuntimeError;
     }
 
-    // now apply our layout
-    printf("orig %s\n", qk_obs_str(obs));
-    err = qk_obs_apply_layout(obs, layout);
+    // get the final layout from QkTranspileLayout
+    uint32_t num_output_qubits = qk_transpile_layout_num_output_qubits(transpile_layout);
+    uint32_t *layout = malloc(sizeof(uint32_t) * num_output_qubits);
+    qk_transpile_layout_final_layout(transpile_layout, false, layout);
 
+    // apply the layout and verify nothing went wrong
+    err = qk_obs_apply_layout(obs, layout, num_output_qubits);
+
+    free(layout);
     if (err != 0) {
         qk_obs_free(obs);
-        qk_transpile_layout_free(layout);
         return RuntimeError;
     }
 
@@ -780,17 +777,10 @@ int test_apply_layout(void) {
     QkObs *expected = qk_obs_zero(num_qubits);
     qk_obs_add_term(expected, &term_shuffled);
 
-    QkObs *obs_canonical = qk_obs_canonicalize(obs, 0);
-    QkObs *expected_canonical = qk_obs_canonicalize(expected, 0);
-    printf("lay %s\n", qk_obs_str(obs_canonical));
-    printf("exp %s\n", qk_obs_str(expected_canonical));
-    bool is_equal = qk_obs_equal(expected_canonical, obs_canonical);
+    bool is_equal = qk_obs_equal(expected, obs);
 
     qk_obs_free(obs);
     qk_obs_free(expected);
-    qk_obs_free(obs_canonical);
-    qk_obs_free(expected_canonical);
-    qk_transpile_layout_free(layout);
 
     return is_equal ? Ok : EqualityError;
 }
@@ -799,16 +789,14 @@ int test_apply_layout(void) {
  * Test applying a layout to a too large observable fails.
  */
 int test_apply_layout_too_small(void) {
-    uint32_t num_qubits = 6;
-    QkTranspileLayout *layout = get_transpile_layout();
-
-    // Build an observable that's too large
+    // Build an observable that's too large for the layout
+    const uint32_t num_qubits = 2;
+    uint32_t layout[num_qubits] = {80, 2001};
     QkObs *obs = qk_obs_identity(num_qubits + 2);
 
     // now apply our layout (this should fail)
-    int err = qk_obs_apply_layout(obs, layout);
+    int err = qk_obs_apply_layout(obs, layout, 3000);
     qk_obs_free(obs);
-    qk_transpile_layout_free(layout);
 
     return err == QkExitCode_TranspilerError ? Ok : EqualityError;
 }
