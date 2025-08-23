@@ -147,8 +147,12 @@ class TestPassManager(PassManagerTestCase):
         self.assertIs(pm.property_set["check_property"], sentinel)
 
     def test_pass_returning_falsy_value_is_not_replaced(self):
+        """A pass returning a falsy output should not be overwritten."""
+
         class ZeroPass(GenericPass):
-            def run(self, ir):
+            def run(self, passmanager_ir):
+                """Return the integer ``0`` to test falsy values."""
+                del passmanager_ir
                 return 0
 
         class IntPassManager(BasePassManager):
