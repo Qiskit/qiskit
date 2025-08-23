@@ -146,14 +146,15 @@ class TestPassManager(PassManagerTestCase):
         pm.run(1)
         self.assertIs(pm.property_set["check_property"], sentinel)
 
-    def test_pass_returning_falsy_value(self):
-        """A pass returning a falsy value should not be replaced with the input IR."""
-
+    def test_pass_returning_falsy_value_is_not_replaced(self):
         class ZeroPass(GenericPass):
-            def run(self, passmanager_ir):
+            def run(self, ir):
                 return 0
 
         class IntPassManager(BasePassManager):
+            def __init__(self, passes):
+                super().__init__(passes)
+
             def _passmanager_frontend(self, input_program, **kwargs):
                 return input_program
 
