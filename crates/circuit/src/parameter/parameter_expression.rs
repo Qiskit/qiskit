@@ -58,6 +58,8 @@ pub enum ParameterError {
     NotASymbol,
     #[error("Derivative not supported on expression: {0}")]
     DerivativeNotSupported(String),
+    #[error("Operator {0} is not supported.")]
+    OperatorNotSupported(String),
 }
 
 impl From<ParameterError> for PyErr {
@@ -446,6 +448,14 @@ impl ParameterExpression {
     pub fn conjugate(&self) -> Self {
         Self {
             expr: self.expr.conjugate(),
+            name_map: self.name_map.clone(),
+        }
+    }
+
+    /// negate the expression.
+    pub fn neg(&self) -> Self {
+        Self {
+            expr: -&self.expr,
             name_map: self.name_map.clone(),
         }
     }
