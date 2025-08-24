@@ -17,6 +17,7 @@ mod layer;
 mod layout;
 mod neighbors;
 mod route;
+mod vec_map;
 
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
