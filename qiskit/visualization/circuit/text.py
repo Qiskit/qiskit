@@ -222,11 +222,15 @@ class MeasureFrom(BoxOnQuWire):
         bot: └╥┘    └╥┘
     """
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, label=""):
+        super().__init__(label)
         self.top_format = self.mid_format = self.bot_format = "%s"
+        if self.label == "measure":
+            mid_content = "M"
+        else:
+            mid_content = self.label
         self.top_connect = "┌─┐"
-        self.mid_content = "┤M├"
+        self.mid_content = "┤" + mid_content + "├"
         self.bot_connect = "└╥┘"
 
         self.top_pad = self.bot_pad = " "
@@ -1136,8 +1140,10 @@ class TextDrawing:
                     mod_control = modifier
                     break
 
+        # print("OP", isinstance(op, Measure), op)
         if isinstance(op, Measure):
-            gate = MeasureFrom()
+            # print("MEASURE?")
+            gate = MeasureFrom(label=op.name)
             layer.set_qubit(node.qargs[0], gate)
             register, _, reg_index = get_bit_reg_index(self._circuit, node.cargs[0])
             if self.cregbundle and register is not None:

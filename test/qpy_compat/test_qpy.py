@@ -324,7 +324,7 @@ def generate_parameter_vector_expression():  # pylint: disable=invalid-name
     qc = QuantumCircuit(7, name="vector_expansion")
     entanglement = [[i, i + 1] for i in range(7 - 1)]
     input_params = ParameterVector("x_par", 14)
-    user_params = ParameterVector("\u03B8_par", 1)
+    user_params = ParameterVector("\u03b8_par", 1)
 
     for i in range(qc.num_qubits):
         qc.ry(user_params[0], qc.qubits[i])
