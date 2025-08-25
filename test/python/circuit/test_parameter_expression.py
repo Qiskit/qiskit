@@ -485,8 +485,6 @@ class TestParameterExpression(QiskitTestCase):
         for expr, param, expected in test_cases:
             with self.subTest(expr=str(expr), param=str(param)):
                 result = expr.gradient(param)
-                if isinstance(result, str):
-                    result = float(result)
                 self.assertIsInstance(result, (int, float, complex))
                 self.assertEqual(result, expected)
 
