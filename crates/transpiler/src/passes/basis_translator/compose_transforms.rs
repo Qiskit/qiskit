@@ -14,15 +14,11 @@ use std::sync::OnceLock;
 
 use hashbrown::{HashMap, HashSet};
 use indexmap::{IndexMap, IndexSet};
-use nalgebra::{Matrix2, Matrix4};
-use ndarray::Array;
 use pyo3::prelude::*;
 use qiskit_circuit::bit::QuantumRegister;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::imports::GATE;
-use qiskit_circuit::operations::{
-    get_standard_gate_names, ArrayType, StandardGate, StandardInstruction, UnitaryGate,
-};
+use qiskit_circuit::operations::{get_standard_gate_names, StandardGate, StandardInstruction};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::Symbol;
@@ -69,7 +65,7 @@ pub(super) fn compose_transforms<'a>(
 
         let mut dag = DAGCircuit::new();
         // Create the mock gate and add to the circuit, use Python if necessary.
-        let qubits = QuantumRegister::new_owning("q".to_string(), gate_num_qubits);
+        let qubits = QuantumRegister::new_owning("q", gate_num_qubits);
         dag.add_qreg(qubits)
             .map_err(|err| BasisTranslatorError::ComposeTransformsCircuitError(err.to_string()))?;
         let gate = if let Some(op) = name_to_packed_operation(&gate_name, gate_num_qubits) {
@@ -181,12 +177,7 @@ fn name_to_packed_operation(name: &str, num_qubits: u32) -> Option<PackedOperati
         };
         Some(inst.into())
     } else if name == "unitary" {
-        let matrix = match num_qubits {
-            1 => ArrayType::OneQ(Matrix2::identity()),
-            2 => ArrayType::TwoQ(Matrix4::identity()),
-            _ => ArrayType::NDArray(Array::eye(2_usize.pow(num_qubits))),
-        };
-        Some(UnitaryGate { array: matrix }.into())
+        unreachable!("Having a unitary result from an `EquivalenceLibrary is not possible")
     } else {
         None
     }
