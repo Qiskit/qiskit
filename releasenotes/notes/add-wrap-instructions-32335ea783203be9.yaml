@@ -11,7 +11,7 @@ features_transpiler:
     an inclusive bound. For example, you can add ``RZGate(math.pi)`` to a :class:`.Target` and restrict
     the angle value between the values 0 and :math:`2\pi`.
 
-    There are several methods available for working with the angle bouds on the target. The first is
+    There are several methods available for working with the angle bounds on the target. The first is
     :meth:`.Target.add_instruction` which has a new ``angle_bounds`` keyword argument that is used to
     add an angle bound to an instruction in the :class:`.Target`. To work with angle bounds you will also
     want to register a callback function to the global ``WRAP_ANGLE_REGISTRY`` registry that will tell the
@@ -69,8 +69,9 @@ features_transpiler:
     Added a new transpiler pass :class:`.WrapAngles` which is used to apply
     angle constraints on gates in the :class:`.Target`. If a :class:`.Target` has defined
     angle bounds this pass will analyze all the parameters for the gates in the circuit and
-    check that the target. For example, if a target contains a custom gate that has angle bounds
-    the pass will decompose that gate into a gate which conforms to the bounds:
+    check that against the bounds specified in the target. For example, if a target contains a custom
+    gate that has angle bounds the pass will decompose that gate into a gate which conforms
+    to the bounds:
 
     .. plot::
        :include-source:

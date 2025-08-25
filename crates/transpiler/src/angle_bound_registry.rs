@@ -41,7 +41,8 @@ impl CallbackType {
 
 /// Registry of Angle Wrapping function
 ///
-///
+/// This class internally contains a mapping of instruction names from a :class:`.Target` to
+/// callbacks for wrapping angles that are outside the specified bounds.
 #[pyclass(module = "qiskit._accelerate.angle_bound_registry")]
 #[pyo3(name = "WrapAngleRegistry")]
 pub struct PyWrapAngleRegistry(WrapAngleRegistry);
@@ -58,9 +59,8 @@ impl PyWrapAngleRegistry {
         &self,
         name: &str,
         angles: Vec<f64>,
-        qubits: Vec<u32>,
+        qubits: Vec<PhysicalQubit>,
     ) -> PyResult<Option<DAGCircuit>> {
-        let qubits: Vec<PhysicalQubit> = qubits.into_iter().map(PhysicalQubit::new).collect();
         self.0.substitute_angle_bounds(name, &angles, &qubits)
     }
 
@@ -97,6 +97,8 @@ impl PyWrapAngleRegistry {
     }
 }
 
+/// Store the mapping between gate names and callbacks for wrapping that instructions' angles
+/// which are outside the specified bounds.
 pub struct WrapAngleRegistry {
     registry: HashMap<String, CallbackType>,
 }
@@ -116,7 +118,7 @@ impl WrapAngleRegistry {
         self.registry.insert(name, CallbackType::Native(callback));
     }
 
-    /// Get a replacement circuit for
+    /// Get a replacement circuit for an instruction outside the specified bounds.
     pub fn substitute_angle_bounds(
         &self,
         name: &str,

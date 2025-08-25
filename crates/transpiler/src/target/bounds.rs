@@ -13,6 +13,10 @@
 use super::errors::TargetError;
 use smallvec::SmallVec;
 
+/// Model bounds on angle parameters for a gate
+///
+/// `None` represents no bound, while `Some([f64; 2])` represents an inclusive bound set
+/// on the lower and upper allowed values respectively.
 #[derive(Clone, Debug)]
 pub(crate) struct AngleBound(SmallVec<[Option<[f64; 2]>; 3]>);
 

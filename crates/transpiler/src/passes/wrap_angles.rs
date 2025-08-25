@@ -23,16 +23,14 @@ use qiskit_circuit::PhysicalQubit;
 #[pyfunction]
 #[pyo3(name = "wrap_angles")]
 pub fn py_run_wrap_angles(
-    py: Python,
     dag: &mut DAGCircuit,
     target: &Target,
     bounds_registry: &PyWrapAngleRegistry,
 ) -> PyResult<()> {
-    run_wrap_angles(py, dag, target, bounds_registry.get_inner())
+    run_wrap_angles(dag, target, bounds_registry.get_inner())
 }
 
 pub fn run_wrap_angles(
-    py: Python,
     dag: &mut DAGCircuit,
     target: &Target,
     bounds_registry: &WrapAngleRegistry,
@@ -53,9 +51,7 @@ pub fn run_wrap_angles(
     for node in nodes_to_sub {
         let inst = dag[node].unwrap_operation();
         let params: Vec<_> = inst
-            .params
-            .as_ref()
-            .unwrap()
+            .params_view()
             .iter()
             .map(|param| {
                 let Param::Float(param) = param else {
@@ -73,13 +69,7 @@ pub fn run_wrap_angles(
             let new_dag =
                 bounds_registry.substitute_angle_bounds(inst.op.name(), &params, &qargs)?;
             if let Some(new_dag) = new_dag {
-                dag.py_substitute_node_with_dag(
-                    py,
-                    dag.get_node(py, node)?.bind(py),
-                    &new_dag,
-                    None,
-                    None,
-                )?;
+                dag.substitute_node_with_dag(node, &new_dag, None, None, None)?;
             }
         }
     }

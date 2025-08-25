@@ -28,7 +28,7 @@ class WrapAngles(TransformationPass):
     the target will be called to substitute the gate outside the bound with an equivalent subcircuit.
     This pass does not run on gates that are parameterized, even if the gate has unparameterized
     parameters outside a specified bound. If there are parameterized gates in the circuit they will
-    be ignored by this pass as bound angles are neceessary to transform the gate. For example:
+    be ignored by this pass as bound angles are necessary to transform the gate. For example:
 
     .. plot::
        :alt: Circuit digram of the output from running the WrapAngles pass
