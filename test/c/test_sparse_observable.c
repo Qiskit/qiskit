@@ -793,9 +793,8 @@ int test_apply_layout(void) {
  */
 int test_apply_layout_too_small(void) {
     // Build an observable that's too large for the layout
-    const uint32_t num_qubits = 2;
-    uint32_t layout[num_qubits] = {80, 2001};
-    QkObs *obs = qk_obs_identity(num_qubits + 2);
+    uint32_t layout[2] = {80, 2001};
+    QkObs *obs = qk_obs_identity(4);
 
     // now apply our layout (this should fail)
     int err = qk_obs_apply_layout(obs, layout, 3000);
