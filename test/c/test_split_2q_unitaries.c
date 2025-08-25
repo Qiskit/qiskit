@@ -41,7 +41,7 @@ int test_split_2q_unitaries_no_unitaries(void) {
         result = EqualityError;
         goto ops_cleanup;
     }
-    for (int i = 0; i < counts.len; i++) {
+    for (size_t i = 0; i < counts.len; i++) {
         int gate = strcmp(counts.data[i].name, "cx");
         if (gate != 0) {
             printf("gates changed when there should be no circuit changes\n");
@@ -81,14 +81,14 @@ int test_split_2q_unitaries_x_y_unitary(void) {
         result = EqualityError;
         goto ops_cleanup;
     }
-    for (int i = 0; i < counts.len; i++) {
+    for (size_t i = 0; i < counts.len; i++) {
         int gate = strcmp(counts.data[i].name, "unitary");
         if (gate != 0) {
             printf("Gates outside expected set in output circuit\n");
             result = EqualityError;
             goto ops_cleanup;
         }
-        unsigned int count = counts.data[i].count;
+        size_t count = counts.data[i].count;
         if (count != 2) {
             printf("Unexpected gate counts found\n");
             result = EqualityError;
@@ -148,14 +148,14 @@ int test_split_2q_unitaries_swap_x_y_unitary(void) {
         result = EqualityError;
         goto ops_cleanup;
     }
-    for (int i = 0; i < counts.len; i++) {
+    for (size_t i = 0; i < counts.len; i++) {
         int gate = strcmp(counts.data[i].name, "unitary");
         if (gate != 0) {
             printf("Gates outside expected set in output circuit\n");
             result = EqualityError;
             goto ops_cleanup;
         }
-        unsigned int count = counts.data[i].count;
+        size_t count = counts.data[i].count;
         if (count != 2) {
             printf("Unexpected gate counts found\n");
             result = EqualityError;

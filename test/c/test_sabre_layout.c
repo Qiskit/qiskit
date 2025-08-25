@@ -55,20 +55,22 @@ int test_sabre_layout_applies_layout(void) {
         printf("More than 2 types of gates in circuit, circuit's instructions are:\n");
         print_circuit(qc);
         result = EqualityError;
-        goto layout_cleanup;
+        goto cleanup;
     }
-    for (int i = 0; i < op_counts.len; i++) {
-        int swap_gate = strcmp(op_counts.data[i].name, "swap");
-        int cx_gate = strcmp(op_counts.data[i].name, "cx");
+    for (size_t i = 0; i < op_counts.len; i++) {
+        const char *name = op_counts.data[i].name;
+        int swap_gate = strcmp(name, "swap");
+        int cx_gate = strcmp(name, "cx");
         if (cx_gate != 0 && swap_gate != 0) {
-            printf("Gate type of %s found in the circuit which isn't expected\n");
+            printf("Gate type of %s found in the circuit which isn't expected\n", name);
             result = EqualityError;
-            goto layout_cleanup;
+            goto cleanup;
         }
-        if (swap_gate == 0 && op_counts.data[i].count != 2) {
-            printf("Unexpected number of swaps %d found in the circuit.\n");
+        size_t count = op_counts.data[i].count;
+        if (swap_gate == 0 && count != 2) {
+            printf("Unexpected number of swaps %zu found in the circuit.\n", count);
             result = EqualityError;
-            goto layout_cleanup;
+            goto cleanup;
         }
     }
     uint32_t expected_initial_layout[5] = {1, 0, 2, 3, 4};
@@ -79,7 +81,7 @@ int test_sabre_layout_applies_layout(void) {
             printf("Initial layout maps qubit %d to %d, expected %d instead\n", i,
                    result_initial_layout[i], expected_initial_layout[i]);
             result = EqualityError;
-            goto layout_cleanup;
+            goto cleanup;
         }
     }
 
@@ -91,7 +93,7 @@ int test_sabre_layout_applies_layout(void) {
             printf("Output permutation maps qubit %d to %d, expected %d instead\n", i,
                    result_permutation[i], expected_permutation[i]);
             result = EqualityError;
-            goto layout_cleanup;
+            goto cleanup;
         }
     }
     QkCircuit *expected_circuit = qk_circuit_new(5, 0);
@@ -118,12 +120,10 @@ int test_sabre_layout_applies_layout(void) {
     }
     qk_circuit_free(expected_circuit);
 
-layout_cleanup:
+cleanup:
     qk_opcounts_free(op_counts);
     qk_transpile_layout_free(layout_result);
-circuit_cleanup:
     qk_circuit_free(qc);
-cleanup:
     qk_target_free(target);
     return result;
 }
@@ -169,7 +169,7 @@ int test_sabre_layout_no_swap(void) {
     bool circuit_eq = compare_circuits(qc, expected_circuit);
     if (!circuit_eq) {
         result = EqualityError;
-        goto layout_cleanup;
+        goto cleanup;
     }
     uint32_t expected_initial_layout[5] = {0, 1, 2, 3, 4};
     uint32_t result_initial_layout[5];
@@ -179,7 +179,7 @@ int test_sabre_layout_no_swap(void) {
             printf("Initial layout maps qubit %d to %d, expected %d instead\n", i,
                    result_initial_layout[i], expected_initial_layout[i]);
             result = EqualityError;
-            goto layout_cleanup;
+            goto cleanup;
         }
     }
     uint32_t expected_permutation[5] = {0, 1, 2, 3, 4};
@@ -190,17 +190,16 @@ int test_sabre_layout_no_swap(void) {
             printf("Output permutation maps qubit %d to %d, expected %d instead\n", i,
                    result_permutation[i], expected_permutation[i]);
             result = EqualityError;
-            goto layout_cleanup;
+            goto cleanup;
         }
     }
 
-layout_cleanup:
+cleanup:
     qk_circuit_free(expected_circuit);
     qk_transpile_layout_free(layout_result);
-circuit_cleanup:
     qk_circuit_free(qc);
-cleanup:
     qk_target_free(target);
+
     return result;
 }
 

@@ -26,7 +26,7 @@
 int test_remove_z_gate(void) {
     int result = Ok;
     QkCircuit *qc = qk_circuit_new(1, 1);
-    qk_circuit_gate(qc, QkGate_Z, (int[]){0}, NULL);
+    qk_circuit_gate(qc, QkGate_Z, (uint32_t[1]){0}, NULL);
     qk_circuit_measure(qc, 0, 0);
 
     if (2 != qk_circuit_num_instructions(qc)) {

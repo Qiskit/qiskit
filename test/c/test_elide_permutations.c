@@ -48,8 +48,6 @@ int test_elide_permutations_no_result(void) {
  * Test running the path with no elision.
  */
 int test_elide_permutations_swap_result(void) {
-    const uint32_t num_qubits = 5;
-
     QkCircuit *qc = qk_circuit_new(5, 0);
     uint32_t swap_qargs[2] = {1, 3};
     for (uint32_t i = 0; i < qk_circuit_num_qubits(qc) - 1; i++) {
@@ -84,7 +82,7 @@ int test_elide_permutations_swap_result(void) {
         result = EqualityError;
         goto ops_cleanup;
     }
-    for (int i = 0; i < op_counts.len; i++) {
+    for (size_t i = 0; i < op_counts.len; i++) {
         int swap_gate = strcmp(op_counts.data[i].name, "swap");
         if (swap_gate == 0) {
             printf("Swap gate in circuit which should have been elided\n");

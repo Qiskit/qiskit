@@ -96,7 +96,6 @@ int test_vf2_layout_line(void) {
 
 layout_cleanup:
     qk_vf2_layout_result_free(layout_result);
-circuit_cleanup:
     qk_circuit_free(qc);
 cleanup:
     qk_target_free(target);
@@ -133,7 +132,6 @@ int test_vf2_no_layout_found(void) {
     }
 layout_cleanup:
     qk_vf2_layout_result_free(layout_result);
-circuit_cleanup:
     qk_circuit_free(qc);
 cleanup:
     qk_target_free(target);
