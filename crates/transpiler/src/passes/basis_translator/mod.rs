@@ -235,7 +235,7 @@ fn extract_basis(circuit: &DAGCircuit, min_qubits: usize) -> AhashIndexSet<GateI
         }
     }
 
-    // Recurse for QuantumCircuit
+    // Recurse for CircuitData
     fn recurse_circuit(
         circuit: &CircuitData,
         basis: &mut AhashIndexSet<GateIdentifier>,
@@ -682,7 +682,12 @@ fn replace_node(
                 new_params = inner_node
                     .params_view()
                     .iter()
-                    .map(|param| param_assignment_expr(param, &parameter_map))
+                    .map(|param| match param {
+                        Param::ParameterExpression(parameter_expression) => {
+                            param_assignment_expr(parameter_expression, &parameter_map, true)
+                        }
+                        _ => Ok(param.clone()),
+                    })
                     .collect::<Result<_, BasisTranslatorError>>()?;
                 if !is_native(&new_op) {
                     // TODO: Remove this.
@@ -732,7 +737,17 @@ fn replace_node(
             .map_err(|err| BasisTranslatorError::BasisDAGCircuitError(err.to_string()))?;
         }
 
-        param_assignment_global_phase(target_dag.global_phase(), &parameter_map, dag)?;
+        match target_dag.global_phase() {
+            Param::ParameterExpression(expr) => {
+                let param = param_assignment_expr(expr, &parameter_map, false)?;
+                dag.add_global_phase(&param)
+                    .map_err(|e| BasisTranslatorError::BasisDAGCircuitError(e.to_string()))
+            }
+            Param::Float(_) => dag
+                .add_global_phase(target_dag.global_phase())
+                .map_err(|e| BasisTranslatorError::BasisDAGCircuitError(e.to_string())),
+            Param::Obj(_) => Ok(()),
+        }?
     }
 
     Ok(())
@@ -766,61 +781,21 @@ fn param_expr_assignment(
 }
 
 fn param_assignment_expr(
-    param: &Param,
+    param: &ParameterExpression,
     parameter_map: &HashMap<Symbol, Param>,
+    allow_complex: bool,
 ) -> Result<Param, BasisTranslatorError> {
-    if let Param::ParameterExpression(param_obj) = param {
-        let new_value = param_expr_assignment(param_obj, parameter_map)
-            .map_err(|err| BasisTranslatorError::ReplaceNodeParameterError(err.to_string()))?;
-        if new_value.iter_symbols().next().is_none() {
-            match new_value.try_to_value(false) {
-                Ok(Value::Real(num)) => Ok(Param::Float(num)),
-                Ok(parsed) => Ok(Param::ParameterExpression(
-                    ParameterExpression::from_symbol_expr(SymbolExpr::Value(parsed)).into(),
-                )),
-                Err(_) => Ok(Param::ParameterExpression(new_value.into())),
-            }
-        } else {
-            Ok(Param::ParameterExpression(new_value.into()))
-        }
-    } else {
-        Ok(param.clone())
-    }
-}
-
-fn param_assignment_global_phase(
-    param: &Param,
-    parameter_map: &HashMap<Symbol, Param>,
-    dag: &mut DAGCircuitBuilder,
-) -> Result<(), BasisTranslatorError> {
-    match param {
-        Param::ParameterExpression(param_obj) => {
-            let new_phase = param_expr_assignment(param_obj, parameter_map)
-                .map_err(|err| BasisTranslatorError::ReplaceNodeParameterError(err.to_string()))?;
-            if new_phase.iter_symbols().next().is_none() {
-                let value = match new_phase.try_to_value(false) {
-                    Ok(Value::Real(num)) => Param::Float(num),
-                    Ok(Value::Complex(parsed)) => {
-                        return Err(BasisTranslatorError::ReplaceNodeGlobalPhaseComplex(
-                            parsed.to_string(),
-                        ))
-                    }
-                    Ok(parsed) => Param::ParameterExpression(
-                        ParameterExpression::from_symbol_expr(SymbolExpr::Value(parsed)).into(),
-                    ),
-                    Err(_) => Param::ParameterExpression(new_phase.into()),
-                };
-                dag.add_global_phase(&value)
-                    .map_err(|e| BasisTranslatorError::BasisDAGCircuitError(e.to_string()))
-            } else {
-                dag.add_global_phase(&Param::ParameterExpression(new_phase.into()))
-                    .map_err(|e| BasisTranslatorError::BasisDAGCircuitError(e.to_string()))
-            }
-        }
-        Param::Float(_) => dag
-            .add_global_phase(param)
-            .map_err(|e| BasisTranslatorError::BasisDAGCircuitError(e.to_string())),
-        _ => Ok(()),
+    let new_value = param_expr_assignment(param, parameter_map)
+        .map_err(|err| BasisTranslatorError::ReplaceNodeParameterError(err.to_string()))?;
+    match (new_value.try_to_value(true), allow_complex) {
+        (Ok(Value::Complex(parsed)), false) => Err(
+            BasisTranslatorError::ReplaceNodeGlobalPhaseComplex(parsed.to_string()),
+        ),
+        (Ok(Value::Real(num)), _) => Ok(Param::Float(num)),
+        (Ok(parsed), _) => Ok(Param::ParameterExpression(
+            ParameterExpression::from_symbol_expr(SymbolExpr::Value(parsed)).into(),
+        )),
+        (Err(_), _) => Ok(Param::ParameterExpression(new_value.into())),
     }
 }
 
