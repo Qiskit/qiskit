@@ -29,10 +29,10 @@ typedef struct {
 // Complex number typedefs conversions.
 #ifdef __cplusplus
 #include <complex>
-static std::complex<double> qk_complex64_to_native(QkComplex64 *value) {
+static inline std::complex<double> qk_complex64_to_native(QkComplex64 *value) {
     return std::complex<double>(value->re, value->im);
 }
-static QkComplex64 qk_complex64_from_native(std::complex<double> *value) {
+static inline QkComplex64 qk_complex64_from_native(std::complex<double> *value) {
     QkComplex64 ret = {value->real(), value->imag()};
     return ret;
 }
@@ -40,17 +40,17 @@ static QkComplex64 qk_complex64_from_native(std::complex<double> *value) {
 #include <complex.h>
 
 #ifdef _MSC_VER
-static _Dcomplex qk_complex64_to_native(QkComplex64 *value) {
+static inline _Dcomplex qk_complex64_to_native(QkComplex64 *value) {
     return (_Dcomplex){value->re, value->im};
 }
-static QkComplex64 qk_complex64_from_native(_Dcomplex *value) {
+static inline QkComplex64 qk_complex64_from_native(_Dcomplex *value) {
     return (QkComplex64){creal(*value), cimag(*value)};
 }
 #else
-static double _Complex qk_complex64_to_native(QkComplex64 *value) {
+static inline double _Complex qk_complex64_to_native(QkComplex64 *value) {
     return value->re + I * value->im;
 }
-static QkComplex64 qk_complex64_from_native(double _Complex *value) {
+static inline QkComplex64 qk_complex64_from_native(double _Complex *value) {
     return (QkComplex64){creal(*value), cimag(*value)};
 }
 #endif // _MSC_VER

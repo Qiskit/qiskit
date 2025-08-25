@@ -3,6 +3,15 @@
 # https://cmake.org/cmake/help/book/mastering-cmake/chapter/Testing%20With%20CMake%20and%20CTest.html
 cmake_minimum_required (VERSION 3.27)
 
+# On GCC and Clang compilers, we fail upon any warnings and CI requires no warnings for these 
+# compilers. 
+# MSVC is not included since compiler warnings differ signficantly. Using the MSVC options /W2 /WX 
+# get close to the below, but might not include additional checks that we require in CI 
+# (and /W3 /WX includes some we do not require). 
+if (NOT MSVC) 
+    add_compile_options(-Wall -Wextra -Werror -Wshadow)
+endif ()
+
 # All files in this directory (non-recursively! use GLOB_RECURSE if that becomes
 # necessary) which match the pattern `test_*.c` are discovered as test files by
 # the command below. All paths are stored relative to the location of this file.
