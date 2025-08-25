@@ -340,7 +340,7 @@ class TestCliffordTPassManager(QiskitTestCase):
     @data(1, 2, 3, 4, 5, 6, 7)
     def test_modular_adder_gate(self, n):
         """Clifford+T transpilation of a circuit with a modular adder gate."""
-        # Create a circuit with a multiplier gate
+        # Create a circuit with a modular adder gate
         gate = ModularAdderGate(n)
         qc = QuantumCircuit(gate.num_qubits)
         qc.append(gate, qc.qubits)

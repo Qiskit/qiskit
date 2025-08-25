@@ -1513,6 +1513,14 @@ Exceptions
 .. autoexception:: CircuitTooWideForTarget
 .. autoexception:: InvalidLayoutError
 
+Optimization metric
+-------------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   OptimizationMetric
+
 .. _sabre-original-paper: https://arxiv.org/abs/1809.02573
 .. _sabre-lightsabre-paper: https://arxiv.org/abs/2409.08368
 """

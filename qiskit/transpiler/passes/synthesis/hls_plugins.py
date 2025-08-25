@@ -1483,6 +1483,15 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
 
     This plugin name is :``mcx.default`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+
+    The plugin supports the following plugin-specific options:
+
+    * ``optimization_metric``: The optimization metric, indicating whether we
+      should minimize the 2-qubit gate count or the T-count.
+    * ``num_clean_ancillas``: The number of clean ancillary qubits available.
+    * ``num_dirty_ancillas``: The number of dirty ancillary qubits available.
+
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
@@ -1674,12 +1683,12 @@ class ModularAdderSynthesisDefault(HighLevelSynthesisPlugin):
     This plugin name is:``ModularAdder.default`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
 
-    If at least one clean auxiliary qubit is available, the :class:`ModularAdderSynthesisC04`
-    is used, otherwise :class:`ModularAdderSynthesisD00`.
-
     The plugin supports the following plugin-specific options:
 
-    * ``num_clean_ancillas``: The number of clean auxiliary qubits available.
+    * ``optimization_metric``: The optimization metric, indicating whether we
+      should minimize the 2-qubit gate count or the T-count.
+    * ``num_clean_ancillas``: The number of clean ancillary qubits available.
+    * ``num_dirty_ancillas``: The number of dirty ancillary qubits available.
 
     """
 
