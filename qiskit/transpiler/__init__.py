@@ -1513,6 +1513,14 @@ Exceptions
 .. autoexception:: CircuitTooWideForTarget
 .. autoexception:: InvalidLayoutError
 
+Optimization metric
+-------------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   OptimizationMetric
+
 .. _sabre-original-paper: https://arxiv.org/abs/1809.02573
 .. _sabre-lightsabre-paper: https://arxiv.org/abs/2409.08368
 """
@@ -1542,3 +1550,4 @@ from .preset_passmanagers import generate_preset_pass_manager
 from .target import Target
 from .target import InstructionProperties
 from .target import QubitProperties
+from .optimization_metric import OptimizationMetric
