@@ -400,7 +400,6 @@ def dumps_experimental(
     includes=None,
     basis_gates=None,
     disable_constants=True,
-    alias_classical_registers=False,
     allow_aliasing=False,
     indent="  ",
 ):
@@ -417,14 +416,11 @@ def dumps_experimental(
         basis_gates = ["U"]
     return _qasm3.dumps(
         circuit,
-        {
-            "includes": includes,
-            "basis_gates": basis_gates,
-            "disable_constants": disable_constants,
-            "alias_classical_registers": alias_classical_registers,
-            "allow_aliasing": allow_aliasing,
-            "indent": indent,
-        },
+        includes=includes,
+        basis_gates=basis_gates,
+        disable_constants=disable_constants,
+        allow_aliasing=allow_aliasing,
+        indent=indent,
     )
 
 
@@ -455,12 +451,10 @@ def dump_experimental(
     return _qasm3.dump(
         circuit,
         stream,
-        {
-            "includes": includes,
-            "basis_gates": basis_gates,
-            "disable_constants": disable_constants,
-            "alias_classical_registers": alias_classical_registers,
-            "allow_aliasing": allow_aliasing,
-            "indent": indent,
-        },
+        includes=includes,
+        basis_gates=basis_gates,
+        disable_constants=disable_constants,
+        alias_classical_registers=alias_classical_registers,
+        allow_aliasing=allow_aliasing,
+        indent=indent,
     )
