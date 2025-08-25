@@ -11,7 +11,10 @@
 // that they have been altered from the originals.
 
 use pyo3::PyErr;
-use qiskit_circuit::{circuit_data::CircuitError, error::DAGCircuitError};
+use qiskit_circuit::{
+    circuit_data::CircuitError, error::DAGCircuitError,
+    parameter::parameter_expression::ParameterError,
+};
 use thiserror::Error;
 
 use crate::TranspilerError;
@@ -66,10 +69,8 @@ pub enum BasisTranslatorError {
         "Global phase must be real, but got {0}"
     ]]
     ReplaceNodeGlobalPhaseComplex(String),
-    #[error[
-        "Error mapping of parameters for replace_node: {0}"
-    ]]
-    ReplaceNodeParameterError(String),
+    #[error(transparent)]
+    BasisParameterError(#[from] ParameterError),
 }
 
 impl From<BasisTranslatorError> for PyErr {

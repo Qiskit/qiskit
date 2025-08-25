@@ -786,7 +786,7 @@ fn param_assignment_expr(
     allow_complex: bool,
 ) -> Result<Param, BasisTranslatorError> {
     let new_value = param_expr_assignment(param, parameter_map)
-        .map_err(|err| BasisTranslatorError::ReplaceNodeParameterError(err.to_string()))?;
+        .map_err(BasisTranslatorError::BasisParameterError)?;
     match (new_value.try_to_value(true), allow_complex) {
         (Ok(Value::Complex(parsed)), false) => Err(
             BasisTranslatorError::ReplaceNodeGlobalPhaseComplex(parsed.to_string()),
