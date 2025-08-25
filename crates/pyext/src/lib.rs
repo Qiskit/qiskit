@@ -44,6 +44,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_transpiler::equivalence::equivalence, "equivalence")?;
     add_submodule(m, ::qiskit_transpiler::passes::error_map_mod, "error_map")?;
     add_submodule(m, ::qiskit_transpiler::passes::elide_permutations_mod, "elide_permutations")?;
+    add_submodule(m, ::qiskit_transpiler::passes::litinski_transformation_mod, "litinski_transformation")?;
     add_submodule(m, ::qiskit_synthesis::euler_one_qubit_decomposer::euler_one_qubit_decomposer, "euler_one_qubit_decomposer")?;
     add_submodule(m, ::qiskit_transpiler::passes::disjoint_utils_mod, "disjoint_utils")?;
     add_submodule(m, ::qiskit_transpiler::passes::filter_op_nodes_mod, "filter_op_nodes")?;
@@ -73,6 +74,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_synthesis::two_qubit_decompose::two_qubit_decompose, "two_qubit_decompose")?;
     add_submodule(m, ::qiskit_transpiler::passes::unitary_synthesis_mod, "unitary_synthesis")?;
     add_submodule(m, ::qiskit_accelerate::uc_gate::uc_gate, "uc_gate")?;
+    add_submodule(m, ::qiskit_transpiler::passes::unroll_3q_or_more_mod, "unroll_3q_or_more")?;
     add_submodule(m, ::qiskit_transpiler::passes::vf2_layout_mod, "vf2_layout")?;
     add_submodule(m, ::qiskit_circuit::circuit, "circuit")?;
     add_submodule(m, ::qiskit_circuit::converters::converters, "converters")?;

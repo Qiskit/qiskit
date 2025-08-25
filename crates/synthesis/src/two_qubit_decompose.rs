@@ -2212,8 +2212,7 @@ impl TwoQubitBasisDecomposer {
     ) -> PyResult<DAGCircuit> {
         let sequence =
             self.generate_sequence(unitary, basis_fidelity, approximate, _num_basis_uses)?;
-        let mut dag =
-            DAGCircuit::with_capacity(2, 0, None, Some(sequence.gates.len()), None, None)?;
+        let mut dag = DAGCircuit::with_capacity(2, 0, None, Some(sequence.gates.len()), None, None);
         dag.set_global_phase(Param::Float(sequence.global_phase))?;
         dag.add_qubit_unchecked(ShareableQubit::new_anonymous())?;
         dag.add_qubit_unchecked(ShareableQubit::new_anonymous())?;

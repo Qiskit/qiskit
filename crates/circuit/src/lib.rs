@@ -36,8 +36,8 @@ pub mod parameter_table;
 pub mod register_data;
 pub mod slice;
 pub mod util;
+pub mod vf2;
 
-pub mod rustworkx_core_vnext;
 mod variable_mapper;
 
 use pyo3::exceptions::PyValueError;
@@ -208,6 +208,10 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     // We need to explicitly add the auto-generated Python subclasses of Duration
     // to the module so that pickle can find them during deserialization.
     m.add_class::<duration::Duration>()?;
+    m.add(
+        "Duration_ps",
+        duration::Duration::type_object(m.py()).getattr("ps")?,
+    )?;
     m.add(
         "Duration_ns",
         duration::Duration::type_object(m.py()).getattr("ns")?,
