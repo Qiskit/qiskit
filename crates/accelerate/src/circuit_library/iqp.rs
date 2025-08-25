@@ -30,7 +30,7 @@ const PI2: f64 = PI / 2.0;
 const PI4: f64 = PI / 4.0;
 
 fn iqp(
-    interactions: ArrayView2<i64>,
+    interactions: ArrayView2<'_, i64>,
 ) -> impl Iterator<Item = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>)> + '_ {
     let num_qubits = interactions.ncols();
 
@@ -135,7 +135,7 @@ fn check_symmetric(matrix: &ArrayView2<i64>) -> bool {
 ///     `arXiv:1504.07999 <https://arxiv.org/abs/1504.07999>`_
 #[pyfunction]
 #[pyo3(signature = (interactions))]
-pub fn py_iqp(py: Python, interactions: PyReadonlyArray2<i64>) -> PyResult<CircuitData> {
+pub fn py_iqp(interactions: PyReadonlyArray2<i64>) -> PyResult<CircuitData> {
     let array = interactions.as_array();
     let view = array.view();
     if !check_symmetric(&view) {
@@ -144,7 +144,7 @@ pub fn py_iqp(py: Python, interactions: PyReadonlyArray2<i64>) -> PyResult<Circu
 
     let num_qubits = view.ncols() as u32;
     let instructions = iqp(view);
-    CircuitData::from_standard_gates(py, num_qubits, instructions, Param::Float(0.0))
+    CircuitData::from_standard_gates(num_qubits, instructions, Param::Float(0.0))
 }
 
 /// Generate a random Instantaneous Quantum Polynomial time (IQP) circuit.
@@ -157,9 +157,9 @@ pub fn py_iqp(py: Python, interactions: PyReadonlyArray2<i64>) -> PyResult<Circu
 ///     A random IQP circuit.
 #[pyfunction]
 #[pyo3(signature = (num_qubits, seed=None))]
-pub fn py_random_iqp(py: Python, num_qubits: u32, seed: Option<u64>) -> PyResult<CircuitData> {
+pub fn py_random_iqp(num_qubits: u32, seed: Option<u64>) -> PyResult<CircuitData> {
     let interactions = generate_random_interactions(num_qubits, seed);
     let view = interactions.view();
     let instructions = iqp(view);
-    CircuitData::from_standard_gates(py, num_qubits, instructions, Param::Float(0.0))
+    CircuitData::from_standard_gates(num_qubits, instructions, Param::Float(0.0))
 }

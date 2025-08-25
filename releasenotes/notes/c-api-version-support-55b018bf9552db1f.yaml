@@ -1,18 +1,27 @@
 ---
 features_c:
   - |
-    Added support for querying the Qiskit version information from the C API via the following macros:
-    
-    * ``QISKIT_VERSION_MAJOR`` : Contains the major version number.
-    * ``QISKIT_VERSION_MINOR`` : Contains the minor version number.
-    * ``QISKIT_VERSION_PATCH`` : Contains the patch version number.
-    * ``QISKIT_VERSION`` : Contains a numeric representation of the version information, which can be used for comparisons.
-    * ``QISKIT_VERSION_NUMERIC(M,m,p)`` : Function-like Macro that returns the version "M.m.p" as a numeric value, which can be used for comparisons.
+    Added support for querying the Qiskit version via the C API using the following definitions:
 
-    For example, to check if the current version is at least 2.1.0, you can use:
+    * ``QISKIT_VERSION``: The version as human readable ``char*`` (e.g. ``"2.2.0"``).
+    * ``QISKIT_VERSION_HEX``: The version as HEX.
+    * ``QISKIT_VERSION_MAJOR``: The major version number.
+    * ``QISKIT_VERSION_MINOR``: The minor version number.
+    * ``QISKIT_VERSION_PATCH``: The patch version number.
+    * ``QISKIT_RELEASE_LEVEL``: The release level, e.g. ``0xF`` for final or ``0xC`` for release candidates.
+    * ``QISKIT_RELEASE_SERIAL``: The release serial, e.g. ``1`` for the first release candidate.
+    * ``QISKIT_GET_VERSION_HEX``: A macro returning the version a HEX, given major, minor, patch,
+      level, and serial.
 
-    .. code-block: c
+    For example, to check if the current version is at least 2.2.0, you can use:
 
-        if (QISKIT_VERSION >= QISKIT_VERSION_NUMERIC(2, 1, 0)) {
-            // Code for version 2.1.0 or later
+    .. code-block:: c
+
+        if (QISKIT_VERSION_HEX >= QISKIT_GET_VERSION_HEX(2, 2, 0, 0xF, 0)) {
+            // Code for version 2.2.0 (final) or later
         }
+deprecations_c:
+  - |
+    Deprecated the macro ``QISKIT_VERSION_NUMERIC`` in favor of the direct replacement
+    ``QISKIT_GET_VERSION_HEX``. This macro can be used to generate a hexanumeric version format
+    from decimal version numbers.

@@ -37,6 +37,10 @@ from qiskit.quantum_info.operators.operator_utils import _equal_with_ancillas
 from qiskit.compiler.transpiler import transpile
 from qiskit.circuit import Qubit
 from qiskit.circuit.library import PermutationGate
+from qiskit.utils import optionals
+
+from qiskit._accelerate import unitary_sim
+
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 logger = logging.getLogger(__name__)
@@ -750,6 +754,7 @@ class TestOperator(OperatorTestCase):
         state2 = Operator(circ2)
         self.assertEqual(state1.reverse_qargs(), state2)
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
     def test_drawings(self):
         """Test draw method"""
         qc1 = QFTGate(5).definition
@@ -1332,6 +1337,55 @@ class TestOperator(OperatorTestCase):
         self.assertTrue(_equal_with_ancillas(op1, op2, [1]))
         self.assertFalse(_equal_with_ancillas(op1, op2, [2]))
         self.assertTrue(_equal_with_ancillas(op1, op2, [2, 1]))
+
+
+class TestUnitarySim(QiskitTestCase):
+    """Test simulation of unitary circuits in Rust."""
+
+    def test_equivalence(self):
+        """Test equivalence of Python and Rust code"""
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.swap(1, 2)
+        qc.s(1)
+        qc.cx(3, 1)
+        qc.rz(0.1, 2)
+        qc.ccx(3, 4, 0)
+        qc.s(4)
+        python_mat = Operator(qc).data
+        rust_mat = unitary_sim.sim_unitary_circuit(qc._data)
+        assert_allclose(python_mat, rust_mat)
+
+    def test_equivalence_with_barriers(self):
+        """Test equivalence of Python and Rust code where the
+        circuit includes barriers"""
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.barrier()
+        qc.cx(0, 1)
+        qc.swap(1, 2)
+        qc.s(1)
+        qc.cx(3, 1)
+        qc.rz(0.1, 2)
+        qc.barrier()
+        qc.ccx(3, 4, 0)
+        qc.s(4)
+        qc.barrier()
+
+        python_mat = Operator(qc).data
+        rust_mat = unitary_sim.sim_unitary_circuit(qc._data)
+        assert_allclose(python_mat, rust_mat)
+
+    def test_raises_on_classical_bits(self):
+        """Test that simulating circuits with classical bits
+        raises an error."""
+        qc = QuantumCircuit(5, 1)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        with self.assertRaises(QiskitError):
+            _ = unitary_sim.sim_unitary_circuit(qc._data)
 
 
 if __name__ == "__main__":

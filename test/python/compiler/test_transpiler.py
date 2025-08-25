@@ -18,6 +18,7 @@ import itertools
 import math
 import os
 import sys
+import random
 from logging import StreamHandler, getLogger
 from unittest.mock import patch
 import numpy as np
@@ -32,6 +33,7 @@ from qiskit import (
     qpy,
 )
 from qiskit.circuit import (
+    Annotation,
     Clbit,
     ControlFlowOp,
     ForLoopOp,
@@ -39,6 +41,7 @@ from qiskit.circuit import (
     IfElseOp,
     BoxOp,
     Parameter,
+    ParameterVector,
     Qubit,
     SwitchCaseOp,
     WhileLoopOp,
@@ -60,6 +63,7 @@ from qiskit.circuit.library import (
     ECRGate,
     HGate,
     IGate,
+    PermutationGate,
     PhaseGate,
     RXGate,
     RYGate,
@@ -83,7 +87,7 @@ from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.options import Options
 from qiskit.quantum_info import Operator, random_unitary
 from qiskit.utils import should_run_in_parallel
-from qiskit.transpiler import CouplingMap, Layout, PassManager
+from qiskit.transpiler import CouplingMap, Layout, PassManager, passes
 from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirection, VF2PostLayout
 
@@ -1545,10 +1549,14 @@ class TestTranspile(QiskitTestCase):
         qc.h(0)
         qc.delay(a, 1)
         qc.cx(0, 1)
+        with qc.box(duration=a):
+            pass
 
         out = transpile(
             qc,
-            backend=GenericBackendV2(num_qubits=2, basis_gates=["cx", "h"], seed=0),
+            backend=GenericBackendV2(
+                num_qubits=2, basis_gates=["cx", "h"], control_flow=True, seed=0
+            ),
             optimization_level=optimization_level,
             seed_transpiler=42,
         )
@@ -2299,6 +2307,27 @@ class TestTranspile(QiskitTestCase):
         # No meaningful assertions; this is a simple regression test for "stretches don't explode
         # backends with alignments" more than anything.
 
+    @data(0, 1, 2, 3)
+    def test_single_qubit_circuit_deterministic_output(self, optimization_level):
+        """Test that the transpiler's output is deterministic in a single qubit example.
+
+        Reproduce from `#14729 <https://github.com/Qiskit/qiskit/issues/14729>`__"""
+        params = ParameterVector("θ", length=3)
+
+        circ = QuantumCircuit(3)
+        for i, par in enumerate(params):
+            circ.rx(par, i)
+        circ.measure_all()
+        backend = GenericBackendV2(10, noise_info=True, seed=123)
+        isa_circs = []
+        for _ in range(10):
+            pm = generate_preset_pass_manager(
+                optimization_level=optimization_level, target=backend.target, seed_transpiler=123
+            )
+            isa_circs.append(pm.run(circ))
+        for i in range(10):
+            self.assertEqual(isa_circs[0], isa_circs[i])
+
 
 @ddt
 class TestPostTranspileIntegration(QiskitTestCase):
@@ -2376,6 +2405,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
         bits = [Qubit(), Qubit(), Clbit()]
         base = QuantumCircuit(*regs, bits)
         base.h(0)
+        base.delay(expr.lift(Duration.ps(1234)), 0)
         base.measure(0, 0)
         with base.if_test(expr.equal(base.cregs[0], 1)) as else_:
             base.cx(0, 1)
@@ -2526,7 +2556,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
             control_flow=True,
         )
         transpiled = transpile(
-            self._control_flow_circuit(),
+            self._control_flow_expr_circuit(),
             backend=backend,
             optimization_level=optimization_level,
             seed_transpiler=2023_07_26,
@@ -2608,7 +2638,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
         """Test that the output of a transpiled circuit with control flow and `Expr` nodes can be
         dumped into OpenQASM 3."""
         transpiled = transpile(
-            self._control_flow_circuit(),
+            self._control_flow_expr_circuit(),
             backend=GenericBackendV2(
                 num_qubits=27, coupling_map=MUMBAI_CMAP, control_flow=True, seed=2025_05_28
             ),
@@ -2700,6 +2730,99 @@ class TestPostTranspileIntegration(QiskitTestCase):
         tqc = transpile(qc, backend=backend, seed_transpiler=4242, callback=callback)
         self.assertTrue(vf2_post_layout_called)
         self.assertEqual([2, 1, 0], _get_index_layout(tqc, qubits))
+
+    @data("sabre", "lookahead", "basic")
+    def test_final_layout_combined_correctly(self, routing):
+        """Test that multiple `final_layout`s are combined correctly."""
+        generators = {
+            "sabre": lambda cmap, seed: passes.SabreSwap(cmap, seed=seed, trials=1),
+            "lookahead": lambda cmap, _seed: passes.LookaheadSwap(cmap),
+            "basic": lambda cmap, seed: passes.BasicSwap(cmap),
+        }
+        make_routing_pass = generators[routing]
+
+        def random_line(num_qubits, rng):
+            line = list(range(num_qubits))
+            rng.shuffle(line)
+            out = CouplingMap([[a, b] for a, b in zip(line[:-1], line[1:])])
+            out.make_symmetric()
+            return out
+
+        rng = random.Random(0)
+        num_qubits = 5
+
+        # This is just loads of stars, so routing has to work for it.
+        qc = QuantumCircuit(num_qubits)
+        for i in range(num_qubits):
+            for j in range(num_qubits):
+                if i == j:
+                    continue
+                qc.cx(i, j)
+        # ... and the mirror, so the circuit implements the identity.
+        qc.barrier()
+        qc.compose(qc.inverse(), qc.qubits, inplace=True)
+
+        # Routing needs a layout set, and we don't want qubit relabelling to mess with our test.
+        pm = PassManager([passes.SetLayout(list(range(num_qubits))), passes.ApplyLayout()])
+        # Now we route the circuit to several different coupling maps in a row, so we generate lots
+        # of routing permutations, and each pass needs to combine them.
+        pm += PassManager([make_routing_pass(random_line(num_qubits, rng), i) for i in range(5)])
+        out = pm.run(qc)
+
+        # The invariant of `routing_permutation` is that you're supposed to be able to append it as
+        # a permutation and it will "undo" the effects.  We already know our circuit implements the
+        # identity.
+        out.append(PermutationGate(out.layout.routing_permutation()), out.qubits)
+        self.assertEqual(Operator(out), Operator(np.eye(2**num_qubits)))
+
+    @data(0, 1, 2, 3)
+    def test_annotations_survive(self, optimization_level):
+        """Test that custom annotations survive a full transpile."""
+
+        # When the annotation framework expands to have more semantics, the test here might need to
+        # expand to mark the custom annotations as being safe under any circuit transformation.
+        class Custom(Annotation):  # pylint: disable=missing-class-docstring
+            namespace = "custom"
+
+            def __init__(self, value):
+                self.value = value
+
+            def __eq__(self, other):
+                return isinstance(other, Custom) and self.value == other.value
+
+        qc = QuantumCircuit(4, 4)
+        qc.h(0)
+        outer_annotations = [Custom("hello"), Custom("world")]
+        with qc.box(outer_annotations.copy()):
+            qc.cx(0, 1)
+            qc.cx(0, 2)
+            qc.cx(0, 3)
+            with qc.box([Custom("inner hello"), Custom("inner world")]):
+                qc.cx(0, 1)
+                qc.cx(0, 2)
+                qc.cx(0, 3)
+        qc.measure(qc.qubits, qc.clbits)
+        backend = GenericBackendV2(
+            num_qubits=5,
+            coupling_map=CouplingMap.from_line(5),
+            basis_gates=["rz", "sx", "cx"],
+            control_flow=True,
+            seed=0,
+        )
+        out = transpile(
+            qc, backend, optimization_level=optimization_level, seed_transpiler=2025_06_05
+        )
+
+        def get_first_box_op(qc):
+            return next(inst.operation for inst in qc.data if inst.name == "box")
+
+        outer_box_qc = get_first_box_op(qc)
+        outer_box_out = get_first_box_op(out)
+        self.assertEqual(outer_box_qc.annotations, outer_annotations)  # Check for no mutation.
+        self.assertEqual(outer_box_qc.annotations, outer_box_out.annotations)
+        inner_box_qc = get_first_box_op(outer_box_qc.blocks[0])
+        inner_box_out = get_first_box_op(outer_box_out.blocks[0])
+        self.assertEqual(inner_box_qc.annotations, inner_box_out.annotations)
 
 
 class StreamHandlerRaiseException(StreamHandler):

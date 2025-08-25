@@ -48,7 +48,7 @@ class Adder(QuantumCircuit):
             "Use the adder gates provided in qiskit.circuit.library.arithmetic instead. "
             "The gate type depends on the adder kind: fixed, half, full are represented by "
             "ModularAdderGate, HalfAdderGate, FullAdderGate, respectively. For different adder "
-            "implementations, see https://docs.quantum.ibm.com/api/qiskit/synthesis.",
+            "implementations, see https://quantum.cloud.ibm.com/docs/api/qiskit/synthesis.",
         ),
         removal_timeline="in Qiskit 3.0",
     )
@@ -173,12 +173,12 @@ class ModularAdderGate(Gate):
 
     def _define(self):
         """Populates self.definition with some decomposition of this gate."""
-        from qiskit.synthesis.arithmetic import adder_qft_d00
+        from qiskit.synthesis.arithmetic import adder_modular_v17
 
         # This particular decomposition does not use any ancilla qubits.
         # Note that the transpiler may choose a different decomposition
         # based on the number of ancilla qubits available.
-        self.definition = adder_qft_d00(self.num_state_qubits, kind="fixed")
+        self.definition = adder_modular_v17(self.num_state_qubits)
 
 
 class FullAdderGate(Gate):

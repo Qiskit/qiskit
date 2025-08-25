@@ -44,6 +44,15 @@ else:
             " See https://qisk.it/packaging-1-0 for more detail."
         )
 
+if sys.version_info < (3, 10):
+    warnings.warn(
+        "Using Qiskit with Python 3.9 is deprecated as of the 2.1.0 release. "
+        "Support for running Qiskit with Python 3.9 will be removed in the "
+        "2.3.0 release, which coincides with when Python 3.9 goes end of life.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
 from . import _accelerate
 import qiskit._numpy_compat
 
@@ -51,6 +60,8 @@ import qiskit._numpy_compat
 # in _accelerate because it relies on file paths, but PyO3 generates only one shared library file.
 # We manually define them on import so people can directly import qiskit._accelerate.* submodules
 # and not have to rely on attribute access.  No action needed for top-level extension packages.
+
+sys.modules["qiskit._accelerate.alap_schedule_analysis"] = _accelerate.alap_schedule_analysis
 sys.modules["qiskit._accelerate.circuit"] = _accelerate.circuit
 sys.modules["qiskit._accelerate.circuit.classical"] = _accelerate.circuit.classical
 sys.modules["qiskit._accelerate.circuit.classical.expr"] = _accelerate.circuit.classical.expr
@@ -102,12 +113,16 @@ sys.modules["qiskit._accelerate.commutation_cancellation"] = _accelerate.commuta
 sys.modules["qiskit._accelerate.consolidate_blocks"] = _accelerate.consolidate_blocks
 sys.modules["qiskit._accelerate.synthesis.linear_phase"] = _accelerate.synthesis.linear_phase
 sys.modules["qiskit._accelerate.synthesis.evolution"] = _accelerate.synthesis.evolution
+sys.modules["qiskit._accelerate.synthesis.discrete_basis"] = _accelerate.synthesis.discrete_basis
 sys.modules["qiskit._accelerate.synthesis.multi_controlled"] = (
     _accelerate.synthesis.multi_controlled
 )
 sys.modules["qiskit._accelerate.synthesis.qft"] = _accelerate.synthesis.qft
 sys.modules["qiskit._accelerate.split_2q_unitaries"] = _accelerate.split_2q_unitaries
 sys.modules["qiskit._accelerate.gate_direction"] = _accelerate.gate_direction
+sys.modules["qiskit._accelerate.instruction_duration_check"] = (
+    _accelerate.instruction_duration_check
+)
 sys.modules["qiskit._accelerate.inverse_cancellation"] = _accelerate.inverse_cancellation
 sys.modules["qiskit._accelerate.check_map"] = _accelerate.check_map
 sys.modules["qiskit._accelerate.filter_op_nodes"] = _accelerate.filter_op_nodes
@@ -116,6 +131,8 @@ sys.modules["qiskit._accelerate.high_level_synthesis"] = _accelerate.high_level_
 sys.modules["qiskit._accelerate.remove_identity_equiv"] = _accelerate.remove_identity_equiv
 sys.modules["qiskit._accelerate.circuit_duration"] = _accelerate.circuit_duration
 sys.modules["qiskit._accelerate.cos_sin_decomp"] = _accelerate.cos_sin_decomp
+sys.modules["qiskit._accelerate.litinski_transformation"] = _accelerate.litinski_transformation
+sys.modules["qiskit._accelerate.unroll_3q_or_more"] = _accelerate.unroll_3q_or_more
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 

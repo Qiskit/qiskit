@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use qiskit_quantum_info::sparse_observable::ArithmeticError;
+use qiskit_transpiler::target::TargetError;
 use thiserror::Error;
 
 /// Errors related to C input.
@@ -41,6 +42,18 @@ pub enum ExitCode {
     ArithmeticError = 200,
     /// Mismatching number of qubits.
     MismatchedQubits = 201,
+    /// Matrix is not unitary.
+    ExpectedUnitary = 202,
+    /// Target related error
+    TargetError = 300,
+    /// Instruction already exists in the Target
+    TargetInstAlreadyExists = 301,
+    /// Properties with incorrect qargs was added
+    TargetQargMismatch = 302,
+    /// Trying to query into the target with non-existent qargs.
+    TargetInvalidQargsKey = 303,
+    /// Querying an operation that doesn't exist in the Target.
+    TargetInvalidInstKey = 304,
 }
 
 impl From<ArithmeticError> for ExitCode {
@@ -57,6 +70,24 @@ impl From<CInputError> for ExitCode {
             CInputError::AlignmentError => ExitCode::AlignmentError,
             CInputError::NullPointerError => ExitCode::NullPointerError,
             CInputError::IndexError => ExitCode::IndexError,
+        }
+    }
+}
+
+impl From<TargetError> for ExitCode {
+    fn from(value: TargetError) -> Self {
+        match value {
+            TargetError::InvalidKey(_) => ExitCode::TargetInvalidInstKey,
+            TargetError::AlreadyExists(_) => ExitCode::TargetInstAlreadyExists,
+            TargetError::QargsMismatch {
+                instruction: _,
+                arguments: _,
+            } => ExitCode::TargetQargMismatch,
+            TargetError::InvalidQargsKey {
+                instruction: _,
+                arguments: _,
+            } => ExitCode::TargetInvalidQargsKey,
+            _ => ExitCode::TargetError,
         }
     }
 }

@@ -21,14 +21,13 @@ use smallvec::{smallvec, SmallVec};
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
 use qiskit_circuit::operations::{ArrayType, Operation, OperationRef, Param, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::Qubit;
+use qiskit_circuit::{Qubit, VarsMode};
 
 use qiskit_synthesis::two_qubit_decompose::{Specialization, TwoQubitWeylDecomposition};
 
 #[pyfunction]
 #[pyo3(name = "split_2q_unitaries")]
 pub fn run_split_2q_unitaries(
-    py: Python,
     dag: &mut DAGCircuit,
     requested_fidelity: f64,
     split_swaps: bool,
@@ -89,7 +88,7 @@ pub fn run_split_2q_unitaries(
                         (PackedOperation::from_unitary(k1l_gate), smallvec![])
                     }
                 };
-                dag.replace_node_with_1q_ops(py, node, insert_fn)?;
+                dag.replace_node_with_1q_ops(node, insert_fn);
                 dag.add_global_phase(&Param::Float(decomp.global_phase))?;
             }
         }
@@ -100,7 +99,7 @@ pub fn run_split_2q_unitaries(
     // We have swap-like unitaries, so we create a new DAG in a manner similar to
     // The Elide Permutations pass, while also splitting the unitaries to 1-qubit gates
     let mut mapping: Vec<usize> = (0..dag.num_qubits()).collect();
-    let new_dag = dag.copy_empty_like("alike")?;
+    let new_dag = dag.copy_empty_like(VarsMode::Alike)?;
     let mut new_dag = new_dag.into_builder();
     for node in dag.topological_op_nodes()? {
         let NodeType::Operation(inst) = &dag.dag()[node] else {
@@ -176,7 +175,7 @@ pub fn run_split_2q_unitaries(
             inst.params.as_deref().cloned(),
             inst.label.as_ref().map(|x| x.to_string()),
             #[cfg(feature = "cache_pygates")]
-            inst.py_op.get().map(|x| x.clone_ref(py)),
+            inst.py_op.get().map(|x| x.clone()),
         )?;
     }
     Ok(Some((new_dag.build(), mapping)))
