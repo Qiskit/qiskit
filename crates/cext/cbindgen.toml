@@ -3,6 +3,7 @@ include_version = true
 include_guard = "QISKIT_H"
 style = "type"
 cpp_compat = true
+usize_is_size_t = true
 
 after_includes = """
 #ifdef QISKIT_C_PYTHON_INTERFACE
