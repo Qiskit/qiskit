@@ -303,6 +303,11 @@ impl ParameterExpression {
         self.name_map.values()
     }
 
+    /// Get the number of [Symbol]s in the expression.
+    pub fn num_symbols(&self) -> usize {
+        self.name_map.len()
+    }
+
     /// Whether the expression represents a complex number. None if cannot be determined.
     pub fn is_complex(&self) -> Option<bool> {
         self.expr.is_complex()
