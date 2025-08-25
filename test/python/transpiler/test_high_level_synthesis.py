@@ -63,7 +63,7 @@ from qiskit.quantum_info import (
     SparsePauliOp,
     SparseObservable,
 )
-from qiskit.synthesis.evolution import synth_pauli_network_rustiq
+from qiskit.synthesis.evolution import synth_pauli_network_rustiq, LieTrotter
 from qiskit.synthesis.linear import random_invertible_binary_matrix
 from qiskit.synthesis.arithmetic import adder_qft_d00
 from qiskit.compiler import transpile
@@ -2957,13 +2957,21 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
     def test_correctness(self, plugin_name):
         """Test that plugins return the correct Operator."""
         op = SparsePauliOp(["XXX", "YYY", "IZZ", "XZY"], [1, 2, 3, 4])
+        evo = PauliEvolutionGate(op, synthesis=LieTrotter())
+
+        # compile via HLS
         qc = QuantumCircuit(6)
-        qc.append(PauliEvolutionGate(op), [1, 2, 4])
+        qc.append(evo, [1, 2, 4])
         hls_config = HLSConfig(PauliEvolution=[plugin_name])
         hls_pass = HighLevelSynthesis(hls_config=hls_config)
         qct = hls_pass(qc)
+
+        # compute reference
+        ref = QuantumCircuit(6)
+        ref.compose(evo.definition, [1, 2, 4], inplace=True)
+
         self.assertEqual(count_rotation_gates(qct), 4)
-        self.assertEqual(Operator(qc), Operator(qct))
+        self.assertEqual(Operator(ref), Operator(qct))
 
     @data("default", "rustiq")
     def test_trivial_rotations(self, plugin_name):
@@ -3121,7 +3129,7 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
         qc.append(evo, [0, 1, 2, 3])
         default_config = HLSConfig(PauliEvolution=["default"])
         qct_default = HighLevelSynthesis(hls_config=default_config)(qc)
-        rustiq_config = HLSConfig(PauliEvolution=[("rustiq")])
+        rustiq_config = HLSConfig(PauliEvolution=["rustiq"])
         qct_rustiq = HighLevelSynthesis(hls_config=rustiq_config)(qc)
         self.assertEqual(Operator(qct_default), Operator(qc))
         self.assertEqual(Operator(qct_rustiq), Operator(qc))
@@ -3136,7 +3144,7 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
         qc.append(evo, [0, 1, 2, 3])
         default_config = HLSConfig(PauliEvolution=["default"])
         qct_default = HighLevelSynthesis(hls_config=default_config)(qc)
-        rustiq_config = HLSConfig(PauliEvolution=[("rustiq")])
+        rustiq_config = HLSConfig(PauliEvolution=["rustiq"])
         qct_rustiq = HighLevelSynthesis(hls_config=rustiq_config)(qc)
         self.assertEqual(Operator(qct_default), Operator(qc))
         self.assertEqual(Operator(qct_rustiq), Operator(qc))

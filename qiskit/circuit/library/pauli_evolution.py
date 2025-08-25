@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 import numpy as np
+import scipy as sc
 
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumcircuit import ParameterValueType
@@ -171,6 +172,50 @@ class PauliEvolutionGate(Gate):
             time: The evolution time.
         """
         self.params = [time]
+
+    def to_matrix(self) -> np.ndarray:
+        """Return the matrix :math:`e^{-it H}` as ``numpy.ndarray``.
+
+        Returns:
+            The matrix this gate represents.
+
+        Raises:
+            ValueError: If the ``time`` parameters is not numeric.
+        """
+        # check the parameter is numeric, otherwise raise an error
+        if isinstance(self.time, ParameterExpression):
+            try:
+                time = self.time.numeric()
+            except TypeError as exc:
+                raise ValueError(
+                    f"Cannot compute matrix with non-numeric parameter: {self.time}"
+                ) from exc
+        else:
+            time = self.time
+
+        # sum up all commuting terms if the operators are given as list
+        if isinstance(self.operator, list):
+            operator = sum(self.operator[1:], start=self.operator[0])
+        else:
+            operator = self.operator
+
+        # SparseObservable does not have a to_matrix method yet
+        if isinstance(operator, SparseObservable):
+            operator = SparsePauliOp.from_sparse_observable(operator)
+
+        # we use a sparse matrix representation for the exponentiation, as operators
+        # are typically sparse (and if they aren't the whole thing is inefficient anyways)
+        spmatrix = operator.to_matrix(sparse=True)
+
+        exp = sc.sparse.linalg.expm(-1j * time * spmatrix)
+
+        # return as dense matrix, since that's what the interface dictates
+        return exp.toarray()
+
+    # pylint: disable=unused-argument
+    def inverse(self, annotated: bool = False):
+        """Return the inverse, which is obtained by flipping the sign of the evolution time."""
+        return PauliEvolutionGate(self.operator, -self.time, synthesis=self.synthesis)
 
     # pylint: disable=unused-argument
     def power(self, exponent: float, annotated: bool = False) -> Gate:
