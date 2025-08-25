@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use pyo3::PyErr;
-use qiskit_circuit::circuit_data::CircuitError;
+use qiskit_circuit::{circuit_data::CircuitError, error::DAGCircuitError};
 use thiserror::Error;
 
 use crate::TranspilerError;
@@ -29,18 +29,21 @@ pub enum BasisTranslatorError {
         BasisTranslator#translation-errors"
     ]]
     TargetMissingEquivalence { basis: String, expanded: String },
+    // TODO: Use rust native CircuitError
     #[error[
-        "Error during creation of DAGCircuit for compose_transforms: {0}"
+        "{0}"
     ]]
-    ComposeTransformsCircuitError(String),
+    BasisCircuitError(String),
+    // TODO: Use rust native GateError
     #[error[
-        "Error during creation of placeholder gate for compose_transform: {0}"
+    "{0}"
     ]]
-    ComposeTransformsGateError(String),
+    BasisGateError(String),
     #[error[
-        "Error during manipulation of DAGCircuit for apply_translation: {0}"
-    ]]
-    ApplyTranslationCircuitError(String),
+        "{0}"
+                ]]
+    // TODO: Use rust native DAGCircuitError
+    BasisDAGCircuitError(String),
     #[error[
         "BasisTranslator did not map {0}"
     ]]
@@ -64,10 +67,6 @@ pub enum BasisTranslatorError {
     ]]
     ReplaceNodeGlobalPhaseComplex(String),
     #[error[
-        "Error during manipulation of DAGCircuit for replace_node: {0}"
-    ]]
-    ReplaceNodeCircuitError(String),
-    #[error[
         "Error mapping of parameters for replace_node: {0}"
     ]]
     ReplaceNodeParameterError(String),
@@ -76,10 +75,9 @@ pub enum BasisTranslatorError {
 impl From<BasisTranslatorError> for PyErr {
     fn from(value: BasisTranslatorError) -> Self {
         match value {
-            BasisTranslatorError::ApplyTranslationCircuitError(_)
-            | BasisTranslatorError::ComposeTransformsCircuitError(_)
-            | BasisTranslatorError::ReplaceNodeCircuitError(_) => {
-                CircuitError::new_err(value.to_string())
+            BasisTranslatorError::BasisCircuitError(_) => CircuitError::new_err(value.to_string()),
+            BasisTranslatorError::BasisDAGCircuitError(message) => {
+                DAGCircuitError::new_err(message)
             }
             _ => TranspilerError::new_err(value.to_string()),
         }
