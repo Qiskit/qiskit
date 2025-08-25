@@ -60,16 +60,37 @@ class TestEvolutionGate(QiskitTestCase):
         self.assertTrue(Operator(gate).equiv(exact_gate))
 
     def test_matrix_decomposition(self):
-        """Test the default decomposition."""
+        """Test the matrix decomposition."""
         op = (X ^ X ^ X) + (Y ^ Y ^ Y) + (Z ^ Z ^ Z)
         time = 0.123
 
         matrix = op.to_matrix()
         evolved = scipy.linalg.expm(-1j * time * matrix)
 
-        evo_gate = PauliEvolutionGate(op, time, synthesis=MatrixExponential())
+        with self.subTest(msg="test MatrixExponential"):
+            evo_gate = PauliEvolutionGate(op, time, synthesis=MatrixExponential())
+            self.assertTrue(Operator(evo_gate).equiv(evolved))
 
-        self.assertTrue(Operator(evo_gate).equiv(evolved))
+        with self.subTest(msg="test to_matrix"):
+            evo_gate = PauliEvolutionGate(op, time)
+            self.assertTrue(np.allclose(evolved, evo_gate.to_matrix()))
+
+    def test_to_matrix_commuting_blocks(self):
+        """Test to_matrix if the evolution is specified with commuting blocks."""
+        block_1q = (X ^ I) + (I ^ X)
+        block_2q = (X ^ X) + (Y ^ Y) + (Z ^ Z)
+
+        evo = PauliEvolutionGate([block_1q, block_2q])
+        matrix = evo.to_matrix()
+
+        expected = PauliEvolutionGate(block_1q + block_2q).to_matrix()
+        self.assertTrue(np.allclose(expected, matrix))
+
+    def test_to_matrix_invalid_time(self):
+        """Test calling to_matrix with a non-numeric time fails."""
+        evo = PauliEvolutionGate(Z, time=Parameter("time"))
+        with self.assertRaises(ValueError):
+            _ = evo.to_matrix()
 
     def test_reorder_paulis_invariant(self):
         """
@@ -430,6 +451,19 @@ class TestEvolutionGate(QiskitTestCase):
         circuit.append(evo.inverse(), circuit.qubits)
 
         self.assertTrue(Operator(circuit).equiv(np.identity(2**circuit.num_qubits)))
+
+    def test_inverse_to_matrix(self):
+        """Test inverse().to_matrix()."""
+        op = X + Y
+        time = 0.512
+        exact = scipy.linalg.expm(-1j * time * op.to_matrix())
+        exact_inv = np.transpose(np.conjugate(exact))
+
+        evo = PauliEvolutionGate(op, time)
+        evo_inv = evo.inverse()
+
+        self.assertTrue(np.allclose(exact, evo.to_matrix()))
+        self.assertTrue(np.allclose(exact_inv, evo_inv.to_matrix()))
 
     def test_power(self):
         """Test calling the power method."""

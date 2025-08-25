@@ -1,7 +1,10 @@
 ---
 features_circuits:
   - |
-    Improved :meth:`.PauliEvolutionGate.control` and :meth:`.PauliEvolutionGate.power` to return
-    more efficient representations in terms of a :class:`.PauliEvolutionGate`. This change leads
-    to significantly shallower circuits and gate counts compared to the previously used
-    generic power and control mechanisms.
+    Improved :meth:`.PauliEvolutionGate.control`, :meth:`.PauliEvolutionGate.power` and 
+    :meth:`.PauliEvolutionGate.inverse` to return more efficient representations in terms of 
+    a :class:`.PauliEvolutionGate`. For computing the controlled and exponentiated versions of the 
+    evolution gate this change leads to significantly shallower circuits and lower
+    gate counts compared to the previously used generic mechanisms. The inverse decomposition
+    does not change but is now generated more efficiently and allows for better compiler 
+    optimizations.
