@@ -10,4 +10,99 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use approx::{abs_diff_eq, relative_ne};
+use nalgebra::DMatrix;
+use num_complex::Complex64;
+
 pub mod cos_sin_decomp;
+
+const ATOL_DEFAULT: f64 = 1e-8;
+const RTOL_DEFAULT: f64 = 1e-5;
+
+pub fn is_hermitian_matrix(mat: &DMatrix<Complex64>) -> bool {
+    let shape = mat.shape();
+    let adjoint = mat.adjoint();
+    for i in 0..shape.0 {
+        for j in 0..shape.1 {
+            if relative_ne!(
+                mat[(i, j)],
+                adjoint[(i, j)],
+                epsilon = ATOL_DEFAULT,
+                max_relative = RTOL_DEFAULT
+            ) {
+                return false;
+            }
+        }
+    }
+    true
+}
+
+/// Verify SVD decomposition gives the same unitary
+fn verify_svd_decomp(
+    mat: &DMatrix<Complex64>,
+    v: &DMatrix<Complex64>,
+    s: &DMatrix<Complex64>,
+    w: &DMatrix<Complex64>,
+) -> bool {
+    let mat_check = v * s * w;
+
+    let max_diff = (mat - &mat_check).map(|c| c.norm()).max();
+    // println!("-- SVD_VERIFY: max_diff = {max_diff}");
+
+    let close = abs_diff_eq!(mat, &mat_check, epsilon = 1e-4);
+    assert!(close);
+    close
+}
+
+pub fn verify_unitary(u: &DMatrix<Complex64>) -> bool {
+    let n = u.shape().0;
+
+    let id_mat = DMatrix::identity(n, n);
+    let uu = u.adjoint() * u;
+    let max_diff = (&uu - &id_mat).map(|c| c.norm()).max();
+    // println!("UNI_VERIFY: max_diff = {max_diff}");
+    let close = abs_diff_eq!(uu, id_mat, epsilon = 1e-4);
+    assert!(close);
+    close
+}
+
+/// Given a matrix that is "close" to unitary, returns the closest
+/// unitary matrix.
+/// See https://michaelgoerz.net/notes/finding-the-closest-unitary-for-a-given-matrix/,
+pub fn closest_unitary(mat: DMatrix<Complex64>) -> DMatrix<Complex64> {
+    // This implementation consumes the original mat but avoids calling
+    // an unnecessary clone.
+    let svd = mat.clone().try_svd(true, true, 1e-12, 0).unwrap();
+    let u = svd.u.unwrap();
+    let v_t = svd.v_t.unwrap();
+    let s = svd.singular_values.map(Complex64::from);
+    let sigma = DMatrix::<Complex64>::from_diagonal(&s);
+    verify_svd_decomp(&mat.clone(), &u, &sigma, &v_t);
+    &u * &v_t
+}
+
+/// Calculate the condition number of a matrix w.r.t the L2 norm
+/// using SVD
+pub fn condition_number(mat: DMatrix<Complex64>) -> Option<f64> {
+    let svd = mat.svd(false, false);
+    let singular_values = svd.singular_values;
+
+    if singular_values.is_empty() {
+        return None;
+    }
+
+    let max_sv = singular_values
+        .iter()
+        .cloned()
+        .fold(f64::NEG_INFINITY, f64::max);
+    let min_sv = singular_values
+        .iter()
+        .cloned()
+        .fold(f64::INFINITY, f64::min);
+
+    if min_sv == 0.0 {
+        return None; // Singular matrix
+    }
+
+    Some(max_sv / min_sv)
+}
