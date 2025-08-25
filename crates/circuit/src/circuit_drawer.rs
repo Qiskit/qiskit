@@ -50,15 +50,10 @@ import_exception!(qiskit.circuit.exceptions, CircuitError);
 
 #[pyfunction]    
 #[pyo3(name = "draw")]
-pub fn py_drawer(py: Python, quantum_circuit: &Bound<PyAny>) -> PyResult<()> {
-    if !quantum_circuit.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
-        return Err(PyTypeError::new_err(
-            "Expected a QuantumCircuit instance"
-        ));
-    }
-    println!("FUNCTION IS BEING CALLED FROM circuit_drawer.rs FILE");
-    let circ_data: CircuitData = quantum_circuit.getattr("_data")?.extract()?;
-    circuit_draw(&circ_data);
+pub fn py_drawer(py: Python, dag_circ: &Bound<PyAny>) -> PyResult<()> {
+    let dag_circ = dag_circ.extract::<DAGCircuit>()?;
+    println!("function is being called from circuit_drawer.rs FILE");
+    circuit_draw(&dag_circ);
     Ok(())
 }
 
@@ -213,16 +208,9 @@ impl circuit_rep {
     }
 }
 
-pub fn circuit_draw(circ_data: &CircuitData) {
+pub fn circuit_draw(dag_circ: &DAGCircuit) {
 
-    let quantum_circuit_data = QuantumCircuitData {
-        data: circ_data.clone(),
-        name: None,
-        metadata: None,
-    };
-
-    let dag_circuit = circuit_to_dag(quantum_circuit_data, true, None, None)
-        .expect("Failed to convert circuit data to DAGCircuit");
+    let dag_circuit = dag_circ.clone();
 
     let mut output = String::new();
 
