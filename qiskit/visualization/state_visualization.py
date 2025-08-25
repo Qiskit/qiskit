@@ -15,6 +15,20 @@
 
 """
 Visualization functions for quantum states.
+
+**Important Note on Numerical Precision:**
+The visualization functions in this module display the exact computed values from quantum states,
+including very small numerical errors that naturally occur in floating-point arithmetic. When
+visualizing states where certain components should theoretically be zero (e.g., Bell states),
+you may see small non-zero values (typically 1e-16 to 1e-17) displayed as tiny bars or
+elements. This is expected behavior and represents the true computational results rather than
+theoretical values. These small values help preserve numerical accuracy and can be useful for
+debugging precision issues.
+
+**Key Functions:**
+- plot_state_city: 3D cityscape visualization of density matrix real/imaginary parts
+- plot_state_hinton: Hinton diagram representation of density matrices
+- plot_state_paulivec: Pauli-vector representation as bar graphs
 """
 
 import math
@@ -44,6 +58,12 @@ def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None,
     squares, whose size indicate the magnitude of their corresponding value
     and their color, its sign. A white square means the value is positive and
     a black one means negative.
+
+    **Note on Numerical Precision:**
+    This function displays the exact computed values, including very small numerical
+    errors. For states where components should theoretically be zero, you may see
+    tiny squares representing values around 1e-16 or 1e-17. This is expected
+    behavior showing the true computational results.
 
     Args:
         state (Statevector or DensityMatrix or ndarray): An N-qubit quantum state.
@@ -386,6 +406,15 @@ def plot_state_city(
     Plot two 3d bar graphs (two dimensional) of the real and imaginary
     part of the density matrix rho.
 
+    **Important Note on Numerical Precision:**
+    This function displays the exact computed values from the quantum state,
+    including very small numerical errors that naturally occur in floating-point
+    arithmetic. For states where certain components should theoretically be zero
+    (e.g., Bell states), you may see small non-zero values (typically 1e-16 to 1e-17)
+    displayed as tiny bars. This is expected behavior and represents the true
+    computational results rather than theoretical values. These small bars help
+    preserve numerical accuracy and can be useful for debugging precision issues.
+
     Args:
         state (Statevector or DensityMatrix or ndarray): an N-qubit quantum state.
         title (str): a string that represents the plot title
@@ -442,14 +471,9 @@ def plot_state_city(
            # if they overlap.
 
            import numpy as np
+           from qiskit import QuantumCircuit
            from qiskit.quantum_info import Statevector
            from qiskit.visualization import plot_state_city
-           from qiskit import QuantumCircuit
-
-           qc = QuantumCircuit(2)
-           qc.h(0)
-           qc.cx(0, 1)
-
 
            qc = QuantumCircuit(2)
            qc.h([0, 1])
@@ -459,6 +483,15 @@ def plot_state_city(
 
            state = Statevector(qc)
            plot_state_city(state, alpha=0.6)
+
+        .. note::
+           **Understanding the Output:**
+           When visualizing states like Bell states where certain components
+           should theoretically be zero, you may observe small bars representing
+           values around 1e-16 or 1e-17. These are not errors but rather the
+           actual computed values due to floating-point precision limitations.
+           This behavior ensures scientific accuracy by showing the true
+           computational results.
 
     """
     import matplotlib.colors as mcolors
