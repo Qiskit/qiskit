@@ -95,12 +95,12 @@ def build_interaction_graph(dag, strict_direction=True):
     # mappings. This is not done for strict direction because for post layout
     # we need to factor in local operation constraints when evaluating a graph
     free_nodes = {}
-    if not strict_direction:
-        conn_comp = connected_components(im_graph)
-        for comp in conn_comp:
-            if len(comp) == 1:
-                index = comp.pop()
-                free_nodes[index] = im_graph[index]
+    conn_comp = connected_components(im_graph)
+    for comp in conn_comp:
+        if len(comp) == 1:
+            index = comp.pop()
+            free_nodes[index] = im_graph[index]
+            if not strict_direction:
                 im_graph.remove_node(index)
 
     return im_graph, im_graph_node_map, reverse_im_graph_node_map, free_nodes
