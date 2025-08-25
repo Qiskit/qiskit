@@ -200,7 +200,9 @@ impl circuit_rep {
             println!("Processing layer {}", i);
 
             // NodeIndex is being pushed into each sublayer
-            let mut sublayers: Vec<Vec<NodeIndex>> = vec![Vec::new(); layer.len()];
+            let mut sublayers: Vec<Vec<NodeIndex>> = vec![Vec::new()];
+            // let mut sublayers: Vec<Vec<NodeIndex>> = vec![Vec::new(); layer.len()];
+
             
             for node_index in layer {
                 if let NodeType::Operation(instruction_to_insert) = &binding.dag()[node_index] {
@@ -208,7 +210,7 @@ impl circuit_rep {
                         if sublayer.is_empty() {
                             sublayer.push(node_index);
                         } else {
-                            let mut flag = false;
+                            let mut overlap = false;
                             for &sub_node_index in sublayer.iter() {
                                 if let NodeType::Operation(instruction) = &binding.dag()[sub_node_index]{
                                     let subnode_qubits = binding.qargs_interner().get(instruction.qubits);
@@ -226,8 +228,13 @@ impl circuit_rep {
                                     let node_min_clbit = node_clbits.iter().map(|c| c.0).min().unwrap_or(0);
                                     let node_max_clbit = node_clbits.iter().map(|c| c.0).max().unwrap_or(0);
 
-                                    if subnode_max_qubit > node_min_qubit || subnode_min_qubit < node_max_qubit {
-                                        flag = true;
+                                    // the issue now is that when unwrap_or sets the default to 0 for all instructions without 0
+                                    // there will always be overlap
+                                    // need to use option to minimise overlap
+
+                                    if (subnode_min_qubit >= node_min_qubit && subnode_min_qubit <= node_max_qubit) ||
+                                    (subnode_max_qubit >= node_min_qubit && subnode_max_qubit <= node_max_qubit){
+                                        overlap = true;
                                         println!("Conflict detected between subnode {:?} and node {:?}", sub_node_index, node_index);
                                         println!("Subnode qubits: {:?}, Node qubits: {:?}", subnode_qubits, node_qubits);
                                         println!("Subnode clbits: {:?}, Node clbits: {:?}", subnode_clbits, node_clbits);
@@ -238,19 +245,27 @@ impl circuit_rep {
                                         break;
                                     }
 
-                                    if subnode_max_clbit > node_min_clbit || subnode_min_clbit < node_max_clbit {
-                                        flag = true;
+                                    if (subnode_min_clbit >= node_min_clbit && subnode_min_clbit <= node_max_clbit) ||
+                                    (subnode_max_clbit >= node_min_clbit && subnode_max_clbit <= node_max_clbit) {
+                                        overlap = true;
                                         println!("Conflict detected between subnode {:?} and node {:?}", sub_node_index, node_index);
                                         println!("Subnode qubits: {:?}, Node qubits: {:?}", subnode_qubits, node_qubits);
                                         println!("Subnode clbits: {:?}, Node clbits: {:?}", subnode_clbits, node_clbits);
                                         println!("Subnode min/max qubits: {}, {}, Node min/max qubits: {}, {}", 
                                             subnode_min_qubit, subnode_max_qubit, node_min_qubit, node_max_qubit);
+                                        println!("Subnode min/max clbits: {}, {}, Node min/max clbits: {}, {}", 
+                                            subnode_min_clbit, subnode_max_clbit, node_min_clbit, node_max_clbit);
                                         break;
                                     }
                                 }
                             }
-                            if !flag {
+                            if !overlap {
                                 sublayer.push(node_index);
+                                break;
+                            } else {
+                                // If there is a conflict, create a new sublayer
+                                let new_sublayer = vec![node_index];
+                                sublayers.push(new_sublayer);
                                 break;
                             }
                         }
