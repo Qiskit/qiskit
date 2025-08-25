@@ -12,7 +12,7 @@
 
 use std::sync::OnceLock;
 
-use hashbrown::{HashMap, HashSet};
+use hashbrown::HashMap;
 use indexmap::{IndexMap, IndexSet};
 use pyo3::prelude::*;
 use qiskit_circuit::bit::QuantumRegister;
@@ -39,7 +39,7 @@ pub type BasisTransformIn = (SmallVec<[Param; 3]>, CircuitData);
 pub type BasisTransformOut = (SmallVec<[Param; 3]>, DAGCircuit);
 
 static STD_GATE_MAPPING: OnceLock<HashMap<&str, StandardGate>> = OnceLock::new();
-static STD_INST_SET: OnceLock<HashSet<&str>> = OnceLock::new();
+static STD_INST_SET: [&str; 4] = ["barrier", "delay", "measure", "reset"];
 
 pub(super) fn compose_transforms<'a>(
     basis_transforms: &'a [(GateIdentifier, BasisTransformIn)],
@@ -54,7 +54,7 @@ pub(super) fn compose_transforms<'a>(
 
     for (gate_name, gate_num_qubits) in source_basis.iter().cloned() {
         let num_params = gate_param_counts[&(gate_name.clone(), gate_num_qubits)];
-        let mut placeholder_params: SmallVec<[Param; 3]> = (0..num_params as u32)
+        let placeholder_params: SmallVec<[Param; 3]> = (0..num_params as u32)
             .map(|idx| {
                 Param::ParameterExpression(
                     ParameterExpression::from_symbol(Symbol::new(&gate_name, None, Some(idx)))
@@ -75,15 +75,11 @@ pub(super) fn compose_transforms<'a>(
             op
         } else {
             let extract_py = Python::with_gil(|py| -> PyResult<OperationFromPython> {
-                let gate = || -> PyResult<OperationFromPython> {
-                    GATE.get_bound(py)
-                        .call1((&gate_name, gate_num_qubits, placeholder_params.as_ref()))?
-                        .extract()
-                };
-                gate()
+                GATE.get_bound(py)
+                    .call1((&gate_name, gate_num_qubits, placeholder_params.as_ref()))?
+                    .extract()
             })
             .unwrap_or_else(|_| panic!("Error creating custom gate for entry {}", gate_name));
-            placeholder_params = extract_py.params;
             extract_py.operation
         };
         let qubits: Vec<Qubit> = (0..dag.num_qubits() as u32).map(Qubit).collect();
@@ -174,11 +170,9 @@ fn name_to_packed_operation(name: &str, num_qubits: u32) -> Option<PackedOperati
             .map(|(k, v)| (*v, bytemuck::checked::cast(k as u8)))
             .collect()
     });
-    let std_instruction_mapping =
-        STD_INST_SET.get_or_init(|| HashSet::from_iter(["barrier", "delay", "measure", "reset"]));
     if let Some(operation) = std_gate_mapping.get(name) {
         Some((*operation).into())
-    } else if std_instruction_mapping.contains(name) {
+    } else if STD_INST_SET.contains(&name) {
         let inst = match name {
             "barrier" => StandardInstruction::Barrier(num_qubits),
             "delay" => StandardInstruction::Delay(qiskit_circuit::operations::DelayUnit::DT),

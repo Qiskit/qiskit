@@ -65,7 +65,10 @@ fn py_run_basis_translator(
     target: Option<&Target>,
     target_basis: Option<HashSet<String>>,
 ) -> PyResult<Option<DAGCircuit>> {
-    run_basis_translator(dag, equiv_lib, min_qubits, target, target_basis).map_err(|e| e.into())
+    let target_basis_ref: Option<HashSet<&str>> = target_basis
+        .as_ref()
+        .map(|set| set.iter().map(|obj| obj.as_str()).collect());
+    run_basis_translator(dag, equiv_lib, min_qubits, target, target_basis_ref).map_err(|e| e.into())
 }
 
 pub fn run_basis_translator(
@@ -73,7 +76,7 @@ pub fn run_basis_translator(
     equiv_lib: &mut EquivalenceLibrary,
     min_qubits: usize,
     target: Option<&Target>,
-    target_basis: Option<HashSet<String>>,
+    target_basis: Option<HashSet<&str>>,
 ) -> Result<Option<DAGCircuit>, BasisTranslatorError> {
     if target_basis.is_none() && target.is_none() {
         return Ok(None);
@@ -132,7 +135,7 @@ pub fn run_basis_translator(
             .as_ref()
             .unwrap()
             .into_iter()
-            .map(|name| name.as_str())
+            .copied()
             .collect();
     }
     new_target_basis = new_target_basis.union(&basic_instrs).copied().collect();

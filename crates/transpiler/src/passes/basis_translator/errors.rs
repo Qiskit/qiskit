@@ -37,11 +37,10 @@ pub enum BasisTranslatorError {
         "{0}"
     ]]
     BasisCircuitError(String),
-    // TODO: Use rust native GateError
+    // TODO: Use rust native DAGCircuitError
     #[error[
     "{0}"
     ]]
-    // TODO: Use rust native DAGCircuitError
     BasisDAGCircuitError(String),
     #[error[
         "BasisTranslator did not map {0}"
