@@ -61,8 +61,10 @@ results transpiling circuits from Python via the C API.
 .. toctree::
    :maxdepth: 1
 
+   version
    qk-target
    qk-target-entry
+   qk-transpile-layout
    qk-transpiler-passes
    qk-vf2-layout-result
-   qk-elide-permutations-result
+   qk-sabre-layout-options

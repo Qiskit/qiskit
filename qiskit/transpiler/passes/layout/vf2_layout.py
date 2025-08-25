@@ -159,7 +159,8 @@ class VF2Layout(AnalysisPass):
             self.property_set["VF2Layout_stop_reason"] = VF2LayoutStopReason.SOLUTION_FOUND
             mapping = {dag.qubits[virt]: phys for virt, phys in layout.items()}
             chosen_layout = Layout(mapping)
-            self.property_set["layout"] = chosen_layout
+
+            self.property_set["layout"] = vf2_utils.allocate_idle_qubits(dag, target, chosen_layout)
             for reg in dag.qregs.values():
                 self.property_set["layout"].add_register(reg)
             return
@@ -285,7 +286,7 @@ class VF2Layout(AnalysisPass):
             if chosen_layout is None:
                 self.property_set["VF2Layout_stop_reason"] = VF2LayoutStopReason.NO_SOLUTION_FOUND
                 return
-            self.property_set["layout"] = chosen_layout
+            self.property_set["layout"] = vf2_utils.allocate_idle_qubits(dag, target, chosen_layout)
             for reg in dag.qregs.values():
                 self.property_set["layout"].add_register(reg)
 
