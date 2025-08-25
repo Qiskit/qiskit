@@ -1,5 +1,5 @@
 ---
-features:
+features_quantum_info:
   - |
     Introduces the :class:`.PhasedQubitSparsePauli` and :class:`.PhasedQubitSparsePauliList`
     classes. These classes represent, respectively, a single Pauli operator and a list of Pauli
