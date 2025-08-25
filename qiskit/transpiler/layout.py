@@ -829,7 +829,6 @@ class TranspileLayout:
             virtual_permutation_layout = Layout(input_qubit_indices)
         if final_layout is None:
             final_layout = Layout(dict(enumerate(dag.qubits)))
-
         input_qubits = sorted(input_qubit_indices, key=input_qubit_indices.get)
 
         num_qubits = len(dag.qubits)
