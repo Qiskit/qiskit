@@ -54,7 +54,7 @@ pub(super) fn compose_transforms<'a>(
 
     for (gate_name, gate_num_qubits) in source_basis.iter().cloned() {
         let num_params = gate_param_counts[&(gate_name.clone(), gate_num_qubits)];
-        let placeholder_params: SmallVec<[Param; 3]> = (0..num_params as u32)
+        let mut placeholder_params: SmallVec<[Param; 3]> = (0..num_params as u32)
             .map(|idx| {
                 Param::ParameterExpression(
                     ParameterExpression::from_symbol(Symbol::new(&gate_name, None, Some(idx)))
@@ -80,6 +80,7 @@ pub(super) fn compose_transforms<'a>(
                     .extract()
             })
             .unwrap_or_else(|_| panic!("Error creating custom gate for entry {}", gate_name));
+            placeholder_params = extract_py.params;
             extract_py.operation
         };
         let qubits: Vec<Qubit> = (0..dag.num_qubits() as u32).map(Qubit).collect();
