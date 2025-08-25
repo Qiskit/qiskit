@@ -47,26 +47,21 @@ use crate::circuit_data::CircuitData;
 
 import_exception!(qiskit.circuit.exceptions, CircuitError);
 
-#[pyclass(sequence, module = "qiskit._accelerate.circuit")]
-pub struct CircuitDrawer;
 
-#[pymethods]
-impl CircuitDrawer{
-
-    #[staticmethod]
-    #[pyo3(name = "draw")]
-    fn py_drawer(py: Python, quantum_circuit: &Bound<PyAny>) -> PyResult<()> {
-        if !quantum_circuit.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
-            return Err(PyTypeError::new_err(
-                "Expected a QuantumCircuit instance"
-            ));
-        }
-        println!("FUNCTION IS BEING CALLED FROM circuit_drawer.rs FILE");
-        let circ_data: CircuitData = quantum_circuit.getattr("_data")?.extract()?;
-        circuit_draw(&circ_data);
-        Ok(())
+#[pyfunction]    
+#[pyo3(name = "draw")]
+pub fn py_drawer(py: Python, quantum_circuit: &Bound<PyAny>) -> PyResult<()> {
+    if !quantum_circuit.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
+        return Err(PyTypeError::new_err(
+            "Expected a QuantumCircuit instance"
+        ));
     }
+    println!("FUNCTION IS BEING CALLED FROM circuit_drawer.rs FILE");
+    let circ_data: CircuitData = quantum_circuit.getattr("_data")?.extract()?;
+    circuit_draw(&circ_data);
+    Ok(())
 }
+
 
 pub const q_wire: &str = "─";
 pub const c_wire: char = '═';
