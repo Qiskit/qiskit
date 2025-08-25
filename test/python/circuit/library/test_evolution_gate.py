@@ -21,13 +21,14 @@ from ddt import ddt, data, unpack
 
 from qiskit import transpile
 from qiskit.circuit import QuantumCircuit, Parameter
-from qiskit.circuit.library import PauliEvolutionGate, HamiltonianGate, PhaseGate
+from qiskit.circuit.library import PauliEvolutionGate, HamiltonianGate, PhaseGate, RZGate
 from qiskit.synthesis import LieTrotter, SuzukiTrotter, MatrixExponential, QDrift
 from qiskit.synthesis.evolution.product_formula import reorder_paulis
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info import Operator, SparsePauliOp, Pauli, Statevector, SparseObservable
 from qiskit.transpiler.passes import HLSConfig, HighLevelSynthesis
 from qiskit.utils import optionals
+from qiskit.circuit._utils import _compute_control_matrix
 from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
 
 X = SparsePauliOp("X")
@@ -430,6 +431,37 @@ class TestEvolutionGate(QiskitTestCase):
 
         self.assertTrue(Operator(circuit).equiv(np.identity(2**circuit.num_qubits)))
 
+    def test_power(self):
+        """Test calling the power method."""
+        power = 31
+        dt = 0.1
+        op = (X ^ X) + (Z ^ Z)  # pick commuting operator to check matrices
+
+        evo = PauliEvolutionGate(op, time=dt)
+        evo_pow = evo.power(power)
+
+        expect = PauliEvolutionGate(op, time=power * dt)
+
+        with self.subTest("check efficient power"):
+            self.assertEqual(expect, evo_pow)
+
+        matrix = scipy.linalg.expm(-1j * dt * power * op.to_matrix())
+        with self.subTest("check unitary"):
+            self.assertTrue(np.allclose(matrix, Operator(evo_pow).data))
+
+    def test_control_grouped(self):
+        """Test the control method on grouped operators."""
+        block_1q = (I ^ X) + (X ^ I)
+        block_2q = (Z ^ Z) + (Y ^ Y) + (X ^ X)
+
+        evo = PauliEvolutionGate([block_1q, block_2q], time=1, synthesis=LieTrotter())
+        controlled = evo.control(2, ctrl_state="01")
+
+        summed = PauliEvolutionGate(block_1q + block_2q, time=1, synthesis=LieTrotter())
+        reference = summed.control(2, ctrl_state="01")
+
+        self.assertEqual(reference, controlled)
+
     def test_labels_and_name(self):
         """Test the name and labels are correct."""
         operators = [
@@ -725,6 +757,27 @@ class TestEvolutionGate(QiskitTestCase):
         self.assertLess(cx_count, exponential_cx)
         # we should also be less (or equal) to this
         self.assertLessEqual(cx_count, num_cx)
+
+    @data("110", 6)
+    def test_ctrl_state(self, ctrl_state):
+        """Test controlled evolution gate with a control state."""
+        obs = SparseObservable("ZZ")
+        evo = PauliEvolutionGate(obs)
+        controlled = evo.control(num_ctrl_qubits=3, ctrl_state=ctrl_state)
+        qc = controlled.definition
+
+        reference = QuantumCircuit(*qc.qregs)
+        reference.cx(4, 3)
+        reference.append(RZGate(2).control(3, ctrl_state="011"), [2, 1, 0, 3])
+        reference.cx(4, 3)
+        with self.subTest("check decomp"):
+            self.assertEqual(reference, qc)
+
+        zz_mat = np.diag([1, -1, -1, 1])
+        rzz_mat = scipy.linalg.expm(-1j * zz_mat)
+        ctrl_mat = _compute_control_matrix(rzz_mat, 3, ctrl_state)
+        with self.subTest("check correctness"):
+            self.assertTrue(np.allclose(ctrl_mat, Operator(qc).data))
 
     def test_raises_on_empty_list(self):
         """Test that an error gets raised when a Pauli evolution gate is created from an empty list."""
