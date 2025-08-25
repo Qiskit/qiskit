@@ -24,6 +24,7 @@ use hashbrown::HashMap;
 /// overhead, so we just allow conversion to and from any valid `PyLong`.
 macro_rules! qubit_newtype {
     ($id: ident) => {
+        #[repr(transparent)]
         #[derive(
             Debug,
             Clone,

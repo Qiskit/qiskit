@@ -223,8 +223,6 @@ pub struct Target {
     _gate_name_map: IndexMap<String, TargetOperation, RandomState>,
     global_operations: IndexMap<u32, HashSet<String>, RandomState>,
     qarg_gate_map: IndexMap<Qargs, Option<HashSet<String>>, RandomState>,
-    non_global_strict_basis: Option<Vec<String>>,
-    non_global_basis: Option<Vec<String>>,
     angle_bounds: HashMap<String, AngleBound>,
 }
 
@@ -319,8 +317,6 @@ impl Target {
             _gate_name_map: IndexMap::default(),
             global_operations: IndexMap::default(),
             qarg_gate_map: IndexMap::default(),
-            non_global_basis: None,
-            non_global_strict_basis: None,
             angle_bounds: HashMap::new(),
         })
     }
@@ -741,16 +737,9 @@ impl Target {
     ///
     /// Returns:
     ///     List[str]: A list of operation names for operations that aren't global in this target
-    #[pyo3(name = "get_non_global_operation_names", signature = (/, strict_direction=false,))]
-    fn py_get_non_global_operation_names(
-        &mut self,
-        py: Python<'_>,
-        strict_direction: bool,
-    ) -> PyResult<PyObject> {
-        Ok(self
-            .get_non_global_operation_names(strict_direction)
-            .into_pyobject(py)?
-            .unbind())
+    #[pyo3(name = "_get_non_global_operation_names", signature = (/, strict_direction=false,))]
+    fn py_get_non_global_operation_names(&self, strict_direction: bool) -> Vec<&str> {
+        self.get_non_global_operation_names(strict_direction)
     }
 
     // TODO: Add flag for custom tests
@@ -871,11 +860,6 @@ impl Target {
             "qarg_gate_map",
             self.qarg_gate_map.clone().into_iter().collect_vec(),
         )?;
-        result_list.set_item("non_global_basis", self.non_global_basis.clone())?;
-        result_list.set_item(
-            "non_global_strict_basis",
-            self.non_global_strict_basis.clone(),
-        )?;
         let bounds_dict = PyDict::new(py);
         for (gate, bounds) in self.angle_bounds.iter() {
             bounds_dict.set_item(gate, bounds.bounds().to_vec())?;
@@ -927,14 +911,6 @@ impl Target {
                 .unwrap()
                 .extract::<Vec<(Qargs, Option<HashSet<String>>)>>()?,
         );
-        self.non_global_basis = state
-            .get_item("non_global_basis")?
-            .unwrap()
-            .extract::<Option<Vec<String>>>()?;
-        self.non_global_strict_basis = state
-            .get_item("non_global_strict_basis")?
-            .unwrap()
-            .extract::<Option<Vec<String>>>()?;
         let angle_bounds_raw = state.get_item("angle_bounds")?.unwrap();
         let angle_bounds_dict = angle_bounds_raw.downcast::<PyDict>()?;
         type AngleBoundIterList = Vec<(String, SmallVec<[Option<[f64; 2]>; 3]>)>;
@@ -1046,6 +1022,14 @@ impl Target {
         } else {
             operation.name().to_string()
         };
+        if params.len() != operation.num_params() as usize {
+            return Err(TargetError::ParamsMismatch {
+                instruction: parsed_name,
+                instruction_num: operation.num_params() as usize,
+                argument_num: params.len(),
+            });
+        }
+
         if self.gate_map.contains_key(&parsed_name) {
             return Err(TargetError::AlreadyExists(parsed_name));
         }
@@ -1111,8 +1095,6 @@ impl Target {
         }
         self._gate_name_map.insert(name.to_string(), instruction);
         self.gate_map.insert(name.to_string(), props_map);
-        self.non_global_basis = None;
-        self.non_global_strict_basis = None;
         Ok(())
     }
 
@@ -1245,8 +1227,8 @@ impl Target {
         (0..self.num_qubits.unwrap_or_default()).map(PhysicalQubit)
     }
 
-    /// Generate non global operations if missing
-    fn generate_non_global_op_names(&mut self, strict_direction: bool) -> &[String] {
+    /// Get all non_global operation names.
+    pub fn get_non_global_operation_names(&self, strict_direction: bool) -> Vec<&str> {
         let mut search_set: HashSet<SmallVec<[PhysicalQubit; 2]>> = HashSet::default();
         if strict_direction {
             // Build search set
@@ -1275,7 +1257,7 @@ impl Target {
                 }
             }
         }
-        let mut incomplete_basis_gates: Vec<String> = vec![];
+        let mut incomplete_basis_gates: Vec<&str> = Vec::new();
         let mut size_dict: IndexMap<u32, u32, RandomState> = IndexMap::default();
         *size_dict
             .entry(1)
@@ -1309,30 +1291,12 @@ impl Target {
                 }
                 if let Qargs::Concrete(qarg_sample) = qarg_sample {
                     if qarg_len != *size_dict.entry(qarg_sample.len() as u32).or_insert(0) {
-                        incomplete_basis_gates.push(inst.clone());
+                        incomplete_basis_gates.push(inst.as_str());
                     }
                 }
             }
         }
-        if strict_direction {
-            self.non_global_strict_basis = Some(incomplete_basis_gates);
-            self.non_global_strict_basis.as_ref().unwrap()
-        } else {
-            self.non_global_basis = Some(incomplete_basis_gates.clone());
-            self.non_global_basis.as_ref().unwrap()
-        }
-    }
-
-    /// Get all non_global operation names.
-    pub fn get_non_global_operation_names(&mut self, strict_direction: bool) -> Option<&[String]> {
-        if strict_direction {
-            if self.non_global_strict_basis.is_some() {
-                return self.non_global_strict_basis.as_deref();
-            }
-        } else if self.non_global_basis.is_some() {
-            return self.non_global_basis.as_deref();
-        }
-        Some(self.generate_non_global_op_names(strict_direction))
+        incomplete_basis_gates
     }
 
     /// Gets all the operation names that use these qargs. Rust native equivalent of ``BaseTarget.operation_names_for_qargs()``
@@ -1515,19 +1479,32 @@ impl Target {
         let Some(qargs) = self.qargs() else {
             return Err(TargetCouplingError::AllToAll);
         };
+        let mut multi_q = false;
         for qargs in qargs {
             let Qargs::Concrete(qargs) = qargs else {
-                return Err(TargetCouplingError::AllToAll);
+                if self.global_operations.keys().any(|x| *x == 2) {
+                    return Err(TargetCouplingError::AllToAll);
+                }
+                if self.global_operations.keys().any(|x| *x > 2) {
+                    multi_q = true;
+                }
+                continue;
             };
             match qargs.as_slice() {
                 &[] | &[_] => (),
                 &[a, b] => {
                     coupling.update_edge(NodeIndex::new(a.index()), NodeIndex::new(b.index()), ());
                 }
-                _ => return Err(TargetCouplingError::MultiQ),
+                _ => {
+                    multi_q = true;
+                }
             }
         }
-        Ok(coupling)
+        if multi_q {
+            Err(TargetCouplingError::MultiQ(coupling))
+        } else {
+            Ok(coupling)
+        }
     }
 
     // IndexMap methods
@@ -1622,6 +1599,11 @@ impl Target {
     pub fn gate_supported_angle_bound(&self, name: &str, angles: &[f64]) -> bool {
         self.angle_bounds[name].angles_supported(angles)
     }
+
+    /// Check that a given qargs is present in the target
+    pub fn contains_qargs<'a, T: Into<QargsRef<'a>>>(&self, qargs: T) -> bool {
+        self.qarg_gate_map.contains_key(&qargs.into())
+    }
 }
 
 // To access the Target's gate map by gate name.
@@ -1648,8 +1630,6 @@ impl Default for Target {
             _gate_name_map: Default::default(),
             global_operations: Default::default(),
             qarg_gate_map: Default::default(),
-            non_global_strict_basis: None,
-            non_global_basis: None,
             angle_bounds: Default::default(),
         }
     }
@@ -1660,7 +1640,7 @@ pub enum TargetCouplingError {
     #[error("target contains short-hand all-to-all connectivity")]
     AllToAll,
     #[error("target contains multi-qubit operations")]
-    MultiQ,
+    MultiQ(Graph<(), (), Undirected>),
 }
 
 // For instruction_supported
@@ -1700,16 +1680,84 @@ pub fn target(m: &Bound<PyModule>) -> PyResult<()> {
 #[cfg(test)]
 mod test {
     use std::f64::consts::PI;
+    use std::sync::Arc;
 
     use qiskit_circuit::operations::{
         get_standard_gate_names, Operation, Param, StandardGate, STANDARD_GATE_SIZE,
     };
+    use qiskit_circuit::packed_instruction::PackedOperation;
+    use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
+    use qiskit_circuit::parameter::symbol_expr::Symbol;
     use smallvec::SmallVec;
 
     use crate::target::QargsRef;
     use qiskit_circuit::PhysicalQubit;
 
-    use super::{instruction_properties::InstructionProperties, Qargs, Target};
+    use super::{instruction_properties::InstructionProperties, Qargs, Target, TargetError};
+
+    #[test]
+    fn test_invalid_params_instruction() {
+        let params: [Param; 3] = [
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
+                "ϴ", None, None,
+            )))),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
+                "φ", None, None,
+            )))),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
+                "λ", None, None,
+            )))),
+        ];
+        let mut target = Target::default();
+        let result = target.add_instruction(
+            PackedOperation::from_standard_gate(StandardGate::CX),
+            &params,
+            None,
+            None,
+        );
+        let Err(res) = result else {
+            panic!("The operation was unexpectedly successful");
+        };
+        if !matches!(res, TargetError::ParamsMismatch { .. }) {
+            panic!("Returned an unexpected error type");
+        }
+        assert_eq!(
+            res.to_string(),
+            "The number of parameters for cx: 0 does not match the provided number of parameters: 3.",
+        );
+    }
+
+    #[test]
+    fn test_mismatch_params_count_instruction() {
+        let params: [Param; 3] = [
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
+                "ϴ", None, None,
+            )))),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
+                "φ", None, None,
+            )))),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
+                "λ", None, None,
+            )))),
+        ];
+        let mut target = Target::default();
+        let result = target.add_instruction(
+            PackedOperation::from_standard_gate(StandardGate::RZ),
+            &params,
+            None,
+            None,
+        );
+        let Err(res) = result else {
+            panic!("The operation was unexpectedly successful");
+        };
+        if !matches!(res, TargetError::ParamsMismatch { .. }) {
+            panic!("Returned an unexpected error type");
+        }
+        assert_eq!(
+            res.to_string(),
+            "The number of parameters for rz: 1 does not match the provided number of parameters: 3.",
+        );
+    }
 
     #[test]
     fn test_add_invalid_qargs_insruction() {
