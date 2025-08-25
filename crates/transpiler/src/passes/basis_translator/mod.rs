@@ -580,15 +580,15 @@ fn replace_node(
             let new_op: PackedOperation = match inner_node.op.view() {
                 OperationRef::Gate(gate) => {
                     Python::with_gil(|py| gate.py_copy(py).map(|op| op.into()))
-                        .map_err(|err| BasisTranslatorError::BasisGateError(err.to_string()))?
+                        .expect("Error while copying gate instance.")
                 }
                 OperationRef::Instruction(instruction) => {
                     Python::with_gil(|py| instruction.py_copy(py).map(|op| op.into()))
-                        .map_err(|err| BasisTranslatorError::BasisGateError(err.to_string()))?
+                        .expect("Error while copying instruction instance.")
                 }
                 OperationRef::Operation(operation) => {
                     Python::with_gil(|py| operation.py_copy(py).map(|op| op.into()))
-                        .map_err(|err| BasisTranslatorError::BasisGateError(err.to_string()))?
+                        .expect("Error while copying operation instance.")
                 }
                 OperationRef::StandardGate(gate) => gate.into(),
                 OperationRef::StandardInstruction(instruction) => instruction.into(),

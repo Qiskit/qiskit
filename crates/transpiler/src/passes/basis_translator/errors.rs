@@ -41,10 +41,6 @@ pub enum BasisTranslatorError {
     #[error[
     "{0}"
     ]]
-    BasisGateError(String),
-    #[error[
-        "{0}"
-                ]]
     // TODO: Use rust native DAGCircuitError
     BasisDAGCircuitError(String),
     #[error[

@@ -74,15 +74,15 @@ pub(super) fn compose_transforms<'a>(
         let gate = if let Some(op) = name_to_packed_operation(&gate_name, gate_num_qubits) {
             op
         } else {
-            let extract_py =
-                Python::with_gil(|py| -> Result<OperationFromPython, BasisTranslatorError> {
-                    let gate = || -> PyResult<OperationFromPython> {
-                        GATE.get_bound(py)
-                            .call1((&gate_name, gate_num_qubits, placeholder_params.as_ref()))?
-                            .extract()
-                    };
-                    gate().map_err(|err| BasisTranslatorError::BasisGateError(err.to_string()))
-                })?;
+            let extract_py = Python::with_gil(|py| -> PyResult<OperationFromPython> {
+                let gate = || -> PyResult<OperationFromPython> {
+                    GATE.get_bound(py)
+                        .call1((&gate_name, gate_num_qubits, placeholder_params.as_ref()))?
+                        .extract()
+                };
+                gate()
+            })
+            .unwrap_or_else(|_| panic!("Error creating custom gate for entry {}", gate_name));
             placeholder_params = extract_py.params;
             extract_py.operation
         };
