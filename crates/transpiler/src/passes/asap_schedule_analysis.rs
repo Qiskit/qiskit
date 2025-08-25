@@ -61,10 +61,12 @@ pub fn run_asap_schedule_analysis<T: TimeOps>(
             .map(|&c| Wire::Clbit(c))
             .collect();
 
-        let &op_duration = node_durations
-            .get(&node_index)
-            .ok_or_else(|| TranspilerError::new_err("No duration for node"))?;
-
+        let &op_duration = node_durations.get(&node_index).ok_or_else(|| {
+            TranspilerError::new_err(format!(
+                "No duration found for node at index {}",
+                node_index.index()
+            ))
+        })?;
         let op_view = op.op.view();
         let is_gate_or_delay = matches!(
             op_view,
@@ -78,10 +80,10 @@ pub fn run_asap_schedule_analysis<T: TimeOps>(
         // t1: end time of instruction
 
         let (t0, t1) = if is_gate_or_delay {
-            let &t0 = qargs
+            let t0 = qargs
                 .iter()
-                .map(|q| idle_after.get(q).unwrap_or(&zero))
-                .fold(&zero, |acc, x| T::max(acc, x));
+                .map(|q| idle_after[q])
+                .fold(zero, |acc, x| *T::max(&acc, &x));
             (t0, t0 + op_duration)
         } else if matches!(
             op_view,
@@ -90,11 +92,11 @@ pub fn run_asap_schedule_analysis<T: TimeOps>(
             // Measure instruction handling is bit tricky due to clbit_write_latency
             let t0q = qargs
                 .iter()
-                .map(|q| *idle_after.get(q).unwrap_or(&zero))
+                .map(|q| idle_after[q])
                 .fold(zero, |acc, x| *T::max(&acc, &x));
             let t0c = cargs
                 .iter()
-                .map(|c| *idle_after.get(c).unwrap_or(&zero))
+                .map(|c| idle_after[c])
                 .fold(zero, |acc, x| *T::max(&acc, &x));
             // Assume following case (t0c > t0q)
             //
@@ -125,11 +127,11 @@ pub fn run_asap_schedule_analysis<T: TimeOps>(
             (t0, t1)
         } else {
             // Directives (like Barrier)
-            let &t0 = qargs
+            let t0 = qargs
                 .iter()
                 .chain(cargs.iter())
-                .map(|bit| idle_after.get(bit).unwrap_or(&zero))
-                .fold(&zero, |acc, x| T::max(acc, x));
+                .map(|bit| idle_after[bit])
+                .fold(zero, |acc, x| *T::max(&acc, &x));
             (t0, t0 + op_duration)
         };
 
