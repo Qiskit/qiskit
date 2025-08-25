@@ -373,7 +373,7 @@ pub fn vf2_layout_pass(
     strict_direction: bool,
     call_limit: Option<usize>,
     time_limit: Option<f64>,
-    max_trials: Option<i32>,
+    max_trials: Option<isize>,
     avg_error_map: Option<ErrorMap>,
 ) -> PyResult<Option<HashMap<VirtualQubit, PhysicalQubit>>> {
     if strict_direction {

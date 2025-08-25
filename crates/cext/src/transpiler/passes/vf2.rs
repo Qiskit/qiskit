@@ -192,7 +192,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout(
     strict_direction: bool,
     call_limit: i64,
     time_limit: f64,
-    max_trials: i32,
+    max_trials: i64,
 ) -> *mut VF2LayoutResult {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
@@ -216,7 +216,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout(
     } else if max_trials == 0 {
         None
     } else {
-        Some(max_trials)
+        Some(max_trials as isize)
     };
     let layout = match vf2_layout_pass(
         &dag,
