@@ -615,7 +615,7 @@ class OptimizationPassManager(PassManagerStagePlugin):
                     pass_manager_config.initial_layout,
                 )
                 is_vf2_fully_bounded = vf2_call_limit and vf2_max_trials
-                if is_vf2_fully_bounded:
+                if target is not None and is_vf2_fully_bounded:
                     optimization.append(
                         VF2PostLayout(
                             target=pass_manager_config.target,
