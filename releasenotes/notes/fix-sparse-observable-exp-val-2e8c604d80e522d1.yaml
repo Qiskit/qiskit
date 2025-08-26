@@ -1,8 +1,8 @@
 ---
 features:
   - |
-    Added ability to compute the expectation value of a `SparseObservable`
-    by using the `sampled_expectation_value` function.
+    Added ability to compute the expectation value of a :class:`.SparseObservable`
+    by using the :func:`.sampled_expectation_value` function.
 fixes:
   - |
     This fixes the issue where the `sampled_expectation_value` function does not
