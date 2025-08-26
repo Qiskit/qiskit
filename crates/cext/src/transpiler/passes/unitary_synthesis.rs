@@ -94,9 +94,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_unitary_synthesis(
         min_qubits,
         Some(target),
         HashSet::new(),
-        ["unitary".to_string()]
-            .into_iter()
-            .collect(),
+        ["unitary".to_string()].into_iter().collect(),
         HashSet::new(),
         approximation_degree,
         None,
