@@ -19,7 +19,9 @@ features_c:
       qk_circuit_gate(circuit, QkGate_RY, qubits, params_pos);
       qk_circuit_gate(circuit, QkGate_RY, qubits, params_neg);
 
-      // Run the transpiler pass with no Target
+      // Run the transpiler pass with no Target, which signals the pass to choose
+      // the sequence wiith the least amount of gates and support all basis gates
+      // on its Euler basis set.
       qk_transpiler_standalone_optimize_1q_sequences(circuit, NULL);
 
       // Free both circuits

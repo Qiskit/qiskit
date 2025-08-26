@@ -26,7 +26,7 @@ QkTarget *get_rz_rx_target(void);
 QkTarget *get_rz_sx_target(void);
 QkTarget *get_rz_ry_u_target(void);
 QkTarget *get_rz_ry_u_noerror_target(void);
-bool compare_gate_counts(QkOpCounts counts, char **gates, uint32_t *freq, int num_gates);
+bool compare_gate_counts(QkOpCounts *counts, char **gates, uint32_t *freq, int num_gates);
 
 /**
  * Test running pass on chains of h gates.
@@ -45,10 +45,10 @@ int inner_optimize_h_gates(QkTarget *target, char **gates, uint32_t *freq, int n
     // Run transpiler pass
     qk_transpiler_standalone_optimize_1q_sequences(circuit, target);
     QkOpCounts counts = qk_circuit_count_ops(circuit);
-    if (!compare_gate_counts(counts, gates, freq, num_gates)) {
+    if (!compare_gate_counts(&counts, gates, freq, num_gates)) {
         result = EqualityError;
     }
-
+    qk_opcounts_free(counts);
     qk_circuit_free(circuit);
     qk_target_free(target);
     return result;
@@ -285,17 +285,16 @@ QkTarget *get_rz_ry_u_noerror_target(void) {
     return target_rz_ry_u_noerror;
 }
 
-bool compare_gate_counts(QkOpCounts counts, char **gates, uint32_t *freq, int num_gates) {
-    if (counts.len != num_gates) {
+bool compare_gate_counts(QkOpCounts *counts, char **gates, uint32_t *freq, int num_gates) {
+    if (counts->len != num_gates) {
         return false;
     }
-    for (int idx = 0; idx < counts.len; idx++) {
-        QkOpCount current = counts.data[idx];
+    for (int idx = 0; idx < counts->len; idx++) {
+        QkOpCount current = counts->data[idx];
         if (strcmp(current.name, gates[idx]) != 0 || current.count != freq[idx]) {
             return false;
         }
     }
-    qk_opcounts_free(counts);
     return true;
 }
 
