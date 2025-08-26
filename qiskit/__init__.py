@@ -62,6 +62,7 @@ import qiskit._numpy_compat
 # and not have to rely on attribute access.  No action needed for top-level extension packages.
 
 sys.modules["qiskit._accelerate.alap_schedule_analysis"] = _accelerate.alap_schedule_analysis
+sys.modules["qiskit._accelerate.apply_layout"] = _accelerate.apply_layout
 sys.modules["qiskit._accelerate.circuit"] = _accelerate.circuit
 sys.modules["qiskit._accelerate.circuit.classical"] = _accelerate.circuit.classical
 sys.modules["qiskit._accelerate.circuit.classical.expr"] = _accelerate.circuit.classical.expr
@@ -131,6 +132,8 @@ sys.modules["qiskit._accelerate.high_level_synthesis"] = _accelerate.high_level_
 sys.modules["qiskit._accelerate.remove_identity_equiv"] = _accelerate.remove_identity_equiv
 sys.modules["qiskit._accelerate.circuit_duration"] = _accelerate.circuit_duration
 sys.modules["qiskit._accelerate.cos_sin_decomp"] = _accelerate.cos_sin_decomp
+sys.modules["qiskit._accelerate.litinski_transformation"] = _accelerate.litinski_transformation
+sys.modules["qiskit._accelerate.unroll_3q_or_more"] = _accelerate.unroll_3q_or_more
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 
