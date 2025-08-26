@@ -262,7 +262,7 @@ pub fn transpile(
     if optimization_level == 0 {
         let routing_target = PyRoutingTarget::from_target(target)?;
 
-        if !run_check_map(&dag, target).is_none() {
+        if run_check_map(&dag, target).is_some() {
             let (out_dag, final_layout) = sabre::sabre_routing(
                 &dag,
                 &routing_target,
