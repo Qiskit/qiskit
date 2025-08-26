@@ -305,7 +305,7 @@ impl TranspileLayout {
     }
 
     /// Update the initial layout by permuting the output-space qubit indices from the input of the
-    /// `layout_fn` to its output.
+    /// `relabel_fn` to its output.
     ///
     /// For example, if virtual qubit 0 is previously mapped to physical qubit 2, and this function
     /// is called with a mapping that sends physical qubit 2 to physical qubit 4, the new layout
@@ -316,22 +316,22 @@ impl TranspileLayout {
     ///
     /// # Panics
     ///
-    /// If `layout_fn` returns and out-of-bounds [PhysicalQubit], or maps more than one
+    /// If `relabel_fn` returns and out-of-bounds [PhysicalQubit], or maps more than one
     /// [PhysicalQubit] to the same new value.
     pub fn relabel_initial_layout(
         &mut self,
-        mut layout_fn: impl FnMut(PhysicalQubit) -> PhysicalQubit,
+        mut relabel_fn: impl FnMut(PhysicalQubit) -> PhysicalQubit,
     ) {
         let initial_layout = match self.initial_layout.as_ref() {
             Some(layout) => NLayout::from_virtual_to_physical(
                 (0..self.num_output_qubits())
-                    .map(|q| layout_fn(VirtualQubit::new(q).to_phys(layout)))
+                    .map(|q| relabel_fn(VirtualQubit::new(q).to_phys(layout)))
                     .collect(),
             )
             .expect("all qubits should be in bounds and not duplicates"),
             None => NLayout::from_virtual_to_physical(
                 (0..self.num_output_qubits())
-                    .map(|q| layout_fn(PhysicalQubit::new(q)))
+                    .map(|q| relabel_fn(PhysicalQubit::new(q)))
                     .collect(),
             )
             .expect("all qubits should be in bounds and not duplicates"),
@@ -340,11 +340,11 @@ impl TranspileLayout {
             let mut new_permutation = vec![Qubit::MAX; permutation.len()];
             for old in 0..permutation.len() as u32 {
                 let old = PhysicalQubit::new(old);
-                let new = layout_fn(old);
+                let new = relabel_fn(old);
                 if new_permutation[new.index()] != Qubit::MAX {
                     panic!("layout function returned duplicate qubit");
                 }
-                new_permutation[new.index()] = layout_fn(permutation[old.index()].into()).into();
+                new_permutation[new.index()] = relabel_fn(permutation[old.index()].into()).into();
             }
             new_permutation
         });
