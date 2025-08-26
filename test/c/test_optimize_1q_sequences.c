@@ -26,7 +26,7 @@ QkTarget *get_rz_rx_target(void);
 QkTarget *get_rz_sx_target(void);
 QkTarget *get_rz_ry_u_target(void);
 QkTarget *get_rz_ry_u_noerror_target(void);
-bool compare_gate_counts(QkOpCounts *counts, char **gates, uint32_t *freq, int num_gates);
+bool compare_gate_counts(QkOpCounts *counts, char **gates, uint32_t *freq, size_t num_gates);
 
 /**
  * Test running pass on chains of h gates.
@@ -78,7 +78,7 @@ int test_optimize_h_gates(void) {
         {1},
     };
 
-    int num_gates[5] = {1, 2, 2, 1, 1};
+    size_t num_gates[5] = {1, 2, 2, 1, 1};
     char *names[5] = {"u1_u2_u3", "rz_rx", "rz_sx", "rz_ry_u", "rz_ry_u_noerror"};
     printf("Optimize h gates tests.\n");
     for (int idx = 0; idx < 5; idx++) {
@@ -282,7 +282,7 @@ QkTarget *get_rz_ry_u_noerror_target(void) {
     return target_rz_ry_u_noerror;
 }
 
-bool compare_gate_counts(QkOpCounts *counts, char **gates, uint32_t *freq, int num_gates) {
+bool compare_gate_counts(QkOpCounts *counts, char **gates, uint32_t *freq, size_t num_gates) {
     if (counts->len != num_gates) {
         return false;
     }
