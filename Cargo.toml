@@ -5,7 +5,7 @@ resolver = "2"
 [workspace.package]
 version = "2.2.0"
 edition = "2021"
-rust-version = "1.79"  # Keep in sync with README.md, rust-toolchain.toml, and tools/install_rust_msrv.sh
+rust-version = "1.85"  # Keep in sync with README.md, rust-toolchain.toml, and tools/install_rust_msrv.sh
 license = "Apache-2.0"
 
 # Shared dependencies that can be inherited.  This just helps a little with

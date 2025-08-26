@@ -482,6 +482,11 @@ mod test {
     use ndarray::aview2;
     use qiskit_circuit::operations::{Operation, Param, StandardGate, STANDARD_GATE_SIZE};
 
+    #[cfg(not(miri))]
+    const ATOL: f64 = 1e-15;
+    #[cfg(miri)]
+    const ATOL: f64 = 1e-8;
+
     fn all_1q_gates() -> Vec<StandardGate> {
         (0..STANDARD_GATE_SIZE as u8)
             .filter_map(|x| {
@@ -502,7 +507,7 @@ mod test {
             let versor_matrix = VersorU2::from_standard(gate, params)
                 .unwrap()
                 .matrix_contiguous();
-            if direct_matrix.abs_diff_ne(&aview2(&versor_matrix), 1e-15) {
+            if direct_matrix.abs_diff_ne(&aview2(&versor_matrix), ATOL) {
                 fails.push((gate, direct_matrix, versor_matrix));
             }
         }
@@ -516,10 +521,10 @@ mod test {
         for gate in all_1q_gates() {
             let params = &params[0..gate.num_params() as usize];
             let direct_matrix = gate.matrix(params).unwrap();
-            let versor_matrix = VersorU2::from_ndarray(&direct_matrix.view(), 1e-15)
+            let versor_matrix = VersorU2::from_ndarray(&direct_matrix.view(), ATOL)
                 .unwrap()
                 .matrix_contiguous();
-            if direct_matrix.abs_diff_ne(&aview2(&versor_matrix), 1e-15) {
+            if direct_matrix.abs_diff_ne(&aview2(&versor_matrix), ATOL) {
                 fails.push((gate, direct_matrix, versor_matrix));
             }
         }
@@ -545,7 +550,7 @@ mod test {
             let versor_matrix = (VersorU2::from_standard(left, left_params).unwrap()
                 * VersorU2::from_standard(right, right_params).unwrap())
             .matrix_contiguous();
-            if direct_matrix.abs_diff_ne(&aview2(&versor_matrix), 1e-15) {
+            if direct_matrix.abs_diff_ne(&aview2(&versor_matrix), ATOL) {
                 fails.push((left, right, direct_matrix, versor_matrix));
             }
         }
