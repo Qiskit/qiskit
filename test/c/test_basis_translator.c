@@ -85,7 +85,7 @@ int test_toffoli_basis_translator(void) {
 
     // Represent the Equivalence of CCX with op counts
     char *gates[4] = {"cx", "t", "tdg", "h"};
-    int freqs[4] = {6, 4, 3, 2};
+    size_t freqs[4] = {6, 4, 3, 2};
     for (int idx = 0; idx < 4; idx++) {
         QkOpCount gate_count = result_op_counts.data[idx];
         if (gate_count.count != freqs[idx] || strcmp(gate_count.name, gates[idx]) != 0) {
