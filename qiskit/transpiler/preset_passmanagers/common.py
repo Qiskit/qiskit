@@ -492,6 +492,12 @@ def generate_translation_passmanager(
         # We set target=None to make sure extended_basis_gates is not overwritten by the target.
         extended_basis_gates = list(basis_gates) + ["u"]
 
+        # The default value of unitary_synthesis_method in transpile/generate_preset_pass_manager
+        # is "default". In this case we want to use the Solovay-Kitaev decomposition (called "sk").
+        # However, we also allow specifyig a non-default Clifford+T unitary synthesis plugin.
+        if unitary_synthesis_method == "default":
+            unitary_synthesis_method = "sk"
+
         unroll = [
             # Use the UnitarySynthesis pass to unroll 1-qubit and 2-qubit gates named "unitary" into
             # extended_basis_gates.
@@ -535,14 +541,14 @@ def generate_translation_passmanager(
             # We use the "clifford" unitary synthesis plugin to replace single-qubit
             # unitary gates that can be represented as Cliffords by Clifford gates.
             UnitarySynthesis(method="clifford", plugin_config={"max_qubits": 1}),
-            # We use the Solovay-Kitaev decomposition via the plugin mechanism for "sk"
-            # UnitarySynthesisPlugin.
+            # We decompose single-qubit unitary gates using the UnitarySynthesisPlugin interface
+            # (by default it's the Solovay-Kitaev decomposition).
             UnitarySynthesis(
                 basis_gates=["h", "t", "tdg"],
                 approximation_degree=approximation_degree,
                 coupling_map=coupling_map,
                 plugin_config=unitary_synthesis_plugin_config,
-                method="sk",
+                method=unitary_synthesis_method,
                 min_qubits=1,
                 target=None,
             ),
