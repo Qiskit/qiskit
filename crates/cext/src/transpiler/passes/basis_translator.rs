@@ -1,3 +1,5 @@
+// This code is part of Qiskit.
+//
 // (C) Copyright IBM 2025
 //
 // This code is licensed under the Apache License, Version 2.0. You may
@@ -7,6 +9,7 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
+
 use crate::pointers::mut_ptr_as_ref;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::converters::dag_to_circuit;
