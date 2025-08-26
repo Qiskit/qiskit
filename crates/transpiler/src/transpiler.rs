@@ -152,11 +152,22 @@ pub fn transpile(
             )?;
             dag = result;
             transpile_layout.initial_layout = Some(initial_layout);
-            let permutation: Vec<Qubit> = final_layout
-                .iter_virtual()
-                .map(|(_, x)| Qubit(x.0))
+            let routing_permutation: Vec<Qubit> = (0..dag.num_qubits() as u32)
+                .map(|ref q| {
+                    Qubit(
+                        final_layout
+                            .virtual_to_physical(
+                                transpile_layout
+                                    .initial_layout
+                                    .as_ref()
+                                    .unwrap()
+                                    .physical_to_virtual(PhysicalQubit(*q)),
+                            )
+                            .0,
+                    )
+                })
                 .collect();
-            transpile_layout.compose_output_permutation(&permutation, true);
+            transpile_layout.compose_output_permutation(&routing_permutation, true);
         }
     } else if optimization_level == 2 {
         if let Some(vf2_result) =
@@ -182,11 +193,22 @@ pub fn transpile(
             )?;
             dag = result;
             transpile_layout.initial_layout = Some(initial_layout);
-            let permutation: Vec<Qubit> = final_layout
-                .iter_virtual()
-                .map(|(_, x)| Qubit(x.0))
+            let routing_permutation: Vec<Qubit> = (0..dag.num_qubits() as u32)
+                .map(|ref q| {
+                    Qubit(
+                        final_layout
+                            .virtual_to_physical(
+                                transpile_layout
+                                    .initial_layout
+                                    .as_ref()
+                                    .unwrap()
+                                    .physical_to_virtual(PhysicalQubit(*q)),
+                            )
+                            .0,
+                    )
+                })
                 .collect();
-            transpile_layout.compose_output_permutation(&permutation, true);
+            transpile_layout.compose_output_permutation(&routing_permutation, true);
         }
     } else if let Some(vf2_result) = vf2_layout_pass(
         &dag,
@@ -217,18 +239,30 @@ pub fn transpile(
         )?;
         dag = result;
         transpile_layout.initial_layout = Some(initial_layout);
-        let permutation: Vec<Qubit> = final_layout
-            .iter_virtual()
-            .map(|(_, x)| Qubit(x.0))
+        let routing_permutation: Vec<Qubit> = (0..dag.num_qubits() as u32)
+            .map(|ref q| {
+                Qubit(
+                    final_layout
+                        .virtual_to_physical(
+                            transpile_layout
+                                .initial_layout
+                                .as_ref()
+                                .unwrap()
+                                .physical_to_virtual(PhysicalQubit(*q)),
+                        )
+                        .0,
+                )
+            })
             .collect();
-        transpile_layout.compose_output_permutation(&permutation, true);
+
+        transpile_layout.compose_output_permutation(&routing_permutation, true);
     }
     // Routing stage
     //    let vf2_post_result =
     if optimization_level == 0 {
         let routing_target = PyRoutingTarget::from_target(target)?;
 
-        if run_check_map(&dag, target).is_none() {
+        if !run_check_map(&dag, target).is_none() {
             let (out_dag, final_layout) = sabre::sabre_routing(
                 &dag,
                 &routing_target,
@@ -239,9 +273,20 @@ pub fn transpile(
                 Some(true),
             )?;
             dag = out_dag;
-            let routing_permutation: Vec<Qubit> = final_layout
-                .iter_virtual()
-                .map(|(_, x)| Qubit(x.0))
+            let routing_permutation: Vec<Qubit> = (0..dag.num_qubits() as u32)
+                .map(|ref q| {
+                    Qubit(
+                        final_layout
+                            .virtual_to_physical(
+                                transpile_layout
+                                    .initial_layout
+                                    .as_ref()
+                                    .unwrap()
+                                    .physical_to_virtual(PhysicalQubit(*q)),
+                            )
+                            .0,
+                    )
+                })
                 .collect();
             transpile_layout.compose_output_permutation(&routing_permutation, true);
         }
@@ -486,7 +531,7 @@ mod tests {
             })
             .collect();
         target
-            .add_instruction(StandardGate::CZ.into(), &[], None, Some(props))
+            .add_instruction(StandardGate::ECR.into(), &[], None, Some(props))
             .unwrap();
         target
     }
@@ -521,11 +566,14 @@ mod tests {
             Param::Float(0.),
         )
         .unwrap();
-        for opt_level in 1..=3 {
-            let result = transpile(&qc, &target, opt_level, Some(1.0), Some(42)).unwrap();
+        for opt_level in 0..=3 {
+            let result = match transpile(&qc, &target, opt_level, Some(1.0), Some(42)) {
+                Ok(res) => res,
+                Err(e) => panic!("Error: {}", e.backtrace()),
+            };
             for inst in result.0.data() {
                 if inst.op.num_qubits() == 2 {
-                    assert_eq!("cz", inst.op.name());
+                    assert_eq!("ecr", inst.op.name());
                     target.contains_qargs(
                         &result
                             .0
@@ -634,11 +682,14 @@ mod tests {
             Param::Float(0.),
         )
         .unwrap();
-        for opt_level in 1..=3 {
-            let result = transpile(&qc, &target, opt_level, Some(1.0), Some(42)).unwrap();
+        for opt_level in 0..=3 {
+            let result = match transpile(&qc, &target, opt_level, Some(1.0), Some(42)) {
+                Ok(res) => res,
+                Err(e) => panic!("Error: {}", e.backtrace()),
+            };
             for inst in result.0.data() {
                 if inst.op.num_qubits() == 2 {
-                    assert_eq!("cz", inst.op.name());
+                    assert_eq!("ecr", inst.op.name());
                     target.contains_qargs(
                         &result
                             .0
