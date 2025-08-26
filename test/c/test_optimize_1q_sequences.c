@@ -277,9 +277,6 @@ QkTarget *get_rz_ry_u_noerror_target(void) {
 
     for (int idx = 0; idx < 3; idx++) {
         QkTargetEntry *u_entry = qk_target_entry_new(u_gates[idx]);
-        uint32_t qargs[1] = {
-            0,
-        };
         qk_target_add_instruction(target_rz_ry_u_noerror, u_entry);
     }
     return target_rz_ry_u_noerror;
@@ -289,7 +286,7 @@ bool compare_gate_counts(QkOpCounts *counts, char **gates, uint32_t *freq, int n
     if (counts->len != num_gates) {
         return false;
     }
-    for (int idx = 0; idx < counts->len; idx++) {
+    for (size_t idx = 0; idx < counts->len; idx++) {
         QkOpCount current = counts->data[idx];
         if (strcmp(current.name, gates[idx]) != 0 || current.count != freq[idx]) {
             return false;
