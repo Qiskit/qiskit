@@ -152,6 +152,52 @@ circuit_cleanup:
     return result;
 }
 
+int test_transpile_idle_qubits(void) {
+    int result = Ok;
+    uint32_t num_qubits = 3;
+    QkCircuit *circuit = qk_circuit_new(num_qubits, 0);
+    uint32_t qargs[4];
+    double params[1];
+    qargs[0] = 2;
+    qargs[1] = 1;
+    params[0] = 1.681876;
+    qk_circuit_gate(circuit, QkGate_CRZ, qargs, params);
+    QkTarget *target = qk_target_new(num_qubits);
+    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
+    for (uint32_t i = 0; i < num_qubits - 1; i++) {
+        qk_target_entry_add_property(cx_entry, (uint32_t[]){i, i + 1}, 2, 0.001 * i, 0.002 * i);
+    }
+    qk_target_add_instruction(target, cx_entry);
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_U));
+
+    for (unsigned short opt_level = 0; opt_level < 4; opt_level++) {
+        QkTranspileOptions transpile_options = {opt_level, 1234, 1.0};
+        QkTranspileResult transpile_result;
+        char *error;
+        int result_code =
+            qk_transpile(circuit, target, &transpile_options, &transpile_result, &error);
+        if (result_code != 0) {
+            printf("Transpilation failed %s\n", error);
+            result = EqualityError;
+            goto cleanup;
+        }
+        uint32_t num_instructions = qk_circuit_num_instructions(transpile_result.circuit);
+        qk_circuit_free(transpile_result.circuit);
+        qk_transpile_layout_free(transpile_result.layout);
+        if (num_instructions != 7) {
+            printf("opt_level: %d num_instructions: %d is not the expected value 7\n", opt_level,
+                   num_instructions);
+            result = EqualityError;
+            goto cleanup;
+        }
+    }
+
+cleanup:
+    qk_circuit_free(circuit);
+    qk_target_free(target);
+    return result;
+}
+
 int test_transpiler(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_transpile_bv);
