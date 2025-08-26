@@ -248,7 +248,7 @@ int test_non_cx_target(void) {
     if (counts.len != 1) {
         result = EqualityError;
         printf("The pass run did not result in a circuit with one unitary gate. Expected 1 gate, "
-               "got %i.",
+               "got %li.",
                counts.len);
         goto cleanup;
     }
