@@ -953,11 +953,21 @@ impl PyParameterExpression {
     ///     param: The parameter with respect to which the derivative is calculated.
     ///
     /// Returns:
-    ///     The derivative.
-    pub fn gradient(&self, param: &Bound<'_, PyAny>) -> PyResult<Self> {
+    ///     The derivative as either a constant numeric value or a symbolic
+    ///     :class:`.ParameterExpression`.
+    pub fn gradient(&self, param: &Bound<'_, PyAny>) -> PyResult<PyObject> {
         let symbol = symbol_from_py_parameter(param)?;
         let d_expr = self.inner.derivative(&symbol)?;
-        Ok(d_expr.into())
+
+        // try converting to value and return as built-in numeric type
+        match d_expr.try_to_value(false) {
+            Ok(val) => match val {
+                Value::Real(r) => r.into_py_any(param.py()),
+                Value::Int(i) => i.into_py_any(param.py()),
+                Value::Complex(c) => c.into_py_any(param.py()),
+            },
+            Err(_) => PyParameterExpression::from(d_expr).into_py_any(param.py()),
+        }
     }
 
     /// Return all values in this equation.
