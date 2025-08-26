@@ -211,6 +211,34 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), after)
 
+    def test_optimize_swap_2measure_same_clbit(self):
+        """Remove multiple swaps affecting multiple measurements
+                ┌─┐
+        q_0: ─X─┤M├───      q_0: ──────
+              │ └╥┘              ┌─┐
+        q_1: ─X──╫────      q_1: ┤M├───
+                 ║ ┌─┐  ==>      └╥┘┌─┐
+        q_2: ────╫─┤M├      q_2: ─╫─┤M├
+                 ║ └╥┘            ║ └╥┘
+        c: 1/════╩══╩═      c: 1/═╩══╩═
+                 0  0             0  0
+        """
+
+        qc = QuantumCircuit(3, 1)
+        qc.swap(0, 1)
+        qc.measure(0, 0)
+        qc.measure(2, 0)
+        dag = circuit_to_dag(qc)
+
+        expected = QuantumCircuit(3, 1)
+        expected.measure(1, 0)
+        expected.measure(2, 0)
+
+        pass_ = OptimizeSwapBeforeMeasure()
+        after = pass_.run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
     def test_cannot_optimize(self):
         """Cannot optimize when swap is not at the end in all of the successors
         qr0:--X-----m--
