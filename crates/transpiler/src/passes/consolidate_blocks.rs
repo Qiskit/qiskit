@@ -315,7 +315,7 @@ fn py_run_consolidate_blocks(
             if let Some(matrix) = matrix {
                 let num_basis_gates = match decomposer {
                     DecomposerType::TwoQubitBasis(ref decomp) => {
-                        decomp.num_basis_gates_inner(matrix.view())
+                        decomp.num_basis_gates_inner(matrix.view())?
                     }
                     DecomposerType::TwoQubitControlledU(ref decomp) => {
                         decomp.num_basis_gates_inner(matrix.view())?
