@@ -213,37 +213,43 @@ pub fn cancel_commutations(
                     };
                     let node_op_name = node_op.op.name();
 
-                    let node_angle = if ROTATION_GATES.contains(&node_op_name) {
-                        match node_op.params_view().first() {
-                            Some(Param::Float(f)) => Ok(*f),
+                    let (node_angle, phase_shift) = if ROTATION_GATES.contains(&node_op_name) {
+                        let node_angle = match node_op.params_view().first() {
+                            Some(Param::Float(f)) => *f,
                             _ => return Err(QiskitError::new_err(format!(
                                 "Rotational gate with parameter expression encountered in cancellation {:?}",
                                 node_op.op
                             )))
-                        }
+                        };
+                        let phase_shift = if node_op_name == "p" {
+                            node_angle / 2.
+                        } else {
+                            0.
+                        };
+                        Ok((node_angle, phase_shift))
                     } else if HALF_TURNS.contains(&node_op_name) {
-                        Ok(PI)
+                        Ok((PI, PI / 2.0))
                     } else if QUARTER_TURNS.contains(&node_op_name) {
-                        Ok(PI / 2.0)
+                        Ok((PI / 2.0, PI / 4.0))
                     } else if EIGHTH_TURNS.contains(&node_op_name) {
-                        Ok(PI / 4.0)
+                        Ok((PI / 4.0, PI / 8.0))
                     } else {
                         Err(PyRuntimeError::new_err(format!(
                             "Angle for operation {node_op_name} is not defined"
                         )))
-                    };
-                    total_angle += node_angle?;
+                    }?;
+                    total_angle += node_angle;
 
-                    let Param::Float(new_phase) = node_op
-                        .op
-                        .definition(node_op.params_view())
-                        .unwrap()
-                        .global_phase()
-                        .clone()
-                    else {
-                        unreachable!()
-                    };
-                    total_phase += new_phase
+                    // let Param::Float(new_phase) = node_op
+                    //     .op
+                    //     .definition(node_op.params_view())
+                    //     .unwrap()
+                    //     .global_phase()
+                    //     .clone()
+                    // else {
+                    //     unreachable!()
+                    // };
+                    total_phase += phase_shift // add phase of X to global phase (which is 0)
                 }
 
                 let new_op = match cancel_key.gate {
