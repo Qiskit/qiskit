@@ -190,7 +190,7 @@ def write_type_key(file_obj, type_key):
         file_obj (File): A file like object that contains the QPY binary data.
         type_key (bytes): Type key to write.
     """
-    file_obj.write(struct.pack("!1c", type_key))
+    return file_obj.write(struct.pack("!1c", type_key))
 
 
 def data_to_binary(obj, serializer, **kwargs):
