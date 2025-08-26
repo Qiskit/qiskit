@@ -26,18 +26,19 @@ if typing.TYPE_CHECKING:
 
 
 class ApplyLayout(TransformationPass):
-    """Transform a circuit with virtual qubits into a circuit with physical qubits.
+    """Apply or update the mapping of virtual qubits to physical qubits in the :class:`.DAGCircuit`.
 
-    Transforms a :class:`.DAGCircuit` with virtual qubits into a :class:`.DAGCircuit` with physical
-    qubits by applying the Layout given in ``property_set``.
+    A "layout" in Qiskit is a mapping of virtual qubits (as the user typically creates circuits in
+    terms of) to the physical qubits used to represent them on hardware.
 
     This pass has two modes of operation, depending on the state of the ``layout`` and
     ``post_layout`` keys in the :class:`.PropertySet`:
 
-    1. Standard operation: ``post_layout`` is not set.  In this case, the ``layout`` field must have
-       been chosen by a layout pass (for example :class:`.SetLayout` or :class:`.VF2Layout`), and
-       both it and the :class:`.DAGCircuit` must have been expanded with ancillas (see
-       :class:`.EnlargeWithAncilla` and :class:`.FullAncillaAllocation`).
+    1. Standard operation: ``post_layout`` is not set.  This takes in a :class:`.DAGCircuit` defined
+       over virtual qubits, and rewrites it in terms of physical qubits.  In this case, the
+       ``layout`` field must have been chosen by a layout pass (for example :class:`.SetLayout` or
+       :class:`.VF2Layout`), and both it and the :class:`.DAGCircuit` must have been expanded with
+       ancillas (see :class:`.EnlargeWithAncilla` and :class:`.FullAncillaAllocation`).
 
     2. Improving a layout: ``post_layout`` is set (such as by :class:`.VF2PostLayout`).  In this
        case, the ``post_layout`` must already be the correct size.  It is interpreted as an
