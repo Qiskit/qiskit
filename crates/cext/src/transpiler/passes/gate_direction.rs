@@ -40,7 +40,7 @@ use qiskit_transpiler::target::Target;
 ///    QkCircuit *circuit = qk_circuit_new(2, 0);
 ///    qk_circuit_gate(circuit, QkGate_CX, (uint32_t[]){1,0}, NULL);
 ///
-///    bool direction_ok = qk_transpiler_pass_standalone_check_gate_direction(circuit, target);
+///    bool direction_ok = qk_transpiler_passes_check_gate_direction_circuit(circuit, target);
 /// ```
 ///
 /// # Safety
@@ -48,7 +48,7 @@ use qiskit_transpiler::target::Target;
 /// Behavior is undefined if ``circuit`` or ``target`` are not valid, non-null pointers to ``QkCircuit`` and ``QkTarget`` objects, respectively.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_transpiler_pass_standalone_check_gate_direction(
+pub unsafe extern "C" fn qk_transpiler_passes_check_gate_direction_circuit(
     circuit: *const CircuitData,
     target: *const Target,
 ) -> bool {
@@ -86,7 +86,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_check_gate_direction(
 ///    QkCircuit *circuit = qk_circuit_new(3, 0);
 ///    qk_circuit_gate(circuit, QkGate_CX, (uint32_t[]){1,0}, NULL);
 ///
-///    qk_transpiler_pass_standalone_gate_direction(circuit, target);
+///    qk_transpiler_passes_gate_direction_circuit(circuit, target);
 /// ```
 ///
 /// # Safety
@@ -94,7 +94,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_check_gate_direction(
 /// Behavior is undefined if ``circuit`` or ``target`` are not valid, non-null pointers to ``QkCircuit`` and ``QkTarget`` objects, respectively.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_transpiler_pass_standalone_gate_direction(
+pub unsafe extern "C" fn qk_transpiler_passes_gate_direction_circuit(
     circuit: *mut CircuitData,
     target: *const Target,
 ) {

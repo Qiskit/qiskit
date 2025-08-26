@@ -41,7 +41,7 @@ use qiskit_transpiler::transpile_layout::TranspileLayout;
 ///         qk_circuit_gate(qc, QkGate_CX, qargs, NULL);
 ///     }
 /// }
-/// QkTranspileLayout *result = qk_transpiler_pass_standalone_split_2q_unitaries(qc, 1e-12, true)
+/// QkTranspileLayout *result = qk_transpiler_passes_split_2q_unitaries_circuit(qc, 1e-12, true)
 /// ```
 ///
 /// # Safety
@@ -49,7 +49,7 @@ use qiskit_transpiler::transpile_layout::TranspileLayout;
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_transpiler_pass_standalone_split_2q_unitaries(
+pub unsafe extern "C" fn qk_transpiler_passes_split_2q_unitaries_circuit(
     circuit: *mut CircuitData,
     requested_fidelity: f64,
     split_swaps: bool,

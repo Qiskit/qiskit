@@ -35,7 +35,7 @@ int test_remove_z_gate(void) {
         goto cleanup;
     }
 
-    qk_transpiler_pass_standalone_remove_diagonal_gates_before_measure(qc);
+    qk_transpiler_passes_remove_diagonal_gates_before_measure_circuit(qc);
 
     if (1 != qk_circuit_num_instructions(qc)) {
         printf("Circuit should only have a single instruction");

@@ -68,7 +68,7 @@ int test_vf2_layout_line(void) {
         }
     }
     QkVF2LayoutResult *layout_result =
-        qk_transpiler_pass_standalone_vf2_layout(qc, target, false, -1, 0.0, -1);
+        qk_transpiler_passes_vf2_layout_circuit(qc, target, false, -1, 0.0, -1);
     if (!qk_vf2_layout_result_has_match(layout_result)) {
         printf("No layout was found");
         result = EqualityError;
@@ -124,7 +124,7 @@ int test_vf2_no_layout_found(void) {
         }
     }
     QkVF2LayoutResult *layout_result =
-        qk_transpiler_pass_standalone_vf2_layout(qc, target, false, -1, 0.0, -1);
+        qk_transpiler_passes_vf2_layout_circuit(qc, target, false, -1, 0.0, -1);
     if (qk_vf2_layout_result_has_match(layout_result)) {
         printf("Unexpected layout found when one shouldn't be possible");
         result = EqualityError;

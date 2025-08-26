@@ -48,7 +48,7 @@ int test_sabre_layout_applies_layout(void) {
     QkSabreLayoutOptions options = qk_sabre_layout_options_default();
     options.seed = 2025;
     QkTranspileLayout *layout_result =
-        qk_transpiler_pass_standalone_sabre_layout(qc, target, &options);
+        qk_transpiler_passes_sabre_layout_circuit(qc, target, &options);
 
     QkOpCounts op_counts = qk_circuit_count_ops(qc);
     if (op_counts.len != 2) {
@@ -158,7 +158,7 @@ int test_sabre_layout_no_swap(void) {
     QkSabreLayoutOptions options = qk_sabre_layout_options_default();
     options.seed = 2025;
     QkTranspileLayout *layout_result =
-        qk_transpiler_pass_standalone_sabre_layout(qc, target, &options);
+        qk_transpiler_passes_sabre_layout_circuit(qc, target, &options);
     QkCircuit *expected_circuit = qk_circuit_new(5, 0);
     for (uint32_t i = 0; i < qk_circuit_num_qubits(qc) - 1; i++) {
         uint32_t qargs[2] = {i, i + 1};

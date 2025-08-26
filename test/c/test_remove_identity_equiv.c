@@ -38,7 +38,7 @@ int test_remove_identity_equiv_removes_gates(void) {
     qk_circuit_gate(qc, QkGate_RZ, qargs, params_zero);
     qk_circuit_gate(qc, QkGate_RX, qargs, params);
 
-    qk_transpiler_pass_standalone_remove_identity_equivalent(qc, target, 1.0);
+    qk_transpiler_passes_remove_identity_equivalent_circuit(qc, target, 1.0);
     if (qk_circuit_num_instructions(qc) != 1) {
         result = EqualityError;
         printf("The gates weren't removed by this circuit");

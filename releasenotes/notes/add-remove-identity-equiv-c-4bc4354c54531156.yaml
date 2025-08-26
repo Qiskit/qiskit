@@ -2,6 +2,6 @@
 features_c:
   - |
     Added a new transpiler pass standalone function to the C API,
-    :cpp:func:`qk_transpiler_pass_standalone_remove_identity_equivalent`
+    :cpp:func:`qk_transpiler_passes_remove_identity_equivalent_circuit`
     which is equivalent to calling the :class:`.RemoveIdentityEquivalent`
     pass.
