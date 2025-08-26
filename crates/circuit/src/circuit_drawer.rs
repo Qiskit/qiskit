@@ -193,6 +193,9 @@ impl circuit_rep {
 
         let mut final_layers:Vec<Vec<NodeIndex>> = Vec::new();
 
+        let total_qubits = binding.num_qubits() as u32;
+        let total_clbits = binding.num_clbits() as u32;
+
         println!("Building layers for the circuit...");
 
         for (i,layer) in layer_iterator.enumerate(){ 
@@ -219,43 +222,81 @@ impl circuit_rep {
                                     let node_clbits = binding.cargs_interner().get(instruction_to_insert.clbits);
 
                                     // index can be 0 as well so to unwrap_or with default 0 might not be the best idea
-                                    let subnode_min_qubit = subnode_qubits.iter().map(|q| q.0).min().unwrap_or(0);  
-                                    let subnode_max_qubit = subnode_qubits.iter().map(|q| q.0).max().unwrap_or(0);
-                                    let subnode_min_clbit = subnode_clbits.iter().map(|c| c.0).min().unwrap_or(0);
-                                    let subnode_max_clbit = subnode_clbits.iter().map(|c| c.0).max().unwrap_or(0);
-                                    let node_min_qubit = node_qubits.iter().map(|q| q.0).min().unwrap_or(0);
-                                    let node_max_qubit = node_qubits.iter().map(|q| q.0).max().unwrap_or(0);
-                                    let node_min_clbit = node_clbits.iter().map(|c| c.0).min().unwrap_or(0);
-                                    let node_max_clbit = node_clbits.iter().map(|c| c.0).max().unwrap_or(0);
+                                    let subnode_min_qubit = subnode_qubits.iter().map(|q| q.0).min();  
+                                    let subnode_max_qubit = subnode_qubits.iter().map(|q| q.0).max();
+                                    let subnode_min_clbit = subnode_clbits.iter().map(|c| c.0).min();
+                                    let subnode_max_clbit = subnode_clbits.iter().map(|c| c.0).max();
+                                    let node_min_qubit = node_qubits.iter().map(|q| q.0).min();
+                                    let node_max_qubit = node_qubits.iter().map(|q| q.0).max();
+                                    let node_min_clbit = node_clbits.iter().map(|c| c.0).min();
+                                    let node_max_clbit = node_clbits.iter().map(|c| c.0).max();
 
-                                    // the issue now is that when unwrap_or sets the default to 0 for all instructions without 0
-                                    // there will always be overlap
-                                    // need to use option to minimise overlap
+                                    let node_min = match node_min_qubit {
+                                        Some(val) => val,
+                                        None => match node_max_qubit {
+                                            Some(cval) => cval,
+                                            None =>  match node_min_clbit {
+                                                Some(cval) => cval + total_qubits,
+                                                None => match node_max_clbit {
+                                                    Some(qval) => qval + total_qubits,
+                                                    None => continue, // No qubits or clbits, skip this node
+                                                },                                                
+                                            }, // No qubits or clbits, skip this node
+                                        },
+                                    };
 
-                                    if (subnode_min_qubit >= node_min_qubit && subnode_min_qubit <= node_max_qubit) ||
-                                    (subnode_max_qubit >= node_min_qubit && subnode_max_qubit <= node_max_qubit){
+                                    let node_max = match node_max_clbit {
+                                        Some(val) => val + total_qubits,
+                                        None => match node_min_clbit {
+                                            Some(cval) => cval + total_qubits,
+                                            None =>  match node_max_qubit {
+                                                Some(cval) => cval,
+                                                None => match node_min_qubit {
+                                                    Some(qval) => qval,
+                                                    None => continue, // No qubits or clbits, skip this node
+                                                },                                                
+                                            }, // No qubits or clbits, skip this node
+                                        },
+                                    };
+
+                                    let subnode_min = match subnode_min_qubit {
+                                        Some(val) => val,
+                                        None => match subnode_max_qubit {
+                                            Some(cval) => cval,
+                                            None =>  match subnode_min_clbit {
+                                                Some(cval) => cval + total_qubits,
+                                                None => match subnode_max_clbit {
+                                                    Some(qval) => qval + total_qubits,
+                                                    None => continue, // No qubits or clbits, skip this node
+                                                },                                                
+                                            }, // No qubits or clbits, skip this node
+                                        },
+                                    };
+
+                                    let subnode_max = match subnode_max_clbit {
+                                        Some(val) => val + total_qubits,
+                                        None => match subnode_min_clbit {
+                                            Some(cval) => cval + total_qubits,
+                                            None =>  match subnode_max_qubit {
+                                                Some(cval) => cval,
+                                                None => match subnode_min_qubit {
+                                                    Some(qval) => qval,
+                                                    None => continue, // No qubits or clbits, skip this node
+                                                },                                                
+                                            }, // No qubits or clbits, skip this node
+                                        },
+                                    };
+
+                                    if (subnode_min <= node_min && subnode_max >= node_min) || (subnode_min <= node_max && subnode_max >= node_max) {
                                         overlap = true;
-                                        println!("Conflict detected between subnode {:?} and node {:?}", sub_node_index, node_index);
-                                        println!("Subnode qubits: {:?}, Node qubits: {:?}", subnode_qubits, node_qubits);
-                                        println!("Subnode clbits: {:?}, Node clbits: {:?}", subnode_clbits, node_clbits);
-                                        println!("Subnode min/max qubits: {}, {}, Node min/max qubits: {}, {}", 
-                                            subnode_min_qubit, subnode_max_qubit, node_min_qubit, node_max_qubit);
-                                        println!("Subnode min/max clbits: {}, {}, Node min/max clbits: {}, {}", 
-                                            subnode_min_clbit, subnode_max_clbit, node_min_clbit, node_max_clbit);
-                                        break;
-                                    }
-
-                                    if (subnode_min_clbit >= node_min_clbit && subnode_min_clbit <= node_max_clbit) ||
-                                    (subnode_max_clbit >= node_min_clbit && subnode_max_clbit <= node_max_clbit) {
-                                        overlap = true;
-                                        println!("Conflict detected between subnode {:?} and node {:?}", sub_node_index, node_index);
-                                        println!("Subnode qubits: {:?}, Node qubits: {:?}", subnode_qubits, node_qubits);
-                                        println!("Subnode clbits: {:?}, Node clbits: {:?}", subnode_clbits, node_clbits);
-                                        println!("Subnode min/max qubits: {}, {}, Node min/max qubits: {}, {}", 
-                                            subnode_min_qubit, subnode_max_qubit, node_min_qubit, node_max_qubit);
-                                        println!("Subnode min/max clbits: {}, {}, Node min/max clbits: {}, {}", 
-                                            subnode_min_clbit, subnode_max_clbit, node_min_clbit, node_max_clbit);
-                                        break;
+                                        // println!("Conflict detected between subnode {:?} and node {:?}", sub_node_index, node_index);
+                                        // println!("Subnode qubits: {:?}, Node qubits: {:?}", subnode_qubits, node_qubits);
+                                        // println!("Subnode clbits: {:?}, Node clbits: {:?}", subnode_clbits, node_clbits);
+                                        // println!("Subnode min/max qubits: {:?}, {:?}, Node min/max qubits: {:?}, {:?}", 
+                                        //     subnode_min_qubit, subnode_max_qubit, node_min_qubit, node_max_qubit);
+                                        // println!("Subnode min/max clbits: {:?}, {:?}, Node min/max clbits: {:?}, {:?}", 
+                                        //     subnode_min_clbit, subnode_max_clbit, node_min_clbit, node_max_clbit);
+                                        // break;
                                     }
                                 }
                             }
@@ -270,7 +311,7 @@ impl circuit_rep {
                             }
                         }
                     }
-                    println!("sublayer analyzed: {:?}, instruction: {:?}", sublayers, instruction_to_insert);
+                    // println!("sublayer analyzed: {:?}, instruction: {:?}", sublayers, instruction_to_insert);
                 }
             }
 
@@ -287,7 +328,14 @@ impl circuit_rep {
         }
 
         for (i, layer) in final_layers.iter().enumerate() {
-            println!("Layer {}: {:?}", i, layer);
+            for nodeind in layer {
+                if let NodeType::Operation(instruction) = &binding.dag()[*nodeind] {
+                    let qubits = binding.qargs_interner().get(instruction.qubits);
+                    let clbits = binding.cargs_interner().get(instruction.clbits);      
+                    println!("Layer {}: Instruction: {} Qubits: {:?} Clbits: {:?}", i, instruction.op.name(), qubits, clbits);
+                }
+            }
+            println!("-----------------------------------");
         }
         
     }
