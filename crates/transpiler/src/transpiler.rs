@@ -143,6 +143,9 @@ pub fn transpile(
             |x| PhysicalQubit(x.0),
         );
     } else if optimization_level == OptimizationLevel::Level1 {
+        // run_check_map returns Some((gate, qargs)) if the circuit violates the connectivity
+        // constraints in the target and returns None if the circuit conforms to the undirected
+        // connectivity constraints
         if run_check_map(&dag, target).is_none() {
             apply_layout(
                 &mut dag,
@@ -281,7 +284,9 @@ pub fn transpile(
     // Routing stage
     if optimization_level == OptimizationLevel::Level0 {
         let routing_target = PyRoutingTarget::from_target(target)?;
-
+        // run_check_map returns Some((gate, qargs)) if the circuit violates the connectivity
+        // constraints in the target and returns None if the circuit conforms to the undirected
+        // connectivity constraints
         if run_check_map(&dag, target).is_some() {
             let (out_dag, final_layout) = sabre::sabre_routing(
                 &dag,
