@@ -274,6 +274,8 @@ int test_get_gate_counts(void) {
     QkOpCounts c1 = qk_circuit_count_ops(qc);
     if (c1.len != 0) {
         result = EqualityError;
+        qk_opcounts_clear(&c1);
+        goto circuit_cleanup;
     }
     qk_opcounts_clear(&c1);
 
@@ -285,6 +287,8 @@ int test_get_gate_counts(void) {
 
     if (c2.len != 1) {
         result = EqualityError;
+        qk_opcounts_clear(&c1);
+        goto circuit_cleanup;
     }
     qk_opcounts_clear(&c2);
 
@@ -293,6 +297,7 @@ int test_get_gate_counts(void) {
         result = EqualityError;
     }
 
+circuit_cleanup:
     qk_circuit_free(qc);
     return result;
 }
