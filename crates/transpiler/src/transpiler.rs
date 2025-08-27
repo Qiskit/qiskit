@@ -94,7 +94,10 @@ pub fn transpile(
     unroll_3q_or_more(&mut dag)?;
     if optimization_level == OptimizationLevel::Level1 {
         run_inverse_cancellation_standard_gates(&mut dag);
-    } else if matches!(optimization_level, OptimizationLevel::Level2 | OptimizationLevel::Level3) {
+    } else if matches!(
+        optimization_level,
+        OptimizationLevel::Level2 | OptimizationLevel::Level3
+    ) {
         if let Some((new_dag, permutation)) = run_elide_permutations(&dag)? {
             dag = new_dag;
             let permutation: Vec<Qubit> = permutation.into_iter().map(Qubit::new).collect();

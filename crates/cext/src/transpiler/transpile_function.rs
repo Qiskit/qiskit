@@ -186,7 +186,7 @@ pub unsafe extern "C" fn qk_transpile(
                     // messages which are user facing. But most likely this will be a PyErr and panic
                     // when trying to extract the string.
                     *error = CString::new(format!(
-                       "Transpilation failed with this backtrace: {}",
+                        "Transpilation failed with this backtrace: {}",
                         e.backtrace()
                     ))
                     .unwrap()

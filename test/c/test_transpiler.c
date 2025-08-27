@@ -80,7 +80,7 @@ int test_transpile_bv(void) {
         qk_circuit_gate(qc, QkGate_H, qargs, NULL);
     }
     for (uint32_t i = 0; i < qk_circuit_num_qubits(qc) - 1; i += 2) {
-        uint32_t qargs[2] = {i, 9};
+        uint32_t qargs[2] = {i, num_qubits - 1};
         qk_circuit_gate(qc, QkGate_CX, qargs, NULL);
     }
     QkTranspileResult transpile_result = {NULL, NULL};
@@ -91,6 +91,7 @@ int test_transpile_bv(void) {
     if (result_code != 0) {
         printf("Transpilation failed with: %s\n", error);
         result = EqualityError;
+        qk_str_free(error);
         goto circuit_cleanup;
     }
 
@@ -179,6 +180,7 @@ int test_transpile_idle_qubits(void) {
         if (result_code != 0) {
             printf("Transpilation failed %s\n", error);
             result = EqualityError;
+            qk_str_free(error);
             goto cleanup;
         }
         uint32_t num_instructions = qk_circuit_num_instructions(transpile_result.circuit);
