@@ -24,7 +24,8 @@ use crate::transpile_layout::TranspileLayout;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::{PhysicalQubit, Qubit};
+use qiskit_circuit::nlayout::NLayout;
+use qiskit_circuit::{PhysicalQubit, Qubit, VirtualQubit};
 
 #[derive(Copy, Eq, PartialEq, Debug, Clone)]
 #[repr(u8)]
@@ -100,8 +101,7 @@ pub fn transpile(
     ) {
         if let Some((new_dag, permutation)) = run_elide_permutations(&dag)? {
             dag = new_dag;
-            let permutation: Vec<Qubit> = permutation.into_iter().map(Qubit::new).collect();
-            transpile_layout.compose_output_permutation(&permutation, false);
+            transpile_layout.add_permutation_inside(|q| Qubit::new(permutation[q.index()]));
         };
         run_remove_diagonal_before_measure(&mut dag);
         run_remove_identity_equiv(&mut dag, approximation_degree, Some(target));
@@ -117,8 +117,8 @@ pub fn transpile(
         )?;
         if let Some(result) = result {
             dag = result.0;
-            let split_2q_permutation = result.1.into_iter().map(Qubit::new).collect::<Vec<_>>();
-            transpile_layout.compose_output_permutation(&split_2q_permutation, true);
+            let permutation = result.1;
+            transpile_layout.add_permutation_inside(|q| Qubit::new(permutation[q.index()]));
         }
     }
     // layout stage
@@ -175,23 +175,8 @@ pub fn transpile(
                 false,
             )?;
             dag = result;
-            transpile_layout.initial_layout = Some(initial_layout);
-            let routing_permutation: Vec<Qubit> = (0..dag.num_qubits() as u32)
-                .map(|ref q| {
-                    Qubit(
-                        final_layout
-                            .virtual_to_physical(
-                                transpile_layout
-                                    .initial_layout
-                                    .as_ref()
-                                    .unwrap()
-                                    .physical_to_virtual(PhysicalQubit(*q)),
-                            )
-                            .0,
-                    )
-                })
-                .collect();
-            transpile_layout.compose_output_permutation(&routing_permutation, true);
+            transpile_layout =
+                layout_from_sabre_result(&dag, initial_layout, &final_layout, &transpile_layout);
         }
     } else if optimization_level == OptimizationLevel::Level2 {
         if let Some(vf2_result) =
@@ -216,23 +201,8 @@ pub fn transpile(
                 false,
             )?;
             dag = result;
-            transpile_layout.initial_layout = Some(initial_layout);
-            let routing_permutation: Vec<Qubit> = (0..dag.num_qubits() as u32)
-                .map(|ref q| {
-                    Qubit(
-                        final_layout
-                            .virtual_to_physical(
-                                transpile_layout
-                                    .initial_layout
-                                    .as_ref()
-                                    .unwrap()
-                                    .physical_to_virtual(PhysicalQubit(*q)),
-                            )
-                            .0,
-                    )
-                })
-                .collect();
-            transpile_layout.compose_output_permutation(&routing_permutation, true);
+            transpile_layout =
+                layout_from_sabre_result(&dag, initial_layout, &final_layout, &transpile_layout);
         }
     } else if let Some(vf2_result) = vf2_layout_pass(
         &dag,
@@ -262,24 +232,8 @@ pub fn transpile(
             false,
         )?;
         dag = result;
-        transpile_layout.initial_layout = Some(initial_layout);
-        let routing_permutation: Vec<Qubit> = (0..dag.num_qubits() as u32)
-            .map(|ref q| {
-                Qubit(
-                    final_layout
-                        .virtual_to_physical(
-                            transpile_layout
-                                .initial_layout
-                                .as_ref()
-                                .unwrap()
-                                .physical_to_virtual(PhysicalQubit(*q)),
-                        )
-                        .0,
-                )
-            })
-            .collect();
-
-        transpile_layout.compose_output_permutation(&routing_permutation, true);
+        transpile_layout =
+            layout_from_sabre_result(&dag, initial_layout, &final_layout, &transpile_layout);
     }
     // Routing stage
     if optimization_level == OptimizationLevel::Level0 {
@@ -288,32 +242,22 @@ pub fn transpile(
         // constraints in the target and returns None if the circuit conforms to the undirected
         // connectivity constraints
         if run_check_map(&dag, target).is_some() {
+            let initial_layout = transpile_layout
+                .initial_layout()
+                .expect("a layout pass was already called");
             let (out_dag, final_layout) = sabre::sabre_routing(
                 &dag,
                 &routing_target,
                 &sabre_heuristic,
-                transpile_layout.initial_layout.as_ref().unwrap(),
+                initial_layout,
                 5,
                 seed,
                 Some(true),
             )?;
             dag = out_dag;
-            let routing_permutation: Vec<Qubit> = (0..dag.num_qubits() as u32)
-                .map(|ref q| {
-                    Qubit(
-                        final_layout
-                            .virtual_to_physical(
-                                transpile_layout
-                                    .initial_layout
-                                    .as_ref()
-                                    .unwrap()
-                                    .physical_to_virtual(PhysicalQubit(*q)),
-                            )
-                            .0,
-                    )
-                })
-                .collect();
-            transpile_layout.compose_output_permutation(&routing_permutation, true);
+            let routing_permutation =
+                TranspileLayout::permutation_from_layouts(initial_layout, &final_layout);
+            transpile_layout.add_permutation_inside(|q| routing_permutation[q.index()]);
         }
     }
     // Translation Stage
@@ -467,6 +411,25 @@ impl MinPointState {
             (new_depth, new_size) != (self.best_depth, self.best_size)
         }
     }
+}
+
+fn layout_from_sabre_result(
+    dag: &DAGCircuit,
+    initial_layout: NLayout,
+    final_layout: &NLayout,
+    old_transpile_layout: &TranspileLayout,
+) -> TranspileLayout {
+    let mut new_transpile_layout = TranspileLayout::from_layouts(
+        initial_layout,
+        final_layout,
+        dag.qubits().objects().clone(),
+        old_transpile_layout.num_input_qubits(),
+    );
+    if let Some(old_permutation) = old_transpile_layout.output_permutation() {
+        new_transpile_layout
+            .add_permutation_outside(|q| VirtualQubit(old_permutation[q.index()].0));
+    }
+    new_transpile_layout
 }
 
 #[cfg(all(test, not(miri)))]
