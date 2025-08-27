@@ -372,44 +372,9 @@ pub fn transpile(
             new_size = Some(dag.size(false)?);
         }
     } else if optimization_level == 3 {
-        struct MinPointState {
-            best_depth: Option<usize>,
-            best_size: Option<usize>,
-            count: usize,
-            best_dag: DAGCircuit,
-        }
-        let mut min_state = MinPointState {
-            best_depth: None,
-            best_size: None,
-            count: 0,
-            best_dag: dag.clone(),
-        };
-        impl MinPointState {
-            fn check(
-                &mut self,
-                dag: &DAGCircuit,
-                new_size: Option<usize>,
-                new_depth: Option<usize>,
-            ) -> bool {
-                if self.best_depth.is_none() || self.best_size.is_none() {
-                    self.best_depth = new_depth;
-                    self.best_size = new_size;
-                    self.best_dag = dag.clone();
-                    true
-                } else if (new_depth, new_size) > (self.best_depth, self.best_size) {
-                    self.count += 1;
-                    true
-                } else if (new_depth, new_size) < (self.best_depth, self.best_size) {
-                    self.count = 1;
-                    self.best_depth = new_depth;
-                    self.best_size = new_size;
-                    true
-                } else {
-                    (new_depth, new_size) != (self.best_depth, self.best_size)
-                }
-            }
-        }
         let mut continue_loop: bool = true;
+        let mut min_state = MinPointState::new(&dag);
+
         while continue_loop {
             run_consolidate_blocks(&mut dag, false, approximation_degree, Some(target))?;
             let num_qubits = dag.num_qubits();
@@ -432,13 +397,50 @@ pub fn transpile(
             if gates_missing_from_target(&dag, target)? {
                 translation(&mut dag, &mut equivalence_library)?;
             }
-            new_depth = Some(dag.depth(false)?);
-            new_size = Some(dag.size(false)?);
-            continue_loop = min_state.check(&dag, new_size, new_depth);
+            continue_loop = min_state.update_with(&dag);
         }
         dag = min_state.best_dag;
     }
     Ok((dag_to_circuit(&dag, false)?, transpile_layout))
+}
+
+struct MinPointState {
+    best_depth: Option<usize>,
+    best_size: Option<usize>,
+    count: usize,
+    best_dag: DAGCircuit,
+}
+
+impl MinPointState {
+    fn new(dag: &DAGCircuit) -> Self {
+        MinPointState {
+            best_depth: None,
+            best_size: None,
+            count: 0,
+            best_dag: dag.clone(),
+        }
+    }
+
+    fn update_with(&mut self, dag: &DAGCircuit) -> bool {
+        let new_depth = Some(dag.depth(false).unwrap());
+        let new_size = Some(dag.size(false).unwrap());
+        if self.best_depth.is_none() || self.best_size.is_none() {
+            self.best_depth = new_depth;
+            self.best_size = new_size;
+            self.best_dag = dag.clone();
+            true
+        } else if (new_depth, new_size) > (self.best_depth, self.best_size) {
+            self.count += 1;
+            true
+        } else if (new_depth, new_size) < (self.best_depth, self.best_size) {
+            self.count = 1;
+            self.best_depth = new_depth;
+            self.best_size = new_size;
+            true
+        } else {
+            (new_depth, new_size) != (self.best_depth, self.best_size)
+        }
+    }
 }
 
 #[cfg(all(test, not(miri)))]
