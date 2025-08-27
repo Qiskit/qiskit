@@ -270,13 +270,14 @@ pub fn cancel_commutations(
                     _ => unreachable!(),
                 };
 
-                // let gate_angle = euler_one_qubit_decomposer::mod_2pi(total_angle, 0.);
                 let pi_multiple = total_angle / PI;
 
-                if pi_multiple.rem_euclid(4.) < _CUTOFF_PRECISION {
-                    // if the angle is a 4-pi multiple, then it is equal to the identity
+                let mod4 = pi_multiple.rem_euclid(4.);
+                if mod4 < _CUTOFF_PRECISION || (4. - mod4) < _CUTOFF_PRECISION {
+                    // if the angle is close to a 4-pi multiple (from above or below), then it is
+                    // equal to the identity
                     ()
-                } else if pi_multiple.rem_euclid(2.) < _CUTOFF_PRECISION {
+                } else if (mod4 - 2.).abs() < _CUTOFF_PRECISION {
                     // a 2-pi multiple has a phase of pi: RX(2pi) = RZ(2pi) = -I = I exp(i pi)
                     total_phase -= PI;
                 } else {

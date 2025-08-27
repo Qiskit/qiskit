@@ -81,6 +81,44 @@ class TestCommutativeCancellation(QiskitTestCase):
         expected.global_phase = 0.5
         self.assertEqual(expected, new_circuit)
 
+    def test_2pi_multiples(self):
+        """Test 2pi multiples are handled with the correct phase they introduce."""
+        for sign in [-1, 1]:
+            qc = QuantumCircuit(1)
+            qc.rz(sign * np.pi, 0)
+            qc.rz(sign * np.pi, 0)
+
+            with self.subTest(msg="single 2pi", sign=sign):
+                tqc = CommutativeCancellation()(qc)
+                self.assertEqual(0, len(tqc.count_ops()))
+                self.assertAlmostEqual(np.pi, tqc.global_phase)
+
+        for sign_x in [-1, 1]:
+            for sign_z in [-1, 1]:
+                qc = QuantumCircuit(2)
+                qc.rx(sign_x * np.pi, 0)
+                qc.rx(sign_x * np.pi, 0)
+                qc.rz(sign_z * np.pi, 1)
+                qc.rz(sign_z * np.pi, 1)
+
+                with self.subTest(msg="two 2pi", sign_x=sign_x, sign_z=sign_z):
+                    tqc = CommutativeCancellation()(qc)
+                    self.assertEqual(0, len(tqc.count_ops()))
+                    self.assertAlmostEqual(0, tqc.global_phase)
+
+    def test_4pi_multiples(self):
+        """Test 4pi multiples are removed w/o changing the global phase."""
+        for sign in [-1, 1]:
+            qc = QuantumCircuit(1)
+            qc.rz(sign * np.pi, 0)
+            qc.rz(sign * 6 * np.pi, 0)
+            qc.rz(sign * np.pi, 0)
+
+            with self.subTest(sign=sign):
+                tqc = CommutativeCancellation()(qc)
+                self.assertEqual(0, len(tqc.count_ops()))
+                self.assertAlmostEqual(0, tqc.global_phase)
+
     def test_commutative_circuit1(self):
         """A simple circuit where three CNOTs commute, the first and the last cancel.
 
