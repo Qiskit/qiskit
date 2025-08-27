@@ -762,12 +762,12 @@ pub unsafe extern "C" fn qk_circuit_unitary(
 /// Return a list of string names for instructions in a circuit and their counts.
 ///
 /// To properly free the memory allocated by the struct, you should call ``qk_opcounts_clear``.
-/// Dropping the ``QkOpCounts`` struct without doing so will leave the stored array of ``OpCount``
+/// Dropping the ``QkOpCounts`` struct without doing so will leave the stored array of ``QkOpCount``
 /// allocated and produce a memory leak.
 ///
 /// @param circuit A pointer to the circuit to get the counts for.
 ///
-/// @return An ``OpCounts`` struct containing the circuit operation counts.
+/// @return An ``QkOpCounts`` struct containing the circuit operation counts.
 ///
 /// # Example
 /// ```c
