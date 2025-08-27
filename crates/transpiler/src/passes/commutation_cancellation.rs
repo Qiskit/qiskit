@@ -117,8 +117,8 @@ pub fn cancel_commutations(
                 }
             }
         }
-        // if there's no z_var_gate detected, Z rotations are not merged and this function is never called
-        None => |_name: &str, _angle: f64| -> f64 { unreachable!() },
+        // if there's no z_var_gate detected, Z rotations are not merged, so we have no phase shifts
+        None => |_name: &str, _angle: f64| -> f64 { 0. },
     };
 
     // Gate sets to be cancelled
@@ -276,7 +276,6 @@ pub fn cancel_commutations(
                 if mod4 < _CUTOFF_PRECISION || (4. - mod4) < _CUTOFF_PRECISION {
                     // if the angle is close to a 4-pi multiple (from above or below), then it is
                     // equal to the identity
-                    ()
                 } else if (mod4 - 2.).abs() < _CUTOFF_PRECISION {
                     // a 2-pi multiple has a phase of pi: RX(2pi) = RZ(2pi) = -I = I exp(i pi)
                     total_phase -= PI;
