@@ -24,7 +24,7 @@ use crate::commutation_checker::CommutationChecker;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::Qubit;
-use qiskit_synthesis::{euler_one_qubit_decomposer, QiskitError};
+use qiskit_synthesis::QiskitError;
 
 const _CUTOFF_PRECISION: f64 = 1e-5;
 static ROTATION_GATES: [&str; 4] = ["p", "u1", "rz", "rx"];
@@ -87,6 +87,7 @@ pub fn cancel_commutations(
                 .map(|(_, gate)| gate)
         })
         .or_else(|| {
+            // Fallback to the first matching key from basis if there is no match in dag.op_names
             basis.iter().find_map(|g| {
                 VAR_Z_MAP
                     .iter()
@@ -94,7 +95,31 @@ pub fn cancel_commutations(
                     .map(|(_, gate)| gate)
             })
         });
-    // Fallback to the first matching key from basis if there is no match in dag.op_names
+
+    // RZ and P/U1 have a phase difference of angle/2, which we need to account for
+    let z_phase_shift = match z_var_gate {
+        Some(z_var_gate) => {
+            if z_var_gate == &StandardGate::RZ {
+                |gate_name: &str, angle: f64| -> f64 {
+                    if ["u1", "p"].contains(&gate_name) {
+                        angle / 2.
+                    } else {
+                        0.
+                    }
+                }
+            } else {
+                |gate_name: &str, angle: f64| -> f64 {
+                    if gate_name == "rz" {
+                        -angle / 2.
+                    } else {
+                        0.
+                    }
+                }
+            }
+        }
+        // if there's no z_var_gate detected, Z rotations are not merged and this function is never called
+        None => |_name: &str, _angle: f64| -> f64 { unreachable!() },
+    };
 
     // Gate sets to be cancelled
     /* Traverse each qubit to generate the cancel dictionaries
@@ -221,11 +246,7 @@ pub fn cancel_commutations(
                                 node_op.op
                             )))
                         };
-                        let phase_shift = if node_op_name == "p" {
-                            node_angle / 2.
-                        } else {
-                            0.
-                        };
+                        let phase_shift = z_phase_shift(node_op_name, node_angle);
                         Ok((node_angle, phase_shift))
                     } else if HALF_TURNS.contains(&node_op_name) {
                         Ok((PI, PI / 2.0))
@@ -240,15 +261,6 @@ pub fn cancel_commutations(
                     }?;
                     total_angle += node_angle;
 
-                    // let Param::Float(new_phase) = node_op
-                    //     .op
-                    //     .definition(node_op.params_view())
-                    //     .unwrap()
-                    //     .global_phase()
-                    //     .clone()
-                    // else {
-                    //     unreachable!()
-                    // };
                     total_phase += phase_shift // add phase of X to global phase (which is 0)
                 }
 
@@ -258,24 +270,21 @@ pub fn cancel_commutations(
                     _ => unreachable!(),
                 };
 
-                let gate_angle = euler_one_qubit_decomposer::mod_2pi(total_angle, 0.);
+                // let gate_angle = euler_one_qubit_decomposer::mod_2pi(total_angle, 0.);
+                let pi_multiple = total_angle / PI;
 
-                let new_op_phase: f64 = if gate_angle.abs() > _CUTOFF_PRECISION {
-                    dag.insert_1q_on_incoming_qubit((*new_op, &[total_angle]), cancel_set[0]);
-                    let Param::Float(new_phase) = new_op
-                        .definition(&[Param::Float(total_angle)])
-                        .unwrap()
-                        .global_phase()
-                        .clone()
-                    else {
-                        unreachable!();
-                    };
-                    new_phase
+                if pi_multiple.rem_euclid(4.) < _CUTOFF_PRECISION {
+                    // if the angle is a 4-pi multiple, then it is equal to the identity
+                    ()
+                } else if pi_multiple.rem_euclid(2.) < _CUTOFF_PRECISION {
+                    // a 2-pi multiple has a phase of pi: RX(2pi) = RZ(2pi) = -I = I exp(i pi)
+                    total_phase -= PI;
                 } else {
-                    0.0
-                };
+                    // any other is not the identity and we add the gate
+                    dag.insert_1q_on_incoming_qubit((*new_op, &[total_angle]), cancel_set[0]);
+                }
 
-                dag.add_global_phase(&Param::Float(total_phase - new_op_phase))?;
+                dag.add_global_phase(&Param::Float(total_phase))?;
 
                 for node in cancel_set {
                     dag.remove_op_node(*node);

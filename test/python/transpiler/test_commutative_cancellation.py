@@ -150,9 +150,10 @@ class TestCommutativeCancellation(QiskitTestCase):
             )
         )
         new_circuit = passmanager.run(circuit)
-        expected = QuantumCircuit(qr)
+        expected = QuantumCircuit(qr, global_phase=np.pi)  # RX(2pi) = -I = exp(i pi) I
 
         self.assertEqual(expected, new_circuit)
+        self.assertTrue(np.allclose(Operator(circuit).data, Operator(expected).data))
 
     def test_2_alternating_cnots(self):
         """A simple circuit where nothing should be cancelled.
@@ -670,9 +671,9 @@ class TestCommutativeCancellation(QiskitTestCase):
             (test.clbits[0], True), base_test1.copy(), base_test2.copy(), test.qubits, test.clbits
         )
 
-        expected = QuantumCircuit(3, 3)
+        expected = QuantumCircuit(3, 3, global_phase=np.pi / 2)
         expected.h(0)
-        expected.rx(np.pi + 0.2, 0)
+        expected.rx(np.pi + 0.2, 0)  # transforming X into RX(pi) introduces a pi/2 global phase
         expected.measure(0, 0)
         expected.x(0)
 
