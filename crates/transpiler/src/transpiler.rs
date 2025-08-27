@@ -572,7 +572,7 @@ mod tests {
         )
         .unwrap();
         for opt_level in 0..=3 {
-            let result = match transpile(&qc, &target, opt_level, Some(1.0), Some(42)) {
+            let result = match transpile(&qc, &target, opt_level.into(), Some(1.0), Some(42)) {
                 Ok(res) => res,
                 Err(e) => panic!("Error: {}", e.backtrace()),
             };
@@ -688,7 +688,7 @@ mod tests {
         )
         .unwrap();
         for opt_level in 0..=3 {
-            let result = match transpile(&qc, &target, opt_level, Some(1.0), Some(42)) {
+            let result = match transpile(&qc, &target, opt_level.into(), Some(1.0), Some(42)) {
                 Ok(res) => res,
                 Err(e) => panic!("Error: {}", e.backtrace()),
             };
