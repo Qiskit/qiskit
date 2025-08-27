@@ -99,16 +99,18 @@ pub extern "C" fn qk_transpiler_default_options() -> TranspileOptions {
 ///   the members using the respective free functions.
 /// @param error A pointer to a pointer with an nul terminated string with an error description.
 ///   If the transpiler fails a pointer to the string with the error description will be written
-///   to this pointer. That pointer needs to be freed with `qk_str_free`.
+///   to this pointer. That pointer needs to be freed with `qk_str_free`. This can be a null
+///   pointer in which case the error will not be written out.
 ///
 /// @returns the return code for the transpiler, 0 means success and all other values indicate an
 ///   error
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``circuit``, ``target``, ``options``, ``result``, or ``error`` are
-/// not valid, non-null pointers to a ``QkCircuit``, ``QkTarget``, ``QkTranspileOptions``,
-/// ``QkTranspileResult``, or a ``char`` pointer respectively.
+/// Behavior is undefined if ``circuit``, ``target``, ``options``, or ``result``, are
+/// not valid, non-null pointers to a ``QkCircuit``, ``QkTarget``, ``QkTranspileOptions``, or
+/// ``QkTranspileResult`` respectively. ``error`` must be a valid pointer to a ``char`` pointer
+/// or ``NULL``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile(
@@ -144,14 +146,16 @@ pub unsafe extern "C" fn qk_transpile(
 
     if let Some(target_qubits) = target.num_qubits {
         if target_qubits < qc.num_qubits() as u32 {
-            unsafe {
-                *error = CString::new(format!(
-                    "Insufficient qubits in target: {}, the circuit uses {}",
-                    target_qubits,
-                    qc.num_qubits()
-                ))
-                .unwrap()
-                .into_raw();
+            if !error.is_null() {
+                unsafe {
+                    *error = CString::new(format!(
+                        "Insufficient qubits in target: {}, the circuit uses {}",
+                        target_qubits,
+                        qc.num_qubits()
+                    ))
+                    .unwrap()
+                    .into_raw();
+                }
             }
             return 1;
         }
@@ -174,17 +178,19 @@ pub unsafe extern "C" fn qk_transpile(
             0
         }
         Err(e) => {
-            unsafe {
-                // Right now we return a backtrace of the error. This at least gives a hint as to
-                // which pass failed when we have rust errors normalized we can actually have error
-                // messages which are user facing. But most likely this will be a PyErr and panic
-                // when trying to extract the string.
-                *error = CString::new(format!(
-                    "Transpilation failed with this backtrace: {}",
-                    e.backtrace()
-                ))
-                .unwrap()
-                .into_raw();
+            if !error.is_null() {
+                unsafe {
+                    // Right now we return a backtrace of the error. This at least gives a hint as to
+                    // which pass failed when we have rust errors normalized we can actually have error
+                    // messages which are user facing. But most likely this will be a PyErr and panic
+                    // when trying to extract the string.
+                    *error = CString::new(format!(
+                       "Transpilation failed with this backtrace: {}",
+                        e.backtrace()
+                    ))
+                    .unwrap()
+                    .into_raw();
+                }
             }
             1
         }
