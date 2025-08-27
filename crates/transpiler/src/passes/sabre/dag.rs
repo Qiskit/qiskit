@@ -93,12 +93,17 @@ impl InteractionKind {
 /// Named access to the node elements in the [SabreDAG].
 #[derive(Clone, Debug)]
 pub struct SabreNode {
-    pub index: NodeIndex,
+    /// Indices into the original [DAGCircuit] in topological order that become routable once the
+    /// node as a whole is routable.
+    pub indices: Vec<NodeIndex>,
     pub kind: InteractionKind,
 }
 impl SabreNode {
-    fn new(index: NodeIndex, kind: InteractionKind) -> Self {
-        Self { index, kind }
+    fn new(initial: NodeIndex, kind: InteractionKind) -> Self {
+        Self {
+            indices: vec![initial],
+            kind,
+        }
     }
 }
 
@@ -116,6 +121,11 @@ impl From<SabreDAGError> for PyErr {
 }
 
 /// A DAG representation of the logical circuit to be routed.
+///
+/// This interaction representation retains only information about routing necessities; when
+/// possible, nodes in the input [DAGCircuit] are combined into a single node for routing purposes
+/// (for example, 1q gates are always folded into a preceding node and runs of 2q gates on the same
+/// qubits are combined).
 ///
 /// Note that all the qubit references here are to "virtual" qubits, that is, the qubits are those
 /// specified by the user.  This DAG does not need to be full-width on the hardware.
@@ -141,6 +151,31 @@ impl SabreDAG {
         let mut wire_pos: HashMap<Wire, NodeIndex> = HashMap::with_capacity(dag.width());
         let mut first_layer = Vec::<NodeIndex>::new();
 
+        enum Predecessors {
+            /// All the predecessors of a node are unmapped, so the node is an incoming external.
+            AllUnmapped,
+            /// All the predecessors of the node are the same concrete node.
+            Single(NodeIndex),
+            /// The node is not immediately dominated by a single concrete node (i.e. it's got more
+            /// than one in edge, or one but not all of its wires are unmapped).
+            Multiple,
+        }
+        let predecessors =
+            |dag_node: NodeIndex, sabre_pos: &HashMap<Wire, NodeIndex>| -> Predecessors {
+                let mut edges = dag.dag().edges_directed(dag_node, Direction::Incoming);
+                let Some(first) = edges.next() else {
+                    // 0-arity node, so it's always immediately eligible for routing.
+                    return Predecessors::AllUnmapped;
+                };
+                let single = sabre_pos.get(first.weight()).copied();
+                for edge in edges {
+                    if single != sabre_pos.get(edge.weight()).copied() {
+                        return Predecessors::Multiple;
+                    }
+                }
+                single.map_or(Predecessors::AllUnmapped, Predecessors::Single)
+            };
+
         for dag_node in dag
             .topological_op_nodes()
             .expect("infallible if DAG is in a valid state")
@@ -149,28 +184,54 @@ impl SabreDAG {
                 panic!("op nodes should always be of type `Operation`");
             };
             let kind = InteractionKind::from_op(inst.op(), dag.get_qargs(inst.qubits))?;
-            let sabre_node = sabre.add_node(SabreNode::new(dag_node, kind));
-            for edge in dag.dag().edges_directed(dag_node, Direction::Incoming) {
-                if let Some(parent) = wire_pos.insert(*edge.weight(), sabre_node) {
-                    sabre.add_edge(parent, sabre_node, ());
-                }
-            }
-            if sabre
-                .edges_directed(sabre_node, Direction::Incoming)
-                .next()
-                .is_none()
-            {
-                match &sabre[sabre_node].kind {
+            match predecessors(dag_node, &wire_pos) {
+                Predecessors::AllUnmapped => match kind {
                     InteractionKind::Synchronize => {
-                        for edge in dag.dag().edges_directed(dag_node, Direction::Incoming) {
-                            wire_pos.remove(edge.weight());
-                        }
-                        initial.push(sabre.remove_node(sabre_node).unwrap().index);
+                        initial.push(dag_node);
                     }
-                    _ => {
+                    kind => {
+                        let sabre_node = sabre.add_node(SabreNode::new(dag_node, kind));
                         first_layer.push(sabre_node);
+                        for edge in dag.dag().edges_directed(dag_node, Direction::Incoming) {
+                            wire_pos.insert(*edge.weight(), sabre_node);
+                        }
                     }
-                };
+                },
+                Predecessors::Multiple => {
+                    // It's possible that `kind` is `Synchronize` here and it only has a single
+                    // routing-enforced predecessor (and other wires that are automatically
+                    // satisfied). In that case, _technically_ we could fold it onto the single
+                    // constraining predecessor, but failing to do that doesn't cause correctness
+                    // issues, makes the logic easier, and will have next-to-no performance cost.
+                    let sabre_node = sabre.add_node(SabreNode::new(dag_node, kind));
+                    for edge in dag.dag().edges_directed(dag_node, Direction::Incoming) {
+                        if let Some(parent) = wire_pos.insert(*edge.weight(), sabre_node) {
+                            sabre.add_edge(parent, sabre_node, ());
+                        }
+                    }
+                }
+                Predecessors::Single(prev_sabre_node) => {
+                    let prev = sabre
+                        .node_weight_mut(prev_sabre_node)
+                        .expect("derived from 'edges_directed'");
+                    match (&prev.kind, kind) {
+                        // A "synchronise" that only has one predecessor isn't actually imposing any
+                        // synchronisation.  If a 2q gate depends only on another 2q gate, they've
+                        // got to be the same qubits, and therefore it's automatically routable.
+                        (_, InteractionKind::Synchronize)
+                        | (InteractionKind::TwoQ(_), InteractionKind::TwoQ(_)) => {
+                            prev.indices.push(dag_node);
+                        }
+                        // Otherwise we need the router to evaluate it.
+                        (_, kind) => {
+                            let sabre_node = sabre.add_node(SabreNode::new(dag_node, kind));
+                            sabre.add_edge(prev_sabre_node, sabre_node, ());
+                            for edge in dag.dag().edges_directed(dag_node, Direction::Incoming) {
+                                wire_pos.insert(*edge.weight(), sabre_node);
+                            }
+                        }
+                    }
+                }
             }
         }
         Ok(SabreDAG {
@@ -196,8 +257,10 @@ impl SabreDAG {
                 InteractionKind::Synchronize | InteractionKind::TwoQ(_) => node.kind.clone(),
                 InteractionKind::ControlFlow(_) => InteractionKind::Synchronize,
             };
+            // `NodeWeights` guarantees that the weights come out in index order, so the new indexes
+            // must match those in `self`.
             dag.add_node(SabreNode {
-                index: node.index,
+                indices: vec![],
                 kind,
             });
         }

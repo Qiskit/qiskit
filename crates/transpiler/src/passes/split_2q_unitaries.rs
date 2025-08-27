@@ -28,7 +28,6 @@ use qiskit_synthesis::two_qubit_decompose::{Specialization, TwoQubitWeylDecompos
 #[pyfunction]
 #[pyo3(name = "split_2q_unitaries")]
 pub fn run_split_2q_unitaries(
-    py: Python,
     dag: &mut DAGCircuit,
     requested_fidelity: f64,
     split_swaps: bool,
@@ -89,7 +88,7 @@ pub fn run_split_2q_unitaries(
                         (PackedOperation::from_unitary(k1l_gate), smallvec![])
                     }
                 };
-                dag.replace_node_with_1q_ops(py, node, insert_fn)?;
+                dag.replace_node_with_1q_ops(node, insert_fn);
                 dag.add_global_phase(&Param::Float(decomp.global_phase))?;
             }
         }
@@ -176,7 +175,7 @@ pub fn run_split_2q_unitaries(
             inst.params_raw().cloned(),
             inst.label().map(|label| label.to_string()),
             #[cfg(feature = "cache_pygates")]
-            inst.py_op().get().map(|x| x.clone_ref(py)),
+            inst.py_op().get().map(|x| x.clone()),
         )?;
     }
     Ok(Some((new_dag.build(), mapping)))

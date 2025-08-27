@@ -697,6 +697,12 @@ impl PackedInstruction {
         self.py_op = py_op.into();
         self
     }
+    
+    /// Clears the python cache of the current [PackedInstruction] instance.
+    #[cfg(feature = "cache_pygates")]
+    pub fn clear_py_cache(&mut self) {
+        self.py_op.take();
+    }
 
     /// Pack a [StandardGate] into a complete instruction.
     pub fn from_standard_gate(

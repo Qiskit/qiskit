@@ -41,3 +41,11 @@
 /**
  * @defgroup QkVF2LayoutResult QkVF2LayoutResult
  */
+
+/**
+ * @defgroup QkTranspileLayout QkTranspileLayout
+ */
+
+/**
+ * @defgroup QkSabreLayoutOptions QkSabreLayoutOptions
+ */

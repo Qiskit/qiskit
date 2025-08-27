@@ -1165,7 +1165,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qc = QuantumCircuit(7)
         entanglement = [[i, i + 1] for i in range(7 - 1)]
         input_params = ParameterVector("x_par", 14)
-        user_params = ParameterVector("\u03B8_par", 1)
+        user_params = ParameterVector("\u03b8_par", 1)
 
         for i in range(qc.num_qubits):
             qc.ry(user_params[0], qc.qubits[i])
@@ -2247,6 +2247,22 @@ class TestLoadFromQPY(QiskitTestCase):
         with (
             io.BytesIO() as fptr,
             self.assertRaisesRegex(UnsupportedFeatureForVersion, "version 14 is required.*stretch"),
+        ):
+            dump(qc, fptr, version=version)
+
+    @ddt.idata(range(14, 16))
+    def test_pre_v16_rejects_ps_duration(self, version):
+        """Test that dumping to older QPY versions rejects Duration.ps."""
+        from qiskit.circuit import Duration
+
+        qc = QuantumCircuit()
+        with qc.if_test(expr.less(Duration.ns(1000), Duration.ps(1))):
+            pass
+        with (
+            io.BytesIO() as fptr,
+            self.assertRaisesRegex(
+                UnsupportedFeatureForVersion, "version 16 is required.*Duration.ps"
+            ),
         ):
             dump(qc, fptr, version=version)
 

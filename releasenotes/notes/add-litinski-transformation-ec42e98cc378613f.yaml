@@ -1,0 +1,46 @@
+---
+features_transpiler:
+  - |
+    Added a new transpiler pass :class:`.LitinskiTransformation`
+    that implements the transform described in `arXiv:1808.02892 <https://arxiv.org/abs/1808.02892>`__.
+
+    The input to the pass is a circuit with Clifford and single-qubit RZ-rotation gates, and the output
+    is a circuit with multi-qubit Pauli rotations (implemented as :class:`.PauliEvolutionGate` gates)
+    followed by Clifford gates. The pass raises a :class:`~qiskit.transpiler.exceptions.TranspilerError`
+    exception if the circuit contains non-supported gates.
+
+    The pass supports all of the Clifford gates in the list returned by :func:`.get_clifford_gate_names`,
+    namely
+    ``["id", "x", "y", "z", "h", "s", "sdg", "sx", "sxdg", "cx", "cz", "cy", "swap", "iswap", "ecr", "dcx"]``.
+    The list of supported RZ-rotations is ``["t", "tdg", "rz"]`` (we automatically convert T and Tdg gates
+    to RZ-rotations).
+
+    In addition, the :class:`.LitinskiTransformation` constructor accepts an argument ``fix_clifford``.
+    When ``False`` (non-default), the returned circuit contains only :class:`.PauliEvolutionGate` gates,
+    with the final Clifford gates omitted. Note that in this case the operators of the original and
+    synthesized circuits will generally not be equivalent.
+
+    For example::
+
+      from qiskit.circuit import QuantumCircuit
+      from qiskit.transpiler.passes import LitinskiTransformation
+      from qiskit.quantum_info import Operator
+
+      # The following quantum circuit consists of 5 Clifford gates
+      # and two single-qubits RZ-rotation gates (note that Tdg is
+      # an RZ-rotation).
+      qc = QuantumCircuit(2)
+      qc.cx(0, 1)
+      qc.rz(0.1, 0)
+      qc.cz(0, 1)
+      qc.tdg(1)
+      qc.h(1)
+      qc.s(1)
+      qc.cz(1, 0)
+
+      # The transformed circuit consists of two PauliEvolution gates
+      # and the same Clifford gates as in the original circuit.
+      qct = LitinskiTransformation()(qc)
+
+      # The circuits before and after the transformation are equivalent
+      assert Operator(qc) == Operator(qct)

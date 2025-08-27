@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::sync::Arc;
+
 use crate::ast::{
     Alias, Barrier, BitArray, Break, ClassicalDeclaration, ClassicalType, Continue, Delay,
     Designator, DurationLiteral, DurationUnit, Expression, Float, GateCall, Header, IODeclaration,
@@ -32,6 +34,8 @@ use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{DelayUnit, StandardInstruction};
 use qiskit_circuit::operations::{Operation, Param};
 use qiskit_circuit::packed_instruction::PackedInstruction;
+use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
+use qiskit_circuit::parameter::symbol_expr;
 use thiserror::Error;
 
 use lazy_static::lazy_static;
@@ -790,7 +794,7 @@ impl<'a> QASM3Builder {
 
     fn hoist_global_params(&mut self) -> ExporterResult<()> {
         Python::with_gil(|py| {
-            for param in self.circuit_scope.circuit_data.get_parameters(py) {
+            for param in self.circuit_scope.circuit_data.get_parameters(py)? {
                 let raw_name: String = match param.getattr("name") {
                     Ok(attr) => match attr.extract() {
                         Ok(name) => name,
@@ -855,7 +859,7 @@ impl<'a> QASM3Builder {
         for (i, clbit) in clbits.iter().enumerate() {
             if clbit_indices
                 .get(clbit)
-                .map_or(true, |bit_info| bit_info.registers().is_empty())
+                .is_none_or(|bit_info| bit_info.registers().is_empty())
             {
                 let identifier = self.symbol_table.register_bits(
                     format!("{}{}", self.loose_bit_prefix, i),
@@ -953,7 +957,7 @@ impl<'a> QASM3Builder {
         for (i, qubit) in qubits.iter().enumerate() {
             if qubit_indices
                 .get(qubit)
-                .map_or(true, |bit_info| bit_info.registers().is_empty())
+                .is_none_or(|bit_info| bit_info.registers().is_empty())
             {
                 let identifier = self.symbol_table.register_bits(
                     format!("{}{}", self.loose_qubit_prefix, i),
@@ -1186,15 +1190,10 @@ impl<'a> QASM3Builder {
         let duration: f64 = Python::with_gil(|py| match param {
             Param::Float(val) => *val,
             Param::ParameterExpression(p) => {
-                let py_obj = p.bind(py);
-                let py_str = py_obj.str().expect("Failed to call str() on Parameter");
-                let name = py_str
-                    .str()
-                    .expect("Failed to convert PyString to &str")
-                    .to_string();
-                match name.parse::<f64>() {
-                    Ok(val) => val,
-                    Err(_) => panic!("Failed to parse parameter value"),
+                if let Ok(symbol_expr::Value::Real(val)) = p.try_to_value(true) {
+                    val
+                } else {
+                    panic!("Failed to parse parameter value")
                 }
             }
             Param::Obj(obj) => {
@@ -1277,15 +1276,7 @@ impl<'a> QASM3Builder {
                             obj: val.to_string(),
                         }),
                         Param::ParameterExpression(p) => {
-                            let name = Python::with_gil(|py| {
-                                let py_obj = p.bind(py);
-                                let py_str =
-                                    py_obj.str().expect("Failed to call str() on Parameter");
-                                py_str
-                                    .str()
-                                    .expect("Failed to convert PyString to &str")
-                                    .to_string()
-                            });
+                            let name = p.to_string();
                             Expression::Parameter(Parameter { obj: name })
                         }
                         Param::Obj(_) => panic!("Objects not supported yet"),
@@ -1324,23 +1315,16 @@ impl<'a> QASM3Builder {
     #[allow(dead_code)]
     fn define_gate(&mut self, instr: &PackedInstruction) -> ExporterResult<()> {
         let operation = &instr.op();
-        let params: Vec<Param> = Python::with_gil(|py| {
-            let qiskit_circuit =
-                PyModule::import(py, "qiskit.circuit").expect("Failed to import qiskit.circuit");
-            let parameter_class = qiskit_circuit
-                .getattr("Parameter")
-                .expect("No Parameter class in qiskit.circuit");
-
-            (0..instr.params_view().len())
-                .map(|i| {
-                    let name = format!("{}_{}", self._gate_param_prefix, i);
-                    let py_param = parameter_class
-                        .call1((name,))
-                        .expect("Failed to create Parameter");
-                    Param::ParameterExpression(py_param.into())
-                })
-                .collect()
-        });
+        let params: Vec<Param> = (0..instr.params_view().len())
+            .map(|i| {
+                let name = format!("{}_{}", self._gate_param_prefix, i);
+                // TODO this need to be achievable more easily
+                let symbol = symbol_expr::Symbol::new(name.as_str(), None, None);
+                let symbol_expr = symbol_expr::SymbolExpr::Symbol(Arc::new(symbol));
+                let expr = ParameterExpression::from_symbol_expr(symbol_expr);
+                Param::ParameterExpression(Arc::new(expr))
+            })
+            .collect();
         if let Some(instruction) = operation.definition(&params) {
             let params_def = params
                 .iter()
