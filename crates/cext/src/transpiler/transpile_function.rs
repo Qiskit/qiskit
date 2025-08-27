@@ -124,12 +124,13 @@ pub unsafe extern "C" fn qk_transpile(
     let qc = unsafe { const_ptr_as_ref(qc) };
     let target = unsafe { const_ptr_as_ref(target) };
     let options = unsafe { const_ptr_as_ref(options) };
-    if ![0, 1, 2, 3].contains(&options.optimization_level) {
+    if !(0..=3u8).contains(&options.optimization_level) {
         panic!(
             "Invalid optimization level specified {}",
             options.optimization_level
         );
     }
+
     let seed = if options.seed < 0 {
         None
     } else {
@@ -164,7 +165,7 @@ pub unsafe extern "C" fn qk_transpile(
     match transpile(
         qc,
         target,
-        options.optimization_level,
+        options.optimization_level.into(),
         approximation_degree,
         seed,
     ) {

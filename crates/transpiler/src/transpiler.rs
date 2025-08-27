@@ -26,6 +26,27 @@ use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::{PhysicalQubit, Qubit};
 
+#[derive(Copy, Eq, PartialEq, Debug, Clone)]
+#[repr(u8)]
+pub enum OptimizationLevel {
+    Level0 = 0,
+    Level1 = 1,
+    Level2 = 2,
+    Level3 = 3,
+}
+
+impl From<u8> for OptimizationLevel {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => Self::Level0,
+            1 => Self::Level1,
+            2 => Self::Level2,
+            3 => Self::Level3,
+            _ => panic!("Invalid optimization level specified {value}"),
+        }
+    }
+}
+
 /// A transpilation function for Rust native circuits for use in the C API. This will not cover
 /// things that only exist in the Python API such as custom gates or control flow. When those
 /// concepts exist in the rust data model this function must be expanded before adding them to the
@@ -33,13 +54,10 @@ use qiskit_circuit::{PhysicalQubit, Qubit};
 pub fn transpile(
     circuit: &CircuitData,
     target: &Target,
-    optimization_level: u8,
+    optimization_level: OptimizationLevel,
     approximation_degree: Option<f64>,
     seed: Option<u64>,
 ) -> Result<(CircuitData, TranspileLayout)> {
-    if !(0..=3u8).contains(&optimization_level) {
-        panic!("Invalid optimization level specified {optimization_level}");
-    }
     let mut dag = DAGCircuit::from_circuit_data(circuit, false, None, None, None, None)?;
     let mut commutation_checker = get_standard_commutation_checker();
     let mut equivalence_library = generate_standard_equivalence_library();
@@ -74,9 +92,9 @@ pub fn transpile(
 
     // Init stage
     unroll_3q_or_more(&mut dag)?;
-    if optimization_level == 1 {
+    if optimization_level == OptimizationLevel::Level1 {
         run_inverse_cancellation_standard_gates(&mut dag);
-    } else if optimization_level == 2 || optimization_level == 3 {
+    } else if matches!(optimization_level, OptimizationLevel::Level2 | OptimizationLevel::Level3) {
         if let Some((new_dag, permutation)) = run_elide_permutations(&dag)? {
             dag = new_dag;
             let permutation: Vec<Qubit> = permutation.into_iter().map(Qubit::new).collect();
@@ -113,7 +131,7 @@ pub fn transpile(
     .with_lookahead(0.5, 20, sabre::SetScaling::Size)
     .with_decay(0.001, 5)?;
 
-    if optimization_level == 0 {
+    if optimization_level == OptimizationLevel::Level0 {
         // Apply a trivial layout
         apply_layout(
             &mut dag,
@@ -121,7 +139,7 @@ pub fn transpile(
             target.num_qubits.unwrap(),
             |x| PhysicalQubit(x.0),
         );
-    } else if optimization_level == 1 {
+    } else if optimization_level == OptimizationLevel::Level1 {
         if run_check_map(&dag, target).is_none() {
             apply_layout(
                 &mut dag,
@@ -169,7 +187,7 @@ pub fn transpile(
                 .collect();
             transpile_layout.compose_output_permutation(&routing_permutation, true);
         }
-    } else if optimization_level == 2 {
+    } else if optimization_level == OptimizationLevel::Level2 {
         if let Some(vf2_result) =
             vf2_layout_pass(&dag, target, false, Some(5_000_000), None, Some(2500), None)?
         {
@@ -258,7 +276,7 @@ pub fn transpile(
         transpile_layout.compose_output_permutation(&routing_permutation, true);
     }
     // Routing stage
-    if optimization_level == 0 {
+    if optimization_level == OptimizationLevel::Level0 {
         let routing_target = PyRoutingTarget::from_target(target)?;
 
         if run_check_map(&dag, target).is_some() {
@@ -327,7 +345,7 @@ pub fn transpile(
     let mut size: Option<usize> = None;
     let mut new_depth;
     let mut new_size;
-    if optimization_level == 1 {
+    if optimization_level == OptimizationLevel::Level1 {
         new_depth = Some(dag.depth(false)?);
         new_size = Some(dag.size(false)?);
         while new_depth != depth || new_size != size {
@@ -341,7 +359,7 @@ pub fn transpile(
             new_depth = Some(dag.depth(false)?);
             new_size = Some(dag.size(false)?);
         }
-    } else if optimization_level == 2 {
+    } else if optimization_level == OptimizationLevel::Level2 {
         run_consolidate_blocks(&mut dag, false, approximation_degree, Some(target))?;
         let num_qubits = dag.num_qubits();
         dag = run_unitary_synthesis(
@@ -371,7 +389,7 @@ pub fn transpile(
             new_depth = Some(dag.depth(false)?);
             new_size = Some(dag.size(false)?);
         }
-    } else if optimization_level == 3 {
+    } else if optimization_level == OptimizationLevel::Level3 {
         let mut continue_loop: bool = true;
         let mut min_state = MinPointState::new(&dag);
 
