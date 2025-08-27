@@ -307,9 +307,7 @@ def _run_workflow(
     initial_status = WorkflowStatus()
 
     property_set = (
-        PropertySet()
-        if initial_property_set is None
-        else PropertySet(initial_property_set)
+        PropertySet() if initial_property_set is None else PropertySet(initial_property_set)
     )
     pass_manager.property_set = property_set
     passmanager_ir = pass_manager._passmanager_frontend(
