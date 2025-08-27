@@ -1265,7 +1265,7 @@ class QASM3Builder:
         if unit == "expr":
             return self.build_expression(duration)
         if unit == "ps":
-            return ast.DurationLiteral(1000 * duration, ast.DurationUnit.NANOSECOND)
+            return ast.DurationLiteral(duration / 1000, ast.DurationUnit.NANOSECOND)
         unit_map = {
             "ns": ast.DurationUnit.NANOSECOND,
             "us": ast.DurationUnit.MICROSECOND,
@@ -1453,6 +1453,9 @@ class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
             unit = node.value.unit()
             if unit == "dt":
                 return ast.DurationLiteral(node.value.value(), ast.DurationUnit.SAMPLE)
+            if unit == "ps":
+                # QASM doesn't natively support picoseconds.
+                return ast.DurationLiteral(node.value.value() / 1000, ast.DurationUnit.NANOSECOND)
             if unit == "ns":
                 return ast.DurationLiteral(node.value.value(), ast.DurationUnit.NANOSECOND)
             if unit == "us":

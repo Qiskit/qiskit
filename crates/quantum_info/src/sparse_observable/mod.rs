@@ -2696,7 +2696,7 @@ impl PySparseObservable {
     ///         and their corresponding coefficients.
     #[staticmethod]
     #[pyo3(signature = (label, /))]
-    fn from_label(label: &str) -> Result<Self, LabelError> {
+    pub fn from_label(label: &str) -> Result<Self, LabelError> {
         let mut inner = SparseObservable::zero(label.len() as u32);
         inner.add_dense_label(label, Complex64::new(1.0, 0.0))?;
         Ok(inner.into())
