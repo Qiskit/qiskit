@@ -184,7 +184,19 @@ int test_transpile_idle_qubits(void) {
         uint32_t num_instructions = qk_circuit_num_instructions(transpile_result.circuit);
         qk_circuit_free(transpile_result.circuit);
         qk_transpile_layout_free(transpile_result.layout);
-        if (num_instructions != 7) {
+        if (opt_level == 0 && num_instructions != 12) {
+            printf("opt_level: %d num_instructions: %d is not the expected value 12\n", opt_level,
+                   num_instructions);
+            result = EqualityError;
+            goto cleanup;
+        }
+        if ((opt_level == 1 || opt_level == 3) && num_instructions != 8) {
+            printf("opt_level: %d num_instructions: %d is not the expected value 8\n", opt_level,
+                   num_instructions);
+            result = EqualityError;
+            goto cleanup;
+        }
+        if (opt_level == 2 && num_instructions != 7) {
             printf("opt_level: %d num_instructions: %d is not the expected value 7\n", opt_level,
                    num_instructions);
             result = EqualityError;
@@ -201,6 +213,7 @@ cleanup:
 int test_transpiler(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_transpile_bv);
+    num_failed += RUN_TEST(test_transpile_idle_qubits);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
