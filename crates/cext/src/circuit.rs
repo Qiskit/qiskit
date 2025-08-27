@@ -788,7 +788,7 @@ pub unsafe extern "C" fn qk_circuit_count_ops(circuit: *const CircuitData) -> Op
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
     let count_ops = circuit.count_ops();
-    let mut output = {
+    let output = {
         let vec: Vec<OpCount> = count_ops
             .into_iter()
             .map(|(name, count)| OpCount {
@@ -798,9 +798,8 @@ pub unsafe extern "C" fn qk_circuit_count_ops(circuit: *const CircuitData) -> Op
             .collect();
         vec.into_boxed_slice()
     };
-    let data = output.as_mut_ptr();
     let len = output.len();
-    let _ = Box::into_raw(output);
+    let data = Box::into_raw(output) as *mut OpCount;
     OpCounts { data, len }
 }
 
