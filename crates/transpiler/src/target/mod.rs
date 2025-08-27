@@ -222,7 +222,7 @@ pub struct Target {
     #[pyo3(get)]
     _gate_name_map: IndexMap<String, TargetOperation, RandomState>,
     global_operations: IndexMap<u32, HashSet<String>, RandomState>,
-    qarg_gate_map: IndexMap<Qargs, Option<HashSet<String>>, RandomState>,
+    qarg_gate_map: IndexMap<Qargs, HashSet<String>, RandomState>,
     angle_bounds: HashMap<String, AngleBound>,
 }
 
@@ -909,7 +909,7 @@ impl Target {
             state
                 .get_item("qarg_gate_map")?
                 .unwrap()
-                .extract::<Vec<(Qargs, Option<HashSet<String>>)>>()?,
+                .extract::<Vec<(Qargs, HashSet<String>)>>()?,
         );
         let angle_bounds_raw = state.get_item("angle_bounds")?.unwrap();
         let angle_bounds_dict = angle_bounds_raw.downcast::<PyDict>()?;
@@ -1084,11 +1084,11 @@ impl Target {
                                 ) + 1,
                             ));
                     }
-                    if let Some(Some(value)) = self.qarg_gate_map.get_mut(&qarg.as_ref()) {
+                    if let Some(value) = self.qarg_gate_map.get_mut(&qarg.as_ref()) {
                         value.insert(name.to_string());
                     } else {
                         self.qarg_gate_map
-                            .insert(qarg.clone(), Some(HashSet::from_iter([name.to_string()])));
+                            .insert(qarg.clone(), HashSet::from_iter([name.to_string()]));
                     }
                 }
             }
@@ -1318,7 +1318,7 @@ impl Target {
                 return Err(TargetError::QargsWithoutInstruction(format!("{qargs:?}")));
             }
         }
-        if let Some(Some(qarg_gate_map_arg)) = self.qarg_gate_map.get(&qargs).as_ref() {
+        if let Some(qarg_gate_map_arg) = self.qarg_gate_map.get(&qargs) {
             res.extend(qarg_gate_map_arg.iter().map(|key| key.as_str()));
         }
         for (name, obj) in self._gate_name_map.iter() {
