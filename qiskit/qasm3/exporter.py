@@ -14,7 +14,6 @@
 
 from __future__ import annotations
 
-import collections
 import contextlib
 import dataclasses
 import io
@@ -71,9 +70,8 @@ class DefcalInstruction:
 
     .. note::
 
-        This is not a complete implementation of ``defcal``\\ s in OpenQASM 3, and there are parts
-        missing that could prove useful to Qiskit in the future.  This is an initial
-        proof-of-concept.
+        This is not a complete implementation of ``defcal``\\ s in OpenQASM 3, and might require
+        expansion in the future to support a broader set of statements.
 
         For example:
 
@@ -99,9 +97,9 @@ class DefcalInstruction:
     """Number of angle-like parameters the instruction takes.
 
     .. note::
-        This is for demonstration purposes only; ``defcal`` instructions can actually have generic
+        This is a partial implementation; ``defcal`` instructions can actually have generic
         typed parameters in OpenQASM 3, so a more complete representation should allow specifying
-        either angle-like parameters (like ``gate`` has) or things that fit into the full type
+        either angle-like parameters (like ``gate`` has) or other elements that fit into the full type
         system.
     """
     qubits: int
@@ -1321,8 +1319,8 @@ class QASM3Builder:
         if (
             len(instruction.qubits) != defcal.qubits
             or len(instruction.params) != defcal.parameters
-            # This is a bit of a hack; we're assuming that the `clbit` is only an output, not an
-            # input.  Qiskit's data model can't actually tell us this, so we're assuming that the
+            # Here, we're assuming that the `clbit` is only an output, not an input.
+            # Qiskit's data model can't actually tell us this, so we're assuming that the
             # user is correct if they tell us this via the `DefcalInstruction`.
             or len(instruction.clbits) != int(returns_bit)
         ):
