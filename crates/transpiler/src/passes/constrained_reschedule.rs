@@ -88,7 +88,7 @@ fn push_node_back(
     if let Some(alignment) = alignment {
         let misalignment = this_t0 % alignment;
         let shift = if misalignment != 0 {
-            (alignment - misalignment).max(0)
+            alignment - misalignment
         } else {
             0
         };
