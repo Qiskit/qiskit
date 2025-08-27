@@ -274,8 +274,8 @@ pub fn cancel_commutations(
 
                 let mod4 = pi_multiple.rem_euclid(4.);
                 if mod4 < _CUTOFF_PRECISION || (4. - mod4) < _CUTOFF_PRECISION {
-                    // if the angle is close to a 4-pi multiple (from above or below), then it is
-                    // equal to the identity
+                    // if the angle is close to a 4-pi multiple (from above or below), then the
+                    // operator is equal to the identity
                 } else if (mod4 - 2.).abs() < _CUTOFF_PRECISION {
                     // a 2-pi multiple has a phase of pi: RX(2pi) = RZ(2pi) = -I = I exp(i pi)
                     total_phase -= PI;
