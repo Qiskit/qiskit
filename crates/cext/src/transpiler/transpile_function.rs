@@ -37,7 +37,7 @@ pub struct TranspileOptions {
     /// The optimization level to run the transpiler with. Valid values are 0, 1, 2, or 3.
     optimization_level: u8,
     /// The seed for the transpiler. If set to a negative number this means no seed will be
-    /// set and the RNGs used in the transpiler will be seeded froms system entropy.
+    /// set and the RNGs used in the transpiler will be seeded from system entropy.
     seed: i64,
     /// The approximation degree a heurstic dial where 1.0 means no approximation (up to numerical
     /// tolerance) and 0.0 means the maximum approximation. A `NAN` value indicates that
@@ -82,8 +82,9 @@ pub extern "C" fn qk_transpiler_default_options() -> TranspileOptions {
 ///
 /// @param circuit A pointer to the circuit to run the transpiler on
 /// @param target A pointer to the target to compile the circuit for
-/// @params options A pointer to an options object that define user options if this is a null
-///   pointer the default values will be used
+/// @params options A pointer to an options object that defines user options. If this is a null
+///   pointer the default values will be used. See ``qk_transpile_default_options``
+///   for more details on the default values.
 /// @param result A pointer to the memory location of the transpiler result. On a successful
 ///   execution (return code 0) the output of the transpiler will be written to the pointer
 /// @param error A pointer to a pointer with an nul terminated string with an error description.
