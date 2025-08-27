@@ -564,7 +564,7 @@ impl TranspileLayout {
 mod test_transpile_layout {
     use super::TranspileLayout;
     use qiskit_circuit::bit::ShareableQubit;
-    use qiskit_circuit::nlayout::{NLayout, PhysicalQubit};
+    use qiskit_circuit::nlayout::{NLayout, PhysicalQubit, VirtualQubit};
     use qiskit_circuit::Qubit;
 
     #[test]
@@ -1144,9 +1144,14 @@ mod test_transpile_layout {
     #[test]
     fn test_compose() {
         let first = vec![Qubit(0), Qubit(3), Qubit(1), Qubit(2)];
-        let second = [2, 3, 1, 0].map(Qubit);
+        let second = [2, 3, 1, 0].map(VirtualQubit);
         let initial_qubits = vec![ShareableQubit::new_anonymous(); 4];
-        let mut layout = TranspileLayout::new(None, Some(first), initial_qubits, 4);
+        let mut layout = TranspileLayout::new(
+            Some(NLayout::generate_trivial_layout(4)),
+            Some(first),
+            initial_qubits,
+            4,
+        );
         layout.add_permutation_outside(|q| second[q.index()]);
         let result = layout.output_permutation();
         let expected = Some([Qubit(1), Qubit(2), Qubit(3), Qubit(0)].as_slice());
@@ -1175,9 +1180,14 @@ mod test_transpile_layout {
 
     #[test]
     fn test_compose_no_permutation_second() {
-        let second = [2, 3, 1, 0].map(Qubit);
+        let second = [2, 3, 1, 0].map(VirtualQubit);
         let initial_qubits = vec![ShareableQubit::new_anonymous(); 4];
-        let mut layout = TranspileLayout::new(None, None, initial_qubits, 4);
+        let mut layout = TranspileLayout::new(
+            Some(NLayout::generate_trivial_layout(4)),
+            None,
+            initial_qubits,
+            4,
+        );
         layout.add_permutation_outside(|q| second[q.index()]);
         let result = layout.output_permutation();
         let expected = Some([Qubit(2), Qubit(3), Qubit(1), Qubit(0)].as_slice());
