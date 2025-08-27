@@ -12,7 +12,7 @@
 
 use crate::target::Target;
 use crate::TranspilerError;
-use ::hashbrown::HashSet;
+use hashbrown::HashSet;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
@@ -22,7 +22,6 @@ use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::{Operation, OperationRef, StandardInstruction};
 use qiskit_circuit::PhysicalQubit;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
-use rustworkx_core::petgraph::Direction::Outgoing;
 
 /// Returns the immediate successor operation nodes of a given node in the DAG.
 ///
@@ -36,17 +35,10 @@ use rustworkx_core::petgraph::Direction::Outgoing;
 ///
 /// # Returns
 ///
-/// A vector of `NodeIndex` values representing the immediate successor operation nodes.
-fn get_next_gate(dag: &DAGCircuit, node_index: NodeIndex) -> Vec<NodeIndex> {
-    dag.dag()
-        .neighbors_directed(node_index, Outgoing)
-        .filter(|&succ_idx| {
-            matches!(
-                dag.dag().node_weight(succ_idx),
-                Some(NodeType::Operation(_))
-            )
-        })
-        .collect()
+/// An iterator of `NodeIndex` values representing the immediate successor operation nodes.
+fn get_next_gate(dag: &DAGCircuit, node_index: NodeIndex) -> impl Iterator<Item = NodeIndex> + '_ {
+    dag.quantum_successors(node_index)
+        .filter(|&idx| matches!(dag[idx], NodeType::Operation(_)))
 }
 
 /// Update the start time of the current node to satisfy alignment constraints.
@@ -70,14 +62,13 @@ fn push_node_back(
     dag: &DAGCircuit,
     node_index: NodeIndex,
     node_start_time: &Bound<PyDict>,
-    clbit_write_latency: u64,
-    pulse_align: u64,
-    acquire_align: u64,
+    clbit_write_latency: u32,
+    pulse_align: u32,
+    acquire_align: u32,
     target: Option<&Target>,
 ) -> PyResult<()> {
-    let op = match dag.dag().node_weight(node_index) {
-        Some(NodeType::Operation(op)) => op,
-        _ => panic!("topological_op_nodes() should only return instances of DagOpNode."),
+    let NodeType::Operation(op) = &dag[node_index] else {
+        unreachable!("topological_op_nodes() should only return operations.")
     };
 
     let op_view = op.op.view();
@@ -85,22 +76,21 @@ fn push_node_back(
         OperationRef::Gate(_) | OperationRef::StandardGate(_) => Some(pulse_align),
         OperationRef::StandardInstruction(StandardInstruction::Reset)
         | OperationRef::StandardInstruction(StandardInstruction::Measure) => Some(acquire_align),
-        OperationRef::StandardInstruction(StandardInstruction::Delay(_)) => None,
         _ => None,
     };
 
     let obj = node_start_time.get_item(node_index.index())?;
-    let mut this_t0: f64 = obj
+    let mut this_t0: u32 = obj
         .as_ref()
         .ok_or_else(|| PyValueError::new_err("Missing value in node_start_time"))?
         .extract()?;
 
     if let Some(alignment) = alignment {
-        let misalignment = this_t0 % alignment as f64;
-        let shift = if misalignment != 0.0 {
-            (alignment as f64 - misalignment).max(0.0)
+        let misalignment = this_t0 % alignment;
+        let shift = if misalignment != 0 {
+            (alignment - misalignment).max(0)
         } else {
-            0.0
+            0
         };
         this_t0 += shift;
         node_start_time
@@ -116,33 +106,26 @@ fn push_node_back(
             .map(|q| PhysicalQubit(q.index() as u32))
             .collect();
         let duration = target.get_duration(op.op.name(), &qargs).unwrap_or(0.0);
-        this_t0 + duration
+        this_t0 + duration as u32
     } else if matches!(
         op_view,
         OperationRef::StandardInstruction(StandardInstruction::Delay(_))
     ) {
-        let duration = if let Some(param) = op.params_view().first() {
-            match param {
-                Param::Obj(val) => {
-                    // Try to extract as different numeric types
-                    val.bind(node_start_time.py())
-                        .extract::<f64>()
-                        .or_else(|_| {
-                            val.bind(node_start_time.py())
-                                .extract::<u32>()
-                                .map(|v| v as f64)
-                        })
-                        .unwrap_or(0.0)
-                }
-                Param::Float(f) => *f,
-                _ => 0.0,
+        let params = op.params_view();
+        let param = params
+            .first()
+            .ok_or_else(|| PyValueError::new_err("Delay instruction missing duration parameter"))?;
+        let duration = match param {
+            Param::Obj(val) => {
+                // Try to extract as different numeric types
+                val.bind(node_start_time.py()).extract::<u32>()
             }
-        } else {
-            return Err(PyValueError::new_err(format!(
-                "Delay instruction for node {} missing duration parameter",
-                node_index.index()
-            )));
-        };
+            Param::Float(f) => Ok(*f as u32),
+            _ => Err(TranspilerError::new_err(
+                "The provided Delay duration is not in terms of dt.",
+            )),
+        }?;
+
         this_t0 + duration
     } else {
         this_t0
@@ -176,14 +159,13 @@ fn push_node_back(
     // Check immediate successors for overlap
     for next_node_index in get_next_gate(dag, node_index) {
         // Get the next node
-        let next_node = match dag.dag().node_weight(next_node_index) {
-            Some(NodeType::Operation(op)) => op,
-            _ => continue, // Skip non-operation nodes
+        let NodeType::Operation(next_node) = &dag[next_node_index] else {
+            unreachable!("topological_op_nodes() should only return operations.")
         };
 
         // Compute next node start time separately for qreg and creg
         let next_t0q_obj = node_start_time.get_item(next_node_index.index())?;
-        let next_t0q: f64 = next_t0q_obj
+        let next_t0q: u32 = next_t0q_obj
             .as_ref()
             .expect("Expected value in node_start_time for next_node_index")
             .extract()?;
@@ -202,7 +184,7 @@ fn push_node_back(
                 | OperationRef::StandardInstruction(StandardInstruction::Reset)
         ) {
             // creg access starts after write latency
-            let next_t0c = Some(next_t0q + clbit_write_latency as f64);
+            let next_t0c = Some(next_t0q + clbit_write_latency);
             let next_clbits: HashSet<_> = dag
                 .cargs_interner()
                 .get(next_node.clbits)
@@ -216,9 +198,9 @@ fn push_node_back(
 
         // Compute overlap if there is qubits overlap
         let qreg_overlap = if !this_qubits.is_disjoint(&next_qubits) {
-            (new_t1q - next_t0q).max(0.0)
+            (new_t1q - next_t0q).max(0)
         } else {
-            0.0
+            0
         };
 
         // Compute overlap if there is clbits overlap
@@ -227,17 +209,17 @@ fn push_node_back(
             && !this_clbits.is_disjoint(&next_clbits)
         {
             if let (Some(t1c), Some(t0c)) = (new_t1c, next_t0c) {
-                (t1c - t0c).max(0.0)
+                (t1c - t0c).max(0)
             } else {
-                0.0
+                0
             }
         } else {
-            0.0
+            0
         };
 
         // Shift next node if there is finite overlap in either qubits or clbits
         let overlap = qreg_overlap.max(creg_overlap);
-        if overlap > 0.0 {
+        if overlap > 0 {
             let new_start_time = next_t0q + overlap;
             node_start_time.set_item(next_node_index.index(), new_start_time)?;
         }
@@ -250,9 +232,9 @@ fn push_node_back(
 pub fn run_constrained_reschedule(
     dag: &DAGCircuit,
     node_start_time: &Bound<PyDict>,
-    clbit_write_latency: u64,
-    acquire_align: u64,
-    pulse_align: u64,
+    clbit_write_latency: u32,
+    acquire_align: u32,
+    pulse_align: u32,
     target: Option<&Target>,
 ) -> PyResult<Py<PyDict>> {
     for node_index in dag.topological_op_nodes()? {
@@ -271,7 +253,7 @@ pub fn run_constrained_reschedule(
                     node_index.index()
                 ))
             })?
-            .extract::<f64>()
+            .extract::<u32>()
             .map_err(|e| {
                 TranspilerError::new_err(format!(
                     "Extract error for node {}: {}",
@@ -280,7 +262,7 @@ pub fn run_constrained_reschedule(
                 ))
             })?;
 
-        if val == 0.0 {
+        if val == 0 {
             continue;
         }
 
