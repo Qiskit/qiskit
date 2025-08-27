@@ -24,7 +24,12 @@ use crate::pointers::const_ptr_as_ref;
 /// The container result object from ``qk_transpile``
 ///
 /// When the transpiler successfully compiles a quantum circuit for a given target it
-/// returns the transpiled circuit and the layout.
+/// returns the transpiled circuit and the layout. The ``qk_transpile`` function will
+/// write pointers to the fields in this struct when it successfully executes, you can
+/// initialize this struct with null pointers or leave them unset as the values are never
+/// read by ``qk_transpile`` and only written to. After calling ``qk_transpile`` you are
+/// responsible for calling ``qk_circuit_free`` and ``qk_transpile_layout_free`` on the
+/// members of this struct.
 #[repr(C)]
 pub struct TranspileResult {
     circuit: *mut CircuitData,
@@ -68,17 +73,20 @@ pub extern "C" fn qk_transpiler_default_options() -> TranspileOptions {
 }
 
 /// @ingroup QkTranspiler
-/// Transpile a single circuit that was constructed using the C API
+/// Transpile a single circuit
 ///
 /// The Qiskit transpiler is a quantum circuit compiler that rewrites a given
 /// input circuit to match the constraints of a QPU and/or optimize the circuit
-/// for execution.
+/// for execution. This function should only be used with circuit's constructed solely
+/// using Qiskit's C API, it makes assumptions on the circuit only using features exposed via C,
+/// if you are in a mixed Python and C environment it is typically better to invoke the transpiler
+/// via Python.
 ///
 /// This function is multithreaded internally and will launch a thread pool
-/// with threads equal to the number of CPUs by default. You can tune the
-/// number of threads with the ``RAYON_NUM_THREADS`` environment variable.
-/// For example, setting ``RAYON_NUM_THREADS=4`` would limit the thread pool
-/// to 4 threads.
+/// with threads equal to the number of CPUs reported by the operating system by default.
+/// This will include logical cores on CPUs with SMT. You can tune the number of threads
+/// with the ``RAYON_NUM_THREADS`` environment variable. For example, setting
+/// ``RAYON_NUM_THREADS=4`` would limit the thread pool to 4 threads.
 ///
 /// @param circuit A pointer to the circuit to run the transpiler on
 /// @param target A pointer to the target to compile the circuit for
@@ -86,7 +94,9 @@ pub extern "C" fn qk_transpiler_default_options() -> TranspileOptions {
 ///   pointer the default values will be used. See ``qk_transpile_default_options``
 ///   for more details on the default values.
 /// @param result A pointer to the memory location of the transpiler result. On a successful
-///   execution (return code 0) the output of the transpiler will be written to the pointer
+///   execution (return code 0) the output of the transpiler will be written to the pointer. The
+///   members of the result struct are owned by the caller and you are responsible for freeing
+///   the members using the respective free functions.
 /// @param error A pointer to a pointer with an nul terminated string with an error description.
 ///   If the transpiler fails a pointer to the string with the error description will be written
 ///   to this pointer. That pointer needs to be freed with `qk_str_free`.
