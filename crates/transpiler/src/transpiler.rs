@@ -258,7 +258,6 @@ pub fn transpile(
         transpile_layout.compose_output_permutation(&routing_permutation, true);
     }
     // Routing stage
-    //    let vf2_post_result =
     if optimization_level == 0 {
         let routing_target = PyRoutingTarget::from_target(target)?;
 
@@ -290,29 +289,7 @@ pub fn transpile(
                 .collect();
             transpile_layout.compose_output_permutation(&routing_permutation, true);
         }
-        //        None
     }
-    //    else if optimization_level == 1 {
-    //        vf2_post_layout_pass(&dag, target, false, Some(50_000), None, Some(2_500), None).unwrap()
-    //    } else if optimization_level == 2 {
-    //        vf2_post_layout_pass(&dag, target, false, Some(50_000), None, Some(2_500), None).unwrap()
-    //    } else {
-    //        vf2_post_layout_pass(
-    //            &dag,
-    //            target,
-    //            false,
-    //            Some(30_000_000),
-    //            None,
-    //            Some(250_000),
-    //            None,
-    //        )
-    //        .unwrap()
-    //    };
-    //    if let Some(post_layout) = vf2_post_result {
-    //        update_layout(&mut dag, &mut transpile_layout, |qubit| {
-    //            Qubit(post_layout[VirtualQubit(qubit.0)].0)
-    //        });
-    //    }
     // Translation Stage
     let translation = |dag: &mut DAGCircuit, equiv_lib: &mut EquivalenceLibrary| -> Result<()> {
         let num_qubits = dag.num_qubits();
