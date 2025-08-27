@@ -198,7 +198,7 @@ fn push_node_back(
 
         // Compute overlap if there is qubits overlap
         let qreg_overlap = if !this_qubits.is_disjoint(&next_qubits) {
-            (new_t1q - next_t0q).max(0)
+            new_t1q - next_t0q
         } else {
             0
         };
@@ -209,7 +209,7 @@ fn push_node_back(
             && !this_clbits.is_disjoint(&next_clbits)
         {
             if let (Some(t1c), Some(t0c)) = (new_t1c, next_t0c) {
-                (t1c - t0c).max(0)
+                t1c - t0c
             } else {
                 0
             }
