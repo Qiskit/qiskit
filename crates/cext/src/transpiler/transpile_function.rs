@@ -18,6 +18,7 @@ use qiskit_transpiler::target::Target;
 use qiskit_transpiler::transpile;
 use qiskit_transpiler::transpile_layout::TranspileLayout;
 
+use crate::exit_codes::ExitCode;
 use crate::pointers::const_ptr_as_ref;
 
 /// @ingroup QkTranspiler
@@ -119,7 +120,7 @@ pub unsafe extern "C" fn qk_transpile(
     options: *const TranspileOptions,
     result: *mut TranspileResult,
     error: *mut *mut c_char,
-) -> i32 {
+) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let qc = unsafe { const_ptr_as_ref(qc) };
     let target = unsafe { const_ptr_as_ref(target) };
@@ -158,7 +159,7 @@ pub unsafe extern "C" fn qk_transpile(
                     .into_raw();
                 }
             }
-            return 1;
+            return ExitCode::TranspilerError;
         }
     }
 
@@ -176,7 +177,7 @@ pub unsafe extern "C" fn qk_transpile(
                     layout: Box::into_raw(Box::new(transpile_result.1)),
                 };
             }
-            0
+            ExitCode::Success
         }
         Err(e) => {
             if !error.is_null() {
@@ -193,7 +194,7 @@ pub unsafe extern "C" fn qk_transpile(
                     .into_raw();
                 }
             }
-            1
+            ExitCode::TranspilerError
         }
     }
 }
