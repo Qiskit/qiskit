@@ -121,6 +121,21 @@ class TestCommutativeCancellation(QiskitTestCase):
                     self.assertEqual(0, len(tqc.count_ops()))
                     self.assertAlmostEqual(0, tqc.global_phase)
 
+    def test_fixed_rotation_accumulation(self):
+        """Test accumulating gates with fixed angles (T, S) works correctly."""
+        cc = CommutativeCancellation()
+
+        # test for U1, P and RZ as target gate
+        for gate_cls in [RZGate, PhaseGate, U1Gate]:
+            qc = QuantumCircuit(1)
+            gate = gate_cls(0.2)
+            qc.append(gate, [0])
+            qc.t(0)
+            qc.s(0)
+
+            tqc = cc(qc)
+            self.assertTrue(np.allclose(Operator(qc).data, Operator(tqc).data))
+
     def test_commutative_circuit1(self):
         """A simple circuit where three CNOTs commute, the first and the last cancel.
 

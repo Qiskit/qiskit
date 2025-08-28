@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::f64::consts::PI;
+use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, PI};
 
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
@@ -28,9 +28,6 @@ use qiskit_synthesis::QiskitError;
 
 const _CUTOFF_PRECISION: f64 = 1e-5;
 static ROTATION_GATES: [&str; 4] = ["p", "u1", "rz", "rx"];
-static HALF_TURNS: [&str; 2] = ["z", "x"];
-static QUARTER_TURNS: [&str; 1] = ["s"];
-static EIGHTH_TURNS: [&str; 1] = ["t"];
 
 static VAR_Z_MAP: [(&str, StandardGate); 3] = [
     ("rz", StandardGate::RZ),
@@ -248,20 +245,19 @@ pub fn cancel_commutations(
                         };
                         let phase_shift = z_phase_shift(node_op_name, node_angle);
                         Ok((node_angle, phase_shift))
-                    } else if HALF_TURNS.contains(&node_op_name) {
-                        Ok((PI, PI / 2.0))
-                    } else if QUARTER_TURNS.contains(&node_op_name) {
-                        Ok((PI / 2.0, PI / 4.0))
-                    } else if EIGHTH_TURNS.contains(&node_op_name) {
-                        Ok((PI / 4.0, PI / 8.0))
                     } else {
-                        Err(PyRuntimeError::new_err(format!(
-                            "Angle for operation {node_op_name} is not defined"
-                        )))
+                        match node_op_name {
+                            "t" => Ok((FRAC_PI_4, z_phase_shift("p", FRAC_PI_4))),
+                            "s" => Ok((FRAC_PI_2, z_phase_shift("p", FRAC_PI_2))),
+                            "z" => Ok((PI, z_phase_shift("p", PI))),
+                            "x" => Ok((PI, FRAC_PI_2)),
+                            _ => Err(PyRuntimeError::new_err(format!(
+                                "Angle for operation {node_op_name} is not defined"
+                            ))),
+                        }
                     }?;
                     total_angle += node_angle;
-
-                    total_phase += phase_shift // add phase of X to global phase (which is 0)
+                    total_phase += phase_shift;
                 }
 
                 let new_op = match cancel_key.gate {
