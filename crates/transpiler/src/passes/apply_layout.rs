@@ -41,7 +41,7 @@ pub fn apply_layout(
     num_physical_qubits: u32,
     mut layout_fn: impl FnMut(VirtualQubit) -> PhysicalQubit,
 ) {
-    if cur_layout.initial_layout(false).is_some() {
+    if cur_layout.initial_physical_layout(false).is_some() {
         panic!("cannot apply a layout when one is already set");
     }
 
