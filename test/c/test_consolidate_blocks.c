@@ -52,7 +52,7 @@ int test_consolidate_small_block(void) {
     }
 
 cleanup:
-    qk_opcounts_free(counts);
+    qk_opcounts_clear(&counts);
     qk_circuit_free(circuit);
     return result;
 }
@@ -91,7 +91,7 @@ clean_instr:
     qk_circuit_instruction_clear(instruction);
     free(instruction);
 cleanup:
-    qk_opcounts_free(counts);
+    qk_opcounts_clear(&counts);
     qk_circuit_free(circuit);
     return result;
 }
@@ -127,7 +127,7 @@ int test_3q_blocks(void) {
     }
 
 cleanup:
-    qk_opcounts_free(counts);
+    qk_opcounts_clear(&counts);
     qk_circuit_free(circuit);
     return result;
 }
@@ -267,7 +267,7 @@ cleanup_inst:
     qk_circuit_instruction_clear(unitary);
     free(unitary);
 cleanup:
-    qk_opcounts_free(counts);
+    qk_opcounts_clear(&counts);
     qk_target_free(target);
     qk_circuit_free(qc);
     return result;
