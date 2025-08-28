@@ -12,21 +12,21 @@
 
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::PyModule;
+use pyo3::prelude::*;
+use pyo3::types::{PyDict, PyList};
 use pyo3::{pyfunction, wrap_pyfunction, Bound, PyResult, Python};
-use qiskit_circuit::Qubit;
+
+use indexmap::IndexMap;
+use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use crate::commutation_checker::CommutationChecker;
-use hashbrown::HashMap;
-use pyo3::prelude::*;
-
-use pyo3::types::{PyDict, PyList};
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
-use rustworkx_core::petgraph::stable_graph::NodeIndex;
+use qiskit_circuit::Qubit;
 
 // Custom types to store the commutation sets and node indices,
 // see the docstring below for more information.
-type CommutationSet = HashMap<Wire, Vec<Vec<NodeIndex>>>;
-type NodeIndices = HashMap<(NodeIndex, Wire), usize>;
+type CommutationSet = IndexMap<Wire, Vec<Vec<NodeIndex>>, ::ahash::RandomState>;
+type NodeIndices = IndexMap<(NodeIndex, Wire), usize, ::ahash::RandomState>;
 
 // the maximum number of qubits we check commutativity for
 const MAX_NUM_QUBITS: u32 = 3;
@@ -55,8 +55,8 @@ pub fn analyze_commutations(
     commutation_checker: &mut CommutationChecker,
     approximation_degree: f64,
 ) -> PyResult<(CommutationSet, NodeIndices)> {
-    let mut commutation_set: CommutationSet = HashMap::new();
-    let mut node_indices: NodeIndices = HashMap::new();
+    let mut commutation_set: CommutationSet = Default::default();
+    let mut node_indices: NodeIndices = Default::default();
 
     for qubit in 0..dag.num_qubits() {
         let wire = Wire::Qubit(Qubit(qubit as u32));

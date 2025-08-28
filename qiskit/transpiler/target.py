@@ -186,6 +186,8 @@ class Target(BaseTarget):
         "_coupling_graph",
         "_instruction_durations",
         "_instruction_schedule_map",
+        "_non_global_basis_strict",
+        "_non_global_basis",
     )
 
     def __new__(  # pylint: disable=keyword-arg-before-vararg
@@ -199,8 +201,6 @@ class Target(BaseTarget):
         acquire_alignment: int = 1,
         qubit_properties: list | None = None,
         concurrent_measurements: list | None = None,
-        *args,  # pylint: disable=unused-argument disable=keyword-arg-before-vararg
-        **kwargs,  # pylint: disable=unused-argument
     ):
         """
         Create a new ``Target`` object
@@ -246,7 +246,7 @@ class Target(BaseTarget):
         """
         if description is not None:
             description = str(description)
-        return super(Target, cls).__new__(  # pylint: disable=too-many-function-args
+        out = super(Target, cls).__new__(  # pylint: disable=too-many-function-args
             cls,
             description,
             num_qubits,
@@ -258,6 +258,14 @@ class Target(BaseTarget):
             qubit_properties,
             concurrent_measurements,
         )
+        # A nested mapping of gate name -> qargs -> properties
+        out._gate_map = {}
+        out._coupling_graph = None
+        out._instruction_durations = None
+        out._instruction_schedule_map = None
+        out._non_global_basis = None
+        out._non_global_basis_strict = None
+        return out
 
     def __init__(
         self,
@@ -271,11 +279,36 @@ class Target(BaseTarget):
         qubit_properties=None,  # pylint: disable=unused-argument
         concurrent_measurements=None,  # pylint: disable=unused-argument
     ):
-        # A nested mapping of gate name -> qargs -> properties
-        self._gate_map = {}
-        self._coupling_graph = None
-        self._instruction_durations = None
-        self._instruction_schedule_map = None
+        super().__init__()
+
+    def get_non_global_operation_names(self, strict_direction=False):
+        """Return the non-global operation names for the target
+
+        The non-global operations are those in the target which don't apply
+        on all qubits (for single qubit operations) or all multi-qubit qargs
+        (for multi-qubit operations).
+
+        Args:
+            strict_direction (bool): If set to ``True`` the multi-qubit
+                operations considered as non-global respect the strict
+                direction (or order of qubits in the qargs is significant). For
+                example, if ``cx`` is defined on ``(0, 1)`` and ``ecr`` is
+                defined over ``(1, 0)`` by default neither would be considered
+                non-global, but if ``strict_direction`` is set ``True`` both
+                ``cx`` and ``ecr`` would be returned.
+
+        Returns:
+            List[str]: A list of operation names for operations that aren't global in this target
+        """
+        if strict_direction:
+            if self._non_global_basis_strict is None:
+                self._non_global_basis_strict = super()._get_non_global_operation_names(
+                    strict_direction
+                )
+            return self._non_global_basis_strict
+        if self._non_global_basis is None:
+            self._non_global_basis = super()._get_non_global_operation_names(strict_direction)
+        return self._non_global_basis
 
     @property
     def dt(self):
@@ -378,6 +411,8 @@ class Target(BaseTarget):
         self._coupling_graph = None
         self._instruction_durations = None
         self._instruction_schedule_map = None
+        self._non_global_basis_strict = None
+        self._non_global_basis = None
 
     def update_instruction_properties(self, instruction, qargs, properties):
         """Update the property object for an instruction qarg pair already in the Target.
@@ -880,8 +915,46 @@ class _FakeTarget(Target):
     This is intended to replace the use of loose constraints in the pipeline.
     """
 
-    def __init__(self, coupling_map=None, **kwargs):
-        super().__init__(**kwargs)
+    def __new__(
+        cls,
+        coupling_map=None,  # pylint: disable=unused-argument
+        description=None,
+        num_qubits=0,
+        dt=None,
+        granularity=1,
+        min_length=1,
+        pulse_alignment=1,
+        acquire_alignment=1,
+        qubit_properties=None,
+        concurrent_measurements=None,
+    ):
+        return super().__new__(
+            cls,
+            description=description,
+            num_qubits=num_qubits,
+            dt=dt,
+            granularity=granularity,
+            min_length=min_length,
+            pulse_alignment=pulse_alignment,
+            acquire_alignment=acquire_alignment,
+            qubit_properties=qubit_properties,
+            concurrent_measurements=concurrent_measurements,
+        )
+
+    def __init__(
+        self,
+        coupling_map=None,
+        description=None,  # pylint: disable=unused-argument
+        num_qubits=0,  # pylint: disable=unused-argument
+        dt=None,  # pylint: disable=unused-argument
+        granularity=1,  # pylint: disable=unused-argument
+        min_length=1,  # pylint: disable=unused-argument
+        pulse_alignment=1,  # pylint: disable=unused-argument
+        acquire_alignment=1,  # pylint: disable=unused-argument
+        qubit_properties=None,  # pylint: disable=unused-argument
+        concurrent_measurements=None,  # pylint: disable=unused-argument
+    ):
+        super().__init__()
         if coupling_map is None or isinstance(coupling_map, CouplingMap):
             self._coupling_map = coupling_map
         else:
