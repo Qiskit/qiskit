@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use approx::{abs_diff_eq, relative_ne};
+use faer::Mat;
 use nalgebra::DMatrix;
 use num_complex::Complex64;
 
@@ -46,10 +47,10 @@ fn verify_svd_decomp(
 ) -> bool {
     let mat_check = v * s * w;
 
-    let max_diff = (mat - &mat_check).map(|c| c.norm()).max();
+    // let max_diff = (mat - &mat_check).map(|c| c.norm()).max();
     // println!("-- SVD_VERIFY: max_diff = {max_diff}");
 
-    let close = abs_diff_eq!(mat, &mat_check, epsilon = 1e-4);
+    let close = abs_diff_eq!(mat, &mat_check, epsilon = 1e-7);
     assert!(close);
     close
 }
@@ -59,9 +60,9 @@ pub fn verify_unitary(u: &DMatrix<Complex64>) -> bool {
 
     let id_mat = DMatrix::identity(n, n);
     let uu = u.adjoint() * u;
-    let max_diff = (&uu - &id_mat).map(|c| c.norm()).max();
+    // let max_diff = (&uu - &id_mat).map(|c| c.norm()).max();
     // println!("UNI_VERIFY: max_diff = {max_diff}");
-    let close = abs_diff_eq!(uu, id_mat, epsilon = 1e-4);
+    let close = abs_diff_eq!(uu, id_mat, epsilon = 1e-7);
     assert!(close);
     close
 }
@@ -70,14 +71,7 @@ pub fn verify_unitary(u: &DMatrix<Complex64>) -> bool {
 /// unitary matrix.
 /// See https://michaelgoerz.net/notes/finding-the-closest-unitary-for-a-given-matrix/,
 pub fn closest_unitary(mat: DMatrix<Complex64>) -> DMatrix<Complex64> {
-    // This implementation consumes the original mat but avoids calling
-    // an unnecessary clone.
-    let svd = mat.clone().try_svd(true, true, 1e-12, 0).unwrap();
-    let u = svd.u.unwrap();
-    let v_t = svd.v_t.unwrap();
-    let s = svd.singular_values.map(Complex64::from);
-    let sigma = DMatrix::<Complex64>::from_diagonal(&s);
-    verify_svd_decomp(&mat.clone(), &u, &sigma, &v_t);
+    let (u, _sigma, v_t) = svd_decomposition(&mat);
     &u * &v_t
 }
 
@@ -105,4 +99,52 @@ pub fn condition_number(mat: DMatrix<Complex64>) -> Option<f64> {
     }
 
     Some(max_sv / min_sv)
+}
+
+/// Convert a nalgebra `DMatrix<Complex64>` to a faer `Mat<Complex64>`
+fn nalgebra_to_faer(mat: &DMatrix<Complex64>) -> Mat<Complex64> {
+    let (rows, cols) = mat.shape();
+    Mat::from_fn(rows, cols, |i, j| mat[(i, j)])
+}
+
+/// Convert a faer `Mat<Complex64>` back to a nalgebra `DMatrix<Complex64>`
+fn faer_to_nalgebra(mat: &Mat<Complex64>) -> DMatrix<Complex64> {
+    let (rows, cols) = mat.shape();
+    DMatrix::from_fn(rows, cols, |i, j| mat[(i, j)])
+}
+
+pub fn svd_decomposition(
+    mat: &DMatrix<Complex64>,
+) -> (DMatrix<Complex64>, DMatrix<Complex64>, DMatrix<Complex64>) {
+    svd_decomposition_using_faer(mat)
+}
+
+pub fn svd_decomposition_using_faer(
+    mat: &DMatrix<Complex64>,
+) -> (DMatrix<Complex64>, DMatrix<Complex64>, DMatrix<Complex64>) {
+    let faer_mat = nalgebra_to_faer(&mat);
+    let faer_svd = faer_mat.svd().expect("Call to Faer failed");
+
+    let u_faer = faer_svd.U().to_owned();
+    let s_faer = faer_svd.S().to_owned();
+    let v_faer = faer_svd.V().adjoint().to_owned();
+
+    let sigma = Mat::from_fn(u_faer.ncols(), v_faer.nrows(), |i, j| {
+        if i == j {
+            s_faer[i]
+        } else {
+            Complex64::new(0.0, 0.0)
+        }
+    });
+
+    // let faer_error = (u_faer.clone() * s_faer.clone() * v_faer.clone() - &faer_mat).norm_max();
+    // println!("faer_error = {}", faer_error);
+
+    let u_na = faer_to_nalgebra(&u_faer);
+    let s_na = faer_to_nalgebra(&sigma);
+    let v_na = faer_to_nalgebra(&v_faer);
+
+    verify_svd_decomp(&mat.clone(), &u_na, &s_na, &v_na);
+
+    (u_na, s_na, v_na)
 }
