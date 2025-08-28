@@ -145,7 +145,7 @@ int test_transpile_bv(void) {
 transpile_cleanup:
     qk_circuit_free(transpile_result.circuit);
     qk_transpile_layout_free(transpile_result.layout);
-    qk_opcounts_free(op_counts);
+    qk_opcounts_clear(&op_counts);
 
 circuit_cleanup:
     qk_circuit_free(qc);
