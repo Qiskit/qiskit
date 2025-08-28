@@ -30,9 +30,9 @@ from qiskit.circuit.library.generalized_gates.uc_pauli_rot import UCPauliRotGate
 from qiskit._accelerate.two_qubit_decompose import two_qubit_decompose_up_to_diagonal
 from qiskit._accelerate import qsd
 
+
 # pylint: disable=invalid-name
-
-
+# pylint: disable=too-many-return-statements
 def qs_decomposition(
     mat: np.ndarray,
     opt_a1: bool | None = None,
@@ -111,8 +111,8 @@ def qs_decomposition(
         array = np.asarray(mat, dtype=complex)
         return QuantumCircuit._from_circuit_data(qsd.qs_decomposition(array, opt_a1, opt_a2))
 
-    # TODO call rust if decomposer_1q or decomposer_2q are OneQubitEulerDecomposer or TwoQubitBasisDecomposer
-    # deprecate otherwise
+    # TODO call rust if decomposer_1q or decomposer_2q are OneQubitEulerDecomposer or
+    #  TwoQubitBasisDecomposer, deprecate otherwise
 
     #  _depth (int): Internal use parameter to track recursion depth.
     dim = mat.shape[0]
