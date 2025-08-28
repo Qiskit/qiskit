@@ -451,6 +451,31 @@ impl<'py> FromPyObject<'py> for DelayUnit {
     }
 }
 
+// NOTE: use this or a non-impl function map_delay_str_to_enum instead?
+// We cannot do 
+// ```
+// impl<T> TryFrom<T> for DelayUnit
+// where
+//     T: AsRef<str>, {}
+// ```
+// because in `core` there exists `impl<T, U> TryFrom<U> for T where U: Into<T>`.
+// So this is my workaround
+impl DelayUnit {
+    pub fn from_str<S: AsRef<str>>(s: S) -> Result<Self, PyErr> {
+        match s.as_ref() {
+            "ns"   => Ok(DelayUnit::NS),
+            "ps"   => Ok(DelayUnit::PS),
+            "us"   => Ok(DelayUnit::US),
+            "ms"   => Ok(DelayUnit::MS),
+            "s"    => Ok(DelayUnit::S),
+            "dt"   => Ok(DelayUnit::DT),
+            "expr" => Ok(DelayUnit::EXPR),
+            other  => Err(PyValueError::new_err(format!("Unit `{}` is invalid.", other))),
+        }
+    }
+}
+
+
 /// An internal type used to further discriminate the payload of a `PackedOperation` when its
 /// discriminant is `PackedOperationType::StandardInstruction`.
 ///

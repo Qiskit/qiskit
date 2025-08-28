@@ -41,6 +41,7 @@ mod instruction_duration_check;
 mod inverse_cancellation;
 mod litinski_transformation;
 mod optimize_1q_gates_decomposition;
+mod pad_delay;
 mod remove_diagonal_gates_before_measure;
 mod remove_identity_equiv;
 pub mod sabre;
@@ -80,6 +81,7 @@ pub use litinski_transformation::{litinski_transformation_mod, run_litinski_tran
 pub use optimize_1q_gates_decomposition::{
     optimize_1q_gates_decomposition_mod, run_optimize_1q_gates_decomposition,
 };
+pub use pad_delay::{pad_delay_mod, run_pad_delay};
 pub use remove_diagonal_gates_before_measure::{
     remove_diagonal_gates_before_measure_mod, run_remove_diagonal_before_measure,
 };
