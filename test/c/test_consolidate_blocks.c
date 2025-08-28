@@ -79,7 +79,7 @@ int test_wire_order(void) {
         goto cleanup;
     }
 
-    QkCircuitInstruction *instruction;
+    QkCircuitInstruction *instruction = malloc(sizeof(QkCircuitInstruction));
     qk_circuit_get_instruction(circuit, 0, instruction);
 
     uint32_t new_cx_qargs[2] = {0, 1};
@@ -89,6 +89,7 @@ int test_wire_order(void) {
     }
 clean_instr:
     qk_circuit_instruction_clear(instruction);
+    free(instruction);
 cleanup:
     qk_opcounts_free(counts);
     qk_circuit_free(circuit);
@@ -253,7 +254,7 @@ int test_non_cx_target(void) {
         goto cleanup;
     }
 
-    QkCircuitInstruction *unitary;
+    QkCircuitInstruction *unitary = malloc(sizeof(QkCircuitInstruction));
     qk_circuit_get_instruction(qc, 0, unitary);
     if (strcmp(unitary->name, "unitary") != 0) {
         result = EqualityError;
@@ -264,6 +265,7 @@ int test_non_cx_target(void) {
     }
 cleanup_inst:
     qk_circuit_instruction_clear(unitary);
+    free(unitary);
 cleanup:
     qk_opcounts_free(counts);
     qk_target_free(target);
