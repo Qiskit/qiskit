@@ -48,7 +48,7 @@ int inner_optimize_h_gates(QkTarget *target, char **gates, uint32_t *freq, int n
     if (!compare_gate_counts(&counts, gates, freq, num_gates)) {
         result = EqualityError;
     }
-    qk_opcounts_free(counts);
+    qk_opcounts_clear(&counts);
     qk_circuit_free(circuit);
     qk_target_free(target);
     return result;
@@ -182,7 +182,7 @@ int test_optimize_error_over_target_3(void) {
     }
 
 cleanup:
-    qk_opcounts_free(counts);
+    qk_opcounts_clear(&counts);
     qk_target_free(target);
     qk_circuit_free(circuit);
     return result;
