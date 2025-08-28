@@ -1061,6 +1061,9 @@ impl PyParameterExpression {
     /// checked, since this method is intended for performance-sensitive use.  Passing an incorrect
     /// dictionary may result in unexpected behavior.
     ///
+    /// Unlike :meth:`bind`, this method will not raise an exception if non-finite floating-point
+    /// values are encountered.
+    ///
     /// Args:
     ///     values: mapping of parameters to numeric values.
     #[pyo3(name = "bind_all")]
