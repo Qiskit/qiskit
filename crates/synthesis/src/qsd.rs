@@ -346,16 +346,15 @@ fn _zxz_decomp_verify(
     c: &DMatrix<Complex64>,
 ) -> bool {
     let n = mat.shape().0 / 2;
-    let zero = DMatrix::<Complex64>::zeros(n, n);
     let iden = DMatrix::<Complex64>::identity(n, n);
 
-    let a_block = stack![a1, zero; zero, a2];
+    let a_block = stack![a1, 0; 0, a2];
 
     let b1 = iden.clone() + b;
     let b2 = iden.clone() - b;
     let b_block = stack![b1, b2; b2, b1];
 
-    let c_block = stack![iden, zero; zero, c];
+    let c_block = stack![iden, 0; 0, c];
 
     let mat_check = a_block * b_block * c_block * Complex64::from(0.5);
 
@@ -494,14 +493,11 @@ fn _demultiplex_verify(
     wmat: &DMatrix<Complex64>,
     dmat: &DMatrix<Complex64>,
 ) -> bool {
-    let n = um0.shape().0;
-    let zero = DMatrix::<Complex64>::zeros(n, n);
-
-    let u_block = stack![um0, zero; zero, um1];
-    let v_block = stack![vmat, zero; zero, vmat];
-    let w_block = stack![wmat, zero; zero, wmat];
+    let u_block = stack![um0, 0; 0, um1];
+    let v_block = stack![vmat, 0; 0, vmat];
+    let w_block = stack![wmat, 0; 0, wmat];
     let d_inv = dmat.adjoint();
-    let d_block = stack![dmat, zero; zero, d_inv];
+    let d_block = stack![dmat, 0; 0, d_inv];
 
     let u_check = v_block * d_block * w_block;
 
