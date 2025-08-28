@@ -477,6 +477,29 @@ class QuantumState:
         new_probs = np.reshape(probs_tens, (probs_tens.size,))
         return new_probs
 
+    def _matmul_with_data(self, other):
+        self_data = getattr(self, "data", None)
+        other_data = getattr(other, "data", None)
+
+        if self_data is None or other_data is None:
+            raise NotImplementedError(
+                f"{type(self)} or {type(other)} does not define a 'data' attribute."
+            )
+
+        # Ensure both are array-like
+        if not hasattr(self_data, "__array__") or not hasattr(other_data, "__array__"):
+            raise TypeError(
+                f"Matmul only supported for array-backed states. "
+                f"Got {type(self_data)} and {type(other_data)}"
+            )
+
+        try:
+            return type(self)(self_data @ other_data)
+        except Exception as e:
+            raise TypeError(
+                f"Matmul failed between {type(self)} and {type(other)}: {e}"
+            )
+
     # Overloads
     def __and__(self, other):
         return self.evolve(other)
@@ -501,3 +524,6 @@ class QuantumState:
 
     def __neg__(self):
         return self._multiply(-1)
+
+    def __rmatmul__(self, other):
+        return self._matmul_with_data(other)
