@@ -122,7 +122,7 @@ pub fn svd_decomposition(
 pub fn svd_decomposition_using_faer(
     mat: &DMatrix<Complex64>,
 ) -> (DMatrix<Complex64>, DMatrix<Complex64>, DMatrix<Complex64>) {
-    let faer_mat = nalgebra_to_faer(&mat);
+    let faer_mat = nalgebra_to_faer(mat);
     let faer_svd = faer_mat.svd().expect("Call to Faer failed");
 
     let u_faer = faer_svd.U().to_owned();

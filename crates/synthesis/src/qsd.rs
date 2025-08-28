@@ -46,53 +46,47 @@ enum VWType {
     OnlyW,
 }
 
-/// Decomposes a unitary matrix into one and two qubit gates using Quantum Shannon Decomposition,
+///     Decomposes a unitary matrix into one and two qubit gates using Quantum Shannon Decomposition,
 ///     based on the Block ZXZ-Decomposition.
 ///     This decomposition is described in Krol and Al-Ars [2] and improves the method of
 ///     Shende et al. [1].
+///
 ///     .. code-block:: text
-
+///
 ///           ┌───┐              ┌───┐     ┌───┐
 ///          ─┤   ├─      ────□──┤ H ├──□──┤ H ├──□──
 ///           │   │    ≃    ┌─┴─┐└───┘┌─┴─┐└───┘┌─┴─┐
 ///         /─┤   ├─      ──┤ C ├─────┤ B ├─────┤ A ├
 ///           └───┘         └───┘     └───┘     └───┘
-
+///
 ///     The number of :class:`.CXGate`\ s generated with the decomposition without optimizations is
 ///     the same as the unoptimized method in [1]:
-
+///
 ///     .. math::
-
+///
 ///         \frac{9}{16} 4^n - \frac{3}{2} 2^n
-
+///
 ///     If ``opt_a1 = True``, the CX count is reduced, improving [1], by:
-
+///
 ///     .. math::
-
+///
 ///         \frac{2}{3} (4^{n - 2} - 1).
-
+///
 ///     Saving two :class:`.CXGate`\ s instead of one in each step of the recursion.
-
+///
 ///     If ``opt_a2 = True``, the CX count is reduced, as in [1], by:
-
+///
 ///     .. math::
-
+///
 ///         4^{n-2} - 1.
-
+///
 ///     Hence, the number of :class:`.CXGate`\ s generated with the decomposition with optimizations is
-
+///
 ///     .. math::
-
+///
 ///         \frac{22}{48} 4^n - \frac{3}{2} 2^n + \frac{5}{3}.
-
-///     .. note::
-
-///         When the original unitary is controlled then it is better to choose ``opt_a2 = False``
-///         as we do another optimization that does not work with the optimization A.2 of [1, 2].
-///         When ``opt_a2 = None`` we choose the optimal value ``opt_a2 = False`` if the unitary is
-///         controlled and ``opt_a2 = True`` otherwise.
-///         When ``opt_a1 = None`` we choose the optimal value ``opt_a1 = True``.
-
+///
+///
 ///     Args:
 ///         mat: unitary matrix to decompose
 ///         opt_a1: whether to try optimization A.1 from [1, 2].
@@ -105,10 +99,10 @@ enum VWType {
 ///             :class:`~qiskit.synthesis.OneQubitEulerDecomposer`.
 ///         decomposer_2q: optional 2Q decomposer. If None, uses
 ///             :class:`~qiskit.synthesis.TwoQubitBasisDecomposer`.
-
+///
 ///     Returns:
 ///         QuantumCircuit: Decomposed quantum circuit.
-
+///
 ///     References:
 ///         1. Shende, Bullock, Markov, *Synthesis of Quantum Logic Circuits*,
 ///            `arXiv:0406176 [quant-ph] <https://arxiv.org/abs/quant-ph/0406176>`_
@@ -371,36 +365,36 @@ fn _zxz_decomp_verify(
 
     let mat_check = a_blcok * b_block * c_block * Complex64::from(0.5);
 
-    const EPS: f64 = 1e-4;
+    const EPS: f64 = 1e-7;
     let close = abs_diff_eq!(mat, &mat_check, epsilon = EPS);
     close
 }
 
 ///  Decompose a generic multiplexer.
-
+///
 ///        ────□────
 ///         ┌──┴──┐
 ///       /─┤     ├─
 ///         └─────┘
-
+///
 /// represented by the block diagonal matrix
-
+///
 ///         ┏         ┓
 ///         ┃ um0     ┃
 ///         ┃     um1 ┃
 ///         ┗         ┛
-
+///
 /// to
 ///            ┌───┐
 ///     ───────┤ Rz├──────
 ///       ┌───┐└─┬─┘┌───┐
 ///     /─┤ w ├──□──┤ v ├─
 ///       └───┘     └───┘
-
+///
 /// where v and w are general unitaries determined from decomposition.
-
+///
 /// .. note::
-
+///
 ///     When the original unitary is controlled then the default value of ``opt_a2 = False``
 ///     as we start with the demultiplexing step that does not work with the optimization A.2 of [1, 2].
 fn demultiplex(
@@ -522,7 +516,7 @@ fn _demultiplex_verify(
 
     let u_check = v_block * d_block * w_block;
 
-    const EPS: f64 = 1e-4;
+    const EPS: f64 = 1e-7;
     let close = abs_diff_eq!(u_block, u_check, epsilon = EPS);
     close
 }
