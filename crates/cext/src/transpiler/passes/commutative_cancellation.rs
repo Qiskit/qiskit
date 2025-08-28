@@ -27,10 +27,13 @@ use qiskit_transpiler::target::Target;
 ///
 /// @param circuit A pointer to the circuit to run CommutativeCancellation on. This circuit
 /// pointer to will be updated with the modified circuit if the pass is able to remove any gates.
-/// @param target The target for the CommutativeCancellation pass. The target is used to specify
-/// as fallback Z rotation gate to use for cancellations if one can't be identified in the circuit.
-/// This can be a null pointer which indicates there isn't a target to use.
-///
+/// @param target This pass will attempt to accumulate all Z rotations into either
+/// an RZ, P or U1 gate, depending on which is already used in the circuit. If none
+/// is present in the circuit, this (optional) target argument is used as fallback to 
+/// decide which gate to use. If none of RZ, P or U1 are in the circuit or the target, 
+/// single-qubit Z rotations will not be optimized.
+/// @param approximation_degree The approximation degree used when 
+/// analyzing commutations. Must be within ``(0, 1]``.
 /// @returns The integer return code where 0 represents no error and 1 is
 /// used to indicate an error was encountered during the execution of the pass.
 ///
@@ -61,6 +64,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_commutative_cancellation(
     let target = if target.is_null() {
         None
     } else {
+        // SAFETY: Per documentation, the pointer is non-null and aligned.
         Some(unsafe { const_ptr_as_ref(target) })
     };
     if !(0.0..=1.0).contains(&approximation_degree) {
@@ -68,7 +72,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_commutative_cancellation(
     }
     let mut dag = match DAGCircuit::from_circuit_data(circuit, false, None, None, None, None) {
         Ok(dag) => dag,
-        Err(e) => panic!("{}", e),
+        Err(_) => panic!("Internal circuit -> DAG conversion failed"),
     };
     let mut commutation_checker = get_standard_commutation_checker();
     let basis = target.map(|t| t.operation_names().map(|n| n.to_string()).collect());
@@ -84,7 +88,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_commutative_cancellation(
     }
     let out_circuit = match dag_to_circuit(&dag, false) {
         Ok(qc) => qc,
-        Err(e) => panic!("{}", e),
+        Err(_) => panic!("Internal DAG -> circuit conversion failed"),
     };
     *circuit = out_circuit;
     ExitCode::Success
