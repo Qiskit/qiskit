@@ -21,7 +21,6 @@ use qiskit_transpiler::transpile_layout::TranspileLayout;
 use crate::exit_codes::ExitCode;
 use crate::pointers::const_ptr_as_ref;
 
-/// @ingroup QkTranspiler
 /// The container result object from ``qk_transpile``
 ///
 /// When the transpiler successfully compiles a quantum circuit for a given target it

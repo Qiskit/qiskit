@@ -14,6 +14,9 @@ should call the :py:func:`.generate_preset_pass_manager` or
 Data Types
 ==========
 
+.. doxygenstruct:: QkTranspileResult
+   :members:
+
 .. doxygenstruct:: QkTranspileOptions
    :members:
 

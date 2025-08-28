@@ -61,7 +61,7 @@ results transpiling circuits from Python via the C API.
 .. toctree::
    :maxdepth: 1
 
-   qk-transpiler.rst
+   qk-transpiler
    qk-target
    qk-target-entry
    qk-transpile-layout
