@@ -26,7 +26,7 @@ use smallvec::smallvec;
 use crate::euler_one_qubit_decomposer::{
     unitary_to_gate_sequence_inner, EulerBasis, EulerBasisSet,
 };
-use crate::linalg::{closest_unitary, is_hermitian_matrix, verify_unitary};
+use crate::linalg::{closest_unitary, is_hermitian_matrix, svd_decomposition, verify_unitary};
 use crate::two_qubit_decompose::{two_qubit_decompose_up_to_diagonal, TwoQubitBasisDecomposer};
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::CircuitData;
@@ -302,9 +302,9 @@ fn qsd_inner(
     // the output circuit of the block ZXZ decomposition from [2]
     let qr = (0..num_qubits).map(Qubit::new).collect::<Vec<_>>();
     append(&mut out, left_circuit, &qr)?;
-    out.push_standard_gate(StandardGate::H, &[], &[Qubit((num_qubits - 1) as u32)]);
+    let _ = out.push_standard_gate(StandardGate::H, &[], &[Qubit((num_qubits - 1) as u32)]);
     append(&mut out, middle_circ, &qr)?;
-    out.push_standard_gate(StandardGate::H, &[], &[Qubit((num_qubits - 1) as u32)]);
+    let _ = out.push_standard_gate(StandardGate::H, &[], &[Qubit((num_qubits - 1) as u32)]);
     append(&mut out, right_circuit, &qr)?;
     if opt_a2_val && depth == 0 && dim > 4 {
         apply_a2(&out, two_qubit_decomposer)
@@ -314,14 +314,11 @@ fn qsd_inner(
 }
 
 fn _zxz_decomp_svd(a: DMatrix<Complex64>) -> (DMatrix<Complex64>, DMatrix<Complex64>) {
-    // let svd = SVD::new(a, true, true);
-    let svd = a.try_svd(true, true, 1e-12, 0).unwrap();
-    let v = svd.u.unwrap();
-    let s = svd.singular_values.map(Complex64::from);
-    let w_dg = svd.v_t.unwrap();
-    let sigma = DMatrix::<Complex64>::from_diagonal(&s);
+    let (v, sigma, w_dg) = svd_decomposition(&a);
+
     let s = &v * &sigma * &v.adjoint();
     let u = v * w_dg;
+
     (s, u)
 }
 
@@ -394,11 +391,11 @@ fn _zxz_decomp_verify(
 ///         ┗         ┛
 
 /// to
-///             ┌───┐
+///            ┌───┐
 ///     ───────┤ Rz├──────
-///         ┌───┐└─┬─┘┌───┐
+///       ┌───┐└─┬─┘┌───┐
 ///     /─┤ w ├──□──┤ v ├─
-///         └───┘     └───┘
+///       └───┘     └───┘
 
 /// where v and w are general unitaries determined from decomposition.
 
@@ -542,21 +539,25 @@ fn get_ucrz(num_qubits: usize, angles: &mut [f64], vw_type_all: bool) -> PyResul
     decompose_uc_rotations(angles, 0, angles.len(), false);
     for (i, angle) in angles.iter().enumerate() {
         if angle.abs() > EPS {
-            out.push_standard_gate(StandardGate::RZ, &[Param::Float(*angle)], &[q_target]);
+            let _ = out.push_standard_gate(StandardGate::RZ, &[Param::Float(*angle)], &[q_target]);
         }
         if i != angles.len() - 1 {
             // Is this a correct translation from python?
             // binary_rep = np.binary_repr(i + 1)
             // q_contr_index = len(binary_rep) - len(binary_rep.rstrip("0"))
             let q_ctrl_index = (i + 1).trailing_zeros();
-            out.push_standard_gate(
+            let _ = out.push_standard_gate(
                 StandardGate::CX,
                 &[],
                 &[q_controls[q_ctrl_index as usize], q_target],
             );
         } else if vw_type_all {
             let q_ctrl_index = num_qubits - 2;
-            out.push_standard_gate(StandardGate::CX, &[], &[q_controls[q_ctrl_index], q_target]);
+            let _ = out.push_standard_gate(
+                StandardGate::CX,
+                &[],
+                &[q_controls[q_ctrl_index], q_target],
+            );
         };
     }
     Ok(out)
