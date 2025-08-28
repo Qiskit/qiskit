@@ -154,10 +154,7 @@ pub fn apply_diagonal_gate(
     let shape = m.shape();
     let num_qubits = shape[0].ilog2();
     let num_col = shape[1];
-    for state in std::iter::repeat([0_u8, 1_u8])
-        .take(num_qubits as usize)
-        .multi_cartesian_product()
-    {
+    for state in std::iter::repeat_n([0_u8, 1_u8], num_qubits as usize).multi_cartesian_product() {
         let diag_index = action_qubit_labels
             .iter()
             .fold(0_usize, |acc, i| (acc << 1) + state[*i] as usize);
@@ -180,8 +177,7 @@ pub fn apply_diagonal_gate_to_diag(
     if m_diagonal.is_empty() {
         return Ok(m_diagonal);
     }
-    for state in std::iter::repeat([0_u8, 1_u8])
-        .take(num_qubits)
+    for state in std::iter::repeat_n([0_u8, 1_u8], num_qubits)
         .multi_cartesian_product()
         .take(m_diagonal.len())
     {
@@ -250,10 +246,7 @@ pub fn apply_multi_controlled_gate(
         }
         return m.into_pyarray(py).into_any().unbind();
     }
-    for state_free in std::iter::repeat([0_u8, 1_u8])
-        .take(free_qubits)
-        .multi_cartesian_product()
-    {
+    for state_free in std::iter::repeat_n([0_u8, 1_u8], free_qubits).multi_cartesian_product() {
         let [e1, e2] = construct_basis_states(&state_free, &control_set, target_label);
         for i in 0..num_col {
             let temp: Vec<_> = gate
