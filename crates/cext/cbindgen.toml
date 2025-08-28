@@ -13,7 +13,7 @@ after_includes = """
 #include "qiskit/complex.h"
 
 #define QISKIT_RELEASE_LEVEL_DEV 0xA // dev or "alpha"
-#define QISKIT_RELEASE_LEVEL_BETA 0xB // dev or "alpha"
+#define QISKIT_RELEASE_LEVEL_BETA 0xB // beta
 #define QISKIT_RELEASE_LEVEL_RC 0xC // release candidate
 #define QISKIT_RELEASE_LEVEL_FINAL 0xF // final release
 
