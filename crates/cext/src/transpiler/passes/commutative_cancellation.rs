@@ -29,10 +29,10 @@ use qiskit_transpiler::target::Target;
 /// pointer to will be updated with the modified circuit if the pass is able to remove any gates.
 /// @param target This pass will attempt to accumulate all Z rotations into either
 /// an RZ, P or U1 gate, depending on which is already used in the circuit. If none
-/// is present in the circuit, this (optional) target argument is used as fallback to 
-/// decide which gate to use. If none of RZ, P or U1 are in the circuit or the target, 
+/// is present in the circuit, this (optional) target argument is used as fallback to
+/// decide which gate to use. If none of RZ, P or U1 are in the circuit or the target,
 /// single-qubit Z rotations will not be optimized.
-/// @param approximation_degree The approximation degree used when 
+/// @param approximation_degree The approximation degree used when
 /// analyzing commutations. Must be within ``(0, 1]``.
 /// @returns The integer return code where 0 represents no error and 1 is
 /// used to indicate an error was encountered during the execution of the pass.
@@ -84,7 +84,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_commutative_cancellation(
     )
     .is_err()
     {
-        return ExitCode::TranspileError;
+        return ExitCode::TranspilerError;
     }
     let out_circuit = match dag_to_circuit(&dag, false) {
         Ok(qc) => qc,
