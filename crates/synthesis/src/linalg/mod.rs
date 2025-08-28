@@ -47,11 +47,8 @@ fn verify_svd_decomp(
 ) -> bool {
     let mat_check = v * s * w;
 
-    // let max_diff = (mat - &mat_check).map(|c| c.norm()).max();
-    // println!("-- SVD_VERIFY: max_diff = {max_diff}");
-
     let close = abs_diff_eq!(mat, &mat_check, epsilon = 1e-7);
-    assert!(close);
+    debug_assert!(close);
     close
 }
 
@@ -60,10 +57,9 @@ pub fn verify_unitary(u: &DMatrix<Complex64>) -> bool {
 
     let id_mat = DMatrix::identity(n, n);
     let uu = u.adjoint() * u;
-    // let max_diff = (&uu - &id_mat).map(|c| c.norm()).max();
-    // println!("UNI_VERIFY: max_diff = {max_diff}");
+
     let close = abs_diff_eq!(uu, id_mat, epsilon = 1e-7);
-    assert!(close);
+    debug_assert!(close);
     close
 }
 
@@ -136,9 +132,6 @@ pub fn svd_decomposition_using_faer(
             Complex64::new(0.0, 0.0)
         }
     });
-
-    // let faer_error = (u_faer.clone() * s_faer.clone() * v_faer.clone() - &faer_mat).norm_max();
-    // println!("faer_error = {}", faer_error);
 
     let u_na = faer_to_nalgebra(&u_faer);
     let s_na = faer_to_nalgebra(&sigma);

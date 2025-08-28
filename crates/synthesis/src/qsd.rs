@@ -13,7 +13,6 @@
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-use crate::QiskitError;
 use approx::abs_diff_eq;
 use hashbrown::HashMap;
 use nalgebra::{stack, DMatrix, DVector, Matrix4, QR};
@@ -253,13 +252,8 @@ fn qsd_inner(
     let mut out = CircuitData::new(Some(out_qubits), None, None, 0, Param::Float(0.)).unwrap();
     // perform block ZXZ decomposition from [2]
     let (a1, a2, b, c) = _block_zxz_decomp(mat);
-    // TODO: remove this verification in favor of a test
-    let verify_mat = _zxz_decomp_verify(mat, &a1, &a2, &b, &c);
-    if !verify_mat {
-        return Err(QiskitError::new_err(
-            "The matrix after ZXZ decomposition is not the same.",
-        ));
-    }
+
+    _zxz_decomp_verify(mat, &a1, &a2, &b, &c);
 
     let iden = DMatrix::<Complex64>::identity(dim / 2, dim / 2);
     let (left_circuit, vmat_c, _) = demultiplex(
@@ -325,7 +319,6 @@ fn _block_zxz_decomp(
     DMatrix<Complex64>,
     DMatrix<Complex64>,
 ) {
-    // println!("In BLOCK_ZXZ_DECOMPOSITION");
     verify_unitary(mat);
 
     let i = Complex64::new(0.0, 1.0);
@@ -367,6 +360,7 @@ fn _zxz_decomp_verify(
 
     const EPS: f64 = 1e-7;
     let close = abs_diff_eq!(mat, &mat_check, epsilon = EPS);
+    debug_assert!(close);
     close
 }
 
@@ -406,13 +400,12 @@ fn demultiplex(
     _ctrl_index: Option<usize>,
     vw_type: VWType,
 ) -> PyResult<(CircuitData, DMatrix<Complex64>, DMatrix<Complex64>)> {
-    // println!("=> demultiplex, verifying inputs");
     verify_unitary(um0);
     verify_unitary(um1);
 
     let um0 = closest_unitary(um0.clone());
     let um1 = closest_unitary(um1.clone());
-    // println!("=> demultiplex, re-verifying inputs");
+
     verify_unitary(&um0);
     verify_unitary(&um1);
 
@@ -441,13 +434,7 @@ fn demultiplex(
     let d_mat: DMatrix<Complex64> = DMatrix::from_diagonal(&d_values);
     let wmat = d_mat.clone() * vmat.adjoint() * um1.clone();
 
-    // TODO: remove this verification in favor of a test
-    let verify_mat = _demultiplex_verify(&um0, &um1, &vmat, &wmat, &d_mat);
-    if !verify_mat {
-        return Err(QiskitError::new_err(
-            "The matrix after Schur decomposition is not the same.",
-        ));
-    }
+    _demultiplex_verify(&um0, &um1, &vmat, &wmat, &d_mat);
 
     let out_qubits = (0..num_qubits)
         .map(|_| ShareableQubit::new_anonymous())
@@ -518,6 +505,7 @@ fn _demultiplex_verify(
 
     const EPS: f64 = 1e-7;
     let close = abs_diff_eq!(u_block, u_check, epsilon = EPS);
+    debug_assert!(close);
     close
 }
 
