@@ -337,6 +337,7 @@ fn _block_zxz_decomp(
 }
 
 /// Verify ZXZ decomposition gives the same unitary
+#[allow(clippy::toplevel_ref_arg)]
 fn _zxz_decomp_verify(
     mat: &DMatrix<Complex64>,
     a1: &DMatrix<Complex64>,
@@ -348,7 +349,7 @@ fn _zxz_decomp_verify(
     let zero = DMatrix::<Complex64>::zeros(n, n);
     let iden = DMatrix::<Complex64>::identity(n, n);
 
-    let a_blcok = stack![a1, zero; zero, a2];
+    let a_block = stack![a1, zero; zero, a2];
 
     let b1 = iden.clone() + b;
     let b2 = iden.clone() - b;
@@ -356,7 +357,7 @@ fn _zxz_decomp_verify(
 
     let c_block = stack![iden, zero; zero, c];
 
-    let mat_check = a_blcok * b_block * c_block * Complex64::from(0.5);
+    let mat_check = a_block * b_block * c_block * Complex64::from(0.5);
 
     const EPS: f64 = 1e-7;
     let close = abs_diff_eq!(mat, &mat_check, epsilon = EPS);
@@ -485,6 +486,7 @@ fn demultiplex(
     Ok((out, vmat, wmat))
 }
 
+#[allow(clippy::toplevel_ref_arg)]
 fn _demultiplex_verify(
     um0: &DMatrix<Complex64>,
     um1: &DMatrix<Complex64>,
