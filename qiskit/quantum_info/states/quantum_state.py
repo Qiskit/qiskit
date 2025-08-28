@@ -478,27 +478,23 @@ class QuantumState:
         return new_probs
 
     def _matmul_with_data(self, other):
-        self_data = getattr(self, "data", None)
-        other_data = getattr(other, "data", None)
-
-        if self_data is None or other_data is None:
-            raise NotImplementedError(
-                f"{type(self)} or {type(other)} does not define a 'data' attribute."
-            )
-
-        # Ensure both are array-like
-        if not hasattr(self_data, "__array__") or not hasattr(other_data, "__array__"):
-            raise TypeError(
-                f"Matmul only supported for array-backed states. "
-                f"Got {type(self_data)} and {type(other_data)}"
-            )
-
+        # If both are array-like, do direct multiplication
         try:
-            return type(self)(self_data @ other_data)
-        except Exception as e:
-            raise TypeError(
-                f"Matmul failed between {type(self)} and {type(other)}: {e}"
-            )
+            self_data = getattr(self, "data", None)
+            other_data = getattr(other, "data", None)
+            if self_data is not None and other_data is not None:
+                if hasattr(self, "__array__") and hasattr(other, "__array__"):
+                    return type(self)(self_data @ other_data)
+                
+            # Convert to Operator and try matmul
+            from qiskit.quantum_info.operators import Operator
+            if isinstance(other, Operator):
+                return other.compose(self.to_operator()) 
+            
+            # Otherwise, coerce to Operator and compose
+            return Operator(other).compose(self.to_operator()) 
+        except Exception:
+            return NotImplemented
 
     # Overloads
     def __and__(self, other):

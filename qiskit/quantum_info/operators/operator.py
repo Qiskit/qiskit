@@ -496,6 +496,7 @@ class Operator(LinearOp):
         return ret
 
     def compose(self, other: Operator, qargs: list | None = None, front: bool = False) -> Operator:
+        # from qiskit.quantum_info.states.quantum_state import QuantumState
         from qiskit.quantum_info.states.quantum_state import QuantumState
         if qargs is None:
             qargs = getattr(other, "qargs", None)
