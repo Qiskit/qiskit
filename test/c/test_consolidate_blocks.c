@@ -79,7 +79,7 @@ int test_wire_order(void) {
         goto cleanup;
     }
 
-    QkCircuitInstruction *instruction = malloc(sizeof(QkCircuitInstruction));
+    QkCircuitInstruction *instruction;
     qk_circuit_get_instruction(circuit, 0, instruction);
 
     uint32_t new_cx_qargs[2] = {0, 1};
@@ -253,7 +253,7 @@ int test_non_cx_target(void) {
         goto cleanup;
     }
 
-    QkCircuitInstruction *unitary = malloc(sizeof(QkCircuitInstruction));
+    QkCircuitInstruction *unitary;
     qk_circuit_get_instruction(qc, 0, unitary);
     if (strcmp(unitary->name, "unitary") != 0) {
         result = EqualityError;

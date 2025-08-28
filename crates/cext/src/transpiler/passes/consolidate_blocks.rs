@@ -26,7 +26,8 @@ use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 ///
 /// @param circuit A pointer to the circuit to run ConsolidateBlocks on.
 /// @param target A pointer to the target to run ConsolidateBlocks on.
-/// @param approximation_degree A float between `[0.0, 1.0]`. Lower approximates more.
+/// @param approximation_degree A float between `[0.0, 1.0]` or a `NaN` which
+/// defaults to `1.0`. Lower approximates more.
 /// @param force_consolidate: Force block consolidation.
 ///
 /// # Safety

@@ -1464,7 +1464,6 @@ dependencies = [
  "pyo3",
  "qiskit-circuit",
  "qiskit-quantum-info",
- "qiskit-synthesis",
  "qiskit-transpiler",
  "rand 0.9.2",
  "rand_pcg 0.9.0",
