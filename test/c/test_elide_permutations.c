@@ -92,7 +92,7 @@ int test_elide_permutations_swap_result(void) {
     }
 
 ops_cleanup:
-    qk_opcounts_free(op_counts);
+    qk_opcounts_clear(&op_counts);
 result_cleanup:
     qk_transpile_layout_free(pass_result);
 cleanup:

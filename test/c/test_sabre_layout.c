@@ -121,7 +121,7 @@ int test_sabre_layout_applies_layout(void) {
     qk_circuit_free(expected_circuit);
 
 cleanup:
-    qk_opcounts_free(op_counts);
+    qk_opcounts_clear(&op_counts);
     qk_transpile_layout_free(layout_result);
     qk_circuit_free(qc);
     qk_target_free(target);
