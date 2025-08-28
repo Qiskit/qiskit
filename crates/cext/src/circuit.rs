@@ -755,9 +755,13 @@ pub unsafe extern "C" fn qk_circuit_unitary(
 /// @ingroup QkCircuit
 /// Return a list of string names for instructions in a circuit and their counts.
 ///
+/// To properly free the memory allocated by the struct, you should call ``qk_opcounts_clear``.
+/// Dropping the ``QkOpCounts`` struct without doing so will leave the stored array of ``QkOpCount``
+/// allocated and produce a memory leak.
+///
 /// @param circuit A pointer to the circuit to get the counts for.
 ///
-/// @return An ``OpCounts`` struct containing the circuit operation counts.
+/// @return An ``QkOpCounts`` struct containing the circuit operation counts.
 ///
 /// # Example
 /// ```c
@@ -765,6 +769,8 @@ pub unsafe extern "C" fn qk_circuit_unitary(
 ///     uint32_t qubits[1] = {0};
 ///     qk_circuit_gate(qc, QkGate_H, qubits, NULL);
 ///     QkOpCounts counts = qk_circuit_count_ops(qc);
+///     // .. once done
+///     qk_opcounts_clear(&counts);
 /// ```
 ///
 /// # Safety
@@ -776,16 +782,18 @@ pub unsafe extern "C" fn qk_circuit_count_ops(circuit: *const CircuitData) -> Op
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
     let count_ops = circuit.count_ops();
-    let mut output: Vec<OpCount> = count_ops
-        .into_iter()
-        .map(|(name, count)| OpCount {
-            name: CString::new(name).unwrap().into_raw(),
-            count,
-        })
-        .collect();
-    let data = output.as_mut_ptr();
+    let output = {
+        let vec: Vec<OpCount> = count_ops
+            .into_iter()
+            .map(|(name, count)| OpCount {
+                name: CString::new(name).unwrap().into_raw(),
+                count,
+            })
+            .collect();
+        vec.into_boxed_slice()
+    };
     let len = output.len();
-    std::mem::forget(output);
+    let data = Box::into_raw(output) as *mut OpCount;
     OpCounts { data, len }
 }
 
@@ -993,7 +1001,7 @@ pub unsafe extern "C" fn qk_circuit_instruction_clear(inst: *mut CInstruction) {
 }
 
 /// @ingroup QkCircuit
-/// Free a circuit op count list.
+/// Clear the content in a circuit operation count list.
 ///
 /// @param op_counts The returned op count list from ``qk_circuit_count_ops``.
 ///
@@ -1002,14 +1010,29 @@ pub unsafe extern "C" fn qk_circuit_instruction_clear(inst: *mut CInstruction) {
 /// Behavior is undefined if ``op_counts`` is not the object returned by ``qk_circuit_count_ops``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_opcounts_free(op_counts: OpCounts) {
-    // SAFETY: Loading data contained in OpCounts as a slice which was constructed from a Vec
-    let data = unsafe { std::slice::from_raw_parts_mut(op_counts.data, op_counts.len) };
-    let data = data.as_mut_ptr();
-    // SAFETY: Loading a box from the slice pointer created above
-    unsafe {
-        let _ = Box::from_raw(data);
+pub unsafe extern "C" fn qk_opcounts_clear(op_counts: *mut OpCounts) {
+    // SAFETY: The user guarantees the input is a valid OpCounts pointer.
+    let op_counts = unsafe { mut_ptr_as_ref(op_counts) };
+
+    if op_counts.len > 0 && !op_counts.data.is_null() {
+        // SAFETY: We load the box from a slice pointer created from
+        // the raw parts from the OpCounts::data attribute.
+        unsafe {
+            let slice: Box<[OpCount]> = Box::from_raw(std::slice::from_raw_parts_mut(
+                op_counts.data,
+                op_counts.len,
+            ));
+            // free the allocated strings in each OpCount
+            for count in slice.iter() {
+                if !count.name.is_null() {
+                    let _ = CString::from_raw(count.name as *mut c_char);
+                }
+            }
+            // the variable vec goes out of bounds and is freed too
+        }
     }
+    op_counts.len = 0;
+    op_counts.data = std::ptr::null_mut();
 }
 
 /// @ingroup QkCircuit
