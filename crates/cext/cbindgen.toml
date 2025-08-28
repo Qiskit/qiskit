@@ -23,7 +23,7 @@ after_includes = """
 #define QISKIT_RELEASE_LEVEL QISKIT_RELEASE_LEVEL_BETA
 #define QISKIT_RELEASE_SERIAL 1  // for the final release, this should be 0
 
-#define QISKIT_VERSION "2.2.0dev"
+#define QISKIT_VERSION "2.2.0b1"
 
 #define QISKIT_GET_VERSION_HEX(major, minor, patch, level, serial) (\
     (major & 0xff) << 24 | \
