@@ -79,17 +79,16 @@ int test_wire_order(void) {
         goto cleanup;
     }
 
-    QkCircuitInstruction *instruction = malloc(sizeof(QkCircuitInstruction));
-    qk_circuit_get_instruction(circuit, 0, instruction);
+    QkCircuitInstruction instruction;
+    qk_circuit_get_instruction(circuit, 0, &instruction);
 
     uint32_t new_cx_qargs[2] = {0, 1};
-    if (!args_cmp(new_cx_qargs, 2, instruction->qubits, instruction->num_qubits)) {
+    if (!args_cmp(new_cx_qargs, 2, instruction.qubits, instruction.num_qubits)) {
         result = EqualityError;
         goto clean_instr;
     }
 clean_instr:
-    qk_circuit_instruction_clear(instruction);
-    free(instruction);
+    qk_circuit_instruction_clear(&instruction);
 cleanup:
     qk_opcounts_clear(&counts);
     qk_circuit_free(circuit);
@@ -254,18 +253,17 @@ int test_non_cx_target(void) {
         goto cleanup;
     }
 
-    QkCircuitInstruction *unitary = malloc(sizeof(QkCircuitInstruction));
-    qk_circuit_get_instruction(qc, 0, unitary);
-    if (strcmp(unitary->name, "unitary") != 0) {
+    QkCircuitInstruction unitary;
+    qk_circuit_get_instruction(qc, 0, &unitary);
+    if (strcmp(unitary.name, "unitary") != 0) {
         result = EqualityError;
         printf("The pass run did not result in a circuit with one unitary gate. Expected 'unitary' "
                "gate, got '%s'.",
-               unitary->name);
+               unitary.name);
         goto cleanup_inst;
     }
 cleanup_inst:
-    qk_circuit_instruction_clear(unitary);
-    free(unitary);
+    qk_circuit_instruction_clear(&unitary);
 cleanup:
     qk_opcounts_clear(&counts);
     qk_target_free(target);
