@@ -485,14 +485,15 @@ class QuantumState:
             if self_data is not None and other_data is not None:
                 if hasattr(self, "__array__") and hasattr(other, "__array__"):
                     return type(self)(self_data @ other_data)
-                
+
             # Convert to Operator and try matmul
             from qiskit.quantum_info.operators import Operator
+
             if isinstance(other, Operator):
-                return other.compose(self.to_operator()) 
-            
+                return other.compose(self.to_operator())
+
             # Otherwise, coerce to Operator and compose
-            return Operator(other).compose(self.to_operator()) 
+            return Operator(other).compose(self.to_operator())
         except Exception:
             return NotImplemented
 
