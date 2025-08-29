@@ -10,10 +10,14 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+pub mod commutative_cancellation;
 pub mod elide_permutations;
 pub mod gate_direction;
+pub mod inverse_cancellation;
+pub mod optimize_1q_sequences;
 pub mod remove_diagonal_gates_before_measure;
 pub mod remove_identity_equiv;
 pub mod sabre_layout;
 pub mod split_2q_unitaries;
+pub mod unitary_synthesis;
 pub mod vf2;

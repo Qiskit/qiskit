@@ -62,7 +62,7 @@ use rustworkx_core::graph_ext::ContractNodesDirected;
 use rustworkx_core::petgraph;
 use rustworkx_core::petgraph::prelude::StableDiGraph;
 use rustworkx_core::petgraph::prelude::*;
-use rustworkx_core::petgraph::stable_graph::{EdgeReference, NodeIndex};
+use rustworkx_core::petgraph::stable_graph::{EdgeReference, IndexType, NodeIndex};
 use rustworkx_core::petgraph::unionfind::UnionFind;
 use rustworkx_core::petgraph::visit::{
     EdgeIndexable, IntoEdgeReferences, IntoNodeReferences, NodeFiltered, NodeIndexable,
@@ -984,6 +984,34 @@ impl DAGCircuit {
         Ok(())
     }
 
+    pub fn __copy__(&self) -> Self {
+        self.clone()
+    }
+
+    pub fn __deepcopy__<'py>(
+        &self,
+        py: Python<'py>,
+        memo: Option<&Bound<'py, PyDict>>,
+    ) -> PyResult<Self> {
+        let mut out = self.clone();
+        let deepcopy = imports::DEEPCOPY.get_bound(py);
+        // We only need to pass the deep-copying nature on to places where we store Python objects.
+        out.metadata = out
+            .metadata
+            .map(|dict| deepcopy.call1((dict, memo)).map(|ob| ob.unbind()))
+            .transpose()?;
+        out.duration = out
+            .duration
+            .map(|dict| deepcopy.call1((dict, memo)).map(|ob| ob.unbind()))
+            .transpose()?;
+        for node in out.dag.node_weights_mut() {
+            if let NodeType::Operation(inst) = node {
+                inst.py_deepcopy_inplace(py, memo)?;
+            };
+        }
+        Ok(out)
+    }
+
     /// Returns the current sequence of registered :class:`.Qubit` instances as a list.
     ///
     /// .. warning::
@@ -1715,7 +1743,7 @@ impl DAGCircuit {
     ///     DAGCircuitError: if an unknown :class:`.ControlFlowOp` is present in a call with
     ///         ``recurse=True``, or any control flow is present in a non-recursive call.
     #[pyo3(signature= (*, recurse=false))]
-    fn size(&self, recurse: bool) -> PyResult<usize> {
+    pub fn size(&self, recurse: bool) -> PyResult<usize> {
         let mut length = self.num_ops();
         if !self.has_control_flow() {
             return Ok(length);
@@ -1790,7 +1818,7 @@ impl DAGCircuit {
     ///     DAGCircuitError: if unknown control flow is present in a recursive call, or any control
     ///         flow is present in a non-recursive call.
     #[pyo3(signature= (*, recurse=false))]
-    fn depth(&self, recurse: bool) -> PyResult<usize> {
+    pub fn depth(&self, recurse: bool) -> PyResult<usize> {
         if self.qubits.is_empty() && self.clbits.is_empty() && self.num_vars() == 0 {
             return Ok(0);
         }
@@ -5112,6 +5140,63 @@ impl DAGCircuit {
         });
         self.cregs.remove_registers(valid_names);
         Ok(())
+    }
+
+    /// Permute the qubit indices used by instructions.
+    ///
+    /// This does not modify the order of the [ShareableQubit]s, so "qubit 0" will still point to
+    /// the same [ShareableQubit] object.  It only rewrites the relative qubit indices that any
+    /// given qubit acts upon.
+    ///
+    /// `map_fn` must implement a permutation.  It is called many times on the same qubit without
+    /// caching; if the computation is expensive, consider using a function that indexes into a
+    /// slice.
+    ///
+    /// This is useful in situations where we're applying an initial layout.
+    ///
+    /// This takes time (individually) proportional to the number of qubits, the number of edges in
+    /// the graph, and the sum of the lengths of all distinct qargs.
+    ///
+    /// # Panics
+    ///
+    /// If `map_fn` returns an out-of-bounds qubit, or maps two different qubits to the same index.
+    pub fn reindex_qargs(&mut self, mut map_fn: impl FnMut(Qubit) -> Qubit) {
+        // The Python-space spiritual successors of this code (the `ApplyLayout` pass, e.g.) used to
+        // have to rebuild the whole DAG including reinferring the wire structure.  That is a
+        // foolproof way of doing things, but recalculates and reallocates more than necessary.  We
+        // can leave the graph structure unchanged, provided we change the labelling of the wires
+        // (including the in- and out-nodes), and update the interned copies of all the qargs.
+
+        // Prepare the new in- and out-node structure.  This doubles as the validity check of the
+        // input, so we avoid mutating the DAG until it's complete.
+        let mut new_io_map = vec![[<NodeIndex as IndexType>::max(); 2]; self.qubit_io_map.len()];
+        for (old, [in_, out]) in self.qubit_io_map.iter().enumerate() {
+            let new = map_fn(Qubit::new(old));
+            assert!(
+                new_io_map[new.index()][0] == <NodeIndex as IndexType>::max(),
+                "qubit {old} was reindexed to {new:?}, which was already assigned"
+            );
+            new_io_map[new.index()] = [*in_, *out];
+        }
+
+        // From here on, everything should be infallible.
+        self.qubit_io_map = new_io_map;
+        for (new, [in_, out]) in self.qubit_io_map.iter().enumerate() {
+            let new = Qubit::new(new);
+            self.dag[*in_] = NodeType::QubitIn(new);
+            self.dag[*out] = NodeType::QubitOut(new);
+        }
+        for wire in self.dag.edge_weights_mut() {
+            if let Wire::Qubit(qubit) = *wire {
+                *wire = Wire::Qubit(map_fn(qubit));
+            }
+        }
+        self.qargs_interner.map_inplace(|mut qargs| {
+            for qubit in qargs.iter_mut() {
+                *qubit = map_fn(*qubit)
+            }
+            qargs
+        })
     }
 
     /// Merge the `qargs` in a different [Interner] into this DAG, remapping the qubits.

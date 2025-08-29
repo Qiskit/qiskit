@@ -50,7 +50,7 @@ int test_split_2q_unitaries_no_unitaries(void) {
         }
     }
 ops_cleanup:
-    qk_opcounts_free(counts);
+    qk_opcounts_clear(&counts);
 cleanup:
     qk_circuit_free(qc);
     return result;
@@ -107,7 +107,7 @@ int test_split_2q_unitaries_x_y_unitary(void) {
     }
 
 ops_cleanup:
-    qk_opcounts_free(counts);
+    qk_opcounts_clear(&counts);
 cleanup:
     qk_circuit_free(qc);
     return result;
@@ -174,7 +174,7 @@ int test_split_2q_unitaries_swap_x_y_unitary(void) {
     }
 
 ops_cleanup:
-    qk_opcounts_free(counts);
+    qk_opcounts_clear(&counts);
 cleanup:
     qk_transpile_layout_free(split_result);
     qk_circuit_free(qc);
