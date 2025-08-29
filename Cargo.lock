@@ -92,6 +92,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "anyhow"
+version = "1.0.99"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b0674a1ddeecb70197781e945de4b3b8ffb61fa939a5597bcf48503737663100"
+
+[[package]]
 name = "approx"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1428,7 +1434,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-accelerate"
-version = "2.2.0"
+version = "2.2.0-beta1"
 dependencies = [
  "approx",
  "hashbrown 0.15.5",
@@ -1452,7 +1458,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-cext"
-version = "2.2.0"
+version = "2.2.0-beta1"
 dependencies = [
  "ahash 0.8.12",
  "cbindgen",
@@ -1473,7 +1479,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-circuit"
-version = "2.2.0"
+version = "2.2.0-beta1"
 dependencies = [
  "ahash 0.8.12",
  "approx",
@@ -1498,7 +1504,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-pyext"
-version = "2.2.0"
+version = "2.2.0-beta1"
 dependencies = [
  "pyo3",
  "qiskit-accelerate",
@@ -1513,7 +1519,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-qasm2"
-version = "2.2.0"
+version = "2.2.0-beta1"
 dependencies = [
  "hashbrown 0.15.5",
  "num-bigint",
@@ -1523,7 +1529,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-qasm3"
-version = "2.2.0"
+version = "2.2.0-beta1"
 dependencies = [
  "ahash 0.8.12",
  "hashbrown 0.15.5",
@@ -1539,7 +1545,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-quantum-info"
-version = "2.2.0"
+version = "2.2.0-beta1"
 dependencies = [
  "ahash 0.8.12",
  "approx",
@@ -1565,7 +1571,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-synthesis"
-version = "2.2.0"
+version = "2.2.0-beta1"
 dependencies = [
  "ahash 0.8.12",
  "approx",
@@ -1598,9 +1604,10 @@ dependencies = [
 
 [[package]]
 name = "qiskit-transpiler"
-version = "2.2.0"
+version = "2.2.0-beta1"
 dependencies = [
  "ahash 0.8.12",
+ "anyhow",
  "approx",
  "bytemuck",
  "fixedbitset 0.5.7",
