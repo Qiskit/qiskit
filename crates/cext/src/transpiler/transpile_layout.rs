@@ -95,7 +95,7 @@ pub unsafe extern "C" fn qk_transpile_layout_initial_layout(
 ) -> bool {
     // SAFETY: Per the documentation layout must be a valid pointer to a TranspileLayout
     let layout = unsafe { const_ptr_as_ref(layout) };
-    let out_initial_layout = layout.initial_layout(filter_ancillas);
+    let out_initial_layout = layout.initial_physical_layout(filter_ancillas);
     if let Some(out_initial_layout) = out_initial_layout {
         // SAFETY: Per the documentation initial_layout must be a valid pointer with a sufficient
         // allocation for the output array
