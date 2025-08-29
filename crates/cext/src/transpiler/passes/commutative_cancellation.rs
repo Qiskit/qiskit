@@ -123,7 +123,7 @@ mod tests {
         };
         assert_eq!(result, ExitCode::Success);
         assert_eq!(qc.__len__(), 1);
-        let Some(gate) = qc.data()[0].op.try_standard_gate() else {
+        let Some(gate) = qc.data()[0].op().try_standard_gate() else {
             panic!("Not a standard gate");
         };
         assert_eq!(StandardGate::Z, gate);

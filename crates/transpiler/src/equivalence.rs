@@ -620,7 +620,7 @@ impl EquivalenceLibrary {
         let sources: IndexSet<Key, RandomState> = IndexSet::from_iter(
             equivalent_circuit
                 .iter()
-                .map(|inst| Key::from_operation(&inst.op)),
+                .map(|inst| Key::from_operation(inst.op())),
         );
         let edges = Vec::from_iter(sources.iter().map(|source| {
             (

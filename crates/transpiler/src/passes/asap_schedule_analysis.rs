@@ -67,7 +67,7 @@ pub fn run_asap_schedule_analysis<T: TimeOps>(
                 node_index.index()
             ))
         })?;
-        let op_view = op.op.view();
+        let op_view = op.op().view();
         let is_gate_or_delay = matches!(
             op_view,
             OperationRef::Gate(_)
