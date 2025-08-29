@@ -20,7 +20,7 @@ use qiskit_circuit::{PhysicalQubit, VirtualQubit};
 use qiskit_transpiler::passes::vf2_layout_pass;
 use qiskit_transpiler::target::Target;
 
-/// The result from ``qk_transpiler_pass_standalone_vf2_layout()``.
+/// The result from ``qk_transpiler_passes_vf2_layout_circuit()``.
 pub struct VF2LayoutResult(Option<HashMap<VirtualQubit, PhysicalQubit>>);
 
 /// @ingroup QkVF2LayoutResult
@@ -28,7 +28,7 @@ pub struct VF2LayoutResult(Option<HashMap<VirtualQubit, PhysicalQubit>>);
 ///
 /// @param layout a pointer to the layout
 ///
-/// @returns ``true`` if the ``qk_transpiler_pass_standalone_vf2_layout()`` run found a layout
+/// @returns ``true`` if the ``qk_transpiler_passes_vf2_layout_circuit()`` run found a layout
 ///
 /// # Safety
 ///
@@ -177,7 +177,7 @@ pub unsafe extern "C" fn qk_vf2_layout_result_free(layout: *mut VF2LayoutResult)
 ///             qk_circuit_gate(qc, QkGate_CX, qargs, NULL);
 ///         }
 ///     }
-///     QkVF2LayoutResult *layout_result = qk_transpiler_pass_standalone_vf2_layout(qc, target, false, -1, NAN, -1);
+///     QkVF2LayoutResult *layout_result = qk_transpiler_passes_vf2_layout_circuit(qc, target, false, -1, NAN, -1);
 ///     qk_vf2_layout_result_free(layout_result);
 /// ```
 ///
@@ -186,7 +186,7 @@ pub unsafe extern "C" fn qk_vf2_layout_result_free(layout: *mut VF2LayoutResult)
 /// Behavior is undefined if ``circuit`` or ``target`` is not a valid, non-null pointer to a ``QkCircuit`` and ``QkTarget``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout(
+pub unsafe extern "C" fn qk_transpiler_passes_vf2_layout_circuit(
     circuit: *const CircuitData,
     target: *const Target,
     strict_direction: bool,

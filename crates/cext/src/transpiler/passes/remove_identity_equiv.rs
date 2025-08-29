@@ -71,7 +71,7 @@ use qiskit_transpiler::target::Target;
 ///     uint32_t rz_qargs[1] = {1,};
 ///     double rz_params[1] = {0.,};
 ///     qk_circuit_gate(qc, QkGate_RZ, rz_qargs, rz_params);
-///     qk_transpiler_pass_standalone_remove_identity_equivalent(qc, target, 1.0);
+///     qk_transpiler_passes_remove_identity_equivalent_circuit(qc, target, 1.0);
 /// ```
 ///
 /// # Safety
@@ -79,7 +79,7 @@ use qiskit_transpiler::target::Target;
 /// Behavior is undefined if ``circuit`` or ``target`` is not a valid, non-null pointer to a ``QkCircuit`` and ``QkTarget``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_transpiler_pass_standalone_remove_identity_equivalent(
+pub unsafe extern "C" fn qk_transpiler_passes_remove_identity_equivalent_circuit(
     circuit: *mut CircuitData,
     target: *const Target,
     approximation_degree: f64,

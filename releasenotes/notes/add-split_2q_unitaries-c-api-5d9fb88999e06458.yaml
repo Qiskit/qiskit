@@ -2,6 +2,6 @@
 features_c:
   - |
     Added a new transpiler pass standalone function to the C API,
-    :cpp:func:`qk_transpiler_pass_standalone_split_2q_unitaries`
+    :cpp:func:`qk_transpiler_passes_split_2q_unitaries_circuit`
     which is equivalent to calling the :class:`.Split2QUnitaries`
     pass.
