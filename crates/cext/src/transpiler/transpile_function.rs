@@ -73,23 +73,23 @@ pub extern "C" fn qk_transpiler_default_options() -> TranspileOptions {
 }
 
 /// @ingroup QkTranspiler
-/// Transpile a single circuit
+/// Transpile a single circuit.
 ///
 /// The Qiskit transpiler is a quantum circuit compiler that rewrites a given
-/// input circuit to match the constraints of a QPU and/or optimize the circuit
-/// for execution. This function should only be used with circuit's constructed solely
-/// using Qiskit's C API, it makes assumptions on the circuit only using features exposed via C,
+/// input circuit to match the constraints of a QPU and optimizes the circuit
+/// for execution. This function should only be used with circuits constructed
+/// using Qiskit's C API. It makes assumptions on the circuit only using features exposed via C,
 /// if you are in a mixed Python and C environment it is typically better to invoke the transpiler
 /// via Python.
 ///
 /// This function is multithreaded internally and will launch a thread pool
 /// with threads equal to the number of CPUs reported by the operating system by default.
-/// This will include logical cores on CPUs with SMT. You can tune the number of threads
-/// with the ``RAYON_NUM_THREADS`` environment variable. For example, setting
+/// This will include logical cores on CPUs with simultaneous multithreading. You can tune the
+/// number of threads with the ``RAYON_NUM_THREADS`` environment variable. For example, setting
 /// ``RAYON_NUM_THREADS=4`` would limit the thread pool to 4 threads.
 ///
-/// @param circuit A pointer to the circuit to run the transpiler on
-/// @param target A pointer to the target to compile the circuit for
+/// @param circuit A pointer to the circuit to run the transpiler on.
+/// @param target A pointer to the target to compile the circuit for.
 /// @params options A pointer to an options object that defines user options. If this is a null
 ///   pointer the default values will be used. See ``qk_transpile_default_options``
 ///   for more details on the default values.
@@ -99,18 +99,18 @@ pub extern "C" fn qk_transpiler_default_options() -> TranspileOptions {
 ///   the members using the respective free functions.
 /// @param error A pointer to a pointer with an nul terminated string with an error description.
 ///   If the transpiler fails a pointer to the string with the error description will be written
-///   to this pointer. That pointer needs to be freed with `qk_str_free`. This can be a null
+///   to this pointer. That pointer needs to be freed with ``qk_str_free```. This can be a null
 ///   pointer in which case the error will not be written out.
 ///
-/// @returns the return code for the transpiler, 0 means success and all other values indicate an
-///   error
+/// @returns The return code for the transpiler, ``QkExitCode_Success`` means success and all
+///   other values indicate an error.
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``circuit``, ``target``, ``options``, or ``result``, are
-/// not valid, non-null pointers to a ``QkCircuit``, ``QkTarget``, ``QkTranspileOptions``, or
-/// ``QkTranspileResult`` respectively. ``error`` must be a valid pointer to a ``char`` pointer
-/// or ``NULL``.
+/// Behavior is undefined if ``circuit``, ``target``, or ``result``, are not valid, non-null
+/// pointers to a ``QkCircuit``, ``QkTarget``, or ``QkTranspileResult`` respectively.
+/// ``options`` must be a valid pointer a to a ``QkTranspileOptions`` or ``NULL`.
+/// ``error`` must be a valid pointer to a ``char`` pointer or ``NULL``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile(
@@ -123,7 +123,14 @@ pub unsafe extern "C" fn qk_transpile(
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let qc = unsafe { const_ptr_as_ref(qc) };
     let target = unsafe { const_ptr_as_ref(target) };
-    let options = unsafe { const_ptr_as_ref(options) };
+    let options = if options.is_null() {
+        &TranspileOptions::default()
+    } else {
+        // SAFETY: We checked the pointer is not null, then, per documentation, it is a valid
+        // and aligned pointer.
+        unsafe { const_ptr_as_ref(options) }
+    };
+
     if !(0..=3u8).contains(&options.optimization_level) {
         panic!(
             "Invalid optimization level specified {}",
