@@ -109,10 +109,8 @@ pub fn sampled_expval_sparse_observable(
     let n = sparse_obs.num_qubits();
 
     // Convert SparseObservable to operator strings and coefficients
-    for term in sparse_obs.iter() {
+    let result: Complex64 = sparse_obs.iter().enumerate().map(|(idx, term)| {
         let mut full_op = vec!["I"; n as usize];
-
-        // Build the full operator string
         for (bit_term, &index) in term.bit_terms.iter().zip(term.indices.iter()) {
             let char = match bit_term {
                 BitTerm::X => "X",
@@ -127,28 +125,17 @@ pub fn sampled_expval_sparse_observable(
             };
             full_op[(n - 1 - index) as usize] = char;
         }
+        let oper_str = full_op.join("");
 
         // Validating that all operators are diagonal
-        let allowed_diagonal_ops = ['I', 'Z', '0', '1'];
-
-        for op in &oper_strs {
-            if !op.chars().all(|c| allowed_diagonal_ops.contains(&c)) {
-                return Err(PyValueError::new_err(format!(
-                    "Operator string '{}' contains non-diagonal terms",
-                    op
-                )));
-            }
+        if !oper_str.chars().all(|c| ['I', 'Z', '0', '1'].contains(&c)) {
+            return Err(PyValueError::new_err(format!(
+                "Operator string '{}' contains non-diagonal terms",
+                op
+            )));
         }
-        oper_strs.push(full_op.join(""));
-        coeffs.push(term.coeff);
-    }
-
-    // Dispatch to existing Rust routines based on coefficient types
-    let result: Complex64 = oper_strs
-        .into_iter()
-        .enumerate()
-        .map(|(idx, string)| coeffs[idx] * Complex64::new(bitstring_expval(&dist, string), 0.0))
-        .sum();
+        term.coeff * Complex64::new(bitstring_expval(&dist, oper_str), 0.0)
+    }).sum();
     Ok(result.re)
 }
 
