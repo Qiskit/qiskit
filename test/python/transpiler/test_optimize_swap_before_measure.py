@@ -212,7 +212,7 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
         self.assertEqual(circuit_to_dag(expected), after)
 
     def test_optimize_swap_2measure_same_clbit(self):
-        """Remove multiple swaps affecting multiple measurements
+        """Remove a swap affecting one of a two measurements on the same clbit
                 ┌─┐
         q_0: ─X─┤M├───      q_0: ──────
               │ └╥┘              ┌─┐
