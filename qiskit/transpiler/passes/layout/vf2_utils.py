@@ -16,7 +16,7 @@ from collections import defaultdict
 import random
 
 import numpy as np
-from rustworkx import PyDiGraph, PyGraph, connected_components
+from rustworkx import PyDiGraph, PyGraph, connected_components, weakly_connected_components
 
 from qiskit.circuit import ForLoopOp
 from qiskit.converters import circuit_to_dag
@@ -95,7 +95,10 @@ def build_interaction_graph(dag, strict_direction=True):
     # mappings. This is not done for strict direction because for post layout
     # we need to factor in local operation constraints when evaluating a graph
     free_nodes = {}
-    conn_comp = connected_components(im_graph)
+    if not strict_direction:
+        conn_comp = connected_components(im_graph)
+    else:
+        conn_comp = weakly_connected_components(im_graph)
     for comp in conn_comp:
         if len(comp) == 1:
             index = comp.pop()
