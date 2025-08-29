@@ -208,7 +208,7 @@ rz(0) q4835[1];
         self.assertIsInstance(res, QuantumCircuit)
         layout = res._layout.initial_layout
         self.assertEqual(
-            [layout[q] for q in qc.qubits], [14, 12, 5, 13, 26, 11, 19, 25, 18, 8, 17, 16, 9, 4]
+            [layout[q] for q in qc.qubits], [2, 0, 5, 1, 7, 3, 14, 6, 9, 8, 10, 11, 4, 12]
         )
 
     # pylint: disable=line-too-long
@@ -271,7 +271,7 @@ barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
         self.assertIsInstance(res, QuantumCircuit)
         layout = res._layout.initial_layout
         self.assertEqual(
-            [layout[q] for q in qc.qubits], [0, 12, 7, 8, 6, 3, 1, 10, 4, 9, 2, 11, 13, 5]
+            [layout[q] for q in qc.qubits], [8, 21, 12, 16, 10, 4, 14, 23, 13, 9, 11, 19, 2, 20]
         )
 
     def test_support_var_with_rust_fastpath(self):
@@ -522,6 +522,23 @@ class TestDisjointDeviceSabreLayout(QiskitTestCase):
         self.assertEqual(len(out.layout.initial_layout), len(out.layout.final_layout))
         self.assertEqual(out.layout.initial_index_layout(filter_ancillas=False), [4, 5, 3, 0, 1, 2])
         self.assertEqual(out.layout.final_index_layout(filter_ancillas=False), [3, 5, 4, 0, 1, 2])
+
+    def test_sabre_layout_global_1q(self):
+        """Test that the pass runs with a globally defined 1q gate."""
+        target = Target(num_qubits=3)
+        target.add_instruction(lib.XGate())
+        target.add_instruction(lib.CXGate(), {(0, 1): None, (1, 2): None})
+        layout_routing_pass = SabreLayout(target, swap_trials=1, layout_trials=1, seed=42)
+        qc = QuantumCircuit(3)
+        qc.cz(0, 2)
+        out = layout_routing_pass(qc)
+        # sabre maps 2 -> 1, and 0 -> 2 in the layout with no swaps
+        self.assertIsNone(out.count_ops().get("swap", None))
+        self.assertEqual([out.find_bit(x).index for x in out.data[0].qubits], [2, 1])
+        self.assertEqual(len(out.layout.initial_layout), len(out.layout.final_layout))
+        self.assertEqual(out.layout.initial_index_layout(filter_ancillas=False), [2, 0, 1])
+        self.assertEqual(out.layout.routing_permutation(), [0, 1, 2])
+        self.assertEqual(out.layout.final_index_layout(filter_ancillas=False), [2, 0, 1])
 
 
 class TestSabrePreLayout(QiskitTestCase):

@@ -31,11 +31,11 @@ state defined as:
     // Create a circuit with three qubits and 3 classical bits
     QkCircuit *qc = qk_circuit_new(3, 0);
     // H gate on qubit 0, putting this qubit in a superposition of |0> + |1>.
-    qk_circuit_gate(qc, QkGate_H, {0}, NULL);
+    qk_circuit_gate(qc, QkGate_H, (uint32_t[]){0}, NULL);
     // A CX (CNOT) gate on control qubit 0 and target qubit 1 generating a Bell state.
-    qk_circuit_gate(qc, QkGate_CX, {0, 1}, NULL);
+    qk_circuit_gate(qc, QkGate_CX, (uint32_t[]){0, 1}, NULL);
     // A CX (CNOT) gate on control qubit 0 and target qubit 2 generating a GHZ state.
-    qk_circuit_gate(qc, QkGate_CX, {0, 2}, NULL);
+    qk_circuit_gate(qc, QkGate_CX, (uint32_t[]){0, 2}, NULL);
     // Free the created circuit.
     qk_circuit_free(qc);
 

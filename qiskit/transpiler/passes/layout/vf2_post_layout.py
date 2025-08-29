@@ -346,7 +346,9 @@ class VF2PostLayout(AnalysisPass):
                                 used_bits.add(i)
                                 chosen_layout.add(bit, i)
                                 break
-            self.property_set["post_layout"] = chosen_layout
+            self.property_set["post_layout"] = vf2_utils.allocate_idle_qubits(
+                dag, self.target, chosen_layout
+            )
         else:
             if chosen_layout is None:
                 stop_reason = VF2PostLayoutStopReason.NO_SOLUTION_FOUND

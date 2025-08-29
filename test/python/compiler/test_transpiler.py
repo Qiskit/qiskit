@@ -18,6 +18,7 @@ import itertools
 import math
 import os
 import sys
+import random
 from logging import StreamHandler, getLogger
 from unittest.mock import patch
 import numpy as np
@@ -62,6 +63,7 @@ from qiskit.circuit.library import (
     ECRGate,
     HGate,
     IGate,
+    PermutationGate,
     PhaseGate,
     RXGate,
     RYGate,
@@ -85,7 +87,7 @@ from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.options import Options
 from qiskit.quantum_info import Operator, random_unitary
 from qiskit.utils import should_run_in_parallel
-from qiskit.transpiler import CouplingMap, Layout, PassManager
+from qiskit.transpiler import CouplingMap, Layout, PassManager, passes
 from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirection, VF2PostLayout
 
@@ -2403,6 +2405,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
         bits = [Qubit(), Qubit(), Clbit()]
         base = QuantumCircuit(*regs, bits)
         base.h(0)
+        base.delay(expr.lift(Duration.ps(1234)), 0)
         base.measure(0, 0)
         with base.if_test(expr.equal(base.cregs[0], 1)) as else_:
             base.cx(0, 1)
@@ -2553,7 +2556,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
             control_flow=True,
         )
         transpiled = transpile(
-            self._control_flow_circuit(),
+            self._control_flow_expr_circuit(),
             backend=backend,
             optimization_level=optimization_level,
             seed_transpiler=2023_07_26,
@@ -2635,7 +2638,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
         """Test that the output of a transpiled circuit with control flow and `Expr` nodes can be
         dumped into OpenQASM 3."""
         transpiled = transpile(
-            self._control_flow_circuit(),
+            self._control_flow_expr_circuit(),
             backend=GenericBackendV2(
                 num_qubits=27, coupling_map=MUMBAI_CMAP, control_flow=True, seed=2025_05_28
             ),
@@ -2727,6 +2730,50 @@ class TestPostTranspileIntegration(QiskitTestCase):
         tqc = transpile(qc, backend=backend, seed_transpiler=4242, callback=callback)
         self.assertTrue(vf2_post_layout_called)
         self.assertEqual([2, 1, 0], _get_index_layout(tqc, qubits))
+
+    @data("sabre", "lookahead", "basic")
+    def test_final_layout_combined_correctly(self, routing):
+        """Test that multiple `final_layout`s are combined correctly."""
+        generators = {
+            "sabre": lambda cmap, seed: passes.SabreSwap(cmap, seed=seed, trials=1),
+            "lookahead": lambda cmap, _seed: passes.LookaheadSwap(cmap),
+            "basic": lambda cmap, seed: passes.BasicSwap(cmap),
+        }
+        make_routing_pass = generators[routing]
+
+        def random_line(num_qubits, rng):
+            line = list(range(num_qubits))
+            rng.shuffle(line)
+            out = CouplingMap([[a, b] for a, b in zip(line[:-1], line[1:])])
+            out.make_symmetric()
+            return out
+
+        rng = random.Random(0)
+        num_qubits = 5
+
+        # This is just loads of stars, so routing has to work for it.
+        qc = QuantumCircuit(num_qubits)
+        for i in range(num_qubits):
+            for j in range(num_qubits):
+                if i == j:
+                    continue
+                qc.cx(i, j)
+        # ... and the mirror, so the circuit implements the identity.
+        qc.barrier()
+        qc.compose(qc.inverse(), qc.qubits, inplace=True)
+
+        # Routing needs a layout set, and we don't want qubit relabelling to mess with our test.
+        pm = PassManager([passes.SetLayout(list(range(num_qubits))), passes.ApplyLayout()])
+        # Now we route the circuit to several different coupling maps in a row, so we generate lots
+        # of routing permutations, and each pass needs to combine them.
+        pm += PassManager([make_routing_pass(random_line(num_qubits, rng), i) for i in range(5)])
+        out = pm.run(qc)
+
+        # The invariant of `routing_permutation` is that you're supposed to be able to append it as
+        # a permutation and it will "undo" the effects.  We already know our circuit implements the
+        # identity.
+        out.append(PermutationGate(out.layout.routing_permutation()), out.qubits)
+        self.assertEqual(Operator(out), Operator(np.eye(2**num_qubits)))
 
     @data(0, 1, 2, 3)
     def test_annotations_survive(self, optimization_level):

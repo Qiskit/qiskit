@@ -34,7 +34,7 @@ type BasisTransforms = Vec<(GateIdentifier, BasisTransformIn)>;
 pub(crate) fn basis_search(
     equiv_lib: &mut EquivalenceLibrary,
     source_basis: &IndexSet<GateIdentifier, ahash::RandomState>,
-    target_basis: &IndexSet<String, ahash::RandomState>,
+    target_basis: &IndexSet<&str, ahash::RandomState>,
 ) -> Option<BasisTransforms> {
     // Build the visitor attributes:
     let mut num_gates_remaining_for_rule: IndexMap<usize, usize, ahash::RandomState> =
@@ -51,7 +51,7 @@ pub(crate) fn basis_search(
     let mut source_basis_remain: IndexSet<Key, ahash::RandomState> = source_basis
         .iter()
         .filter_map(|(gate_name, gate_num_qubits)| {
-            if !target_basis.contains(gate_name) {
+            if !target_basis.contains(gate_name.as_str()) {
                 Some(Key {
                     name: gate_name.to_string(),
                     num_qubits: *gate_num_qubits,
@@ -103,7 +103,7 @@ pub(crate) fn basis_search(
         let edge_data = edge.weight().as_ref().unwrap();
         let mut cost_tot = 0;
         let borrowed_cost = opt_cost_map.borrow();
-        for instruction in edge_data.rule.circuit.0.iter() {
+        for instruction in edge_data.rule.circuit.iter() {
             let instruction_op = instruction.op.view();
             cost_tot += borrowed_cost[&(
                 instruction_op.name().to_string(),

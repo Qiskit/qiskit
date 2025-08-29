@@ -29,7 +29,7 @@ from qiskit.passmanager.flow_controllers import FlowControllerLinear
 from qiskit.passmanager.exceptions import PassManagerError
 from .basepasses import BasePass
 from .exceptions import TranspilerError
-from .layout import TranspileLayout, Layout
+from .layout import TranspileLayout
 
 _CircuitsT = TypeVar("_CircuitsT", bound=Union[List[QuantumCircuit], QuantumCircuit])
 
@@ -59,6 +59,10 @@ class PassManager(BasePassManager):
         input_program: QuantumCircuit,
         **kwargs,
     ) -> DAGCircuit:
+        self.property_set["original_qubit_indices"] = {
+            bit: i for i, bit in enumerate(input_program.qubits)
+        }
+        self.property_set["num_input_qubits"] = input_program.num_qubits
         return circuit_to_dag(input_program, copy_operations=True)
 
     def _passmanager_backend(
@@ -68,23 +72,18 @@ class PassManager(BasePassManager):
         **kwargs,
     ) -> QuantumCircuit:
         out_program = dag_to_circuit(passmanager_ir, copy_operations=False)
-
-        self._finalize_layouts(passmanager_ir)
-        out_name = kwargs.get("output_name", None)
-        if out_name is not None:
+        if (out_name := kwargs.get("output_name", None)) is not None:
             out_program.name = out_name
 
-        if self.property_set["layout"] is not None:
-            out_program._layout = TranspileLayout(
-                initial_layout=self.property_set["layout"],
-                input_qubit_mapping=self.property_set["original_qubit_indices"],
-                final_layout=self.property_set["final_layout"],
-                _input_qubit_count=len(in_program.qubits),
-                _output_qubit_list=out_program.qubits,
-            )
+        if (
+            layout := TranspileLayout.from_property_set(passmanager_ir, self.property_set)
+        ) is not None:
+            out_program._layout = layout
+            # Write the canonicalized form back out. This is for backwards compatibility.
+            layout.write_into_property_set(self.property_set)
+
         out_program._clbit_write_latency = self.property_set["clbit_write_latency"]
         out_program._conditional_latency = self.property_set["conditional_latency"]
-
         if self.property_set["node_start_time"]:
             # This is dictionary keyed on the DAGOpNode, which is invalidated once
             # dag is converted into circuit. So this schedule information is
@@ -96,49 +95,6 @@ class PassManager(BasePassManager):
             out_program._op_start_times = topological_start_times
 
         return out_program
-
-    def _finalize_layouts(self, dag):
-        if (virtual_permutation_layout := self.property_set["virtual_permutation_layout"]) is None:
-            return
-
-        self.property_set.pop("virtual_permutation_layout")
-
-        # virtual_permutation_layout is usually created before extending the layout with ancillas,
-        # so we extend the permutation to be identity on ancilla qubits
-        original_qubit_indices = self.property_set.get("original_qubit_indices", None)
-        for oq in original_qubit_indices:
-            if oq not in virtual_permutation_layout:
-                virtual_permutation_layout[oq] = original_qubit_indices[oq]
-
-        t_qubits = dag.qubits
-
-        if (t_initial_layout := self.property_set.get("layout", None)) is None:
-            t_initial_layout = Layout(dict(enumerate(t_qubits)))
-
-        if (t_final_layout := self.property_set.get("final_layout", None)) is None:
-            t_final_layout = Layout(dict(enumerate(t_qubits)))
-
-        # Ordered list of original qubits
-        original_qubits_reverse = {v: k for k, v in original_qubit_indices.items()}
-        original_qubits = []
-        # pylint: disable-next=consider-using-enumerate
-        for i in range(len(original_qubits_reverse)):
-            original_qubits.append(original_qubits_reverse[i])
-
-        virtual_permutation_layout_inv = virtual_permutation_layout.inverse(
-            original_qubits, original_qubits
-        )
-
-        t_initial_layout_inv = t_initial_layout.inverse(original_qubits, t_qubits)
-
-        # ToDo: this can possibly be made simpler
-        new_final_layout = t_initial_layout_inv
-        new_final_layout = new_final_layout.compose(virtual_permutation_layout_inv, original_qubits)
-        new_final_layout = new_final_layout.compose(t_initial_layout, original_qubits)
-        new_final_layout = new_final_layout.compose(t_final_layout, t_qubits)
-
-        self.property_set["layout"] = t_initial_layout
-        self.property_set["final_layout"] = new_final_layout
 
     def append(  # pylint:disable=arguments-renamed
         self,
@@ -214,6 +170,14 @@ class PassManager(BasePassManager):
                         property_set = kwargs['property_set']
                         count = kwargs['count']
                         ...
+
+                .. note::
+
+                    When running transpilation with multi-processing,
+                    the callback function is invoked within the context
+                    of each sub-process, independently of the
+                    parent process.
+
             num_processes: The maximum number of parallel processes to launch if parallel
                 execution is enabled. This argument overrides ``num_processes`` in the user
                 configuration file, and the ``QISKIT_NUM_PROCS`` environment variable. If set

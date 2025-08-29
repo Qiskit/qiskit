@@ -76,7 +76,7 @@ fn to_qiskit_clifford_gate(rustiq_gate: &CliffordGate) -> QiskitGate {
 /// * paulis: Rustiq's data structure storing pauli rotations.
 /// * i: index of the single-qubit Pauli rotation.
 /// * angle: Qiskit's rotation angle.
-fn qiskit_rotation_gate(py: Python, paulis: &PauliSet, i: usize, angle: &Param) -> QiskitGate {
+fn qiskit_rotation_gate(paulis: &PauliSet, i: usize, angle: &Param) -> QiskitGate {
     let (phase, pauli_str) = paulis.get(i);
     for (q, c) in pauli_str.chars().enumerate() {
         if c != 'I' {
@@ -89,7 +89,7 @@ fn qiskit_rotation_gate(py: Python, paulis: &PauliSet, i: usize, angle: &Param) 
             // We need to negate the angle when there is a phase.
             let param = match phase {
                 false => angle.clone(),
-                true => multiply_param(angle, -1.0, py),
+                true => multiply_param(angle, -1.0),
             };
             return (standard_gate, smallvec![param], smallvec![Qubit(q as u32)]);
         }
@@ -172,7 +172,6 @@ impl CommutativityDag {
 /// * preserve_order: specifies whether the order of paulis should be preserved,
 ///   up to commutativity.
 fn inject_rotations(
-    py: Python,
     gates: &[CliffordGate],
     paulis: &PauliSet,
     angles: &[Param],
@@ -192,11 +191,11 @@ fn inject_rotations(
         if pauli_support_size == 0 {
             // in case of an all-identity rotation, update global phase by subtracting
             // the angle
-            global_phase = radd_param(global_phase, multiply_param(&angles[i], -0.5, py), py);
+            global_phase = radd_param(global_phase, multiply_param(&angles[i], -0.5));
             hit_paulis[i] = true;
             dag.remove_node(i);
         } else if pauli_support_size == 1 && dag.is_front_node(i) {
-            out_gates.push(qiskit_rotation_gate(py, &cur_paulis, i, &angles[i]));
+            out_gates.push(qiskit_rotation_gate(&cur_paulis, i, &angles[i]));
             hit_paulis[i] = true;
             dag.remove_node(i);
         }
@@ -210,7 +209,7 @@ fn inject_rotations(
         // check which paulis are hit now
         for i in 0..cur_paulis.len() {
             if !hit_paulis[i] && cur_paulis.support_size(i) == 1 && dag.is_front_node(i) {
-                out_gates.push(qiskit_rotation_gate(py, &cur_paulis, i, &angles[i]));
+                out_gates.push(qiskit_rotation_gate(&cur_paulis, i, &angles[i]));
                 hit_paulis[i] = true;
                 dag.remove_node(i);
             }
@@ -299,7 +298,6 @@ fn synthesize_final_clifford(
 /// the returned circuit is equivalent to the given pauli network.
 #[allow(clippy::too_many_arguments)]
 pub fn pauli_network_synthesis_inner(
-    py: Python,
     num_qubits: usize,
     pauli_network: &Bound<PyList>,
     optimize_count: bool,
@@ -343,7 +341,7 @@ pub fn pauli_network_synthesis_inner(
 
     // post-process algorithm's output, translating to Qiskit's gates and inserting rotation gates
     let (mut gates, global_phase) =
-        inject_rotations(py, &circuit.gates, &paulis, &angles, preserve_order);
+        inject_rotations(&circuit.gates, &paulis, &angles, preserve_order);
 
     // if the circuit needs to be synthesized exactly, we cannot use either Rustiq's
     // or Qiskit's synthesis methods for Cliffords, since they do not necessarily preserve

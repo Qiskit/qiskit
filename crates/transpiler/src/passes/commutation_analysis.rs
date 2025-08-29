@@ -12,21 +12,21 @@
 
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::PyModule;
+use pyo3::prelude::*;
+use pyo3::types::{PyDict, PyList};
 use pyo3::{pyfunction, wrap_pyfunction, Bound, PyResult, Python};
-use qiskit_circuit::Qubit;
+
+use indexmap::IndexMap;
+use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use crate::commutation_checker::CommutationChecker;
-use hashbrown::HashMap;
-use pyo3::prelude::*;
-
-use pyo3::types::{PyDict, PyList};
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
-use rustworkx_core::petgraph::stable_graph::NodeIndex;
+use qiskit_circuit::Qubit;
 
 // Custom types to store the commutation sets and node indices,
 // see the docstring below for more information.
-type CommutationSet = HashMap<Wire, Vec<Vec<NodeIndex>>>;
-type NodeIndices = HashMap<(NodeIndex, Wire), usize>;
+type CommutationSet = IndexMap<Wire, Vec<Vec<NodeIndex>>, ::ahash::RandomState>;
+type NodeIndices = IndexMap<(NodeIndex, Wire), usize, ::ahash::RandomState>;
 
 // the maximum number of qubits we check commutativity for
 const MAX_NUM_QUBITS: u32 = 3;
@@ -51,13 +51,12 @@ const MAX_NUM_QUBITS: u32 = 3;
 ///     node_indices = {(0, 0): 0, (1, 0): 3, (2, 0): 1, (3, 0): 1, (4, 0): 2}
 ///
 pub fn analyze_commutations(
-    py: Python,
     dag: &mut DAGCircuit,
     commutation_checker: &mut CommutationChecker,
     approximation_degree: f64,
 ) -> PyResult<(CommutationSet, NodeIndices)> {
-    let mut commutation_set: CommutationSet = HashMap::new();
-    let mut node_indices: NodeIndices = HashMap::new();
+    let mut commutation_set: CommutationSet = Default::default();
+    let mut node_indices: NodeIndices = Default::default();
 
     for qubit in 0..dag.num_qubits() {
         let wire = Wire::Qubit(Qubit(qubit as u32));
@@ -92,8 +91,7 @@ pub fn analyze_commutations(
                         let cargs1 = dag.get_cargs(packed_inst0.clbits);
                         let cargs2 = dag.get_cargs(packed_inst1.clbits);
 
-                        all_commute = commutation_checker.commute_inner(
-                            py,
+                        all_commute = commutation_checker.commute(
                             &op1,
                             params1,
                             qargs1,
@@ -143,7 +141,7 @@ pub fn py_analyze_commutations(
     //   * The index in which commutation set a given node is located on a wire: {(node, wire): index}
     // The Python dict will store both of these dictionaries in one.
     let (commutation_set, node_indices) =
-        analyze_commutations(py, dag, commutation_checker, approximation_degree)?;
+        analyze_commutations(dag, commutation_checker, approximation_degree)?;
 
     let out_dict = PyDict::new(py);
 

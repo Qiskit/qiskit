@@ -27,16 +27,15 @@ from qiskit.synthesis.one_qubit import one_qubit_decompose
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.circuit.library.standard_gates import CXGate
 from qiskit.circuit.library.generalized_gates.uc_pauli_rot import UCPauliRotGate, _EPS
-from qiskit.circuit.library.generalized_gates.ucry import UCRYGate
-from qiskit.circuit.library.generalized_gates.ucrz import UCRZGate
 from qiskit._accelerate.two_qubit_decompose import two_qubit_decompose_up_to_diagonal
-from qiskit._accelerate.cos_sin_decomp import cossin
+
+# pylint: disable=invalid-name
 
 
 def qs_decomposition(
     mat: np.ndarray,
-    opt_a1: bool = True,
-    opt_a2: bool = True,
+    opt_a1: bool | None = None,
+    opt_a2: bool | None = None,
     decomposer_1q: Callable[[np.ndarray], QuantumCircuit] | None = None,
     decomposer_2q: Callable[[np.ndarray], QuantumCircuit] | None = None,
     *,
@@ -44,44 +43,54 @@ def qs_decomposition(
 ):
     r"""
     Decomposes a unitary matrix into one and two qubit gates using Quantum Shannon Decomposition,
+    based on the Block ZXZ-Decomposition.
 
-    This decomposition is described in Shende et al. [1].
+    This decomposition is described in Krol and Al-Ars [2] and improves the method of
+    Shende et al. [1].
 
     .. code-block:: text
 
-          ┌───┐               ┌───┐     ┌───┐     ┌───┐
-         ─┤   ├─       ───────┤ Rz├─────┤ Ry├─────┤ Rz├─────
-          │   │    ≃     ┌───┐└─┬─┘┌───┐└─┬─┘┌───┐└─┬─┘┌───┐
-        /─┤   ├─       /─┤   ├──□──┤   ├──□──┤   ├──□──┤   ├
-          └───┘          └───┘     └───┘     └───┘     └───┘
+          ┌───┐              ┌───┐     ┌───┐
+         ─┤   ├─      ────□──┤ H ├──□──┤ H ├──□──
+          │   │    ≃    ┌─┴─┐└───┘┌─┴─┐└───┘┌─┴─┐
+        /─┤   ├─      ──┤ C ├─────┤ B ├─────┤ A ├
+          └───┘         └───┘     └───┘     └───┘
 
-    The number of :class:`.CXGate`\ s generated with the decomposition without optimizations is:
+    The number of :class:`.CXGate`\ s generated with the decomposition without optimizations is
+    the same as the unoptimized method in [1]:
 
     .. math::
 
         \frac{9}{16} 4^n - \frac{3}{2} 2^n
 
-    If ``opt_a1 = True``, the default, the CX count is reduced by:
+    If ``opt_a1 = True``, the CX count is reduced, improving [1], by:
 
     .. math::
 
-        \frac{1}{3} 4^{n - 2} - 1.
+        \frac{2}{3} (4^{n - 2} - 1).
 
-    If ``opt_a2 = True``, the default, the CX count is reduced by:
+    Saving two :class:`.CXGate`\ s instead of one in each step of the recursion.
+
+    If ``opt_a2 = True``, the CX count is reduced, as in [1], by:
 
     .. math::
 
         4^{n-2} - 1.
 
+    Hence, the number of :class:`.CXGate`\ s generated with the decomposition with optimizations is
+
+    .. math::
+
+        \frac{22}{48} 4^n - \frac{3}{2} 2^n + \frac{5}{3}.
+
     Args:
         mat: unitary matrix to decompose
-        opt_a1: whether to try optimization A.1 from Shende et al. [1].
-            This should eliminate 1 ``cx`` per call.
-            If ``True``, :class:`.CZGate`\s are left in the output.
-            If desired these can be further decomposed to :class:`.CXGate`\s.
-        opt_a2: whether to try optimization A.2 from Shende et al. [1].
+        opt_a1: whether to try optimization A.1 from [1, 2].
+            This should eliminate 2 ``cx`` per call.
+        opt_a2: whether to try optimization A.2 from [1, 2].
             This decomposes two qubit unitaries into a diagonal gate and
-            a two cx unitary and reduces overall cx count by :math:`4^{n-2} - 1`.
+            a two ``cx`` unitary and reduces overall ``cx`` count by :math:`4^{n-2} - 1`.
+            This optimization should not be done if the original unitary is controlled.
         decomposer_1q: optional 1Q decomposer. If None, uses
             :class:`~qiskit.synthesis.OneQubitEulerDecomposer`.
         decomposer_2q: optional 2Q decomposer. If None, uses
@@ -93,18 +102,26 @@ def qs_decomposition(
     References:
         1. Shende, Bullock, Markov, *Synthesis of Quantum Logic Circuits*,
            `arXiv:0406176 [quant-ph] <https://arxiv.org/abs/quant-ph/0406176>`_
+        2. Krol, Al-Ars, *Beyond Quantum Shannon: Circuit Construction for General
+           n-Qubit Gates Based on Block ZXZ-Decomposition*,
+           `arXiv:2403.13692 <https://arxiv.org/abs/2403.13692>`_
     """
     #  _depth (int): Internal use parameter to track recursion depth.
     dim = mat.shape[0]
     nqubits = dim.bit_length() - 1
+    if opt_a1 is None:
+        opt_a1 = True
 
     if np.allclose(np.identity(dim), mat):
         return QuantumCircuit(nqubits)
+    # One-qubit unitary
     if dim == 2:
         if decomposer_1q is None:
             decomposer_1q = one_qubit_decompose.OneQubitEulerDecomposer()
         circ = decomposer_1q(mat)
-    elif dim == 4:
+        return circ
+    # Two-qubit unitary
+    if dim == 4:
         if decomposer_2q is None:
             if opt_a2 and _depth > 0:
                 from qiskit.circuit.library.generalized_gates.unitary import (
@@ -120,52 +137,113 @@ def qs_decomposition(
                 decomposer_2q = decomp_2q
             else:
                 decomposer_2q = TwoQubitBasisDecomposer(CXGate())
+        mat = _closest_unitary(mat)
         circ = decomposer_2q(mat)
+        return circ
+    # check whether the matrix is equivalent to a block diagonal wrt ctrl_index
+    if opt_a2 is None:
+        opt_a2 = True
+        # check if the unitary is controlled
+        for ctrl_index in range(nqubits):
+            um00, um11, um01, um10 = _extract_multiplex_blocks(mat, ctrl_index)
+            if _off_diagonals_are_zero(um01, um10):
+                opt_a2 = False
+    if opt_a2 is False:
+        for ctrl_index in range(nqubits):
+            um00, um11, um01, um10 = _extract_multiplex_blocks(mat, ctrl_index)
+            # the ctrl_index is reversed here
+            if _off_diagonals_are_zero(um01, um10):
+                decirc, _, _ = _demultiplex(
+                    um00,
+                    um11,
+                    opt_a1=opt_a1,
+                    opt_a2=opt_a2,
+                    _vw_type="all",
+                    _depth=_depth,
+                    _ctrl_index=nqubits - 1 - ctrl_index,
+                )
+                return decirc
+    qr = QuantumRegister(nqubits)
+
+    # perform block ZXZ decomposition from [2]
+    A1, A2, B, C = _block_zxz_decomp(np.asarray(mat, dtype=complex))
+    iden = np.eye(2 ** (nqubits - 1))
+    # left circ
+    left_circ, vmatC, _wmatC = _demultiplex(
+        iden, C, opt_a1=opt_a1, opt_a2=opt_a2, _vw_type="only_w", _depth=_depth
+    )
+    # right circ
+    right_circ, _vmatA, wmatA = _demultiplex(
+        A1, A2, opt_a1=opt_a1, opt_a2=opt_a2, _vw_type="only_v", _depth=_depth
+    )
+
+    # middle circ
+    # zmat is needed in order to reduce two cz gates, and combine them into the B2 matrix
+    zmat = np.diag([1] * (dim // 4) + [-1] * (dim // 4))
+    # wmatA and vmatC are combined into B1 and B2
+    B1 = wmatA @ vmatC
+    if opt_a1:
+        B2 = zmat @ wmatA @ B @ vmatC @ zmat
     else:
-        # check whether matrix is equivalent to block diagonal wrt ctrl_index
-        if opt_a2 is False:
-            for ctrl_index in range(nqubits):
-                um00, um11, um01, um10 = _extract_multiplex_blocks(mat, ctrl_index)
-                # the ctrl_index is reversed here
-                if _off_diagonals_are_zero(um01, um10):
-                    decirc = _demultiplex(
-                        um00,
-                        um11,
-                        opt_a1=opt_a1,
-                        opt_a2=opt_a2,
-                        _depth=_depth,
-                        _ctrl_index=nqubits - 1 - ctrl_index,
-                    )
-                    return decirc
-        qr = QuantumRegister(nqubits)
-        circ = QuantumCircuit(qr)
-        # perform cosine-sine decomposition
-        (u1, u2), vtheta, (v1h, v2h) = cossin(np.asarray(mat, dtype=complex))
-        # left circ
-        left_circ = _demultiplex(v1h, v2h, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth)
-        circ.append(left_circ.to_instruction(), qr)
-        # middle circ
-        if opt_a1:
-            nangles = len(vtheta)
-            half_size = nangles // 2
-            # get UCG in terms of CZ
-            circ_cz = _get_ucry_cz(nqubits, (2 * vtheta).tolist())
-            circ.append(circ_cz.to_instruction(), range(nqubits))
-            # merge final cz with right-side generic multiplexer
-            u2[:, half_size:] = np.negative(u2[:, half_size:])
-        else:
-            ucry = UCRYGate((2 * vtheta).tolist())
-            circ.append(ucry, [qr[-1]] + qr[:-1])
-        # right circ
-        right_circ = _demultiplex(u1, u2, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth)
-        circ.append(right_circ.to_instruction(), qr)
+        B2 = wmatA @ B @ vmatC
+    middle_circ, _, _ = _demultiplex(
+        B1, B2, opt_a1=opt_a1, opt_a2=opt_a2, _vw_type="all", _depth=_depth
+    )
+
+    # the output circuit of the block ZXZ decomposition from [2]
+    circ = QuantumCircuit(qr)
+    circ.append(left_circ.to_instruction(), qr)
+    circ.h(nqubits - 1)
+    circ.append(middle_circ.to_instruction(), qr)
+    circ.h(nqubits - 1)
+    circ.append(right_circ.to_instruction(), qr)
 
     if opt_a2 and _depth == 0 and dim > 4:
         return _apply_a2(circ)
     return circ
 
 
-def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, *, _depth=0, _ctrl_index=None):
+def _block_zxz_decomp(Umat):
+    """Block ZXZ decomposition method, by Krol and Al-Ars [2]."""
+    dim = Umat.shape[0]
+    n = dim // 2
+    # from now on we keep the notations of [2]
+    X = Umat[:n, :n]
+    Y = Umat[:n, n:]
+    U21 = Umat[n:, :n]
+    U22 = Umat[n:, n:]
+
+    VX, S, WXdg = scipy.linalg.svd(X)
+    Sigma = np.diag(S)
+    VXdg = VX.conj().T
+    SX = VX @ Sigma @ VXdg
+    UX = VX @ WXdg
+    VY, S, WYdg = scipy.linalg.svd(Y)
+    Sigma = np.diag(S)
+    VYdg = VY.conj().T
+    SY = VY @ Sigma @ VYdg
+    UY = VY @ WYdg
+    UYdg = UY.conj().T
+    Cdg = 1j * UYdg @ UX
+    C = Cdg.conj().T
+    A1 = (SX + 1j * SY) @ UX
+    A1dg = A1.conj().T
+    A2 = U21 + U22 @ (1j * (UYdg @ UX))
+    B = 2 * (A1dg @ X) - np.eye(n)
+    return A1, A2, B, C
+
+
+def _closest_unitary(mat):
+    """Find the closest unitary matrix to a matrix mat."""
+
+    V, _S, Wdg = scipy.linalg.svd(mat)
+    mat = V @ Wdg
+    return mat
+
+
+def _demultiplex(
+    um0, um1, opt_a1=False, opt_a2=False, *, _vw_type="all", _depth=0, _ctrl_index=None
+):
     """Decompose a generic multiplexer.
 
           ────□────
@@ -192,11 +270,14 @@ def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, *, _depth=0, _ctrl_index=
     Args:
        um0 (ndarray): applied if MSB is 0
        um1 (ndarray): applied if MSB is 1
-       opt_a1 (bool): whether to try optimization A.1 from Shende. This should eliminate 1 cnot
-          per call. If True CZ gates are left in the output. If desired these can be further decomposed
-       opt_a2 (bool): whether to try  optimization A.2 from Shende. This decomposes two qubit
-          unitaries into a diagonal gate and a two cx unitary and reduces overall cx count by
-          4^(n-2) - 1.
+       opt_a1 (bool): whether to try optimization A.1 from [1, 2]. This should eliminate
+          two ``cx`` gates per call.
+       opt_a2 (bool): whether to try  optimization A.2 from [1, 2]. This decomposes two qubit
+          unitaries into a diagonal gate and a two cx unitary and reduces overall ``cx`` count by
+          4^(n-2) - 1. This optimization should not be done if the original unitary is controlled.
+       _vw_type (string): "only_v", "only_w" or "all" for reductions.
+          This is needed in order to combine the vmat or wmat into the B matrix in [2],
+          instead of decomposing them.
        _depth (int): This is an internal variable to track the recursion depth.
        _ctrl_index (int): The index wrt which um0 and um1 are controlled.
 
@@ -221,56 +302,63 @@ def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, *, _depth=0, _ctrl_index=
 
     circ = QuantumCircuit(nqubits)
 
-    # left gate
-    left_gate = qs_decomposition(
-        wmat, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth + 1
-    ).to_instruction()
-    circ.append(left_gate, layout[: nqubits - 1])
+    # left gate. In this case we decompose wmat.
+    # Otherwise, it is combined with the B matrix.
+    if _vw_type in ["only_w", "all"]:
+        left_gate = qs_decomposition(
+            wmat, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth + 1
+        ).to_instruction()
+        circ.append(left_gate, layout[: nqubits - 1])
 
-    # multiplexed Rz
+    # multiplexed Rz gate
+    # If opt_a1 = ``True``, then we reduce 2 ``cx`` gates per call.
     angles = 2 * np.angle(np.conj(dvals))
-    ucrz = UCRZGate(angles.tolist())
+    if _vw_type == "only_w" and opt_a1:
+        ucrz = _get_ucrz(nqubits, angles)
+    elif _vw_type == "only_v" and opt_a1:
+        ucrz = _get_ucrz(nqubits, angles).reverse_ops()
+    else:
+        ucrz = _get_ucrz(nqubits, angles, _vw_type="all")
     circ.append(ucrz, [layout[-1]] + layout[: nqubits - 1])
 
-    # right gate
-    right_gate = qs_decomposition(
-        vmat, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth + 1
-    ).to_instruction()
-    circ.append(right_gate, layout[: nqubits - 1])
+    # right gate. In this case we decompose vmat.
+    # Otherwise, it is combined with the B matrix.
+    if _vw_type in ["only_v", "all"]:
+        right_gate = qs_decomposition(
+            vmat, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth + 1
+        ).to_instruction()
+        circ.append(right_gate, layout[: nqubits - 1])
 
-    return circ
+    return circ, vmat, wmat
 
 
-def _get_ucry_cz(nqubits, angles):
-    """
-    Get uniformly controlled Ry gate in CZ-Ry as in UCPauliRotGate.
-    """
-    nangles = len(angles)
-    qc = QuantumCircuit(nqubits)
-    q_controls = qc.qubits[:-1]
-    q_target = qc.qubits[-1]
-    if not q_controls:
-        if np.abs(angles[0]) > _EPS:
-            qc.ry(angles[0], q_target)
-    else:
-        angles = angles.copy()
-        UCPauliRotGate._dec_uc_rotations(angles, 0, len(angles), False)
-        for i, angle in enumerate(angles):
-            if np.abs(angle) > _EPS:
-                qc.ry(angle, q_target)
-            if not i == len(angles) - 1:
-                binary_rep = np.binary_repr(i + 1)
-                q_contr_index = len(binary_rep) - len(binary_rep.rstrip("0"))
-            else:
-                # Handle special case:
-                q_contr_index = len(q_controls) - 1
-            # leave off last CZ for merging with adjacent UCG
-            if i < nangles - 1:
-                qc.cz(q_controls[q_contr_index], q_target)
-    return qc
+def _get_ucrz(nqubits, angles, _vw_type=None):
+    """This function synthesizes UCRZ without the final CX gate,
+    unless _vw_type = ``all``."""
+    circuit = QuantumCircuit(nqubits)
+    q_controls = circuit.qubits[1:]
+    q_target = circuit.qubits[0]
+
+    UCPauliRotGate._dec_uc_rotations(angles, 0, len(angles), False)
+    for i, angle in enumerate(angles):
+        if np.abs(angle) > _EPS:
+            circuit.rz(angle, q_target)
+        if not i == len(angles) - 1:
+            binary_rep = np.binary_repr(i + 1)
+            q_contr_index = len(binary_rep) - len(binary_rep.rstrip("0"))
+            circuit.cx(q_controls[q_contr_index], q_target)
+        elif _vw_type == "all":
+            q_contr_index = len(q_controls) - 1
+            circuit.cx(q_controls[q_contr_index], q_target)
+
+    return circuit
 
 
 def _apply_a2(circ):
+    """The optimization A.2 from [1, 2]. This decomposes two qubit unitaries into a
+    diagonal gate and a two cx unitary and reduces overall ``cx`` count by
+    4^(n-2) - 1. This optimization should not be done if the original unitary is controlled.
+    """
     from qiskit.quantum_info import Operator
     from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
     from qiskit.transpiler.passes.synthesis import HighLevelSynthesis
@@ -314,9 +402,11 @@ def _extract_multiplex_blocks(umat, k):
     [ um00 | um01 ]
     [ ---- | ---- ]
     [ um10 | um11 ]
+
     Args:
        umat (ndarray): unitary matrix
        k (integer): qubit which indicates the ctrl index
+
     Returns:
        um00 (ndarray): upper left block
        um01 (ndarray): upper right block
@@ -349,10 +439,12 @@ def _extract_multiplex_blocks(umat, k):
 def _off_diagonals_are_zero(um01, um10, atol=1e-12):
     """
     Checks whether off-diagonal blocks are zero.
+
     Args:
        um01 (ndarray): upper right block
        um10 (ndarray): lower left block
        atol (float): absolute tolerance
+
     Returns:
        bool: whether both blocks are zero within tolerance
     """
