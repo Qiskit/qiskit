@@ -30,7 +30,7 @@ int test_basic_basis_translator(void) {
     qk_target_add_instruction(target, qk_target_entry_new(QkGate_U));
 
     // Run pass
-    qk_transpiler_pass_standalone_basis_translator(circuit, 0, target);
+    qk_transpiler_pass_standalone_basis_translator(circuit, target, 0);
 
     QkOpCounts result_op_counts = qk_circuit_count_ops(circuit);
 
@@ -48,12 +48,12 @@ int test_basic_basis_translator(void) {
         printf("The operation resulting from this translation was incorrect. Expected 'u' gate, "
                "got '%s'",
                u_count.name);
-        goto cleanup;
     }
 
 cleanup:
     qk_opcounts_free(result_op_counts);
     qk_circuit_free(circuit);
+    qk_target_free(target);
     return result;
 }
 
@@ -71,7 +71,7 @@ int test_toffoli_basis_translator(void) {
     qk_target_add_instruction(target, qk_target_entry_new(QkGate_CX));
 
     // Run pass
-    qk_transpiler_pass_standalone_basis_translator(circuit, 0, target);
+    qk_transpiler_pass_standalone_basis_translator(circuit, target, 0);
 
     QkOpCounts result_op_counts = qk_circuit_count_ops(circuit);
 
@@ -94,7 +94,6 @@ int test_toffoli_basis_translator(void) {
                 "The operation resulting from this translation was incorrect. Expected '%s' gate, "
                 "got '%s'",
                 gates[idx], gate_count.name);
-            goto cleanup;
         }
     }
 

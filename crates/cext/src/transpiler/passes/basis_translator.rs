@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::pointers::mut_ptr_as_ref;
+use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
@@ -24,14 +24,12 @@ use qiskit_transpiler::target::Target;
 /// The BasisTranslator transpiler pass translates gates to a target basis by
 /// searching for a set of translations from the standard EquivalenceLibrary.
 ///
-/// @param circuit A pointer to the circuit to run BasisTranslator on
+/// @param circuit A pointer to the circuit to run BasisTranslator on.
+/// The circuit will be mutated in-place, unless the circuit is already
+/// in the target basis, in which case the circuit remains unchanged.
 /// @param min_qubits The minimum number of qubits for operations in the input
 /// ciruit to translate.
 /// @param target The target where we will obtain basis gates from.
-///
-/// @returns A pointer to the resulting circuit from running the pass. If no
-/// modifications are made, it will return a pointer to the same circuit it was
-/// provided. Otherwise it will point to a new circuit instance.
 ///
 /// # Example
 ///
@@ -41,7 +39,7 @@ use qiskit_transpiler::target::Target;
 ///    QkCircuit *circuit = qk_circuit_new(3, 0);
 ///    qk_circuit_gate(circuit, QkGate_CCX, (uint32_t[3]){0, 1, 2}, NULL);
 ///
-///    // Create Target compatible with only U gates, with global props.
+///    // Create a Target with global properties.
 ///    QkTarget *target = qk_target_new(3);
 ///    qk_target_add_instruction(target, qk_target_entry_new(QkGate_H));
 ///    qk_target_add_instruction(target, qk_target_entry_new(QkGate_T));
@@ -53,7 +51,7 @@ use qiskit_transpiler::target::Target;
 ///
 ///    // Free the circuit and target pointers once you're done
 ///    qk_circuit_free(circuit);
-///    qk_target_free(circuit);
+///    qk_target_free(target);
 /// ```
 ///
 /// # Safety
@@ -64,15 +62,16 @@ use qiskit_transpiler::target::Target;
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_basis_translator(
     circuit: *mut CircuitData,
+    target: *const Target,
     min_qubits: usize,
-    target: *mut Target,
 ) {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circ_from_ptr = unsafe { mut_ptr_as_ref(circuit) };
-    let target = unsafe { mut_ptr_as_ref(target) };
-    let dag = match DAGCircuit::from_circuit_data(circ_from_ptr, false, None, None, None, None) {
-        Ok(dag) => dag,
-        Err(e) => panic!("{}", e),
-    };
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let target = unsafe { const_ptr_as_ref(target) };
+
+    let dag = DAGCircuit::from_circuit_data(circ_from_ptr, false, None, None, None, None)
+        .expect("Circuit to DAG conversion failed");
 
     let mut equiv_lib = generate_standard_equivalence_library();
 
