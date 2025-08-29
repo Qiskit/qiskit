@@ -144,9 +144,6 @@ pub fn sampled_expval_sparse_observable(
     }
 
     // Dispatch to existing Rust routines based on coefficient types
-    let has_complex_coeffs = coeffs.iter().any(|c| c.im != 0.0);
-
-
     let result: Complex64 = oper_strs
         .into_iter()
         .enumerate()
