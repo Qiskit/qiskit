@@ -190,7 +190,6 @@ fn faer_mat_to_ndarray(faer_mat: &Mat<Complex64>) -> Array2<Complex64> {
     ndarray_mat
 }
 
-// TODO: Remove this function and all the python interface when QSD is ported to rust
 #[pyfunction]
 pub fn cossin<'py>(py: Python<'py>, u: PyReadonlyArray2<Complex64>) -> PyResult<Bound<'py, PyAny>> {
     let array = u.as_array();
