@@ -1,6 +1,6 @@
 fixes:
   - |
-    **Transpiler:** Fix a crash in
+    Fix a crash in
     :class:`~qiskit.transpiler.passes.OptimizeSwapBeforeMeasure` when multiple
     measurements write to the same classical bit. The pass now only retargets
     measurements that actually read one of the swapped qubits and preserves the
