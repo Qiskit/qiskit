@@ -20,12 +20,12 @@ from itertools import chain
 from typing import Any
 
 import dill
-
 from qiskit.utils.parallel import parallel_map, should_run_in_parallel
-from .base_tasks import Task, PassManagerIR
+
+from .base_tasks import PassManagerIR, Task
+from .compilation_status import PassManagerState, PropertySet, WorkflowStatus
 from .exceptions import PassManagerError
 from .flow_controllers import FlowControllerLinear
-from .compilation_status import PropertySet, WorkflowStatus, PassManagerState
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +88,10 @@ class BasePassManager(ABC):
             TypeError: When any element of tasks is not a subclass of passmanager Task.
             PassManagerError: If the index is not found.
         """
+        if isinstance(tasks, Task):
+            tasks = [tasks]
+        if any(not isinstance(t, Task) for t in tasks):
+            raise TypeError("Added tasks are not all valid pass manager task types.")
         try:
             self._tasks[index] = tasks
         except IndexError as ex:
@@ -115,14 +119,16 @@ class BasePassManager(ABC):
 
     def __getitem__(self, index):
         new_passmanager = self.__class__(max_iteration=self.max_iteration)
-        new_passmanager._tasks = self._tasks[index]
+        new_passmanager._tasks = (
+            [self._tasks[index]] if isinstance(index, int) else list(self._tasks[index])
+        )
         return new_passmanager
 
     def __add__(self, other):
         new_passmanager = self.__class__(max_iteration=self.max_iteration)
-        new_passmanager._tasks = self._tasks
+        new_passmanager._tasks = list(self._tasks)
         if isinstance(other, self.__class__):
-            new_passmanager._tasks += other._tasks
+            new_passmanager._tasks += list(other._tasks)
             return new_passmanager
         else:
             try:
