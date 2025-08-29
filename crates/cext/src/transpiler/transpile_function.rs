@@ -90,7 +90,7 @@ pub extern "C" fn qk_transpiler_default_options() -> TranspileOptions {
 ///
 /// @param circuit A pointer to the circuit to run the transpiler on.
 /// @param target A pointer to the target to compile the circuit for.
-/// @params options A pointer to an options object that defines user options. If this is a null
+/// @param options A pointer to an options object that defines user options. If this is a null
 ///   pointer the default values will be used. See ``qk_transpile_default_options``
 ///   for more details on the default values.
 /// @param result A pointer to the memory location of the transpiler result. On a successful
