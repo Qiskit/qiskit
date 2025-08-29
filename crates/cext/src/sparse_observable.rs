@@ -858,8 +858,15 @@ pub unsafe extern "C" fn qk_obs_str(obs: *const SparseObservable) -> *mut c_char
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_str_free(string: *mut c_char) {
-    unsafe {
-        let _ = CString::from_raw(string);
+    if !string.is_null() {
+        if !string.is_aligned() {
+            panic!("Attempted to free a non-aligned pointer.")
+        }
+        // SAFETY: Per docstring the pointer is obtained by Qiskit functions, which are
+        // returning strings from CString::new or CString::into_raw.
+        unsafe {
+            let _ = CString::from_raw(string);
+        }
     }
 }
 
