@@ -51,6 +51,7 @@ from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopRea
 from qiskit.transpiler.passes import WrapAngles
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
+from qiskit.transpiler.optimization_metric import OptimizationMetric
 from qiskit.utils import deprecate_func
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import _CLIFFORD_GATE_NAMES
 
@@ -191,6 +192,7 @@ def generate_unroll_3q(
     unitary_synthesis_plugin_config=None,
     hls_config=None,
     qubits_initially_zero=True,
+    optimization_metric=OptimizationMetric.COUNT_2Q,
 ):
     """Generate an unroll >3q :class:`~qiskit.transpiler.PassManager`
 
@@ -210,6 +212,8 @@ def generate_unroll_3q(
             Specifies how to synthesize various high-level objects.
         qubits_initially_zero (bool): Indicates whether the input circuit is
             zero-initialized.
+        optimization_metric (OptimizationMetric): the :class:`~.OptimizationMetric` object
+            that the metric used when optimizing the unrolling.
 
     Returns:
         PassManager: The unroll 3q or more pass manager
@@ -235,6 +239,7 @@ def generate_unroll_3q(
             basis_gates=basis_gates,
             min_qubits=3,
             qubits_initially_zero=qubits_initially_zero,
+            optimization_metric=optimization_metric,
         )
     )
     # If there are no target instructions revert to using unroll3qormore so
@@ -515,6 +520,7 @@ def generate_translation_passmanager(
                 equivalence_library=sel,
                 basis_gates=extended_basis_gates,
                 qubits_initially_zero=qubits_initially_zero,
+                optimization_metric=OptimizationMetric.COUNT_T,
             ),
             # Use the BasisTranslator pass to translate all the gates into extended_basis_gates.
             # In other words, this translates the gates in the equivalence library that are not
