@@ -24,7 +24,7 @@ class WrapAngles(TransformationPass):
     """Wrap angles outside the bound specified in the target.
 
     This pass will check all the gates in the circuit and check if there are any gates outside the
-    bound specified in the target. If any gates outside the bound are identified the callback in
+    bound specified in the target. If any gates outside the bound are identified, the callback in
     the target will be called to substitute the gate outside the bound with an equivalent subcircuit.
     This pass does not run on gates that are parameterized, even if the gate has unparameterized
     parameters outside a specified bound. If there are parameterized gates in the circuit they will

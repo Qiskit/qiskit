@@ -39,7 +39,7 @@ features_transpiler:
                 qubits: The physical qubit indices that this gate is operating on
 
             Returns:
-                The DAGCircuit of the equivalent circuit
+                The DAGCircuit of the equivalent circuit"""
 
             angle = angles[0]
             dag = DAGCircuit()
