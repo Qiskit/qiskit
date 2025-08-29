@@ -43,17 +43,17 @@ fn reverse_vec(vec: &mut [f64]) {
     }
 }
 
-/// Given a matrix that is "close" to unitary, returns the closest
-/// unitary matrix.
-/// See https://michaelgoerz.net/notes/finding-the-closest-unitary-for-a-given-matrix/,
-fn closest_unitary(mat: MatRef<Complex64>) -> Mat<Complex64> {
-    // This implementation consumes the original mat but avoids calling
-    // an unnecessary clone.
-    let svd = mat.svd().unwrap();
-    let u = svd.U();
-    let v_t = svd.V();
-    u * v_t.adjoint()
-}
+// /// Given a matrix that is "close" to unitary, returns the closest
+// /// unitary matrix.
+// /// See https://michaelgoerz.net/notes/finding-the-closest-unitary-for-a-given-matrix/,
+// fn closest_unitary(mat: MatRef<Complex64>) -> Mat<Complex64> {
+//     // This implementation consumes the original mat but avoids calling
+//     // an unnecessary clone.
+//     let svd = mat.svd().unwrap();
+//     let u = svd.U();
+//     let v_t = svd.V();
+//     u * v_t.adjoint()
+// }
 
 /// Computes the cosine-sin decomposition (CSD) of a unitary matrix.
 ///
@@ -203,7 +203,7 @@ pub fn cos_sin_decomposition(u: MatRef<Complex64>) -> CosSinDecompReturn {
     // While in theory r1 is unitary, in practice (due to numerical errors)
     // it might be a tiny bit away from a unitary. We "fix" this by finding
     // the closest unitary.
-    let r1 = closest_unitary(r1.as_ref());
+    // let r1 = closest_unitary(r1.as_ref());
 
     // Compute the angles theta given approximate values of their cosines (entries of c)
     // and their sines (entries of s).
