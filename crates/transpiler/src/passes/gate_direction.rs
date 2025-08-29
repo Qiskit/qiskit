@@ -199,6 +199,7 @@ pub fn fix_direction_target(dag: &mut DAGCircuit, target: &Target) -> PyResult<(
                             qargs.into(),
                             None,
                             Some(inst.params_view().to_vec()),
+                            false,
                         )
                         .unwrap_or(false);
                 }

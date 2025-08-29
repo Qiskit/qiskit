@@ -1,0 +1,111 @@
+---
+features_transpiler:
+  - |
+    Added support for a :class:`.Target` to specify angle bounds on instructions. Prior to this
+    release a :class:`.Target` could specify that an operation that took a parameter either would
+    allow any valid value or a specific value. For example, if ``RZGate(Parameter("theta"))`` were
+    added to the target that would indicate an :class:`.RZGate` with any value for theta were
+    allowed. While if ``RZGate(math.pi)`` were added to the target that would indicate
+    :class:`.RZGate` that only :math:`\pi` is the only allowed value on the target. This new feature
+    enables restricting the allowed angles to be any ``float`` value between a
+    an inclusive bound. For example, you can add ``RZGate(math.pi)`` to a :class:`.Target` and restrict
+    the angle value between the values 0 and :math:`2\pi`.
+
+    There are several methods available for working with the angle bounds on the target. The first is
+    :meth:`.Target.add_instruction` which has a new ``angle_bounds`` keyword argument that is used to
+    add an angle bound to an instruction in the :class:`.Target`. To work with angle bounds you will also
+    want to register a callback function to the global ``WRAP_ANGLE_REGISTRY`` registry that will tell the
+    transpiler and :class:`.WrapAngles` pass how to adjust gates for angle bounds. The callback function
+    will take a list of  arbitrary ``float`` values representing the gate angles from the circuit, as well
+    as the qubit indices in the circuit the gate was operating on and it will return a :class:`.DAGCircuit`
+    that represents an equivalent circuit for the gate with that angle but respecting the angle bounds and
+    other :class:`.Target` constraints. For example::
+
+        import math
+
+        from qiskit.dagcircuit import DAGCircuit
+        from qiskit.transpiler import target
+        from qiskit.transpiler.passes.utils.wrap_angles import WRAP_ANGLE_REGISTRY
+
+        target = Target(num_qubits=1)
+        target.add_instruction(RZGate(Parameter("theta")), angle_bounds=[(-math.pi, math.pi)])
+
+        def callback(angles: List[float], qubits: List[int]) -> DAGCircuit:
+            """Callback function to wrap RZ gate angles
+
+            Args:
+                angles: The list of floating point parameter values for the instance of RZGate in
+                    the circuit
+                qubits: The physical qubit indices that this gate is operating on
+
+            Returns:
+                The DAGCircuit of the equivalent circuit"""
+
+            angle = angles[0]
+            dag = DAGCircuit()
+            dag.add_qubits([Qubit()])
+            if angle > 0:
+                divisor = math.pi
+            else:
+                divisor = -math.pi
+            gate_counts = int(angles[0] // divisor)
+            rem = angles[0] % divisor
+            for _ in range(gate_counts):
+                dag.apply_operation_back(RZGate(math.pi), [dag.qubits[0]], check=True)
+            dag.apply_operation_back(rem, [dag.qubits[0]], check=True)
+
+        WRAP_ANGLE_REGISTRY.add_wrapper("rz", callback)
+
+    :meth:`.Target.has_angle_bounds` can be used to check whether there are
+    any angle bounds set in the target, and :meth:`.Target.gate_has_angle_bounds`.
+
+    If you want to apply the angle bounds from a target to any gates in a circuit the
+    :class:`.WrapAngles` transpiler pass should be used to do this.
+  - |
+    Added a new kwarg ``check_angle_bounds`` to the :meth:`.Target.instruction_supported` method.
+    When set to ``True`` (the default) the method will check if the specified ``parameters``
+    also conforms to any angle bounds that may exist for the instruction being queried.
+  - |
+    Added a new transpiler pass :class:`.WrapAngles` which is used to apply
+    angle constraints on gates in the :class:`.Target`. If a :class:`.Target` has defined
+    angle bounds this pass will analyze all the parameters for the gates in the circuit and
+    check that against the bounds specified in the target. For example, if a target contains a custom
+    gate that has angle bounds the pass will decompose that gate into a gate which conforms
+    to the bounds:
+
+    .. plot::
+       :include-source:
+
+       from qiskit.circuit import Gate, Parameter, QuantumCircuit, Qubit
+       from qiskit.dagcircuit import DAGCircuit
+       from qiskit.transpiler import Target, WrapAngleRegistry
+       from qiskit.transpiler.passes import WrapAngles
+
+       class MyCustomGate(Gate):
+
+           def __init__(self, angle):
+               super().__init__("my_custom", 1, [angle])
+
+       param = Parameter("a")
+       circuit = QuantumCircuit(1)
+       circuit.append(MyCustomGate(6.0), [0])
+       target = Target(num_qubits=1)
+       target.add_instruction(MyCustomGate(param), angle_bounds=[(0, 0.5)])
+
+       def callback(angles, _qubits):
+           angle = angles[0]
+           if angle > 0:
+               number_of_gates = angle / 0.5
+           else:
+               number_of_gates = (6.28 - angle) / 0.5
+           dag = DAGCircuit()
+           dag.add_qubits([Qubit()])
+           for _ in range(int(number_of_gates)):
+               dag.apply_operation_back(MyCustomGate(0.5), [dag.qubits[0]])
+           return dag
+
+       registry = WrapAngleRegistry()
+       registry.add_wrapper("my_custom", callback)
+       wrap_pass = WrapAngles(target, registry)
+       res = wrap_pass(circuit)
+       res.draw('mpl')
