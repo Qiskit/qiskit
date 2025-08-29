@@ -19,6 +19,54 @@
 #include <stdio.h>
 #include <string.h>
 
+int test_circuit_in_basis(void) {
+    // Create circuit
+    int result = Ok;
+    QkCircuit *circuit = qk_circuit_new(2, 0);
+    qk_circuit_gate(circuit, QkGate_H, (uint32_t[1]){0}, NULL);
+    qk_circuit_gate(circuit, QkGate_CX, (uint32_t[2]){0, 1}, NULL);
+
+    // Create Target compatible with only U gates, with global props.
+    QkTarget *target = qk_target_new(1);
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_H));
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_CX));
+
+    // Run pass
+    qk_transpiler_pass_standalone_basis_translator(circuit, target, 0);
+
+    size_t circuit_len = qk_circuit_num_instructions(circuit);
+    if (circuit_len != 2) {
+        result = EqualityError;
+        printf(
+            "The number of gates resulting from the translation is incorrect. Expected 2, got %lu",
+            circuit_len);
+        goto cleanup;
+    }
+
+    QkCircuitInstruction inst;
+    char *gate_names[2] = {"h", "cx"};
+    for (int idx = 0; idx < (int)circuit_len; idx++) {
+        // Populate the inst space
+        qk_circuit_get_instruction(circuit, (size_t)idx, &inst);
+
+        if (strcmp(inst.name, gate_names[idx]) != 0) {
+            result = EqualityError;
+            printf(
+                "The operation resulting from this translation was incorrect. Expected '%s' gate, "
+                "got '%s'",
+                gate_names[idx], inst.name);
+            qk_circuit_instruction_clear(&inst);
+            goto cleanup;
+        }
+        qk_circuit_instruction_clear(&inst);
+    }
+
+cleanup:
+    qk_circuit_free(circuit);
+    qk_target_free(target);
+    return result;
+}
+
 int test_basic_basis_translator(void) {
     // Create circuit
     int result = Ok;
@@ -106,6 +154,7 @@ cleanup:
 
 int test_basis_translator(void) {
     int num_failed = 0;
+    num_failed += RUN_TEST(test_circuit_in_basis);
     num_failed += RUN_TEST(test_basic_basis_translator);
     num_failed += RUN_TEST(test_toffoli_basis_translator);
 
