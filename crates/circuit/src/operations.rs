@@ -213,6 +213,20 @@ impl Param {
             Param::Obj(obj) => Param::Obj(obj.clone_ref(py)),
         }
     }
+
+    pub fn py_deepcopy<'py>(
+        &self,
+        py: Python<'py>,
+        memo: Option<&Bound<'py, PyDict>>,
+    ) -> PyResult<Self> {
+        match self {
+            Param::Float(f) => Ok(Param::Float(*f)),
+            _ => DEEPCOPY
+                .get_bound(py)
+                .call1((self.clone(), memo))?
+                .extract(),
+        }
+    }
 }
 
 // This impl allows for shared usage between [Param] and &[Param].
