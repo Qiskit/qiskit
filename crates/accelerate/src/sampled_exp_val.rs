@@ -131,7 +131,7 @@ pub fn sampled_expval_sparse_observable(
         if !oper_str.chars().all(|c| ['I', 'Z', '0', '1'].contains(&c)) {
             return Err(PyValueError::new_err(format!(
                 "Operator string '{}' contains non-diagonal terms",
-                op
+                oper_str
             )));
         }
         term.coeff * Complex64::new(bitstring_expval(&dist, oper_str), 0.0)
