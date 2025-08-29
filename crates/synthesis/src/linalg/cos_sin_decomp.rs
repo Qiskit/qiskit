@@ -18,10 +18,9 @@ use numpy::PyReadonlyArray2;
 use numpy::ToPyArray;
 use pyo3::prelude::*;
 
-use faer::{perm, Mat, MatRef};
+use faer::{Mat, MatRef};
 use ndarray::Array2;
 use num_complex::{Complex64, ComplexFloat};
-// use faer_ext::IntoNdarray;
 const EPS: f64 = 1e-11;
 
 type CosSinDecompReturn = (
@@ -31,29 +30,6 @@ type CosSinDecompReturn = (
     Mat<Complex64>,
     Vec<f64>,
 );
-
-/// Reverses elements in-place.
-fn reverse_vec(vec: &mut [f64]) {
-    let mut start = 0;
-    let mut end = vec.len() - 1;
-    while start < end {
-        vec.swap(start, end);
-        start += 1;
-        end -= 1;
-    }
-}
-
-// /// Given a matrix that is "close" to unitary, returns the closest
-// /// unitary matrix.
-// /// See https://michaelgoerz.net/notes/finding-the-closest-unitary-for-a-given-matrix/,
-// fn closest_unitary(mat: MatRef<Complex64>) -> Mat<Complex64> {
-//     // This implementation consumes the original mat but avoids calling
-//     // an unnecessary clone.
-//     let svd = mat.svd().unwrap();
-//     let u = svd.U();
-//     let v_t = svd.V();
-//     u * v_t.adjoint()
-// }
 
 /// Computes the cosine-sin decomposition (CSD) of a unitary matrix.
 ///
@@ -100,8 +76,8 @@ pub fn cos_sin_decomposition(u: MatRef<Complex64>) -> CosSinDecompReturn {
 
     // Apply SVD to u00
     let svd = u00.svd().expect("Problem with SVD decomposition");
-    let mut l0 = svd.U().to_owned();
-    let mut r0 = svd.V().adjoint().to_owned();
+    let l0 = svd.U().to_owned();
+    let r0 = svd.V().adjoint().to_owned();
     let mut c: Vec<f64> = svd.S().column_vector().iter().map(|z| z.re()).collect();
 
     // We have u00 = l0 c r0, where l0 and r0 are unitary, and c is a diagonal matrix
@@ -112,25 +88,9 @@ pub fn cos_sin_decomposition(u: MatRef<Complex64>) -> CosSinDecompReturn {
     // However, we want the entries of c to be in the ascending order instead (otherwise,
     // we will not be able to guarantee that s is a diagonal matrix too). Fortunately,
     // it is easy to modify l0, c, and r0, so that this becomes true.
-    let mut start = 0;
-    let mut end = r0.nrows() - 1;
-    while start < end {
-        let (a, b) = r0.two_rows_mut(start, end);
-        perm::swap_rows(a, b);
-        start += 1;
-        end -= 1;
-    }
-
-    let mut start = 0;
-    let mut end = l0.ncols() - 1;
-    while start < end {
-        let (a, b) = l0.two_cols_mut(start, end);
-        perm::swap_cols(a, b);
-        start += 1;
-        end -= 1;
-    }
-
-    reverse_vec(&mut c);
+    let r0 = r0.reverse_rows().to_owned();
+    let l0 = l0.reverse_cols().to_owned();
+    c.reverse();
 
     // Apply QR to u10 r0*.
     // We have u10 r0* = l1 s, where l1 is unitary and s is upper-triangular.
@@ -200,11 +160,6 @@ pub fn cos_sin_decomposition(u: MatRef<Complex64>) -> CosSinDecompReturn {
         }
     }
 
-    // While in theory r1 is unitary, in practice (due to numerical errors)
-    // it might be a tiny bit away from a unitary. We "fix" this by finding
-    // the closest unitary.
-    // let r1 = closest_unitary(r1.as_ref());
-
     // Compute the angles theta given approximate values of their cosines (entries of c)
     // and their sines (entries of s).
     // We can compute theta either as c.acos() or as s.asin(), however the first formula
@@ -243,10 +198,10 @@ pub fn cossin<'py>(py: Python<'py>, u: PyReadonlyArray2<Complex64>) -> PyResult<
     let mat: Mat<Complex64> = Mat::from_fn(shape[0], shape[1], |i, j| array[[i, j]]);
     let res = cos_sin_decomposition(mat.as_ref());
 
-    let arr0 = faer_mat_to_ndarray(&res.0).to_owned();
-    let arr1 = faer_mat_to_ndarray(&res.1).to_owned();
-    let arr2 = faer_mat_to_ndarray(&res.2).to_owned();
-    let arr3 = faer_mat_to_ndarray(&res.3).to_owned();
+    let arr0 = faer_mat_to_ndarray(&res.0);
+    let arr1 = faer_mat_to_ndarray(&res.1);
+    let arr2 = faer_mat_to_ndarray(&res.2);
+    let arr3 = faer_mat_to_ndarray(&res.3);
 
     Ok((
         (arr0.to_pyarray(py), arr1.to_pyarray(py)),
