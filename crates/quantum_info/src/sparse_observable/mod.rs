@@ -369,7 +369,7 @@ pub struct SparseObservable {
     /// The number of qubits the operator acts on.  This is not inferable from any other shape or
     /// values, since identities are not stored explicitly.
     num_qubits: u32,
-    /// The coefficients of each abstract term in in the sum.  This has as many elements as terms in
+    /// The coefficients of each abstract term in the sum.  This has as many elements as terms in
     /// the sum.
     coeffs: Vec<Complex64>,
     /// A flat list of single-qubit terms.  This is more naturally a list of lists, but is stored

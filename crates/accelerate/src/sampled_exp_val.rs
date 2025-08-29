@@ -102,8 +102,10 @@ pub fn sampled_expval_sparse_observable(
     let sparse_obs_guard = sparse_obs.inner.read().unwrap();
     let sparse_obs: &SparseObservable = &sparse_obs_guard;
 
-    let mut oper_strs: Vec<String> = Vec::new();
-    let mut coeffs = Vec::new();
+    // Prepare vectors to hold operator strings and coefficients with pre-allocated capacity
+    let _size_vec = sparse_obs.coeffs().len();
+    let mut oper_strs: Vec<String> = Vec::with_capacity(_size_vec);
+    let mut coeffs = Vec::with_capacity(_size_vec);
     let n = sparse_obs.num_qubits();
 
     // Convert SparseObservable to operator strings and coefficients
@@ -144,21 +146,13 @@ pub fn sampled_expval_sparse_observable(
     // Dispatch to existing Rust routines based on coefficient types
     let has_complex_coeffs = coeffs.iter().any(|c| c.im != 0.0);
 
-    if has_complex_coeffs {
-        let result: Complex64 = oper_strs
-            .into_iter()
-            .enumerate()
-            .map(|(idx, string)| coeffs[idx] * Complex64::new(bitstring_expval(&dist, string), 0.0))
-            .sum();
-        Ok(result.re)
-    } else {
-        let result: f64 = oper_strs
-            .into_iter()
-            .enumerate()
-            .map(|(idx, string)| coeffs[idx].re * bitstring_expval(&dist, string))
-            .sum();
-        Ok(result)
-    }
+
+    let result: Complex64 = oper_strs
+        .into_iter()
+        .enumerate()
+        .map(|(idx, string)| coeffs[idx] * Complex64::new(bitstring_expval(&dist, string), 0.0))
+        .sum();
+    Ok(result.re)
 }
 
 pub fn sampled_exp_val(m: &Bound<PyModule>) -> PyResult<()> {
