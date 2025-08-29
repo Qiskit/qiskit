@@ -185,7 +185,7 @@ class Target(BaseTarget):
     :meth:`.has_angle_bounds` and also if a specific name in the target has
     angle bounds set with :meth:`.gate_has_angle_bounds`. Whether a particular
     set of parameter values conforms to the angle bounds can be checked
-    with :meth:`.add_owned_angle_bound`. In the preset pass managers the
+    with :meth:`.supported_angle_bound`. In the preset pass managers the
     :class:`.WrapAngles` pass is used to enforce the angle bounds, for this
     to work you need to provide a function to the :class:`.WrapAngleRegistry`
     used by the pass. You can see more details on this in:
