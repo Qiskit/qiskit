@@ -59,13 +59,13 @@ pub fn cos_sin_decomposition(u: MatRef<Complex64>) -> CosSinDecompReturn {
     let shape = u.shape();
     let n = shape.0 / 2;
     // Upper left corner
-    let u00 = u.as_ref().submatrix(0, 0, n, n);
+    let u00 = u.submatrix(0, 0, n, n);
     // Upper right corner
-    let u01 = u.as_ref().submatrix(0, n, n, n);
+    let u01 = u.submatrix(0, n, n, n);
     // Lower left corner
-    let u10 = u.as_ref().submatrix(n, 0, n, n);
+    let u10 = u.submatrix(n, 0, n, n);
     // Lower right corner
-    let u11 = u.as_ref().submatrix(n, n, n, n);
+    let u11 = u.submatrix(n, n, n, n);
 
     // For the desired decomposition to exist, we must have:
     //   u00 = l0 c r0
