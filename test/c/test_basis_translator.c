@@ -51,7 +51,7 @@ int test_basic_basis_translator(void) {
     }
 
 cleanup:
-    qk_opcounts_free(result_op_counts);
+    qk_opcounts_clear(&result_op_counts);
     qk_circuit_free(circuit);
     qk_target_free(target);
     return result;
@@ -99,7 +99,7 @@ int test_toffoli_basis_translator(void) {
 
 cleanup:
     qk_target_free(target);
-    qk_opcounts_free(result_op_counts);
+    qk_opcounts_clear(&result_op_counts);
     qk_circuit_free(circuit);
     return result;
 }
