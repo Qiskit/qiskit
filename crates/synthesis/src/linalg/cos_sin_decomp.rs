@@ -33,7 +33,7 @@ type CosSinDecompReturn = (
 );
 
 /// Reverses elements in-place.
-fn reverse_vec(vec: &mut Vec<f64>) {
+fn reverse_vec(vec: &mut [f64]) {
     let mut start = 0;
     let mut end = vec.len() - 1;
     while start < end {
@@ -52,7 +52,7 @@ fn closest_unitary(mat: MatRef<Complex64>) -> Mat<Complex64> {
     let svd = mat.svd().unwrap();
     let u = svd.U();
     let v_t = svd.V();
-    &u * &v_t.adjoint()
+    u * v_t.adjoint()
 }
 
 /// Computes the cosine-sin decomposition (CSD) of a unitary matrix.
@@ -160,12 +160,11 @@ pub fn cos_sin_decomposition(u: MatRef<Complex64>) -> CosSinDecompReturn {
     // both s and l1 together.
     let mut s: Vec<Complex64> = s.diagonal().column_vector().iter().copied().collect();
     if s.iter().any(|x| x.im != 0.) {
-        for j in 0..n {
-            let z = s[j];
+        for (j, z) in s.iter_mut().enumerate() {
             let r = z.abs();
             if r > EPS {
                 let w = z.conj() / r;
-                s[j] *= w;
+                *z *= w;
                 l1.col_mut(j).iter_mut().for_each(|x| *x /= w);
             }
         }
@@ -176,10 +175,9 @@ pub fn cos_sin_decomposition(u: MatRef<Complex64>) -> CosSinDecompReturn {
 
     // Additionally, adjust l1 and s so that all entries in s are non-negative.
     // Again, this seems to be never needed in practice.
-    for j in 0..n {
-        let val = s[j];
-        if val < 0. {
-            s[j] = -s[j];
+    for (j, val) in s.iter_mut().enumerate() {
+        if *val < 0. {
+            *val = -(*val);
             l1.col_mut(j).iter_mut().for_each(|x| *x = -(*x));
         }
     }
