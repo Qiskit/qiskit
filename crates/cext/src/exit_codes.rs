@@ -27,6 +27,7 @@ pub enum CInputError {
 
 /// Integer exit codes returned to C.
 #[repr(u32)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum ExitCode {
     /// Success.
     Success = 0,
