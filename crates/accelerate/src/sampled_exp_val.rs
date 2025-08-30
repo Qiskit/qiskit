@@ -87,7 +87,7 @@ pub fn sampled_expval_complex(
         .into_iter()
         .enumerate()
         .map(|(idx, string)| coeff_arr[idx] * c64(bitstring_expval(&dist, string), 0.))
-        .sum();
+        .sum::<Complex64>();
     Ok(out.re)
 }
 
@@ -101,42 +101,41 @@ pub fn sampled_expval_sparse_observable(
     // Access the inner SparseObservable through the RwLock
     let sparse_obs_guard = sparse_obs.inner.read().unwrap();
     let sparse_obs: &SparseObservable = &sparse_obs_guard;
-
-    // Prepare vectors to hold operator strings and coefficients with pre-allocated capacity
-    let _size_vec = sparse_obs.coeffs().len();
-    let mut oper_strs: Vec<String> = Vec::with_capacity(_size_vec);
-    let mut coeffs = Vec::with_capacity(_size_vec);
     let n = sparse_obs.num_qubits();
 
     // Convert SparseObservable to operator strings and coefficients
-    let result: Complex64 = sparse_obs.iter().enumerate().map(|(idx, term)| {
-        let mut full_op = vec!["I"; n as usize];
-        for (bit_term, &index) in term.bit_terms.iter().zip(term.indices.iter()) {
-            let char = match bit_term {
-                BitTerm::X => "X",
-                BitTerm::Y => "Y",
-                BitTerm::Z => "Z",
-                BitTerm::Plus => "+",
-                BitTerm::Minus => "-",
-                BitTerm::Right => "r",
-                BitTerm::Left => "l",
-                BitTerm::Zero => "0",
-                BitTerm::One => "1",
-            };
-            full_op[(n - 1 - index) as usize] = char;
-        }
-        let oper_str = full_op.join("");
+    let result: Result<Complex64, PyErr> =
+        sparse_obs
+            .iter()
+            .enumerate()
+            .try_fold(Complex64::new(0.0, 0.0), |acc, (_idx, term)| {
+                let mut full_op = vec!["I"; n as usize];
+                for (bit_term, &index) in term.bit_terms.iter().zip(term.indices.iter()) {
+                    let char = match bit_term {
+                        BitTerm::X => "X",
+                        BitTerm::Y => "Y",
+                        BitTerm::Z => "Z",
+                        BitTerm::Plus => "+",
+                        BitTerm::Minus => "-",
+                        BitTerm::Right => "r",
+                        BitTerm::Left => "l",
+                        BitTerm::Zero => "0",
+                        BitTerm::One => "1",
+                    };
+                    full_op[(n - 1 - index) as usize] = char;
+                }
+                let oper_str = full_op.join("");
 
-        // Validating that all operators are diagonal
-        if !oper_str.chars().all(|c| ['I', 'Z', '0', '1'].contains(&c)) {
-            return Err(PyValueError::new_err(format!(
-                "Operator string '{}' contains non-diagonal terms",
-                oper_str
-            )));
-        }
-        term.coeff * Complex64::new(bitstring_expval(&dist, oper_str), 0.0)
-    }).sum();
-    Ok(result.re)
+                // Validating that all operators are diagonal
+                if !oper_str.chars().all(|c| ['I', 'Z', '0', '1'].contains(&c)) {
+                    return Err(PyValueError::new_err(format!(
+                        "Operator string '{}' contains non-diagonal terms",
+                        oper_str
+                    )));
+                }
+                Ok(acc + term.coeff * Complex64::new(bitstring_expval(&dist, oper_str), 0.0))
+            });
+    Ok(result?.re)
 }
 
 pub fn sampled_exp_val(m: &Bound<PyModule>) -> PyResult<()> {
