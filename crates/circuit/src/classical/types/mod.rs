@@ -10,21 +10,23 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-pub mod types;
-pub mod ordering;
+mod types;
+mod ordering;
 
-pub use types::{
-    Type,
+pub use types::Type;
+pub use ordering::{
+    Ordering,
+    order,
+    is_subtype,
+    is_supertype,
+    CastKind,
 };
 
 use pyo3::prelude::*;
 
 pub(crate) fn register_python(m: &Bound<PyModule>) -> PyResult<()> {
-    // Python land already expects this to be in the `qiskit._accelerate.circuit.classical.types` module.
-    // Should that be changed for consistency?
     types::register_python(&m)?;
 
-    // But I think we should make a separate `ordering` submodule
     let ordering_mod = PyModule::new(m.py(), "ordering")?;
     ordering::register_python(&ordering_mod)?;
     m.add_submodule(&ordering_mod)?;
