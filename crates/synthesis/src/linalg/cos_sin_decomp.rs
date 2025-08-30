@@ -19,7 +19,7 @@ use numpy::ToPyArray;
 use pyo3::prelude::*;
 
 use faer::{Mat, MatRef};
-use ndarray::Array2;
+use faer_ext::IntoNdarray;
 use num_complex::{Complex64, ComplexFloat};
 const EPS: f64 = 1e-11;
 
@@ -175,21 +175,6 @@ pub fn cos_sin_decomposition(u: MatRef<Complex64>) -> CosSinDecompReturn {
     (l0, l1, r0, r1, thetas)
 }
 
-fn faer_mat_to_ndarray(faer_mat: &Mat<Complex64>) -> Array2<Complex64> {
-    let rows = faer_mat.nrows();
-    let cols = faer_mat.ncols();
-
-    let mut ndarray_mat = Array2::<Complex64>::default((rows, cols));
-
-    for i in 0..rows {
-        for j in 0..cols {
-            ndarray_mat[[i, j]] = faer_mat[(i, j)];
-        }
-    }
-
-    ndarray_mat
-}
-
 #[pyfunction]
 pub fn cossin<'py>(py: Python<'py>, u: PyReadonlyArray2<Complex64>) -> PyResult<Bound<'py, PyAny>> {
     let array = u.as_array();
@@ -197,16 +182,12 @@ pub fn cossin<'py>(py: Python<'py>, u: PyReadonlyArray2<Complex64>) -> PyResult<
     let mat: Mat<Complex64> = Mat::from_fn(shape[0], shape[1], |i, j| array[[i, j]]);
     let res = cos_sin_decomposition(mat.as_ref());
 
-    let arr0 = faer_mat_to_ndarray(&res.0);
-    let arr1 = faer_mat_to_ndarray(&res.1);
-    let arr2 = faer_mat_to_ndarray(&res.2);
-    let arr3 = faer_mat_to_ndarray(&res.3);
+    let arr0 = res.0.as_ref().into_ndarray().to_pyarray(py);
+    let arr1 = res.1.as_ref().into_ndarray().to_pyarray(py);
+    let arr2 = res.2.as_ref().into_ndarray().to_pyarray(py);
+    let arr3 = res.3.as_ref().into_ndarray().to_pyarray(py);
 
-    Ok((
-        (arr0.to_pyarray(py), arr1.to_pyarray(py)),
-        res.4.to_pyarray(py),
-        (arr2.to_pyarray(py), arr3.to_pyarray(py)),
-    )
+    Ok(((arr0, arr1), res.4, (arr2, arr3))
         .into_pyobject(py)?
         .into_any())
 }
