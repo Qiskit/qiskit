@@ -409,19 +409,29 @@ def loads(
             )
         if (difference := num_qubits - qasm3_ckt.num_qubits) > 0:
             if qasm3_ckt.layout is not None:
+                # stripping circuit of layout
+                layout, qasm3_ckt._layout = qasm3_ckt._layout, None
+
                 # updating layout
-                last = max(qasm3_ckt.layout.initial_layout.get_physical_bits().keys(), default=-1)
+                last = max(layout.initial_layout.get_physical_bits().keys(), default=-1)
                 for k in range(last + 1, num_qubits):
-                    qasm3_ckt.layout.initial_layout.add(Qubit(), k)
+                    layout.initial_layout.add(Qubit(), k)
 
                 # updating input_qubit_mapping
                 mapping_dict = {}
                 for ii in range(last + 1, num_qubits):
-                    mapping_dict[qasm3_ckt.layout.initial_layout[ii]] = ii
-                qasm3_ckt.layout.input_qubit_mapping.update(mapping_dict)
+                    mapping_dict[layout.initial_layout[ii]] = ii
+                layout.input_qubit_mapping.update(mapping_dict)
 
-            # adding qubits
-            qasm3_ckt.add_bits([Qubit() for _ in range(difference)])
+                # adding qubits to circuit
+                qasm3_ckt.add_bits([Qubit() for _ in range(difference)])
+
+                # restoring layout
+                qasm3_ckt._layout = layout
+
+            else:
+                # adding qubits to circuit
+                qasm3_ckt.add_bits([Qubit() for _ in range(difference)])
 
     return qasm3_ckt
 
