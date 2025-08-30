@@ -26,11 +26,6 @@ static CK_NONE: GILOnceCell<Py<PyCastKind>> = GILOnceCell::new();
 
 /// The Rust-side enum indicating a [Ordering] expression's kind.
 ///
-/// // TODO is this 100% true? Copied doc from binary.rs BinaryOp enum and modified slightly.
-/// The values are part of the public Qiskit Python interface, since
-/// they are public in the sister Python enum `Ordering` in `ordering.py`
-/// and used in our QPY serialization format. 
-///
 /// WARNING: If you add more, **be sure to update ordering.py** as well
 /// as the implementation of [::bytemuck::CheckedBitPattern]
 /// below.
@@ -61,59 +56,56 @@ unsafe impl ::bytemuck::CheckedBitPattern for Ordering {
     }
 }
 
-impl Ordering {
-    /// Get the ordering relationship between the two types as an enumeration value.
-    pub fn order(left: Type, right: Type) -> Self {
-        match(left, right) {
-            // Bool <-> Bool
-            (Type::Bool, Type::Bool) |
-            // Float <-> Float 
-            (Type::Float, Type::Float) |
-            // Duration <-> Duration
-            (Type::Duration, Type::Duration) => Ordering::Equal,
+/// Get the ordering relationship between the two types as an enumeration value.
+pub fn order(left: Type, right: Type) -> Ordering {
+    match(left, right) {
+        // Bool <-> Bool
+        (Type::Bool, Type::Bool) |
+        // Float <-> Float 
+        (Type::Float, Type::Float) |
+        // Duration <-> Duration
+        (Type::Duration, Type::Duration) => Ordering::Equal,
 
-            // Uint(w1) <-> Uint(w2)
-            // replaces _order_uint_uint in Python implementation
-            (Type::Uint(w1), Type::Uint(w2)) if w1 < w2 => Ordering::Less,
-            (Type::Uint(w1), Type::Uint(w2)) if w1 > w2 => Ordering::Greater,
-            (Type::Uint(_), Type::Uint(_)) => Ordering::Equal,
+        // Uint(w1) <-> Uint(w2)
+        // replaces _order_uint_uint in Python implementation
+        (Type::Uint(w1), Type::Uint(w2)) if w1 < w2 => Ordering::Less,
+        (Type::Uint(w1), Type::Uint(w2)) if w1 > w2 => Ordering::Greater,
+        (Type::Uint(_), Type::Uint(_)) => Ordering::Equal,
 
-            // Remainder unordered
-            _ => Ordering::None,
-        }
+        // Remainder unordered
+        _ => Ordering::None,
     }
+}
 
-    /// Does the relation :math:`\text{left} \le \text{right}` hold?  If there is no ordering
-    /// relation between the two types, then this returns ``False``.  If ``strict``, then the equality
-    /// is also forbidden.
-    pub fn is_subtype(left: Type, right: Type, strict: bool) -> bool {
-        let ord = Self::order(left, right);
-        ord == Ordering::Less || (ord == Ordering::Equal && !strict)
-    }
+/// Does the relation :math:`\text{left} \le \text{right}` hold?  If there is no ordering
+/// relation between the two types, then this returns ``False``.  If ``strict``, then the equality
+/// is also forbidden.
+pub fn is_subtype(left: Type, right: Type, strict: bool) -> bool {
+    let ord = order(left, right);
+    ord == Ordering::Less || (ord == Ordering::Equal && !strict)
+}
 
-    /// Does the relation :math:`\text{left} \ge \text{right}` hold?  If there is no ordering
-    /// relation between the two types, then this returns ``False``.  If ``strict``, then the equality
-    /// is also forbidden.
-    pub fn is_supertype(left: Type, right: Type, strict: bool) -> bool {
-        let ord = Self::order(left, right);
-        ord == Ordering::Greater || (ord == Ordering::Equal && !strict)
-    }
+/// Does the relation :math:`\text{left} \ge \text{right}` hold?  If there is no ordering
+/// relation between the two types, then this returns ``False``.  If ``strict``, then the equality
+/// is also forbidden.
+pub fn is_supertype(left: Type, right: Type, strict: bool) -> bool {
+    let ord = order(left, right);
+    ord == Ordering::Greater || (ord == Ordering::Equal && !strict)
+}
 
-    /// Get the greater of the two types, assuming that there is an ordering relation between them.
-    /// Technically, this is a slightly restricted version of the concept of the 'meet' of the two
-    /// types in that the return value must be one of the inputs. In practice in the type system there
-    /// is no concept of a 'sum' type, so the 'meet' exists if and only if there is an ordering between
-    // the two types, and is equal to the greater of the two types.
-    pub fn greater(left: Type, right: Type) -> PyResult<Type> {
-        match Self::order(left, right) {
-            Ordering::Less => Ok(right),
-            Ordering::Equal => Ok(right),
-            Ordering::Greater => Ok(left),
-            Ordering::None    => Err(PyTypeError::new_err(
-                format!("no ordering exists between '{:?}' and '{:?}'", left, right)
-            )),
-        }
-
+/// Get the greater of the two types, assuming that there is an ordering relation between them.
+/// Technically, this is a slightly restricted version of the concept of the 'meet' of the two
+/// types in that the return value must be one of the inputs. In practice in the type system there
+/// is no concept of a 'sum' type, so the 'meet' exists if and only if there is an ordering between
+// the two types, and is equal to the greater of the two types.
+pub fn greater(left: Type, right: Type) -> PyResult<Type> {
+    match order(left, right) {
+        Ordering::Less => Ok(right),
+        Ordering::Equal => Ok(right),
+        Ordering::Greater => Ok(left),
+        Ordering::None    => Err(PyTypeError::new_err(
+            format!("no ordering exists between '{:?}' and '{:?}'", left, right)
+        )),
     }
 }
 
@@ -232,36 +224,31 @@ impl PyOrdering {
 #[pyfunction(name = "order")]
 #[pyo3(signature=(left, right))]
 fn py_order(py: Python<'_>, left: Type, right: Type) -> Py<PyOrdering> {
-    let order = Ordering::order(left, right);
+    let order = order(left, right);
     PyOrdering::get_singleton(py, order)
 }
 
 #[pyfunction(name = "is_subtype")]
 #[pyo3(signature=(left, right, strict=false))]
 fn py_is_subtype(left: Type, right: Type, strict: bool) -> bool {
-    Ordering::is_subtype(left, right, strict)
+    is_subtype(left, right, strict)
 }
 
 #[pyfunction(name = "is_supertype")]
 #[pyo3(signature=(left, right, strict=false))]
 fn py_is_supertype(left: Type, right: Type, strict: bool) -> bool {
-    Ordering::is_supertype(left, right, strict)
+    is_supertype(left, right, strict)
 }
 
 #[pyfunction(name = "greater")]
 #[pyo3(signature=(left, right))]
 fn py_greater(left: Type, right: Type) -> PyResult<Type> {
-    Ordering::greater(left, right)
+    greater(left, right)
         .map_err(|msg| PyTypeError::new_err(msg))
 }
 
 
 /// The Rust-side enum indicating a [CastKind] expression's kind.
-///
-/// // TODO is this 100% true? Copied doc from binary.rs BinaryOp enum and modified slightly.
-/// The values are part of the public Qiskit Python interface, since
-/// they are public in the sister Python enum `CastKind` in `ordering.py`
-/// and used in our QPY serialization format. 
 ///
 /// WARNING: If you add more, **be sure to update**
 /// the implementation of [::bytemuck::CheckedBitPattern]
@@ -475,8 +462,7 @@ pub(crate) fn register_python(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<PyCastKind>()?;
     m.add_function(wrap_pyfunction!(py_cast_kind, m)?)?;
 
-    let cast_kind_class = m.getattr("CastKind")?;
-    
+    let cast_kind_class = m.getattr("CastKind")?;    
     // Add singleton instances as class attributes
     cast_kind_class.setattr("EQUAL", PyCastKind::get_singleton(m.py(), CastKind::Equal))?;
     cast_kind_class.setattr("IMPLICIT", PyCastKind::get_singleton(m.py(), CastKind::Implicit))?;
