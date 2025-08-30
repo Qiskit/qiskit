@@ -27,6 +27,7 @@ pub enum CInputError {
 
 /// Integer exit codes returned to C.
 #[repr(u32)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum ExitCode {
     /// Success.
     Success = 0,
@@ -54,6 +55,8 @@ pub enum ExitCode {
     TargetInvalidQargsKey = 303,
     /// Querying an operation that doesn't exist in the Target.
     TargetInvalidInstKey = 304,
+    /// Transpilation failed
+    TranspilerError = 400,
 }
 
 impl From<ArithmeticError> for ExitCode {

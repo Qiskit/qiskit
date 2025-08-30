@@ -10,11 +10,12 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::clifford::utils::{Clifford, CliffordGatesVec};
+use crate::clifford::utils::CliffordGatesVec;
 use itertools::iproduct;
 use ndarray::{arr1, arr2, s, ArrayView2};
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::Qubit;
+use qiskit_quantum_info::clifford::Clifford;
 use smallvec::smallvec;
 
 /// Return the number of CX-gates required for Clifford decomposition,
