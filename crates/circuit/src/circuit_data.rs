@@ -2563,9 +2563,9 @@ impl CircuitData {
         self.identifier_info.values()
     }
 
-    /// Get a mutable view of the instructions in the circuit data
-    pub fn data_mut(&mut self) -> &mut [PackedInstruction] {
-        &mut self.data
+    /// removes the label for the instruction given by index
+    pub fn invalidate_label(&mut self, index: usize) {
+        self.data[index].label = None;
     }
 
     /// Clone an empty CircuitData from a given reference.
@@ -2840,9 +2840,14 @@ impl CircuitData {
         .iter()
         .map(|stretch| self.stretches.get(*stretch).unwrap())
     }
-    pub fn reverse(mut self) -> Self {
-        self.data.reverse();
-        self
+
+    /// Return a copy of the circuit with instructions in reverse order
+    pub fn reverse(self) -> PyResult<Self> {
+        let mut out = Self::clone_empty_like(&self, Some(self.data().len()), VarsMode::Alike)?;
+        for inst in self.data().iter().rev() {
+            out.push(inst.clone())?;
+        }
+        Ok(out)
     }
 }
 

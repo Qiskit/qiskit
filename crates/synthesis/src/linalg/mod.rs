@@ -46,10 +46,7 @@ fn verify_svd_decomp(
     w: &DMatrix<Complex64>,
 ) -> bool {
     let mat_check = v * s * w;
-
-    let close = abs_diff_eq!(mat, &mat_check, epsilon = 1e-7);
-    debug_assert!(close);
-    close
+    abs_diff_eq!(mat, &mat_check, epsilon = 1e-7)
 }
 
 pub fn verify_unitary(u: &DMatrix<Complex64>) -> bool {
@@ -58,17 +55,7 @@ pub fn verify_unitary(u: &DMatrix<Complex64>) -> bool {
     let id_mat = DMatrix::identity(n, n);
     let uu = u.adjoint() * u;
 
-    let close = abs_diff_eq!(uu, id_mat, epsilon = 1e-7);
-    debug_assert!(close);
-    close
-}
-
-/// Given a matrix that is "close" to unitary, returns the closest
-/// unitary matrix.
-/// See https://michaelgoerz.net/notes/finding-the-closest-unitary-for-a-given-matrix/,
-pub fn closest_unitary(mat: DMatrix<Complex64>) -> DMatrix<Complex64> {
-    let (u, _sigma, v_t) = svd_decomposition(&mat);
-    &u * &v_t
+    abs_diff_eq!(uu, id_mat, epsilon = 1e-7)
 }
 
 /// Calculate the condition number of a matrix w.r.t the L2 norm
@@ -137,7 +124,7 @@ pub fn svd_decomposition_using_faer(
     let s_na = faer_to_nalgebra(&sigma);
     let v_na = faer_to_nalgebra(&v_faer);
 
-    verify_svd_decomp(&mat.clone(), &u_na, &s_na, &v_na);
+    debug_assert!(verify_svd_decomp(&mat.clone(), &u_na, &s_na, &v_na));
 
     (u_na, s_na, v_na)
 }
