@@ -121,9 +121,14 @@ fn svd_decomposition_using_faer(
     //let u_na = faer_to_nalgebra(&u_faer);
     let u_na = u_faer.into_nalgebra();
     let s_na = sigma.as_ref().into_nalgebra();
-    let v_na= v_faer.into_nalgebra().conjugate();
+    let v_na = v_faer.into_nalgebra().conjugate();
 
-    debug_assert!(verify_svd_decomp(mat_view, u_na.as_view(), s_na.as_view(), v_na.as_view()));
+    debug_assert!(verify_svd_decomp(
+        mat_view,
+        u_na.as_view(),
+        s_na.as_view(),
+        v_na.as_view()
+    ));
 
-    (u_na.into(), s_na.into(), v_na.into())
+    (u_na.into(), s_na.into(), v_na)
 }

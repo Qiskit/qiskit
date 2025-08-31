@@ -143,7 +143,8 @@ fn qsd_inner(
         let sequence = two_qubit_decomposer
             .call_inner(array.view(), None, false, None)
             .unwrap_or_else(|_| {
-                let array = Array2::from_shape_fn((dim, dim), |(i, j)| mat[(i, j)]);
+                let u_mat = closest_unitary(mat.clone());
+                let array = Array2::from_shape_fn((dim, dim), |(i, j)| u_mat[(i, j)]);
                 two_qubit_decomposer
                     .call_inner(array.view(), None, false, None)
                     .unwrap()
@@ -334,14 +335,11 @@ fn demultiplex(
     _ctrl_index: Option<usize>,
     vw_type: VWType,
 ) -> PyResult<(CircuitData, DMatrix<Complex64>, DMatrix<Complex64>)> {
-    debug_assert!(verify_unitary(um0));
-    debug_assert!(verify_unitary(um1));
-
     let um0 = closest_unitary(um0.clone());
     let um1 = closest_unitary(um1.clone());
 
-    verify_unitary(&um0);
-    verify_unitary(&um1);
+    debug_assert!(verify_unitary(&um0));
+    debug_assert!(verify_unitary(&um1));
 
     let dim = um0.shape().0 + um1.shape().0;
     let num_qubits = dim.ilog2() as usize;
@@ -648,8 +646,8 @@ fn apply_a2(
             two_qubit_decompose_up_to_diagonal(mat1.view()).unwrap_or_else(|_| {
                 let (nrows, ncols) = mat1.dim();
                 let data_vec: Vec<Complex64> = mat1.iter().cloned().collect(); // row-major flatten
-                let mat = DMatrix::from_row_slice(nrows, ncols, &data_vec);
-                let array = Array2::from_shape_fn((nrows, ncols), |(i, j)| mat[(i, j)]);
+                let u_mat = closest_unitary(DMatrix::from_row_slice(nrows, ncols, &data_vec));
+                let array = Array2::from_shape_fn((nrows, ncols), |(i, j)| u_mat[(i, j)]);
                 two_qubit_decompose_up_to_diagonal(array.view()).unwrap()
             });
         diagonal_rollover.insert(*ind1, qc2cx);
@@ -662,8 +660,8 @@ fn apply_a2(
         .unwrap_or_else(|_| {
             let (nrows, ncols) = new_matrices[last_idx].dim();
             let data_vec: Vec<Complex64> = new_matrices[last_idx].iter().cloned().collect(); // row-major flatten
-            let mat = DMatrix::from_row_slice(nrows, ncols, &data_vec);
-            let array = Array2::from_shape_fn((nrows, ncols), |(i, j)| mat[(i, j)]);
+            let u_mat = closest_unitary(DMatrix::from_row_slice(nrows, ncols, &data_vec));
+            let array = Array2::from_shape_fn((nrows, ncols), |(i, j)| u_mat[(i, j)]);
             two_qubit_decomposer
                 .call_inner(array.view(), None, false, None)
                 .unwrap()
@@ -760,12 +758,12 @@ fn apply_a2(
 ///     /─┤   ├─      ──┤ C ├─────┤ B ├─────┤ A ├
 ///       └───┘         └───┘     └───┘     └───┘
 /// ```
-/// 
+///
 /// The number of CXGates generated with the decomposition without optimizations is
 /// the same as the unoptimized method in [1]:
 ///
 ///     (9/16)4^n - (3/2)2^n
-/// 
+///
 /// If ``opt_a1 = True``, the CX count is reduced, improving [1], by:
 ///
 ///
@@ -785,7 +783,7 @@ fn apply_a2(
 ///
 ///
 /// # Arguments:
-/// 
+///
 /// * mat: unitary matrix to decompose
 /// * opt_a1: whether to try optimization A.1 from [1, 2].
 ///       This should eliminate 2 ``cx`` per call.
