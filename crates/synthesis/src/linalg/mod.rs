@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use approx::{abs_diff_eq, relative_ne};
-use faer::{Mat, MatRef};
+use faer::MatRef;
 use faer_ext::{IntoFaer, IntoNalgebra};
 use nalgebra::{DMatrix, DMatrixView};
 use num_complex::Complex64;
@@ -110,7 +110,7 @@ fn svd_decomposition_using_faer(
     let s_faer = faer_svd.S();
     let v_faer = faer_svd.V();
 
-    let sigma = Mat::from_fn(u_faer.ncols(), v_faer.nrows(), |i, j| {
+    let s_na = DMatrix::from_fn(u_faer.ncols(), v_faer.nrows(), |i, j| {
         if i == j {
             s_faer[i]
         } else {
@@ -118,10 +118,8 @@ fn svd_decomposition_using_faer(
         }
     });
 
-    //let u_na = faer_to_nalgebra(&u_faer);
     let u_na = u_faer.into_nalgebra();
-    let s_na = sigma.as_ref().into_nalgebra();
-    let v_na = v_faer.into_nalgebra().conjugate();
+    let v_na = v_faer.into_nalgebra().adjoint();
 
     debug_assert!(verify_svd_decomp(
         mat_view,
@@ -130,5 +128,5 @@ fn svd_decomposition_using_faer(
         v_na.as_view()
     ));
 
-    (u_na.into(), s_na.into(), v_na)
+    (u_na.into(), s_na, v_na)
 }
