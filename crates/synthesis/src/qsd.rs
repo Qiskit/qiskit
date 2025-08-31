@@ -25,7 +25,7 @@ use smallvec::smallvec;
 use crate::euler_one_qubit_decomposer::{
     unitary_to_gate_sequence_inner, EulerBasis, EulerBasisSet,
 };
-use crate::linalg::{is_hermitian_matrix, svd_decomposition, verify_unitary};
+use crate::linalg::{closest_unitary, is_hermitian_matrix, svd_decomposition, verify_unitary};
 use crate::two_qubit_decompose::{two_qubit_decompose_up_to_diagonal, TwoQubitBasisDecomposer};
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::CircuitData;
@@ -336,6 +336,12 @@ fn demultiplex(
 ) -> PyResult<(CircuitData, DMatrix<Complex64>, DMatrix<Complex64>)> {
     debug_assert!(verify_unitary(um0));
     debug_assert!(verify_unitary(um1));
+
+    let um0 = closest_unitary(um0.clone());
+    let um1 = closest_unitary(um1.clone());
+
+    verify_unitary(&um0);
+    verify_unitary(&um1);
 
     let dim = um0.shape().0 + um1.shape().0;
     let num_qubits = dim.ilog2() as usize;
