@@ -23,6 +23,9 @@ char *build_version_string(void) {
     case QISKIT_RELEASE_LEVEL_DEV:
         sprintf(suffix, "dev");
         break;
+    case QISKIT_RELEASE_LEVEL_BETA:
+        sprintf(suffix, "b%u", QISKIT_RELEASE_SERIAL);
+        break;
     case QISKIT_RELEASE_LEVEL_RC:
         sprintf(suffix, "rc%u", QISKIT_RELEASE_SERIAL);
         break;

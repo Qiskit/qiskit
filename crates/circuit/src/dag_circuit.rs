@@ -984,6 +984,34 @@ impl DAGCircuit {
         Ok(())
     }
 
+    pub fn __copy__(&self) -> Self {
+        self.clone()
+    }
+
+    pub fn __deepcopy__<'py>(
+        &self,
+        py: Python<'py>,
+        memo: Option<&Bound<'py, PyDict>>,
+    ) -> PyResult<Self> {
+        let mut out = self.clone();
+        let deepcopy = imports::DEEPCOPY.get_bound(py);
+        // We only need to pass the deep-copying nature on to places where we store Python objects.
+        out.metadata = out
+            .metadata
+            .map(|dict| deepcopy.call1((dict, memo)).map(|ob| ob.unbind()))
+            .transpose()?;
+        out.duration = out
+            .duration
+            .map(|dict| deepcopy.call1((dict, memo)).map(|ob| ob.unbind()))
+            .transpose()?;
+        for node in out.dag.node_weights_mut() {
+            if let NodeType::Operation(inst) = node {
+                inst.py_deepcopy_inplace(py, memo)?;
+            };
+        }
+        Ok(out)
+    }
+
     /// Returns the current sequence of registered :class:`.Qubit` instances as a list.
     ///
     /// .. warning::
@@ -1715,7 +1743,7 @@ impl DAGCircuit {
     ///     DAGCircuitError: if an unknown :class:`.ControlFlowOp` is present in a call with
     ///         ``recurse=True``, or any control flow is present in a non-recursive call.
     #[pyo3(signature= (*, recurse=false))]
-    fn size(&self, recurse: bool) -> PyResult<usize> {
+    pub fn size(&self, recurse: bool) -> PyResult<usize> {
         let mut length = self.num_ops();
         if !self.has_control_flow() {
             return Ok(length);
@@ -1790,7 +1818,7 @@ impl DAGCircuit {
     ///     DAGCircuitError: if unknown control flow is present in a recursive call, or any control
     ///         flow is present in a non-recursive call.
     #[pyo3(signature= (*, recurse=false))]
-    fn depth(&self, recurse: bool) -> PyResult<usize> {
+    pub fn depth(&self, recurse: bool) -> PyResult<usize> {
         if self.qubits.is_empty() && self.clbits.is_empty() && self.num_vars() == 0 {
             return Ok(0);
         }

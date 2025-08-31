@@ -325,9 +325,11 @@ fn map_free_qubits(
     mut partial_layout: HashMap<VirtualQubit, PhysicalQubit>,
     reverse_im_graph_node_map: &[Option<Qubit>],
     avg_error_map: &ErrorMap,
+    dag: &DAGCircuit,
     target: &Target,
 ) -> Option<HashMap<VirtualQubit, PhysicalQubit>> {
     if free_nodes.is_empty() {
+        assign_unused_qubits(dag, target, &mut partial_layout);
         return Some(partial_layout);
     }
     let num_physical_qubits = target.num_qubits.unwrap();
@@ -362,7 +364,32 @@ fn map_free_qubits(
             PhysicalQubit::new(selected_qubit),
         );
     }
+    assign_unused_qubits(dag, target, &mut partial_layout);
     Some(partial_layout)
+}
+
+fn assign_unused_qubits(
+    dag: &DAGCircuit,
+    target: &Target,
+    mapping: &mut HashMap<VirtualQubit, PhysicalQubit>,
+) {
+    if mapping.len() < dag.num_qubits() {
+        let used_qubits = mapping.values().copied().collect::<HashSet<_>>();
+        let mut unused_qubits = (0..target.num_qubits.unwrap()).filter_map(|x| {
+            let phys = PhysicalQubit(x);
+            if !used_qubits.contains(&PhysicalQubit(x)) {
+                Some(phys)
+            } else {
+                None
+            }
+        });
+        for virt in 0..dag.num_qubits() {
+            if mapping.contains_key(&VirtualQubit::new(virt as u32)) {
+                continue;
+            }
+            mapping.insert(VirtualQubit(virt as u32), unused_qubits.next().unwrap());
+        }
+    }
 }
 
 #[pyfunction]
@@ -416,13 +443,15 @@ pub fn vf2_layout_pass(
         let avg_error_map = avg_error_map.unwrap_or_else(|| build_average_error_map(target));
         for mapping in mappings {
             trials += 1;
-            let mapping = mapping_to_layout(dag, mapping.unwrap(), &im_graph_data);
+            let mut mapping = mapping_to_layout(dag, mapping.unwrap(), &im_graph_data);
             if cm_graph.node_count() == im_graph_data.im_graph.node_count() {
+                assign_unused_qubits(dag, target, &mut mapping);
                 return Ok(Some(mapping));
             }
             let layout_score =
                 score_layout_internal(&mapping, &avg_error_map, &im_graph_data, strict_direction)?;
             if layout_score == 0. {
+                assign_unused_qubits(dag, target, &mut mapping);
                 return Ok(Some(mapping));
             }
             if layout_score < chosen_layout_score {
@@ -443,7 +472,10 @@ pub fn vf2_layout_pass(
                 }
             }
         }
-        Ok(chosen_layout)
+        Ok(chosen_layout.map(|mut layout| {
+            assign_unused_qubits(dag, target, &mut layout);
+            layout
+        }))
     } else {
         let cm_graph: Option<StableUnGraph<_, _>> = build_coupling_map(target);
         if cm_graph.is_none() {
@@ -461,6 +493,7 @@ pub fn vf2_layout_pass(
                 HashMap::new(),
                 &im_graph_data.reverse_im_graph_node_map,
                 &avg_error_map,
+                dag,
                 target,
             ));
         }
@@ -496,13 +529,15 @@ pub fn vf2_layout_pass(
         let mut chosen_layout_score = f64::MAX;
         for mapping in mappings {
             trials += 1;
-            let mapping = mapping_to_layout(dag, mapping.unwrap(), &im_graph_data);
+            let mut mapping = mapping_to_layout(dag, mapping.unwrap(), &im_graph_data);
             if cm_graph.node_count() == im_graph_data.im_graph.node_count() {
+                assign_unused_qubits(dag, target, &mut mapping);
                 return Ok(Some(mapping));
             }
             let layout_score =
                 score_layout_internal(&mapping, &avg_error_map, &im_graph_data, strict_direction)?;
             if layout_score == 0. {
+                assign_unused_qubits(dag, target, &mut mapping);
                 return Ok(Some(mapping));
             }
             if layout_score < chosen_layout_score {
@@ -531,6 +566,7 @@ pub fn vf2_layout_pass(
             chosen_layout,
             &im_graph_data.reverse_im_graph_node_map,
             &avg_error_map,
+            dag,
             target,
         ))
     }
