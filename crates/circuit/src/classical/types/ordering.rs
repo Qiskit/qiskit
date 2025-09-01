@@ -193,11 +193,11 @@ impl PyOrdering {
     }
 
     fn __str__(&self) -> String {
-        self.__repr__()
+        format!("<Ordering.{}: {}>", self.name(), self.value())
     }
 
     fn __format__(&self, _spec: &str) -> String {
-        self.__repr__()
+        self.__str__()
     }
 
     fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyOrderingIter>> {
@@ -291,6 +291,19 @@ fn _ord_contains(py: Python<'_>, obj: Bound<'_, PyAny>) -> PyResult<bool> {
     Ok(false)
 }
 
+/// Get the ordering relationship between the two types as an enumeration value.
+///
+///      Examples:
+///          Compare two :class:`Uint` types of different widths::
+///
+///              >>> from qiskit.circuit.classical import types
+///              >>> types.order(types.Uint(8), types.Uint(16))
+///              Ordering.LESS
+///
+///          Compare two types that have no ordering between them::
+///
+///              >>> types.order(types.Uint(8), types.Bool())
+///              Ordering.NONE
 #[pyfunction(name = "order")]
 #[pyo3(signature=(left, right))]
 fn py_order(py: Python<'_>, left: Type, right: Type) -> Py<PyOrdering> {
@@ -298,18 +311,70 @@ fn py_order(py: Python<'_>, left: Type, right: Type) -> Py<PyOrdering> {
     PyOrdering::get_singleton(py, order)
 }
 
+/// Does the relation :math:`\text{left} \le \text{right}` hold?  If there is no ordering
+///     relation between the two types, then this returns ``False``.  If ``strict``, then the equality
+///     is also forbidden.
+///
+///     Examples:
+///         Check if one type is a subclass of another::
+///
+///             >>> from qiskit.circuit.classical import types
+///             >>> types.is_subtype(types.Uint(8), types.Uint(16))
+///             True
+///
+///         Check if one type is a strict subclass of another::
+///
+///             >>> types.is_subtype(types.Bool(), types.Bool())
+///             True
+///             >>> types.is_subtype(types.Bool(), types.Bool(), strict=True)
+///             False
 #[pyfunction(name = "is_subtype")]
 #[pyo3(signature=(left, right, strict=false))]
 fn py_is_subtype(left: Type, right: Type, strict: bool) -> bool {
     is_subtype(left, right, strict)
 }
 
+/// Does the relation :math:`\text{left} \ge \text{right}` hold?  If there is no ordering
+///     relation between the two types, then this returns ``False``.  If ``strict``, then the equality
+///     is also forbidden.
+///
+///     Examples:
+///         Check if one type is a superclass of another::
+///
+///             >>> from qiskit.circuit.classical import types
+///             >>> types.is_supertype(types.Uint(8), types.Uint(16))
+///             False
+///
+///         Check if one type is a strict superclass of another::
+///
+///             >>> types.is_supertype(types.Bool(), types.Bool())
+///             True
+///             >>> types.is_supertype(types.Bool(), types.Bool(), strict=True)
+///             False
 #[pyfunction(name = "is_supertype")]
 #[pyo3(signature=(left, right, strict=false))]
 fn py_is_supertype(left: Type, right: Type, strict: bool) -> bool {
     is_supertype(left, right, strict)
 }
 
+/// Get the greater of the two types, assuming that there is an ordering relation between them.
+///     Technically, this is a slightly restricted version of the concept of the 'meet' of the two
+///     types in that the return value must be one of the inputs. In practice in the type system there
+///     is no concept of a 'sum' type, so the 'meet' exists if and only if there is an ordering between
+///     the two types, and is equal to the greater of the two types.
+///
+///     Returns:
+///         The greater of the two types.
+///
+///     Raises:
+///         TypeError: if there is no ordering relation between the two types.
+///
+///     Examples:
+///         Find the greater of two :class:`Uint` types::
+///
+///             >>> from qiskit.circuit.classical import types
+///             >>> types.greater(types.Uint(8), types.Uint(16))
+///             types.Uint(16)
 #[pyfunction(name = "greater")]
 #[pyo3(signature=(left, right))]
 fn py_greater(left: Type, right: Type) -> PyResult<Type> {
@@ -358,41 +423,39 @@ unsafe impl ::bytemuck::CheckedBitPattern for CastKind {
     }
 }
 
-impl CastKind {
-    /// Determine the sort of cast that is required to move from the left type to the right type.
-    pub fn cast_kind(from: Type, to: Type) -> Self {
-        match(from, to) {
-            // Bool -> Bool
-            (Type::Bool, Type::Bool) => CastKind::Equal,
-            // Bool -> Uint
-            (Type::Bool, Type::Uint(_)) => CastKind::Lossless,
-            // Bool -> Float
-            (Type::Bool, Type::Float) => CastKind::Lossless,
-            // Uint -> Bool
-            (Type::Uint(_), Type::Bool) => CastKind::Implicit,
-            // Uint -> Uint
-            (Type::Uint(w1), Type::Uint(w2)) => {
-                if w1 == w2 {
-                    CastKind::Equal
-                } else if w1 < w2 {
-                    CastKind::Lossless
-                } else {
-                    CastKind::Dangerous
-                }
+/// Determine the sort of cast that is required to move from the left type to the right type.
+pub fn cast_kind(from: Type, to: Type) -> CastKind {
+    match(from, to) {
+        // Bool -> Bool
+        (Type::Bool, Type::Bool) => CastKind::Equal,
+        // Bool -> Uint
+        (Type::Bool, Type::Uint(_)) => CastKind::Lossless,
+        // Bool -> Float
+        (Type::Bool, Type::Float) => CastKind::Lossless,
+        // Uint -> Bool
+        (Type::Uint(_), Type::Bool) => CastKind::Implicit,
+        // Uint -> Uint
+        (Type::Uint(w1), Type::Uint(w2)) => {
+            if w1 == w2 {
+                CastKind::Equal
+            } else if w1 < w2 {
+                CastKind::Lossless
+            } else {
+                CastKind::Dangerous
             }
-            // Uint -> Float
-            (Type::Uint(_), Type::Float) => CastKind::Dangerous,
-            // Float -> Float
-            (Type::Float, Type::Float) => CastKind::Equal,
-            // Float -> Uint
-            (Type::Float, Type::Uint(_)) => CastKind::Dangerous,
-            // Float -> Bool
-            (Type::Float, Type::Bool) => CastKind::Dangerous,
-            // Duration -> Duration
-            (Type::Duration, Type::Duration) => CastKind::Equal,
-            // Remainder unordered
-            _ => CastKind::None,
         }
+        // Uint -> Float
+        (Type::Uint(_), Type::Float) => CastKind::Dangerous,
+        // Float -> Float
+        (Type::Float, Type::Float) => CastKind::Equal,
+        // Float -> Uint
+        (Type::Float, Type::Uint(_)) => CastKind::Dangerous,
+        // Float -> Bool
+        (Type::Float, Type::Bool) => CastKind::Dangerous,
+        // Duration -> Duration
+        (Type::Duration, Type::Duration) => CastKind::Equal,
+        // Remainder unordered
+        _ => CastKind::None,
     }
 }
 
@@ -474,11 +537,11 @@ impl PyCastKind {
     }
 
     fn __str__(&self) -> String {
-        self.__repr__()
+        format!("<CastKind.{}: {}>", self.name(), self.value())
     }
 
     fn __format__(&self, _spec: &str) -> String {
-        self.__repr__()
+        self.__str__()
     }
 
     fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyCastKindIter>> {
@@ -577,10 +640,28 @@ fn _ck_contains(py: Python<'_>, obj: Bound<'_, PyAny>) -> PyResult<bool> {
     Ok(false)
 }
 
+/// Determine the sort of cast that is required to move from the left type to the right type.
+///
+///     Examples:
+///
+///         .. plot::
+///            :include-source:
+///            :nofigs:
+///
+///
+///             >>> from qiskit.circuit.classical import types
+///             >>> types.cast_kind(types.Bool(), types.Bool())
+///             <CastKind.EQUAL: 1>
+///             >>> types.cast_kind(types.Uint(8), types.Bool())
+///             <CastKind.IMPLICIT: 2>
+///             >>> types.cast_kind(types.Bool(), types.Uint(8))
+///             <CastKind.LOSSLESS: 3>
+///            >>> types.cast_kind(types.Uint(16), types.Uint(8))
+///             <CastKind.DANGEROUS: 4>
 #[pyfunction(name = "cast_kind")]
 #[pyo3(signature=(from, to))]
 fn py_cast_kind(py: Python<'_>, from: Type, to: Type) -> Py<PyCastKind> {
-    let kind = CastKind::cast_kind(from, to);
+    let kind = cast_kind(from, to);
     PyCastKind::get_singleton(py, kind)
 }
 
