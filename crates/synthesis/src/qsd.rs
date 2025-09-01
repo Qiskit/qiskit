@@ -31,7 +31,7 @@ use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::{
-    ArrayType, Operation, OperationRef, Param, StandardGate, UnitaryGate,
+    ArrayType, OperationRef, Param, StandardGate, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::{Qubit, VarsMode};
@@ -87,7 +87,7 @@ fn qsd_inner(
     let default_2q_decomposer = TwoQubitBasisDecomposer::new_inner(
         StandardGate::CX.into(),
         smallvec![],
-        StandardGate::CX.matrix(&[]).unwrap().view(),
+        aview2(&qiskit_circuit::gate_matrix::CX_GATE),
         1.0,
         "U",
         None,
@@ -143,8 +143,7 @@ fn qsd_inner(
         let sequence = two_qubit_decomposer
             .call_inner(array.view(), None, false, None)
             .unwrap_or_else(|_| {
-                let u_mat = closest_unitary(mat.clone());
-                let array = Array2::from_shape_fn((dim, dim), |(i, j)| u_mat[(i, j)]);
+                let array = Array2::from_shape_fn((dim, dim), |(i, j)| mat[(i, j)]);
                 two_qubit_decomposer
                     .call_inner(array.view(), None, false, None)
                     .unwrap()
@@ -509,16 +508,18 @@ fn update_angle(angle_1: f64, angle_2: f64) -> [f64; 2] {
 }
 
 fn append(circ: &mut CircuitData, new: CircuitData, qubit_map: &[Qubit]) -> PyResult<()> {
+    let mut new_qubits_map: HashMap<Interned<[Qubit]>, Vec<Qubit>> = HashMap::new();
     for inst in new.data() {
-        let qubits_map: Vec<Qubit> = new
-            .get_qargs(inst.qubits)
-            .iter()
-            .map(|x| qubit_map[x.index()])
-            .collect();
+        let qubits_map = new_qubits_map.entry(inst.qubits).or_insert_with(|| {
+            new.get_qargs(inst.qubits)
+                .iter()
+                .map(|x| qubit_map[x.index()])
+                .collect()
+        });
         let out_inst = PackedInstruction {
             op: inst.op.clone(),
             params: inst.params.clone(),
-            qubits: circ.add_qargs(&qubits_map),
+            qubits: circ.add_qargs(qubits_map),
             clbits: Default::default(),
             label: inst.label.clone(),
             #[cfg(feature = "cache_pygates")]
