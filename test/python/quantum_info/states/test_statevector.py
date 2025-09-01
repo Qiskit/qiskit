@@ -282,7 +282,7 @@ class TestStatevector(QiskitTestCase):
         op = random_unitary(4)  # 4x4 unitary
         vec = self.rand_vec(4)  # 4-dim state vector
         result = op @ Statevector(vec)
-        self.assertEqual(isinstance(result, Statevector), True)
+        self.assertTrue(isinstance(result, Statevector))
         self.assertEqual(result.data.shape, (4,))
 
     def test_evolve_subsystem(self):
