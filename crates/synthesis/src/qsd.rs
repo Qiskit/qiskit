@@ -30,9 +30,7 @@ use crate::two_qubit_decompose::{two_qubit_decompose_up_to_diagonal, TwoQubitBas
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::interner::Interned;
-use qiskit_circuit::operations::{
-    ArrayType, OperationRef, Param, StandardGate, UnitaryGate,
-};
+use qiskit_circuit::operations::{ArrayType, OperationRef, Param, StandardGate, UnitaryGate};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::{Qubit, VarsMode};
 use qiskit_quantum_info::convert_2q_block_matrix::instructions_to_matrix;
@@ -643,14 +641,7 @@ fn apply_a2(
             )?,
             None => new_matrices[ind2].to_owned(),
         };
-        let (diagonal_mat, qc2cx) =
-            two_qubit_decompose_up_to_diagonal(mat1.view()).unwrap_or_else(|_| {
-                let (nrows, ncols) = mat1.dim();
-                let data_vec: Vec<Complex64> = mat1.iter().cloned().collect(); // row-major flatten
-                let u_mat = closest_unitary(DMatrix::from_row_slice(nrows, ncols, &data_vec));
-                let array = Array2::from_shape_fn((nrows, ncols), |(i, j)| u_mat[(i, j)]);
-                two_qubit_decompose_up_to_diagonal(array.view()).unwrap()
-            });
+        let (diagonal_mat, qc2cx) = two_qubit_decompose_up_to_diagonal(mat1.view()).unwrap();
         diagonal_rollover.insert(*ind1, qc2cx);
         let new_mat2 = mat2.dot(&diagonal_mat);
         new_matrices.insert(*ind2, new_mat2);
