@@ -68,6 +68,28 @@ class TestOptimize1qGates(QiskitTestCase):
 
         self.assertEqual(expected, result)
 
+    def test_optimize_u_cancellation_emits_u3_when_basis_is_u3(self):
+        """test optimize_1q_gates removes u gates and its inverse if "u" is not
+        in `basis`.
+
+        See: https://github.com/Qiskit/qiskit/issues/14970
+        """
+        #    ┌──────────┐┌─────────────┐┌──────────┐         ┌───────────┐
+        # q: ┤ U(1,1,1) ├┤ U(-1,-1,-1) ├┤ U(1,0,0) ├  =>  q: ┤ U3(1,0,0) ├
+        #    └──────────┘└─────────────┘└──────────┘         └───────────┘
+        circuit = QuantumCircuit(1)
+        circuit.u(1, 1, 1, qubit=0)
+        circuit.u(-1, -1, -1, qubit=0)
+        circuit.u(1, 0, 0, qubit=0)
+        dag = circuit_to_dag(circuit)
+
+        expected = QuantumCircuit(1)
+        expected.append(U3Gate(1, 0, 0), [0])
+
+        after = Optimize1qGates(basis=["u3"]).run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
     def test_optimize_1q_gates_collapse_identity_equivalent(self):
         """test optimize_1q_gates removes u1(2*pi) rotations.
 
