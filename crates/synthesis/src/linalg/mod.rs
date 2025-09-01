@@ -21,6 +21,7 @@ pub mod cos_sin_decomp;
 const ATOL_DEFAULT: f64 = 1e-8;
 const RTOL_DEFAULT: f64 = 1e-5;
 
+/// Check whether the given matrix is hermitian by comparing it (up to tolerance) with its hermitian adjoint.
 pub fn is_hermitian_matrix(mat: &DMatrix<Complex64>) -> bool {
     let shape = mat.shape();
     let adjoint = mat.adjoint();
@@ -50,6 +51,7 @@ fn verify_svd_decomp(
     abs_diff_eq!(mat, mat_check.as_view(), epsilon = 1e-7)
 }
 
+/// Verifies the given matrix U is unitary by comparing U*U to the identity matrix
 pub fn verify_unitary(u: &DMatrix<Complex64>) -> bool {
     let n = u.shape().0;
 
@@ -93,6 +95,8 @@ pub fn condition_number(mat: DMatrix<Complex64>) -> Option<f64> {
     Some(max_sv / min_sv)
 }
 
+/// Returns the SVD decomposition of the given matrix M as three matrices A,S,B such that
+/// M=ASB (In the usual notations, M=USV*, and this function returns A=U and B=V*)
 pub fn svd_decomposition(
     mat: &DMatrix<Complex64>,
 ) -> (DMatrix<Complex64>, DMatrix<Complex64>, DMatrix<Complex64>) {

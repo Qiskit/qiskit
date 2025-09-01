@@ -335,9 +335,6 @@ fn demultiplex(
     let um0 = closest_unitary(um0.clone());
     let um1 = closest_unitary(um1.clone());
 
-    debug_assert!(verify_unitary(&um0));
-    debug_assert!(verify_unitary(&um1));
-
     let dim = um0.shape().0 + um1.shape().0;
     let num_qubits = dim.ilog2() as usize;
     let _ctrl_index = _ctrl_index.unwrap_or_else(|| num_qubits - 1);
@@ -363,7 +360,7 @@ fn demultiplex(
     let d_mat: DMatrix<Complex64> = DMatrix::from_diagonal(&d_values);
     let wmat = d_mat.clone() * vmat.adjoint() * um1.clone();
 
-    _demultiplex_verify(&um0, &um1, &vmat, &wmat, &d_mat);
+    debug_assert!(_demultiplex_verify(&um0, &um1, &vmat, &wmat, &d_mat));
 
     let out_qubits = (0..num_qubits)
         .map(|_| ShareableQubit::new_anonymous())
@@ -431,9 +428,7 @@ fn _demultiplex_verify(
     let u_check = v_block * d_block * w_block;
 
     const EPS: f64 = 1e-7;
-    let close = abs_diff_eq!(u_block, u_check, epsilon = EPS);
-    debug_assert!(close);
-    close
+    abs_diff_eq!(u_block, u_check, epsilon = EPS)
 }
 
 /// This function synthesizes UCRZ without the final CX gate,
