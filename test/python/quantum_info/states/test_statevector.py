@@ -277,6 +277,14 @@ class TestStatevector(QiskitTestCase):
             evolved = Statevector(vec).evolve(op)
             self.assertEqual(target, evolved)
 
+    def test_evolve_operator_overload_dimensions(self):
+        """Test that the @ operator returns a Statevector of correct dimension."""
+        op = random_unitary(4)  # 4x4 unitary
+        vec = self.rand_vec(4)  # 4-dim state vector
+        result = op @ Statevector(vec)
+        self.assertEqual(isinstance(result, Statevector), True)
+        self.assertEqual(result.data.shape, (4,))
+
     def test_evolve_subsystem(self):
         """Test subsystem _evolve method."""
         # Test evolving single-qubit of 3-qubit system

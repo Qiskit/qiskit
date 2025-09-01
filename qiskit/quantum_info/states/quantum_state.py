@@ -478,7 +478,7 @@ class QuantumState:
         return new_probs
 
     def _matmul_with_data(self, other):
-        # If both are array-like, do direct multiplication
+        # If both are array-like, direct multiplication
         try:
             self_data = getattr(self, "data", None)
             other_data = getattr(other, "data", None)
@@ -492,7 +492,7 @@ class QuantumState:
             if isinstance(other, Operator):
                 return other.compose(self.to_operator())
 
-            # Otherwise, coerce to Operator and compose
+            # Else, coerce to Operator and compose
             return Operator(other).compose(self.to_operator())
         except Exception:
             return NotImplemented
