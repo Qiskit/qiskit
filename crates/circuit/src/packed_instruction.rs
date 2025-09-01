@@ -614,7 +614,7 @@ pub struct PackedInstruction {
     /// which is a simple null-pointer check.
     ///
     /// WARNING: remember that `OnceLock`'s `get_or_init` method is no-reentrant, so the initialiser
-    /// must not yield the GIL to Python space.  We avoid using `GILOnceCell` here because it
+    /// must not yield the GIL to Python space.  We avoid using `PyOnceLock` here because it
     /// requires the GIL to even `get` (of course!), which makes implementing `Clone` hard for us.
     /// We can revisit once we're on PyO3 0.22+ and have been able to disable its `py-clone`
     /// feature.

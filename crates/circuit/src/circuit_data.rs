@@ -55,7 +55,7 @@ type CircuitDataState<'py> = (
     Vec<ClassicalRegister>,
     Bound<'py, PyDict>,
     Bound<'py, PyDict>,
-    Vec<(String, PyObject)>,
+    Vec<(String, Py<PyAny>)>,
     Vec<expr::Var>,
     Vec<expr::Stretch>,
 );
@@ -179,7 +179,7 @@ pub struct CircuitVarInfo {
 }
 
 impl CircuitVarInfo {
-    fn to_pickle(&self, py: Python) -> PyResult<PyObject> {
+    fn to_pickle(&self, py: Python) -> PyResult<Py<PyAny>> {
         (self.var.0, self.type_ as u8).into_py_any(py)
     }
 
@@ -227,7 +227,7 @@ pub struct CircuitStretchInfo {
 }
 
 impl CircuitStretchInfo {
-    fn to_pickle(&self, py: Python) -> PyResult<PyObject> {
+    fn to_pickle(&self, py: Python) -> PyResult<Py<PyAny>> {
         (self.stretch.0, self.type_ as u8).into_py_any(py)
     }
 
@@ -259,7 +259,7 @@ pub enum CircuitIdentifierInfo {
 }
 
 impl CircuitIdentifierInfo {
-    fn to_pickle(&self, py: Python) -> PyResult<PyObject> {
+    fn to_pickle(&self, py: Python) -> PyResult<Py<PyAny>> {
         match self {
             CircuitIdentifierInfo::Stretch(info) => (0, info.to_pickle(py)?).into_py_any(py),
             CircuitIdentifierInfo::Var(info) => (1, info.to_pickle(py)?).into_py_any(py),
@@ -378,7 +378,7 @@ impl CircuitData {
         Ok(())
     }
 
-    pub fn __reduce__(self_: &Bound<CircuitData>, py: Python<'_>) -> PyResult<PyObject> {
+    pub fn __reduce__(self_: &Bound<CircuitData>, py: Python<'_>) -> PyResult<Py<PyAny>> {
         let ty: Bound<PyType> = self_.get_type();
         let args = {
             let self_ = self_.borrow();
@@ -401,7 +401,7 @@ impl CircuitData {
                     .identifier_info
                     .iter()
                     .map(|(k, v)| (k.clone(), v.clone().to_pickle(py).unwrap()))
-                    .collect::<Vec<(String, PyObject)>>(),
+                    .collect::<Vec<(String, Py<PyAny>)>>(),
                 borrowed.vars.objects().clone(),
                 borrowed.stretches.objects().clone(),
             )
@@ -1068,7 +1068,7 @@ impl CircuitData {
     }
 
     // Note: we also rely on this to make us iterable!
-    pub fn __getitem__(&self, py: Python, index: PySequenceIndex) -> PyResult<PyObject> {
+    pub fn __getitem__(&self, py: Python, index: PySequenceIndex) -> PyResult<Py<PyAny>> {
         // Get a single item, assuming the index is validated as in bounds.
         let get_single = |index: usize| {
             let inst = &self.data[index];
@@ -1179,7 +1179,7 @@ impl CircuitData {
     }
 
     #[pyo3(signature = (index=None))]
-    pub fn pop(&mut self, py: Python<'_>, index: Option<PySequenceIndex>) -> PyResult<PyObject> {
+    pub fn pop(&mut self, py: Python<'_>, index: Option<PySequenceIndex>) -> PyResult<Py<PyAny>> {
         let index = index.unwrap_or(PySequenceIndex::Int(-1));
         let native_index = index.with_len(self.data.len())?;
         let item = self.__getitem__(py, index)?;
@@ -1670,7 +1670,7 @@ impl CircuitData {
 
     // Return the variable in the circuit corresponding to the given name, or None if no such variable.
     #[pyo3(name = "get_var")]
-    fn py_get_var(&self, py: Python, name: &str) -> PyResult<PyObject> {
+    fn py_get_var(&self, py: Python, name: &str) -> PyResult<Py<PyAny>> {
         if let Some(CircuitIdentifierInfo::Var(var_info)) = self.identifier_info.get(name) {
             let var = self
                 .vars
@@ -1772,7 +1772,7 @@ impl CircuitData {
 
     // Return the stretch variable in the circuit corresponding to the given name, or None if no such variable.
     #[pyo3(name = "get_stretch")]
-    pub fn py_get_stretch(&self, py: Python, name: &str) -> PyResult<PyObject> {
+    pub fn py_get_stretch(&self, py: Python, name: &str) -> PyResult<Py<PyAny>> {
         if let Some(CircuitIdentifierInfo::Stretch(stretch_info)) = self.identifier_info.get(name) {
             let stretch = self
                 .stretches
@@ -2404,7 +2404,7 @@ impl CircuitData {
                     expr.subs(&map, false)?
                 }
                 Param::Obj(ob) => {
-                    Python::with_gil(|py| {
+                    Python::attach(|py| {
                         // The integer handling is only needed to support the case where an int is
                         // passed in directly instead of a float. This will be handled when we add
                         // int to the param enum to support dt target.
@@ -2493,10 +2493,10 @@ impl CircuitData {
                             // gates. Technically `StandardInstruction::Delay` could, but in
                             // practice that's not a common path, and it's only supported for
                             // backwards compatability from before Stretch was introduced. If we did
-                            // it in rust without Python that's a mistake and this with_gil() call
+                            // it in rust without Python that's a mistake and this attach() call
                             // will panic and point out the error of your ways when this comment is
                             // read.
-                            Python::with_gil(|py| {
+                            Python::attach(|py| {
                                 let validate_parameter_attr = intern!(py, "validate_parameter");
                                 let assign_parameters_attr = intern!(py, "assign_parameters");
 
@@ -2579,7 +2579,7 @@ impl CircuitData {
 
         // handle custom gates, this can only happen in Py-space
         if !user_operations.is_empty() {
-            Python::with_gil(|py| -> PyResult<()> {
+            Python::attach(|py| -> PyResult<()> {
                 let _definition_attr = intern!(py, "_definition");
                 let assign_parameters_attr = intern!(py, "assign_parameters");
 

@@ -197,7 +197,7 @@ fn decompose_two_qubit_product_gate(
 fn py_decompose_two_qubit_product_gate(
     py: Python,
     special_unitary: PyArrayLike2<Complex64>,
-) -> PyResult<(PyObject, PyObject, f64)> {
+) -> PyResult<(Py<PyAny>, Py<PyAny>, f64)> {
     let view = special_unitary.as_array();
     let (l, r, phase) = decompose_two_qubit_product_gate(view)?;
     Ok((
@@ -215,7 +215,7 @@ fn py_decompose_two_qubit_product_gate(
 /// Returns:
 ///     np.ndarray: Array of the 3 Weyl coordinates.
 #[pyfunction]
-fn weyl_coordinates(py: Python, unitary: PyReadonlyArray2<Complex64>) -> PyResult<PyObject> {
+fn weyl_coordinates(py: Python, unitary: PyReadonlyArray2<Complex64>) -> PyResult<Py<PyAny>> {
     let array = unitary.as_array();
     Ok(__weyl_coordinates(array.into_faer())?
         .to_vec()
@@ -1124,30 +1124,30 @@ impl TwoQubitWeylDecomposition {
 
     #[allow(non_snake_case)]
     #[getter]
-    pub fn K1l(&self, py: Python) -> PyObject {
+    pub fn K1l(&self, py: Python) -> Py<PyAny> {
         self.K1l.to_pyarray(py).into_any().unbind()
     }
 
     #[allow(non_snake_case)]
     #[getter]
-    pub fn K1r(&self, py: Python) -> PyObject {
+    pub fn K1r(&self, py: Python) -> Py<PyAny> {
         self.K1r.to_pyarray(py).into_any().unbind()
     }
 
     #[allow(non_snake_case)]
     #[getter]
-    fn K2l(&self, py: Python) -> PyObject {
+    fn K2l(&self, py: Python) -> Py<PyAny> {
         self.K2l.to_pyarray(py).into_any().unbind()
     }
 
     #[allow(non_snake_case)]
     #[getter]
-    fn K2r(&self, py: Python) -> PyObject {
+    fn K2r(&self, py: Python) -> Py<PyAny> {
         self.K2r.to_pyarray(py).into_any().unbind()
     }
 
     #[getter]
-    fn unitary_matrix(&self, py: Python) -> PyObject {
+    fn unitary_matrix(&self, py: Python) -> Py<PyAny> {
         self.unitary_matrix.to_pyarray(py).into_any().unbind()
     }
 
@@ -2041,12 +2041,11 @@ fn decomp0_inner(target: &TwoQubitWeylDecomposition) -> SmallVec<[Array2<Complex
     smallvec![target.K1r.dot(&target.K2r), target.K1l.dot(&target.K2l),]
 }
 
+type PickleNewArgs<'a> = (Py<PyAny>, Py<PyAny>, f64, &'a str, Option<bool>);
+
 #[pymethods]
 impl TwoQubitBasisDecomposer {
-    fn __getnewargs__(
-        &self,
-        py: Python,
-    ) -> PyResult<(PyObject, PyObject, f64, &str, Option<bool>)> {
+    fn __getnewargs__(&self, py: Python) -> PyResult<PickleNewArgs<'_>> {
         let params: Vec<Param> = self.gate_params.iter().map(|x| Param::Float(*x)).collect();
         Ok((
             match self.gate.view() {
@@ -2126,7 +2125,7 @@ impl TwoQubitBasisDecomposer {
     ///
     /// which is optimal for all targets and bases
     #[staticmethod]
-    fn decomp0(py: Python, target: &TwoQubitWeylDecomposition) -> SmallVec<[PyObject; 2]> {
+    fn decomp0(py: Python, target: &TwoQubitWeylDecomposition) -> SmallVec<[Py<PyAny>; 2]> {
         decomp0_inner(target)
             .into_iter()
             .map(|x| x.into_pyarray(py).into_any().unbind())
@@ -2143,7 +2142,7 @@ impl TwoQubitBasisDecomposer {
     ///     4\Big\vert \cos(x-a)\cos(y-b)\cos(z-c) + j \sin(x-a)\sin(y-b)\sin(z-c)\Big\vert
     ///
     /// which is optimal for all targets and bases with ``z==0`` or ``c==0``.
-    fn decomp1(&self, py: Python, target: &TwoQubitWeylDecomposition) -> SmallVec<[PyObject; 4]> {
+    fn decomp1(&self, py: Python, target: &TwoQubitWeylDecomposition) -> SmallVec<[Py<PyAny>; 4]> {
         self.decomp1_inner(target)
             .into_iter()
             .map(|x| x.into_pyarray(py).into_any().unbind())
@@ -2168,7 +2167,7 @@ impl TwoQubitBasisDecomposer {
         &self,
         py: Python,
         target: &TwoQubitWeylDecomposition,
-    ) -> SmallVec<[PyObject; 6]> {
+    ) -> SmallVec<[Py<PyAny>; 6]> {
         self.decomp2_supercontrolled_inner(target)
             .into_iter()
             .map(|x| x.into_pyarray(py).into_any().unbind())
@@ -2183,7 +2182,7 @@ impl TwoQubitBasisDecomposer {
         &self,
         py: Python,
         target: &TwoQubitWeylDecomposition,
-    ) -> SmallVec<[PyObject; 8]> {
+    ) -> SmallVec<[Py<PyAny>; 8]> {
         self.decomp3_supercontrolled_inner(target)
             .into_iter()
             .map(|x| x.into_pyarray(py).into_any().unbind())
@@ -2304,7 +2303,7 @@ fn real_trace_transform(mat: ArrayView2<Complex64>) -> Array2<Complex64> {
 fn two_qubit_decompose_up_to_diagonal(
     py: Python,
     mat: PyReadonlyArray2<Complex64>,
-) -> PyResult<(PyObject, CircuitData)> {
+) -> PyResult<(Py<PyAny>, CircuitData)> {
     let mat_arr: ArrayView2<Complex64> = mat.as_array();
     let (su4, phase) = u4_to_su4(mat_arr);
     let mut real_map = real_trace_transform(su4.view());
@@ -2462,7 +2461,7 @@ impl RXXEquivalent {
     fn matrix(&self, param: f64) -> PyResult<Array2<Complex64>> {
         match self {
             Self::Standard(gate) => Ok(gate.matrix(&[Param::Float(param)]).unwrap()),
-            Self::CustomPython(gate_cls) => Python::with_gil(|py: Python| {
+            Self::CustomPython(gate_cls) => Python::attach(|py: Python| {
                 let gate_obj = gate_cls.bind(py).call1((param,))?;
                 let raw_matrix = gate_obj
                     .call_method0(intern!(py, "to_matrix"))?
@@ -2535,7 +2534,7 @@ impl TwoQubitControlledUDecomposer {
                 (res.0.into(), res.1)
             }
             OperationRef::Gate(gate) => {
-                Python::with_gil(|py: Python| -> PyResult<(PackedOperation, SmallVec<_>)> {
+                Python::attach(|py: Python| -> PyResult<(PackedOperation, SmallVec<_>)> {
                     let raw_inverse = gate.gate.call_method0(py, intern!(py, "inverse"))?;
                     let inverse: OperationFromPython = raw_inverse.extract(py)?;
                     Ok((inverse.operation, inverse.params))
@@ -2615,7 +2614,7 @@ impl TwoQubitControlledUDecomposer {
         let rxx_op = match &self.rxx_equivalent_gate {
             RXXEquivalent::Standard(gate) => PackedOperation::from_standard_gate(*gate),
             RXXEquivalent::CustomPython(gate_cls) => {
-                Python::with_gil(|py| -> PyResult<PackedOperation> {
+                Python::attach(|py| -> PyResult<PackedOperation> {
                     let op: OperationFromPython =
                         gate_cls.bind(py).call1((self.scale * angle,))?.extract()?;
                     Ok(op.operation)
@@ -2859,7 +2858,7 @@ impl TwoQubitControlledUDecomposer {
                         }
                     }
                     RXXEquivalent::CustomPython(gate_cls) => {
-                        let takes_param = Python::with_gil(|py: Python| {
+                        let takes_param = Python::attach(|py: Python| {
                             gate_cls.bind(py).call1((test_angle,)).ok().is_none()
                         });
                         if takes_param {
