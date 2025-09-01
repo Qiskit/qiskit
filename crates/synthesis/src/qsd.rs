@@ -649,15 +649,7 @@ fn apply_a2(
     let last_idx = ind2q.last().unwrap();
     let qc3_seq = two_qubit_decomposer
         .call_inner(new_matrices[last_idx].view(), None, true, None)
-        .unwrap_or_else(|_| {
-            let (nrows, ncols) = new_matrices[last_idx].dim();
-            let data_vec: Vec<Complex64> = new_matrices[last_idx].iter().cloned().collect(); // row-major flatten
-            let u_mat = closest_unitary(DMatrix::from_row_slice(nrows, ncols, &data_vec));
-            let array = Array2::from_shape_fn((nrows, ncols), |(i, j)| u_mat[(i, j)]);
-            two_qubit_decomposer
-                .call_inner(array.view(), None, false, None)
-                .unwrap()
-        });
+        .unwrap();
     let qc3 = CircuitData::from_packed_operations(
         2,
         0,
