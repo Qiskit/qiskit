@@ -10,17 +10,11 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-mod types;
 mod ordering;
+mod types;
 
+pub use ordering::{is_subtype, is_supertype, order, CastKind, Ordering};
 pub use types::Type;
-pub use ordering::{
-    Ordering,
-    order,
-    is_subtype,
-    is_supertype,
-    CastKind,
-};
 
 use pyo3::prelude::*;
 

@@ -9,9 +9,9 @@
 
 use crate::classical::types::types::Type;
 
+use pyo3::exceptions::PyTypeError;
 use pyo3::sync::GILOnceCell;
 use pyo3::{prelude::*, IntoPyObjectExt};
-use pyo3::exceptions::{PyTypeError};
 use std::ffi::CString;
 
 static ORD_LESS: GILOnceCell<Py<PyOrdering>> = GILOnceCell::new();
@@ -28,9 +28,9 @@ static CK_NONE: GILOnceCell<Py<PyCastKind>> = GILOnceCell::new();
 /// The Rust-side enum indicating a [Ordering] expression's kind.
 ///
 /// WARNING: If you add more, **be sure to update**
-/// the implementations of [ALL_ORDERINGS], [register_python], 
+/// the implementations of [ALL_ORDERINGS], [register_python],
 /// and [::bytemuck::CheckedBitPattern] below.
-/// 
+///
 /// Enumeration listing the possible relations between two types.  Types only have a partial
 /// ordering, so it's possible for two types to have no sub-typing relationship.
 ///
@@ -112,9 +112,10 @@ pub fn greater(left: Type, right: Type) -> PyResult<Type> {
         Ordering::Less => Ok(right),
         Ordering::Equal => Ok(right),
         Ordering::Greater => Ok(left),
-        Ordering::None    => Err(PyTypeError::new_err(
-            format!("no ordering exists between '{:?}' and '{:?}'", left, right)
-        )),
+        Ordering::None => Err(PyTypeError::new_err(format!(
+            "no ordering exists between '{:?}' and '{:?}'",
+            left, right
+        ))),
     }
 }
 
@@ -154,7 +155,7 @@ impl<'py> FromPyObject<'py> for Ordering {
     eq,
     hash,
     frozen,
-    subclass,
+    subclass
 )]
 #[derive(PartialEq, Debug, Hash)]
 struct PyOrdering {
@@ -201,44 +202,74 @@ impl PyOrdering {
     }
 
     fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyOrderingIter>> {
-        let ords: Vec<Py<PyOrdering>> = ALL_ORDERINGS.iter()
+        let ords: Vec<Py<PyOrdering>> = ALL_ORDERINGS
+            .iter()
             .map(|&ord| PyOrdering::get_singleton(slf.py(), ord))
             .collect();
 
-        Py::new(slf.py(), PyOrderingIter { items: ords.into_iter() })
+        Py::new(
+            slf.py(),
+            PyOrderingIter {
+                items: ords.into_iter(),
+            },
+        )
     }
 }
 
 impl PyOrdering {
     fn get_singleton(py: Python<'_>, ord: Ordering) -> Py<PyOrdering> {
         match ord {
-            Ordering::Less => {
-                ORD_LESS.get_or_init(py, || {
-                    Py::new(py, PyOrdering { inner: Ordering::Less }).unwrap()
-                }).clone_ref(py)
-            }
-            Ordering::Equal => {
-                ORD_EQUAL.get_or_init(py, || {
-                    Py::new(py, PyOrdering { inner: Ordering::Equal }).unwrap()
-                }).clone_ref(py)
-            }
-            Ordering::Greater => {
-                ORD_GREATER.get_or_init(py, || {
-                    Py::new(py, PyOrdering { inner: Ordering::Greater }).unwrap()
-                }).clone_ref(py)
-            }
-            Ordering::None => {
-                ORD_NONE.get_or_init(py, || {
-                    Py::new(py, PyOrdering { inner: Ordering::None }).unwrap()
-                }).clone_ref(py)
-            }
+            Ordering::Less => ORD_LESS
+                .get_or_init(py, || {
+                    Py::new(
+                        py,
+                        PyOrdering {
+                            inner: Ordering::Less,
+                        },
+                    )
+                    .unwrap()
+                })
+                .clone_ref(py),
+            Ordering::Equal => ORD_EQUAL
+                .get_or_init(py, || {
+                    Py::new(
+                        py,
+                        PyOrdering {
+                            inner: Ordering::Equal,
+                        },
+                    )
+                    .unwrap()
+                })
+                .clone_ref(py),
+            Ordering::Greater => ORD_GREATER
+                .get_or_init(py, || {
+                    Py::new(
+                        py,
+                        PyOrdering {
+                            inner: Ordering::Greater,
+                        },
+                    )
+                    .unwrap()
+                })
+                .clone_ref(py),
+            Ordering::None => ORD_NONE
+                .get_or_init(py, || {
+                    Py::new(
+                        py,
+                        PyOrdering {
+                            inner: Ordering::None,
+                        },
+                    )
+                    .unwrap()
+                })
+                .clone_ref(py),
         }
     }
 }
 
 #[pyclass(
     module = "qiskit._accelerate.circuit.classical.types.ordering",
-    name = "OrderingIter",
+    name = "OrderingIter"
 )]
 struct PyOrderingIter {
     items: std::vec::IntoIter<Py<PyOrdering>>,
@@ -257,11 +288,17 @@ impl PyOrderingIter {
 
 #[pyfunction]
 fn _ord_iter(py: Python<'_>) -> PyResult<Py<PyOrderingIter>> {
-    let ords: Vec<Py<PyOrdering>> = ALL_ORDERINGS.iter()
+    let ords: Vec<Py<PyOrdering>> = ALL_ORDERINGS
+        .iter()
         .map(|&ord| PyOrdering::get_singleton(py, ord))
         .collect();
 
-    Py::new(py, PyOrderingIter { items: ords.into_iter() })
+    Py::new(
+        py,
+        PyOrderingIter {
+            items: ords.into_iter(),
+        },
+    )
 }
 
 #[pyfunction]
@@ -284,7 +321,7 @@ fn _ord_contains(py: Python<'_>, obj: Bound<'_, PyAny>) -> PyResult<bool> {
     // Anything with a `.value` attribute
     if let Ok(val) = obj.getattr("value") {
         if let Ok(v) = val.extract::<u8>() {
-            return Ok(bytemuck::checked::try_cast::<u8, Ordering>(v).is_ok())
+            return Ok(bytemuck::checked::try_cast::<u8, Ordering>(v).is_ok());
         }
     }
 
@@ -378,14 +415,13 @@ fn py_is_supertype(left: Type, right: Type, strict: bool) -> bool {
 #[pyfunction(name = "greater")]
 #[pyo3(signature=(left, right))]
 fn py_greater(left: Type, right: Type) -> PyResult<Type> {
-    greater(left, right)
-        .map_err(|msg| PyTypeError::new_err(msg))
+    greater(left, right).map_err(|msg| PyTypeError::new_err(msg))
 }
 
 /// The Rust-side enum indicating a [CastKind] expression's kind.
 ///
 /// WARNING: If you add more, **be sure to update**
-/// the implementations of [ALL_CAST_KINDS], [register_python], 
+/// the implementations of [ALL_CAST_KINDS], [register_python],
 /// and [::bytemuck::CheckedBitPattern] below.
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Hash)]
@@ -425,7 +461,7 @@ unsafe impl ::bytemuck::CheckedBitPattern for CastKind {
 
 /// Determine the sort of cast that is required to move from the left type to the right type.
 pub fn cast_kind(from: Type, to: Type) -> CastKind {
-    match(from, to) {
+    match (from, to) {
         // Bool -> Bool
         (Type::Bool, Type::Bool) => CastKind::Equal,
         // Bool -> Uint
@@ -497,10 +533,10 @@ impl<'py> FromPyObject<'py> for CastKind {
     eq,
     hash,
     frozen,
-    subclass,
+    subclass
 )]
 #[derive(Debug, Hash, PartialEq)]
-struct PyCastKind{
+struct PyCastKind {
     inner: CastKind,
 }
 
@@ -520,7 +556,7 @@ impl PyCastKind {
     #[getter]
     fn value(&self) -> usize {
         self.inner as usize
-    }    
+    }
 
     #[getter]
     fn _name_(&self) -> &'static str {
@@ -545,49 +581,85 @@ impl PyCastKind {
     }
 
     fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<PyCastKindIter>> {
-        let cks: Vec<Py<PyCastKind>> = ALL_CAST_KINDS.iter()
+        let cks: Vec<Py<PyCastKind>> = ALL_CAST_KINDS
+            .iter()
             .map(|&kind| PyCastKind::get_singleton(slf.py(), kind))
             .collect();
 
-        Py::new(slf.py(), PyCastKindIter { items: cks.into_iter() })
+        Py::new(
+            slf.py(),
+            PyCastKindIter {
+                items: cks.into_iter(),
+            },
+        )
     }
 }
 
 impl PyCastKind {
     fn get_singleton(py: Python<'_>, kind: CastKind) -> Py<PyCastKind> {
         match kind {
-            CastKind::Equal => {
-                CK_EQUAL.get_or_init(py, || {
-                    Py::new(py, PyCastKind { inner: CastKind::Equal }).unwrap()
-                }).clone_ref(py)
-            }
-            CastKind::Implicit => {
-                CK_IMPLICIT.get_or_init(py, || {
-                    Py::new(py, PyCastKind { inner: CastKind::Implicit }).unwrap()
-                }).clone_ref(py)
-            }
-            CastKind::Lossless => {
-                CK_LOSSLESS.get_or_init(py, || {
-                    Py::new(py, PyCastKind { inner: CastKind::Lossless }).unwrap()
-                }).clone_ref(py)
-            }
-            CastKind::Dangerous => {
-                CK_DANGEROUS.get_or_init(py, || {
-                    Py::new(py, PyCastKind { inner: CastKind::Dangerous }).unwrap()
-                }).clone_ref(py)
-            }
-            CastKind::None => {
-                CK_NONE.get_or_init(py, || {
-                    Py::new(py, PyCastKind { inner: CastKind::None }).unwrap()
-                }).clone_ref(py)
-            }
+            CastKind::Equal => CK_EQUAL
+                .get_or_init(py, || {
+                    Py::new(
+                        py,
+                        PyCastKind {
+                            inner: CastKind::Equal,
+                        },
+                    )
+                    .unwrap()
+                })
+                .clone_ref(py),
+            CastKind::Implicit => CK_IMPLICIT
+                .get_or_init(py, || {
+                    Py::new(
+                        py,
+                        PyCastKind {
+                            inner: CastKind::Implicit,
+                        },
+                    )
+                    .unwrap()
+                })
+                .clone_ref(py),
+            CastKind::Lossless => CK_LOSSLESS
+                .get_or_init(py, || {
+                    Py::new(
+                        py,
+                        PyCastKind {
+                            inner: CastKind::Lossless,
+                        },
+                    )
+                    .unwrap()
+                })
+                .clone_ref(py),
+            CastKind::Dangerous => CK_DANGEROUS
+                .get_or_init(py, || {
+                    Py::new(
+                        py,
+                        PyCastKind {
+                            inner: CastKind::Dangerous,
+                        },
+                    )
+                    .unwrap()
+                })
+                .clone_ref(py),
+            CastKind::None => CK_NONE
+                .get_or_init(py, || {
+                    Py::new(
+                        py,
+                        PyCastKind {
+                            inner: CastKind::None,
+                        },
+                    )
+                    .unwrap()
+                })
+                .clone_ref(py),
         }
     }
 }
 
 #[pyclass(
     module = "qiskit._accelerate.circuit.classical.types.ordering",
-    name = "CastKindIter",
+    name = "CastKindIter"
 )]
 struct PyCastKindIter {
     items: std::vec::IntoIter<Py<PyCastKind>>,
@@ -610,7 +682,12 @@ fn _ck_iter(py: Python<'_>) -> PyResult<Py<PyCastKindIter>> {
         .iter()
         .map(|&k| PyCastKind::get_singleton(py, k))
         .collect();
-    Py::new(py, PyCastKindIter { items: cks.into_iter() })
+    Py::new(
+        py,
+        PyCastKindIter {
+            items: cks.into_iter(),
+        },
+    )
 }
 
 #[pyfunction]
@@ -622,18 +699,18 @@ fn _ck_len() -> usize {
 fn _ck_contains(py: Python<'_>, obj: Bound<'_, PyAny>) -> PyResult<bool> {
     // Accept PyCastKind member
     if obj.is_instance(&<PyCastKind as pyo3::PyTypeInfo>::type_object(py))? {
-        return Ok(true)
+        return Ok(true);
     }
-    
+
     // Accept raw integer
     if let Ok(v) = obj.extract::<u8>() {
-        return Ok(bytemuck::checked::try_cast::<u8, CastKind>(v).is_ok())
+        return Ok(bytemuck::checked::try_cast::<u8, CastKind>(v).is_ok());
     }
 
     // Anything with a `.value` attribute
     if let Ok(val) = obj.getattr("value") {
         if let Ok(v) = val.extract::<u8>() {
-            return Ok(bytemuck::checked::try_cast::<u8, CastKind>(v).is_ok())
+            return Ok(bytemuck::checked::try_cast::<u8, CastKind>(v).is_ok());
         }
     }
 
@@ -676,7 +753,10 @@ pub(crate) fn register_python(m: &Bound<PyModule>) -> PyResult<()> {
     // Add singleton instances as class attributes
     ordering_class.setattr("LESS", PyOrdering::get_singleton(m.py(), Ordering::Less))?;
     ordering_class.setattr("EQUAL", PyOrdering::get_singleton(m.py(), Ordering::Equal))?;
-    ordering_class.setattr("GREATER", PyOrdering::get_singleton(m.py(), Ordering::Greater))?;
+    ordering_class.setattr(
+        "GREATER",
+        PyOrdering::get_singleton(m.py(), Ordering::Greater),
+    )?;
     ordering_class.setattr("NONE", PyOrdering::get_singleton(m.py(), Ordering::None))?;
 
     m.add_class::<PyOrderingIter>()?;
@@ -704,18 +784,25 @@ def _ord_make_meta(iter_impl, len_impl, contains_impl):
         m.py(),
         CString::new(ord_meta_src).unwrap().as_c_str(),
         ord_filename.as_c_str(),
-        ord_module_name.as_c_str()
+        ord_module_name.as_c_str(),
     )?;
-    let ord_meta = ord_meta_mod
-        .getattr("_ord_make_meta")?
-        .call1((m.getattr("_ord_iter")?, m.getattr("_ord_len")?, m.getattr("_ord_contains")?))?;
+    let ord_meta = ord_meta_mod.getattr("_ord_make_meta")?.call1((
+        m.getattr("_ord_iter")?,
+        m.getattr("_ord_len")?,
+        m.getattr("_ord_contains")?,
+    ))?;
 
     // Build `Ordering` as a subclass of PyOrdering, with that metaclass
     let types = PyModule::import(m.py(), "types")?;
-    let bases = pyo3::types::PyTuple::new(m.py(), [<PyOrdering as pyo3::PyTypeInfo>::type_object(m.py())])?;
+    let bases = pyo3::types::PyTuple::new(
+        m.py(),
+        [<PyOrdering as pyo3::PyTypeInfo>::type_object(m.py())],
+    )?;
     let kwargs = pyo3::types::PyDict::new(m.py());
     kwargs.set_item("metaclass", ord_meta)?;
-    let ord_cls = types.getattr("new_class")?.call(("Ordering", bases, kwargs), None)?;
+    let ord_cls = types
+        .getattr("new_class")?
+        .call(("Ordering", bases, kwargs), None)?;
 
     // nice repr/pickling
     ord_cls.setattr("__module__", m.name()?)?;
@@ -726,12 +813,21 @@ def _ord_make_meta(iter_impl, len_impl, contains_impl):
     m.add_class::<PyCastKind>()?;
     m.add_function(wrap_pyfunction!(py_cast_kind, m)?)?;
 
-    let cast_kind_class = m.getattr("CastKind")?;    
+    let cast_kind_class = m.getattr("CastKind")?;
     // Add singleton instances as class attributes
     cast_kind_class.setattr("EQUAL", PyCastKind::get_singleton(m.py(), CastKind::Equal))?;
-    cast_kind_class.setattr("IMPLICIT", PyCastKind::get_singleton(m.py(), CastKind::Implicit))?;
-    cast_kind_class.setattr("LOSSLESS", PyCastKind::get_singleton(m.py(), CastKind::Lossless))?;
-    cast_kind_class.setattr("DANGEROUS", PyCastKind::get_singleton(m.py(), CastKind::Dangerous))?;
+    cast_kind_class.setattr(
+        "IMPLICIT",
+        PyCastKind::get_singleton(m.py(), CastKind::Implicit),
+    )?;
+    cast_kind_class.setattr(
+        "LOSSLESS",
+        PyCastKind::get_singleton(m.py(), CastKind::Lossless),
+    )?;
+    cast_kind_class.setattr(
+        "DANGEROUS",
+        PyCastKind::get_singleton(m.py(), CastKind::Dangerous),
+    )?;
     cast_kind_class.setattr("NONE", PyCastKind::get_singleton(m.py(), CastKind::None))?;
 
     m.add_class::<PyCastKindIter>()?;
@@ -752,25 +848,32 @@ def _ck_make_meta(iter_impl, len_impl, contains_impl):
     def __contains__(cls, x):
       return contains_impl(x)
   return CastKindMeta
-"#;    
+"#;
     let ck_filename = CString::new("castkind_meta.py").unwrap();
     let ck_module_name = CString::new("castkind_meta").unwrap();
     let ck_meta_mod = PyModule::from_code(
         m.py(),
         CString::new(ck_meta_src).unwrap().as_c_str(),
         ck_filename.as_c_str(),
-        ck_module_name.as_c_str()
+        ck_module_name.as_c_str(),
     )?;
-    let ck_meta = ck_meta_mod
-        .getattr("_ck_make_meta")?
-        .call1((m.getattr("_ck_iter")?, m.getattr("_ck_len")?, m.getattr("_ck_contains")?))?;
+    let ck_meta = ck_meta_mod.getattr("_ck_make_meta")?.call1((
+        m.getattr("_ck_iter")?,
+        m.getattr("_ck_len")?,
+        m.getattr("_ck_contains")?,
+    ))?;
 
     // Build `CastKind` as a subclass of PyCastKind, with that metaclass
     // let types = PyModule::import(m.py(), "types")?;
-    let bases = pyo3::types::PyTuple::new(m.py(), [<PyCastKind as pyo3::PyTypeInfo>::type_object(m.py())])?;
+    let bases = pyo3::types::PyTuple::new(
+        m.py(),
+        [<PyCastKind as pyo3::PyTypeInfo>::type_object(m.py())],
+    )?;
     let kwargs = pyo3::types::PyDict::new(m.py());
     kwargs.set_item("metaclass", ck_meta)?;
-    let ck_cls = types.getattr("new_class")?.call(("CastKind", bases, kwargs), None)?;
+    let ck_cls = types
+        .getattr("new_class")?
+        .call(("CastKind", bases, kwargs), None)?;
 
     // nice repr/pickling
     ck_cls.setattr("__module__", m.name()?)?;
