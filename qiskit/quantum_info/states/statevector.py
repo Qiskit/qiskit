@@ -112,6 +112,31 @@ class Statevector(QuantumState, TolerancesMixin):
             elif ndim != 2 or shape[1] != 1:
                 raise QiskitError("Invalid input: not a vector or column-vector.")
         super().__init__(op_shape=OpShape.auto(shape=shape, dims_l=dims, num_qubits_r=0))
+    @classmethod
+    def from_circuit(cls, circuit, input_state=None):
+        """Create a Statevector from a quantum circuit.
+        
+        Args:
+            circuit (QuantumCircuit): A quantum circuit
+            input_state (Statevector, optional): Input statevector. If None,
+                defaults to the zero state.
+        
+        Returns:
+            Statevector: The statevector representing the circuit evolution
+        """
+
+        from ..operators.operator import Operator
+    
+        # Get the operator representation of the circuit
+        op = Operator.from_circuit(circuit)
+        
+        # Create initial state if not provided
+        if input_state is None:
+            input_state = cls.from_label('0' * circuit.num_qubits)
+        
+        # Evolve the state through the circuit
+        return input_state.evolve(op)
+
 
     def __array__(self, dtype=None, copy=_numpy_compat.COPY_ONLY_IF_NEEDED):
         dtype = self.data.dtype if dtype is None else dtype
