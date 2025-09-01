@@ -13,7 +13,7 @@
 mod ordering;
 mod types;
 
-pub use ordering::{cast_kind, is_subtype, is_supertype, order, CastKind, Ordering};
+pub use ordering::{cast_kind, is_subtype, is_supertype, greater, order, CastKind, Ordering};
 pub use types::Type;
 
 use pyo3::prelude::*;
