@@ -22,7 +22,7 @@ const ATOL_DEFAULT: f64 = 1e-8;
 const RTOL_DEFAULT: f64 = 1e-5;
 
 /// Check whether the given matrix is hermitian by comparing it (up to tolerance) with its hermitian adjoint.
-pub fn is_hermitian_matrix(mat: &DMatrix<Complex64>) -> bool {
+pub fn is_hermitian_matrix(mat: DMatrixView<Complex64>) -> bool {
     let shape = mat.shape();
     let adjoint = mat.adjoint();
     for i in 0..shape.0 {
@@ -64,8 +64,8 @@ pub fn verify_unitary(u: &DMatrix<Complex64>) -> bool {
 /// Given a matrix that is "close" to unitary, returns the closest
 /// unitary matrix.
 /// See https://michaelgoerz.net/notes/finding-the-closest-unitary-for-a-given-matrix/,
-pub fn closest_unitary(mat: DMatrix<Complex64>) -> DMatrix<Complex64> {
-    let (u, _sigma, v_t) = svd_decomposition(&mat);
+pub fn closest_unitary(mat: DMatrixView<Complex64>) -> DMatrix<Complex64> {
+    let (u, _sigma, v_t) = svd_decomposition(mat);
     &u * &v_t
 }
 
@@ -98,13 +98,13 @@ pub fn condition_number(mat: DMatrix<Complex64>) -> Option<f64> {
 /// Returns the SVD decomposition of the given matrix M as three matrices A,S,B such that
 /// M=ASB (In the usual notations, M=USV*, and this function returns A=U and B=V*)
 pub fn svd_decomposition(
-    mat: &DMatrix<Complex64>,
+    mat: DMatrixView<Complex64>,
 ) -> (DMatrix<Complex64>, DMatrix<Complex64>, DMatrix<Complex64>) {
     svd_decomposition_using_faer(mat)
 }
 
 fn svd_decomposition_using_faer(
-    mat: &DMatrix<Complex64>,
+    mat: DMatrixView<Complex64>,
 ) -> (DMatrix<Complex64>, DMatrix<Complex64>, DMatrix<Complex64>) {
     let mat_view: DMatrixView<Complex64> = mat.as_view();
     let faer_mat: MatRef<Complex64> = mat_view.into_faer();

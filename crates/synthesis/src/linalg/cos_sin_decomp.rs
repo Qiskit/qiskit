@@ -23,13 +23,13 @@ use num_complex::{Complex64, ComplexFloat};
 
 const EPS: f64 = 1e-11;
 
-pub struct CosSinDecompReturn {
-    pub l0: DMatrix<Complex64>,
-    pub l1: DMatrix<Complex64>,
-    pub r0: DMatrix<Complex64>,
-    pub r1: DMatrix<Complex64>,
-    pub thetas: Vec<f64>,
-}
+type CosSinDecompReturn = (
+    DMatrix<Complex64>,
+    DMatrix<Complex64>,
+    DMatrix<Complex64>,
+    DMatrix<Complex64>,
+    Vec<f64>,
+);
 
 /// Reverses rows in-place.
 fn reverse_rows(mat: &mut DMatrix<Complex64>) {
@@ -100,7 +100,7 @@ fn closest_unitary(mat: DMatrix<Complex64>) -> DMatrix<Complex64> {
 /// Furthermore, the angles in `theta` are sorted in descending order, so:
 /// - cosines are in ascending order,
 /// - sines are in descending order.
-pub fn cos_sin_decomposition(u: &DMatrix<Complex64>) -> CosSinDecompReturn {
+pub fn cos_sin_decomposition(u: DMatrix<Complex64>) -> CosSinDecompReturn {
     let shape = u.shape();
     let n = shape.0 / 2;
     // Upper left corner
@@ -225,13 +225,7 @@ pub fn cos_sin_decomposition(u: &DMatrix<Complex64>) -> CosSinDecompReturn {
         .map(|(&ci, &si)| si.atan2(ci))
         .collect();
 
-    CosSinDecompReturn {
-        l0,
-        l1,
-        r0,
-        r1,
-        thetas,
-    }
+    (l0, l1, r0, r1, thetas)
 }
 
 // TODO: Remove this function and all the python interface when QSD is ported to rust
@@ -240,11 +234,11 @@ pub fn cossin<'py>(py: Python<'py>, u: PyReadonlyArray2<Complex64>) -> PyResult<
     let array = u.as_array();
     let shape = array.shape();
     let mat: DMatrix<Complex64> = DMatrix::from_fn(shape[0], shape[1], |i, j| array[[i, j]]);
-    let res = cos_sin_decomposition(&mat);
+    let res = cos_sin_decomposition(mat);
     Ok((
-        (res.l0.to_pyarray(py), res.l1.to_pyarray(py)),
-        res.thetas.to_pyarray(py),
-        (res.r0.to_pyarray(py), res.r1.to_pyarray(py)),
+        (res.0.to_pyarray(py), res.1.to_pyarray(py)),
+        res.4.to_pyarray(py),
+        (res.2.to_pyarray(py), res.3.to_pyarray(py)),
     )
         .into_pyobject(py)?
         .into_any())

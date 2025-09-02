@@ -15,7 +15,7 @@ use std::sync::OnceLock;
 
 use approx::abs_diff_eq;
 use hashbrown::HashMap;
-use nalgebra::{stack, DMatrix, DVector, Matrix4, QR};
+use nalgebra::{stack, DMatrix, DMatrixView, DVector, Matrix4, QR};
 use ndarray::prelude::*;
 use num_complex::Complex64;
 use numpy::PyReadonlyArray2;
@@ -235,8 +235,8 @@ fn qsd_inner(
     }
 }
 
-fn _zxz_decomp_svd(a: DMatrix<Complex64>) -> (DMatrix<Complex64>, DMatrix<Complex64>) {
-    let (v, sigma, w_dg) = svd_decomposition(&a);
+fn zxz_decomp_svd(a: DMatrixView<Complex64>) -> (DMatrix<Complex64>, DMatrix<Complex64>) {
+    let (v, sigma, w_dg) = svd_decomposition(a);
 
     let s = &v * &sigma * &v.adjoint();
     let u = v * w_dg;
@@ -261,8 +261,8 @@ fn _block_zxz_decomp(
     let y = mat.view((0, n), (n, n));
     let u21 = mat.view((n, 0), (n, n));
     let u22 = mat.view((n, n), (n, n));
-    let (sx, ux) = _zxz_decomp_svd(x.into_owned());
-    let (sy, uy) = _zxz_decomp_svd(y.into_owned());
+    let (sx, ux) = zxz_decomp_svd(x);
+    let (sy, uy) = zxz_decomp_svd(y);
     let c = ((&uy.adjoint() * &ux) * i).adjoint();
     let a1 = (sx + sy * i) * &ux;
     let a2 = u21 + (u22 * (uy.adjoint() * ux) * i);
@@ -284,8 +284,8 @@ fn _zxz_decomp_verify(
 
     let a_block = stack![a1, 0; 0, a2];
 
-    let b1 = iden.clone() + b;
-    let b2 = iden.clone() - b;
+    let b1 = &iden + b;
+    let b2 = &iden - b;
     let b_block = stack![b1, b2; b2, b1];
 
     let c_block = stack![iden, 0; 0, c];
@@ -332,8 +332,8 @@ fn demultiplex(
     _ctrl_index: Option<usize>,
     vw_type: VWType,
 ) -> PyResult<(CircuitData, DMatrix<Complex64>, DMatrix<Complex64>)> {
-    let um0 = closest_unitary(um0.clone());
-    let um1 = closest_unitary(um1.clone());
+    let um0 = closest_unitary(um0.as_view());
+    let um1 = closest_unitary(um1.as_view());
 
     let dim = um0.shape().0 + um1.shape().0;
     let num_qubits = dim.ilog2() as usize;
@@ -343,8 +343,8 @@ fn demultiplex(
         .chain([_ctrl_index])
         .map(Qubit::new)
         .collect();
-    let um0um1 = um0.clone() * um1.adjoint();
-    let (eigvals, vmat) = if is_hermitian_matrix(&um0um1) {
+    let um0um1 = &um0 * um1.adjoint();
+    let (eigvals, vmat) = if is_hermitian_matrix(um0um1.as_view()) {
         let eigh = um0um1.symmetric_eigen();
         let evals = eigh.eigenvalues;
         let eigvals = evals.map(|x| Complex64::new(x, 0.));
@@ -358,7 +358,7 @@ fn demultiplex(
     };
     let d_values: DVector<Complex64> = eigvals.map(|x| x.sqrt());
     let d_mat: DMatrix<Complex64> = DMatrix::from_diagonal(&d_values);
-    let wmat = d_mat.clone() * vmat.adjoint() * um1.clone();
+    let wmat = &d_mat * vmat.adjoint() * &um1;
 
     debug_assert!(_demultiplex_verify(&um0, &um1, &vmat, &wmat, &d_mat));
 
