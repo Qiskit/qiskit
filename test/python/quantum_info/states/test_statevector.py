@@ -40,16 +40,17 @@ logger = logging.getLogger(__name__)
 @ddt
 class TestStatevector(QiskitTestCase):
     """Tests for Statevector class."""
+
     def test_from_circuit_bell_state(self):
         """Test from_circuit creates Bell state correctly."""
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.cx(0, 1)
-        
+
         sv = Statevector.from_circuit(qc)
-        expected_data = np.array([1/np.sqrt(2), 0, 0, 1/np.sqrt(2)])
+        expected_data = np.array([1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)])
         expected = Statevector(expected_data)
-        
+
         self.assertTrue(sv.equiv(expected))
 
     def test_from_circuit_transpilation_consistency(self):
@@ -59,14 +60,14 @@ class TestStatevector(QiskitTestCase):
         qc.cx(0, 1)
         qc.swap(1, 2)
         qc.z(0)
-        
+
         backend = BasicSimulator()
         transpiled_opt0 = transpile(qc, backend, optimization_level=0)
         transpiled_opt2 = transpile(qc, backend, optimization_level=2)
-        
+
         sv1 = Statevector.from_circuit(transpiled_opt0)
         sv2 = Statevector.from_circuit(transpiled_opt2)
-        
+
         self.assertTrue(sv1.equiv(sv2))
 
     def test_from_circuit_vs_manual_method(self):
@@ -74,28 +75,28 @@ class TestStatevector(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.cx(0, 1)
-        
+
         sv1 = Statevector.from_circuit(qc)
-        
-        initial_state = Statevector.from_label('00')
+
+        initial_state = Statevector.from_label("00")
         op = Operator.from_circuit(qc)
         sv2 = initial_state.evolve(op)
-        
+
         self.assertTrue(sv1.equiv(sv2))
 
     def test_from_circuit_with_input_state(self):
         """Test from_circuit with custom input state."""
         qc = QuantumCircuit(2)
         qc.x(0)
-        
-        input_state = Statevector.from_label('01')
+
+        input_state = Statevector.from_label("01")
         sv = Statevector.from_circuit(qc, input_state=input_state)
-        expected = Statevector.from_label('11')
-        
+        expected = Statevector.from_label("11")
+
         self.assertTrue(sv.equiv(expected))
 
     ##### exisitng tests #####
-    
+
     @classmethod
     def rand_vec(cls, n, normalize=False):
         """Return complex vector or statevector"""
