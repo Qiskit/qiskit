@@ -1487,8 +1487,9 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
 
     The plugin supports the following plugin-specific options:
 
-    * ``optimization_metric``: The optimization metric, indicating whether we
-      should minimize the 2-qubit gate count or the T-count.
+    * ``optimization_metric``: The optimization metric, indicating the property
+      of the output circuit (e.g., the 2-qubit gate count or the T-count) that should
+      be minimized. See :class:`.OptimizationMetric`.
     * ``num_clean_ancillas``: The number of clean ancillary qubits available.
     * ``num_dirty_ancillas``: The number of dirty ancillary qubits available.
 
@@ -1685,8 +1686,9 @@ class ModularAdderSynthesisDefault(HighLevelSynthesisPlugin):
 
     The plugin supports the following plugin-specific options:
 
-    * ``optimization_metric``: The optimization metric, indicating whether we
-      should minimize the 2-qubit gate count or the T-count.
+    * ``optimization_metric``: The optimization metric, indicating the property
+      of the output circuit (e.g., the 2-qubit gate count or the T-count) that should
+      be minimized. See :class:`.OptimizationMetric`.
     * ``num_clean_ancillas``: The number of clean ancillary qubits available.
     * ``num_dirty_ancillas``: The number of dirty ancillary qubits available.
 
@@ -1705,8 +1707,7 @@ class ModularAdderSynthesisDefault(HighLevelSynthesisPlugin):
             methods.append(ModularAdderSynthesisV17)
         else:
             # The order is optimized towards Clifford+T -friendly synthesis methods.
-            methods = []
-            methods.append(ModularAdderSynthesisV17)
+            methods = [ModularAdderSynthesisV17]
 
         for method in methods:
             if (

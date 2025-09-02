@@ -22,7 +22,8 @@ class OptimizationMetric(enum.Enum):
     """Optimization metric considered during transpilation.
 
     The metric :data:`COUNT_2Q` targets optimizing the two-qubit gate count of
-    the output circuit.
+    the output circuit.  This is generally the preferred choice for
+    near-term execution.
 
     The metric :data:`COUNT_T` targets optimizing the T-count of the output circuit
     when the circuit is transpiled into the Clifford+T basis set.
