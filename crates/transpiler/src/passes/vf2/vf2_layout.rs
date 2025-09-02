@@ -26,7 +26,7 @@ use std::time::Instant;
 use qiskit_circuit::converters::circuit_to_dag;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
-use qiskit_circuit::rustworkx_core_vnext::isomorphism::vf2;
+use qiskit_circuit::vf2;
 use qiskit_circuit::Qubit;
 
 use super::error_map::ErrorMap;
@@ -166,7 +166,7 @@ fn build_interaction_graph<Ty: EdgeType>(
                     for (outer, inner) in node_qargs.iter().zip(0..inst.op.num_qubits()) {
                         inner_wire_map[inner as usize] = wire_map[outer.index()]
                     }
-                    let block_dag = circuit_to_dag(py, block.extract()?, false, None, None)?;
+                    let block_dag = circuit_to_dag(block.extract()?, false, None, None)?;
                     build_interaction_graph(
                         &block_dag,
                         &inner_wire_map,
@@ -325,9 +325,11 @@ fn map_free_qubits(
     mut partial_layout: HashMap<VirtualQubit, PhysicalQubit>,
     reverse_im_graph_node_map: &[Option<Qubit>],
     avg_error_map: &ErrorMap,
+    dag: &DAGCircuit,
     target: &Target,
 ) -> Option<HashMap<VirtualQubit, PhysicalQubit>> {
     if free_nodes.is_empty() {
+        assign_unused_qubits(dag, target, &mut partial_layout);
         return Some(partial_layout);
     }
     let num_physical_qubits = target.num_qubits.unwrap();
@@ -347,10 +349,14 @@ fn map_free_qubits(
             .get(&[PhysicalQubit::new(*qubit_b), PhysicalQubit::new(*qubit_b)])
             .unwrap_or(&0.);
         // Reverse comparison so lower error rates are at the end of the vec.
-        score_b.partial_cmp(&score_a).unwrap()
+        match score_b.partial_cmp(&score_a).unwrap() {
+            Ordering::Equal => qubit_b.cmp(qubit_a),
+            Ordering::Less => Ordering::Less,
+            Ordering::Greater => Ordering::Greater,
+        }
     });
     let mut free_indices: Vec<NodeIndex> = free_nodes.keys().copied().collect();
-    free_indices.par_sort_by_key(|index| free_nodes[index].values().sum::<usize>());
+    free_indices.par_sort_by_key(|index| (free_nodes[index].values().sum::<usize>(), *index));
     for im_index in free_indices {
         let selected_qubit = free_qubits.pop()?;
         partial_layout.insert(
@@ -358,7 +364,32 @@ fn map_free_qubits(
             PhysicalQubit::new(selected_qubit),
         );
     }
+    assign_unused_qubits(dag, target, &mut partial_layout);
     Some(partial_layout)
+}
+
+fn assign_unused_qubits(
+    dag: &DAGCircuit,
+    target: &Target,
+    mapping: &mut HashMap<VirtualQubit, PhysicalQubit>,
+) {
+    if mapping.len() < dag.num_qubits() {
+        let used_qubits = mapping.values().copied().collect::<HashSet<_>>();
+        let mut unused_qubits = (0..target.num_qubits.unwrap()).filter_map(|x| {
+            let phys = PhysicalQubit(x);
+            if !used_qubits.contains(&PhysicalQubit(x)) {
+                Some(phys)
+            } else {
+                None
+            }
+        });
+        for virt in 0..dag.num_qubits() {
+            if mapping.contains_key(&VirtualQubit::new(virt as u32)) {
+                continue;
+            }
+            mapping.insert(VirtualQubit(virt as u32), unused_qubits.next().unwrap());
+        }
+    }
 }
 
 #[pyfunction]
@@ -369,7 +400,7 @@ pub fn vf2_layout_pass(
     strict_direction: bool,
     call_limit: Option<usize>,
     time_limit: Option<f64>,
-    max_trials: Option<usize>,
+    max_trials: Option<isize>,
     avg_error_map: Option<ErrorMap>,
 ) -> PyResult<Option<HashMap<VirtualQubit, PhysicalQubit>>> {
     if strict_direction {
@@ -389,6 +420,22 @@ pub fn vf2_layout_pass(
             false,
             call_limit,
         );
+        let max_trials: Option<usize> = match max_trials {
+            Some(max_trials) => {
+                if max_trials > 0 {
+                    Some(max_trials as usize)
+                } else {
+                    None
+                }
+            }
+            None => Some(
+                im_graph_data
+                    .im_graph
+                    .edge_count()
+                    .max(cm_graph.edge_count())
+                    + 15,
+            ),
+        };
         let mut trials: usize = 0;
         let start_time = Instant::now();
         let mut chosen_layout: Option<HashMap<VirtualQubit, PhysicalQubit>> = None;
@@ -396,13 +443,15 @@ pub fn vf2_layout_pass(
         let avg_error_map = avg_error_map.unwrap_or_else(|| build_average_error_map(target));
         for mapping in mappings {
             trials += 1;
-            let mapping = mapping_to_layout(dag, mapping.unwrap(), &im_graph_data);
+            let mut mapping = mapping_to_layout(dag, mapping.unwrap(), &im_graph_data);
             if cm_graph.node_count() == im_graph_data.im_graph.node_count() {
+                assign_unused_qubits(dag, target, &mut mapping);
                 return Ok(Some(mapping));
             }
             let layout_score =
                 score_layout_internal(&mapping, &avg_error_map, &im_graph_data, strict_direction)?;
             if layout_score == 0. {
+                assign_unused_qubits(dag, target, &mut mapping);
                 return Ok(Some(mapping));
             }
             if layout_score < chosen_layout_score {
@@ -415,6 +464,7 @@ pub fn vf2_layout_pass(
                     break;
                 }
             }
+
             if let Some(time_limit) = time_limit {
                 let elapsed_time = start_time.elapsed().as_secs_f64();
                 if elapsed_time >= time_limit {
@@ -422,7 +472,10 @@ pub fn vf2_layout_pass(
                 }
             }
         }
-        Ok(chosen_layout)
+        Ok(chosen_layout.map(|mut layout| {
+            assign_unused_qubits(dag, target, &mut layout);
+            layout
+        }))
     } else {
         let cm_graph: Option<StableUnGraph<_, _>> = build_coupling_map(target);
         if cm_graph.is_none() {
@@ -440,9 +493,26 @@ pub fn vf2_layout_pass(
                 HashMap::new(),
                 &im_graph_data.reverse_im_graph_node_map,
                 &avg_error_map,
+                dag,
                 target,
             ));
         }
+        let max_trials: Option<usize> = match max_trials {
+            Some(max_trials) => {
+                if max_trials > 0 {
+                    Some(max_trials as usize)
+                } else {
+                    None
+                }
+            }
+            None => Some(
+                im_graph_data
+                    .im_graph
+                    .edge_count()
+                    .max(cm_graph.edge_count())
+                    + 15,
+            ),
+        };
         let mappings = vf2::Vf2Algorithm::new(
             &cm_graph,
             &im_graph_data.im_graph,
@@ -459,13 +529,15 @@ pub fn vf2_layout_pass(
         let mut chosen_layout_score = f64::MAX;
         for mapping in mappings {
             trials += 1;
-            let mapping = mapping_to_layout(dag, mapping.unwrap(), &im_graph_data);
+            let mut mapping = mapping_to_layout(dag, mapping.unwrap(), &im_graph_data);
             if cm_graph.node_count() == im_graph_data.im_graph.node_count() {
+                assign_unused_qubits(dag, target, &mut mapping);
                 return Ok(Some(mapping));
             }
             let layout_score =
                 score_layout_internal(&mapping, &avg_error_map, &im_graph_data, strict_direction)?;
             if layout_score == 0. {
+                assign_unused_qubits(dag, target, &mut mapping);
                 return Ok(Some(mapping));
             }
             if layout_score < chosen_layout_score {
@@ -494,6 +566,7 @@ pub fn vf2_layout_pass(
             chosen_layout,
             &im_graph_data.reverse_im_graph_node_map,
             &avg_error_map,
+            dag,
             target,
         ))
     }

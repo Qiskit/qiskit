@@ -1748,7 +1748,7 @@ class TestControlledAnnotatedGate(QiskitTestCase):
         controlled = XGate().control(annotated=False)
         annotated = XGate().control(annotated=True)
         self.assertNotIsInstance(controlled, AnnotatedOperation)
-        self.assertIsInstance(annotated, AnnotatedOperation)
+        self.assertNotIsInstance(annotated, AnnotatedOperation)
         self.assertEqual(Operator(controlled), Operator(annotated))
 
     def test_controlled_y(self):
@@ -1843,7 +1843,7 @@ class TestControlledAnnotatedGate(QiskitTestCase):
         controlled = CXGate().control(annotated=False)
         annotated = CXGate().control(annotated=True)
         self.assertNotIsInstance(controlled, AnnotatedOperation)
-        self.assertIsInstance(annotated, AnnotatedOperation)
+        self.assertNotIsInstance(annotated, AnnotatedOperation)
         self.assertEqual(Operator(controlled), Operator(annotated))
 
     def test_controlled_swap(self):

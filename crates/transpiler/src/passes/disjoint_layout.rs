@@ -28,11 +28,11 @@ use uuid::Uuid;
 
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::converters::circuit_to_dag;
-use qiskit_circuit::dag_circuit::{DAGCircuit, VarsMode};
+use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::imports::ImportOnceCell;
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardInstruction};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::{Clbit, PhysicalQubit, Qubit, VirtualQubit};
+use qiskit_circuit::{Clbit, PhysicalQubit, Qubit, VarsMode, VirtualQubit};
 
 use crate::target::{Qargs, Target};
 use crate::TranspilerError;
@@ -371,7 +371,7 @@ fn build_interaction_graph<Ty: EdgeType>(
                     for (outer, inner) in node_qargs.iter().zip(0..inst.op.num_qubits()) {
                         inner_wire_map[inner as usize] = wire_map[outer.index()]
                     }
-                    let block_dag = circuit_to_dag(py, block.extract()?, false, None, None)?;
+                    let block_dag = circuit_to_dag(block.extract()?, false, None, None)?;
                     build_interaction_graph(
                         &block_dag,
                         &inner_wire_map,
@@ -564,7 +564,7 @@ fn split_barriers(dag: &mut DAGCircuit) -> PyResult<()> {
             Some(label) => format!("{}_uuid={}", label, Uuid::new_v4()),
             None => format!("_none_uuid={}", Uuid::new_v4()),
         };
-        let mut split_dag = DAGCircuit::new()?;
+        let mut split_dag = DAGCircuit::new();
         for q in 0..num_qubits {
             split_dag.add_qubit_unchecked(ShareableQubit::new_anonymous())?;
             split_dag.apply_operation_back(

@@ -20,9 +20,18 @@ Transpiler (:mod:`qiskit.transpiler`)
 Overview
 ========
 
+.. note::
+
+    If you are already familiar with the concepts of circuit transpilation / compilation, you may
+    want to skip ahead to:
+
+    * :ref:`Descriptions of the preconfigured pass managers <transpiler-preset>`.  This includes
+      descriptions of the stages, and of all the available built-in plugins.
+    * :ref:`Documentation on building a custom transpiler pass <transpiler-custom-passes>`.
+
 Transpilation is the process of rewriting a given input circuit to match
 the topology of a specific quantum device, and/or to optimize the circuit
-for execution on present day noisy quantum systems.
+for execution on quantum systems.
 
 Most circuits must undergo a series of transformations that make them compatible with
 a given target device, and optimize them to reduce the effects of noise on the
@@ -130,14 +139,75 @@ The optimization level affects which implementations are used for a given stage 
 this can be overridden by passing explicit ``<stage>_method="<choice>"`` arguments to
 :func:`.generate_preset_pass_manager`.
 
-.. note::
 
-    The preset pass managers almost always include stochastic, heuristic-based passes.  If you need
-    to ensure reproducibility of a compilation, pass a known integer to the ``seed_transpiler``
-    argument to the generator functions.
+.. _transpiler-preset-determinism:
 
-    This stochasticity arises because many of the problems the transpiler must solve are known to be
-    non-polynomial in complexity, but transpilation must complete in a workable amount of time.
+Reproducibility of the preset pipelines
+---------------------------------------
+
+Quantum compilation often involves solving problems that are knownn to be non-polynomial in
+complexity, and so are intractable to globally optimize.  In these cases, stochastic and heuristic
+algorithms are often more appropriate.  This leads to problems of reproducibility, however.
+
+The preset pass managers almost always include stochastic, heuristic-based passes.  If you need
+to ensure reproducibility of a compilation, pass a known integer to the ``seed_transpiler``
+argument of the generator functions.
+
+All built-in plugins to Qiskit are required to produce their analyses and modify the
+:class:`.DAGCircuit` in deterministic ways if they randomization (if any) is seeded, so that a
+compilation can be repeated later.  There are limits on this:
+
+* All built-in passes with stochastic components must provide a way to seed the randomization, and
+  if seeded, they must respect the rules of deterministic output.
+
+* All built-in passes without stochastic components must respect the rules of deterministic
+  output for identical input. It is permissible to keep a cache for efficiency, but given the same
+  set of inputs, the pass's returns must be the same if the pass is called multiple times, unless
+  something outside the pass's control mutates one of its inputs in-place (for example, the
+  :class:`.BasisTranslator` uses the :data:`.SessionEquivalenceLibrary` by default in the preset
+  pass managers, and it is not a bug to get different results if new entries are added to the
+  equivalence library).  An "output" is anything the pass writes out for further consumption; this
+  can be the explicit ``return`` value from the pass, but also includes properties intended for
+  later consumption in the :class:`.PropertySet`.
+
+* The output of a pass should be deterministic on a given machine for a given version of Qiskit and
+  a frozen environment, no matter how many threads are available for the pass.  Many built-in Qiskit
+  passes use threaded concurrency, and they are not permitted to have different behavior based on
+  the number of threads.
+
+* The output of a pass for a fixed seed is not required to be equal if some part of the underlying
+  Python environment changes (such as a dependent package updating), or if the system mathematical
+  libraries change (such as a different implementation of BLAS is available).
+
+* The output of a pass for a fixed seed is not required to be equal between operating systems
+  (although typically, it is the implementation of the system mathematical library that is the root
+  cause of operating-system-related differences).
+
+* The output of a pass for a fixed seed is not required to be the same between two machines that
+  have different CPU instructions available; it is expected that different implementations of core
+  mathematical kernels may produce different behavior if different CPU instructions are available,
+  such as fused multiply-add instructions having different rounding characteristics to two separate
+  floating-point multiply and add instructions.
+
+* The output of a pass for a fixed seed must be the same, regardless of the number of threads it is
+  allowed to use, unless the user specifically opts out of this behavior.  For example in the preset
+  passmanagers, the Sabre layout and routing methods need to run the same number of trials by
+  default, no matter if there is a single thread allowed or even more threads than trials, though
+  this behavior can be explicitly overridden by setting the ``QISKIT_SABRE_ALL_THREADS`` environment
+  variable to opt in to becoming sensitive to the thread count.
+
+* All the above rules apply even between separate Python interpreter sessions, even when
+  ``PYTHONHASHSEED`` has not been explicitly set.
+
+In general, a consumer of the :class:`.DAGCircuit` should be able to assume, after any combination
+of built-in, seeded if appropriate, Qiskit passes have run with fixed inputs, that the exact output
+of all :meth:`.DAGCircuit` methods is deterministic.  This includes the order of output even of
+methods that do not make any promise about the order; while the semantics and precide order cannot
+be relied on, the determinism of it for fixed inputs can.
+
+Transpiler-pass authors should consult :ref:`transpiler-custom-passes-determinism` for a discussion
+of how to make a transpiler pass deterministic.
+
 
 Choosing preset stage implementations
 -------------------------------------
@@ -817,6 +887,7 @@ Builtin ``asap`` plugin
 Explicitly schedule all operations using an "as soon as possible" strategy.  This uses the
 :class:`.ASAPScheduleAnalysis` algorithm to decide where to place gates.
 
+.. _transpiler-custom-pass-managers:
 
 Custom pass managers
 ====================
@@ -862,6 +933,127 @@ The :ref:`stage_generators` may be useful for the construction of custom :class:
 instances.  They generate pass managers which provide common functionality used in many stages.  For
 example, :func:`~.generate_embed_passmanager` generates a :class:`~.PassManager` to "embed" a
 selected initial :class:`~.Layout` from a layout pass to the specified target device.
+
+
+.. _transpiler-custom-passes:
+
+Writing custom transpiler passes
+================================
+
+Qiskit is designed to be extended with custom, specialized transpiler passes.
+
+There are two types of transpiler pass: "analysis" passes (:class:`AnalysisPass`), which read a
+circuit and write global analysis properties into the :class:`PropertySet`; and "transformation"
+passes (:class:`TransformationPass`), which either modify a :class:`.DAGCircuit` in place, or return
+a new :class:`DAGCircuit`.  Historically, Qiskit attempted to strongly separate these two types.  In
+modern Qiskit, however, it is rather common to include both analysis and modifications into one
+stand-alone :class:`TransformationPass`, rather than attempt to split everything.  If your pass is
+purely analysis-based, it is still appropriate to use :class:`AnalysisPass`.
+
+
+General principles of pass authorship
+-------------------------------------
+
+If you want to modify or create a new :class:`.DAGCircuit`, you must write a
+:class:`TransformationPass`.  If you only want to write into the :class:`PropertySet` and not modify
+the :class:`.DAGCircuit`, you should write an :class:`AnalysisPass`.  If you want to do both, write
+a :class:`TransformationPass`.  In both cases, the only required method is :meth:`.BasePass.run`,
+which is the meat of your pass.  This should accept a single argument (other than ``self``), ``dag:
+DAGCircuit``.  If a :class:`TranspilerPass`, it should return a :class:`DAGCircuit` (which can be
+the input, if modified in place), whereas if a :class:`AnalysisPass`, it should return ``None``.
+
+If your pass has an initializer, you must call ``super().__init__()``.
+
+Typically, your pass should accept a :class:`Target` in its initializer, which describes the quantum
+hardware you are compiling for.  Accepting "loose" constraints like a separate coupling map and list
+of basis gates is discouraged; the :class:`Target` is more correctly descriptive of general
+heterogeneous hardware.
+
+During execution of a :class:`PassManager` pipeline, when the :meth:`~.BasePass.run` method of your
+pass is called, you can access the attribute ``self.property_set`` to get the current
+:class:`PropertySet` state of the transpilation.  You should read from and write to this in place.
+Your pass should clearly document what, if any, attributes in the property set that it reads from
+and writes to.
+
+
+.. _transpiler-custom-passes-determinism:
+
+Randomness and determinism
+--------------------------
+
+Quantum compilation often involves solving problems that are intractable to globally optimize.  In
+these cases, stochastic and heuristic algorithms are often more appropriate.  This leads to problems
+of reproducibility, however.
+
+There is no formal requirement for a custom pass to be deterministic under :ref:`the precise same
+set of rules <transpiler-preset-determinism>` that built-in Qiskit passes must follow.  However, we
+**strongly** encourage you to follow these rules in your own passes; science thrives on
+reproducibility, and debugging is a nightmare when you can't reproduce previously observed behavior.
+
+When writing a transpiler pass, you can rely on the following (representative, and non-exhaustive)
+examples being deterministic, even though the exact semantics of the ordering may not be fully
+specified, and passes should **not** rely on any particular order:
+
+* The order nodes are encountered in :meth:`.DAGCircuit.op_nodes`.  By contrast,
+  :meth:`~.DAGCircuit.topological_op_nodes` by default includes an ordering key that makes its order
+  entirely unaffected by the order of node removal/insertion, so is fully deterministic provided the
+  same set of nodes with the same data-flow is specified, even if it was built up in a different
+  order.
+
+* The order edges are encountered in :meth:`.DAGCircuit.edges`.
+
+* The order that runs are returned from :meth:`.DAGCircuit.collect_2q_runs`, and the exact order
+  nodes in a run are encountered.
+
+* The order that nodes are encountered in order-degenerate methods such as
+  :meth:`~.DAGCircuit.predecessors`, :meth:`~.DAGCircuit.bfs_successors`, and so on.
+
+In general, the requirement is that **all the same circuit modifications are made, in exactly the
+same order**.  For example, if nodes are to be added, contracted, or removed, the order of these
+modifications must be done in a deterministic order, and the replacements must be specified
+deterministically.
+
+Some tips for ensuring this include:
+
+* Be very careful when iterating over hash-based containers.  Iteration over Python's :class:`set`
+  is non-deterministic due to hash-seed randomization.  In Rust, iteration over the standard-library
+  hash-based containers, including ``hashbrown`` equivalents with their default hashers is
+  non-deterministic.
+
+  .. note::
+
+      Iteration over Python's :class:`dict` *is* deterministic, and guaranteed to be in insertion
+      order if there have been no removals, and arbitrary but still deterministic order if there
+      have been deterministic removals.
+
+  In Python, if you need to create a :class:`set` and then iterate over it, consider instead using a
+  :class:`dict` with all the values being ``None`` as a substitute.  Using a :class:`set` purely for
+  membership testing is no trouble.
+
+  In Rust, use ``indexmap`` and its structs ``IndexMap`` and ``IndexSet`` as replacements for
+  ``HashMap`` and ``HashSet``, respectively; they have similar deterministic-iteration properties to
+  Python's :class:`dict`.
+
+* If your pass as stochastic components, ensure that you accept a ``seed`` input, and make your
+  output pure if this is supplied as an integer.  Typically this means storing the seed, and
+  instantiating a new pRNG from this seed at the start of each call to :meth:`.BasePass.run`.
+
+* If using threaded parallelism, take care that your output is not dependent on the order that
+  threads do their work or return their partial results.  For example, if distributing work across a
+  thread pool and collecting the results at the end, ensure that the output is arranged in a
+  corresponding order to the input.  In Python, functions like
+  :meth:`concurrent.futures.ThreadPoolExecutor.map` ensure this.  Similarly, in Rust, ``rayon``'s
+  parallel iterators will collect their output in the same order as the input.
+
+  Beware that parallel _reductions_, such as "apply a function to each item in this iterator, and
+  choose the one that minimizes some metric", are typically highly susceptible to threaded
+  non-determinism, in the case of degeneracies in the metric.  For example, if two items in the
+  iterator produce non-equal output that nevertheless has the same comparison key, the one chosen in
+  a threaded environment is not deterministic.  To avoid this, apply a deterministic tie-breaker to
+  lift the degeneracy, such as by enumerating the input and using the sequence number as a
+  tie-breaking key, such that if two items have the same score, the one corresponding to an earlier
+  input is reliably chosen.
+
 
 Representing Quantum Computers
 ==============================
@@ -1272,6 +1464,7 @@ Hardware description
 
    Target
    InstructionProperties
+   WrapAngleRegistry
 
 Pass Manager Definition
 -----------------------
@@ -1331,6 +1524,8 @@ from qiskit.passmanager import (
     DoWhileController,
 )
 from qiskit.passmanager.compilation_status import PropertySet
+
+from qiskit._accelerate.angle_bound_registry import WrapAngleRegistry
 
 from .passmanager import PassManager, StagedPassManager
 from .passmanager_config import PassManagerConfig

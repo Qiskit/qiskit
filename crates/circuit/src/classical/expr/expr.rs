@@ -135,7 +135,7 @@ impl Expr {
 
     /// Returns an iterator over all nodes in this expression in some deterministic
     /// order.
-    pub fn iter(&self) -> impl Iterator<Item = ExprRef> {
+    pub fn iter(&self) -> impl Iterator<Item = ExprRef<'_>> {
         ExprIterator { stack: vec![self] }
     }
 
@@ -968,13 +968,11 @@ mod tests {
 
             assert!(
                 !cis.structurally_equivalent(&trans),
-                "Expected {:?} to not be structurally equivalent to its flipped form",
-                op
+                "Expected {op:?} to not be structurally equivalent to its flipped form"
             );
             assert!(
                 !trans.structurally_equivalent(&cis),
-                "Expected flipped {:?} to not be structurally equivalent to original form",
-                op
+                "Expected flipped {op:?} to not be structurally equivalent to original form"
             );
         }
     }

@@ -119,7 +119,7 @@ def adder_ripple_r25(num_qubits: int) -> QuantumCircuit:
         The quantum circuit implementing the RV ripple carry adder.
 
     Raises:
-        ValueError: If ``num_state_qubits`` is lower than 1.
+        ValueError: If ``num_qubits`` is lower than 1.
 
     **References:**
 

@@ -196,7 +196,7 @@ pub struct ZXPaulisReadonly<'a> {
 
 impl ZXPaulisReadonly<'_> {
     /// Get a [ndarray] view of the data of these [rust-numpy] objects.
-    fn as_array(&self) -> ZXPaulisView {
+    fn as_array(&self) -> ZXPaulisView<'_> {
         ZXPaulisView {
             x: self.x.as_array(),
             z: self.z.as_array(),
@@ -1273,6 +1273,9 @@ mod tests {
     use super::*;
     use crate::test::*;
 
+    #[cfg(miri)]
+    use approx::AbsDiffEq;
+
     // The purpose of these tests is more about exercising the `unsafe` code under Miri; we test for
     // full numerical correctness from Python space.
 
@@ -1414,7 +1417,16 @@ mod tests {
                 .unwrap();
             let expected: DecomposeMinimal = paulis.into();
             let actual: DecomposeMinimal = decompose_dense_inner(arr.view(), 0.0).unwrap().into();
+            #[cfg(not(miri))]
             assert_eq!(actual, expected);
+            #[cfg(miri)]
+            {
+                assert!(actual.coeffs.abs_diff_eq(&expected.coeffs, 1e-8));
+                assert_eq!(actual.z, expected.z);
+                assert_eq!(actual.x, expected.x);
+                assert_eq!(actual.phases, expected.phases);
+                assert_eq!(actual.num_qubits, expected.num_qubits);
+            }
         }
     }
 
@@ -1449,7 +1461,16 @@ mod tests {
                 .unwrap();
             let expected: DecomposeMinimal = paulis.into();
             let actual: DecomposeMinimal = decompose_dense_inner(arr.view(), 0.0).unwrap().into();
+            #[cfg(not(miri))]
             assert_eq!(actual, expected);
+            #[cfg(miri)]
+            {
+                assert!(actual.coeffs.abs_diff_eq(&expected.coeffs, 1e-8));
+                assert_eq!(actual.z, expected.z);
+                assert_eq!(actual.x, expected.x);
+                assert_eq!(actual.phases, expected.phases);
+                assert_eq!(actual.num_qubits, expected.num_qubits);
+            }
         }
     }
 

@@ -35,13 +35,13 @@ use qiskit_circuit::operations::Param;
 /// templates and symbolic Pauli gates optimizations that are also described in the paper.
 #[pyfunction]
 #[pyo3(signature = (clifford))]
-fn synth_clifford_greedy(py: Python, clifford: PyReadonlyArray2<bool>) -> PyResult<CircuitData> {
+fn synth_clifford_greedy(clifford: PyReadonlyArray2<bool>) -> PyResult<CircuitData> {
     let tableau = clifford.as_array();
     let mut greedy_synthesis =
         GreedyCliffordSynthesis::new(tableau.view()).map_err(QiskitError::new_err)?;
     let (num_qubits, clifford_gates) = greedy_synthesis.run().map_err(QiskitError::new_err)?;
 
-    CircuitData::from_standard_gates(py, num_qubits as u32, clifford_gates, Param::Float(0.0))
+    CircuitData::from_standard_gates(num_qubits as u32, clifford_gates, Param::Float(0.0))
 }
 
 /// Generate a random Clifford tableau.
@@ -73,11 +73,11 @@ fn random_clifford_tableau(
 /// of the Clifford group" by S. Bravyi, D. Maslov (2020), `<https://arxiv.org/abs/2003.09412>`__.
 #[pyfunction]
 #[pyo3(signature = (clifford))]
-fn synth_clifford_bm(py: Python, clifford: PyReadonlyArray2<bool>) -> PyResult<CircuitData> {
+fn synth_clifford_bm(clifford: PyReadonlyArray2<bool>) -> PyResult<CircuitData> {
     let tableau = clifford.as_array();
     let (num_qubits, clifford_gates) =
         synth_clifford_bm_inner(tableau).map_err(QiskitError::new_err)?;
-    CircuitData::from_standard_gates(py, num_qubits as u32, clifford_gates, Param::Float(0.0))
+    CircuitData::from_standard_gates(num_qubits as u32, clifford_gates, Param::Float(0.0))
 }
 
 pub fn clifford(m: &Bound<PyModule>) -> PyResult<()> {

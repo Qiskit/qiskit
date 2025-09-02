@@ -12,6 +12,7 @@
 
 """Test the VF2Layout pass"""
 
+import ddt
 import rustworkx
 
 from qiskit import QuantumRegister, QuantumCircuit
@@ -24,11 +25,12 @@ from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.circuit import Qubit
 from qiskit.compiler.transpiler import transpile
 from qiskit.transpiler.target import Target, InstructionProperties
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
 
 from ..legacy_cmaps import LIMA_CMAP, YORKTOWN_CMAP, BOGOTA_CMAP
 
 
+@ddt.ddt
 class TestVF2PostLayout(QiskitTestCase):
     """Tests the VF2Layout pass"""
 
@@ -323,6 +325,32 @@ class TestVF2PostLayout(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         vf2_pass.run(dag)
         self.assertLayoutV2(dag, target_last_qubits_best, vf2_pass.property_set)
+
+    @combine(
+        seed=(-1, 12),  # This hits both the "seeded" and "unseeded" paths.
+        strict_direction=(True, False),
+    )
+    def test_complete_layout_with_idle_qubits(self, seed, strict_direction):
+        """Test that completely idle qubits are included in the resulting layout."""
+        qc = QuantumCircuit(3)
+        qc.cx(0, 1)
+        # We need to ensure that VF2Post actually triggers a remapping.
+        target = Target(3)
+        target.add_instruction(
+            CXGate(),
+            properties={
+                (0, 1): InstructionProperties(error=1e-1),
+                (1, 0): InstructionProperties(error=1e-1),
+                (2, 1): InstructionProperties(error=1e-8),
+            },
+        )
+        property_set = {}
+        pass_ = VF2PostLayout(target=target, seed=seed, strict_direction=strict_direction)
+        pass_(qc, property_set=property_set)
+        unallocated = {
+            i for i, bit in enumerate(qc.qubits) if bit not in property_set["post_layout"]
+        }
+        self.assertEqual(unallocated, set())
 
 
 class TestVF2PostLayoutScoring(QiskitTestCase):
