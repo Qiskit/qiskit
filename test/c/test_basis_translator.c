@@ -26,7 +26,7 @@ int test_circuit_in_basis(void) {
     qk_circuit_gate(circuit, QkGate_H, (uint32_t[1]){0}, NULL);
     qk_circuit_gate(circuit, QkGate_CX, (uint32_t[2]){0, 1}, NULL);
 
-    // Create Target compatible with only U gates, with global props.
+    // Create Target already compatible with the circuit.
     QkTarget *target = qk_target_new(1);
     qk_target_add_instruction(target, qk_target_entry_new(QkGate_H));
     qk_target_add_instruction(target, qk_target_entry_new(QkGate_CX));
@@ -45,9 +45,9 @@ int test_circuit_in_basis(void) {
 
     QkCircuitInstruction inst;
     char *gate_names[2] = {"h", "cx"};
-    for (int idx = 0; idx < (int)circuit_len; idx++) {
+    for (size_t idx = 0; idx < circuit_len; idx++) {
         // Populate the inst space
-        qk_circuit_get_instruction(circuit, (size_t)idx, &inst);
+        qk_circuit_get_instruction(circuit, idx, &inst);
 
         if (strcmp(inst.name, gate_names[idx]) != 0) {
             result = EqualityError;

@@ -27,9 +27,9 @@ use qiskit_transpiler::target::Target;
 /// @param circuit A pointer to the circuit to run BasisTranslator on.
 /// The circuit will be mutated in-place, unless the circuit is already
 /// in the target basis, in which case the circuit remains unchanged.
+/// @param target The target where we will obtain basis gates from.
 /// @param min_qubits The minimum number of qubits for operations in the input
 /// ciruit to translate.
-/// @param target The target where we will obtain basis gates from.
 ///
 /// # Example
 ///
@@ -47,7 +47,7 @@ use qiskit_transpiler::target::Target;
 ///    qk_target_add_instruction(target, qk_target_entry_new(QkGate_CX));
 ///
 ///    // Run pass
-///    qk_transpiler_pass_standalone_basis_translator(circuit, 0, target);
+///    qk_transpiler_pass_standalone_basis_translator(circuit, target, 0);
 ///
 ///    // Free the circuit and target pointers once you're done
 ///    qk_circuit_free(circuit);
@@ -82,5 +82,5 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_basis_translator(
             Err(e) => panic!("{}", e),
         };
     let result_circ = dag_to_circuit(&result_dag, false).expect("DAG to Circuit conversion failed");
-    *circ_from_ptr = result_circ
+    *circ_from_ptr = result_circ;
 }
