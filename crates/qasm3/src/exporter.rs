@@ -859,7 +859,7 @@ impl<'a> QASM3Builder {
         for (i, clbit) in clbits.iter().enumerate() {
             if clbit_indices
                 .get(clbit)
-                .map_or(true, |bit_info| bit_info.registers().is_empty())
+                .is_none_or(|bit_info| bit_info.registers().is_empty())
             {
                 let identifier = self.symbol_table.register_bits(
                     format!("{}{}", self.loose_bit_prefix, i),
@@ -957,7 +957,7 @@ impl<'a> QASM3Builder {
         for (i, qubit) in qubits.iter().enumerate() {
             if qubit_indices
                 .get(qubit)
-                .map_or(true, |bit_info| bit_info.registers().is_empty())
+                .is_none_or(|bit_info| bit_info.registers().is_empty())
             {
                 let identifier = self.symbol_table.register_bits(
                     format!("{}{}", self.loose_qubit_prefix, i),

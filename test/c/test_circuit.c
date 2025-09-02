@@ -27,8 +27,17 @@ int test_empty(void) {
     uint32_t num_qubits = qk_circuit_num_qubits(qc);
     uint32_t num_clbits = qk_circuit_num_clbits(qc);
     size_t num_instructions = qk_circuit_num_instructions(qc);
+
+    QkOpCounts counts = qk_circuit_count_ops(qc);
+    size_t opcount = counts.len;
+
+    qk_opcounts_clear(&counts);
     qk_circuit_free(qc);
 
+    if (opcount != 0) {
+        printf("The operation count %zu is not 0", opcount);
+        return EqualityError;
+    }
     if (num_qubits != 0) {
         printf("The number of qubits %d is not 0", num_qubits);
         return EqualityError;
@@ -254,23 +263,64 @@ int test_gate_num_params(void) {
     return Ok;
 }
 
+/**
+ * Test edge cases for getting the op counts.
+ */
+int test_get_gate_counts(void) {
+    QkCircuit *qc = qk_circuit_new(3, 3);
+
+    // test empty circuit
+    int result = Ok;
+    QkOpCounts c1 = qk_circuit_count_ops(qc);
+    if (c1.len != 0) {
+        result = EqualityError;
+        qk_opcounts_clear(&c1);
+        goto circuit_cleanup;
+    }
+    qk_opcounts_clear(&c1);
+
+    // add some instructions
+    uint32_t qubits[2] = {1, 0};
+    double params[1] = {0.12};
+    qk_circuit_gate(qc, QkGate_CRX, qubits, params);
+    QkOpCounts c2 = qk_circuit_count_ops(qc);
+
+    if (c2.len != 1) {
+        result = EqualityError;
+        qk_opcounts_clear(&c1);
+        goto circuit_cleanup;
+    }
+    qk_opcounts_clear(&c2);
+
+    // check that after clearing, the object is still valid
+    if (c2.len != 0 || c2.data != NULL) {
+        result = EqualityError;
+    }
+
+circuit_cleanup:
+    qk_circuit_free(qc);
+    return result;
+}
+
 int test_get_gate_counts_bv_no_measure(void) {
     QkCircuit *qc = qk_circuit_new(1000, 1000);
     double *params = NULL;
-    uint32_t i = 0;
-    uint32_t qubits[1] = {999};
-    qk_circuit_gate(qc, QkGate_X, qubits, params);
+    uint32_t i;
+    uint32_t q1[1] = {999};
+    uint32_t q2[2] = {0, 999};
+
+    qk_circuit_gate(qc, QkGate_X, q1, params);
     for (i = 0; i < 1000; i++) {
-        uint32_t qubits[1] = {i};
-        qk_circuit_gate(qc, QkGate_H, qubits, params);
+        q1[0] = i;
+        qk_circuit_gate(qc, QkGate_H, q1, params);
     }
     for (i = 0; i < 1000; i += 2) {
-        uint32_t qubits[2] = {i, 999};
-        qk_circuit_gate(qc, QkGate_CX, qubits, params);
+        q2[0] = i;
+        qk_circuit_gate(qc, QkGate_CX, q2, params);
     }
     for (i = 0; i < 999; i++) {
-        uint32_t qubits[1] = {i};
-        qk_circuit_gate(qc, QkGate_H, qubits, params);
+        q1[0] = i;
+        qk_circuit_gate(qc, QkGate_H, q1, params);
     }
     QkOpCounts op_counts = qk_circuit_count_ops(qc);
     int result = Ok;
@@ -304,27 +354,29 @@ int test_get_gate_counts_bv_no_measure(void) {
     }
 cleanup:
     qk_circuit_free(qc);
-    qk_opcounts_free(op_counts);
+    qk_opcounts_clear(&op_counts);
     return result;
 }
 
 int test_get_gate_counts_bv_measures(void) {
     QkCircuit *qc = qk_circuit_new(1000, 1000);
     double *params = NULL;
-    uint32_t i = 0;
-    uint32_t qubits[1] = {999};
-    qk_circuit_gate(qc, QkGate_X, qubits, params);
+    uint32_t i;
+    uint32_t q1[1] = {999};
+    uint32_t q2[2] = {0, 999};
+
+    qk_circuit_gate(qc, QkGate_X, q1, params);
     for (i = 0; i < 1000; i++) {
-        uint32_t qubits[1] = {i};
-        qk_circuit_gate(qc, QkGate_H, qubits, params);
+        q1[0] = i;
+        qk_circuit_gate(qc, QkGate_H, q1, params);
     }
     for (i = 0; i < 1000; i += 2) {
-        uint32_t qubits[2] = {i, 999};
-        qk_circuit_gate(qc, QkGate_CX, qubits, params);
+        q2[0] = i;
+        qk_circuit_gate(qc, QkGate_CX, q2, params);
     }
     for (i = 0; i < 999; i++) {
-        uint32_t qubits[1] = {i};
-        qk_circuit_gate(qc, QkGate_H, qubits, params);
+        q1[0] = i;
+        qk_circuit_gate(qc, QkGate_H, q1, params);
     }
     for (i = 0; i < 999; i++) {
         qk_circuit_measure(qc, i, i);
@@ -369,19 +421,21 @@ int test_get_gate_counts_bv_measures(void) {
     }
 cleanup:
     qk_circuit_free(qc);
-    qk_opcounts_free(op_counts);
+    qk_opcounts_clear(&op_counts);
     return result;
 }
 
 int test_get_gate_counts_bv_barrier_and_measures(void) {
     QkCircuit *qc = qk_circuit_new(1000, 1000);
     double *params = NULL;
-    uint32_t i = 0;
-    uint32_t qubits[1] = {999};
-    qk_circuit_gate(qc, QkGate_X, qubits, params);
+    uint32_t i;
+    uint32_t q1[1] = {999};
+    uint32_t q2[2] = {0, 999};
+
+    qk_circuit_gate(qc, QkGate_X, q1, params);
     for (i = 0; i < 1000; i++) {
-        uint32_t qubits[1] = {i};
-        qk_circuit_gate(qc, QkGate_H, qubits, params);
+        q1[0] = i;
+        qk_circuit_gate(qc, QkGate_H, q1, params);
     }
     uint32_t barrier_qubits[1000];
     for (i = 0; i < 1000; i++) {
@@ -389,13 +443,13 @@ int test_get_gate_counts_bv_barrier_and_measures(void) {
     }
     qk_circuit_barrier(qc, barrier_qubits, 1000);
     for (i = 0; i < 1000; i += 2) {
-        uint32_t qubits[2] = {i, 999};
-        qk_circuit_gate(qc, QkGate_CX, qubits, params);
+        q2[0] = i;
+        qk_circuit_gate(qc, QkGate_CX, q2, params);
     }
     qk_circuit_barrier(qc, barrier_qubits, 1000);
     for (i = 0; i < 999; i++) {
-        uint32_t qubits[1] = {i};
-        qk_circuit_gate(qc, QkGate_H, qubits, params);
+        q1[0] = i;
+        qk_circuit_gate(qc, QkGate_H, q1, params);
     }
     for (i = 0; i < 999; i++) {
         qk_circuit_measure(qc, i, i);
@@ -443,44 +497,44 @@ int test_get_gate_counts_bv_barrier_and_measures(void) {
         goto cleanup;
     }
     if (op_counts.data[3].count != 2) {
-        return EqualityError;
         result = EqualityError;
         goto cleanup;
     }
 cleanup:
     qk_circuit_free(qc);
-    qk_opcounts_free(op_counts);
+    qk_opcounts_clear(&op_counts);
     return result;
 }
 
 int test_get_gate_counts_bv_resets_barrier_and_measures(void) {
     QkCircuit *qc = qk_circuit_new(1000, 1000);
     double *params = NULL;
-    uint32_t i = 0;
-    uint32_t qubits[1] = {999};
-    for (i = 0; i < 1000; i++) {
+    uint32_t q1[1] = {999};
+    uint32_t q2[2] = {0, 999};
+
+    for (uint32_t i = 0; i < 1000; i++) {
         qk_circuit_reset(qc, i);
     }
-    qk_circuit_gate(qc, QkGate_X, qubits, params);
-    for (i = 0; i < 1000; i++) {
-        uint32_t qubits[1] = {i};
-        qk_circuit_gate(qc, QkGate_H, qubits, params);
+    qk_circuit_gate(qc, QkGate_X, q1, params);
+    for (uint32_t i = 0; i < 1000; i++) {
+        q1[0] = i;
+        qk_circuit_gate(qc, QkGate_H, q1, params);
     }
     uint32_t barrier_qubits[1000];
-    for (i = 0; i < 1000; i++) {
+    for (uint32_t i = 0; i < 1000; i++) {
         barrier_qubits[i] = i;
     }
     qk_circuit_barrier(qc, barrier_qubits, 1000);
-    for (i = 0; i < 1000; i += 2) {
-        uint32_t qubits[2] = {i, 999};
-        qk_circuit_gate(qc, QkGate_CX, qubits, params);
+    for (uint32_t i = 0; i < 1000; i += 2) {
+        q2[0] = i;
+        qk_circuit_gate(qc, QkGate_CX, q2, params);
     }
     qk_circuit_barrier(qc, barrier_qubits, 1000);
-    for (i = 0; i < 999; i++) {
-        uint32_t qubits[1] = {i};
-        qk_circuit_gate(qc, QkGate_H, qubits, params);
+    for (uint32_t i = 0; i < 999; i++) {
+        q1[0] = i;
+        qk_circuit_gate(qc, QkGate_H, q1, params);
     }
-    for (i = 0; i < 999; i++) {
+    for (uint32_t i = 0; i < 999; i++) {
         qk_circuit_measure(qc, i, i);
     }
     QkOpCounts op_counts = qk_circuit_count_ops(qc);
@@ -590,8 +644,8 @@ int test_get_gate_counts_bv_resets_barrier_and_measures(void) {
             if (result != 0) {
                 goto loop_exit;
             }
-            for (uint32_t j = 0; i < 1000; j++) {
-                if (inst.qubits[i] != i) {
+            for (uint32_t j = 0; j < 1000; j++) {
+                if (inst.qubits[j] != j) {
                     result = EqualityError;
                     goto loop_exit;
                 }
@@ -622,8 +676,8 @@ int test_get_gate_counts_bv_resets_barrier_and_measures(void) {
             if (result != 0) {
                 goto loop_exit;
             }
-            for (uint32_t j = 0; i < 1000; j++) {
-                if (inst.qubits[i] != i) {
+            for (uint32_t j = 0; j < 1000; j++) {
+                if (inst.qubits[j] != j) {
                     result = EqualityError;
                     goto loop_exit;
                 }
@@ -671,7 +725,7 @@ int test_get_gate_counts_bv_resets_barrier_and_measures(void) {
     }
 cleanup:
     qk_circuit_free(qc);
-    qk_opcounts_free(op_counts);
+    qk_opcounts_clear(&op_counts);
     return result;
 }
 
@@ -707,10 +761,10 @@ int test_unitary_gate(void) {
     if (op_counts.len != 1 || strcmp(op_counts.data[0].name, "unitary") != 0 ||
         op_counts.data[0].count != 1) {
         result = EqualityError;
-        qk_opcounts_free(op_counts);
+        qk_opcounts_clear(&op_counts);
         goto cleanup;
     }
-    qk_opcounts_free(op_counts);
+    qk_opcounts_clear(&op_counts);
 
     QkCircuitInstruction inst;
     qk_circuit_get_instruction(qc, 0, &inst);
@@ -755,10 +809,10 @@ int test_unitary_gate_1q(void) {
     if (op_counts.len != 1 || strcmp(op_counts.data[0].name, "unitary") != 0 ||
         op_counts.data[0].count != 1) {
         result = EqualityError;
-        qk_opcounts_free(op_counts);
+        qk_opcounts_clear(&op_counts);
         goto cleanup;
     }
-    qk_opcounts_free(op_counts);
+    qk_opcounts_clear(&op_counts);
 
     QkCircuitInstruction inst;
     qk_circuit_get_instruction(qc, 0, &inst);
@@ -809,10 +863,10 @@ int test_unitary_gate_3q(void) {
     if (op_counts.len != 1 || strcmp(op_counts.data[0].name, "unitary") != 0 ||
         op_counts.data[0].count != 1) {
         result = EqualityError;
-        qk_opcounts_free(op_counts);
+        qk_opcounts_clear(&op_counts);
         goto cleanup;
     }
-    qk_opcounts_free(op_counts);
+    qk_opcounts_clear(&op_counts);
     QkCircuitInstruction inst;
     qk_circuit_get_instruction(qc, 0, &inst);
     if (strcmp(inst.name, "unitary") != 0 || inst.num_clbits != 0 || inst.num_params != 0 ||
@@ -886,6 +940,7 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_circuit_copy);
     num_failed += RUN_TEST(test_circuit_copy_with_instructions);
     num_failed += RUN_TEST(test_no_gate_1000_bits);
+    num_failed += RUN_TEST(test_get_gate_counts);
     num_failed += RUN_TEST(test_get_gate_counts_bv_no_measure);
     num_failed += RUN_TEST(test_get_gate_counts_bv_measures);
     num_failed += RUN_TEST(test_get_gate_counts_bv_barrier_and_measures);

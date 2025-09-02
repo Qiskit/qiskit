@@ -43,9 +43,13 @@
  */
 
 /**
- * @defgroup QkElidePermutationsResult QkElidePermutationsResult
+ * @defgroup QkTranspileLayout QkTranspileLayout
  */
 
 /**
- * @defgroup QkTranspileLayout QkTranspileLayout
+ * @defgroup QkSabreLayoutOptions QkSabreLayoutOptions
+ */
+
+/**
+ * @defgroup QkTranspiler QkTranspiler
  */

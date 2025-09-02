@@ -30,6 +30,8 @@ where
 #[pymodule]
 fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_transpiler::passes::alap_schedule_analysis_mod, "alap_schedule_analysis")?;
+    add_submodule(m, ::qiskit_transpiler::passes::asap_schedule_analysis_mod, "asap_schedule_analysis")?;
+    add_submodule(m, ::qiskit_transpiler::passes::apply_layout_mod, "apply_layout")?;
     add_submodule(m, ::qiskit_transpiler::passes::barrier_before_final_measurements_mod, "barrier_before_final_measurement")?;
     add_submodule(m, ::qiskit_transpiler::passes::basis_translator_mod, "basis_translator")?;
     add_submodule(m, ::qiskit_transpiler::passes::check_map_mod, "check_map")?;
@@ -44,6 +46,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_transpiler::equivalence::equivalence, "equivalence")?;
     add_submodule(m, ::qiskit_transpiler::passes::error_map_mod, "error_map")?;
     add_submodule(m, ::qiskit_transpiler::passes::elide_permutations_mod, "elide_permutations")?;
+    add_submodule(m, ::qiskit_transpiler::passes::litinski_transformation_mod, "litinski_transformation")?;
     add_submodule(m, ::qiskit_synthesis::euler_one_qubit_decomposer::euler_one_qubit_decomposer, "euler_one_qubit_decomposer")?;
     add_submodule(m, ::qiskit_transpiler::passes::disjoint_utils_mod, "disjoint_utils")?;
     add_submodule(m, ::qiskit_transpiler::passes::filter_op_nodes_mod, "filter_op_nodes")?;
@@ -79,5 +82,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_circuit::converters::converters, "converters")?;
     add_submodule(m, ::qiskit_qasm2::qasm2, "qasm2")?;
     add_submodule(m, ::qiskit_qasm3::qasm3, "qasm3")?;
+    add_submodule(m, ::qiskit_transpiler::angle_bound_registry::angle_bound_mod, "angle_bound_registry")?;
+    add_submodule(m, ::qiskit_transpiler::passes::wrap_angles_mod, "wrap_angles")?;
     Ok(())
 }

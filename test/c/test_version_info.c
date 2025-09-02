@@ -23,6 +23,9 @@ char *build_version_string(void) {
     case QISKIT_RELEASE_LEVEL_DEV:
         sprintf(suffix, "dev");
         break;
+    case QISKIT_RELEASE_LEVEL_BETA:
+        sprintf(suffix, "b%u", QISKIT_RELEASE_SERIAL);
+        break;
     case QISKIT_RELEASE_LEVEL_RC:
         sprintf(suffix, "rc%u", QISKIT_RELEASE_SERIAL);
         break;
@@ -57,7 +60,7 @@ int test_version(void) {
 /**
  * Test the version macro and HEX version.
  */
-int test_version_macros() {
+int test_version_macros(void) {
     if (QISKIT_VERSION_MAJOR < 0 || QISKIT_VERSION_MINOR < 0 || QISKIT_VERSION_PATCH < 0) {
         return EqualityError;
     }
@@ -69,7 +72,7 @@ int test_version_macros() {
     return Ok;
 }
 
-int test_version_info() {
+int test_version_info(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_version);
     num_failed += RUN_TEST(test_version_macros);
