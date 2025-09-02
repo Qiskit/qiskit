@@ -807,7 +807,7 @@ impl PackedInstruction {
 
     #[cfg(feature = "cache_pygates")]
     /// Performs a clone of the instruction object and preserves its cache.
-    pub fn shallow_clone(&self) -> Self {
+    pub fn clone_with_cache(&self) -> Self {
         Self {
             op: self.op.clone(),
             clbits: self.clbits,
