@@ -11,6 +11,7 @@ use crate::classical::types::types::Type;
 
 use pyo3::exceptions::PyTypeError;
 use pyo3::sync::GILOnceCell;
+use pyo3::types::PyType;
 use pyo3::{prelude::*, IntoPyObjectExt};
 use std::ffi::CString;
 
@@ -287,7 +288,7 @@ impl PyOrderingIter {
 }
 
 #[pyfunction]
-fn _ord_iter(py: Python<'_>) -> PyResult<Py<PyOrderingIter>> {
+fn _py_ord_iter(py: Python<'_>) -> PyResult<Py<PyOrderingIter>> {
     let ords: Vec<Py<PyOrdering>> = ALL_ORDERINGS
         .iter()
         .map(|&ord| PyOrdering::get_singleton(py, ord))
@@ -302,12 +303,12 @@ fn _ord_iter(py: Python<'_>) -> PyResult<Py<PyOrderingIter>> {
 }
 
 #[pyfunction]
-fn _ord_len() -> usize {
+fn _py_ord_len() -> usize {
     ALL_ORDERINGS.len()
 }
 
 #[pyfunction]
-fn _ord_contains(py: Python<'_>, obj: Bound<'_, PyAny>) -> PyResult<bool> {
+fn _py_ord_contains(py: Python<'_>, obj: Bound<'_, PyAny>) -> PyResult<bool> {
     // Accept PyOrdering member
     if obj.is_instance(&<PyOrdering as pyo3::PyTypeInfo>::type_object(py))? {
         return Ok(true);
@@ -323,6 +324,23 @@ fn _ord_contains(py: Python<'_>, obj: Bound<'_, PyAny>) -> PyResult<bool> {
         if let Ok(v) = val.extract::<u8>() {
             return Ok(bytemuck::checked::try_cast::<u8, Ordering>(v).is_ok());
         }
+    }
+
+    Ok(false)
+}
+
+#[pyfunction]
+fn _py_ord_instancecheck(py: Python<'_>, cls: Bound<'_, PyAny>, obj: Bound<'_, PyAny>) -> PyResult<bool> {
+    let cls_ty: &Bound<'_, PyType> = cls.downcast()?; // the 'Ordering' class
+    let obj_ty: Bound<'_, PyType> = obj.get_type();   // type(obj)
+
+    if obj_ty.is_subclass(cls_ty.as_ref())? {
+        return Ok(true);
+    }
+
+    let base_ty = <PyOrdering as pyo3::PyTypeInfo>::type_object(py);
+    if obj_ty.is(&base_ty) && cls_ty.is_subclass(&base_ty)? {
+        return Ok(true);
     }
 
     Ok(false)
@@ -677,7 +695,7 @@ impl PyCastKindIter {
 }
 
 #[pyfunction]
-fn _ck_iter(py: Python<'_>) -> PyResult<Py<PyCastKindIter>> {
+fn _py_ck_iter(py: Python<'_>) -> PyResult<Py<PyCastKindIter>> {
     let cks: Vec<Py<PyCastKind>> = ALL_CAST_KINDS
         .iter()
         .map(|&k| PyCastKind::get_singleton(py, k))
@@ -691,12 +709,12 @@ fn _ck_iter(py: Python<'_>) -> PyResult<Py<PyCastKindIter>> {
 }
 
 #[pyfunction]
-fn _ck_len() -> usize {
+fn _py_ck_len() -> usize {
     ALL_CAST_KINDS.len()
 }
 
 #[pyfunction]
-fn _ck_contains(py: Python<'_>, obj: Bound<'_, PyAny>) -> PyResult<bool> {
+fn _py_ck_contains(py: Python<'_>, obj: Bound<'_, PyAny>) -> PyResult<bool> {
     // Accept PyCastKind member
     if obj.is_instance(&<PyCastKind as pyo3::PyTypeInfo>::type_object(py))? {
         return Ok(true);
@@ -712,6 +730,23 @@ fn _ck_contains(py: Python<'_>, obj: Bound<'_, PyAny>) -> PyResult<bool> {
         if let Ok(v) = val.extract::<u8>() {
             return Ok(bytemuck::checked::try_cast::<u8, CastKind>(v).is_ok());
         }
+    }
+
+    Ok(false)
+}
+
+#[pyfunction]
+fn _py_ck_instancecheck(py: Python<'_>, cls: Bound<'_, PyAny>, obj: Bound<'_, PyAny>) -> PyResult<bool> {
+    let cls_ty: &Bound<'_, PyType> = cls.downcast()?; // the 'CastKind' class
+    let obj_ty: Bound<'_, PyType> = obj.get_type();   // type(obj)
+
+    if obj_ty.is_subclass(cls_ty.as_ref())? {
+        return Ok(true);
+    }
+
+    let base_ty = <PyCastKind as pyo3::PyTypeInfo>::type_object(py); //cls.py());
+    if obj_ty.is(&base_ty) && cls_ty.is_subclass(&base_ty)? {
+        return Ok(true);
     }
 
     Ok(false)
@@ -760,15 +795,16 @@ pub(crate) fn register_python(m: &Bound<PyModule>) -> PyResult<()> {
     ordering_class.setattr("NONE", PyOrdering::get_singleton(m.py(), Ordering::None))?;
 
     m.add_class::<PyOrderingIter>()?;
-    m.add_function(wrap_pyfunction!(_ord_iter, m)?)?;
-    m.add_function(wrap_pyfunction!(_ord_len, m)?)?;
-    m.add_function(wrap_pyfunction!(_ord_contains, m)?)?;
+    m.add_function(wrap_pyfunction!(_py_ord_iter, m)?)?;
+    m.add_function(wrap_pyfunction!(_py_ord_len, m)?)?;
+    m.add_function(wrap_pyfunction!(_py_ord_contains, m)?)?;
+    m.add_function(wrap_pyfunction!(_py_ord_instancecheck, m)?)?;
 
     // create a metaclass: subclass of `type`
     // !! the whitespace in meta_src is critical and cannot be      !!
     // !! modified or Python gets angry about incorrect indentation !!
     let ord_meta_src = r#"
-def _ord_make_meta(iter_impl, len_impl, contains_impl):
+def _ord_make_meta(iter_impl, len_impl, contains_impl, instancecheck_impl):
   class OrderingMeta(type):
     def __iter__(cls):
       return iter_impl()
@@ -776,6 +812,8 @@ def _ord_make_meta(iter_impl, len_impl, contains_impl):
       return len_impl()
     def __contains__(cls, x):
       return contains_impl(x)
+    def __instancecheck__(cls, inst):
+      return instancecheck_impl(cls, inst)
   return OrderingMeta
 "#;
     let ord_filename = CString::new("ordering_meta.py").unwrap();
@@ -787,9 +825,10 @@ def _ord_make_meta(iter_impl, len_impl, contains_impl):
         ord_module_name.as_c_str(),
     )?;
     let ord_meta = ord_meta_mod.getattr("_ord_make_meta")?.call1((
-        m.getattr("_ord_iter")?,
-        m.getattr("_ord_len")?,
-        m.getattr("_ord_contains")?,
+        m.getattr("_py_ord_iter")?,
+        m.getattr("_py_ord_len")?,
+        m.getattr("_py_ord_contains")?,
+        m.getattr("_py_ord_instancecheck")?,
     ))?;
 
     // Build `Ordering` as a subclass of PyOrdering, with that metaclass
@@ -831,15 +870,16 @@ def _ord_make_meta(iter_impl, len_impl, contains_impl):
     cast_kind_class.setattr("NONE", PyCastKind::get_singleton(m.py(), CastKind::None))?;
 
     m.add_class::<PyCastKindIter>()?;
-    m.add_function(pyo3::wrap_pyfunction!(_ck_iter, m)?)?;
-    m.add_function(pyo3::wrap_pyfunction!(_ck_len, m)?)?;
-    m.add_function(pyo3::wrap_pyfunction!(_ck_contains, m)?)?;
+    m.add_function(pyo3::wrap_pyfunction!(_py_ck_iter, m)?)?;
+    m.add_function(pyo3::wrap_pyfunction!(_py_ck_len, m)?)?;
+    m.add_function(pyo3::wrap_pyfunction!(_py_ck_contains, m)?)?;
+    m.add_function(pyo3::wrap_pyfunction!(_py_ck_instancecheck, m)?)?;
 
     // create a metaclass: subclass of `type`
     // !! the whitespace in meta_src is critical and cannot be      !!
     // !! modified or Python gets angry about incorrect indentation !!
     let ck_meta_src = r#"
-def _ck_make_meta(iter_impl, len_impl, contains_impl):
+def _ck_make_meta(iter_impl, len_impl, contains_impl, instancecheck_impl):
   class CastKindMeta(type):
     def __iter__(cls):
       return iter_impl()
@@ -847,6 +887,8 @@ def _ck_make_meta(iter_impl, len_impl, contains_impl):
       return len_impl()
     def __contains__(cls, x):
       return contains_impl(x)
+    def __instancecheck__(cls, inst):
+      return instancecheck_impl(cls, inst)
   return CastKindMeta
 "#;
     let ck_filename = CString::new("castkind_meta.py").unwrap();
@@ -858,9 +900,10 @@ def _ck_make_meta(iter_impl, len_impl, contains_impl):
         ck_module_name.as_c_str(),
     )?;
     let ck_meta = ck_meta_mod.getattr("_ck_make_meta")?.call1((
-        m.getattr("_ck_iter")?,
-        m.getattr("_ck_len")?,
-        m.getattr("_ck_contains")?,
+        m.getattr("_py_ck_iter")?,
+        m.getattr("_py_ck_len")?,
+        m.getattr("_py_ck_contains")?,
+        m.getattr("_py_ck_instancecheck")?,
     ))?;
 
     // Build `CastKind` as a subclass of PyCastKind, with that metaclass
