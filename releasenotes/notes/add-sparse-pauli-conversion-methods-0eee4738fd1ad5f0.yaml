@@ -1,7 +1,6 @@
 ---
 features_quantum_info:
   - |
-    Adds methods :meth:`~.QubitSparsePauli.to_pauli`, :meth:`~.PhasedQubitSparsePauli.to_pauli`,
-    :meth:`~.QubitSparsePauliList.to_pauli_list`, and
-    :meth:`~.PhasedQubitSparsePauliList.to_pauli_list`. These methods convert the sparse objects
-    into the corresponding dense versions, :class:`Pauli` and :class:`PauliList` respectively.
+    Added methods :meth:`.QubitSparsePauli.to_pauli` and
+    :meth:`.QubitSparsePauliList.to_pauli_list`, which convert the sparse objects
+    into the corresponding dense versions, :class:`~.quantum_info.Pauli` and :class:`PauliList`, respectively.
