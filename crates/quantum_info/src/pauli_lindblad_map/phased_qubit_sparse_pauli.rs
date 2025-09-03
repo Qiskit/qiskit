@@ -403,8 +403,8 @@ impl PhasedQubitSparsePauli {
 /// ==============
 ///
 /// A Pauli operator is a tensor product of single-qubit Pauli operators of the form :math:`P =
-/// (-i)^n \bigotimes_n A^{(n)}_i`, for :math:`A^{(n)}_i \in \{I, X, Y, Z\}` and an integer
-/// :math:`n` called the phase exponent. The internal representation of a
+/// (-i)^m \bigotimes_n A^{(n)}_i`, for :math:`A^{(n)}_i \in \{I, X, Y, Z\}` and an integer
+/// :math:`m` called the phase exponent. The internal representation of a
 /// :class:`PhasedQubitSparsePauli` stores only the non-identity single-qubit Pauli operators.
 ///
 /// Internally, each single-qubit Pauli operator is stored with a numeric value. See the
