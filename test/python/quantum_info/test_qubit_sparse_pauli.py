@@ -22,11 +22,7 @@ import numpy as np
 
 from qiskit import transpile
 from qiskit.circuit import Measure, Parameter, library, QuantumCircuit
-from qiskit.quantum_info import (
-    QubitSparsePauli,
-    QubitSparsePauliList,
-    Pauli,
-)
+from qiskit.quantum_info import QubitSparsePauli, QubitSparsePauliList, Pauli, PauliList
 from qiskit.transpiler import Target
 
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -479,6 +475,22 @@ class TestQubitSparsePauli(QiskitTestCase):
             p0.commutes(p1)
         with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits: 3, 4"):
             p1.commutes(p0)
+
+    def test_to_pauli(self):
+        pauli = Pauli("XIZIY")
+        self.assertEqual(pauli, QubitSparsePauli(pauli).to_pauli())
+
+        # leading identities
+        pauli = Pauli("IIZIY")
+        self.assertEqual(pauli, QubitSparsePauli(pauli).to_pauli())
+
+        # trailing identities
+        pauli = Pauli("XIZIYII")
+        self.assertEqual(pauli, QubitSparsePauli(pauli).to_pauli())
+
+        # both
+        pauli = Pauli("IIXIZIYII")
+        self.assertEqual(pauli, QubitSparsePauli(pauli).to_pauli())
 
 
 @ddt.ddt
@@ -1188,6 +1200,16 @@ class TestQubitSparsePauliList(QiskitTestCase):
                 canonicalize_sparse_list(expected),
                 canonicalize_sparse_list(pauli_list.to_sparse_list()),
             )
+
+    def test_to_pauli_list(self):
+        pauli_strings = ["XIZIY", "IIZIY", "ZIYII", "IIZII"]
+        pauli_list = PauliList(pauli_strings)
+        self.assertEqual(pauli_list, QubitSparsePauliList.from_list(pauli_strings).to_pauli_list())
+
+        # single element
+        pauli_strings = ["XIZIY"]
+        pauli_list = PauliList(pauli_strings)
+        self.assertEqual(pauli_list, QubitSparsePauliList.from_list(pauli_strings).to_pauli_list())
 
     def test_to_dense_array(self):
         """Test converting to a dense array."""

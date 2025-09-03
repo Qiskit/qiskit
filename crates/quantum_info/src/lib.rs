@@ -25,4 +25,12 @@ mod test;
 
 use pyo3::import_exception;
 
+pub(crate) mod imports {
+    use qiskit_circuit::imports::ImportOnceCell;
+
+    pub static PAULI_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "Pauli");
+    pub static PAULI_LIST_TYPE: ImportOnceCell =
+        ImportOnceCell::new("qiskit.quantum_info", "PauliList");
+}
+
 import_exception!(qiskit.exceptions, QiskitError);

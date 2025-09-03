@@ -29,12 +29,10 @@ use std::{
 };
 use thiserror::Error;
 
-use qiskit_circuit::{
-    imports::ImportOnceCell,
-    slice::{PySequenceIndex, SequenceIndex},
-};
+use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 
-static PAULI_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "Pauli");
+use crate::imports;
+
 static PAULI_PY_ENUM: GILOnceCell<Py<PyType>> = GILOnceCell::new();
 static PAULI_INTO_PY: GILOnceCell<[Option<Py<PyAny>>; 16]> = GILOnceCell::new();
 
@@ -481,6 +479,16 @@ impl QubitSparsePauliList {
         Ok(())
     }
 
+    // Return a Vec of dense labels representing this Pauli list
+    pub fn to_dense_label_list(&self) -> Vec<String> {
+        let mut dense_label_list = Vec::with_capacity(self.num_terms());
+
+        for qubit_sparse_pauli in self.iter() {
+            dense_label_list.push(qubit_sparse_pauli.to_term().to_dense_label());
+        }
+        dense_label_list
+    }
+
     /// Apply a transpiler layout.
     pub fn apply_layout(
         &self,
@@ -664,6 +672,31 @@ impl QubitSparsePauli {
                 indices.into_boxed_slice(),
             )
         })
+    }
+
+    // Return a dense label representing this Pauli
+    pub fn to_dense_label(&self) -> String {
+        let mut pauli_str = "".to_string();
+
+        let mut current_idx = 0;
+
+        for (index, pauli) in self.indices().iter().zip(self.paulis().iter()) {
+            if *index > current_idx {
+                pauli_str =
+                    (0..(index - current_idx)).map(|_| "I").collect::<String>() + &pauli_str;
+                current_idx = *index;
+            }
+            pauli_str = pauli.py_label().to_string() + &pauli_str;
+            current_idx += 1;
+        }
+
+        if current_idx < self.num_qubits() {
+            pauli_str = (0..(self.num_qubits() - current_idx))
+                .map(|_| "I")
+                .collect::<String>()
+                + &pauli_str;
+        }
+        pauli_str
     }
 
     /// Create a new [QubitSparsePauli] from the raw components without checking data coherence.
@@ -1159,7 +1192,7 @@ impl PyQubitSparsePauli {
                 "explicitly given 'num_qubits' ({num_qubits}) does not match operator ({other_qubits})"
             )))
         };
-        if data.is_instance(PAULI_TYPE.get_bound(py))? {
+        if data.is_instance(imports::PAULI_TYPE.get_bound(py))? {
             check_num_qubits(data)?;
             return Self::from_pauli(data);
         }
@@ -1481,6 +1514,13 @@ impl PyQubitSparsePauli {
             .into_pyobject(py)
     }
 
+    /// Return a :class:`~.quantum_info.Pauli` representing the same phaseless Pauli.
+    fn to_pauli<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        imports::PAULI_TYPE
+            .get_bound(py)
+            .call1((self.inner.to_dense_label(),))
+    }
+
     /// Get a copy of this term.
     fn copy(&self) -> Self {
         self.clone()
@@ -1648,7 +1688,7 @@ impl PyQubitSparsePauliList {
                 "explicitly given 'num_qubits' ({num_qubits}) does not match operator ({other_qubits})"
             )))
         };
-        if data.is_instance(PAULI_TYPE.get_bound(py))? {
+        if data.is_instance(imports::PAULI_TYPE.get_bound(py))? {
             check_num_qubits(data)?;
             return Self::from_pauli(data);
         }
@@ -2053,6 +2093,14 @@ impl PyQubitSparsePauliList {
             }
         }
         Ok(out.into_pyarray(py).unbind())
+    }
+
+    /// Return a :class:`~.quantum_info.PauliList` representing the same phaseless list of Paulis.
+    fn to_pauli_list<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        imports::PAULI_LIST_TYPE
+            .get_bound(py)
+            .call1((inner.to_dense_label_list(),))
     }
 
     /// Apply a transpiler layout to this qubit sparse Pauli list.
