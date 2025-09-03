@@ -723,6 +723,10 @@ pub unsafe extern "C" fn qk_obs_compose_map(
 /// @ingroup QkObs
 /// Apply a new qubit layout to the observable.
 ///
+/// The layout is set by an array ``layout`` of new indices, specifying that qubit at current
+/// index ``i`` is relabelled to index ``layout[i]``. The number of qubits the observable
+/// acts on can be extended by setting a larger ``num_qubits`` than the current observable has.
+///
 /// @param obs A pointer to the observable, this observable will be modified in place upon success.
 /// Check the exit code to ensure the layout was correctly applied.
 /// @param layout A pointer to the layout. The pointer must point to an array to
@@ -751,7 +755,7 @@ pub unsafe extern "C" fn qk_obs_compose_map(
 /// QkObsTerm term = {coeff, 3, bit_terms, qubits, 4};
 /// qk_obs_add_term(obs, &term);
 ///
-/// uint32_t layout[3] = {0, 10, 9};
+/// uint32_t layout[3] = {0, 10, 9};  // qubit mapping is: 0->0, 1->10, 2->9
 /// uint32_t num_output_qubits = 11;
 /// int exit = qk_obs_apply_layout(obs, layout, num_output_qubits);
 /// ```
