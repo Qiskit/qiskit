@@ -303,6 +303,11 @@ impl ParameterExpression {
         self.name_map.values()
     }
 
+    /// Get the number of [Symbol]s in the expression.
+    pub fn num_symbols(&self) -> usize {
+        self.name_map.len()
+    }
+
     /// Whether the expression represents a complex number. None if cannot be determined.
     pub fn is_complex(&self) -> Option<bool> {
         self.expr.is_complex()
@@ -948,11 +953,21 @@ impl PyParameterExpression {
     ///     param: The parameter with respect to which the derivative is calculated.
     ///
     /// Returns:
-    ///     The derivative.
-    pub fn gradient(&self, param: &Bound<'_, PyAny>) -> PyResult<Self> {
+    ///     The derivative as either a constant numeric value or a symbolic
+    ///     :class:`.ParameterExpression`.
+    pub fn gradient(&self, param: &Bound<'_, PyAny>) -> PyResult<PyObject> {
         let symbol = symbol_from_py_parameter(param)?;
         let d_expr = self.inner.derivative(&symbol)?;
-        Ok(d_expr.into())
+
+        // try converting to value and return as built-in numeric type
+        match d_expr.try_to_value(false) {
+            Ok(val) => match val {
+                Value::Real(r) => r.into_py_any(param.py()),
+                Value::Int(i) => i.into_py_any(param.py()),
+                Value::Complex(c) => c.into_py_any(param.py()),
+            },
+            Err(_) => PyParameterExpression::from(d_expr).into_py_any(param.py()),
+        }
     }
 
     /// Return all values in this equation.
@@ -1046,6 +1061,40 @@ impl PyParameterExpression {
             Ok(bound) => Ok(bound.into()),
             Err(e) => Err(e.into()),
         }
+    }
+
+    /// Bind all of the parameters in ``self`` to numeric values in the dictionary, returning a
+    /// numeric value.
+    ///
+    /// This is a special case of :meth:`bind` which can reach higher performance.  It is no problem
+    /// for the ``values`` dictionary to contain parameters that are not used in this expression;
+    /// the expectation is that the same bindings dictionary will be fed to other expressions as
+    /// well.
+    ///
+    /// It is an error to call this method with a ``values`` dictionary that does not bind all of
+    /// the values, or to call this method with non-numeric values, but this is not explicitly
+    /// checked, since this method is intended for performance-sensitive use.  Passing an incorrect
+    /// dictionary may result in unexpected behavior.
+    ///
+    /// Unlike :meth:`bind`, this method will not raise an exception if non-finite floating-point
+    /// values are encountered.
+    ///
+    /// Args:
+    ///     values: mapping of parameters to numeric values.
+    #[pyo3(name = "bind_all")]
+    #[pyo3(signature = (values, *))]
+    pub fn py_bind_all(&self, values: Bound<PyAny>) -> PyResult<Value> {
+        let mut partial_map = HashMap::with_capacity(self.inner.name_map.len());
+        for symbol in self.inner.name_map.values() {
+            let py_parameter = symbol.clone().into_pyobject(values.py())?;
+            partial_map.insert(symbol, values.get_item(py_parameter)?.extract()?);
+        }
+        let bound = self.inner.expr.bind(&partial_map);
+        bound.eval(true).ok_or_else(|| {
+            PyTypeError::new_err(format!(
+                "binding did not produce a numeric quantity: {bound:?}"
+            ))
+        })
     }
 
     /// Assign one parameter to a value, which can either be numeric or another parameter
@@ -1545,6 +1594,15 @@ impl PyParameter {
                 }
             }
         }
+    }
+
+    #[pyo3(name = "bind_all")]
+    #[pyo3(signature = (values, *))]
+    pub fn py_bind_all<'py>(
+        slf_: Bound<'py, Self>,
+        values: Bound<'py, PyAny>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        values.get_item(slf_)
     }
 
     #[pyo3(name = "assign")]
