@@ -1258,21 +1258,13 @@ class QuantumCircuit:
 
     @classmethod
     def _from_circuit_data(
-        cls, data: CircuitData, add_regs: bool = False, name: str | None = None
+        cls, data: CircuitData, legacy_qubits: bool = False, name: str | None = None
     ) -> typing.Self:
         """A private constructor from rust space circuit data."""
         out = QuantumCircuit(name=name)
-
-        if data.num_qubits > 0:
-            if add_regs:
-                data.qregs = [QuantumRegister(name="q", bits=data.qubits)]
-
-        if data.num_clbits > 0:
-            if add_regs:
-                data.creg = [ClassicalRegister(name="c", bits=data.clbits)]
-
         out._data = data
-
+        if legacy_qubits:
+            out.ensure_physical(apply_layout=False)
         return out
 
     @staticmethod
@@ -1683,8 +1675,6 @@ class QuantumCircuit:
             CircuitError: if ``num_qubits`` is set to attempt to expand the circuit, but the circuit
                 already has a layout set.
         """
-        from qiskit.transpiler import Layout, TranspileLayout  # pylint: disable=cyclic-import
-
         original_num_qubits = self.num_qubits
         if num_qubits is not None and num_qubits < original_num_qubits:
             raise ValueError(
@@ -1706,14 +1696,18 @@ class QuantumCircuit:
             return False
 
         if apply_layout:
+            from qiskit.transpiler import Layout  # pylint: disable=cyclic-import
+
             virtuals = self.qubits.copy()
-            if num_qubits is not None:
+            if num_qubits is not None and num_qubits > original_num_qubits:
                 virtuals.extend(QuantumRegister(num_qubits - original_num_qubits, "ancilla"))
             initial_layout = Layout(dict(enumerate(virtuals)))
         else:
             initial_layout = None
         self._data.make_physical(num_qubits)
         if initial_layout is not None:
+            from qiskit.transpiler import TranspileLayout  # pylint: disable=cyclic-import
+
             self._layout = TranspileLayout(
                 initial_layout=initial_layout,
                 input_qubit_mapping=initial_layout.get_virtual_bits().copy(),

@@ -79,7 +79,7 @@ class RZGate(Gate):
         #    └──────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.RZ._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.RZ._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def control(
@@ -249,7 +249,7 @@ class CRZGate(ControlledGate):
         #      └─────────┘└───┘└──────────┘└───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.CRZ._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.CRZ._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def inverse(self, annotated: bool = False):
