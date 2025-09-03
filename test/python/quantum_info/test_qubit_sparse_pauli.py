@@ -873,38 +873,6 @@ class TestQubitSparsePauliList(QiskitTestCase):
         self.assertEqual(len(QubitSparsePauliList.empty(10)), 0)
         self.assertEqual(len(QubitSparsePauliList.from_list(["IIIXIZ", "YYXXII"])), 2)
 
-    def test_pauli_enum(self):
-        # These are very explicit tests that effectively just duplicate magic numbers, but the point
-        # is that those magic numbers are required to be constant as their values are part of the
-        # public interface.
-
-        self.assertEqual(
-            set(QubitSparsePauli.Pauli),
-            {
-                QubitSparsePauli.Pauli.X,
-                QubitSparsePauli.Pauli.Y,
-                QubitSparsePauli.Pauli.Z,
-            },
-        )
-        # All the enumeration items should also be integers.
-        self.assertIsInstance(QubitSparsePauli.Pauli.X, int)
-        values = {
-            "X": 0b10,
-            "Y": 0b11,
-            "Z": 0b01,
-        }
-        self.assertEqual({name: getattr(QubitSparsePauli.Pauli, name) for name in values}, values)
-
-        # The single-character label aliases can be accessed with index notation.
-        labels = {
-            "X": QubitSparsePauli.Pauli.X,
-            "Y": QubitSparsePauli.Pauli.Y,
-            "Z": QubitSparsePauli.Pauli.Z,
-        }
-        self.assertEqual({label: QubitSparsePauli.Pauli[label] for label in labels}, labels)
-        # The `label` property returns known values.
-        self.assertEqual({pauli.label: pauli for pauli in QubitSparsePauli.Pauli}, labels)
-
     @ddt.idata(single_cases_list())
     def test_pickle(self, qubit_sparse_pauli_list):
         self.assertEqual(qubit_sparse_pauli_list, copy.copy(qubit_sparse_pauli_list))
