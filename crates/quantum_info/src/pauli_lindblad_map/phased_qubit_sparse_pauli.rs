@@ -223,8 +223,8 @@ impl PhasedQubitSparsePauliView<'_> {
         let num_ys = self.qubit_sparse_pauli_view.num_ys();
         let phase_str = match (self.phase - num_ys).rem_euclid(4) {
             0 => "",
-            1 => "(-i)",
-            2 => "(-1)",
+            1 => "-i",
+            2 => "-",
             3 => "i",
             _ => unreachable!("`x % 4` has only four values"),
         };
