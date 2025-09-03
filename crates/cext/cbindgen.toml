@@ -3,6 +3,7 @@ include_version = true
 include_guard = "QISKIT_H"
 style = "type"
 cpp_compat = true
+usize_is_size_t = true
 
 after_includes = """
 #ifdef QISKIT_C_PYTHON_INTERFACE
@@ -11,12 +12,38 @@ after_includes = """
 
 #include "qiskit/complex.h"
 
-#define QISKIT_VERSION_MAJOR 2
-#define QISKIT_VERSION_MINOR 1
-#define QISKIT_VERSION_PATCH 0
+#define QISKIT_RELEASE_LEVEL_DEV 0xA // dev or "alpha"
+#define QISKIT_RELEASE_LEVEL_BETA 0xB // beta
+#define QISKIT_RELEASE_LEVEL_RC 0xC // release candidate
+#define QISKIT_RELEASE_LEVEL_FINAL 0xF // final release
 
+#define QISKIT_VERSION_MAJOR 2
+#define QISKIT_VERSION_MINOR 2
+#define QISKIT_VERSION_PATCH 0
+#define QISKIT_RELEASE_LEVEL QISKIT_RELEASE_LEVEL_BETA
+#define QISKIT_RELEASE_SERIAL 1  // for the final release, this should be 0
+
+#define QISKIT_VERSION "2.2.0b1"
+
+#define QISKIT_GET_VERSION_HEX(major, minor, patch, level, serial) (\
+    (major & 0xff) << 24 | \
+    (minor & 0xff) << 16 | \
+    (patch & 0xff) << 8 | \
+    (level & 0xf) << 4 | \
+    (serial & 0xf)\
+)
+
+// HEX version using 4 bytes: 0xMMmmppls. For example, 2.1.0rc1 is 0x020100C1.
+#define QISKIT_VERSION_HEX QISKIT_GET_VERSION_HEX(\
+    QISKIT_VERSION_MAJOR, \
+    QISKIT_VERSION_MINOR, \
+    QISKIT_VERSION_PATCH, \
+    QISKIT_RELEASE_LEVEL, \
+    QISKIT_RELEASE_SERIAL \
+)
+
+// DEPRECATED, to be removed in Qiskit v2.3.
 #define QISKIT_VERSION_NUMERIC(M,m,p) ((M)<<16|(m)<<8|(p))
-#define QISKIT_VERSION (QISKIT_VERSION_MAJOR<<16 | QISKIT_VERSION_MINOR<<8 | QISKIT_VERSION_PATCH)
 
 // Always expose [cfg(feature = "cbinding")] -- workaround for
 // https://github.com/mozilla/cbindgen/issues/995
@@ -54,3 +81,6 @@ prefix_with_name = true
 "TargetEntry" = "QkTargetEntry"
 "VF2LayoutResult" = "QkVF2LayoutResult"
 "ElidePermutationsResult" = "QkElidePermutationsResult"
+"TranspileLayout" = "QkTranspileLayout"
+"TranspileResult" = "QkTranspileResult"
+"TranspileOptions" = "QkTranspileOptions"

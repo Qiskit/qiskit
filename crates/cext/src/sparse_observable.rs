@@ -496,7 +496,7 @@ pub unsafe extern "C" fn qk_obs_indices(obs: *mut SparseObservable) -> *mut u32 
 ///    qk_obs_add_term(obs, &term);
 ///
 ///    size_t num_terms = qk_obs_num_terms(obs);
-///    uintptr_t *boundaries = qk_obs_boundaries(obs);
+///    size_t *boundaries = qk_obs_boundaries(obs);
 ///
 ///    for (size_t i = 0; i < num_terms + 1; i++) {
 ///        printf("boundary %i: %i\n", i, boundaries[i]);
@@ -858,8 +858,15 @@ pub unsafe extern "C" fn qk_obs_str(obs: *const SparseObservable) -> *mut c_char
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_str_free(string: *mut c_char) {
-    unsafe {
-        let _ = CString::from_raw(string);
+    if !string.is_null() {
+        if !string.is_aligned() {
+            panic!("Attempted to free a non-aligned pointer.")
+        }
+        // SAFETY: Per docstring the pointer is obtained by Qiskit functions, which are
+        // returning strings from CString::into_raw.
+        unsafe {
+            let _ = CString::from_raw(string);
+        }
     }
 }
 
