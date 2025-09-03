@@ -2414,6 +2414,36 @@ c[0] = measure_2 q[0];
 """
         self.assertEqual(expected.strip(), out_qasm.strip())
 
+    def test_defcal_overriding_ctrl_flow_op_name(self):
+        """Test overriding ContinueLoopOp and BreakLoopOp instruction names using defcals."""
+        # These are edge-case control flow ops that don't subclass ControlFlowOp and
+        # therefore can be overwritten using defcals like regular instructions.
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+        qc.break_loop()
+        qc.continue_loop()
+
+        defcals = {
+            "break_loop": DefcalInstruction("my_name_break", 0, 1, types.Bool()),
+            "continue_loop": DefcalInstruction("my_name_continue", 0, 1, types.Bool()),
+        }
+        out_qasm = dumps(
+            qc,
+            includes=(),
+            basis_gates=("h", "cx"),
+            disable_constants=True,
+            implicit_defcals=defcals,
+        )
+        expected = """
+OPENQASM 3.0;
+bit[1] c;
+qubit[1] q;
+h q[0];
+c[0] = my_name_break q[0];
+c[0] = my_name_continue q[0];
+"""
+        self.assertEqual(expected.strip(), out_qasm.strip())
+
 
 class TestExperimentalFeatures(QiskitTestCase):
     """Tests of features that are hidden behind experimental flags."""

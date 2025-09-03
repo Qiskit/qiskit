@@ -1313,7 +1313,14 @@ class QASM3Builder:
 
     def build_defcal_call(self, instruction: CircuitInstruction, defcal: DefcalInstruction):
         """Build a statement associated with a defcal instruction."""
-        # We forbade return types other than `Bool` and `None` in the initialiser.
+        # We forbade return types other than `Bool` and `None` in the initialiser,
+        # but we error so that this breaks if we support the full defcal spec later on.
+        allowed_defcal_types = (None, types.Bool())
+        if defcal.return_type not in allowed_defcal_types:
+            raise QASM3ExporterError(
+                f"The defcal '{defcal.name}' associated with instructions with name '{instruction.name}'"
+                f" returns an unsupported classical type: {defcal.return_type}"
+            )
         returns_bit = defcal.return_type is not None
         # Check simple consistency.
         if (
@@ -1341,7 +1348,8 @@ class QASM3Builder:
         This will also push the gate into the symbol table (if required), including recursively
         defining the gate blocks.
 
-        If ``ident`` is given, symbol-resolution will be skipped."""
+        If the operation identifier is found in the symbol table, symbol-resolution will be skipped.
+        """
         operation = instruction.operation
         if hasattr(operation, "_qasm_decomposition"):
             operation = operation._qasm_decomposition()
