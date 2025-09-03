@@ -256,7 +256,6 @@ pub trait Operation {
     fn blocks(&self) -> Vec<CircuitData>;
     fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>>;
     fn definition(&self, params: &[Param]) -> Option<CircuitData>;
-    fn standard_gate(&self) -> Option<StandardGate>;
     fn directive(&self) -> bool;
     fn matrix_as_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]>;
     fn matrix_as_nalgebra_1q(&self, params: &[Param]) -> Option<Matrix2<Complex64>> {
@@ -367,17 +366,6 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.definition(params),
             Self::Operation(operation) => operation.definition(params),
             Self::Unitary(unitary) => unitary.definition(params),
-        }
-    }
-    #[inline]
-    fn standard_gate(&self) -> Option<StandardGate> {
-        match self {
-            Self::StandardGate(standard) => standard.standard_gate(),
-            Self::StandardInstruction(instruction) => instruction.standard_gate(),
-            Self::Gate(gate) => gate.standard_gate(),
-            Self::Instruction(instruction) => instruction.standard_gate(),
-            Self::Operation(operation) => operation.standard_gate(),
-            Self::Unitary(unitary) => unitary.standard_gate(),
         }
     }
     #[inline]
@@ -549,10 +537,6 @@ impl Operation for StandardInstruction {
     }
 
     fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
-        None
-    }
-
-    fn standard_gate(&self) -> Option<StandardGate> {
         None
     }
 
@@ -2259,10 +2243,6 @@ impl Operation for StandardGate {
         }
     }
 
-    fn standard_gate(&self) -> Option<StandardGate> {
-        Some(*self)
-    }
-
     fn directive(&self) -> bool {
         false
     }
@@ -2555,9 +2535,6 @@ impl Operation for PyInstruction {
             }
         })
     }
-    fn standard_gate(&self) -> Option<StandardGate> {
-        None
-    }
 
     fn directive(&self) -> bool {
         Python::with_gil(|py| -> bool {
@@ -2659,9 +2636,6 @@ impl Operation for PyGate {
             }
         })
     }
-    fn standard_gate(&self) -> Option<StandardGate> {
-        None
-    }
     fn directive(&self) -> bool {
         false
     }
@@ -2744,10 +2718,6 @@ impl Operation for PyOperation {
     fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
         None
     }
-    fn standard_gate(&self) -> Option<StandardGate> {
-        None
-    }
-
     fn directive(&self) -> bool {
         Python::with_gil(|py| -> bool {
             match self.operation.getattr(py, intern!(py, "_directive")) {
@@ -2831,10 +2801,6 @@ impl Operation for UnitaryGate {
         }
     }
     fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
-        None
-    }
-
-    fn standard_gate(&self) -> Option<StandardGate> {
         None
     }
 
