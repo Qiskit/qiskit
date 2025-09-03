@@ -81,6 +81,61 @@ class TestCommutativeCancellation(QiskitTestCase):
         expected.global_phase = 0.5
         self.assertEqual(expected, new_circuit)
 
+    def test_2pi_multiples(self):
+        """Test 2pi multiples are handled with the correct phase they introduce."""
+        for eps in [0, 1e-10, -1e-10]:
+            for sign in [-1, 1]:
+                qc = QuantumCircuit(1)
+                qc.rz(sign * np.pi + eps, 0)
+                qc.rz(sign * np.pi, 0)
+
+                with self.subTest(msg="single 2pi", sign=sign, eps=eps):
+                    tqc = CommutativeCancellation()(qc)
+                    self.assertEqual(0, len(tqc.count_ops()))
+                    self.assertAlmostEqual(np.pi, tqc.global_phase)
+
+            for sign_x in [-1, 1]:
+                for sign_z in [-1, 1]:
+                    qc = QuantumCircuit(2)
+                    qc.rx(sign_x * np.pi + eps, 0)
+                    qc.rx(sign_x * np.pi, 0)
+                    qc.rz(sign_z * np.pi, 1)
+                    qc.rz(sign_z * np.pi, 1)
+
+                    with self.subTest(msg="two 2pi", sign_x=sign_x, sign_z=sign_z, eps=eps):
+                        tqc = CommutativeCancellation()(qc)
+                        self.assertEqual(0, len(tqc.count_ops()))
+                        self.assertAlmostEqual(0, tqc.global_phase)
+
+    def test_4pi_multiples(self):
+        """Test 4pi multiples are removed w/o changing the global phase."""
+        for eps in [0, 1e-10, -1e-10]:
+            for sign in [-1, 1]:
+                qc = QuantumCircuit(1)
+                qc.rz(sign * np.pi + eps, 0)
+                qc.rz(sign * 6 * np.pi, 0)
+                qc.rz(sign * np.pi, 0)
+
+                with self.subTest(sign=sign, eps=eps):
+                    tqc = CommutativeCancellation()(qc)
+                    self.assertEqual(0, len(tqc.count_ops()))
+                    self.assertAlmostEqual(0, tqc.global_phase)
+
+    def test_fixed_rotation_accumulation(self):
+        """Test accumulating gates with fixed angles (T, S) works correctly."""
+        cc = CommutativeCancellation()
+
+        # test for U1, P and RZ as target gate
+        for gate_cls in [RZGate, PhaseGate, U1Gate]:
+            qc = QuantumCircuit(1)
+            gate = gate_cls(0.2)
+            qc.append(gate, [0])
+            qc.t(0)
+            qc.s(0)
+
+            tqc = cc(qc)
+            self.assertTrue(np.allclose(Operator(qc).data, Operator(tqc).data))
+
     def test_commutative_circuit1(self):
         """A simple circuit where three CNOTs commute, the first and the last cancel.
 
@@ -150,9 +205,10 @@ class TestCommutativeCancellation(QiskitTestCase):
             )
         )
         new_circuit = passmanager.run(circuit)
-        expected = QuantumCircuit(qr)
+        expected = QuantumCircuit(qr, global_phase=np.pi)  # RX(2pi) = -I = exp(i pi) I
 
         self.assertEqual(expected, new_circuit)
+        self.assertTrue(np.allclose(Operator(circuit).data, Operator(expected).data))
 
     def test_2_alternating_cnots(self):
         """A simple circuit where nothing should be cancelled.
@@ -670,9 +726,9 @@ class TestCommutativeCancellation(QiskitTestCase):
             (test.clbits[0], True), base_test1.copy(), base_test2.copy(), test.qubits, test.clbits
         )
 
-        expected = QuantumCircuit(3, 3)
+        expected = QuantumCircuit(3, 3, global_phase=np.pi / 2)
         expected.h(0)
-        expected.rx(np.pi + 0.2, 0)
+        expected.rx(np.pi + 0.2, 0)  # transforming X into RX(pi) introduces a pi/2 global phase
         expected.measure(0, 0)
         expected.x(0)
 

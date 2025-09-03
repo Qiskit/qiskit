@@ -3,6 +3,7 @@ include_version = true
 include_guard = "QISKIT_H"
 style = "type"
 cpp_compat = true
+usize_is_size_t = true
 
 after_includes = """
 #ifdef QISKIT_C_PYTHON_INTERFACE
@@ -12,16 +13,17 @@ after_includes = """
 #include "qiskit/complex.h"
 
 #define QISKIT_RELEASE_LEVEL_DEV 0xA // dev or "alpha"
+#define QISKIT_RELEASE_LEVEL_BETA 0xB // beta
 #define QISKIT_RELEASE_LEVEL_RC 0xC // release candidate
 #define QISKIT_RELEASE_LEVEL_FINAL 0xF // final release
 
 #define QISKIT_VERSION_MAJOR 2
 #define QISKIT_VERSION_MINOR 2
 #define QISKIT_VERSION_PATCH 0
-#define QISKIT_RELEASE_LEVEL QISKIT_RELEASE_LEVEL_DEV
-#define QISKIT_RELEASE_SERIAL 0  // for the final release, this should be 0
+#define QISKIT_RELEASE_LEVEL QISKIT_RELEASE_LEVEL_BETA
+#define QISKIT_RELEASE_SERIAL 1  // for the final release, this should be 0
 
-#define QISKIT_VERSION "2.2.0dev"
+#define QISKIT_VERSION "2.2.0b1"
 
 #define QISKIT_GET_VERSION_HEX(major, minor, patch, level, serial) (\
     (major & 0xff) << 24 | \
@@ -80,3 +82,5 @@ prefix_with_name = true
 "VF2LayoutResult" = "QkVF2LayoutResult"
 "ElidePermutationsResult" = "QkElidePermutationsResult"
 "TranspileLayout" = "QkTranspileLayout"
+"TranspileResult" = "QkTranspileResult"
+"TranspileOptions" = "QkTranspileOptions"
