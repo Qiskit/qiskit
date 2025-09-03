@@ -348,6 +348,48 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
             expected,
         )
 
+    def test_text_measure_arrows_false(self):
+        """Test measure drawing with measure_arrows False."""
+        expected = "\n".join(
+            [
+                "         ┌───┐┌───┐┌───────┐",
+                "qr_0: |0>┤ X ├┤ H ├┤ M-c_0 ├",
+                "         ├───┤├───┤├───────┤",
+                "qr_1: |0>┤ X ├┤ H ├┤ M-c_1 ├",
+                "         ├───┤├───┤├───────┤",
+                "qr_2: |0>┤ X ├┤ H ├┤ M-c_2 ├",
+                "         └───┘└───┘└───────┘",
+                "  c: 0 3/═══════════════════",
+                "                            ",
+            ]
+        )
+
+        qr = QuantumRegister(3, "qr")
+        cr = ClassicalRegister(3, "c")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.x(0)
+        circuit.h(0)
+        circuit.measure(0, 0)
+        circuit.x(1)
+        circuit.h(1)
+        circuit.measure(1, 1)
+        circuit.x(2)
+        circuit.h(2)
+        circuit.measure(2, 2)
+
+        self.assertEqual(
+            str(
+                circuit_drawer(
+                    circuit,
+                    output="text",
+                    initial_state=True,
+                    cregbundle=True,
+                    measure_arrows=False,
+                )
+            ),
+            expected,
+        )
+
     def test_wire_order(self):
         """Test the wire_order option"""
         expected = "\n".join(
