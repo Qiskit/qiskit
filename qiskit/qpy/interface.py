@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import io
+import shutil
 from json import JSONEncoder, JSONDecoder
 from typing import Union, List, BinaryIO, Type, Optional, Callable, TYPE_CHECKING
 from collections.abc import Iterable, Mapping
@@ -237,20 +238,24 @@ def dump(
             # We need to create a temporary BytesIO buffer since the input
             # stream isn't seekable.
             buffer_offsets = []
+            offset_table_size = len(programs) * formats.CIRCUIT_TABLE_ENTRY_SIZE
             with io.BytesIO() as circuits_buffer:
                 for program in programs:
                     buffer_offsets.append(circuits_buffer.tell())
                     _write_circuit(circuits_buffer, program)
-            # Write circuit table to input stream, adjusting offsets.
-            for offset in buffer_offsets:
-                file_obj.write(
-                    struct.pack(
-                        formats.CIRCUIT_TABLE_ENTRY_PACK,
-                        *formats.CIRCUIT_TABLE_ENTRY(header_bytes_written + offset),
+                # Write circuit table to input stream, adjusting offsets.
+                for offset in buffer_offsets:
+                    file_obj.write(
+                        struct.pack(
+                            formats.CIRCUIT_TABLE_ENTRY_PACK,
+                            *formats.CIRCUIT_TABLE_ENTRY(
+                                header_bytes_written + offset_table_size + offset
+                            ),
+                        )
                     )
-                )
-            # Write circuits to the input stream.
-            file_obj.write(circuits_buffer.getbuffer())
+                # Write circuits to the input stream.
+                circuits_buffer.seek(0)
+                shutil.copyfileobj(circuits_buffer, file_obj)
     else:
         # No circuit table needed, just write the circuits sequentially.
         for program in programs:
