@@ -2412,8 +2412,9 @@ impl PySparseTerm {
 #[derive(Debug)]
 pub struct PySparseObservable {
     // This class keeps a pointer to a pure Rust-SparseTerm and serves as interface from Python.
-    pub inner: Arc<RwLock<SparseObservable>>,
+    inner: Arc<RwLock<SparseObservable>>,
 }
+
 #[pymethods]
 impl PySparseObservable {
     #[pyo3(signature = (data, /, num_qubits=None))]
@@ -2496,6 +2497,12 @@ impl PySparseObservable {
     fn copy(&self) -> PyResult<Self> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         Ok(inner.clone().into())
+    }
+
+    /// Get a clone of inner SparseObservable data
+    pub fn get(&self) -> PyResult<SparseObservable> {
+        let data = self.inner.read().map_err(|_| InnerReadError)?;
+        Ok(data.clone())
     }
 
     /// The number of qubits the operator acts on.

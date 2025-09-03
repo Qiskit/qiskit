@@ -98,9 +98,8 @@ pub fn sampled_expval_sparse_observable(
     sparse_obs: PyRef<PySparseObservable>,
     dist: HashMap<String, f64>,
 ) -> PyResult<f64> {
-    // Access the inner SparseObservable through the RwLock
-    let sparse_obs_guard = sparse_obs.inner.read().unwrap();
-    let sparse_obs: &SparseObservable = &sparse_obs_guard;
+    // Access the SparseObservable
+    let sparse_obs: SparseObservable = sparse_obs.get().unwrap();
     let n = sparse_obs.num_qubits();
 
     // Convert SparseObservable to operator strings and coefficients
