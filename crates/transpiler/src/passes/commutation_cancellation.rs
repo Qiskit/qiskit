@@ -19,17 +19,13 @@ use pyo3::{pyfunction, wrap_pyfunction, Bound, PyResult, Python};
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::{smallvec, SmallVec};
 
-use crate::commutation_checker::CommutationChecker;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::Qubit;
-<<<<<<< HEAD
+use qiskit_synthesis::QiskitError;
 
 use super::analyze_commutations;
-use qiskit_synthesis::{euler_one_qubit_decomposer, QiskitError};
-=======
-use qiskit_synthesis::QiskitError;
->>>>>>> 106492115 (Fix global phase handling in `CommutativeCancellation` (#14956))
+use crate::commutation_checker::CommutationChecker;
 
 const _CUTOFF_PRECISION: f64 = 1e-5;
 static ROTATION_GATES: [&str; 4] = ["p", "u1", "rz", "rx"];
@@ -256,25 +252,6 @@ pub fn cancel_commutations(
                         let phase_shift = z_phase_shift(node_op_name, node_angle);
                         Ok((node_angle, phase_shift))
                     } else {
-<<<<<<< HEAD
-                        Err(PyRuntimeError::new_err(format!(
-                            "Angle for operation {} is not defined",
-                            node_op_name
-                        )))
-                    };
-                    total_angle += node_angle?;
-
-                    let Param::Float(new_phase) = node_op
-                        .op
-                        .definition(node_op.params_view())
-                        .unwrap()
-                        .global_phase()
-                        .clone()
-                    else {
-                        unreachable!()
-                    };
-                    total_phase += new_phase
-=======
                         match node_op_name {
                             "t" => Ok((FRAC_PI_4, z_phase_shift("p", FRAC_PI_4))),
                             "s" => Ok((FRAC_PI_2, z_phase_shift("p", FRAC_PI_2))),
@@ -287,7 +264,6 @@ pub fn cancel_commutations(
                     }?;
                     total_angle += node_angle;
                     total_phase += phase_shift;
->>>>>>> 106492115 (Fix global phase handling in `CommutativeCancellation` (#14956))
                 }
 
                 let new_op = match cancel_key.gate {
