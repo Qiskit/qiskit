@@ -112,7 +112,7 @@ impl Pauli {
     /// returning `Ok(None)` for it.  All other letters outside the alphabet return the complete
     /// error condition.
     #[inline]
-    fn try_from_u8(value: u8) -> Result<Option<Self>, PauliFromU8Error> {
+    pub fn try_from_u8(value: u8) -> Result<Option<Self>, PauliFromU8Error> {
         match value {
             b'I' => Ok(None),
             b'X' => Ok(Some(Pauli::X)),
@@ -163,6 +163,8 @@ impl ::std::convert::TryFrom<u8> for Pauli {
 /// failures on entry to Rust from Python space will automatically raise `TypeError`.
 #[derive(Error, Debug)]
 pub enum CoherenceError {
+    #[error("`phases` ({phases}) must be the same length as `qubit_sparse_pauli_list` ({qspl})")]
+    MismatchedPhaseCount { phases: usize, qspl: usize },
     #[error("`rates` ({rates}) must be the same length as `qubit_sparse_pauli_list` ({qspl})")]
     MismatchedTermCount { rates: usize, qspl: usize },
     #[error("`paulis` ({paulis}) and `indices` ({indices}) must be the same length")]
@@ -227,6 +229,200 @@ pub struct QubitSparsePauliList {
     /// `indices` that correspond to the first term of the sum.  All unspecified qubit indices are
     /// implicitly the identity.
     boundaries: Vec<usize>,
+}
+
+/// Interfaces for a struct containing a list of qubit sparse Paulis
+pub trait QubitSparsePauliListLike {
+    fn pauli_list(&self) -> &QubitSparsePauliList;
+    fn pauli_list_mut(&mut self) -> &mut QubitSparsePauliList;
+
+    /// Get the number of qubits the paulis are defined on.
+    #[inline]
+    fn num_qubits(&self) -> u32 {
+        self.pauli_list().num_qubits()
+    }
+
+    /// Get the number of elements in the list.
+    #[inline]
+    fn num_terms(&self) -> usize {
+        self.pauli_list().boundaries().len() - 1
+    }
+
+    /// Get the indices of each [Pauli].
+    #[inline]
+    fn indices(&self) -> &[u32] {
+        &self.pauli_list().indices()
+    }
+
+    /// Get the boundaries of each term.
+    #[inline]
+    fn boundaries(&self) -> &[usize] {
+        &self.pauli_list().boundaries()
+    }
+
+    /// Get the [Pauli]s in the list.
+    #[inline]
+    fn paulis(&self) -> &[Pauli] {
+        &self.pauli_list().paulis()
+    }
+
+    /// Drop every Pauli on the given `indices`, effectively replacing them with an identity.
+    ///
+    /// Ignores all the indices that are larger than `self.num_qubits`.
+    fn drop_paulis(&self, indices: HashSet<u32>) -> Result<Self, CoherenceError> where Self: Sized;
+
+    /// Apply a transpiler layout.
+    fn apply_layout(&self, layout: Option<&[u32]>, num_qubits: u32) -> Result<Self, CoherenceError> where Self: Sized;
+
+    /// Drop qubits corresponding to the given `indices`.
+    ///
+    /// It ignores all the indices that are larger than `self.num_qubits`.
+    fn drop_qubits(&self, indices: HashSet<u32>) -> Result<Self, CoherenceError> where Self: Sized;
+}
+
+///Implementation of QubitSparsePauliListLike for QubitSparsePauliList
+impl QubitSparsePauliListLike for QubitSparsePauliList {
+
+    fn pauli_list(&self) -> &QubitSparsePauliList {
+        &self
+    }
+
+    fn pauli_list_mut(&mut self) -> &mut QubitSparsePauliList {
+        self
+    }
+
+    /// Get the number of qubits the paulis are defined on.
+    #[inline]
+    fn num_qubits(&self) -> u32 {
+        self.num_qubits
+    }
+
+    /// Get the number of elements in the list.
+    #[inline]
+    fn num_terms(&self) -> usize {
+        self.boundaries.len() - 1
+    }
+
+    /// Get the indices of each [Pauli].
+    #[inline]
+    fn indices(&self) -> &[u32] {
+        &self.indices
+    }
+
+    /// Get the boundaries of each term.
+    #[inline]
+    fn boundaries(&self) -> &[usize] {
+        &self.boundaries
+    }
+
+    /// Get the [Pauli]s in the list.
+    #[inline]
+    fn paulis(&self) -> &[Pauli] {
+        &self.paulis
+    }
+
+    /// Drop every Pauli on the given `indices`, effectively replacing them with an identity.
+    ///
+    /// It ignores all the indices that are larger than `self.num_qubits`.
+    fn drop_paulis(&self, indices: HashSet<u32>) -> Result<Self, CoherenceError> {
+        let mut new_paulis: Vec<Pauli> = Vec::with_capacity(self.paulis().len());
+        let mut new_indices: Vec<u32> = Vec::with_capacity(self.indices().len());
+        let mut new_boundaries: Vec<usize> = Vec::with_capacity(self.boundaries().len());
+
+        new_boundaries.push(0);
+        let mut boundaries_idx = 1;
+        let mut current_boundary = self.boundaries()[boundaries_idx];
+
+        let mut num_dropped_paulis = 0;
+        for (i, (&pauli, &index)) in self.paulis().iter().zip(self.indices().iter()).enumerate() {
+            if current_boundary == i {
+                new_boundaries.push(current_boundary - num_dropped_paulis);
+
+                boundaries_idx += 1;
+                current_boundary = self.boundaries()[boundaries_idx]
+            }
+
+            if indices.contains(&index) {
+                num_dropped_paulis += 1;
+            } else {
+                new_indices.push(index);
+                new_paulis.push(pauli);
+            }
+        }
+        new_boundaries.push(current_boundary - num_dropped_paulis);
+
+        Self::new(self.num_qubits(), new_paulis, new_indices, new_boundaries)
+    }
+
+    /// Drop qubits corresponding to the given `indices`.
+    ///
+    /// It ignores all the indices that are larger than `self.num_qubits`.
+    fn drop_qubits(&self, indices: HashSet<u32>) -> Result<Self, CoherenceError> {
+        let mut new_paulis: Vec<Pauli> = Vec::with_capacity(self.paulis().len());
+        let mut new_indices: Vec<u32> = Vec::with_capacity(self.indices().len());
+        let mut new_boundaries: Vec<usize> = Vec::with_capacity(self.boundaries().len());
+
+        new_boundaries.push(0);
+        let mut boundaries_idx = 1;
+        let mut current_boundary = self.boundaries()[boundaries_idx];
+
+        let mut num_dropped_paulis = 0;
+        for (i, (&pauli, &index)) in self.paulis().iter().zip(self.indices().iter()).enumerate() {
+            if current_boundary == i {
+                new_boundaries.push(current_boundary - num_dropped_paulis);
+
+                boundaries_idx += 1;
+                current_boundary = self.boundaries()[boundaries_idx]
+            }
+
+            if indices.contains(&index) {
+                num_dropped_paulis += 1;
+            } else {
+                new_indices.push(index - (indices.iter().filter(|&&x| x < index).count() as u32));
+                new_paulis.push(pauli);
+            }
+        }
+        new_boundaries.push(current_boundary - num_dropped_paulis);
+
+        let new_num_qubits = self.num_qubits() - (indices.len() as u32);
+        Self::new(new_num_qubits, new_paulis, new_indices, new_boundaries)
+    }
+
+    /// Apply a transpiler layout.
+    fn apply_layout(
+        &self,
+        layout: Option<&[u32]>,
+        num_qubits: u32,
+    ) -> Result<Self, CoherenceError> {
+        match layout {
+            None => {
+                let mut out = self.clone();
+                if num_qubits < self.num_qubits {
+                    return Err(CoherenceError::NotEnoughQubits {
+                        current: self.num_qubits as usize,
+                        target: num_qubits as usize,
+                    });
+                }
+                out.num_qubits = num_qubits;
+                Ok(out)
+            }
+            Some(layout) => {
+                if layout.len() < self.num_qubits as usize {
+                    return Err(CoherenceError::IndexMapTooSmall);
+                }
+                if layout.iter().any(|qubit| *qubit >= num_qubits) {
+                    return Err(CoherenceError::BitIndexTooHigh);
+                }
+                if layout.iter().collect::<HashSet<_>>().len() != layout.len() {
+                    return Err(CoherenceError::DuplicateIndices);
+                }
+                let mut out = self.clone();
+                out.num_qubits = num_qubits;
+                out.relabel_qubits_from_slice(layout)?;
+                Ok(out)
+            }
+        }
+    }
 }
 
 impl QubitSparsePauliList {
@@ -330,36 +526,6 @@ impl QubitSparsePauliList {
                 indices: &self.indices[start..end],
             }
         })
-    }
-
-    /// Get the number of qubits the paulis are defined on.
-    #[inline]
-    pub fn num_qubits(&self) -> u32 {
-        self.num_qubits
-    }
-
-    /// Get the number of elements in the list.
-    #[inline]
-    pub fn num_terms(&self) -> usize {
-        self.boundaries.len() - 1
-    }
-
-    /// Get the indices of each [Pauli].
-    #[inline]
-    pub fn indices(&self) -> &[u32] {
-        &self.indices
-    }
-
-    /// Get the boundaries of each term.
-    #[inline]
-    pub fn boundaries(&self) -> &[usize] {
-        &self.boundaries
-    }
-
-    /// Get the [Pauli]s in the list.
-    #[inline]
-    pub fn paulis(&self) -> &[Pauli] {
-        &self.paulis
     }
 
     /// Create a [QubitSparsePauliList] representing the empty list on ``num_qubits`` qubits.
@@ -478,42 +644,6 @@ impl QubitSparsePauliList {
         }
         Ok(())
     }
-
-    /// Apply a transpiler layout.
-    pub fn apply_layout(
-        &self,
-        layout: Option<&[u32]>,
-        num_qubits: u32,
-    ) -> Result<Self, CoherenceError> {
-        match layout {
-            None => {
-                let mut out = self.clone();
-                if num_qubits < self.num_qubits {
-                    return Err(CoherenceError::NotEnoughQubits {
-                        current: self.num_qubits as usize,
-                        target: num_qubits as usize,
-                    });
-                }
-                out.num_qubits = num_qubits;
-                Ok(out)
-            }
-            Some(layout) => {
-                if layout.len() < self.num_qubits as usize {
-                    return Err(CoherenceError::IndexMapTooSmall);
-                }
-                if layout.iter().any(|qubit| *qubit >= num_qubits) {
-                    return Err(CoherenceError::BitIndexTooHigh);
-                }
-                if layout.iter().collect::<HashSet<_>>().len() != layout.len() {
-                    return Err(CoherenceError::DuplicateIndices);
-                }
-                let mut out = self.clone();
-                out.num_qubits = num_qubits;
-                out.relabel_qubits_from_slice(layout)?;
-                Ok(out)
-            }
-        }
-    }
 }
 
 type RawParts = (Vec<Pauli>, Vec<u32>, Vec<usize>);
@@ -579,6 +709,14 @@ impl QubitSparsePauliView<'_> {
         }
     }
 
+    pub fn num_ys(self) -> isize {
+        let mut num_ys = 0;
+        for pauli in self.paulis {
+            num_ys += (*pauli == Pauli::Y) as isize;
+        }
+        num_ys
+    }
+
     pub fn to_sparse_str(self) -> String {
         let paulis = self
             .indices
@@ -625,6 +763,34 @@ impl QubitSparsePauli {
             num_qubits,
             paulis,
             indices,
+        })
+    }
+
+    pub fn from_dense_label(label: &str) -> Result<QubitSparsePauli, LabelError> {
+        let label: &[u8] = label.as_ref();
+        let num_qubits = label.len() as u32;
+        let mut paulis = Vec::new();
+        let mut indices = Vec::new();
+        // The only valid characters in the alphabet are ASCII, so if we see something other than
+        // ASCII, we're already in the failure path.
+        for (i, letter) in label.iter().rev().enumerate() {
+            match Pauli::try_from_u8(*letter) {
+                Ok(Some(term)) => {
+                    paulis.push(term);
+                    indices.push(i as u32);
+                }
+                Ok(None) => (),
+                Err(_) => {
+                    return Err(LabelError::OutsideAlphabet);
+                }
+            }
+        }
+        Ok(unsafe {
+            QubitSparsePauli::new_unchecked(
+                num_qubits,
+                paulis.into_boxed_slice(),
+                indices.into_boxed_slice(),
+            )
         })
     }
 
@@ -1070,9 +1236,9 @@ impl<'py> FromPyObject<'py> for Pauli {
 ///                                 string label and the qubits they apply to.
 ///
 ///   :meth:`from_pauli`            Raise a single :class:`~.quantum_info.Pauli` into a
-///                                 single-element :class:`.QubitSparsePauli`.
+///                                 :class:`.QubitSparsePauli`.
 ///
-///   :meth:`from_raw_parts`        Build the list from :ref:`the raw data arrays
+///   :meth:`from_raw_parts`        Build the operator from :ref:`the raw data arrays
 ///                                 <qubit-sparse-pauli-arrays>`.
 ///   ============================  ================================================================
 ///
@@ -1223,29 +1389,7 @@ impl PyQubitSparsePauli {
     #[staticmethod]
     #[pyo3(signature = (label, /))]
     fn from_label(label: &str) -> PyResult<Self> {
-        let label: &[u8] = label.as_ref();
-        let num_qubits = label.len() as u32;
-        let mut paulis = Vec::new();
-        let mut indices = Vec::new();
-        // The only valid characters in the alphabet are ASCII, so if we see something other than
-        // ASCII, we're already in the failure path.
-        for (i, letter) in label.iter().rev().enumerate() {
-            match Pauli::try_from_u8(*letter) {
-                Ok(Some(term)) => {
-                    paulis.push(term);
-                    indices.push(i as u32);
-                }
-                Ok(None) => (),
-                Err(_) => {
-                    return Err(PyErr::from(LabelError::OutsideAlphabet));
-                }
-            }
-        }
-        let inner = QubitSparsePauli::new(
-            num_qubits,
-            paulis.into_boxed_slice(),
-            indices.into_boxed_slice(),
-        )?;
+        let inner = QubitSparsePauli::from_dense_label(label)?;
         Ok(inner.into())
     }
 
@@ -1267,7 +1411,7 @@ impl PyQubitSparsePauli {
     ///         >>> assert QubitSparsePauli.from_label(label) == QubitSparsePauli.from_pauli(pauli)
     #[staticmethod]
     #[pyo3(signature = (pauli, /))]
-    fn from_pauli(pauli: &Bound<PyAny>) -> PyResult<Self> {
+    pub fn from_pauli(pauli: &Bound<PyAny>) -> PyResult<Self> {
         let py = pauli.py();
         let num_qubits = pauli.getattr(intern!(py, "num_qubits"))?.extract::<u32>()?;
         let z = pauli
@@ -1515,7 +1659,7 @@ impl PyQubitSparsePauli {
     // :class:`QubitSparsePauliList`.
     #[allow(non_snake_case)]
     #[classattr]
-    fn Pauli(py: Python) -> PyResult<Py<PyType>> {
+    pub fn Pauli(py: Python) -> PyResult<Py<PyType>> {
         PAULI_PY_ENUM
             .get_or_try_init(py, || make_py_pauli(py))
             .map(|obj| obj.clone_ref(py))
@@ -1614,6 +1758,9 @@ pub struct PyQubitSparsePauliList {
     // This class keeps a pointer to a pure Rust-SparseTerm and serves as interface from Python.
     pub inner: Arc<RwLock<QubitSparsePauliList>>,
 }
+
+impl_py_qspl_methods!(PyQubitSparsePauliList);
+
 #[pymethods]
 impl PyQubitSparsePauliList {
     #[pyo3(signature = (data, /, num_qubits=None))]
@@ -1697,20 +1844,13 @@ impl PyQubitSparsePauliList {
     ///
     /// This is not inferable from any other shape or values, since identities are not stored
     /// explicitly.
-    #[getter]
-    #[inline]
-    pub fn num_qubits(&self) -> PyResult<u32> {
-        let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        Ok(inner.num_qubits())
-    }
+    //#[getter]
+    //#[inline]
+    //pub fn num_qubits(&self) -> PyResult<u32> {
+    //    let inner = self.inner.read().map_err(|_| InnerReadError)?;
+    //    Ok(inner.num_qubits())
+    //}
 
-    /// The number of elements in the list.
-    #[getter]
-    #[inline]
-    pub fn num_terms(&self) -> PyResult<usize> {
-        let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        Ok(inner.num_terms())
-    }
 
     /// Get the empty list for a given number of qubits.
     ///
@@ -2074,7 +2214,7 @@ impl PyQubitSparsePauliList {
         };
 
         // Normalize the number of qubits in the layout and the layout itself, depending on the
-        // input types, before calling PauliLindbladMap.apply_layout to do the actual work.
+        // input types, before calling QubitSparsePauliList.apply_layout to do the actual work.
         let (num_qubits, layout): (u32, Option<Vec<u32>>) = if layout.is_none() {
             (num_qubits.unwrap_or(inner.num_qubits()), None)
         } else if layout.is_instance(

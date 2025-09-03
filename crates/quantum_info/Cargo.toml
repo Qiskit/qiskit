@@ -44,7 +44,7 @@ features = ["rayon"]
 
 [dependencies.pyo3]
 workspace = true
-features = ["hashbrown", "indexmap", "num-complex", "num-bigint", "smallvec"]
+features = ["hashbrown", "indexmap", "num-complex", "num-bigint", "smallvec", "multiple-pymethods"]
 
 [lints]
 workspace = true
