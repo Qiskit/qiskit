@@ -183,12 +183,15 @@ def write_mapping(file_obj, mapping, serializer, **kwargs):
         file_obj.write(datum_bytes)
 
 
-def write_type_key(file_obj, type_key):
+def write_type_key(file_obj, type_key) -> int:
     """Write a type key in the file like object.
 
     Args:
         file_obj (File): A file like object that contains the QPY binary data.
         type_key (bytes): Type key to write.
+
+    Returns:
+        int: The number of bytes written.
     """
     return file_obj.write(struct.pack("!1c", type_key))
 
