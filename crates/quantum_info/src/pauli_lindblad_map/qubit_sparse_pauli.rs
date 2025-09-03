@@ -12,7 +12,8 @@
 
 use hashbrown::HashSet;
 
-use numpy::{PyArray1, PyArrayMethods, PyReadonlyArray1};
+use ndarray::Array2;
+use numpy::{IntoPyArray, PyArray1, PyArray2, PyArrayMethods, PyReadonlyArray1};
 use pyo3::{
     exceptions::{PyRuntimeError, PyTypeError, PyValueError},
     intern,
@@ -23,6 +24,7 @@ use pyo3::{
 };
 use std::{
     collections::btree_map,
+    iter::zip,
     sync::{Arc, RwLock},
 };
 use thiserror::Error;
@@ -2027,6 +2029,30 @@ impl PyQubitSparsePauliList {
             out.append(to_py_tuple(view)?)?;
         }
         Ok(out.unbind())
+    }
+
+    /// Express the list in a dense array format.
+    ///
+    /// Each entry is a u8 following the :class:`Pauli` representation, while the rows index
+    /// distinct Paulis and the columns distinct qubits.
+    ///
+    /// Examples:
+    ///
+    ///         >>> paulis = QubitSparsePauliList.from_sparse_list(
+    ///         ...     [("ZX", (1, 4)), ("YY", (0, 3)), ("XX", (0, 1))],
+    ///         ...     num_qubits=5,
+    ///         ... )
+    ///         >>> paulis.to_dense_array()
+    #[pyo3(signature = ())]
+    fn to_dense_array(&self, py: Python) -> PyResult<Py<PyArray2<u8>>> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let mut out = Array2::zeros((inner.num_terms(), inner.num_qubits.try_into().unwrap()));
+        for (idx, paulis) in inner.iter().enumerate() {
+            for (p, p_idx) in zip(paulis.paulis, paulis.indices) {
+                out[[idx, *p_idx as usize]] = *p as u8;
+            }
+        }
+        Ok(out.into_pyarray(py).unbind())
     }
 
     /// Apply a transpiler layout to this qubit sparse Pauli list.

@@ -496,7 +496,7 @@ pub unsafe extern "C" fn qk_obs_indices(obs: *mut SparseObservable) -> *mut u32 
 ///    qk_obs_add_term(obs, &term);
 ///
 ///    size_t num_terms = qk_obs_num_terms(obs);
-///    uintptr_t *boundaries = qk_obs_boundaries(obs);
+///    size_t *boundaries = qk_obs_boundaries(obs);
 ///
 ///    for (size_t i = 0; i < num_terms + 1; i++) {
 ///        printf("boundary %i: %i\n", i, boundaries[i]);

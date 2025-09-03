@@ -1,0 +1,7 @@
+---
+features_c:
+  - |
+    Added a new transpiler pass standalone function to the C API,
+    :cpp:func:`qk_transpiler_pass_standalone_inverse_cancellation`
+    which is equivalent to calling the :class:`.InverseCancellation`
+    pass with ``gates_to_cancel=None``.

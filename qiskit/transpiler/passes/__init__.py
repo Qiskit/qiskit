@@ -80,6 +80,7 @@ Optimizations
    ElidePermutations
    HoareOptimizer
    InverseCancellation
+   LitinskiTransformation
    Optimize1qGates
    Optimize1qGatesDecomposition
    Optimize1qGatesSimpleCommutation
@@ -172,6 +173,7 @@ Additional Passes
    RemoveBarriers
    RemoveFinalMeasurements
    UnrollForLoops
+   WrapAngles
 """
 
 # layout selection (placement)
@@ -218,6 +220,7 @@ from .optimization import ContractIdleWiresInControlFlow
 from .optimization import ElidePermutations
 from .optimization import HoareOptimizer
 from .optimization import InverseCancellation
+from .optimization import LitinskiTransformation
 from .optimization import Optimize1qGates
 from .optimization import Optimize1qGatesDecomposition
 from .optimization import Optimize1qGatesSimpleCommutation
@@ -273,6 +276,7 @@ from .utils import ContainsInstruction
 from .utils import DAGFixedPoint
 from .utils import Error
 from .utils import FilterOpNodes
+from .utils import WrapAngles
 from .utils import FixedPoint
 from .utils import GateDirection
 from .utils import GatesInBasis
