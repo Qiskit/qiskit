@@ -14,7 +14,7 @@
 use std::sync::OnceLock;
 
 use pyo3::prelude::*;
-use pyo3::types::PyType;
+use pyo3::types::{PyDict, PyType};
 
 use ndarray::Array2;
 use num_complex::Complex64;
@@ -24,8 +24,8 @@ use crate::circuit_data::CircuitData;
 use crate::imports::{get_std_gate_class, BARRIER, DELAY, MEASURE, RESET, UNITARY_GATE};
 use crate::interner::Interned;
 use crate::operations::{
-    Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
-    StandardInstruction, UnitaryGate,
+    Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, PythonOperation,
+    StandardGate, StandardInstruction, UnitaryGate,
 };
 use crate::{Clbit, Qubit};
 
@@ -766,5 +766,25 @@ impl PackedInstruction {
             }
             _ => Ok(false),
         }
+    }
+
+    pub fn py_deepcopy_inplace<'py>(
+        &mut self,
+        py: Python<'py>,
+        memo: Option<&Bound<'py, PyDict>>,
+    ) -> PyResult<()> {
+        match self.op.view() {
+            OperationRef::Gate(gate) => self.op = gate.py_deepcopy(py, memo)?.into(),
+            OperationRef::Instruction(inst) => self.op = inst.py_deepcopy(py, memo)?.into(),
+            OperationRef::Operation(op) => self.op = op.py_deepcopy(py, memo)?.into(),
+            _ => (),
+        };
+        for param in self.params_mut() {
+            *param = param.py_deepcopy(py, memo)?;
+        }
+        #[cfg(feature = "cache_pygates")]
+        self.py_op.take();
+
+        Ok(())
     }
 }

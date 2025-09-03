@@ -965,6 +965,45 @@ class QuantumCircuit:
     .. automethod:: qubit_start_time
     .. automethod:: qubit_stop_time
 
+
+    .. _circuit-abstract-physical:
+
+    Abstract and physical circuits
+    ==============================
+
+    Circuits are a fairly low-level abstraction of quantum algorithms.  However, even within this,
+    there are distinctions. Quantum programmers often want to use a wide arrange of gates and
+    instructions, and work in a regime where all qubits and interact with all others.  Quantum
+    hardware, however, typically has a restrictive set of native gates, and only certain pairs of
+    hardware qubits can interact.  We term these two regimes "abstract circuits" and "physical
+    circuits", respectively.
+
+    Qiskit has two ways of distinguishing a circuit that is intended to be physical.  This is a
+    fuzzy check, for historical reasons; originally, Qiskit never made the distinction at all (which
+    is why :func:`.transpile` is called that, and not called ``compile``!).  The most explicit way
+    is through the :attr:`layout` attribute of circuits; if this is set, the circuit is certainly
+    intended to be physical.  The older, more implicit, way is the metadata of the :class:`.Qubit`
+    objects and :class:`.QuantumRegister` instances in the circuit.  A circuit can only be
+    considered (as judged by several transpiler passes) as physical if it contains exactly one
+    quantum register, which is called ``q`` and owns all the circuit qubits in index order.  Again
+    for historical reasons, this is the default for the ``QuantumCircuit(int [, int])`` form of the
+    default constructor.
+
+    Normally, you create a :class:`QuantumCircuit` and build it in the abstract sense (regardless of
+    the qubit metadata).  You then call :func:`.transpile` to compile the circuit into a
+    hardware-supported circuit.  However, in cases where you want to write a hardware efficient
+    circuit from the beginning, you can short-circuit the full compilation infrastructure using the
+    :meth:`ensure_physical` method.  This will ensure that, no matter how you defined the initial
+    qubit metadata, all requirements for the circuit to be considered physical will be satisfied,
+    with the qubit indices mapped to the hardware qubits.
+
+    For more complete control over choosing a virtual-to-physical mapping and routing, see :ref:`the
+    layout <transpiler-preset-stage-layout>` and `routing <transpiler-preset-stage-routing>` stages
+    of the preset compilation pipelines.
+
+    .. automethod:: ensure_physical
+
+
     Instruction-like methods
     ========================
 
@@ -1607,6 +1646,82 @@ class QuantumCircuit:
         elif isinstance(register, ClassicalRegister) and register in self.cregs:
             has_reg = True
         return has_reg
+
+    def ensure_physical(self, num_qubits: int | None = None, *, apply_layout: bool = True) -> bool:
+        """Put this circuit into canonical physical form, with the given number of qubits, if it is
+        not already.
+
+        Several Qiskit transpiler passes only make sense when applied to circuits defined in terms
+        of physical qubits.  If you have manually constructed a circuit where the qubit indices
+        correspond to physical qubits, use this function to ensure that the metadata of the circuit
+        matches the canonical physical form.  This means replacing the qubit data with a single
+        owning register called ``"q"``, and (optionally) setting the :attr:`layout` field of the
+        circuit to link these physical qubits with the original virtual ones.
+
+        If the circuit does not already have a layout, this method (with ``apply_layout=True``) is
+        equivalent to applying the full :ref:`trivial layout method
+        <transpiler-preset-stage-layout-trivial>` of the preset compilation pipeline.
+
+        If the circuit is already canonically physical, nothing happens to it.  This method cannot
+        change the number of qubits in the circuit if it already has a :attr:`layout` set.
+
+        Args:
+            num_qubits: if given, expand the circuit with ancillas up to this size.  The ancillas
+                will always be the highest qubit indices of the circuit.  If not given (the
+                default), the circuit stays the same width.  This option cannot be set if the
+                circuit already as a :attr:`layout`.
+            apply_layout: if true (the default), set the :attr:`layout` attribute of the circuit
+                appropriately so that the circuit appears to have been laid out with the "trivial"
+                layout, including ancilla expansion, for a backend of width ``num_qubits``.  This
+                has no effect if the circuit already had a :attr:`layout`.
+
+        Returns:
+            whether the circuit was modified in order to make it physical.
+
+        Raises:
+            ValueError: if ``num_qubits`` is too small for the circuit.
+            CircuitError: if ``num_qubits`` is set to attempt to expand the circuit, but the circuit
+                already has a layout set.
+        """
+        from qiskit.transpiler import Layout, TranspileLayout  # pylint: disable=cyclic-import
+
+        original_num_qubits = self.num_qubits
+        if num_qubits is not None and num_qubits < original_num_qubits:
+            raise ValueError(
+                f"cannot have fewer physical qubits ({num_qubits})"
+                f" than virtual ({original_num_qubits})"
+            )
+        if self._layout is not None:
+            if num_qubits is not None and num_qubits != original_num_qubits:
+                raise CircuitError("cannot expand a circuit that already has a set layout")
+            expected = QuantumRegister(original_num_qubits, "q")
+            if self.qubits != list(expected) or self.qregs != [expected]:  # pragma: no cover
+                # This is mostly defensive; we _shouldn't_ get a circuit in this form, but it's
+                # possible for a badly formed transpiler pass to do it by accident.
+                raise CircuitError(
+                    "This circuit has a set layout, but its qubits are not in the canonical"
+                    " physical form.  This might indicate a faulty layout transpilation stage has"
+                    " been used."
+                )
+            return False
+
+        if apply_layout:
+            virtuals = self.qubits.copy()
+            if num_qubits is not None:
+                virtuals.extend(QuantumRegister(num_qubits - original_num_qubits, "ancilla"))
+            initial_layout = Layout(dict(enumerate(virtuals)))
+        else:
+            initial_layout = None
+        self._data.make_physical(num_qubits)
+        if initial_layout is not None:
+            self._layout = TranspileLayout(
+                initial_layout=initial_layout,
+                input_qubit_mapping=initial_layout.get_virtual_bits().copy(),
+                final_layout=None,
+                _input_qubit_count=original_num_qubits,
+                _output_qubit_list=self.qubits.copy(),
+            )
+        return True
 
     def reverse_ops(self) -> "QuantumCircuit":
         """Reverse the circuit by reversing the order of instructions.
@@ -3420,7 +3535,14 @@ class QuantumCircuit:
         return var
 
     def add_register(self, *regs: Register | int | Sequence[Bit]) -> None:
-        """Add registers."""
+        """Add registers.
+
+        .. warning::
+
+            If the quantum circuit has an existing :attr:`layout` attribute, adding a
+            :class:`.QuantumRegister` will only increase the number of qubits. It will
+            not update the layout.
+        """
         if not regs:
             return
 
@@ -3462,6 +3584,11 @@ class QuantumCircuit:
                         self._ancillas.append(bit)
 
             if isinstance(register, QuantumRegister):
+                if getattr(self, "layout", None) is not None:
+                    warnings.warn(
+                        "Trying to add QuantumRegister to a QuantumCircuit having a layout",
+                        stacklevel=2,
+                    )
                 self._data.add_qreg(register)
 
             elif isinstance(register, ClassicalRegister):
@@ -3473,7 +3600,14 @@ class QuantumCircuit:
                 raise CircuitError("expected a register")
 
     def add_bits(self, bits: Iterable[Bit]) -> None:
-        """Add Bits to the circuit."""
+        """Add Bits to the circuit.
+
+        .. warning::
+
+            If the quantum circuit has an existing :attr:`layout` attribute,
+            adding a :class:`.Qubit` will only increase the number of qubits.
+            It will not update the layout.
+        """
         duplicate_bits = {
             bit for bit in bits if bit in self._qubit_indices or bit in self._clbit_indices
         }
@@ -3484,6 +3618,11 @@ class QuantumCircuit:
             if isinstance(bit, AncillaQubit):
                 self._ancillas.append(bit)
             if isinstance(bit, Qubit):
+                if getattr(self, "layout", None) is not None:
+                    warnings.warn(
+                        "Trying to add bits to a QuantumCircuit having a layout",
+                        stacklevel=2,
+                    )
                 self._data.add_qubit(bit)
             elif isinstance(bit, Clbit):
                 self._data.add_clbit(bit)
