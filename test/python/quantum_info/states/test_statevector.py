@@ -87,11 +87,11 @@ class TestStatevector(QiskitTestCase):
     def test_from_circuit_with_input_state(self):
         """Test from_circuit with custom input state."""
         qc = QuantumCircuit(2)
-        qc.x(0)
+        qc.x(1)  # Flip qubit 1 instead of qubit 0
 
-        input_state = Statevector.from_label("01")
+        input_state = Statevector.from_label("01")  # |01⟩
         sv = Statevector.from_circuit(qc, input_state=input_state)
-        expected = Statevector.from_label("11")
+        expected = Statevector.from_label("11")  # |11⟩
 
         self.assertTrue(sv.equiv(expected))
 

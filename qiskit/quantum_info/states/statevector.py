@@ -126,7 +126,7 @@ class Statevector(QuantumState, TolerancesMixin):
             Statevector: The statevector representing the circuit evolution
         """
 
-        from ..operators.operator import Operator
+        # from ..operators.operator import Operator
 
         # Get the operator representation of the circuit
         op = Operator.from_circuit(circuit)
