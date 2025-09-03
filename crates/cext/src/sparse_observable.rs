@@ -863,7 +863,7 @@ pub unsafe extern "C" fn qk_str_free(string: *mut c_char) {
             panic!("Attempted to free a non-aligned pointer.")
         }
         // SAFETY: Per docstring the pointer is obtained by Qiskit functions, which are
-        // returning strings from CString::new or CString::into_raw.
+        // returning strings from CString::into_raw.
         unsafe {
             let _ = CString::from_raw(string);
         }
