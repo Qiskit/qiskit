@@ -1029,7 +1029,7 @@ impl PyPhasedQubitSparsePauliList {
                     label.len(),
                 )));
             }
-            return Self::from_label(&label).map_err(PyErr::from);
+            return Self::from_label(&label);
         }
         if let Ok(pauli_list) = data.downcast_exact::<Self>() {
             check_num_qubits(data)?;
