@@ -319,16 +319,17 @@ fn generate_twirled_circuit(
                         .iter()
                         .map(|x| Ok(Param::Obj(x.clone().into_py_any(py)?)))
                         .collect::<PyResult<SmallVec<[Param; 3]>>>()?;
-                    let mut new_inst = PackedInstruction::new(new_inst, inst.qubits, inst.clbits)
-                        .with_params(params);
-                    if let Some(label) = inst.label() {
-                        new_inst = new_inst.with_label(label.to_string());
-                    }
+                    let new_inst = PackedInstruction::new(new_inst, inst.qubits, inst.clbits)
+                        .with_params(Some(params))
+                        .with_label(inst.label().map(|label| label.to_string()));
                     #[cfg(feature = "cache_pygates")]
                     {
-                        new_inst = new_inst.with_py_cache(new_inst_obj);
+                        out_circ.push(new_inst.with_py_cache(new_inst_obj))?;
                     }
-                    out_circ.push(new_inst)?;
+                    #[cfg(not(feature = "cache_pygates"))]
+                    {
+                        out_circ.push(new_inst)?;
+                    }
                 } else {
                     out_circ.push(inst.clone())?;
                 }

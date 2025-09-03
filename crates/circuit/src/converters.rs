@@ -85,13 +85,9 @@ pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<Circu
                     OperationRef::StandardInstruction(instruction) => instruction.into(),
                     OperationRef::Unitary(unitary) => unitary.clone().into(),
                 };
-                let mut packed = PackedInstruction::new(op, instr.qubits, instr.clbits);
-                if let Some(params) = instr.params_raw() {
-                    packed = packed.with_params(params.clone());
-                }
-                if let Some(label) = instr.label() {
-                    packed = packed.with_label(label.to_string());
-                }
+                let packed = PackedInstruction::new(op, instr.qubits, instr.clbits)
+                    .with_params(instr.params_raw().cloned())
+                    .with_label(instr.label().map(|label| label.to_string()));
                 Ok(packed)
             } else {
                 Ok(instr.clone())

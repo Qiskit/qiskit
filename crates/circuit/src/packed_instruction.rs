@@ -671,8 +671,8 @@ impl PackedInstruction {
 
     /// Consumes the origal instance and returns another [PackedInstruction] with new parameters.
     #[inline]
-    pub fn with_params(mut self, params: SmallVec<[Param; 3]>) -> Self {
-        self.params = (!params.is_empty()).then_some(Box::new(params));
+    pub fn with_params(mut self, params: Option<SmallVec<[Param; 3]>>) -> Self {
+        self.params = params.filter(|list| !list.is_empty()).map(Box::new);
         #[cfg(feature = "cache_pygates")]
         self.py_op.take();
         self
@@ -680,8 +680,8 @@ impl PackedInstruction {
 
     /// Consumes the origal instance and returns another [PackedInstruction] with a new label.
     #[inline]
-    pub fn with_label(mut self, label: String) -> Self {
-        self.label = Some(Box::new(label));
+    pub fn with_label(mut self, label: Option<String>) -> Self {
+        self.label = label.map(Box::new);
         #[cfg(feature = "cache_pygates")]
         self.py_op.take();
         self

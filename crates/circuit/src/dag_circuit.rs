@@ -1466,15 +1466,11 @@ impl DAGCircuit {
                     .map_objects(cargs.into_iter().flatten())?
                     .collect(),
             );
-            let mut instr = PackedInstruction::new(py_op.operation, qubits_id, clbits_id)
-                .with_params(py_op.params);
-            if let Some(label) = py_op.label.as_deref() {
-                instr = instr.with_label(label.clone());
-            }
+            let instr = PackedInstruction::new(py_op.operation, qubits_id, clbits_id)
+                .with_params(Some(py_op.params))
+                .with_label(py_op.label.map(|label| *label));
             #[cfg(feature = "cache_pygates")]
-            {
-                instr = instr.with_py_cache(op.unbind().into());
-            }
+            let instr = instr.with_py_cache(op.unbind().into());
             if check {
                 self.check_op_addition(&instr)?;
             }
@@ -1527,15 +1523,11 @@ impl DAGCircuit {
                     .map_objects(cargs.into_iter().flatten())?
                     .collect(),
             );
-            let mut instr = PackedInstruction::new(py_op.operation, qubits_id, clbits_id)
-                .with_params(py_op.params);
-            if let Some(label) = py_op.label.as_deref() {
-                instr = instr.with_label(label.clone());
-            }
+            let instr = PackedInstruction::new(py_op.operation, qubits_id, clbits_id)
+                .with_params(Some(py_op.params))
+                .with_label(py_op.label.map(|label| *label));
             #[cfg(feature = "cache_pygates")]
-            {
-                instr = instr.with_py_cache(op.unbind().into());
-            }
+            let instr = instr.with_py_cache(op.unbind().into());
 
             if check {
                 self.check_op_addition(&instr)?;
@@ -5593,17 +5585,14 @@ impl DAGCircuit {
             Ok(())
         })?;
 
+        #[allow(unused_mut)]
         let mut packed_instruction = PackedInstruction::new(
             op,
             self.qargs_interner.insert(qargs),
             self.cargs_interner.insert(cargs),
-        );
-        if let Some(params) = params {
-            packed_instruction = packed_instruction.with_params(params);
-        }
-        if let Some(label) = label {
-            packed_instruction = packed_instruction.with_label(label);
-        }
+        )
+        .with_params(params)
+        .with_label(label);
         #[cfg(feature = "cache_pygates")]
         {
             if let Some(py_op) = py_op {
@@ -6017,19 +6006,22 @@ impl DAGCircuit {
                     )?
                     .collect(),
             );
-            let mut inst =
+            let inst =
                 PackedInstruction::new(op_node.instruction.operation.clone(), qubits, clbits)
-                    .with_params(op_node.instruction.params.clone());
-            if let Some(label) = op_node.instruction.label.as_deref() {
-                inst = inst.with_label(label.clone());
-            }
+                    .with_params(Some(op_node.instruction.params.clone()))
+                    .with_label(op_node.instruction.label.as_deref().cloned());
             #[cfg(feature = "cache_pygates")]
             {
                 if let Some(py_op) = op_node.instruction.py_op.get() {
-                    inst = inst.with_py_cache(py_op.clone());
+                    NodeType::Operation(inst.with_py_cache(py_op.clone()))
+                } else {
+                    NodeType::Operation(inst)
                 }
             }
-            NodeType::Operation(inst)
+            #[cfg(not(feature = "cache_pygates"))]
+            {
+                NodeType::Operation(inst)
+            }
         } else {
             return Err(PyTypeError::new_err("Invalid type for DAGNode"));
         })
@@ -6299,19 +6291,18 @@ impl DAGCircuit {
                         .into();
                         let params = new_inst.params_raw().cloned();
                         let label = new_inst.label().map(|label| label.to_string());
-                        let mut temp_inst =
-                            PackedInstruction::new(op, new_inst.qubits, new_inst.clbits);
-                        if let Some(params) = params {
-                            temp_inst = temp_inst.with_params(params);
-                        }
-                        if let Some(label) = label {
-                            temp_inst = temp_inst.with_label(label);
-                        }
+                        let temp_inst =
+                            PackedInstruction::new(op, new_inst.qubits, new_inst.clbits)
+                                .with_params(params)
+                                .with_label(label);
                         #[cfg(feature = "cache_pygates")]
                         {
-                            temp_inst = temp_inst.with_py_cache(new_op.unbind());
+                            *new_inst = temp_inst.with_py_cache(new_op.unbind());
                         }
-                        *new_inst = temp_inst;
+                        #[cfg(not(feature = "cache_pygates"))]
+                        {
+                            *new_inst = temp_inst;
+                        }
                     }
 
                     Ok(())
@@ -6840,7 +6831,8 @@ impl DAGCircuit {
         let inst = if let NodeType::Operation(old_node) = old_node {
             let mut packed = PackedInstruction::new(new_gate.0, old_node.qubits, old_node.clbits);
             if !new_gate.1.is_empty() {
-                packed = packed.with_params(new_gate.1.iter().map(|x| Param::Float(*x)).collect());
+                packed =
+                    packed.with_params(Some(new_gate.1.iter().map(|x| Param::Float(*x)).collect()));
             }
             packed
         } else {
@@ -6921,7 +6913,7 @@ impl DAGCircuit {
                 self.qargs_interner.insert_owned(qubits),
                 self.cargs_interner.get_default(),
             )
-            .with_params(params);
+            .with_params(Some(params));
             let new_index = self.dag.add_node(NodeType::Operation(inst));
             self.dag.add_edge(source, new_index, weight);
             self.dag.add_edge(new_index, target, weight);
@@ -7200,7 +7192,7 @@ impl DAGCircuit {
         new_dag.clbit_locations = qc_data.clbit_indices().clone();
 
         new_dag.try_extend(qc_data.iter().map(|instr| -> PyResult<PackedInstruction> {
-            let mut inst = PackedInstruction::new(
+            let inst = PackedInstruction::new(
                 if copy_op {
                     match instr.op().view() {
                         OperationRef::Gate(gate) => {
@@ -7221,13 +7213,9 @@ impl DAGCircuit {
                 },
                 qarg_map[instr.qubits],
                 carg_map[instr.clbits],
-            );
-            if let Some(params) = instr.params_raw() {
-                inst = inst.with_params(params.clone());
-            }
-            if let Some(label) = instr.label() {
-                inst = inst.with_label(label.to_string());
-            }
+            )
+            .with_params(instr.params_raw().cloned())
+            .with_label(instr.label().map(|label| label.to_string()));
             Ok(inst)
         }))?;
         Ok(new_dag)
@@ -7317,12 +7305,10 @@ impl DAGCircuit {
         let op_name = op.name().to_string();
         let qubits = self.qargs_interner.insert_owned(block_qargs);
         let clbits = self.cargs_interner.insert_owned(block_cargs);
-        let mut inst = PackedInstruction::new(op, qubits, clbits).with_params(params);
-        if let Some(label) = label {
-            inst = inst.with_label(label.to_string());
-        }
+        let inst = PackedInstruction::new(op, qubits, clbits)
+            .with_params(Some(params))
+            .with_label(label.map(|label| label.to_string()));
         let weight = NodeType::Operation(inst);
-
         let new_node = self
             .dag
             .contract_nodes(block_ids.iter().copied(), weight, cycle_check)
@@ -7582,7 +7568,7 @@ impl DAGCircuit {
                             }
                             Ok(py_op.unbind())
                         })?;
-                        let mut instr = PackedInstruction::new(
+                        PackedInstruction::new(
                             PyInstruction {
                                 qubits: op.qubits,
                                 clbits: op.clbits,
@@ -7593,33 +7579,13 @@ impl DAGCircuit {
                             },
                             self.qargs_interner.insert_owned(mapped_qargs),
                             self.cargs_interner.insert_owned(mapped_cargs),
-                        );
-                        if let Some(params) = inst.params_raw() {
-                            instr = instr.with_params(params.clone());
-                        }
-                        if let Some(label) = inst.label() {
-                            instr = instr.with_label(label.to_string());
-                        }
-                        instr
+                        )
+                        .with_params(inst.params_raw().cloned())
+                        .with_label(inst.label().map(|label| label.to_string()))
                     } else {
-                        let mut instr = PackedInstruction::new(
-                            inst.op().clone(),
-                            self.qargs_interner.insert_owned(mapped_qargs),
-                            self.cargs_interner.insert_owned(mapped_cargs),
-                        );
-                        if let Some(params) = inst.params_raw() {
-                            instr = instr.with_params(params.clone());
-                        }
-                        if let Some(label) = inst.label() {
-                            instr = instr.with_label(label.to_string());
-                        }
-
-                        #[cfg(feature = "cache_pygates")]
-                        {
-                            if let Some(py_op) = inst.py_op().get() {
-                                instr = instr.with_py_cache(py_op.clone());
-                            }
-                        }
+                        let mut instr = inst.clone();
+                        instr.qubits = self.qargs_interner.insert_owned(mapped_qargs);
+                        instr.clbits = self.cargs_interner.insert_owned(mapped_cargs);
                         instr
                     };
                     self.push_back(instr)?;
@@ -7657,11 +7623,9 @@ impl DAGCircuit {
         }
         let new_op_name = new_op.name().to_string();
 
-        let mut inst = PackedInstruction::new(new_op, old_packed.qubits, old_packed.clbits)
-            .with_params(params);
-        if let Some(label) = label {
-            inst = inst.with_label(label.to_string());
-        }
+        let inst = PackedInstruction::new(new_op, old_packed.qubits, old_packed.clbits)
+            .with_params(Some(params))
+            .with_label(label.map(|label| label.to_string()));
         let new_weight = NodeType::Operation(inst);
         if let Some(weight) = self.dag.node_weight_mut(node_index) {
             *weight = new_weight;
@@ -7725,16 +7689,12 @@ impl DAGCircuit {
             )));
         }
         let new_op_name = new_op.operation.name().to_string();
-        let mut inst =
-            PackedInstruction::new(new_op.operation, old_packed.qubits, old_packed.clbits)
-                .with_params(new_op.params);
-        if let Some(label) = label {
-            inst = inst.with_label(label.to_string());
-        }
+        let inst = PackedInstruction::new(new_op.operation, old_packed.qubits, old_packed.clbits)
+            .with_params(Some(new_op.params))
+            .with_label(label.map(|label| label.to_string()));
         #[cfg(feature = "cache_pygates")]
-        {
-            inst = inst.with_py_cache(py_op_cache);
-        }
+        let new_weight = NodeType::Operation(inst.with_py_cache(py_op_cache));
+        #[cfg(not(feature = "cache_pygates"))]
         let new_weight = NodeType::Operation(inst);
         if let Some(weight) = self.dag.node_weight_mut(node_index) {
             *weight = new_weight;
@@ -7958,18 +7918,13 @@ impl DAGCircuitBuilder {
         } else {
             self.dag.cargs_interner.get_default()
         };
-        let mut packed = PackedInstruction::new(op, qubits, clbits);
-        if let Some(params) = params {
-            packed = packed.with_params(params);
-        }
-        if let Some(label) = label {
-            packed = packed.with_label(label);
-        }
-
+        let packed = PackedInstruction::new(op, qubits, clbits)
+            .with_params(params)
+            .with_label(label);
         #[cfg(feature = "cache_pygates")]
         {
             if let Some(py_op) = py_op {
-                packed = packed.with_py_cache(py_op);
+                return packed.with_py_cache(py_op);
             }
         }
         packed

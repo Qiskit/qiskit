@@ -257,20 +257,21 @@ impl RoutingResult<'_> {
                             .bind(py)
                             .call_method1("replace_blocks", (blocks,))?;
                         let op: OperationFromPython = new_node.extract()?;
-                        let mut inst = PackedInstruction::new(
+                        let inst = PackedInstruction::new(
                             op.operation,
                             dag.insert_qargs(&qargs),
                             inst.clbits,
                         )
-                        .with_params(op.params);
-                        if let Some(label) = op.label {
-                            inst = inst.with_label(*label);
-                        }
+                        .with_params(Some(op.params))
+                        .with_label(op.label.map(|label| *label));
                         #[cfg(feature = "cache_pygates")]
                         {
-                            inst = inst.with_py_cache(new_node.unbind());
+                            Ok(inst.with_py_cache(new_node.unbind()));
                         }
-                        Ok(inst)
+                        #[cfg(not(feature = "cache_pygates"))]
+                        {
+                            Ok(inst)
+                        }
                     })?;
                     dag.push_back(new_inst)?
                 }

@@ -717,13 +717,9 @@ impl CircuitData {
                     OperationRef::StandardInstruction(instruction) => instruction.into(),
                     OperationRef::Unitary(unitary) => unitary.clone().into(),
                 };
-                let mut new_packed = PackedInstruction::new(new_op, inst.qubits, inst.clbits);
-                if let Some(params) = inst.params_raw() {
-                    new_packed = new_packed.with_params(params.clone());
-                }
-                if let Some(label) = inst.label() {
-                    new_packed = new_packed.with_label(label.to_string());
-                }
+                let new_packed = PackedInstruction::new(new_op, inst.qubits, inst.clbits)
+                    .with_params(inst.params_raw().cloned())
+                    .with_label(inst.label().map(|label| label.to_string()));
                 res.data.push(new_packed);
             }
         } else if copy_instructions {
@@ -736,13 +732,9 @@ impl CircuitData {
                     OperationRef::StandardInstruction(instruction) => instruction.into(),
                     OperationRef::Unitary(unitary) => unitary.clone().into(),
                 };
-                let mut new_packed = PackedInstruction::new(new_op, inst.qubits, inst.clbits);
-                if let Some(params) = inst.params_raw() {
-                    new_packed = new_packed.with_params(params.clone());
-                }
-                if let Some(label) = inst.label() {
-                    new_packed = new_packed.with_label(label.to_string());
-                }
+                let new_packed = PackedInstruction::new(new_op, inst.qubits, inst.clbits)
+                    .with_params(inst.params_raw().cloned())
+                    .with_label(inst.label().map(|label| label.to_string()));
                 res.data.push(new_packed);
             }
         } else {
@@ -905,16 +897,18 @@ impl CircuitData {
             let py_op = func.call1((inst.unpack_py_op(py)?,))?;
             let result = py_op.extract::<OperationFromPython>()?;
 
-            let mut temp_inst = PackedInstruction::new(result.operation, inst.qubits, inst.clbits)
-                .with_params(result.params);
-            if let Some(label) = result.label {
-                temp_inst = temp_inst.with_label(*label);
-            };
+            let temp_inst = PackedInstruction::new(result.operation, inst.qubits, inst.clbits)
+                .with_params(Some(result.params))
+                .with_label(result.label.map(|label| *label));
+
             #[cfg(feature = "cache_pygates")]
             {
-                temp_inst = temp_inst.with_py_cache(py_op.unbind().into());
+                *inst = temp_inst.with_py_cache(py_op.unbind().into());
             }
-            *inst = temp_inst;
+            #[cfg(not(feature = "cache_pygates"))]
+            {
+                *inst = temp_inst;
+            }
         }
         Ok(())
     }
@@ -1210,21 +1204,21 @@ impl CircuitData {
                 let new_index = self.data.len();
                 let qubits_id = self.qargs_interner.insert_owned(qubits);
                 let clbits_id = self.cargs_interner.insert_owned(clbits);
-                let mut packed_inst =
-                    PackedInstruction::new(inst.op().clone(), qubits_id, clbits_id);
-                if let Some(params) = inst.params_raw().cloned() {
-                    packed_inst = packed_inst.with_params(params);
-                }
-                if let Some(label) = inst.label().map(|label| label.to_string()) {
-                    packed_inst = packed_inst.with_label(label);
-                }
+                let packed_inst = PackedInstruction::new(inst.op().clone(), qubits_id, clbits_id)
+                    .with_params(inst.params_raw().cloned())
+                    .with_label(inst.label().map(|label| label.to_string()));
                 #[cfg(feature = "cache_pygates")]
                 {
                     if let Some(py_op) = inst.py_op().get() {
-                        packed_inst = packed_inst.with_py_cache(py_op.clone());
+                        self.data.push(packed_inst.with_py_cache(py_op.clone()));
+                    } else {
+                        self.data.push(packed_inst);
                     }
                 }
-                self.data.push(packed_inst);
+                #[cfg(not(feature = "cache_pygates"))]
+                {
+                    self.data.push(packed_inst);
+                }
                 self.track_instruction_parameters(new_index)?;
             }
             return Ok(());
@@ -1839,7 +1833,7 @@ impl CircuitData {
             let qubits = res.qargs_interner.insert_owned(qargs);
             let clbits = res.cargs_interner.insert_owned(cargs);
             res.data
-                .push(PackedInstruction::new(operation, qubits, clbits).with_params(params));
+                .push(PackedInstruction::new(operation, qubits, clbits).with_params(Some(params)));
             res.track_instruction_parameters(res.data.len() - 1)?;
         }
         Ok(res)
@@ -2058,10 +2052,8 @@ impl CircuitData {
     ) -> PyResult<()> {
         let qubits = self.qargs_interner.insert(qargs);
         let clbits = self.cargs_interner.insert(cargs);
-        let mut packed = PackedInstruction::new(operation, qubits, clbits);
-        if !params.is_empty() {
-            packed = packed.with_params(params.iter().cloned().collect());
-        }
+        let packed = PackedInstruction::new(operation, qubits, clbits)
+            .with_params(Some(params.iter().cloned().collect()));
         self.push(packed)
     }
 
@@ -2154,15 +2146,13 @@ impl CircuitData {
                 .map_objects(inst.clbits.extract::<Vec<ShareableClbit>>(py)?.into_iter())?
                 .collect(),
         );
-        let mut packed_inst = PackedInstruction::new(inst.operation.clone(), qubits, clbits)
-            .with_params(inst.params.clone());
-        if let Some(label) = inst.label.as_deref() {
-            packed_inst = packed_inst.with_label(label.clone())
-        }
+        let packed_inst = PackedInstruction::new(inst.operation.clone(), qubits, clbits)
+            .with_params(Some(inst.params.clone()))
+            .with_label(inst.label.as_deref().cloned());
         #[cfg(feature = "cache_pygates")]
         {
             if let Some(py_op) = inst.py_op.get() {
-                packed_inst = packed_inst.with_py_cache(py_op.clone())
+                return Ok(packed_inst.with_py_cache(py_op.clone()));
             }
         }
         Ok(packed_inst)
@@ -2469,20 +2459,21 @@ impl CircuitData {
                                 op.getattr(intern!(py, "params"))?
                                     .set_item(parameter, new_param)?;
                                 let new_op = op.extract::<OperationFromPython>()?;
-                                let mut new_inst = PackedInstruction::new(
+                                let new_inst = PackedInstruction::new(
                                     new_op.operation,
                                     previous.qubits,
                                     previous.clbits,
                                 )
-                                .with_params(new_op.params);
-                                if let Some(label) = new_op.label {
-                                    new_inst = new_inst.with_label(*label);
-                                }
+                                .with_params(Some(new_op.params))
+                                .with_label(new_op.label.map(|label| *label));
                                 #[cfg(feature = "cache_pygates")]
                                 {
-                                    new_inst = new_inst.with_py_cache(op.unbind());
+                                    *previous = new_inst.with_py_cache(op.unbind());
                                 }
-                                *previous = new_inst;
+                                #[cfg(not(feature = "cache_pygates"))]
+                                {
+                                    *previous = new_inst;
+                                }
                                 for uuid in uuids.iter() {
                                     self.param_table.add_use(*uuid, usage)?
                                 }

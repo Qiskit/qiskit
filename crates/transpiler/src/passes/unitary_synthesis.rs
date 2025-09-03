@@ -340,15 +340,13 @@ pub fn run_unitary_synthesis(
                     .call_method1("replace_blocks", (new_blocks,))?;
                 new_node.extract()
             })?;
-            let mut temp_instr = PackedInstruction::new(
+            let temp_instr = PackedInstruction::new(
                 new_node_op.operation,
                 packed_instr.qubits,
                 packed_instr.clbits,
             )
-            .with_params(new_node_op.params);
-            if let Some(label) = new_node_op.label {
-                temp_instr = temp_instr.with_label(*label);
-            }
+            .with_params(Some(new_node_op.params))
+            .with_label(new_node_op.label.map(|label| *label));
             packed_instr = temp_instr;
         }
         if !(synth_gates.contains(packed_instr.op().name())

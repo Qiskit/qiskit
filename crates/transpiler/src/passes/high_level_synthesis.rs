@@ -610,14 +610,10 @@ fn run_on_circuitdata(
                     .call_method1(intern!(py, "replace_blocks"), (new_blocks_py,))?;
 
                 let synthesized_op: OperationFromPython = replaced_blocks.extract()?;
-                let mut packed_instruction =
-                    PackedInstruction::new(synthesized_op.operation, inst.qubits, inst.clbits);
-                if let Some(params) = inst.params_raw() {
-                    packed_instruction = packed_instruction.with_params(params.clone());
-                }
-                if let Some(label) = inst.label() {
-                    packed_instruction = packed_instruction.with_label(label.to_string());
-                }
+                let packed_instruction =
+                    PackedInstruction::new(synthesized_op.operation, inst.qubits, inst.clbits)
+                        .with_params(inst.params_raw().cloned())
+                        .with_label(inst.label().map(|label| label.to_string()));
                 output_circuit.push(packed_instruction)?;
                 tracker.set_dirty(&op_qubits);
                 continue;
