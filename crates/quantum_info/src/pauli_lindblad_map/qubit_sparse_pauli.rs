@@ -29,12 +29,10 @@ use std::{
 };
 use thiserror::Error;
 
-use qiskit_circuit::{
-    imports::ImportOnceCell,
-    slice::{PySequenceIndex, SequenceIndex},
-};
+use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 
-static PAULI_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "Pauli");
+use crate::imports;
+
 static PAULI_PY_ENUM: GILOnceCell<Py<PyType>> = GILOnceCell::new();
 static PAULI_INTO_PY: GILOnceCell<[Option<Py<PyAny>>; 16]> = GILOnceCell::new();
 
@@ -1194,7 +1192,7 @@ impl PyQubitSparsePauli {
                 "explicitly given 'num_qubits' ({num_qubits}) does not match operator ({other_qubits})"
             )))
         };
-        if data.is_instance(PAULI_TYPE.get_bound(py))? {
+        if data.is_instance(imports::PAULI_TYPE.get_bound(py))? {
             check_num_qubits(data)?;
             return Self::from_pauli(data);
         }
@@ -1518,10 +1516,9 @@ impl PyQubitSparsePauli {
 
     /// Return a :class:`~.quantum_info.Pauli` representing the same phaseless Pauli.
     fn to_pauli<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        let quantum_info_module = py.import("qiskit.quantum_info")?;
-        let py_pauli = quantum_info_module.getattr("Pauli")?;
-        let pauli = py_pauli.call1((self.inner.to_dense_label(),))?;
-        pauli.extract()
+        imports::PAULI_TYPE
+            .get_bound(py)
+            .call1((self.inner.to_dense_label(),))
     }
 
     /// Get a copy of this term.
@@ -1691,7 +1688,7 @@ impl PyQubitSparsePauliList {
                 "explicitly given 'num_qubits' ({num_qubits}) does not match operator ({other_qubits})"
             )))
         };
-        if data.is_instance(PAULI_TYPE.get_bound(py))? {
+        if data.is_instance(imports::PAULI_TYPE.get_bound(py))? {
             check_num_qubits(data)?;
             return Self::from_pauli(data);
         }
@@ -2100,11 +2097,10 @@ impl PyQubitSparsePauliList {
 
     /// Return a :class:`~.quantum_info.PauliList` representing the same phaseless list of Paulis.
     fn to_pauli_list<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        let quantum_info_module = py.import("qiskit.quantum_info")?;
-        let py_pauli_list = quantum_info_module.getattr("PauliList")?;
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        let pauli_list = py_pauli_list.call1((inner.to_dense_label_list(),))?;
-        pauli_list.extract()
+        imports::PAULI_LIST_TYPE
+            .get_bound(py)
+            .call1((inner.to_dense_label_list(),))
     }
 
     /// Apply a transpiler layout to this qubit sparse Pauli list.

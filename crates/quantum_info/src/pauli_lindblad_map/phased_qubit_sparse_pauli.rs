@@ -23,18 +23,14 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use qiskit_circuit::{
-    imports::ImportOnceCell,
-    slice::{PySequenceIndex, SequenceIndex},
-};
+use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 
 use super::qubit_sparse_pauli::{
     raw_parts_from_sparse_list, ArithmeticError, CoherenceError, InnerReadError, InnerWriteError,
     LabelError, Pauli, PyQubitSparsePauli, QubitSparsePauli, QubitSparsePauliList,
     QubitSparsePauliView,
 };
-
-static PAULI_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "Pauli");
+use crate::imports;
 
 /// A list of Pauli operators stored in a qubit-sparse format.
 ///
@@ -491,7 +487,7 @@ impl PyPhasedQubitSparsePauli {
                 "explicitly given 'num_qubits' ({num_qubits}) does not match operator ({other_qubits})"
             )))
         };
-        if data.is_instance(PAULI_TYPE.get_bound(py))? {
+        if data.is_instance(imports::PAULI_TYPE.get_bound(py))? {
             check_num_qubits(data)?;
             return Self::from_pauli(data);
         }
@@ -854,14 +850,14 @@ impl PyPhasedQubitSparsePauli {
 
     /// Return a :class:`~.quantum_info.Pauli` representing the same Pauli.
     fn to_pauli<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        let quantum_info_module = py.import("qiskit.quantum_info")?;
-        let py_pauli = quantum_info_module.getattr("Pauli")?;
-        let pauli = py_pauli.call1((self.inner.qubit_sparse_pauli.to_dense_label(),))?;
+        let pauli = imports::PAULI_TYPE
+            .get_bound(py)
+            .call1((self.inner.qubit_sparse_pauli.to_dense_label(),))?;
         pauli.setattr(
             "phase",
             self.inner.phase - self.inner.qubit_sparse_pauli.view().num_ys(),
         )?;
-        pauli.extract()
+        Ok(pauli)
     }
 
     /// Get a copy of this term.
@@ -1028,7 +1024,7 @@ impl PyPhasedQubitSparsePauliList {
                 "explicitly given 'num_qubits' ({num_qubits}) does not match operator ({other_qubits})"
             )))
         };
-        if data.is_instance(PAULI_TYPE.get_bound(py))? {
+        if data.is_instance(imports::PAULI_TYPE.get_bound(py))? {
             check_num_qubits(data)?;
             return Self::from_pauli(data);
         }
@@ -1424,25 +1420,18 @@ impl PyPhasedQubitSparsePauliList {
 
     /// Return a :class:`~.quantum_info.PauliList` representing the same list of Paulis.
     fn to_pauli_list<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        let quantum_info_module = py.import("qiskit.quantum_info")?;
-        let py_pauli_list = quantum_info_module.getattr("PauliList")?;
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        let pauli_list =
-            py_pauli_list.call1((inner.qubit_sparse_pauli_list.to_dense_label_list(),))?;
+        let pauli_list = imports::PAULI_LIST_TYPE
+            .get_bound(py)
+            .call1((inner.qubit_sparse_pauli_list.to_dense_label_list(),))?;
 
         let mut phases = Vec::with_capacity(inner.num_terms());
-        for phased_qubit_sparse_pauli_view in inner.iter() {
-            phases.push(
-                phased_qubit_sparse_pauli_view.phase
-                    - phased_qubit_sparse_pauli_view
-                        .qubit_sparse_pauli_view
-                        .num_ys(),
-            );
+        for view in inner.iter() {
+            let ys = view.qubit_sparse_pauli_view.num_ys();
+            phases.push(*view.phase - ys);
         }
-
         pauli_list.setattr("phase", phases)?;
-
-        pauli_list.extract()
+        Ok(pauli_list)
     }
 
     /// Apply a transpiler layout to this phased qubit sparse Pauli list.
