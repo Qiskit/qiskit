@@ -212,10 +212,48 @@ cleanup:
     return result;
 }
 
+int test_transpile_options_null(void) {
+    const uint32_t n = 10;
+    QkTarget *target = qk_target_new(n);
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_SX));
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_X));
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_RZ));
+
+    QkCircuit *circuit = qk_circuit_new(3, 0);
+    for (uint32_t i = 0; i < 3; i++) {
+        qk_circuit_gate(circuit, QkGate_H, (uint32_t[1]){i}, NULL);
+    }
+
+    QkTranspileResult transpile_result = {NULL, NULL};
+    QkExitCode exit = qk_transpile(circuit, target, NULL, &transpile_result, NULL);
+
+    int result = Ok;
+    if (exit != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+
+    // H gets translated to RZ-SX-RZ on each qubit
+    size_t num_inst = qk_circuit_num_instructions(transpile_result.circuit);
+    if (num_inst != 9) {
+        result = EqualityError;
+        printf("Expected 9 instruction, but got %zu\n", num_inst);
+    }
+
+cleanup:
+    qk_target_free(target);
+    qk_circuit_free(circuit);
+    qk_circuit_free(transpile_result.circuit);
+    qk_transpile_layout_free(transpile_result.layout);
+
+    return result;
+}
+
 int test_transpiler(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_transpile_bv);
     num_failed += RUN_TEST(test_transpile_idle_qubits);
+    num_failed += RUN_TEST(test_transpile_options_null);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
