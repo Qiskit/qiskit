@@ -546,10 +546,6 @@ impl Operation for PackedOperation {
         self.view().definition(params)
     }
     #[inline]
-    fn standard_gate(&self) -> Option<StandardGate> {
-        self.view().standard_gate()
-    }
-    #[inline]
     fn directive(&self) -> bool {
         self.view().directive()
     }
