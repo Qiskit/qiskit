@@ -54,7 +54,7 @@ int test_check_gate_direction(void) {
         goto cleanup;
     }
 
-    bool check_pass = qk_transpiler_pass_standalone_check_gate_direction(circuit, target);
+    bool check_pass = qk_transpiler_passes_check_gate_direction_circuit(circuit, target);
     if (!check_pass)
         result = EqualityError;
     else {
@@ -63,7 +63,7 @@ int test_check_gate_direction(void) {
                    "test_check_gate_direction.");
             goto cleanup;
         }
-        check_pass = qk_transpiler_pass_standalone_check_gate_direction(circuit, target);
+        check_pass = qk_transpiler_passes_check_gate_direction_circuit(circuit, target);
         if (check_pass)
             result = EqualityError;
     }
@@ -98,7 +98,7 @@ int test_gate_direction(void) {
         goto cleanup;
     }
 
-    qk_transpiler_pass_standalone_gate_direction(circuit, target);
+    qk_transpiler_passes_gate_direction_circuit(circuit, target);
 
     if (qk_circuit_num_instructions(circuit) != 12) {
         result = EqualityError;

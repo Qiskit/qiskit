@@ -2,7 +2,7 @@
 features_c:
   - |
     Added a new standalone transpiler pass function
-    ``qk_transpiler_pass_standalone_elide_permutations`` which is for running the
+    ``qk_transpiler_passes_elide_permutations_circuit`` which is for running the
     :class:`.ElidePermutations` transpiler pass. Calling this function in C is equivalent
     to running the pass in Python like::
 

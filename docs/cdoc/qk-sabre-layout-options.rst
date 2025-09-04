@@ -2,7 +2,7 @@
 QkSabreLayoutOptions
 ====================
 
-When running the ``qk_transpiler_pass_standalone_sabre_layout`` function this type defines the options for running the pass.
+When running the ``qk_transpiler_passes_sabre_layout_circuit`` function this type defines the options for running the pass.
 
 Data Types
 ==========

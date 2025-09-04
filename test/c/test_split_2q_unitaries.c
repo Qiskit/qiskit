@@ -27,7 +27,7 @@ int test_split_2q_unitaries_no_unitaries(void) {
         }
     }
     QkTranspileLayout *split_result =
-        qk_transpiler_pass_standalone_split_2q_unitaries(qc, 1 - 1e-16, true);
+        qk_transpiler_passes_split_2q_unitaries_circuit(qc, 1 - 1e-16, true);
     int result = Ok;
     if (split_result != NULL) {
         result = EqualityError;
@@ -67,7 +67,7 @@ int test_split_2q_unitaries_x_y_unitary(void) {
     uint32_t qargs[2] = {0, 1};
     qk_circuit_unitary(qc, unitary, qargs, 2, true);
     QkTranspileLayout *split_result =
-        qk_transpiler_pass_standalone_split_2q_unitaries(qc, 1 - 1e-16, true);
+        qk_transpiler_passes_split_2q_unitaries_circuit(qc, 1 - 1e-16, true);
     int result = Ok;
     if (split_result != NULL) {
         result = EqualityError;
@@ -124,7 +124,7 @@ int test_split_2q_unitaries_swap_x_y_unitary(void) {
     uint32_t qargs[2] = {0, 1};
     qk_circuit_unitary(qc, unitary, qargs, 2, true);
     QkTranspileLayout *split_result =
-        qk_transpiler_pass_standalone_split_2q_unitaries(qc, 1 - 1e-16, true);
+        qk_transpiler_passes_split_2q_unitaries_circuit(qc, 1 - 1e-16, true);
     int result = Ok;
     if (split_result == NULL) {
         result = EqualityError;

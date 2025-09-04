@@ -30,7 +30,7 @@ use qiskit_transpiler::passes::run_remove_diagonal_before_measure;
 ///     QkCircuit *qc = qk_circuit_new(1, 1);
 ///     qk_circuit_gate(qc, QkGate_Z, {0}, NULL);
 ///     qk_circuit_measure(qc, 0, 0);
-///     qk_transpiler_pass_standalone_remove_diagonal_gates_before_measure(qc);
+///     qk_transpiler_passes_remove_diagonal_gates_before_measure_circuit(qc);
 ///     // ...
 ///     qk_circuit_free(qc);
 /// ```
@@ -40,7 +40,7 @@ use qiskit_transpiler::passes::run_remove_diagonal_before_measure;
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_transpiler_pass_standalone_remove_diagonal_gates_before_measure(
+pub unsafe extern "C" fn qk_transpiler_passes_remove_diagonal_gates_before_measure_circuit(
     circuit: *mut CircuitData,
 ) {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
