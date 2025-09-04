@@ -800,7 +800,7 @@ int test_apply_layout_too_small(void) {
     int err = qk_obs_apply_layout(obs, layout, 3000);
     qk_obs_free(obs);
 
-    return err == QkExitCode_MismatchedQubits ? Ok : EqualityError;
+    return err == QkExitCode_IndexError ? Ok : EqualityError;
 }
 
 int test_sparse_observable(void) {
@@ -829,6 +829,7 @@ int test_sparse_observable(void) {
     num_failed += RUN_TEST(test_obs_str);
     num_failed += RUN_TEST(test_obsterm_str);
     num_failed += RUN_TEST(test_apply_layout);
+    num_failed += RUN_TEST(test_apply_layout_too_small);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
