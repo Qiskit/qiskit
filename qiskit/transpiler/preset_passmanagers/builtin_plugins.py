@@ -92,6 +92,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     pass_manager_config.unitary_synthesis_plugin_config,
                     pass_manager_config.hls_config,
                     pass_manager_config.qubits_initially_zero,
+                    pass_manager_config._is_clifford_t,
                 )
         elif optimization_level == 1:
             init = PassManager()
@@ -111,6 +112,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     pass_manager_config.unitary_synthesis_plugin_config,
                     pass_manager_config.hls_config,
                     pass_manager_config.qubits_initially_zero,
+                    pass_manager_config._is_clifford_t,
                 )
             init.append(
                 [
@@ -128,6 +130,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 pass_manager_config.unitary_synthesis_plugin_config,
                 pass_manager_config.hls_config,
                 pass_manager_config.qubits_initially_zero,
+                pass_manager_config._is_clifford_t,
             )
             if pass_manager_config.routing_method != "none":
                 init.append(ElidePermutations())
