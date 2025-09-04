@@ -495,12 +495,17 @@ Multiplier Synthesis
       - :class:`.MultiplierSynthesisR17`
       - 0
       - a QFT-based multiplier
+    * - ``"default"``
+      - :class:`~.MultiplierSynthesisDefault`
+      - any
+      - chooses the best algorithm based on the ancillas available
 
 .. autosummary::
    :toctree: ../stubs/
 
    MultiplierSynthesisH18
    MultiplierSynthesisR17
+   MultiplierSynthesisDefault
 
 """
 
@@ -595,6 +600,7 @@ from qiskit.quantum_info.operators import Clifford
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.circuit._add_control import EFFICIENTLY_CONTROLLED_GATES
+from qiskit.transpiler.optimization_metric import OptimizationMetric
 
 from qiskit._accelerate.high_level_synthesis import synthesize_operation, HighLevelSynthesisData
 from .plugin import HighLevelSynthesisPlugin
@@ -1477,6 +1483,16 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
 
     This plugin name is :``mcx.default`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+
+    The plugin supports the following plugin-specific options:
+
+    * ``optimization_metric``: The optimization metric, indicating the property
+      of the output circuit (e.g., the 2-qubit gate count or the T-count) that should
+      be minimized. See :class:`.OptimizationMetric`.
+    * ``num_clean_ancillas``: The number of clean ancillary qubits available.
+    * ``num_dirty_ancillas``: The number of dirty ancillary qubits available.
+
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
@@ -1489,32 +1505,51 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
             # their definition as it should.
             return None
 
-        # Iteratively run other synthesis methods available
-        # (note that all of these methods require at least one auxiliary qubit)
-        for synthesis_method in [
-            MCXSynthesis2CleanKG24,
-            MCXSynthesis1CleanKG24,
-            MCXSynthesisNCleanM15,
-            MCXSynthesisNDirtyI15,
-            MCXSynthesis2DirtyKG24,
-            MCXSynthesis1DirtyKG24,
-            MCXSynthesis1CleanB95,
-        ]:
+        metric = options.get("optimization_metric", OptimizationMetric.COUNT_2Q)
+        if metric == OptimizationMetric.COUNT_T:
+            # The order is optimized towards Clifford+T -friendly synthesis methods.
+            # In particular, we run 2DirtyKG24 and 1DirtyKG24 before NCleanM15 and NDirtyI15.
+            methods = [
+                MCXSynthesis2CleanKG24,
+                MCXSynthesis1CleanKG24,
+                MCXSynthesis2DirtyKG24,
+                MCXSynthesis1DirtyKG24,
+                MCXSynthesis1CleanB95,
+                MCXSynthesisNCleanM15,
+                MCXSynthesisNDirtyI15,
+                (
+                    MCXSynthesisNoAuxV24
+                    if high_level_object.num_ctrl_qubits <= 5
+                    else MCXSynthesisNoAuxHP24
+                ),
+            ]
+        else:
+            # The order is optimized towards CX-count -friendly synthesis methods.
+            # In particular, we run NCleanM15 and NDirtyI15 before 2DirtyKG24 and 1DirtyKG24.
+            methods = [
+                MCXSynthesis2CleanKG24,
+                MCXSynthesis1CleanKG24,
+                MCXSynthesisNCleanM15,
+                MCXSynthesisNDirtyI15,
+                MCXSynthesis2DirtyKG24,
+                MCXSynthesis1DirtyKG24,
+                MCXSynthesis1CleanB95,
+                (
+                    MCXSynthesisNoAuxV24
+                    if high_level_object.num_ctrl_qubits <= 5
+                    else MCXSynthesisNoAuxHP24
+                ),
+            ]
+
+        for method in methods:
             if (
-                decomposition := synthesis_method().run(
+                decomposition := method().run(
                     high_level_object, coupling_map, target, qubits, **options
                 )
             ) is not None:
                 return decomposition
 
-        # If no synthesis method was successful, use the methods that do not
-        # require auxiliary qubits
-        no_aux_method = (
-            MCXSynthesisNoAuxV24
-            if high_level_object.num_ctrl_qubits <= 5
-            else MCXSynthesisNoAuxHP24
-        )
-        return no_aux_method().run(high_level_object, coupling_map, target, qubits, **options)
+        return None
 
 
 class MCMTSynthesisDefault(HighLevelSynthesisPlugin):
@@ -1649,12 +1684,13 @@ class ModularAdderSynthesisDefault(HighLevelSynthesisPlugin):
     This plugin name is:``ModularAdder.default`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
 
-    If at least one clean auxiliary qubit is available, the :class:`ModularAdderSynthesisC04`
-    is used, otherwise :class:`ModularAdderSynthesisD00`.
-
     The plugin supports the following plugin-specific options:
 
-    * ``num_clean_ancillas``: The number of clean auxiliary qubits available.
+    * ``optimization_metric``: The optimization metric, indicating the property
+      of the output circuit (e.g., the 2-qubit gate count or the T-count) that should
+      be minimized. See :class:`.OptimizationMetric`.
+    * ``num_clean_ancillas``: The number of clean ancillary qubits available.
+    * ``num_dirty_ancillas``: The number of dirty ancillary qubits available.
 
     """
 
@@ -1662,18 +1698,26 @@ class ModularAdderSynthesisDefault(HighLevelSynthesisPlugin):
         if not isinstance(high_level_object, ModularAdderGate):
             return None
 
-        # For up to 4 qubits, the QFT-based adder is best
-        if high_level_object.num_state_qubits <= 4:
-            decomposition = ModularAdderSynthesisD00().run(
-                high_level_object, coupling_map, target, qubits, **options
-            )
-            if decomposition is not None:
+        metric = options.get("optimization_metric", OptimizationMetric.COUNT_2Q)
+        if metric == OptimizationMetric.COUNT_2Q:
+            # The order is optimized towards CX -friendly synthesis methods.
+            methods = []
+            if 2 <= high_level_object.num_state_qubits <= 4:
+                methods.append(ModularAdderSynthesisD00)
+            methods.append(ModularAdderSynthesisV17)
+        else:
+            # The order is optimized towards Clifford+T -friendly synthesis methods.
+            methods = [ModularAdderSynthesisV17]
+
+        for method in methods:
+            if (
+                decomposition := method().run(
+                    high_level_object, coupling_map, target, qubits, **options
+                )
+            ) is not None:
                 return decomposition
 
-        # Otherwise, use V17 synthesis
-        return ModularAdderSynthesisV17().run(
-            high_level_object, coupling_map, target, qubits, **options
-        )
+        return None
 
 
 class ModularAdderSynthesisV17(HighLevelSynthesisPlugin):
@@ -1994,6 +2038,23 @@ class MultiplierSynthesisR17(HighLevelSynthesisPlugin):
         )
 
 
+class MultiplierSynthesisDefault(HighLevelSynthesisPlugin):
+    """THe default multiplier plugin.
+
+    This plugin name is:``Multiplier.default`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, MultiplierGate):
+            return None
+
+        # The H18 algorithm is better both for CX-count and T-count
+        return multiplier_cumulative_h18(
+            high_level_object.num_state_qubits, high_level_object.num_result_qubits
+        )
+
+
 class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
     """Synthesize a :class:`.PauliEvolutionGate` using the default synthesis algorithm.
 
@@ -2184,6 +2245,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
             use_physical_indices=data.use_physical_indices,
             min_qubits=0,
             unroll_definitions=data.unroll_definitions,
+            optimize_clifford_t=data.optimize_clifford_t,
         )
 
         num_ctrl = sum(mod.num_ctrl_qubits for mod in modifiers if isinstance(mod, ControlModifier))
