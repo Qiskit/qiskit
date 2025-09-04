@@ -116,8 +116,9 @@ def read_type_key(file_obj):
     Returns:
         bytes: Type key.
     """
-    key_size = struct.calcsize("!1c")
-    return struct.unpack("!1c", file_obj.read(key_size))[0]
+    return formats.TYPE_KEY._make(
+        struct.unpack(formats.TYPE_KEY_PACK, file_obj.read(formats.TYPE_KEY_SIZE))
+    ).key
 
 
 def write_generic_typed_data(file_obj, type_key, data_binary):
@@ -183,17 +184,14 @@ def write_mapping(file_obj, mapping, serializer, **kwargs):
         file_obj.write(datum_bytes)
 
 
-def write_type_key(file_obj, type_key) -> int:
+def write_type_key(file_obj, type_key):
     """Write a type key in the file like object.
 
     Args:
         file_obj (File): A file like object that contains the QPY binary data.
         type_key (bytes): Type key to write.
-
-    Returns:
-        int: The number of bytes written.
     """
-    return file_obj.write(struct.pack("!1c", type_key))
+    file_obj.write(struct.pack(formats.TYPE_KEY_PACK, type_key))
 
 
 def data_to_binary(obj, serializer, **kwargs):

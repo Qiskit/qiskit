@@ -200,8 +200,9 @@ def dump(
         len(programs),
         encoding,
     )
-    header_bytes_written = file_obj.write(header)
-    header_bytes_written += common.write_type_key(file_obj, type_keys.Program.CIRCUIT)
+    file_obj.write(header)
+    common.write_type_key(file_obj, type_keys.Program.CIRCUIT)
+    header_bytes_written = formats.FILE_HEADER_V10_SIZE + formats.TYPE_KEY_SIZE
 
     def _write_circuit(out_stream, circuit):
         binary_io.write_circuit(
