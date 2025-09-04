@@ -1145,7 +1145,7 @@ class SparsePauliOp(LinearOp):
         r"""Bind the free ``Parameter``\s in the coefficients to provided values.
 
         .. note::
-            If all the parameters int he circuit are bound to numeric values, the coefficients array
+            If all the parameters in the circuit are bound to numeric values, the coefficients array
             will be returned with a :class:`complex` dtype.
 
         Args:
