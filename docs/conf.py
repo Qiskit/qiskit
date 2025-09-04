@@ -32,7 +32,7 @@ author = "Qiskit Development Team"
 # The short X.Y version
 version = "2.2"
 # The full version, including alpha/beta/rc tags
-release = "2.2.0b1"
+release = "2.2.0rc1"
 
 language = "en"
 
