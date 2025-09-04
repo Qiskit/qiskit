@@ -240,7 +240,7 @@ from qiskit.utils import optionals as _optionals
 from .._accelerate.qasm3 import CustomGate
 from .exceptions import QASM3Error, QASM3ExporterError, QASM3ImporterError
 from .experimental import ExperimentalFeatures
-from .exporter import Exporter
+from .exporter import Exporter, DefcalInstruction
 
 if typing.TYPE_CHECKING:
     from qiskit.circuit import annotation, QuantumCircuit

@@ -15,7 +15,8 @@
 // substantially in Rustworkx.  It was then forked from Rustworkx to Qiskit from
 //
 //    https://github.com/Qiskit/rustworkx/blob/9f0646e8886cfecc55e59b96532c6f7f798524c0/src/isomorphism/vf2.rs
-#![allow(clippy::too_many_arguments)]
+//
+// It has subsequently been near-completely written within Qiskit.
 
 use std::cmp::{Ordering, Reverse};
 use std::convert::Infallible;
@@ -25,104 +26,21 @@ use std::iter::Iterator;
 use std::marker;
 use std::ops::Deref;
 
-use hashbrown::HashMap;
-use rustworkx_core::dictmap::*;
+use hashbrown::{hash_map::Entry, HashMap};
+use indexmap::IndexMap;
+use smallvec::SmallVec;
 
 use rustworkx_core::petgraph::data::{Build, Create, DataMap};
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use rustworkx_core::petgraph::visit::{
-    Data, EdgeCount, EdgeRef, GraphBase, GraphProp, IntoEdgeReferences, IntoEdges,
-    IntoEdgesDirected, IntoNeighbors, IntoNeighborsDirected, IntoNodeIdentifiers, NodeCount,
-    NodeIndexable,
+    Data, EdgeCount, EdgeRef, GraphBase, GraphProp, IntoEdgeReferences, IntoEdgesDirected,
+    IntoNeighbors, IntoNeighborsDirected, IntoNodeIdentifiers, NodeCount, NodeIndexable,
 };
-use rustworkx_core::petgraph::{Directed, Incoming, Outgoing};
+use rustworkx_core::petgraph::{Direction, Incoming, Outgoing};
 
 use rayon::slice::ParallelSliceMut;
 
-/// Returns `true` if we can map every element of `xs` to a unique
-/// element of `ys` while using `matcher` func to compare two elements.
-fn is_subset<T1: Copy, T2: Copy, F, E>(xs: &[T1], ys: &[T2], matcher: &mut F) -> Result<bool, E>
-where
-    F: FnMut(T1, T2) -> Result<bool, E>,
-{
-    let mut valid = vec![true; ys.len()];
-    for &a in xs {
-        let mut found = false;
-        for (&b, free) in ys.iter().zip(valid.iter_mut()) {
-            if *free && matcher(a, b)? {
-                found = true;
-                *free = false;
-                break;
-            }
-        }
-
-        if !found {
-            return Ok(false);
-        }
-    }
-
-    Ok(true)
-}
-
-#[inline]
-fn sorted<N: std::cmp::PartialOrd>(x: &mut (N, N)) {
-    let (a, b) = x;
-    if b < a {
-        std::mem::swap(a, b)
-    }
-}
-
-/// Returns the adjacency matrix of a graph as a dictionary
-/// with `(i, j)` entry equal to number of edges from node `i` to node `j`.
-fn adjacency_matrix<G>(graph: G) -> HashMap<(NodeIndex, NodeIndex), usize>
-where
-    G: GraphProp + GraphBase<NodeId = NodeIndex> + EdgeCount + IntoEdgeReferences,
-{
-    let mut matrix = HashMap::with_capacity(graph.edge_count());
-    for edge in graph.edge_references() {
-        let mut item = (edge.source(), edge.target());
-        if !graph.is_directed() {
-            sorted(&mut item);
-        }
-        let entry = matrix.entry(item).or_insert(0);
-        *entry += 1;
-    }
-    matrix
-}
-
-/// Returns the number of edges from node `a` to node `b`.
-fn edge_multiplicity<G>(
-    graph: &G,
-    matrix: &HashMap<(NodeIndex, NodeIndex), usize>,
-    a: NodeIndex,
-    b: NodeIndex,
-) -> usize
-where
-    G: GraphProp + GraphBase<NodeId = NodeIndex>,
-{
-    let mut item = (a, b);
-    if !graph.is_directed() {
-        sorted(&mut item);
-    }
-    *matrix.get(&item).unwrap_or(&0)
-}
-
-/// Nodes `a`, `b` are adjacent if the number of edges
-/// from node `a` to node `b` is greater than `val`.
-fn is_adjacent<G>(
-    graph: &G,
-    matrix: &HashMap<(NodeIndex, NodeIndex), usize>,
-    a: NodeIndex,
-    b: NodeIndex,
-    val: usize,
-) -> bool
-where
-    G: GraphProp + GraphBase<NodeId = NodeIndex>,
-{
-    edge_multiplicity(graph, matrix, a, b) >= val
-}
-
-trait NodeSorter<G>
+pub trait NodeSorter<G>
 where
     G: GraphBase<NodeId = NodeIndex> + DataMap + NodeCount + EdgeCount + IntoEdgeReferences,
     G::NodeWeight: Clone,
@@ -134,7 +52,7 @@ where
 
     fn sort(&self, _: G) -> Vec<NodeIndex>;
 
-    fn reorder(&self, graph: G) -> (Self::OutputGraph, HashMap<usize, usize>) {
+    fn reorder(&self, graph: G) -> (Self::OutputGraph, HashMap<NodeIndex, NodeIndex>) {
         let order = self.sort(graph);
 
         let mut new_graph =
@@ -153,20 +71,13 @@ where
         }
         (
             new_graph,
-            id_map.iter().map(|(k, v)| (v.index(), k.index())).collect(),
+            id_map.into_iter().map(|(old, new)| (new, old)).collect(),
         )
     }
 }
 
 /// Sort nodes based on node ids.
-struct DefaultIdSorter {}
-
-impl DefaultIdSorter {
-    pub fn new() -> Self {
-        Self {}
-    }
-}
-
+pub struct DefaultIdSorter;
 impl<G> NodeSorter<G> for DefaultIdSorter
 where
     G: Deref
@@ -189,14 +100,7 @@ where
 }
 
 /// Sort nodes based on VF2++ heuristic.
-struct Vf2ppSorter {}
-
-impl Vf2ppSorter {
-    pub fn new() -> Self {
-        Self {}
-    }
-}
-
+pub struct Vf2ppSorter;
 impl<G> NodeSorter<G> for Vf2ppSorter
 where
     G: Deref
@@ -319,25 +223,32 @@ where
 }
 
 #[derive(Debug)]
-pub struct Vf2State<G> {
-    pub graph: G,
-    /// The current mapping M(s) of nodes from G0 → G1 and G1 → G0,
-    /// NodeIndex::end() for no mapping.
+struct Vf2State<G> {
+    graph: G,
+    reorder: HashMap<NodeIndex, NodeIndex>,
+    /// The current mapping from indices in this graph to indices in the other graph.  If a node is
+    /// not yet mapped, the other index is stored as `NodeIndex::end`.
     mapping: Vec<NodeIndex>,
-    /// out[i] is non-zero if i is in either M_0(s) or Tout_0(s)
-    /// These are all the next vertices that are not mapped yet, but
-    /// have an outgoing edge from the mapping.
+    /// Mapping from node index to the generation at which a node was first added to the mapping
+    /// that had an outbound edge to that index.  This can be used to find new candidate nodes to
+    /// add to the mapping; you typically want your next node to be one that has edges linking it to
+    /// the existing mapping (but isn't yet _in_ the mapping).
     out: Vec<usize>,
-    /// ins[i] is non-zero if i is in either M_0(s) or Tin_0(s)
-    /// These are all the incoming vertices, those not mapped yet, but
-    /// have an edge from them into the mapping.
-    /// Unused if graph is undirected -- it's identical with out in that case.
+    /// Same as `out`, except we're tracking the nodes that have an edge from them _into_ the
+    /// mapping.  This isn't used if the graph is undirected, since it'd just duplicate `out`.
     ins: Vec<usize>,
+    /// The number of non-zero entries in `out`.
     out_size: usize,
+    /// The number of non-zero entries in `in`.  This is always zero for undirected graphs.
     ins_size: usize,
+    /// The edge multiplicity of a given node pair.  If the graph is directed, the keys are
+    /// `(source, target)`.  If the graph is undirected, the keys are always in sorted order, and
+    /// the multiplicity includes both "directions" of the edge.
     adjacency_matrix: HashMap<(NodeIndex, NodeIndex), usize>,
+    /// Is this a multigraph?
+    multigraph: bool,
+    /// The number of nodes in currently in the mapping.
     generation: usize,
-    _etype: marker::PhantomData<Directed>,
 }
 
 impl<G> Vf2State<G>
@@ -346,244 +257,479 @@ where
     for<'a> &'a G:
         GraphBase<NodeId = NodeIndex> + GraphProp + NodeCount + EdgeCount + IntoEdgesDirected,
 {
-    pub fn new(graph: G) -> Self {
+    pub fn new(graph: G, reorder: HashMap<NodeIndex, NodeIndex>) -> Self {
         let c0 = graph.node_count();
         let is_directed = graph.is_directed();
-        let adjacency_matrix = adjacency_matrix(&graph);
+        let mut adjacency_matrix = HashMap::with_capacity(graph.edge_count());
+        let mut multigraph = false;
+        for edge in graph.edge_references() {
+            let item = if graph.is_directed() || edge.source() <= edge.target() {
+                (edge.source(), edge.target())
+            } else {
+                (edge.target(), edge.source())
+            };
+            match adjacency_matrix.entry(item) {
+                Entry::Vacant(entry) => {
+                    entry.insert(1);
+                }
+                Entry::Occupied(mut entry) => {
+                    multigraph = true;
+                    *entry.get_mut() += 1;
+                }
+            }
+        }
         Vf2State {
             graph,
+            reorder,
             mapping: vec![NodeIndex::end(); c0],
             out: vec![0; c0],
-            ins: vec![0; c0 * (is_directed as usize)],
+            ins: if is_directed { vec![0; c0] } else { vec![] },
             out_size: 0,
             ins_size: 0,
             adjacency_matrix,
+            multigraph,
             generation: 0,
-            _etype: marker::PhantomData,
         }
     }
 
-    /// Return **true** if we have a complete mapping
+    /// Find the mapping (in the other graph) of the `target` of a local edge.
+    ///
+    /// If the edge is a self-loop, return the mapping of `source`, if provided.
+    #[inline]
+    pub fn map_target(
+        &self,
+        source: NodeIndex,
+        target: NodeIndex,
+        mapped_source: Option<NodeIndex>,
+    ) -> Option<NodeIndex> {
+        if source == target {
+            mapped_source
+        } else {
+            let other = self.mapping[target.index()];
+            (other != NodeIndex::end()).then_some(other)
+        }
+    }
+
+    /// Is every node in the graph mapped?
+    #[inline]
     pub fn is_complete(&self) -> bool {
         self.generation == self.mapping.len()
     }
 
-    /// Add mapping **from** <-> **to** to the state.
-    pub fn push_mapping(&mut self, from: NodeIndex, to: NodeIndex) {
+    /// Add a new entry into the mapping.
+    pub fn push_mapping(&mut self, ours: NodeIndex, theirs: NodeIndex) {
         self.generation += 1;
-        let s = self.generation;
-        self.mapping[from.index()] = to;
-        // update T0 & T1 ins/outs
-        // T0out: Node in G0 not in M0 but successor of a node in M0.
-        // st.out[0]: Node either in M0 or successor of M0
-        for ix in self.graph.neighbors(from) {
+        debug_assert_eq!(self.mapping[ours.index()], NodeIndex::end());
+        self.mapping[ours.index()] = theirs;
+        // Mark any nodes that are newly neighbors of the set of mapped nodes.  To be _newly_ a
+        // neighbor, it must not already be a neighbor.
+        for ix in self.graph.neighbors(ours) {
             if self.out[ix.index()] == 0 {
-                self.out[ix.index()] = s;
+                self.out[ix.index()] = self.generation;
                 self.out_size += 1;
             }
         }
         if self.graph.is_directed() {
-            for ix in self.graph.neighbors_directed(from, Incoming) {
+            for ix in self.graph.neighbors_directed(ours, Incoming) {
                 if self.ins[ix.index()] == 0 {
-                    self.ins[ix.index()] = s;
+                    self.ins[ix.index()] = self.generation;
                     self.ins_size += 1;
                 }
             }
         }
     }
 
-    /// Restore the state to before the last added mapping
-    pub fn pop_mapping(&mut self, from: NodeIndex) {
-        let s = self.generation;
-        self.generation -= 1;
-
-        // undo (n, m) mapping
-        self.mapping[from.index()] = NodeIndex::end();
-
-        // unmark in ins and outs
-        for ix in self.graph.neighbors(from) {
-            if self.out[ix.index()] == s {
+    /// Undo the mapping of node `ours`.  The node `ours` must be the last one given to
+    /// `push_mapping` for this to make sense.
+    pub fn pop_mapping(&mut self, ours: NodeIndex) {
+        // Any neighbors of ours that became neighbors of the mapping at our generation are now no
+        // longer neighbors of the mapping, since all the nodes that got added to the mapping after
+        // us are already popped.
+        for ix in self.graph.neighbors(ours) {
+            if self.out[ix.index()] == self.generation {
                 self.out[ix.index()] = 0;
                 self.out_size -= 1;
             }
         }
         if self.graph.is_directed() {
-            for ix in self.graph.neighbors_directed(from, Incoming) {
-                if self.ins[ix.index()] == s {
+            for ix in self.graph.neighbors_directed(ours, Incoming) {
+                if self.ins[ix.index()] == self.generation {
                     self.ins[ix.index()] = 0;
                     self.ins_size -= 1;
                 }
             }
         }
+        self.mapping[ours.index()] = NodeIndex::end();
+        self.generation -= 1;
     }
 
-    /// Find the next (least) node in the Tout set.
-    pub fn next_out_index(&self, from_index: usize) -> Option<usize> {
-        self.out[from_index..]
-            .iter()
-            .enumerate()
-            .find(move |&(index, elt)| {
-                *elt > 0 && self.mapping[from_index + index] == NodeIndex::end()
-            })
-            .map(|(index, _)| index)
+    /// Get the next unmapped node in the priority queue from a specific list whose index is at
+    /// least `start`.
+    fn next_unmapped_from(&self, start: usize, list: Option<OpenList>) -> Option<NodeIndex> {
+        let unmapped = NodeIndex::end();
+        let filter = |(offset, &generation)| -> Option<NodeIndex> {
+            let index = start + offset;
+            ((generation > 0usize) && self.mapping[index] == unmapped)
+                .then_some(NodeIndex::new(index))
+        };
+        match list {
+            Some(OpenList::Out) => self.out[start..]
+                .iter()
+                .enumerate()
+                .filter_map(filter)
+                .next(),
+            Some(OpenList::In) => {
+                if self.graph.is_directed() {
+                    self.ins[start..]
+                        .iter()
+                        .enumerate()
+                        .filter_map(filter)
+                        .next()
+                } else {
+                    None
+                }
+            }
+            None => self.mapping[start..]
+                .iter()
+                .enumerate()
+                .filter_map(|(offset, &theirs)| {
+                    (theirs == unmapped).then_some(NodeIndex::new(start + offset))
+                })
+                .next(),
+        }
     }
 
-    /// Find the next (least) node in the Tin set.
-    pub fn next_in_index(&self, from_index: usize) -> Option<usize> {
-        self.ins[from_index..]
-            .iter()
-            .enumerate()
-            .find(move |&(index, elt)| {
-                *elt > 0 && self.mapping[from_index + index] == NodeIndex::end()
-            })
-            .map(|(index, _)| index)
+    /// Get the first unmapped node in a given list (or the set of all nodes), if any.
+    #[inline]
+    pub fn first_unmapped(&self, list: Option<OpenList>) -> Option<NodeIndex> {
+        self.next_unmapped_from(0, list)
+    }
+    /// Get the next unmapped node in a given list (or set of all nodes) that comes after `node` in
+    /// the priority queue.
+    #[inline]
+    pub fn next_unmapped_after(
+        &self,
+        node: NodeIndex,
+        list: Option<OpenList>,
+    ) -> Option<NodeIndex> {
+        self.next_unmapped_from(node.index() + 1, list)
     }
 
-    /// Find the next (least) node in the N - M set.
-    pub fn next_rest_index(&self, from_index: usize) -> Option<usize> {
-        self.mapping[from_index..]
-            .iter()
-            .enumerate()
-            .find(|&(_, elt)| *elt == NodeIndex::end())
-            .map(|(index, _)| index)
+    /// Number of edges from `source` to `target` (including the reverse, if the graph is
+    /// undirected).
+    ///
+    /// If you already have an edge reference and want to know its multiplicity, use
+    /// [edge_multiplicity_of], which is optimised in the case of non-multigraphs.
+    #[inline]
+    fn edge_multiplicity(&self, source: NodeIndex, target: NodeIndex) -> usize {
+        let item = if self.graph.is_directed() || source <= target {
+            (source, target)
+        } else {
+            (target, source)
+        };
+        *self.adjacency_matrix.get(&item).unwrap_or(&0)
+    }
+
+    /// What is the multiplicity of the given edge reference?
+    ///
+    /// This is optimised to avoid hash-map lookups in the case of a non-multigraph (since the
+    /// answer is simply always 1; you've already proved you've got the edge, so it can't be zero).
+    #[inline]
+    fn edge_multiplicity_of(&self, edge: <&G as IntoEdgeReferences>::EdgeRef) -> usize {
+        if self.multigraph {
+            self.edge_multiplicity(edge.source(), edge.target())
+        } else {
+            1
+        }
     }
 }
 
 #[derive(Debug)]
 pub enum IsIsomorphicError<NME, EME> {
-    NodeMatcherErr(NME),
-    EdgeMatcherErr(EME),
+    NodeMatcher(NME),
+    EdgeMatcher(EME),
 }
-
 impl<NME: Error, EME: Error> Display for IsIsomorphicError<NME, EME> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            IsIsomorphicError::NodeMatcherErr(e) => {
-                write!(f, "Node match callback failed with: {e}")
-            }
-            IsIsomorphicError::EdgeMatcherErr(e) => {
-                write!(f, "Edge match callback failed with: {e}")
-            }
+            IsIsomorphicError::NodeMatcher(e) => write!(f, "Node match callback failed with: {e}"),
+            IsIsomorphicError::EdgeMatcher(e) => write!(f, "Edge match callback failed with: {e}"),
         }
     }
 }
-
 impl<NME: Error, EME: Error> Error for IsIsomorphicError<NME, EME> {}
 
+// The `Clone` impl _could_ be spelled `combine(&self, &Self::id())`, but why bother?
+pub trait Vf2Score: Clone {
+    /// Combine two scores together.  This is typically addition.
+    ///
+    /// The combination of two scores must not be less than either, as measured by `cmp`.
+    fn combine(left: &Self, right: &Self) -> Self;
+    /// The identity value of the `combine` operation.
+    fn id() -> Self;
+    /// Compare two values.
+    fn cmp(left: &Self, right: &Self) -> Ordering;
+}
+
+impl Vf2Score for () {
+    #[inline]
+    fn combine(_: &(), _: &()) {}
+    #[inline]
+    fn id() {}
+    #[inline]
+    fn cmp(_: &(), _: &()) -> Ordering {
+        Ordering::Equal
+    }
+}
+macro_rules! impl_vf2_score_int {
+    ($($t:ty)*) => ($(
+        impl Vf2Score for $t {
+            #[inline]
+            fn combine(left: &Self, right: &Self) -> Self {
+                *left + *right
+            }
+            #[inline]
+            fn id() -> Self {
+                0
+            }
+            #[inline]
+            fn cmp(left: &Self, right: &Self) -> Ordering {
+                left.cmp(right)
+            }
+        }
+    )*)
+}
+impl_vf2_score_int! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize }
+macro_rules! impl_vf2_score_float {
+    ($($t:ty)*) => ($(
+        impl Vf2Score for $t {
+            #[inline]
+            fn combine(left: &Self, right: &Self) -> Self {
+                *left + *right
+            }
+            #[inline]
+            fn id() -> Self {
+                0.0
+            }
+            #[inline]
+            fn cmp(left: &Self, right: &Self) -> Ordering {
+                left.partial_cmp(right).expect("float scores must not return nan")
+            }
+        }
+    )*)
+}
+impl_vf2_score_float! { f32 f64 }
+
+/// Semantic matching for VF2.
+///
+/// Both scoring functions must return non-negative floating-point numbers or an error.
+/// Returning a negative floating-point number will cause undefined behavior in the
+/// algorithm.
+///
+/// The scoring functions do not have access to the general graph structures; they are only
+/// permitted to access the weights.  This is deliberate; the scores cannot be suitably
+/// combined and pruned if they are anything other than completely local.
+pub trait Vf2Scorer<G0: GraphBase, G1: GraphBase> {
+    type Score: Vf2Score;
+    type NodeError: Error;
+    type EdgeError: Error;
+
+    const NODE_ENABLED: bool;
+    const EDGE_ENABLED: bool;
+
+    fn score_node(
+        &self,
+        needle_graph: &G0,
+        haystack_graph: &G1,
+        needle_node: G0::NodeId,
+        haystack_node: G1::NodeId,
+    ) -> Result<Option<Self::Score>, Self::NodeError>;
+
+    fn score_edge(
+        &self,
+        needle_graph: &G0,
+        haystack_graph: &G1,
+        needle_edge: G0::EdgeId,
+        haystack_edge: G1::EdgeId,
+    ) -> Result<Option<Self::Score>, Self::EdgeError>;
+}
+
 pub struct NoSemanticMatch;
+impl<G0: GraphBase, G1: GraphBase> Vf2Scorer<G0, G1> for (NoSemanticMatch, NoSemanticMatch) {
+    type Score = ();
+    type NodeError = Infallible;
+    type EdgeError = Infallible;
+    const NODE_ENABLED: bool = false;
+    const EDGE_ENABLED: bool = false;
 
-pub trait NodeMatcher<G0: GraphBase, G1: GraphBase> {
-    type Error;
-    fn enabled(&self) -> bool;
-    fn eq(
-        &mut self,
-        _g0: &G0,
-        _g1: &G1,
-        _n0: G0::NodeId,
-        _n1: G1::NodeId,
-    ) -> Result<bool, Self::Error>;
-}
-
-impl<G0: GraphBase, G1: GraphBase> NodeMatcher<G0, G1> for NoSemanticMatch {
-    type Error = Infallible;
     #[inline]
-    fn enabled(&self) -> bool {
-        false
+    fn score_node(
+        &self,
+        _: &G0,
+        _: &G1,
+        _: G0::NodeId,
+        _: G1::NodeId,
+    ) -> Result<Option<()>, Infallible> {
+        Ok(Some(()))
     }
     #[inline]
-    fn eq(
-        &mut self,
-        _g0: &G0,
-        _g1: &G1,
-        _n0: G0::NodeId,
-        _n1: G1::NodeId,
-    ) -> Result<bool, Self::Error> {
-        Ok(true)
+    fn score_edge(
+        &self,
+        _: &G0,
+        _: &G1,
+        _: G0::EdgeId,
+        _: G1::EdgeId,
+    ) -> Result<Option<()>, Infallible> {
+        Ok(Some(()))
     }
 }
 
-impl<G0, G1, F, E> NodeMatcher<G0, G1> for F
+impl<NS, S, E, G0, G1> Vf2Scorer<G0, G1> for (NS, NoSemanticMatch)
 where
+    NS: Fn(&G0::NodeWeight, &G1::NodeWeight) -> Result<Option<S>, E>,
+    S: Vf2Score,
+    E: Error,
     G0: GraphBase + DataMap,
     G1: GraphBase + DataMap,
-    F: FnMut(&G0::NodeWeight, &G1::NodeWeight) -> Result<bool, E>,
 {
-    type Error = E;
-    #[inline]
-    fn enabled(&self) -> bool {
-        true
+    type Score = S;
+    type NodeError = E;
+    type EdgeError = Infallible;
+
+    const NODE_ENABLED: bool = true;
+    const EDGE_ENABLED: bool = false;
+
+    fn score_node(
+        &self,
+        needle_graph: &G0,
+        haystack_graph: &G1,
+        needle_node: G0::NodeId,
+        haystack_node: G1::NodeId,
+    ) -> Result<Option<Self::Score>, Self::NodeError> {
+        let Some(needle_weight) = needle_graph.node_weight(needle_node) else {
+            return Ok(None);
+        };
+        let Some(haystack_weight) = haystack_graph.node_weight(haystack_node) else {
+            return Ok(None);
+        };
+        self.0(needle_weight, haystack_weight)
     }
-    #[inline]
-    fn eq(
-        &mut self,
-        g0: &G0,
-        g1: &G1,
-        n0: G0::NodeId,
-        n1: G1::NodeId,
-    ) -> Result<bool, Self::Error> {
-        if let (Some(x), Some(y)) = (g0.node_weight(n0), g1.node_weight(n1)) {
-            self(x, y)
-        } else {
-            Ok(false)
-        }
+
+    fn score_edge(
+        &self,
+        _needle_graph: &G0,
+        _haystack_graph: &G1,
+        _needle_edge: G0::EdgeId,
+        _haystack_edge: G1::EdgeId,
+    ) -> Result<Option<Self::Score>, Self::EdgeError> {
+        Ok(Some(S::id()))
     }
 }
 
-pub trait EdgeMatcher<G0: GraphBase, G1: GraphBase> {
-    type Error;
-    fn enabled(&self) -> bool;
-    fn eq(
-        &mut self,
-        _g0: &G0,
-        _g1: &G1,
-        e0: G0::EdgeId,
-        e1: G1::EdgeId,
-    ) -> Result<bool, Self::Error>;
-}
-
-impl<G0: GraphBase, G1: GraphBase> EdgeMatcher<G0, G1> for NoSemanticMatch {
-    type Error = Infallible;
-    #[inline]
-    fn enabled(&self) -> bool {
-        false
-    }
-    #[inline]
-    fn eq(
-        &mut self,
-        _g0: &G0,
-        _g1: &G1,
-        _e0: G0::EdgeId,
-        _e1: G1::EdgeId,
-    ) -> Result<bool, Self::Error> {
-        Ok(true)
-    }
-}
-
-impl<G0, G1, F, E> EdgeMatcher<G0, G1> for F
+impl<ES, S, E, G0, G1> Vf2Scorer<G0, G1> for (NoSemanticMatch, ES)
 where
+    ES: Fn(&G0::EdgeWeight, &G1::EdgeWeight) -> Result<Option<S>, E>,
+    S: Vf2Score,
+    E: Error,
     G0: GraphBase + DataMap,
     G1: GraphBase + DataMap,
-    F: FnMut(&G0::EdgeWeight, &G1::EdgeWeight) -> Result<bool, E>,
 {
-    type Error = E;
-    #[inline]
-    fn enabled(&self) -> bool {
-        true
+    type Score = S;
+    type NodeError = Infallible;
+    type EdgeError = E;
+
+    const NODE_ENABLED: bool = false;
+    const EDGE_ENABLED: bool = true;
+
+    fn score_node(
+        &self,
+        _needle_graph: &G0,
+        _haystack_graph: &G1,
+        _needle_node: G0::NodeId,
+        _haystack_node: G1::NodeId,
+    ) -> Result<Option<Self::Score>, Self::NodeError> {
+        Ok(Some(S::id()))
     }
-    #[inline]
-    fn eq(
-        &mut self,
-        g0: &G0,
-        g1: &G1,
-        e0: G0::EdgeId,
-        e1: G1::EdgeId,
-    ) -> Result<bool, Self::Error> {
-        if let (Some(x), Some(y)) = (g0.edge_weight(e0), g1.edge_weight(e1)) {
-            self(x, y)
-        } else {
-            Ok(false)
-        }
+
+    fn score_edge(
+        &self,
+        needle_graph: &G0,
+        haystack_graph: &G1,
+        needle_edge: G0::EdgeId,
+        haystack_edge: G1::EdgeId,
+    ) -> Result<Option<Self::Score>, Self::EdgeError> {
+        let Some(needle_weight) = needle_graph.edge_weight(needle_edge) else {
+            return Ok(None);
+        };
+        let Some(haystack_weight) = haystack_graph.edge_weight(haystack_edge) else {
+            return Ok(None);
+        };
+        self.1(needle_weight, haystack_weight)
     }
+}
+
+impl<NS, ES, S, NE, EE, G0, G1> Vf2Scorer<G0, G1> for (NS, ES)
+where
+    NS: Fn(&G0::NodeWeight, &G1::NodeWeight) -> Result<Option<S>, NE>,
+    ES: Fn(&G0::EdgeWeight, &G1::EdgeWeight) -> Result<Option<S>, EE>,
+    S: Vf2Score,
+    NE: Error,
+    EE: Error,
+    G0: GraphBase + DataMap,
+    G1: GraphBase + DataMap,
+{
+    type Score = S;
+    type NodeError = NE;
+    type EdgeError = EE;
+
+    const NODE_ENABLED: bool = true;
+    const EDGE_ENABLED: bool = true;
+
+    fn score_node(
+        &self,
+        needle_graph: &G0,
+        haystack_graph: &G1,
+        needle_node: G0::NodeId,
+        haystack_node: G1::NodeId,
+    ) -> Result<Option<Self::Score>, Self::NodeError> {
+        let Some(needle_weight) = needle_graph.node_weight(needle_node) else {
+            return Ok(None);
+        };
+        let Some(haystack_weight) = haystack_graph.node_weight(haystack_node) else {
+            return Ok(None);
+        };
+        self.0(needle_weight, haystack_weight)
+    }
+
+    fn score_edge(
+        &self,
+        needle_graph: &G0,
+        haystack_graph: &G1,
+        needle_edge: G0::EdgeId,
+        haystack_edge: G1::EdgeId,
+    ) -> Result<Option<Self::Score>, Self::EdgeError> {
+        let Some(needle_weight) = needle_graph.edge_weight(needle_edge) else {
+            return Ok(None);
+        };
+        let Some(haystack_weight) = haystack_graph.edge_weight(haystack_edge) else {
+            return Ok(None);
+        };
+        self.1(needle_weight, haystack_weight)
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Problem {
+    /// Exact isomorphism between the two graphs.
+    Exact,
+    /// The left graph is isomorphic to an induced subgraph of the right graph.
+    InducedSubgraph,
+    /// The left graph is isomorphic to any subgraph of the right graph.  This differs from the
+    /// "induced subgraph" case in that there can be extra unmatched edges in the right graph.
+    ///
+    /// The match/score functions will not scan through every possible matching of edges in the case
+    /// of a multigraph; the chosen edge matching is arbitrary and may not optimise the score.
+    Subgraph,
 }
 
 /// [Graph] Return `true` if the graphs `g0` and `g1` are (sub) graph isomorphic.
@@ -592,16 +738,18 @@ where
 /// graph isomorphism (graph structure and matching node and edge weights).
 ///
 /// The graphs should not be multigraphs.
-pub fn is_isomorphic<G0, G1, NM, EM>(
+///
+/// `scorer` is a 2-tuple of a node-scoring function and an edge-scoring function.  Either or both
+/// can be replaced by `NoSemanticMatch` to disable the semantics of nodes and/or edges.  The node
+/// scoring function has the signature.
+pub fn is_isomorphic<G0, G1, S>(
     g0: &G0,
     g1: &G1,
-    node_match: NM,
-    edge_match: EM,
+    scorer: S,
     id_order: bool,
-    ordering: Ordering,
-    induced: bool,
+    problem: Problem,
     call_limit: Option<usize>,
-) -> Result<bool, IsIsomorphicError<NM::Error, EM::Error>>
+) -> Result<bool, IsIsomorphicError<S::NodeError, S::EdgeError>>
 where
     G0: GraphProp + GraphBase<NodeId = NodeIndex> + DataMap + Create + NodeCount + EdgeCount,
     for<'a> &'a G0: GraphBase<NodeId = G0::NodeId, EdgeId = G0::EdgeId>
@@ -619,38 +767,40 @@ where
         + IntoNodeIdentifiers,
     G1::NodeWeight: Clone,
     G1::EdgeWeight: Clone,
-    NM: NodeMatcher<G0, G1>,
-    EM: EdgeMatcher<G0, G1>,
+    S: Vf2Scorer<G0, G1>,
 {
-    if (g0.node_count().cmp(&g1.node_count()).then(ordering) != ordering)
-        || (g0.edge_count().cmp(&g1.edge_count()).then(ordering) != ordering)
-    {
-        return Ok(false);
-    }
-
-    let mut vf2 = Vf2Algorithm::new(
-        g0, g1, node_match, edge_match, id_order, ordering, induced, call_limit,
-    );
-
-    match vf2.next() {
-        Some(Ok(_)) => Ok(true),
-        Some(Err(e)) => Err(e),
-        None => Ok(false),
-    }
+    Vf2Algorithm::new(g0, g1, scorer, id_order, problem, call_limit)
+        .next()
+        .map(|res| res.map(|_| true))
+        .unwrap_or(Ok(false))
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 enum OpenList {
     Out,
     In,
-    Other,
 }
 
-#[derive(Clone, PartialEq, Debug)]
-enum Frame<N: marker::Copy> {
-    Outer,
-    Inner { nodes: [N; 2], open_list: OpenList },
-    Unwind { nodes: [N; 2], open_list: OpenList },
+#[derive(Debug)]
+enum Frame<N: Copy, T> {
+    ChooseNextHaystack {
+        nodes: [N; 2],
+        open_list: Option<OpenList>,
+        prev_score: T,
+    },
+    ChooseNextNeedle,
+}
+
+struct Vf2Semantic<G0, G1, S>
+where
+    G0: GraphBase,
+    G1: GraphBase,
+    S: Vf2Scorer<G0, G1>,
+{
+    scorer: S,
+    cur: S::Score,
+    limit: Option<S::Score>,
+    _marker: marker::PhantomData<(G0, G1)>,
 }
 
 /// An iterator which uses the VF2(++) algorithm to produce isomorphic matches
@@ -658,26 +808,20 @@ enum Frame<N: marker::Copy> {
 /// (graph structure and matching node and edge weights).
 ///
 /// The graphs should not be multigraphs.
-pub struct Vf2Algorithm<G0, G1, NM, EM>
+pub struct Vf2Algorithm<G0, G1, S>
 where
     G0: GraphBase + Data,
     G1: GraphBase + Data,
-    NM: NodeMatcher<G0, G1>,
-    EM: EdgeMatcher<G0, G1>,
+    S: Vf2Scorer<G0, G1>,
 {
-    pub st: (Vf2State<G0>, Vf2State<G1>),
-    pub node_match: NM,
-    pub edge_match: EM,
-    ordering: Ordering,
-    induced: bool,
-    node_map_g0: HashMap<usize, usize>,
-    node_map_g1: HashMap<usize, usize>,
-    stack: Vec<Frame<NodeIndex>>,
-    call_limit: Option<usize>,
-    _counter: usize,
+    st: (Vf2State<G0>, Vf2State<G1>),
+    semantic: Vf2Semantic<G0, G1, S>,
+    problem: Problem,
+    stack: Vec<Frame<NodeIndex, S::Score>>,
+    remaining_calls: Option<usize>,
 }
 
-impl<G0, G1, NM, EM> Vf2Algorithm<G0, G1, NM, EM>
+impl<G0, G1, S> Vf2Algorithm<G0, G1, S>
 where
     G0: GraphProp + GraphBase<NodeId = NodeIndex> + DataMap + Create + NodeCount + EdgeCount,
     for<'a> &'a G0: GraphBase<NodeId = G0::NodeId, EdgeId = G0::EdgeId>
@@ -695,494 +839,544 @@ where
         + IntoNodeIdentifiers,
     G1::NodeWeight: Clone,
     G1::EdgeWeight: Clone,
-    NM: NodeMatcher<G0, G1>,
-    EM: EdgeMatcher<G0, G1>,
+    S: Vf2Scorer<G0, G1>,
 {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         g0: &G0,
         g1: &G1,
-        node_match: NM,
-        edge_match: EM,
+        scorer: S,
         id_order: bool,
-        ordering: Ordering,
-        induced: bool,
+        problem: Problem,
         call_limit: Option<usize>,
     ) -> Self {
         let (g0, node_map_g0) = if id_order {
-            DefaultIdSorter::new().reorder(g0)
+            DefaultIdSorter.reorder(g0)
         } else {
-            Vf2ppSorter::new().reorder(g0)
+            Vf2ppSorter.reorder(g0)
         };
 
         let (g1, node_map_g1) = if id_order {
-            DefaultIdSorter::new().reorder(g1)
+            DefaultIdSorter.reorder(g1)
         } else {
-            Vf2ppSorter::new().reorder(g1)
+            Vf2ppSorter.reorder(g1)
         };
 
-        let st = (Vf2State::new(g0), Vf2State::new(g1));
+        // The stack typically will need to grow to account to store a "haystack" frame for each
+        // node in the needle graph in a success path (and it's shorter in the failure path).
+        let mut stack = Vec::with_capacity(g0.node_count());
+        stack.push(Frame::ChooseNextNeedle);
+        let st = (
+            Vf2State::new(g0, node_map_g0),
+            Vf2State::new(g1, node_map_g1),
+        );
         Vf2Algorithm {
             st,
-            node_match,
-            edge_match,
-            ordering,
-            induced,
-            node_map_g0,
-            node_map_g1,
-            stack: vec![Frame::Outer],
-            call_limit,
-            _counter: 0,
+            semantic: Vf2Semantic {
+                scorer,
+                cur: S::Score::id(),
+                limit: None,
+                _marker: marker::PhantomData,
+            },
+            problem,
+            stack,
+            remaining_calls: call_limit,
         }
     }
 
-    fn mapping(&self) -> DictMap<usize, usize> {
-        let mut mapping: DictMap<usize, usize> = DictMap::new();
+    /// Apply a score limiter to any calls to the VF2 algorithm.
+    ///
+    /// Only isomorphisms of the given `Problem` with scores less than or equal to the best seen
+    /// score (starting from the limit) will be returned.
+    pub fn with_score_limit(mut self, limit: S::Score) -> Self {
+        self.semantic.limit = Some(limit);
+        self
+    }
+
+    fn mapping(&self) -> IndexMap<NodeIndex, NodeIndex, ::ahash::RandomState> {
         self.st
-            .1
+            .0
             .mapping
             .iter()
             .enumerate()
-            .for_each(|(index, val)| {
-                mapping.insert(self.node_map_g0[&val.index()], self.node_map_g1[&index]);
-            });
-
-        mapping
+            .map(|(needle, haystack)| {
+                debug_assert!(*haystack != NodeIndex::end());
+                (
+                    self.st.0.reorder[&NodeIndex::new(needle)],
+                    self.st.1.reorder[haystack],
+                )
+            })
+            .collect()
     }
 
-    fn next_candidate(
-        st: &mut (Vf2State<G0>, Vf2State<G1>),
-    ) -> Option<(NodeIndex, NodeIndex, OpenList)> {
-        // Try the out list
-        let mut to_index = st.1.next_out_index(0);
-        let mut from_index = None;
-        let mut open_list = OpenList::Out;
-
-        if to_index.is_some() {
-            from_index = st.0.next_out_index(0);
-            open_list = OpenList::Out;
-        }
-        // Try the in list
-        if to_index.is_none() || from_index.is_none() {
-            to_index = st.1.next_in_index(0);
-
-            if to_index.is_some() {
-                from_index = st.0.next_in_index(0);
-                open_list = OpenList::In;
-            }
-        }
-        // Try the other list -- disconnected graph
-        if to_index.is_none() || from_index.is_none() {
-            to_index = st.1.next_rest_index(0);
-            if to_index.is_some() {
-                from_index = st.0.next_rest_index(0);
-                open_list = OpenList::Other;
-            }
-        }
-        match (from_index, to_index) {
-            (Some(n), Some(m)) => Some((NodeIndex::new(n), NodeIndex::new(m), open_list)),
-            // No more candidates
-            _ => None,
-        }
+    /// Find the unmapped candidates with the highest priority from both graphs.
+    ///
+    /// This returns the two candidates and the tracking list of neighbours to the existing mapping
+    /// that they were found in. `None` implies that there were no matching pairs in the lists of
+    /// nodes that are outgoing or incoming neighbors of the map, and therefore we're starting a
+    /// search for a disjoint component.  In order for that to be performant, we'd expect the
+    /// feasiblity checks to have realised that there's edges that will never be satisfied already.
+    fn next_candidates(&mut self) -> Option<(NodeIndex, NodeIndex, Option<OpenList>)> {
+        [Some(OpenList::Out), Some(OpenList::In), None]
+            .into_iter()
+            .filter_map(|list| {
+                Some((
+                    self.st.0.first_unmapped(list)?,
+                    self.st.1.first_unmapped(list)?,
+                    list,
+                ))
+            })
+            .next()
     }
 
-    fn next_from_ix(
-        st: &mut (Vf2State<G0>, Vf2State<G1>),
-        nx: NodeIndex,
-        open_list: OpenList,
-    ) -> Option<NodeIndex> {
-        // Find the next node index to try on the `from` side of the mapping
-        let start = nx.index() + 1;
-        let cand0 = match open_list {
-            OpenList::Out => st.0.next_out_index(start),
-            OpenList::In => st.0.next_in_index(start),
-            OpenList::Other => st.0.next_rest_index(start),
-        }
-        .map(|c| c + start); // compensate for start offset.
-        match cand0 {
-            None => None, // no more candidates
-            Some(ix) => {
-                debug_assert!(ix >= start);
-                Some(NodeIndex::new(ix))
-            }
-        }
-    }
-
-    fn pop_state(st: &mut (Vf2State<G0>, Vf2State<G1>), nodes: [NodeIndex; 2]) {
+    /// Remove this pair of nodes from the mapping, and revert the total score to the given value.
+    ///
+    /// The pair of nodes must be on the top of the stack of pushes.
+    fn pop_state(&mut self, nodes: [NodeIndex; 2], prev_score: S::Score) {
         // Restore state.
-        st.0.pop_mapping(nodes[0]);
-        st.1.pop_mapping(nodes[1]);
+        self.st.0.pop_mapping(nodes[0]);
+        self.st.1.pop_mapping(nodes[1]);
+        self.semantic.cur = prev_score;
     }
 
-    fn push_state(st: &mut (Vf2State<G0>, Vf2State<G1>), nodes: [NodeIndex; 2]) {
+    /// Add a new pair of nodes to the mapping, and set the total score, and return the score from
+    /// before the nodes were pushed.
+    fn push_state(&mut self, nodes: [NodeIndex; 2], new_score: S::Score) -> S::Score {
         // Add mapping nx <-> mx to the state
-        st.0.push_mapping(nodes[0], nodes[1]);
-        st.1.push_mapping(nodes[1], nodes[0]);
+        self.st.0.push_mapping(nodes[0], nodes[1]);
+        self.st.1.push_mapping(nodes[1], nodes[0]);
+        ::std::mem::replace(&mut self.semantic.cur, new_score)
     }
 
+    #[inline]
+    fn directed(&self) -> bool {
+        self.st.0.graph.is_directed()
+    }
+
+    /// If we added this pair of nodes to the mapping, would it still be feasible to reach a full
+    /// solution in the future, and if so, what woould the new score of the partial mapping be?
+    ///
+    /// The `Result` is related to the semantic node- and edge-matching in the scoring.  The inner
+    /// `Option` is `Some(new_score)` if the pair is feasible, and `None` if it is not.
+    #[allow(clippy::type_complexity)]
     fn is_feasible(
-        st: &mut (Vf2State<G0>, Vf2State<G1>),
+        &self,
         nodes: [NodeIndex; 2],
-        node_match: &mut NM,
-        edge_match: &mut EM,
-        ordering: Ordering,
-        induced: bool,
-    ) -> Result<bool, IsIsomorphicError<NM::Error, EM::Error>> {
-        // Check syntactic feasibility of mapping by ensuring adjacencies
-        // of nx map to adjacencies of mx.
-        //
-        // nx == map to => mx
-        //
-        // R_succ
-        //
-        // Check that every neighbor of nx is mapped to a neighbor of mx,
-        // then check the reverse, from mx to nx. Check that they have the same
-        // count of edges.
-        //
-        // Note: We want to check the lookahead measures here if we can,
-        // R_out: Equal for G0, G1: Card(Succ(G, n) ^ Tout); for both Succ and Pred
-        // R_in: Same with Tin
-        // R_new: Equal for G0, G1: Ñ n Pred(G, n); both Succ and Pred,
-        //      Ñ is G0 - M - Tin - Tout
-        let end = NodeIndex::end();
-        let mut succ_count = [0, 0];
-        for n_neigh in st.0.graph.neighbors(nodes[0]) {
-            succ_count[0] += 1;
-            if !induced {
-                continue;
-            }
-            // handle the self loop case; it's not in the mapping (yet)
-            let m_neigh = if nodes[0] != n_neigh {
-                st.0.mapping[n_neigh.index()]
-            } else {
-                nodes[1]
-            };
-            if m_neigh == end {
-                continue;
-            }
-            let val = edge_multiplicity(&st.0.graph, &st.0.adjacency_matrix, nodes[0], n_neigh);
+    ) -> Result<Option<S::Score>, IsIsomorphicError<S::NodeError, S::EdgeError>> {
+        // This is the core correctness component; are the nodes of this mapping and all the edges
+        // that would be newly mapped consistent with a solution to the problem?  This must be
+        // precise; we _must_ cut if the mapping would not be consistent.
+        let Some(score) = self.is_consistent(nodes)? else {
+            return Ok(None);
+        };
 
-            let has_edge = is_adjacent(&st.1.graph, &st.1.adjacency_matrix, nodes[1], m_neigh, val);
-            if !has_edge {
-                return Ok(false);
-            }
-        }
+        // Everything else in this function is lookahead feasibility tests.  It's important for
+        // correctness that we never report a mapping as unfeasible if actually it does lead to a
+        // valid solution.  If in doubt, say it's feasible; we attempt to eagerly cut as a
+        // performance optimisation only.
 
-        for n_neigh in st.1.graph.neighbors(nodes[1]) {
-            succ_count[1] += 1;
-            // handle the self loop case; it's not in the mapping (yet)
-            let m_neigh = if nodes[1] != n_neigh {
-                st.1.mapping[n_neigh.index()]
-            } else {
-                nodes[0]
-            };
-            if m_neigh == end {
-                continue;
-            }
-            let val = edge_multiplicity(&st.1.graph, &st.1.adjacency_matrix, nodes[1], n_neigh);
-
-            let has_edge = is_adjacent(&st.0.graph, &st.0.adjacency_matrix, nodes[0], m_neigh, val);
-            if !has_edge {
-                return Ok(false);
-            }
-        }
-        if succ_count[0].cmp(&succ_count[1]).then(ordering) != ordering {
-            return Ok(false);
-        }
-        // R_pred
-        if st.0.graph.is_directed() {
-            let mut pred_count = [0, 0];
-            for n_neigh in st.0.graph.neighbors_directed(nodes[0], Incoming) {
-                pred_count[0] += 1;
-                if !induced {
-                    continue;
-                }
-                // the self loop case is handled in outgoing
-                let m_neigh = st.0.mapping[n_neigh.index()];
-                if m_neigh == end {
-                    continue;
-                }
-                let val = edge_multiplicity(&st.0.graph, &st.0.adjacency_matrix, n_neigh, nodes[0]);
-
-                let has_edge =
-                    is_adjacent(&st.1.graph, &st.1.adjacency_matrix, m_neigh, nodes[1], val);
-                if !has_edge {
-                    return Ok(false);
-                }
-            }
-
-            for n_neigh in st.1.graph.neighbors_directed(nodes[1], Incoming) {
-                pred_count[1] += 1;
-                // the self loop case is handled in outgoing
-                let m_neigh = st.1.mapping[n_neigh.index()];
-                if m_neigh == end {
-                    continue;
-                }
-                let val = edge_multiplicity(&st.1.graph, &st.1.adjacency_matrix, n_neigh, nodes[1]);
-
-                let has_edge =
-                    is_adjacent(&st.0.graph, &st.0.adjacency_matrix, m_neigh, nodes[0], val);
-                if !has_edge {
-                    return Ok(false);
-                }
-            }
-            if pred_count[0].cmp(&pred_count[1]).then(ordering) != ordering {
-                return Ok(false);
-            }
-        }
-        macro_rules! field {
-            ($x:ident,     0) => {
-                $x.0
-            };
-            ($x:ident,     1) => {
-                $x.1
-            };
-            ($x:ident, 1 - 0) => {
-                $x.1
-            };
-            ($x:ident, 1 - 1) => {
-                $x.0
-            };
-        }
-        macro_rules! rule {
-            ($arr:ident, $j:tt, $dir:expr) => {{
-                let mut count = 0;
-                for n_neigh in field!(st, $j).graph.neighbors_directed(nodes[$j], $dir) {
-                    let index = n_neigh.index();
-                    if field!(st, $j).$arr[index] > 0 && st.$j.mapping[index] == end {
-                        count += 1;
-                    }
-                }
-                count
-            }};
-        }
-        // R_out
-        if rule!(out, 0, Outgoing)
-            .cmp(&rule!(out, 1, Outgoing))
-            .then(ordering)
-            != ordering
+        if !self.unmapped_existing_neighbors_feasible(nodes, OpenList::Out, Outgoing)
+            || !self.unmapped_new_neighbors_feasible(nodes, Outgoing)
         {
-            return Ok(false);
+            return Ok(None);
         }
-        if st.0.graph.is_directed()
-            && rule!(out, 0, Incoming)
-                .cmp(&rule!(out, 1, Incoming))
-                .then(ordering)
-                != ordering
+        if self.directed()
+            && (!self.unmapped_existing_neighbors_feasible(nodes, OpenList::In, Incoming)
+                || !self.unmapped_existing_neighbors_feasible(nodes, OpenList::Out, Incoming)
+                || !self.unmapped_existing_neighbors_feasible(nodes, OpenList::In, Outgoing)
+                || !self.unmapped_new_neighbors_feasible(nodes, Incoming))
         {
-            return Ok(false);
+            return Ok(None);
         }
-        // R_in
-        if st.0.graph.is_directed() {
-            if rule!(ins, 0, Outgoing)
-                .cmp(&rule!(ins, 1, Outgoing))
-                .then(ordering)
-                != ordering
+        Ok(Some(score))
+    }
+
+    #[allow(clippy::type_complexity)]
+    fn is_consistent(
+        &self,
+        nodes: [NodeIndex; 2],
+    ) -> Result<Option<S::Score>, IsIsomorphicError<S::NodeError, S::EdgeError>> {
+        // Are the semantics of these two nodes consistent?
+        let node_score = if S::NODE_ENABLED {
+            match self
+                .semantic
+                .scorer
+                .score_node(&self.st.0.graph, &self.st.1.graph, nodes[0], nodes[1])
+                .map_err(IsIsomorphicError::NodeMatcher)?
             {
-                return Ok(false);
+                Some(score) => score,
+                None => return Ok(None),
             }
+        } else {
+            // If there's no node-matching enabled, then the two are always semantically feasible.
+            // The only reason they might fail is if the newly mapped connecting edges aren't.
+            S::Score::id()
+        };
 
-            if rule!(ins, 0, Incoming)
-                .cmp(&rule!(ins, 1, Incoming))
-                .then(ordering)
-                != ordering
-            {
-                return Ok(false);
-            }
-        }
-        // R_new
-        if induced {
-            let mut new_count = [0, 0];
-            for n_neigh in st.0.graph.neighbors(nodes[0]) {
-                let index = n_neigh.index();
-                if st.0.out[index] == 0 && (st.0.ins.is_empty() || st.0.ins[index] == 0) {
-                    new_count[0] += 1;
-                }
-            }
-            for n_neigh in st.1.graph.neighbors(nodes[1]) {
-                let index = n_neigh.index();
-                if st.1.out[index] == 0 && (st.1.ins.is_empty() || st.1.ins[index] == 0) {
-                    new_count[1] += 1;
-                }
-            }
-            if new_count[0].cmp(&new_count[1]).then(ordering) != ordering {
-                return Ok(false);
-            }
-            if st.0.graph.is_directed() {
-                let mut new_count = [0, 0];
-                for n_neigh in st.0.graph.neighbors_directed(nodes[0], Incoming) {
-                    let index = n_neigh.index();
-                    if st.0.out[index] == 0 && st.0.ins[index] == 0 {
-                        new_count[0] += 1;
-                    }
-                }
-                for n_neigh in st.1.graph.neighbors_directed(nodes[1], Incoming) {
-                    let index = n_neigh.index();
-                    if st.1.out[index] == 0 && st.1.ins[index] == 0 {
-                        new_count[1] += 1;
-                    }
-                }
-                if new_count[0].cmp(&new_count[1]).then(ordering) != ordering {
-                    return Ok(false);
-                }
-            }
-        }
-        // semantic feasibility: compare associated data for nodes
-        if node_match.enabled()
-            && !node_match
-                .eq(&st.0.graph, &st.1.graph, nodes[0], nodes[1])
-                .map_err(IsIsomorphicError::NodeMatcherErr)?
-        {
-            return Ok(false);
-        }
-        // semantic feasibility: compare associated data for edges
-        if edge_match.enabled() {
-            let mut matcher =
-                |g0_edge: (NodeIndex, G0::EdgeId),
-                 g1_edge: (NodeIndex, G1::EdgeId)|
-                 -> Result<bool, IsIsomorphicError<NM::Error, EM::Error>> {
-                    let (nx, e0) = g0_edge;
-                    let (mx, e1) = g1_edge;
-                    if nx == mx
-                        && edge_match
-                            .eq(&st.0.graph, &st.1.graph, e0, e1)
-                            .map_err(IsIsomorphicError::EdgeMatcherErr)?
-                    {
-                        return Ok(true);
-                    }
-                    Ok(false)
+        // Are the semantics of the edges that would become fully mapped consistent?
+        let edge_score = if S::EDGE_ENABLED {
+            let Some(outgoing_score) = self
+                .mapped_edges_semantic_match(nodes, Outgoing)
+                .map_err(IsIsomorphicError::EdgeMatcher)?
+            else {
+                return Ok(None);
+            };
+            if self.directed() {
+                let Some(incoming_score) = self
+                    .mapped_edges_semantic_match(nodes, Incoming)
+                    .map_err(IsIsomorphicError::EdgeMatcher)?
+                else {
+                    return Ok(None);
                 };
-
-            // Used to reverse the order of edge args to the matcher
-            // when checking G1 subset of G0.
-            #[inline]
-            fn reverse_args<T1, T2, R, F>(mut f: F) -> impl FnMut(T2, T1) -> R
-            where
-                F: FnMut(T1, T2) -> R,
+                S::Score::combine(&outgoing_score, &incoming_score)
+            } else {
+                outgoing_score
+            }
+        } else {
+            if !self.mapped_edges_counts_match(nodes, Outgoing)
+                || (self.directed() && !self.mapped_edges_counts_match(nodes, Incoming))
             {
-                move |y, x| f(x, y)
+                return Ok(None);
             }
+            S::Score::id()
+        };
 
-            // outgoing edges
-            if induced {
-                let e_first: Vec<(NodeIndex, G0::EdgeId)> =
-                    st.0.graph
-                        .edges(nodes[0])
-                        .filter_map(|edge| {
-                            let n_neigh = edge.target();
-                            let m_neigh = if nodes[0] != n_neigh {
-                                st.0.mapping[n_neigh.index()]
-                            } else {
-                                nodes[1]
-                            };
-                            if m_neigh == end {
-                                return None;
-                            }
-                            Some((m_neigh, edge.id()))
-                        })
-                        .collect();
+        let new_score = S::Score::combine(
+            &S::Score::combine(&self.semantic.cur, &node_score),
+            &edge_score,
+        );
+        match self.semantic.limit.as_ref() {
+            Some(limit) => {
+                // We're not consistent if the score  breaks the limit.
+                Ok((S::Score::cmp(&new_score, limit) != Ordering::Greater).then_some(new_score))
+            }
+            None => Ok(Some(new_score)),
+        }
+    }
 
-                let e_second: Vec<(NodeIndex, G1::EdgeId)> =
-                    st.1.graph
-                        .edges(nodes[1])
-                        .map(|edge| (edge.target(), edge.id()))
-                        .collect();
+    /// Are the directed edges of these two paired nodes consistent with all nodes already in the
+    /// mapping?
+    ///
+    /// This is the more expensive semantic check, where we have to run pairwise through the edge
+    /// lists to match them up against each other.  If there's no semantic checking enabled, use
+    /// `mapped_edges_counts_match`, which short-circuits based on the pre-calculated adjacency
+    /// matrices.
+    fn mapped_edges_semantic_match(
+        &self,
+        nodes: [NodeIndex; 2],
+        direction: Direction,
+    ) -> Result<Option<S::Score>, S::EdgeError> {
+        let needle = &self.st.0;
+        let haystack = &self.st.1;
+        // We only handle self loops in the `Outgoing` direction to avoid double-counting the score.
+        let handle_self = direction == Direction::Outgoing;
 
-                if !is_subset(&e_first, &e_second, &mut matcher)? {
-                    return Ok(false);
+        macro_rules! neighbor {
+            ($edge:expr) => {
+                match direction {
+                    Direction::Outgoing => $edge.target(),
+                    Direction::Incoming => $edge.source(),
+                }
+            };
+        }
+
+        if !needle.multigraph {
+            let mut score = S::Score::id();
+            let mapped_source = handle_self.then_some(nodes[1]);
+            for needle_edge in needle.graph.edges_directed(nodes[0], direction) {
+                let Some(haystack_neighbor) =
+                    needle.map_target(nodes[0], neighbor!(needle_edge), mapped_source)
+                else {
+                    continue;
                 };
-            }
-
-            let e_first: Vec<(NodeIndex, G1::EdgeId)> =
-                st.1.graph
-                    .edges(nodes[1])
-                    .filter_map(|edge| {
-                        let n_neigh = edge.target();
-                        let m_neigh = if nodes[1] != n_neigh {
-                            st.1.mapping[n_neigh.index()]
-                        } else {
-                            nodes[0]
-                        };
-                        if m_neigh == end {
-                            return None;
+                let haystack_multiplicity = match direction {
+                    Direction::Outgoing => haystack.edge_multiplicity(nodes[1], haystack_neighbor),
+                    Direction::Incoming => haystack.edge_multiplicity(haystack_neighbor, nodes[1]),
+                };
+                match self.problem {
+                    Problem::Exact | Problem::InducedSubgraph => {
+                        if haystack_multiplicity != 1 {
+                            return Ok(None);
                         }
-                        Some((m_neigh, edge.id()))
-                    })
-                    .collect();
-
-            let e_second: Vec<(NodeIndex, G0::EdgeId)> =
-                st.0.graph
-                    .edges(nodes[0])
-                    .map(|edge| (edge.target(), edge.id()))
-                    .collect();
-
-            if !is_subset(&e_first, &e_second, &mut reverse_args(&mut matcher))? {
-                return Ok(false);
-            };
-
-            // incoming edges
-            if st.0.graph.is_directed() {
-                if induced {
-                    let e_first: Vec<(NodeIndex, G0::EdgeId)> =
-                        st.0.graph
-                            .edges_directed(nodes[0], Incoming)
-                            .filter_map(|edge| {
-                                let n_neigh = edge.source();
-                                let m_neigh = if nodes[0] != n_neigh {
-                                    st.0.mapping[n_neigh.index()]
-                                } else {
-                                    nodes[1]
-                                };
-                                if m_neigh == end {
-                                    return None;
-                                }
-                                Some((m_neigh, edge.id()))
-                            })
-                            .collect();
-
-                    let e_second: Vec<(NodeIndex, G1::EdgeId)> =
-                        st.1.graph
-                            .edges_directed(nodes[1], Incoming)
-                            .map(|edge| (edge.source(), edge.id()))
-                            .collect();
-
-                    if !is_subset(&e_first, &e_second, &mut matcher)? {
-                        return Ok(false);
-                    };
+                    }
+                    Problem::Subgraph => {
+                        if haystack_multiplicity == 0 {
+                            return Ok(None);
+                        }
+                    }
                 }
-
-                let e_first: Vec<(NodeIndex, G1::EdgeId)> =
-                    st.1.graph
-                        .edges_directed(nodes[1], Incoming)
-                        .filter_map(|edge| {
-                            let n_neigh = edge.source();
-                            let m_neigh = if nodes[1] != n_neigh {
-                                st.1.mapping[n_neigh.index()]
-                            } else {
-                                nodes[0]
-                            };
-                            if m_neigh == end {
-                                return None;
-                            }
-                            Some((m_neigh, edge.id()))
-                        })
-                        .collect();
-
-                let e_second: Vec<(NodeIndex, G0::EdgeId)> =
-                    st.0.graph
-                        .edges_directed(nodes[0], Incoming)
-                        .map(|edge| (edge.source(), edge.id()))
-                        .collect();
-
-                if !is_subset(&e_first, &e_second, &mut reverse_args(&mut matcher))? {
-                    return Ok(false);
+                let Some(edge_score) = haystack
+                    .graph
+                    .edges_directed(nodes[1], direction)
+                    .filter_map(|haystack_edge| {
+                        if (neighbor!(haystack_edge) == haystack_neighbor) {
+                            self.semantic
+                                .scorer
+                                .score_edge(
+                                    &needle.graph,
+                                    &haystack.graph,
+                                    needle_edge.id(),
+                                    haystack_edge.id(),
+                                )
+                                .transpose()
+                        } else {
+                            None
+                        }
+                    })
+                    .next()
+                    .transpose()?
+                else {
+                    return Ok(None);
                 };
+                score = S::Score::combine(&score, &edge_score);
+            }
+            return Ok(Some(score));
+        }
+
+        let mut needle_edges = HashMap::<NodeIndex, SmallVec<[G0::EdgeId; 4]>>::new();
+        let mapped_source = handle_self.then_some(nodes[1]);
+        for edge in needle.graph.edges_directed(nodes[0], direction) {
+            let Some(haystack_neighbor) =
+                needle.map_target(nodes[0], neighbor!(edge), mapped_source)
+            else {
+                continue;
+            };
+            needle_edges
+                .entry(haystack_neighbor)
+                .or_insert_with(|| SmallVec::with_capacity(needle.edge_multiplicity_of(edge)))
+                .push(edge.id());
+        }
+        let mut haystack_edges = HashMap::<NodeIndex, SmallVec<[G1::EdgeId; 4]>>::new();
+        let mapped_source = handle_self.then_some(nodes[0]);
+        for edge in haystack.graph.edges_directed(nodes[1], direction) {
+            let Some(needle_neighbor) =
+                haystack.map_target(nodes[1], neighbor!(edge), mapped_source)
+            else {
+                continue;
+            };
+            haystack_edges
+                .entry(needle_neighbor)
+                .or_insert_with(|| SmallVec::with_capacity(haystack.edge_multiplicity_of(edge)))
+                .push(edge.id());
+        }
+
+        // In all problems, every edge between two mapped nodes in the needle must map to an edge
+        // between the two paired nodes in the haystack.  In the `Exact` and `InducedSubgraph`
+        // problems, we also need the reciprocal condition; there must be no unmapped edges on the
+        // haystack side.
+        let mut score = S::Score::id();
+        for (haystack_neighbor, needle_edges) in needle_edges {
+            let needle_neighbor = haystack.mapping[haystack_neighbor.index()];
+            let Some(mut haystack_edges) = haystack_edges.remove(&needle_neighbor) else {
+                // Actually this shouldn't ever trigger if we already checked that the _number_ of
+                // edges is consistent.
+                return Ok(None);
+            };
+            let match_edge = |haystack_edges: &[G1::EdgeId],
+                              needle_edge: G0::EdgeId|
+             -> Result<Option<(usize, S::Score)>, S::EdgeError> {
+                for (pos, haystack_edge) in haystack_edges.iter().enumerate() {
+                    if let Some(score) = self.semantic.scorer.score_edge(
+                        &needle.graph,
+                        &haystack.graph,
+                        needle_edge,
+                        *haystack_edge,
+                    )? {
+                        return Ok(Some((pos, score)));
+                    }
+                }
+                Ok(None)
+            };
+            for needle_edge in needle_edges {
+                let Some((pos, edge_score)) = match_edge(haystack_edges.as_slice(), needle_edge)?
+                else {
+                    return Ok(None);
+                };
+                score = S::Score::combine(&score, &edge_score);
+                haystack_edges.swap_remove(pos);
+            }
+            if !haystack_edges.is_empty()
+                && (self.problem == Problem::Exact || self.problem == Problem::InducedSubgraph)
+            {
+                return Ok(None);
             }
         }
-        Ok(true)
+        Ok(Some(score))
+    }
+
+    fn mapped_edges_counts_match(&self, nodes: [NodeIndex; 2], direction: Direction) -> bool {
+        let needle = &self.st.0;
+        let haystack = &self.st.1;
+
+        macro_rules! order {
+            ($node:expr, $other:expr) => {
+                match direction {
+                    Direction::Outgoing => ($node, $other),
+                    Direction::Incoming => ($other, $node),
+                }
+            };
+        }
+
+        let mapped_self = (direction == Direction::Outgoing).then_some(nodes[1]);
+        for needle_neighbor in needle.graph.neighbors_directed(nodes[0], direction) {
+            let Some(haystack_neighbor) = needle.map_target(nodes[0], needle_neighbor, mapped_self)
+            else {
+                continue;
+            };
+            let (needle_source, needle_target) = order!(nodes[0], needle_neighbor);
+            let (haystack_source, haystack_target) = order!(nodes[1], haystack_neighbor);
+            let needle_multiplicity = match needle.multigraph {
+                true => needle.edge_multiplicity(needle_source, needle_target),
+                false => 1,
+            };
+            let haystack_multiplicity =
+                haystack.edge_multiplicity(haystack_source, haystack_target);
+            match self.problem {
+                Problem::Exact | Problem::InducedSubgraph => {
+                    if needle_multiplicity != haystack_multiplicity {
+                        return false;
+                    }
+                }
+                Problem::Subgraph => {
+                    if needle_multiplicity > haystack_multiplicity {
+                        return false;
+                    }
+                }
+            }
+        }
+        if let Problem::Subgraph = self.problem {
+            // It's not a problem if there extra edges between mapped nodes in the haystack if we're
+            // looking for a non-induced subgraph, but for everything else we have to check.
+            return true;
+        }
+
+        let mapped_self = (direction == Direction::Outgoing).then_some(nodes[0]);
+        for haystack_neighbor in haystack.graph.neighbors_directed(nodes[1], direction) {
+            let Some(needle_neighbor) =
+                haystack.map_target(nodes[1], haystack_neighbor, mapped_self)
+            else {
+                continue;
+            };
+            let (needle_source, needle_target) = order!(nodes[0], needle_neighbor);
+            let (haystack_source, haystack_target) = order!(nodes[1], haystack_neighbor);
+            let needle_multiplicity = needle.edge_multiplicity(needle_source, needle_target);
+            let haystack_multiplicity = match haystack.multigraph {
+                true => haystack.edge_multiplicity(haystack_source, haystack_target),
+                false => 1,
+            };
+            if needle_multiplicity != haystack_multiplicity {
+                return false;
+            }
+        }
+        true
+    }
+
+    /// Do the nodes in this mapping have a compatible number of directed neighbors that are
+    /// unmapped, and already directed neighbors of the partial mapping?
+    fn unmapped_existing_neighbors_feasible(
+        &self,
+        nodes: [NodeIndex; 2],
+        list: OpenList,
+        direction: Direction,
+    ) -> bool {
+        let needle = &self.st.0;
+        let haystack = &self.st.1;
+
+        #[inline]
+        fn filter<G>(node: NodeIndex, state: &Vf2State<G>, list: OpenList) -> bool {
+            let index = node.index();
+            let externals = match list {
+                OpenList::Out => state.out.as_slice(),
+                OpenList::In => state.ins.as_slice(),
+            };
+            externals[index] > 0 && state.mapping[index] == NodeIndex::end()
+        }
+
+        let needle_neighbors = needle
+            .graph
+            .neighbors_directed(nodes[0], direction)
+            .filter(|node| filter(*node, needle, list))
+            .count();
+        let haystack_neighbors = haystack
+            .graph
+            .neighbors_directed(nodes[1], direction)
+            .filter(|node| filter(*node, haystack, list))
+            .count();
+
+        match self.problem {
+            Problem::Exact => needle_neighbors == haystack_neighbors,
+            Problem::InducedSubgraph | Problem::Subgraph => needle_neighbors <= haystack_neighbors,
+        }
+    }
+
+    /// Would this extension of the mapping add a compatible number of new neighbors to the entire
+    /// mapping?
+    fn unmapped_new_neighbors_feasible(&self, nodes: [NodeIndex; 2], direction: Direction) -> bool {
+        if let Problem::Subgraph = self.problem {
+            // If we're looking for a non-induced subgraph, the counts here don't mean anything.
+            return true;
+        }
+
+        let needle = &self.st.0;
+        let haystack = &self.st.1;
+
+        #[inline]
+        fn filter<G>(node: NodeIndex, state: &Vf2State<G>) -> bool {
+            let index = node.index();
+            state.out[index] == 0 && (state.ins.is_empty() || state.ins[index] == 0)
+        }
+
+        let needle_neighbors = needle
+            .graph
+            .neighbors_directed(nodes[0], direction)
+            .filter(|node| filter(*node, needle))
+            .count();
+        let haystack_neighbors = haystack
+            .graph
+            .neighbors_directed(nodes[1], direction)
+            .filter(|node| filter(*node, haystack))
+            .count();
+
+        match self.problem {
+            Problem::Exact => needle_neighbors == haystack_neighbors,
+            Problem::InducedSubgraph => needle_neighbors <= haystack_neighbors,
+            Problem::Subgraph => unreachable!("already handled by early return"),
+        }
+    }
+
+    /// Are the cardinalities of the sets of neighbors of the current mapping state still feasible
+    /// for a complete solution?
+    ///
+    /// This is a cheap lookahead heuristic; if the nodes currently mapped in the needle graph have
+    /// more neighbors than the nodes currently mapped in the haystack graph, there can't possibly
+    /// be a solution, regardless of the problem.  If we're not looking for a subgraph, then those
+    /// two sets of objects have to map exactly.
+    fn neighbor_counts_feasible(&self) -> bool {
+        let needle_outs = self.st.0.out_size;
+        let needle_ins = self.st.0.ins_size;
+        let haystack_outs = self.st.1.out_size;
+        let haystack_ins = self.st.1.ins_size;
+
+        match self.problem {
+            Problem::Exact => (needle_outs == haystack_outs) && (needle_ins == haystack_ins),
+            Problem::InducedSubgraph | Problem::Subgraph => {
+                (needle_outs <= haystack_outs) && (needle_ins <= haystack_ins)
+            }
+        }
+    }
+
+    /// Increase the call count of the mapper.  Returns `None` if we're already exhausted.
+    #[inline]
+    fn try_add_call(&mut self) -> Option<()> {
+        self.remaining_calls = self.remaining_calls.map(|rem| rem.saturating_sub(1));
+        match self.remaining_calls {
+            Some(0) => None,
+            Some(_) | None => Some(()),
+        }
     }
 }
 
-impl<G0, G1, NM, EM> Iterator for Vf2Algorithm<G0, G1, NM, EM>
+impl<G0, G1, S> Iterator for Vf2Algorithm<G0, G1, S>
 where
     G0: GraphProp + GraphBase<NodeId = NodeIndex> + DataMap + Create + NodeCount + EdgeCount,
     for<'a> &'a G0: GraphBase<NodeId = G0::NodeId, EdgeId = G0::EdgeId>
@@ -1200,140 +1394,102 @@ where
         + IntoNodeIdentifiers,
     G1::NodeWeight: Clone,
     G1::EdgeWeight: Clone,
-    NM: NodeMatcher<G0, G1>,
-    EM: EdgeMatcher<G0, G1>,
+    S: Vf2Scorer<G0, G1>,
 {
-    type Item = Result<DictMap<usize, usize>, IsIsomorphicError<NM::Error, EM::Error>>;
+    type Item = Result<
+        (
+            IndexMap<NodeIndex, NodeIndex, ::ahash::RandomState>,
+            S::Score,
+        ),
+        IsIsomorphicError<S::NodeError, S::EdgeError>,
+    >;
 
     /// Return Some(mapping) if isomorphism is decided, else None.
     fn next(&mut self) -> Option<Self::Item> {
-        if (self
-            .st
-            .0
-            .graph
-            .node_count()
-            .cmp(&self.st.1.graph.node_count())
-            .then(self.ordering)
-            != self.ordering)
-            || (self
-                .st
-                .0
-                .graph
-                .edge_count()
-                .cmp(&self.st.1.graph.edge_count())
-                .then(self.ordering)
-                != self.ordering)
-        {
-            return None;
-        }
-
-        // A "depth first" search of a valid mapping from graph 1 to graph 2
-
-        // F(s, n, m) -- evaluate state s and add mapping n <-> m
-
-        // Find least T1out node (in st.out[1] but not in M[1])
-        while let Some(frame) = self.stack.pop() {
-            match frame {
-                Frame::Unwind {
-                    nodes,
-                    open_list: ol,
-                } => {
-                    Vf2Algorithm::<G0, G1, NM, EM>::pop_state(&mut self.st, nodes);
-
-                    match Vf2Algorithm::<G0, G1, NM, EM>::next_from_ix(&mut self.st, nodes[0], ol) {
-                        None => continue,
-                        Some(nx) => {
-                            let f = Frame::Inner {
-                                nodes: [nx, nodes[1]],
-                                open_list: ol,
-                            };
-                            self.stack.push(f);
-                        }
-                    }
+        // Fast-path short circuits.
+        let (g0, g1) = (&self.st.0.graph, &self.st.1.graph);
+        match self.problem {
+            Problem::Exact => {
+                if g0.node_count() != g1.node_count() || g0.edge_count() != g1.edge_count() {
+                    return None;
                 }
-                Frame::Outer => {
-                    match Vf2Algorithm::<G0, G1, NM, EM>::next_candidate(&mut self.st) {
-                        None => {
-                            if self.st.1.is_complete() {
-                                return Some(Ok(self.mapping()));
-                            }
-                            continue;
-                        }
-                        Some((nx, mx, ol)) => {
-                            let f = Frame::Inner {
-                                nodes: [nx, mx],
-                                open_list: ol,
-                            };
-                            self.stack.push(f);
-                        }
-                    }
-                }
-                Frame::Inner {
-                    nodes,
-                    open_list: ol,
-                } => {
-                    let feasible = match Vf2Algorithm::<G0, G1, NM, EM>::is_feasible(
-                        &mut self.st,
-                        nodes,
-                        &mut self.node_match,
-                        &mut self.edge_match,
-                        self.ordering,
-                        self.induced,
-                    ) {
-                        Ok(f) => f,
-                        Err(e) => {
-                            return Some(Err(e));
-                        }
-                    };
-
-                    if feasible {
-                        Vf2Algorithm::<G0, G1, NM, EM>::push_state(&mut self.st, nodes);
-                        // Check cardinalities of Tin, Tout sets
-                        if self
-                            .st
-                            .0
-                            .out_size
-                            .cmp(&self.st.1.out_size)
-                            .then(self.ordering)
-                            == self.ordering
-                            && self
-                                .st
-                                .0
-                                .ins_size
-                                .cmp(&self.st.1.ins_size)
-                                .then(self.ordering)
-                                == self.ordering
-                        {
-                            self._counter += 1;
-                            if let Some(limit) = self.call_limit {
-                                if self._counter > limit {
-                                    return None;
-                                }
-                            }
-                            let f0 = Frame::Unwind {
-                                nodes,
-                                open_list: ol,
-                            };
-
-                            self.stack.push(f0);
-                            self.stack.push(Frame::Outer);
-                            continue;
-                        }
-                        Vf2Algorithm::<G0, G1, NM, EM>::pop_state(&mut self.st, nodes);
-                    }
-                    match Vf2Algorithm::<G0, G1, NM, EM>::next_from_ix(&mut self.st, nodes[0], ol) {
-                        None => continue,
-                        Some(nx) => {
-                            let f = Frame::Inner {
-                                nodes: [nx, nodes[1]],
-                                open_list: ol,
-                            };
-                            self.stack.push(f);
-                        }
-                    }
+            }
+            Problem::InducedSubgraph | Problem::Subgraph => {
+                if g0.node_count() > g1.node_count() || g0.edge_count() > g1.edge_count() {
+                    return None;
                 }
             }
         }
-        None
+
+        // Main logic loop.
+        //
+        // The overall strategy is a nested loop, where the "outer" loop is over unmapped nodes in
+        // the "needle" graph, and the "inner" loop is over unmapped nodes in the "haystack" graph.
+        // In both cases, the ordering of the nodes was set earlier, during the initial setup of
+        // `self`, depending on the base ordering heuristic.  The "stack" is to save our position
+        // in the loop iteration if/when we cede control back to the calling function.
+        loop {
+            let (mut nodes, open_list) = match self.stack.pop()? {
+                Frame::ChooseNextHaystack {
+                    nodes,
+                    open_list,
+                    prev_score,
+                } => {
+                    self.pop_state(nodes, prev_score);
+                    if let Some(haystack) = self.st.1.next_unmapped_after(nodes[1], open_list) {
+                        ([nodes[0], haystack], open_list)
+                    } else {
+                        continue;
+                    }
+                }
+                Frame::ChooseNextNeedle => {
+                    if let Some((needle, haystack, open_list)) = self.next_candidates() {
+                        ([needle, haystack], open_list)
+                    } else if self.st.0.is_complete() {
+                        // This only triggers if the needle graph is empty, and we're after a
+                        // subgraph problem (since we'll already have exited if we're after an exact
+                        // match and the numbers of nodes didn't match.
+                        return Some(Ok((self.mapping(), self.semantic.cur.clone())));
+                    } else {
+                        continue;
+                    }
+                }
+            };
+            // At this point, we've got a pair of a needle node and a haystack node to try.  We loop
+            // through the available haystack nodes until we find one that's feasible, at which
+            // point we save our state in the haystack loop and move to finding the match to the
+            // next needle node.  If none are feasible, we've finished this stack frame.
+            loop {
+                let feasible = match self.is_feasible(nodes) {
+                    Ok(f) => f,
+                    Err(e) => return Some(Err(e)),
+                };
+                if let Some(new_score) = feasible {
+                    let prev_score = self.push_state(nodes, new_score);
+                    if self.neighbor_counts_feasible() {
+                        self.try_add_call()?;
+                        self.stack.push(Frame::ChooseNextHaystack {
+                            nodes,
+                            open_list,
+                            prev_score,
+                        });
+                        if self.st.0.is_complete() {
+                            if let Some(limit) = self.semantic.limit.as_mut() {
+                                *limit = self.semantic.cur.clone();
+                            }
+                            return Some(Ok((self.mapping(), self.semantic.cur.clone())));
+                        }
+                        self.stack.push(Frame::ChooseNextNeedle);
+                        break;
+                    }
+                    self.pop_state(nodes, prev_score);
+                }
+                if let Some(nx) = self.st.1.next_unmapped_after(nodes[1], open_list) {
+                    nodes[1] = nx;
+                } else {
+                    break;
+                }
+            }
+        }
     }
 }
