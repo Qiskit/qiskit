@@ -90,7 +90,7 @@ class XGate(SingletonGate):
         #    └──────────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.X._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.X._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def control(
@@ -386,7 +386,7 @@ class CCXGate(SingletonControlledGate):
         #      └───┘└───┘└─────┘└───┘└───┘└───┘└─────┘└───┘└───┘ └───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.CCX._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.CCX._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def control(
@@ -489,7 +489,7 @@ class RCCXGate(SingletonGate):
         #      └───┘└───┘└───┘└─────┘└───┘└───┘└───┘└─────┘└───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.RCCX._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.RCCX._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def __eq__(self, other):
@@ -542,7 +542,7 @@ class C3SXGate(SingletonControlledGate):
         from qiskit.circuit import QuantumCircuit
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.C3SX._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.C3SX._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def __eq__(self, other):
@@ -585,7 +585,7 @@ class C3XGate(SingletonControlledGate):
         from qiskit.circuit import QuantumCircuit
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.C3X._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.C3X._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def control(
@@ -686,7 +686,7 @@ class RC3XGate(SingletonGate):
         from qiskit.circuit import QuantumCircuit
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.RC3X._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.RC3X._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def __eq__(self, other):

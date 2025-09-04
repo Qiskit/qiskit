@@ -145,7 +145,7 @@ class ProductFormula(EvolutionSynthesis):
             # this is the fast path, where the whole evolution is constructed Rust-side
             cx_fountain = self._cx_structure == "fountain"
             data = pauli_evolution(num_qubits, pauli_rotations, self.insert_barriers, cx_fountain)
-            circuit = QuantumCircuit._from_circuit_data(data, add_regs=True)
+            circuit = QuantumCircuit._from_circuit_data(data, legacy_qubits=True)
 
         return circuit
 

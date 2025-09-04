@@ -142,7 +142,7 @@ def iqp(
     else:
         name = "iqp"
 
-    circuit = QuantumCircuit._from_circuit_data(py_iqp(interactions), add_regs=True)
+    circuit = QuantumCircuit._from_circuit_data(py_iqp(interactions), legacy_qubits=True)
     circuit.name = name
     return circuit
 
@@ -175,6 +175,6 @@ def random_iqp(
         An IQP circuit.
     """
     # set the label -- if the number of qubits is too large, do not show the interactions matrix
-    circuit = QuantumCircuit._from_circuit_data(py_random_iqp(num_qubits, seed), add_regs=True)
+    circuit = QuantumCircuit._from_circuit_data(py_random_iqp(num_qubits, seed), legacy_qubits=True)
     circuit.name = "iqp"
     return circuit

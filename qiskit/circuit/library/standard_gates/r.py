@@ -70,7 +70,7 @@ class RGate(Gate):
         #    └───────────────────────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.R._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.R._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def inverse(self, annotated: bool = False):

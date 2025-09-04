@@ -260,7 +260,7 @@ def n_local(
         skip_final_rotation_layer=skip_final_rotation_layer,
         skip_unentangled_qubits=skip_unentangled_qubits,
     )
-    circuit = QuantumCircuit._from_circuit_data(data, add_regs=True, name=name)
+    circuit = QuantumCircuit._from_circuit_data(data, legacy_qubits=True, name=name)
 
     return circuit
 
