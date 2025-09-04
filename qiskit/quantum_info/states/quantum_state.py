@@ -477,26 +477,6 @@ class QuantumState:
         new_probs = np.reshape(probs_tens, (probs_tens.size,))
         return new_probs
 
-    def _matmul_with_data(self, other):
-        # If both are array-like, direct multiplication
-        try:
-            self_data = getattr(self, "data", None)
-            other_data = getattr(other, "data", None)
-            if self_data is not None and other_data is not None:
-                if hasattr(self, "__array__") and hasattr(other, "__array__"):
-                    return type(self)(self_data @ other_data)
-
-            # Convert to Operator and try matmul
-            from qiskit.quantum_info.operators import Operator
-
-            if isinstance(other, Operator):
-                return other.compose(self.to_operator())
-
-            # Else, coerce to Operator and compose
-            return Operator(other).compose(self.to_operator())
-        except Exception:
-            return NotImplemented
-
     # Overloads
     def __and__(self, other):
         return self.evolve(other)
@@ -521,6 +501,3 @@ class QuantumState:
 
     def __neg__(self):
         return self._multiply(-1)
-
-    def __rmatmul__(self, other):
-        return self._matmul_with_data(other)
