@@ -1204,7 +1204,8 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         # bind via array
         bound = op.assign_parameters([3])
         with self.subTest(msg="fully bound"):
-            self.assertTrue(np.allclose(bound.coeffs.astype(complex), [1, 3, 6]))
+            self.assertEqual(bound.coeffs.dtype, np.complex128)
+            self.assertTrue(np.allclose(bound.coeffs, [1, 3, 6]))
 
     def test_paulis_setter_rejects_bad_inputs(self):
         """Test that the setter for `paulis` rejects different-sized inputs."""
