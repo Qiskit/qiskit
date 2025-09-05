@@ -1,44 +1,7 @@
 ---
-prelude: >
-    This release fixes a long-standing issue with the `@` operator when applied
-    between operators and quantum states. Previously, expressions such as
-    `Operator @ Statevector` could produce results with incorrect dimensions,
-    leading to invalid states. This bug fix ensures that matrix multiplication
-    via `@` now behaves consistently with explicit matrix–vector multiplication,
-    preserving both data type and dimensionality. Users can now reliably apply
-    operators to quantum states using the `@` syntax without needing workarounds.
-
-features:
-  - |
-    Added support for using the matrix multiplication operator (``@``) between
-    :class:`.Operator` objects and :class:`.QuantumState` subclasses (such as
-    :class:`.StabilizerState`, :class:`.Statevector`, and :class:`.DensityMatrix`).
-    This enables more natural mathematical expressions when composing operators
-    and states. For example::
-
-        from qiskit import QuantumCircuit
-        from qiskit.quantum_info import Operator, Statevector
-
-        qc = QuantumCircuit(2)
-        qc.h(0)
-        qc.cx(0, 1)
-
-        op = Operator(qc)
-        state = Statevector.from_label('00')
-
-        new_state = op @ state  # Apply operator to state using @ operator
-        print(new_state)  # Output: Statevector([0.70710678+0.j, 0.        +0.j,
-                          #                   0.        +0.j, 0.70710678+0.j],
-                          #                  dims=(2, 2))
-
-upgrade_quantum_info:
-  - |
-    The :class:`.QuantumState` base class now provides improved handling of the
-    ``__rmatmul__`` operator overload to seamlessly delegate to 
-    :class:`.Operator.compose`, when required, and does a simple object.data @ Operator.data matrix multiplication otherwise. 
-    This ensures that right-multiplication by an :class:`.Operator` works consistently across all subclasses, without requiring 
-    explicit conversions by the user. Ensures that expressions like ``state @ operator`` behave as expected.
 fixes:
   - |
-     Fixed GitHub issue #14726 by ensuring that matrix multiplication with the @ operator between quantum states and 
-     operators produces results with the correct dimensions and data types.
+    The :meth:`.Operator.compose` method now correctly handles
+    :class:`.Statevector` inputs by delegating to
+    :meth:`.Statevector.evolve`, ensuring consistent behavior with
+    operator–statevector application.
