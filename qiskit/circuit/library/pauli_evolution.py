@@ -48,7 +48,22 @@ class PauliEvolutionGate(Gate):
 
         U(t) = e^{-itX} = R_X(2t).
 
+<<<<<<< HEAD
     **Examples:**
+=======
+    Compilation:
+
+    This gate represents the exact evolution :math:`U(t)`. Implementing this operation exactly,
+    however, generally requires an exponential number of gates. The compiler therefore typically
+    implements an *approximation* of the unitary :math:`U(t)`, e.g. using a product formula such
+    as defined by :class:`.LieTrotter`. By passing the ``synthesis`` argument, you can specify
+    which method the compiler should use, see :mod:`qiskit.synthesis` for the available options.
+
+    Note that the order in which the approximation and methods like :meth:`control` and
+    :meth:`power` are called matters. Changing the order can lead to different unitaries.
+
+    Examples:
+>>>>>>> d6a170630 (Fix doc format in circuit library (#14988))
 
     .. plot::
        :include-source:
@@ -82,11 +97,11 @@ class PauliEvolutionGate(Gate):
              └──────────────────────────┘
 
 
-    **References:**
+    References:
 
     [1] G. Li et al. Paulihedral: A Generalized Block-Wise Compiler Optimization
     Framework For Quantum Simulation Kernels (2021).
-    [`arXiv:2109.03371 <https://arxiv.org/abs/2109.03371>`_]
+    `arXiv:2109.03371 <https://arxiv.org/abs/2109.03371>`__
     """
 
     def __init__(

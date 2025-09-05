@@ -29,7 +29,7 @@ from ..n_local.n_local import NLocal
 
 
 def _normalize_entanglement(
-    entanglement: str | Mapping[int, Sequence[Sequence[int]]]
+    entanglement: str | Mapping[int, Sequence[Sequence[int]]],
 ) -> str | dict[int, list[tuple[int]]]:
     if isinstance(entanglement, str):
         return entanglement
@@ -431,8 +431,7 @@ class PauliFeatureMap(NLocal):
         insert_barriers: bool = False,
         name: str = "PauliFeatureMap",
     ) -> None:
-        """Create a new Pauli expansion circuit.
-
+        """
         Args:
             feature_dimension: Number of qubits in the circuit.
             reps: The number of repeated circuits.
@@ -450,7 +449,7 @@ class PauliFeatureMap(NLocal):
                 default mapping from :meth:`self_product`.
             parameter_prefix: The prefix used if default parameters are generated.
             insert_barriers: If True, barriers are inserted in between the evolution instructions
-                and hadamard layers.
+                and Hadamard layers.
 
         """
 

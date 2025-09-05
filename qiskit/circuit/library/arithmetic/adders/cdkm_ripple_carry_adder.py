@@ -90,7 +90,7 @@ class CDKMRippleCarryAdder(Adder):
         :class:`.FullAdderGate`: A generic inplace adder, with a carry-in bit. This
             is functionally equivalent to ``kind="full"``.
 
-    **References:**
+    References:
 
     [1] Cuccaro et al., A new quantum ripple-carry addition circuit, 2004.
     `arXiv:quant-ph/0410184 <https://arxiv.org/pdf/quant-ph/0410184.pdf>`_
