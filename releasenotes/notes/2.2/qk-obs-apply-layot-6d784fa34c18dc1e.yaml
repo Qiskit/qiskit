@@ -1,7 +1,7 @@
 ---
 features_c:
   - |
-    Added ``qk_obs_apply_layout`` to apply new qubit layouts to a ``QkObs`` observable.
+    Added :cpp:func:`qk_obs_apply_layout` to apply new qubit layouts to a ``QkObs`` observable.
     This function takes the observable, the new qubit indices, and an output number of qubits.
     Importantly, this function allows applying transpile layouts, usually given as
     ``QkTranspileLayout`` by a transpiler pass, to an observable. For example:

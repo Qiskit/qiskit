@@ -2,7 +2,7 @@
 QkTranspiler
 ============
 
-The :c:func:`qk_transpile` function exposes Qiskit's tranpsiler (:py:mod:`qiskit.transpiler`) to C.
+The :cpp:func:`qk_transpile` function exposes Qiskit's tranpsiler (:py:mod:`qiskit.transpiler`) to C.
 The basic functionality is using the same underlying code as the Python-space version, but the transpiler as
 exposed to C has more limitations than what is exposed to Python. The transpiler
 assumes a circuit built constructed using solely the C API and is intended to

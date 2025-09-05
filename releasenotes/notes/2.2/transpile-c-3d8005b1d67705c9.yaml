@@ -1,7 +1,7 @@
 ---
 features_c:
   - |
-    Added a new function ``transpile()`` to the Qiskit C API. This function is used for transpiling
+    Added a new function :cpp:func:`qk_transpile()` to the Qiskit C API. This function is used for transpiling
     quantum circuits in a standalone C context without using Python. This is the last major component
     needed in the C API for typical hardware execution workflows using Qiskit.
 
