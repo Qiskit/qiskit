@@ -70,8 +70,7 @@ class UnitaryGate(Gate):
         *,
         num_qubits: int | None = None,
     ) -> None:
-        """Create a gate from a numeric unitary matrix.
-
+        """
         Args:
             data: Unitary operator.
             label: Unitary name for backend [Default: ``None``].

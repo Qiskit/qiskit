@@ -69,13 +69,11 @@ class LinearAmplitudeFunction(QuantumCircuit):
 
     References:
 
-        [1]: Woerner, S., & Egger, D. J. (2018).
-             Quantum Risk Analysis.
-             `arXiv:1806.06893 <http://arxiv.org/abs/1806.06893>`_
+    [1] Woerner, S., & Egger, D. J. (2018). Quantum Risk Analysis.
+    `arXiv:1806.06893 <http://arxiv.org/abs/1806.06893>`_
 
-        [2]: Gacon, J., Zoufal, C., & Woerner, S. (2020).
-             Quantum-Enhanced Simulation-Based Optimization.
-             `arXiv:2005.10780 <http://arxiv.org/abs/2005.10780>`_
+    [2] Gacon, J., Zoufal, C., & Woerner, S. (2020). Quantum-Enhanced Simulation-Based Optimization.
+    `arXiv:2005.10780 <http://arxiv.org/abs/2005.10780>`_
     """
 
     @deprecate_func(

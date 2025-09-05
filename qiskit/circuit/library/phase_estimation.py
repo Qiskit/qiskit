@@ -34,18 +34,18 @@ class PhaseEstimation(QuantumCircuit):
     This estimation (and thereby this circuit) is a central routine to several well-known
     algorithms, such as Shor's algorithm or Quantum Amplitude Estimation.
 
-    **References:**
+    References:
 
-    [1]: Kitaev, A. Y. (1995). Quantum measurements and the Abelian Stabilizer Problem. 1–22.
-        `quant-ph/9511026 <http://arxiv.org/abs/quant-ph/9511026>`_
+    [1] Kitaev, A. Y. (1995). Quantum measurements and the Abelian Stabilizer Problem. 1–22.
+    `quant-ph/9511026 <http://arxiv.org/abs/quant-ph/9511026>`_
 
-    [2]: Michael A. Nielsen and Isaac L. Chuang. 2011.
-         Quantum Computation and Quantum Information: 10th Anniversary Edition (10th ed.).
-         Cambridge University Press, New York, NY, USA.
+    [2] Michael A. Nielsen and Isaac L. Chuang. 2011.
+    Quantum Computation and Quantum Information: 10th Anniversary Edition (10th ed.).
+    Cambridge University Press, New York, NY, USA.
 
-    [3]: Qiskit
-        `textbook <https://github.com/Qiskit/textbook/blob/main/notebooks/ch-algorithms/
-        quantum-phase-estimation.ipynb>`_
+    [3] Qiskit
+    `textbook <https://github.com/Qiskit/textbook/blob/main/notebooks/ch-algorithms/
+    quantum-phase-estimation.ipynb>`_
 
     """
 
@@ -131,7 +131,7 @@ def phase_estimation(
             be more performant, as it allows calling optimized control and power subroutines.
         name: The name of the output circuit.
 
-    **Reference Circuit:**
+    Reference Circuit:
 
     .. plot::
        :alt: A phase estimation circuit.

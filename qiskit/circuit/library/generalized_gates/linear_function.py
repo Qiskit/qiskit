@@ -36,7 +36,9 @@ class LinearFunction(Gate):
     For efficiency, the internal n x n matrix is stored in the format expected
     by cnot_synth, which is the big-endian (and not the little-endian) bit-ordering convention.
 
-    **Example:** the circuit
+    Example:
+     
+    The circuit
 
     .. code-block:: text
 
@@ -57,7 +59,7 @@ class LinearFunction(Gate):
             \end{pmatrix}
 
 
-    **References:**
+    References:
 
     [1] Ketan N. Patel, Igor L. Markov, and John P. Hayes,
     Optimal synthesis of linear reversible circuits,

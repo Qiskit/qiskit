@@ -38,7 +38,7 @@ class GraphState(QuantumCircuit):
     in a product basis at the end, there is evidence that the circuit becomes
     hard to simulate [2].
 
-    **Reference Circuit:**
+    Reference Circuit:
 
     .. plot::
        :alt: Diagram illustrating the previously described circuit.
@@ -51,7 +51,7 @@ class GraphState(QuantumCircuit):
        circuit.name = "Graph state"
        _generate_circuit_library_visualization(circuit)
 
-    **References:**
+    References:
 
     [1] M. Hein, J. Eisert, H.J. Briegel, Multi-party Entanglement in Graph States,
         `arXiv:0307130 <https://arxiv.org/pdf/quant-ph/0307130.pdf>`_
@@ -104,7 +104,7 @@ class GraphStateGate(Gate):
     in a product basis at the end, there is evidence that the circuit becomes
     hard to simulate [2].
 
-    **Reference Circuit:**
+    Reference Circuit:
 
     .. plot::
         :alt: Circuit diagram output by the previous code.

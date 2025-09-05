@@ -199,7 +199,7 @@ def grover_operator(
         insert_barriers: Whether barriers should be inserted between the reflections and A.
         name: The name of the circuit.
 
-    **References:**
+    References:
 
     [1] L. K. Grover (1996), A fast quantum mechanical algorithm for database search,
     `arXiv:quant-ph/9605043 <https://arxiv.org/abs/quant-ph/9605043>`_.

@@ -67,7 +67,7 @@ class GMS(QuantumCircuit):
         GMS(\chi_{12}, \chi_{13}, ..., \chi_{n-1 n}) =
         exp(-i \sum_{i=1}^{n} \sum_{j=i+1}^{n} X{\otimes}X \frac{\chi_{ij}}{2})
 
-    **References:**
+    References:
 
     [1] Sørensen, A. and Mølmer, K., Multi-particle entanglement of hot trapped ions.
     Physical Review Letters. 82 (9): 1835–1838.
@@ -129,7 +129,7 @@ class MSGate(Gate):
         print(Operator(gate))
 
 
-    **References:**
+    References:
 
     [1] Sørensen, A. and Mølmer, K., Multi-particle entanglement of hot trapped ions.
     Physical Review Letters. 82 (9): 1835–1838.

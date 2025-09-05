@@ -81,11 +81,11 @@ def pauli_two_design(
 
     References:
 
-        [1]: Nakata et al., Unitary 2-designs from random X- and Z-diagonal unitaries.
-            `arXiv:1502.07514 <https://arxiv.org/pdf/1502.07514.pdf>`_
+    [1] Nakata et al., Unitary 2-designs from random X- and Z-diagonal unitaries.
+    `arXiv:1502.07514 <https://arxiv.org/pdf/1502.07514.pdf>`_
 
-        [2]: McClean et al., Barren plateaus in quantum neural network training landscapes.
-             `arXiv:1803.11173 <https://arxiv.org/pdf/1803.11173.pdf>`_
+    [2] McClean et al., Barren plateaus in quantum neural network training landscapes.
+    `arXiv:1803.11173 <https://arxiv.org/pdf/1803.11173.pdf>`_
     """
     rng = np.random.default_rng(seed)
     random_block = Block.from_callable(1, 1, lambda params: _random_pauli_builder(params, rng))

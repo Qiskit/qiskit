@@ -35,7 +35,7 @@ class IQP(QuantumCircuit):
     of the interactions matrix. The powers of the CS gates are
     given by the upper triangle of the interactions matrix.
 
-    **Reference Circuit:**
+    Reference Circuit:
 
     .. plot::
        :alt: Diagram illustrating the previously described circuit.
@@ -45,7 +45,7 @@ class IQP(QuantumCircuit):
        circuit = IQP(A)
        circuit.draw('mpl')
 
-    **Expanded Circuit:**
+    Expanded Circuit:
 
         .. plot::
            :alt: Diagram illustrating the previously described circuit.
@@ -56,7 +56,7 @@ class IQP(QuantumCircuit):
            circuit = IQP(A)
            _generate_circuit_library_visualization(circuit.decompose())
 
-    **References:**
+    References:
 
     [1] M. J. Bremner et al. Average-case complexity versus approximate
     simulation of commuting quantum computations,
@@ -96,7 +96,7 @@ def iqp(
     T gate are given by the diagonal elements of the interactions matrix. The powers of the CS gates
     are given by the upper triangle of the interactions matrix.
 
-    **Reference Circuit:**
+    Reference Circuit:
 
     .. plot::
        :alt: Diagram illustrating the previously described circuit.
@@ -106,7 +106,7 @@ def iqp(
        circuit = iqp(A)
        circuit.draw("mpl")
 
-    **Expanded Circuit:**
+    Expanded Circuit:
 
         .. plot::
            :alt: Diagram illustrating the previously described circuit.
