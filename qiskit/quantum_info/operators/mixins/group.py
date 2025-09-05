@@ -132,18 +132,21 @@ class GroupMixin(ABC):
 
     def dot(self, other, qargs=None) -> Self:
         """Return the right multiplied operator self * other.
+
         Args:
             other (CLASS): an operator object.
             qargs (list or None): Optional, a list of subsystem positions to
                                 apply other on. If None apply on all
                                 subsystems (default: None).
+
         Returns:
             CLASS: The right matrix multiplied CLASS.
+
         .. note::
             The dot product can be obtained using the ``@`` binary operator.
             Hence ``a.dot(b)`` is equivalent to ``a @ b``.
         """
-        front = other.__class__.__name__ != 'Statevector'
+        front = other.__class__.__name__ != "Statevector"
         return self.compose(other, qargs=qargs, front=front)
 
     def power(self, n) -> Self:
