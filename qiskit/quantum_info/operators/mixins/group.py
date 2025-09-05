@@ -146,7 +146,8 @@ class GroupMixin(ABC):
             The dot product can be obtained using the ``@`` binary operator.
             Hence ``a.dot(b)`` is equivalent to ``a @ b``.
         """
-        return self.compose(other, qargs=qargs, front=True)
+        front = other.__class__.__name__ != "Statevector"
+        return self.compose(other, qargs=qargs, front=front)
 
     def power(self, n) -> Self:
         """Return the compose of a operator with itself n times.
