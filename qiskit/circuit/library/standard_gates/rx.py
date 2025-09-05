@@ -54,7 +54,11 @@ class RXGate(Gate):
     _standard_gate = StandardGate.RX
 
     def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
-        """Create new RX gate."""
+        """
+        Args:
+            theta: The rotation angle.
+            label: An optional label for the gate.
+        """
         super().__init__("rx", 1, [theta], label=label)
 
     def _define(self):

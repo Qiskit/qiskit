@@ -31,9 +31,9 @@ class RGate(Gate):
 
     .. code-block:: text
 
-               ┌─────────┐
-        q_0:   ┤ R(θ,ϕ)  ├ 
-               └─────────┘
+               ┌────────┐
+        q_0:   ┤ R(θ,ϕ) ├ 
+               └────────┘
 
 
     **Matrix Representation:**
@@ -57,7 +57,12 @@ class RGate(Gate):
         phi: ParameterValueType,
         label: Optional[str] = None,
     ):
-        """Create new r single-qubit gate."""
+        """
+        Args:
+            theta: The first rotation angle.
+            phi: The second rotation angle.
+            label: An optional label for the gate.
+        """
         super().__init__("r", 1, [theta, phi], label=label)
 
     def _define(self):

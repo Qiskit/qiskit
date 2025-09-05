@@ -75,7 +75,10 @@ class XGate(SingletonGate):
     _standard_gate = StandardGate.X
 
     def __init__(self, label: Optional[str] = None):
-        """Create new X gate."""
+        """
+        Args:
+            label: An optional label for the gate.
+        """
         super().__init__("x", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()

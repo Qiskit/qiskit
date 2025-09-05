@@ -66,8 +66,7 @@ class XXMinusYYGate(Gate):
         beta: ParameterValueType = 0,
         label: Optional[str] = "(XX-YY)",
     ):
-        """Create new XX-YY gate.
-
+        """
         Args:
             theta: The rotation angle.
             beta: The phase angle.

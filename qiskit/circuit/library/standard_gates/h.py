@@ -57,7 +57,10 @@ class HGate(SingletonGate):
     _standard_gate = StandardGate.H
 
     def __init__(self, label: Optional[str] = None):
-        """Create new H gate."""
+        """
+        Args:
+            label: An optional label for the gate.
+        """
         super().__init__("h", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()

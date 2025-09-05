@@ -40,9 +40,6 @@ class U1Gate(Gate):
           circuit = QuantumCircuit(1)
           circuit.p(lambda, 0) # or circuit.u(0, 0, lambda, 0)
 
-
-
-
     **Circuit symbol:**
 
     .. code-block:: text
@@ -95,7 +92,11 @@ class U1Gate(Gate):
     _standard_gate = StandardGate.U1
 
     def __init__(self, theta: ParameterValueType, label: str | None = None):
-        """Create new U1 gate."""
+        """
+        Args:
+            theta: The rotation angle.
+            label: An optional label for the gate.
+        """
         super().__init__("u1", 1, [theta], label=label)
 
     def _define(self):

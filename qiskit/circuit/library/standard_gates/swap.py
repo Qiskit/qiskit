@@ -63,7 +63,10 @@ class SwapGate(SingletonGate):
     _standard_gate = StandardGate.Swap
 
     def __init__(self, label: Optional[str] = None):
-        """Create new SWAP gate."""
+        """
+        Args:
+            label: An optional label for the gate.
+        """
         super().__init__("swap", 2, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()

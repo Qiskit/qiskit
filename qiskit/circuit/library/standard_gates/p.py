@@ -78,7 +78,11 @@ class PhaseGate(Gate):
     _standard_gate = StandardGate.Phase
 
     def __init__(self, theta: ParameterValueType, label: str | None = None):
-        """Create new Phase gate."""
+        """
+        Args:
+            theta: The rotation angle.
+            label: An optional label for the gate.
+        """
         super().__init__("p", 1, [theta], label=label)
 
     def _define(self):

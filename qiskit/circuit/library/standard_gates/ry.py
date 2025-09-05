@@ -53,7 +53,11 @@ class RYGate(Gate):
     _standard_gate = StandardGate.RY
 
     def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
-        """Create new RY gate."""
+        """
+        Args:
+            theta: The rotation angle.
+            label: An optional label for the gate.
+        """
         super().__init__("ry", 1, [theta], label=label)
 
     def _define(self):

@@ -11,6 +11,8 @@
 # that they have been altered from the originals.
 
 """Two-qubit ZX-rotation gate."""
+
+from __future__ import annotations
 from math import sqrt
 import numpy as np
 
@@ -86,8 +88,11 @@ class ECRGate(SingletonGate):
 
     _standard_gate = StandardGate.ECR
 
-    def __init__(self, label=None):
-        """Create new ECR gate."""
+    def __init__(self, label: str | None = None) -> None:
+        """
+        Args:
+            label: An optional label for the gate.
+        """
         super().__init__("ecr", 2, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()

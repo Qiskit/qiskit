@@ -38,8 +38,6 @@ class U2Gate(Gate):
           circuit = QuantumCircuit(1)
           circuit.u(pi/2, phi, lambda)
 
-
-
     **Circuit symbol:**
 
     .. code-block:: text
@@ -94,7 +92,12 @@ class U2Gate(Gate):
         lam: ParameterValueType,
         label: Optional[str] = None,
     ):
-        """Create new U2 gate."""
+        """
+        Args:
+            phi: The second Euler angle.
+            lam: The third Euler angle.
+            label: An optional label for the gate.
+        """
         super().__init__("u2", 1, [phi, lam], label=label)
 
     def _define(self):
