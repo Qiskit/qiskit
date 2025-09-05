@@ -433,10 +433,14 @@ class SparsePauliOp(LinearOp):
     def is_unitary(self, atol: float | None = None, rtol: float | None = None) -> bool:
         """Return True if operator is a unitary matrix.
 
+        This method checks whether the operator composed with its adjoint equals
+        the identity, up to the provided tolerance. The tolerance is used when
+        simplifying the composed operator and checking if the result is the identity.
+
         Args:
             atol (float): Optional. Absolute tolerance for checking if
                           coefficients are zero (Default: 1e-8).
-            rtol (float): Optional. relative tolerance for checking if
+            rtol (float): Optional. Relative tolerance for checking if
                           coefficients are zero (Default: 1e-5).
 
         Returns:
