@@ -30,7 +30,7 @@ class RXGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.rx` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -38,7 +38,7 @@ class RXGate(Gate):
         q_0: ┤ Rx(ϴ) ├
              └───────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -54,7 +54,11 @@ class RXGate(Gate):
     _standard_gate = StandardGate.RX
 
     def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
-        """Create new RX gate."""
+        """
+        Args:
+            theta: The rotation angle.
+            label: An optional label for the gate.
+        """
         super().__init__("rx", 1, [theta], label=label)
 
     def _define(self):
@@ -145,7 +149,7 @@ class CRXGate(ControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.crx` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -154,7 +158,7 @@ class CRXGate(ControlledGate):
         q_1: ┤ Rx(ϴ) ├
              └───────┘
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 

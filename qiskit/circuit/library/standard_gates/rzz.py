@@ -29,7 +29,7 @@ class RZZGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.rzz` method.
 
-    **Circuit Symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -37,7 +37,7 @@ class RZZGate(Gate):
                 │zz(θ)
         q_1: ───■────
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -62,35 +62,39 @@ class RZZGate(Gate):
                 0 & RZ(-\theta)
             \end{pmatrix}
 
-    **Examples:**
+    Examples:
 
-        .. math::
+    .. math::
 
-            R_{ZZ}(\theta = 0) = I
+        R_{ZZ}(\theta = 0) = I
 
-        .. math::
+    .. math::
 
-            R_{ZZ}(\theta = 2\pi) = -I
+        R_{ZZ}(\theta = 2\pi) = -I
 
-        .. math::
+    .. math::
 
-            R_{ZZ}(\theta = \pi) = - i Z \otimes Z
+        R_{ZZ}(\theta = \pi) = - i Z \otimes Z
 
-        .. math::
+    .. math::
 
-            R_{ZZ}\left(\theta = \frac{\pi}{2}\right) = \frac{1}{\sqrt{2}}
-                                    \begin{pmatrix}
-                                        1-i & 0 & 0 & 0 \\
-                                        0 & 1+i & 0 & 0 \\
-                                        0 & 0 & 1+i & 0 \\
-                                        0 & 0 & 0 & 1-i
-                                    \end{pmatrix}
+        R_{ZZ}\left(\theta = \frac{\pi}{2}\right) = \frac{1}{\sqrt{2}}
+                                \begin{pmatrix}
+                                    1-i & 0 & 0 & 0 \\
+                                    0 & 1+i & 0 & 0 \\
+                                    0 & 0 & 1+i & 0 \\
+                                    0 & 0 & 0 & 1-i
+                                \end{pmatrix}
     """
 
     _standard_gate = StandardGate.RZZ
 
     def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
-        """Create new RZZ gate."""
+        """
+        Args:
+            theta: The rotation angle.
+            label: An optional label for the gate.
+        """
         super().__init__("rzz", 2, [theta], label=label)
 
     def _define(self):
