@@ -129,7 +129,7 @@ impl PyRange {
         };
         let constant = start_expr.is_const()
             && stop_expr.is_const()
-            && step_expr.as_ref().map_or(true, |s| s.is_const());
+            && step_expr.as_ref().is_none_or(|s| s.is_const());
 
         // Store whether the type was explicitly specified or implicitly determined
         let is_implicit_promotion = ty.is_none();
