@@ -34,17 +34,17 @@ In C the version string is custom and freeform, but we have a test that checks t
 
 The package version stored into the repository should be changed as follows:
 
-- on `main`, the package version should always have a `dev` suffix and the version number should be the major/minor that is under development on `main`.
+- on `main`, the package version should almost always have a `dev` suffix and the version number should be the major/minor that is under development on `main`.
   For example, while 2.2.x is the current active release series of Qiskit, the version number on `main` should be `2.3.0.dev0`.
 
 - on a stable branch, the version number should be whatever the most recent release on the stable branch was; it is incremented as part of the release process.
-  For example, the first commit on a stable branch should change the version from `2.3.0.dev0` to `2.3.0rc1` as part of the release process.
+  For example, the `stable/2.3` branch is created from the commit that bumps the version number to `2.3.0rc1`.
 
 The procedure for a new minor-version release, with respect to version numbers is:
 
-1. create a new stable branch, e.g. `stable/2.2`, directly from `main`
-2. on `main`, push a commit that bumps the version from `2.2.0.dev0` to `2.3.0.dev0` (and moves the loose release notes into `releasenotes/notes/2.2`)
-3. on `stable/2.2`, push a commit that bumps the version from `2.2.0.dev0` to `2.2.0rc1` (and similarly moves the loose release notes into `releasenotes/notes/2.2`).
+1. on `main`, push a PR that bumps the version from `2.2.0.dev0` to `2.2.0rc1` (and moves the loose release notes into `releasenotes/notes/2.2`, and then do the rest of the release process)
+2. `qiskit-bot` will create a `stable/2.2` branch from that commit, since that's the one you should tag.
+3. on `main`, immediately push a PR that bumps the version to `2.3.0.dev0` to open development on the 2.3 series.
 
 You will need to run `cargo update` as part of a version-bump commit to propagate the changes in `Cargo.toml` to `Cargo.lock`.
 
