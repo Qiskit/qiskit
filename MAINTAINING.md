@@ -4,6 +4,51 @@ This document defines a *maintainer* as a contributor with merge privileges.
 The information detailed here is mostly related to Qiskit releases and other internal processes.
 
 
+## Package Version
+
+The version of the Qiskit package and crates is set in a few places:
+
+* `qiskit/VERSION.txt` for the Python package and docs
+* `Cargo.toml` for the Rust crates
+* `crates/cext/cbindgen.toml` for the C header file
+
+In principle, all three version numbers should be the same at all times.
+However, the different languages have different conventions about formatting.
+
+### Version-number formatting
+
+Python and Rust use different conventions for pre-release suffixes to the version.
+The punctuation (or lack of) separating the main number and the suffix is important.
+
+| Release level      | Python example | Rust or C example |
+|--------------------|----------------|-------------------|
+| stable             | 2.3.0          | 2.3.0             |
+| release candidate  | 2.3.0rc1       | 2.3.0-rc1         |
+| beta               | 2.3.0b1        | 2.3.0-beta1       |
+| development        | 2.3.0.dev0     | 2.3.0-dev         |
+
+In C the version string is custom and freeform, but we have a test that checks that it matches the Rust one.
+
+
+### Updating the version number
+
+The package version stored into the repository should be changed as follows:
+
+- on `main`, the package version should almost always have a `dev` suffix and the version number should be the major/minor that is under development on `main`.
+  For example, while 2.2.x is the current active release series of Qiskit, the version number on `main` should be `2.3.0.dev0`.
+
+- on a stable branch, the version number should be whatever the most recent release on the stable branch was; it is incremented as part of the release process.
+  For example, the `stable/2.3` branch is created from the commit that bumps the version number to `2.3.0rc1`.
+
+The procedure for a new minor-version release, with respect to version numbers is:
+
+1. on `main`, push a PR that bumps the version from `2.2.0.dev0` to `2.2.0rc1` (and moves the loose release notes into `releasenotes/notes/2.2`, and then do the rest of the release process)
+2. `qiskit-bot` will create a `stable/2.2` branch from that commit, since that's the one you should tag.
+3. on `main`, immediately push a PR that bumps the version to `2.3.0.dev0` to open development on the 2.3 series.
+
+You will need to run `cargo build` as part of a version-bump commit to propagate the changes in `Cargo.toml` to `Cargo.lock`.
+
+
 ## Stable Branch Policy
 
 The stable branch is intended to be a safe source of fixes for high-impact
