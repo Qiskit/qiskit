@@ -321,12 +321,16 @@ pub struct HighLevelSynthesisData {
     // Indicates whether to use custom definitions.
     #[pyo3(get)]
     unroll_definitions: bool,
+
+    // Indicates whether default synthesis methods for high-level-objects should
+    // prioritize methods for Clifford+T basis set.
+    #[pyo3(get)]
+    optimize_clifford_t: bool,
 }
 
 #[pymethods]
 impl HighLevelSynthesisData {
     #[new]
-    #[pyo3(signature=(/, hls_config, hls_plugin_manager, hls_op_names, coupling_map, target, equivalence_library, device_insts, use_physical_indices, min_qubits, unroll_definitions))]
     #[allow(clippy::too_many_arguments)]
     fn __new__(
         hls_config: Py<PyAny>,
@@ -339,6 +343,7 @@ impl HighLevelSynthesisData {
         use_physical_indices: bool,
         min_qubits: usize,
         unroll_definitions: bool,
+        optimize_clifford_t: bool,
     ) -> Self {
         Self {
             hls_config,
@@ -351,6 +356,7 @@ impl HighLevelSynthesisData {
             use_physical_indices,
             min_qubits,
             unroll_definitions,
+            optimize_clifford_t,
         }
     }
 
@@ -366,14 +372,15 @@ impl HighLevelSynthesisData {
             self.use_physical_indices,
             self.min_qubits,
             self.unroll_definitions,
+            self.optimize_clifford_t,
         )
             .into_py_any(py)
     }
 
     fn __str__(&self) -> String {
         format!(
-            "HighLevelSynthesisData(hls_config: {:?}, hls_plugin_manager: {:?}, hls_op_names: {:?}, coupling_map: {:?}, target: {:?},  equivalence_library: {:?}, device_insts: {:?}, use_physical_indices: {:?}, min_qubits: {:?}, unroll_definitions: {:?})",
-            self.hls_config, self.hls_plugin_manager, self.hls_op_names, self.coupling_map, self.target, self.equivalence_library, self.device_insts,  self.use_physical_indices, self.min_qubits, self.unroll_definitions
+            "HighLevelSynthesisData(hls_config: {:?}, hls_plugin_manager: {:?}, hls_op_names: {:?}, coupling_map: {:?}, target: {:?},  equivalence_library: {:?}, device_insts: {:?}, use_physical_indices: {:?}, min_qubits: {:?}, unroll_definitions: {:?}, optimize_clifford_t: {:?})",
+            self.hls_config, self.hls_plugin_manager, self.hls_op_names, self.coupling_map, self.target, self.equivalence_library, self.device_insts,  self.use_physical_indices, self.min_qubits, self.unroll_definitions, self.optimize_clifford_t,
         )
     }
 }

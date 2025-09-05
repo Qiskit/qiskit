@@ -72,7 +72,7 @@ class TGate(SingletonGate):
         #    └────────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.T._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.T._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def inverse(self, annotated: bool = False):
@@ -145,7 +145,7 @@ class TdgGate(SingletonGate):
         #    └─────────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.Tdg._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.Tdg._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def inverse(self, annotated: bool = False):

@@ -16,7 +16,9 @@ use crate::exit_codes::{CInputError, ExitCode};
 use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
 use num_complex::Complex64;
 
-use qiskit_quantum_info::sparse_observable::{BitTerm, SparseObservable, SparseTermView};
+use qiskit_quantum_info::sparse_observable::{
+    BitTerm, CoherenceError, SparseObservable, SparseTermView,
+};
 
 #[cfg(feature = "python_binding")]
 use pyo3::ffi::PyObject;
@@ -716,6 +718,104 @@ pub unsafe extern "C" fn qk_obs_compose_map(
 
     let result = first.compose_map(second, qargs_map);
     Box::into_raw(Box::new(result))
+}
+
+/// @ingroup QkObs
+/// Apply a new qubit layout to the observable.
+///
+/// The layout is set by an array ``layout`` of new indices, specifying that qubit at current
+/// index ``i`` is relabelled to index ``layout[i]``. The number of qubits the observable
+/// acts on can be extended by setting a larger ``num_qubits`` than the current observable has.
+///
+/// @param obs A pointer to the observable, this observable will be modified in place upon success.
+/// Check the exit code to ensure the layout was correctly applied.
+/// @param layout A pointer to the layout. The pointer must point to an array to
+/// ``qk_obs_num_qubits(obs)`` elements of type ``uint32_t``. Each element must have values
+/// in ``[0, num_qubits)``.
+/// @param num_qubits The number of output qubits.
+///
+/// @return An exit code.
+/// * ``QkExitCode_Success`` upon success
+/// * ``QkExitCode_DuplicteIndexError`` if duplicate qubit indices were found
+/// * ``QkExitCode_MismatchedQubits`` if ``num_qubits`` is smaller than the number of qubits in
+///   the observable
+/// * ``QkExitCode_IndexError`` for any other index errors, such as invalid values in ``layout``.
+///
+/// # Example
+///
+/// This interface allows to relabel and extend the qubit indices:
+///
+/// ```c
+/// QkObs *obs = qk_obs_zero(4);
+///
+/// // add a term to the observable
+/// QkBitTerm bit_terms[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
+/// uint32_t qubits[3] = {1, 2, 3};
+/// complex double coeff = 1;
+/// QkObsTerm term = {coeff, 3, bit_terms, qubits, 4};
+/// qk_obs_add_term(obs, &term);
+///
+/// uint32_t layout[3] = {0, 10, 9};  // qubit mapping is: 0->0, 1->10, 2->9
+/// uint32_t num_output_qubits = 11;
+/// int exit = qk_obs_apply_layout(obs, layout, num_output_qubits);
+/// ```
+///
+/// In a compiler workflow, this function can conveniently be used to apply a
+/// ``QkTranspileLayout*`` obtained from a transpiler pass, called ``transpile_layout``
+/// in the following example:
+///
+/// ```c
+/// // get the number of output qubits
+/// uint32_t num_output_qubits = qk_transpile_layout_num_output_qubits(transpile_layout);
+///
+/// // get the layout including the ancillas (hence the ``false`` in the function call)
+/// uint32_t *layout = malloc(sizeof(uint32_t) * num_output_qubits);
+/// qk_transpile_layout_final_layout(transpile_layout, false, layout);
+///
+/// // apply the layout
+/// int exit = qk_obs_apply_layout(obs, layout, num_output_qubits);
+///
+/// // free the layout array
+/// free(layout);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``obs`` is not a valid, non-null pointer to ``QkObs`` or if ``layout``
+/// is not a valid, non-null pointer to a sequence of ``qk_obs_num_qubits(obs)`` consecutive
+/// elements of ``uint32_t``.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_obs_apply_layout(
+    obs: *mut SparseObservable,
+    layout: *const u32,
+    num_qubits: u32,
+) -> ExitCode {
+    // SAFETY: Per documentation, this is a valid, non-null pointer.
+    let obs = unsafe { mut_ptr_as_ref(obs) };
+
+    let layout = if layout.is_null() {
+        None
+    } else {
+        let len = obs.num_qubits() as usize;
+        // SAFETY: Per documentation, ``layout`` is readable for ``obs.num_qubits()`` elements.
+        let indices = unsafe { ::std::slice::from_raw_parts(layout, len) };
+        Some(indices)
+    };
+
+    let obs_with_layout = match obs.apply_layout(layout, num_qubits) {
+        Ok(obs_with_layout) => obs_with_layout,
+        Err(e) => {
+            return match e {
+                CoherenceError::DuplicateIndices => ExitCode::DuplicateIndexError,
+                CoherenceError::NotEnoughQubits { .. } => ExitCode::MismatchedQubits,
+                _ => ExitCode::IndexError,
+            }
+        }
+    };
+
+    *obs = obs_with_layout;
+    ExitCode::Success
 }
 
 /// @ingroup QkObs
