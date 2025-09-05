@@ -1358,7 +1358,11 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         self.assertEqual(SparsePauliOp(["II"], [0j]), res)
 
     def test_is_unitary_tolerance(self):
-        """Test that is_unitary respects the input tolerance values."""
+        """Test that is_unitary respects the input tolerance values.
+        
+        This test verifies that the tolerance parameters are properly passed through
+        to the internal operations. See issue #14107.
+        """
         # Create a matrix that's approximately unitary but not exactly
         a = np.array([
             [-9.9801135e-01 + 6.3036762e-02j, 5.6710692e-06 + 8.1099635e-05j],
