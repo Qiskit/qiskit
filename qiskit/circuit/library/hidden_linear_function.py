@@ -121,7 +121,7 @@ def hidden_linear_function(adjacency_matrix: list | np.ndarray) -> QuantumCircui
     logarithmically with :math:`n`. Thus this circuit is an example
     of quantum advantage with shallow circuits.
 
-    **Reference Circuit:**
+    Reference Circuit:
 
     .. plot::
        :alt: Circuit diagram output by the previous code.
@@ -139,7 +139,7 @@ def hidden_linear_function(adjacency_matrix: list | np.ndarray) -> QuantumCircui
     Raises:
         CircuitError: If A is not symmetric.
 
-    **Reference:**
+    Reference:
 
     [1] S. Bravyi, D. Gosset, R. Koenig, Quantum Advantage with Shallow Circuits, 2017.
     `arXiv:1704.00690 <https://arxiv.org/abs/1704.00690>`_
