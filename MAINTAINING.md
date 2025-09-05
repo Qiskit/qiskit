@@ -46,7 +46,7 @@ The procedure for a new minor-version release, with respect to version numbers i
 2. `qiskit-bot` will create a `stable/2.2` branch from that commit, since that's the one you should tag.
 3. on `main`, immediately push a PR that bumps the version to `2.3.0.dev0` to open development on the 2.3 series.
 
-You will need to run `cargo update` as part of a version-bump commit to propagate the changes in `Cargo.toml` to `Cargo.lock`.
+You will need to run `cargo build` as part of a version-bump commit to propagate the changes in `Cargo.toml` to `Cargo.lock`.
 
 
 ## Stable Branch Policy
