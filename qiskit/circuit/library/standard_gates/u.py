@@ -27,7 +27,14 @@ from qiskit._accelerate.circuit import StandardGate
 
 
 class UGate(Gate):
-    r"""Generic single-qubit rotation.
+    r"""Generic single-qubit rotation in terms of ZYZ Euler angles.
+
+    The action of this gate can be related to the standard ZYZ Euler decomposition by
+
+    .. math::
+
+        U(\theta, \phi, \lambda) = P(\phi) R_Y(\theta) P(\lambda) 
+        = e^{i\frac{\phi + \lambda}{2}} R_Z(\phi) R_Y(\theta) R_Z(\lambda).
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.u` method.
@@ -62,11 +69,6 @@ class UGate(Gate):
 
     Examples:
 
-    .. math:
-
-        U(\theta, \phi, \lambda) = e^{-i \frac{\pi + \theta}{2}} P(\phi + \pi) \sqrt{X}
-        P(\theta + \pi) \sqrt{X} P(\lambda)
-
     .. math::
 
         U\left(\theta, -\frac{\pi}{2}, \frac{\pi}{2}\right) = RX(\theta)
@@ -87,9 +89,9 @@ class UGate(Gate):
     ):
         r"""
         Args:
-            theta: The angle :math:`\theta`.
-            phi: The angle :math:`\phi`.
-            lam: The angle :math:`\lambda`.
+            theta: The angle :math:`\theta corresponding to the :math:`R_Y(\theta)` rotation.
+            phi: The angle :math:`\phi` corresponding to the :math:`R_Z(\phi)` rotation.
+            lam: The angle :math:`\lambda` corresponding to the :math:`R_Z(\lambda)` rotation.
             label: An optional label for the gate.
         """
         super().__init__("u", 1, [theta, phi, lam], label=label)

@@ -33,7 +33,7 @@ class U3Gate(Gate):
 
        .. math::
 
-           U3(\theta, \phi, \lambda) =  U(\theta, \phi, \lambda)
+           U3(\theta, \phi, \lambda) = U(\theta, \phi, \lambda)
 
        .. code-block:: python
 
@@ -71,8 +71,8 @@ class U3Gate(Gate):
 
     .. math::
 
-        U3(\theta, \phi, \lambda) = e^{-i \frac{\pi + \theta}{2}} P(\phi + \pi) \sqrt{X}
-        P(\theta + \pi) \sqrt{X} P(\lambda)
+        U3(\theta, \phi, \lambda) = P(\phi) R_Y(\theta) P(\lambda)
+        = e^{i\frac{\phi + \lambda}{2}} R_Z(\phi) R_Y(\theta) R_Z(\lambda)
 
     .. math::
 
@@ -94,9 +94,9 @@ class U3Gate(Gate):
     ):
         r"""
         Args:
-            theta: The angle :math:`\theta`.
-            phi: The angle :math:`\phi`.
-            lam: The angle :math:`\lambda`.
+            theta: The angle :math:`\theta corresponding to the :math:`R_Y(\theta)` rotation.
+            phi: The angle :math:`\phi` corresponding to the :math:`R_Z(\phi)` rotation.
+            lam: The angle :math:`\lambda` corresponding to the :math:`R_Z(\lambda)` rotation.
             label: An optional label for the gate.
         """
         super().__init__("u3", 1, [theta, phi, lam], label=label)
