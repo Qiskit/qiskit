@@ -136,8 +136,8 @@ class GroupMixin(ABC):
         Args:
             other (CLASS): an operator object.
             qargs (list or None): Optional, a list of subsystem positions to
-                                 apply other on. If None apply on all
-                                 subsystems (default: None).
+                                  apply other on. If None apply on all
+                                  subsystems (default: None).
 
         Returns:
             CLASS: The right matrix multiplied CLASS.
