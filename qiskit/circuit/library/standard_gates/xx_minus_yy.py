@@ -32,7 +32,7 @@ class XXMinusYYGate(Gate):
     A 2-qubit parameterized XX-YY interaction. Its action is to induce
     a coherent rotation by some angle between :math:`|00\rangle` and :math:`|11\rangle`.
 
-    **Circuit Symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -42,7 +42,7 @@ class XXMinusYYGate(Gate):
         q_1: ┤1              ├
              └───────────────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -66,8 +66,7 @@ class XXMinusYYGate(Gate):
         beta: ParameterValueType = 0,
         label: Optional[str] = "(XX-YY)",
     ):
-        """Create new XX-YY gate.
-
+        """
         Args:
             theta: The rotation angle.
             beta: The phase angle.

@@ -25,7 +25,7 @@ class RVGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.rv` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -33,7 +33,7 @@ class RVGate(Gate):
         q_0: ┤ RV(v_x,v_y,v_z) ├
              └─────────────────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
