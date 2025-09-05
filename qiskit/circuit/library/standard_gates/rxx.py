@@ -56,23 +56,23 @@ class RXXGate(Gate):
 
     Examples:
 
-        .. math::
+    .. math::
 
-            R_{XX}(\theta = 0) = I
+        R_{XX}(\theta = 0) = I
 
-        .. math::
+    .. math::
 
-            R_{XX}(\theta = \pi) = -i X \otimes X
+        R_{XX}(\theta = \pi) = -i X \otimes X
 
-        .. math::
+    .. math::
 
-            R_{XX}\left(\theta = \frac{\pi}{2}\right) = \frac{1}{\sqrt{2}}
-                                    \begin{pmatrix}
-                                        1  & 0  & 0  & -i \\
-                                        0  & 1  & -i & 0 \\
-                                        0  & -i & 1  & 0 \\
-                                        -i & 0  & 0  & 1
-                                    \end{pmatrix}
+        R_{XX}\left(\theta = \frac{\pi}{2}\right) = \frac{1}{\sqrt{2}}
+                                \begin{pmatrix}
+                                    1  & 0  & 0  & -i \\
+                                    0  & 1  & -i & 0 \\
+                                    0  & -i & 1  & 0 \\
+                                    -i & 0  & 0  & 1
+                                \end{pmatrix}
     """
 
     _standard_gate = StandardGate.RXX

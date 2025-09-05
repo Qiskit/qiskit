@@ -27,7 +27,7 @@ from qiskit._accelerate.circuit import StandardGate
 
 
 class UGate(Gate):
-    r"""Generic single-qubit rotation gate with 3 Euler angles.
+    r"""Generic single-qubit rotation.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.u` method.
@@ -62,6 +62,11 @@ class UGate(Gate):
 
     Examples:
 
+    .. math:
+
+        U(\theta, \phi, \lambda) = e^{-i \frac{\pi + \theta}{2}} P(\phi + \pi) \sqrt{X}
+        P(\theta + \pi) \sqrt{X} P(\lambda)
+
     .. math::
 
         U\left(\theta, -\frac{\pi}{2}, \frac{\pi}{2}\right) = RX(\theta)
@@ -80,11 +85,11 @@ class UGate(Gate):
         lam: ParameterValueType,
         label: Optional[str] = None,
     ):
-        """
+        r"""
         Args:
-            theta: The first Euler angle.
-            phi: The second Euler angle.
-            lam: The third Euler angle.
+            theta: The angle :math:`\theta`.
+            phi: The angle :math:`\phi`.
+            lam: The angle :math:`\lambda`.
             label: An optional label for the gate.
         """
         super().__init__("u", 1, [theta, phi, lam], label=label)

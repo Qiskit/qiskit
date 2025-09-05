@@ -47,14 +47,14 @@ class IQP(QuantumCircuit):
 
     Expanded Circuit:
 
-        .. plot::
-           :alt: Diagram illustrating the previously described circuit.
+    .. plot::
+        :alt: Diagram illustrating the previously described circuit.
 
-           from qiskit.circuit.library import IQP
-           from qiskit.visualization.library import _generate_circuit_library_visualization
-           A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
-           circuit = IQP(A)
-           _generate_circuit_library_visualization(circuit.decompose())
+        from qiskit.circuit.library import IQP
+        from qiskit.visualization.library import _generate_circuit_library_visualization
+        A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
+        circuit = IQP(A)
+        _generate_circuit_library_visualization(circuit.decompose())
 
     References:
 

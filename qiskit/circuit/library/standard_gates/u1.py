@@ -60,17 +60,17 @@ class U1Gate(Gate):
 
     Examples:
 
-        .. math::
+    .. math::
 
-            U1(\theta = \pi) = Z
+        U1(\theta = \pi) = Z
 
-        .. math::
+    .. math::
 
-            U1(\theta = \pi/2) = S
+        U1(\theta = \pi/2) = S
 
-        .. math::
+    .. math::
 
-            U1(\theta = \pi/4) = T
+        U1(\theta = \pi/4) = T
 
     .. seealso::
 

@@ -56,23 +56,23 @@ class RYYGate(Gate):
 
     Examples:
 
-        .. math::
+    .. math::
 
-            R_{YY}(\theta = 0) = I
+        R_{YY}(\theta = 0) = I 
 
-        .. math::
+    .. math::
 
-            R_{YY}(\theta = \pi) = -i Y \otimes Y
+        R_{YY}(\theta = \pi) = -i Y \otimes Y
 
-        .. math::
+    .. math::
 
-            R_{YY}\left(\theta = \frac{\pi}{2}\right) = \frac{1}{\sqrt{2}}
-                                    \begin{pmatrix}
-                                        1 & 0 & 0 & i \\
-                                        0 & 1 & -i & 0 \\
-                                        0 & -i & 1 & 0 \\
-                                        i & 0 & 0 & 1
-                                    \end{pmatrix}
+        R_{YY}\left(\theta = \frac{\pi}{2}\right) = \frac{1}{\sqrt{2}}
+                                \begin{pmatrix}
+                                    1 & 0 & 0 & i \\
+                                    0 & 1 & -i & 0 \\
+                                    0 & -i & 1 & 0 \\
+                                    i & 0 & 0 & 1
+                                \end{pmatrix}
     """
 
     _standard_gate = StandardGate.RYY

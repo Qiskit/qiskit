@@ -92,10 +92,10 @@ class U2Gate(Gate):
         lam: ParameterValueType,
         label: Optional[str] = None,
     ):
-        """
+        r"""
         Args:
-            phi: The second Euler angle.
-            lam: The third Euler angle.
+            phi: The rotation angle :math:`\phi`.
+            lam: The rotation angle :math:`\lambda`.
             label: An optional label for the gate.
         """
         super().__init__("u2", 1, [phi, lam], label=label)

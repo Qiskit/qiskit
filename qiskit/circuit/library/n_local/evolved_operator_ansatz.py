@@ -61,16 +61,16 @@ def evolved_operator_ansatz(
 
     Examples:
 
-        .. plot::
-            :alt: Circuit diagram output by the previous code.
-            :include-source:
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
 
-            from qiskit.circuit.library import evolved_operator_ansatz
-            from qiskit.quantum_info import Pauli
+        from qiskit.circuit.library import evolved_operator_ansatz
+        from qiskit.quantum_info import Pauli
 
-            ops = [Pauli("ZZI"), Pauli("IZZ"), Pauli("IXI")]
-            ansatz = evolved_operator_ansatz(ops, reps=3, insert_barriers=True)
-            ansatz.draw("mpl")
+        ops = [Pauli("ZZI"), Pauli("IZZ"), Pauli("IXI")]
+        ansatz = evolved_operator_ansatz(ops, reps=3, insert_barriers=True)
+        ansatz.draw("mpl")
 
     Args:
         operators: The operators to evolve. Can be a single operator or a sequence thereof.
@@ -213,33 +213,33 @@ def hamiltonian_variational_ansatz(
 
     Examples:
 
-        A single operator will be split into commuting terms automatically:
+    A single operator will be split into commuting terms automatically:
 
-        .. plot::
-            :alt: Circuit diagram output by the previous code.
-            :include-source:
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
 
-            from qiskit.quantum_info import SparsePauliOp
-            from qiskit.circuit.library import hamiltonian_variational_ansatz
+        from qiskit.quantum_info import SparsePauliOp
+        from qiskit.circuit.library import hamiltonian_variational_ansatz
 
-            # this Hamiltonian will be split into the two terms [ZZI, IZZ] and [IXI]
-            hamiltonian = SparsePauliOp(["ZZI", "IZZ", "IXI"])
-            ansatz = hamiltonian_variational_ansatz(hamiltonian, reps=2)
-            ansatz.draw("mpl")
+        # this Hamiltonian will be split into the two terms [ZZI, IZZ] and [IXI]
+        hamiltonian = SparsePauliOp(["ZZI", "IZZ", "IXI"])
+        ansatz = hamiltonian_variational_ansatz(hamiltonian, reps=2)
+        ansatz.draw("mpl")
 
-        Alternatively, we can directly provide the terms:
+    Alternatively, we can directly provide the terms:
 
-        .. plot::
-            :alt: Circuit diagram output by the previous code.
-            :include-source:
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
 
-            from qiskit.quantum_info import SparsePauliOp
-            from qiskit.circuit.library import hamiltonian_variational_ansatz
+        from qiskit.quantum_info import SparsePauliOp
+        from qiskit.circuit.library import hamiltonian_variational_ansatz
 
-            zz = SparsePauliOp(["ZZI", "IZZ"])
-            x = SparsePauliOp(["IXI"])
-            ansatz = hamiltonian_variational_ansatz([zz, x], reps=2)
-            ansatz.draw("mpl")
+        zz = SparsePauliOp(["ZZI", "IZZ"])
+        x = SparsePauliOp(["IXI"])
+        ansatz = hamiltonian_variational_ansatz([zz, x], reps=2)
+        ansatz.draw("mpl")
 
 
     Args:

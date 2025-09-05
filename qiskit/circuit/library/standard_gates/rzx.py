@@ -97,27 +97,27 @@ class RZXGate(Gate):
 
     Examples:
 
-        .. math::
+    .. math::
 
-            R_{ZX}(\theta = 0)\ q_0, q_1 = I
+        R_{ZX}(\theta = 0)\ q_0, q_1 = I
 
-        .. math::
+    .. math::
 
-            R_{ZX}(\theta = 2\pi)\ q_0, q_1 = -I
+        R_{ZX}(\theta = 2\pi)\ q_0, q_1 = -I
 
-        .. math::
+    .. math::
 
-            R_{ZX}(\theta = \pi)\ q_0, q_1 = -i X \otimes Z
+        R_{ZX}(\theta = \pi)\ q_0, q_1 = -i X \otimes Z
 
-        .. math::
+    .. math::
 
-            R_{ZX}(\theta = \frac{\pi}{2})\ q_0, q_1 = \frac{1}{\sqrt{2}}
-                                    \begin{pmatrix}
-                                        1  & 0 & -i & 0 \\
-                                        0  & 1 & 0  & i \\
-                                        -i & 0 & 1  & 0 \\
-                                        0  & i & 0  & 1
-                                    \end{pmatrix}
+        R_{ZX}(\theta = \frac{\pi}{2})\ q_0, q_1 = \frac{1}{\sqrt{2}}
+                                \begin{pmatrix}
+                                    1  & 0 & -i & 0 \\
+                                    0  & 1 & 0  & i \\
+                                    -i & 0 & 1  & 0 \\
+                                    0  & i & 0  & 1
+                                \end{pmatrix}
     """
 
     _standard_gate = StandardGate.RZX

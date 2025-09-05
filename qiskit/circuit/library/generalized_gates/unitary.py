@@ -41,25 +41,25 @@ class UnitaryGate(Gate):
 
     Example:
 
-        We can create a unitary gate from a unitary matrix then add it to a
-        quantum circuit. The matrix can also be directly applied to the quantum
-        circuit, see :meth:`.QuantumCircuit.unitary`.
+    We can create a unitary gate from a unitary matrix then add it to a
+    quantum circuit. The matrix can also be directly applied to the quantum
+    circuit, see :meth:`.QuantumCircuit.unitary`.
 
-        .. plot::
-           :include-source:
-           :nofigs:
+    .. plot::
+        :include-source:
+        :nofigs:
 
-            from qiskit import QuantumCircuit
-            from qiskit.circuit.library import UnitaryGate
+        from qiskit import QuantumCircuit
+        from qiskit.circuit.library import UnitaryGate
 
-            matrix = [[0, 0, 0, 1],
-                      [0, 0, 1, 0],
-                      [1, 0, 0, 0],
-                      [0, 1, 0, 0]]
-            gate = UnitaryGate(matrix)
+        matrix = [[0, 0, 0, 1],
+                    [0, 0, 1, 0],
+                    [1, 0, 0, 0],
+                    [0, 1, 0, 0]]
+        gate = UnitaryGate(matrix)
 
-            circuit = QuantumCircuit(2)
-            circuit.append(gate, [0, 1])
+        circuit = QuantumCircuit(2)
+        circuit.append(gate, [0, 1])
     """
 
     def __init__(

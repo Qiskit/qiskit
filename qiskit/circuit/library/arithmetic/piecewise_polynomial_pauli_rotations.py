@@ -54,6 +54,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
         Qiskit's Pauli rotations.
 
     Examples:
+
         >>> from qiskit import QuantumCircuit
         >>> from qiskit.circuit.library.arithmetic.piecewise_polynomial_pauli_rotations import\
         ... PiecewisePolynomialPauliRotations

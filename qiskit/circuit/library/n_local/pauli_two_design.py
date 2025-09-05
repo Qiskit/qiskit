@@ -58,13 +58,13 @@ def pauli_two_design(
 
     Examples:
 
-        .. plot::
-            :alt: Circuit diagram output by the previous code.
-            :include-source:
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
 
-            from qiskit.circuit.library import pauli_two_design
-            circuit = pauli_two_design(4, reps=2, seed=5, insert_barriers=True)
-            circuit.draw("mpl")
+        from qiskit.circuit.library import pauli_two_design
+        circuit = pauli_two_design(4, reps=2, seed=5, insert_barriers=True)
+        circuit.draw("mpl")
 
     Args:
         num_qubits: The number of qubits of the Pauli Two-Design circuit.

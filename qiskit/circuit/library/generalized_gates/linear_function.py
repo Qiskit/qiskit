@@ -79,8 +79,7 @@ class LinearFunction(Gate):
         ),
         validate_input: bool = False,
     ) -> None:
-        """Create a new linear function.
-
+        """
         Args:
             linear: data from which a linear function can be constructed. It can be either a
                 nxn matrix (describing the linear transformation), a permutation (which is a

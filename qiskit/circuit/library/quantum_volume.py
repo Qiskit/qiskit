@@ -73,8 +73,7 @@ class QuantumVolume(QuantumCircuit):
         *,
         flatten: bool = False,
     ) -> None:
-        """Create quantum volume model circuit of size num_qubits x depth.
-
+        """
         Args:
             num_qubits: number of active qubits in model circuit.
             depth: layers of SU(4) operations in model circuit.

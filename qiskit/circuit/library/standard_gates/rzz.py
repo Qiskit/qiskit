@@ -64,27 +64,27 @@ class RZZGate(Gate):
 
     Examples:
 
-        .. math::
+    .. math::
 
-            R_{ZZ}(\theta = 0) = I
+        R_{ZZ}(\theta = 0) = I
 
-        .. math::
+    .. math::
 
-            R_{ZZ}(\theta = 2\pi) = -I
+        R_{ZZ}(\theta = 2\pi) = -I
 
-        .. math::
+    .. math::
 
-            R_{ZZ}(\theta = \pi) = - i Z \otimes Z
+        R_{ZZ}(\theta = \pi) = - i Z \otimes Z
 
-        .. math::
+    .. math::
 
-            R_{ZZ}\left(\theta = \frac{\pi}{2}\right) = \frac{1}{\sqrt{2}}
-                                    \begin{pmatrix}
-                                        1-i & 0 & 0 & 0 \\
-                                        0 & 1+i & 0 & 0 \\
-                                        0 & 0 & 1+i & 0 \\
-                                        0 & 0 & 0 & 1-i
-                                    \end{pmatrix}
+        R_{ZZ}\left(\theta = \frac{\pi}{2}\right) = \frac{1}{\sqrt{2}}
+                                \begin{pmatrix}
+                                    1-i & 0 & 0 & 0 \\
+                                    0 & 1+i & 0 & 0 \\
+                                    0 & 0 & 1+i & 0 \\
+                                    0 & 0 & 0 & 1-i
+                                \end{pmatrix}
     """
 
     _standard_gate = StandardGate.RZZ

@@ -54,14 +54,14 @@ class HiddenLinearFunction(QuantumCircuit):
 
     Reference Circuit:
 
-        .. plot::
-           :alt: Diagram illustrating the previously described circuit.
+    .. plot::
+        :alt: Diagram illustrating the previously described circuit.
 
-           from qiskit.circuit.library import HiddenLinearFunction
-           from qiskit.visualization.library import _generate_circuit_library_visualization
-           A = [[1, 1, 0], [1, 0, 1], [0, 1, 1]]
-           circuit = HiddenLinearFunction(A)
-           _generate_circuit_library_visualization(circuit)
+        from qiskit.circuit.library import HiddenLinearFunction
+        from qiskit.visualization.library import _generate_circuit_library_visualization
+        A = [[1, 1, 0], [1, 0, 1], [0, 1, 1]]
+        circuit = HiddenLinearFunction(A)
+        _generate_circuit_library_visualization(circuit)
 
     References:
 
@@ -121,7 +121,7 @@ def hidden_linear_function(adjacency_matrix: list | np.ndarray) -> QuantumCircui
     logarithmically with :math:`n`. Thus this circuit is an example
     of quantum advantage with shallow circuits.
 
-    Reference Circuit:
+    **Reference Circuit:**
 
     .. plot::
        :alt: Circuit diagram output by the previous code.
@@ -139,7 +139,7 @@ def hidden_linear_function(adjacency_matrix: list | np.ndarray) -> QuantumCircui
     Raises:
         CircuitError: If A is not symmetric.
 
-    References:
+    **Reference:**
 
     [1] S. Bravyi, D. Gosset, R. Koenig, Quantum Advantage with Shallow Circuits, 2017.
     `arXiv:1704.00690 <https://arxiv.org/abs/1704.00690>`_

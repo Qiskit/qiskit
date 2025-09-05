@@ -22,7 +22,7 @@ from qiskit._accelerate.circuit import StandardGate
 
 
 class RGate(Gate):
-    r"""Rotation θ around the cos(φ)x + sin(φ)y axis.
+    r"""Rotation :math:`\theta` around the :math:`\cos(\phi)x + \sin(\phi)y` axis.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.r` method.
@@ -57,10 +57,10 @@ class RGate(Gate):
         phi: ParameterValueType,
         label: Optional[str] = None,
     ):
-        """
+        r"""
         Args:
-            theta: The first rotation angle.
-            phi: The second rotation angle.
+            theta: The rotation angle :math:`\theta`.
+            phi: The angle specifying the rotation axis, given by :math:`\cos(\phi) x + \sin(\phi)y`.
             label: An optional label for the gate.
         """
         super().__init__("r", 1, [theta, phi], label=label)

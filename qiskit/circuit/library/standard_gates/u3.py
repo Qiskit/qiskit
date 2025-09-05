@@ -92,11 +92,11 @@ class U3Gate(Gate):
         lam: ParameterValueType,
         label: Optional[str] = None,
     ):
-        """
+        r"""
         Args:
-            theta: The first Euler angle.
-            phi: The second Euler angle.
-            lam: The third Euler angle.
+            theta: The angle :math:`\theta`.
+            phi: The angle :math:`\phi`.
+            lam: The angle :math:`\lambda`.
             label: An optional label for the gate.
         """
         super().__init__("u3", 1, [theta, phi, lam], label=label)

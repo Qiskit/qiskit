@@ -75,17 +75,18 @@ class PhaseEstimation(QuantumCircuit):
             The inverse QFT should not include a swap of the qubit order.
 
         Reference Circuit:
-            .. plot::
-               :alt: Diagram illustrating the previously described circuit.
 
-               from qiskit.circuit import QuantumCircuit
-               from qiskit.circuit.library import PhaseEstimation
-               from qiskit.visualization.library import _generate_circuit_library_visualization
-               unitary = QuantumCircuit(2)
-               unitary.x(0)
-               unitary.y(1)
-               circuit = PhaseEstimation(3, unitary)
-               _generate_circuit_library_visualization(circuit)
+        .. plot::
+            :alt: Diagram illustrating the previously described circuit.
+
+            from qiskit.circuit import QuantumCircuit
+            from qiskit.circuit.library import PhaseEstimation
+            from qiskit.visualization.library import _generate_circuit_library_visualization
+            unitary = QuantumCircuit(2)
+            unitary.x(0)
+            unitary.y(1)
+            circuit = PhaseEstimation(3, unitary)
+            _generate_circuit_library_visualization(circuit)
         """
         qr_eval = QuantumRegister(num_evaluation_qubits, "eval")
         qr_state = QuantumRegister(unitary.num_qubits, "q")
