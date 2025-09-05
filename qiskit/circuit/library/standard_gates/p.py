@@ -30,7 +30,7 @@ class PhaseGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.p` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -38,7 +38,7 @@ class PhaseGate(Gate):
         q_0: ┤ P(θ) ├
              └──────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -48,7 +48,7 @@ class PhaseGate(Gate):
                 0 & e^{i\theta}
             \end{pmatrix}
 
-    **Examples:**
+    Examples:
 
         .. math::
 
@@ -78,7 +78,11 @@ class PhaseGate(Gate):
     _standard_gate = StandardGate.Phase
 
     def __init__(self, theta: ParameterValueType, label: str | None = None):
-        """Create new Phase gate."""
+        """
+        Args:
+            theta: The rotation angle.
+            label: An optional label for the gate.
+        """
         super().__init__("p", 1, [theta], label=label)
 
     def _define(self):
@@ -169,7 +173,7 @@ class CPhaseGate(ControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.cp` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -179,7 +183,7 @@ class CPhaseGate(ControlledGate):
         q_1: ─■──
 
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 
@@ -302,7 +306,7 @@ class MCPhaseGate(ControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.mcp` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 

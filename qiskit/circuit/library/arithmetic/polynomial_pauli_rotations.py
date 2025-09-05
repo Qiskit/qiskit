@@ -165,8 +165,7 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
         basis: str = "Y",
         name: str = "poly",
     ) -> None:
-        """Prepare an approximation to a state with amplitudes specified by a polynomial.
-
+        """
         Args:
             num_state_qubits: The number of qubits representing the state.
             coeffs: The coefficients of the polynomial. ``coeffs[i]`` is the coefficient of the

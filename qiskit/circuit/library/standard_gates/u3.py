@@ -33,14 +33,14 @@ class U3Gate(Gate):
 
        .. math::
 
-           U3(\theta, \phi, \lambda) =  U(\theta, \phi, \lambda)
+           U3(\theta, \phi, \lambda) = U(\theta, \phi, \lambda)
 
        .. code-block:: python
 
           circuit = QuantumCircuit(1)
           circuit.u(theta, phi, lambda)
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -48,7 +48,7 @@ class U3Gate(Gate):
         q_0: ┤ U3(ϴ,φ,λ) ├
              └───────────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -67,12 +67,12 @@ class U3Gate(Gate):
         <https://doi.org/10.48550/arXiv.1707.03429>`_ by a global phase of
         :math:`e^{i(\phi+\lambda)/2}`.
 
-    **Examples:**
+    Examples:
 
     .. math::
 
-        U3(\theta, \phi, \lambda) = e^{-i \frac{\pi + \theta}{2}} P(\phi + \pi) \sqrt{X}
-        P(\theta + \pi) \sqrt{X} P(\lambda)
+        U3(\theta, \phi, \lambda) = P(\phi) R_Y(\theta) P(\lambda)
+        = e^{i\frac{\phi + \lambda}{2}} R_Z(\phi) R_Y(\theta) R_Z(\lambda)
 
     .. math::
 
@@ -92,7 +92,13 @@ class U3Gate(Gate):
         lam: ParameterValueType,
         label: Optional[str] = None,
     ):
-        """Create new U3 gate."""
+        r"""
+        Args:
+            theta: The angle :math:`\theta corresponding to the :math:`R_Y(\theta)` rotation.
+            phi: The angle :math:`\phi` corresponding to the :math:`R_Z(\phi)` rotation.
+            lam: The angle :math:`\lambda` corresponding to the :math:`R_Z(\lambda)` rotation.
+            label: An optional label for the gate.
+        """
         super().__init__("u3", 1, [theta, phi, lam], label=label)
 
     def inverse(self, annotated: bool = False):
@@ -207,7 +213,7 @@ class CU3Gate(ControlledGate):
 
 
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -216,7 +222,7 @@ class CU3Gate(ControlledGate):
         q_1: ┤ U3(ϴ,φ,λ) ├
              └───────────┘
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 

@@ -40,10 +40,7 @@ class U1Gate(Gate):
           circuit = QuantumCircuit(1)
           circuit.p(lambda, 0) # or circuit.u(0, 0, lambda, 0)
 
-
-
-
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -51,7 +48,7 @@ class U1Gate(Gate):
         q_0: ┤ U1(θ) ├
              └───────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -61,19 +58,19 @@ class U1Gate(Gate):
                 0 & e^{i\theta}
             \end{pmatrix}
 
-    **Examples:**
+    Examples:
 
-        .. math::
+    .. math::
 
-            U1(\theta = \pi) = Z
+        U1(\theta = \pi) = Z
 
-        .. math::
+    .. math::
 
-            U1(\theta = \pi/2) = S
+        U1(\theta = \pi/2) = S
 
-        .. math::
+    .. math::
 
-            U1(\theta = \pi/4) = T
+        U1(\theta = \pi/4) = T
 
     .. seealso::
 
@@ -95,7 +92,11 @@ class U1Gate(Gate):
     _standard_gate = StandardGate.U1
 
     def __init__(self, theta: ParameterValueType, label: str | None = None):
-        """Create new U1 gate."""
+        """
+        Args:
+            theta: The rotation angle.
+            label: An optional label for the gate.
+        """
         super().__init__("u1", 1, [theta], label=label)
 
     def _define(self):
@@ -193,7 +194,7 @@ class CU1Gate(ControlledGate):
 
 
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -203,7 +204,7 @@ class CU1Gate(ControlledGate):
         q_1: ─■──
 
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 
@@ -351,7 +352,7 @@ class MCU1Gate(ControlledGate):
 
 
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 

@@ -69,8 +69,7 @@ class InnerProduct(QuantumCircuit):
         removal_timeline="in Qiskit 3.0",
     )
     def __init__(self, num_qubits: int) -> None:
-        """Return a circuit to compute the inner product of 2 n-qubit registers.
-
+        """
         Args:
             num_qubits: width of top and bottom registers (half total circuit width)
         """
