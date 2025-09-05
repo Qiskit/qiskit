@@ -4,8 +4,8 @@ features_c:
     The ``QkTarget`` type is now able to represent targets that support
     parameterized ``QkGate`` types that accept any parameter value. Previously,
     these gates could only be added to the target with a fixed angle value
-    supported by using ``qk_target_entry_new_fixed`` to create the ``QkTargetEntry``.
-    Now, the ``qk_target_entry_new`` function can be used with parameterized gates
+    supported by using :cpp:func:`qk_target_entry_new_fixed` to create the ``QkTargetEntry``.
+    Now, the :cpp:func:`qk_target_entry_new` function can be used with parameterized gates
     and when it is this indicates the gate in the target will support any value for
     all of the gate's parameters. For example:
 

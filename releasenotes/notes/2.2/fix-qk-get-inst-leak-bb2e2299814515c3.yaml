@@ -2,4 +2,4 @@
 fixes:
   - |
     Fixed a memory leak in the coordination of using
-    ``qk_circuit_get_instruction`` and ``qk_circuit_instruction_clear``.
+    :cpp:func:`qk_circuit_get_instruction` and :cpp:func:`qk_circuit_instruction_clear`.

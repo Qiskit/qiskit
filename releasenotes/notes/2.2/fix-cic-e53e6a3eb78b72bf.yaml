@@ -12,6 +12,6 @@ fixes:
     does not act on more than ``max_qubits`` qubits, then a matrix-based check
     is also performed. This slightly improves the reduction potential of the pass.
 
-    Fixed `#14407 <https://github.com/Qiskit/qiskit-terra/issues/14407>`__
-    Fixed `#14635 <https://github.com/Qiskit/qiskit-terra/issues/14635>`__
-    Fixed `#14645 <https://github.com/Qiskit/qiskit-terra/issues/14645>`__
+    Fixed `#14407 <https://github.com/Qiskit/qiskit-terra/issues/14407>`__, 
+    `#14635 <https://github.com/Qiskit/qiskit-terra/issues/14635>`__,
+    and `#14645 <https://github.com/Qiskit/qiskit-terra/issues/14645>`__.
