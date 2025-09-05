@@ -14,11 +14,15 @@ use num_complex::Complex64;
 
 use hashbrown::HashMap;
 use numpy::PyReadonlyArray1;
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
 use crate::pauli_exp_val::fast_sum;
 use qiskit_circuit::util::c64;
+use qiskit_quantum_info::sparse_observable::BitTerm;
+use qiskit_quantum_info::sparse_observable::PySparseObservable;
+use qiskit_quantum_info::sparse_observable::SparseObservable;
 
 const OPER_TABLE_SIZE: usize = (b'Z' as usize) + 1;
 const fn generate_oper_table() -> [[f64; 2]; OPER_TABLE_SIZE] {
@@ -83,12 +87,59 @@ pub fn sampled_expval_complex(
         .into_iter()
         .enumerate()
         .map(|(idx, string)| coeff_arr[idx] * c64(bitstring_expval(&dist, string), 0.))
-        .sum();
+        .sum::<Complex64>();
     Ok(out.re)
+}
+
+// Compute the expectation value from a sampled distribution for SparseObservable objects
+#[pyfunction]
+#[pyo3(text_signature = "(sparse_obs, dist, /)")]
+pub fn sampled_expval_sparse_observable(
+    sparse_obs: PyRef<PySparseObservable>,
+    dist: HashMap<String, f64>,
+) -> PyResult<f64> {
+    // Access the SparseObservable
+    let sparse_obs: SparseObservable = sparse_obs.get().unwrap();
+    let n = sparse_obs.num_qubits();
+
+    // Convert SparseObservable to operator strings and coefficients
+    let result: Result<Complex64, PyErr> =
+        sparse_obs
+            .iter()
+            .enumerate()
+            .try_fold(Complex64::new(0.0, 0.0), |acc, (_idx, term)| {
+                let mut full_op = vec!["I"; n as usize];
+                for (bit_term, &index) in term.bit_terms.iter().zip(term.indices.iter()) {
+                    let char = match bit_term {
+                        BitTerm::X => "X",
+                        BitTerm::Y => "Y",
+                        BitTerm::Z => "Z",
+                        BitTerm::Plus => "+",
+                        BitTerm::Minus => "-",
+                        BitTerm::Right => "r",
+                        BitTerm::Left => "l",
+                        BitTerm::Zero => "0",
+                        BitTerm::One => "1",
+                    };
+                    full_op[(n - 1 - index) as usize] = char;
+                }
+                let oper_str = full_op.join("");
+
+                // Validating that all operators are diagonal
+                if !oper_str.chars().all(|c| ['I', 'Z', '0', '1'].contains(&c)) {
+                    return Err(PyValueError::new_err(format!(
+                        "Operator string '{}' contains non-diagonal terms",
+                        oper_str
+                    )));
+                }
+                Ok(acc + term.coeff * Complex64::new(bitstring_expval(&dist, oper_str), 0.0))
+            });
+    Ok(result?.re)
 }
 
 pub fn sampled_exp_val(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(sampled_expval_float))?;
     m.add_wrapped(wrap_pyfunction!(sampled_expval_complex))?;
+    m.add_wrapped(wrap_pyfunction!(sampled_expval_sparse_observable))?;
     Ok(())
 }
