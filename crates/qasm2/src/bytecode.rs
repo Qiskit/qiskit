@@ -28,7 +28,7 @@ pub struct Bytecode {
     #[pyo3(get)]
     opcode: OpCode,
     #[pyo3(get)]
-    operands: PyObject,
+    operands: Py<PyAny>,
 }
 
 /// The operations that are represented by the "bytecode" passed to Python.
@@ -84,7 +84,7 @@ pub struct ExprUnary {
     #[pyo3(get)]
     pub opcode: UnaryOpCode,
     #[pyo3(get)]
-    pub argument: PyObject,
+    pub argument: Py<PyAny>,
 }
 
 /// A binary operation acting on two other parts of the expression tree.
@@ -94,9 +94,9 @@ pub struct ExprBinary {
     #[pyo3(get)]
     pub opcode: BinaryOpCode,
     #[pyo3(get)]
-    pub left: PyObject,
+    pub left: Py<PyAny>,
     #[pyo3(get)]
-    pub right: PyObject,
+    pub right: Py<PyAny>,
 }
 
 /// Some custom callable Python function that the user told us about.
@@ -104,9 +104,9 @@ pub struct ExprBinary {
 #[derive(Clone)]
 pub struct ExprCustom {
     #[pyo3(get)]
-    pub callable: PyObject,
+    pub callable: Py<PyAny>,
     #[pyo3(get)]
-    pub arguments: Vec<PyObject>,
+    pub arguments: Vec<Py<PyAny>>,
 }
 
 /// Discriminator for the different types of unary operator.  We could have a separate class for

@@ -33,8 +33,8 @@ pub fn build_dot<T>(
     dag: &DAGCircuit,
     file: &mut T,
     graph_attrs: Option<BTreeMap<String, String>>,
-    node_attrs: Option<PyObject>,
-    edge_attrs: Option<PyObject>,
+    node_attrs: Option<Py<PyAny>>,
+    edge_attrs: Option<Py<PyAny>>,
 ) -> PyResult<()>
 where
     T: Write,
@@ -80,7 +80,7 @@ static ATTRS_TO_ESCAPE: [&str; 2] = ["label", "tooltip"];
 /// Convert an attr map to an output string
 fn attr_map_to_string<'py, T: IntoPyObject<'py>>(
     py: Python<'py>,
-    attrs: Option<&'py PyObject>,
+    attrs: Option<&'py Py<PyAny>>,
     weight: T,
 ) -> PyResult<String>
 where

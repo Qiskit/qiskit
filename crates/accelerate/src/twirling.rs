@@ -276,10 +276,10 @@ fn generate_twirled_circuit(
             },
             OperationRef::Instruction(py_inst) => {
                 if py_inst.control_flow() {
-                    let new_blocks: PyResult<Vec<PyObject>> = py_inst
+                    let new_blocks: PyResult<Vec<Py<PyAny>>> = py_inst
                         .blocks()
                         .iter()
-                        .map(|block| -> PyResult<PyObject> {
+                        .map(|block| -> PyResult<Py<PyAny>> {
                             let new_block = generate_twirled_circuit(
                                 py,
                                 block,

@@ -122,7 +122,7 @@ enum Atom {
     LParen,
     RParen,
     Function(Function),
-    CustomFunction(PyObject, usize),
+    CustomFunction(Py<PyAny>, usize),
     Op(Op),
     Const(f64),
     Parameter(ParamId),
@@ -143,7 +143,7 @@ pub enum Expr {
     Divide(Box<Expr>, Box<Expr>),
     Power(Box<Expr>, Box<Expr>),
     Function(Function, Box<Expr>),
-    CustomFunction(PyObject, Vec<Expr>),
+    CustomFunction(Py<PyAny>, Vec<Expr>),
 }
 
 impl<'py> IntoPyObject<'py> for Expr {
@@ -432,7 +432,7 @@ impl ExprParser<'_> {
 
     fn apply_custom_function(
         &mut self,
-        callable: PyObject,
+        callable: Py<PyAny>,
         exprs: Vec<Expr>,
         token: &Token,
     ) -> PyResult<Expr> {
@@ -440,7 +440,7 @@ impl ExprParser<'_> {
             // We can still do constant folding with custom user classical functions, we're just
             // going to have to acquire the GIL and call the Python object the user gave us right
             // now.  We need to explicitly handle any exceptions that might occur from that.
-            Python::with_gil(|py| {
+            Python::attach(|py| {
                 let args = PyTuple::new(
                     py,
                     exprs.iter().map(|x| {

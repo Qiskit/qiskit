@@ -793,7 +793,7 @@ impl<'a> QASM3Builder {
     }
 
     fn hoist_global_params(&mut self) -> ExporterResult<()> {
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             for param in self.circuit_scope.circuit_data.get_parameters(py)? {
                 let raw_name: String = match param.getattr("name") {
                     Ok(attr) => match attr.extract() {
@@ -1187,7 +1187,7 @@ impl<'a> QASM3Builder {
             ));
         };
         let param = &instr.params_view()[0];
-        let duration: f64 = Python::with_gil(|py| match param {
+        let duration: f64 = Python::attach(|py| match param {
             Param::Float(val) => *val,
             Param::ParameterExpression(p) => {
                 if let Ok(symbol_expr::Value::Real(val)) = p.try_to_value(true) {
@@ -1267,7 +1267,7 @@ impl<'a> QASM3Builder {
             self.define_gate(instr)?;
         }
         let params = if self.disable_constants {
-            Python::with_gil(|_py| {
+            Python::attach(|_py| {
                 instr
                     .params_view()
                     .iter()

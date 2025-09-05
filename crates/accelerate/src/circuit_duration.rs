@@ -51,7 +51,7 @@ pub(crate) fn compute_estimated_duration(dag: &DAGCircuit, target: &Target) -> P
 
                                             },
                                         Param::Obj(val) => {
-                                            Python::with_gil(|py| {
+                                            Python::attach(|py| {
                                                 let dur_float: f64 = val.extract(py)?;
                                                 Ok(dur_float * dt)
                                             })

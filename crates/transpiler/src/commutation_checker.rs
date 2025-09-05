@@ -260,7 +260,7 @@ impl CommutationChecker {
         Ok(out_dict.unbind())
     }
 
-    fn __setstate__(&mut self, py: Python, state: PyObject) -> PyResult<()> {
+    fn __setstate__(&mut self, py: Python, state: Py<PyAny>) -> PyResult<()> {
         let dict_state = state.downcast_bound::<PyDict>(py)?;
         self.cache_max_entries = dict_state
             .get_item("cache_max_entries")?
@@ -626,7 +626,7 @@ fn get_matrix(operation: &OperationRef, params: &[Param]) -> Option<Array2<Compl
         Some(matrix)
     } else {
         match operation {
-            OperationRef::Gate(gate) => Python::with_gil(|py| -> Option<_> {
+            OperationRef::Gate(gate) => Python::attach(|py| -> Option<_> {
                 Some(
                     QI_OPERATOR
                         .get_bound(py)
@@ -640,7 +640,7 @@ fn get_matrix(operation: &OperationRef, params: &[Param]) -> Option<Array2<Compl
                         .to_owned(),
                 )
             }),
-            OperationRef::Operation(operation) => Python::with_gil(|py| -> Option<_> {
+            OperationRef::Operation(operation) => Python::attach(|py| -> Option<_> {
                 Some(
                     QI_OPERATOR
                         .get_bound(py)

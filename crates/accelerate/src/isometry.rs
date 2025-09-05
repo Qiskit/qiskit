@@ -34,7 +34,7 @@ pub fn reverse_qubit_state(
     state: [Complex64; 2],
     basis_state: usize,
     epsilon: f64,
-) -> PyObject {
+) -> Py<PyAny> {
     reverse_qubit_state_inner(&state, basis_state, epsilon)
         .into_pyarray(py)
         .into_any()
@@ -82,7 +82,7 @@ pub fn find_squs_for_disentangling(
     s: usize,
     epsilon: f64,
     n: usize,
-) -> Vec<PyObject> {
+) -> Vec<Py<PyAny>> {
     let v = v.as_array();
     let k_prime = 0;
     let i_start = if b(k, s + 1) == 0 {
@@ -116,7 +116,7 @@ pub fn apply_ucg(
     m: PyReadonlyArray2<Complex64>,
     k: usize,
     single_qubit_gates: Vec<PyReadonlyArray2<Complex64>>,
-) -> PyObject {
+) -> Py<PyAny> {
     let mut m = m.as_array().to_owned();
     let shape = m.shape();
     let num_qubits = shape[0].ilog2();
@@ -148,7 +148,7 @@ pub fn apply_diagonal_gate(
     m: PyReadonlyArray2<Complex64>,
     action_qubit_labels: Vec<usize>,
     diag: PyReadonlyArray1<Complex64>,
-) -> PyResult<PyObject> {
+) -> PyResult<Py<PyAny>> {
     let diag = diag.as_slice()?;
     let mut m = m.as_array().to_owned();
     let shape = m.shape();
@@ -225,7 +225,7 @@ pub fn apply_multi_controlled_gate(
     control_labels: Vec<usize>,
     target_label: usize,
     gate: PyReadonlyArray2<Complex64>,
-) -> PyObject {
+) -> Py<PyAny> {
     let mut m = m.as_array().to_owned();
     let gate = gate.as_array();
     let shape = m.shape();
@@ -304,7 +304,7 @@ pub fn merge_ucgate_and_diag(
     py: Python,
     single_qubit_gates: Vec<PyReadonlyArray2<Complex64>>,
     diag: Vec<Complex64>,
-) -> Vec<PyObject> {
+) -> Vec<Py<PyAny>> {
     single_qubit_gates
         .iter()
         .enumerate()

@@ -50,7 +50,7 @@ pub fn run_elide_permutations(dag: &DAGCircuit) -> PyResult<Option<(DAGCircuit, 
                     mapping.swap(index0, index1);
                 }
                 OperationRef::Gate(gate) if gate.name() == "permutation" => {
-                    Python::with_gil(|py| -> PyResult<()> {
+                    Python::attach(|py| -> PyResult<()> {
                         if let Param::Obj(ref pyobj) = inst.params.as_ref().unwrap()[0] {
                             let pyarray: PyReadonlyArray1<i32> = pyobj.extract(py)?;
                             let pattern = pyarray.as_array();

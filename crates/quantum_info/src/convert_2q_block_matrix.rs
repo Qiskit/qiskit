@@ -42,7 +42,7 @@ pub fn get_matrix_from_inst(inst: &PackedInstruction) -> PyResult<Array2<Complex
         // and use an Operator. Otherwise, using op.matrix() should work.
         // A user should not be able to reach this condition in Rust standalone
         // mode.
-        Python::with_gil(|py| -> PyResult<_> {
+        Python::attach(|py| -> PyResult<_> {
             Ok(QI_OPERATOR
                 .get_bound(py)
                 .call1((gate.gate.clone_ref(py),))?

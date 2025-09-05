@@ -30,7 +30,7 @@ pub struct PyObjectAsKey {
     /// Python's `hash()` of the wrapped instance.
     hash: isize,
     /// The wrapped instance.
-    ob: PyObject,
+    ob: Py<PyAny>,
 }
 
 impl PyObjectAsKey {
@@ -93,7 +93,7 @@ impl<'a, 'py> IntoPyObject<'py> for &'a PyObjectAsKey {
 impl PartialEq for PyObjectAsKey {
     fn eq(&self, other: &Self) -> bool {
         self.ob.is(&other.ob)
-            || Python::with_gil(|py| {
+            || Python::attach(|py| {
                 self.ob
                     .bind(py)
                     .repr()

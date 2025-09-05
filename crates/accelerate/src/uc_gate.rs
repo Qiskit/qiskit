@@ -121,7 +121,7 @@ pub fn dec_ucg_help(
     py: Python,
     sq_gates: Vec<PyReadonlyArray2<Complex64>>,
     num_qubits: u32,
-) -> (Vec<PyObject>, PyObject) {
+) -> (Vec<Py<PyAny>>, Py<PyAny>) {
     let mut single_qubit_gates: Vec<Matrix2<Complex64>> = sq_gates
         .into_iter()
         .map(|x| {

@@ -116,7 +116,7 @@ impl<'py> FromPyObject<'py> for TupleLikeArg<'py> {
                 ob.py(),
                 ob.try_iter()?
                     .map(|o| Ok(o?.unbind()))
-                    .collect::<PyResult<Vec<PyObject>>>()?,
+                    .collect::<PyResult<Vec<Py<PyAny>>>>()?,
             )?,
         };
         Ok(TupleLikeArg { value })

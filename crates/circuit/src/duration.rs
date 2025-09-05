@@ -69,7 +69,7 @@ impl Duration {
     /// This will be a Python ``int`` if the :meth:`~Duration.unit` is ``"dt"``,
     /// else a ``float``.
     #[pyo3(name = "value")]
-    fn py_value(&self, py: Python) -> PyResult<PyObject> {
+    fn py_value(&self, py: Python) -> PyResult<Py<PyAny>> {
         match self {
             Duration::dt(v) => v.into_py_any(py),
             Duration::ps(v)

@@ -52,7 +52,7 @@ pub enum DecomposerType {
     TwoQubitControlledU(TwoQubitControlledUDecomposer),
 }
 
-fn get_matrix(gate: &StandardGate) -> ArrayView2<Complex64> {
+fn get_matrix(gate: &StandardGate) -> ArrayView2<'_, Complex64> {
     match gate {
         StandardGate::CX => aview2(&CX_GATE),
         StandardGate::CY => aview2(&CY_GATE),
@@ -273,7 +273,7 @@ fn py_run_consolidate_blocks(
                 }),
                 Param::Float(0.),
             )?;
-            let matrix = Python::with_gil(|py| -> PyResult<_> {
+            let matrix = Python::attach(|py| -> PyResult<_> {
                 let circuit = QUANTUM_CIRCUIT
                     .get_bound(py)
                     .call_method1(intern!(py, "_from_circuit_data"), (circuit_data,))?;

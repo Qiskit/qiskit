@@ -128,7 +128,7 @@ pub fn marginal_memory(
     return_int: bool,
     return_hex: bool,
     parallel_threshold: usize,
-) -> PyResult<PyObject> {
+) -> PyResult<Py<PyAny>> {
     let run_in_parallel = getenv_use_multiple_threads();
     let first_elem = memory.first();
     if first_elem.is_none() {
@@ -173,7 +173,7 @@ pub fn marginal_measure_level_0(
     py: Python,
     memory: PyReadonlyArray3<Complex64>,
     indices: Vec<usize>,
-) -> PyObject {
+) -> Py<PyAny> {
     let mem_arr: ArrayView3<Complex64> = memory.as_array();
     let input_shape = mem_arr.shape();
     let new_shape = [input_shape[0], indices.len(), input_shape[2]];
@@ -187,7 +187,7 @@ pub fn marginal_measure_level_0_avg(
     py: Python,
     memory: PyReadonlyArray2<Complex64>,
     indices: Vec<usize>,
-) -> PyObject {
+) -> Py<PyAny> {
     let mem_arr: ArrayView2<Complex64> = memory.as_array();
     let input_shape = mem_arr.shape();
     let new_shape = [indices.len(), input_shape[1]];
@@ -201,7 +201,7 @@ pub fn marginal_measure_level_1(
     py: Python,
     memory: PyReadonlyArray2<Complex64>,
     indices: Vec<usize>,
-) -> PyObject {
+) -> Py<PyAny> {
     let mem_arr: ArrayView2<Complex64> = memory.as_array();
     let input_shape = mem_arr.shape();
     let new_shape = [input_shape[0], indices.len()];
@@ -215,7 +215,7 @@ pub fn marginal_measure_level_1_avg(
     py: Python,
     memory: PyReadonlyArray1<Complex64>,
     indices: Vec<usize>,
-) -> PyResult<PyObject> {
+) -> PyResult<Py<PyAny>> {
     let mem_arr: &[Complex64] = memory.as_slice()?;
     let out_arr: Vec<Complex64> = indices.into_iter().map(|idx| mem_arr[idx]).collect();
     Ok(out_arr.into_pyarray(py).into_any().unbind())

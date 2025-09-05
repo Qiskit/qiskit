@@ -145,7 +145,7 @@ fn build_interaction_graph<Ty: EdgeType>(
 ) -> PyResult<()> {
     for (_index, inst) in dag.op_nodes(false) {
         if inst.op.control_flow() {
-            Python::with_gil(|py| -> PyResult<_> {
+            Python::attach(|py| -> PyResult<_> {
                 let inner_weight = if inst.op.name() == "for_loop" {
                     let Param::Obj(ref indexset) = inst.params_view()[0] else {
                         unreachable!("Invalid for loop definition");

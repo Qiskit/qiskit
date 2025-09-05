@@ -18,7 +18,7 @@ use pyo3::{
     exceptions::{PyRuntimeError, PyTypeError, PyValueError},
     intern,
     prelude::*,
-    sync::GILOnceCell,
+    sync::PyOnceLock,
     types::{IntoPyDict, PyList, PyString, PyTuple, PyType},
     IntoPyObjectExt, PyErr,
 };
@@ -33,8 +33,8 @@ use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 
 use crate::imports;
 
-static PAULI_PY_ENUM: GILOnceCell<Py<PyType>> = GILOnceCell::new();
-static PAULI_INTO_PY: GILOnceCell<[Option<Py<PyAny>>; 16]> = GILOnceCell::new();
+static PAULI_PY_ENUM: PyOnceLock<Py<PyType>> = PyOnceLock::new();
+static PAULI_INTO_PY: PyOnceLock<[Option<Py<PyAny>>; 16]> = PyOnceLock::new();
 
 /// Named handle to the alphabet of single-qubit terms.
 ///

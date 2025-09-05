@@ -27,7 +27,7 @@ mod utils;
 /// Checks whether an array of size N is a permutation of 0, 1, ..., N - 1.
 #[pyfunction]
 #[pyo3(signature = (pattern))]
-pub fn _validate_permutation(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<PyObject> {
+pub fn _validate_permutation(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<Py<PyAny>> {
     let view = pattern.as_array();
     utils::validate_permutation(&view)?;
     Ok(py.None())
@@ -36,7 +36,7 @@ pub fn _validate_permutation(py: Python, pattern: PyArrayLike1<i64>) -> PyResult
 /// Finds inverse of a permutation pattern.
 #[pyfunction]
 #[pyo3(signature = (pattern))]
-pub fn _inverse_pattern(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<PyObject> {
+pub fn _inverse_pattern(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<Py<PyAny>> {
     let view = pattern.as_array();
     let inverse_i64: Vec<i64> = utils::invert(&view).iter().map(|&x| x as i64).collect();
     Ok(inverse_i64.into_pyobject(py)?.unbind())

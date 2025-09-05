@@ -106,8 +106,8 @@ impl ErrorMap {
         &self,
         py: Python,
         key: [PhysicalQubit; 2],
-        default: Option<PyObject>,
-    ) -> PyResult<PyObject> {
+        default: Option<Py<PyAny>>,
+    ) -> PyResult<Py<PyAny>> {
         Ok(match self.error_map.get(&key).copied() {
             Some(val) => val.into_py_any(py)?,
             None => match default {

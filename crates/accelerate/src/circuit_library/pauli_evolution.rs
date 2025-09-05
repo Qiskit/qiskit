@@ -472,7 +472,7 @@ fn cx_fountain(qubits: Vec<Qubit>) -> Box<dyn DoubleEndedIterator<Item = Instruc
 fn add_control(gate: StandardGate, params: &[Param], control_state: &[bool]) -> PackedOperation {
     // This function does not return a PyResult to keep the evolution functions free from PyO3.
     // We know that all calls here should be valid and unwrap eagerly.
-    Python::with_gil(|py| {
+    Python::attach(|py| {
         let pygate = gate
             .create_py_op(py, Some(params), None)
             .expect("Failed to create Py version of standard gate.");

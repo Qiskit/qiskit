@@ -75,13 +75,13 @@ pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<Circu
             if copy_operations {
                 let op = match instr.op.view() {
                     OperationRef::Gate(gate) => {
-                        Python::with_gil(|py| gate.py_deepcopy(py, None))?.into()
+                        Python::attach(|py| gate.py_deepcopy(py, None))?.into()
                     }
                     OperationRef::Instruction(instruction) => {
-                        Python::with_gil(|py| instruction.py_deepcopy(py, None))?.into()
+                        Python::attach(|py| instruction.py_deepcopy(py, None))?.into()
                     }
                     OperationRef::Operation(operation) => {
-                        Python::with_gil(|py| operation.py_deepcopy(py, None))?.into()
+                        Python::attach(|py| operation.py_deepcopy(py, None))?.into()
                     }
                     OperationRef::StandardGate(gate) => gate.into(),
                     OperationRef::StandardInstruction(instruction) => instruction.into(),

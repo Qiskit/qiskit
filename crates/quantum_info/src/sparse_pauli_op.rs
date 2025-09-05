@@ -51,7 +51,7 @@ use crate::rayon_ext::*;
 ///         - the indices of the unique array that reconstruct the input array
 ///
 #[pyfunction]
-pub fn unordered_unique(py: Python, array: PyReadonlyArray2<u16>) -> (PyObject, PyObject) {
+pub fn unordered_unique(py: Python, array: PyReadonlyArray2<u16>) -> (Py<PyAny>, Py<PyAny>) {
     let array = array.as_array();
     let shape = array.shape();
     let mut table = HashMap::<ArrayView1<u16>, usize>::with_capacity(shape[0]);
@@ -408,7 +408,7 @@ pub fn decompose_dense(
     tolerance: f64,
 ) -> PyResult<ZXPaulis> {
     let array_view = operator.as_array();
-    let out = py.allow_threads(|| decompose_dense_inner(array_view, tolerance))?;
+    let out = py.detach(|| decompose_dense_inner(array_view, tolerance))?;
     Ok(ZXPaulis {
         z: PyArray1::from_vec(py, out.z)
             .reshape([out.phases.len(), out.num_qubits])?
