@@ -38,6 +38,7 @@ from qiskit.compiler.transpiler import transpile
 from qiskit.circuit import Qubit
 from qiskit.circuit.library import PermutationGate
 from qiskit.utils import optionals
+from qiskit.quantum_info import Statevector
 
 from qiskit._accelerate import unitary_sim
 
@@ -373,6 +374,14 @@ class TestOperator(OperatorTestCase):
         opXY = Operator(self.UX).compose(Operator(self.UY), front=True)
         matXY = np.dot(self.UX, self.UY)
         self.assertEqual(opXY, Operator(matXY))
+
+    def test_compose_front_except(self):
+        """Test compose method raises exceptions with Statevector and front=True."""
+        op = Operator(self.rand_matrix(4, 4))
+        vec = Statevector([1, 0, 0, 0])  # Simple |00> state vector
+
+        self.assertRaises(QiskitError, op.compose, vec, front=True)
+        self.assertRaises(QiskitError, op.compose, vec, qargs=[0], front=True)  # with qargs
 
     def test_compose_subsystem(self):
         """Test subsystem compose method."""
