@@ -771,6 +771,7 @@ Template circuits for :class:`~qiskit.circuit.library.XGate`,
 and :class:`~qiskit.circuit.library.CCXGate` (Toffoli) gates.
 
 References:
+
 Maslov, D. and Dueck, G. W. and Miller, D. M.,
 Techniques for the synthesis of reversible Toffoli networks, 2007
 http://dx.doi.org/10.1145/1278349.1278355

@@ -261,6 +261,7 @@ class UniformSuperpositionGate(Gate):
         to prepare the superposition.
 
     References:
+
     [1]: A. Shukla and P. Vedula (2024), An efficient quantum algorithm for preparation
     of uniform quantum superposition states, `Quantum Inf Process 23, 38
     <https://link.springer.com/article/10.1007/s11128-024-04258-4>`_.
