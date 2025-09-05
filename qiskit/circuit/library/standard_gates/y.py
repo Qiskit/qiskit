@@ -87,7 +87,7 @@ class YGate(SingletonGate):
         #    └──────────────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.Y._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.Y._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def control(
@@ -232,7 +232,7 @@ class CYGate(SingletonControlledGate):
         #      └─────┘└───┘└───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.CY._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.CY._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def inverse(self, annotated: bool = False):

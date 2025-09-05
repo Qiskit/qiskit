@@ -82,7 +82,7 @@ class SXGate(SingletonGate):
         #    └─────┘└───┘└─────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.SX._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.SX._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def inverse(self, annotated: bool = False):
@@ -184,7 +184,7 @@ class SXdgGate(SingletonGate):
         #    └───┘└───┘└───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.SXdg._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.SXdg._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def inverse(self, annotated: bool = False):
@@ -296,7 +296,7 @@ class CSXGate(SingletonControlledGate):
         #      └───┘└───┘└───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.CSX._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.CSX._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def __eq__(self, other):
