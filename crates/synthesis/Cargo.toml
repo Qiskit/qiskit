@@ -36,7 +36,7 @@ thiserror.workspace = true
 
 [dependencies.faer-ext]
 version = "0.5.0"
-features = ["ndarray"]
+features = ["ndarray", "nalgebra"]
 
 [dependencies.smallvec]
 workspace = true
