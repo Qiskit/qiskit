@@ -10,19 +10,20 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-pub mod expr;
-pub mod types;
+mod ordering;
+mod types;
+
+pub use ordering::{cast_kind, is_subtype, is_supertype, greater, order, CastKind, Ordering};
+pub use types::Type;
 
 use pyo3::prelude::*;
 
 pub(crate) fn register_python(m: &Bound<PyModule>) -> PyResult<()> {
-    let expr_mod = PyModule::new(m.py(), "expr")?;
-    expr::register_python(&expr_mod)?;
-    m.add_submodule(&expr_mod)?;
+    types::register_python(&m)?;
 
-    let types_mod = PyModule::new(m.py(), "types")?;
-    types::register_python(&types_mod)?;
-    m.add_submodule(&types_mod)?;
+    let ordering_mod = PyModule::new(m.py(), "ordering")?;
+    ordering::register_python(&ordering_mod)?;
+    m.add_submodule(&ordering_mod)?;
 
     Ok(())
 }
