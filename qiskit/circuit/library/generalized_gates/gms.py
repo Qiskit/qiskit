@@ -30,7 +30,7 @@ from qiskit.utils.deprecation import deprecate_func
 class GMS(QuantumCircuit):
     r"""Global Mølmer–Sørensen gate.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -42,7 +42,7 @@ class GMS(QuantumCircuit):
         q_2: ┤2          ├
              └───────────┘
 
-    **Expanded Circuit:**
+    Expanded Circuit:
 
     .. plot::
        :alt: Diagram illustrating the previously described circuit.

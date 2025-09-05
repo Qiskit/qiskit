@@ -40,7 +40,7 @@ class U3Gate(Gate):
           circuit = QuantumCircuit(1)
           circuit.u(theta, phi, lambda)
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -48,7 +48,7 @@ class U3Gate(Gate):
         q_0: ┤ U3(ϴ,φ,λ) ├
              └───────────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -67,7 +67,7 @@ class U3Gate(Gate):
         <https://doi.org/10.48550/arXiv.1707.03429>`_ by a global phase of
         :math:`e^{i(\phi+\lambda)/2}`.
 
-    **Examples:**
+    Examples:
 
     .. math::
 
@@ -213,7 +213,7 @@ class CU3Gate(ControlledGate):
 
 
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -222,7 +222,7 @@ class CU3Gate(ControlledGate):
         q_1: ┤ U3(ϴ,φ,λ) ├
              └───────────┘
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 

@@ -32,7 +32,7 @@ class ZGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.z` method.
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -41,7 +41,7 @@ class ZGate(SingletonGate):
                 0 & -1
             \end{pmatrix}
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -159,7 +159,7 @@ class CZGate(SingletonControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.cz` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -167,7 +167,7 @@ class CZGate(SingletonControlledGate):
               │
         q_1: ─■─
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 
@@ -247,7 +247,7 @@ class CCZGate(SingletonControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.ccz` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -257,7 +257,7 @@ class CCZGate(SingletonControlledGate):
               │
         q_2: ─■─
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 

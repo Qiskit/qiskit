@@ -29,7 +29,7 @@ class IGate(SingletonGate):
     with the :meth:`~qiskit.circuit.QuantumCircuit.i` and
     :meth:`~qiskit.circuit.QuantumCircuit.id` methods.
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -38,7 +38,7 @@ class IGate(SingletonGate):
                 0 & 1
             \end{pmatrix}
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 

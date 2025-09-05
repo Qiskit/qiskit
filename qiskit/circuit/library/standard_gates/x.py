@@ -32,7 +32,7 @@ class XGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.x` method.
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -41,7 +41,7 @@ class XGate(SingletonGate):
                 1 & 0
             \end{pmatrix}
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -154,7 +154,7 @@ class CXGate(SingletonControlledGate):
     with the :meth:`~qiskit.circuit.QuantumCircuit.cx` and
     :meth:`~qiskit.circuit.QuantumCircuit.cnot` methods.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -163,7 +163,7 @@ class CXGate(SingletonControlledGate):
         q_1: ┤ X ├
              └───┘
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 
@@ -291,7 +291,7 @@ class CCXGate(SingletonControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.ccx` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -302,7 +302,7 @@ class CCXGate(SingletonControlledGate):
         q_2: ┤ X ├
              └───┘
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 

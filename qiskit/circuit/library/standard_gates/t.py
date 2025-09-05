@@ -34,7 +34,7 @@ class TGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.t` method.
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -43,7 +43,7 @@ class TGate(SingletonGate):
                 0 & e^{i\pi/4}
             \end{pmatrix}
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -110,7 +110,7 @@ class TdgGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.tdg` method.
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -119,7 +119,7 @@ class TdgGate(SingletonGate):
                 0 & e^{-i\pi/4}
             \end{pmatrix}
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 

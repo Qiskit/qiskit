@@ -32,7 +32,7 @@ class RZXGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.rzx` method.
 
-    **Circuit Symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -42,7 +42,7 @@ class RZXGate(Gate):
         q_1: ┤1        ├
              └─────────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -95,7 +95,7 @@ class RZXGate(Gate):
                     0 & RX(-\theta)
                 \end{pmatrix}
 
-    **Examples:**
+    Examples:
 
         .. math::
 

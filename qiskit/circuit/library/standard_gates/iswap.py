@@ -35,7 +35,7 @@ class iSwapGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.iswap` method.
 
-    **Circuit Symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -43,7 +43,7 @@ class iSwapGate(SingletonGate):
               │
         q_1: ─⨂─
 
-    **Reference Implementation:**
+    Reference implementation:
 
     .. code-block:: text
 
@@ -53,7 +53,7 @@ class iSwapGate(SingletonGate):
         q_1: ┤ S ├─────┤ X ├──■──┤ H ├
              └───┘     └───┘     └───┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 

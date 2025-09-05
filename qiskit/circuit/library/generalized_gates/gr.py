@@ -19,7 +19,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 class GR(QuantumCircuit):
     r"""Global R gate.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -42,7 +42,7 @@ class GR(QuantumCircuit):
 
         GR(\theta, \phi) = \exp(-i \sum_{i=1}^{n} (\cos(\phi)X_i + \sin(\phi)Y_i) \theta/2)
 
-    **Expanded Circuit:**
+    Expanded circuit:
 
     .. plot::
        :alt: Diagram illustrating the previously described circuit.
@@ -74,7 +74,7 @@ class GR(QuantumCircuit):
 class GRX(GR):
     r"""Global RX gate.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -97,7 +97,7 @@ class GRX(GR):
 
         GRX(\theta) = \exp(-i \sum_{i=1}^{n} X_i \theta/2)
 
-    **Expanded Circuit:**
+    Expanded circuit:
 
     .. plot::
        :alt: Diagram illustrating the previously described circuit.
@@ -123,7 +123,7 @@ class GRX(GR):
 class GRY(GR):
     r"""Global RY gate.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -146,7 +146,7 @@ class GRY(GR):
 
         GRY(\theta) = \exp(-i \sum_{i=1}^{n} Y_i \theta/2)
 
-    **Expanded Circuit:**
+    Expanded circuit:
 
     .. plot::
        :alt: Diagram illustrating the previously described circuit.
@@ -172,7 +172,7 @@ class GRY(GR):
 class GRZ(QuantumCircuit):
     r"""Global RZ gate.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -195,7 +195,7 @@ class GRZ(QuantumCircuit):
 
         GRZ(\phi) = \exp(-i \sum_{i=1}^{n} Z_i \phi)
 
-    **Expanded Circuit:**
+    Expanded circuit:
 
     .. plot::
        :alt: Diagram illustrating the previously described circuit.

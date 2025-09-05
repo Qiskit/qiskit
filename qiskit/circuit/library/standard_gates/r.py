@@ -27,7 +27,7 @@ class RGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.r` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -36,7 +36,7 @@ class RGate(Gate):
                └────────┘
 
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 

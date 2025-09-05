@@ -30,7 +30,7 @@ class RXXGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.rxx` method.
 
-    **Circuit Symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -40,7 +40,7 @@ class RXXGate(Gate):
         q_1: ┤0        ├
              └─────────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -54,7 +54,7 @@ class RXXGate(Gate):
                 -i\sin\left(\rotationangle\right) & 0 & 0 & \cos\left(\rotationangle\right)
             \end{pmatrix}
 
-    **Examples:**
+    Examples:
 
         .. math::
 

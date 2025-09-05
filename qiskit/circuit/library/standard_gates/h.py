@@ -35,7 +35,7 @@ class HGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.h` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -43,7 +43,7 @@ class HGate(SingletonGate):
         q_0: ┤ H ├
              └───┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -139,7 +139,7 @@ class CHGate(SingletonControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.ch` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -148,7 +148,7 @@ class CHGate(SingletonControlledGate):
         q_1: ┤ H ├
              └───┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 

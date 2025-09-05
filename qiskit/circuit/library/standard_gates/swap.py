@@ -33,7 +33,7 @@ class SwapGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.swap` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -41,7 +41,7 @@ class SwapGate(SingletonGate):
               │
         q_1: ─X─
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -145,7 +145,7 @@ class CSwapGate(SingletonControlledGate):
     with the :meth:`~qiskit.circuit.QuantumCircuit.cswap` and
     :meth:`~qiskit.circuit.QuantumCircuit.fredkin` methods.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -156,7 +156,7 @@ class CSwapGate(SingletonControlledGate):
         q_2: ─X─
 
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 

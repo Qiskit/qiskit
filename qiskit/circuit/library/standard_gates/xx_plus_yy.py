@@ -31,7 +31,7 @@ class XXPlusYYGate(Gate):
     A 2-qubit parameterized XX+YY interaction, also known as an XY gate. Its action is to induce
     a coherent rotation by some angle between :math:`|01\rangle` and :math:`|10\rangle`.
 
-    **Circuit Symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -41,7 +41,7 @@ class XXPlusYYGate(Gate):
         q_1: ┤1              ├
              └───────────────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 

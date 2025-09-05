@@ -32,7 +32,7 @@ class UGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.u` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -40,7 +40,7 @@ class UGate(Gate):
         q_0: ┤ U(ϴ,φ,λ) ├
              └──────────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -60,7 +60,7 @@ class UGate(Gate):
         <https://doi.org/10.48550/arXiv.1707.03429>`_ by a global phase of
         :math:`e^{i(\phi+\lambda)/2}`.
 
-    **Examples:**
+    Examples:
 
     .. math::
 
@@ -218,7 +218,7 @@ class CUGate(ControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.cu` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -227,7 +227,7 @@ class CUGate(ControlledGate):
         q_1: ┤ U(ϴ,φ,λ,γ) ├
              └────────────┘
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 

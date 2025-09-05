@@ -29,7 +29,7 @@ class YGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.y` method.
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -38,7 +38,7 @@ class YGate(SingletonGate):
                 i & 0
             \end{pmatrix}
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -151,7 +151,7 @@ class CYGate(SingletonControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.cy` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -160,7 +160,7 @@ class CYGate(SingletonControlledGate):
         q_1: ┤ Y ├
              └───┘
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 

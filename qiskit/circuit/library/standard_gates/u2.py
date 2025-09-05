@@ -38,7 +38,7 @@ class U2Gate(Gate):
           circuit = QuantumCircuit(1)
           circuit.u(pi/2, phi, lambda)
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -46,7 +46,7 @@ class U2Gate(Gate):
         q_0: ┤ U2(φ,λ) ├
              └─────────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -56,7 +56,7 @@ class U2Gate(Gate):
                 e^{i\phi} & e^{i(\phi+\lambda)}
             \end{pmatrix}
 
-    **Examples:**
+    Examples:
 
     .. math::
 

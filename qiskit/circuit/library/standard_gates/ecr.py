@@ -35,7 +35,7 @@ class ECRGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.ecr` method.
 
-    **Circuit Symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -47,7 +47,7 @@ class ECRGate(SingletonGate):
              └─────────┘            └────┘└───┘
 
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
