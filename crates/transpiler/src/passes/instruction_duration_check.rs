@@ -47,7 +47,7 @@ pub fn run_instruction_duration_check(
     // Check delay durations
     for (_, packed_op) in dag.op_nodes(false) {
         if let OperationRef::StandardInstruction(StandardInstruction::Delay(unit)) =
-            packed_op.op.view()
+            packed_op.op().view()
         {
             let params = packed_op.params_view();
             let param = params.first().ok_or_else(|| {

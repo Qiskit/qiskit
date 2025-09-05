@@ -71,7 +71,7 @@ pub fn check_direction_target(dag: &DAGCircuit, target: &Target) -> PyResult<boo
             PhysicalQubit::new(op_args[1].0),
         ];
 
-        target.instruction_supported(inst.op.name(), &qargs)
+        target.instruction_supported(inst.op().name(), &qargs)
     };
 
     check_gate_direction(dag, &target_check, None)
@@ -97,7 +97,7 @@ where
     for (_, packed_inst) in dag.op_nodes(false) {
         let inst_qargs = dag.get_qargs(packed_inst.qubits);
 
-        if let OperationRef::Instruction(py_inst) = packed_inst.op.view() {
+        if let OperationRef::Instruction(py_inst) = packed_inst.op().view() {
             if py_inst.control_flow() {
                 for block in py_inst.blocks() {
                     let inner_dag =
@@ -190,7 +190,7 @@ pub fn fix_direction_target(dag: &mut DAGCircuit, target: &Target) -> PyResult<(
         ];
 
         // Take this path so Target can check for exact match of the parameterized gate's angle
-        if let OperationRef::StandardGate(std_gate) = inst.op.view() {
+        if let OperationRef::StandardGate(std_gate) = inst.op().view() {
             match std_gate {
                 StandardGate::RXX | StandardGate::RYY | StandardGate::RZZ | StandardGate::RZX => {
                     return target
@@ -206,7 +206,7 @@ pub fn fix_direction_target(dag: &mut DAGCircuit, target: &Target) -> PyResult<(
                 _ => {}
             }
         }
-        target.instruction_supported(inst.op.name(), &qargs)
+        target.instruction_supported(inst.op().name(), &qargs)
     };
 
     fix_gate_direction(dag, &target_check, None)
@@ -227,7 +227,7 @@ where
     for (node, packed_inst) in dag.op_nodes(false) {
         let op_args = dag.get_qargs(packed_inst.qubits);
 
-        if let OperationRef::Instruction(py_inst) = packed_inst.op.view() {
+        if let OperationRef::Instruction(py_inst) = packed_inst.op().view() {
             if py_inst.control_flow() {
                 let blocks = py_inst.blocks();
 
@@ -275,7 +275,7 @@ where
 
         // If the op has a pre-defined replacement - replace if the other direction is supported otherwise error
         // If no pre-defined replacement for the op - if the other direction is supported error saying no pre-defined rule otherwise error saying op is not supported
-        if let OperationRef::StandardGate(std_gate) = packed_inst.op.view() {
+        if let OperationRef::StandardGate(std_gate) = packed_inst.op().view() {
             match std_gate {
                 StandardGate::CX
                 | StandardGate::ECR
@@ -293,7 +293,7 @@ where
                         return Err(TranspilerError::new_err(format!(
                             "The circuit requires a connection between physical qubits {:?} for {}",
                             op_args,
-                            packed_inst.op.name()
+                            packed_inst.op().name()
                         )));
                     }
                 }
@@ -302,12 +302,12 @@ where
         }
         // No matching replacement found
         if gate_complies(packed_inst, &[op_args1, op_args0]) {
-            return Err(TranspilerError::new_err(format!("{} would be supported on {:?} if the direction was swapped, but no rules are known to do that. {:?} can be automatically flipped.", packed_inst.op.name(), op_args, vec!["cx", "cz", "ecr", "swap", "rzx", "rxx", "ryy", "rzz"])));
+            return Err(TranspilerError::new_err(format!("{} would be supported on {:?} if the direction was swapped, but no rules are known to do that. {:?} can be automatically flipped.", packed_inst.op().name(), op_args, vec!["cx", "cz", "ecr", "swap", "rzx", "rxx", "ryy", "rzz"])));
             // NOTE: Make sure to update the list of the supported gates if adding more replacements
         } else {
             return Err(TranspilerError::new_err(format!(
                 "{} with parameters {:?} is not supported on qubits {:?} in either direction.",
-                packed_inst.op.name(),
+                packed_inst.op().name(),
                 packed_inst.params_view(),
                 op_args
             )));
@@ -318,7 +318,7 @@ where
         Python::with_gil(|py| -> PyResult<()> {
             for (node, op_blocks) in ops_to_replace {
                 let packed_inst = dag[node].unwrap_operation();
-                let OperationRef::Instruction(py_inst) = packed_inst.op.view() else {
+                let OperationRef::Instruction(py_inst) = packed_inst.op().view() else {
                     panic!("PyInstruction is expected");
                 };
                 let quantum_circuits = op_blocks

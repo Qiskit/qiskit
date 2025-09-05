@@ -183,7 +183,7 @@ impl SabreDAG {
             let NodeType::Operation(inst) = &dag[dag_node] else {
                 panic!("op nodes should always be of type `Operation`");
             };
-            let kind = InteractionKind::from_op(&inst.op, dag.get_qargs(inst.qubits))?;
+            let kind = InteractionKind::from_op(inst.op(), dag.get_qargs(inst.qubits))?;
             match predecessors(dag_node, &wire_pos) {
                 Predecessors::AllUnmapped => match kind {
                     InteractionKind::Synchronize => {

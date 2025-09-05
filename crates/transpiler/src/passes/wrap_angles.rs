@@ -41,7 +41,7 @@ pub fn run_wrap_angles(
     let nodes_to_sub: Vec<NodeIndex> = dag
         .op_nodes(false)
         .filter_map(|(index, inst)| {
-            if target.gate_has_angle_bounds(inst.op.name()) && !inst.is_parameterized() {
+            if target.gate_has_angle_bounds(inst.op().name()) && !inst.is_parameterized() {
                 Some(index)
             } else {
                 None
@@ -60,14 +60,14 @@ pub fn run_wrap_angles(
                 *param
             })
             .collect();
-        if !target.gate_supported_angle_bound(inst.op.name(), &params) {
+        if !target.gate_supported_angle_bound(inst.op().name(), &params) {
             let qargs: Vec<_> = dag
                 .get_qargs(inst.qubits)
                 .iter()
                 .map(|x| PhysicalQubit(x.0))
                 .collect();
             let new_dag =
-                bounds_registry.substitute_angle_bounds(inst.op.name(), &params, &qargs)?;
+                bounds_registry.substitute_angle_bounds(inst.op().name(), &params, &qargs)?;
             if let Some(new_dag) = new_dag {
                 dag.substitute_node_with_dag(node, &new_dag, None, None, None)?;
             }

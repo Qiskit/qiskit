@@ -170,10 +170,8 @@ impl RoutingResult<'_> {
             for qubit in self.dag.get_qargs(inst.qubits) {
                 apply_scratch.push(Qubit(map_fn(VirtualQubit(qubit.0).to_phys(layout)).0));
             }
-            let new_inst = PackedInstruction {
-                qubits: dag.insert_qargs(&apply_scratch),
-                ..inst.clone()
-            };
+            let mut new_inst = inst.clone();
+            new_inst.qubits = dag.insert_qargs(&apply_scratch);
             dag.push_back(new_inst)
         };
 
@@ -251,7 +249,7 @@ impl RoutingResult<'_> {
                             })
                             .collect::<Result<Vec<_>, _>>()?;
 
-                        let OperationRef::Instruction(py_inst) = inst.op.view() else {
+                        let OperationRef::Instruction(py_inst) = inst.op().view() else {
                             panic!("control-flow nodes must be PyInstruction");
                         };
                         let new_node = py_inst
@@ -259,15 +257,21 @@ impl RoutingResult<'_> {
                             .bind(py)
                             .call_method1("replace_blocks", (blocks,))?;
                         let op: OperationFromPython = new_node.extract()?;
-                        Ok(PackedInstruction {
-                            op: op.operation,
-                            qubits: dag.insert_qargs(&qargs),
-                            clbits: inst.clbits,
-                            params: (!op.params.is_empty()).then(|| Box::new(op.params)),
-                            label: op.label,
-                            #[cfg(feature = "cache_pygates")]
-                            py_op: new_node.unbind().into(),
-                        })
+                        let inst = PackedInstruction::new(
+                            op.operation,
+                            dag.insert_qargs(&qargs),
+                            inst.clbits,
+                        )
+                        .with_params(Some(op.params))
+                        .with_label(op.label.map(|label| *label));
+                        #[cfg(feature = "cache_pygates")]
+                        {
+                            Ok(inst.with_py_cache(new_node.unbind()));
+                        }
+                        #[cfg(not(feature = "cache_pygates"))]
+                        {
+                            Ok(inst)
+                        }
                     })?;
                     dag.push_back(new_inst)?
                 }

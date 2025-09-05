@@ -10,9 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-#[cfg(feature = "cache_pygates")]
-use std::sync::OnceLock;
-
 use pyo3::intern;
 use pyo3::prelude::*;
 
@@ -22,6 +19,7 @@ use crate::dag_circuit::DAGIdentifierInfo;
 use crate::dag_circuit::{DAGCircuit, NodeType};
 use crate::operations::{OperationRef, PythonOperation};
 use crate::packed_instruction::PackedInstruction;
+use crate::packed_instruction::PackedOperation;
 
 /// An extractable representation of a QuantumCircuit reserved only for
 /// conversion purposes.
@@ -73,7 +71,7 @@ pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<Circu
                 )
             };
             if copy_operations {
-                let op = match instr.op.view() {
+                let op: PackedOperation = match instr.op().view() {
                     OperationRef::Gate(gate) => {
                         Python::with_gil(|py| gate.py_deepcopy(py, None))?.into()
                     }
@@ -87,15 +85,10 @@ pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<Circu
                     OperationRef::StandardInstruction(instruction) => instruction.into(),
                     OperationRef::Unitary(unitary) => unitary.clone().into(),
                 };
-                Ok(PackedInstruction {
-                    op,
-                    qubits: instr.qubits,
-                    clbits: instr.clbits,
-                    params: Some(Box::new(instr.params_view().iter().cloned().collect())),
-                    label: instr.label.clone(),
-                    #[cfg(feature = "cache_pygates")]
-                    py_op: OnceLock::new(),
-                })
+                let packed = PackedInstruction::new(op, instr.qubits, instr.clbits)
+                    .with_params(instr.params_raw().cloned())
+                    .with_label(instr.label().map(|label| label.to_string()));
+                Ok(packed)
             } else {
                 Ok(instr.clone())
             }
