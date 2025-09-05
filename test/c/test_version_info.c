@@ -19,7 +19,7 @@
  * Build the version a string, based on the version numbers.
  */
 char *build_version_string(void) {
-    char suffix[32];
+    char suffix[16];
     switch (QISKIT_RELEASE_LEVEL) {
     case QISKIT_RELEASE_LEVEL_DEV:
         sprintf(suffix, "-dev");
