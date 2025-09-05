@@ -19,6 +19,7 @@ from __future__ import annotations
 import cmath
 import copy as _copy
 import re
+import qiskit.quantum_info as qi
 from numbers import Number
 from typing import TYPE_CHECKING
 
@@ -502,7 +503,7 @@ class Operator(LinearOp):
 
         if qargs is None:
             qargs = getattr(other, "qargs", None)
-        if isinstance(other, Statevector):
+        if isinstance(other, qi.Statevector):
             if front:
                 raise QiskitError(
                     "The 'front' kwarg is not supported when composing with a Statevector."
