@@ -145,3 +145,43 @@ class TestPassManager(PassManagerTestCase):
         self.assertIs(pm.property_set["check_property"], sentinel)
         pm.run(1)
         self.assertIs(pm.property_set["check_property"], sentinel)
+
+    def test_addition_does_not_share_state(self):
+        """Pass managers combined with ``+`` should not share mutable state."""
+
+        class DummyPass(GenericPass):
+            def run(self, passmanager_ir):
+                return passmanager_ir
+
+        class PM(BasePassManager):
+            def _passmanager_frontend(self, input_program, **kwargs):
+                return input_program
+
+            def _passmanager_backend(self, passmanager_ir, in_program, **kwargs):
+                return passmanager_ir
+
+        pm1 = PM(DummyPass())
+        pm2 = PM(DummyPass())
+        pm3 = pm1 + pm2
+        pm3.append(DummyPass())
+        # ``pm1`` should not see the appended pass.
+        self.assertEqual(len(pm1._tasks), 1)
+
+    def test_getitem_returns_independent_subset(self):
+        """Indexing a pass manager should return an independent subset."""
+
+        class DummyPass(GenericPass):
+            def run(self, passmanager_ir):
+                return passmanager_ir
+
+        class PM(BasePassManager):
+            def _passmanager_frontend(self, input_program, **kwargs):
+                return input_program
+
+            def _passmanager_backend(self, passmanager_ir, in_program, **kwargs):
+                return passmanager_ir
+
+        p1, p2 = DummyPass(), DummyPass()
+        pm = PM([p1, p2])
+        sub = pm[0]
+        self.assertEqual(len(sub._tasks), 1)

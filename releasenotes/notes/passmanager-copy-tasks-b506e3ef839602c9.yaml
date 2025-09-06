@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    :class:`~qiskit.passmanager.BasePassManager` now copies scheduled tasks when
+    sliced or combined, so mutating the new pass manager no longer affects the
+    original schedule.
