@@ -24,7 +24,6 @@ use qiskit_quantum_info::sparse_observable::BitTerm;
 use qiskit_quantum_info::sparse_observable::PySparseObservable;
 use qiskit_quantum_info::sparse_observable::SparseObservable;
 use qiskit_quantum_info::sparse_observable::SparseTermView;
-// use qiskit_quantum_info::sparse_observable::BitTerm;
 
 const OPER_TABLE_SIZE: usize = (b'Z' as usize) + 1;
 const fn generate_oper_table() -> [[f64; 2]; OPER_TABLE_SIZE] {
