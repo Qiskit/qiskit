@@ -15,6 +15,7 @@
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.library import SGate, SdgGate
+from qiskit._accelerate.optimize_clifford_t import optimize_clifford_t
 
 
 class OptimizeCliffordT(TransformationPass):
@@ -35,34 +36,5 @@ class OptimizeCliffordT(TransformationPass):
             DAGCircuit: Transformed DAG.
         """
 
-        new_dag = dag.copy_empty_like()
-
-        nodes = list(dag.topological_op_nodes())
-        num_nodes = len(nodes)
-        idx = 0
-
-        while idx < num_nodes - 1:
-            cur_node = nodes[idx]
-            next_node = nodes[idx + 1]
-            if cur_node.name == "t" and next_node.name == "t" and cur_node.qargs == next_node.qargs:
-                # Combine two consecutive T-gates into an S-gate
-                new_dag.apply_operation_back(SGate(), cur_node.qargs, cur_node.cargs)
-                idx += 2
-            elif (
-                nodes[idx].name == "tdg"
-                and nodes[idx + 1].name == "tdg"
-                and nodes[idx].qargs == nodes[idx + 1].qargs
-            ):
-                # Combine two consecutive Tdg-gates into an Sdg-gate
-                new_dag.apply_operation_back(SdgGate(), cur_node.qargs, cur_node.cargs)
-                idx += 2
-            else:
-                new_dag.apply_operation_back(cur_node.op, cur_node.qargs, cur_node.cargs)
-                idx += 1
-
-        # Handle the last element (if any)
-        if idx == num_nodes - 1:
-            cur_node = nodes[idx]
-            new_dag.apply_operation_back(cur_node.op, cur_node.qargs, cur_node.cargs)
-
-        return new_dag
+        optimize_clifford_t(dag)
+        return dag
