@@ -100,7 +100,7 @@ enum MagicBasisTransform {
 //         ::std::mem::swap(&mut mat[(k,i)], &mut mat[(k,j)]);
 //     }
 // }
-fn ndarray_to_matrix4(mat_view: ArrayView2<Complex64>) -> PyResult<Matrix4<Complex64>> {
+pub fn ndarray_to_matrix4(mat_view: ArrayView2<Complex64>) -> PyResult<Matrix4<Complex64>> {
     if mat_view.shape() != &[4,4] {
         return Err(QiskitError::new_err(
             "decompose_two_qubit_product_gate: expected a 4x4 matrix",
@@ -613,21 +613,21 @@ impl TwoQubitWeylDecomposition {
         self.c
     }
 
-    // pub fn k1l_view(&self) -> ArrayView2<'_, Complex64> {
-    //     self.K1l.view()
-    // }
+    pub fn k1l(&self) -> Matrix2<Complex64> {
+        self.K1l
+    }
 
-    // pub fn k2l_view(&self) -> ArrayView2<'_, Complex64> {
-    //     self.K2l.view()
-    // }
+    pub fn k2l(&self) -> Matrix2<Complex64> {
+        self.K2l
+    }
 
-    // pub fn k1r_view(&self) -> ArrayView2<'_, Complex64> {
-    //     self.K1r.view()
-    // }
+    pub fn k1r(&self) -> Matrix2<Complex64> {
+        self.K1r
+    }
 
-    // pub fn k2r_view(&self) -> ArrayView2<'_, Complex64> {
-    //     self.K2r.view()
-    // }
+    pub fn k2r(&self) -> Matrix2<Complex64> {
+        self.K2r
+    }
 
     fn weyl_gate(
         &self,

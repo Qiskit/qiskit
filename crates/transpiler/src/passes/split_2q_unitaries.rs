@@ -23,7 +23,7 @@ use qiskit_circuit::operations::{ArrayType, Operation, OperationRef, Param, Unit
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Qubit, VarsMode};
 
-use qiskit_synthesis::two_qubit_decompose::{Specialization, TwoQubitWeylDecomposition};
+use qiskit_synthesis::two_qubit_decompose::{Specialization, TwoQubitWeylDecomposition, ndarray_to_matrix4};
 
 #[pyfunction]
 #[pyo3(name = "split_2q_unitaries")]
@@ -53,13 +53,13 @@ pub fn run_split_2q_unitaries(
             let qubits: [Qubit; 2] = [temp[0], temp[1]];
             let matrix = unitary_gate.matrix_view();
             let decomp =
-                TwoQubitWeylDecomposition::new_inner(matrix, Some(requested_fidelity), None)?;
+                TwoQubitWeylDecomposition::new_inner(ndarray_to_matrix4(matrix)?, Some(requested_fidelity), None)?;
             if matches!(decomp.specialization, Specialization::SWAPEquiv) {
                 has_swaps = true;
             }
             if matches!(decomp.specialization, Specialization::IdEquiv) {
-                let k1r_arr = decomp.k1r_view();
-                let k1l_arr = decomp.k1l_view();
+                let k1r_arr = decomp.k1r();
+                let k1l_arr = decomp.k1l();
 
                 let insert_fn = |edge: Wire| -> (PackedOperation, SmallVec<[Param; 3]>) {
                     let Wire::Qubit(qubit) = edge else {
@@ -67,8 +67,8 @@ pub fn run_split_2q_unitaries(
                     };
                     if qubit == qubits[0] {
                         let mat: Matrix2<Complex64> = [
-                            [k1r_arr[[0, 0]], k1r_arr[[1, 0]]],
-                            [k1r_arr[[0, 1]], k1r_arr[[1, 1]]],
+                            [k1r_arr[(0, 0)], k1r_arr[(1, 0)]],
+                            [k1r_arr[(0, 1)], k1r_arr[(1, 1)]],
                         ]
                         .into();
                         let k1r_gate = Box::new(UnitaryGate {
@@ -77,8 +77,8 @@ pub fn run_split_2q_unitaries(
                         (PackedOperation::from_unitary(k1r_gate), smallvec![])
                     } else {
                         let mat: Matrix2<Complex64> = [
-                            [k1l_arr[[0, 0]], k1l_arr[[1, 0]]],
-                            [k1l_arr[[0, 1]], k1l_arr[[1, 1]]],
+                            [k1l_arr[(0, 0)], k1l_arr[(1, 0)]],
+                            [k1l_arr[(0, 1)], k1l_arr[(1, 1)]],
                         ]
                         .into();
 
@@ -109,24 +109,24 @@ pub fn run_split_2q_unitaries(
         if let OperationRef::Unitary(unitary_gate) = inst.op.view() {
             if unitary_gate.num_qubits() == 2 {
                 let decomp = TwoQubitWeylDecomposition::new_inner(
-                    unitary_gate.matrix_view(),
+                    ndarray_to_matrix4(unitary_gate.matrix_view())?,
                     Some(requested_fidelity),
                     None,
                 )?;
                 if matches!(decomp.specialization, Specialization::SWAPEquiv) {
-                    let k1r_arr = decomp.k1r_view();
+                    let k1r_arr = decomp.k1r();
                     let k1r_mat: Matrix2<Complex64> = [
-                        [k1r_arr[[0, 0]], k1r_arr[[1, 0]]],
-                        [k1r_arr[[0, 1]], k1r_arr[[1, 1]]],
+                        [k1r_arr[(0, 0)], k1r_arr[(1, 0)]],
+                        [k1r_arr[(0, 1)], k1r_arr[(1, 1)]],
                     ]
                     .into();
                     let k1r_gate = Box::new(UnitaryGate {
                         array: ArrayType::OneQ(k1r_mat),
                     });
-                    let k1l_arr = decomp.k1l_view();
+                    let k1l_arr = decomp.k1l();
                     let k1l_mat: Matrix2<Complex64> = [
-                        [k1l_arr[[0, 0]], k1l_arr[[1, 0]]],
-                        [k1l_arr[[0, 1]], k1l_arr[[1, 1]]],
+                        [k1l_arr[(0, 0)], k1l_arr[(1, 0)]],
+                        [k1l_arr[(0, 1)], k1l_arr[(1, 1)]],
                     ]
                     .into();
                     let k1l_gate = Box::new(UnitaryGate {

@@ -30,7 +30,7 @@ use smallvec::smallvec;
 use super::optimize_1q_gates_decomposition::matmul_1q;
 use qiskit_quantum_info::convert_2q_block_matrix::{blocks_to_matrix, get_matrix_from_inst};
 use qiskit_synthesis::two_qubit_decompose::{
-    TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer,
+    TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer, ndarray_to_matrix4,
 };
 
 use crate::target::Qargs;
@@ -225,10 +225,10 @@ pub fn run_consolidate_blocks(
             if let Some(matrix) = matrix {
                 let num_basis_gates = match decomposer {
                     DecomposerType::TwoQubitBasis(ref decomp) => {
-                        decomp.num_basis_gates_inner(matrix.view())
+                        decomp.num_basis_gates_inner(ndarray_to_matrix4(matrix.view())?)
                     }
                     DecomposerType::TwoQubitControlledU(ref decomp) => {
-                        decomp.num_basis_gates_inner(matrix.view())?
+                        decomp.num_basis_gates_inner(ndarray_to_matrix4(matrix.view())?)?
                     }
                 };
 

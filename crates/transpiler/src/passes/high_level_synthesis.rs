@@ -45,7 +45,7 @@ use crate::TranspilerError;
 use qiskit_circuit::PhysicalQubit;
 use qiskit_synthesis::euler_one_qubit_decomposer::angles_from_unitary;
 use qiskit_synthesis::euler_one_qubit_decomposer::EulerBasis;
-use qiskit_synthesis::two_qubit_decompose::TwoQubitBasisDecomposer;
+use qiskit_synthesis::two_qubit_decompose::{TwoQubitBasisDecomposer, ndarray_to_matrix4};
 
 /// Track global qubits by their state.
 /// The global qubits are numbered by consecutive integers starting at `0`,
@@ -705,7 +705,7 @@ fn extract_definition(
                         None,
                     )?;
                     let two_qubit_sequence =
-                        decomposer.call_inner(unitary.view(), None, false, None)?;
+                        decomposer.call_inner(ndarray_to_matrix4(unitary.view())?, None, false, None)?;
                     let circuit_data = CircuitData::from_packed_operations(
                         2,
                         0,
