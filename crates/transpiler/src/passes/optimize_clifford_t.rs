@@ -25,12 +25,78 @@ const CLIFFORD_T_GATE_NAMES: &[&str; 18] = &[
     "dcx", "t", "tdg",
 ];
 
+fn optimize_clifford_t_1q(
+    dag: &DAGCircuit,
+    raw_run: &[NodeIndex],
+) -> Option<(Vec<StandardGate>, f64)> {
+    let mut is_reduced = false;
+    let num_nodes = raw_run.len();
+
+    let mut optimized_sequence = Vec::<StandardGate>::with_capacity(num_nodes);
+
+    let mut idx = 0;
+    while idx + 1 < num_nodes {
+        let cur_node = &dag[raw_run[idx]];
+        let nxt_node = &dag[raw_run[idx + 1]];
+
+        let cur_gate = if let NodeType::Operation(inst) = cur_node {
+            if let OperationRef::StandardGate(gate) = inst.op.view() {
+                gate
+            } else {
+                unreachable!("Can only have Clifford+T gates at this point");
+            }
+        } else {
+            unreachable!("Can only have op nodes here")
+        };
+
+        let nxt_gate = if let NodeType::Operation(inst) = nxt_node {
+            if let OperationRef::StandardGate(gate) = inst.op.view() {
+                gate
+            } else {
+                unreachable!("Can only have Clifford+T gates at this point");
+            }
+        } else {
+            unreachable!("Can only have op nodes here")
+        };
+
+        if cur_gate == StandardGate::T && nxt_gate == StandardGate::T {
+            optimized_sequence.push(StandardGate::S);
+            idx += 2;
+            is_reduced = true;
+        } else if cur_gate == StandardGate::Tdg && nxt_gate == StandardGate::Tdg {
+            optimized_sequence.push(StandardGate::Sdg);
+            idx += 2;
+            is_reduced = true;
+        } else {
+            optimized_sequence.push(cur_gate);
+            idx += 1;
+        }
+    }
+
+    // Handle the last element (if any)
+    if idx + 1 == num_nodes {
+        let cur_node = &dag[raw_run[idx]];
+        let cur_gate = if let NodeType::Operation(inst) = cur_node {
+            if let OperationRef::StandardGate(gate) = inst.op.view() {
+                gate
+            } else {
+                unreachable!("Should only have Clifford+T gates at this point");
+            }
+        } else {
+            unreachable!("Can only have op nodes here")
+        };
+        optimized_sequence.push(cur_gate);
+    }
+
+    is_reduced.then_some((optimized_sequence, 0.))
+}
+
 #[pyfunction]
 #[pyo3(name = "optimize_clifford_t")]
 pub fn run_optimize_clifford_t(dag: &mut DAGCircuit) -> PyResult<()> {
     let op_counts = dag.get_op_counts();
 
-    // Skip the pass if there are unsupported gates.
+    // Stop the pass if there are unsupported gates.
     if !op_counts
         .keys()
         .all(|k| CLIFFORD_T_GATE_NAMES.contains(&k.as_str()))
@@ -41,7 +107,7 @@ pub fn run_optimize_clifford_t(dag: &mut DAGCircuit) -> PyResult<()> {
             .collect();
 
         return Err(TranspilerError::new_err(format!(
-            "Unable to run Litinski tranformation as the circuit contains gates not supported by the pass: {:?}",
+            "Unable to run Clifford+T optimization as the circuit contains gates not supported by the pass: {:?}",
             unsupported
         )));
     }
@@ -49,69 +115,19 @@ pub fn run_optimize_clifford_t(dag: &mut DAGCircuit) -> PyResult<()> {
     let runs: Vec<Vec<NodeIndex>> = dag.collect_1q_runs().unwrap().collect();
 
     for raw_run in runs {
-        let num_nodes = raw_run.len();
-
-        let mut optimized_sequence = Vec::<StandardGate>::with_capacity(num_nodes);
-
-        let mut idx = 0;
-        while idx + 1 < num_nodes {
-            let cur_node = &dag[raw_run[idx]];
-            let nxt_node = &dag[raw_run[idx + 1]];
-
-            let cur_gate = if let NodeType::Operation(inst) = cur_node {
-                if let OperationRef::StandardGate(gate) = inst.op.view() {
-                    gate
-                } else {
-                    unreachable!("Can only have Clifford+T gates at this point");
+        let optimized_sequence = optimize_clifford_t_1q(&dag, &raw_run);
+        match optimized_sequence {
+            Some((optimized_sequence, global_phase_update)) => {
+                for gate in optimized_sequence {
+                    dag.insert_1q_on_incoming_qubit((gate, &[]), raw_run[0]);
                 }
-            } else {
-                unreachable!("Can only have op nodes here")
-            };
 
-            let nxt_gate = if let NodeType::Operation(inst) = nxt_node {
-                if let OperationRef::StandardGate(gate) = inst.op.view() {
-                    gate
-                } else {
-                    unreachable!("Can only have Clifford+T gates at this point");
-                }
-            } else {
-                unreachable!("Can only have op nodes here")
-            };
-
-            if cur_gate == StandardGate::T && nxt_gate == StandardGate::T {
-                optimized_sequence.push(StandardGate::S);
-                idx += 2;
-            } else if cur_gate == StandardGate::Tdg && nxt_gate == StandardGate::Tdg {
-                optimized_sequence.push(StandardGate::Sdg);
-                idx += 2;
-            } else {
-                optimized_sequence.push(cur_gate);
-                idx += 1;
+                // dag.add_global_phase(&Param::Float(sequence.global_phase))?;
+                dag.remove_1q_sequence(&raw_run);
             }
-        }
-
-        // Handle the last element (if any)
-        if idx + 1 == num_nodes {
-            let cur_node = &dag[raw_run[idx]];
-            let cur_gate = if let NodeType::Operation(inst) = cur_node {
-                if let OperationRef::StandardGate(gate) = inst.op.view() {
-                    gate
-                } else {
-                    unreachable!("Should only have Clifford+T gates at this point");
-                }
-            } else {
-                unreachable!("Can only have op nodes here")
-            };
-            optimized_sequence.push(cur_gate);
-        }
-
-        if optimized_sequence.len() < raw_run.len() {
-            for gate in optimized_sequence {
-                dag.insert_1q_on_incoming_qubit((gate, &[]), raw_run[0]);
+            None => {
+                // No reductions were performed.
             }
-
-            // dag.add_global_phase(&Param::Float(sequence.global_phase))?;
-            dag.remove_1q_sequence(&raw_run);
         }
     }
     Ok(())
