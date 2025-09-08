@@ -28,7 +28,7 @@ use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use rustworkx_core::petgraph::stable_graph::{EdgeReference, NodeIndex};
 use crate::interner::{Interned, Interner};
 use crate::object_registry::ObjectRegistry;
-use crate::operations::{Operation, OperationRef, Param, PythonOperation, StandardGate};
+use crate::operations::{Operation, OperationRef, Param, PythonOperation, StandardGate, StandardInstruction};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
 use crate::register_data::RegisterData;
@@ -73,21 +73,48 @@ pub const top_right_con: char = '┐';
 pub const bot_left_con: char = '└';
 pub const bot_right_con: char = '┘';
 
-#[derive(Clone)]
-pub struct qubit_wire {
-    pub top: String,
-    pub mid: String,
-    pub bot: String,
-    pub wire_len: u64
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum wire_type {
+    qubit,
+    clbit,
 }
 
-impl qubit_wire {
-    pub fn new() -> Self {
-        qubit_wire {
+impl From<&wire_type> for &str {
+    fn from(wire_type: &wire_type) -> Self {
+        match wire_type {
+            wire_type::qubit => "─",
+            wire_type::clbit => "═",
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+enum control_type{
+    open,
+    closed,
+}
+
+#[derive(Clone, Debug)]
+pub struct input{
+
+}
+#[derive(Clone, Debug)]
+pub struct wire {
+    top: String,
+    mid: String,
+    bot: String,
+    wire_len: u64,
+    type_: wire_type,
+}
+
+impl wire {
+    pub fn new(type_: wire_type) -> Self {
+        wire {
             top: String::new(),
             mid: String::new(),
             bot: String::new(),
-            wire_len: 0
+            wire_len: 0,
+            type_: type_,
         }
     }
 
@@ -101,7 +128,6 @@ impl qubit_wire {
             panic!("The lengths of the wire components are not equal");
         }
     }
-
     // setting qubit names
     pub fn qubit_name(&mut self, qubit_name: &str) {
         let name_len = qubit_name.len();
@@ -123,17 +149,53 @@ impl qubit_wire {
         wire_rep
     }
 
-    pub fn fix_len(&mut self, num: u64, chr: &str) {
+    pub fn fix_len(&mut self, num: u64) {
         self.wire_len = self.wire_len + num;
         self.top.push_str(" ".repeat(num as usize).as_str());
-        self.mid.push_str(chr.repeat(num as usize).as_str());
+        self.mid.push_str(<&str>::from(&self.type_).repeat(num as usize).as_str());
         self.bot.push_str(" ".repeat(num as usize).as_str());
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct enclosed{
+    qubits: Vec<u32>,
+    clbits: Vec<u32>,
+    control: Vec<u32>,
+    control_types: Vec<control_type>,
+    wire: wire_type,
+    name: String,
+    label: Option<String>,
+}
+
+impl enclosed {
+    fn from_instruction(instruction: &PackedInstruction, dag_circ: &DAGCircuit) -> Self {
+        let instruction_qubits = dag_circ.qargs_interner().get(instruction.qubits).iter().map(|q| q.0).collect();
+        let instruction_clbits = dag_circ.cargs_interner().get(instruction.clbits).iter().map(|c| c.0).collect();
+        let instruction_name = instruction.op.name();
+        let instruction_label = instruction.label();
+        // handle case for when the control state is different
+
+        println!("name: {}", instruction_name);
+        println!("label: {:?}", instruction_label);
+        println!("qubits: {:?}", instruction_qubits);
+        println!("clbits: {:?}", instruction_clbits);
+
+        enclosed {
+            qubits: instruction_qubits,
+            clbits: instruction_clbits,
+            control: vec![],
+            control_types: vec![],
+            wire: wire_type::qubit,
+            name: instruction_name.to_string(),
+            label: instruction_label.map(|s| s.to_string()),
+        }
+
+    }
+}
 
 pub struct circuit_rep {
-    q_wires: Vec::<qubit_wire>,
+    q_wires: Vec::<wire>,
     dag_circ: DAGCircuit
 }
 
@@ -144,7 +206,7 @@ impl circuit_rep {
         let qubit = dag_circ.num_qubits();
 
         circuit_rep {
-            q_wires: vec!(qubit_wire::new(); qubit as usize),
+            q_wires: vec!(wire::new(wire_type::qubit); qubit as usize),
             dag_circ: dag_circ
         }
     }
@@ -166,7 +228,7 @@ impl circuit_rep {
         }
 
         for wire in self.q_wires.iter_mut() {
-            wire.fix_len(num - wire.wire_len, chr);
+            wire.fix_len(num - wire.wire_len);
         }
     }
 
@@ -187,7 +249,113 @@ impl circuit_rep {
     }
 
     pub fn build_layer(&mut self, layer: Vec<&PackedInstruction>){
-        println!("{:?}",layer);
+        for instruction in layer{
+        let enclosed_inst = enclosed::from_instruction(instruction, &self.dag_circ);
+        // println!("{:?}", enclosed_inst);
+        //     if instruction.op.control_flow() {
+        //         panic!("Control flow operations not supported yet: {}", instruction.op.name());
+        //     }
+    
+        //     // Check for standard instructions (barrier, measure, reset, delay)
+        //     if let Some(standard_instruction) = instruction.op.try_standard_instruction() {
+        //         match standard_instruction {
+        //             StandardInstruction::Measure => {
+        //                 // This is a measurement operation
+        //                 // Handle: MeasureFrom element on qubit, MeasureTo element on clbit
+        //                 // Access qubits: instruction.qubits (interned slice)
+        //                 // Access clbits: instruction.clbits (interned slice)
+        //                 // Create MeasureFrom element for the qubit
+        //                 // Create MeasureTo element for the clbit
+        //                 // Handle classical register bundling if needed
+        //             }
+        //             StandardInstruction::Barrier(num_qubits) => {
+        //                 // This is a barrier directive
+        //                 // Handle: Barrier elements across specified qubits
+
+        //                 //get label of barrier
+
+        //                 // Number of qubits affected: num_qubits
+        //                 // Access affected qubits: instruction.qubits
+        //                 // Check if barriers should be plotted with plotbarriers flag
+        //                 // Place barrier symbol on each affected qubit wire
+        //                 // Add label on topmost qubit if present: instruction.label()
+        //                 let mut temp:bool = false;
+        //                 for wire in self.q_wires.iter_mut() {
+        //                     if wire.type_ == wire_type::qubit {
+        //                         wire.top.push_str("░");
+        //                         wire.mid.push_str("░");
+        //                         wire.bot.push_str("░");
+        //                     }
+        //                 }
+        //             }
+        //             StandardInstruction::Reset => {
+        //                 // PANIC - Reset not supported yet
+        //                 panic!("Reset operations not supported yet");
+        //             }
+        //             StandardInstruction::Delay(_unit) => {
+        //                 // PANIC - Delay not supported yet  
+        //                 panic!("Delay operations not supported yet");
+        //             }
+        //         }
+        //     }
+        
+        //     // Check for standard gates
+        //     else if let Some(standard_gate) = instruction.op.try_standard_gate() {
+        //         // This is a standard gate operation
+        //         let num_qubits = instruction.op.num_qubits();
+                
+        //         if num_qubits == 1 {
+        //             // Single qubit standard gate
+        //             // Handle: BoxOnQuWire element
+        //             // Gate name: instruction.op.name()
+        //             // Parameters: instruction.params_view() - format for display
+        //             // Label: instruction.label()
+        //             // Check for conditional operation (if condition exists)
+        //             // Place single qubit box element on the target wire
+        //         } else {
+        //             // Multi-qubit standard gate
+        //             // Access target qubits: instruction.qubits
+        //             // Gate name: instruction.op.name()  
+        //             // Parameters: instruction.params_view()
+        //             // Label: instruction.label()
+                    
+        //             // Special handling for specific multi-qubit gates:
+        //             match standard_gate {
+        //                 // SwapGate: Create Ex elements with connections
+        //                 // RZZGate: Create Bullet elements with ZZ connection label
+        //                 // CXGate, CZGate, etc: Handle as controlled gates
+        //                 // Other multi-qubit gates: Use multi-qubit box spanning all qubits
+        //                 _ => {
+        //                     // Generic multi-qubit gate handling
+        //                     // Create box elements spanning all target qubits
+        //                     // Handle top/middle/bottom box parts for multi-qubit span
+        //                 }
+        //             }
+        //         }
+        //     }
+        
+        // // Everything else - PANIC for now
+        //     else {
+        //         match instruction.op.view() {
+        //             OperationRef::Gate(_) => {
+        //                 panic!("Python gates not supported yet: {}", instruction.op.name());
+        //             }
+        //             OperationRef::Instruction(_) => {
+        //                 panic!("Python instructions not supported yet: {}", instruction.op.name());
+        //             }
+        //             OperationRef::Operation(_) => {
+        //                 panic!("Python operations not supported yet: {}", instruction.op.name());
+        //             }
+        //             OperationRef::Unitary(_) => {
+        //                 panic!("Unitary gates not supported yet: {}", instruction.op.name());
+        //             }
+        //             _ => {
+        //                 panic!("Unknown operation type: {}", instruction.op.name());
+        //             }
+        //         }
+        //     }
+        // }
+        }
     }
 
     pub fn build_layers(&mut self) {
@@ -309,15 +477,18 @@ impl circuit_rep {
             }
         }
 
-        for (i, layer) in final_layers.iter().enumerate() {
+
+        let mut packedin_layers: Vec<Vec<&PackedInstruction>> = Vec::new();
+
+        for (id,layer) in final_layers.iter().enumerate() {
+            let mut packedin_layer: Vec<&PackedInstruction> = Vec::new();
             for nodeind in layer {
                 if let NodeType::Operation(instruction) = &binding.dag()[*nodeind] {
-                    let qubits = binding.qargs_interner().get(instruction.qubits);
-                    let clbits = binding.cargs_interner().get(instruction.clbits);      
-                    println!("Layer {}: Instruction: {} Qubits: {:?} Clbits: {:?}", i, instruction.op.name(), qubits, clbits);
-                }
+                    packedin_layer.push(instruction);
+                } 
             }
-            println!("-----------------------------------");
+            println!("Layer {}", id);
+            self.build_layer(packedin_layer.clone());
         }
         
     }
