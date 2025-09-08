@@ -20,12 +20,18 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use crate::TranspilerError;
 
-// List of 1-qubit Clifford+T gate names.
+// The Clifford+T optimization pass only applies to circuits with Clifford+T/Tdg gates.
+// We return a transpiler error when the circuit contains gates outide of the following
+// list:
 const CLIFFORD_T_GATE_NAMES: &[&str; 18] = &[
     "id", "x", "y", "z", "h", "s", "sdg", "sx", "sxdg", "cx", "cz", "cy", "swap", "iswap", "ecr",
     "dcx", "t", "tdg",
 ];
 
+// We need to reason about RX, RY, RZ rotations by angles pi/8 and -pi/8. We will
+// represent such rotations as a pair (rotation axis, sign).
+// In particular, a T-gate corresponds to RZ(pi/8) rotation, with the appropriate
+// adjustment to the global phase, or with the above notation to (Pauli1q::Z, false).
 #[derive(Clone, Copy, PartialEq)]
 enum Pauli1q {
     X,
@@ -33,16 +39,28 @@ enum Pauli1q {
     Z,
 }
 
+// We need to reason about operators that can be constructed using 1q Clifford gates,
+// including the precise value of the global phase. We have a total of 192 = 24 x 8
+// such objects, with 24 possible 1q-Clifford objects and 8 possible multiples of the
+// global phase. The exact correspondence between the index of the Clifford and the
+// corresponding 1q Clifford circuit is contained in the slice called CIRCUIT.
 struct Clifford1q {
-    idx: usize, // single-qubit clifford tableaus: takes values 0..24
-    w: usize,   // phase of the form 2 w pi / 4: takes values 0..8
+    idx: usize,
+    // enumerates single-qubit Cliffords: takes values in 0..24
+    w: usize,
+    // global phase factor of the form 2 * w * pi / 4, w takes values in 0..8
 }
 
 impl Clifford1q {
+    // Represents the identity operator.
     fn identity() -> Self {
         Self { idx: 0, w: 0 }
     }
 
+    // In-place modification of the operator corresponding to adding a Clifford
+    // gate after the current operator. For the implementation, we have precomputed
+    // the effect of appending S and H gates, and express the remaining 1q Clifford
+    // gates in terms of these.
     fn append_clifford_gate(&mut self, gate: StandardGate) {
         match gate {
             StandardGate::I => {}
@@ -86,6 +104,10 @@ impl Clifford1q {
         }
     }
 
+    // In-place modification of the operator corresponding to adding a Clifford
+    // gate before the current operator. For the implementation, we have precomputed
+    // the effect of prepending S and H gates, and express the remaining 1q Clifford
+    // gates in terms of these.
     fn prepend_clifford_gate(&mut self, gate: StandardGate) {
         match gate {
             StandardGate::I => {}
@@ -129,7 +151,8 @@ impl Clifford1q {
         }
     }
 
-    // add for all other crap
+    // Evolves a rotation using the Clifford. Returns the new rotation
+    // including the sign.
     fn evolve_pauli(&self, pauli: Pauli1q, sign: bool) -> (Pauli1q, bool) {
         let (new_pauli, new_sign) = match pauli {
             Pauli1q::X => EVOLVE_X[self.idx],
@@ -139,6 +162,7 @@ impl Clifford1q {
         (new_pauli, sign ^ new_sign)
     }
 
+    /// Returns the corresponding Clifford circuit.
     fn to_circuit(&self) -> (Vec<StandardGate>, f64) {
         let circuit: Vec<StandardGate> = CIRCUIT[self.idx].to_vec();
         let phase: f64 = (self.w as f64) * PI / 4.;
@@ -146,15 +170,18 @@ impl Clifford1q {
     }
 }
 
+/// Attempts to optimize a sequence of consecutive 1-qubit Clifford and T/Tdg gates.
+/// Returns `None` if the sequence can't be optimized.
 fn optimize_clifford_t_1q(
     dag: &DAGCircuit,
     raw_run: &[NodeIndex],
 ) -> Option<(Vec<StandardGate>, f64)> {
-    let mut is_reduced = false; // was any reduction applied
-    let mut clifford1q = Clifford1q::identity(); // current 1q-clifford including global phase
+    let mut is_reduced = false; // was any reduction applied?
+    let mut clifford1q = Clifford1q::identity(); // current 1q-clifford operator
     let mut rotations: Vec<(Pauli1q, bool)> = Vec::new(); // current list of rotations
-    let mut global_phase: f64 = 0.; // current update to the global phase
+    let mut global_phase: f64 = 0.; // current adjustment to the global phase
     let num_nodes = raw_run.len();
+
     for idx in 0..num_nodes {
         let cur_node = &dag[raw_run[idx]];
         let cur_gate = if let NodeType::Operation(inst) = cur_node {
@@ -167,6 +194,8 @@ fn optimize_clifford_t_1q(
             unreachable!("Can only have op nodes here")
         };
 
+        // Process the next gate. T and Tdg gates are replaced by RZ-rotations with the appropriate
+        // adjustment of the global phase. Clifford gates are merged into the current clifford operator.
         if cur_gate == StandardGate::T {
             global_phase += PI / 8.;
             let evolved_rotation: (Pauli1q, bool) = clifford1q.evolve_pauli(Pauli1q::Z, false);
@@ -180,8 +209,8 @@ fn optimize_clifford_t_1q(
             continue;
         }
 
-        // Check if the new rotation can be canceled or merged with the previous one,
-        // which happens exactly when they correspond to the same Pauli.
+        // Check if the new rotation can be canceled or merged with the previous rotation,
+        // which happens exactly when they have the same rotation axis.
         if rotations.len() >= 2 {
             let (pauli2, sign2) = rotations[rotations.len() - 2];
             let (pauli1, sign1) = rotations[rotations.len() - 1];
@@ -271,7 +300,7 @@ fn optimize_clifford_t_1q(
         }
     }
 
-    // Insert remaining Clifford gates
+    // Insert the remaining Clifford gates
     let (clifford_gates, phase_update) = clifford1q.to_circuit();
     for gate in clifford_gates {
         optimized_sequence.push(gate);
@@ -328,6 +357,7 @@ pub fn optimize_clifford_t_mod(m: &Bound<PyModule>) -> PyResult<()> {
     Ok(())
 }
 
+// Precomputed tables used in the algorithm.
 const CIRCUIT: &[&[StandardGate]; 24] = &[
     &[],
     &[StandardGate::H],
