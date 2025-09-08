@@ -266,7 +266,7 @@ fn decompose_two_qubit_product_gate(
         ));
     }
     let normalized_r: Matrix2<Complex64> = r.map(|x| x / det_r.sqrt());
-    let n_r_adjoint = r.adjoint();
+    let n_r_adjoint = normalized_r.adjoint();
     
     let eye = Matrix2::from_row_slice(&ONE_QUBIT_IDENTITY.concat());
     let mut temp = kron_2q(eye, n_r_adjoint);
@@ -788,8 +788,8 @@ impl TwoQubitWeylDecomposition {
         //     .iter_mut()
         //     .enumerate()
         //     .for_each(|(index, x)| *x = (IM * d[index]).exp());
-        let k1 = magic_basis_transform(u_p * p *temp, MagicBasisTransform::Into);
-        let k2 = magic_basis_transform(p.transpose(), MagicBasisTransform::Into);
+        let k1 = magic_basis_transform(u_p * permuted_p *temp, MagicBasisTransform::Into);
+        let k2 = magic_basis_transform(permuted_p.transpose(), MagicBasisTransform::Into);
 
         #[allow(non_snake_case)]
         let (mut K1l, mut K1r, phase_l) = decompose_two_qubit_product_gate(k1)?;
