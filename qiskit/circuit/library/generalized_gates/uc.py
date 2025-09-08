@@ -62,13 +62,13 @@ class UCGate(Gate):
 
     Unnecessary controls and repeated operators can be removed as described in Ref [2].
 
-    **References:**
+    References:
 
     [1] Bergholm et al., Quantum circuits with uniformly controlled one-qubit gates (2005).
-        `Phys. Rev. A 71, 052330 <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.71.052330>`__.
+    `Phys. Rev. A 71, 052330 <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.71.052330>`__.
 
     [2] de Carvalho et al., Quantum multiplexer simplification for state preparation (2024).
-        `arXiv:2409.05618 <https://arxiv.org/abs/2409.05618>`__.
+    `arXiv:2409.05618 <https://arxiv.org/abs/2409.05618>`__.
 
     """
 
