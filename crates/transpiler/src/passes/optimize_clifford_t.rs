@@ -48,7 +48,7 @@ struct Clifford1q {
     idx: usize,
     // enumerates single-qubit Cliffords: takes values in 0..24
     w: usize,
-    // global phase factor of the form 2 * w * pi * i / 4, w takes values in 0..8
+    // global phase factor of the form w * pi * i / 4, w takes values in 0..8
 }
 
 impl Clifford1q {
