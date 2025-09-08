@@ -14,7 +14,6 @@
 
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.circuit.library import SGate, SdgGate
 from qiskit._accelerate.optimize_clifford_t import optimize_clifford_t
 
 
