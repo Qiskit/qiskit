@@ -15,9 +15,7 @@ use pyo3::wrap_pyfunction;
 use std::f64::consts::PI;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
-use qiskit_circuit::operations::Param;
-use qiskit_circuit::operations::StandardGate::{H, S, X, Y, Z};
-use qiskit_circuit::operations::{OperationRef, StandardGate};
+use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use crate::TranspilerError;
@@ -332,29 +330,44 @@ pub fn optimize_clifford_t_mod(m: &Bound<PyModule>) -> PyResult<()> {
 
 const CIRCUIT: &[&[StandardGate]; 24] = &[
     &[],
-    &[H],
-    &[S],
-    &[H, S],
-    &[S, H],
-    &[S, H, S],
-    &[X],
-    &[H, X],
-    &[S, X],
-    &[H, S, X],
-    &[S, H, X],
-    &[S, H, S, X],
-    &[Z],
-    &[H, Z],
-    &[S, Z],
-    &[H, S, Z],
-    &[S, H, Z],
-    &[S, H, S, Z],
-    &[Y],
-    &[H, Y],
-    &[S, Y],
-    &[H, S, Y],
-    &[S, H, Y],
-    &[S, H, S, Y],
+    &[StandardGate::H],
+    &[StandardGate::S],
+    &[StandardGate::H, StandardGate::S],
+    &[StandardGate::S, StandardGate::H],
+    &[StandardGate::S, StandardGate::H, StandardGate::S],
+    &[StandardGate::X],
+    &[StandardGate::H, StandardGate::X],
+    &[StandardGate::S, StandardGate::X],
+    &[StandardGate::H, StandardGate::S, StandardGate::X],
+    &[StandardGate::S, StandardGate::H, StandardGate::X],
+    &[
+        StandardGate::S,
+        StandardGate::H,
+        StandardGate::S,
+        StandardGate::X,
+    ],
+    &[StandardGate::Z],
+    &[StandardGate::H, StandardGate::Z],
+    &[StandardGate::S, StandardGate::Z],
+    &[StandardGate::H, StandardGate::S, StandardGate::Z],
+    &[StandardGate::S, StandardGate::H, StandardGate::Z],
+    &[
+        StandardGate::S,
+        StandardGate::H,
+        StandardGate::S,
+        StandardGate::Z,
+    ],
+    &[StandardGate::Y],
+    &[StandardGate::H, StandardGate::Y],
+    &[StandardGate::S, StandardGate::Y],
+    &[StandardGate::H, StandardGate::S, StandardGate::Y],
+    &[StandardGate::S, StandardGate::H, StandardGate::Y],
+    &[
+        StandardGate::S,
+        StandardGate::H,
+        StandardGate::S,
+        StandardGate::Y,
+    ],
 ];
 
 const EVOLVE_X: &[(Pauli1q, bool); 24] = &[
