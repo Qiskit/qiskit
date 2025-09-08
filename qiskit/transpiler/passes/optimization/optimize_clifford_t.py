@@ -28,7 +28,8 @@ class OptimizeCliffordT(TransformationPass):
         """
         Run the OptimizeCliffordT pass on `dag`.
 
-        The pass applies to a Clifford + T/Tdg circuit, and outputs an optimized Clifford + T/Tdg circuit.
+        The pass applies to a Clifford + T/Tdg circuit, and outputs an optimized
+        Clifford + T/Tdg circuit.
 
         Args:
             dag: The directed acyclic graph to run on.

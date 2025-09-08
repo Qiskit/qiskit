@@ -163,8 +163,8 @@ impl Clifford1q {
     }
 
     /// Returns the corresponding Clifford circuit.
-    fn to_circuit(&self) -> (Vec<StandardGate>, f64) {
-        let circuit: Vec<StandardGate> = CIRCUIT[self.idx].to_vec();
+    fn to_circuit(&self) -> (&[StandardGate], f64) {
+        let circuit = CIRCUIT[self.idx];
         let phase: f64 = (self.w as f64) * PI / 4.;
         (circuit, phase)
     }
@@ -303,7 +303,7 @@ fn optimize_clifford_t_1q(
     // Insert the remaining Clifford gates
     let (clifford_gates, phase_update) = clifford1q.to_circuit();
     for gate in clifford_gates {
-        optimized_sequence.push(gate);
+        optimized_sequence.push(*gate);
     }
     global_phase += phase_update;
 
