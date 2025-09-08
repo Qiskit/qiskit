@@ -157,8 +157,8 @@ fn magic_basis_transform(
     direction: MagicBasisTransform,
 ) -> Matrix4<Complex64> {
     // TODO: Creating Matrix4 here is less efficient than before (which used views)
-    let _b_nonnormalized = Matrix4::from(B_NON_NORMALIZED);
-    let _b_nonnormalized_dagger = Matrix4::from(B_NON_NORMALIZED_DAGGER);
+    let _b_nonnormalized = Matrix4::from_row_slice(&B_NON_NORMALIZED.concat());
+    let _b_nonnormalized_dagger = Matrix4::from_row_slice(&B_NON_NORMALIZED_DAGGER.concat());
     match direction {
         MagicBasisTransform::OutOf => _b_nonnormalized_dagger * unitary *_b_nonnormalized,
         MagicBasisTransform::Into => _b_nonnormalized * unitary * _b_nonnormalized_dagger,
@@ -268,7 +268,7 @@ fn decompose_two_qubit_product_gate(
     let normalized_r: Matrix2<Complex64> = r.map(|x| x / det_r.sqrt());
     let n_r_adjoint = r.adjoint();
     
-    let eye = Matrix2::from(ONE_QUBIT_IDENTITY);
+    let eye = Matrix2::from_row_slice(&ONE_QUBIT_IDENTITY.concat());
     let mut temp = kron_2q(eye, n_r_adjoint);
     temp = special_unitary * temp;
     let l = Matrix2::from_fn(|i,j| temp[(i*2, j*2)]);
@@ -428,19 +428,19 @@ fn rx_matrix(theta: f64) -> Matrix2<Complex64> {
     let half_theta = theta / 2.;
     let cos = c64(half_theta.cos(), 0.);
     let isin = c64(0., -half_theta.sin());
-    Matrix2::from([[cos, isin], [isin, cos]])
+    Matrix2::from_row_slice(&[cos, isin, isin, cos])
 }
 
 fn ry_matrix(theta: f64) -> Matrix2<Complex64> {
     let half_theta = theta / 2.;
     let cos = c64(half_theta.cos(), 0.);
     let sin = c64(half_theta.sin(), 0.);
-    Matrix2::from([[cos, -sin], [sin, cos]])
+    Matrix2::from_row_slice(&[cos, -sin, sin, cos])
 }
 
 fn rz_matrix(theta: f64) -> Matrix2<Complex64> {
     let ilam2 = c64(0., 0.5 * theta);
-    Matrix2::from([[(-ilam2).exp(), C_ZERO], [C_ZERO, ilam2.exp()]])
+    Matrix2::from_row_slice(&[(-ilam2).exp(), C_ZERO, C_ZERO, ilam2.exp()])
 }
 
 /// Generates the array :math:`e^{(i a XX + i b YY + i c ZZ)}`
@@ -685,9 +685,9 @@ impl TwoQubitWeylDecomposition {
         fidelity: Option<f64>,
         _specialization: Option<Specialization>,
     ) -> PyResult<Self> {
-        let ipz = Matrix2::from(IPZ);
-        let ipy = Matrix2::from(IPY);
-        let ipx = Matrix2::from(IPX);
+        let ipz = Matrix2::from_row_slice(&IPZ.concat());
+        let ipy = Matrix2::from_row_slice(&IPY.concat());
+        let ipx = Matrix2::from_row_slice(&IPX.concat());
 
         let det_u = unitary_matrix.determinant();
         let det_pow = det_u.powf(-0.25);
@@ -777,12 +777,12 @@ impl TwoQubitWeylDecomposition {
             Vector4::from(p.column(order[0])),
             Vector4::from(p.column(order[1])),
             Vector4::from(p.column(order[2])),
-            Vector4::from(p.column(order[3]))
+            Vector4::from(p.column(3))
         ]);
         if permuted_p.determinant().re < 0. {
             permuted_p.column_mut(3).scale_mut(-1.);
         }
-        let temp = Matrix4::from_diagonal(&Vector4::from_fn(|index, _| IM*d[index].exp()));
+        let temp = Matrix4::from_diagonal(&Vector4::from_fn(|index, _| (IM*d[index]).exp()));
         // let mut temp: Array2<Complex64> = Array2::zeros((4, 4));
         // temp.diag_mut()
         //     .iter_mut()
@@ -1595,7 +1595,7 @@ impl TwoQubitBasisDecomposer {
         } else {
             euler_matrix_q0 = rz_matrix(euler_q0[0][2] + euler_q0[1][0]) * euler_matrix_q0;
         }
-        euler_matrix_q0 = Matrix2::from(H_GATE) * euler_matrix_q0;
+        euler_matrix_q0 = Matrix2::from_row_slice(&H_GATE.concat()) * euler_matrix_q0;
         self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q0, 0);
 
         let rx_0 = rx_matrix(euler_q1[0][0]);
@@ -1603,7 +1603,7 @@ impl TwoQubitBasisDecomposer {
         let rx_1 = rx_matrix(euler_q1[0][2] + euler_q1[1][0]);
         let mut euler_matrix_q1 = rz * rx_0;
         euler_matrix_q1 = rx_1 * euler_matrix_q1;
-        euler_matrix_q1 = Matrix2::from(H_GATE) * euler_matrix_q1;
+        euler_matrix_q1 = Matrix2::from_row_slice(&H_GATE.concat()) * euler_matrix_q1;
         self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q1, 1);
 
         gates.push((StandardGate::CX.into(), smallvec![], smallvec![1, 0]));
@@ -1676,12 +1676,12 @@ impl TwoQubitBasisDecomposer {
             return None;
         }
         gates.push((StandardGate::CX.into(), smallvec![], smallvec![1, 0]));
-        let mut euler_matrix = rz_matrix(euler_q0[2][2] + euler_q0[3][0]) * Matrix2::from(H_GATE);
+        let mut euler_matrix = rz_matrix(euler_q0[2][2] + euler_q0[3][0]) * Matrix2::from_row_slice(&H_GATE.concat());
         euler_matrix = rx_matrix(euler_q0[3][1]) * euler_matrix;
         euler_matrix = rz_matrix(euler_q0[3][2]) * euler_matrix;
         self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix, 0);
 
-        let mut euler_matrix = rx_matrix(euler_q1[2][2] + euler_q1[3][0]) * Matrix2::from(H_GATE);
+        let mut euler_matrix = rx_matrix(euler_q1[2][2] + euler_q1[3][0]) * Matrix2::from_row_slice(&H_GATE.concat());
         euler_matrix = rz_matrix(euler_q1[3][1]) * euler_matrix;
         euler_matrix = rx_matrix(euler_q1[3][2]) * euler_matrix;
         self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix, 1);
@@ -1787,7 +1787,7 @@ impl TwoQubitBasisDecomposer {
         pulse_optimize: Option<bool>,
     ) -> PyResult<Self> {
 
-        let ipz: Matrix2<Complex64> = Matrix2::from(IPZ);
+        let ipz: Matrix2<Complex64> = Matrix2::from_row_slice(&IPZ.concat());
         let basis_decomposer =
             TwoQubitWeylDecomposition::new_inner(ndarray_to_matrix4(gate_matrix)?, Some(DEFAULT_FIDELITY), None)?;
         let super_controlled = relative_eq!(basis_decomposer.a, PI4, max_relative = 1e-09)
@@ -1797,71 +1797,55 @@ impl TwoQubitBasisDecomposer {
         // expand as Ui = Ki1.Ubasis.Ki2
         let b = basis_decomposer.b;
         let temp = c64(0.5, -0.5);
-        let k11l = Matrix2::from([
-            [temp * (M_IM * c64(0., -b).exp()), temp * c64(0., -b).exp()],
-            [temp * (M_IM * c64(0., b).exp()), temp * -(c64(0., b).exp())],
+        let k11l = Matrix2::from_row_slice(&[
+            temp * (M_IM * c64(0., -b).exp()), temp * c64(0., -b).exp(),
+            temp * (M_IM * c64(0., b).exp()), temp * -(c64(0., b).exp()),
         ]);
-        let k11r = Matrix2::from([
-            [
+        let k11r = Matrix2::from_row_slice(&[
                 FRAC_1_SQRT_2 * (IM * c64(0., -b).exp()),
-                FRAC_1_SQRT_2 * -c64(0., -b).exp()
-            ],
-            [
+                FRAC_1_SQRT_2 * -c64(0., -b).exp(),
+            
                 FRAC_1_SQRT_2 * c64(0., b).exp(),
-                FRAC_1_SQRT_2 * (M_IM * c64(0., b).exp())
-            ],
+                FRAC_1_SQRT_2 * (M_IM * c64(0., b).exp()),
         ]);
-        let k12l = Matrix2::from(K12L_ARR);
-        let k12r = Matrix2::from(K12R_ARR);
-        let k32l_k21l = Matrix2::from([
-            [
+        let k12l = Matrix2::from_row_slice(&K12L_ARR.concat());
+        let k12r = Matrix2::from_row_slice(&K12R_ARR.concat());
+        let k32l_k21l = Matrix2::from_row_slice(&[
                 FRAC_1_SQRT_2 * c64(1., (2. * b).cos()),
-                FRAC_1_SQRT_2 * (IM * (2. * b).sin())
-            ],
-            [
+                FRAC_1_SQRT_2 * (IM * (2. * b).sin()),
+
                 FRAC_1_SQRT_2 * (IM * (2. * b).sin()),
                 FRAC_1_SQRT_2 * c64(1., -(2. * b).cos())
-            ],
         ]);
         let temp = c64(0.5, 0.5);
-        let k21r = Matrix2::from([
-            [
+        let k21r = Matrix2::from_row_slice(&[
                 temp * (M_IM * c64(0., -2. * b).exp()),
-                temp * c64(0., -2. * b).exp()
-            ],
-            [
+                temp * c64(0., -2. * b).exp(),
                 temp * (IM * c64(0., 2. * b).exp()),
                 temp * c64(0., 2. * b).exp()
-            ],
         ]);
         const K22L_ARR: GateArray1Q = [
             [c64(FRAC_1_SQRT_2, 0.), c64(-FRAC_1_SQRT_2, 0.)],
             [c64(FRAC_1_SQRT_2, 0.), c64(FRAC_1_SQRT_2, 0.)],
         ];
-        let k22l = Matrix2::from(K22L_ARR);
+        let k22l = Matrix2::from_row_slice(&K22L_ARR.concat());
         let k22r_arr: GateArray1Q = [[Complex64::zero(), C_ONE], [C_M_ONE, Complex64::zero()]];
-        let k22r = Matrix2::from(k22r_arr);
-        let k31l = Matrix2::from([
-            [
+        let k22r = Matrix2::from_row_slice(&k22r_arr.concat());
+        let k31l = Matrix2::from_row_slice(&[
                 FRAC_1_SQRT_2 * c64(0., -b).exp(),
-                FRAC_1_SQRT_2 * c64(0., -b).exp()
-            ],
-            [
+                FRAC_1_SQRT_2 * c64(0., -b).exp(),
                 FRAC_1_SQRT_2 * -c64(0., b).exp(),
                 FRAC_1_SQRT_2 * c64(0., b).exp()
-            ],
         ]);
-        let k31r = Matrix2::from([
-            [IM * c64(0., b).exp(), Complex64::zero()],
-            [Complex64::zero(), M_IM * c64(0., -b).exp()],
+        let k31r = Matrix2::from_row_slice(&[
+            IM * c64(0., b).exp(), Complex64::zero(),
+            Complex64::zero(), M_IM * c64(0., -b).exp(),
         ]);
         let temp = c64(0.5, 0.5);
-        let k32r = Matrix2::from([
-            [temp * c64(0., b).exp(), temp * -c64(0., -b).exp()],
-            [
-                temp * (M_IM * c64(0., b).exp()),
-                temp * (M_IM * c64(0., -b).exp())
-            ],
+        let k32r = Matrix2::from_row_slice(&[
+            temp * c64(0., b).exp(), temp * -c64(0., -b).exp(),
+            temp * (M_IM * c64(0., b).exp()),
+            temp * (M_IM * c64(0., -b).exp())
         ]);
         let k1ld = basis_decomposer.K1l.adjoint();
         let k1rd = basis_decomposer.K1r.adjoint();
