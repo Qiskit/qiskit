@@ -358,6 +358,8 @@ pub fn optimize_clifford_t_mod(m: &Bound<PyModule>) -> PyResult<()> {
 }
 
 // Precomputed tables used in the algorithm.
+
+// Index of the Clifford1q operator -> corresponding Clifford circuit
 const CIRCUIT: &[&[StandardGate]; 24] = &[
     &[],
     &[StandardGate::H],
@@ -400,6 +402,8 @@ const CIRCUIT: &[&[StandardGate]; 24] = &[
     ],
 ];
 
+// Index of the Clifford1q operator -> its effect on the X/Y/Z-rotations
+// (new rotation axis + sign)
 const EVOLVE_X: &[(Pauli1q, bool); 24] = &[
     (Pauli1q::X, false),
     (Pauli1q::Z, false),
@@ -478,6 +482,9 @@ const EVOLVE_Z: &[(Pauli1q, bool); 24] = &[
     (Pauli1q::Y, false),
     (Pauli1q::Y, false),
 ];
+
+// Index of the Clifford1q operator -> changes when appending/prepending S/H-gates
+// (index of the new operator + phase update)
 const APPEND_S: &[(usize, usize); 24] = &[
     (2, 0),
     (3, 0),
