@@ -23,6 +23,7 @@ import sys
 
 import numpy as np
 
+import qiskit
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit import Clbit
 from qiskit.circuit import Qubit
@@ -32,7 +33,6 @@ from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info import Operator
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, QFT, DCXGate, PauliGate
 from qiskit.circuit.gate import Gate
-from qiskit.version import VERSION as current_version_str
 
 try:
     from qiskit.qpy import dump, load
@@ -78,6 +78,12 @@ VERSION_PATTERN = (
 """
     + "$"
 )
+
+
+def version_release_parts(version: str):
+    """The "release" component of a valid Python version string, as a tuple of integers."""
+    version_match = re.search(VERSION_PATTERN, version, re.VERBOSE | re.IGNORECASE)
+    return tuple(int(x) for x in version_match.group("release").split("."))
 
 
 def generate_full_circuit():
@@ -1151,18 +1157,12 @@ def _main():
     )
     args = parser.parse_args()
 
-    current_version = current_version_str.split(".")
-    for i in range(len(current_version[2])):
-        if current_version[2][i].isalpha():
-            current_version[2] = current_version[2][:i]
-            break
-    current_version = tuple(int(x) for x in current_version)
+    current_version = version_release_parts(qiskit.__version__)
 
     # Terra 0.18.0 was the first release with QPY, so that's the default.
     version_parts = (0, 18, 0)
     if args.version:
-        version_match = re.search(VERSION_PATTERN, args.version, re.VERBOSE | re.IGNORECASE)
-        version_parts = tuple(int(x) for x in version_match.group("release").split("."))
+        version_parts = version_release_parts(args.version)
 
     if args.command == "generate":
         qpy_files = generate_circuits(version_parts, current_version)

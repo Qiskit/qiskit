@@ -1142,6 +1142,10 @@ class SparsePauliOp(LinearOp):
     ) -> SparsePauliOp | None:
         r"""Bind the free ``Parameter``\s in the coefficients to provided values.
 
+        .. note::
+            If all the parameters in the circuit are bound to numeric values, the coefficients array
+            will be returned with a :class:`complex` dtype.
+
         Args:
             parameters: The values to bind the parameters to.
             inplace: If ``False``, a copy of the operator with the bound parameters is returned.
@@ -1174,6 +1178,11 @@ class SparsePauliOp(LinearOp):
                 if len(coeff.parameters) == 0:
                     coeff = complex(coeff)
                 bound.coeffs[i] = coeff
+
+        if bound.coeffs.dtype == object and not any(
+            isinstance(c, ParameterExpression) for c in bound.coeffs
+        ):
+            bound._coeffs = bound.coeffs.astype(complex)
 
         return None if inplace else bound
 
