@@ -40,7 +40,7 @@ use crate::classical::expr::binary::PyBinary;
 use crate::classical::expr::cast::PyCast;
 use crate::classical::expr::expr::{ExprKind, PyExpr};
 use crate::classical::expr::index::PyIndex;
-use crate::classical::expr::range::PyRange;
+use crate::classical::expr::range::PyRangeExpr;
 use crate::classical::expr::stretch::PyStretch;
 use crate::classical::expr::unary::PyUnary;
 use crate::classical::expr::value::PyValue;
@@ -55,6 +55,6 @@ pub(crate) fn register_python(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<PyVar>()?;
     m.add_class::<PyStretch>()?;
     m.add_class::<PyIndex>()?;
-    m.add_class::<PyRange>()?;
+    m.add_class::<PyRangeExpr>()?;
     Ok(())
 }

@@ -19,11 +19,14 @@ use pyo3::{intern, IntoPyObjectExt};
 use std::boxed::Box;
 
 /// A range expression that represents a sequence of values.
+/// 
+/// The step is always Some(Expr) as it defaults to 1 when not explicitly provided.
+/// This avoids the need for unwrap() calls throughout the codebase.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Range {
     pub start: Expr,
     pub stop: Expr,
-    pub step: Option<Expr>,
+    pub step: Expr,  // Always Some(Expr) - defaults to 1 when not provided
     pub ty: Type,
     pub constant: bool,
 }
@@ -34,13 +37,13 @@ impl<'py> IntoPyObject<'py> for Range {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        Ok(Bound::new(py, (PyRange(self), PyExpr(ExprKind::Range)))?.into_any())
+        Ok(Bound::new(py, (PyRangeExpr(self), PyExpr(ExprKind::Range)))?.into_any())
     }
 }
 
 impl<'py> FromPyObject<'py> for Range {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let PyRange(r) = ob.extract()?;
+        let PyRangeExpr(r) = ob.extract()?;
         Ok(r)
     }
 }
@@ -69,7 +72,7 @@ fn py_value_to_expr(_py: Python, value: &Bound<PyAny>) -> PyResult<Expr> {
     } else {
         Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
             "Expected non-negative integer or Expr of unsigned integer type, got {}",
-            value.get_type().name()?
+            value.get_type().name().map(|s| s.to_string()).unwrap_or_else(|_| "<missing name>".to_string())
         )))
     }
 }
@@ -107,10 +110,10 @@ fn determine_common_max_type(types: &[Type]) -> Type {
     module = "qiskit._accelerate.circuit.classical.expr"
 )]
 #[derive(PartialEq, Clone, Debug)]
-pub struct PyRange(pub Range);
+pub struct PyRangeExpr(pub Range);
 
 #[pymethods]
-impl PyRange {
+impl PyRangeExpr {
     #[new]
     #[pyo3(signature=(start, stop, step=None, ty=None), text_signature="(start, stop, step=None, type=None)")]
     fn new(
@@ -122,22 +125,13 @@ impl PyRange {
     ) -> PyResult<(Self, PyExpr)> {
         let start_expr = py_value_to_expr(py, start)?;
         let stop_expr = py_value_to_expr(py, stop)?;
-        let step_expr = if let Some(step) = step {
-            Some(py_value_to_expr(py, step)?)
-        } else {
-            None
-        };
-        let constant = start_expr.is_const()
-            && stop_expr.is_const()
-            && step_expr.as_ref().is_none_or(|s| s.is_const());
-
         // Store whether the type was explicitly specified or implicitly determined
         let is_implicit_promotion = ty.is_none();
 
         // Determine the target type for the Range and its expressions
         let target_ty = match ty {
             Some(explicit_ty) => {
-                // Vérification que le type explicite est bien un Uint
+                // Verify that the explicit type is indeed a Uint
                 if !matches!(explicit_ty, Type::Uint(_)) {
                     return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
                         "Range type must be an unsigned integer type",
@@ -146,21 +140,24 @@ impl PyRange {
                 explicit_ty
             }
             None => {
-                // Collect types from start and stop only (step might not exist yet)
+                // When no explicit type is provided, determine the common type from start and stop
+                // If step is provided, include it in the type determination
                 let mut types = vec![start_expr.ty(), stop_expr.ty()];
-                if let Some(step) = &step_expr {
-                    types.push(step.ty());
+                if let Some(step) = step {
+                    // If step is provided, we need to convert it first to get its type
+                    let step_expr_temp = py_value_to_expr(py, step)?;
+                    types.push(step_expr_temp.ty());
                 }
-
-                // Determine the common type with maximum bit width
                 determine_common_max_type(&types)
             }
         };
 
-        // If no step was provided, create a default step value of 1 in the inferred type
-        let step_expr = if step_expr.is_none() {
+        // Create step expression - either from provided value or default to 1 in the target type
+        let step_expr = if let Some(step) = step {
+            py_value_to_expr(py, step)?
+        } else {
             // Create a default step value of 1 in the target type
-            let default_step = match target_ty {
+            match target_ty {
                 Type::Uint(_) => Value::Uint {
                     raw: 1,
                     ty: target_ty,
@@ -171,11 +168,12 @@ impl PyRange {
                         "Range type must be an unsigned integer type",
                     ));
                 }
-            };
-            Some(default_step)
-        } else {
-            step_expr
+            }
         };
+
+        let constant = start_expr.is_const()
+            && stop_expr.is_const()
+            && step_expr.is_const();
 
         // Apply casts to any expressions with types different from the target type
         let (start_expr, stop_expr, step_expr) = {
@@ -209,19 +207,16 @@ impl PyRange {
                     };
 
                     // Create necessary Cast expressions for step if needed
-                    let step_expr = {
-                        let step = step_expr.as_ref().unwrap();
-                        if target_ty != step.ty() {
-                            Expr::Cast(Box::new(Cast {
-                                operand: step.clone(),
-                                ty: target_ty,
-                                constant: step.is_const(),
-                                // Mark as implicit if the type was determined via promotion
-                                implicit: is_implicit_promotion,
-                            }))
-                        } else {
-                            step.clone()
-                        }
+                    let step_expr = if target_ty != step_expr.ty() {
+                        Expr::Cast(Box::new(Cast {
+                            operand: step_expr.clone(),
+                            ty: target_ty,
+                            constant: step_expr.is_const(),
+                            // Mark as implicit if the type was determined via promotion
+                            implicit: is_implicit_promotion,
+                        }))
+                    } else {
+                        step_expr.clone()
                     };
 
                     (start_expr, stop_expr, step_expr)
@@ -236,10 +231,10 @@ impl PyRange {
         };
 
         Ok((
-            PyRange(Range {
+            PyRangeExpr(Range {
                 start: start_expr,
                 stop: stop_expr,
-                step: Some(step_expr),
+                step: step_expr,
                 ty: target_ty,
                 constant,
             }),
@@ -259,7 +254,7 @@ impl PyRange {
 
     #[getter]
     fn get_step(&self, py: Python) -> PyResult<Py<PyAny>> {
-        self.0.step.as_ref().unwrap().clone().into_py_any(py)
+        self.0.step.clone().into_py_any(py)
     }
 
     #[getter]
@@ -290,8 +285,6 @@ impl PyRange {
             ", step={}",
             self.0
                 .step
-                .as_ref()
-                .unwrap()
                 .clone()
                 .into_py_any(py)?
                 .bind(py)
@@ -305,11 +298,11 @@ impl PyRange {
     }
 
     fn __str__(&self, py: Python) -> PyResult<String> {
-        // Create longer-lived bindings for start
-        let start_py = self.0.start.clone().into_py_any(py)?;
+        // Use get_start and get_stop methods for consistency
+        let start_py = self.get_start(py)?;
         let start = start_py.bind(py);
 
-        let stop_py = self.0.stop.clone().into_py_any(py)?;
+        let stop_py = self.get_stop(py)?;
         let stop = stop_py.bind(py);
         let start_str = match start.getattr("name") {
             Ok(name) => name.extract::<String>()?,
@@ -319,7 +312,7 @@ impl PyRange {
             Ok(name) => name.extract::<String>()?,
             Err(_) => stop.str()?.to_string(),
         };
-        let step_py = self.0.step.as_ref().unwrap().clone().into_py_any(py)?;
+        let step_py = self.get_step(py)?;
         let step = step_py.bind(py);
         let step_str = match step.getattr("name") {
             Ok(name) => format!(", step={}", name.extract::<String>()?),

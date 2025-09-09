@@ -175,7 +175,7 @@ impl Expr {
             Expr::Range(r) => {
                 r.start.visit_mut_impl(visitor)?;
                 r.stop.visit_mut_impl(visitor)?;
-                r.step.as_mut().unwrap().visit_mut_impl(visitor)?;
+                r.step.visit_mut_impl(visitor)?;
             }
         }
         visitor(self.as_mut())
@@ -253,6 +253,12 @@ impl Expr {
                         if a.ty != b.ty || a.constant != b.constant {
                             return false;
                         }
+                        // Compare the actual values of start, stop, and step expressions
+                        if !a.start.structurally_equivalent(&b.start) 
+                            || !a.stop.structurally_equivalent(&b.stop)
+                            || !a.step.structurally_equivalent(&b.step) {
+                            return false;
+                        }
                     }
                     _ => return false,
                 },
@@ -295,7 +301,7 @@ impl<'a> Iterator for ExprIterator<'a> {
             Expr::Range(r) => {
                 self.stack.push(&r.stop);
                 self.stack.push(&r.start);
-                self.stack.push(r.step.as_ref().unwrap());
+                self.stack.push(&r.step);
             }
         }
         Some(expr.as_ref())
