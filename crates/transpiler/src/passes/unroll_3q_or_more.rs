@@ -17,6 +17,7 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use crate::target::Target;
 use crate::QiskitError;
 use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::instruction::IntoInstructionView;
 use qiskit_circuit::operations::Operation;
 use thiserror::Error;
 
@@ -48,7 +49,7 @@ pub fn run_unroll_3q_or_more(
         .op_nodes(false)
         .filter_map(
             |(idx, inst)| -> Option<Result<(NodeIndex, DAGCircuit), Unroll3qError>> {
-                if inst.op.num_qubits() < 3 || inst.op.control_flow() {
+                if inst.op.num_qubits() < 3 || inst.try_view_control_flow().is_some() {
                     return None;
                 }
                 if let Some(target) = target {
@@ -56,7 +57,7 @@ pub fn run_unroll_3q_or_more(
                         return None;
                     }
                 }
-                let definition = match inst.op.definition(inst.params_view()) {
+                let definition = match inst.view().try_definition() {
                     Some(def) => def,
                     None => {
                         return Some(Err(Unroll3qError::NoDefinition(inst.op.name().to_string())))

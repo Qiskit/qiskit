@@ -12,12 +12,14 @@
 
 use approx::relative_eq;
 use std::f64::consts::PI;
+use std::fmt::Debug;
 use std::sync::Arc;
 use std::{fmt, vec};
 
 use crate::circuit_data::CircuitData;
-use crate::imports::{get_std_gate_class, BARRIER, DELAY, MEASURE, RESET};
-use crate::imports::{DEEPCOPY, QUANTUM_CIRCUIT, UNITARY_GATE};
+use crate::imports::{
+    get_std_gate_class, DEEPCOPY, QUANTUM_CIRCUIT, SWITCH_CASE_DEFAULT, UNITARY_GATE,
+};
 use crate::parameter::parameter_expression::{
     ParameterExpression, PyParameter, PyParameterExpression,
 };
@@ -26,13 +28,16 @@ use crate::{gate_matrix, impl_intopyobject_for_copy_pyclass, Qubit};
 
 use nalgebra::{Matrix2, Matrix4};
 use ndarray::{array, aview2, Array2, ArrayView2, Dim, ShapeBuilder};
+use num_bigint::BigUint;
 use num_complex::Complex64;
 use smallvec::{smallvec, SmallVec};
 
-use numpy::IntoPyArray;
+use crate::bit::{ClassicalRegister, ShareableClbit};
+use crate::classical::expr;
+use crate::duration::Duration;
 use numpy::PyArray2;
 use numpy::PyReadonlyArray2;
-use numpy::ToPyArray;
+use numpy::{IntoPyArray, ToPyArray};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyList, PyTuple};
@@ -126,6 +131,8 @@ impl Param {
                     let parameters_attr = intern!(py, "parameters");
                     let obj = obj.bind(py);
                     if obj.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
+                        // TODO: are there any instructions that use a QuantumCircuit as a
+                        //   parameter now that control flow is ported to Rust?
                         let collected: Vec<Symbol> = obj
                             .getattr(parameters_attr)?
                             .try_iter()?
@@ -252,17 +259,7 @@ pub trait Operation {
     fn num_qubits(&self) -> u32;
     fn num_clbits(&self) -> u32;
     fn num_params(&self) -> u32;
-    fn control_flow(&self) -> bool;
-    fn blocks(&self) -> Vec<CircuitData>;
-    fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>>;
-    fn definition(&self, params: &[Param]) -> Option<CircuitData>;
     fn directive(&self) -> bool;
-    fn matrix_as_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]>;
-    fn matrix_as_nalgebra_1q(&self, params: &[Param]) -> Option<Matrix2<Complex64>> {
-        // default implementation
-        self.matrix_as_static_1q(params)
-            .map(|arr| Matrix2::new(arr[0][0], arr[0][1], arr[1][0], arr[1][1]))
-    }
 }
 
 /// Unpacked view object onto a `PackedOperation`.  This is the return value of
@@ -271,6 +268,7 @@ pub trait Operation {
 /// This is the main way that we interact immutably with general circuit operations from Rust space.
 #[derive(Debug)]
 pub enum OperationRef<'a> {
+    ControlFlow(&'a ControlFlow),
     StandardGate(StandardGate),
     StandardInstruction(StandardInstruction),
     Gate(&'a PyGate),
@@ -283,6 +281,7 @@ impl Operation for OperationRef<'_> {
     #[inline]
     fn name(&self) -> &str {
         match self {
+            Self::ControlFlow(op) => op.name(),
             Self::StandardGate(standard) => standard.name(),
             Self::StandardInstruction(instruction) => instruction.name(),
             Self::Gate(gate) => gate.name(),
@@ -294,6 +293,7 @@ impl Operation for OperationRef<'_> {
     #[inline]
     fn num_qubits(&self) -> u32 {
         match self {
+            Self::ControlFlow(op) => op.num_qubits(),
             Self::StandardGate(standard) => standard.num_qubits(),
             Self::StandardInstruction(instruction) => instruction.num_qubits(),
             Self::Gate(gate) => gate.num_qubits(),
@@ -305,6 +305,7 @@ impl Operation for OperationRef<'_> {
     #[inline]
     fn num_clbits(&self) -> u32 {
         match self {
+            Self::ControlFlow(op) => op.num_clbits(),
             Self::StandardGate(standard) => standard.num_clbits(),
             Self::StandardInstruction(instruction) => instruction.num_clbits(),
             Self::Gate(gate) => gate.num_clbits(),
@@ -316,6 +317,7 @@ impl Operation for OperationRef<'_> {
     #[inline]
     fn num_params(&self) -> u32 {
         match self {
+            Self::ControlFlow(op) => op.num_params(),
             Self::StandardGate(standard) => standard.num_params(),
             Self::StandardInstruction(instruction) => instruction.num_params(),
             Self::Gate(gate) => gate.num_params(),
@@ -325,52 +327,9 @@ impl Operation for OperationRef<'_> {
         }
     }
     #[inline]
-    fn control_flow(&self) -> bool {
-        match self {
-            Self::StandardGate(standard) => standard.control_flow(),
-            Self::StandardInstruction(instruction) => instruction.control_flow(),
-            Self::Gate(gate) => gate.control_flow(),
-            Self::Instruction(instruction) => instruction.control_flow(),
-            Self::Operation(operation) => operation.control_flow(),
-            Self::Unitary(unitary) => unitary.control_flow(),
-        }
-    }
-    #[inline]
-    fn blocks(&self) -> Vec<CircuitData> {
-        match self {
-            OperationRef::StandardGate(standard) => standard.blocks(),
-            OperationRef::StandardInstruction(instruction) => instruction.blocks(),
-            OperationRef::Gate(gate) => gate.blocks(),
-            OperationRef::Instruction(instruction) => instruction.blocks(),
-            OperationRef::Operation(operation) => operation.blocks(),
-            Self::Unitary(unitary) => unitary.blocks(),
-        }
-    }
-    #[inline]
-    fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>> {
-        match self {
-            Self::StandardGate(standard) => standard.matrix(params),
-            Self::StandardInstruction(instruction) => instruction.matrix(params),
-            Self::Gate(gate) => gate.matrix(params),
-            Self::Instruction(instruction) => instruction.matrix(params),
-            Self::Operation(operation) => operation.matrix(params),
-            Self::Unitary(unitary) => unitary.matrix(params),
-        }
-    }
-    #[inline]
-    fn definition(&self, params: &[Param]) -> Option<CircuitData> {
-        match self {
-            Self::StandardGate(standard) => standard.definition(params),
-            Self::StandardInstruction(instruction) => instruction.definition(params),
-            Self::Gate(gate) => gate.definition(params),
-            Self::Instruction(instruction) => instruction.definition(params),
-            Self::Operation(operation) => operation.definition(params),
-            Self::Unitary(unitary) => unitary.definition(params),
-        }
-    }
-    #[inline]
     fn directive(&self) -> bool {
         match self {
+            Self::ControlFlow(op) => op.directive(),
             Self::StandardGate(standard) => standard.directive(),
             Self::StandardInstruction(instruction) => instruction.directive(),
             Self::Gate(gate) => gate.directive(),
@@ -379,17 +338,310 @@ impl Operation for OperationRef<'_> {
             Self::Unitary(unitary) => unitary.directive(),
         }
     }
+}
 
-    /// Returns a static matrix for 1-qubit gates. Will return `None` when the gate is not 1-qubit.ß
-    #[inline]
-    fn matrix_as_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+/// Used to tag control flow instructions via the `_control_flow_type` class
+/// attribute in the corresponding Python class.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int)]
+#[repr(u8)]
+pub(crate) enum ControlFlowType {
+    Box = 0,
+    BreakLoop = 1,
+    ContinueLoop = 2,
+    ForLoop = 3,
+    IfElse = 4,
+    SwitchCase = 5,
+    WhileLoop = 6,
+}
+
+#[derive(Clone, Debug, IntoPyObject, PartialEq)]
+pub enum BoxDuration {
+    Duration(Duration),
+    Expr(expr::Expr),
+}
+
+#[derive(Clone, Debug)]
+#[repr(align(8))]
+pub enum ControlFlow {
+    Box {
+        duration: Option<BoxDuration>,
+        annotations: Vec<PyObject>,
+        qubits: u32,
+        clbits: u32,
+    },
+    BreakLoop {
+        qubits: u32,
+        clbits: u32,
+    },
+    ContinueLoop {
+        qubits: u32,
+        clbits: u32,
+    },
+    ForLoop {
+        qubits: u32,
+        clbits: u32,
+    },
+    IfElse {
+        condition: Condition,
+        qubits: u32,
+        clbits: u32,
+    },
+    Switch {
+        target: SwitchTarget,
+        label_spec: Vec<Vec<CaseSpecifier>>,
+        qubits: u32,
+        clbits: u32,
+        cases: u32,
+    },
+    While {
+        condition: Condition,
+        qubits: u32,
+        clbits: u32,
+    },
+}
+
+impl ControlFlow {
+    /// Check if another control flow operations is equivalent to this one.
+    ///
+    /// This can be removed and [ControlFlow] can be made to implement [PartialEq]
+    /// instead once `annotations` gets moved to the instruction.
+    pub fn py_eq(&self, py: Python, other: &ControlFlow) -> PyResult<bool> {
         match self {
-            Self::StandardGate(standard) => standard.matrix_as_static_1q(params),
-            Self::StandardInstruction(instruction) => instruction.matrix_as_static_1q(params),
-            Self::Gate(gate) => gate.matrix_as_static_1q(params),
-            Self::Instruction(instruction) => instruction.matrix_as_static_1q(params),
-            Self::Operation(operation) => operation.matrix_as_static_1q(params),
-            Self::Unitary(unitary) => unitary.matrix_as_static_1q(params),
+            ControlFlow::Box {
+                duration: self_duration,
+                annotations: self_annotations,
+                qubits: self_qubits,
+                clbits: self_clbits,
+            } => match other {
+                ControlFlow::Box {
+                    duration: other_duration,
+                    annotations: other_annotations,
+                    qubits: other_qubits,
+                    clbits: other_clbits,
+                } => {
+                    if self_clbits != other_clbits
+                        || self_qubits != other_qubits
+                        || self_duration != other_duration
+                        || self_annotations.len() != other_annotations.len()
+                    {
+                        return Ok(false);
+                    }
+                    for (a, b) in self_annotations.iter().zip(other_annotations) {
+                        if !a.bind(py).eq(b)? {
+                            return Ok(false);
+                        }
+                    }
+                    Ok(true)
+                }
+                _ => Ok(false),
+            },
+            ControlFlow::BreakLoop {
+                qubits: self_qubits,
+                clbits: self_clbits,
+            } => match other {
+                ControlFlow::BreakLoop {
+                    qubits: other_qubits,
+                    clbits: other_clbits,
+                } => Ok(self_qubits == other_qubits && self_clbits == other_clbits),
+                _ => Ok(false),
+            },
+            ControlFlow::ContinueLoop {
+                qubits: self_qubits,
+                clbits: self_clbits,
+            } => match other {
+                ControlFlow::ContinueLoop {
+                    qubits: other_qubits,
+                    clbits: other_clbits,
+                } => Ok(self_qubits == other_qubits && self_clbits == other_clbits),
+                _ => Ok(false),
+            },
+            ControlFlow::ForLoop {
+                qubits: self_qubits,
+                clbits: self_clbits,
+            } => match other {
+                ControlFlow::ForLoop {
+                    qubits: other_qubits,
+                    clbits: other_clbits,
+                } => Ok(self_qubits == other_qubits && self_clbits == other_clbits),
+                _ => Ok(false),
+            },
+            ControlFlow::IfElse {
+                condition: self_condition,
+                qubits: self_qubits,
+                clbits: self_clbits,
+            } => match other {
+                ControlFlow::IfElse {
+                    condition: other_condition,
+                    qubits: other_qubits,
+                    clbits: other_clbits,
+                } => Ok(self_qubits == other_qubits
+                    && self_clbits == other_clbits
+                    && self_condition == other_condition),
+                _ => Ok(false),
+            },
+            ControlFlow::Switch {
+                target: self_target,
+                label_spec: self_label_spec,
+                qubits: self_qubits,
+                clbits: self_clbits,
+                cases: self_cases,
+            } => match other {
+                ControlFlow::Switch {
+                    target: other_target,
+                    label_spec: other_label_spec,
+                    qubits: other_qubits,
+                    clbits: other_clbits,
+                    cases: other_cases,
+                } => Ok(self_qubits == other_qubits
+                    && self_clbits == other_clbits
+                    && self_cases == other_cases
+                    && self_target == other_target
+                    && self_label_spec == other_label_spec),
+                _ => Ok(false),
+            },
+            ControlFlow::While {
+                condition: self_condition,
+                qubits: self_qubits,
+                clbits: self_clbits,
+            } => match other {
+                ControlFlow::While {
+                    condition: other_condition,
+                    qubits: other_qubits,
+                    clbits: other_clbits,
+                } => Ok(self_qubits == other_qubits
+                    && self_clbits == other_clbits
+                    && self_condition == other_condition),
+                _ => Ok(false),
+            },
+        }
+    }
+}
+
+impl Operation for ControlFlow {
+    fn name(&self) -> &str {
+        match self {
+            ControlFlow::Box { .. } => "box",
+            ControlFlow::BreakLoop { .. } => "break_loop",
+            ControlFlow::ContinueLoop { .. } => "continue_loop",
+            ControlFlow::ForLoop { .. } => "for_loop",
+            ControlFlow::IfElse { .. } => "if_else",
+            ControlFlow::Switch { .. } => "switch_case",
+            ControlFlow::While { .. } => "while_loop",
+        }
+    }
+
+    fn num_qubits(&self) -> u32 {
+        match self {
+            ControlFlow::Box { qubits, .. }
+            | ControlFlow::BreakLoop { qubits, .. }
+            | ControlFlow::ContinueLoop { qubits, .. }
+            | ControlFlow::ForLoop { qubits, .. }
+            | ControlFlow::IfElse { qubits, .. }
+            | ControlFlow::Switch { qubits, .. }
+            | ControlFlow::While { qubits, .. } => *qubits,
+        }
+    }
+
+    fn num_clbits(&self) -> u32 {
+        match self {
+            ControlFlow::Box { clbits, .. }
+            | ControlFlow::BreakLoop { clbits, .. }
+            | ControlFlow::ContinueLoop { clbits, .. }
+            | ControlFlow::ForLoop { clbits, .. }
+            | ControlFlow::IfElse { clbits, .. }
+            | ControlFlow::Switch { clbits, .. }
+            | ControlFlow::While { clbits, .. } => *clbits,
+        }
+    }
+
+    fn num_params(&self) -> u32 {
+        match self {
+            ControlFlow::Box { .. } => 1,
+            ControlFlow::BreakLoop { .. } => 0,
+            ControlFlow::ContinueLoop { .. } => 0,
+            ControlFlow::ForLoop { .. } => 3,
+            ControlFlow::IfElse { .. } => 2,
+            ControlFlow::Switch { cases, .. } => *cases,
+            ControlFlow::While { .. } => 1,
+        }
+    }
+
+    fn directive(&self) -> bool {
+        false
+    }
+}
+
+/// A control flow operation's condition.
+#[derive(Clone, Debug, PartialEq, IntoPyObject)]
+pub enum Condition {
+    Bit(ShareableClbit, usize),
+    Register(ClassicalRegister, BigUint),
+    Expr(expr::Expr),
+}
+
+impl<'py> FromPyObject<'py> for Condition {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        if let Ok((bit, value)) = ob.extract::<(ShareableClbit, usize)>() {
+            Ok(Condition::Bit(bit, value))
+        } else if let Ok((register, value)) = ob.extract::<(ClassicalRegister, BigUint)>() {
+            Ok(Condition::Register(register, value))
+        } else {
+            let Ok(condition) = ob.extract() else {
+                panic!("failed to extract condition! {}", ob);
+            };
+            Ok(Condition::Expr(condition))
+        }
+    }
+}
+
+/// A control flow operation's target.
+#[derive(Clone, Debug, PartialEq, IntoPyObject)]
+pub enum SwitchTarget {
+    Bit(ShareableClbit),
+    Register(ClassicalRegister),
+    Expr(expr::Expr),
+}
+
+impl<'py> FromPyObject<'py> for SwitchTarget {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        if let Ok(bit) = ob.extract::<ShareableClbit>() {
+            Ok(SwitchTarget::Bit(bit))
+        } else if let Ok(register) = ob.extract::<ClassicalRegister>() {
+            Ok(SwitchTarget::Register(register))
+        } else {
+            Ok(SwitchTarget::Expr(ob.extract()?))
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum CaseSpecifier {
+    Uint(usize),
+    Default,
+}
+
+impl<'py> FromPyObject<'py> for CaseSpecifier {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        if let Ok(i) = ob.extract::<usize>() {
+            Ok(CaseSpecifier::Uint(i))
+        } else if ob.is(SWITCH_CASE_DEFAULT.get_bound(ob.py())) {
+            Ok(CaseSpecifier::Default)
+        } else {
+            Err(PyValueError::new_err("invalid case specifier"))
+        }
+    }
+}
+
+impl<'py> IntoPyObject<'py> for CaseSpecifier {
+    type Target = PyAny;
+    type Output = Bound<'py, PyAny>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        match self {
+            CaseSpecifier::Uint(u) => u.into_bound_py_any(py),
+            CaseSpecifier::Default => Ok(SWITCH_CASE_DEFAULT.get_bound(py).clone()),
         }
     }
 }
@@ -524,22 +776,6 @@ impl Operation for StandardInstruction {
         0
     }
 
-    fn control_flow(&self) -> bool {
-        false
-    }
-
-    fn blocks(&self) -> Vec<CircuitData> {
-        vec![]
-    }
-
-    fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
-        None
-    }
-
-    fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
-        None
-    }
-
     fn directive(&self) -> bool {
         match self {
             StandardInstruction::Barrier(_) => true,
@@ -547,38 +783,6 @@ impl Operation for StandardInstruction {
             StandardInstruction::Measure => false,
             StandardInstruction::Reset => false,
         }
-    }
-
-    fn matrix_as_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
-        None
-    }
-}
-
-impl StandardInstruction {
-    pub fn create_py_op(
-        &self,
-        py: Python,
-        params: Option<&[Param]>,
-        label: Option<&str>,
-    ) -> PyResult<Py<PyAny>> {
-        let kwargs = label
-            .map(|label| [("label", label.into_py_any(py)?)].into_py_dict(py))
-            .transpose()?;
-        let out = match self {
-            StandardInstruction::Barrier(num_qubits) => {
-                BARRIER.get_bound(py).call((num_qubits,), kwargs.as_ref())?
-            }
-            StandardInstruction::Delay(unit) => {
-                let duration = &params.unwrap()[0];
-                DELAY
-                    .get_bound(py)
-                    .call1((duration.into_py_any(py)?, unit.to_string()))?
-            }
-            StandardInstruction::Measure => MEASURE.get_bound(py).call((), kwargs.as_ref())?,
-            StandardInstruction::Reset => RESET.get_bound(py).call((), kwargs.as_ref())?,
-        };
-
-        Ok(out.unbind())
     }
 }
 
@@ -749,7 +953,10 @@ impl StandardGate {
         let gate_class = get_std_gate_class(py, *self)?;
         let args = match params.unwrap_or(&[]) {
             &[] => PyTuple::empty(py),
-            params => PyTuple::new(py, params.iter().map(|x| x.into_pyobject(py).unwrap()))?,
+            params => PyTuple::new(
+                py,
+                params.iter().map(|x| x.clone().into_pyobject(py).unwrap()),
+            )?,
         };
         if let Some(label) = label {
             let kwargs = [("label", label.into_pyobject(py)?)].into_py_dict(py)?;
@@ -763,219 +970,7 @@ impl StandardGate {
         STANDARD_GATE_NUM_CTRL_QUBITS[*self as usize]
     }
 
-    pub fn inverse(&self, params: &[Param]) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
-        match self {
-            Self::GlobalPhase => Some((
-                Self::GlobalPhase,
-                smallvec![multiply_param(&params[0], -1.0)],
-            )),
-            Self::H => Some((Self::H, smallvec![])),
-            Self::I => Some((Self::I, smallvec![])),
-            Self::X => Some((Self::X, smallvec![])),
-            Self::Y => Some((Self::Y, smallvec![])),
-            Self::Z => Some((Self::Z, smallvec![])),
-            Self::Phase => Some((Self::Phase, smallvec![multiply_param(&params[0], -1.0)])),
-            Self::R => Some((
-                Self::R,
-                smallvec![multiply_param(&params[0], -1.0), params[1].clone()],
-            )),
-            Self::RX => Some((Self::RX, smallvec![multiply_param(&params[0], -1.0)])),
-            Self::RY => Some((Self::RY, smallvec![multiply_param(&params[0], -1.0)])),
-            Self::RZ => Some((Self::RZ, smallvec![multiply_param(&params[0], -1.0)])),
-            Self::S => Some((Self::Sdg, smallvec![])),
-            Self::Sdg => Some((Self::S, smallvec![])),
-            Self::SX => Some((Self::SXdg, smallvec![])),
-            Self::SXdg => Some((Self::SX, smallvec![])),
-            Self::T => Some((Self::Tdg, smallvec![])),
-            Self::Tdg => Some((Self::T, smallvec![])),
-            Self::U => Some((
-                Self::U,
-                smallvec![
-                    multiply_param(&params[0], -1.0),
-                    multiply_param(&params[2], -1.0),
-                    multiply_param(&params[1], -1.0),
-                ],
-            )),
-            Self::U1 => Some((Self::U1, smallvec![multiply_param(&params[0], -1.0)])),
-            Self::U2 => Some((
-                Self::U2,
-                smallvec![
-                    add_param(&multiply_param(&params[1], -1.0), -PI),
-                    add_param(&multiply_param(&params[0], -1.0), PI),
-                ],
-            )),
-            Self::U3 => Some((
-                Self::U3,
-                smallvec![
-                    multiply_param(&params[0], -1.0),
-                    multiply_param(&params[2], -1.0),
-                    multiply_param(&params[1], -1.0),
-                ],
-            )),
-            Self::CH => Some((Self::CH, smallvec![])),
-            Self::CX => Some((Self::CX, smallvec![])),
-            Self::CY => Some((Self::CY, smallvec![])),
-            Self::CZ => Some((Self::CZ, smallvec![])),
-            Self::DCX => None, // the inverse in not a StandardGate
-            Self::ECR => Some((Self::ECR, smallvec![])),
-            Self::Swap => Some((Self::Swap, smallvec![])),
-            Self::ISwap => None, // the inverse in not a StandardGate
-            Self::CPhase => Some((Self::CPhase, smallvec![multiply_param(&params[0], -1.0)])),
-            Self::CRX => Some((Self::CRX, smallvec![multiply_param(&params[0], -1.0)])),
-            Self::CRY => Some((Self::CRY, smallvec![multiply_param(&params[0], -1.0)])),
-            Self::CRZ => Some((Self::CRZ, smallvec![multiply_param(&params[0], -1.0)])),
-            Self::CS => Some((Self::CSdg, smallvec![])),
-            Self::CSdg => Some((Self::CS, smallvec![])),
-            Self::CSX => None, // the inverse in not a StandardGate
-            Self::CU => Some((
-                Self::CU,
-                smallvec![
-                    multiply_param(&params[0], -1.0),
-                    multiply_param(&params[2], -1.0),
-                    multiply_param(&params[1], -1.0),
-                    multiply_param(&params[3], -1.0),
-                ],
-            )),
-            Self::CU1 => Some((Self::CU1, smallvec![multiply_param(&params[0], -1.0)])),
-            Self::CU3 => Some((
-                Self::CU3,
-                smallvec![
-                    multiply_param(&params[0], -1.0),
-                    multiply_param(&params[2], -1.0),
-                    multiply_param(&params[1], -1.0),
-                ],
-            )),
-            Self::RXX => Some((Self::RXX, smallvec![multiply_param(&params[0], -1.0)])),
-            Self::RYY => Some((Self::RYY, smallvec![multiply_param(&params[0], -1.0)])),
-            Self::RZZ => Some((Self::RZZ, smallvec![multiply_param(&params[0], -1.0)])),
-            Self::RZX => Some((Self::RZX, smallvec![multiply_param(&params[0], -1.0)])),
-            Self::XXMinusYY => Some((
-                Self::XXMinusYY,
-                smallvec![multiply_param(&params[0], -1.0), params[1].clone()],
-            )),
-            Self::XXPlusYY => Some((
-                Self::XXPlusYY,
-                smallvec![multiply_param(&params[0], -1.0), params[1].clone()],
-            )),
-            Self::CCX => Some((Self::CCX, smallvec![])),
-            Self::CCZ => Some((Self::CCZ, smallvec![])),
-            Self::CSwap => Some((Self::CSwap, smallvec![])),
-            Self::RCCX => None, // the inverse in not a StandardGate
-            Self::C3X => Some((Self::C3X, smallvec![])),
-            Self::C3SX => None, // the inverse in not a StandardGate
-            Self::RC3X => None, // the inverse in not a StandardGate
-        }
-    }
-}
-
-#[pymethods]
-impl StandardGate {
-    pub fn copy(&self) -> Self {
-        *self
-    }
-
-    // These pymethods are for testing:
-    pub fn _to_matrix<'py>(
-        &self,
-        py: Python<'py>,
-        params: Vec<Param>,
-    ) -> Option<Bound<'py, PyArray2<Complex64>>> {
-        self.matrix(&params).map(|x| x.into_pyarray(py))
-    }
-
-    pub fn _num_params(&self) -> u32 {
-        self.num_params()
-    }
-
-    pub fn _get_definition(&self, params: Vec<Param>) -> Option<CircuitData> {
-        self.definition(&params)
-    }
-
-    pub fn _inverse(&self, params: Vec<Param>) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
-        self.inverse(&params)
-    }
-
-    #[getter]
-    pub fn get_num_qubits(&self) -> u32 {
-        self.num_qubits()
-    }
-
-    #[getter]
-    pub fn get_num_ctrl_qubits(&self) -> u32 {
-        self.num_ctrl_qubits()
-    }
-
-    #[getter]
-    pub fn get_num_clbits(&self) -> u32 {
-        self.num_clbits()
-    }
-
-    #[getter]
-    pub fn get_num_params(&self) -> u32 {
-        self.num_params()
-    }
-
-    #[getter]
-    pub fn get_name(&self) -> &str {
-        self.name()
-    }
-
-    #[getter]
-    pub fn is_controlled_gate(&self) -> bool {
-        self.num_ctrl_qubits() > 0
-    }
-
-    #[getter]
-    pub fn get_gate_class(&self, py: Python) -> PyResult<&'static Py<PyAny>> {
-        get_std_gate_class(py, *self)
-    }
-
-    #[staticmethod]
-    pub fn all_gates(py: Python) -> PyResult<Bound<PyList>> {
-        PyList::new(
-            py,
-            (0..STANDARD_GATE_SIZE as u8).map(::bytemuck::checked::cast::<_, Self>),
-        )
-    }
-
-    pub fn __hash__(&self) -> isize {
-        *self as isize
-    }
-}
-
-// This must be kept up-to-date with `StandardGate` when adding or removing
-// gates from the enum
-//
-// Remove this when std::mem::variant_count() is stabilized (see
-// https://github.com/rust-lang/rust/issues/73662 )
-pub const STANDARD_GATE_SIZE: usize = 52;
-
-impl Operation for StandardGate {
-    fn name(&self) -> &str {
-        STANDARD_GATE_NAME[*self as usize]
-    }
-
-    fn num_qubits(&self) -> u32 {
-        STANDARD_GATE_NUM_QUBITS[*self as usize]
-    }
-
-    fn num_clbits(&self) -> u32 {
-        0
-    }
-
-    fn num_params(&self) -> u32 {
-        STANDARD_GATE_NUM_PARAMS[*self as usize]
-    }
-
-    fn control_flow(&self) -> bool {
-        false
-    }
-
-    fn blocks(&self) -> Vec<CircuitData> {
-        vec![]
-    }
-
-    fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>> {
+    pub fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>> {
         match self {
             Self::GlobalPhase => match params {
                 [Param::Float(theta)] => {
@@ -1206,7 +1201,128 @@ impl Operation for StandardGate {
         }
     }
 
-    fn definition(&self, params: &[Param]) -> Option<CircuitData> {
+    pub fn matrix_as_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+        match self {
+            Self::GlobalPhase => None,
+            Self::H => match params {
+                [] => Some(gate_matrix::H_GATE),
+                _ => None,
+            },
+            Self::I => match params {
+                [] => Some(gate_matrix::ONE_QUBIT_IDENTITY),
+                _ => None,
+            },
+            Self::X => match params {
+                [] => Some(gate_matrix::X_GATE),
+                _ => None,
+            },
+            Self::Y => match params {
+                [] => Some(gate_matrix::Y_GATE),
+                _ => None,
+            },
+            Self::Z => match params {
+                [] => Some(gate_matrix::Z_GATE),
+                _ => None,
+            },
+            Self::Phase => match params {
+                [Param::Float(theta)] => Some(gate_matrix::phase_gate(*theta)),
+                _ => None,
+            },
+            Self::R => match params {
+                [Param::Float(theta), Param::Float(phi)] => Some(gate_matrix::r_gate(*theta, *phi)),
+                _ => None,
+            },
+            Self::RX => match params {
+                [Param::Float(theta)] => Some(gate_matrix::rx_gate(*theta)),
+                _ => None,
+            },
+            Self::RY => match params {
+                [Param::Float(theta)] => Some(gate_matrix::ry_gate(*theta)),
+                _ => None,
+            },
+            Self::RZ => match params {
+                [Param::Float(theta)] => Some(gate_matrix::rz_gate(*theta)),
+                _ => None,
+            },
+            Self::S => match params {
+                [] => Some(gate_matrix::S_GATE),
+                _ => None,
+            },
+            Self::Sdg => match params {
+                [] => Some(gate_matrix::SDG_GATE),
+                _ => None,
+            },
+            Self::SX => match params {
+                [] => Some(gate_matrix::SX_GATE),
+                _ => None,
+            },
+            Self::SXdg => match params {
+                [] => Some(gate_matrix::SXDG_GATE),
+                _ => None,
+            },
+            Self::T => match params {
+                [] => Some(gate_matrix::T_GATE),
+                _ => None,
+            },
+            Self::Tdg => match params {
+                [] => Some(gate_matrix::TDG_GATE),
+                _ => None,
+            },
+            Self::U => match params {
+                [Param::Float(theta), Param::Float(phi), Param::Float(lam)] => {
+                    Some(gate_matrix::u_gate(*theta, *phi, *lam))
+                }
+                _ => None,
+            },
+            Self::U1 => match params[0] {
+                Param::Float(val) => Some(gate_matrix::u1_gate(val)),
+                _ => None,
+            },
+            Self::U2 => match params {
+                [Param::Float(phi), Param::Float(lam)] => Some(gate_matrix::u2_gate(*phi, *lam)),
+                _ => None,
+            },
+            Self::U3 => match params {
+                [Param::Float(theta), Param::Float(phi), Param::Float(lam)] => {
+                    Some(gate_matrix::u3_gate(*theta, *phi, *lam))
+                }
+                _ => None,
+            },
+            Self::CH => None,
+            Self::CX => None,
+            Self::CY => None,
+            Self::CZ => None,
+            Self::DCX => None,
+            Self::ECR => None,
+            Self::Swap => None,
+            Self::ISwap => None,
+            Self::CPhase => None,
+            Self::CRX => None,
+            Self::CRY => None,
+            Self::CRZ => None,
+            Self::CS => None,
+            Self::CSdg => None,
+            Self::CSX => None,
+            Self::CU => None,
+            Self::CU1 => None,
+            Self::CU3 => None,
+            Self::RXX => None,
+            Self::RYY => None,
+            Self::RZZ => None,
+            Self::RZX => None,
+            Self::XXMinusYY => None,
+            Self::XXPlusYY => None,
+            Self::CCX => None,
+            Self::CCZ => None,
+            Self::CSwap => None,
+            Self::RCCX => None,
+            Self::C3X => None,
+            Self::C3SX => None,
+            Self::RC3X => None,
+        }
+    }
+
+    pub fn definition(&self, params: &[Param]) -> Option<CircuitData> {
         match self {
             Self::GlobalPhase => Some(
                 CircuitData::from_standard_gates(0, [], params[0].clone())
@@ -2243,129 +2359,208 @@ impl Operation for StandardGate {
         }
     }
 
-    fn directive(&self) -> bool {
-        false
+    pub fn inverse(&self, params: &[Param]) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
+        match self {
+            Self::GlobalPhase => Some((
+                Self::GlobalPhase,
+                smallvec![multiply_param(&params[0], -1.0)],
+            )),
+            Self::H => Some((Self::H, smallvec![])),
+            Self::I => Some((Self::I, smallvec![])),
+            Self::X => Some((Self::X, smallvec![])),
+            Self::Y => Some((Self::Y, smallvec![])),
+            Self::Z => Some((Self::Z, smallvec![])),
+            Self::Phase => Some((Self::Phase, smallvec![multiply_param(&params[0], -1.0)])),
+            Self::R => Some((
+                Self::R,
+                smallvec![multiply_param(&params[0], -1.0), params[1].clone()],
+            )),
+            Self::RX => Some((Self::RX, smallvec![multiply_param(&params[0], -1.0)])),
+            Self::RY => Some((Self::RY, smallvec![multiply_param(&params[0], -1.0)])),
+            Self::RZ => Some((Self::RZ, smallvec![multiply_param(&params[0], -1.0)])),
+            Self::S => Some((Self::Sdg, smallvec![])),
+            Self::Sdg => Some((Self::S, smallvec![])),
+            Self::SX => Some((Self::SXdg, smallvec![])),
+            Self::SXdg => Some((Self::SX, smallvec![])),
+            Self::T => Some((Self::Tdg, smallvec![])),
+            Self::Tdg => Some((Self::T, smallvec![])),
+            Self::U => Some((
+                Self::U,
+                smallvec![
+                    multiply_param(&params[0], -1.0),
+                    multiply_param(&params[2], -1.0),
+                    multiply_param(&params[1], -1.0),
+                ],
+            )),
+            Self::U1 => Some((Self::U1, smallvec![multiply_param(&params[0], -1.0)])),
+            Self::U2 => Some((
+                Self::U2,
+                smallvec![
+                    add_param(&multiply_param(&params[1], -1.0), -PI),
+                    add_param(&multiply_param(&params[0], -1.0), PI),
+                ],
+            )),
+            Self::U3 => Some((
+                Self::U3,
+                smallvec![
+                    multiply_param(&params[0], -1.0),
+                    multiply_param(&params[2], -1.0),
+                    multiply_param(&params[1], -1.0),
+                ],
+            )),
+            Self::CH => Some((Self::CH, smallvec![])),
+            Self::CX => Some((Self::CX, smallvec![])),
+            Self::CY => Some((Self::CY, smallvec![])),
+            Self::CZ => Some((Self::CZ, smallvec![])),
+            Self::DCX => None, // the inverse in not a StandardGate
+            Self::ECR => Some((Self::ECR, smallvec![])),
+            Self::Swap => Some((Self::Swap, smallvec![])),
+            Self::ISwap => None, // the inverse in not a StandardGate
+            Self::CPhase => Some((Self::CPhase, smallvec![multiply_param(&params[0], -1.0)])),
+            Self::CRX => Some((Self::CRX, smallvec![multiply_param(&params[0], -1.0)])),
+            Self::CRY => Some((Self::CRY, smallvec![multiply_param(&params[0], -1.0)])),
+            Self::CRZ => Some((Self::CRZ, smallvec![multiply_param(&params[0], -1.0)])),
+            Self::CS => Some((Self::CSdg, smallvec![])),
+            Self::CSdg => Some((Self::CS, smallvec![])),
+            Self::CSX => None, // the inverse in not a StandardGate
+            Self::CU => Some((
+                Self::CU,
+                smallvec![
+                    multiply_param(&params[0], -1.0),
+                    multiply_param(&params[2], -1.0),
+                    multiply_param(&params[1], -1.0),
+                    multiply_param(&params[3], -1.0),
+                ],
+            )),
+            Self::CU1 => Some((Self::CU1, smallvec![multiply_param(&params[0], -1.0)])),
+            Self::CU3 => Some((
+                Self::CU3,
+                smallvec![
+                    multiply_param(&params[0], -1.0),
+                    multiply_param(&params[2], -1.0),
+                    multiply_param(&params[1], -1.0),
+                ],
+            )),
+            Self::RXX => Some((Self::RXX, smallvec![multiply_param(&params[0], -1.0)])),
+            Self::RYY => Some((Self::RYY, smallvec![multiply_param(&params[0], -1.0)])),
+            Self::RZZ => Some((Self::RZZ, smallvec![multiply_param(&params[0], -1.0)])),
+            Self::RZX => Some((Self::RZX, smallvec![multiply_param(&params[0], -1.0)])),
+            Self::XXMinusYY => Some((
+                Self::XXMinusYY,
+                smallvec![multiply_param(&params[0], -1.0), params[1].clone()],
+            )),
+            Self::XXPlusYY => Some((
+                Self::XXPlusYY,
+                smallvec![multiply_param(&params[0], -1.0), params[1].clone()],
+            )),
+            Self::CCX => Some((Self::CCX, smallvec![])),
+            Self::CCZ => Some((Self::CCZ, smallvec![])),
+            Self::CSwap => Some((Self::CSwap, smallvec![])),
+            Self::RCCX => None, // the inverse in not a StandardGate
+            Self::C3X => Some((Self::C3X, smallvec![])),
+            Self::C3SX => None, // the inverse in not a StandardGate
+            Self::RC3X => None, // the inverse in not a StandardGate
+        }
+    }
+}
+
+#[pymethods]
+impl StandardGate {
+    pub fn copy(&self) -> Self {
+        *self
     }
 
-    fn matrix_as_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
-        match self {
-            Self::GlobalPhase => None,
-            Self::H => match params {
-                [] => Some(gate_matrix::H_GATE),
-                _ => None,
-            },
-            Self::I => match params {
-                [] => Some(gate_matrix::ONE_QUBIT_IDENTITY),
-                _ => None,
-            },
-            Self::X => match params {
-                [] => Some(gate_matrix::X_GATE),
-                _ => None,
-            },
-            Self::Y => match params {
-                [] => Some(gate_matrix::Y_GATE),
-                _ => None,
-            },
-            Self::Z => match params {
-                [] => Some(gate_matrix::Z_GATE),
-                _ => None,
-            },
-            Self::Phase => match params {
-                [Param::Float(theta)] => Some(gate_matrix::phase_gate(*theta)),
-                _ => None,
-            },
-            Self::R => match params {
-                [Param::Float(theta), Param::Float(phi)] => Some(gate_matrix::r_gate(*theta, *phi)),
-                _ => None,
-            },
-            Self::RX => match params {
-                [Param::Float(theta)] => Some(gate_matrix::rx_gate(*theta)),
-                _ => None,
-            },
-            Self::RY => match params {
-                [Param::Float(theta)] => Some(gate_matrix::ry_gate(*theta)),
-                _ => None,
-            },
-            Self::RZ => match params {
-                [Param::Float(theta)] => Some(gate_matrix::rz_gate(*theta)),
-                _ => None,
-            },
-            Self::S => match params {
-                [] => Some(gate_matrix::S_GATE),
-                _ => None,
-            },
-            Self::Sdg => match params {
-                [] => Some(gate_matrix::SDG_GATE),
-                _ => None,
-            },
-            Self::SX => match params {
-                [] => Some(gate_matrix::SX_GATE),
-                _ => None,
-            },
-            Self::SXdg => match params {
-                [] => Some(gate_matrix::SXDG_GATE),
-                _ => None,
-            },
-            Self::T => match params {
-                [] => Some(gate_matrix::T_GATE),
-                _ => None,
-            },
-            Self::Tdg => match params {
-                [] => Some(gate_matrix::TDG_GATE),
-                _ => None,
-            },
-            Self::U => match params {
-                [Param::Float(theta), Param::Float(phi), Param::Float(lam)] => {
-                    Some(gate_matrix::u_gate(*theta, *phi, *lam))
-                }
-                _ => None,
-            },
-            Self::U1 => match params[0] {
-                Param::Float(val) => Some(gate_matrix::u1_gate(val)),
-                _ => None,
-            },
-            Self::U2 => match params {
-                [Param::Float(phi), Param::Float(lam)] => Some(gate_matrix::u2_gate(*phi, *lam)),
-                _ => None,
-            },
-            Self::U3 => match params {
-                [Param::Float(theta), Param::Float(phi), Param::Float(lam)] => {
-                    Some(gate_matrix::u3_gate(*theta, *phi, *lam))
-                }
-                _ => None,
-            },
-            Self::CH => None,
-            Self::CX => None,
-            Self::CY => None,
-            Self::CZ => None,
-            Self::DCX => None,
-            Self::ECR => None,
-            Self::Swap => None,
-            Self::ISwap => None,
-            Self::CPhase => None,
-            Self::CRX => None,
-            Self::CRY => None,
-            Self::CRZ => None,
-            Self::CS => None,
-            Self::CSdg => None,
-            Self::CSX => None,
-            Self::CU => None,
-            Self::CU1 => None,
-            Self::CU3 => None,
-            Self::RXX => None,
-            Self::RYY => None,
-            Self::RZZ => None,
-            Self::RZX => None,
-            Self::XXMinusYY => None,
-            Self::XXPlusYY => None,
-            Self::CCX => None,
-            Self::CCZ => None,
-            Self::CSwap => None,
-            Self::RCCX => None,
-            Self::C3X => None,
-            Self::C3SX => None,
-            Self::RC3X => None,
-        }
+    // These pymethods are for testing:
+    pub fn _to_matrix<'py>(
+        &self,
+        py: Python<'py>,
+        params: Vec<Param>,
+    ) -> Option<Bound<'py, PyArray2<Complex64>>> {
+        self.matrix(&params).map(|x| x.into_pyarray(py))
+    }
+
+    pub fn _num_params(&self) -> u32 {
+        self.num_params()
+    }
+
+    pub fn _get_definition(&self, params: Vec<Param>) -> Option<CircuitData> {
+        self.definition(&params)
+    }
+
+    pub fn _inverse(&self, params: Vec<Param>) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
+        self.inverse(&params)
+    }
+
+    #[getter]
+    pub fn get_num_qubits(&self) -> u32 {
+        self.num_qubits()
+    }
+
+    #[getter]
+    pub fn get_num_ctrl_qubits(&self) -> u32 {
+        self.num_ctrl_qubits()
+    }
+
+    #[getter]
+    pub fn get_num_clbits(&self) -> u32 {
+        self.num_clbits()
+    }
+
+    #[getter]
+    pub fn get_num_params(&self) -> u32 {
+        self.num_params()
+    }
+
+    #[getter]
+    pub fn get_name(&self) -> &str {
+        self.name()
+    }
+
+    #[getter]
+    pub fn is_controlled_gate(&self) -> bool {
+        self.num_ctrl_qubits() > 0
+    }
+
+    #[getter]
+    pub fn get_gate_class(&self, py: Python) -> PyResult<&'static Py<PyAny>> {
+        get_std_gate_class(py, *self)
+    }
+
+    #[staticmethod]
+    pub fn all_gates(py: Python) -> PyResult<Bound<PyList>> {
+        PyList::new(
+            py,
+            (0..STANDARD_GATE_SIZE as u8).map(::bytemuck::checked::cast::<_, Self>),
+        )
+    }
+
+    pub fn __hash__(&self) -> isize {
+        *self as isize
+    }
+}
+
+// This must be kept up-to-date with `StandardGate` when adding or removing
+// gates from the enum
+//
+// Remove this when std::mem::variant_count() is stabilized (see
+// https://github.com/rust-lang/rust/issues/73662 )
+pub const STANDARD_GATE_SIZE: usize = 52;
+
+impl Operation for StandardGate {
+    fn name(&self) -> &str {
+        STANDARD_GATE_NAME[*self as usize]
+    }
+    fn num_qubits(&self) -> u32 {
+        STANDARD_GATE_NUM_QUBITS[*self as usize]
+    }
+    fn num_clbits(&self) -> u32 {
+        0
+    }
+    fn num_params(&self) -> u32 {
+        STANDARD_GATE_NUM_PARAMS[*self as usize]
+    }
+    fn directive(&self) -> bool {
+        false
     }
 }
 
@@ -2454,7 +2649,6 @@ pub struct PyInstruction {
     pub clbits: u32,
     pub params: u32,
     pub op_name: String,
-    pub control_flow: bool,
     pub instruction: PyObject,
 }
 
@@ -2466,7 +2660,6 @@ impl PythonOperation for PyInstruction {
             qubits: self.qubits,
             clbits: self.clbits,
             params: self.params,
-            control_flow: self.control_flow,
             op_name: self.op_name.clone(),
         })
     }
@@ -2478,7 +2671,6 @@ impl PythonOperation for PyInstruction {
             qubits: self.qubits,
             clbits: self.clbits,
             params: self.params,
-            control_flow: self.control_flow,
             op_name: self.op_name.clone(),
         })
     }
@@ -2497,44 +2689,6 @@ impl Operation for PyInstruction {
     fn num_params(&self) -> u32 {
         self.params
     }
-    fn control_flow(&self) -> bool {
-        self.control_flow
-    }
-    fn blocks(&self) -> Vec<CircuitData> {
-        if !self.control_flow {
-            return vec![];
-        }
-        Python::with_gil(|py| -> Vec<CircuitData> {
-            // We expect that if PyInstruction::control_flow is true then the operation WILL
-            // have a 'blocks' attribute which is a tuple of the Python QuantumCircuit.
-            let raw_blocks = self.instruction.getattr(py, "blocks").unwrap();
-            let blocks: &Bound<PyTuple> = raw_blocks.downcast_bound::<PyTuple>(py).unwrap();
-            blocks
-                .iter()
-                .map(|b| {
-                    b.getattr(intern!(py, "_data"))
-                        .unwrap()
-                        .extract::<CircuitData>()
-                        .unwrap()
-                })
-                .collect()
-        })
-    }
-    fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
-        None
-    }
-    fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
-        Python::with_gil(|py| -> Option<CircuitData> {
-            match self.instruction.getattr(py, intern!(py, "definition")) {
-                Ok(definition) => definition
-                    .getattr(py, intern!(py, "_data"))
-                    .ok()?
-                    .extract::<CircuitData>(py)
-                    .ok(),
-                Err(_) => None,
-            }
-        })
-    }
 
     fn directive(&self) -> bool {
         Python::with_gil(|py| -> bool {
@@ -2547,8 +2701,20 @@ impl Operation for PyInstruction {
             }
         })
     }
-    fn matrix_as_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
-        None
+}
+
+impl PyInstruction {
+    pub fn definition(&self) -> Option<CircuitData> {
+        Python::with_gil(|py| -> Option<CircuitData> {
+            match self.instruction.getattr(py, intern!(py, "definition")) {
+                Ok(definition) => definition
+                    .getattr(py, intern!(py, "_data"))
+                    .ok()?
+                    .extract::<CircuitData>(py)
+                    .ok(),
+                Err(_) => None,
+            }
+        })
     }
 }
 
@@ -2601,13 +2767,13 @@ impl Operation for PyGate {
     fn num_params(&self) -> u32 {
         self.params
     }
-    fn control_flow(&self) -> bool {
+    fn directive(&self) -> bool {
         false
     }
-    fn blocks(&self) -> Vec<CircuitData> {
-        vec![]
-    }
-    fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
+}
+
+impl PyGate {
+    pub fn matrix(&self) -> Option<Array2<Complex64>> {
         Python::with_gil(|py| -> Option<Array2<Complex64>> {
             match self.gate.getattr(py, intern!(py, "to_matrix")) {
                 Ok(to_matrix) => {
@@ -2624,7 +2790,8 @@ impl Operation for PyGate {
             }
         })
     }
-    fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
+
+    pub fn definition(&self) -> Option<CircuitData> {
         Python::with_gil(|py| -> Option<CircuitData> {
             match self.gate.getattr(py, intern!(py, "definition")) {
                 Ok(definition) => definition
@@ -2636,11 +2803,8 @@ impl Operation for PyGate {
             }
         })
     }
-    fn directive(&self) -> bool {
-        false
-    }
 
-    fn matrix_as_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+    pub fn matrix_as_static_1q(&self) -> Option<[[Complex64; 2]; 2]> {
         if self.num_qubits() != 1 {
             return None;
         }
@@ -2706,18 +2870,6 @@ impl Operation for PyOperation {
     fn num_params(&self) -> u32 {
         self.params
     }
-    fn control_flow(&self) -> bool {
-        false
-    }
-    fn blocks(&self) -> Vec<CircuitData> {
-        vec![]
-    }
-    fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
-        None
-    }
-    fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
-        None
-    }
     fn directive(&self) -> bool {
         Python::with_gil(|py| -> bool {
             match self.operation.getattr(py, intern!(py, "_directive")) {
@@ -2728,10 +2880,6 @@ impl Operation for PyOperation {
                 Err(_) => false,
             }
         })
-    }
-
-    fn matrix_as_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
-        None
     }
 }
 
@@ -2757,7 +2905,7 @@ impl PartialEq for UnitaryGate {
             (ArrayType::TwoQ(mat1), ArrayType::TwoQ(mat2)) => mat1 == mat2,
             // we could also slightly optimize comparisons between NDArray and OneQ/TwoQ if
             // this becomes performance critical
-            _ => self.matrix(&[]) == other.matrix(&[]),
+            _ => self.matrix() == other.matrix(),
         }
     }
 }
@@ -2779,13 +2927,13 @@ impl Operation for UnitaryGate {
     fn num_params(&self) -> u32 {
         0
     }
-    fn control_flow(&self) -> bool {
+    fn directive(&self) -> bool {
         false
     }
-    fn blocks(&self) -> Vec<CircuitData> {
-        vec![]
-    }
-    fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
+}
+
+impl UnitaryGate {
+    pub fn matrix(&self) -> Option<Array2<Complex64>> {
         match &self.array {
             ArrayType::NDArray(arr) => Some(arr.clone()),
             ArrayType::OneQ(mat) => Some(array!(
@@ -2800,14 +2948,8 @@ impl Operation for UnitaryGate {
             )),
         }
     }
-    fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
-        None
-    }
 
-    fn directive(&self) -> bool {
-        false
-    }
-    fn matrix_as_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+    pub fn matrix_as_static_1q(&self) -> Option<[[Complex64; 2]; 2]> {
         match &self.array {
             ArrayType::OneQ(mat) => Some([[mat[(0, 0)], mat[(0, 1)]], [mat[(1, 0)], mat[(1, 1)]]]),
             ArrayType::NDArray(arr) => {
@@ -2821,7 +2963,7 @@ impl Operation for UnitaryGate {
         }
     }
 
-    fn matrix_as_nalgebra_1q(&self, _params: &[Param]) -> Option<Matrix2<Complex64>> {
+    pub fn matrix_as_nalgebra_1q(&self) -> Option<Matrix2<Complex64>> {
         match &self.array {
             ArrayType::OneQ(mat) => Some(*mat),
             ArrayType::NDArray(arr) => {

@@ -17,6 +17,7 @@ use rustworkx_core::petgraph::prelude::*;
 use crate::angle_bound_registry::{PyWrapAngleRegistry, WrapAngleRegistry};
 use crate::target::Target;
 use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::instruction::IntoInstructionView;
 use qiskit_circuit::operations::{Operation, Param};
 use qiskit_circuit::PhysicalQubit;
 
@@ -51,7 +52,8 @@ pub fn run_wrap_angles(
     for node in nodes_to_sub {
         let inst = dag[node].unwrap_operation();
         let params: Vec<_> = inst
-            .params_view()
+            .try_legacy_params()
+            .unwrap()
             .iter()
             .map(|param| {
                 let Param::Float(param) = param else {

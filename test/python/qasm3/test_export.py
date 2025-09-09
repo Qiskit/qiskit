@@ -2773,19 +2773,6 @@ class TestQASM3ExporterFailurePaths(QiskitTestCase):
         with self.assertRaisesRegex(QASM3ExporterError, r"classical registers .* overlap"):
             exporter.dumps(qc)
 
-    @data([1, 2, 1.1], [1j, 2])
-    def test_disallow_for_loops_with_non_integers(self, indices):
-        """Test that the exporter rejects ``for`` loops that include non-integer values in their
-        index sets."""
-        loop_body = QuantumCircuit()
-        qc = QuantumCircuit(2, 2)
-        qc.for_loop(indices, None, loop_body, [], [])
-        exporter = Exporter()
-        with self.assertRaisesRegex(
-            QASM3ExporterError, r"The values in OpenQASM 3 'for' loops must all be integers.*"
-        ):
-            exporter.dumps(qc)
-
     def test_disallow_custom_subroutine_with_parameters(self):
         """Test that the exporter throws an error instead of trying to export a subroutine with
         parameters, while this is not supported."""

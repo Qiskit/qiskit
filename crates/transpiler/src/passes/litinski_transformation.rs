@@ -12,21 +12,20 @@
 
 use pyo3::prelude::*;
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction, NodeType};
 use qiskit_circuit::imports::PAULI_EVOLUTION_GATE;
-use qiskit_circuit::operations::{
-    multiply_param, Operation, OperationRef, Param, PyGate, StandardGate,
-};
-use qiskit_circuit::packed_instruction::PackedInstruction;
+use qiskit_circuit::operations::{multiply_param, Operation, Param, PyGate, StandardGate};
 use qiskit_circuit::{Clbit, Qubit, VarsMode};
 
 use qiskit_quantum_info::clifford::Clifford;
 use qiskit_quantum_info::sparse_observable::PySparseObservable;
 
+use crate::TranspilerError;
+use qiskit_circuit::instruction::{
+    InstructionView, IntoInstructionView, Parameters, StandardGateView,
+};
 use smallvec::smallvec;
 use std::f64::consts::PI;
-
-use crate::TranspilerError;
 
 // List of gate names supported by the pass: the pass is skipped if the circuit
 // contains gate names outside of this list.
@@ -117,18 +116,18 @@ pub fn run_litinski_transformation(
     let mut circuit: Vec<(&str, Vec<usize>)> = Vec::new();
     let mut angles: Vec<Param> = Vec::new();
     let mut global_phase_update = 0.;
-    let mut clifford_ops: Vec<PackedInstruction> = Vec::new();
+    let mut clifford_ops: Vec<DAGInstruction> = Vec::new();
     for node_index in dag.topological_op_nodes()? {
         if let NodeType::Operation(inst) = &dag[node_index] {
-            let (name, angle, phase_update) = match inst.op.view() {
-                OperationRef::StandardGate(StandardGate::T) => {
+            let (name, angle, phase_update) = match inst.view() {
+                InstructionView::StandardGate(StandardGateView(StandardGate::T, _)) => {
                     ("rz", Some(Param::Float(PI / 8.)), PI / 8.)
                 }
-                OperationRef::StandardGate(StandardGate::Tdg) => {
+                InstructionView::StandardGate(StandardGateView(StandardGate::Tdg, _)) => {
                     ("rz", Some(Param::Float(-PI / 8.0)), -PI / 8.)
                 }
-                OperationRef::StandardGate(StandardGate::RZ) => {
-                    let param = &inst.params_view()[0];
+                InstructionView::StandardGate(StandardGateView(StandardGate::RZ, params)) => {
+                    let param = &params[0];
                     ("rz", Some(multiply_param(param, 0.5)), 0.)
                 }
                 _ => (inst.op.name(), None, 0.),
@@ -193,7 +192,7 @@ pub fn run_litinski_transformation(
             py_gate.into(),
             &qubits,
             &no_clbits,
-            Some(smallvec![time]),
+            Some(Parameters::Params(smallvec![time])),
             None,
             #[cfg(feature = "cache_pygates")]
             None,

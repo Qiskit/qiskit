@@ -40,6 +40,7 @@ use rustworkx_core::petgraph::{
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::imports::{ImportOnceCell, QUANTUM_CIRCUIT};
+use qiskit_circuit::instruction::IntoInstructionView;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::{Operation, OperationRef};
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -106,11 +107,10 @@ impl Key {
     }
 }
 impl Key {
-    fn from_operation(operation: &PackedOperation) -> Self {
-        let op_ref: OperationRef = operation.view();
+    fn from_operation(operation: &OperationRef) -> Self {
         Key {
-            name: op_ref.name().to_string(),
-            num_qubits: op_ref.num_qubits(),
+            name: operation.name().to_string(),
+            num_qubits: operation.num_qubits(),
         }
     }
 }
@@ -296,9 +296,15 @@ pub struct GateOper {
 impl<'py> FromPyObject<'py> for GateOper {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let op_struct: OperationFromPython = ob.extract()?;
+        let params = op_struct
+            .try_legacy_params()
+            .expect("unexpected control flow")
+            .iter()
+            .cloned()
+            .collect();
         Ok(Self {
             operation: op_struct.operation,
-            params: op_struct.params,
+            params,
         })
     }
 }
@@ -421,7 +427,7 @@ impl EquivalenceLibrary {
     ///         False otherwise.
     #[pyo3(name = "has_entry")]
     fn py_has_entry(&self, gate: GateOper) -> bool {
-        self.has_entry(&gate.operation)
+        self.has_entry(&gate.operation.view())
     }
 
     /// Set the equivalence record for a Gate. Future queries for the Gate
@@ -463,7 +469,7 @@ impl EquivalenceLibrary {
     ///         ordering of the StandardEquivalenceLibrary will not generally be
     ///         consistent across Qiskit versions.
     fn get_entry(&self, py: Python, gate: GateOper) -> PyResult<Py<PyList>> {
-        let key = Key::from_operation(&gate.operation);
+        let key = Key::from_operation(&gate.operation.view());
         let query_params = gate.params;
 
         let bound_equivalencies = self
@@ -607,7 +613,7 @@ impl EquivalenceLibrary {
     ) -> Result<(), EquivalenceError> {
         raise_if_shape_mismatch(gate, &equivalent_circuit)?;
         raise_if_param_mismatch(params, &equivalent_circuit)?;
-        let key: Key = Key::from_operation(gate);
+        let key: Key = Key::from_operation(&gate.view());
         let equiv = Equivalence {
             circuit: equivalent_circuit.clone(),
             params: params.into(),
@@ -620,7 +626,7 @@ impl EquivalenceLibrary {
         let sources: IndexSet<Key, RandomState> = IndexSet::from_iter(
             equivalent_circuit
                 .iter()
-                .map(|inst| Key::from_operation(&inst.op)),
+                .map(|inst| Key::from_operation(&inst.op.view())),
         );
         let edges = Vec::from_iter(sources.iter().map(|source| {
             (
@@ -654,7 +660,7 @@ impl EquivalenceLibrary {
             raise_if_shape_mismatch(gate, equiv)?;
             raise_if_param_mismatch(params, equiv)?;
         }
-        let key = Key::from_operation(gate);
+        let key = Key::from_operation(&gate.view());
         let node_index = self.set_default_node(key);
 
         if let Some(graph_ind) = self.graph.node_weight_mut(node_index) {
@@ -677,7 +683,7 @@ impl EquivalenceLibrary {
     }
 
     /// Check if the [EquivalenceLibrary] instance contains any decompositions for gate.
-    pub fn has_entry(&self, operation: &PackedOperation) -> bool {
+    pub fn has_entry(&self, operation: &OperationRef) -> bool {
         let key = Key::from_operation(operation);
         self.key_to_node_index.contains_key(&key)
     }

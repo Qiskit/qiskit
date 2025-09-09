@@ -13,21 +13,22 @@
 use crate::target::Target;
 use crate::TranspilerError;
 use hashbrown::HashSet;
-use pyo3::{intern, prelude::*};
+use pyo3::prelude::*;
 use qiskit_circuit::bit::{QuantumRegister, Register};
-use qiskit_circuit::converters::dag_to_circuit;
-use qiskit_circuit::imports::QUANTUM_CIRCUIT;
+use qiskit_circuit::dag_circuit::DAGInstruction;
+use qiskit_circuit::instruction::{
+    InstructionView, IntoInstructionView, Parameters, StandardGateView,
+};
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::{
     dag_circuit::DAGCircuit, operations::Operation, operations::Param, operations::StandardGate,
-    packed_instruction::PackedInstruction, Qubit,
+    Qubit,
 };
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::{smallvec, SmallVec};
 use std::f64::consts::PI;
-
 //#########################################################################
 //              CheckGateDirection analysis pass functions
 //#########################################################################
@@ -48,7 +49,7 @@ pub fn check_direction_coupling_map(
     coupling_edges: HashSet<[Qubit; 2]>,
 ) -> PyResult<bool> {
     let coupling_map_check =
-        |_: &PackedInstruction, op_args: &[Qubit]| -> bool { coupling_edges.contains(op_args) };
+        |_: &DAGInstruction, op_args: &[Qubit]| -> bool { coupling_edges.contains(op_args) };
 
     check_gate_direction(dag, &coupling_map_check, None)
 }
@@ -65,7 +66,7 @@ pub fn check_direction_coupling_map(
 #[pyfunction]
 #[pyo3(name = "check_gate_direction_target")]
 pub fn check_direction_target(dag: &DAGCircuit, target: &Target) -> PyResult<bool> {
-    let target_check = |inst: &PackedInstruction, op_args: &[Qubit]| -> bool {
+    let target_check = |inst: &DAGInstruction, op_args: &[Qubit]| -> bool {
         let qargs = [
             PhysicalQubit::new(op_args[0].0),
             PhysicalQubit::new(op_args[1].0),
@@ -92,34 +93,29 @@ fn check_gate_direction<T>(
     qubit_mapping: Option<&[Qubit]>,
 ) -> PyResult<bool>
 where
-    T: Fn(&PackedInstruction, &[Qubit]) -> bool,
+    T: Fn(&DAGInstruction, &[Qubit]) -> bool,
 {
     for (_, packed_inst) in dag.op_nodes(false) {
         let inst_qargs = dag.get_qargs(packed_inst.qubits);
 
-        if let OperationRef::Instruction(py_inst) = packed_inst.op.view() {
-            if py_inst.control_flow() {
-                for block in py_inst.blocks() {
-                    let inner_dag =
-                        DAGCircuit::from_circuit_data(&block, false, None, None, None, None)?;
+        if let Some(control_flow) = packed_inst.try_view_control_flow() {
+            for block in control_flow.blocks() {
+                let block_ok = if let Some(mapping) = qubit_mapping {
+                    let mapping = inst_qargs // Create a temp mapping for the recursive call
+                        .iter()
+                        .map(|q| mapping[q.index()])
+                        .collect::<Vec<Qubit>>();
 
-                    let block_ok = if let Some(mapping) = qubit_mapping {
-                        let mapping = inst_qargs // Create a temp mapping for the recursive call
-                            .iter()
-                            .map(|q| mapping[q.index()])
-                            .collect::<Vec<Qubit>>();
+                    check_gate_direction(block, gate_complies, Some(&mapping))?
+                } else {
+                    check_gate_direction(block, gate_complies, Some(inst_qargs))?
+                };
 
-                        check_gate_direction(&inner_dag, gate_complies, Some(&mapping))?
-                    } else {
-                        check_gate_direction(&inner_dag, gate_complies, Some(inst_qargs))?
-                    };
-
-                    if !block_ok {
-                        return Ok(false);
-                    }
+                if !block_ok {
+                    return Ok(false);
                 }
-                continue;
             }
+            continue;
         }
 
         if inst_qargs.len() == 2
@@ -166,7 +162,7 @@ pub fn fix_direction_coupling_map(
     }
 
     let coupling_map_check =
-        |_: &PackedInstruction, op_args: &[Qubit]| -> bool { coupling_edges.contains(op_args) };
+        |_: &DAGInstruction, op_args: &[Qubit]| -> bool { coupling_edges.contains(op_args) };
 
     fix_gate_direction(dag, &coupling_map_check, None)
 }
@@ -183,14 +179,14 @@ pub fn fix_direction_coupling_map(
 #[pyfunction]
 #[pyo3(name = "fix_gate_direction_target")]
 pub fn fix_direction_target(dag: &mut DAGCircuit, target: &Target) -> PyResult<()> {
-    let target_check = |inst: &PackedInstruction, op_args: &[Qubit]| -> bool {
+    let target_check = |inst: &DAGInstruction, op_args: &[Qubit]| -> bool {
         let qargs = smallvec![
             PhysicalQubit::new(op_args[0].0),
             PhysicalQubit::new(op_args[1].0)
         ];
 
         // Take this path so Target can check for exact match of the parameterized gate's angle
-        if let OperationRef::StandardGate(std_gate) = inst.op.view() {
+        if let InstructionView::StandardGate(StandardGateView(std_gate, params)) = inst.view() {
             match std_gate {
                 StandardGate::RXX | StandardGate::RYY | StandardGate::RZZ | StandardGate::RZX => {
                     return target
@@ -198,7 +194,7 @@ pub fn fix_direction_target(dag: &mut DAGCircuit, target: &Target) -> PyResult<(
                             Some(std_gate.get_name().to_string()),
                             qargs.into(),
                             None,
-                            Some(inst.params_view().to_vec()),
+                            Some(params.to_vec()),
                             false,
                         )
                         .unwrap_or(false);
@@ -219,43 +215,36 @@ fn fix_gate_direction<T>(
     qubit_mapping: Option<&[Qubit]>,
 ) -> PyResult<()>
 where
-    T: Fn(&PackedInstruction, &[Qubit]) -> bool,
+    T: Fn(&DAGInstruction, &[Qubit]) -> bool,
 {
     let mut nodes_to_replace: Vec<(NodeIndex, DAGCircuit)> = Vec::new();
-    let mut ops_to_replace = Vec::new();
+    let mut ops_to_replace: Vec<(NodeIndex, Vec<DAGCircuit>)> = Vec::new();
 
     for (node, packed_inst) in dag.op_nodes(false) {
         let op_args = dag.get_qargs(packed_inst.qubits);
 
-        if let OperationRef::Instruction(py_inst) = packed_inst.op.view() {
-            if py_inst.control_flow() {
-                let blocks = py_inst.blocks();
+        if let Some(control_flow) = packed_inst.try_view_control_flow() {
+            let blocks = control_flow.blocks();
+            let mut blocks_to_replace = Vec::with_capacity(blocks.len());
+            for inner_dag in blocks {
+                let mut inner_dag = inner_dag.clone();
+                if let Some(mapping) = qubit_mapping {
+                    let mapping = op_args // Create a temp mapping for the recursive call
+                        .iter()
+                        .map(|q| mapping[q.index()])
+                        .collect::<Vec<Qubit>>();
 
-                let mut blocks_to_replace = Vec::with_capacity(blocks.len());
-                for block in blocks {
-                    let mut inner_dag =
-                        DAGCircuit::from_circuit_data(&block, false, None, None, None, None)?;
+                    fix_gate_direction(&mut inner_dag, gate_complies, Some(&mapping))?;
+                } else {
+                    fix_gate_direction(&mut inner_dag, gate_complies, Some(op_args))?;
+                };
 
-                    if let Some(mapping) = qubit_mapping {
-                        let mapping = op_args // Create a temp mapping for the recursive call
-                            .iter()
-                            .map(|q| mapping[q.index()])
-                            .collect::<Vec<Qubit>>();
-
-                        fix_gate_direction(&mut inner_dag, gate_complies, Some(&mapping))?;
-                    } else {
-                        fix_gate_direction(&mut inner_dag, gate_complies, Some(op_args))?;
-                    };
-
-                    let circuit = dag_to_circuit(&inner_dag, false)?;
-                    blocks_to_replace.push(circuit);
-                }
-
-                // Store this for replacement outside the dag.op_nodes loop
-                ops_to_replace.push((node, blocks_to_replace));
-
-                continue;
+                blocks_to_replace.push(inner_dag);
             }
+            // Store this for replacement outside the dag.op_nodes loop
+            ops_to_replace.push((node, blocks_to_replace));
+
+            continue;
         }
 
         if op_args.len() != 2 {
@@ -308,39 +297,33 @@ where
             return Err(TranspilerError::new_err(format!(
                 "{} with parameters {:?} is not supported on qubits {:?} in either direction.",
                 packed_inst.op.name(),
-                packed_inst.params_view(),
+                packed_inst.params.as_deref(),
                 op_args
             )));
         }
     }
 
-    if !ops_to_replace.is_empty() {
-        Python::with_gil(|py| -> PyResult<()> {
-            for (node, op_blocks) in ops_to_replace {
-                let packed_inst = dag[node].unwrap_operation();
-                let OperationRef::Instruction(py_inst) = packed_inst.op.view() else {
-                    panic!("PyInstruction is expected");
-                };
-                let quantum_circuits = op_blocks
-                    .into_iter()
-                    .map(|block| {
-                        QUANTUM_CIRCUIT
-                            .get_bound(py)
-                            .call_method1(intern!(py, "_from_circuit_data"), (block,))
-                            .expect("Cannot construct QuantumCircuit from CircuitData")
-                    })
-                    .collect::<Vec<Bound<PyAny>>>();
+    for (node, op_blocks) in ops_to_replace {
+        let packed_inst = dag[node].unwrap_operation();
+        let packed_inst = DAGInstruction::from_control_flow(
+            packed_inst.op.control_flow().clone(),
+            packed_inst.params.as_deref().map(|p| {
+                let mut params = p.clone();
+                params.replace_blocks(op_blocks);
+                params
+            }),
+            packed_inst.qubits,
+            packed_inst.clbits,
+            packed_inst.label.as_ref().map(|l| l.as_str()),
+        );
 
-                let new_op = py_inst
-                    .instruction
-                    .bind(py)
-                    .call_method1("replace_blocks", (quantum_circuits,))?;
-
-                dag.py_substitute_node(py, dag.get_node(py, node)?.bind(py), &new_op, false, None)?;
-            }
-
-            Ok(())
-        })?;
+        // TODO: is there a better function?
+        dag.substitute_op(
+            node,
+            packed_inst.op,
+            packed_inst.params.map(|p| *p),
+            packed_inst.label.as_deref().map(|l| l.as_str()),
+        )?;
     }
 
     for (node, replacement_dag) in nodes_to_replace {
@@ -353,16 +336,16 @@ where
 // Return a replacement DAG for the given standard gate in the supported list
 // TODO: optimize it by caching the DAGs of the non-parametric gates and caching and
 // mutating upon request the DAGs of the parametric gates
-fn replace_dag(std_gate: StandardGate, inst: &PackedInstruction) -> PyResult<DAGCircuit> {
+fn replace_dag(std_gate: StandardGate, inst: &DAGInstruction) -> PyResult<DAGCircuit> {
     let replacement_dag = match std_gate {
         StandardGate::CX => cx_replacement_dag(),
         StandardGate::ECR => ecr_replacement_dag(),
         StandardGate::CZ => cz_replacement_dag(),
         StandardGate::Swap => swap_replacement_dag(),
-        StandardGate::RXX => rxx_replacement_dag(inst.params_view()),
-        StandardGate::RYY => ryy_replacement_dag(inst.params_view()),
-        StandardGate::RZZ => rzz_replacement_dag(inst.params_view()),
-        StandardGate::RZX => rzx_replacement_dag(inst.params_view()),
+        StandardGate::RXX => rxx_replacement_dag(inst.try_legacy_params().unwrap()),
+        StandardGate::RYY => ryy_replacement_dag(inst.try_legacy_params().unwrap()),
+        StandardGate::RZZ => rzz_replacement_dag(inst.try_legacy_params().unwrap()),
+        StandardGate::RZX => rzx_replacement_dag(inst.try_legacy_params().unwrap()),
         _ => panic!("Mismatch in supported gates assumption"),
     };
 
@@ -401,7 +384,7 @@ fn apply_operation_back(
         PackedOperation::from_standard_gate(gate),
         qargs,
         &[],
-        param,
+        param.map(Parameters::Params),
         None,
         #[cfg(feature = "cache_pygates")]
         None,
