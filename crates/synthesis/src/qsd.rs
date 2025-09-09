@@ -173,14 +173,17 @@ fn qsd_inner(
         return CircuitData::from_packed_operations(
             num_qubits as u32,
             0,
-            sequence.into_gates().into_iter().map(|(op, params, qubits)| {
-                Ok((
-                    op,
-                    params.into_iter().map(Param::Float).collect(),
-                    qubits.into_iter().map(|q| Qubit(q as u32)).collect(),
-                    vec![],
-                ))
-            }),
+            sequence
+                .into_gates()
+                .into_iter()
+                .map(|(op, params, qubits)| {
+                    Ok((
+                        op,
+                        params.into_iter().map(Param::Float).collect(),
+                        qubits.into_iter().map(|q| Qubit(q as u32)).collect(),
+                        vec![],
+                    ))
+                }),
             Param::Float(global_phase),
         );
     }
