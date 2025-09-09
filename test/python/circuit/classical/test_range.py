@@ -272,15 +272,15 @@ class TestRange(QiskitTestCase):
         self.assertIn(step_var, circuit_vars)
 
 
-def test_range_with_no_explicit_step(self):
-    """Test that Range with no explicit step is inferred correctly."""
-    qc = QuantumCircuit(1, 1)
-    start = qc.add_var("start", expr.lift(0, types.Uint(8)))
-    stop = qc.add_var("stop", expr.lift(10, types.Uint(10)))
-    range_expr = expr.Range(start, stop)
-    with qc.for_loop(range_expr):
-        qc.h(0)
-        qc.measure(0, 0)
-    self.assertEqual(range_expr.step, expr.lift(1, types.Uint(10)))
-    self.assertEqual(range_expr.start, expr.Cast(start, types.Uint(10), implicit=True))
-    self.assertEqual(range_expr.stop, stop)
+    def test_range_with_no_explicit_step(self):
+        """Test that Range with no explicit step is inferred correctly."""
+        qc = QuantumCircuit(1, 1)
+        start = qc.add_var("start", expr.lift(0, types.Uint(8)))
+        stop = qc.add_var("stop", expr.lift(10, types.Uint(10)))
+        range_expr = expr.Range(start, stop)
+        with qc.for_loop(range_expr):
+            qc.h(0)
+            qc.measure(0, 0)
+        self.assertEqual(range_expr.step, expr.lift(1, types.Uint(10)))
+        self.assertEqual(range_expr.start, expr.Cast(start, types.Uint(10), implicit=True))
+        self.assertEqual(range_expr.stop, stop)
