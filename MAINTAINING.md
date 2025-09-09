@@ -368,10 +368,32 @@ Post a message in the relevant Slack channels:
 
  * IBM internal channels: all the releases.
  * [Qiskit organization](https://qiskit.enterprise.slack.com/)
-    - Roadmap announcement `#roadmap-announcements`: Especially release candidates. All other releases (except patch releases) can be posted in the thread of the release candidate announcement.
+    - Roadmap announcement `#roadmap-announcements`: Especially release candidates. All other releases can be posted in the thread of the release candidate announcement.
     - General channel `#general` and Qiskit developer `#qiskit-dev`: All the stable major and minor releases.
 
-> TODO: example/s of the post.
+Examples for announcements:
+
+For a release candidate:
+> :qiskit-new: Qiskit x.y.zrc1 is now live on Github (link) and PyPI(link)! :rocket:
+>
+> As this is a pre-release pip will not install it automatically, you will have to manually specify the version with: `pip install "qiskit==x.y.zrc1"`
+> The x.y.z final release is planned for X weeks from now. If you encounter any issues with the release candidate, please [file an issue](https://github.com/Qiskit/qiskit/issues/new/choose) so we can address them before the final release.
+
+For minor releases:
+> :qiskit-new: **Qiskit x.y is out!**
+>
+> * Fully backwards compatible with x.0. As always, following [Semantic Versioning](https://qisk.it/semver)
+> * A technical release summary will be published on [the IBM blog](https://www.ibm.com/quantum/blog) in about a week
+>
+> or
+>
+> * Here is technical release summary (link to the blog post)
+> * Take a look to the release notes (link)
+> Don't forget that the Qiskit vX series has bug fixing support until XXth, XXXX and security support until YYth, YYYY.
+
+For patch releases:
+> :qiskit-new: **Qiskit x.y.z has been released!**
+> This is a minor bugfix release for Qiskit x.y. You can find it on pypi (link) and in our GitHub releases (link).
 
 #### 5.2 Update the `main` branch with the next release
 
