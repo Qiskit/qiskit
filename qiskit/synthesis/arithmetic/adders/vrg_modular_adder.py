@@ -34,7 +34,7 @@ def adder_modular_v17(num_qubits: int) -> QuantumCircuit:
     Raises:
         ValueError: If ``num_qubits`` is less than 1.
 
-    **References:**
+    References:
 
     [1] Gidney, Factoring with n+2 clean qubits and n-1 dirty qubits, 2017.
     `arxiv:1706.07884 <https://arxiv.org/abs/1706.07884>`_

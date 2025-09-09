@@ -19,7 +19,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 class GR(QuantumCircuit):
     r"""Global R gate.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -42,7 +42,7 @@ class GR(QuantumCircuit):
 
         GR(\theta, \phi) = \exp(-i \sum_{i=1}^{n} (\cos(\phi)X_i + \sin(\phi)Y_i) \theta/2)
 
-    **Expanded Circuit:**
+    Expanded Circuit:
 
     .. plot::
        :alt: Diagram illustrating the previously described circuit.
@@ -56,8 +56,7 @@ class GR(QuantumCircuit):
     """
 
     def __init__(self, num_qubits: int, theta: float, phi: float) -> None:
-        """Create a new Global R (GR) gate.
-
+        """
         Args:
             num_qubits: number of qubits.
             theta: rotation angle about axis determined by phi

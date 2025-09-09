@@ -31,7 +31,7 @@ class RZGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.rz` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -39,7 +39,7 @@ class RZGate(Gate):
         q_0: ┤ Rz(φ) ├
              └───────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -65,7 +65,11 @@ class RZGate(Gate):
     _standard_gate = StandardGate.RZ
 
     def __init__(self, phi: ParameterValueType, label: Optional[str] = None):
-        """Create new RZ gate."""
+        """
+        Args:
+            theta: The rotation angle.
+            label: An optional label for the gate.
+        """
         super().__init__("rz", 1, [phi], label=label)
 
     def _define(self):
@@ -161,7 +165,7 @@ class CRZGate(ControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.crz` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -170,7 +174,7 @@ class CRZGate(ControlledGate):
         q_1: ┤ Rz(θ) ├
              └───────┘
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 

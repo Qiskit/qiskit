@@ -18,7 +18,7 @@ import rustworkx
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit import ControlFlowOp
 from qiskit.circuit.library import CXGate, XGate
-from qiskit.transpiler import Layout, TranspilerError
+from qiskit.transpiler import Layout, TranspilerError, PassManager, passes
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayout, VF2PostLayoutStopReason
 from qiskit.converters import circuit_to_dag
 from qiskit.providers.fake_provider import GenericBackendV2
@@ -351,6 +351,33 @@ class TestVF2PostLayout(QiskitTestCase):
             i for i, bit in enumerate(qc.qubits) if bit not in property_set["post_layout"]
         }
         self.assertEqual(unallocated, set())
+
+    @ddt.data(-1, 12)
+    def test_complete_layout_with_one_uncoupled_qubit(self, seed):
+        """Test that a single uncoupled qubit is handled correctly.
+
+        Regression test of https://github.com/Qiskit/qiskit/issues/14997."""
+        qc = QuantumCircuit(3)
+        qc.x(0)
+        qc.cx(1, 2)
+
+        bad = InstructionProperties(error=1e-1)
+        good = InstructionProperties(error=1e-5)
+
+        target = Target()
+        target.add_instruction(XGate(), {(0,): bad, (1,): good, (2,): good})
+        target.add_instruction(CXGate(), {(0, 1): good, (1, 2): bad})
+
+        pm = PassManager(
+            [
+                passes.TrivialLayout(target),
+                passes.ApplyLayout(),
+                passes.VF2PostLayout(target, seed=seed, strict_direction=True),
+                passes.ApplyLayout(),
+            ]
+        )
+        out = pm.run(qc)
+        self.assertEqual(out.layout.final_index_layout(), [2, 0, 1])
 
 
 class TestVF2PostLayoutScoring(QiskitTestCase):

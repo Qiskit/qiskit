@@ -35,7 +35,7 @@ class iSwapGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.iswap` method.
 
-    **Circuit Symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -43,7 +43,7 @@ class iSwapGate(SingletonGate):
               │
         q_1: ─⨂─
 
-    **Reference Implementation:**
+    Reference implementation:
 
     .. code-block:: text
 
@@ -53,7 +53,7 @@ class iSwapGate(SingletonGate):
         q_1: ┤ S ├─────┤ X ├──■──┤ H ├
              └───┘     └───┘     └───┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -88,7 +88,10 @@ class iSwapGate(SingletonGate):
     _standard_gate = StandardGate.ISwap
 
     def __init__(self, label: Optional[str] = None):
-        """Create new iSwap gate."""
+        """
+        Args:
+            label: An optional label for the gate.
+        """
         super().__init__("iswap", 2, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()

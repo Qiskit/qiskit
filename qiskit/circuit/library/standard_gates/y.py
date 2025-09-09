@@ -29,7 +29,7 @@ class YGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.y` method.
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -38,7 +38,7 @@ class YGate(SingletonGate):
                 i & 0
             \end{pmatrix}
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -72,7 +72,10 @@ class YGate(SingletonGate):
     _standard_gate = StandardGate.Y
 
     def __init__(self, label: Optional[str] = None):
-        """Create new Y gate."""
+        """
+        Args:
+            label: An optional label for the gate.
+        """
         super().__init__("y", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
@@ -148,7 +151,7 @@ class CYGate(SingletonControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.cy` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -157,7 +160,7 @@ class CYGate(SingletonControlledGate):
         q_1: ┤ Y ├
              └───┘
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 

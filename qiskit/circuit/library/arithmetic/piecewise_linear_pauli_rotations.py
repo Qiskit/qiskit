@@ -55,8 +55,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         basis: str = "Y",
         name: str = "pw_lin",
     ) -> None:
-        """Construct piecewise-linearly-controlled Pauli rotations.
-
+        """
         Args:
             num_state_qubits: The number of qubits representing the state.
             breakpoints: The breakpoints to define the piecewise-linear function.

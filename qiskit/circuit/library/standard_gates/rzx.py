@@ -32,7 +32,7 @@ class RZXGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.rzx` method.
 
-    **Circuit Symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -42,7 +42,7 @@ class RZXGate(Gate):
         q_1: ┤1        ├
              └─────────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -95,35 +95,39 @@ class RZXGate(Gate):
                     0 & RX(-\theta)
                 \end{pmatrix}
 
-    **Examples:**
+    Examples:
 
-        .. math::
+    .. math::
 
-            R_{ZX}(\theta = 0)\ q_0, q_1 = I
+        R_{ZX}(\theta = 0)\ q_0, q_1 = I
 
-        .. math::
+    .. math::
 
-            R_{ZX}(\theta = 2\pi)\ q_0, q_1 = -I
+        R_{ZX}(\theta = 2\pi)\ q_0, q_1 = -I
 
-        .. math::
+    .. math::
 
-            R_{ZX}(\theta = \pi)\ q_0, q_1 = -i X \otimes Z
+        R_{ZX}(\theta = \pi)\ q_0, q_1 = -i X \otimes Z
 
-        .. math::
+    .. math::
 
-            R_{ZX}(\theta = \frac{\pi}{2})\ q_0, q_1 = \frac{1}{\sqrt{2}}
-                                    \begin{pmatrix}
-                                        1  & 0 & -i & 0 \\
-                                        0  & 1 & 0  & i \\
-                                        -i & 0 & 1  & 0 \\
-                                        0  & i & 0  & 1
-                                    \end{pmatrix}
+        R_{ZX}(\theta = \frac{\pi}{2})\ q_0, q_1 = \frac{1}{\sqrt{2}}
+                                \begin{pmatrix}
+                                    1  & 0 & -i & 0 \\
+                                    0  & 1 & 0  & i \\
+                                    -i & 0 & 1  & 0 \\
+                                    0  & i & 0  & 1
+                                \end{pmatrix}
     """
 
     _standard_gate = StandardGate.RZX
 
     def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
-        """Create new RZX gate."""
+        """
+        Args:
+            theta: The rotation angle.
+            label: An optional label for the gate.
+        """
         super().__init__("rzx", 2, [theta], label=label)
 
     def _define(self):

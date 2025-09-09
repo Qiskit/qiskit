@@ -43,19 +43,19 @@ def qaoa_ansatz(
 
     Examples:
 
-        To define the QAOA ansatz we require a cost Hamiltonian, encoding the classical
-        optimization problem:
+    To define the QAOA ansatz we require a cost Hamiltonian, encoding the classical
+    optimization problem:
 
-        .. plot::
-            :alt: Circuit diagram output by the previous code.
-            :include-source:
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
 
-            from qiskit.quantum_info import SparsePauliOp
-            from qiskit.circuit.library import qaoa_ansatz
+        from qiskit.quantum_info import SparsePauliOp
+        from qiskit.circuit.library import qaoa_ansatz
 
-            cost_operator = SparsePauliOp(["ZZII", "IIZZ", "ZIIZ"])
-            ansatz = qaoa_ansatz(cost_operator, reps=3, insert_barriers=True)
-            ansatz.draw("mpl")
+        cost_operator = SparsePauliOp(["ZZII", "IIZZ", "ZIIZ"])
+        ansatz = qaoa_ansatz(cost_operator, reps=3, insert_barriers=True)
+        ansatz.draw("mpl")
 
     Args:
         cost_operator: The operator representing the cost of the optimization problem, denoted as
@@ -76,8 +76,8 @@ def qaoa_ansatz(
 
     References:
 
-        [1]: Farhi et al., A Quantum Approximate Optimization Algorithm.
-            `arXiv:1411.4028 <https://arxiv.org/pdf/1411.4028>`_
+    [1] Farhi et al., A Quantum Approximate Optimization Algorithm.
+    `arXiv:1411.4028 <https://arxiv.org/pdf/1411.4028>`_
     """
     num_qubits = cost_operator.num_qubits
 
@@ -110,8 +110,8 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
 
     References:
 
-        [1]: Farhi et al., A Quantum Approximate Optimization Algorithm.
-            `arXiv:1411.4028 <https://arxiv.org/pdf/1411.4028>`_
+    [1] Farhi et al., A Quantum Approximate Optimization Algorithm.
+    `arXiv:1411.4028 <https://arxiv.org/pdf/1411.4028>`_
     """
 
     def __init__(

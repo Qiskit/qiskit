@@ -55,7 +55,7 @@ class RGQFTMultiplier(Multiplier):
         Specific implementations can be set via the :class:`.HLSConfig`, e.g. this circuit
         can be chosen via ``Multiplier=["qft_r17"]``.
 
-    **References:**
+    References:
 
     [1] Ruiz-Perez et al., Quantum arithmetic with the Quantum Fourier Transform, 2017.
     `arXiv:1411.5949 <https://arxiv.org/pdf/1411.5949.pdf>`_

@@ -86,7 +86,7 @@ class DiagonalGate(Gate):
     Theorem 7 of [1]. The code is based on Emanuel Malvetti's semester thesis
     at ETH in 2018, supervised by Raban Iten and Prof. Renato Renner.
 
-    **Reference:**
+    References:
 
     [1] Shende et al., Synthesis of Quantum Logic Circuits, 2009
     `arXiv:0406176 <https://arxiv.org/pdf/quant-ph/0406176.pdf>`_

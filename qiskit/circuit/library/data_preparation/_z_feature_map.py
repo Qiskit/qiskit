@@ -92,8 +92,7 @@ class ZFeatureMap(PauliFeatureMap):
         insert_barriers: bool = False,
         name: str = "ZFeatureMap",
     ) -> None:
-        """Create a new first-order Pauli-Z expansion circuit.
-
+        """
         Args:
             feature_dimension: The number of features
             reps: The number of repeated circuits. Defaults to 2, has a minimum value of 1.

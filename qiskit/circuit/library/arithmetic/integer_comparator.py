@@ -47,8 +47,7 @@ class IntegerComparator(BlueprintCircuit):
         geq: bool = True,
         name: str = "cmp",
     ) -> None:
-        """Create a new fixed value comparator circuit.
-
+        """
         Args:
             num_state_qubits: Number of state qubits. If this is set it will determine the number
                 of qubits required for the circuit.
