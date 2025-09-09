@@ -2,7 +2,7 @@
 features_c:
   - |
     Added a new standalone transpiler pass function
-    :cpp:func:`qk_transpiler_pass_standalone_unitary_synthesis` which is for running
+    :cpp:func:`qk_transpiler_pass_standalone_unitary_synthesis`, which is for running
     the :class:`.UnitarySynthesis` transpiler pass. Calling this function is
     the equivalent of running the pass in Python like::
 
