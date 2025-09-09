@@ -19,14 +19,14 @@ use pyo3::{intern, IntoPyObjectExt};
 use std::boxed::Box;
 
 /// A range expression that represents a sequence of values.
-/// 
+///
 /// The step is always Some(Expr) as it defaults to 1 when not explicitly provided.
 /// This avoids the need for unwrap() calls throughout the codebase.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Range {
     pub start: Expr,
     pub stop: Expr,
-    pub step: Expr,  // Always Some(Expr) - defaults to 1 when not provided
+    pub step: Expr, // Always Some(Expr) - defaults to 1 when not provided
     pub ty: Type,
     pub constant: bool,
 }
@@ -72,7 +72,11 @@ fn py_value_to_expr(_py: Python, value: &Bound<PyAny>) -> PyResult<Expr> {
     } else {
         Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
             "Expected non-negative integer or Expr of unsigned integer type, got {}",
-            value.get_type().name().map(|s| s.to_string()).unwrap_or_else(|_| "<missing name>".to_string())
+            value
+                .get_type()
+                .name()
+                .map(|s| s.to_string())
+                .unwrap_or_else(|_| "<missing name>".to_string())
         )))
     }
 }
@@ -171,9 +175,7 @@ impl PyRangeExpr {
             }
         };
 
-        let constant = start_expr.is_const()
-            && stop_expr.is_const()
-            && step_expr.is_const();
+        let constant = start_expr.is_const() && stop_expr.is_const() && step_expr.is_const();
 
         // Apply casts to any expressions with types different from the target type
         let (start_expr, stop_expr, step_expr) = {
@@ -283,12 +285,7 @@ impl PyRangeExpr {
         let stop = self.0.stop.clone().into_py_any(py)?.bind(py).repr()?;
         let step = format!(
             ", step={}",
-            self.0
-                .step
-                .clone()
-                .into_py_any(py)?
-                .bind(py)
-                .repr()?
+            self.0.step.clone().into_py_any(py)?.bind(py).repr()?
         );
         let ty = self.0.ty.into_py_any(py)?.bind(py).repr()?;
         Ok(format!(
