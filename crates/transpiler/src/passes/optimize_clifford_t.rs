@@ -45,9 +45,9 @@ enum Pauli1q {
 // global phase. The exact correspondence between the index of the Clifford and the
 // corresponding 1q Clifford circuit is contained in the slice called CIRCUIT.
 struct Clifford1q {
-    idx: usize,
+    idx: u8,
     // enumerates single-qubit Cliffords: takes values in 0..24
-    w: usize,
+    w: u8,
     // global phase factor of the form w * pi * i / 4, w takes values in 0..8
 }
 
@@ -65,11 +65,11 @@ impl Clifford1q {
         match gate {
             StandardGate::I => {}
             StandardGate::H => {
-                let (new_idx, w_update) = APPEND_H[self.idx];
+                let (new_idx, w_update) = APPEND_H[self.idx as usize];
                 (self.idx, self.w) = (new_idx, (self.w + w_update) % 8);
             }
             StandardGate::S => {
-                let (new_idx, w_update) = APPEND_S[self.idx];
+                let (new_idx, w_update) = APPEND_S[self.idx as usize];
                 (self.idx, self.w) = (new_idx, (self.w + w_update) % 8);
             }
             StandardGate::Sdg => {
@@ -112,11 +112,11 @@ impl Clifford1q {
         match gate {
             StandardGate::I => {}
             StandardGate::H => {
-                let (new_idx, w_update) = PREPEND_H[self.idx];
+                let (new_idx, w_update) = PREPEND_H[self.idx as usize];
                 (self.idx, self.w) = (new_idx, (self.w + w_update) % 8);
             }
             StandardGate::S => {
-                let (new_idx, w_update) = PREPEND_S[self.idx];
+                let (new_idx, w_update) = PREPEND_S[self.idx as usize];
                 (self.idx, self.w) = (new_idx, (self.w + w_update) % 8);
             }
             StandardGate::Sdg => {
@@ -155,16 +155,16 @@ impl Clifford1q {
     // including the sign.
     fn evolve_pauli(&self, pauli: Pauli1q, sign: bool) -> (Pauli1q, bool) {
         let (new_pauli, new_sign) = match pauli {
-            Pauli1q::X => EVOLVE_X[self.idx],
-            Pauli1q::Y => EVOLVE_Y[self.idx],
-            Pauli1q::Z => EVOLVE_Z[self.idx],
+            Pauli1q::X => EVOLVE_X[self.idx as usize],
+            Pauli1q::Y => EVOLVE_Y[self.idx as usize],
+            Pauli1q::Z => EVOLVE_Z[self.idx as usize],
         };
         (new_pauli, sign ^ new_sign)
     }
 
     /// Returns the corresponding Clifford circuit.
     fn to_circuit(&self) -> (&[StandardGate], f64) {
-        let circuit = CIRCUIT[self.idx];
+        let circuit = CIRCUIT[self.idx as usize];
         let phase: f64 = (self.w as f64) * PI / 4.;
         (circuit, phase)
     }
@@ -485,7 +485,7 @@ static EVOLVE_Z: [(Pauli1q, bool); 24] = [
 
 // Index of the Clifford1q operator -> changes when appending/prepending S/H-gates
 // (index of the new operator + phase update)
-static APPEND_S: [(usize, usize); 24] = [
+static APPEND_S: [(u8, u8); 24] = [
     (2, 0),
     (3, 0),
     (12, 0),
@@ -511,7 +511,7 @@ static APPEND_S: [(usize, usize); 24] = [
     (11, 4),
     (22, 2),
 ];
-static PREPEND_S: [(usize, usize); 24] = [
+static PREPEND_S: [(u8, u8); 24] = [
     (2, 0),
     (4, 0),
     (12, 0),
@@ -537,7 +537,7 @@ static PREPEND_S: [(usize, usize); 24] = [
     (13, 6),
     (3, 0),
 ];
-static APPEND_H: [(usize, usize); 24] = [
+static APPEND_H: [(u8, u8); 24] = [
     (1, 0),
     (0, 0),
     (4, 0),
@@ -563,7 +563,7 @@ static APPEND_H: [(usize, usize); 24] = [
     (20, 4),
     (9, 7),
 ];
-static PREPEND_H: [(usize, usize); 24] = [
+static PREPEND_H: [(u8, u8); 24] = [
     (1, 0),
     (0, 0),
     (3, 0),
