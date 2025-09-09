@@ -11,6 +11,8 @@
 # that they have been altered from the originals.
 
 """Two-qubit ZX-rotation gate."""
+
+from __future__ import annotations
 from math import sqrt
 import numpy as np
 
@@ -33,7 +35,7 @@ class ECRGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.ecr` method.
 
-    **Circuit Symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -45,7 +47,7 @@ class ECRGate(SingletonGate):
              └─────────┘            └────┘└───┘
 
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -86,8 +88,11 @@ class ECRGate(SingletonGate):
 
     _standard_gate = StandardGate.ECR
 
-    def __init__(self, label=None):
-        """Create new ECR gate."""
+    def __init__(self, label: str | None = None) -> None:
+        """
+        Args:
+            label: An optional label for the gate.
+        """
         super().__init__("ecr", 2, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
@@ -105,7 +110,7 @@ class ECRGate(SingletonGate):
         #      └────┘└───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.ECR._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.ECR._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def inverse(self, annotated: bool = False):

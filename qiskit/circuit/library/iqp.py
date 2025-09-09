@@ -35,7 +35,7 @@ class IQP(QuantumCircuit):
     of the interactions matrix. The powers of the CS gates are
     given by the upper triangle of the interactions matrix.
 
-    **Reference Circuit:**
+    Reference Circuit:
 
     .. plot::
        :alt: Diagram illustrating the previously described circuit.
@@ -45,18 +45,18 @@ class IQP(QuantumCircuit):
        circuit = IQP(A)
        circuit.draw('mpl')
 
-    **Expanded Circuit:**
+    Expanded Circuit:
 
-        .. plot::
-           :alt: Diagram illustrating the previously described circuit.
+    .. plot::
+        :alt: Diagram illustrating the previously described circuit.
 
-           from qiskit.circuit.library import IQP
-           from qiskit.visualization.library import _generate_circuit_library_visualization
-           A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
-           circuit = IQP(A)
-           _generate_circuit_library_visualization(circuit.decompose())
+        from qiskit.circuit.library import IQP
+        from qiskit.visualization.library import _generate_circuit_library_visualization
+        A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
+        circuit = IQP(A)
+        _generate_circuit_library_visualization(circuit.decompose())
 
-    **References:**
+    References:
 
     [1] M. J. Bremner et al. Average-case complexity versus approximate
     simulation of commuting quantum computations,
@@ -96,7 +96,7 @@ def iqp(
     T gate are given by the diagonal elements of the interactions matrix. The powers of the CS gates
     are given by the upper triangle of the interactions matrix.
 
-    **Reference Circuit:**
+    Reference Circuit:
 
     .. plot::
        :alt: Diagram illustrating the previously described circuit.
@@ -106,7 +106,7 @@ def iqp(
        circuit = iqp(A)
        circuit.draw("mpl")
 
-    **Expanded Circuit:**
+    Expanded Circuit:
 
         .. plot::
            :alt: Diagram illustrating the previously described circuit.
@@ -117,7 +117,7 @@ def iqp(
            circuit = iqp(A)
            _generate_circuit_library_visualization(circuit)
 
-    **References:**
+    References:
 
     [1] M. J. Bremner et al. Average-case complexity versus approximate
     simulation of commuting quantum computations,
@@ -142,7 +142,7 @@ def iqp(
     else:
         name = "iqp"
 
-    circuit = QuantumCircuit._from_circuit_data(py_iqp(interactions), add_regs=True)
+    circuit = QuantumCircuit._from_circuit_data(py_iqp(interactions), legacy_qubits=True)
     circuit.name = name
     return circuit
 
@@ -175,6 +175,6 @@ def random_iqp(
         An IQP circuit.
     """
     # set the label -- if the number of qubits is too large, do not show the interactions matrix
-    circuit = QuantumCircuit._from_circuit_data(py_random_iqp(num_qubits, seed), add_regs=True)
+    circuit = QuantumCircuit._from_circuit_data(py_random_iqp(num_qubits, seed), legacy_qubits=True)
     circuit.name = "iqp"
     return circuit

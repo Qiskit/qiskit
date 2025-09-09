@@ -1003,7 +1003,6 @@ impl SparseObservable {
             None => {
                 let mut out = self.clone();
                 if num_qubits < self.num_qubits {
-                    // return Err(CoherenceError::BitIndexTooHigh);
                     return Err(CoherenceError::NotEnoughQubits {
                         current: self.num_qubits as usize,
                         target: num_qubits as usize,
