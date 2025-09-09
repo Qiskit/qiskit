@@ -65,8 +65,7 @@ class OR(QuantumCircuit):
         flags: Optional[List[int]] = None,
         mcx_mode: str = "noancilla",
     ) -> None:
-        """Create a new logical OR circuit.
-
+        """
         Args:
             num_variable_qubits: The qubits of which the OR is computed. The result will be written
                 into an additional result qubit.

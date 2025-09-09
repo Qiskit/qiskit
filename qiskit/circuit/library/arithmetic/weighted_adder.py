@@ -79,8 +79,7 @@ class WeightedAdder(BlueprintCircuit):
         weights: Optional[List[int]] = None,
         name: str = "adder",
     ) -> None:
-        """Computes the weighted sum controlled by state qubits.
-
+        """
         Args:
             num_state_qubits: The number of state qubits.
             weights: List of weights, one for each state qubit. If none are provided they

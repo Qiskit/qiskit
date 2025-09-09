@@ -24,15 +24,17 @@ import os
 import re
 from pathlib import Path
 
+import qiskit
+
 
 project = "Qiskit"
 project_copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"
 author = "Qiskit Development Team"
 
 # The short X.Y version
-version = "2.2"
+version = ".".join(qiskit.__version__.split(".")[:2])
 # The full version, including alpha/beta/rc tags
-release = "2.2.0rc1"
+release = qiskit.__version__
 
 language = "en"
 

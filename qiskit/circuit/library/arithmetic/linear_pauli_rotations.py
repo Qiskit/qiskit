@@ -58,8 +58,7 @@ class LinearPauliRotations(FunctionalPauliRotations):
         basis: str = "Y",
         name: str = "LinRot",
     ) -> None:
-        r"""Create a new linear rotation circuit.
-
+        r"""
         Args:
             num_state_qubits: The number of qubits representing the state :math:`|x\rangle`.
             slope: The slope of the controlled rotation.

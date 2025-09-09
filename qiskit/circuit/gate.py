@@ -32,10 +32,9 @@ class Gate(Instruction):
         params: list,
         label: str | None = None,
     ) -> None:
-        """Create a new gate.
-
+        """
         Args:
-            name: The Qobj name of the gate.
+            name: The name of the gate.
             num_qubits: The number of qubits the gate acts on.
             params: A list of parameters.
             label: An optional label for the gate.

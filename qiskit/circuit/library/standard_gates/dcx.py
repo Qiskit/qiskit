@@ -12,6 +12,7 @@
 
 """Double-CNOT gate."""
 
+from __future__ import annotations
 from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
 from qiskit.circuit._utils import with_gate_array
 from qiskit._accelerate.circuit import StandardGate
@@ -51,8 +52,11 @@ class DCXGate(SingletonGate):
 
     _standard_gate = StandardGate.DCX
 
-    def __init__(self, label=None):
-        """Create new DCX gate."""
+    def __init__(self, label: str | None = None) -> None:
+        """
+        Args:
+            label: An optional label for the gate.
+        """
         super().__init__("dcx", 2, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
