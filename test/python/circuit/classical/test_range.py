@@ -271,7 +271,6 @@ class TestRange(QiskitTestCase):
         self.assertIn(stop_var, circuit_vars)
         self.assertIn(step_var, circuit_vars)
 
-
     def test_range_with_no_explicit_step(self):
         """Test that Range with no explicit step is inferred correctly."""
         qc = QuantumCircuit(1, 1)
