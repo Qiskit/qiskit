@@ -2563,7 +2563,14 @@ impl CircuitData {
         self.identifier_info.values()
     }
 
-    /// removes the label for the instruction given by index
+    /// Remove the label for an instruction in the circuit
+    ///
+    /// This modifies the circuit in place and sets the label
+    /// field of an instruction to ``None``.
+    ///
+    /// #Arguments
+    ///
+    /// * index: The index of the instruction in the circuit to remove the label of.
     pub fn invalidate_label(&mut self, index: usize) {
         self.data[index].label = None;
     }

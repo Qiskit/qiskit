@@ -1259,6 +1259,10 @@ impl TwoQubitGateSequence {
         &self.gates
     }
 
+    pub fn into_gates(self) -> TwoQubitSequenceVec {
+        self.gates
+    }
+
     pub fn global_phase(&self) -> f64 {
         self.global_phase
     }

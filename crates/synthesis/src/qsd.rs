@@ -30,7 +30,9 @@ use crate::two_qubit_decompose::{two_qubit_decompose_up_to_diagonal, TwoQubitBas
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::interner::Interned;
-use qiskit_circuit::operations::{ArrayType, OperationRef, Param, StandardGate, UnitaryGate};
+use qiskit_circuit::operations::{
+    ArrayType, Operation, OperationRef, Param, StandardGate, UnitaryGate,
+};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::{Qubit, VarsMode};
 use qiskit_quantum_info::convert_2q_block_matrix::instructions_to_matrix;
@@ -43,6 +45,18 @@ enum VWType {
     OnlyW,
 }
 
+/// Decomposes a unitary matrix into one and two qubit gates using Quantum Shannon Decomposition,
+/// based on the Block ZXZ-Decomposition.
+///
+/// #Arguments
+/// * mat: unitary matrix to decompose
+/// * opt_a1: whether to try optimization A.1
+/// * opt_a2: whether to try optimization A.2
+/// * two_qubit_decomposer: Optional alternative two qubit decomposer
+/// * one_qubit_decomposer: Optional alternative one qubit decomposer
+///
+/// Returns:
+///     QuantumCircuit: Decomposed quantum circuit.
 pub fn quantum_shannon_decomposition(
     mat: &DMatrix<Complex64>,
     opt_a1: Option<bool>,
@@ -93,9 +107,14 @@ fn qsd_inner(
     let one_qubit_decomposer = one_qubit_decomposer.unwrap_or(&default_1q_basis);
     let two_qubit_decomposer = two_qubit_decomposer.unwrap_or(&default_2q_decomposer);
     if dim == 2 {
-        let array = Array2::from_shape_fn((dim, dim), |(i, j)| mat[(i, j)]);
+        let dim = ::ndarray::Dim(mat.shape());
+        let strides = ::ndarray::Dim(mat.strides());
+        // SAFETY: We know the array is a 2x2 and contiguous block (DMatrix uses a vec for backing storage) so we
+        // don't need to check for invalid format
+        let array =
+            unsafe { ArrayView2::from_shape_ptr(dim.strides(strides), mat.get_unchecked(0)) };
         let sequence =
-            unitary_to_gate_sequence_inner(array.view(), one_qubit_decomposer, 0, None, true, None);
+            unitary_to_gate_sequence_inner(array, one_qubit_decomposer, 0, None, true, None);
 
         return match sequence {
             Some(seq) => CircuitData::from_standard_gates(
@@ -137,13 +156,17 @@ fn qsd_inner(
             out.push(packed_inst)?;
             return Ok(out);
         }
-        let array = Array2::from_shape_fn((dim, dim), |(i, j)| mat[(i, j)]);
+        let dim = ::ndarray::Dim(mat.shape());
+        let strides = ::ndarray::Dim(mat.strides());
+        // SAFETY: We know the array is a 4x4 and contiguous block (DMatrix uses a vec for backing storage) so we
+        // don't need to check for invalid format
+        let array =
+            unsafe { ArrayView2::from_shape_ptr(dim.strides(strides), mat.get_unchecked(0)) };
         let sequence = two_qubit_decomposer
-            .call_inner(array.view(), None, false, None)
+            .call_inner(array, None, false, None)
             .unwrap_or_else(|_| {
-                let array = Array2::from_shape_fn((dim, dim), |(i, j)| mat[(i, j)]);
                 two_qubit_decomposer
-                    .call_inner(array.view(), None, false, None)
+                    .call_inner(array, None, false, None)
                     .unwrap()
             });
         return CircuitData::from_packed_operations(
@@ -185,9 +208,9 @@ fn qsd_inner(
         .collect::<Vec<_>>();
     let mut out = CircuitData::new(Some(out_qubits), None, None, 0, Param::Float(0.)).unwrap();
     // perform block ZXZ decomposition from [2]
-    let (a1, a2, b, c) = _block_zxz_decomp(mat);
+    let (a1, a2, b, c) = block_zxz_decomp(mat);
 
-    debug_assert!(_zxz_decomp_verify(mat, &a1, &a2, &b, &c));
+    debug_assert!(zxz_decomp_verify(mat, &a1, &a2, &b, &c));
 
     let iden = DMatrix::<Complex64>::identity(dim / 2, dim / 2);
     let (left_circuit, vmat_c, _) = demultiplex(
@@ -245,7 +268,7 @@ fn zxz_decomp_svd(a: DMatrixView<Complex64>) -> (DMatrix<Complex64>, DMatrix<Com
 }
 
 /// Block ZXZ decomposition method, by Krol and Al-Ars [2]
-fn _block_zxz_decomp(
+fn block_zxz_decomp(
     mat: &DMatrix<Complex64>,
 ) -> (
     DMatrix<Complex64>,
@@ -272,7 +295,7 @@ fn _block_zxz_decomp(
 
 /// Verify ZXZ decomposition gives the same unitary
 #[allow(clippy::toplevel_ref_arg)]
-fn _zxz_decomp_verify(
+fn zxz_decomp_verify(
     mat: &DMatrix<Complex64>,
     a1: &DMatrix<Complex64>,
     a2: &DMatrix<Complex64>,
@@ -360,7 +383,7 @@ fn demultiplex(
     let d_mat: DMatrix<Complex64> = DMatrix::from_diagonal(&d_values);
     let wmat = &d_mat * vmat.adjoint() * &um1;
 
-    debug_assert!(_demultiplex_verify(&um0, &um1, &vmat, &wmat, &d_mat));
+    debug_assert!(demultiplex_verify(&um0, &um1, &vmat, &wmat, &d_mat));
 
     let out_qubits = (0..num_qubits)
         .map(|_| ShareableQubit::new_anonymous())
@@ -412,7 +435,7 @@ fn demultiplex(
 }
 
 #[allow(clippy::toplevel_ref_arg)]
-fn _demultiplex_verify(
+fn demultiplex_verify(
     um0: &DMatrix<Complex64>,
     um1: &DMatrix<Complex64>,
     vmat: &DMatrix<Complex64>,
@@ -427,8 +450,7 @@ fn _demultiplex_verify(
 
     let u_check = v_block * d_block * w_block;
 
-    const EPS: f64 = 1e-7;
-    abs_diff_eq!(u_block, u_check, epsilon = EPS)
+    abs_diff_eq!(u_block, u_check, epsilon = 1e-7)
 }
 
 /// This function synthesizes UCRZ without the final CX gate,
@@ -446,9 +468,6 @@ fn get_ucrz(num_qubits: usize, angles: &mut [f64], vw_type_all: bool) -> PyResul
             let _ = out.push_standard_gate(StandardGate::RZ, &[Param::Float(*angle)], &[q_target]);
         }
         if i != angles.len() - 1 {
-            // Is this a correct translation from python?
-            // binary_rep = np.binary_repr(i + 1)
-            // q_contr_index = len(binary_rep) - len(binary_rep.rstrip("0"))
             let q_ctrl_index = (i + 1).trailing_zeros();
             let _ = out.push_standard_gate(
                 StandardGate::CX,
@@ -501,7 +520,8 @@ fn update_angle(angle_1: f64, angle_2: f64) -> [f64; 2] {
 }
 
 fn append(circ: &mut CircuitData, new: CircuitData, qubit_map: &[Qubit]) -> PyResult<()> {
-    let mut new_qubits_map: HashMap<Interned<[Qubit]>, Vec<Qubit>> = HashMap::new();
+    let mut new_qubits_map: HashMap<Interned<[Qubit]>, Vec<Qubit>> =
+        HashMap::with_capacity(new.qargs_interner().len());
     for inst in new.data() {
         let qubits_map = new_qubits_map.entry(inst.qubits).or_insert_with(|| {
             new.get_qargs(inst.qubits)
@@ -616,7 +636,7 @@ fn apply_a2(
             let OperationRef::Unitary(unitary) = circ.data()[*idx].op.view() else {
                 unreachable!("diagonal unitary is not a unitary gate");
             };
-            (*idx, unitary.matrix_view().to_owned())
+            (*idx, unitary.matrix(&[]).unwrap())
         })
         .collect();
     for (ind1, ind2) in ind2q[0..ind2q.len() - 1].iter().zip(ind2q[1..].iter()) {
@@ -645,18 +665,22 @@ fn apply_a2(
     let qc3_seq = two_qubit_decomposer
         .call_inner(new_matrices[last_idx].view(), None, true, None)
         .unwrap();
+    let phase = Param::Float(qc3_seq.global_phase());
     let qc3 = CircuitData::from_packed_operations(
         2,
         0,
-        qc3_seq.gates().iter().map(|(gate, params, qubits)| {
-            Ok((
-                gate.clone(),
-                params.iter().map(|x| Param::Float(*x)).collect(),
-                qubits.iter().map(|q| Qubit(*q as u32)).collect(),
-                vec![],
-            ))
-        }),
-        Param::Float(qc3_seq.global_phase()),
+        qc3_seq
+            .into_gates()
+            .into_iter()
+            .map(|(gate, params, qubits)| {
+                Ok((
+                    gate,
+                    params.into_iter().map(Param::Float).collect(),
+                    qubits.into_iter().map(|q| Qubit(q as u32)).collect(),
+                    vec![],
+                ))
+            }),
+        phase,
     )?;
     diagonal_rollover.insert(*last_idx, qc3);
     let mut out_circ = CircuitData::clone_empty_like(
@@ -729,59 +753,60 @@ fn apply_a2(
 /// This decomposition is described in Krol and Al-Ars [2] and improves the method of
 /// Shende et al. [1].
 ///
-/// ```text
+/// .. code-block:: text
 ///
 ///       ┌───┐              ┌───┐     ┌───┐
 ///      ─┤   ├─      ────□──┤ H ├──□──┤ H ├──□──
 ///       │   │    ≃    ┌─┴─┐└───┘┌─┴─┐└───┘┌─┴─┐
 ///     /─┤   ├─      ──┤ C ├─────┤ B ├─────┤ A ├
 ///       └───┘         └───┘     └───┘     └───┘
-/// ```
 ///
-/// The number of CXGates generated with the decomposition without optimizations is
+/// The number of :class:`.CXGate`\ s generated with the decomposition without optimizations is
 /// the same as the unoptimized method in [1]:
 ///
-///     (9/16)4^n - (3/2)2^n
+/// .. math::
+///
+/// \frac{9}{16} 4^n - \frac{3}{2} 2^n
 ///
 /// If ``opt_a1 = True``, the CX count is reduced, improving [1], by:
 ///
+/// .. math::
 ///
-///     (2/3)(4^(n-2) - 1)
+///     \frac{2}{3} (4^{n - 2} - 1).
 ///
-/// Saving two CXGates instead of one in each step of the recursion.
+/// Saving two :class:`.CXGate`\ s instead of one in each step of the recursion.
 ///
 /// If ``opt_a2 = True``, the CX count is reduced, as in [1], by:
 ///
+/// .. math::
 ///
-///     4^(n-2) - 1.
+///     4^{n-2} - 1.
 ///
-/// Hence, the number of CXGate's generated with the decomposition with optimizations is
+/// Hence, the number of :class:`.CXGate`\ s generated with the decomposition with optimizations is
+///
+/// .. math::
+///
+/// \frac{22}{48} 4^n - \frac{3}{2} 2^n + \frac{5}{3}.
 ///
 ///
-///     (22/48)4^n - (3/2)2^n + (5/3)
+/// Args:
+///     mat: unitary matrix to decompose
+///     opt_a1: whether to try optimization A.1 from [1, 2].
+///         This should eliminate 2 ``cx`` per call.
+///     opt_a2: whether to try optimization A.2 from [1, 2].
+///         This decomposes two qubit unitaries into a diagonal gate and
+///         a two ``cx`` unitary and reduces overall ``cx`` count by :math:`4^{n-2} - 1`.
+///         This optimization should not be done if the original unitary is controlled.
 ///
+/// Returns:
+///     QuantumCircuit: Decomposed quantum circuit.
 ///
-/// # Arguments:
-///
-/// * mat: unitary matrix to decompose
-/// * opt_a1: whether to try optimization A.1 from [1, 2].
-///       This should eliminate 2 ``cx`` per call.
-/// * opt_a2: whether to try optimization A.2 from [1, 2].
-///      This decomposes two qubit unitaries into a diagonal gate and
-///       a two ``cx`` unitary and reduces overall ``cx`` count by 4^(n-2) - 1.
-///       This optimization should not be done if the original unitary is controlled.
-/// * decomposer_1q: optional 1Q decomposer. If None, uses ``OneQubitEulerDecomposer``.
-/// * decomposer_2q: optional 2Q decomposer. If None, uses ``TwoQubitBasisDecomposer``.
-///
-/// # Returns:
-/// * Decomposed quantum circuit.
-///
-/// # References:
-/// 1. Shende, Bullock, Markov, *Synthesis of Quantum Logic Circuits*,
-///    [arXiv:0406176](https://arxiv.org/abs/quant-ph/0406176)
-/// 2. Krol, Al-Ars, *Beyond Quantum Shannon: Circuit Construction for General
-///    n-Qubit Gates Based on Block ZXZ-Decomposition*,
-///    [arXiv:2403.13692](https://arxiv.org/abs/2403.13692)
+/// References:
+///     1. Shende, Bullock, Markov, *Synthesis of Quantum Logic Circuits*,
+///        `arXiv:0406176 [quant-ph] <https://arxiv.org/abs/quant-ph/0406176>`_
+///     2. Krol, Al-Ars, *Beyond Quantum Shannon: Circuit Construction for General
+///        n-Qubit Gates Based on Block ZXZ-Decomposition*,
+///        `arXiv:2403.13692 <https://arxiv.org/abs/2403.13692>`_
 #[pyfunction]
 pub fn qs_decomposition(
     mat: PyReadonlyArray2<Complex64>,
