@@ -520,27 +520,20 @@ fn update_angle(angle_1: f64, angle_2: f64) -> [f64; 2] {
 }
 
 fn append(circ: &mut CircuitData, new: CircuitData, qubit_map: &[Qubit]) -> PyResult<()> {
-    let mut new_qubits_map: HashMap<Interned<[Qubit]>, Vec<Qubit>> =
-        HashMap::with_capacity(new.qargs_interner().len());
-    for inst in new.data() {
-        let qubits_map = new_qubits_map.entry(inst.qubits).or_insert_with(|| {
-            new.get_qargs(inst.qubits)
-                .iter()
-                .map(|x| qubit_map[x.index()])
-                .collect()
-        });
+    let new_qubits_map = circ.merge_qargs(new.qargs_interner(), |x| Some(qubit_map[x.index()]));
+    circ.add_global_phase(new.global_phase())?;
+    for inst in new.into_data_iter() {
         let out_inst = PackedInstruction {
-            op: inst.op.clone(),
-            params: inst.params.clone(),
-            qubits: circ.add_qargs(qubits_map),
+            op: inst.op,
+            params: inst.params,
+            qubits: new_qubits_map[inst.qubits],
             clbits: Default::default(),
-            label: inst.label.clone(),
+            label: inst.label,
             #[cfg(feature = "cache_pygates")]
-            py_op: inst.py_op.clone(),
+            py_op: inst.py_op,
         };
         circ.push(out_inst)?;
     }
-    circ.add_global_phase(new.global_phase())?;
     Ok(())
 }
 

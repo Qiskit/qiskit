@@ -473,6 +473,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9756e068191bf4f6b6a36dd131687f1f802cd2e3fce8b1ec4dbd5a5f5dfbafe1"
 dependencies = [
  "faer",
+ "nalgebra",
  "ndarray",
  "num-complex",
 ]

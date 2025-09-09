@@ -24,7 +24,7 @@ use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::classical::expr;
 use crate::dag_circuit::{add_global_phase, DAGStretchType, DAGVarType};
 use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
-use crate::interner::{Interned, Interner};
+use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{Operation, OperationRef, Param, PythonOperation, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
@@ -2234,6 +2234,41 @@ impl CircuitData {
         &self.qargs_interner
     }
 
+    /// Merge the `qargs` in a different [Interner] into this Circuit, remapping the qubits.
+    ///
+    /// This is useful for simplifying the direct mapping of [PackedInstruction]s from one circuit to
+    /// another, like when composing two circuits. See [Interner::merge_map_slice] for more
+    /// information on the mapping function.
+    ///
+    /// The input [InternedMap] is cleared of its previous entries by this method, and then we
+    /// re-use the allocation.
+    pub fn merge_qargs_using(
+        &mut self,
+        other: &Interner<[Qubit]>,
+        map_fn: impl FnMut(&Qubit) -> Option<Qubit>,
+        map: &mut InternedMap<[Qubit]>,
+    ) {
+        // 4 is an arbitrary guess for the amount of stack space to allocate for mapping the
+        // `qargs`, but it doesn't matter if it's too short because it'll safely spill to the heap.
+        self.qargs_interner
+            .merge_map_slice_using::<4>(other, map_fn, map);
+    }
+
+    /// Merge the `qargs` in a different [Interner] into this circuit, remapping the qubits.
+    ///
+    /// This is useful for simplifying the direct mapping of [PackedInstruction]s from one circuit to
+    /// another, like when composing two circuits. See [Interner::merge_map_slice] for more
+    /// information on the mapping function.
+    pub fn merge_qargs(
+        &mut self,
+        other: &Interner<[Qubit]>,
+        map_fn: impl FnMut(&Qubit) -> Option<Qubit>,
+    ) -> InternedMap<[Qubit]> {
+        let mut out = InternedMap::new();
+        self.merge_qargs_using(other, map_fn, &mut out);
+        out
+    }
+
     /// Returns an immutable view of the Interner used for Cargs
     pub fn cargs_interner(&self) -> &Interner<[Clbit]> {
         &self.cargs_interner
@@ -2556,6 +2591,12 @@ impl CircuitData {
     /// Get an immutable view of the instructions in the circuit data
     pub fn data(&self) -> &[PackedInstruction] {
         &self.data
+    }
+
+    /// Consume the CircuitData and create an iterator of the [`PackedInstruction`] objects in the
+    /// circuit.
+    pub fn into_data_iter(self) -> impl Iterator<Item = PackedInstruction> {
+        self.data.into_iter()
     }
 
     /// Returns an iterator over the stored identifiers in order of insertion
