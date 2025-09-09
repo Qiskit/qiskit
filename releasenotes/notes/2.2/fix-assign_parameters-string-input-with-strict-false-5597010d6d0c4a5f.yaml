@@ -1,6 +1,6 @@
 ---
 fixes:
   - |
-    Fixed a bug in method `assign_parameters` that results in error with string inputs
-    and argument strict = False.
-    Refer to `#13933 <https://github.com/Qiskit/qiskit/issues/13933>` for more details.
+    Fixed a bug in method :meth:`.QuantumCircuit.assign_parameters` that resulted in 
+    an error when string inputs were provided and argument ``strict`` is ``False``.
+    Refer to `#13933 <https://github.com/Qiskit/qiskit/issues/13933>`__ for more details.
