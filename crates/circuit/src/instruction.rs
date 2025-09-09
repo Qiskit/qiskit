@@ -312,7 +312,7 @@ pub enum InstructionView<'a, T> {
     Unitary(UnitaryGateView<'a>),
 }
 
-impl<'a, T> InstructionView<'a, T> {
+impl<T> InstructionView<'_, T> {
     pub fn try_matrix(&self) -> Option<Array2<Complex64>> {
         match self {
             InstructionView::StandardGate(g) => g.matrix(),

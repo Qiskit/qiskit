@@ -2223,35 +2223,31 @@ impl DAGCircuit {
                 " but see this method's documentation for the meaning of this."
             )));
         }
-        let node_lookup = Python::with_gil(|py| -> PyResult<HashMap<NodeIndex, usize>> {
-            // Handle recursively.
-            let mut node_lookup: HashMap<NodeIndex, usize> = HashMap::new();
-            for (node_index, node) in self.dag.node_references() {
-                let NodeType::Operation(node) = node else {
-                    continue;
-                };
-                let Some(control_flow) = node.try_view_control_flow() else {
-                    continue;
-                };
-                let weight = if let ControlFlowView::ForLoop { indexset, .. } = control_flow {
-                    indexset.len()
-                } else {
-                    1
-                };
-                if weight == 0 {
-                    node_lookup.insert(node_index, 0);
-                } else {
-                    let blocks = control_flow.blocks();
-                    let mut block_weights: Vec<usize> = Vec::with_capacity(blocks.len());
-                    for block in blocks {
-                        block_weights.push(block.depth(true)?);
-                        node_lookup
-                            .insert(node_index, weight * block_weights.iter().max().unwrap());
-                    }
+        // Handle recursively.
+        let mut node_lookup: HashMap<NodeIndex, usize> = HashMap::new();
+        for (node_index, node) in self.dag.node_references() {
+            let NodeType::Operation(node) = node else {
+                continue;
+            };
+            let Some(control_flow) = node.try_view_control_flow() else {
+                continue;
+            };
+            let weight = if let ControlFlowView::ForLoop { indexset, .. } = control_flow {
+                indexset.len()
+            } else {
+                1
+            };
+            if weight == 0 {
+                node_lookup.insert(node_index, 0);
+            } else {
+                let blocks = control_flow.blocks();
+                let mut block_weights: Vec<usize> = Vec::with_capacity(blocks.len());
+                for block in blocks {
+                    block_weights.push(block.depth(true)?);
+                    node_lookup.insert(node_index, weight * block_weights.iter().max().unwrap());
                 }
             }
-            Ok(node_lookup)
-        })?;
+        }
 
         let weight_fn = |edge: EdgeReference<'_, Wire>| -> Result<usize, Infallible> {
             Ok(*node_lookup.get(&edge.target()).unwrap_or(&1))
