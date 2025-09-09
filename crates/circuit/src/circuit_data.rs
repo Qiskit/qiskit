@@ -2685,7 +2685,7 @@ impl CircuitData {
     /// This modifies the circuit in place and sets the label
     /// field of an instruction to ``None``.
     ///
-    /// #Arguments
+    /// # Arguments
     ///
     /// * index: The index of the instruction in the circuit to remove the label of.
     pub fn invalidate_label(&mut self, index: usize) {

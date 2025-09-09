@@ -48,15 +48,15 @@ enum VWType {
 /// Decomposes a unitary matrix into one and two qubit gates using Quantum Shannon Decomposition,
 /// based on the Block ZXZ-Decomposition.
 ///
-/// #Arguments
-/// * mat: unitary matrix to decompose
-/// * opt_a1: whether to try optimization A.1
-/// * opt_a2: whether to try optimization A.2
-/// * two_qubit_decomposer: Optional alternative two qubit decomposer
-/// * one_qubit_decomposer: Optional alternative one qubit decomposer
+/// # Arguments
+/// * `mat`: unitary matrix to decompose
+/// * `opt_a1`: whether to try optimization A.1
+/// * `opt_a2`: whether to try optimization A.2
+/// * `two_qubit_decomposer`: Optional alternative two qubit decomposer, if not specified a decomposer using CX and U is used.
+/// * `one_qubit_decomposer`: Optional alternative one qubit euler basis to use for single qubit unitary decompositions. If not specified U is used.
 ///
-/// Returns:
-///     QuantumCircuit: Decomposed quantum circuit.
+/// # Returns
+///     Decomposed quantum circuit.
 pub fn quantum_shannon_decomposition(
     mat: &DMatrix<Complex64>,
     opt_a1: Option<bool>,
@@ -169,18 +169,19 @@ fn qsd_inner(
                     .call_inner(array, None, false, None)
                     .unwrap()
             });
+        let global_phase = sequence.global_phase();
         return CircuitData::from_packed_operations(
             num_qubits as u32,
             0,
-            sequence.gates().iter().map(|(op, params, qubits)| {
+            sequence.into_gates().into_iter().map(|(op, params, qubits)| {
                 Ok((
-                    op.clone(),
-                    params.iter().map(|x| Param::Float(*x)).collect(),
-                    qubits.iter().map(|q| Qubit(*q as u32)).collect(),
+                    op,
+                    params.into_iter().map(Param::Float).collect(),
+                    qubits.into_iter().map(|q| Qubit(q as u32)).collect(),
                     vec![],
                 ))
             }),
-            Param::Float(sequence.global_phase()),
+            Param::Float(global_phase),
         );
     }
     // Check whether the matrix is equivalent to a block diagonal w.r.t ctrl_index
@@ -315,8 +316,7 @@ fn zxz_decomp_verify(
 
     let mat_check = a_block * b_block * c_block * Complex64::from(0.5);
 
-    const EPS: f64 = 1e-7;
-    abs_diff_eq!(mat, &mat_check, epsilon = EPS)
+    abs_diff_eq!(mat, &mat_check, epsilon = 1e-7)
 }
 
 ///  Decompose a generic multiplexer.

@@ -81,11 +81,11 @@ pub fn condition_number(mat: DMatrix<Complex64>) -> Option<f64> {
 
     let max_sv = singular_values
         .iter()
-        .cloned()
+        .copied()
         .fold(f64::NEG_INFINITY, f64::max);
     let min_sv = singular_values
         .iter()
-        .cloned()
+        .copied()
         .fold(f64::INFINITY, f64::min);
 
     if min_sv == 0.0 {
@@ -98,12 +98,6 @@ pub fn condition_number(mat: DMatrix<Complex64>) -> Option<f64> {
 /// Returns the SVD decomposition of the given matrix M as three matrices A,S,B such that
 /// M=ASB (In the usual notations, M=USV*, and this function returns A=U and B=V*)
 pub fn svd_decomposition(
-    mat: DMatrixView<Complex64>,
-) -> (DMatrix<Complex64>, DMatrix<Complex64>, DMatrix<Complex64>) {
-    svd_decomposition_using_faer(mat)
-}
-
-fn svd_decomposition_using_faer(
     mat: DMatrixView<Complex64>,
 ) -> (DMatrix<Complex64>, DMatrix<Complex64>, DMatrix<Complex64>) {
     let mat_view: DMatrixView<Complex64> = mat.as_view();
