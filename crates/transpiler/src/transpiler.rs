@@ -70,7 +70,6 @@ pub fn transpile(
     );
 
     let unroll_3q_or_more = |dag: &mut DAGCircuit| -> Result<()> {
-        // This will panic if there is a 3q unitary until qsd is ported
         let mut out_dag = run_unitary_synthesis(
             dag,
             (0..dag.num_qubits()).collect(),
