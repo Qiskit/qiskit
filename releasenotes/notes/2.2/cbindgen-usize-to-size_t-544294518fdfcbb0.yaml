@@ -1,6 +1,6 @@
 ---
 upgrade_c:
   - |
-    Changed the behavior of `cbindgen` to map Rust's `usize` type to C's ``size_t`` in the generated C API. This makes ``usize``
+    Changed the behavior of `cbindgen` to map the Rust `usize` type to the C ``size_t`` in the generated C API. This makes ``usize``
     struct fields, function parameters and function return values accurately aligned in their variable type to their intended
     usage in C.

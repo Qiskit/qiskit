@@ -2,12 +2,12 @@
 fixes:
   - |
     Fixed several problems in the :class:`.CommutativeInverseCancellation`
-    transpiler pass: the pass now works correctly on circuits containing
+    transpiler pass. The pass now works correctly on circuits containing
     :class:`.Clifford` operations, control-flow operations, and non-invertible
     operations such as :class:`.Initialize`.
 
-    In addition, the pass now always first performs a syntactic (non-matrix-based)
-    check when identifying inverse gate pairs. If the gates are not syntactically
+    In addition, the pass now always performs a syntactic (non-matrix-based) check
+    first, when identifying inverse gate pairs. If the gates are not syntactically
     equal, the argument ``matrix_based`` is set to ``True``, and the operation
     does not act on more than ``max_qubits`` qubits, then a matrix-based check
     is also performed. This slightly improves the reduction potential of the pass.
