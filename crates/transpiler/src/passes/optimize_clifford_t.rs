@@ -360,7 +360,7 @@ pub fn optimize_clifford_t_mod(m: &Bound<PyModule>) -> PyResult<()> {
 // Precomputed tables used in the algorithm.
 
 // Index of the Clifford1q operator -> corresponding Clifford circuit
-const CIRCUIT: &[&[StandardGate]; 24] = &[
+static CIRCUIT: [&[StandardGate]; 24] = [
     &[],
     &[StandardGate::H],
     &[StandardGate::S],
@@ -404,7 +404,7 @@ const CIRCUIT: &[&[StandardGate]; 24] = &[
 
 // Index of the Clifford1q operator -> its effect on the X/Y/Z-rotations
 // (new rotation axis + sign)
-const EVOLVE_X: &[(Pauli1q, bool); 24] = &[
+static EVOLVE_X: [(Pauli1q, bool); 24] = [
     (Pauli1q::X, false),
     (Pauli1q::Z, false),
     (Pauli1q::Y, true),
@@ -430,7 +430,7 @@ const EVOLVE_X: &[(Pauli1q, bool); 24] = &[
     (Pauli1q::Z, true),
     (Pauli1q::X, true),
 ];
-const EVOLVE_Y: &[(Pauli1q, bool); 24] = &[
+static EVOLVE_Y: [(Pauli1q, bool); 24] = [
     (Pauli1q::Y, false),
     (Pauli1q::Y, true),
     (Pauli1q::X, false),
@@ -456,7 +456,7 @@ const EVOLVE_Y: &[(Pauli1q, bool); 24] = &[
     (Pauli1q::X, true),
     (Pauli1q::Z, false),
 ];
-const EVOLVE_Z: &[(Pauli1q, bool); 24] = &[
+static EVOLVE_Z: [(Pauli1q, bool); 24] = [
     (Pauli1q::Z, false),
     (Pauli1q::X, false),
     (Pauli1q::Z, false),
@@ -485,7 +485,7 @@ const EVOLVE_Z: &[(Pauli1q, bool); 24] = &[
 
 // Index of the Clifford1q operator -> changes when appending/prepending S/H-gates
 // (index of the new operator + phase update)
-const APPEND_S: &[(usize, usize); 24] = &[
+static APPEND_S: [(usize, usize); 24] = [
     (2, 0),
     (3, 0),
     (12, 0),
@@ -511,7 +511,7 @@ const APPEND_S: &[(usize, usize); 24] = &[
     (11, 4),
     (22, 2),
 ];
-const PREPEND_S: &[(usize, usize); 24] = &[
+static PREPEND_S: [(usize, usize); 24] = [
     (2, 0),
     (4, 0),
     (12, 0),
@@ -537,7 +537,7 @@ const PREPEND_S: &[(usize, usize); 24] = &[
     (13, 6),
     (3, 0),
 ];
-const APPEND_H: &[(usize, usize); 24] = &[
+static APPEND_H: [(usize, usize); 24] = [
     (1, 0),
     (0, 0),
     (4, 0),
@@ -563,7 +563,7 @@ const APPEND_H: &[(usize, usize); 24] = &[
     (20, 4),
     (9, 7),
 ];
-const PREPEND_H: &[(usize, usize); 24] = &[
+static PREPEND_H: [(usize, usize); 24] = [
     (1, 0),
     (0, 0),
     (3, 0),
