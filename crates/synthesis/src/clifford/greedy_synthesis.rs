@@ -15,8 +15,10 @@ use indexmap::IndexSet;
 use ndarray::{s, ArrayView2};
 use smallvec::smallvec;
 
-use crate::clifford::utils::{adjust_final_pauli_gates, SymplecticMatrix};
-use crate::clifford::utils::{Clifford, CliffordGatesVec};
+use crate::clifford::utils::{
+    adjust_final_pauli_gates, clifford_from_gate_sequence, CliffordGatesVec, SymplecticMatrix,
+};
+
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::Qubit;
 
@@ -405,7 +407,7 @@ pub fn resynthesize_clifford_circuit(
     num_qubits: usize,
     gates: &CliffordGatesVec,
 ) -> Result<CliffordGatesVec, String> {
-    let sim_clifford = Clifford::from_gate_sequence(gates, num_qubits)?;
+    let sim_clifford = clifford_from_gate_sequence(gates, num_qubits)?;
     let mut synthesis = GreedyCliffordSynthesis::new(sim_clifford.tableau.view())?;
     let (_, new_gates) = synthesis.run()?;
     Ok(new_gates)

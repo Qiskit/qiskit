@@ -91,7 +91,7 @@ class PhaseGate(Gate):
         #    └──────────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.Phase._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.Phase._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def control(
@@ -233,7 +233,7 @@ class CPhaseGate(ControlledGate):
         #                └───┘└─────────┘└───┘└────────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.CPhase._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.CPhase._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def control(

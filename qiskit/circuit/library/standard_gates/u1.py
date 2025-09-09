@@ -108,7 +108,7 @@ class U1Gate(Gate):
         #    └──────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.U1._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.U1._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def control(
@@ -257,7 +257,7 @@ class CU1Gate(ControlledGate):
         #                └───┘└─────────┘└───┘└────────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.CU1._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.CU1._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def control(

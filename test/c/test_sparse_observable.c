@@ -721,6 +721,88 @@ int test_obsterm_str(void) {
     return result;
 }
 
+/**
+ * Test applying a layout in a full workflow.
+ */
+int test_apply_layout(void) {
+    uint32_t num_qubits = 6;
+    QkCircuit *qc = qk_circuit_new(num_qubits, 0);
+
+    // reverse the first 4 bits to [3, 2, 1, 0] and swap qubits 4 and 5, to get the final
+    // permutation [3, 2, 1, 0, 5, 4]
+    qk_circuit_gate(qc, QkGate_Swap, (uint32_t[2]){0, 1}, NULL);
+    qk_circuit_gate(qc, QkGate_Swap, (uint32_t[2]){2, 3}, NULL);
+    qk_circuit_gate(qc, QkGate_Swap, (uint32_t[2]){1, 2}, NULL);
+    qk_circuit_gate(qc, QkGate_Swap, (uint32_t[2]){0, 1}, NULL);
+    qk_circuit_gate(qc, QkGate_Swap, (uint32_t[2]){2, 3}, NULL);
+    qk_circuit_gate(qc, QkGate_Swap, (uint32_t[2]){1, 2}, NULL);
+
+    qk_circuit_gate(qc, QkGate_Swap, (uint32_t[2]){4, 5}, NULL);
+
+    // elide the permutations and obtain a layout which we can apply to the observable
+    QkTranspileLayout *transpile_layout = qk_transpiler_pass_standalone_elide_permutations(qc);
+    qk_circuit_free(qc);
+
+    // Build an observable as X1 +2 -3 Y4 Z5
+    QkObs *obs = qk_obs_zero(num_qubits);
+    QkBitTerm bit_terms[5] = {QkBitTerm_X, QkBitTerm_Plus, QkBitTerm_Left, QkBitTerm_Y,
+                              QkBitTerm_Z};
+    uint32_t qubits[5] = {1, 2, 3, 4, 5};
+    QkComplex64 coeff = {1, 0};
+    QkObsTerm term = {coeff, 5, bit_terms, qubits, num_qubits};
+    int err = qk_obs_add_term(obs, &term);
+
+    if (err != 0) {
+        qk_obs_free(obs);
+        qk_transpile_layout_free(transpile_layout);
+        return RuntimeError;
+    }
+
+    // get the final layout from QkTranspileLayout
+    uint32_t num_output_qubits = qk_transpile_layout_num_output_qubits(transpile_layout);
+    uint32_t *layout = malloc(sizeof(uint32_t) * num_output_qubits);
+    qk_transpile_layout_final_layout(transpile_layout, false, layout);
+
+    // apply the layout and verify nothing went wrong
+    err = qk_obs_apply_layout(obs, layout, num_output_qubits);
+
+    qk_transpile_layout_free(transpile_layout);
+    free(layout);
+    if (err != 0) {
+        qk_obs_free(obs);
+        return RuntimeError;
+    }
+
+    // compare against expectations
+    uint32_t qubits_exp[5] = {0, 1, 2, 4, 5};
+    QkBitTerm bits_exp[5] = {QkBitTerm_Left, QkBitTerm_Plus, QkBitTerm_X, QkBitTerm_Z, QkBitTerm_Y};
+    QkObsTerm term_shuffled = {coeff, 5, bits_exp, qubits_exp, num_qubits};
+    QkObs *expected = qk_obs_zero(num_qubits);
+    qk_obs_add_term(expected, &term_shuffled);
+
+    bool is_equal = qk_obs_equal(expected, obs);
+
+    qk_obs_free(obs);
+    qk_obs_free(expected);
+
+    return is_equal ? Ok : EqualityError;
+}
+
+/**
+ * Test applying a layout to a too large observable fails.
+ */
+int test_apply_layout_too_small(void) {
+    // Build an observable that's too large for the layout
+    uint32_t layout[2] = {80, 2001};
+    QkObs *obs = qk_obs_identity(4);
+
+    // now apply our layout (this should fail)
+    int err = qk_obs_apply_layout(obs, layout, 3000);
+    qk_obs_free(obs);
+
+    return err == QkExitCode_IndexError ? Ok : EqualityError;
+}
+
 int test_sparse_observable(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_zero);
@@ -746,6 +828,8 @@ int test_sparse_observable(void) {
     num_failed += RUN_TEST(test_direct_fail);
     num_failed += RUN_TEST(test_obs_str);
     num_failed += RUN_TEST(test_obsterm_str);
+    num_failed += RUN_TEST(test_apply_layout);
+    num_failed += RUN_TEST(test_apply_layout_too_small);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);

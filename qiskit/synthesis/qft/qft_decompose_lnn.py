@@ -57,5 +57,5 @@ def synth_qft_line(
     return QuantumCircuit._from_circuit_data(
         # From rust
         _synth_qft_line(num_qubits, do_swaps, approximation_degree),
-        add_regs=True,
+        legacy_qubits=True,
     )

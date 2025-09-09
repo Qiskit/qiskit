@@ -13,7 +13,7 @@
 use crate::circuit_data::CircuitData;
 use crate::operations::{
     BoxDuration, CaseSpecifier, Condition, ControlFlow, DelayUnit, OperationRef, Param, PyGate,
-    PyInstruction, PyOperation, StandardGate, StandardInstruction, Target, UnitaryGate,
+    PyInstruction, PyOperation, StandardGate, StandardInstruction, SwitchTarget, UnitaryGate,
 };
 use nalgebra::Matrix2;
 use ndarray::Array2;
@@ -369,7 +369,7 @@ pub enum ControlFlowView<'a, T> {
         false_body: Option<&'a T>,
     },
     Switch {
-        target: &'a Target,
+        target: &'a SwitchTarget,
         cases_specifier: Vec<(&'a Vec<CaseSpecifier>, &'a T)>,
     },
     While {

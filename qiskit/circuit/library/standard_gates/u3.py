@@ -160,7 +160,7 @@ class U3Gate(Gate):
         #    └──────────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.U3._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.U3._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def __array__(self, dtype=None, copy=None):
@@ -297,7 +297,7 @@ class CU3Gate(ControlledGate):
         #      └──────────────┘└───┘└──────────────────────┘└───┘└────────────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.CU3._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.CU3._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def inverse(self, annotated: bool = False):

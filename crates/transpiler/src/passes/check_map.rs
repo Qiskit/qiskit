@@ -10,29 +10,39 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use hashbrown::HashSet;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::instruction::IntoInstructionView;
 use qiskit_circuit::operations::Operation;
-use qiskit_circuit::Qubit;
+use qiskit_circuit::{PhysicalQubit, Qubit};
 
-fn recurse<'py>(
-    dag: &'py DAGCircuit,
-    edge_set: &'py HashSet<[u32; 2]>,
-    wire_map: Option<&'py [Qubit]>,
+use crate::target::Target;
+
+fn recurse(
+    dag: &DAGCircuit,
+    target: &Target,
+    wire_map: Option<&[Qubit]>,
 ) -> PyResult<Option<(String, [u32; 2])>> {
     let check_qubits = |qubits: &[Qubit]| -> bool {
         match wire_map {
             Some(wire_map) => {
-                let mapped_bits = [wire_map[qubits[0].index()], wire_map[qubits[1].index()]];
-                edge_set.contains(&[mapped_bits[0].into(), mapped_bits[1].into()])
+                let mapped_bits = [
+                    PhysicalQubit(wire_map[qubits[0].index()].0),
+                    PhysicalQubit(wire_map[qubits[1].index()].0),
+                ];
+                target.contains_qargs(&mapped_bits)
+                    || target.contains_qargs(&[mapped_bits[1], mapped_bits[0]])
             }
-            None => edge_set.contains(&[qubits[0].into(), qubits[1].into()]),
+            None => {
+                target.contains_qargs(&[PhysicalQubit(qubits[0].0), PhysicalQubit(qubits[1].0)])
+                    || target
+                        .contains_qargs(&[PhysicalQubit(qubits[1].0), PhysicalQubit(qubits[0].0)])
+            }
         }
     };
+
     for (_node, inst) in dag.op_nodes(false) {
         let qubits = dag.get_qargs(inst.qubits);
         if let Some(control_flow) = inst.try_view_control_flow() {
@@ -47,7 +57,7 @@ fn recurse<'py>(
                     })
                     .collect::<Vec<_>>();
 
-                let res = recurse(block, edge_set, Some(&wire_map))?;
+                let res = recurse(block, target, Some(&wire_map))?;
                 if res.is_some() {
                     return Ok(res);
                 }
@@ -64,14 +74,37 @@ fn recurse<'py>(
 
 #[pyfunction]
 #[pyo3(name = "check_map")]
-pub fn run_check_map(
-    dag: &DAGCircuit,
-    edge_set: HashSet<[u32; 2]>,
-) -> PyResult<Option<(String, [u32; 2])>> {
-    recurse(dag, &edge_set, None)
+pub fn py_run_check_map(dag: &DAGCircuit, target: &Target) -> PyResult<Option<(String, [u32; 2])>> {
+    if dag.has_control_flow() {
+        recurse(dag, target, None)
+    } else {
+        Ok(run_check_map(dag, target)
+            .map(|(name, qubits)| (name.to_string(), [qubits[0].0, qubits[1].0])))
+    }
+}
+
+/// Check that all 2q gates are in the target
+pub fn run_check_map<'a>(
+    dag: &'a DAGCircuit,
+    target: &Target,
+) -> Option<(&'a str, [PhysicalQubit; 2])> {
+    dag.op_nodes(false)
+        .filter(|(_idx, inst)| inst.op.num_qubits() == 2)
+        .find_map(|(_idx, inst)| {
+            let qargs_raw = dag.get_qargs(inst.qubits);
+            let qargs = [
+                PhysicalQubit::new(qargs_raw[0].0),
+                PhysicalQubit::new(qargs_raw[1].0),
+            ];
+            if !target.contains_qargs(&qargs) && !target.contains_qargs(&[qargs[1], qargs[0]]) {
+                Some((inst.op.name(), [qargs[0], qargs[1]]))
+            } else {
+                None
+            }
+        })
 }
 
 pub fn check_map_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(run_check_map))?;
+    m.add_wrapped(wrap_pyfunction!(py_run_check_map))?;
     Ok(())
 }

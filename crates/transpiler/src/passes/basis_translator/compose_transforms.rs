@@ -10,15 +10,19 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::equivalence::CircuitFromPython;
+use crate::passes::basis_translator::errors::BasisTranslatorError;
+use hashbrown::HashMap;
 use indexmap::{IndexMap, IndexSet};
 use pyo3::prelude::*;
 use qiskit_circuit::bit::QuantumRegister;
+use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::dag_circuit::DAGInstruction;
-use qiskit_circuit::imports::{GATE, PARAMETER_VECTOR};
-use qiskit_circuit::instruction::IntoInstructionView;
-use qiskit_circuit::packed_instruction::PackedInstruction;
+use qiskit_circuit::imports::GATE;
+use qiskit_circuit::instruction::{IntoInstructionView, Parameters};
+use qiskit_circuit::operations::{get_standard_gate_names, StandardGate, StandardInstruction};
+use qiskit_circuit::packed_instruction::PackedOperation;
+use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
+use qiskit_circuit::parameter::symbol_expr::Symbol;
 use qiskit_circuit::parameter_table::ParameterUuid;
 use qiskit_circuit::Qubit;
 use qiskit_circuit::{
@@ -26,126 +30,164 @@ use qiskit_circuit::{
     operations::{Operation, Param},
 };
 use smallvec::SmallVec;
+use std::sync::OnceLock;
 
 // Custom types
 pub type GateIdentifier = (String, u32);
-pub type BasisTransformIn = (SmallVec<[Param; 3]>, CircuitFromPython);
+pub type BasisTransformIn = (SmallVec<[Param; 3]>, CircuitData);
 pub type BasisTransformOut = (SmallVec<[Param; 3]>, DAGCircuit);
 
+static STD_GATE_MAPPING: OnceLock<HashMap<&str, StandardGate>> = OnceLock::new();
+static STD_INST_SET: [&str; 4] = ["barrier", "delay", "measure", "reset"];
+
 pub(super) fn compose_transforms<'a>(
-    py: Python,
     basis_transforms: &'a [(GateIdentifier, BasisTransformIn)],
     source_basis: &'a IndexSet<GateIdentifier, ahash::RandomState>,
     source_dag: &'a DAGCircuit,
-) -> PyResult<IndexMap<GateIdentifier, BasisTransformOut, ahash::RandomState>> {
+) -> Result<IndexMap<GateIdentifier, BasisTransformOut, ahash::RandomState>, BasisTranslatorError> {
     let mut gate_param_counts: IndexMap<GateIdentifier, usize, ahash::RandomState> =
         IndexMap::default();
-    get_gates_num_params(source_dag, &mut gate_param_counts)?;
+    get_gates_num_params(source_dag, &mut gate_param_counts);
     let mut mapped_instructions: IndexMap<GateIdentifier, BasisTransformOut, ahash::RandomState> =
         IndexMap::with_hasher(ahash::RandomState::default());
 
     for (gate_name, gate_num_qubits) in source_basis.iter().cloned() {
         let num_params = gate_param_counts[&(gate_name.clone(), gate_num_qubits)];
+        let mut placeholder_params: SmallVec<[Param; 3]> = (0..num_params as u32)
+            .map(|idx| {
+                Param::ParameterExpression(
+                    ParameterExpression::from_symbol(Symbol::new(&gate_name, None, Some(idx)))
+                        .into(),
+                )
+            })
+            .collect();
 
-        // TODO: Follow-up by replacing with Param::ParamterExpression(Symbol),
-        // as ParameterVector is not exposed in Rust. Maybe we ought to add a function
-        // for convenient construction, if it would be useful.
-        let placeholder_params: SmallVec<[Param; 3]> = PARAMETER_VECTOR
-            .get_bound(py)
-            .call1((&gate_name, num_params))?
-            .extract()?;
-
-        let mut dag = DAGCircuit::new()?;
-        // Create the mock gate and add to the circuit, use Python for this.
-        let qubits = QuantumRegister::new_owning("q".to_string(), gate_num_qubits);
-        dag.add_qreg(qubits)?;
-
-        let gate = GATE.get_bound(py).call1((
-            &gate_name,
-            gate_num_qubits,
-            placeholder_params
+        let mut dag = DAGCircuit::new();
+        // Create the mock gate and add to the circuit, use Python if necessary.
+        let qubits = QuantumRegister::new_owning("q", gate_num_qubits);
+        dag.add_qreg(qubits).map_err(|_| {
+            BasisTranslatorError::BasisDAGCircuitError(
+                "Error while adding register to the circuit".to_string(),
+            )
+        })?;
+        let gate = if let Some(op) = name_to_packed_operation(&gate_name, gate_num_qubits) {
+            op
+        } else {
+            let extract_py = Python::with_gil(|py| -> PyResult<OperationFromPython> {
+                GATE.get_bound(py)
+                    .call1((&gate_name, gate_num_qubits, placeholder_params.as_ref()))?
+                    .extract()
+            })
+            .unwrap_or_else(|_| panic!("Error creating custom gate for entry {}", gate_name));
+            placeholder_params = extract_py
+                .try_legacy_params()
+                .unwrap()
                 .iter()
-                .map(|x| x.clone_ref(py))
-                .collect::<SmallVec<[Param; 3]>>(),
-        ))?;
-        let gate_obj: OperationFromPython = gate.extract()?;
-        let qubits: Vec<Qubit> = (0..dag.num_qubits() as u32).map(Qubit).collect();
-
-        let mut builder = dag.into_builder();
-        let gate_instr = PackedInstruction {
-            op: gate_obj.operation,
-            qubits: builder.insert_qargs(&qubits),
-            clbits: builder.insert_cargs(&[]),
-            params: gate_obj.params.map(Box::new),
-            label: gate_obj.label,
-            #[cfg(feature = "cache_pygates")]
-            py_op: gate.unbind().into(),
+                .cloned()
+                .collect();
+            extract_py.operation
         };
-        builder.push_back(DAGInstruction::from_packed(gate_instr)?)?;
-        dag = builder.build();
+        let qubits: Vec<Qubit> = (0..dag.num_qubits() as u32).map(Qubit).collect();
+        dag.apply_operation_back(
+            gate,
+            &qubits,
+            &[],
+            Some(Parameters::Params(placeholder_params.clone())),
+            None,
+            #[cfg(feature = "cache_pygates")]
+            None,
+        )
+        .map_err(|_| {
+            BasisTranslatorError::BasisDAGCircuitError(
+                "Error applying operation to DAGCircuit".to_string(),
+            )
+        })?;
         mapped_instructions.insert((gate_name, gate_num_qubits), (placeholder_params, dag));
+    }
 
-        for ((gate_name, gate_num_qubits), (equiv_params, equiv)) in basis_transforms {
-            for (_, dag) in &mut mapped_instructions.values_mut() {
-                let nodes_to_replace = dag
-                    .op_nodes(true)
-                    .filter(|(_, op)| {
-                        (op.op.num_qubits() == *gate_num_qubits)
-                            && (op.op.name() == gate_name.as_str())
-                    })
-                    .map(|(node, op)| {
-                        (
-                            node,
-                            op.try_legacy_params()
-                                .unwrap()
-                                .iter()
-                                .cloned()
-                                .collect::<SmallVec<[Param; 3]>>(),
-                        )
-                    })
-                    .collect::<Vec<_>>();
-                for (node, params) in nodes_to_replace {
-                    let param_mapping: IndexMap<ParameterUuid, Param, ahash::RandomState> =
-                        equiv_params
+    for ((gate_name, gate_num_qubits), (equiv_params, equiv)) in basis_transforms {
+        for (_, dag) in &mut mapped_instructions.values_mut() {
+            let nodes_to_replace = dag
+                .op_nodes(true)
+                .filter(|(_, op)| {
+                    (op.op.num_qubits() == *gate_num_qubits) && (op.op.name() == gate_name.as_str())
+                })
+                .map(|(node, op)| {
+                    (
+                        node,
+                        op.try_legacy_params()
+                            .unwrap()
                             .iter()
-                            .map(|x| {
-                                // extract the Symbol from the Param
-                                let symbol = match x {
-                                    Param::ParameterExpression(expr) => {
-                                        expr.try_to_symbol().unwrap()
-                                    }
-                                    _ => panic!("Equivalence transform param must be expression."),
-                                };
+                            .cloned()
+                            .collect::<SmallVec<[Param; 3]>>(),
+                    )
+                })
+                .collect::<Vec<_>>();
+            for (node, params) in nodes_to_replace {
+                let param_mapping: IndexMap<ParameterUuid, Param, ahash::RandomState> =
+                    equiv_params
+                        .iter()
+                        .map(|x| match x {
+                            Param::ParameterExpression(parameter_expression) => {
+                                let symbol = parameter_expression.try_to_symbol().unwrap();
                                 ParameterUuid::from_symbol(&symbol)
-                            })
-                            .zip(params)
-                            .map(|(uuid, param)| (uuid, param.clone_ref(py)))
-                            .collect();
-                    let mut replacement = equiv.clone();
-                    replacement
-                        .0
-                        .assign_parameters_from_mapping(param_mapping)?;
-                    let replace_dag: DAGCircuit = DAGCircuit::from_circuit_data(
-                        &replacement.0,
-                        true,
-                        None,
-                        None,
-                        None,
-                        None,
-                    )?;
-                    let op_node = dag.get_node(py, node)?;
-                    dag.py_substitute_node_with_dag(
-                        py,
-                        op_node.bind(py),
-                        &replace_dag,
-                        None,
-                        None,
-                    )?;
-                }
+                            }
+                            _ => unreachable!("A non parameter-expression has snuck in"),
+                        })
+                        .zip(params)
+                        .collect();
+                let mut replacement = equiv.clone();
+                replacement
+                    .assign_parameters_from_mapping(param_mapping)
+                    .map_err(|_| {
+                        BasisTranslatorError::BasisCircuitError(
+                            "Error during parameter assignment".to_string(),
+                        )
+                    })?;
+                let replace_dag: DAGCircuit =
+                    DAGCircuit::from_circuit_data(&replacement, true, None, None, None, None)
+                        .map_err(|_| {
+                            BasisTranslatorError::BasisDAGCircuitError(
+                                "Error converting circuit to dag".to_string(),
+                            )
+                        })?;
+                dag.substitute_node_with_dag(node, &replace_dag, None, None, None)
+                    .map_err(|_| {
+                        BasisTranslatorError::BasisDAGCircuitError(
+                            "Error during node substitution with DAG.".to_string(),
+                        )
+                    })?;
             }
         }
     }
     Ok(mapped_instructions)
+}
+
+/// Creates the placeholder gate as [PackedOperation].
+fn name_to_packed_operation(name: &str, num_qubits: u32) -> Option<PackedOperation> {
+    let std_gate_mapping = STD_GATE_MAPPING.get_or_init(|| {
+        get_standard_gate_names()
+            .iter()
+            .enumerate()
+            .map(|(k, v)| (*v, bytemuck::checked::cast(k as u8)))
+            .collect()
+    });
+    if let Some(operation) = std_gate_mapping.get(name) {
+        Some((*operation).into())
+    } else if STD_INST_SET.contains(&name) {
+        let inst = match name {
+            "barrier" => StandardInstruction::Barrier(num_qubits),
+            "delay" => StandardInstruction::Delay(qiskit_circuit::operations::DelayUnit::DT),
+            "measure" => StandardInstruction::Measure,
+            "reset" => StandardInstruction::Reset,
+            _ => unreachable!(),
+        };
+        Some(inst.into())
+    } else if name == "unitary" {
+        unreachable!("Having a unitary result from an `EquivalenceLibrary is not possible")
+    } else {
+        None
+    }
 }
 
 /// `DAGCircuit` variant.
@@ -155,7 +197,7 @@ pub(super) fn compose_transforms<'a>(
 fn get_gates_num_params(
     dag: &DAGCircuit,
     example_gates: &mut IndexMap<GateIdentifier, usize, ahash::RandomState>,
-) -> PyResult<()> {
+) {
     for (_, inst) in dag.op_nodes(true) {
         if let Some(control_flow) = inst.try_view_control_flow() {
             example_gates.insert(
@@ -166,7 +208,7 @@ fn get_gates_num_params(
                 inst.op.num_params() as usize,
             );
             for block in control_flow.blocks() {
-                get_gates_num_params(block, example_gates)?;
+                get_gates_num_params(block, example_gates);
             }
         } else {
             example_gates.insert(
@@ -175,5 +217,4 @@ fn get_gates_num_params(
             );
         }
     }
-    Ok(())
 }

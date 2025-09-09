@@ -925,6 +925,24 @@ class TestCommutativeInverseCancellation(QiskitTestCase):
         # The pass should run successfully but not reduce anything
         self.assertEqual(circuit, tqc)
 
+    def test_controlled_state_at_zero(self):
+        """Regression test of #14974.
+
+        Two gates with not-all-ones control-states were wrongly
+        detected to commute, leading to invalid simplification.
+        """
+        circuit = QuantumCircuit(2)
+        circuit.csdg(0, 1, ctrl_state=0)
+        circuit.crx(1, 0, 1, ctrl_state=0)
+        circuit.cs(0, 1, ctrl_state=0)
+        circuit.ry(1, 1)
+
+        pm = PassManager(CommutativeInverseCancellation())
+        tqc = pm.run(circuit)
+
+        # The pass should run successfully but not reduce anything
+        self.assertEqual(circuit, tqc)
+
 
 if __name__ == "__main__":
     unittest.main()

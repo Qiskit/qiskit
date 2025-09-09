@@ -12,7 +12,7 @@
 
 use crate::bit::{ClassicalRegister, Register, ShareableClbit};
 use crate::classical::expr;
-use crate::operations::{Condition, Target};
+use crate::operations::{Condition, SwitchTarget};
 use hashbrown::{HashMap, HashSet};
 use num_bigint::BigUint;
 use num_traits::Num;
@@ -138,16 +138,20 @@ impl VariableMapper {
 
     /// Map the real-time variables in a `target` of a `SwitchCaseOp` to the new
     /// circuit.
-    pub fn map_target<F>(&self, target: &Target, mut add_register: F) -> PyResult<Target>
+    pub fn map_target<F>(
+        &self,
+        target: &SwitchTarget,
+        mut add_register: F,
+    ) -> PyResult<SwitchTarget>
     where
         F: FnMut(&ClassicalRegister) -> PyResult<()>,
     {
         Ok(match target {
-            Target::Bit(bit) => Target::Bit(self.bit_map.get(bit).cloned().unwrap()),
-            Target::Register(register) => {
-                Target::Register(self.map_register(register, &mut add_register)?)
+            SwitchTarget::Bit(bit) => SwitchTarget::Bit(self.bit_map.get(bit).cloned().unwrap()),
+            SwitchTarget::Register(register) => {
+                SwitchTarget::Register(self.map_register(register, &mut add_register)?)
             }
-            Target::Expr(expr) => Target::Expr(self.map_expr(expr, &mut add_register)?),
+            SwitchTarget::Expr(expr) => SwitchTarget::Expr(self.map_expr(expr, &mut add_register)?),
         })
     }
 

@@ -207,7 +207,7 @@ class TwoQubitWeylDecomposition:
         circuit_data = self._inner_decomposition.circuit(
             euler_basis=euler_basis, simplify=simplify, atol=atol
         )
-        return QuantumCircuit._from_circuit_data(circuit_data, add_regs=True)
+        return QuantumCircuit._from_circuit_data(circuit_data, legacy_qubits=True)
 
     def actual_fidelity(self, **kwargs) -> float:
         """Calculates the actual fidelity of the decomposed circuit to the input unitary."""
@@ -314,7 +314,7 @@ class TwoQubitControlledUDecomposer:
         Note: atol is passed to OneQubitEulerDecomposer.
         """
         circ_data = self._inner_decomposer(np.asarray(unitary, dtype=complex), atol)
-        return QuantumCircuit._from_circuit_data(circ_data, add_regs=True)
+        return QuantumCircuit._from_circuit_data(circ_data, legacy_qubits=True)
 
 
 class TwoQubitBasisDecomposer:
@@ -467,7 +467,7 @@ class TwoQubitBasisDecomposer:
                 approximate,
                 _num_basis_uses=_num_basis_uses,
             )
-            return QuantumCircuit._from_circuit_data(circ_data, add_regs=True)
+            return QuantumCircuit._from_circuit_data(circ_data, legacy_qubits=True)
 
     def traces(self, target):
         r"""

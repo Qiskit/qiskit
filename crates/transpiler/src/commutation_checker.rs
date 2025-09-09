@@ -26,8 +26,6 @@ use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyDict, PyTuple};
 use pyo3::BoundObject;
 
-use crate::gate_metrics;
-use crate::QiskitError;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_node::DAGOpNode;
 use qiskit_circuit::imports::QI_OPERATOR;
@@ -39,6 +37,10 @@ use qiskit_circuit::operations::{
 use qiskit_circuit::{Clbit, Qubit};
 use qiskit_quantum_info::unitary_compose;
 use thiserror::Error;
+
+use crate::gate_metrics;
+use crate::standard_gates_commutations;
+use crate::QiskitError;
 
 #[derive(Error, Debug)]
 pub enum CommutationError {
@@ -408,8 +410,9 @@ impl CommutationChecker {
         //  * gates we know are in the cache (SUPPORTED_OPS), or
         //  * standard gates with float params (otherwise we cannot cache them)
         let is_cachable = |op: &OperationRef, params: &[Param]| {
-            if let Some(gate) = op.standard_gate() {
-                SUPPORTED_OP[gate as usize] || params.iter().all(|p| matches!(p, Param::Float(_)))
+            if let OperationRef::StandardGate(gate) = op {
+                SUPPORTED_OP[(*gate) as usize]
+                    || params.iter().all(|p| matches!(p, Param::Float(_)))
             } else {
                 false
             }
@@ -610,9 +613,9 @@ fn commutation_precheck(
         return Some(false);
     }
 
-    if let Some(gate_1) = op1.standard_gate() {
-        if let Some(gate_2) = op2.standard_gate() {
-            if SUPPORTED_OP[gate_1 as usize] && SUPPORTED_OP[gate_2 as usize] {
+    if let OperationRef::StandardGate(gate_1) = op1 {
+        if let OperationRef::StandardGate(gate_2) = op2 {
+            if SUPPORTED_OP[(*gate_1) as usize] && SUPPORTED_OP[(*gate_2) as usize] {
                 return None;
             }
         }
@@ -691,18 +694,18 @@ fn map_rotation<'a>(
     params: &'a [Param],
     tol: f64,
 ) -> (Option<StandardGate>, &'a [Param], bool) {
-    if let Some(gate) = op.standard_gate() {
-        if let Some(generator) = SUPPORTED_ROTATIONS[gate as usize] {
+    if let OperationRef::StandardGate(gate) = op {
+        if let Some(generator) = SUPPORTED_ROTATIONS[(*gate) as usize] {
             // If the rotation angle is below the tolerance, the gate is assumed to
             // commute with everything, and we simply return the operation with the flag that
             // it commutes trivially.
             if let Param::Float(angle) = params[0] {
-                let (tr_over_dim, dim) = gate_metrics::rotation_trace_and_dim(gate, angle)
+                let (tr_over_dim, dim) = gate_metrics::rotation_trace_and_dim(*gate, angle)
                     .expect("All rotation should be covered at this point");
                 let gate_fidelity = tr_over_dim.abs().powi(2);
                 let process_fidelity = (dim * gate_fidelity + 1.) / (dim + 1.);
                 if (1. - process_fidelity).abs() <= tol {
-                    return (Some(gate), params, true);
+                    return (Some(*gate), params, true);
                 };
             };
 
@@ -744,6 +747,22 @@ pub struct CommutationLibrary {
 }
 
 impl CommutationLibrary {
+    pub(crate) fn with_capacity(size: usize) -> Self {
+        CommutationLibrary {
+            library: Some(HashMap::with_capacity(size)),
+        }
+    }
+
+    pub(crate) fn add_entry(&mut self, key: [&str; 2], value: CommutationLibraryEntry) {
+        if let Some(library) = &mut self.library {
+            library.insert((key[0].to_string(), key[1].to_string()), value);
+        } else {
+            let mut library = HashMap::new();
+            library.insert((key[0].to_string(), key[1].to_string()), value);
+            self.library = Some(library);
+        }
+    }
+
     fn check_commutation_entries(
         &self,
         first_op: &OperationRef,
@@ -921,8 +940,21 @@ fn hashable_params(params: &[Param]) -> Result<SmallVec<[ParameterKey; 3]>, Comm
         .collect()
 }
 
+#[pyfunction]
+pub fn get_standard_commutation_checker() -> CommutationChecker {
+    let library = standard_gates_commutations::get_commutation_library();
+    CommutationChecker {
+        library,
+        cache_max_entries: 1_000_000,
+        cache: HashMap::new(),
+        current_cache_entries: 0,
+        gates: None,
+    }
+}
+
 pub fn commutation_checker(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<CommutationLibrary>()?;
     m.add_class::<CommutationChecker>()?;
+    m.add_wrapped(wrap_pyfunction!(get_standard_commutation_checker))?;
     Ok(())
 }

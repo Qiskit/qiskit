@@ -52,7 +52,7 @@ def synth_clifford_greedy(clifford: Clifford) -> QuantumCircuit:
     """
     circuit = QuantumCircuit._from_circuit_data(
         synth_clifford_greedy_inner(clifford.tableau.astype(bool)),
-        add_regs=True,
+        legacy_qubits=True,
         name=str(clifford),
     )
     return circuit

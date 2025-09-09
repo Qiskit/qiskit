@@ -58,4 +58,4 @@ def synth_cx_cz_depth_line_my(mat_x: np.ndarray, mat_z: np.ndarray) -> QuantumCi
            `arXiv:2210.16195 <https://arxiv.org/abs/2210.16195>`_.
     """
     circuit_data = py_synth_cx_cz_depth_line_my(mat_x.astype(bool), mat_z.astype(bool))
-    return QuantumCircuit._from_circuit_data(circuit_data, add_regs=True)
+    return QuantumCircuit._from_circuit_data(circuit_data, legacy_qubits=True)

@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+pub mod clifford;
 pub mod convert_2q_block_matrix;
 pub mod pauli_lindblad_map;
 pub mod sparse_observable;
@@ -23,5 +24,13 @@ mod rayon_ext;
 mod test;
 
 use pyo3::import_exception;
+
+pub(crate) mod imports {
+    use qiskit_circuit::imports::ImportOnceCell;
+
+    pub static PAULI_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "Pauli");
+    pub static PAULI_LIST_TYPE: ImportOnceCell =
+        ImportOnceCell::new("qiskit.quantum_info", "PauliList");
+}
 
 import_exception!(qiskit.exceptions, QiskitError);

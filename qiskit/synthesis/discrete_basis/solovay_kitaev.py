@@ -226,7 +226,7 @@ class SolovayKitaevDecomposition:
         if check_input != self_check_input:
             self._sk.do_checks = self_check_input
 
-        circuit = QuantumCircuit._from_circuit_data(data, add_regs=True)
+        circuit = QuantumCircuit._from_circuit_data(data, legacy_qubits=True)
 
         if return_dag:
             from qiskit.converters import circuit_to_dag  # pylint: disable=cyclic-import
@@ -242,7 +242,7 @@ class SolovayKitaevDecomposition:
         else:
             data = self._sk.query_basic_approximation_matrix(gate)
 
-        circuit = QuantumCircuit._from_circuit_data(data, add_regs=True)
+        circuit = QuantumCircuit._from_circuit_data(data, legacy_qubits=True)
         return circuit
 
     @deprecate_func(

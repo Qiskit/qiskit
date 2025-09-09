@@ -220,6 +220,20 @@ impl Param {
             Param::Obj(obj) => Param::Obj(obj.clone_ref(py)),
         }
     }
+
+    pub fn py_deepcopy<'py>(
+        &self,
+        py: Python<'py>,
+        memo: Option<&Bound<'py, PyDict>>,
+    ) -> PyResult<Self> {
+        match self {
+            Param::Float(f) => Ok(Param::Float(*f)),
+            _ => DEEPCOPY
+                .get_bound(py)
+                .call1((self.clone(), memo))?
+                .extract(),
+        }
+    }
 }
 
 // This impl allows for shared usage between [Param] and &[Param].
@@ -245,7 +259,6 @@ pub trait Operation {
     fn num_qubits(&self) -> u32;
     fn num_clbits(&self) -> u32;
     fn num_params(&self) -> u32;
-    fn standard_gate(&self) -> Option<StandardGate>;
     fn directive(&self) -> bool;
 }
 
@@ -314,18 +327,6 @@ impl Operation for OperationRef<'_> {
         }
     }
     #[inline]
-    fn standard_gate(&self) -> Option<StandardGate> {
-        match self {
-            Self::ControlFlow(op) => op.standard_gate(),
-            Self::StandardGate(standard) => standard.standard_gate(),
-            Self::StandardInstruction(instruction) => instruction.standard_gate(),
-            Self::Gate(gate) => gate.standard_gate(),
-            Self::Instruction(instruction) => instruction.standard_gate(),
-            Self::Operation(operation) => operation.standard_gate(),
-            Self::Unitary(unitary) => unitary.standard_gate(),
-        }
-    }
-    #[inline]
     fn directive(&self) -> bool {
         match self {
             Self::ControlFlow(op) => op.directive(),
@@ -387,7 +388,7 @@ pub enum ControlFlow {
         clbits: u32,
     },
     Switch {
-        target: Target,
+        target: SwitchTarget,
         label_spec: Vec<Vec<CaseSpecifier>>,
         qubits: u32,
         clbits: u32,
@@ -566,10 +567,6 @@ impl Operation for ControlFlow {
         }
     }
 
-    fn standard_gate(&self) -> Option<StandardGate> {
-        None
-    }
-
     fn directive(&self) -> bool {
         false
     }
@@ -600,20 +597,20 @@ impl<'py> FromPyObject<'py> for Condition {
 
 /// A control flow operation's target.
 #[derive(Clone, Debug, PartialEq, IntoPyObject)]
-pub enum Target {
+pub enum SwitchTarget {
     Bit(ShareableClbit),
     Register(ClassicalRegister),
     Expr(expr::Expr),
 }
 
-impl<'py> FromPyObject<'py> for Target {
+impl<'py> FromPyObject<'py> for SwitchTarget {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         if let Ok(bit) = ob.extract::<ShareableClbit>() {
-            Ok(Target::Bit(bit))
+            Ok(SwitchTarget::Bit(bit))
         } else if let Ok(register) = ob.extract::<ClassicalRegister>() {
-            Ok(Target::Register(register))
+            Ok(SwitchTarget::Register(register))
         } else {
-            Ok(Target::Expr(ob.extract()?))
+            Ok(SwitchTarget::Expr(ob.extract()?))
         }
     }
 }
@@ -777,10 +774,6 @@ impl Operation for StandardInstruction {
 
     fn num_params(&self) -> u32 {
         0
-    }
-
-    fn standard_gate(&self) -> Option<StandardGate> {
-        None
     }
 
     fn directive(&self) -> bool {
@@ -2566,9 +2559,6 @@ impl Operation for StandardGate {
     fn num_params(&self) -> u32 {
         STANDARD_GATE_NUM_PARAMS[*self as usize]
     }
-    fn standard_gate(&self) -> Option<StandardGate> {
-        Some(*self)
-    }
     fn directive(&self) -> bool {
         false
     }
@@ -2699,9 +2689,7 @@ impl Operation for PyInstruction {
     fn num_params(&self) -> u32 {
         self.params
     }
-    fn standard_gate(&self) -> Option<StandardGate> {
-        None
-    }
+
     fn directive(&self) -> bool {
         Python::with_gil(|py| -> bool {
             match self.instruction.getattr(py, intern!(py, "_directive")) {
@@ -2778,14 +2766,6 @@ impl Operation for PyGate {
     }
     fn num_params(&self) -> u32 {
         self.params
-    }
-    fn standard_gate(&self) -> Option<StandardGate> {
-        Python::with_gil(|py| -> Option<StandardGate> {
-            match self.gate.getattr(py, intern!(py, "_standard_gate")) {
-                Ok(stdgate) => stdgate.extract(py).unwrap_or_default(),
-                Err(_) => None,
-            }
-        })
     }
     fn directive(&self) -> bool {
         false
@@ -2890,9 +2870,6 @@ impl Operation for PyOperation {
     fn num_params(&self) -> u32 {
         self.params
     }
-    fn standard_gate(&self) -> Option<StandardGate> {
-        None
-    }
     fn directive(&self) -> bool {
         Python::with_gil(|py| -> bool {
             match self.operation.getattr(py, intern!(py, "_directive")) {
@@ -2949,9 +2926,6 @@ impl Operation for UnitaryGate {
     }
     fn num_params(&self) -> u32 {
         0
-    }
-    fn standard_gate(&self) -> Option<StandardGate> {
-        None
     }
     fn directive(&self) -> bool {
         false
