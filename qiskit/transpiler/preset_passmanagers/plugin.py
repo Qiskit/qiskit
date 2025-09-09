@@ -111,7 +111,8 @@ and falls back to using :class:`~.TrivialLayout` if
                 property_set.get("layout") is None
                 or (
                     property_set.get("VF2Layout_stop_reason") is not None
-                    and property_set.get("VF2Layout_stop_reason") is not VF2LayoutStopReason.SOLUTION_FOUND
+                    and property_set.get("VF2Layout_stop_reason")
+                    is not VF2LayoutStopReason.SOLUTION_FOUND
                 )
             )
     
