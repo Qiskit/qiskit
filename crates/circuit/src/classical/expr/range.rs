@@ -283,13 +283,10 @@ impl PyRangeExpr {
     fn __repr__(&self, py: Python) -> PyResult<String> {
         let start = self.0.start.clone().into_py_any(py)?.bind(py).repr()?;
         let stop = self.0.stop.clone().into_py_any(py)?.bind(py).repr()?;
-        let step = format!(
-            ", step={}",
-            self.0.step.clone().into_py_any(py)?.bind(py).repr()?
-        );
+        let step = self.0.step.clone().into_py_any(py)?.bind(py).repr()?;
         let ty = self.0.ty.into_py_any(py)?.bind(py).repr()?;
         Ok(format!(
-            "R(start={}, stop={}{}, ty={})",
+            "Range({}, {}, {}, {})",
             start, stop, step, ty
         ))
     }
