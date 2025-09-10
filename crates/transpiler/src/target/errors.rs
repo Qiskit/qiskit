@@ -28,6 +28,12 @@ pub enum TargetError {
         instruction: String,
         arguments: String,
     },
+    #[error("The number of parameters for {instruction}: {instruction_num} does not match the provided number of parameters: {argument_num}.")]
+    ParamsMismatch {
+        instruction: String,
+        instruction_num: usize,
+        argument_num: usize,
+    },
     /// An attempt to query collection of qargs to the [Target] that are
     /// not operated on by the specified instruction.
     #[error["Provided qarg {arguments} not in this Target for '{instruction}'."]]
@@ -39,4 +45,7 @@ pub enum TargetError {
     /// not operated on by any instruction.
     #[error["{0} not in Target."]]
     QargsWithoutInstruction(String),
+    ///The specified bounds for the instruction are not valid.
+    #[error["Lower bound {low} is not less than higher bound {high}."]]
+    InvalidBounds { low: f64, high: f64 },
 }

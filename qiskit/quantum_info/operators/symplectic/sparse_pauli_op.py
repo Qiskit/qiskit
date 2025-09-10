@@ -476,6 +476,18 @@ class SparsePauliOp(LinearOp):
         if rtol is None:
             rtol = self.rtol
 
+        paulis_x = self.paulis.x
+        paulis_z = self.paulis.z
+        nz_coeffs = self.coeffs
+
+        array = np.packbits(paulis_x, axis=1).astype(np.uint16) * 256 + np.packbits(
+            paulis_z, axis=1
+        )
+        indexes, inverses = unordered_unique(array)
+
+        coeffs = np.zeros(indexes.shape[0], dtype=self.coeffs.dtype)
+        np.add.at(coeffs, inverses, nz_coeffs)
+
         # Filter non-zero coefficients
         if self.coeffs.dtype == object:
 
@@ -490,21 +502,7 @@ class SparsePauliOp(LinearOp):
             )
         else:
             non_zero = np.logical_not(np.isclose(self.coeffs, 0, atol=atol, rtol=rtol))
-        paulis_x = self.paulis.x[non_zero]
-        paulis_z = self.paulis.z[non_zero]
-        nz_coeffs = self.coeffs[non_zero]
 
-        array = np.packbits(paulis_x, axis=1).astype(np.uint16) * 256 + np.packbits(
-            paulis_z, axis=1
-        )
-        indexes, inverses = unordered_unique(array)
-
-        if np.all(non_zero) and indexes.shape[0] == array.shape[0]:
-            # No zero operator or duplicate operator
-            return self.copy()
-
-        coeffs = np.zeros(indexes.shape[0], dtype=self.coeffs.dtype)
-        np.add.at(coeffs, inverses, nz_coeffs)
         # Delete zero coefficient rows
         if self.coeffs.dtype == object:
             is_zero = np.array(
@@ -1144,6 +1142,10 @@ class SparsePauliOp(LinearOp):
     ) -> SparsePauliOp | None:
         r"""Bind the free ``Parameter``\s in the coefficients to provided values.
 
+        .. note::
+            If all the parameters in the circuit are bound to numeric values, the coefficients array
+            will be returned with a :class:`complex` dtype.
+
         Args:
             parameters: The values to bind the parameters to.
             inplace: If ``False``, a copy of the operator with the bound parameters is returned.
@@ -1176,6 +1178,11 @@ class SparsePauliOp(LinearOp):
                 if len(coeff.parameters) == 0:
                     coeff = complex(coeff)
                 bound.coeffs[i] = coeff
+
+        if bound.coeffs.dtype == object and not any(
+            isinstance(c, ParameterExpression) for c in bound.coeffs
+        ):
+            bound._coeffs = bound.coeffs.astype(complex)
 
         return None if inplace else bound
 

@@ -14,6 +14,8 @@
 
 from __future__ import annotations
 
+import io
+import shutil
 from json import JSONEncoder, JSONDecoder
 from typing import Union, List, BinaryIO, Type, Optional, Callable, TYPE_CHECKING
 from collections.abc import Iterable, Mapping
@@ -180,9 +182,9 @@ def dump(
         version = common.QPY_VERSION
     elif common.QPY_COMPATIBILITY_VERSION > version or version > common.QPY_VERSION:
         raise ValueError(
-            f"The specified QPY version {version} is not support for dumping with this version, "
-            f"of Qiskit. The only supported versions between {common.QPY_COMPATIBILITY_VERSION} and "
-            f"{common.QPY_VERSION}"
+            f"Dumping payloads with the specified QPY version ({version}) is not supported by "
+            f"this version of Qiskit. Try selecting a version between "
+            f"{common.QPY_COMPATIBILITY_VERSION} and {common.QPY_VERSION} for `qpy.dump`."
         )
 
     version_match = VERSION_PATTERN_REGEX.search(__version__)
@@ -200,23 +202,12 @@ def dump(
     )
     file_obj.write(header)
     common.write_type_key(file_obj, type_keys.Program.CIRCUIT)
+    header_bytes_written = formats.FILE_HEADER_V10_SIZE + formats.TYPE_KEY_SIZE
 
-    # Table of byte offsets for each program (supported in QPY v16+)
-    byte_offsets = []
-    table_start = None
-    if version >= 16:
-        table_start = file_obj.tell()
-        # Skip the file position to write the byte offsets later
-        file_obj.seek(len(programs) * formats.CIRCUIT_TABLE_ENTRY_SIZE, 1)
-
-    # Serialize each program and write it to the file
-    for program in programs:
-        if version >= 16:
-            # Determine the byte offset before writing each program
-            byte_offsets.append(file_obj.tell())
+    def _write_circuit(out_stream, circuit):
         binary_io.write_circuit(
-            file_obj,
-            program,
+            out_stream,
+            circuit,
             metadata_serializer=metadata_serializer,
             use_symengine=use_symengine,
             version=version,
@@ -224,14 +215,52 @@ def dump(
         )
 
     if version >= 16:
-        # Write the byte offsets for each program
-        file_obj.seek(table_start)
-        for offset in byte_offsets:
-            file_obj.write(
-                struct.pack(formats.CIRCUIT_TABLE_ENTRY_PACK, *formats.CIRCUIT_TABLE_ENTRY(offset))
-            )
-        # Seek to the end of the file
-        file_obj.seek(0, 2)
+        # We need a circuit table.
+        if file_obj.seekable():
+            # Fast path to write the seekable stream in place.
+            file_offsets = []
+            table_start = file_obj.tell()
+            # Skip past the circuit table to write circuit contents first.
+            file_obj.seek(len(programs) * formats.CIRCUIT_TABLE_ENTRY_SIZE, 1)
+            for program in programs:
+                file_offsets.append(file_obj.tell())
+                _write_circuit(file_obj, program)
+            # Seek back to the table start and write it out.
+            file_obj.seek(table_start)
+            for offset in file_offsets:
+                file_obj.write(
+                    struct.pack(
+                        formats.CIRCUIT_TABLE_ENTRY_PACK, *formats.CIRCUIT_TABLE_ENTRY(offset)
+                    )
+                )
+            # Seek to the end of the stream.
+            file_obj.seek(0, 2)
+        else:
+            # We need to create a temporary BytesIO buffer since the input
+            # stream isn't seekable.
+            buffer_offsets = []
+            offset_table_size = len(programs) * formats.CIRCUIT_TABLE_ENTRY_SIZE
+            with io.BytesIO() as circuits_buffer:
+                for program in programs:
+                    buffer_offsets.append(circuits_buffer.tell())
+                    _write_circuit(circuits_buffer, program)
+                # Write circuit table to input stream, adjusting offsets.
+                for offset in buffer_offsets:
+                    file_obj.write(
+                        struct.pack(
+                            formats.CIRCUIT_TABLE_ENTRY_PACK,
+                            *formats.CIRCUIT_TABLE_ENTRY(
+                                header_bytes_written + offset_table_size + offset
+                            ),
+                        )
+                    )
+                # Write circuits to the input stream.
+                circuits_buffer.seek(0)
+                shutil.copyfileobj(circuits_buffer, file_obj)
+    else:
+        # No circuit table needed, just write the circuits sequentially.
+        for program in programs:
+            _write_circuit(file_obj, program)
 
 
 def load(

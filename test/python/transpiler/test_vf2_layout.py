@@ -22,7 +22,7 @@ import numpy
 import rustworkx
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
-from qiskit.circuit import ControlFlowOp
+from qiskit.circuit import ControlFlowOp, Qubit
 from qiskit.transpiler import CouplingMap, Target, TranspilerError
 from qiskit.transpiler.passes.layout.vf2_layout import VF2Layout, VF2LayoutStopReason
 from qiskit._accelerate.error_map import ErrorMap
@@ -33,7 +33,7 @@ from qiskit.circuit.library import GraphStateGate, CXGate, XGate, HGate
 from qiskit.transpiler import PassManager, AnalysisPass
 from qiskit.transpiler.target import InstructionProperties
 from qiskit.transpiler.preset_passmanagers.common import generate_embed_passmanager
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
 
 from ..legacy_cmaps import TENERIFE_CMAP, RUESCHLIKON_CMAP, MANHATTAN_CMAP, YORKTOWN_CMAP
 
@@ -284,6 +284,47 @@ class TestVF2LayoutSimple(LayoutTestCase):
         dag = circuit_to_dag(circuit)
         vf2_pass.run(dag)
         self.assertLayout(dag, target.build_coupling_map(), vf2_pass.property_set)
+
+    def test_determinism_all_1q(self):
+        """Test that running vf2layout on a circuit with all single qubit gates is deterministic."""
+
+        circ = QuantumCircuit(3)
+        for i in range(3):
+            circ.rx(3.14159, i)
+        circ.measure_all()
+
+        backend = GenericBackendV2(10, noise_info=True, seed=123456789)
+        layouts = []
+        for _ in range(10):
+            layout_pass = VF2Layout(target=backend.target)
+            property_set = {}
+            layout_pass(circ, property_set=property_set)
+            layouts.append(property_set["layout"])
+        self.assertEqual(10, len(layouts), "Expected 10 layouts from 10 pass executions")
+        for i, layout in enumerate(layouts):
+            self.assertIsNotNone(layout, f"A layout was not found for layout {i}")
+            self.assertEqual(
+                layouts[0], layout, f"Layout for execution {i} differs from the expected"
+            )
+
+    @combine(
+        seed=(-1, 12),  # This hits both the "seeded" and "unseeded" paths.
+        strict_direction=(True, False),
+    )
+    def test_complete_layout_with_idle_qubits(self, seed, strict_direction):
+        """Test that completely idle qubits are included in the resulting layout."""
+        # Use registerless qubits to avoid any register-based shenangigans from adding the bits
+        # automatically.
+        qc = QuantumCircuit([Qubit() for _ in range(3)])
+        qc.cx(0, 1)
+        target = Target.from_configuration(
+            num_qubits=3, basis_gates=["sx", "rz", "cx"], coupling_map=CouplingMap.from_line(3)
+        )
+        property_set = {}
+        pass_ = VF2Layout(target=target, seed=seed, strict_direction=strict_direction)
+        pass_(qc, property_set=property_set)
+        unallocated = {i for i, bit in enumerate(qc.qubits) if bit not in property_set["layout"]}
+        self.assertEqual(unallocated, set())
 
 
 @ddt.ddt

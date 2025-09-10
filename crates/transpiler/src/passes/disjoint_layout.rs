@@ -564,7 +564,7 @@ fn split_barriers(dag: &mut DAGCircuit) -> PyResult<()> {
             Some(label) => format!("{}_uuid={}", label, Uuid::new_v4()),
             None => format!("_none_uuid={}", Uuid::new_v4()),
         };
-        let mut split_dag = DAGCircuit::new()?;
+        let mut split_dag = DAGCircuit::new();
         for q in 0..num_qubits {
             split_dag.add_qubit_unchecked(ShareableQubit::new_anonymous())?;
             split_dag.apply_operation_back(

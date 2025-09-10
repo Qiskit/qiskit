@@ -2,15 +2,15 @@
 QkComplex64
 ===========
 
-A complex, double-precision number representation. This data type is used to safely 
+A complex, double-precision number representation. This data type is used to safely
 use complex numbers within Qiskit, but is not necessarily designed for easy manipulation
 on user-side. Instead, we provide functions to convert from compiler-native representation
-(e.g. ``double complex`` for GNU or Clang compilers), which allow for ergonomic handling,
-to Qiskit's ``QkComplex64`` representation, which is meant for passing into Qiskit functions 
+(e.g. ``complex double`` for GNU or Clang compilers), which allow for ergonomic handling,
+to Qiskit's ``QkComplex64`` representation, which is meant for passing into Qiskit functions
 and structs.
 
-Explicitly, Qiskit assumes the compiler-native complex number type in C to be 
-``_Dcomplex`` for Windows MSVC (if ``_MSC_VER`` is defined) and ``double _Complex`` otherwise. 
+Explicitly, Qiskit assumes the compiler-native complex number type in C to be
+``_Dcomplex`` for Windows MSVC (if ``_MSC_VER`` is defined) and ``double _Complex`` otherwise.
 In C++ (if ``__cplusplus`` is defined), the complex number type is always ``std::complex<double>``.
 
 
@@ -36,12 +36,12 @@ Functions
 Example
 -------
 
-Assuming a GNU/clang compiler with ``double complex`` as native complex number, we have
+Assuming a GNU/clang compiler with ``complex double`` as native complex number, we have
 
 .. code-block:: c
 
    QkComplex64 qk_value = {1, 1}; // represents 1 + i
-   double complex value = qk_complex64_to_native(&qk_value);
+   complex double value = qk_complex64_to_native(&qk_value);
 
 Safety
 ------
@@ -64,11 +64,11 @@ Behavior is undefined if ``value`` is not a valid, non-null pointer to a ``QkCom
 Example
 -------
 
-Assuming a GNU/clang compiler with ``double complex`` as native complex number, we have
+Assuming a GNU/clang compiler with ``complex double`` as native complex number, we have
 
 .. code-block:: c
 
-   double complex value = 1 + I; 
+   complex double value = 1 + I;
    QkComplex64 qk_value = qk_complex64_from_native(&value);
 
 Safety
