@@ -1003,7 +1003,6 @@ impl SparseObservable {
             None => {
                 let mut out = self.clone();
                 if num_qubits < self.num_qubits {
-                    // return Err(CoherenceError::BitIndexTooHigh);
                     return Err(CoherenceError::NotEnoughQubits {
                         current: self.num_qubits as usize,
                         target: num_qubits as usize,
@@ -2696,7 +2695,7 @@ impl PySparseObservable {
     ///         and their corresponding coefficients.
     #[staticmethod]
     #[pyo3(signature = (label, /))]
-    fn from_label(label: &str) -> Result<Self, LabelError> {
+    pub fn from_label(label: &str) -> Result<Self, LabelError> {
         let mut inner = SparseObservable::zero(label.len() as u32);
         inner.add_dense_label(label, Complex64::new(1.0, 0.0))?;
         Ok(inner.into())

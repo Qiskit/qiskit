@@ -22,6 +22,8 @@
 //! for building Python submodules.
 
 mod alap_schedule_analysis;
+mod apply_layout;
+mod asap_schedule_analysis;
 mod barrier_before_final_measurement;
 mod basis_translator;
 mod check_map;
@@ -37,15 +39,20 @@ mod gates_in_basis;
 mod high_level_synthesis;
 mod instruction_duration_check;
 mod inverse_cancellation;
+mod litinski_transformation;
 mod optimize_1q_gates_decomposition;
 mod remove_diagonal_gates_before_measure;
 mod remove_identity_equiv;
 pub mod sabre;
 mod split_2q_unitaries;
 mod unitary_synthesis;
+mod unroll_3q_or_more;
 mod vf2;
+mod wrap_angles;
 
 pub use alap_schedule_analysis::{alap_schedule_analysis_mod, run_alap_schedule_analysis};
+pub use apply_layout::{apply_layout, apply_layout_mod, update_layout};
+pub use asap_schedule_analysis::{asap_schedule_analysis_mod, run_asap_schedule_analysis};
 pub use barrier_before_final_measurement::{
     barrier_before_final_measurements_mod, run_barrier_before_final_measurements,
 };
@@ -69,7 +76,8 @@ pub use high_level_synthesis::{
 pub use instruction_duration_check::{
     instruction_duration_check_mod, run_instruction_duration_check,
 };
-pub use inverse_cancellation::{inverse_cancellation_mod, run_inverse_cancellation};
+pub use inverse_cancellation::{inverse_cancellation_mod, run_inverse_cancellation_standard_gates};
+pub use litinski_transformation::{litinski_transformation_mod, run_litinski_transformation};
 pub use optimize_1q_gates_decomposition::{
     optimize_1q_gates_decomposition_mod, run_optimize_1q_gates_decomposition,
 };
@@ -79,4 +87,6 @@ pub use remove_diagonal_gates_before_measure::{
 pub use remove_identity_equiv::{remove_identity_equiv_mod, run_remove_identity_equiv};
 pub use split_2q_unitaries::{run_split_2q_unitaries, split_2q_unitaries_mod};
 pub use unitary_synthesis::{run_unitary_synthesis, unitary_synthesis_mod};
+pub use unroll_3q_or_more::{run_unroll_3q_or_more, unroll_3q_or_more_mod};
 pub use vf2::{error_map_mod, score_layout, vf2_layout_mod, vf2_layout_pass, ErrorMap};
+pub use wrap_angles::{run_wrap_angles, wrap_angles_mod};

@@ -18,6 +18,7 @@ from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayout
 from qiskit.transpiler.passes.optimization.split_2q_unitaries import Split2QUnitaries
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import BasicSwap
 from qiskit.transpiler.passes import LookaheadSwap
 from qiskit.transpiler.passes import SabreSwap
@@ -52,23 +53,6 @@ from qiskit.transpiler.passes.synthesis.unitary_synthesis import UnitarySynthesi
 from qiskit.passmanager.flow_controllers import ConditionalController, DoWhileController
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
-from qiskit.circuit.library.standard_gates import (
-    CXGate,
-    ECRGate,
-    CZGate,
-    XGate,
-    YGate,
-    ZGate,
-    TGate,
-    TdgGate,
-    SwapGate,
-    SGate,
-    SdgGate,
-    HGate,
-    CYGate,
-    SXGate,
-    SXdgGate,
-)
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 from qiskit.utils import default_num_processes
 from qiskit import user_config
@@ -109,6 +93,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     pass_manager_config.unitary_synthesis_plugin_config,
                     pass_manager_config.hls_config,
                     pass_manager_config.qubits_initially_zero,
+                    pass_manager_config._is_clifford_t,
                 )
         elif optimization_level == 1:
             init = PassManager()
@@ -128,25 +113,11 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     pass_manager_config.unitary_synthesis_plugin_config,
                     pass_manager_config.hls_config,
                     pass_manager_config.qubits_initially_zero,
+                    pass_manager_config._is_clifford_t,
                 )
             init.append(
                 [
-                    InverseCancellation(
-                        [
-                            CXGate(),
-                            ECRGate(),
-                            CZGate(),
-                            CYGate(),
-                            XGate(),
-                            YGate(),
-                            ZGate(),
-                            HGate(),
-                            SwapGate(),
-                            (TGate(), TdgGate()),
-                            (SGate(), SdgGate()),
-                            (SXGate(), SXdgGate()),
-                        ]
-                    ),
+                    InverseCancellation(),
                     ContractIdleWiresInControlFlow(),
                 ]
             )
@@ -160,6 +131,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 pass_manager_config.unitary_synthesis_plugin_config,
                 pass_manager_config.hls_config,
                 pass_manager_config.qubits_initially_zero,
+                pass_manager_config._is_clifford_t,
             )
             if pass_manager_config.routing_method != "none":
                 init.append(ElidePermutations())
@@ -171,22 +143,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     RemoveIdentityEquivalent(
                         approximation_degree=pass_manager_config.approximation_degree
                     ),
-                    InverseCancellation(
-                        [
-                            CXGate(),
-                            ECRGate(),
-                            CZGate(),
-                            CYGate(),
-                            XGate(),
-                            YGate(),
-                            ZGate(),
-                            HGate(),
-                            SwapGate(),
-                            (TGate(), TdgGate()),
-                            (SGate(), SdgGate()),
-                            (SXGate(), SXdgGate()),
-                        ]
-                    ),
+                    InverseCancellation(),
                     ContractIdleWiresInControlFlow(),
                 ]
             )
@@ -553,22 +510,7 @@ class OptimizationPassManager(PassManagerStagePlugin):
                     Optimize1qGatesDecomposition(
                         basis=pass_manager_config.basis_gates, target=pass_manager_config.target
                     ),
-                    InverseCancellation(
-                        [
-                            CXGate(),
-                            ECRGate(),
-                            CZGate(),
-                            CYGate(),
-                            XGate(),
-                            YGate(),
-                            ZGate(),
-                            HGate(),
-                            SwapGate(),
-                            (TGate(), TdgGate()),
-                            (SGate(), SdgGate()),
-                            (SXGate(), SXdgGate()),
-                        ]
-                    ),
+                    InverseCancellation(),
                     ContractIdleWiresInControlFlow(),
                 ]
 
@@ -675,15 +617,22 @@ class OptimizationPassManager(PassManagerStagePlugin):
                     pass_manager_config.layout_method,
                     pass_manager_config.initial_layout,
                 )
-                optimization.append(
-                    VF2PostLayout(
-                        target=pass_manager_config.target,
-                        seed=-1,
-                        call_limit=vf2_call_limit,
-                        max_trials=vf2_max_trials,
-                        strict_direction=True,
+                is_vf2_fully_bounded = vf2_call_limit and vf2_max_trials
+                if pass_manager_config.target is not None and is_vf2_fully_bounded:
+                    optimization.append(
+                        VF2PostLayout(
+                            target=pass_manager_config.target,
+                            seed=-1,
+                            call_limit=vf2_call_limit,
+                            max_trials=vf2_max_trials,
+                            strict_direction=True,
+                        )
                     )
-                )
+                    optimization.append(
+                        ConditionalController(
+                            ApplyLayout(), condition=common._apply_post_layout_condition
+                        )
+                    )
 
             return optimization
         else:
@@ -1063,22 +1012,7 @@ class CliffordTOptimizationPassManager(PassManagerStagePlugin):
 
             if optimization_level == 1:
                 _opt = [
-                    InverseCancellation(
-                        [
-                            CXGate(),
-                            ECRGate(),
-                            CZGate(),
-                            CYGate(),
-                            XGate(),
-                            YGate(),
-                            ZGate(),
-                            HGate(),
-                            SwapGate(),
-                            (TGate(), TdgGate()),
-                            (SGate(), SdgGate()),
-                            (SXGate(), SXdgGate()),
-                        ]
-                    ),
+                    InverseCancellation(),
                     ContractIdleWiresInControlFlow(),
                 ]
             elif optimization_level in [2, 3]:

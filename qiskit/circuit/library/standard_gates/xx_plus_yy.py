@@ -31,7 +31,7 @@ class XXPlusYYGate(Gate):
     A 2-qubit parameterized XX+YY interaction, also known as an XY gate. Its action is to induce
     a coherent rotation by some angle between :math:`|01\rangle` and :math:`|10\rangle`.
 
-    **Circuit Symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -41,7 +41,7 @@ class XXPlusYYGate(Gate):
         q_1: ┤1              ├
              └───────────────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -97,8 +97,7 @@ class XXPlusYYGate(Gate):
         beta: ParameterValueType = 0,
         label: Optional[str] = "(XX+YY)",
     ):
-        """Create new XX+YY gate.
-
+        """
         Args:
             theta: The rotation angle.
             beta: The phase angle.
@@ -118,7 +117,7 @@ class XXPlusYYGate(Gate):
         #       └─────┘ └────┘└───┘     └──────────┘     └─────┘ └──────┘ └───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.XXPlusYY._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.XXPlusYY._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def control(
