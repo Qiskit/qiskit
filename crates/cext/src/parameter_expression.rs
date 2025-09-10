@@ -27,18 +27,18 @@ use qiskit_circuit::parameter::symbol_expr::{Symbol, SymbolExpr, Value};
 ///
 /// @param name The name of symbol.
 ///
-/// @return A pointer to the created ParameterExpression.
+/// @return A pointer to the created QkParam.
 ///
 /// # Example
 ///
-///     QkParam *a = qk_parameter_new("a");
+///     QkParam *a = qk_param_new("a");
 ///
 /// # Safety
 ///
 /// name must be a pointer to valid C string to name of symbol
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_new(name: *const c_char) -> *mut Param {
+pub unsafe extern "C" fn qk_param_new(name: *const c_char) -> *mut Param {
     let name = unsafe { CStr::from_ptr(name).to_str().unwrap() };
     let symbol = Symbol::new(name, None, None);
     let expr = ParameterExpression::from_symbol(symbol);
@@ -47,14 +47,14 @@ pub unsafe extern "C" fn qk_parameter_new(name: *const c_char) -> *mut Param {
 }
 
 /// @ingroup QkParam
-/// Free the ParameterExpression.
+/// Free the QkParam.
 ///
-/// @param expr A pointer to the ParameterExpression to free.
+/// @param expr A pointer to the QkParam to free.
 ///
 /// # Example
 ///
-///     QkParam *a = qk_parameter_new("a");
-///     qk_parameter_free(a);
+///     QkParam *a = qk_param_new("a");
+///     qk_param_free(a);
 ///
 /// # Safety
 ///
@@ -62,7 +62,7 @@ pub unsafe extern "C" fn qk_parameter_new(name: *const c_char) -> *mut Param {
 /// [ParameterExpression].
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_free(expr: *mut Param) {
+pub unsafe extern "C" fn qk_param_free(expr: *mut Param) {
     if !expr.is_null() {
         if !expr.is_aligned() {
             panic!("Attempted to free a non-aligned pointer.")
@@ -79,35 +79,35 @@ pub unsafe extern "C" fn qk_parameter_free(expr: *mut Param) {
 /// @ingroup QkParam
 /// Construct a new Param from value
 ///
-/// @param value real number for a new ParameterExpression
+/// @param value real number for a new QkParam
 ///
-/// @return A pointer to the created ParameterExpression.
+/// @return A pointer to the created QkParam.
 ///
 /// # Example
 ///
-///     QkParam *r = qk_parameter_from_value(2.5);
+///     QkParam *r = qk_param_from_value(2.5);
 ///
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub extern "C" fn qk_parameter_from_value(value: f64) -> *mut Param {
+pub extern "C" fn qk_param_from_double(value: f64) -> *mut Param {
     let value = Param::Float(value);
     Box::into_raw(Box::new(value))
 }
 
 /// @ingroup QkParam
-/// Construct a new ParameterExpression from complex number
+/// Construct a new QkParam from complex number
 ///
-/// @param value complex number for a new ParameterExpression
+/// @param value complex number for a new QkParam
 ///
-/// @return A pointer to the created ParameterExpression.
+/// @return A pointer to the created QkParam.
 ///
 /// # Example
 ///
-///     QkParam *c = qk_parameter_from_complex((1.0,1.0));
+///     QkParam *c = qk_param_from_complex((1.0,1.0));
 ///
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub extern "C" fn qk_parameter_from_complex(value: Complex64) -> *mut Param {
+pub extern "C" fn qk_param_from_complex(value: Complex64) -> *mut Param {
     let value = SymbolExpr::Value(Value::Complex(value));
     let expr = ParameterExpression::from_symbol_expr(value);
     let param = Param::ParameterExpression(Arc::new(expr));
@@ -115,20 +115,20 @@ pub extern "C" fn qk_parameter_from_complex(value: Complex64) -> *mut Param {
 }
 
 /// @ingroup QkParam
-/// Construct a new ParameterExpression from rational number
+/// Construct a new QkParam from rational number
 ///   TODO : this function needs PR #14686
 /// @param numerator numerator of rational number
 /// @param denominator denominator of rational number
 ///
-/// @return A pointer to the created ParameterExpression.
+/// @return A pointer to the created QkParam.
 ///
 /// # Example
 ///
-///     QkParam *c = qk_parameter_from_rational(1, 2);
+///     QkParam *c = qk_param_from_rational(1, 2);
 ///
 //#[no_mangle]
 //#[cfg(feature = "cbinding")]
-//pub extern "C" fn qk_parameter_from_rational(numerator: i64, denominator: i64) -> *mut Param {
+//pub extern "C" fn qk_param_from_rational(numerator: i64, denominator: i64) -> *mut Param {
 //    let value = SymbolExpr::Value(Value::Rational{numerator, denominator});
 //    let expr = ParameterExpression::from_symbol_expr(value);
 //    let param = Param::ParameterExpression(Arc::new(expr));
@@ -136,22 +136,22 @@ pub extern "C" fn qk_parameter_from_complex(value: Complex64) -> *mut Param {
 //}
 
 /// @ingroup QkParam
-/// copy ParameterExpression
+/// copy QkParam
 ///
 /// @param name The name of symbol.
 ///
-/// @return A pointer to the created ParameterExpression.
+/// @return A pointer to the created QkParam.
 ///
 /// # Example
 ///
-///     QkParam *b = qk_parameter_copy(a);
+///     QkParam *b = qk_param_copy(a);
 ///
 /// # Safety
 ///
 /// expr should be valid pointer to parameter to be copied
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_copy(expr: *const Param) -> *mut Param {
+pub unsafe extern "C" fn qk_param_copy(expr: *const Param) -> *mut Param {
     let expr = unsafe { const_ptr_as_ref(expr) };
     Box::into_raw(Box::new(expr.clone()))
 }
@@ -163,8 +163,8 @@ pub unsafe extern "C" fn qk_parameter_copy(expr: *const Param) -> *mut Param {
 ///
 /// # Example
 ///
-///     QkParam *a = qk_parameter_new("a");
-///     char* str = qk_parameter_to_string(a);
+///     QkParam *a = qk_param_new("a");
+///     char* str = qk_param_to_string(a);
 ///     printf(str);
 ///
 /// # Safety
@@ -172,7 +172,7 @@ pub unsafe extern "C" fn qk_parameter_copy(expr: *const Param) -> *mut Param {
 /// expr should be valid pointer to parameter
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_to_string(expr: *const Param) -> *mut c_char {
+pub unsafe extern "C" fn qk_param_to_string(expr: *const Param) -> *mut c_char {
     let expr = unsafe { const_ptr_as_ref(expr) };
     let str = match expr {
         Param::ParameterExpression(expr) => expr.to_string(),
@@ -186,23 +186,23 @@ pub unsafe extern "C" fn qk_parameter_to_string(expr: *const Param) -> *mut c_ch
 /// @ingroup QkParam
 /// add 2 expressions.
 ///
-/// @param lhs A pointer to the left hand side ParameterExpression.
-/// @param rhs A pointer to the right hand side ParameterExpression.
+/// @param lhs A pointer to the left hand side QkParam.
+/// @param rhs A pointer to the right hand side QkParam.
 ///
-/// @return A pointer to the new ParameterExpression.
+/// @return A pointer to the new QkParam.
 ///
 /// # Example
 ///
-///     QkParam *a = qk_parameter_new("a");
-///     QkParam *b = qk_parameter_new("b");
-///     QkParam *c = qk_parameter_add(a, b);
+///     QkParam *a = qk_param_new("a");
+///     QkParam *b = qk_param_new("b");
+///     QkParam *c = qk_param_add(a, b);
 ///
 /// # Safety
 ///
 /// lhs and rhs should be valid pointer to parameter
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_add(lhs: *const Param, rhs: *const Param) -> *mut Param {
+pub unsafe extern "C" fn qk_param_add(lhs: *const Param, rhs: *const Param) -> *mut Param {
     let lhs = unsafe { const_ptr_as_ref(lhs) };
     let rhs = unsafe { const_ptr_as_ref(rhs) };
     let out = match (lhs, rhs) {
@@ -227,23 +227,23 @@ pub unsafe extern "C" fn qk_parameter_add(lhs: *const Param, rhs: *const Param) 
 /// @ingroup QkParam
 /// sub 2 expressions.
 ///
-/// @param lhs A pointer to the left hand side ParameterExpression.
-/// @param rhs A pointer to the right hand side ParameterExpression.
+/// @param lhs A pointer to the left hand side QkParam.
+/// @param rhs A pointer to the right hand side QkParam.
 ///
-/// @return A pointer to the new ParameterExpression.
+/// @return A pointer to the new QkParam.
 ///
 /// # Example
 ///
-///     QkParam *a = qk_parameter_new("a");
-///     QkParam *b = qk_parameter_new("b");
-///     QkParam *c = qk_parameter_sub(a, b);
+///     QkParam *a = qk_param_new("a");
+///     QkParam *b = qk_param_new("b");
+///     QkParam *c = qk_param_sub(a, b);
 ///
 /// # Safety
 ///
 /// lhs and rhs should be valid pointer to parameter
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_sub(lhs: *const Param, rhs: *const Param) -> *mut Param {
+pub unsafe extern "C" fn qk_param_sub(lhs: *const Param, rhs: *const Param) -> *mut Param {
     let lhs = unsafe { const_ptr_as_ref(lhs) };
     let rhs = unsafe { const_ptr_as_ref(rhs) };
     let out = match (lhs, rhs) {
@@ -268,23 +268,23 @@ pub unsafe extern "C" fn qk_parameter_sub(lhs: *const Param, rhs: *const Param) 
 /// @ingroup QkParam
 /// mul 2 expressions.
 ///
-/// @param lhs A pointer to the left hand side ParameterExpression.
-/// @param rhs A pointer to the right hand side ParameterExpression.
+/// @param lhs A pointer to the left hand side QkParam.
+/// @param rhs A pointer to the right hand side QkParam.
 ///
-/// @return A pointer to the new ParameterExpression.
+/// @return A pointer to the new QkParam.
 ///
 /// # Example
 ///
-///     QkParam *a = qk_parameter_new("a");
-///     QkParam *b = qk_parameter_new("b");
-///     QkParam *c = qk_parameter_mul(a, b);
+///     QkParam *a = qk_param_new("a");
+///     QkParam *b = qk_param_new("b");
+///     QkParam *c = qk_param_mul(a, b);
 ///
 /// # Safety
 ///
 /// lhs and rhs should be valid pointer to parameter
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_mul(lhs: *const Param, rhs: *const Param) -> *mut Param {
+pub unsafe extern "C" fn qk_param_mul(lhs: *const Param, rhs: *const Param) -> *mut Param {
     let lhs = unsafe { const_ptr_as_ref(lhs) };
     let rhs = unsafe { const_ptr_as_ref(rhs) };
     let out = match (lhs, rhs) {
@@ -309,23 +309,23 @@ pub unsafe extern "C" fn qk_parameter_mul(lhs: *const Param, rhs: *const Param) 
 /// @ingroup QkParam
 /// div 2 expressions.
 ///
-/// @param lhs A pointer to the left hand side ParameterExpression.
-/// @param rhs A pointer to the right hand side ParameterExpression.
+/// @param lhs A pointer to the left hand side QkParam.
+/// @param rhs A pointer to the right hand side QkParam.
 ///
-/// @return A pointer to the new ParameterExpression.
+/// @return A pointer to the new QkParam.
 ///
 /// # Example
 ///
-///     QkParam *a = qk_parameter_new("a");
-///     QkParam *b = qk_parameter_new("b");
-///     QkParam *c = qk_parameter_div(a, b);
+///     QkParam *a = qk_param_new("a");
+///     QkParam *b = qk_param_new("b");
+///     QkParam *c = qk_param_div(a, b);
 ///
 /// # Safety
 ///
 /// lhs and rhs should be valid pointer to parameter
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_div(lhs: *const Param, rhs: *const Param) -> *mut Param {
+pub unsafe extern "C" fn qk_param_div(lhs: *const Param, rhs: *const Param) -> *mut Param {
     let lhs = unsafe { const_ptr_as_ref(lhs) };
     let rhs = unsafe { const_ptr_as_ref(rhs) };
     let out = match (lhs, rhs) {
@@ -350,23 +350,23 @@ pub unsafe extern "C" fn qk_parameter_div(lhs: *const Param, rhs: *const Param) 
 /// @ingroup QkParam
 /// calculate pow of expressions.
 ///
-/// @param base A pointer to the base ParameterExpression.
-/// @param exp A pointer to the exponent ParameterExpression.
+/// @param base A pointer to the base QkParam.
+/// @param exp A pointer to the exponent QkParam.
 ///
-/// @return A pointer to the new ParameterExpression.
+/// @return A pointer to the new QkParam.
 ///
 /// # Example
 ///
-///     QkParam *a = qk_parameter_new("a");
-///     QkParam *b = qk_parameter_new("b");
-///     QkParam *c = qk_parameter_pow(a, b);
+///     QkParam *a = qk_param_new("a");
+///     QkParam *b = qk_param_new("b");
+///     QkParam *c = qk_param_pow(a, b);
 ///
 /// # Safety
 ///
 /// lhs and rhs should be valid pointer to parameter
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_pow(lhs: *const Param, rhs: *const Param) -> *mut Param {
+pub unsafe extern "C" fn qk_param_pow(lhs: *const Param, rhs: *const Param) -> *mut Param {
     let lhs = unsafe { const_ptr_as_ref(lhs) };
     let rhs = unsafe { const_ptr_as_ref(rhs) };
     let out = match (lhs, rhs) {
@@ -391,21 +391,21 @@ pub unsafe extern "C" fn qk_parameter_pow(lhs: *const Param, rhs: *const Param) 
 /// @ingroup QkParam
 /// sin of expressions.
 ///
-/// @param expr A pointer to the ParameterExpression.
+/// @param expr A pointer to the QkParam.
 ///
-/// @return A pointer to the new ParameterExpression.
+/// @return A pointer to the new QkParam.
 ///
 /// # Example
 ///
-///     QkParam *a = qk_parameter_new("a");
-///     QkParam *out = qk_parameter_sin(a);
+///     QkParam *a = qk_param_new("a");
+///     QkParam *out = qk_param_sin(a);
 ///
 /// # Safety
 ///
 /// expr should be valid pointer to parameter
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_sin(expr: *const Param) -> *mut Param {
+pub unsafe extern "C" fn qk_param_sin(expr: *const Param) -> *mut Param {
     let expr = unsafe { const_ptr_as_ref(expr) };
     match expr {
         Param::ParameterExpression(expr) => {
@@ -420,21 +420,21 @@ pub unsafe extern "C" fn qk_parameter_sin(expr: *const Param) -> *mut Param {
 /// @ingroup QkParam
 /// cos of expressions.
 ///
-/// @param expr A pointer to the ParameterExpression.
+/// @param expr A pointer to the QkParam.
 ///
-/// @return A pointer to the new ParameterExpression.
+/// @return A pointer to the new QkParam.
 ///
 /// # Example
 ///
-///     QkParam *a = qk_parameter_new("a");
-///     QkParam *out = qk_parameter_cos(a);
+///     QkParam *a = qk_param_new("a");
+///     QkParam *out = qk_param_cos(a);
 ///
 /// # Safety
 ///
 /// expr should be valid pointer to parameter
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_cos(expr: *const Param) -> *mut Param {
+pub unsafe extern "C" fn qk_param_cos(expr: *const Param) -> *mut Param {
     let expr = unsafe { const_ptr_as_ref(expr) };
     match expr {
         Param::ParameterExpression(expr) => {
@@ -449,21 +449,21 @@ pub unsafe extern "C" fn qk_parameter_cos(expr: *const Param) -> *mut Param {
 /// @ingroup QkParam
 /// tan of expressions.
 ///
-/// @param expr A pointer to the ParameterExpression.
+/// @param expr A pointer to the QkParam.
 ///
-/// @return A pointer to the new ParameterExpression.
+/// @return A pointer to the new QkParam.
 ///
 /// # Example
 ///
-///     QkParam *a = qk_parameter_new("a");
-///     QkParam *out = qk_parameter_tan(a);
+///     QkParam *a = qk_param_new("a");
+///     QkParam *out = qk_param_tan(a);
 ///
 /// # Safety
 ///
 /// expr should be valid pointer to parameter
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_tan(expr: *const Param) -> *mut Param {
+pub unsafe extern "C" fn qk_param_tan(expr: *const Param) -> *mut Param {
     let expr = unsafe { const_ptr_as_ref(expr) };
     match expr {
         Param::ParameterExpression(expr) => {
@@ -478,21 +478,21 @@ pub unsafe extern "C" fn qk_parameter_tan(expr: *const Param) -> *mut Param {
 /// @ingroup QkParam
 /// arcsin of expressions.
 ///
-/// @param expr A pointer to the ParameterExpression.
+/// @param expr A pointer to the QkParam.
 ///
-/// @return A pointer to the new ParameterExpression.
+/// @return A pointer to the new QkParam.
 ///
 /// # Example
 ///
-///     QkParam *a = qk_parameter_new("a");
-///     QkParam *out = qk_parameter_asin(a);
+///     QkParam *a = qk_param_new("a");
+///     QkParam *out = qk_param_asin(a);
 ///
 /// # Safety
 ///
 /// expr should be valid pointer to parameter
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_asin(expr: *const Param) -> *mut Param {
+pub unsafe extern "C" fn qk_param_asin(expr: *const Param) -> *mut Param {
     let expr = unsafe { const_ptr_as_ref(expr) };
     match expr {
         Param::ParameterExpression(expr) => {
@@ -507,21 +507,21 @@ pub unsafe extern "C" fn qk_parameter_asin(expr: *const Param) -> *mut Param {
 /// @ingroup QkParam
 /// arccos of expressions.
 ///
-/// @param expr A pointer to the ParameterExpression.
+/// @param expr A pointer to the QkParam.
 ///
-/// @return A pointer to the new ParameterExpression.
+/// @return A pointer to the new QkParam.
 ///
 /// # Example
 ///
-///     QkParam *a = qk_parameter_new("a");
-///     QkParam *out = qk_parameter_acos(a);
+///     QkParam *a = qk_param_new("a");
+///     QkParam *out = qk_param_acos(a);
 ///
 /// # Safety
 ///
 /// expr should be valid pointer to parameter
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_acos(expr: *const Param) -> *mut Param {
+pub unsafe extern "C" fn qk_param_acos(expr: *const Param) -> *mut Param {
     let expr = unsafe { const_ptr_as_ref(expr) };
     match expr {
         Param::ParameterExpression(expr) => {
@@ -536,21 +536,21 @@ pub unsafe extern "C" fn qk_parameter_acos(expr: *const Param) -> *mut Param {
 /// @ingroup QkParam
 /// arctan of expressions.
 ///
-/// @param expr A pointer to the ParameterExpression.
+/// @param expr A pointer to the QkParam.
 ///
-/// @return A pointer to the new ParameterExpression.
+/// @return A pointer to the new QkParam.
 ///
 /// # Example
 ///
-///     QkParam *a = qk_parameter_new("a");
-///     QkParam *out = qk_parameter_atan(a);
+///     QkParam *a = qk_param_new("a");
+///     QkParam *out = qk_param_atan(a);
 ///
 /// # Safety
 ///
 /// expr should be valid pointer to parameter
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_atan(expr: *const Param) -> *mut Param {
+pub unsafe extern "C" fn qk_param_atan(expr: *const Param) -> *mut Param {
     let expr = unsafe { const_ptr_as_ref(expr) };
     match expr {
         Param::ParameterExpression(expr) => {
@@ -565,21 +565,21 @@ pub unsafe extern "C" fn qk_parameter_atan(expr: *const Param) -> *mut Param {
 /// @ingroup QkParam
 /// log of expressions.
 ///
-/// @param expr A pointer to the ParameterExpression.
+/// @param expr A pointer to the QkParam.
 ///
-/// @return A pointer to the new ParameterExpression.
+/// @return A pointer to the new QkParam.
 ///
 /// # Example
 ///
-///     QkParam *a = qk_parameter_new("a");
-///     QkParam *out = qk_parameter_log(a);
+///     QkParam *a = qk_param_new("a");
+///     QkParam *out = qk_param_log(a);
 ///
 /// # Safety
 ///
 /// expr should be valid pointer to parameter
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_log(expr: *const Param) -> *mut Param {
+pub unsafe extern "C" fn qk_param_log(expr: *const Param) -> *mut Param {
     let expr = unsafe { const_ptr_as_ref(expr) };
     match expr {
         Param::ParameterExpression(expr) => {
@@ -594,21 +594,21 @@ pub unsafe extern "C" fn qk_parameter_log(expr: *const Param) -> *mut Param {
 /// @ingroup QkParam
 /// exp of expressions.
 ///
-/// @param expr A pointer to the ParameterExpression.
+/// @param expr A pointer to the QkParam.
 ///
-/// @return A pointer to the new ParameterExpression.
+/// @return A pointer to the new QkParam.
 ///
 /// # Example
 ///
-///     QkParam *a = qk_parameter_new("a");
-///     QkParam *out = qk_parameter_exp(a);
+///     QkParam *a = qk_param_new("a");
+///     QkParam *out = qk_param_exp(a);
 ///
 /// # Safety
 ///
 /// expr should be valid pointer to parameter
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_exp(expr: *const Param) -> *mut Param {
+pub unsafe extern "C" fn qk_param_exp(expr: *const Param) -> *mut Param {
     let expr = unsafe { const_ptr_as_ref(expr) };
     match expr {
         Param::ParameterExpression(expr) => {
@@ -623,21 +623,21 @@ pub unsafe extern "C" fn qk_parameter_exp(expr: *const Param) -> *mut Param {
 /// @ingroup QkParam
 /// abs of expressions.
 ///
-/// @param expr A pointer to the ParameterExpression.
+/// @param expr A pointer to the QkParam.
 ///
-/// @return A pointer to the new ParameterExpression.
+/// @return A pointer to the new QkParam.
 ///
 /// # Example
 ///
-///     QkParam *a = qk_parameter_new("a");
-///     QkParam *out = qk_parameter_abs(a);
+///     QkParam *a = qk_param_new("a");
+///     QkParam *out = qk_param_abs(a);
 ///
 /// # Safety
 ///
 /// expr should be valid pointer to parameter
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_abs(expr: *const Param) -> *mut Param {
+pub unsafe extern "C" fn qk_param_abs(expr: *const Param) -> *mut Param {
     let expr = unsafe { const_ptr_as_ref(expr) };
     match expr {
         Param::ParameterExpression(expr) => {
@@ -652,21 +652,21 @@ pub unsafe extern "C" fn qk_parameter_abs(expr: *const Param) -> *mut Param {
 /// @ingroup QkParam
 /// sign of expressions.
 ///
-/// @param expr A pointer to the ParameterExpression.
+/// @param expr A pointer to the QkParam.
 ///
-/// @return A pointer to the new ParameterExpression.
+/// @return A pointer to the new QkParam.
 ///
 /// # Example
 ///
-///     QkParam *a = qk_parameter_new("a");
-///     QkParam *out = qk_parameter_sign(a);
+///     QkParam *a = qk_param_new("a");
+///     QkParam *out = qk_param_sign(a);
 ///
 /// # Safety
 ///
 /// expr should be valid pointer to parameter
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_sign(expr: *const Param) -> *mut Param {
+pub unsafe extern "C" fn qk_param_sign(expr: *const Param) -> *mut Param {
     let expr = unsafe { const_ptr_as_ref(expr) };
     match expr {
         Param::ParameterExpression(expr) => {
@@ -689,21 +689,21 @@ pub unsafe extern "C" fn qk_parameter_sign(expr: *const Param) -> *mut Param {
 /// @ingroup QkParam
 /// neg of expressions.
 ///
-/// @param expr A pointer to the ParameterExpression.
+/// @param expr A pointer to the QkParam.
 ///
-/// @return A pointer to the new ParameterExpression.
+/// @return A pointer to the new QkParam.
 ///
 /// # Example
 ///
-///     QkParam *a = qk_parameter_new("a");
-///     QkParam *out = qk_parameter_neg(a);
+///     QkParam *a = qk_param_new("a");
+///     QkParam *out = qk_param_neg(a);
 ///
 /// # Safety
 ///
 /// expr should be valid pointer to parameter
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_neg(expr: *const Param) -> *mut Param {
+pub unsafe extern "C" fn qk_param_neg(expr: *const Param) -> *mut Param {
     let expr = unsafe { const_ptr_as_ref(expr) };
     match expr {
         Param::ParameterExpression(expr) => {
@@ -718,23 +718,23 @@ pub unsafe extern "C" fn qk_parameter_neg(expr: *const Param) -> *mut Param {
 /// @ingroup QkParam
 /// conjugate of expressions.
 ///
-/// @param expr A pointer to the ParameterExpression.
+/// @param expr A pointer to the QkParam.
 ///
-/// @return A pointer to the new ParameterExpression.
+/// @return A pointer to the new QkParam.
 ///
 /// # Example
 ///
-///     QkParam *a = qk_parameter_new("a");
-///     QkParam *c = qk_parameter_from_complex((0.0, 1.0));
-///     QkParam *b = qk_parameter_add(a, c);
-///     QkParam *out = qk_parameter_conj(b);
+///     QkParam *a = qk_param_new("a");
+///     QkParam *c = qk_param_from_complex((0.0, 1.0));
+///     QkParam *b = qk_param_add(a, c);
+///     QkParam *out = qk_param_conj(b);
 ///
 /// # Safety
 ///
 /// expr should be valid pointer to parameter
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_conj(expr: *const Param) -> *mut Param {
+pub unsafe extern "C" fn qk_param_conj(expr: *const Param) -> *mut Param {
     let expr = unsafe { const_ptr_as_ref(expr) };
     match expr {
         Param::ParameterExpression(expr) => Box::into_raw(Box::new(Param::ParameterExpression(
@@ -749,26 +749,26 @@ pub unsafe extern "C" fn qk_parameter_conj(expr: *const Param) -> *mut Param {
 /// @ingroup QkParam
 /// compare 2 expressions.
 ///
-/// @param lhs A pointer to the left hand side ParameterExpression.
-/// @param rhs A pointer to the right hand side ParameterExpression.
+/// @param lhs A pointer to the left hand side QkParam.
+/// @param rhs A pointer to the right hand side QkParam.
 ///
 /// @return true if 2 expressions are equal.
 ///
 /// # Example
 ///
-///     QkParam *a = qk_parameter_new("a");
-///     QkParam *one = qk_parameter_from_value(1.0);
-///     QkParam *mone = qk_parameter_fromn_value(-1.0);
-///     QkParam *x = qk_parameter_add(a, one);
-///     QkParam *y = qk_parameter_sub(a, mone);
-///     QkParam *c = qk_parameter_compare_eq(x, y);
+///     QkParam *a = qk_param_new("a");
+///     QkParam *one = qk_param_from_value(1.0);
+///     QkParam *mone = qk_param_fromn_value(-1.0);
+///     QkParam *x = qk_param_add(a, one);
+///     QkParam *y = qk_param_sub(a, mone);
+///     QkParam *c = qk_param_compare_eq(x, y);
 ///
 /// # Safety
 ///
 /// lhs and rhs should be valid pointer to parameter
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_compare_eq(lhs: *const Param, rhs: *const Param) -> bool {
+pub unsafe extern "C" fn qk_param_compare_eq(lhs: *const Param, rhs: *const Param) -> bool {
     let lhs = unsafe { const_ptr_as_ref(lhs) };
     let rhs = unsafe { const_ptr_as_ref(rhs) };
     lhs.eq(rhs).unwrap()
@@ -777,19 +777,19 @@ pub unsafe extern "C" fn qk_parameter_compare_eq(lhs: *const Param, rhs: *const 
 /// @ingroup QkParam
 /// bind parameters.
 ///
-/// @param expr A pointer to the ParameterExpression
-/// @param keys An array of pointer to the ParameterExpression.
+/// @param expr A pointer to the QkParam
+/// @param keys An array of pointer to the QkParam.
 /// @param values An array of values to be bound.
 /// @param num number of pairs of (parameter, value)
 ///
-/// @return A pointer to the new ParameterExpression.
+/// @return A pointer to the new QkParam.
 ///
 /// # Example
 ///
-///     QkParam *a = qk_parameter_new("a");
-///     QkParam *b = qk_parameter_new("b");
-///     QkParam *c = qk_parameter_add(a, b);
-///     QkParam *t = qk_parameter_bind(c, {b}, {1.5}, 1);
+///     QkParam *a = qk_param_new("a");
+///     QkParam *b = qk_param_new("b");
+///     QkParam *c = qk_param_add(a, b);
+///     QkParam *t = qk_param_bind(c, {b}, {1.5}, 1);
 ///
 /// # Safety
 ///
@@ -797,19 +797,19 @@ pub unsafe extern "C" fn qk_parameter_compare_eq(lhs: *const Param, rhs: *const 
 /// keys and values should be valid pointer to array in C
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_bind(
+pub unsafe extern "C" fn qk_param_bind(
     expr: *const Param,
-    keys: *const Param,
+    keys: *const *const Param,
     values: *const f64,
     num: usize,
 ) -> *mut Param {
     let expr = unsafe { const_ptr_as_ref(expr) };
     if let Param::ParameterExpression(expr) = expr {
-        let keys = unsafe { std::slice::from_raw_parts(keys, num) };
+        let keys = unsafe { std::slice::from_raw_parts(keys, num).iter().map(|k| const_ptr_as_ref(*k)) };
         let values = unsafe { std::slice::from_raw_parts(values, num) };
 
         let mut map: HashMap<Symbol, Value> = HashMap::new();
-        keys.iter().zip(values.iter()).for_each(|m| {
+        keys.zip(values.iter()).for_each(|m| {
             if let Param::ParameterExpression(e) = m.0 {
                 if let Ok(symbol) = e.try_to_symbol() {
                     map.insert(symbol, Value::Real(*m.1));
@@ -831,20 +831,20 @@ pub unsafe extern "C" fn qk_parameter_bind(
 /// @ingroup QkParam
 /// substitute parameters.
 ///
-/// @param expr A pointer to the ParameterExpression
-/// @param keys An array of pointer to the ParameterExpression.
-/// @param subs An array of pointer to the new ParameterExpression.
+/// @param expr A pointer to the QkParam
+/// @param keys An array of pointer to the QkParam.
+/// @param subs An array of pointer to the new QkParam.
 /// @param num number of pairs of (parameter, subs)
 ///
-/// @return A pointer to the new ParameterExpression.
+/// @return A pointer to the new QkParam.
 ///
 /// # Example
 ///
-///     QkParam *a = qk_parameter_new("a");
-///     QkParam *b = qk_parameter_new("b");
-///     QkParam *c = qk_parameter_new("c");
-///     QkParam *d = qk_parameter_add(a, b);
-///     QkParam *t = qk_parameter_subs(d, {b}, {c}, 1);
+///     QkParam *a = qk_param_new("a");
+///     QkParam *b = qk_param_new("b");
+///     QkParam *c = qk_param_new("c");
+///     QkParam *d = qk_param_add(a, b);
+///     QkParam *t = qk_param_subs(d, {b}, {c}, 1);
 ///
 /// # Safety
 ///
@@ -852,19 +852,19 @@ pub unsafe extern "C" fn qk_parameter_bind(
 /// keys and subs should be valid pointer to array in C
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_subs(
+pub unsafe extern "C" fn qk_param_subs(
     expr: *const Param,
-    keys: *const Param,
-    subs: *const Param,
+    keys: *const *const Param,
+    subs: *const *const Param,
     num: usize,
 ) -> *mut Param {
     let expr = unsafe { const_ptr_as_ref(expr) };
     if let Param::ParameterExpression(expr) = expr {
-        let keys = unsafe { std::slice::from_raw_parts(keys, num) };
-        let subs = unsafe { std::slice::from_raw_parts(subs, num) };
+        let keys = unsafe { std::slice::from_raw_parts(keys, num).iter().map(|k| const_ptr_as_ref(*k)) };
+        let subs = unsafe { std::slice::from_raw_parts(subs, num).iter().map(|s| const_ptr_as_ref(*s)) };
 
         let mut map: HashMap<Symbol, ParameterExpression> = HashMap::new();
-        keys.iter().zip(subs.iter()).for_each(|m| {
+        keys.zip(subs).for_each(|m| {
             if let Param::ParameterExpression(e) = m.0 {
                 if let Ok(symbol) = e.try_to_symbol() {
                     if let Param::ParameterExpression(s) = m.1 {
@@ -889,19 +889,19 @@ pub unsafe extern "C" fn qk_parameter_subs(
 /// @ingroup QkParam
 /// evaluate the expression and return as real number
 ///
-/// @param expr A pointer to the ParameterExpression.
+/// @param expr A pointer to the QkParam.
 /// @param out A pointer to store result of evaluation
 ///
 /// @return true if expression can be evaluated as real
 ///
 /// # Example
 ///
-///     QkParam *a = qk_parameter_new("a");
-///     QkParam *b = qk_parameter_new("ab);
-///     QkParam *x = qk_parameter_add(a, b);
-///     QkParam *y = qk_parameter_bind(x, {a, b}, {1.0, 2.0}, 2);
+///     QkParam *a = qk_param_new("a");
+///     QkParam *b = qk_param_new("ab);
+///     QkParam *x = qk_param_add(a, b);
+///     QkParam *y = qk_param_bind(x, {a, b}, {1.0, 2.0}, 2);
 ///     double out;
-///     qk_parameter_as_real(y)
+///     qk_param_as_real(y)
 ///
 /// # Safety
 ///
@@ -909,7 +909,7 @@ pub unsafe extern "C" fn qk_parameter_subs(
 /// out should be valid pointer to double in C
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_as_real(expr: *const Param, out: *mut f64) -> bool {
+pub unsafe extern "C" fn qk_param_as_real(expr: *const Param, out: *mut f64) -> bool {
     let expr = unsafe { const_ptr_as_ref(expr) };
     let out = unsafe { mut_ptr_as_ref(out) };
     match expr {
