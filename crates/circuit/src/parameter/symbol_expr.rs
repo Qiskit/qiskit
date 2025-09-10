@@ -149,7 +149,7 @@ pub enum SymbolExpr {
 }
 
 /// Value type, can be integer, real or complex number
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, IntoPyObject, IntoPyObjectRef)]
 pub enum Value {
     Real(f64),
     Int(i64),

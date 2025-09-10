@@ -432,15 +432,20 @@ int test_target_add_instruction(void) {
         uint32_t q[1] = {i};
         qk_target_entry_add_property(meas, q, 1, 1e-6, 1e-4);
     }
-    uint32_t num_meas = qk_target_entry_num_properties(meas);
+    size_t num_meas = qk_target_entry_num_properties(meas);
     if (num_meas != 3) {
-        printf("Expected 3 measurement entries but got: %u", num_meas);
+        printf("Expected 3 measurement entries but got: %zu", num_meas);
         result = EqualityError;
         qk_target_entry_free(meas);
         goto cleanup;
     }
 
     QkExitCode result_meas_props = qk_target_add_instruction(target, meas);
+    if (result_meas_props != 0) {
+        printf("Failed adding measurement instruction.");
+        result = EqualityError;
+        goto cleanup;
+    }
     // Number of qubits of the target should remain 3.
     current_num_qubits = qk_target_num_qubits(target);
     if (current_num_qubits != 3) {
@@ -463,9 +468,9 @@ int test_target_add_instruction(void) {
         uint32_t q[1] = {i};
         qk_target_entry_add_property(reset, q, 1, 2e-6, 2e-4);
     }
-    uint32_t num_reset = qk_target_entry_num_properties(reset);
+    size_t num_reset = qk_target_entry_num_properties(reset);
     if (num_reset != 3) {
-        printf("Expected 3 reset entries but got: %u", num_reset);
+        printf("Expected 3 reset entries but got: %zu", num_reset);
         result = EqualityError;
         qk_target_entry_free(reset);
         goto cleanup;

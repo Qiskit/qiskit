@@ -468,6 +468,27 @@ class TestParameterExpression(QiskitTestCase):
         with self.assertRaises(RuntimeError):
             _ = expr.gradient(x)
 
+    def test_gradient_constant_derivatives(self):
+        """Test gradient method returns numeric values for constant derivatives."""
+        x = Parameter("x")
+        y = Parameter("y")
+
+        test_cases = [
+            (x, x, 1.0),
+            (x + 0, x, 1.0),
+            (0 * x, x, 0.0),
+            (x / 2, x, 0.5),
+            (x - x, x, 0.0),
+            (5 + x - x, x, 0.0),
+            (2 * x + y - x, x, 1.0),
+        ]
+
+        for expr, param, expected in test_cases:
+            with self.subTest(expr=str(expr), param=str(param)):
+                result = expr.gradient(param)
+                self.assertIsInstance(result, (int, float, complex))
+                self.assertEqual(result, expected)
+
     @unittest.skipUnless(HAS_SYMPY, "Sympy is required for this test")
     def test_sympify_all_ops(self):
         """Test the sympify function works for all the supported operations."""

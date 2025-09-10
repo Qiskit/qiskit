@@ -56,7 +56,7 @@ def adder_qft_d00(
         annotated: If ``True``, creates appropriate control and inverse operations as
             ``AnnotatedOperation`` objects.
 
-    **References:**
+    References:
 
     [1] T. G. Draper, Addition on a Quantum Computer, 2000.
     `arXiv:quant-ph/0008033 <https://arxiv.org/pdf/quant-ph/0008033.pdf>`_

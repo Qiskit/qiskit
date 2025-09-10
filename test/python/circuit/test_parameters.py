@@ -333,6 +333,24 @@ class TestParameters(QiskitTestCase):
         c = a.bind({a: 1, b: 1}, allow_unknown_parameters=True)
         self.assertEqual(c, a.bind({a: 1}))
 
+    def test_bind_all(self):
+        """Fast-path for binding numeric results."""
+        a, b, c = Parameter("a"), Parameter("b"), Parameter("c")
+        bindings = {a: -1.0, b: 2.5, c: 7}
+        self.assertEqual((a + b).bind_all(bindings), 1.5)
+        self.assertEqual(a.bind_all(bindings), -1.0)
+
+    def test_bind_all_failures(self):
+        """`bind_all` does not explicitly check failures for performance, but we want failure to not
+        pass completely silently."""
+        a, b = Parameter("a"), Parameter("b")
+        # Feel free to change the exact exceptions; it's only important that it's not silent.
+        expr = a + b
+        with self.assertRaises(KeyError):
+            expr.bind_all({a: -1.0})
+        with self.assertRaises(KeyError):
+            a.bind_all({b: 2.5})
+
     def test_assign_parameters_by_name(self):
         """Test that parameters can be assigned by name as well as value."""
         a = Parameter("a")

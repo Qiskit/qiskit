@@ -126,7 +126,7 @@ class MCMTVChain(MCMT):
     This implementation requires ancillas but is decomposed into a much shallower circuit
     than the default implementation in :class:`~qiskit.circuit.library.MCMT`.
 
-    **Expanded Circuit:**
+    Expanded circuit:
 
     .. plot::
        :alt: Diagram illustrating the previously described circuit.
@@ -136,7 +136,7 @@ class MCMTVChain(MCMT):
        circuit = MCMTVChain(ZGate(), 2, 2)
        _generate_circuit_library_visualization(circuit.decompose())
 
-    **Examples:**
+    Examples:
 
         >>> from qiskit.circuit.library import HGate
         >>> MCMTVChain(HGate(), 3, 2).draw()

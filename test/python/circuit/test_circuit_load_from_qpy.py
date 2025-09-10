@@ -2250,6 +2250,22 @@ class TestLoadFromQPY(QiskitTestCase):
         ):
             dump(qc, fptr, version=version)
 
+    @ddt.idata(range(max(QPY_COMPATIBILITY_VERSION, 14), 16))
+    def test_pre_v16_rejects_ps_duration(self, version):
+        """Test that dumping to older QPY versions rejects Duration.ps."""
+        from qiskit.circuit import Duration
+
+        qc = QuantumCircuit()
+        with qc.if_test(expr.less(Duration.ns(1000), Duration.ps(1))):
+            pass
+        with (
+            io.BytesIO() as fptr,
+            self.assertRaisesRegex(
+                UnsupportedFeatureForVersion, "version 16 is required.*Duration.ps"
+            ),
+        ):
+            dump(qc, fptr, version=version)
+
 
 class TestSymengineLoadFromQPY(QiskitTestCase):
     """Test use of symengine in qpy set of methods."""

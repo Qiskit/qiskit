@@ -65,7 +65,7 @@ def adder_ripple_v95(num_state_qubits: int, kind: str = "half") -> QuantumCircui
     Raises:
         ValueError: If ``num_state_qubits`` is lower than 1.
 
-    **References:**
+    References:
 
     [1] Vedral et al., Quantum Networks for Elementary Arithmetic Operations, 1995.
     `arXiv:quant-ph/9511018 <https://arxiv.org/pdf/quant-ph/9511018.pdf>`_
