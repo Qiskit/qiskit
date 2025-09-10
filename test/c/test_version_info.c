@@ -12,29 +12,30 @@
 
 #include "common.h"
 #include <qiskit.h>
+#include <stdlib.h>
 #include <string.h>
 
 /**
  * Build the version a string, based on the version numbers.
  */
 char *build_version_string(void) {
-    char suffix[4]; // 3 chars + end
+    char suffix[16];
     switch (QISKIT_RELEASE_LEVEL) {
     case QISKIT_RELEASE_LEVEL_DEV:
-        sprintf(suffix, "dev");
+        sprintf(suffix, "-dev");
         break;
     case QISKIT_RELEASE_LEVEL_BETA:
-        sprintf(suffix, "b%u", QISKIT_RELEASE_SERIAL);
+        sprintf(suffix, "-beta%u", QISKIT_RELEASE_SERIAL);
         break;
     case QISKIT_RELEASE_LEVEL_RC:
-        sprintf(suffix, "rc%u", QISKIT_RELEASE_SERIAL);
+        sprintf(suffix, "-rc%u", QISKIT_RELEASE_SERIAL);
         break;
     default:
         // no suffix
         break;
     }
 
-    char *version = malloc(9 * sizeof(char));
+    char *version = calloc(32, sizeof(char));
     sprintf(version, "%u.%u.%u%s", QISKIT_VERSION_MAJOR, QISKIT_VERSION_MINOR, QISKIT_VERSION_PATCH,
             suffix);
     return version;

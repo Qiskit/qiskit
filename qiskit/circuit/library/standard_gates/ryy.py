@@ -30,7 +30,7 @@ class RYYGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.ryy` method.
 
-    **Circuit Symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -40,7 +40,7 @@ class RYYGate(Gate):
         q_1: ┤0        ├
              └─────────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -54,31 +54,35 @@ class RYYGate(Gate):
                 i\sin\left(\rotationangle\right) & 0 & 0 & \cos\left(\rotationangle\right)
             \end{pmatrix}
 
-    **Examples:**
+    Examples:
 
-        .. math::
+    .. math::
 
-            R_{YY}(\theta = 0) = I
+        R_{YY}(\theta = 0) = I 
 
-        .. math::
+    .. math::
 
-            R_{YY}(\theta = \pi) = -i Y \otimes Y
+        R_{YY}(\theta = \pi) = -i Y \otimes Y
 
-        .. math::
+    .. math::
 
-            R_{YY}\left(\theta = \frac{\pi}{2}\right) = \frac{1}{\sqrt{2}}
-                                    \begin{pmatrix}
-                                        1 & 0 & 0 & i \\
-                                        0 & 1 & -i & 0 \\
-                                        0 & -i & 1 & 0 \\
-                                        i & 0 & 0 & 1
-                                    \end{pmatrix}
+        R_{YY}\left(\theta = \frac{\pi}{2}\right) = \frac{1}{\sqrt{2}}
+                                \begin{pmatrix}
+                                    1 & 0 & 0 & i \\
+                                    0 & 1 & -i & 0 \\
+                                    0 & -i & 1 & 0 \\
+                                    i & 0 & 0 & 1
+                                \end{pmatrix}
     """
 
     _standard_gate = StandardGate.RYY
 
     def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
-        """Create new RYY gate."""
+        """
+        Args:
+            theta: The rotation angle.
+            label: An optional label for the gate.
+        """
         super().__init__("ryy", 2, [theta], label=label)
 
     def _define(self):
