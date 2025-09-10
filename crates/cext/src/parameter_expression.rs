@@ -172,7 +172,7 @@ pub unsafe extern "C" fn qk_parameter_copy(expr: *const Param) -> *mut Param {
 /// expr should be valid pointer to parameter
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_to_string(expr: *const Param) -> *const c_char {
+pub unsafe extern "C" fn qk_parameter_to_string(expr: *const Param) -> *mut c_char {
     let expr = unsafe { const_ptr_as_ref(expr) };
     let str = match expr {
         Param::ParameterExpression(expr) => expr.to_string(),
