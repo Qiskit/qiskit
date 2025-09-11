@@ -437,7 +437,9 @@ mod tests {
     use super::*;
     use crate::target::InstructionProperties;
     use crate::target::Target;
+    use pyo3::PyObject;
     use qiskit_circuit::circuit_data::CircuitData;
+    use qiskit_circuit::instruction::Parameters;
     use qiskit_circuit::operations::{Operation, Param, StandardGate, StandardInstruction};
     use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
     use qiskit_circuit::parameter::symbol_expr::Symbol;
@@ -447,7 +449,7 @@ mod tests {
 
     fn build_universal_star_target() -> Target {
         let mut target = Target::default();
-        let u_params = [
+        let u_params: Option<Parameters<PyObject>> = Some(Parameters::Params(smallvec![
             Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
                 "a", None, None,
             )))),
@@ -457,7 +459,7 @@ mod tests {
             Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
                 "c", None, None,
             )))),
-        ];
+        ]));
 
         let props = (0..5)
             .map(|i| {
@@ -471,7 +473,7 @@ mod tests {
             })
             .collect();
         target
-            .add_instruction(StandardGate::U.into(), &u_params, None, Some(props))
+            .add_instruction(StandardGate::U.into(), u_params, None, Some(props))
             .unwrap();
         let props = (0..5)
             .map(|i| {
@@ -485,7 +487,7 @@ mod tests {
             })
             .collect();
         target
-            .add_instruction(StandardInstruction::Measure.into(), &[], None, Some(props))
+            .add_instruction(StandardInstruction::Measure.into(), None, None, Some(props))
             .unwrap();
         let props = (1..5)
             .map(|i| {
@@ -499,7 +501,7 @@ mod tests {
             })
             .collect();
         target
-            .add_instruction(StandardGate::ECR.into(), &[], None, Some(props))
+            .add_instruction(StandardGate::ECR.into(), None, None, Some(props))
             .unwrap();
         target
     }
@@ -511,22 +513,22 @@ mod tests {
             2,
             2,
             [
-                Ok((StandardGate::H.into(), smallvec![], vec![Qubit(0)], vec![])),
+                Ok((StandardGate::H.into(), None, vec![Qubit(0)], vec![])),
                 Ok((
                     StandardGate::CX.into(),
-                    smallvec![],
+                    None,
                     vec![Qubit(0), Qubit(1)],
                     vec![],
                 )),
                 Ok((
                     StandardInstruction::Measure.into(),
-                    smallvec![],
+                    None,
                     vec![Qubit(0)],
                     vec![Clbit(0)],
                 )),
                 Ok((
                     StandardInstruction::Measure.into(),
-                    smallvec![],
+                    None,
                     vec![Qubit(1)],
                     vec![Clbit(1)],
                 )),
@@ -567,82 +569,82 @@ mod tests {
             5,
             5,
             [
-                Ok((StandardGate::H.into(), smallvec![], vec![Qubit(0)], vec![])),
+                Ok((StandardGate::H.into(), None, vec![Qubit(0)], vec![])),
                 Ok((
                     StandardGate::CX.into(),
-                    smallvec![],
+                    None,
                     vec![Qubit(0), Qubit(1)],
                     vec![],
                 )),
                 Ok((
                     StandardGate::CX.into(),
-                    smallvec![],
+                    None,
                     vec![Qubit(0), Qubit(2)],
                     vec![],
                 )),
                 Ok((
                     StandardGate::CX.into(),
-                    smallvec![],
+                    None,
                     vec![Qubit(0), Qubit(3)],
                     vec![],
                 )),
                 Ok((
                     StandardGate::CX.into(),
-                    smallvec![],
+                    None,
                     vec![Qubit(0), Qubit(4)],
                     vec![],
                 )),
                 Ok((
                     StandardGate::CX.into(),
-                    smallvec![],
+                    None,
                     vec![Qubit(4), Qubit(1)],
                     vec![],
                 )),
                 Ok((
                     StandardGate::CX.into(),
-                    smallvec![],
+                    None,
                     vec![Qubit(4), Qubit(2)],
                     vec![],
                 )),
                 Ok((
                     StandardGate::CX.into(),
-                    smallvec![],
+                    None,
                     vec![Qubit(4), Qubit(3)],
                     vec![],
                 )),
                 Ok((
                     StandardGate::CX.into(),
-                    smallvec![],
+                    None,
                     vec![Qubit(4), Qubit(0)],
                     vec![],
                 )),
                 Ok((
                     StandardInstruction::Measure.into(),
-                    smallvec![],
+                    None,
                     vec![Qubit(0)],
                     vec![Clbit(0)],
                 )),
                 Ok((
                     StandardInstruction::Measure.into(),
-                    smallvec![],
+                    None,
                     vec![Qubit(1)],
                     vec![Clbit(1)],
                 )),
                 Ok((
                     StandardInstruction::Measure.into(),
-                    smallvec![],
+                    None,
                     vec![Qubit(2)],
                     vec![Clbit(2)],
                 )),
                 Ok((
                     StandardInstruction::Measure.into(),
-                    smallvec![],
+                    None,
                     vec![Qubit(3)],
                     vec![Clbit(3)],
                 )),
                 Ok((
                     StandardInstruction::Measure.into(),
-                    smallvec![],
+                    None,
                     vec![Qubit(4)],
                     vec![Clbit(4)],
                 )),

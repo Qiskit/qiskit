@@ -513,7 +513,7 @@ mod test_consolidate_blocks {
         target
             .add_instruction(
                 StandardGate::H.into(),
-                &[],
+                None,
                 None,
                 Some(IndexMap::from_iter([
                     (
@@ -530,7 +530,7 @@ mod test_consolidate_blocks {
         target
             .add_instruction(
                 StandardGate::CX.into(),
-                &[],
+                None,
                 None,
                 Some(IndexMap::from_iter([
                     (
