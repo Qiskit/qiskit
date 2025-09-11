@@ -40,6 +40,7 @@ use qiskit_quantum_info::convert_2q_block_matrix::instructions_to_matrix;
 
 const EPS: f64 = 1e-10;
 
+// when performing demultiplaxing, this enum is used to specify the actions that needs to be done
 enum VWType {
     All,
     OnlyV,
@@ -51,13 +52,14 @@ enum VWType {
 ///
 /// # Arguments
 /// * `mat`: unitary matrix to decompose
-/// * `opt_a1`: whether to try optimization A.1
-/// * `opt_a2`: whether to try optimization A.2
+/// * `opt_a1`: whether to try optimization A.1 (if `None`, decide automatically)
+/// * `opt_a2`: whether to try optimization A.2 (if `None`, decide automatically)
 /// * `two_qubit_decomposer`: Optional alternative two qubit decomposer, if not specified a decomposer using CX and U is used.
 /// * `one_qubit_decomposer`: Optional alternative one qubit euler basis to use for single qubit unitary decompositions. If not specified U is used.
 ///
 /// # Returns
-///     Decomposed quantum circuit.
+///
+/// Decomposed quantum circuit.
 pub fn quantum_shannon_decomposition(
     mat: &DMatrix<Complex64>,
     opt_a1: Option<bool>,
@@ -193,7 +195,7 @@ fn qsd_inner(
         for ctrl_index in 0..num_qubits {
             let [um00, um11, um01, um10] = extract_multiplex_blocks(mat, ctrl_index);
 
-            if off_diagonals_are_zero(&um01, &um10, None) {
+            if is_zero_matrix(&um01, None) && is_zero_matrix(&um10, None) {
                 return Ok(demultiplex(
                     &um00,
                     &um11,
@@ -282,9 +284,9 @@ fn qsd_inner(
     // the output circuit of the block ZXZ decomposition from [2]
     let qr = (0..num_qubits).map(Qubit::new).collect::<Vec<_>>();
     append(&mut out, left_circuit, &qr)?;
-    let _ = out.push_standard_gate(StandardGate::H, &[], &[Qubit((num_qubits - 1) as u32)]);
+    out.push_standard_gate(StandardGate::H, &[], &[Qubit((num_qubits - 1) as u32)])?;
     append(&mut out, middle_circ, &qr)?;
-    let _ = out.push_standard_gate(StandardGate::H, &[], &[Qubit((num_qubits - 1) as u32)]);
+    out.push_standard_gate(StandardGate::H, &[], &[Qubit((num_qubits - 1) as u32)])?;
     append(&mut out, right_circuit, &qr)?;
     if opt_a2_val && depth == 0 && dim > 4 {
         apply_a2(&out, two_qubit_decomposer)
@@ -376,10 +378,10 @@ fn zxz_decomp_verify(
 ///
 /// where v and w are general unitaries determined from decomposition.
 ///
-/// .. note::
+/// # Note
 ///
-///     When the original unitary is controlled then the default value of ``opt_a2 = False``
-///     as we start with the demultiplexing step that does not work with the optimization A.2 of [1, 2].
+/// When the original unitary is controlled then the default value of ``opt_a2 = False``
+/// as we start with the demultiplexing step that does not work with the optimization A.2 of [1, 2].
 #[allow(clippy::too_many_arguments)]
 fn demultiplex(
     um0: &DMatrix<Complex64>,
@@ -455,7 +457,6 @@ fn demultiplex(
         (VWType::OnlyV, true) => get_ucrz(num_qubits, &mut angles, false)?.reverse()?,
         _ => get_ucrz(num_qubits, &mut angles, true)?,
     };
-    // let multiplexed_rz = decompose_uc_rotation(&mut angles, StandardGate::RZ)?;
     append(
         &mut out,
         ucrz,
@@ -630,18 +631,10 @@ fn extract_multiplex_blocks(umat: &DMatrix<Complex64>, k: usize) -> [DMatrix<Com
     ]
 }
 
-/// Checks whether off-diagonal blocks are zero.
-fn off_diagonals_are_zero(
-    um01: &DMatrix<Complex64>,
-    um10: &DMatrix<Complex64>,
-    atol: Option<f64>,
-) -> bool {
-    let atol = atol.unwrap_or(1e-12);
-    um01.iter()
-        .all(|x| abs_diff_eq!(*x, Complex64::ZERO, epsilon = atol))
-        && um10
-            .iter()
-            .all(|x| abs_diff_eq!(*x, Complex64::ZERO, epsilon = atol))
+// check whether a matrix is zero (up to tolerance)
+fn is_zero_matrix(mat: &DMatrix<Complex64>, atol: Option<f64>) -> bool {
+    mat.iter()
+        .all(|x| abs_diff_eq!(*x, Complex64::ZERO, epsilon = atol.unwrap_or(1e-12)))
 }
 
 /// The optimization A.2 from [1, 2]. This decomposes two qubit unitaries into a
@@ -682,27 +675,27 @@ fn apply_a2(
             (*idx, unitary.matrix(&[]).unwrap())
         })
         .collect();
-    for (ind1, ind2) in ind2q[0..ind2q.len() - 1].iter().zip(ind2q[1..].iter()) {
-        let mat1 = match diagonal_rollover.get(ind1) {
+    for ind in ind2q.windows(2) {
+        let mat1 = match diagonal_rollover.get(&ind[0]) {
             Some(circ) => instructions_to_matrix(
                 circ.data().iter(),
                 [Qubit(0), Qubit(1)],
                 circ.qargs_interner(),
             )?,
-            None => new_matrices[ind1].to_owned(),
+            None => new_matrices[&ind[0]].to_owned(),
         };
-        let mat2 = match diagonal_rollover.get(ind2) {
+        let mat2 = match diagonal_rollover.get(&ind[1]) {
             Some(circ) => instructions_to_matrix(
                 circ.data().iter(),
                 [Qubit(0), Qubit(1)],
                 circ.qargs_interner(),
             )?,
-            None => new_matrices[ind2].to_owned(),
+            None => new_matrices[&ind[1]].to_owned(),
         };
         let (diagonal_mat, qc2cx) = two_qubit_decompose_up_to_diagonal(mat1.view()).unwrap();
-        diagonal_rollover.insert(*ind1, qc2cx);
+        diagonal_rollover.insert(ind[0], qc2cx);
         let new_mat2 = mat2.dot(&diagonal_mat);
-        new_matrices.insert(*ind2, new_mat2);
+        new_matrices.insert(ind[1], new_mat2);
     }
     let last_idx = ind2q.last().unwrap();
     let qc3_seq = two_qubit_decomposer
@@ -809,7 +802,7 @@ fn apply_a2(
 ///
 /// .. math::
 ///
-/// \frac{9}{16} 4^n - \frac{3}{2} 2^n
+///     \frac{9}{16} 4^n - \frac{3}{2} 2^n
 ///
 /// If ``opt_a1 = True``, the CX count is reduced, improving [1], by:
 ///
@@ -829,7 +822,7 @@ fn apply_a2(
 ///
 /// .. math::
 ///
-/// \frac{22}{48} 4^n - \frac{3}{2} 2^n + \frac{5}{3}.
+///     \frac{22}{48} 4^n - \frac{3}{2} 2^n + \frac{5}{3}.
 ///
 ///
 /// Args:
@@ -845,9 +838,10 @@ fn apply_a2(
 ///     QuantumCircuit: Decomposed quantum circuit.
 ///
 /// References:
-///     1. Shende, Bullock, Markov, *Synthesis of Quantum Logic Circuits*,
+///
+/// [1] Shende, Bullock, Markov, *Synthesis of Quantum Logic Circuits*,
 ///        `arXiv:0406176 [quant-ph] <https://arxiv.org/abs/quant-ph/0406176>`_
-///     2. Krol, Al-Ars, *Beyond Quantum Shannon: Circuit Construction for General
+/// [2] Krol, Al-Ars, *Beyond Quantum Shannon: Circuit Construction for General
 ///        n-Qubit Gates Based on Block ZXZ-Decomposition*,
 ///        `arXiv:2403.13692 <https://arxiv.org/abs/2403.13692>`_
 #[pyfunction]
