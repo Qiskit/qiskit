@@ -351,7 +351,7 @@ int test_param_bind(void) {
     return Ok;
 }
 
-int test_circuit(void) {
+int test_param(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_param_new);
     num_failed += RUN_TEST(test_param_binary_ops);
