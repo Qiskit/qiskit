@@ -19,6 +19,7 @@ use nalgebra::{stack, DMatrix, DMatrixView, DVector, Matrix4, QR};
 use ndarray::prelude::*;
 use num_complex::Complex64;
 use numpy::PyReadonlyArray2;
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use smallvec::smallvec;
 
@@ -61,11 +62,23 @@ pub fn quantum_shannon_decomposition(
     mat: &DMatrix<Complex64>,
     opt_a1: Option<bool>,
     opt_a2: Option<bool>,
+    one_qubit_decomposer_basis_set: Option<&EulerBasisSet>,
     two_qubit_decomposer: Option<&TwoQubitBasisDecomposer>,
-    one_qubit_decomposer: Option<&EulerBasisSet>,
 ) -> PyResult<CircuitData> {
     let dim = mat.shape().0;
     let num_qubits = dim.ilog2() as usize;
+    let mut default_1q_basis = EulerBasisSet::new();
+    default_1q_basis.add_basis(EulerBasis::U);
+    let default_2q_decomposer = TwoQubitBasisDecomposer::new_inner(
+        StandardGate::CX.into(),
+        smallvec![],
+        aview2(&qiskit_circuit::gate_matrix::CX_GATE),
+        1.0,
+        "U",
+        None,
+    )?;
+    let one_qubit_decomposer = one_qubit_decomposer_basis_set.unwrap_or(&default_1q_basis);
+    let two_qubit_decomposer = two_qubit_decomposer.unwrap_or(&default_2q_decomposer);
 
     if abs_diff_eq!(DMatrix::identity(dim, dim), mat) {
         let out_qubits = (0..num_qubits)
@@ -87,25 +100,13 @@ fn qsd_inner(
     mat: &DMatrix<Complex64>,
     opt_a1: Option<bool>,
     opt_a2: Option<bool>,
-    two_qubit_decomposer: Option<&TwoQubitBasisDecomposer>,
-    one_qubit_decomposer: Option<&EulerBasisSet>,
+    two_qubit_decomposer: &TwoQubitBasisDecomposer,
+    one_qubit_decomposer: &EulerBasisSet,
     depth: usize,
 ) -> PyResult<CircuitData> {
     let dim = mat.shape().0;
     let num_qubits = dim.ilog2() as usize;
     let opt_a1_val = opt_a1.unwrap_or(true);
-    let mut default_1q_basis = EulerBasisSet::new();
-    default_1q_basis.add_basis(EulerBasis::U);
-    let default_2q_decomposer = TwoQubitBasisDecomposer::new_inner(
-        StandardGate::CX.into(),
-        smallvec![],
-        aview2(&qiskit_circuit::gate_matrix::CX_GATE),
-        1.0,
-        "U",
-        None,
-    )?;
-    let one_qubit_decomposer = one_qubit_decomposer.unwrap_or(&default_1q_basis);
-    let two_qubit_decomposer = two_qubit_decomposer.unwrap_or(&default_2q_decomposer);
     if dim == 2 {
         let dim = ::ndarray::Dim(mat.shape());
         let strides = ::ndarray::Dim(mat.strides());
@@ -201,6 +202,8 @@ fn qsd_inner(
                     depth,
                     Some(num_qubits - 1 - ctrl_index),
                     VWType::All,
+                    two_qubit_decomposer,
+                    one_qubit_decomposer,
                 )?
                 .0);
             }
@@ -225,9 +228,20 @@ fn qsd_inner(
         depth,
         None,
         VWType::OnlyW,
+        two_qubit_decomposer,
+        one_qubit_decomposer,
     )?;
-    let (right_circuit, _, wmat_a) =
-        demultiplex(&a1, &a2, opt_a1_val, opt_a2_val, depth, None, VWType::OnlyV)?;
+    let (right_circuit, _, wmat_a) = demultiplex(
+        &a1,
+        &a2,
+        opt_a1_val,
+        opt_a2_val,
+        depth,
+        None,
+        VWType::OnlyV,
+        two_qubit_decomposer,
+        one_qubit_decomposer,
+    )?;
 
     // middle circ
     // zmat is needed in order to reduce two cz gates, and combine them into the B2 matrix
@@ -246,7 +260,18 @@ fn qsd_inner(
     } else {
         &wmat_a * &b * &vmat_c
     };
-    let middle_circ = demultiplex(&b1, &b2, opt_a1_val, opt_a2_val, depth, None, VWType::All)?.0;
+    let middle_circ = demultiplex(
+        &b1,
+        &b2,
+        opt_a1_val,
+        opt_a2_val,
+        depth,
+        None,
+        VWType::All,
+        two_qubit_decomposer,
+        one_qubit_decomposer,
+    )?
+    .0;
 
     // the output circuit of the block ZXZ decomposition from [2]
     let qr = (0..num_qubits).map(Qubit::new).collect::<Vec<_>>();
@@ -349,6 +374,7 @@ fn zxz_decomp_verify(
 ///
 ///     When the original unitary is controlled then the default value of ``opt_a2 = False``
 ///     as we start with the demultiplexing step that does not work with the optimization A.2 of [1, 2].
+#[allow(clippy::too_many_arguments)]
 fn demultiplex(
     um0: &DMatrix<Complex64>,
     um1: &DMatrix<Complex64>,
@@ -357,6 +383,8 @@ fn demultiplex(
     depth: usize,
     _ctrl_index: Option<usize>,
     vw_type: VWType,
+    two_qubit_decomposer: &TwoQubitBasisDecomposer,
+    one_qubit_decomposer: &EulerBasisSet,
 ) -> PyResult<(CircuitData, DMatrix<Complex64>, DMatrix<Complex64>)> {
     let um0 = closest_unitary(um0.as_view());
     let um1 = closest_unitary(um1.as_view());
@@ -397,7 +425,14 @@ fn demultiplex(
     // Otherwise, it is combined with the B matrix.
     match vw_type {
         VWType::OnlyW | VWType::All => {
-            let left_circuit = qsd_inner(&wmat, Some(opt_a1), Some(opt_a2), None, None, depth + 1)?;
+            let left_circuit = qsd_inner(
+                &wmat,
+                Some(opt_a1),
+                Some(opt_a2),
+                two_qubit_decomposer,
+                one_qubit_decomposer,
+                depth + 1,
+            )?;
             append(&mut out, left_circuit, &layout[..num_qubits - 1])?;
         }
         VWType::OnlyV => (),
@@ -428,8 +463,14 @@ fn demultiplex(
     // Otherwise, it is combined with the B matrix.
     match vw_type {
         VWType::OnlyV | VWType::All => {
-            let right_circuit =
-                qsd_inner(&vmat, Some(opt_a1), Some(opt_a2), None, None, depth + 1)?;
+            let right_circuit = qsd_inner(
+                &vmat,
+                Some(opt_a1),
+                Some(opt_a2),
+                two_qubit_decomposer,
+                one_qubit_decomposer,
+                depth + 1,
+            )?;
             append(&mut out, right_circuit, &layout[..num_qubits - 1])?;
         }
         VWType::OnlyW => (),
@@ -808,10 +849,28 @@ pub fn qs_decomposition(
     mat: PyReadonlyArray2<Complex64>,
     opt_a1: Option<bool>,
     opt_a2: Option<bool>,
+    one_qubit_decomposer_basis_string: Option<String>,
+    two_qubit_decomposer: Option<&TwoQubitBasisDecomposer>,
 ) -> PyResult<CircuitData> {
     let array: ArrayView2<Complex64> = mat.as_array();
     let mat = DMatrix::from_fn(array.shape()[0], array.shape()[1], |i, j| array[[i, j]]);
-    let res = quantum_shannon_decomposition(&mat, opt_a1, opt_a2, None, None)?;
+    let mut one_qubit_decomposer_basis_set = EulerBasisSet::new();
+    let one_qubit_decomposer = if let Some(basis_string) = one_qubit_decomposer_basis_string {
+        let basis = basis_string
+            .parse::<EulerBasis>()
+            .map_err(|_| PyValueError::new_err(format!("Unknown basis name {}", basis_string)))?;
+        one_qubit_decomposer_basis_set.add_basis(basis);
+        Some(&one_qubit_decomposer_basis_set)
+    } else {
+        None
+    };
+    let res = quantum_shannon_decomposition(
+        &mat,
+        opt_a1,
+        opt_a2,
+        one_qubit_decomposer,
+        two_qubit_decomposer,
+    )?;
     Ok(res)
 }
 

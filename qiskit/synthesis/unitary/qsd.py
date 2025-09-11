@@ -111,8 +111,14 @@ def qs_decomposition(
     if (decomposer_1q is None or isinstance(decomposer_1q, OneQubitEulerDecomposer)) and (
         decomposer_2q is None or isinstance(decomposer_2q, TwoQubitBasisDecomposer)
     ):
+        basis_1q = None
+        if decomposer_1q is not None:
+            basis_1q = decomposer_1q.basis
+        two_q_decomp = None
+        if decomposer_2q is not None:
+            two_q_decomp = decomposer_2q._inner_decomposer
         array = np.asarray(mat, dtype=complex)
-        return QuantumCircuit._from_circuit_data(qsd.qs_decomposition(array, opt_a1, opt_a2))
+        return QuantumCircuit._from_circuit_data(qsd.qs_decomposition(array, opt_a1, opt_a2, basis_1q, two_q_decomp))
 
     #  _depth (int): Internal use parameter to track recursion depth.
     dim = mat.shape[0]
