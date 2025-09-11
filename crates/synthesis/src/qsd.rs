@@ -252,18 +252,20 @@ fn qsd_inner(
     )?;
 
     // middle circ
-    // zmat is needed in order to reduce two cz gates, and combine them into the B2 matrix
-    let mut zmat = DMatrix::<Complex64>::zeros(dim / 2, dim / 2);
-    for i in 0..dim / 2 {
-        zmat[(i, i)] = if i < dim / 4 {
-            Complex64::from(1.0)
-        } else {
-            Complex64::from(-1.0)
-        };
-    }
+
     // wmatA and vmatC are combined into B1 and B2
     let b1 = &wmat_a * &vmat_c;
     let b2 = if opt_a1_val {
+        // zmat is needed in order to reduce two cz gates, and combine them into the B2 matrix
+        let mut zmat = DMatrix::<Complex64>::zeros(dim / 2, dim / 2);
+        for i in 0..dim / 2 {
+            zmat[(i, i)] = if i < dim / 4 {
+                Complex64::ONE
+            } else {
+                -Complex64::ONE
+            };
+        }
+
         &zmat * &wmat_a * &b * &vmat_c * &zmat
     } else {
         &wmat_a * &b * &vmat_c
