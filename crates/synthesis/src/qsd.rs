@@ -219,7 +219,7 @@ fn qsd_inner(
     // this leads to a bound of 7N = 63/16*4^n - 21/2*2^n = (63x^2-168x)/16 for x=2^n
     let x: usize = 1 << num_qubits;
     let numerator = 63 * x * x - 168 * x;
-    let gates_bound = (numerator + 15) / 16;
+    let gates_bound = numerator.div_ceil(16);
 
     let mut out = CircuitData::with_capacity(num_qubits as u32, 0, gates_bound, Param::Float(0.))?;
     // perform block ZXZ decomposition from [2]
