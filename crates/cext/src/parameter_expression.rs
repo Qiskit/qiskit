@@ -805,7 +805,11 @@ pub unsafe extern "C" fn qk_param_bind(
 ) -> *mut Param {
     let expr = unsafe { const_ptr_as_ref(expr) };
     if let Param::ParameterExpression(expr) = expr {
-        let keys = unsafe { std::slice::from_raw_parts(keys, num).iter().map(|k| const_ptr_as_ref(*k)) };
+        let keys = unsafe {
+            std::slice::from_raw_parts(keys, num)
+                .iter()
+                .map(|k| const_ptr_as_ref(*k))
+        };
         let values = unsafe { std::slice::from_raw_parts(values, num) };
 
         let mut map: HashMap<Symbol, Value> = HashMap::new();
@@ -860,8 +864,16 @@ pub unsafe extern "C" fn qk_param_subs(
 ) -> *mut Param {
     let expr = unsafe { const_ptr_as_ref(expr) };
     if let Param::ParameterExpression(expr) = expr {
-        let keys = unsafe { std::slice::from_raw_parts(keys, num).iter().map(|k| const_ptr_as_ref(*k)) };
-        let subs = unsafe { std::slice::from_raw_parts(subs, num).iter().map(|s| const_ptr_as_ref(*s)) };
+        let keys = unsafe {
+            std::slice::from_raw_parts(keys, num)
+                .iter()
+                .map(|k| const_ptr_as_ref(*k))
+        };
+        let subs = unsafe {
+            std::slice::from_raw_parts(subs, num)
+                .iter()
+                .map(|s| const_ptr_as_ref(*s))
+        };
 
         let mut map: HashMap<Symbol, ParameterExpression> = HashMap::new();
         keys.zip(subs).for_each(|m| {
