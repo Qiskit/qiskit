@@ -1726,6 +1726,11 @@ impl DAGCircuit {
         Ok(PyTuple::new(py, result)?.into_any().try_iter()?.unbind())
     }
 
+    /// Return `true` if there are no operation nodes in the graph.
+    fn is_empty(&self) -> bool {
+        self.dag.node_count() == 2 * (self.qubits.len() + self.clbits.len() + self.vars.len())
+    }
+
     /// Return the number of operations.  If there is control flow present, this count may only
     /// be an estimate, as the complete control-flow path cannot be statically known.
     ///
@@ -2249,10 +2254,10 @@ impl DAGCircuit {
             node_match(n1, n2).map(|ok| ok.then_some(()))
         };
 
-        vf2::is_isomorphic(
+        vf2::is_isomorphic_with_semantics(
             &self.dag,
             &other.dag,
-            (node_match, vf2::NoSemanticMatch),
+            (node_match, vf2::NoSemantics::new()),
             true,
             vf2::Problem::Exact,
             None,
