@@ -46,7 +46,7 @@ pub unsafe extern "C" fn qk_param_new(name: *const c_char) -> *mut Param {
         ))))
     } else {
         let name = unsafe { CStr::from_ptr(name).to_str().unwrap() };
-        if name.len() == 0 {
+        if name.is_empty() {
             // if the length of a name is zero return a new QkParam with value 0 to use this one for storage of calculation result
             Box::into_raw(Box::new(Param::ParameterExpression(Arc::new(
                 ParameterExpression::from_f64(0.),
@@ -128,18 +128,18 @@ pub extern "C" fn qk_param_from_complex(value: Complex64) -> *mut Param {
     Box::into_raw(Box::new(param))
 }
 
-/// @ingroup QkParam
-/// Construct a new QkParam from rational number
-///   TODO : this function needs PR #14686
-/// @param numerator numerator of rational number
-/// @param denominator denominator of rational number
-///
-/// @return A pointer to the created QkParam.
-///
-/// # Example
-///
-///     QkParam *c = qk_param_from_rational(1, 2);
-///
+// @ingroup QkParam
+// Construct a new QkParam from rational number
+//   TODO : this function needs PR #14686
+// @param numerator numerator of rational number
+// @param denominator denominator of rational number
+//
+// @return A pointer to the created QkParam.
+//
+// # Example
+//
+//     QkParam *c = qk_param_from_rational(1, 2);
+//
 //#[no_mangle]
 //#[cfg(feature = "cbinding")]
 //pub extern "C" fn qk_param_from_rational(numerator: i64, denominator: i64) -> *mut Param {
