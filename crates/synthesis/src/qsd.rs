@@ -210,10 +210,16 @@ fn qsd_inner(
         }
     }
     let opt_a2_val = opt_a2.unwrap_or(true);
-    let out_qubits = (0..num_qubits)
-        .map(|_| ShareableQubit::new_anonymous())
-        .collect::<Vec<_>>();
-    let mut out = CircuitData::new(Some(out_qubits), None, None, 0, Param::Float(0.)).unwrap();
+    // a rough bound on the number of gates in the circuit is as follows:
+    // the number of CX gates without optimizations is N = 9/16*4^n - 3/2*2^n
+    // the number of 1-qubit unitary gates is bounded by 2N
+    // depending on the one-qubit decomposer, it means up to 6N gates for the 1-qubit unitaries
+    // this leads to a bound of 7N = 63/16*4^n - 21/2*2^n = (63x^2-168x)/16 for x=2^n
+    let x: usize = 1 << num_qubits;
+    let numerator = 63 * x * x - 168 * x;
+    let gates_bound = (numerator + 15) / 16;
+
+    let mut out = CircuitData::with_capacity(num_qubits as u32, 0, gates_bound, Param::Float(0.))?;
     // perform block ZXZ decomposition from [2]
     let (a1, a2, b, c) = block_zxz_decomp(mat);
 
