@@ -102,10 +102,8 @@ fn build_average_error_map(target: &Target) -> Option<ErrorMap> {
         // Using an undirected graph because we don't want to double-count neighbors in directed
         // graphs.  Most directed graphs likely have no reversed edges or are totally symmetric, but
         // this avoids making any assumptions.
-        let mut coupling = Graph::<(), (), Undirected>::with_capacity(
-            num_qubits,
-            error_map.error_map.len().saturating_sub(num_qubits),
-        );
+        let mut coupling =
+            Graph::<(), (), Undirected>::with_capacity(num_qubits, error_map.error_map.len());
         for _ in 0..num_qubits {
             coupling.add_node(());
         }
