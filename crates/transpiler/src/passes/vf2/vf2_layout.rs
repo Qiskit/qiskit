@@ -144,7 +144,7 @@ struct VirtualInteractions<T> {
     /// The graph of actual interactions.  Nodes each correspond to 1q operations on a single
     /// virtual qubit (the mapping `nodes` stores _which_ qubits), and edges between virtual qubits
     /// correspond to 2q operations.  Edges are always directed, even for when `strict_direction` is
-    /// unset; we handle the fuzzy directional matching bu setting the edge weights of the coupling
+    /// unset; we handle the fuzzy directional matching by setting the edge weights of the coupling
     /// graph appropriately.
     graph: Graph<T, T>,
     /// Map of node index to the qubit it represents.  We could store this on the nodes themselves,
