@@ -691,3 +691,14 @@ class TestConsolidateBlocks(QiskitTestCase):
             expected = QuantumCircuit(2)
             expected.unitary(np.asarray(RZZGate(angle)), [0, 1])
             self.assertEqual(res, expected)
+
+    def test_consolidate_with_kak_basis_gate(self):
+        """Test that ConsolidateBlocks works with a kak_basis_gate."""
+
+        kak_basis_gate = CXGate()
+        consolidate_pass = ConsolidateBlocks(kak_basis_gate=kak_basis_gate)
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        dag = circuit_to_dag(qc)
+        res = consolidate_pass.run(dag)
+        self.assertEqual(res.count_ops().get('cx', 0), 1)
