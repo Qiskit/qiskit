@@ -20,6 +20,7 @@ pub mod linear_phase;
 mod multi_controlled;
 mod permutation;
 mod qft;
+pub mod qsd;
 pub mod two_qubit_decompose;
 
 use pyo3::import_exception;

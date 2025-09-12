@@ -24,7 +24,7 @@ use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::classical::expr;
 use crate::dag_circuit::{add_global_phase, DAGStretchType, DAGVarType};
 use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
-use crate::interner::{Interned, Interner};
+use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{Operation, OperationRef, Param, PythonOperation, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
@@ -2310,6 +2310,41 @@ impl CircuitData {
         &self.qargs_interner
     }
 
+    /// Merge the `qargs` in a different [Interner] into this Circuit, remapping the qubits.
+    ///
+    /// This is useful for simplifying the direct mapping of [PackedInstruction]s from one circuit to
+    /// another, like when composing two circuits. See [Interner::merge_map_slice] for more
+    /// information on the mapping function.
+    ///
+    /// The input [InternedMap] is cleared of its previous entries by this method, and then we
+    /// re-use the allocation.
+    pub fn merge_qargs_using(
+        &mut self,
+        other: &Interner<[Qubit]>,
+        map_fn: impl FnMut(&Qubit) -> Option<Qubit>,
+        map: &mut InternedMap<[Qubit]>,
+    ) {
+        // 4 is an arbitrary guess for the amount of stack space to allocate for mapping the
+        // `qargs`, but it doesn't matter if it's too short because it'll safely spill to the heap.
+        self.qargs_interner
+            .merge_map_slice_using::<4>(other, map_fn, map);
+    }
+
+    /// Merge the `qargs` in a different [Interner] into this circuit, remapping the qubits.
+    ///
+    /// This is useful for simplifying the direct mapping of [PackedInstruction]s from one circuit to
+    /// another, like when composing two circuits. See [Interner::merge_map_slice] for more
+    /// information on the mapping function.
+    pub fn merge_qargs(
+        &mut self,
+        other: &Interner<[Qubit]>,
+        map_fn: impl FnMut(&Qubit) -> Option<Qubit>,
+    ) -> InternedMap<[Qubit]> {
+        let mut out = InternedMap::new();
+        self.merge_qargs_using(other, map_fn, &mut out);
+        out
+    }
+
     /// Returns an immutable view of the Interner used for Cargs
     pub fn cargs_interner(&self) -> &Interner<[Clbit]> {
         &self.cargs_interner
@@ -2634,9 +2669,111 @@ impl CircuitData {
         &self.data
     }
 
+    /// Consume the CircuitData and create an iterator of the [`PackedInstruction`] objects in the
+    /// circuit.
+    pub fn into_data_iter(self) -> impl Iterator<Item = PackedInstruction> {
+        self.data.into_iter()
+    }
+
     /// Returns an iterator over the stored identifiers in order of insertion
     pub fn identifiers(&self) -> impl ExactSizeIterator<Item = &CircuitIdentifierInfo> {
         self.identifier_info.values()
+    }
+
+    /// Remove the label for an instruction in the circuit
+    ///
+    /// This modifies the circuit in place and sets the label
+    /// field of an instruction to ``None``.
+    ///
+    /// # Arguments
+    ///
+    /// * index: The index of the instruction in the circuit to remove the label of.
+    pub fn invalidate_label(&mut self, index: usize) {
+        self.data[index].label = None;
+    }
+
+    /// Clone an empty CircuitData from a given reference.
+    ///
+    /// The new copy will have the global properties from the provided `CircuitData`.
+    /// The bit data fields and interners, global phase, etc will be copied to
+    /// the new returned `CircuitData`, but the `data` field's instruction list will
+    /// be empty. This can be useful for scenarios where you want to rebuild a copy
+    /// of the circuit from a reference but insert new gates in the middle.
+    ///
+    /// # Arguments
+    ///
+    /// * other - The other `CircuitData` to clone an empty `CircuitData` from.
+    /// * capacity - The capacity for instructions to use in the output `CircuitData`
+    ///   If `None` the length of `other` will be used, if `Some` the integer
+    ///   value will be used as the capacity.
+    pub fn clone_empty_like(
+        other: &Self,
+        capacity: Option<usize>,
+        vars_mode: VarsMode,
+    ) -> PyResult<Self> {
+        let mut res = CircuitData {
+            data: Vec::with_capacity(capacity.unwrap_or(other.data.len())),
+            qargs_interner: other.qargs_interner.clone(),
+            cargs_interner: other.cargs_interner.clone(),
+            qubits: other.qubits.clone(),
+            clbits: other.clbits.clone(),
+            param_table: ParameterTable::new(),
+            global_phase: Param::Float(0.0),
+            qregs: other.qregs.clone(),
+            cregs: other.cregs.clone(),
+            qubit_indices: other.qubit_indices.clone(),
+            clbit_indices: other.clbit_indices.clone(),
+            vars: ObjectRegistry::new(),
+            stretches: ObjectRegistry::new(),
+            identifier_info: IndexMap::new(),
+            vars_input: Vec::new(),
+            vars_capture: Vec::new(),
+            vars_declare: Vec::new(),
+            stretches_capture: Vec::new(),
+            stretches_declare: Vec::new(),
+        };
+        res.set_global_phase(other.global_phase.clone())?;
+        if let VarsMode::Drop = vars_mode {
+            return Ok(res);
+        }
+
+        let map_stretch_type = |type_| {
+            if let VarsMode::Captures = vars_mode {
+                CircuitStretchType::Capture
+            } else {
+                type_
+            }
+        };
+
+        let map_var_type = |type_| {
+            if let VarsMode::Captures = vars_mode {
+                CircuitVarType::Capture
+            } else {
+                type_
+            }
+        };
+
+        for info in other.identifier_info.values() {
+            match info {
+                CircuitIdentifierInfo::Stretch(CircuitStretchInfo { stretch, type_ }) => {
+                    let stretch = other
+                        .stretches
+                        .get(*stretch)
+                        .expect("Stretch not found for the specified index")
+                        .clone();
+                    res.add_stretch(stretch, map_stretch_type(*type_))?;
+                }
+                CircuitIdentifierInfo::Var(CircuitVarInfo { var, type_, .. }) => {
+                    let var = other
+                        .vars
+                        .get(*var)
+                        .expect("Var not found for the specified index")
+                        .clone();
+                    res.add_var(var, map_var_type(*type_))?;
+                }
+            }
+        }
+        Ok(res)
     }
 
     /// Append a PackedInstruction to the circuit data.
@@ -2826,6 +2963,15 @@ impl CircuitData {
         }
         .iter()
         .map(|stretch| self.stretches.get(*stretch).unwrap())
+    }
+
+    /// Return a copy of the circuit with instructions in reverse order
+    pub fn reverse(self) -> PyResult<Self> {
+        let mut out = Self::clone_empty_like(&self, Some(self.data().len()), VarsMode::Alike)?;
+        for inst in self.data().iter().rev() {
+            out.push(inst.clone())?;
+        }
+        Ok(out)
     }
 }
 
