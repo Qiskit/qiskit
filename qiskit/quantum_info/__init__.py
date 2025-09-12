@@ -71,6 +71,7 @@ Measures
 .. autofunction:: process_fidelity
 .. autofunction:: gate_error
 .. autofunction:: diamond_norm
+.. autofunction:: diamond_distance
 .. autofunction:: state_fidelity
 .. autofunction:: purity
 .. autofunction:: concurrence
@@ -146,7 +147,13 @@ from .operators import (
 )
 from .operators.channel import PTM, Chi, Choi, Kraus, Stinespring, SuperOp
 from .operators.dihedral import CNOTDihedral
-from .operators.measures import average_gate_fidelity, diamond_norm, gate_error, process_fidelity
+from .operators.measures import (
+    average_gate_fidelity,
+    diamond_norm,
+    diamond_distance,
+    gate_error,
+    process_fidelity,
+)
 from .random import (
     random_clifford,
     random_cnotdihedral,
