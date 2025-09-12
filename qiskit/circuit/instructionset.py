@@ -17,7 +17,7 @@ Instruction collection.
 from __future__ import annotations
 
 from collections.abc import MutableSequence
-from typing import Callable, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from qiskit.circuit.exceptions import CircuitError
 from .operation import Operation
@@ -30,36 +30,17 @@ if TYPE_CHECKING:
 class InstructionSet:
     """Instruction collection, and their contexts."""
 
-    __slots__ = ("_instructions", "_requester")
+    __slots__ = ("_instructions",)
 
-    def __init__(  # pylint: disable=bad-docstring-quotes
-        self,
-        *,
-        resource_requester: Callable[..., ClassicalRegister | Clbit] | None = None,
-    ):
+    def __init__(self):
         """New collection of instructions.
 
         The context (``qargs`` and ``cargs`` that each instruction is attached to) is also stored
         separately for each instruction.
-
-        Args:
-            resource_requester: A callable that takes in the classical resource used in the
-                condition, verifies that it is present in the attached circuit, resolves any indices
-                into concrete :obj:`.Clbit` instances, and returns the concrete resource.  If this
-                is not given, specifying a condition with an index is forbidden, and all concrete
-                :obj:`.Clbit` and :obj:`.ClassicalRegister` resources will be assumed to be valid.
-
-                .. note::
-
-                    The callback ``resource_requester`` assumes that a call implies that the
-                    resource will now be used.  It may throw an error if the resource is not valid
-                    for usage.
-
         """
         self._instructions: list[
             CircuitInstruction | (MutableSequence[CircuitInstruction], int)
         ] = []
-        self._requester = resource_requester
 
     def __len__(self):
         """Return number of instructions in set"""
