@@ -24,6 +24,7 @@ num-bigint.workspace = true
 itertools.workspace = true
 qiskit-circuit.workspace = true
 qiskit-transpiler.workspace = true
+qiskit-quantum-info.workspace = true
 nalgebra.workspace = true
 
 [dependencies.smallvec]

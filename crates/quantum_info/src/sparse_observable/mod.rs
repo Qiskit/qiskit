@@ -369,7 +369,7 @@ pub struct SparseObservable {
     /// The number of qubits the operator acts on.  This is not inferable from any other shape or
     /// values, since identities are not stored explicitly.
     num_qubits: u32,
-    /// The coefficients of each abstract term in in the sum.  This has as many elements as terms in
+    /// The coefficients of each abstract term in the sum.  This has as many elements as terms in
     /// the sum.
     coeffs: Vec<Complex64>,
     /// A flat list of single-qubit terms.  This is more naturally a list of lists, but is stored
@@ -2413,6 +2413,7 @@ pub struct PySparseObservable {
     // This class keeps a pointer to a pure Rust-SparseTerm and serves as interface from Python.
     inner: Arc<RwLock<SparseObservable>>,
 }
+
 #[pymethods]
 impl PySparseObservable {
     #[pyo3(signature = (data, /, num_qubits=None))]
@@ -2495,6 +2496,12 @@ impl PySparseObservable {
     fn copy(&self) -> PyResult<Self> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         Ok(inner.clone().into())
+    }
+
+    /// Get a clone of inner SparseObservable data
+    pub fn get(&self) -> PyResult<SparseObservable> {
+        let data = self.inner.read().map_err(|_| InnerReadError)?;
+        Ok(data.clone())
     }
 
     /// The number of qubits the operator acts on.
