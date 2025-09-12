@@ -26,7 +26,7 @@ use pyo3::{
     exceptions::{PyRuntimeError, PyTypeError, PyValueError, PyZeroDivisionError},
     intern,
     prelude::*,
-    sync::GILOnceCell,
+    sync::PyOnceLock,
     types::{IntoPyDict, PyList, PyString, PyTuple, PyType},
     IntoPyObjectExt, PyErr,
 };
@@ -47,8 +47,8 @@ static PAULI_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "
 static PAULI_LIST_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "PauliList");
 static SPARSE_PAULI_OP_TYPE: ImportOnceCell =
     ImportOnceCell::new("qiskit.quantum_info", "SparsePauliOp");
-static BIT_TERM_PY_ENUM: GILOnceCell<Py<PyType>> = GILOnceCell::new();
-static BIT_TERM_INTO_PY: GILOnceCell<[Option<Py<PyAny>>; 16]> = GILOnceCell::new();
+static BIT_TERM_PY_ENUM: PyOnceLock<Py<PyType>> = PyOnceLock::new();
+static BIT_TERM_INTO_PY: PyOnceLock<[Option<Py<PyAny>>; 16]> = PyOnceLock::new();
 
 /// Named handle to the alphabet of single-qubit terms.
 ///
