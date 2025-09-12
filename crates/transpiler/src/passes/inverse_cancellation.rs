@@ -22,7 +22,7 @@ use qiskit_circuit::operations::{Operation, OperationRef, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 
 fn gate_eq(gate_a: &PackedInstruction, gate_b: &OperationFromPython) -> PyResult<bool> {
-    if gate_a.op.name() != gate_b.operation.name() {
+    if gate_a.op().name() != gate_b.operation.name() {
         return Ok(false);
     }
     let a_params = gate_a.params_view();
@@ -191,7 +191,7 @@ fn std_self_inverse(dag: &mut DAGCircuit) {
             continue;
         }
         let filter = |inst: &PackedInstruction| -> bool {
-            match inst.op.view() {
+            match inst.op().view() {
                 OperationRef::StandardGate(gate) => gate == self_inv_gate,
                 _ => false,
             }
@@ -246,7 +246,7 @@ fn std_inverse_pairs(dag: &mut DAGCircuit) {
             continue;
         }
         let filter = |inst: &PackedInstruction| -> bool {
-            match inst.op.view() {
+            match inst.op().view() {
                 OperationRef::StandardGate(gate) => gate == gate_0 || gate == gate_1,
                 _ => false,
             }
@@ -262,10 +262,10 @@ fn std_inverse_pairs(dag: &mut DAGCircuit) {
                     unreachable!("Not an op node");
                 };
                 if inst.qubits == next_inst.qubits
-                    && (inst.op.try_standard_gate() == Some(gate_0)
-                        && next_inst.op.try_standard_gate() == Some(gate_1))
-                    || (inst.op.try_standard_gate() == Some(gate_1)
-                        && next_inst.op.try_standard_gate() == Some(gate_0))
+                    && (inst.op().try_standard_gate() == Some(gate_0)
+                        && next_inst.op().try_standard_gate() == Some(gate_1))
+                    || (inst.op().try_standard_gate() == Some(gate_1)
+                        && next_inst.op().try_standard_gate() == Some(gate_0))
                 {
                     dag.remove_op_node(nodes[i]);
                     dag.remove_op_node(nodes[i + 1]);

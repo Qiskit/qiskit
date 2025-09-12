@@ -48,18 +48,20 @@ pub fn run_unroll_3q_or_more(
         .op_nodes(false)
         .filter_map(
             |(idx, inst)| -> Option<Result<(NodeIndex, DAGCircuit), Unroll3qError>> {
-                if inst.op.num_qubits() < 3 || inst.op.control_flow() {
+                if inst.op().num_qubits() < 3 || inst.op().control_flow() {
                     return None;
                 }
                 if let Some(target) = target {
-                    if target.contains_key(inst.op.name()) {
+                    if target.contains_key(inst.op().name()) {
                         return None;
                     }
                 }
-                let definition = match inst.op.definition(inst.params_view()) {
+                let definition = match inst.op().definition(inst.params_view()) {
                     Some(def) => def,
                     None => {
-                        return Some(Err(Unroll3qError::NoDefinition(inst.op.name().to_string())))
+                        return Some(Err(Unroll3qError::NoDefinition(
+                            inst.op().name().to_string(),
+                        )))
                     }
                 };
                 let mut decomp_dag =

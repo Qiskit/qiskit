@@ -228,10 +228,13 @@ fn extract_basis(circuit: &DAGCircuit, min_qubits: usize) -> AhashIndexSet<GateI
     ) {
         for (_node, operation) in circuit.op_nodes(true) {
             if circuit.get_qargs(operation.qubits).len() >= min_qubits {
-                basis.insert((operation.op.name().to_string(), operation.op.num_qubits()));
+                basis.insert((
+                    operation.op().name().to_string(),
+                    operation.op().num_qubits(),
+                ));
             }
-            if operation.op.control_flow() {
-                for block in operation.op.blocks() {
+            if operation.op().control_flow() {
+                for block in operation.op().blocks() {
                     recurse_circuit(&block, basis, min_qubits);
                 }
             }
@@ -246,10 +249,10 @@ fn extract_basis(circuit: &DAGCircuit, min_qubits: usize) -> AhashIndexSet<GateI
     ) {
         for inst in circuit.iter() {
             if circuit.get_qargs(inst.qubits).len() >= min_qubits {
-                basis.insert((inst.op.name().to_string(), inst.op.num_qubits()));
+                basis.insert((inst.op().name().to_string(), inst.op().num_qubits()));
             }
-            if inst.op.control_flow() {
-                for block in inst.op.blocks() {
+            if inst.op().control_flow() {
+                for block in inst.op().blocks() {
                     recurse_circuit(&block, basis, min_qubits);
                 }
             }
@@ -309,17 +312,17 @@ fn extract_basis_target(
             qargs_local_source_basis
                 .entry(qargs_from_set)
                 .and_modify(|set| {
-                    set.insert((node_obj.op.name().to_string(), node_obj.op.num_qubits()));
+                    set.insert((node_obj.op().name().to_string(), node_obj.op().num_qubits()));
                 })
                 .or_insert(AhashIndexSet::from_iter([(
-                    node_obj.op.name().to_string(),
-                    node_obj.op.num_qubits(),
+                    node_obj.op().name().to_string(),
+                    node_obj.op().num_qubits(),
                 )]));
         } else {
-            source_basis.insert((node_obj.op.name().to_string(), node_obj.op.num_qubits()));
+            source_basis.insert((node_obj.op().name().to_string(), node_obj.op().num_qubits()));
         }
-        if node_obj.op.control_flow() {
-            for block in node_obj.op.blocks() {
+        if node_obj.op().control_flow() {
+            for block in node_obj.op().blocks() {
                 extract_basis_target_circ(
                     &block,
                     source_basis,
@@ -378,17 +381,17 @@ fn extract_basis_target_circ(
             qargs_local_source_basis
                 .entry(qargs_from_set)
                 .and_modify(|set| {
-                    set.insert((node_obj.op.name().to_string(), node_obj.op.num_qubits()));
+                    set.insert((node_obj.op().name().to_string(), node_obj.op().num_qubits()));
                 })
                 .or_insert(AhashIndexSet::from_iter([(
-                    node_obj.op.name().to_string(),
-                    node_obj.op.num_qubits(),
+                    node_obj.op().name().to_string(),
+                    node_obj.op().num_qubits(),
                 )]));
         } else {
-            source_basis.insert((node_obj.op.name().to_string(), node_obj.op.num_qubits()));
+            source_basis.insert((node_obj.op().name().to_string(), node_obj.op().num_qubits()));
         }
-        if node_obj.op.control_flow() {
-            for block in node_obj.op.blocks() {
+        if node_obj.op().control_flow() {
+            for block in node_obj.op().blocks() {
                 extract_basis_target_circ(
                     &block,
                     source_basis,
@@ -422,18 +425,18 @@ fn apply_translation(
         let node_carg = dag.get_cargs(node_obj.clbits);
         let qubit_set: AhashIndexSet<Qubit> = AhashIndexSet::from_iter(node_qarg.iter().copied());
         let mut new_op: Option<OperationFromPython> = None;
-        if target_basis.contains(node_obj.op.name()) || node_qarg.len() < min_qubits {
-            if node_obj.op.control_flow() {
+        if target_basis.contains(node_obj.op().name()) || node_qarg.len() < min_qubits {
+            if node_obj.op().control_flow() {
                 Python::with_gil(|py| -> PyResult<()> {
                     // This part is only executed through python because `ControlFlowOp`
                     // does not exist in Rust space yet, and we need the method `replace_blocks`.
                     // TODO: Refactor this condition block once https://github.com/Qiskit/qiskit/pull/14568 merges.
-                    let OperationRef::Instruction(control_op) = node_obj.op.view() else {
-                        unreachable!("This instruction {} says it is of control flow type, but is not an Instruction instance", node_obj.op.name())
+                    let OperationRef::Instruction(control_op) = node_obj.op().view() else {
+                        unreachable!("This instruction {} says it is of control flow type, but is not an Instruction instance", node_obj.op().name())
                     };
                     let mut flow_blocks = vec![];
                     let bound_obj = control_op.instruction.bind(py);
-                    for block in node_obj.op.blocks() {
+                    for block in node_obj.op().blocks() {
                         let dag_block: DAGCircuit = DAGCircuit::from_circuit_data(&block, true, None, None, None, None)?;
                         let updated_dag: DAGCircuit;
                         (updated_dag, is_updated) = apply_translation(
@@ -480,11 +483,11 @@ fn apply_translation(
             } else {
                 out_dag_builder
                     .apply_operation_back(
-                        node_obj.op.clone(),
+                        node_obj.op().clone(),
                         node_qarg,
                         node_carg,
-                        node_obj.params.as_ref().map(|x| *x.clone()),
-                        node_obj.label.as_deref().cloned(),
+                        node_obj.params_raw().cloned(),
+                        node_obj.label().map(|label| label.to_string()),
                         #[cfg(feature = "cache_pygates")]
                         None,
                     )
@@ -498,15 +501,16 @@ fn apply_translation(
         }
         let node_qarg_as_physical: Qargs = node_qarg.iter().map(|x| PhysicalQubit(x.0)).collect();
         if qargs_with_non_global_operation.contains_key(&node_qarg_as_physical)
-            && qargs_with_non_global_operation[&node_qarg_as_physical].contains(node_obj.op.name())
+            && qargs_with_non_global_operation[&node_qarg_as_physical]
+                .contains(node_obj.op().name())
         {
             out_dag_builder
                 .apply_operation_back(
-                    node_obj.op.clone(),
+                    node_obj.op().clone(),
                     node_qarg,
                     node_carg,
-                    node_obj.params.as_ref().map(|x| *x.clone()),
-                    node_obj.label.as_deref().cloned(),
+                    node_obj.params_raw().cloned(),
+                    node_obj.label().map(|label| label.to_string()),
                     #[cfg(feature = "cache_pygates")]
                     None,
                 )
@@ -526,12 +530,12 @@ fn apply_translation(
                 &extra_inst_map[&unique_qargs],
             )?;
         } else if instr_map
-            .contains_key(&(node_obj.op.name().to_string(), node_obj.op.num_qubits()))
+            .contains_key(&(node_obj.op().name().to_string(), node_obj.op().num_qubits()))
         {
             replace_node(&mut out_dag_builder, node_obj.clone(), instr_map)?;
         } else {
             return Err(BasisTranslatorError::ApplyTranslationMappingError(
-                node_obj.op.name().to_string(),
+                node_obj.op().name().to_string(),
             ));
         }
         is_updated = true;
@@ -552,11 +556,11 @@ fn replace_node(
             || matches!(op.view(), OperationRef::Unitary(_))
     };
     let (target_params, target_dag) =
-        &instr_map[&(node.op.name().to_string(), node.op.num_qubits())];
+        &instr_map[&(node.op().name().to_string(), node.op().num_qubits())];
     if node.params_view().len() != target_params.len() {
         return Err(BasisTranslatorError::ReplaceNodeParamMismatch {
             node_params: format!("{:?}", node.params_view()),
-            node_name: node.op.name().to_string(),
+            node_name: node.op().name().to_string(),
             target_params: format!("{:?}", target_params),
             target_dag: format!("{:?}", target_dag),
         });
@@ -580,7 +584,7 @@ fn replace_node(
                 .iter()
                 .map(|clbit| old_cargs[clbit.0 as usize])
                 .collect();
-            let new_op: PackedOperation = match inner_node.op.view() {
+            let new_op: PackedOperation = match inner_node.op().view() {
                 OperationRef::Gate(gate) => {
                     Python::with_gil(|py| gate.py_copy(py).map(|op| op.into()))
                         .expect("Error while copying gate instance.")
@@ -608,7 +612,7 @@ fn replace_node(
                 } else {
                     Some(new_params)
                 },
-                node.label.as_deref().cloned(),
+                node.label().map(|label| label.to_string()),
                 #[cfg(feature = "cache_pygates")]
                 None,
             )
@@ -655,7 +659,7 @@ fn replace_node(
                 .iter()
                 .map(|clbit| old_cargs[clbit.0 as usize])
                 .collect();
-            let new_op: PackedOperation = match inner_node.op.view() {
+            let new_op: PackedOperation = match inner_node.op().view() {
                 OperationRef::Gate(gate) => Python::with_gil(|py| {
                     gate.py_copy(py).map(|op| op.into())
                 })
@@ -733,7 +737,7 @@ fn replace_node(
                 } else {
                     Some(new_params)
                 },
-                inner_node.label.as_deref().cloned(),
+                inner_node.label().map(|label| label.to_string()),
                 #[cfg(feature = "cache_pygates")]
                 None,
             )

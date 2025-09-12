@@ -207,7 +207,7 @@ fn py_run_consolidate_blocks(
             if !is_supported(
                 target,
                 basis_gates.as_ref(),
-                inst.op.name(),
+                inst.op().name(),
                 dag.get_qargs(inst.qubits),
             ) {
                 all_block_gates.insert(inst_node);
@@ -235,13 +235,13 @@ fn py_run_consolidate_blocks(
             let inst = dag[*node].unwrap_operation();
             block_qargs.extend(dag.get_qargs(inst.qubits));
             all_block_gates.insert(*node);
-            if inst.op.name() == basis_gate_name {
+            if inst.op().name() == basis_gate_name {
                 basis_count += 1;
             }
             if !is_supported(
                 target,
                 basis_gates.as_ref(),
-                inst.op.name(),
+                inst.op().name(),
                 dag.get_qargs(inst.qubits),
             ) {
                 outside_basis = true;
@@ -262,7 +262,7 @@ fn py_run_consolidate_blocks(
                     let inst = dag[*node].unwrap_operation();
 
                     Ok((
-                        inst.op.clone(),
+                        inst.op().clone(),
                         inst.params_view().iter().cloned().collect(),
                         dag.get_qargs(inst.qubits)
                             .iter()
@@ -371,7 +371,7 @@ fn py_run_consolidate_blocks(
                 && !is_supported(
                     target,
                     basis_gates.as_ref(),
-                    first_inst.op.name(),
+                    first_inst.op().name(),
                     first_qubits,
                 )
             {

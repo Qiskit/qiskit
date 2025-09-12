@@ -357,9 +357,9 @@ fn build_interaction_graph<Ty: EdgeType>(
     reverse_im_graph_node_map: &mut [Option<Qubit>],
 ) -> PyResult<()> {
     for (_index, inst) in dag.op_nodes(false) {
-        if inst.op.control_flow() {
+        if inst.op().control_flow() {
             Python::with_gil(|py| -> PyResult<_> {
-                let OperationRef::Instruction(py_inst) = inst.op.view() else {
+                let OperationRef::Instruction(py_inst) = inst.op().view() else {
                     unreachable!("Control flow must be a python instruction");
                 };
                 let raw_blocks = py_inst.instruction.getattr(py, "blocks").unwrap();
@@ -368,7 +368,7 @@ fn build_interaction_graph<Ty: EdgeType>(
                     let mut inner_wire_map = vec![Qubit(u32::MAX); wire_map.len()];
                     let node_qargs = dag.get_qargs(inst.qubits);
 
-                    for (outer, inner) in node_qargs.iter().zip(0..inst.op.num_qubits()) {
+                    for (outer, inner) in node_qargs.iter().zip(0..inst.op().num_qubits()) {
                         inner_wire_map[inner as usize] = wire_map[outer.index()]
                     }
                     let block_dag = circuit_to_dag(block.extract()?, false, None, None)?;
@@ -384,7 +384,7 @@ fn build_interaction_graph<Ty: EdgeType>(
             })?;
             continue;
         }
-        let len_args = inst.op.num_qubits();
+        let len_args = inst.op().num_qubits();
         if len_args == 1 {
             let dag_qubits = dag.get_qargs(inst.qubits);
             let qargs = wire_map[dag_qubits[0].index()];
@@ -463,11 +463,11 @@ fn separate_dag(dag: &mut DAGCircuit) -> PyResult<Vec<DAGCircuit>> {
                     let mapped_clbits: Vec<Clbit> =
                         new_dag.cargs_interner().get(node.clbits).to_vec();
                     new_dag.apply_operation_back(
-                        node.op.clone(),
+                        node.op().clone(),
                         &mapped_qubits,
                         &mapped_clbits,
-                        node.params.as_ref().map(|x| *x.clone()),
-                        node.label.as_ref().map(|x| *x.clone()),
+                        node.params_raw().cloned(),
+                        node.label().map(|x| x.to_string()),
                         #[cfg(feature = "cache_pygates")]
                         None,
                     )?;
@@ -501,9 +501,9 @@ pub fn combine_barriers(dag: &mut DAGCircuit, retain_uuid: bool) -> PyResult<()>
     let barrier_nodes: Vec<NodeIndex> = dag
         .op_nodes(true)
         .filter_map(|(index, inst)| {
-            if let OperationRef::StandardInstruction(op) = inst.op.view() {
+            if let OperationRef::StandardInstruction(op) = inst.op().view() {
                 if matches!(op, StandardInstruction::Barrier(_)) {
-                    if let Some(label) = inst.label.as_ref() {
+                    if let Some(label) = inst.label() {
                         if label.contains("_uuid=") {
                             return Some(index);
                         }
@@ -514,11 +514,16 @@ pub fn combine_barriers(dag: &mut DAGCircuit, retain_uuid: bool) -> PyResult<()>
         })
         .collect();
     for node_index in barrier_nodes {
-        let num_qubits = dag[node_index].unwrap_operation().op.num_qubits();
-        let label = dag[node_index].unwrap_operation().label.clone().unwrap();
-        match uuid_map.get(label.as_str()) {
+        let num_qubits = dag[node_index].unwrap_operation().op().num_qubits();
+        let label = dag[node_index]
+            .unwrap_operation()
+            .label()
+            .unwrap()
+            .to_string();
+        match uuid_map.get(&label) {
             Some(other_index) => {
-                let num_qubits = dag[*other_index].unwrap_operation().op.num_qubits() + num_qubits;
+                let num_qubits =
+                    dag[*other_index].unwrap_operation().op().num_qubits() + num_qubits;
                 let new_label = if retain_uuid {
                     Some(label.to_string())
                 } else if label.starts_with("_none_uuid=") {
@@ -540,10 +545,10 @@ pub fn combine_barriers(dag: &mut DAGCircuit, retain_uuid: bool) -> PyResult<()>
                     &HashMap::new(),
                     &HashMap::new(),
                 )?;
-                uuid_map.insert(*label, new_node);
+                uuid_map.insert(label, new_node);
             }
             None => {
-                uuid_map.insert(*label, node_index);
+                uuid_map.insert(label, node_index);
             }
         }
     }
@@ -553,14 +558,14 @@ pub fn combine_barriers(dag: &mut DAGCircuit, retain_uuid: bool) -> PyResult<()>
 fn split_barriers(dag: &mut DAGCircuit) -> PyResult<()> {
     for (_index, inst) in dag.op_nodes(true) {
         let OperationRef::StandardInstruction(StandardInstruction::Barrier(num_qubits)) =
-            inst.op.view()
+            inst.op().view()
         else {
             continue;
         };
         if num_qubits == 1 {
             continue;
         }
-        let barrier_uuid = match &inst.label {
+        let barrier_uuid = match &inst.label() {
             Some(label) => format!("{}_uuid={}", label, Uuid::new_v4()),
             None => format!("_none_uuid={}", Uuid::new_v4()),
         };

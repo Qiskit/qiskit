@@ -540,8 +540,8 @@ mod tests {
                 Err(e) => panic!("Error: {}", e.backtrace()),
             };
             for inst in result.0.data() {
-                if inst.op.num_qubits() == 2 {
-                    assert_eq!("ecr", inst.op.name());
+                if inst.op().num_qubits() == 2 {
+                    assert_eq!("ecr", inst.op().name());
                     target.contains_qargs(
                         &result
                             .0
@@ -550,10 +550,10 @@ mod tests {
                             .map(|x| PhysicalQubit(x.0))
                             .collect::<Vec<_>>(),
                     );
-                } else if inst.op.num_clbits() == 1 {
-                    assert_eq!("measure", inst.op.name());
+                } else if inst.op().num_clbits() == 1 {
+                    assert_eq!("measure", inst.op().name());
                 } else {
-                    assert_eq!("u", inst.op.name());
+                    assert_eq!("u", inst.op().name());
                 }
             }
             assert!(result.1.output_permutation().is_none());
@@ -656,8 +656,8 @@ mod tests {
                 Err(e) => panic!("Error: {}", e.backtrace()),
             };
             for inst in result.0.data() {
-                if inst.op.num_qubits() == 2 {
-                    assert_eq!("ecr", inst.op.name());
+                if inst.op().num_qubits() == 2 {
+                    assert_eq!("ecr", inst.op().name());
                     target.contains_qargs(
                         &result
                             .0
@@ -666,10 +666,10 @@ mod tests {
                             .map(|x| PhysicalQubit(x.0))
                             .collect::<Vec<_>>(),
                     );
-                } else if inst.op.num_clbits() == 1 {
-                    assert_eq!("measure", inst.op.name());
+                } else if inst.op().num_clbits() == 1 {
+                    assert_eq!("measure", inst.op().name());
                 } else {
-                    assert_eq!("u", inst.op.name());
+                    assert_eq!("u", inst.op().name());
                 }
             }
             assert!(result.1.output_permutation().is_some());

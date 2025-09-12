@@ -213,7 +213,7 @@ impl CircuitDataForSynthesis for CircuitData {
                 .collect();
 
             self.push_packed_operation(
-                inst.op.clone(),
+                inst.op().clone(),
                 inst.params_view(),
                 &remapped_qubits,
                 &remapped_clbits,
@@ -236,7 +236,8 @@ impl CircuitDataForSynthesis for CircuitData {
         for i in 0..data.len() {
             let inst = &data[data.len() - 1 - i];
 
-            let inverse_inst: Option<(StandardGate, SmallVec<[Param; 3]>)> = match &inst.op.view() {
+            let inverse_inst: Option<(StandardGate, SmallVec<[Param; 3]>)> = match &inst.op().view()
+            {
                 OperationRef::StandardGate(gate) => gate.inverse(inst.params_view()),
                 _ => None,
             };
@@ -244,7 +245,7 @@ impl CircuitDataForSynthesis for CircuitData {
             if inverse_inst.is_none() {
                 return Err(CircuitError::new_err(format!(
                     "The circuit cannot be inverted: {} is not a standard gate.",
-                    inst.op.name()
+                    inst.op().name()
                 )));
             }
 

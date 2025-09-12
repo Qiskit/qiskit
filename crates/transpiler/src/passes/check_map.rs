@@ -48,8 +48,8 @@ fn recurse(
 
     for (_node, inst) in dag.op_nodes(false) {
         let qubits = dag.get_qargs(inst.qubits);
-        if inst.op.control_flow() {
-            if let OperationRef::Instruction(py_inst) = inst.op.view() {
+        if inst.op().control_flow() {
+            if let OperationRef::Instruction(py_inst) = inst.op().view() {
                 let raw_blocks = py_inst.instruction.getattr(py, "blocks")?;
                 let circuit_to_dag = CIRCUIT_TO_DAG.get_bound(py);
                 for raw_block in raw_blocks.bind(py).try_iter()? {
@@ -77,7 +77,7 @@ fn recurse(
             }
         } else if qubits.len() == 2 && !check_qubits(qubits) {
             return Ok(Some((
-                inst.op.name().to_string(),
+                inst.op().name().to_string(),
                 [qubits[0].0, qubits[1].0],
             )));
         }
@@ -106,7 +106,7 @@ pub fn run_check_map<'a>(
     target: &Target,
 ) -> Option<(&'a str, [PhysicalQubit; 2])> {
     dag.op_nodes(false)
-        .filter(|(_idx, inst)| inst.op.num_qubits() == 2)
+        .filter(|(_idx, inst)| inst.op().num_qubits() == 2)
         .find_map(|(_idx, inst)| {
             let qargs_raw = dag.get_qargs(inst.qubits);
             let qargs = [
@@ -114,7 +114,7 @@ pub fn run_check_map<'a>(
                 PhysicalQubit::new(qargs_raw[1].0),
             ];
             if !target.contains_qargs(&qargs) && !target.contains_qargs(&[qargs[1], qargs[0]]) {
-                Some((inst.op.name(), [qargs[0], qargs[1]]))
+                Some((inst.op().name(), [qargs[0], qargs[1]]))
             } else {
                 None
             }

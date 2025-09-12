@@ -32,13 +32,13 @@ use crate::QiskitError;
 
 #[inline]
 pub fn get_matrix_from_inst(inst: &PackedInstruction) -> PyResult<Array2<Complex64>> {
-    if let Some(mat) = inst.op.matrix(inst.params_view()) {
+    if let Some(mat) = inst.op().matrix(inst.params_view()) {
         Ok(mat)
-    } else if inst.op.try_standard_gate().is_some() {
+    } else if inst.op().try_standard_gate().is_some() {
         Err(QiskitError::new_err(
             "Parameterized gates can't be consolidated",
         ))
-    } else if let OperationRef::Gate(gate) = inst.op.view() {
+    } else if let OperationRef::Gate(gate) = inst.op().view() {
         // If the operation is a custom python gate, we will acquire the gil
         // and use an Operator. Otherwise, using op.matrix() should work.
         // A user should not be able to reach this condition in Rust standalone
@@ -115,7 +115,7 @@ impl Separable1q {
 /// Extract a versor representation of an arbitrary 1q DAG instruction.
 fn versor_from_1q_gate(inst: &PackedInstruction) -> PyResult<VersorU2> {
     let tol = 1e-12;
-    match inst.op.view() {
+    match inst.op().view() {
         OperationRef::StandardGate(gate) => VersorU2::from_standard(gate, inst.params_view()),
         OperationRef::Unitary(gate) => match &gate.array {
             ArrayType::NDArray(arr) => Ok(VersorU2::from_ndarray_unchecked(&arr.view())),

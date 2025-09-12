@@ -42,7 +42,7 @@ pub fn run_split_2q_unitaries(
             // We only attempt to split UnitaryGate objects, but this could be extended in future
             // -- however we need to ensure that we can compile the resulting single-qubit unitaries
             // to the supported basis gate set.
-            let OperationRef::Unitary(unitary_gate) = inst.op.view() else {
+            let OperationRef::Unitary(unitary_gate) = inst.op().view() else {
                 continue;
             };
             if unitary_gate.num_qubits() != 2 {
@@ -105,7 +105,7 @@ pub fn run_split_2q_unitaries(
         let NodeType::Operation(inst) = &dag.dag()[node] else {
             unreachable!("Op nodes contain a non-operation");
         };
-        if let OperationRef::Unitary(unitary_gate) = inst.op.view() {
+        if let OperationRef::Unitary(unitary_gate) = inst.op().view() {
             if unitary_gate.num_qubits() == 2 {
                 let decomp = TwoQubitWeylDecomposition::new_inner(
                     unitary_gate.matrix_view(),
@@ -169,13 +169,13 @@ pub fn run_split_2q_unitaries(
             .collect();
 
         new_dag.apply_operation_back(
-            inst.op.clone(),
+            inst.op().clone(),
             &mapped_qargs,
             cargs,
-            inst.params.as_deref().cloned(),
-            inst.label.as_ref().map(|x| x.to_string()),
+            inst.params_raw().cloned(),
+            inst.label().map(|label| label.to_string()),
             #[cfg(feature = "cache_pygates")]
-            inst.py_op.get().map(|x| x.clone()),
+            inst.py_op().get().map(|x| x.clone()),
         )?;
     }
     Ok(Some((new_dag.build(), mapping)))

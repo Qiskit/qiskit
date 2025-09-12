@@ -144,9 +144,9 @@ fn build_interaction_graph<Ty: EdgeType>(
     reverse_im_graph_node_map: &mut [Option<Qubit>],
 ) -> PyResult<()> {
     for (_index, inst) in dag.op_nodes(false) {
-        if inst.op.control_flow() {
+        if inst.op().control_flow() {
             Python::with_gil(|py| -> PyResult<_> {
-                let inner_weight = if inst.op.name() == "for_loop" {
+                let inner_weight = if inst.op().name() == "for_loop" {
                     let Param::Obj(ref indexset) = inst.params_view()[0] else {
                         unreachable!("Invalid for loop definition");
                     };
@@ -154,7 +154,7 @@ fn build_interaction_graph<Ty: EdgeType>(
                 } else {
                     weight
                 };
-                let OperationRef::Instruction(py_inst) = inst.op.view() else {
+                let OperationRef::Instruction(py_inst) = inst.op().view() else {
                     unreachable!("Control flow must be a python instruction");
                 };
                 let raw_blocks = py_inst.instruction.getattr(py, "blocks").unwrap();
@@ -163,7 +163,7 @@ fn build_interaction_graph<Ty: EdgeType>(
                     let mut inner_wire_map = vec![Qubit(u32::MAX); wire_map.len()];
                     let node_qargs = dag.get_qargs(inst.qubits);
 
-                    for (outer, inner) in node_qargs.iter().zip(0..inst.op.num_qubits()) {
+                    for (outer, inner) in node_qargs.iter().zip(0..inst.op().num_qubits()) {
                         inner_wire_map[inner as usize] = wire_map[outer.index()]
                     }
                     let block_dag = circuit_to_dag(block.extract()?, false, None, None)?;
@@ -180,14 +180,14 @@ fn build_interaction_graph<Ty: EdgeType>(
             })?;
             continue;
         }
-        let len_args = inst.op.num_qubits();
+        let len_args = inst.op().num_qubits();
         if len_args == 1 {
             let dag_qubits = dag.get_qargs(inst.qubits);
             let qargs = wire_map[dag_qubits[0].index()];
             match im_graph_node_map[qargs.index()] {
                 None => {
                     let mut weights = HashMap::with_capacity(1);
-                    weights.insert(inst.op.name().into(), weight);
+                    weights.insert(inst.op().name().into(), weight);
                     let new_index = im_graph.add_node(weights);
                     im_graph_node_map[qargs.index()] = Some(new_index);
                     reverse_im_graph_node_map[new_index.index()] = Some(qargs);
@@ -196,7 +196,7 @@ fn build_interaction_graph<Ty: EdgeType>(
                     let weights: &mut HashMap<String, usize> =
                         im_graph.node_weight_mut(node_index).unwrap();
                     weights
-                        .entry(inst.op.name().into())
+                        .entry(inst.op().name().into())
                         .and_modify(|gate_weight| *gate_weight += weight)
                         .or_insert(weight);
                 }
@@ -229,13 +229,13 @@ fn build_interaction_graph<Ty: EdgeType>(
                     let weights: &mut HashMap<String, usize> =
                         im_graph.edge_weight_mut(edge_index).unwrap();
                     weights
-                        .entry(inst.op.name().into())
+                        .entry(inst.op().name().into())
                         .and_modify(|gate_weight| *gate_weight += weight)
                         .or_insert(weight);
                 }
                 None => {
                     let mut weights = HashMap::with_capacity(1);
-                    weights.insert(inst.op.name().into(), weight);
+                    weights.insert(inst.op().name().into(), weight);
                     im_graph.add_edge(
                         im_graph_node_map[qargs[0].index()].unwrap(),
                         im_graph_node_map[qargs[1].index()].unwrap(),

@@ -120,7 +120,7 @@ pub fn run_litinski_transformation(
     let mut clifford_ops: Vec<PackedInstruction> = Vec::new();
     for node_index in dag.topological_op_nodes()? {
         if let NodeType::Operation(inst) = &dag[node_index] {
-            let (name, angle, phase_update) = match inst.op.view() {
+            let (name, angle, phase_update) = match inst.op().view() {
                 OperationRef::StandardGate(StandardGate::T) => {
                     ("rz", Some(Param::Float(PI / 8.)), PI / 8.)
                 }
@@ -131,7 +131,7 @@ pub fn run_litinski_transformation(
                     let param = &inst.params_view()[0];
                     ("rz", Some(multiply_param(param, 0.5)), 0.)
                 }
-                _ => (inst.op.name(), None, 0.),
+                _ => (inst.op().name(), None, 0.),
             };
 
             global_phase_update += phase_update;
@@ -204,13 +204,13 @@ pub fn run_litinski_transformation(
     if fix_clifford {
         for inst in clifford_ops {
             new_dag.apply_operation_back(
-                inst.op,
+                inst.op().clone(),
                 dag.get_qargs(inst.qubits),
                 dag.get_cargs(inst.clbits),
-                inst.params.as_deref().cloned(),
-                inst.label.as_ref().map(|x| x.as_ref().clone()),
+                inst.params_raw().cloned(),
+                inst.label().map(|x| x.to_string()),
                 #[cfg(feature = "cache_pygates")]
-                inst.py_op.get().map(|x| x.clone_ref(py)),
+                inst.py_op().get().map(|x| x.clone_ref(py)),
             )?;
         }
     }

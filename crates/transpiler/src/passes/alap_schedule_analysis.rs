@@ -105,7 +105,7 @@ pub fn run_alap_schedule_analysis<T: TimeOps>(
             .get(&node_index)
             .ok_or_else(|| TranspilerError::new_err("No duration for node"))?;
 
-        let op_view = op.op.view();
+        let op_view = op.op().view();
         let is_gate_or_delay = matches!(
             op_view,
             OperationRef::Gate(_)

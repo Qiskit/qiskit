@@ -48,16 +48,19 @@ pub fn sim_unitary_circuit(circuit: &CircuitData) -> Result<Array2<Complex64>, S
         }
 
         // Ignore barriers
-        if let OperationRef::StandardInstruction(StandardInstruction::Barrier(_)) = inst.op.view() {
+        if let OperationRef::StandardInstruction(StandardInstruction::Barrier(_)) = inst.op().view()
+        {
             continue;
         }
 
         let qubits = circuit.get_qargs(inst.qubits);
 
-        let mat = inst
-            .op
-            .matrix(inst.params_view())
-            .ok_or_else(|| format!("Cannot extract matrix for operation {:?}.", inst.op.name()))?;
+        let mat = inst.op().matrix(inst.params_view()).ok_or_else(|| {
+            format!(
+                "Cannot extract matrix for operation {:?}.",
+                inst.op().name()
+            )
+        })?;
 
         product_mat = unitary_compose::compose(&product_mat.view(), &mat.view(), qubits, false)?;
     }
