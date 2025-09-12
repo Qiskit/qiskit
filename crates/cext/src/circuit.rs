@@ -1067,7 +1067,7 @@ pub unsafe extern "C" fn qk_opcounts_clear(op_counts: *mut OpCounts) {
 pub unsafe extern "C" fn qk_circuit_to_python(circuit: *mut CircuitData) -> *mut PyObject {
     unsafe {
         let circuit = Box::from_raw(mut_ptr_as_ref(circuit));
-        let py = Python::assume_gil_acquired();
+        let py = Python::assume_attached();
         QUANTUM_CIRCUIT
             .get_bound(py)
             .call_method1(intern!(py, "_from_circuit_data"), (*circuit,))

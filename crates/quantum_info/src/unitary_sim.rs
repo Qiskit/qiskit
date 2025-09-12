@@ -68,7 +68,7 @@ pub fn sim_unitary_circuit(circuit: &CircuitData) -> Result<Array2<Complex64>, S
 /// Create a unitary matrix for a circuit.
 #[pyfunction]
 #[pyo3(name = "sim_unitary_circuit")]
-pub fn py_sim_unitary_circuit(py: Python, circuit: &CircuitData) -> PyResult<PyObject> {
+pub fn py_sim_unitary_circuit(py: Python, circuit: &CircuitData) -> PyResult<Py<PyAny>> {
     let product_mat = sim_unitary_circuit(circuit).map_err(QiskitError::new_err)?;
     Ok(product_mat.into_pyarray(py).into_any().unbind())
 }

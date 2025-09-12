@@ -115,7 +115,7 @@ pub(crate) use {PARAM_SET, TWO_QUBIT_BASIS_SET};
 enum DecomposerType {
     TwoQubitBasis(Box<TwoQubitBasisDecomposer>),
     TwoQubitControlledU(Box<TwoQubitControlledUDecomposer>),
-    XX(PyObject),
+    XX(Py<PyAny>),
 }
 
 #[derive(Clone, Debug)]
@@ -213,7 +213,7 @@ fn apply_synth_sequence(
         let mapped_qargs: Vec<Qubit> = qubit_ids.iter().map(|id| out_qargs[*id as usize]).collect();
 
         let new_op: PackedOperation = match packed_op.view() {
-            OperationRef::Gate(gate) => Python::with_gil(|py| -> PyResult<PackedOperation> {
+            OperationRef::Gate(gate) => Python::attach(|py| -> PyResult<PackedOperation> {
                 let new_gate = gate.py_copy(py)?;
                 new_gate.gate.setattr(py, "params", params)?;
                 Ok(Box::new(new_gate).into())
@@ -301,7 +301,7 @@ pub fn run_unitary_synthesis(
             let OperationRef::Instruction(py_instr) = packed_instr.op.view() else {
                 unreachable!("Control flow op must be an instruction")
             };
-            let new_node_op: OperationFromPython = Python::with_gil(|py| {
+            let new_node_op: OperationFromPython = Python::attach(|py| {
                 let raw_blocks: Vec<PyResult<Bound<PyAny>>> = py_instr
                     .instruction
                     .getattr(py, "blocks")?
@@ -679,7 +679,7 @@ fn get_2q_decomposers_from_target(
             let rxx_equivalent_gate = if let Some(std_gate) = gate.operation.try_standard_gate() {
                 RXXEquivalent::Standard(std_gate)
             } else {
-                let gate_type: Py<PyType> = Python::with_gil(|py| -> PyResult<Py<PyType>> {
+                let gate_type: Py<PyType> = Python::attach(|py| -> PyResult<Py<PyType>> {
                     let module = PyModule::import(py, "builtins")?;
                     let py_type = module.getattr("type")?;
                     Ok(py_type
@@ -809,7 +809,7 @@ fn get_2q_decomposers_from_target(
             .collect();
 
     let mut pi2_basis: Option<&str> = None;
-    Python::with_gil(|py| -> PyResult<()> {
+    Python::attach(|py| -> PyResult<()> {
         let xx_embodiments: &Bound<'_, PyAny> = imports::XX_EMBODIMENTS.get_bound(py);
         // The Python XXDecomposer args are the interaction strength (f64), basis_2q_fidelity (f64),
         // and embodiments (Bound<'_, PyAny>).
@@ -1088,7 +1088,7 @@ fn reversed_synth_su4_sequence(
 fn synth_su4_xx_decomposer(
     py: Python,
     su4_mat: ArrayView2<Complex64>,
-    decomposer_2q: &PyObject,
+    decomposer_2q: &Py<PyAny>,
     preferred_direction: Option<bool>,
     approximation_degree: Option<f64>,
     packed_op: PackedOperation,
@@ -1334,7 +1334,7 @@ fn run_2q_unitary_synthesis(
                         "No valid decomposer is present without Python",
                     ));
                 }
-                Python::with_gil(|py| -> PyResult<()> {
+                Python::attach(|py| -> PyResult<()> {
                     let synth = synth_su4_xx_decomposer(
                         py,
                         unitary,
@@ -1396,7 +1396,7 @@ fn run_2q_unitary_synthesis(
                 synth_errors_sequence.push(synth_sequence(decomposer, preferred_dir)?);
             }
             DecomposerType::XX(xx_decomposer) => {
-                Python::with_gil(|py| -> PyResult<()> {
+                Python::attach(|py| -> PyResult<()> {
                     let synth_dag = synth_su4_xx_decomposer(
                         py,
                         unitary,

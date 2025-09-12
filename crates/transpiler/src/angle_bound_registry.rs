@@ -23,7 +23,7 @@ use qiskit_circuit::PhysicalQubit;
 
 #[derive(Clone)]
 pub(crate) enum CallbackType {
-    Python(PyObject),
+    Python(Py<PyAny>),
     Native(fn(&[f64], &[PhysicalQubit]) -> DAGCircuit),
 }
 
@@ -32,7 +32,7 @@ impl CallbackType {
         match self {
             Self::Python(inner) => {
                 let qubits: Vec<usize> = qubits.iter().map(|x| x.index()).collect();
-                Python::with_gil(|py| inner.bind(py).call1((angles, qubits))?.extract())
+                Python::attach(|py| inner.bind(py).call1((angles, qubits))?.extract())
             }
             Self::Native(inner) => Ok(inner(angles, qubits)),
         }
@@ -64,7 +64,7 @@ impl PyWrapAngleRegistry {
         self.0.substitute_angle_bounds(name, &angles, &qubits)
     }
 
-    pub fn add_wrapper(&mut self, name: String, callback: PyObject) {
+    pub fn add_wrapper(&mut self, name: String, callback: Py<PyAny>) {
         self.0.registry.insert(name, CallbackType::Python(callback));
     }
 
