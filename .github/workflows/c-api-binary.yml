@@ -2,36 +2,23 @@ name: Deploy C API Binaries
 on:
   push:
   pull_request:
-    branches: ['main']
 jobs:
   c-api-binary-linux:
     name: "C API Binary / Linux"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - name: Install Rust
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
-      - name: Install cbindgen
-        run: |
-          cargo install cbindgen
-          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
-      - name: Upgrade Packages
-        run: |
-          sudo apt update && sudo apt upgrade -y
-          sudo apt install -y gcc-12
-      - name: Validate Dependencies
-        run: |
-          gcc --version
-          make --version
-          rustc --version
-          cbindgen --version
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: cbindgen
       - name: Build Binary
         run: make c
       - name: Archive Binary
-        run: tar czf ./qiskit-c-dist.tar.gz ./dist
+        run: |
+          mkdir qiskit-c
+          mv dist qiskit-c-${{ github.ref_name }}
+          tar czf ./qiskit-c-${{ github.ref_name }}.tar.gz ./qiskit-c-${{ github.ref_name }}
       - uses: actions/upload-artifact@v4
         with:
-          path: ./qiskit-c-dist.tar.gz
-          name: qiskit-c-dist.tar.gz
+          path: ./qiskit-c-${{ github.ref_name }}.tar.gz
+          name: qiskit-c-${{ github.ref_name }}
