@@ -1,0 +1,148 @@
+name: Upload C API Binaries
+on:
+  push:
+    tags:
+      - '*'
+jobs:
+  c-api-binary-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install cbindgen
+        run: |
+          cargo install cbindgen
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+      - name: Set Environment Variables
+        run: |
+          QISKIT_CEXT_VERSION=$(
+            cargo metadata --format-version=1 --no-deps | jq -r '.packages[] | select( .name == "qiskit-cext" ).version'
+          )
+          QISKIT_CEXT_DIR="qiskit-cext-${QISKIT_CEXT_VERSION}-linux-amd64"
+
+          echo "QISKIT_CEXT_VERSION=$QISKIT_CEXT_VERSION" >> $GITHUB_ENV
+          echo "QISKIT_CEXT_DIR=${QISKIT_CEXT_DIR}" >> $GITHUB_ENV
+      - name: Build Binary
+        run: |
+          mkdir -p ${{ env.QISKIT_CEXT_DIR }}/dist/c/lib
+          cargo rustc --release --crate-type cdylib -p qiskit-cext
+          cp target/release/libqiskit_cext.so ${{ env.QISKIT_CEXT_DIR }}/dist/c/lib/libqiskit.so
+          mkdir -p ${{ env.QISKIT_CEXT_DIR }}/dist/c/include
+          mkdir ${{ env.QISKIT_CEXT_DIR }}/dist/c/include/qiskit
+          cp target/qiskit.h ${{ env.QISKIT_CEXT_DIR }}/dist/c/include/qiskit.h
+          cp crates/cext/include/complex.h ${{ env.QISKIT_CEXT_DIR }}/dist/c/include/qiskit/complex.h
+      - name: Validate Binaries
+        run: |
+          cat << EOF >> test.c
+          // file: example.c
+          #include <stdio.h>
+          #include <stdint.h>
+          #include <qiskit.h>
+
+          int main(int argc, char *argv[]) {
+              // build a 100-qubit empty observable
+              uint32_t num_qubits = 100;
+              QkObs *obs = qk_obs_zero(num_qubits);
+
+              // add the term 2 * (X0 Y1 Z2) to the observable
+              QkComplex64 coeff = {2, 0};
+              QkBitTerm bit_terms[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};  // bit terms: X Y Z
+              uint32_t indices[3] = {0, 1, 2};  // indices: 0 1 2
+              QkObsTerm term = {coeff, 3, bit_terms, indices, num_qubits};
+              qk_obs_add_term(obs, &term);  // append the term
+
+              // print some properties and the observable itself
+              printf("num_qubits: %i\n", qk_obs_num_qubits(obs));
+              printf("num_terms: %lu\n", qk_obs_num_terms(obs));
+              printf("observable: %s\n", qk_obs_str(obs));
+
+              // free the memory allocated for the observable
+              qk_obs_free(obs);
+
+              return 0;
+          }
+          EOF
+          gcc test.c -o test.o -I ${{ env.QISKIT_CEXT_DIR }}/dist/c/include -L ${{ env.QISKIT_CEXT_DIR }}/dist/c/lib -lqiskit
+          export LD_LIBRARY_PATH=${{ env.QISKIT_CEXT_DIR }}/dist/c/lib:$LD_LIBRARY_PATH
+          ./test.o
+      - name: Archive Binaries
+        run: |
+          tar czf ${{ env.QISKIT_CEXT_DIR }}.tar.gz ${{ env.QISKIT_CEXT_DIR }}
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        if: github.ref_type == 'tag'
+        with:
+          files: |
+            ${{ env.QISKIT_CEXT_DIR }}.tar.gz
+          fail_on_unmatched_files: true
+  c-api-binary-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install cbindgen
+        run: |
+          cargo install cbindgen
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+      - name: Set Environment Variables
+        run: |
+          QISKIT_CEXT_VERSION=$(
+            cargo metadata --format-version=1 --no-deps | jq -r '.packages[] | select( .name == "qiskit-cext" ).version'
+          )
+          QISKIT_CEXT_DIR="qiskit-c-${QISKIT_CEXT_VERSION}-macos-arm64"
+
+          echo "QISKIT_CEXT_VERSION=$QISKIT_CEXT_VERSION" >> $GITHUB_ENV
+          echo "QISKIT_CEXT_DIR=${QISKIT_CEXT_DIR}" >> $GITHUB_ENV
+      - name: Build Binary
+        run: |
+          mkdir -p ${{ env.QISKIT_CEXT_DIR }}/dist/c/lib
+          cargo rustc --release --crate-type cdylib -p qiskit-cext
+          cp target/release/libqiskit_cext.dylib ${{ env.QISKIT_CEXT_DIR }}/dist/c/lib/libqiskit.dylib
+          mkdir -p ${{ env.QISKIT_CEXT_DIR }}/dist/c/include
+          mkdir ${{ env.QISKIT_CEXT_DIR }}/dist/c/include/qiskit
+          cp target/qiskit.h ${{ env.QISKIT_CEXT_DIR }}/dist/c/include/qiskit.h
+          cp crates/cext/include/complex.h ${{ env.QISKIT_CEXT_DIR }}/dist/c/include/qiskit/complex.h
+      - name: Validate Binaries
+        run: |
+          cat << EOF >> test.c
+          // file: example.c
+          #include <stdio.h>
+          #include <stdint.h>
+          #include <qiskit.h>
+
+          int main(int argc, char *argv[]) {
+              // build a 100-qubit empty observable
+              uint32_t num_qubits = 100;
+              QkObs *obs = qk_obs_zero(num_qubits);
+
+              // add the term 2 * (X0 Y1 Z2) to the observable
+              QkComplex64 coeff = {2, 0};
+              QkBitTerm bit_terms[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};  // bit terms: X Y Z
+              uint32_t indices[3] = {0, 1, 2};  // indices: 0 1 2
+              QkObsTerm term = {coeff, 3, bit_terms, indices, num_qubits};
+              qk_obs_add_term(obs, &term);  // append the term
+
+              // print some properties and the observable itself
+              printf("num_qubits: %i\n", qk_obs_num_qubits(obs));
+              printf("num_terms: %lu\n", qk_obs_num_terms(obs));
+              printf("observable: %s\n", qk_obs_str(obs));
+
+              // free the memory allocated for the observable
+              qk_obs_free(obs);
+
+              return 0;
+          }
+          EOF
+          gcc test.c -o test.o -I ${{ env.QISKIT_CEXT_DIR }}/dist/c/include -L ${{ env.QISKIT_CEXT_DIR }}/dist/c/lib -lqiskit
+          export DYLD_LIBRARY_PATH=${{ env.QISKIT_CEXT_DIR }}/dist/c/lib:$DYLD_LIBRARY_PATH
+          ./test.o
+      - name: Archive Binaries
+        run: |
+          tar czf ${{ env.QISKIT_CEXT_DIR }}.tar.gz ${{ env.QISKIT_CEXT_DIR }}
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        if: github.ref_type == 'tag'
+        with:
+          files: |
+            ${{ env.QISKIT_CEXT_DIR }}.tar.gz
+          fail_on_unmatched_files: true
