@@ -19,8 +19,8 @@ jobs:
           echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
       - name: Upgrade Packages
         run: |
-          apt update && apt upgrade -y
-          apt install -y gcc-12
+          sudo apt update && sudo apt upgrade -y
+          sudo apt install -y gcc-12
       - name: Validate Dependencies
         run: |
           gcc --version
