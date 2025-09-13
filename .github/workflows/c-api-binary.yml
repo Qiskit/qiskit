@@ -15,12 +15,18 @@ jobs:
           echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
       - name: Build Binary
         run: make c
+      - name: Calculate Version
+        run: |
+          export QISKIT_CEXT_VERSION=$(
+            cargo metadata --format-version=1 --no-deps | jq '.packages[] | select( .name == "qiskit-cext" ).version'
+          )
+          export QISKIT_CEXT_DIR="qiskit-c-$QISKIT_CEXT_VERSION"
       - name: Archive Binary
         run: |
-          mkdir qiskit-c
-          mv dist qiskit-c-${{ github.ref_name }}
-          tar czf ./qiskit-c-${{ github.ref_name }}.tar.gz ./qiskit-c-${{ github.ref_name }}
+          mkdir ./$QISKIT_CEXT_DIR
+          mv dist ./$QISKIT_CEXT_DIR
+          tar czf ./$QISKIT_CEXT_DIR.tar.gz ./$QISKIT_CEXT_DIR
       - uses: actions/upload-artifact@v4
         with:
-          path: ./qiskit-c-${{ github.ref_name }}.tar.gz
-          name: qiskit-c-${{ github.ref_name }}
+          path: ./$QISKIT_CEXT_DIR.tar.gz
+          name: $QISKIT_CEXT_DIR
