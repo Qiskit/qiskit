@@ -9,8 +9,10 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: cbindgen
+      - name: Install cbindgen
+-        run: |
+-          cargo install cbindgen
+-          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
       - name: Build Binary
         run: make c
       - name: Archive Binary
