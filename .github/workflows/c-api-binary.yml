@@ -13,14 +13,16 @@ jobs:
         run: |
           cargo install cbindgen
           echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
-      - name: Build Binary
-        run: make c
       - name: Calculate Version
         run: |
           export QISKIT_CEXT_VERSION=$(
             cargo metadata --format-version=1 --no-deps | jq '.packages[] | select( .name == "qiskit-cext" ).version'
           )
           export QISKIT_CEXT_DIR="qiskit-c-$QISKIT_CEXT_VERSION"
+          echo $QISKIT_CEXT_VERSION
+          echo $QISKIT_CEXT_DIR
+      - name: Build Binary
+        run: make c
       - name: Archive Binary
         run: |
           mkdir ./$QISKIT_CEXT_DIR
