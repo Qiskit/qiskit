@@ -1,0 +1,7 @@
+---
+upgrade_c:
+  - |
+    Introducing Param C-API to support parameterized circuits on C-API.
+    `QkParam` represents symbolic equations through `qk_param_*` functions.
+    Param C-API supports, add/sub/mul/div/pow binary operations and
+    sin/cos/tan/asin/acos/atan/log/exp/abs/sign/neg/conjugate unary operations.
