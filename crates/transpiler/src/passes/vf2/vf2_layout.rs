@@ -378,9 +378,8 @@ pub fn vf2_layout_pass(
     let add_interaction = |count: &mut usize, _: &PackedInstruction, repeats: usize| {
         *count += repeats;
     };
-    let score = |count: &usize, err: &f64| -> Result<Option<f64>, Infallible> {
-        Ok(Some(*err * (*count as f64)))
-    };
+    let score =
+        |count: &usize, err: &f64| -> Result<f64, Infallible> { Ok(*err * (*count as f64)) };
     let Some(avg_error_map) = avg_error_map.or_else(|| build_average_error_map(target)) else {
         return Ok(None);
     };
@@ -404,27 +403,24 @@ pub fn vf2_layout_pass(
         }
     };
     let time_limit = time_limit.unwrap_or(f64::INFINITY);
-    let Some((mapping, _score)) = vf2::Vf2Algorithm::new(
-        &interactions.graph,
-        &coupling_graph,
-        (score, score),
-        false,
-        vf2::Problem::Subgraph,
-        call_limit,
-    )
-    .with_score_limit(f64::MAX)
-    .take_while(|_| {
-        if times_up {
-            return false;
-        }
-        times_up = start_time.elapsed().as_secs_f64() >= time_limit;
-        trials += 1;
-        max_trials == 0 || trials <= max_trials
-    })
-    .map(|result| result.expect("error type is infallible"))
-    // The iterator actually always returns in reverse-sorted order of its scores, but we take the
-    // _first_ valid mapping if there are several with the same score for historical reasons.
-    .min_by(|(_, a), (_, b)| a.partial_cmp(b).expect("score should never be NaN")) else {
+    let Some((mapping, _score)) =
+        vf2::Vf2::new(&interactions.graph, &coupling_graph, vf2::Problem::Subgraph)
+            .with_call_limit(call_limit)
+            .with_scoring(score, score)
+            .with_restriction(vf2::Restriction::Decreasing(None))
+            .with_vf2pp_ordering()
+            .into_iter()
+            .take_while(|_| {
+                if times_up {
+                    return false;
+                }
+                times_up = start_time.elapsed().as_secs_f64() >= time_limit;
+                trials += 1;
+                max_trials == 0 || trials <= max_trials
+            })
+            .map(|result| result.expect("error type is infallible"))
+            .last()
+    else {
         return Ok(None);
     };
 
