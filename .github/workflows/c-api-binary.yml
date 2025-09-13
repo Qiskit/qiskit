@@ -15,20 +15,21 @@ jobs:
           echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
       - name: Calculate Version
         run: |
-          export QISKIT_CEXT_VERSION=$(
+          QISKIT_CEXT_VERSION=$(
             cargo metadata --format-version=1 --no-deps | jq '.packages[] | select( .name == "qiskit-cext" ).version'
           )
-          export QISKIT_CEXT_DIR="qiskit-c-$QISKIT_CEXT_VERSION"
-          echo $QISKIT_CEXT_VERSION
-          echo $QISKIT_CEXT_DIR
+          QISKIT_CEXT_DIR="qiskit-c-$QISKIT_CEXT_VERSION"
+
+          echo "QISKIT_CEXT_VERSION=$QISKIT_CEXT_VERSION" >> $GITHUB_ENV
+          echo "QISKIT_CEXT_DIR=$QISKIT_CEXT_DIR" >> $GITHUB_ENV
       - name: Build Binary
         run: make c
       - name: Archive Binary
         run: |
-          mkdir ./$QISKIT_CEXT_DIR
-          mv dist ./$QISKIT_CEXT_DIR
-          tar czf ./$QISKIT_CEXT_DIR.tar.gz ./$QISKIT_CEXT_DIR
+          mkdir ./${{ env.QISKIT_CEXT_DIR }}
+          mv dist ./${{ env.QISKIT_CEXT_DIR }}
+          tar czf ./${{ env.QISKIT_CEXT_DIR }}.tar.gz ./${{ env.QISKIT_CEXT_DIR }}
       - uses: actions/upload-artifact@v4
         with:
-          path: ./$QISKIT_CEXT_DIR.tar.gz
-          name: $QISKIT_CEXT_DIR
+          path: ./${{ env.QISKIT_CEXT_DIR }}.tar.gz
+          name: ${{ env.QISKIT_CEXT_DIR }}
