@@ -19,6 +19,7 @@ from __future__ import annotations
 import cmath
 import copy as _copy
 import re
+import qiskit.quantum_info as qi
 from numbers import Number
 from typing import TYPE_CHECKING
 
@@ -37,6 +38,7 @@ from qiskit.quantum_info.operators.predicates import is_unitary_matrix, matrix_e
 
 if TYPE_CHECKING:
     from qiskit.transpiler.layout import Layout
+    from qiskit.quantum_info import Statevector  # pylint: disable=cyclic-import
 
 
 class Operator(LinearOp):
@@ -495,9 +497,18 @@ class Operator(LinearOp):
         ret._op_shape = self._op_shape.transpose()
         return ret
 
-    def compose(self, other: Operator, qargs: list | None = None, front: bool = False) -> Operator:
+    def compose(
+        self, other: Operator | Statevector, qargs: list | None = None, front: bool = False
+    ) -> Operator | Statevector:
+
         if qargs is None:
             qargs = getattr(other, "qargs", None)
+        if isinstance(other, qi.Statevector):
+            if front:
+                raise QiskitError(
+                    "The 'front' kwarg is not supported when composing with a Statevector."
+                )
+            return other.evolve(self, qargs=qargs)
         if not isinstance(other, Operator):
             other = Operator(other)
 
