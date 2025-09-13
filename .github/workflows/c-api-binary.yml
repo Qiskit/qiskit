@@ -15,7 +15,7 @@ jobs:
       - name: Calculate Version
         run: |
           QISKIT_CEXT_VERSION=$(
-            cargo metadata --format-version=1 --no-deps | jq '.packages[] | select( .name == "qiskit-cext" ).version'
+            cargo metadata --format-version=1 --no-deps | jq -r '.packages[] | select( .name == "qiskit-cext" ).version'
           )
           QISKIT_CEXT_DIR="qiskit-c-$QISKIT_CEXT_VERSION"
 
