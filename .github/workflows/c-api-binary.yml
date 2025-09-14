@@ -1,6 +1,8 @@
 name: Deploy C API Binaries
 on:
-  pull_request:
+  push:
+    tags:
+      - "v*.*.*"
 jobs:
   c-api-binary-linux:
     name: "C API Binary / Linux"
