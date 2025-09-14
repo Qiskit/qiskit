@@ -1,0 +1,38 @@
+name: Deploy C API Binaries
+on:
+  push:
+    tags:
+      - "v*.*.*"
+jobs:
+  c-api-binary-linux:
+    name: "C API Binary / Linux"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install cbindgen
+        run: |
+          cargo install cbindgen
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+      - name: Calculate Version
+        run: |
+          QISKIT_CEXT_VERSION=$(
+            cargo metadata --format-version=1 --no-deps | jq -r '.packages[] | select( .name == "qiskit-cext" ).version'
+          )
+          QISKIT_CEXT_DIR="qiskit-c-$QISKIT_CEXT_VERSION"
+
+          echo "QISKIT_CEXT_VERSION=$QISKIT_CEXT_VERSION" >> $GITHUB_ENV
+          echo "QISKIT_CEXT_DIR=$QISKIT_CEXT_DIR" >> $GITHUB_ENV
+      - name: Build Binary
+        run: make c
+      - name: Archive Binary
+        run: |
+          mkdir ${{ env.QISKIT_CEXT_DIR }}
+          mv dist ${{ env.QISKIT_CEXT_DIR }}
+          tar czf ${{ env.QISKIT_CEXT_DIR }}.tar.gz ${{ env.QISKIT_CEXT_DIR }}
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        if: github.ref_type == 'tag'
+        with:
+          files: ${{ env.QISKIT_CEXT_DIR }}.tar.gz
+          fail_on_unmatched_files: true

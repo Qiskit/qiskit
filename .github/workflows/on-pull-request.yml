@@ -84,3 +84,6 @@ jobs:
     if: github.repository_owner == 'Qiskit'
     name: C API Unit Tests
     uses: ./.github/workflows/ctests.yml
+  c-api-binary:
+    name: C API Binary
+    uses: ./.github/workflows/c-api-binary.yml
