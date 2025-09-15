@@ -1018,6 +1018,9 @@ where
         }
     }
 
+    /// Find the mapping (in the graph) of the `target` of a local edge.
+    ///
+    /// If the edge is a self loop, return the mapping of `source`, if provided.
     pub fn map_target(
         &self,
         source: G::NodeId,
