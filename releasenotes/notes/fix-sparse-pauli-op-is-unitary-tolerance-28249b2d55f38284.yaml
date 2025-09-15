@@ -2,9 +2,9 @@ fixes:
   - |
     Fixed an issue where :meth:`~qiskit.quantum_info.SparsePauliOp.is_unitary`
     was not properly respecting the input tolerance values when checking if an
-    operator is unitary. The method now correctly uses the provided `atol` and
-    `rtol` parameters when simplifying the operator and checking if it equals
-    the identity. This fixes :issue:`14107`.
+    operator is unitary. The method now correctly uses the provided ``atol`` and
+    ``rtol`` parameters when simplifying the operator and checking if it equals
+    the identity. This fixes `#14107 <https://github.com/Qiskit/qiskit/issues/14107>`__.
 
     This change ensures that the tolerance values passed to `is_unitary()` are
     properly propagated to the internal simplification and comparison operations,
