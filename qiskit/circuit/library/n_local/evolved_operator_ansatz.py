@@ -172,6 +172,9 @@ def evolved_operator_ansatz(
             elif isinstance(op, BaseOperator):
                 gate = PauliEvolutionGate(op, next(param_iter), synthesis=evolution)
                 flatten_operator = flatten is True or flatten is None
+            elif isinstance(op, QuantumCircuit):
+                gate = op.to_instruction()
+                flatten_operator = False
             else:
                 raise ValueError(f"Unsupported operator type: {type(op)}")
 
