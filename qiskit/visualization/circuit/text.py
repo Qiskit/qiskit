@@ -1121,7 +1121,9 @@ class TextDrawing:
             params = get_param_str(op, "text", ndigits=5)
         if not isinstance(op, (SwapGate, Reset)) and not getattr(op, "_directive", False):
             gate_text, ctrl_text, _ = get_gate_ctrl_text(op, "text")
-            gate_text = TextDrawing.special_label(op) or gate_text
+            gate_text = (
+                op.label if op.label is not None else TextDrawing.special_label(op) or gate_text
+            )
             gate_text = gate_text + params
 
         if getattr(op, "condition", None) is not None:
