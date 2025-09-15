@@ -228,9 +228,11 @@ sure to always be kind and respectful in your interactions with maintainers and 
 [the Qiskit Code of Conduct](https://github.com/Qiskit/qiskit/blob/main/CODE_OF_CONDUCT.md).
 
 ### Use of AI-assisted tools
-Contributors are welcome to use AI-assisted coding tools to help draft or generate code. However, you are responsible for the content you submit: review it carefully, make sure you understand it, and be able to explain the reasoning behind your choices during review.
-Submissions that appear unreviewed or copied directly from an AI without proper understanding may be requested to be revised or declined. Please also note that spamming issues or pull requests with AI-generated comments is strictly prohibited under the (Qiskit Code of Conduct](https://qisk.it/coc).
 
+If you use AI-assisted tools when preparing code, remember that your contribution must still be your own original work of authorship, as required by the [Contributor License Agreement (CLA)](https://qisk.it/cla).
+Make sure you fully understand, review, and take responsibility for the code you submit, and be able to explain the reasoning behind it during review.
+Submissions that appear unreviewed or copied directly from an AI assistant without proper understanding may be requested to be revised or declined.
+Please also note that spamming issues or pull requests with AI-generated comments is strictly prohibited under the (Qiskit Code of Conduct](https://qisk.it/coc).
 
 ## Contributor Licensing Agreement
 
@@ -242,12 +244,12 @@ contributing it under the terms of the Apache-2.0 license.
 When you contribute to the Qiskit project with a new pull request,
 a bot will evaluate whether you have signed the CLA. If required, the
 bot will comment on the pull request, including a link to accept the
-agreement. The [individual CLA](https://qiskit.org/license/qiskit-cla.pdf)
+agreement. The [individual CLA](https://qisk.it/cla)
 document is available for review as a PDF.
 
 Note: If your contribution is part of your employment or your contribution
 is the property of your employer, then you will more than likely need to sign a
-[corporate CLA](https://qiskit.org/license/qiskit-corporate-cla.pdf) too and
+[corporate CLA](https://qisk.it/corporate-cla) too and
 email it to us at <qiskit@us.ibm.com>.
 
 ## Changelog generation
