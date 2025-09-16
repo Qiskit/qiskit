@@ -92,9 +92,9 @@ pub fn py_run_pass_over_connected_components(
     dag: Bound<DAGCircuit>,
     target: &Target,
     run_func: Bound<PyAny>,
-) -> PyResult<Option<Vec<PyObject>>> {
+) -> PyResult<Option<Vec<Py<PyAny>>>> {
     let py = dag.py();
-    let func = |dag: Bound<DAGCircuit>, cmap: &CouplingMap| -> PyResult<PyObject> {
+    let func = |dag: Bound<DAGCircuit>, cmap: &CouplingMap| -> PyResult<Py<PyAny>> {
         let py = run_func.py();
         let coupling_map_cls = COUPLING_MAP.get_bound(py);
         let endpoints: Vec<[usize; 2]> = cmap
@@ -358,7 +358,7 @@ fn build_interaction_graph<Ty: EdgeType>(
 ) -> PyResult<()> {
     for (_index, inst) in dag.op_nodes(false) {
         if inst.op.control_flow() {
-            Python::with_gil(|py| -> PyResult<_> {
+            Python::attach(|py| -> PyResult<_> {
                 let OperationRef::Instruction(py_inst) = inst.op.view() else {
                     unreachable!("Control flow must be a python instruction");
                 };
@@ -564,7 +564,7 @@ fn split_barriers(dag: &mut DAGCircuit) -> PyResult<()> {
             Some(label) => format!("{}_uuid={}", label, Uuid::new_v4()),
             None => format!("_none_uuid={}", Uuid::new_v4()),
         };
-        let mut split_dag = DAGCircuit::new()?;
+        let mut split_dag = DAGCircuit::new();
         for q in 0..num_qubits {
             split_dag.add_qubit_unchecked(ShareableQubit::new_anonymous())?;
             split_dag.apply_operation_back(

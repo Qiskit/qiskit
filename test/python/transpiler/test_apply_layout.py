@@ -166,16 +166,16 @@ class TestApplyLayout(QiskitTestCase):
                 first_layout_circ.qubits[4]: 3,
             }
         )
-        out_pass(first_layout_circ)
+        out_pass.run(circuit_to_dag(first_layout_circ))
         self.assertEqual(
             out_pass.property_set["final_layout"],
             Layout(
                 {
                     first_layout_circ.qubits[0]: 0,
-                    first_layout_circ.qubits[2]: 1,
-                    first_layout_circ.qubits[4]: 4,
                     first_layout_circ.qubits[1]: 3,
+                    first_layout_circ.qubits[2]: 1,
                     first_layout_circ.qubits[3]: 2,
+                    first_layout_circ.qubits[4]: 4,
                 }
             ),
         )

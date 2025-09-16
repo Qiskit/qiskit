@@ -64,8 +64,7 @@ class AND(QuantumCircuit):
         flags: list[int] | None = None,
         mcx_mode: str = "noancilla",
     ) -> None:
-        """Create a new logical AND circuit.
-
+        """
         Args:
             num_variable_qubits: The qubits of which the AND is computed. The result will be written
                 into an additional result qubit.
