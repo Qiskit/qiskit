@@ -63,7 +63,7 @@ pub unsafe extern "C" fn qk_param_new(name: *const c_char) -> *mut Param {
 }
 
 /// @ingroup QkParam
-/// Free the QkParam.
+/// Free the ``QkParam``.
 ///
 /// @param expr A pointer to the QkParam to free.
 ///
