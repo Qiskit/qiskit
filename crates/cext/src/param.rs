@@ -35,7 +35,9 @@ use qiskit_circuit::parameter::symbol_expr::{Symbol, SymbolExpr, Value};
 ///
 /// # Safety
 ///
-/// name must be a pointer to valid C string to name of symbol
+/// The `name` parameter must be a pointer to memory that contains a valid
+/// nul terminator at the end of the string. It also must be valid for reads of
+/// bytes up to and including the nul terminator.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_param_new(name: *const c_char) -> *mut Param {
