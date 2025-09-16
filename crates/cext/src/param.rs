@@ -713,7 +713,7 @@ pub unsafe extern "C" fn qk_param_log(out: *mut Param, src: *const Param) -> Exi
 }
 
 /// @ingroup QkParam
-/// calculate exponent of a Param.
+/// Apply the exponential function to a ``QkParam``.
 ///
 /// @param out A pointer to the QkParam to store a result.
 /// @param src A pointer to the QkParam.
