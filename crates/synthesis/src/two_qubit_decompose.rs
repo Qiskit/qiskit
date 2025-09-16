@@ -100,13 +100,7 @@ pub fn ndarray_to_matrix4(mat_view: ArrayView2<Complex64>) -> PyResult<Matrix4<C
             "decompose_two_qubit_product_gate: expected a 4x4 matrix",
         ));
     };
-    if let Some(slice) = mat_view.as_slice() {
-        Ok(Matrix4::from_row_slice(slice))
-    } else {
-        Err(QiskitError::new_err(
-            "decompose_two_qubit_product_gate: could not convert input matrix",
-        ))
-    }
+    Ok(Matrix4::from_fn(|i, j| mat_view[(i, j)]))
 }
 
 fn ndarray_to_matrix2(mat_view: ArrayView2<Complex64>) -> PyResult<Matrix2<Complex64>> {
@@ -115,13 +109,7 @@ fn ndarray_to_matrix2(mat_view: ArrayView2<Complex64>) -> PyResult<Matrix2<Compl
             "decompose_two_qubit_product_gate: expected a 2x2 matrix",
         ));
     };
-    if let Some(slice) = mat_view.as_slice() {
-        Ok(Matrix2::from_row_slice(slice))
-    } else {
-        Err(QiskitError::new_err(
-            "decompose_two_qubit_product_gate: could not convert input matrix",
-        ))
-    }
+    Ok(Matrix2::from_fn(|i, j| mat_view[(i, j)]))
 }
 
 fn faer_to_matrix4<T>(mat_view: MatRef<T>) -> PyResult<Matrix4<Complex64>>
