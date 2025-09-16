@@ -30,6 +30,7 @@ use pyo3::{
     types::{IntoPyDict, PyList, PyString, PyTuple, PyType},
     IntoPyObjectExt, PyErr,
 };
+use rayon::prelude::*;
 use std::{
     cmp::Ordering,
     collections::btree_map,
@@ -867,6 +868,138 @@ impl SparseObservable {
             bit_terms: &self.bit_terms[start..end],
             indices: &self.indices[start..end],
         }
+    }
+    /// Convert to sparse CSR matrix format.
+    ///
+    /// Returns (values, indices, indptr) arrays for CSR sparse matrix representation.
+    /// This method efficiently handles both Pauli operators and projectors in the extended alphabet.
+    ///
+    /// # Arguments
+    /// * `force_serial` - If true, use single-threaded implementation regardless of thread settings
+    ///
+    /// # Returns
+    /// Returns either (Vec<Complex64>, Vec<i32>, Vec<i32>) or (Vec<Complex64>, Vec<i64>, Vec<i64>)
+    /// depending on matrix size requirements.
+    pub fn to_matrix_sparse_32(&self, force_serial: bool) -> (Vec<Complex64>, Vec<i32>, Vec<i32>) {
+        let side = 1usize << self.num_qubits;
+        let num_ops = self.num_terms();
+
+        if num_ops == 0 {
+            return (vec![], vec![], vec![0i32; side + 1]);
+        }
+
+        // Convert to expanded Pauli representation for matrix computation
+        let expanded = self.as_paulis(); // Use existing method
+
+        // Now use the same algorithm as SparsePauliOp, but on the expanded terms
+        let mut order = (0..expanded.num_terms()).collect::<Vec<_>>();
+        let mut values = Vec::<Complex64>::with_capacity(side * (num_ops + 1) / 2);
+        let mut indices = Vec::<i32>::with_capacity(side * (num_ops + 1) / 2);
+        let mut indptr: Vec<i32> = vec![0; side + 1];
+        let mut nnz = 0i32;
+
+        for i_row in 0..side {
+            order.sort_unstable_by(|&a, &b| {
+                let x_a = expanded.term_x_like(a);
+                let x_b = expanded.term_x_like(b);
+                ((i_row as u32) ^ x_a).cmp(&((i_row as u32) ^ x_b))
+            });
+
+            let mut running = Complex64::new(0.0, 0.0);
+            let mut prev_index = i_row ^ (expanded.term_x_like(order[0]) as usize);
+
+            for &term_idx in &order {
+                let x_like = expanded.term_x_like(term_idx);
+                let z_like = expanded.term_z_like(term_idx);
+                let coeff = expanded.coeffs[term_idx];
+
+                let coeff = if ((i_row as u32) & z_like).count_ones() % 2 == 0 {
+                    coeff
+                } else {
+                    -coeff
+                };
+
+                let index = i_row ^ (x_like as usize);
+                if index == prev_index {
+                    running += coeff;
+                } else {
+                    nnz += 1;
+                    values.push(running);
+                    indices.push(prev_index as i32);
+                    running = coeff;
+                    prev_index = index;
+                }
+            }
+            nnz += 1;
+            values.push(running);
+            indices.push(prev_index as i32);
+            indptr[i_row + 1] = nnz;
+        }
+
+        (values, indices, indptr)
+    }
+
+    /// Convert to dense matrix format, handling the extended alphabet.
+    pub fn to_matrix_dense(&self, force_serial: bool) -> Vec<Complex64> {
+        let side = 1usize << self.num_qubits;
+        let expanded = self.as_paulis(); // Use existing method
+
+        let mut out = vec![Complex64::new(0.0, 0.0); side * side];
+
+        let write_row = |(i_row, row): (usize, &mut [Complex64])| {
+            row.fill(Complex64::new(0.0, 0.0));
+
+            for term_idx in 0..expanded.num_terms() {
+                let x_like = expanded.term_x_like(term_idx);
+                let z_like = expanded.term_z_like(term_idx);
+                let coeff = expanded.coeffs[term_idx];
+
+                let coeff = if (i_row as u32 & z_like).count_ones() % 2 == 0 {
+                    coeff
+                } else {
+                    -coeff
+                };
+                row[i_row ^ (x_like as usize)] += coeff;
+            }
+        };
+
+        let parallel = !force_serial && qiskit_circuit::getenv_use_multiple_threads();
+        if parallel {
+            use rayon::prelude::*;
+            out.par_chunks_mut(side).enumerate().for_each(write_row);
+        } else {
+            out.chunks_mut(side).enumerate().for_each(write_row);
+        }
+
+        out
+    }
+
+    /// Helper to get X-like bits for a term (after Pauli expansion)
+    fn term_x_like(&self, term_idx: usize) -> u32 {
+        let mut x_bits = 0u32;
+        let start = self.boundaries[term_idx];
+        let end = self.boundaries[term_idx + 1];
+
+        for i in start..end {
+            if self.bit_terms[i].has_x_component() {
+                x_bits |= 1u32 << self.indices[i];
+            }
+        }
+        x_bits
+    }
+
+    /// Helper to get Z-like bits for a term (after Pauli expansion)
+    fn term_z_like(&self, term_idx: usize) -> u32 {
+        let mut z_bits = 0u32;
+        let start = self.boundaries[term_idx];
+        let end = self.boundaries[term_idx + 1];
+
+        for i in start..end {
+            if self.bit_terms[i].has_z_component() {
+                z_bits |= 1u32 << self.indices[i];
+            }
+        }
+        z_bits
     }
 
     /// Expand all projectors into Pauli representation.
@@ -2949,6 +3082,49 @@ impl PySparseObservable {
             out.append(to_py_tuple(view)?)?;
         }
         Ok(out.unbind())
+    }
+
+    #[pyo3(signature = (force_serial=false))]
+    fn to_matrix_sparse<'py>(
+        &self,
+        py: Python<'py>,
+        force_serial: bool,
+    ) -> PyResult<Bound<'py, PyTuple>> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let (values, indices, indptr) = inner.to_matrix_sparse_32(force_serial);
+
+        Ok(PyTuple::new(
+            py,
+            [
+                PyArray1::from_vec(py, values).into_any(),
+                PyArray1::from_vec(py, indices).into_any(),
+                PyArray1::from_vec(py, indptr).into_any(),
+            ],
+        )?)
+    }
+
+    /// Convert to dense matrix.
+    #[pyo3(signature = (force_serial=false))]
+    fn to_matrix_dense<'py>(
+        &self,
+        py: Python<'py>,
+        force_serial: bool,
+    ) -> PyResult<Bound<'py, PyArray2<Complex64>>> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let side = 1usize << inner.num_qubits();
+        let matrix_data = inner.to_matrix_dense(force_serial);
+
+        PyArray1::from_vec(py, matrix_data).reshape([side, side])
+    }
+
+    /// Convert to dense or sparse matrix.
+    #[pyo3(signature = (sparse=false, force_serial=false))]
+    fn to_matrix(&self, py: Python, sparse: bool, force_serial: bool) -> PyResult<PyObject> {
+        if sparse {
+            Ok(self.to_matrix_sparse(py, force_serial)?.into())
+        } else {
+            Ok(self.to_matrix_dense(py, force_serial)?.into())
+        }
     }
 
     /// Construct a :class:`.SparseObservable` from a :class:`.SparsePauliOp` instance.
