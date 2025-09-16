@@ -194,7 +194,7 @@ pub unsafe extern "C" fn qk_param_to_string(expr: *const Param) -> *mut c_char {
     let str = match expr {
         Param::ParameterExpression(expr) => expr.to_string(),
         Param::Float(f) => f.to_string(),
-        Param::Obj(o) => o.to_string(),
+        Param::Obj(o) => panic!("Param::Obj is not supported in the C API"),
     };
     let out = CString::new(str.to_string()).unwrap();
     out.into_raw()
