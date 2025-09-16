@@ -71,7 +71,7 @@ pub unsafe extern "C" fn qk_param_new_symbol(name: *const c_char) -> *mut Param 
 ///
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_param_zero() -> *mut Param {
+pub extern "C" fn qk_param_zero() -> *mut Param {
     Box::into_raw(Box::new(Param::Float(0.)))
 }
 
