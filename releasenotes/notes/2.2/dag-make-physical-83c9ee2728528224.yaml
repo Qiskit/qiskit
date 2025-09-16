@@ -3,7 +3,7 @@ features_circuits:
   - |
     A new method, :meth:`.QuantumCircuit.ensure_physical`, is provided to ensure that a circuit is
     defined over physical qubits, with the qubit indices referring to physical qubits.  See the
-    :ref:`new discussion on abstract- and physical-circuit representations the documentation
+    :ref:`new discussion on abstract- and physical-circuit representations in the documentation
     <circuit-abstract-physical>` for more detail on the metadata concepts.  The concepts of
     "abstract" and "physical" circuits are not at all new to Qiskit, just the explicit
     documentation.

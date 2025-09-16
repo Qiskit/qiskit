@@ -5,13 +5,13 @@ features_transpiler:
     criterion in the :class:`.HighLevelSynthesis` pass. Currently the two supported
     metrics are:
 
-    * ``COUNT_2Q``: optimizes the number of two-qubit gates,
+    * ``COUNT_2Q``: optimizes the number of two-qubit gates.
     * ``COUNT_T``: optimizes the number of T-gates, when transpiling into a Clifford+T
       basis set.
 
     The transpiler automatically selects the target metric based on the basis gate set,
     e.g. it will use ``COUNT_T`` if a Clifford+T basis set is detected. This argument
-    cannot yetmbe set manually at the level of :func:`~qiskit.compiler.transpile`.
+    cannot yet be set manually at the level of :func:`~qiskit.compiler.transpile`.
   - |
     Added a new argument ``optimization_metric`` of type :class:`.OptimizationMetric`
     to the :class:`.HighLevelSynthesis` transpiler pass. When set to ``COUNT_T``,

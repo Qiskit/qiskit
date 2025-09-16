@@ -1,7 +1,7 @@
 ---
 features_synthesis:
   - |
-    Improve the :func:`.qs_decomposition` function which was originally based on
+    Improved the :func:`.qs_decomposition` function which was originally based on
     Shende et. al. (https://arxiv.org/abs/quant-ph/0406176).
     The new synthesis method is based on Krol and Al-Ars (https://arxiv.org/abs/2403.13692),
     and reduce the total number of :class:`.CXGate`\ s of a general n-qubit unitary by

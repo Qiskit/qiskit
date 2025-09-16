@@ -6,7 +6,7 @@ features_transpiler:
     generated pass manager objects returned by the :func:`.generate_preset_pass_manager`
     function. The pass runs with ``strict_direction=True`` after all the physical optimizations
     performed in the stage to attempt and improve the layout one final time with the exact
-    output circuit. This was previously enabled in 2.1.0 but was reverted in 2.1.2 due to issues
+    output circuit. This was previously enabled in Qiskit v2.1.0 but was reverted in 2.1.2 due to issues
     with the initial implementation. These issues have been fixed and the layout will be properly
     applied if a better one is found.
 fixes:
