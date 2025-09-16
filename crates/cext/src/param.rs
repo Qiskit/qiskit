@@ -23,7 +23,7 @@ use qiskit_circuit::parameter::parameter_expression::{ParameterError, ParameterE
 use qiskit_circuit::parameter::symbol_expr::{Symbol, SymbolExpr, Value};
 
 /// @ingroup QkParam
-/// Construct a new Parameter with a name of symbol
+/// Construct a new ``QkParam`` representing an unbound symbol.
 ///
 /// @param name The name of symbol.
 ///
