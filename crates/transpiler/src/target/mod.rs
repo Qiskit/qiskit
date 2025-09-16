@@ -59,7 +59,7 @@ type PropsMap = IndexMap<Qargs, Option<InstructionProperties>, RandomState>;
 #[derive(FromPyObject, Debug, Clone, IntoPyObjectRef)]
 pub enum TargetOperation {
     Normal(NormalOperation),
-    Variadic(PyObject),
+    Variadic(Py<PyAny>),
 }
 
 impl TargetOperation {
@@ -101,13 +101,13 @@ impl From<NormalOperation> for TargetOperation {
 pub struct NormalOperation {
     pub operation: PackedOperation,
     pub params: SmallVec<[Param; 3]>,
-    op_object: OnceLock<PyResult<PyObject>>,
+    op_object: OnceLock<PyResult<Py<PyAny>>>,
 }
 
 impl NormalOperation {
     // Creates a python Operation type based on the operation's internal data.
     #[inline]
-    fn create_py_op(&self, py: Python, label: Option<&str>) -> PyResult<PyObject> {
+    fn create_py_op(&self, py: Python, label: Option<&str>) -> PyResult<Py<PyAny>> {
         let obj = match self.operation.view() {
             OperationRef::StandardGate(standard_gate) => {
                 standard_gate.create_py_op(py, Some(&self.params), label)?
@@ -439,7 +439,7 @@ impl Target {
     /// Raises:
     ///     KeyError: If qargs is not in target
     #[pyo3(name = "operations_for_qargs", signature=(qargs, /))]
-    pub fn py_operations_for_qargs(&self, py: Python, qargs: Qargs) -> PyResult<Vec<PyObject>> {
+    pub fn py_operations_for_qargs(&self, py: Python, qargs: Qargs) -> PyResult<Vec<Py<PyAny>>> {
         // Move to rust native once Gates are in rust
         Ok(self
             .py_operation_names_for_qargs(qargs)?
@@ -637,9 +637,9 @@ impl Target {
                         let matching_params = match (obj_at_index, params) {
                             (Param::Float(obj_f), Param::Float(param_f)) => obj_f == param_f,
                             (Param::ParameterExpression(_), _) => true,
-                            _ => Python::with_gil(|py| {
-                                python_compare(py, params, &obj_params[index])
-                            })?,
+                            _ => {
+                                Python::attach(|py| python_compare(py, params, &obj_params[index]))?
+                            }
                         };
 
                         if !matching_params {
@@ -773,7 +773,7 @@ impl Target {
     /// The set of qargs in the target.
     #[getter]
     #[pyo3(name = "qargs")]
-    fn py_qargs(&self, py: Python) -> PyResult<PyObject> {
+    fn py_qargs(&self, py: Python) -> PyResult<Py<PyAny>> {
         if let Some(qargs) = self.qargs() {
             let set = PySet::new(py, qargs)?;
             Ok(set.into_any().unbind())
@@ -1337,9 +1337,8 @@ impl Target {
         Ok(res)
     }
 
-    /// Returns an iterator of `OperationType` instances and parameters present in the Target that affect the provided qargs.
-    // TODO: Remove once `Target` is being consumed.
-    #[allow(dead_code)]
+    /// Returns an iterator of `OperationType` instances and parameters present in the Target that
+    /// affect the provided qargs.
     pub fn operations_for_qargs<'a, T>(
         &self,
         qargs: T,

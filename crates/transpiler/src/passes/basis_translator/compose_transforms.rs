@@ -74,7 +74,7 @@ pub(super) fn compose_transforms<'a>(
         let gate = if let Some(op) = name_to_packed_operation(&gate_name, gate_num_qubits) {
             op
         } else {
-            let extract_py = Python::with_gil(|py| -> PyResult<OperationFromPython> {
+            let extract_py = Python::attach(|py| -> PyResult<OperationFromPython> {
                 GATE.get_bound(py)
                     .call1((&gate_name, gate_num_qubits, placeholder_params.as_ref()))?
                     .extract()
