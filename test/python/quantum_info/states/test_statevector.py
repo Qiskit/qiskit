@@ -95,8 +95,6 @@ class TestStatevector(QiskitTestCase):
 
         self.assertTrue(sv.equiv(expected))
 
-    ##### exisitng tests #####
-
     @classmethod
     def rand_vec(cls, n, normalize=False):
         """Return complex vector or statevector"""
