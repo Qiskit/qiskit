@@ -75,7 +75,7 @@ pub unsafe extern "C" fn qk_param_new(name: *const c_char) -> *mut Param {
 /// # Safety
 ///
 /// Behavior is undefined if ``expr`` is not either null or a valid pointer to a
-/// [ParameterExpression].
+/// ``QkParam``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_param_free(expr: *mut Param) {
