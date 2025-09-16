@@ -1,20 +1,20 @@
 ---
 prelude: >
     The Qiskit v2.2 release further increases the functionality and versatility of the SDK
-    including enhancements for the C-API and the transpiler as well as many other improvements
+    including enhancements for the C API and the transpiler as well as many other improvements
     and bug fixes. Some of these additions include:
 
-      * **C API Transpile function:** This version of Qiskit has added the ability for users to
-        call a version of the :func`transpile` function directly through the C API. The
+      * **C API transpile function:** This version of Qiskit has added the ability for users to
+        call a version of the :func:`.transpile` function directly through the C API. The
         :cpp:func:`qk_transpile` behaves similarly to the preset pass managers in Python,
         with some exceptions that are not relevant in the C context. A collection of standalone
         transpiler passes have also been added to the C API.
       
-      * **Litinski Transformation Pass:** A new transformation pass was added to deal with circuits
+      * **Litinski transformation pass:** A new transformation pass was added to deal with circuits
         with Clifford and single qubit RZ-rotation gates. The implementation is based on the transformation
         described in `arXiv:1808.02892 <https://arxiv.org/abs/1808.02892>`__.
 
-      * **Angle bound support for Targets:** We have added support for angle bounds for parameterized angle
+      * **Angle bound support for targets:** We have added support for angle bounds for parameterized angle
         rotation  within the :class:`.Target` class. When an instruction is added to the `Target` you can 
         add the optionnal argument `angle_bounds` to specify the higher and lower bounds for parameterized
         rotation gates. A transpiler pass :class:`.WrapAngles` was added to enforce the angle constraints.

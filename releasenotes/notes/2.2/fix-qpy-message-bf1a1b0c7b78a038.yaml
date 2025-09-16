@@ -1,4 +1,4 @@
 ---
 fixes:
   - |
-    Clarified the error message when the versions specified in :func:`~.qpy.dump` are not valid.
+    Clarified the error message when the versions specified in :func:`.qpy.dump` are not valid.
