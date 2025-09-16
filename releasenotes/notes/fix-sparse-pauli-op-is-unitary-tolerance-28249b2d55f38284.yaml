@@ -5,8 +5,3 @@ fixes:
     operator is unitary. The method now correctly uses the provided ``atol`` and
     ``rtol`` parameters when simplifying the operator and checking if it equals
     the identity. This fixes `#14107 <https://github.com/Qiskit/qiskit/issues/14107>`__.
-
-    This change ensures that the tolerance values passed to `is_unitary()` are
-    properly propagated to the internal simplification and comparison operations,
-    making the method more consistent with user expectations and other similar
-    methods in Qiskit.
