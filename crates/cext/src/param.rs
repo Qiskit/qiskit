@@ -749,7 +749,7 @@ pub unsafe extern "C" fn qk_param_exp(out: *mut Param, src: *const Param) -> Exi
 }
 
 /// @ingroup QkParam
-/// calculate absolute of a Param.
+/// Calculate the absolute value of a ``QkParam``.
 ///
 /// @param out A pointer to the QkParam to store a result.
 /// @param src A pointer to the QkParam.
