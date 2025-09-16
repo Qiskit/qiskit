@@ -56,14 +56,14 @@ impl CustomInstruction {
 pub struct CustomClassical {
     pub name: String,
     pub num_params: usize,
-    pub callable: PyObject,
+    pub callable: Py<PyAny>,
 }
 
 #[pymethods]
 impl CustomClassical {
     #[new]
     #[pyo3(text_signature = "(name, num_params, callable, /)")]
-    fn __new__(name: String, num_params: usize, callable: PyObject) -> Self {
+    fn __new__(name: String, num_params: usize, callable: Py<PyAny>) -> Self {
         Self {
             name,
             num_params,

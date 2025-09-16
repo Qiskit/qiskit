@@ -239,7 +239,7 @@ impl RoutingResult<'_> {
                             idle.push(qubit);
                         }
                     }
-                    let new_inst = Python::with_gil(|py| -> PyResult<_> {
+                    let new_inst = Python::attach(|py| -> PyResult<_> {
                         // TODO: have to use Python-space `dag_to_circuit` because the Rust-space is
                         // only half the conversion (since it doesn't handle vars or stretches).
                         let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);

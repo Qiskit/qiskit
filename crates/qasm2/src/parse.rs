@@ -111,7 +111,7 @@ pub enum GlobalSymbol {
         index: GateId,
     },
     Classical {
-        callable: PyObject,
+        callable: Py<PyAny>,
         num_params: usize,
     },
 }
