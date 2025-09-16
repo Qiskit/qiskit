@@ -11,7 +11,6 @@
 // that they have been altered from the originals.
 
 #include "common.h"
-#include <complex.h>
 #include <qiskit.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -20,7 +19,7 @@
 #include <string.h>
 
 int test_param_new(void) {
-    QkParam *p = qk_param_new("a");
+    QkParam *p = qk_param_new_symbol("a");
     char *str = qk_param_to_string(p);
     qk_param_free(p);
 
@@ -34,9 +33,9 @@ int test_param_new(void) {
 }
 
 int test_param_binary_ops(void) {
-    QkParam *a = qk_param_new("a");
-    QkParam *b = qk_param_new("b");
-    QkParam *ret = qk_param_new("");
+    QkParam *a = qk_param_new_symbol("a");
+    QkParam *b = qk_param_new_symbol("b");
+    QkParam *ret = qk_param_zero();
     char *str;
 
     // add
@@ -111,12 +110,12 @@ int test_param_binary_ops(void) {
 }
 
 int test_param_unary_ops(void) {
-    QkParam *a = qk_param_new("a");
-    QkParam *b = qk_param_new("b");
-    QkParam *c = qk_param_new("");
+    QkParam *a = qk_param_new_symbol("a");
+    QkParam *b = qk_param_new_symbol("b");
+    QkParam *c = qk_param_zero();
     qk_param_add(c, a, b);
 
-    QkParam *ret = qk_param_new("");
+    QkParam *ret = qk_param_zero();
     char *str;
 
     // sin
@@ -295,9 +294,9 @@ int test_param_unary_ops(void) {
 }
 
 int test_param_with_value(void) {
-    QkParam *a = qk_param_new("a");
+    QkParam *a = qk_param_new_symbol("a");
     QkParam *v = qk_param_from_double(2.5);
-    QkParam *ret = qk_param_new("");
+    QkParam *ret = qk_param_zero();
     char *str;
 
     // add
@@ -319,14 +318,14 @@ int test_param_with_value(void) {
 }
 
 int test_param_bind(void) {
-    QkParam *a = qk_param_new("a");
-    QkParam *b = qk_param_new("b");
+    QkParam *a = qk_param_new_symbol("a");
+    QkParam *b = qk_param_new_symbol("b");
     const QkParam *params[2] = {a, b};
     double values[2] = {1.5, 2.2};
 
-    QkParam *c = qk_param_new("");
+    QkParam *c = qk_param_zero();
     qk_param_add(c, a, b);
-    QkParam *d = qk_param_new("");
+    QkParam *d = qk_param_zero();
     qk_param_bind(d, c, params, values, 2);
 
     qk_param_free(a);
