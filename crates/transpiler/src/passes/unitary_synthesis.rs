@@ -44,8 +44,8 @@ use qiskit_synthesis::euler_one_qubit_decomposer::{
     unitary_to_gate_sequence_inner, EulerBasis, EulerBasisSet, EULER_BASES, EULER_BASIS_NAMES,
 };
 use qiskit_synthesis::two_qubit_decompose::{
-    RXXEquivalent, TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer, TwoQubitGateSequence,
-    TwoQubitWeylDecomposition, ndarray_to_matrix4,
+    ndarray_to_matrix4, RXXEquivalent, TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer,
+    TwoQubitGateSequence, TwoQubitWeylDecomposition,
 };
 
 #[cfg(feature = "cache_pygates")]
@@ -721,8 +721,12 @@ fn get_2q_decomposers_from_target(
         match op.operation.matrix(&op.params) {
             None => false,
             Some(unitary_matrix) => {
-                let kak = TwoQubitWeylDecomposition::new_inner(ndarray_to_matrix4(unitary_matrix.view()).unwrap(), None, None)
-                    .unwrap();
+                let kak = TwoQubitWeylDecomposition::new_inner(
+                    ndarray_to_matrix4(unitary_matrix.view()).unwrap(),
+                    None,
+                    None,
+                )
+                .unwrap();
                 relative_eq!(kak.a(), PI4) && relative_eq!(kak.c(), 0.0)
             }
         }
@@ -801,8 +805,12 @@ fn get_2q_decomposers_from_target(
         match op.operation.matrix(&op.params) {
             None => false,
             Some(unitary_matrix) => {
-                let kak = TwoQubitWeylDecomposition::new_inner(ndarray_to_matrix4(unitary_matrix.view()).unwrap(), None, None)
-                    .unwrap();
+                let kak = TwoQubitWeylDecomposition::new_inner(
+                    ndarray_to_matrix4(unitary_matrix.view()).unwrap(),
+                    None,
+                    None,
+                )
+                .unwrap();
                 relative_eq!(kak.b(), 0.0) && relative_eq!(kak.c(), 0.0)
             }
         }
@@ -1003,7 +1011,12 @@ fn synth_su4_sequence(
 ) -> PyResult<TwoQubitUnitarySequence> {
     let is_approximate = approximation_degree.is_none() || approximation_degree.unwrap() != 1.0;
     let synth = if let DecomposerType::TwoQubitBasis(decomp) = &decomposer_2q.decomposer {
-        decomp.call_inner(ndarray_to_matrix4(su4_mat.view())?, None, is_approximate, None)?
+        decomp.call_inner(
+            ndarray_to_matrix4(su4_mat.view())?,
+            None,
+            is_approximate,
+            None,
+        )?
     } else if let DecomposerType::TwoQubitControlledU(decomp) = &decomposer_2q.decomposer {
         decomp.call_inner(ndarray_to_matrix4(su4_mat.view())?, None)?
     } else {
@@ -1065,7 +1078,12 @@ fn reversed_synth_su4_sequence(
     azip!((x in &mut col_1, y in &mut col_2) (*x, *y) = (*y, *x));
 
     let synth = if let DecomposerType::TwoQubitBasis(decomp) = &decomposer_2q.decomposer {
-        decomp.call_inner(ndarray_to_matrix4(su4_mat.view())?, None, is_approximate, None)?
+        decomp.call_inner(
+            ndarray_to_matrix4(su4_mat.view())?,
+            None,
+            is_approximate,
+            None,
+        )?
     } else if let DecomposerType::TwoQubitControlledU(decomp) = &decomposer_2q.decomposer {
         decomp.call_inner(ndarray_to_matrix4(su4_mat.view())?, None)?
     } else {

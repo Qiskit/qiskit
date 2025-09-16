@@ -27,7 +27,9 @@ use crate::euler_one_qubit_decomposer::{
     unitary_to_gate_sequence_inner, EulerBasis, EulerBasisSet,
 };
 use crate::linalg::{closest_unitary, is_hermitian_matrix, svd_decomposition, verify_unitary};
-use crate::two_qubit_decompose::{two_qubit_decompose_up_to_diagonal, TwoQubitBasisDecomposer};
+use crate::two_qubit_decompose::{
+    ndarray_to_matrix4, two_qubit_decompose_up_to_diagonal, TwoQubitBasisDecomposer,
+};
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::interner::Interned;
@@ -165,6 +167,7 @@ fn qsd_inner(
         // don't need to check for invalid format
         let array =
             unsafe { ArrayView2::from_shape_ptr(dim.strides(strides), mat.get_unchecked(0)) };
+        let array = ndarray_to_matrix4(array)?;
         let sequence = two_qubit_decomposer
             .call_inner(array, None, false, None)
             .unwrap_or_else(|_| {
@@ -701,7 +704,12 @@ fn apply_a2(
     }
     let last_idx = ind2q.last().unwrap();
     let qc3_seq = two_qubit_decomposer
-        .call_inner(new_matrices[last_idx].view(), None, true, None)
+        .call_inner(
+            ndarray_to_matrix4(new_matrices[last_idx].view())?,
+            None,
+            true,
+            None,
+        )
         .unwrap();
     let phase = Param::Float(qc3_seq.global_phase());
     let qc3 = CircuitData::from_packed_operations(

@@ -23,7 +23,9 @@ use qiskit_circuit::operations::{ArrayType, Operation, OperationRef, Param, Unit
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Qubit, VarsMode};
 
-use qiskit_synthesis::two_qubit_decompose::{Specialization, TwoQubitWeylDecomposition, ndarray_to_matrix4};
+use qiskit_synthesis::two_qubit_decompose::{
+    ndarray_to_matrix4, Specialization, TwoQubitWeylDecomposition,
+};
 
 #[pyfunction]
 #[pyo3(name = "split_2q_unitaries")]
@@ -51,8 +53,11 @@ pub fn run_split_2q_unitaries(
             let temp = dag.get_qargs(inst.qubits);
             let qubits: [Qubit; 2] = [temp[0], temp[1]];
             let matrix = unitary_gate.matrix_view();
-            let decomp =
-                TwoQubitWeylDecomposition::new_inner(ndarray_to_matrix4(matrix)?, Some(requested_fidelity), None)?;
+            let decomp = TwoQubitWeylDecomposition::new_inner(
+                ndarray_to_matrix4(matrix)?,
+                Some(requested_fidelity),
+                None,
+            )?;
             if matches!(decomp.specialization, Specialization::SWAPEquiv) {
                 has_swaps = true;
             }
