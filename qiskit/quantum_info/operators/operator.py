@@ -19,12 +19,11 @@ from __future__ import annotations
 import cmath
 import copy as _copy
 import re
-import qiskit.quantum_info as qi
 from numbers import Number
 from typing import TYPE_CHECKING
-
 import numpy as np
 
+import qiskit.quantum_info as qi
 from qiskit import _numpy_compat
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.library.standard_gates import HGate, IGate, SGate, TGate, XGate, YGate, ZGate
