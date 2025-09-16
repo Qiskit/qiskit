@@ -123,6 +123,18 @@ class TestSimple(QiskitTestCase):
         actual = [float(x) for x in abstract_op.definition.data[0].operation.params]
         self.assertEqual(list(actual), expected)
 
+    def test_bigint(self):
+        """Test that an expression can be evaluated even if it contains an integer that will
+        overflow the integer handling."""
+        bigint = 1 << 200
+        # Sanity check that the number we're trying for is represented at full precision in floating
+        # point (which it should be - it's a power of two with fewer than 11 bits of exponent).
+        self.assertEqual(int(float(bigint)), bigint)
+        program = f"qreg q[1]; U({bigint}, -{bigint}, {bigint} * 2.0) q[0];"
+        parsed = qiskit.qasm2.loads(program)
+        parameters = list(parsed.data[0].operation.params)
+        self.assertEqual([bigint, -bigint, 2 * bigint], parameters)
+
 
 class TestPrecedenceAssociativity(QiskitTestCase):
     def test_precedence(self):

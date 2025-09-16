@@ -17,13 +17,13 @@ Providers Interface (:mod:`qiskit.providers`)
 
 .. currentmodule:: qiskit.providers
 
-This module contains the classes used to build external providers for Terra. A
-provider is anything that provides an external service to Terra. The typical
+This module contains the classes used to build external providers for Qiskit. A
+provider is anything that provides an external service to Qiskit. The typical
 example of this is a Backend provider which provides
 :class:`~qiskit.providers.Backend` objects which can be used for executing
-:class:`~qiskit.circuit.QuantumCircuit` and/or :class:`~qiskit.pulse.Schedule`
+:class:`~qiskit.circuit.QuantumCircuit`
 objects. This module contains the abstract classes which are used to define the
-interface between a provider and terra.
+interface between a provider and Qiskit.
 
 Version Support
 ===============
@@ -36,17 +36,17 @@ backwards compatible between versions.
 Version Changes
 ----------------
 
-Each minor version release of qiskit-terra **may** increment the version of any
-providers interface a single version number. It will be an aggregate of all
+Each minor version release of ``qiskit`` **may** increment the version of any
+backend interface a single version number. It will be an aggregate of all
 the interface changes for that release on that interface.
 
 Version Support Policy
 ----------------------
 
 To enable providers to have time to adjust to changes in this interface
-Terra will support multiple versions of each class at once. Given the
+Qiskit will support multiple versions of each class at once. Given the
 nature of one version per release the version deprecation policy is a bit
-more conservative than the standard deprecation policy. Terra will support a
+more conservative than the standard deprecation policy. Qiskit will support a
 provider interface version for a minimum of 3 minor releases or the first
 release after 6 months from the release that introduced a version, whichever is
 longer, prior to a potential deprecation. After that the standard deprecation
@@ -57,32 +57,23 @@ the release of 0.19.0 we release 0.20.0, 0.21.0, and 0.22.0, then 7 months after
 0.19.0 we release 0.23.0. In 0.23.0 we can deprecate BackendV2, and it needs to
 still be supported and can't be removed until the deprecation policy completes.
 
-It's worth pointing out that Terra's version support policy doesn't mean
+It's worth pointing out that Qiskit's version support policy doesn't mean
 providers themselves will have the same support story, they can (and arguably
 should) update to newer versions as soon as they can, the support window is
-just for Terra's supported versions. Part of this lengthy window prior to
+just for Qiskit's supported versions. Part of this lengthy window prior to
 deprecation is to give providers enough time to do their own deprecation of a
 potential end user impacting change in a user facing part of the interface
 prior to bumping their version. For example, let's say we changed the signature
 to ``Backend.run()`` in ``BackendV34`` in a backwards incompatible way. Before
 Aer could update its :class:`~qiskit_aer.AerSimulator` class
 to be based on version 34 they'd need to deprecate the old signature prior to switching
-over. The changeover for Aer is not guaranteed to be lockstep with Terra so we
+over. The changeover for Aer is not guaranteed to be lockstep with Qiskit, so we
 need to ensure there is a sufficient amount of time for Aer to complete its
 deprecation cycle prior to removing version 33 (ie making version 34
 mandatory/the minimum version).
 
 Abstract Classes
 ================
-
-Provider
---------
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   Provider
-   ProviderV1
 
 Backend
 -------
@@ -91,11 +82,8 @@ Backend
    :toctree: ../stubs/
 
    Backend
-   BackendV1
    BackendV2
    QubitProperties
-   BackendV2Converter
-   convert_to_target
 
 Options
 -------
@@ -126,31 +114,27 @@ Exceptions
 ----------
 
 .. autoexception:: QiskitBackendNotFoundError
-.. autoexception:: BackendPropertyError
 .. autoexception:: JobError
 .. autoexception:: JobTimeoutError
-.. autoexception:: BackendConfigurationError
 
-======================
-Writing a New Provider
-======================
+Writing a New Backend
+=====================
 
 If you have a quantum device or simulator that you would like to integrate with
-Qiskit you will need to write a provider. A provider will provide Terra with a
+Qiskit you will need to write a backend. A provider is a collection of backends
+and will provide Qiskit with a
 method to get available :class:`~qiskit.providers.BackendV2` objects. The
 :class:`~qiskit.providers.BackendV2` object provides both information describing
 a backend and its operation for the :mod:`~qiskit.transpiler` so that circuits
 can be compiled to something that is optimized and can execute on the
 backend. It also provides the :meth:`~qiskit.providers.BackendV2.run` method which can
-run the :class:`~qiskit.circuit.QuantumCircuit` objects and/or
-:class:`~qiskit.pulse.Schedule` objects. This enables users and other Qiskit
+run the :class:`~qiskit.circuit.QuantumCircuit` objects. This enables users and other Qiskit
 APIs to get results from
 executing circuits on devices in a standard
 fashion regardless of how the backend is implemented. At a high level the basic
 steps for writing a provider are:
 
- * Implement a :class:`~qiskit.providers.ProviderV1` subclass that handles
-   access to the backend(s).
+ * Implement a ``Provider`` class that handles access to the backend(s).
  * Implement a :class:`~qiskit.providers.BackendV2` subclass and its
    :meth:`~qiskit.providers.BackendV2.run` method.
 
@@ -161,10 +145,10 @@ steps for writing a provider are:
    interacting with a running job.
 
 For a simple example of a provider, see the
-`qiskit-aqt-provider <https://github.com/Qiskit-Partners/qiskit-aqt-provider>`__
+`qiskit-aqt-provider <https://github.com/qiskit-community/qiskit-aqt-provider>`__
 
 Provider
-========
+--------
 
 A provider class serves a single purpose: to get backend objects that enable
 executing circuits on a device or simulator. The expectation is that any
@@ -173,12 +157,11 @@ of a provider object. The provider object will then provide a list of backends,
 and methods to filter and acquire backends (using the provided credentials if
 required). An example provider class looks like::
 
-    from qiskit.providers import ProviderV1 as Provider
     from qiskit.providers.providerutils import filter_backends
 
     from .backend import MyBackend
 
-    class MyProvider(Provider):
+    class MyProvider:
 
         def __init__(self, token=None):
             super().__init__()
@@ -196,7 +179,7 @@ authentication (if required) are present in the class and that the backends
 method matches the required interface. The rest is up to the specific provider on how to implement.
 
 Backend
-=======
+-------
 
 The backend classes are the core to the provider. These classes are what
 provide the interface between Qiskit and the hardware or simulator that will
@@ -277,8 +260,8 @@ example would be something like::
             return MyJob(self. job_handle, job_json, circuit)
 
 
-Transpiler Interface
---------------------
+Backend's Transpiler Interface
+------------------------------
 
 The key piece of the :class:`~qiskit.providers.Backend` object is how it describes itself to the
 compiler. This is handled with the :class:`~qiskit.transpiler.Target` class which defines
@@ -309,7 +292,7 @@ Custom Basis Gates
 
            def _define(self):
                qc = QuantumCircuit(1)
-               q.ry(np.pi / 2, 0)
+               qc.ry(np.pi / 2, 0)
                self.definition = qc
 
    The key thing to ensure is that for any custom gates in your Backend's basis set
@@ -454,8 +437,89 @@ This way if these two compilation steps are **required** for running or providin
 efficient output on ``Mybackend`` the transpiler will be able to perform these
 custom steps without any manual user input.
 
-Run Method
-----------
+.. _providers-guide-real-time-variables:
+
+Real-time variables
+^^^^^^^^^^^^^^^^^^^
+
+The transpiler will automatically handle real-time typed classical variables (see
+:mod:`qiskit.circuit.classical`) and treat the :class:`.Store` instruction as a built-in
+"directive", similar to :class:`.Barrier`.  No special handling from backends is necessary to permit
+this.
+
+If your backend is *unable* to handle classical variables and storage, we recommend that you comment
+on this in your documentation, and insert a check into your :meth:`~.BackendV2.run` method (see
+:ref:`providers-guide-backend-run`) to eagerly reject circuits containing them.  You can examine
+:attr:`.QuantumCircuit.num_vars` for the presence of variables at the top level.  If you accept
+:ref:`control-flow operations <circuit-control-flow-repr>`, you might need to recursively search the
+internal :attr:`~.ControlFlowOp.blocks` of each for scope-local variables with
+:attr:`.QuantumCircuit.num_declared_vars`.
+
+For example, a function to check for the presence of any manual storage locations, or manual stores
+to memory::
+
+    from qiskit.circuit import Store, ControlFlowOp, QuantumCircuit
+
+    def has_realtime_logic(circuit: QuantumCircuit) -> bool:
+        if circuit.num_vars:
+            return True
+        for instruction in circuit.data:
+            if isinstance(instruction.operation, Store):
+                return True
+            elif isinstance(instruction.operation, ControlFlowOp):
+                for block in instruction.operation.blocks:
+                    if has_realtime_logic(block):
+                        return True
+        return False
+
+.. _angle-bounds-on-gates:
+
+Angle bounds on Gates
+^^^^^^^^^^^^^^^^^^^^^
+
+If your backend has constraints on the allowed parameter values for any gate
+in the target you can model this with angle bounds on the :class:`.Target`.
+When you add the instruction with the :meth:`.add_instruction` you can use
+the ``angle_bounds`` keyword argument which takes a list of tuples for the
+upper and lower bound for the parameter of a gate.
+
+For example, this code snippet instead of the example adding the :class:`.PhaseGate`
+in the example above::
+
+    lam = Parameter("λ")
+    p_props = {(qubit,): None for qubit in range(5)}
+    self._target.add_instruction(PhaseGate(lam), p_props, angle_bounds=[(0, math.pi)])
+
+will set the bounds on :class:`.PhaseGate` to be between 0 and :math:`\\pi` (inclusive).
+This models the angle constraint in the :class:`.Target` on the angle values for the
+``lam`` parameter on :class:`.PhaseGate`. The :class:`.WrapAngles` transpiler pass is
+used to transform any :class:`.PhaseGate` outside the specified angle bounds. You will
+need to write a function that takes in the angle values for the gate and returns
+a :class:`.DAGCircuit`. For example::
+
+    from qiskit.transpiler.passes.utils.wrap_angles import WRAP_ANGLE_REGISTRY
+
+    def fold_phase(angles: List[float], qubits: List[int]) -> DAGCircuit:
+        angle = angles[0]
+        if angle > 0:
+            number_of_gates = angle / math.pi
+        else:
+            number_of_gates = (6.28 - angle) / math.pi
+        dag = DAGCircuit()
+        dag.add_qubits([Qubit()])
+        for _ in range(int(number_of_gates)):
+            dag.apply_operation_back(PhaseGate(math.pi), [dag.qubits[0]])
+        return dag
+
+    WRAP_ANGLE_REGISTRY.add_wrapper("phase", fold_phase)
+
+This function will transform the out of bounds gates into one that respects the angle
+bounds in the target and the target's other constraints (although not particularly well).
+
+.. _providers-guide-backend-run:
+
+Backend.run Method
+------------------
 
 Of key importance is the :meth:`~qiskit.providers.BackendV2.run` method, which
 is used to actually submit circuits to a device or simulator. The run method
@@ -485,8 +549,8 @@ An example run method would be something like::
         job_handle = submit_to_backend(job_jsonb)
         return MyJob(self. job_handle, job_json, circuit)
 
-Options
--------
+Backend Options
+---------------
 
 There are often several options for a backend that control how a circuit is run.
 The typical example of this is something like the number of ``shots`` which is
@@ -516,7 +580,7 @@ for a full list of validation options.
 
 
 Job
-===
+---
 
 The output from the :obj:`~qiskit.providers.BackendV2.run` method is a :class:`~qiskit.providers.JobV1`
 object. Each provider is expected to implement a custom job subclass that
@@ -533,7 +597,7 @@ which will block until the execution is complete and then will return a
 For some backends (mainly local simulators) the execution of circuits is a
 synchronous operation and there is no need to return a handle to a running job
 elsewhere. For sync jobs its expected that the
-:obj:`~qiskit.providers.BackendV1.run` method on the backend will block until a
+:obj:`~qiskit.providers.BackendV2.run` method on the backend will block until a
 :class:`~qiskit.result.Result` object is generated and the sync job will return
 with that inner :class:`~qiskit.result.Result` object.
 
@@ -577,7 +641,6 @@ An example job class for an async API based backend would look something like::
                 'backend_name': self._backend.configuration().backend_name,
                 'backend_version': self._backend.configuration().backend_version,
                 'job_id': self._job_id,
-                'qobj_id': ', '.join(x.name for x in self.circuits),
                 'success': True,
             })
 
@@ -613,7 +676,7 @@ and for a sync job::
             return JobStatus.DONE
 
 Primitives
-==========
+----------
 
 While not directly part of the provider interface, the :mod:`qiskit.primitives`
 module is tightly coupled with providers. Specifically the primitive
@@ -629,7 +692,7 @@ that abstract away the mechanics of getting the best result efficiently, to
 concentrate on higher level applications using these outputs.
 
 For example, if your backends were well suited to leverage
-`mthree <https://github.com/Qiskit-Partners/mthree/>`__ measurement
+`mthree <https://github.com/Qiskit/qiskit-addon-mthree>`__ measurement
 mitigation to improve the quality of the results, you could implement a
 provider-specific :class:`~.Sampler` implementation that leverages the
 ``M3Mitigation`` class internally to run the circuits and return
@@ -637,127 +700,15 @@ quasi-probabilities directly from mthree in the result. Doing this would
 enable algorithms to get the best results with
 mitigation applied directly from your backends. You can refer to the
 documentation in :mod:`qiskit.primitives` on how to write custom
-implementations. Also the built-in implementations: :class:`~.Sampler`,
+implementations. Also, the built-in implementations: :class:`~.Sampler`,
 :class:`~.Estimator`, :class:`~.BackendSampler`, and :class:`~.BackendEstimator`
 can serve as references/models on how to implement these as well.
-
-======================================
-Migrating between Backend API Versions
-======================================
-
-BackendV1 -> BackendV2
-======================
-
-The :obj:`~BackendV2` class re-defined user access for most properties of a
-backend to make them work with native Qiskit data structures and have flatter
-access patterns. However this means when using a provider that upgrades
-from :obj:`~BackendV1` to :obj:`~BackendV2` existing access patterns will need
-to be adjusted. It is expected for existing providers to deprecate the old
-access where possible to provide a graceful migration, but eventually users
-will need to adjust code. The biggest change to adapt to in :obj:`~BackendV2` is
-that most of the information accessible about a backend is contained in its
-:class:`~qiskit.transpiler.Target` object and the backend's attributes often query
-its :attr:`~qiskit.providers.BackendV2.target`
-attribute to return information, however in many cases the attributes only provide
-a subset of information the target can contain. For example, ``backend.coupling_map``
-returns a :class:`~qiskit.transpiler.CouplingMap` constructed from the
-:class:`~qiskit.transpiler.Target` accessible in the
-:attr:`~qiskit.providers.BackendV2.target` attribute, however the target may contain
-instructions that operate on more than two qubits (which can't be represented in a
-:class:`~qiskit.transpiler.CouplingMap`) or has instructions that only operate on
-a subset of qubits (or two qubit links for a two qubit instruction) which won't be
-detailed in the full coupling map returned by
-:attr:`~qiskit.providers.BackendV2.coupling_map`. So depending on your use case
-it might be necessary to look deeper than just the equivalent access with
-:obj:`~BackendV2`.
-
-Below is a table of example access patterns in :obj:`~BackendV1` and the new form
-with :obj:`~BackendV2`:
-
-.. list-table:: Migrate from :obj:`~BackendV1` to :obj:`~BackendV2`
-   :header-rows: 1
-
-   * - :obj:`~BackendV1`
-     - :obj:`~BackendV2`
-     - Notes
-   * - ``backend.configuration().n_qubits``
-     - ``backend.num_qubits``
-     -
-   * - ``backend.configuration().coupling_map``
-     - ``backend.coupling_map``
-     - The return from :obj:`~BackendV2` is a :class:`~qiskit.transpiler.CouplingMap` object.
-       while in :obj:`~BackendV1` it is an edge list. Also this is just a view of
-       the information contained in ``backend.target`` which may only be a subset of the
-       information contained in :class:`~qiskit.transpiler.Target` object.
-   * - ``backend.configuration().backend_name``
-     - ``backend.name``
-     -
-   * - ``backend.configuration().backend_version``
-     - ``backend.backend_version``
-     - The :attr:`~qiskit.providers.BackendV2.version` attribute represents
-       the version of the abstract :class:`~qiskit.providers.Backend` interface
-       the object implements while :attr:`~qiskit.providers.BackendV2.backend_version`
-       is metadata about the version of the backend itself.
-   * - ``backend.configuration().basis_gates``
-     - ``backend.operation_names``
-     - The :obj:`~BackendV2` return is a list of operation names contained in the
-       ``backend.target`` attribute. The :class:`~qiskit.transpiler.Target` may contain more
-       information that can be expressed by this list of names. For example, that some
-       operations only work on a subset of qubits or that some names implement the same gate
-       with different parameters.
-   * - ``backend.configuration().dt``
-     - ``backend.dt``
-     -
-   * - ``backend.configuration().dtm``
-     - ``backend.dtm``
-     -
-   * - ``backend.configuration().max_experiments``
-     - ``backend.max_circuits``
-     -
-   * - ``backend.configuration().online_date``
-     - ``backend.online_date``
-     -
-   * - ``InstructionDurations.from_backend(backend)``
-     - ``backend.instruction_durations``
-     -
-   * - ``backend.defaults().instruction_schedule_map``
-     - ``backend.instruction_schedule_map``
-     -
-   * - ``backend.properties().t1(0)``
-     - ``backend.qubit_properties(0).t1``
-     -
-   * - ``backend.properties().t2(0)``
-     - ``backend.qubit_properties(0).t2``
-     -
-   * - ``backend.properties().frequency(0)``
-     - ``backend.qubit_properties(0).frequency``
-     -
-   * - ``backend.properties().readout_error(0)``
-     - ``backend.target["measure"][(0,)].error``
-     - In :obj:`~BackendV2` the error rate for the :class:`~qiskit.circuit.library.Measure`
-       operation on a given qubit is used to model the readout error. However a
-       :obj:`~BackendV2` can implement multiple measurement types and list them
-       separately in a :class:`~qiskit.transpiler.Target`.
-   * - ``backend.properties().readout_length(0)``
-     - ``backend.target["measure"][(0,)].duration``
-     - In :obj:`~BackendV2` the duration for the :class:`~qiskit.circuit.library.Measure`
-       operation on a given qubit is used to model the readout length. However, a
-       :obj:`~BackendV2` can implement multiple measurement types and list them
-       separately in a :class:`~qiskit.transpiler.Target`.
-
-There is also a :class:`~.BackendV2Converter` class available that enables you
-to wrap a :class:`~.BackendV1` object with a :class:`~.BackendV2` interface.
 """
 
 # Providers interface
-from qiskit.providers.provider import Provider
-from qiskit.providers.provider import ProviderV1
 from qiskit.providers.backend import Backend
-from qiskit.providers.backend import BackendV1
 from qiskit.providers.backend import BackendV2
 from qiskit.providers.backend import QubitProperties
-from qiskit.providers.backend_compat import BackendV2Converter
-from qiskit.providers.backend_compat import convert_to_target
 from qiskit.providers.options import Options
 from qiskit.providers.job import Job
 from qiskit.providers.job import JobV1
@@ -766,7 +717,5 @@ from qiskit.providers.exceptions import (
     JobError,
     JobTimeoutError,
     QiskitBackendNotFoundError,
-    BackendPropertyError,
-    BackendConfigurationError,
 )
 from qiskit.providers.jobstatus import JobStatus

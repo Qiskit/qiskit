@@ -12,15 +12,16 @@
 
 """Rotation around the X axis."""
 
+from __future__ import annotations
+
 import math
-from math import pi
 from typing import Optional, Union
 import numpy
 
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit._accelerate.circuit import StandardGate
 
 
 class RXGate(Gate):
@@ -29,15 +30,15 @@ class RXGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.rx` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───────┐
         q_0: ┤ Rx(ϴ) ├
              └───────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -50,34 +51,35 @@ class RXGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(
-        self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
-    ):
-        """Create new RX gate."""
-        super().__init__("rx", 1, [theta], label=label, duration=duration, unit=unit)
+    _standard_gate = StandardGate.RX
+
+    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
+        """
+        Args:
+            theta: The rotation angle.
+            label: An optional label for the gate.
+        """
+        super().__init__("rx", 1, [theta], label=label)
 
     def _define(self):
-        """
-        gate rx(theta) a {r(theta, 0) a;}
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .r import RGate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(RGate(self.params[0], 0), [q[0]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        #    ┌────────┐
+        # q: ┤ R(θ,0) ├
+        #    └────────┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.RX._get_definition(self.params), legacy_qubits=True, name=self.name
+        )
 
     def control(
         self,
         num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
-        annotated: bool = False,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
+        annotated: bool | None = None,
     ):
         """Return a (multi-)controlled-RX gate.
 
@@ -86,12 +88,15 @@ class RXGate(Gate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
-                as an annotated gate.
+            annotated: indicates whether the controlled gate should be implemented
+                as an annotated gate. If ``None``, this is set to ``True`` if
+                the gate contains free parameters and more than one control qubit, in which
+                case it cannot yet be synthesized. Otherwise it is set to ``False``.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
+        # deliberately capture annotated in [None, False] here
         if not annotated and num_ctrl_qubits == 1:
             gate = CRXGate(self.params[0], label=label, ctrl_state=ctrl_state)
             gate.base_gate.label = self.label
@@ -120,14 +125,15 @@ class RXGate(Gate):
         """
         return RXGate(-self.params[0])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the RX gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         cos = math.cos(self.params[0] / 2)
         sin = math.sin(self.params[0] / 2)
         return numpy.array([[cos, -1j * sin], [-1j * sin, cos]], dtype=dtype)
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         (theta,) = self.params
         return RXGate(exponent * theta)
 
@@ -143,16 +149,16 @@ class CRXGate(ControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.crx` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ────■────
              ┌───┴───┐
         q_1: ┤ Rx(ϴ) ├
              └───────┘
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 
@@ -175,7 +181,8 @@ class CRXGate(ControlledGate):
         which in our case would be q_1. Thus a textbook matrix for this
         gate will be:
 
-        .. parsed-literal::
+        .. code-block:: text
+
                  ┌───────┐
             q_0: ┤ Rx(ϴ) ├
                  └───┬───┘
@@ -195,14 +202,14 @@ class CRXGate(ControlledGate):
                 \end{pmatrix}
     """
 
+    _standard_gate = StandardGate.CRX
+
     def __init__(
         self,
         theta: ParameterValueType,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CRX gate."""
@@ -217,38 +224,18 @@ class CRXGate(ControlledGate):
         )
 
     def _define(self):
-        """
-        gate cu3(theta,phi,lambda) c, t
-        { u1(pi/2) t;
-          cx c,t;
-          u3(-theta/2,0,0) t;
-          cx c,t;
-          u3(theta/2,-pi/2,0) t;
-        }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .u1 import U1Gate
-        from .u3 import U3Gate
-        from .x import CXGate
+        from qiskit.circuit import QuantumCircuit
 
-        # q_0: ─────────────■───────────────────■────────────────────
-        #      ┌─────────┐┌─┴─┐┌─────────────┐┌─┴─┐┌────────────────┐
-        # q_1: ┤ U1(π/2) ├┤ X ├┤ U3(0/2,0,0) ├┤ X ├┤ U3(0/2,-π/2,0) ├
-        #      └─────────┘└───┘└─────────────┘└───┘└────────────────┘
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (U1Gate(pi / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (U3Gate(-self.params[0] / 2, 0, 0), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (U3Gate(self.params[0] / 2, -pi / 2, 0), [q[1]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        # q_0: ───────■────────────────────■──────────────────────
+        #      ┌───┐┌─┴─┐┌──────────────┐┌─┴─┐┌───────────┐┌─────┐
+        # q_1: ┤ S ├┤ X ├┤ Ry((-0.5)*θ) ├┤ X ├┤ Ry(0.5*θ) ├┤ Sdg ├
+        #      └───┘└───┘└──────────────┘└───┘└───────────┘└─────┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.CRX._get_definition(self.params), legacy_qubits=True, name=self.name
+        )
 
     def inverse(self, annotated: bool = False):
         """Return inverse CRX gate (i.e. with the negative rotation angle).
@@ -264,8 +251,10 @@ class CRXGate(ControlledGate):
         """
         return CRXGate(-self.params[0], ctrl_state=self.ctrl_state)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the CRX gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         half_theta = float(self.params[0]) / 2
         cos = math.cos(half_theta)
         isin = 1j * math.sin(half_theta)

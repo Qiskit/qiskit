@@ -24,29 +24,58 @@ Gambetta, J. M. Validating quantum computers using randomized model circuits.
 arXiv:1811.12926 [quant-ph] (2018).
 """
 from __future__ import annotations
-import cmath
-import math
 import io
 import base64
 import warnings
-from typing import Optional, Type
+from typing import Optional, Type, TYPE_CHECKING
 
 import logging
 
 import numpy as np
 
-from qiskit.circuit import QuantumRegister, QuantumCircuit, Gate
-from qiskit.circuit.library.standard_gates import CXGate, U3Gate, U2Gate, U1Gate
+from qiskit.circuit import QuantumCircuit, Gate
+from qiskit.circuit.library.standard_gates import (
+    CXGate,
+    U3Gate,
+    U2Gate,
+    U1Gate,
+    UGate,
+    PhaseGate,
+    RXGate,
+    RYGate,
+    RZGate,
+    SXGate,
+    XGate,
+    RGate,
+)
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator
 from qiskit.synthesis.one_qubit.one_qubit_decompose import (
-    OneQubitEulerDecomposer,
     DEFAULT_ATOL,
 )
 from qiskit.utils.deprecation import deprecate_func
 from qiskit._accelerate import two_qubit_decompose
 
+if TYPE_CHECKING:
+    from qiskit.dagcircuit.dagcircuit import DAGCircuit, DAGOpNode
+
 logger = logging.getLogger(__name__)
+
+
+GATE_NAME_MAP = {
+    "cx": CXGate,
+    "rx": RXGate,
+    "sx": SXGate,
+    "x": XGate,
+    "rz": RZGate,
+    "u": UGate,
+    "p": PhaseGate,
+    "u1": U1Gate,
+    "u2": U2Gate,
+    "u3": U3Gate,
+    "ry": RYGate,
+    "r": RGate,
+}
 
 
 def decompose_two_qubit_product_gate(special_unitary_matrix: np.ndarray):
@@ -59,41 +88,18 @@ def decompose_two_qubit_product_gate(special_unitary_matrix: np.ndarray):
         QiskitError: if decomposition isn't possible.
     """
     special_unitary_matrix = np.asarray(special_unitary_matrix, dtype=complex)
-    # extract the right component
-    R = special_unitary_matrix[:2, :2].copy()
-    detR = R[0, 0] * R[1, 1] - R[0, 1] * R[1, 0]
-    if abs(detR) < 0.1:
-        R = special_unitary_matrix[2:, :2].copy()
-        detR = R[0, 0] * R[1, 1] - R[0, 1] * R[1, 0]
-    if abs(detR) < 0.1:
-        raise QiskitError("decompose_two_qubit_product_gate: unable to decompose: detR < 0.1")
-    R /= np.sqrt(detR)
-
-    # extract the left component
-    temp = np.kron(np.eye(2), R.T.conj())
-    temp = special_unitary_matrix.dot(temp)
-    L = temp[::2, ::2]
-    detL = L[0, 0] * L[1, 1] - L[0, 1] * L[1, 0]
-    if abs(detL) < 0.9:
-        raise QiskitError("decompose_two_qubit_product_gate: unable to decompose: detL < 0.9")
-    L /= np.sqrt(detL)
-    phase = cmath.phase(detL) / 2
+    (L, R, phase) = two_qubit_decompose.decompose_two_qubit_product_gate(special_unitary_matrix)
 
     temp = np.kron(L, R)
     deviation = abs(abs(temp.conj().T.dot(special_unitary_matrix).trace()) - 4)
+
     if deviation > 1.0e-13:
         raise QiskitError(
             "decompose_two_qubit_product_gate: decomposition failed: "
-            "deviation too large: {}".format(deviation)
+            f"deviation too large: {deviation}"
         )
 
-    return L, R, phase
-
-
-_ipx = np.array([[0, 1j], [1j, 0]], dtype=complex)
-_ipy = np.array([[0, 1], [-1, 0]], dtype=complex)
-_ipz = np.array([[1j, 0], [0, -1j]], dtype=complex)
-_id = np.array([[1, 0], [0, 1]], dtype=complex)
+    return (L, R, phase)
 
 
 class TwoQubitWeylDecomposition:
@@ -198,19 +204,16 @@ class TwoQubitWeylDecomposition:
         self, *, euler_basis: str | None = None, simplify: bool = False, atol: float = DEFAULT_ATOL
     ) -> QuantumCircuit:
         """Returns Weyl decomposition in circuit form."""
-        circuit_sequence = self._inner_decomposition.circuit(
+        circuit_data = self._inner_decomposition.circuit(
             euler_basis=euler_basis, simplify=simplify, atol=atol
         )
-        circ = QuantumCircuit(2, global_phase=circuit_sequence.global_phase)
-        for name, params, qubits in circuit_sequence:
-            getattr(circ, name)(*params, *qubits)
-        return circ
+        return QuantumCircuit._from_circuit_data(circuit_data, legacy_qubits=True)
 
     def actual_fidelity(self, **kwargs) -> float:
         """Calculates the actual fidelity of the decomposed circuit to the input unitary."""
         circ = self.circuit(**kwargs)
         trace = np.trace(Operator(circ).data.T.conj() @ self.unitary_matrix)
-        return trace_to_fid(trace)
+        return two_qubit_decompose.trace_to_fid(trace)
 
     def __repr__(self):
         """Represent with enough precision to allow copy-paste debugging of all corner cases"""
@@ -267,202 +270,51 @@ class TwoQubitControlledUDecomposer:
     :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}`
     gate that is locally equivalent to an :class:`.RXXGate`."""
 
-    def __init__(self, rxx_equivalent_gate: Type[Gate]):
+    def __init__(self, rxx_equivalent_gate: Type[Gate], euler_basis: str = "ZXZ"):
         r"""Initialize the KAK decomposition.
 
         Args:
             rxx_equivalent_gate: Gate that is locally equivalent to an :class:`.RXXGate`:
-            :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}` gate.
+                :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}` gate.
+                Valid options are [:class:`.RZZGate`, :class:`.RXXGate`, :class:`.RYYGate`,
+                :class:`.RZXGate`, :class:`.CPhaseGate`, :class:`.CRXGate`, :class:`.CRYGate`,
+                :class:`.CRZGate`].
+            euler_basis: Basis string to be provided to :class:`.OneQubitEulerDecomposer`
+                for 1Q synthesis.
+                Valid options are [``'ZXZ'``, ``'ZYZ'``, ``'XYX'``, ``'XZX'``, ``'U'``, ``'U3'``,
+                ``'U321'``, ``'U1X'``, ``'PSX'``, ``'ZSX'``, ``'ZSXX'``, ``'RR'``].
+
         Raises:
             QiskitError: If the gate is not locally equivalent to an :class:`.RXXGate`.
         """
-        atol = DEFAULT_ATOL
-
-        scales, test_angles, scale = [], [0.2, 0.3, np.pi / 2], None
-
-        for test_angle in test_angles:
-            # Check that gate takes a single angle parameter
-            try:
-                rxx_equivalent_gate(test_angle, label="foo")
-            except TypeError as _:
-                raise QiskitError("Equivalent gate needs to take exactly 1 angle parameter.") from _
-            decomp = TwoQubitWeylDecomposition(rxx_equivalent_gate(test_angle))
-
-            circ = QuantumCircuit(2)
-            circ.rxx(test_angle, 0, 1)
-            decomposer_rxx = TwoQubitWeylDecomposition(
-                Operator(circ).data,
-                fidelity=None,
-                _specialization=two_qubit_decompose.Specialization.ControlledEquiv,
+        if rxx_equivalent_gate._standard_gate is not None:
+            self._inner_decomposer = two_qubit_decompose.TwoQubitControlledUDecomposer(
+                rxx_equivalent_gate._standard_gate, euler_basis
             )
-
-            circ = QuantumCircuit(2)
-            circ.append(rxx_equivalent_gate(test_angle), qargs=[0, 1])
-            decomposer_equiv = TwoQubitWeylDecomposition(
-                Operator(circ).data,
-                fidelity=None,
-                _specialization=two_qubit_decompose.Specialization.ControlledEquiv,
+            self.gate_name = rxx_equivalent_gate._standard_gate.name
+        else:
+            self._inner_decomposer = two_qubit_decompose.TwoQubitControlledUDecomposer(
+                rxx_equivalent_gate, euler_basis
             )
-
-            scale = decomposer_rxx.a / decomposer_equiv.a
-
-            if abs(decomp.a * 2 - test_angle / scale) > atol:
-                raise QiskitError(
-                    f"{rxx_equivalent_gate.__name__} is not equivalent to an RXXGate."
-                )
-
-            scales.append(scale)
-
-        # Check that all three tested angles give the same scale
-        if not np.allclose(scales, [scale] * len(test_angles)):
-            raise QiskitError(
-                f"Cannot initialize {self.__class__.__name__}: with gate {rxx_equivalent_gate}. "
-                "Inconsistent scaling parameters in checks."
-            )
-
-        self.scale = scales[0]
-
         self.rxx_equivalent_gate = rxx_equivalent_gate
+        self.scale = self._inner_decomposer.scale
+        self.euler_basis = euler_basis
 
-    def __call__(self, unitary, *, atol=DEFAULT_ATOL) -> QuantumCircuit:
+    def __call__(
+        self, unitary: Operator | np.ndarray, approximate=False, use_dag=False, *, atol=DEFAULT_ATOL
+    ) -> QuantumCircuit:
         """Returns the Weyl decomposition in circuit form.
 
-        Note: atol ist passed to OneQubitEulerDecomposer.
-        """
-
-        # pylint: disable=attribute-defined-outside-init
-        self.decomposer = TwoQubitWeylDecomposition(unitary)
-
-        oneq_decompose = OneQubitEulerDecomposer("ZYZ")
-        c1l, c1r, c2l, c2r = (
-            oneq_decompose(k, atol=atol)
-            for k in (
-                self.decomposer.K1l,
-                self.decomposer.K1r,
-                self.decomposer.K2l,
-                self.decomposer.K2r,
-            )
-        )
-        circ = QuantumCircuit(2, global_phase=self.decomposer.global_phase)
-        circ.compose(c2r, [0], inplace=True)
-        circ.compose(c2l, [1], inplace=True)
-        self._weyl_gate(circ)
-        circ.compose(c1r, [0], inplace=True)
-        circ.compose(c1l, [1], inplace=True)
-        return circ
-
-    def _to_rxx_gate(self, angle: float) -> QuantumCircuit:
-        """
-        Takes an angle and returns the circuit equivalent to an RXXGate with the
-        RXX equivalent gate as the two-qubit unitary.
-
         Args:
-            angle: Rotation angle (in this case one of the Weyl parameters a, b, or c)
+            unitary (Operator or ndarray): :math:`4 \times 4` unitary to synthesize.
 
         Returns:
-            Circuit: Circuit equivalent to an RXXGate.
+            QuantumCircuit: Synthesized quantum circuit.
 
-        Raises:
-            QiskitError: If the circuit is not equivalent to an RXXGate.
+        Note: atol is passed to OneQubitEulerDecomposer.
         """
-
-        # The user-provided RXXGate equivalent gate may be locally equivalent to the RXXGate
-        # but with some scaling in the rotation angle. For example, RXXGate(angle) has Weyl
-        # parameters (angle, 0, 0) for angle in [0, pi/2] but the user provided gate, i.e.
-        # :code:`self.rxx_equivalent_gate(angle)` might produce the Weyl parameters
-        # (scale * angle, 0, 0) where scale != 1. This is the case for the CPhaseGate.
-
-        circ = QuantumCircuit(2)
-        circ.append(self.rxx_equivalent_gate(self.scale * angle), qargs=[0, 1])
-        decomposer_inv = TwoQubitWeylDecomposition(Operator(circ).data)
-
-        oneq_decompose = OneQubitEulerDecomposer("ZYZ")
-
-        # Express the RXXGate in terms of the user-provided RXXGate equivalent gate.
-        rxx_circ = QuantumCircuit(2, global_phase=-decomposer_inv.global_phase)
-        rxx_circ.compose(oneq_decompose(decomposer_inv.K2r).inverse(), inplace=True, qubits=[0])
-        rxx_circ.compose(oneq_decompose(decomposer_inv.K2l).inverse(), inplace=True, qubits=[1])
-        rxx_circ.compose(circ, inplace=True)
-        rxx_circ.compose(oneq_decompose(decomposer_inv.K1r).inverse(), inplace=True, qubits=[0])
-        rxx_circ.compose(oneq_decompose(decomposer_inv.K1l).inverse(), inplace=True, qubits=[1])
-
-        return rxx_circ
-
-    def _weyl_gate(self, circ: QuantumCircuit, atol=1.0e-13):
-        """Appends U_d(a, b, c) to the circuit."""
-
-        circ_rxx = self._to_rxx_gate(-2 * self.decomposer.a)
-        circ.compose(circ_rxx, inplace=True)
-
-        # translate the RYYGate(b) into a circuit based on the desired Ctrl-U gate.
-        if abs(self.decomposer.b) > atol:
-            circ_ryy = QuantumCircuit(2)
-            circ_ryy.sdg(0)
-            circ_ryy.sdg(1)
-            circ_ryy.compose(self._to_rxx_gate(-2 * self.decomposer.b), inplace=True)
-            circ_ryy.s(0)
-            circ_ryy.s(1)
-            circ.compose(circ_ryy, inplace=True)
-
-        # translate the RZZGate(c) into a circuit based on the desired Ctrl-U gate.
-        if abs(self.decomposer.c) > atol:
-            # Since the Weyl chamber is here defined as a > b > |c| we may have
-            # negative c. This will cause issues in _to_rxx_gate
-            # as TwoQubitWeylControlledEquiv will map (c, 0, 0) to (|c|, 0, 0).
-            # We therefore produce RZZGate(|c|) and append its inverse to the
-            # circuit if c < 0.
-            gamma, invert = -2 * self.decomposer.c, False
-            if gamma > 0:
-                gamma *= -1
-                invert = True
-
-            circ_rzz = QuantumCircuit(2)
-            circ_rzz.h(0)
-            circ_rzz.h(1)
-            circ_rzz.compose(self._to_rxx_gate(gamma), inplace=True)
-            circ_rzz.h(0)
-            circ_rzz.h(1)
-
-            if invert:
-                circ.compose(circ_rzz.inverse(), inplace=True)
-            else:
-                circ.compose(circ_rzz, inplace=True)
-
-        return circ
-
-
-def Ud(a, b, c):
-    r"""Generates the array :math:`e^{(i a XX + i b YY + i c ZZ)}`"""
-    return np.array(
-        [
-            [cmath.exp(1j * c) * math.cos(a - b), 0, 0, 1j * cmath.exp(1j * c) * math.sin(a - b)],
-            [0, cmath.exp(-1j * c) * math.cos(a + b), 1j * cmath.exp(-1j * c) * math.sin(a + b), 0],
-            [0, 1j * cmath.exp(-1j * c) * math.sin(a + b), cmath.exp(-1j * c) * math.cos(a + b), 0],
-            [1j * cmath.exp(1j * c) * math.sin(a - b), 0, 0, cmath.exp(1j * c) * math.cos(a - b)],
-        ],
-        dtype=complex,
-    )
-
-
-def trace_to_fid(trace):
-    r"""Average gate fidelity is
-
-    .. math::
-
-        \bar{F} = \frac{d + |\mathrm{Tr} (U_\text{target} \cdot U^{\dag})|^2}{d(d+1)}
-
-    M. Horodecki, P. Horodecki and R. Horodecki, PRA 60, 1888 (1999)"""
-    return (4 + abs(trace) ** 2) / 20
-
-
-def rz_array(theta):
-    """Return numpy array for Rz(theta).
-
-    Rz(theta) = diag(exp(-i*theta/2),exp(i*theta/2))
-    """
-    return np.array(
-        [[cmath.exp(-1j * theta / 2.0), 0], [0, cmath.exp(1j * theta / 2.0)]], dtype=complex
-    )
+        circ_data = self._inner_decomposer(np.asarray(unitary, dtype=complex), atol)
+        return QuantumCircuit._from_circuit_data(circ_data, legacy_qubits=True)
 
 
 class TwoQubitBasisDecomposer:
@@ -481,6 +333,7 @@ class TwoQubitBasisDecomposer:
             If ``False``, don't attempt optimization. If ``None``, attempt optimization but don't raise
             if unknown.
 
+
     .. automethod:: __call__
     """
 
@@ -494,16 +347,10 @@ class TwoQubitBasisDecomposer:
         self.gate = gate
         self.basis_fidelity = basis_fidelity
         self.pulse_optimize = pulse_optimize
-        # Use cx as gate name for pulse optimal decomposition detection
-        # otherwise use USER_GATE as a unique key to support custom gates
-        # including parameterized gates like UnitaryGate.
-        if isinstance(gate, CXGate):
-            gate_name = "cx"
-        else:
-            gate_name = "USER_GATE"
+        self.gate_name = gate.name
 
         self._inner_decomposer = two_qubit_decompose.TwoQubitBasisDecomposer(
-            gate_name,
+            gate,
             Operator(gate).data,
             basis_fidelity=basis_fidelity,
             euler_basis=euler_basis,
@@ -585,9 +432,10 @@ class TwoQubitBasisDecomposer:
         unitary: Operator | np.ndarray,
         basis_fidelity: float | None = None,
         approximate: bool = True,
+        use_dag: bool = False,
         *,
         _num_basis_uses: int | None = None,
-    ) -> QuantumCircuit:
+    ) -> QuantumCircuit | DAGCircuit:
         r"""Decompose a two-qubit ``unitary`` over fixed basis and :math:`SU(2)` using the best
         approximation given that each basis application has a finite ``basis_fidelity``.
 
@@ -596,6 +444,8 @@ class TwoQubitBasisDecomposer:
             basis_fidelity (float or None): Fidelity to be assumed for applications of KAK Gate.
                 If given, overrides ``basis_fidelity`` given at init.
             approximate (bool): Approximates if basis fidelities are less than 1.0.
+            use_dag (bool): If true a :class:`.DAGCircuit` is returned instead of a
+                :class:`QuantumCircuit` when this class is called.
             _num_basis_uses (int): force a particular approximation by passing a number in [0, 3].
 
         Returns:
@@ -605,33 +455,19 @@ class TwoQubitBasisDecomposer:
             QiskitError: if ``pulse_optimize`` is True but we don't know how to do it.
         """
 
-        sequence = self._inner_decomposer(
-            np.asarray(unitary, dtype=complex),
-            basis_fidelity,
-            approximate,
-            _num_basis_uses=_num_basis_uses,
-        )
-        q = QuantumRegister(2)
-        circ = QuantumCircuit(q, global_phase=sequence.global_phase)
-        for name, params, qubits in sequence:
-            try:
-                getattr(circ, name)(*params, *qubits)
-            except AttributeError as exc:
-                if name == "USER_GATE":
-                    circ.append(self.gate, qubits)
-                elif name == "u3":
-                    gate = U3Gate(*params)
-                    circ.append(gate, qubits)
-                elif name == "u2":
-                    gate = U2Gate(*params)
-                    circ.append(gate, qubits)
-                elif name == "u1":
-                    gate = U1Gate(*params)
-                    circ.append(gate, qubits)
-                else:
-                    raise QiskitError(f"Unknown gate {name}") from exc
-
-        return circ
+        unitary = np.asarray(unitary, dtype=complex)
+        if use_dag:
+            return self._inner_decomposer.to_dag(
+                unitary, basis_fidelity, approximate, _num_basis_uses
+            )
+        else:
+            circ_data = self._inner_decomposer.to_circuit(
+                unitary,
+                basis_fidelity,
+                approximate,
+                _num_basis_uses=_num_basis_uses,
+            )
+            return QuantumCircuit._from_circuit_data(circ_data, legacy_qubits=True)
 
     def traces(self, target):
         r"""
@@ -641,98 +477,9 @@ class TwoQubitBasisDecomposer:
         return self._inner_decomposer.traces(target._inner_decomposition)
 
 
-class TwoQubitDecomposeUpToDiagonal:
-    """
-    Class to decompose two qubit unitaries into the product of a diagonal gate
-    and another unitary gate which can be represented by two CX gates instead of the
-    usual three. This can be used when neighboring gates commute with the diagonal to
-    potentially reduce overall CX count.
-    """
-
-    def __init__(self):
-        sy = np.array([[0, -1j], [1j, 0]])
-        self.sysy = np.kron(sy, sy)
-
-    def _u4_to_su4(self, u4):
-        phase_factor = np.conj(np.linalg.det(u4) ** (-1 / u4.shape[0]))
-        su4 = u4 / phase_factor
-        return su4, cmath.phase(phase_factor)
-
-    def _gamma(self, mat):
-        """
-        proposition II.1: this invariant characterizes when two operators in U(4),
-        say u, v, are equivalent up to single qubit gates:
-
-           u ≡ v -> Det(γ(u)) = Det(±(γ(v)))
-        """
-        sumat, _ = self._u4_to_su4(mat)
-        sysy = self.sysy
-        return sumat @ sysy @ sumat.T @ sysy
-
-    def _cx0_test(self, mat):
-        # proposition III.1: zero cx sufficient
-        gamma = self._gamma(mat)
-        evals = np.linalg.eigvals(gamma)
-        return np.all(np.isclose(evals, np.ones(4)))
-
-    def _cx1_test(self, mat):
-        # proposition III.2: one cx sufficient
-        gamma = self._gamma(mat)
-        evals = np.linalg.eigvals(gamma)
-        uvals, ucnts = np.unique(np.round(evals, 10), return_counts=True)
-        return (
-            len(uvals) == 2
-            and all(ucnts == 2)
-            and all((np.isclose(x, 1j)) or np.isclose(x, -1j) for x in uvals)
-        )
-
-    def _cx2_test(self, mat):
-        # proposition III.3: two cx sufficient
-        gamma = self._gamma(mat)
-        return np.isclose(np.trace(gamma).imag, 0)
-
-    def _real_trace_transform(self, mat):
-        """
-        Determine diagonal gate such that
-
-        U3 = D U2
-
-        Where U3 is a general two-qubit gate which takes 3 cnots, D is a
-        diagonal gate, and U2 is a gate which takes 2 cnots.
-        """
-        a1 = (
-            -mat[1, 3] * mat[2, 0]
-            + mat[1, 2] * mat[2, 1]
-            + mat[1, 1] * mat[2, 2]
-            - mat[1, 0] * mat[2, 3]
-        )
-        a2 = (
-            mat[0, 3] * mat[3, 0]
-            - mat[0, 2] * mat[3, 1]
-            - mat[0, 1] * mat[3, 2]
-            + mat[0, 0] * mat[3, 3]
-        )
-        theta = 0  # arbitrary
-        phi = 0  # arbitrary
-        psi = np.arctan2(a1.imag + a2.imag, a1.real - a2.real) - phi
-        diag = np.diag(np.exp(-1j * np.array([theta, phi, psi, -(theta + phi + psi)])))
-        return diag
-
-    def __call__(self, mat):
-        """do the decomposition"""
-        su4, phase = self._u4_to_su4(mat)
-        real_map = self._real_trace_transform(su4)
-        mapped_su4 = real_map @ su4
-        if not self._cx2_test(mapped_su4):
-            warnings.warn("Unitary decomposition up to diagonal may use an additionl CX gate.")
-        circ = two_qubit_cnot_decompose(mapped_su4)
-        circ.global_phase += phase
-        return real_map.conj(), circ
-
-
 # This weird duplicated lazy structure is for backwards compatibility; Qiskit has historically
 # always made ``two_qubit_cnot_decompose`` available publicly immediately on import, but it's quite
-# expensive to construct, and we want to defer the obejct's creation until it's actually used.  We
+# expensive to construct, and we want to defer the object's creation until it's actually used.  We
 # only need to pass through the public methods that take `self` as a parameter.  Using `__getattr__`
 # doesn't work because it is only called if the normal resolution methods fail.  Using
 # `__getattribute__` is too messy for a simple one-off use object.

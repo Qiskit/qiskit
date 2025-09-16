@@ -17,7 +17,6 @@
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.passes import *
 from qiskit.converters import circuit_to_dag
-from qiskit.providers.fake_provider import Fake20QV1
 
 from .utils import random_circuit
 
@@ -35,7 +34,7 @@ class PassBenchmarks:
             n_qubits, depth, measure=True, conditional=True, reset=True, seed=seed, max_operands=2
         )
         self.fresh_dag = circuit_to_dag(self.circuit)
-        self.basis_gates = ["u1", "u2", "u3", "cx", "iid"]
+        self.basis_gates = ["u1", "u2", "u3", "cx", "id"]
         self.cmap = [
             [0, 1],
             [1, 0],
@@ -98,12 +97,6 @@ class PassBenchmarks:
         apply_pass = ApplyLayout()
         apply_pass.property_set["layout"] = self.layout
         self.dag = apply_pass.run(self.enlarge_dag)
-        self.backend_props = Fake20QV1().properties()
-
-    def time_stochastic_swap(self, _, __):
-        swap = StochasticSwap(self.coupling_map, seed=42)
-        swap.property_set["layout"] = self.layout
-        swap.run(self.dag)
 
     def time_sabre_swap(self, _, __):
         swap = SabreSwap(self.coupling_map, seed=42)
@@ -124,12 +117,12 @@ class PassBenchmarks:
     def time_layout_2q_distance(self, _, __):
         layout = Layout2qDistance(self.coupling_map)
         layout.property_set["layout"] = self.layout
-        layout.run(self.dag)
+        layout.run(self.enlarge_dag)
 
     def time_apply_layout(self, _, __):
         layout = ApplyLayout()
         layout.property_set["layout"] = self.layout
-        layout.run(self.dag)
+        layout.run(self.enlarge_dag)
 
     def time_full_ancilla_allocation(self, _, __):
         ancilla = FullAncillaAllocation(self.coupling_map)
@@ -166,7 +159,7 @@ class RoutedPassBenchmarks:
             n_qubits, depth, measure=True, conditional=True, reset=True, seed=seed, max_operands=2
         )
         self.fresh_dag = circuit_to_dag(self.circuit)
-        self.basis_gates = ["u1", "u2", "u3", "cx", "iid"]
+        self.basis_gates = ["u1", "u2", "u3", "cx", "id"]
         self.cmap = [
             [0, 1],
             [1, 0],
@@ -229,14 +222,6 @@ class RoutedPassBenchmarks:
         apply_pass = ApplyLayout()
         apply_pass.property_set["layout"] = self.layout
         self.dag = apply_pass.run(self.enlarge_dag)
-        self.backend_props = Fake20QV1().properties()
-        self.routed_dag = StochasticSwap(self.coupling_map, seed=42).run(self.dag)
-
-    def time_cxdirection(self, _, __):
-        CXDirection(self.coupling_map).run(self.routed_dag)
-
-    def time_check_cx_direction(self, _, __):
-        CheckCXDirection(self.coupling_map).run(self.routed_dag)
 
     def time_gate_direction(self, _, __):
         GateDirection(self.coupling_map).run(self.routed_dag)

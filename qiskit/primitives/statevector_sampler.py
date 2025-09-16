@@ -10,30 +10,29 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Statevector Sampler class
+Statevector Sampler V2 class
 """
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
 from typing import Iterable
-import warnings
 
 import numpy as np
 from numpy.typing import NDArray
 
 from qiskit import ClassicalRegister, QiskitError, QuantumCircuit
-from qiskit.circuit import ControlFlowOp
 from qiskit.quantum_info import Statevector
 
 from .base import BaseSamplerV2
-from .base.validation import _has_measure
+from .base.validation_v1 import _has_measure
 from .containers import (
     BitArray,
+    DataBin,
     PrimitiveResult,
-    PubResult,
+    SamplerPubResult,
     SamplerPubLike,
-    make_data_bin,
 )
 from .containers.sampler_pub import SamplerPub
 from .containers.bit_array import _min_num_bytes
@@ -64,7 +63,9 @@ class StatevectorSampler(BaseSamplerV2):
     primitive unified bloc (PUB), produces its own array-valued result. The :meth:`~run` method can
     be given many pubs at once.
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit.circuit import (
             Parameter, QuantumCircuit, ClassicalRegister, QuantumRegister
@@ -154,7 +155,7 @@ class StatevectorSampler(BaseSamplerV2):
 
     def run(
         self, pubs: Iterable[SamplerPubLike], *, shots: int | None = None
-    ) -> PrimitiveJob[PrimitiveResult[PubResult]]:
+    ) -> PrimitiveJob[PrimitiveResult[SamplerPubResult]]:
         if shots is None:
             shots = self._default_shots
         coerced_pubs = [SamplerPub.coerce(pub, shots) for pub in pubs]
@@ -169,11 +170,11 @@ class StatevectorSampler(BaseSamplerV2):
         job._submit()
         return job
 
-    def _run(self, pubs: Iterable[SamplerPub]) -> PrimitiveResult[PubResult]:
+    def _run(self, pubs: Iterable[SamplerPub]) -> PrimitiveResult[SamplerPubResult]:
         results = [self._run_pub(pub) for pub in pubs]
-        return PrimitiveResult(results)
+        return PrimitiveResult(results, metadata={"version": 2})
 
-    def _run_pub(self, pub: SamplerPub) -> PubResult:
+    def _run_pub(self, pub: SamplerPub) -> SamplerPubResult:
         circuit, qargs, meas_info = _preprocess_circuit(pub.circuit)
         bound_circuits = pub.parameter_values.bind_all(circuit)
         arrays = {
@@ -194,15 +195,13 @@ class StatevectorSampler(BaseSamplerV2):
                 ary = _samples_to_packed_array(samples_array, item.num_bits, item.qreg_indices)
                 arrays[item.creg_name][index] = ary
 
-        data_bin_cls = make_data_bin(
-            [(item.creg_name, BitArray) for item in meas_info],
-            shape=bound_circuits.shape,
-        )
         meas = {
             item.creg_name: BitArray(arrays[item.creg_name], item.num_bits) for item in meas_info
         }
-        data_bin = data_bin_cls(**meas)
-        return PubResult(data_bin, metadata={"shots": pub.shots})
+        return SamplerPubResult(
+            DataBin(**meas, shape=pub.shape),
+            metadata={"shots": pub.shots, "circuit_metadata": pub.circuit.metadata},
+        )
 
 
 def _preprocess_circuit(circuit: QuantumCircuit):
@@ -288,4 +287,4 @@ def _final_measurement_mapping(circuit: QuantumCircuit) -> dict[tuple[ClassicalR
 
 
 def _has_control_flow(circuit: QuantumCircuit) -> bool:
-    return any(isinstance(instruction.operation, ControlFlowOp) for instruction in circuit)
+    return any(instruction.is_control_flow() for instruction in circuit)

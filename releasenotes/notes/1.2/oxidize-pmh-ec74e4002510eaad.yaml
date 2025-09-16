@@ -1,0 +1,17 @@
+---
+features_synthesis:
+  - |
+    Port :func:`.synth_cnot_full_pmh`, used to synthesize a linear function
+    into a CX network, to Rust. This produces approximately 44x speedup,
+    as measured on 100 qubit circuits. 
+  - |
+    The function :func:`.synth_cnot_full_pmh` now allows choosing the 
+    (heuristically) optimal ``section_size`` by setting it to ``None``. Then, a value is 
+    chosen which attempts to minimize the upper bound on the number of CX gates, that is
+    :math:`\alpha \log_2(n)` where :math:`n` is the number of qubits and :math:`\alpha \approx 0.56`.
+fixes:
+  - |
+    Fixed a bug in :func:`.synth_cnot_full_pmh` where providing a ``section_size`` that did 
+    not divide the number of qubits without remainder could lead to wrong results. 
+    Now any ``section_size`` (at most equal to the number of qubits) synthesizes the correct
+    circuit. For a (heuristically) optimal value, set ``section_size=None``.

@@ -11,12 +11,15 @@
 # that they have been altered from the originals.
 
 """Hadamard gate."""
-from math import sqrt, pi
+
+from __future__ import annotations
+
+from math import sqrt
 from typing import Optional, Union
 import numpy
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 _H_ARRAY = 1 / sqrt(2) * numpy.array([[1, 1], [1, -1]], dtype=numpy.complex128)
 
@@ -32,15 +35,15 @@ class HGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.h` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───┐
         q_0: ┤ H ├
              └───┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -51,34 +54,36 @@ class HGate(SingletonGate):
             \end{pmatrix}
     """
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
-        """Create new H gate."""
-        super().__init__("h", 1, [], label=label, duration=duration, unit=unit)
+    _standard_gate = StandardGate.H
+
+    def __init__(self, label: Optional[str] = None):
+        """
+        Args:
+            label: An optional label for the gate.
+        """
+        super().__init__("h", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
-        """
-        gate h a { u2(0,pi) a; }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .u2 import U2Gate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(U2Gate(0, pi), [q[0]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        #    ┌────────────┐
+        # q: ┤ U(π/2,0,π) ├
+        #    └────────────┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.H._get_definition(self.params), legacy_qubits=True, name=self.name
+        )
 
     def control(
         self,
         num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[int, str]] = None,
-        annotated: bool = False,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
+        annotated: bool | None = None,
     ):
         """Return a (multi-)controlled-H gate.
 
@@ -89,8 +94,8 @@ class HGate(SingletonGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
-                as an annotated gate.
+            annotated: indicates whether the controlled gate should be implemented
+                as an annotated gate. If ``None``, this is handled as ``False``.
 
         Returns:
             ControlledGate: controlled version of this gate.
@@ -134,16 +139,16 @@ class CHGate(SingletonControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.ch` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ──■──
              ┌─┴─┐
         q_1: ┤ H ├
              └───┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -164,7 +169,8 @@ class CHGate(SingletonControlledGate):
         which in our case would be q_1. Thus a textbook matrix for this
         gate will be:
 
-        .. parsed-literal::
+        .. code-block:: text
+
                  ┌───┐
             q_0: ┤ H ├
                  └─┬─┘
@@ -182,13 +188,13 @@ class CHGate(SingletonControlledGate):
                 \end{pmatrix}
     """
 
+    _standard_gate = StandardGate.CH
+
     def __init__(
         self,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[int, str]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CH gate."""
@@ -200,46 +206,24 @@ class CHGate(SingletonControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=HGate(label=_base_label),
-            duration=duration,
-            unit=unit,
             _base_label=_base_label,
         )
 
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)
 
     def _define(self):
-        """
-        gate ch a,b {
-            s b;
-            h b;
-            t b;
-            cx a, b;
-            tdg b;
-            h b;
-            sdg b;
-        }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .x import CXGate  # pylint: disable=cyclic-import
-        from .t import TGate, TdgGate
-        from .s import SGate, SdgGate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (SGate(), [q[1]], []),
-            (HGate(), [q[1]], []),
-            (TGate(), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (TdgGate(), [q[1]], []),
-            (HGate(), [q[1]], []),
-            (SdgGate(), [q[1]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        # q_0: ─────────────────■─────────────────────
+        #      ┌───┐┌───┐┌───┐┌─┴─┐┌─────┐┌───┐┌─────┐
+        # q_1: ┤ S ├┤ H ├┤ T ├┤ X ├┤ Tdg ├┤ H ├┤ Sdg ├
+        #      └───┘└───┘└───┘└───┘└─────┘└───┘└─────┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.CH._get_definition(self.params), legacy_qubits=True, name=self.name
+        )
 
     def inverse(self, annotated: bool = False):
         """Return inverted CH gate (itself)."""

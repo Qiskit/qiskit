@@ -1,0 +1,8 @@
+---
+features_qasm:
+  - |
+    The class :class:`.qasm3.CustomGate` is now inspectable programmatically.  Its
+    :attr:`~.qasm3.CustomGate.constructor`, :attr:`~.qasm3.CustomGate.name`,
+    :attr:`~.qasm3.CustomGate.num_params` and :attr:`~.qasm3.CustomGate.num_qubits` can now be
+    viewed from Python after the object has been constructed.  This allows you to inspect the
+    contents of provided data attributes like :data:`.STDGATES_INC_GATES`.

@@ -26,9 +26,8 @@ from qiskit.passmanager.flow_controllers import (
     ConditionalController,
     DoWhileController,
 )
-from qiskit.transpiler import PassManager, PropertySet, TransformationPass
-from qiskit.transpiler.passes import CommutativeCancellation
-from qiskit.transpiler.passes import Optimize1qGates, BasisTranslator
+from qiskit.transpiler import PassManager, PropertySet, TransformationPass, AnalysisPass
+from qiskit.transpiler.passes import Optimize1qGates, BasisTranslator, ResourceEstimation
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
@@ -51,6 +50,13 @@ class TestPassManager(QiskitTestCase):
         expected_start.append(U2Gate(0, np.pi), [qr[0]])
         expected_start_dag = circuit_to_dag(expected_start)
 
+        base_property_set = PropertySet(
+            {
+                "original_qubit_indices": {bit: i for i, bit in enumerate(circuit.qubits)},
+                "num_input_qubits": circuit.num_qubits,
+            }
+        )
+
         expected_end = QuantumCircuit(qr)
         expected_end.append(U2Gate(0, np.pi), [qr[0]])
         expected_end_dag = circuit_to_dag(expected_end)
@@ -72,18 +78,82 @@ class TestPassManager(QiskitTestCase):
         self.assertEqual(calls[0]["pass_"].name(), "BasisTranslator")
         self.assertEqual(expected_start_dag, calls[0]["dag"])
         self.assertIsInstance(calls[0]["time"], float)
-        self.assertEqual(calls[0]["property_set"], PropertySet())
+        self.assertEqual(calls[0]["property_set"], base_property_set)
         self.assertEqual("MyCircuit", calls[0]["dag"].name)
         self.assertEqual(len(calls[1]), 5)
         self.assertEqual(calls[1]["count"], 1)
         self.assertEqual(calls[1]["pass_"].name(), "Optimize1qGates")
         self.assertEqual(expected_end_dag, calls[1]["dag"])
-        self.assertIsInstance(calls[0]["time"], float)
-        self.assertEqual(calls[0]["property_set"], PropertySet())
+        self.assertIsInstance(calls[1]["time"], float)
+        self.assertEqual(calls[1]["property_set"], base_property_set)
         self.assertEqual("MyCircuit", calls[1]["dag"].name)
 
+    def test_callback_multi_circuits(self):
+        """Test callback with multiple circuits."""
+
+        qr = QuantumRegister(1, "qr")
+
+        circuit1 = QuantumCircuit(qr, name="Circuit1")
+        circuit1.h(qr[0])
+        circuit1.h(qr[0])
+        circuit1.h(qr[0])
+        expected_start_1 = QuantumCircuit(qr)
+        expected_start_1.append(U2Gate(0, np.pi), [qr[0]])
+        expected_start_1.append(U2Gate(0, np.pi), [qr[0]])
+        expected_start_1.append(U2Gate(0, np.pi), [qr[0]])
+
+        circuit2 = circuit1.copy(name="Circuit2")
+
+        def callback(**kwargs):
+            dag = kwargs["dag"]
+            dag.name += "_callback"
+
+        passmanager = PassManager()
+        passmanager.append(BasisTranslator(std_eqlib, ["u2"]))
+        passmanager.append(Optimize1qGates())
+
+        out_circuits = passmanager.run([circuit1, circuit2], callback=callback)
+
+        # Check that callback visibly modified circuit names
+        self.assertTrue(out_circuits[0].name.endswith("_callback"))
+        self.assertTrue(out_circuits[1].name.endswith("_callback"))
+
+    def test_callback_multi_circuits_lambda(self):
+        """Test callback with multiple circuits using lambda function."""
+
+        qr = QuantumRegister(1, "qr")
+
+        circuit1 = QuantumCircuit(qr, name="Circuit1")
+        circuit1.h(qr[0])
+        circuit1.h(qr[0])
+        circuit1.h(qr[0])
+
+        circuit2 = circuit1.copy(name="Circuit2")
+
+        # Run pass manager with lambda callback that modifies the DAG by appending XGate
+        passmanager = PassManager()
+        passmanager.append(BasisTranslator(std_eqlib, ["u2"]))
+        passmanager.append(Optimize1qGates())
+
+        from qiskit.circuit.library import XGate
+
+        out_circuits = passmanager.run(
+            [circuit1, circuit2],
+            callback=lambda **kwargs: kwargs["dag"].apply_operation_back(
+                XGate(), [kwargs["dag"].qubits[0]]
+            ),
+        )
+
+        # Check that callback visibly modified the circuits by adding an XGate
+        self.assertIn("x", out_circuits[0].count_ops())
+        self.assertIn("x", out_circuits[1].count_ops())
+
+        # Optional: structure checks for original circuit
+        self.assertTrue(out_circuits[0].name.startswith("Circuit1"))
+        self.assertTrue(out_circuits[1].name.startswith("Circuit2"))
+
     def test_callback_with_pass_requires(self):
-        """Test the callback with a pass with another pass requirement."""
+        """Test the callback with a pass with pass requirements."""
         qr = QuantumRegister(3, "qr")
         circuit = QuantumCircuit(qr, name="MyCircuit")
         circuit.z(qr[0])
@@ -97,7 +167,6 @@ class TestPassManager(QiskitTestCase):
 
         expected_end = QuantumCircuit(qr)
         expected_end.cx(qr[0], qr[2])
-        expected_end_dag = circuit_to_dag(expected_end)
 
         calls = []
 
@@ -107,23 +176,29 @@ class TestPassManager(QiskitTestCase):
             calls.append(out_dict)
 
         passmanager = PassManager()
-        passmanager.append(CommutativeCancellation(basis_gates=["u1", "u2", "u3", "cx"]))
+        passmanager.append(ResourceEstimation())
         passmanager.run(circuit, callback=callback)
-        self.assertEqual(len(calls), 2)
-        self.assertEqual(len(calls[0]), 5)
-        self.assertEqual(calls[0]["count"], 0)
-        self.assertEqual(calls[0]["pass_"].name(), "CommutationAnalysis")
-        self.assertEqual(expected_start_dag, calls[0]["dag"])
-        self.assertIsInstance(calls[0]["time"], float)
-        self.assertIsInstance(calls[0]["property_set"], PropertySet)
-        self.assertEqual("MyCircuit", calls[0]["dag"].name)
-        self.assertEqual(len(calls[1]), 5)
-        self.assertEqual(calls[1]["count"], 1)
-        self.assertEqual(calls[1]["pass_"].name(), "CommutativeCancellation")
-        self.assertEqual(expected_end_dag, calls[1]["dag"])
-        self.assertIsInstance(calls[0]["time"], float)
-        self.assertIsInstance(calls[0]["property_set"], PropertySet)
-        self.assertEqual("MyCircuit", calls[1]["dag"].name)
+
+        self.assertEqual(len(calls), 7)
+
+        required_passes = [
+            "Depth",
+            "Width",
+            "Size",
+            "CountOps",
+            "NumTensorFactors",
+            "NumQubits",
+            "ResourceEstimation",
+        ]
+
+        for call_entry in range(7):
+            self.assertEqual(len(calls[call_entry]), 5)
+            self.assertEqual(calls[call_entry]["count"], call_entry)
+            self.assertEqual(calls[call_entry]["pass_"].name(), required_passes[call_entry])
+            self.assertEqual(expected_start_dag, calls[call_entry]["dag"])
+            self.assertIsInstance(calls[call_entry]["time"], float)
+            self.assertIsInstance(calls[call_entry]["property_set"], PropertySet)
+            self.assertEqual("MyCircuit", calls[call_entry]["dag"].name)
 
     def test_to_flow_controller(self):
         """Test that conversion to a `FlowController` works, and the result can be added to a
@@ -187,3 +262,20 @@ class TestPassManager(QiskitTestCase):
             "third 4",
         ]
         self.assertEqual(calls, expected)
+
+    def test_override_initial_property_set(self):
+        """Test that the ``property_set`` argument allows seeding the base analysis."""
+        input_name = "my_property"
+        output_name = "output_property"
+
+        class Analyse(AnalysisPass):
+            def run(self, dag):
+                self.property_set[output_name] = self.property_set[input_name]
+                return dag
+
+        pm = PassManager([Analyse()])
+        pm.run(QuantumCircuit(), property_set={input_name: "hello, world"})
+        self.assertEqual(pm.property_set[output_name], "hello, world")
+
+        pm.run(QuantumCircuit(), property_set={input_name: "a different string"})
+        self.assertEqual(pm.property_set[output_name], "a different string")

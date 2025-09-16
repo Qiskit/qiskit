@@ -12,15 +12,14 @@
 
 """T and Tdg gate."""
 import math
-from math import pi
 from typing import Optional
 
 import numpy
 
 from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
 from qiskit.circuit.library.standard_gates.p import PhaseGate
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 
 @with_gate_array([[1, 0], [0, (1 + 1j) / math.sqrt(2)]])
@@ -35,7 +34,7 @@ class TGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.t` method.
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -44,9 +43,9 @@ class TGate(SingletonGate):
                 0 & e^{i\pi/4}
             \end{pmatrix}
 
-    **Circuit symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───┐
         q_0: ┤ T ├
@@ -55,28 +54,29 @@ class TGate(SingletonGate):
     Equivalent to a :math:`\pi/4` radian rotation about the Z axis.
     """
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
-        """Create new T gate."""
-        super().__init__("t", 1, [], label=label, duration=duration, unit=unit)
+    _standard_gate = StandardGate.T
+
+    def __init__(self, label: Optional[str] = None):
+        """
+        Args:
+            label: An optional label for the gate.
+        """
+        super().__init__("t", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
-        """
-        gate t a { u1(pi/4) a; }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit
 
-        from .u1 import U1Gate
+        #    ┌────────┐
+        # q: ┤ P(π/4) ├
+        #    └────────┘
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(U1Gate(pi / 4), [q[0]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
-
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.T._get_definition(self.params), legacy_qubits=True, name=self.name
+        )
 
     def inverse(self, annotated: bool = False):
         """Return inverse T gate (i.e. Tdg).
@@ -92,8 +92,7 @@ class TGate(SingletonGate):
         """
         return TdgGate()
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         return PhaseGate(0.25 * numpy.pi * exponent)
 
     def __eq__(self, other):
@@ -111,7 +110,7 @@ class TdgGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.tdg` method.
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -120,9 +119,9 @@ class TdgGate(SingletonGate):
                 0 & e^{-i\pi/4}
             \end{pmatrix}
 
-    **Circuit symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌─────┐
         q_0: ┤ Tdg ├
@@ -131,28 +130,26 @@ class TdgGate(SingletonGate):
     Equivalent to a :math:`-\pi/4` radian rotation about the Z axis.
     """
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
+    _standard_gate = StandardGate.Tdg
+
+    def __init__(self, label: Optional[str] = None):
         """Create new Tdg gate."""
-        super().__init__("tdg", 1, [], label=label, duration=duration, unit=unit)
+        super().__init__("tdg", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
-        """
-        gate tdg a { u1(pi/4) a; }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit
 
-        from .u1 import U1Gate
+        #    ┌─────────┐
+        # q: ┤ P(-π/4) ├
+        #    └─────────┘
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(U1Gate(-pi / 4), [q[0]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
-
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.Tdg._get_definition(self.params), legacy_qubits=True, name=self.name
+        )
 
     def inverse(self, annotated: bool = False):
         """Return inverse Tdg gate (i.e. T).
@@ -168,8 +165,7 @@ class TdgGate(SingletonGate):
         """
         return TGate()
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         return PhaseGate(-0.25 * numpy.pi * exponent)
 
     def __eq__(self, other):

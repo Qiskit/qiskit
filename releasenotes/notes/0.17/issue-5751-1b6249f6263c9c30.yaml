@@ -17,5 +17,5 @@ features:
     the :class:`~qiskit.transpiler.passes.TemplateOptimization` pass with the
     :py:class:`qiskit.transpiler.passes.RZXCalibrationBuilder` pass to
     automatically find and replace gate sequences, such as
-    ``CNOT - P(theta) - CNOT``, with more efficent circuits based on
+    ``CNOT - P(theta) - CNOT``, with more efficient circuits based on
     :class:`qiskit.circuit.library.RZXGate` with a calibration.

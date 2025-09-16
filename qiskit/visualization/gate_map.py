@@ -21,14 +21,8 @@ from rustworkx.visualization import graphviz_draw
 
 from qiskit.exceptions import QiskitError
 from qiskit.utils import optionals as _optionals
-from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.transpiler.coupling import CouplingMap
 from .exceptions import VisualizationError
-
-
-def _get_backend_interface_version(backend):
-    backend_interface_version = getattr(backend, "version", None)
-    return backend_interface_version
 
 
 @_optionals.HAS_MATPLOTLIB.require_in_call
@@ -75,13 +69,14 @@ def plot_gate_map(
         Figure: A Matplotlib figure instance.
 
     Raises:
-        QiskitError: if tried to pass a simulator, or if the backend is None,
+        QiskitError: If you tried to pass a simulator or the backend is None,
             but one of num_qubits, mpl_data, or cmap is None.
-        MissingOptionalLibraryError: if matplotlib not installed.
+        MissingOptionalLibraryError: If matplotlib not installed.
 
     Example:
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            from qiskit.providers.fake_provider import GenericBackendV2
@@ -908,18 +903,9 @@ def plot_gate_map(
         [24, 26],
     ]
 
-    backend_version = _get_backend_interface_version(backend)
-    if backend_version <= 1:
-        if backend.configuration().simulator:
-            raise QiskitError("Requires a device backend, not simulator.")
-        config = backend.configuration()
-        num_qubits = config.n_qubits
-        coupling_map = CouplingMap(config.coupling_map)
-        name = backend.name()
-    else:
-        num_qubits = backend.num_qubits
-        coupling_map = backend.coupling_map
-        name = backend.name
+    num_qubits = backend.num_qubits
+    coupling_map = backend.coupling_map
+    name = backend.name
     if qubit_coordinates is None and ("ibm" in name or "fake" in name):
         qubit_coordinates = qubit_coordinates_map.get(num_qubits, None)
 
@@ -945,6 +931,7 @@ def plot_gate_map(
         font_color,
         ax,
         filename,
+        planar=rx.is_planar(coupling_map.graph.to_undirected(multigraph=False)),
     )
 
 
@@ -966,6 +953,8 @@ def plot_coupling_map(
     font_color="white",
     ax=None,
     filename=None,
+    *,
+    planar=True,
 ):
     """Plots an arbitrary coupling map of qubits (embedded in a plane).
 
@@ -987,17 +976,19 @@ def plot_coupling_map(
         font_color (str): The font color for the qubit labels.
         ax (Axes): A Matplotlib axes instance.
         filename (str): file path to save image to.
+        planar (bool): If the coupling map is planar or not. Default: ``True`` (i.e. it is planar)
 
     Returns:
         Figure: A Matplotlib figure instance.
 
     Raises:
         MissingOptionalLibraryError: If matplotlib or graphviz is not installed.
-        QiskitError: If length of qubit labels does not match number of qubits.
+        QiskitError: If the length of qubit labels does not match the number of qubits.
 
     Example:
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
             from qiskit.visualization import plot_coupling_map
@@ -1039,7 +1030,9 @@ def plot_coupling_map(
         graph = CouplingMap(coupling_map).graph
 
     if not plot_directed:
+        line_color_map = dict(zip(graph.edge_list(), line_color))
         graph = graph.to_undirected(multigraph=False)
+        line_color = [line_color_map[edge] for edge in graph.edge_list()]
 
     for node in graph.node_indices():
         graph[node] = node
@@ -1055,7 +1048,14 @@ def plot_coupling_map(
 
     if font_size is None:
         max_characters = max(1, max(len(str(x)) for x in qubit_labels))
-        font_size = max(int(20 / max_characters), 1)
+        if max_characters == 1:
+            font_size = 20
+        elif max_characters == 2:
+            font_size = 14
+        elif max_characters == 3:
+            font_size = 12
+        else:
+            font_size = 1
 
     def color_node(node):
         if qubit_coordinates:
@@ -1063,8 +1063,6 @@ def plot_coupling_map(
                 "label": str(qubit_labels[node]),
                 "color": f'"{qubit_color[node]}"',
                 "fillcolor": f'"{qubit_color[node]}"',
-                "style": "filled",
-                "shape": "circle",
                 "pos": f'"{qubit_coordinates[node][0]},{qubit_coordinates[node][1]}"',
                 "pin": "True",
             }
@@ -1073,11 +1071,11 @@ def plot_coupling_map(
                 "label": str(qubit_labels[node]),
                 "color": f'"{qubit_color[node]}"',
                 "fillcolor": f'"{qubit_color[node]}"',
-                "style": "filled",
-                "shape": "circle",
             }
+        out_dict["style"] = "filled"
+        out_dict["shape"] = "circle"
         out_dict["fontcolor"] = f'"{font_color}"'
-        out_dict["fontsize"] = str(font_size)
+        out_dict["fontsize"] = f'"{str(font_size)}!"'
         out_dict["height"] = str(qubit_size * px)
         out_dict["fixedsize"] = "True"
         out_dict["fontname"] = '"DejaVu Sans"'
@@ -1091,9 +1089,22 @@ def plot_coupling_map(
         }
         return out_dict
 
+    graph_attributes = None
+    if not qubit_coordinates:
+        if planar:
+            graph_attributes = {
+                "overlap_scaling": "-7",
+                "overlap": "prism",
+                "model": "subset",
+            }
+        else:
+            graph_attributes = {
+                "overlap": "true",
+            }
     plot = graphviz_draw(
         graph,
         method="neato",
+        graph_attr=graph_attributes,
         node_attr_fn=color_node,
         edge_attr_fn=color_edge,
         filename=filename,
@@ -1122,7 +1133,13 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
     Args:
         circuit (QuantumCircuit): Input quantum circuit.
         backend (Backend): Target backend.
-        view (str): Layout view: either 'virtual' or 'physical'.
+        view (str): How to label qubits in the layout. Options:
+
+          - ``"virtual"``: Label each qubit with the index of the virtual qubit that
+            mapped to it.
+          - ``"physical"``: Label each qubit with the index of the physical qubit that it
+            corresponds to on the device.
+
         qubit_coordinates (Sequence): An optional sequence input (list or array being the
             most common) of 2d coordinates for each qubit. The length of the
             sequence must match the number of qubits on the backend. The sequence
@@ -1138,6 +1155,7 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
 
     Example:
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
             from qiskit import QuantumCircuit, transpile
@@ -1157,15 +1175,9 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
     if circuit._layout is None:
         raise QiskitError("Circuit has no layout. Perhaps it has not been transpiled.")
 
-    backend_version = _get_backend_interface_version(backend)
-    if backend_version <= 1:
-        num_qubits = backend.configuration().n_qubits
-        cmap = backend.configuration().coupling_map
-        cmap_len = len(cmap)
-    else:
-        num_qubits = backend.num_qubits
-        cmap = backend.coupling_map
-        cmap_len = cmap.graph.num_edges()
+    num_qubits = backend.num_qubits
+    cmap = backend.coupling_map
+    cmap_len = cmap.graph.num_edges()
 
     qubits = []
     qubit_labels = [""] * num_qubits
@@ -1240,6 +1252,7 @@ def plot_error_map(backend, figsize=(15, 12), show_title=True, qubit_coordinates
 
     Example:
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
             from qiskit.visualization import plot_error_map
@@ -1256,84 +1269,40 @@ def plot_error_map(backend, figsize=(15, 12), show_title=True, qubit_coordinates
 
     color_map = sns.cubehelix_palette(reverse=True, as_cmap=True)
 
-    backend_version = _get_backend_interface_version(backend)
-    if backend_version <= 1:
-        backend_name = backend.name()
-        num_qubits = backend.configuration().n_qubits
-        cmap = backend.configuration().coupling_map
-        props = backend.properties()
-        props_dict = props.to_dict()
-        single_gate_errors = [0] * num_qubits
-        read_err = [0] * num_qubits
-        cx_errors = []
-        # sx error rates
-        for gate in props_dict["gates"]:
-            if gate["gate"] == "sx":
-                _qubit = gate["qubits"][0]
-                for param in gate["parameters"]:
-                    if param["name"] == "gate_error":
-                        single_gate_errors[_qubit] = param["value"]
-                        break
-                else:
-                    raise VisualizationError(
-                        f"Backend '{backend}' did not supply an error for the 'sx' gate."
-                    )
-        if cmap:
-            directed = False
-            if num_qubits < 20:
-                for edge in cmap:
-                    if not [edge[1], edge[0]] in cmap:
-                        directed = True
-                        break
-
-            for line in cmap:
-                for item in props_dict["gates"]:
-                    if item["qubits"] == line:
-                        cx_errors.append(item["parameters"][0]["value"])
-                        break
-        for qubit in range(num_qubits):
-            try:
-                read_err[qubit] = props.readout_error(qubit)
-            except BackendPropertyError:
-                pass
-
-    else:
-        backend_name = backend.name
-        num_qubits = backend.num_qubits
-        cmap = backend.coupling_map
-        two_q_error_map = {}
-        single_gate_errors = [0] * num_qubits
-        read_err = [0] * num_qubits
-        cx_errors = []
-        for gate, prop_dict in backend.target.items():
-            if prop_dict is None or None in prop_dict:
+    backend_name = backend.name
+    num_qubits = backend.num_qubits
+    cmap = backend.coupling_map
+    two_q_error_map = {}
+    single_gate_errors = [0] * num_qubits
+    read_err = [0] * num_qubits
+    cx_errors = []
+    for gate, prop_dict in backend.target.items():
+        if prop_dict is None or None in prop_dict:
+            continue
+        for qargs, inst_props in prop_dict.items():
+            if inst_props is None:
                 continue
-            for qargs, inst_props in prop_dict.items():
-                if inst_props is None:
-                    continue
-                if gate == "measure":
-                    if inst_props.error is not None:
-                        read_err[qargs[0]] = inst_props.error
-                elif len(qargs) == 1:
-                    if inst_props.error is not None:
-                        single_gate_errors[qargs[0]] = max(
-                            single_gate_errors[qargs[0]], inst_props.error
-                        )
-                elif len(qargs) == 2:
-                    if inst_props.error is not None:
-                        two_q_error_map[qargs] = max(
-                            two_q_error_map.get(qargs, 0), inst_props.error
-                        )
-        if cmap:
-            directed = False
-            if num_qubits < 20:
-                for edge in cmap:
-                    if not [edge[1], edge[0]] in cmap:
-                        directed = True
-                        break
-            for line in cmap.get_edges():
-                err = two_q_error_map.get(tuple(line), 0)
-                cx_errors.append(err)
+            if gate == "measure":
+                if inst_props.error is not None:
+                    read_err[qargs[0]] = inst_props.error
+            elif len(qargs) == 1:
+                if inst_props.error is not None:
+                    single_gate_errors[qargs[0]] = max(
+                        single_gate_errors[qargs[0]], inst_props.error
+                    )
+            elif len(qargs) == 2:
+                if inst_props.error is not None:
+                    two_q_error_map[qargs] = max(two_q_error_map.get(qargs, 0), inst_props.error)
+    if cmap:
+        directed = False
+        if num_qubits < 20:
+            for edge in cmap:
+                if not [edge[1], edge[0]] in cmap:
+                    directed = True
+                    break
+        for line in cmap.get_edges():
+            err = two_q_error_map.get(tuple(line), 0)
+            cx_errors.append(err)
 
     # Convert to percent
     single_gate_errors = 100 * np.asarray(single_gate_errors)

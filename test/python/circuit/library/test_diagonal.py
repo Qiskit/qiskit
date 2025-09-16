@@ -10,13 +10,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test the digonal circuit."""
+"""Test the diagonal circuit."""
 
 import unittest
 from ddt import ddt, data
 import numpy as np
 
-from qiskit.circuit.library import Diagonal
+from qiskit import QuantumCircuit
+from qiskit.circuit.library import DiagonalGate
 from qiskit.quantum_info import Statevector, Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -38,7 +39,9 @@ class TestDiagonalGate(QiskitTestCase):
     def test_diag_gate(self, phases):
         """Test correctness of diagonal decomposition."""
         diag = [np.exp(1j * ph) for ph in phases]
-        qc = Diagonal(diag)
+        num_qubits = int(np.log2(len(phases)))
+        qc = QuantumCircuit(num_qubits)
+        qc.append(DiagonalGate(diag), range(num_qubits))
         simulated_diag = Statevector(Operator(qc).data.diagonal()).data
         ref_diag = Statevector(diag).data
 

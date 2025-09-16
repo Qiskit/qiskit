@@ -12,24 +12,27 @@
 
 """Analysis pass to find commutation relations between DAG nodes."""
 
-from collections import defaultdict
-
 from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
-from qiskit.dagcircuit import DAGOpNode
 from qiskit.transpiler.basepasses import AnalysisPass
+from qiskit._accelerate.commutation_analysis import analyze_commutations
 
 
 class CommutationAnalysis(AnalysisPass):
-    """Analysis pass to find commutation relations between DAG nodes.
+    r"""Analysis pass to find commutation relations between DAG nodes.
 
-    ``property_set['commutation_set']`` is a dictionary that describes
-    the commutation relations on a given wire, all the gates on a wire
+    This sets ``property_set['commutation_set']`` to a dictionary that describes
+    the commutation relations on a given wire: all the gates on a wire
     are grouped into a set of gates that commute.
     """
 
-    def __init__(self):
+    def __init__(self, *, _commutation_checker=None):
         super().__init__()
-        self.comm_checker = scc
+        # allow setting a private commutation checker, this allows better performance if we
+        # do not care about commutations of all gates, but just a subset
+        if _commutation_checker is None:
+            _commutation_checker = scc
+
+        self.comm_checker = _commutation_checker
 
     def run(self, dag):
         """Run the CommutationAnalysis pass on `dag`.
@@ -38,56 +41,4 @@ class CommutationAnalysis(AnalysisPass):
         into the ``property_set``.
         """
         # Initiate the commutation set
-        self.property_set["commutation_set"] = defaultdict(list)
-
-        # Build a dictionary to keep track of the gates on each qubit
-        # The key with format (wire) will store the lists of commutation sets
-        # The key with format (node, wire) will store the index of the commutation set
-        # on the specified wire, thus, for example:
-        # self.property_set['commutation_set'][wire][(node, wire)] will give the
-        # commutation set that contains node.
-
-        for wire in dag.wires:
-            self.property_set["commutation_set"][wire] = []
-
-        # Add edges to the dictionary for each qubit
-        for node in dag.topological_op_nodes():
-            for _, _, edge_wire in dag.edges(node):
-                self.property_set["commutation_set"][(node, edge_wire)] = -1
-
-        # Construct the commutation set
-        for wire in dag.wires:
-
-            for current_gate in dag.nodes_on_wire(wire):
-
-                current_comm_set = self.property_set["commutation_set"][wire]
-                if not current_comm_set:
-                    current_comm_set.append([current_gate])
-
-                if current_gate not in current_comm_set[-1]:
-                    does_commute = True
-
-                    # Check if the current gate commutes with all the gates in the current block
-                    for prev_gate in current_comm_set[-1]:
-                        does_commute = (
-                            isinstance(current_gate, DAGOpNode)
-                            and isinstance(prev_gate, DAGOpNode)
-                            and self.comm_checker.commute(
-                                current_gate.op,
-                                current_gate.qargs,
-                                current_gate.cargs,
-                                prev_gate.op,
-                                prev_gate.qargs,
-                                prev_gate.cargs,
-                            )
-                        )
-                        if not does_commute:
-                            break
-
-                    if does_commute:
-                        current_comm_set[-1].append(current_gate)
-                    else:
-                        current_comm_set.append([current_gate])
-
-                temp_len = len(current_comm_set)
-                self.property_set["commutation_set"][(current_gate, wire)] = temp_len - 1
+        self.property_set["commutation_set"] = analyze_commutations(dag, self.comm_checker.cc)

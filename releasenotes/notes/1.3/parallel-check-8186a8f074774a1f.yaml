@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    :meth:`.PassManager.run` will no longer waste time serializing itself when given multiple inputs
+    if it is only going to work in serial.

@@ -13,9 +13,17 @@
 """Test calling passes (passmanager-less)"""
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.transpiler import PropertySet
+from qiskit.transpiler import PropertySet, TransformationPass, AnalysisPass
 from ._dummy_passes import PassD_TP_NR_NP, PassE_AP_NR_NP, PassN_AP_NR_NP
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+
+def initial_properties(circuit):
+    """The properties that are inherent to the start of pass-manager execution."""
+    return {
+        "original_qubit_indices": {bit: i for i, bit in enumerate(circuit.qubits)},
+        "num_input_qubits": circuit.num_qubits,
+    }
 
 
 class TestPassCall(QiskitTestCase):
@@ -48,7 +56,14 @@ class TestPassCall(QiskitTestCase):
             result = pass_e(circuit, property_set)
 
         self.assertMessageLog(cm, ["run analysis pass PassE_AP_NR_NP", "set property as value"])
-        self.assertEqual(property_set, {"another_property": "another_value", "property": "value"})
+        self.assertEqual(
+            property_set,
+            {
+                "another_property": "another_value",
+                "property": "value",
+                **initial_properties(circuit),
+            },
+        )
         self.assertIsInstance(property_set, dict)
         self.assertEqual(circuit, result)
 
@@ -64,7 +79,14 @@ class TestPassCall(QiskitTestCase):
 
         self.assertMessageLog(cm, ["run analysis pass PassE_AP_NR_NP", "set property as value"])
         self.assertEqual(
-            property_set, PropertySet({"another_property": "another_value", "property": "value"})
+            property_set,
+            PropertySet(
+                {
+                    "another_property": "another_value",
+                    "property": "value",
+                    **initial_properties(circuit),
+                }
+            ),
         )
         self.assertIsInstance(property_set, PropertySet)
         self.assertEqual(circuit, result)
@@ -87,6 +109,37 @@ class TestPassCall(QiskitTestCase):
                 "property to none noned",
             ],
         )
-        self.assertEqual(property_set, PropertySet({"to none": None}))
+        self.assertEqual(
+            property_set, PropertySet({"to none": None, **initial_properties(circuit)})
+        )
         self.assertIsInstance(property_set, dict)
         self.assertEqual(circuit, result)
+
+    def test_pass_requires(self):
+        """The 'requires' field of a pass should be respected when called."""
+        name = "my_property"
+        value = "hello, world"
+
+        assert_equal = self.assertEqual
+
+        class Analyse(AnalysisPass):
+            """Dummy pass to set a property."""
+
+            def run(self, dag):
+                self.property_set[name] = value
+                return dag
+
+        class Execute(TransformationPass):
+            """Dummy pass to assert that its required pass ran."""
+
+            def __init__(self):
+                super().__init__()
+                self.requires.append(Analyse())
+
+            def run(self, dag):
+                assert_equal(self.property_set[name], value)
+                return dag
+
+        pass_ = Execute()
+        pass_(QuantumCircuit())
+        self.assertEqual(pass_.property_set[name], value)

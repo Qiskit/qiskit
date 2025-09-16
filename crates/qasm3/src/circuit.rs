@@ -11,23 +11,24 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
-use pyo3::types::{PyList, PyString, PyTuple, PyType};
+use pyo3::types::{PyAny, PyList, PyString, PyTuple, PyType};
+use pyo3::{IntoPyObjectExt, PyTypeInfo};
 
 use crate::error::QASM3ImporterError;
 
 pub trait PyRegister {
-    fn bit(&self, py: Python, index: usize) -> PyResult<Py<PyAny>>;
     // This really should be
     //      fn iter<'a>(&'a self, py: Python<'a>) -> impl Iterator<Item = &'a PyAny>;
     // or at a minimum
     //      fn iter<'a>(&'a self, py: Python<'a>) -> ::pyo3::types::iter::PyListIterator<'a>;
     // but we can't use the former before Rust 1.75 and the latter before PyO3 0.21.
-    fn bit_list<'a>(&'a self, py: Python<'a>) -> &'a PyList;
+    fn bit_list<'a>(&'a self, py: Python<'a>) -> &'a Bound<'a, PyList>;
 }
 
 macro_rules! register_type {
     ($name: ident) => {
         /// Rust-space wrapper around Qiskit `Register` objects.
+        #[derive(Clone)]
         pub struct $name {
             /// The actual register instance.
             object: Py<PyAny>,
@@ -39,32 +40,18 @@ macro_rules! register_type {
         }
 
         impl PyRegister for $name {
-            /// Get an individual bit from the register.
-            fn bit(&self, py: Python, index: usize) -> PyResult<Py<PyAny>> {
-                // Unfortunately, `PyList::get_item_unchecked` isn't usable with the stable ABI.
-                self.items
-                    .as_ref(py)
-                    .get_item(index)
-                    .map(|item| item.into_py(py))
-            }
-
-            fn bit_list<'a>(&'a self, py: Python<'a>) -> &'a PyList {
-                self.items.as_ref(py)
+            fn bit_list<'a>(&'a self, py: Python<'a>) -> &'a Bound<'a, PyList> {
+                self.items.bind(py)
             }
         }
 
-        impl ::pyo3::IntoPy<Py<PyAny>> for $name {
-            fn into_py(self, _py: Python) -> Py<PyAny> {
-                self.object
-            }
-        }
+        impl<'py> IntoPyObject<'py> for $name {
+            type Target = PyAny;
+            type Output = Bound<'py, Self::Target>;
+            type Error = PyErr;
 
-        impl ::pyo3::ToPyObject for $name {
-            fn to_object(&self, py: Python) -> Py<PyAny> {
-                // _Technically_, allowing access this internal object can let the Rust-space
-                // wrapper get out-of-sync since we keep a direct handle to the list, but in
-                // practice, the field it's viewing is private and "inaccessible" from Python.
-                self.object.clone_ref(py)
+            fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+                Ok(self.object.bind(py).clone())
             }
         }
     };
@@ -75,25 +62,43 @@ register_type!(PyClassicalRegister);
 
 /// Information received from Python space about how to construct a Python-space object to
 /// represent a given gate that might be declared.
-#[pyclass(module = "qiskit._qasm3", frozen, name = "CustomGate")]
+#[pyclass(
+    module = "qiskit._accelerate.qasm3",
+    frozen,
+    name = "CustomGate",
+    get_all
+)]
 #[derive(Clone, Debug)]
 pub struct PyGate {
+    /// A callable Python object that takes ``num_params`` angles as positional arguments, and
+    /// returns a :class:`~.circuit.Gate` object representing the gate.
     constructor: Py<PyAny>,
+    /// The name of the gate as it appears in the OpenQASM 3 program.  This is not necessarily
+    /// identical to the name that Qiskit gives the gate.
     name: String,
+    /// The number of angle-like parameters the gate requires.
     num_params: usize,
+    /// The number of qubits the gate acts on.
     num_qubits: usize,
 }
 
 impl PyGate {
-    pub fn new<T: IntoPy<Py<PyAny>>, S: AsRef<str>>(
-        py: Python,
+    pub fn new<
+        'py,
+        T: IntoPyObject<'py, Target = PyAny, Output = Bound<'py, PyAny>>,
+        S: AsRef<str>,
+    >(
+        py: Python<'py>,
         constructor: T,
         name: S,
         num_params: usize,
         num_qubits: usize,
-    ) -> Self {
+    ) -> Self
+    where
+        <T as pyo3::IntoPyObject<'py>>::Error: std::fmt::Debug,
+    {
         Self {
-            constructor: constructor.into_py(py),
+            constructor: constructor.into_pyobject(py).unwrap().unbind(),
             name: name.as_ref().to_owned(),
             num_params,
             num_qubits,
@@ -101,14 +106,14 @@ impl PyGate {
     }
 
     /// Construct a Python-space instance of the custom gate.
-    pub fn construct<A>(&self, py: Python, args: A) -> PyResult<Py<PyAny>>
+    pub fn construct<'py, A>(&'py self, py: Python<'py>, args: A) -> PyResult<Py<PyAny>>
     where
-        A: IntoPy<Py<PyTuple>>,
+        A: pyo3::IntoPyObject<'py, Target = PyTuple, Output = Bound<'py, PyTuple>>,
     {
-        let args = args.into_py(py);
-        let received_num_params = args.as_ref(py).len();
+        let args = args.into_pyobject_or_pyerr(py)?;
+        let received_num_params = args.len();
         if received_num_params == self.num_params {
-            self.constructor.call1(py, args.as_ref(py))
+            self.constructor.call1(py, args)
         } else {
             Err(QASM3ImporterError::new_err(format!(
                 "internal error: wrong number of params for {} (got {}, expected {})",
@@ -143,7 +148,7 @@ impl PyGate {
         }
     }
 
-    fn __repr__<'py>(&self, py: Python<'py>) -> PyResult<&'py PyAny> {
+    fn __repr__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         PyString::new(py, "CustomGate(name={!r}, num_params={}, num_qubits={})").call_method1(
             "format",
             (
@@ -154,7 +159,7 @@ impl PyGate {
         )
     }
 
-    fn __reduce__(&self, py: Python) -> Py<PyTuple> {
+    fn __reduce__(&self, py: Python) -> PyResult<Py<PyTuple>> {
         (
             PyType::new::<PyGate>(py),
             (
@@ -164,7 +169,8 @@ impl PyGate {
                 self.num_qubits,
             ),
         )
-            .into_py(py)
+            .into_pyobject(py)
+            .map(|x| x.unbind())
     }
 }
 
@@ -192,25 +198,28 @@ impl PyCircuitModule {
         Ok(Self {
             circuit: module
                 .getattr("QuantumCircuit")?
-                .downcast::<PyType>()?
-                .into_py(py),
+                .downcast_into::<PyType>()?
+                .unbind(),
             qreg: module
                 .getattr("QuantumRegister")?
-                .downcast::<PyType>()?
-                .into_py(py),
-            qubit: module.getattr("Qubit")?.downcast::<PyType>()?.into_py(py),
+                .downcast_into::<PyType>()?
+                .unbind(),
+            qubit: module.getattr("Qubit")?.downcast_into::<PyType>()?.unbind(),
             creg: module
                 .getattr("ClassicalRegister")?
-                .downcast::<PyType>()?
-                .into_py(py),
-            clbit: module.getattr("Clbit")?.downcast::<PyType>()?.into_py(py),
+                .downcast_into::<PyType>()?
+                .unbind(),
+            clbit: module.getattr("Clbit")?.downcast_into::<PyType>()?.unbind(),
             circuit_instruction: module
                 .getattr("CircuitInstruction")?
-                .downcast::<PyType>()?
-                .into_py(py),
-            barrier: module.getattr("Barrier")?.downcast::<PyType>()?.into_py(py),
+                .downcast_into::<PyType>()?
+                .unbind(),
+            barrier: module
+                .getattr("Barrier")?
+                .downcast_into::<PyType>()?
+                .unbind(),
             // Measure is a singleton, so just store the object.
-            measure: module.getattr("Measure")?.call0()?.into_py(py),
+            measure: module.getattr("Measure")?.call0()?.into_py_any(py)?,
         })
     }
 
@@ -218,18 +227,18 @@ impl PyCircuitModule {
         self.circuit.call0(py).map(PyCircuit)
     }
 
-    pub fn new_qreg<T: IntoPy<Py<PyString>>>(
-        &self,
-        py: Python,
+    pub fn new_qreg<'a, T: IntoPyObject<'a>>(
+        &'a self,
+        py: Python<'a>,
         name: T,
         size: usize,
     ) -> PyResult<PyQuantumRegister> {
-        let qreg = self.qreg.call1(py, (size, name.into_py(py)))?;
+        let qreg = self.qreg.call1(py, (size, name))?;
         Ok(PyQuantumRegister {
-            items: qreg
-                .getattr(py, "_bits")?
-                .downcast::<PyList>(py)?
-                .into_py(py),
+            items: PyList::type_object(py)
+                .call1((qreg.clone(),))?
+                .downcast_into::<PyList>()?
+                .unbind(),
             object: qreg,
         })
     }
@@ -238,18 +247,18 @@ impl PyCircuitModule {
         self.qubit.call0(py)
     }
 
-    pub fn new_creg<T: IntoPy<Py<PyString>>>(
+    pub fn new_creg<'py, T: IntoPyObject<'py>>(
         &self,
-        py: Python,
+        py: Python<'py>,
         name: T,
         size: usize,
     ) -> PyResult<PyClassicalRegister> {
-        let creg = self.creg.call1(py, (size, name.into_py(py)))?;
+        let creg = self.creg.call1(py, (size, name))?;
         Ok(PyClassicalRegister {
-            items: creg
-                .getattr(py, "_bits")?
-                .downcast::<PyList>(py)?
-                .into_py(py),
+            items: PyList::type_object(py)
+                .call1((creg.clone(),))?
+                .downcast_into::<PyList>()?
+                .unbind(),
             object: creg,
         })
     }
@@ -258,24 +267,34 @@ impl PyCircuitModule {
         self.clbit.call0(py)
     }
 
-    pub fn new_instruction<O, Q, C>(
-        &self,
-        py: Python,
+    pub fn new_instruction<'a, O, Q, C>(
+        &'a self,
+        py: Python<'a>,
         operation: O,
         qubits: Q,
         clbits: C,
     ) -> PyResult<Py<PyAny>>
     where
-        O: IntoPy<Py<PyAny>>,
-        Q: IntoPy<Py<PyTuple>>,
-        C: IntoPy<Py<PyTuple>>,
+        O: IntoPyObject<'a>,
+        Q: IntoPyObject<'a>,
+        C: IntoPyObject<'a>,
+        <Q as pyo3::IntoPyObject<'a>>::Output: pyo3::IntoPyObject<'a>,
+        <C as pyo3::IntoPyObject<'a>>::Output: pyo3::IntoPyObject<'a>,
     {
-        self.circuit_instruction
-            .call1(py, (operation, qubits.into_py(py), clbits.into_py(py)))
+        self.circuit_instruction.call1(
+            py,
+            (
+                operation,
+                qubits.into_pyobject_or_pyerr(py)?,
+                clbits.into_pyobject_or_pyerr(py)?,
+            ),
+        )
     }
 
     pub fn new_barrier(&self, py: Python, num_qubits: usize) -> PyResult<Py<PyAny>> {
-        self.barrier.call1(py, (num_qubits,)).map(|x| x.into_py(py))
+        self.barrier
+            .call1(py, (num_qubits,))
+            .map(|x| x.into_pyobject(py).unwrap().unbind())
     }
 
     pub fn measure(&self, py: Python) -> Py<PyAny> {
@@ -286,18 +305,20 @@ impl PyCircuitModule {
 /// Circuit construction context object to provide an easier Rust-space interface for us to
 /// construct the Python :class:`.QuantumCircuit`.  The idea of doing this from Rust space like
 /// this is that we might steadily be able to move more and more of it into being native Rust as
-/// the Rust-space APIs around the internal circuit data stabilise.
+/// the Rust-space APIs around the internal circuit data stabilize.
+
+#[derive(IntoPyObject, IntoPyObjectRef)]
 pub struct PyCircuit(Py<PyAny>);
 
 impl PyCircuit {
     /// Untyped access to the inner Python object.
-    pub fn inner<'a>(&'a self, py: Python<'a>) -> &'a PyAny {
-        self.0.as_ref(py)
+    pub fn inner<'a>(&'a self, py: Python<'a>) -> &'a Bound<'a, PyAny> {
+        self.0.bind(py)
     }
 
     pub fn add_qreg(&self, py: Python, qreg: &PyQuantumRegister) -> PyResult<()> {
         self.inner(py)
-            .call_method1("add_register", (qreg.to_object(py),))
+            .call_method1("add_register", (qreg.clone().into_pyobject(py)?,))
             .map(|_| ())
     }
 
@@ -309,25 +330,27 @@ impl PyCircuit {
 
     pub fn add_creg(&self, py: Python, creg: &PyClassicalRegister) -> PyResult<()> {
         self.inner(py)
-            .call_method1("add_register", (creg.to_object(py),))
+            .call_method1("add_register", (creg.clone().into_pyobject(py)?,))
             .map(|_| ())
     }
 
-    pub fn add_clbit<T: IntoPy<Py<PyAny>>>(&self, py: Python, clbit: T) -> PyResult<()> {
+    pub fn add_clbit<'a, T: IntoPyObject<'a>>(&'a self, py: Python<'a>, clbit: T) -> PyResult<()> {
         self.inner(py)
             .call_method1("add_bits", ((clbit,),))
-            .map(|_| ())
+            .map(move |_| ())
     }
 
-    pub fn append<T: IntoPy<Py<PyAny>>>(&self, py: Python, instruction: T) -> PyResult<()> {
+    pub fn append<'py, T: IntoPyObject<'py>>(
+        &'py self,
+        py: Python<'py>,
+        instruction: T,
+    ) -> PyResult<()>
+    where
+        <T as pyo3::IntoPyObject<'py>>::Output: pyo3::IntoPyObject<'py>,
+        PyErr: From<<T as pyo3::IntoPyObject<'py>>::Error>,
+    {
         self.inner(py)
-            .call_method1("_append", (instruction.into_py(py),))
+            .call_method1("_append", (instruction.into_pyobject(py)?,))
             .map(|_| ())
-    }
-}
-
-impl ::pyo3::IntoPy<Py<PyAny>> for PyCircuit {
-    fn into_py(self, py: Python) -> Py<PyAny> {
-        self.0.clone_ref(py)
     }
 }

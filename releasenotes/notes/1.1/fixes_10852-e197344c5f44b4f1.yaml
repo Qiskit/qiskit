@@ -1,0 +1,5 @@
+---
+features_providers:
+  - |
+    The :class:`.BasicSimulator` python-based simulator included in :mod:`qiskit.providers.basic_provider`
+    now includes all the standard gates (:mod:`qiskit.circuit.library .standard_gates`) up to 3 qubits.

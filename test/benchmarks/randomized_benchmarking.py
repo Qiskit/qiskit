@@ -105,6 +105,7 @@ def clifford_2_qubit_circuit(num):
     qc = QuantumCircuit(2)
     if vals[0] == 0 or vals[0] == 3:
         (form, i0, i1, j0, j1, p0, p1) = vals
+        k0, k1 = (None, None)
     else:
         (form, i0, i1, j0, j1, k0, k1, p0, p1) = vals
     if i0 == 1:

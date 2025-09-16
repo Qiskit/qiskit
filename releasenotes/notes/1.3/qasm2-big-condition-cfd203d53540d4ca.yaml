@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    The OpenQASM 2 parser (:mod:`qiskit.qasm2`) can now handle conditionals
+    with integers that do not fit within a 64-bit integer.  Fixed
+    `#12773 <https://github.com/Qiskit/qiskit/issues/12773>`__.

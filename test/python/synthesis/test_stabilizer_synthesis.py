@@ -54,7 +54,7 @@ class TestStabDecomposeLayers(QiskitTestCase):
 
     @combine(num_qubits=[4, 5, 6, 7])
     def test_decompose_lnn_depth(self, num_qubits):
-        """Test stabilizer state decomposition for linear-nearest-neighbour (LNN) connectivity."""
+        """Test stabilizer state decomposition for linear-nearest-neighbor (LNN) connectivity."""
         rng = np.random.default_rng(1234)
         samples = 10
         for _ in range(samples):
@@ -66,7 +66,7 @@ class TestStabDecomposeLayers(QiskitTestCase):
                 filter_function=lambda x: x.operation.num_qubits == 2
             )
             self.assertTrue(depth2q == 2 * num_qubits + 2)
-            # Check that the stabilizer state circuit has linear nearest neighbour connectivity
+            # Check that the stabilizer state circuit has linear nearest neighbor connectivity
             self.assertTrue(check_lnn_connectivity(circ.decompose()))
             stab_target = StabilizerState(circ)
             # Verify that the two stabilizers generate the same state

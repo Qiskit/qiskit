@@ -93,7 +93,7 @@ upgrade:
     and no edges. This change was made to better reflect the actual
     connectivity constraints of the :class:`~.Target` because in this case
     there are no connectivity constraints on the backend being modeled by
-    the :class:`~.Target`, not a lack of connecitvity. If you desire the
+    the :class:`~.Target`, not a lack of connectivity. If you desire the
     previous behavior for any reason you can reproduce it by checking for a
     ``None`` return and manually building a coupling map, for example::
 

@@ -1,0 +1,23 @@
+---
+deprecations_circuits:
+  - |
+    Treating :class:`.CircuitInstruction` as a tuple-like iterable is deprecated, and this legacy
+    path way will be removed in Qiskit 2.0.  You should use the attribute-access fields
+    :attr:`~.CircuitInstruction.operation`, :attr:`~.CircuitInstruction.qubits`, and 
+    :attr:`~.CircuitInstruction.clbits` instead.  For example::
+
+      from qiskit.circuit import QuantumCircuit
+
+      qc = QuantumCircuit(2, 2)
+      qc.h(0)
+      qc.cx(0, 1)
+      qc.measure([0, 1], [0, 1])
+
+      # Deprecated.
+      for op, qubits, clbits in qc.data:
+          pass
+      # New style.
+      for instruction in qc.data:
+          op = instruction.operation
+          qubits = instruction.qubits
+          clbits = instruction.clbits

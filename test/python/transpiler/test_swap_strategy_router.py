@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022, 2023.
+# (C) Copyright IBM 2022, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,12 +15,14 @@
 from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit, Qubit, QuantumRegister
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler import PassManager, CouplingMap, Layout, TranspilerError
 from qiskit.circuit.library import PauliEvolutionGate, CXGate
 from qiskit.circuit.library.n_local import QAOAAnsatz
 from qiskit.converters import circuit_to_dag
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import ApplyLayout
@@ -60,7 +62,8 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         The expected circuit is:
 
-        ..parsed-literal::
+        ..code-block:: text
+
                                                            ┌────────────────┐
             q_0: ───────────────────X──────────────────────┤0               ├
                  ┌────────────────┐ │ ┌────────────────┐   │  exp(-i ZZ)(3) │
@@ -96,7 +99,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         The expected circuit is:
 
-        ..parsed-literal::
+        ..code-block:: text
 
                   ┌────────────────┐
             q_0: ─┤0               ├─X─────────────────────────────────────────
@@ -134,7 +137,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         The expected circuit is:
 
-        ..parsed-literal::
+        ..code-block:: text
 
                  ┌─────────────────┐
             q_0: ┤0                ├─X────────────────────
@@ -173,7 +176,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         The expected circuit is:
 
-        ..parsed-literal::
+        ..code-block:: text
 
                      ┌────────────────┐                                            ░    ┌─┐
                q_0: ─┤0               ├─X──────────────────────────────────────────░────┤M├──────
@@ -256,7 +259,8 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
             mixer.ry(-idx, idx)
 
         op = SparsePauliOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
-        circ = QAOAAnsatz(op, reps=2, mixer_operator=mixer)
+        with self.assertWarns(DeprecationWarning):
+            circ = QAOAAnsatz(op, reps=2, mixer_operator=mixer)
         swapped = self.pm_.run(circ.decompose())
 
         param_dict = {p: idx + 1 for idx, p in enumerate(swapped.parameters)}
@@ -341,7 +345,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         Here, we test that the circuit
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌──────────────────────────┐
             q_0: ┤0                         ├──■──
@@ -354,7 +358,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         becomes
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌─────────────────┐                      ┌───┐
             q_0: ┤0                ├─X────────────────────┤ X ├
@@ -397,7 +401,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         The coupling map in this test corresponds to
 
-        .. parsed-literal::
+        .. code-block:: text
 
             0 -- 1 -- 2
                  |
@@ -562,9 +566,45 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         self.assertEqual(pm_.run(circ), expected)
 
+    def test_permutation_tracking(self):
+        """Test that circuit layout permutations are properly tracked in the pass property
+        set and returned with the output circuit."""
+
+        # We use the same scenario as the QAOA test above
+        mixer = QuantumCircuit(4)
+        for idx in range(4):
+            mixer.ry(-idx, idx)
+
+        op = SparsePauliOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
+        with self.assertWarns(DeprecationWarning):
+            circ = QAOAAnsatz(op, reps=2, mixer_operator=mixer)
+
+        cmap = CouplingMap(couplinglist=[(0, 1), (1, 2), (2, 3)])
+        swap_strat = SwapStrategy(cmap, swap_layers=[[(0, 1), (2, 3)], [(1, 2)]])
+
+        # test standalone
+        swap_pm = PassManager(
+            [
+                FindCommutingPauliEvolutions(),
+                Commuting2qGateRouter(swap_strat),
+            ]
+        )
+        swapped = swap_pm.run(circ.decompose())
+
+        # test as pre-routing step
+        backend = GenericBackendV2(num_qubits=4, coupling_map=[[0, 1], [0, 2], [0, 3]], seed=42)
+        pm = generate_preset_pass_manager(
+            optimization_level=3, target=backend.target, seed_transpiler=40
+        )
+        pm.pre_routing = swap_pm
+        full = pm.run(circ.decompose())
+
+        self.assertEqual(swapped.layout.routing_permutation(), [3, 1, 2, 0])
+        self.assertEqual(full.layout.routing_permutation(), [0, 1, 2, 3])
+
 
 class TestSwapRouterExceptions(QiskitTestCase):
-    """Test that exceptions are properly raises."""
+    """Test that exceptions are properly raised."""
 
     def setUp(self):
         """Setup useful variables."""

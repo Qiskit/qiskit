@@ -15,8 +15,17 @@
 
 import itertools
 
+from qiskit.quantum_info import random_clifford
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit import Parameter
+from qiskit.circuit.library import efficient_su2, quantum_volume
+from qiskit.providers.fake_provider import GenericBackendV2
+from qiskit.compiler import transpile
+from qiskit.transpiler import CouplingMap
+from qiskit import qasm2
+from .utils import dtc_unitary, multi_control_circuit
+
+SEED = 12345
 
 
 def build_circuit(width, gates):
@@ -52,7 +61,7 @@ class CircuitConstructionBench:
 
 
 def build_parameterized_circuit(width, gates, param_count):
-    params = [Parameter("param-%s" % x) for x in range(param_count)]
+    params = [Parameter(f"param-{x}") for x in range(param_count)]
     param_iter = itertools.cycle(params)
 
     qr = QuantumRegister(width)
@@ -96,3 +105,80 @@ class ParameterizedCircuitBindBench:
         # TODO: write more complete benchmarks of assign_parameters
         #  that test more of the input formats / combinations
         self.circuit.assign_parameters({x: 3.14 for x in self.params})
+
+
+class ParamaterizedDifferentCircuit:
+    param_names = ["circuit_size", "num_qubits"]
+    params = ([10, 50, 100], [10, 50, 150])
+
+    def time_QV100_build(self, circuit_size, num_qubits):
+        """Measures an SDKs ability to build a 100Q
+        QV circit from scratch.
+        """
+        return quantum_volume(circuit_size, num_qubits, seed=SEED)
+
+    def time_DTC100_set_build(self, circuit_size, num_qubits):
+        """Measures an SDKs ability to build a set
+        of 100Q DTC circuits out to 100 layers of
+        the underlying unitary
+        """
+        max_cycles = circuit_size
+        initial_state = QuantumCircuit(num_qubits)
+        dtc_circuit = dtc_unitary(num_qubits, g=0.95, seed=SEED)
+
+        circs = [initial_state]
+        for tt in range(max_cycles):
+            qc = circs[tt].compose(dtc_circuit)
+            circs.append(qc)
+            result = circs[-1]
+
+        return result
+
+
+class MultiControl:
+    param_names = ["width"]
+    params = [10, 16, 20]
+
+    def time_multi_control_circuit(self, width):
+        """Measures an SDKs ability to build a circuit
+        with a multi-controlled X-gate
+        """
+        out = multi_control_circuit(width)
+        return out
+
+
+class ParameterizedCirc:
+    param_names = ["num_qubits"]
+    params = [5, 10, 16]
+
+    def time_param_circSU2_100_build(self, num_qubits):
+        """Measures an SDKs ability to build a
+        parameterized efficient SU2 circuit with circular entanglement
+        over 100Q utilizing 4 repetitions.  This will yield a
+        circuit with 1000 parameters
+        """
+        out = efficient_su2(num_qubits, reps=4, entanglement="circular")
+        return out
+
+
+class QasmImport:
+    def setup(self):
+        qv_circuit = quantum_volume(100, seed=2025_12345)
+        qv_circuit.measure_all()
+        backend = GenericBackendV2(100, coupling_map=CouplingMap.from_line(100), seed=2025_12345)
+        t_qv = transpile(qv_circuit, backend, optimization_level=0, seed_transpiler=2025_12345)
+        self.qasm = qasm2.dumps(t_qv)
+
+    def time_QV100_qasm2_import(self):
+        """QASM import of QV100 circuit"""
+        QuantumCircuit.from_qasm_str(self.qasm)
+
+
+class CliffordSynthesis:
+    param_names = ["num_qubits"]
+    params = [10, 50, 100]
+
+    def time_clifford_synthesis(self, num_qubits):
+        cliff = random_clifford(num_qubits)
+        qc = cliff.to_circuit()
+        return qc

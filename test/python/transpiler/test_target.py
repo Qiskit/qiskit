@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 # pylint: disable=missing-docstring
+from pickle import loads, dumps
 
 import math
 import numpy as np
@@ -30,25 +31,22 @@ from qiskit.circuit.library import (
     CCXGate,
     RZXGate,
     CZGate,
+    UnitaryGate,
+    Barrier,
 )
 from qiskit.circuit import IfElseOp, ForLoopOp, WhileLoopOp, SwitchCaseOp
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.parameter import Parameter
-from qiskit import pulse
-from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
-from qiskit.pulse.calibration_entries import CalibrationPublisher, ScheduleDef
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.instruction_durations import InstructionDurations
+from qiskit.transpiler.target import _FakeTarget
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler import Target
 from qiskit.transpiler import InstructionProperties
-from qiskit.providers.fake_provider import (
-    GenericBackendV2,
-    Fake5QV1,
-    Fake7QPulseV1,
-)
+from qiskit.providers.fake_provider import GenericBackendV2
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.providers.backend import QubitProperties
 from test.python.providers.fake_mumbai_v2 import (  # pylint: disable=wrong-import-order
     FakeMumbaiFractionalCX,
 )
@@ -1019,11 +1017,10 @@ Instructions:
                 self,
                 duration=None,
                 error=None,
-                calibration=None,
                 tuned=None,
                 diamond_norm_error=None,
             ):
-                super().__init__(duration=duration, error=error, calibration=calibration)
+                super().__init__(duration=duration, error=error)
                 self.tuned = tuned
                 self.diamond_norm_error = diamond_norm_error
 
@@ -1092,6 +1089,9 @@ Instructions:
         self.assertTrue(mumbai.target.instruction_supported("rz", parameters=[Parameter("angle")]))
         self.assertTrue(
             mumbai.target.instruction_supported("rzx_45", qargs=(0, 1), parameters=[math.pi / 4])
+        )
+        self.assertFalse(
+            mumbai.target.instruction_supported("rzx_45", qargs=(1, 0), parameters=[math.pi / 4])
         )
         self.assertTrue(mumbai.target.instruction_supported("rzx_45", qargs=(0, 1)))
         self.assertTrue(mumbai.target.instruction_supported("rzx_45", parameters=[math.pi / 4]))
@@ -1166,232 +1166,64 @@ Instructions:
     def test_instruction_supported_no_operation(self):
         self.assertFalse(self.ibm_target.instruction_supported(qargs=(0,), parameters=[math.pi]))
 
+    def test_instruction_supported_no_qubits(self):
+        """Checks that instruction supported works when target.num_qubits is None."""
+        target = Target.from_configuration(["u", "cx", "rxx"])
+        self.assertTrue(target.instruction_supported("u", (0,)))
+        self.assertTrue(target.instruction_supported("cx", (0, 1)))
+        self.assertTrue(target.instruction_supported("cx", None))
+        self.assertTrue(target.instruction_supported("rxx", (2, 3)))
 
-class TestPulseTarget(QiskitTestCase):
-    def setUp(self):
-        super().setUp()
-        self.pulse_target = Target(
-            dt=3e-7, granularity=2, min_length=4, pulse_alignment=8, acquire_alignment=8
+    def test_target_serialization_preserve_variadic(self):
+        """Checks that variadics are still seen as variadic after serialization"""
+
+        target = Target("test", 2)
+        # Add variadic example gate with no properties.
+        target.add_instruction(UnitaryGate, None, "u_var")
+
+        # Check that this this instruction is compatible with qargs (0,). Should be
+        # true since variadic operation can be used with any valid qargs.
+        self.assertTrue(target.instruction_supported("u_var", (0, 1)))
+
+        # Rebuild the target using serialization
+        deserialized_target = loads(dumps(target))
+
+        # Perform check again, should not throw exception
+        self.assertTrue(deserialized_target.instruction_supported("u_var", (0, 1)))
+
+    def test_target_no_num_qubits_qubit_properties(self):
+        """Checks that a Target can be initialized with no qubits but a list of Qubit Properities"""
+
+        # Initialize target qubit properties
+        qubit_properties = [QubitProperties()]
+
+        # Initialize the Target with only a list of qubit properties
+        target = Target(
+            qubit_properties=qubit_properties,
         )
-        with pulse.build(name="sx_q0") as self.custom_sx_q0:
-            pulse.play(pulse.Constant(100, 0.1), pulse.DriveChannel(0))
-        with pulse.build(name="sx_q1") as self.custom_sx_q1:
-            pulse.play(pulse.Constant(100, 0.2), pulse.DriveChannel(1))
-        sx_props = {
-            (0,): InstructionProperties(
-                duration=35.5e-9, error=0.000413, calibration=self.custom_sx_q0
-            ),
-            (1,): InstructionProperties(
-                duration=35.5e-9, error=0.000502, calibration=self.custom_sx_q1
-            ),
-        }
-        self.pulse_target.add_instruction(SXGate(), sx_props)
 
-    def test_instruction_schedule_map(self):
-        inst_map = self.pulse_target.instruction_schedule_map()
-        self.assertIn("sx", inst_map.instructions)
-        self.assertEqual(inst_map.qubits_with_instruction("sx"), [0, 1])
-        self.assertTrue("sx" in inst_map.qubit_instructions(0))
+        # Check that the Target num_qubit attribute matches the length of qubit properties
+        self.assertEqual(target.num_qubits, len(qubit_properties))
 
-    def test_instruction_schedule_map_ideal_sim_backend(self):
-        ideal_sim_target = Target(num_qubits=3)
-        theta = Parameter("theta")
-        phi = Parameter("phi")
-        lam = Parameter("lambda")
-        for inst in [
-            UGate(theta, phi, lam),
-            RXGate(theta),
-            RYGate(theta),
-            RZGate(theta),
-            CXGate(),
-            ECRGate(),
-            CCXGate(),
-            Measure(),
-        ]:
-            ideal_sim_target.add_instruction(inst, {None: None})
-        inst_map = ideal_sim_target.instruction_schedule_map()
-        self.assertEqual(InstructionScheduleMap(), inst_map)
+    def test_gate_reconstruction_rust(self):
+        standard_gate = RXGate(3.14)
+        barrier = Barrier(5)
+        unitary = UnitaryGate([[0, 1], [1, 0]])
 
-    def test_str(self):
-        expected = """Target
-Number of qubits: 2
-Instructions:
-	sx
-		(0,):
-			Duration: 3.55e-08 sec.
-			Error Rate: 0.000413
-			With pulse schedule calibration
-		(1,):
-			Duration: 3.55e-08 sec.
-			Error Rate: 0.000502
-			With pulse schedule calibration
-"""
-        self.assertEqual(expected, str(self.pulse_target))
-
-    def test_update_from_instruction_schedule_map_add_instruction(self):
+        # Create Target and add rest of instructions.
         target = Target()
-        inst_map = InstructionScheduleMap()
-        inst_map.add("sx", 0, self.custom_sx_q0)
-        inst_map.add("sx", 1, self.custom_sx_q1)
-        target.update_from_instruction_schedule_map(inst_map, {"sx": SXGate()})
-        self.assertEqual(inst_map, target.instruction_schedule_map())
+        target.add_instruction(standard_gate)
+        target.add_instruction(barrier)
+        target.add_instruction(unitary)
 
-    def test_update_from_instruction_schedule_map_with_schedule_parameter(self):
-        self.pulse_target.dt = None
-        inst_map = InstructionScheduleMap()
-        duration = Parameter("duration")
-
-        with pulse.build(name="sx_q0") as custom_sx:
-            pulse.play(pulse.Constant(duration, 0.2), pulse.DriveChannel(0))
-
-        inst_map.add("sx", 0, custom_sx, ["duration"])
-
-        target = Target(dt=3e-7)
-        target.update_from_instruction_schedule_map(inst_map, {"sx": SXGate()})
-        self.assertEqual(inst_map, target.instruction_schedule_map())
-
-    def test_update_from_instruction_schedule_map_update_schedule(self):
-        self.pulse_target.dt = None
-        inst_map = InstructionScheduleMap()
-        with pulse.build(name="sx_q1") as custom_sx:
-            pulse.play(pulse.Constant(1000, 0.2), pulse.DriveChannel(1))
-
-        inst_map.add("sx", 0, self.custom_sx_q0)
-        inst_map.add("sx", 1, custom_sx)
-        self.pulse_target.update_from_instruction_schedule_map(inst_map, {"sx": SXGate()})
-        self.assertEqual(inst_map, self.pulse_target.instruction_schedule_map())
-        # Calibration doesn't change for q0
-        self.assertEqual(self.pulse_target["sx"][(0,)].duration, 35.5e-9)
-        self.assertEqual(self.pulse_target["sx"][(0,)].error, 0.000413)
-        # Calibration is updated for q1 without error dict and gate time
-        self.assertIsNone(self.pulse_target["sx"][(1,)].duration)
-        self.assertIsNone(self.pulse_target["sx"][(1,)].error)
-
-    def test_update_from_instruction_schedule_map_new_instruction_no_name_map(self):
-        target = Target()
-        inst_map = InstructionScheduleMap()
-        inst_map.add("sx", 0, self.custom_sx_q0)
-        inst_map.add("sx", 1, self.custom_sx_q1)
-        target.update_from_instruction_schedule_map(inst_map)
-        self.assertEqual(target["sx"][(0,)].calibration, self.custom_sx_q0)
-        self.assertEqual(target["sx"][(1,)].calibration, self.custom_sx_q1)
-
-    def test_update_from_instruction_schedule_map_new_qarg_raises(self):
-        inst_map = InstructionScheduleMap()
-        inst_map.add("sx", 0, self.custom_sx_q0)
-        inst_map.add("sx", 1, self.custom_sx_q1)
-        inst_map.add("sx", 2, self.custom_sx_q1)
-        self.pulse_target.update_from_instruction_schedule_map(inst_map)
-        self.assertFalse(self.pulse_target.instruction_supported("sx", (2,)))
-
-    def test_update_from_instruction_schedule_map_with_dt_set(self):
-        inst_map = InstructionScheduleMap()
-        with pulse.build(name="sx_q1") as custom_sx:
-            pulse.play(pulse.Constant(1000, 0.2), pulse.DriveChannel(1))
-
-        inst_map.add("sx", 0, self.custom_sx_q0)
-        inst_map.add("sx", 1, custom_sx)
-        self.pulse_target.dt = 1.0
-        self.pulse_target.update_from_instruction_schedule_map(inst_map, {"sx": SXGate()})
-        self.assertEqual(inst_map, self.pulse_target.instruction_schedule_map())
-        self.assertEqual(self.pulse_target["sx"][(1,)].duration, 1000.0)
-        self.assertIsNone(self.pulse_target["sx"][(1,)].error)
-        # This is an edge case.
-        # System dt is read-only property and changing it will break all underlying calibrations.
-        # duration of sx0 returns previous value since calibration doesn't change.
-        self.assertEqual(self.pulse_target["sx"][(0,)].duration, 35.5e-9)
-        self.assertEqual(self.pulse_target["sx"][(0,)].error, 0.000413)
-
-    def test_update_from_instruction_schedule_map_with_error_dict(self):
-        inst_map = InstructionScheduleMap()
-        with pulse.build(name="sx_q1") as custom_sx:
-            pulse.play(pulse.Constant(1000, 0.2), pulse.DriveChannel(1))
-
-        inst_map.add("sx", 0, self.custom_sx_q0)
-        inst_map.add("sx", 1, custom_sx)
-        self.pulse_target.dt = 1.0
-        error_dict = {"sx": {(1,): 1.0}}
-
-        self.pulse_target.update_from_instruction_schedule_map(
-            inst_map, {"sx": SXGate()}, error_dict=error_dict
+        # Check the gate instances are working as expected
+        self.assertEqual(target.operation_from_name("rx"), target._raw_operation_from_name("rx"))
+        self.assertEqual(
+            target.operation_from_name("barrier"), target._raw_operation_from_name("barrier")
         )
-        self.assertEqual(self.pulse_target["sx"][(1,)].error, 1.0)
-        self.assertEqual(self.pulse_target["sx"][(0,)].error, 0.000413)
-
-    def test_timing_constraints(self):
-        generated_constraints = self.pulse_target.timing_constraints()
-        expected_constraints = TimingConstraints(2, 4, 8, 8)
-        for i in ["granularity", "min_length", "pulse_alignment", "acquire_alignment"]:
-            self.assertEqual(
-                getattr(generated_constraints, i),
-                getattr(expected_constraints, i),
-                f"Generated constraints differs from expected for attribute {i}"
-                f"{getattr(generated_constraints, i)}!={getattr(expected_constraints, i)}",
-            )
-
-    def test_default_instmap_has_no_custom_gate(self):
-        backend = GenericBackendV2(num_qubits=27, calibrate_instructions=True)
-        target = backend.target
-
-        # This copies .calibration of InstructionProperties of each instruction
-        # This must not convert PulseQobj to Schedule during this.
-        # See qiskit-terra/#9595
-        inst_map = target.instruction_schedule_map()
-        self.assertFalse(inst_map.has_custom_gate())
-
-        # Get pulse schedule. This generates Schedule provided by backend.
-        sched = inst_map.get("sx", (0,))
-        self.assertEqual(sched.metadata["publisher"], CalibrationPublisher.BACKEND_PROVIDER)
-        self.assertFalse(inst_map.has_custom_gate())
-
-        # Update target with custom instruction. This is user provided schedule.
-        new_prop = InstructionProperties(
-            duration=self.custom_sx_q0.duration,
-            error=None,
-            calibration=self.custom_sx_q0,
+        self.assertEqual(
+            target.operation_from_name("unitary"), target._raw_operation_from_name("unitary")
         )
-        target.update_instruction_properties(instruction="sx", qargs=(0,), properties=new_prop)
-        inst_map = target.instruction_schedule_map()
-        self.assertTrue(inst_map.has_custom_gate())
-
-        empty = InstructionProperties()
-        target.update_instruction_properties(instruction="sx", qargs=(0,), properties=empty)
-        inst_map = target.instruction_schedule_map()
-        self.assertFalse(inst_map.has_custom_gate())
-
-    def test_get_empty_target_calibration(self):
-        target = Target()
-        properties = {(0,): InstructionProperties(duration=100, error=0.1)}
-        target.add_instruction(XGate(), properties)
-
-        self.assertIsNone(target["x"][(0,)].calibration)
-
-    def test_loading_legacy_ugate_instmap(self):
-        # This is typical IBM backend situation.
-        # IBM provider used to have u1, u2, u3 in the basis gates and
-        # these have been replaced with sx and rz.
-        # However, IBM provider still provides calibration of these u gates,
-        # and the inst map loads them as backend calibrations.
-        # Target is implicitly updated with inst map when it is set in transpile.
-        # If u gates are not excluded, they may appear in the transpiled circuit.
-        # These gates are no longer supported by hardware.
-        entry = ScheduleDef()
-        entry.define(pulse.Schedule(name="fake_u3"), user_provided=False)  # backend provided
-        instmap = InstructionScheduleMap()
-        instmap._add("u3", (0,), entry)
-
-        # Today's standard IBM backend target with sx, rz basis
-        target = Target()
-        target.add_instruction(SXGate(), {(0,): InstructionProperties()})
-        target.add_instruction(RZGate(Parameter("θ")), {(0,): InstructionProperties()})
-        target.add_instruction(Measure(), {(0,): InstructionProperties()})
-        names_before = set(target.operation_names)
-
-        target.update_from_instruction_schedule_map(instmap)
-        names_after = set(target.operation_names)
-
-        # Otherwise u3 and sx-rz basis conflict in 1q decomposition.
-        self.assertSetEqual(names_before, names_after)
 
 
 class TestGlobalVariableWidthOperations(QiskitTestCase):
@@ -1886,7 +1718,7 @@ class TestInstructionProperties(QiskitTestCase):
         properties = InstructionProperties()
         self.assertEqual(
             repr(properties),
-            "InstructionProperties(duration=None, error=None, calibration=None)",
+            "InstructionProperties(duration=None, error=None)",
         )
 
 
@@ -1910,64 +1742,6 @@ class TestTargetFromConfiguration(QiskitTestCase):
         self.assertEqual(target.operation_names, {"u", "cx"})
         self.assertEqual({(0,), (1,), (2,)}, target["u"].keys())
         self.assertEqual({(0, 1), (1, 2), (2, 0)}, target["cx"].keys())
-
-    def test_properties(self):
-        fake_backend = Fake5QV1()
-        config = fake_backend.configuration()
-        properties = fake_backend.properties()
-        target = Target.from_configuration(
-            basis_gates=config.basis_gates,
-            num_qubits=config.num_qubits,
-            coupling_map=CouplingMap(config.coupling_map),
-            backend_properties=properties,
-        )
-        self.assertEqual(0, target["rz"][(0,)].error)
-        self.assertEqual(0, target["rz"][(0,)].duration)
-
-    def test_properties_with_durations(self):
-        fake_backend = Fake5QV1()
-        config = fake_backend.configuration()
-        properties = fake_backend.properties()
-        durations = InstructionDurations([("rz", 0, 0.5)], dt=1.0)
-        target = Target.from_configuration(
-            basis_gates=config.basis_gates,
-            num_qubits=config.num_qubits,
-            coupling_map=CouplingMap(config.coupling_map),
-            backend_properties=properties,
-            instruction_durations=durations,
-            dt=config.dt,
-        )
-        self.assertEqual(0.5, target["rz"][(0,)].duration)
-
-    def test_inst_map(self):
-        fake_backend = Fake7QPulseV1()
-        config = fake_backend.configuration()
-        properties = fake_backend.properties()
-        defaults = fake_backend.defaults()
-        constraints = TimingConstraints(**config.timing_constraints)
-        target = Target.from_configuration(
-            basis_gates=config.basis_gates,
-            num_qubits=config.num_qubits,
-            coupling_map=CouplingMap(config.coupling_map),
-            backend_properties=properties,
-            dt=config.dt,
-            inst_map=defaults.instruction_schedule_map,
-            timing_constraints=constraints,
-        )
-        self.assertIsNotNone(target["sx"][(0,)].calibration)
-        self.assertEqual(target.granularity, constraints.granularity)
-        self.assertEqual(target.min_length, constraints.min_length)
-        self.assertEqual(target.pulse_alignment, constraints.pulse_alignment)
-        self.assertEqual(target.acquire_alignment, constraints.acquire_alignment)
-
-    def test_concurrent_measurements(self):
-        fake_backend = Fake5QV1()
-        config = fake_backend.configuration()
-        target = Target.from_configuration(
-            basis_gates=config.basis_gates,
-            concurrent_measurements=config.meas_map,
-        )
-        self.assertEqual(target.concurrent_measurements, config.meas_map)
 
     def test_custom_basis_gates(self):
         basis_gates = ["my_x", "cx"]
@@ -1998,3 +1772,100 @@ class TestTargetFromConfiguration(QiskitTestCase):
         cmap = CouplingMap.from_line(15)
         with self.assertRaisesRegex(TranspilerError, "This constructor method only supports"):
             Target.from_configuration(basis_gates, 15, cmap)
+
+
+class TestFakeTarget(QiskitTestCase):
+    """Test the fake target class."""
+
+    def test_fake_instantiation(self):
+        cmap = CouplingMap([[0, 1]])
+        target = _FakeTarget(coupling_map=cmap)
+        self.assertEqual(target.num_qubits, 0)
+        self.assertEqual(target.build_coupling_map(), cmap)
+
+    def test_fake_from_configuration(self):
+        cmap = CouplingMap([[0, 1]])
+        target = _FakeTarget.from_configuration(coupling_map=cmap)
+        self.assertNotEqual(target, None)
+        self.assertEqual(target.num_qubits, 2)
+        self.assertEqual(target.build_coupling_map(), cmap)
+
+    def test_fake_only_when_necessary(self):
+        # Make sure _FakeTarget cannot be instantiated if there
+        # is enough info for a real Target
+        with self.assertRaises(TypeError):
+            _ = _FakeTarget.from_configuration(
+                basis_gates=["cx"], coupling_map=CouplingMap([[0, 1]])
+            )
+
+
+class TestAngleBounds(QiskitTestCase):
+    """Test angle bounds work correctly."""
+
+    def test_angle_bounds_mismatched_length(self):
+        """Test adding angle bounds method on incorrect number of params."""
+        target = Target("bounds", 1)
+        theta = Parameter("theta")
+        phi = Parameter("phi")
+        lam = Parameter("Lambda")
+        with self.assertRaisesRegex(TranspilerError, "The number of bounds"):
+            target.add_instruction(UGate(theta, phi, lam), angle_bounds=[(0, 1), (0, 3)])
+
+    def test_angle_bound_on_fixed_angle(self):
+        """Test adding angle bounds method on fixed value."""
+        target = Target("bounds", 1)
+        theta = Parameter("theta")
+        lam = Parameter("Lambda")
+        with self.assertRaisesRegex(TranspilerError, "Angle bound set on a fixed value"):
+            target.add_instruction(UGate(theta, 3.14, lam), angle_bounds=[(0, 1), (0, 2), (0, 3)])
+
+    def test_has_angle_bound(self):
+        """Test target has angle bounds method with bounds."""
+        target = Target("bounds", 1)
+        theta = Parameter("theta")
+        phi = Parameter("phi")
+        lam = Parameter("Lambda")
+        target.add_instruction(
+            UGate(theta, phi, lam), angle_bounds=[(0, 1), (0, 3), (-math.pi, math.pi)]
+        )
+        self.assertTrue(target.has_angle_bounds)
+
+    def test_not_has_angle_bound(self):
+        """Test target has angle bounds method with no bounds."""
+        target = Target("bounds", 1)
+        theta = Parameter("theta")
+        phi = Parameter("phi")
+        lam = Parameter("Lambda")
+        target.add_instruction(UGate(theta, phi, lam))
+        self.assertFalse(target.has_angle_bounds())
+
+    def test_gate_has_angle_bound(self):
+        """Test gate has angle bounds method."""
+        target = Target("bounds", 1)
+        theta = Parameter("theta")
+        phi = Parameter("phi")
+        lam = Parameter("Lambda")
+        target.add_instruction(
+            UGate(theta, phi, lam), angle_bounds=[(0, 1), (0, 3), (-math.pi, math.pi)]
+        )
+        target.add_instruction(XGate())
+        self.assertTrue(target.gate_has_angle_bounds("u"))
+        self.assertFalse(target.gate_has_angle_bounds("x"))
+
+    def test_instruction_supported_angle_check(self):
+        """Test instruction supported with angle bounds check enabled."""
+        target = Target("bounds", 1)
+        theta = Parameter("theta")
+        phi = Parameter("phi")
+        lam = Parameter("Lambda")
+        target.add_instruction(
+            UGate(theta, phi, lam), angle_bounds=[(0, 1), (0, 3), (-math.pi, math.pi)]
+        )
+        target.add_instruction(XGate())
+        self.assertTrue(
+            target.instruction_supported("u", parameters=[0, 0, 0], check_angle_bounds=True)
+        )
+        self.assertFalse(
+            target.instruction_supported("u", parameters=[-3, 0, 0], check_angle_bounds=True)
+        )
+        self.assertTrue(target.instruction_supported("x", check_angle_bounds=True))

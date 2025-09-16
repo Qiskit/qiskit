@@ -1,0 +1,20 @@
+---
+features_circuits:
+  - |
+    The classical realtime-expressions module :mod:`qiskit.circuit.classical` can now represent
+    indexing and bitshifting of unsigned integers and bitlikes (e.g. :class:`.ClassicalRegister`).
+    For example, it is now possible to compare one register with the bitshift of another::
+
+      from qiskit.circuit import QuantumCircuit, ClassicalRegister
+      from qiskit.circuit.classical import expr
+
+      cr1 = ClassicalRegister(4, "cr1")
+      cr2 = ClassicalRegister(4, "cr2")
+      qc = QuantumCircuit(cr1, cr2)
+      with qc.if_test(expr.equal(cr1, expr.shift_left(cr2, 2))):
+          pass
+
+    Qiskit can also represent a condition that dynamically indexes into a register::
+    
+      with qc.if_test(expr.index(cr1, cr2)):
+          pass

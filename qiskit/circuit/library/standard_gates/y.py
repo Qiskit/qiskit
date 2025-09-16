@@ -12,13 +12,12 @@
 
 """Y and CY gates."""
 
-from math import pi
 from typing import Optional, Union
 
 # pylint: disable=cyclic-import
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 _Y_ARRAY = [[0, -1j], [1j, 0]]
 
@@ -30,7 +29,7 @@ class YGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.y` method.
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -39,9 +38,9 @@ class YGate(SingletonGate):
                 i & 0
             \end{pmatrix}
 
-    **Circuit symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───┐
         q_0: ┤ Y ├
@@ -70,24 +69,29 @@ class YGate(SingletonGate):
         |1\rangle \rightarrow -i|0\rangle
     """
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
-        """Create new Y gate."""
-        super().__init__("y", 1, [], label=label, duration=duration, unit=unit)
+    _standard_gate = StandardGate.Y
+
+    def __init__(self, label: Optional[str] = None):
+        """
+        Args:
+            label: An optional label for the gate.
+        """
+        super().__init__("y", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .u3 import U3Gate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(U3Gate(pi, pi / 2, pi / 2), [q[0]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        #    ┌──────────────┐
+        # q: ┤ U(π,π/2,π/2) ├
+        #    └──────────────┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.Y._get_definition(self.params), legacy_qubits=True, name=self.name
+        )
 
     def control(
         self,
@@ -105,7 +109,7 @@ class YGate(SingletonGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
+            annotated: indicates whether the controlled gate should be implemented
                 as an annotated gate.
 
         Returns:
@@ -147,16 +151,16 @@ class CYGate(SingletonControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.cy` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ──■──
              ┌─┴─┐
         q_1: ┤ Y ├
              └───┘
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 
@@ -178,7 +182,8 @@ class CYGate(SingletonControlledGate):
         which in our case would be q_1. Thus a textbook matrix for this
         gate will be:
 
-        .. parsed-literal::
+        .. code-block:: text
+
                  ┌───┐
             q_0: ┤ Y ├
                  └─┬─┘
@@ -197,13 +202,13 @@ class CYGate(SingletonControlledGate):
 
     """
 
+    _standard_gate = StandardGate.CY
+
     def __init__(
         self,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CY gate."""
@@ -215,28 +220,23 @@ class CYGate(SingletonControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=YGate(label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)
 
     def _define(self):
-        """
-        gate cy a,b { sdg b; cx a,b; s b; }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .s import SGate, SdgGate
-        from .x import CXGate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(SdgGate(), [q[1]], []), (CXGate(), [q[0], q[1]], []), (SGate(), [q[1]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        # q_0: ─────────■───────
+        #      ┌─────┐┌─┴─┐┌───┐
+        # q_1: ┤ Sdg ├┤ X ├┤ S ├
+        #      └─────┘└───┘└───┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.CY._get_definition(self.params), legacy_qubits=True, name=self.name
+        )
 
     def inverse(self, annotated: bool = False):
         """Return inverted CY gate (itself).

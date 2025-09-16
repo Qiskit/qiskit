@@ -22,12 +22,11 @@ from qiskit.circuit import (
     WhileLoopOp,
     SwitchCaseOp,
     CASE_DEFAULT,
+    Store,
 )
 from qiskit.circuit.classical import expr, types
-from qiskit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit import DAGCircuit, DAGCircuitError
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.pulse import Schedule
-from qiskit.circuit.gate import Gate
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -281,69 +280,6 @@ class TestDagCompose(QiskitTestCase):
 
         self.assertEqual(circuit_composed, circuit_expected)
 
-    def test_compose_conditional(self):
-        """Composing on classical bits.
-
-                      ┌───┐                       ┌───┐ ┌─┐
-        lqr_1_0: |0>──┤ H ├───     rqr_0: ────────┤ H ├─┤M├───
-                      ├───┤                ┌───┐  └─┬─┘ └╥┘┌─┐
-        lqr_1_1: |0>──┤ X ├───     rqr_1: ─┤ X ├────┼────╫─┤M├
-                    ┌─┴───┴──┐             └─┬─┘    │    ║ └╥┘
-        lqr_1_2: |0>┤ P(0.1) ├  +         ┌──┴──┐┌──┴──┐ ║  ║
-                    └────────┘     rcr_0: ╡     ╞╡     ╞═╩══╬═
-        lqr_2_0: |0>────■─────            │ = 2 ││ = 1 │    ║
-                      ┌─┴─┐        rcr_1: ╡     ╞╡     ╞════╩═
-        lqr_2_1: |0>──┤ X ├───            └─────┘└─────┘
-                      └───┘
-        lcr_0: 0 ═════════════
-
-        lcr_1: 0 ═════════════
-
-                   ┌───┐
-        lqr_1_0: ──┤ H ├───────────────────────
-                   ├───┤           ┌───┐    ┌─┐
-        lqr_1_1: ──┤ X ├───────────┤ H ├────┤M├
-                 ┌─┴───┴──┐        └─┬─┘    └╥┘
-        lqr_1_2: ┤ P(0.1) ├──────────┼───────╫─
-                 └────────┘          │       ║
-        lqr_2_0: ────■───────────────┼───────╫─
-                   ┌─┴─┐    ┌───┐    │   ┌─┐ ║
-        lqr_2_1: ──┤ X ├────┤ X ├────┼───┤M├─╫─
-                   └───┘    └─┬─┘    │   └╥┘ ║
-                           ┌──┴──┐┌──┴──┐ ║  ║
-        lcr_0: ════════════╡     ╞╡     ╞═╩══╬═
-                           │ = 1 ││ = 2 │    ║
-        lcr_1: ════════════╡     ╞╡     ╞════╩═
-                           └─────┘└─────┘
-        """
-        qreg = QuantumRegister(2, "rqr")
-        creg = ClassicalRegister(2, "rcr")
-
-        circuit_right = QuantumCircuit(qreg, creg)
-        circuit_right.x(qreg[1]).c_if(creg, 2)
-        circuit_right.h(qreg[0]).c_if(creg, 1)
-        circuit_right.measure(qreg, creg)
-
-        # permuted subset of qubits and clbits
-        dag_left = circuit_to_dag(self.circuit_left)
-        dag_right = circuit_to_dag(circuit_right)
-
-        # permuted subset of qubits and clbits
-        dag_left.compose(
-            dag_right,
-            qubits=[self.left_qubit1, self.left_qubit4],
-            clbits=[self.left_clbit1, self.left_clbit0],
-        )
-        circuit_composed = dag_to_circuit(dag_left)
-
-        circuit_expected = self.circuit_left.copy()
-        circuit_expected.x(self.left_qubit4).c_if(*self.condition1)
-        circuit_expected.h(self.left_qubit1).c_if(*self.condition2)
-        circuit_expected.measure(self.left_qubit4, self.left_clbit0)
-        circuit_expected.measure(self.left_qubit1, self.left_clbit1)
-
-        self.assertEqual(circuit_composed, circuit_expected)
-
     def test_compose_classical(self):
         """Composing on classical bits.
 
@@ -402,36 +338,6 @@ class TestDagCompose(QiskitTestCase):
         circuit_expected.measure(self.left_qubit1, self.left_clbit1)
 
         self.assertEqual(circuit_composed, circuit_expected)
-
-    def test_compose_condition_multiple_classical(self):
-        """Compose a circuit with more than one creg.
-
-                          ┌───┐              ┌───┐
-        q5_0:      q5_0: ─┤ H ├─      q5_0: ─┤ H ├─
-                          └─┬─┘              └─┬─┘
-                         ┌──┴──┐            ┌──┴──┐
-        c0:    +   c0: 1/╡ = 1 ╞   =  c0: 1/╡ = 1 ╞
-                         └─────┘            └─────┘
-        c1:        c1: 1/═══════      c1: 1/═══════
-        """
-        # ref: https://github.com/Qiskit/qiskit-terra/issues/4964
-
-        qreg = QuantumRegister(1)
-        creg1 = ClassicalRegister(1)
-        creg2 = ClassicalRegister(1)
-
-        circuit_left = QuantumCircuit(qreg, creg1, creg2)
-        circuit_right = QuantumCircuit(qreg, creg1, creg2)
-        circuit_right.h(0).c_if(creg1, 1)
-
-        dag_left = circuit_to_dag(circuit_left)
-        dag_right = circuit_to_dag(circuit_right)
-
-        dag_composed = dag_left.compose(dag_right, qubits=[0], clbits=[0, 1], inplace=False)
-
-        dag_expected = circuit_to_dag(circuit_right.copy())
-
-        self.assertEqual(dag_composed, dag_expected)
 
     def test_compose_expr_condition(self):
         """Test that compose correctly maps clbits and registers in expression conditions."""
@@ -540,19 +446,90 @@ class TestDagCompose(QiskitTestCase):
 
         self.assertEqual(dest, circuit_to_dag(expected))
 
-    def test_compose_calibrations(self):
-        """Test that compose carries over the calibrations."""
-        dag_cal = QuantumCircuit(1)
-        dag_cal.append(Gate("", 1, []), qargs=[0])
-        dag_cal.add_calibration(Gate("", 1, []), [0], Schedule())
+    def test_join_unrelated_dags(self):
+        """This isn't expected to be common, but should work anyway."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+        c = expr.Var.new("c", types.Uint(8))
 
-        empty_dag = circuit_to_dag(QuantumCircuit(1))
-        calibrated_dag = circuit_to_dag(dag_cal)
-        composed_dag = empty_dag.compose(calibrated_dag, inplace=False)
+        dest = DAGCircuit()
+        dest.add_input_var(a)
+        dest.apply_operation_back(Store(a, expr.lift(False)), (), ())
+        source = DAGCircuit()
+        source.add_declared_var(b)
+        source.add_input_var(c)
+        source.apply_operation_back(Store(b, expr.lift(True)), (), ())
+        dest.compose(source)
 
-        cal = {"": {((0,), ()): Schedule(name="sched0")}}
-        self.assertEqual(composed_dag.calibrations, cal)
-        self.assertEqual(calibrated_dag.calibrations, cal)
+        expected = DAGCircuit()
+        expected.add_input_var(a)
+        expected.add_declared_var(b)
+        expected.add_input_var(c)
+        expected.apply_operation_back(Store(a, expr.lift(False)), (), ())
+        expected.apply_operation_back(Store(b, expr.lift(True)), (), ())
+
+        self.assertEqual(dest, expected)
+
+    def test_join_unrelated_dags_captures(self):
+        """This isn't expected to be common, but should work anyway."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+        c = expr.Var.new("c", types.Uint(8))
+
+        dest = DAGCircuit()
+        dest.add_captured_var(a)
+        dest.apply_operation_back(Store(a, expr.lift(False)), (), ())
+        source = DAGCircuit()
+        source.add_declared_var(b)
+        source.add_captured_var(c)
+        source.apply_operation_back(Store(b, expr.lift(True)), (), ())
+        dest.compose(source, inline_captures=False)
+
+        expected = DAGCircuit()
+        expected.add_captured_var(a)
+        expected.add_declared_var(b)
+        expected.add_captured_var(c)
+        expected.apply_operation_back(Store(a, expr.lift(False)), (), ())
+        expected.apply_operation_back(Store(b, expr.lift(True)), (), ())
+
+        self.assertEqual(dest, expected)
+
+    def test_inline_capture_var(self):
+        """Should be able to append uses onto another DAG."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+
+        dest = DAGCircuit()
+        dest.add_input_var(a)
+        dest.add_input_var(b)
+        dest.apply_operation_back(Store(a, expr.lift(False)), (), ())
+        source = DAGCircuit()
+        source.add_captured_var(b)
+        source.apply_operation_back(Store(b, expr.lift(True)), (), ())
+        dest.compose(source, inline_captures=True)
+
+        expected = DAGCircuit()
+        expected.add_input_var(a)
+        expected.add_input_var(b)
+        expected.apply_operation_back(Store(a, expr.lift(False)), (), ())
+        expected.apply_operation_back(Store(b, expr.lift(True)), (), ())
+
+        self.assertEqual(dest, expected)
+
+    def test_reject_inline_to_nonexistent_var(self):
+        """Should not be able to inline a variable that doesn't exist."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+
+        dest = DAGCircuit()
+        dest.add_input_var(a)
+        dest.apply_operation_back(Store(a, expr.lift(False)), (), ())
+        source = DAGCircuit()
+        source.add_captured_var(b)
+        with self.assertRaisesRegex(
+            DAGCircuitError, "Variable '.*' to be inlined is not in the base DAG"
+        ):
+            dest.compose(source, inline_captures=True)
 
 
 if __name__ == "__main__":

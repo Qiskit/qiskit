@@ -34,13 +34,20 @@ from .experimental import ExperimentalFeatures
 # indexing and casting are all higher priority than these, so we just ignore them.
 _BindingPower = collections.namedtuple("_BindingPower", ("left", "right"), defaults=(255, 255))
 _BINDING_POWER = {
-    # Power: (21, 22)
+    # Power: (24, 23)
     #
-    ast.Unary.Op.LOGIC_NOT: _BindingPower(right=20),
-    ast.Unary.Op.BIT_NOT: _BindingPower(right=20),
+    ast.Unary.Op.LOGIC_NOT: _BindingPower(right=22),
+    ast.Unary.Op.BIT_NOT: _BindingPower(right=22),
     #
-    # Multiplication/division/modulo: (17, 18)
-    # Addition/subtraction: (15, 16)
+    # Modulo: (19, 20)
+    ast.Binary.Op.MUL: _BindingPower(19, 20),
+    ast.Binary.Op.DIV: _BindingPower(19, 20),
+    #
+    ast.Binary.Op.ADD: _BindingPower(17, 18),
+    ast.Binary.Op.SUB: _BindingPower(17, 18),
+    #
+    ast.Binary.Op.SHIFT_LEFT: _BindingPower(15, 16),
+    ast.Binary.Op.SHIFT_RIGHT: _BindingPower(15, 16),
     #
     ast.Binary.Op.LESS: _BindingPower(13, 14),
     ast.Binary.Op.LESS_EQUAL: _BindingPower(13, 14),
@@ -75,7 +82,7 @@ class BasicPrinter:
         ast.QuantumGateModifierName.POW: "pow",
     }
 
-    _FLOAT_WIDTH_LOOKUP = {type: str(type.value) for type in ast.FloatType}
+    _FLOAT_TYPE_LOOKUP = {type: f"float[{type.value}]" for type in ast.FloatType}
 
     # The visitor names include the class names, so they mix snake_case with PascalCase.
     # pylint: disable=invalid-name
@@ -198,14 +205,32 @@ class BasicPrinter:
     def _visit_Pragma(self, node: ast.Pragma) -> None:
         self._write_statement(f"#pragma {node.content}")
 
+    def _visit_Annotation(self, node: ast.Annotation) -> None:
+        self._start_line()
+        self.stream.write(f"@{node.namespace}")
+        if node.payload:
+            self.stream.write(f" {node.payload}")
+        self._end_line()
+
     def _visit_CalibrationGrammarDeclaration(self, node: ast.CalibrationGrammarDeclaration) -> None:
         self._write_statement(f'defcalgrammar "{node.name}"')
 
     def _visit_FloatType(self, node: ast.FloatType) -> None:
-        self.stream.write(f"float[{self._FLOAT_WIDTH_LOOKUP[node]}]")
+        self.stream.write(self._FLOAT_TYPE_LOOKUP[node])
+
+    def _visit_BoolType(self, _node: ast.BoolType) -> None:
+        self.stream.write("bool")
+
+    def _visit_DurationType(self, _node: ast.DurationType) -> None:
+        self.stream.write("duration")
 
     def _visit_IntType(self, node: ast.IntType) -> None:
         self.stream.write("int")
+        if node.size is not None:
+            self.stream.write(f"[{node.size}]")
+
+    def _visit_UintType(self, node: ast.UintType) -> None:
+        self.stream.write("uint")
         if node.size is not None:
             self.stream.write(f"[{node.size}]")
 
@@ -271,6 +296,9 @@ class BasicPrinter:
     def _visit_IntegerLiteral(self, node: ast.IntegerLiteral) -> None:
         self.stream.write(str(node.value))
 
+    def _visit_FloatLiteral(self, node: ast.FloatLiteral) -> None:
+        self.stream.write(str(node.value))
+
     def _visit_BooleanLiteral(self, node: ast.BooleanLiteral):
         self.stream.write("true" if node.value else "false")
 
@@ -324,6 +352,17 @@ class BasicPrinter:
         self.visit(node.operand)
         self.stream.write(")")
 
+    def _visit_Index(self, node: ast.Index):
+        if isinstance(node.target, (ast.Unary, ast.Binary)):
+            self.stream.write("(")
+            self.visit(node.target)
+            self.stream.write(")")
+        else:
+            self.visit(node.target)
+        self.stream.write("[")
+        self.visit(node.index)
+        self.stream.write("]")
+
     def _visit_ClassicalDeclaration(self, node: ast.ClassicalDeclaration) -> None:
         self._start_line()
         self.visit(node.type)
@@ -332,6 +371,16 @@ class BasicPrinter:
         if node.initializer is not None:
             self.stream.write(" = ")
             self.visit(node.initializer)
+        self._end_statement()
+
+    def _visit_StretchDeclaration(self, node: ast.StretchDeclaration) -> None:
+        self._start_line()
+        self.stream.write("stretch")
+        self.stream.write(" ")
+        self.visit(node.identifier)
+        if node.bound is not None:
+            self.stream.write(" = ")
+            self.visit(node.bound)
         self._end_statement()
 
     def _visit_AssignmentStatement(self, node: ast.AssignmentStatement) -> None:
@@ -385,6 +434,18 @@ class BasicPrinter:
         self._visit_sequence(node.indexIdentifierList, separator=", ")
         self._end_statement()
 
+    def _visit_DefcalCallStatement(self, node: ast.DefcalCallStatement) -> None:
+        self._start_line()
+        if node.lvalue is not None:
+            self.visit(node.lvalue)
+            self.stream.write(" = ")
+        self.visit(node.ident)
+        if node.parameters:
+            self._visit_sequence(node.parameters, start="(", end=")", separator=", ")
+        if node.qubits:
+            self._visit_sequence(node.qubits, start=" ", separator=", ")
+        self._end_statement()
+
     def _visit_QuantumBarrier(self, node: ast.QuantumBarrier) -> None:
         self._start_line()
         self.stream.write("barrier ")
@@ -409,26 +470,17 @@ class BasicPrinter:
             self.stream.write("return")
         self._end_statement()
 
-    def _visit_QuantumArgument(self, node: ast.QuantumArgument) -> None:
-        self.stream.write("qubit")
-        if node.designator:
-            self.visit(node.designator)
-        self.stream.write(" ")
-        self.visit(node.identifier)
-
-    def _visit_QuantumGateSignature(self, node: ast.QuantumGateSignature) -> None:
+    def _visit_QuantumGateDefinition(self, node: ast.QuantumGateDefinition) -> None:
+        self._start_line()
+        self.stream.write("gate ")
         self.visit(node.name)
         if node.params:
             self._visit_sequence(node.params, start="(", end=")", separator=", ")
         self.stream.write(" ")
-        self._visit_sequence(node.qargList, separator=", ")
-
-    def _visit_QuantumGateDefinition(self, node: ast.QuantumGateDefinition) -> None:
-        self._start_line()
-        self.stream.write("gate ")
-        self.visit(node.quantumGateSignature)
-        self.stream.write(" ")
-        self.visit(node.quantumBlock)
+        if node.qubits:
+            self._visit_sequence(node.qubits, separator=", ")
+            self.stream.write(" ")
+        self.visit(node.body)
         self._end_line()
 
     def _visit_CalibrationDefinition(self, node: ast.CalibrationDefinition) -> None:
@@ -562,3 +614,19 @@ class BasicPrinter:
 
     def _visit_DefaultCase(self, _node: ast.DefaultCase) -> None:
         self.stream.write("default")
+
+    def _visit_BoxStatement(self, node: ast.BoxStatement) -> None:
+        # The OpenQASM 3 spec doesn't specify any ordering between annotations.  We choose to
+        # write and interpret them like Python decorators, where the "first" annotation is written
+        # closest to the box itself.
+        for annotation in reversed(node.annotations):
+            self.visit(annotation)
+        self._start_line()
+        self.stream.write("box")
+        if node.duration is not None:
+            self.stream.write("[")
+            self.visit(node.duration)
+            self.stream.write("]")
+        self.stream.write(" ")
+        self.visit(node.body)
+        self._end_line()

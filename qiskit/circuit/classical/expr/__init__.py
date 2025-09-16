@@ -39,16 +39,25 @@ The expression system is based on tree representation.  All nodes in the tree ar
 
 These objects are mutable and should not be reused in a different location without a copy.
 
-The base for dynamic variables is the :class:`Var`, which can be either an arbitrarily typed runtime
-variable, or a wrapper around a :class:`.Clbit` or :class:`.ClassicalRegister`.
+All :class:`Expr` instances define a boolean :attr:`~Expr.const` attribute, which indicates
+whether the expression can be evaluated at compile time. Most expression classes infer this
+during construction based on the const-ness of their operands.
+
+The base for dynamic variables is the :class:`Var`, which can be either an arbitrarily typed
+real-time variable, or a wrapper around a :class:`.Clbit` or :class:`.ClassicalRegister`.
 
 .. autoclass:: Var
-    :members: var, name
+    :members: var, name, new
 
-Similarly, literals used in comparison (such as integers) should be lifted to :class:`Value` nodes
-with associated types.
+Similarly, literals used in expressions (such as integers) should be lifted to :class:`Value` nodes
+with associated types. A :class:`Value` is always considered a constant expression.
 
 .. autoclass:: Value
+
+Stretch variables for use in duration expressions are represented by the :class:`Stretch` node.
+
+.. autoclass:: Stretch
+    :members: var, name, new
 
 The operations traditionally associated with pre-, post- or infix operators in programming are
 represented by the :class:`Unary` and :class:`Binary` nodes as appropriate.  These each take an
@@ -61,6 +70,12 @@ and :class:`Binary.Op` respectively.
 .. autoclass:: Binary
     :members: Op
     :member-order: bysource
+
+Bit-like types (unsigned integers) can be indexed by integer types, represented by :class:`Index`.
+The result is a single bit.  The resulting expression has an associated memory location (and so can
+be used as an lvalue for :class:`.Store`, etc) if the target is also an lvalue.
+
+.. autoclass:: Index
 
 When constructing expressions, one must ensure that the types are valid for the operation.
 Attempts to construct expressions with invalid types will raise a regular Python ``TypeError``.
@@ -122,6 +137,17 @@ Similarly, the binary operations and relations have helper functions defined.
 .. autofunction:: less_equal
 .. autofunction:: greater
 .. autofunction:: greater_equal
+.. autofunction:: shift_left
+.. autofunction:: shift_right
+.. autofunction:: add
+.. autofunction:: sub
+.. autofunction:: mul
+.. autofunction:: div
+
+You can index into unsigned integers and bit-likes using another unsigned integer of any width.
+This includes in storing operations, if the target of the index is writeable.
+
+.. autofunction:: index
 
 Qiskit's legacy method for specifying equality conditions for use in conditionals is to use a
 two-tuple of a :class:`.Clbit` or :class:`.ClassicalRegister` and an integer.  This represents an
@@ -153,6 +179,11 @@ not the general structure, the iterator method :func:`iter_vars` is provided.
 
 .. autofunction:: iter_vars
 
+To iterator over all variables including stretch variables, the iterator method
+:func:`iter_identifiers` is provided.
+
+.. autofunction:: iter_identifiers
+
 Two expressions can be compared for direct structural equality by using the built-in Python ``==``
 operator.  In general, though, one might want to compare two expressions slightly more semantically,
 allowing that the :class:`Var` nodes inside them are bound to different memory-location descriptions
@@ -174,8 +205,11 @@ __all__ = [
     "Cast",
     "Unary",
     "Binary",
+    "Index",
+    "Stretch",
     "ExprVisitor",
     "iter_vars",
+    "iter_identifiers",
     "structurally_equivalent",
     "is_lvalue",
     "lift",
@@ -185,6 +219,8 @@ __all__ = [
     "bit_and",
     "bit_or",
     "bit_xor",
+    "shift_left",
+    "shift_right",
     "logic_and",
     "logic_or",
     "equal",
@@ -193,11 +229,16 @@ __all__ = [
     "less_equal",
     "greater",
     "greater_equal",
+    "index",
+    "add",
+    "sub",
+    "mul",
+    "div",
     "lift_legacy_condition",
 ]
 
-from .expr import Expr, Var, Value, Cast, Unary, Binary
-from .visitors import ExprVisitor, iter_vars, structurally_equivalent, is_lvalue
+from .expr import Expr, Var, Value, Cast, Unary, Binary, Index, Stretch
+from .visitors import ExprVisitor, iter_vars, iter_identifiers, structurally_equivalent, is_lvalue
 from .constructors import (
     lift,
     cast,
@@ -214,5 +255,12 @@ from .constructors import (
     less_equal,
     greater,
     greater_equal,
+    shift_left,
+    shift_right,
+    index,
+    add,
+    sub,
+    mul,
+    div,
     lift_legacy_condition,
 )

@@ -1,0 +1,27 @@
+---
+name: C API Tests
+on:
+  workflow_call:
+
+jobs:
+  tests:
+    if: github.repository_owner == 'Qiskit'
+    name: tests-c-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          # Used for the x86_64 builds.
+          - macos-13
+          # Used for the ARM builds.
+          - macos-14
+          - ubuntu-24.04-arm
+          - windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install dependencies
+        run: cargo install cbindgen
+      - name: Run tests
+        run: make ctest

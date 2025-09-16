@@ -26,7 +26,7 @@ __all__ = [
 
 import enum
 
-from .types import Type, Bool, Uint
+from .types import Type, Bool, Duration, Float, Uint
 
 
 # While the type system is simple, it's overkill to represent the complete partial ordering graph of
@@ -55,10 +55,6 @@ class Ordering(enum.Enum):
         return str(self)
 
 
-def _order_bool_bool(_a: Bool, _b: Bool, /) -> Ordering:
-    return Ordering.EQUAL
-
-
 def _order_uint_uint(left: Uint, right: Uint, /) -> Ordering:
     if left.width < right.width:
         return Ordering.LESS
@@ -68,8 +64,10 @@ def _order_uint_uint(left: Uint, right: Uint, /) -> Ordering:
 
 
 _ORDERERS = {
-    (Bool, Bool): _order_bool_bool,
+    (Bool, Bool): lambda _a, _b, /: Ordering.EQUAL,
     (Uint, Uint): _order_uint_uint,
+    (Float, Float): lambda _a, _b, /: Ordering.EQUAL,
+    (Duration, Duration): lambda _a, _b, /: Ordering.EQUAL,
 }
 
 
@@ -195,8 +193,14 @@ def _uint_cast(from_: Uint, to_: Uint, /) -> CastKind:
 _ALLOWED_CASTS = {
     (Bool, Bool): lambda _a, _b, /: CastKind.EQUAL,
     (Bool, Uint): lambda _a, _b, /: CastKind.LOSSLESS,
+    (Bool, Float): lambda _a, _b, /: CastKind.LOSSLESS,
     (Uint, Bool): lambda _a, _b, /: CastKind.IMPLICIT,
     (Uint, Uint): _uint_cast,
+    (Uint, Float): lambda _a, _b, /: CastKind.DANGEROUS,
+    (Float, Float): lambda _a, _b, /: CastKind.EQUAL,
+    (Float, Uint): lambda _a, _b, /: CastKind.DANGEROUS,
+    (Float, Bool): lambda _a, _b, /: CastKind.DANGEROUS,
+    (Duration, Duration): lambda _a, _b, /: CastKind.EQUAL,
 }
 
 
@@ -205,7 +209,10 @@ def cast_kind(from_: Type, to_: Type, /) -> CastKind:
 
     Examples:
 
-        .. code-block:: python
+        .. plot::
+           :include-source:
+           :nofigs:
+
 
             >>> from qiskit.circuit.classical import types
             >>> types.cast_kind(types.Bool(), types.Bool())

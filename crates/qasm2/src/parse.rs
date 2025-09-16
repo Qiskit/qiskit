@@ -16,7 +16,8 @@
 //! operator-precedence parser.
 
 use hashbrown::{HashMap, HashSet};
-use pyo3::prelude::{PyObject, PyResult, Python};
+use num_bigint::BigUint;
+use pyo3::prelude::*;
 
 use crate::bytecode::InternalBytecode;
 use crate::error::{
@@ -63,18 +64,12 @@ const BUILTIN_CLASSICAL: [&str; 6] = ["cos", "exp", "ln", "sin", "sqrt", "tan"];
 /// the second is whether to also define addition to make offsetting the newtype easier.
 macro_rules! newtype_id {
     ($id:ident, false) => {
-        #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, IntoPyObject, IntoPyObjectRef)]
         pub struct $id(usize);
 
         impl $id {
             pub fn new(value: usize) -> Self {
                 Self(value)
-            }
-        }
-
-        impl pyo3::IntoPy<PyObject> for $id {
-            fn into_py(self, py: Python<'_>) -> PyObject {
-                self.0.into_py(py)
             }
         }
     };
@@ -116,7 +111,7 @@ pub enum GlobalSymbol {
         index: GateId,
     },
     Classical {
-        callable: PyObject,
+        callable: Py<PyAny>,
         num_params: usize,
     },
 }
@@ -188,9 +183,10 @@ enum GateParameters {
 
 /// An equality condition from an `if` statement.  These can condition gate applications, measures
 /// and resets, although in practice they're basically only ever used on gates.
+#[derive(Clone)]
 struct Condition {
     creg: CregId,
-    value: usize,
+    value: BigUint,
 }
 
 /// Find the first match for the partial [filename] in the directories along [path].  Returns
@@ -486,7 +482,7 @@ impl State {
                         name_token.line,
                         name_token.col,
                     )),
-                    &format!("'{}' is not defined in this scope", name),
+                    &format!("'{name}' is not defined in this scope"),
                 )))
             }
         };
@@ -509,7 +505,7 @@ impl State {
                     name_token.line,
                     name_token.col,
                 )),
-                &format!("'{}' is a parameter, not a qubit", name),
+                &format!("'{name}' is a parameter, not a qubit"),
             ))),
             None => {
                 if let Some(symbol) = self.symbols.get(&name) {
@@ -528,7 +524,7 @@ impl State {
                             name_token.line,
                             name_token.col,
                         )),
-                        &format!("'{}' is not defined in this scope", name),
+                        &format!("'{name}' is not defined in this scope"),
                     )))
                 }
             }
@@ -594,7 +590,7 @@ impl State {
                         name_token.line,
                         name_token.col,
                     )),
-                    &format!("'{}' is not defined in this scope", name),
+                    &format!("'{name}' is not defined in this scope"),
                 )))
             }
         };
@@ -655,8 +651,7 @@ impl State {
                     index_token.col,
                 )),
                 &format!(
-                    "index {} is out-of-range for register '{}' of size {}",
-                    index, name, register_size
+                    "index {index} is out-of-range for register '{name}' of size {register_size}"
                 ),
             )))
         }
@@ -825,8 +820,16 @@ impl State {
         }
         bc.push(Some(InternalBytecode::EndDeclareGate {}));
         self.gate_symbols.clear();
-        self.define_gate(Some(&gate_token), name, num_params, num_qubits)?;
-        Ok(statements + 2)
+        let num_bytecode = statements + 2;
+        if self.define_gate(Some(&gate_token), name, num_params, num_qubits)? {
+            Ok(num_bytecode)
+        } else {
+            // The gate was built-in, so we don't actually need to emit the bytecode.  This is
+            // uncommon, so it doesn't matter too much that we throw away allocation work we did -
+            // it still helps that we verified that the gate body was valid OpenQASM 2.
+            bc.truncate(bc.len() - num_bytecode);
+            Ok(0)
+        }
     }
 
     /// Parse an `opaque` statement.  This assumes that the `opaque` token is still in the token
@@ -911,12 +914,9 @@ impl State {
             None => {
                 let pos = Position::new(self.current_filename(), name_token.line, name_token.col);
                 let message = if self.overridable_gates.contains_key(&name) {
-                    format!(
-                        "cannot use non-builtin custom instruction '{}' before definition",
-                        name,
-                    )
+                    format!("cannot use non-builtin custom instruction '{name}' before definition",)
                 } else {
-                    format!("'{}' is not defined in this scope", name)
+                    format!("'{name}' is not defined in this scope")
                 };
                 Err(QASM2ParseError::new_err(message_generic(
                     Some(&pos),
@@ -1105,7 +1105,7 @@ impl State {
         } {
             return match parameters {
                 GateParameters::Constant(parameters) => {
-                    self.emit_single_global_gate(bc, gate_id, parameters, qubits, &condition)
+                    self.emit_single_global_gate(bc, gate_id, parameters, qubits, condition)
                 }
                 GateParameters::Expression(parameters) => {
                     self.emit_single_gate_gate(bc, gate_id, parameters, qubits)
@@ -1174,7 +1174,7 @@ impl State {
             }
             return match parameters {
                 GateParameters::Constant(parameters) => {
-                    self.emit_single_global_gate(bc, gate_id, parameters, qubits, &condition)
+                    self.emit_single_global_gate(bc, gate_id, parameters, qubits, condition)
                 }
                 GateParameters::Expression(parameters) => {
                     self.emit_single_gate_gate(bc, gate_id, parameters, qubits)
@@ -1196,7 +1196,7 @@ impl State {
                         gate_id,
                         parameters.clone(),
                         qubits,
-                        &condition,
+                        condition.clone(),
                     )?;
                 }
                 // Gates used in gate-body definitions can't ever broadcast, because their only
@@ -1215,7 +1215,7 @@ impl State {
         gate_id: GateId,
         arguments: Vec<f64>,
         qubits: Vec<QubitId>,
-        condition: &Option<Condition>,
+        condition: Option<Condition>,
     ) -> PyResult<usize> {
         if let Some(condition) = condition {
             bc.push(Some(InternalBytecode::ConditionedGate {
@@ -1262,7 +1262,7 @@ impl State {
         self.expect(TokenType::Equals, "'=='", &if_token)?;
         let value = self
             .expect(TokenType::Integer, "an integer", &if_token)?
-            .int(&self.context);
+            .bigint(&self.context);
         self.expect(TokenType::RParen, "')'", &lparen_token)?;
         let name = name_token.id(&self.context);
         let creg = match self.symbols.get(&name) {
@@ -1285,7 +1285,7 @@ impl State {
                     name_token.line,
                     name_token.col,
                 )),
-                &format!("'{}' is not defined in this scope", name),
+                &format!("'{name}' is not defined in this scope"),
             ))),
         }?;
         let condition = Some(Condition { creg, value });
@@ -1408,7 +1408,7 @@ impl State {
                             qubit: q_start + i,
                             clbit: c_start + i,
                             creg,
-                            value,
+                            value: value.clone(),
                         })
                     }));
                     Ok(q_size)
@@ -1477,7 +1477,7 @@ impl State {
                         Some(InternalBytecode::ConditionedReset {
                             qubit: start + offset,
                             creg,
-                            value,
+                            value: value.clone(),
                         })
                     }));
                     Ok(size)
@@ -1630,8 +1630,11 @@ impl State {
 
     /// Update the parser state with the definition of a particular gate.  This does not emit any
     /// bytecode because not all gate definitions need something passing to Python.  For example,
-    /// the Python parser initialises its state including the built-in gates `U` and `CX`, and
+    /// the Python parser initializes its state including the built-in gates `U` and `CX`, and
     /// handles the `qelib1.inc` include specially as well.
+    ///
+    /// Returns whether the gate needs to be defined in Python space (`true`) or if it was some sort
+    /// of built-in that doesn't need the definition (`false`).
     fn define_gate(
         &mut self,
         owner: Option<&Token>,
@@ -1643,12 +1646,12 @@ impl State {
             let pos = owner.map(|tok| Position::new(state.current_filename(), tok.line, tok.col));
             Err(QASM2ParseError::new_err(message_generic(
                 pos.as_ref(),
-                &format!("'{}' is already defined", name),
+                &format!("'{name}' is already defined"),
             )))
         };
         let mismatched_definitions = |state: &Self, name: String, previous: OverridableGate| {
             let plural = |count: usize, singular: &str| {
-                let mut out = format!("{} {}", count, singular);
+                let mut out = format!("{count} {singular}");
                 if count != 1 {
                     out.push('s');
                 }
@@ -1683,12 +1686,14 @@ impl State {
             }
             match self.symbols.get(&name) {
                 None => {
+                    // The gate wasn't a built-in, so we need to move the symbol in, but we don't
+                    // need to increment the number of gates because it's already got a gate ID
+                    // assigned.
                     self.symbols.insert(name, symbol.into());
-                    self.num_gates += 1;
-                    Ok(true)
+                    Ok(false)
                 }
                 Some(GlobalSymbol::Gate { .. }) => {
-                    self.symbols.insert(name, symbol.into());
+                    // The gate was built-in and we can ignore the new definition (it's the same).
                     Ok(false)
                 }
                 _ => already_defined(self, name),

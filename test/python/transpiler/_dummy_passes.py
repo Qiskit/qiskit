@@ -122,10 +122,10 @@ class PassF_reduce_dag_property(DummyTP):
 
     def run(self, dag):
         super().run(dag)
-        if not hasattr(dag, "property"):
-            dag.property = 8
-        dag.property = round(dag.property * 0.8)
-        logging.getLogger(logger).info("dag property = %i", dag.property)
+        if dag._duration is None:
+            dag._duration = 8
+        dag._duration = round(dag._duration * 0.8)
+        logging.getLogger(logger).info("dag property = %i", dag._duration)
         return dag
 
 
@@ -138,8 +138,8 @@ class PassG_calculates_dag_property(DummyAP):
 
     def run(self, dag):
         super().run(dag)
-        if hasattr(dag, "property"):
-            self.property_set["property"] = dag.property
+        if dag._duration is not None:
+            self.property_set["property"] = dag._duration
         else:
             self.property_set["property"] = 8
         logging.getLogger(logger).info(

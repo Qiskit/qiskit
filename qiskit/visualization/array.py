@@ -16,8 +16,10 @@ Tools to create LaTeX arrays.
 import numpy as np
 
 from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.utils.optionals import HAS_SYMPY
 
 
+@HAS_SYMPY.require_in_call("Create a latex representation of a ket expression")
 def _num_to_latex(raw_value, decimals=15, first_term=True, coefficient=False):
     """Convert a complex number to latex code suitable for a ket expression
 
@@ -33,7 +35,7 @@ def _num_to_latex(raw_value, decimals=15, first_term=True, coefficient=False):
     """
     import sympy  # runtime import
 
-    raw_value = np.around(raw_value, decimals=decimals)
+    raw_value = np.around(raw_value, decimals=decimals).item()
     value = sympy.nsimplify(raw_value, rational=False)
 
     if isinstance(value, sympy.core.numbers.Rational) and value.denominator > 50:
@@ -83,6 +85,7 @@ def _matrix_to_latex(matrix, decimals=10, prefix="", max_size=(8, 8)):
 
     Raises:
         ValueError: If minimum value in max_size < 3
+        MissingOptionalLibraryError: If sympy is not installed
     """
     if min(max_size) < 3:
         raise ValueError("""Smallest value in max_size must be greater than or equal to 3""")
@@ -171,7 +174,7 @@ def array_to_latex(array, precision=10, prefix="", source=False, max_size=8):
         TypeError: If array can not be interpreted as a numerical numpy array.
         ValueError: If the dimension of array is not 1 or 2.
         MissingOptionalLibraryError: If ``source`` is ``False`` and ``IPython.display.Latex`` cannot be
-                     imported.
+                     imported. Or if sympy is not installed.
     """
     try:
         array = np.asarray(array)

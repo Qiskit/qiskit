@@ -64,14 +64,11 @@ class TestCircuitRegisters(QiskitTestCase):
 
     def test_qarg_string_size(self):
         """Test attempt to create a non-integer size QuantumRegister."""
-        self.assertRaises(CircuitError, QuantumRegister, "string")
+        self.assertRaises(TypeError, QuantumRegister, "string")
 
-    def test_qarg_noninteger_float(self):
-        """Test attempt to pass non-integer float to QuantumRegister."""
-        self.assertRaises(CircuitError, QuantumRegister, 2.2)
-        # but an integer float should pass
-        qr = QuantumRegister(2.0)
-        self.assertEqual(qr.size, 2)
+    def test_qarg_float(self):
+        """Test attempt to pass float to QuantumRegister."""
+        self.assertRaises(TypeError, QuantumRegister, 2.2)
 
     def test_qarg_numpy_int_size(self):
         """Test castable to integer size QuantumRegister."""
@@ -97,7 +94,7 @@ class TestCircuitRegisters(QiskitTestCase):
         """Test numpy array of Registers .
         See https://github.com/Qiskit/qiskit-terra/issues/1898
         """
-        qrs = [QuantumRegister(2, name="q%s" % i) for i in range(5)]
+        qrs = [QuantumRegister(2, name=f"q{i}") for i in range(5)]
         qreg_array = np.array([], dtype=object, ndmin=1)
         qreg_array = np.append(qreg_array, qrs)
 

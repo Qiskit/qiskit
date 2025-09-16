@@ -5,36 +5,24 @@
 notifications:
     ".*":
         - "`@Qiskit/terra-core`"
-    "visualization/pulse_v2":
-        - "`@nkanazawa1989`"
     "visualization/timeline":
-        - "`@nkanazawa1989`"
-    "pulse":
-        - "`@nkanazawa1989`"
-    "scheduler":
         - "`@nkanazawa1989`"
     "qpy":
         - "`@mtreinish`"
         - "`@nkanazawa1989`"
     "two_qubit_decompose":
         - "`@levbishop`"
-    "quantum_info":
-        - "`@ikkoham`"
     "circuit/library":
         - "`@Cryoris`"
         - "`@ajavadia`"
     "primitives":
-        - "`@ikkoham`"
         - "`@t-imamichi`"
         - "`@ajavadia`"
         - "`@levbishop`"
-    ".*\\.rs$|^Cargo":
-        - "`@mtreinish`"
-        - "`@kevinhartman`"
-        - "@Eric-Arellano"
-    "(?!.*pulse.*)\\bvisualization\\b":
+    "visualization":
         - "@enavarro51"
     "^docs/":
-        - "@javabster"
         - "@Eric-Arellano"
+        - "@abbycross"
+        - "@beckykd"
 always_notify: true

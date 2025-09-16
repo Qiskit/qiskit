@@ -378,7 +378,7 @@ for synthesizing :class:`.PermutationGate` objects -- i.e. those with
 is :class:`~.KMSSynthesisPermutation`. This particular synthesis algorithm created
 a circuit adhering to the linear nearest-neighbor connectivity.
 
-.. automodule:: qiskit.transpiler.passes.synthesis.high_level_synthesis
+.. automodule:: qiskit.transpiler.passes.synthesis.hls_plugins
    :no-members:
    :no-inherited-members:
    :no-special-members:
@@ -698,13 +698,13 @@ class HighLevelSynthesisPluginManager:
         self.plugins_by_op = {}
         for plugin_name in self.plugins.names():
             op_name, method_name = plugin_name.split(".")
-            if op_name not in self.plugins_by_op.keys():
+            if op_name not in self.plugins_by_op:
                 self.plugins_by_op[op_name] = []
             self.plugins_by_op[op_name].append(method_name)
 
     def method_names(self, op_name):
         """Returns plugin methods for op_name."""
-        if op_name in self.plugins_by_op.keys():
+        if op_name in self.plugins_by_op:
             return self.plugins_by_op[op_name]
         else:
             return []
@@ -713,6 +713,10 @@ class HighLevelSynthesisPluginManager:
         """Returns the plugin for ``op_name`` and ``method_name``."""
         plugin_name = op_name + "." + method_name
         return self.plugins[plugin_name].obj
+
+    def op_names(self):
+        """Returns the names of high-level-objects with available synthesis methods."""
+        return list(self.plugins_by_op.keys())
 
 
 def high_level_synthesis_plugin_names(op_name: str) -> List[str]:

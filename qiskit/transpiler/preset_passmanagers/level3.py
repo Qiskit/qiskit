@@ -36,7 +36,8 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     The pass manager then transforms the circuit to match the coupling constraints.
     It is then unrolled to the basis, and any flipped cx directions are fixed.
     Finally, optimizations in the form of commutative gate cancellation, resynthesis
-    of two-qubit unitary blocks, and redundant reset removal are performed.
+    of two-qubit unitary blocks, redundant reset removal and final layout improvements are
+    performed.
 
     Args:
         pass_manager_config: configuration of the pass manager.
@@ -53,9 +54,8 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     initial_layout = pass_manager_config.initial_layout
     init_method = pass_manager_config.init_method or "default"
     layout_method = pass_manager_config.layout_method or "default"
-    routing_method = pass_manager_config.routing_method or "sabre"
-    translation_method = pass_manager_config.translation_method or "translator"
-    scheduling_method = pass_manager_config.scheduling_method
+    routing_method = pass_manager_config.routing_method or "default"
+    translation_method = pass_manager_config.translation_method or "default"
     optimization_method = pass_manager_config.optimization_method or "default"
     scheduling_method = pass_manager_config.scheduling_method or "default"
     target = pass_manager_config.target
@@ -94,14 +94,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     optimization = plugin_manager.get_passmanager_stage(
         "optimization", optimization_method, pass_manager_config, optimization_level=3
     )
-    if (coupling_map and not coupling_map.is_symmetric) or (
-        target is not None and target.get_non_global_operation_names(strict_direction=True)
-    ):
-        pre_optimization = common.generate_pre_op_passmanager(
-            target, coupling_map, remove_reset_in_zero=False
-        )
-    else:
-        pre_optimization = common.generate_pre_op_passmanager(remove_reset_in_zero=False)
 
     sched = plugin_manager.get_passmanager_stage(
         "scheduling", scheduling_method, pass_manager_config, optimization_level=3
@@ -113,7 +105,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         layout=layout,
         routing=routing,
         translation=translation,
-        pre_optimization=pre_optimization,
         optimization=optimization,
         scheduling=sched,
     )

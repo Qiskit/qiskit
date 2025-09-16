@@ -12,14 +12,15 @@
 
 """Rotation around the Y axis."""
 
+from __future__ import annotations
+
 import math
-from math import pi
 from typing import Optional, Union
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit._accelerate.circuit import StandardGate
 
 
 class RYGate(Gate):
@@ -28,15 +29,15 @@ class RYGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.ry` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───────┐
         q_0: ┤ Ry(ϴ) ├
              └───────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -49,34 +50,35 @@ class RYGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(
-        self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
-    ):
-        """Create new RY gate."""
-        super().__init__("ry", 1, [theta], label=label, duration=duration, unit=unit)
+    _standard_gate = StandardGate.RY
+
+    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
+        """
+        Args:
+            theta: The rotation angle.
+            label: An optional label for the gate.
+        """
+        super().__init__("ry", 1, [theta], label=label)
 
     def _define(self):
-        """
-        gate ry(theta) a { r(theta, pi/2) a; }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .r import RGate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(RGate(self.params[0], pi / 2), [q[0]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        #    ┌──────────┐
+        # q: ┤ R(θ,π/2) ├
+        #    └──────────┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.RY._get_definition(self.params), legacy_qubits=True, name=self.name
+        )
 
     def control(
         self,
         num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
-        annotated: bool = False,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
+        annotated: bool | None = None,
     ):
         """Return a (multi-)controlled-RY gate.
 
@@ -85,12 +87,15 @@ class RYGate(Gate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
-                as an annotated gate.
+            annotated: indicates whether the controlled gate should be implemented
+                as an annotated gate. If ``None``, this is set to ``True`` if
+                the gate contains free parameters and more than one control qubit, in which
+                case it cannot yet be synthesized. Otherwise it is set to ``False``.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
+        # deliberately capture annotated in [None, False] here
         if not annotated and num_ctrl_qubits == 1:
             gate = CRYGate(self.params[0], label=label, ctrl_state=ctrl_state)
             gate.base_gate.label = self.label
@@ -119,14 +124,15 @@ class RYGate(Gate):
         """
         return RYGate(-self.params[0])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the RY gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         cos = math.cos(self.params[0] / 2)
         sin = math.sin(self.params[0] / 2)
         return numpy.array([[cos, -sin], [sin, cos]], dtype=dtype)
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         (theta,) = self.params
         return RYGate(exponent * theta)
 
@@ -142,16 +148,16 @@ class CRYGate(ControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.cry` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ────■────
              ┌───┴───┐
         q_1: ┤ Ry(ϴ) ├
              └───────┘
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 
@@ -174,7 +180,8 @@ class CRYGate(ControlledGate):
         which in our case would be q_1. Thus a textbook matrix for this
         gate will be:
 
-        .. parsed-literal::
+        .. code-block:: text
+
                  ┌───────┐
             q_0: ┤ Ry(ϴ) ├
                  └───┬───┘
@@ -194,14 +201,14 @@ class CRYGate(ControlledGate):
                 \end{pmatrix}
     """
 
+    _standard_gate = StandardGate.CRY
+
     def __init__(
         self,
         theta: ParameterValueType,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CRY gate."""
@@ -213,37 +220,21 @@ class CRYGate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=RYGate(theta, label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     def _define(self):
-        """
-        gate cry(lambda) a,b
-        { u3(lambda/2,0,0) b; cx a,b;
-          u3(-lambda/2,0,0) b; cx a,b;
-        }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .x import CXGate
+        from qiskit.circuit import QuantumCircuit
 
-        # q_0: ─────────────■───────────────■──
-        #      ┌─────────┐┌─┴─┐┌─────────┐┌─┴─┐
-        # q_1: ┤ Ry(λ/2) ├┤ X ├┤ Ry(λ/2) ├┤ X ├
-        #      └─────────┘└───┘└─────────┘└───┘
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (RYGate(self.params[0] / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (RYGate(-self.params[0] / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        # q_0: ─────────────■────────────────■──
+        #      ┌─────────┐┌─┴─┐┌──────────┐┌─┴─┐
+        # q_1: ┤ Ry(θ/2) ├┤ X ├┤ Ry(-θ/2) ├┤ X ├
+        #      └─────────┘└───┘└──────────┘└───┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.CRY._get_definition(self.params), legacy_qubits=True, name=self.name
+        )
 
     def inverse(self, annotated: bool = False):
         """Return inverse CRY gate (i.e. with the negative rotation angle)
@@ -259,8 +250,10 @@ class CRYGate(ControlledGate):
         ."""
         return CRYGate(-self.params[0], ctrl_state=self.ctrl_state)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the CRY gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         half_theta = float(self.params[0]) / 2
         cos = math.cos(half_theta)
         sin = math.sin(half_theta)

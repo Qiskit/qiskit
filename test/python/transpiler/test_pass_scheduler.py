@@ -703,7 +703,7 @@ class TestLogPasses(QiskitTestCase):
         output_lines = self.output.readlines()
         pass_log_lines = [x for x in output_lines if x.startswith("Pass:")]
         for index, pass_name in enumerate(list_of_passes):
-            self.assertTrue(pass_log_lines[index].startswith("Pass: %s -" % pass_name))
+            self.assertTrue(pass_log_lines[index].startswith(f"Pass: {pass_name} -"))
 
     def test_passes(self):
         """Dump passes in different FlowControllerLinear"""

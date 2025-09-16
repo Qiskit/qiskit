@@ -16,14 +16,26 @@ Quantum measurement in the computational basis.
 
 from qiskit.circuit.singleton import SingletonInstruction, stdlib_singleton_key
 from qiskit.circuit.exceptions import CircuitError
+from qiskit._accelerate.circuit import StandardInstructionType
 
 
 class Measure(SingletonInstruction):
     """Quantum measurement in the computational basis."""
 
-    def __init__(self, label=None, *, duration=None, unit="dt"):
-        """Create new measurement instruction."""
-        super().__init__("measure", 1, 1, [], label=label, duration=duration, unit=unit)
+    _standard_instruction_type = StandardInstructionType.Measure
+
+    def __init__(self, label=None):
+        """
+        Args:
+            label: optional string label for this instruction.
+        """
+        super().__init__("measure", 1, 1, [], label=label)
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        # Subclasses of Measure are not "standard", so we set this to None to
+        # prevent the Rust code from treating them as such.
+        cls._standard_instruction_type = None
 
     _singleton_lookup_key = stdlib_singleton_key()
 

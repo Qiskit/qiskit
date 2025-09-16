@@ -60,7 +60,7 @@ features:
     and :class:`.Clbit` instances.
 
     All these classical expressions are fully supported through the Qiskit transpiler stack, through
-    QPY serialisation (:mod:`qiskit.qpy`) and for export to OpenQASM 3 (:mod:`qiskit.qasm3`). Import
+    QPY serialization (:mod:`qiskit.qpy`) and for export to OpenQASM 3 (:mod:`qiskit.qasm3`). Import
     from OpenQASM 3 is currently managed by `a separate package <https://github.com/Qiskit/qiskit-qasm3-import>`__
     (which is re-exposed via :mod:`qiskit.qasm3`), which we hope will be extended to match the new
     features in Qiskit.

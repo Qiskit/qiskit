@@ -20,7 +20,7 @@ AQC Synthesis Plugin (in :mod:`qiskit.transpiler.passes.synthesis.aqc_plugin`)
    AQCSynthesisPlugin
 """
 from functools import partial
-import numpy as np
+import math
 
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes.synthesis.plugin import UnitarySynthesisPlugin
@@ -118,7 +118,7 @@ class AQCSynthesisPlugin(UnitarySynthesisPlugin):
         from qiskit.synthesis.unitary.aqc.cnot_unit_circuit import CNOTUnitCircuit
         from qiskit.synthesis.unitary.aqc.fast_gradient.fast_gradient import FastCNOTUnitObjective
 
-        num_qubits = int(round(np.log2(unitary.shape[0])))
+        num_qubits = round(math.log2(unitary.shape[0]))
 
         config = options.get("config") or {}
 

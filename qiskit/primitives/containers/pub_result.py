@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Base Pub class
+Base Pub result class
 """
 
 from __future__ import annotations

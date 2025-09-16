@@ -15,10 +15,10 @@ from __future__ import annotations
 from typing import Optional, List, Tuple, Union, Iterable
 
 import qiskit.circuit
-from qiskit.circuit import Barrier, Delay
-from qiskit.circuit import Instruction, ParameterExpression
+from qiskit.circuit import Barrier, Delay, Instruction, ParameterExpression
 from qiskit.circuit.duration import duration_in_dt
 from qiskit.providers import Backend
+from qiskit.providers.backend import BackendV2
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.utils.units import apply_prefix
 
@@ -74,27 +74,12 @@ class InstructionDurations:
 
         Raises:
             TranspilerError: If dt and dtm is different in the backend.
+            TypeError: If the backend is the wrong type
         """
         # All durations in seconds in gate_length
-        instruction_durations = []
-        backend_properties = backend.properties()
-        if hasattr(backend_properties, "_gates"):
-            for gate, insts in backend_properties._gates.items():
-                for qubits, props in insts.items():
-                    if "gate_length" in props:
-                        gate_length = props["gate_length"][0]  # Throw away datetime at index 1
-                        instruction_durations.append((gate, qubits, gate_length, "s"))
-            for q, props in backend.properties()._qubits.items():
-                if "readout_length" in props:
-                    readout_length = props["readout_length"][0]  # Throw away datetime at index 1
-                    instruction_durations.append(("measure", [q], readout_length, "s"))
-
-        try:
-            dt = backend.configuration().dt
-        except AttributeError:
-            dt = None
-
-        return cls(instruction_durations, dt=dt)
+        if isinstance(backend, BackendV2):
+            return backend.target.durations()
+        raise TypeError("Unsupported backend type: {backend}")
 
     def update(self, inst_durations: "InstructionDurationsType" | None, dt: float = None):
         """Update self with inst_durations (inst_durations overwrite self).

@@ -1,5 +1,5 @@
 ---
-features_circuit:
+features_circuits:
   - |
     Added a new argument, ``annotated``, to the methods :meth:`.QuantumCircuit.control`, :meth:`.Gate.control`
     and ``.control()`` methods of :class:`.Gate` subclasses (such as :class:`.UnitaryGate` or :class:`.SwapGate`)

@@ -20,7 +20,7 @@ from math import pi
 from ddt import ddt, data, unpack
 
 from qiskit.circuit import Gate, QuantumCircuit
-from qiskit.circuit import QuantumRegister, ClassicalRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import Collect2qBlocks
@@ -101,47 +101,6 @@ class TestCollect2qBlocks(QiskitTestCase):
         pass_nodes = [set(bl) for bl in pass_.property_set["block_list"]]
 
         self.assertEqual(dag_nodes, pass_nodes)
-
-    def test_do_not_merge_conditioned_gates(self):
-        """Validate that classically conditioned gates are never considered for
-        inclusion in a block. Note that there are cases where gates conditioned
-        on the same (register, value) pair could be correctly merged, but this
-        is not yet implemented.
-
-                 ┌────────┐┌────────┐┌────────┐      ┌───┐
-        qr_0: |0>┤ P(0.1) ├┤ P(0.2) ├┤ P(0.3) ├──■───┤ X ├────■───
-                 └────────┘└───┬────┘└───┬────┘┌─┴─┐ └─┬─┘  ┌─┴─┐
-        qr_1: |0>──────────────┼─────────┼─────┤ X ├───■────┤ X ├─
-                               │         │     └───┘   │    └─┬─┘
-        qr_2: |0>──────────────┼─────────┼─────────────┼──────┼───
-                            ┌──┴──┐   ┌──┴──┐       ┌──┴──┐┌──┴──┐
-         cr_0: 0 ═══════════╡     ╞═══╡     ╞═══════╡     ╞╡     ╞
-                            │ = 0 │   │ = 0 │       │ = 0 ││ = 1 │
-         cr_1: 0 ═══════════╡     ╞═══╡     ╞═══════╡     ╞╡     ╞
-                            └─────┘   └─────┘       └─────┘└─────┘
-
-        Blocks collected: [['cx']]
-        """
-        # ref: https://github.com/Qiskit/qiskit-terra/issues/3215
-
-        qr = QuantumRegister(3, "qr")
-        cr = ClassicalRegister(2, "cr")
-
-        qc = QuantumCircuit(qr, cr)
-        qc.p(0.1, 0)
-        qc.p(0.2, 0).c_if(cr, 0)
-        qc.p(0.3, 0).c_if(cr, 0)
-        qc.cx(0, 1)
-        qc.cx(1, 0).c_if(cr, 0)
-        qc.cx(0, 1).c_if(cr, 1)
-
-        pass_manager = PassManager()
-        pass_manager.append(Collect2qBlocks())
-
-        pass_manager.run(qc)
-        self.assertEqual(
-            [["cx"]], [[n.name for n in block] for block in pass_manager.property_set["block_list"]]
-        )
 
     @unpack
     @data(

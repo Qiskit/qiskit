@@ -44,7 +44,7 @@ Pulse alignment constraint
     multiple of this value. Violation of this constraint may result in the
     backend execution failure.
 
-    In most of the senarios, the scheduled start time of ``DAGOpNode`` corresponds to the
+    In most of the scenarios, the scheduled start time of ``DAGOpNode`` corresponds to the
     start time of the underlying pulse instruction composing the node operation.
     However, this assumption can be intentionally broken by defining a pulse gate,
     i.e. calibration, with the schedule involving pre-buffer, i.e. some random pulse delay
@@ -62,8 +62,8 @@ Granularity constraint
     This value is reported by ``timing_constraints["granularity"]`` in the backend
     configuration in units of dt. This is the constraint for a single pulse :class:`Play`
     instruction that may constitute your pulse gate.
-    The length of waveform samples should be multipel of this constraint value.
-    Violation of this constraint may result in failue in backend execution.
+    The length of waveform samples should be multiple of this constraint value.
+    Violation of this constraint may result in failure in backend execution.
 
 Minimum pulse length constraint
 
@@ -71,11 +71,9 @@ Minimum pulse length constraint
     configuration in units of dt. This is the constraint for a single pulse :class:`Play`
     instruction that may constitute your pulse gate.
     The length of waveform samples should be greater than this constraint value.
-    Violation of this constraint may result in failue in backend execution.
+    Violation of this constraint may result in failure in backend execution.
 
 """
 
 from .check_durations import InstructionDurationCheck
-from .pulse_gate_validation import ValidatePulseGates
 from .reschedule import ConstrainedReschedule
-from .align_measures import AlignMeasures

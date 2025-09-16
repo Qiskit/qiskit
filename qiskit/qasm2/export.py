@@ -116,10 +116,10 @@ def dump(circuit: QuantumCircuit, filename_or_stream: os.PathLike | io.TextIOBas
         QASM2ExportError: if the circuit cannot be represented by OpenQASM 2.
     """
     if isinstance(filename_or_stream, io.TextIOBase):
-        print(dumps(circuit), file=filename_or_stream)
+        print(dumps(circuit), file=filename_or_stream)  # pylint: disable=bad-builtin
         return
     with open(filename_or_stream, "w") as stream:
-        print(dumps(circuit), file=stream)
+        print(dumps(circuit), file=stream)  # pylint: disable=bad-builtin
 
 
 def dumps(circuit: QuantumCircuit, /) -> str:
@@ -157,7 +157,7 @@ def dumps(circuit: QuantumCircuit, /) -> str:
                 _make_unique(_escape_name(reg.name, "reg_"), register_escaped_names)
             ] = reg
     bit_labels: dict[Qubit | Clbit, str] = {
-        bit: "%s[%d]" % (name, idx)
+        bit: f"{name}[{idx}]"
         for name, register in register_escaped_names.items()
         for (idx, bit) in enumerate(register)
     }
@@ -244,18 +244,8 @@ def _instruction_call_site(operation):
     else:
         qasm2_call = operation.name
     if operation.params:
-        qasm2_call = "{}({})".format(
-            qasm2_call,
-            ",".join([pi_check(i, output="qasm", eps=1e-12) for i in operation.params]),
-        )
-    if operation.condition is not None:
-        if not isinstance(operation.condition[0], ClassicalRegister):
-            raise QASM2ExportError(
-                "OpenQASM 2 can only condition on registers, but got '{operation.condition[0]}'"
-            )
-        qasm2_call = (
-            "if(%s==%d) " % (operation.condition[0].name, operation.condition[1]) + qasm2_call
-        )
+        params = ",".join([pi_check(i, output="qasm", eps=1e-12) for i in operation.params])
+        qasm2_call = f"{qasm2_call}({params})"
     return qasm2_call
 
 
@@ -312,12 +302,12 @@ def _define_custom_operation(operation, gates_to_define):
         lib.U3Gate,
     }
 
-    # In known-good situations we want to use a manually parametrised object as the source of the
+    # In known-good situations we want to use a manually parametrized object as the source of the
     # definition, but still continue to return the given object as the call-site object.
     if operation.base_class in known_good_parameterized:
         parameterized_operation = type(operation)(*_FIXED_PARAMETERS[: len(operation.params)])
-    elif hasattr(operation, "_qasm2_decomposition"):
-        new_op = operation._qasm2_decomposition()
+    elif hasattr(operation, "_qasm_decomposition"):
+        new_op = operation._qasm_decomposition()
         parameterized_operation = operation = new_op.copy(name=_escape_name(new_op.name, "gate_"))
     else:
         parameterized_operation = operation

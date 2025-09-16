@@ -11,9 +11,9 @@
 # that they have been altered from the originals.
 
 """Helper function for converting a circuit to a dag"""
-import copy
 
-from qiskit.dagcircuit.dagcircuit import DAGCircuit
+from qiskit.circuit.library.blueprintcircuit import BlueprintCircuit
+from qiskit._accelerate.converters import circuit_to_dag as core_circuit_to_dag
 
 
 def circuit_to_dag(circuit, copy_operations=True, *, qubit_order=None, clbit_order=None):
@@ -41,7 +41,9 @@ def circuit_to_dag(circuit, copy_operations=True, *, qubit_order=None, clbit_ord
             the circuit.
 
     Example:
-        .. code-block::
+        .. plot::
+            :include-source:
+            :nofigs:
 
             from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
             from qiskit.dagcircuit import DAGCircuit
@@ -53,44 +55,26 @@ def circuit_to_dag(circuit, copy_operations=True, *, qubit_order=None, clbit_ord
             circ.h(q[0])
             circ.cx(q[0], q[1])
             circ.measure(q[0], c[0])
-            circ.rz(0.5, q[1]).c_if(c, 2)
+            circ.rz(0.5, q[1])
             dag = circuit_to_dag(circ)
     """
-    dagcircuit = DAGCircuit()
-    dagcircuit.name = circuit.name
-    dagcircuit.global_phase = circuit.global_phase
-    dagcircuit.calibrations = circuit.calibrations
-    dagcircuit.metadata = circuit.metadata
+    # If we have an instance of BluePrintCircuit, make sure it is built by calling ._build()
+    if isinstance(circuit, BlueprintCircuit):
+        if not circuit._is_built:
+            circuit._build()
 
-    if qubit_order is None:
-        qubits = circuit.qubits
-    elif len(qubit_order) != circuit.num_qubits or set(qubit_order) != set(circuit.qubits):
+    if qubit_order is not None and (
+        len(qubit_order) != circuit.num_qubits or set(qubit_order) != set(circuit.qubits)
+    ):
         raise ValueError("'qubit_order' does not contain exactly the same qubits as the circuit")
-    else:
-        qubits = qubit_order
 
-    if clbit_order is None:
-        clbits = circuit.clbits
-    elif len(clbit_order) != circuit.num_clbits or set(clbit_order) != set(circuit.clbits):
+    if clbit_order is not None and (
+        len(clbit_order) != circuit.num_clbits or set(clbit_order) != set(circuit.clbits)
+    ):
         raise ValueError("'clbit_order' does not contain exactly the same clbits as the circuit")
-    else:
-        clbits = clbit_order
 
-    dagcircuit.add_qubits(qubits)
-    dagcircuit.add_clbits(clbits)
+    dagcircuit = core_circuit_to_dag(circuit, copy_operations, qubit_order, clbit_order)
 
-    for register in circuit.qregs:
-        dagcircuit.add_qreg(register)
-
-    for register in circuit.cregs:
-        dagcircuit.add_creg(register)
-
-    for instruction in circuit.data:
-        op = instruction.operation
-        if copy_operations:
-            op = copy.deepcopy(op)
-        dagcircuit.apply_operation_back(op, instruction.qubits, instruction.clbits, check=False)
-
-    dagcircuit.duration = circuit.duration
-    dagcircuit.unit = circuit.unit
+    dagcircuit._duration = circuit._duration
+    dagcircuit._unit = circuit._unit
     return dagcircuit

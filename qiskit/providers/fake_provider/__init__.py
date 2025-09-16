@@ -24,11 +24,12 @@ The fake provider module in Qiskit contains fake (simulated) backend classes
 useful for testing the transpiler and other backend-facing functionality.
 
 Example Usage
-=============
+-------------
 
 Here is an example of using a simulated backend for transpilation and running.
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit import QuantumCircuit, transpile
@@ -64,42 +65,5 @@ V2 Simulated Backends
 
     GenericBackendV2
 
-V1 Fake Backends (Legacy interface)
-===================================
-
-.. autosummary::
-    :toctree: ../stubs/
-
-    FakeOpenPulse2Q
-    FakeOpenPulse3Q
-    Fake1Q
-    Fake5QV1
-    Fake20QV1
-    Fake7QPulseV1
-    Fake27QPulseV1
-    Fake127QPulseV1
-
-Fake Backend Base Classes
-=========================
-
-The V1 fake backends are based on a set of base classes:
-
-.. currentmodule:: qiskit.providers.fake_provider
-.. autoclass:: FakeBackend
-.. autoclass:: FakeQasmBackend
-.. autoclass:: FakePulseBackend
 """
-
-# Base classes for fake backends
-from .fake_backend import FakeBackend
-from .fake_qasm_backend import FakeQasmBackend
-from .fake_pulse_backend import FakePulseBackend
-
-# Special fake backends for special testing purposes
-from .fake_openpulse_2q import FakeOpenPulse2Q
-from .fake_openpulse_3q import FakeOpenPulse3Q
-from .fake_1q import Fake1Q
-
-# Generic fake backends
-from .backends_v1 import Fake5QV1, Fake20QV1, Fake7QPulseV1, Fake27QPulseV1, Fake127QPulseV1
 from .generic_backend_v2 import GenericBackendV2

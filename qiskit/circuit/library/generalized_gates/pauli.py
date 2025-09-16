@@ -14,7 +14,6 @@
 Simulator command to perform multiple pauli gates in a single pass
 """
 from qiskit.circuit.quantumcircuitdata import CircuitInstruction
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.library.standard_gates.x import XGate
 from qiskit.circuit.library.standard_gates.y import YGate
 from qiskit.circuit.library.standard_gates.z import ZGate
@@ -46,7 +45,7 @@ class PauliGate(Gate):
         gate pauli (p1 a1,...,pn an) { p1 a1; ... ; pn an; }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
 
         gates = {"X": XGate, "Y": YGate, "Z": ZGate}
         q = QuantumRegister(len(self.params[0]), "q")
@@ -63,13 +62,13 @@ class PauliGate(Gate):
         r"""Return inverted pauli gate (itself)."""
         return PauliGate(self.params[0])  # self-inverse
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a Numpy.array for the pauli gate.
         i.e. tensor product of the paulis"""
         # pylint: disable=cyclic-import
         from qiskit.quantum_info.operators import Pauli
 
-        return Pauli(self.params[0]).__array__(dtype=dtype)
+        return Pauli(self.params[0]).__array__(dtype=dtype, copy=copy)
 
     def validate_parameter(self, parameter):
         if isinstance(parameter, str):

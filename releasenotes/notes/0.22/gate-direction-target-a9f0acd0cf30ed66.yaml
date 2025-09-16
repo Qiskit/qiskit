@@ -2,5 +2,5 @@
 fixes:
   - |
     The :class:`.GateDirection` transpiler pass will now respect the available
-    values for gate parameters when handling parametrised gates with a
+    values for gate parameters when handling parametrized gates with a
     :class:`.Target`.

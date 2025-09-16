@@ -4,7 +4,7 @@ deprecations:
     Passing a circuit to :func:`qiskit.visualization.timeline_drawer` that does not have scheduled
     node start-time information is deprecated.  Only circuits that have gone through one of the
     scheduling analysis passes (for example :class:`.ALAPScheduleAnalysis` or
-    :class:`.ASAPScheduleAnalysis`) can be visualised.  If you have used one of the old-style
+    :class:`.ASAPScheduleAnalysis`) can be visualized.  If you have used one of the old-style
     scheduling passes (for example :class:`.ALAPSchedule` or :class:`.ASAPSchedule`), you can
     propagate the scheduling information by running::
 
@@ -18,5 +18,5 @@ deprecations:
         instruction_durations=InstructionDurations(),
       )
 
-    This behaviour was previously intended to be deprecated in Qiskit 0.37, but due to a bug in the
-    warning, it was not displayed to users until now.  The behaviour will be removed in Qiskit 1.0.
+    This behavior was previously intended to be deprecated in Qiskit 0.37, but due to a bug in the
+    warning, it was not displayed to users until now.  The behavior will be removed in Qiskit 1.0.

@@ -1,0 +1,14 @@
+---
+features_visualization:
+  - |
+    The user configuration file has a new option ``circuit_idle_wires``, which takes a Boolean
+    value. This allows users to set their preferred default behavior of the ``idle_wires`` option
+    of the circuit drawers :meth:`.QuantumCircuit.draw` and :func:`.circuit_drawer`.  For example,
+    adding a section to ``~/.qiskit/settings.conf`` with:
+
+    .. code-block:: text
+    
+      [default]
+      circuit_idle_wires = false
+
+    will change the default to display the bits in reverse order.

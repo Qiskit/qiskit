@@ -23,7 +23,7 @@ import numpy as np
 
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.exceptions import QiskitError
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
@@ -69,7 +69,7 @@ class UCPauliRotGate(Gate):
     def _define(self):
         ucr_circuit = self._dec_ucrot()
         gate = ucr_circuit.to_instruction()
-        q = QuantumRegister(self.num_qubits)
+        q = QuantumRegister(self.num_qubits, "q")
         ucr_circuit = QuantumCircuit(q)
         ucr_circuit.append(gate, q[:])
         self.definition = ucr_circuit
@@ -79,7 +79,7 @@ class UCPauliRotGate(Gate):
         Finds a decomposition of a UC rotation gate into elementary gates
         (C-NOTs and single-qubit rotations).
         """
-        q = QuantumRegister(self.num_qubits)
+        q = QuantumRegister(self.num_qubits, "q")
         circuit = QuantumCircuit(q)
         q_target = q[0]
         q_controls = q[1:]

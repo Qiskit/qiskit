@@ -14,10 +14,13 @@
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
+import copy as _copy
 
-from qiskit._accelerate.quantum_circuit import CircuitData
-from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.circuit.parametertable import ParameterTable, ParameterView
+from qiskit._accelerate.circuit import CircuitData
+from qiskit.circuit import QuantumRegister, ClassicalRegister
+from qiskit.circuit.parametertable import ParameterView
+from qiskit.circuit.quantumcircuit import QuantumCircuit, _copy_metadata
+from qiskit.utils.deprecation import deprecate_func
 
 
 class BlueprintCircuit(QuantumCircuit, ABC):
@@ -31,13 +34,17 @@ class BlueprintCircuit(QuantumCircuit, ABC):
     accessed, the ``_build`` method is called. There the configuration of the circuit is checked.
     """
 
+    @deprecate_func(
+        since="2.1",
+        additional_msg="There is no direct replacement other than the QuantumCircuit class.",
+        removal_timeline="in Qiskit 3.0",
+    )
     def __init__(self, *regs, name: str | None = None) -> None:
         """Create a new blueprint circuit."""
         self._is_initialized = False
         super().__init__(*regs, name=name)
         self._qregs: list[QuantumRegister] = []
         self._cregs: list[ClassicalRegister] = []
-        self._qubit_indices = {}
         self._is_built = False
         self._is_initialized = True
 
@@ -67,15 +74,24 @@ class BlueprintCircuit(QuantumCircuit, ABC):
 
     def _invalidate(self) -> None:
         """Invalidate the current circuit build."""
+        # Take out the registers before invalidating
+        qregs = self._data.qregs
+        cregs = self._data.cregs
         self._data = CircuitData(self._data.qubits, self._data.clbits)
-        self._parameter_table = ParameterTable()
+        # Re-add the registers
+        for qreg in qregs:
+            self._data.add_qreg(qreg)
+        for creg in cregs:
+            self._data.add_creg(creg)
         self.global_phase = 0
         self._is_built = False
 
     @property
     def qregs(self):
         """A list of the quantum registers associated with the circuit."""
-        return self._qregs
+        if not self._is_initialized:
+            return self._qregs
+        return super().qregs
 
     @qregs.setter
     def qregs(self, qregs):
@@ -86,9 +102,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
             return
         self._qregs = []
         self._ancillas = []
-        self._qubit_indices = {}
         self._data = CircuitData(clbits=self._data.clbits)
-        self._parameter_table = ParameterTable()
         self.global_phase = 0
         self._is_built = False
 
@@ -96,6 +110,12 @@ class BlueprintCircuit(QuantumCircuit, ABC):
 
     @property
     def data(self):
+        """The circuit data (instructions and context).
+
+        Returns:
+            QuantumCircuitData: a list-like object containing the :class:`.CircuitInstruction`\\ s
+            for each instruction.
+        """
         if not self._is_built:
             self._build()
         return super().data
@@ -112,25 +132,105 @@ class BlueprintCircuit(QuantumCircuit, ABC):
 
     @property
     def num_parameters(self) -> int:
+        """The number of parameter objects in the circuit."""
         if not self._is_built:
             self._build()
         return super().num_parameters
 
     @property
     def parameters(self) -> ParameterView:
+        """The parameters defined in the circuit.
+
+        This attribute returns the :class:`.Parameter` objects in the circuit sorted
+        alphabetically. Note that parameters instantiated with a :class:`.ParameterVector`
+        are still sorted numerically.
+
+        Examples:
+
+            The snippet below shows that insertion order of parameters does not matter.
+
+            .. code-block:: python
+
+                >>> from qiskit.circuit import QuantumCircuit, Parameter
+                >>> a, b, elephant = Parameter("a"), Parameter("b"), Parameter("elephant")
+                >>> circuit = QuantumCircuit(1)
+                >>> circuit.rx(b, 0)
+                >>> circuit.rz(elephant, 0)
+                >>> circuit.ry(a, 0)
+                >>> circuit.parameters  # sorted alphabetically!
+                ParameterView([Parameter(a), Parameter(b), Parameter(elephant)])
+
+            Bear in mind that alphabetical sorting might be unintuitive when it comes to numbers.
+            The literal "10" comes before "2" in strict alphabetical sorting.
+
+            .. code-block:: python
+
+                >>> from qiskit.circuit import QuantumCircuit, Parameter
+                >>> angles = [Parameter("angle_1"), Parameter("angle_2"), Parameter("angle_10")]
+                >>> circuit = QuantumCircuit(1)
+                >>> circuit.u(*angles, 0)
+                >>> circuit.draw()
+                   ┌─────────────────────────────┐
+                q: ┤ U(angle_1,angle_2,angle_10) ├
+                   └─────────────────────────────┘
+                >>> circuit.parameters
+                ParameterView([Parameter(angle_1), Parameter(angle_10), Parameter(angle_2)])
+
+            To respect numerical sorting, a :class:`.ParameterVector` can be used.
+
+            .. code-block:: python
+
+                >>> from qiskit.circuit import QuantumCircuit, Parameter, ParameterVector
+                >>> x = ParameterVector("x", 12)
+                >>> circuit = QuantumCircuit(1)
+                >>> for x_i in x:
+                ...     circuit.rx(x_i, 0)
+                >>> circuit.parameters
+                ParameterView([
+                    ParameterVectorElement(x[0]), ParameterVectorElement(x[1]),
+                    ParameterVectorElement(x[2]), ParameterVectorElement(x[3]),
+                    ..., ParameterVectorElement(x[11])
+                ])
+
+
+        Returns:
+            The sorted :class:`.Parameter` objects in the circuit.
+        """
         if not self._is_built:
             self._build()
         return super().parameters
 
-    def _append(self, instruction, _qargs=None, _cargs=None):
+    def _append(self, instruction, _qargs=None, _cargs=None, *, _standard_gate=False):
         if not self._is_built:
             self._build()
-        return super()._append(instruction, _qargs, _cargs)
+        return super()._append(instruction, _qargs, _cargs, _standard_gate=_standard_gate)
 
-    def compose(self, other, qubits=None, clbits=None, front=False, inplace=False, wrap=False):
+    def compose(
+        self,
+        other,
+        qubits=None,
+        clbits=None,
+        front=False,
+        inplace=False,
+        wrap=False,
+        *,
+        copy=True,
+        var_remap=None,
+        inline_captures=False,
+    ):
         if not self._is_built:
             self._build()
-        return super().compose(other, qubits, clbits, front, inplace, wrap)
+        return super().compose(
+            other,
+            qubits,
+            clbits,
+            front,
+            inplace,
+            wrap,
+            copy=copy,
+            var_remap=var_remap,
+            inline_captures=False,
+        )
 
     def inverse(self, annotated: bool = False):
         if not self._is_built:
@@ -178,19 +278,46 @@ class BlueprintCircuit(QuantumCircuit, ABC):
             self._build()
         return super().num_connected_components(unitary_only=unitary_only)
 
-    def copy_empty_like(self, name=None):
-        if not self._is_built:
-            self._build()
-        cpy = super().copy_empty_like(name=name)
-        # The base `copy_empty_like` will typically trigger code that `BlueprintCircuit` treats as
-        # an "invalidation", so we have to manually restore properties deleted by that that
-        # `copy_empty_like` is supposed to propagate.
-        cpy.global_phase = self.global_phase
+    def copy_empty_like(
+        self, name: str | None = None, *, vars_mode: str = "alike"
+    ) -> QuantumCircuit:
+        """Return an empty :class:`.QuantumCircuit` of same size and metadata.
+
+        See also :meth:`.QuantumCircuit.copy_empty_like` for more details on copied metadata.
+
+        Args:
+            name: Name for the copied circuit. If None, then the name stays the same.
+            vars_mode: The mode to handle realtime variables in.
+
+        Returns:
+            An empty circuit of same dimensions. Note that the result is no longer a
+            :class:`.BlueprintCircuit`.
+        """
+
+        cpy = QuantumCircuit(*self.qregs, *self.cregs, name=name, global_phase=self.global_phase)
+        _copy_metadata(self, cpy)
+        cpy._data = self._data.copy_empty_like(vars_mode=vars_mode)
         return cpy
 
-    def copy(self, name=None):
+    def copy(self, name: str | None = None) -> BlueprintCircuit:
+        """Copy the blueprint circuit.
+
+        Args:
+            name: Name to be given to the copied circuit. If None, then the name stays the same.
+
+        Returns:
+            A deepcopy of the current blueprint circuit, with the specified name.
+        """
         if not self._is_built:
             self._build()
-        circuit_copy = super().copy(name=name)
-        circuit_copy._is_built = self._is_built
-        return circuit_copy
+
+        cpy = _copy.copy(self)
+        _copy_metadata(self, cpy)
+
+        cpy._is_built = self._is_built
+        cpy._data = self._data.copy()
+
+        if name is not None:
+            cpy.name = name
+
+        return cpy

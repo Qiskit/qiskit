@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use num_bigint::BigUint;
 use pyo3::prelude::*;
 
 use crate::error::QASM2ParseError;
@@ -21,18 +22,18 @@ use crate::{CustomClassical, CustomInstruction};
 
 /// The Rust parser produces an iterator of these `Bytecode` instructions, which comprise an opcode
 /// integer for operation distinction, and a free-form tuple containing the operands.
-#[pyclass(module = "qiskit._qasm2", frozen)]
+#[pyclass(module = "qiskit._accelerate.qasm2", frozen)]
 #[derive(Clone)]
 pub struct Bytecode {
     #[pyo3(get)]
     opcode: OpCode,
     #[pyo3(get)]
-    operands: PyObject,
+    operands: Py<PyAny>,
 }
 
 /// The operations that are represented by the "bytecode" passed to Python.
-#[pyclass(module = "qiskit._qasm2", frozen)]
-#[derive(Clone)]
+#[pyclass(module = "qiskit._accelerate.qasm2", frozen, eq)]
+#[derive(Clone, Eq, PartialEq)]
 pub enum OpCode {
     // There is only a `Gate` here, not a `GateInBasis`, because in Python space we don't have the
     // same strict typing requirements to satisfy.
@@ -60,7 +61,7 @@ pub enum OpCode {
 // that makes things a little fiddlier with PyO3, and there's no real benefit for our uses.
 
 /// A (potentially folded) floating-point constant value as part of an expression.
-#[pyclass(module = "qiskit._qasm2", frozen)]
+#[pyclass(module = "qiskit._accelerate.qasm2", frozen)]
 #[derive(Clone)]
 pub struct ExprConstant {
     #[pyo3(get)]
@@ -68,7 +69,7 @@ pub struct ExprConstant {
 }
 
 /// A reference to one of the arguments to the gate.
-#[pyclass(module = "qiskit._qasm2", frozen)]
+#[pyclass(module = "qiskit._accelerate.qasm2", frozen)]
 #[derive(Clone)]
 pub struct ExprArgument {
     #[pyo3(get)]
@@ -77,43 +78,43 @@ pub struct ExprArgument {
 
 /// A unary operation acting on some other part of the expression tree.  This includes the `+` and
 /// `-` unary operators, but also any of the built-in scientific-calculator functions.
-#[pyclass(module = "qiskit._qasm2", frozen)]
+#[pyclass(module = "qiskit._accelerate.qasm2", frozen)]
 #[derive(Clone)]
 pub struct ExprUnary {
     #[pyo3(get)]
     pub opcode: UnaryOpCode,
     #[pyo3(get)]
-    pub argument: PyObject,
+    pub argument: Py<PyAny>,
 }
 
 /// A binary operation acting on two other parts of the expression tree.
-#[pyclass(module = "qiskit._qasm2", frozen)]
+#[pyclass(module = "qiskit._accelerate.qasm2", frozen)]
 #[derive(Clone)]
 pub struct ExprBinary {
     #[pyo3(get)]
     pub opcode: BinaryOpCode,
     #[pyo3(get)]
-    pub left: PyObject,
+    pub left: Py<PyAny>,
     #[pyo3(get)]
-    pub right: PyObject,
+    pub right: Py<PyAny>,
 }
 
 /// Some custom callable Python function that the user told us about.
-#[pyclass(module = "qiskit._qasm2", frozen)]
+#[pyclass(module = "qiskit._accelerate.qasm2", frozen)]
 #[derive(Clone)]
 pub struct ExprCustom {
     #[pyo3(get)]
-    pub callable: PyObject,
+    pub callable: Py<PyAny>,
     #[pyo3(get)]
-    pub arguments: Vec<PyObject>,
+    pub arguments: Vec<Py<PyAny>>,
 }
 
 /// Discriminator for the different types of unary operator.  We could have a separate class for
 /// each of these, but this way involves fewer imports in Python, and also serves to split up the
 /// option tree at the top level, so we don't have to test every unary operator before testing
 /// other operations.
-#[pyclass(module = "qiskit._qasm2", frozen)]
-#[derive(Clone)]
+#[pyclass(module = "qiskit._accelerate.qasm2", frozen, eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum UnaryOpCode {
     Negate,
     Cos,
@@ -128,8 +129,8 @@ pub enum UnaryOpCode {
 /// each of these, but this way involves fewer imports in Python, and also serves to split up the
 /// option tree at the top level, so we don't have to test every binary operator before testing
 /// other operations.
-#[pyclass(module = "qiskit._qasm2", frozen)]
-#[derive(Clone)]
+#[pyclass(module = "qiskit._accelerate.qasm2", frozen, eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum BinaryOpCode {
     Add,
     Subtract,
@@ -160,7 +161,7 @@ pub enum InternalBytecode {
         arguments: Vec<f64>,
         qubits: Vec<QubitId>,
         creg: CregId,
-        value: usize,
+        value: BigUint,
     },
     Measure {
         qubit: QubitId,
@@ -170,7 +171,7 @@ pub enum InternalBytecode {
         qubit: QubitId,
         clbit: ClbitId,
         creg: CregId,
-        value: usize,
+        value: BigUint,
     },
     Reset {
         qubit: QubitId,
@@ -178,7 +179,7 @@ pub enum InternalBytecode {
     ConditionedReset {
         qubit: QubitId,
         creg: CregId,
-        value: usize,
+        value: BigUint,
     },
     Barrier {
         qubits: Vec<QubitId>,
@@ -210,89 +211,108 @@ pub enum InternalBytecode {
     },
 }
 
-impl IntoPy<Bytecode> for InternalBytecode {
+impl<'py> IntoPyObject<'py> for InternalBytecode {
+    type Target = Bytecode;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
     /// Convert the internal bytecode representation to a Python-space one.
-    fn into_py(self, py: Python<'_>) -> Bytecode {
-        match self {
-            InternalBytecode::Gate {
-                id,
-                arguments,
-                qubits,
-            } => Bytecode {
-                opcode: OpCode::Gate,
-                operands: (id, arguments, qubits).into_py(py),
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Bound::new(
+            py,
+            match self {
+                InternalBytecode::Gate {
+                    id,
+                    arguments,
+                    qubits,
+                } => Bytecode {
+                    opcode: OpCode::Gate,
+                    operands: (id, arguments, qubits)
+                        .into_pyobject(py)?
+                        .into_any()
+                        .unbind(),
+                },
+                InternalBytecode::ConditionedGate {
+                    id,
+                    arguments,
+                    qubits,
+                    creg,
+                    value,
+                } => Bytecode {
+                    opcode: OpCode::ConditionedGate,
+                    operands: (id, arguments, qubits, creg, value)
+                        .into_pyobject(py)?
+                        .into_any()
+                        .unbind(),
+                },
+                InternalBytecode::Measure { qubit, clbit } => Bytecode {
+                    opcode: OpCode::Measure,
+                    operands: (qubit, clbit).into_pyobject(py)?.into_any().unbind(),
+                },
+                InternalBytecode::ConditionedMeasure {
+                    qubit,
+                    clbit,
+                    creg,
+                    value,
+                } => Bytecode {
+                    opcode: OpCode::ConditionedMeasure,
+                    operands: (qubit, clbit, creg, value)
+                        .into_pyobject(py)?
+                        .into_any()
+                        .unbind(),
+                },
+                InternalBytecode::Reset { qubit } => Bytecode {
+                    opcode: OpCode::Reset,
+                    operands: (qubit,).into_pyobject(py)?.into_any().unbind(),
+                },
+                InternalBytecode::ConditionedReset { qubit, creg, value } => Bytecode {
+                    opcode: OpCode::ConditionedReset,
+                    operands: (qubit, creg, value).into_pyobject(py)?.into_any().unbind(),
+                },
+                InternalBytecode::Barrier { qubits } => Bytecode {
+                    opcode: OpCode::Barrier,
+                    operands: (qubits,).into_pyobject(py)?.into_any().unbind(),
+                },
+                InternalBytecode::DeclareQreg { name, size } => Bytecode {
+                    opcode: OpCode::DeclareQreg,
+                    operands: (name, size).into_pyobject(py)?.into_any().unbind(),
+                },
+                InternalBytecode::DeclareCreg { name, size } => Bytecode {
+                    opcode: OpCode::DeclareCreg,
+                    operands: (name, size).into_pyobject(py)?.into_any().unbind(),
+                },
+                InternalBytecode::DeclareGate { name, num_qubits } => Bytecode {
+                    opcode: OpCode::DeclareGate,
+                    operands: (name, num_qubits).into_pyobject(py)?.into_any().unbind(),
+                },
+                InternalBytecode::GateInBody {
+                    id,
+                    arguments,
+                    qubits,
+                } => Bytecode {
+                    // In Python space, we don't have to be worried about the types of the
+                    // parameters changing here, so we can just use `OpCode::Gate` unlike in the
+                    // internal bytecode.
+                    opcode: OpCode::Gate,
+                    operands: (id, arguments.into_pyobject(py)?, qubits)
+                        .into_pyobject(py)?
+                        .into_any()
+                        .unbind(),
+                },
+                InternalBytecode::EndDeclareGate {} => Bytecode {
+                    opcode: OpCode::EndDeclareGate,
+                    operands: ().into_pyobject(py)?.into_any().unbind(),
+                },
+                InternalBytecode::DeclareOpaque { name, num_qubits } => Bytecode {
+                    opcode: OpCode::DeclareOpaque,
+                    operands: (name, num_qubits).into_pyobject(py)?.into_any().unbind(),
+                },
+                InternalBytecode::SpecialInclude { indices } => Bytecode {
+                    opcode: OpCode::SpecialInclude,
+                    operands: (indices,).into_pyobject(py)?.into_any().unbind(),
+                },
             },
-            InternalBytecode::ConditionedGate {
-                id,
-                arguments,
-                qubits,
-                creg,
-                value,
-            } => Bytecode {
-                opcode: OpCode::ConditionedGate,
-                operands: (id, arguments, qubits, creg, value).into_py(py),
-            },
-            InternalBytecode::Measure { qubit, clbit } => Bytecode {
-                opcode: OpCode::Measure,
-                operands: (qubit, clbit).into_py(py),
-            },
-            InternalBytecode::ConditionedMeasure {
-                qubit,
-                clbit,
-                creg,
-                value,
-            } => Bytecode {
-                opcode: OpCode::ConditionedMeasure,
-                operands: (qubit, clbit, creg, value).into_py(py),
-            },
-            InternalBytecode::Reset { qubit } => Bytecode {
-                opcode: OpCode::Reset,
-                operands: (qubit,).into_py(py),
-            },
-            InternalBytecode::ConditionedReset { qubit, creg, value } => Bytecode {
-                opcode: OpCode::ConditionedReset,
-                operands: (qubit, creg, value).into_py(py),
-            },
-            InternalBytecode::Barrier { qubits } => Bytecode {
-                opcode: OpCode::Barrier,
-                operands: (qubits,).into_py(py),
-            },
-            InternalBytecode::DeclareQreg { name, size } => Bytecode {
-                opcode: OpCode::DeclareQreg,
-                operands: (name, size).into_py(py),
-            },
-            InternalBytecode::DeclareCreg { name, size } => Bytecode {
-                opcode: OpCode::DeclareCreg,
-                operands: (name, size).into_py(py),
-            },
-            InternalBytecode::DeclareGate { name, num_qubits } => Bytecode {
-                opcode: OpCode::DeclareGate,
-                operands: (name, num_qubits).into_py(py),
-            },
-            InternalBytecode::GateInBody {
-                id,
-                arguments,
-                qubits,
-            } => Bytecode {
-                // In Python space, we don't have to be worried about the types of the
-                // parameters changing here, so we can just use `OpCode::Gate` unlike in the
-                // internal bytecode.
-                opcode: OpCode::Gate,
-                operands: (id, arguments.into_py(py), qubits).into_py(py),
-            },
-            InternalBytecode::EndDeclareGate {} => Bytecode {
-                opcode: OpCode::EndDeclareGate,
-                operands: ().into_py(py),
-            },
-            InternalBytecode::DeclareOpaque { name, num_qubits } => Bytecode {
-                opcode: OpCode::DeclareOpaque,
-                operands: (name, num_qubits).into_py(py),
-            },
-            InternalBytecode::SpecialInclude { indices } => Bytecode {
-                opcode: OpCode::SpecialInclude,
-                operands: (indices,).into_py(py),
-            },
-        }
+        )
     }
 }
 
@@ -347,7 +367,9 @@ impl BytecodeIterator {
             self.buffer_used += 1;
             Ok(self.buffer[self.buffer_used - 1]
                 .take()
-                .map(|bytecode| bytecode.into_py(py)))
+                .map(|bytecode| bytecode.into_pyobject(py))
+                .transpose()?
+                .map(|x| x.get().clone()))
         }
     }
 }

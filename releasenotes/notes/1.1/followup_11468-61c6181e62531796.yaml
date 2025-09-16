@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    The default ``init`` plugin was not properly raising a :class:`.TranspilerError` when called with an invalid optimization level.

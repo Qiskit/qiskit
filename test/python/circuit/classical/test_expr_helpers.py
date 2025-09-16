@@ -15,7 +15,7 @@
 import copy
 import ddt
 
-from qiskit.circuit import Clbit, ClassicalRegister
+from qiskit.circuit import Clbit, ClassicalRegister, Duration
 from qiskit.circuit.classical import expr, types
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -30,6 +30,9 @@ class TestStructurallyEquivalent(QiskitTestCase):
         expr.logic_not(Clbit()),
         expr.bit_and(5, ClassicalRegister(3, "a")),
         expr.logic_and(expr.less(2, ClassicalRegister(3, "a")), expr.lift(Clbit())),
+        expr.shift_left(expr.shift_right(255, 3), 3),
+        expr.index(expr.Var.new("a", types.Uint(8)), 0),
+        expr.greater(expr.Stretch.new("a"), Duration.dt(100)),
     )
     def test_equivalent_to_self(self, node):
         self.assertTrue(expr.structurally_equivalent(node, node))
@@ -124,6 +127,7 @@ class TestIsLValue(QiskitTestCase):
         expr.Var.new("b", types.Uint(8)),
         expr.Var(Clbit(), types.Bool()),
         expr.Var(ClassicalRegister(8, "cr"), types.Uint(8)),
+        expr.index(expr.Var.new("a", types.Uint(8)), 0),
     )
     def test_happy_cases(self, lvalue):
         self.assertTrue(expr.is_lvalue(lvalue))
@@ -139,6 +143,7 @@ class TestIsLValue(QiskitTestCase):
             expr.Var.new("b", types.Bool()),
             types.Bool(),
         ),
+        expr.index(expr.bit_not(expr.Var.new("a", types.Uint(8))), 0),
     )
     def test_bad_cases(self, not_an_lvalue):
         self.assertFalse(expr.is_lvalue(not_an_lvalue))

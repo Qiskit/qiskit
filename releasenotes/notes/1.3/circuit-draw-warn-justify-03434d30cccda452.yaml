@@ -1,0 +1,13 @@
+---
+deprecations_visualization:
+  - |
+    The ``justify`` argument of :func:`circuit_drawer` or :meth:`QuantumCircuit.draw`, will
+    no longer support invalid values (previously changing them to the default), and in a future
+    release they will error. Valid justify values are ``"left"``, ``"right"`` or ``"none"``.
+fixes:
+  - |
+    Fixed an issue where :func:`circuit_drawer` or the :meth:`QuantumCircuit.draw` method would
+    not raise a warning when an invalid value was passed to the ``justify`` argument, before
+    changing it to the default. Now, it will raise a warning if an invalid value is passed.
+    Valid justify values are ``"left"``, ``"right"`` or ``"none"``. Refer to
+    `#12089 <https://github.com/Qiskit/qiskit/issues/12089>` for more details.

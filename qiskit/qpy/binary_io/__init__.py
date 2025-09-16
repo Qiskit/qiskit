@@ -31,6 +31,5 @@ from .circuits import (
     _read_instruction,
 )
 from .schedules import (
-    write_schedule_block,
     read_schedule_block,
 )

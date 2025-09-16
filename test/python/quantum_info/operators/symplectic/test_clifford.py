@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2023.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,7 +17,9 @@ import unittest
 import numpy as np
 from ddt import ddt
 
-from qiskit.circuit import Gate, QuantumCircuit, QuantumRegister
+from qiskit.circuit import Gate, QuantumCircuit
+from qiskit.circuit.random import random_clifford_circuit
+
 from qiskit.circuit.library import (
     CPhaseGate,
     CRXGate,
@@ -26,7 +28,6 @@ from qiskit.circuit.library import (
     CXGate,
     CYGate,
     CZGate,
-    DCXGate,
     ECRGate,
     HGate,
     IGate,
@@ -37,10 +38,7 @@ from qiskit.circuit.library import (
     RYYGate,
     RZZGate,
     RZXGate,
-    SdgGate,
     SGate,
-    SXGate,
-    SXdgGate,
     SwapGate,
     XGate,
     XXMinusYYGate,
@@ -57,96 +55,9 @@ from qiskit.quantum_info import random_clifford
 from qiskit.quantum_info.operators import Clifford, Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_operation
-from qiskit.synthesis.clifford import (
-    synth_clifford_full,
-    synth_clifford_ag,
-    synth_clifford_bm,
-    synth_clifford_greedy,
-)
 from qiskit.synthesis.linear import random_invertible_binary_matrix
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 from test import combine  # pylint: disable=wrong-import-order
-
-
-class VGate(Gate):
-    """V Gate used in Clifford synthesis."""
-
-    def __init__(self):
-        """Create new V Gate."""
-        super().__init__("v", 1, [])
-
-    def _define(self):
-        """V Gate definition."""
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q)
-        qc.sdg(0)
-        qc.h(0)
-        self.definition = qc
-
-
-class WGate(Gate):
-    """W Gate used in Clifford synthesis."""
-
-    def __init__(self):
-        """Create new W Gate."""
-        super().__init__("w", 1, [])
-
-    def _define(self):
-        """W Gate definition."""
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q)
-        qc.append(VGate(), [q[0]], [])
-        qc.append(VGate(), [q[0]], [])
-        self.definition = qc
-
-
-def random_clifford_circuit(num_qubits, num_gates, gates="all", seed=None):
-    """Generate a pseudo random Clifford circuit."""
-
-    qubits_1_gates = ["i", "x", "y", "z", "h", "s", "sdg", "sx", "sxdg", "v", "w"]
-    qubits_2_gates = ["cx", "cz", "cy", "swap", "iswap", "ecr", "dcx"]
-    if gates == "all":
-        if num_qubits == 1:
-            gates = qubits_1_gates
-        else:
-            gates = qubits_1_gates + qubits_2_gates
-
-    instructions = {
-        "i": (IGate(), 1),
-        "x": (XGate(), 1),
-        "y": (YGate(), 1),
-        "z": (ZGate(), 1),
-        "h": (HGate(), 1),
-        "s": (SGate(), 1),
-        "sdg": (SdgGate(), 1),
-        "sx": (SXGate(), 1),
-        "sxdg": (SXdgGate(), 1),
-        "v": (VGate(), 1),
-        "w": (WGate(), 1),
-        "cx": (CXGate(), 2),
-        "cy": (CYGate(), 2),
-        "cz": (CZGate(), 2),
-        "swap": (SwapGate(), 2),
-        "iswap": (iSwapGate(), 2),
-        "ecr": (ECRGate(), 2),
-        "dcx": (DCXGate(), 2),
-    }
-
-    if isinstance(seed, np.random.Generator):
-        rng = seed
-    else:
-        rng = np.random.default_rng(seed)
-
-    samples = rng.choice(gates, num_gates)
-
-    circ = QuantumCircuit(num_qubits)
-
-    for name in samples:
-        gate, nqargs = instructions[name]
-        qargs = rng.choice(range(num_qubits), nqargs, replace=False).tolist()
-        circ.append(gate, qargs)
-
-    return circ
 
 
 @ddt
@@ -239,7 +150,7 @@ class TestCliffordGates(QiskitTestCase):
             "sx",
             "sxdg",
         ):
-            with self.subTest(msg="append gate %s" % gate_name):
+            with self.subTest(msg=f"append gate {gate_name}"):
                 cliff = Clifford([[1, 0], [0, 1]])
                 cliff = _append_operation(cliff, gate_name, [0])
                 value_table = cliff.tableau[:, :-1]
@@ -259,7 +170,7 @@ class TestCliffordGates(QiskitTestCase):
         """Tests identity relations for 1-qubit gates"""
 
         for gate_name in ("x", "y", "z", "h"):
-            with self.subTest(msg="identity for gate %s" % gate_name):
+            with self.subTest(msg=f"identity for gate {gate_name}"):
                 cliff = Clifford([[1, 0], [0, 1]])
                 cliff1 = cliff.copy()
                 cliff = _append_operation(cliff, gate_name, [0])
@@ -270,7 +181,7 @@ class TestCliffordGates(QiskitTestCase):
         inv_gates = ["sdg", "sinv", "w"]
 
         for gate_name, inv_gate in zip(gates, inv_gates):
-            with self.subTest(msg="identity for gate %s" % gate_name):
+            with self.subTest(msg=f"identity for gate {gate_name}"):
                 cliff = Clifford([[1, 0], [0, 1]])
                 cliff1 = cliff.copy()
                 cliff = _append_operation(cliff, gate_name, [0])
@@ -292,7 +203,7 @@ class TestCliffordGates(QiskitTestCase):
         ]
 
         for rel in rels:
-            with self.subTest(msg="relation %s" % rel):
+            with self.subTest(msg=f"relation {rel}"):
                 split_rel = rel.split()
                 cliff = Clifford([[1, 0], [0, 1]])
                 cliff1 = cliff.copy()
@@ -316,7 +227,7 @@ class TestCliffordGates(QiskitTestCase):
         ]
 
         for rel in rels:
-            with self.subTest(msg="relation %s" % rel):
+            with self.subTest(msg=f"relation {rel}"):
                 split_rel = rel.split()
                 cliff = Clifford([[1, 0], [0, 1]])
                 cliff1 = cliff.copy()
@@ -473,15 +384,6 @@ class TestCliffordGates(QiskitTestCase):
         value = Clifford(circ)
         self.assertEqual(value, target)
 
-    def test_from_circuit_with_conditional_gate(self):
-        """Test initialization from circuit with conditional gate."""
-        qc = QuantumCircuit(2, 1)
-        qc.h(0).c_if(0, 0)
-        qc.cx(0, 1)
-
-        with self.assertRaises(QiskitError):
-            Clifford(qc)
-
     def test_from_circuit_with_other_clifford(self):
         """Test initialization from circuit containing another clifford."""
         cliff = random_clifford(1, seed=777)
@@ -513,9 +415,9 @@ class TestCliffordGates(QiskitTestCase):
         """Test initialization from linear function."""
         rng = np.random.default_rng(1234)
         samples = 50
-
-        for _ in range(samples):
-            mat = random_invertible_binary_matrix(num_qubits, seed=rng)
+        seeds = rng.integers(100000, size=samples, dtype=np.uint64)
+        for seed in seeds:
+            mat = random_invertible_binary_matrix(num_qubits, seed=seed)
             lin = LinearFunction(mat)
             cliff = Clifford(lin)
             self.assertTrue(Operator(cliff).equiv(Operator(lin)))
@@ -561,7 +463,12 @@ class TestCliffordGates(QiskitTestCase):
         # and even circuits with other clifford objects.
         linear_function = LinearFunction([[0, 1], [1, 1]])
         pauli_gate = PauliGate("YZ")
-        cliff = random_clifford(2, seed=777)
+
+        qc_cliff = QuantumCircuit(2)
+        qc_cliff.h(0)
+        qc_cliff.cx(0, 1)
+        cliff = Clifford(qc_cliff)
+
         qc = QuantumCircuit(2)
         qc.cx(0, 1)
         qc.append(random_clifford(1, seed=999), [1])
@@ -581,97 +488,11 @@ class TestCliffordGates(QiskitTestCase):
 
         # Additionally, make sure that it produces the correct clifford.
         expected_clifford_dict = {
-            "stabilizer": ["-IZX", "+ZYZ", "+ZII"],
-            "destabilizer": ["+ZIZ", "+ZXZ", "-XIX"],
+            "stabilizer": ["-IZX", "+ZYZ", "+XZI"],
+            "destabilizer": ["+XZZ", "-XII", "+IXY"],
         }
         expected_clifford = Clifford.from_dict(expected_clifford_dict)
         self.assertEqual(combined_clifford, expected_clifford)
-
-
-@ddt
-class TestCliffordSynthesis(QiskitTestCase):
-    """Test Clifford synthesis methods."""
-
-    @staticmethod
-    def _cliffords_1q():
-        clifford_dicts = [
-            {"stabilizer": ["+Z"], "destabilizer": ["-X"]},
-            {"stabilizer": ["-Z"], "destabilizer": ["+X"]},
-            {"stabilizer": ["-Z"], "destabilizer": ["-X"]},
-            {"stabilizer": ["+Z"], "destabilizer": ["+Y"]},
-            {"stabilizer": ["+Z"], "destabilizer": ["-Y"]},
-            {"stabilizer": ["-Z"], "destabilizer": ["+Y"]},
-            {"stabilizer": ["-Z"], "destabilizer": ["-Y"]},
-            {"stabilizer": ["+X"], "destabilizer": ["+Z"]},
-            {"stabilizer": ["+X"], "destabilizer": ["-Z"]},
-            {"stabilizer": ["-X"], "destabilizer": ["+Z"]},
-            {"stabilizer": ["-X"], "destabilizer": ["-Z"]},
-            {"stabilizer": ["+X"], "destabilizer": ["+Y"]},
-            {"stabilizer": ["+X"], "destabilizer": ["-Y"]},
-            {"stabilizer": ["-X"], "destabilizer": ["+Y"]},
-            {"stabilizer": ["-X"], "destabilizer": ["-Y"]},
-            {"stabilizer": ["+Y"], "destabilizer": ["+X"]},
-            {"stabilizer": ["+Y"], "destabilizer": ["-X"]},
-            {"stabilizer": ["-Y"], "destabilizer": ["+X"]},
-            {"stabilizer": ["-Y"], "destabilizer": ["-X"]},
-            {"stabilizer": ["+Y"], "destabilizer": ["+Z"]},
-            {"stabilizer": ["+Y"], "destabilizer": ["-Z"]},
-            {"stabilizer": ["-Y"], "destabilizer": ["+Z"]},
-            {"stabilizer": ["-Y"], "destabilizer": ["-Z"]},
-        ]
-        return [Clifford.from_dict(i) for i in clifford_dicts]
-
-    def test_decompose_1q(self):
-        """Test synthesis for all 1-qubit Cliffords"""
-        for cliff in self._cliffords_1q():
-            with self.subTest(msg=f"Test circuit {cliff}"):
-                target = cliff
-                value = Clifford(cliff.to_circuit())
-                self.assertEqual(target, value)
-
-    @combine(num_qubits=[2, 3])
-    def test_synth_bm(self, num_qubits):
-        """Test B&M synthesis for set of {num_qubits}-qubit Cliffords"""
-        rng = np.random.default_rng(1234)
-        samples = 50
-        for _ in range(samples):
-            circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
-            target = Clifford(circ)
-            value = Clifford(synth_clifford_bm(target))
-            self.assertEqual(value, target)
-
-    @combine(num_qubits=[2, 3, 4, 5])
-    def test_synth_ag(self, num_qubits):
-        """Test A&G synthesis for set of {num_qubits}-qubit Cliffords"""
-        rng = np.random.default_rng(1234)
-        samples = 50
-        for _ in range(samples):
-            circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
-            target = Clifford(circ)
-            value = Clifford(synth_clifford_ag(target))
-            self.assertEqual(value, target)
-
-    @combine(num_qubits=[1, 2, 3, 4, 5])
-    def test_synth_greedy(self, num_qubits):
-        """Test greedy synthesis for set of {num_qubits}-qubit Cliffords"""
-        rng = np.random.default_rng(1234)
-        samples = 50
-        for _ in range(samples):
-            circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
-            target = Clifford(circ)
-            value = Clifford(synth_clifford_greedy(target))
-            self.assertEqual(value, target)
-
-    @combine(num_qubits=[1, 2, 3, 4, 5])
-    def test_synth_full(self, num_qubits):
-        """Test synthesis for set of {num_qubits}-qubit Cliffords"""
-        rng = np.random.default_rng(1234)
-        samples = 50
-        for _ in range(samples):
-            circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
-            target = Clifford(circ)
-            value = Clifford(synth_clifford_full(target))
-            self.assertEqual(value, target)
 
 
 @ddt
@@ -683,11 +504,9 @@ class TestCliffordDecomposition(QiskitTestCase):
             ["h", "s"],
             ["h", "s", "i", "x", "y", "z"],
             ["h", "s", "sdg"],
-            ["h", "s", "v"],
-            ["h", "s", "w"],
             ["h", "sx", "sxdg"],
             ["s", "sx", "sxdg"],
-            ["h", "s", "sdg", "i", "x", "y", "z", "v", "w", "sx", "sxdg"],
+            ["h", "s", "sdg", "i", "x", "y", "z", "sx", "sxdg"],
         ]
     )
     def test_to_operator_1qubit_gates(self, gates):
@@ -774,6 +593,23 @@ class TestCliffordDecomposition(QiskitTestCase):
             self.assertEqual(decomp.num_qubits, circ.num_qubits)
             # Convert back to clifford and check it is the same
             self.assertEqual(Clifford(decomp), target)
+
+    def test_to_circuit_manual(self):
+        """Test a manual comparison to a known circuit.
+
+        This also tests whether the resulting Clifford circuit has quantum registers, thereby
+        regression testing #13041.
+        """
+        # this is set to a circuit that remains the same under Clifford reconstruction
+        circuit = QuantumCircuit(2)
+        circuit.z(0)
+        circuit.h(0)
+        circuit.cx(0, 1)
+
+        cliff = Clifford(circuit)
+        reconstructed = cliff.to_circuit()
+
+        self.assertEqual(circuit, reconstructed)
 
     @combine(num_qubits=[1, 2, 3, 4, 5])
     def test_to_instruction(self, num_qubits):

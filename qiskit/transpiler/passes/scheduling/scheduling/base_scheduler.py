@@ -14,13 +14,12 @@
 
 import warnings
 
-from qiskit.transpiler import InstructionDurations
-from qiskit.transpiler.basepasses import AnalysisPass
-from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
+from qiskit.circuit import Delay, Gate, ParameterExpression
 from qiskit.dagcircuit import DAGOpNode, DAGCircuit
-from qiskit.circuit import Delay, Gate
-from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.instruction_durations import InstructionDurations
+from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
 from qiskit.transpiler.target import Target
 
 
@@ -56,30 +55,33 @@ class BaseScheduler(AnalysisPass):
             )
         self.property_set["node_start_time"] = {}
 
-    @staticmethod
     def _get_node_duration(
+        self,
         node: DAGOpNode,
         dag: DAGCircuit,
     ) -> int:
-        """A helper method to get duration from node or calibration."""
+        """A helper method to get duration from node"""
         indices = [dag.find_bit(qarg).index for qarg in node.qargs]
 
-        if dag.has_calibration_for(node):
-            # If node has calibration, this value should be the highest priority
-            cal_key = tuple(indices), tuple(float(p) for p in node.op.params)
-            duration = dag.calibrations[node.op.name][cal_key].duration
-
-            # Note that node duration is updated (but this is analysis pass)
-            node.op = node.op.to_mutable()
-            node.op.duration = duration
-        else:
+        if node.name == "delay":
+            # `TimeUnitConversion` already handled the unit conversions.
             duration = node.op.duration
+        else:
+            unit = "s" if self.durations.dt is None else "dt"
+            try:
+                duration = self.durations.get(node.name, indices, unit=unit)
+            except TranspilerError:
+                duration = None
 
         if isinstance(duration, ParameterExpression):
-            raise TranspilerError(
-                f"Parameterized duration ({duration}) "
-                f"of {node.op.name} on qubits {indices} is not bounded."
-            )
+            try:
+                duration = duration.numeric()
+            except TypeError as exc:
+                raise TranspilerError(
+                    f"Parameterized duration ({duration}) "
+                    f"of {node.op.name} on qubits {indices} is not bounded."
+                ) from exc
+
         if duration is None:
             raise TranspilerError(f"Duration of {node.op.name} on qubits {indices} is not found.")
 

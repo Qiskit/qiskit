@@ -18,6 +18,7 @@ import dataclasses
 from typing import Union, List
 
 from qiskit.circuit.operation import Operation
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit._utils import _compute_control_matrix, _ctrl_state_to_int
 from qiskit.circuit.exceptions import CircuitError
 
@@ -97,7 +98,10 @@ class AnnotatedOperation(Operation):
         inverted and then controlled by 2 qubits.
         """
         self.base_op = base_op
+        """The base operation that the modifiers in this annotated operation applies to."""
         self.modifiers = modifiers if isinstance(modifiers, List) else [modifiers]
+        """Ordered sequence of the modifiers to apply to :attr:`base_op`.  The modifiers are applied
+        in order from lowest index to highest index."""
 
     @property
     def name(self):
@@ -129,7 +133,7 @@ class AnnotatedOperation(Operation):
 
     def copy(self) -> "AnnotatedOperation":
         """Return a copy of the :class:`~.AnnotatedOperation`."""
-        return AnnotatedOperation(base_op=self.base_op, modifiers=self.modifiers.copy())
+        return AnnotatedOperation(base_op=self.base_op.copy(), modifiers=self.modifiers.copy())
 
     def to_matrix(self):
         """Return a matrix representation (allowing to construct Operator)."""
@@ -197,6 +201,45 @@ class AnnotatedOperation(Operation):
         extended_modifiers = self.modifiers.copy()
         extended_modifiers.append(InverseModifier())
         return AnnotatedOperation(self.base_op, extended_modifiers)
+
+    def power(self, exponent: float, annotated: bool = False):
+        """
+        Raise this gate to the power of ``exponent``.
+
+        Implemented as an annotated operation, see  :class:`.AnnotatedOperation`.
+
+        Args:
+            exponent: the power to raise the gate to
+            annotated: ignored (used for consistency with other power methods)
+
+        Returns:
+            An operation implementing ``gate^exponent``
+        """
+        # pylint: disable=unused-argument
+        extended_modifiers = self.modifiers.copy()
+        extended_modifiers.append(PowerModifier(exponent))
+        return AnnotatedOperation(self.base_op, extended_modifiers)
+
+    @property
+    def params(self) -> list[ParameterValueType]:
+        """The params of the underlying base operation."""
+        return getattr(self.base_op, "params", [])
+
+    @params.setter
+    def params(self, value: list[ParameterValueType]):
+        if hasattr(self.base_op, "params"):
+            self.base_op.params = value
+        else:
+            raise AttributeError(
+                f"Cannot set attribute ``params`` on the base operation {self.base_op}."
+            )
+
+    def validate_parameter(self, parameter: ParameterValueType) -> ParameterValueType:
+        """Validate a parameter for the underlying base operation."""
+        if hasattr(self.base_op, "validate_parameter"):
+            return self.base_op.validate_parameter(parameter)
+
+        raise AttributeError(f"Cannot validate parameters on the base operation {self.base_op}.")
 
 
 def _canonicalize_modifiers(modifiers):

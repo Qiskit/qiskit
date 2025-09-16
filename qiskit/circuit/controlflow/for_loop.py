@@ -29,28 +29,6 @@ class ForLoopOp(ControlFlowOp):
     """A circuit operation which repeatedly executes a subcircuit
     (``body``) parameterized by a parameter ``loop_parameter`` through
     the set of integer values provided in ``indexset``.
-
-    Parameters:
-        indexset: A collection of integers to loop over.
-        loop_parameter: The placeholder parameterizing ``body`` to which
-            the values from ``indexset`` will be assigned.
-        body: The loop body to be repeatedly executed.
-        label: An optional label for identifying the instruction.
-
-    **Circuit symbol:**
-
-    .. parsed-literal::
-
-             ┌───────────┐
-        q_0: ┤0          ├
-             │           │
-        q_1: ┤1          ├
-             │  for_loop │
-        q_2: ┤2          ├
-             │           │
-        c_0: ╡0          ╞
-             └───────────┘
-
     """
 
     def __init__(
@@ -60,9 +38,16 @@ class ForLoopOp(ControlFlowOp):
         body: QuantumCircuit,
         label: Optional[str] = None,
     ):
+        """
+        Args:
+            indexset: A collection of integers to loop over.
+            loop_parameter: The placeholder parameterizing ``body`` to which
+                the values from ``indexset`` will be assigned.
+            body: The loop body to be repeatedly executed.
+            label: An optional label for identifying the instruction.
+        """
         num_qubits = body.num_qubits
         num_clbits = body.num_clbits
-
         super().__init__(
             "for_loop", num_qubits, num_clbits, [indexset, loop_parameter, body], label=label
         )
@@ -153,7 +138,8 @@ class ForLoopContext:
             qc.rx(i * math.pi/4, 0)
             qc.cx(0, 1)
             qc.measure(0, 0)
-            qc.break_loop().c_if(0, True)
+            with qc.if_test((0, True)):
+                qc.break_loop()
 
     This context should almost invariably be created by a :meth:`.QuantumCircuit.for_loop` call, and
     the resulting instance is a "friend" of the calling circuit.  The context will manipulate the

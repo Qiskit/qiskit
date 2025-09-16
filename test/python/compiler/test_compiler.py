@@ -16,14 +16,15 @@ import os
 import unittest
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.transpiler import PassManager
+from qiskit.transpiler import PassManager, CouplingMap
 from qiskit.circuit.library import U1Gate, U2Gate
-from qiskit.compiler import transpile, assemble
-from qiskit.providers.fake_provider import Fake20QV1, Fake5QV1
+from qiskit.compiler import transpile
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
-from qiskit.qobj import QasmQobj
 from qiskit.qasm2 import dumps
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+from ..legacy_cmaps import TOKYO_CMAP
 
 
 class TestCompiler(QiskitTestCase):
@@ -63,7 +64,7 @@ class TestCompiler(QiskitTestCase):
         bell.measure(qr[1], cr[1])
         shots = 2048
         bell_qcirc = transpile(bell, backend=backend)
-        ghz_qcirc = transpile(ghz, backend=backend, coupling_map=coupling_map)
+        ghz_qcirc = transpile(ghz, coupling_map=coupling_map)
         bell_result = backend.run(bell_qcirc, shots=shots, seed_simulator=10).result()
         ghz_result = backend.run(ghz_qcirc, shots=shots, seed_simulator=10).result()
 
@@ -95,9 +96,7 @@ class TestCompiler(QiskitTestCase):
         shots = 2048
         coupling_map = [[0, 1], [1, 2]]
         initial_layout = [0, 1, 2]
-        qc_b = transpile(
-            qc, backend=backend, coupling_map=coupling_map, initial_layout=initial_layout
-        )
+        qc_b = transpile(qc, coupling_map=coupling_map, initial_layout=initial_layout)
         job = backend.run(qc_b, shots=shots, seed_simulator=88)
         result = job.result()
         qasm_to_check = dumps(qc)
@@ -174,13 +173,12 @@ class TestCompiler(QiskitTestCase):
             qc.measure(qr1[j], ans[j + n])
         # First version: no mapping
         result = backend.run(
-            transpile(qc, backend), coupling_map=None, shots=1024, seed_simulator=14
+            transpile(qc, coupling_map=None), shots=1024, seed_simulator=14
         ).result()
         self.assertEqual(result.get_counts(qc), {"010000": 1024})
         # Second version: map to coupling graph
         result = backend.run(
-            transpile(qc, backend, coupling_map=coupling_map),
-            coupling_map=coupling_map,
+            transpile(qc, coupling_map=coupling_map),
             shots=1024,
             seed_simulator=14,
         ).result()
@@ -188,7 +186,6 @@ class TestCompiler(QiskitTestCase):
 
     def test_parallel_compile(self):
         """Trigger parallel routines in compile."""
-        backend = Fake20QV1()
         qr = QuantumRegister(16)
         cr = ClassicalRegister(2)
         qc = QuantumCircuit(qr, cr)
@@ -197,8 +194,9 @@ class TestCompiler(QiskitTestCase):
             qc.cx(qr[0], qr[k])
         qc.measure(qr[5], cr[0])
         qlist = [qc for k in range(10)]
-        qobj = assemble(transpile(qlist, backend=backend))
-        self.assertEqual(len(qobj.experiments), 10)
+        backend = GenericBackendV2(num_qubits=20, coupling_map=TOKYO_CMAP, seed=0)
+        out = transpile(qlist, backend=backend)
+        self.assertEqual(len(out), 10)
 
     def test_no_conflict_backend_passmanager(self):
         """See: https://github.com/Qiskit/qiskit-terra/issues/5037"""
@@ -240,12 +238,11 @@ class TestCompiler(QiskitTestCase):
         circuit2 = transpile(
             circuit, backend=None, coupling_map=cmap, basis_gates=["u2"], initial_layout=layout
         )
-        qobj = assemble(circuit2)
 
-        compiled_instruction = qobj.experiments[0].instructions[0]
+        compiled_instruction = circuit2.data[0]
 
         self.assertEqual(compiled_instruction.name, "u2")
-        self.assertEqual(compiled_instruction.qubits, [12])
+        self.assertEqual(circuit2.find_bit(compiled_instruction.qubits[0]).index, 12)
         self.assertEqual(compiled_instruction.params, [0, 3.141592653589793])
 
     def test_compile_pass_manager(self):
@@ -303,7 +300,7 @@ class TestCompiler(QiskitTestCase):
         shots = 1000
 
         result1 = self.backend.run(
-            transpile(circ, backend=self.backend, coupling_map=coupling_map, seed_transpiler=8),
+            transpile(circ, coupling_map=coupling_map, seed_transpiler=8),
             seed_simulator=self.seed_simulator,
             shots=shots,
         )
@@ -311,7 +308,6 @@ class TestCompiler(QiskitTestCase):
         result2 = self.backend.run(
             transpile(
                 circ,
-                backend=self.backend,
                 coupling_map=None,
                 seed_transpiler=8,
             ),
@@ -381,7 +377,6 @@ class TestCompiler(QiskitTestCase):
                 self.backend,
                 coupling_map=coupling_map,
             ),
-            coupling_map=coupling_map,
             seed_simulator=self.seed_simulator,
             shots=shots,
         )
@@ -432,9 +427,8 @@ class TestCompiler(QiskitTestCase):
         job = self.backend.run(
             transpile(
                 circ,
-                backend=self.backend,
+                coupling_map=coupling_map,
             ),
-            coupling_map=coupling_map,
             seed_simulator=self.seed_simulator,
             shots=shots,
         )
@@ -447,14 +441,15 @@ class TestCompiler(QiskitTestCase):
         """Run a circuit with randomly generated parameters."""
         qasm_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "qasm")
         circ = QuantumCircuit.from_qasm_file(os.path.join(qasm_dir, "random_n5_d5.qasm"))
-        coupling_map = [[0, 1], [1, 2], [2, 3], [3, 4]]
+        coupling_map = CouplingMap([[0, 1], [1, 2], [2, 3], [3, 4]])
+        coupling_map.make_symmetric()
         shots = 1024
-        qobj = self.backend.run(
-            transpile(circ, backend=self.backend, coupling_map=coupling_map, seed_transpiler=42),
+        job = self.backend.run(
+            transpile(circ, coupling_map=coupling_map, seed_transpiler=42),
             shots=shots,
             seed_simulator=self.seed_simulator,
         )
-        counts = qobj.result().get_counts()
+        counts = job.result().get_counts()
         expected_probs = {
             "00000": 0.079239867254200971,
             "00001": 0.032859032998526903,
@@ -492,28 +487,6 @@ class TestCompiler(QiskitTestCase):
         target = {key: shots * val for key, val in expected_probs.items()}
         threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
-
-    def test_yzy_zyz_cases(self):
-        """yzy_to_zyz works in previously failed cases.
-
-        See: https://github.com/Qiskit/qiskit-terra/issues/607
-        """
-        backend = Fake5QV1()
-        qr = QuantumRegister(2)
-        circ1 = QuantumCircuit(qr)
-        circ1.cx(qr[0], qr[1])
-        circ1.rz(0.7, qr[1])
-        circ1.rx(1.570796, qr[1])
-        qobj1 = assemble(transpile(circ1, backend))
-        self.assertIsInstance(qobj1, QasmQobj)
-
-        circ2 = QuantumCircuit(qr)
-        circ2.y(qr[0])
-        circ2.h(qr[0])
-        circ2.s(qr[0])
-        circ2.h(qr[0])
-        qobj2 = assemble(transpile(circ2, backend))
-        self.assertIsInstance(qobj2, QasmQobj)
 
 
 if __name__ == "__main__":

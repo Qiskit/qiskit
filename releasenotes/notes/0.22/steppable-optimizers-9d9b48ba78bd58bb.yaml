@@ -72,7 +72,7 @@ features:
                     evaluated_gradient = grad(ask_data.x_center)
                     optimizer.state.njev += 1
 
-                optmizer.state.nit += 1
+                optimizer.state.nit += 1
 
                 cf  = TellData(eval_jac=evaluated_gradient)
                 optimizer.tell(ask_data=ask_data, tell_data=tell_data)

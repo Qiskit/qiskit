@@ -12,9 +12,10 @@
 
 """Double-CNOT gate."""
 
+from __future__ import annotations
 from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 
 @with_gate_array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 1, 0, 0], [0, 0, 1, 0]])
@@ -27,7 +28,8 @@ class DCXGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.dcx` method.
 
-    .. parsed-literal::
+    .. code-block:: text
+
                   ┌───┐
         q_0: ──■──┤ X ├
              ┌─┴─┐└─┬─┘
@@ -48,27 +50,31 @@ class DCXGate(SingletonGate):
             \end{pmatrix}
     """
 
-    def __init__(self, label=None, *, duration=None, unit="dt"):
-        """Create new DCX gate."""
-        super().__init__("dcx", 2, [], label=label, duration=duration, unit=unit)
+    _standard_gate = StandardGate.DCX
+
+    def __init__(self, label: str | None = None) -> None:
+        """
+        Args:
+            label: An optional label for the gate.
+        """
+        super().__init__("dcx", 2, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
-        """
-        gate dcx a, b { cx a, b; cx b, a; }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .x import CXGate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(CXGate(), [q[0], q[1]], []), (CXGate(), [q[1], q[0]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        #           ┌───┐
+        # q_0: ──■──┤ X ├
+        #      ┌─┴─┐└─┬─┘
+        # q_1: ┤ X ├──■──
+        #      └───┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.DCX._get_definition(self.params), legacy_qubits=True, name=self.name
+        )
 
     def __eq__(self, other):
         return isinstance(other, DCXGate)

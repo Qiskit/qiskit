@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    The :attr:`.QuantumCircuit.parameters` attribute will now correctly be empty
+    when using :meth:`.QuantumCircuit.copy_empty_like` on a parametric circuit.
+    Previously, an internal cache would be copied over without invalidation.
+    Fix `#12617 <https://github.com/Qiskit/qiskit/issues/12617>`__.

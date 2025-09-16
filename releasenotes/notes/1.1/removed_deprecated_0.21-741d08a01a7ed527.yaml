@@ -1,0 +1,21 @@
+---
+deprecations_transpiler:
+  - |
+    The transpilation pass ``qiskit.transpiler.passes.ALAPSchedule`` is now deprecated. It was pending for deprecation 
+    since Qiskit 0.37 (with Terra 0.21), released on June 2022. The pass is replaced by 
+    :class:`~.transpiler.passes.ALAPScheduleAnalysis`, which is an
+    analysis pass.
+  - |
+    The transpilation pass ``qiskit.transpiler.passes.ASAPSchedule`` is now deprecated. It was pending for deprecation 
+    since Qiskit 0.37 (with Terra 0.21), released on June 2022. It has been superseded by
+    :class:`~.ASAPScheduleAnalysis` and the new scheduling workflow.
+  - |
+    The transpilation pass ``qiskit.transpiler.passes.DynamicalDecoupling`` is now deprecated. It was pending for deprecation 
+    since Qiskit 0.37 (with Terra 0.21), released on June 2022.
+    Instead, use :class:`~.transpiler.passes.PadDynamicalDecoupling`, which performs the same
+    function but requires scheduling and alignment analysis passes to run prior to it.
+  - |
+    The transpilation pass ``qiskit.transpiler.passes.AlignMeasures`` is now deprecated. It was pending for deprecation 
+    since Qiskit 0.37 (with Terra 0.21), released on June 2022.
+    Instead, use :class:`~.ConstrainedReschedule`, which performs the same function 
+    and also supports aligning to additional timing constraints.

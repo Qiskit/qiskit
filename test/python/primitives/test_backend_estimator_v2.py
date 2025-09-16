@@ -16,24 +16,33 @@ from __future__ import annotations
 
 import unittest
 from test import QiskitTestCase, combine
+from unittest.mock import patch
 
 import numpy as np
 from ddt import ddt
 
 from qiskit.circuit import Parameter, QuantumCircuit
-from qiskit.circuit.library import RealAmplitudes
+from qiskit.circuit.library import real_amplitudes
 from qiskit.primitives import BackendEstimatorV2, StatevectorEstimator
 from qiskit.primitives.containers.bindings_array import BindingsArray
 from qiskit.primitives.containers.estimator_pub import EstimatorPub
 from qiskit.primitives.containers.observables_array import ObservablesArray
-from qiskit.providers.backend_compat import BackendV2Converter
 from qiskit.providers.basic_provider import BasicSimulator
-from qiskit.providers.fake_provider import Fake7QPulseV1
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.utils import optionals
+from ..legacy_cmaps import LAGOS_CMAP
 
-BACKENDS = [BasicSimulator(), Fake7QPulseV1(), BackendV2Converter(Fake7QPulseV1())]
+BACKENDS = [
+    BasicSimulator(),
+    GenericBackendV2(
+        num_qubits=7,
+        basis_gates=["id", "rz", "sx", "x", "cx", "reset"],
+        coupling_map=LAGOS_CMAP,
+        seed=42,
+    ),
+]
 
 
 @ddt
@@ -47,7 +56,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
         self._seed = 12
         self._rng = np.random.default_rng(self._seed)
         self._options = {"default_precision": self._precision, "seed_simulator": self._seed}
-        self.ansatz = RealAmplitudes(num_qubits=2, reps=2)
+        self.ansatz = QuantumCircuit(2)
+        self.ansatz.append(real_amplitudes(num_qubits=2, reps=2), [0, 1])
         self.observable = SparsePauliOp.from_list(
             [
                 ("II", -1.052373245772859),
@@ -59,7 +69,11 @@ class TestBackendEstimatorV2(QiskitTestCase):
         )
         self.expvals = -1.0284380963435145, -1.284366511861733
 
-        self.psi = (RealAmplitudes(num_qubits=2, reps=2), RealAmplitudes(num_qubits=2, reps=3))
+        ra_2_reps = QuantumCircuit(2)
+        ra_2_reps.append(real_amplitudes(num_qubits=2, reps=2), [0, 1])
+        ra_3_reps = QuantumCircuit(2)
+        ra_3_reps.append(real_amplitudes(num_qubits=2, reps=3), [0, 1])
+        self.psi = (ra_2_reps, ra_3_reps)
         self.params = tuple(psi.parameters for psi in self.psi)
         self.hamiltonian = (
             SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)]),
@@ -324,7 +338,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
     @combine(backend=BACKENDS, abelian_grouping=[True, False])
     def test_run_numpy_params(self, backend, abelian_grouping):
         """Test for numpy array as parameter values"""
-        qc = RealAmplitudes(num_qubits=2, reps=2)
+        qc = QuantumCircuit(2)
+        qc.append(real_amplitudes(num_qubits=2, reps=2), [0, 1])
         pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         qc = pm.run(qc)
         op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
@@ -371,6 +386,22 @@ class TestBackendEstimatorV2(QiskitTestCase):
         result = job.result()
         np.testing.assert_allclose(result[0].data.evs, [1.5555572817900956], rtol=self._rtol)
 
+    @combine(backend=BACKENDS, abelian_grouping=[True, False])
+    def test_diff_precision(self, backend, abelian_grouping):
+        """Test for running different precisions at once"""
+        estimator = BackendEstimatorV2(backend=backend, options=self._options)
+        estimator.options.abelian_grouping = abelian_grouping
+        pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
+        psi1 = pm.run(self.psi[0])
+        hamiltonian1 = self.hamiltonian[0].apply_layout(psi1.layout)
+        theta1 = self.theta[0]
+        job = estimator.run(
+            [(psi1, hamiltonian1, [theta1]), (psi1, hamiltonian1, [theta1], self._precision * 0.8)]
+        )
+        result = job.result()
+        np.testing.assert_allclose(result[0].data.evs, [1.901141473854881], rtol=self._rtol)
+        np.testing.assert_allclose(result[1].data.evs, [1.901141473854881], rtol=self._rtol)
+
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
     @combine(abelian_grouping=[True, False])
     def test_aer(self, abelian_grouping):
@@ -379,7 +410,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
 
         backend = AerSimulator()
         seed = 123
-        qc = RealAmplitudes(num_qubits=2, reps=1)
+        qc = QuantumCircuit(2)
+        qc.append(real_amplitudes(num_qubits=2, reps=1), [0, 1])
         pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         qc = pm.run(qc)
         op = [SparsePauliOp("IX"), SparsePauliOp("YI")]
@@ -406,6 +438,64 @@ class TestBackendEstimatorV2(QiskitTestCase):
             np.testing.assert_allclose(
                 result[0].data.evs, target[0].data.evs, rtol=self._rtol, atol=1e-1
             )
+
+    def test_job_size_limit_backend_v2(self):
+        """Test BackendEstimatorV2 respects job size limit"""
+
+        class FakeBackendLimitedCircuits(GenericBackendV2):
+            """Generic backend V2 with job size limit."""
+
+            @property
+            def max_circuits(self):
+                return 1
+
+        backend = FakeBackendLimitedCircuits(num_qubits=5)
+        qc = QuantumCircuit(2)
+        qc.append(real_amplitudes(num_qubits=2, reps=2), [0, 1])
+        # Note: two qubit-wise commuting groups
+        op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
+        k = 5
+        param_list = self._rng.random(qc.num_parameters).tolist()
+        estimator = BackendEstimatorV2(backend=backend)
+        with patch.object(backend, "run") as run_mock:
+            estimator.run([(qc, op, param_list)] * k).result()
+        self.assertEqual(run_mock.call_count, 10)
+
+    def test_iter_pub(self):
+        """test for an iterable of pubs"""
+        backend = BasicSimulator()
+        circuit = self.ansatz.assign_parameters([0, 1, 1, 2, 3, 5])
+        pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
+        circuit = pm.run(circuit)
+        estimator = BackendEstimatorV2(backend=backend, options=self._options)
+        observable = self.observable.apply_layout(circuit.layout)
+        result = estimator.run(iter([(circuit, observable), (circuit, observable)])).result()
+        np.testing.assert_allclose(result[0].data.evs, [-1.284366511861733], rtol=self._rtol)
+        np.testing.assert_allclose(result[1].data.evs, [-1.284366511861733], rtol=self._rtol)
+
+    def test_metadata(self):
+        """Test for metadata"""
+        qc = QuantumCircuit(2)
+        qc2 = QuantumCircuit(2)
+        qc2.metadata = {"a": 1}
+        backend = BasicSimulator()
+        estimator = BackendEstimatorV2(backend=backend)
+        pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
+        qc, qc2 = pm.run([qc, qc2])
+        op = SparsePauliOp("ZZ").apply_layout(qc.layout)
+        op2 = SparsePauliOp("ZZ").apply_layout(qc2.layout)
+        result = estimator.run([(qc, op), (qc2, op2)], precision=0.1).result()
+
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result.metadata, {"version": 2})
+        self.assertEqual(
+            result[0].metadata,
+            {"target_precision": 0.1, "shots": 100, "circuit_metadata": qc.metadata},
+        )
+        self.assertEqual(
+            result[1].metadata,
+            {"target_precision": 0.1, "shots": 100, "circuit_metadata": qc2.metadata},
+        )
 
 
 if __name__ == "__main__":

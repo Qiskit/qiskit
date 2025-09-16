@@ -36,18 +36,15 @@ from __future__ import annotations
 import copy
 from itertools import zip_longest
 import math
-from typing import List, Type
+from typing import Type
 
 import numpy
 
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
-from qiskit.qobj.qasm_qobj import QasmQobjInstruction
-from qiskit.circuit.parameter import ParameterExpression
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.operation import Operation
 
 from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier
-
 
 _CUTOFF_PRECISION = 1e-10
 
@@ -58,9 +55,14 @@ class Instruction(Operation):
     # Class attribute to treat like barrier for transpiler, unroller, drawer
     # NOTE: Using this attribute may change in the future (See issue # 5811)
     _directive = False
+    _standard_gate = None
 
-    def __init__(self, name, num_qubits, num_clbits, params, duration=None, unit="dt", label=None):
-        """Create a new instruction.
+    def __init__(self, name, num_qubits, num_clbits, params, label=None):
+        """
+        .. deprecated:: 1.3
+           The parameters ``duration`` and ``unit`` are deprecated since
+           Qiskit 1.3, and they will be removed in 2.0 or later.
+           An instruction's duration is defined in a backend's Target object.
 
         Args:
             name (str): instruction name
@@ -68,8 +70,6 @@ class Instruction(Operation):
             num_clbits (int): instruction's clbit width
             params (list[int|float|complex|str|ndarray|list|ParameterExpression]):
                 list of parameters
-            duration (int or float): instruction's duration. it must be integer if ``unit`` is 'dt'
-            unit (str): time unit of duration
             label (str or None): An optional label for identifying the instruction.
 
         Raises:
@@ -80,7 +80,7 @@ class Instruction(Operation):
             raise CircuitError("num_qubits and num_clbits must be integer.")
         if num_qubits < 0 or num_clbits < 0:
             raise CircuitError(
-                "bad instruction dimensions: %d qubits, %d clbits." % num_qubits, num_clbits
+                f"bad instruction dimensions: {num_qubits} qubits, {num_clbits} clbits."
             )
         self._name = name
         self._num_qubits = num_qubits
@@ -95,14 +95,9 @@ class Instruction(Operation):
             if label is not None and not isinstance(label, str):
                 raise TypeError("label expects a string or None")
             self._label = label
-        # tuple (ClassicalRegister, int), tuple (Clbit, bool) or tuple (Clbit, int)
-        # when the instruction has a conditional ("if")
-        self._condition = None
         # list of instructions (and their contexts) that this instruction is composed of
         # empty definition means opaque or fundamental instruction
         self._definition = None
-        self._duration = duration
-        self._unit = unit
 
         self.params = params  # must be at last (other properties may be required for validation)
 
@@ -114,12 +109,12 @@ class Instruction(Operation):
         The "base class" of an instruction is the lowest class in its inheritance tree that the
         object should be considered entirely compatible with for _all_ circuit applications.  This
         typically means that the subclass is defined purely to offer some sort of programmer
-        convenience over the base class, and the base class is the "true" class for a behavioural
+        convenience over the base class, and the base class is the "true" class for a behavioral
         perspective.  In particular, you should *not* override :attr:`base_class` if you are
         defining a custom version of an instruction that will be implemented differently by
-        hardware, such as an alternative measurement strategy, or a version of a parametrised gate
+        hardware, such as an alternative measurement strategy, or a version of a parametrized gate
         with a particular set of parameters for the purposes of distinguishing it in a
-        :class:`.Target` from the full parametrised gate.
+        :class:`.Target` from the full parametrized gate.
 
         This is often exactly equivalent to ``type(obj)``, except in the case of singleton instances
         of standard-library instructions.  These singleton instances are special subclasses of their
@@ -157,15 +152,6 @@ class Instruction(Operation):
         """
         return self.copy()
 
-    @property
-    def condition(self):
-        """The classical condition on the instruction."""
-        return self._condition
-
-    @condition.setter
-    def condition(self, condition):
-        self._condition = condition
-
     def __eq__(self, other):
         """Two instructions are the same if they have the same name,
         same dimensions, and same params.
@@ -187,11 +173,12 @@ class Instruction(Operation):
             return False
 
         for self_param, other_param in zip_longest(self.params, other.params):
-            try:
+            if isinstance(self_param, numpy.ndarray):
+                if numpy.array_equal(self_param, other_param):
+                    continue
+            else:
                 if self_param == other_param:
                     continue
-            except ValueError:
-                pass
 
             try:
                 self_asarray = numpy.asarray(self_param)
@@ -221,8 +208,9 @@ class Instruction(Operation):
             str: A representation of the Instruction instance with the name,
                  number of qubits, classical bits and params( if any )
         """
-        return "Instruction(name='{}', num_qubits={}, num_clbits={}, params={})".format(
-            self.name, self.num_qubits, self.num_clbits, self.params
+        return (
+            f"Instruction(name='{self.name}', num_qubits={self.num_qubits}, "
+            f"num_clbits={self.num_clbits}, params={self.params})"
         )
 
     def soft_compare(self, other: "Instruction") -> bool:
@@ -268,12 +256,17 @@ class Instruction(Operation):
         return True
 
     def _define(self):
-        """Populates self.definition with a decomposition of this gate."""
+        """Populate the cached :attr:`_definition` field of this :class:`Instruction`.
+
+        Subclasses should implement this method to provide lazy construction of their public
+        :attr:`definition` attribute.  A subclass can use its :attr:`params` at the time of the
+        call.  The method should populate :attr:`_definition` with a :class:`.QuantumCircuit` and
+        not return a value."""
         pass
 
     @property
     def params(self):
-        """return instruction params."""
+        """The parameters of this :class:`Instruction`.  Ideally these will be gate angles."""
         return self._params
 
     @params.setter
@@ -290,9 +283,10 @@ class Instruction(Operation):
         return parameter
 
     def is_parameterized(self):
-        """Return True .IFF. instruction is parameterized else False"""
+        """Return whether the :class:`Instruction` contains :ref:`compile-time parameters
+        <circuit-compile-time-parameters>`."""
         return any(
-            isinstance(param, ParameterExpression) and param.parameters for param in self.params
+            isinstance(param, ParameterExpression) and param.parameters for param in self._params
         )
 
     @property
@@ -329,48 +323,6 @@ class Instruction(Operation):
         from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 
         sel.add_equivalence(self, decomposition)
-
-    @property
-    def duration(self):
-        """Get the duration."""
-        return self._duration
-
-    @duration.setter
-    def duration(self, duration):
-        """Set the duration."""
-        self._duration = duration
-
-    @property
-    def unit(self):
-        """Get the time unit of duration."""
-        return self._unit
-
-    @unit.setter
-    def unit(self, unit):
-        """Set the time unit of duration."""
-        self._unit = unit
-
-    def assemble(self):
-        """Assemble a QasmQobjInstruction"""
-        instruction = QasmQobjInstruction(name=self.name)
-        # Evaluate parameters
-        if self.params:
-            params = [x.evalf(x) if hasattr(x, "evalf") else x for x in self.params]
-            instruction.params = params
-        # Add placeholder for qarg and carg params
-        if self.num_qubits:
-            instruction.qubits = list(range(self.num_qubits))
-        if self.num_clbits:
-            instruction.memory = list(range(self.num_clbits))
-        # Add label if defined
-        if self.label:
-            instruction.label = self.label
-        # Add condition parameters for assembler. This is needed to convert
-        # to a qobj conditional instruction at assemble time and after
-        # conversion will be deleted by the assembler.
-        if self.condition:
-            instruction._condition = self.condition
-        return instruction
 
     @property
     def label(self) -> str:
@@ -449,7 +401,7 @@ class Instruction(Operation):
             return AnnotatedOperation(self, InverseModifier())
 
         if self.definition is None:
-            raise CircuitError("inverse() not implemented for %s." % self.name)
+            raise CircuitError(f"inverse() not implemented for {self.name}.")
 
         from qiskit.circuit import Gate  # pylint: disable=cyclic-import
 
@@ -474,26 +426,6 @@ class Instruction(Operation):
             inverse_definition._append(inst.operation.inverse(), inst.qubits, inst.clbits)
         inverse_gate.definition = inverse_definition
         return inverse_gate
-
-    def c_if(self, classical, val):
-        """Set a classical equality condition on this instruction between the register or cbit
-        ``classical`` and value ``val``.
-
-        .. note::
-
-            This is a setter method, not an additive one.  Calling this multiple times will silently
-            override any previously set condition; it does not stack.
-        """
-        if not isinstance(classical, (ClassicalRegister, Clbit)):
-            raise CircuitError("c_if must be used with a classical register or classical bit")
-        if val < 0:
-            raise CircuitError("condition value should be non-negative")
-        if isinstance(classical, Clbit):
-            # Casting the conditional value as Boolean when
-            # the classical condition is on a classical bit.
-            val = bool(val)
-        self._condition = (classical, val)
-        return self
 
     def copy(self, name=None):
         """
@@ -561,12 +493,6 @@ class Instruction(Operation):
     def repeat(self, n):
         """Creates an instruction with ``self`` repeated :math`n` times.
 
-        If this operation has a conditional, the output instruction will have the same conditional
-        and the inner repeated operations will be unconditional; instructions within a compound
-        definition cannot be conditioned on registers within Qiskit's data model.  This means that
-        it is not valid to apply a repeated instruction to a clbit that it both writes to and reads
-        from in its condition.
-
         Args:
             n (int): Number of times to repeat the instruction
 
@@ -590,26 +516,11 @@ class Instruction(Operation):
             qargs = tuple(qc.qubits)
             cargs = tuple(qc.clbits)
             base = self.copy()
-            if self.condition:
-                # Condition is handled on the outer instruction.
-                base = base.to_mutable()
-                base.condition = None
             for _ in [None] * n:
                 qc._append(CircuitInstruction(base, qargs, cargs))
 
             instruction.definition = qc
-        if self.condition:
-            instruction = instruction.c_if(*self.condition)
         return instruction
-
-    @property
-    def condition_bits(self) -> List[Clbit]:
-        """Get Clbits in condition."""
-        from qiskit.circuit.controlflow import condition_resources  # pylint: disable=cyclic-import
-
-        if self.condition is None:
-            return []
-        return list(condition_resources(self.condition).clbits)
 
     @property
     def name(self):

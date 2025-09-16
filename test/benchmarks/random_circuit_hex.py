@@ -41,7 +41,7 @@ def make_circuit_ring(nq, depth, seed):
         for i in range(nq):  # round of single-qubit unitaries
             u = random_unitary(2, seed).data
             angles = decomposer.angles(u)
-            qc.u3(angles[0], angles[1], angles[2], q[i])
+            qc.u(angles[0], angles[1], angles[2], q[i])
 
     # insert the final measurements
     qcm = copy.deepcopy(qc)

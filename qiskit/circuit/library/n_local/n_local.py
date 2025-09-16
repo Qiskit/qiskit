@@ -13,25 +13,62 @@
 """The n-local circuit class."""
 
 from __future__ import annotations
-import typing
-from collections.abc import Callable, Mapping, Sequence
 
-from itertools import combinations
+import collections
+import itertools
+import typing
+from collections.abc import Callable, Mapping, Sequence, Iterable
 
 import numpy
-from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit import Instruction, Parameter, ParameterVector, ParameterExpression
+from qiskit.circuit.gate import Gate
+from qiskit.circuit.quantumcircuit import QuantumCircuit, ParameterValueType
+from qiskit.circuit.parametervector import ParameterVector, ParameterVectorElement
+from qiskit.circuit import QuantumRegister
+from qiskit.circuit import (
+    Instruction,
+    Parameter,
+    ParameterExpression,
+    CircuitInstruction,
+)
 from qiskit.exceptions import QiskitError
+from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
+from qiskit.utils.deprecation import deprecate_func
+
+from qiskit._accelerate.circuit_library import (
+    Block,
+    py_n_local,
+    get_entangler_map as fast_entangler_map,
+)
 
 from ..blueprintcircuit import BlueprintCircuit
+
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
 
+# entanglement for an individual block, e.g. if the block is CXGate() and we have
+# 3 qubits, this could be [(0, 1), (1, 2), (2, 0)]
+BlockEntanglement = typing.Union[str, Iterable[Iterable[int]]]
 
-class NLocal(BlueprintCircuit):
-    """The n-local circuit class.
+
+def n_local(
+    num_qubits: int,
+    rotation_blocks: str | Gate | Iterable[str | Gate],
+    entanglement_blocks: str | Gate | Iterable[str | Gate],
+    entanglement: (
+        BlockEntanglement
+        | Iterable[BlockEntanglement]
+        | Callable[[int], BlockEntanglement | Iterable[BlockEntanglement]]
+    ) = "full",
+    reps: int = 3,
+    insert_barriers: bool = False,
+    parameter_prefix: str = "θ",
+    overwrite_block_parameters: bool = True,
+    skip_final_rotation_layer: bool = False,
+    skip_unentangled_qubits: bool = False,
+    name: str | None = "nlocal",
+) -> QuantumCircuit:
+    r"""Construct an n-local variational circuit.
 
     The structure of the n-local circuit are alternating rotation and entanglement layers.
     In both layers, parameterized circuit-blocks act on the circuit in a defined way.
@@ -42,7 +79,7 @@ class NLocal(BlueprintCircuit):
     appended.
 
     For instance, a rotation block on 2 qubits and an entanglement block on 4 qubits using
-    ``'linear'`` entanglement yields the following circuit.
+    ``"linear"`` entanglement yields the following circuit.
 
     .. parsed-literal::
 
@@ -64,10 +101,219 @@ class NLocal(BlueprintCircuit):
         +---------------------------------+
                repeated reps times
 
+    Entanglement:
+
+    The entanglement describes the connections of the gates in the entanglement layer.
+    For a two-qubit gate for example, the entanglement contains pairs of qubits on which the
+    gate should acts, e.g. ``[[ctrl0, target0], [ctrl1, target1], ...]``.
+    A set of default entanglement strategies is provided and can be selected by name:
+
+    * ``"full"`` entanglement is each qubit is entangled with all the others.
+    * ``"linear"`` entanglement is qubit :math:`i` entangled with qubit :math:`i + 1`,
+        for all :math:`i \in \{0, 1, ... , n - 2\}`, where :math:`n` is the total number of qubits.
+    * ``"reverse_linear"`` entanglement is qubit :math:`i` entangled with qubit :math:`i + 1`,
+        for all :math:`i \in \{n-2, n-3, ... , 1, 0\}`, where :math:`n` is the total number of qubits.
+        Note that if ``entanglement_blocks=="cx"`` then this option provides the same unitary as
+        ``"full"`` with fewer entangling gates.
+    * ``"pairwise"`` entanglement is one layer where qubit :math:`i` is entangled with qubit
+        :math:`i + 1`, for all even values of :math:`i`, and then a second layer where qubit :math:`i`
+        is entangled with qubit :math:`i + 1`, for all odd values of :math:`i`.
+    * ``"circular"`` entanglement is linear entanglement but with an additional entanglement of the
+        first and last qubit before the linear part.
+    * ``"sca"`` (shifted-circular-alternating) entanglement is a generalized and modified version
+        of the proposed circuit 14 in `Sim et al. <https://arxiv.org/abs/1905.10876>`__.
+        It consists of circular entanglement where the "long" entanglement connecting the first with
+        the last qubit is shifted by one each block.  Furthermore the role of control and target
+        qubits are swapped every block (therefore alternating).
+
+    If an entanglement layer contains multiple blocks, then the entanglement should be
+    given as list of entanglements for each block. For example::
+
+        entanglement_blocks = ["rxx", "ryy"]
+        entanglement = ["full", "linear"]  # full for rxx and linear for ryy
+
+    or::
+
+        structure_rxx = [[0, 1], [2, 3]]
+        structure_ryy = [[0, 2]]
+        entanglement = [structure_rxx, structure_ryy]
+
+    Finally, the entanglement can vary in each repetition of the circuit. For this, we
+    support passing a callable that takes as input the layer index and returns the entanglement
+    for the layer in the above format. See the examples below for a concrete example.
+
+    Examples:
+
+    The rotation and entanglement gates can be specified via single strings, if they
+    are made up of a single block per layer:
+
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
+        :context:
+
+        from qiskit.circuit.library import n_local
+
+        circuit = n_local(3, "ry", "cx", "linear", reps=2, insert_barriers=True)
+        circuit.draw("mpl")
+
+    Multiple gates per layer can be set by passing a list. Here, for example, we use
+    Pauli-Y and Pauli-Z rotations in the rotation layer:
+
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
+        :context: close-figs
+
+        circuit = n_local(3, ["ry", "rz"], "cz", "full", reps=1, insert_barriers=True)
+        circuit.draw("mpl")
+
+    To omit rotation or entanglement layers, the block can be set to an empty list:
+
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
+        :context: close-figs
+
+        circuit = n_local(4, [], "cry", reps=2)
+        circuit.draw("mpl")
+
+    The entanglement can be set explicitly via the ``entanglement`` argument:
+
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
+        :context: close-figs
+
+        entangler_map = [[0, 1], [2, 0]]
+        circuit = n_local(3, "x", "crx", entangler_map, reps=2)
+        circuit.draw("mpl")
+
+    We can set different entanglements per layer, by specifing a callable that takes
+    as input the current layer index, and returns the entanglement structure. For example,
+    the following uses different entanglements for odd and even layers:
+
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
+        :context: close-figs
+
+        def entanglement(layer_index):
+            if layer_index % 2 == 0:
+                return [[0, 1], [0, 2]]
+            return [[1, 2]]
+
+        circuit = n_local(3, "x", "cx", entanglement, reps=3, insert_barriers=True)
+        circuit.draw("mpl")
+
+
+    Args:
+        num_qubits: The number of qubits of the circuit.
+        rotation_blocks: The blocks used in the rotation layers. If multiple are passed,
+            these will be applied one after another (like new sub-layers).
+        entanglement_blocks: The blocks used in the entanglement layers. If multiple are passed,
+            these will be applied one after another.
+        entanglement: The indices specifying on which qubits the input blocks act. This is
+            specified by string describing an entanglement strategy (see the additional info)
+            or a list of qubit connections.
+            If a list of entanglement blocks is passed, different entanglement for each block can
+            be specified by passing a list of entanglements. To specify varying entanglement for
+            each repetition, pass a callable that takes as input the layer and returns the
+            entanglement for that layer.
+            Defaults to ``"full"``, meaning an all-to-all entanglement structure.
+        reps: Specifies how often the rotation blocks and entanglement blocks are repeated.
+        insert_barriers: If ``True``, barriers are inserted in between each layer. If ``False``,
+            no barriers are inserted.
+        parameter_prefix: The prefix used if default parameters are generated.
+        overwrite_block_parameters: If the parameters in the added blocks should be overwritten.
+            If ``False``, the parameters in the blocks are not changed.
+        skip_final_rotation_layer: Whether a final rotation layer is added to the circuit.
+        skip_unentangled_qubits: If ``True``, the rotation gates act only on qubits that
+            are entangled. If ``False``, the rotation gates act on all qubits.
+        name: The name of the circuit.
+
+    Returns:
+        An n-local circuit.
+    """
+    if reps < 0:
+        # this is an important check, since we cast this to an unsigned integer Rust-side
+        raise ValueError(f"reps must be non-negative, but is {reps}")
+
+    supported_gates = get_standard_gate_name_mapping()
+    rotation_blocks = _normalize_blocks(
+        rotation_blocks, supported_gates, overwrite_block_parameters
+    )
+    entanglement_blocks = _normalize_blocks(
+        entanglement_blocks, supported_gates, overwrite_block_parameters
+    )
+
+    entanglement = _normalize_entanglement(entanglement, len(entanglement_blocks))
+
+    data = py_n_local(
+        num_qubits=num_qubits,
+        rotation_blocks=rotation_blocks,
+        entanglement_blocks=entanglement_blocks,
+        entanglement=entanglement,
+        reps=reps,
+        insert_barriers=insert_barriers,
+        parameter_prefix=parameter_prefix,
+        skip_final_rotation_layer=skip_final_rotation_layer,
+        skip_unentangled_qubits=skip_unentangled_qubits,
+    )
+    circuit = QuantumCircuit._from_circuit_data(data, legacy_qubits=True, name=name)
+
+    return circuit
+
+
+class NLocal(BlueprintCircuit):
+    """The n-local circuit class.
+
+    The structure of the n-local circuit are alternating rotation and entanglement layers.
+    In both layers, parameterized circuit-blocks act on the circuit in a defined way.
+    In the rotation layer, the blocks are applied stacked on top of each other, while in the
+    entanglement layer according to the ``entanglement`` strategy.
+    The circuit blocks can have arbitrary sizes (smaller equal to the number of qubits in the
+    circuit). Each layer is repeated ``reps`` times, and by default a final rotation layer is
+    appended.
+
+    For instance, a rotation block on 2 qubits and an entanglement block on 4 qubits using
+    ``'linear'`` entanglement yields the following circuit.
+
+    .. code-block:: text
+
+        ┌──────┐ ░ ┌──────┐                      ░ ┌──────┐
+        ┤0     ├─░─┤0     ├──────────────── ... ─░─┤0     ├
+        │  Rot │ ░ │      │┌──────┐              ░ │  Rot │
+        ┤1     ├─░─┤1     ├┤0     ├──────── ... ─░─┤1     ├
+        ├──────┤ ░ │  Ent ││      │┌──────┐      ░ ├──────┤
+        ┤0     ├─░─┤2     ├┤1     ├┤0     ├ ... ─░─┤0     ├
+        │  Rot │ ░ │      ││  Ent ││      │      ░ │  Rot │
+        ┤1     ├─░─┤3     ├┤2     ├┤1     ├ ... ─░─┤1     ├
+        ├──────┤ ░ └──────┘│      ││  Ent │      ░ ├──────┤
+        ┤0     ├─░─────────┤3     ├┤2     ├ ... ─░─┤0     ├
+        │  Rot │ ░         └──────┘│      │      ░ │  Rot │
+        ┤1     ├─░─────────────────┤3     ├ ... ─░─┤1     ├
+        └──────┘ ░                 └──────┘      ░ └──────┘
+
+        |                                 |
+        +---------------------------------+
+               repeated reps times
+
     If specified, barriers can be inserted in between every block.
     If an initial state object is provided, it is added in front of the NLocal.
+
+    .. seealso::
+
+        The :func:`.n_local` function constructs a functionally equivalent circuit, but faster.
+
     """
 
+    @deprecate_func(
+        since="2.1",
+        additional_msg="This applies to NLocal subclasses too. Use the corresponding function "
+        "from the module qiskit.circuit.library.n_local instead.",
+        removal_timeline="in Qiskit 3.0",
+    )
     def __init__(
         self,
         num_qubits: int | None = None,
@@ -153,6 +399,17 @@ class NLocal(BlueprintCircuit):
         self._initial_state_circuit: QuantumCircuit | None = None
         self._bounds: list[tuple[float | None, float | None]] | None = None
         self._flatten = flatten
+
+        # During the build, if a subclass hasn't overridden our parametrization methods, we can use
+        # a newer fast-path method to parametrise the rotation and entanglement blocks if internally
+        # those are just simple stdlib gates that have been promoted to circuits.  We don't
+        # precalculate the fast-path layers themselves because there's far too much that can be
+        # overridden between object construction and build, and far too many subclasses of `NLocal`
+        # that override bits and bobs of the internal private methods, so it'd be too hard to keep
+        # everything in sync.
+        self._allow_fast_path_parametrization = (
+            getattr(self._parameter_generator, "__func__", None) is NLocal._parameter_generator
+        )
 
         if int(reps) != reps:
             raise TypeError("The value of reps should be int")
@@ -422,9 +679,8 @@ class NLocal(BlueprintCircuit):
         ):
             raise ValueError(
                 "The length of ordered parameters must be equal to the number of "
-                "settable parameters in the circuit ({}), but is {}".format(
-                    self.num_parameters_settable, len(parameters)
-                )
+                f"settable parameters in the circuit ({self.num_parameters_settable}),"
+                f" but is {len(parameters)}"
             )
         self._ordered_parameters = parameters
         self._invalidate()
@@ -779,13 +1035,10 @@ class NLocal(BlueprintCircuit):
             else:
                 entangler_map = entanglement
 
-            layer = QuantumCircuit(self.num_qubits)
             for i in entangler_map:
                 params = self.ordered_parameters[-len(get_parameters(block)) :]
                 parameterized_block = self._parameterize_block(block, params=params)
-                layer.compose(parameterized_block, i, inplace=True)
-
-            self.compose(layer, inplace=True)
+                self.compose(parameterized_block, i, inplace=True, copy=False)
         else:
             # cannot prepend a block currently, just rebuild
             self._invalidate()
@@ -843,52 +1096,65 @@ class NLocal(BlueprintCircuit):
         """Build a rotation layer."""
         # if the unentangled qubits are skipped, compute the set of qubits that are not entangled
         if self._skip_unentangled_qubits:
-            unentangled_qubits = self.get_unentangled_qubits()
+            skipped_qubits = self.get_unentangled_qubits()
+        else:
+            skipped_qubits = set()
+
+        target_qubits = circuit.qubits
 
         # iterate over all rotation blocks
         for j, block in enumerate(self.rotation_blocks):
-            # create a new layer
-            layer = QuantumCircuit(*self.qregs)
-
-            # we apply the rotation gates stacked on top of each other, i.e.
-            # if we have 4 qubits and a rotation block of width 2, we apply two instances
-            block_indices = [
-                list(range(k * block.num_qubits, (k + 1) * block.num_qubits))
-                for k in range(self.num_qubits // block.num_qubits)
-            ]
-
-            # if unentangled qubits should not be acted on, remove all operations that
-            # touch an unentangled qubit
-            if self._skip_unentangled_qubits:
+            skipped_blocks = {qubit // block.num_qubits for qubit in skipped_qubits}
+            if (
+                self._allow_fast_path_parametrization
+                and (simple_block := _stdlib_gate_from_simple_block(block)) is not None
+            ):
+                all_qubits = (
+                    tuple(target_qubits[k * block.num_qubits : (k + 1) * block.num_qubits])
+                    for k in range(self.num_qubits // block.num_qubits)
+                    if k not in skipped_blocks
+                )
+                for qubits in all_qubits:
+                    instr = CircuitInstruction(
+                        simple_block.gate(*itertools.islice(param_iter, simple_block.num_params)),
+                        qubits,
+                    )
+                    circuit._append(instr)
+            else:
                 block_indices = [
-                    indices
-                    for indices in block_indices
-                    if set(indices).isdisjoint(unentangled_qubits)
+                    list(range(k * block.num_qubits, (k + 1) * block.num_qubits))
+                    for k in range(self.num_qubits // block.num_qubits)
+                    if k not in skipped_blocks
                 ]
-
-            # apply the operations in the layer
-            for indices in block_indices:
-                parameterized_block = self._parameterize_block(block, param_iter, i, j, indices)
-                layer.compose(parameterized_block, indices, inplace=True)
-
-            # add the layer to the circuit
-            circuit.compose(layer, inplace=True)
+                # apply the operations in the layer
+                for indices in block_indices:
+                    parameterized_block = self._parameterize_block(block, param_iter, i, j, indices)
+                    circuit.compose(parameterized_block, indices, inplace=True, copy=False)
 
     def _build_entanglement_layer(self, circuit, param_iter, i):
         """Build an entanglement layer."""
         # iterate over all entanglement blocks
+        target_qubits = circuit.qubits
         for j, block in enumerate(self.entanglement_blocks):
-            # create a new layer and get the entangler map for this block
-            layer = QuantumCircuit(*self.qregs)
             entangler_map = self.get_entangler_map(i, j, block.num_qubits)
-
-            # apply the operations in the layer
-            for indices in entangler_map:
-                parameterized_block = self._parameterize_block(block, param_iter, i, j, indices)
-                layer.compose(parameterized_block, indices, inplace=True)
-
-            # add the layer to the circuit
-            circuit.compose(layer, inplace=True)
+            if (
+                self._allow_fast_path_parametrization
+                and (simple_block := _stdlib_gate_from_simple_block(block)) is not None
+            ):
+                for indices in entangler_map:
+                    # It's actually nontrivially faster to use a listcomp and pass that to `tuple`
+                    # than to pass a generator expression directly.
+                    # pylint: disable=consider-using-generator
+                    instr = CircuitInstruction(
+                        simple_block.gate(*itertools.islice(param_iter, simple_block.num_params)),
+                        tuple([target_qubits[i] for i in indices]),
+                    )
+                    circuit._append(instr)
+            else:
+                # apply the operations in the layer
+                for indices in entangler_map:
+                    parameterized_block = self._parameterize_block(block, param_iter, i, j, indices)
+                    circuit.compose(parameterized_block, indices, inplace=True, copy=False)
 
     def _build_additional_layers(self, circuit, which):
         if which == "appended":
@@ -901,13 +1167,10 @@ class NLocal(BlueprintCircuit):
             raise ValueError("`which` must be either `appended` or `prepended`.")
 
         for block, ent in zip(blocks, entanglements):
-            layer = QuantumCircuit(*self.qregs)
             if isinstance(ent, str):
                 ent = get_entangler_map(block.num_qubits, self.num_qubits, ent)
             for indices in ent:
-                layer.compose(block, indices, inplace=True)
-
-            circuit.compose(layer, inplace=True)
+                circuit.compose(block, indices, inplace=True, copy=False)
 
     def _build(self) -> None:
         """If not already built, build the circuit."""
@@ -926,7 +1189,7 @@ class NLocal(BlueprintCircuit):
 
         # use the initial state as starting circuit, if it is set
         if self.initial_state:
-            circuit.compose(self.initial_state.copy(), inplace=True)
+            circuit.compose(self.initial_state.copy(), inplace=True, copy=False)
 
         param_iter = iter(self.ordered_parameters)
 
@@ -972,7 +1235,7 @@ class NLocal(BlueprintCircuit):
             except QiskitError:
                 block = circuit.to_instruction()
 
-            self.append(block, self.qubits)
+            self.append(block, self.qubits, copy=False)
 
     # pylint: disable=unused-argument
     def _parameter_generator(self, rep: int, block: int, indices: list[int]) -> Parameter | None:
@@ -1012,48 +1275,204 @@ def get_entangler_map(
     Raises:
         ValueError: If the entanglement mode ist not supported.
     """
-    n, m = num_circuit_qubits, num_block_qubits
-    if m > n:
-        raise ValueError(
-            "The number of block qubits must be smaller or equal to the number of "
-            "qubits in the circuit."
+    try:
+        return fast_entangler_map(num_circuit_qubits, num_block_qubits, entanglement, offset)
+    except Exception as exc:
+        # need this as Rust is now raising a QiskitError, where this function was raising ValueError
+        raise ValueError("Something went wrong in Rust space, here's the error:") from exc
+
+
+_StdlibGateResult = collections.namedtuple("_StdlibGateResult", ("gate", "num_params"))
+_STANDARD_GATE_MAPPING = get_standard_gate_name_mapping()
+
+
+def _stdlib_gate_from_simple_block(block: QuantumCircuit) -> _StdlibGateResult | None:
+    if block.global_phase != 0.0 or len(block) != 1:
+        return None
+    instruction = block.data[0]
+    # If the single instruction isn't a standard-library gate that spans the full width of the block
+    # in the correct order, we're not simple.  If the gate isn't fully parametrized with pure,
+    # unique `Parameter` instances (expressions are too complex) that are in order, we're not
+    # simple.
+    if (
+        instruction.clbits
+        or tuple(instruction.qubits) != tuple(block.qubits)
+        or (
+            getattr(_STANDARD_GATE_MAPPING.get(instruction.operation.name), "base_class", None)
+            is not instruction.operation.base_class
+        )
+        or tuple(instruction.operation.params) != tuple(block.parameters)
+    ):
+        return None
+    return _StdlibGateResult(instruction.operation.base_class, len(instruction.operation.params))
+
+
+def _normalize_entanglement(
+    entanglement: (
+        BlockEntanglement
+        | Iterable[BlockEntanglement]
+        | Callable[[int], BlockEntanglement | Iterable[BlockEntanglement]]
+    ),
+    num_entanglement_blocks: int,
+) -> list[str | list[tuple[int]]] | Callable[[int], list[str | list[tuple[int]]]]:
+    """If the entanglement is Iterable[Iterable], normalize to list[tuple]."""
+    if isinstance(entanglement, str):
+        return [entanglement] * num_entanglement_blocks
+
+    if callable(entanglement):
+        return lambda offset: _normalize_entanglement(entanglement(offset), num_entanglement_blocks)
+
+    # here, entanglement is an Iterable
+    if len(entanglement) == 0:
+        # handle edge cases when entanglement is set to an empty list
+        return [[]]
+
+    # if the entanglement is Iterable[Iterable[int]], normalize to Iterable[Iterable[Iterable[int]]]
+    try:
+        # if users e.g. gave Iterable[int] this in invalid and will raise a TypeError
+        if isinstance(entanglement[0][0], (int, numpy.integer)):
+            entanglement = [entanglement]
+    except TypeError as exc:
+        raise TypeError(f"Invalid entanglement type: {entanglement}.") from exc
+
+    # ensure the number of block entanglements matches the number of blocks
+    if len(entanglement) != num_entanglement_blocks:
+        raise QiskitError(
+            f"Number of block-entanglements ({len(entanglement)}) must match number of "
+            f"entanglement blocks ({num_entanglement_blocks})!"
         )
 
-    if entanglement == "pairwise" and num_block_qubits > 2:
-        raise ValueError("Pairwise entanglement is not defined for blocks with more than 2 qubits.")
-
-    if entanglement == "full":
-        return list(combinations(list(range(n)), m))
-    elif entanglement == "reverse_linear":
-        # reverse linear connectivity. In the case of m=2 and the entanglement_block='cx'
-        # then it's equivalent to 'full' entanglement
-        reverse = [tuple(range(n - i - m, n - i)) for i in range(n - m + 1)]
-        return reverse
-    elif entanglement in ["linear", "circular", "sca", "pairwise"]:
-        linear = [tuple(range(i, i + m)) for i in range(n - m + 1)]
-        # if the number of block qubits is 1, we don't have to add the 'circular' part
-        if entanglement == "linear" or m == 1:
-            return linear
-
-        if entanglement == "pairwise":
-            return linear[::2] + linear[1::2]
-
-        # circular equals linear plus top-bottom entanglement (if there's space for it)
-        if n > m:
-            circular = [tuple(range(n - m + 1, n)) + (0,)] + linear
+    # normalize the data: str remains, and Iterable[Iterable[int]] becomes list[tuple[int]]
+    normalized = []
+    for block in entanglement:
+        if isinstance(block, str):
+            normalized.append(block)
         else:
-            circular = linear
-        if entanglement == "circular":
-            return circular
+            normalized.append([tuple(connections) for connections in block])
 
-        # sca is circular plus shift and reverse
-        shifted = circular[-offset:] + circular[:-offset]
-        if offset % 2 == 1:  # if odd, reverse the qubit indices
-            sca = [ind[::-1] for ind in shifted]
+    return normalized
+
+
+def _normalize_blocks(
+    blocks: str | Gate | Iterable[str | Gate],
+    supported_gates: dict[str, Gate],
+    overwrite_block_parameters: bool,
+) -> list[Block]:
+    # normalize the input into an iterable -- we add an extra check for a circuit as
+    # courtesy to the users, since the NLocal class used to accept circuits
+    if isinstance(blocks, (str, Gate, QuantumCircuit)):
+        blocks = [blocks]
+
+    normalized = []
+    for block in blocks:
+        # since the NLocal circuit accepted circuits as inputs, we raise a warning here
+        # to simplify the transition (even though, strictly speaking, quantum circuits are
+        # not a supported input type)
+        if isinstance(block, QuantumCircuit):
+            raise ValueError(
+                "The blocks should be of type Gate or str, but you passed a QuantumCircuit. "
+                "You can call .to_gate() on the circuit to turn it into a Gate object."
+            )
+
+        is_standard = False
+        if isinstance(block, str):
+            if block not in supported_gates:
+                raise ValueError(f"Unsupported gate: {block}")
+            block = supported_gates[block]
+            is_standard = True
+        elif isinstance(block, Gate) and getattr(block, "_standard_gate", None) is not None:
+            if len(block.params) == 0:
+                is_standard = True
+            # the fast path will always overwrite block parameters
+            elif overwrite_block_parameters:
+                # if all parameters are plain Parameter objects, this is a plain
+                # standard gate we do not need to propagate parameterizations for
+                is_standard = all(isinstance(p, Parameter) for p in block.params)
+
+        if is_standard:
+            block = Block.from_standard_gate(block._standard_gate)
         else:
-            sca = shifted
+            if overwrite_block_parameters:
+                num_parameters, builder = _get_gate_builder(block)
+            else:
+                num_parameters, builder = _trivial_builder(block)
 
-        return sca
+            block = Block.from_callable(block.num_qubits, num_parameters, builder)
 
-    else:
-        raise ValueError(f"Unsupported entanglement type: {entanglement}")
+        normalized.append(block)
+
+    return normalized
+
+
+def _trivial_builder(
+    gate: Gate,
+) -> tuple[int, Callable[list[Parameter], tuple[Gate, list[ParameterValueType]]]]:
+
+    def builder(_):
+        copied = gate.copy()
+        return copied, copied.params
+
+    return 0, builder
+
+
+def _get_gate_builder(
+    gate: Gate,
+) -> tuple[int, Callable[list[Parameter], tuple[Gate, list[ParameterValueType]]]]:
+    """Construct a callable that handles parameter-rebinding.
+
+    For a given gate, this return the number of free parameters and a callable that can be
+    used to obtain a re-parameterized version of the gate. For example::
+
+        x, y = Parameter("x"), Parameter("y")
+        gate = CUGate(x, 2 * y, 0.5, 0.)
+
+        num_parameters, builder = _build_gate(gate)
+        print(num_parameters)  # prints 2
+
+        a, b = Parameter("a"), Parameter("b")
+        new_gate, new_params = builder([a, b])
+        print(new_gate)  # CUGate(a, 2 * b, 0.5, 0)
+        print(new_params)  # [a, 2 * b, 0.5, 0]
+
+    """
+    free_parameters = set()
+    for p in gate.params:
+        if isinstance(p, ParameterExpression):
+            free_parameters |= set(p.parameters)
+
+    num_parameters = len(free_parameters)
+
+    sorted_parameters = _sort_parameters(free_parameters)
+
+    def builder(new_parameters):
+        out = gate.copy()
+
+        # re-bind the ``Gate.params`` attribute
+        param_dict = dict(zip(sorted_parameters, new_parameters))
+        bound_params = gate.params.copy()
+        for i, expr in enumerate(gate.params):
+            if isinstance(expr, ParameterExpression):
+                for parameter in expr.parameters:
+                    expr = expr.assign(parameter, param_dict[parameter])
+                bound_params[i] = expr
+
+        out.params = bound_params
+
+        # if the definition exists, rebind it
+        if out._definition is not None:
+            out._definition.assign_parameters(param_dict, inplace=True)
+
+        return out, bound_params
+
+    return num_parameters, builder
+
+
+def _sort_parameters(parameters):
+    """Sort a list of Parameter objects."""
+
+    def key(parameter):
+        if isinstance(parameter, ParameterVectorElement):
+            return (parameter.vector.name, parameter.index)
+        return (parameter.name,)
+
+    return sorted(parameters, key=key)

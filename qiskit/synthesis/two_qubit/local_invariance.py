@@ -15,17 +15,9 @@
 of two-qubit unitary operators.
 """
 from __future__ import annotations
-from math import sqrt
 import numpy as np
-
-INVARIANT_TOL = 1e-12
-
-# Bell "Magic" basis
-MAGIC = (
-    1.0
-    / sqrt(2)
-    * np.array([[1, 0, 0, 1j], [0, 1j, 1, 0], [0, 1j, -1, 0], [1, 0, 0, -1j]], dtype=complex)
-)
+from qiskit._accelerate.two_qubit_decompose import two_qubit_local_invariants as tqli_rs
+from qiskit._accelerate.two_qubit_decompose import local_equivalence as le_rs
 
 
 def two_qubit_local_invariants(U: np.ndarray) -> np.ndarray:
@@ -44,28 +36,11 @@ def two_qubit_local_invariants(U: np.ndarray) -> np.ndarray:
         Y. Makhlin, Quant. Info. Proc. 1, 243-252 (2002).
         Zhang et al., Phys Rev A. 67, 042313 (2003).
     """
-    U = np.asarray(U)
+    U = np.asarray(U, dtype=complex)
     if U.shape != (4, 4):
         raise ValueError("Unitary must correspond to a two-qubit gate.")
-
-    # Transform to bell basis
-    Um = MAGIC.conj().T.dot(U.dot(MAGIC))
-    # Get determinate since +- one is allowed.
-    det_um = np.linalg.det(Um)
-    M = Um.T.dot(Um)
-    # trace(M)**2
-    m_tr2 = M.trace()
-    m_tr2 *= m_tr2
-
-    # Table II of Ref. 1 or Eq. 28 of Ref. 2.
-    G1 = m_tr2 / (16 * det_um)
-    G2 = (m_tr2 - np.trace(M.dot(M))) / (4 * det_um)
-
-    # Here we split the real and imag pieces of G1 into two so as
-    # to better equate to the Weyl chamber coordinates (c0,c1,c2)
-    # and explore the parameter space.
-    # Also do a FP trick -0.0 + 0.0 = 0.0
-    return np.round([G1.real, G1.imag, G2.real], 12) + 0.0
+    (a, b, c) = tqli_rs(U)
+    return np.array([round(a, 12), round(b, 12), round(c, 12)])
 
 
 def local_equivalence(weyl: np.ndarray) -> np.ndarray:
@@ -83,11 +58,6 @@ def local_equivalence(weyl: np.ndarray) -> np.ndarray:
         but we multiply weyl coordinates by 2 since we are
         working in the reduced chamber.
     """
-    g0_equiv = np.prod(np.cos(2 * weyl) ** 2) - np.prod(np.sin(2 * weyl) ** 2)
-    g1_equiv = np.prod(np.sin(4 * weyl)) / 4
-    g2_equiv = (
-        4 * np.prod(np.cos(2 * weyl) ** 2)
-        - 4 * np.prod(np.sin(2 * weyl) ** 2)
-        - np.prod(np.cos(4 * weyl))
-    )
-    return np.round([g0_equiv, g1_equiv, g2_equiv], 12) + 0.0
+    mat = np.asarray(weyl, dtype=float)
+    (a, b, c) = le_rs(mat)
+    return np.array([round(a, 12), round(b, 12), round(c, 12)])

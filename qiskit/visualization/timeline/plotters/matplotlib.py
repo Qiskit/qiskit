@@ -132,8 +132,7 @@ class MplPlotter(BasePlotter):
 
             else:
                 raise VisualizationError(
-                    "Data {name} is not supported by {plotter}"
-                    "".format(name=data, plotter=self.__class__.__name__)
+                    f"Data {data} is not supported by {self.__class__.__name__}"
                 )
 
     def _time_bucket_outline(
@@ -189,5 +188,8 @@ class MplPlotter(BasePlotter):
 
         if self.figure and interactive:
             self.figure.show()
-
+        try:
+            self.figure.tight_layout()
+        except AttributeError:
+            pass
         return self.figure

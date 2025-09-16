@@ -12,15 +12,23 @@
 
 """The Suzuki-Trotter product formula."""
 
-from typing import Callable, Optional, Union
+from __future__ import annotations
 
+import typing
+from collections.abc import Callable
+from itertools import chain
 import numpy as np
 
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.quantum_info.operators import SparsePauliOp, Pauli
+from qiskit.quantum_info import SparsePauliOp
+import qiskit.quantum_info
 
+from .product_formula import ProductFormula, reorder_paulis
 
-from .product_formula import ProductFormula
+if typing.TYPE_CHECKING:
+    from qiskit.circuit.quantumcircuit import ParameterValueType
+    from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate
 
 
 class SuzukiTrotter(ProductFormula):
@@ -40,7 +48,7 @@ class SuzukiTrotter(ProductFormula):
 
     .. math::
 
-        e^{-it(XX + ZZ)} = e^{-it/2 ZZ}e^{-it XX}e^{-it/2 ZZ} + \mathcal{O}(t^3).
+        e^{-it(XI + ZZ)} = e^{-it/2 XI}e^{-it ZZ}e^{-it/2 XI} + \mathcal{O}(t^3).
 
     References:
         [1]: D. Berry, G. Ahokas, R. Cleve and B. Sanders,
@@ -57,89 +65,163 @@ class SuzukiTrotter(ProductFormula):
         reps: int = 1,
         insert_barriers: bool = False,
         cx_structure: str = "chain",
-        atomic_evolution: Optional[
-            Callable[[Union[Pauli, SparsePauliOp], float], QuantumCircuit]
-        ] = None,
+        atomic_evolution: (
+            Callable[[QuantumCircuit, qiskit.quantum_info.Pauli | SparsePauliOp, float], None]
+            | None
+        ) = None,
+        wrap: bool = False,
+        preserve_order: bool = True,
+        *,
+        atomic_evolution_sparse_observable: bool = False,
     ) -> None:
-        """
+        r"""
         Args:
             order: The order of the product formula.
             reps: The number of time steps.
             insert_barriers: Whether to insert barriers between the atomic evolutions.
             cx_structure: How to arrange the CX gates for the Pauli evolutions, can be ``"chain"``,
                 where next neighbor connections are used, or ``"fountain"``, where all qubits are
-                connected to one.
-            atomic_evolution: A function to construct the circuit for the evolution of single
-                Pauli string. Per default, a single Pauli evolution is decomposed in a CX chain
-                and a single qubit Z rotation.
+                connected to one. This only takes effect when ``atomic_evolution is None``.
+            atomic_evolution: A function to apply the evolution of a single
+                :class:`~.quantum_info.Pauli`, or :class:`.SparsePauliOp` of only commuting terms,
+                to a circuit. The function takes in three arguments: the circuit to append the
+                evolution to, the Pauli operator to evolve, and the evolution time. By default, a
+                single Pauli evolution is decomposed into a chain of ``CX`` gates and a single
+                ``RZ`` gate.
+            wrap: Whether to wrap the atomic evolutions into custom gate objects. This only takes
+                effect when ``atomic_evolution is None``.
+            preserve_order: If ``False``, allows reordering the terms of the operator to
+                potentially yield a shallower evolution circuit. Not relevant
+                when synthesizing operator with a single term.
+            atomic_evolution_sparse_observable: If a custom ``atomic_evolution`` is passed,
+                which does not yet support :class:`.SparseObservable`\ s as input, set this
+                argument to ``False`` to automatically apply a conversion to :class:`.SparsePauliOp`.
+                This argument is supported until Qiskit 2.2, at which point all atomic evolutions
+                are required to support :class:`.SparseObservable`\ s as input.
+
         Raises:
             ValueError: If order is not even
         """
-
-        if order % 2 == 1:
+        if order > 1 and order % 2 == 1:
             raise ValueError(
                 "Suzuki product formulae are symmetric and therefore only defined "
-                "for even orders."
+                f"for when the order is 1 or even, not {order}."
             )
-        super().__init__(order, reps, insert_barriers, cx_structure, atomic_evolution)
 
-    def synthesize(self, evolution):
-        # get operators and time to evolve
+        super().__init__(
+            order,
+            reps,
+            insert_barriers,
+            cx_structure,
+            atomic_evolution,
+            wrap,
+            preserve_order=preserve_order,
+            atomic_evolution_sparse_observable=atomic_evolution_sparse_observable,
+        )
+
+    def expand(
+        self, evolution: PauliEvolutionGate
+    ) -> list[tuple[str, list[int], ParameterValueType]]:
+        """Expand the Hamiltonian into a Suzuki-Trotter sequence of sparse gates.
+
+        For example, the Hamiltonian ``H = IX + ZZ`` for an evolution time ``t`` and
+        1 repetition for an order 2 formula would get decomposed into a list of 3-tuples
+        containing ``(pauli, indices, rz_rotation_angle)``, that is:
+
+        .. code-block:: text
+
+            ("X", [0], t), ("ZZ", [0, 1], 2t), ("X", [0], t)
+
+        Note that the rotation angle contains a factor of 2, such that that evolution
+        of a Pauli :math:`P` over time :math:`t`, which is :math:`e^{itP}`, is represented
+        by ``(P, indices, 2 * t)``.
+
+        For ``N`` repetitions, this sequence would be repeated ``N`` times and the coefficients
+        divided by ``N``.
+
+        Args:
+            evolution: The evolution gate to expand.
+
+        Returns:
+            The Pauli network implementing the Trotter expansion.
+        """
         operators = evolution.operator
         time = evolution.time
 
-        if not isinstance(operators, list):
-            pauli_list = [(Pauli(op), np.real(coeff)) for op, coeff in operators.to_list()]
-        else:
-            pauli_list = [(op, 1) for op in operators]
+        def to_sparse_list(operator):
+            sparse_list = (
+                operator.to_sparse_list()
+                if isinstance(operator, SparsePauliOp)
+                else operator.to_sparse_list()
+            )
+            paulis = [
+                (pauli, indices, real_or_fail(coeff) * time * 2 / self.reps)
+                for pauli, indices, coeff in sparse_list
+            ]
+            if not self.preserve_order:
+                return reorder_paulis(paulis)
 
-        ops_to_evolve = self._recurse(self.order, time / self.reps, pauli_list)
+            return paulis
 
         # construct the evolution circuit
-        single_rep = QuantumCircuit(operators[0].num_qubits)
-        first_barrier = False
+        if isinstance(operators, list):  # already sorted into commuting bits
+            non_commuting = [to_sparse_list(operator) for operator in operators]
+        else:
+            # Assume no commutativity here. If we were to group commuting Paulis,
+            # here would be the location to do so.
+            non_commuting = [[op] for op in to_sparse_list(operators)]
 
-        for op, coeff in ops_to_evolve:
-            # add barriers
-            if first_barrier:
-                if self.insert_barriers:
-                    single_rep.barrier()
-            else:
-                first_barrier = True
+        # we're already done here since Lie Trotter does not do any operator repetition
+        product_formula = self._recurse(self.order, non_commuting)
+        flattened = self.reps * list(chain.from_iterable(product_formula))
 
-            single_rep.compose(self.atomic_evolution(op, coeff), wrap=True, inplace=True)
-
-        evolution_circuit = QuantumCircuit(operators[0].num_qubits)
-        first_barrier = False
-
-        for _ in range(self.reps):
-            # add barriers
-            if first_barrier:
-                if self.insert_barriers:
-                    single_rep.barrier()
-            else:
-                first_barrier = True
-
-            evolution_circuit.compose(single_rep, inplace=True)
-
-        return evolution_circuit
+        return flattened
 
     @staticmethod
-    def _recurse(order, time, pauli_list):
+    def _recurse(order, grouped_paulis):
         if order == 1:
-            return pauli_list
+            return grouped_paulis
 
         elif order == 2:
-            halves = [(op, coeff * time / 2) for op, coeff in pauli_list[:-1]]
-            full = [(pauli_list[-1][0], time * pauli_list[-1][1])]
+            halves = [
+                [(label, qubits, coeff / 2) for label, qubits, coeff in paulis]
+                for paulis in grouped_paulis[:-1]
+            ]
+            full = [grouped_paulis[-1]]
             return halves + full + list(reversed(halves))
 
         else:
             reduction = 1 / (4 - 4 ** (1 / (order - 1)))
             outer = 2 * SuzukiTrotter._recurse(
-                order - 2, time=reduction * time, pauli_list=pauli_list
+                order - 2,
+                [
+                    [(label, qubits, coeff * reduction) for label, qubits, coeff in paulis]
+                    for paulis in grouped_paulis
+                ],
             )
             inner = SuzukiTrotter._recurse(
-                order - 2, time=(1 - 4 * reduction) * time, pauli_list=pauli_list
+                order - 2,
+                [
+                    [
+                        (label, qubits, coeff * (1 - 4 * reduction))
+                        for label, qubits, coeff in paulis
+                    ]
+                    for paulis in grouped_paulis
+                ],
             )
             return outer + inner + outer
+
+
+def real_or_fail(value, tol=100):
+    """Return real if close, otherwise fail. Unbound parameters are left unchanged.
+
+    Based on NumPy's ``real_if_close``, i.e. ``tol`` is in terms of machine precision for float.
+    """
+    if isinstance(value, ParameterExpression):
+        return value
+
+    abstol = tol * np.finfo(float).eps
+    if abs(np.imag(value)) < abstol:
+        return np.real(value)
+
+    raise ValueError(f"Encountered complex value {value}, but expected real.")

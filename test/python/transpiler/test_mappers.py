@@ -76,7 +76,7 @@ from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, transpile
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.qasm2 import dump
 from qiskit.transpiler import PassManager
-from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, StochasticSwap, SabreSwap
+from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, SabreSwap
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler import CouplingMap, Layout
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -279,13 +279,6 @@ class TestsLookaheadSwap(SwapperCommonTestCases, QiskitTestCase):
     """Test SwapperCommonTestCases using LookaheadSwap."""
 
     pass_class = LookaheadSwap
-
-
-class TestsStochasticSwap(SwapperCommonTestCases, QiskitTestCase):
-    """Test SwapperCommonTestCases using StochasticSwap."""
-
-    pass_class = StochasticSwap
-    additional_args = {"seed": 0}
 
 
 class TestsSabreSwap(SwapperCommonTestCases, QiskitTestCase):

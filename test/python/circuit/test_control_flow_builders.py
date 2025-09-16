@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-function-docstring
+# pylint: disable=missing-function-docstring,invalid-name
 
 """Test operations on the builder interfaces for control flow in dynamic QuantumCircuits."""
 
@@ -31,7 +31,6 @@ from qiskit.circuit import (
 )
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import ForLoopOp, IfElseOp, WhileLoopOp, SwitchCaseOp, CASE_DEFAULT
-from qiskit.circuit.controlflow.if_else import IfElsePlaceholder
 from qiskit.circuit.exceptions import CircuitError
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 from test.utils._canonical import canonicalize_control_flow  # pylint: disable=wrong-import-order
@@ -187,42 +186,6 @@ class TestControlFlowBuilders(QiskitTestCase):
 
             expected = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
             expected.for_loop(range(3), None, for_body, [qr[0]], clbits + list(cr1))
-
-            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
-
-        with self.subTest("if/c_if"):
-            test = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
-            with test.if_test((cr1, 0)):
-                test.x(0).c_if(cr2, 0)
-                test.z(0).c_if(cr3, 0)
-
-            true_body = QuantumCircuit([qr[0]], clbits, cr1, cr2, cr3)
-            true_body.x(0).c_if(cr2, 0)
-            true_body.z(0).c_if(cr3, 0)
-
-            expected = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
-            expected.if_test((cr1, 0), true_body, [qr[0]], clbits + list(cr1))
-
-            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
-
-        with self.subTest("while/else/c_if"):
-            test = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
-            with test.while_loop((cr1, 0)):
-                with test.if_test((cr2, 0)) as else_:
-                    test.x(0).c_if(cr3, 0)
-                with else_:
-                    test.z(0).c_if(cr4, 0)
-
-            true_body = QuantumCircuit([qr[0]], cr2, cr3, cr4)
-            true_body.x(0).c_if(cr3, 0)
-            false_body = QuantumCircuit([qr[0]], cr2, cr3, cr4)
-            false_body.z(0).c_if(cr4, 0)
-
-            while_body = QuantumCircuit([qr[0]], clbits, cr1, cr2, cr3, cr4)
-            while_body.if_else((cr2, 0), true_body, false_body, [qr[0]], clbits)
-
-            expected = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
-            expected.while_loop((cr1, 0), while_body, [qr[0]], clbits + list(cr1))
 
             self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
@@ -647,17 +610,23 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         test = QuantumCircuit(qr, *cr)
         with test.if_test((cr[0], 0)) as else_:
-            test.h(0).c_if(cr[1], 0)
+            with test.if_test((cr[1], 0)):
+                test.h(0)
             # Test repetition.
-            test.h(0).c_if(cr[1], 0)
+            with test.if_test((cr[1], 0)):
+                test.h(0)
         with else_:
-            test.h(0).c_if(cr[2], 0)
+            with test.if_test((cr[2], 0)):
+                test.h(0)
 
         true_body = QuantumCircuit([qr[0]], cr[0], cr[1], cr[2])
-        true_body.h(qr[0]).c_if(cr[1], 0)
-        true_body.h(qr[0]).c_if(cr[1], 0)
+        with true_body.if_test((cr[1], 0)):
+            true_body.h(qr[0])
+        with true_body.if_test((cr[1], 0)):
+            true_body.h(qr[0])
         false_body = QuantumCircuit([qr[0]], cr[0], cr[1], cr[2])
-        false_body.h(qr[0]).c_if(cr[2], 0)
+        with false_body.if_test((cr[2], 0)):
+            false_body.h(qr[0])
 
         expected = QuantumCircuit(qr, *cr)
         expected.if_else(
@@ -1026,44 +995,6 @@ class TestControlFlowBuilders(QiskitTestCase):
             self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
     @ddt.data(QuantumCircuit.break_loop, QuantumCircuit.continue_loop)
-    def test_break_continue_accept_c_if(self, loop_operation):
-        """Test that ``break`` and ``continue`` statements accept :meth:`.Instruction.c_if` calls,
-        and that these propagate through correctly."""
-        qubits = [Qubit(), Qubit()]
-        clbits = [Clbit(), Clbit()]
-
-        with self.subTest("for"):
-            test = QuantumCircuit(qubits, clbits)
-            with test.for_loop(range(2)):
-                test.h(0)
-                loop_operation(test).c_if(1, 0)
-
-            body = QuantumCircuit([qubits[0]], [clbits[1]])
-            body.h(qubits[0])
-            loop_operation(body).c_if(clbits[1], 0)
-
-            expected = QuantumCircuit(qubits, clbits)
-            expected.for_loop(range(2), None, body, [qubits[0]], [clbits[1]])
-
-            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
-
-        with self.subTest("while"):
-            cond = (clbits[0], 0)
-            test = QuantumCircuit(qubits, clbits)
-            with test.while_loop(cond):
-                test.h(0)
-                loop_operation(test).c_if(1, 0)
-
-            body = QuantumCircuit([qubits[0]], clbits)
-            body.h(qubits[0])
-            loop_operation(body).c_if(clbits[1], 0)
-
-            expected = QuantumCircuit(qubits, clbits)
-            expected.while_loop(cond, body, [qubits[0]], clbits)
-
-            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
-
-    @ddt.data(QuantumCircuit.break_loop, QuantumCircuit.continue_loop)
     def test_break_continue_only_expand_to_nearest_loop(self, loop_operation):
         """Test that a ``break`` or ``continue`` nested in more than one loop only expands as far as
         the inner loop scope, not further."""
@@ -1230,7 +1161,8 @@ class TestControlFlowBuilders(QiskitTestCase):
                 # full width of the loop do so.
                 with test.if_test(cond_inner):
                     pass
-                test.h(0).c_if(2, 0)
+                with test.if_test((2, 0)):
+                    test.h(0)
 
             true_body1 = QuantumCircuit([qubits[0], clbits[0], clbits[2]])
             loop_operation(true_body1)
@@ -1240,7 +1172,8 @@ class TestControlFlowBuilders(QiskitTestCase):
             loop_body = QuantumCircuit([qubits[0], clbits[0], clbits[2]])
             loop_body.if_test(cond_inner, true_body1, [qubits[0]], [clbits[0], clbits[2]])
             loop_body.if_test(cond_inner, true_body2, [], [clbits[0]])
-            loop_body.h(qubits[0]).c_if(clbits[2], 0)
+            with loop_body.if_test((clbits[2], 0)):
+                loop_body.h(qubits[0])
 
             expected = QuantumCircuit(qubits, clbits)
             expected.for_loop(range(2), None, loop_body, [qubits[0]], [clbits[0], clbits[2]])
@@ -1258,7 +1191,8 @@ class TestControlFlowBuilders(QiskitTestCase):
                     pass
                 with else_:
                     pass
-                test.h(0).c_if(2, 0)
+                with test.if_test((2, 0)):
+                    test.h(0)
 
             true_body1 = QuantumCircuit([qubits[0], qubits[1], clbits[0], clbits[2]])
             true_body1.h(qubits[1])
@@ -1273,7 +1207,8 @@ class TestControlFlowBuilders(QiskitTestCase):
                 cond_inner, true_body1, false_body1, [qubits[0], qubits[1]], [clbits[0], clbits[2]]
             )
             loop_body.if_else(cond_inner, true_body2, false_body2, [], [clbits[0]])
-            loop_body.h(qubits[0]).c_if(clbits[2], 0)
+            with loop_body.if_test((clbits[2], 0)):
+                loop_body.h(qubits[0])
 
             expected = QuantumCircuit(qubits, clbits)
             expected.for_loop(
@@ -1289,7 +1224,8 @@ class TestControlFlowBuilders(QiskitTestCase):
                     loop_operation(test)
                 with test.if_test(cond_inner):
                     pass
-                test.h(0).c_if(2, 0)
+                with test.if_test((2, 0)):
+                    test.h(0)
 
             true_body1 = QuantumCircuit([qubits[0], clbits[0], clbits[1], clbits[2]])
             loop_operation(true_body1)
@@ -1301,7 +1237,8 @@ class TestControlFlowBuilders(QiskitTestCase):
                 cond_inner, true_body1, [qubits[0]], [clbits[0], clbits[1], clbits[2]]
             )
             loop_body.if_test(cond_inner, true_body2, [], [clbits[0]])
-            loop_body.h(qubits[0]).c_if(clbits[2], 0)
+            with loop_body.if_test((clbits[2], 0)):
+                loop_body.h(qubits[0])
 
             expected = QuantumCircuit(qubits, clbits)
             expected.while_loop(
@@ -1321,7 +1258,8 @@ class TestControlFlowBuilders(QiskitTestCase):
                     pass
                 with else_:
                     pass
-                test.h(0).c_if(2, 0)
+                with test.if_test((2, 0)):
+                    test.h(0)
 
             true_body1 = QuantumCircuit([qubits[0], qubits[1], clbits[0], clbits[1], clbits[2]])
             true_body1.h(qubits[1])
@@ -1340,7 +1278,8 @@ class TestControlFlowBuilders(QiskitTestCase):
                 [clbits[0], clbits[1], clbits[2]],
             )
             loop_body.if_else(cond_inner, true_body2, false_body2, [], [clbits[0]])
-            loop_body.h(qubits[0]).c_if(clbits[2], 0)
+            with loop_body.if_test((clbits[2], 0)):
+                loop_body.h(qubits[0])
 
             expected = QuantumCircuit(qubits, clbits)
             expected.while_loop(
@@ -1368,7 +1307,8 @@ class TestControlFlowBuilders(QiskitTestCase):
             with test.switch(clbits[0]) as case:
                 with case(case.DEFAULT):
                     pass
-            test.h(0).c_if(clbits[2], 0)
+            with test.if_test((clbits[2], 0)):
+                test.h(0)
 
         body0 = QuantumCircuit([qubits[0], clbits[0], clbits[2]])
         loop_operation(body0)
@@ -1379,7 +1319,8 @@ class TestControlFlowBuilders(QiskitTestCase):
         loop_body = QuantumCircuit([qubits[0], clbits[0], clbits[2]])
         loop_body.switch(clbits[0], [(0, body0), (1, body1)], [qubits[0]], [clbits[0], clbits[2]])
         loop_body.switch(clbits[0], [(CASE_DEFAULT, body2)], [], [clbits[0]])
-        loop_body.h(qubits[0]).c_if(clbits[2], 0)
+        with loop_body.if_test((clbits[2], 0)):
+            loop_body.h(qubits[0])
 
         expected = QuantumCircuit(qubits, clbits)
         expected.for_loop(range(2), None, loop_body, [qubits[0]], [clbits[0], clbits[2]])
@@ -1438,7 +1379,7 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         These are the deepest tests, hitting all parts of the deferred builder scopes.  We test
         ``if``, ``if/else`` and ``switch`` paths at various levels of the scoping to try and account
-        for as many weird edge cases with the deferred behaviour as possible.  We try to make sure,
+        for as many weird edge cases with the deferred behavior as possible.  We try to make sure,
         particularly in the most complicated examples, that there are resources added before and
         after every single scope, to try and catch all possibilities of where resources may be
         missed.
@@ -1465,18 +1406,23 @@ class TestControlFlowBuilders(QiskitTestCase):
                         loop_operation(test)
                     # inner true 2
                     with test.if_test(cond_inner):
-                        test.h(0).c_if(3, 0)
-                    test.h(1).c_if(4, 0)
+                        with test.if_test((3, 0)):
+                            test.h(0)
+                    with test.if_test((4, 0)):
+                        test.h(1)
                 # outer true 2
                 with test.if_test(cond_outer):
-                    test.h(2).c_if(5, 0)
-                test.h(3).c_if(6, 0)
+                    with test.if_test((5, 0)):
+                        test.h(2)
+                with test.if_test((6, 0)):
+                    test.h(3)
 
             inner_true_body1 = QuantumCircuit(qubits[:4], clbits[:2], clbits[3:7])
             loop_operation(inner_true_body1)
 
             inner_true_body2 = QuantumCircuit([qubits[0], clbits[0], clbits[3]])
-            inner_true_body2.h(qubits[0]).c_if(clbits[3], 0)
+            with inner_true_body2.if_test((clbits[3], 0)):
+                inner_true_body2.h(qubits[0])
 
             outer_true_body1 = QuantumCircuit(qubits[:4], clbits[:2], clbits[3:7])
             outer_true_body1.if_test(
@@ -1485,15 +1431,18 @@ class TestControlFlowBuilders(QiskitTestCase):
             outer_true_body1.if_test(
                 cond_inner, inner_true_body2, [qubits[0]], [clbits[0], clbits[3]]
             )
-            outer_true_body1.h(qubits[1]).c_if(clbits[4], 0)
+            with outer_true_body1.if_test((clbits[4], 0)):
+                outer_true_body1.h(qubits[1])
 
             outer_true_body2 = QuantumCircuit([qubits[2], clbits[1], clbits[5]])
-            outer_true_body2.h(qubits[2]).c_if(clbits[5], 0)
+            with outer_true_body2.if_test((clbits[5], 0)):
+                outer_true_body2.h(qubits[2])
 
             loop_body = QuantumCircuit(qubits[:4], clbits[:2] + clbits[3:7])
             loop_body.if_test(cond_outer, outer_true_body1, qubits[:4], clbits[:2] + clbits[3:7])
             loop_body.if_test(cond_outer, outer_true_body2, [qubits[2]], [clbits[1], clbits[5]])
-            loop_body.h(qubits[3]).c_if(clbits[6], 0)
+            with loop_body.if_test((clbits[6], 0)):
+                loop_body.h(qubits[3])
 
             expected = QuantumCircuit(qubits, clbits)
             expected.for_loop(range(2), None, loop_body, qubits[:4], clbits[:2] + clbits[3:7])
@@ -1507,31 +1456,46 @@ class TestControlFlowBuilders(QiskitTestCase):
                 with test.if_test(cond_outer):
                     # inner 1
                     with test.if_test(cond_inner) as inner1_else:
-                        test.h(0).c_if(3, 0)
+                        with test.if_test((3, 0)):
+                            test.h(0)
                     with inner1_else:
-                        loop_operation(test).c_if(4, 0)
+                        with test.if_test((4, 0)):
+                            loop_operation(test)
                     # inner 2
                     with test.if_test(cond_inner) as inner2_else:
-                        test.h(1).c_if(5, 0)
+                        with test.if_test((5, 0)):
+                            test.h(1)
                     with inner2_else:
-                        test.h(2).c_if(6, 0)
-                    test.h(3).c_if(7, 0)
+                        with test.if_test((6, 0)):
+                            test.h(2)
+                    with test.if_test((7, 0)):
+                        test.h(3)
                 # outer 2
                 with test.if_test(cond_outer) as outer2_else:
-                    test.h(4).c_if(8, 0)
+                    with test.if_test((8, 0)):
+                        test.h(4)
                 with outer2_else:
-                    test.h(5).c_if(9, 0)
-                test.h(6).c_if(10, 0)
+                    with test.if_test((9, 0)):
+                        test.h(5)
+                with test.if_test((10, 0)):
+                    test.h(6)
 
             inner1_true = QuantumCircuit(qubits[:7], clbits[:2], clbits[3:11])
-            inner1_true.h(qubits[0]).c_if(clbits[3], 0)
+            with inner1_true.if_test((clbits[3], 0)):
+                inner1_true.h(qubits[0])
             inner1_false = QuantumCircuit(qubits[:7], clbits[:2], clbits[3:11])
-            loop_operation(inner1_false).c_if(clbits[4], 0)
+            inner1_false_loop_body = QuantumCircuit(qubits[:7], clbits[:2], clbits[3:11])
+            loop_operation(inner1_false_loop_body)
+            inner1_false.if_else(
+                (clbits[4], 0), inner1_false_loop_body, None, qubits[:7], clbits[:2] + clbits[3:11]
+            )
 
             inner2_true = QuantumCircuit([qubits[1], qubits[2], clbits[0], clbits[5], clbits[6]])
-            inner2_true.h(qubits[1]).c_if(clbits[5], 0)
+            with inner2_true.if_test((clbits[5], 0)):
+                inner2_true.h(qubits[1])
             inner2_false = QuantumCircuit([qubits[1], qubits[2], clbits[0], clbits[5], clbits[6]])
-            inner2_false.h(qubits[2]).c_if(clbits[6], 0)
+            with inner2_false.if_test((clbits[6], 0)):
+                inner2_false.h(qubits[2])
 
             outer1_true = QuantumCircuit(qubits[:7], clbits[:2], clbits[3:11])
             outer1_true.if_else(
@@ -1544,12 +1508,15 @@ class TestControlFlowBuilders(QiskitTestCase):
                 qubits[1:3],
                 [clbits[0], clbits[5], clbits[6]],
             )
-            outer1_true.h(qubits[3]).c_if(clbits[7], 0)
+            with outer1_true.if_test((clbits[7], 0)):
+                outer1_true.h(qubits[3])
 
             outer2_true = QuantumCircuit([qubits[4], qubits[5], clbits[1], clbits[8], clbits[9]])
-            outer2_true.h(qubits[4]).c_if(clbits[8], 0)
+            with outer2_true.if_test((clbits[8], 0)):
+                outer2_true.h(qubits[4])
             outer2_false = QuantumCircuit([qubits[4], qubits[5], clbits[1], clbits[8], clbits[9]])
-            outer2_false.h(qubits[5]).c_if(clbits[9], 0)
+            with outer2_false.if_test((clbits[9], 0)):
+                outer2_false.h(qubits[5])
 
             loop_body = QuantumCircuit(qubits[:7], clbits[:2], clbits[3:11])
             loop_body.if_test(cond_outer, outer1_true, qubits[:7], clbits[:2] + clbits[3:11])
@@ -1560,7 +1527,8 @@ class TestControlFlowBuilders(QiskitTestCase):
                 qubits[4:6],
                 [clbits[1], clbits[8], clbits[9]],
             )
-            loop_body.h(qubits[6]).c_if(clbits[10], 0)
+            with loop_body.if_test((clbits[10], 0)):
+                loop_body.h(qubits[6])
 
             expected = QuantumCircuit(qubits, clbits)
             expected.for_loop(range(2), None, loop_body, qubits[:7], clbits[:2] + clbits[3:11])
@@ -1574,72 +1542,90 @@ class TestControlFlowBuilders(QiskitTestCase):
 
             test = QuantumCircuit(qubits, clbits)
             with test.for_loop(range(2)):
-                test.h(0).c_if(3, 0)
+                with test.if_test((3, 0)):
+                    test.h(0)
 
                 # outer 1
                 with test.if_test(cond_outer) as outer1_else:
-                    test.h(1).c_if(4, 0)
+                    with test.if_test((4, 0)):
+                        test.h(1)
                 with outer1_else:
-                    test.h(2).c_if(5, 0)
+                    with test.if_test((5, 0)):
+                        test.h(2)
 
                 # outer 2 (nesting the inner condition in the 'if')
                 with test.if_test(cond_outer) as outer2_else:
-                    test.h(3).c_if(6, 0)
+                    with test.if_test((6, 0)):
+                        test.h(3)
 
                     # inner 21
                     with test.if_test(cond_inner) as inner21_else:
                         loop_operation(test)
                     with inner21_else:
-                        test.h(4).c_if(7, 0)
+                        with test.if_test((7, 0)):
+                            test.h(4)
 
                     # inner 22
                     with test.if_test(cond_inner) as inner22_else:
-                        test.h(5).c_if(8, 0)
+                        with test.if_test((8, 0)):
+                            test.h(5)
                     with inner22_else:
                         loop_operation(test)
 
                     # inner 23
                     with test.switch(cond_inner[0]) as inner23_case:
                         with inner23_case(True):
-                            test.h(5).c_if(8, 0)
+                            with test.if_test((8, 0)):
+                                test.h(5)
                         with inner23_case(False):
                             loop_operation(test)
 
-                    test.h(6).c_if(9, 0)
+                    with test.if_test((9, 0)):
+                        test.h(6)
                 with outer2_else:
-                    test.h(7).c_if(10, 0)
+                    with test.if_test((10, 0)):
+                        test.h(7)
 
                     # inner 24
                     with test.if_test(cond_inner) as inner24_else:
-                        test.h(8).c_if(11, 0)
+                        with test.if_test((11, 0)):
+                            test.h(8)
                     with inner24_else:
-                        test.h(9).c_if(12, 0)
+                        with test.if_test((12, 0)):
+                            test.h(9)
 
                 # outer 3 (nesting the inner condition in an 'else' branch)
                 with test.if_test(cond_outer) as outer3_else:
-                    test.h(10).c_if(13, 0)
+                    with test.if_test((13, 0)):
+                        test.h(10)
                 with outer3_else:
-                    test.h(11).c_if(14, 0)
+                    with test.if_test((14, 0)):
+                        test.h(11)
 
                     # inner 31
                     with test.if_test(cond_inner) as inner31_else:
                         loop_operation(test)
                     with inner31_else:
-                        test.h(12).c_if(15, 0)
+                        with test.if_test((15, 0)):
+                            test.h(12)
 
                     # inner 32
                     with test.if_test(cond_inner) as inner32_else:
-                        test.h(13).c_if(16, 0)
+                        with test.if_test((16, 0)):
+                            test.h(13)
                     with inner32_else:
                         loop_operation(test)
 
                     # inner 33
                     with test.if_test(cond_inner) as inner33_else:
-                        test.h(14).c_if(17, 0)
+                        with test.if_test((17, 0)):
+                            test.h(14)
                     with inner33_else:
-                        test.h(15).c_if(18, 0)
+                        with test.if_test((18, 0)):
+                            test.h(15)
 
-                test.h(16).c_if(19, 0)
+                with test.if_test((19, 0)):
+                    test.h(16)
             # End of test "for" loop.
 
             # No `clbits[2]` here because that's only used in `cond_loop`, for while loops.
@@ -1648,32 +1634,40 @@ class TestControlFlowBuilders(QiskitTestCase):
             loop_bits = loop_qubits + loop_clbits
 
             outer1_true = QuantumCircuit([qubits[1], qubits[2], clbits[1], clbits[4], clbits[5]])
-            outer1_true.h(qubits[1]).c_if(clbits[4], 0)
+            with outer1_true.if_test((clbits[4], 0)):
+                outer1_true.h(qubits[1])
             outer1_false = QuantumCircuit([qubits[1], qubits[2], clbits[1], clbits[4], clbits[5]])
-            outer1_false.h(qubits[2]).c_if(clbits[5], 0)
+            with outer1_false.if_test((clbits[5], 0)):
+                outer1_false.h(qubits[2])
 
             inner21_true = QuantumCircuit(loop_bits)
             loop_operation(inner21_true)
             inner21_false = QuantumCircuit(loop_bits)
-            inner21_false.h(qubits[4]).c_if(clbits[7], 0)
+            with inner21_false.if_test((clbits[7], 0)):
+                inner21_false.h(qubits[4])
 
             inner22_true = QuantumCircuit(loop_bits)
-            inner22_true.h(qubits[5]).c_if(clbits[8], 0)
+            with inner22_true.if_test((clbits[8], 0)):
+                inner22_true.h(qubits[5])
             inner22_false = QuantumCircuit(loop_bits)
             loop_operation(inner22_false)
 
             inner23_true = QuantumCircuit(loop_bits)
-            inner23_true.h(qubits[5]).c_if(clbits[8], 0)
+            with inner23_true.if_test((clbits[8], 0)):
+                inner23_true.h(qubits[5])
             inner23_false = QuantumCircuit(loop_bits)
             loop_operation(inner23_false)
 
             inner24_true = QuantumCircuit(qubits[8:10], [clbits[0], clbits[11], clbits[12]])
-            inner24_true.h(qubits[8]).c_if(clbits[11], 0)
+            with inner24_true.if_test((clbits[11], 0)):
+                inner24_true.h(qubits[8])
             inner24_false = QuantumCircuit(qubits[8:10], [clbits[0], clbits[11], clbits[12]])
-            inner24_false.h(qubits[9]).c_if(clbits[12], 0)
+            with inner24_false.if_test((clbits[12], 0)):
+                inner24_false.h(qubits[9])
 
             outer2_true = QuantumCircuit(loop_bits)
-            outer2_true.h(qubits[3]).c_if(clbits[6], 0)
+            with outer2_true.if_test((clbits[6], 0)):
+                outer2_true.h(qubits[3])
             outer2_true.if_else(cond_inner, inner21_true, inner21_false, loop_qubits, loop_clbits)
             outer2_true.if_else(cond_inner, inner22_true, inner22_false, loop_qubits, loop_clbits)
             outer2_true.switch(
@@ -1682,9 +1676,11 @@ class TestControlFlowBuilders(QiskitTestCase):
                 loop_qubits,
                 loop_clbits,
             )
-            outer2_true.h(qubits[6]).c_if(clbits[9], 0)
+            with outer2_true.if_test((clbits[9], 0)):
+                outer2_true.h(qubits[6])
             outer2_false = QuantumCircuit(loop_bits)
-            outer2_false.h(qubits[7]).c_if(clbits[10], 0)
+            with outer2_false.if_test((clbits[10], 0)):
+                outer2_false.h(qubits[7])
             outer2_false.if_else(
                 cond_inner,
                 inner24_true,
@@ -1696,22 +1692,28 @@ class TestControlFlowBuilders(QiskitTestCase):
             inner31_true = QuantumCircuit(loop_bits)
             loop_operation(inner31_true)
             inner31_false = QuantumCircuit(loop_bits)
-            inner31_false.h(qubits[12]).c_if(clbits[15], 0)
+            with inner31_false.if_test((clbits[15], 0)):
+                inner31_false.h(qubits[12])
 
             inner32_true = QuantumCircuit(loop_bits)
-            inner32_true.h(qubits[13]).c_if(clbits[16], 0)
+            with inner32_true.if_test((clbits[16], 0)):
+                inner32_true.h(qubits[13])
             inner32_false = QuantumCircuit(loop_bits)
             loop_operation(inner32_false)
 
             inner33_true = QuantumCircuit(qubits[14:16], [clbits[0], clbits[17], clbits[18]])
-            inner33_true.h(qubits[14]).c_if(clbits[17], 0)
+            with inner33_true.if_test((clbits[17], 0)):
+                inner33_true.h(qubits[14])
             inner33_false = QuantumCircuit(qubits[14:16], [clbits[0], clbits[17], clbits[18]])
-            inner33_false.h(qubits[15]).c_if(clbits[18], 0)
+            with inner33_false.if_test((clbits[18], 0)):
+                inner33_false.h(qubits[15])
 
             outer3_true = QuantumCircuit(loop_bits)
-            outer3_true.h(qubits[10]).c_if(clbits[13], 0)
+            with outer3_true.if_test((clbits[13], 0)):
+                outer3_true.h(qubits[10])
             outer3_false = QuantumCircuit(loop_bits)
-            outer3_false.h(qubits[11]).c_if(clbits[14], 0)
+            with outer3_false.if_test((clbits[14], 0)):
+                outer3_false.h(qubits[11])
             outer3_false.if_else(cond_inner, inner31_true, inner31_false, loop_qubits, loop_clbits)
             outer3_false.if_else(cond_inner, inner32_true, inner32_false, loop_qubits, loop_clbits)
             outer3_false.if_else(
@@ -1723,7 +1725,8 @@ class TestControlFlowBuilders(QiskitTestCase):
             )
 
             loop_body = QuantumCircuit(loop_bits)
-            loop_body.h(qubits[0]).c_if(clbits[3], 0)
+            with loop_body.if_test((clbits[3], 0)):
+                loop_body.h(qubits[0])
             loop_body.if_else(
                 cond_outer,
                 outer1_true,
@@ -1733,7 +1736,8 @@ class TestControlFlowBuilders(QiskitTestCase):
             )
             loop_body.if_else(cond_outer, outer2_true, outer2_false, loop_qubits, loop_clbits)
             loop_body.if_else(cond_outer, outer3_true, outer3_false, loop_qubits, loop_clbits)
-            loop_body.h(qubits[16]).c_if(clbits[19], 0)
+            with loop_body.if_test((clbits[19], 0)):
+                loop_body.h(qubits[16])
 
             expected = QuantumCircuit(qubits, clbits)
             expected.for_loop(range(2), None, loop_body, loop_qubits, loop_clbits)
@@ -1756,33 +1760,41 @@ class TestControlFlowBuilders(QiskitTestCase):
                         loop_operation(test)
                     # inner true 2
                     with test.if_test(cond_inner):
-                        test.h(0).c_if(3, 0)
-                    test.h(1).c_if(4, 0)
+                        with test.if_test((3, 0)):
+                            test.h(0)
+                    with test.if_test((4, 0)):
+                        test.h(1)
                 # outer true 2
                 with test.if_test(cond_outer):
-                    test.h(2).c_if(5, 0)
-                test.h(3).c_if(6, 0)
+                    with test.if_test((5, 0)):
+                        test.h(2)
+                with test.if_test((6, 0)):
+                    test.h(3)
 
             inner_true_body1 = QuantumCircuit(qubits[:4], clbits[:7])
             loop_operation(inner_true_body1)
 
             inner_true_body2 = QuantumCircuit([qubits[0], clbits[0], clbits[3]])
-            inner_true_body2.h(qubits[0]).c_if(clbits[3], 0)
+            with inner_true_body2.if_test((clbits[3], 0)):
+                inner_true_body2.h(qubits[0])
 
             outer_true_body1 = QuantumCircuit(qubits[:4], clbits[:7])
             outer_true_body1.if_test(cond_inner, inner_true_body1, qubits[:4], clbits[:7])
             outer_true_body1.if_test(
                 cond_inner, inner_true_body2, [qubits[0]], [clbits[0], clbits[3]]
             )
-            outer_true_body1.h(qubits[1]).c_if(clbits[4], 0)
+            with outer_true_body1.if_test((clbits[4], 0)):
+                outer_true_body1.h(qubits[1])
 
             outer_true_body2 = QuantumCircuit([qubits[2], clbits[1], clbits[5]])
-            outer_true_body2.h(qubits[2]).c_if(clbits[5], 0)
+            with outer_true_body2.if_test((clbits[5], 0)):
+                outer_true_body2.h(qubits[2])
 
             loop_body = QuantumCircuit(qubits[:4], clbits[:7])
             loop_body.if_test(cond_outer, outer_true_body1, qubits[:4], clbits[:7])
             loop_body.if_test(cond_outer, outer_true_body2, [qubits[2]], [clbits[1], clbits[5]])
-            loop_body.h(qubits[3]).c_if(clbits[6], 0)
+            with loop_body.if_test((clbits[6], 0)):
+                loop_body.h(qubits[3])
 
             expected = QuantumCircuit(qubits, clbits)
             expected.while_loop(cond_loop, loop_body, qubits[:4], clbits[:7])
@@ -1796,31 +1808,46 @@ class TestControlFlowBuilders(QiskitTestCase):
                 with test.if_test(cond_outer):
                     # inner 1
                     with test.if_test(cond_inner) as inner1_else:
-                        test.h(0).c_if(3, 0)
+                        with test.if_test((3, 0)):
+                            test.h(0)
                     with inner1_else:
-                        loop_operation(test).c_if(4, 0)
+                        with test.if_test((4, 0)):
+                            loop_operation(test)
                     # inner 2
                     with test.if_test(cond_inner) as inner2_else:
-                        test.h(1).c_if(5, 0)
+                        with test.if_test((5, 0)):
+                            test.h(1)
                     with inner2_else:
-                        test.h(2).c_if(6, 0)
-                    test.h(3).c_if(7, 0)
+                        with test.if_test((6, 0)):
+                            test.h(2)
+                    with test.if_test((7, 0)):
+                        test.h(3)
                 # outer 2
                 with test.if_test(cond_outer) as outer2_else:
-                    test.h(4).c_if(8, 0)
+                    with test.if_test((8, 0)):
+                        test.h(4)
                 with outer2_else:
-                    test.h(5).c_if(9, 0)
-                test.h(6).c_if(10, 0)
+                    with test.if_test((9, 0)):
+                        test.h(5)
+                with test.if_test((10, 0)):
+                    test.h(6)
 
             inner1_true = QuantumCircuit(qubits[:7], clbits[:11])
-            inner1_true.h(qubits[0]).c_if(clbits[3], 0)
+            with inner1_true.if_test((clbits[3], 0)):
+                inner1_true.h(qubits[0])
             inner1_false = QuantumCircuit(qubits[:7], clbits[:11])
-            loop_operation(inner1_false).c_if(clbits[4], 0)
+            inner1_false_loop_body = QuantumCircuit(qubits[:7], clbits[:11])
+            loop_operation(inner1_false_loop_body)
+            inner1_false.if_else(
+                (clbits[4], 0), inner1_false_loop_body, None, qubits[:7], clbits[:11]
+            )
 
             inner2_true = QuantumCircuit([qubits[1], qubits[2], clbits[0], clbits[5], clbits[6]])
-            inner2_true.h(qubits[1]).c_if(clbits[5], 0)
+            with inner2_true.if_test((clbits[5], 0)):
+                inner2_true.h(qubits[1])
             inner2_false = QuantumCircuit([qubits[1], qubits[2], clbits[0], clbits[5], clbits[6]])
-            inner2_false.h(qubits[2]).c_if(clbits[6], 0)
+            with inner2_false.if_test((clbits[6], 0)):
+                inner2_false.h(qubits[2])
 
             outer1_true = QuantumCircuit(qubits[:7], clbits[:11])
             outer1_true.if_else(cond_inner, inner1_true, inner1_false, qubits[:7], clbits[:11])
@@ -1831,12 +1858,15 @@ class TestControlFlowBuilders(QiskitTestCase):
                 qubits[1:3],
                 [clbits[0], clbits[5], clbits[6]],
             )
-            outer1_true.h(qubits[3]).c_if(clbits[7], 0)
+            with outer1_true.if_test((clbits[7], 0)):
+                outer1_true.h(qubits[3])
 
             outer2_true = QuantumCircuit([qubits[4], qubits[5], clbits[1], clbits[8], clbits[9]])
-            outer2_true.h(qubits[4]).c_if(clbits[8], 0)
+            with outer2_true.if_test((clbits[8], 0)):
+                outer2_true.h(qubits[4])
             outer2_false = QuantumCircuit([qubits[4], qubits[5], clbits[1], clbits[8], clbits[9]])
-            outer2_false.h(qubits[5]).c_if(clbits[9], 0)
+            with outer2_false.if_test((clbits[9], 0)):
+                outer2_false.h(qubits[5])
 
             loop_body = QuantumCircuit(qubits[:7], clbits[:11])
             loop_body.if_test(cond_outer, outer1_true, qubits[:7], clbits[:11])
@@ -1847,213 +1877,79 @@ class TestControlFlowBuilders(QiskitTestCase):
                 qubits[4:6],
                 [clbits[1], clbits[8], clbits[9]],
             )
-            loop_body.h(qubits[6]).c_if(clbits[10], 0)
+            with loop_body.if_test((clbits[10], 0)):
+                loop_body.h(qubits[6])
 
             expected = QuantumCircuit(qubits, clbits)
             expected.while_loop(cond_loop, loop_body, qubits[:7], clbits[:11])
 
             self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
-        with self.subTest("while/else/else"):
-            test = QuantumCircuit(qubits, clbits)
-            with test.while_loop(cond_loop):
-                test.h(0).c_if(3, 0)
-
-                # outer 1
-                with test.if_test(cond_outer) as outer1_else:
-                    test.h(1).c_if(4, 0)
-                with outer1_else:
-                    test.h(2).c_if(5, 0)
-
-                # outer 2 (nesting the inner condition in the 'if')
-                with test.if_test(cond_outer) as outer2_else:
-                    test.h(3).c_if(6, 0)
-
-                    # inner 21
-                    with test.if_test(cond_inner) as inner21_else:
-                        loop_operation(test)
-                    with inner21_else:
-                        test.h(4).c_if(7, 0)
-
-                    # inner 22
-                    with test.if_test(cond_inner) as inner22_else:
-                        test.h(5).c_if(8, 0)
-                    with inner22_else:
-                        loop_operation(test)
-
-                    test.h(6).c_if(9, 0)
-                with outer2_else:
-                    test.h(7).c_if(10, 0)
-
-                    # inner 23
-                    with test.if_test(cond_inner) as inner23_else:
-                        test.h(8).c_if(11, 0)
-                    with inner23_else:
-                        test.h(9).c_if(12, 0)
-
-                # outer 3 (nesting the inner condition in an 'else' branch)
-                with test.if_test(cond_outer) as outer3_else:
-                    test.h(10).c_if(13, 0)
-                with outer3_else:
-                    test.h(11).c_if(14, 0)
-
-                    # inner 31
-                    with test.if_test(cond_inner) as inner31_else:
-                        loop_operation(test)
-                    with inner31_else:
-                        test.h(12).c_if(15, 0)
-
-                    # inner 32
-                    with test.if_test(cond_inner) as inner32_else:
-                        test.h(13).c_if(16, 0)
-                    with inner32_else:
-                        loop_operation(test)
-
-                    # inner 33
-                    with test.if_test(cond_inner) as inner33_else:
-                        test.h(14).c_if(17, 0)
-                    with inner33_else:
-                        test.h(15).c_if(18, 0)
-
-                test.h(16).c_if(19, 0)
-            # End of test "for" loop.
-
-            # No `clbits[2]` here because that's only used in `cond_loop`, for while loops.
-            loop_qubits = qubits[:17]
-            loop_clbits = clbits[:20]
-            loop_bits = loop_qubits + loop_clbits
-
-            outer1_true = QuantumCircuit([qubits[1], qubits[2], clbits[1], clbits[4], clbits[5]])
-            outer1_true.h(qubits[1]).c_if(clbits[4], 0)
-            outer1_false = QuantumCircuit([qubits[1], qubits[2], clbits[1], clbits[4], clbits[5]])
-            outer1_false.h(qubits[2]).c_if(clbits[5], 0)
-
-            inner21_true = QuantumCircuit(loop_bits)
-            loop_operation(inner21_true)
-            inner21_false = QuantumCircuit(loop_bits)
-            inner21_false.h(qubits[4]).c_if(clbits[7], 0)
-
-            inner22_true = QuantumCircuit(loop_bits)
-            inner22_true.h(qubits[5]).c_if(clbits[8], 0)
-            inner22_false = QuantumCircuit(loop_bits)
-            loop_operation(inner22_false)
-
-            inner23_true = QuantumCircuit(qubits[8:10], [clbits[0], clbits[11], clbits[12]])
-            inner23_true.h(qubits[8]).c_if(clbits[11], 0)
-            inner23_false = QuantumCircuit(qubits[8:10], [clbits[0], clbits[11], clbits[12]])
-            inner23_false.h(qubits[9]).c_if(clbits[12], 0)
-
-            outer2_true = QuantumCircuit(loop_bits)
-            outer2_true.h(qubits[3]).c_if(clbits[6], 0)
-            outer2_true.if_else(cond_inner, inner21_true, inner21_false, loop_qubits, loop_clbits)
-            outer2_true.if_else(cond_inner, inner22_true, inner22_false, loop_qubits, loop_clbits)
-            outer2_true.h(qubits[6]).c_if(clbits[9], 0)
-            outer2_false = QuantumCircuit(loop_bits)
-            outer2_false.h(qubits[7]).c_if(clbits[10], 0)
-            outer2_false.if_else(
-                cond_inner,
-                inner23_true,
-                inner23_false,
-                [qubits[8], qubits[9]],
-                [clbits[0], clbits[11], clbits[12]],
-            )
-
-            inner31_true = QuantumCircuit(loop_bits)
-            loop_operation(inner31_true)
-            inner31_false = QuantumCircuit(loop_bits)
-            inner31_false.h(qubits[12]).c_if(clbits[15], 0)
-
-            inner32_true = QuantumCircuit(loop_bits)
-            inner32_true.h(qubits[13]).c_if(clbits[16], 0)
-            inner32_false = QuantumCircuit(loop_bits)
-            loop_operation(inner32_false)
-
-            inner33_true = QuantumCircuit(qubits[14:16], [clbits[0], clbits[17], clbits[18]])
-            inner33_true.h(qubits[14]).c_if(clbits[17], 0)
-            inner33_false = QuantumCircuit(qubits[14:16], [clbits[0], clbits[17], clbits[18]])
-            inner33_false.h(qubits[15]).c_if(clbits[18], 0)
-
-            outer3_true = QuantumCircuit(loop_bits)
-            outer3_true.h(qubits[10]).c_if(clbits[13], 0)
-            outer3_false = QuantumCircuit(loop_bits)
-            outer3_false.h(qubits[11]).c_if(clbits[14], 0)
-            outer3_false.if_else(cond_inner, inner31_true, inner31_false, loop_qubits, loop_clbits)
-            outer3_false.if_else(cond_inner, inner32_true, inner32_false, loop_qubits, loop_clbits)
-            outer3_false.if_else(
-                cond_inner,
-                inner33_true,
-                inner33_false,
-                qubits[14:16],
-                [clbits[0], clbits[17], clbits[18]],
-            )
-
-            loop_body = QuantumCircuit(loop_bits)
-            loop_body.h(qubits[0]).c_if(clbits[3], 0)
-            loop_body.if_else(
-                cond_outer,
-                outer1_true,
-                outer1_false,
-                qubits[1:3],
-                [clbits[1], clbits[4], clbits[5]],
-            )
-            loop_body.if_else(cond_outer, outer2_true, outer2_false, loop_qubits, loop_clbits)
-            loop_body.if_else(cond_outer, outer3_true, outer3_false, loop_qubits, loop_clbits)
-            loop_body.h(qubits[16]).c_if(clbits[19], 0)
-
-            expected = QuantumCircuit(qubits, clbits)
-            expected.while_loop(cond_loop, loop_body, loop_qubits, loop_clbits)
-
-            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
-
         with self.subTest("if/while/if/switch"):
             test = QuantumCircuit(qubits, clbits)
             with test.if_test(cond_outer):  # outer_t
-                test.h(0).c_if(3, 0)
+                with test.if_test((3, 0)):
+                    test.h(0)
                 with test.while_loop(cond_loop):  # loop
-                    test.h(1).c_if(4, 0)
+                    with test.if_test((4, 0)):
+                        test.h(1)
                     with test.if_test(cond_inner):  # inner_t
-                        test.h(2).c_if(5, 0)
+                        with test.if_test((5, 0)):
+                            test.h(2)
                         with test.switch(5) as case_:
                             with case_(False):  # case_f
-                                test.h(3).c_if(6, 0)
+                                with test.if_test((6, 0)):
+                                    test.h(3)
                             with case_(True):  # case_t
                                 loop_operation(test)
-                        test.h(4).c_if(7, 0)
+                        with test.if_test((7, 0)):
+                            test.h(4)
                     # exit inner_t
-                    test.h(5).c_if(8, 0)
+                    with test.if_test((8, 0)):
+                        test.h(5)
                 # exit loop
-                test.h(6).c_if(9, 0)
+                with test.if_test((9, 0)):
+                    test.h(6)
             # exit outer_t
-            test.h(7).c_if(10, 0)
+            with test.if_test((10, 0)):
+                test.h(7)
 
             case_f = QuantumCircuit(qubits[1:6], [clbits[0], clbits[2]] + clbits[4:9])
-            case_f.h(qubits[3]).c_if(clbits[6], 0)
+            with case_f.if_test((clbits[6], 0)):
+                case_f.h(qubits[3])
             case_t = QuantumCircuit(qubits[1:6], [clbits[0], clbits[2]] + clbits[4:9])
             loop_operation(case_t)
 
             inner_t = QuantumCircuit(qubits[1:6], [clbits[0], clbits[2]] + clbits[4:9])
-            inner_t.h(qubits[2]).c_if(clbits[5], 0)
+            with inner_t.if_test((clbits[5], 0)):
+                inner_t.h(qubits[2])
             inner_t.switch(
                 clbits[5],
                 [(False, case_f), (True, case_t)],
                 qubits[1:6],
                 [clbits[0], clbits[2]] + clbits[4:9],
             )
-            inner_t.h(qubits[4]).c_if(clbits[7], 0)
+            with inner_t.if_test((clbits[7], 0)):
+                inner_t.h(qubits[4])
 
             loop = QuantumCircuit(qubits[1:6], [clbits[0], clbits[2]] + clbits[4:9])
-            loop.h(qubits[1]).c_if(clbits[4], 0)
+            with loop.if_test((clbits[4], 0)):
+                loop.h(qubits[1])
             loop.if_test(cond_inner, inner_t, qubits[1:6], [clbits[0], clbits[2]] + clbits[4:9])
-            loop.h(qubits[5]).c_if(clbits[8], 0)
+            with loop.if_test((clbits[8], 0)):
+                loop.h(qubits[5])
 
             outer_t = QuantumCircuit(qubits[:7], clbits[:10])
-            outer_t.h(qubits[0]).c_if(clbits[3], 0)
+            with outer_t.if_test((clbits[3], 0)):
+                outer_t.h(qubits[0])
             outer_t.while_loop(cond_loop, loop, qubits[1:6], [clbits[0], clbits[2]] + clbits[4:9])
-            outer_t.h(qubits[6]).c_if(clbits[9], 0)
+            with outer_t.if_test((clbits[9], 0)):
+                outer_t.h(qubits[6])
 
             expected = QuantumCircuit(qubits, clbits)
             expected.if_test(cond_outer, outer_t, qubits[:7], clbits[:10])
-            expected.h(qubits[7]).c_if(clbits[10], 0)
+            with expected.if_test((clbits[10], 0)):
+                expected.h(qubits[7])
 
             self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
@@ -2061,64 +1957,82 @@ class TestControlFlowBuilders(QiskitTestCase):
             test = QuantumCircuit(qubits, clbits)
             with test.switch(0) as case_outer:
                 with case_outer(False):  # outer_case_f
-                    test.h(0).c_if(3, 0)
+                    with test.if_test((3, 0)):
+                        test.h(0)
                     with test.for_loop(range(2)):  # loop
-                        test.h(1).c_if(4, 0)
+                        with test.if_test((4, 0)):
+                            test.h(1)
                         with test.switch(1) as case_inner:
                             with case_inner(False):  # inner_case_f
-                                test.h(2).c_if(5, 0)
+                                with test.if_test((5, 0)):
+                                    test.h(2)
                                 with test.if_test((2, True)) as else_:  # if_t
-                                    test.h(3).c_if(6, 0)
+                                    with test.if_test((6, 0)):
+                                        test.h(3)
                                 with else_:  # if_f
                                     loop_operation(test)
-                                test.h(4).c_if(7, 0)
+                                with test.if_test((7, 0)):
+                                    test.h(4)
                             with case_inner(True):  # inner_case_t
                                 loop_operation(test)
-                        test.h(5).c_if(8, 0)
+                        with test.if_test((8, 0)):
+                            test.h(5)
                     # exit loop1
-                    test.h(6).c_if(9, 0)
+                    with test.if_test((9, 0)):
+                        test.h(6)
                 with case_outer(True):  # outer_case_t
-                    test.h(7).c_if(10, 0)
-            test.h(8).c_if(11, 0)
+                    with test.if_test((10, 0)):
+                        test.h(7)
+            with test.if_test((11, 0)):
+                test.h(8)
 
             if_t = QuantumCircuit(qubits[1:6], clbits[1:3] + clbits[4:9])
-            if_t.h(qubits[3]).c_if(clbits[6], 0)
+            with if_t.if_test((clbits[6], 0)):
+                if_t.h(qubits[3])
             if_f = QuantumCircuit(qubits[1:6], clbits[1:3] + clbits[4:9])
             loop_operation(if_f)
 
             inner_case_f = QuantumCircuit(qubits[1:6], clbits[1:3] + clbits[4:9])
-            inner_case_f.h(qubits[2]).c_if(clbits[5], 0)
+            with inner_case_f.if_test((clbits[5], 0)):
+                inner_case_f.h(qubits[2])
             inner_case_f.if_else(
                 (clbits[2], True), if_t, if_f, qubits[1:6], clbits[1:3] + clbits[4:9]
             )
-            inner_case_f.h(qubits[4]).c_if(clbits[7], 0)
+            with inner_case_f.if_test((clbits[7], 0)):
+                inner_case_f.h(qubits[4])
 
             inner_case_t = QuantumCircuit(qubits[1:6], clbits[1:3] + clbits[4:9])
             loop_operation(inner_case_t)
 
             loop = QuantumCircuit(qubits[1:6], clbits[1:3] + clbits[4:9])
-            loop.h(qubits[1]).c_if(clbits[4], 0)
+            with loop.if_test((clbits[4], 0)):
+                loop.h(qubits[1])
             loop.switch(
                 clbits[1],
                 [(False, inner_case_f), (True, inner_case_t)],
                 qubits[1:6],
                 clbits[1:3] + clbits[4:9],
             )
-            loop.h(qubits[5]).c_if(clbits[8], 0)
+            with loop.if_test((clbits[8], 0)):
+                loop.h(qubits[5])
 
             outer_case_f = QuantumCircuit(qubits[:8], clbits[:11])
-            outer_case_f.h(qubits[0]).c_if(clbits[3], 0)
+            with outer_case_f.if_test((clbits[3], 0)):
+                outer_case_f.h(qubits[0])
             outer_case_f.for_loop(range(2), None, loop, qubits[1:6], clbits[1:3] + clbits[4:9])
-            outer_case_f.h(qubits[6]).c_if(clbits[9], 0)
+            with outer_case_f.if_test((clbits[9], 0)):
+                outer_case_f.h(qubits[6])
 
             outer_case_t = QuantumCircuit(qubits[:8], clbits[:11])
-            outer_case_t.h(qubits[7]).c_if(clbits[10], 0)
+            with outer_case_t.if_test((clbits[10], 0)):
+                outer_case_t.h(qubits[7])
 
             expected = QuantumCircuit(qubits, clbits)
             expected.switch(
                 clbits[0], [(False, outer_case_f), (True, outer_case_t)], qubits[:8], clbits[:11]
             )
-            expected.h(qubits[8]).c_if(clbits[11], 0)
+            with expected.if_test((clbits[11], 0)):
+                expected.h(qubits[8])
 
             self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
@@ -2339,180 +2253,6 @@ class TestControlFlowBuilders(QiskitTestCase):
             expected.switch(cond[0], [(0, body)], [qubits[1]], clbits)
 
             self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
-
-    def test_access_of_clbit_from_c_if(self):
-        """Test that resources added from a call to :meth:`.InstructionSet.c_if` propagate through
-        the context managers correctly."""
-        qubits = [Qubit(), Qubit()]
-        clbits = [Clbit(), Clbit()]
-        bits = qubits + clbits
-        cond = (clbits[0], 0)
-
-        with self.subTest("if"):
-            test = QuantumCircuit(bits)
-            with test.if_test(cond):
-                test.h(0).c_if(1, 0)
-
-            body = QuantumCircuit([qubits[0]], clbits)
-            body.h(qubits[0]).c_if(clbits[1], 0)
-            expected = QuantumCircuit(bits)
-            expected.if_test(cond, body, [qubits[0]], clbits)
-
-        with self.subTest("else"):
-            test = QuantumCircuit(bits)
-            with test.if_test(cond) as else_:
-                pass
-            with else_:
-                test.h(0).c_if(1, 0)
-
-            true_body = QuantumCircuit([qubits[0]], clbits)
-            false_body = QuantumCircuit([qubits[0]], clbits)
-            false_body.h(qubits[0]).c_if(clbits[1], 0)
-            expected = QuantumCircuit(bits)
-            expected.if_else(cond, true_body, false_body, [qubits[0]], clbits)
-
-        with self.subTest("for"):
-            test = QuantumCircuit(bits)
-            with test.for_loop(range(2)):
-                test.h(0).c_if(1, 0)
-
-            body = QuantumCircuit([qubits[0]], clbits)
-            body.h(qubits[0]).c_if(clbits[1], 0)
-            expected = QuantumCircuit(bits)
-            expected.for_loop(range(2), None, body, [qubits[0]], clbits)
-
-        with self.subTest("while"):
-            test = QuantumCircuit(bits)
-            with test.while_loop(cond):
-                test.h(0).c_if(1, 0)
-
-            body = QuantumCircuit([qubits[0]], clbits)
-            body.h(qubits[0]).c_if(clbits[1], 0)
-            expected = QuantumCircuit(bits)
-            expected.while_loop(cond, body, [qubits[0]], clbits)
-
-        with self.subTest("switch"):
-            test = QuantumCircuit(bits)
-            with test.switch(cond[0]) as case, case(False):
-                test.h(0).c_if(1, 0)
-
-            body = QuantumCircuit([qubits[0]], clbits)
-            body.h(qubits[0]).c_if(clbits[1], 0)
-            expected = QuantumCircuit(bits)
-            expected.switch(cond[0], [(False, body)], [qubits[0]], clbits)
-
-        with self.subTest("if inside for"):
-            test = QuantumCircuit(bits)
-            with test.for_loop(range(2)):
-                with test.if_test(cond):
-                    test.h(0).c_if(1, 0)
-
-            true_body = QuantumCircuit([qubits[0]], clbits)
-            true_body.h(qubits[0]).c_if(clbits[1], 0)
-            body = QuantumCircuit([qubits[0]], clbits)
-            body.if_test(cond, body, [qubits[0]], clbits)
-            expected = QuantumCircuit(bits)
-            expected.for_loop(range(2), None, body, [qubits[0]], clbits)
-
-        with self.subTest("switch inside for"):
-            test = QuantumCircuit(bits)
-            with test.for_loop(range(2)), test.switch(cond[0]) as case, case(False):
-                test.h(0).c_if(1, 0)
-
-            body = QuantumCircuit([qubits[0]], clbits)
-            body.h(qubits[0]).c_if(clbits[1], 0)
-            body = QuantumCircuit([qubits[0]], clbits)
-            body.switch(cond[0], [(False, body)], [qubits[0]], clbits)
-            expected = QuantumCircuit(bits)
-            expected.for_loop(range(2), None, body, [qubits[0]], clbits)
-
-    def test_access_of_classicalregister_from_c_if(self):
-        """Test that resources added from a call to :meth:`.InstructionSet.c_if` propagate through
-        the context managers correctly."""
-        qubits = [Qubit(), Qubit()]
-        creg = ClassicalRegister(2)
-        clbits = [Clbit()]
-        all_clbits = list(clbits) + list(creg)
-        cond = (clbits[0], 0)
-
-        with self.subTest("if"):
-            test = QuantumCircuit(qubits, clbits, creg)
-            with test.if_test(cond):
-                test.h(0).c_if(creg, 0)
-
-            body = QuantumCircuit([qubits[0]], clbits, creg)
-            body.h(qubits[0]).c_if(creg, 0)
-            expected = QuantumCircuit(qubits, clbits, creg)
-            expected.if_test(cond, body, [qubits[0]], all_clbits)
-
-        with self.subTest("else"):
-            test = QuantumCircuit(qubits, clbits, creg)
-            with test.if_test(cond) as else_:
-                pass
-            with else_:
-                test.h(0).c_if(1, 0)
-
-            true_body = QuantumCircuit([qubits[0]], clbits, creg)
-            false_body = QuantumCircuit([qubits[0]], clbits, creg)
-            false_body.h(qubits[0]).c_if(creg, 0)
-            expected = QuantumCircuit(qubits, clbits, creg)
-            expected.if_else(cond, true_body, false_body, [qubits[0]], all_clbits)
-
-        with self.subTest("for"):
-            test = QuantumCircuit(qubits, clbits, creg)
-            with test.for_loop(range(2)):
-                test.h(0).c_if(1, 0)
-
-            body = QuantumCircuit([qubits[0]], clbits, creg)
-            body.h(qubits[0]).c_if(creg, 0)
-            expected = QuantumCircuit(qubits, clbits, creg)
-            expected.for_loop(range(2), None, body, [qubits[0]], all_clbits)
-
-        with self.subTest("while"):
-            test = QuantumCircuit(qubits, clbits, creg)
-            with test.while_loop(cond):
-                test.h(0).c_if(creg, 0)
-
-            body = QuantumCircuit([qubits[0]], clbits, creg)
-            body.h(qubits[0]).c_if(creg, 0)
-            expected = QuantumCircuit(qubits, clbits, creg)
-            expected.while_loop(cond, body, [qubits[0]], all_clbits)
-
-        with self.subTest("switch"):
-            test = QuantumCircuit(qubits, clbits, creg)
-            with test.switch(cond[0]) as case, case(False):
-                test.h(0).c_if(creg, 0)
-
-            body = QuantumCircuit([qubits[0]], clbits, creg)
-            body.h(qubits[0]).c_if(creg, 0)
-            expected = QuantumCircuit(qubits, clbits, creg)
-            expected.switch(cond[0], [(False, body)], [qubits[0]], all_clbits)
-
-        with self.subTest("if inside for"):
-            test = QuantumCircuit(qubits, clbits, creg)
-            with test.for_loop(range(2)):
-                with test.if_test(cond):
-                    test.h(0).c_if(creg, 0)
-
-            true_body = QuantumCircuit([qubits[0]], clbits, creg)
-            true_body.h(qubits[0]).c_if(creg, 0)
-            body = QuantumCircuit([qubits[0]], clbits, creg)
-            body.if_test(cond, body, [qubits[0]], all_clbits)
-            expected = QuantumCircuit(qubits, clbits, creg)
-            expected.for_loop(range(2), None, body, [qubits[0]], all_clbits)
-
-        with self.subTest("switch inside for"):
-            test = QuantumCircuit(qubits, clbits, creg)
-            with test.for_loop(range(2)):
-                with test.switch(cond[0]) as case, case(False):
-                    test.h(0).c_if(creg, 0)
-
-            case = QuantumCircuit([qubits[0]], clbits, creg)
-            case.h(qubits[0]).c_if(creg, 0)
-            body = QuantumCircuit([qubits[0]], clbits, creg)
-            body.switch(cond[0], [(False, case)], [qubits[0]], all_clbits)
-            expected = QuantumCircuit(qubits, clbits, creg)
-            expected.for_loop(range(2), None, body, [qubits[0]], all_clbits)
 
     def test_accept_broadcast_gates(self):
         """Test that the context managers accept gates that are broadcast during their addition to
@@ -2943,7 +2683,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             self.assertEqual(canonicalize_control_flow(outer), canonicalize_control_flow(expected))
 
     def test_global_phase_of_blocks(self):
-        """It should be possible to set a global phase of a scope independantly of the containing
+        """It should be possible to set a global phase of a scope independently of the containing
         scope and other sibling scopes."""
         qr = QuantumRegister(3)
         cr = ClassicalRegister(3)
@@ -3011,46 +2751,71 @@ class TestControlFlowBuilders(QiskitTestCase):
     def test_can_capture_declared(self):
         a = expr.Var.new("a", types.Bool())
         b = expr.Var.new("b", types.Bool())
-        base = QuantumCircuit(declarations=[(a, expr.lift(False)), (b, expr.lift(True))])
+        c = expr.Stretch.new("c")
+        base = QuantumCircuit(1, declarations=[(a, expr.lift(False)), (b, expr.lift(True))])
+        base.add_stretch(c)
         with base.if_test(expr.lift(False)):
             base.store(a, expr.lift(True))
+            base.delay(c)
         self.assertEqual(set(base.data[-1].operation.blocks[0].iter_captured_vars()), {a})
+        self.assertEqual(set(base.data[-1].operation.blocks[0].iter_captured_stretches()), {c})
 
     def test_can_capture_capture(self):
         # It's a bit wild to be manually building an outer circuit that's intended to be a subblock,
         # but be using the control-flow builder interface internally, but eh, it should work.
         a = expr.Var.new("a", types.Bool())
         b = expr.Var.new("b", types.Bool())
-        base = QuantumCircuit(captures=[a, b])
+        c = expr.Stretch.new("c")
+        d = expr.Stretch.new("d")
+        base = QuantumCircuit(1, captures=[a, b, c, d])
         with base.while_loop(expr.lift(False)):
             base.store(a, expr.lift(True))
+            base.delay(c)
+
         self.assertEqual(set(base.data[-1].operation.blocks[0].iter_captured_vars()), {a})
+        self.assertEqual(set(base.data[-1].operation.blocks[0].iter_captured_stretches()), {c})
 
     def test_can_capture_from_nested(self):
         a = expr.Var.new("a", types.Bool())
         b = expr.Var.new("b", types.Bool())
         c = expr.Var.new("c", types.Bool())
-        base = QuantumCircuit(inputs=[a, b])
+        d = expr.Stretch.new("d")
+        e = expr.Stretch.new("e")
+        f = expr.Stretch.new("f")
+        base = QuantumCircuit(1, inputs=[a, b])
+        base.add_stretch(d)
+        base.add_stretch(e)
         with base.switch(expr.lift(False)) as case, case(case.DEFAULT):
             base.add_var(c, expr.lift(False))
+            base.add_stretch(f)
             with base.if_test(expr.lift(False)):
                 base.store(a, c)
+                base.delay(expr.add(d, f))
         outer_block = base.data[-1].operation.blocks[0]
         inner_block = outer_block.data[-1].operation.blocks[0]
         self.assertEqual(set(inner_block.iter_captured_vars()), {a, c})
+        self.assertEqual(set(inner_block.iter_captured_stretches()), {d, f})
 
         # The containing block should have captured it as well, despite not using it explicitly.
         self.assertEqual(set(outer_block.iter_captured_vars()), {a})
         self.assertEqual(set(outer_block.iter_declared_vars()), {c})
+        self.assertEqual(set(outer_block.iter_captured_stretches()), {d})
+        self.assertEqual(set(outer_block.iter_declared_stretches()), {f})
 
     def test_can_manually_capture(self):
         a = expr.Var.new("a", types.Bool())
         b = expr.Var.new("b", types.Bool())
+        c = expr.Stretch.new("c")
+        d = expr.Stretch.new("d")
         base = QuantumCircuit(inputs=[a, b])
+        base.add_stretch(c)
+        base.add_stretch(d)
         with base.while_loop(expr.lift(False)):
             # Why do this?  Who knows, but it clearly has a well-defined meaning.
             base.add_capture(a)
+            base.add_capture(c)
         self.assertEqual(set(base.data[-1].operation.blocks[0].iter_captured_vars()), {a})
+        self.assertEqual(set(base.data[-1].operation.blocks[0].iter_captured_stretches()), {c})
 
     def test_later_blocks_do_not_inherit_captures(self):
         """Neither 'if' nor 'switch' should have later blocks inherit the captures from the earlier
@@ -3058,50 +2823,78 @@ class TestControlFlowBuilders(QiskitTestCase):
         a = expr.Var.new("a", types.Bool())
         b = expr.Var.new("b", types.Bool())
         c = expr.Var.new("c", types.Bool())
+        d = expr.Stretch.new("d")
+        e = expr.Stretch.new("e")
+        f = expr.Stretch.new("f")
 
-        base = QuantumCircuit(inputs=[a, b, c])
+        base = QuantumCircuit(1, inputs=[a, b, c])
+        base.add_stretch(d)
+        base.add_stretch(e)
+        base.add_stretch(f)
         with base.if_test(expr.lift(False)) as else_:
             base.store(a, expr.lift(False))
+            base.delay(d)
         with else_:
             base.store(b, expr.lift(False))
+            base.delay(e)
         blocks = base.data[-1].operation.blocks
         self.assertEqual(set(blocks[0].iter_captured_vars()), {a})
+        self.assertEqual(set(blocks[0].iter_captured_stretches()), {d})
         self.assertEqual(set(blocks[1].iter_captured_vars()), {b})
+        self.assertEqual(set(blocks[1].iter_captured_stretches()), {e})
 
-        base = QuantumCircuit(inputs=[a, b, c])
+        base = QuantumCircuit(1, inputs=[a, b, c])
+        base.add_stretch(d)
+        base.add_stretch(e)
+        base.add_stretch(f)
         with base.switch(expr.lift(False)) as case:
             with case(0):
                 base.store(a, expr.lift(False))
+                base.delay(d)
             with case(case.DEFAULT):
                 base.store(b, expr.lift(False))
+                base.delay(e)
         blocks = base.data[-1].operation.blocks
         self.assertEqual(set(blocks[0].iter_captured_vars()), {a})
+        self.assertEqual(set(blocks[0].iter_captured_stretches()), {d})
         self.assertEqual(set(blocks[1].iter_captured_vars()), {b})
+        self.assertEqual(set(blocks[1].iter_captured_stretches()), {e})
 
     def test_blocks_have_independent_declarations(self):
         """The blocks of if and switch should be separate scopes for declarations."""
         b1 = expr.Var.new("b", types.Bool())
         b2 = expr.Var.new("b", types.Bool())
+        c1 = expr.Stretch.new("c")
+        c2 = expr.Stretch.new("c")
         self.assertNotEqual(b1, b2)
+        self.assertNotEqual(c1, c2)
 
         base = QuantumCircuit()
         with base.if_test(expr.lift(False)) as else_:
             base.add_var(b1, expr.lift(False))
+            base.add_stretch(c1)
         with else_:
             base.add_var(b2, expr.lift(False))
+            base.add_stretch(c2)
         blocks = base.data[-1].operation.blocks
         self.assertEqual(set(blocks[0].iter_declared_vars()), {b1})
+        self.assertEqual(set(blocks[0].iter_declared_stretches()), {c1})
         self.assertEqual(set(blocks[1].iter_declared_vars()), {b2})
+        self.assertEqual(set(blocks[1].iter_declared_stretches()), {c2})
 
         base = QuantumCircuit()
         with base.switch(expr.lift(False)) as case:
             with case(0):
                 base.add_var(b1, expr.lift(False))
+                base.add_stretch(c1)
             with case(case.DEFAULT):
                 base.add_var(b2, expr.lift(False))
+                base.add_stretch(c2)
         blocks = base.data[-1].operation.blocks
         self.assertEqual(set(blocks[0].iter_declared_vars()), {b1})
+        self.assertEqual(set(blocks[0].iter_declared_stretches()), {c1})
         self.assertEqual(set(blocks[1].iter_declared_vars()), {b2})
+        self.assertEqual(set(blocks[1].iter_declared_stretches()), {c2})
 
     def test_can_shadow_outer_name(self):
         outer = expr.Var.new("a", types.Bool())
@@ -3113,57 +2906,124 @@ class TestControlFlowBuilders(QiskitTestCase):
         self.assertEqual(set(block.iter_declared_vars()), {inner})
         self.assertEqual(set(block.iter_captured_vars()), set())
 
+    def test_can_shadow_outer_name_stretch(self):
+        outer = expr.Stretch.new("a")
+        inner = expr.Stretch.new("a")
+        base = QuantumCircuit(captures=[outer])
+        with base.if_test(expr.lift(False)):
+            base.add_stretch(inner)
+        block = base.data[-1].operation.blocks[0]
+        self.assertEqual(set(block.iter_declared_stretches()), {inner})
+        self.assertEqual(set(block.iter_captured_stretches()), set())
+
+    def test_var_can_shadow_outer_stretch(self):
+        outer = expr.Stretch.new("a")
+        inner = expr.Var.new("a", types.Bool())
+        base = QuantumCircuit(captures=[outer])
+        with base.if_test(expr.lift(False)):
+            base.add_var(inner, expr.lift(True))
+        block = base.data[-1].operation.blocks[0]
+        self.assertEqual(set(block.iter_declared_vars()), {inner})
+        self.assertEqual(set(block.iter_captured_stretches()), set())
+
+    def test_stretch_can_shadow_outer_var(self):
+        outer = expr.Var.new("a", types.Bool())
+        inner = expr.Stretch.new("a")
+        base = QuantumCircuit(captures=[outer])
+        with base.if_test(expr.lift(False)):
+            base.add_stretch(inner)
+        block = base.data[-1].operation.blocks[0]
+        self.assertEqual(set(block.iter_declared_stretches()), {inner})
+        self.assertEqual(set(block.iter_captured_vars()), set())
+
     def test_iterators_run_over_scope(self):
         a = expr.Var.new("a", types.Bool())
         b = expr.Var.new("b", types.Bool())
         c = expr.Var.new("c", types.Bool())
         d = expr.Var.new("d", types.Bool())
+        e = expr.Stretch.new("e")
+        f = expr.Stretch.new("f")
+        g = expr.Stretch.new("g")
+        h = expr.Stretch.new("h")
 
-        base = QuantumCircuit(inputs=[a, b, c])
+        base = QuantumCircuit(1, inputs=[a, b, c])
+        base.add_stretch(e)
+        base.add_stretch(f)
+        base.add_stretch(g)
         self.assertEqual(set(base.iter_input_vars()), {a, b, c})
         self.assertEqual(set(base.iter_declared_vars()), set())
         self.assertEqual(set(base.iter_captured_vars()), set())
+        self.assertEqual(set(base.iter_declared_stretches()), {e, f, g})
+        self.assertEqual(set(base.iter_captured_stretches()), set())
 
         with base.switch(expr.lift(3)) as case:
             with case(0):
                 # Nothing here.
                 self.assertEqual(set(base.iter_vars()), set())
+                self.assertEqual(set(base.iter_captures()), set())
                 self.assertEqual(set(base.iter_input_vars()), set())
                 self.assertEqual(set(base.iter_declared_vars()), set())
                 self.assertEqual(set(base.iter_captured_vars()), set())
+                self.assertEqual(set(base.iter_stretches()), set())
+                self.assertEqual(set(base.iter_declared_stretches()), set())
+                self.assertEqual(set(base.iter_captured_stretches()), set())
 
                 # Capture a variable.
                 base.store(a, expr.lift(False))
                 self.assertEqual(set(base.iter_captured_vars()), {a})
+
+                # Capture a stretch.
+                base.delay(e)
+                self.assertEqual(set(base.iter_captured_stretches()), {e})
 
                 # Declare a variable.
                 base.add_var(d, expr.lift(False))
                 self.assertEqual(set(base.iter_declared_vars()), {d})
                 self.assertEqual(set(base.iter_vars()), {a, d})
 
+                # Declare a stretch.
+                base.add_stretch(h)
+                self.assertEqual(set(base.iter_declared_stretches()), {h})
+                self.assertEqual(set(base.iter_stretches()), {e, h})
+
             with case(1):
                 # We should have reset.
                 self.assertEqual(set(base.iter_vars()), set())
+                self.assertEqual(set(base.iter_captures()), set())
                 self.assertEqual(set(base.iter_input_vars()), set())
                 self.assertEqual(set(base.iter_declared_vars()), set())
                 self.assertEqual(set(base.iter_captured_vars()), set())
+                self.assertEqual(set(base.iter_stretches()), set())
+                self.assertEqual(set(base.iter_declared_stretches()), set())
+                self.assertEqual(set(base.iter_captured_stretches()), set())
 
                 # Capture a variable.
                 base.store(b, expr.lift(False))
                 self.assertEqual(set(base.iter_captured_vars()), {b})
 
+                # Capture a stretch.
+                base.delay(f)
+                self.assertEqual(set(base.iter_captured_stretches()), {f})
+
                 # Capture some more in another scope.
                 with base.while_loop(expr.lift(False)):
                     self.assertEqual(set(base.iter_vars()), set())
+                    self.assertEqual(set(base.iter_stretches()), set())
                     base.store(c, expr.lift(False))
+                    base.delay(g)
                     self.assertEqual(set(base.iter_captured_vars()), {c})
+                    self.assertEqual(set(base.iter_captured_stretches()), {g})
 
                 self.assertEqual(set(base.iter_captured_vars()), {b, c})
+                self.assertEqual(set(base.iter_captured_stretches()), {f, g})
                 self.assertEqual(set(base.iter_vars()), {b, c})
+                self.assertEqual(set(base.iter_stretches()), {f, g})
         # And back to the outer scope.
         self.assertEqual(set(base.iter_input_vars()), {a, b, c})
+        self.assertEqual(set(base.iter_declared_stretches()), {e, f, g})
         self.assertEqual(set(base.iter_declared_vars()), set())
         self.assertEqual(set(base.iter_captured_vars()), set())
+        self.assertEqual(set(base.iter_captured_stretches()), set())
 
     def test_get_var_respects_scope(self):
         outer = expr.Var.new("a", types.Bool())
@@ -3183,7 +3043,43 @@ class TestControlFlowBuilders(QiskitTestCase):
             # ... until we shadow it.
             base.add_var(inner, expr.lift(False))
             self.assertEqual(base.get_var("a"), inner)
+        with base.if_test(expr.lift(False)):
+            # New scope, so again we see the outer one.
+            self.assertEqual(base.get_var("a"), outer)
+
+            # Now make sure shadowing the var with a stretch works.
+            s = base.add_stretch("a")
+            self.assertEqual(base.get_var("a", None), None)
+            self.assertEqual(base.get_stretch("a"), s)
         self.assertEqual(base.get_var("a"), outer)
+
+    def test_get_stretch_respects_scope(self):
+        outer = expr.Stretch.new("a")
+        inner = expr.Stretch.new("a")
+        base = QuantumCircuit(captures=[outer])
+        self.assertEqual(base.get_stretch("a"), outer)
+        with base.if_test(expr.lift(False)) as else_:
+            # Before we've done anything, getting the stretch should get the outer one.
+            self.assertEqual(base.get_stretch("a"), outer)
+
+            # If we shadow it, we should get the shadowed one after.
+            base.add_stretch(inner)
+            self.assertEqual(base.get_stretch("a"), inner)
+        with else_:
+            # In a new scope, we should see the outer one again.
+            self.assertEqual(base.get_stretch("a"), outer)
+            # ... until we shadow it.
+            base.add_stretch(inner)
+            self.assertEqual(base.get_stretch("a"), inner)
+        with base.if_test(expr.lift(False)):
+            # New scope, so again we see the outer one.
+            self.assertEqual(base.get_stretch("a"), outer)
+
+            # Now make sure shadowing the stretch with a var works.
+            v = base.add_var("a", expr.lift(True))
+            self.assertEqual(base.get_stretch("a", None), None)
+            self.assertEqual(base.get_var("a"), v)
+        self.assertEqual(base.get_stretch("a"), outer)
 
     def test_has_var_respects_scope(self):
         outer = expr.Var.new("a", types.Bool())
@@ -3214,10 +3110,68 @@ class TestControlFlowBuilders(QiskitTestCase):
             self.assertTrue(base.has_var("a"))
             self.assertFalse(base.has_var(outer))
             self.assertTrue(base.has_var(inner))
+        with base.if_test(expr.lift(False)):
+            # New scope, so again we see the outer one.
+            self.assertTrue(base.has_var("a"))
+            self.assertTrue(base.has_var(outer))
+            self.assertFalse(base.has_var(inner))
+
+            # Now make sure shadowing the var with a stretch works.
+            s = base.add_stretch("a")
+            self.assertFalse(base.has_var("a"))
+            self.assertFalse(base.has_var(outer))
+            self.assertFalse(base.has_var(inner))
+            self.assertTrue(base.has_stretch(s))
 
         self.assertTrue(base.has_var("a"))
         self.assertTrue(base.has_var(outer))
         self.assertFalse(base.has_var(inner))
+
+    def test_has_stretch_respects_scope(self):
+        outer = expr.Stretch.new("a")
+        inner = expr.Stretch.new("a")
+        base = QuantumCircuit(captures=[outer])
+        self.assertEqual(base.get_stretch("a"), outer)
+        with base.if_test(expr.lift(False)) as else_:
+            self.assertFalse(base.has_stretch("b"))
+
+            # Before we've done anything, we should see the outer one.
+            self.assertTrue(base.has_stretch("a"))
+            self.assertTrue(base.has_stretch(outer))
+            self.assertFalse(base.has_stretch(inner))
+
+            # If we shadow it, we should see the shadowed one after.
+            base.add_stretch(inner)
+            self.assertTrue(base.has_stretch("a"))
+            self.assertFalse(base.has_stretch(outer))
+            self.assertTrue(base.has_stretch(inner))
+        with else_:
+            # In a new scope, we should see the outer one again.
+            self.assertTrue(base.has_stretch("a"))
+            self.assertTrue(base.has_stretch(outer))
+            self.assertFalse(base.has_stretch(inner))
+
+            # ... until we shadow it.
+            base.add_stretch(inner)
+            self.assertTrue(base.has_stretch("a"))
+            self.assertFalse(base.has_stretch(outer))
+            self.assertTrue(base.has_stretch(inner))
+        with base.if_test(expr.lift(False)):
+            # New scope, so again we see the outer one.
+            self.assertTrue(base.has_stretch("a"))
+            self.assertTrue(base.has_stretch(outer))
+            self.assertFalse(base.has_stretch(inner))
+
+            # Now make sure shadowing the stretch with a var works.
+            v = base.add_var("a", expr.lift(True))
+            self.assertFalse(base.has_stretch("a"))
+            self.assertFalse(base.has_stretch(outer))
+            self.assertFalse(base.has_stretch(inner))
+            self.assertTrue(base.has_var(v))
+
+        self.assertTrue(base.has_stretch("a"))
+        self.assertTrue(base.has_stretch(outer))
+        self.assertFalse(base.has_stretch(inner))
 
     def test_store_to_clbit_captures_bit(self):
         base = QuantumCircuit(1, 2)
@@ -3244,6 +3198,276 @@ class TestControlFlowBuilders(QiskitTestCase):
         expected.if_test(expr.lift(False), body, [], cr1[:])
 
         self.assertEqual(base, expected)
+
+    def test_rebuild_captures_variables_in_blocks(self):
+        """Test that when the separate blocks of a statement cause it to require a full rebuild of
+        the circuit objects during builder resolution, the variables are all moved over
+        correctly."""
+
+        a = expr.Var.new("🐍🐍🐍", types.Uint(8))
+
+        qc = QuantumCircuit(3, 1, inputs=[a])
+        qc.measure(0, 0)
+        b_outer = qc.add_var("b", False)
+        with qc.switch(a) as case:
+            with case(0):
+                qc.cx(1, 2)
+                qc.store(b_outer, True)
+            with case(1):
+                qc.store(qc.clbits[0], False)
+            with case(2):
+                # Explicit shadowing.
+                b_inner = qc.add_var("b", True)
+            with case(3):
+                qc.store(a, expr.lift(1, a.type))
+            with case(case.DEFAULT):
+                qc.cx(2, 1)
+
+        # (inputs, captures, declares) for each block of the `switch`.
+        expected = [
+            ([], [b_outer], []),
+            ([], [], []),
+            ([], [], [b_inner]),
+            ([], [a], []),
+            ([], [], []),
+        ]
+        actual = [
+            (
+                list(block.iter_input_vars()),
+                list(block.iter_captured_vars()),
+                list(block.iter_declared_vars()),
+            )
+            for block in qc.data[-1].operation.blocks
+        ]
+        self.assertEqual(expected, actual)
+
+    def test_noop_in_base_scope(self):
+        base = QuantumCircuit(3)
+        # Just to check no modifications.
+        initial_qubits = list(base.qubits)
+        # No-op on a qubit that's already a no-op.
+        base.noop(0)
+        base.cx(0, 1)
+        # No-op on a qubit that's got a defined operation.
+        base.noop(base.qubits[1])
+        # A collection of allowed inputs, where duplicates should be silently ignored.
+        base.noop(base.qubits, {2}, (1, 0))
+
+        expected = QuantumCircuit(3)
+        expected.cx(0, 1)
+
+        self.assertEqual(initial_qubits, base.qubits)
+        # There should be no impact on the circuit from the no-ops.
+        self.assertEqual(base, expected)
+
+    def test_noop_in_scope(self):
+        qc = QuantumCircuit([Qubit(), Qubit(), Qubit()], [Clbit()])
+        # Instruction 0.
+        with qc.if_test(expr.lift(True)):
+            qc.noop(0)
+        # Instruction 1.
+        with qc.while_loop(expr.lift(False)):
+            qc.cx(0, 1)
+            qc.noop(qc.qubits[1])
+        # Instruction 2.
+        with qc.for_loop(range(3)):
+            qc.noop({0}, [1, 0])
+            qc.x(0)
+        # Instruction 3.
+        with qc.switch(expr.lift(3, types.Uint(8))) as case:
+            with case(0):
+                qc.noop(0)
+            with case(1):
+                qc.noop(1)
+        # Instruction 4.
+        with qc.if_test(expr.lift(True)) as else_:
+            pass
+        with else_:
+            with qc.if_test(expr.lift(True)):
+                qc.noop(2)
+        # Instruction 5.
+        with qc.box():
+            qc.noop(0)
+            qc.noop(2)
+
+        expected = QuantumCircuit(qc.qubits, qc.clbits)
+        body_0 = QuantumCircuit([qc.qubits[0]])
+        expected.if_test(expr.lift(True), body_0, body_0.qubits, [])
+        body_1 = QuantumCircuit([qc.qubits[0], qc.qubits[1]])
+        body_1.cx(0, 1)
+        expected.while_loop(expr.lift(False), body_1, body_1.qubits, [])
+        body_2 = QuantumCircuit([qc.qubits[0], qc.qubits[1]])
+        body_2.x(0)
+        expected.for_loop(range(3), None, body_2, body_2.qubits, [])
+        body_3_0 = QuantumCircuit([qc.qubits[0], qc.qubits[1]])
+        body_3_1 = QuantumCircuit([qc.qubits[0], qc.qubits[1]])
+        expected.switch(
+            expr.lift(3, types.Uint(8)), [(0, body_3_0), (1, body_3_1)], body_3_0.qubits, []
+        )
+        body_4_true = QuantumCircuit([qc.qubits[2]])
+        body_4_false = QuantumCircuit([qc.qubits[2]])
+        body_4_false_0 = QuantumCircuit([qc.qubits[2]])
+        body_4_false.if_test(expr.lift(True), body_4_false_0, body_4_false_0.qubits, [])
+        expected.if_else(expr.lift(True), body_4_true, body_4_false, body_4_true.qubits, [])
+        body_5 = QuantumCircuit([qc.qubits[0], qc.qubits[2]])
+        expected.box(body_5, body_5.qubits, [])
+
+        self.assertEqual(qc, expected)
+
+    def test_box_simple(self):
+        qc = QuantumCircuit(5, 5)
+        with qc.box():  # Instruction 0
+            qc.h(0)
+            qc.cx(0, 1)
+        with qc.box():  # Instruction 1
+            qc.h(3)
+            qc.cx(3, 2)
+            qc.cx(3, 4)
+        with qc.box():  # Instruction 2
+            with qc.box():  # Instruction 2-0
+                qc.measure(qc.qubits, qc.clbits)
+
+        expected = qc.copy_empty_like()
+        body_0 = QuantumCircuit(expected.qubits[0:2])
+        body_0.h(expected.qubits[0])
+        body_0.cx(expected.qubits[0], expected.qubits[1])
+        expected.box(body_0, body_0.qubits, body_0.clbits)
+        body_1 = QuantumCircuit(expected.qubits[2:5])
+        body_1.h(expected.qubits[3])
+        body_1.cx(expected.qubits[3], expected.qubits[2])
+        body_1.cx(expected.qubits[3], expected.qubits[4])
+        expected.box(body_1, body_1.qubits, body_1.clbits)
+        body_2 = QuantumCircuit(expected.qubits, expected.clbits)
+        body_2_0 = QuantumCircuit(expected.qubits, expected.clbits)
+        body_2_0.measure(expected.qubits, expected.clbits)
+        body_2.box(body_2_0, body_2_0.qubits, body_2_0.clbits)
+        expected.box(body_2, body_2.qubits, body_2.clbits)
+
+        self.assertEqual(qc, expected)
+
+    def test_box_register(self):
+        cr1 = ClassicalRegister(3, "cr1")
+        cr2 = ClassicalRegister(3, "cr2")
+        qc = QuantumCircuit([Qubit()], cr1, cr2)
+        with qc.box():  # Instruction 0
+            with qc.if_test((cr1, 7)):  # Instruction 0-0
+                qc.x(0)
+        with qc.box():  # Instruction 1
+            with qc.box():  # Instruction 1-0
+                with qc.if_test((cr2, 7)):  # Instruction 1-0-0
+                    qc.x(0)
+
+        expected = QuantumCircuit([Qubit()], cr1, cr2)
+        body_0 = QuantumCircuit(expected.qubits, cr1)
+        body_0_0 = QuantumCircuit(expected.qubits, cr1)
+        body_0_0.x(0)
+        body_0.if_test((cr1, 7), body_0_0, expected.qubits, cr1[:])
+        expected.box(body_0, expected.qubits, cr1[:])
+
+        body_1 = QuantumCircuit(expected.qubits, cr2)
+        body_1_0 = QuantumCircuit(expected.qubits, cr2)
+        body_1_0_0 = QuantumCircuit(expected.qubits, cr2)
+        body_1_0_0.x(0)
+        body_1_0.if_test((cr2, 7), body_1_0_0, expected.qubits, cr2[:])
+        body_1.box(body_1_0, expected.qubits, cr2[:])
+        expected.box(body_1, expected.qubits, cr2[:])
+
+        self.assertEqual(qc, expected)
+
+    def test_box_duration(self):
+        qc = QuantumCircuit([Qubit()])
+        with qc.box(duration=3, unit="dt"):  # Instruction 0
+            qc.x(0)
+        with qc.box(duration=2.5, unit="ms"):  # Instruction 1
+            qc.x(0)
+        with qc.box(duration=300e-9, unit="s"):  # Instruction 2
+            with qc.box(duration=50.0, unit="ns"):  # Instruction 2-0
+                qc.x(0)
+            qc.delay(250.0, 0, unit="ns")
+
+        expected = QuantumCircuit([Qubit()])
+        body_0 = expected.copy_empty_like()
+        body_0.x(0)
+        expected.box(body_0, expected.qubits, [], duration=3, unit="dt")
+        body_1 = expected.copy_empty_like()
+        body_1.x(0)
+        expected.box(body_1, expected.qubits, [], duration=2.5, unit="ms")
+        body_2 = expected.copy_empty_like()
+        body_2_0 = body_2.copy_empty_like()
+        body_2_0.x(0)
+        body_2.box(body_2_0, expected.qubits, [], duration=50.0, unit="ns")
+        body_2.delay(250.0, 0, unit="ns")
+        expected.box(body_2, expected.qubits, [], duration=300e-9, unit="s")
+
+        self.assertEqual(qc, expected)
+
+    def test_box_stretch_duration(self):
+        qc = QuantumCircuit([Qubit()])
+        a = qc.add_stretch("a")
+        b = qc.add_stretch("b")
+        long_range = qc.add_stretch("long_range")
+        with qc.box(duration=a):  # body_0
+            c = qc.add_stretch("c")
+            with qc.box(duration=expr.mul(2, b)):  # body_1
+                qc.delay(c, 0)
+            with qc.if_test(expr.lift(True)):  # body_2
+                # This capture goes backwards through two scopes.
+                qc.delay(long_range, 0)
+
+        expected = QuantumCircuit([Qubit()])
+        expected.add_stretch(a)
+        expected.add_stretch(b)
+        expected.add_stretch(long_range)
+        body_0 = QuantumCircuit(expected.qubits)
+        body_0.add_capture(b)
+        body_0.add_capture(long_range)
+        body_0.add_stretch(c)
+        body_1 = QuantumCircuit(expected.qubits)
+        body_1.add_capture(c)
+        body_1.delay(c, 0)
+        body_0.box(body_1, expected.qubits, [], duration=expr.mul(2, b))
+        body_2 = QuantumCircuit(expected.qubits)
+        body_2.add_capture(long_range)
+        body_2.delay(long_range, 0)
+        body_0.if_test(expr.lift(True), body_2, expected.qubits, [])
+        expected.box(body_0, expected.qubits, [], duration=a)
+        self.assertEqual(qc, expected)
+
+    def test_box_label(self):
+        qc = QuantumCircuit([Qubit()])
+        with qc.box(label="hello, world"):
+            qc.noop(0)
+        self.assertEqual(qc.data[0].label, "hello, world")
+
+    def test_box_var_scope(self):
+        a = expr.Var.new("a", types.Bool())
+        qc = QuantumCircuit(inputs=[a])
+        b = qc.add_var("b", expr.lift(5, types.Uint(8)))
+        with qc.box():  # Instruction 0
+            qc.store(a, False)
+        with qc.box():  # Instruction 1
+            qc.store(b, 9)
+        with qc.box():  # Instruction 2
+            c = qc.add_var("c", False)
+            with qc.box():  # Instruction 2-0
+                qc.store(c, a)
+
+        expected = QuantumCircuit(inputs=[a])
+        expected.add_var(b, 5)
+        body_0 = QuantumCircuit(captures=[a])
+        body_0.store(a, False)
+        expected.box(body_0, [], [])
+        body_1 = QuantumCircuit(captures=[b])
+        body_1.store(b, 9)
+        expected.box(body_1, [], [])
+        body_2 = QuantumCircuit(captures=[a])
+        body_2.add_var(c, False)
+        body_2_0 = QuantumCircuit(captures=[a, c])
+        body_2_0.store(c, a)
+        body_2.box(body_2_0, [], [])
+        expected.box(body_2, [], [])
+
+        self.assertEqual(qc, expected)
 
 
 @ddt.ddt
@@ -3293,7 +3517,7 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
     def test_for_rejects_reentry(self):
         """Test that the ``for``-loop context manager rejects attempts to re-enter it.  Since it
         holds some forms of state during execution (the loop variable, which may be generated), we
-        can't safely re-enter it and get the expected behaviour."""
+        can't safely re-enter it and get the expected behavior."""
 
         for_manager = QuantumCircuit(2, 2).for_loop(range(2))
         with for_manager:
@@ -3358,49 +3582,6 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
                 with else_:
                     pass
 
-    def test_if_placeholder_rejects_c_if(self):
-        """Test that the :obj:`.IfElsePlaceholder" class rejects attempts to use
-        :meth:`.Instruction.c_if` on it.
-
-        It *should* be the case that you need to use private methods to get access to one of these
-        placeholder objects at all, because they're appended to a scope at the exit of a context
-        manager, so not returned from a method call. Just in case, here's a test that it correctly
-        rejects the dangerous method that can overwrite ``condition``.
-        """
-        bits = [Qubit(), Clbit()]
-
-        with self.subTest("if"):
-            test = QuantumCircuit(bits)
-            with test.for_loop(range(2)):
-                with test.if_test((bits[1], 0)):
-                    test.break_loop()
-                # These tests need to be done before the 'for' context exits so we don't trigger the
-                # "can't add conditions from out-of-scope" handling.
-                placeholder = test._peek_previous_instruction_in_scope().operation
-                self.assertIsInstance(placeholder, IfElsePlaceholder)
-                with self.assertRaisesRegex(
-                    NotImplementedError,
-                    r"IfElseOp cannot be classically controlled through Instruction\.c_if",
-                ):
-                    placeholder.c_if(bits[1], 0)
-
-        with self.subTest("else"):
-            test = QuantumCircuit(bits)
-            with test.for_loop(range(2)):
-                with test.if_test((bits[1], 0)) as else_:
-                    pass
-                with else_:
-                    test.break_loop()
-                # These tests need to be done before the 'for' context exits so we don't trigger the
-                # "can't add conditions from out-of-scope" handling.
-                placeholder = test._peek_previous_instruction_in_scope().operation
-                self.assertIsInstance(placeholder, IfElsePlaceholder)
-                with self.assertRaisesRegex(
-                    NotImplementedError,
-                    r"IfElseOp cannot be classically controlled through Instruction\.c_if",
-                ):
-                    placeholder.c_if(bits[1], 0)
-
     def test_switch_rejects_operations_outside_cases(self):
         """It shouldn't be permissible to try and put instructions inside a switch but outside a
         case."""
@@ -3422,9 +3603,12 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
     def test_switch_rejects_reentering_case(self):
         """It shouldn't be possible to enter a case within another case."""
         circuit = QuantumCircuit(1, 1)
-        with circuit.switch(0) as case, case(0), self.assertRaisesRegex(
-            CircuitError, r"Cannot enter more than one case at once"
-        ), case(1):
+        with (
+            circuit.switch(0) as case,
+            case(0),
+            self.assertRaisesRegex(CircuitError, r"Cannot enter more than one case at once"),
+            case(1),
+        ):
             pass
 
     @ddt.data("1", 1.0, None, (1, 2))
@@ -3484,86 +3668,6 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
             with case(1):
                 expected.x(0)
         self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
-
-    def test_reject_c_if_from_outside_scope(self):
-        """Test that the context managers reject :meth:`.InstructionSet.c_if` calls if they occur
-        after their scope has completed."""
-        bits = [Qubit(), Clbit()]
-        cond = (bits[1], 0)
-
-        with self.subTest("if"):
-            test = QuantumCircuit(bits)
-            with test.if_test(cond):
-                instructions = test.h(0)
-            with self.assertRaisesRegex(
-                CircuitError, r"Cannot add resources after the scope has been built\."
-            ):
-                instructions.c_if(*cond)
-
-        with self.subTest("else"):
-            test = QuantumCircuit(bits)
-            with test.if_test(cond) as else_:
-                pass
-            with else_:
-                instructions = test.h(0)
-            with self.assertRaisesRegex(
-                CircuitError, r"Cannot add resources after the scope has been built\."
-            ):
-                instructions.c_if(*cond)
-
-        with self.subTest("for"):
-            test = QuantumCircuit(bits)
-            with test.for_loop(range(2)):
-                instructions = test.h(0)
-            with self.assertRaisesRegex(
-                CircuitError, r"Cannot add resources after the scope has been built\."
-            ):
-                instructions.c_if(*cond)
-
-        with self.subTest("while"):
-            test = QuantumCircuit(bits)
-            with test.while_loop(cond):
-                instructions = test.h(0)
-            with self.assertRaisesRegex(
-                CircuitError, r"Cannot add resources after the scope has been built\."
-            ):
-                instructions.c_if(*cond)
-
-        with self.subTest("switch"):
-            test = QuantumCircuit(bits)
-            with test.switch(bits[1]) as case, case(0):
-                instructions = test.h(0)
-            with self.assertRaisesRegex(
-                CircuitError, r"Cannot add resources after the scope has been built\."
-            ):
-                instructions.c_if(*cond)
-
-        with self.subTest("if inside for"):
-            # As a side-effect of how the lazy building of 'if' statements works, we actually
-            # *could* add a condition to the gate after the 'if' block as long as we were still
-            # within the 'for' loop.  It should actually manage the resource correctly as well, but
-            # it's "undefined behaviour" than something we specifically want to forbid or allow.
-            test = QuantumCircuit(bits)
-            with test.for_loop(range(2)):
-                with test.if_test(cond):
-                    instructions = test.h(0)
-            with self.assertRaisesRegex(
-                CircuitError, r"Cannot add resources after the scope has been built\."
-            ):
-                instructions.c_if(*cond)
-
-        with self.subTest("switch inside for"):
-            # `switch` has the same lazy building as `if`, so is subject to the same considerations
-            # as the above subtest.
-            test = QuantumCircuit(bits)
-            with test.for_loop(range(2)):
-                with test.switch(bits[1]) as case:
-                    with case(0):
-                        instructions = test.h(0)
-            with self.assertRaisesRegex(
-                CircuitError, r"Cannot add resources after the scope has been built\."
-            ):
-                instructions.c_if(*cond)
 
     def test_raising_inside_context_manager_leave_circuit_usable(self):
         """Test that if we leave a builder by raising some sort of exception, the circuit is left in
@@ -3664,6 +3768,15 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
             expected.h(0)
             self.assertEqual(test, expected)
 
+        with self.subTest("box"):
+            test = QuantumCircuit(1, 1)
+            with self.assertRaises(SentinelException), test.box():
+                raise SentinelException
+            test.h(0)
+            expected = test.copy_empty_like()
+            expected.h(0)
+            self.assertEqual(test, expected)
+
     def test_can_reuse_else_manager_after_exception(self):
         """Test that the "else" context manager is usable after a first attempt to construct it
         raises an exception.  Normally you cannot re-enter an "else" block, but we want the user to
@@ -3719,6 +3832,9 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
         with self.subTest("switch"):
             with self.assertRaisesRegex(CircuitError, r"When using 'switch' as a context manager"):
                 test.switch(test.clbits[0], cases=None, qubits=qubits, clbits=clbits)
+        with self.subTest("box"):
+            with self.assertRaisesRegex(CircuitError, r"When using 'box' as a context manager"):
+                test.box(qubits=qubits, clbits=clbits)
 
     @ddt.data((None, [0]), ([0], None), (None, None))
     def test_non_context_manager_calling_states_reject_missing_resources(self, resources):
@@ -3751,6 +3867,12 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
                 r"When using 'switch' with cases, you must pass qubits and clbits\.",
             ):
                 test.switch(test.clbits[0], [(False, body)], qubits=qubits, clbits=clbits)
+        with self.subTest("box"):
+            with self.assertRaisesRegex(
+                CircuitError,
+                r"When using 'box' with a body, you must pass qubits and clbits\.",
+            ):
+                test.box(QuantumCircuit(1, 1), qubits=qubits, clbits=clbits)
 
     def test_compose_front_inplace_invalid_within_builder(self):
         """Test that `QuantumCircuit.compose` raises a sensible error when called within a
@@ -3794,6 +3916,9 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
             with base.switch(base.clbits[0]) as case, case(0):
                 with self.assertRaisesRegex(CircuitError, "not in scope"):
                     base.store(expr.Var.new("a", types.Bool()), expr.lift(False))
+
+        with base.box(), self.assertRaisesRegex(CircuitError, "not in scope"):
+            base.store(expr.Var.new("a", types.Bool()), expr.lift(False))
 
     def test_cannot_add_existing_variable(self):
         a = expr.Var.new("a", types.Bool())
@@ -3897,3 +4022,35 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
         with base.for_loop(range(3)):
             with self.assertRaisesRegex(CircuitError, "cannot add an uninitialized variable"):
                 base.add_uninitialized_var(expr.Var.new("a", types.Bool()))
+
+    def test_cannot_noop_unknown_qubit(self):
+        base = QuantumCircuit(2)
+        # Base scope.
+        with self.assertRaises(CircuitError):
+            base.noop(3)
+        with self.assertRaises(CircuitError):
+            base.noop(Clbit())
+        # Control-flow scope.
+        with base.if_test(expr.lift(True)):
+            with self.assertRaises(CircuitError):
+                base.noop(3)
+            with self.assertRaises(CircuitError):
+                base.noop(Clbit())
+
+    def test_box_rejects_break_continue(self):
+        with self.subTest("break"):
+            qc = QuantumCircuit(2)
+            with (
+                qc.while_loop(expr.lift(True)),
+                qc.box(),
+                self.assertRaisesRegex(CircuitError, "The current builder scope cannot take"),
+            ):
+                qc.break_loop()
+        with self.subTest("continue"):
+            qc = QuantumCircuit(2)
+            with (
+                qc.while_loop(expr.lift(True)),
+                qc.box(),
+                self.assertRaisesRegex(CircuitError, "The current builder scope cannot take"),
+            ):
+                qc.continue_loop()

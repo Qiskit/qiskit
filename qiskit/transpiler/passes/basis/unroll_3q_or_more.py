@@ -13,10 +13,11 @@
 """Recursively expands 3q+ gates until the circuit only contains 2q or 1q gates."""
 
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.target import Target
 from qiskit.transpiler.passes.utils import control_flow
-from qiskit.exceptions import QiskitError
-from qiskit.circuit import ControlFlowOp
-from qiskit.converters.circuit_to_dag import circuit_to_dag
+from qiskit._accelerate.unroll_3q_or_more import unroll_3q_or_more
+from qiskit.transpiler.passes.synthesis import UnitarySynthesis
+from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 
 
 class Unroll3qOrMore(TransformationPass):
@@ -42,7 +43,12 @@ class Unroll3qOrMore(TransformationPass):
         self.basis_gates = None
         if basis_gates is not None:
             self.basis_gates = set(basis_gates)
+            if target is None:
+                self.target = Target.from_configuration(
+                    [x for x in basis_gates if x not in CONTROL_FLOW_OP_NAMES]
+                )
 
+    @control_flow.trivial_recurse
     def run(self, dag):
         """Run the Unroll3qOrMore pass on `dag`.
 
@@ -53,34 +59,15 @@ class Unroll3qOrMore(TransformationPass):
         Raises:
             QiskitError: if a 3q+ gate is not decomposable
         """
-        for node in dag.multi_qubit_ops():
-            if dag.has_calibration_for(node):
-                continue
+        # In Rust unitary gates don't have a definition and we always
+        # run UnitarySynthesis first in a pass manager. But for backwards
+        # compatibility we need to unroll any unitary gates in the circuit.
+        # The simplest way to do this is to just run UnitarySynthesis with
+        # the default universal basis of U-CX
+        if "unitary" in dag.count_ops(recurse=False) and (
+            not self.target or "unitary" not in self.target
+        ):
+            dag = UnitarySynthesis(["cx", "u"], min_qubits=3).run(dag)
 
-            if isinstance(node.op, ControlFlowOp):
-                node.op = control_flow.map_blocks(self.run, node.op)
-                continue
-
-            if self.target is not None:
-                # Treat target instructions as global since this pass can be run
-                # prior to layout and routing we don't have phsyical qubits from
-                # the circuit yet
-                if node.name in self.target:
-                    continue
-            elif self.basis_gates is not None and node.name in self.basis_gates:
-                continue
-
-            # TODO: allow choosing other possible decompositions
-            rule = node.op.definition.data
-            if not rule:
-                if rule == []:  # empty node
-                    dag.remove_op_node(node)
-                    continue
-                raise QiskitError(
-                    "Cannot unroll all 3q or more gates. "
-                    "No rule to expand instruction %s." % node.op.name
-                )
-            decomposition = circuit_to_dag(node.op.definition, copy_operations=False)
-            decomposition = self.run(decomposition)  # recursively unroll
-            dag.substitute_node_with_dag(node, decomposition)
+        unroll_3q_or_more(dag, self.target)
         return dag

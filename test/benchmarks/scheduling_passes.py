@@ -37,7 +37,7 @@ class SchedulingPassBenchmarks:
     def setup(self, n_qubits, depth):
         seed = 42
         self.circuit = random_circuit(
-            n_qubits, depth, measure=True, conditional=True, reset=True, seed=seed, max_operands=2
+            n_qubits, depth, measure=True, conditional=False, reset=False, seed=seed, max_operands=2
         )
         self.basis_gates = ["rz", "sx", "x", "cx", "id", "reset"]
         self.cmap = [
@@ -108,15 +108,6 @@ class SchedulingPassBenchmarks:
             ],
             dt=1e-9,
         )
-        self.timed_dag = TimeUnitConversion(self.durations).run(self.dag)
-        dd_sequence = [XGate(), XGate()]
-        pm = PassManager(
-            [
-                ALAPScheduleAnalysis(self.durations),
-                PadDynamicalDecoupling(self.durations, dd_sequence),
-            ]
-        )
-        self.scheduled_dag = pm.run(self.timed_dag)
 
     def time_time_unit_conversion_pass(self, _, __):
         TimeUnitConversion(self.durations).run(self.dag)
@@ -129,7 +120,7 @@ class SchedulingPassBenchmarks:
                 PadDynamicalDecoupling(self.durations, dd_sequence),
             ]
         )
-        pm.run(self.timed_dag)
+        pm.run(self.transpiled_circuit)
 
     def time_asap_schedule_pass(self, _, __):
         dd_sequence = [XGate(), XGate()]
@@ -139,9 +130,4 @@ class SchedulingPassBenchmarks:
                 PadDynamicalDecoupling(self.durations, dd_sequence),
             ]
         )
-        pm.run(self.timed_dag)
-
-    def time_dynamical_decoupling_pass(self, _, __):
-        PadDynamicalDecoupling(self.durations, dd_sequence=[XGate(), XGate()]).run(
-            self.scheduled_dag
-        )
+        pm.run(self.transpiled_circuit)

@@ -19,9 +19,9 @@ from typing import Optional, Union
 from qiskit.circuit.exceptions import CircuitError
 
 # pylint: disable=cyclic-import
+from . import QuantumRegister
 from .quantumcircuit import QuantumCircuit
 from .gate import Gate
-from .quantumregister import QuantumRegister
 from ._utils import _ctrl_state_to_int
 
 
@@ -38,8 +38,6 @@ class ControlledGate(Gate):
         definition: Optional["QuantumCircuit"] = None,
         ctrl_state: Optional[Union[int, str]] = None,
         base_gate: Optional[Gate] = None,
-        duration=None,
-        unit=None,
         *,
         _base_label=None,
     ):
@@ -70,6 +68,7 @@ class ControlledGate(Gate):
         Create a controlled standard gate and apply it to a circuit.
 
         .. plot::
+           :alt: Circuit diagram output by the previous code.
            :include-source:
 
            from qiskit import QuantumCircuit, QuantumRegister
@@ -84,6 +83,7 @@ class ControlledGate(Gate):
         Create a controlled custom gate and apply it to a circuit.
 
         .. plot::
+           :alt: Circuit diagram output by the previous code.
            :include-source:
 
            from qiskit import QuantumCircuit, QuantumRegister
@@ -99,7 +99,7 @@ class ControlledGate(Gate):
            qc2.draw('mpl')
         """
         self.base_gate = None if base_gate is None else base_gate.copy()
-        super().__init__(name, num_qubits, params, label=label, duration=duration, unit=unit)
+        super().__init__(name, num_qubits, params, label=label)
         self._num_ctrl_qubits = 1
         self.num_ctrl_qubits = num_ctrl_qubits
         self.definition = copy.deepcopy(definition)
@@ -111,9 +111,9 @@ class ControlledGate(Gate):
     @property
     def definition(self) -> QuantumCircuit:
         """Return definition in terms of other basic gates. If the gate has
-        open controls, as determined from `self.ctrl_state`, the returned
+        open controls, as determined from :attr:`ctrl_state`, the returned
         definition is conjugated with X without changing the internal
-        `_definition`.
+        ``_definition``.
         """
         if self._open_ctrl:
             closed_gate = self.to_mutable()

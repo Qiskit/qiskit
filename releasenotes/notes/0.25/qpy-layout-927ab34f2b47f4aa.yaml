@@ -7,6 +7,6 @@ upgrade:
 fixes:
   - |
     Fixed the :mod:`~qiskit.qpy` serialization of :attr:`.QuantumCircuit.layout`
-    attribue. Previously, the :attr:`~.QuantumCircuit.layout` attribute would
+    attribute. Previously, the :attr:`~.QuantumCircuit.layout` attribute would
     have been dropped when serializing a circuit to QPY.
     Fixed `#10112 <https://github.com/Qiskit/qiskit-terra/issues/10112>`__

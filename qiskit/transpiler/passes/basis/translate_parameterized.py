@@ -15,15 +15,13 @@
 from __future__ import annotations
 
 from qiskit.circuit import Instruction, ParameterExpression, Qubit, Clbit
+from qiskit.circuit.equivalence_library import EquivalenceLibrary
 from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
-from qiskit.circuit.equivalence_library import EquivalenceLibrary
 from qiskit.exceptions import QiskitError
-from qiskit.transpiler import Target
-
 from qiskit.transpiler.basepasses import TransformationPass
-
-from .basis_translator import BasisTranslator
+from qiskit.transpiler.passes.basis.basis_translator import BasisTranslator
+from qiskit.transpiler.target import Target
 
 
 class TranslateParameterizedGates(TransformationPass):

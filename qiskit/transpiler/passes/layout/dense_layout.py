@@ -19,7 +19,8 @@ import rustworkx
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.passes.layout import disjoint_utils
+from qiskit.transpiler.target import Target
+from qiskit._accelerate import disjoint_utils
 
 from qiskit._accelerate.dense_layout import best_subset
 
@@ -36,17 +37,15 @@ class DenseLayout(AnalysisPass):
         by being set in ``property_set``.
     """
 
-    def __init__(self, coupling_map=None, backend_prop=None, target=None):
+    def __init__(self, coupling_map=None, target=None):
         """DenseLayout initializer.
 
         Args:
             coupling_map (Coupling): directed graph representing a coupling map.
-            backend_prop (BackendProperties): backend properties object
             target (Target): A target representing the target backend.
         """
         super().__init__()
         self.coupling_map = coupling_map
-        self.backend_prop = backend_prop
         self.target = target
         self.adjacency_matrix = None
         if target is not None:
@@ -68,11 +67,30 @@ class DenseLayout(AnalysisPass):
             raise TranspilerError(
                 "A coupling_map or target with constrained qargs is necessary to run the pass."
             )
-        layout_components = disjoint_utils.run_pass_over_connected_components(
-            dag,
-            self.coupling_map if self.target is None else self.target,
-            self._inner_run,
-        )
+        if self.target is not None:
+            layout_components = disjoint_utils.run_pass_over_connected_components(
+                dag,
+                self.target,
+                self._inner_run,
+            )
+            if layout_components is None:
+                target = Target.from_configuration(
+                    basis_gates=["u", "cx"], coupling_map=self.coupling_map
+                )
+                layout_components = disjoint_utils.run_pass_over_connected_components(
+                    dag,
+                    target,
+                    self._inner_run,
+                )
+        else:
+            target = Target.from_configuration(
+                basis_gates=["u", "cx"], coupling_map=self.coupling_map
+            )
+            layout_components = disjoint_utils.run_pass_over_connected_components(
+                dag,
+                target,
+                self._inner_run,
+            )
         layout_mapping = {}
         for component in layout_components:
             layout_mapping.update(component)
@@ -127,8 +145,6 @@ class DenseLayout(AnalysisPass):
         error_mat, use_error = _build_error_matrix(
             coupling_map.size(),
             reverse_index_map,
-            backend_prop=self.backend_prop,
-            coupling_map=self.coupling_map,
             target=self.target,
         )
 
@@ -148,7 +164,7 @@ class DenseLayout(AnalysisPass):
         return best_map
 
 
-def _build_error_matrix(num_qubits, qubit_map, target=None, coupling_map=None, backend_prop=None):
+def _build_error_matrix(num_qubits, qubit_map, target=None):
     error_mat = np.zeros((num_qubits, num_qubits))
     use_error = False
     if target is not None and target.qargs is not None:
@@ -178,25 +194,4 @@ def _build_error_matrix(num_qubits, qubit_map, target=None, coupling_map=None, b
             elif len(qargs) == 2:
                 error_mat[qubit_map[qargs[0]]][qubit_map[qargs[1]]] = max_error
                 use_error = True
-    elif backend_prop and coupling_map:
-        error_dict = {
-            tuple(gate.qubits): gate.parameters[0].value
-            for gate in backend_prop.gates
-            if len(gate.qubits) == 2
-        }
-        for edge in coupling_map.get_edges():
-            gate_error = error_dict.get(edge)
-            if gate_error is not None:
-                if edge[0] not in qubit_map or edge[1] not in qubit_map:
-                    continue
-                error_mat[qubit_map[edge[0]]][qubit_map[edge[1]]] = gate_error
-                use_error = True
-        for index, qubit_data in enumerate(backend_prop.qubits):
-            if index not in qubit_map:
-                continue
-            for item in qubit_data:
-                if item.name == "readout_error":
-                    mapped_index = qubit_map[index]
-                    error_mat[mapped_index][mapped_index] = item.value
-                    use_error = True
     return error_mat, use_error

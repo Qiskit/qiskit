@@ -17,6 +17,7 @@
 Visualization functions for quantum states.
 """
 
+import math
 from typing import List, Union
 from functools import reduce
 import colorsys
@@ -69,10 +70,11 @@ def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None,
 
     Raises:
         MissingOptionalLibraryError: Requires matplotlib.
-        VisualizationError: if input is not a valid N-qubit state.
+        VisualizationError: Input is not a valid N-qubit state.
 
     Examples:
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
             import numpy as np
@@ -97,7 +99,7 @@ def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None,
     num = rho.num_qubits
     if num is None:
         raise VisualizationError("Input is not a multi-qubit quantum state.")
-    max_weight = 2 ** np.ceil(np.log(np.abs(rho.data).max()) / np.log(2))
+    max_weight = 2 ** math.ceil(math.log2(np.abs(rho.data).max()))
     datareal = np.real(rho.data)
     dataimag = np.imag(rho.data)
 
@@ -213,6 +215,7 @@ def plot_bloch_vector(
 
     Examples:
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            from qiskit.visualization import plot_bloch_vector
@@ -220,6 +223,7 @@ def plot_bloch_vector(
            plot_bloch_vector([0,1,0], title="New Bloch Sphere")
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            import numpy as np
@@ -277,7 +281,8 @@ def plot_bloch_multivector(
         reverse_bits (bool): If True, plots qubits following Qiskit's convention [Default:False].
         font_size (float): Font size for the Bloch ball figures.
         title_font_size (float): Font size for the title.
-        title_pad (float): Padding for the title (suptitle `y` position is `y=1+title_pad/100`).
+        title_pad (float): Padding for the title (suptitle ``y`` position is ``0.98``
+        and the image height will be extended by ``1 + title_pad/100``).
 
     Returns:
         :class:`matplotlib:matplotlib.figure.Figure` :
@@ -289,6 +294,7 @@ def plot_bloch_multivector(
 
     Examples:
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
             from qiskit import QuantumCircuit
@@ -303,6 +309,7 @@ def plot_bloch_multivector(
             plot_bloch_multivector(state)
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            from qiskit import QuantumCircuit
@@ -339,6 +346,8 @@ def plot_bloch_multivector(
         width *= num
     else:
         width, height = plt.figaspect(1 / num)
+    if len(title) > 0:
+        height += 1 + title_pad / 100  # additional space for the title
     default_title_font_size = font_size if font_size is not None else 16
     title_font_size = title_font_size if title_font_size is not None else default_title_font_size
     fig = plt.figure(figsize=(width, height))
@@ -348,9 +357,13 @@ def plot_bloch_multivector(
         plot_bloch_vector(
             bloch_data[i], "qubit " + str(pos), ax=ax, figsize=figsize, font_size=font_size
         )
-    fig.suptitle(title, fontsize=title_font_size, y=1.0 + title_pad / 100)
+    fig.suptitle(title, fontsize=title_font_size, y=0.98)
     matplotlib_close_if_inline(fig)
     if filename is None:
+        try:
+            fig.tight_layout()
+        except AttributeError:
+            pass
         return fig
     else:
         return fig.savefig(filename)
@@ -405,6 +418,7 @@ def plot_state_city(
 
     Examples:
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            # You can choose different colors for the real and imaginary parts of the density matrix.
@@ -421,6 +435,7 @@ def plot_state_city(
            plot_state_city(state, color=['midnightblue', 'crimson'], title="New State City")
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            # You can make the bars more transparent to better see the ones that are behind
@@ -642,6 +657,7 @@ def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, f
 
     Examples:
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            # You can set a color for all the bars.
@@ -658,6 +674,7 @@ def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, f
            plot_state_paulivec(state, color='midnightblue', title="New PauliVec plot")
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            # If you introduce a list with less colors than bars, the color of the bars will
@@ -716,6 +733,10 @@ def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, f
     if return_fig:
         matplotlib_close_if_inline(fig)
     if filename is None:
+        try:
+            fig.tight_layout()
+        except AttributeError:
+            pass
         return fig
     else:
         return fig.savefig(filename)
@@ -815,12 +836,13 @@ def plot_state_qsphere(
 
     Raises:
         MissingOptionalLibraryError: Requires matplotlib.
-        VisualizationError: if input is not a valid N-qubit state.
+        VisualizationError: Input is not a valid N-qubit state.
 
         QiskitError: Input statevector does not have valid dimensions.
 
     Examples:
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            from qiskit import QuantumCircuit
@@ -835,6 +857,7 @@ def plot_state_qsphere(
            plot_state_qsphere(state)
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            # You can show the phase of each state and use
@@ -970,10 +993,10 @@ def plot_state_qsphere(
                     if show_state_phases:
                         element_angle = (np.angle(state[i]) + (np.pi * 4)) % (np.pi * 2)
                         if use_degrees:
-                            element_text += "\n$%.1f^\\circ$" % (element_angle * 180 / np.pi)
+                            element_text += f"\n${element_angle * 180 / np.pi:.1f}^\\circ$"
                         else:
                             element_angle = pi_check(element_angle, ndigits=3).replace("pi", "\\pi")
-                            element_text += "\n$%s$" % (element_angle)
+                            element_text += f"\n${element_angle}$"
                     ax.text(
                         xvalue_text,
                         yvalue_text,
@@ -1254,6 +1277,9 @@ def state_to_latex(
 
     Returns:
         Latex representation of the state
+        MissingOptionalLibrary: If SymPy isn't installed and ``'latex'`` or
+            ``'latex_source'`` is selected for ``output``.
+
     """
     if dims is None:  # show dims if state is not only qubits
         if set(state.dims()) == {2}:
@@ -1314,7 +1340,7 @@ def _state_to_latex_ket(
     Returns:
         String with LaTeX representation of the state vector
     """
-    num = int(np.log2(len(data)))
+    num = int(math.log2(len(data)))
 
     def ket_name(i):
         return bin(i)[2:].zfill(num)
@@ -1426,6 +1452,9 @@ def state_drawer(state, output=None, **drawer_args):
 
     Raises:
         MissingOptionalLibraryError: when `output` is `latex` and IPython is not installed.
+            or if SymPy isn't installed and ``'latex'`` or ``'latex_source'`` is selected for
+            ``output``.
+
         ValueError: when `output` is not a valid selection.
     """
     config = user_config.get_config()
@@ -1462,11 +1491,10 @@ def state_drawer(state, output=None, **drawer_args):
         return draw_func(state, **drawer_args)
     except KeyError as err:
         raise ValueError(
-            """'{}' is not a valid option for drawing {} objects. Please choose from:
+            f"""'{output}' is not a valid option for drawing {type(state).__name__}
+             objects. Please choose from:
             'text', 'latex', 'latex_source', 'qsphere', 'hinton',
-            'bloch', 'city' or 'paulivec'.""".format(
-                output, type(state).__name__
-            )
+            'bloch', 'city' or 'paulivec'."""
         ) from err
 
 

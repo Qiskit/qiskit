@@ -43,7 +43,7 @@ features:
     of scheduled circuits.
 
   - |
-    A new fuction :func:`qiskit.compiler.sequence` has been also added so that
+    A new function :func:`qiskit.compiler.sequence` has been also added so that
     we can convert a scheduled circuit into a :class:`~qiskit.pulse.Schedule`
     to make it executable on a pulse-enabled backend.
 

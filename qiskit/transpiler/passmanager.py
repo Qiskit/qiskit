@@ -18,7 +18,7 @@ import io
 import re
 from collections.abc import Iterator, Iterable, Callable
 from functools import wraps
-from typing import Union, List, Any
+from typing import Union, List, Any, TypeVar
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
@@ -31,7 +31,7 @@ from .basepasses import BasePass
 from .exceptions import TranspilerError
 from .layout import TranspileLayout
 
-_CircuitsT = Union[List[QuantumCircuit], QuantumCircuit]
+_CircuitsT = TypeVar("_CircuitsT", bound=Union[List[QuantumCircuit], QuantumCircuit])
 
 
 class PassManager(BasePassManager):
@@ -59,6 +59,10 @@ class PassManager(BasePassManager):
         input_program: QuantumCircuit,
         **kwargs,
     ) -> DAGCircuit:
+        self.property_set["original_qubit_indices"] = {
+            bit: i for i, bit in enumerate(input_program.qubits)
+        }
+        self.property_set["num_input_qubits"] = input_program.num_qubits
         return circuit_to_dag(input_program, copy_operations=True)
 
     def _passmanager_backend(
@@ -68,22 +72,18 @@ class PassManager(BasePassManager):
         **kwargs,
     ) -> QuantumCircuit:
         out_program = dag_to_circuit(passmanager_ir, copy_operations=False)
-
-        out_name = kwargs.get("output_name", None)
-        if out_name is not None:
+        if (out_name := kwargs.get("output_name", None)) is not None:
             out_program.name = out_name
 
-        if self.property_set["layout"] is not None:
-            out_program._layout = TranspileLayout(
-                initial_layout=self.property_set["layout"],
-                input_qubit_mapping=self.property_set["original_qubit_indices"],
-                final_layout=self.property_set["final_layout"],
-                _input_qubit_count=len(in_program.qubits),
-                _output_qubit_list=out_program.qubits,
-            )
+        if (
+            layout := TranspileLayout.from_property_set(passmanager_ir, self.property_set)
+        ) is not None:
+            out_program._layout = layout
+            # Write the canonicalized form back out. This is for backwards compatibility.
+            layout.write_into_property_set(self.property_set)
+
         out_program._clbit_write_latency = self.property_set["clbit_write_latency"]
         out_program._conditional_latency = self.property_set["conditional_latency"]
-
         if self.property_set["node_start_time"]:
             # This is dictionary keyed on the DAGOpNode, which is invalidated once
             # dag is converted into circuit. So this schedule information is
@@ -96,7 +96,7 @@ class PassManager(BasePassManager):
 
         return out_program
 
-    def append(
+    def append(  # pylint:disable=arguments-renamed
         self,
         passes: Task | list[Task],
     ) -> None:
@@ -110,7 +110,7 @@ class PassManager(BasePassManager):
         """
         super().append(tasks=passes)
 
-    def replace(
+    def replace(  # pylint:disable=arguments-renamed
         self,
         index: int,
         passes: Task | list[Task],
@@ -124,12 +124,14 @@ class PassManager(BasePassManager):
         super().replace(index, tasks=passes)
 
     # pylint: disable=arguments-differ
-    def run(
+    def run(  # pylint:disable=arguments-renamed
         self,
         circuits: _CircuitsT,
         output_name: str | None = None,
         callback: Callable = None,
         num_processes: int = None,
+        *,
+        property_set: dict[str, object] | None = None,
     ) -> _CircuitsT:
         """Run all the passes on the specified ``circuits``.
 
@@ -168,10 +170,23 @@ class PassManager(BasePassManager):
                         property_set = kwargs['property_set']
                         count = kwargs['count']
                         ...
+
+                .. note::
+
+                    When running transpilation with multi-processing,
+                    the callback function is invoked within the context
+                    of each sub-process, independently of the
+                    parent process.
+
             num_processes: The maximum number of parallel processes to launch if parallel
                 execution is enabled. This argument overrides ``num_processes`` in the user
                 configuration file, and the ``QISKIT_NUM_PROCS`` environment variable. If set
                 to ``None`` the system default or local user configuration will be used.
+            property_set: If given, the initial value to use as the :class:`.PropertySet` for the
+                pass manager pipeline.  This can be used to persist analysis from one run to
+                another, in cases where you know the analysis is safe to share.  Beware that some
+                analysis will be specific to the input circuit and the particular :class:`.Target`,
+                so you should take a lot of care when using this argument.
 
         Returns:
             The transformed circuit(s).
@@ -184,6 +199,7 @@ class PassManager(BasePassManager):
             callback=callback,
             output_name=output_name,
             num_processes=num_processes,
+            property_set=property_set,
         )
 
     def draw(self, filename=None, style=None, raw=False):
@@ -294,7 +310,7 @@ class StagedPassManager(PassManager):
             "scheduling",
         ]
         self._validate_stages(stages)
-        # Set through parent class since `__setattr__` requieres `expanded_stages` to be defined
+        # Set through parent class since `__setattr__` requires `expanded_stages` to be defined
         super().__setattr__("_stages", tuple(stages))
         super().__setattr__("_expanded_stages", tuple(self._generate_expanded_stages()))
         super().__init__()
@@ -392,6 +408,8 @@ class StagedPassManager(PassManager):
         output_name: str | None = None,
         callback: Callable | None = None,
         num_processes: int = None,
+        *,
+        property_set: dict[str, object] | None = None,
     ) -> _CircuitsT:
         self._update_passmanager()
         return super().run(circuits, output_name, callback, num_processes=num_processes)
@@ -418,6 +436,9 @@ def _replace_error(meth):
     def wrapper(*meth_args, **meth_kwargs):
         try:
             return meth(*meth_args, **meth_kwargs)
+        except TranspilerError:
+            # If it's already a `TranspilerError` subclass, don't erase the extra information.
+            raise
         except PassManagerError as ex:
             raise TranspilerError(ex.message) from ex
 

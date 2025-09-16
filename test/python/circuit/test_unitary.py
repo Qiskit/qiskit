@@ -12,11 +12,9 @@
 
 """UnitaryGate tests"""
 
-import json
 import numpy
 from numpy.testing import assert_allclose
 
-import qiskit
 from qiskit.circuit.library import UnitaryGate, CXGate
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler import PassManager
@@ -66,6 +64,11 @@ class TestUnitaryGate(QiskitTestCase):
         """test adjoint operation"""
         uni = UnitaryGate([[0, 1j], [-1j, 0]])
         self.assertTrue(numpy.array_equal(uni.adjoint().to_matrix(), uni.to_matrix()))
+
+    def test_repeat(self):
+        """test repeat operation"""
+        uni = UnitaryGate([[1, 0], [0, 1j]])
+        self.assertTrue(numpy.array_equal(Operator(uni.repeat(2)), Operator(uni) @ Operator(uni)))
 
 
 class TestUnitaryCircuit(QiskitTestCase):
@@ -156,51 +159,6 @@ class TestUnitaryCircuit(QiskitTestCase):
         qc_target.append(UnitaryGate(sigmax), [qr[1]])
         qc_target.append(UnitaryGate(sigmaz), [[0, 1]])
         self.assertEqual(qc, qc_target)
-
-    def test_qobj_with_unitary_matrix(self):
-        """test qobj output with unitary matrix"""
-        qr = QuantumRegister(4)
-        qc = QuantumCircuit(qr)
-        sigmax = numpy.array([[0, 1], [1, 0]])
-        sigmay = numpy.array([[0, -1j], [1j, 0]])
-        matrix = numpy.kron(sigmay, numpy.kron(sigmax, sigmay))
-        qc.rx(numpy.pi / 4, qr[0])
-        uni = UnitaryGate(matrix)
-        qc.append(uni, [qr[0], qr[1], qr[3]])
-        qc.cx(qr[3], qr[2])
-        qobj = qiskit.compiler.assemble(qc)
-        instr = qobj.experiments[0].instructions[1]
-        self.assertEqual(instr.name, "unitary")
-        assert_allclose(numpy.array(instr.params[0]).astype(numpy.complex64), matrix)
-        # check conversion to dict
-        qobj_dict = qobj.to_dict()
-
-        class NumpyEncoder(json.JSONEncoder):
-            """Class for encoding json str with complex and numpy arrays."""
-
-            def default(self, obj):
-                if isinstance(obj, numpy.ndarray):
-                    return obj.tolist()
-                if isinstance(obj, complex):
-                    return (obj.real, obj.imag)
-                return json.JSONEncoder.default(self, obj)
-
-        # check json serialization
-        self.assertTrue(isinstance(json.dumps(qobj_dict, cls=NumpyEncoder), str))
-
-    def test_labeled_unitary(self):
-        """test qobj output with unitary matrix"""
-        qr = QuantumRegister(4)
-        qc = QuantumCircuit(qr)
-        sigmax = numpy.array([[0, 1], [1, 0]])
-        sigmay = numpy.array([[0, -1j], [1j, 0]])
-        matrix = numpy.kron(sigmax, sigmay)
-        uni = UnitaryGate(matrix, label="xy")
-        qc.append(uni, [qr[0], qr[1]])
-        qobj = qiskit.compiler.assemble(qc)
-        instr = qobj.experiments[0].instructions[0]
-        self.assertEqual(instr.name, "unitary")
-        self.assertEqual(instr.label, "xy")
 
     def test_qasm_unitary_only_one_def(self):
         """test that a custom unitary can be converted to qasm and the

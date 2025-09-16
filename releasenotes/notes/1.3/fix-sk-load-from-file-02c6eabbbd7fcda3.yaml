@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fix the :class:`.SolovayKitaev` transpiler pass when loading basic
+    approximations from an exising ``.npy`` file. Previously, loading
+    a stored approximation which allowed for further reductions (e.g. due
+    to gate cancellations) could cause a runtime failure.
+    Additionally, the global phase difference of the U(2) gate product
+    and SO(3) representation was lost during a save-reload procedure.
+    Fixes `Qiskit/qiskit#12576 <https://github.com/Qiskit/qiskit/issues/12576>`_.

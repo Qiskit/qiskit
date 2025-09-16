@@ -15,6 +15,7 @@
 from typing import Optional
 from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
 from qiskit.circuit._utils import with_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 
 @with_gate_array([[1, 0], [0, 1]])
@@ -28,7 +29,7 @@ class IGate(SingletonGate):
     with the :meth:`~qiskit.circuit.QuantumCircuit.i` and
     :meth:`~qiskit.circuit.QuantumCircuit.id` methods.
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -37,17 +38,23 @@ class IGate(SingletonGate):
                 0 & 1
             \end{pmatrix}
 
-    **Circuit symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
+
              ┌───┐
         q_0: ┤ I ├
              └───┘
     """
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
-        """Create new Identity gate."""
-        super().__init__("id", 1, [], label=label, duration=duration, unit=unit)
+    _standard_gate = StandardGate.I
+
+    def __init__(self, label: Optional[str] = None):
+        """
+        Args:
+            label: An optional label for the gate.
+        """
+        super().__init__("id", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
@@ -65,8 +72,7 @@ class IGate(SingletonGate):
         ."""
         return IGate()  # self-inverse
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         return IGate()
 
     def __eq__(self, other):

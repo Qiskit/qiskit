@@ -13,29 +13,38 @@
 Circuit synthesis for a QFT circuit.
 """
 
-import numpy as np
 from qiskit.circuit import QuantumCircuit
-from qiskit.synthesis.linear_phase.cz_depth_lnn import _append_cx_stage1, _append_cx_stage2
+from qiskit._accelerate.synthesis.qft import synth_qft_line as _synth_qft_line
+
+from .qft_decompose_full import _warn_if_precision_loss
 
 
 def synth_qft_line(
     num_qubits: int, do_swaps: bool = True, approximation_degree: int = 0
 ) -> QuantumCircuit:
-    """Synthesis of a QFT circuit for a linear nearest neighbor connectivity.
-    Based on Fig 2.b in Fowler et al. [1].
+    """Construct a circuit for the Quantum Fourier Transform using linear
+    neighbor connectivity.
 
-    Note that this method *reverts* the order of qubits in the circuit,
-    compared to the original :class:`.QFT` code.
-    Hence, the default value of the ``do_swaps`` parameter is ``True``
-    since it produces a circuit with fewer CX gates.
+    The construction is based on Fig 2.b in Fowler et al. [1].
+
+    .. note::
+
+        With the default value of ``do_swaps = True``, this synthesis algorithm creates a
+        circuit that faithfully implements the QFT operation. When ``do_swaps = False``,
+        this synthesis algorithm creates a circuit that corresponds to "QFT-with-reversal":
+        applying the QFT and reversing the order of its output qubits.
 
     Args:
-        num_qubits: The number of qubits on which the QFT acts.
+        num_qubits: The number of qubits on which the Quantum Fourier Transform acts.
         approximation_degree: The degree of approximation (0 for no approximation).
-        do_swaps: Whether to include the final swaps in the QFT.
+            It is possible to implement the QFT approximately by ignoring
+            controlled-phase rotations with the angle beneath a threshold. This is discussed
+            in more detail in https://arxiv.org/abs/quant-ph/9601018 or
+            https://arxiv.org/abs/quant-ph/0403071.
+        do_swaps: Whether to synthesize the "QFT" or the "QFT-with-reversal" operation.
 
     Returns:
-        A circuit implementation of the QFT circuit.
+        A circuit implementing the QFT operation.
 
     References:
         1. A. G. Fowler, S. J. Devitt, and L. C. L. Hollenberg,
@@ -43,32 +52,10 @@ def synth_qft_line(
            Quantum Info. Comput. 4, 4 (July 2004), 237–251.
            `arXiv:quant-ph/0402196 [quant-ph] <https://arxiv.org/abs/quant-ph/0402196>`_
     """
+    _warn_if_precision_loss(num_qubits - approximation_degree - 1)
 
-    qc = QuantumCircuit(num_qubits)
-
-    for i in range(num_qubits):
-        qc.h(num_qubits - 1)
-
-        for j in range(i, num_qubits - 1):
-            if j - i + 2 < num_qubits - approximation_degree + 1:
-                qc.p(np.pi / 2 ** (j - i + 2), num_qubits - j + i - 1)
-                qc.cx(num_qubits - j + i - 1, num_qubits - j + i - 2)
-                qc.p(-np.pi / 2 ** (j - i + 2), num_qubits - j + i - 2)
-                qc.cx(num_qubits - j + i - 2, num_qubits - j + i - 1)
-                qc.cx(num_qubits - j + i - 1, num_qubits - j + i - 2)
-                qc.p(np.pi / 2 ** (j - i + 2), num_qubits - j + i - 1)
-            else:
-                qc.cx(num_qubits - j + i - 1, num_qubits - j + i - 2)
-                qc.cx(num_qubits - j + i - 2, num_qubits - j + i - 1)
-                qc.cx(num_qubits - j + i - 1, num_qubits - j + i - 2)
-
-    if not do_swaps:
-        # Add a reversal network for LNN connectivity in depth 2*n+2,
-        # based on Kutin at al., https://arxiv.org/abs/quant-ph/0701194, Section 5.
-        for _ in range((num_qubits + 1) // 2):
-            qc = _append_cx_stage1(qc, num_qubits)
-            qc = _append_cx_stage2(qc, num_qubits)
-        if (num_qubits % 2) == 0:
-            qc = _append_cx_stage1(qc, num_qubits)
-
-    return qc
+    return QuantumCircuit._from_circuit_data(
+        # From rust
+        _synth_qft_line(num_qubits, do_swaps, approximation_degree),
+        legacy_qubits=True,
+    )

@@ -101,7 +101,7 @@ class CouplingMap:
             raise CouplingError("Physical qubits should be integers.")
         if physical_qubit in self.physical_qubits:
             raise CouplingError(
-                "The physical qubit %s is already in the coupling graph" % physical_qubit
+                f"The physical qubit {physical_qubit} is already in the coupling graph"
             )
         self.graph.add_node(physical_qubit)
         self._dist_matrix = None  # invalidate
@@ -188,9 +188,9 @@ class CouplingMap:
             CouplingError: if the qubits do not exist in the CouplingMap
         """
         if physical_qubit1 >= self.size():
-            raise CouplingError("%s not in coupling graph" % physical_qubit1)
+            raise CouplingError(f"{physical_qubit1} not in coupling graph")
         if physical_qubit2 >= self.size():
-            raise CouplingError("%s not in coupling graph" % physical_qubit2)
+            raise CouplingError(f"{physical_qubit2} not in coupling graph")
         self.compute_distance_matrix()
         res = self._dist_matrix[physical_qubit1, physical_qubit2]
         if res == math.inf:

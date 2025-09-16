@@ -12,14 +12,13 @@
 
 """Z, CZ and CCZ gates."""
 
-from math import pi
 from typing import Optional, Union
 
 import numpy
 
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit._accelerate.circuit import StandardGate
 
 from .p import PhaseGate
 
@@ -33,7 +32,7 @@ class ZGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.z` method.
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -42,9 +41,9 @@ class ZGate(SingletonGate):
                 0 & -1
             \end{pmatrix}
 
-    **Circuit symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───┐
         q_0: ┤ Z ├
@@ -73,25 +72,29 @@ class ZGate(SingletonGate):
         |1\rangle \rightarrow -|1\rangle
     """
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
-        """Create new Z gate."""
-        super().__init__("z", 1, [], label=label, duration=duration, unit=unit)
+    _standard_gate = StandardGate.Z
+
+    def __init__(self, label: Optional[str] = None):
+        """
+        Args:
+            label: An optional label for the gate.
+        """
+        super().__init__("z", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit
 
-        from .u1 import U1Gate
+        #    ┌──────┐
+        # q: ┤ P(π) ├
+        #    └──────┘
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(U1Gate(pi), [q[0]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
-
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.Z._get_definition(self.params), legacy_qubits=True, name=self.name
+        )
 
     def control(
         self,
@@ -109,7 +112,7 @@ class ZGate(SingletonGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
+            annotated: indicates whether the controlled gate should be implemented
                 as an annotated gate.
 
         Returns:
@@ -140,8 +143,7 @@ class ZGate(SingletonGate):
         """
         return ZGate()  # self-inverse
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         return PhaseGate(numpy.pi * exponent)
 
     def __eq__(self, other):
@@ -157,15 +159,15 @@ class CZGate(SingletonControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.cz` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ─■─
               │
         q_1: ─■─
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 
@@ -182,13 +184,13 @@ class CZGate(SingletonControlledGate):
     the target qubit if the control qubit is in the :math:`|1\rangle` state.
     """
 
+    _standard_gate = StandardGate.CZ
+
     def __init__(
         self,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CZ gate."""
@@ -200,29 +202,23 @@ class CZGate(SingletonControlledGate):
             num_ctrl_qubits=1,
             ctrl_state=ctrl_state,
             base_gate=ZGate(label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)
 
     def _define(self):
-        """
-        gate cz a,b { h b; cx a,b; h b; }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit
 
-        from .h import HGate
-        from .x import CXGate
+        # q_0: ───────■───────
+        #      ┌───┐┌─┴─┐┌───┐
+        # q_1: ┤ H ├┤ X ├┤ H ├
+        #      └───┘└───┘└───┘
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(HGate(), [q[1]], []), (CXGate(), [q[0], q[1]], []), (HGate(), [q[1]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
-
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.CZ._get_definition(self.params), legacy_qubits=True, name=self.name
+        )
 
     def inverse(self, annotated: bool = False):
         """Return inverted CZ gate (itself).
@@ -251,9 +247,9 @@ class CCZGate(SingletonControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.ccz` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ─■─
               │
@@ -261,7 +257,7 @@ class CCZGate(SingletonControlledGate):
               │
         q_2: ─■─
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 
@@ -282,13 +278,13 @@ class CCZGate(SingletonControlledGate):
     the target qubit if the control qubits are in the :math:`|11\rangle` state.
     """
 
+    _standard_gate = StandardGate.CCZ
+
     def __init__(
         self,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CCZ gate."""
@@ -300,29 +296,25 @@ class CCZGate(SingletonControlledGate):
             num_ctrl_qubits=2,
             ctrl_state=ctrl_state,
             base_gate=ZGate(label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=2)
 
     def _define(self):
-        """
-        gate ccz a,b,c { h c; ccx a,b,c; h c; }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit
 
-        from .h import HGate
-        from .x import CCXGate
+        # q_0: ───────■───────
+        #             │
+        # q_1: ───────■───────
+        #      ┌───┐┌─┴─┐┌───┐
+        # q_2: ┤ H ├┤ X ├┤ H ├
+        #      └───┘└───┘└───┘
 
-        q = QuantumRegister(3, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(HGate(), [q[2]], []), (CCXGate(), [q[0], q[1], q[2]], []), (HGate(), [q[2]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
-
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.CCZ._get_definition(self.params), legacy_qubits=True, name=self.name
+        )
 
     def inverse(self, annotated: bool = False):
         """Return inverted CCZ gate (itself).

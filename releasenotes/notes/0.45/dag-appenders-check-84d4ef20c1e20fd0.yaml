@@ -4,5 +4,5 @@ features:
     The :class:`.DAGCircuit` methods :meth:`~.DAGCircuit.apply_operation_back` and
     :meth:`~.DAGCircuit.apply_operation_front` have gained a ``check`` keyword argument that can be
     set ``False`` to skip validation that the inputs uphold the :class:`.DAGCircuit` data-structure
-    invariants.  This is useful as a performance optimisation when the DAG is being built from
+    invariants.  This is useful as a performance optimization when the DAG is being built from
     known-good data, such as during transpiler passes.

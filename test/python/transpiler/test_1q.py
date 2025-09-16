@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2019, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,10 +16,15 @@ from ddt import ddt
 
 from qiskit import QuantumCircuit
 from qiskit.compiler import transpile
-from qiskit.providers.fake_provider import Fake1Q
+from qiskit.providers.fake_provider import GenericBackendV2
+from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.transpiler import TranspilerError
 from test import combine  # pylint: disable=wrong-import-order
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+Fake1QV2 = GenericBackendV2(
+    num_qubits=1, basis_gates=["u1", "u2", "u3"], coupling_map=None, dtm=1.3333, seed=42
+)
 
 
 def emptycircuit():
@@ -37,37 +42,24 @@ def circuit_3516():
 
 
 @ddt
-class Test1QFailing(QiskitTestCase):
-    """1Q tests that should fail."""
+class Test1QV2Failing(QiskitTestCase):
+    """1QV2 tests that should fail."""
 
     @combine(
         circuit=[circuit_3516],
         level=[0, 1, 2, 3],
         dsc="Transpiling {circuit.__name__} at level {level} should fail",
-        name="{circuit.__name__}_level{level}_fail",
+        name="{circuit.__name__}_level{level}_fail_v2",
     )
     def test(self, circuit, level):
-        """All the levels with all the 1Q backend"""
+        """All the levels with all the 1Q backendV2"""
         with self.assertRaises(TranspilerError):
-            transpile(circuit(), backend=Fake1Q(), optimization_level=level, seed_transpiler=42)
+            transpile(circuit(), backend=Fake1QV2, optimization_level=level, seed_transpiler=42)
 
 
 @ddt
-class Test1QWorking(QiskitTestCase):
-    """1Q tests that should work."""
-
-    @combine(
-        circuit=[emptycircuit],
-        level=[0, 1, 2, 3],
-        dsc="Transpiling {circuit.__name__} at level {level} should work",
-        name="{circuit.__name__}_level{level}_valid",
-    )
-    def test_device(self, circuit, level):
-        """All the levels with all the 1Q backend"""
-        result = transpile(
-            circuit(), backend=Fake1Q(), optimization_level=level, seed_transpiler=42
-        )
-        self.assertIsInstance(result, QuantumCircuit)
+class TestBasicSimulatorWorking(QiskitTestCase):
+    """All the levels with a simulator backend"""
 
     @combine(
         circuit=[circuit_3516],
@@ -76,9 +68,25 @@ class Test1QWorking(QiskitTestCase):
         name="{circuit.__name__}_level{level}_valid",
     )
     def test_simulator(self, circuit, level):
-        """All the levels with all the 1Q simulator backend"""
-        # Set fake backend config to simulator
-        backend = Fake1Q()
-        backend._configuration.simulator = True
+        """All the levels with a simulator backend"""
+        backend = BasicSimulator()
         result = transpile(circuit(), backend=backend, optimization_level=level, seed_transpiler=42)
+        self.assertIsInstance(result, QuantumCircuit)
+
+
+@ddt
+class Test1QV2Working(QiskitTestCase):
+    """1QV2 tests that should work."""
+
+    @combine(
+        circuit=[emptycircuit],
+        level=[0, 1, 2, 3],
+        dsc="Transpiling {circuit.__name__} at level {level} should work",
+        name="{circuit.__name__}_level{level}_valid_v2",
+    )
+    def test_device(self, circuit, level):
+        """All the levels with all the 1Q backendV2"""
+        result = transpile(
+            circuit(), backend=Fake1QV2, optimization_level=level, seed_transpiler=42
+        )
         self.assertIsInstance(result, QuantumCircuit)

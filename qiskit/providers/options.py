@@ -116,7 +116,7 @@ class Options(Mapping):
     def __setitem__(self, key, value):
         self.update_options(**{key: value})
 
-    # backwards-compatibilty with Qiskit Experiments:
+    # backwards-compatibility with Qiskit Experiments:
 
     @property
     def __dict__(self):
@@ -154,7 +154,7 @@ class Options(Mapping):
 
         The returned option and validator values are shallow copies of the originals.
         """
-        out = self.__new__(type(self))
+        out = self.__new__(type(self))  # pylint:disable=no-value-for-parameter
         out.__setstate__((self._fields.copy(), self.validator.copy()))
         return out
 
@@ -170,7 +170,7 @@ class Options(Mapping):
 
     def __repr__(self):
         items = (f"{k}={v!r}" for k, v in self._fields.items())
-        return "{}({})".format(type(self).__name__, ", ".join(items))
+        return f"{type(self).__name__}({', '.join(items)})"
 
     def __eq__(self, other):
         if isinstance(self, Options) and isinstance(other, Options):
@@ -211,7 +211,7 @@ class Options(Mapping):
         """
 
         if field not in self._fields:
-            raise KeyError("Field '%s' is not present in this options object" % field)
+            raise KeyError(f"Field '{field}' is not present in this options object")
         if isinstance(validator_value, tuple):
             if len(validator_value) != 2:
                 raise ValueError(
@@ -229,28 +229,28 @@ class Options(Mapping):
                 f"{type(validator_value)} is not a valid validator type, it "
                 "must be a tuple, list, or class/type"
             )
-        self.validator[field] = validator_value
+        self.validator[field] = validator_value  # pylint: disable=unsupported-assignment-operation
 
     def update_options(self, **fields):
         """Update options with kwargs"""
-        for field in fields:
-            field_validator = self.validator.get(field, None)
+        for field_name, field in fields.items():
+            field_validator = self.validator.get(field_name, None)
             if isinstance(field_validator, tuple):
-                if fields[field] > field_validator[1] or fields[field] < field_validator[0]:
+                if field > field_validator[1] or field < field_validator[0]:
                     raise ValueError(
-                        f"Specified value for '{field}' is not a valid value, "
+                        f"Specified value for '{field_name}' is not a valid value, "
                         f"must be >={field_validator[0]} or <={field_validator[1]}"
                     )
             elif isinstance(field_validator, list):
-                if fields[field] not in field_validator:
+                if field not in field_validator:
                     raise ValueError(
-                        f"Specified value for {field} is not a valid choice, "
+                        f"Specified value for {field_name} is not a valid choice, "
                         f"must be one of {field_validator}"
                     )
             elif isinstance(field_validator, type):
-                if not isinstance(fields[field], field_validator):
+                if not isinstance(field, field_validator):
                     raise TypeError(
-                        f"Specified value for {field} is not of required type {field_validator}"
+                        f"Specified value for {field_name} is not of required type {field_validator}"
                     )
 
         self._fields.update(fields)

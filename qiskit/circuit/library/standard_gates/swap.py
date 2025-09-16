@@ -12,11 +12,13 @@
 
 """Swap gate."""
 
+from __future__ import annotations
+
 from typing import Optional, Union
 import numpy
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 
 _SWAP_ARRAY = numpy.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]])
@@ -31,15 +33,15 @@ class SwapGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.swap` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ─X─
               │
         q_1: ─X─
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -58,38 +60,38 @@ class SwapGate(SingletonGate):
         |a, b\rangle \rightarrow |b, a\rangle
     """
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
-        """Create new SWAP gate."""
-        super().__init__("swap", 2, [], label=label, duration=duration, unit=unit)
+    _standard_gate = StandardGate.Swap
+
+    def __init__(self, label: Optional[str] = None):
+        """
+        Args:
+            label: An optional label for the gate.
+        """
+        super().__init__("swap", 2, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
-        """
-        gate swap a,b { cx a,b; cx b,a; cx a,b; }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .x import CXGate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (CXGate(), [q[0], q[1]], []),
-            (CXGate(), [q[1], q[0]], []),
-            (CXGate(), [q[0], q[1]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        #           ┌───┐
+        # q_0: ──■──┤ X ├──■──
+        #      ┌─┴─┐└─┬─┘┌─┴─┐
+        # q_1: ┤ X ├──■──┤ X ├
+        #      └───┘     └───┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.Swap._get_definition(self.params), legacy_qubits=True, name=self.name
+        )
 
     def control(
         self,
         num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
-        annotated: bool = False,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
+        annotated: bool | None = None,
     ):
         """Return a (multi-)controlled-SWAP gate.
 
@@ -100,8 +102,8 @@ class SwapGate(SingletonGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
-                as an annotated gate.
+            annotated: indicates whether the controlled gate should be implemented
+                as an annotated gate. If ``None``, this is handled as ``False``.
 
         Returns:
             ControlledGate: controlled version of this gate.
@@ -143,9 +145,9 @@ class CSwapGate(SingletonControlledGate):
     with the :meth:`~qiskit.circuit.QuantumCircuit.cswap` and
     :meth:`~qiskit.circuit.QuantumCircuit.fredkin` methods.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ─■─
               │
@@ -154,7 +156,7 @@ class CSwapGate(SingletonControlledGate):
         q_2: ─X─
 
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 
@@ -180,7 +182,7 @@ class CSwapGate(SingletonControlledGate):
         which in our case would be q_2. Thus a textbook matrix for this
         gate will be:
 
-        .. parsed-literal::
+        .. code-block:: text
 
             q_0: ─X─
                   │
@@ -213,18 +215,16 @@ class CSwapGate(SingletonControlledGate):
         |1, b, c\rangle \rightarrow |1, c, b\rangle
     """
 
+    _standard_gate = StandardGate.CSwap
+
     def __init__(
         self,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CSWAP gate."""
-        if unit is None:
-            unit = "dt"
         super().__init__(
             "cswap",
             3,
@@ -233,35 +233,25 @@ class CSwapGate(SingletonControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=SwapGate(label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)
 
     def _define(self):
-        """
-        gate cswap a,b,c
-        { cx c,b;
-          ccx a,b,c;
-          cx c,b;
-        }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .x import CXGate, CCXGate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(3, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (CXGate(), [q[2], q[1]], []),
-            (CCXGate(), [q[0], q[1], q[2]], []),
-            (CXGate(), [q[2], q[1]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        # q_0: ───────■───────
+        #      ┌───┐  │  ┌───┐
+        # q_1: ┤ X ├──■──┤ X ├
+        #      └─┬─┘┌─┴─┐└─┬─┘
+        # q_2: ──■──┤ X ├──■──
+        #           └───┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.CSwap._get_definition(self.params), legacy_qubits=True, name=self.name
+        )
 
     def inverse(self, annotated: bool = False):
         """Return inverse CSwap gate (itself).

@@ -18,11 +18,6 @@ from qiskit import transpile
 class BasicProviderBackendTestMixin:
     """Test mixins for BasicProvider backend tests."""
 
-    def test_configuration(self):
-        """Test backend.configuration()."""
-        configuration = self.backend.configuration()
-        return configuration
-
     def test_run_circuit(self):
         """Test running a single circuit."""
         transpiled_qc = transpile(self.circuit, self.backend)

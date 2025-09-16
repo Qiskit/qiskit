@@ -1,9 +1,13 @@
-# Requirements to develop Terra, and the minimum needed to run its CI.  All
+# Requirements to develop Qiskit, and the minimum needed to run its CI.  All
 # optional requirements should go in `requirements-optionals.txt` instead.
 #
 # Version requirements here can be more restrictive than elsewhere, because they
 # never become actual package requirements, but still try to be as relaxed as
 # possible so it's easy to develop multiple packages from the same venv.
+
+# Build Rust directly
+setuptools
+setuptools-rust
 
 # Style
 black[jupyter]~=24.1
@@ -13,8 +17,8 @@ black[jupyter]~=24.1
 #
 # These versions are pinned precisely because pylint frequently includes new
 # on-by-default lint failures in new versions, which breaks our CI.
-astroid==2.14.2
-pylint==2.16.2
+astroid==3.2.2
+pylint==3.2.3
 ruff==0.0.267
 
 
@@ -41,5 +45,7 @@ threadpoolctl
 # like `sphinx-design` to make sure that `Qiskit/documentation` will be able to
 # consume it properly.
 Sphinx>=6.0,<7.2
+openqasm-pygments
 reno >= 4.1.0
 sphinxcontrib-katex==0.9.9
+breathe>=4.35.0

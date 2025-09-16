@@ -1,0 +1,14 @@
+---
+features_transpiler:
+  - |
+    Added a new import path option for :func:`.generate_preset_pass_manager`, so that it can now be imported as::
+    
+      from qiskit import generate_preset_pass_manager
+    
+    instead of having to type the full path::
+      
+      from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+    
+    The function is also importable from the :mod:`qiskit.transpiler` module as::
+    
+      from qiskit.transpiler import generate_preset_pass_manager

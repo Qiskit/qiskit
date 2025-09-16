@@ -15,13 +15,16 @@
 import os
 import tempfile
 import unittest
+import itertools
 
-from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Qubit, Clbit
+from qiskit.circuit import QuantumRegister, QuantumCircuit, Qubit, Clbit, Store, ClassicalRegister
 from qiskit.visualization import dag_drawer
 from qiskit.exceptions import InvalidFileError
-from qiskit.visualization import VisualizationError
+from qiskit.visualization.exceptions import VisualizationError
 from qiskit.converters import circuit_to_dag, circuit_to_dagdependency
 from qiskit.utils import optionals as _optionals
+from qiskit.dagcircuit import DAGCircuit
+from qiskit.circuit.classical import expr, types
 from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
 
 
@@ -44,6 +47,47 @@ class TestDagDrawer(QiskitVisualizationTestCase):
             dag_drawer(self.dag, style="multicolor")
 
     @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
+    @unittest.skipUnless(_optionals.HAS_PIL, "PIL not installed")
+    def test_dag_drawer_empty_style(self):
+        """
+        Test that dag_drawer() with an empty dict returns a plain DAG
+        """
+        dag_drawer(self.dag, style={})
+
+    @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
+    @unittest.skipUnless(_optionals.HAS_PIL, "PIL not installed")
+    def test_dag_drawer_custom_style(self):
+        """
+        Test dag with various custom styles
+        """
+
+        style = {
+            "fontsize": 12,
+            "bgcolor": "white",
+            "dpi": 10,
+            "pad": 0,
+            "nodecolor": "green",
+            "inputnodecolor": "blue",
+            "inputnodefontcolor": "white",
+            "outputnodecolor": "red",
+            "outputnodefontcolor": "white",
+            "opnodecolor": "black",
+            "opnodefontcolor": "white",
+            "edgecolor": "black",
+            "qubitedgecolor": "black",
+            "clbitedgecolor": "black",
+        }
+
+        for r in range(2):
+            combinations = itertools.combinations(style, r)
+            for c in combinations:
+                curr_style = {x: style[x] for x in c}
+                dag_drawer(self.dag, style=curr_style)
+
+        dag_drawer(self.dag, style=style)
+
+    @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
+    @unittest.skipUnless(_optionals.HAS_PIL, "PIL not installed")
     def test_dag_drawer_checks_filename_correct_format(self):
         """filename must contain name and extension"""
         with self.assertRaisesRegex(
@@ -95,7 +139,8 @@ class TestDagDrawer(QiskitVisualizationTestCase):
         qc.cx(0, 1)
         qc.cx(0, 2)
         qc.cx(0, 3)
-        qc.x(3).c_if(cr[1], 1)
+        with qc.if_test((cr[1], 1)):
+            qc.x(3)
         qc.h(3)
         qc.x(4)
         qc.barrier(0, 1)
@@ -107,6 +152,17 @@ class TestDagDrawer(QiskitVisualizationTestCase):
             image_ref = path_to_diagram_reference("dag_dep.png")
             image = Image.open(tmp_path)
             self.assertImagesAreEqual(image, image_ref, 0.1)
+
+    @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
+    @unittest.skipUnless(_optionals.HAS_PIL, "PIL not installed")
+    def test_dag_drawer_with_var_wires(self):
+        """Test visualization works with var nodes."""
+        a = expr.Var.new("a", types.Bool())
+        dag = DAGCircuit()
+        dag.add_input_var(a)
+        dag.apply_operation_back(Store(a, a), (), ())
+        image = dag_drawer(dag)
+        self.assertIsNotNone(image)
 
 
 if __name__ == "__main__":

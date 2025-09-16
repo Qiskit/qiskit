@@ -13,6 +13,7 @@
 These are the CNOT structure methods: anything that you need for creating CNOT structures.
 """
 import logging
+import math
 
 import numpy as np
 
@@ -34,7 +35,7 @@ def _lower_limit(num_qubits: int) -> int:
     Returns:
         lower limit on the number of CNOT units.
     """
-    num_cnots = round(np.ceil((4**num_qubits - 3 * num_qubits - 1) / 4.0))
+    num_cnots = math.ceil((4**num_qubits - 3 * num_qubits - 1) / 4.0)
     return num_cnots
 
 
@@ -132,7 +133,7 @@ def _get_connectivity(num_qubits: int, connectivity: str) -> dict:
         links = {i: list(range(num_qubits)) for i in range(num_qubits)}
 
     elif connectivity == "line":
-        # Every qubit is connected to its immediate neighbours only.
+        # Every qubit is connected to its immediate neighbors only.
         links = {i: [i - 1, i, i + 1] for i in range(1, num_qubits - 1)}
 
         # first qubit

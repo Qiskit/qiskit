@@ -22,6 +22,7 @@ from qiskit.dagcircuit import DAGCircuit, DAGNode
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.target import Target
+from qiskit.transpiler.instruction_durations import InstructionDurations
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +58,7 @@ class BasePadding(TransformationPass):
     def __init__(
         self,
         target: Target = None,
+        durations: InstructionDurations = None,
     ):
         """BasePadding initializer.
 
@@ -67,6 +69,32 @@ class BasePadding(TransformationPass):
         """
         super().__init__()
         self.target = target
+        self.durations = durations
+
+    def get_duration(self, node, dag):  # pylint: disable=too-many-return-statements
+        """Get duration of a given node in the circuit."""
+        if node.name == "delay":
+            return node.op.duration
+        if node.name == "barrier":
+            return 0
+        if not self.target and not self.durations:
+            return None
+        indices = [dag.find_bit(qarg).index for qarg in node.qargs]
+
+        if self.target:
+            props_dict = self.target.get(node.name)
+            if not props_dict:
+                return None
+            props = props_dict.get(tuple(indices))
+            if not props:
+                return None
+            if self.target.dt is None:
+                return props.duration
+            else:
+                res = self.target.seconds_to_dt(props.duration)
+                return res
+
+        return self.durations.get(node.name, indices)
 
     def run(self, dag: DAGCircuit):
         """Run the padding pass on ``dag``.
@@ -98,8 +126,7 @@ class BasePadding(TransformationPass):
 
         new_dag.name = dag.name
         new_dag.metadata = dag.metadata
-        new_dag.unit = self.property_set["time_unit"]
-        new_dag.calibrations = dag.calibrations
+        new_dag._unit = self.property_set["time_unit"]
         new_dag.global_phase = dag.global_phase
 
         idle_after = {bit: 0 for bit in dag.qubits}
@@ -112,7 +139,8 @@ class BasePadding(TransformationPass):
         for node in dag.topological_op_nodes():
             if node in node_start_time:
                 t0 = node_start_time[node]
-                t1 = t0 + node.op.duration
+                dur = self.get_duration(node, dag)
+                t1 = t0 + dur
                 circuit_duration = max(circuit_duration, t1)
 
                 if isinstance(node.op, Delay):
@@ -161,7 +189,7 @@ class BasePadding(TransformationPass):
                     prev_node=prev_node,
                 )
 
-        new_dag.duration = circuit_duration
+        new_dag._duration = circuit_duration
 
         return new_dag
 
@@ -185,6 +213,9 @@ class BasePadding(TransformationPass):
                 f"The input circuit {dag.name} is not scheduled. Call one of scheduling passes "
                 f"before running the {self.__class__.__name__} pass."
             )
+        if self.property_set["time_unit"] == "stretch":
+            # This should have already been raised during scheduling, but just in case.
+            raise TranspilerError("Scheduling cannot run on circuits with stretch durations.")
         for qarg, _ in enumerate(dag.qubits):
             if not self.__delay_supported(qarg):
                 logger.debug(
@@ -202,7 +233,7 @@ class BasePadding(TransformationPass):
     ):
         """Add new operation to DAG with scheduled information.
 
-        This is identical to apply_operation_back + updating the node_start_time propety.
+        This is identical to apply_operation_back + updating the node_start_time property.
 
         Args:
             dag: DAG circuit on which the sequence is applied.

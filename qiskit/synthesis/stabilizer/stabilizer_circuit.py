@@ -68,8 +68,8 @@ def synth_circuit_from_stabilizers(
     circuit = QuantumCircuit(num_qubits)
 
     used = 0
-    for i in range(len(stabilizer_list)):
-        curr_stab = stabilizer_list[i].evolve(Clifford(circuit), frame="s")
+    for i, stabilizer in enumerate(stabilizer_list):
+        curr_stab = stabilizer.evolve(Clifford(circuit), frame="s")
 
         # Find pivot.
         pivot = used
@@ -81,17 +81,17 @@ def synth_circuit_from_stabilizers(
         if pivot == num_qubits:
             if curr_stab.x.any():
                 raise QiskitError(
-                    f"Stabilizer {i} ({stabilizer_list[i]}) anti-commutes with some of "
+                    f"Stabilizer {i} ({stabilizer}) anti-commutes with some of "
                     "the previous stabilizers."
                 )
             if curr_stab.phase == 2:
                 raise QiskitError(
-                    f"Stabilizer {i} ({stabilizer_list[i]}) contradicts "
+                    f"Stabilizer {i} ({stabilizer}) contradicts "
                     "some of the previous stabilizers."
                 )
             if curr_stab.z.any() and not allow_redundant:
                 raise QiskitError(
-                    f"Stabilizer {i} ({stabilizer_list[i]}) is a product of the others "
+                    f"Stabilizer {i} ({stabilizer}) is a product of the others "
                     "and allow_redundant is False. Add allow_redundant=True "
                     "to the function call if you want to allow redundant stabilizers."
                 )
@@ -133,7 +133,7 @@ def synth_circuit_from_stabilizers(
             circuit.swap(pivot, used)
 
         # fix sign
-        curr_stab = stabilizer_list[i].evolve(Clifford(circuit), frame="s")
+        curr_stab = stabilizer.evolve(Clifford(circuit), frame="s")
         if curr_stab.phase == 2:
             circuit.x(used)
         used += 1

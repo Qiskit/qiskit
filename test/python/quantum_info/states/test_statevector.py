@@ -23,7 +23,7 @@ from numpy.testing import assert_allclose
 from qiskit import QiskitError
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit import transpile
-from qiskit.circuit.library import HGate, QFT, GlobalPhaseGate
+from qiskit.circuit.library import HGate, QFTGate, GlobalPhaseGate
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.utils import optionals
 from qiskit.quantum_info.random import random_unitary, random_statevector, random_pauli
@@ -1160,6 +1160,31 @@ class TestStatevector(QiskitTestCase):
         expval = state.expectation_value(op, qubits)
         self.assertAlmostEqual(expval, target)
 
+    def test_expval_identity(self):
+        """Test whether the calculation for identity operator has been fixed"""
+
+        # 1 qubit case test
+        state_1 = Statevector.from_label("0")
+        state_1_n1 = 2 * state_1  # test the same state with different norms
+        state_1_n2 = (1 + 2j) * state_1
+        identity_op_1 = SparsePauliOp.from_list([("I", 1)])
+        expval_state_1 = state_1.expectation_value(identity_op_1)
+        expval_state_1_n1 = state_1_n1.expectation_value(identity_op_1)
+        expval_state_1_n2 = state_1_n2.expectation_value(identity_op_1)
+        self.assertAlmostEqual(expval_state_1, 1.0 + 0j)
+        self.assertAlmostEqual(expval_state_1_n1, 4 + 0j)
+        self.assertAlmostEqual(expval_state_1_n2, 5 + 0j)
+
+        # Let's try a multi-qubit case
+        n_qubits = 3
+        state_coeff = 3 - 4j
+        op_coeff = 2 - 2j
+        state_test = state_coeff * Statevector.from_label("0" * n_qubits)
+        op_test = SparsePauliOp.from_list([("I" * n_qubits, op_coeff)])
+        expval = state_test.expectation_value(op_test)
+        target = op_coeff * np.abs(state_coeff) ** 2
+        self.assertAlmostEqual(expval, target)
+
     @data(*(qargs for i in range(4) for qargs in permutations(range(4), r=i + 1)))
     def test_probabilities_qargs(self, qargs):
         """Test probabilities method with qargs"""
@@ -1201,18 +1226,19 @@ class TestStatevector(QiskitTestCase):
 
     def test_reverse_qargs(self):
         """Test reverse_qargs method"""
-        circ1 = QFT(5)
+        circ1 = QFTGate(5).definition
         circ2 = circ1.reverse_bits()
 
         state1 = Statevector.from_instruction(circ1)
         state2 = Statevector.from_instruction(circ2)
         self.assertEqual(state1.reverse_qargs(), state2)
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
     @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "requires matplotlib")
     @unittest.skipUnless(optionals.HAS_PYLATEX, "requires pylatexenc")
     def test_drawings(self):
         """Test draw method"""
-        qc1 = QFT(5)
+        qc1 = QFTGate(5).definition
         sv = Statevector.from_instruction(qc1)
         with self.subTest(msg="str(statevector)"):
             str(sv)
@@ -1222,6 +1248,7 @@ class TestStatevector(QiskitTestCase):
         with self.subTest(msg=" draw('latex', convention='vector')"):
             sv.draw("latex", convention="vector")
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
     def test_state_to_latex_for_none(self):
         """
         Test for `\rangleNone` output in latex representation
@@ -1246,6 +1273,7 @@ class TestStatevector(QiskitTestCase):
             "\\frac{\\sqrt{2}}{2} |000\\rangle- \\frac{\\sqrt{2}}{2} |011\\rangle",
         )
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
     def test_state_to_latex_for_large_statevector(self):
         """Test conversion of large dense state vector"""
         sv = Statevector(np.ones((2**15, 1)))
@@ -1258,6 +1286,7 @@ class TestStatevector(QiskitTestCase):
             " |111111111111101\\rangle+ |111111111111110\\rangle+ |111111111111111\\rangle",
         )
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
     def test_state_to_latex_with_prefix(self):
         """Test adding prefix to state vector latex output"""
         psi = Statevector(np.array([np.sqrt(1 / 2), 0, 0, np.sqrt(1 / 2)]))
@@ -1267,12 +1296,14 @@ class TestStatevector(QiskitTestCase):
         latex_representation = state_to_latex(psi, prefix=prefix)
         self.assertEqual(latex_representation, latex_expected)
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
     def test_state_to_latex_for_large_sparse_statevector(self):
         """Test conversion of large sparse state vector"""
         sv = Statevector(np.eye(2**15, 1))
         latex_representation = state_to_latex(sv)
         self.assertEqual(latex_representation, " |000000000000000\\rangle")
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
     def test_state_to_latex_with_max_size_limit(self):
         """Test limit the maximum number of non-zero terms in the expression"""
         sv = Statevector(
@@ -1306,6 +1337,7 @@ class TestStatevector(QiskitTestCase):
             "\\frac{\\sqrt{2} i}{4} |1111\\rangle",
         )
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
     def test_state_to_latex_with_decimals_round(self):
         """Test rounding of decimal places in the expression"""
         sv = Statevector(
@@ -1327,6 +1359,7 @@ class TestStatevector(QiskitTestCase):
             "0.354 |000\\rangle+0.354 |001\\rangle- 0.354 i |110\\rangle+0.354 i |111\\rangle",
         )
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
     def test_statevector_draw_latex_regression(self):
         """Test numerical rounding errors are not printed"""
         sv = Statevector(np.array([1 - 8e-17, 8.32667268e-17j]))

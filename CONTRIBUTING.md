@@ -15,8 +15,14 @@ community in this goal.
 * [Changelog generation](#changelog-generation)
 * [Release notes](#release-notes)
 * [Testing](#testing)
+  * [Qiskit's Python test suite](#qiskits-python-test-suite)
+  * [Snapshot testing for visualizations](#snapshot-testing-for-visualizations)
+  * [Testing Rust components](#testing-rust-components)
+    * [Using a custom venv instead of tox](#using-a-custom-venv-instead-of-tox)
+    * [Calling Python from Rust tests](#calling-python-from-rust-tests)
 * [Style and Lint](#style-and-lint)
 * [Building API docs locally](#building-api-docs-locally)
+  * [Troubleshooting docs builds](#troubleshooting-docs-builds)
 * [Development Cycle](#development-cycle)
   * [Branches](#branches)
   * [Release Cycle](#release-cycle)
@@ -51,8 +57,6 @@ Virtual environments are used for Qiskit development to isolate the development 
 from system-wide packages. This way, we avoid inadvertently becoming dependent on a
 particular system configuration. For developers, this also makes it easy to maintain multiple
 environments (e.g. one per supported Python version, for older versions of Qiskit, etc.).
-
-
 
 ### Set up a Python venv
 
@@ -106,17 +110,17 @@ pip install -e .
 Qiskit is primarily written in Python but there are some core routines
 that are written in the [Rust](https://www.rust-lang.org/) programming
 language to improve the runtime performance. For the released versions of
-qiskit we publish precompiled binaries on the
+Qiskit we publish precompiled binaries on the
 [Python Package Index](https://pypi.org/) for all the supported platforms
 which only requires a functional Python environment to install. However, when
-building and installing from source you will need a rust compiler installed. You can do this very easily
+building and installing from source you will need a Rust compiler installed. You can do this very easily
 using rustup: https://rustup.rs/ which provides a single tool to install and
 configure the latest version of the rust compiler.
 [Other installation methods](https://forge.rust-lang.org/infra/other-installation-methods.html)
 exist too. For Windows users, besides rustup, you will also need install
 the Visual C++ build tools so that Rust can link against the system c/c++
 libraries. You can see more details on this in the
-[rustup documentation](https://rust-lang.github.io/rustup/installation/windows.html).
+[rustup documentation](https://rust-lang.github.io/rustup/installation/windows-msvc.html).
 
 If you use Rustup, it will automatically install the correct Rust version
 currently used by the project.
@@ -135,6 +139,18 @@ Note that in order to run `python setup.py ...` commands you need have build
 dependency packages installed in your environment, which are listed in the
 `pyproject.toml` file under the `[build-system]` section.
 
+### Compile time options
+
+When building qiskit from source there are options available to control how
+Qiskit is built. Right now the only option is if you set the environment
+variable `QISKIT_NO_CACHE_GATES=1` this will disable runtime caching of
+Python gate objects when accessing them from a `QuantumCircuit` or `DAGCircuit`.
+This makes a tradeoff between runtime performance for Python access and memory
+overhead. Caching gates will result in better runtime for users of Python at
+the cost of increased memory consumption. If you're working with any custom
+transpiler passes written in Python or are otherwise using a workflow that
+repeatedly accesses the `operation` attribute of a `CircuitInstruction` or `op`
+attribute of `DAGOpNode` enabling caching is recommended.
 
 ## Issues and pull requests
 
@@ -149,7 +165,7 @@ the code. It also lets the community know what you're working on, and if you
 need help, you can reference the issue when discussing it with other community
 and team members.
 
-* For documentation issues relating to pages in the Start, Build, Transpile, Verify, Run, and Migration guides sections of [docs.quantum.ibm.com](https://docs.quantum.ibm.com/), please open an issue in the [Qiskit/documentation repo](https://github.com/Qiskit/documentation/issues/new/choose) rather than the Qiskit/qiskit repo. In other words, any page that DOES NOT have `/api/` in the url should be addressed in the Qiskit/documentation repo. (Exception: the [Migration guide](https://docs.quantum.ibm.com/api/migration-guides) urls contain `/api/` but are managed in the Qiskit/documentation repo.)
+* For documentation issues relating to pages in the guides, tutorials, and migration guides sections of [quantum.cloud.ibm.com](https://quantum.cloud.ibm.com/docs/), please open an issue in the [Qiskit/documentation repo](https://github.com/Qiskit/documentation/issues/new/choose) rather than the Qiskit/qiskit repo. In other words, any page that DOES NOT have `/api/` in the url should be addressed in the Qiskit/documentation repo.
 * For issues relating to API reference pages (any page that contains `/api/` in the url), please open an issue in the repo specific to that API reference, for example [Qiskit/qiskit](https://github.com/Qiskit/qiskit/issues/new/choose), [Qiskit/qiskit-aer](https://github.com/Qiskit/qiskit-aer/issues/new/choose), or [Qiskit/qiskit-ibm-runtime](https://github.com/Qiskit/qiskit-ibm-runtime/issues/new/choose).
 
 If you've written some code but need help finishing it, want to get initial
@@ -174,8 +190,8 @@ please ensure that:
    which will run these checks and report any issues.
 
    If your code fails the local style checks (specifically the black
-   code formatting check) you can use `tox -eblack` to automatically
-   fix update the code formatting.
+   or Rust code formatting check) you can use `tox -eblack` and
+   `cargo fmt` to automatically fix the code formatting.
 2. The documentation has been updated accordingly. In particular, if a
    function or class has been modified during the PR, please update the
    *docstring* accordingly.
@@ -183,8 +199,8 @@ please ensure that:
    If your pull request is adding a new class, function, or module that is
    intended to be user facing ensure that you've also added those to a
    documentation `autosummary` index to include it in the api documentation.
-3. If it makes sense for your change that you have added new tests that
-   cover the changes.
+3. If you are of the opinion that the modifications you made warrant additional tests,
+   feel free to include them
 4. Ensure that if your change has an end user facing impact (new feature,
    deprecation, removal etc) that you have added a reno release note for that
    change and that the PR is tagged for the changelog.
@@ -383,11 +399,6 @@ it has been tagged:
 
     reno report --version 0.9.0
 
-At release time ``reno report`` is used to generate the release notes for the
-release and the output will be submitted as a pull request to the documentation
-repository's [release notes file](
-https://github.com/Qiskit/qiskit/blob/master/docs/release_notes.rst)
-
 #### Building release notes locally
 
 Building The release notes are part of the standard qiskit documentation
@@ -397,13 +408,15 @@ build all the documentation into `docs/_build/html` and the release notes in
 particular will be located at `docs/_build/html/release_notes.html`
 
 ## Testing
-
 Once you've made a code change, it is important to verify that your change
 does not break any existing tests and that any new tests that you've added
 also run successfully. Before you open a new pull request for your change,
-you'll want to run the test suite locally.
+you'll want to run Qiskit's Python test suite (as well as its Rust-based
+unit tests if you've modified native code).
 
-The easiest way to run the test suite is to use
+### Qiskit's Python test suite
+
+The easiest way to run Qiskit's Python test suite is to use
 [**tox**](https://tox.readthedocs.io/en/latest/#). You can install tox
 with pip: `pip install -U tox`. Tox provides several advantages, but the
 biggest one is that it builds an isolated virtualenv for running tests. This
@@ -427,21 +440,21 @@ you can do this faster with the `-n`/`--no-discover` option. For example:
 
 to run a module:
 ```
-tox -epy310 -- -n test.python.test_examples
+tox -epy310 -- -n test.python.compiler.test_transpiler
 ```
 or to run the same module by path:
 
 ```
-tox -epy310 -- -n test/python/test_examples.py
+tox -epy310 -- -n test/python/compiler/test_transpiler.py
 ```
 to run a class:
 
 ```
-tox -epy310 -- -n test.python.test_examples.TestPythonExamples
+tox -epy310 -- -n test.python.compiler.test_transpiler.TestTranspile
 ```
 to run a method:
 ```
-tox -epy310 -- -n test.python.test_examples.TestPythonExamples.test_all_examples
+tox -epy310 -- -n test.python.compiler.test_transpiler.TestTranspile.test_transpile_non_adjacent_layout
 ```
 
 Alternatively there is a makefile provided to run tests, however this
@@ -520,7 +533,7 @@ we used in our CI systems more closely.
 
 ### Snapshot Testing for Visualizations
 
-If you are working on code that makes changes to any matplotlib visualisations
+If you are working on code that makes changes to any matplotlib visualizations
 you will need to check that your changes don't break any snapshot tests, and add
 new tests where necessary. You can do this as follows:
 
@@ -531,7 +544,7 @@ the snapshot tests (note this may take some time to finish loading).
 3. Each test result provides a set of 3 images (left: reference image, middle: your test result, right: differences). In the list of tests the passed tests are collapsed and failed tests are expanded. If a test fails, you will see a situation like this:
 
    <img width="995" alt="Screenshot_2021-03-26_at_14 13 54" src="https://user-images.githubusercontent.com/23662430/112663508-d363e800-8e50-11eb-9478-6d665d0ff086.png">
-4. Fix any broken tests. Working on code for one aspect of the visualisations
+4. Fix any broken tests. Working on code for one aspect of the visualizations
 can sometimes result in minor changes elsewhere to spacing etc. In these cases
 you just need to update the reference images as follows:
     - download the mismatched images (link at top of Jupyter Notebook output)
@@ -556,9 +569,168 @@ you just need to update the reference images as follows:
 
 Note: If you have run `test/ipynb/mpl_tester.ipynb` locally it is possible some file metadata has changed, **please do not commit and push changes to this file unless they were intentional**.
 
+
+### Testing Rust components
+
+Many of Qiskit's core data structures and algorithms are implemented in Rust.
+The bulk of this code is exercised heavily by our Python-based unit testing,
+but this coverage really only provides integration-level testing from the
+perspective of Rust.
+
+To provide Rust unit testing, we use `cargo test`. Rust tests are
+integrated directly into the Rust file being tested within a `tests` module.
+Functions decorated with `#[test]` within these modules are built and run
+as tests.
+
+```rust
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn my_first_test() {
+        assert_eq!(2, 1 + 1);
+    }
+}
+```
+
+For more detailed guidance on how to write Rust tests, you can refer to the Rust
+documentation's [guide on writing tests](https://doc.rust-lang.org/book/ch11-01-writing-tests.html).
+
+Rust tests are run separately from the Python tests. The easiest way to run
+them is via `tox`, which creates an isolated venv and pre-installs `qiskit`
+prior to running `cargo test`:
+
+```bash
+tox -erust
+```
+
+> [!TIP]
+> If you've already built your changes (e.g. `python setup.py build_rust --release --inplace`),
+> you can pass `--skip-pkg-install` when invoking `tox` to avoid a rebuild. This works because
+> Python will instead find and use Qiskit from the current working directory (since we skipped
+> its installation).
+
+#### Using a custom venv instead of `tox`
+
+If you're not using `tox`, you can also execute Cargo tests directly in your own virtual environment.
+If you haven't done so already, [create a Python virtual environment](#set-up-a-python-venv) and
+**_activate it_**.
+
+Then, run the following commands:
+
+```bash
+python setup.py build_rust --inplace
+tools/run_cargo_test.py
+```
+
+The first command builds Qiskit in editable mode,
+which ensures that Rust tests that interact with Qiskit's Python code actually
+use the latest Python code from your working directory. The second command invokes
+the tests via Cargo.
+
+#### Calling Python from Rust tests
+By default, our Cargo project configuration allows Rust tests to interact with the
+Python interpreter by calling `Python::with_gil` to obtain a `Python` (`py`) token.
+This is particularly helpful when testing Rust code that (still) requires interaction
+with Python.
+
+To execute code that needs the GIL in your tests, define the `tests` module as
+follows:
+
+```rust
+#[cfg(all(test, not(miri)))] // disable for Miri!
+mod tests {
+    use pyo3::prelude::*;
+    
+    #[test]
+    fn my_first_test() {
+        Python::with_gil(|py| {
+            todo!() // do something that needs a `py` token.
+        })
+    }
+}
+```
+
+> [!IMPORTANT]
+> Note that we explicitly disable compilation of such tests when running with Miri, i.e.
+`#[cfg(not(miri))]`. This is necessary because Miri doesn't support the FFI
+> code used internally by PyO3.
+>
+> If not all of your tests will use the `Python` token, you can disable Miri on a per-test
+basis within the same module by decorating *the specific test* with `#[cfg_attr(miri, ignore)]`
+instead of disabling Miri for the entire module.
+
+
+### Unsafe code and Miri
+
+Any `unsafe` code added to the Rust logic should be exercised by Rust-space
+tests, in addition to the more complete Python test suite.  In CI, we run the
+Rust test suite under [Miri](https://github.com/rust-lang/miri) as an
+undefined-behavior sanitizer.
+
+Miri is currently only available on `nightly` Rust channels, so to run it
+locally you will need to ensure you have that channel available, such as by
+```bash
+rustup install nightly --components miri
+```
+
+After this, you can run the Miri test suite with
+```bash
+MIRIFLAGS="<flags go here>" cargo +nightly miri test
+```
+
+For the current set of `MIRIFLAGS` used by Qiskit's CI, see the
+[`miri.yml`](https://github.com/Qiskit/qiskit/blob/main/.github/workflows/miri.yml)
+GitHub Action file.  This same file may also include patches to dependencies to
+make them compatible with Miri, which you would need to temporarily apply as
+well.
+
+### Testing the C API
+
+The C API test suite is located at `test/c/`. It is built and run using `cmake`
+and `ctest` which can be triggered simply via:
+```bash
+make ctest
+```
+
+#### Writing C API tests
+
+The C API test suite automatically discovers any files inside `test/c/` matching
+the pattern `test_*.c`. Each one of these files should follow a template similar
+to the following.
+```c
+#include "common.h"
+
+// Individual tests may be implemented by custom functions. The return value
+// should be `Ok` (from `test/c/common.h`) when the test was successful or one
+// of the other error codes (`>0`) indicating the error type.
+int test_something()
+{
+    return Ok;
+}
+
+// One main function must exist, WHOSE FUNCTION NAME MATCHES THE FILENAME!
+int test_FILE_NAME()
+{
+    // Ideally, this function should track the number of failed subtests.
+    int num_failed = 0;
+
+    // The RUN_TEST macro will execute the provided test function and perform a
+    // minimal amount of logging to indicate the success/failure of this test.
+    num_failed += RUN_TEST(test_something);
+
+    // Finally, this test should report the number of failed subtests.
+    fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
+    fflush(stderr);
+
+    // And return the number of failed subtests. If this is greater than 0,
+    // ctest will indicate the failure.
+    return num_failed;
+}
+```
+
 ## Style and lint
 
-Qiskit uses three tools for verify code formatting and lint checking. The
+Qiskit uses three tools for Python code formatting and lint checking. The
 first tool is [black](https://github.com/psf/black) which is a code formatting
 tool that will automatically update the code formatting to a consistent style.
 The second tool is [pylint](https://www.pylint.org/) which is a code linter
@@ -587,21 +759,61 @@ rather than via `tox`. If you have installed the development packages in your py
 `pip install -r requirements-dev.txt`, then `ruff` and `black` will be available and can be run from
 the command line. See [`tox.ini`](tox.ini) for how `tox` invokes them.
 
+### Rust style and lint
+
+For formatting and lint checking Rust code, you'll need to use different tools than you would for Python. Qiskit uses [rustfmt](https://github.com/rust-lang/rustfmt) for
+code formatting. You can simply run `cargo fmt` (if you installed Rust with the
+default settings using `rustup`), and it will update the code formatting automatically to
+conform to the style guidelines. This is very similar to running `tox -eblack` for Python code. For lint checking, Qiskit uses [clippy](https://github.com/rust-lang/rust-clippy) which can be invoked via `cargo clippy`. 
+
+Rust lint and formatting checks are included in the the `tox -elint` command. For CI to pass you will need both checks to pass without any warnings or errors. Note that this command checks the code but won't apply any modifications, if you need to update formatting, you'll need to run `cargo fmt`.
+
+### C style and lint
+
+Qiskit uses [clang-format](https://clang.llvm.org/docs/ClangFormat.html) to format C code.
+The style is based on LLVM, with some few Qiskit-specific adjustments. 
+To check whether the C code conforms to the style guide, you can run `make cformat`. This check
+will need to execute without any warnings or errors for CI to pass.
+Automatic formatting can be applied by `make fix_cformat`.
+
 ## Building API docs locally
 
-If you have made changes to the API documentation, you can run the command below
-to build documentation locally to review the html output. 
-The easiest and recommended way to build the documentation is to use [**tox**](https://tox.readthedocs.io/en/latest/#):
-
+The API documentation is built with Sphinx.
+We recommend that you use [**tox**](https://tox.readthedocs.io/en/latest) to orchestrate this.
+Run a complete documentation build with
 ```
-tox -edocs
+tox -e docs
 ```
 
-Once you run this command, the output will be located at `docs/_build/html`.
-Then, open up the file `index.html` in your browser.
+The documentation output will be located at `docs/_build/html`.
+Open the `index.html` file there in your browser to find the main page.
 
-Sometimes Sphinx can get in a bad cache state. Run `tox -e docs-clean`
-to reset Sphinx's cache.
+To build the documentation you will need to have Doxygen installed and in
+your PATH environment variable as tox will run `doxygen` to build the API
+documentation for the C API. You can download doxygen from [here](https://www.doxygen.nl/download.html).
+
+### Troubleshooting docs builds
+
+When you build documentation, you might get errors that look like
+```
+ValueError: earliest-version set to unknown revision '1.0.0rc1'
+```
+If so, you need to fetch Qiskit's `git` tags and stable branches, in order to fully build the release notes.
+To do this, run the command:
+```
+git fetch --tags upstream
+```
+where `upstream` is your name for the [git remote repository](https://git-scm.com/book/en/v2/Git-Basics-Working-with-Remotes) that corresponds to https://github.com/Qiskit/qiskit (this repository).
+You might need to re-run this command if Qiskit has issued a new release since the last time you built the documentation.
+
+Sometimes, you might get errors about "names not existing" or "failed to import" during the docs build, even when the test suite passes.
+This can mean that Sphinx's cache has become invalidated, but hasn't been successfully cleared.
+Use the command:
+```
+tox -e docs-clean
+```
+to fully clean out all documentation build artefacts and partial builds, and see if the problem persists.
+
 
 ## Development cycle
 
@@ -648,7 +860,7 @@ developers to test the release ahead of time. When the pre-release is tagged the
 automation will publish the pre-release to PyPI (but only get installed on user request),
 create the `stable/*` branch, and generate a pre-release changelog/release page. At
 this point the `main` opens up for development of the next release. The `stable/*`
-branches should only  receive changes in the form of bug fixes at this point. If there
+branches should only receive changes in the form of bug fixes at this point. If there
 is a need additional release candidates can be published from `stable/*` and when the
 release is ready a full release will be tagged and published from `stable/*`.
 
@@ -706,7 +918,7 @@ You should also add a new "tester" to [`qiskit.utils.optionals`](qiskit/utils/op
 
 You cannot `import` an optional dependency at the top of a file, because if it is not installed, it will raise an error and qiskit will be unusable.
 We also largely want to avoid importing packages until they are actually used; if we import a lot of packages during `import qiskit`, it becomes sluggish for the user if they have a large environment.
-Instead, you should use [one of the "lazy testers" for optional dependencies](https://docs.quantum.ibm.com/api/qiskit/utils#optional-dependency-checkers), and import your optional dependency inside the function or class that uses it, as in the examples within that link.
+Instead, you should use [one of the "lazy testers" for optional dependencies](https://quantum.cloud.ibm.com/docs/api/qiskit/utils#optional-dependency-checkers), and import your optional dependency inside the function or class that uses it, as in the examples within that link.
 Very lightweight _requirements_ can be imported at the tops of files, but even this should be limited; it's always ok to `import numpy`, but Scipy modules are relatively heavy, so only import them within functions that use them.
 
 

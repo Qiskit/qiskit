@@ -19,13 +19,11 @@ from collections.abc import Callable, Hashable, Iterable
 from inspect import signature
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.passmanager.base_tasks import GenericPass, PassManagerIR
 from qiskit.passmanager.compilation_status import PropertySet, RunState, PassManagerState
 
 from .exceptions import TranspilerError
-from .layout import TranspileLayout
 
 
 class MetaPass(abc.ABCMeta):
@@ -87,7 +85,7 @@ class BasePass(GenericPass, metaclass=MetaPass):
         return hash(self) == hash(other)
 
     @abstractmethod
-    def run(self, dag: DAGCircuit):  # pylint: disable=arguments-differ
+    def run(self, dag: DAGCircuit):  # pylint:disable=arguments-renamed
         """Run a pass on the DAGCircuit. This is implemented by the pass developer.
 
         Args:
@@ -126,57 +124,31 @@ class BasePass(GenericPass, metaclass=MetaPass):
 
         Args:
             circuit: The dag on which the pass is run.
-            property_set: Input/output property set. An analysis pass
-                might change the property set in-place.
+            property_set: Input/output property set. An analysis pass might change the property set
+                in-place.  If not given, the existing ``property_set`` attribute of the pass will
+                be used (if set).
 
         Returns:
             If on transformation pass, the resulting QuantumCircuit.
             If analysis pass, the input circuit.
         """
-        property_set_ = None
-        if isinstance(property_set, dict):  # this includes (dict, PropertySet)
-            property_set_ = PropertySet(property_set)
+        from qiskit.transpiler import PassManager  # pylint: disable=cyclic-import
 
-        if isinstance(property_set_, PropertySet):
-            # pylint: disable=attribute-defined-outside-init
-            self.property_set = property_set_
-
-        result = self.run(circuit_to_dag(circuit))
-
-        result_circuit = circuit
-
-        if isinstance(property_set, dict):  # this includes (dict, PropertySet)
+        pm = PassManager([self])
+        # Previous versions of the `__call__` function would not construct a `PassManager`, but just
+        # call `self.run` directly (this caused issues with `requires`).  It only overrode
+        # `self.property_set` if the input was not `None`, which some users might have been relying
+        # on (as our test suite was).
+        if property_set is None:
+            property_set = self.property_set
+        out = pm.run(circuit, property_set=property_set)
+        if property_set is not None and property_set is not pm.property_set:
+            # When this `__call__` was first added, it contained this behaviour of mutating the
+            # input `property_set` in-place, but didn't use the `PassManager` infrastructure.  This
+            # preserves the output-variable nature of the `property_set` parameter.
             property_set.clear()
-            property_set.update(self.property_set)
-
-        if isinstance(result, DAGCircuit):
-            result_circuit = dag_to_circuit(result, copy_operations=False)
-        elif result is None:
-            result_circuit = circuit.copy()
-
-        if self.property_set["layout"]:
-            result_circuit._layout = TranspileLayout(
-                initial_layout=self.property_set["layout"],
-                input_qubit_mapping=self.property_set["original_qubit_indices"],
-                final_layout=self.property_set["final_layout"],
-                _input_qubit_count=len(circuit.qubits),
-                _output_qubit_list=result_circuit.qubits,
-            )
-        if self.property_set["clbit_write_latency"] is not None:
-            result_circuit._clbit_write_latency = self.property_set["clbit_write_latency"]
-        if self.property_set["conditional_latency"] is not None:
-            result_circuit._conditional_latency = self.property_set["conditional_latency"]
-        if self.property_set["node_start_time"]:
-            # This is dictionary keyed on the DAGOpNode, which is invalidated once
-            # dag is converted into circuit. So this schedule information is
-            # also converted into list with the same ordering with circuit.data.
-            topological_start_times = []
-            start_times = self.property_set["node_start_time"]
-            for dag_node in result.topological_op_nodes():
-                topological_start_times.append(start_times[dag_node])
-            result_circuit._op_start_times = topological_start_times
-
-        return result_circuit
+            property_set.update(pm.property_set)
+        return out
 
 
 class AnalysisPass(BasePass):  # pylint: disable=abstract-method
@@ -199,10 +171,7 @@ class TransformationPass(BasePass):  # pylint: disable=abstract-method
         )
 
         if state.workflow_status.previous_run == RunState.SUCCESS:
-            if isinstance(new_dag, DAGCircuit):
-                # Copy calibration data from the original program
-                new_dag.calibrations = passmanager_ir.calibrations
-            else:
+            if not isinstance(new_dag, DAGCircuit):
                 raise TranspilerError(
                     "Transformation passes should return a transformed dag."
                     f"The pass {self.__class__.__name__} is returning a {type(new_dag)}"

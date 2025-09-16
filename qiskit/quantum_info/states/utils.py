@@ -15,6 +15,7 @@ Quantum information utility functions for states.
 """
 
 from __future__ import annotations
+import math
 
 import numpy as np
 
@@ -102,17 +103,18 @@ def shannon_entropy(pvec: list | np.ndarray, base: int = 2) -> float:
     if base == 2:
 
         def logfn(x):
-            return -x * np.log2(x)
+            return -x * math.log2(x)
 
     elif base == np.e:
 
         def logfn(x):
-            return -x * np.log(x)
+            return -x * math.log(x)
 
     else:
+        log_base = math.log(base)
 
         def logfn(x):
-            return -x * np.log(x) / np.log(base)
+            return -x * math.log(x) / log_base
 
     h_val = 0.0
     for x in pvec:

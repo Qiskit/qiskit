@@ -28,6 +28,7 @@ if optionals.HAS_PIL:
 
 @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "matplotlib not available.")
 class TestPlotHistogram(QiskitVisualizationTestCase):
+    # pylint: disable=possibly-used-before-assignment
     """Qiskit plot_histogram tests."""
 
     def test_different_counts_lengths(self):

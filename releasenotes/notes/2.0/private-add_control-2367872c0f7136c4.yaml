@@ -1,0 +1,6 @@
+---
+upgrade_circuits:
+  - |
+    The internal function ``qiskit.circuit.add_control.add_control`` was removed, as it is not part of the
+    public API. It had fragile preconditions to uphold and was a common source of bugs. Uses of ``add_control(SomeGate(...), ...)``
+    should change to ``SomeGate(...).control(...)`` using :meth:`.Gate.control` instead, which is far safer.
