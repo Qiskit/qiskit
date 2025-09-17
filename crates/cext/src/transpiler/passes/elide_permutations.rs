@@ -79,6 +79,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_elide_permutations(
                 Some(res.1.into_iter().map(Qubit::new).collect()),
                 circuit.qubits().objects().clone(),
                 num_input_qubits,
+                circuit.qregs().to_vec(),
             )))
         }
         None => std::ptr::null_mut(),
