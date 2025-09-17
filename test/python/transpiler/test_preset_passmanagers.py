@@ -21,7 +21,15 @@ from ddt import ddt, data
 import numpy as np
 
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-from qiskit.circuit import Qubit, Gate, ControlFlowOp, Measure, library as lib, Parameter
+from qiskit.circuit import (
+    Qubit,
+    Gate,
+    ControlFlowOp,
+    Measure,
+    library as lib,
+    Parameter,
+    AncillaRegister,
+)
 from qiskit.compiler import transpile
 from qiskit.transpiler import (
     CouplingMap,
@@ -302,6 +310,24 @@ class TestPresetPassManager(QiskitTestCase):
             translation_method="synthesis",
         )
         self.assertEqual(gates_in_basis_true_count + 2, consolidate_blocks_count)
+
+    @data(0, 1, 2, 3)
+    def test_layout_registers_preserved(self, optimization_level):
+        """Test that registers in circuit are preserved in TranspileLayout
+
+        Reproduce from `#15014 <https://github.com/Qiskit/qiskit/issues/15014>`__
+        """
+        a = QuantumRegister(2, "a")
+        b = AncillaRegister(1, "b")
+        qc = QuantumCircuit(b, a)
+        qc.x(0)
+
+        initial_layout = [0, 1, 2]
+        qc_transpiled = transpile(
+            qc, initial_layout=initial_layout, optimization_level=optimization_level
+        )
+
+        self.assertEqual(qc_transpiled.layout.initial_layout.get_registers(), {a, b})
 
 
 @ddt

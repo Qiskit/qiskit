@@ -160,5 +160,6 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_sabre_layout(
         Some(out_permutation),
         result.qubits().objects().clone(),
         num_input_qubits,
+        result.qregs().to_vec(),
     )))
 }
