@@ -4603,6 +4603,17 @@ pub fn sparse_observable(m: &Bound<PyModule>) -> PyResult<()> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use num_complex::Complex64;
+
+    fn example_observable() -> SparseObservable {
+        SparseObservable {
+            num_qubits: 2,
+            coeffs: vec![Complex64::new(0.5, 0.0), Complex64::new(1.5, 0.0)],
+            bit_terms: vec![BitTerm::X, BitTerm::Y],
+            indices: vec![1, 0],
+            boundaries: vec![0, 1, 2],
+        }
+    }
 
     #[test]
     fn test_error_safe_add_dense_label() {
@@ -4614,5 +4625,28 @@ mod test {
         ));
         // `modified` should have been left in a valid state.
         assert_eq!(base, modified);
+    }
+
+    #[test]
+    fn dense_threaded_and_serial_equal() {
+        let obs = example_observable();
+
+        let parallel_result = obs.to_matrix_dense(false);
+        let serial_result = obs.to_matrix_dense(true);
+
+        assert_eq!(parallel_result, serial_result);
+    }
+
+    #[test]
+    fn sparse_threaded_and_serial_equal() {
+        let obs = example_observable();
+        let py = unsafe { pyo3::Python::assume_gil_acquired() };
+
+        let parallel_result = obs.to_matrix_sparse(py, false).unwrap();
+        let serial_result = obs.to_matrix_sparse(py, true).unwrap();
+        let parallel_str = parallel_result.as_gil_ref().to_string();
+        let serial_str = serial_result.as_gil_ref().to_string();
+
+        assert_eq!(parallel_str, serial_str);
     }
 }
