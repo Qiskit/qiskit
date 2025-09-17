@@ -142,8 +142,8 @@ fn build_interaction_graph<Ty: EdgeType>(
     im_graph_node_map: &mut [Option<NodeIndex>],
     reverse_im_graph_node_map: &mut [Option<Qubit>],
 ) -> PyResult<()> {
-    for (_index, inst) in dag.op_nodes(false) {
-        if let Some(control_flow) = inst.try_view_control_flow() {
+    for (index, inst) in dag.op_nodes(false) {
+        if let Some(control_flow) = dag.try_view_control_flow(index) {
             let inner_weight = if let ControlFlowView::ForLoop { indexset, .. } = &control_flow {
                 indexset.len()
             } else {

@@ -16,8 +16,9 @@ use rustworkx_core::petgraph::prelude::*;
 use thiserror::Error;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction, NodeType, Wire};
-use qiskit_circuit::instruction::IntoInstructionView;
-use qiskit_circuit::operations::Operation;
+use qiskit_circuit::instruction::{ControlFlowView, IntoInstructionView};
+use qiskit_circuit::operations::{Operation, OperationRef};
+use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Qubit, VirtualQubit};
 
 /// The type of a node in the Sabre interactions graph.
@@ -39,16 +40,17 @@ pub enum InteractionKind {
     ControlFlow(Box<[(SabreDAG, DAGCircuit)]>),
 }
 impl InteractionKind {
-    fn from_instr(instr: &DAGInstruction, qargs: &[Qubit]) -> Result<Self, SabreDAGError> {
-        if instr.op.directive() {
+    fn from_control_flow(cf: ControlFlowView<DAGCircuit>) -> Result<Self, SabreDAGError> {
+        let blocks: Box<[_]> = cf
+            .blocks()
+            .map(|dag| Ok((SabreDAG::from_dag(dag)?, dag.clone())))
+            .collect::<Result<_, SabreDAGError>>()?;
+        Ok(Self::ControlFlow(blocks))
+    }
+
+    fn from_op(op: &PackedOperation, qargs: &[Qubit]) -> Result<Self, SabreDAGError> {
+        if op.directive() {
             return Ok(Self::Synchronize);
-        }
-        if let Some(cf) = instr.try_view_control_flow() {
-            let blocks: Box<[_]> = cf
-                .blocks()
-                .map(|dag| Ok((SabreDAG::from_dag(dag)?, dag.clone())))
-                .collect::<Result<_, SabreDAGError>>()?;
-            return Ok(Self::ControlFlow(blocks));
         }
         match qargs {
             // We're assuming that if the instruction has classical wires (like a `PyInstruction` or
@@ -158,7 +160,11 @@ impl SabreDAG {
             let NodeType::Operation(inst) = &dag[dag_node] else {
                 panic!("op nodes should always be of type `Operation`");
             };
-            let kind = InteractionKind::from_instr(inst, dag.get_qargs(inst.qubits))?;
+            let kind = if let Some(cf) = dag.try_view_control_flow(dag_node) {
+                InteractionKind::from_control_flow(cf)?
+            } else {
+                InteractionKind::from_op(&inst.op, dag.get_qargs(inst.qubits))?
+            };
             match predecessors(dag_node, &wire_pos) {
                 Predecessors::AllUnmapped => match kind {
                     InteractionKind::Synchronize => {

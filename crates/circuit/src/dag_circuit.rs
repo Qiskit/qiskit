@@ -2159,11 +2159,8 @@ impl DAGCircuit {
         }
 
         // Handle recursively.
-        for node in self.dag.node_weights() {
-            let NodeType::Operation(node) = node else {
-                continue;
-            };
-            let Some(control_flow) = node.try_view_control_flow() else {
+        for node in self.dag.node_indices() {
+            let Some(control_flow) = self.try_view_control_flow(node) else {
                 continue;
             };
 
@@ -2225,11 +2222,8 @@ impl DAGCircuit {
         }
         // Handle recursively.
         let mut node_lookup: HashMap<NodeIndex, usize> = HashMap::new();
-        for (node_index, node) in self.dag.node_references() {
-            let NodeType::Operation(node) = node else {
-                continue;
-            };
-            let Some(control_flow) = node.try_view_control_flow() else {
+        for node_index in self.dag.node_indices() {
+            let Some(control_flow) = self.try_view_control_flow(node_index) else {
                 continue;
             };
             let weight = if let ControlFlowView::ForLoop { indexset, .. } = control_flow {
@@ -5299,6 +5293,10 @@ impl Default for DAGCircuit {
 }
 
 impl DAGCircuit {
+    pub fn try_view_control_flow(&self, node: NodeIndex) -> Option<ControlFlowView<DAGCircuit>> {
+        todo!()
+    }
+
     pub fn new() -> Self {
         DAGCircuit {
             name: None,
@@ -7754,11 +7752,8 @@ impl DAGCircuit {
                         .and_modify(|count| *count += value)
                         .or_insert(*value);
                 }
-                for node in dag.dag.node_weights() {
-                    let NodeType::Operation(node) = node else {
-                        continue;
-                    };
-                    let Some(control_flow) = node.try_view_control_flow() else {
+                for node in dag.dag.node_indices() {
+                    let Some(control_flow) = dag.try_view_control_flow(node) else {
                         continue;
                     };
                     for block in control_flow.blocks() {

@@ -221,11 +221,11 @@ fn extract_basis(circuit: &DAGCircuit, min_qubits: usize) -> AhashIndexSet<GateI
         basis: &mut AhashIndexSet<GateIdentifier>,
         min_qubits: usize,
     ) {
-        for (_node, operation) in circuit.op_nodes(true) {
+        for (node, operation) in circuit.op_nodes(true) {
             if circuit.get_qargs(operation.qubits).len() >= min_qubits {
                 basis.insert((operation.op.name().to_string(), operation.op.num_qubits()));
             }
-            if let Some(control_flow) = operation.try_view_control_flow() {
+            if let Some(control_flow) = circuit.try_view_control_flow(node) {
                 for block in control_flow.blocks() {
                     recurse_dag(block, basis, min_qubits);
                 }
@@ -248,7 +248,7 @@ fn extract_basis_target(
     min_qubits: usize,
     qargs_with_non_global_operation: &AhashIndexMap<Qargs, AhashIndexSet<&str>>,
 ) {
-    for (_, node_obj) in dag.op_nodes(true) {
+    for (node, node_obj) in dag.op_nodes(true) {
         let qargs: &[Qubit] = dag.get_qargs(node_obj.qubits);
         if qargs.len() < min_qubits {
             continue;
@@ -295,7 +295,7 @@ fn extract_basis_target(
         } else {
             source_basis.insert((node_obj.op.name().to_string(), node_obj.op.num_qubits()));
         }
-        if let Some(control_flow) = node_obj.try_view_control_flow() {
+        if let Some(control_flow) = dag.try_view_control_flow(node) {
             for block in control_flow.blocks() {
                 extract_basis_target(
                     block,
@@ -330,7 +330,7 @@ fn apply_translation(
         let node_carg = dag.get_cargs(node_obj.clbits);
         let qubit_set: AhashIndexSet<Qubit> = AhashIndexSet::from_iter(node_qarg.iter().copied());
         if target_basis.contains(node_obj.op.name()) || node_qarg.len() < min_qubits {
-            if let Some(control_flow) = node_obj.try_view_control_flow() {
+            if let Some(control_flow) = dag.try_view_control_flow(node) {
                 let mut flow_blocks = vec![];
                 for dag_block in control_flow.blocks() {
                     let updated_dag: DAGCircuit;

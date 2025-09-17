@@ -49,7 +49,7 @@ pub fn run_unroll_3q_or_more(
         .op_nodes(false)
         .filter_map(
             |(idx, inst)| -> Option<Result<(NodeIndex, DAGCircuit), Unroll3qError>> {
-                if inst.op.num_qubits() < 3 || inst.try_view_control_flow().is_some() {
+                if inst.op.num_qubits() < 3 || inst.op.try_control_flow().is_some() {
                     return None;
                 }
                 if let Some(target) = target {

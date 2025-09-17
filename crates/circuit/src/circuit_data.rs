@@ -22,7 +22,7 @@ use crate::bit::{
 use crate::bit_locator::BitLocator;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::classical::expr;
-use crate::dag_circuit::{add_global_phase, DAGStretchType, DAGVarType};
+use crate::dag_circuit::{add_global_phase, DAGCircuit, DAGStretchType, DAGVarType};
 use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, Interner};
 use crate::object_registry::ObjectRegistry;
@@ -43,9 +43,10 @@ use pyo3::types::{IntoPyDict, PyDict, PyList, PySet, PyTuple, PyType};
 use pyo3::IntoPyObjectExt;
 use pyo3::{import_exception, intern, PyTraverseError, PyVisit};
 
-use crate::instruction::{Instruction, IntoInstructionView, Parameters};
+use crate::instruction::{ControlFlowView, Instruction, IntoInstructionView, Parameters};
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
+use rustworkx_core::petgraph::graph::NodeIndex;
 use smallvec::SmallVec;
 
 import_exception!(qiskit.circuit.exceptions, CircuitError);
@@ -1826,6 +1827,10 @@ impl CircuitData {
 }
 
 impl CircuitData {
+    pub fn try_view_control_flow(&self, index: usize) -> Option<ControlFlowView<PyObject>> {
+        todo!()
+    }
+
     /// An alternate constructor to build a new `CircuitData` from an iterator
     /// of packed operations. This can be used to build a circuit from a sequence
     /// of `PackedOperation` without needing to involve Python.

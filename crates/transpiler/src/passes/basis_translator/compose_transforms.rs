@@ -198,8 +198,8 @@ fn get_gates_num_params(
     dag: &DAGCircuit,
     example_gates: &mut IndexMap<GateIdentifier, usize, ahash::RandomState>,
 ) {
-    for (_, inst) in dag.op_nodes(true) {
-        if let Some(control_flow) = inst.try_view_control_flow() {
+    for (node, inst) in dag.op_nodes(true) {
+        if let Some(control_flow) = dag.try_view_control_flow(node) {
             example_gates.insert(
                 (
                     inst.view_operation().name().to_string(),

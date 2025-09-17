@@ -297,7 +297,7 @@ pub fn run_unitary_synthesis(
     // Iterate over dag nodes and determine unitary synthesis approach
     for node in dag.topological_op_nodes()? {
         let mut packed_instr = dag[node].unwrap_operation().clone();
-        if let Some(control_flow) = packed_instr.try_view_control_flow() {
+        if let Some(control_flow) = dag.try_view_control_flow(node) {
             let blocks = control_flow.blocks();
             let mut new_blocks = Vec::with_capacity(blocks.len());
             for block in blocks {

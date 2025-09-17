@@ -86,8 +86,8 @@ pub fn analyze_commutations(
                         let op1 = packed_inst0.op.view();
                         let op2 = packed_inst1.op.view();
 
-                        if packed_inst0.try_view_control_flow().is_some()
-                            || packed_inst1.try_view_control_flow().is_some()
+                        if packed_inst0.op.try_control_flow().is_some()
+                            || packed_inst1.op.try_control_flow().is_some()
                         {
                             all_commute = false;
                             break;

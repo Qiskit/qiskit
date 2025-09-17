@@ -16,8 +16,9 @@ use pyo3::prelude::*;
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction};
 use qiskit_circuit::instruction::IntoInstructionView;
 use qiskit_circuit::operations::{Operation, Param};
-use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::Qubit;
+use qiskit_circuit::{circuit, PhysicalQubit};
+use rustworkx_core::petgraph::prelude::NodeIndex;
 
 #[pyfunction]
 #[pyo3(name = "any_gate_missing_from_target")]
@@ -28,11 +29,17 @@ pub fn gates_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<
     }
 
     fn visit_gate(
+        circuit: &DAGCircuit,
         target: &Target,
-        gate: &DAGInstruction,
+        gate_node: NodeIndex,
         qargs: &[Qubit],
         wire_map: &HashMap<Qubit, PhysicalQubit>,
     ) -> PyResult<bool> {
+        let gate = circuit
+            .dag()
+            .node_weight(gate_node)
+            .unwrap()
+            .unwrap_operation();
         let qargs_mapped: Qargs = qargs.iter().map(|q| wire_map[q]).collect();
         if !target.instruction_supported(gate.op.name(), &qargs_mapped) {
             return Ok(true);
@@ -55,7 +62,7 @@ pub fn gates_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<
             }
         }
 
-        if let Some(control_flow) = gate.try_view_control_flow() {
+        if let Some(control_flow) = circuit.try_view_control_flow(gate_node) {
             for block in control_flow.blocks() {
                 let block_qubits = (0..block.num_qubits()).map(Qubit::new);
                 let inner_wire_map = qargs
@@ -76,12 +83,12 @@ pub fn gates_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<
         circuit: &DAGCircuit,
         wire_map: &HashMap<Qubit, PhysicalQubit>,
     ) -> PyResult<bool> {
-        for (_, gate) in circuit.op_nodes(true) {
+        for (gate_node, gate) in circuit.op_nodes(true) {
             if is_universal(gate) {
                 continue;
             }
             let qargs = circuit.qargs_interner().get(gate.qubits);
-            if visit_gate(target, gate, qargs, wire_map)? {
+            if visit_gate(circuit, target, gate_node, qargs, wire_map)? {
                 return Ok(true);
             }
         }
@@ -94,12 +101,12 @@ pub fn gates_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<
     );
 
     // Process the DAG.
-    for (_, gate) in dag.op_nodes(true) {
+    for (gate_node, gate) in dag.op_nodes(true) {
         if is_universal(gate) {
             continue;
         }
         let qargs = dag.qargs_interner().get(gate.qubits);
-        if visit_gate(target, gate, qargs, &wire_map)? {
+        if visit_gate(dag, target, gate_node, qargs, &wire_map)? {
             return Ok(true);
         }
     }
