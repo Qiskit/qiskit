@@ -12,6 +12,7 @@
 
 mod lookup;
 
+use crate::rayon_ext::ParallelSliceMutExt;
 use hashbrown::HashSet;
 use indexmap::IndexSet;
 use itertools::Itertools;
@@ -31,7 +32,6 @@ use pyo3::{
     IntoPyObjectExt, PyErr,
 };
 use rayon::prelude::*;
-use crate::rayon_ext::ParallelSliceMutExt;
 use std::{
     borrow::Cow,
     cmp::Ordering,
@@ -430,9 +430,9 @@ impl MatrixComputationData {
                     BitTerm::Y => {
                         x_bits |= 1u32 << qubit;
                         z_bits |= 1u32 << qubit;
-                    },
+                    }
                     BitTerm::Z => z_bits |= 1u32 << qubit,
-                    _ => panic!("Expected only Pauli terms in precomputation")
+                    _ => panic!("Expected only Pauli terms in precomputation"),
                 }
             }
 
@@ -447,11 +447,11 @@ impl MatrixComputationData {
             num_qubits: obs.num_qubits(),
         }
     }
-    
+
     fn num_ops(&self) -> usize {
         self.coeffs.len()
     }
-    
+
     fn num_qubits(&self) -> u32 {
         self.num_qubits
     }
@@ -468,7 +468,9 @@ trait PauliLike {
 
 // Implement PauliLike for SparseObservable
 impl PauliLike for SparseObservable {
-    fn num_terms(&self) -> usize { self.boundaries.len() - 1 }
+    fn num_terms(&self) -> usize {
+        self.boundaries.len() - 1
+    }
     fn get_term_slice(&self, term_idx: usize) -> &[BitTerm] {
         let start = self.boundaries[term_idx];
         let end = self.boundaries[term_idx + 1];
@@ -479,8 +481,12 @@ impl PauliLike for SparseObservable {
         let end = self.boundaries[term_idx + 1];
         &self.indices[start..end]
     }
-    fn get_coeffs(&self) -> Cow<[Complex64]> { Cow::Borrowed(&self.coeffs) }
-    fn num_qubits(&self) -> u32 { self.num_qubits }
+    fn get_coeffs(&self) -> Cow<[Complex64]> {
+        Cow::Borrowed(&self.coeffs)
+    }
+    fn num_qubits(&self) -> u32 {
+        self.num_qubits
+    }
 }
 
 /// Copy several slices into a single flat vec, in parallel
@@ -521,23 +527,27 @@ macro_rules! impl_sparse_observable_to_matrix {
             let mut indices = Vec::<$int_ty>::with_capacity(side * (num_ops + 1) / 2);
             let mut indptr: Vec<$int_ty> = vec![0; side + 1];
             let mut nnz = 0;
-            
+
             for i_row in 0..side {
                 order.sort_unstable_by(|&a, &b| {
                     ((i_row as $uint_ty) ^ (data.x_like[a] as $uint_ty))
                         .cmp(&((i_row as $uint_ty) ^ (data.x_like[b] as $uint_ty)))
                 });
-                
+
                 let mut running = Complex64::new(0.0, 0.0);
                 let mut prev_index = i_row ^ (data.x_like[order[0]] as usize);
-                
+
                 for &op_idx in &order {
-                    let coeff = if ((i_row as $uint_ty) & (data.z_like[op_idx] as $uint_ty)).count_ones() % 2 == 0 {
+                    let coeff = if ((i_row as $uint_ty) & (data.z_like[op_idx] as $uint_ty))
+                        .count_ones()
+                        % 2
+                        == 0
+                    {
                         data.coeffs[op_idx]
                     } else {
                         -data.coeffs[op_idx]
                     };
-                    
+
                     let index = i_row ^ (data.x_like[op_idx] as usize);
                     if index == prev_index {
                         running += coeff;
@@ -575,7 +585,7 @@ macro_rules! impl_sparse_observable_to_matrix {
             let chunk_size = side.div_ceil(num_threads);
             let mut values_chunks = Vec::with_capacity(num_threads);
             let mut indices_chunks = Vec::with_capacity(num_threads);
-            
+
             indptr[1..]
                 .par_chunks_mut(chunk_size)
                 .enumerate()
@@ -583,26 +593,31 @@ macro_rules! impl_sparse_observable_to_matrix {
                     let start = chunk_size * i;
                     let end = (chunk_size * (i + 1)).min(side);
                     let mut order = (0..num_ops).collect::<Vec<_>>();
-                    let mut values = Vec::<Complex64>::with_capacity(chunk_size * (num_ops + 1) / 2);
+                    let mut values =
+                        Vec::<Complex64>::with_capacity(chunk_size * (num_ops + 1) / 2);
                     let mut indices = Vec::<$int_ty>::with_capacity(chunk_size * (num_ops + 1) / 2);
                     let mut nnz = 0;
-                    
+
                     for i_row in start..end {
                         order.sort_unstable_by(|&a, &b| {
                             ((i_row as $uint_ty) ^ (data.x_like[a] as $uint_ty))
                                 .cmp(&((i_row as $uint_ty) ^ (data.x_like[b] as $uint_ty)))
                         });
-                        
+
                         let mut running = Complex64::new(0.0, 0.0);
                         let mut prev_index = i_row ^ (data.x_like[order[0]] as usize);
-                        
+
                         for &op_idx in &order {
-                            let coeff = if ((i_row as $uint_ty) & (data.z_like[op_idx] as $uint_ty)).count_ones() % 2 == 0 {
+                            let coeff = if ((i_row as $uint_ty) & (data.z_like[op_idx] as $uint_ty))
+                                .count_ones()
+                                % 2
+                                == 0
+                            {
                                 data.coeffs[op_idx]
                             } else {
                                 -data.coeffs[op_idx]
                             };
-                            
+
                             let index = i_row ^ (data.x_like[op_idx] as usize);
                             if index == prev_index {
                                 running += coeff;
@@ -622,7 +637,7 @@ macro_rules! impl_sparse_observable_to_matrix {
                     (values, indices)
                 })
                 .unzip_into_vecs(&mut values_chunks, &mut indices_chunks);
-                
+
             let mut start_nnz = 0usize;
             let chunk_nnz = values_chunks
                 .iter()
@@ -632,14 +647,14 @@ macro_rules! impl_sparse_observable_to_matrix {
                     prev as $int_ty
                 })
                 .collect::<Vec<_>>();
-                
+
             indptr[1..]
                 .par_chunks_mut(chunk_size)
                 .zip(chunk_nnz)
                 .for_each(|(indptr_chunk, start_nnz)| {
                     indptr_chunk.iter_mut().for_each(|nnz| *nnz += start_nnz);
                 });
-                
+
             let values = copy_flat_parallel(&values_chunks);
             let indices = copy_flat_parallel(&indices_chunks);
             (values, indices, indptr)
@@ -653,12 +668,12 @@ impl_sparse_observable_to_matrix!(
     i32,
     u32
 );
-impl_sparse_observable_to_matrix!(
-    sparse_observable_to_matrix_serial_64,
-    sparse_observable_to_matrix_parallel_64,
-    i64,
-    u64
-);
+// impl_sparse_observable_to_matrix!(
+//     sparse_observable_to_matrix_serial_64,
+//     sparse_observable_to_matrix_parallel_64,
+//     i64,
+//     u64
+// );
 
 impl SparseObservable {
     /// Create a new observable from the raw components that make it up.
@@ -1156,7 +1171,7 @@ impl SparseObservable {
     pub fn to_matrix_sparse_32(&self, force_serial: bool) -> (Vec<Complex64>, Vec<i32>, Vec<i32>) {
         // Single precomputation step handles both expansion and optimization
         let computation_data = MatrixComputationData::from_sparse_observable(self);
-        
+
         if qiskit_circuit::getenv_use_multiple_threads() && !force_serial {
             sparse_observable_to_matrix_parallel_32(&computation_data)
         } else {
@@ -1164,25 +1179,25 @@ impl SparseObservable {
         }
     }
 
-
     /// Convert to dense matrix format, handling the extended alphabet.
     pub fn to_matrix_dense(&self, force_serial: bool) -> Vec<Complex64> {
         let computation_data = MatrixComputationData::from_sparse_observable(self);
         let side = 1usize << computation_data.num_qubits();
         let mut out = vec![Complex64::new(0.0, 0.0); side * side];
-        
+
         let write_row = |(i_row, row): (usize, &mut [Complex64])| {
             row.fill(Complex64::new(0.0, 0.0));
             for op_idx in 0..computation_data.num_ops() {
-                let coeff = if (i_row as u32 & computation_data.z_like[op_idx]).count_ones() % 2 == 0 {
-                    computation_data.coeffs[op_idx]
-                } else {
-                    -computation_data.coeffs[op_idx]
-                };
+                let coeff =
+                    if (i_row as u32 & computation_data.z_like[op_idx]).count_ones() % 2 == 0 {
+                        computation_data.coeffs[op_idx]
+                    } else {
+                        -computation_data.coeffs[op_idx]
+                    };
                 row[i_row ^ (computation_data.x_like[op_idx] as usize)] += coeff;
             }
         };
-        
+
         let parallel = !force_serial && qiskit_circuit::getenv_use_multiple_threads();
         if parallel {
             out.par_chunks_mut(side).enumerate().for_each(write_row);
@@ -3289,14 +3304,14 @@ impl PySparseObservable {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         let (values, indices, indptr) = inner.to_matrix_sparse_32(force_serial);
 
-        Ok(PyTuple::new(
+        PyTuple::new(
             py,
             [
                 PyArray1::from_vec(py, values).into_any(),
                 PyArray1::from_vec(py, indices).into_any(),
                 PyArray1::from_vec(py, indptr).into_any(),
             ],
-        )?)
+        )
     }
 
     /// Convert to dense matrix.

@@ -24,10 +24,7 @@ import numpy as np
 import rustworkx as rx
 
 from qiskit._accelerate.sparse_pauli_op import (
-    ZXPaulis,
     decompose_dense,
-    to_matrix_dense,
-    to_matrix_sparse,
     unordered_unique,
 )
 from qiskit._accelerate.sparse_observable import SparseObservable
@@ -1000,22 +997,17 @@ class SparsePauliOp(LinearOp):
         if self.coeffs.dtype == object:
             # Fallback to slow Python-space method.
             return sum(self.matrix_iter(sparse=sparse))
-        pauli_list = self.paulis
-        zx = ZXPaulis(
-            pauli_list.x.astype(np.bool_),
-            pauli_list.z.astype(np.bool_),
-            pauli_list.phase.astype(np.uint8),
-            self.coeffs.astype(np.complex128),
-        )
+
+        obs = SparseObservable(self)  # <-- always define it here
 
         if sparse:
             from scipy.sparse import csr_matrix
 
-            obs = SparseObservable(self)
-            data, indices, indptr = to_matrix_sparse(zx, force_serial=force_serial)
+            data, indices, indptr = obs.to_matrix_sparse(force_serial=force_serial)
             side = 1 << self.num_qubits
             return csr_matrix((data, indices, indptr), shape=(side, side))
-        return to_matrix_dense(zx, force_serial=force_serial)
+        else:
+            return obs.to_matrix_dense(force_serial=force_serial)
 
     def to_operator(self) -> Operator:
         """Convert to a matrix Operator object"""
