@@ -2487,482 +2487,481 @@ impl DAGCircuit {
                             }
                             true
                         };
-                        match [inst1.view(), inst2.view()] {
-                            [InstructionView::StandardGate(StandardGateView(gate1, params1)), InstructionView::StandardGate(StandardGateView(gate2, params2))] => {
-                                Ok(gate1 == gate2
-                                    && check_args()
-                                    && params1
+                        if inst1.op.try_control_flow().is_some()
+                            && inst2.op.try_control_flow().is_some()
+                        {
+                            let cf1 = slf.view_control_flow(inst1);
+                            let cf2 = other.view_control_flow(inst2);
+                            if inst1.op.num_qubits() != inst2.op.num_qubits() {
+                                return Ok(false);
+                            }
+                            // These map the bit indices used in blocks to their indices in the
+                            // root DAG.
+                            let slf_block_qubit_map = (0..inst1.op.num_qubits())
+                                .map(Qubit)
+                                .zip(
+                                    slf.qargs_interner
+                                        .get(inst1.qubits)
                                         .iter()
-                                        .zip(params2)
-                                        .all(|(a, b)| a.is_close(b, 1e-10).unwrap()))
+                                        .map(|q| slf_qubit_map[q]),
+                                )
+                                .collect();
+                            let slf_block_clbit_map = (0..inst1.op.num_clbits())
+                                .map(Clbit)
+                                .zip(
+                                    slf.cargs_interner
+                                        .get(inst1.clbits)
+                                        .iter()
+                                        .map(|c| slf_clbit_map[c]),
+                                )
+                                .collect();
+                            let other_block_qubit_map = (0..inst2.op.num_qubits())
+                                .map(Qubit)
+                                .zip(
+                                    other
+                                        .qargs_interner
+                                        .get(inst2.qubits)
+                                        .iter()
+                                        .map(|q| other_qubit_map[q]),
+                                )
+                                .collect();
+                            let other_block_clbit_map = (0..inst2.op.num_clbits())
+                                .map(Clbit)
+                                .zip(
+                                    other
+                                        .cargs_interner
+                                        .get(inst2.clbits)
+                                        .iter()
+                                        .map(|c| other_clbit_map[c]),
+                                )
+                                .collect();
+
+                            let block_eq = |slf_block: &DAGCircuit,
+                                            other_block: &DAGCircuit|
+                             -> PyResult<bool> {
+                                eq_inner(
+                                    py,
+                                    slf_block,
+                                    &slf_block_qubit_map,
+                                    &slf_block_clbit_map,
+                                    other_block,
+                                    &other_block_qubit_map,
+                                    &other_block_clbit_map,
+                                )
+                            };
+
+                            #[derive(Debug, PartialEq)]
+                            enum VarKey {
+                                Bit(Clbit),
+                                Register(Vec<Clbit>),
+                                Var(expr::Var),
                             }
-                            [InstructionView::StandardInstruction(inst1), InstructionView::StandardInstruction(inst2)] => {
-                                Ok(match [inst1, inst2] {
-                                    [StandardInstructionView::Barrier(n1), StandardInstructionView::Barrier(n2)] => {
-                                        n1 == n2
+
+                            let slf_var_key = |v: &expr::Var| -> VarKey {
+                                match v {
+                                    expr::Var::Standalone { .. } => VarKey::Var(v.clone()),
+                                    expr::Var::Bit { bit } => {
+                                        VarKey::Bit(slf_clbit_map[&slf.clbits.find(bit).unwrap()])
                                     }
-                                    [StandardInstructionView::Delay {
-                                        duration: duration1,
-                                        unit: unit1,
-                                    }, StandardInstructionView::Delay {
-                                        duration: duration2,
-                                        unit: unit2,
-                                    }] => unit1 == unit2 && duration1.is_close(duration2, 1e-10)?,
-                                    [StandardInstructionView::Measure, StandardInstructionView::Measure] => {
-                                        true
-                                    }
-                                    [StandardInstructionView::Reset, StandardInstructionView::Reset] => {
-                                        true
-                                    }
-                                    _ => false,
-                                } && check_args())
-                            }
-                            [InstructionView::ControlFlow(cf1), InstructionView::ControlFlow(cf2)] =>
-                            {
-                                if inst1.op.num_qubits() != inst2.op.num_qubits() {
-                                    return Ok(false);
+                                    expr::Var::Register { register, .. } => VarKey::Register(
+                                        register
+                                            .iter()
+                                            .map(|bit| {
+                                                slf_clbit_map[&slf.clbits.find(&bit).unwrap()]
+                                            })
+                                            .collect(),
+                                    ),
                                 }
-                                // These map the bit indices used in blocks to their indices in the
-                                // root DAG.
-                                let slf_block_qubit_map = (0..inst1.op.num_qubits())
-                                    .map(Qubit)
-                                    .zip(
-                                        slf.qargs_interner
-                                            .get(inst1.qubits)
+                            };
+                            let other_var_key = |v: &expr::Var| -> VarKey {
+                                match v {
+                                    expr::Var::Standalone { .. } => VarKey::Var(v.clone()),
+                                    expr::Var::Bit { bit } => VarKey::Bit(
+                                        other_clbit_map[&other.clbits.find(bit).unwrap()],
+                                    ),
+                                    expr::Var::Register { register, .. } => VarKey::Register(
+                                        register
                                             .iter()
-                                            .map(|q| slf_qubit_map[q]),
-                                    )
-                                    .collect();
-                                let slf_block_clbit_map = (0..inst1.op.num_clbits())
-                                    .map(Clbit)
-                                    .zip(
-                                        slf.cargs_interner
-                                            .get(inst1.clbits)
-                                            .iter()
-                                            .map(|c| slf_clbit_map[c]),
-                                    )
-                                    .collect();
-                                let other_block_qubit_map = (0..inst2.op.num_qubits())
-                                    .map(Qubit)
-                                    .zip(
-                                        other
-                                            .qargs_interner
-                                            .get(inst2.qubits)
-                                            .iter()
-                                            .map(|q| other_qubit_map[q]),
-                                    )
-                                    .collect();
-                                let other_block_clbit_map = (0..inst2.op.num_clbits())
-                                    .map(Clbit)
-                                    .zip(
-                                        other
-                                            .cargs_interner
-                                            .get(inst2.clbits)
-                                            .iter()
-                                            .map(|c| other_clbit_map[c]),
-                                    )
-                                    .collect();
-
-                                let block_eq = |slf_block: &DAGCircuit,
-                                                other_block: &DAGCircuit|
-                                 -> PyResult<bool> {
-                                    eq_inner(
-                                        py,
-                                        slf_block,
-                                        &slf_block_qubit_map,
-                                        &slf_block_clbit_map,
-                                        other_block,
-                                        &other_block_qubit_map,
-                                        &other_block_clbit_map,
-                                    )
-                                };
-
-                                #[derive(Debug, PartialEq)]
-                                enum VarKey {
-                                    Bit(Clbit),
-                                    Register(Vec<Clbit>),
-                                    Var(expr::Var),
+                                            .map(|bit| {
+                                                other_clbit_map[&other.clbits.find(&bit).unwrap()]
+                                            })
+                                            .collect(),
+                                    ),
                                 }
+                            };
 
-                                let slf_var_key = |v: &expr::Var| -> VarKey {
-                                    match v {
-                                        expr::Var::Standalone { .. } => VarKey::Var(v.clone()),
-                                        expr::Var::Bit { bit } => VarKey::Bit(
-                                            slf_clbit_map[&slf.clbits.find(bit).unwrap()],
-                                        ),
-                                        expr::Var::Register { register, .. } => VarKey::Register(
-                                            register
-                                                .iter()
-                                                .map(|bit| {
-                                                    slf_clbit_map[&slf.clbits.find(&bit).unwrap()]
-                                                })
-                                                .collect(),
-                                        ),
-                                    }
-                                };
-                                let other_var_key = |v: &expr::Var| -> VarKey {
-                                    match v {
-                                        expr::Var::Standalone { .. } => VarKey::Var(v.clone()),
-                                        expr::Var::Bit { bit } => VarKey::Bit(
-                                            other_clbit_map[&other.clbits.find(bit).unwrap()],
-                                        ),
-                                        expr::Var::Register { register, .. } => VarKey::Register(
-                                            register
-                                                .iter()
-                                                .map(|bit| {
-                                                    other_clbit_map
-                                                        [&other.clbits.find(&bit).unwrap()]
-                                                })
-                                                .collect(),
-                                        ),
-                                    }
-                                };
+                            let condition_eq = |condition_a: &Condition,
+                                                condition_b: &Condition|
+                             -> bool {
+                                match condition_a {
+                                    Condition::Bit(bit_a, value_a) => match condition_b {
+                                        Condition::Bit(bit_b, value_b) => {
+                                            value_a == value_b
+                                                && slf_clbit_map[&slf.clbits.find(bit_a).unwrap()]
+                                                    == other_clbit_map
+                                                        [&other.clbits.find(bit_b).unwrap()]
+                                        }
+                                        _ => false,
+                                    },
+                                    Condition::Register(reg_a, value_a) => match condition_b {
+                                        Condition::Register(reg_b, value_b) => {
+                                            value_a == value_b
+                                                && reg_a
+                                                    .iter()
+                                                    .map(|a| {
+                                                        slf_clbit_map[&slf.clbits.find(&a).unwrap()]
+                                                    })
+                                                    .eq(reg_b.iter().map(|b| {
+                                                        other_clbit_map
+                                                            [&other.clbits.find(&b).unwrap()]
+                                                    }))
+                                        }
+                                        _ => false,
+                                    },
+                                    Condition::Expr(expr_a) => match condition_b {
+                                        Condition::Expr(expr_b) => expr_a
+                                            .structurally_equivalent_by_key(
+                                                slf_var_key,
+                                                expr_b,
+                                                other_var_key,
+                                            ),
+                                        _ => false,
+                                    },
+                                }
+                            };
 
-                                let condition_eq = |condition_a: &Condition,
-                                                    condition_b: &Condition|
-                                 -> bool {
-                                    match condition_a {
-                                        Condition::Bit(bit_a, value_a) => match condition_b {
-                                            Condition::Bit(bit_b, value_b) => {
-                                                value_a == value_b
-                                                    && slf_clbit_map
-                                                        [&slf.clbits.find(bit_a).unwrap()]
-                                                        == other_clbit_map
-                                                            [&other.clbits.find(bit_b).unwrap()]
-                                            }
-                                            _ => false,
-                                        },
-                                        Condition::Register(reg_a, value_a) => match condition_b {
-                                            Condition::Register(reg_b, value_b) => {
-                                                value_a == value_b
-                                                    && reg_a
-                                                        .iter()
-                                                        .map(|a| {
-                                                            slf_clbit_map
-                                                                [&slf.clbits.find(&a).unwrap()]
-                                                        })
-                                                        .eq(reg_b.iter().map(|b| {
-                                                            other_clbit_map
-                                                                [&other.clbits.find(&b).unwrap()]
-                                                        }))
-                                            }
-                                            _ => false,
-                                        },
-                                        Condition::Expr(expr_a) => match condition_b {
-                                            Condition::Expr(expr_b) => expr_a
+                            match (cf1, cf2) {
+                                (
+                                    ControlFlowView::Box(duration_a, body_a),
+                                    ControlFlowView::Box(duration_b, body_b),
+                                ) => {
+                                    let duration_eq = match duration_a {
+                                        Some(BoxDuration::Expr(duration_a)) => match duration_b {
+                                            Some(BoxDuration::Expr(duration_b)) => duration_a
                                                 .structurally_equivalent_by_key(
-                                                    slf_var_key,
-                                                    expr_b,
-                                                    other_var_key,
+                                                    &slf_var_key,
+                                                    duration_b,
+                                                    &other_var_key,
                                                 ),
                                             _ => false,
                                         },
+                                        Some(BoxDuration::Duration(duration_a)) => match duration_b
+                                        {
+                                            Some(BoxDuration::Duration(duration_b)) => {
+                                                duration_a == duration_b
+                                            }
+                                            _ => false,
+                                        },
+                                        None => duration_b.is_none(),
+                                    };
+                                    Ok(duration_eq && block_eq(body_a, body_b)?)
+                                }
+                                (ControlFlowView::BreakLoop, ControlFlowView::BreakLoop) => {
+                                    Ok(true)
+                                }
+                                (ControlFlowView::ContinueLoop, ControlFlowView::ContinueLoop) => {
+                                    Ok(true)
+                                }
+                                (
+                                    ControlFlowView::ForLoop {
+                                        indexset: indexset_a,
+                                        loop_param: loop_param_a,
+                                        body: body_a,
+                                    },
+                                    ControlFlowView::ForLoop {
+                                        indexset: indexset_b,
+                                        loop_param: loop_param_b,
+                                        body: body_b,
+                                    },
+                                ) => {
+                                    if indexset_a != indexset_b {
+                                        return Ok(false);
                                     }
-                                };
-
-                                match (cf1, cf2) {
-                                    (
-                                        ControlFlowView::Box(duration_a, body_a),
-                                        ControlFlowView::Box(duration_b, body_b),
-                                    ) => {
-                                        let duration_eq = match duration_a {
-                                            Some(BoxDuration::Expr(duration_a)) => match duration_b
+                                    match (loop_param_a, loop_param_b) {
+                                        (Some(loop_param_a), Some(loop_param_b)) => {
+                                            // Until we have a way to assign parameters in a DAG, we need
+                                            // to convert a for loop's body DAG back to a circuit.
+                                            let sentinel = PARAMETER
+                                                .get_bound(py)
+                                                .call1((Uuid::new_v4().to_string(),))?;
+                                            let mut body_a_circuit =
+                                                converters::dag_to_circuit(body_a, false)?;
+                                            if body_a_circuit
+                                                .get_parameters(py)?
+                                                .contains(loop_param_a)?
                                             {
-                                                Some(BoxDuration::Expr(duration_b)) => duration_a
+                                                body_a_circuit.assign_parameters_from_mapping([
+                                                    (
+                                                        ParameterUuid::from_parameter(
+                                                            loop_param_a.bind(py),
+                                                        )?,
+                                                        Param::ParameterExpression(Arc::new(
+                                                            ParameterExpression::from_symbol(
+                                                                sentinel.clone().extract()?,
+                                                            ),
+                                                        )),
+                                                    ),
+                                                ])?;
+                                            }
+                                            let body_a = DAGCircuit::from_circuit(
+                                                QuantumCircuitData {
+                                                    data: body_a_circuit,
+                                                    name: body_a.name.clone(),
+                                                    metadata: body_a
+                                                        .metadata
+                                                        .as_ref()
+                                                        .map(|m| m.bind(py).clone()),
+                                                },
+                                                false,
+                                                None,
+                                                None,
+                                            )?;
+
+                                            let mut body_b_circuit =
+                                                converters::dag_to_circuit(body_b, false)?;
+                                            if body_b_circuit
+                                                .get_parameters(py)?
+                                                .contains(loop_param_b)?
+                                            {
+                                                body_b_circuit.assign_parameters_from_mapping([
+                                                    (
+                                                        ParameterUuid::from_parameter(
+                                                            loop_param_b.bind(py),
+                                                        )?,
+                                                        Param::ParameterExpression(Arc::new(
+                                                            ParameterExpression::from_symbol(
+                                                                sentinel.clone().extract()?,
+                                                            ),
+                                                        )),
+                                                    ),
+                                                ])?;
+                                            }
+                                            let body_b = DAGCircuit::from_circuit(
+                                                QuantumCircuitData {
+                                                    data: body_b_circuit,
+                                                    name: body_b.name.clone(),
+                                                    metadata: body_b
+                                                        .metadata
+                                                        .as_ref()
+                                                        .map(|m| m.bind(py).clone()),
+                                                },
+                                                false,
+                                                None,
+                                                None,
+                                            )?;
+                                            block_eq(&body_a, &body_b)
+                                        }
+                                        (None, None) => block_eq(body_a, body_b),
+                                        _ => Ok(false),
+                                    }
+                                }
+                                (
+                                    ControlFlowView::IfElse {
+                                        condition: condition_a,
+                                        true_body: true_body_a,
+                                        false_body: false_body_a,
+                                    },
+                                    ControlFlowView::IfElse {
+                                        condition: condition_b,
+                                        true_body: true_body_b,
+                                        false_body: false_body_b,
+                                    },
+                                ) => {
+                                    let false_body_eq = || -> PyResult<bool> {
+                                        match (false_body_a, false_body_b) {
+                                            (Some(false_body_a), Some(false_body_b)) => {
+                                                block_eq(false_body_a, false_body_b)
+                                            }
+                                            (None, None) => Ok(true),
+                                            _ => Ok(false),
+                                        }
+                                    };
+                                    Ok(condition_eq(condition_a, condition_b)
+                                        && block_eq(true_body_a, true_body_b)?
+                                        && false_body_eq()?)
+                                }
+                                (
+                                    ControlFlowView::Switch {
+                                        target: target_a,
+                                        cases_specifier: cases_a,
+                                    },
+                                    ControlFlowView::Switch {
+                                        target: target_b,
+                                        cases_specifier: cases_b,
+                                    },
+                                ) => {
+                                    let target_eq = || -> bool {
+                                        match target_a {
+                                            SwitchTarget::Bit(bit_a) => match target_b {
+                                                SwitchTarget::Bit(bit_b) => {
+                                                    slf_clbit_map[&slf.clbits.find(bit_a).unwrap()]
+                                                        == other_clbit_map
+                                                            [&other.clbits.find(bit_b).unwrap()]
+                                                }
+                                                _ => false,
+                                            },
+                                            SwitchTarget::Register(reg_a) => match target_b {
+                                                SwitchTarget::Register(reg_b) => reg_a
+                                                    .iter()
+                                                    .map(|a| {
+                                                        slf_clbit_map[&slf.clbits.find(&a).unwrap()]
+                                                    })
+                                                    .eq(reg_b.iter().map(|b| {
+                                                        other_clbit_map
+                                                            [&other.clbits.find(&b).unwrap()]
+                                                    })),
+                                                _ => false,
+                                            },
+                                            SwitchTarget::Expr(expr_a) => match target_b {
+                                                SwitchTarget::Expr(expr_b) => expr_a
                                                     .structurally_equivalent_by_key(
-                                                        &slf_var_key,
-                                                        duration_b,
-                                                        &other_var_key,
+                                                        slf_var_key,
+                                                        expr_b,
+                                                        other_var_key,
                                                     ),
                                                 _ => false,
                                             },
-                                            Some(BoxDuration::Duration(duration_a)) => {
-                                                match duration_b {
-                                                    Some(BoxDuration::Duration(duration_b)) => {
-                                                        duration_a == duration_b
-                                                    }
-                                                    _ => false,
-                                                }
-                                            }
-                                            None => duration_b.is_none(),
-                                        };
-                                        Ok(duration_eq && block_eq(body_a, body_b)?)
-                                    }
-                                    (ControlFlowView::BreakLoop, ControlFlowView::BreakLoop) => {
-                                        Ok(true)
-                                    }
-                                    (
-                                        ControlFlowView::ContinueLoop,
-                                        ControlFlowView::ContinueLoop,
-                                    ) => Ok(true),
-                                    (
-                                        ControlFlowView::ForLoop {
-                                            indexset: indexset_a,
-                                            loop_param: loop_param_a,
-                                            body: body_a,
-                                        },
-                                        ControlFlowView::ForLoop {
-                                            indexset: indexset_b,
-                                            loop_param: loop_param_b,
-                                            body: body_b,
-                                        },
-                                    ) => {
-                                        if indexset_a != indexset_b {
-                                            return Ok(false);
                                         }
-                                        match (loop_param_a, loop_param_b) {
-                                            (Some(loop_param_a), Some(loop_param_b)) => {
-                                                // Until we have a way to assign parameters in a DAG, we need
-                                                // to convert a for loop's body DAG back to a circuit.
-                                                let sentinel = PARAMETER
-                                                    .get_bound(py)
-                                                    .call1((Uuid::new_v4().to_string(),))?;
-                                                let mut body_a_circuit =
-                                                    converters::dag_to_circuit(body_a, false)?;
-                                                if body_a_circuit
-                                                    .get_parameters(py)?
-                                                    .contains(loop_param_a)?
-                                                {
-                                                    body_a_circuit.assign_parameters_from_mapping(
-                                                        [(
-                                                            ParameterUuid::from_parameter(
-                                                                loop_param_a.bind(py),
-                                                            )?,
-                                                            Param::ParameterExpression(Arc::new(
-                                                                ParameterExpression::from_symbol(
-                                                                    sentinel.clone().extract()?,
-                                                                ),
-                                                            )),
-                                                        )],
-                                                    )?;
-                                                }
-                                                let body_a = DAGCircuit::from_circuit(
-                                                    QuantumCircuitData {
-                                                        data: body_a_circuit,
-                                                        name: body_a.name.clone(),
-                                                        metadata: body_a
-                                                            .metadata
-                                                            .as_ref()
-                                                            .map(|m| m.bind(py).clone()),
-                                                    },
-                                                    false,
-                                                    None,
-                                                    None,
-                                                )?;
-
-                                                let mut body_b_circuit =
-                                                    converters::dag_to_circuit(body_b, false)?;
-                                                if body_b_circuit
-                                                    .get_parameters(py)?
-                                                    .contains(loop_param_b)?
-                                                {
-                                                    body_b_circuit.assign_parameters_from_mapping(
-                                                        [(
-                                                            ParameterUuid::from_parameter(
-                                                                loop_param_b.bind(py),
-                                                            )?,
-                                                            Param::ParameterExpression(Arc::new(
-                                                                ParameterExpression::from_symbol(
-                                                                    sentinel.clone().extract()?,
-                                                                ),
-                                                            )),
-                                                        )],
-                                                    )?;
-                                                }
-                                                let body_b = DAGCircuit::from_circuit(
-                                                    QuantumCircuitData {
-                                                        data: body_b_circuit,
-                                                        name: body_b.name.clone(),
-                                                        metadata: body_b
-                                                            .metadata
-                                                            .as_ref()
-                                                            .map(|m| m.bind(py).clone()),
-                                                    },
-                                                    false,
-                                                    None,
-                                                    None,
-                                                )?;
-                                                block_eq(&body_a, &body_b)
-                                            }
-                                            (None, None) => block_eq(body_a, body_b),
-                                            _ => Ok(false),
-                                        }
+                                    };
+                                    if cases_a.len() != cases_b.len() || !target_eq() {
+                                        return Ok(false);
                                     }
-                                    (
-                                        ControlFlowView::IfElse {
-                                            condition: condition_a,
-                                            true_body: true_body_a,
-                                            false_body: false_body_a,
-                                        },
-                                        ControlFlowView::IfElse {
-                                            condition: condition_b,
-                                            true_body: true_body_b,
-                                            false_body: false_body_b,
-                                        },
-                                    ) => {
-                                        let false_body_eq = || -> PyResult<bool> {
-                                            match (false_body_a, false_body_b) {
-                                                (Some(false_body_a), Some(false_body_b)) => {
-                                                    block_eq(false_body_a, false_body_b)
-                                                }
-                                                (None, None) => Ok(true),
-                                                _ => Ok(false),
-                                            }
-                                        };
-                                        Ok(condition_eq(condition_a, condition_b)
-                                            && block_eq(true_body_a, true_body_b)?
-                                            && false_body_eq()?)
-                                    }
-                                    (
-                                        ControlFlowView::Switch {
-                                            target: target_a,
-                                            cases_specifier: cases_a,
-                                        },
-                                        ControlFlowView::Switch {
-                                            target: target_b,
-                                            cases_specifier: cases_b,
-                                        },
-                                    ) => {
-                                        let target_eq = || -> bool {
-                                            match target_a {
-                                                SwitchTarget::Bit(bit_a) => match target_b {
-                                                    SwitchTarget::Bit(bit_b) => {
-                                                        slf_clbit_map
-                                                            [&slf.clbits.find(bit_a).unwrap()]
-                                                            == other_clbit_map
-                                                                [&other.clbits.find(bit_b).unwrap()]
-                                                    }
-                                                    _ => false,
-                                                },
-                                                SwitchTarget::Register(reg_a) => match target_b {
-                                                    SwitchTarget::Register(reg_b) => reg_a
-                                                        .iter()
-                                                        .map(|a| {
-                                                            slf_clbit_map
-                                                                [&slf.clbits.find(&a).unwrap()]
-                                                        })
-                                                        .eq(reg_b.iter().map(|b| {
-                                                            other_clbit_map
-                                                                [&other.clbits.find(&b).unwrap()]
-                                                        })),
-                                                    _ => false,
-                                                },
-                                                SwitchTarget::Expr(expr_a) => match target_b {
-                                                    SwitchTarget::Expr(expr_b) => expr_a
-                                                        .structurally_equivalent_by_key(
-                                                            slf_var_key,
-                                                            expr_b,
-                                                            other_var_key,
-                                                        ),
-                                                    _ => false,
-                                                },
-                                            }
-                                        };
-                                        if cases_a.len() != cases_b.len() || !target_eq() {
-                                            return Ok(false);
-                                        }
-                                        for ((a_label_spec, a_block), (b_label_spec, b_block)) in
-                                            cases_a.iter().zip(cases_b.iter())
+                                    for ((a_label_spec, a_block), (b_label_spec, b_block)) in
+                                        cases_a.iter().zip(cases_b.iter())
+                                    {
+                                        if a_label_spec.iter().collect::<HashSet<_>>()
+                                            != b_label_spec.iter().collect::<HashSet<_>>()
                                         {
-                                            if a_label_spec.iter().collect::<HashSet<_>>()
-                                                != b_label_spec.iter().collect::<HashSet<_>>()
-                                            {
-                                                return Ok(false);
-                                            }
-                                            if !block_eq(a_block, b_block)? {
-                                                return Ok(false);
-                                            }
+                                            return Ok(false);
                                         }
-                                        Ok(true)
+                                        if !block_eq(a_block, b_block)? {
+                                            return Ok(false);
+                                        }
                                     }
-                                    (
-                                        ControlFlowView::While {
-                                            condition: condition_a,
-                                            body: body_a,
-                                        },
-                                        ControlFlowView::While {
-                                            condition: condition_b,
-                                            body: body_b,
-                                        },
-                                    ) => Ok(condition_eq(condition_a, condition_b)
-                                        && block_eq(body_a, body_b)?),
-                                    _ => Ok(false),
+                                    Ok(true)
                                 }
+                                (
+                                    ControlFlowView::While {
+                                        condition: condition_a,
+                                        body: body_a,
+                                    },
+                                    ControlFlowView::While {
+                                        condition: condition_b,
+                                        body: body_b,
+                                    },
+                                ) => Ok(condition_eq(condition_a, condition_b)
+                                    && block_eq(body_a, body_b)?),
+                                _ => Ok(false),
                             }
-                            [InstructionView::Instruction(_op1), InstructionView::Instruction(_op2)] => {
-                                Ok(inst1.py_op_eq(py, inst2)? && check_args())
-                            }
-                            [InstructionView::Gate(_op1), InstructionView::Gate(_op2)] => {
-                                Ok(inst1.py_op_eq(py, inst2)? && check_args())
-                            }
-                            [InstructionView::Operation(_op1), InstructionView::Operation(_op2)] => {
-                                Ok(inst1.py_op_eq(py, inst2)? && check_args())
-                            }
-                            // Handle the edge case where we end up with a Python object and a standard
-                            // gate/instruction.
-                            // This typically only happens if we have a ControlledGate in Python
-                            // and we have mutable state set.
-                            [InstructionView::StandardGate(_), InstructionView::Gate(_)]
-                            | [InstructionView::Gate(_), InstructionView::StandardGate(_)]
-                            | [InstructionView::StandardInstruction(_), InstructionView::Instruction(_)]
-                            | [InstructionView::Instruction(_), InstructionView::StandardInstruction(_)] => {
-                                Ok(inst1.py_op_eq(py, inst2)? && check_args())
-                            }
-                            [InstructionView::Unitary(op_a), InstructionView::Unitary(op_b)] => {
-                                match [&op_a.array, &op_b.array] {
-                                    [ArrayType::NDArray(a), ArrayType::NDArray(b)] => {
-                                        Ok(relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8))
-                                    }
-                                    [ArrayType::OneQ(a), ArrayType::NDArray(b)]
-                                    | [ArrayType::NDArray(b), ArrayType::OneQ(a)] => {
-                                        if b.shape()[0] == 2 {
-                                            for i in 0..2 {
-                                                for j in 0..2 {
-                                                    if !relative_eq!(
-                                                        b[[i, j]],
-                                                        a[(i, j)],
-                                                        max_relative = 1e-5,
-                                                        epsilon = 1e-8
-                                                    ) {
-                                                        return Ok(false);
+                        } else {
+                            match [inst1.view(), inst2.view()] {
+                                [InstructionView::StandardGate(StandardGateView(gate1, params1)), InstructionView::StandardGate(StandardGateView(gate2, params2))] => {
+                                    Ok(gate1 == gate2
+                                        && check_args()
+                                        && params1
+                                            .iter()
+                                            .zip(params2)
+                                            .all(|(a, b)| a.is_close(b, 1e-10).unwrap()))
+                                }
+                                [InstructionView::StandardInstruction(inst1), InstructionView::StandardInstruction(inst2)] => {
+                                    Ok(match [inst1, inst2] {
+                                        [StandardInstructionView::Barrier(n1), StandardInstructionView::Barrier(n2)] => {
+                                            n1 == n2
+                                        }
+                                        [StandardInstructionView::Delay {
+                                            duration: duration1,
+                                            unit: unit1,
+                                        }, StandardInstructionView::Delay {
+                                            duration: duration2,
+                                            unit: unit2,
+                                        }] => {
+                                            unit1 == unit2
+                                                && duration1.is_close(duration2, 1e-10)?
+                                        }
+                                        [StandardInstructionView::Measure, StandardInstructionView::Measure] => {
+                                            true
+                                        }
+                                        [StandardInstructionView::Reset, StandardInstructionView::Reset] => {
+                                            true
+                                        }
+                                        _ => false,
+                                    } && check_args())
+                                }
+                                [InstructionView::Instruction(_op1), InstructionView::Instruction(_op2)] => {
+                                    Ok(inst1.py_op_eq(py, inst2)? && check_args())
+                                }
+                                [InstructionView::Gate(_op1), InstructionView::Gate(_op2)] => {
+                                    Ok(inst1.py_op_eq(py, inst2)? && check_args())
+                                }
+                                [InstructionView::Operation(_op1), InstructionView::Operation(_op2)] => {
+                                    Ok(inst1.py_op_eq(py, inst2)? && check_args())
+                                }
+                                // Handle the edge case where we end up with a Python object and a standard
+                                // gate/instruction.
+                                // This typically only happens if we have a ControlledGate in Python
+                                // and we have mutable state set.
+                                [InstructionView::StandardGate(_), InstructionView::Gate(_)]
+                                | [InstructionView::Gate(_), InstructionView::StandardGate(_)]
+                                | [InstructionView::StandardInstruction(_), InstructionView::Instruction(_)]
+                                | [InstructionView::Instruction(_), InstructionView::StandardInstruction(_)] => {
+                                    Ok(inst1.py_op_eq(py, inst2)? && check_args())
+                                }
+                                [InstructionView::Unitary(op_a), InstructionView::Unitary(op_b)] => {
+                                    match [&op_a.array, &op_b.array] {
+                                        [ArrayType::NDArray(a), ArrayType::NDArray(b)] => Ok(
+                                            relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8),
+                                        ),
+                                        [ArrayType::OneQ(a), ArrayType::NDArray(b)]
+                                        | [ArrayType::NDArray(b), ArrayType::OneQ(a)] => {
+                                            if b.shape()[0] == 2 {
+                                                for i in 0..2 {
+                                                    for j in 0..2 {
+                                                        if !relative_eq!(
+                                                            b[[i, j]],
+                                                            a[(i, j)],
+                                                            max_relative = 1e-5,
+                                                            epsilon = 1e-8
+                                                        ) {
+                                                            return Ok(false);
+                                                        }
                                                     }
                                                 }
+                                                Ok(true)
+                                            } else {
+                                                Ok(false)
                                             }
-                                            Ok(true)
-                                        } else {
-                                            Ok(false)
                                         }
-                                    }
-                                    [ArrayType::TwoQ(a), ArrayType::NDArray(b)]
-                                    | [ArrayType::NDArray(b), ArrayType::TwoQ(a)] => {
-                                        if b.shape()[0] == 4 {
-                                            for i in 0..4 {
-                                                for j in 0..4 {
-                                                    if !relative_eq!(
-                                                        b[[i, j]],
-                                                        a[(i, j)],
-                                                        max_relative = 1e-5,
-                                                        epsilon = 1e-8
-                                                    ) {
-                                                        return Ok(false);
+                                        [ArrayType::TwoQ(a), ArrayType::NDArray(b)]
+                                        | [ArrayType::NDArray(b), ArrayType::TwoQ(a)] => {
+                                            if b.shape()[0] == 4 {
+                                                for i in 0..4 {
+                                                    for j in 0..4 {
+                                                        if !relative_eq!(
+                                                            b[[i, j]],
+                                                            a[(i, j)],
+                                                            max_relative = 1e-5,
+                                                            epsilon = 1e-8
+                                                        ) {
+                                                            return Ok(false);
+                                                        }
                                                     }
                                                 }
+                                                Ok(true)
+                                            } else {
+                                                Ok(false)
                                             }
-                                            Ok(true)
-                                        } else {
-                                            Ok(false)
                                         }
+                                        [ArrayType::OneQ(a), ArrayType::OneQ(b)] => Ok(
+                                            relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8),
+                                        ),
+                                        [ArrayType::TwoQ(a), ArrayType::TwoQ(b)] => Ok(
+                                            relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8),
+                                        ),
+                                        _ => Ok(false),
                                     }
-                                    [ArrayType::OneQ(a), ArrayType::OneQ(b)] => {
-                                        Ok(relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8))
-                                    }
-                                    [ArrayType::TwoQ(a), ArrayType::TwoQ(b)] => {
-                                        Ok(relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8))
-                                    }
-                                    _ => Ok(false),
                                 }
+                                _ => Ok(false),
                             }
-                            _ => Ok(false),
                         }
                     }
                     [NodeType::QubitIn(bit1), NodeType::QubitIn(bit2)] => {
@@ -5297,6 +5296,10 @@ impl DAGCircuit {
         todo!()
     }
 
+    fn view_control_flow(&self, instr: &DAGInstruction) -> ControlFlowView<DAGCircuit> {
+        todo!()
+    }
+
     pub fn new() -> Self {
         DAGCircuit {
             name: None,
@@ -6521,7 +6524,8 @@ impl DAGCircuit {
         let mut clbits = Vec::new();
         let mut vars = Vec::new();
 
-        if let InstructionView::ControlFlow(instr) = instr.view() {
+        if instr.op.try_control_flow().is_some() {
+            let instr = self.view_control_flow(instr);
             match instr {
                 ControlFlowView::IfElse {
                     condition: Condition::Expr(condition),

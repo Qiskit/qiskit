@@ -53,7 +53,8 @@ pub trait IntoInstructionView<'a> {
     {
         match self.view_operation() {
             OperationRef::ControlFlow(_) => {
-                InstructionView::ControlFlow(self.try_view_control_flow().unwrap())
+                todo!("should be removed");
+                // InstructionView::ControlFlow(self.try_view_control_flow().unwrap())
             }
             OperationRef::StandardGate(_) => {
                 InstructionView::StandardGate(self.try_view_standard_gate().unwrap())
