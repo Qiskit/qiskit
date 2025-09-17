@@ -74,6 +74,7 @@ class TestSampledExpval(QiskitTestCase):
             }
         )
         oper = "IZZ"
+        oper_non_diag = "IXZ"
 
         exp1 = sampled_expectation_value(counts, oper)
         self.assertAlmostEqual(exp1, ans)
@@ -88,6 +89,10 @@ class TestSampledExpval(QiskitTestCase):
         so = SparseObservable.from_label(oper)
         exp4 = sampled_expectation_value(counts, so)
         self.assertAlmostEqual(exp4, ans)
+
+        so_non_diag = SparseObservable.from_label(oper_non_diag)
+        with self.assertRaisesRegex(ValueError, "Operator string .* contains non-diagonal terms"):
+            sampled_expectation_value(counts, so_non_diag)
 
     def test_asym_ops(self):
         """Test that asymmetric exp values work"""

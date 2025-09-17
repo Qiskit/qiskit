@@ -34,7 +34,7 @@ use std::{
     cmp::Ordering,
     collections::btree_map,
     ops::{AddAssign, DivAssign, MulAssign, SubAssign},
-    sync::{Arc, RwLock},
+    sync::{Arc, RwLock, RwLockReadGuard},
 };
 use thiserror::Error;
 
@@ -2498,12 +2498,6 @@ impl PySparseObservable {
         Ok(inner.clone().into())
     }
 
-    /// Get a clone of inner SparseObservable data
-    pub fn get(&self) -> PyResult<SparseObservable> {
-        let data = self.inner.read().map_err(|_| InnerReadError)?;
-        Ok(data.clone())
-    }
-
     /// The number of qubits the operator acts on.
     ///
     /// This is not inferable from any other shape or values, since identities are not stored
@@ -3892,6 +3886,12 @@ impl PySparseObservable {
     #[classattr]
     fn Term(py: Python) -> Bound<PyType> {
         py.get_type::<PySparseTerm>()
+    }
+}
+impl PySparseObservable {
+    pub fn get(&self) -> RwLockReadGuard<'_, SparseObservable> {
+        let data = self.inner.read();
+        data.unwrap()
     }
 }
 impl From<SparseObservable> for PySparseObservable {
