@@ -684,7 +684,7 @@ dependencies = [
  "cfg-if",
  "libc",
  "r-efi",
- "wasi 0.14.6+wasi-0.2.4",
+ "wasi 0.14.7+wasi-0.2.4",
 ]
 
 [[package]]
@@ -760,9 +760,9 @@ checksum = "fc0fef456e4baa96da950455cd02c081ca953b141298e41db3fc7e36b1da849c"
 
 [[package]]
 name = "indexmap"
-version = "2.11.1"
+version = "2.11.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "206a8042aec68fa4a62e8d3f7aa4ceb508177d9324faf261e1959e495b7a1921"
+checksum = "92119844f513ffa41556430369ab02c295a3578af21cf945caa3e9e0c2481ac3"
 dependencies = [
  "equivalent",
  "hashbrown 0.15.5",
@@ -1284,11 +1284,10 @@ dependencies = [
 
 [[package]]
 name = "priority-queue"
-version = "2.5.0"
+version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5676d703dda103cbb035b653a9f11448c0a7216c7926bd35fcb5865475d0c970"
+checksum = "3e7f4ffd8645efad783fc2844ac842367aa2e912d484950192564d57dc039a3a"
 dependencies = [
- "autocfg",
  "equivalent",
  "indexmap",
 ]
@@ -1434,7 +1433,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-accelerate"
-version = "2.2.0-rc1"
+version = "2.2.0"
 dependencies = [
  "approx",
  "hashbrown 0.15.5",
@@ -1458,7 +1457,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-cext"
-version = "2.2.0-rc1"
+version = "2.2.0"
 dependencies = [
  "ahash 0.8.12",
  "cbindgen",
@@ -1479,7 +1478,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-circuit"
-version = "2.2.0-rc1"
+version = "2.2.0"
 dependencies = [
  "ahash 0.8.12",
  "approx",
@@ -1504,7 +1503,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-pyext"
-version = "2.2.0-rc1"
+version = "2.2.0"
 dependencies = [
  "pyo3",
  "qiskit-accelerate",
@@ -1519,7 +1518,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-qasm2"
-version = "2.2.0-rc1"
+version = "2.2.0"
 dependencies = [
  "hashbrown 0.15.5",
  "num-bigint",
@@ -1529,7 +1528,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-qasm3"
-version = "2.2.0-rc1"
+version = "2.2.0"
 dependencies = [
  "ahash 0.8.12",
  "hashbrown 0.15.5",
@@ -1545,7 +1544,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-quantum-info"
-version = "2.2.0-rc1"
+version = "2.2.0"
 dependencies = [
  "ahash 0.8.12",
  "approx",
@@ -1571,7 +1570,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-synthesis"
-version = "2.2.0-rc1"
+version = "2.2.0"
 dependencies = [
  "ahash 0.8.12",
  "approx",
@@ -1604,7 +1603,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-transpiler"
-version = "2.2.0-rc1"
+version = "2.2.0"
 dependencies = [
  "ahash 0.8.12",
  "anyhow",
@@ -1960,9 +1959,9 @@ checksum = "1bc711410fbe7399f390ca1c3b60ad0f53f80e95c5eb935e52268a0e2cd49acc"
 
 [[package]]
 name = "serde"
-version = "1.0.224"
+version = "1.0.225"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6aaeb1e94f53b16384af593c71e20b095e958dab1d26939c1b70645c5cfbcc0b"
+checksum = "fd6c24dee235d0da097043389623fb913daddf92c76e9f5a1db88607a0bcbd1d"
 dependencies = [
  "serde_core",
  "serde_derive",
@@ -1970,18 +1969,18 @@ dependencies = [
 
 [[package]]
 name = "serde_core"
-version = "1.0.224"
+version = "1.0.225"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "32f39390fa6346e24defbcdd3d9544ba8a19985d0af74df8501fbfe9a64341ab"
+checksum = "659356f9a0cb1e529b24c01e43ad2bdf520ec4ceaf83047b83ddcc2251f96383"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.224"
+version = "1.0.225"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "87ff78ab5e8561c9a675bfc1785cb07ae721f0ee53329a595cefd8c04c2ac4e0"
+checksum = "0ea936adf78b1f766949a4977b91d2f5595825bd6ec079aa9543ad2685fc4516"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2291,9 +2290,9 @@ checksum = "ccf3ec651a847eb01de73ccad15eb7d99f80485de043efb2f370cd654f4ea44b"
 
 [[package]]
 name = "wasi"
-version = "0.14.6+wasi-0.2.4"
+version = "0.14.7+wasi-0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f71243a3f320c00a8459e455c046ce571229c2f31fd11645d9dc095e3068ca0"
+checksum = "883478de20367e224c0090af9cf5f9fa85bed63a95c1abf3afc5c083ebc06e8c"
 dependencies = [
  "wasip2",
 ]
