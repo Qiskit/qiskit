@@ -1000,15 +1000,22 @@ class SparsePauliOp(LinearOp):
         if self.coeffs.dtype == object:
             # Fallback to slow Python-space method.
             return sum(self.matrix_iter(sparse=sparse))
+        pauli_list = self.paulis
+        zx = ZXPaulis(
+            pauli_list.x.astype(np.bool_),
+            pauli_list.z.astype(np.bool_),
+            pauli_list.phase.astype(np.uint8),
+            self.coeffs.astype(np.complex128),
+        )
 
         if sparse:
             from scipy.sparse import csr_matrix
 
             obs = SparseObservable(self)
-            data, indices, indptr = obs.to_matrix(sparse=sparse, force_serial=force_serial)
+            data, indices, indptr = to_matrix_sparse(zx, force_serial=force_serial)
             side = 1 << self.num_qubits
             return csr_matrix((data, indices, indptr), shape=(side, side))
-        return to_matrix(sparse=False, force_serial=force_serial)
+        return to_matrix_dense(zx, force_serial=force_serial)
 
     def to_operator(self) -> Operator:
         """Convert to a matrix Operator object"""

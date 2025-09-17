@@ -31,6 +31,7 @@ use pyo3::{
     IntoPyObjectExt, PyErr,
 };
 use rayon::prelude::*;
+use crate::rayon_ext::ParallelSliceMutExt;
 use std::{
     cmp::Ordering,
     collections::btree_map,
@@ -50,6 +51,8 @@ static SPARSE_PAULI_OP_TYPE: ImportOnceCell =
     ImportOnceCell::new("qiskit.quantum_info", "SparsePauliOp");
 static BIT_TERM_PY_ENUM: GILOnceCell<Py<PyType>> = GILOnceCell::new();
 static BIT_TERM_INTO_PY: GILOnceCell<[Option<Py<PyAny>>; 16]> = GILOnceCell::new();
+
+type CSRData<T> = (Vec<Complex64>, Vec<T>, Vec<T>);
 
 /// Named handle to the alphabet of single-qubit terms.
 ///
@@ -386,6 +389,255 @@ pub struct SparseObservable {
     /// always an explicit zero (for algorithmic ease).
     boundaries: Vec<usize>,
 }
+
+/// Pre-computed matrix data for optimal performance
+struct MatrixComputationData {
+    x_like: Vec<u32>,
+    z_like: Vec<u32>,
+    coeffs: Vec<Complex64>,
+    num_qubits: u32,
+}
+
+impl MatrixComputationData {
+    /// Create optimized matrix computation data from SparseObservable
+    fn from_sparse_observable(obs: &SparseObservable) -> Self {
+        // Check if we need expansion
+        let needs_expansion = (0..obs.bit_terms.len()).any(|i| obs.bit_terms[i].is_projector());
+        
+        if needs_expansion {
+            // Expand projectors once, then precompute
+            let expanded = obs.as_paulis();
+            Self::from_pauli_observable(&expanded)
+        } else {
+            // Direct precomputation for pure Pauli
+            Self::from_pauli_observable(obs)
+        }
+    }
+    
+    /// Precompute X/Z masks from Pauli-only observable
+    fn from_pauli_observable(obs: &SparseObservable) -> Self {
+        let num_terms = obs.num_terms();
+        let mut x_like = Vec::with_capacity(num_terms);
+        let mut z_like = Vec::with_capacity(num_terms);
+        
+        // Pre-compute all X/Z masks once
+        for term_idx in 0..num_terms {
+            let start = obs.boundaries[term_idx];
+            let end = obs.boundaries[term_idx + 1];
+            
+            let mut x_bits = 0u32;
+            let mut z_bits = 0u32;
+            
+            for i in start..end {
+                let qubit = obs.indices[i];
+                match obs.bit_terms[i] {
+                    BitTerm::X => x_bits |= 1u32 << qubit,
+                    BitTerm::Y => {
+                        x_bits |= 1u32 << qubit;
+                        z_bits |= 1u32 << qubit;
+                    },
+                    BitTerm::Z => z_bits |= 1u32 << qubit,
+                    _ => panic!("Expected only Pauli terms in precomputation")
+                }
+            }
+            
+            x_like.push(x_bits);
+            z_like.push(z_bits);
+        }
+        
+        Self {
+            x_like,
+            z_like,
+            coeffs: obs.coeffs.clone(),
+            num_qubits: obs.num_qubits(),
+        }
+    }
+    
+    fn num_ops(&self) -> usize {
+        self.coeffs.len()
+    }
+    
+    fn num_qubits(&self) -> u32 {
+        self.num_qubits
+    }
+}
+
+/// Copy several slices into a single flat vec, in parallel
+fn copy_flat_parallel<T, U>(slices: &[U]) -> Vec<T>
+where
+    T: Copy + Send + Sync,
+    U: AsRef<[T]> + Sync,
+{
+    let lens = slices
+        .iter()
+        .map(|slice| slice.as_ref().len())
+        .collect::<Vec<_>>();
+    let size = lens.iter().sum();
+    #[allow(clippy::uninit_vec)]
+    let mut out = {
+        let mut out = Vec::with_capacity(size);
+        unsafe { out.set_len(size) };
+        out
+    };
+    out.par_uneven_chunks_mut(&lens)
+        .zip(slices.par_iter().map(|x| x.as_ref()))
+        .for_each(|(out_slice, in_slice)| out_slice.copy_from_slice(in_slice));
+    out
+}
+
+macro_rules! impl_sparse_observable_to_matrix {
+    ($serial_fn:ident, $parallel_fn:ident, $int_ty:ty, $uint_ty:ty $(,)?) => {
+        /// Optimized serial matrix construction
+        fn $serial_fn(data: &MatrixComputationData) -> CSRData<$int_ty> {
+            let side = 1 << data.num_qubits();
+            let num_ops = data.num_ops();
+            if num_ops == 0 {
+                return (vec![], vec![], vec![0; side + 1]);
+            }
+
+            let mut order = (0..num_ops).collect::<Vec<_>>();
+            let mut values = Vec::<Complex64>::with_capacity(side * (num_ops + 1) / 2);
+            let mut indices = Vec::<$int_ty>::with_capacity(side * (num_ops + 1) / 2);
+            let mut indptr: Vec<$int_ty> = vec![0; side + 1];
+            let mut nnz = 0;
+            
+            for i_row in 0..side {
+                order.sort_unstable_by(|&a, &b| {
+                    ((i_row as $uint_ty) ^ (data.x_like[a] as $uint_ty))
+                        .cmp(&((i_row as $uint_ty) ^ (data.x_like[b] as $uint_ty)))
+                });
+                
+                let mut running = Complex64::new(0.0, 0.0);
+                let mut prev_index = i_row ^ (data.x_like[order[0]] as usize);
+                
+                for &op_idx in &order {
+                    let coeff = if ((i_row as $uint_ty) & (data.z_like[op_idx] as $uint_ty)).count_ones() % 2 == 0 {
+                        data.coeffs[op_idx]
+                    } else {
+                        -data.coeffs[op_idx]
+                    };
+                    
+                    let index = i_row ^ (data.x_like[op_idx] as usize);
+                    if index == prev_index {
+                        running += coeff;
+                    } else {
+                        nnz += 1;
+                        values.push(running);
+                        indices.push(prev_index as $int_ty);
+                        running = coeff;
+                        prev_index = index;
+                    }
+                }
+                nnz += 1;
+                values.push(running);
+                indices.push(prev_index as $int_ty);
+                indptr[i_row + 1] = nnz;
+            }
+            (values, indices, indptr)
+        }
+
+        /// Optimized parallel matrix construction - identical to SparsePauliOp algorithm
+        fn $parallel_fn(data: &MatrixComputationData) -> CSRData<$int_ty> {
+            let side = 1 << data.num_qubits();
+            let num_ops = data.num_ops();
+            if num_ops == 0 {
+                return (vec![], vec![], vec![0; side + 1]);
+            }
+
+            let mut indptr = Vec::<$int_ty>::with_capacity(side + 1);
+            indptr.push(0);
+            unsafe {
+                indptr.set_len(side + 1);
+            }
+
+            let num_threads = rayon::current_num_threads();
+            let chunk_size = side.div_ceil(num_threads);
+            let mut values_chunks = Vec::with_capacity(num_threads);
+            let mut indices_chunks = Vec::with_capacity(num_threads);
+            
+            indptr[1..]
+                .par_chunks_mut(chunk_size)
+                .enumerate()
+                .map(|(i, indptr_chunk)| {
+                    let start = chunk_size * i;
+                    let end = (chunk_size * (i + 1)).min(side);
+                    let mut order = (0..num_ops).collect::<Vec<_>>();
+                    let mut values = Vec::<Complex64>::with_capacity(chunk_size * (num_ops + 1) / 2);
+                    let mut indices = Vec::<$int_ty>::with_capacity(chunk_size * (num_ops + 1) / 2);
+                    let mut nnz = 0;
+                    
+                    for i_row in start..end {
+                        order.sort_unstable_by(|&a, &b| {
+                            ((i_row as $uint_ty) ^ (data.x_like[a] as $uint_ty))
+                                .cmp(&((i_row as $uint_ty) ^ (data.x_like[b] as $uint_ty)))
+                        });
+                        
+                        let mut running = Complex64::new(0.0, 0.0);
+                        let mut prev_index = i_row ^ (data.x_like[order[0]] as usize);
+                        
+                        for &op_idx in &order {
+                            let coeff = if ((i_row as $uint_ty) & (data.z_like[op_idx] as $uint_ty)).count_ones() % 2 == 0 {
+                                data.coeffs[op_idx]
+                            } else {
+                                -data.coeffs[op_idx]
+                            };
+                            
+                            let index = i_row ^ (data.x_like[op_idx] as usize);
+                            if index == prev_index {
+                                running += coeff;
+                            } else {
+                                nnz += 1;
+                                values.push(running);
+                                indices.push(prev_index as $int_ty);
+                                running = coeff;
+                                prev_index = index;
+                            }
+                        }
+                        nnz += 1;
+                        values.push(running);
+                        indices.push(prev_index as $int_ty);
+                        indptr_chunk[i_row - start] = nnz;
+                    }
+                    (values, indices)
+                })
+                .unzip_into_vecs(&mut values_chunks, &mut indices_chunks);
+                
+            let mut start_nnz = 0usize;
+            let chunk_nnz = values_chunks
+                .iter()
+                .map(|chunk| {
+                    let prev = start_nnz;
+                    start_nnz += chunk.len();
+                    prev as $int_ty
+                })
+                .collect::<Vec<_>>();
+                
+            indptr[1..]
+                .par_chunks_mut(chunk_size)
+                .zip(chunk_nnz)
+                .for_each(|(indptr_chunk, start_nnz)| {
+                    indptr_chunk.iter_mut().for_each(|nnz| *nnz += start_nnz);
+                });
+                
+            let values = copy_flat_parallel(&values_chunks);
+            let indices = copy_flat_parallel(&indices_chunks);
+            (values, indices, indptr)
+        }
+    };
+}
+
+impl_sparse_observable_to_matrix!(
+    sparse_observable_to_matrix_serial_32,
+    sparse_observable_to_matrix_parallel_32,
+    i32,
+    u32
+);
+impl_sparse_observable_to_matrix!(
+    sparse_observable_to_matrix_serial_64,
+    sparse_observable_to_matrix_parallel_64,
+    i64,
+    u64
+);
 
 impl SparseObservable {
     /// Create a new observable from the raw components that make it up.
@@ -881,126 +1133,44 @@ impl SparseObservable {
     /// Returns either (Vec<Complex64>, Vec<i32>, Vec<i32>) or (Vec<Complex64>, Vec<i64>, Vec<i64>)
     /// depending on matrix size requirements.
     pub fn to_matrix_sparse_32(&self, force_serial: bool) -> (Vec<Complex64>, Vec<i32>, Vec<i32>) {
-        let side = 1usize << self.num_qubits;
-        let num_ops = self.num_terms();
-
-        if num_ops == 0 {
-            return (vec![], vec![], vec![0i32; side + 1]);
+        // Single precomputation step handles both expansion and optimization
+        let computation_data = MatrixComputationData::from_sparse_observable(self);
+        
+        if qiskit_circuit::getenv_use_multiple_threads() && !force_serial {
+            sparse_observable_to_matrix_parallel_32(&computation_data)
+        } else {
+            sparse_observable_to_matrix_serial_32(&computation_data)
         }
-
-        // Convert to expanded Pauli representation for matrix computation
-        let expanded = self.as_paulis(); // Use existing method
-
-        // Now use the same algorithm as SparsePauliOp, but on the expanded terms
-        let mut order = (0..expanded.num_terms()).collect::<Vec<_>>();
-        let mut values = Vec::<Complex64>::with_capacity(side * (num_ops + 1) / 2);
-        let mut indices = Vec::<i32>::with_capacity(side * (num_ops + 1) / 2);
-        let mut indptr: Vec<i32> = vec![0; side + 1];
-        let mut nnz = 0i32;
-
-        for i_row in 0..side {
-            order.sort_unstable_by(|&a, &b| {
-                let x_a = expanded.term_x_like(a);
-                let x_b = expanded.term_x_like(b);
-                ((i_row as u32) ^ x_a).cmp(&((i_row as u32) ^ x_b))
-            });
-
-            let mut running = Complex64::new(0.0, 0.0);
-            let mut prev_index = i_row ^ (expanded.term_x_like(order[0]) as usize);
-
-            for &term_idx in &order {
-                let x_like = expanded.term_x_like(term_idx);
-                let z_like = expanded.term_z_like(term_idx);
-                let coeff = expanded.coeffs[term_idx];
-
-                let coeff = if ((i_row as u32) & z_like).count_ones() % 2 == 0 {
-                    coeff
-                } else {
-                    -coeff
-                };
-
-                let index = i_row ^ (x_like as usize);
-                if index == prev_index {
-                    running += coeff;
-                } else {
-                    nnz += 1;
-                    values.push(running);
-                    indices.push(prev_index as i32);
-                    running = coeff;
-                    prev_index = index;
-                }
-            }
-            nnz += 1;
-            values.push(running);
-            indices.push(prev_index as i32);
-            indptr[i_row + 1] = nnz;
-        }
-
-        (values, indices, indptr)
     }
+
 
     /// Convert to dense matrix format, handling the extended alphabet.
     pub fn to_matrix_dense(&self, force_serial: bool) -> Vec<Complex64> {
-        let side = 1usize << self.num_qubits;
-        let expanded = self.as_paulis(); // Use existing method
-
+        let computation_data = MatrixComputationData::from_sparse_observable(self);
+        let side = 1usize << computation_data.num_qubits();
         let mut out = vec![Complex64::new(0.0, 0.0); side * side];
-
+        
         let write_row = |(i_row, row): (usize, &mut [Complex64])| {
             row.fill(Complex64::new(0.0, 0.0));
-
-            for term_idx in 0..expanded.num_terms() {
-                let x_like = expanded.term_x_like(term_idx);
-                let z_like = expanded.term_z_like(term_idx);
-                let coeff = expanded.coeffs[term_idx];
-
-                let coeff = if (i_row as u32 & z_like).count_ones() % 2 == 0 {
-                    coeff
+            for op_idx in 0..computation_data.num_ops() {
+                let coeff = if (i_row as u32 & computation_data.z_like[op_idx]).count_ones() % 2 == 0 {
+                    computation_data.coeffs[op_idx]
                 } else {
-                    -coeff
+                    -computation_data.coeffs[op_idx]
                 };
-                row[i_row ^ (x_like as usize)] += coeff;
+                row[i_row ^ (computation_data.x_like[op_idx] as usize)] += coeff;
             }
         };
-
+        
         let parallel = !force_serial && qiskit_circuit::getenv_use_multiple_threads();
         if parallel {
-            use rayon::prelude::*;
             out.par_chunks_mut(side).enumerate().for_each(write_row);
         } else {
             out.chunks_mut(side).enumerate().for_each(write_row);
         }
-
         out
     }
 
-    /// Helper to get X-like bits for a term (after Pauli expansion)
-    fn term_x_like(&self, term_idx: usize) -> u32 {
-        let mut x_bits = 0u32;
-        let start = self.boundaries[term_idx];
-        let end = self.boundaries[term_idx + 1];
-
-        for i in start..end {
-            if self.bit_terms[i].has_x_component() {
-                x_bits |= 1u32 << self.indices[i];
-            }
-        }
-        x_bits
-    }
-
-    /// Helper to get Z-like bits for a term (after Pauli expansion)
-    fn term_z_like(&self, term_idx: usize) -> u32 {
-        let mut z_bits = 0u32;
-        let start = self.boundaries[term_idx];
-        let end = self.boundaries[term_idx + 1];
-
-        for i in start..end {
-            if self.bit_terms[i].has_z_component() {
-                z_bits |= 1u32 << self.indices[i];
-            }
-        }
-        z_bits
-    }
 
     /// Expand all projectors into Pauli representation.
     ///
