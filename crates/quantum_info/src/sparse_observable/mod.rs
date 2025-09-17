@@ -668,12 +668,12 @@ impl_sparse_observable_to_matrix!(
     i32,
     u32
 );
-// impl_sparse_observable_to_matrix!(
-//     sparse_observable_to_matrix_serial_64,
-//     sparse_observable_to_matrix_parallel_64,
-//     i64,
-//     u64
-// );
+impl_sparse_observable_to_matrix!(
+    sparse_observable_to_matrix_serial_64,
+    sparse_observable_to_matrix_parallel_64,
+    i64,
+    u64
+);
 
 impl SparseObservable {
     /// Create a new observable from the raw components that make it up.
