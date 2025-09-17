@@ -416,6 +416,7 @@ impl MatrixComputationData {
         let num_terms = obs.num_terms();
         let mut x_like = Vec::with_capacity(num_terms);
         let mut z_like = Vec::with_capacity(num_terms);
+        let mut new_coeffs = Vec::with_capacity(num_terms);
 
         for term_idx in 0..num_terms {
             let bit_terms = obs.get_term_slice(term_idx);
@@ -423,6 +424,7 @@ impl MatrixComputationData {
 
             let mut x_bits = 0u32;
             let mut z_bits = 0u32;
+            let mut y_count = 0u32;
 
             for (bit_term, &qubit) in bit_terms.iter().zip(indices.iter()) {
                 match bit_term {
@@ -430,6 +432,7 @@ impl MatrixComputationData {
                     BitTerm::Y => {
                         x_bits |= 1u32 << qubit;
                         z_bits |= 1u32 << qubit;
+                        y_count += 1;
                     }
                     BitTerm::Z => z_bits |= 1u32 << qubit,
                     _ => panic!("Expected only Pauli terms in precomputation"),
@@ -438,12 +441,24 @@ impl MatrixComputationData {
 
             x_like.push(x_bits);
             z_like.push(z_bits);
+
+            // Apply the phase correction based on the number of Y's.
+            // This logic now matches the old implementation.
+            let coeff = obs.get_coeffs().get(term_idx).copied().unwrap_or_default();
+            let final_coeff = match y_count % 4 {
+                0 => coeff,                               // phase 0 (* 1)
+                1 => Complex64::new(coeff.im, -coeff.re), // phase 1 (* -i)
+                2 => -coeff,                              // phase 2 (* -1)
+                3 => Complex64::new(-coeff.im, coeff.re), // phase 3 (* i)
+                _ => unreachable!(),
+            };
+            new_coeffs.push(final_coeff);
         }
 
         Self {
             x_like,
             z_like,
-            coeffs: obs.get_coeffs().into_owned(),
+            coeffs: new_coeffs,
             num_qubits: obs.num_qubits(),
         }
     }
@@ -3301,19 +3316,56 @@ impl PySparseObservable {
         py: Python<'py>,
         force_serial: bool,
     ) -> PyResult<Bound<'py, PyTuple>> {
+        // Helper with elided lifetimes as suggested by the compiler.
+        fn to_py_tuple<T>(
+            py: Python<'_>,
+            csr_data: (Vec<Complex64>, Vec<T>, Vec<T>),
+        ) -> PyResult<Bound<'_, PyTuple>>
+        where
+            T: numpy::Element,
+        {
+            let (values, indices, indptr) = csr_data;
+            PyTuple::new(
+                py,
+                [
+                    PyArray1::from_vec(py, values).into_any(),
+                    PyArray1::from_vec(py, indices).into_any(),
+                    PyArray1::from_vec(py, indptr).into_any(),
+                ],
+            )
+        }
+
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        let (values, indices, indptr) = inner.to_matrix_sparse_32(force_serial);
+        let computation_data = MatrixComputationData::from_sparse_observable(&inner);
 
-        PyTuple::new(
-            py,
-            [
-                PyArray1::from_vec(py, values).into_any(),
-                PyArray1::from_vec(py, indices).into_any(),
-                PyArray1::from_vec(py, indptr).into_any(),
-            ],
-        )
+        let num_qubits = computation_data.num_qubits() as u64;
+        let max_entries_per_row = (computation_data.num_ops() as u64).min(1u64 << num_qubits);
+        let use_32_bit =
+            max_entries_per_row.saturating_mul(1u64 << num_qubits) <= (i32::MAX as u64);
+
+        let parallel = !force_serial && qiskit_circuit::getenv_use_multiple_threads();
+
+        if use_32_bit {
+            let csr_data = if parallel {
+                sparse_observable_to_matrix_parallel_32(&computation_data)
+            } else {
+                sparse_observable_to_matrix_serial_32(&computation_data)
+            };
+            to_py_tuple(py, csr_data)
+        } else {
+            if num_qubits > 63 {
+                return Err(PyValueError::new_err(format!(
+                    "{num_qubits} is too many qubits to convert to a sparse matrix"
+                )));
+            }
+            let csr_data = if parallel {
+                sparse_observable_to_matrix_parallel_64(&computation_data)
+            } else {
+                sparse_observable_to_matrix_serial_64(&computation_data)
+            };
+            to_py_tuple(py, csr_data)
+        }
     }
-
     /// Convert to dense matrix.
     #[pyo3(signature = (force_serial=false))]
     fn to_matrix_dense<'py>(
