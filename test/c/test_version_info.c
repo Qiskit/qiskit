@@ -31,6 +31,7 @@ char *build_version_string(void) {
         break;
     default:
         // no suffix
+        sprintf(suffix, "");
         break;
     }
 
