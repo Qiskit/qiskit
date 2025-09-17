@@ -443,7 +443,7 @@ impl MatrixComputationData {
             z_like.push(z_bits);
 
             // Apply the phase correction based on the number of Y's.
-            // This logic now matches the old implementation.
+            // This logic matches the old implementation.
             let coeff = obs.get_coeffs().get(term_idx).copied().unwrap_or_default();
             let final_coeff = match y_count % 4 {
                 0 => coeff,                               // phase 0 (* 1)
@@ -4615,8 +4615,6 @@ mod test {
         }
     }
 
-    /// **Consistency Check:** Ensures the 32-bit sparse matrix implementations
-    /// (parallel vs serial) produce identical results.
     #[test]
     fn test_error_safe_add_dense_label() {
         let base = SparseObservable::identity(5);
@@ -4629,6 +4627,8 @@ mod test {
         assert_eq!(base, modified);
     }
 
+    /// **Consistency Check:** Ensures the 32-bit sparse matrix implementations
+    /// (parallel vs serial) produce identical results.
     #[test]
     fn sparse_threaded_and_serial_equal_32() {
         let obs = example_observable();
