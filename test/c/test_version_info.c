@@ -31,13 +31,17 @@ char *build_version_string(void) {
         break;
     default:
         // no suffix
-        sprintf(suffix, "");
         break;
     }
 
     char *version = malloc(9 * sizeof(char));
-    sprintf(version, "%u.%u.%u%s", QISKIT_VERSION_MAJOR, QISKIT_VERSION_MINOR, QISKIT_VERSION_PATCH,
-            suffix);
+    if (QISKIT_RELEASE_LEVEL == QISKIT_RELEASE_LEVEL_FINAL) {
+        sprintf(version, "%u.%u.%u", QISKIT_VERSION_MAJOR, QISKIT_VERSION_MINOR,
+                QISKIT_VERSION_PATCH);
+    } else {
+        sprintf(version, "%u.%u.%u%s", QISKIT_VERSION_MAJOR, QISKIT_VERSION_MINOR,
+                QISKIT_VERSION_PATCH, suffix);
+    }
     return version;
 }
 
