@@ -280,6 +280,7 @@ mod test {
             Some(routing_permutation),
             input_qubits,
             3,
+            vec![],
         );
         let result = layout.final_index_layout(true);
         let expected = vec![PhysicalQubit(3), PhysicalQubit(5), PhysicalQubit(2)];
@@ -323,6 +324,7 @@ mod test {
             Some(routing_permutation),
             input_qubits,
             3,
+            vec![],
         );
         let result = layout.final_index_layout(false);
         let expected = vec![
@@ -377,6 +379,7 @@ mod test {
             Some(routing_permutation),
             input_qubits,
             3,
+            vec![],
         );
         let expected: Vec<u32> = [PhysicalQubit(9), PhysicalQubit(4), PhysicalQubit(0)]
             .into_iter()
@@ -421,6 +424,7 @@ mod test {
             Some(routing_permutation),
             input_qubits,
             3,
+            vec![],
         );
         let mut result: Vec<u32> = vec![u32::MAX; layout.num_output_qubits() as usize];
         assert!(unsafe { qk_transpile_layout_initial_layout(&layout, false, result.as_mut_ptr()) });
@@ -430,7 +434,7 @@ mod test {
     #[test]
     fn test_initial_layout_no_layout() {
         let input_qubits = vec![ShareableQubit::new_anonymous(); 10000];
-        let layout = TranspileLayout::new(None, None, input_qubits, 10000);
+        let layout = TranspileLayout::new(None, None, input_qubits, 10000, vec![]);
         let mut result: Vec<u32> = vec![u32::MAX; layout.num_input_qubits() as usize];
         assert!(!unsafe { qk_transpile_layout_initial_layout(&layout, true, result.as_mut_ptr()) });
     }
@@ -469,6 +473,7 @@ mod test {
             Some(routing_permutation),
             input_qubits,
             3,
+            vec![],
         );
         let mut result: Vec<u32> = vec![u32::MAX; layout.num_output_qubits() as usize];
         assert!(unsafe { qk_transpile_layout_output_permutation(&layout, result.as_mut_ptr()) });
@@ -478,7 +483,7 @@ mod test {
     #[test]
     fn test_output_permutation_not_set() {
         let input_qubits = vec![ShareableQubit::new_anonymous(); 10000];
-        let layout = TranspileLayout::new(None, None, input_qubits, 10000);
+        let layout = TranspileLayout::new(None, None, input_qubits, 10000, vec![]);
         let mut result: Vec<u32> = vec![u32::MAX; layout.num_output_qubits() as usize];
         assert!(!unsafe { qk_transpile_layout_output_permutation(&layout, result.as_mut_ptr()) });
     }
@@ -488,7 +493,7 @@ mod test {
         let initial_layout_vec = (0..256).rev().map(PhysicalQubit::new).collect();
         let initial_layout = NLayout::from_virtual_to_physical(initial_layout_vec).unwrap();
         let input_qubits = vec![ShareableQubit::new_anonymous(); 256];
-        let layout = TranspileLayout::new(Some(initial_layout), None, input_qubits, 3);
+        let layout = TranspileLayout::new(Some(initial_layout), None, input_qubits, 3, vec![]);
         unsafe {
             assert_eq!(qk_transpile_layout_num_input_qubits(&layout), 3);
         }
@@ -499,7 +504,7 @@ mod test {
         let initial_layout_vec = (0..256).rev().map(PhysicalQubit::new).collect();
         let initial_layout = NLayout::from_virtual_to_physical(initial_layout_vec).unwrap();
         let input_qubits = vec![ShareableQubit::new_anonymous(); 256];
-        let layout = TranspileLayout::new(Some(initial_layout), None, input_qubits, 3);
+        let layout = TranspileLayout::new(Some(initial_layout), None, input_qubits, 3, vec![]);
         unsafe {
             assert_eq!(qk_transpile_layout_num_output_qubits(&layout), 256);
         }

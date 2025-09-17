@@ -67,6 +67,7 @@ pub fn transpile(
         None,
         dag.qubits().objects().to_owned(),
         dag.num_qubits() as u32,
+        dag.qregs().to_vec(),
     );
 
     let unroll_3q_or_more = |dag: &mut DAGCircuit| -> Result<()> {
@@ -424,6 +425,7 @@ fn layout_from_sabre_result(
         final_layout,
         dag.qubits().objects().clone(),
         old_transpile_layout.num_input_qubits(),
+        dag.qregs().to_vec(),
     );
     if let Some(old_permutation) = old_transpile_layout.output_permutation() {
         new_transpile_layout
