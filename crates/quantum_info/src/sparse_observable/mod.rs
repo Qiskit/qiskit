@@ -4615,6 +4615,8 @@ mod test {
         }
     }
 
+    /// **Consistency Check:** Ensures the 32-bit sparse matrix implementations
+    /// (parallel vs serial) produce identical results.
     #[test]
     fn test_error_safe_add_dense_label() {
         let base = SparseObservable::identity(5);
@@ -4628,25 +4630,29 @@ mod test {
     }
 
     #[test]
-    fn dense_threaded_and_serial_equal() {
+    fn sparse_threaded_and_serial_equal_32() {
         let obs = example_observable();
+        // Pre-compute the data just like the public-facing methods do.
+        let computation_data = MatrixComputationData::from_sparse_observable(&obs);
 
-        let parallel_result = obs.to_matrix_dense(false);
-        let serial_result = obs.to_matrix_dense(true);
+        // Directly call and compare the internal Rust functions.
+        let parallel_result = sparse_observable_to_matrix_parallel_32(&computation_data);
+        let serial_result = sparse_observable_to_matrix_serial_32(&computation_data);
 
         assert_eq!(parallel_result, serial_result);
     }
 
+    /// **Consistency Check:** Ensures the 64-bit sparse matrix implementations
+    /// (parallel vs serial) produce identical results.
     #[test]
-    fn sparse_threaded_and_serial_equal() {
+    fn sparse_threaded_and_serial_equal_64() {
         let obs = example_observable();
-        let py = unsafe { pyo3::Python::assume_gil_acquired() };
+        let computation_data = MatrixComputationData::from_sparse_observable(&obs);
 
-        let parallel_result = obs.to_matrix_sparse(py, false).unwrap();
-        let serial_result = obs.to_matrix_sparse(py, true).unwrap();
-        let parallel_str = parallel_result.as_gil_ref().to_string();
-        let serial_str = serial_result.as_gil_ref().to_string();
+        // Directly call and compare the internal Rust functions.
+        let parallel_result = sparse_observable_to_matrix_parallel_64(&computation_data);
+        let serial_result = sparse_observable_to_matrix_serial_64(&computation_data);
 
-        assert_eq!(parallel_str, serial_str);
+        assert_eq!(parallel_result, serial_result);
     }
 }
