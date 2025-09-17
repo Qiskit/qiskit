@@ -998,7 +998,7 @@ class SparsePauliOp(LinearOp):
             # Fallback to slow Python-space method.
             return sum(self.matrix_iter(sparse=sparse))
 
-        obs = SparseObservable(self)  # <-- always define it here
+        obs = SparseObservable(self)
 
         if sparse:
             from scipy.sparse import csr_matrix
