@@ -33,6 +33,7 @@ use pyo3::{
 use rayon::prelude::*;
 use crate::rayon_ext::ParallelSliceMutExt;
 use std::{
+    borrow::Cow,
     cmp::Ordering,
     collections::btree_map,
     ops::{AddAssign, DivAssign, MulAssign, SubAssign},
@@ -390,7 +391,6 @@ pub struct SparseObservable {
     boundaries: Vec<usize>,
 }
 
-/// Pre-computed matrix data for optimal performance
 struct MatrixComputationData {
     x_like: Vec<u32>,
     z_like: Vec<u32>,
@@ -401,36 +401,31 @@ struct MatrixComputationData {
 impl MatrixComputationData {
     /// Create optimized matrix computation data from SparseObservable
     fn from_sparse_observable(obs: &SparseObservable) -> Self {
-        // Check if we need expansion
-        let needs_expansion = (0..obs.bit_terms.len()).any(|i| obs.bit_terms[i].is_projector());
-        
-        if needs_expansion {
-            // Expand projectors once, then precompute
-            let expanded = obs.as_paulis();
-            Self::from_pauli_observable(&expanded)
+        if obs.is_pure_pauli() {
+            // Direct precomputation for pure Pauli, no expansion needed
+            Self::from_pauli_like(obs)
         } else {
-            // Direct precomputation for pure Pauli
-            Self::from_pauli_observable(obs)
+            // Expand projectors once, then precompute from the expanded version
+            let expanded = obs.as_paulis();
+            Self::from_pauli_like(&expanded)
         }
     }
-    
-    /// Precompute X/Z masks from Pauli-only observable
-    fn from_pauli_observable(obs: &SparseObservable) -> Self {
+
+    /// Precompute X/Z masks from a type that implements PauliLike
+    fn from_pauli_like<T: PauliLike>(obs: &T) -> Self {
         let num_terms = obs.num_terms();
         let mut x_like = Vec::with_capacity(num_terms);
         let mut z_like = Vec::with_capacity(num_terms);
-        
-        // Pre-compute all X/Z masks once
+
         for term_idx in 0..num_terms {
-            let start = obs.boundaries[term_idx];
-            let end = obs.boundaries[term_idx + 1];
-            
+            let bit_terms = obs.get_term_slice(term_idx);
+            let indices = obs.get_qubit_indices(term_idx);
+
             let mut x_bits = 0u32;
             let mut z_bits = 0u32;
-            
-            for i in start..end {
-                let qubit = obs.indices[i];
-                match obs.bit_terms[i] {
+
+            for (bit_term, &qubit) in bit_terms.iter().zip(indices.iter()) {
+                match bit_term {
                     BitTerm::X => x_bits |= 1u32 << qubit,
                     BitTerm::Y => {
                         x_bits |= 1u32 << qubit;
@@ -440,15 +435,15 @@ impl MatrixComputationData {
                     _ => panic!("Expected only Pauli terms in precomputation")
                 }
             }
-            
+
             x_like.push(x_bits);
             z_like.push(z_bits);
         }
-        
+
         Self {
             x_like,
             z_like,
-            coeffs: obs.coeffs.clone(),
+            coeffs: obs.get_coeffs().into_owned(),
             num_qubits: obs.num_qubits(),
         }
     }
@@ -460,6 +455,32 @@ impl MatrixComputationData {
     fn num_qubits(&self) -> u32 {
         self.num_qubits
     }
+}
+
+/// A trait to handle both SparseObservable and its expanded form
+trait PauliLike {
+    fn num_terms(&self) -> usize;
+    fn get_term_slice(&self, term_idx: usize) -> &[BitTerm];
+    fn get_qubit_indices(&self, term_idx: usize) -> &[u32];
+    fn get_coeffs(&self) -> Cow<[Complex64]>;
+    fn num_qubits(&self) -> u32;
+}
+
+// Implement PauliLike for SparseObservable
+impl PauliLike for SparseObservable {
+    fn num_terms(&self) -> usize { self.boundaries.len() - 1 }
+    fn get_term_slice(&self, term_idx: usize) -> &[BitTerm] {
+        let start = self.boundaries[term_idx];
+        let end = self.boundaries[term_idx + 1];
+        &self.bit_terms[start..end]
+    }
+    fn get_qubit_indices(&self, term_idx: usize) -> &[u32] {
+        let start = self.boundaries[term_idx];
+        let end = self.boundaries[term_idx + 1];
+        &self.indices[start..end]
+    }
+    fn get_coeffs(&self) -> Cow<[Complex64]> { Cow::Borrowed(&self.coeffs) }
+    fn num_qubits(&self) -> u32 { self.num_qubits }
 }
 
 /// Copy several slices into a single flat vec, in parallel
@@ -1171,6 +1192,11 @@ impl SparseObservable {
         out
     }
 
+    /// Checks if the observable contains only Pauli terms (X, Y, Z).
+    /// This is an efficient check that avoids a full expansion.
+    pub fn is_pure_pauli(&self) -> bool {
+        (0..self.bit_terms.len()).all(|i| !self.bit_terms[i].is_projector())
+    }
 
     /// Expand all projectors into Pauli representation.
     ///
