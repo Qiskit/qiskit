@@ -15,9 +15,9 @@ use pyo3::prelude::*;
 use rustworkx_core::petgraph::prelude::*;
 use thiserror::Error;
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction, NodeType, Wire};
-use qiskit_circuit::instruction::{ControlFlowView, IntoInstructionView};
-use qiskit_circuit::operations::{Operation, OperationRef};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
+use qiskit_circuit::instruction::ControlFlowView;
+use qiskit_circuit::operations::Operation;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Qubit, VirtualQubit};
 

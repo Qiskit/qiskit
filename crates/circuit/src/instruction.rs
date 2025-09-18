@@ -12,8 +12,8 @@
 
 use crate::circuit_data::CircuitData;
 use crate::operations::{
-    BoxDuration, CaseSpecifier, Condition, ControlFlow, DelayUnit, OperationRef, Param, PyGate,
-    PyInstruction, PyOperation, StandardGate, StandardInstruction, SwitchTarget, UnitaryGate,
+    BoxDuration, CaseSpecifier, Condition, DelayUnit, OperationRef, Param, PyGate, PyInstruction,
+    PyOperation, StandardGate, StandardInstruction, SwitchTarget, UnitaryGate,
 };
 use nalgebra::Matrix2;
 use ndarray::Array2;
@@ -109,7 +109,7 @@ impl<T> Parameters<T> {
     /// Panics if `blocks` does not contain exactly the expected number of blocks
     /// for the parameter set.
     pub fn replace_blocks(&mut self, blocks: impl IntoIterator<Item = T>) {
-        let mut replacements: Vec<T> = blocks.into_iter().collect();
+        let replacements: Vec<T> = blocks.into_iter().collect();
         match self {
             Parameters::Params(_) => {}
             Parameters::Blocks(blocks) => {

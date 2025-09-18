@@ -21,7 +21,6 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use crate::commutation_checker::CommutationChecker;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
-use qiskit_circuit::instruction::IntoInstructionView;
 use qiskit_circuit::Qubit;
 
 // Custom types to store the commutation sets and node indices,

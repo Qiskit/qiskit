@@ -42,7 +42,6 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyList, PyTuple};
 use pyo3::{intern, IntoPyObjectExt, Python};
-use rustworkx_core::petgraph::matrix_graph::Nullable;
 
 #[derive(Clone, Debug)]
 pub enum Param {

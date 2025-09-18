@@ -30,7 +30,6 @@ use crate::TranspilerError;
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::imports::ImportOnceCell;
-use qiskit_circuit::instruction::IntoInstructionView;
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardInstruction};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, PhysicalQubit, Qubit, VarsMode, VirtualQubit};

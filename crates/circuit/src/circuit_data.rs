@@ -22,7 +22,7 @@ use crate::bit::{
 use crate::bit_locator::BitLocator;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::classical::expr;
-use crate::dag_circuit::{add_global_phase, DAGCircuit, DAGStretchType, DAGVarType};
+use crate::dag_circuit::{add_global_phase, DAGStretchType, DAGVarType};
 use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, Interner};
 use crate::object_registry::ObjectRegistry;
@@ -48,8 +48,6 @@ use pyo3::{import_exception, intern, PyTraverseError, PyVisit};
 use crate::instruction::{ControlFlowView, Instruction, IntoInstructionView, Parameters};
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
-use itertools::Itertools;
-use rustworkx_core::petgraph::graph::NodeIndex;
 use smallvec::SmallVec;
 
 import_exception!(qiskit.circuit.exceptions, CircuitError);
@@ -2724,7 +2722,7 @@ impl CircuitData {
                                                     // position 2.
                                                     Some(map_block(body)).transpose()
                                                 }
-                                                _ => return Err(inconsistent()),
+                                                _ => Err(inconsistent()),
                                             }
                                         }
                                         _ => {
