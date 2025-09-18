@@ -1,8 +1,8 @@
 ---
 features_c:
   - |
-    Add support for some transpiler passes to run standalone with a ``QkCircuit``
-    from the C API through the following functions:
+    Added new standalone transpiler pass functions to the C API. These functions take in a ``QkCircuit``
+    to run the pass on and are equivalent to calling an instantiated pass.
 
       ==========================================  =============================================================================
       Transpiler pass                             C API Counterpart
