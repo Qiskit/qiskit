@@ -213,11 +213,7 @@ impl CircuitInstruction {
         };
         match params {
             Parameters::Params(params) => params.clone().into_py_any(py),
-            Parameters::Box { .. } => todo!(),
-            Parameters::ForLoop { .. } => todo!(),
-            Parameters::IfElse { .. } => todo!(),
-            Parameters::Switch { .. } => todo!(),
-            Parameters::While { .. } => todo!(),
+            Parameters::Blocks(_) => todo!(),
         }
     }
 
@@ -268,11 +264,7 @@ impl CircuitInstruction {
         };
         match params {
             Parameters::Params(p) => p.iter().any(|x| matches!(x, Param::ParameterExpression(_))),
-            Parameters::Box { .. } => false,
-            Parameters::ForLoop { .. } => false,
-            Parameters::IfElse { .. } => false,
-            Parameters::Switch { .. } => false,
-            Parameters::While { .. } => false,
+            Parameters::Blocks(_) => false,
         }
     }
 
@@ -442,67 +434,16 @@ impl CircuitInstruction {
                     }
                     Ok(true)
                 }
-                (Parameters::Box { body: body_a }, Parameters::Box { body: body_b }) => {
-                    body_a.bind(py).eq(body_b)
-                }
-                (
-                    Parameters::ForLoop {
-                        indexset: indexset_a,
-                        loop_param: loop_param_a,
-                        body: body_a,
-                    },
-                    Parameters::ForLoop {
-                        indexset: indexset_b,
-                        loop_param: loop_param_b,
-                        body: body_b,
-                    },
-                ) => {
-                    let loop_param_eq = || -> PyResult<bool> {
-                        match (loop_param_a, loop_param_b) {
-                            (Some(loop_param_a), Some(loop_param_b)) => {
-                                loop_param_a.bind(py).eq(loop_param_b)
-                            }
-                            _ => Ok(false),
-                        }
-                    };
-                    Ok(indexset_a == indexset_b
-                        && loop_param_eq()?
-                        && body_a.bind(py).eq(body_b)?)
-                }
-                (
-                    Parameters::IfElse {
-                        true_body: true_body_a,
-                        false_body: false_body_a,
-                    },
-                    Parameters::IfElse {
-                        true_body: true_body_b,
-                        false_body: false_body_b,
-                    },
-                ) => {
-                    let false_body_eq = || -> PyResult<bool> {
-                        match (false_body_a, false_body_b) {
-                            (Some(false_body_a), Some(false_body_b)) => {
-                                false_body_a.bind(py).eq(false_body_b)
-                            }
-                            (None, None) => Ok(true),
-                            _ => Ok(false),
-                        }
-                    };
-                    Ok(true_body_a.bind(py).eq(true_body_b)? && false_body_eq()?)
-                }
-                (Parameters::Switch { cases: cases_a }, Parameters::Switch { cases: cases_b }) => {
-                    if cases_a.len() != cases_b.len() {
+                (Parameters::Blocks(blocks_a), Parameters::Blocks(blocks_b)) => {
+                    if blocks_a.len() != blocks_b.len() {
                         return Ok(false);
                     }
-                    for (a, b) in cases_a.iter().zip(cases_b) {
+                    for (a, b) in blocks_a.iter().zip(blocks_b) {
                         if !a.bind(py).eq(b)? {
                             return Ok(false);
                         }
                     }
                     Ok(true)
-                }
-                (Parameters::While { body: body_a }, Parameters::While { body: body_b }) => {
-                    body_a.bind(py).eq(body_b)
                 }
                 _ => Ok(false),
             }
@@ -883,10 +824,30 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                     qubits: ob.getattr("num_qubits")?.extract()?,
                     clbits: ob.getattr("num_clbits")?.extract()?,
                 },
-                ControlFlowType::ForLoop => ControlFlow::ForLoop {
-                    qubits: ob.getattr("num_qubits")?.extract()?,
-                    clbits: ob.getattr("num_clbits")?.extract()?,
-                },
+                ControlFlowType::ForLoop => {
+                    // We lift for-loop's indexset and loop parameter from `params` to the
+                    // operation itself for Rust since it's nicer to work with.
+                    let mut params = params.try_iter()?;
+                    let indexset = {
+                        // The indexset is an iterable of ints, so we extract each
+                        // and store them all in a Vec.
+                        let indexset = params.next().unwrap()?.try_iter()?;
+                        indexset
+                            .map(|index| index?.extract())
+                            .collect::<PyResult<_>>()?
+                    };
+                    let loop_param = params
+                        .next()
+                        .unwrap()?
+                        .extract::<Option<Bound<PyAny>>>()?
+                        .map(|p| p.unbind());
+                    ControlFlow::ForLoop {
+                        indexset,
+                        loop_param,
+                        qubits: ob.getattr("num_qubits")?.extract()?,
+                        clbits: ob.getattr("num_clbits")?.extract()?,
+                    }
+                }
                 ControlFlowType::IfElse => ControlFlow::IfElse {
                     condition: ob.getattr(intern!(py, "condition"))?.extract()?,
                     qubits: ob.getattr("num_qubits")?.extract()?,
@@ -1013,52 +974,23 @@ pub fn extract_params(
 ) -> PyResult<Option<Parameters<PyObject>>> {
     Ok(match op {
         OperationRef::ControlFlow(cf) => match cf {
-            ControlFlow::Box { .. } => Some(Parameters::Box {
-                body: params.try_iter()?.next().unwrap()?.unbind(),
-            }),
             ControlFlow::BreakLoop { .. } => None,
             ControlFlow::ContinueLoop { .. } => None,
             ControlFlow::ForLoop { .. } => {
-                let mut params = params.try_iter()?;
-                let indexset = {
-                    // The indexset is an iterable of ints, so we extract each
-                    // and store them all in a Vec.
-                    let indexset = params.next().unwrap()?.try_iter()?;
-                    indexset
-                        .map(|index| index?.extract())
-                        .collect::<PyResult<_>>()?
-                };
-                Some(Parameters::ForLoop {
-                    indexset,
-                    loop_param: params
-                        .next()
-                        .unwrap()?
-                        .extract::<Option<Bound<PyAny>>>()?
-                        .map(|p| p.unbind()),
-                    body: params.next().unwrap()?.unbind(),
-                })
+                // We skip the first two parameters (indexset and loop_param) since we
+                // store those directly on the operation in Rust.
+                let mut params = params.try_iter()?.skip(2);
+                Some(Parameters::Blocks(vec![params.next().unwrap()?.unbind()]))
             }
-            ControlFlow::IfElse { .. } => {
-                let mut params = params.try_iter()?;
-                Some(Parameters::IfElse {
-                    true_body: params.next().unwrap()?.unbind(),
-                    false_body: params
-                        .next()
-                        .unwrap()?
-                        .extract::<Option<Bound<PyAny>>>()?
-                        .map(|p| p.unbind()),
-                })
-            }
-            ControlFlow::Switch { .. } => {
-                let cases: Vec<PyObject> = params
+            _ => {
+                // For all other control flow operations with blocks, the 'params' in Python land
+                // are exactly the blocks.
+                let blocks: Vec<PyObject> = params
                     .try_iter()?
                     .map(|p| p.map(|p| p.unbind()))
                     .collect::<PyResult<_>>()?;
-                Some(Parameters::Switch { cases })
+                Some(Parameters::Blocks(blocks))
             }
-            ControlFlow::While { .. } => Some(Parameters::While {
-                body: params.try_iter()?.next().unwrap()?.unbind(),
-            }),
         },
         OperationRef::StandardGate(_) => Some(Parameters::Params(params.extract()?)),
         OperationRef::StandardInstruction(i) => {

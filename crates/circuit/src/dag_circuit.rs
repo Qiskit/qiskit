@@ -160,47 +160,13 @@ impl DAGInstruction {
         //       CircuitData blocks instead
         let params: Option<Parameters<DAGCircuit>> = match instr.params.map(|p| *p) {
             None => None,
-            Some(Parameters::Box { body }) => Python::with_gil(|py| -> PyResult<Option<_>> {
-                Ok(Some(Parameters::Box {
-                    body: circuit_to_dag(body.extract(py)?, false, None, None)?,
-                }))
-            })?,
-            Some(Parameters::ForLoop {
-                indexset,
-                loop_param,
-                body,
-            }) => Python::with_gil(|py| -> PyResult<Option<_>> {
-                Ok(Some(Parameters::ForLoop {
-                    indexset,
-                    loop_param,
-                    body: circuit_to_dag(body.extract(py)?, false, None, None)?,
-                }))
-            })?,
-            Some(Parameters::IfElse {
-                true_body,
-                false_body,
-            }) => Python::with_gil(|py| -> PyResult<Option<_>> {
-                let false_body = match false_body {
-                    Some(body) => Some(circuit_to_dag(body.extract(py)?, false, None, None)?),
-                    None => None,
-                };
-                Ok(Some(Parameters::IfElse {
-                    true_body: circuit_to_dag(true_body.extract(py)?, false, None, None)?,
-                    false_body,
-                }))
-            })?,
-            Some(Parameters::Switch { cases }) => Python::with_gil(|py| -> PyResult<Option<_>> {
-                Ok(Some(Parameters::Switch {
-                    cases: cases
+            Some(Parameters::Blocks(blocks)) => Python::with_gil(|py| -> PyResult<Option<_>> {
+                Ok(Some(Parameters::Blocks(
+                    blocks
                         .into_iter()
                         .map(|c| circuit_to_dag(c.extract(py)?, false, None, None))
                         .collect::<PyResult<_>>()?,
-                }))
-            })?,
-            Some(Parameters::While { body }) => Python::with_gil(|py| -> PyResult<Option<_>> {
-                Ok(Some(Parameters::While {
-                    body: circuit_to_dag(body.extract(py)?, false, None, None)?,
-                }))
+                )))
             })?,
             Some(Parameters::Params(params)) => Some(Parameters::Params(params)),
         };
@@ -218,52 +184,14 @@ impl DAGInstruction {
     pub fn into_packed(self) -> PyResult<PackedInstruction> {
         let params: Option<Parameters<PyObject>> = match self.params.map(|p| *p) {
             None => None,
-            Some(Parameters::Box { body }) => Python::with_gil(|py| -> PyResult<_> {
+            Some(Parameters::Blocks(blocks)) => Python::with_gil(|py| -> PyResult<_> {
                 let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
-                Ok(Some(Parameters::Box {
-                    body: dag_to_circuit.call1((body,))?.unbind(),
-                }))
-            })?,
-            Some(Parameters::ForLoop {
-                indexset,
-                loop_param,
-                body,
-            }) => Python::with_gil(|py| -> PyResult<_> {
-                let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
-                Ok(Some(Parameters::ForLoop {
-                    indexset,
-                    loop_param,
-                    body: dag_to_circuit.call1((body,))?.unbind(),
-                }))
-            })?,
-            Some(Parameters::IfElse {
-                true_body,
-                false_body,
-            }) => Python::with_gil(|py| -> PyResult<_> {
-                let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
-                let false_body = match false_body {
-                    Some(body) => Some(dag_to_circuit.call1((body,))?.unbind()),
-                    None => None,
-                };
-                Ok(Some(Parameters::IfElse {
-                    true_body: dag_to_circuit.call1((true_body,))?.unbind(),
-                    false_body,
-                }))
-            })?,
-            Some(Parameters::Switch { cases }) => Python::with_gil(|py| -> PyResult<_> {
-                let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
-                Ok(Some(Parameters::Switch {
-                    cases: cases
+                Ok(Some(Parameters::Blocks(
+                    blocks
                         .into_iter()
                         .map(|c| Ok(dag_to_circuit.call1((c,))?.unbind()))
                         .collect::<PyResult<_>>()?,
-                }))
-            })?,
-            Some(Parameters::While { body }) => Python::with_gil(|py| -> PyResult<_> {
-                let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
-                Ok(Some(Parameters::While {
-                    body: dag_to_circuit.call1((body,))?.unbind(),
-                }))
+                )))
             })?,
             Some(Parameters::Params(params)) => Some(Parameters::Params(params)),
         };
@@ -285,11 +213,7 @@ impl DAGInstruction {
         };
         match params {
             Parameters::Params(p) => p.iter().any(|x| matches!(x, Param::ParameterExpression(_))),
-            Parameters::Box { .. } => false,
-            Parameters::ForLoop { .. } => false,
-            Parameters::IfElse { .. } => false,
-            Parameters::Switch { .. } => false,
-            Parameters::While { .. } => false,
+            Parameters::Blocks(_) => false,
         }
     }
 
@@ -406,55 +330,6 @@ impl<'a> IntoInstructionView<'a> for &'a DAGInstruction {
             }
             StandardInstruction::Measure => StandardInstructionView::Measure,
             StandardInstruction::Reset => StandardInstructionView::Reset,
-        })
-    }
-
-    fn try_view_control_flow(self) -> Option<ControlFlowView<'a, Self::Block>> {
-        let OperationRef::ControlFlow(control) = self.op.view() else {
-            return None;
-        };
-        Some(match (control, self.params.as_deref()) {
-            (ControlFlow::Box { duration, .. }, Some(Parameters::Box { body })) => {
-                ControlFlowView::Box(duration.as_ref(), body)
-            }
-            (ControlFlow::BreakLoop { .. }, _) => ControlFlowView::BreakLoop,
-            (ControlFlow::ContinueLoop { .. }, _) => ControlFlowView::ContinueLoop,
-            (
-                ControlFlow::ForLoop { .. },
-                Some(Parameters::ForLoop {
-                    indexset,
-                    loop_param,
-                    body,
-                }),
-            ) => ControlFlowView::ForLoop {
-                indexset,
-                loop_param: loop_param.as_ref(),
-                body,
-            },
-            (
-                ControlFlow::IfElse { condition, .. },
-                Some(Parameters::IfElse {
-                    true_body,
-                    false_body,
-                }),
-            ) => ControlFlowView::IfElse {
-                condition,
-                true_body,
-                false_body: false_body.as_ref(),
-            },
-            (
-                ControlFlow::Switch {
-                    target, label_spec, ..
-                },
-                Some(Parameters::Switch { cases }),
-            ) => ControlFlowView::Switch {
-                target,
-                cases_specifier: label_spec.iter().zip(cases).collect(),
-            },
-            (ControlFlow::While { condition, .. }, Some(Parameters::While { body })) => {
-                ControlFlowView::While { condition, body }
-            }
-            _ => panic!("invalid control-flow instruction parameters"),
         })
     }
 

@@ -42,6 +42,7 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyList, PyTuple};
 use pyo3::{intern, IntoPyObjectExt, Python};
+use rustworkx_core::petgraph::matrix_graph::Nullable;
 
 #[derive(Clone, Debug)]
 pub enum Param {
@@ -379,6 +380,8 @@ pub enum ControlFlow {
         clbits: u32,
     },
     ForLoop {
+        indexset: Vec<usize>,
+        loop_param: Option<PyObject>,
         qubits: u32,
         clbits: u32,
     },
@@ -457,13 +460,26 @@ impl ControlFlow {
                 _ => Ok(false),
             },
             ControlFlow::ForLoop {
+                indexset: self_indexset,
+                loop_param: self_loop_param,
                 qubits: self_qubits,
                 clbits: self_clbits,
             } => match other {
                 ControlFlow::ForLoop {
+                    indexset: other_indexset,
+                    loop_param: other_loop_param,
                     qubits: other_qubits,
                     clbits: other_clbits,
-                } => Ok(self_qubits == other_qubits && self_clbits == other_clbits),
+                } => Ok(self_qubits == other_qubits
+                    && self_clbits == other_clbits
+                    && self_indexset == other_indexset
+                    && self_loop_param
+                        .as_ref()
+                        .zip(other_loop_param.as_ref())
+                        .map(|(p1, p2)| p1.bind(py).eq(p2))
+                        .unwrap_or_else(|| {
+                            Ok(self_loop_param.is_none() && other_loop_param.is_none())
+                        })?),
                 _ => Ok(false),
             },
             ControlFlow::IfElse {

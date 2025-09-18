@@ -26,7 +26,9 @@ use crate::dag_circuit::{add_global_phase, DAGCircuit, DAGStretchType, DAGVarTyp
 use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, Interner};
 use crate::object_registry::ObjectRegistry;
-use crate::operations::{Operation, OperationRef, Param, PythonOperation, StandardGate};
+use crate::operations::{
+    ControlFlow, Operation, OperationRef, Param, PythonOperation, StandardGate,
+};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::ParameterExpression;
 use crate::parameter::symbol_expr::{Symbol, Value};
@@ -46,6 +48,7 @@ use pyo3::{import_exception, intern, PyTraverseError, PyVisit};
 use crate::instruction::{ControlFlowView, Instruction, IntoInstructionView, Parameters};
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
+use itertools::Itertools;
 use rustworkx_core::petgraph::graph::NodeIndex;
 use smallvec::SmallVec;
 
@@ -1828,7 +1831,74 @@ impl CircuitData {
 
 impl CircuitData {
     pub fn try_view_control_flow(&self, index: usize) -> Option<ControlFlowView<PyObject>> {
-        todo!()
+        let instr = &self.data[index];
+        let OperationRef::ControlFlow(control) = instr.op.view() else {
+            return None;
+        };
+        Some(match control {
+            ControlFlow::Box { duration, .. } => {
+                let Some(Parameters::Blocks(blocks)) = instr.params.as_deref() else {
+                    panic!("invalid box parameters");
+                };
+                ControlFlowView::Box(duration.as_ref(), &blocks[0])
+            }
+            ControlFlow::BreakLoop { .. } => ControlFlowView::BreakLoop,
+            ControlFlow::ContinueLoop { .. } => ControlFlowView::ContinueLoop,
+            ControlFlow::ForLoop {
+                indexset,
+                loop_param,
+                ..
+            } => {
+                let Some(Parameters::Blocks(blocks)) = instr.params.as_deref() else {
+                    panic!("invalid for loop parameters");
+                };
+                ControlFlowView::ForLoop {
+                    indexset: indexset.as_slice(),
+                    loop_param: loop_param.as_ref(),
+                    body: &blocks[0],
+                }
+            }
+            ControlFlow::IfElse { condition, .. } => {
+                let Some(Parameters::Blocks(blocks)) = instr.params.as_deref() else {
+                    panic!("invalid ifelse parameters");
+                };
+                ControlFlowView::IfElse {
+                    condition,
+                    true_body: &blocks[0],
+                    false_body: blocks.get(1),
+                }
+            }
+            ControlFlow::Switch {
+                target, label_spec, ..
+            } => {
+                let cases_specifier = label_spec
+                    .iter()
+                    .zip(
+                        instr
+                            .params
+                            .as_deref()
+                            .and_then(|p| match p {
+                                Parameters::Blocks(cases) => Some(cases),
+                                _ => None,
+                            })
+                            .expect("invalid switch parameters"),
+                    )
+                    .collect();
+                ControlFlowView::Switch {
+                    target,
+                    cases_specifier,
+                }
+            }
+            ControlFlow::While { condition, .. } => {
+                let Some(Parameters::Blocks(blocks)) = instr.params.as_deref() else {
+                    panic!("invalid while parameters");
+                };
+                ControlFlowView::While {
+                    condition,
+                    body: &blocks[0],
+                }
+            }
+        })
     }
 
     /// An alternate constructor to build a new `CircuitData` from an iterator
@@ -2160,10 +2230,10 @@ impl CircuitData {
     /// Add the entries from the `PackedInstruction` at the given index to the internal parameter
     /// table.
     fn track_instruction_parameters(&mut self, instruction_index: usize) -> PyResult<()> {
+        let instr = &self.data[instruction_index];
         let Some(parameters) = self.data[instruction_index].parameters() else {
             return Ok(());
         };
-
         match parameters {
             Parameters::Params(params) => {
                 for (index, param) in params.iter().enumerate() {
@@ -2179,116 +2249,69 @@ impl CircuitData {
                     }
                 }
             }
-            Parameters::Box { body } => {
-                Python::with_gil(|py| -> PyResult<_> {
-                    let usage = ParameterUse::Index {
-                        instruction: instruction_index,
-                        parameter: 0,
-                    };
-                    for param_ob in body
-                        .bind(py)
-                        .getattr(intern!(py, "parameters"))?
-                        .try_iter()?
-                    {
-                        self.param_table.track(&param_ob?.extract()?, Some(usage))?;
-                    }
-                    Ok(())
-                })?;
-            }
-            Parameters::ForLoop {
-                loop_param, body, ..
-            } => {
-                Python::with_gil(|py| -> PyResult<_> {
-                    if let Some(loop_param) = loop_param {
-                        self.param_table.track(
-                            &loop_param.bind(py).extract()?,
-                            Some(ParameterUse::Index {
+            Parameters::Blocks(_) => {
+                let blocks: Vec<_> = self
+                    .try_view_control_flow(instruction_index)
+                    .unwrap()
+                    .blocks()
+                    .cloned()
+                    .collect();
+                match instr.op.view() {
+                    OperationRef::ControlFlow(ControlFlow::ForLoop { loop_param, .. }) => {
+                        Python::with_gil(|py| -> PyResult<_> {
+                            // The loop param is technically a parameter in Python land, stored at
+                            // argument position 1.
+                            if let Some(loop_param) = loop_param {
+                                self.param_table.track(
+                                    &loop_param.bind(py).extract()?,
+                                    Some(ParameterUse::Index {
+                                        instruction: instruction_index,
+                                        parameter: 1,
+                                    }),
+                                )?;
+                            }
+                            let usage = ParameterUse::Index {
                                 instruction: instruction_index,
-                                parameter: 1,
-                            }),
-                        )?;
+                                parameter: 2,
+                            };
+                            for param_ob in &blocks[0]
+                                .bind(py)
+                                .getattr(intern!(py, "parameters"))?
+                                .try_iter()?
+                            {
+                                self.param_table.track(&param_ob?.extract()?, Some(usage))?;
+                            }
+                            Ok(())
+                        })?;
                     }
-                    let usage = ParameterUse::Index {
-                        instruction: instruction_index,
-                        parameter: 2,
-                    };
-                    for param_ob in body
-                        .bind(py)
-                        .getattr(intern!(py, "parameters"))?
-                        .try_iter()?
-                    {
-                        self.param_table.track(&param_ob?.extract()?, Some(usage))?;
+                    OperationRef::ControlFlow(_) => {
+                        // All the other control flow operations are simple, and their "blocks"
+                        // are exactly their parameters, in the right order.
+                        let blocks: Vec<_> = self
+                            .try_view_control_flow(instruction_index)
+                            .unwrap()
+                            .blocks()
+                            .cloned()
+                            .collect();
+                        Python::with_gil(|py| -> PyResult<_> {
+                            for (idx, case) in blocks.iter().enumerate() {
+                                let usage = ParameterUse::Index {
+                                    instruction: instruction_index,
+                                    parameter: idx as u32,
+                                };
+                                for param_ob in case
+                                    .bind(py)
+                                    .getattr(intern!(py, "parameters"))?
+                                    .try_iter()?
+                                {
+                                    self.param_table.track(&param_ob?.extract()?, Some(usage))?;
+                                }
+                            }
+                            Ok(())
+                        })?;
                     }
-                    Ok(())
-                })?;
-            }
-            Parameters::IfElse {
-                true_body,
-                false_body,
-            } => {
-                Python::with_gil(|py| -> PyResult<_> {
-                    let true_usage = ParameterUse::Index {
-                        instruction: instruction_index,
-                        parameter: 0,
-                    };
-                    for param_ob in true_body
-                        .bind(py)
-                        .getattr(intern!(py, "parameters"))?
-                        .try_iter()?
-                    {
-                        self.param_table
-                            .track(&param_ob?.extract()?, Some(true_usage))?;
-                    }
-                    if let Some(false_body) = false_body {
-                        let false_usage = ParameterUse::Index {
-                            instruction: instruction_index,
-                            parameter: 1,
-                        };
-                        for param_ob in false_body
-                            .bind(py)
-                            .getattr(intern!(py, "parameters"))?
-                            .try_iter()?
-                        {
-                            self.param_table
-                                .track(&param_ob?.extract()?, Some(false_usage))?;
-                        }
-                    }
-                    Ok(())
-                })?;
-            }
-            Parameters::Switch { cases } => {
-                Python::with_gil(|py| -> PyResult<_> {
-                    for (idx, case) in cases.iter().enumerate() {
-                        let usage = ParameterUse::Index {
-                            instruction: instruction_index,
-                            parameter: idx as u32,
-                        };
-                        for param_ob in case
-                            .bind(py)
-                            .getattr(intern!(py, "parameters"))?
-                            .try_iter()?
-                        {
-                            self.param_table.track(&param_ob?.extract()?, Some(usage))?;
-                        }
-                    }
-                    Ok(())
-                })?;
-            }
-            Parameters::While { body } => {
-                Python::with_gil(|py| -> PyResult<_> {
-                    let usage = ParameterUse::Index {
-                        instruction: instruction_index,
-                        parameter: 0,
-                    };
-                    for param_ob in body
-                        .bind(py)
-                        .getattr(intern!(py, "parameters"))?
-                        .try_iter()?
-                    {
-                        self.param_table.track(&param_ob?.extract()?, Some(usage))?;
-                    }
-                    Ok(())
-                })?;
+                    _ => panic!("instruction has blocks but is not control flow"),
+                }
             }
         }
         Ok(())
@@ -2297,10 +2320,10 @@ impl CircuitData {
     /// Remove the entries from the `PackedInstruction` at the given index from the internal
     /// parameter table.
     fn untrack_instruction_parameters(&mut self, instruction_index: usize) -> PyResult<()> {
+        let instr = &self.data[instruction_index];
         let Some(parameters) = self.data[instruction_index].parameters() else {
             return Ok(());
         };
-
         match parameters {
             Parameters::Params(params) => {
                 for (index, param) in params.iter().enumerate() {
@@ -2316,116 +2339,69 @@ impl CircuitData {
                     }
                 }
             }
-            Parameters::Box { body } => {
-                let usage = ParameterUse::Index {
-                    instruction: instruction_index,
-                    parameter: 0,
-                };
-                Python::with_gil(|py| -> PyResult<_> {
-                    for param_ob in body
-                        .bind(py)
-                        .getattr(intern!(py, "parameters"))?
-                        .try_iter()?
-                    {
-                        self.param_table.untrack(&param_ob?.extract()?, usage)?;
-                    }
-                    Ok(())
-                })?;
-            }
-            Parameters::ForLoop {
-                loop_param, body, ..
-            } => {
-                Python::with_gil(|py| -> PyResult<_> {
-                    if let Some(loop_param) = loop_param {
-                        self.param_table.untrack(
-                            &loop_param.bind(py).extract()?,
-                            ParameterUse::Index {
+            Parameters::Blocks(_) => {
+                let blocks: Vec<_> = self
+                    .try_view_control_flow(instruction_index)
+                    .unwrap()
+                    .blocks()
+                    .cloned()
+                    .collect();
+                match instr.op.view() {
+                    OperationRef::ControlFlow(ControlFlow::ForLoop { loop_param, .. }) => {
+                        Python::with_gil(|py| -> PyResult<_> {
+                            // The loop param is technically a parameter in Python land, stored at
+                            // argument position 1.
+                            if let Some(loop_param) = loop_param {
+                                self.param_table.untrack(
+                                    &loop_param.bind(py).extract()?,
+                                    ParameterUse::Index {
+                                        instruction: instruction_index,
+                                        parameter: 1,
+                                    },
+                                )?;
+                            }
+                            let usage = ParameterUse::Index {
                                 instruction: instruction_index,
-                                parameter: 1,
-                            },
-                        )?;
+                                parameter: 2,
+                            };
+                            for param_ob in &blocks[0]
+                                .bind(py)
+                                .getattr(intern!(py, "parameters"))?
+                                .try_iter()?
+                            {
+                                self.param_table.untrack(&param_ob?.extract()?, usage)?;
+                            }
+                            Ok(())
+                        })?;
                     }
-                    let usage = ParameterUse::Index {
-                        instruction: instruction_index,
-                        parameter: 2,
-                    };
-                    for param_ob in body
-                        .bind(py)
-                        .getattr(intern!(py, "parameters"))?
-                        .try_iter()?
-                    {
-                        self.param_table.untrack(&param_ob?.extract()?, usage)?;
+                    OperationRef::ControlFlow(_) => {
+                        // All the other control flow operations are simple, and their "blocks"
+                        // are exactly their parameters, in the right order.
+                        let blocks: Vec<_> = self
+                            .try_view_control_flow(instruction_index)
+                            .unwrap()
+                            .blocks()
+                            .cloned()
+                            .collect();
+                        Python::with_gil(|py| -> PyResult<_> {
+                            for (idx, case) in blocks.iter().enumerate() {
+                                let usage = ParameterUse::Index {
+                                    instruction: instruction_index,
+                                    parameter: idx as u32,
+                                };
+                                for param_ob in case
+                                    .bind(py)
+                                    .getattr(intern!(py, "parameters"))?
+                                    .try_iter()?
+                                {
+                                    self.param_table.untrack(&param_ob?.extract()?, usage)?;
+                                }
+                            }
+                            Ok(())
+                        })?;
                     }
-                    Ok(())
-                })?;
-            }
-            Parameters::IfElse {
-                true_body,
-                false_body,
-            } => {
-                Python::with_gil(|py| -> PyResult<_> {
-                    let true_usage = ParameterUse::Index {
-                        instruction: instruction_index,
-                        parameter: 0,
-                    };
-                    for param_ob in true_body
-                        .bind(py)
-                        .getattr(intern!(py, "parameters"))?
-                        .try_iter()?
-                    {
-                        self.param_table
-                            .untrack(&param_ob?.extract()?, true_usage)?;
-                    }
-                    if let Some(false_body) = false_body {
-                        let false_usage = ParameterUse::Index {
-                            instruction: instruction_index,
-                            parameter: 1,
-                        };
-                        for param_ob in false_body
-                            .bind(py)
-                            .getattr(intern!(py, "parameters"))?
-                            .try_iter()?
-                        {
-                            self.param_table
-                                .untrack(&param_ob?.extract()?, false_usage)?;
-                        }
-                    }
-                    Ok(())
-                })?;
-            }
-            Parameters::Switch { cases } => {
-                Python::with_gil(|py| -> PyResult<_> {
-                    for (idx, case) in cases.iter().enumerate() {
-                        let usage = ParameterUse::Index {
-                            instruction: instruction_index,
-                            parameter: idx as u32,
-                        };
-                        for param_ob in case
-                            .bind(py)
-                            .getattr(intern!(py, "parameters"))?
-                            .try_iter()?
-                        {
-                            self.param_table.untrack(&param_ob?.extract()?, usage)?;
-                        }
-                    }
-                    Ok(())
-                })?;
-            }
-            Parameters::While { body } => {
-                Python::with_gil(|py| -> PyResult<_> {
-                    let usage = ParameterUse::Index {
-                        instruction: instruction_index,
-                        parameter: 0,
-                    };
-                    for param_ob in body
-                        .bind(py)
-                        .getattr(intern!(py, "parameters"))?
-                        .try_iter()?
-                    {
-                        self.param_table.untrack(&param_ob?.extract()?, usage)?;
-                    }
-                    Ok(())
-                })?;
+                    _ => panic!("instruction has blocks but is not control flow"),
+                }
             }
         }
         Ok(())
@@ -2687,8 +2663,9 @@ impl CircuitData {
                         parameter,
                     } => {
                         let parameter = parameter as usize;
-                        let previous = &mut self.data[instruction];
-                        if let OperationRef::StandardGate(standard) = previous.op.view() {
+                        let previous_op = &self.data[instruction].op;
+                        if let OperationRef::StandardGate(standard) = previous_op.view() {
+                            let previous = &mut self.data[instruction];
                             let Some(Parameters::Params(params)) = previous.params.as_deref_mut()
                             else {
                                 return Err(inconsistent());
@@ -2720,57 +2697,70 @@ impl CircuitData {
                                 // https://github.com/Qiskit/qiskit/issues/13504
                                 previous.py_op.take();
                             }
-                        } else if let OperationRef::ControlFlow(_) = previous.op.view() {
-                            Python::with_gil(|py| -> PyResult<()> {
-                                let assign_parameters_attr = intern!(py, "assign_parameters");
-                                let map_block = |obj: &PyObject| -> PyResult<PyObject> {
-                                    obj.call_method(
-                                        py,
-                                        assign_parameters_attr,
-                                        ([(symbol.clone(), value.as_ref().clone_ref(py))]
-                                            .into_py_dict(py)?,),
-                                        Some(
-                                            &[("inplace", false), ("flat_input", true)]
-                                                .into_py_dict(py)?,
-                                        ),
-                                    )
+                        } else if let OperationRef::ControlFlow(_) = previous_op.view() {
+                            let mapped_block =
+                                Python::with_gil(|py| -> PyResult<Option<PyObject>> {
+                                    let assign_parameters_attr = intern!(py, "assign_parameters");
+                                    let map_block = |obj: &PyObject| -> PyResult<PyObject> {
+                                        obj.call_method(
+                                            py,
+                                            assign_parameters_attr,
+                                            ([(symbol.clone(), value.as_ref().clone_ref(py))]
+                                                .into_py_dict(py)?,),
+                                            Some(
+                                                &[("inplace", false), ("flat_input", true)]
+                                                    .into_py_dict(py)?,
+                                            ),
+                                        )
+                                    };
+                                    let cf = self.try_view_control_flow(instruction).unwrap();
+                                    match cf {
+                                        ControlFlowView::BreakLoop => Ok(None),
+                                        ControlFlowView::ContinueLoop => Ok(None),
+                                        ControlFlowView::ForLoop { body, .. } => {
+                                            match parameter {
+                                                2 => {
+                                                    // In Python land, the loop body exists at parameter
+                                                    // position 2.
+                                                    Some(map_block(body)).transpose()
+                                                }
+                                                _ => return Err(inconsistent()),
+                                            }
+                                        }
+                                        _ => {
+                                            // Most control flow instructions use the parameters for
+                                            // *just* their blocks.
+                                            Some(map_block(cf.blocks().nth(parameter).unwrap()))
+                                                .transpose()
+                                        }
+                                    }
+                                })?;
+                            let previous = &mut self.data[instruction];
+                            if let Some(mapped_block) = mapped_block {
+                                let blocks = match previous.params.as_deref_mut().unwrap() {
+                                    Parameters::Blocks(blocks) => blocks,
+                                    Parameters::Params(_) => return Err(inconsistent()),
                                 };
-                                match (parameter, previous.params.as_deref_mut().unwrap()) {
-                                    (0, Parameters::Box { body }) => {
-                                        *body = map_block(body)?;
-                                    }
-                                    (2, Parameters::ForLoop { body, .. }) => {
-                                        *body = map_block(body)?;
-                                    }
-                                    (0, Parameters::IfElse { true_body, .. }) => {
-                                        *true_body = map_block(true_body)?;
-                                    }
-                                    (1, Parameters::IfElse { false_body, .. }) => {
-                                        *false_body = match false_body {
-                                            Some(false_body) => Some(map_block(false_body)?),
-                                            None => None,
-                                        };
-                                    }
-                                    (_, Parameters::Switch { cases })
-                                        if parameter < cases.len() =>
-                                    {
-                                        cases[parameter] = map_block(&cases[parameter])?;
-                                    }
-                                    (0, Parameters::While { body }) => {
-                                        *body = map_block(body)?;
-                                    }
-                                    _ => return Err(inconsistent()),
-                                };
-                                for uuid in uuids.iter() {
-                                    self.param_table.add_use(*uuid, usage)?
+                                if matches!(
+                                    previous.op.try_control_flow(),
+                                    Some(ControlFlow::ForLoop { .. })
+                                ) {
+                                    // In Python land, the loop body exists at parameter
+                                    // position 2.
+                                    blocks[2] = mapped_block;
+                                } else {
+                                    blocks[parameter] = mapped_block;
                                 }
-                                #[cfg(feature = "cache_pygates")]
-                                {
-                                    previous.py_op.take();
-                                }
-                                Ok(())
-                            })?;
+                            }
+                            for uuid in uuids.iter() {
+                                self.param_table.add_use(*uuid, usage)?
+                            }
+                            #[cfg(feature = "cache_pygates")]
+                            {
+                                previous.py_op.take();
+                            }
                         } else {
+                            let previous = &mut self.data[instruction];
                             // Track user operations we've seen so we can rebind their definitions.
                             // Strictly this can add the same binding pair more than once, if an
                             // instruction has the same `Parameter` in several of its `params`, but

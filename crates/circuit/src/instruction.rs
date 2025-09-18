@@ -38,9 +38,6 @@ pub trait IntoInstructionView<'a> {
     /// Returns a view of this instruction as a standard instruction, if applicable.
     fn try_view_standard_instruction(self) -> Option<StandardInstructionView<'a>>;
 
-    /// Returns a view of this instruction as a control flow instruction, if applicable.
-    fn try_view_control_flow(self) -> Option<ControlFlowView<'a, Self::Block>>;
-
     /// Returns the old-style [Param] sequence, unless this is a control
     /// flow instruction.
     fn try_legacy_params(self) -> Option<&'a [Param]>;
@@ -90,24 +87,7 @@ pub trait Instruction {
 #[derive(Clone, Debug)]
 pub enum Parameters<T> {
     Params(SmallVec<[Param; 3]>),
-    Box {
-        body: T,
-    },
-    ForLoop {
-        indexset: Vec<usize>,
-        loop_param: Option<PyObject>,
-        body: T,
-    },
-    IfElse {
-        true_body: T,
-        false_body: Option<T>,
-    },
-    Switch {
-        cases: Vec<T>,
-    },
-    While {
-        body: T,
-    },
+    Blocks(Vec<T>),
 }
 
 impl<T> Parameters<T> {
@@ -115,11 +95,7 @@ impl<T> Parameters<T> {
     pub fn len(&self) -> usize {
         match self {
             Parameters::Params(params) => params.len(),
-            Parameters::Box { .. } => 1,
-            Parameters::ForLoop { .. } => 3,
-            Parameters::IfElse { .. } => 2,
-            Parameters::Switch { cases, .. } => cases.len(),
-            Parameters::While { .. } => 1,
+            Parameters::Blocks(blocks) => blocks.len(),
         }
     }
 
@@ -133,36 +109,16 @@ impl<T> Parameters<T> {
     /// Panics if `blocks` does not contain exactly the expected number of blocks
     /// for the parameter set.
     pub fn replace_blocks(&mut self, blocks: impl IntoIterator<Item = T>) {
-        let mut replacements = blocks.into_iter();
+        let mut replacements: Vec<T> = blocks.into_iter().collect();
         match self {
             Parameters::Params(_) => {}
-            Parameters::Box { body, .. } => {
-                *body = replacements.next().expect("not enough blocks");
+            Parameters::Blocks(blocks) => {
+                assert_eq!(
+                    replacements.len(),
+                    blocks.len(),
+                    "replacement blocks wrong size"
+                );
             }
-            Parameters::ForLoop { body, .. } => {
-                *body = replacements.next().expect("not enough blocks");
-            }
-            Parameters::IfElse {
-                true_body,
-                false_body,
-                ..
-            } => {
-                *true_body = replacements.next().expect("not enough blocks");
-                if false_body.is_some() {
-                    *false_body = Some(replacements.next().expect("not enough blocks"));
-                }
-            }
-            Parameters::Switch { cases, .. } => {
-                for case in cases {
-                    *case = replacements.next().expect("not enough blocks");
-                }
-            }
-            Parameters::While { body, .. } => {
-                *body = replacements.next().expect("not enough blocks");
-            }
-        }
-        if replacements.next().is_some() {
-            panic!("too many blocks");
         }
     }
 }
@@ -203,77 +159,6 @@ impl<'a, T: Instruction> IntoInstructionView<'a> for &'a T {
             }
             StandardInstruction::Measure => StandardInstructionView::Measure,
             StandardInstruction::Reset => StandardInstructionView::Reset,
-        })
-    }
-
-    fn try_view_control_flow(self) -> Option<ControlFlowView<'a, Self::Block>> {
-        let OperationRef::ControlFlow(control) = self.op() else {
-            return None;
-        };
-
-        Some(match control {
-            ControlFlow::Box { duration, .. } => {
-                let Some(Parameters::Box { body }) = self.parameters() else {
-                    panic!("invalid box parameters");
-                };
-                ControlFlowView::Box(duration.as_ref(), body)
-            }
-            ControlFlow::BreakLoop { .. } => ControlFlowView::BreakLoop,
-            ControlFlow::ContinueLoop { .. } => ControlFlowView::ContinueLoop,
-            ControlFlow::ForLoop { .. } => {
-                let Some(Parameters::ForLoop {
-                    indexset,
-                    loop_param,
-                    body,
-                }) = self.parameters()
-                else {
-                    panic!("invalid for loop parameters");
-                };
-                ControlFlowView::ForLoop {
-                    indexset,
-                    loop_param: loop_param.as_ref(),
-                    body,
-                }
-            }
-            ControlFlow::IfElse { condition, .. } => {
-                let Some(Parameters::IfElse {
-                    true_body,
-                    false_body,
-                }) = self.parameters()
-                else {
-                    panic!("invalid ifelse parameters");
-                };
-                ControlFlowView::IfElse {
-                    condition,
-                    true_body,
-                    false_body: false_body.as_ref(),
-                }
-            }
-            ControlFlow::Switch {
-                target, label_spec, ..
-            } => {
-                let cases_specifier = label_spec
-                    .iter()
-                    .zip(
-                        self.parameters()
-                            .and_then(|p| match p {
-                                Parameters::Switch { cases } => Some(cases),
-                                _ => None,
-                            })
-                            .expect("invalid switch parameters"),
-                    )
-                    .collect();
-                ControlFlowView::Switch {
-                    target,
-                    cases_specifier,
-                }
-            }
-            ControlFlow::While { condition, .. } => {
-                let Some(Parameters::While { body }) = self.parameters() else {
-                    panic!("invalid while parameters");
-                };
-                ControlFlowView::While { condition, body }
-            }
         })
     }
 
