@@ -30,10 +30,16 @@ pub struct PyObjectAsKey {
     /// Python's `hash()` of the wrapped instance.
     hash: isize,
     /// The wrapped instance.
-    ob: PyObject,
+    // TODO: remove pub again, just a temporary hack to get things working
+    pub ob: PyObject,
 }
 
 impl PyObjectAsKey {
+    // TODO: delete this before merge (once CircuitData no longer uses PyObject in blocks)
+    pub fn new_sinful(object: PyObject) -> Self {
+        Python::with_gil(|py| Self::new(object.bind(py)))
+    }
+
     pub fn new(object: &Bound<PyAny>) -> Self {
         PyObjectAsKey {
             // This really shouldn't fail, but if it does,

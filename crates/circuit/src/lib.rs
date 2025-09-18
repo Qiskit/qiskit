@@ -58,6 +58,9 @@ pub struct Var(u32);
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, PartialOrd)]
 pub struct Stretch(u32);
 
+#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+pub struct Block(u32);
+
 pub use nlayout::PhysicalQubit;
 pub use nlayout::VirtualQubit;
 
@@ -104,6 +107,7 @@ impl_circuit_identifier!(Qubit);
 impl_circuit_identifier!(Clbit);
 impl_circuit_identifier!(Var);
 impl_circuit_identifier!(Stretch);
+impl_circuit_identifier!(Block);
 
 pub struct TupleLikeArg<'py> {
     value: Bound<'py, PyTuple>,

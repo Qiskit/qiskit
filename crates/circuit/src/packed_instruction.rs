@@ -24,7 +24,7 @@ use crate::operations::{
     ControlFlow, Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
     StandardInstruction, UnitaryGate,
 };
-use crate::{Clbit, Qubit};
+use crate::{Block, Clbit, Qubit};
 use pyo3::prelude::*;
 use pyo3::types::PyType;
 use smallvec::SmallVec;
@@ -649,7 +649,7 @@ pub struct PackedInstruction {
     pub qubits: Interned<[Qubit]>,
     /// The index under which the interner has stored `clbits`.
     pub clbits: Interned<[Clbit]>,
-    pub params: Option<Box<Parameters<PyObject>>>,
+    pub params: Option<Box<Parameters<Block>>>,
     pub label: Option<Box<String>>,
 
     #[cfg(feature = "cache_pygates")]
@@ -666,6 +666,7 @@ pub struct PackedInstruction {
     pub py_op: OnceLock<Py<PyAny>>,
 }
 
+// TODO: delete
 impl Instruction for PackedInstruction {
     fn op(&self) -> OperationRef<'_> {
         self.op.view()

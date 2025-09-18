@@ -17,7 +17,9 @@ use crate::bit::{ShareableClbit, ShareableQubit};
 use crate::circuit_data::{CircuitData, CircuitVar};
 use crate::dag_circuit::DAGIdentifierInfo;
 use crate::dag_circuit::{DAGCircuit, NodeType};
+use crate::object_registry::{ObjectRegistry, PyObjectAsKey};
 use crate::operations::{OperationRef, PythonOperation};
+use crate::Block;
 
 /// An extractable representation of a QuantumCircuit reserved only for
 /// conversion purposes.
@@ -53,9 +55,12 @@ pub fn circuit_to_dag(
 
 #[pyfunction(signature = (dag, copy_operations = true))]
 pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<CircuitData> {
+    let blocks: ObjectRegistry<Block, PyObjectAsKey> =
+        { todo!("converters block conversion not yet implemented") };
     CircuitData::from_packed_instructions(
         dag.qubits().clone(),
         dag.clbits().clone(),
+        blocks,
         dag.qargs_interner().clone(),
         dag.cargs_interner().clone(),
         dag.qregs_data().clone(),
