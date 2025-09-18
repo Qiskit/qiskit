@@ -12,10 +12,10 @@ prelude: >
         in compilation for fault tolerant architectures.
 
       * **Angle bound support for targets:** The :class:`.Target` class now supports specifying bounds for the allowed
-          values for parameterized operations added to the target. When an instruction is added to the :class:`.Target` you
-          can add the optional argument `angle_bounds` to specify the higher and lower bounds for parameterized
-          rotation gates. A new transpiler pass :class:`.WrapAngles` was added to enforce the angle constraints as part
-          of a transpilation pipeline.
+        values for parameterized operations added to the target. When an instruction is added to the :class:`.Target` you
+        can add the optional argument `angle_bounds` to specify the higher and lower bounds for parameterized
+        rotation gates. A new transpiler pass :class:`.WrapAngles` was added to enforce the angle constraints as part
+        of a transpilation pipeline.
 
     The v2.2 release series is the final minor release series with support Python 3.9. The minimum supported Rust version
     use to build Qiskit from source is now Rust v1.85, raised from 1.79 in 2.1.0.
