@@ -1,0 +1,24 @@
+---
+features_c:
+  - |
+    Added new standalone transpiler pass functions to the C API. These functions take in a ``QkCircuit``
+    to run the pass on and are equivalent to calling an instantiated pass.
+
+      ==========================================  =============================================================================
+      Transpiler pass                             C API Counterpart
+      ==========================================  =============================================================================
+      :class:`.BasisTranslator`                   :cpp:func:`qk_transpiler_pass_standalone_basis_translator`
+      :class:`.CommutativeCancellation`           :cpp:func:`qk_transpiler_pass_standalone_commutative_cancellation`
+      :class:`.ConsolidateBlocks`                 :cpp:func:`qk_transpiler_pass_standalone_consolidate_blocks`
+      :class:`.ElidePermutations`                 :cpp:func:`qk_transpiler_pass_standalone_elide_permutations`
+      :class:`.CheckGateDirection`                :cpp:func:`qk_transpiler_pass_standalone_check_gate_direction`
+      :class:`.GateDirection`                     :cpp:func:`qk_transpiler_pass_standalone_gate_direction`
+      :class:`.InverseCancellation`               :cpp:func:`qk_transpiler_pass_standalone_inverse_cancellation`
+      :class:`.Optimize1qGatesDecomposition`      :cpp:func:`qk_transpiler_standalone_optimize_1q_sequences`
+      :class:`.RemoveDiagonalGatesBeforeMeasure`  :cpp:func:`qk_transpiler_pass_standalone_remove_diagonal_gates_before_measure`
+      :class:`.RemoveIdentityEquivalent`          :cpp:func:`qk_transpiler_pass_standalone_remove_identity_equivalent`
+      :class:`.SabreLayout`                       :cpp:func:`qk_transpiler_pass_standalone_sabre_layout`
+      :class:`.Split2QUnitaries`                  :cpp:func:`qk_transpiler_pass_standalone_split_2q_unitaries`
+      :class:`.UnitarySynthesis`                  :cpp:func:`qk_transpiler_pass_standalone_unitary_synthesis`
+      :class:`.VF2Layout`                         :cpp:func:`qk_transpiler_pass_standalone_vf2_layout`
+      ==========================================  =============================================================================
