@@ -6,22 +6,20 @@ prelude: >
       * **C API transpile function:** The C API now includes a function for transpiling a
         quantum circuit: :cpp:func:`qk_transpile`. This function is equivalent to the Python
         :func:`.transpile` function for a standalone C context.
-      
-      * **Litinski transformation pass:** A new transformation pass was added to deal with circuits
-        with Clifford and single qubit RZ-rotation gates. The implementation is based on the transformation
-        described in `arXiv:1808.02892 <https://arxiv.org/abs/1808.02892>`__. This is an important algorithm
-        for fault tolerant compilation.
+
+      * **Litinski transformation pass:** A new transformation pass :class:`.LitinskiTransformation` that implements
+        the transform described `arXiv:1808.02892 <https://arxiv.org/abs/1808.02892>`__. This is pass is typically used
+        in compilation for fault tolerant architectures.
 
       * **Angle bound support for targets:** The :class:`.Target` class now supports specifying bounds for the allowed
           values for parameterized operations added to the target. When an instruction is added to the :class:`.Target` you
           can add the optional argument `angle_bounds` to specify the higher and lower bounds for parameterized
           rotation gates. A new transpiler pass :class:`.WrapAngles` was added to enforce the angle constraints as part
           of a transpilation pipeline.
-      
-    This marks the final minor release to support Python 3.9. In addition, The minimum supported
-    rust version to buld Qiskit from source is now Rust v1.85. This was done due to the need of a newer
-    version of the Rust library `faer <https://crates.io/crates/faer>`__ and some errors happening in Windows.
+
+    The v2.2 release series is the final minor release series with support Python 3.9. The minimum supported Rust version
+    use to build Qiskit from source is now Rust v1.85, raised from 1.79 in 2.1.0.
 
     For more information about the above and other changes made, please see the release notes below
     and review the updated documentation.
-      
+

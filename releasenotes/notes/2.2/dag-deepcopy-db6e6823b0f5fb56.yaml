@@ -3,4 +3,8 @@ features_transpiler:
   - |
     :class:`.DAGCircuit` now has a manual implementation of :meth:`~object.__deepcopy__`.  This is
     orders of magnitude faster than the previous implicit implementation from the pickle protocol,
-    especially for large circuits, and directly benefits compilation at ``optimization_level=3``.
+    especially for large circuits. This also directly benefits compilation performance when running
+    :func:`.transpile` or running the preset pass managers returned by
+    :func:`.generate_preset_pass_manager` at ``optimization_level=3`` as optimization level 3
+    internally deep copies the :class:`.DAGCircuit` for each iteration of the optimization loop
+    in the ``optimization`` stage.
