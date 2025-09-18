@@ -5,7 +5,7 @@ upgrade_c:
     struct fields, function parameters and function return values accurately aligned in their variable type to their intended
     usage in C.
 
-    The list of attributes and properties that have changed from `uintptr_t` to `size_t` are as follow:
+    The list of attributes and properties that have changed from ``uintptr_t`` to ``size_t`` are as follow:
     
       * :cpp:member:`QkOpCount::count`
       * :cpp:member:`QkOpCounts::len`
