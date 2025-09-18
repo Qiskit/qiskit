@@ -2711,6 +2711,9 @@ impl PySparseTerm {
 ///
 ///   :meth:`to_sparse_list`       Express the observable in a sparse list format with elements
 ///                                ``(bit_terms, indices, coeff)``.
+///
+///   :meth:to_matrix              Convert the observable to a dense NumPy array or a sparse
+///                                CSR matrix.
 ///   ===========================  =================================================================
 ///
 /// In addition, :meth:`.SparsePauliOp.from_sparse_observable` is available for conversion from this
