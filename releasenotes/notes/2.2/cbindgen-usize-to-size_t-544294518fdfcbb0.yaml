@@ -4,3 +4,15 @@ upgrade_c:
     Changed the behavior of ``cbindgen`` to map the Rust ``usize`` type to the C ``size_t`` in the generated C API. This makes ``usize``
     struct fields, function parameters and function return values accurately aligned in their variable type to their intended
     usage in C.
+
+    The list of attributes and properties that have changed from `uintptr_t` to `size_t` are as follow:
+    
+      * :cpp:member:`QkOpCount::count`
+      * :cpp:member:`QkOpCounts::len`
+      * :cpp:member:`QkObsTerm::len`
+      * The return type of :cpp:func:`qk_circuit_num_instructions`.
+      * The ``index`` argument in :cpp:func:`qk_circuit_get_instruction`.
+      * The ``boundaries`` argument in :cpp:func:`qk_obs_new`.
+      * The return types of :cpp:func:`qk_obs_num_terms`, :cpp:func:`qk_obs_len`, and :cpp:func:`qk_obs_boundaries`.
+      * The return type of :cpp:func:`qk_target_entry_num_properties`, and :cpp:func:`qk_target_num_instructions`.
+      
