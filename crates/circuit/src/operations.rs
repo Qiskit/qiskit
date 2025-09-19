@@ -107,18 +107,13 @@ impl Param {
         }
     }
 
+    /// Add two [Param]s.
+    ///
+    /// This does not support additions involving a [Param::Obj] variant.
     pub fn add(&self, other: &Param) -> Param {
         match (&self, other) {
-            (Param::Float(left), Param::Float(right)) => Param::Float(left + right),
-            (Param::Float(left), Param::ParameterExpression(right)) => {
-                let left = ParameterExpression::from_f64(*left);
-                Param::ParameterExpression(Arc::new(left.add(right).unwrap()))
-            }
-            (Param::ParameterExpression(left), Param::Float(right)) => {
-                let right = ParameterExpression::from_f64(*right);
-                Param::ParameterExpression(Arc::new(left.add(&right).unwrap()))
-            }
-
+            (_, Param::Float(right)) => self.add_f64(*right),
+            (Param::Float(left), _) => other.add_f64(*left), // add is commutative here
             (Param::ParameterExpression(left), Param::ParameterExpression(right)) => {
                 // TODO we could properly propagate the error here
                 Param::ParameterExpression(Arc::new(
@@ -129,23 +124,45 @@ impl Param {
         }
     }
 
-    /// Multiply two ``Param``s.
+    /// Add a [f64] to a [Param].
+    ///
+    /// This does not support addition to a [Param::Obj] variant.
+    pub fn add_f64(&self, other: f64) -> Param {
+        match &self {
+            Param::Float(left) => Param::Float(left + other),
+            Param::ParameterExpression(left) => {
+                let right = ParameterExpression::from_f64(other);
+                Param::ParameterExpression(Arc::new(left.add(&right).unwrap()))
+            }
+            _ => unreachable!("Unsupported addition."),
+        }
+    }
+
+    /// Multiply two [Param]s.
+    ///
+    /// This does not support multiplication involving a [Param::Obj] variant.
     pub fn mul(&self, other: &Param) -> Param {
         match (&self, other) {
-            (Param::Float(left), Param::Float(right)) => Param::Float(left * right),
-            (Param::Float(left), Param::ParameterExpression(right)) => {
-                let left = ParameterExpression::from_f64(*left);
-                Param::ParameterExpression(Arc::new(left.mul(right).unwrap()))
-            }
-            (Param::ParameterExpression(left), Param::Float(right)) => {
-                let right = ParameterExpression::from_f64(*right);
-                Param::ParameterExpression(Arc::new(left.mul(&right).unwrap()))
-            }
-
+            (_, Param::Float(right)) => self.mul_f64(*right),
+            (Param::Float(left), _) => other.mul_f64(*left), // mul is commutative here
             (Param::ParameterExpression(left), Param::ParameterExpression(right)) => {
                 Param::ParameterExpression(Arc::new(
                     left.mul(right).expect("Name conflict during add."),
                 ))
+            }
+            _ => unreachable!("Unsupported multiplication."),
+        }
+    }
+
+    /// Multiply a [Param] with a [f64].
+    ///
+    /// This does not support addition to a [Param::Obj] variant.
+    pub fn mul_f64(&self, other: f64) -> Param {
+        match &self {
+            Param::Float(left) => Param::Float(left * other),
+            Param::ParameterExpression(left) => {
+                let right = ParameterExpression::from_f64(other);
+                Param::ParameterExpression(Arc::new(left.mul(&right).unwrap()))
             }
             _ => unreachable!("Unsupported multiplication."),
         }
@@ -807,23 +824,20 @@ impl StandardGate {
 
     pub fn inverse(&self, params: &[Param]) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
         match self {
-            Self::GlobalPhase => Some((
-                Self::GlobalPhase,
-                smallvec![multiply_param(&params[0], -1.0)],
-            )),
+            Self::GlobalPhase => Some((Self::GlobalPhase, smallvec![params[0].mul_f64(-1.0)])),
             Self::H => Some((Self::H, smallvec![])),
             Self::I => Some((Self::I, smallvec![])),
             Self::X => Some((Self::X, smallvec![])),
             Self::Y => Some((Self::Y, smallvec![])),
             Self::Z => Some((Self::Z, smallvec![])),
-            Self::Phase => Some((Self::Phase, smallvec![multiply_param(&params[0], -1.0)])),
+            Self::Phase => Some((Self::Phase, smallvec![params[0].mul_f64(-1.0)])),
             Self::R => Some((
                 Self::R,
-                smallvec![multiply_param(&params[0], -1.0), params[1].clone()],
+                smallvec![params[0].mul_f64(-1.0), params[1].clone()],
             )),
-            Self::RX => Some((Self::RX, smallvec![multiply_param(&params[0], -1.0)])),
-            Self::RY => Some((Self::RY, smallvec![multiply_param(&params[0], -1.0)])),
-            Self::RZ => Some((Self::RZ, smallvec![multiply_param(&params[0], -1.0)])),
+            Self::RX => Some((Self::RX, smallvec![params[0].mul_f64(-1.0)])),
+            Self::RY => Some((Self::RY, smallvec![params[0].mul_f64(-1.0)])),
+            Self::RZ => Some((Self::RZ, smallvec![params[0].mul_f64(-1.0)])),
             Self::S => Some((Self::Sdg, smallvec![])),
             Self::Sdg => Some((Self::S, smallvec![])),
             Self::SX => Some((Self::SXdg, smallvec![])),
@@ -833,25 +847,25 @@ impl StandardGate {
             Self::U => Some((
                 Self::U,
                 smallvec![
-                    multiply_param(&params[0], -1.0),
-                    multiply_param(&params[2], -1.0),
-                    multiply_param(&params[1], -1.0),
+                    params[0].mul_f64(-1.0),
+                    params[2].mul_f64(-1.0),
+                    params[1].mul_f64(-1.0),
                 ],
             )),
-            Self::U1 => Some((Self::U1, smallvec![multiply_param(&params[0], -1.0)])),
+            Self::U1 => Some((Self::U1, smallvec![params[0].mul_f64(-1.0)])),
             Self::U2 => Some((
                 Self::U2,
                 smallvec![
-                    multiply_param(&params[1], -1.0).add(&Param::Float(-PI)),
-                    multiply_param(&params[0], -1.0).add(&Param::Float(PI)),
+                    params[1].mul_f64(-1.0).add_f64(-PI),
+                    params[0].mul_f64(-1.0).add_f64(PI),
                 ],
             )),
             Self::U3 => Some((
                 Self::U3,
                 smallvec![
-                    multiply_param(&params[0], -1.0),
-                    multiply_param(&params[2], -1.0),
-                    multiply_param(&params[1], -1.0),
+                    params[0].mul_f64(-1.0),
+                    params[2].mul_f64(-1.0),
+                    params[1].mul_f64(-1.0),
                 ],
             )),
             Self::CH => Some((Self::CH, smallvec![])),
@@ -862,42 +876,42 @@ impl StandardGate {
             Self::ECR => Some((Self::ECR, smallvec![])),
             Self::Swap => Some((Self::Swap, smallvec![])),
             Self::ISwap => None, // the inverse in not a StandardGate
-            Self::CPhase => Some((Self::CPhase, smallvec![multiply_param(&params[0], -1.0)])),
-            Self::CRX => Some((Self::CRX, smallvec![multiply_param(&params[0], -1.0)])),
-            Self::CRY => Some((Self::CRY, smallvec![multiply_param(&params[0], -1.0)])),
-            Self::CRZ => Some((Self::CRZ, smallvec![multiply_param(&params[0], -1.0)])),
+            Self::CPhase => Some((Self::CPhase, smallvec![params[0].mul_f64(-1.0)])),
+            Self::CRX => Some((Self::CRX, smallvec![params[0].mul_f64(-1.0)])),
+            Self::CRY => Some((Self::CRY, smallvec![params[0].mul_f64(-1.0)])),
+            Self::CRZ => Some((Self::CRZ, smallvec![params[0].mul_f64(-1.0)])),
             Self::CS => Some((Self::CSdg, smallvec![])),
             Self::CSdg => Some((Self::CS, smallvec![])),
             Self::CSX => None, // the inverse in not a StandardGate
             Self::CU => Some((
                 Self::CU,
                 smallvec![
-                    multiply_param(&params[0], -1.0),
-                    multiply_param(&params[2], -1.0),
-                    multiply_param(&params[1], -1.0),
-                    multiply_param(&params[3], -1.0),
+                    params[0].mul_f64(-1.0),
+                    params[2].mul_f64(-1.0),
+                    params[1].mul_f64(-1.0),
+                    params[3].mul_f64(-1.0),
                 ],
             )),
-            Self::CU1 => Some((Self::CU1, smallvec![multiply_param(&params[0], -1.0)])),
+            Self::CU1 => Some((Self::CU1, smallvec![params[0].mul_f64(-1.0)])),
             Self::CU3 => Some((
                 Self::CU3,
                 smallvec![
-                    multiply_param(&params[0], -1.0),
-                    multiply_param(&params[2], -1.0),
-                    multiply_param(&params[1], -1.0),
+                    params[0].mul_f64(-1.0),
+                    params[2].mul_f64(-1.0),
+                    params[1].mul_f64(-1.0),
                 ],
             )),
-            Self::RXX => Some((Self::RXX, smallvec![multiply_param(&params[0], -1.0)])),
-            Self::RYY => Some((Self::RYY, smallvec![multiply_param(&params[0], -1.0)])),
-            Self::RZZ => Some((Self::RZZ, smallvec![multiply_param(&params[0], -1.0)])),
-            Self::RZX => Some((Self::RZX, smallvec![multiply_param(&params[0], -1.0)])),
+            Self::RXX => Some((Self::RXX, smallvec![params[0].mul_f64(-1.0)])),
+            Self::RYY => Some((Self::RYY, smallvec![params[0].mul_f64(-1.0)])),
+            Self::RZZ => Some((Self::RZZ, smallvec![params[0].mul_f64(-1.0)])),
+            Self::RZX => Some((Self::RZX, smallvec![params[0].mul_f64(-1.0)])),
             Self::XXMinusYY => Some((
                 Self::XXMinusYY,
-                smallvec![multiply_param(&params[0], -1.0), params[1].clone()],
+                smallvec![params[0].mul_f64(-1.0), params[1].clone()],
             )),
             Self::XXPlusYY => Some((
                 Self::XXPlusYY,
-                smallvec![multiply_param(&params[0], -1.0), params[1].clone()],
+                smallvec![params[0].mul_f64(-1.0), params[1].clone()],
             )),
             Self::CCX => Some((Self::CCX, smallvec![])),
             Self::CCZ => Some((Self::CCZ, smallvec![])),
@@ -1321,9 +1335,9 @@ impl Operation for StandardGate {
                 .expect("Unexpected Qiskit python bug"),
             ),
             Self::R => {
-                let theta_expr = clone_param(&params[0]);
-                let phi_expr1 = params[1].add(&Param::Float(-PI / 2.));
-                let phi_expr2 = multiply_param(&phi_expr1, -1.0);
+                let theta_expr = params[0].clone();
+                let phi_expr1 = params[1].add_f64(-PI / 2.);
+                let phi_expr2 = phi_expr1.mul_f64(-1.0);
                 let defparams = smallvec![theta_expr, phi_expr1, phi_expr2];
                 Some(
                     CircuitData::from_standard_gates(
@@ -1370,7 +1384,7 @@ impl Operation for StandardGate {
                     CircuitData::from_standard_gates(
                         1,
                         [(Self::Phase, smallvec![theta.clone()], smallvec![Qubit(0)])],
-                        multiply_param(theta, -0.5),
+                        theta.mul_f64(-0.5),
                     )
                     .expect("Unexpected Qiskit python bug"),
                 )
@@ -1597,15 +1611,11 @@ impl Operation for StandardGate {
                     CircuitData::from_standard_gates(
                         2,
                         [
-                            (Self::Phase, smallvec![multiply_param(&params[0], 0.5)], q0),
+                            (Self::Phase, smallvec![params[0].mul_f64(0.5)], q0),
                             (Self::CX, smallvec![], q0_1.clone()),
-                            (
-                                Self::Phase,
-                                smallvec![multiply_param(&params[0], -0.5)],
-                                q1.clone(),
-                            ),
+                            (Self::Phase, smallvec![params[0].mul_f64(-0.5)], q1.clone()),
                             (Self::CX, smallvec![], q0_1),
-                            (Self::Phase, smallvec![multiply_param(&params[0], 0.5)], q1),
+                            (Self::Phase, smallvec![params[0].mul_f64(0.5)], q1),
                         ],
                         FLOAT_ZERO,
                     )
@@ -1622,15 +1632,11 @@ impl Operation for StandardGate {
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
                                 Self::RY,
-                                smallvec![multiply_param(theta, -0.5)],
+                                smallvec![theta.mul_f64(-0.5)],
                                 smallvec![Qubit(1)],
                             ),
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
-                            (
-                                Self::RY,
-                                smallvec![multiply_param(theta, 0.5)],
-                                smallvec![Qubit(1)],
-                            ),
+                            (Self::RY, smallvec![theta.mul_f64(0.5)], smallvec![Qubit(1)]),
                             (Self::Sdg, smallvec![], smallvec![Qubit(1)]),
                         ],
                         Param::Float(0.0),
@@ -1644,15 +1650,11 @@ impl Operation for StandardGate {
                     CircuitData::from_standard_gates(
                         2,
                         [
-                            (
-                                Self::RY,
-                                smallvec![multiply_param(theta, 0.5)],
-                                smallvec![Qubit(1)],
-                            ),
+                            (Self::RY, smallvec![theta.mul_f64(0.5)], smallvec![Qubit(1)]),
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
                                 Self::RY,
-                                smallvec![multiply_param(theta, -0.5)],
+                                smallvec![theta.mul_f64(-0.5)],
                                 smallvec![Qubit(1)],
                             ),
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
@@ -1668,15 +1670,11 @@ impl Operation for StandardGate {
                     CircuitData::from_standard_gates(
                         2,
                         [
-                            (
-                                Self::RZ,
-                                smallvec![multiply_param(theta, 0.5)],
-                                smallvec![Qubit(1)],
-                            ),
+                            (Self::RZ, smallvec![theta.mul_f64(0.5)], smallvec![Qubit(1)]),
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
                                 Self::RZ,
-                                smallvec![multiply_param(theta, -0.5)],
+                                smallvec![theta.mul_f64(-0.5)],
                                 smallvec![Qubit(1)],
                             ),
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
@@ -1741,12 +1739,9 @@ impl Operation for StandardGate {
                 )
             }
             Self::CU => {
-                let param_second_p =
-                    multiply_param(&params[2], 0.5).add(&multiply_param(&params[1], 0.5));
-                let param_third_p =
-                    multiply_param(&params[2], 0.5).add(&multiply_param(&params[1], -0.5));
-                let param_first_u =
-                    multiply_param(&params[1], -0.5).add(&multiply_param(&params[2], -0.5));
+                let param_second_p = params[2].mul_f64(0.5).add(&params[1].mul_f64(0.5));
+                let param_third_p = params[2].mul_f64(0.5).add(&params[1].mul_f64(-0.5));
+                let param_first_u = params[1].mul_f64(-0.5).add(&params[2].mul_f64(-0.5));
                 Some(
                     CircuitData::from_standard_gates(
                         2,
@@ -1761,21 +1756,13 @@ impl Operation for StandardGate {
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
                                 Self::U,
-                                smallvec![
-                                    multiply_param(&params[0], -0.5),
-                                    FLOAT_ZERO,
-                                    param_first_u
-                                ],
+                                smallvec![params[0].mul_f64(-0.5), FLOAT_ZERO, param_first_u],
                                 smallvec![Qubit(1)],
                             ),
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
                                 Self::U,
-                                smallvec![
-                                    multiply_param(&params[0], 0.5),
-                                    params[1].clone(),
-                                    FLOAT_ZERO
-                                ],
+                                smallvec![params[0].mul_f64(0.5), params[1].clone(), FLOAT_ZERO],
                                 smallvec![Qubit(1)],
                             ),
                         ],
@@ -1790,19 +1777,19 @@ impl Operation for StandardGate {
                     [
                         (
                             Self::Phase,
-                            smallvec![multiply_param(&params[0], 0.5)],
+                            smallvec![params[0].mul_f64(0.5)],
                             smallvec![Qubit(0)],
                         ),
                         (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                         (
                             Self::Phase,
-                            smallvec![multiply_param(&params[0], -0.5)],
+                            smallvec![params[0].mul_f64(-0.5)],
                             smallvec![Qubit(1)],
                         ),
                         (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                         (
                             Self::Phase,
-                            smallvec![multiply_param(&params[0], 0.5)],
+                            smallvec![params[0].mul_f64(0.5)],
                             smallvec![Qubit(1)],
                         ),
                     ],
@@ -1811,12 +1798,9 @@ impl Operation for StandardGate {
                 .expect("Unexpected Qiskit python bug"),
             ),
             Self::CU3 => {
-                let param_first_u1 =
-                    multiply_param(&params[2], 0.5).add(&multiply_param(&params[1], 0.5));
-                let param_second_u1 =
-                    multiply_param(&params[2], 0.5).add(&multiply_param(&params[1], -0.5));
-                let param_first_u3 =
-                    multiply_param(&params[1], -0.5).add(&multiply_param(&params[2], -0.5));
+                let param_first_u1 = params[2].mul_f64(0.5).add(&params[1].mul_f64(0.5));
+                let param_second_u1 = params[2].mul_f64(0.5).add(&params[1].mul_f64(-0.5));
+                let param_first_u3 = params[1].mul_f64(-0.5).add(&params[2].mul_f64(-0.5));
                 Some(
                     CircuitData::from_standard_gates(
                         2,
@@ -1826,21 +1810,13 @@ impl Operation for StandardGate {
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
                                 Self::U,
-                                smallvec![
-                                    multiply_param(&params[0], -0.5),
-                                    FLOAT_ZERO,
-                                    param_first_u3
-                                ],
+                                smallvec![params[0].mul_f64(-0.5), FLOAT_ZERO, param_first_u3],
                                 smallvec![Qubit(1)],
                             ),
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
                                 Self::U,
-                                smallvec![
-                                    multiply_param(&params[0], 0.5),
-                                    params[1].clone(),
-                                    FLOAT_ZERO
-                                ],
+                                smallvec![params[0].mul_f64(0.5), params[1].clone(), FLOAT_ZERO],
                                 smallvec![Qubit(1)],
                             ),
                         ],
@@ -1939,14 +1915,14 @@ impl Operation for StandardGate {
                     CircuitData::from_standard_gates(
                         2,
                         [
-                            (Self::RZ, smallvec![multiply_param(beta, -1.0)], q1.clone()),
+                            (Self::RZ, smallvec![beta.mul_f64(-1.0)], q1.clone()),
                             (Self::Sdg, smallvec![], q0.clone()),
                             (Self::SX, smallvec![], q0.clone()),
                             (Self::S, smallvec![], q0.clone()),
                             (Self::S, smallvec![], q1.clone()),
                             (Self::CX, smallvec![], q0_1.clone()),
-                            (Self::RY, smallvec![multiply_param(theta, 0.5)], q0.clone()),
-                            (Self::RY, smallvec![multiply_param(theta, -0.5)], q1.clone()),
+                            (Self::RY, smallvec![theta.mul_f64(0.5)], q0.clone()),
+                            (Self::RY, smallvec![theta.mul_f64(-0.5)], q1.clone()),
                             (Self::CX, smallvec![], q0_1),
                             (Self::Sdg, smallvec![], q1.clone()),
                             (Self::Sdg, smallvec![], q0.clone()),
@@ -1975,14 +1951,14 @@ impl Operation for StandardGate {
                             (Self::S, smallvec![], q1.clone()),
                             (Self::S, smallvec![], q0.clone()),
                             (Self::CX, smallvec![], q1_0.clone()),
-                            (Self::RY, smallvec![multiply_param(theta, -0.5)], q1.clone()),
-                            (Self::RY, smallvec![multiply_param(theta, -0.5)], q0.clone()),
+                            (Self::RY, smallvec![theta.mul_f64(-0.5)], q1.clone()),
+                            (Self::RY, smallvec![theta.mul_f64(-0.5)], q0.clone()),
                             (Self::CX, smallvec![], q1_0),
                             (Self::Sdg, smallvec![], q0.clone()),
                             (Self::Sdg, smallvec![], q1.clone()),
                             (Self::SXdg, smallvec![], q1.clone()),
                             (Self::S, smallvec![], q1),
-                            (Self::RZ, smallvec![multiply_param(beta, -1.0)], q0),
+                            (Self::RZ, smallvec![beta.mul_f64(-1.0)], q0),
                         ],
                         FLOAT_ZERO,
                     )
@@ -2400,44 +2376,6 @@ impl Operation for StandardGate {
 }
 
 const FLOAT_ZERO: Param = Param::Float(0.0);
-
-// Return explicitly requested copy of `param`, handling
-// each variant separately.
-fn clone_param(param: &Param) -> Param {
-    match param {
-        Param::Float(theta) => Param::Float(*theta),
-        Param::ParameterExpression(theta) => Param::ParameterExpression(theta.clone()),
-        Param::Obj(_) => unreachable!(),
-    }
-}
-
-/// Multiply a ``Param`` with a float.
-pub fn multiply_param(param: &Param, mult: f64) -> Param {
-    match param {
-        Param::Float(theta) => Param::Float(theta * mult),
-        Param::ParameterExpression(theta) => {
-            // safe to unwrap as multiplication with float does not have name conflicts
-            Param::ParameterExpression(Arc::new(
-                theta.mul(&ParameterExpression::from_f64(mult)).unwrap(),
-            ))
-        }
-        Param::Obj(_) => unreachable!("Unsupported multiplication of a Param::Obj."),
-    }
-}
-
-/// Multiply two ``Param``s.
-pub fn multiply_params(param1: Param, param2: Param) -> Param {
-    match (&param1, &param2) {
-        (Param::Float(theta), Param::Float(lambda)) => Param::Float(theta * lambda),
-        (param, Param::Float(theta)) => multiply_param(param, *theta),
-        (Param::Float(theta), param) => multiply_param(param, *theta),
-        (Param::ParameterExpression(p1), Param::ParameterExpression(p2)) => {
-            // TODO we could properly propagate the error here
-            Param::ParameterExpression(Arc::new(p1.mul(p2).expect("Name conflict during mul.")))
-        }
-        _ => unreachable!("Unsupported multiplication."),
-    }
-}
 
 /// This trait is defined on operation types in the circuit that are defined in Python.
 /// It contains the methods for managing the Python aspect
