@@ -1,0 +1,24 @@
+
+---
+features_quantum_info:
+  - |
+    Added :meth:`~qiskit.quantum_info.Statevector.from_circuit` class method
+    to create a statevector directly from a quantum circuit. This method mirrors
+    the existing :meth:`~qiskit.quantum_info.Operator.from_circuit` functionality
+    and properly handles circuit layouts to ensure consistent results regardless
+    of transpilation optimization levels. For example::
+
+      from qiskit import QuantumCircuit
+      from qiskit.quantum_info import Statevector
+      
+      # Create a Bell state circuit
+      qc = QuantumCircuit(2)
+      qc.h(0)
+      qc.cx(0, 1)
+      
+      # Get the final statevector
+      sv = Statevector.from_circuit(qc)
+      
+    An optional ``input_state`` parameter allows starting from a custom
+    initial state instead of the default |00...0⟩ state.
+git add releasenotes/notes/add-statevector-from-circuit-9976552cbda50423.yaml
