@@ -231,6 +231,10 @@ In the busy pre-RC period, your time is likely better spent coordinating and doi
 However, if this is a **_follow-up_ release** keep the loose files in `/releasenotes/notes` and spend some time looking for typos, broken links, and any broken example code blocks in these files.
 It's convenient to [build the docs locally](https://github.com/Qiskit/qiskit/blob/main/CONTRIBUTING.md#building-release-notes-locally) and read through the page, trying the links and code blocks.
 
+When release a major or minor version, check for  duplicated bugfix entries, i.e. there is a chance bug fixes in `X.Y` where also back-ported to `X.Y-1`.
+You can remove them from the release notes of `X.Y`.
+[Here an example](https://github.com/Qiskit/qiskit/pull/14565#pullrequestreview-2938767230) of that situation. 
+
 #### 3.6 Submit the PR for review
 
 As any other regular PR, commit your changes (don't forget to add the prelude release note), push the branch, and create a PR.
