@@ -109,8 +109,10 @@ Verify that the milestone is in a suitable place to release:
 
  - Set the due date for an estimated time for the release, if not set already (for example, in patch release cases).
  - Check for missing items in the milestone. For example, [search for open PRs against stable branches](https://github.com/Qiskit/qiskit/pulls?q=is%3Apr+is%3Aopen+-base%3Amain) and ensure they are labeled with the upcoming release milestone.
- - All the blocking issues/PR should be merged the day before the release.
- - You can leave there non-blocking issues/PR until the end of the process.
+ - The day before the release: 
+   * all the blocking issues/PR should be merged the day before the release.
+   * if it is an rc release, you can leave non-critical bug fixes open, as they could land later, before the final release.
+   * non-blocking issues/PR can left open and consider bumping to the next release milestone later. 
 
 ### 2. Audit `Changelog:*` labels
 
