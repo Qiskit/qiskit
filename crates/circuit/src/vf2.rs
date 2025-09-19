@@ -25,6 +25,7 @@ use std::fmt::{Debug, Display, Formatter};
 use std::hash::Hash;
 use std::iter::Iterator;
 use std::marker;
+use std::num::NonZero;
 
 use hashbrown::{hash_map::Entry, HashMap};
 use indexmap::IndexMap;
@@ -243,10 +244,8 @@ where
                     .max_by_key(|&(_, node)| {
                         let index = graph.to_index(*node);
                         (
-                            conn_in[index],
-                            degree_out[index],
-                            conn_out[index],
-                            degree_in[index],
+                            conn_in[index] + conn_out[index],
+                            degree_out[index] + degree_in[index],
                             Reverse(index),
                         )
                     })
@@ -290,6 +289,15 @@ where
                         }
                         seen[neighbor_index] = true;
                     }
+                    if graph.is_directed() {
+                        for neighbor in graph.neighbors_directed(bfs_node, Incoming) {
+                            let neighbor_index = graph.to_index(neighbor);
+                            if !seen[neighbor_index] {
+                                next_level.push(neighbor);
+                            }
+                            seen[neighbor_index] = true;
+                        }
+                    }
                 }
             }
         };
@@ -297,7 +305,7 @@ where
         let mut sorted_nodes = graph.node_identifiers().collect::<Vec<_>>();
         sorted_nodes.sort_by_key(|&node| {
             let index = graph.to_index(node);
-            Reverse((degree_out[index], degree_in[index], Reverse(index)))
+            Reverse((degree_out[index] + degree_in[index], Reverse(index)))
         });
         for node in sorted_nodes {
             bfs_tree(node);
@@ -955,17 +963,14 @@ struct State<G: GraphBase, OtherId> {
     /// not yet mapped, the other index is stored as `I::max()`.
     mapping: Vec<OtherId>,
     /// Mapping from node index to the generation at which a node was first added to the mapping
-    /// that had an outbound edge to that index.  This can be used to find new candidate nodes to
-    /// add to the mapping; you typically want your next node to be one that has edges linking it to
-    /// the existing mapping (but isn't yet _in_ the mapping).
-    out: Vec<usize>,
-    /// Same as `out`, except we're tracking the nodes that have an edge from them _into_ the
-    /// mapping.  This isn't used if the graph is undirected, since it'd just duplicate `out`.
-    ins: Vec<usize>,
-    /// The number of non-zero entries in `out`.
-    out_size: usize,
-    /// The number of non-zero entries in `in`.  This is always zero for undirected graphs.
-    ins_size: usize,
+    /// that had an `[outbound, inbound]` edge to that index.  This can be used to find new
+    /// candidate nodes to add to the mapping; you typically want your next node to be one that has
+    /// edges linking it to the existing mapping (but isn't yet _in_ the mapping).
+    neighbor_since: Vec<[Option<NonZero<usize>>; 2]>,
+    /// The number of neighbors to the mapping in the `[outgoing, incoming]` direction.
+    // TODO: currently this count isn't decremented when a neighbor is added to the mapping, so it
+    // becomes less useful as a metric as the mapping completes.
+    num_neighbors: [usize; 2],
     /// The edge multiplicity of a given node pair.  If the graph is directed, the keys are
     /// `(source, target)`.  If the graph is undirected, the keys are always in sorted order, and
     /// the multiplicity includes both "directions" of the edge.
@@ -1003,14 +1008,8 @@ where
         }
         Self {
             mapping: vec![<OtherId as IndexType>::max(); node_count],
-            out: vec![0; node_count],
-            ins: if graph.is_directed() {
-                vec![0; node_count]
-            } else {
-                vec![]
-            },
-            out_size: 0,
-            ins_size: 0,
+            neighbor_since: vec![[None, None]; node_count],
+            num_neighbors: [0, 0],
             adjacency_matrix,
             multigraph,
             generation: 0,
@@ -1048,17 +1047,20 @@ where
         self.mapping[ours.index()] = theirs;
         // Mark any nodes that are newly neighbors of the set of mapped nodes.  To be _newly_ a
         // neighbor, it must not already be a neighbor.
-        for ix in self.graph.neighbors(ours) {
-            if self.out[ix.index()] == 0 {
-                self.out[ix.index()] = self.generation;
-                self.out_size += 1;
-            }
-        }
-        if self.graph.is_directed() {
-            for ix in self.graph.neighbors_directed(ours, Incoming) {
-                if self.ins[ix.index()] == 0 {
-                    self.ins[ix.index()] = self.generation;
-                    self.ins_size += 1;
+        let directions: &[Direction] = if self.graph.is_directed() {
+            &[Outgoing, Incoming]
+        } else {
+            &[Outgoing]
+        };
+        for direction in directions {
+            let dir_index = *direction as usize;
+            for neighbor in self.graph.neighbors_directed(ours, *direction) {
+                let neighbor = neighbor.index();
+                if self.neighbor_since[neighbor][dir_index].is_none() {
+                    // The `NonZero` here will always be `Some` since we just incremented the
+                    // generation, but it'll all compile out to be simple integers anyway.
+                    self.neighbor_since[neighbor][dir_index] = NonZero::new(self.generation);
+                    self.num_neighbors[dir_index] += 1;
                 }
             }
         }
@@ -1070,17 +1072,19 @@ where
         // Any neighbors of ours that became neighbors of the mapping at our generation are now no
         // longer neighbors of the mapping, since all the nodes that got added to the mapping after
         // us are already popped.
-        for ix in self.graph.neighbors(ours) {
-            if self.out[ix.index()] == self.generation {
-                self.out[ix.index()] = 0;
-                self.out_size -= 1;
-            }
-        }
-        if self.graph.is_directed() {
-            for ix in self.graph.neighbors_directed(ours, Incoming) {
-                if self.ins[ix.index()] == self.generation {
-                    self.ins[ix.index()] = 0;
-                    self.ins_size -= 1;
+        let directions: &[Direction] = if self.graph.is_directed() {
+            &[Outgoing, Incoming]
+        } else {
+            &[Outgoing]
+        };
+        let my_generation = NonZero::new(self.generation); // not trying to cause a big s-sensation
+        for direction in directions {
+            let dir_index = *direction as usize;
+            for neighbor in self.graph.neighbors_directed(ours, *direction) {
+                let neighbor = neighbor.index();
+                if self.neighbor_since[neighbor][dir_index] == my_generation {
+                    self.neighbor_since[neighbor][dir_index] = None;
+                    self.num_neighbors[dir_index] -= 1;
                 }
             }
         }
@@ -1089,55 +1093,48 @@ where
     }
 
     /// Get the next unmapped node in the priority queue from a specific list whose index is at
-    /// least `start`.
-    fn next_unmapped_from(&self, start: usize, list: Option<OpenList>) -> Option<G::NodeId> {
-        let unmapped = <OtherId as IndexType>::max();
-        let filter = |(offset, &generation)| {
-            let index = start + offset;
-            ((generation > 0usize) && self.mapping[index] == unmapped)
-                .then_some(G::NodeId::new(index))
-        };
-        match list {
-            Some(OpenList::Out) => self.out[start..]
-                .iter()
-                .enumerate()
-                .filter_map(filter)
-                .next(),
-            Some(OpenList::In) => {
-                if self.graph.is_directed() {
-                    self.ins[start..]
-                        .iter()
-                        .enumerate()
-                        .filter_map(filter)
-                        .next()
-                } else {
-                    None
-                }
-            }
-            None => self.mapping[start..]
-                .iter()
-                .enumerate()
-                .filter_map(|(offset, &theirs)| {
-                    (theirs == unmapped).then_some(G::NodeId::new(start + offset))
-                })
-                .next(),
-        }
+    /// least `skip`, and its neighboring state to the partial mapping matches the predicate.
+    fn next_unmapped_from(
+        &self,
+        skip: usize,
+        mut pred: impl FnMut(NeighborKind) -> bool,
+    ) -> Option<G::NodeId> {
+        self.neighbor_since
+            .iter()
+            .enumerate()
+            .skip(skip)
+            .filter(|(index, generations)| {
+                self.mapping[*index] == <OtherId as IndexType>::max()
+                    && pred(NeighborKind::from_neighbor_generations(generations))
+            })
+            .map(|(index, _)| G::NodeId::new(index))
+            .next()
     }
 
-    /// Get the first unmapped node in a given list (or the set of all nodes), if any.
+    /// Get the next unmapped node
+    ///
+    /// # Warning
+    ///
+    /// This only makes sense to call for the haystack graph; the `problem`-matching logic is
+    /// inverted for the needle.  (Ideally this would be a method on `Vf2IntoIter` instead, but
+    /// getting the generics to work and keeping the borrow-checker happy is verbose.)
     #[inline]
-    pub fn first_unmapped(&self, list: Option<OpenList>) -> Option<G::NodeId> {
-        self.next_unmapped_from(0, list)
-    }
-    /// Get the next unmapped node in a given list (or set of all nodes) that comes after `node` in
-    /// the priority queue.
-    #[inline]
-    pub fn next_unmapped_after(
-        &self,
-        node: G::NodeId,
-        list: Option<OpenList>,
+    pub fn next_haystack_from(
+        &mut self,
+        skip: usize,
+        needle_kind: NeighborKind,
+        problem: Problem,
     ) -> Option<G::NodeId> {
-        self.next_unmapped_from(node.index() + 1, list)
+        match problem {
+            Problem::Exact | Problem::InducedSubgraph => {
+                self.next_unmapped_from(skip, |haystack_kind| haystack_kind == needle_kind)
+            }
+            Problem::Subgraph => self.next_unmapped_from(skip, |haystack_kind| {
+                haystack_kind
+                    .partial_cmp(&needle_kind)
+                    .is_some_and(|ord| ord != Ordering::Less)
+            }),
+        }
     }
 
     /// Number of edges from `source` to `target` (including the reverse, if the graph is
@@ -1169,18 +1166,51 @@ where
     }
 }
 
+/// What kind of neighbor the needle node we're matching against is, relative to the partial
+/// mapping.  In the case of an undirected graph, the only variants used are [Neither] and
+/// [Outgoing].
 #[derive(Copy, Clone, PartialEq, Debug)]
-enum OpenList {
-    Out,
-    In,
+enum NeighborKind {
+    /// Needle node is not a neighbor of the partial mapping at all.
+    Neither,
+    /// Needle node is the target of an outgoing edge from the mapping.
+    Outgoing,
+    /// Needle node is the source of an incoming edge into the mapping.
+    Incoming,
+    /// Needle node is both the source and target of edges from the mapping.
+    Both,
+}
+impl NeighborKind {
+    /// Get the kind of neighbor from an entry in [State::neighbor_since].
+    #[inline]
+    fn from_neighbor_generations(generations: &[Option<NonZero<usize>>; 2]) -> Self {
+        match generations {
+            [None, None] => NeighborKind::Neither,
+            [Some(_), None] => NeighborKind::Outgoing,
+            [None, Some(_)] => NeighborKind::Incoming,
+            [Some(_), Some(_)] => NeighborKind::Both,
+        }
+    }
+}
+impl PartialOrd for NeighborKind {
+    #[inline]
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match (self, other) {
+            (Self::Neither, Self::Neither) => Some(Ordering::Equal),
+            (Self::Neither, _) => Some(Ordering::Less),
+            (_, Self::Neither) => Some(Ordering::Greater),
+            (Self::Both, Self::Both) => Some(Ordering::Equal),
+            (Self::Both, _) => Some(Ordering::Greater),
+            (_, Self::Both) => Some(Ordering::Less),
+            // This rule now only handles when both are in `[Outgoing, Incoming]`.
+            (_, _) => (self == other).then_some(Ordering::Equal),
+        }
+    }
 }
 
 #[derive(Debug)]
 enum Frame<N, H> {
-    ChooseNextHaystack {
-        nodes: (N, H),
-        open_list: Option<OpenList>,
-    },
+    ChooseNextHaystack { nodes: (N, H), kind: NeighborKind },
     ChooseNextNeedle,
 }
 
@@ -1232,22 +1262,82 @@ where
 
     /// Find the unmapped candidates with the highest priority from both graphs.
     ///
-    /// This returns the two candidates and the tracking list of neighbours to the existing mapping
-    /// that they were found in. `None` implies that there were no matching pairs in the lists of
-    /// nodes that are outgoing or incoming neighbors of the map, and therefore we're starting a
-    /// search for a disjoint component.  In order for that to be performant, we'd expect the
-    /// feasiblity checks to have realised that there's edges that will never be satisfied already.
-    fn next_candidates(&mut self) -> Option<(N::NodeId, H::NodeId, Option<OpenList>)> {
-        [Some(OpenList::Out), Some(OpenList::In), None]
-            .into_iter()
-            .filter_map(|list| {
-                Some((
-                    self.needle.first_unmapped(list)?,
-                    self.haystack.first_unmapped(list)?,
-                    list,
-                ))
-            })
-            .next()
+    /// If found, the two candidates are guaranteed to satisfy the most basic compatibility
+    /// requirements with respect to neighboring the partial mapping (i.e. the haystack node will be
+    /// a neighbor in the same direction(s) of the mapping as the needle in an exact or
+    /// induced-subgraph problem, and will be _at least_ a neighbor in the same direction(s) for
+    /// non-induced subgraphs).
+    fn next_candidates(&mut self) -> Option<(N::NodeId, H::NodeId, NeighborKind)> {
+        let mut needle_isolated: Option<N::NodeId> = None;
+        let mut needle_outgoing: Option<N::NodeId> = None;
+        let mut needle_incoming: Option<N::NodeId> = None;
+        let mut needle_candidate_from = |skip: usize| -> Option<(N::NodeId, NeighborKind)> {
+            if needle_outgoing.is_some() && needle_incoming.is_some() && needle_isolated.is_some() {
+                return needle_isolated.map(|neighbor| (neighbor, NeighborKind::Neither));
+            }
+            for (neighbor, kind) in self
+                .needle
+                .neighbor_since
+                .iter()
+                .enumerate()
+                .skip(skip)
+                .filter(|(index, _)| self.needle.mapping[*index] == <H::NodeId as IndexType>::max())
+                .map(|(index, generations)| {
+                    (
+                        N::NodeId::new(index),
+                        NeighborKind::from_neighbor_generations(generations),
+                    )
+                })
+            {
+                match kind {
+                    NeighborKind::Neither => {
+                        needle_isolated.get_or_insert(neighbor);
+                        if needle_outgoing.is_some() && needle_incoming.is_some() {
+                            return Some((neighbor, kind));
+                        }
+                    }
+                    NeighborKind::Outgoing => {
+                        if needle_outgoing.is_none() {
+                            needle_outgoing = Some(neighbor);
+                            return Some((neighbor, kind));
+                        }
+                    }
+                    NeighborKind::Incoming => {
+                        if needle_incoming.is_none() {
+                            needle_incoming = Some(neighbor);
+                            return Some((neighbor, kind));
+                        }
+                    }
+                    NeighborKind::Both => {
+                        if needle_outgoing.is_none() || needle_incoming.is_none() {
+                            // It doesn't matter if we overwrite a previous value; we will already
+                            // have returned it.
+                            needle_outgoing = Some(neighbor);
+                            needle_incoming = Some(neighbor);
+                            return Some((neighbor, kind));
+                        }
+                    }
+                }
+            }
+            needle_isolated.map(|neighbor| (neighbor, NeighborKind::Neither))
+        };
+        let mut needle_pos = 0;
+        loop {
+            let (needle_node, needle_kind) = needle_candidate_from(needle_pos)?;
+            needle_pos = needle_node.index() + 1;
+            // Strictly we could probably save the iteration state of the `haystack` search here,
+            // but the performance difference is likely negligible in practice.
+            if let Some(haystack_node) =
+                self.haystack
+                    .next_haystack_from(0, needle_kind, self.problem)
+            {
+                return Some((needle_node, haystack_node, needle_kind));
+            };
+            if needle_kind == NeighborKind::Neither {
+                // `Neither` is the lowest priority, and if we fail to match it, we're done.
+                return None;
+            }
+        }
     }
 
     /// Remove this pair of nodes from the mapping.
@@ -1302,15 +1392,13 @@ where
         // valid solution.  If in doubt, say it's feasible; we attempt to eagerly cut as a
         // performance optimisation only.
 
-        if !self.unmapped_existing_neighbors_feasible(nodes, OpenList::Out, Outgoing)
+        if !self.unmapped_existing_neighbors_feasible(nodes, Outgoing)
             || !self.unmapped_new_neighbors_feasible(nodes, Outgoing)
         {
             return Ok(None);
         }
         if self.directed()
-            && (!self.unmapped_existing_neighbors_feasible(nodes, OpenList::In, Incoming)
-                || !self.unmapped_existing_neighbors_feasible(nodes, OpenList::Out, Incoming)
-                || !self.unmapped_existing_neighbors_feasible(nodes, OpenList::In, Outgoing)
+            && (!self.unmapped_existing_neighbors_feasible(nodes, Incoming)
                 || !self.unmapped_new_neighbors_feasible(nodes, Incoming))
         {
             return Ok(None);
@@ -1616,40 +1704,43 @@ where
     fn unmapped_existing_neighbors_feasible(
         &self,
         nodes: (N::NodeId, H::NodeId),
-        list: OpenList,
         direction: Direction,
     ) -> bool {
         let needle = &self.needle;
         let haystack = &self.haystack;
 
-        #[inline]
-        fn filter<T: IndexType, G: GraphBase<NodeId: IndexType>>(
-            node: G::NodeId,
-            state: &State<G, T>,
-            list: OpenList,
-        ) -> bool {
-            let index = node.index();
-            let externals = match list {
-                OpenList::Out => state.out.as_slice(),
-                OpenList::In => state.ins.as_slice(),
-            };
-            externals[index] > 0 && state.mapping[index] == <T as IndexType>::max()
+        fn inc_pair(mut state: [usize; 2], inc: [bool; 2]) -> [usize; 2] {
+            state[0] += inc[0] as usize;
+            state[1] += inc[1] as usize;
+            state
         }
 
         let needle_neighbors = needle
             .graph
             .neighbors_directed(nodes.0, direction)
-            .filter(|node| filter(*node, needle, list))
-            .count();
+            .filter(|node| needle.mapping[node.index()] == <H::NodeId as IndexType>::max())
+            .fold([0, 0], |counts, node| {
+                inc_pair(
+                    counts,
+                    needle.neighbor_since[node.index()].map(|x| x.is_some()),
+                )
+            });
         let haystack_neighbors = haystack
             .graph
             .neighbors_directed(nodes.1, direction)
-            .filter(|node| filter(*node, haystack, list))
-            .count();
-
+            .filter(|node| haystack.mapping[node.index()] == <N::NodeId as IndexType>::max())
+            .fold([0, 0], |counts, node| {
+                inc_pair(
+                    counts,
+                    haystack.neighbor_since[node.index()].map(|x| x.is_some()),
+                )
+            });
         match self.problem {
             Problem::Exact => needle_neighbors == haystack_neighbors,
-            Problem::InducedSubgraph | Problem::Subgraph => needle_neighbors <= haystack_neighbors,
+            Problem::InducedSubgraph | Problem::Subgraph => {
+                needle_neighbors[0] <= haystack_neighbors[0]
+                    && needle_neighbors[1] <= haystack_neighbors[1]
+            }
         }
     }
 
@@ -1668,24 +1759,16 @@ where
         let needle = &self.needle;
         let haystack = &self.haystack;
 
-        #[inline]
-        fn filter<T, G: GraphBase<NodeId: IndexType>>(
-            node: G::NodeId,
-            state: &State<G, T>,
-        ) -> bool {
-            let index = node.index();
-            state.out[index] == 0 && (state.ins.is_empty() || state.ins[index] == 0)
-        }
-
+        // TODO: this bound could be tighter; we should be checking the two directions separately.
         let needle_neighbors = needle
             .graph
             .neighbors_directed(nodes.0, direction)
-            .filter(|node| filter(*node, needle))
+            .filter(|node| matches!(needle.neighbor_since[node.index()], [None, None]))
             .count();
         let haystack_neighbors = haystack
             .graph
             .neighbors_directed(nodes.1, direction)
-            .filter(|node| filter(*node, haystack))
+            .filter(|node| matches!(haystack.neighbor_since[node.index()], [None, None]))
             .count();
 
         match self.problem {
@@ -1703,10 +1786,10 @@ where
     /// be a solution, regardless of the problem.  If we're not looking for a subgraph, then those
     /// two sets of objects have to map exactly.
     fn neighbor_counts_feasible(&self) -> bool {
-        let needle_outs = self.needle.out_size;
-        let needle_ins = self.needle.ins_size;
-        let haystack_outs = self.haystack.out_size;
-        let haystack_ins = self.haystack.ins_size;
+        let needle_outs = self.needle.num_neighbors[0];
+        let needle_ins = self.needle.num_neighbors[1];
+        let haystack_outs = self.haystack.num_neighbors[0];
+        let haystack_ins = self.haystack.num_neighbors[1];
 
         match self.problem {
             Problem::Exact => (needle_outs == haystack_outs) && (needle_ins == haystack_ins),
@@ -1748,18 +1831,21 @@ where
         // `self`, depending on the base ordering heuristic.  The "stack" is to save our position
         // in the loop iteration if/when we cede control back to the calling function.
         loop {
-            let (mut nodes, open_list) = match self.loop_stack.pop()? {
-                Frame::ChooseNextHaystack { nodes, open_list } => {
+            let (mut nodes, kind) = match self.loop_stack.pop()? {
+                Frame::ChooseNextHaystack { nodes, kind } => {
                     self.pop_state(nodes);
-                    if let Some(haystack) = self.haystack.next_unmapped_after(nodes.1, open_list) {
-                        ((nodes.0, haystack), open_list)
+                    if let Some(haystack) =
+                        self.haystack
+                            .next_haystack_from(nodes.1.index() + 1, kind, self.problem)
+                    {
+                        ((nodes.0, haystack), kind)
                     } else {
                         continue;
                     }
                 }
                 Frame::ChooseNextNeedle => {
-                    if let Some((needle, haystack, open_list)) = self.next_candidates() {
-                        ((needle, haystack), open_list)
+                    if let Some((needle, haystack, kind)) = self.next_candidates() {
+                        ((needle, haystack), kind)
                     } else if self.needle.is_complete() {
                         // This only triggers if the needle graph is empty, and we're after a
                         // subgraph problem (since we'll already have exited if we're after an exact
@@ -1790,7 +1876,7 @@ where
                     if self.neighbor_counts_feasible() {
                         self.try_add_call()?;
                         self.loop_stack
-                            .push(Frame::ChooseNextHaystack { nodes, open_list });
+                            .push(Frame::ChooseNextHaystack { nodes, kind });
                         if self.needle.is_complete() {
                             let score = self.score_stack.last().expect("always non-empty");
                             if let Some(Restriction::Decreasing(best)) = self.restriction.as_mut() {
@@ -1803,8 +1889,11 @@ where
                     }
                     self.pop_state(nodes);
                 }
-                if let Some(nx) = self.haystack.next_unmapped_after(nodes.1, open_list) {
-                    nodes.1 = nx;
+                if let Some(haystack) =
+                    self.haystack
+                        .next_haystack_from(nodes.1.index() + 1, kind, self.problem)
+                {
+                    nodes.1 = haystack;
                 } else {
                     break;
                 }
