@@ -13,6 +13,7 @@
 """Binary IO for any value objects, such as numbers, string, parameters."""
 
 from __future__ import annotations
+from typing import Any
 
 import collections.abc
 import io
@@ -504,7 +505,23 @@ def _read_parameter_expression(file_obj):
             raise exceptions.QpyError(f"Invalid parameter expression map type: {elem_key}")
         name_map[symbol.name] = value
 
-    return ParameterExpression(name_map, str(expr_))
+    return ParameterExpression(name_map, expr_)
+
+
+def _to_sympy(expr_se: Any) -> Any:
+    """
+    Convert a SymEngine expression (or similar) to a SymPy expression.
+    Uses explicit compatibility hooks when available and falls back to
+    string round-trip via sympy.sympify.
+    """
+    import sympy as sp
+
+    if hasattr(expr_se, "_sympy_") and callable(getattr(expr_se, "_sympy_")):
+        return expr_se._sympy_()
+    if hasattr(expr_se, "__sympy__") and callable(getattr(expr_se, "__sympy__")):
+        return expr_se.__sympy__()
+    # fallback
+    return sp.sympify(str(expr_se))
 
 
 def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
@@ -514,7 +531,8 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
 
     payload = file_obj.read(data.expr_size)
     if use_symengine:
-        expr_ = common.load_symengine_payload(payload)
+        expr_se = common.load_symengine_payload(payload)
+        expr_ = _to_sympy(expr_se)
     else:
         sympy_str = payload.decode(common.ENCODE)
         expr_ = parse_sympy_repr(sympy_str)
@@ -557,7 +575,7 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
             raise exceptions.QpyError(f"Invalid parameter expression map type: {elem_key}")
         name_map[symbol.name] = value
 
-    return ParameterExpression(name_map, str(expr_))
+    return ParameterExpression(name_map, expr_)
 
 
 def _read_parameter_expression_v13(file_obj, vectors, version):
