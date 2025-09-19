@@ -229,10 +229,16 @@ sure to always be kind and respectful in your interactions with maintainers and 
 
 ### Use of AI tools
 
-If you use AI tools while preparing your contribution, please ensure that your code remains your own original work of authorship, as required by the [Contributor License Agreement (CLA)](https://qisk.it/cla).
-Make sure you fully understand, review, and take responsibility for the code you submit. You must be able to explain the reasoning behind it during review.
-Submissions that appear unreviewed or copied directly from an AI assistant without proper understanding may be requested to be revised or declined.
-Please also note that spamming issues or pull requests with AI-generated comments is strictly prohibited under the [Qiskit Code of Conduct](https://qisk.it/coc).
+> [!WARNING]
+> If you use any AI tool while preparing your code contribution, you **must** disclose the name of the tool and its version in the PR description.
+
+When using AI tools for code generation, your submission must still be your own original work of authorship, as required by the [Contributor License Agreement (CLA)](https://qisk.it/cla).
+It is also your responsibility to ensure that the tool is safe for use within IBM and that its output is compatible with the [Qiskit license](LICENSE.txt).
+
+Regardless of the tools you use, you must fully understand, review, and take responsibility for the code you submit.
+Be prepared to explain the reasoning behind your choices during review. Submissions that appear unreviewed or copied directly from an AI tool without proper understanding may be requested to be revised or declined.
+
+Finally, spamming issues or pull requests with AI-generated comments is strictly prohibited under the [Qiskit Code of Conduct](https://qisk.it/coc).
 
 ## Contributor Licensing Agreement
 
