@@ -18,15 +18,15 @@ use crate::imports::{
     get_std_gate_class, BARRIER, BOX_OP, BREAK_LOOP_OP, CONTINUE_LOOP_OP, DELAY, FOR_LOOP_OP,
     IF_ELSE_OP, MEASURE, RESET, SWITCH_CASE_OP, UNITARY_GATE, WHILE_LOOP_OP,
 };
-use crate::instruction::{Instruction, Parameters};
+use crate::instruction::{Instruction, IntoInstructionView, Parameters};
 use crate::interner::Interned;
 use crate::operations::{
-    ControlFlow, Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
-    StandardInstruction, UnitaryGate,
+    ControlFlow, Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation,
+    PythonOperation, StandardGate, StandardInstruction, UnitaryGate,
 };
 use crate::{Block, Clbit, Qubit};
 use pyo3::prelude::*;
-use pyo3::types::PyType;
+use pyo3::types::{PyDict, PyType};
 use smallvec::SmallVec;
 
 /// The logical discriminant of `PackedOperation`.
@@ -703,7 +703,7 @@ impl PackedInstruction {
 
     pub fn from_control_flow(
         control_flow: ControlFlow,
-        params: Parameters<PyObject>,
+        params: Parameters<PyObject>, // TODO: needs to be Vec<Block>
         qubits: Interned<[Qubit]>,
         clbits: Interned<[Clbit]>,
         label: Option<&str>,
@@ -756,5 +756,68 @@ impl PackedInstruction {
         // Python thread might have populated the cache before we do.
         let _ = self.py_op.set(out.clone_ref(py));
         Ok(out)
+    }
+
+    /// Check equality of the operation, including Python-space checks, if appropriate.
+    pub fn py_op_eq(&self, py: Python, other: &Self) -> PyResult<bool> {
+        match (self.op.view(), other.op.view()) {
+            (OperationRef::ControlFlow(left), OperationRef::ControlFlow(right)) => {
+                left.py_eq(py, right)
+            }
+            (OperationRef::StandardGate(left), OperationRef::StandardGate(right)) => {
+                Ok(left == right)
+            }
+            (OperationRef::StandardInstruction(left), OperationRef::StandardInstruction(right)) => {
+                Ok(left == right)
+            }
+            (OperationRef::Gate(left), OperationRef::Gate(right)) => {
+                left.gate.bind(py).eq(&right.gate)
+            }
+            (OperationRef::Instruction(left), OperationRef::Instruction(right)) => {
+                left.instruction.bind(py).eq(&right.instruction)
+            }
+            (OperationRef::Operation(left), OperationRef::Operation(right)) => {
+                left.operation.bind(py).eq(&right.operation)
+            }
+            // Handle the case we end up with a pygate for a standard gate
+            // this typically only happens if it's a ControlledGate in python
+            // and we have mutable state set.
+            (OperationRef::StandardGate(_left), OperationRef::Gate(right)) => {
+                self.unpack_py_op(py)?.bind(py).eq(&right.gate)
+            }
+            (OperationRef::Gate(left), OperationRef::StandardGate(_right)) => {
+                other.unpack_py_op(py)?.bind(py).eq(&left.gate)
+            }
+            // Handle the case we end up with a pyinstruction for a standard instruction
+            (OperationRef::StandardInstruction(_left), OperationRef::Instruction(right)) => {
+                self.unpack_py_op(py)?.bind(py).eq(&right.instruction)
+            }
+            (OperationRef::Instruction(left), OperationRef::StandardInstruction(_right)) => {
+                other.unpack_py_op(py)?.bind(py).eq(&left.instruction)
+            }
+            _ => Ok(false),
+        }
+    }
+
+    pub fn py_deepcopy_inplace<'py>(
+        &mut self,
+        py: Python<'py>,
+        memo: Option<&Bound<'py, PyDict>>,
+    ) -> PyResult<()> {
+        match self.op.view() {
+            OperationRef::Gate(gate) => self.op = gate.py_deepcopy(py, memo)?.into(),
+            OperationRef::Instruction(inst) => self.op = inst.py_deepcopy(py, memo)?.into(),
+            OperationRef::Operation(op) => self.op = op.py_deepcopy(py, memo)?.into(),
+            _ => (),
+        };
+        if let Some(Parameters::Params(params)) = self.params.as_deref_mut() {
+            for param in params {
+                *param = param.py_deepcopy(py, memo)?;
+            }
+        }
+        #[cfg(feature = "cache_pygates")]
+        self.py_op.take();
+
+        Ok(())
     }
 }

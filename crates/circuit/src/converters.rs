@@ -17,9 +17,10 @@ use crate::bit::{ShareableClbit, ShareableQubit};
 use crate::circuit_data::{CircuitData, CircuitVar};
 use crate::dag_circuit::DAGIdentifierInfo;
 use crate::dag_circuit::{DAGCircuit, NodeType};
+use crate::instruction::Parameters;
 use crate::object_registry::{ObjectRegistry, PyObjectAsKey};
 use crate::operations::{OperationRef, PythonOperation};
-use crate::Block;
+use crate::{imports, Block};
 
 /// An extractable representation of a QuantumCircuit reserved only for
 /// conversion purposes.
@@ -55,6 +56,19 @@ pub fn circuit_to_dag(
 
 #[pyfunction(signature = (dag, copy_operations = true))]
 pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<CircuitData> {
+    // let params: Option<Parameters<PyObject>> = match self.params.map(|p| *p) {
+    //     None => None,
+    //     Some(Parameters::Blocks(blocks)) => Python::with_gil(|py| -> PyResult<_> {
+    //         let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
+    //         Ok(Some(Parameters::Blocks(
+    //             blocks
+    //                 .into_iter()
+    //                 .map(|c| Ok(dag_to_circuit.call1((c,))?.unbind()))
+    //                 .collect::<PyResult<_>>()?,
+    //         )))
+    //     })?,
+    //     Some(Parameters::Params(params)) => Some(Parameters::Params(params)),
+    // };
     let blocks: ObjectRegistry<Block, PyObjectAsKey> =
         { todo!("converters block conversion not yet implemented") };
     CircuitData::from_packed_instructions(
@@ -89,12 +103,11 @@ pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<Circu
                     OperationRef::StandardInstruction(instruction) => instruction.into(),
                     OperationRef::Unitary(unitary) => unitary.clone().into(),
                 };
-                let instr = instr.clone();
-                let mut packed = instr.into_packed()?;
-                packed.op = op;
-                Ok(packed)
+                let mut instr = instr.clone();
+                instr.op = op;
+                Ok(instr)
             } else {
-                instr.clone().into_packed()
+                Ok(instr.clone())
             }
         }),
         dag.get_global_phase(),
