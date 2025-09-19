@@ -551,11 +551,11 @@ impl Target {
         if self.num_qubits.is_none() {
             qargs = Qargs::Global;
         }
-        if let Some(_operation_class) = operation_class {
+        if let Some(operation_class) = operation_class {
             for (op_name, obj) in self._gate_name_map.iter() {
                 match obj {
                     TargetOperation::Variadic(variable) => {
-                        if !_operation_class.eq(variable)? {
+                        if !operation_class.eq(variable)? {
                             continue;
                         }
                         // If no qargs operation class is supported
@@ -571,8 +571,8 @@ impl Target {
                         }
                     }
                     TargetOperation::Normal(normal) => {
-                        let py = _operation_class.py();
-                        if normal.into_pyobject(py)?.is_instance(_operation_class)? {
+                        let py = operation_class.py();
+                        if normal.into_pyobject(py)?.is_instance(operation_class)? {
                             if let Some(parameters) = &parameters {
                                 if parameters.len() != normal.params.len() {
                                     continue;
@@ -611,60 +611,12 @@ impl Target {
             }
             Ok(false)
         } else if let Some(operation_name) = operation_name {
-            if let Some(parameters) = parameters {
-                if let Some(obj) = self._gate_name_map.get(&operation_name) {
-                    if matches!(obj, TargetOperation::Variadic(_)) {
-                        if let Qargs::Concrete(qargs_vec) = qargs {
-                            let qarg_set: HashSet<PhysicalQubit> =
-                                qargs_vec.iter().cloned().collect();
-                            return Ok(qargs_vec
-                                .iter()
-                                .all(|qarg| qarg.0 <= self.num_qubits.unwrap_or_default())
-                                && qarg_set.len() == qargs_vec.len());
-                        } else {
-                            return Ok(true);
-                        }
-                    }
-
-                    let obj_params = obj.params();
-                    if parameters.len() != obj_params.len() {
-                        return Ok(false);
-                    }
-
-                    for (index, params) in parameters.iter().enumerate() {
-                        let obj_at_index = &obj_params[index];
-                        let matching_params = match (obj_at_index, params) {
-                            (Param::Float(obj_f), Param::Float(param_f)) => obj_f == param_f,
-                            (Param::ParameterExpression(_), _) => true,
-                            _ => {
-                                Python::attach(|py| python_compare(py, params, &obj_params[index]))?
-                            }
-                        };
-
-                        if !matching_params {
-                            return Ok(false);
-                        }
-                    }
-                    if check_angle_bounds
-                        && self.has_angle_bounds()
-                        && parameters.iter().all(|x| matches!(x, Param::Float(_)))
-                    {
-                        let params: Vec<f64> = parameters
-                            .iter()
-                            .map(|x| {
-                                let Param::Float(val) = x else { unreachable!() };
-                                *val
-                            })
-                            .collect();
-                        if self.angle_bounds.contains_key(&operation_name)
-                            && !self.gate_supported_angle_bound(&operation_name, &params)
-                        {
-                            return Ok(false);
-                        }
-                    }
-                }
-            }
-            Ok(self.instruction_supported(&operation_name, &qargs))
+            Ok(self.instruction_supported(
+                &operation_name,
+                &qargs,
+                parameters.as_deref().unwrap_or_default(),
+                check_angle_bounds,
+            ))
         } else {
             Ok(false)
         }
@@ -1392,7 +1344,24 @@ impl Target {
     }
 
     /// Checks whether an instruction is supported by the Target based on instruction name and qargs.
-    pub fn instruction_supported<'a, T>(&self, operation_name: &str, qargs: T) -> bool
+    /// # Arguments
+    ///
+    /// * `operation_name` - The instruction's name to check for.
+    /// * `qargs` - A collection of [PhysicalQubit] or an instance of [Qargs::Global] that the instruction
+    ///   might operate on.
+    /// * `parameters` - The parameters that will be assigned to the gate.
+    /// * `check_angle_bounds` - To decide if we will check the angle bounds of the provided parameters.
+    ///
+    /// # Returns
+    ///
+    /// * `true`` if the instruction compatible with the target, `false` if otherwise.
+    pub fn instruction_supported<'a, T>(
+        &self,
+        operation_name: &str,
+        qargs: T,
+        parameters: &[Param],
+        check_angle_bounds: bool,
+    ) -> bool
     where
         T: Into<QargsRef<'a>>,
     {
@@ -1402,43 +1371,72 @@ impl Target {
         } else {
             qargs.into()
         };
-        if self.gate_map.contains_key(operation_name) {
+        if let Some(obj) = self._gate_name_map.get(operation_name) {
+            if !parameters.is_empty() {
+                if matches!(obj, TargetOperation::Variadic(_)) {
+                    if let QargsRef::Concrete(qargs_vec) = qargs {
+                        let qarg_set: HashSet<PhysicalQubit> = qargs_vec.iter().cloned().collect();
+                        return qargs_vec.iter().all(|qarg| {
+                            qarg.0 <= self.num_qubits.unwrap_or_default()
+                                && qarg_set.len() == qargs_vec.len()
+                        });
+                    } else {
+                        return true;
+                    }
+                }
+
+                let obj_params = obj.params();
+                if parameters.len() != obj_params.len() {
+                    return false;
+                }
+
+                for (index, params) in parameters.iter().enumerate() {
+                    let obj_at_index = &obj_params[index];
+                    let matching_params = match (obj_at_index, params) {
+                        (Param::Float(obj_f), Param::Float(param_f)) => obj_f == param_f,
+                        (Param::ParameterExpression(_), _) => true,
+                        _ => Python::attach(|py| python_compare(py, params, &obj_params[index]))
+                            .expect("Error comparing Python parameters."),
+                    };
+
+                    if !matching_params {
+                        return false;
+                    }
+                }
+                if check_angle_bounds
+                    && self.has_angle_bounds()
+                    && parameters.iter().all(|x| matches!(x, Param::Float(_)))
+                {
+                    let params: Vec<f64> = parameters
+                        .iter()
+                        .map(|x| {
+                            let Param::Float(val) = x else { unreachable!() };
+                            *val
+                        })
+                        .collect();
+                    if self.angle_bounds.contains_key(operation_name)
+                        && !self.gate_supported_angle_bound(operation_name, &params)
+                    {
+                        return false;
+                    }
+                }
+            }
             let QargsRef::Concrete(qargs_as_vec) = qargs else {
                 return true;
             };
-            let qarg_set: HashSet<&PhysicalQubit> = qargs_as_vec.iter().collect();
-            if let Some(gate_prop_name) = self.gate_map.get(operation_name) {
-                if gate_prop_name.contains_key(&qargs) {
-                    return true;
-                }
-                if gate_prop_name.contains_key(&Qargs::Global) {
-                    let obj = &self._gate_name_map[operation_name];
-                    match obj {
-                        TargetOperation::Variadic(_) => {
-                            return qargs_as_vec
-                                .iter()
-                                .all(|qarg| qarg.0 <= self.num_qubits.unwrap_or_default())
-                                && qarg_set.len() == qargs_as_vec.len();
-                        }
-                        TargetOperation::Normal(obj) => {
-                            let qubit_comparison = obj.operation.num_qubits();
-                            return qubit_comparison == qargs_as_vec.len() as u32
-                                && qargs_as_vec
-                                    .iter()
-                                    .all(|qarg| qarg.0 < self.num_qubits.unwrap_or_default());
-                        }
-                    }
-                }
-            } else {
-                // Duplicate case is if it contains none
-                let obj = &self._gate_name_map[operation_name];
+            if self.gate_map[operation_name].contains_key(&qargs) {
+                return true;
+            }
+            if self.gate_map.get(operation_name).is_none()
+                || self.gate_map[operation_name].contains_key(&QargsRef::Global)
+            {
                 match obj {
                     TargetOperation::Variadic(_) => {
-                        return qargs.is_global()
-                            || qargs_as_vec
-                                .iter()
-                                .all(|qarg| qarg.0 <= self.num_qubits.unwrap_or_default())
-                                && qarg_set.len() == qargs_as_vec.len();
+                        let qarg_set: HashSet<&PhysicalQubit> = qargs_as_vec.iter().collect();
+                        return qargs_as_vec
+                            .iter()
+                            .all(|qarg| qarg.0 <= self.num_qubits.unwrap_or_default())
+                            && qarg_set.len() == qargs_as_vec.len();
                     }
                     TargetOperation::Normal(obj) => {
                         let qubit_comparison = obj.operation.num_qubits();
