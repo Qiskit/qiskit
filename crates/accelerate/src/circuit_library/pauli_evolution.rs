@@ -15,7 +15,7 @@ use pyo3::{intern, prelude::*};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::operations;
-use qiskit_circuit::operations::{multiply_param, radd_param, Param, StandardGate};
+use qiskit_circuit::operations::{multiply_param, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
 use smallvec::{smallvec, SmallVec};
@@ -363,7 +363,7 @@ pub fn py_pauli_evolution(
         let time = Param::extract_no_coerce(&tuple.get_item(2)?)?;
 
         if pauli.as_str().chars().all(|p| p == 'i') {
-            global_phase = radd_param(global_phase, time);
+            global_phase = global_phase.add(&time);
             modified_phase = true;
             continue;
         }

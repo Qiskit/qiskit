@@ -31,8 +31,8 @@ use qiskit_circuit::gate_matrix::CX_GATE;
 use qiskit_circuit::imports::{HLS_SYNTHESIZE_OP_USING_PLUGINS, QS_DECOMPOSITION, QUANTUM_CIRCUIT};
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::operations::OperationRef;
+use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::StandardGate;
-use qiskit_circuit::operations::{radd_param, Param};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit, VarsMode};
@@ -704,10 +704,10 @@ fn run_on_circuitdata(
                     )?;
                 }
 
-                let updated_global_phase = radd_param(
-                    output_circuit.global_phase().clone(),
-                    synthesized_circuit.global_phase().clone(),
-                );
+                let updated_global_phase = output_circuit
+                    .global_phase()
+                    .clone()
+                    .add(synthesized_circuit.global_phase());
                 output_circuit.set_global_phase(updated_global_phase)?;
             }
         }

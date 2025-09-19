@@ -107,6 +107,50 @@ impl Param {
         }
     }
 
+    pub fn add(&self, other: &Param) -> Param {
+        match (&self, other) {
+            (Param::Float(left), Param::Float(right)) => Param::Float(left + right),
+            (Param::Float(left), Param::ParameterExpression(right)) => {
+                let left = ParameterExpression::from_f64(*left);
+                Param::ParameterExpression(Arc::new(left.add(right).unwrap()))
+            }
+            (Param::ParameterExpression(left), Param::Float(right)) => {
+                let right = ParameterExpression::from_f64(*right);
+                Param::ParameterExpression(Arc::new(left.add(&right).unwrap()))
+            }
+
+            (Param::ParameterExpression(left), Param::ParameterExpression(right)) => {
+                // TODO we could properly propagate the error here
+                Param::ParameterExpression(Arc::new(
+                    left.add(right).expect("Name conflict during add."),
+                ))
+            }
+            _ => unreachable!("Unsupported addition."),
+        }
+    }
+
+    /// Multiply two ``Param``s.
+    pub fn mul(&self, other: &Param) -> Param {
+        match (&self, other) {
+            (Param::Float(left), Param::Float(right)) => Param::Float(left * right),
+            (Param::Float(left), Param::ParameterExpression(right)) => {
+                let left = ParameterExpression::from_f64(*left);
+                Param::ParameterExpression(Arc::new(left.mul(right).unwrap()))
+            }
+            (Param::ParameterExpression(left), Param::Float(right)) => {
+                let right = ParameterExpression::from_f64(*right);
+                Param::ParameterExpression(Arc::new(left.mul(&right).unwrap()))
+            }
+
+            (Param::ParameterExpression(left), Param::ParameterExpression(right)) => {
+                Param::ParameterExpression(Arc::new(
+                    left.mul(right).expect("Name conflict during add."),
+                ))
+            }
+            _ => unreachable!("Unsupported multiplication."),
+        }
+    }
+
     pub fn is_close(&self, other: &Param, max_relative: f64) -> PyResult<bool> {
         match [self, other] {
             [Self::Float(a), Self::Float(b)] => Ok(relative_eq!(a, b, max_relative = max_relative)),
@@ -798,8 +842,8 @@ impl StandardGate {
             Self::U2 => Some((
                 Self::U2,
                 smallvec![
-                    add_param(&multiply_param(&params[1], -1.0), -PI),
-                    add_param(&multiply_param(&params[0], -1.0), PI),
+                    multiply_param(&params[1], -1.0).add(&Param::Float(-PI)),
+                    multiply_param(&params[0], -1.0).add(&Param::Float(PI)),
                 ],
             )),
             Self::U3 => Some((
@@ -1278,7 +1322,7 @@ impl Operation for StandardGate {
             ),
             Self::R => {
                 let theta_expr = clone_param(&params[0]);
-                let phi_expr1 = add_param(&params[1], -PI / 2.);
+                let phi_expr1 = params[1].add(&Param::Float(-PI / 2.));
                 let phi_expr2 = multiply_param(&phi_expr1, -1.0);
                 let defparams = smallvec![theta_expr, phi_expr1, phi_expr2];
                 Some(
@@ -1697,18 +1741,12 @@ impl Operation for StandardGate {
                 )
             }
             Self::CU => {
-                let param_second_p = radd_param(
-                    multiply_param(&params[2], 0.5),
-                    multiply_param(&params[1], 0.5),
-                );
-                let param_third_p = radd_param(
-                    multiply_param(&params[2], 0.5),
-                    multiply_param(&params[1], -0.5),
-                );
-                let param_first_u = radd_param(
-                    multiply_param(&params[1], -0.5),
-                    multiply_param(&params[2], -0.5),
-                );
+                let param_second_p =
+                    multiply_param(&params[2], 0.5).add(&multiply_param(&params[1], 0.5));
+                let param_third_p =
+                    multiply_param(&params[2], 0.5).add(&multiply_param(&params[1], -0.5));
+                let param_first_u =
+                    multiply_param(&params[1], -0.5).add(&multiply_param(&params[2], -0.5));
                 Some(
                     CircuitData::from_standard_gates(
                         2,
@@ -1773,18 +1811,12 @@ impl Operation for StandardGate {
                 .expect("Unexpected Qiskit python bug"),
             ),
             Self::CU3 => {
-                let param_first_u1 = radd_param(
-                    multiply_param(&params[2], 0.5),
-                    multiply_param(&params[1], 0.5),
-                );
-                let param_second_u1 = radd_param(
-                    multiply_param(&params[2], 0.5),
-                    multiply_param(&params[1], -0.5),
-                );
-                let param_first_u3 = radd_param(
-                    multiply_param(&params[1], -0.5),
-                    multiply_param(&params[2], -0.5),
-                );
+                let param_first_u1 =
+                    multiply_param(&params[2], 0.5).add(&multiply_param(&params[1], 0.5));
+                let param_second_u1 =
+                    multiply_param(&params[2], 0.5).add(&multiply_param(&params[1], -0.5));
+                let param_first_u3 =
+                    multiply_param(&params[1], -0.5).add(&multiply_param(&params[2], -0.5));
                 Some(
                     CircuitData::from_standard_gates(
                         2,
@@ -2404,32 +2436,6 @@ pub fn multiply_params(param1: Param, param2: Param) -> Param {
             Param::ParameterExpression(Arc::new(p1.mul(p2).expect("Name conflict during mul.")))
         }
         _ => unreachable!("Unsupported multiplication."),
-    }
-}
-
-pub fn add_param(param: &Param, summand: f64) -> Param {
-    match param {
-        Param::Float(theta) => Param::Float(*theta + summand),
-        Param::ParameterExpression(theta) => Param::ParameterExpression(
-            // safe to unwrap as addition with float does not have name conflicts
-            Arc::new(theta.add(&ParameterExpression::from_f64(summand)).unwrap()),
-        ),
-        Param::Obj(_) => unreachable!("Unsupported addition of a Param::Obj."),
-    }
-}
-
-pub fn radd_param(param1: Param, param2: Param) -> Param {
-    match [&param1, &param2] {
-        [Param::Float(theta), Param::Float(lambda)] => Param::Float(theta + lambda),
-        [Param::Float(theta), Param::ParameterExpression(_lambda)] => add_param(&param2, *theta),
-        [Param::ParameterExpression(_theta), Param::Float(lambda)] => add_param(&param1, *lambda),
-        [Param::ParameterExpression(theta), Param::ParameterExpression(lambda)] => {
-            // TODO we could properly propagate the error here
-            Param::ParameterExpression(Arc::new(
-                theta.add(lambda).expect("Name conflict during add."),
-            ))
-        }
-        _ => unreachable!("Unsupported addition."),
     }
 }
 
