@@ -14,9 +14,7 @@ use pyo3::prelude::*;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::imports::PAULI_EVOLUTION_GATE;
-use qiskit_circuit::operations::{
-    multiply_param, Operation, OperationRef, Param, PyGate, StandardGate,
-};
+use qiskit_circuit::operations::{Operation, OperationRef, Param, PyGate, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::{Clbit, Qubit, VarsMode};
 
@@ -129,7 +127,7 @@ pub fn run_litinski_transformation(
                 }
                 OperationRef::StandardGate(StandardGate::RZ) => {
                     let param = &inst.params_view()[0];
-                    ("rz", Some(multiply_param(param, 0.5)), 0.)
+                    ("rz", Some(param.mul_f64(0.5)), 0.)
                 }
                 _ => (inst.op.name(), None, 0.),
             };
@@ -175,11 +173,7 @@ pub fn run_litinski_transformation(
         let py_pauli =
             PySparseObservable::from_label(paulis.chars().rev().collect::<String>().as_str())?;
 
-        let time = if *sign {
-            multiply_param(&angle, -1.)
-        } else {
-            angle
-        };
+        let time = if *sign { angle.mul_f64(-1.) } else { angle };
         let py_evo = py_evo_cls.call1((py_pauli, time.clone()))?;
         let py_gate = PyGate {
             qubits: qubits.len() as u32,
