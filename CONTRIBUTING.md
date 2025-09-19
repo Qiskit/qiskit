@@ -227,12 +227,12 @@ are easier for maintainers to review and more likely to get merged in a timely m
 sure to always be kind and respectful in your interactions with maintainers and other contributors, you can read
 [the Qiskit Code of Conduct](https://github.com/Qiskit/qiskit/blob/main/CODE_OF_CONDUCT.md).
 
-### Use of AI-assisted tools
+### Use of AI tools
 
-If you use AI-assisted tools when preparing code, remember that your contribution must still be your own original work of authorship, as required by the [Contributor License Agreement (CLA)](https://qisk.it/cla).
-Make sure you fully understand, review, and take responsibility for the code you submit, and be able to explain the reasoning behind it during review.
+If you use AI tools while preparing your contribution, please ensure that your code remains your own original work of authorship, as required by the [Contributor License Agreement (CLA)](https://qisk.it/cla).
+Make sure you fully understand, review, and take responsibility for the code you submit. You must be able to explain the reasoning behind it during review.
 Submissions that appear unreviewed or copied directly from an AI assistant without proper understanding may be requested to be revised or declined.
-Please also note that spamming issues or pull requests with AI-generated comments is strictly prohibited under the (Qiskit Code of Conduct](https://qisk.it/coc).
+Please also note that spamming issues or pull requests with AI-generated comments is strictly prohibited under the [Qiskit Code of Conduct](https://qisk.it/coc).
 
 ## Contributor Licensing Agreement
 
