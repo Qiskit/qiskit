@@ -179,8 +179,8 @@ The places to update are:
 
 * `qiskit/VERSION.txt`: the only line in the file.
 * `docs/conf.py`: the variables `version` and `release`.
-* `Cargo.toml` (only the file in the repository root and none of the other `**/Cargo.toml`s): the variable `version` and run `cargo build`. Cargo doesn't allow 'rc' dev versions. Therefore, for releasing `x.y.0rc1`, the cargo version should be `x.y.0`.
-* `crates/cext/cbindgen.toml`: the `QISKIT_VERSION_xxx` macros. Similarly to `Cargo.toml`, 'rc' dev versions are not supported and the integer for the minor should be used. 
+* `Cargo.toml` (only the file in the repository root and none of the other `**/Cargo.toml`s): the variable `version` and run `cargo build`. Cargo needs a dash before 'rc' dev versions. Therefore, for releasing `x.y.0rc1`, the cargo version should be `x.y.0-rc1`.
+* `crates/cext/cbindgen.toml`: the `define QISKIT_VERSION_*` macros. 
 
 
 #### 3.3 Update Rust dependency
