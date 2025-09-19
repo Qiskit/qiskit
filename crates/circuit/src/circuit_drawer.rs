@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use core::panic;
 use std::fmt::{format, Debug};
 use std::hash::{Hash, RandomState};
 use std::sync::Barrier;
@@ -64,37 +65,39 @@ pub fn py_drawer(py: Python, quantum_circuit: &Bound<PyAny>) -> PyResult<()> {
     Ok(())
 }
 
-pub const q_wire: &str = "─";
-pub const c_wire: char = '═';
-pub const top_con: char = '┴';
-pub const bot_con: char = '┬';
-pub const left_con: char = '┤';
-pub const right_con: char = '├';
-pub const top_left_con: char = '┌';
-pub const top_right_con: char = '┐';
-pub const bot_left_con: char = '└';
-pub const bot_right_con: char = '┘';
-pub const barrier_char: char = '░';
+pub const Q_WIRE: &str = "─";
+pub const C_WIRE: char = '═';
+pub const TOP_CON: char = '┴';
+pub const BOT_CON: char = '┬';
+pub const LEFT_CON: char = '┤';
+pub const RIGHT_CON: char = '├';
+pub const TOP_LEFT_CON: char = '┌';
+pub const TOP_RIGHT_CON: char = '┐';
+pub const BOT_LEFT_CON: char = '└';
+pub const BOT_RIGHT_CON: char = '┘';
+pub const BARRIER_CHAR: char = '░';
+pub const BULLET:char = '■';
+
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-enum Wire_Type {
-    qubit,
-    clbit,
+enum WireType {
+    Qubit,
+    Clbit,
 }
 
-impl From<&Wire_Type> for &str {
-    fn from(Wire_Type: &Wire_Type) -> Self {
-        match Wire_Type {
-            Wire_Type::qubit => "─",
-            Wire_Type::clbit => "═",
+impl From<&WireType> for &str {
+    fn from(wire_type: &WireType) -> Self {
+        match wire_type {
+            WireType::Qubit => "─",
+            WireType::Clbit => "═",
         }
     }
 }
 
 #[derive(Clone, Debug)]
-enum control_type{
-    open,
-    closed,
+enum ControlType{
+    Open,
+    Closed
 }
 
 #[derive(Clone, Debug)]
@@ -106,11 +109,201 @@ pub struct wire {
     top: String,
     mid: String,
     bot: String,
-    type_: Wire_Type,
+    type_: WireType,
+}
+
+#[derive(Clone, Debug)]
+pub struct Enclosed<'a>{
+    packedinst: &'a PackedInstruction,
+    dag_circ: &'a DAGCircuit,
+    wire: WireType,
+    name: String,
+    label: Option<String>,
+    visual_type: VisualType,
+}
+
+struct Visualizer<'a>{
+    visualization_matrix: VisualizationMatrix<'a>,
+    circuit_rep: CircuitRep
+}
+
+struct VisualizationMatrix<'a>{
+    visualization_layers: Vec<VisualizationLayer<'a>>,
+    packedinst_layers: Vec<Vec<&'a PackedInstruction>>,
+    circuit_rep: &'a CircuitRep
+}
+
+struct VisualizationLayer<'a>{
+    elements: Vec<VisualizationElement<'a>>,
+    width: u32,
+    circuit_rep: &'a CircuitRep
+}
+
+#[derive(Clone, Debug)]
+pub struct VisualizationElement<'a>{
+    element: Enclosed<'a>,
+    ascii_string: String,
+    ind: u32,
+    circuit_rep: &'a CircuitRep
+}
+
+// pub struct VisualizationElement<'a>{
+//     element: Option<&'a PackedInstruction>,
+//     ascii_string: String,
+//     ind: u32,
+//     circuit_rep: &'a CircuitRep
+// }
+
+impl<'a> VisualizationMatrix<'a>{
+
+    pub fn new(circuit_rep: &'a CircuitRep, packedinst_layers: Vec<Vec<&'a PackedInstruction>>) -> Self{
+        let mut visualization_layers: Vec<VisualizationLayer> = Vec::with_capacity(packedinst_layers.len());
+        for layer in packedinst_layers.iter(){
+            let vis_layer = VisualizationLayer::new(circuit_rep, layer.to_vec());
+            visualization_layers.push(vis_layer);
+        }
+
+        VisualizationMatrix{
+            visualization_layers,
+            packedinst_layers,
+            circuit_rep
+        }
+    }
+
+    pub fn print(&self){
+        let mut output: Vec<String> = Vec::new();
+        for layer in &self.visualization_layers{
+            let layer_col = layer.get_layer_col();
+            if output.is_empty(){
+                output = layer_col;
+            } else {
+                // append strings in ith index to output string in ith index
+                for i in 0..output.len(){
+                    output[i].push_str(&layer_col[i]);
+                }
+            }
+        }
+        for i in output{
+            println!("{}", i);
+        }
+    }
+}
+
+impl<'a> VisualizationLayer<'a>{
+
+    pub fn new(circuit_rep: &'a CircuitRep, packedinst_layer: Vec<&'a PackedInstruction>) -> Self{
+
+        let dummy_element: VisualizationElement = VisualizationElement{
+            element: Enclosed{
+                packedinst: &packedinst_layer[0],
+                dag_circ: &circuit_rep.dag_circ,
+                wire: WireType::Qubit,
+                name: String::new(),
+                label: None,
+                visual_type: VisualType::Boxed
+            },
+            ascii_string: String::new(),
+            ind: 0,
+            circuit_rep
+        };
+
+
+        //println!("{}",packedinst_layer.len());
+        let mut vis_layer:Vec<VisualizationElement> = vec![dummy_element;circuit_rep.get_indices() as usize];
+        let mut enclosed_elements = {
+            let mut enclosed_layer:Vec<Enclosed> = Vec::new();
+            for &inst in packedinst_layer.iter(){
+                let enclosed = circuit_rep.from_instruction(inst);
+                let indices = enclosed.get_wire_indices();
+                // println!("enclosed indices: {:?}", indices);
+                // println!("{:?}", vis_layer);
+                for ind in indices{
+                    let vis_element = VisualizationElement::new(enclosed.clone(), circuit_rep, ind);
+                    vis_layer[ind as usize] = vis_element;
+                }
+            }
+            enclosed_layer
+        };
+
+        let mut visualization_layer = VisualizationLayer{
+            elements: vis_layer,
+            width: 0,
+            circuit_rep
+        };
+        visualization_layer.width = visualization_layer.set_width();
+        visualization_layer
+
+    }
+
+    pub fn get_enclosed(&self, inst: &'a PackedInstruction) -> Enclosed{
+        self.circuit_rep.from_instruction(inst)
+    }
+
+    pub fn set_width(&mut self) -> u32{
+        let mut max_width:u32 = 0;
+
+        for element in self.elements.iter(){
+            let temp = element.get_length();
+            if temp > max_width {
+                max_width = temp;
+            }
+        }
+
+        max_width
+    }
+
+    pub fn get_layer_col(&self) -> Vec<String>{
+        let mut layer_col: Vec<String> = Vec::new();
+        for element in &self.elements{
+            layer_col.push(format!("{}{}",element.get_string(), " ".repeat((self.width - element.get_length()) as usize)));
+        }
+        layer_col
+    }
+}
+
+
+
+impl<'a> VisualizationElement<'a>{
+
+    pub fn new(element: Enclosed<'a>, circuit_rep: &'a CircuitRep,ind: u32) -> Self{
+        let mut vis_element = VisualizationElement{
+            element,
+            ascii_string: String::new(),
+            ind,
+            circuit_rep
+        };
+        vis_element.ascii_string = vis_element.set_string();
+        return vis_element;
+    }
+
+    pub fn get_string(&self) -> String{
+        self.ascii_string.clone()
+    }
+
+    pub fn get_length(&self) -> u32{
+        self.ascii_string.len() as u32
+    }
+
+    pub fn set_string(&mut self) -> String{
+        let enclosed = &self.element;
+        let mut ret: String = " ".to_string();
+
+        let indices = enclosed.get_wire_indices();
+        
+        if self.ind == indices[0] {
+            ret = enclosed.get_name();
+        }else if indices.contains(&self.ind) {
+            ret = format!("{}({})", BULLET,indices[0]);
+        }else {
+            ret = <&str>::from(&enclosed.wire).to_string();
+        }
+
+        format!("{}",ret)
+    }
 }
 
 impl wire {
-    pub fn new(type_: Wire_Type) -> Self {
+    pub fn new(type_: WireType) -> Self {
         wire {
             top: String::new(),
             mid: String::new(),
@@ -171,10 +364,10 @@ impl wire {
     }
 
     pub fn add_wire_component(&mut self, component: &wire) {
-        &self.top.push_str(&component.top);
-        &self.mid.push_str(&component.mid);
-        &self.bot.push_str(&component.bot);
-        &self.update_wire_len();
+        self.top.push_str(&component.top);
+        self.mid.push_str(&component.mid);
+        self.bot.push_str(&component.bot);
+        self.update_wire_len();
     }
 }
 
@@ -200,20 +393,11 @@ enum VisualType{
     Boxed,
     BetweenWire(String),
     DirectOnWire(String),
-    WholeWire,
-}
-
-pub struct Enclosed<'a>{
-    packedinst: &'a PackedInstruction,
-    dag_circ: &'a DAGCircuit,
-    wire: Wire_Type,
-    name: String,
-    label: Option<String>,
-    visual_type: VisualType,
+    WholeWire
 }
 
 impl<'a> Enclosed<'a> {
-    pub fn new(packedinst: &'a PackedInstruction, dag_circ: &'a DAGCircuit ,wire: Wire_Type, name: String, label: Option<String>, visual_type: VisualType) -> Enclosed<'a>{
+    pub fn new(packedinst: &'a PackedInstruction, dag_circ: &'a DAGCircuit ,wire: WireType, name: String, label: Option<String>, visual_type: VisualType) -> Enclosed<'a>{
         Enclosed {
             packedinst,
             dag_circ,
@@ -224,6 +408,8 @@ impl<'a> Enclosed<'a> {
         }
     }
 
+
+    
     pub fn get_wire_indices(&self) -> Vec<u32>{
         let mut qubit_indices: Vec<u32> = self.dag_circ.qargs_interner().get(self.packedinst.qubits)
         .iter()
@@ -249,12 +435,12 @@ impl<'a> Enclosed<'a> {
         let max_index = *wire_indices.iter().max().unwrap();
 
         // barrier handling
-        if self.visual_type == VisualType::DirectOnWire(barrier_char.to_string()) {
-            let mut label = barrier_char.to_string();
+        if self.visual_type == VisualType::DirectOnWire(BARRIER_CHAR.to_string()) {
+            let mut label = BARRIER_CHAR.to_string();
             if let Some(l) = &self.label{
                 label = l.to_string();
             } else {
-                label = barrier_char.to_string();
+                label = BARRIER_CHAR.to_string();
             }
             let label_len:usize = label.len();
 
@@ -274,13 +460,13 @@ impl<'a> Enclosed<'a> {
             }
             let component_wire = format!("{}{}{}",
                 <&str>::from(&self.wire).repeat(left_pad_len),
-                barrier_char,
+                BARRIER_CHAR,
                 <&str>::from(&self.wire).repeat(right_pad_len)
             );
 
             let between_wire = format!("{}{}{}",
                 " ".repeat(left_pad_len),
-                barrier_char,
+                BARRIER_CHAR,
                 " ".repeat(right_pad_len)
             );
 
@@ -298,18 +484,18 @@ impl<'a> Enclosed<'a> {
             VisualType::Boxed => {
                 if let Some(label) = &self.label {
                     let label_len = label.len() as usize;
-                    component.top.push_str(&format!("{}{}{}", top_left_con, "─".repeat(label_len as usize), top_right_con));
-                    component.mid.push_str(&format!("{}{}{}", left_con, label, right_con));
-                    component.bot.push_str(&format!("{}{}{}", bot_left_con, "─".repeat(label_len as usize), bot_right_con));
+                    component.top.push_str(&format!("{}{}{}", TOP_LEFT_CON, "─".repeat(label_len as usize), TOP_RIGHT_CON));
+                    component.mid.push_str(&format!("{}{}{}", LEFT_CON, label, RIGHT_CON));
+                    component.bot.push_str(&format!("{}{}{}", BOT_LEFT_CON, "─".repeat(label_len as usize), BOT_RIGHT_CON));
                 } else {
                     panic!("Boxed visual has no label");
                 }
             }
             VisualType::BetweenWire(label) => {
                 let label_len = label.len() as u64;
-                component.top.push_str(&format!("{}{}{}", top_con, "─".repeat(label_len as usize), top_con));
+                component.top.push_str(&format!("{}{}{}", TOP_CON, "─".repeat(label_len as usize), TOP_CON));
                 component.mid.push_str(&format!(" {} ", label));
-                component.bot.push_str(&format!("{}{}{}", bot_con, "─".repeat(label_len as usize), bot_con));
+                component.bot.push_str(&format!("{}{}{}", BOT_CON, "─".repeat(label_len as usize), BOT_CON));
             }
             VisualType::DirectOnWire(label) => {
                 component.top.push_str(" ".repeat(label.len()).as_str());
@@ -325,6 +511,10 @@ impl<'a> Enclosed<'a> {
         }
         component.update_wire_len();
         component
+    }
+
+    pub fn get_name(&self) -> String{
+        self.name.clone()
     }
 }
 
@@ -364,14 +554,14 @@ impl<'a> DrawElement for Enclosed<'a>{
     }
 }
 
-
-pub struct circuit_rep {
+#[derive(Clone, Debug)]
+pub struct CircuitRep {
     q_wires: Vec::<wire>,
     dag_circ: DAGCircuit
 }
 
-impl<'a> circuit_rep {
-    pub fn from_instruction(&'a self, instruction: &'a PackedInstruction) -> impl DrawElement + 'a {
+impl<'a> CircuitRep {
+    pub fn from_instruction(&'a self, instruction: &'a PackedInstruction) -> Enclosed<'a>{
         // println!("{:?}", instruction.label());
         if let Some(standard_gate) = instruction.op.try_standard_gate() {
             let instruction_name = instruction.op.name();
@@ -589,33 +779,27 @@ impl<'a> circuit_rep {
                 }
             };
             
-            // let label = instruction.label();
-            // instruction_label = match label {
-            //     Some(l) => {
-            //         if l != "" {
-            //             Some(l)
-            //         } else {
-            //             instruction_label
-            //         }
-            //     }
-            //     None => instruction_label,
-            // };
+            let label = instruction.label();
+            instruction_label = match label {
+                Some(l) => {
+                    if l != "" {
+                        Some(l.to_string())
+                    } else {
+                        instruction_label
+                    }
+                }
+                None => instruction_label,
+            };
             let visual_type = match standard_gate {
                 StandardGate::GlobalPhase => VisualType::BetweenWire(instruction.params_view().get(0).map_or("".to_string(), |p| format!("{:?}", p))),
                 StandardGate::Swap => VisualType::DirectOnWire("X".to_string()),
                 StandardGate::CPhase => VisualType::BetweenWire(instruction_label.clone().unwrap()),
                 _ => VisualType::Boxed,
             };
-            // // handle case for when the control state is different
-            // println!("name: {}", instruction_name);
-            // println!("label: {:?}", instruction_label);
-            // println!("params: {:?}", instruction_param);
-
-            // fix so that enclosed only has a refernce to the original packed instruction
 
             Enclosed {
                 packedinst: &instruction,
-                wire: Wire_Type::qubit,
+                wire: WireType::Qubit,
                 dag_circ: &self.dag_circ,
                 name: instruction_name.to_string(),
                 label: instruction_label,
@@ -627,7 +811,7 @@ impl<'a> circuit_rep {
                 StandardInstruction::Measure =>{
                     Enclosed{
                         packedinst: &instruction,
-                        wire: Wire_Type::qubit,
+                        wire: WireType::Qubit,
                         dag_circ: &self.dag_circ,
                         name: "Measure".to_string(),
                         label: Some("M".to_string()),
@@ -638,8 +822,8 @@ impl<'a> circuit_rep {
                     
                     let label = instruction.label();
                     let inst_label = match label{
-                        None => barrier_char.to_string(),
-                        Some("") => barrier_char.to_string(),
+                        None => BARRIER_CHAR.to_string(),
+                        Some("") => BARRIER_CHAR.to_string(),
                         Some(label) => label.to_string(),
                     };
 
@@ -647,17 +831,17 @@ impl<'a> circuit_rep {
 
                     Enclosed{
                         packedinst: &instruction,
-                        wire: Wire_Type::qubit,
+                        wire: WireType::Qubit,
                         dag_circ: &self.dag_circ,
                         name: "Barrier".to_string(),
                         label: Some(inst_label.clone()),
-                        visual_type: VisualType::DirectOnWire(barrier_char.to_string()),
+                        visual_type: VisualType::DirectOnWire(BARRIER_CHAR.to_string()),
                     }
                 },
                 StandardInstruction::Reset => {
                     Enclosed{
                         packedinst: &instruction,
-                        wire: Wire_Type::qubit,
+                        wire: WireType::Qubit,
                         dag_circ: &self.dag_circ,
                         name: "Reset".to_string(),
                         label: Some("|0>".to_string()),
@@ -676,7 +860,7 @@ impl<'a> circuit_rep {
 
                     Enclosed{
                         packedinst: &instruction,
-                        wire: Wire_Type::qubit,
+                        wire: WireType::Qubit,
                         dag_circ: &self.dag_circ,
                         name: "Delay".to_string(),
                         label: Some(label.clone()),
@@ -705,8 +889,8 @@ impl<'a> circuit_rep {
         //number of qubits in dag_circuit
         let qubit = dag_circ.num_qubits();
 
-        circuit_rep {
-            q_wires: vec!(wire::new(Wire_Type::qubit); qubit as usize),
+        CircuitRep {
+            q_wires: vec!(wire::new(WireType::Qubit); qubit as usize),
             dag_circ: dag_circ
         }
     }
@@ -717,6 +901,12 @@ impl<'a> circuit_rep {
             output.push_str(&wires.get_wire_rep());
         }
         output
+    }
+
+    pub fn get_indices(&self) -> u32{
+        let total_qubits = self.dag_circ.num_qubits() as u32;
+        let total_clbits = self.dag_circ.num_clbits() as u32;
+        total_qubits + total_clbits
     }
 
     pub fn fix_len(&mut self) {
@@ -750,6 +940,66 @@ impl<'a> circuit_rep {
         self.fix_len();
     }
 
+    pub fn get_instruction_range(&self, instruction: &PackedInstruction) -> (u32,u32){
+        let node_qubits = self.dag_circ.qargs_interner().get(instruction.qubits);
+        let node_clbits = self.dag_circ.cargs_interner().get(instruction.clbits);
+        let total_qubits = self.dag_circ.num_qubits() as u32;
+        let node_min_qubit = node_qubits.iter().map(|q| q.0).min();
+        let node_max_qubit = node_qubits.iter().map(|q| q.0).max();
+        let node_min_clbit = node_clbits.iter().map(|c| c.0).min();
+        let node_max_clbit = node_clbits.iter().map(|c| c.0).max();
+
+        let node_min = match node_min_qubit {
+            Some(val) => val,
+            None => match node_max_qubit {
+                Some(val) => val,
+                None =>  match node_min_clbit {
+                    Some(val) => val + total_qubits,
+                    None => match node_max_clbit {
+                        Some(val) => val + total_qubits,
+                        None => panic!("Non-empty node with no qubits/clbits"), // No qubits or clbits, skip this node
+                    },                                                
+                }, // No qubits or clbits, skip this node
+            },
+        };
+
+        // let node_min = node_min_qubit.unwrap_or(
+        //     node_max_qubit.unwrap_or(
+        //         node_min_clbit.map(|val| val + total_qubits).unwrap_or(
+        //             node_max_clbit.map(|val| val + total_qubits).unwrap_or(
+        //                 panic!("Non-empty node with no qubits/clbits \n {:?}", instruction)
+        //             )
+        //         )
+        //     )
+        // );
+
+        let node_max = match node_max_clbit {
+            Some(val) => val + total_qubits,
+            None => match node_min_clbit {
+                Some(val) => val + total_qubits,
+                None =>  match node_max_qubit {
+                    Some(val) => val,
+                    None => match node_min_qubit {
+                        Some(val) => val,
+                        None => panic!("Non-empty node with no qubits/clbits"), // No qubits or clbits, skip this node
+                    },                                                
+                }, // No qubits or clbits, skip this node
+            },
+        };
+
+        // let node_max = node_max_clbit.map(|val| val + total_qubits).unwrap_or(
+        //     node_min_clbit.map(|val| val + total_qubits).unwrap_or(
+        //         node_max_qubit.unwrap_or(
+        //             node_min_qubit.unwrap_or(
+        //                 panic!("Non-empty node with no qubits/clbits \n {:?}", instruction)
+        //             )
+        //         )
+        //     )
+        // );
+
+        return (node_min, node_max);
+    }
+
     pub fn build_layer(&mut self, layer: Vec<&PackedInstruction>){
         for instruction in layer{
             let components = {
@@ -765,105 +1015,53 @@ impl<'a> circuit_rep {
         // self.fix_len();
     }
 
-    pub fn build_layers(&mut self) {
-        let binding = self.dag_circ.clone();
-        let layer_iterator = binding.multigraph_layers();
+    pub fn build_layers(&mut self) -> Vec<Vec<&PackedInstruction>> {
+        let layer_iterator = self.dag_circ.multigraph_layers();
 
         let mut final_layers:Vec<Vec<NodeIndex>> = Vec::new();
 
-        let total_qubits = binding.num_qubits() as u32;
-        let total_clbits = binding.num_clbits() as u32;
-
         for (i,layer) in layer_iterator.enumerate(){ 
             let mut sublayers: Vec<Vec<NodeIndex>> = vec![Vec::new()];
+            let mut set: HashSet<u32> = hashbrown::HashSet::new();
 
             for node_index in layer {
-
-                if let NodeType::Operation(instruction_to_insert) = &binding.dag()[node_index]{
+                if let NodeType::Operation(instruction_to_insert) = &self.dag_circ.dag()[node_index]{
 
                     if sublayers.is_empty() {
                         sublayers.push(vec![node_index]);
                         continue;
                     }
 
-                    let node_qubits = binding.qargs_interner().get(instruction_to_insert.qubits);
-                    let node_clbits = binding.cargs_interner().get(instruction_to_insert.clbits);
-
-                    let node_min_qubit = node_qubits.iter().map(|q| q.0).min();
-                    let node_max_qubit = node_qubits.iter().map(|q| q.0).max();
-                    let node_min_clbit = node_clbits.iter().map(|c| c.0).min();
-                    let node_max_clbit = node_clbits.iter().map(|c| c.0).max();
-
-                    let node_min = match node_min_qubit {
-                        Some(val) => val,
-                        None => match node_max_qubit {
-                            Some(val) => val,
-                            None =>  match node_min_clbit {
-                                Some(val) => val + total_qubits,
-                                None => match node_max_clbit {
-                                    Some(val) => val + total_qubits,
-                                    None => continue, // No qubits or clbits, skip this node
-                                },                                                
-                            }, // No qubits or clbits, skip this node
-                        },
+                    if self.dag_circ.qargs_interner().get(instruction_to_insert.qubits).is_empty() &&
+                    self.dag_circ.cargs_interner().get(instruction_to_insert.clbits).is_empty() {
+                        continue;
                     };
 
-                    let node_max = match node_max_clbit {
-                        Some(val) => val + total_qubits,
-                        None => match node_min_clbit {
-                            Some(val) => val + total_qubits,
-                            None =>  match node_max_qubit {
-                                Some(val) => val,
-                                None => match node_min_qubit {
-                                    Some(val) => val,
-                                    None => continue, // No qubits or clbits, skip this node
-                                },                                                
-                            }, // No qubits or clbits, skip this node
-                        },
-                    };
+                    let (node_min,node_max) = self.get_instruction_range(instruction_to_insert);
 
                     let mut sublayer = sublayers.last_mut().unwrap();
                     let mut overlap = false;
-                    for &subnode in sublayer.iter() {
-                        if let NodeType::Operation(instruction) = &binding.dag()[subnode]{
-                            let subnode_qubits = binding.qargs_interner().get(instruction.qubits);
-                            let subnode_clbits = binding.cargs_interner().get(instruction.clbits);
-                            let subnode_min_qubit = subnode_qubits.iter().map(|q| q.0).min();  
-                            let subnode_max_qubit = subnode_qubits.iter().map(|q| q.0).max();
-                            let subnode_min_clbit = subnode_clbits.iter().map(|c| c.0).min();
-                            let subnode_max_clbit = subnode_clbits.iter().map(|c| c.0).max();
-                            let subnode_min = match subnode_min_qubit {
-                                Some(val) => val,
-                                None => match subnode_max_qubit {
-                                    Some(val) => val,
-                                    None =>  match subnode_min_clbit {
-                                        Some(val) => val + total_qubits,
-                                        None => match subnode_max_clbit {
-                                            Some(val) => val + total_qubits,
-                                            None => continue, // No qubits or clbits, skip this node
-                                        },                                                
-                                    }, // No qubits or clbits, skip this node
-                                },
-                            };
-                            let subnode_max = match subnode_max_clbit {
-                                Some(val) => val + total_qubits,
-                                None => match subnode_min_clbit {
-                                    Some(val) => val + total_qubits,
-                                    None =>  match subnode_max_qubit {
-                                        Some(val) => val,
-                                        None => match subnode_min_qubit {
-                                            Some(val) => val,
-                                            None => continue, // No qubits or clbits, skip this node
-                                        },                                                
-                                    }, // No qubits or clbits, skip this node
-                                },
-                            };
-                            if (subnode_min <= node_min && subnode_max >= node_min) || (subnode_min <= node_max && subnode_max >= node_max) {
-                                overlap = true;
-                                break;
-                            }
+
+                    if set.contains(&node_min) || set.contains(&node_max){
+                        overlap = true;
+                        set = hashbrown::HashSet::new();
+                    } else {
+                        for i in (node_min..node_max){
+                            set.insert(i);
                         }
                     }
+
+                    // for &subnode in sublayer.iter() {
+                    //     if let NodeType::Operation(instruction) = &self.dag_circ.dag()[subnode]{
+                            
+                    //         let (subnode_min,subnode_max) = self.get_instruction_range(instruction);
+
+                    //         if (subnode_min <= node_min && subnode_max >= node_min) || (subnode_min <= node_max && subnode_max >= node_max) {
+                    //             overlap = true;
+                    //             break;
+                    //         }
+                    //     }
+                    // }
 
                     if overlap {
                         sublayers.push(vec![node_index]);
@@ -890,14 +1088,23 @@ impl<'a> circuit_rep {
         for (id,layer) in final_layers.iter().enumerate() {
             let mut packedin_layer: Vec<&PackedInstruction> = Vec::new();
             for nodeind in layer {
-                if let NodeType::Operation(instruction) = &binding.dag()[*nodeind] {
-                    packedin_layer.push(instruction);
+                if let NodeType::Operation(instruction) = &self.dag_circ.dag()[*nodeind] {
+                    packedin_layer.push(&instruction);
                 } 
             }
+            packedin_layers.push(packedin_layer);
+            // self.build_layer(packedin_layer);
             // println!("Layer {}", id);
-            self.build_layer(packedin_layer.clone());
         }
         
+        for (i,packedin_layer )in packedin_layers.iter().enumerate() {
+            println!("layer:{}",i);
+            for &inst in packedin_layer.iter(){
+                println!("{:?}", inst.op.name());
+            }
+        }
+
+        packedin_layers   
     }
 }
 
@@ -907,10 +1114,23 @@ pub fn circuit_draw(dag_circ: &DAGCircuit) {
     let mut output = String::new();
 
     // Create a circuit representation
-    let mut circuit_rep = circuit_rep::new(dag_circ.clone());
+    let mut circuit_rep = CircuitRep::new(dag_circ.clone());
     circuit_rep.set_qubit_name();
-    circuit_rep.build_layers();
-    output.push_str(&circuit_rep.circuit_string());
-    // Print the circuit representation
-    println!("{}", output);
+    // circuit_rep.build_layers();
+    // output.push_str(&circuit_rep.circuit_string());
+
+    //print using visualisation matrix
+    let packedinst_layers = circuit_rep.build_layers();
+    let mut circuit_rep2 = CircuitRep::new(dag_circ.clone());
+    circuit_rep2.set_qubit_name();
+    let vis_mat:VisualizationMatrix = VisualizationMatrix::new(&circuit_rep2, packedinst_layers);
+    
+    println!("======================");
+    vis_mat.print();
+    
+    
+    //println!("{}", output);
 }
+
+
+
