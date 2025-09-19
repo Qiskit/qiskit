@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    ``QuantumCircuit.copy`` and ``copy.deepcopy`` now deep-copy the body of any
+    :class:`~qiskit.circuit.controlflow.BoxOp` instructions. Mutating a box in a
+    copied circuit no longer affects the original circuit.
