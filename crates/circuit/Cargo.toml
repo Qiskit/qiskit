@@ -25,6 +25,9 @@ nalgebra.workspace = true
 uuid.workspace = true
 nom.workspace = true
 nom-unicode.workspace = true
+rand.workspace = true
+rand_distr.workspace = true
+rand_pcg.workspace = true
 
 [dependencies.pyo3]
 workspace = true

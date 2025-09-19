@@ -20,7 +20,8 @@ mod multi_local;
 mod parameter_ledger;
 mod pauli_evolution;
 mod pauli_feature_map;
-mod quantum_volume;
+
+use qiskit_circuit::library::quantum_volume;
 
 import_exception!(qiskit.exceptions, QiskitError);
 import_exception!(qiskit.circuit.exceptions, CircuitError);

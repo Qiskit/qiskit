@@ -27,6 +27,7 @@ pub mod error;
 pub mod gate_matrix;
 pub mod imports;
 pub mod interner;
+pub mod library;
 pub mod nlayout;
 pub mod object_registry;
 pub mod operations;

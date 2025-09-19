@@ -10,9 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::types::PyDict;
 
 use nalgebra::Matrix4;
 use num_complex::{Complex64, ComplexFloat};
@@ -20,13 +18,13 @@ use rand::prelude::*;
 use rand_distr::StandardNormal;
 use rand_pcg::Pcg64Mcg;
 use rayon::prelude::*;
-
-use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::getenv_use_multiple_threads;
-use qiskit_circuit::operations::{ArrayType, Param, UnitaryGate};
-use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::{Clbit, Qubit};
 use smallvec::{smallvec, SmallVec};
+
+use crate::circuit_data::CircuitData;
+use crate::getenv_use_multiple_threads;
+use crate::operations::{ArrayType, Param, UnitaryGate};
+use crate::packed_instruction::PackedOperation;
+use crate::{Clbit, Qubit};
 
 type Instruction = (
     PackedOperation,
@@ -87,18 +85,11 @@ const UNITARY_PER_SEED: usize = 50;
 
 #[pyfunction]
 #[pyo3(signature=(num_qubits, depth, seed=None))]
-pub fn quantum_volume(
-    py: Python,
-    num_qubits: u32,
-    depth: usize,
-    seed: Option<u64>,
-) -> PyResult<CircuitData> {
+pub fn quantum_volume(num_qubits: u32, depth: usize, seed: Option<u64>) -> PyResult<CircuitData> {
     let width = num_qubits as usize / 2;
     let num_unitaries = width * depth;
     let mut permutation: Vec<Qubit> = (0..num_qubits).map(Qubit).collect();
 
-    let kwargs = PyDict::new(py);
-    kwargs.set_item(intern!(py, "num_qubits"), 2)?;
     let mut build_instruction = |(unitary_index, unitary_array): (usize, Matrix4<Complex64>),
                                  rng: &mut Pcg64Mcg|
      -> PyResult<Instruction> {
