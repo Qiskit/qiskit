@@ -2425,19 +2425,20 @@ impl DAGCircuit {
     ///
     /// Returns:
     ///     generator(DAGOpNode, DAGInNode, or DAGOutNode): node in topological order
-    #[pyo3(name = "topological_nodes", signature=(key=None))]
+    #[pyo3(name = "topological_nodes", signature=(key=None, reverse=false))]
     fn py_topological_nodes(
         &self,
         py: Python,
         key: Option<Bound<PyAny>>,
+        reverse: bool,
     ) -> PyResult<Py<PyIterator>> {
         let nodes: PyResult<Vec<_>> = if let Some(key) = key {
-            self.topological_key_sort(py, &key)?
+            self.reversible_topological_key_sort(py, &key, reverse)?
                 .map(|node| self.get_node(py, node))
                 .collect()
         } else {
             // Good path, using interner IDs.
-            self.topological_nodes()?
+            self.reversible_topological_nodes(reverse)?
                 .map(|n| self.get_node(py, n))
                 .collect()
         };
@@ -2460,14 +2461,15 @@ impl DAGCircuit {
     ///
     /// Returns:
     ///     generator(DAGOpNode): op node in topological order
-    #[pyo3(name = "topological_op_nodes", signature=(key=None))]
+    #[pyo3(name = "topological_op_nodes", signature=(key=None, reverse=false))]
     fn py_topological_op_nodes(
         &self,
         py: Python,
         key: Option<Bound<PyAny>>,
+        reverse: bool,
     ) -> PyResult<Py<PyIterator>> {
         let nodes: PyResult<Vec<_>> = if let Some(key) = key {
-            self.topological_key_sort(py, &key)?
+            self.reversible_topological_key_sort(py, &key, reverse)?
                 .filter_map(|node| match self.dag.node_weight(node) {
                     Some(NodeType::Operation(_)) => Some(self.get_node(py, node)),
                     _ => None,
@@ -2475,7 +2477,7 @@ impl DAGCircuit {
                 .collect()
         } else {
             // Good path, using interner IDs.
-            self.topological_op_nodes()?
+            self.reversible_topological_op_nodes(reverse)?
                 .map(|n| self.get_node(py, n))
                 .collect()
         };
@@ -5618,10 +5620,43 @@ impl DAGCircuit {
         Ok(nodes.into_iter())
     }
 
+    fn reversible_topological_nodes(
+        &self,
+        reverse: bool,
+    ) -> PyResult<impl Iterator<Item = NodeIndex>> {
+        let key = |node: NodeIndex| -> Result<SortKeyType, Infallible> { Ok(self.sort_key(node)) };
+        let nodes = rustworkx_core::dag_algo::lexicographical_topological_sort(
+            &self.dag,
+            key,
+            reverse,
+            None,
+        )
+        .map_err(|e| match e {
+            rustworkx_core::dag_algo::TopologicalSortError::CycleOrBadInitialState => {
+                PyValueError::new_err(format!("{e}"))
+            }
+            rustworkx_core::dag_algo::TopologicalSortError::KeyError(_) => {
+                unreachable!()
+            }
+        })?;
+        Ok(nodes.into_iter())
+    }
+
     pub fn topological_op_nodes(&self) -> PyResult<impl Iterator<Item = NodeIndex> + '_> {
         Ok(self.topological_nodes()?.filter(|node: &NodeIndex| {
             matches!(self.dag.node_weight(*node), Some(NodeType::Operation(_)))
         }))
+    }
+
+    pub fn reversible_topological_op_nodes(
+        &self,
+        reverse: bool,
+    ) -> PyResult<impl Iterator<Item = NodeIndex> + '_> {
+        Ok(self
+            .reversible_topological_nodes(reverse)?
+            .filter(|node: &NodeIndex| {
+                matches!(self.dag.node_weight(*node), Some(NodeType::Operation(_)))
+            }))
     }
 
     fn topological_key_sort(
@@ -5638,6 +5673,30 @@ impl DAGCircuit {
         };
         Ok(
             rustworkx_core::dag_algo::lexicographical_topological_sort(&self.dag, key, false, None)
+                .map_err(|e| match e {
+                    rustworkx_core::dag_algo::TopologicalSortError::CycleOrBadInitialState => {
+                        PyValueError::new_err(format!("{e}"))
+                    }
+                    rustworkx_core::dag_algo::TopologicalSortError::KeyError(ref e) => {
+                        e.clone_ref(py)
+                    }
+                })?
+                .into_iter(),
+        )
+    }
+
+    fn reversible_topological_key_sort(
+        &self,
+        py: Python,
+        key: &Bound<PyAny>,
+        reverse: bool,
+    ) -> PyResult<impl Iterator<Item = NodeIndex>> {
+        let key = |node: NodeIndex| -> PyResult<String> {
+            let node = self.get_node(py, node)?;
+            key.call1((node,))?.extract()
+        };
+        Ok(
+            rustworkx_core::dag_algo::lexicographical_topological_sort(&self.dag, key, reverse, None)
                 .map_err(|e| match e {
                     rustworkx_core::dag_algo::TopologicalSortError::CycleOrBadInitialState => {
                         PyValueError::new_err(format!("{e}"))
