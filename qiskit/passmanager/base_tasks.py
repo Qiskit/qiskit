@@ -103,7 +103,7 @@ class GenericPass(Task, ABC):
             run_state = RunState.FAIL
             raise
         finally:
-            ret = ret or passmanager_ir
+            ret = passmanager_ir if ret is None else ret
             if run_state != RunState.SKIP:
                 running_time = time.time() - start_time
                 logger.info("Pass: %s - %.5f (ms)", self.name(), running_time * 1000)
