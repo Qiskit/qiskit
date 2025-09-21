@@ -14,22 +14,36 @@ use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::library::quantum_volume::quantum_volume;
 
 /// @ingroup QkCircuitLibrary
-/// Generate a Quantum Volume circuit
+/// Generate a Quantum Volume model circuit
 ///
+/// The model circuits are random instances of circuits used to measure the Quantum Volume
+/// metric, as introduced in [1]. The model circuits consist of layers of Haar random
+/// elements of SU(4) applied between corresponding pairs of qubits in a random bipartition.
 ///
+/// This function is multithreaded and will launch a thread pool with threads equal to the
+/// number of CPUs by default. You can tune the number of threads with the
+/// RAYON_NUM_THREADS environment variable. For example, setting RAYON_NUM_THREADS=4 would
+/// limit the thread pool to 4 threads.
+///
+/// [1] A. Cross et al. Validating quantum computers using randomized model circuits,
+///     Phys. Rev. A 100, 032328 (2019). [arXiv:1811.12926](https://arxiv.org/abs/1811.12926)
+///
+/// # Parameters
+///
+/// - `num_qubits`: The number qubits to use for the generated circuit.
+/// - `depth`: The number of layers for the generated circuit.
+/// - `seed`: An RNG seed used for generating the random SU(4) matrices used
+///   in the output circuit. If the provided number is negative the seed used
+///   will be soured from system entropy.
 ///
 /// # Example
 ///
 /// ```c
 ///     QkCircuit *qc = qk_circuit_library_quantum_volume(10, 10, -1)
 /// ```
-///
-/// # Safety
-///
-/// It's SAFE!
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_circuit_library_quantum_volume(
+pub extern "C" fn qk_circuit_library_quantum_volume(
     num_qubits: u32,
     depth: usize,
     seed: i64,
