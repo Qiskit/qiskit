@@ -214,6 +214,7 @@ from .optimization import CollectLinearFunctions
 from .optimization import CollectMultiQBlocks
 from .optimization import CommutationAnalysis
 from .optimization import CommutativeCancellation
+from .optimization import CommutativeOptimization
 from .optimization import CommutativeInverseCancellation
 from .optimization import ConsolidateBlocks
 from .optimization import ContractIdleWiresInControlFlow
