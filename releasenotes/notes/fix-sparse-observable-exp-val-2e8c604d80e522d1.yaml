@@ -2,4 +2,5 @@
 features:
   - |
     Added ability to compute the expectation value of a :class:`.SparseObservable`
-    by using the :func:`.sampled_expectation_value` function.
+    from sampled bitstrings in the Z-basis by using the 
+    :func:`.sampled_expectation_value` function.
