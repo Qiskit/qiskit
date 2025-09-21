@@ -92,7 +92,7 @@ class TestSampledExpval(QiskitTestCase):
 
         so_non_diag = SparseObservable.from_label(oper_non_diag)
         with self.assertRaisesRegex(ValueError, "Operator string .* contains non-diagonal terms"):
-            sampled_expectation_value(counts, so_non_diag)
+            _ = sampled_expectation_value(counts, so_non_diag)
 
     def test_asym_ops(self):
         """Test that asymmetric exp values work"""
