@@ -11,40 +11,17 @@
 // that they have been altered from the originals.
 
 use core::panic;
-use std::fmt::{format, Debug};
-use std::hash::{Hash, RandomState};
-use std::sync::Barrier;
-#[cfg(feature = "cache_pygates")]
-use std::sync::OnceLock;
-use std::thread::current;
-use hashbrown::HashSet;
-use hashbrown::HashMap;
-use crate::bit::{
-    BitLocations, ClassicalRegister, PyBit, QuantumRegister, Register, ShareableClbit,
-    ShareableQubit,
-};
-use crate::bit_locator::BitLocator;
-use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
-use crate::classical::expr;
-use crate::dag_circuit::{self, add_global_phase, DAGCircuit, DAGStretchType, DAGVarType};
-use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
-use rustworkx_core::petgraph::stable_graph::{EdgeReference, NodeIndex};
-use crate::interner::{Interned, Interner};
-use crate::object_registry::ObjectRegistry;
-use crate::operations::{Operation, OperationRef, Param, PythonOperation, StandardGate, StandardInstruction};
-use crate::packed_instruction::{PackedInstruction, PackedOperation};
-use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
-use crate::register_data::RegisterData;
-use crate::slice::{PySequenceIndex, SequenceIndex};
-use crate::{Clbit, Qubit, Stretch, Var, VarsMode};
+use std::fmt::Debug;
+use hashbrown::{HashSet, HashMap};
+use crate::dag_circuit::DAGCircuit;
+use crate::operations::{Operation, StandardGate, StandardInstruction};
+use crate::packed_instruction::PackedInstruction;
+use itertools::{Itertools, MinMaxResult};
 
-use numpy::PyReadonlyArray1;
-use pyo3::exceptions::*;
 use pyo3::prelude::*;
 use pyo3::{import_exception};
 
 
-use crate::converters::circuit_to_dag;
 use crate::converters::QuantumCircuitData;
 use crate::dag_circuit::NodeType;
 use crate::circuit_data::CircuitData;
@@ -53,15 +30,8 @@ import_exception!(qiskit.circuit.exceptions, CircuitError);
 
 
 #[pyfunction(name = "draw")]
-pub fn py_drawer(py: Python, quantum_circuit: &Bound<PyAny>) -> PyResult<()> {
-    if !quantum_circuit.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
-        return Err(PyTypeError::new_err(
-            "Expected a QuantumCircuit instance"
-        ));
-    }
-    let circ_data: QuantumCircuitData = quantum_circuit.extract()?;
-    let dag_circuit = circuit_to_dag(circ_data, true, None, None)?;
-    circuit_draw(&dag_circuit);
+pub fn py_drawer(circuit: QuantumCircuitData) -> PyResult<()> {
+    draw_circuit(&circuit.data)?;
     Ok(())
 }
 
@@ -289,7 +259,7 @@ impl<'a> VisualizationElement<'a>{
         let mut ret: String = " ".to_string();
 
         let indices = enclosed.get_wire_indices();
-        
+
         if self.ind == indices[0] {
             ret = enclosed.get_name();
         }else if indices.contains(&self.ind) {
@@ -330,7 +300,7 @@ impl wire {
         let mid_len = self.mid.len();
         let bot_len = self.bot.len();
         if top_len == mid_len && mid_len == bot_len {
-            
+
         } else {
             let max_len = top_len.max(mid_len).max(bot_len);
             self.fix_len(max_len);
@@ -409,7 +379,7 @@ impl<'a> Enclosed<'a> {
     }
 
 
-    
+
     pub fn get_wire_indices(&self) -> Vec<u32>{
         let mut qubit_indices: Vec<u32> = self.dag_circ.qargs_interner().get(self.packedinst.qubits)
         .iter()
@@ -479,7 +449,7 @@ impl<'a> Enclosed<'a> {
             component.bot.push_str( &between_wire);
             return component;
         }
-        
+
         match &self.visual_type {
             VisualType::Boxed => {
                 if let Some(label) = &self.label {
@@ -541,7 +511,7 @@ impl<'a> DrawElement for Enclosed<'a>{
 
         return type_;
     }
-    
+
     fn component_dict(&self) -> HashMap<u32, wire>{
         // map of qubit index to wire component
         let mut components = HashMap::<u32, wire>::new();
@@ -569,7 +539,7 @@ impl<'a> CircuitRep {
             let mut instruction_label: Option<String> = match standard_gate {
                 StandardGate::GlobalPhase => {
                     // Global phase gate - affects overall circuit phase
-                    
+
                     None
                 }
                 StandardGate::H => {
@@ -778,7 +748,7 @@ impl<'a> CircuitRep {
                     Some(format!("RX({})", instruction_param))
                 }
             };
-            
+
             let label = instruction.label();
             instruction_label = match label {
                 Some(l) => {
@@ -805,7 +775,7 @@ impl<'a> CircuitRep {
                 label: instruction_label,
                 visual_type: visual_type,
             }
-        } 
+        }
         else if let Some(standard_instruction) = instruction.op.try_standard_instruction() {
             match standard_instruction {
                 StandardInstruction::Measure =>{
@@ -819,7 +789,7 @@ impl<'a> CircuitRep {
                     }
                 },
                 StandardInstruction::Barrier(x) => {
-                    
+
                     let label = instruction.label();
                     let inst_label = match label{
                         None => BARRIER_CHAR.to_string(),
@@ -868,7 +838,7 @@ impl<'a> CircuitRep {
                     }
                 }
             }
-        } 
+        }
         else {
             // print all operation details
             println!("Unsupported operation details:");
@@ -939,198 +909,75 @@ impl<'a> CircuitRep {
         }
         self.fix_len();
     }
+}
 
-    pub fn get_instruction_range(&self, instruction: &PackedInstruction) -> (u32,u32){
-        let node_qubits = self.dag_circ.qargs_interner().get(instruction.qubits);
-        let node_clbits = self.dag_circ.cargs_interner().get(instruction.clbits);
-        let total_qubits = self.dag_circ.num_qubits() as u32;
-        let node_min_qubit = node_qubits.iter().map(|q| q.0).min();
-        let node_max_qubit = node_qubits.iter().map(|q| q.0).max();
-        let node_min_clbit = node_clbits.iter().map(|c| c.0).min();
-        let node_max_clbit = node_clbits.iter().map(|c| c.0).max();
+/// Calculate the range (inclusive) of the given instruction qubits/clbits over the wire indices.
+/// The assumption is that clbits always appear after the qubits in the visualization, hence the clbit indices
+/// are offset by the number of instruction qubits when calculating the range.
+ fn get_instruction_range(dag: &DAGCircuit, instruction: &PackedInstruction) -> (usize, usize) {
+    let node_qubits = dag.get_qargs(instruction.qubits);
+    let node_clbits = dag.get_cargs(instruction.clbits);
 
-        let node_min = match node_min_qubit {
-            Some(val) => val,
-            None => match node_max_qubit {
-                Some(val) => val,
-                None =>  match node_min_clbit {
-                    Some(val) => val + total_qubits,
-                    None => match node_max_clbit {
-                        Some(val) => val + total_qubits,
-                        None => panic!("Non-empty node with no qubits/clbits"), // No qubits or clbits, skip this node
-                    },                                                
-                }, // No qubits or clbits, skip this node
-            },
-        };
+    let indices = node_qubits.iter().map(|q| q.index()).chain(
+        node_clbits.iter().map(|c| c.index() + dag.num_qubits()));
 
-        // let node_min = node_min_qubit.unwrap_or(
-        //     node_max_qubit.unwrap_or(
-        //         node_min_clbit.map(|val| val + total_qubits).unwrap_or(
-        //             node_max_clbit.map(|val| val + total_qubits).unwrap_or(
-        //                 panic!("Non-empty node with no qubits/clbits \n {:?}", instruction)
-        //             )
-        //         )
-        //     )
-        // );
-
-        let node_max = match node_max_clbit {
-            Some(val) => val + total_qubits,
-            None => match node_min_clbit {
-                Some(val) => val + total_qubits,
-                None =>  match node_max_qubit {
-                    Some(val) => val,
-                    None => match node_min_qubit {
-                        Some(val) => val,
-                        None => panic!("Non-empty node with no qubits/clbits"), // No qubits or clbits, skip this node
-                    },                                                
-                }, // No qubits or clbits, skip this node
-            },
-        };
-
-        // let node_max = node_max_clbit.map(|val| val + total_qubits).unwrap_or(
-        //     node_min_clbit.map(|val| val + total_qubits).unwrap_or(
-        //         node_max_qubit.unwrap_or(
-        //             node_min_qubit.unwrap_or(
-        //                 panic!("Non-empty node with no qubits/clbits \n {:?}", instruction)
-        //             )
-        //         )
-        //     )
-        // );
-
-        return (node_min, node_max);
-    }
-
-    pub fn build_layer(&mut self, layer: Vec<&PackedInstruction>){
-        for instruction in layer{
-            let components = {
-                let enclosed = self.from_instruction(instruction);
-                enclosed.component_dict()
-            };
-            println!("components: {:?}", components);
-            for (idx, component) in components{
-                self.q_wires[idx as usize].add_wire_component(&component);
-            }
-        }
-        // normalise all wire widths
-        // self.fix_len();
-    }
-
-    pub fn build_layers(&mut self) -> Vec<Vec<&PackedInstruction>> {
-        let layer_iterator = self.dag_circ.multigraph_layers();
-
-        let mut final_layers:Vec<Vec<NodeIndex>> = Vec::new();
-
-        for (i,layer) in layer_iterator.enumerate(){ 
-            let mut sublayers: Vec<Vec<NodeIndex>> = vec![Vec::new()];
-            let mut set: HashSet<u32> = hashbrown::HashSet::new();
-
-            for node_index in layer {
-                if let NodeType::Operation(instruction_to_insert) = &self.dag_circ.dag()[node_index]{
-
-                    if sublayers.is_empty() {
-                        sublayers.push(vec![node_index]);
-                        continue;
-                    }
-
-                    if self.dag_circ.qargs_interner().get(instruction_to_insert.qubits).is_empty() &&
-                    self.dag_circ.cargs_interner().get(instruction_to_insert.clbits).is_empty() {
-                        continue;
-                    };
-
-                    let (node_min,node_max) = self.get_instruction_range(instruction_to_insert);
-
-                    let mut sublayer = sublayers.last_mut().unwrap();
-                    let mut overlap = false;
-
-                    if set.contains(&node_min) || set.contains(&node_max){
-                        overlap = true;
-                        set = hashbrown::HashSet::new();
-                    } else {
-                        for i in (node_min..node_max){
-                            set.insert(i);
-                        }
-                    }
-
-                    // for &subnode in sublayer.iter() {
-                    //     if let NodeType::Operation(instruction) = &self.dag_circ.dag()[subnode]{
-                            
-                    //         let (subnode_min,subnode_max) = self.get_instruction_range(instruction);
-
-                    //         if (subnode_min <= node_min && subnode_max >= node_min) || (subnode_min <= node_max && subnode_max >= node_max) {
-                    //             overlap = true;
-                    //             break;
-                    //         }
-                    //     }
-                    // }
-
-                    if overlap {
-                        sublayers.push(vec![node_index]);
-                    } else {
-                        sublayer.push(node_index);
-                    }
-                }
-            }
-            
-            let mut ct = 0;
-            for j in sublayers {
-                if j.is_empty() {
-                    continue;
-                } else {
-                    final_layers.push(j);
-                    ct += 1;
-                }
-            }
-        }
-
-
-        let mut packedin_layers: Vec<Vec<&PackedInstruction>> = Vec::new();
-
-        for (id,layer) in final_layers.iter().enumerate() {
-            let mut packedin_layer: Vec<&PackedInstruction> = Vec::new();
-            for nodeind in layer {
-                if let NodeType::Operation(instruction) = &self.dag_circ.dag()[*nodeind] {
-                    packedin_layer.push(&instruction);
-                } 
-            }
-            packedin_layers.push(packedin_layer);
-            // self.build_layer(packedin_layer);
-            // println!("Layer {}", id);
-        }
-        
-        for (i,packedin_layer )in packedin_layers.iter().enumerate() {
-            println!("layer:{}",i);
-            for &inst in packedin_layer.iter(){
-                println!("{:?}", inst.op.name());
-            }
-        }
-
-        packedin_layers   
+    match indices.minmax() {
+        MinMaxResult::MinMax(min, max) => (min, max),
+        MinMaxResult::OneElement(idx) => (idx, idx),
+        MinMaxResult::NoElements => panic!("Encountered an instruction without qubits and clbits")
     }
 }
 
+/// Return a list of PackedInstruction layers such that each layer contain instruction
+/// whose qubits/clbits indices do not overlap. The instructions are packed into each layer
+/// as long as there is no qubit/clbit overlap
+fn build_layers(dag: &DAGCircuit) -> Vec<Vec<&PackedInstruction>> {
+    let mut layers:Vec<Vec<&PackedInstruction>> = Vec::new();
+    let mut current_layer: Option<&mut Vec::<&PackedInstruction>> = None;
+    let mut used_wires = HashSet::<usize>::new();
 
-pub fn circuit_draw(dag_circ: &DAGCircuit) {
+    for layer in dag.multigraph_layers() {
+        for node_index in layer.into_iter().sorted() {
 
-    let mut output = String::new();
+            if let NodeType::Operation(instruction_to_insert) = &dag.dag()[node_index] {
+                let (node_min, node_max) = get_instruction_range(dag, instruction_to_insert);
 
-    // Create a circuit representation
-    let mut circuit_rep = CircuitRep::new(dag_circ.clone());
-    circuit_rep.set_qubit_name();
-    // circuit_rep.build_layers();
-    // output.push_str(&circuit_rep.circuit_string());
+                // Check for instruction range overlap
+                if (node_min..=node_max).any(|idx| used_wires.contains(&idx)) {
+                    current_layer = None; // Indication for starting a new layer
+                    used_wires.clear();
+                }
+                used_wires.extend(node_min..=node_max);
 
-    //print using visualisation matrix
-    let packedinst_layers = circuit_rep.build_layers();
-    let mut circuit_rep2 = CircuitRep::new(dag_circ.clone());
-    circuit_rep2.set_qubit_name();
-    let vis_mat:VisualizationMatrix = VisualizationMatrix::new(&circuit_rep2, packedinst_layers);
-    
+                if current_layer.is_none() {
+                    layers.push(Vec::new());
+                    current_layer = layers.last_mut();
+                }
+
+                current_layer.as_mut().unwrap().push(instruction_to_insert);
+            }
+        }
+    }
+
+    layers
+}
+
+pub fn draw_circuit(circuit: &CircuitData) -> PyResult<()> {
+    let dag = DAGCircuit::from_circuit_data(circuit, false, None, None, None, None)?;
+
+    // let mut circuit_rep = CircuitRep::new(dag.clone());
+    let packedinst_layers = build_layers(&dag);
+    for (i, layer) in packedinst_layers.iter().enumerate() {
+        println!("==== LAYER {} ====", i);
+        for inst in layer {
+            println!("{:?}", inst.op.name());
+        }
+    }
+
+    // circuit_rep2.set_qubit_name();
+    // let vis_mat:VisualizationMatrix = VisualizationMatrix::new(&circuit_rep, packedinst_layers);
+
     println!("======================");
-    vis_mat.print();
-    
-    
-    //println!("{}", output);
+    // vis_mat.print();
+    Ok(())
 }
-
-
-
