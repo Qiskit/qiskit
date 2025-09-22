@@ -107,10 +107,10 @@ impl Param {
         }
     }
 
-    /// Add two [Param]s.
+    /// Add two scalar-valued [Param]s.
     ///
-    /// This does not support additions involving a [Param::Obj] variant.
-    pub fn add(&self, other: &Param) -> Param {
+    /// Scalar-valued includes the variants [Param::Float] and [Param::ParameterExpression].
+    pub fn add_scalar(&self, other: &Param) -> Param {
         match (&self, other) {
             (_, Param::Float(right)) => self.add_f64(*right),
             (Param::Float(left), _) => other.add_f64(*left), // add is commutative here
@@ -138,10 +138,10 @@ impl Param {
         }
     }
 
-    /// Multiply two [Param]s.
+    /// Multiply two scalar-valued [Param]s.
     ///
-    /// This does not support multiplication involving a [Param::Obj] variant.
-    pub fn mul(&self, other: &Param) -> Param {
+    /// Scalar-valued includes the variants [Param::Float] and [Param::ParameterExpression].
+    pub fn mul_scalar(&self, other: &Param) -> Param {
         match (&self, other) {
             (_, Param::Float(right)) => self.mul_f64(*right),
             (Param::Float(left), _) => other.mul_f64(*left), // mul is commutative here
@@ -1739,9 +1739,9 @@ impl Operation for StandardGate {
                 )
             }
             Self::CU => {
-                let param_second_p = params[2].mul_f64(0.5).add(&params[1].mul_f64(0.5));
-                let param_third_p = params[2].mul_f64(0.5).add(&params[1].mul_f64(-0.5));
-                let param_first_u = params[1].mul_f64(-0.5).add(&params[2].mul_f64(-0.5));
+                let param_second_p = params[2].mul_f64(0.5).add_scalar(&params[1].mul_f64(0.5));
+                let param_third_p = params[2].mul_f64(0.5).add_scalar(&params[1].mul_f64(-0.5));
+                let param_first_u = params[1].mul_f64(-0.5).add_scalar(&params[2].mul_f64(-0.5));
                 Some(
                     CircuitData::from_standard_gates(
                         2,
@@ -1798,9 +1798,9 @@ impl Operation for StandardGate {
                 .expect("Unexpected Qiskit python bug"),
             ),
             Self::CU3 => {
-                let param_first_u1 = params[2].mul_f64(0.5).add(&params[1].mul_f64(0.5));
-                let param_second_u1 = params[2].mul_f64(0.5).add(&params[1].mul_f64(-0.5));
-                let param_first_u3 = params[1].mul_f64(-0.5).add(&params[2].mul_f64(-0.5));
+                let param_first_u1 = params[2].mul_f64(0.5).add_scalar(&params[1].mul_f64(0.5));
+                let param_second_u1 = params[2].mul_f64(0.5).add_scalar(&params[1].mul_f64(-0.5));
+                let param_first_u3 = params[1].mul_f64(-0.5).add_scalar(&params[2].mul_f64(-0.5));
                 Some(
                     CircuitData::from_standard_gates(
                         2,

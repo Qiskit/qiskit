@@ -363,7 +363,7 @@ pub fn py_pauli_evolution(
         let time = Param::extract_no_coerce(&tuple.get_item(2)?)?;
 
         if pauli.as_str().chars().all(|p| p == 'i') {
-            global_phase = global_phase.add(&time);
+            global_phase = global_phase.add_scalar(&time);
             modified_phase = true;
             continue;
         }

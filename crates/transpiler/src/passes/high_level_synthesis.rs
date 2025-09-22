@@ -707,7 +707,7 @@ fn run_on_circuitdata(
                 let updated_global_phase = output_circuit
                     .global_phase()
                     .clone()
-                    .add(synthesized_circuit.global_phase());
+                    .add_scalar(synthesized_circuit.global_phase());
                 output_circuit.set_global_phase(updated_global_phase)?;
             }
         }

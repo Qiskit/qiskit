@@ -191,7 +191,7 @@ fn inject_rotations(
         if pauli_support_size == 0 {
             // in case of an all-identity rotation, update global phase by subtracting
             // the angle
-            global_phase = global_phase.add(&angles[i].mul_f64(-0.5));
+            global_phase = global_phase.add_scalar(&angles[i].mul_f64(-0.5));
             hit_paulis[i] = true;
             dag.remove_node(i);
         } else if pauli_support_size == 1 && dag.is_front_node(i) {

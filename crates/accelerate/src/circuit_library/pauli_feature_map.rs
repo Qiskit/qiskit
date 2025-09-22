@@ -195,9 +195,9 @@ fn _default_reduce(parameters: Vec<Param>) -> Param {
     if parameters.len() == 1 {
         parameters[0].clone()
     } else {
-        let acc = parameters
-            .iter()
-            .fold(Param::Float(1.0), |acc, param| acc.mul(&param.add_f64(-PI)));
+        let acc = parameters.iter().fold(Param::Float(1.0), |acc, param| {
+            acc.mul_scalar(&param.add_f64(-PI))
+        });
         if parameters.len() % 2 == 0 {
             acc
         } else {

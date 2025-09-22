@@ -6244,7 +6244,7 @@ impl DAGCircuit {
 
         let out_map =
             self.substitute_node_with_graph(node_index, other, qubit_map, clbit_map, var_map)?;
-        self.global_phase = self.global_phase.add(&other.global_phase);
+        self.global_phase = self.global_phase.add_scalar(&other.global_phase);
 
         let mut wire_map_dict = HashMap::new();
         for (source, target) in clbit_map.iter() {
@@ -6943,7 +6943,7 @@ impl DAGCircuit {
                     "Invalid parameter type, only float and parameter expression are supported",
                 ))
             }
-            _ => self.set_global_phase(self.global_phase.add(value))?,
+            _ => self.set_global_phase(self.global_phase.add_scalar(value))?,
         }
         Ok(())
     }
@@ -7405,7 +7405,7 @@ impl DAGCircuit {
             }
         };
 
-        self.global_phase = self.global_phase.add(&other.global_phase);
+        self.global_phase = self.global_phase.add_scalar(&other.global_phase);
 
         // This is all the handling we need for realtime variables, if there's no remapping. They:
         //
