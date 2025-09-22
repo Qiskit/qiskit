@@ -404,9 +404,19 @@ encrypted credentials in this repository.
 
 The first GitHub Actions CD stage builds the [Tier 1](https://quantum.cloud.ibm.com/docs/en/guides/install-qiskit#operating-system-support) and takes between 1.5 and 2 hours.
 Once it finishes, the wheels can be pushed to PyPI by [the deploy workflow](https://github.com/Qiskit/qiskit/blob/main/.github/workflows/wheels.yml).
-For that, an active approval by somebody (excluding the release manager) from the [release team](https://github.com/orgs/Qiskit/teams/terra-release) needs to be performed.
+For that, an active approval by [somebody from the release team](https://github.com/orgs/Qiskit/teams/terra-release), excluding the release manager, needs to be performed.
 
-> TODO: Explain what the approver needs to check for.
+The approver needs to verify that:
+
+* The tag triggering the CI run matches the correct version.  
+* That version is indeed the one intended for release.  
+
+In other words, this step ensures that the tag corresponds to the correct SHA-1 (commit ID) intended to be published as the next release.  
+
+> [!WARNING]  
+> Approval is the **point of no return** in the release process.  
+> Once the package is live on PyPI, it cannot be rolled back. The only option is to [yank](https://docs.pypi.org/project-management/yanking/) it.  
+
 
 Traditionally, once Tier 1 is live on PyPI, the post-release actions in step 5 can start, including the announcements.
 The rest of the tiers might take even longer and they also need to be approved.
