@@ -12,7 +12,6 @@
 
 #include "common.h"
 #include <complex.h>
-#include <math.h>
 #include <qiskit.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -20,7 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 
-int test_transpile_bv(void) {
+static int test_transpile_bv(void) {
     const uint32_t num_qubits = 10;
     QkTarget *target = qk_target_new(num_qubits);
     int result = Ok;
@@ -153,7 +152,7 @@ circuit_cleanup:
     return result;
 }
 
-int test_transpile_idle_qubits(void) {
+static int test_transpile_idle_qubits(void) {
     int result = Ok;
     uint32_t num_qubits = 3;
     QkCircuit *circuit = qk_circuit_new(num_qubits, 0);
@@ -212,7 +211,7 @@ cleanup:
     return result;
 }
 
-int test_transpile_options_null(void) {
+static int test_transpile_options_null(void) {
     const uint32_t n = 10;
     QkTarget *target = qk_target_new(n);
     qk_target_add_instruction(target, qk_target_entry_new(QkGate_SX));
