@@ -81,6 +81,7 @@ def dag_drawer(
     scale=0.7,
     filename=None,
     style="color",
+    node_indices=False,
 ):
     """Plot the directed acyclic graph (dag) to represent operation dependencies
     in a quantum circuit.
@@ -105,6 +106,7 @@ def dag_drawer(
                 the location specified in ``~/.qiskit/settings.conf``.
             * If ``None`` the default style ``"color"`` is used or, if given, the default style
                 specified in ``~/.qiskit/settings.conf``.
+        node_indices (bool): if set true, append the node index to each label.
 
     Returns:
         PIL.Image: if in Jupyter notebook and not saving to file,
@@ -206,6 +208,8 @@ def dag_drawer(
             n["label"] = (
                 nid_str + ": " + str(node.name) + " (" + str(args)[1:-1].replace("'", "") + ")"
             )
+            if node_indices:
+                n["label"] += f" ({node.node_id})"
             if getattr(node.op, "condition", None):
                 condition = node.op.condition
                 if isinstance(condition, expr.Expr):
@@ -279,6 +283,8 @@ def dag_drawer(
                 else:
                     label = str(node.wire.name)
                 n["label"] = label
+            if node_indices:
+                n["label"] += f" ({node._node_id})"
 
             if isinstance(style, dict):
                 n["style"] = "filled"
