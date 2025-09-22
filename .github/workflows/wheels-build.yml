@@ -73,7 +73,7 @@ jobs:
         os:
           - ubuntu-latest
           # Used for the x86_64 builds.
-          - macos-13
+          - macos-15-intel
           # Used for the ARM builds.
           - macos-14
           - windows-latest
