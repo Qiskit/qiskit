@@ -869,6 +869,19 @@ class TestCircuitCompose(QiskitTestCase):
         self.assertEqual([a1, c], list(out.iter_captured_stretches()))
         self.assertEqual([a1, c], list(out.iter_stretches()))
 
+    def test_remap_stretch_inside_var(self):
+        """Test that the variable remapper checks inside `Delay` nodes."""
+        qc = QuantumCircuit(1)
+        a = qc.add_stretch("a")
+        qc.delay(expr.mul(2, a), 0)
+
+        other = QuantumCircuit(1)
+        b = other.add_stretch("b")
+        other.delay(expr.mul(2, b), 0)
+
+        actual = QuantumCircuit(1).compose(other, var_remap={b: a})
+        self.assertEqual(qc, actual)
+
     def test_simple_inline_captures(self):
         """We should be able to inline captures onto other variables."""
         a = expr.Var.new("a", types.Bool())

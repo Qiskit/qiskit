@@ -10,17 +10,21 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::convert::Infallible;
+use std::time::Instant;
+
 use hashbrown::HashMap;
 use indexmap::{IndexMap, IndexSet};
 use numpy::PyReadonlyArray1;
+use rand::prelude::*;
+use rand_pcg::Pcg64Mcg;
+use rayon::prelude::*;
+use rustworkx_core::petgraph::prelude::*;
+
 use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
 use pyo3::{create_exception, wrap_pyfunction};
-use rayon::prelude::*;
-use rustworkx_core::petgraph::prelude::*;
-use std::convert::Infallible;
-use std::time::Instant;
 
 use qiskit_circuit::converters::circuit_to_dag;
 use qiskit_circuit::dag_circuit::DAGCircuit;
@@ -364,8 +368,9 @@ fn map_free_qubits(
     Some(partial_layout)
 }
 
+#[allow(clippy::too_many_arguments)]
 #[pyfunction]
-#[pyo3(signature = (dag, target, strict_direction=false, call_limit=None, time_limit=None, max_trials=None, avg_error_map=None))]
+#[pyo3(signature = (dag, target, strict_direction=false, call_limit=None, time_limit=None, max_trials=None, avg_error_map=None, shuffle_seed=None))]
 pub fn vf2_layout_pass(
     dag: &DAGCircuit,
     target: &Target,
@@ -374,6 +379,7 @@ pub fn vf2_layout_pass(
     time_limit: Option<f64>,
     max_trials: Option<isize>,
     avg_error_map: Option<ErrorMap>,
+    shuffle_seed: Option<u64>,
 ) -> PyResult<Option<HashMap<VirtualQubit, PhysicalQubit>>> {
     let add_interaction = |count: &mut usize, _: &PackedInstruction, repeats: usize| {
         *count += repeats;
@@ -386,8 +392,20 @@ pub fn vf2_layout_pass(
     let Some(mut coupling_graph) = build_coupling_map(target, &avg_error_map) else {
         return Ok(None);
     };
+    let num_physical_qubits = coupling_graph.node_count();
+    let mut coupling_qubits = (0..num_physical_qubits)
+        .map(|k| PhysicalQubit::new(k as u32))
+        .collect::<Vec<_>>();
     if !strict_direction {
         loosen_directionality(&mut coupling_graph);
+    }
+    if let Some(seed) = shuffle_seed {
+        coupling_qubits.shuffle(&mut Pcg64Mcg::seed_from_u64(seed));
+        let order = coupling_qubits
+            .iter()
+            .map(|qubit| NodeIndex::new(qubit.index()))
+            .collect::<Vec<_>>();
+        coupling_graph = vf2::reorder_nodes(&coupling_graph, &order);
     }
     let interactions = VirtualInteractions::from_dag(dag, add_interaction)?;
     let start_time = Instant::now();
@@ -427,15 +445,10 @@ pub fn vf2_layout_pass(
     // Remap node indices back to virtual/physical qubits.
     let mapping = mapping
         .iter()
-        .map(|(k, v)| {
-            (
-                interactions.nodes[k.index()],
-                PhysicalQubit::new(v.index() as u32),
-            )
-        })
+        .map(|(k, v)| (interactions.nodes[k.index()], coupling_qubits[v.index()]))
         .collect();
     Ok(map_free_qubits(
-        coupling_graph.node_count(),
+        num_physical_qubits,
         interactions,
         mapping,
         &avg_error_map,

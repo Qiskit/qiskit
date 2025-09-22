@@ -97,6 +97,7 @@ pub fn apply_layout(
         final_permutation,
         virtual_qubits,
         cur_layout.num_input_qubits(),
+        cur_layout.input_registers().to_vec(),
     );
 }
 
@@ -213,6 +214,7 @@ fn py_apply_layout<'py>(
         // We had to take `num_virtual_qubits` by value because the DAG might already have been
         // expanded with ancillas in the legacy mode.
         num_virtual_qubits,
+        dag.qregs().to_vec(),
     );
     apply_layout(dag, &mut cur_layout, num_physical_qubits, |v| {
         physical_from_virtual[v.index()]
