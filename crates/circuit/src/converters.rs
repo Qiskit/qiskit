@@ -17,10 +17,9 @@ use crate::bit::{ShareableClbit, ShareableQubit};
 use crate::circuit_data::{CircuitData, CircuitVar};
 use crate::dag_circuit::DAGIdentifierInfo;
 use crate::dag_circuit::{DAGCircuit, NodeType};
-use crate::instruction::Parameters;
 use crate::object_registry::{ObjectRegistry, PyObjectAsKey};
 use crate::operations::{OperationRef, PythonOperation};
-use crate::{imports, Block};
+use crate::Block;
 
 /// An extractable representation of a QuantumCircuit reserved only for
 /// conversion purposes.

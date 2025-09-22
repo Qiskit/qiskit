@@ -13,12 +13,13 @@
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-use crate::circuit_instruction::CreatePythonOperation;
 use crate::imports::{
     get_std_gate_class, BARRIER, BOX_OP, BREAK_LOOP_OP, CONTINUE_LOOP_OP, DELAY, FOR_LOOP_OP,
     IF_ELSE_OP, MEASURE, RESET, SWITCH_CASE_OP, UNITARY_GATE, WHILE_LOOP_OP,
 };
-use crate::instruction::{Instruction, IntoInstructionView, Parameters};
+use crate::instruction::{
+    InstructionView, IntoInstructionView, Parameters, StandardGateView, StandardInstructionView,
+};
 use crate::interner::Interned;
 use crate::operations::{
     ControlFlow, Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation,
@@ -666,23 +667,6 @@ pub struct PackedInstruction {
     pub py_op: OnceLock<Py<PyAny>>,
 }
 
-// TODO: delete
-impl Instruction for PackedInstruction {
-    fn op(&self) -> OperationRef<'_> {
-        self.op.view()
-    }
-
-    #[inline]
-    fn parameters(&self) -> Option<&Parameters<PyObject>> {
-        self.params.as_deref()
-    }
-
-    #[inline]
-    fn label(&self) -> Option<&str> {
-        self.label.as_ref().map(|label| label.as_str())
-    }
-}
-
 impl PackedInstruction {
     /// Pack a [StandardGate] into a complete instruction.
     pub fn from_standard_gate(
@@ -703,7 +687,7 @@ impl PackedInstruction {
 
     pub fn from_control_flow(
         control_flow: ControlFlow,
-        params: Parameters<PyObject>, // TODO: needs to be Vec<Block>
+        blocks: Vec<Block>,
         qubits: Interned<[Qubit]>,
         clbits: Interned<[Clbit]>,
         label: Option<&str>,
@@ -712,7 +696,7 @@ impl PackedInstruction {
             op: control_flow.into(),
             qubits,
             clbits,
-            params: Some(params.into()),
+            params: Some(Box::new(Parameters::Blocks(blocks))),
             label: label.map(|l| Box::new(l.to_string())),
             #[cfg(feature = "cache_pygates")]
             py_op: Default::default(),
@@ -721,7 +705,8 @@ impl PackedInstruction {
 
     /// Does this instruction contain any compile-time symbolic `ParameterExpression`s?
     pub fn is_parameterized(&self) -> bool {
-        self.parameters()
+        self.params
+            .as_deref()
             .and_then(|p| match p {
                 Parameters::Params(p) => {
                     Some(p.iter().any(|x| matches!(x, Param::ParameterExpression(_))))
@@ -729,74 +714,6 @@ impl PackedInstruction {
                 _ => None,
             })
             .unwrap_or(false)
-    }
-
-    /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into this
-    /// instruction.  This may construct the reference if the `Instruction` is a standard
-    /// gate or instruction with no already stored operation.
-    ///
-    /// A standard-gate or standard-instruction operation object returned by this function is
-    /// disconnected from the containing circuit; updates to its parameters, label, duration, unit
-    /// and condition will not be propagated back.
-    pub fn unpack_py_op(&self, py: Python) -> PyResult<Py<PyAny>> {
-        // `OnceLock::get_or_init` and the non-stabilised `get_or_try_init`, which would otherwise
-        // be nice here are both non-reentrant.  This is a problem if the init yields control to the
-        // Python interpreter as this one does, since that can allow CPython to freeze the thread
-        // and for another to attempt the initialisation.
-        #[cfg(feature = "cache_pygates")]
-        {
-            if let Some(ob) = self.py_op.get() {
-                return Ok(ob.clone_ref(py));
-            }
-        }
-        let out = self.create_py_op(py)?;
-        #[cfg(feature = "cache_pygates")]
-        // The unpacking operation can cause a thread pause and concurrency, since it can call
-        // interpreted Python code for a standard gate, so we need to take care that some other
-        // Python thread might have populated the cache before we do.
-        let _ = self.py_op.set(out.clone_ref(py));
-        Ok(out)
-    }
-
-    /// Check equality of the operation, including Python-space checks, if appropriate.
-    pub fn py_op_eq(&self, py: Python, other: &Self) -> PyResult<bool> {
-        match (self.op.view(), other.op.view()) {
-            (OperationRef::ControlFlow(left), OperationRef::ControlFlow(right)) => {
-                left.py_eq(py, right)
-            }
-            (OperationRef::StandardGate(left), OperationRef::StandardGate(right)) => {
-                Ok(left == right)
-            }
-            (OperationRef::StandardInstruction(left), OperationRef::StandardInstruction(right)) => {
-                Ok(left == right)
-            }
-            (OperationRef::Gate(left), OperationRef::Gate(right)) => {
-                left.gate.bind(py).eq(&right.gate)
-            }
-            (OperationRef::Instruction(left), OperationRef::Instruction(right)) => {
-                left.instruction.bind(py).eq(&right.instruction)
-            }
-            (OperationRef::Operation(left), OperationRef::Operation(right)) => {
-                left.operation.bind(py).eq(&right.operation)
-            }
-            // Handle the case we end up with a pygate for a standard gate
-            // this typically only happens if it's a ControlledGate in python
-            // and we have mutable state set.
-            (OperationRef::StandardGate(_left), OperationRef::Gate(right)) => {
-                self.unpack_py_op(py)?.bind(py).eq(&right.gate)
-            }
-            (OperationRef::Gate(left), OperationRef::StandardGate(_right)) => {
-                other.unpack_py_op(py)?.bind(py).eq(&left.gate)
-            }
-            // Handle the case we end up with a pyinstruction for a standard instruction
-            (OperationRef::StandardInstruction(_left), OperationRef::Instruction(right)) => {
-                self.unpack_py_op(py)?.bind(py).eq(&right.instruction)
-            }
-            (OperationRef::Instruction(left), OperationRef::StandardInstruction(_right)) => {
-                other.unpack_py_op(py)?.bind(py).eq(&left.instruction)
-            }
-            _ => Ok(false),
-        }
     }
 
     pub fn py_deepcopy_inplace<'py>(
@@ -819,5 +736,70 @@ impl PackedInstruction {
         self.py_op.take();
 
         Ok(())
+    }
+}
+
+impl<'a> IntoInstructionView<'a> for &'a PackedInstruction {
+    type Block = PyObject;
+
+    fn view_operation(self) -> OperationRef<'a> {
+        self.op.view()
+    }
+
+    fn try_view_standard_gate(self) -> Option<StandardGateView<'a>> {
+        let OperationRef::StandardGate(gate) = self.op.view() else {
+            return None;
+        };
+        let params = match self.params.as_deref() {
+            Some(Parameters::Params(params)) => params.as_slice(),
+            None => &[],
+            _ => panic!("invalid standard gate parameters"),
+        };
+        Some(StandardGateView(gate, params))
+    }
+
+    fn try_view_standard_instruction(self) -> Option<StandardInstructionView<'a>> {
+        let OperationRef::StandardInstruction(instruction) = self.op.view() else {
+            return None;
+        };
+        Some(match instruction {
+            StandardInstruction::Barrier(n) => StandardInstructionView::Barrier(n),
+            StandardInstruction::Delay(unit) => {
+                let Some([duration]) = self.params.as_deref().and_then(|p| match p {
+                    Parameters::Params(params) => Some(params.as_slice()),
+                    _ => None,
+                }) else {
+                    panic!("invalid delay parameters");
+                };
+                StandardInstructionView::Delay { duration, unit }
+            }
+            StandardInstruction::Measure => StandardInstructionView::Measure,
+            StandardInstruction::Reset => StandardInstructionView::Reset,
+        })
+    }
+
+    fn try_legacy_params(self) -> Option<&'a [Param]> {
+        match self.view() {
+            InstructionView::StandardGate(_)
+            | InstructionView::Gate(_)
+            | InstructionView::Operation(_)
+            | InstructionView::Unitary(_)
+            | InstructionView::Instruction(_) => Some(
+                self.params
+                    .as_deref()
+                    .map(|p| match p {
+                        Parameters::Params(p) => p.as_slice(),
+                        _ => panic!("expected gate parameters"),
+                    })
+                    .unwrap_or_default(),
+            ),
+            InstructionView::StandardInstruction(inst) => match inst {
+                StandardInstructionView::Delay { duration, .. } => {
+                    Some(std::slice::from_ref(duration))
+                }
+                _ => Some(&[]),
+            },
+            _ => None,
+        }
     }
 }

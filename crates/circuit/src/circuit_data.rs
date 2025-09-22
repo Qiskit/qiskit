@@ -20,7 +20,7 @@ use crate::bit::{
     ShareableQubit,
 };
 use crate::bit_locator::BitLocator;
-use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
+use crate::circuit_instruction::{CircuitInstruction, CreatePythonOperation, OperationFromPython};
 use crate::classical::expr;
 use crate::dag_circuit::{add_global_phase, DAGStretchType, DAGVarType};
 use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
@@ -45,7 +45,7 @@ use pyo3::types::{IntoPyDict, PyDict, PyList, PySet, PyTuple, PyType};
 use pyo3::IntoPyObjectExt;
 use pyo3::{import_exception, intern, PyTraverseError, PyVisit};
 
-use crate::instruction::{ControlFlowView, Instruction, IntoInstructionView, Parameters};
+use crate::instruction::{ControlFlowView, IntoInstructionView, Parameters};
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
 use smallvec::SmallVec;
@@ -912,7 +912,7 @@ impl CircuitData {
     #[pyo3(signature = (func))]
     pub fn foreach_op(&self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
         for inst in self.data.iter() {
-            func.call1((inst.unpack_py_op(py)?,))?;
+            func.call1((self.unpack_py_op_internal(py, inst)?,))?;
         }
         Ok(())
     }
@@ -926,7 +926,7 @@ impl CircuitData {
     #[pyo3(signature = (func))]
     pub fn foreach_op_indexed(&self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
         for (index, inst) in self.data.iter().enumerate() {
-            func.call1((index, inst.unpack_py_op(py)?))?;
+            func.call1((index, self.unpack_py_op_internal(py, inst)?))?;
         }
         Ok(())
     }
@@ -945,11 +945,11 @@ impl CircuitData {
     ///         A callable used to map original operations to their replacements.
     #[pyo3(signature = (func))]
     pub fn map_nonstandard_ops(&mut self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
-        for inst in self.data.iter_mut() {
-            if inst.op.try_standard_gate().is_some() {
+        for index in 0..self.data.len() {
+            if self.data[index].op.try_standard_gate().is_some() {
                 continue;
             }
-            let py_op = func.call1((inst.unpack_py_op(py)?,))?;
+            let py_op = func.call1((self.unpack_py_op(py, index)?,))?;
             let result = py_op.extract::<OperationFromPython>()?;
             // TODO: this means that var assignment might add new blocks to the circuit.
             //       Is this appropriate behavior?
@@ -967,6 +967,7 @@ impl CircuitData {
                 Some(Parameters::Params(params)) => Some(Box::new(Parameters::Params(params))),
                 None => None,
             };
+            let inst = &mut self.data[index];
             inst.op = result.operation;
             inst.params = params;
             inst.label = result.label;
@@ -1100,6 +1101,18 @@ impl CircuitData {
             let inst = &self.data[index];
             let qubits = self.qargs_interner.get(inst.qubits);
             let clbits = self.cargs_interner.get(inst.clbits);
+            let params = match inst.params.as_deref() {
+                Some(Parameters::Blocks(inst_blocks)) => {
+                    let mut blocks = Vec::with_capacity(inst_blocks.len());
+                    for other_block in inst_blocks {
+                        let block = &self.blocks.get(*other_block).unwrap();
+                        blocks.push(block.ob.clone());
+                    }
+                    Some(Parameters::Blocks(blocks))
+                }
+                Some(Parameters::Params(params)) => Some(Parameters::Params(params.clone())),
+                None => None,
+            };
             CircuitInstruction {
                 operation: inst.op.clone(),
                 qubits: PyTuple::new(py, self.qubits.map_indices(qubits))
@@ -1108,7 +1121,7 @@ impl CircuitData {
                 clbits: PyTuple::new(py, self.clbits.map_indices(clbits))
                     .unwrap()
                     .unbind(),
-                params: inst.parameters().cloned(),
+                params,
                 label: inst.label.clone(),
                 #[cfg(feature = "cache_pygates")]
                 py_op: inst.py_op.clone(),
@@ -1858,6 +1871,57 @@ impl CircuitData {
 }
 
 impl CircuitData {
+    /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into an
+    /// instruction.  This may construct the reference if the `Instruction` is a standard
+    /// gate or instruction with no already stored operation.
+    ///
+    /// A standard-gate or standard-instruction operation object returned by this function is
+    /// disconnected from the circuit; updates to its parameters, label, duration, unit
+    /// and condition will not be propagated back.
+    ///
+    /// Panics if `node` does not refer to an operation.
+    #[inline]
+    pub fn unpack_py_op(&self, py: Python, node: usize) -> PyResult<Py<PyAny>> {
+        let instr = &self.data[node];
+        self.unpack_py_op_internal(py, instr)
+    }
+
+    fn unpack_py_op_internal(&self, py: Python, instr: &PackedInstruction) -> PyResult<Py<PyAny>> {
+        // `OnceLock::get_or_init` and the non-stabilised `get_or_try_init`, which would otherwise
+        // be nice here are both non-reentrant.  This is a problem if the init yields control to the
+        // Python interpreter as this one does, since that can allow CPython to freeze the thread
+        // and for another to attempt the initialisation.
+        #[cfg(feature = "cache_pygates")]
+        {
+            if let Some(ob) = instr.py_op.get() {
+                return Ok(ob.clone_ref(py));
+            }
+        }
+        let params = match instr.params.as_deref() {
+            Some(Parameters::Blocks(blocks)) => {
+                let mut unpacked_blocks = Vec::new();
+                for block in blocks {
+                    let block = self.blocks.get(*block).unwrap().ob.clone_ref(py);
+                    unpacked_blocks.push(block);
+                }
+                Some(Parameters::Blocks(unpacked_blocks))
+            }
+            Some(Parameters::Params(params)) => Some(Parameters::Params(params.clone())),
+            None => None,
+        };
+        let op = OperationFromPython {
+            operation: instr.op.clone(),
+            params,
+            label: None,
+        };
+        let out = op.create_py_op(py)?;
+        #[cfg(feature = "cache_pygates")]
+        // The unpacking operation can cause a thread pause and concurrency, since it can call
+        // interpreted Python code for a standard gate, so we need to take care that some other
+        // Python thread might have populated the cache before we do.
+        let _ = instr.py_op.set(out.clone_ref(py));
+        Ok(out)
+    }
     pub fn try_view_control_flow(&self, index: usize) -> Option<ControlFlowView<PyObject>> {
         let instr = &self.data[index];
         let OperationRef::ControlFlow(control) = instr.op.view() else {
@@ -2291,7 +2355,7 @@ impl CircuitData {
     /// table.
     fn track_instruction_parameters(&mut self, instruction_index: usize) -> PyResult<()> {
         let instr = &self.data[instruction_index];
-        let Some(parameters) = self.data[instruction_index].parameters() else {
+        let Some(parameters) = self.data[instruction_index].params.as_deref() else {
             return Ok(());
         };
         match parameters {
@@ -2381,7 +2445,7 @@ impl CircuitData {
     /// parameter table.
     fn untrack_instruction_parameters(&mut self, instruction_index: usize) -> PyResult<()> {
         let instr = &self.data[instruction_index];
-        let Some(parameters) = self.data[instruction_index].parameters() else {
+        let Some(parameters) = self.data[instruction_index].params.as_deref() else {
             return Ok(());
         };
         match parameters {
@@ -2840,7 +2904,6 @@ impl CircuitData {
                                 previous.py_op.take();
                             }
                         } else {
-                            let previous = &mut self.data[instruction];
                             // Track user operations we've seen so we can rebind their definitions.
                             // Strictly this can add the same binding pair more than once, if an
                             // instruction has the same `Parameter` in several of its `params`, but
@@ -2862,7 +2925,8 @@ impl CircuitData {
                                 let validate_parameter_attr = intern!(py, "validate_parameter");
                                 let assign_parameters_attr = intern!(py, "assign_parameters");
 
-                                let op = previous.unpack_py_op(py)?.into_bound(py);
+                                let op = self.unpack_py_op(py, instruction)?.into_bound(py);
+                                let previous = &mut self.data[instruction];
                                 // All "user" operations (e.g. PyOperation) use Parameters::Param.
                                 let previous_param =
                                     &previous.try_legacy_params().unwrap()[parameter];
@@ -2970,7 +3034,7 @@ impl CircuitData {
                             // they might be an `AnnotatedOperation`, which is one of our special built-ins.
                             // This should be handled more completely in the user-customisation interface by a
                             // delegating method, but that's not the data model we currently have.
-                            let py_op = instruction.unpack_py_op(py)?;
+                            let py_op = self.unpack_py_op_internal(py, instruction)?;
                             let py_op = py_op.bind(py);
                             if !py_op.is_instance(ANNOTATED_OPERATION.get_bound(py))? {
                                 continue;
@@ -2979,8 +3043,7 @@ impl CircuitData {
                                 .getattr(intern!(py, "base_op"))?
                                 .getattr(_definition_attr)?
                         } else {
-                            instruction
-                                .unpack_py_op(py)?
+                            self.unpack_py_op_internal(py, instruction)?
                                 .bind(py)
                                 .getattr(_definition_attr)?
                         };

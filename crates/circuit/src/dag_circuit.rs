@@ -23,17 +23,17 @@ use crate::bit::{
 };
 use crate::bit_locator::BitLocator;
 use crate::circuit_data::{CircuitData, CircuitIdentifierInfo, CircuitStretchType, CircuitVarType};
-use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
+use crate::circuit_instruction::{CircuitInstruction, CreatePythonOperation, OperationFromPython};
 use crate::classical::expr;
 use crate::converters::{circuit_to_dag, QuantumCircuitData};
 use crate::dag_node::{DAGInNode, DAGNode, DAGOpNode, DAGOutNode};
 use crate::dot_utils::build_dot;
 use crate::error::DAGCircuitError;
 use crate::interner::{Interned, InternedMap, Interner};
-use crate::object_registry::{ObjectRegistry, PyObjectAsKey};
+use crate::object_registry::ObjectRegistry;
 use crate::operations::{
     ArrayType, BoxDuration, Condition, ControlFlow, Operation, OperationRef, Param,
-    PythonOperation, StandardGate, StandardInstruction, SwitchTarget,
+    PythonOperation, StandardGate, SwitchTarget,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::ParameterExpression;
@@ -2523,24 +2523,52 @@ impl DAGCircuit {
                                         _ => false,
                                     } && check_args())
                                 }
-                                [InstructionView::Instruction(_op1), InstructionView::Instruction(_op2)] => {
-                                    Ok(inst1.py_op_eq(py, inst2)? && check_args())
+                                [InstructionView::Instruction(op1), InstructionView::Instruction(op2)] =>
+                                {
+                                    Ok(op1.instruction.bind(py).eq(&op2.instruction)?
+                                        && check_args())
+                                    // Ok(inst1.py_op_eq(py, inst2)? && check_args())
                                 }
-                                [InstructionView::Gate(_op1), InstructionView::Gate(_op2)] => {
-                                    Ok(inst1.py_op_eq(py, inst2)? && check_args())
+                                [InstructionView::Gate(op1), InstructionView::Gate(op2)] => {
+                                    Ok(op1.gate.bind(py).eq(&op2.gate)? && check_args())
+                                    // Ok(inst1.py_op_eq(py, inst2)? && check_args())
                                 }
-                                [InstructionView::Operation(_op1), InstructionView::Operation(_op2)] => {
-                                    Ok(inst1.py_op_eq(py, inst2)? && check_args())
+                                [InstructionView::Operation(op1), InstructionView::Operation(op2)] =>
+                                {
+                                    Ok(op1.operation.bind(py).eq(&op2.operation)? && check_args())
+                                    // Ok(inst1.py_op_eq(py, inst2)? && check_args())
                                 }
                                 // Handle the edge case where we end up with a Python object and a standard
                                 // gate/instruction.
                                 // This typically only happens if we have a ControlledGate in Python
                                 // and we have mutable state set.
-                                [InstructionView::StandardGate(_), InstructionView::Gate(_)]
-                                | [InstructionView::Gate(_), InstructionView::StandardGate(_)]
-                                | [InstructionView::StandardInstruction(_), InstructionView::Instruction(_)]
-                                | [InstructionView::Instruction(_), InstructionView::StandardInstruction(_)] => {
-                                    Ok(inst1.py_op_eq(py, inst2)? && check_args())
+                                [InstructionView::StandardGate(_), InstructionView::Gate(op2)] => {
+                                    Ok(slf
+                                        .unpack_py_op_internal(py, inst1)?
+                                        .bind(py)
+                                        .eq(&op2.gate)?
+                                        && check_args())
+                                }
+                                [InstructionView::Gate(op1), InstructionView::StandardGate(_)] => {
+                                    Ok(other
+                                        .unpack_py_op_internal(py, inst2)?
+                                        .bind(py)
+                                        .eq(&op1.gate)?
+                                        && check_args())
+                                }
+                                [InstructionView::StandardInstruction(_), InstructionView::Instruction(op2)] => {
+                                    Ok(slf
+                                        .unpack_py_op_internal(py, inst1)?
+                                        .bind(py)
+                                        .eq(&op2.instruction)?
+                                        && check_args())
+                                }
+                                [InstructionView::Instruction(op1), InstructionView::StandardInstruction(_)] => {
+                                    Ok(other
+                                        .unpack_py_op_internal(py, inst2)?
+                                        .bind(py)
+                                        .eq(&op1.instruction)?
+                                        && check_args())
                                 }
                                 [InstructionView::Unitary(op_a), InstructionView::Unitary(op_b)] => {
                                     match [&op_a.array, &op_b.array] {
@@ -4946,6 +4974,60 @@ impl DAGCircuit {
 
     fn view_control_flow(&self, instr: &PackedInstruction) -> ControlFlowView<DAGCircuit> {
         todo!()
+    }
+
+    /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into this
+    /// instruction.  This may construct the reference if the `Instruction` is a standard
+    /// gate or instruction with no already stored operation.
+    ///
+    /// A standard-gate or standard-instruction operation object returned by this function is
+    /// disconnected from the dag; updates to its parameters, label, duration, unit
+    /// and condition will not be propagated back.
+    ///
+    /// Panics if `node` does not refer to an operation.
+    #[inline]
+    pub fn unpack_py_op(&self, py: Python, node: NodeIndex) -> PyResult<Py<PyAny>> {
+        let instr = self.dag[node].unwrap_operation();
+        self.unpack_py_op_internal(py, instr)
+    }
+
+    fn unpack_py_op_internal(&self, py: Python, instr: &PackedInstruction) -> PyResult<Py<PyAny>> {
+        // `OnceLock::get_or_init` and the non-stabilised `get_or_try_init`, which would otherwise
+        // be nice here are both non-reentrant.  This is a problem if the init yields control to the
+        // Python interpreter as this one does, since that can allow CPython to freeze the thread
+        // and for another to attempt the initialisation.
+        #[cfg(feature = "cache_pygates")]
+        {
+            if let Some(ob) = instr.py_op.get() {
+                return Ok(ob.clone_ref(py));
+            }
+        }
+        let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
+        let params = match instr.params.as_deref() {
+            Some(Parameters::Blocks(blocks)) => {
+                let mut unpacked_blocks = Vec::new();
+                for block in blocks {
+                    let dag = &self.blocks[block.index()];
+                    let block = dag_to_circuit.call1((dag.clone(),))?.unbind();
+                    unpacked_blocks.push(block);
+                }
+                Some(Parameters::Blocks(unpacked_blocks))
+            }
+            Some(Parameters::Params(params)) => Some(Parameters::Params(params.clone())),
+            None => None,
+        };
+        let op = OperationFromPython {
+            operation: instr.op.clone(),
+            params,
+            label: None,
+        };
+        let out = op.create_py_op(py)?;
+        #[cfg(feature = "cache_pygates")]
+        // The unpacking operation can cause a thread pause and concurrency, since it can call
+        // interpreted Python code for a standard gate, so we need to take care that some other
+        // Python thread might have populated the cache before we do.
+        let _ = instr.py_op.set(out.clone_ref(py));
+        Ok(out)
     }
 
     pub fn new() -> Self {
