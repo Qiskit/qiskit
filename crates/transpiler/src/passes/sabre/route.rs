@@ -32,18 +32,18 @@ use rustworkx_core::shortest_path::dijkstra;
 use rustworkx_core::token_swapper::token_swapper;
 use smallvec::{smallvec, SmallVec};
 
-use crate::target::{Target, TargetCouplingError};
-use crate::TranspilerError;
-use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder, DAGInstruction, NodeType, Wire};
-use qiskit_circuit::nlayout::NLayout;
-use qiskit_circuit::operations::{ControlFlow, StandardGate};
-use qiskit_circuit::{getenv_use_multiple_threads, PhysicalQubit, Qubit, VirtualQubit};
-
 use super::dag::{InteractionKind, SabreDAG};
 use super::distance::distance_matrix;
 use super::heuristic::{BasicHeuristic, DecayHeuristic, Heuristic, LookaheadHeuristic, SetScaling};
 use super::layer::{ExtendedSet, FrontLayer};
 use super::neighbors::Neighbors;
+use crate::target::{Target, TargetCouplingError};
+use crate::TranspilerError;
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder, NodeType, Wire};
+use qiskit_circuit::nlayout::NLayout;
+use qiskit_circuit::operations::{ControlFlow, StandardGate};
+use qiskit_circuit::packed_instruction::PackedInstruction;
+use qiskit_circuit::{getenv_use_multiple_threads, PhysicalQubit, Qubit, VirtualQubit};
 
 /// Number of trials for control flow block swap epilogues.
 const SWAP_EPILOGUE_TRIALS: usize = 4;
@@ -150,7 +150,7 @@ impl RoutingResult<'_> {
                           dag: &mut DAGCircuitBuilder|
          -> PyResult<NodeIndex> {
             layout.swap_physical(swap[0], swap[1]);
-            let swap = DAGInstruction::from_standard_gate(
+            let swap = PackedInstruction::from_standard_gate(
                 StandardGate::Swap,
                 smallvec![],
                 dag.insert_qargs(&[Qubit(map_fn(swap[1]).0), Qubit(map_fn(swap[0]).0)]),
@@ -159,7 +159,7 @@ impl RoutingResult<'_> {
         };
         // The size here is pretty arbitrary, providing it can fit at least 2q operations in.
         let mut apply_scratch = Vec::with_capacity(4);
-        let mut apply_op = |inst: &DAGInstruction,
+        let mut apply_op = |inst: &PackedInstruction,
                             layout: &NLayout,
                             dag: &mut DAGCircuitBuilder|
          -> PyResult<NodeIndex> {
@@ -167,7 +167,7 @@ impl RoutingResult<'_> {
             for qubit in self.dag.get_qargs(inst.qubits) {
                 apply_scratch.push(Qubit(map_fn(VirtualQubit(qubit.0).to_phys(layout)).0));
             }
-            let new_inst = DAGInstruction {
+            let new_inst = PackedInstruction {
                 qubits: dag.insert_qargs(&apply_scratch),
                 ..inst.clone()
             };
@@ -250,7 +250,7 @@ impl RoutingResult<'_> {
                             *qubits = blocks[0].num_qubits() as u32;
                         }
                     }
-                    let new_inst = DAGInstruction::from_control_flow(
+                    let new_inst = PackedInstruction::from_control_flow(
                         new_op,
                         inst.params.as_deref().map(|p| {
                             let mut params = p.clone();

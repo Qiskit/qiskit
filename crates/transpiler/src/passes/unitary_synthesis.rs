@@ -30,9 +30,9 @@ use pyo3::wrap_pyfunction;
 use pyo3::Python;
 
 use qiskit_circuit::converters::{circuit_to_dag, QuantumCircuitData};
-use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder, DAGInstruction, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder, NodeType};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, PythonOperation, StandardGate};
-use qiskit_circuit::packed_instruction::PackedOperation;
+use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::{imports, Qubit, VarsMode};
 
 use crate::target::{NormalOperation, Target, TargetOperation};
@@ -321,7 +321,7 @@ pub fn run_unitary_synthesis(
                 )?;
                 new_blocks.push(res);
             }
-            packed_instr = DAGInstruction::from_control_flow(
+            packed_instr = PackedInstruction::from_control_flow(
                 packed_instr.op.control_flow().clone(),
                 packed_instr.params.as_deref().map(|p| {
                     let mut params = p.clone();

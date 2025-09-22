@@ -13,9 +13,10 @@
 use crate::target::{Qargs, Target};
 use hashbrown::{HashMap, HashSet};
 use pyo3::prelude::*;
-use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction};
+use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::instruction::IntoInstructionView;
 use qiskit_circuit::operations::{Operation, Param};
+use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::Qubit;
 use rustworkx_core::petgraph::prelude::NodeIndex;
@@ -24,7 +25,7 @@ use rustworkx_core::petgraph::prelude::NodeIndex;
 #[pyo3(name = "any_gate_missing_from_target")]
 pub fn gates_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<bool> {
     #[inline]
-    fn is_universal(gate: &DAGInstruction) -> bool {
+    fn is_universal(gate: &PackedInstruction) -> bool {
         matches!(gate.op.name(), "barrier" | "store")
     }
 

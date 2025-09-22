@@ -25,10 +25,10 @@ mod basis_search;
 mod compose_transforms;
 mod errors;
 
-use qiskit_circuit::dag_circuit::{DAGCircuitBuilder, DAGInstruction};
+use qiskit_circuit::dag_circuit::DAGCircuitBuilder;
 use qiskit_circuit::instruction::{IntoInstructionView, Parameters};
 use qiskit_circuit::operations::Param;
-use qiskit_circuit::packed_instruction::PackedOperation;
+use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::parameter::parameter_expression::ParameterError;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::Symbol;
@@ -349,7 +349,7 @@ fn apply_translation(
                     };
                     flow_blocks.push(flow_block);
                 }
-                let new_instr = DAGInstruction::from_control_flow(
+                let new_instr = PackedInstruction::from_control_flow(
                     node_obj.op.control_flow().clone(),
                     node_obj.params.as_deref().map(|p| {
                         let mut params = p.clone();
@@ -429,7 +429,7 @@ fn apply_translation(
 
 fn replace_node(
     dag: &mut DAGCircuitBuilder,
-    node: DAGInstruction,
+    node: PackedInstruction,
     instr_map: &AhashIndexMap<GateIdentifier, (SmallVec<[Param; 3]>, DAGCircuit)>,
 ) -> Result<(), BasisTranslatorError> {
     // Method to check if the operation is Rust native.

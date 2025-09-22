@@ -16,11 +16,12 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use crate::gate_metrics::rotation_trace_and_dim;
 use crate::target::Target;
-use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction};
+use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::instruction::{InstructionView, IntoInstructionView, StandardGateView};
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::StandardGate;
+use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::PhysicalQubit;
 
 const MINIMUM_TOL: f64 = 1e-12;
@@ -37,7 +38,7 @@ pub fn run_remove_identity_equiv(
     // Minimum threshold to compare average gate fidelity to 1. This is chosen to account
     // for roundoff errors and to be consistent with other places.
 
-    let get_error_cutoff = |inst: &DAGInstruction| -> f64 {
+    let get_error_cutoff = |inst: &PackedInstruction| -> f64 {
         match approx_degree {
             Some(degree) => {
                 if degree == 1.0 {

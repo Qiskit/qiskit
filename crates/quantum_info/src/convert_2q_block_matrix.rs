@@ -19,18 +19,19 @@ use numpy::ndarray::{arr2, aview2, Array2, ArrayView2, ArrayViewMut2};
 use numpy::PyReadonlyArray2;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction};
+use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::TWO_QUBIT_IDENTITY;
 use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::instruction::{InstructionView, IntoInstructionView, StandardGateView};
 use qiskit_circuit::operations::ArrayType;
+use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::Qubit;
 
 use crate::versor_u2::{VersorSU2, VersorU2, VersorU2Error};
 use crate::QiskitError;
 
 #[inline]
-pub fn get_matrix_from_inst(inst: &DAGInstruction) -> PyResult<Array2<Complex64>> {
+pub fn get_matrix_from_inst(inst: &PackedInstruction) -> PyResult<Array2<Complex64>> {
     if let Some(mat) = inst.view().try_matrix() {
         Ok(mat)
     } else if inst.try_view_standard_gate().is_some() {
@@ -112,7 +113,7 @@ impl Separable1q {
 }
 
 /// Extract a versor representation of an arbitrary 1q DAG instruction.
-fn versor_from_1q_gate(inst: &DAGInstruction) -> PyResult<VersorU2> {
+fn versor_from_1q_gate(inst: &PackedInstruction) -> PyResult<VersorU2> {
     let tol = 1e-12;
     match inst.view() {
         InstructionView::StandardGate(StandardGateView(gate, params)) => {

@@ -15,12 +15,11 @@ use crate::TranspilerError;
 use hashbrown::HashSet;
 use pyo3::prelude::*;
 use qiskit_circuit::bit::{QuantumRegister, Register};
-use qiskit_circuit::dag_circuit::DAGInstruction;
 use qiskit_circuit::instruction::{
     InstructionView, IntoInstructionView, Parameters, StandardGateView,
 };
 use qiskit_circuit::operations::OperationRef;
-use qiskit_circuit::packed_instruction::PackedOperation;
+use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::{
     dag_circuit::DAGCircuit, operations::Operation, operations::Param, operations::StandardGate,
@@ -49,7 +48,7 @@ pub fn check_direction_coupling_map(
     coupling_edges: HashSet<[Qubit; 2]>,
 ) -> PyResult<bool> {
     let coupling_map_check =
-        |_: &DAGInstruction, op_args: &[Qubit]| -> bool { coupling_edges.contains(op_args) };
+        |_: &PackedInstruction, op_args: &[Qubit]| -> bool { coupling_edges.contains(op_args) };
 
     check_gate_direction(dag, &coupling_map_check, None)
 }
@@ -66,7 +65,7 @@ pub fn check_direction_coupling_map(
 #[pyfunction]
 #[pyo3(name = "check_gate_direction_target")]
 pub fn check_direction_target(dag: &DAGCircuit, target: &Target) -> PyResult<bool> {
-    let target_check = |inst: &DAGInstruction, op_args: &[Qubit]| -> bool {
+    let target_check = |inst: &PackedInstruction, op_args: &[Qubit]| -> bool {
         let qargs = [
             PhysicalQubit::new(op_args[0].0),
             PhysicalQubit::new(op_args[1].0),
@@ -93,7 +92,7 @@ fn check_gate_direction<T>(
     qubit_mapping: Option<&[Qubit]>,
 ) -> PyResult<bool>
 where
-    T: Fn(&DAGInstruction, &[Qubit]) -> bool,
+    T: Fn(&PackedInstruction, &[Qubit]) -> bool,
 {
     for (node, packed_inst) in dag.op_nodes(false) {
         let inst_qargs = dag.get_qargs(packed_inst.qubits);
@@ -162,7 +161,7 @@ pub fn fix_direction_coupling_map(
     }
 
     let coupling_map_check =
-        |_: &DAGInstruction, op_args: &[Qubit]| -> bool { coupling_edges.contains(op_args) };
+        |_: &PackedInstruction, op_args: &[Qubit]| -> bool { coupling_edges.contains(op_args) };
 
     fix_gate_direction(dag, &coupling_map_check, None)
 }
@@ -179,7 +178,7 @@ pub fn fix_direction_coupling_map(
 #[pyfunction]
 #[pyo3(name = "fix_gate_direction_target")]
 pub fn fix_direction_target(dag: &mut DAGCircuit, target: &Target) -> PyResult<()> {
-    let target_check = |inst: &DAGInstruction, op_args: &[Qubit]| -> bool {
+    let target_check = |inst: &PackedInstruction, op_args: &[Qubit]| -> bool {
         let qargs = smallvec![
             PhysicalQubit::new(op_args[0].0),
             PhysicalQubit::new(op_args[1].0)
@@ -215,7 +214,7 @@ fn fix_gate_direction<T>(
     qubit_mapping: Option<&[Qubit]>,
 ) -> PyResult<()>
 where
-    T: Fn(&DAGInstruction, &[Qubit]) -> bool,
+    T: Fn(&PackedInstruction, &[Qubit]) -> bool,
 {
     let mut nodes_to_replace: Vec<(NodeIndex, DAGCircuit)> = Vec::new();
     let mut ops_to_replace: Vec<(NodeIndex, Vec<DAGCircuit>)> = Vec::new();
@@ -305,7 +304,7 @@ where
 
     for (node, op_blocks) in ops_to_replace {
         let packed_inst = dag[node].unwrap_operation();
-        let packed_inst = DAGInstruction::from_control_flow(
+        let packed_inst = PackedInstruction::from_control_flow(
             packed_inst.op.control_flow().clone(),
             packed_inst.params.as_deref().map(|p| {
                 let mut params = p.clone();
@@ -336,7 +335,7 @@ where
 // Return a replacement DAG for the given standard gate in the supported list
 // TODO: optimize it by caching the DAGs of the non-parametric gates and caching and
 // mutating upon request the DAGs of the parametric gates
-fn replace_dag(std_gate: StandardGate, inst: &DAGInstruction) -> PyResult<DAGCircuit> {
+fn replace_dag(std_gate: StandardGate, inst: &PackedInstruction) -> PyResult<DAGCircuit> {
     let replacement_dag = match std_gate {
         StandardGate::CX => cx_replacement_dag(),
         StandardGate::ECR => ecr_replacement_dag(),

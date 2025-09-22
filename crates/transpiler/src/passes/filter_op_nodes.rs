@@ -13,7 +13,8 @@
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction};
+use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::packed_instruction::PackedInstruction;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 #[pyfunction]
@@ -46,7 +47,7 @@ pub fn py_filter_op_nodes(
 ///     label (str): The label to filter nodes on
 #[pyfunction]
 pub fn filter_labeled_op(dag: &mut DAGCircuit, label: String) {
-    let predicate = |node: &DAGInstruction| -> bool {
+    let predicate = |node: &PackedInstruction| -> bool {
         match node.label() {
             Some(inst_label) => inst_label != label,
             None => false,

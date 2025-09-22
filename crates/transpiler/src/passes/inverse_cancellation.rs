@@ -17,11 +17,12 @@ use pyo3::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::instruction::IntoInstructionView;
 use qiskit_circuit::operations::{Operation, OperationRef, StandardGate};
+use qiskit_circuit::packed_instruction::PackedInstruction;
 
-fn gate_eq(gate_a: &DAGInstruction, gate_b: &OperationFromPython) -> PyResult<bool> {
+fn gate_eq(gate_a: &PackedInstruction, gate_b: &OperationFromPython) -> PyResult<bool> {
     if gate_a.op.name() != gate_b.operation.name() {
         return Ok(false);
     }
@@ -191,7 +192,7 @@ fn std_self_inverse(dag: &mut DAGCircuit) {
         if *dag.get_op_counts().get(self_inv_gate.name()).unwrap_or(&0) <= 1 {
             continue;
         }
-        let filter = |inst: &DAGInstruction| -> bool {
+        let filter = |inst: &PackedInstruction| -> bool {
             match inst.op.view() {
                 OperationRef::StandardGate(gate) => gate == self_inv_gate,
                 _ => false,
@@ -246,7 +247,7 @@ fn std_inverse_pairs(dag: &mut DAGCircuit) {
         {
             continue;
         }
-        let filter = |inst: &DAGInstruction| -> bool {
+        let filter = |inst: &PackedInstruction| -> bool {
             match inst.op.view() {
                 OperationRef::StandardGate(gate) => gate == gate_0 || gate == gate_1,
                 _ => false,

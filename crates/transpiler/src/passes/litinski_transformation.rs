@@ -12,7 +12,7 @@
 
 use pyo3::prelude::*;
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::imports::PAULI_EVOLUTION_GATE;
 use qiskit_circuit::operations::{multiply_param, Operation, Param, PyGate, StandardGate};
 use qiskit_circuit::{Clbit, Qubit, VarsMode};
@@ -24,6 +24,7 @@ use crate::TranspilerError;
 use qiskit_circuit::instruction::{
     InstructionView, IntoInstructionView, Parameters, StandardGateView,
 };
+use qiskit_circuit::packed_instruction::PackedInstruction;
 use smallvec::smallvec;
 use std::f64::consts::PI;
 
@@ -116,7 +117,7 @@ pub fn run_litinski_transformation(
     let mut circuit: Vec<(&str, Vec<usize>)> = Vec::new();
     let mut angles: Vec<Param> = Vec::new();
     let mut global_phase_update = 0.;
-    let mut clifford_ops: Vec<DAGInstruction> = Vec::new();
+    let mut clifford_ops: Vec<PackedInstruction> = Vec::new();
     for node_index in dag.topological_op_nodes()? {
         if let NodeType::Operation(inst) = &dag[node_index] {
             let (name, angle, phase_update) = match inst.view() {
