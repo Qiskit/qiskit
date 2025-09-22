@@ -276,6 +276,19 @@ class BindingsArrayTestCase(QiskitTestCase):
             ba = BindingsArray(data={Parameter("a"): [0.0, 1.0]})
             self.assertEqual(ba.shape, (2,))
 
+        with self.subTest("Trailing singleton axis is preserved"):
+            ba = BindingsArray(data={Parameter("a"): np.array([[0.0], [1.0]])})
+            self.assertEqual(ba.shape, (2, 1))
+
+        with self.subTest("Trailing singleton axis is dropped when contradicted"):
+            ba = BindingsArray(
+                data={
+                    (Parameter("a"), Parameter("b")): np.ones((2, 2)),
+                    Parameter("a"): np.array([[0.0], [1.0]]),
+                }
+            )
+            self.assertEqual(ba.shape, (2,))
+
         with self.subTest("Multiple data empty"):
             ba = BindingsArray(data={Parameter("a"): [], Parameter("b"): []})
             self.assertEqual(ba.shape, (0,))
@@ -344,7 +357,10 @@ class BindingsArrayTestCase(QiskitTestCase):
             {tuple(f"a{idx}" for idx in range(num_params)): np.empty(shape + (num_params,))},
             shape=(None if do_inference else shape),
         )
-        self.assertEqual(ba.shape, shape)
+        expected_shape = shape
+        if do_inference and num_params == 1 and shape:
+            expected_shape = shape + (1,)
+        self.assertEqual(ba.shape, expected_shape)
         self.assertEqual(ba.num_parameters, num_params)
 
         if num_params == 1:

@@ -364,9 +364,12 @@ def _infer_shape(data: dict[tuple[Parameter, ...], np.ndarray]) -> tuple[int, ..
             # the last dimension _has_ to be over parameters
             examine_array(val.shape[:-1])
         elif val.shape and val.shape[-1] == 1:
-            # this case is a convention, and separated from the previous case for clarity:
-            # if the last axis is 1-d, make an assumption that it is for our 1 parameter
-            examine_array(val.shape[:-1])
+            if val.ndim == 1:
+                # a 1-d array with a trailing singleton most likely omits the parameter axis
+                examine_array(val.shape[:-1])
+            else:
+                # preserve trailing singleton axes so that the broadcasted shape can reflect them
+                examine_array(val.shape[:-1], val.shape)
         else:
             # otherwise, the user has left off the last axis and we'll be nice to them
             examine_array(val.shape)
@@ -377,10 +380,9 @@ def _infer_shape(data: dict[tuple[Parameter, ...], np.ndarray]) -> tuple[int, ..
         return next(iter(only_possible_shapes))
     elif len(only_possible_shapes) == 0:
         raise ValueError("Could not find any consistent shape.")
-    raise ValueError(
-        "Could not unambiguously determine the intended shape, all shapes in "
-        f"{only_possible_shapes} are consistent with the input; specify shape manually."
-    )
+    # Choose the most expressive option (i.e. the one with the most trailing axes) so that
+    # leading singleton dimensions that do not contradict other entries are preserved.
+    return max(only_possible_shapes, key=lambda shape: (len(shape), shape))
 
 
 def _format_key(key: tuple[Parameter | str, ...]):
