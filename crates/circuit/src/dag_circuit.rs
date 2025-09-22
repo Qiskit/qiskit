@@ -4087,6 +4087,27 @@ impl DAGCircuit {
         ]))
     }
 
+    /// Convert this DAG to a :class:`.QuantumCircuit`.
+    ///
+    /// This is a simple wrapper around :func:`.dag_to_circuit`.
+    ///
+    /// Args:
+    ///     copy_operations: whether to deep copy the individual instructions.  If set to ``False``,
+    ///         the operation is cheaper but mutations to the instructions in the circuit will
+    ///         affect the original circuit.
+    ///
+    /// Returns:
+    ///     a :class:`.QuantumCircuit` representing this same DAG.
+    // If updating this signature, update `dag_to_circuit` as well.
+    #[pyo3(signature=(*, copy_operations=true))]
+    fn to_circuit(slf_: PyRef<Self>, copy_operations: bool) -> PyResult<Bound<PyAny>> {
+        // We go via Python space here to make sure all the extra Python-space components not yet
+        // tracked in `CircuitData` are copied too.
+        imports::DAG_TO_CIRCUIT
+            .get_bound(slf_.py())
+            .call1((slf_, copy_operations))
+    }
+
     /// Draws the dag circuit.
     ///
     /// This function needs `Graphviz <https://www.graphviz.org/>`_ to be
