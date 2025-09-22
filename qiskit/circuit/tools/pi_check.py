@@ -11,8 +11,7 @@
 # that they have been altered from the originals.
 # pylint: disable=too-many-return-statements
 
-"""Check if number close to values of PI
-"""
+"""Check if number close to values of PI"""
 
 import numpy as np
 from qiskit.circuit.parameterexpression import ParameterExpression
@@ -48,20 +47,17 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
     """
     if isinstance(inpt, ParameterExpression):
         param_str = str(inpt)
-        from sympy import sympify
-
-        expr = sympify(inpt._symbol_expr)
-        syms = expr.atoms()
-        for sym in syms:
-            if not sym.is_number:
-                continue
-            pi = pi_check(abs(float(sym)), eps=eps, output=output, ndigits=ndigits)
+        values = inpt._values()
+        for val in values:
+            pi = pi_check(abs(float(val)), eps=eps, output=output, ndigits=ndigits)
             try:
                 _ = float(pi)
             except (ValueError, TypeError):
-                from sympy import sstr
+                import qiskit._accelerate.circuit
 
-                sym_str = sstr(abs(sym), full_prec=False)
+                # we need to match the precise string representation of the pi-value,
+                # therefore we use _Value instead of just str(abs(val))
+                sym_str = str(qiskit._accelerate.circuit.ParameterExpression._Value(abs(val)))
                 param_str = param_str.replace(sym_str, pi)
         return param_str
     elif isinstance(inpt, str):

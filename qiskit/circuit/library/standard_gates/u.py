@@ -23,17 +23,23 @@ import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit._accelerate.circuit import StandardGate
 
 
 class UGate(Gate):
-    r"""Generic single-qubit rotation gate with 3 Euler angles.
+    r"""Generic single-qubit rotation in terms of ZYZ Euler angles.
+
+    The action of this gate can be related to the standard ZYZ Euler decomposition by
+
+    .. math::
+
+        U(\theta, \phi, \lambda) = P(\phi) R_Y(\theta) P(\lambda) 
+        = e^{i\frac{\phi + \lambda}{2}} R_Z(\phi) R_Y(\theta) R_Z(\lambda).
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.u` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -41,7 +47,7 @@ class UGate(Gate):
         q_0: ┤ U(ϴ,φ,λ) ├
              └──────────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -61,7 +67,7 @@ class UGate(Gate):
         <https://doi.org/10.48550/arXiv.1707.03429>`_ by a global phase of
         :math:`e^{i(\phi+\lambda)/2}`.
 
-    **Examples:**
+    Examples:
 
     .. math::
 
@@ -72,7 +78,7 @@ class UGate(Gate):
         U(\theta, 0, 0) = RY(\theta)
     """
 
-    _standard_gate = StandardGate.UGate
+    _standard_gate = StandardGate.U
 
     def __init__(
         self,
@@ -81,7 +87,13 @@ class UGate(Gate):
         lam: ParameterValueType,
         label: Optional[str] = None,
     ):
-        """Create new U gate."""
+        r"""
+        Args:
+            theta: The angle :math:`\theta corresponding to the :math:`R_Y(\theta)` rotation.
+            phi: The angle :math:`\phi` corresponding to the :math:`R_Z(\phi)` rotation.
+            lam: The angle :math:`\lambda` corresponding to the :math:`R_Z(\lambda)` rotation.
+            label: An optional label for the gate.
+        """
         super().__init__("u", 1, [theta, phi, lam], label=label)
 
     def inverse(self, annotated: bool = False):
@@ -213,7 +225,7 @@ class CUGate(ControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.cu` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -222,7 +234,7 @@ class CUGate(ControlledGate):
         q_1: ┤ U(ϴ,φ,λ,γ) ├
              └────────────┘
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 
@@ -270,7 +282,7 @@ class CUGate(ControlledGate):
             \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.CUGate
+    _standard_gate = StandardGate.CU
 
     def __init__(
         self,
@@ -295,35 +307,19 @@ class CUGate(ControlledGate):
         )
 
     def _define(self):
-        """
-        gate cu(theta,phi,lambda,gamma) c, t
-        { phase(gamma) c;
-          phase((lambda+phi)/2) c;
-          phase((lambda-phi)/2) t;
-          cx c,t;
-          u(-theta/2,0,-(phi+lambda)/2) t;
-          cx c,t;
-          u(theta/2,phi,0) t;
-        }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit
 
         #          ┌──────┐    ┌──────────────┐
         # q_0: ────┤ P(γ) ├────┤ P(λ/2 + φ/2) ├──■────────────────────────────■────────────────
         #      ┌───┴──────┴───┐└──────────────┘┌─┴─┐┌──────────────────────┐┌─┴─┐┌────────────┐
         # q_1: ┤ P(λ/2 - φ/2) ├────────────────┤ X ├┤ U(-0/2,0,-λ/2 - φ/2) ├┤ X ├┤ U(0/2,φ,0) ├
         #      └──────────────┘                └───┘└──────────────────────┘└───┘└────────────┘
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        qc.p(self.params[3], 0)
-        qc.p((self.params[2] + self.params[1]) / 2, 0)
-        qc.p((self.params[2] - self.params[1]) / 2, 1)
-        qc.cx(0, 1)
-        qc.u(-self.params[0] / 2, 0, -(self.params[1] + self.params[2]) / 2, 1)
-        qc.cx(0, 1)
-        qc.u(self.params[0] / 2, self.params[1], 0, 1)
-        self.definition = qc
+
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.CU._get_definition(self.params), legacy_qubits=True, name=self.name
+        )
 
     def inverse(self, annotated: bool = False):
         r"""Return inverted CU gate.

@@ -122,7 +122,7 @@ enum Atom {
     LParen,
     RParen,
     Function(Function),
-    CustomFunction(PyObject, usize),
+    CustomFunction(Py<PyAny>, usize),
     Op(Op),
     Const(f64),
     Parameter(ParamId),
@@ -143,7 +143,7 @@ pub enum Expr {
     Divide(Box<Expr>, Box<Expr>),
     Power(Box<Expr>, Box<Expr>),
     Function(Function, Box<Expr>),
-    CustomFunction(PyObject, Vec<Expr>),
+    CustomFunction(Py<PyAny>, Vec<Expr>),
 }
 
 impl<'py> IntoPyObject<'py> for Expr {
@@ -402,8 +402,7 @@ impl ExprParser<'_> {
                                 token.col,
                             )),
                             &format!(
-                                "failure in constant folding: cannot take ln of non-positive {}",
-                                val
+                                "failure in constant folding: cannot take ln of non-positive {val}"
                             ),
                         )))
                     }
@@ -420,8 +419,7 @@ impl ExprParser<'_> {
                                 token.col,
                             )),
                             &format!(
-                                "failure in constant folding: cannot take sqrt of negative {}",
-                                val
+                                "failure in constant folding: cannot take sqrt of negative {val}"
                             ),
                         )))
                     }
@@ -434,7 +432,7 @@ impl ExprParser<'_> {
 
     fn apply_custom_function(
         &mut self,
-        callable: PyObject,
+        callable: Py<PyAny>,
         exprs: Vec<Expr>,
         token: &Token,
     ) -> PyResult<Expr> {
@@ -442,7 +440,7 @@ impl ExprParser<'_> {
             // We can still do constant folding with custom user classical functions, we're just
             // going to have to acquire the GIL and call the Python object the user gave us right
             // now.  We need to explicitly handle any exceptions that might occur from that.
-            Python::with_gil(|py| {
+            Python::attach(|py| {
                 let args = PyTuple::new(
                     py,
                     exprs.iter().map(|x| {
@@ -535,7 +533,7 @@ impl ExprParser<'_> {
                     Some(GateSymbol::Qubit { .. }) => {
                         Err(QASM2ParseError::new_err(message_generic(
                             Some(&Position::new(self.current_filename(), token.line, token.col)),
-                            &format!("'{}' is a gate qubit, not a parameter", id),
+                            &format!("'{id}' is a gate qubit, not a parameter"),
                         )))
                     }
                     None => {
@@ -547,8 +545,7 @@ impl ExprParser<'_> {
                             Err(QASM2ParseError::new_err(message_generic(
                             Some(&Position::new(self.current_filename(), token.line, token.col)),
                             &format!(
-                                "'{}' is not a parameter or custom instruction defined in this scope",
-                                id,
+                                "'{id}' is not a parameter or custom instruction defined in this scope",
                             ))))
                             }
                     }

@@ -12,6 +12,7 @@
 
 use pyo3::prelude::*;
 use pyo3::IntoPyObjectExt;
+use pyo3::PyTypeInfo;
 
 /// A length of time used to express circuit timing.
 ///
@@ -42,6 +43,7 @@ use pyo3::IntoPyObjectExt;
 #[allow(non_camel_case_types)]
 pub enum Duration {
     dt(i64),
+    ps(f64),
     ns(f64),
     us(f64),
     ms(f64),
@@ -54,6 +56,7 @@ impl Duration {
     fn unit(&self) -> &'static str {
         match self {
             Duration::dt(_) => "dt",
+            Duration::ps(_) => "ps",
             Duration::us(_) => "us",
             Duration::ns(_) => "ns",
             Duration::ms(_) => "ms",
@@ -66,24 +69,33 @@ impl Duration {
     /// This will be a Python ``int`` if the :meth:`~Duration.unit` is ``"dt"``,
     /// else a ``float``.
     #[pyo3(name = "value")]
-    fn py_value(&self, py: Python) -> PyResult<PyObject> {
+    fn py_value(&self, py: Python) -> PyResult<Py<PyAny>> {
         match self {
             Duration::dt(v) => v.into_py_any(py),
-            Duration::us(v) | Duration::ns(v) | Duration::ms(v) | Duration::s(v) => {
-                v.into_py_any(py)
-            }
+            Duration::ps(v)
+            | Duration::us(v)
+            | Duration::ns(v)
+            | Duration::ms(v)
+            | Duration::s(v) => v.into_py_any(py),
         }
     }
-}
 
-impl Duration {
     fn __repr__(&self) -> String {
         match self {
-            Duration::ns(t) => format!("Duration.ns({})", t),
-            Duration::us(t) => format!("Duration.us({})", t),
-            Duration::ms(t) => format!("Duration.ms({})", t),
-            Duration::s(t) => format!("Duration.s({})", t),
-            Duration::dt(t) => format!("Duration.dt({})", t),
+            Duration::ps(t) => format!("Duration.ps({t})"),
+            Duration::ns(t) => format!("Duration.ns({t})"),
+            Duration::us(t) => format!("Duration.us({t})"),
+            Duration::ms(t) => format!("Duration.ms({t})"),
+            Duration::s(t) => format!("Duration.s({t})"),
+            Duration::dt(t) => format!("Duration.dt({t})"),
         }
+    }
+
+    fn __reduce__(&self, py: Python) -> PyResult<Py<PyAny>> {
+        (
+            Duration::type_object(py).getattr(self.unit())?,
+            (self.py_value(py)?,),
+        )
+            .into_py_any(py)
     }
 }

@@ -20,8 +20,9 @@ from itertools import chain
 from collections.abc import Callable
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.quantum_info.operators import SparsePauliOp, Pauli
+from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.exceptions import QiskitError
+import qiskit.quantum_info
 
 from .product_formula import ProductFormula, reorder_paulis
 
@@ -45,11 +46,14 @@ class QDrift(ProductFormula):
         insert_barriers: bool = False,
         cx_structure: str = "chain",
         atomic_evolution: (
-            Callable[[QuantumCircuit, Pauli | SparsePauliOp, float], None] | None
+            Callable[[QuantumCircuit, qiskit.quantum_info.Pauli | SparsePauliOp, float], None]
+            | None
         ) = None,
         seed: int | None = None,
         wrap: bool = False,
         preserve_order: bool = True,
+        *,
+        atomic_evolution_sparse_observable: bool = False,
     ) -> None:
         r"""
         Args:
@@ -59,20 +63,33 @@ class QDrift(ProductFormula):
                 ``"chain"``, where next neighbor connections are used, or ``"fountain"``, where all
                 qubits are connected to one. This only takes effect when
                 ``atomic_evolution is None``.
-            atomic_evolution: A function to apply the evolution of a single :class:`.Pauli`, or
-                :class:`.SparsePauliOp` of only commuting terms, to a circuit. The function takes in
-                three arguments: the circuit to append the evolution to, the Pauli operator to
-                evolve, and the evolution time. By default, a single Pauli evolution is decomposed
-                into a chain of ``CX`` gates and a single ``RZ`` gate.
+            atomic_evolution: A function to apply the evolution of a single
+                :class:`~.quantum_info.Pauli`, or :class:`.SparsePauliOp` of only commuting terms,
+                to a circuit. The function takes in three arguments: the circuit to append the
+                evolution to, the Pauli operator to evolve, and the evolution time. By default, a
+                single Pauli evolution is decomposed into a chain of ``CX`` gates and a single
+                ``RZ`` gate.
             seed: An optional seed for reproducibility of the random sampling process.
             wrap: Whether to wrap the atomic evolutions into custom gate objects. This only takes
                 effect when ``atomic_evolution is None``.
             preserve_order: If ``False``, allows reordering the terms of the operator to
                 potentially yield a shallower evolution circuit. Not relevant
                 when synthesizing operator with a single term.
+            atomic_evolution_sparse_observable: If a custom ``atomic_evolution`` is passed,
+                which does not yet support :class:`.SparseObservable`\ s as input, set this
+                argument to ``False`` to automatically apply a conversion to :class:`.SparsePauliOp`.
+                This argument is supported until Qiskit 2.2, at which point all atomic evolutions
+                are required to support :class:`.SparseObservable`\ s as input.
         """
         super().__init__(
-            1, reps, insert_barriers, cx_structure, atomic_evolution, wrap, preserve_order
+            1,
+            reps,
+            insert_barriers,
+            cx_structure,
+            atomic_evolution,
+            wrap,
+            preserve_order,
+            atomic_evolution_sparse_observable=atomic_evolution_sparse_observable,
         )
         self.sampled_ops = None
         self.rng = np.random.default_rng(seed)

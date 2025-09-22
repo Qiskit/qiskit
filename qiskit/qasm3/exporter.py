@@ -14,7 +14,6 @@
 
 from __future__ import annotations
 
-import collections
 import contextlib
 import dataclasses
 import io
@@ -27,6 +26,7 @@ from typing import Iterable, List, Sequence, Union
 from qiskit._accelerate.circuit import StandardGate
 from qiskit.circuit import (
     library,
+    Annotation,
     Barrier,
     CircuitInstruction,
     Clbit,
@@ -39,10 +39,13 @@ from qiskit.circuit import (
     Reset,
     Delay,
     Store,
+    Bit,
+    Register,
 )
-from qiskit.circuit.bit import Bit
+from qiskit.circuit.annotation import iter_namespaces, OpenQASM3Serializer
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import (
+    BoxOp,
     IfElseOp,
     ForLoopOp,
     WhileLoopOp,
@@ -52,13 +55,68 @@ from qiskit.circuit.controlflow import (
     ContinueLoopOp,
     CASE_DEFAULT,
 )
-from qiskit.circuit.register import Register
 from qiskit.circuit.tools import pi_check
 
 from . import ast
 from .experimental import ExperimentalFeatures
 from .exceptions import QASM3ExporterError
 from .printer import BasicPrinter
+
+
+@dataclasses.dataclass(frozen=True)
+class DefcalInstruction:
+    """An instruction that should be assumed by the exporter to have an associated ``defcal``
+    statement for it.
+
+    .. note::
+
+        This is not a complete implementation of ``defcal``\\ s in OpenQASM 3, and might require
+        expansion in the future to support a broader set of statements.
+
+        For example:
+
+        .. code-block:: openqasm3
+
+            // We support statements that look like these:
+
+            defcal my_measure q -> bit {}
+            defcal my_reset q {}
+            defcal my_rz(angle phase) q {}
+
+            // ... and _not_ ones that look like these:
+
+            // Uses a non-angle argument.
+            defcal my_multiplied_rz(angle phase, uint amount) q;
+            // Only applies to fixed hardware qubits.
+            defcal my_cx $0, $1 {}
+    """
+
+    name: str
+    """Name of the instruction."""
+    parameters: int
+    """Number of angle-like parameters the instruction takes.
+
+    .. note::
+        This is a partial implementation; ``defcal`` instructions can actually have generic
+        typed parameters in OpenQASM 3, so a more complete representation should allow specifying
+        either angle-like parameters (like ``gate`` has) or other elements that fit into the full type
+        system.
+    """
+    qubits: int
+    """Number of qubits the instruction takes.
+
+    .. note::
+        The typing of this argument is implying that we are only supporting (implicit) ``defcal``
+        statements that are defined over _all_ qubits, whereas in a complete implementation,
+        we would need to account for ``defcal`` statements that only apply to fixed physical qubits.
+    """
+    return_type: types.Type | None
+    """The type of the return value.
+
+    .. note::
+        ``None`` is a stand-in for some type-system representation of a unit or ``void`` type;
+        Qiskit's classical type system does not have (nor need) this at the moment.
+    """
 
 
 # Reserved keywords that gates and variables cannot be named.  It is possible that some of these
@@ -136,6 +194,8 @@ class Exporter:
         allow_aliasing: bool = None,
         indent: str = "  ",
         experimental: ExperimentalFeatures = ExperimentalFeatures(0),
+        annotation_handlers: dict[str, OpenQASM3Serializer] | None = None,
+        implicit_defcals: dict[str, DefcalInstruction] | None = None,
     ):
         """
         Args:
@@ -172,6 +232,16 @@ class Exporter:
                 set to the empty string to disable indentation.
             experimental: any experimental features to enable during the export.  See
                 :class:`ExperimentalFeatures` for more details.
+            annotation_handlers: a mapping of namespaces to annotation serializers.  When an
+                :class:`.Annotation` object is encountered, the most specific namespace in this
+                mapping that matches the annotation's :attr:`~.Annotation.namespace` attribute will
+                be used to serialize it.
+            implicit_defcals: mapping of :attr:`.Instruction.name`\\ s to an associated
+                :class:`.DefcalInstruction` object.  All instructions with the key name in the input
+                circuit should be output as if there is a ``defcal`` statement corresponding to the
+                given :class:`.DefcalInstruction` defined.  The key name and the
+                :attr:`.DefcalInstruction.name` do not need to match.  The ``defcal`` name cannot
+                collide with an OpenQASM 3 keyword.
         """
         self.basis_gates = basis_gates
         self.disable_constants = disable_constants
@@ -181,6 +251,8 @@ class Exporter:
         self.includes = list(includes)
         self.indent = indent
         self.experimental = experimental
+        self.annotation_handlers = {} if annotation_handlers is None else annotation_handlers
+        self.implicit_defcals = {} if implicit_defcals is None else implicit_defcals
 
     def dumps(self, circuit):
         """Convert the circuit to OpenQASM 3, returning the result as a string."""
@@ -197,6 +269,8 @@ class Exporter:
             disable_constants=self.disable_constants,
             allow_aliasing=self.allow_aliasing,
             experimental=self.experimental,
+            annotation_handlers=self.annotation_handlers,
+            implicit_defcals=self.implicit_defcals,
         )
         BasicPrinter(stream, indent=self.indent, experimental=self.experimental).visit(
             builder.build_program()
@@ -225,43 +299,43 @@ _CANONICAL_CONTROLLED_STANDARD_GATES = {
 # Mapping of symbols defined by `stdgates.inc` to their gate definition source.
 _KNOWN_INCLUDES = {
     "stdgates.inc": {
-        "p": _CANONICAL_STANDARD_GATES[StandardGate.PhaseGate],
-        "x": _CANONICAL_STANDARD_GATES[StandardGate.XGate],
-        "y": _CANONICAL_STANDARD_GATES[StandardGate.YGate],
-        "z": _CANONICAL_STANDARD_GATES[StandardGate.ZGate],
-        "h": _CANONICAL_STANDARD_GATES[StandardGate.HGate],
-        "s": _CANONICAL_STANDARD_GATES[StandardGate.SGate],
-        "sdg": _CANONICAL_STANDARD_GATES[StandardGate.SdgGate],
-        "t": _CANONICAL_STANDARD_GATES[StandardGate.TGate],
-        "tdg": _CANONICAL_STANDARD_GATES[StandardGate.TdgGate],
-        "sx": _CANONICAL_STANDARD_GATES[StandardGate.SXGate],
-        "rx": _CANONICAL_STANDARD_GATES[StandardGate.RXGate],
-        "ry": _CANONICAL_STANDARD_GATES[StandardGate.RYGate],
-        "rz": _CANONICAL_STANDARD_GATES[StandardGate.RZGate],
-        "cx": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CXGate][1],
-        "cy": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CYGate][1],
-        "cz": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CZGate][1],
-        "cp": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CPhaseGate][1],
-        "crx": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CRXGate][1],
-        "cry": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CRYGate][1],
-        "crz": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CRZGate][1],
-        "ch": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CHGate][1],
-        "swap": _CANONICAL_STANDARD_GATES[StandardGate.SwapGate],
-        "ccx": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CCXGate][3],
-        "cswap": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CSwapGate][1],
-        "cu": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CUGate][1],
-        "CX": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CXGate][1],
-        "phase": _CANONICAL_STANDARD_GATES[StandardGate.PhaseGate],
-        "cphase": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CPhaseGate][1],
-        "id": _CANONICAL_STANDARD_GATES[StandardGate.IGate],
-        "u1": _CANONICAL_STANDARD_GATES[StandardGate.U1Gate],
-        "u2": _CANONICAL_STANDARD_GATES[StandardGate.U2Gate],
-        "u3": _CANONICAL_STANDARD_GATES[StandardGate.U3Gate],
+        "p": _CANONICAL_STANDARD_GATES[StandardGate.Phase],
+        "x": _CANONICAL_STANDARD_GATES[StandardGate.X],
+        "y": _CANONICAL_STANDARD_GATES[StandardGate.Y],
+        "z": _CANONICAL_STANDARD_GATES[StandardGate.Z],
+        "h": _CANONICAL_STANDARD_GATES[StandardGate.H],
+        "s": _CANONICAL_STANDARD_GATES[StandardGate.S],
+        "sdg": _CANONICAL_STANDARD_GATES[StandardGate.Sdg],
+        "t": _CANONICAL_STANDARD_GATES[StandardGate.T],
+        "tdg": _CANONICAL_STANDARD_GATES[StandardGate.Tdg],
+        "sx": _CANONICAL_STANDARD_GATES[StandardGate.SX],
+        "rx": _CANONICAL_STANDARD_GATES[StandardGate.RX],
+        "ry": _CANONICAL_STANDARD_GATES[StandardGate.RY],
+        "rz": _CANONICAL_STANDARD_GATES[StandardGate.RZ],
+        "cx": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CX][1],
+        "cy": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CY][1],
+        "cz": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CZ][1],
+        "cp": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CPhase][1],
+        "crx": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CRX][1],
+        "cry": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CRY][1],
+        "crz": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CRZ][1],
+        "ch": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CH][1],
+        "swap": _CANONICAL_STANDARD_GATES[StandardGate.Swap],
+        "ccx": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CCX][3],
+        "cswap": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CSwap][1],
+        "cu": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CU][1],
+        "CX": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CX][1],
+        "phase": _CANONICAL_STANDARD_GATES[StandardGate.Phase],
+        "cphase": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CPhase][1],
+        "id": _CANONICAL_STANDARD_GATES[StandardGate.I],
+        "u1": _CANONICAL_STANDARD_GATES[StandardGate.U1],
+        "u2": _CANONICAL_STANDARD_GATES[StandardGate.U2],
+        "u3": _CANONICAL_STANDARD_GATES[StandardGate.U3],
     },
 }
 
 _BUILTIN_GATES = {
-    "U": _CANONICAL_STANDARD_GATES[StandardGate.UGate],
+    "U": _CANONICAL_STANDARD_GATES[StandardGate.U],
 }
 
 
@@ -275,8 +349,8 @@ class GateInfo:
     gate being defined in terms of the `_FIXED_PARAMETERS` objects.  A call-site gate whose
     canonical form equals this can use the corresponding symbol as the callee.
 
-    This can be ``None`` if the gate was an overridden "basis gate" for this export, so no canonical
-    form is known."""
+    This can be ``None`` if the gate was an overridden "basis gate" for this export, in which case
+    there is no associated definition statement of the gate."""
     node: ast.QuantumGateDefinition | None
     """An AST node containing the gate definition.  This can be ``None`` if the gate came from an
     included file, or is an overridden "basis gate" of the export."""
@@ -286,14 +360,16 @@ class SymbolTable:
     """Track Qiskit objects and the OQ3 identifiers used to refer to them."""
 
     def __init__(self):
-        self.gates: collections.OrderedDict[str, GateInfo | None] = {}
+        self.gates: dict[str, GateInfo] = {}
         """Mapping of the symbol name to the "definition source" of the gate, which provides its
-        signature and decomposition.  The definition source can be `None` if the user set the gate
-        as a custom "basis gate".
+        signature and decomposition.
 
         Gates can only be declared in the global scope, so there is just a single look-up for this.
+        This is insertion ordered, and that can be relied on for iteration later.
 
-        This is insertion ordered, and that can be relied on for iteration later."""
+        Note that "gates" defined by a :class:`.DefcalInstruction` might logically correspond to
+        arbitrary non-unitary instructions like ``measure``.
+        """
         self.standard_gate_idents: dict[StandardGate, ast.Identifier] = {}
         """Mapping of standard gate enumeration values to the identifier we represent that as."""
         self.user_gate_idents: dict[int, ast.Identifier] = {}
@@ -489,6 +565,12 @@ class SymbolTable:
             self.user_gate_idents[id(source)] = ident
         return ident
 
+    def register_defcal(self, defcal: DefcalInstruction):
+        """Register a ``defcal`` statement in the symbol table."""
+        # This is a slight hack (things like ``my_measure`` wouldn't be a gate), but should track
+        # the symbols all correctly.
+        self.register_gate_without_definition(defcal.name, None)
+
     def get_gate(self, gate: Gate) -> ast.Identifier | None:
         """Lookup the identifier for a given `Gate`, if it exists."""
         canonical = _gate_canonical_form(gate)
@@ -563,6 +645,8 @@ class QASM3Builder:
         disable_constants,
         allow_aliasing,
         experimental=ExperimentalFeatures(0),
+        annotation_handlers=None,
+        implicit_defcals=None,
     ):
         self.scope = BuildScope(
             quantumcircuit,
@@ -582,6 +666,8 @@ class QASM3Builder:
         self.includes = includeslist
         self.basis_gates = basis_gates
         self.experimental = experimental
+        self.annotation_handlers = {} if annotation_handlers is None else annotation_handlers
+        self.implicit_defcals = {} if implicit_defcals is None else implicit_defcals
 
     @contextlib.contextmanager
     def new_scope(self, circuit: QuantumCircuit, qubits: Iterable[Qubit], clbits: Iterable[Clbit]):
@@ -626,7 +712,7 @@ class QASM3Builder:
     def build_program(self):
         """Builds a Program"""
         circuit = self.scope.circuit
-        if circuit.num_captured_vars:
+        if circuit.num_captured_vars or circuit.num_captured_stretches:
             raise QASM3ExporterError(
                 "cannot export an inner scope with captured variables as a top-level program"
             )
@@ -648,6 +734,17 @@ class QASM3Builder:
 
         for builtin, gate in _BUILTIN_GATES.items():
             self.symbols.register_gate_without_definition(builtin, gate)
+        # The only defcal return types we can handle.  Qiskit doesn't have a way of specifying an
+        # instruction that acts on qubits and returns a ``bit[n]``-like type, so we forbid that
+        # early here too.
+        allowed_defcal_types = (None, types.Bool())
+        for name, defcal in self.implicit_defcals.items():
+            if defcal.return_type not in allowed_defcal_types:
+                raise QASM3ExporterError(
+                    f"The defcal '{defcal.name}' associated with instructions with name '{name}'"
+                    f" returns an unsupported classical type: {defcal.return_type}"
+                )
+            self.symbols.register_defcal(defcal)
         for builtin in self.basis_gates:
             if builtin in _BUILTIN_GATES:
                 # It's built into the langauge; we don't need to re-add it.
@@ -958,6 +1055,14 @@ class QASM3Builder:
             )
             for var in self.scope.circuit.iter_declared_vars()
         ]
+
+        for stretch in self.scope.circuit.iter_declared_stretches():
+            statements.append(
+                ast.StretchDeclaration(
+                    self.symbols.register_variable(stretch.name, stretch, allow_rename=True),
+                )
+            )
+
         for instruction in self.scope.circuit.data:
             if isinstance(instruction.operation, ControlFlowOp):
                 if isinstance(instruction.operation, ForLoopOp):
@@ -968,11 +1073,15 @@ class QASM3Builder:
                     statements.append(self.build_if_statement(instruction))
                 elif isinstance(instruction.operation, SwitchCaseOp):
                     statements.extend(self.build_switch_statement(instruction))
+                elif isinstance(instruction.operation, BoxOp):
+                    statements.append(self.build_box(instruction))
                 else:
                     raise RuntimeError(f"unhandled control-flow construct: {instruction.operation}")
                 continue
+            if (defcal := self.implicit_defcals.get(instruction.name, None)) is not None:
+                nodes = [self.build_defcal_call(instruction, defcal)]
             # Build the node, ignoring any condition.
-            if isinstance(instruction.operation, Gate):
+            elif isinstance(instruction.operation, Gate):
                 nodes = [self.build_gate_call(instruction)]
             elif isinstance(instruction.operation, Barrier):
                 operands = [self._lookup_bit(operand) for operand in instruction.qubits]
@@ -981,8 +1090,8 @@ class QASM3Builder:
                 measurement = ast.QuantumMeasurement(
                     [self._lookup_bit(operand) for operand in instruction.qubits]
                 )
-                qubit = self._lookup_bit(instruction.clbits[0])
-                nodes = [ast.QuantumMeasurementAssignment(qubit, measurement)]
+                clbit = self._lookup_bit(instruction.clbits[0])
+                nodes = [ast.QuantumMeasurementAssignment(clbit, measurement)]
             elif isinstance(instruction.operation, Reset):
                 nodes = [
                     ast.QuantumReset(self._lookup_bit(operand)) for operand in instruction.qubits
@@ -1076,6 +1185,18 @@ class QASM3Builder:
             ast.SwitchStatement(target, cases, default=default),
         ]
 
+    def build_box(self, instruction: CircuitInstruction) -> ast.BoxStatement:
+        """Build a :class:`.BoxOp` into a :class:`.ast.BoxStatement`."""
+        duration = self.build_duration(instruction.operation.duration, instruction.operation.unit)
+        body_circuit = instruction.operation.blocks[0]
+        annotations = [
+            self.build_annotation(annotation) for annotation in instruction.operation.annotations
+        ]
+        with self.new_scope(body_circuit, instruction.qubits, instruction.clbits):
+            # TODO: handle no-op qubits (see https://github.com/openqasm/openqasm/issues/584).
+            body = ast.ProgramBlock(self.build_current_scope())
+        return ast.BoxStatement(body, duration, annotations=annotations)
+
     def build_while_loop(self, instruction: CircuitInstruction) -> ast.WhileLoopStatement:
         """Build a :obj:`.WhileLoopOp` into a :obj:`.ast.WhileLoopStatement`."""
         condition = self.build_expression(_lift_condition(instruction.operation.condition))
@@ -1110,6 +1231,15 @@ class QASM3Builder:
             body_ast = ast.ProgramBlock(self.build_current_scope())
         return ast.ForLoopStatement(indexset_ast, loop_parameter_ast, body_ast)
 
+    def build_annotation(self, annotation: Annotation) -> ast.Annotation:
+        """Use the custom serializers to construct an annotation object."""
+        for namespace in iter_namespaces(annotation.namespace):
+            if (serializer := self.annotation_handlers.get(namespace, None)) is not None and (
+                payload := serializer.dump(annotation)
+            ) is not NotImplemented:
+                return ast.Annotation(annotation.namespace, payload)
+        raise QASM3ExporterError(f"No configured annotation serializer could handle {annotation}")
+
     def _lookup_variable_for_expression(self, var):
         if isinstance(var, Bit):
             return self._lookup_bit(var)
@@ -1125,19 +1255,25 @@ class QASM3Builder:
             raise QASM3ExporterError(
                 f"Found a delay instruction acting on classical bits: {instruction}"
             )
-        duration_value, unit = instruction.operation.duration, instruction.operation.unit
-        if unit == "ps":
-            duration = ast.DurationLiteral(1000 * duration_value, ast.DurationUnit.NANOSECOND)
-        else:
-            unit_map = {
-                "ns": ast.DurationUnit.NANOSECOND,
-                "us": ast.DurationUnit.MICROSECOND,
-                "ms": ast.DurationUnit.MILLISECOND,
-                "s": ast.DurationUnit.SECOND,
-                "dt": ast.DurationUnit.SAMPLE,
-            }
-            duration = ast.DurationLiteral(duration_value, unit_map[unit])
+        duration = self.build_duration(instruction.operation.duration, instruction.operation.unit)
         return ast.QuantumDelay(duration, [self._lookup_bit(qubit) for qubit in instruction.qubits])
+
+    def build_duration(self, duration, unit) -> ast.Expression | None:
+        """Build the expression of a given duration (if not ``None``)."""
+        if duration is None:
+            return None
+        if unit == "expr":
+            return self.build_expression(duration)
+        if unit == "ps":
+            return ast.DurationLiteral(duration / 1000, ast.DurationUnit.NANOSECOND)
+        unit_map = {
+            "ns": ast.DurationUnit.NANOSECOND,
+            "us": ast.DurationUnit.MICROSECOND,
+            "ms": ast.DurationUnit.MILLISECOND,
+            "s": ast.DurationUnit.SECOND,
+            "dt": ast.DurationUnit.SAMPLE,
+        }
+        return ast.DurationLiteral(duration, unit_map[unit])
 
     def build_integer(self, value) -> ast.IntegerLiteral:
         """Build an integer literal, raising a :obj:`.QASM3ExporterError` if the input is not
@@ -1166,11 +1302,54 @@ class QASM3Builder:
             }
         )
 
+    def _build_quantum_call_parameters(self, parameters) -> list[ast.Expression]:
+        parameters = [
+            ast.StringifyAndPray(self._rebind_scoped_parameters(param)) for param in parameters
+        ]
+        if not self.disable_constants:
+            for parameter in parameters:
+                parameter.obj = pi_check(parameter.obj, output="qasm")
+        return parameters
+
+    def build_defcal_call(self, instruction: CircuitInstruction, defcal: DefcalInstruction):
+        """Build a statement associated with a defcal instruction."""
+        # We forbade return types other than `Bool` and `None` in the initialiser,
+        # but we error so that this breaks if we support the full defcal spec later on.
+        allowed_defcal_types = (None, types.Bool())
+        if defcal.return_type not in allowed_defcal_types:
+            raise QASM3ExporterError(
+                f"The defcal '{defcal.name}' associated with instructions with name '{instruction.name}'"
+                f" returns an unsupported classical type: {defcal.return_type}"
+            )
+        returns_bit = defcal.return_type is not None
+        # Check simple consistency.
+        if (
+            len(instruction.qubits) != defcal.qubits
+            or len(instruction.params) != defcal.parameters
+            # Here, we're assuming that the `clbit` is only an output, not an input.
+            # Qiskit's data model can't actually tell us this, so we're assuming that the
+            # user is correct if they tell us this via the `DefcalInstruction`.
+            or len(instruction.clbits) != int(returns_bit)
+        ):
+            raise QASM3ExporterError(
+                f"Instruction '{instruction!r}' has a call signature that is inconsistent with"
+                f" its associated defcal: '{defcal!r}'."
+            )
+        return ast.DefcalCallStatement(
+            ident=ast.Identifier(defcal.name),
+            parameters=self._build_quantum_call_parameters(instruction.params),
+            qubits=[self._lookup_bit(qubit) for qubit in instruction.qubits],
+            lvalue=self._lookup_bit(instruction.clbits[0]) if returns_bit else None,
+        )
+
     def build_gate_call(self, instruction: CircuitInstruction):
         """Builds a gate-call AST node.
 
         This will also push the gate into the symbol table (if required), including recursively
-        defining the gate blocks."""
+        defining the gate blocks.
+
+        If the operation identifier is found in the symbol table, symbol-resolution will be skipped.
+        """
         operation = instruction.operation
         if hasattr(operation, "_qasm_decomposition"):
             operation = operation._qasm_decomposition()
@@ -1178,13 +1357,7 @@ class QASM3Builder:
         if ident is None:
             ident = self.define_gate(operation)
         qubits = [self._lookup_bit(qubit) for qubit in instruction.qubits]
-        parameters = [
-            ast.StringifyAndPray(self._rebind_scoped_parameters(param))
-            for param in operation.params
-        ]
-        if not self.disable_constants:
-            for parameter in parameters:
-                parameter.obj = pi_check(parameter.obj, output="qasm")
+        parameters = self._build_quantum_call_parameters(instruction.params)
         return ast.QuantumGateCall(ident, qubits, parameters=parameters)
 
 
@@ -1264,7 +1437,7 @@ class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
     __slots__ = ("lookup",)
 
     # This is a very simple, non-contextual converter.  As the type system expands, we may well end
-    # up with some places where Terra's abstract type system needs to be lowered to OQ3 rather than
+    # up with some places where Qiskit's abstract type system needs to be lowered to OQ3 rather than
     # mapping 100% directly, which might need a more contextual visitor.
 
     def __init__(self, lookup):
@@ -1272,6 +1445,9 @@ class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
 
     def visit_var(self, node, /):
         return self.lookup(node) if node.standalone else self.lookup(node.var)
+
+    def visit_stretch(self, node, /):
+        return self.lookup(node)
 
     # pylint: disable=too-many-return-statements
     def visit_value(self, node, /):
@@ -1285,6 +1461,9 @@ class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
             unit = node.value.unit()
             if unit == "dt":
                 return ast.DurationLiteral(node.value.value(), ast.DurationUnit.SAMPLE)
+            if unit == "ps":
+                # QASM doesn't natively support picoseconds.
+                return ast.DurationLiteral(node.value.value() / 1000, ast.DurationUnit.NANOSECOND)
             if unit == "ns":
                 return ast.DurationLiteral(node.value.value(), ast.DurationUnit.NANOSECOND)
             if unit == "us":

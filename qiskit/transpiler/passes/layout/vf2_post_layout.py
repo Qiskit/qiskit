@@ -23,7 +23,6 @@ from rustworkx import PyDiGraph, vf2_mapping, PyGraph
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.transpiler.passes.layout import vf2_utils
 
 
@@ -154,6 +153,19 @@ class VF2PostLayout(AnalysisPass):
             self.property_set["VF2PostLayout_stop_reason"] = VF2PostLayoutStopReason.MORE_THAN_2Q
             return
         im_graph, im_graph_node_map, reverse_im_graph_node_map, free_nodes = result
+        if self.strict_direction and free_nodes:
+            # If there are uncoupled qubits, in non-strict modes we just allocate them to the
+            # lowest-error states at the end.  However, in strict mode, we have to consider them at
+            # the same time to handle heterogeneous targets correctly.  This risks a factorial
+            # combinatoric explosion in complexity, though, so we put a limit on how many we'll
+            # handle.  The builder still builds the graph entirely, it just returns the free nodes
+            # for us to check on, so we clear that out after we've checked it.
+            if len(free_nodes) > 1:
+                self.property_set["VF2PostLayout_stop_reason"] = (
+                    VF2PostLayoutStopReason.NO_BETTER_SOLUTION_FOUND
+                )
+                return
+            free_nodes.clear()
         scoring_bit_list = vf2_utils.build_bit_list(im_graph, im_graph_node_map)
         scoring_edge_list = vf2_utils.build_edge_list(im_graph)
 
@@ -347,7 +359,9 @@ class VF2PostLayout(AnalysisPass):
                                 used_bits.add(i)
                                 chosen_layout.add(bit, i)
                                 break
-            self.property_set["post_layout"] = chosen_layout
+            self.property_set["post_layout"] = vf2_utils.allocate_idle_qubits(
+                dag, self.target, chosen_layout
+            )
         else:
             if chosen_layout is None:
                 stop_reason = VF2PostLayoutStopReason.NO_SOLUTION_FOUND
@@ -374,26 +388,4 @@ class VF2PostLayout(AnalysisPass):
                         props = self.target[gate][qargs]
                         if props is not None and props.error is not None:
                             fidelity *= (1 - props.error) ** count
-        else:
-            for bit, node_index in bit_map.items():
-                gate_counts = im_graph[node_index]
-                for gate, count in gate_counts.items():
-                    if gate == "measure":
-                        try:
-                            fidelity *= (1 - self.properties.readout_error(bits[bit])) ** count
-                        except BackendPropertyError:
-                            pass
-                    else:
-                        try:
-                            fidelity *= (1 - self.properties.gate_error(gate, bits[bit])) ** count
-                        except BackendPropertyError:
-                            pass
-            for edge in im_graph.edge_index_map().values():
-                qargs = (bits[reverse_bit_map[edge[0]]], bits[reverse_bit_map[edge[1]]])
-                gate_counts = edge[2]
-                for gate, count in gate_counts.items():
-                    try:
-                        fidelity *= (1 - self.properties.gate_error(gate, qargs)) ** count
-                    except BackendPropertyError:
-                        pass
         return 1 - fidelity

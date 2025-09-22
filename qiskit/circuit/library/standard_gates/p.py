@@ -17,7 +17,6 @@ from cmath import exp
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit._accelerate.circuit import StandardGate
 
@@ -31,7 +30,7 @@ class PhaseGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.p` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -39,7 +38,7 @@ class PhaseGate(Gate):
         q_0: ┤ P(θ) ├
              └──────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -49,7 +48,7 @@ class PhaseGate(Gate):
                 0 & e^{i\theta}
             \end{pmatrix}
 
-    **Examples:**
+    Examples:
 
         .. math::
 
@@ -76,21 +75,28 @@ class PhaseGate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
-    _standard_gate = StandardGate.PhaseGate
+    _standard_gate = StandardGate.Phase
 
     def __init__(self, theta: ParameterValueType, label: str | None = None):
-        """Create new Phase gate."""
+        """
+        Args:
+            theta: The rotation angle.
+            label: An optional label for the gate.
+        """
         super().__init__("p", 1, [theta], label=label)
 
     def _define(self):
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .u import UGate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        qc.append(UGate(0, 0, self.params[0]), [0])
-        self.definition = qc
+        #    ┌──────────┐
+        # q: ┤ U(0,0,θ) ├
+        #    └──────────┘
+
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.Phase._get_definition(self.params), legacy_qubits=True, name=self.name
+        )
 
     def control(
         self,
@@ -167,7 +173,7 @@ class CPhaseGate(ControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.cp` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -177,7 +183,7 @@ class CPhaseGate(ControlledGate):
         q_1: ─■──
 
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 
@@ -198,7 +204,7 @@ class CPhaseGate(ControlledGate):
         phase difference.
     """
 
-    _standard_gate = StandardGate.CPhaseGate
+    _standard_gate = StandardGate.CPhase
 
     def __init__(
         self,
@@ -220,29 +226,19 @@ class CPhaseGate(ControlledGate):
         )
 
     def _define(self):
-        """
-        gate cphase(lambda) a,b
-        { phase(lambda/2) a; cx a,b;
-          phase(-lambda/2) b; cx a,b;
-          phase(lambda/2) b;
-        }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit
 
         #      ┌────────┐
-        # q_0: ┤ P(λ/2) ├──■───────────────■────────────
+        # q_0: ┤ P(θ/2) ├──■───────────────■────────────
         #      └────────┘┌─┴─┐┌─────────┐┌─┴─┐┌────────┐
-        # q_1: ──────────┤ X ├┤ P(-λ/2) ├┤ X ├┤ P(λ/2) ├
+        # q_1: ──────────┤ X ├┤ P(-θ/2) ├┤ X ├┤ P(θ/2) ├
         #                └───┘└─────────┘└───┘└────────┘
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        qc.p(self.params[0] / 2, 0)
-        qc.cx(0, 1)
-        qc.p(-self.params[0] / 2, 1)
-        qc.cx(0, 1)
-        qc.p(self.params[0] / 2, 1)
-        self.definition = qc
+
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.CPhase._get_definition(self.params), legacy_qubits=True, name=self.name
+        )
 
     def control(
         self,
@@ -310,7 +306,7 @@ class MCPhaseGate(ControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.mcp` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -351,7 +347,7 @@ class MCPhaseGate(ControlledGate):
 
     def _define(self):
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
 
         qr = QuantumRegister(self.num_qubits, "q")
         qc = QuantumCircuit(qr, name=self.name)

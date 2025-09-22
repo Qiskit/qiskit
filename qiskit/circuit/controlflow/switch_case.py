@@ -19,7 +19,7 @@ __all__ = ("SwitchCaseOp", "CASE_DEFAULT")
 import contextlib
 from typing import Union, Iterable, Any, Tuple, Optional, List, Literal, TYPE_CHECKING
 
-from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
+from qiskit.circuit import ClassicalRegister, Clbit  # pylint: disable=cyclic-import
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.exceptions import CircuitError
 

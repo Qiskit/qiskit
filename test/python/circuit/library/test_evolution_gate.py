@@ -19,14 +19,17 @@ import numpy as np
 import scipy
 from ddt import ddt, data, unpack
 
+from qiskit import transpile
 from qiskit.circuit import QuantumCircuit, Parameter
-from qiskit.circuit.library import PauliEvolutionGate, HamiltonianGate
+from qiskit.circuit.library import PauliEvolutionGate, HamiltonianGate, PhaseGate, RZGate
 from qiskit.synthesis import LieTrotter, SuzukiTrotter, MatrixExponential, QDrift
 from qiskit.synthesis.evolution.product_formula import reorder_paulis
 from qiskit.converters import circuit_to_dag
-from qiskit.quantum_info import Operator, SparsePauliOp, Pauli, Statevector
+from qiskit.quantum_info import Operator, SparsePauliOp, Pauli, Statevector, SparseObservable
 from qiskit.transpiler.passes import HLSConfig, HighLevelSynthesis
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.utils import optionals
+from qiskit.circuit._utils import _compute_control_matrix
+from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
 
 X = SparsePauliOp("X")
 Y = SparsePauliOp("Y")
@@ -57,16 +60,37 @@ class TestEvolutionGate(QiskitTestCase):
         self.assertTrue(Operator(gate).equiv(exact_gate))
 
     def test_matrix_decomposition(self):
-        """Test the default decomposition."""
+        """Test the matrix decomposition."""
         op = (X ^ X ^ X) + (Y ^ Y ^ Y) + (Z ^ Z ^ Z)
         time = 0.123
 
         matrix = op.to_matrix()
         evolved = scipy.linalg.expm(-1j * time * matrix)
 
-        evo_gate = PauliEvolutionGate(op, time, synthesis=MatrixExponential())
+        with self.subTest(msg="test MatrixExponential"):
+            evo_gate = PauliEvolutionGate(op, time, synthesis=MatrixExponential())
+            self.assertTrue(Operator(evo_gate).equiv(evolved))
 
-        self.assertTrue(Operator(evo_gate).equiv(evolved))
+        with self.subTest(msg="test to_matrix"):
+            evo_gate = PauliEvolutionGate(op, time)
+            self.assertTrue(np.allclose(evolved, evo_gate.to_matrix()))
+
+    def test_to_matrix_commuting_blocks(self):
+        """Test to_matrix if the evolution is specified with commuting blocks."""
+        block_1q = (X ^ I) + (I ^ X)
+        block_2q = (X ^ X) + (Y ^ Y) + (Z ^ Z)
+
+        evo = PauliEvolutionGate([block_1q, block_2q])
+        matrix = evo.to_matrix()
+
+        expected = PauliEvolutionGate(block_1q + block_2q).to_matrix()
+        self.assertTrue(np.allclose(expected, matrix))
+
+    def test_to_matrix_invalid_time(self):
+        """Test calling to_matrix with a non-numeric time fails."""
+        evo = PauliEvolutionGate(Z, time=Parameter("time"))
+        with self.assertRaises(ValueError):
+            _ = evo.to_matrix()
 
     def test_reorder_paulis_invariant(self):
         """
@@ -133,6 +157,8 @@ class TestEvolutionGate(QiskitTestCase):
 
                 # don't use circuit equality since RZX here decomposes with RZ on the bottom
                 self.assertTrue(Operator(decomposed).equiv(ref))
+                # check the circuit indeed contains a single RZX gate
+                self.assertTrue(evo_gate.definition.count_ops().get("rzx", 0), 1)
 
     def test_suzuki_trotter(self):
         """Test constructing the circuit with Lie Trotter decomposition."""
@@ -313,11 +339,10 @@ class TestEvolutionGate(QiskitTestCase):
 
         self.assertEqual(ops, expected_ops)
 
-    @data("chain", "fountain")
-    def test_cnot_chain_options(self, option):
+    @combine(option=["chain", "fountain"], use_sparse_observable=[True, False])
+    def test_cnot_chain_options(self, option, use_sparse_observable):
         """Test selecting different kinds of CNOT chains."""
-
-        op = Z ^ Z ^ Z
+        op = SparseObservable("ZZZ") if use_sparse_observable else SparsePauliOp(["ZZZ"])
         synthesis = LieTrotter(reps=1, cx_structure=option)
         evo = PauliEvolutionGate(op, synthesis=synthesis)
 
@@ -366,8 +391,8 @@ class TestEvolutionGate(QiskitTestCase):
         self.assertEqual(rz_angle, 10)
         self.assertSuzukiTrotterIsCorrect(evo)
 
-    def test_paulisumop_coefficients_respected(self):
-        """Test that global ``PauliSumOp`` coefficients are being taken care of."""
+    def test_sparse_pauli_coefficients_respected(self):
+        """Test that global ``SparsePauliOp`` coefficients are being taken care of."""
         evo = PauliEvolutionGate(5 * (2 * X + 3 * Y - Z), time=1, synthesis=LieTrotter())
         circuit = evo.definition.decompose()
         rz_angles = [
@@ -427,12 +452,61 @@ class TestEvolutionGate(QiskitTestCase):
 
         self.assertTrue(Operator(circuit).equiv(np.identity(2**circuit.num_qubits)))
 
+    def test_inverse_to_matrix(self):
+        """Test inverse().to_matrix()."""
+        op = X + Y
+        time = 0.512
+        exact = scipy.linalg.expm(-1j * time * op.to_matrix())
+        exact_inv = np.transpose(np.conjugate(exact))
+
+        evo = PauliEvolutionGate(op, time)
+        evo_inv = evo.inverse()
+
+        self.assertTrue(np.allclose(exact, evo.to_matrix()))
+        self.assertTrue(np.allclose(exact_inv, evo_inv.to_matrix()))
+
+    def test_power(self):
+        """Test calling the power method."""
+        power = 31
+        dt = 0.1
+        op = (X ^ X) + (Z ^ Z)  # pick commuting operator to check matrices
+
+        evo = PauliEvolutionGate(op, time=dt)
+        evo_pow = evo.power(power)
+
+        expect = PauliEvolutionGate(op, time=power * dt)
+
+        with self.subTest("check efficient power"):
+            self.assertEqual(expect, evo_pow)
+
+        matrix = scipy.linalg.expm(-1j * dt * power * op.to_matrix())
+        with self.subTest("check unitary"):
+            self.assertTrue(np.allclose(matrix, Operator(evo_pow).data))
+
+    def test_control_grouped(self):
+        """Test the control method on grouped operators."""
+        block_1q = (I ^ X) + (X ^ I)
+        block_2q = (Z ^ Z) + (Y ^ Y) + (X ^ X)
+
+        evo = PauliEvolutionGate([block_1q, block_2q], time=1, synthesis=LieTrotter())
+        controlled = evo.control(2, ctrl_state="01")
+
+        summed = PauliEvolutionGate(block_1q + block_2q, time=1, synthesis=LieTrotter())
+        reference = summed.control(2, ctrl_state="01")
+
+        self.assertEqual(reference, controlled)
+
     def test_labels_and_name(self):
         """Test the name and labels are correct."""
-        operators = [X, (X + Y), ((I ^ Z) + (Z ^ I) - 0.2 * (X ^ X))]
+        operators = [
+            SparsePauliOp("XY"),
+            (X + Y),
+            ((I ^ Z) + (Z ^ I) - 0.2 * (X ^ X)),
+            SparseObservable("01Z+-XlrY"),
+        ]
 
         # note: the labels do not show coefficients!
-        expected_labels = ["X", "(X + Y)", "(IZ + ZI + XX)"]
+        expected_labels = ["XY", "(X + Y)", "(IZ + ZI + XX)", "01Z+-XlrY"]
         for op, label in zip(operators, expected_labels):
             with self.subTest(op=op, label=label):
                 evo = PauliEvolutionGate(op)
@@ -441,45 +515,60 @@ class TestEvolutionGate(QiskitTestCase):
 
     def test_atomic_evolution(self):
         """Test a custom atomic_evolution."""
-
-        def atomic_evolution(circuit, pauli, time):
-            if isinstance(pauli, SparsePauliOp):
-                if len(pauli.paulis) != 1:
-                    raise ValueError("Unsupported input.")
-                time *= np.real(pauli.coeffs[0])
-                pauli = pauli.paulis[0]
-
-            cliff = diagonalizing_clifford(pauli)
-            chain = cnot_chain(pauli)
-
-            target = None
-            for i, pauli_i in enumerate(reversed(pauli.to_label())):
-                if pauli_i != "I":
-                    target = i
-                    break
-
-            circuit.compose(cliff, inplace=True)
-            circuit.compose(chain, inplace=True)
-            circuit.rz(2 * time, target)
-            circuit.compose(chain.inverse(), inplace=True)
-            circuit.compose(cliff.inverse(), inplace=True)
-
         op = (X ^ X ^ X) + (Y ^ Y ^ Y) + (Z ^ Z ^ Z)
         time = 0.123
         reps = 4
+
+        with self.subTest(msg="default"):
+            with self.assertWarns(PendingDeprecationWarning):
+                evo_gate = PauliEvolutionGate(
+                    op,
+                    time,
+                    synthesis=LieTrotter(reps=reps, atomic_evolution=custom_atomic_evolution),
+                )
+            decomposed = evo_gate.definition.decompose()
+            self.assertEqual(decomposed.count_ops()["cx"], reps * 3 * 4)
+
+        with self.subTest(msg="supporting sparse obs"):
+            # no pending deprecation warning here
+            evo_gate = PauliEvolutionGate(
+                op,
+                time,
+                synthesis=LieTrotter(
+                    reps=reps,
+                    atomic_evolution=observable_supporting_evolution,
+                    atomic_evolution_sparse_observable=True,
+                ),
+            )
+
+    def test_invalid_atomic_evolution(self):
+        """Test a lying about the support of SparseObservable."""
+        op = SparseObservable("IYXZ")
+        time = 0.123
+        reps = 4
+
         evo_gate = PauliEvolutionGate(
             op,
             time,
-            synthesis=LieTrotter(reps=reps, atomic_evolution=atomic_evolution),
+            synthesis=LieTrotter(
+                reps=reps,
+                atomic_evolution=custom_atomic_evolution,
+                atomic_evolution_sparse_observable=True,
+            ),
         )
-        decomposed = evo_gate.definition.decompose()
-        self.assertEqual(decomposed.count_ops()["cx"], reps * 3 * 4)
+
+        with self.assertRaises(AttributeError):
+            _ = evo_gate.definition
 
     def test_all_identity(self):
         """Test circuit with all identity Paulis works correctly."""
-        evo = PauliEvolutionGate(I ^ I, time=1).definition
-        expected = QuantumCircuit(2, global_phase=-1)
-        self.assertEqual(expected, evo)
+        ops = [I ^ I, Pauli("II"), SparseObservable.identity(2)]
+
+        for op in ops:
+            with self.subTest(op=op):
+                evo = PauliEvolutionGate(op, time=1).definition
+                expected = QuantumCircuit(2, global_phase=-1)
+                self.assertEqual(expected, evo)
 
     def test_global_phase(self):
         """Test a circuit with parameterized global phase terms.
@@ -505,6 +594,7 @@ class TestEvolutionGate(QiskitTestCase):
         with self.subTest(msg="check correctness"):
             self.assertEqual(Operator(exact), Operator(bound))
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
     def test_sympify_is_real(self):
         """Test converting the parameters to sympy is real.
 
@@ -516,8 +606,227 @@ class TestEvolutionGate(QiskitTestCase):
         evo = PauliEvolutionGate(Z, time=time)
 
         angle = evo.definition.data[0].operation.params[0]
-        expected = (2.0 * time).sympify()
+        expected = (2 * time).sympify()
         self.assertEqual(expected, angle.sympify())
+
+    def test_zero(self):
+        """Test the SparseObservable zero operator."""
+        op = SparseObservable.zero(2)
+        evo = PauliEvolutionGate(op, time=1).definition
+        expected = QuantumCircuit(2, global_phase=0)
+        self.assertEqual(expected, evo)
+
+    @data(
+        "0",
+        "1",
+        "+",
+        "-",
+        "r",
+        "l",
+        "XIYZ",
+        "001",
+        "100",
+        "Z00",
+        "10Z",
+        "+-lr01",
+        "+-rl01",
+    )
+    def test_projectors(self, projector):
+        """Test a SparseObservable with projectors."""
+        op = SparseObservable(projector)
+        evo = PauliEvolutionGate(op, time=1).definition
+        pauli = SparsePauliOp.from_sparse_observable(op)
+        ref = PauliEvolutionGate(pauli, time=1).definition
+        self.assertEqual(Operator(ref), Operator(evo))
+
+    @data(("00+1", [2, 3, 0, 1], "001+"), ("Z0+Y", [1, 3, 0, 2], "0YZ+"))
+    @unpack
+    def test_projector_custom_index(self, initial, order, final):
+        """Test with some random index order."""
+        op = SparseObservable.from_sparse_list([(initial, order, 1)], 4)
+        evo = PauliEvolutionGate(op, time=1).definition
+
+        direct = SparseObservable(final)
+        ref = PauliEvolutionGate(direct, time=1).definition
+        self.assertEqual(Operator(ref), Operator(evo))
+
+    def test_projector_circuit(self):
+        """Test a SparseObservable with projectors.
+
+        This evolves ``SparseObservable("-+rl10")`` which will translate to the following
+        circuit (modulo basis-changing Cliffords)
+
+            q5 q4 q3 q2 q1 q0
+            -----------------
+             -  +  r  l  1  0  // bit term
+            -1 +1 +1 -1 -1 +1  // eigenvalue
+             1  0  0  1  1  0  // ctrl state
+            -----------------
+            --> [X P(-1) X].ctrl_state(11001) applied on qubits [5, 4, 3, 2, 1, 0]
+
+        """
+        op = SparseObservable("-+rl10")
+        evo = PauliEvolutionGate(op, time=1).definition
+
+        reference = QuantumCircuit(*evo.qregs)
+        reference.sx([2, 3])
+        reference.h([4, 5])
+
+        reference.x(0)
+        reference.append(PhaseGate(-1.0).control(5, ctrl_state="11001"), reference.qubits[::-1])
+        reference.x(0)
+
+        reference.sxdg([2, 3])
+        reference.h([4, 5])
+
+        self.assertEqual(reference, evo)
+
+    def test_projector_and_pauli(self):
+        """Test a mix of Paulis and projectors."""
+        op = SparseObservable.from_list([("01", 1), ("X+", -1), ("YY", 1)])
+        evo = PauliEvolutionGate(op, time=1).definition
+
+        pauli = SparsePauliOp.from_sparse_observable(op)
+        ref = PauliEvolutionGate(pauli, time=1).definition
+
+        self.assertEqual(Operator(ref), Operator(evo))
+
+    def test_sparse_observable_atomic_evo(self):
+        """Test a SparseObservable input with a legacy atomic evolution."""
+        op = SparseObservable("IZ01X+-Ylr")
+        with self.assertWarns(PendingDeprecationWarning):
+            synth = LieTrotter(atomic_evolution=custom_atomic_evolution)
+
+        evo = PauliEvolutionGate(op, time=2, synthesis=synth).definition
+
+        pauli = SparsePauliOp.from_sparse_observable(op)
+        ref = PauliEvolutionGate(pauli, time=2, synthesis=synth).definition
+
+        self.assertEqual(ref, evo)
+
+    def test_single_qubit_evolutions(self):
+        """Test all single qubit evolutions."""
+        op = SparseObservable.from_sparse_list(
+            [(pauli, [i], 1) for i, pauli in enumerate("Z01X+-Yrl")], 9
+        )
+        evo = PauliEvolutionGate(op, time=1).definition
+
+        ref = QuantumCircuit(9)
+
+        # Z
+        ref.rz(2, 0)
+
+        # |0><0|
+        ref.x(1)
+        ref.p(-1, 1)
+        ref.x(1)
+
+        # |1><1|
+        ref.p(-1, 2)
+
+        # X
+        ref.rx(2, 3)
+
+        # |+><+|
+        ref.h(4)
+        ref.x(4)
+        ref.p(-1, 4)
+        ref.x(4)
+        ref.h(4)
+
+        # |-><-|
+        ref.h(5)
+        ref.p(-1, 5)
+        ref.h(5)
+
+        # Y
+        ref.ry(2, 6)
+
+        # |r><r|
+        ref.sx(7)
+        ref.x(7)
+        ref.p(-1, 7)
+        ref.x(7)
+        ref.sxdg(7)
+
+        # |l><l|
+        ref.sx(8)
+        ref.p(-1, 8)
+        ref.sxdg(8)
+
+        self.assertEqual(ref, evo)
+
+    @data(
+        "ZZ+Z+Z++",
+        "+ZZ+++++",
+        "++++++++",
+    )
+    def test_gate_count(self, term):
+        """Test the gate count upper bound.
+
+        The goal here is to check that the projectors don't use an exponential number of gates,
+        not to check the precise numbers.
+
+        Note that this test requires 4 or more projectors to work, otherwise the MCRZ bound
+        does not hold.
+        """
+        num_paulis = sum(bit in "XYZ" for bit in term)
+        num_projectors = len(term) - num_paulis
+
+        if num_paulis > 0:
+            num_cx = 2 * (num_paulis - 1)  # number of CX for the Pauli part
+            num_cx += 16 * num_projectors - 40  # MCRZ gate count
+        else:
+            num_cx = (num_projectors - 1) * (16 * num_projectors - 40)
+
+        # if we did use an exponential number of CX, this is what we'd get
+        exponential_paulis = num_paulis + 2**num_projectors
+        exponential_cx = 2 * (exponential_paulis - 1)
+
+        evo = PauliEvolutionGate(SparseObservable(term))
+        tqc = transpile(evo.definition, basis_gates=["u", "cx"], optimization_level=0)
+        cx_count = tqc.count_ops().get("cx", 0)
+
+        # we should for sure be less than this
+        self.assertLess(cx_count, exponential_cx)
+        # we should also be less (or equal) to this
+        self.assertLessEqual(cx_count, num_cx)
+
+    @data("110", 6)
+    def test_ctrl_state(self, ctrl_state):
+        """Test controlled evolution gate with a control state."""
+        obs = SparseObservable("ZZ")
+        evo = PauliEvolutionGate(obs)
+        controlled = evo.control(num_ctrl_qubits=3, ctrl_state=ctrl_state)
+        qc = controlled.definition
+
+        reference = QuantumCircuit(*qc.qregs)
+        reference.cx(4, 3)
+        reference.append(RZGate(2).control(3, ctrl_state="011"), [2, 1, 0, 3])
+        reference.cx(4, 3)
+        with self.subTest("check decomp"):
+            self.assertEqual(reference, qc)
+
+        zz_mat = np.diag([1, -1, -1, 1])
+        rzz_mat = scipy.linalg.expm(-1j * zz_mat)
+        ctrl_mat = _compute_control_matrix(rzz_mat, 3, ctrl_state)
+        with self.subTest("check correctness"):
+            self.assertTrue(np.allclose(ctrl_mat, Operator(qc).data))
+
+    def test_raises_on_empty_list(self):
+        """Test that an error gets raised when a Pauli evolution gate is created from an empty list."""
+        with self.assertRaises(ValueError):
+            PauliEvolutionGate([], time=1)
+
+    def test_raises_on_list_with_different_num_qubits(self):
+        """Test that an error gets raised when a Pauli evolution gate is created from a list,
+        where not all of the operators have the same number of qubits.
+        """
+
+        with self.assertRaises(ValueError):
+            pauli = Pauli("XYZ")  # 3 qubits
+            op = SparsePauliOp(["XYIZ"], [1])  # 4 qubits
+            PauliEvolutionGate([pauli, op], time=1)
 
 
 def exact_atomic_evolution(circuit, pauli, time):
@@ -525,6 +834,10 @@ def exact_atomic_evolution(circuit, pauli, time):
 
     Note that the Pauli has a x2 coefficient already, hence we evolve for time/2.
     """
+    # workaround until SparseObservable does not natively implement to_matrix
+    if isinstance(pauli, SparseObservable):
+        pauli = SparsePauliOp.from_sparse_observable(pauli)
+
     circuit.append(HamiltonianGate(pauli.to_matrix(), time / 2), circuit.qubits)
 
 
@@ -578,6 +891,40 @@ def cnot_chain(pauli: Pauli) -> QuantumCircuit:
             target = None
 
     return chain
+
+
+def custom_atomic_evolution(circuit, pauli, time):
+    """A custom atomic evolution not supporting SparseObservable."""
+    if isinstance(pauli, SparsePauliOp):
+        for single_term, coeff in zip(pauli.paulis, pauli.coeffs):
+            custom_atomic_evolution(circuit, single_term, np.real(coeff) * time)
+
+        return circuit
+
+    cliff = diagonalizing_clifford(pauli)
+    chain = cnot_chain(pauli)
+
+    target = None
+    for i, pauli_i in enumerate(reversed(pauli.to_label())):
+        if pauli_i != "I":
+            target = i
+            break
+
+    circuit.compose(cliff, inplace=True)
+    circuit.compose(chain, inplace=True)
+    circuit.rz(2 * time, target)
+    circuit.compose(chain.inverse(), inplace=True)
+    circuit.compose(cliff.inverse(), inplace=True)
+
+    return circuit
+
+
+def observable_supporting_evolution(circuit, pauli, time):
+    """A custom atomic evolution supporting SparseObservable."""
+    if isinstance(pauli, SparseObservable):
+        pauli = SparsePauliOp.from_sparse_observable(pauli)
+
+    custom_atomic_evolution(circuit, pauli, time)
 
 
 if __name__ == "__main__":

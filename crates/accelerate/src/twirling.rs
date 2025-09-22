@@ -33,88 +33,90 @@ use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::ONE_QUBIT_IDENTITY;
 use qiskit_circuit::imports::QUANTUM_CIRCUIT;
-use qiskit_circuit::operations::StandardGate::{IGate, XGate, YGate, ZGate};
+use qiskit_circuit::operations::StandardGate::{I, X, Y, Z};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, PyInstruction, StandardGate};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
+use qiskit_circuit::VarsMode;
 
-use crate::euler_one_qubit_decomposer::optimize_1q_gates_decomposition;
-use crate::target_transpiler::Target;
 use crate::QiskitError;
 
+use qiskit_transpiler::passes::run_optimize_1q_gates_decomposition;
+use qiskit_transpiler::target::Target;
+
 static ECR_TWIRL_SET: [([StandardGate; 4], f64); 16] = [
-    ([IGate, ZGate, ZGate, YGate], 0.),
-    ([IGate, XGate, IGate, XGate], 0.),
-    ([IGate, YGate, ZGate, ZGate], PI),
-    ([IGate, IGate, IGate, IGate], 0.),
-    ([ZGate, XGate, ZGate, XGate], PI),
-    ([ZGate, YGate, IGate, ZGate], 0.),
-    ([ZGate, IGate, ZGate, IGate], PI),
-    ([ZGate, ZGate, IGate, YGate], PI),
-    ([XGate, YGate, XGate, YGate], 0.),
-    ([XGate, IGate, YGate, XGate], PI),
-    ([XGate, ZGate, XGate, ZGate], 0.),
-    ([XGate, XGate, YGate, IGate], PI),
-    ([YGate, IGate, XGate, XGate], PI),
-    ([YGate, ZGate, YGate, ZGate], PI),
-    ([YGate, XGate, XGate, IGate], PI),
-    ([YGate, YGate, YGate, YGate], PI),
+    ([I, Z, Z, Y], 0.),
+    ([I, X, I, X], 0.),
+    ([I, Y, Z, Z], PI),
+    ([I, I, I, I], 0.),
+    ([Z, X, Z, X], PI),
+    ([Z, Y, I, Z], 0.),
+    ([Z, I, Z, I], PI),
+    ([Z, Z, I, Y], PI),
+    ([X, Y, X, Y], 0.),
+    ([X, I, Y, X], PI),
+    ([X, Z, X, Z], 0.),
+    ([X, X, Y, I], PI),
+    ([Y, I, X, X], PI),
+    ([Y, Z, Y, Z], PI),
+    ([Y, X, X, I], PI),
+    ([Y, Y, Y, Y], PI),
 ];
 
 static CX_TWIRL_SET: [([StandardGate; 4], f64); 16] = [
-    ([IGate, ZGate, ZGate, ZGate], 0.),
-    ([IGate, XGate, IGate, XGate], 0.),
-    ([IGate, YGate, ZGate, YGate], 0.),
-    ([IGate, IGate, IGate, IGate], 0.),
-    ([ZGate, XGate, ZGate, XGate], 0.),
-    ([ZGate, YGate, IGate, YGate], 0.),
-    ([ZGate, IGate, ZGate, IGate], 0.),
-    ([ZGate, ZGate, IGate, ZGate], 0.),
-    ([XGate, YGate, YGate, ZGate], 0.),
-    ([XGate, IGate, XGate, XGate], 0.),
-    ([XGate, ZGate, YGate, YGate], PI),
-    ([XGate, XGate, XGate, IGate], 0.),
-    ([YGate, IGate, YGate, XGate], 0.),
-    ([YGate, ZGate, XGate, YGate], 0.),
-    ([YGate, XGate, YGate, IGate], 0.),
-    ([YGate, YGate, XGate, ZGate], PI),
+    ([I, Z, Z, Z], 0.),
+    ([I, X, I, X], 0.),
+    ([I, Y, Z, Y], 0.),
+    ([I, I, I, I], 0.),
+    ([Z, X, Z, X], 0.),
+    ([Z, Y, I, Y], 0.),
+    ([Z, I, Z, I], 0.),
+    ([Z, Z, I, Z], 0.),
+    ([X, Y, Y, Z], 0.),
+    ([X, I, X, X], 0.),
+    ([X, Z, Y, Y], PI),
+    ([X, X, X, I], 0.),
+    ([Y, I, Y, X], 0.),
+    ([Y, Z, X, Y], 0.),
+    ([Y, X, Y, I], 0.),
+    ([Y, Y, X, Z], PI),
 ];
 
 static CZ_TWIRL_SET: [([StandardGate; 4], f64); 16] = [
-    ([IGate, ZGate, IGate, ZGate], 0.),
-    ([IGate, XGate, ZGate, XGate], 0.),
-    ([IGate, YGate, ZGate, YGate], 0.),
-    ([IGate, IGate, IGate, IGate], 0.),
-    ([ZGate, XGate, IGate, XGate], 0.),
-    ([ZGate, YGate, IGate, YGate], 0.),
-    ([ZGate, IGate, ZGate, IGate], 0.),
-    ([ZGate, ZGate, ZGate, ZGate], 0.),
-    ([XGate, YGate, YGate, XGate], PI),
-    ([XGate, IGate, XGate, ZGate], 0.),
-    ([XGate, ZGate, XGate, IGate], 0.),
-    ([XGate, XGate, YGate, YGate], 0.),
-    ([YGate, IGate, YGate, ZGate], 0.),
-    ([YGate, ZGate, YGate, IGate], 0.),
-    ([YGate, XGate, XGate, YGate], PI),
-    ([YGate, YGate, XGate, XGate], 0.),
+    ([I, Z, I, Z], 0.),
+    ([I, X, Z, X], 0.),
+    ([I, Y, Z, Y], 0.),
+    ([I, I, I, I], 0.),
+    ([Z, X, I, X], 0.),
+    ([Z, Y, I, Y], 0.),
+    ([Z, I, Z, I], 0.),
+    ([Z, Z, Z, Z], 0.),
+    ([X, Y, Y, X], PI),
+    ([X, I, X, Z], 0.),
+    ([X, Z, X, I], 0.),
+    ([X, X, Y, Y], 0.),
+    ([Y, I, Y, Z], 0.),
+    ([Y, Z, Y, I], 0.),
+    ([Y, X, X, Y], PI),
+    ([Y, Y, X, X], 0.),
 ];
 
 static ISWAP_TWIRL_SET: [([StandardGate; 4], f64); 16] = [
-    ([IGate, ZGate, ZGate, IGate], 0.),
-    ([IGate, XGate, YGate, ZGate], 0.),
-    ([IGate, YGate, XGate, ZGate], PI),
-    ([IGate, IGate, IGate, IGate], 0.),
-    ([ZGate, XGate, YGate, IGate], 0.),
-    ([ZGate, YGate, XGate, IGate], PI),
-    ([ZGate, IGate, IGate, ZGate], 0.),
-    ([ZGate, ZGate, ZGate, ZGate], 0.),
-    ([XGate, YGate, YGate, XGate], 0.),
-    ([XGate, IGate, ZGate, YGate], 0.),
-    ([XGate, ZGate, IGate, YGate], 0.),
-    ([XGate, XGate, XGate, XGate], 0.),
-    ([YGate, IGate, ZGate, XGate], PI),
-    ([YGate, ZGate, IGate, XGate], PI),
-    ([YGate, XGate, XGate, YGate], 0.),
-    ([YGate, YGate, YGate, YGate], 0.),
+    ([I, Z, Z, I], 0.),
+    ([I, X, Y, Z], 0.),
+    ([I, Y, X, Z], PI),
+    ([I, I, I, I], 0.),
+    ([Z, X, Y, I], 0.),
+    ([Z, Y, X, I], PI),
+    ([Z, I, I, Z], 0.),
+    ([Z, Z, Z, Z], 0.),
+    ([X, Y, Y, X], 0.),
+    ([X, I, Z, Y], 0.),
+    ([X, Z, I, Y], 0.),
+    ([X, X, X, X], 0.),
+    ([Y, I, Z, X], PI),
+    ([Y, Z, I, X], PI),
+    ([Y, X, X, Y], 0.),
+    ([Y, Y, Y, Y], 0.),
 ];
 
 static TWIRLING_SETS: [&[([StandardGate; 4], f64); 16]; 4] = [
@@ -149,7 +151,7 @@ fn generate_twirling_set(gate_matrix: ArrayView2<Complex64>) -> Vec<([StandardGa
     let x_matrix = aview2(&qiskit_circuit::gate_matrix::X_GATE);
     let y_matrix = aview2(&qiskit_circuit::gate_matrix::Y_GATE);
     let z_matrix = aview2(&qiskit_circuit::gate_matrix::Z_GATE);
-    let iter_set = [IGate, XGate, YGate, ZGate];
+    let iter_set = [I, X, Y, Z];
     let kron_set: [Array2<Complex64>; 16] = [
         kron(&i_matrix, &i_matrix),
         kron(&x_matrix, &i_matrix),
@@ -190,7 +192,6 @@ fn generate_twirling_set(gate_matrix: ArrayView2<Complex64>) -> Vec<([StandardGa
 }
 
 fn twirl_gate(
-    py: Python,
     circ: &CircuitData,
     rng: &mut Pcg64Mcg,
     out_circ: &mut CircuitData,
@@ -201,59 +202,23 @@ fn twirl_gate(
     let (twirl, twirl_phase) = twirl_set.choose(rng).unwrap();
     let bit_zero = out_circ.add_qargs(std::slice::from_ref(&qubits[0]));
     let bit_one = out_circ.add_qargs(std::slice::from_ref(&qubits[1]));
-    out_circ.push(
-        py,
-        PackedInstruction {
-            op: PackedOperation::from_standard_gate(twirl[0]),
-            qubits: bit_zero,
-            clbits: circ.cargs_interner().get_default(),
-            params: None,
-            label: None,
-            #[cfg(feature = "cache_pygates")]
-            py_op: std::sync::OnceLock::new(),
-        },
-    )?;
-    out_circ.push(
-        py,
-        PackedInstruction {
-            op: PackedOperation::from_standard_gate(twirl[1]),
-            qubits: bit_one,
-            clbits: circ.cargs_interner().get_default(),
-            params: None,
-            label: None,
-            #[cfg(feature = "cache_pygates")]
-            py_op: std::sync::OnceLock::new(),
-        },
-    )?;
+    out_circ.push(PackedInstruction::from_standard_gate(
+        twirl[0], None, bit_zero,
+    ))?;
+    out_circ.push(PackedInstruction::from_standard_gate(
+        twirl[1], None, bit_one,
+    ))?;
 
-    out_circ.push(py, inst.clone())?;
-    out_circ.push(
-        py,
-        PackedInstruction {
-            op: PackedOperation::from_standard_gate(twirl[2]),
-            qubits: bit_zero,
-            clbits: circ.cargs_interner().get_default(),
-            params: None,
-            label: None,
-            #[cfg(feature = "cache_pygates")]
-            py_op: std::sync::OnceLock::new(),
-        },
-    )?;
-    out_circ.push(
-        py,
-        PackedInstruction {
-            op: PackedOperation::from_standard_gate(twirl[3]),
-            qubits: bit_one,
-            clbits: circ.cargs_interner().get_default(),
-            params: None,
-            label: None,
-            #[cfg(feature = "cache_pygates")]
-            py_op: std::sync::OnceLock::new(),
-        },
-    )?;
+    out_circ.push(inst.clone())?;
+    out_circ.push(PackedInstruction::from_standard_gate(
+        twirl[2], None, bit_zero,
+    ))?;
+    out_circ.push(PackedInstruction::from_standard_gate(
+        twirl[3], None, bit_one,
+    ))?;
 
     if *twirl_phase != 0. {
-        out_circ.add_global_phase(py, &Param::Float(*twirl_phase))?;
+        out_circ.add_global_phase(&Param::Float(*twirl_phase))?;
     }
     Ok(())
 }
@@ -268,53 +233,53 @@ fn generate_twirled_circuit(
     custom_gate_map: Option<&CustomGateTwirlingMap>,
     optimizer_target: Option<&Target>,
 ) -> PyResult<CircuitData> {
-    let mut out_circ = CircuitData::clone_empty_like(py, circ, None)?;
+    let mut out_circ = CircuitData::copy_empty_like(circ, VarsMode::Alike)?;
 
     for inst in circ.data() {
         if let Some(custom_gate_map) = custom_gate_map {
             if let Some(twirling_set) = custom_gate_map.get(inst.op.name()) {
-                twirl_gate(py, circ, rng, &mut out_circ, twirling_set.as_slice(), inst)?;
+                twirl_gate(circ, rng, &mut out_circ, twirling_set.as_slice(), inst)?;
                 continue;
             }
         }
         match inst.op.view() {
             OperationRef::StandardGate(gate) => match gate {
-                StandardGate::CXGate => {
+                StandardGate::CX => {
                     if twirling_mask & CX_MASK != 0 {
-                        twirl_gate(py, circ, rng, &mut out_circ, TWIRLING_SETS[0], inst)?;
+                        twirl_gate(circ, rng, &mut out_circ, TWIRLING_SETS[0], inst)?;
                     } else {
-                        out_circ.push(py, inst.clone())?;
+                        out_circ.push(inst.clone())?;
                     }
                 }
-                StandardGate::CZGate => {
+                StandardGate::CZ => {
                     if twirling_mask & CZ_MASK != 0 {
-                        twirl_gate(py, circ, rng, &mut out_circ, TWIRLING_SETS[1], inst)?;
+                        twirl_gate(circ, rng, &mut out_circ, TWIRLING_SETS[1], inst)?;
                     } else {
-                        out_circ.push(py, inst.clone())?;
+                        out_circ.push(inst.clone())?;
                     }
                 }
-                StandardGate::ECRGate => {
+                StandardGate::ECR => {
                     if twirling_mask & ECR_MASK != 0 {
-                        twirl_gate(py, circ, rng, &mut out_circ, TWIRLING_SETS[2], inst)?;
+                        twirl_gate(circ, rng, &mut out_circ, TWIRLING_SETS[2], inst)?;
                     } else {
-                        out_circ.push(py, inst.clone())?;
+                        out_circ.push(inst.clone())?;
                     }
                 }
-                StandardGate::ISwapGate => {
+                StandardGate::ISwap => {
                     if twirling_mask & ISWAP_MASK != 0 {
-                        twirl_gate(py, circ, rng, &mut out_circ, TWIRLING_SETS[3], inst)?;
+                        twirl_gate(circ, rng, &mut out_circ, TWIRLING_SETS[3], inst)?;
                     } else {
-                        out_circ.push(py, inst.clone())?;
+                        out_circ.push(inst.clone())?;
                     }
                 }
-                _ => out_circ.push(py, inst.clone())?,
+                _ => out_circ.push(inst.clone())?,
             },
             OperationRef::Instruction(py_inst) => {
                 if py_inst.control_flow() {
-                    let new_blocks: PyResult<Vec<PyObject>> = py_inst
+                    let new_blocks: PyResult<Vec<Py<PyAny>>> = py_inst
                         .blocks()
                         .iter()
-                        .map(|block| -> PyResult<PyObject> {
+                        .map(|block| -> PyResult<Py<PyAny>> {
                             let new_block = generate_twirled_circuit(
                                 py,
                                 block,
@@ -366,20 +331,20 @@ fn generate_twirled_circuit(
                     };
                     #[cfg(feature = "cache_pygates")]
                     new_inst.py_op.set(new_inst_obj).unwrap();
-                    out_circ.push(py, new_inst)?;
+                    out_circ.push(new_inst)?;
                 } else {
-                    out_circ.push(py, inst.clone())?;
+                    out_circ.push(inst.clone())?;
                 }
             }
             _ => {
-                out_circ.push(py, inst.clone())?;
+                out_circ.push(inst.clone())?;
             }
         }
     }
     if optimizer_target.is_some() {
-        let mut dag = DAGCircuit::from_circuit_data(py, out_circ, false)?;
-        optimize_1q_gates_decomposition(py, &mut dag, optimizer_target, None, None)?;
-        dag_to_circuit(py, &dag, false)
+        let mut dag = DAGCircuit::from_circuit_data(&out_circ, false, None, None, None, None)?;
+        run_optimize_1q_gates_decomposition(&mut dag, optimizer_target, None, None)?;
+        dag_to_circuit(&dag, false)
     } else {
         Ok(out_circ)
     }
@@ -405,10 +370,10 @@ pub(crate) fn twirl_circuit(
             let mut out_mask = 0;
             for gate in gates {
                 let new_mask = match gate {
-                    StandardGate::CXGate => CX_MASK,
-                    StandardGate::CZGate => CZ_MASK,
-                    StandardGate::ECRGate => ECR_MASK,
-                    StandardGate::ISwapGate => ISWAP_MASK,
+                    StandardGate::CX => CX_MASK,
+                    StandardGate::CZ => CZ_MASK,
+                    StandardGate::ECR => ECR_MASK,
+                    StandardGate::ISwap => ISWAP_MASK,
                     _ => {
                         return Err(QiskitError::new_err(
                           format!("Provided gate to twirl, {}, is not currently supported you can only use cx, cz, ecr or iswap.", gate.name())

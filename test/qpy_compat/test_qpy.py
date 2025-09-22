@@ -15,6 +15,7 @@
 """Test cases to verify qpy backwards compatibility."""
 
 import argparse
+
 import itertools
 import random
 import re
@@ -22,16 +23,16 @@ import sys
 
 import numpy as np
 
+import qiskit
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.circuit.classicalregister import Clbit
-from qiskit.circuit.quantumregister import Qubit
+from qiskit.circuit import Clbit
+from qiskit.circuit import Qubit
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info import Operator
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, QFT, DCXGate, PauliGate
 from qiskit.circuit.gate import Gate
-from qiskit.version import VERSION as current_version_str
 
 try:
     from qiskit.qpy import dump, load
@@ -77,6 +78,12 @@ VERSION_PATTERN = (
 """
     + "$"
 )
+
+
+def version_release_parts(version: str):
+    """The "release" component of a valid Python version string, as a tuple of integers."""
+    version_match = re.search(VERSION_PATTERN, version, re.VERBOSE | re.IGNORECASE)
+    return tuple(int(x) for x in version_match.group("release").split("."))
 
 
 def generate_full_circuit():
@@ -847,7 +854,8 @@ def generate_replay_with_expression_substitutions():
 
 def generate_v14_expr():
     """Circuits that contain expressions and types new in QPY v14."""
-    from qiskit.circuit.classical import expr, types
+    import uuid
+    from qiskit.circuit.classical import expr
     from qiskit.circuit import Duration
 
     float_expr = QuantumCircuit(name="float_expr")
@@ -866,7 +874,54 @@ def generate_v14_expr():
     ):
         pass
 
-    return [float_expr, duration_expr]
+    math_expr = QuantumCircuit(name="math_expr")
+    with math_expr.if_test(
+        expr.logic_and(
+            expr.logic_and(
+                expr.equal(expr.mul(Duration.dt(1), 2.0), expr.div(Duration.ns(2), 2.0)),
+                expr.equal(
+                    expr.add(Duration.us(3), Duration.us(4)),
+                    expr.sub(Duration.ms(5), Duration.ms(6)),
+                ),
+            ),
+            expr.logic_and(
+                expr.equal(expr.mul(1.0, 2.0), expr.div(4.0, 2.0)),
+                expr.equal(expr.add(3.0, 4.0), expr.sub(10.5, 4.3)),
+            ),
+        )
+    ):
+        pass
+
+    stretch_expr = QuantumCircuit(name="stretch_expr")
+    s = expr.Stretch(uuid.UUID(bytes=b"hello, qpy world", version=4), "a")
+    stretch = stretch_expr.add_stretch(s)
+    with stretch_expr.if_test(expr.equal(stretch, Duration.dt(100))):
+        pass
+
+    return [
+        float_expr,
+        duration_expr,
+        math_expr,
+        stretch_expr,
+    ]
+
+
+def generate_box():
+    """Circuits that contain `Box`.  Only added in Qiskit 2.0."""
+    bare = QuantumCircuit(2, name="box-bare")
+    with bare.box():
+        bare.h(0)
+        bare.cx(0, 1)
+
+    nested = QuantumCircuit(2, name="box-nested")
+    with nested.box():
+        with nested.box(duration=2, unit="dt"):
+            nested.h(0)
+            nested.cx(0, 1)
+        with nested.box(duration=200.0, unit="ns"):
+            nested.x(0)
+            nested.noop(1)
+    return [bare, nested]
 
 
 def generate_circuits(version_parts, current_version, load_context=False):
@@ -941,6 +996,7 @@ def generate_circuits(version_parts, current_version, load_context=False):
 
     if version_parts >= (2, 0, 0):
         output_circuits["v14_expr.qpy"] = generate_v14_expr()
+        output_circuits["box.qpy"] = generate_box()
     return output_circuits
 
 
@@ -1059,10 +1115,11 @@ def load_qpy(qpy_files, version_parts):
 
     from qiskit.qpy.exceptions import QpyError
 
-    while pulse_files:
-        path, version = pulse_files.popitem()
+    for path, min_version in pulse_files.items():
 
-        if version_parts < version or version_parts >= (2, 0):
+        # version_parts is the version of Qiskit used to generate the payloads being loaded in this test.
+        # min_version is the minimal version of Qiskit this pulse payload was generated with.
+        if version_parts < min_version or version_parts >= (2, 0):
             continue
 
         if path == "pulse_gates.qpy":
@@ -1075,7 +1132,7 @@ def load_qpy(qpy_files, version_parts):
                 sys.exit(1)
         else:
             try:
-                # A ScheduleBlock payload, should raise QpyError
+                # A ScheduleBlock payload, should raise QpyError.
                 with open(path, "rb") as fd:
                     load(fd)
             except QpyError:
@@ -1100,18 +1157,12 @@ def _main():
     )
     args = parser.parse_args()
 
-    current_version = current_version_str.split(".")
-    for i in range(len(current_version[2])):
-        if current_version[2][i].isalpha():
-            current_version[2] = current_version[2][:i]
-            break
-    current_version = tuple(int(x) for x in current_version)
+    current_version = version_release_parts(qiskit.__version__)
 
     # Terra 0.18.0 was the first release with QPY, so that's the default.
     version_parts = (0, 18, 0)
     if args.version:
-        version_match = re.search(VERSION_PATTERN, args.version, re.VERBOSE | re.IGNORECASE)
-        version_parts = tuple(int(x) for x in version_match.group("release").split("."))
+        version_parts = version_release_parts(args.version)
 
     if args.command == "generate":
         qpy_files = generate_circuits(version_parts, current_version)

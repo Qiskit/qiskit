@@ -15,6 +15,7 @@
 from __future__ import annotations
 import numpy as np
 from qiskit.circuit import QuantumCircuit, Gate
+from qiskit.utils.deprecation import deprecate_func
 
 from .piecewise_linear_pauli_rotations import (
     PiecewiseLinearPauliRotations,
@@ -68,15 +69,18 @@ class LinearAmplitudeFunction(QuantumCircuit):
 
     References:
 
-        [1]: Woerner, S., & Egger, D. J. (2018).
-             Quantum Risk Analysis.
-             `arXiv:1806.06893 <http://arxiv.org/abs/1806.06893>`_
+    [1] Woerner, S., & Egger, D. J. (2018). Quantum Risk Analysis.
+    `arXiv:1806.06893 <http://arxiv.org/abs/1806.06893>`_
 
-        [2]: Gacon, J., Zoufal, C., & Woerner, S. (2020).
-             Quantum-Enhanced Simulation-Based Optimization.
-             `arXiv:2005.10780 <http://arxiv.org/abs/2005.10780>`_
+    [2] Gacon, J., Zoufal, C., & Woerner, S. (2020). Quantum-Enhanced Simulation-Based Optimization.
+    `arXiv:2005.10780 <http://arxiv.org/abs/2005.10780>`_
     """
 
+    @deprecate_func(
+        since="2.2",
+        additional_msg="Use the class qiskit.circuit.library.LinearAmplitudeFunctionGate instead.",
+        removal_timeline="in Qiskit 3.0",
+    )
     def __init__(
         self,
         num_state_qubits: int,
@@ -103,6 +107,7 @@ class LinearAmplitudeFunction(QuantumCircuit):
                 is not piecewise.
             name: Name of the circuit.
         """
+
         if not hasattr(slope, "__len__"):
             slope = [slope]
         if not hasattr(offset, "__len__"):
@@ -222,13 +227,13 @@ class LinearAmplitudeFunctionGate(Gate):
 
     References:
 
-        [1]: Woerner, S., & Egger, D. J. (2018).
-             Quantum Risk Analysis.
-             `arXiv:1806.06893 <http://arxiv.org/abs/1806.06893>`_
+    [1] Woerner, S., & Egger, D. J. (2018).
+    Quantum Risk Analysis.
+    `arXiv:1806.06893 <http://arxiv.org/abs/1806.06893>`_
 
-        [2]: Gacon, J., Zoufal, C., & Woerner, S. (2020).
-             Quantum-Enhanced Simulation-Based Optimization.
-             `arXiv:2005.10780 <http://arxiv.org/abs/2005.10780>`_
+    [2] Gacon, J., Zoufal, C., & Woerner, S. (2020).
+    Quantum-Enhanced Simulation-Based Optimization.
+    `arXiv:2005.10780 <http://arxiv.org/abs/2005.10780>`_
     """
 
     def __init__(

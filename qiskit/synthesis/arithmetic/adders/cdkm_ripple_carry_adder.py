@@ -13,7 +13,7 @@
 """Compute the sum of two qubit registers using ripple-carry approach."""
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister, AncillaRegister
+from qiskit.circuit import QuantumRegister, AncillaRegister
 
 
 def adder_ripple_c04(num_state_qubits: int, kind: str = "half") -> QuantumCircuit:
@@ -90,7 +90,7 @@ def adder_ripple_c04(num_state_qubits: int, kind: str = "half") -> QuantumCircui
     Raises:
         ValueError: If ``num_state_qubits`` is lower than 1.
 
-    **References:**
+    References:
 
     [1] Cuccaro et al., A new quantum ripple-carry addition circuit, 2004.
     `arXiv:quant-ph/0410184 <https://arxiv.org/pdf/quant-ph/0410184.pdf>`_

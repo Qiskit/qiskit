@@ -71,7 +71,8 @@ class TestBooleanLogicLibrary(QiskitTestCase):
 
         TODO add a test using assertBooleanFunctionIsCorrect
         """
-        circuit = XOR(num_qubits=3, amount=4)
+        circuit = QuantumCircuit(3)
+        circuit.append(BitwiseXorGate(num_qubits=3, amount=4), range(3))
         expected = QuantumCircuit(3)
         expected.x(2)
         self.assertEqual(circuit.decompose(), expected)
@@ -91,7 +92,8 @@ class TestBooleanLogicLibrary(QiskitTestCase):
     def test_xor_equivalence(self, num_qubits, amount):
         """Test that XOR-circuit and BitwiseXorGate yield equal operators."""
         xor_gate = BitwiseXorGate(num_qubits, amount)
-        xor_circuit = XOR(num_qubits, amount)
+        with self.assertWarns(DeprecationWarning):
+            xor_circuit = XOR(num_qubits, amount)
         self.assertEqual(Operator(xor_gate), Operator(xor_circuit))
 
     def test_xor_eq(self):
@@ -114,7 +116,8 @@ class TestBooleanLogicLibrary(QiskitTestCase):
 
         TODO add a test using assertBooleanFunctionIsCorrect
         """
-        circuit = InnerProduct(num_qubits=3)
+        with self.assertWarns(DeprecationWarning):
+            circuit = InnerProduct(num_qubits=3)
         expected = QuantumCircuit(*circuit.qregs)
         expected.cz(0, 3)
         expected.cz(1, 4)
@@ -134,7 +137,8 @@ class TestBooleanLogicLibrary(QiskitTestCase):
     def test_inner_product_equivalence(self, num_qubits):
         """Test that XOR-circuit and BitwiseXorGate yield equal operators."""
         inner_product_gate = InnerProductGate(num_qubits)
-        inner_product_circuit = InnerProduct(num_qubits)
+        with self.assertWarns(DeprecationWarning):
+            inner_product_circuit = InnerProduct(num_qubits)
         self.assertEqual(Operator(inner_product_gate), Operator(inner_product_circuit))
 
     @data(
@@ -148,7 +152,8 @@ class TestBooleanLogicLibrary(QiskitTestCase):
     @unpack
     def test_or(self, num_variables, flags, mcx_mode):
         """Test the or circuit."""
-        or_circuit = OR(num_variables, flags, mcx_mode=mcx_mode)
+        with self.assertWarns(DeprecationWarning):
+            or_circuit = OR(num_variables, flags, mcx_mode=mcx_mode)
         flags = flags or [1] * num_variables
 
         def reference(bits):
@@ -210,7 +215,8 @@ class TestBooleanLogicLibrary(QiskitTestCase):
         (when not using ancilla qubits).
         """
         or_gate = OrGate(num_variables, flags)
-        or_circuit = OR(num_variables, flags)
+        with self.assertWarns(DeprecationWarning):
+            or_circuit = OR(num_variables, flags)
         self.assertEqual(Operator(or_gate), Operator(or_circuit))
 
     @data(
@@ -222,7 +228,8 @@ class TestBooleanLogicLibrary(QiskitTestCase):
     @unpack
     def test_and(self, num_variables, flags, mcx_mode):
         """Test the AND-circuit."""
-        and_circuit = AND(num_variables, flags, mcx_mode=mcx_mode)
+        with self.assertWarns(DeprecationWarning):
+            and_circuit = AND(num_variables, flags, mcx_mode=mcx_mode)
         flags = flags or [1] * num_variables
 
         def reference(bits):
@@ -284,7 +291,8 @@ class TestBooleanLogicLibrary(QiskitTestCase):
         (when not using ancilla qubits).
         """
         and_gate = AndGate(num_variables, flags)
-        and_circuit = AND(num_variables, flags)
+        with self.assertWarns(DeprecationWarning):
+            and_circuit = AND(num_variables, flags)
         self.assertEqual(Operator(and_gate), Operator(and_circuit))
 
 

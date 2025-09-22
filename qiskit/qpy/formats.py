@@ -42,6 +42,9 @@ FILE_HEADER = namedtuple(
 FILE_HEADER_PACK = "!6sBBBBQ"
 FILE_HEADER_SIZE = struct.calcsize(FILE_HEADER_PACK)
 
+TYPE_KEY = namedtuple("TYPE_KEY", ["key"])
+TYPE_KEY_PACK = "!1c"
+TYPE_KEY_SIZE = struct.calcsize(TYPE_KEY_PACK)
 
 CIRCUIT_HEADER_V12 = namedtuple(
     "HEADER",
@@ -93,6 +96,11 @@ CIRCUIT_HEADER = namedtuple(
 CIRCUIT_HEADER_PACK = "!HdIIQIQ"
 CIRCUIT_HEADER_SIZE = struct.calcsize(CIRCUIT_HEADER_PACK)
 
+# CIRCUIT_TABLE_ENTRY
+CIRCUIT_TABLE_ENTRY = namedtuple("CIRCUIT_TABLE_ENTRY", ["offset"])
+CIRCUIT_TABLE_ENTRY_PACK = "!Q"
+CIRCUIT_TABLE_ENTRY_SIZE = struct.calcsize(CIRCUIT_TABLE_ENTRY_PACK)
+
 # REGISTER
 REGISTER_V4 = namedtuple("REGISTER", ["type", "standalone", "size", "name_size", "in_circuit"])
 REGISTER_V4_PACK = "!1c?IH?"
@@ -128,7 +136,7 @@ CIRCUIT_INSTRUCTION_V2 = namedtuple(
         "num_parameters",
         "num_qargs",
         "num_cargs",
-        "conditional_key",
+        "extras_key",
         "condition_register_size",
         "condition_value",
         "num_ctrl_qubits",
@@ -143,6 +151,22 @@ CIRCUIT_INSTRUCTION_V2_SIZE = struct.calcsize(CIRCUIT_INSTRUCTION_V2_PACK)
 CIRCUIT_INSTRUCTION_ARG = namedtuple("CIRCUIT_INSTRUCTION_ARG", ["type", "size"])
 CIRCUIT_INSTRUCTION_ARG_PACK = "!1cI"
 CIRCUIT_INSTRUCTION_ARG_SIZE = struct.calcsize(CIRCUIT_INSTRUCTION_ARG_PACK)
+
+ANNOTATION_HEADER_STATIC = namedtuple("ANNOTATION_HEADER_STATIC", ["num_namespaces"])
+ANNOTATION_HEADER_STATIC_PACK = "!I"
+ANNOTATION_HEADER_STATIC_SIZE = struct.calcsize(ANNOTATION_HEADER_STATIC_PACK)
+
+ANNOTATION_STATE_HEADER = namedtuple("ANNOTATION_STATE_HEADER", ["namespace_size", "state_size"])
+ANNOTATION_STATE_HEADER_PACK = "!IQ"
+ANNOTATION_STATE_HEADER_SIZE = struct.calcsize(ANNOTATION_STATE_HEADER_PACK)
+
+INSTRUCTION_ANNOTATIONS_HEADER = namedtuple("INSTRUCTION_ANNOTATIONS_HEADER", ["num_annotations"])
+INSTRUCTION_ANNOTATIONS_HEADER_PACK = "!I"
+INSTRUCTION_ANNOTATIONS_HEADER_SIZE = struct.calcsize(INSTRUCTION_ANNOTATIONS_HEADER_PACK)
+
+INSTRUCTION_ANNOTATION = namedtuple("INSTRUCTION_ANNOTATION", ["namespace_index", "payload_size"])
+INSTRUCTION_ANNOTATION_PACK = "!IQ"
+INSTRUCTION_ANNOTATION_SIZE = struct.calcsize(INSTRUCTION_ANNOTATION_PACK)
 
 # SparsePauliOp List
 SPARSE_PAULI_OP_LIST_ELEM = namedtuple("SPARSE_PAULI_OP_LIST_ELEMENT", ["size"])
@@ -357,6 +381,10 @@ EXPRESSION_BINARY = namedtuple("EXPRESSION_BINARY", ["opcode"])
 EXPRESSION_BINARY_PACK = "!B"
 EXPRESSION_BINARY_SIZE = struct.calcsize(EXPRESSION_BINARY_PACK)
 
+EXPRESSION_STRETCH = namedtuple("EXPRESSION_STRETCH", ["var_index"])
+EXPRESSION_STRETCH_PACK = "!H"
+EXPRESSION_STRETCH_SIZE = struct.calcsize(EXPRESSION_STRETCH_PACK)
+
 
 # EXPR_TYPE
 
@@ -420,6 +448,10 @@ DURATION_DISCRIMINATOR_SIZE = 1
 DURATION_DT = namedtuple("DURATION_DT", ["value"])
 DURATION_DT_PACK = "!Q"
 DURATION_DT_SIZE = struct.calcsize(DURATION_DT_PACK)
+
+DURATION_PS = namedtuple("DURATION_PS", ["value"])
+DURATION_PS_PACK = "!d"
+DURATION_PS_SIZE = struct.calcsize(DURATION_PS_PACK)
 
 DURATION_NS = namedtuple("DURATION_NS", ["value"])
 DURATION_NS_PACK = "!d"

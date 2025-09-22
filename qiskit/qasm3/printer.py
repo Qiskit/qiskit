@@ -39,8 +39,12 @@ _BINDING_POWER = {
     ast.Unary.Op.LOGIC_NOT: _BindingPower(right=22),
     ast.Unary.Op.BIT_NOT: _BindingPower(right=22),
     #
-    # Multiplication/division/modulo: (19, 20)
-    # Addition/subtraction: (17, 18)
+    # Modulo: (19, 20)
+    ast.Binary.Op.MUL: _BindingPower(19, 20),
+    ast.Binary.Op.DIV: _BindingPower(19, 20),
+    #
+    ast.Binary.Op.ADD: _BindingPower(17, 18),
+    ast.Binary.Op.SUB: _BindingPower(17, 18),
     #
     ast.Binary.Op.SHIFT_LEFT: _BindingPower(15, 16),
     ast.Binary.Op.SHIFT_RIGHT: _BindingPower(15, 16),
@@ -201,6 +205,13 @@ class BasicPrinter:
     def _visit_Pragma(self, node: ast.Pragma) -> None:
         self._write_statement(f"#pragma {node.content}")
 
+    def _visit_Annotation(self, node: ast.Annotation) -> None:
+        self._start_line()
+        self.stream.write(f"@{node.namespace}")
+        if node.payload:
+            self.stream.write(f" {node.payload}")
+        self._end_line()
+
     def _visit_CalibrationGrammarDeclaration(self, node: ast.CalibrationGrammarDeclaration) -> None:
         self._write_statement(f'defcalgrammar "{node.name}"')
 
@@ -212,9 +223,6 @@ class BasicPrinter:
 
     def _visit_DurationType(self, _node: ast.DurationType) -> None:
         self.stream.write("duration")
-
-    def _visit_StretchType(self, _node: ast.StretchType) -> None:
-        self.stream.write("stretch")
 
     def _visit_IntType(self, node: ast.IntType) -> None:
         self.stream.write("int")
@@ -365,6 +373,16 @@ class BasicPrinter:
             self.visit(node.initializer)
         self._end_statement()
 
+    def _visit_StretchDeclaration(self, node: ast.StretchDeclaration) -> None:
+        self._start_line()
+        self.stream.write("stretch")
+        self.stream.write(" ")
+        self.visit(node.identifier)
+        if node.bound is not None:
+            self.stream.write(" = ")
+            self.visit(node.bound)
+        self._end_statement()
+
     def _visit_AssignmentStatement(self, node: ast.AssignmentStatement) -> None:
         self._start_line()
         self.visit(node.lvalue)
@@ -414,6 +432,18 @@ class BasicPrinter:
             self._visit_sequence(node.parameters, start="(", end=")", separator=", ")
         self.stream.write(" ")
         self._visit_sequence(node.indexIdentifierList, separator=", ")
+        self._end_statement()
+
+    def _visit_DefcalCallStatement(self, node: ast.DefcalCallStatement) -> None:
+        self._start_line()
+        if node.lvalue is not None:
+            self.visit(node.lvalue)
+            self.stream.write(" = ")
+        self.visit(node.ident)
+        if node.parameters:
+            self._visit_sequence(node.parameters, start="(", end=")", separator=", ")
+        if node.qubits:
+            self._visit_sequence(node.qubits, start=" ", separator=", ")
         self._end_statement()
 
     def _visit_QuantumBarrier(self, node: ast.QuantumBarrier) -> None:
@@ -584,3 +614,19 @@ class BasicPrinter:
 
     def _visit_DefaultCase(self, _node: ast.DefaultCase) -> None:
         self.stream.write("default")
+
+    def _visit_BoxStatement(self, node: ast.BoxStatement) -> None:
+        # The OpenQASM 3 spec doesn't specify any ordering between annotations.  We choose to
+        # write and interpret them like Python decorators, where the "first" annotation is written
+        # closest to the box itself.
+        for annotation in reversed(node.annotations):
+            self.visit(annotation)
+        self._start_line()
+        self.stream.write("box")
+        if node.duration is not None:
+            self.stream.write("[")
+            self.visit(node.duration)
+            self.stream.write("]")
+        self.stream.write(" ")
+        self.visit(node.body)
+        self._end_line()

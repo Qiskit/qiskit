@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit import QuantumRegister
 
 
 def multiplier_cumulative_h18(
@@ -54,7 +54,7 @@ def multiplier_cumulative_h18(
         ValueError: If ``num_result_qubits`` is given and not valid, meaning not
             in ``[num_state_qubits, 2 * num_state_qubits]``.
 
-    **References:**
+    References:
 
     [1] Häner et al., Optimizing Quantum Circuits for Arithmetic, 2018.
     `arXiv:1805.12445 <https://arxiv.org/pdf/1805.12445.pdf>`_

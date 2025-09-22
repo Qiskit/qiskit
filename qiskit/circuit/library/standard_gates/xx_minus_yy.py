@@ -16,20 +16,13 @@ from __future__ import annotations
 
 import math
 from cmath import exp
-from math import pi
 from typing import Optional
 
 import numpy as np
 
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.library.standard_gates.ry import RYGate
-from qiskit.circuit.library.standard_gates.rz import RZGate
-from qiskit.circuit.library.standard_gates.s import SdgGate, SGate
-from qiskit.circuit.library.standard_gates.sx import SXdgGate, SXGate
-from qiskit.circuit.library.standard_gates.x import CXGate
 from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit._accelerate.circuit import StandardGate
 
 
@@ -39,7 +32,7 @@ class XXMinusYYGate(Gate):
     A 2-qubit parameterized XX-YY interaction. Its action is to induce
     a coherent rotation by some angle between :math:`|00\rangle` and :math:`|11\rangle`.
 
-    **Circuit Symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -49,7 +42,7 @@ class XXMinusYYGate(Gate):
         q_1: ┤1              ├
              └───────────────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -65,7 +58,7 @@ class XXMinusYYGate(Gate):
             \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.XXMinusYYGate
+    _standard_gate = StandardGate.XXMinusYY
 
     def __init__(
         self,
@@ -73,8 +66,7 @@ class XXMinusYYGate(Gate):
         beta: ParameterValueType = 0,
         label: Optional[str] = "(XX-YY)",
     ):
-        """Create new XX-YY gate.
-
+        """
         Args:
             theta: The rotation angle.
             beta: The phase angle.
@@ -83,48 +75,17 @@ class XXMinusYYGate(Gate):
         super().__init__("xx_minus_yy", 2, [theta, beta], label=label)
 
     def _define(self):
-        """
-        gate xx_minus_yy(theta, beta) a, b {
-            rz(-beta) b;
-            rz(-pi/2) a;
-            sx a;
-            rz(pi/2) a;
-            s b;
-            cx a, b;
-            ry(theta/2) a;
-            ry(-theta/2) b;
-            cx a, b;
-            sdg b;
-            rz(-pi/2) a;
-            sxdg a;
-            rz(pi/2) a;
-            rz(beta) b;
-        }
-        """
-        theta, beta = self.params
-        register = QuantumRegister(2, "q")
-        circuit = QuantumCircuit(register, name=self.name)
-        a, b = register
-        rules = [
-            (RZGate(-beta), [b], []),
-            (RZGate(-pi / 2), [a], []),
-            (SXGate(), [a], []),
-            (RZGate(pi / 2), [a], []),
-            (SGate(), [b], []),
-            (CXGate(), [a, b], []),
-            (RYGate(theta / 2), [a], []),
-            (RYGate(-theta / 2), [b], []),
-            (CXGate(), [a, b], []),
-            (SdgGate(), [b], []),
-            (RZGate(-pi / 2), [a], []),
-            (SXdgGate(), [a], []),
-            (RZGate(pi / 2), [a], []),
-            (RZGate(beta), [b], []),
-        ]
-        for instr, qargs, cargs in rules:
-            circuit._append(instr, qargs, cargs)
+        """Default definition"""
 
-        self.definition = circuit
+        #       ┌─────┐  ┌────┐┌───┐     ┌─────────┐      ┌─────┐ ┌──────┐┌───┐
+        # q_0: ─┤ Sdg ├──┤ √X ├┤ S ├──■──┤ Ry(θ/2) ├───■──┤ Sdg ├─┤ √Xdg ├┤ S ├
+        #      ┌┴─────┴─┐├───┬┘└───┘┌─┴─┐├─────────┴┐┌─┴─┐├─────┤┌┴──────┤└───┘
+        # q_1: ┤ Rz(-β) ├┤ S ├──────┤ X ├┤ Ry(-θ/2) ├┤ X ├┤ Sdg ├┤ Rz(β) ├─────
+        #      └────────┘└───┘      └───┘└──────────┘└───┘└─────┘└───────┘
+
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.XXMinusYY._get_definition(self.params), legacy_qubits=True, name=self.name
+        )
 
     def control(
         self,

@@ -138,9 +138,11 @@ class UnitarySynthesis(TransformationPass):
         self._pulse_optimize = pulse_optimize
         self._natural_direction = natural_direction
         self._plugin_config = plugin_config
-        self._target = target
+        # Bypass target if it doesn't contain any basis gates (i.e it's _FakeTarget), as this
+        # not part of the official target model.
+        self._target = target if target is not None and len(target.operation_names) > 0 else None
         if target is not None:
-            self._coupling_map = self._target.build_coupling_map()
+            self._coupling_map = target.build_coupling_map()
         if synth_gates:
             self._synth_gates = synth_gates
         else:
@@ -221,6 +223,7 @@ class UnitarySynthesis(TransformationPass):
                 self._min_qubits,
                 self._target,
                 self._basis_gates,
+                self._synth_gates,
                 _coupling_edges,
                 self._approximation_degree,
                 self._natural_direction,
@@ -292,7 +295,7 @@ class UnitarySynthesis(TransformationPass):
 
         out_dag = dag.copy_empty_like()
         for node in dag.topological_op_nodes():
-            if node.name == "unitary" and len(node.qargs) >= self._min_qubits:
+            if node.name in self._synth_gates and len(node.qargs) >= self._min_qubits:
                 synth_dag = None
                 unitary = node.matrix
                 n_qubits = len(node.qargs)

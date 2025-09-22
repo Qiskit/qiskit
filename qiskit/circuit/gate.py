@@ -32,10 +32,9 @@ class Gate(Instruction):
         params: list,
         label: str | None = None,
     ) -> None:
-        """Create a new gate.
-
+        """
         Args:
-            name: The Qobj name of the gate.
+            name: The name of the gate.
             num_qubits: The number of qubits the gate acts on.
             params: A list of parameters.
             label: An optional label for the gate.
@@ -135,7 +134,7 @@ class Gate(Instruction):
         """
         if not annotated:  # captures both None and False
             # pylint: disable=cyclic-import
-            from .add_control import add_control
+            from ._add_control import add_control
 
             return add_control(self, num_ctrl_qubits, label, ctrl_state)
 

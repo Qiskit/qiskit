@@ -27,7 +27,6 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import Statevector
-import qiskit.circuit.add_control as ac
 from qiskit.transpiler.passes import UnrollCustomDefinitions, BasisTranslator
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.converters.circuit_to_dag import circuit_to_dag
@@ -63,12 +62,8 @@ from qiskit.circuit.library import (
     CRZGate,
     CU3Gate,
     CUGate,
-    SGate,
-    SdgGate,
     SXGate,
     SXdgGate,
-    TGate,
-    TdgGate,
     CSXGate,
     MSGate,
     Barrier,
@@ -544,7 +539,8 @@ class TestControlledGate(QiskitTestCase):
             q_ancillas = QuantumRegister(num_ancillas)
             qc.add_register(q_ancillas)
 
-        qc.mcx(q_controls, q_target[0], q_ancillas, mode=mode)
+        with self.assertWarns(DeprecationWarning):
+            qc.mcx(q_controls, q_target[0], q_ancillas, mode=mode)
 
         simulated = Operator(qc).data
         if num_ancillas > 0:
@@ -714,52 +710,12 @@ class TestControlledGate(QiskitTestCase):
         explicit = {1: CXGate, 2: CCXGate}
         self.assertEqual(cls, explicit[num_ctrl_qubits])
 
-    @combine(num_ctrl_qubits=[1, 2, 3, 4], base_gate=[XGate(), YGate(), ZGate(), HGate()])
-    def test_small_mcx_gates_yield_cx_count(self, num_ctrl_qubits, base_gate):
-        """Test the creating a MCX gate (and other locally equivalent multi-controlled gates)
-        with small number of controls (with no ancillas) yields the expected number of cx gates
-        and provides the correct unitary.
-        """
-        qc = QuantumCircuit(num_ctrl_qubits + 1)
-        qc.append(base_gate.control(num_ctrl_qubits), range(num_ctrl_qubits + 1))
-
-        base_mat = base_gate.to_matrix()
-        test_op = Operator(qc)
-        cop_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
-        self.assertTrue(matrix_equal(cop_mat, test_op.data))
-
-        cqc = transpile(qc, basis_gates=["u", "cx"])
-        cx_count = cqc.count_ops()["cx"]
-        expected = {1: 1, 2: 6, 3: 14, 4: 36}
-        self.assertEqual(cx_count, expected[num_ctrl_qubits])
-
-    @combine(
-        num_ctrl_qubits=[1, 2, 3, 4],
-        base_gate=[PhaseGate(0.123), SGate(), SdgGate(), TGate(), TdgGate(), SXGate(), SXdgGate()],
-    )
-    def test_small_mcp_gates_yield_cx_count(self, num_ctrl_qubits, base_gate):
-        """Test the creating a MCPhase gate (and other locally equivalent multi-controlled gates)
-        with small number of controls (with no ancillas) yields the expected number of cx gates
-        and provides the correct unitary.
-        """
-        qc = QuantumCircuit(num_ctrl_qubits + 1)
-        qc.append(base_gate.control(num_ctrl_qubits), range(num_ctrl_qubits + 1))
-
-        base_mat = base_gate.to_matrix()
-        test_op = Operator(qc)
-        cop_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
-        self.assertTrue(matrix_equal(cop_mat, test_op.data))
-
-        cqc = transpile(qc, basis_gates=["u", "cx"])
-        cx_count = cqc.count_ops()["cx"]
-        expected = {1: 2, 2: 6, 3: 20, 4: 44}
-        self.assertEqual(cx_count, expected[num_ctrl_qubits])
-
     @data(1, 2, 3, 4)
     def test_mcxgraycode_gates_yield_explicit_gates(self, num_ctrl_qubits):
         """Test an MCXGrayCode yields explicit definition."""
         qc = QuantumCircuit(num_ctrl_qubits + 1)
-        qc.append(MCXGrayCode(num_ctrl_qubits), list(range(qc.num_qubits)), [])
+        with self.assertWarns(DeprecationWarning):
+            qc.append(MCXGrayCode(num_ctrl_qubits), list(range(qc.num_qubits)), [])
         explicit = {1: CXGate, 2: CCXGate, 3: C3XGate, 4: C4XGate}
         self.assertEqual(qc[0].operation.base_class, explicit[num_ctrl_qubits])
 
@@ -769,12 +725,14 @@ class TestControlledGate(QiskitTestCase):
         reference = np.zeros(2 ** (num_ctrl_qubits + 1))
         reference[-1] = 1
 
-        for gate in [
-            MCXGrayCode(num_ctrl_qubits),
-            MCXRecursive(num_ctrl_qubits),
-            MCXVChain(num_ctrl_qubits, False),
-            MCXVChain(num_ctrl_qubits, True),
-        ]:
+        with self.assertWarns(DeprecationWarning):
+            gates = [
+                MCXGrayCode(num_ctrl_qubits),
+                MCXRecursive(num_ctrl_qubits),
+                MCXVChain(num_ctrl_qubits, False),
+                MCXVChain(num_ctrl_qubits, True),
+            ]
+        for gate in gates:
             with self.subTest(gate=gate):
                 circuit = QuantumCircuit(gate.num_qubits)
                 if num_ctrl_qubits > 0:
@@ -783,55 +741,18 @@ class TestControlledGate(QiskitTestCase):
                 statevector = Statevector(circuit).data
 
                 # account for ancillas
-                if hasattr(gate, "num_ancilla_qubits") and gate.num_ancilla_qubits > 0:
+                if isinstance(gate, MCXGate):
+                    with self.assertWarns(DeprecationWarning):
+                        num_ancilla_qubits = gate.get_num_ancilla_qubits(gate.num_ctrl_qubits)
+                else:
+                    num_ancilla_qubits = 0
+                if num_ancilla_qubits > 0:
                     corrected = np.zeros(2 ** (num_ctrl_qubits + 1), dtype=complex)
                     for i, statevector_amplitude in enumerate(statevector):
-                        i = int(bin(i)[2:].zfill(circuit.num_qubits)[gate.num_ancilla_qubits :], 2)
+                        i = int(bin(i)[2:].zfill(circuit.num_qubits)[num_ancilla_qubits:], 2)
                         corrected[i] += statevector_amplitude
                     statevector = corrected
                 np.testing.assert_array_almost_equal(statevector.real, reference)
-
-    @data(5, 10, 15)
-    def test_mcxvchain_dirty_ancilla_cx_count(self, num_ctrl_qubits):
-        """Test if cx count of the v-chain mcx with dirty ancilla
-        is less than upper bound."""
-        mcx_vchain = MCXVChain(num_ctrl_qubits, dirty_ancillas=True)
-        qc = QuantumCircuit(mcx_vchain.num_qubits)
-
-        qc.append(mcx_vchain, list(range(mcx_vchain.num_qubits)))
-
-        tr_mcx_vchain = transpile(qc, basis_gates=["u", "cx"])
-        cx_count = tr_mcx_vchain.count_ops()["cx"]
-
-        self.assertLessEqual(cx_count, 8 * num_ctrl_qubits - 6)
-
-    @data(5, 10, 15)
-    def test_mcxvchain_clean_ancilla_cx_count(self, num_ctrl_qubits):
-        """Test if cx count of the v-chain mcx with clean ancilla
-        is less than upper bound."""
-        mcx_vchain = MCXVChain(num_ctrl_qubits, dirty_ancillas=False)
-        qc = QuantumCircuit(mcx_vchain.num_qubits)
-
-        qc.append(mcx_vchain, list(range(mcx_vchain.num_qubits)))
-
-        tr_mcx_vchain = transpile(qc, basis_gates=["u", "cx"])
-        cx_count = tr_mcx_vchain.count_ops()["cx"]
-
-        self.assertLessEqual(cx_count, 6 * num_ctrl_qubits - 6)
-
-    @data(7, 10, 15)
-    def test_mcxrecursive_clean_ancilla_cx_count(self, num_ctrl_qubits):
-        """Test if cx count of the mcx with one clean ancilla
-        is less than upper bound."""
-        mcx_recursive = MCXRecursive(num_ctrl_qubits)
-        qc = QuantumCircuit(mcx_recursive.num_qubits)
-
-        qc.append(mcx_recursive, list(range(mcx_recursive.num_qubits)))
-
-        tr_mcx_rec = transpile(qc, basis_gates=["u", "cx"])
-        cx_count = tr_mcx_rec.count_ops()["cx"]
-
-        self.assertLessEqual(cx_count, 16 * num_ctrl_qubits - 8)
 
     def test_mcxvchain_dirty_ancilla_action_only(self):
         """Test the v-chain mcx with dirty auxiliary qubits
@@ -839,8 +760,9 @@ class TestControlledGate(QiskitTestCase):
 
         num_ctrl_qubits = 5
 
-        gate = MCXVChain(num_ctrl_qubits, dirty_ancillas=True)
-        gate_with_cancelling = MCXVChain(num_ctrl_qubits, dirty_ancillas=True, action_only=True)
+        with self.assertWarns(DeprecationWarning):
+            gate = MCXVChain(num_ctrl_qubits, dirty_ancillas=True)
+            gate_with_cancelling = MCXVChain(num_ctrl_qubits, dirty_ancillas=True, action_only=True)
 
         num_qubits = gate.num_qubits
         ref_circuit = QuantumCircuit(num_qubits)
@@ -861,8 +783,11 @@ class TestControlledGate(QiskitTestCase):
         with only relative phase Toffoli gates."""
         num_ctrl_qubits = 5
 
-        gate = MCXVChain(num_ctrl_qubits, dirty_ancillas=True)
-        gate_relative_phase = MCXVChain(num_ctrl_qubits, dirty_ancillas=True, relative_phase=True)
+        with self.assertWarns(DeprecationWarning):
+            gate = MCXVChain(num_ctrl_qubits, dirty_ancillas=True)
+            gate_relative_phase = MCXVChain(
+                num_ctrl_qubits, dirty_ancillas=True, relative_phase=True
+            )
 
         num_qubits = gate.num_qubits + 1
         ref_circuit = QuantumCircuit(num_qubits)
@@ -935,12 +860,14 @@ class TestControlledGate(QiskitTestCase):
     @combine(num_ctrl_qubits=(1, 2, 3, 4, 5), num_target=(2, 3))
     def test_controlled_random_unitary(self, num_ctrl_qubits, num_target):
         """Test the matrix data of an Operator based on a random UnitaryGate."""
-        base_gate = random_unitary(2**num_target).to_instruction()
+        base_gate = random_unitary(
+            2**num_target, seed=10 * num_ctrl_qubits + num_target
+        ).to_instruction()
         base_mat = base_gate.to_matrix()
         cgate = base_gate.control(num_ctrl_qubits)
         test_op = Operator(cgate)
         cop_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
-        self.assertTrue(matrix_equal(cop_mat, test_op.data))
+        self.assertTrue(matrix_equal(cop_mat, test_op.data, atol=1e-8))
 
     @combine(num_ctrl_qubits=[1, 2, 3], ctrl_state=[0, None])
     def test_open_controlled_unitary_z(self, num_ctrl_qubits, ctrl_state):
@@ -1584,10 +1511,10 @@ class TestSingleControlledRotationGates(QiskitTestCase):
     gry = ry.RYGate(theta)
     grz = rz.RZGate(theta)
 
-    ugu1 = ac._unroll_gate(gu1, ["p", "u", "cx"])
-    ugrx = ac._unroll_gate(grx, ["p", "u", "cx"])
-    ugry = ac._unroll_gate(gry, ["p", "u", "cx"])
-    ugrz = ac._unroll_gate(grz, ["p", "u", "cx"])
+    ugu1 = u1.U1Gate(theta).definition
+    ugrx = rx.RXGate(theta).definition
+    ugry = ry.RYGate(theta).definition
+    ugrz = rz.RZGate(theta).definition
     ugrz.params = grz.params
 
     cgu1 = ugu1.control(num_ctrl)
@@ -1692,11 +1619,20 @@ class TestControlledStandardGates(QiskitTestCase):
                 if gate_params[i] == "num_ctrl_qubits":
                     args[i] = 2
 
-        gate = gate_class(*args)
+        if issubclass(gate_class, (MCXGrayCode, MCXRecursive, MCXVChain)):
+            with self.assertWarns(DeprecationWarning):
+                gate = gate_class(*args)
+        else:
+            gate = gate_class(*args)
 
         for ctrl_state in (ctrl_state_ones, ctrl_state_zeros, ctrl_state_mixed):
             with self.subTest(i=f"{gate_class.__name__}, ctrl_state={ctrl_state}"):
-                if hasattr(gate, "num_ancilla_qubits") and gate.num_ancilla_qubits > 0:
+                if isinstance(gate, MCXGate):
+                    with self.assertWarns(DeprecationWarning):
+                        num_ancilla_qubits = gate.get_num_ancilla_qubits(gate.num_ctrl_qubits)
+                else:
+                    num_ancilla_qubits = 0
+                if num_ancilla_qubits > 0:
                     # skip matrices that include ancilla qubits
                     continue
                 try:
@@ -1812,7 +1748,7 @@ class TestControlledAnnotatedGate(QiskitTestCase):
         controlled = XGate().control(annotated=False)
         annotated = XGate().control(annotated=True)
         self.assertNotIsInstance(controlled, AnnotatedOperation)
-        self.assertIsInstance(annotated, AnnotatedOperation)
+        self.assertNotIsInstance(annotated, AnnotatedOperation)
         self.assertEqual(Operator(controlled), Operator(annotated))
 
     def test_controlled_y(self):
@@ -1907,7 +1843,7 @@ class TestControlledAnnotatedGate(QiskitTestCase):
         controlled = CXGate().control(annotated=False)
         annotated = CXGate().control(annotated=True)
         self.assertNotIsInstance(controlled, AnnotatedOperation)
-        self.assertIsInstance(annotated, AnnotatedOperation)
+        self.assertNotIsInstance(annotated, AnnotatedOperation)
         self.assertEqual(Operator(controlled), Operator(annotated))
 
     def test_controlled_swap(self):

@@ -16,13 +16,25 @@ from collections import defaultdict
 import random
 
 import numpy as np
-from rustworkx import PyDiGraph, PyGraph, connected_components
+from rustworkx import PyDiGraph, PyGraph, connected_components, weakly_connected_components
 
 from qiskit.circuit import ForLoopOp
 from qiskit.converters import circuit_to_dag
+from qiskit.transpiler.target import Target
 from qiskit._accelerate import vf2_layout
 from qiskit._accelerate.nlayout import NLayout
 from qiskit._accelerate.error_map import ErrorMap
+
+
+def allocate_idle_qubits(dag, target, layout):
+    """Allocate the idle virtual qubits in the input DAG to arbitrary physical qubits."""
+    # Extend with arbitrary decisions for idle qubits.
+    used_physical = set(layout.get_physical_bits())
+    unused_physicals = (q for q in range(target.num_qubits) if q not in used_physical)
+    for bit in dag.qubits:
+        if bit not in layout:
+            layout[bit] = next(unused_physicals)
+    return layout
 
 
 def build_interaction_graph(dag, strict_direction=True):
@@ -85,10 +97,13 @@ def build_interaction_graph(dag, strict_direction=True):
     free_nodes = {}
     if not strict_direction:
         conn_comp = connected_components(im_graph)
-        for comp in conn_comp:
-            if len(comp) == 1:
-                index = comp.pop()
-                free_nodes[index] = im_graph[index]
+    else:
+        conn_comp = weakly_connected_components(im_graph)
+    for comp in conn_comp:
+        if len(comp) == 1:
+            index = comp.pop()
+            free_nodes[index] = im_graph[index]
+            if not strict_direction:
                 im_graph.remove_node(index)
 
     return im_graph, im_graph_node_map, reverse_im_graph_node_map, free_nodes
@@ -141,6 +156,15 @@ def score_layout(
     )
 
 
+def build_dummy_target(coupling_map) -> Target:
+    """Build a dummy target with no error rates that represents the coupling in ``coupling_map``."""
+    # The choice of basis gates is completely arbitrary, and we have no source of error rates.
+    # We just want _something_ to represent the coupling constraints.
+    return Target.from_configuration(
+        basis_gates=["u", "cx"], num_qubits=coupling_map.size(), coupling_map=coupling_map
+    )
+
+
 def build_average_error_map(target, coupling_map):
     """Build an average error map used for scoring layouts pre-basis translation."""
     num_qubits = 0
@@ -177,13 +201,12 @@ def build_average_error_map(target, coupling_map):
     # running the fallback heuristic
     if not built and target is not None and coupling_map is None:
         coupling_map = target.build_coupling_map()
-    if not built and coupling_map is not None:
+    if not built and coupling_map is not None and num_qubits is not None:
         for qubit in range(num_qubits):
-            avg_map.add_error(
-                (qubit, qubit),
-                (coupling_map.graph.out_degree(qubit) + coupling_map.graph.in_degree(qubit))
-                / num_qubits,
-            )
+            neighbor_set = set(coupling_map.graph.successor_indices(qubit))
+            neighbor_set.update(coupling_map.graph.predecessor_indices(qubit))
+            degree = len(neighbor_set)
+            avg_map.add_error((qubit, qubit), degree / num_qubits)
         for edge in coupling_map.graph.edge_list():
             avg_map.add_error(edge, (avg_map[edge[0], edge[0]] + avg_map[edge[1], edge[1]]) / 2)
             built = True

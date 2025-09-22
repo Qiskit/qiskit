@@ -17,16 +17,14 @@ Common functions across several serialization and deserialization modules.
 
 import io
 import struct
+import uuid
 
-import symengine
-from symengine.lib.symengine_wrapper import (  # pylint: disable = no-name-in-module
-    load_basic,
-)
+from qiskit.utils.optionals import HAS_SYMENGINE
 
 from qiskit.qpy import formats, exceptions
 
-QPY_VERSION = 14
-QPY_COMPATIBILITY_VERSION = 10
+QPY_VERSION = 16
+QPY_COMPATIBILITY_VERSION = 13
 ENCODE = "utf8"
 
 
@@ -98,7 +96,11 @@ def read_mapping(file_obj, deserializer, **kwargs):
         map_header = formats.MAP_ITEM._make(
             struct.unpack(formats.MAP_ITEM_PACK, file_obj.read(formats.MAP_ITEM_SIZE))
         )
-        key = file_obj.read(map_header.key_size).decode(ENCODE)
+        if kwargs.get("version", 15) < 15:
+            key = file_obj.read(map_header.key_size).decode(ENCODE)
+        else:
+            key = uuid.UUID(bytes=file_obj.read(map_header.key_size))
+
         datum = deserializer(map_header.type, file_obj.read(map_header.size), **kwargs)
         mapping[key] = datum
 
@@ -114,8 +116,9 @@ def read_type_key(file_obj):
     Returns:
         bytes: Type key.
     """
-    key_size = struct.calcsize("!1c")
-    return struct.unpack("!1c", file_obj.read(key_size))[0]
+    return formats.TYPE_KEY._make(
+        struct.unpack(formats.TYPE_KEY_PACK, file_obj.read(formats.TYPE_KEY_SIZE))
+    ).key
 
 
 def write_generic_typed_data(file_obj, type_key, data_binary):
@@ -170,7 +173,10 @@ def write_mapping(file_obj, mapping, serializer, **kwargs):
 
     file_obj.write(struct.pack(formats.SEQUENCE_PACK, num_elements))
     for key, datum in mapping.items():
-        key_bytes = key.encode(ENCODE)
+        if kwargs.get("version", 15) < 15:
+            key_bytes = key.encode(ENCODE)
+        else:
+            key_bytes = key
         type_key, datum_bytes = serializer(datum, **kwargs)
         item_header = struct.pack(formats.MAP_ITEM_PACK, len(key_bytes), type_key, len(datum_bytes))
         file_obj.write(item_header)
@@ -185,7 +191,7 @@ def write_type_key(file_obj, type_key):
         file_obj (File): A file like object that contains the QPY binary data.
         type_key (bytes): Type key to write.
     """
-    file_obj.write(struct.pack("!1c", type_key))
+    file_obj.write(struct.pack(formats.TYPE_KEY_PACK, type_key))
 
 
 def data_to_binary(obj, serializer, **kwargs):
@@ -311,13 +317,19 @@ def mapping_from_binary(binary_data, deserializer, **kwargs):
     return mapping
 
 
-def load_symengine_payload(payload: bytes) -> symengine.Expr:
+@HAS_SYMENGINE.require_in_call("QPY versions 10 through 12 with symengine parameter serialization")
+def load_symengine_payload(payload: bytes):
     """Load a symengine expression from it's serialized cereal payload."""
     # This is a horrible hack to workaround the symengine version checking
     # it's deserialization does. There were no changes to the serialization
     # format between 0.11 and 0.13 but the deserializer checks that it can't
     # load across a major or minor version boundary. This works around it
     # by just lying about the generating version.
+    import symengine
+    from symengine.lib.symengine_wrapper import (  # pylint: disable = no-name-in-module
+        load_basic,
+    )
+
     symengine_version = symengine.__version__.split(".")
     major = payload[2]
     minor = payload[3]

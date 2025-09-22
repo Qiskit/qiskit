@@ -491,7 +491,6 @@ class BasicSimulator(BackendV2):
         result = {
             "backend_name": self.name,
             "backend_version": self.backend_version,
-            "qobj_id": None,
             "job_id": job_id,
             "results": result_list,
             "status": "COMPLETED",

@@ -18,7 +18,7 @@ QPY Type keys for several namespace.
 
 import uuid
 from abc import abstractmethod
-from enum import Enum, IntEnum
+from enum import Enum, IntEnum, IntFlag
 
 import numpy as np
 
@@ -138,6 +138,12 @@ class Condition(IntEnum):
     EXPRESSION = 2
 
 
+class InstructionExtraFlags(IntFlag):
+    """If an instruction has extra payloads associated with it."""
+
+    HAS_ANNOTATIONS = 0b1000_0000
+
+
 class Container(TypeKeyBase):
     """Type key enum for container-like object."""
 
@@ -247,6 +253,7 @@ class Expression(TypeKeyBase):
     """Type keys for the ``EXPRESSION`` QPY item."""
 
     VAR = b"x"
+    STRETCH = b"s"
     VALUE = b"v"
     CAST = b"c"
     UNARY = b"u"
@@ -273,6 +280,8 @@ class ExprVarDeclaration(TypeKeyBase):
     INPUT = b"I"
     CAPTURE = b"C"
     LOCAL = b"L"
+    STRETCH_CAPTURE = b"A"
+    STRETCH_LOCAL = b"O"
 
     @classmethod
     def assign(cls, obj):
@@ -360,6 +369,7 @@ class CircuitDuration(TypeKeyBase):
     """Type keys for the ``DURATION`` QPY item."""
 
     DT = b"t"
+    PS = b"p"
     NS = b"n"
     US = b"u"
     MS = b"m"
@@ -371,6 +381,8 @@ class CircuitDuration(TypeKeyBase):
             unit = obj.unit()
             if unit == "dt":
                 return cls.DT
+            if unit == "ps":
+                return cls.PS
             if unit == "ns":
                 return cls.NS
             if unit == "us":

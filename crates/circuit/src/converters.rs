@@ -13,11 +13,14 @@
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
+use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::{intern, types::PyList};
 
-use crate::circuit_data::CircuitData;
+use crate::bit::{ShareableClbit, ShareableQubit};
+use crate::circuit_data::{CircuitData, CircuitVar};
+use crate::dag_circuit::DAGIdentifierInfo;
 use crate::dag_circuit::{DAGCircuit, NodeType};
+use crate::operations::{OperationRef, PythonOperation};
 use crate::packed_instruction::PackedInstruction;
 
 /// An extractable representation of a QuantumCircuit reserved only for
@@ -25,13 +28,8 @@ use crate::packed_instruction::PackedInstruction;
 #[derive(Debug, Clone)]
 pub struct QuantumCircuitData<'py> {
     pub data: CircuitData,
-    pub name: Option<Bound<'py, PyAny>>,
+    pub name: Option<String>,
     pub metadata: Option<Bound<'py, PyAny>>,
-    pub qregs: Option<Bound<'py, PyList>>,
-    pub cregs: Option<Bound<'py, PyList>>,
-    pub input_vars: Vec<Bound<'py, PyAny>>,
-    pub captured_vars: Vec<Bound<'py, PyAny>>,
-    pub declared_vars: Vec<Bound<'py, PyAny>>,
 }
 
 impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
@@ -41,61 +39,33 @@ impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
         let data_borrowed = circuit_data.extract::<CircuitData>()?;
         Ok(QuantumCircuitData {
             data: data_borrowed,
-            name: ob.getattr(intern!(py, "name")).ok(),
+            name: ob.getattr(intern!(py, "name"))?.extract()?,
             metadata: ob.getattr(intern!(py, "metadata")).ok(),
-            qregs: ob
-                .getattr(intern!(py, "qregs"))
-                .map(|ob| ob.downcast_into())?
-                .ok(),
-            cregs: ob
-                .getattr(intern!(py, "cregs"))
-                .map(|ob| ob.downcast_into())?
-                .ok(),
-            input_vars: ob
-                .call_method0(intern!(py, "iter_input_vars"))?
-                .try_iter()?
-                .collect::<PyResult<Vec<_>>>()?,
-            captured_vars: ob
-                .call_method0(intern!(py, "iter_captured_vars"))?
-                .try_iter()?
-                .collect::<PyResult<Vec<_>>>()?,
-            declared_vars: ob
-                .call_method0(intern!(py, "iter_declared_vars"))?
-                .try_iter()?
-                .collect::<PyResult<Vec<_>>>()?,
         })
     }
 }
 
 #[pyfunction(signature = (quantum_circuit, copy_operations = true, qubit_order = None, clbit_order = None))]
 pub fn circuit_to_dag(
-    py: Python,
     quantum_circuit: QuantumCircuitData,
     copy_operations: bool,
-    qubit_order: Option<Vec<Bound<PyAny>>>,
-    clbit_order: Option<Vec<Bound<PyAny>>>,
+    qubit_order: Option<Vec<ShareableQubit>>,
+    clbit_order: Option<Vec<ShareableClbit>>,
 ) -> PyResult<DAGCircuit> {
-    DAGCircuit::from_circuit(
-        py,
-        quantum_circuit,
-        copy_operations,
-        qubit_order,
-        clbit_order,
-    )
+    DAGCircuit::from_circuit(quantum_circuit, copy_operations, qubit_order, clbit_order)
 }
 
 #[pyfunction(signature = (dag, copy_operations = true))]
-pub fn dag_to_circuit(
-    py: Python,
-    dag: &DAGCircuit,
-    copy_operations: bool,
-) -> PyResult<CircuitData> {
+pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<CircuitData> {
     CircuitData::from_packed_instructions(
-        py,
         dag.qubits().clone(),
         dag.clbits().clone(),
         dag.qargs_interner().clone(),
         dag.cargs_interner().clone(),
+        dag.qregs_data().clone(),
+        dag.cregs_data().clone(),
+        dag.qubit_locations().clone(),
+        dag.clbit_locations().clone(),
         dag.topological_op_nodes()?.map(|node_index| {
             let NodeType::Operation(ref instr) = dag[node_index] else {
                 unreachable!(
@@ -103,18 +73,25 @@ pub fn dag_to_circuit(
                 )
             };
             if copy_operations {
-                let op = instr.op.py_deepcopy(py, None)?;
+                let op = match instr.op.view() {
+                    OperationRef::Gate(gate) => {
+                        Python::attach(|py| gate.py_deepcopy(py, None))?.into()
+                    }
+                    OperationRef::Instruction(instruction) => {
+                        Python::attach(|py| instruction.py_deepcopy(py, None))?.into()
+                    }
+                    OperationRef::Operation(operation) => {
+                        Python::attach(|py| operation.py_deepcopy(py, None))?.into()
+                    }
+                    OperationRef::StandardGate(gate) => gate.into(),
+                    OperationRef::StandardInstruction(instruction) => instruction.into(),
+                    OperationRef::Unitary(unitary) => unitary.clone().into(),
+                };
                 Ok(PackedInstruction {
                     op,
                     qubits: instr.qubits,
                     clbits: instr.clbits,
-                    params: Some(Box::new(
-                        instr
-                            .params_view()
-                            .iter()
-                            .map(|param| param.clone_ref(py))
-                            .collect(),
-                    )),
+                    params: Some(Box::new(instr.params_view().iter().cloned().collect())),
                     label: instr.label.clone(),
                     #[cfg(feature = "cache_pygates")]
                     py_op: OnceLock::new(),
@@ -124,6 +101,22 @@ pub fn dag_to_circuit(
             }
         }),
         dag.get_global_phase(),
+        dag.identifiers() // Map and pass DAGCircuit variables and stretches to CircuitData style
+            .map(|identifier| match identifier {
+                DAGIdentifierInfo::Stretch(dag_stretch_info) => CircuitVar::Stretch(
+                    dag.get_stretch(dag_stretch_info.get_stretch())
+                        .expect("Stretch not found for the specified index")
+                        .clone(),
+                    dag_stretch_info.get_type().into(),
+                ),
+                DAGIdentifierInfo::Var(dag_var_info) => CircuitVar::Var(
+                    dag.get_var(dag_var_info.get_var())
+                        .expect("Var not found for the specified index")
+                        .clone(),
+                    dag_var_info.get_type().into(),
+                ),
+            })
+            .collect::<Vec<CircuitVar>>(),
     )
 }
 

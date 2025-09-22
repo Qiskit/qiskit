@@ -48,9 +48,12 @@ from qiskit.transpiler.passes import ContainsInstruction
 from qiskit.transpiler.passes import VF2PostLayout
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopReason
+from qiskit.transpiler.passes import WrapAngles
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
+from qiskit.transpiler.optimization_metric import OptimizationMetric
 from qiskit.utils import deprecate_func
+from qiskit.quantum_info.operators.symplectic.clifford_circuits import _CLIFFORD_GATE_NAMES
 
 
 _ControlFlowState = collections.namedtuple("_ControlFlowState", ("working", "not_working"))
@@ -85,9 +88,9 @@ class _InvalidControlFlowForBackend:
     # Explicitly stateful closure to allow pickling.
 
     def __init__(self, basis_gates=(), target=None):
-        if target is not None:
+        if target is not None and len(target.operation_names) > 0:
             self.unsupported = [op for op in CONTROL_FLOW_OP_NAMES if op not in target]
-        elif basis_gates is not None:
+        elif basis_gates is not None and len(basis_gates) > 0:
             basis_gates = set(basis_gates)
             self.unsupported = [op for op in CONTROL_FLOW_OP_NAMES if op not in basis_gates]
         else:
@@ -189,6 +192,7 @@ def generate_unroll_3q(
     unitary_synthesis_plugin_config=None,
     hls_config=None,
     qubits_initially_zero=True,
+    optimization_metric=OptimizationMetric.COUNT_2Q,
 ):
     """Generate an unroll >3q :class:`~qiskit.transpiler.PassManager`
 
@@ -208,6 +212,8 @@ def generate_unroll_3q(
             Specifies how to synthesize various high-level objects.
         qubits_initially_zero (bool): Indicates whether the input circuit is
             zero-initialized.
+        optimization_metric (OptimizationMetric): the :class:`~.OptimizationMetric` object
+            that the metric used when optimizing the unrolling.
 
     Returns:
         PassManager: The unroll 3q or more pass manager
@@ -233,6 +239,7 @@ def generate_unroll_3q(
             basis_gates=basis_gates,
             min_qubits=3,
             qubits_initially_zero=qubits_initially_zero,
+            optimization_metric=optimization_metric,
         )
     )
     # If there are no target instructions revert to using unroll3qormore so
@@ -457,6 +464,9 @@ def generate_translation_passmanager(
     Raises:
         TranspilerError: If the ``method`` kwarg is not a valid value
     """
+    if basis_gates is None and target is None:
+        return PassManager([])
+
     if method == "translator":
         translator = BasisTranslator(sel, basis_gates, target)
         unroll = [
@@ -481,6 +491,75 @@ def generate_translation_passmanager(
             ),
             translator,
         ]
+        fix_1q = [translator]
+    elif method == "clifford_t":
+        # The list of extended basis gates consists of the specified Clifford+T basis gates and
+        # additionally the 1q-gate "u".
+        # We set target=None to make sure extended_basis_gates is not overwritten by the target.
+        extended_basis_gates = list(basis_gates) + ["u"]
+
+        unroll = [
+            # Use the UnitarySynthesis pass to unroll 1-qubit and 2-qubit gates named "unitary" into
+            # extended_basis_gates.
+            UnitarySynthesis(
+                basis_gates=extended_basis_gates,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                plugin_config=unitary_synthesis_plugin_config,
+                method=unitary_synthesis_method,
+                target=None,
+            ),
+            # Use the HighLevelSynthesis pass to unroll all the remaining 1q and 2q custom
+            # gates into extended_basis_gates + the gates in the equivalence library.
+            # We set target=None to make sure extended_basis_gates is not overwritten by the target.
+            HighLevelSynthesis(
+                hls_config=hls_config,
+                coupling_map=coupling_map,
+                target=None,
+                use_qubit_indices=True,
+                equivalence_library=sel,
+                basis_gates=extended_basis_gates,
+                qubits_initially_zero=qubits_initially_zero,
+                optimization_metric=OptimizationMetric.COUNT_T,
+            ),
+            # Use the BasisTranslator pass to translate all the gates into extended_basis_gates.
+            # In other words, this translates the gates in the equivalence library that are not
+            # in extended_basis_gates to gates in extended_basis_gates only.
+            # Note that we do not want to make any assumptions on which Clifford gates are present
+            # in basis_gates. The BasisTranslator will do the conversion if possible (and provide
+            # a helpful error message otherwise).
+            BasisTranslator(sel, extended_basis_gates, None),
+            # The next step is to resynthesize blocks of consecutive 1q-gates into ["h", "t", "tdg"].
+            # Use Collect1qRuns and ConsolidateBlocks passes to replace such blocks by 1q "unitary"
+            # gates.
+            Collect1qRuns(),
+            ConsolidateBlocks(
+                basis_gates=None,
+                target=None,
+                approximation_degree=approximation_degree,
+                force_consolidate=True,
+            ),
+            # We use the "clifford" unitary synthesis plugin to replace single-qubit
+            # unitary gates that can be represented as Cliffords by Clifford gates.
+            UnitarySynthesis(method="clifford", plugin_config={"max_qubits": 1}),
+            # We use the Solovay-Kitaev decomposition via the plugin mechanism for "sk"
+            # UnitarySynthesisPlugin.
+            UnitarySynthesis(
+                basis_gates=["h", "t", "tdg"],
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                plugin_config=unitary_synthesis_plugin_config,
+                method="sk",
+                min_qubits=1,
+                target=None,
+            ),
+            # Finally, we use BasisTranslator to translate ["h", "t", "tdg"] to the actually
+            # specified set of basis gates.
+            BasisTranslator(sel, basis_gates, target),
+        ]
+        # We use the BasisTranslator pass to translate any 1q-gates added by GateDirection
+        # into basis_gates.
+        translator = BasisTranslator(sel, basis_gates, target)
         fix_1q = [translator]
     elif method == "synthesis":
         unroll = [
@@ -560,6 +639,8 @@ def generate_translation_passmanager(
                 condition=_direction_condition,
             )
         )
+    if target is not None and target.has_angle_bounds():
+        unroll.append(WrapAngles(target))
     return PassManager(unroll)
 
 
@@ -667,3 +748,35 @@ def get_vf2_limits(
                 250000,  # Limits layout scoring to < 60 sec on ~400 qubit devices
             )
     return limits
+
+
+# Clifford+T basis, consisting of Clifford+T gate names + additional instruction names
+# that are a part of every basis
+_CLIFFORD_T_BASIS = set(_CLIFFORD_GATE_NAMES).union(
+    {"t", "tdg", "delay", "barrier", "reset", "measure"}.union(CONTROL_FLOW_OP_NAMES)
+)
+
+
+def is_clifford_t_basis(basis_gates=None, target=None) -> bool:
+    """
+    Checks whether the given basis set can be considered as Clifford+T.
+
+    For this we require that:
+    1. The set only contains Clifford+T gates,
+    2. The set contains either T or Tdg gate or both.
+
+    In particular, these conditions guarantee that the empty basis set
+    is not considered as Clifford+T.
+    """
+
+    if target is not None:
+        basis = set(target.operation_names)
+    elif basis_gates is not None:
+        basis = set(basis_gates)
+    else:
+        basis = set()
+
+    if (basis_gates is None) or (("t" not in basis_gates) and ("tdg" not in basis_gates)):
+        return False
+
+    return basis.issubset(_CLIFFORD_T_BASIS)

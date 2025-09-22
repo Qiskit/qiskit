@@ -19,7 +19,7 @@ from collections.abc import Sequence
 import typing
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.library.generalized_gates import Isometry
 from .state_preparation import StatePreparation
@@ -41,9 +41,10 @@ class Initialize(Instruction):
     The initial state is prepared based on the :class:`~.library.Isometry` synthesis described in [1].
 
     References:
-        1. Iten et al., Quantum circuits for isometries (2016).
-           `Phys. Rev. A 93, 032318
-           <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.93.032318>`__.
+
+    [1] Iten et al., Quantum circuits for isometries (2016).
+    `Phys. Rev. A 93, 032318
+    <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.93.032318>`__.
 
     """
 

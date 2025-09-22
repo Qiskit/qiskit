@@ -15,16 +15,16 @@
 // python side casting
 
 use pyo3::prelude::*;
-use pyo3::sync::GILOnceCell;
+use pyo3::sync::PyOnceLock;
 
 use crate::operations::{StandardGate, STANDARD_GATE_SIZE};
 
-/// Helper wrapper around `GILOnceCell` instances that are just intended to store a Python object
+/// Helper wrapper around `PyOnceLock` instances that are just intended to store a Python object
 /// that is lazily imported.
 pub struct ImportOnceCell {
     module: &'static str,
     object: &'static str,
-    cell: GILOnceCell<Py<PyAny>>,
+    cell: PyOnceLock<Py<PyAny>>,
 }
 
 impl ImportOnceCell {
@@ -32,7 +32,7 @@ impl ImportOnceCell {
         Self {
             module,
             object,
-            cell: GILOnceCell::new(),
+            cell: PyOnceLock::new(),
         }
     }
 
@@ -58,18 +58,13 @@ impl ImportOnceCell {
 
 pub static BUILTIN_LIST: ImportOnceCell = ImportOnceCell::new("builtins", "list");
 pub static BUILTIN_SET: ImportOnceCell = ImportOnceCell::new("builtins", "set");
+pub static BUILTIN_HASH: ImportOnceCell = ImportOnceCell::new("builtins", "hash");
 pub static OPERATION: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.operation", "Operation");
 pub static INSTRUCTION: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.instruction", "Instruction");
 pub static GATE: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.gate", "Gate");
 pub static CONTROL_FLOW_OP: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.controlflow", "ControlFlowOp");
-pub static QUBIT: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.quantumregister", "Qubit");
-pub static CLBIT: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.classicalregister", "Clbit");
-pub static QUANTUM_REGISTER: ImportOnceCell =
-    ImportOnceCell::new("qiskit.circuit.quantumregister", "QuantumRegister");
-pub static CLASSICAL_REGISTER: ImportOnceCell =
-    ImportOnceCell::new("qiskit.circuit.classicalregister", "ClassicalRegister");
 pub static PARAMETER_EXPRESSION: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.parameterexpression", "ParameterExpression");
 pub static PARAMETER_VECTOR: ImportOnceCell =
@@ -87,9 +82,6 @@ pub static FOR_LOOP_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "
 pub static SWITCH_CASE_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "SwitchCaseOp");
 pub static WHILE_LOOP_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "WhileLoopOp");
 pub static STORE_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Store");
-pub static EXPR: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.classical.expr", "Expr");
-pub static ITER_VARS: ImportOnceCell =
-    ImportOnceCell::new("qiskit.circuit.classical.expr", "iter_vars");
 pub static DAG_NODE: ImportOnceCell = ImportOnceCell::new("qiskit.dagcircuit", "DAGNode");
 pub static CONTROLLED_GATE: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit", "ControlledGate");
@@ -110,15 +102,25 @@ pub static SWITCH_CASE_OP_CHECK: ImportOnceCell =
     ImportOnceCell::new("qiskit.dagcircuit.dagnode", "_switch_case_eq");
 pub static FOR_LOOP_OP_CHECK: ImportOnceCell =
     ImportOnceCell::new("qiskit.dagcircuit.dagnode", "_for_loop_eq");
+pub static BOX_OP_CHECK: ImportOnceCell =
+    ImportOnceCell::new("qiskit.dagcircuit.dagnode", "_box_eq");
 pub static UUID: ImportOnceCell = ImportOnceCell::new("uuid", "UUID");
 pub static BARRIER: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Barrier");
 pub static DELAY: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Delay");
 pub static MEASURE: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Measure");
 pub static RESET: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Reset");
+pub static UNARY_OP: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.classical.expr.expr", "_UnaryOp");
+pub static BINARY_OP: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.classical.expr.expr", "_BinaryOp");
 pub static UNITARY_GATE: ImportOnceCell = ImportOnceCell::new(
     "qiskit.circuit.library.generalized_gates.unitary",
     "UnitaryGate",
 );
+pub static MCPHASE_GATE: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.library", "MCPhaseGate");
+pub static PAULI_EVOLUTION_GATE: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.library", "PauliEvolutionGate");
 pub static QS_DECOMPOSITION: ImportOnceCell =
     ImportOnceCell::new("qiskit.synthesis.unitary.qsd", "qs_decomposition");
 pub static XX_DECOMPOSER: ImportOnceCell =
@@ -131,6 +133,15 @@ pub static HLS_SYNTHESIZE_OP_USING_PLUGINS: ImportOnceCell = ImportOnceCell::new
     "qiskit.transpiler.passes.synthesis.high_level_synthesis",
     "_synthesize_op_using_plugins",
 );
+pub static CONTROL_FLOW_CONDITION_RESOURCES: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.controlflow", "condition_resources");
+pub static CONTROL_FLOW_NODE_RESOURCES: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.controlflow", "node_resources");
+pub static SYMPIFY_PARAMETER_EXPRESSION: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.parameterexpression", "sympify");
+pub static LAYOUT: ImportOnceCell = ImportOnceCell::new("qiskit.transpiler.layout", "Layout");
+pub static TRANSPILE_LAYOUT: ImportOnceCell =
+    ImportOnceCell::new("qiskit.transpiler.layout", "TranspileLayout");
 
 /// A mapping from the enum variant in crate::operations::StandardGate to the python
 /// module path and class name to import it. This is used to populate the conversion table
@@ -262,59 +273,59 @@ static STDGATE_IMPORT_PATHS: [[&str; 2]; STANDARD_GATE_SIZE] = [
 ///
 /// NOTE: the order here is significant it must match the StandardGate variant's number must match
 /// index of it's entry in this table. This is all done statically for performance
-static STDGATE_PYTHON_GATES: [GILOnceCell<PyObject>; STANDARD_GATE_SIZE] = [
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
-    GILOnceCell::new(),
+static STDGATE_PYTHON_GATES: [PyOnceLock<Py<PyAny>>; STANDARD_GATE_SIZE] = [
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
+    PyOnceLock::new(),
 ];
 
 #[inline]
