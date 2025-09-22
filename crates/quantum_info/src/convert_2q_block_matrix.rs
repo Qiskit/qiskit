@@ -22,6 +22,7 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::TWO_QUBIT_IDENTITY;
 use qiskit_circuit::imports::QI_OPERATOR;
+use qiskit_circuit::interner::Interner;
 use qiskit_circuit::operations::{ArrayType, Operation, OperationRef};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::Qubit;
@@ -30,7 +31,7 @@ use crate::versor_u2::{VersorSU2, VersorU2, VersorU2Error};
 use crate::QiskitError;
 
 #[inline]
-pub fn get_matrix_from_inst(py: Python, inst: &PackedInstruction) -> PyResult<Array2<Complex64>> {
+pub fn get_matrix_from_inst(inst: &PackedInstruction) -> PyResult<Array2<Complex64>> {
     if let Some(mat) = inst.op.matrix(inst.params_view()) {
         Ok(mat)
     } else if inst.op.try_standard_gate().is_some() {
@@ -38,13 +39,19 @@ pub fn get_matrix_from_inst(py: Python, inst: &PackedInstruction) -> PyResult<Ar
             "Parameterized gates can't be consolidated",
         ))
     } else if let OperationRef::Gate(gate) = inst.op.view() {
-        Ok(QI_OPERATOR
-            .get_bound(py)
-            .call1((gate.gate.clone_ref(py),))?
-            .getattr(intern!(py, "data"))?
-            .extract::<PyReadonlyArray2<Complex64>>()?
-            .as_array()
-            .to_owned())
+        // If the operation is a custom python gate, we will acquire the gil
+        // and use an Operator. Otherwise, using op.matrix() should work.
+        // A user should not be able to reach this condition in Rust standalone
+        // mode.
+        Python::attach(|py| -> PyResult<_> {
+            Ok(QI_OPERATOR
+                .get_bound(py)
+                .call1((gate.gate.clone_ref(py),))?
+                .getattr(intern!(py, "data"))?
+                .extract::<PyReadonlyArray2<Complex64>>()?
+                .as_array()
+                .to_owned())
+        })
     } else {
         Err(QiskitError::new_err(
             "Can't compute matrix of non-unitary op",
@@ -106,7 +113,7 @@ impl Separable1q {
 }
 
 /// Extract a versor representation of an arbitrary 1q DAG instruction.
-fn versor_from_1q_gate(py: Python, inst: &PackedInstruction) -> PyResult<VersorU2> {
+fn versor_from_1q_gate(inst: &PackedInstruction) -> PyResult<VersorU2> {
     let tol = 1e-12;
     match inst.op.view() {
         OperationRef::StandardGate(gate) => VersorU2::from_standard(gate, inst.params_view()),
@@ -115,7 +122,7 @@ fn versor_from_1q_gate(py: Python, inst: &PackedInstruction) -> PyResult<VersorU
             ArrayType::OneQ(arr) => Ok(VersorU2::from_nalgebra_unchecked(arr)),
             ArrayType::TwoQ(_) => Err(VersorU2Error::MultiQubit),
         },
-        _ => VersorU2::from_ndarray(&get_matrix_from_inst(py, inst)?.view(), tol),
+        _ => VersorU2::from_ndarray(&get_matrix_from_inst(inst)?.view(), tol),
     }
     .map_err(|err| QiskitError::new_err(err.to_string()))
 }
@@ -126,10 +133,18 @@ fn versor_from_1q_gate(py: Python, inst: &PackedInstruction) -> PyResult<VersorU
 ///
 /// If any node in `op_list` is not a 1q or 2q gate.
 pub fn blocks_to_matrix(
-    py: Python,
     dag: &DAGCircuit,
     op_list: &[NodeIndex],
     block_index_map: [Qubit; 2],
+) -> PyResult<Array2<Complex64>> {
+    let inst_iter = op_list.iter().map(|node| dag[*node].unwrap_operation());
+    instructions_to_matrix(inst_iter, block_index_map, dag.qargs_interner())
+}
+
+pub fn instructions_to_matrix<'a>(
+    op_list: impl Iterator<Item = &'a PackedInstruction>,
+    block_index_map: [Qubit; 2],
+    qargs_interner: &'a Interner<[Qubit]>,
 ) -> PyResult<Array2<Complex64>> {
     #[derive(Clone, Copy, PartialEq, Eq)]
     enum Qarg {
@@ -139,18 +154,14 @@ pub fn blocks_to_matrix(
         Q10 = 3,
     }
     let qarg_vals = [Qarg::Q0, Qarg::Q1, Qarg::Q01, Qarg::Q10];
-    let interned_default = dag.qargs_interner().get_default();
+    let interned_default = qargs_interner.get_default();
     let interned_map = [
         &[block_index_map[0]],
         &[block_index_map[1]],
         block_index_map.as_slice(),
         &[block_index_map[1], block_index_map[0]],
     ]
-    .map(|qubits| {
-        dag.qargs_interner()
-            .try_key(qubits)
-            .unwrap_or(interned_default)
-    });
+    .map(|qubits| qargs_interner.try_key(qubits).unwrap_or(interned_default));
     let qarg_lookup = |qargs| {
         qarg_vals[interned_map
             .iter()
@@ -161,19 +172,18 @@ pub fn blocks_to_matrix(
     let mut work: [[Complex64; 4]; 4] = Default::default();
     let mut qubits_1q: Option<Separable1q> = None;
     let mut output_matrix: Option<Array2<Complex64>> = None;
-    for node in op_list {
-        let inst = dag[*node].unwrap_operation();
+    for inst in op_list {
         let qarg = qarg_lookup(inst.qubits);
         match qarg {
             Qarg::Q0 | Qarg::Q1 => {
-                let versor = versor_from_1q_gate(py, inst)?;
+                let versor = versor_from_1q_gate(inst)?;
                 match qubits_1q.as_mut() {
                     Some(sep) => sep.apply_on_qubit(qarg as usize, &versor),
                     None => qubits_1q = Some(Separable1q::from_qubit(qarg as usize, versor)),
                 };
             }
             Qarg::Q01 | Qarg::Q10 => {
-                let mut matrix = get_matrix_from_inst(py, inst)?;
+                let mut matrix = get_matrix_from_inst(inst)?;
                 if qarg == Qarg::Q10 {
                     change_basis_inplace(matrix.view_mut());
                 }

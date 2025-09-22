@@ -190,10 +190,19 @@ impl RoutingResult<'_> {
             for swap in item.initial_swaps() {
                 apply_swap(swap, &mut layout, &mut dag)?;
             }
-            let index = self.sabre.dag[item.node].index;
-            let NodeType::Operation(inst) = &self.dag[index] else {
+            // In theory, `indices` will always have at least one entry if you're rebuilding the
+            // DAG from a Sabre result, because there wouldn't be a Sabre node without at least one
+            // DAG node backing it.  That said, we _do_ allow construction of Sabre graphs that have
+            // thrown away this information ([SabreDAG::only_interactions]), and there's still a
+            // well-defined behaviour to take.
+            let split = self.sabre.dag[item.node].indices.split_first();
+            let Some((head, rest)) = split else {
+                continue;
+            };
+            let NodeType::Operation(inst) = &self.dag[*head] else {
                 panic!("Sabre DAG should only contain op nodes");
             };
+
             match item.kind {
                 RoutedItemKind::Simple => apply_op(inst, &layout, &mut dag)?,
                 RoutedItemKind::ControlFlow(num_blocks) => {
@@ -230,7 +239,7 @@ impl RoutingResult<'_> {
                             idle.push(qubit);
                         }
                     }
-                    let new_inst = Python::with_gil(|py| -> PyResult<_> {
+                    let new_inst = Python::attach(|py| -> PyResult<_> {
                         // TODO: have to use Python-space `dag_to_circuit` because the Rust-space is
                         // only half the conversion (since it doesn't handle vars or stretches).
                         let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
@@ -263,6 +272,12 @@ impl RoutingResult<'_> {
                     dag.push_back(new_inst)?
                 }
             };
+            for node in rest {
+                let NodeType::Operation(inst) = &self.dag[*node] else {
+                    panic!("sabre DAG should only contain op nodes");
+                };
+                apply_op(inst, &layout, &mut dag)?;
+            }
         }
         for swap in &self.final_swaps {
             apply_swap(swap, &mut layout, &mut dag)?;
@@ -301,11 +316,11 @@ pub struct PyRoutingTarget(pub Option<RoutingTarget>);
 #[pymethods]
 impl PyRoutingTarget {
     #[staticmethod]
-    fn from_target(target: &Target) -> PyResult<Self> {
+    pub(crate) fn from_target(target: &Target) -> PyResult<Self> {
         let coupling = match target.coupling_graph() {
             Ok(coupling) => coupling,
             Err(TargetCouplingError::AllToAll) => return Ok(Self(None)),
-            Err(e @ TargetCouplingError::MultiQ) => {
+            Err(e @ TargetCouplingError::MultiQ(_)) => {
                 return Err(TranspilerError::new_err(e.to_string()))
             }
         };
@@ -439,7 +454,10 @@ impl<'a> RoutingState<'a> {
                     }
                 }
                 InteractionKind::ControlFlow(blocks) => {
-                    let NodeType::Operation(inst) = &self.dag[node.index] else {
+                    let dag_node_id = *node.indices.first().expect(
+                        "if control-flow interactions are included, so are original DAG indices",
+                    );
+                    let NodeType::Operation(inst) = &self.dag[dag_node_id] else {
                         panic!("Sabre DAG should only contain op nodes");
                     };
                     // The control-flow blocks aren't full width, so their "virtual" qubits aren't
@@ -545,35 +563,24 @@ impl<'a> RoutingState<'a> {
         let mut decremented: IndexMap<usize, u32, ahash::RandomState> =
             IndexMap::with_hasher(ahash::RandomState::default());
         let mut i = 0;
-        let mut visit_now: Vec<NodeIndex> = Vec::new();
-        let dag = self.sabre;
         while i < to_visit.len() && self.extended_set.len() < extended_set_size {
-            // Visit runs of non-2Q gates fully before moving on to children of 2Q gates. This way,
-            // traversal order is a BFS of 2Q gates rather than of all gates.
-            visit_now.push(to_visit[i]);
-            let mut j = 0;
-            while let Some(node) = visit_now.get(j) {
-                for edge in dag.dag.edges_directed(*node, Direction::Outgoing) {
-                    let successor_node = edge.target();
-                    let successor_index = successor_node.index();
-                    *decremented.entry(successor_index).or_insert(0) += 1;
-                    self.required_predecessors[successor_index] -= 1;
-                    if self.required_predecessors[successor_index] == 0 {
-                        // TODO: this looks "through" control-flow ops without seeing them, but we
-                        // actually eagerly route control-flow blocks as soon as they're eligible, so
-                        // they should be reflected in the extended set.
-                        if let InteractionKind::TwoQ([a, b]) = &dag.dag[successor_node].kind {
-                            self.extended_set
-                                .push([a.to_phys(&self.layout), b.to_phys(&self.layout)]);
-                            to_visit.push(successor_node);
-                            continue;
-                        }
-                        visit_now.push(successor_node);
+            let node = to_visit[i];
+            for edge in self.sabre.dag.edges_directed(node, Direction::Outgoing) {
+                let successor_node = edge.target();
+                let successor_index = successor_node.index();
+                *decremented.entry(successor_index).or_insert(0) += 1;
+                self.required_predecessors[successor_index] -= 1;
+                if self.required_predecessors[successor_index] == 0 {
+                    // TODO: this looks "through" control-flow ops without seeing them, but we
+                    // actually eagerly route control-flow blocks as soon as they're eligible, so
+                    // they should be reflected in the extended set.
+                    if let InteractionKind::TwoQ([a, b]) = &self.sabre.dag[successor_node].kind {
+                        self.extended_set
+                            .push([a.to_phys(&self.layout), b.to_phys(&self.layout)]);
                     }
+                    to_visit.push(successor_node);
                 }
-                j += 1;
             }
-            visit_now.clear();
             i += 1;
         }
         for (node, amount) in decremented.iter() {

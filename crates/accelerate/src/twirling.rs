@@ -276,10 +276,10 @@ fn generate_twirled_circuit(
             },
             OperationRef::Instruction(py_inst) => {
                 if py_inst.control_flow() {
-                    let new_blocks: PyResult<Vec<PyObject>> = py_inst
+                    let new_blocks: PyResult<Vec<Py<PyAny>>> = py_inst
                         .blocks()
                         .iter()
-                        .map(|block| -> PyResult<PyObject> {
+                        .map(|block| -> PyResult<Py<PyAny>> {
                             let new_block = generate_twirled_circuit(
                                 py,
                                 block,
@@ -342,7 +342,7 @@ fn generate_twirled_circuit(
         }
     }
     if optimizer_target.is_some() {
-        let mut dag = DAGCircuit::from_circuit_data(out_circ, false)?;
+        let mut dag = DAGCircuit::from_circuit_data(&out_circ, false, None, None, None, None)?;
         run_optimize_1q_gates_decomposition(&mut dag, optimizer_target, None, None)?;
         dag_to_circuit(&dag, false)
     } else {

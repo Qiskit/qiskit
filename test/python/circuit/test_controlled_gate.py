@@ -867,7 +867,7 @@ class TestControlledGate(QiskitTestCase):
         cgate = base_gate.control(num_ctrl_qubits)
         test_op = Operator(cgate)
         cop_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
-        self.assertTrue(matrix_equal(cop_mat, test_op.data, atol=1e-7))
+        self.assertTrue(matrix_equal(cop_mat, test_op.data, atol=1e-8))
 
     @combine(num_ctrl_qubits=[1, 2, 3], ctrl_state=[0, None])
     def test_open_controlled_unitary_z(self, num_ctrl_qubits, ctrl_state):
@@ -1748,7 +1748,7 @@ class TestControlledAnnotatedGate(QiskitTestCase):
         controlled = XGate().control(annotated=False)
         annotated = XGate().control(annotated=True)
         self.assertNotIsInstance(controlled, AnnotatedOperation)
-        self.assertIsInstance(annotated, AnnotatedOperation)
+        self.assertNotIsInstance(annotated, AnnotatedOperation)
         self.assertEqual(Operator(controlled), Operator(annotated))
 
     def test_controlled_y(self):
@@ -1843,7 +1843,7 @@ class TestControlledAnnotatedGate(QiskitTestCase):
         controlled = CXGate().control(annotated=False)
         annotated = CXGate().control(annotated=True)
         self.assertNotIsInstance(controlled, AnnotatedOperation)
-        self.assertIsInstance(annotated, AnnotatedOperation)
+        self.assertNotIsInstance(annotated, AnnotatedOperation)
         self.assertEqual(Operator(controlled), Operator(annotated))
 
     def test_controlled_swap(self):
