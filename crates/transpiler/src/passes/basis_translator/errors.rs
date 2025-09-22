@@ -12,8 +12,8 @@
 
 use pyo3::PyErr;
 use qiskit_circuit::{
-    circuit_data::CircuitError, error::DAGCircuitError,
-    parameter::parameter_expression::ParameterError,
+    circuit_data::CircuitError, parameter::parameter_expression::ParameterError,
+    py_error::DAGCircuitError,
 };
 use thiserror::Error;
 
