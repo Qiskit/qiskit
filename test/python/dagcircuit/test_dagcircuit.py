@@ -1115,7 +1115,7 @@ class TestDagNodeSelection(QiskitTestCase):
     def test_topological_nodes_reversals(self):
         """Single-assertion test for topological_nodes reversals."""
         dag = DAGCircuit()
-        qr = QuantumRegister(3, 'q')
+        qr = QuantumRegister(3, "q")
         dag.add_qreg(qr)
         q = dag.qubits
 
@@ -1123,32 +1123,37 @@ class TestDagNodeSelection(QiskitTestCase):
         dag.apply_operation_back(CXGate(), [q[0], q[1]], [])
         dag.apply_operation_back(CXGate(), [q[1], q[2]], [])
 
-        get_key = lambda n: (('op', n.op.name, n.qargs) if isinstance(n, DAGOpNode) \
-            else ('in', n.wire) if isinstance(n, DAGInNode) else ('out', n.wire))
+        get_key = lambda n: (
+            ("op", n.op.name, n.qargs)
+            if isinstance(n, DAGOpNode)
+            else ("in", n.wire) if isinstance(n, DAGInNode) else ("out", n.wire)
+        )
 
         list_rev = list(dag.topological_nodes(reverse=True))
         list_rev_ops = list(dag.reverse_ops().topological_nodes())
-        
+
         indices = {get_key(node): i for i, node in enumerate(list_rev)}
 
-        is_valid_sort = all(indices[get_key(node_to)] < indices[get_key(node_from)]
-                            for node_from, node_to, _ in dag.edges())
+        is_valid_sort = all(
+            indices[get_key(node_to)] < indices[get_key(node_from)]
+            for node_from, node_to, _ in dag.edges()
+        )
         self.assertTrue(is_valid_sort)
 
         self.assertEqual(
             Counter([get_key(n) for n in list_rev]),
             Counter([get_key(n) for n in list_rev_ops]),
         )
-        
+
     def test_topological_op_nodes_reversals(self):
         """Single-assertion test for topological_op_nodes reversals."""
         dag = DAGCircuit()
-        qr = QuantumRegister(2, 'q')
+        qr = QuantumRegister(2, "q")
         dag.add_qreg(qr)
-        q = dag.qubits # Now q is a list of Qubit objects
+        q = dag.qubits  # Now q is a list of Qubit objects
         dag.apply_operation_back(HGate(), [dag.qubits[0]], [])
         dag.apply_operation_back(CXGate(), [dag.qubits[0], dag.qubits[1]], [])
-        
+
         list1_rev_true = list(dag.topological_op_nodes(reverse=True))
         list2_rev_ops = list(dag.reverse_ops().topological_op_nodes())
         list3_reversed = list(reversed(list(dag.topological_op_nodes())))
