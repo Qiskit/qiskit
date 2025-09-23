@@ -183,11 +183,8 @@ pub fn get_entanglement<'a>(
                     return Ok(Box::new(std::iter::empty()));
                 }
             },
-            _ => match entanglement.downcast::<PyList>() {
-                Ok(list) => {
-                    return _check_entanglement_list(list.to_owned(), block_size);
-                }
-                _ => {}
+            _ => if let Ok(list) = entanglement.downcast::<PyList>() {
+                return _check_entanglement_list(list.to_owned(), block_size);
             },
         },
     }
