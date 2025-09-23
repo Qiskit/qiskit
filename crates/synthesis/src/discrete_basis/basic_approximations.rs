@@ -443,17 +443,14 @@ impl BasicApproximations {
     /// Query the closest point to a [GateSequence].
     pub fn query(&self, matrix: &Matrix3<f64>) -> Option<&GateSequence> {
         let query_point = BasicPoint::from_matrix(matrix);
-        let point = self.points.nearest_neighbor(&query_point).map(|point| {
+        self.points.nearest_neighbor(&query_point).map(|point| {
             let index = point
                 .index
                 .expect("All registered sequences should have an index. Blame a dev.");
-            let best = self
-                .approximations
+            self.approximations
                 .get(&index)
-                .expect("All available indices should have a sequence. Also blame a dev.");
-            best
-        });
-        point
+                .expect("All available indices should have a sequence. Also blame a dev.")
+        })
     }
 
     /// Save the basic approximations into a file. This can be used to load the object again,
