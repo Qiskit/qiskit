@@ -686,7 +686,7 @@ fn run_on_circuitdata(
 
                     output_circuit.push_packed_operation(
                         inst_inner.op.clone(),
-                        inst_inner.parameters().cloned(),
+                        inst_inner.params.as_deref().cloned(),
                         &inst_outer_qubits,
                         &inst_outer_clbits,
                     )?;

@@ -213,7 +213,7 @@ impl CircuitDataForSynthesis for CircuitData {
 
             self.push_packed_operation(
                 inst.op.clone(),
-                inst.parameters().cloned(),
+                inst.params.as_deref().cloned(),
                 &remapped_qubits,
                 &remapped_clbits,
             )?;

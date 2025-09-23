@@ -259,7 +259,7 @@ fn py_run_consolidate_blocks(
                 0,
                 block.iter().map(|node| {
                     let inst = dag[*node].unwrap_operation();
-                    let inst = inst.clone().into_packed()?;
+                    let inst = inst.clone();
 
                     Ok((
                         inst.op,

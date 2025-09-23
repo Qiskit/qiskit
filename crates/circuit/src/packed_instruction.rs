@@ -690,14 +690,14 @@ impl PackedInstruction {
         blocks: Vec<Block>,
         qubits: Interned<[Qubit]>,
         clbits: Interned<[Clbit]>,
-        label: Option<&str>,
+        label: Option<String>,
     ) -> Self {
         Self {
             op: control_flow.into(),
             qubits,
             clbits,
             params: Some(Box::new(Parameters::Blocks(blocks))),
-            label: label.map(|l| Box::new(l.to_string())),
+            label: label.map(|l| Box::new(l)),
             #[cfg(feature = "cache_pygates")]
             py_op: Default::default(),
         }

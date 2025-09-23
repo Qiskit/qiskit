@@ -347,18 +347,14 @@ fn apply_translation(
                     } else {
                         dag_block.clone()
                     };
-                    flow_blocks.push(flow_block);
+                    flow_blocks.push(out_dag_builder.register_block(flow_block));
                 }
                 let new_instr = PackedInstruction::from_control_flow(
                     node_obj.op.control_flow().clone(),
-                    node_obj.params.as_deref().map(|p| {
-                        let mut params = p.clone();
-                        params.replace_blocks(flow_blocks);
-                        params
-                    }),
+                    flow_blocks,
                     node_obj.qubits,
                     node_obj.clbits,
-                    node_obj.label(),
+                    node_obj.label.map(|l| *l),
                 );
                 out_dag_builder.push_back(new_instr).map_err(|_| {
                     BasisTranslatorError::BasisDAGCircuitError(
@@ -471,7 +467,7 @@ fn replace_node(
                 .map(|clbit| old_cargs[clbit.0 as usize])
                 .collect();
             let new_op: PackedOperation = match inner_node.op.view() {
-                OperationRef::ControlFlow(cf) => cf.clone().into(),
+                OperationRef::ControlFlow(cf) => panic!("control flow should not be present here"),
                 OperationRef::Gate(gate) => {
                     Python::with_gil(|py| gate.py_copy(py).map(|op| op.into()))
                         .expect("Error while copying gate instance.")

@@ -4968,6 +4968,19 @@ impl Default for DAGCircuit {
 }
 
 impl DAGCircuit {
+    /// Gives the DAG ownership of the provided basic block and returns a
+    /// unique identifier that can be used to retrieve a reference to it
+    /// later.
+    ///
+    /// No attempt is made to deduplicate the given block.
+    /// No validation is performed to ensure that the given block is valid
+    /// within this DAG.
+    pub fn register_block(&mut self, block: DAGCircuit) -> Block {
+        let id = self.blocks.len();
+        self.blocks.push(block);
+        Block::new(id)
+    }
+
     pub fn try_view_control_flow(&self, node: NodeIndex) -> Option<ControlFlowView<DAGCircuit>> {
         todo!()
     }
@@ -6035,7 +6048,7 @@ impl DAGCircuit {
         op: PackedOperation,
         qargs: &[Qubit],
         cargs: &[Clbit],
-        params: Option<Parameters<DAGCircuit>>,
+        params: Option<Parameters<Block>>,
         label: Option<String>,
         #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
     ) -> PyResult<NodeIndex> {
@@ -6057,7 +6070,7 @@ impl DAGCircuit {
         op: PackedOperation,
         qargs: &[Qubit],
         cargs: &[Clbit],
-        params: Option<Parameters<DAGCircuit>>,
+        params: Option<Parameters<Block>>,
         label: Option<String>,
         #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
     ) -> PyResult<NodeIndex> {
@@ -6080,7 +6093,7 @@ impl DAGCircuit {
         op: PackedOperation,
         qargs: &[Qubit],
         cargs: &[Clbit],
-        params: Option<Parameters<DAGCircuit>>,
+        params: Option<Parameters<Block>>,
         label: Option<String>,
         #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
         front: bool,
@@ -6115,23 +6128,11 @@ impl DAGCircuit {
         } else {
             OnceLock::new()
         };
-        let params = match params {
-            Some(Parameters::Blocks(inst_blocks)) => {
-                let mut blocks = Vec::with_capacity(inst_blocks.len());
-                for other_block in inst_blocks {
-                    blocks.push(Block(self.blocks.len() as u32));
-                    self.blocks.push(other_block);
-                }
-                Some(Box::new(Parameters::Blocks(blocks)))
-            }
-            Some(Parameters::Params(params)) => Some(Box::new(Parameters::Params(params))),
-            None => None,
-        };
         let instr = PackedInstruction {
             op,
             qubits: self.qargs_interner.insert(qargs),
             clbits: self.cargs_interner.insert(cargs),
-            params,
+            params: params.map(|p| Box::new(p)),
             label: label.map(Box::new),
             #[cfg(feature = "cache_pygates")]
             py_op,
@@ -8424,7 +8425,7 @@ impl DAGCircuitBuilder {
         op: PackedOperation,
         qubits: &[Qubit],
         clbits: &[Clbit],
-        params: Option<Parameters<DAGCircuit>>,
+        params: Option<Parameters<Block>>,
         label: Option<String>,
         #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
     ) -> PyResult<NodeIndex> {
@@ -8532,7 +8533,7 @@ impl DAGCircuitBuilder {
         op: PackedOperation,
         qubits: &[Qubit],
         clbits: &[Clbit],
-        params: Option<Parameters<DAGCircuit>>,
+        params: Option<Parameters<Block>>,
         label: Option<String>,
         #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
     ) -> PackedInstruction {
@@ -8552,23 +8553,11 @@ impl DAGCircuitBuilder {
         } else {
             self.dag.cargs_interner.get_default()
         };
-        let params = match params {
-            Some(Parameters::Blocks(inst_blocks)) => {
-                let mut blocks = Vec::with_capacity(inst_blocks.len());
-                for other_block in inst_blocks {
-                    blocks.push(Block(self.dag.blocks.len() as u32));
-                    self.dag.blocks.push(other_block);
-                }
-                Some(Box::new(Parameters::Blocks(blocks)))
-            }
-            Some(Parameters::Params(params)) => Some(Box::new(Parameters::Params(params))),
-            None => None,
-        };
         PackedInstruction {
             op,
             qubits,
             clbits,
-            params,
+            params: params.map(|p| Box::new(p)),
             label: label.map(|label| label.into()),
             #[cfg(feature = "cache_pygates")]
             py_op,
@@ -8598,6 +8587,18 @@ impl DAGCircuitBuilder {
     /// Adds a new value to the global phase of the inner [DAGCircuit].
     pub fn add_global_phase(&mut self, param: &Param) -> PyResult<()> {
         self.dag.add_global_phase(param)
+    }
+
+    /// Gives the DAG ownership of the provided basic block and returns a
+    /// unique identifier that can be used to retrieve a reference to it
+    /// later.
+    ///
+    /// No attempt is made to deduplicate the given block.
+    /// No validation is performed to ensure that the given block is valid
+    /// within this DAG.
+    #[inline]
+    pub fn register_block(&mut self, block: DAGCircuit) -> Block {
+        self.dag.register_block(block)
     }
 }
 

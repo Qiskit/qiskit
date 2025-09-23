@@ -824,6 +824,12 @@ impl CircuitData {
         res.qargs_interner = self.qargs_interner.clone();
         res.cargs_interner = self.cargs_interner.clone();
 
+        // TODO: should we copy owned block data? From the Rust caller's perspective, the circuit
+        //       owns its blocks, but from Python the instruction owns them. Maybe we should do the
+        //       copy here but also track Python-created blocks with a special registry to
+        //       deduplicate them via their id().
+        res.blocks = self.blocks.clone();
+
         // After initialization, copy register info.
         res.qregs = self.qregs.clone();
         res.cregs = self.cregs.clone();
@@ -2023,7 +2029,7 @@ impl CircuitData {
         I: IntoIterator<
             Item = PyResult<(
                 PackedOperation,
-                Option<Parameters<PyObject>>,
+                Option<Parameters<Block>>,
                 Vec<Qubit>,
                 Vec<Clbit>,
             )>,
@@ -2041,25 +2047,11 @@ impl CircuitData {
             let (operation, params, qargs, cargs) = item?;
             let qubits = res.qargs_interner.insert_owned(qargs);
             let clbits = res.cargs_interner.insert_owned(cargs);
-            let params = match params {
-                Some(Parameters::Blocks(inst_blocks)) => {
-                    let mut blocks = Vec::with_capacity(inst_blocks.len());
-                    for other_block in inst_blocks {
-                        blocks.push(
-                            res.blocks
-                                .add(PyObjectAsKey::new_sinful(other_block), true)?,
-                        );
-                    }
-                    Some(Box::new(Parameters::Blocks(blocks)))
-                }
-                Some(Parameters::Params(params)) => Some(Box::new(Parameters::Params(params))),
-                None => None,
-            };
             res.data.push(PackedInstruction {
                 op: operation,
                 qubits,
                 clbits,
-                params,
+                params: params.map(|p| Box::new(p)),
                 label: None,
                 #[cfg(feature = "cache_pygates")]
                 py_op: OnceLock::new(),
@@ -2316,35 +2308,24 @@ impl CircuitData {
         ))
     }
 
-    /// Append a packed operation to this CircuitData
+    /// Append a packed operation to this CircuitData.
+    ///
+    /// If a [ControlFlow] operation is provided, the blocks given in
+    /// `params` must already be registered with the circuit.
     pub fn push_packed_operation(
         &mut self,
         operation: PackedOperation,
-        params: Option<Parameters<PyObject>>,
+        params: Option<Parameters<Block>>,
         qargs: &[Qubit],
         cargs: &[Clbit],
     ) -> PyResult<()> {
         let qubits = self.qargs_interner.insert(qargs);
         let clbits = self.cargs_interner.insert(cargs);
-        let params = match params {
-            Some(Parameters::Blocks(inst_blocks)) => {
-                let mut blocks = Vec::with_capacity(inst_blocks.len());
-                for other_block in inst_blocks {
-                    blocks.push(
-                        self.blocks
-                            .add(PyObjectAsKey::new_sinful(other_block), true)?,
-                    );
-                }
-                Some(Box::new(Parameters::Blocks(blocks)))
-            }
-            Some(Parameters::Params(params)) => Some(Box::new(Parameters::Params(params))),
-            None => None,
-        };
         self.push(PackedInstruction {
             op: operation,
             qubits,
             clbits,
-            params,
+            params: params.map(|p| Box::new(p)),
             label: None,
             #[cfg(feature = "cache_pygates")]
             py_op: OnceLock::new(),
