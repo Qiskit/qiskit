@@ -1,0 +1,25 @@
+---
+features_transpiler:
+  - |
+    The :meth:.DAGCircuit.topological_op_nodes and :meth:.DAGCircuit.topological_nodes methods now support a reverse boolean argument. 
+    When set to True, the methods yield nodes in a reverse topological order, from the outputs of the circuit towards the inputs. 
+    This provides a direct and efficient way to iterate over a DAG backwards without the overhead of creating a new, structurally reversed 
+    DAG with :meth:.DAGCircuit.reverse_ops.
+
+    For example::
+
+      from qiskit import QuantumCircuit
+      from qiskit.converters import circuit_to_dag
+
+      qc = QuantumCircuit(2)
+      qc.h(0)
+      qc.cx(0, 1)
+      dag = circuit_to_dag(qc)
+
+      print("Topological order:")
+      for node in dag.topological_op_nodes():
+          print(node.name)
+
+      print("\nReverse topological order:")
+      for node in dag.topological_op_nodes(reverse=True):
+          print(node.name)

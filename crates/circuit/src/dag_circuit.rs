@@ -2460,8 +2460,7 @@ impl DAGCircuit {
         reverse: bool,
     ) -> PyResult<TopologicalNodeIterator> {
         let nodes: Vec<NodeIndex> = if let Some(key) = key {
-            slf.reversible_topological_key_sort(py, &key, reverse)?
-                .collect()
+            slf.topological_key_sort(py, &key, reverse)?.collect()
         } else {
             slf.reversible_topological_nodes(reverse)?.collect()
         };
@@ -2495,7 +2494,7 @@ impl DAGCircuit {
     ) -> PyResult<TopologicalNodeIterator> {
         // Perform all borrow operations on `slf` first.
         let nodes: Vec<NodeIndex> = if let Some(key) = key {
-            slf.reversible_topological_key_sort(py, &key, reverse)?
+            slf.topological_key_sort(py, &key, reverse)?
                 .filter(|node| matches!(slf.dag.node_weight(*node), Some(NodeType::Operation(_))))
                 .collect()
         } else {
@@ -5682,34 +5681,11 @@ impl DAGCircuit {
         &self,
         py: Python,
         key: &Bound<PyAny>,
+        reverse: bool,
     ) -> PyResult<impl Iterator<Item = NodeIndex>> {
         // This path (user provided key func) is not ideal, since we no longer
         // use a string key after moving to Rust, in favor of using a tuple
         // of the qargs and cargs interner IDs of the node.
-        let key = |node: NodeIndex| -> PyResult<String> {
-            let node = self.get_node(py, node)?;
-            key.call1((node,))?.extract()
-        };
-        Ok(
-            rustworkx_core::dag_algo::lexicographical_topological_sort(&self.dag, key, false, None)
-                .map_err(|e| match e {
-                    rustworkx_core::dag_algo::TopologicalSortError::CycleOrBadInitialState => {
-                        PyValueError::new_err(format!("{e}"))
-                    }
-                    rustworkx_core::dag_algo::TopologicalSortError::KeyError(ref e) => {
-                        e.clone_ref(py)
-                    }
-                })?
-                .into_iter(),
-        )
-    }
-
-    fn reversible_topological_key_sort(
-        &self,
-        py: Python,
-        key: &Bound<PyAny>,
-        reverse: bool,
-    ) -> PyResult<impl Iterator<Item = NodeIndex>> {
         let key = |node: NodeIndex| -> PyResult<String> {
             let node = self.get_node(py, node)?;
             key.call1((node,))?.extract()

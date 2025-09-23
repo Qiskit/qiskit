@@ -1150,7 +1150,6 @@ class TestDagNodeSelection(QiskitTestCase):
         dag = DAGCircuit()
         qr = QuantumRegister(2, "q")
         dag.add_qreg(qr)
-        q = dag.qubits  # Now q is a list of Qubit objects
         dag.apply_operation_back(HGate(), [dag.qubits[0]], [])
         dag.apply_operation_back(CXGate(), [dag.qubits[0], dag.qubits[1]], [])
 
