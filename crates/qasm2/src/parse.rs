@@ -1677,42 +1677,37 @@ impl State {
             )))
         };
 
-        match self.overridable_gates.remove(&name) {
-            Some(symbol) => {
-                if num_params != symbol.num_params || num_qubits != symbol.num_qubits {
-                    return mismatched_definitions(self, name, symbol);
-                }
-                match self.symbols.get(&name) {
-                    None => {
-                        // The gate wasn't a built-in, so we need to move the symbol in, but we don't
-                        // need to increment the number of gates because it's already got a gate ID
-                        // assigned.
-                        self.symbols.insert(name, symbol.into());
-                        Ok(false)
-                    }
-                    Some(GlobalSymbol::Gate { .. }) => {
-                        // The gate was built-in and we can ignore the new definition (it's the same).
-                        Ok(false)
-                    }
-                    _ => already_defined(self, name),
-                }
+        if let Some(symbol) = self.overridable_gates.remove(&name) {
+            if num_params != symbol.num_params || num_qubits != symbol.num_qubits {
+                return mismatched_definitions(self, name, symbol);
             }
-            _ => {
-                if self.symbols.contains_key(&name) {
-                    already_defined(self, name)
-                } else {
-                    self.symbols.insert(
-                        name,
-                        GlobalSymbol::Gate {
-                            num_params,
-                            num_qubits,
-                            index: GateId::new(self.num_gates),
-                        },
-                    );
-                    self.num_gates += 1;
-                    Ok(true)
+            match self.symbols.get(&name) {
+                None => {
+                    // The gate wasn't a built-in, so we need to move the symbol in, but we don't
+                    // need to increment the number of gates because it's already got a gate ID
+                    // assigned.
+                    self.symbols.insert(name, symbol.into());
+                    Ok(false)
                 }
+                Some(GlobalSymbol::Gate { .. }) => {
+                    // The gate was built-in and we can ignore the new definition (it's the same).
+                    Ok(false)
+                }
+                _ => already_defined(self, name),
             }
+        } else if self.symbols.contains_key(&name) {
+            already_defined(self, name)
+        } else {
+            self.symbols.insert(
+                name,
+                GlobalSymbol::Gate {
+                    num_params,
+                    num_qubits,
+                    index: GateId::new(self.num_gates),
+                },
+            );
+            self.num_gates += 1;
+            Ok(true)
         }
     }
 

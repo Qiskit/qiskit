@@ -673,34 +673,35 @@ impl TokenStream {
             b']' => TokenType::RBracket,
             b'{' => TokenType::LBrace,
             b'}' => TokenType::RBrace,
-            b'/' => match self.peek_byte()? {
-                Some(b'/') => {
+            b'/' => {
+                if let Some(b'/') = self.peek_byte()? {
                     return if self.advance_line()? == 0 {
                         Ok(None)
                     } else {
                         self.next(context)
                     };
+                } else {
+                    TokenType::Slash
                 }
-                _ => TokenType::Slash,
-            },
-            b'-' => match self.peek_byte() {
-                Ok(Some(b'>')) => {
+            }
+            b'-' => {
+                if let Ok(Some(b'>')) = self.peek_byte() {
                     self.col += 1;
                     TokenType::Arrow
+                } else {
+                    TokenType::Minus
                 }
-                _ => TokenType::Minus,
-            },
-            b'=' => match self.peek_byte() {
-                Ok(Some(b'=')) => {
+            }
+            b'=' => {
+                if let Ok(Some(b'=')) = self.peek_byte() {
                     self.col += 1;
                     TokenType::Equals
-                }
-                _ => {
+                } else {
                     return Err(QASM2ParseError::new_err(
                         "single equals '=' is never valid".to_owned(),
                     ));
                 }
-            },
+            }
             b'0'..=b'9' | b'.' => self.lex_numeric(start_col)?,
             b'a'..=b'z' | b'A'..=b'Z' => self.lex_textlike(start_col)?,
             c @ (b'"' | b'\'') => {

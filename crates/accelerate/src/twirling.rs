@@ -415,18 +415,18 @@ pub(crate) fn twirl_circuit(
                         )))
                     }
                     let matrix = gate.operation.matrix(&gate.params);
-                    match matrix { Some(matrix) => {
+                    if let Some(matrix) = matrix {
                         let twirl_set = generate_twirling_set(matrix.view());
                         if twirl_set.is_empty() {
                             None
                         } else {
                             Some(Ok((gate.operation.name().to_string(), twirl_set)))
                         }
-                    } _ => {
+                    } else {
                         Some(Err(QiskitError::new_err(
                             format!("Provided gate to twirl, {}, does not have a matrix defined and can't be twirled", gate.operation.name())
                         )))
-                    }}
+                    }
                 })
                 .collect()
         }).transpose()?;

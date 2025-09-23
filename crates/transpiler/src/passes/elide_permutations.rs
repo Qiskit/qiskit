@@ -41,66 +41,60 @@ pub fn run_elide_permutations(dag: &DAGCircuit) -> PyResult<Option<(DAGCircuit, 
     // note that DAGCircuit::copy_empty_like clones the interners
     let mut new_dag = dag.copy_empty_like(VarsMode::Alike)?;
     for node_index in dag.topological_op_nodes()? {
-        match &dag[node_index] {
-            NodeType::Operation(inst) => {
-                match inst.op.view() {
-                    OperationRef::StandardGate(StandardGate::Swap) => {
-                        let qargs = dag.get_qargs(inst.qubits);
-                        let index0 = qargs[0].index();
-                        let index1 = qargs[1].index();
-                        mapping.swap(index0, index1);
-                    }
-                    OperationRef::Gate(gate) if gate.name() == "permutation" => {
-                        Python::attach(|py| -> PyResult<()> {
-                            match inst.params.as_ref().unwrap()[0] {
-                                Param::Obj(ref pyobj) => {
-                                    let pyarray: PyReadonlyArray1<i32> = pyobj.extract(py)?;
-                                    let pattern = pyarray.as_array();
-                                    let qindices: Vec<usize> = dag
-                                        .get_qargs(inst.qubits)
-                                        .iter()
-                                        .map(|q| q.index())
-                                        .collect();
+        if let NodeType::Operation(inst) = &dag[node_index] {
+            match inst.op.view() {
+                OperationRef::StandardGate(StandardGate::Swap) => {
+                    let qargs = dag.get_qargs(inst.qubits);
+                    let index0 = qargs[0].index();
+                    let index1 = qargs[1].index();
+                    mapping.swap(index0, index1);
+                }
+                OperationRef::Gate(gate) if gate.name() == "permutation" => {
+                    Python::attach(|py| -> PyResult<()> {
+                        if let Param::Obj(ref pyobj) = inst.params.as_ref().unwrap()[0] {
+                            let pyarray: PyReadonlyArray1<i32> = pyobj.extract(py)?;
+                            let pattern = pyarray.as_array();
+                            let qindices: Vec<usize> = dag
+                                .get_qargs(inst.qubits)
+                                .iter()
+                                .map(|q| q.index())
+                                .collect();
 
-                                    let new_values: Vec<usize> = (0..qindices.len())
-                                        .map(|i| mapping[qindices[pattern[i] as usize]])
-                                        .collect();
+                            let new_values: Vec<usize> = (0..qindices.len())
+                                .map(|i| mapping[qindices[pattern[i] as usize]])
+                                .collect();
 
-                                    for i in 0..qindices.len() {
-                                        mapping[qindices[i]] = new_values[i];
-                                    }
-                                }
-                                _ => {
-                                    unreachable!();
-                                }
+                            for i in 0..qindices.len() {
+                                mapping[qindices[i]] = new_values[i];
                             }
-                            Ok(())
-                        })?;
-                    }
-                    _ => {
-                        // General instruction
-                        let qargs = dag.get_qargs(inst.qubits);
-                        let cargs = dag.get_cargs(inst.clbits);
-                        let mapped_qargs: Vec<Qubit> = qargs
-                            .iter()
-                            .map(|q| Qubit::new(mapping[q.index()]))
-                            .collect();
+                        } else {
+                            unreachable!();
+                        }
+                        Ok(())
+                    })?;
+                }
+                _ => {
+                    // General instruction
+                    let qargs = dag.get_qargs(inst.qubits);
+                    let cargs = dag.get_cargs(inst.clbits);
+                    let mapped_qargs: Vec<Qubit> = qargs
+                        .iter()
+                        .map(|q| Qubit::new(mapping[q.index()]))
+                        .collect();
 
-                        new_dag.apply_operation_back(
-                            inst.op.clone(),
-                            &mapped_qargs,
-                            cargs,
-                            inst.params.as_deref().cloned(),
-                            inst.label.as_ref().map(|x| x.as_ref().clone()),
-                            #[cfg(feature = "cache_pygates")]
-                            None,
-                        )?;
-                    }
+                    new_dag.apply_operation_back(
+                        inst.op.clone(),
+                        &mapped_qargs,
+                        cargs,
+                        inst.params.as_deref().cloned(),
+                        inst.label.as_ref().map(|x| x.as_ref().clone()),
+                        #[cfg(feature = "cache_pygates")]
+                        None,
+                    )?;
                 }
             }
-            _ => {
-                unreachable!();
-            }
+        } else {
+            unreachable!();
         }
     }
     Ok(Some((new_dag, mapping)))

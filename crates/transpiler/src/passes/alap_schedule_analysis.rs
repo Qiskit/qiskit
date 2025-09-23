@@ -198,54 +198,48 @@ pub fn py_run_alap_schedule_analysis(
     // Get the first duration type
     let mut iter = node_durations.iter();
     let py_dict = PyDict::new(py);
-    match iter.next() {
-        Some((_, first_duration)) => {
-            if first_duration.extract::<u64>().is_ok() {
-                // All durations are of type u64
-                let mut op_durations = HashMap::new();
-                for (py_node, py_duration) in node_durations.iter() {
-                    let node_idx = py_node
-                        .downcast_into::<DAGOpNode>()?
-                        .extract::<DAGNode>()?
-                        .node
-                        .expect("Node index not found.");
-                    let val = py_duration.extract::<u64>()?;
-                    op_durations.insert(node_idx, val);
-                }
-                let node_start_time =
-                    run_alap_schedule_analysis::<u64>(dag, clbit_write_latency, op_durations)?;
-                for (node_idx, t1) in node_start_time {
-                    let node = dag.get_node(py, node_idx)?;
-                    py_dict.set_item(node, t1)?;
-                }
-            } else if first_duration.extract::<f64>().is_ok() {
-                // All durations are of type f64
-                let mut op_durations = HashMap::new();
-                for (py_node, py_duration) in node_durations.iter() {
-                    let node_idx = py_node
-                        .downcast_into::<DAGOpNode>()?
-                        .extract::<DAGNode>()?
-                        .node
-                        .expect("Node index not found.");
-                    let val = py_duration.extract::<f64>()?;
-                    op_durations.insert(node_idx, val);
-                }
-                let node_start_time = run_alap_schedule_analysis::<f64>(
-                    dag,
-                    clbit_write_latency as f64,
-                    op_durations,
-                )?;
-                for (node_idx, t1) in node_start_time {
-                    let node = dag.get_node(py, node_idx)?;
-                    py_dict.set_item(node, t1)?;
-                }
-            } else {
-                return Err(TranspilerError::new_err("Duration must be int or float"));
+    if let Some((_, first_duration)) = iter.next() {
+        if first_duration.extract::<u64>().is_ok() {
+            // All durations are of type u64
+            let mut op_durations = HashMap::new();
+            for (py_node, py_duration) in node_durations.iter() {
+                let node_idx = py_node
+                    .downcast_into::<DAGOpNode>()?
+                    .extract::<DAGNode>()?
+                    .node
+                    .expect("Node index not found.");
+                let val = py_duration.extract::<u64>()?;
+                op_durations.insert(node_idx, val);
             }
+            let node_start_time =
+                run_alap_schedule_analysis::<u64>(dag, clbit_write_latency, op_durations)?;
+            for (node_idx, t1) in node_start_time {
+                let node = dag.get_node(py, node_idx)?;
+                py_dict.set_item(node, t1)?;
+            }
+        } else if first_duration.extract::<f64>().is_ok() {
+            // All durations are of type f64
+            let mut op_durations = HashMap::new();
+            for (py_node, py_duration) in node_durations.iter() {
+                let node_idx = py_node
+                    .downcast_into::<DAGOpNode>()?
+                    .extract::<DAGNode>()?
+                    .node
+                    .expect("Node index not found.");
+                let val = py_duration.extract::<f64>()?;
+                op_durations.insert(node_idx, val);
+            }
+            let node_start_time =
+                run_alap_schedule_analysis::<f64>(dag, clbit_write_latency as f64, op_durations)?;
+            for (node_idx, t1) in node_start_time {
+                let node = dag.get_node(py, node_idx)?;
+                py_dict.set_item(node, t1)?;
+            }
+        } else {
+            return Err(TranspilerError::new_err("Duration must be int or float"));
         }
-        _ => {
-            return Err(TranspilerError::new_err("No durations provided"));
-        }
+    } else {
+        return Err(TranspilerError::new_err("No durations provided"));
     }
 
     Ok(py_dict.into())

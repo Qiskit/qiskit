@@ -99,26 +99,24 @@ pub fn run_remove_identity_equiv(
                     | StandardGate::CRX
                     | StandardGate::CRY
                     | StandardGate::CRZ
-                    | StandardGate::CPhase => match inst.params_view()[0] {
-                        Param::Float(angle) => {
+                    | StandardGate::CPhase => {
+                        if let Param::Float(angle) = inst.params_view()[0] {
                             let (tr_over_dim, dim) =
                                 rotation_trace_and_dim(gate, angle).expect("Since only supported rotation gates are given, the result is not None");
                             (tr_over_dim, dim)
-                        }
-                        _ => {
+                        } else {
                             continue;
                         }
-                    },
-                    _ => match gate.matrix(inst.params_view()) {
-                        Some(matrix) => {
+                    }
+                    _ => {
+                        if let Some(matrix) = gate.matrix(inst.params_view()) {
                             let dim = matrix.shape()[0] as f64;
                             let tr_over_dim = matrix.diag().iter().sum::<Complex64>() / dim;
                             (tr_over_dim, dim)
-                        }
-                        _ => {
+                        } else {
                             continue;
                         }
-                    },
+                    }
                 };
                 let error = get_error_cutoff(inst);
                 let f_pro = tr_over_dim.abs().powi(2);

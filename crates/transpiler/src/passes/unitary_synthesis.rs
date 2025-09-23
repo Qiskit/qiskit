@@ -596,16 +596,15 @@ fn get_2q_decomposers_from_target(
                 qubit_gate_map.insert(&reverse_qargs, reverse_keys);
             }
         }
-        Err(_) => match target.operation_names_for_qargs(&reverse_qargs) {
-            Ok(reverse_keys) => {
+        Err(_) => {
+            if let Ok(reverse_keys) = target.operation_names_for_qargs(&reverse_qargs) {
                 qubit_gate_map.insert(&reverse_qargs, reverse_keys);
-            }
-            _ => {
+            } else {
                 return Err(QiskitError::new_err(
                     "Target has no gates available on qubits to synthesize over.",
                 ));
             }
-        },
+        }
     }
 
     // Define available 1q basis
@@ -677,19 +676,18 @@ fn get_2q_decomposers_from_target(
     // Step 1: Try TwoQubitControlledUDecomposers
     for basis_1q in &available_1q_basis {
         for (_, (gate, _)) in available_2q_param_basis.iter() {
-            let rxx_equivalent_gate = match gate.operation.try_standard_gate() {
-                Some(std_gate) => RXXEquivalent::Standard(std_gate),
-                _ => {
-                    let gate_type: Py<PyType> = Python::attach(|py| -> PyResult<Py<PyType>> {
-                        let module = PyModule::import(py, "builtins")?;
-                        let py_type = module.getattr("type")?;
-                        Ok(py_type
-                            .call1((gate.clone().into_pyobject(py)?,))?
-                            .downcast_into::<PyType>()?
-                            .unbind())
-                    })?;
-                    RXXEquivalent::CustomPython(gate_type)
-                }
+            let rxx_equivalent_gate = if let Some(std_gate) = gate.operation.try_standard_gate() {
+                RXXEquivalent::Standard(std_gate)
+            } else {
+                let gate_type: Py<PyType> = Python::attach(|py| -> PyResult<Py<PyType>> {
+                    let module = PyModule::import(py, "builtins")?;
+                    let py_type = module.getattr("type")?;
+                    Ok(py_type
+                        .call1((gate.clone().into_pyobject(py)?,))?
+                        .downcast_into::<PyType>()?
+                        .unbind())
+                })?;
+                RXXEquivalent::CustomPython(gate_type)
             };
 
             match TwoQubitControlledUDecomposer::new_inner(rxx_equivalent_gate, basis_1q) {
@@ -998,20 +996,12 @@ fn synth_su4_sequence(
     approximation_degree: Option<f64>,
 ) -> PyResult<TwoQubitUnitarySequence> {
     let is_approximate = approximation_degree.is_none() || approximation_degree.unwrap() != 1.0;
-    let synth = match &decomposer_2q.decomposer {
-        DecomposerType::TwoQubitBasis(decomp) => {
-            decomp.call_inner(su4_mat.view(), None, is_approximate, None)?
-        }
-        _ => match &decomposer_2q.decomposer {
-            DecomposerType::TwoQubitControlledU(decomp) => {
-                decomp.call_inner(su4_mat.view(), None)?
-            }
-            _ => {
-                unreachable!(
-                    "synth_su4_sequence should only be called for TwoQubitBasisDecomposer."
-                )
-            }
-        },
+    let synth = if let DecomposerType::TwoQubitBasis(decomp) = &decomposer_2q.decomposer {
+        decomp.call_inner(su4_mat.view(), None, is_approximate, None)?
+    } else if let DecomposerType::TwoQubitControlledU(decomp) = &decomposer_2q.decomposer {
+        decomp.call_inner(su4_mat.view(), None)?
+    } else {
+        unreachable!("synth_su4_sequence should only be called for TwoQubitBasisDecomposer.")
     };
     let sequence = TwoQubitUnitarySequence {
         gate_sequence: synth,
@@ -1068,20 +1058,14 @@ fn reversed_synth_su4_sequence(
     let (mut col_1, mut col_2) = su4_mat.multi_slice_mut((s![.., 1], s![.., 2]));
     azip!((x in &mut col_1, y in &mut col_2) (*x, *y) = (*y, *x));
 
-    let synth = match &decomposer_2q.decomposer {
-        DecomposerType::TwoQubitBasis(decomp) => {
-            decomp.call_inner(su4_mat.view(), None, is_approximate, None)?
-        }
-        _ => match &decomposer_2q.decomposer {
-            DecomposerType::TwoQubitControlledU(decomp) => {
-                decomp.call_inner(su4_mat.view(), None)?
-            }
-            _ => {
-                unreachable!(
+    let synth = if let DecomposerType::TwoQubitBasis(decomp) = &decomposer_2q.decomposer {
+        decomp.call_inner(su4_mat.view(), None, is_approximate, None)?
+    } else if let DecomposerType::TwoQubitControlledU(decomp) = &decomposer_2q.decomposer {
+        decomp.call_inner(su4_mat.view(), None)?
+    } else {
+        unreachable!(
             "reversed_synth_su4_sequence should only be called for TwoQubitBasisDecomposer."
         )
-            }
-        },
     };
     let flip_bits: [u8; 2] = [1, 0];
     let mut reversed_gates = Vec::with_capacity(synth.gates().len());
@@ -1178,22 +1162,19 @@ fn reversed_synth_su4_dag(
     let (mut col_1, mut col_2) = su4_mat.multi_slice_mut((s![.., 1], s![.., 2]));
     azip!((x in &mut col_1, y in &mut col_2) (*x, *y) = (*y, *x));
 
-    let synth_dag = match &decomposer_2q.decomposer {
-        DecomposerType::XX(decomposer) => {
-            let kwargs: HashMap<&str, bool> = [("approximate", is_approximate), ("use_dag", true)]
-                .into_iter()
-                .collect();
-            decomposer
-                .call(
-                    py,
-                    (su4_mat.clone().into_pyarray(py),),
-                    Some(&kwargs.into_py_dict(py)?),
-                )?
-                .extract::<DAGCircuit>(py)?
-        }
-        _ => {
-            unreachable!("reversed_synth_su4_dag should only be called for XXDecomposer")
-        }
+    let synth_dag = if let DecomposerType::XX(decomposer) = &decomposer_2q.decomposer {
+        let kwargs: HashMap<&str, bool> = [("approximate", is_approximate), ("use_dag", true)]
+            .into_iter()
+            .collect();
+        decomposer
+            .call(
+                py,
+                (su4_mat.clone().into_pyarray(py),),
+                Some(&kwargs.into_py_dict(py)?),
+            )?
+            .extract::<DAGCircuit>(py)?
+    } else {
+        unreachable!("reversed_synth_su4_dag should only be called for XXDecomposer")
     };
 
     let target_dag = synth_dag.copy_empty_like(VarsMode::Alike)?;

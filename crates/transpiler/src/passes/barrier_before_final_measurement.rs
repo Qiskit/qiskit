@@ -37,8 +37,8 @@ pub fn run_barrier_before_final_measurements(
             .filter(|index| {
                 let node = &dag[*index];
                 match node {
-                    NodeType::Operation(inst) => match inst.op.view() {
-                        OperationRef::StandardInstruction(op) => {
+                    NodeType::Operation(inst) => {
+                        if let OperationRef::StandardInstruction(op) = inst.op.view() {
                             if matches!(
                                 op,
                                 StandardInstruction::Measure | StandardInstruction::Barrier(_)
@@ -61,9 +61,10 @@ pub fn run_barrier_before_final_measurements(
                             } else {
                                 false
                             }
+                        } else {
+                            false
                         }
-                        _ => false,
-                    },
+                    }
                     _ => false,
                 }
             })

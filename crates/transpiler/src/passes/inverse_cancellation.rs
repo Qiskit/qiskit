@@ -77,12 +77,12 @@ fn run_on_self_inverse(
                     if i == max_index {
                         partitions.push(std::mem::take(&mut chunk));
                     } else {
-                        let next_qargs = match &dag[gate_cancel_run[i + 1]] {
-                            NodeType::Operation(next_inst) => next_inst.qubits,
-                            _ => {
+                        let next_qargs =
+                            if let NodeType::Operation(next_inst) = &dag[gate_cancel_run[i + 1]] {
+                                next_inst.qubits
+                            } else {
                                 panic!("Not an op node")
-                            }
-                        };
+                            };
                         if inst.qubits != next_qargs {
                             partitions.push(std::mem::take(&mut chunk));
                         }
@@ -129,27 +129,23 @@ fn run_on_inverse_pairs(
         for nodes in runs {
             let mut i = 0;
             while i < nodes.len() - 1 {
-                match &dag[nodes[i]] {
-                    NodeType::Operation(inst) => match &dag[nodes[i + 1]] {
-                        NodeType::Operation(next_inst) => {
-                            if inst.qubits == next_inst.qubits
-                                && ((gate_eq(inst, &gate_0)? && gate_eq(next_inst, &gate_1)?)
-                                    || (gate_eq(inst, &gate_1)? && gate_eq(next_inst, &gate_0)?))
-                            {
-                                dag.remove_op_node(nodes[i]);
-                                dag.remove_op_node(nodes[i + 1]);
-                                i += 2;
-                            } else {
-                                i += 1;
-                            }
+                if let NodeType::Operation(inst) = &dag[nodes[i]] {
+                    if let NodeType::Operation(next_inst) = &dag[nodes[i + 1]] {
+                        if inst.qubits == next_inst.qubits
+                            && ((gate_eq(inst, &gate_0)? && gate_eq(next_inst, &gate_1)?)
+                                || (gate_eq(inst, &gate_1)? && gate_eq(next_inst, &gate_0)?))
+                        {
+                            dag.remove_op_node(nodes[i]);
+                            dag.remove_op_node(nodes[i + 1]);
+                            i += 2;
+                        } else {
+                            i += 1;
                         }
-                        _ => {
-                            panic!("Not an op node")
-                        }
-                    },
-                    _ => {
+                    } else {
                         panic!("Not an op node")
                     }
+                } else {
+                    panic!("Not an op node")
                 }
             }
         }

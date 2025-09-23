@@ -79,37 +79,36 @@ pub fn analyze_commutations(
                 for prev_gate_idx in last.iter() {
                     // if the node is an input/output node, they do not commute, so we only
                     // continue if the nodes are operation nodes
-                    match (&dag[current_gate_idx], &dag[*prev_gate_idx]) {
-                        (NodeType::Operation(packed_inst0), NodeType::Operation(packed_inst1)) => {
-                            let op1 = packed_inst0.op.view();
-                            let op2 = packed_inst1.op.view();
-                            let params1 = packed_inst0.params_view();
-                            let params2 = packed_inst1.params_view();
-                            let qargs1 = dag.get_qargs(packed_inst0.qubits);
-                            let qargs2 = dag.get_qargs(packed_inst1.qubits);
-                            let cargs1 = dag.get_cargs(packed_inst0.clbits);
-                            let cargs2 = dag.get_cargs(packed_inst1.clbits);
+                    if let (NodeType::Operation(packed_inst0), NodeType::Operation(packed_inst1)) =
+                        (&dag[current_gate_idx], &dag[*prev_gate_idx])
+                    {
+                        let op1 = packed_inst0.op.view();
+                        let op2 = packed_inst1.op.view();
+                        let params1 = packed_inst0.params_view();
+                        let params2 = packed_inst1.params_view();
+                        let qargs1 = dag.get_qargs(packed_inst0.qubits);
+                        let qargs2 = dag.get_qargs(packed_inst1.qubits);
+                        let cargs1 = dag.get_cargs(packed_inst0.clbits);
+                        let cargs2 = dag.get_cargs(packed_inst1.clbits);
 
-                            all_commute = commutation_checker.commute(
-                                &op1,
-                                params1,
-                                qargs1,
-                                cargs1,
-                                &op2,
-                                params2,
-                                qargs2,
-                                cargs2,
-                                MAX_NUM_QUBITS,
-                                approximation_degree,
-                            )?;
-                            if !all_commute {
-                                break;
-                            }
-                        }
-                        _ => {
-                            all_commute = false;
+                        all_commute = commutation_checker.commute(
+                            &op1,
+                            params1,
+                            qargs1,
+                            cargs1,
+                            &op2,
+                            params2,
+                            qargs2,
+                            cargs2,
+                            MAX_NUM_QUBITS,
+                            approximation_degree,
+                        )?;
+                        if !all_commute {
                             break;
                         }
+                    } else {
+                        all_commute = false;
+                        break;
                     }
                 }
 

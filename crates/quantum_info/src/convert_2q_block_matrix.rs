@@ -196,9 +196,10 @@ pub fn instructions_to_matrix<'a>(
                 if let Some(sep) = qubits_1q.take() {
                     matrix = matrix.dot(&sep.matrix_into(&mut work));
                 }
-                output_matrix = match output_matrix {
-                    Some(state) => Some(matrix.dot(&state)),
-                    _ => Some(matrix),
+                output_matrix = if let Some(state) = output_matrix {
+                    Some(matrix.dot(&state))
+                } else {
+                    Some(matrix)
                 };
             }
         }

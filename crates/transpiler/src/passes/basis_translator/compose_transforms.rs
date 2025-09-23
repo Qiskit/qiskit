@@ -71,18 +71,17 @@ pub(super) fn compose_transforms<'a>(
                 "Error while adding register to the circuit".to_string(),
             )
         })?;
-        let gate = match name_to_packed_operation(&gate_name, gate_num_qubits) {
-            Some(op) => op,
-            _ => {
-                let extract_py = Python::attach(|py| -> PyResult<OperationFromPython> {
-                    GATE.get_bound(py)
-                        .call1((&gate_name, gate_num_qubits, placeholder_params.as_ref()))?
-                        .extract()
-                })
-                .unwrap_or_else(|_| panic!("Error creating custom gate for entry {}", gate_name));
-                placeholder_params = extract_py.params;
-                extract_py.operation
-            }
+        let gate = if let Some(op) = name_to_packed_operation(&gate_name, gate_num_qubits) {
+            op
+        } else {
+            let extract_py = Python::attach(|py| -> PyResult<OperationFromPython> {
+                GATE.get_bound(py)
+                    .call1((&gate_name, gate_num_qubits, placeholder_params.as_ref()))?
+                    .extract()
+            })
+            .unwrap_or_else(|_| panic!("Error creating custom gate for entry {}", gate_name));
+            placeholder_params = extract_py.params;
+            extract_py.operation
         };
         let qubits: Vec<Qubit> = (0..dag.num_qubits() as u32).map(Qubit).collect();
         dag.apply_operation_back(

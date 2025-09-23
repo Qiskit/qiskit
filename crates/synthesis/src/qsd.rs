@@ -734,56 +734,53 @@ fn apply_a2(
         VarsMode::Alike,
     )?;
     for (idx, inst) in circ.data().iter().enumerate() {
-        match diagonal_rollover.get(&idx) {
-            Some(new_circ) => {
-                let block_index_map = circ.get_qargs(circ.data()[idx].qubits);
+        if let Some(new_circ) = diagonal_rollover.get(&idx) {
+            let block_index_map = circ.get_qargs(circ.data()[idx].qubits);
 
-                // Build interned key map for possible combinations of 2q unitary qargs in out circuit
-                let qarg_vals = [
-                    out_circ.add_qargs(&[block_index_map[0]]),
-                    out_circ.add_qargs(&[block_index_map[1]]),
-                    out_circ.add_qargs(&[block_index_map[0], block_index_map[1]]),
-                    out_circ.add_qargs(&[block_index_map[1], block_index_map[0]]),
-                ];
-                // Build lookup table for possible interned qubits in custom decomposition
-                // in 2q new circuit
-                let interned_default = out_circ.qargs_interner().get_default();
-                let interned_map: [&[Qubit]; 4] = [
-                    &[Qubit(0)],
-                    &[Qubit(1)],
-                    &[Qubit(0), Qubit(1)],
-                    &[Qubit(1), Qubit(0)],
-                ];
-                let interned_map = interned_map.map(|qubits| {
-                    new_circ
-                        .qargs_interner()
-                        .try_key(qubits)
-                        .unwrap_or(interned_default)
-                });
-                // Map new circuit interned qubits -> out_circuit interned qubits
-                let qarg_lookup = |qargs: Interned<[Qubit]>| {
-                    qarg_vals[interned_map
-                        .iter()
-                        .position(|key| qargs == *key)
-                        .expect("not a 1q or 2q gate in the qargs block")]
+            // Build interned key map for possible combinations of 2q unitary qargs in out circuit
+            let qarg_vals = [
+                out_circ.add_qargs(&[block_index_map[0]]),
+                out_circ.add_qargs(&[block_index_map[1]]),
+                out_circ.add_qargs(&[block_index_map[0], block_index_map[1]]),
+                out_circ.add_qargs(&[block_index_map[1], block_index_map[0]]),
+            ];
+            // Build lookup table for possible interned qubits in custom decomposition
+            // in 2q new circuit
+            let interned_default = out_circ.qargs_interner().get_default();
+            let interned_map: [&[Qubit]; 4] = [
+                &[Qubit(0)],
+                &[Qubit(1)],
+                &[Qubit(0), Qubit(1)],
+                &[Qubit(1), Qubit(0)],
+            ];
+            let interned_map = interned_map.map(|qubits| {
+                new_circ
+                    .qargs_interner()
+                    .try_key(qubits)
+                    .unwrap_or(interned_default)
+            });
+            // Map new circuit interned qubits -> out_circuit interned qubits
+            let qarg_lookup = |qargs: Interned<[Qubit]>| {
+                qarg_vals[interned_map
+                    .iter()
+                    .position(|key| qargs == *key)
+                    .expect("not a 1q or 2q gate in the qargs block")]
+            };
+            for inst in new_circ.data() {
+                let out_inst = PackedInstruction {
+                    op: inst.op.clone(),
+                    qubits: qarg_lookup(inst.qubits),
+                    clbits: inst.clbits,
+                    params: inst.params.clone(),
+                    label: inst.label.clone(),
+                    #[cfg(feature = "cache_pygates")]
+                    py_op: OnceLock::new(),
                 };
-                for inst in new_circ.data() {
-                    let out_inst = PackedInstruction {
-                        op: inst.op.clone(),
-                        qubits: qarg_lookup(inst.qubits),
-                        clbits: inst.clbits,
-                        params: inst.params.clone(),
-                        label: inst.label.clone(),
-                        #[cfg(feature = "cache_pygates")]
-                        py_op: OnceLock::new(),
-                    };
-                    out_circ.push(out_inst)?;
-                }
-                out_circ.add_global_phase(new_circ.global_phase())?;
+                out_circ.push(out_inst)?;
             }
-            _ => {
-                out_circ.push(inst.clone())?;
-            }
+            out_circ.add_global_phase(new_circ.global_phase())?;
+        } else {
+            out_circ.push(inst.clone())?;
         }
     }
     Ok(out_circ)

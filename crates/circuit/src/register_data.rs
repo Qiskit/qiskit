@@ -160,17 +160,16 @@ where
     /// __**Note:** This operation is performed at `O(n)` times in the worst case.__
     pub fn remove(&mut self, register: &str) -> Option<R> {
         self.cached_registers.take();
-        match self.reg_index.remove(register) {
-            Some(index) => {
-                let bit = self.registers.remove(index.index());
-                // Update indices.
-                for i in index.index()..self.registers.len() {
-                    self.reg_index
-                        .insert(self.registers[i].name().to_string(), i.into());
-                }
-                Some(bit)
+        if let Some(index) = self.reg_index.remove(register) {
+            let bit = self.registers.remove(index.index());
+            // Update indices.
+            for i in index.index()..self.registers.len() {
+                self.reg_index
+                    .insert(self.registers[i].name().to_string(), i.into());
             }
-            _ => None,
+            Some(bit)
+        } else {
+            None
         }
     }
 

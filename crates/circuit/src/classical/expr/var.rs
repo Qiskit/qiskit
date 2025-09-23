@@ -90,12 +90,11 @@ impl PyVar {
                 name,
                 ty,
             }
+        } else if let Ok(register) = var.extract::<ClassicalRegister>() {
+            Var::Register { register, ty }
         } else {
-            match var.extract::<ClassicalRegister>() {
-                Ok(register) => Var::Register { register, ty },
-                _ => Var::Bit {
-                    bit: var.extract()?,
-                },
+            Var::Bit {
+                bit: var.extract()?,
             }
         };
         Py::new(var.py(), (PyVar(v), PyExpr(ExprKind::Var)))

@@ -223,18 +223,15 @@ impl<T: Default> VirtualInteractions<T> {
                 [] => (),
                 [q] => {
                     let q = wire_map[q.index()];
-                    match self.nodes.get_index_of(&q) {
-                        Some(index) => {
-                            let weight = self
-                                .graph
-                                .node_weight_mut(NodeIndex::new(index))
-                                .expect("node must be in graph if tracked in 'nodes'");
-                            weighter(weight, inst, repeats);
-                        }
-                        _ => {
-                            let weight = self.uncoupled.entry(q).or_default();
-                            weighter(weight, inst, repeats);
-                        }
+                    if let Some(index) = self.nodes.get_index_of(&q) {
+                        let weight = self
+                            .graph
+                            .node_weight_mut(NodeIndex::new(index))
+                            .expect("node must be in graph if tracked in 'nodes'");
+                        weighter(weight, inst, repeats);
+                    } else {
+                        let weight = self.uncoupled.entry(q).or_default();
+                        weighter(weight, inst, repeats);
                     }
                 }
                 [q0, q1] => {
@@ -242,19 +239,16 @@ impl<T: Default> VirtualInteractions<T> {
                     let q1 = wire_map[q1.index()];
                     let node0 = self.ensure_1q_in_graph(q0);
                     let node1 = self.ensure_1q_in_graph(q1);
-                    match self.graph.find_edge(node0, node1) {
-                        Some(edge) => {
-                            let weight = self
-                                .graph
-                                .edge_weight_mut(edge)
-                                .expect("this index came from a call to 'find_edge'");
-                            weighter(weight, inst, repeats);
-                        }
-                        _ => {
-                            let mut weight = T::default();
-                            weighter(&mut weight, inst, repeats);
-                            self.graph.add_edge(node0, node1, weight);
-                        }
+                    if let Some(edge) = self.graph.find_edge(node0, node1) {
+                        let weight = self
+                            .graph
+                            .edge_weight_mut(edge)
+                            .expect("this index came from a call to 'find_edge'");
+                        weighter(weight, inst, repeats);
+                    } else {
+                        let mut weight = T::default();
+                        weighter(&mut weight, inst, repeats);
+                        self.graph.add_edge(node0, node1, weight);
                     }
                 }
                 _ => return Err(MultiQEncountered::new_err("")),

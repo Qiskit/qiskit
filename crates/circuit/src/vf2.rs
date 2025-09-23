@@ -1751,11 +1751,10 @@ where
             let (mut nodes, open_list) = match self.loop_stack.pop()? {
                 Frame::ChooseNextHaystack { nodes, open_list } => {
                     self.pop_state(nodes);
-                    match self.haystack.next_unmapped_after(nodes.1, open_list) {
-                        Some(haystack) => ((nodes.0, haystack), open_list),
-                        _ => {
-                            continue;
-                        }
+                    if let Some(haystack) = self.haystack.next_unmapped_after(nodes.1, open_list) {
+                        ((nodes.0, haystack), open_list)
+                    } else {
+                        continue;
                     }
                 }
                 Frame::ChooseNextNeedle => {
@@ -1804,13 +1803,10 @@ where
                     }
                     self.pop_state(nodes);
                 }
-                match self.haystack.next_unmapped_after(nodes.1, open_list) {
-                    Some(nx) => {
-                        nodes.1 = nx;
-                    }
-                    _ => {
-                        break;
-                    }
+                if let Some(nx) = self.haystack.next_unmapped_after(nodes.1, open_list) {
+                    nodes.1 = nx;
+                } else {
+                    break;
                 }
             }
         }

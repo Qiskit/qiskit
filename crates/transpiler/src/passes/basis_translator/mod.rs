@@ -111,10 +111,12 @@ pub fn run_basis_translator(
         AhashIndexMap::default();
     if let Some(target) = target.as_ref() {
         basic_instrs = ["barrier", "snapshot", "store"].into_iter().collect();
-        let non_global_str: AhashIndexSet<&str> = match non_global_operations.as_ref() {
-            Some(operations) => operations.clone(),
-            _ => AhashIndexSet::default(),
-        };
+        let non_global_str: AhashIndexSet<&str> =
+            if let Some(operations) = non_global_operations.as_ref() {
+                operations.clone()
+            } else {
+                AhashIndexSet::default()
+            };
         let target_keys = target.keys().collect::<AhashIndexSet<_>>();
         new_target_basis = target_keys.difference(&non_global_str).copied().collect();
         extract_basis_target(
@@ -176,16 +178,13 @@ pub fn run_basis_translator(
                 .collect();
         }
         let local_basis_transforms = basis_search(equiv_lib, local_source_basis, &expanded_target);
-        match local_basis_transforms {
-            Some(local_basis_transforms) => {
-                qarg_local_basis_transforms.insert(qargs, local_basis_transforms);
-            }
-            _ => {
-                return Err(BasisTranslatorError::TargetMissingEquivalence {
-                    basis: format!("{:?}", local_source_basis),
-                    expanded: format!("{:?}", expanded_target),
-                });
-            }
+        if let Some(local_basis_transforms) = local_basis_transforms {
+            qarg_local_basis_transforms.insert(qargs, local_basis_transforms);
+        } else {
+            return Err(BasisTranslatorError::TargetMissingEquivalence {
+                basis: format!("{:?}", local_source_basis),
+                expanded: format!("{:?}", expanded_target),
+            });
         }
     }
 
@@ -458,45 +457,42 @@ fn apply_translation(
                     Ok(())
                 }).map_err(|_| BasisTranslatorError::BasisCircuitError("Error replacing control flow operation blocks".to_string()))?;
             }
-            match new_op {
-                Some(new_op) => {
-                    out_dag_builder
-                        .apply_operation_back(
-                            new_op.operation,
-                            node_qarg,
-                            node_carg,
-                            if new_op.params.is_empty() {
-                                None
-                            } else {
-                                Some(new_op.params)
-                            },
-                            new_op.label.as_deref().cloned(),
-                            #[cfg(feature = "cache_pygates")]
-                            None,
+            if let Some(new_op) = new_op {
+                out_dag_builder
+                    .apply_operation_back(
+                        new_op.operation,
+                        node_qarg,
+                        node_carg,
+                        if new_op.params.is_empty() {
+                            None
+                        } else {
+                            Some(new_op.params)
+                        },
+                        new_op.label.as_deref().cloned(),
+                        #[cfg(feature = "cache_pygates")]
+                        None,
+                    )
+                    .map_err(|_| {
+                        BasisTranslatorError::BasisDAGCircuitError(
+                            "Error applying operation to DAGCircuit".to_string(),
                         )
-                        .map_err(|_| {
-                            BasisTranslatorError::BasisDAGCircuitError(
-                                "Error applying operation to DAGCircuit".to_string(),
-                            )
-                        })?;
-                }
-                _ => {
-                    out_dag_builder
-                        .apply_operation_back(
-                            node_obj.op.clone(),
-                            node_qarg,
-                            node_carg,
-                            node_obj.params.as_ref().map(|x| *x.clone()),
-                            node_obj.label.as_deref().cloned(),
-                            #[cfg(feature = "cache_pygates")]
-                            None,
+                    })?;
+            } else {
+                out_dag_builder
+                    .apply_operation_back(
+                        node_obj.op.clone(),
+                        node_qarg,
+                        node_carg,
+                        node_obj.params.as_ref().map(|x| *x.clone()),
+                        node_obj.label.as_deref().cloned(),
+                        #[cfg(feature = "cache_pygates")]
+                        None,
+                    )
+                    .map_err(|_| {
+                        BasisTranslatorError::BasisDAGCircuitError(
+                            "Error applying operation to DAGCircuit".to_string(),
                         )
-                        .map_err(|_| {
-                            BasisTranslatorError::BasisDAGCircuitError(
-                                "Error applying operation to DAGCircuit".to_string(),
-                            )
-                        })?;
-                }
+                    })?;
             }
             continue;
         }
