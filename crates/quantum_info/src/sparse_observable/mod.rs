@@ -1598,7 +1598,7 @@ impl SparseTerm {
 }
 
 #[derive(Error, Debug)]
-struct InnerReadError;
+pub struct InnerReadError;
 
 #[derive(Error, Debug)]
 struct InnerWriteError;
@@ -3889,9 +3889,10 @@ impl PySparseObservable {
     }
 }
 impl PySparseObservable {
-    pub fn get(&self) -> RwLockReadGuard<'_, SparseObservable> {
-        let data = self.inner.read();
-        data.unwrap()
+    /// This is an immutable reference as opposed to a `copy`.
+    pub fn as_inner(&self) -> Result<RwLockReadGuard<SparseObservable>, InnerReadError> {
+        let data = self.inner.read().map_err(|_| InnerReadError)?;
+        Ok(data)
     }
 }
 impl From<SparseObservable> for PySparseObservable {

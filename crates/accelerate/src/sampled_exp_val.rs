@@ -67,25 +67,19 @@ fn bitstring_expval(dist: &HashMap<String, f64>, mut oper_str: String) -> f64 {
     exp_val / denom
 }
 
-fn bitstring_expval_bitterm(
-    dist: &HashMap<String, f64>,
-    term: &SparseTermView,
-) -> Result<f64, PyErr> {
+fn bitstring_expval_bitterm(dist: &HashMap<String, f64>, term: &SparseTermView) -> PyResult<f64> {
     let inds: Vec<usize> = term.indices.iter().map(|x| *x as usize).collect();
     let n = term.num_qubits as usize;
     let denom: f64 = fast_sum(&dist.values().copied().collect::<Vec<f64>>());
-    let exp_val: Result<f64, PyErr> = dist
+    let exp_val: PyResult<f64> = dist
         .iter()
         .map(|(bits, val)| {
-            let temp_product: Result<f64, PyErr> =
+            let temp_product: PyResult<f64> =
                 term.bit_terms
                     .iter()
                     .enumerate()
                     .try_fold(1.0, |acc, (idx, bitterm)| {
-                        if bitterm != &BitTerm::Z
-                            && bitterm != &BitTerm::Zero
-                            && bitterm != &BitTerm::One
-                        {
+                        if (*bitterm as usize) & 0b0011 != 0b0001 {
                             return Err(PyValueError::new_err(format!(
                                 "Operator string '{:?}' contains non-diagonal terms",
                                 term.bit_terms
@@ -144,8 +138,8 @@ pub fn sampled_expval_sparse_observable(
     dist: HashMap<String, f64>,
 ) -> PyResult<f64> {
     // Access the SparseObservable
-    let sparse_obs = sparse_obs.get();
-    let result: Result<Complex64, PyErr> =
+    let sparse_obs = sparse_obs.as_inner()?;
+    let result: PyResult<Complex64> =
         sparse_obs
             .iter()
             .enumerate()
