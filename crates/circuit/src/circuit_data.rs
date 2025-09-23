@@ -1492,7 +1492,8 @@ impl CircuitData {
                 ) {
                     Ok(_)
                     | Err(ParameterTableError::ParameterNotTracked(_))
-                    | Err(ParameterTableError::UsageNotTracked(_)) => (),
+                    | Err(ParameterTableError::UsageNotTracked(_))
+                    | Err(ParameterTableError::ConflictingName(_)) => (),
                     // Any errors added later might want propagating.
                 }
             }
