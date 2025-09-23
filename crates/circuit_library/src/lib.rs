@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
+use pyo3::import_exception;
 
 mod blocks;
 mod entanglement;
@@ -20,6 +21,10 @@ mod parameter_ledger;
 mod pauli_evolution;
 mod pauli_feature_map;
 mod quantum_volume;
+
+
+import_exception!(qiskit.exceptions, QiskitError);
+import_exception!(qiskit.circuit.exceptions, CircuitError);
 
 pub fn circuit_library(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(pauli_evolution::py_pauli_evolution))?;

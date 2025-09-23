@@ -21,7 +21,7 @@ use qiskit_circuit::{
 };
 use smallvec::SmallVec;
 
-use crate::{circuit_library::entanglement::get_entanglement, QiskitError};
+use crate::{entanglement::get_entanglement, QiskitError};
 
 #[derive(Debug, Clone)]
 pub enum BlockOperation {
