@@ -10,8 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::prelude::*;
 use pyo3::import_exception;
+use pyo3::prelude::*;
 
 mod blocks;
 mod entanglement;
@@ -21,7 +21,6 @@ mod parameter_ledger;
 mod pauli_evolution;
 mod pauli_feature_map;
 mod quantum_volume;
-
 
 import_exception!(qiskit.exceptions, QiskitError);
 import_exception!(qiskit.circuit.exceptions, CircuitError);
