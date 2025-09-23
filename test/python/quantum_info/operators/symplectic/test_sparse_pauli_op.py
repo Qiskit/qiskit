@@ -1204,7 +1204,8 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         # bind via array
         bound = op.assign_parameters([3])
         with self.subTest(msg="fully bound"):
-            self.assertTrue(np.allclose(bound.coeffs.astype(complex), [1, 3, 6]))
+            self.assertEqual(bound.coeffs.dtype, np.complex128)
+            self.assertTrue(np.allclose(bound.coeffs, [1, 3, 6]))
 
     def test_paulis_setter_rejects_bad_inputs(self):
         """Test that the setter for `paulis` rejects different-sized inputs."""
@@ -1355,6 +1356,39 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = SparsePauliOp(["YY", "YY"], [1e-6, -1e-6])
         res = op.simplify(atol=1e-7)
         self.assertEqual(SparsePauliOp(["II"], [0j]), res)
+
+    def test_is_unitary_tolerance(self):
+        """Test that is_unitary respects the input tolerance values.
+
+        This test verifies that the tolerance parameters are properly passed through
+        to the internal operations. See issue #14107.
+        """
+        # Create a matrix that's approximately unitary but not exactly
+        a = np.array(
+            [
+                [-9.9801135e-01 + 6.3036762e-02j, 5.6710692e-06 + 8.1099635e-05j],
+                [5.6710610e-06 + 8.1099643e-05j, -9.9707150e-01 + 7.6473624e-02j],
+            ]
+        )
+
+        # Verify the matrix is approximately unitary
+        identity = a @ a.conj().T
+        np.testing.assert_allclose(identity, np.eye(2), atol=1e-5, rtol=1e-3)
+
+        # Create SparsePauliOp from the matrix
+        op = SparsePauliOp.from_operator(a)
+
+        # Test with tolerance that should pass
+        self.assertTrue(
+            op.is_unitary(atol=1e-5, rtol=1e-3),
+            "Operator should be considered unitary with given tolerance",
+        )
+
+        # Test with very small tolerance that should fail
+        self.assertFalse(
+            op.is_unitary(atol=1e-10, rtol=1e-10),
+            "Operator should not be considered unitary with very small tolerance",
+        )
 
 
 if __name__ == "__main__":

@@ -18,6 +18,7 @@ from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayout
 from qiskit.transpiler.passes.optimization.split_2q_unitaries import Split2QUnitaries
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import BasicSwap
 from qiskit.transpiler.passes import LookaheadSwap
 from qiskit.transpiler.passes import SabreSwap
@@ -92,6 +93,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     pass_manager_config.unitary_synthesis_plugin_config,
                     pass_manager_config.hls_config,
                     pass_manager_config.qubits_initially_zero,
+                    pass_manager_config._is_clifford_t,
                 )
         elif optimization_level == 1:
             init = PassManager()
@@ -111,6 +113,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     pass_manager_config.unitary_synthesis_plugin_config,
                     pass_manager_config.hls_config,
                     pass_manager_config.qubits_initially_zero,
+                    pass_manager_config._is_clifford_t,
                 )
             init.append(
                 [
@@ -128,6 +131,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 pass_manager_config.unitary_synthesis_plugin_config,
                 pass_manager_config.hls_config,
                 pass_manager_config.qubits_initially_zero,
+                pass_manager_config._is_clifford_t,
             )
             if pass_manager_config.routing_method != "none":
                 init.append(ElidePermutations())
@@ -613,15 +617,22 @@ class OptimizationPassManager(PassManagerStagePlugin):
                     pass_manager_config.layout_method,
                     pass_manager_config.initial_layout,
                 )
-                optimization.append(
-                    VF2PostLayout(
-                        target=pass_manager_config.target,
-                        seed=-1,
-                        call_limit=vf2_call_limit,
-                        max_trials=vf2_max_trials,
-                        strict_direction=True,
+                is_vf2_fully_bounded = vf2_call_limit and vf2_max_trials
+                if pass_manager_config.target is not None and is_vf2_fully_bounded:
+                    optimization.append(
+                        VF2PostLayout(
+                            target=pass_manager_config.target,
+                            seed=-1,
+                            call_limit=vf2_call_limit,
+                            max_trials=vf2_max_trials,
+                            strict_direction=True,
+                        )
                     )
-                )
+                    optimization.append(
+                        ConditionalController(
+                            ApplyLayout(), condition=common._apply_post_layout_condition
+                        )
+                    )
 
             return optimization
         else:

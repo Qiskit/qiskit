@@ -33,7 +33,7 @@ class SwapGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.swap` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -41,7 +41,7 @@ class SwapGate(SingletonGate):
               │
         q_1: ─X─
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -63,7 +63,10 @@ class SwapGate(SingletonGate):
     _standard_gate = StandardGate.Swap
 
     def __init__(self, label: Optional[str] = None):
-        """Create new SWAP gate."""
+        """
+        Args:
+            label: An optional label for the gate.
+        """
         super().__init__("swap", 2, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
@@ -80,7 +83,7 @@ class SwapGate(SingletonGate):
         #      └───┘     └───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.Swap._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.Swap._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def control(
@@ -142,7 +145,7 @@ class CSwapGate(SingletonControlledGate):
     with the :meth:`~qiskit.circuit.QuantumCircuit.cswap` and
     :meth:`~qiskit.circuit.QuantumCircuit.fredkin` methods.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -153,7 +156,7 @@ class CSwapGate(SingletonControlledGate):
         q_2: ─X─
 
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 
@@ -247,7 +250,7 @@ class CSwapGate(SingletonControlledGate):
         #           └───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.CSwap._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.CSwap._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def inverse(self, annotated: bool = False):

@@ -42,11 +42,11 @@ use pyo3::{intern, IntoPyObjectExt, Python};
 pub enum Param {
     ParameterExpression(Arc<ParameterExpression>),
     Float(f64),
-    Obj(PyObject),
+    Obj(Py<PyAny>),
 }
 
 impl<'py> IntoPyObject<'py> for &Param {
-    type Target = PyAny; // target type is PyAny to cover f64, PyObject and PyParameterExpression
+    type Target = PyAny; // target type is PyAny to cover f64, Py<PyAny> and PyParameterExpression
     type Output = Bound<'py, Self::Target>;
     type Error = PyErr;
 
@@ -98,11 +98,11 @@ impl Param {
             [Self::Obj(_), Self::Float(_)] => Ok(false),
             [Self::Float(_), Self::Obj(_)] => Ok(false),
             [Self::Obj(a), Self::ParameterExpression(b)] => {
-                Python::with_gil(|py| a.bind(py).eq(b.as_ref().clone()))
+                Python::attach(|py| a.bind(py).eq(b.as_ref().clone()))
             }
-            [Self::Obj(a), Self::Obj(b)] => Python::with_gil(|py| a.bind(py).eq(b)),
+            [Self::Obj(a), Self::Obj(b)] => Python::attach(|py| a.bind(py).eq(b)),
             [Self::ParameterExpression(a), Self::Obj(b)] => {
-                Python::with_gil(|py| a.as_ref().clone().into_bound_py_any(py)?.eq(b))
+                Python::attach(|py| a.as_ref().clone().into_bound_py_any(py)?.eq(b))
             }
         }
     }
@@ -121,28 +121,26 @@ impl Param {
         match self {
             Param::Float(_) => Ok(Box::new(::std::iter::empty())),
             Param::ParameterExpression(expr) => Ok(Box::new(expr.iter_symbols().cloned())),
-            Param::Obj(obj) => {
-                Python::with_gil(|py| -> PyResult<Box<dyn Iterator<Item = Symbol>>> {
-                    let parameters_attr = intern!(py, "parameters");
-                    let obj = obj.bind(py);
-                    if obj.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
-                        let collected: Vec<Symbol> = obj
-                            .getattr(parameters_attr)?
-                            .try_iter()?
-                            .map(|elem| {
-                                let elem = elem?;
-                                let py_param_bound = elem.downcast::<PyParameter>()?;
-                                let py_param = py_param_bound.borrow();
-                                let symbol = py_param.symbol();
-                                Ok(symbol.clone())
-                            })
-                            .collect::<PyResult<_>>()?;
-                        Ok(Box::new(collected.into_iter()))
-                    } else {
-                        Ok(Box::new(::std::iter::empty()))
-                    }
-                })
-            }
+            Param::Obj(obj) => Python::attach(|py| -> PyResult<Box<dyn Iterator<Item = Symbol>>> {
+                let parameters_attr = intern!(py, "parameters");
+                let obj = obj.bind(py);
+                if obj.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
+                    let collected: Vec<Symbol> = obj
+                        .getattr(parameters_attr)?
+                        .try_iter()?
+                        .map(|elem| {
+                            let elem = elem?;
+                            let py_param_bound = elem.downcast::<PyParameter>()?;
+                            let py_param = py_param_bound.borrow();
+                            let symbol = py_param.symbol();
+                            Ok(symbol.clone())
+                        })
+                        .collect::<PyResult<_>>()?;
+                    Ok(Box::new(collected.into_iter()))
+                } else {
+                    Ok(Box::new(::std::iter::empty()))
+                }
+            }),
         }
     }
 
@@ -167,7 +165,7 @@ impl Param {
                     } else {
                         // Int is not a param type and only comes from Python so dump it in
                         // there until we support DT unit delay from C
-                        Python::with_gil(|py| Ok(Self::Obj(i.into_py_any(py)?)))
+                        Python::attach(|py| Ok(Self::Obj(i.into_py_any(py)?)))
                     }
                 }
                 Value::Real(f) => Ok(Self::Float(f)),
@@ -178,7 +176,7 @@ impl Param {
                         // Complex numbers are only defined in Python custom
                         // objects and aren't valid gate parameters for
                         // anything else so return it as an object
-                        Python::with_gil(|py| Ok(Self::Obj(c.into_py_any(py)?)))
+                        Python::attach(|py| Ok(Self::Obj(c.into_py_any(py)?)))
                     }
                 }
             },
@@ -213,6 +211,20 @@ impl Param {
             Param::Obj(obj) => Param::Obj(obj.clone_ref(py)),
         }
     }
+
+    pub fn py_deepcopy<'py>(
+        &self,
+        py: Python<'py>,
+        memo: Option<&Bound<'py, PyDict>>,
+    ) -> PyResult<Self> {
+        match self {
+            Param::Float(f) => Ok(Param::Float(*f)),
+            _ => DEEPCOPY
+                .get_bound(py)
+                .call1((self.clone(), memo))?
+                .extract(),
+        }
+    }
 }
 
 // This impl allows for shared usage between [Param] and &[Param].
@@ -242,7 +254,6 @@ pub trait Operation {
     fn blocks(&self) -> Vec<CircuitData>;
     fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>>;
     fn definition(&self, params: &[Param]) -> Option<CircuitData>;
-    fn standard_gate(&self) -> Option<StandardGate>;
     fn directive(&self) -> bool;
     fn matrix_as_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]>;
     fn matrix_as_nalgebra_1q(&self, params: &[Param]) -> Option<Matrix2<Complex64>> {
@@ -353,17 +364,6 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.definition(params),
             Self::Operation(operation) => operation.definition(params),
             Self::Unitary(unitary) => unitary.definition(params),
-        }
-    }
-    #[inline]
-    fn standard_gate(&self) -> Option<StandardGate> {
-        match self {
-            Self::StandardGate(standard) => standard.standard_gate(),
-            Self::StandardInstruction(instruction) => instruction.standard_gate(),
-            Self::Gate(gate) => gate.standard_gate(),
-            Self::Instruction(instruction) => instruction.standard_gate(),
-            Self::Operation(operation) => operation.standard_gate(),
-            Self::Unitary(unitary) => unitary.standard_gate(),
         }
     }
     #[inline]
@@ -535,10 +535,6 @@ impl Operation for StandardInstruction {
     }
 
     fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
-        None
-    }
-
-    fn standard_gate(&self) -> Option<StandardGate> {
         None
     }
 
@@ -2245,10 +2241,6 @@ impl Operation for StandardGate {
         }
     }
 
-    fn standard_gate(&self) -> Option<StandardGate> {
-        Some(*self)
-    }
-
     fn directive(&self) -> bool {
         false
     }
@@ -2461,7 +2453,7 @@ pub struct PyInstruction {
     pub params: u32,
     pub op_name: String,
     pub control_flow: bool,
-    pub instruction: PyObject,
+    pub instruction: Py<PyAny>,
 }
 
 impl PythonOperation for PyInstruction {
@@ -2510,7 +2502,7 @@ impl Operation for PyInstruction {
         if !self.control_flow {
             return vec![];
         }
-        Python::with_gil(|py| -> Vec<CircuitData> {
+        Python::attach(|py| -> Vec<CircuitData> {
             // We expect that if PyInstruction::control_flow is true then the operation WILL
             // have a 'blocks' attribute which is a tuple of the Python QuantumCircuit.
             let raw_blocks = self.instruction.getattr(py, "blocks").unwrap();
@@ -2530,7 +2522,7 @@ impl Operation for PyInstruction {
         None
     }
     fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
-        Python::with_gil(|py| -> Option<CircuitData> {
+        Python::attach(|py| -> Option<CircuitData> {
             match self.instruction.getattr(py, intern!(py, "definition")) {
                 Ok(definition) => definition
                     .getattr(py, intern!(py, "_data"))
@@ -2541,12 +2533,9 @@ impl Operation for PyInstruction {
             }
         })
     }
-    fn standard_gate(&self) -> Option<StandardGate> {
-        None
-    }
 
     fn directive(&self) -> bool {
-        Python::with_gil(|py| -> bool {
+        Python::attach(|py| -> bool {
             match self.instruction.getattr(py, intern!(py, "_directive")) {
                 Ok(directive) => {
                     let res: bool = directive.extract(py).unwrap();
@@ -2570,7 +2559,7 @@ pub struct PyGate {
     pub clbits: u32,
     pub params: u32,
     pub op_name: String,
-    pub gate: PyObject,
+    pub gate: Py<PyAny>,
 }
 
 impl PythonOperation for PyGate {
@@ -2617,10 +2606,10 @@ impl Operation for PyGate {
         vec![]
     }
     fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
-        Python::with_gil(|py| -> Option<Array2<Complex64>> {
+        Python::attach(|py| -> Option<Array2<Complex64>> {
             match self.gate.getattr(py, intern!(py, "to_matrix")) {
                 Ok(to_matrix) => {
-                    let res: Option<PyObject> = to_matrix.call0(py).ok()?.extract(py).ok();
+                    let res: Option<Py<PyAny>> = to_matrix.call0(py).ok()?.extract(py).ok();
                     match res {
                         Some(x) => {
                             let array: PyReadonlyArray2<Complex64> = x.extract(py).ok()?;
@@ -2634,7 +2623,7 @@ impl Operation for PyGate {
         })
     }
     fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
-        Python::with_gil(|py| -> Option<CircuitData> {
+        Python::attach(|py| -> Option<CircuitData> {
             match self.gate.getattr(py, intern!(py, "definition")) {
                 Ok(definition) => definition
                     .getattr(py, intern!(py, "_data"))
@@ -2645,14 +2634,7 @@ impl Operation for PyGate {
             }
         })
     }
-    fn standard_gate(&self) -> Option<StandardGate> {
-        Python::with_gil(|py| -> Option<StandardGate> {
-            match self.gate.getattr(py, intern!(py, "_standard_gate")) {
-                Ok(stdgate) => stdgate.extract(py).unwrap_or_default(),
-                Err(_) => None,
-            }
-        })
-    }
+
     fn directive(&self) -> bool {
         false
     }
@@ -2661,7 +2643,7 @@ impl Operation for PyGate {
         if self.num_qubits() != 1 {
             return None;
         }
-        Python::with_gil(|py| -> Option<[[Complex64; 2]; 2]> {
+        Python::attach(|py| -> Option<[[Complex64; 2]; 2]> {
             let array = self
                 .gate
                 .call_method0(py, intern!(py, "to_matrix"))
@@ -2683,7 +2665,7 @@ pub struct PyOperation {
     pub clbits: u32,
     pub params: u32,
     pub op_name: String,
-    pub operation: PyObject,
+    pub operation: Py<PyAny>,
 }
 
 impl PythonOperation for PyOperation {
@@ -2735,12 +2717,8 @@ impl Operation for PyOperation {
     fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
         None
     }
-    fn standard_gate(&self) -> Option<StandardGate> {
-        None
-    }
-
     fn directive(&self) -> bool {
-        Python::with_gil(|py| -> bool {
+        Python::attach(|py| -> bool {
             match self.operation.getattr(py, intern!(py, "_directive")) {
                 Ok(directive) => {
                     let res: bool = directive.extract(py).unwrap();
@@ -2822,10 +2800,6 @@ impl Operation for UnitaryGate {
         }
     }
     fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
-        None
-    }
-
-    fn standard_gate(&self) -> Option<StandardGate> {
         None
     }
 

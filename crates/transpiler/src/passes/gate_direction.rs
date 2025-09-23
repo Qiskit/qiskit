@@ -199,6 +199,7 @@ pub fn fix_direction_target(dag: &mut DAGCircuit, target: &Target) -> PyResult<(
                             qargs.into(),
                             None,
                             Some(inst.params_view().to_vec()),
+                            false,
                         )
                         .unwrap_or(false);
                 }
@@ -314,7 +315,7 @@ where
     }
 
     if !ops_to_replace.is_empty() {
-        Python::with_gil(|py| -> PyResult<()> {
+        Python::attach(|py| -> PyResult<()> {
             for (node, op_blocks) in ops_to_replace {
                 let packed_inst = dag[node].unwrap_operation();
                 let OperationRef::Instruction(py_inst) = packed_inst.op.view() else {

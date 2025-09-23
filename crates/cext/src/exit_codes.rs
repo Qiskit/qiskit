@@ -27,6 +27,7 @@ pub enum CInputError {
 
 /// Integer exit codes returned to C.
 #[repr(u32)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum ExitCode {
     /// Success.
     Success = 0,
@@ -38,6 +39,8 @@ pub enum ExitCode {
     AlignmentError = 102,
     /// Index out of bounds.
     IndexError = 103,
+    /// Duplicate index.
+    DuplicateIndexError = 104,
     /// Error related to arithmetic operations or similar.
     ArithmeticError = 200,
     /// Mismatching number of qubits.

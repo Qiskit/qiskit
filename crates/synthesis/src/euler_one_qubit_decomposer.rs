@@ -103,7 +103,7 @@ impl OneQubitGateSequence {
         Ok(self.gates.len())
     }
 
-    fn __getitem__(&self, py: Python, idx: PySequenceIndex) -> PyResult<PyObject> {
+    fn __getitem__(&self, py: Python, idx: PySequenceIndex) -> PyResult<Py<PyAny>> {
         match idx.with_len(self.gates.len())? {
             SequenceIndex::Int(idx) => Ok((&self.gates[idx]).into_py_any(py)?),
             indices => Ok(PyList::new(

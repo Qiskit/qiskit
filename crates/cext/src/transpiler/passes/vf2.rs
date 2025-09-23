@@ -226,6 +226,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout(
         time_limit,
         max_trials,
         None,
+        None,
     ) {
         Ok(layout) => layout,
         Err(e) => panic!("{}", e),
