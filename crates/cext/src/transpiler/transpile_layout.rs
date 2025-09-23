@@ -242,9 +242,9 @@ pub unsafe extern "C" fn qk_transpile_layout_free(layout: *mut TranspileLayout) 
 #[cfg(test)]
 mod test {
     use super::*;
-    use qiskit_circuit::Qubit;
     use qiskit_circuit::bit::ShareableQubit;
     use qiskit_circuit::nlayout::{NLayout, PhysicalQubit};
+    use qiskit_circuit::Qubit;
     use qiskit_transpiler::transpile_layout::TranspileLayout;
 
     #[test]
