@@ -16,21 +16,20 @@ use pyo3::types::PyDict;
 
 use nalgebra::Matrix4;
 use num_complex::{Complex64, ComplexFloat};
+use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::getenv_use_multiple_threads;
+use qiskit_circuit::operations::{ArrayType, Param, UnitaryGate};
+use qiskit_circuit::packed_instruction::PackedOperation;
+use qiskit_circuit::{Clbit, Qubit};
 use rand::prelude::*;
 use rand_distr::StandardNormal;
 use rand_pcg::Pcg64Mcg;
 use rayon::prelude::*;
-
-use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::getenv_use_multiple_threads;
-use qiskit_circuit::instruction::Parameters;
-use qiskit_circuit::operations::{ArrayType, Param, UnitaryGate};
-use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::{Clbit, Qubit};
+use smallvec::SmallVec;
 
 type Instruction = (
     PackedOperation,
-    Option<Parameters<PyObject>>,
+    Option<SmallVec<[Param; 3]>>,
     Vec<Qubit>,
     Vec<Clbit>,
 );

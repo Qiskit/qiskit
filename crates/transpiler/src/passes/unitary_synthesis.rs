@@ -319,18 +319,14 @@ pub fn run_unitary_synthesis(
                     pulse_optimize,
                     run_python_decomposers,
                 )?;
-                new_blocks.push(res);
+                new_blocks.push(out_dag.register_block(res));
             }
             packed_instr = PackedInstruction::from_control_flow(
                 packed_instr.op.control_flow().clone(),
-                packed_instr.params.as_deref().map(|p| {
-                    let mut params = p.clone();
-                    params.replace_blocks(new_blocks);
-                    params
-                }),
+                new_blocks,
                 packed_instr.qubits,
                 packed_instr.clbits,
-                packed_instr.label.as_deref().map(|l| l.as_str()),
+                packed_instr.label.as_deref().cloned(),
             );
         }
         if !(synth_gates.contains(packed_instr.op.name())

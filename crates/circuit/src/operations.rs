@@ -18,7 +18,9 @@ use std::{fmt, vec};
 
 use crate::circuit_data::CircuitData;
 use crate::imports::{
-    get_std_gate_class, DEEPCOPY, QUANTUM_CIRCUIT, SWITCH_CASE_DEFAULT, UNITARY_GATE,
+    get_std_gate_class, BARRIER, BOX_OP, BREAK_LOOP_OP, CONTINUE_LOOP_OP, DEEPCOPY, DELAY,
+    FOR_LOOP_OP, IF_ELSE_OP, MEASURE, QUANTUM_CIRCUIT, RESET, SWITCH_CASE_DEFAULT, SWITCH_CASE_OP,
+    UNITARY_GATE, WHILE_LOOP_OP,
 };
 use crate::parameter::parameter_expression::{
     ParameterExpression, PyParameter, PyParameterExpression,
@@ -531,6 +533,83 @@ impl ControlFlow {
             },
         }
     }
+
+    pub fn create_py_op(
+        &self,
+        py: Python,
+        blocks: Option<&[PyObject]>,
+        label: Option<&str>,
+    ) -> PyResult<Py<PyAny>> {
+        let blocks = blocks.unwrap_or_default();
+        let kwargs = label
+            .map(|label| [("label", label.into_py_any(py)?)].into_py_dict(py))
+            .transpose()?;
+        match self {
+            ControlFlow::Box {
+                duration,
+                annotations,
+                ..
+            } => {
+                let (duration, unit) = match duration {
+                    Some(duration) => match duration {
+                        BoxDuration::Duration(duration) => {
+                            (Some(duration.py_value(py)?), Some(duration.unit()))
+                        }
+                        BoxDuration::Expr(expr) => {
+                            (Some(expr.clone().into_py_any(py)?), Some("expr"))
+                        }
+                    },
+                    None => (None, None),
+                };
+                BOX_OP.get(py).call1(
+                    py,
+                    (
+                        &blocks[0],
+                        duration,
+                        unit,
+                        label,
+                        PyTuple::new(py, annotations)?,
+                    ),
+                )
+            }
+            ControlFlow::BreakLoop { qubits, clbits } => {
+                BREAK_LOOP_OP
+                    .get(py)
+                    .call(py, (qubits, clbits), kwargs.as_ref())
+            }
+            ControlFlow::ContinueLoop { qubits, clbits } => {
+                CONTINUE_LOOP_OP
+                    .get(py)
+                    .call(py, (qubits, clbits), kwargs.as_ref())
+            }
+            ControlFlow::ForLoop {
+                indexset,
+                loop_param,
+                ..
+            } => FOR_LOOP_OP
+                .get(py)
+                .call(py, (indexset, loop_param, &blocks[0]), kwargs.as_ref()),
+            ControlFlow::IfElse { condition, .. } => IF_ELSE_OP.get(py).call(
+                py,
+                (condition.clone(), &blocks[0], &blocks[1]),
+                kwargs.as_ref(),
+            ),
+            ControlFlow::Switch {
+                target, label_spec, ..
+            } => {
+                let cases_specifier: Vec<(Vec<CaseSpecifier>, &PyObject)> =
+                    label_spec.iter().cloned().zip(blocks).collect();
+                SWITCH_CASE_OP
+                    .get(py)
+                    .call(py, (target.clone(), cases_specifier), kwargs.as_ref())
+            }
+            ControlFlow::While { condition, .. } => {
+                WHILE_LOOP_OP
+                    .get(py)
+                    .call(py, (condition.clone(), &blocks[0]), kwargs.as_ref())
+            }
+        }
+    }
 }
 
 impl Operation for ControlFlow {
@@ -798,6 +877,34 @@ impl Operation for StandardInstruction {
             StandardInstruction::Measure => false,
             StandardInstruction::Reset => false,
         }
+    }
+}
+
+impl StandardInstruction {
+    pub fn create_py_op(
+        &self,
+        py: Python,
+        params: Option<&[Param]>,
+        label: Option<&str>,
+    ) -> PyResult<Py<PyAny>> {
+        let kwargs = label
+            .map(|label| [("label", label.into_py_any(py)?)].into_py_dict(py))
+            .transpose()?;
+        let out = match self {
+            StandardInstruction::Barrier(num_qubits) => {
+                BARRIER.get_bound(py).call((num_qubits,), kwargs.as_ref())?
+            }
+            StandardInstruction::Delay(unit) => {
+                let duration = &params.unwrap()[0];
+                DELAY
+                    .get_bound(py)
+                    .call1((duration.into_py_any(py)?, unit.to_string()))?
+            }
+            StandardInstruction::Measure => MEASURE.get_bound(py).call((), kwargs.as_ref())?,
+            StandardInstruction::Reset => RESET.get_bound(py).call((), kwargs.as_ref())?,
+        };
+
+        Ok(out.unbind())
     }
 }
 

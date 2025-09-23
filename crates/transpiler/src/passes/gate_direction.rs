@@ -303,26 +303,20 @@ where
     }
 
     for (node, op_blocks) in ops_to_replace {
-        let packed_inst = dag[node].unwrap_operation();
-        let packed_inst = PackedInstruction::from_control_flow(
-            packed_inst.op.control_flow().clone(),
-            packed_inst.params.as_deref().map(|p| {
-                let mut params = p.clone();
-                params.replace_blocks(op_blocks);
-                params
-            }),
-            packed_inst.qubits,
-            packed_inst.clbits,
-            packed_inst.label.as_ref().map(|l| l.as_str()),
-        );
-
-        // TODO: is there a better function?
-        dag.substitute_op(
-            node,
-            packed_inst.op,
-            packed_inst.params.map(|p| *p),
-            packed_inst.label.as_deref().map(|l| l.as_str()),
-        )?;
+        let blocks = {
+            let packed_inst = dag[node].unwrap_operation();
+            packed_inst
+                .params
+                .as_deref()
+                .map(|b| match b {
+                    Parameters::Blocks(blocks) => blocks.clone(),
+                    Parameters::Params(_) => panic!("control flow should not have params"),
+                })
+                .unwrap_or_default()
+        };
+        for (block, replacement) in blocks.iter().zip(op_blocks) {
+            *dag.view_block_mut(*block) = replacement;
+        }
     }
 
     for (node, replacement_dag) in nodes_to_replace {

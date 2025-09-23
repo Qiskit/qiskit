@@ -15,7 +15,7 @@ use itertools::Itertools;
 use pyo3::prelude::*;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::instruction::{IntoInstructionView, Parameters};
+use qiskit_circuit::instruction::IntoInstructionView;
 use qiskit_circuit::operations::{Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
@@ -156,9 +156,7 @@ pub fn mcmt_v_chain(
                 .clone()
                 .chain(targets)
                 .chain(flip_control_state)
-                .map_ok(|(op, params, qubits, clbits)| {
-                    (op, Some(Parameters::Params(params)), qubits, clbits)
-                }),
+                .map_ok(|(op, params, qubits, clbits)| (op, Some(params), qubits, clbits)),
             Param::Float(0.0),
         )
     } else {
@@ -178,9 +176,7 @@ pub fn mcmt_v_chain(
                 .chain(targets)
                 .chain(up_chain)
                 .chain(flip_control_state)
-                .map_ok(|(op, params, qubits, clbits)| {
-                    (op, Some(Parameters::Params(params)), qubits, clbits)
-                }),
+                .map_ok(|(op, params, qubits, clbits)| (op, Some(params), qubits, clbits)),
             Param::Float(0.0),
         )
     }

@@ -1928,6 +1928,18 @@ impl CircuitData {
         let _ = instr.py_op.set(out.clone_ref(py));
         Ok(out)
     }
+
+    /// Gives the circuit ownership of the provided basic block and returns a
+    /// unique identifier that can be used to retrieve a reference to it
+    /// later.
+    ///
+    /// No attempt is made to deduplicate the given block.
+    /// No validation is performed to ensure that the given block is valid
+    /// within the circuit.
+    pub fn register_block(&mut self, block: &Bound<PyAny>) -> Block {
+        self.blocks.add(PyObjectAsKey::new(block), false).unwrap()
+    }
+
     pub fn try_view_control_flow(&self, index: usize) -> Option<ControlFlowView<PyObject>> {
         let instr = &self.data[index];
         let OperationRef::ControlFlow(control) = instr.op.view() else {
@@ -2029,7 +2041,7 @@ impl CircuitData {
         I: IntoIterator<
             Item = PyResult<(
                 PackedOperation,
-                Option<Parameters<Block>>,
+                Option<SmallVec<[Param; 3]>>,
                 Vec<Qubit>,
                 Vec<Clbit>,
             )>,
@@ -2051,7 +2063,7 @@ impl CircuitData {
                 op: operation,
                 qubits,
                 clbits,
-                params: params.map(|p| Box::new(p)),
+                params: params.map(|p| Box::new(Parameters::Params(p))),
                 label: None,
                 #[cfg(feature = "cache_pygates")]
                 py_op: OnceLock::new(),

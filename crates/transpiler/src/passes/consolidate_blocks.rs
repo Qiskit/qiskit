@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use super::optimize_1q_gates_decomposition::matmul_1q;
 use hashbrown::{HashMap, HashSet};
 use nalgebra::Matrix2;
 use ndarray::ArrayView2;
@@ -25,19 +26,18 @@ use qiskit_circuit::gate_matrix::{
     TWO_QUBIT_IDENTITY,
 };
 use qiskit_circuit::imports::{QI_OPERATOR, QUANTUM_CIRCUIT};
+use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::{ArrayType, Operation, Param, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::Qubit;
-use qiskit_synthesis::two_qubit_decompose::RXXEquivalent;
-use rustworkx_core::petgraph::stable_graph::NodeIndex;
-use smallvec::SmallVec;
-
-use super::optimize_1q_gates_decomposition::matmul_1q;
 use qiskit_quantum_info::convert_2q_block_matrix::{blocks_to_matrix, get_matrix_from_inst};
+use qiskit_synthesis::two_qubit_decompose::RXXEquivalent;
 use qiskit_synthesis::two_qubit_decompose::{
     TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer,
 };
+use rustworkx_core::petgraph::stable_graph::NodeIndex;
+use smallvec::SmallVec;
 
 use crate::passes::unitary_synthesis::{PARAM_SET, TWO_QUBIT_BASIS_SET};
 use crate::target::Qargs;
@@ -263,7 +263,10 @@ fn py_run_consolidate_blocks(
 
                     Ok((
                         inst.op,
-                        inst.params.map(|p| *p),
+                        inst.params.map(|p| match *p {
+                            Parameters::Params(params) => params,
+                            Parameters::Blocks(_) => panic!("cannot consolidate control flow ops!"),
+                        }),
                         dag.get_qargs(inst.qubits)
                             .iter()
                             .map(|x| Qubit::new(block_index_map[x]))

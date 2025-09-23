@@ -2266,9 +2266,7 @@ impl TwoQubitBasisDecomposer {
             sequence.gates.into_iter().map(|(gate, params, qubits)| {
                 Ok((
                     gate,
-                    Some(Parameters::Params(
-                        params.iter().map(|x| Param::Float(*x)).collect(),
-                    )),
+                    Some(params.iter().map(|x| Param::Float(*x)).collect()),
                     qubits.iter().map(|q| Qubit(*q as u32)).collect(),
                     vec![],
                 ))
@@ -2336,7 +2334,7 @@ fn two_qubit_decompose_up_to_diagonal(
                 let params: SmallVec<[Param; 3]> =
                     param_floats.into_iter().map(Param::Float).collect();
                 let qubits = qubit_index.into_iter().map(|x| Qubit(x as u32)).collect();
-                Ok((gate, Some(Parameters::Params(params)), qubits, vec![]))
+                Ok((gate, Some(params), qubits, vec![]))
             }),
         Param::Float(circ_seq.global_phase + phase),
     )?;
@@ -2962,9 +2960,7 @@ impl TwoQubitControlledUDecomposer {
             sequence.gates.into_iter().map(|(gate, params, qubits)| {
                 Ok((
                     gate,
-                    Some(Parameters::Params(
-                        params.into_iter().map(Param::Float).collect(),
-                    )),
+                    Some(params.into_iter().map(Param::Float).collect()),
                     qubits.into_iter().map(|x| Qubit(x as u32)).collect(),
                     vec![],
                 ))

@@ -19,7 +19,7 @@ use qiskit_circuit::operations::{multiply_param, Operation, Param, PyGate, Stand
 use qiskit_circuit::{Clbit, Qubit, VarsMode};
 use smallvec::SmallVec;
 
-use qiskit_circuit::instruction::{Instruction, InstructionView, IntoInstructionView, Parameters};
+use qiskit_circuit::instruction::{InstructionView, IntoInstructionView, Parameters};
 use std::f64::consts::PI;
 
 use crate::QiskitError;

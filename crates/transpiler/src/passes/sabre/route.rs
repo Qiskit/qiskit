@@ -250,16 +250,15 @@ impl RoutingResult<'_> {
                             *qubits = blocks[0].num_qubits() as u32;
                         }
                     }
+                    // TODO: is it correct to register these as new blocks, or are these blocks
+                    //       already present in DAG and thus should be rewritten in place?
+                    let blocks = blocks.into_iter().map(|b| dag.register_block(b)).collect();
                     let new_inst = PackedInstruction::from_control_flow(
                         new_op,
-                        inst.params.as_deref().map(|p| {
-                            let mut params = p.clone();
-                            params.replace_blocks(blocks);
-                            params
-                        }),
+                        blocks,
                         dag.insert_qargs(&qargs),
                         inst.clbits,
-                        inst.label.as_ref().map(|l| l.as_str()),
+                        inst.label.as_deref().cloned(),
                     );
                     dag.push_back(new_inst)?
                 }

@@ -22,15 +22,15 @@ use pyo3::Bound;
 use pyo3::IntoPyObjectExt;
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::circuit_instruction::{CreatePythonOperation, OperationFromPython};
+use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::CX_GATE;
 use qiskit_circuit::imports::{HLS_SYNTHESIZE_OP_USING_PLUGINS, QS_DECOMPOSITION, QUANTUM_CIRCUIT};
-use qiskit_circuit::operations::Operation;
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::{radd_param, Param};
+use qiskit_circuit::operations::{Operation, OperationRef};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit, VarsMode};
@@ -45,7 +45,7 @@ use qiskit_synthesis::euler_one_qubit_decomposer::angles_from_unitary;
 use qiskit_synthesis::euler_one_qubit_decomposer::EulerBasis;
 use qiskit_synthesis::two_qubit_decompose::TwoQubitBasisDecomposer;
 
-use qiskit_circuit::instruction::{Instruction, InstructionView, IntoInstructionView, Parameters};
+use qiskit_circuit::instruction::Parameters;
 
 /// Track global qubits by their state.
 /// The global qubits are numbered by consecutive integers starting at `0`,
@@ -611,16 +611,16 @@ fn run_on_circuitdata(
                 new_blocks_py.push(new_block_py);
             }
 
+            let blocks = new_blocks_py
+                .into_iter()
+                .map(|b| output_circuit.register_block(&b))
+                .collect();
             let packed_instruction = PackedInstruction::from_control_flow(
                 inst.op.control_flow().clone(),
-                {
-                    let mut params = inst.parameters().unwrap().clone();
-                    params.replace_blocks(new_blocks_py.into_iter().map(|b| b.unbind()));
-                    params
-                },
+                blocks,
                 inst.qubits,
                 inst.clbits,
-                inst.label(),
+                inst.label.as_deref().cloned(),
             );
             output_circuit.push(packed_instruction)?;
             tracker.set_dirty(&op_qubits);
@@ -632,8 +632,21 @@ fn run_on_circuitdata(
         // synthesized, or returns a quantum circuit together with the global qubits on which this
         // circuit is defined. Note that the synthesized circuit may involve auxiliary
         // global qubits not used by the input circuit.
-        let synthesize_operation_result =
-            synthesize_operation(py, data, tracker, &op_qubits, inst)?;
+        let synthesize_operation_result = synthesize_operation(
+            py,
+            data,
+            tracker,
+            &op_qubits,
+            &inst.op,
+            inst.params
+                .as_deref()
+                .map(|p| match p {
+                    Parameters::Params(params) => params.as_slice(),
+                    Parameters::Blocks(_) => panic!("control flow should not be present"),
+                })
+                .unwrap_or_default(),
+            inst.label.as_deref().map(|l| l.as_str()),
+        )?;
 
         match synthesize_operation_result {
             None => {
@@ -718,9 +731,13 @@ fn run_on_circuitdata(
 /// Essentially this function constructs a default definition for a unitary gate, in which case
 /// ``op.definition`` purposefully returns ``None``.
 /// For all other operation types, it simply calls ``op.definition``.
-fn extract_definition(py: Python, instr: &impl Instruction) -> PyResult<Option<CircuitData>> {
-    match instr.view() {
-        InstructionView::Unitary(unitary) => {
+fn extract_definition(
+    py: Python,
+    op: &PackedOperation,
+    params: &[Param],
+) -> PyResult<Option<CircuitData>> {
+    match op.view() {
+        OperationRef::Unitary(unitary) => {
             let unitary: Array<Complex<f64>, Dim<[usize; 2]>> = match unitary.matrix() {
                 Some(unitary) => unitary,
                 None => return Err(TranspilerError::new_err("Unitary not found")),
@@ -760,12 +777,7 @@ fn extract_definition(py: Python, instr: &impl Instruction) -> PyResult<Option<C
                                     params_floats.iter().map(|p| Param::Float(*p)).collect();
                                 let qubits =
                                     qubit_indices.iter().map(|q| Qubit(*q as u32)).collect();
-                                Ok((
-                                    gate.clone(),
-                                    Some(Parameters::Params(params)),
-                                    qubits,
-                                    vec![],
-                                ))
+                                Ok((gate.clone(), Some(params), qubits, vec![]))
                             },
                         ),
                         Param::Float(two_qubit_sequence.global_phase()),
@@ -782,7 +794,10 @@ fn extract_definition(py: Python, instr: &impl Instruction) -> PyResult<Option<C
                 }
             }
         }
-        _ => Ok(instr.view().try_definition()),
+        OperationRef::StandardGate(g) => Ok(g.definition(params)),
+        OperationRef::Gate(g) => Ok(g.definition()),
+        OperationRef::Instruction(i) => Ok(i.definition()),
+        _ => Ok(None),
     }
 }
 
@@ -804,9 +819,10 @@ fn synthesize_operation(
     data: &Bound<HighLevelSynthesisData>,
     tracker: &mut QubitTracker,
     input_qubits: &[Qubit],
-    instr: &impl Instruction,
+    op: &PackedOperation,
+    params: &[Param],
+    label: Option<&str>,
 ) -> PyResult<Option<(CircuitData, Vec<Qubit>)>> {
-    let op = instr.op();
     if op.num_qubits() != input_qubits.len() as u32 {
         return Err(TranspilerError::new_err(format!(
             "HighLevelSynthesis: number of operation's qubits ({}) does not match the circuit size ({})",
@@ -832,14 +848,21 @@ fn synthesize_operation(
 
     // Try to synthesize using plugins.
     if borrowed_data.hls_op_names.iter().any(|s| s == op.name()) {
-        output_circuit_and_qubits =
-            synthesize_op_using_plugins(py, data, tracker, input_qubits, instr)?;
+        output_circuit_and_qubits = synthesize_op_using_plugins(
+            py,
+            data,
+            tracker,
+            input_qubits,
+            &op.view(),
+            params,
+            label,
+        )?;
     }
 
     // Check if present in the equivalent library.
     if output_circuit_and_qubits.is_none() {
         if let Some(equiv_lib) = &borrowed_data.equivalence_library {
-            if equiv_lib.borrow(py).has_entry(&op) {
+            if equiv_lib.borrow(py).has_entry(&op.view()) {
                 return Ok(None);
             }
         }
@@ -847,7 +870,7 @@ fn synthesize_operation(
 
     // Extract definition.
     if output_circuit_and_qubits.is_none() && borrowed_data.unroll_definitions {
-        let definition_circuit = extract_definition(py, instr)?;
+        let definition_circuit = extract_definition(py, op, params)?;
         match definition_circuit {
             Some(definition_circuit) => {
                 output_circuit_and_qubits = Some((definition_circuit, input_qubits.to_vec()));
@@ -903,11 +926,26 @@ fn synthesize_op_using_plugins(
     data: &Bound<HighLevelSynthesisData>,
     tracker: &mut QubitTracker,
     input_qubits: &[Qubit],
-    instr: &impl Instruction,
+    op: &OperationRef,
+    params: &[Param],
+    label: Option<&str>,
 ) -> PyResult<Option<(CircuitData, Vec<Qubit>)>> {
     let mut output_circuit_and_qubits: Option<(CircuitData, Vec<Qubit>)> = None;
 
-    let op_py = instr.create_py_op(py)?;
+    let op_py = match op {
+        OperationRef::ControlFlow(_) => panic!("control flow should not be present"),
+        OperationRef::StandardGate(standard) => {
+            standard.create_py_op(py, Some(params), label)?.into_any()
+        }
+        OperationRef::StandardInstruction(instruction) => instruction
+            .create_py_op(py, Some(params), label)?
+            .into_any(),
+        OperationRef::Gate(gate) => gate.gate.clone_ref(py),
+        OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
+        OperationRef::Operation(operation) => operation.operation.clone_ref(py),
+        OperationRef::Unitary(unitary) => unitary.create_py_op(py, label)?.into_any(),
+    };
+
     let res = HLS_SYNTHESIZE_OP_USING_PLUGINS
         .get_bound(py)
         .call1((
@@ -946,7 +984,18 @@ fn py_synthesize_operation(
         return Ok(None);
     }
 
-    let result = synthesize_operation(py, data, tracker, &input_qubits, &op)?;
+    let result = synthesize_operation(
+        py,
+        data,
+        tracker,
+        &input_qubits,
+        &op.operation,
+        op.params
+            .as_ref()
+            .map(|p| p.unwrap_params())
+            .unwrap_or_default(),
+        op.label.as_deref().map(|l| l.as_str()),
+    )?;
 
     Ok(result.map(|res| (res.0, res.1.iter().map(|x| x.index()).collect())))
 }

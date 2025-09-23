@@ -28,9 +28,7 @@ use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::ONE_QUBIT_IDENTITY;
 use qiskit_circuit::imports::QUANTUM_CIRCUIT;
-use qiskit_circuit::instruction::{
-    Instruction, InstructionView, IntoInstructionView, StandardGateView,
-};
+use qiskit_circuit::instruction::{InstructionView, IntoInstructionView, StandardGateView};
 use qiskit_circuit::operations::StandardGate::{I, X, Y, Z};
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
@@ -249,7 +247,7 @@ fn generate_twirled_circuit(
             }
         }
         if let Some(control_flow) = circ.try_view_control_flow(index) {
-            let new_blocks: Vec<PyObject> = control_flow
+            let new_blocks: Vec<_> = control_flow
                 .blocks()
                 .map(|block| {
                     // TODO: remove this once PackedInstruction's block type is CircuitData.
@@ -265,23 +263,19 @@ fn generate_twirled_circuit(
                         custom_gate_map,
                         optimizer_target,
                     )?;
-                    QUANTUM_CIRCUIT.get(py).call_method1(
-                        py,
-                        intern!(py, "_from_circuit_data"),
-                        (new_block,),
-                    )
+                    Ok(out_circ.register_block(
+                        &QUANTUM_CIRCUIT
+                            .get_bound(py)
+                            .call_method1(intern!(py, "_from_circuit_data"), (new_block,))?,
+                    ))
                 })
                 .collect::<PyResult<_>>()?;
             out_circ.push(PackedInstruction::from_control_flow(
                 inst.op.control_flow().clone(),
-                {
-                    let mut blocks = inst.parameters().unwrap().clone();
-                    blocks.replace_blocks(new_blocks);
-                    blocks
-                },
+                new_blocks,
                 inst.qubits,
                 inst.clbits,
-                inst.label(),
+                inst.label.as_deref().cloned(),
             ))?;
             continue;
         }

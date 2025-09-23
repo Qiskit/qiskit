@@ -104,21 +104,23 @@ impl<T> Parameters<T> {
         self.len() == 0
     }
 
-    /// Replace all blocks of this parameter set, in order.
+    /// Unwraps the parameter list as as slice of [Param]s.
     ///
-    /// Panics if `blocks` does not contain exactly the expected number of blocks
-    /// for the parameter set.
-    pub fn replace_blocks(&mut self, blocks: impl IntoIterator<Item = T>) {
-        let replacements: Vec<T> = blocks.into_iter().collect();
+    /// Panics if this is not a params list.
+    pub fn unwrap_params(&self) -> &[Param] {
         match self {
-            Parameters::Params(_) => {}
-            Parameters::Blocks(blocks) => {
-                assert_eq!(
-                    replacements.len(),
-                    blocks.len(),
-                    "replacement blocks wrong size"
-                );
-            }
+            Parameters::Params(params) => params.as_slice(),
+            Parameters::Blocks(_) => panic!("expected params, got blocks"),
+        }
+    }
+
+    /// Unwraps the parameter list as a slice of blocks.
+    ///
+    /// Panics if this is not a block list.
+    pub fn unwrap_blocks(&self) -> &[T] {
+        match self {
+            Parameters::Params(_) => panic!("expected params, got blocks"),
+            Parameters::Blocks(blocks) => blocks.as_slice(),
         }
     }
 }

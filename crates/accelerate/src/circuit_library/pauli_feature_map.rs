@@ -17,18 +17,17 @@ use pyo3::prelude::*;
 use pyo3::types::PySequence;
 use pyo3::types::PyString;
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
     add_param, multiply_param, multiply_params, Param, StandardGate, StandardInstruction,
 };
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
-use smallvec::smallvec;
+use smallvec::SmallVec;
 use std::f64::consts::PI;
 
 type Instruction = (
     PackedOperation,
-    Option<Parameters<PyObject>>,
+    Option<SmallVec<[Param; 3]>>,
     Vec<Qubit>,
     Vec<Clbit>,
 );
@@ -133,7 +132,7 @@ fn _get_h_layer(feature_dimension: u32) -> impl Iterator<Item = Instruction> {
     (0..feature_dimension).map(|i| {
         (
             StandardGate::H.into(),
-            Some(Parameters::Params(smallvec![])),
+            None,
             vec![Qubit(i)],
             vec![] as Vec<Clbit>,
         )

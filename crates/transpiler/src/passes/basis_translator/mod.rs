@@ -354,7 +354,7 @@ fn apply_translation(
                     flow_blocks,
                     node_obj.qubits,
                     node_obj.clbits,
-                    node_obj.label.map(|l| *l),
+                    node_obj.label.as_deref().cloned(),
                 );
                 out_dag_builder.push_back(new_instr).map_err(|_| {
                     BasisTranslatorError::BasisDAGCircuitError(
@@ -467,7 +467,7 @@ fn replace_node(
                 .map(|clbit| old_cargs[clbit.0 as usize])
                 .collect();
             let new_op: PackedOperation = match inner_node.op.view() {
-                OperationRef::ControlFlow(cf) => panic!("control flow should not be present here"),
+                OperationRef::ControlFlow(_) => panic!("control flow should not be present here"),
                 OperationRef::Gate(gate) => {
                     Python::with_gil(|py| gate.py_copy(py).map(|op| op.into()))
                         .expect("Error while copying gate instance.")

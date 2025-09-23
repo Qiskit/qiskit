@@ -24,11 +24,11 @@ use qiskit_circuit::{Clbit, Qubit};
 use super::blocks::{Block, Entanglement, LayerEntanglement};
 use super::parameter_ledger::{LayerParameters, LayerType, ParameterLedger};
 use itertools::izip;
-use qiskit_circuit::instruction::Parameters;
+use smallvec::SmallVec;
 
 type Instruction = (
     PackedOperation,
-    Option<Parameters<PyObject>>,
+    Option<SmallVec<[Param; 3]>>,
     Vec<Qubit>,
     Vec<Clbit>,
 );
@@ -75,7 +75,7 @@ fn rotation_layer<'a>(
                         .expect("Failed to rebind");
                     Ok((
                         bound_op,
-                        Some(Parameters::Params(bound_params)),
+                        Some(bound_params),
                         (0..block.num_qubits)
                             .map(|i| Qubit(start_idx + i))
                             .collect(),
@@ -120,7 +120,7 @@ fn entanglement_layer<'a>(
                     .expect("Failed to rebind");
                 Ok((
                     bound_op,
-                    Some(Parameters::Params(bound_params)),
+                    Some(bound_params),
                     indices.iter().map(|i| Qubit(*i)).collect(),
                     vec![] as Vec<Clbit>,
                 ))

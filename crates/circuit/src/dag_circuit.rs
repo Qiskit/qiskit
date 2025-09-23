@@ -1911,6 +1911,11 @@ impl DAGCircuit {
         self.clbits.len()
     }
 
+    /// Return the number of basic blocks in this circuit.
+    pub fn num_blocks(&self) -> usize {
+        self.blocks.len()
+    }
+
     /// Get the number of op nodes in the DAG.
     #[inline]
     pub fn num_ops(&self) -> usize {
@@ -4974,11 +4979,23 @@ impl DAGCircuit {
     ///
     /// No attempt is made to deduplicate the given block.
     /// No validation is performed to ensure that the given block is valid
-    /// within this DAG.
+    /// within the DAG.
     pub fn register_block(&mut self, block: DAGCircuit) -> Block {
         let id = self.blocks.len();
         self.blocks.push(block);
         Block::new(id)
+    }
+
+    /// Gets a mutable reference to the given basic block.
+    ///
+    /// Panics if the block is not found.
+    pub fn view_block_mut(&mut self, block: Block) -> &mut DAGCircuit {
+        self.blocks.get_mut(block.index()).unwrap()
+    }
+
+    /// Iterate mutably over the blocks registered to the DAG.
+    pub fn iter_blocks_mut(&mut self) -> impl Iterator<Item = &mut DAGCircuit> {
+        self.blocks.iter_mut()
     }
 
     pub fn try_view_control_flow(&self, node: NodeIndex) -> Option<ControlFlowView<DAGCircuit>> {
