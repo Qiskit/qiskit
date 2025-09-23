@@ -232,13 +232,20 @@ sure to always be kind and respectful in your interactions with maintainers and 
 > [!WARNING]
 > If you use any AI tool while preparing your code contribution, you **must** disclose the name of the tool and its version in the PR description.
 
-When using AI tools for code generation, your submission must still be your own original work of authorship, as required by the [Contributor License Agreement (CLA)](https://qisk.it/cla).
-It is also your responsibility to ensure that the tool is safe for use within IBM and that its output is compatible with the [Qiskit license](LICENSE.txt).
+When using AI tools for code generation, your submission must still be your own original work of authorship, as required by the [Contributor License Agreement (CLA)](https://qisk.it/cla). It is your responsibility to make sure that:
 
-Regardless of the tools you use, you must fully understand, review, and take responsibility for the code you submit.
-Be prepared to explain the reasoning behind your choices during review. Submissions that appear unreviewed or copied directly from an AI tool without proper understanding may be requested to be revised or declined.
+- You review and fully understand the generated code, and you can explain the reasoning behind it during review.
+- The usage of the AI tool does not violate any third-party license obligations.
+- The AI tool’s terms and conditions allow its output to be used in open source projects and are compatible with the [Qiskit license](LICENSE.txt), the [Qiskit CLA](https://qisk.it/cla), and [these Contributor Guidelines](CONTRIBUTING.md).
+- You only use AI tools that have features to:
+  * filter out generated code substantially similar to training data, or
+  * identify similar training code so you can comply with the original license obligations (notice, attribution, etc.) and only contribute if it’s compatible with the [Qiskit license](LICENSE.txt).
+- You disclose the name and version of the AI tool in your PR description.
 
-Finally, spamming issues or pull requests with AI-generated comments is strictly prohibited under the [Qiskit Code of Conduct](https://qisk.it/coc).
+Submissions that appear unreviewed or copied directly from an AI tool without proper understanding may be requested to be revised or declined.
+
+Remember that spamming issues or pull requests with AI-generated comments is prohibited under the [Qiskit Code of Conduct](https://qisk.it/coc).
+
 
 ## Contributor Licensing Agreement
 
@@ -340,9 +347,9 @@ features:
       foo(QuantumCircuit())
 
   - |
-    The :class:`.QuantumCircuit` class has a new method :meth:`~.QuantumCircuit.foo`. 
+    The :class:`.QuantumCircuit` class has a new method :meth:`~.QuantumCircuit.foo`.
     This is the equivalent of calling the :func:`~qiskit.foo` to do something to your
-    :class:`.QuantumCircuit`. This is the equivalent of running :func:`~qiskit.foo` 
+    :class:`.QuantumCircuit`. This is the equivalent of running :func:`~qiskit.foo`
     on your circuit, but provides the convenience of running it natively on
     an object. For example::
 
@@ -779,14 +786,14 @@ the command line. See [`tox.ini`](tox.ini) for how `tox` invokes them.
 For formatting and lint checking Rust code, you'll need to use different tools than you would for Python. Qiskit uses [rustfmt](https://github.com/rust-lang/rustfmt) for
 code formatting. You can simply run `cargo fmt` (if you installed Rust with the
 default settings using `rustup`), and it will update the code formatting automatically to
-conform to the style guidelines. This is very similar to running `tox -eblack` for Python code. For lint checking, Qiskit uses [clippy](https://github.com/rust-lang/rust-clippy) which can be invoked via `cargo clippy`. 
+conform to the style guidelines. This is very similar to running `tox -eblack` for Python code. For lint checking, Qiskit uses [clippy](https://github.com/rust-lang/rust-clippy) which can be invoked via `cargo clippy`.
 
 Rust lint and formatting checks are included in the the `tox -elint` command. For CI to pass you will need both checks to pass without any warnings or errors. Note that this command checks the code but won't apply any modifications, if you need to update formatting, you'll need to run `cargo fmt`.
 
 ### C style and lint
 
 Qiskit uses [clang-format](https://clang.llvm.org/docs/ClangFormat.html) to format C code.
-The style is based on LLVM, with some few Qiskit-specific adjustments. 
+The style is based on LLVM, with some few Qiskit-specific adjustments.
 To check whether the C code conforms to the style guide, you can run `make cformat`. This check
 will need to execute without any warnings or errors for CI to pass.
 Automatic formatting can be applied by `make fix_cformat`.
