@@ -20,20 +20,120 @@
 #include <stdio.h>
 #include <string.h>
 
-// Helper headers
-QkTarget *get_u1_u2_u3_target(void);
-QkTarget *get_rz_rx_target(void);
-QkTarget *get_rz_sx_target(void);
-QkTarget *get_rz_ry_u_target(void);
-QkTarget *get_rz_ry_u_noerror_target(void);
-bool compare_gate_counts(QkOpCounts *counts, char **gates, uint32_t *freq, size_t num_gates);
+/// @brief Generates a typical target where u1 is cheaper than u2 is cheaper than u3.
+/// @return The generated target instance.
+static QkTarget *get_u1_u2_u3_target(void) {
+    QkTarget *target_u1_u2_u3 = qk_target_new(1);
+
+    double u_errors[3] = {0., 1e-4, 1e-4};
+    QkGate u_gates[3] = {QkGate_U1, QkGate_U2, QkGate_U3};
+    for (int idx = 0; idx < 3; idx++) {
+        QkTargetEntry *u_entry = qk_target_entry_new(u_gates[idx]);
+        uint32_t qargs[1] = {
+            0,
+        };
+        qk_target_entry_add_property(u_entry, qargs, 1, NAN, u_errors[idx]);
+        qk_target_add_instruction(target_u1_u2_u3, u_entry);
+    }
+    return target_u1_u2_u3;
+}
+
+/// @brief Generates a typical target where continuous rz and rx are available; rz is cheaper.
+/// @return The generated target instance.
+static QkTarget *get_rz_rx_target(void) {
+    QkTarget *target_rz_rx = qk_target_new(1);
+
+    double r_errors[2] = {0., 2.5e-4};
+    double r_durations[2] = {0., 5e-9};
+    QkGate r_gates[2] = {QkGate_RZ, QkGate_RX};
+
+    for (int idx = 0; idx < 2; idx++) {
+        QkTargetEntry *r_entry = qk_target_entry_new(r_gates[idx]);
+        uint32_t qargs[1] = {
+            0,
+        };
+        qk_target_entry_add_property(r_entry, qargs, 1, r_durations[idx], r_errors[idx]);
+        qk_target_add_instruction(target_rz_rx, r_entry);
+    }
+    return target_rz_rx;
+}
+
+/// @brief Generates a typical target where continuous rz, and discrete sx are available; rz is
+/// cheaper.
+/// @return The generated target instance.
+static QkTarget *get_rz_sx_target(void) {
+    QkTarget *target_rz_sx = qk_target_new(1);
+
+    double inst_errors[2] = {0., 2.5e-4};
+    double inst_durations[2] = {0., 5e-9};
+    QkGate gates[2] = {QkGate_RZ, QkGate_SX};
+
+    for (int idx = 0; idx < 2; idx++) {
+        QkTargetEntry *entry;
+        entry = qk_target_entry_new(gates[idx]);
+        uint32_t qargs[1] = {
+            0,
+        };
+        qk_target_entry_add_property(entry, qargs, 1, inst_durations[idx], inst_errors[idx]);
+        qk_target_add_instruction(target_rz_sx, entry);
+    }
+    return target_rz_sx;
+}
+
+/// @brief Generates a target with overcomplete basis, rz is cheaper than ry is cheaper than u.
+/// @return The generated target instance.
+static QkTarget *get_rz_ry_u_target(void) {
+    QkTarget *target_rz_ry_u = qk_target_new(1);
+
+    double gate_errors[3] = {1e-4, 2e-4, 5e-4};
+    double gate_durations[3] = {1e-9, 5e-9, 9e-9};
+    QkGate u_gates[3] = {QkGate_RZ, QkGate_RY, QkGate_U};
+
+    for (int idx = 0; idx < 3; idx++) {
+        QkTargetEntry *u_entry = qk_target_entry_new(u_gates[idx]);
+        uint32_t qargs[1] = {
+            0,
+        };
+        qk_target_entry_add_property(u_entry, qargs, 1, gate_durations[idx], gate_errors[idx]);
+        qk_target_add_instruction(target_rz_ry_u, u_entry);
+    }
+    return target_rz_ry_u;
+}
+
+/// @brief Generates a target with rz, ry, and u. Error are not specified so we should prefer
+/// shorter decompositions.
+/// @return The generated target instance.
+static QkTarget *get_rz_ry_u_noerror_target(void) {
+    QkTarget *target_rz_ry_u_noerror = qk_target_new(1);
+    QkGate u_gates[3] = {QkGate_RZ, QkGate_RY, QkGate_U};
+
+    for (int idx = 0; idx < 3; idx++) {
+        QkTargetEntry *u_entry = qk_target_entry_new(u_gates[idx]);
+        qk_target_add_instruction(target_rz_ry_u_noerror, u_entry);
+    }
+    return target_rz_ry_u_noerror;
+}
+
+static bool compare_gate_counts(QkOpCounts *counts, char **gates, uint32_t *freq,
+                                size_t num_gates) {
+    if (counts->len != num_gates) {
+        return false;
+    }
+    for (size_t idx = 0; idx < counts->len; idx++) {
+        QkOpCount current = counts->data[idx];
+        if (strcmp(current.name, gates[idx]) != 0 || current.count != freq[idx]) {
+            return false;
+        }
+    }
+    return true;
+}
 
 /**
  * Test running pass on chains of h gates.
  *
  * Transpile: 0:--[H]-[H]-[H]--
  */
-int inner_optimize_h_gates(QkTarget *target, char **gates, uint32_t *freq, int num_gates) {
+static int inner_optimize_h_gates(QkTarget *target, char **gates, uint32_t *freq, int num_gates) {
     int result = Ok;
     // Build circuit
     QkCircuit *circuit = qk_circuit_new(1, 0);
@@ -54,7 +154,7 @@ int inner_optimize_h_gates(QkTarget *target, char **gates, uint32_t *freq, int n
     return result;
 }
 
-int test_optimize_h_gates(void) {
+static int test_optimize_h_gates(void) {
     int num_failed = 0;
     QkTarget *targets[5] = {
         get_u1_u2_u3_target(), get_rz_rx_target(),           get_rz_sx_target(),
@@ -89,7 +189,7 @@ int test_optimize_h_gates(void) {
     return num_failed;
 }
 
-int inner_optimize_identity_target(QkTarget *target) {
+static int inner_optimize_identity_target(QkTarget *target) {
     int result = Ok;
     // Build circuit
     QkCircuit *circuit = qk_circuit_new(1, 0);
@@ -113,7 +213,7 @@ int inner_optimize_identity_target(QkTarget *target) {
 /**
  * Transpile: qr:--[RY(θ), RY(-θ)]-- to null.
  */
-int test_optimize_identity_target(void) {
+static int test_optimize_identity_target(void) {
     int num_failed = 0;
     QkTarget *targets[4] = {
         get_u1_u2_u3_target(),
@@ -139,7 +239,7 @@ int test_optimize_identity_target(void) {
 /**
  * Test identity run is removed for no target specified.
  */
-int test_optimize_identity_no_target(void) {
+static int test_optimize_identity_no_target(void) {
     int result = Ok;
     // Build circuit
     QkCircuit *circuit = qk_circuit_new(1, 0);
@@ -162,7 +262,7 @@ int test_optimize_identity_no_target(void) {
 /**
  * U is shorter than RZ-RY-RZ or RY-RZ-RY so use it when no error given.
  */
-int test_optimize_error_over_target_3(void) {
+static int test_optimize_error_over_target_3(void) {
     int result = Ok;
     // Build circuit
     QkCircuit *circuit = qk_circuit_new(1, 0);
@@ -186,113 +286,6 @@ cleanup:
     qk_target_free(target);
     qk_circuit_free(circuit);
     return result;
-}
-
-/// @brief Generates a typical target where u1 is cheaper than u2 is cheaper than u3.
-/// @return The generated target instance.
-QkTarget *get_u1_u2_u3_target(void) {
-    QkTarget *target_u1_u2_u3 = qk_target_new(1);
-
-    double u_errors[3] = {0., 1e-4, 1e-4};
-    QkGate u_gates[3] = {QkGate_U1, QkGate_U2, QkGate_U3};
-    for (int idx = 0; idx < 3; idx++) {
-        QkTargetEntry *u_entry = qk_target_entry_new(u_gates[idx]);
-        uint32_t qargs[1] = {
-            0,
-        };
-        qk_target_entry_add_property(u_entry, qargs, 1, NAN, u_errors[idx]);
-        qk_target_add_instruction(target_u1_u2_u3, u_entry);
-    }
-    return target_u1_u2_u3;
-}
-
-/// @brief Generates a typical target where continuous rz and rx are available; rz is cheaper.
-/// @return The generated target instance.
-QkTarget *get_rz_rx_target(void) {
-    QkTarget *target_rz_rx = qk_target_new(1);
-
-    double r_errors[2] = {0., 2.5e-4};
-    double r_durations[2] = {0., 5e-9};
-    QkGate r_gates[2] = {QkGate_RZ, QkGate_RX};
-
-    for (int idx = 0; idx < 2; idx++) {
-        QkTargetEntry *r_entry = qk_target_entry_new(r_gates[idx]);
-        uint32_t qargs[1] = {
-            0,
-        };
-        qk_target_entry_add_property(r_entry, qargs, 1, r_durations[idx], r_errors[idx]);
-        qk_target_add_instruction(target_rz_rx, r_entry);
-    }
-    return target_rz_rx;
-}
-
-/// @brief Generates a typical target where continuous rz, and discrete sx are available; rz is
-/// cheaper.
-/// @return The generated target instance.
-QkTarget *get_rz_sx_target(void) {
-    QkTarget *target_rz_sx = qk_target_new(1);
-
-    double inst_errors[2] = {0., 2.5e-4};
-    double inst_durations[2] = {0., 5e-9};
-    QkGate gates[2] = {QkGate_RZ, QkGate_SX};
-
-    for (int idx = 0; idx < 2; idx++) {
-        QkTargetEntry *entry;
-        entry = qk_target_entry_new(gates[idx]);
-        uint32_t qargs[1] = {
-            0,
-        };
-        qk_target_entry_add_property(entry, qargs, 1, inst_durations[idx], inst_errors[idx]);
-        qk_target_add_instruction(target_rz_sx, entry);
-    }
-    return target_rz_sx;
-}
-
-/// @brief Generates a target with overcomplete basis, rz is cheaper than ry is cheaper than u.
-/// @return The generated target instance.
-QkTarget *get_rz_ry_u_target(void) {
-    QkTarget *target_rz_ry_u = qk_target_new(1);
-
-    double gate_errors[3] = {1e-4, 2e-4, 5e-4};
-    double gate_durations[3] = {1e-9, 5e-9, 9e-9};
-    QkGate u_gates[3] = {QkGate_RZ, QkGate_RY, QkGate_U};
-
-    for (int idx = 0; idx < 3; idx++) {
-        QkTargetEntry *u_entry = qk_target_entry_new(u_gates[idx]);
-        uint32_t qargs[1] = {
-            0,
-        };
-        qk_target_entry_add_property(u_entry, qargs, 1, gate_durations[idx], gate_errors[idx]);
-        qk_target_add_instruction(target_rz_ry_u, u_entry);
-    }
-    return target_rz_ry_u;
-}
-
-/// @brief Generates a target with rz, ry, and u. Error are not specified so we should prefer
-/// shorter decompositions.
-/// @return The generated target instance.
-QkTarget *get_rz_ry_u_noerror_target(void) {
-    QkTarget *target_rz_ry_u_noerror = qk_target_new(1);
-    QkGate u_gates[3] = {QkGate_RZ, QkGate_RY, QkGate_U};
-
-    for (int idx = 0; idx < 3; idx++) {
-        QkTargetEntry *u_entry = qk_target_entry_new(u_gates[idx]);
-        qk_target_add_instruction(target_rz_ry_u_noerror, u_entry);
-    }
-    return target_rz_ry_u_noerror;
-}
-
-bool compare_gate_counts(QkOpCounts *counts, char **gates, uint32_t *freq, size_t num_gates) {
-    if (counts->len != num_gates) {
-        return false;
-    }
-    for (size_t idx = 0; idx < counts->len; idx++) {
-        QkOpCount current = counts->data[idx];
-        if (strcmp(current.name, gates[idx]) != 0 || current.count != freq[idx]) {
-            return false;
-        }
-    }
-    return true;
 }
 
 int test_optimize_1q_sequences(void) {

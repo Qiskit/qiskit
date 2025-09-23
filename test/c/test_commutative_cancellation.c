@@ -19,7 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 
-int test_commutative_cancellation_target(void) {
+static int test_commutative_cancellation_target(void) {
     const uint32_t num_qubits = 5;
     QkTarget *target = qk_target_new(num_qubits);
     qk_target_add_instruction(target, qk_target_entry_new(QkGate_Z));
@@ -59,7 +59,7 @@ cleanup:
     return result;
 }
 
-int test_commutative_cancellation_no_target(void) {
+static int test_commutative_cancellation_no_target(void) {
     int result = Ok;
 
     QkCircuit *qc = qk_circuit_new(2, 0);
