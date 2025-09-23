@@ -2128,11 +2128,10 @@ impl DAGCircuit {
                             }
                             true
                         };
-                        if inst1.op.try_control_flow().is_some()
-                            && inst2.op.try_control_flow().is_some()
-                        {
-                            let cf1 = slf.view_control_flow(inst1);
-                            let cf2 = other.view_control_flow(inst2);
+                        if let (Some(cf1), Some(cf2)) = (
+                            slf.try_view_control_flow_internal(inst1),
+                            other.try_view_control_flow_internal(inst2),
+                        ) {
                             if inst1.op.num_qubits() != inst2.op.num_qubits() {
                                 return Ok(false);
                             }
@@ -4994,16 +4993,98 @@ impl DAGCircuit {
     }
 
     /// Iterate mutably over the blocks registered to the DAG.
-    pub fn iter_blocks_mut(&mut self) -> impl Iterator<Item = &mut DAGCircuit> {
+    pub fn iter_blocks_mut(&mut self) -> impl ExactSizeIterator<Item = &mut DAGCircuit> {
         self.blocks.iter_mut()
     }
 
-    pub fn try_view_control_flow(&self, node: NodeIndex) -> Option<ControlFlowView<DAGCircuit>> {
-        todo!()
+    /// Iterate over the blocks registered to the DAG.
+    pub fn iter_blocks(&self) -> impl ExactSizeIterator<Item = &DAGCircuit> {
+        self.blocks.iter()
     }
 
-    fn view_control_flow(&self, instr: &PackedInstruction) -> ControlFlowView<DAGCircuit> {
-        todo!()
+    /// Gets an immutable view of a control flow operation.
+    ///
+    /// Panics if `node` does not refer to an operation.
+    pub fn try_view_control_flow(&self, node: NodeIndex) -> Option<ControlFlowView<DAGCircuit>> {
+        self.try_view_control_flow_internal(self.dag[node].unwrap_operation())
+    }
+
+    fn try_view_control_flow_internal<'a>(
+        &'a self,
+        instr: &'a PackedInstruction,
+    ) -> Option<ControlFlowView<'a, DAGCircuit>> {
+        let OperationRef::ControlFlow(control) = instr.op.view() else {
+            return None;
+        };
+        Some(match control {
+            ControlFlow::Box { duration, .. } => {
+                let Some(Parameters::Blocks(blocks)) = instr.params.as_deref() else {
+                    panic!("invalid box parameters");
+                };
+                ControlFlowView::Box(
+                    duration.as_ref(),
+                    self.blocks.get(blocks[0].index()).unwrap(),
+                )
+            }
+            ControlFlow::BreakLoop { .. } => ControlFlowView::BreakLoop,
+            ControlFlow::ContinueLoop { .. } => ControlFlowView::ContinueLoop,
+            ControlFlow::ForLoop {
+                indexset,
+                loop_param,
+                ..
+            } => {
+                let Some(Parameters::Blocks(blocks)) = instr.params.as_deref() else {
+                    panic!("invalid for loop parameters");
+                };
+                ControlFlowView::ForLoop {
+                    indexset: indexset.as_slice(),
+                    loop_param: loop_param.as_ref(),
+                    body: self.blocks.get(blocks[0].index()).unwrap(),
+                }
+            }
+            ControlFlow::IfElse { condition, .. } => {
+                let Some(Parameters::Blocks(blocks)) = instr.params.as_deref() else {
+                    panic!("invalid ifelse parameters");
+                };
+                ControlFlowView::IfElse {
+                    condition,
+                    true_body: self.blocks.get(blocks[0].index()).unwrap(),
+                    false_body: blocks.get(1).map(|b| self.blocks.get(b.index()).unwrap()),
+                }
+            }
+            ControlFlow::Switch {
+                target, label_spec, ..
+            } => {
+                let cases_specifier = label_spec
+                    .iter()
+                    .zip(
+                        instr
+                            .params
+                            .as_deref()
+                            .and_then(|p| match p {
+                                Parameters::Blocks(cases) => {
+                                    Some(cases.iter().map(|b| self.blocks.get(b.index()).unwrap()))
+                                }
+                                _ => None,
+                            })
+                            .expect("invalid switch parameters"),
+                    )
+                    .collect();
+                ControlFlowView::Switch {
+                    target,
+                    cases_specifier,
+                }
+            }
+            ControlFlow::While { condition, .. } => {
+                let Some(Parameters::Blocks(blocks)) = instr.params.as_deref() else {
+                    panic!("invalid while parameters");
+                };
+                ControlFlowView::While {
+                    condition,
+                    body: self.blocks.get(blocks[0].index()).unwrap(),
+                }
+            }
+        })
     }
 
     /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into this
@@ -6149,7 +6230,7 @@ impl DAGCircuit {
             op,
             qubits: self.qargs_interner.insert(qargs),
             clbits: self.cargs_interner.insert(cargs),
-            params: params.map(|p| Box::new(p)),
+            params: params.map(Box::new),
             label: label.map(Box::new),
             #[cfg(feature = "cache_pygates")]
             py_op,
@@ -6285,8 +6366,7 @@ impl DAGCircuit {
         let mut clbits = Vec::new();
         let mut vars = Vec::new();
 
-        if instr.op.try_control_flow().is_some() {
-            let instr = self.view_control_flow(instr);
+        if let Some(instr) = self.try_view_control_flow_internal(instr) {
             match instr {
                 ControlFlowView::IfElse {
                     condition: Condition::Expr(condition),
@@ -8574,7 +8654,7 @@ impl DAGCircuitBuilder {
             op,
             qubits,
             clbits,
-            params: params.map(|p| Box::new(p)),
+            params: params.map(Box::new),
             label: label.map(|label| label.into()),
             #[cfg(feature = "cache_pygates")]
             py_op,

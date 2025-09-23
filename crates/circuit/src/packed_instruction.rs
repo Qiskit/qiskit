@@ -685,6 +685,7 @@ impl PackedInstruction {
         }
     }
 
+    /// Pack a [ControlFlow] operation with blocks into a complete instruction.
     pub fn from_control_flow(
         control_flow: ControlFlow,
         blocks: Vec<Block>,
@@ -697,7 +698,7 @@ impl PackedInstruction {
             qubits,
             clbits,
             params: Some(Box::new(Parameters::Blocks(blocks))),
-            label: label.map(|l| Box::new(l)),
+            label: label.map(Box::new),
             #[cfg(feature = "cache_pygates")]
             py_op: Default::default(),
         }

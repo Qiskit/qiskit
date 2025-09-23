@@ -2337,7 +2337,7 @@ impl CircuitData {
             op: operation,
             qubits,
             clbits,
-            params: params.map(|p| Box::new(p)),
+            params: params.map(Box::new),
             label: None,
             #[cfg(feature = "cache_pygates")]
             py_op: OnceLock::new(),

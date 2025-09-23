@@ -10,8 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::intern;
 use pyo3::prelude::*;
+use pyo3::{intern, IntoPyObjectExt};
 
 use crate::bit::{ShareableClbit, ShareableQubit};
 use crate::circuit_data::{CircuitData, CircuitVar};
@@ -55,21 +55,21 @@ pub fn circuit_to_dag(
 
 #[pyfunction(signature = (dag, copy_operations = true))]
 pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<CircuitData> {
-    // let params: Option<Parameters<PyObject>> = match self.params.map(|p| *p) {
-    //     None => None,
-    //     Some(Parameters::Blocks(blocks)) => Python::with_gil(|py| -> PyResult<_> {
-    //         let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
-    //         Ok(Some(Parameters::Blocks(
-    //             blocks
-    //                 .into_iter()
-    //                 .map(|c| Ok(dag_to_circuit.call1((c,))?.unbind()))
-    //                 .collect::<PyResult<_>>()?,
-    //         )))
-    //     })?,
-    //     Some(Parameters::Params(params)) => Some(Parameters::Params(params)),
-    // };
-    let blocks: ObjectRegistry<Block, PyObjectAsKey> =
-        { todo!("converters block conversion not yet implemented") };
+    let blocks = {
+        let dag_blocks = dag.iter_blocks();
+        let mut registry: ObjectRegistry<Block, PyObjectAsKey> =
+            ObjectRegistry::with_capacity(dag_blocks.len());
+        if dag_blocks.len() > 0 {
+            Python::with_gil(|py| -> PyResult<()> {
+                for dag_block in dag_blocks {
+                    let block = dag_to_circuit(dag_block, copy_operations)?;
+                    registry.add(PyObjectAsKey::new(&block.into_bound_py_any(py)?), false)?;
+                }
+                Ok(())
+            })?
+        }
+        registry
+    };
     CircuitData::from_packed_instructions(
         dag.qubits().clone(),
         dag.clbits().clone(),
