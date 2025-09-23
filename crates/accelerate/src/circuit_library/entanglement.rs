@@ -166,20 +166,30 @@ pub fn get_entanglement<'a>(
         entanglement.to_owned()
     };
 
-    if let Ok(strategy) = entanglement.downcast::<PyString>() {
-        let as_str = strategy.to_string();
-        return Ok(Box::new(
-            get_entanglement_from_str(num_qubits, block_size, as_str.as_str(), offset)?.map(Ok),
-        ));
-    } else if let Ok(dict) = entanglement.downcast::<PyDict>() {
-        if let Some(value) = dict.get_item(block_size)? {
-            let list = value.downcast::<PyList>()?;
-            return _check_entanglement_list(list.to_owned(), block_size);
-        } else {
-            return Ok(Box::new(std::iter::empty()));
+    match entanglement.downcast::<PyString>() {
+        Ok(strategy) => {
+            let as_str = strategy.to_string();
+            return Ok(Box::new(
+                get_entanglement_from_str(num_qubits, block_size, as_str.as_str(), offset)?.map(Ok),
+            ));
         }
-    } else if let Ok(list) = entanglement.downcast::<PyList>() {
-        return _check_entanglement_list(list.to_owned(), block_size);
+        _ => match entanglement.downcast::<PyDict>() {
+            Ok(dict) => match dict.get_item(block_size)? {
+                Some(value) => {
+                    let list = value.downcast::<PyList>()?;
+                    return _check_entanglement_list(list.to_owned(), block_size);
+                }
+                _ => {
+                    return Ok(Box::new(std::iter::empty()));
+                }
+            },
+            _ => match entanglement.downcast::<PyList>() {
+                Ok(list) => {
+                    return _check_entanglement_list(list.to_owned(), block_size);
+                }
+                _ => {}
+            },
+        },
     }
     Err(QiskitError::new_err(
         "Entanglement must be a string or list of qubit indices.",

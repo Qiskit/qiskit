@@ -119,40 +119,48 @@ pub fn run_litinski_transformation(
     let mut global_phase_update = 0.;
     let mut clifford_ops: Vec<PackedInstruction> = Vec::new();
     for node_index in dag.topological_op_nodes()? {
-        if let NodeType::Operation(inst) = &dag[node_index] {
-            let (name, angle, phase_update) = match inst.op.view() {
-                OperationRef::StandardGate(StandardGate::T) => {
-                    ("rz", Some(Param::Float(PI / 8.)), PI / 8.)
+        match &dag[node_index] {
+            NodeType::Operation(inst) => {
+                let (name, angle, phase_update) = match inst.op.view() {
+                    OperationRef::StandardGate(StandardGate::T) => {
+                        ("rz", Some(Param::Float(PI / 8.)), PI / 8.)
+                    }
+                    OperationRef::StandardGate(StandardGate::Tdg) => {
+                        ("rz", Some(Param::Float(-PI / 8.0)), -PI / 8.)
+                    }
+                    OperationRef::StandardGate(StandardGate::RZ) => {
+                        let param = &inst.params_view()[0];
+                        ("rz", Some(multiply_param(param, 0.5)), 0.)
+                    }
+                    _ => (inst.op.name(), None, 0.),
+                };
+
+                global_phase_update += phase_update;
+
+                let qubits: Vec<usize> = dag
+                    .get_qargs(inst.qubits)
+                    .iter()
+                    .map(|q| q.index())
+                    .collect();
+
+                circuit.push((name, qubits));
+
+                match angle {
+                    Some(angle) => {
+                        // This is a rotation, save the angle.
+                        angles.push(angle);
+                    }
+                    _ => {
+                        // This is a Clifford operation, save it.
+                        clifford_ops.push(inst.clone());
+                    }
                 }
-                OperationRef::StandardGate(StandardGate::Tdg) => {
-                    ("rz", Some(Param::Float(-PI / 8.0)), -PI / 8.)
-                }
-                OperationRef::StandardGate(StandardGate::RZ) => {
-                    let param = &inst.params_view()[0];
-                    ("rz", Some(multiply_param(param, 0.5)), 0.)
-                }
-                _ => (inst.op.name(), None, 0.),
-            };
-
-            global_phase_update += phase_update;
-
-            let qubits: Vec<usize> = dag
-                .get_qargs(inst.qubits)
-                .iter()
-                .map(|q| q.index())
-                .collect();
-
-            circuit.push((name, qubits));
-
-            if let Some(angle) = angle {
-                // This is a rotation, save the angle.
-                angles.push(angle);
-            } else {
-                // This is a Clifford operation, save it.
-                clifford_ops.push(inst.clone());
             }
-        } else {
-            unreachable!("Gate instructions should be either Clifford or T/Tdg/RZ at this point.");
+            _ => {
+                unreachable!(
+                    "Gate instructions should be either Clifford or T/Tdg/RZ at this point."
+                );
+            }
         }
     }
 

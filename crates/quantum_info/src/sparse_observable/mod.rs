@@ -4014,25 +4014,28 @@ impl ArrayView {
                     Ok(())
                 }
                 indices => {
-                    if let Ok(value) = values.extract::<S>() {
-                        let value = value.try_into()?;
-                        for index in indices {
-                            slice[index] = value;
+                    match values.extract::<S>() {
+                        Ok(value) => {
+                            let value = value.try_into()?;
+                            for index in indices {
+                                slice[index] = value;
+                            }
                         }
-                    } else {
-                        let values = values
-                            .try_iter()?
-                            .map(|value| value?.extract::<S>()?.try_into().map_err(PyErr::from))
-                            .collect::<PyResult<Vec<_>>>()?;
-                        if indices.len() != values.len() {
-                            return Err(PyValueError::new_err(format!(
+                        _ => {
+                            let values = values
+                                .try_iter()?
+                                .map(|value| value?.extract::<S>()?.try_into().map_err(PyErr::from))
+                                .collect::<PyResult<Vec<_>>>()?;
+                            if indices.len() != values.len() {
+                                return Err(PyValueError::new_err(format!(
                                 "tried to set a slice of length {} with a sequence of length {}",
                                 indices.len(),
                                 values.len(),
                             )));
-                        }
-                        for (index, value) in indices.into_iter().zip(values) {
-                            slice[index] = value;
+                            }
+                            for (index, value) in indices.into_iter().zip(values) {
+                                slice[index] = value;
+                            }
                         }
                     }
                     Ok(())

@@ -32,30 +32,36 @@ use crate::QiskitError;
 
 #[inline]
 pub fn get_matrix_from_inst(inst: &PackedInstruction) -> PyResult<Array2<Complex64>> {
-    if let Some(mat) = inst.op.matrix(inst.params_view()) {
-        Ok(mat)
-    } else if inst.op.try_standard_gate().is_some() {
-        Err(QiskitError::new_err(
-            "Parameterized gates can't be consolidated",
-        ))
-    } else if let OperationRef::Gate(gate) = inst.op.view() {
-        // If the operation is a custom python gate, we will acquire the gil
-        // and use an Operator. Otherwise, using op.matrix() should work.
-        // A user should not be able to reach this condition in Rust standalone
-        // mode.
-        Python::attach(|py| -> PyResult<_> {
-            Ok(QI_OPERATOR
-                .get_bound(py)
-                .call1((gate.gate.clone_ref(py),))?
-                .getattr(intern!(py, "data"))?
-                .extract::<PyReadonlyArray2<Complex64>>()?
-                .as_array()
-                .to_owned())
-        })
-    } else {
-        Err(QiskitError::new_err(
-            "Can't compute matrix of non-unitary op",
-        ))
+    match inst.op.matrix(inst.params_view()) {
+        Some(mat) => Ok(mat),
+        _ => {
+            if inst.op.try_standard_gate().is_some() {
+                Err(QiskitError::new_err(
+                    "Parameterized gates can't be consolidated",
+                ))
+            } else {
+                match inst.op.view() {
+                    OperationRef::Gate(gate) => {
+                        // If the operation is a custom python gate, we will acquire the gil
+                        // and use an Operator. Otherwise, using op.matrix() should work.
+                        // A user should not be able to reach this condition in Rust standalone
+                        // mode.
+                        Python::attach(|py| -> PyResult<_> {
+                            Ok(QI_OPERATOR
+                                .get_bound(py)
+                                .call1((gate.gate.clone_ref(py),))?
+                                .getattr(intern!(py, "data"))?
+                                .extract::<PyReadonlyArray2<Complex64>>()?
+                                .as_array()
+                                .to_owned())
+                        })
+                    }
+                    _ => Err(QiskitError::new_err(
+                        "Can't compute matrix of non-unitary op",
+                    )),
+                }
+            }
+        }
     }
 }
 
@@ -190,10 +196,9 @@ pub fn instructions_to_matrix<'a>(
                 if let Some(sep) = qubits_1q.take() {
                     matrix = matrix.dot(&sep.matrix_into(&mut work));
                 }
-                output_matrix = if let Some(state) = output_matrix {
-                    Some(matrix.dot(&state))
-                } else {
-                    Some(matrix)
+                output_matrix = match output_matrix {
+                    Some(state) => Some(matrix.dot(&state)),
+                    _ => Some(matrix),
                 };
             }
         }

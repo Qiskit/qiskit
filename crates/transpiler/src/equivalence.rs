@@ -490,24 +490,26 @@ impl EquivalenceLibrary {
     ///     PyDiGraph: A graph object with equivalence data in each node.
     #[getter]
     fn get_graph(&mut self, py: Python) -> PyResult<Py<PyAny>> {
-        if let Some(graph) = &self._graph {
-            Ok(graph.clone_ref(py))
-        } else {
-            self._graph = Some(to_pygraph(py, &self.graph)?);
-            Ok(self
-                ._graph
-                .as_ref()
-                .map(|graph| graph.clone_ref(py))
-                .unwrap())
+        match &self._graph {
+            Some(graph) => Ok(graph.clone_ref(py)),
+            _ => {
+                self._graph = Some(to_pygraph(py, &self.graph)?);
+                Ok(self
+                    ._graph
+                    .as_ref()
+                    .map(|graph| graph.clone_ref(py))
+                    .unwrap())
+            }
         }
     }
 
     /// Get all the equivalences for the given key
     pub fn _get_equivalences(&self, key: &Key) -> Vec<Equivalence> {
-        if let Some(key_in) = self.key_to_node_index.get(key) {
-            self.graph[*key_in].equivs.clone()
-        } else {
-            vec![]
+        match self.key_to_node_index.get(key) {
+            Some(key_in) => self.graph[*key_in].equivs.clone(),
+            _ => {
+                vec![]
+            }
         }
     }
 
@@ -689,15 +691,16 @@ impl EquivalenceLibrary {
 
     /// Create a new node if key not found
     pub fn set_default_node(&mut self, key: Key) -> NodeIndex {
-        if let Some(value) = self.key_to_node_index.get(&key) {
-            *value
-        } else {
-            let node = self.graph.add_node(NodeData {
-                key: key.clone(),
-                equivs: vec![],
-            });
-            self.key_to_node_index.insert(key, node);
-            node
+        match self.key_to_node_index.get(&key) {
+            Some(value) => *value,
+            _ => {
+                let node = self.graph.add_node(NodeData {
+                    key: key.clone(),
+                    equivs: vec![],
+                });
+                self.key_to_node_index.insert(key, node);
+                node
+            }
         }
     }
 

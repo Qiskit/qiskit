@@ -124,10 +124,13 @@ pub(crate) fn basis_search(
                 let gate = (gate_key.name.to_string(), gate_key.num_qubits);
                 source_basis_remain.swap_remove(gate_key);
                 let mut borrowed_cost_map = opt_cost_map.borrow_mut();
-                if let Some(entry) = borrowed_cost_map.get_mut(&gate) {
-                    *entry = score;
-                } else {
-                    borrowed_cost_map.insert(gate.clone(), score);
+                match borrowed_cost_map.get_mut(&gate) {
+                    Some(entry) => {
+                        *entry = score;
+                    }
+                    _ => {
+                        borrowed_cost_map.insert(gate.clone(), score);
+                    }
                 }
                 if let Some(rule) = predecessors.borrow().get(&gate) {
                     basis_transforms.push((

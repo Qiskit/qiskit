@@ -153,40 +153,49 @@ pub fn transpile(
                 target.num_qubits.unwrap(),
                 |x| PhysicalQubit(x.0),
             );
-        } else if let Some(vf2_result) = vf2_layout_pass(
-            &dag,
-            target,
-            false,
-            Some(5_000_000),
-            None,
-            Some(2500),
-            None,
-            None,
-        )? {
-            apply_layout(
-                &mut dag,
-                &mut transpile_layout,
-                target.num_qubits.unwrap(),
-                |x| vf2_result[&x],
-            );
         } else {
-            let (result, initial_layout, final_layout) = sabre::sabre_layout_and_routing(
-                &mut dag,
+            match vf2_layout_pass(
+                &dag,
                 target,
-                &sabre_heuristic,
-                2,
-                20,
-                20,
-                seed,
-                Vec::new(),
                 false,
-            )?;
-            dag = result;
-            transpile_layout =
-                layout_from_sabre_result(&dag, initial_layout, &final_layout, &transpile_layout);
+                Some(5_000_000),
+                None,
+                Some(2500),
+                None,
+                None,
+            )? {
+                Some(vf2_result) => {
+                    apply_layout(
+                        &mut dag,
+                        &mut transpile_layout,
+                        target.num_qubits.unwrap(),
+                        |x| vf2_result[&x],
+                    );
+                }
+                _ => {
+                    let (result, initial_layout, final_layout) = sabre::sabre_layout_and_routing(
+                        &mut dag,
+                        target,
+                        &sabre_heuristic,
+                        2,
+                        20,
+                        20,
+                        seed,
+                        Vec::new(),
+                        false,
+                    )?;
+                    dag = result;
+                    transpile_layout = layout_from_sabre_result(
+                        &dag,
+                        initial_layout,
+                        &final_layout,
+                        &transpile_layout,
+                    );
+                }
+            }
         }
     } else if optimization_level == OptimizationLevel::Level2 {
-        if let Some(vf2_result) = vf2_layout_pass(
+        match vf2_layout_pass(
             &dag,
             target,
             false,
@@ -196,59 +205,75 @@ pub fn transpile(
             None,
             None,
         )? {
-            apply_layout(
-                &mut dag,
-                &mut transpile_layout,
-                target.num_qubits.unwrap(),
-                |x| vf2_result[&x],
-            );
-        } else {
-            let (result, initial_layout, final_layout) = sabre::sabre_layout_and_routing(
-                &mut dag,
-                target,
-                &sabre_heuristic,
-                2,
-                20,
-                20,
-                seed,
-                Vec::new(),
-                false,
-            )?;
-            dag = result;
-            transpile_layout =
-                layout_from_sabre_result(&dag, initial_layout, &final_layout, &transpile_layout);
+            Some(vf2_result) => {
+                apply_layout(
+                    &mut dag,
+                    &mut transpile_layout,
+                    target.num_qubits.unwrap(),
+                    |x| vf2_result[&x],
+                );
+            }
+            _ => {
+                let (result, initial_layout, final_layout) = sabre::sabre_layout_and_routing(
+                    &mut dag,
+                    target,
+                    &sabre_heuristic,
+                    2,
+                    20,
+                    20,
+                    seed,
+                    Vec::new(),
+                    false,
+                )?;
+                dag = result;
+                transpile_layout = layout_from_sabre_result(
+                    &dag,
+                    initial_layout,
+                    &final_layout,
+                    &transpile_layout,
+                );
+            }
         }
-    } else if let Some(vf2_result) = vf2_layout_pass(
-        &dag,
-        target,
-        false,
-        Some(30_000_000),
-        None,
-        Some(250_000),
-        None,
-        None,
-    )? {
-        apply_layout(
-            &mut dag,
-            &mut transpile_layout,
-            target.num_qubits.unwrap(),
-            |x| vf2_result[&x],
-        );
     } else {
-        let (result, initial_layout, final_layout) = sabre::sabre_layout_and_routing(
-            &mut dag,
+        match vf2_layout_pass(
+            &dag,
             target,
-            &sabre_heuristic,
-            4,
-            20,
-            20,
-            seed,
-            Vec::new(),
             false,
-        )?;
-        dag = result;
-        transpile_layout =
-            layout_from_sabre_result(&dag, initial_layout, &final_layout, &transpile_layout);
+            Some(30_000_000),
+            None,
+            Some(250_000),
+            None,
+            None,
+        )? {
+            Some(vf2_result) => {
+                apply_layout(
+                    &mut dag,
+                    &mut transpile_layout,
+                    target.num_qubits.unwrap(),
+                    |x| vf2_result[&x],
+                );
+            }
+            _ => {
+                let (result, initial_layout, final_layout) = sabre::sabre_layout_and_routing(
+                    &mut dag,
+                    target,
+                    &sabre_heuristic,
+                    4,
+                    20,
+                    20,
+                    seed,
+                    Vec::new(),
+                    false,
+                )?;
+                dag = result;
+                transpile_layout = layout_from_sabre_result(
+                    &dag,
+                    initial_layout,
+                    &final_layout,
+                    &transpile_layout,
+                );
+            }
+        }
     }
     // Routing stage
     if optimization_level == OptimizationLevel::Level0 {

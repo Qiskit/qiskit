@@ -622,10 +622,9 @@ fn commutation_precheck(
 }
 
 fn get_matrix(operation: &OperationRef, params: &[Param]) -> Option<Array2<Complex64>> {
-    if let Some(matrix) = operation.matrix(params) {
-        Some(matrix)
-    } else {
-        match operation {
+    match operation.matrix(params) {
+        Some(matrix) => Some(matrix),
+        _ => match operation {
             OperationRef::Gate(gate) => Python::attach(|py| -> Option<_> {
                 Some(
                     QI_OPERATOR
@@ -655,7 +654,7 @@ fn get_matrix(operation: &OperationRef, params: &[Param]) -> Option<Array2<Compl
                 )
             }),
             _ => None,
-        }
+        },
     }
 }
 
@@ -739,12 +738,15 @@ impl CommutationLibrary {
     }
 
     pub(crate) fn add_entry(&mut self, key: [&str; 2], value: CommutationLibraryEntry) {
-        if let Some(library) = &mut self.library {
-            library.insert((key[0].to_string(), key[1].to_string()), value);
-        } else {
-            let mut library = HashMap::new();
-            library.insert((key[0].to_string(), key[1].to_string()), value);
-            self.library = Some(library);
+        match &mut self.library {
+            Some(library) => {
+                library.insert((key[0].to_string(), key[1].to_string()), value);
+            }
+            _ => {
+                let mut library = HashMap::new();
+                library.insert((key[0].to_string(), key[1].to_string()), value);
+                self.library = Some(library);
+            }
         }
     }
 
@@ -754,16 +756,17 @@ impl CommutationLibrary {
         second_op: &OperationRef,
         relative_placement: &SmallVec<[Option<Qubit>; 2]>,
     ) -> Option<bool> {
-        if let Some(library) = &self.library {
-            match library.get(&(first_op.name().to_string(), second_op.name().to_string())) {
-                Some(CommutationLibraryEntry::Commutes(b)) => Some(*b),
-                Some(CommutationLibraryEntry::QubitMapping(qm)) => {
-                    qm.get(relative_placement).copied()
+        match &self.library {
+            Some(library) => {
+                match library.get(&(first_op.name().to_string(), second_op.name().to_string())) {
+                    Some(CommutationLibraryEntry::Commutes(b)) => Some(*b),
+                    Some(CommutationLibraryEntry::QubitMapping(qm)) => {
+                        qm.get(relative_placement).copied()
+                    }
+                    _ => None,
                 }
-                _ => None,
             }
-        } else {
-            None
+            _ => None,
         }
     }
 }

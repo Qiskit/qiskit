@@ -70,10 +70,9 @@ impl BasicHeuristic {
     }
 
     pub fn __eq__(&self, py: Python, other: Py<PyAny>) -> bool {
-        if let Ok(other) = other.extract::<Self>(py) {
-            self == &other
-        } else {
-            false
+        match other.extract::<Self>(py) {
+            Ok(other) => self == &other,
+            _ => false,
         }
     }
 
@@ -116,10 +115,9 @@ impl LookaheadHeuristic {
     }
 
     pub fn __eq__(&self, py: Python, other: Py<PyAny>) -> bool {
-        if let Ok(other) = other.extract::<Self>(py) {
-            self == &other
-        } else {
-            false
+        match other.extract::<Self>(py) {
+            Ok(other) => self == &other,
+            _ => false,
         }
     }
 
@@ -157,10 +155,9 @@ impl DecayHeuristic {
     }
 
     pub fn __eq__(&self, py: Python, other: Py<PyAny>) -> bool {
-        if let Ok(other) = other.extract::<Self>(py) {
-            self == &other
-        } else {
-            false
+        match other.extract::<Self>(py) {
+            Ok(other) => self == &other,
+            _ => false,
         }
     }
 
@@ -266,10 +263,9 @@ impl Heuristic {
     }
 
     pub fn __eq__(&self, py: Python, other: Py<PyAny>) -> bool {
-        if let Ok(other) = other.extract::<Self>(py) {
-            self == &other
-        } else {
-            false
+        match other.extract::<Self>(py) {
+            Ok(other) => self == &other,
+            _ => false,
         }
     }
 

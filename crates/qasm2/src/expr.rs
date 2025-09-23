@@ -360,25 +360,28 @@ impl ExprParser<'_> {
                 )));
             }
         };
-        if let (Expr::Constant(val_l), Expr::Constant(val_r)) = (&lhs, &rhs) {
-            // Eagerly constant-fold if possible.
-            match infix {
-                Op::Plus => Ok(Expr::Constant(val_l + val_r)),
-                Op::Minus => Ok(Expr::Constant(val_l - val_r)),
-                Op::Multiply => Ok(Expr::Constant(val_l * val_r)),
-                Op::Divide => Ok(Expr::Constant(val_l / val_r)),
-                Op::Power => Ok(Expr::Constant(val_l.powf(*val_r))),
+        match (&lhs, &rhs) {
+            (Expr::Constant(val_l), Expr::Constant(val_r)) => {
+                // Eagerly constant-fold if possible.
+                match infix {
+                    Op::Plus => Ok(Expr::Constant(val_l + val_r)),
+                    Op::Minus => Ok(Expr::Constant(val_l - val_r)),
+                    Op::Multiply => Ok(Expr::Constant(val_l * val_r)),
+                    Op::Divide => Ok(Expr::Constant(val_l / val_r)),
+                    Op::Power => Ok(Expr::Constant(val_l.powf(*val_r))),
+                }
             }
-        } else {
-            // If not, we have to build a tree.
-            let id_l = Box::new(lhs);
-            let id_r = Box::new(rhs);
-            match infix {
-                Op::Plus => Ok(Expr::Add(id_l, id_r)),
-                Op::Minus => Ok(Expr::Subtract(id_l, id_r)),
-                Op::Multiply => Ok(Expr::Multiply(id_l, id_r)),
-                Op::Divide => Ok(Expr::Divide(id_l, id_r)),
-                Op::Power => Ok(Expr::Power(id_l, id_r)),
+            _ => {
+                // If not, we have to build a tree.
+                let id_l = Box::new(lhs);
+                let id_r = Box::new(rhs);
+                match infix {
+                    Op::Plus => Ok(Expr::Add(id_l, id_r)),
+                    Op::Minus => Ok(Expr::Subtract(id_l, id_r)),
+                    Op::Multiply => Ok(Expr::Multiply(id_l, id_r)),
+                    Op::Divide => Ok(Expr::Divide(id_l, id_r)),
+                    Op::Power => Ok(Expr::Power(id_l, id_r)),
+                }
             }
         }
     }
@@ -560,14 +563,12 @@ impl ExprParser<'_> {
     /// into a valid [Atom].  If it can't, or if we are at the end of the input, the `None` variant
     /// is returned.
     fn peek_atom(&mut self) -> PyResult<Option<(Atom, Token)>> {
-        if let Some(&token) = self.peek_token()? {
-            if let Ok(Some(atom)) = self.try_atom_from_token(&token) {
-                Ok(Some((atom, token)))
-            } else {
-                Ok(None)
-            }
-        } else {
-            Ok(None)
+        match self.peek_token()? {
+            Some(&token) => match self.try_atom_from_token(&token) {
+                Ok(Some(atom)) => Ok(Some((atom, token))),
+                _ => Ok(None),
+            },
+            _ => Ok(None),
         }
     }
 

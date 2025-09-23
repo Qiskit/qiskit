@@ -507,27 +507,24 @@ impl State {
                 )),
                 &format!("'{name}' is a parameter, not a qubit"),
             ))),
-            None => {
-                if let Some(symbol) = self.symbols.get(&name) {
-                    Err(QASM2ParseError::new_err(message_generic(
-                        Some(&Position::new(
-                            self.current_filename(),
-                            name_token.line,
-                            name_token.col,
-                        )),
-                        &format!("'{}' is {}, not a qubit", name, symbol.describe()),
-                    )))
-                } else {
-                    Err(QASM2ParseError::new_err(message_generic(
-                        Some(&Position::new(
-                            self.current_filename(),
-                            name_token.line,
-                            name_token.col,
-                        )),
-                        &format!("'{name}' is not defined in this scope"),
-                    )))
-                }
-            }
+            None => match self.symbols.get(&name) {
+                Some(symbol) => Err(QASM2ParseError::new_err(message_generic(
+                    Some(&Position::new(
+                        self.current_filename(),
+                        name_token.line,
+                        name_token.col,
+                    )),
+                    &format!("'{}' is {}, not a qubit", name, symbol.describe()),
+                ))),
+                _ => Err(QASM2ParseError::new_err(message_generic(
+                    Some(&Position::new(
+                        self.current_filename(),
+                        name_token.line,
+                        name_token.col,
+                    )),
+                    &format!("'{name}' is not defined in this scope"),
+                ))),
+            },
         }
     }
 
@@ -1680,37 +1677,42 @@ impl State {
             )))
         };
 
-        if let Some(symbol) = self.overridable_gates.remove(&name) {
-            if num_params != symbol.num_params || num_qubits != symbol.num_qubits {
-                return mismatched_definitions(self, name, symbol);
-            }
-            match self.symbols.get(&name) {
-                None => {
-                    // The gate wasn't a built-in, so we need to move the symbol in, but we don't
-                    // need to increment the number of gates because it's already got a gate ID
-                    // assigned.
-                    self.symbols.insert(name, symbol.into());
-                    Ok(false)
+        match self.overridable_gates.remove(&name) {
+            Some(symbol) => {
+                if num_params != symbol.num_params || num_qubits != symbol.num_qubits {
+                    return mismatched_definitions(self, name, symbol);
                 }
-                Some(GlobalSymbol::Gate { .. }) => {
-                    // The gate was built-in and we can ignore the new definition (it's the same).
-                    Ok(false)
+                match self.symbols.get(&name) {
+                    None => {
+                        // The gate wasn't a built-in, so we need to move the symbol in, but we don't
+                        // need to increment the number of gates because it's already got a gate ID
+                        // assigned.
+                        self.symbols.insert(name, symbol.into());
+                        Ok(false)
+                    }
+                    Some(GlobalSymbol::Gate { .. }) => {
+                        // The gate was built-in and we can ignore the new definition (it's the same).
+                        Ok(false)
+                    }
+                    _ => already_defined(self, name),
                 }
-                _ => already_defined(self, name),
             }
-        } else if self.symbols.contains_key(&name) {
-            already_defined(self, name)
-        } else {
-            self.symbols.insert(
-                name,
-                GlobalSymbol::Gate {
-                    num_params,
-                    num_qubits,
-                    index: GateId::new(self.num_gates),
-                },
-            );
-            self.num_gates += 1;
-            Ok(true)
+            _ => {
+                if self.symbols.contains_key(&name) {
+                    already_defined(self, name)
+                } else {
+                    self.symbols.insert(
+                        name,
+                        GlobalSymbol::Gate {
+                            num_params,
+                            num_qubits,
+                            index: GateId::new(self.num_gates),
+                        },
+                    );
+                    self.num_gates += 1;
+                    Ok(true)
+                }
+            }
         }
     }
 

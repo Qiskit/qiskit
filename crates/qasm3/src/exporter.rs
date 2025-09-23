@@ -270,14 +270,17 @@ impl SymbolTable {
     }
 
     fn bind(&mut self, name: &str) -> ExporterResult<()> {
-        if let Some(symbols) = self.symbols.last() {
-            if !symbols.contains_key(name) {
-                self.bind_no_check(name);
+        match self.symbols.last() {
+            Some(symbols) => {
+                if !symbols.contains_key(name) {
+                    self.bind_no_check(name);
+                }
             }
-        } else {
-            return Err(QASM3ExporterError::Error(format!(
-                "Symbol table is empty, cannot bind '{name}'"
-            )));
+            _ => {
+                return Err(QASM3ExporterError::Error(format!(
+                    "Symbol table is empty, cannot bind '{name}'"
+                )));
+            }
         }
 
         Ok(())
@@ -293,10 +296,9 @@ impl SymbolTable {
     }
 
     fn contains_name(&self, name: &str) -> bool {
-        if let Some(symbols) = self.symbols.last() {
-            symbols.contains_key(name)
-        } else {
-            false
+        match self.symbols.last() {
+            Some(symbols) => symbols.contains_key(name),
+            _ => false,
         }
     }
 
@@ -1189,13 +1191,12 @@ impl<'a> QASM3Builder {
         let param = &instr.params_view()[0];
         let duration: f64 = Python::attach(|py| match param {
             Param::Float(val) => *val,
-            Param::ParameterExpression(p) => {
-                if let Ok(symbol_expr::Value::Real(val)) = p.try_to_value(true) {
-                    val
-                } else {
+            Param::ParameterExpression(p) => match p.try_to_value(true) {
+                Ok(symbol_expr::Value::Real(val)) => val,
+                _ => {
                     panic!("Failed to parse parameter value")
                 }
-            }
+            },
             Param::Obj(obj) => {
                 let py_obj = obj.bind(py);
                 let py_str = py_obj.str().expect("Failed to call str() on Parameter");
@@ -1325,63 +1326,64 @@ impl<'a> QASM3Builder {
                 Param::ParameterExpression(Arc::new(expr))
             })
             .collect();
-        if let Some(instruction) = operation.definition(&params) {
-            let params_def = params
-                .iter()
-                .enumerate()
-                .map(|(i, _p)| {
-                    let name = format!("{}_{}", self._gate_param_prefix, i);
-                    Identifier {
-                        string: name.clone(),
+        match operation.definition(&params) {
+            Some(instruction) => {
+                let params_def = params
+                    .iter()
+                    .enumerate()
+                    .map(|(i, _p)| {
+                        let name = format!("{}_{}", self._gate_param_prefix, i);
+                        Identifier {
+                            string: name.clone(),
+                        }
+                    })
+                    .collect::<Vec<_>>();
+                let qubits = (0..instruction.num_qubits())
+                    .map(|i| {
+                        let name = format!("{}_{}", self._gate_qubit_prefix, i);
+                        Identifier {
+                            string: name.clone(),
+                        }
+                    })
+                    .collect::<Vec<_>>();
+
+                let body = self.new_context(&instruction, |builder| {
+                    for param in &params_def {
+                        let _ = builder.symbol_table.bind(&param.string);
                     }
-                })
-                .collect::<Vec<_>>();
-            let qubits = (0..instruction.num_qubits())
-                .map(|i| {
-                    let name = format!("{}_{}", self._gate_qubit_prefix, i);
-                    Identifier {
-                        string: name.clone(),
+                    for (i, q) in instruction.qubits().objects().iter().enumerate() {
+                        let name = format!("{}_{}", builder._gate_qubit_prefix, i);
+                        let qid = Identifier {
+                            string: name.clone(),
+                        };
+                        let _ = builder.symbol_table.bind(&qid.string);
+                        builder.symbol_table.set_bitinfo(
+                            IdentifierOrSubscripted::Identifier(qid.clone()),
+                            BitType::ShareableQubit(q.to_owned()),
+                        );
                     }
-                })
-                .collect::<Vec<_>>();
 
-            let body = self.new_context(&instruction, |builder| {
-                for param in &params_def {
-                    let _ = builder.symbol_table.bind(&param.string);
-                }
-                for (i, q) in instruction.qubits().objects().iter().enumerate() {
-                    let name = format!("{}_{}", builder._gate_qubit_prefix, i);
-                    let qid = Identifier {
-                        string: name.clone(),
-                    };
-                    let _ = builder.symbol_table.bind(&qid.string);
-                    builder.symbol_table.set_bitinfo(
-                        IdentifierOrSubscripted::Identifier(qid.clone()),
-                        BitType::ShareableQubit(q.to_owned()),
-                    );
-                }
+                    let mut stmts_tmp = Vec::new();
+                    for instr in instruction.data() {
+                        let _ = builder.build_instruction(instr, &mut stmts_tmp);
+                    }
+                    QuantumBlock {
+                        statements: stmts_tmp,
+                    }
+                })?;
 
-                let mut stmts_tmp = Vec::new();
-                for instr in instruction.data() {
-                    let _ = builder.build_instruction(instr, &mut stmts_tmp);
-                }
-                QuantumBlock {
-                    statements: stmts_tmp,
-                }
-            })?;
-
-            let _ = self.symbol_table.register_gate(
-                operation.name().to_string(),
-                params_def,
-                qubits,
-                body,
-            );
-            Ok(())
-        } else {
-            Err(QASM3ExporterError::Error(format!(
+                let _ = self.symbol_table.register_gate(
+                    operation.name().to_string(),
+                    params_def,
+                    qubits,
+                    body,
+                );
+                Ok(())
+            }
+            _ => Err(QASM3ExporterError::Error(format!(
                 "Failed to get definition for this gate: {}",
                 operation.name()
-            )))
+            ))),
         }
     }
 }

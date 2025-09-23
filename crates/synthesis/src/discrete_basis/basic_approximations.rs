@@ -207,7 +207,7 @@ impl GateSequence {
         let (target_first, self_first) = target_u2
             .iter()
             .zip(self_u2.iter())
-            .find(|(&el, _)| el.abs() >= 1. / 2.)
+            .find(|&(&el, _)| el.abs() >= 1. / 2.)
             .expect("At least one element in the unitary must be >= 1/2.");
 
         // When we convert SU(2) to SO(3) we lose sign information, which translates to a

@@ -74,12 +74,12 @@ impl<'py> IntoPyObject<'py> for Param {
 
 impl<'py> FromPyObject<'py> for Param {
     fn extract_bound(b: &Bound<'py, PyAny>) -> Result<Self, PyErr> {
-        Ok(if let Ok(py_expr) = b.extract::<PyParameterExpression>() {
-            Param::ParameterExpression(Arc::new(py_expr.inner))
-        } else if let Ok(val) = b.extract::<f64>() {
-            Param::Float(val)
-        } else {
-            Param::Obj(b.clone().unbind())
+        Ok(match b.extract::<PyParameterExpression>() {
+            Ok(py_expr) => Param::ParameterExpression(Arc::new(py_expr.inner)),
+            _ => match b.extract::<f64>() {
+                Ok(val) => Param::Float(val),
+                _ => Param::Obj(b.clone().unbind()),
+            },
         })
     }
 }
@@ -190,16 +190,21 @@ impl Param {
     pub fn extract_no_coerce(ob: &Bound<PyAny>) -> PyResult<Self> {
         Ok(if ob.is_instance_of::<PyFloat>() {
             Param::Float(ob.extract()?)
-        } else if let Ok(py_expr) = PyParameterExpression::extract_coerce(ob) {
-            // don't get confused by the `coerce` name here -- we promise to not coerce to
-            // Param::Float. But if it's an int or complex we need to store it as an Obj.
-            if Some(true) == py_expr.inner.is_int() || Some(true) == py_expr.inner.is_complex() {
-                Param::Obj(ob.clone().unbind())
-            } else {
-                Param::ParameterExpression(Arc::new(py_expr.inner))
-            }
         } else {
-            Param::Obj(ob.clone().unbind())
+            match PyParameterExpression::extract_coerce(ob) {
+                Ok(py_expr) => {
+                    // don't get confused by the `coerce` name here -- we promise to not coerce to
+                    // Param::Float. But if it's an int or complex we need to store it as an Obj.
+                    if Some(true) == py_expr.inner.is_int()
+                        || Some(true) == py_expr.inner.is_complex()
+                    {
+                        Param::Obj(ob.clone().unbind())
+                    } else {
+                        Param::ParameterExpression(Arc::new(py_expr.inner))
+                    }
+                }
+                _ => Param::Obj(ob.clone().unbind()),
+            }
         })
     }
 

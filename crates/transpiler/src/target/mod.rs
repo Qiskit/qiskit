@@ -352,10 +352,9 @@ impl Target {
                 "Instruction {name} is already in the target"
             )));
         }
-        let props_map = if let Some(props_map) = properties {
-            props_map
-        } else {
-            IndexMap::from_iter([(Qargs::Global, None)])
+        let props_map = match properties {
+            Some(props_map) => props_map,
+            _ => IndexMap::from_iter([(Qargs::Global, None)]),
         };
 
         self.inner_add_instruction(instruction, name.clone(), props_map)
@@ -560,15 +559,19 @@ impl Target {
                             continue;
                         }
                         // If no qargs operation class is supported
-                        if let Qargs::Concrete(qargs) = &qargs {
-                            let qarg_set: HashSet<PhysicalQubit> = qargs.iter().cloned().collect();
-                            // If qargs set then validate no duplicates and all indices are valid on device
-                            return Ok(qargs
-                                .iter()
-                                .all(|qarg| qarg.0 <= self.num_qubits.unwrap_or_default())
-                                && qarg_set.len() == qargs.len());
-                        } else {
-                            return Ok(true);
+                        match &qargs {
+                            Qargs::Concrete(qargs) => {
+                                let qarg_set: HashSet<PhysicalQubit> =
+                                    qargs.iter().cloned().collect();
+                                // If qargs set then validate no duplicates and all indices are valid on device
+                                return Ok(qargs
+                                    .iter()
+                                    .all(|qarg| qarg.0 <= self.num_qubits.unwrap_or_default())
+                                    && qarg_set.len() == qargs.len());
+                            }
+                            _ => {
+                                return Ok(true);
+                            }
                         }
                     }
                     TargetOperation::Normal(normal) => {
@@ -582,29 +585,33 @@ impl Target {
                                     continue;
                                 }
                             }
-                            if let Qargs::Concrete(qargs_as_vec) = &qargs {
-                                if self.gate_map.contains_key(op_name) {
-                                    let gate_map_name = &self.gate_map[op_name];
-                                    if gate_map_name.contains_key(&qargs.as_ref()) {
-                                        return Ok(true);
-                                    }
-                                    if gate_map_name.contains_key(&Qargs::Global) {
-                                        let qubit_comparison =
-                                            self._gate_name_map[op_name].num_qubits();
+                            match &qargs {
+                                Qargs::Concrete(qargs_as_vec) => {
+                                    if self.gate_map.contains_key(op_name) {
+                                        let gate_map_name = &self.gate_map[op_name];
+                                        if gate_map_name.contains_key(&qargs.as_ref()) {
+                                            return Ok(true);
+                                        }
+                                        if gate_map_name.contains_key(&Qargs::Global) {
+                                            let qubit_comparison =
+                                                self._gate_name_map[op_name].num_qubits();
+                                            return Ok(qubit_comparison
+                                                == qargs_as_vec.len() as u32
+                                                && qargs_as_vec.iter().all(|x| {
+                                                    x.0 < self.num_qubits.unwrap_or_default()
+                                                }));
+                                        }
+                                    } else {
+                                        let qubit_comparison = obj.num_qubits();
                                         return Ok(qubit_comparison == qargs_as_vec.len() as u32
                                             && qargs_as_vec.iter().all(|x| {
                                                 x.0 < self.num_qubits.unwrap_or_default()
                                             }));
                                     }
-                                } else {
-                                    let qubit_comparison = obj.num_qubits();
-                                    return Ok(qubit_comparison == qargs_as_vec.len() as u32
-                                        && qargs_as_vec
-                                            .iter()
-                                            .all(|x| x.0 < self.num_qubits.unwrap_or_default()));
                                 }
-                            } else {
-                                return Ok(true);
+                                _ => {
+                                    return Ok(true);
+                                }
                             }
                         }
                     }
@@ -615,15 +622,18 @@ impl Target {
             if let Some(parameters) = parameters {
                 if let Some(obj) = self._gate_name_map.get(&operation_name) {
                     if matches!(obj, TargetOperation::Variadic(_)) {
-                        if let Qargs::Concrete(qargs_vec) = qargs {
-                            let qarg_set: HashSet<PhysicalQubit> =
-                                qargs_vec.iter().cloned().collect();
-                            return Ok(qargs_vec
-                                .iter()
-                                .all(|qarg| qarg.0 <= self.num_qubits.unwrap_or_default())
-                                && qarg_set.len() == qargs_vec.len());
-                        } else {
-                            return Ok(true);
+                        match qargs {
+                            Qargs::Concrete(qargs_vec) => {
+                                let qarg_set: HashSet<PhysicalQubit> =
+                                    qargs_vec.iter().cloned().collect();
+                                return Ok(qargs_vec
+                                    .iter()
+                                    .all(|qarg| qarg.0 <= self.num_qubits.unwrap_or_default())
+                                    && qarg_set.len() == qargs_vec.len());
+                            }
+                            _ => {
+                                return Ok(true);
+                            }
                         }
                     }
 
@@ -745,15 +755,14 @@ impl Target {
     // TODO: Add flag for custom tests
     /// Private method for development purposes only
     fn _raw_operation_from_name(&self, py: Python, name: &str) -> PyResult<Py<PyAny>> {
-        if let Some(gate) = self._gate_name_map.get(name) {
-            match gate {
+        match self._gate_name_map.get(name) {
+            Some(gate) => match gate {
                 TargetOperation::Normal(normal_operation) => {
                     normal_operation.create_py_op(py, None)
                 }
                 TargetOperation::Variadic(py_op) => Ok(py_op.clone_ref(py)),
-            }
-        } else {
-            Ok(py.None())
+            },
+            _ => Ok(py.None()),
         }
     }
 
@@ -774,11 +783,12 @@ impl Target {
     #[getter]
     #[pyo3(name = "qargs")]
     fn py_qargs(&self, py: Python) -> PyResult<Py<PyAny>> {
-        if let Some(qargs) = self.qargs() {
-            let set = PySet::new(py, qargs)?;
-            Ok(set.into_any().unbind())
-        } else {
-            Ok(py.None())
+        match self.qargs() {
+            Some(qargs) => {
+                let set = PySet::new(py, qargs)?;
+                Ok(set.into_any().unbind())
+            }
+            _ => Ok(py.None()),
         }
     }
 
@@ -1034,10 +1044,9 @@ impl Target {
             return Err(TargetError::AlreadyExists(parsed_name));
         }
         let operation = TargetOperation::from_packed_operation(operation, params.into());
-        let props_map = if let Some(props_map) = props_map {
-            props_map
-        } else {
-            IndexMap::from_iter([(Qargs::Global, None)])
+        let props_map = match props_map {
+            Some(props_map) => props_map,
+            _ => IndexMap::from_iter([(Qargs::Global, None)]),
         };
 
         self.inner_add_instruction(operation, parsed_name, props_map)
@@ -1084,11 +1093,14 @@ impl Target {
                                 ) + 1,
                             ));
                     }
-                    if let Some(value) = self.qarg_gate_map.get_mut(&qarg.as_ref()) {
-                        value.insert(name.to_string());
-                    } else {
-                        self.qarg_gate_map
-                            .insert(qarg.clone(), HashSet::from_iter([name.to_string()]));
+                    match self.qarg_gate_map.get_mut(&qarg.as_ref()) {
+                        Some(value) => {
+                            value.insert(name.to_string());
+                        }
+                        _ => {
+                            self.qarg_gate_map
+                                .insert(qarg.clone(), HashSet::from_iter([name.to_string()]));
+                        }
                     }
                 }
             }
@@ -1223,7 +1235,7 @@ impl Target {
     }
 
     /// Get an iterator over the indices of all physical qubits of the target
-    pub fn physical_qubits(&self) -> impl ExactSizeIterator<Item = PhysicalQubit> {
+    pub fn physical_qubits(&self) -> impl ExactSizeIterator<Item = PhysicalQubit> + use<> {
         (0..self.num_qubits.unwrap_or_default()).map(PhysicalQubit)
     }
 
@@ -1342,7 +1354,7 @@ impl Target {
     pub fn operations_for_qargs<'a, T>(
         &self,
         qargs: T,
-    ) -> Result<impl Iterator<Item = &NormalOperation>, TargetError>
+    ) -> Result<impl Iterator<Item = &NormalOperation> + use<'_, T>, TargetError>
     where
         T: Into<QargsRef<'a>>,
     {
@@ -1366,15 +1378,16 @@ impl Target {
     pub fn qargs_for_operation_name(
         &self,
         operation: &str,
-    ) -> Result<Option<impl Iterator<Item = &Qargs>>, TargetError> {
-        if let Some(gate_map_oper) = self.gate_map.get(operation) {
-            if gate_map_oper.contains_key(&Qargs::Global) {
-                return Ok(None);
+    ) -> Result<Option<impl Iterator<Item = &Qargs> + use<'_>>, TargetError> {
+        match self.gate_map.get(operation) {
+            Some(gate_map_oper) => {
+                if gate_map_oper.contains_key(&Qargs::Global) {
+                    return Ok(None);
+                }
+                let qargs = gate_map_oper.keys().filter(|qargs| qargs.is_concrete());
+                Ok(Some(qargs))
             }
-            let qargs = gate_map_oper.keys().filter(|qargs| qargs.is_concrete());
-            Ok(Some(qargs))
-        } else {
-            Err(TargetError::InvalidKey(operation.to_string()))
+            _ => Err(TargetError::InvalidKey(operation.to_string())),
         }
     }
 
@@ -1408,18 +1421,40 @@ impl Target {
                 return true;
             };
             let qarg_set: HashSet<&PhysicalQubit> = qargs_as_vec.iter().collect();
-            if let Some(gate_prop_name) = self.gate_map.get(operation_name) {
-                if gate_prop_name.contains_key(&qargs) {
-                    return true;
+            match self.gate_map.get(operation_name) {
+                Some(gate_prop_name) => {
+                    if gate_prop_name.contains_key(&qargs) {
+                        return true;
+                    }
+                    if gate_prop_name.contains_key(&Qargs::Global) {
+                        let obj = &self._gate_name_map[operation_name];
+                        match obj {
+                            TargetOperation::Variadic(_) => {
+                                return qargs_as_vec
+                                    .iter()
+                                    .all(|qarg| qarg.0 <= self.num_qubits.unwrap_or_default())
+                                    && qarg_set.len() == qargs_as_vec.len();
+                            }
+                            TargetOperation::Normal(obj) => {
+                                let qubit_comparison = obj.operation.num_qubits();
+                                return qubit_comparison == qargs_as_vec.len() as u32
+                                    && qargs_as_vec
+                                        .iter()
+                                        .all(|qarg| qarg.0 < self.num_qubits.unwrap_or_default());
+                            }
+                        }
+                    }
                 }
-                if gate_prop_name.contains_key(&Qargs::Global) {
+                _ => {
+                    // Duplicate case is if it contains none
                     let obj = &self._gate_name_map[operation_name];
                     match obj {
                         TargetOperation::Variadic(_) => {
-                            return qargs_as_vec
-                                .iter()
-                                .all(|qarg| qarg.0 <= self.num_qubits.unwrap_or_default())
-                                && qarg_set.len() == qargs_as_vec.len();
+                            return qargs.is_global()
+                                || qargs_as_vec
+                                    .iter()
+                                    .all(|qarg| qarg.0 <= self.num_qubits.unwrap_or_default())
+                                    && qarg_set.len() == qargs_as_vec.len();
                         }
                         TargetOperation::Normal(obj) => {
                             let qubit_comparison = obj.operation.num_qubits();
@@ -1428,25 +1463,6 @@ impl Target {
                                     .iter()
                                     .all(|qarg| qarg.0 < self.num_qubits.unwrap_or_default());
                         }
-                    }
-                }
-            } else {
-                // Duplicate case is if it contains none
-                let obj = &self._gate_name_map[operation_name];
-                match obj {
-                    TargetOperation::Variadic(_) => {
-                        return qargs.is_global()
-                            || qargs_as_vec
-                                .iter()
-                                .all(|qarg| qarg.0 <= self.num_qubits.unwrap_or_default())
-                                && qarg_set.len() == qargs_as_vec.len();
-                    }
-                    TargetOperation::Normal(obj) => {
-                        let qubit_comparison = obj.operation.num_qubits();
-                        return qubit_comparison == qargs_as_vec.len() as u32
-                            && qargs_as_vec
-                                .iter()
-                                .all(|qarg| qarg.0 < self.num_qubits.unwrap_or_default());
                     }
                 }
             }

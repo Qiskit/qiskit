@@ -649,27 +649,33 @@ impl CircuitData {
         self.qregs.add_register(register.clone(), strict)?;
 
         for (index, bit) in register.bits().enumerate() {
-            if let Some(entry) = self.qubit_indices.get_mut(&bit) {
-                entry.add_register(register.clone(), index);
-            } else if let Some(bit_idx) = self.qubits.find(&bit) {
-                self.qubit_indices.insert(
-                    bit,
-                    BitLocations::new(bit_idx.0, [(register.clone(), index)]),
-                );
-            } else {
-                let bit_idx = self.qubits.len();
-                self.add_qubit(bit.clone(), true)?;
-                self.qubit_indices.insert(
-                    bit,
-                    BitLocations::new(
-                        bit_idx.try_into().map_err(|_| {
-                            CircuitError::new_err(format!(
-                                "Qubit at index {bit_idx} exceeds circuit capacity."
-                            ))
-                        })?,
-                        [(register.clone(), index)],
-                    ),
-                );
+            match self.qubit_indices.get_mut(&bit) {
+                Some(entry) => {
+                    entry.add_register(register.clone(), index);
+                }
+                _ => match self.qubits.find(&bit) {
+                    Some(bit_idx) => {
+                        self.qubit_indices.insert(
+                            bit,
+                            BitLocations::new(bit_idx.0, [(register.clone(), index)]),
+                        );
+                    }
+                    _ => {
+                        let bit_idx = self.qubits.len();
+                        self.add_qubit(bit.clone(), true)?;
+                        self.qubit_indices.insert(
+                            bit,
+                            BitLocations::new(
+                                bit_idx.try_into().map_err(|_| {
+                                    CircuitError::new_err(format!(
+                                        "Qubit at index {bit_idx} exceeds circuit capacity."
+                                    ))
+                                })?,
+                                [(register.clone(), index)],
+                            ),
+                        );
+                    }
+                },
             }
         }
         Ok(())
@@ -701,27 +707,33 @@ impl CircuitData {
         self.cregs.add_register(register.clone(), strict)?;
 
         for (index, bit) in register.bits().enumerate() {
-            if let Some(entry) = self.clbit_indices.get_mut(&bit) {
-                entry.add_register(register.clone(), index);
-            } else if let Some(bit_idx) = self.clbits.find(&bit) {
-                self.clbit_indices.insert(
-                    bit,
-                    BitLocations::new(bit_idx.0, [(register.clone(), index)]),
-                );
-            } else {
-                let bit_idx = self.clbits.len();
-                self.add_clbit(bit.clone(), true)?;
-                self.clbit_indices.insert(
-                    bit,
-                    BitLocations::new(
-                        bit_idx.try_into().map_err(|_| {
-                            CircuitError::new_err(format!(
-                                "Clbit at index {bit_idx} exceeds circuit capacity."
-                            ))
-                        })?,
-                        [(register.clone(), index)],
-                    ),
-                );
+            match self.clbit_indices.get_mut(&bit) {
+                Some(entry) => {
+                    entry.add_register(register.clone(), index);
+                }
+                _ => match self.clbits.find(&bit) {
+                    Some(bit_idx) => {
+                        self.clbit_indices.insert(
+                            bit,
+                            BitLocations::new(bit_idx.0, [(register.clone(), index)]),
+                        );
+                    }
+                    _ => {
+                        let bit_idx = self.clbits.len();
+                        self.add_clbit(bit.clone(), true)?;
+                        self.clbit_indices.insert(
+                            bit,
+                            BitLocations::new(
+                                bit_idx.try_into().map_err(|_| {
+                                    CircuitError::new_err(format!(
+                                        "Clbit at index {bit_idx} exceeds circuit capacity."
+                                    ))
+                                })?,
+                                [(register.clone(), index)],
+                            ),
+                        );
+                    }
+                },
             }
         }
         Ok(())
@@ -1266,30 +1278,33 @@ impl CircuitData {
 
     /// Assign all the circuit parameters, given an iterable input of `Param` instances.
     fn assign_parameters_iterable(&mut self, sequence: Bound<PyAny>) -> PyResult<()> {
-        if let Ok(readonly) = sequence.extract::<PyReadonlyArray1<f64>>() {
-            // Fast path for Numpy arrays; in this case we can easily handle them without copying
-            // the data across into a Rust-space `Vec` first.
-            let array = readonly.as_array();
-            if array.len() != self.param_table.num_parameters() {
-                return Err(PyValueError::new_err(concat!(
-                    "Mismatching number of values and parameters. For partial binding ",
-                    "please pass a dictionary of {parameter: value} pairs."
-                )));
+        match sequence.extract::<PyReadonlyArray1<f64>>() {
+            Ok(readonly) => {
+                // Fast path for Numpy arrays; in this case we can easily handle them without copying
+                // the data across into a Rust-space `Vec` first.
+                let array = readonly.as_array();
+                if array.len() != self.param_table.num_parameters() {
+                    return Err(PyValueError::new_err(concat!(
+                        "Mismatching number of values and parameters. For partial binding ",
+                        "please pass a dictionary of {parameter: value} pairs."
+                    )));
+                }
+                let mut old_table = std::mem::take(&mut self.param_table);
+                self.assign_parameters_inner(
+                    array
+                        .iter()
+                        .map(|value| Param::Float(*value))
+                        .zip(old_table.drain_ordered())
+                        .map(|(value, (obj, uses))| (obj, value, uses)),
+                )
             }
-            let mut old_table = std::mem::take(&mut self.param_table);
-            self.assign_parameters_inner(
-                array
-                    .iter()
-                    .map(|value| Param::Float(*value))
-                    .zip(old_table.drain_ordered())
-                    .map(|(value, (obj, uses))| (obj, value, uses)),
-            )
-        } else {
-            let values = sequence
-                .try_iter()?
-                .map(|ob| Param::extract_no_coerce(&ob?))
-                .collect::<PyResult<Vec<_>>>()?;
-            self.assign_parameters_from_slice(&values)
+            _ => {
+                let values = sequence
+                    .try_iter()?
+                    .map(|ob| Param::extract_no_coerce(&ob?))
+                    .collect::<PyResult<Vec<_>>>()?;
+                self.assign_parameters_from_slice(&values)
+            }
         }
     }
 
@@ -1605,20 +1620,21 @@ impl CircuitData {
     ///     var: the variable or name to check.
     #[pyo3(name = "has_var")]
     fn py_has_var(&self, var: &Bound<PyAny>) -> PyResult<bool> {
-        if let Ok(name) = var.extract::<String>() {
-            Ok(matches!(
+        match var.extract::<String>() {
+            Ok(name) => Ok(matches!(
                 self.identifier_info.get(&name),
                 Some(CircuitIdentifierInfo::Var(_))
-            ))
-        } else {
-            let var = var.extract::<expr::Var>()?;
-            let expr::Var::Standalone { name, .. } = &var else {
-                return Ok(false);
-            };
-            if let Some(CircuitIdentifierInfo::Var(info)) = self.identifier_info.get(name) {
-                return Ok(&var == self.vars.get(info.var).unwrap());
+            )),
+            _ => {
+                let var = var.extract::<expr::Var>()?;
+                let expr::Var::Standalone { name, .. } = &var else {
+                    return Ok(false);
+                };
+                if let Some(CircuitIdentifierInfo::Var(info)) = self.identifier_info.get(name) {
+                    return Ok(&var == self.vars.get(info.var).unwrap());
+                }
+                Ok(false)
             }
-            Ok(false)
         }
     }
 
@@ -1738,19 +1754,20 @@ impl CircuitData {
     ///     var: the variable or name to check.
     #[pyo3(name = "has_stretch")]
     fn py_has_stretch(&self, stretch: &Bound<PyAny>) -> PyResult<bool> {
-        if let Ok(name) = stretch.extract::<String>() {
-            Ok(matches!(
+        match stretch.extract::<String>() {
+            Ok(name) => Ok(matches!(
                 self.identifier_info.get(&name),
                 Some(CircuitIdentifierInfo::Stretch(_))
-            ))
-        } else {
-            let stretch = stretch.extract::<expr::Stretch>()?;
-            if let Some(CircuitIdentifierInfo::Stretch(info)) =
-                self.identifier_info.get(&stretch.name)
-            {
-                return Ok(&stretch == self.stretches.get(info.stretch).unwrap());
+            )),
+            _ => {
+                let stretch = stretch.extract::<expr::Stretch>()?;
+                if let Some(CircuitIdentifierInfo::Stretch(info)) =
+                    self.identifier_info.get(&stretch.name)
+                {
+                    return Ok(&stretch == self.stretches.get(info.stretch).unwrap());
+                }
+                Ok(false)
             }
-            Ok(false)
         }
     }
 
@@ -2292,14 +2309,17 @@ impl CircuitData {
         for (param_uuid, value) in iter {
             // Assume all the Parameters are already in the circuit
             let symbol = self.get_parameter_by_uuid(param_uuid);
-            if let Some(symbol) = symbol {
-                items.push((
-                    symbol.clone(),
-                    value.as_ref().clone(),
-                    self.param_table.pop(param_uuid)?,
-                ));
-            } else {
-                return Err(PyValueError::new_err("An invalid parameter was provided."));
+            match symbol {
+                Some(symbol) => {
+                    items.push((
+                        symbol.clone(),
+                        value.as_ref().clone(),
+                        self.param_table.pop(param_uuid)?,
+                    ));
+                }
+                _ => {
+                    return Err(PyValueError::new_err("An invalid parameter was provided."));
+                }
             }
         }
         self.assign_parameters_inner(items)
@@ -2443,18 +2463,22 @@ impl CircuitData {
                         // The integer handling is only needed to support the case where an int is
                         // passed in directly instead of a float. This will be handled when we add
                         // int to the param enum to support dt target.
-                        if let Ok(int) = ob.extract::<i64>(py) {
-                            let map: HashMap<&Symbol, Value> =
-                                HashMap::from([(symbol, Value::Int(int))]);
-                            expr.bind(&map, false).map_err(|x| x.into())
-                        } else if let Ok(c) = ob.extract::<Complex64>(py) {
-                            let map: HashMap<&Symbol, Value> =
-                                HashMap::from([(symbol, Value::Complex(c))]);
-                            expr.bind(&map, false).map_err(|x| x.into())
-                        } else {
-                            Err(PyTypeError::new_err(format!(
-                                "Cannot assign object ({ob}) object to parameter."
-                            )))
+                        match ob.extract::<i64>(py) {
+                            Ok(int) => {
+                                let map: HashMap<&Symbol, Value> =
+                                    HashMap::from([(symbol, Value::Int(int))]);
+                                expr.bind(&map, false).map_err(|x| x.into())
+                            }
+                            _ => match ob.extract::<Complex64>(py) {
+                                Ok(c) => {
+                                    let map: HashMap<&Symbol, Value> =
+                                        HashMap::from([(symbol, Value::Complex(c))]);
+                                    expr.bind(&map, false).map_err(|x| x.into())
+                                }
+                                _ => Err(PyTypeError::new_err(format!(
+                                    "Cannot assign object ({ob}) object to parameter."
+                                ))),
+                            },
                         }
                     })?
                 }
@@ -3013,58 +3037,62 @@ where
     // The duplication between this function and `_bit_argument_conversion_scalar` is so that fast
     // paths return as quickly as possible, and all valid specifiers will resolve without needing to
     // try/catch exceptions (which is too slow for inner-loop code).
-    if let Ok(bit) = specifier.extract() {
-        if bit_set.contains_key(&bit) {
-            return Ok(vec![bit]);
+    match specifier.extract() {
+        Ok(bit) => {
+            if bit_set.contains_key(&bit) {
+                return Ok(vec![bit]);
+            }
+            Err(CircuitError::new_err(format!(
+                "Bit '{specifier}' is not in the circuit."
+            )))
         }
-        Err(CircuitError::new_err(format!(
-            "Bit '{specifier}' is not in the circuit."
-        )))
-    } else if let Ok(sequence) = specifier.extract::<PySequenceIndex>() {
-        match sequence {
-            PySequenceIndex::Int(index) => {
-                if let Ok(index) = PySequenceIndex::convert_idx(index, bit_sequence.len()) {
-                    if let Some(bit) = bit_sequence.get(index).cloned() {
-                        return Ok(vec![bit]);
+        _ => match specifier.extract::<PySequenceIndex>() {
+            Ok(sequence) => match sequence {
+                PySequenceIndex::Int(index) => {
+                    if let Ok(index) = PySequenceIndex::convert_idx(index, bit_sequence.len()) {
+                        if let Some(bit) = bit_sequence.get(index).cloned() {
+                            return Ok(vec![bit]);
+                        }
                     }
+                    Err(CircuitError::new_err(format!(
+                        "Index {specifier} out of range for size {}.",
+                        bit_sequence.len()
+                    )))
                 }
-                Err(CircuitError::new_err(format!(
-                    "Index {specifier} out of range for size {}.",
-                    bit_sequence.len()
-                )))
-            }
+                _ => {
+                    let Ok(sequence) = sequence.with_len(bit_sequence.len()) else {
+                        return Ok(vec![]);
+                    };
+                    Ok(sequence
+                        .iter()
+                        .map(|index| &bit_sequence[index])
+                        .cloned()
+                        .collect())
+                }
+            },
             _ => {
-                let Ok(sequence) = sequence.with_len(bit_sequence.len()) else {
-                    return Ok(vec![]);
+                if let Ok(iter) = specifier.try_iter() {
+                    return iter
+                        .map(|spec| -> PyResult<B> {
+                            bit_argument_conversion_scalar(&spec?, bit_sequence, bit_set)
+                        })
+                        .collect::<PyResult<_>>();
+                }
+                let err_message = if let Ok(bit) = specifier.downcast::<PyBit>() {
+                    format!(
+                        "Incorrect bit type: expected '{}' but got '{}'",
+                        stringify!(B),
+                        bit.get_type().name()?
+                    )
+                } else {
+                    format!(
+                        "Invalid bit index: '{specifier}' of type '{}'",
+                        specifier.get_type().name()?
+                    )
                 };
-                Ok(sequence
-                    .iter()
-                    .map(|index| &bit_sequence[index])
-                    .cloned()
-                    .collect())
+                Err(CircuitError::new_err(err_message))
             }
-        }
-    } else {
-        if let Ok(iter) = specifier.try_iter() {
-            return iter
-                .map(|spec| -> PyResult<B> {
-                    bit_argument_conversion_scalar(&spec?, bit_sequence, bit_set)
-                })
-                .collect::<PyResult<_>>();
-        }
-        let err_message = if let Ok(bit) = specifier.downcast::<PyBit>() {
-            format!(
-                "Incorrect bit type: expected '{}' but got '{}'",
-                stringify!(B),
-                bit.get_type().name()?
-            )
-        } else {
-            format!(
-                "Invalid bit index: '{specifier}' of type '{}'",
-                specifier.get_type().name()?
-            )
-        };
-        Err(CircuitError::new_err(err_message))
+        },
     }
 }
 
@@ -3077,43 +3105,47 @@ where
     B: Debug + Clone + Hash + Eq + for<'py> FromPyObject<'py>,
     R: Register + Debug + Clone + Hash + for<'py> FromPyObject<'py>,
 {
-    if let Ok(bit) = specifier.extract() {
-        if bit_set.contains_key(&bit) {
-            return Ok(bit);
-        }
-        Err(CircuitError::new_err(format!(
-            "Bit '{specifier}' is not in the circuit."
-        )))
-    } else if let Ok(index) = specifier.extract::<isize>() {
-        if let Some(bit) = PySequenceIndex::convert_idx(index, bit_sequence.len())
-            .map(|index| bit_sequence.get(index).cloned())
-            .map_err(|_| {
-                CircuitError::new_err(format!(
-                    "Index {specifier} out of range for size {}.",
-                    bit_sequence.len()
-                ))
-            })?
-        {
-            Ok(bit)
-        } else {
+    match specifier.extract() {
+        Ok(bit) => {
+            if bit_set.contains_key(&bit) {
+                return Ok(bit);
+            }
             Err(CircuitError::new_err(format!(
-                "Index {specifier} out of range for size {}.",
-                bit_sequence.len()
+                "Bit '{specifier}' is not in the circuit."
             )))
         }
-    } else {
-        let err_message = if let Ok(bit) = specifier.downcast::<PyBit>() {
-            format!(
-                "Incorrect bit type: expected '{}' but got '{}'",
-                stringify!(B),
-                bit.get_type().name()?
-            )
-        } else {
-            format!(
-                "Invalid bit index: '{specifier}' of type '{}'",
-                specifier.get_type().name()?
-            )
-        };
-        Err(CircuitError::new_err(err_message))
+        _ => match specifier.extract::<isize>() {
+            Ok(index) => {
+                match PySequenceIndex::convert_idx(index, bit_sequence.len())
+                    .map(|index| bit_sequence.get(index).cloned())
+                    .map_err(|_| {
+                        CircuitError::new_err(format!(
+                            "Index {specifier} out of range for size {}.",
+                            bit_sequence.len()
+                        ))
+                    })? {
+                    Some(bit) => Ok(bit),
+                    _ => Err(CircuitError::new_err(format!(
+                        "Index {specifier} out of range for size {}.",
+                        bit_sequence.len()
+                    ))),
+                }
+            }
+            _ => {
+                let err_message = if let Ok(bit) = specifier.downcast::<PyBit>() {
+                    format!(
+                        "Incorrect bit type: expected '{}' but got '{}'",
+                        stringify!(B),
+                        bit.get_type().name()?
+                    )
+                } else {
+                    format!(
+                        "Invalid bit index: '{specifier}' of type '{}'",
+                        specifier.get_type().name()?
+                    )
+                };
+                Err(CircuitError::new_err(err_message))
+            }
+        },
     }
 }
