@@ -295,7 +295,7 @@ impl SymbolTable {
     fn contains_name(&self, name: &str) -> bool {
         match self.symbols.last() {
             Some(symbols) => symbols.contains_key(name),
-            _ => false,
+            None => false,
         }
     }
 

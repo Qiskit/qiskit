@@ -127,7 +127,7 @@ impl WrapAngleRegistry {
     ) -> PyResult<Option<DAGCircuit>> {
         match self.registry.get(name) {
             Some(callback) => Some(callback.call(angles, qubits)).transpose(),
-            _ => Err(PyKeyError::new_err("Name: {} not in registry")),
+            None => Err(PyKeyError::new_err("Name: {} not in registry")),
         }
     }
 }

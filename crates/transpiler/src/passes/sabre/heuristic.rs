@@ -70,10 +70,7 @@ impl BasicHeuristic {
     }
 
     pub fn __eq__(&self, py: Python, other: Py<PyAny>) -> bool {
-        match other.extract::<Self>(py) {
-            Ok(other) => self == &other,
-            _ => false,
-        }
+        other.extract::<Self>(py).is_ok_and(|other| self == &other)
     }
 
     pub fn __repr__(&self, py: Python) -> PyResult<Py<PyAny>> {
@@ -115,10 +112,7 @@ impl LookaheadHeuristic {
     }
 
     pub fn __eq__(&self, py: Python, other: Py<PyAny>) -> bool {
-        match other.extract::<Self>(py) {
-            Ok(other) => self == &other,
-            _ => false,
-        }
+        other.extract::<Self>(py).is_ok_and(|other| self == &other)
     }
 
     pub fn __repr__(&self, py: Python) -> PyResult<Py<PyAny>> {
@@ -155,10 +149,7 @@ impl DecayHeuristic {
     }
 
     pub fn __eq__(&self, py: Python, other: Py<PyAny>) -> bool {
-        match other.extract::<Self>(py) {
-            Ok(other) => self == &other,
-            _ => false,
-        }
+        other.extract::<Self>(py).is_ok_and(|other| self == &other)
     }
 
     pub fn __repr__(&self, py: Python) -> PyResult<Py<PyAny>> {
@@ -263,10 +254,7 @@ impl Heuristic {
     }
 
     pub fn __eq__(&self, py: Python, other: Py<PyAny>) -> bool {
-        match other.extract::<Self>(py) {
-            Ok(other) => self == &other,
-            _ => false,
-        }
+        other.extract::<Self>(py).is_ok_and(|other| self == &other)
     }
 
     pub fn __repr__(&self, py: Python) -> PyResult<Py<PyAny>> {

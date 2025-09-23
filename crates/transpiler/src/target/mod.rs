@@ -352,10 +352,7 @@ impl Target {
                 "Instruction {name} is already in the target"
             )));
         }
-        let props_map = match properties {
-            Some(props_map) => props_map,
-            _ => IndexMap::from_iter([(Qargs::Global, None)]),
-        };
+        let props_map = properties.unwrap_or_else(|| IndexMap::from_iter([(Qargs::Global, None)]));
 
         self.inner_add_instruction(instruction, name.clone(), props_map)
             .map_err(|err| TranspilerError::new_err(err.to_string()))?;
@@ -1374,7 +1371,7 @@ impl Target {
                 let qargs = gate_map_oper.keys().filter(|qargs| qargs.is_concrete());
                 Ok(Some(qargs))
             }
-            _ => Err(TargetError::InvalidKey(operation.to_string())),
+            None => Err(TargetError::InvalidKey(operation.to_string())),
         }
     }
 
