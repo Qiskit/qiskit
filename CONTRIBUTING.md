@@ -117,7 +117,7 @@ building and installing from source you will need a Rust compiler installed. You
 using rustup: https://rustup.rs/ which provides a single tool to install and
 configure the latest version of the rust compiler.
 [Other installation methods](https://forge.rust-lang.org/infra/other-installation-methods.html)
-exist too. For Windows users, besides rustup, you will also need install
+exist too. For Windows users, besides rustup, you will also need to install
 the Visual C++ build tools so that Rust can link against the system c/c++
 libraries. You can see more details on this in the
 [rustup documentation](https://rust-lang.github.io/rustup/installation/windows-msvc.html).
@@ -135,9 +135,9 @@ If you'd like to use an editable install with an optimized binary you can
 run `python setup.py build_rust --release --inplace` after you install in
 editable mode to recompile the rust extensions in release mode.
 
-Note that in order to run `python setup.py ...` commands you need have build
-dependency packages installed in your environment, which are listed in the
-`pyproject.toml` file under the `[build-system]` section.
+Note that in order to run `python setup.py ...` commands you need to have the 
+build dependency packages, which are listed in the `pyproject.toml` file under 
+the `[build-system]` section, installed in your environment.
 
 ### Compile time options
 
@@ -538,7 +538,7 @@ you will need to check that your changes don't break any snapshot tests, and add
 new tests where necessary. You can do this as follows:
 
 1. Make sure you have pushed your latest changes to your remote branch.
-2. Go to link: `https://mybinder.org/v2/gh/<github_user>/<repo>/<branch>?urlpath=apps/test/ipynb/mpl_tester.ipynb`. For example, if your GitHub username is `username`, your forked repo has the same name the original, and your branch is `my_awesome_new_feature`, you should visit https://mybinder.org/v2/gh/username/qiskit/my_awesome_new_feature?urlpath=apps/test/ipynb/mpl_tester.ipynb.
+2. Go to link: `https://mybinder.org/v2/gh/<github_user>/<repo>/<branch>?urlpath=apps/test/ipynb/mpl_tester.ipynb`. For example, if your GitHub username is `username`, your forked repo has the same name as the original, and your branch is `my_awesome_new_feature`, you should visit https://mybinder.org/v2/gh/username/qiskit/my_awesome_new_feature?urlpath=apps/test/ipynb/mpl_tester.ipynb.
 This opens a Jupyter Notebook application running in the cloud that automatically runs
 the snapshot tests (note this may take some time to finish loading).
 3. Each test result provides a set of 3 images (left: reference image, middle: your test result, right: differences). In the list of tests the passed tests are collapsed and failed tests are expanded. If a test fails, you will see a situation like this:
@@ -769,12 +769,12 @@ code formatting. You can simply run `cargo fmt` (if you installed Rust with the
 default settings using `rustup`), and it will update the code formatting automatically to
 conform to the style guidelines. This is very similar to running `tox -eblack` for Python code. For lint checking, Qiskit uses [clippy](https://github.com/rust-lang/rust-clippy) which can be invoked via `cargo clippy`. 
 
-Rust lint and formatting checks are included in the the `tox -elint` command. For CI to pass you will need both checks to pass without any warnings or errors. Note that this command checks the code but won't apply any modifications, if you need to update formatting, you'll need to run `cargo fmt`.
+Rust lint and formatting checks are included in the `tox -elint` command. For CI to pass you will need both checks to pass without any warnings or errors. Note that this command checks the code but won't apply any modifications, if you need to update formatting, you'll need to run `cargo fmt`.
 
 ### C style and lint
 
 Qiskit uses [clang-format](https://clang.llvm.org/docs/ClangFormat.html) to format C code.
-The style is based on LLVM, with some few Qiskit-specific adjustments. 
+The style is based on LLVM, with a few Qiskit-specific adjustments. 
 To check whether the C code conforms to the style guide, you can run `make cformat`. This check
 will need to execute without any warnings or errors for CI to pass.
 Automatic formatting can be applied by `make fix_cformat`.
