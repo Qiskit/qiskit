@@ -1059,7 +1059,7 @@ pub unsafe extern "C" fn qk_obs_to_python(obs: *const SparseObservable) -> *mut 
 
     // SAFETY: the C caller is required to hold the GIL.
     unsafe {
-        let py = Python::assume_gil_acquired();
+        let py = Python::assume_attached();
         Py::new(py, py_obs)
             .expect("Unable to create a Python object")
             .into_ptr()

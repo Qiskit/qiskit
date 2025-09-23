@@ -315,7 +315,7 @@ where
     }
 
     if !ops_to_replace.is_empty() {
-        Python::with_gil(|py| -> PyResult<()> {
+        Python::attach(|py| -> PyResult<()> {
             for (node, op_blocks) in ops_to_replace {
                 let packed_inst = dag[node].unwrap_operation();
                 let OperationRef::Instruction(py_inst) = packed_inst.op.view() else {

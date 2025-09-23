@@ -715,7 +715,10 @@ to the following.
 // Individual tests may be implemented by custom functions. The return value
 // should be `Ok` (from `test/c/common.h`) when the test was successful or one
 // of the other error codes (`>0`) indicating the error type.
-int test_something()
+//
+// Individual test functions should be marked static; this is a double line of
+// defence so the compiler will error if you forget to add it to the runner.
+static int test_something()
 {
     return Ok;
 }

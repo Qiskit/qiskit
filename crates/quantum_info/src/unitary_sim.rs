@@ -15,7 +15,7 @@ use num_complex::Complex64;
 use numpy::IntoPyArray;
 use pyo3::prelude::*;
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{Operation, OperationRef, StandardInstruction};
+use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardInstruction};
 
 use crate::{unitary_compose, QiskitError};
 
@@ -37,8 +37,16 @@ pub fn sim_unitary_circuit(circuit: &CircuitData) -> Result<Array2<Complex64>, S
         ));
     }
 
+    // e^{i * global_phase}
+    let global_phase_exp: Complex64 = if let Param::Float(p) = circuit.global_phase() {
+        Complex64::new(0., *p).exp()
+    } else {
+        return Err("Cannot simulate circuit involving non-float global phase.".to_string());
+    };
+
     // Product matrix holding the result
-    let mut product_mat = Array2::<Complex64>::eye(2_usize.pow(num_qubits as u32));
+    let mut product_mat: Array2<Complex64> =
+        Array2::<Complex64>::eye(2_usize.pow(num_qubits as u32)) * global_phase_exp;
 
     for inst in circuit.data() {
         if !circuit.get_cargs(inst.clbits).is_empty() {
@@ -68,7 +76,7 @@ pub fn sim_unitary_circuit(circuit: &CircuitData) -> Result<Array2<Complex64>, S
 /// Create a unitary matrix for a circuit.
 #[pyfunction]
 #[pyo3(name = "sim_unitary_circuit")]
-pub fn py_sim_unitary_circuit(py: Python, circuit: &CircuitData) -> PyResult<PyObject> {
+pub fn py_sim_unitary_circuit(py: Python, circuit: &CircuitData) -> PyResult<Py<PyAny>> {
     let product_mat = sim_unitary_circuit(circuit).map_err(QiskitError::new_err)?;
     Ok(product_mat.into_pyarray(py).into_any().unbind())
 }
@@ -76,4 +84,24 @@ pub fn py_sim_unitary_circuit(py: Python, circuit: &CircuitData) -> PyResult<PyO
 pub fn unitary_sim(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(py_sim_unitary_circuit))?;
     Ok(())
+}
+
+#[cfg(all(test, not(miri)))]
+mod test {
+    use super::sim_unitary_circuit;
+    use approx::abs_diff_eq;
+    use qiskit_circuit::operations::{Operation, StandardGate};
+
+    #[test]
+    fn test_sim_ecr_definition() {
+        // Check that the definition circuit for the ECRGate (which in particular involves
+        // a non-trivial global phase) gets simulated correctly.
+        let ecr_definition = StandardGate::ECR.definition(&[]).unwrap();
+
+        let simulated_matrix = sim_unitary_circuit(&ecr_definition).unwrap();
+        let expected_matrix = StandardGate::ECR.matrix(&[]).unwrap();
+
+        let close = abs_diff_eq!(simulated_matrix, expected_matrix, epsilon = 1e-12);
+        assert!(close);
+    }
 }
