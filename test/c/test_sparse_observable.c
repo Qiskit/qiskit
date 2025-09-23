@@ -789,18 +789,28 @@ int test_apply_layout(void) {
 }
 
 /**
- * Test applying a layout to a too large observable fails.
+ * Test applying a layout with too large indices fails.
  */
-int test_apply_layout_too_small(void) {
-    // Build an observable that's too large for the layout
-    uint32_t layout[2] = {80, 2001};
-    QkObs *obs = qk_obs_identity(4);
-
-    // now apply our layout (this should fail)
+static int test_apply_layout_too_small(void) {
+    QkObs *obs = qk_obs_identity(2);
+    // The max index is too large.
+    uint32_t layout[2] = {80, 5001};
     int err = qk_obs_apply_layout(obs, layout, 3000);
     qk_obs_free(obs);
 
     return err == QkExitCode_IndexError ? Ok : EqualityError;
+}
+/**
+ * Test applying a layout with duplicate indices fails.
+ */
+static int test_apply_layout_duplicate(void) {
+    QkObs *obs = qk_obs_identity(2);
+    // There's a duplicate.
+    uint32_t layout[2] = {80, 80};
+    int err = qk_obs_apply_layout(obs, layout, 100);
+    qk_obs_free(obs);
+
+    return err == QkExitCode_DuplicateIndexError ? Ok : EqualityError;
 }
 
 int test_sparse_observable(void) {
@@ -830,6 +840,7 @@ int test_sparse_observable(void) {
     num_failed += RUN_TEST(test_obsterm_str);
     num_failed += RUN_TEST(test_apply_layout);
     num_failed += RUN_TEST(test_apply_layout_too_small);
+    num_failed += RUN_TEST(test_apply_layout_duplicate);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
