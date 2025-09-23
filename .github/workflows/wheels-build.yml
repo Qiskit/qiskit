@@ -35,6 +35,14 @@ on:
         default: "default"
         required: false
 
+      wheels-macos-intel:
+        description: >-
+          The action to take for macOS x86_64 wheels.
+          Choose from 'default', 'build', or 'skip'.
+        type: string
+        default: "default"
+        required: false
+
       wheels-linux-ppc64le:
         description: >-
           The action to take for Linux ppc64le wheels.
@@ -73,7 +81,6 @@ jobs:
         os:
           - ubuntu-latest
           # Used for the x86_64 builds.
-          - macos-15-intel
           # Used for the ARM builds.
           - macos-14
           - windows-latest
@@ -115,6 +122,24 @@ jobs:
         with:
           path: ./wheelhouse/*.whl
           name: ${{ inputs.artifact-prefix }}wheels-tier-1-${{ matrix.os }}
+  wheels-macos-intel:
+    name: "Wheels / macOS x86_64"
+    if: (inputs.wheels-macos-intel == 'default' && inputs.default-action || inputs.wheels-macos-intel) == 'build'
+    runs-on: macos-15-intel
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        name: Install Python
+        with:
+          python-version: ${{ inputs.python-version }}
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: pypa/cibuildwheel@v3.0.1
+      - uses: actions/upload-artifact@v4
+        with:
+          path: ./wheelhouse/*.whl
+          name: ${{ inputs.artifact-prefix }}wheels-macos-intel
+
+
   wheels-linux-s390x:
     name: "Wheels / Linux s390x"
     if: (inputs.wheels-linux-s390x == 'default' && inputs.default-action || inputs.wheels-linux-s390x) == 'build'
