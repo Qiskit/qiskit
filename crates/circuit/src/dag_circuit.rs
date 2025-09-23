@@ -43,7 +43,7 @@ use crate::variable_mapper::VariableMapper;
 use crate::{imports, vf2, Clbit, Qubit, Stretch, TupleLikeArg, Var, VarsMode};
 
 use hashbrown::{HashMap, HashSet};
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use itertools::{EitherOrBoth, Itertools};
 
 use pyo3::exceptions::{
@@ -5387,7 +5387,32 @@ impl DAGCircuit {
     /// This is mostly used to apply operations from one DAG to
     /// another that was created from the first via
     /// [DAGCircuit::copy_empty_like].
+    #[inline]
     pub fn push_back(&mut self, instr: PackedInstruction) -> PyResult<NodeIndex> {
+        self.push_external(instr, Direction::Outgoing)
+    }
+
+    /// Apply a [PackedInstruction] to the front of the circuit.
+    ///
+    /// The provided `instr` MUST be valid for this DAG, e.g. its
+    /// bits, registers, vars, and interner IDs must be valid in
+    /// this DAG.
+    ///
+    /// This is mostly used to apply operations from one DAG to
+    /// another that was created from the first via
+    /// [DAGCircuit::copy_empty_like].
+    #[inline]
+    pub fn push_front(&mut self, instr: PackedInstruction) -> PyResult<NodeIndex> {
+        self.push_external(instr, Direction::Incoming)
+    }
+
+    /// Push a [PackedInstruction] to become an external operation node on the DAG, with the edges
+    /// between the instruction and the DAG operations are the given direction, relative to the
+    /// DAG.
+    ///
+    /// Explicitly, [Direction::Outgoing] is equivalent to [push_back], whereas
+    /// [Direction::Incoming] is equivalent to [push_front].
+    fn push_external(&mut self, instr: PackedInstruction, dir: Direction) -> PyResult<NodeIndex> {
         let (all_cbits, vars) = self.get_classical_resources(&instr)?;
 
         // Increment the operation count
@@ -5395,35 +5420,55 @@ impl DAGCircuit {
 
         let qubits_id = instr.qubits;
         let new_node = self.dag.add_node(NodeType::Operation(instr));
-
+        let terminus_index = match dir {
+            Direction::Incoming => 0, // the "in" nodes
+            Direction::Outgoing => 1, // the "out" nodes
+        };
         // Put the new node in-between the previously "last" nodes on each wire
-        // and the output map.
-        let output_nodes: HashSet<NodeIndex> = self
+        // and the terminal map.
+        let termini: IndexSet<NodeIndex, ::ahash::RandomState> = self
             .qargs_interner
             .get(qubits_id)
             .iter()
-            .map(|q| self.qubit_io_map.get(q.index()).map(|x| x[1]).unwrap())
+            .map(|q| self.qubit_io_map[q.index()][terminus_index])
             .chain(
                 all_cbits
                     .iter()
-                    .map(|c| self.clbit_io_map.get(c.index()).map(|x| x[1]).unwrap()),
+                    .map(|c| self.clbit_io_map[c.index()][terminus_index]),
             )
             .chain(
                 vars.iter()
                     .flatten()
-                    .map(|v| self.var_io_map.get(v.index()).map(|x| x[1]).unwrap()),
+                    .map(|v| self.var_io_map[v.index()][terminus_index]),
             )
             .collect();
 
-        for output_node in output_nodes {
+        for terminus in termini {
             let last_edges: Vec<_> = self
                 .dag
-                .edges_directed(output_node, Incoming)
-                .map(|e| (e.source(), e.id(), *e.weight()))
+                .edges_directed(terminus, dir.opposite())
+                .map(|e| {
+                    (
+                        match dir {
+                            Direction::Outgoing => e.source(),
+                            Direction::Incoming => e.target(),
+                        },
+                        e.id(),
+                        *e.weight(),
+                    )
+                })
                 .collect();
-            for (source, old_edge, weight) in last_edges.into_iter() {
-                self.dag.add_edge(source, new_node, weight);
-                self.dag.add_edge(new_node, output_node, weight);
+            for (op_node, old_edge, weight) in last_edges.into_iter() {
+                match dir {
+                    Direction::Outgoing => {
+                        self.dag.add_edge(op_node, new_node, weight);
+                        self.dag.add_edge(new_node, terminus, weight);
+                    }
+                    Direction::Incoming => {
+                        self.dag.add_edge(terminus, new_node, weight);
+                        self.dag.add_edge(new_node, op_node, weight);
+                    }
+                }
                 self.dag.remove_edge(old_edge);
             }
         }
@@ -5437,8 +5482,8 @@ impl DAGCircuit {
     ) -> PyResult<(Vec<Clbit>, Option<Vec<Var>>)> {
         let (all_clbits, vars): (Vec<Clbit>, Option<Vec<Var>>) = {
             if self.may_have_additional_wires(instr.op.view()) {
-                let mut clbits: HashSet<Clbit> =
-                    HashSet::from_iter(self.cargs_interner.get(instr.clbits).iter().copied());
+                let mut clbits: IndexSet<Clbit, ::ahash::RandomState> =
+                    IndexSet::from_iter(self.cargs_interner.get(instr.clbits).iter().copied());
                 let (additional_clbits, additional_vars) =
                     Python::with_gil(|py| self.additional_wires(py, instr.op.view()))?;
                 for clbit in additional_clbits {
@@ -5450,68 +5495,6 @@ impl DAGCircuit {
             }
         };
         Ok((all_clbits, vars))
-    }
-
-    /// Apply a [PackedInstruction] to the front of the circuit.
-    ///
-    /// The provided `instr` MUST be valid for this DAG, e.g. its
-    /// bits, registers, vars, and interner IDs must be valid in
-    /// this DAG.
-    ///
-    /// This is mostly used to apply operations from one DAG to
-    /// another that was created from the first via
-    /// [DAGCircuit::copy_empty_like].
-    fn push_front(&mut self, inst: PackedInstruction) -> PyResult<NodeIndex> {
-        let op_name = inst.op.name();
-        let (all_cbits, vars): (Vec<Clbit>, Option<Vec<Var>>) = {
-            if self.may_have_additional_wires(inst.op.view()) {
-                let mut clbits: HashSet<Clbit> =
-                    HashSet::from_iter(self.cargs_interner.get(inst.clbits).iter().copied());
-                let (additional_clbits, additional_vars) =
-                    Python::with_gil(|py| self.additional_wires(py, inst.op.view()))?;
-                for clbit in additional_clbits {
-                    clbits.insert(clbit);
-                }
-                (clbits.into_iter().collect(), Some(additional_vars))
-            } else {
-                (self.cargs_interner.get(inst.clbits).to_vec(), None)
-            }
-        };
-
-        self.increment_op(op_name);
-
-        let qubits_id = inst.qubits;
-        let new_node = self.dag.add_node(NodeType::Operation(inst));
-
-        // Put the new node in-between the input map and the previously
-        // "first" nodes on each wire.
-        let mut input_nodes: Vec<NodeIndex> = self
-            .qargs_interner
-            .get(qubits_id)
-            .iter()
-            .map(|q| self.qubit_io_map[q.index()][0])
-            .chain(all_cbits.iter().map(|c| self.clbit_io_map[c.index()][0]))
-            .collect();
-        if let Some(vars) = vars {
-            for var in vars {
-                input_nodes.push(self.var_io_map[var.index()][0]);
-            }
-        }
-
-        for input_node in input_nodes {
-            let first_edges: Vec<_> = self
-                .dag
-                .edges_directed(input_node, Outgoing)
-                .map(|e| (e.target(), e.id(), *e.weight()))
-                .collect();
-            for (target, old_edge, weight) in first_edges.into_iter() {
-                self.dag.add_edge(input_node, new_node, weight);
-                self.dag.add_edge(new_node, target, weight);
-                self.dag.remove_edge(old_edge);
-            }
-        }
-
-        Ok(new_node)
     }
 
     /// Apply a [PackedOperation] to the back of the circuit.
