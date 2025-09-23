@@ -12,14 +12,59 @@
 
 use approx::{abs_diff_eq, relative_ne};
 use faer::MatRef;
-use faer_ext::{IntoFaer, IntoNalgebra};
-use nalgebra::{DMatrix, DMatrixView};
+use faer_ext::IntoFaer;
+use nalgebra::{DMatrix, DMatrixView, Dim, Dyn, MatrixView, ViewStorage};
+use ndarray::ArrayView2;
+use ndarray::ShapeBuilder;
 use num_complex::Complex64;
 
 pub mod cos_sin_decomp;
 
 const ATOL_DEFAULT: f64 = 1e-8;
 const RTOL_DEFAULT: f64 = 1e-5;
+
+fn nalgebra_to_faer<R: Dim, C: Dim, RStride: Dim, CStride: Dim>(
+    mat: MatrixView<Complex64, R, C, RStride, CStride>,
+) -> MatRef<Complex64> {
+    let dim = ::ndarray::Dim(mat.shape());
+    let strides = ::ndarray::Dim(mat.strides());
+
+    // SAFETY: We know the array is a 2x2 and contiguous block (DMatrix uses a vec for backing        storage) so we
+    // don't need to check for invalid format
+    let array = unsafe { ArrayView2::from_shape_ptr(dim.strides(strides), mat.get_unchecked(0)) };
+    array.into_faer()
+}
+
+// This code function is based on faer-ext's IntoNalgebra::into_nalgebra implementation at:
+// https://codeberg.org/sarah-quinones/faer-ext/src/commit/0f055b39529c94d1a000982df745cb9ce170f994/src/lib.rs#L77-L96
+fn faer_to_nalgebra(mat: MatRef<Complex64>) -> MatrixView<Complex64, Dyn, Dyn, Dyn, Dyn> {
+    let nrows = mat.nrows();
+    let ncols = mat.ncols();
+    let row_stride = mat.row_stride();
+    let col_stride = mat.col_stride();
+
+    let ptr = mat.as_ptr();
+    // SAFETY: Pointer came from a faer MatRef as does the description of the memory layout
+    // so creating a view of the data from the from the pointer is safe unless the faer object
+    // is already corrupt.
+    unsafe {
+        MatrixView::<'_, Complex64, Dyn, Dyn, Dyn, Dyn>::from_data(ViewStorage::<
+            '_,
+            Complex64,
+            Dyn,
+            Dyn,
+            Dyn,
+            Dyn,
+        >::from_raw_parts(
+            ptr,
+            (Dyn(nrows), Dyn(ncols)),
+            (
+                Dyn(row_stride.try_into().unwrap()),
+                Dyn(col_stride.try_into().unwrap()),
+            ),
+        ))
+    }
+}
 
 /// Check whether the given matrix is hermitian by comparing it (up to tolerance) with its hermitian adjoint.
 pub fn is_hermitian_matrix(mat: DMatrixView<Complex64>) -> bool {
@@ -101,7 +146,7 @@ pub fn svd_decomposition(
     mat: DMatrixView<Complex64>,
 ) -> (DMatrix<Complex64>, DMatrix<Complex64>, DMatrix<Complex64>) {
     let mat_view: DMatrixView<Complex64> = mat.as_view();
-    let faer_mat: MatRef<Complex64> = mat_view.into_faer();
+    let faer_mat: MatRef<Complex64> = nalgebra_to_faer(mat_view);
     let faer_svd = faer_mat.svd().unwrap();
 
     let u_faer = faer_svd.U();
@@ -116,8 +161,8 @@ pub fn svd_decomposition(
         }
     });
 
-    let u_na = u_faer.into_nalgebra();
-    let v_na = v_faer.into_nalgebra().adjoint();
+    let u_na = faer_to_nalgebra(u_faer);
+    let v_na = faer_to_nalgebra(v_faer).adjoint();
 
     debug_assert!(verify_svd_decomp(
         mat_view,
