@@ -22,8 +22,8 @@ use qiskit_circuit::{Clbit, Qubit};
 use smallvec::{smallvec, SmallVec};
 use std::f64::consts::PI;
 
-use crate::circuit_library::entanglement;
-use crate::circuit_library::pauli_evolution;
+use crate::entanglement;
+use crate::pauli_evolution;
 use crate::QiskitError;
 
 type Instruction = (
