@@ -104,7 +104,7 @@ target = Target.from_configuration(
     basis_gates=["cz", "sx", "rz"],
     coupling_map=CouplingMap.from_line(3),
 )
-qc_transpiled = transpile(qc, target)
+qc_transpiled = transpile(qc, target=target)
 ```
 
 ### Executing your code on real quantum hardware
