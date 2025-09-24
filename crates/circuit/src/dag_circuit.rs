@@ -12,7 +12,6 @@
 
 use std::cmp::Ordering;
 use std::hash::Hash;
-use std::sync::Arc;
 
 use ahash::RandomState;
 use approx::relative_eq;
@@ -36,7 +35,6 @@ use crate::operations::{
     ArrayType, Operation, OperationRef, Param, PyInstruction, PythonOperation, StandardGate,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
-use crate::parameter::parameter_expression::ParameterExpression;
 use crate::register_data::RegisterData;
 use crate::slice::PySequenceIndex;
 use crate::variable_mapper::VariableMapper;
@@ -6229,7 +6227,7 @@ impl DAGCircuit {
 
         let out_map =
             self.substitute_node_with_graph(node_index, other, qubit_map, clbit_map, var_map)?;
-        self.global_phase = add_global_phase(&self.global_phase, &other.global_phase)?;
+        self.global_phase = self.global_phase.add_scalar(&other.global_phase);
 
         let mut wire_map_dict = HashMap::new();
         for (source, target) in clbit_map.iter() {
@@ -6928,7 +6926,7 @@ impl DAGCircuit {
                     "Invalid parameter type, only float and parameter expression are supported",
                 ))
             }
-            _ => self.set_global_phase(add_global_phase(&self.global_phase, value)?)?,
+            _ => self.set_global_phase(self.global_phase.add_scalar(value))?,
         }
         Ok(())
     }
@@ -7390,7 +7388,7 @@ impl DAGCircuit {
             }
         };
 
-        self.global_phase = add_global_phase(&self.global_phase, &other.global_phase)?;
+        self.global_phase = self.global_phase.add_scalar(&other.global_phase);
 
         // This is all the handling we need for realtime variables, if there's no remapping. They:
         //
@@ -7983,25 +7981,6 @@ impl ::std::ops::Index<NodeIndex> for DAGCircuit {
     fn index(&self, index: NodeIndex) -> &Self::Output {
         self.dag.index(index)
     }
-}
-
-/// Add to global phase. Global phase can only be Float or ParameterExpression so this
-/// does not handle the full possibility of parameter values.
-/// TODO replace/merge this with add_param/radd_param
-pub(crate) fn add_global_phase(phase: &Param, other: &Param) -> PyResult<Param> {
-    Ok(match [phase, other] {
-        [Param::Float(a), Param::Float(b)] => Param::Float(a + b),
-        [Param::Float(a), Param::ParameterExpression(b)] => {
-            Param::ParameterExpression(Arc::new(b.add(&ParameterExpression::from_f64(*a)).unwrap()))
-        }
-        [Param::ParameterExpression(a), Param::Float(b)] => {
-            Param::ParameterExpression(Arc::new(a.add(&ParameterExpression::from_f64(*b)).unwrap()))
-        }
-        [Param::ParameterExpression(a), Param::ParameterExpression(b)] => {
-            Param::ParameterExpression(Arc::new(a.add(b).expect("Name conflict in add.")))
-        }
-        _ => panic!("Invalid global phase"),
-    })
 }
 
 type SortKeyType<'a> = (&'a [Qubit], &'a [Clbit]);

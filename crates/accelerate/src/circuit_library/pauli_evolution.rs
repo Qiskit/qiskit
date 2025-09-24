@@ -15,7 +15,7 @@ use pyo3::{intern, prelude::*};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::operations;
-use qiskit_circuit::operations::{multiply_param, radd_param, Param, StandardGate};
+use qiskit_circuit::operations::{Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
 use smallvec::{smallvec, SmallVec};
@@ -278,7 +278,7 @@ fn multi_qubit_evolution(
         // Here we purely have projectors, meaning the target rotation is a phase gate. Remember
         // we have to adjust the rotation angle to account for the different conventions;
         // RZ(t) = exp(-i t/2 Z) vs. P(t) = diag(1, exp(i t)).
-        let params: SmallVec<[Param; 3]> = smallvec![multiply_param(&time, -0.5)];
+        let params: SmallVec<[Param; 3]> = smallvec![time.mul_f64(-0.5)];
         let (packed, qubits) = if control_qubits.len() == 1 {
             let gate: PackedOperation = StandardGate::Phase.into();
             (gate, vec![control_qubits[0]])
@@ -363,7 +363,7 @@ pub fn py_pauli_evolution(
         let time = Param::extract_no_coerce(&tuple.get_item(2)?)?;
 
         if pauli.as_str().chars().all(|p| p == 'i') {
-            global_phase = radd_param(global_phase, time);
+            global_phase = global_phase.add_scalar(&time);
             modified_phase = true;
             continue;
         }
@@ -398,7 +398,7 @@ pub fn py_pauli_evolution(
     // exp(-i t I). To only use a single multiplication, we apply a factor of -0.5 here.
     // This is faster, in particular as long as the parameter expressions are in Python.
     if modified_phase {
-        global_phase = multiply_param(&global_phase, -0.5);
+        global_phase = global_phase.mul_f64(-0.5);
     }
 
     CircuitData::from_packed_operations(num_qubits as u32, 0, evos, global_phase)

@@ -18,7 +18,7 @@ use pyo3::types::{PyList, PyString, PyTuple};
 use smallvec::{smallvec, SmallVec};
 
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{multiply_param, radd_param, Param, StandardGate};
+use qiskit_circuit::operations::{Param, StandardGate};
 use qiskit_circuit::Qubit;
 
 use rustiq_core::structures::{
@@ -89,7 +89,7 @@ fn qiskit_rotation_gate(paulis: &PauliSet, i: usize, angle: &Param) -> QiskitGat
             // We need to negate the angle when there is a phase.
             let param = match phase {
                 false => angle.clone(),
-                true => multiply_param(angle, -1.0),
+                true => angle.mul_f64(-1.0),
             };
             return (standard_gate, smallvec![param], smallvec![Qubit(q as u32)]);
         }
@@ -191,7 +191,7 @@ fn inject_rotations(
         if pauli_support_size == 0 {
             // in case of an all-identity rotation, update global phase by subtracting
             // the angle
-            global_phase = radd_param(global_phase, multiply_param(&angles[i], -0.5));
+            global_phase = global_phase.add_scalar(&angles[i].mul_f64(-0.5));
             hit_paulis[i] = true;
             dag.remove_node(i);
         } else if pauli_support_size == 1 && dag.is_front_node(i) {

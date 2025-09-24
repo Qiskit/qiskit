@@ -14,9 +14,7 @@ use pyo3::prelude::*;
 use pyo3::types::PySequence;
 use pyo3::types::PyString;
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{
-    add_param, multiply_param, multiply_params, Param, StandardGate, StandardInstruction,
-};
+use qiskit_circuit::operations::{Param, StandardGate, StandardInstruction};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
 use smallvec::{smallvec, SmallVec};
@@ -178,7 +176,7 @@ fn _get_evolution_layer<'a>(
             let evo = pauli_evolution::sparse_term_evolution(
                 pauli,
                 indices.into_iter().rev().collect(),
-                multiply_param(&angle, alpha),
+                angle.mul_f64(alpha),
                 true,
                 false,
             );
@@ -198,12 +196,12 @@ fn _default_reduce(parameters: Vec<Param>) -> Param {
         parameters[0].clone()
     } else {
         let acc = parameters.iter().fold(Param::Float(1.0), |acc, param| {
-            multiply_params(acc, add_param(param, -PI))
+            acc.mul_scalar(&param.add_f64(-PI))
         });
         if parameters.len() % 2 == 0 {
             acc
         } else {
-            multiply_param(&acc, -1.0) // take care of parity
+            acc.mul_f64(-1.0) // take care of parity
         }
     }
 }
