@@ -1218,7 +1218,7 @@ impl CircuitData {
             };
             for param in parameters.try_iter()? {
                 let symbol = param?.extract::<Symbol>()?;
-                self.param_table.track(&symbol, Some(usage))?;
+                track_parameter(&mut self.param_table, &symbol, Some(usage))?;
             }
         }
         Ok(())
@@ -1492,8 +1492,7 @@ impl CircuitData {
                 ) {
                     Ok(_)
                     | Err(ParameterTableError::ParameterNotTracked(_))
-                    | Err(ParameterTableError::UsageNotTracked(_))
-                    | Err(ParameterTableError::ConflictingName(_)) => (),
+                    | Err(ParameterTableError::UsageNotTracked(_)) => (),
                     // Any errors added later might want propagating.
                 }
             }
@@ -1505,8 +1504,11 @@ impl CircuitData {
             }
             Param::ParameterExpression(expr) => {
                 for symbol in expr.iter_symbols() {
-                    self.param_table
-                        .track(symbol, Some(ParameterUse::GlobalPhase))?;
+                    track_parameter(
+                        &mut self.param_table,
+                        symbol,
+                        Some(ParameterUse::GlobalPhase),
+                    )?;
                 }
                 self.global_phase = angle;
                 Ok(())
@@ -2165,7 +2167,7 @@ impl CircuitData {
                 parameter: index as u32,
             };
             for symbol in param.iter_parameters()? {
-                self.param_table.track(&symbol, Some(usage))?;
+                track_parameter(&mut self.param_table, &symbol, Some(usage))?;
             }
         }
         Ok(())
@@ -2207,8 +2209,11 @@ impl CircuitData {
             return Ok(());
         }
         for symbol in self.global_phase.iter_parameters()? {
-            self.param_table
-                .track(&symbol, Some(ParameterUse::GlobalPhase))?;
+            track_parameter(
+                &mut self.param_table,
+                &symbol,
+                Some(ParameterUse::GlobalPhase),
+            )?;
         }
         Ok(())
     }
@@ -2469,7 +2474,7 @@ impl CircuitData {
             debug_assert!(!uses.is_empty());
             uuids.clear();
             for inner_symbol in value.as_ref().iter_parameters()? {
-                uuids.push(self.param_table.track(&inner_symbol, None)?)
+                uuids.push(track_parameter(&mut self.param_table, &inner_symbol, None)?)
             }
             for usage in uses {
                 match usage {
@@ -2983,6 +2988,22 @@ struct AssignParam(Param);
 impl<'py> FromPyObject<'py> for AssignParam {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         Ok(Self(Param::extract_no_coerce(ob)?))
+    }
+}
+
+/// Wrapper around [ParameterTable::track] that returns a [CircuitError] if the parameter
+/// already exists.
+fn track_parameter(
+    param_table: &mut ParameterTable,
+    symbol: &Symbol,
+    usage: Option<ParameterUse>,
+) -> PyResult<ParameterUuid> {
+    match param_table.track(symbol, usage) {
+        Ok(uuid) => Ok(uuid),
+        Err(_) => Err(CircuitError::new_err(format!(
+            "name conflict adding parameter '{}'",
+            symbol.name()
+        ))),
     }
 }
 
