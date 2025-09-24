@@ -70,12 +70,14 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_split_2q_unitaries(
             };
             let num_input_qubits = circuit.num_qubits() as u32;
             let qubits = out_circuit.qubits().objects().clone();
+            let qregs = out_circuit.qregs().to_vec();
             *circuit = out_circuit;
             Box::into_raw(Box::new(TranspileLayout::new(
                 None,
                 Some(permutation.into_iter().map(Qubit::new).collect()),
                 qubits,
                 num_input_qubits,
+                qregs,
             )))
         }
         None => {

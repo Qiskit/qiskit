@@ -21,7 +21,15 @@ from ddt import ddt, data
 import numpy as np
 
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-from qiskit.circuit import Qubit, Gate, ControlFlowOp, Measure, library as lib, Parameter
+from qiskit.circuit import (
+    Qubit,
+    Gate,
+    ControlFlowOp,
+    Measure,
+    library as lib,
+    Parameter,
+    AncillaRegister,
+)
 from qiskit.compiler import transpile
 from qiskit.transpiler import (
     CouplingMap,
@@ -302,6 +310,47 @@ class TestPresetPassManager(QiskitTestCase):
             translation_method="synthesis",
         )
         self.assertEqual(gates_in_basis_true_count + 2, consolidate_blocks_count)
+
+    @data(0, 1, 2, 3)
+    def test_layout_registers_preserved(self, optimization_level):
+        """Test that registers in circuit are preserved in TranspileLayout
+
+        Reproduce from `#15014 <https://github.com/Qiskit/qiskit/issues/15014>`__
+        """
+        a = QuantumRegister(2, "a")
+        b = AncillaRegister(1, "b")
+        qc = QuantumCircuit(b, a)
+        qc.x(0)
+
+        initial_layout = [0, 1, 2]
+        qc_transpiled = transpile(
+            qc, initial_layout=initial_layout, optimization_level=optimization_level
+        )
+
+        self.assertEqual(qc_transpiled.layout.initial_layout.get_registers(), {a, b})
+
+    @data(0, 1, 2, 3)
+    def test_layout_registers_preserved_with_allocated_ancilla(self, optimization_level):
+        """Test that allocated ancilla register is preserved in output layout."""
+        a = QuantumRegister(3, "a")
+        b = AncillaRegister(1, "b")
+        qc = QuantumCircuit(b, a)
+        qc.x(0)
+        qc.h(3)
+        qc.cx(3, 0)
+        qc.cx(3, 1)
+        qc.cx(3, 2)
+
+        target = Target.from_configuration(["u", "cx"], coupling_map=CouplingMap.from_line(10))
+        tqc = transpile(qc, optimization_level=optimization_level, target=target)
+        out_registers = tqc.layout.initial_layout.get_registers()
+        self.assertEqual(len(out_registers), 3)
+        self.assertIn(a, out_registers)
+        self.assertIn(b, out_registers)
+        out_registers.remove(a)
+        out_registers.remove(b)
+        last = out_registers.pop()
+        self.assertTrue(last.name.startswith("ancilla"))
 
 
 @ddt
