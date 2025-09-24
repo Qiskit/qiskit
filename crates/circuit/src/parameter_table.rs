@@ -26,16 +26,12 @@ use crate::parameter::symbol_expr::Symbol;
 
 import_exception!(qiskit.circuit, CircuitError);
 
-pub type ParameterTableResult<T> = Result<T, ParameterTableError>;
-
 #[derive(Error, Debug)]
 pub enum ParameterTableError {
     #[error("parameter '{0:?}' is not tracked in the table")]
     ParameterNotTracked(ParameterUuid),
     #[error("usage {0:?} is not tracked by the table")]
     UsageNotTracked(ParameterUse),
-    #[error("name conflict adding parameter '{0}'")]
-    ConflictingName(String), // CircuitError
 }
 impl From<ParameterTableError> for PyErr {
     fn from(value: ParameterTableError) -> PyErr {
@@ -127,7 +123,7 @@ impl ParameterTable {
         &mut self,
         symbol: &Symbol,
         usage: Option<ParameterUse>,
-    ) -> ParameterTableResult<ParameterUuid> {
+    ) -> Result<ParameterUuid, ParameterUuid> {
         let uuid = ParameterUuid::from_symbol(symbol);
         match self.by_uuid.entry(uuid) {
             Entry::Occupied(mut entry) => {
@@ -138,7 +134,7 @@ impl ParameterTable {
             Entry::Vacant(entry) => {
                 let repr = symbol.repr(false);
                 if self.by_repr.contains_key(&repr) {
-                    return Err(ParameterTableError::ConflictingName(repr.clone()));
+                    return Err(self.by_repr[&repr]);
                 }
                 self.by_repr.insert(repr, uuid);
                 let mut uses = HashSet::new();
@@ -159,7 +155,11 @@ impl ParameterTable {
 
     /// Untrack one use of a single [Symbol] object from the table, discarding all
     /// other tracking of that [Symbol] if this was the last usage of it.
-    pub fn untrack(&mut self, symbol: &Symbol, usage: ParameterUse) -> ParameterTableResult<()> {
+    pub fn untrack(
+        &mut self,
+        symbol: &Symbol,
+        usage: ParameterUse,
+    ) -> Result<(), ParameterTableError> {
         self.remove_use(ParameterUuid::from_symbol(symbol), usage)
     }
 
@@ -213,7 +213,7 @@ impl ParameterTable {
         &mut self,
         uuid: ParameterUuid,
         usage: ParameterUse,
-    ) -> ParameterTableResult<()> {
+    ) -> Result<(), ParameterTableError> {
         self.by_uuid
             .get_mut(&uuid)
             .ok_or(ParameterTableError::ParameterNotTracked(uuid))?
@@ -229,7 +229,7 @@ impl ParameterTable {
         &mut self,
         uuid: ParameterUuid,
         usage: ParameterUse,
-    ) -> ParameterTableResult<()> {
+    ) -> Result<(), ParameterTableError> {
         let Entry::Occupied(mut entry) = self.by_uuid.entry(uuid) else {
             return Err(ParameterTableError::ParameterNotTracked(uuid));
         };
@@ -246,7 +246,10 @@ impl ParameterTable {
     }
 
     /// Remove a parameter from the table, returning the tracked uses of it.
-    pub fn pop(&mut self, uuid: ParameterUuid) -> ParameterTableResult<HashSet<ParameterUse>> {
+    pub fn pop(
+        &mut self,
+        uuid: ParameterUuid,
+    ) -> Result<HashSet<ParameterUse>, ParameterTableError> {
         let info = self
             .by_uuid
             .remove(&uuid)
