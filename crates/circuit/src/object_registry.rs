@@ -40,9 +40,6 @@ impl From<ObjectRegistryError> for PyErr {
     }
 }
 
-/// Result type for Object Registry
-type ObjectRegistryResult<T> = Result<T, ObjectRegistryError>;
-
 /// Wrapper for Python-side objects that implements [Hash] and [Eq], allowing them to be
 /// used in Rust hash-based sets and maps.
 ///
@@ -212,7 +209,7 @@ where
     pub fn map_objects(
         &self,
         objects: impl IntoIterator<Item = B>,
-    ) -> ObjectRegistryResult<impl Iterator<Item = T>> {
+    ) -> Result<impl Iterator<Item = T>, ObjectRegistryError> {
         let v: Result<Vec<_>, _> = objects
             .into_iter()
             .map(|b| {
@@ -245,7 +242,7 @@ where
     }
 
     /// Registers a new object, automatically creating a unique index within the registry.
-    pub fn add(&mut self, object: B, strict: bool) -> ObjectRegistryResult<T> {
+    pub fn add(&mut self, object: B, strict: bool) -> Result<T, ObjectRegistryError> {
         let idx: u32 = self
             .objects
             .len()
