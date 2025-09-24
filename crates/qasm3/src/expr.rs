@@ -315,7 +315,7 @@ pub fn broadcast_qubits<'a, 'py, T>(
     our_symbols: &PySymbolTable,
     ast_symbols: &SymbolTable,
     qargs: T,
-) -> PyResult<impl Iterator<Item = Bound<'py, PyTuple>>>
+) -> PyResult<impl Iterator<Item = Bound<'py, PyTuple>> + use<'py, T>>
 where
     T: IntoIterator<Item = &'a asg::TExpr> + 'a,
 {

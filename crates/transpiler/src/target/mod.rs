@@ -352,11 +352,7 @@ impl Target {
                 "Instruction {name} is already in the target"
             )));
         }
-        let props_map = if let Some(props_map) = properties {
-            props_map
-        } else {
-            IndexMap::from_iter([(Qargs::Global, None)])
-        };
+        let props_map = properties.unwrap_or_else(|| IndexMap::from_iter([(Qargs::Global, None)]));
 
         self.inner_add_instruction(instruction, name.clone(), props_map)
             .map_err(|err| TranspilerError::new_err(err.to_string()))?;
@@ -1223,7 +1219,7 @@ impl Target {
     }
 
     /// Get an iterator over the indices of all physical qubits of the target
-    pub fn physical_qubits(&self) -> impl ExactSizeIterator<Item = PhysicalQubit> {
+    pub fn physical_qubits(&self) -> impl ExactSizeIterator<Item = PhysicalQubit> + use<> {
         (0..self.num_qubits.unwrap_or_default()).map(PhysicalQubit)
     }
 
@@ -1342,7 +1338,7 @@ impl Target {
     pub fn operations_for_qargs<'a, T>(
         &self,
         qargs: T,
-    ) -> Result<impl Iterator<Item = &NormalOperation>, TargetError>
+    ) -> Result<impl Iterator<Item = &NormalOperation> + use<'_, T>, TargetError>
     where
         T: Into<QargsRef<'a>>,
     {
@@ -1366,15 +1362,16 @@ impl Target {
     pub fn qargs_for_operation_name(
         &self,
         operation: &str,
-    ) -> Result<Option<impl Iterator<Item = &Qargs>>, TargetError> {
-        if let Some(gate_map_oper) = self.gate_map.get(operation) {
-            if gate_map_oper.contains_key(&Qargs::Global) {
-                return Ok(None);
+    ) -> Result<Option<impl Iterator<Item = &Qargs> + use<'_>>, TargetError> {
+        match self.gate_map.get(operation) {
+            Some(gate_map_oper) => {
+                if gate_map_oper.contains_key(&Qargs::Global) {
+                    return Ok(None);
+                }
+                let qargs = gate_map_oper.keys().filter(|qargs| qargs.is_concrete());
+                Ok(Some(qargs))
             }
-            let qargs = gate_map_oper.keys().filter(|qargs| qargs.is_concrete());
-            Ok(Some(qargs))
-        } else {
-            Err(TargetError::InvalidKey(operation.to_string()))
+            None => Err(TargetError::InvalidKey(operation.to_string())),
         }
     }
 

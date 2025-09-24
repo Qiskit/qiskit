@@ -207,7 +207,7 @@ impl GateSequence {
         let (target_first, self_first) = target_u2
             .iter()
             .zip(self_u2.iter())
-            .find(|(&el, _)| el.abs() >= 1. / 2.)
+            .find(|&(&el, _)| el.abs() >= 1. / 2.)
             .expect("At least one element in the unitary must be >= 1/2.");
 
         // When we convert SU(2) to SO(3) we lose sign information, which translates to a
@@ -443,17 +443,14 @@ impl BasicApproximations {
     /// Query the closest point to a [GateSequence].
     pub fn query(&self, matrix: &Matrix3<f64>) -> Option<&GateSequence> {
         let query_point = BasicPoint::from_matrix(matrix);
-        let point = self.points.nearest_neighbor(&query_point).map(|point| {
+        self.points.nearest_neighbor(&query_point).map(|point| {
             let index = point
                 .index
                 .expect("All registered sequences should have an index. Blame a dev.");
-            let best = self
-                .approximations
+            self.approximations
                 .get(&index)
-                .expect("All available indices should have a sequence. Also blame a dev.");
-            best
-        });
-        point
+                .expect("All available indices should have a sequence. Also blame a dev.")
+        })
     }
 
     /// Save the basic approximations into a file. This can be used to load the object again,

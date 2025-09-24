@@ -266,7 +266,7 @@ impl ParameterTable {
     /// The clearing effect is eager and not dependent on the iteration.
     pub fn drain_ordered(
         &mut self,
-    ) -> impl ExactSizeIterator<Item = (Symbol, HashSet<ParameterUse>)> {
+    ) -> impl ExactSizeIterator<Item = (Symbol, HashSet<ParameterUse>)> + use<> {
         let order = self
             .order_cache
             .take()

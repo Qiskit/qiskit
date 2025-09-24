@@ -52,7 +52,7 @@ use qiskit_transpiler::target::Target;
 ///
 /// Behavior is undefined if ``circuit`` or ``target`` is not a valid, ``QkCircuit`` and ``QkTarget``.
 /// ``QkCircuit`` is not expected to be null and behavior is undefined if it is.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_commutative_cancellation(
     circuit: *mut CircuitData,
@@ -68,7 +68,9 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_commutative_cancellation(
         Some(unsafe { const_ptr_as_ref(target) })
     };
     if !(0.0..=1.0).contains(&approximation_degree) {
-        panic!("Invalid value provided for approximation degree, only NAN or values between 0.0 and 1.0 inclusive are valid");
+        panic!(
+            "Invalid value provided for approximation degree, only NAN or values between 0.0 and 1.0 inclusive are valid"
+        );
     }
     let mut dag = match DAGCircuit::from_circuit_data(circuit, false, None, None, None, None) {
         Ok(dag) => dag,

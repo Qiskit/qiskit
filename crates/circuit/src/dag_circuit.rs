@@ -3296,7 +3296,7 @@ impl DAGCircuit {
         self.dag
             .node_references()
             .filter_map(|(node_index, node_type)| match node_type {
-                NodeType::Operation(ref node) => {
+                NodeType::Operation(node) => {
                     if node.op.control_flow() {
                         Some(self.unpack_into(py, node_index, node_type))
                     } else {
@@ -3316,7 +3316,7 @@ impl DAGCircuit {
         self.dag
             .node_references()
             .filter_map(|(node, weight)| match weight {
-                NodeType::Operation(ref packed) => match packed.op.view() {
+                NodeType::Operation(packed) => match packed.op.view() {
                     OperationRef::Gate(_) | OperationRef::StandardGate(_) => {
                         Some(self.unpack_into(py, node, weight))
                     }
@@ -3336,7 +3336,7 @@ impl DAGCircuit {
         }
         let mut result: Vec<Py<PyAny>> = Vec::new();
         for (id, weight) in self.dag.node_references() {
-            if let NodeType::Operation(ref packed) = weight {
+            if let NodeType::Operation(packed) = weight {
                 if names_set.contains(packed.op.name()) {
                     result.push(self.unpack_into(py, id, weight)?);
                 }
@@ -3357,7 +3357,7 @@ impl DAGCircuit {
     fn multi_qubit_ops(&self, py: Python) -> PyResult<Vec<Py<PyAny>>> {
         let mut nodes = Vec::new();
         for (node, weight) in self.dag.node_references() {
-            if let NodeType::Operation(ref packed) = weight {
+            if let NodeType::Operation(packed) = weight {
                 if packed.op.directive() {
                     continue;
                 }
@@ -5616,7 +5616,7 @@ impl DAGCircuit {
         }
     }
 
-    fn topological_nodes(&self) -> PyResult<impl Iterator<Item = NodeIndex>> {
+    fn topological_nodes(&self) -> PyResult<impl Iterator<Item = NodeIndex> + use<>> {
         let key = |node: NodeIndex| -> Result<SortKeyType, Infallible> { Ok(self.sort_key(node)) };
         let nodes =
             rustworkx_core::dag_algo::lexicographical_topological_sort(&self.dag, key, false, None)
@@ -5641,7 +5641,7 @@ impl DAGCircuit {
         &self,
         py: Python,
         key: &Bound<PyAny>,
-    ) -> PyResult<impl Iterator<Item = NodeIndex>> {
+    ) -> PyResult<impl Iterator<Item = NodeIndex> + use<>> {
         // This path (user provided key func) is not ideal, since we no longer
         // use a string key after moving to Rust, in favor of using a tuple
         // of the qargs and cargs interner IDs of the node.
@@ -6087,7 +6087,7 @@ impl DAGCircuit {
         self.dag
             .node_references()
             .filter_map(move |(node_index, node_type)| match node_type {
-                NodeType::Operation(ref node) => {
+                NodeType::Operation(node) => {
                     (include_directives || !node.op.directive()).then_some((node_index, node))
                 }
                 _ => None,
@@ -6276,7 +6276,7 @@ impl DAGCircuit {
                         Some(&kwargs),
                     )?;
 
-                    if let NodeType::Operation(ref mut new_inst) = &mut self.dag[*new_node_index] {
+                    if let NodeType::Operation(new_inst) = &mut self.dag[*new_node_index] {
                         new_inst.op = PyInstruction {
                             qubits: old_op.num_qubits(),
                             clbits: old_op.num_clbits(),
@@ -6308,9 +6308,7 @@ impl DAGCircuit {
                                     self.add_creg(new_reg.clone())
                                 })?;
 
-                            if let NodeType::Operation(ref mut new_inst) =
-                                &mut self.dag[*new_node_index]
-                            {
+                            if let NodeType::Operation(new_inst) = &mut self.dag[*new_node_index] {
                                 #[cfg(feature = "cache_pygates")]
                                 {
                                     new_inst.py_op.take();

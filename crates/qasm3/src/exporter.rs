@@ -293,10 +293,9 @@ impl SymbolTable {
     }
 
     fn contains_name(&self, name: &str) -> bool {
-        if let Some(symbols) = self.symbols.last() {
-            symbols.contains_key(name)
-        } else {
-            false
+        match self.symbols.last() {
+            Some(symbols) => symbols.contains_key(name),
+            None => false,
         }
     }
 
@@ -1189,13 +1188,12 @@ impl<'a> QASM3Builder {
         let param = &instr.params_view()[0];
         let duration: f64 = Python::attach(|py| match param {
             Param::Float(val) => *val,
-            Param::ParameterExpression(p) => {
-                if let Ok(symbol_expr::Value::Real(val)) = p.try_to_value(true) {
-                    val
-                } else {
+            Param::ParameterExpression(p) => match p.try_to_value(true) {
+                Ok(symbol_expr::Value::Real(val)) => val,
+                _ => {
                     panic!("Failed to parse parameter value")
                 }
-            }
+            },
             Param::Obj(obj) => {
                 let py_obj = obj.bind(py);
                 let py_str = py_obj.str().expect("Failed to call str() on Parameter");

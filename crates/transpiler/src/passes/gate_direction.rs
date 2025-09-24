@@ -354,7 +354,7 @@ where
 // TODO: optimize it by caching the DAGs of the non-parametric gates and caching and
 // mutating upon request the DAGs of the parametric gates
 fn replace_dag(std_gate: StandardGate, inst: &PackedInstruction) -> PyResult<DAGCircuit> {
-    let replacement_dag = match std_gate {
+    match std_gate {
         StandardGate::CX => cx_replacement_dag(),
         StandardGate::ECR => ecr_replacement_dag(),
         StandardGate::CZ => cz_replacement_dag(),
@@ -364,9 +364,7 @@ fn replace_dag(std_gate: StandardGate, inst: &PackedInstruction) -> PyResult<DAG
         StandardGate::RZZ => rzz_replacement_dag(inst.params_view()),
         StandardGate::RZX => rzx_replacement_dag(inst.params_view()),
         _ => panic!("Mismatch in supported gates assumption"),
-    };
-
-    replacement_dag
+    }
 }
 
 //###################################################
