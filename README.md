@@ -93,14 +93,16 @@ The power of quantum computing cannot be simulated on classical computers and yo
 However, running a quantum circuit on hardware requires rewriting to the basis gates and connectivity of the quantum hardware.
 The tool that does this is the [transpiler](https://quantum.cloud.ibm.com/docs/api/qiskit/transpiler), and Qiskit includes transpiler passes for synthesis, optimization, mapping, and scheduling.
 However, it also includes a default compiler, which works very well in most examples.
-The following code will map the example circuit to the `basis_gates = ["cz", "sx", "rz"]` and a linear chain of qubits $0 \rightarrow 1 \rightarrow 2$ with the `coupling_map = [[0, 1], [1, 2]]`.
+The following code will map the example circuit to the `basis_gates = ["cz", "sx", "rz"]` and a
+bidirectional linear chain of qubits $0 \leftrightarrow 1 \leftrightarrow 2$ with the
+`coupling_map = [[0, 1], [1, 0], [1, 2], [2, 1]]`.
 
 ```python
 from qiskit import transpile
 from qiskit.transpiler import Target, CouplingMap
 target = Target.from_configuration(
     basis_gates=["cz", "sx", "rz"],
-    coupling_map=CouplingMap.from_line(3, bidirectional=False),
+    coupling_map=CouplingMap.from_line(3),
 )
 qc_transpiled = transpile(qc, target)
 ```
