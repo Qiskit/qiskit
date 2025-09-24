@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::library::quantum_volume::quantum_volume;
+use qiskit_circuit_library::quantum_volume::quantum_volume;
 
 /// @ingroup QkCircuitLibrary
 /// Generate a Quantum Volume model circuit

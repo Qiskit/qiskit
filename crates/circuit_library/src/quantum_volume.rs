@@ -18,13 +18,13 @@ use rand::prelude::*;
 use rand_distr::StandardNormal;
 use rand_pcg::Pcg64Mcg;
 use rayon::prelude::*;
-use smallvec::{smallvec, SmallVec};
 
-use crate::circuit_data::CircuitData;
-use crate::getenv_use_multiple_threads;
-use crate::operations::{ArrayType, Param, UnitaryGate};
-use crate::packed_instruction::PackedOperation;
-use crate::{Clbit, Qubit};
+use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::getenv_use_multiple_threads;
+use qiskit_circuit::operations::{ArrayType, Param, UnitaryGate};
+use qiskit_circuit::packed_instruction::PackedOperation;
+use qiskit_circuit::{Clbit, Qubit};
+use smallvec::{smallvec, SmallVec};
 
 type Instruction = (
     PackedOperation,

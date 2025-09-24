@@ -1469,6 +1469,7 @@ dependencies = [
  "num-complex",
  "pyo3",
  "qiskit-circuit",
+ "qiskit-circuit-library",
  "qiskit-quantum-info",
  "qiskit-transpiler",
  "rand 0.9.2",
