@@ -39,7 +39,7 @@ static QkTarget *create_target() {
 /**
  * Test running CheckGateDirection on a simple circuit.
  */
-int test_check_gate_direction(void) {
+static int test_check_gate_direction(void) {
     QkTarget *target = create_target();
     if (!target)
         return RuntimeError;
@@ -77,7 +77,7 @@ cleanup:
 /**
  * Test running GateDirection on a simple circuit.
  */
-int test_gate_direction(void) {
+static int test_gate_direction_simple(void) {
     QkTarget *target = create_target();
     if (!target)
         return RuntimeError;
@@ -111,10 +111,10 @@ cleanup:
     return result;
 }
 
-int test_gate_direction_passes(void) {
+int test_gate_direction(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_check_gate_direction);
-    num_failed += RUN_TEST(test_gate_direction);
+    num_failed += RUN_TEST(test_gate_direction_simple);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
