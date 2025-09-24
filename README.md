@@ -97,7 +97,12 @@ The following code will map the example circuit to the `basis_gates = ["cz", "sx
 
 ```python
 from qiskit import transpile
-qc_transpiled = transpile(qc, basis_gates=["cz", "sx", "rz"], coupling_map=[[0, 1], [1, 2]], optimization_level=3)
+from qiskit.transpiler import Target, CouplingMap
+target = Target.from_configuration(
+    basis_gates=["cz", "sx", "rz"],
+    coupling_map=CouplingMap.from_line(3, bidirectional=False),
+)
+qc_transpiled = transpile(qc, target)
 ```
 
 ### Executing your code on real quantum hardware
