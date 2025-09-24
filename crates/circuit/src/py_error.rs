@@ -14,3 +14,6 @@ use pyo3::import_exception;
 
 import_exception!(qiskit.dagcircuit.exceptions, DAGCircuitError);
 import_exception!(qiskit.dagcircuit.exceptions, DAGDependencyError);
+import_exception!(qiskit.circuit.exceptions, CircuitError);
+
+pub use crate::py_error::CircuitError as PyCircuitError;

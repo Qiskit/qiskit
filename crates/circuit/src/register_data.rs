@@ -17,7 +17,7 @@ use hashbrown::HashMap;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyList};
 
-use crate::{bit::Register, circuit_data::CircuitError};
+use crate::{bit::Register, error::CircuitError};
 
 /// Represents the location in which the register is stored within [RegisterData].
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -103,7 +103,7 @@ where
     /// it sits will be returned.
     ///
     /// __**Note** if `strict` is passed, the insertion will fail.
-    pub fn add_register(&mut self, register: R, strict: bool) -> PyResult<bool> {
+    pub fn add_register(&mut self, register: R, strict: bool) -> Result<bool, CircuitError> {
         if self
             .reg_index
             .try_insert(register.name().to_string(), self.registers.len().into())
@@ -113,10 +113,8 @@ where
             self.cached_registers.take();
             Ok(true)
         } else if strict {
-            Err(CircuitError::new_err(format!(
-                "register name \"{}\" already exists",
-                register.name()
-            )))
+            // TODO: Introduce own error type.
+            Err(CircuitError::RegisterNameExists(register.name().into()))
         } else {
             Ok(false)
         }

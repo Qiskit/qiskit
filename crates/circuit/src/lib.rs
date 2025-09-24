@@ -23,6 +23,7 @@ pub mod dag_circuit;
 pub mod dag_node;
 mod dot_utils;
 pub mod duration;
+pub mod error;
 pub mod gate_matrix;
 pub mod imports;
 pub mod interner;
