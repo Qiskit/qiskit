@@ -30,6 +30,7 @@ use crate::TranspilerError;
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::imports::ImportOnceCell;
+use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardInstruction};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, PhysicalQubit, Qubit, VarsMode, VirtualQubit};
@@ -440,6 +441,7 @@ fn separate_dag(dag: &mut DAGCircuit) -> PyResult<Vec<DAGCircuit>> {
             new_dag.remove_qubits(qubits_to_revmove)?;
             new_dag.set_global_phase(Param::Float(0.))?;
             let old_qubits = dag.qubits();
+            let mut block_map = HashMap::new();
             for index in dag.topological_op_nodes()? {
                 let node = dag[index].unwrap_operation();
                 let qargs: HashSet<Qubit> = dag.get_qargs(node.qubits).iter().copied().collect();
@@ -450,11 +452,29 @@ fn separate_dag(dag: &mut DAGCircuit) -> PyResult<Vec<DAGCircuit>> {
                         new_dag.qubits().map_objects(qarg_bits)?.collect();
                     let mapped_clbits: Vec<Clbit> =
                         new_dag.cargs_interner().get(node.clbits).to_vec();
+                    let mapped_params = match node.params.as_deref() {
+                        // TODO: we probably want a PackedInstruction::map_blocks
+                        Some(Parameters::Blocks(blocks)) => Some(Parameters::Blocks(
+                            blocks
+                                .iter()
+                                .map(|b| {
+                                    block_map
+                                        .entry(*b)
+                                        .or_insert_with(|| {
+                                            let block = dag.view_block(*b).clone();
+                                            new_dag.register_block(block)
+                                        })
+                                        .clone()
+                                })
+                                .collect(),
+                        )),
+                        _ => node.params.as_deref().cloned(),
+                    };
                     new_dag.apply_operation_back(
                         node.op.clone(),
                         &mapped_qubits,
                         &mapped_clbits,
-                        node.params.as_ref().map(|x| *x.clone()),
+                        mapped_params,
                         node.label.as_ref().map(|x| *x.clone()),
                         #[cfg(feature = "cache_pygates")]
                         None,

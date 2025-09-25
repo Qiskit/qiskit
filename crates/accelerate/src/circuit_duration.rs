@@ -40,49 +40,51 @@ pub(crate) fn compute_estimated_duration(dag: &DAGCircuit, target: &Target) -> P
                     let physical_qubits: Vec<PhysicalQubit> =
                         qubits.iter().map(|x| PhysicalQubit::new(x.0)).collect();
 
-                    if let InstructionView::StandardInstruction(inst) = inst.view() {
-                        match inst {
-                            StandardInstructionView::Delay { duration, unit } => {
-                                return if unit == DelayUnit::DT {
-                                    if let Some(dt) = dt {
-                                        match duration {
-                                            Param::Float(val) =>
-                                                {
-                                                    Ok(val * dt)
-
+                    // TODO: remove this control flow guard once InstructionView is gone.
+                    if inst.op.try_control_flow().is_none() {
+                        if let InstructionView::StandardInstruction(inst) = inst.view() {
+                            match inst {
+                                StandardInstructionView::Delay { duration, unit } => {
+                                    return if unit == DelayUnit::DT {
+                                        if let Some(dt) = dt {
+                                            match duration {
+                                                Param::Float(val) =>
+                                                    {
+                                                        Ok(val * dt)
+                                                    },
+                                                Param::Obj(val) => {
+                                                    Python::with_gil(|py| {
+                                                        let dur_float: f64 = val.extract(py)?;
+                                                        Ok(dur_float * dt)
+                                                    })
                                                 },
-                                            Param::Obj(val) => {
-                                                Python::with_gil(|py| {
-                                                    let dur_float: f64 = val.extract(py)?;
-                                                    Ok(dur_float * dt)
-                                                })
-                                            },
-                                            Param::ParameterExpression(_) => Err(QiskitError::new_err(
-                                                "Circuit contains parameterized delays, can't compute a duration estimate with this circuit"
+                                                Param::ParameterExpression(_) => Err(QiskitError::new_err(
+                                                    "Circuit contains parameterized delays, can't compute a duration estimate with this circuit"
+                                                )),
+                                            }
+                                        } else {
+                                            Err(QiskitError::new_err(
+                                                "Circuit contains delays in dt but the target doesn't specify dt"
+                                            ))
+                                        }
+                                    } else if unit == DelayUnit::S {
+                                        match duration {
+                                            Param::Float(val) => Ok(*val),
+                                            _ => Err(QiskitError::new_err(
+                                                "Invalid type for parameter value for delay in circuit",
                                             )),
                                         }
                                     } else {
                                         Err(QiskitError::new_err(
-                                            "Circuit contains delays in dt but the target doesn't specify dt"
+                                            "Circuit contains delays in units other then seconds or dt, the circuit is not scheduled."
                                         ))
-                                    }
-                                } else if unit == DelayUnit::S {
-                                    match duration {
-                                        Param::Float(val) => Ok(*val),
-                                        _ => Err(QiskitError::new_err(
-                                            "Invalid type for parameter value for delay in circuit",
-                                        )),
-                                    }
-                                } else {
-                                    Err(QiskitError::new_err(
-                                        "Circuit contains delays in units other then seconds or dt, the circuit is not scheduled."
-                                    ))
-                                };
+                                    };
+                                }
+                                StandardInstructionView::Barrier(_) => {
+                                    return Ok(0.);
+                                }
+                                _ => (),
                             }
-                            StandardInstructionView::Barrier(_) => {
-                                return Ok(0.);
-                            }
-                            _ => (),
                         }
                     }
                     match target.get_duration(name, &physical_qubits) {

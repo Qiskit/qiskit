@@ -176,11 +176,23 @@ impl DAGOpNode {
         {
             return Ok(false);
         }
-        let params_eq = match (slf.instruction.view(), borrowed_other.instruction.view()) {
-            (
-                InstructionView::StandardGate(StandardGateView(_, slf_params)),
-                InstructionView::StandardGate(StandardGateView(_, other_params)),
-            ) => {
+        let params_eq = match (
+            slf.instruction.operation.view(),
+            borrowed_other.instruction.operation.view(),
+        ) {
+            (OperationRef::StandardGate(_), OperationRef::StandardGate(_)) => {
+                let slf_params = slf
+                    .instruction
+                    .params
+                    .as_ref()
+                    .map(|p| p.unwrap_params())
+                    .unwrap_or_default();
+                let other_params = borrowed_other
+                    .instruction
+                    .params
+                    .as_ref()
+                    .map(|p| p.unwrap_params())
+                    .unwrap_or_default();
                 let mut params_eq = true;
                 for (a, b) in slf_params.iter().zip(other_params) {
                     let res = match [a, b] {

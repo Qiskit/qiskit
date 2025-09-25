@@ -5013,6 +5013,13 @@ impl DAGCircuit {
     /// Gets a mutable reference to the given basic block.
     ///
     /// Panics if the block is not found.
+    pub fn view_block(&self, block: Block) -> &DAGCircuit {
+        self.blocks.get(block.index()).unwrap()
+    }
+
+    /// Gets a mutable reference to the given basic block.
+    ///
+    /// Panics if the block is not found.
     pub fn view_block_mut(&mut self, block: Block) -> &mut DAGCircuit {
         self.blocks.get_mut(block.index()).unwrap()
     }

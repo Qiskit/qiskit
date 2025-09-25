@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use hashbrown::HashMap;
 use numpy::PyReadonlyArray1;
 use pyo3::prelude::*;
 
@@ -41,6 +42,10 @@ pub fn run_elide_permutations(dag: &DAGCircuit) -> PyResult<Option<(DAGCircuit, 
 
     // note that DAGCircuit::copy_empty_like clones the interners
     let mut new_dag = dag.copy_empty_like(VarsMode::Alike)?;
+    // TODO: add a `copy_blocks` arg to `copy_empty_like`.
+    for block in dag.iter_blocks() {
+        new_dag.register_block(block.clone());
+    }
     for node_index in dag.topological_op_nodes()? {
         if let NodeType::Operation(inst) = &dag[node_index] {
             match inst.op.view() {
