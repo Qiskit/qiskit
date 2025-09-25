@@ -67,6 +67,7 @@ pub trait IntoInstructionView<'a> {
     }
 }
 
+// TODO: rename this to PythonOperation
 /// Represents an instruction that is directly convertible to our Python API
 /// instruction type.
 pub trait Instruction {

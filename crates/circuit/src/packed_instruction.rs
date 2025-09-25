@@ -10,9 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-#[cfg(feature = "cache_pygates")]
-use std::sync::OnceLock;
-
 use crate::imports::{
     get_std_gate_class, BARRIER, BOX_OP, BREAK_LOOP_OP, CONTINUE_LOOP_OP, DELAY, FOR_LOOP_OP,
     IF_ELSE_OP, MEASURE, RESET, SWITCH_CASE_OP, UNITARY_GATE, WHILE_LOOP_OP,
@@ -26,9 +23,13 @@ use crate::operations::{
     PythonOperation, StandardGate, StandardInstruction, UnitaryGate,
 };
 use crate::{Block, Clbit, Qubit};
+use ndarray::Array2;
+use num_complex::Complex64;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyType};
 use smallvec::SmallVec;
+#[cfg(feature = "cache_pygates")]
+use std::sync::OnceLock;
 
 /// The logical discriminant of `PackedOperation`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -737,6 +738,41 @@ impl PackedInstruction {
         self.py_op.take();
 
         Ok(())
+    }
+
+    pub fn try_matrix(&self) -> Option<Array2<Complex64>> {
+        match self.op.view() {
+            OperationRef::StandardGate(g) => g.matrix(self.params()),
+            OperationRef::Gate(g) => g.matrix(),
+            OperationRef::Unitary(u) => u.matrix(),
+            _ => None,
+        }
+    }
+
+    /// View the params of this instruction as a slice.
+    ///
+    /// Panics if the instruction does not support params.
+    pub fn params(&self) -> &[Param] {
+        self.params
+            .as_deref()
+            .map(|p| match p {
+                Parameters::Params(p) => p.as_slice(),
+                _ => panic!("expected parameters"),
+            })
+            .unwrap_or_default()
+    }
+
+    /// View the blocks of this instruction as a slice.
+    ///
+    /// Panics if the instruction does not support blocks.
+    pub fn blocks(&self) -> &[Block] {
+        self.params
+            .as_deref()
+            .map(|p| match p {
+                Parameters::Blocks(b) => b.as_slice(),
+                _ => panic!("expected blocks"),
+            })
+            .unwrap_or_default()
     }
 }
 

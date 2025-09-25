@@ -878,6 +878,11 @@ pub fn extract_params(
                 // are exactly the blocks.
                 let blocks: Vec<PyObject> = params
                     .try_iter()?
+                    .take_while(|p| match p {
+                        // In the case of IfElse, the "false" body might be None.
+                        Ok(block) if !block.is_none() => true,
+                        _ => false,
+                    })
                     .map(|p| p.map(|p| p.unbind()))
                     .collect::<PyResult<_>>()?;
                 Some(Parameters::Blocks(blocks))

@@ -17,10 +17,10 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use crate::gate_metrics::rotation_trace_and_dim;
 use crate::target::Target;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::instruction::{InstructionView, IntoInstructionView, StandardGateView};
-use qiskit_circuit::operations::Operation;
+use qiskit_circuit::instruction::IntoInstructionView;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::StandardGate;
+use qiskit_circuit::operations::{Operation, OperationRef};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::PhysicalQubit;
 
@@ -84,9 +84,8 @@ pub fn run_remove_identity_equiv(
             // Skip parameterized gates
             continue;
         }
-        let view = inst.view();
-        match view {
-            InstructionView::StandardGate(StandardGateView(gate, params)) => {
+        match inst.op.view() {
+            OperationRef::StandardGate(gate) => {
                 let (tr_over_dim, dim) = match gate {
                     StandardGate::RX
                     | StandardGate::RY
@@ -100,7 +99,7 @@ pub fn run_remove_identity_equiv(
                     | StandardGate::CRY
                     | StandardGate::CRZ
                     | StandardGate::CPhase => {
-                        if let Param::Float(angle) = params[0] {
+                        if let Param::Float(angle) = inst.params()[0] {
                             let (tr_over_dim, dim) =
                                 rotation_trace_and_dim(gate, angle).expect("Since only supported rotation gates are given, the result is not None");
                             (tr_over_dim, dim)
@@ -109,7 +108,7 @@ pub fn run_remove_identity_equiv(
                         }
                     }
                     _ => {
-                        if let Some(matrix) = view.try_matrix() {
+                        if let Some(matrix) = inst.try_matrix() {
                             let dim = matrix.shape()[0] as f64;
                             let tr_over_dim = matrix.diag().iter().sum::<Complex64>() / dim;
                             (tr_over_dim, dim)
@@ -127,7 +126,7 @@ pub fn run_remove_identity_equiv(
                 }
             }
             _ => {
-                let matrix = view.try_matrix();
+                let matrix = inst.try_matrix();
                 // If view.matrix() returns None, then there is no matrix and we skip the operation.
                 if let Some(matrix) = matrix {
                     let error = get_error_cutoff(inst);

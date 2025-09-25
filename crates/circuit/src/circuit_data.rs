@@ -22,7 +22,7 @@ use crate::bit::{
 use crate::bit_locator::BitLocator;
 use crate::circuit_instruction::{CircuitInstruction, CreatePythonOperation, OperationFromPython};
 use crate::classical::expr;
-use crate::dag_circuit::{add_global_phase, DAGStretchType, DAGVarType};
+use crate::dag_circuit::{add_global_phase, DAGCircuit, DAGStretchType, DAGVarType};
 use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, Interner};
 use crate::object_registry::{ObjectRegistry, PyObjectAsKey};
@@ -1295,7 +1295,7 @@ impl CircuitData {
                         let other_blocks = blocks.iter().map(|b| other.blocks.get(*b).unwrap());
                         let mut blocks = Vec::with_capacity(blocks.len());
                         for other_block in other_blocks {
-                            blocks.push(self.blocks.add(other_block.clone(), true)?);
+                            blocks.push(self.blocks.add(other_block.clone(), false)?);
                         }
                         Some(Box::new(Parameters::Blocks(blocks)))
                     }
@@ -1877,6 +1877,11 @@ impl CircuitData {
 }
 
 impl CircuitData {
+    /// Iterate over the blocks registered to the DAG.
+    pub fn iter_blocks(&self) -> impl ExactSizeIterator<Item = &PyObject> {
+        self.blocks.objects().iter().map(|b| &b.ob)
+    }
+
     /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into an
     /// instruction.  This may construct the reference if the `Instruction` is a standard
     /// gate or instruction with no already stored operation.
@@ -2575,7 +2580,7 @@ impl CircuitData {
                 for other_block in inst_blocks {
                     blocks.push(
                         self.blocks
-                            .add(PyObjectAsKey::new_sinful(other_block.clone()), true)?,
+                            .add(PyObjectAsKey::new_sinful(other_block.clone()), false)?,
                     );
                 }
                 Some(Box::new(Parameters::Blocks(blocks)))
@@ -2883,8 +2888,8 @@ impl CircuitData {
                                     Some(ControlFlow::ForLoop { .. })
                                 ) {
                                     // In Python land, the loop body exists at parameter
-                                    // position 2.
-                                    blocks[2] = mapped_block_id;
+                                    // position 2, but we store it at index 0 in Rust.
+                                    blocks[0] = mapped_block_id;
                                 } else {
                                     blocks[parameter] = mapped_block_id;
                                 }

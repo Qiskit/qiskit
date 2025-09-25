@@ -591,7 +591,7 @@ impl ControlFlow {
                 .call(py, (indexset, loop_param, &blocks[0]), kwargs.as_ref()),
             ControlFlow::IfElse { condition, .. } => IF_ELSE_OP.get(py).call(
                 py,
-                (condition.clone(), &blocks[0], &blocks[1]),
+                (condition.clone(), &blocks[0], blocks.get(1)),
                 kwargs.as_ref(),
             ),
             ControlFlow::Switch {

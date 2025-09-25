@@ -19,7 +19,7 @@ use crate::dag_circuit::DAGIdentifierInfo;
 use crate::dag_circuit::{DAGCircuit, NodeType};
 use crate::object_registry::{ObjectRegistry, PyObjectAsKey};
 use crate::operations::{OperationRef, PythonOperation};
-use crate::Block;
+use crate::{imports, Block};
 
 /// An extractable representation of a QuantumCircuit reserved only for
 /// conversion purposes.
@@ -61,9 +61,10 @@ pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<Circu
             ObjectRegistry::with_capacity(dag_blocks.len());
         if dag_blocks.len() > 0 {
             Python::with_gil(|py| -> PyResult<()> {
+                let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
                 for dag_block in dag_blocks {
-                    let block = dag_to_circuit(dag_block, copy_operations)?;
-                    registry.add(PyObjectAsKey::new(&block.into_bound_py_any(py)?), false)?;
+                    let block = dag_to_circuit.call1((dag_block.clone(),))?;
+                    registry.add(PyObjectAsKey::new(&block), false)?;
                 }
                 Ok(())
             })?

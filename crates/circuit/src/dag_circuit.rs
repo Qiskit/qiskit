@@ -25,12 +25,12 @@ use crate::bit_locator::BitLocator;
 use crate::circuit_data::{CircuitData, CircuitIdentifierInfo, CircuitStretchType, CircuitVarType};
 use crate::circuit_instruction::{CircuitInstruction, CreatePythonOperation, OperationFromPython};
 use crate::classical::expr;
-use crate::converters::{circuit_to_dag, QuantumCircuitData};
+use crate::converters::{circuit_to_dag, dag_to_circuit, QuantumCircuitData};
 use crate::dag_node::{DAGInNode, DAGNode, DAGOpNode, DAGOutNode};
 use crate::dot_utils::build_dot;
 use crate::error::DAGCircuitError;
 use crate::interner::{Interned, InternedMap, Interner};
-use crate::object_registry::ObjectRegistry;
+use crate::object_registry::{ObjectRegistry, PyObjectAsKey};
 use crate::operations::{
     ArrayType, BoxDuration, Condition, ControlFlow, Operation, OperationRef, Param,
     PythonOperation, StandardGate, SwitchTarget,
@@ -4172,8 +4172,33 @@ impl DAGCircuit {
             }
 
             let mut new_layer = self.copy_empty_like(vars_mode)?;
-
-            new_layer.extend(op_nodes.iter().map(|(inst, _)| (*inst).clone()))?;
+            let mut block_map = HashMap::new();
+            let data: Vec<_> = op_nodes
+                .iter()
+                .map(|(inst, _)| {
+                    if let Some(Parameters::Blocks(blocks)) = inst.params.as_deref() {
+                        let mapped_blocks = blocks
+                            .iter()
+                            .map(|b| {
+                                block_map
+                                    .entry(*b)
+                                    .or_insert_with(|| {
+                                        let block = self.blocks.get(b.index()).unwrap().clone();
+                                        new_layer.register_block(block)
+                                    })
+                                    .clone()
+                            })
+                            .collect();
+                        PackedInstruction {
+                            params: Some(Box::new(Parameters::Blocks(mapped_blocks))),
+                            ..(*inst).clone()
+                        }
+                    } else {
+                        (*inst).clone()
+                    }
+                })
+                .collect();
+            new_layer.extend(data)?;
 
             let support_iter = new_layer.op_nodes(false).map(|(_, instruction)| {
                 PyTuple::new(
@@ -5006,7 +5031,10 @@ impl DAGCircuit {
     ///
     /// Panics if `node` does not refer to an operation.
     pub fn try_view_control_flow(&self, node: NodeIndex) -> Option<ControlFlowView<DAGCircuit>> {
-        self.try_view_control_flow_internal(self.dag[node].unwrap_operation())
+        let NodeType::Operation(instr) = &self.dag[node] else {
+            return None;
+        };
+        self.try_view_control_flow_internal(instr)
     }
 
     fn try_view_control_flow_internal<'a>(
@@ -5922,8 +5950,7 @@ impl DAGCircuit {
                 NodeType::Operation(inst) => Ok(inst.op.num_qubits() == 1
                     && inst.op.num_clbits() == 0
                     && !inst.is_parameterized()
-                    && (inst.op.try_standard_gate().is_some()
-                        || inst.view().try_matrix().is_some())),
+                    && (inst.op.try_standard_gate().is_some() || inst.try_matrix().is_some())),
                 _ => Ok(false),
             }
         };
@@ -6411,7 +6438,7 @@ impl DAGCircuit {
                     vars.push(self.vars.find(var).unwrap());
                 }
             }
-        } else if let InstructionView::Instruction(instr) = instr.view() {
+        } else if let OperationRef::Instruction(instr) = instr.op.view() {
             let op = instr.instruction.bind(py);
             if op.is_instance(imports::STORE_OP.get_bound(py))? {
                 let (expr_clbits, expr_vars) = wires_from_expr(&op.getattr("lvalue")?.extract()?)?;
@@ -7840,20 +7867,21 @@ impl DAGCircuit {
         // After bits and registers are added, copy bitlocations
         new_dag.qubit_locations = qc_data.qubit_indices().clone();
         new_dag.clbit_locations = qc_data.clbit_indices().clone();
-
-        // let params: Option<Parameters<PyObject>> = match self.params.map(|p| *p) {
-        //     None => None,
-        //     Some(Parameters::Blocks(blocks)) => Python::with_gil(|py| -> PyResult<_> {
-        //         let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
-        //         Ok(Some(Parameters::Blocks(
-        //             blocks
-        //                 .into_iter()
-        //                 .map(|c| Ok(dag_to_circuit.call1((c,))?.unbind()))
-        //                 .collect::<PyResult<_>>()?,
-        //         )))
-        //     })?,
-        //     Some(Parameters::Params(params)) => Some(Parameters::Params(params)),
-        // };
+        new_dag.blocks = {
+            let blocks = qc_data.iter_blocks();
+            let mut dag_blocks = Vec::with_capacity(blocks.len());
+            if blocks.len() > 0 {
+                Python::with_gil(|py| -> PyResult<()> {
+                    for block in blocks {
+                        // TODO: should this use qubit_order and clbit_order?
+                        let dag_block = circuit_to_dag(block.extract(py)?, copy_op, None, None)?;
+                        dag_blocks.push(dag_block);
+                    }
+                    Ok(())
+                })?
+            }
+            dag_blocks
+        };
         new_dag.try_extend(qc_data.iter().map(|instr| -> PyResult<PackedInstruction> {
             Ok(PackedInstruction {
                 op: if copy_op {
