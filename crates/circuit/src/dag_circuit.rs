@@ -1672,13 +1672,34 @@ impl DAGCircuit {
             })
             .transpose()?;
 
+        // TODO: Do we want some deduplication here (i.e. recognize Python instances we've already
+        //       registered and reuse?). I think this is necessary to get the exact same semantics we
+        //       have from the Python side today.
+        let block_map = other
+            .iter_blocks()
+            .enumerate()
+            .map(|(index, block)| (Block::new(index), self.register_block(block.clone())))
+            .collect();
+
         // Compose
         if inplace {
-            self.compose(other, qubits.as_deref(), clbits.as_deref(), inline_captures)?;
+            self.compose(
+                other,
+                qubits.as_deref(),
+                clbits.as_deref(),
+                block_map,
+                inline_captures,
+            )?;
             Ok(None)
         } else {
             let mut dag = self.clone();
-            dag.compose(other, qubits.as_deref(), clbits.as_deref(), inline_captures)?;
+            dag.compose(
+                other,
+                qubits.as_deref(),
+                clbits.as_deref(),
+                block_map,
+                inline_captures,
+            )?;
             let out_obj = dag.into_py_any(py)?;
             Ok(Some(out_obj))
         }
@@ -3090,6 +3111,16 @@ impl DAGCircuit {
             _ => return Err(DAGCircuitError::new_err("expected node")),
         };
 
+        // We need to lift any blocks registered with the `input_circuit` up to
+        // the outer circuit.
+        // TODO: since Python expects control flow to be owned by the instruction, we might need
+        //       some special tracking to "deduplicate" Python instances that we've seen before.
+        let block_map = input_dag
+            .iter_blocks()
+            .enumerate()
+            .map(|(index, block)| (Block::new(index), self.register_block(block.clone())))
+            .collect();
+
         type WireMapsTuple = (
             HashMap<Qubit, Qubit>,
             HashMap<Clbit, Clbit>,
@@ -3284,6 +3315,7 @@ impl DAGCircuit {
             Some(&qubit_wire_map),
             Some(&clbit_wire_map),
             Some(&var_map),
+            Some(&block_map),
         )?;
 
         let out_dict = PyDict::new(py);
@@ -6884,6 +6916,7 @@ impl DAGCircuit {
         qubit_map: Option<&HashMap<Qubit, Qubit>>,
         clbit_map: Option<&HashMap<Clbit, Clbit>>,
         var_map: Option<&HashMap<expr::Var, expr::Var>>,
+        block_map: Option<&HashMap<Block, Block>>,
     ) -> PyResult<IndexMap<NodeIndex, NodeIndex, RandomState>> {
         if self.dag.node_weight(node_index).is_none() {
             return Err(PyIndexError::new_err(format!(
@@ -6940,8 +6973,21 @@ impl DAGCircuit {
             }
         };
 
-        let out_map =
-            self.substitute_node_with_graph(node_index, other, qubit_map, clbit_map, var_map)?;
+        let block_map = match block_map {
+            Some(block_map) => block_map,
+            None => {
+                if other.num_blocks() > 0 && self.num_blocks() != other.num_blocks() {
+                    panic!("'block_map' must be provided when 'other' has a different non-empty set of blocks");
+                }
+                let self_blocks = (0..self.num_blocks()).map(Block::new);
+                let other_blocks = (0..other.num_blocks()).map(Block::new);
+                &HashMap::from_iter(other_blocks.zip(self_blocks))
+            }
+        };
+
+        let out_map = self.substitute_node_with_graph(
+            node_index, other, qubit_map, clbit_map, var_map, block_map,
+        )?;
         self.global_phase = add_global_phase(&self.global_phase, &other.global_phase)?;
 
         let mut wire_map_dict = HashMap::new();
@@ -7044,6 +7090,7 @@ impl DAGCircuit {
         qubit_map: &HashMap<Qubit, Qubit>,
         clbit_map: &HashMap<Clbit, Clbit>,
         var_map: &HashMap<expr::Var, expr::Var>,
+        block_map: &HashMap<Block, Block>,
     ) -> PyResult<IndexMap<NodeIndex, NodeIndex, RandomState>> {
         if self.dag.node_weight(node).is_none() {
             return Err(PyIndexError::new_err(format!(
@@ -7154,6 +7201,9 @@ impl DAGCircuit {
                     .collect();
                 new_inst.qubits = self.qargs_interner.insert_owned(new_qubit_indices);
                 new_inst.clbits = self.cargs_interner.insert_owned(new_clbit_indices);
+                if let Some(Parameters::Blocks(blocks)) = new_inst.params.as_deref_mut() {
+                    *blocks = blocks.iter().map(|b| block_map[b]).collect();
+                }
                 self.increment_op(new_inst.op.name());
             }
             let new_index = self.dag.add_node(new_node);
@@ -8048,6 +8098,7 @@ impl DAGCircuit {
         other: &DAGCircuit,
         qubits: Option<&[ShareableQubit]>,
         clbits: Option<&[ShareableClbit]>,
+        block_map: HashMap<Block, Block>,
         inline_captures: bool,
     ) -> PyResult<()> {
         if other.qubits.len() > self.qubits.len() || other.clbits.len() > self.clbits.len() {
@@ -8298,7 +8349,15 @@ impl DAGCircuit {
                             op: new_cf.into(),
                             qubits: self.qargs_interner.insert_owned(mapped_qargs),
                             clbits: self.cargs_interner.insert_owned(mapped_cargs),
-                            params: inst.params.clone(),
+                            params: match inst.params.as_deref() {
+                                Some(Parameters::Blocks(blocks)) => {
+                                    Some(Box::new(Parameters::Blocks(
+                                        blocks.iter().map(|b| block_map[b]).collect(),
+                                    )))
+                                }
+                                None => None,
+                                _ => panic!("expected blocks"),
+                            },
                             label: inst.label.clone(),
                             #[cfg(feature = "cache_pygates")]
                             py_op: OnceLock::new(),

@@ -33,7 +33,7 @@ use qiskit_circuit::imports::ImportOnceCell;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardInstruction};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::{Clbit, PhysicalQubit, Qubit, VarsMode, VirtualQubit};
+use qiskit_circuit::{Block, Clbit, PhysicalQubit, Qubit, VarsMode, VirtualQubit};
 
 create_exception!(qiskit, MultiQEncountered, pyo3::exceptions::PyException);
 
@@ -211,10 +211,20 @@ pub fn distribute_components(dag: &mut DAGCircuit, target: &Target) -> PyResult<
                 for creg in dag.cregs() {
                     out_dag.add_creg(creg.clone())?;
                 }
+                // TODO: should we instead change separate_dag to just keep all of the blocks even if
+                //       they aren't in use by the particular partitions?
+                let block_map = dag
+                    .iter_blocks()
+                    .enumerate()
+                    .map(|(index, block)| {
+                        (Block::new(index), out_dag.register_block(block.clone()))
+                    })
+                    .collect();
                 out_dag.compose(
                     dag,
                     Some(dag.qubits().objects()),
                     Some(dag.clbits().objects()),
+                    block_map,
                     false,
                 )?;
             }

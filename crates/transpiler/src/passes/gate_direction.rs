@@ -320,7 +320,7 @@ where
     }
 
     for (node, replacement_dag) in nodes_to_replace {
-        dag.substitute_node_with_dag(node, &replacement_dag, None, None, None)?;
+        dag.substitute_node_with_dag(node, &replacement_dag, None, None, None, None)?;
     }
 
     Ok(())

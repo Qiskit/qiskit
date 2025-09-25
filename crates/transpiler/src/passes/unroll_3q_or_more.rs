@@ -77,7 +77,7 @@ pub fn run_unroll_3q_or_more(
         )
         .collect();
     for (idx, decomp_dag) in remove_list? {
-        dag.substitute_node_with_dag(idx, &decomp_dag, None, None, None)
+        dag.substitute_node_with_dag(idx, &decomp_dag, None, None, None, None)
             .map_err(Unroll3qError::SubstitutionError)?;
     }
     Ok(())

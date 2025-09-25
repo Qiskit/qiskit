@@ -151,7 +151,7 @@ pub(super) fn compose_transforms<'a>(
                                 "Error converting circuit to dag".to_string(),
                             )
                         })?;
-                dag.substitute_node_with_dag(node, &replace_dag, None, None, None)
+                dag.substitute_node_with_dag(node, &replace_dag, None, None, None, None)
                     .map_err(|_| {
                         BasisTranslatorError::BasisDAGCircuitError(
                             "Error during node substitution with DAG.".to_string(),
