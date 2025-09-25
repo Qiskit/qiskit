@@ -18,7 +18,7 @@ prelude: >
 
         Additionally, the numeric methods used in :class:`.Isometry` have been moved to Rust,
         enabling large runtime speed-ups in particular for controlled unitary gate synthesis.
-        The decomposition for multi-controlled :class:.XGate` and :class:`.PhaseGate`  has been
+        The decomposition for multi-controlled :class:`.XGate` and :class:`.PhaseGate`  has been
         improved resulting in a reduction in the number of gates used in the synthesis by more
         than two orders of magnitude.
 
