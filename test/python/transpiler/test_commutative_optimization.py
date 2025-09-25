@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2025.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Gate cancellation pass testing"""
+"""Test Commutative Optimization pass."""
 
 import unittest
 
@@ -18,68 +18,212 @@ import numpy as np
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.converters import circuit_to_dag
-from qiskit.circuit.library import U1Gate, RZGate, PhaseGate, CXGate, SXGate
+from qiskit.circuit.library import U1Gate, RZGate, PhaseGate, UnitaryGate, PauliEvolutionGate
 from qiskit.circuit.parameter import Parameter
-from qiskit.passmanager.flow_controllers import DoWhileController
-from qiskit.transpiler.target import Target
-from qiskit.transpiler import PassManager, PropertySet
-from qiskit.transpiler.passes import CommutationAnalysis, CommutativeOptimization, FixedPoint, Size
-from qiskit.quantum_info import Operator
+from qiskit.transpiler.passes import CommutativeOptimization
+from qiskit.quantum_info import Operator, SparsePauliOp
+
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCommutativeOptimization(QiskitTestCase):
-    """Test the CommutativeOptimization pass."""
+    """Test CommutativeOptimization pass."""
 
-    def setUp(self):
-        super().setUp()
-        self.com_pass_ = CommutationAnalysis()
-        self.pass_ = CommutativeOptimization()
-        self.pset = self.pass_.property_set = PropertySet()
+    def test_merge_rx_rotations(self):
+        """Test that various RX-rotations are merged."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.sxdg(0)
+        qc.x(0)
+        qc.cx(1, 0)
+        qc.rx(np.pi / 2, 0)
+        qc.sx(0)
 
-    def test_all_gates(self):
-        """Test all gates on 1 and 2 qubits
+        qct = CommutativeOptimization()(qc)
 
-        q0:-[H]-[H]--[x]-[x]--[y]-[y]--[rz]-[rz]--[u1]-[u1]-[rx]-[rx]---.--.--.--.--.--.-
-                                                                        |  |  |  |  |  |
-        q1:-------------------------------------------------------------X--X--Y--Y--.--.-
+        expected = QuantumCircuit(2, global_phase=np.pi / 2)
+        expected.h(0)
+        expected.cx(1, 0)
+        expected.rx(3 * np.pi / 2, 0)
 
-        =
+        self.assertEqual(Operator(expected), Operator(qc))
+        self.assertEqual(qct, expected)
 
-        qr0:---[u1]---
+    def test_merge_rz_rotations(self):
+        """Test that various RZ-rotations get merged."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.t(0)
+        qc.sdg(0)
+        qc.z(0)
+        qc.cz(1, 0)
+        qc.tdg(0)
+        qc.rz(np.pi / 2, 0)
+        qc.s(0)
 
-        qr1:----------
+        qct = CommutativeOptimization()(qc)
+
+        expected = QuantumCircuit(2, global_phase=np.pi / 2)
+        expected.h(0)
+        expected.cz(1, 0)
+        expected.rz(3 * np.pi / 2, 0)
+
+        self.assertEqual(Operator(expected), Operator(qc))
+        self.assertEqual(qct, expected)
+
+    def test_nested_cancellations(self):
         """
-        qr = QuantumRegister(2, "q")
-        circuit = QuantumCircuit(qr)
-        circuit.h(qr[0])
-        circuit.h(qr[0])
-        circuit.x(qr[0])
-        circuit.x(qr[0])
-        circuit.y(qr[0])
-        circuit.y(qr[0])
-        circuit.rz(0.5, qr[0])
-        circuit.rz(0.5, qr[0])
-        circuit.append(U1Gate(0.5), [qr[0]])  # TODO this should work with Phase gates too
-        circuit.append(U1Gate(0.5), [qr[0]])
-        circuit.rx(0.5, qr[0])
-        circuit.rx(0.5, qr[0])
-        circuit.cx(qr[0], qr[1])
-        circuit.cx(qr[0], qr[1])
-        circuit.cy(qr[0], qr[1])
-        circuit.cy(qr[0], qr[1])
-        circuit.cz(qr[0], qr[1])
-        circuit.cz(qr[0], qr[1])
+        Test that nested cancellations are performed at once.
+        """
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.s(0)
+        qc.x(0)
+        qc.y(0)
+        qc.y(0)
+        qc.x(0)
+        qc.sdg(0)
+        qc.h(0)
 
-        passmanager = PassManager()
-        passmanager.append(CommutativeOptimization())
-        new_circuit = passmanager.run(circuit)
+        qct = CommutativeOptimization()(qc)
+
+        # The innermost pair of y-gates cancels out; then the pair of x-gates cancels out;
+        # then s and sdg cancel out; finally the outermost pair of h-gates cancels out.
+        # In contrast, the CommutativeCancellation pass would only cancel the innermost
+        # pair of gates.
+        expected = QuantumCircuit(2)
+
+        self.assertEqual(Operator(expected), Operator(qc))
+        self.assertEqual(qct, expected)
+
+    def test_consecutive_cancellations(self):
+        """Test that consecutive cancellations are performed at once."""
+
+        qr = QuantumRegister(2, "q")
+        qc = QuantumCircuit(qr)
+        qc.h(qr[0])
+        qc.h(qr[0])
+        qc.x(qr[0])
+        qc.x(qr[0])
+        qc.y(qr[0])
+        qc.y(qr[0])
+        qc.rz(0.5, qr[0])
+        qc.rz(0.5, qr[0])
+        qc.append(U1Gate(0.5), [qr[0]])
+        qc.append(U1Gate(0.5), [qr[0]])
+        qc.rx(0.5, qr[0])
+        qc.rx(0.5, qr[0])
+        qc.cx(qr[0], qr[1])
+        qc.cx(qr[0], qr[1])
+        qc.cy(qr[0], qr[1])
+        qc.cy(qr[0], qr[1])
+        qc.cz(qr[0], qr[1])
+        qc.cz(qr[0], qr[1])
+
+        qct = CommutativeOptimization()(qc)
 
         expected = QuantumCircuit(qr)
         expected.append(RZGate(2.0), [qr[0]])
         expected.rx(1.0, qr[0])
         expected.global_phase = 0.5
-        self.assertEqual(expected, new_circuit)
+
+        self.assertEqual(Operator(expected), Operator(qc))
+        self.assertEqual(qct, expected)
+
+    def test_symmetric_gates_cancel(self):
+        """Test that various symmetric gates cancel."""
+        qc = QuantumCircuit(2)
+        qc.cz(0, 1)
+        qc.cz(1, 0)
+        qc.swap(0, 1)
+        qc.swap(1, 0)
+        qc.rxx(0.1, 0, 1)
+        qc.rxx(-0.1, 1, 0)
+        qc.ryy(-0.3, 0, 1)
+        qc.ryy(0.3, 1, 0)
+
+        qct = CommutativeOptimization()(qc)
+
+        expected = QuantumCircuit(2)
+
+        self.assertEqual(Operator(expected), Operator(qc))
+        self.assertEqual(qct, expected)
+
+    def test_parametric_gates_are_merged(self):
+        """Test that parametric gates can merged."""
+        alpha = Parameter("alpha")
+        beta = Parameter("beta")
+
+        qc = QuantumCircuit(2)
+        qc.rz(alpha, 0)
+        qc.rz(0.1, 0)
+        qc.p(beta, 0)
+
+        qct = CommutativeOptimization()(qc)
+
+        expected = QuantumCircuit(2, global_phase=0.5 * beta)
+        expected.rz(alpha + beta + 0.1, 0)
+
+        self.assertEqual(qct, expected)
+
+    def test_unitary_gates_cancel_upto_phase(self):
+        """
+        Test that a pair of up-to-phase inverse unitary gates cancels,
+        and the global phase of the circuit is updated correctly.
+        """
+
+        qc1 = QuantumCircuit(2)
+        qc1.h(0)
+        qc1.cx(0, 1)
+        u1 = UnitaryGate(Operator(qc1).data)
+
+        qc2 = QuantumCircuit(2)
+        qc2.cx(0, 1)
+        qc2.h(0)
+        qc2.global_phase = np.pi / 3
+        u2 = UnitaryGate(Operator(qc2).data)
+
+        qc = QuantumCircuit(2)
+        qc.append(u1, [0, 1])
+        qc.append(u2, [0, 1])
+
+        qct = CommutativeOptimization()(qc)
+
+        expected = QuantumCircuit(2, global_phase=np.pi / 3)
+
+        self.assertEqual(Operator(expected), Operator(qc))
+        self.assertEqual(qct, expected)
+
+    def test_merge_pauli_evolution_gates(self):
+        """Test that the pass merges PauliEvolutionGates when appropriate."""
+        op = SparsePauliOp.from_list([("IZZ", 1), ("ZII", 2), ("ZIZ", 3)])
+
+        qc = QuantumCircuit(4)
+        qc.append(PauliEvolutionGate(op, 0.7), [0, 1, 2])
+        qc.append(PauliEvolutionGate(op, -0.5), [0, 1, 2])
+
+        qct = CommutativeOptimization()(qc)
+
+        expected = QuantumCircuit(4)
+        expected.append(PauliEvolutionGate(op, 0.2), [0, 1, 2])
+
+        self.assertEqual(Operator(expected), Operator(qc))
+        self.assertEqual(qct, expected)
+
+    def test_cancel_pauli_evolution_gates(self):
+        """Test that the pass cancels PauliEvolutionGates when appropriate."""
+        op = SparsePauliOp.from_list([("IZZ", 1), ("ZII", 2), ("ZIZ", 3)])
+
+        qc = QuantumCircuit(4)
+        qc.append(PauliEvolutionGate(op, 0.7), [0, 1, 2])
+        qc.append(PauliEvolutionGate(op, -0.7), [0, 1, 2])
+
+        qct = CommutativeOptimization()(qc)
+
+        expected = QuantumCircuit(4)
+
+        self.assertEqual(Operator(expected), Operator(qc))
+        self.assertEqual(qct, expected)
 
     def test_2pi_multiples(self):
         """Test 2pi multiples are handled with the correct phase they introduce."""
@@ -123,7 +267,6 @@ class TestCommutativeOptimization(QiskitTestCase):
 
     def test_fixed_rotation_accumulation(self):
         """Test accumulating gates with fixed angles (T, S) works correctly."""
-        cc = CommutativeOptimization()
 
         # test for U1, P and RZ as target gate
         for gate_cls in [RZGate, PhaseGate, U1Gate]:
@@ -133,267 +276,168 @@ class TestCommutativeOptimization(QiskitTestCase):
             qc.t(0)
             qc.s(0)
 
-            tqc = cc(qc)
+            tqc = CommutativeOptimization()(qc)
             self.assertTrue(np.allclose(Operator(qc).data, Operator(tqc).data))
 
     def test_commutative_circuit1(self):
-        """A simple circuit where three CNOTs commute, the first and the last cancel.
+        """A simple circuit where three CNOTs commute, the first and the last cancel."""
+        qc = QuantumCircuit(3)
+        qc.cx(0, 1)
+        qc.h(2)
+        qc.cx(2, 1)
+        qc.cx(0, 1)
 
-        qr0:----.---------------.--       qr0:------------
-                |               |
-        qr1:---(+)-----(+)-----(+)-   =   qr1:-------(+)--
-                        |                             |
-        qr2:---[H]------.----------       qr2:---[H]--.---
-        """
-        qr = QuantumRegister(3, "qr")
-        circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0], qr[1])
-        circuit.h(qr[2])
-        circuit.cx(qr[2], qr[1])
-        circuit.cx(qr[0], qr[1])
+        qct = CommutativeOptimization()(qc)
 
-        passmanager = PassManager()
-        passmanager.append(CommutativeOptimization())
-        new_circuit = passmanager.run(circuit)
+        expected = QuantumCircuit(3)
+        expected.h(2)
+        expected.cx(2, 1)
 
-        expected = QuantumCircuit(qr)
-        expected.h(qr[2])
-        expected.cx(qr[2], qr[1])
-
-        self.assertEqual(expected, new_circuit)
+        self.assertEqual(Operator(expected), Operator(qc))
+        self.assertEqual(qct, expected)
 
     def test_consecutive_cnots(self):
-        """A simple circuit equals identity
+        """A simple circuit with two consecutive CNOTs."""
 
-        qr0:----.- ----.--       qr0:------------
-                |      |
-        qr1:---(+)----(+)-   =   qr1:------------
-        """
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.cx(0, 1)
 
-        qr = QuantumRegister(2, "qr")
-        circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0], qr[1])
-        circuit.cx(qr[0], qr[1])
+        qct = CommutativeOptimization()(qc)
 
-        new_pm = PassManager(CommutativeOptimization())
-        new_circuit = new_pm.run(circuit)
-        expected = QuantumCircuit(qr)
+        expected = QuantumCircuit(2)
 
-        self.assertEqual(expected, new_circuit)
+        self.assertEqual(Operator(expected), Operator(qc))
+        self.assertEqual(qct, expected)
 
-    def test_consecutive_cnots2(self):
-        """
-        Two CNOTs that equals identity, with rotation gates inserted.
-        """
-        qr = QuantumRegister(2, "qr")
-        circuit = QuantumCircuit(qr)
-        circuit.rx(np.pi, qr[0])
-        circuit.cx(qr[0], qr[1])
-        circuit.cx(qr[0], qr[1])
-        circuit.rx(np.pi, qr[0])
+    def test_alternating_cnots(self):
+        """A simple circuit with two alternating CNOTs."""
 
-        passmanager = PassManager()
-        passmanager.append(
-            DoWhileController(
-                [
-                    CommutationAnalysis(),
-                    CommutativeOptimization(),
-                    Size(),
-                    FixedPoint("size"),
-                ],
-                do_while=lambda property_set: not property_set["size_fixed_point"],
-            )
-        )
-        new_circuit = passmanager.run(circuit)
-        expected = QuantumCircuit(qr, global_phase=np.pi)  # RX(2pi) = -I = exp(i pi) I
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.cx(1, 0)
 
-        self.assertEqual(expected, new_circuit)
-        self.assertTrue(np.allclose(Operator(circuit).data, Operator(expected).data))
+        qct = CommutativeOptimization()(qc)
 
-    def test_2_alternating_cnots(self):
-        """A simple circuit where nothing should be cancelled.
+        self.assertEqual(qc, qct)
 
-        qr0:----.- ---(+)-       qr0:----.----(+)-
-                |      |                 |     |
-        qr1:---(+)-----.--   =   qr1:---(+)----.--
+    def test_nested_cnots_and_rotations(self):
+        """An outer pair of rotations gates and an inner pair of CNOTs."""
+        qc = QuantumCircuit(2)
+        qc.rx(np.pi, 0)
+        qc.cx(0, 1)
+        qc.cx(0, 1)
+        qc.rx(np.pi, 0)
 
-        """
+        qct = CommutativeOptimization()(qc)
 
-        qr = QuantumRegister(2, "qr")
-        circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0], qr[1])
-        circuit.cx(qr[1], qr[0])
+        # The pass merges both inner and outer pairs in one go.
+        # RX(2pi) = -I = exp(i pi) I
+        expected = QuantumCircuit(2, global_phase=np.pi)
 
-        new_pm = PassManager(CommutativeOptimization())
-        new_circuit = new_pm.run(circuit)
-        expected = QuantumCircuit(qr)
-        expected.cx(qr[0], qr[1])
-        expected.cx(qr[1], qr[0])
+        self.assertEqual(Operator(expected), Operator(qc))
+        self.assertEqual(qct, expected)
 
-        self.assertEqual(expected, new_circuit)
+    def test_cnots_across_x_on_control(self):
+        """Test that CNOTs separated by X on control qubit do not cancel."""
 
-    def test_control_bit_of_cnot(self):
-        """A simple circuit where nothing should be cancelled."""
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.x(0)
+        qc.cx(0, 1)
 
-        qr = QuantumRegister(2, "qr")
-        circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0], qr[1])
-        circuit.x(qr[0])
-        circuit.cx(qr[0], qr[1])
+        qct = CommutativeOptimization()(qc)
 
-        new_pm = PassManager(CommutativeOptimization())
-        new_circuit = new_pm.run(circuit)
-        expected = QuantumCircuit(qr)
-        expected.cx(qr[0], qr[1])
-        expected.x(qr[0])
-        expected.cx(qr[0], qr[1])
+        self.assertEqual(qc, qct)
 
-        self.assertEqual(expected, new_circuit)
+    def test_cnots_across_z_on_control(self):
+        """Test that CNOTs separated by Z on control qubit cancel."""
 
-    def test_control_bit_of_cnot1(self):
-        """A simple circuit where the two cnots should be cancelled."""
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.z(0)
+        qc.cx(0, 1)
 
-        qr = QuantumRegister(2, "qr")
-        circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0], qr[1])
-        circuit.z(qr[0])
-        circuit.cx(qr[0], qr[1])
+        qct = CommutativeOptimization()(qc)
 
-        new_pm = PassManager(CommutativeOptimization())
-        new_circuit = new_pm.run(circuit)
-        expected = QuantumCircuit(qr, global_phase=np.pi / 2)
-        expected.rz(np.pi, qr[0])
+        expected = QuantumCircuit(2)
+        expected.z(0)
 
-        self.assertEqual(Operator(circuit), Operator(expected))
-        self.assertEqual(expected, new_circuit)
+        self.assertEqual(Operator(expected), Operator(qc))
+        self.assertEqual(qct, expected)
 
-    def test_control_bit_of_cnot2(self):
-        """A simple circuit where the two cnots should be cancelled."""
+    def test_cnots_across_t_on_control(self):
+        """Test that CNOTs separated by T on control qubit cancel."""
 
-        qr = QuantumRegister(2, "qr")
-        circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0], qr[1])
-        circuit.t(qr[0])
-        circuit.cx(qr[0], qr[1])
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.t(0)
+        qc.cx(0, 1)
 
-        new_pm = PassManager(CommutativeOptimization())
-        new_circuit = new_pm.run(circuit)
-        expected = QuantumCircuit(qr, global_phase=np.pi/8)
-        expected.rz(np.pi/4, qr[0])
+        qct = CommutativeOptimization()(qc)
 
-        print(new_circuit)
-        print(expected)
-        
-        self.assertEqual(Operator(circuit), Operator(expected))
-        self.assertEqual(expected, new_circuit)
+        expected = QuantumCircuit(2)
+        expected.t(0)
 
-    def test_control_bit_of_cnot3(self):
-        """A simple circuit where the two cnots should be cancelled."""
+        self.assertEqual(Operator(expected), Operator(qc))
+        self.assertEqual(qct, expected)
 
-        qr = QuantumRegister(2, "qr")
-        circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0], qr[1])
-        circuit.rz(np.pi / 3, qr[0])
-        circuit.cx(qr[0], qr[1])
+    def test_cnots_across_rz_on_control(self):
+        """Test that CNOTs separated by RZ on control qubit cancel."""
 
-        new_pm = PassManager(CommutativeOptimization())
-        new_circuit = new_pm.run(circuit)
-        expected = QuantumCircuit(qr)
-        expected.rz(np.pi / 3, qr[0])
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.rz(np.pi / 3, 0)
+        qc.cx(0, 1)
 
-        self.assertEqual(Operator(circuit), Operator(expected))
-        self.assertEqual(expected, new_circuit)
+        qct = CommutativeOptimization()(qc)
 
-    def test_control_bit_of_cnot4(self):
-        """A simple circuit where the two cnots should be cancelled."""
+        expected = QuantumCircuit(2)
+        expected.rz(np.pi / 3, 0)
 
-        qr = QuantumRegister(2, "qr")
-        circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0], qr[1])
-        circuit.t(qr[0])
-        circuit.cx(qr[0], qr[1])
+        self.assertEqual(Operator(expected), Operator(qc))
+        self.assertEqual(qct, expected)
 
-        new_pm = PassManager(CommutativeOptimization())
-        new_circuit = new_pm.run(circuit)
-        expected = QuantumCircuit(qr, global_phase=np.pi/8)
-        expected.rz(np.pi/4, qr[0])
+    def test_cnots_across_z_on_target(self):
+        """Test that CNOTs separated by Z on target qubit do not cancel."""
 
-        self.assertEqual(Operator(circuit), Operator(expected))
-        self.assertEqual(expected, new_circuit)
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.z(1)
+        qc.cx(0, 1)
 
-    def test_target_bit_of_cnot(self):
-        """A simple circuit where nothing should be cancelled.
+        qct = CommutativeOptimization()(qc)
 
-        qr0:----.---------------.--       qr0:----.---------------.--
-                |               |                 |               |
-        qr1:---(+)-----[Z]-----(+)-   =   qr1:---(+)----[Z]------(+)-
-        """
+        self.assertEqual(qc, qct)
 
-        qr = QuantumRegister(2, "qr")
-        circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0], qr[1])
-        circuit.z(qr[1])
-        circuit.cx(qr[0], qr[1])
+    def test_cnots_across_t_on_target(self):
+        """Test that CNOTs separated by T on target qubit do not cancel."""
 
-        new_pm = PassManager(CommutativeOptimization())
-        new_circuit = new_pm.run(circuit)
-        expected = QuantumCircuit(qr)
-        expected.cx(qr[0], qr[1])
-        expected.z(qr[1])
-        expected.cx(qr[0], qr[1])
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.t(1)
+        qc.cx(0, 1)
 
-        self.assertEqual(expected, new_circuit)
+        qct = CommutativeOptimization()(qc)
 
-    def test_target_bit_of_cnot1(self):
-        """A simple circuit where nothing should be cancelled.
+        self.assertEqual(qc, qct)
 
-        qr0:----.---------------.--       qr0:----.---------------.--
-                |               |                 |               |
-        qr1:---(+)-----[T]-----(+)-   =   qr1:---(+)----[T]------(+)-
-        """
+    def test_cnots_across_rz_on_target(self):
+        """Test that CNOTs separated by RZ on target qubit do not cancel."""
 
-        qr = QuantumRegister(2, "qr")
-        circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0], qr[1])
-        circuit.t(qr[1])
-        circuit.cx(qr[0], qr[1])
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.rz(np.pi / 3, 1)
+        qc.cx(0, 1)
 
-        new_pm = PassManager(CommutativeOptimization())
-        new_circuit = new_pm.run(circuit)
-        expected = QuantumCircuit(qr)
-        expected.cx(qr[0], qr[1])
-        expected.t(qr[1])
-        expected.cx(qr[0], qr[1])
+        qct = CommutativeOptimization()(qc)
 
-        self.assertEqual(expected, new_circuit)
-
-    def test_target_bit_of_cnot2(self):
-        """A simple circuit where nothing should be cancelled.
-
-        qr0:----.---------------.--       qr0:----.---------------.--
-                |               |                 |               |
-        qr1:---(+)-----[Rz]----(+)-   =   qr1:---(+)----[Rz]-----(+)-
-        """
-
-        qr = QuantumRegister(2, "qr")
-        circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0], qr[1])
-        circuit.rz(np.pi / 3, qr[1])
-        circuit.cx(qr[0], qr[1])
-
-        new_pm = PassManager(CommutativeOptimization())
-        new_circuit = new_pm.run(circuit)
-        expected = QuantumCircuit(qr)
-        expected.cx(qr[0], qr[1])
-        expected.rz(np.pi / 3, qr[1])
-        expected.cx(qr[0], qr[1])
-
-        self.assertEqual(expected, new_circuit)
+        self.assertEqual(qc, qct)
 
     def test_commutative_circuit2(self):
         """
-        A simple circuit where three CNOTs commute, the first and the last cancel,
-        also two X gates cancel and two Rz gates combine.
+        A more complex circuit where three CNOTs commute, the first and the last
+        cancel, also two X gates cancel, and two Rz gates combine.
 
         qr0:----.---------------.--------     qr0:-------------
                 |               |
@@ -402,34 +446,31 @@ class TestCommutativeOptimization(QiskitTestCase):
         qr2:---[Rz]---.---[Rz]-[T]--[S]--     qr2:--[U1]---.---
         """
 
-        qr = QuantumRegister(3, "qr")
-        circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0], qr[1])
-        circuit.rz(np.pi / 3, qr[2])
-        circuit.cx(qr[2], qr[1])
-        circuit.rz(np.pi / 3, qr[2])
-        circuit.t(qr[2])
-        circuit.s(qr[2])
-        circuit.x(qr[1])
-        circuit.cx(qr[0], qr[1])
-        circuit.x(qr[1])
+        qc = QuantumCircuit(3)
+        qc.cx(0, 1)
+        qc.rz(np.pi / 3, 2)
+        qc.cx(2, 1)
+        qc.rz(np.pi / 3, 2)
+        qc.t(2)
+        qc.s(2)
+        qc.x(1)
+        qc.cx(0, 1)
+        qc.x(1)
 
-        passmanager = PassManager()
-        passmanager.append(CommutativeOptimization())
-        new_circuit = passmanager.run(circuit)
+        qct = CommutativeOptimization()(qc)
 
-        expected = QuantumCircuit(qr)
-        expected.cx(qr[2], qr[1])
-        expected.append(RZGate(np.pi * 17 / 12), [qr[2]])
+        expected = QuantumCircuit(3)
+        expected.cx(2, 1)
+        expected.append(RZGate(np.pi * 17 / 12), [2])
         expected.global_phase = (np.pi * 17 / 12 - (2 * np.pi / 3)) / 2
 
-        self.assertEqual(Operator(circuit), Operator(expected))
-        self.assertEqual(expected, new_circuit)
+        self.assertEqual(Operator(expected), Operator(qc))
+        self.assertEqual(qct, expected)
 
     def test_commutative_circuit3(self):
         """
-        A simple circuit where three CNOTs commute, the first and the last cancel,
-        also two X gates cancel and two Rz gates combine.
+        A more complex circuit where three CNOTs commute, the first and the last
+        cancel, also two X gates cancel, and two Rz gates combine.
 
         qr0:-------.------------------.-------------     qr0:-------------
                    |                  |
@@ -441,45 +482,34 @@ class TestCommutativeOptimization(QiskitTestCase):
         """
 
         qr = QuantumRegister(4, "qr")
-        circuit = QuantumCircuit(qr)
+        qc = QuantumCircuit(qr)
 
-        circuit.cx(qr[0], qr[1])
-        circuit.rz(np.pi / 3, qr[2])
-        circuit.rz(np.pi / 3, qr[3])
-        circuit.x(qr[3])
-        circuit.cx(qr[2], qr[3])
-        circuit.cx(qr[2], qr[1])
-        circuit.cx(qr[2], qr[3])
-        circuit.rz(np.pi / 3, qr[2])
-        circuit.t(qr[2])
-        circuit.x(qr[3])
-        circuit.rz(np.pi / 3, qr[3])
-        circuit.s(qr[2])
-        circuit.x(qr[1])
-        circuit.cx(qr[0], qr[1])
-        circuit.x(qr[1])
+        qc.cx(qr[0], qr[1])
+        qc.rz(np.pi / 3, qr[2])
+        qc.rz(np.pi / 3, qr[3])
+        qc.x(qr[3])
+        qc.cx(qr[2], qr[3])
+        qc.cx(qr[2], qr[1])
+        qc.cx(qr[2], qr[3])
+        qc.rz(np.pi / 3, qr[2])
+        qc.t(qr[2])
+        qc.x(qr[3])
+        qc.rz(np.pi / 3, qr[3])
+        qc.s(qr[2])
+        qc.x(qr[1])
+        qc.cx(qr[0], qr[1])
+        qc.x(qr[1])
 
-        passmanager = PassManager()
-        passmanager.append(
-            DoWhileController(
-                [
-                    CommutationAnalysis(),
-                    CommutativeOptimization(),
-                    Size(),
-                    FixedPoint("size"),
-                ],
-                do_while=lambda property_set: not property_set["size_fixed_point"],
-            )
-        )
-        new_circuit = passmanager.run(circuit)
+        qct = CommutativeOptimization()(qc)
+
         expected = QuantumCircuit(qr)
         expected.append(RZGate(np.pi * 2 / 3), [qr[3]])
         expected.cx(qr[2], qr[1])
         expected.append(RZGate(np.pi * 17 / 12), [qr[2]])
         expected.global_phase = 3 * np.pi / 8
-        self.assertEqual(
-            expected, new_circuit, msg=f"expected:\n{expected}\nnew_circuit:\n{new_circuit}"
-        )
+
+        self.assertEqual(Operator(expected), Operator(qc))
+        self.assertEqual(qct, expected)
 
     def test_cnot_cascade(self):
         """
@@ -487,44 +517,33 @@ class TestCommutativeOptimization(QiskitTestCase):
         """
 
         qr = QuantumRegister(10, "qr")
-        circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0], qr[1])
-        circuit.cx(qr[1], qr[2])
-        circuit.cx(qr[2], qr[3])
-        circuit.cx(qr[3], qr[4])
-        circuit.cx(qr[4], qr[5])
-        circuit.cx(qr[5], qr[6])
-        circuit.cx(qr[6], qr[7])
-        circuit.cx(qr[7], qr[8])
-        circuit.cx(qr[8], qr[9])
+        qc = QuantumCircuit(qr)
+        qc.cx(qr[0], qr[1])
+        qc.cx(qr[1], qr[2])
+        qc.cx(qr[2], qr[3])
+        qc.cx(qr[3], qr[4])
+        qc.cx(qr[4], qr[5])
+        qc.cx(qr[5], qr[6])
+        qc.cx(qr[6], qr[7])
+        qc.cx(qr[7], qr[8])
+        qc.cx(qr[8], qr[9])
 
-        circuit.cx(qr[8], qr[9])
-        circuit.cx(qr[7], qr[8])
-        circuit.cx(qr[6], qr[7])
-        circuit.cx(qr[5], qr[6])
-        circuit.cx(qr[4], qr[5])
-        circuit.cx(qr[3], qr[4])
-        circuit.cx(qr[2], qr[3])
-        circuit.cx(qr[1], qr[2])
-        circuit.cx(qr[0], qr[1])
+        qc.cx(qr[8], qr[9])
+        qc.cx(qr[7], qr[8])
+        qc.cx(qr[6], qr[7])
+        qc.cx(qr[5], qr[6])
+        qc.cx(qr[4], qr[5])
+        qc.cx(qr[3], qr[4])
+        qc.cx(qr[2], qr[3])
+        qc.cx(qr[1], qr[2])
+        qc.cx(qr[0], qr[1])
 
-        passmanager = PassManager()
-        # passmanager.append(CommutativeOptimization())
-        passmanager.append(
-            DoWhileController(
-                [
-                    CommutationAnalysis(),
-                    CommutativeOptimization(),
-                    Size(),
-                    FixedPoint("size"),
-                ],
-                do_while=lambda property_set: not property_set["size_fixed_point"],
-            )
-        )
-        new_circuit = passmanager.run(circuit)
+        qct = CommutativeOptimization()(qc)
+
+        # The pass should cancel all of the gates in one go.
         expected = QuantumCircuit(qr)
 
-        self.assertEqual(expected, new_circuit)
+        self.assertEqual(qct, expected)
 
     def test_cnot_cascade1(self):
         """
@@ -532,158 +551,85 @@ class TestCommutativeOptimization(QiskitTestCase):
         """
 
         qr = QuantumRegister(10, "qr")
-        circuit = QuantumCircuit(qr)
-        circuit.rx(np.pi, qr[0])
-        circuit.rx(np.pi, qr[1])
-        circuit.rx(np.pi, qr[2])
-        circuit.rx(np.pi, qr[3])
-        circuit.rx(np.pi, qr[4])
-        circuit.rx(np.pi, qr[5])
-        circuit.rx(np.pi, qr[6])
-        circuit.rx(np.pi, qr[7])
-        circuit.rx(np.pi, qr[8])
-        circuit.rx(np.pi, qr[9])
-        circuit.cx(qr[0], qr[1])
-        circuit.cx(qr[1], qr[2])
-        circuit.cx(qr[2], qr[3])
-        circuit.cx(qr[3], qr[4])
-        circuit.cx(qr[4], qr[5])
-        circuit.cx(qr[5], qr[6])
-        circuit.cx(qr[6], qr[7])
-        circuit.cx(qr[7], qr[8])
-        circuit.cx(qr[8], qr[9])
-        circuit.cx(qr[8], qr[9])
-        circuit.cx(qr[7], qr[8])
-        circuit.cx(qr[6], qr[7])
-        circuit.cx(qr[5], qr[6])
-        circuit.cx(qr[4], qr[5])
-        circuit.cx(qr[3], qr[4])
-        circuit.cx(qr[2], qr[3])
-        circuit.cx(qr[1], qr[2])
-        circuit.cx(qr[0], qr[1])
-        circuit.rx(np.pi, qr[0])
-        circuit.rx(np.pi, qr[1])
-        circuit.rx(np.pi, qr[2])
-        circuit.rx(np.pi, qr[3])
-        circuit.rx(np.pi, qr[4])
-        circuit.rx(np.pi, qr[5])
-        circuit.rx(np.pi, qr[6])
-        circuit.rx(np.pi, qr[7])
-        circuit.rx(np.pi, qr[8])
-        circuit.rx(np.pi, qr[9])
-        passmanager = PassManager()
-        # passmanager.append(CommutativeOptimization())
-        passmanager.append(
-            DoWhileController(
-                [
-                    CommutationAnalysis(),
-                    CommutativeOptimization(),
-                    Size(),
-                    FixedPoint("size"),
-                ],
-                do_while=lambda property_set: not property_set["size_fixed_point"],
-            )
-        )
-        new_circuit = passmanager.run(circuit)
+        qc = QuantumCircuit(qr)
+        qc.rx(np.pi, qr[0])
+        qc.rx(np.pi, qr[1])
+        qc.rx(np.pi, qr[2])
+        qc.rx(np.pi, qr[3])
+        qc.rx(np.pi, qr[4])
+        qc.rx(np.pi, qr[5])
+        qc.rx(np.pi, qr[6])
+        qc.rx(np.pi, qr[7])
+        qc.rx(np.pi, qr[8])
+        qc.rx(np.pi, qr[9])
+        qc.cx(qr[0], qr[1])
+        qc.cx(qr[1], qr[2])
+        qc.cx(qr[2], qr[3])
+        qc.cx(qr[3], qr[4])
+        qc.cx(qr[4], qr[5])
+        qc.cx(qr[5], qr[6])
+        qc.cx(qr[6], qr[7])
+        qc.cx(qr[7], qr[8])
+        qc.cx(qr[8], qr[9])
+        qc.cx(qr[8], qr[9])
+        qc.cx(qr[7], qr[8])
+        qc.cx(qr[6], qr[7])
+        qc.cx(qr[5], qr[6])
+        qc.cx(qr[4], qr[5])
+        qc.cx(qr[3], qr[4])
+        qc.cx(qr[2], qr[3])
+        qc.cx(qr[1], qr[2])
+        qc.cx(qr[0], qr[1])
+        qc.rx(np.pi, qr[0])
+        qc.rx(np.pi, qr[1])
+        qc.rx(np.pi, qr[2])
+        qc.rx(np.pi, qr[3])
+        qc.rx(np.pi, qr[4])
+        qc.rx(np.pi, qr[5])
+        qc.rx(np.pi, qr[6])
+        qc.rx(np.pi, qr[7])
+        qc.rx(np.pi, qr[8])
+        qc.rx(np.pi, qr[9])
+
+        qct = CommutativeOptimization()(qc)
+
+        # The pass should cancel all of the gates in one go.
         expected = QuantumCircuit(qr)
 
-        self.assertEqual(expected, new_circuit)
+        self.assertEqual(qct, expected)
 
-    def test_basis_01(self):
-        """Test converting to RZ-gates"""
-        circuit = QuantumCircuit(1)
-        circuit.s(0)
-        circuit.z(0)
-        circuit.t(0)
-        circuit.rz(np.pi, 0)
-        passmanager = PassManager()
-        passmanager.append(CommutativeOptimization())
-        new_circuit = passmanager.run(circuit)
+    def test_merge_rz_rotations1(self):
+        """Test merging RZ-rotations."""
+        qc = QuantumCircuit(1)
+        qc.s(0)
+        qc.z(0)
+        qc.t(0)
+        qc.rz(np.pi, 0)
+
+        qct = CommutativeOptimization()(qc)
+
         expected = QuantumCircuit(1)
         expected.rz(11 * np.pi / 4, 0)
         expected.global_phase = 11 * np.pi / 4 / 2 - np.pi / 2
 
-        self.assertEqual(new_circuit, expected)
+        self.assertEqual(Operator(expected), Operator(qc))
+        self.assertEqual(qct, expected)
 
-    def test_target_basis_01(self):
-        """Test converting to RZ-gates."""
-        circuit = QuantumCircuit(1)
-        circuit.s(0)
-        circuit.z(0)
-        circuit.t(0)
-        circuit.rz(np.pi, 0)
-        passmanager = PassManager()
-        passmanager.append(CommutativeOptimization())
-        new_circuit = passmanager.run(circuit)
-        expected = QuantumCircuit(1)
-        expected.rz(11 * np.pi / 4, 0)
-        expected.global_phase = 11 * np.pi / 4 / 2 - np.pi / 2
+    def test_merge_rz_rotations2(self):
+        """Test merging RZ-rotations."""
+        qc = QuantumCircuit(1)
+        qc.s(0)
+        qc.z(0)
+        qc.t(0)
 
-        self.assertEqual(new_circuit, expected)
-
-    def test_basis_02(self):
-        """Test basis priority change, Rz gate"""
-        circuit = QuantumCircuit(1)
-        circuit.s(0)
-        circuit.z(0)
-        circuit.t(0)
-        passmanager = PassManager()
-        passmanager.append(CommutativeOptimization())
-        new_circuit = passmanager.run(circuit)
+        qct = CommutativeOptimization()(qc)
 
         expected = QuantumCircuit(1)
         expected.rz(7 * np.pi / 4, 0)
         expected.global_phase = 7 * np.pi / 4 / 2
-        self.assertEqual(new_circuit, expected)
 
-    def test_basis_03(self):
-        """Test no specified basis"""
-        circuit = QuantumCircuit(1)
-        circuit.s(0)
-        circuit.z(0)
-        circuit.t(0)
-        passmanager = PassManager()
-        passmanager.append(CommutativeOptimization())
-        new_circuit = passmanager.run(circuit)
-
-        expected = QuantumCircuit(1)
-        expected.s(0)
-        expected.z(0)
-        expected.t(0)
-        self.assertEqual(Operator(new_circuit), Operator(expected))
-
-    def test_basis_global_phase_01(self):
-        """Test no specified basis, rz"""
-        circ = QuantumCircuit(1)
-        circ.rz(np.pi / 2, 0)
-        circ.p(np.pi / 2, 0)
-        circ.p(np.pi / 2, 0)
-        passmanager = PassManager()
-        passmanager.append(CommutativeOptimization())
-        ccirc = passmanager.run(circ)
-        self.assertEqual(Operator(circ), Operator(ccirc))
-
-    def test_basis_global_phase_02(self):
-        """Test no specified basis, p"""
-        circ = QuantumCircuit(1)
-        circ.p(np.pi / 2, 0)
-        circ.rz(np.pi / 2, 0)
-        circ.p(np.pi / 2, 0)
-        passmanager = PassManager()
-        passmanager.append(CommutativeOptimization())
-        ccirc = passmanager.run(circ)
-        self.assertEqual(Operator(circ), Operator(ccirc))
-
-    def test_basis_global_phase_03(self):
-        """Test global phase preservation if cumulative z-rotation is 0"""
-        circ = QuantumCircuit(1)
-        circ.rz(np.pi / 2, 0)
-        circ.p(np.pi / 2, 0)
-        circ.z(0)
-        passmanager = PassManager()
-        passmanager.append(CommutativeOptimization())
-        ccirc = passmanager.run(circ)
-        self.assertEqual(Operator(circ), Operator(ccirc))
+        self.assertEqual(Operator(expected), Operator(qc))
+        self.assertEqual(qct, expected)
 
     def test_simple_if_else(self):
         """Test that the pass is not confused by if-else."""
@@ -718,6 +664,18 @@ class TestCommutativeOptimization(QiskitTestCase):
         expected_test2 = QuantumCircuit(3, 3)
         expected_test2.rz(0.2, 1)
 
+        expected = QuantumCircuit(3, 3, global_phase=np.pi / 2)
+        expected.h(0)
+        expected.rx(np.pi + 0.2, 0)  # transforming X into RX(pi) introduces a pi/2 global phase
+        expected.measure(0, 0)
+        expected.x(0)
+
+        expected_test1 = QuantumCircuit(3, 3)
+        expected_test1.cx(0, 1)
+
+        expected_test2 = QuantumCircuit(3, 3)
+        expected_test2.rz(0.2, 1)
+
         expected.if_else(
             (expected.clbits[0], True),
             expected_test1.copy(),
@@ -726,9 +684,8 @@ class TestCommutativeOptimization(QiskitTestCase):
             expected.clbits,
         )
 
-        passmanager = PassManager([CommutationAnalysis(), CommutativeOptimization()])
-        new_circuit = passmanager.run(test)
-        self.assertEqual(new_circuit, expected)
+        qct = CommutativeOptimization()(test)
+        self.assertEqual(qct, expected)
 
     def test_nested_control_flow(self):
         """Test that the pass does not add barrier into nested control flow."""
@@ -764,9 +721,8 @@ class TestCommutativeOptimization(QiskitTestCase):
         )
         expected.measure(0, 0)
 
-        passmanager = PassManager([CommutationAnalysis(), CommutativeOptimization()])
-        new_circuit = passmanager.run(test)
-        self.assertEqual(new_circuit, expected)
+        qct = CommutativeOptimization()(test)
+        self.assertEqual(qct, expected)
 
     def test_cancellation_not_crossing_block_boundary(self):
         """Test that the pass does cancel gates across control flow op block boundaries."""
@@ -776,9 +732,9 @@ class TestCommutativeOptimization(QiskitTestCase):
             test1.cx(0, 1)
             test1.x(1)
 
-        passmanager = PassManager([CommutationAnalysis(), CommutativeOptimization()])
-        new_circuit = passmanager.run(test1)
-        self.assertEqual(new_circuit, test1)
+        qct = CommutativeOptimization()(test1)
+
+        self.assertEqual(qct, test1)
 
     def test_cancellation_not_crossing_between_blocks(self):
         """Test that the pass does cancel gates in different control flow ops."""
@@ -789,26 +745,23 @@ class TestCommutativeOptimization(QiskitTestCase):
             test2.cx(0, 1)
             test2.x(1)
 
-        passmanager = PassManager([CommutationAnalysis(), CommutativeOptimization()])
-        new_circuit = passmanager.run(test2)
-        self.assertEqual(new_circuit, test2)
+        qct = CommutativeOptimization()(test2)
+        self.assertEqual(qct, test2)
 
     def test_no_intransitive_cancellation(self):
         """Test that no unsound optimization occurs due to "intransitively-commuting" gates.
         See: https://github.com/Qiskit/qiskit-terra/issues/8020.
         """
-        circ = QuantumCircuit(1)
+        qc = QuantumCircuit(1)
 
-        circ.x(0)
-        circ.id(0)
-        circ.h(0)
-        circ.id(0)
-        circ.x(0)
+        qc.x(0)
+        qc.id(0)
+        qc.h(0)
+        qc.id(0)
+        qc.x(0)
 
-        passmanager = PassManager([CommutationAnalysis(), CommutativeOptimization()])
-        new_circuit = passmanager.run(circ)
-        print(new_circuit)
-        self.assertEqual(Operator(new_circuit), Operator(circ))
+        qct = CommutativeOptimization()(qc)
+        self.assertEqual(Operator(qc), Operator(qct))
 
     def test_overloaded_standard_gate_name(self):
         """Validate the pass works with custom gates using overloaded names
@@ -836,10 +789,9 @@ measure q0[0] -> c0[0];
 measure q0[1] -> c0[1];
 """
         qc = QuantumCircuit.from_qasm_str(qasm_str)
-        cancellation_pass = CommutativeOptimization()
-        res = cancellation_pass(qc)
+        qct = CommutativeOptimization()(qc)
         # We don't cancel any gates with a custom rzz gate
-        self.assertEqual(res.count_ops()["z"], 2)
+        self.assertEqual(qct.count_ops()["z"], 2)
 
     def test_determinism(self):
         """Test that the pass produces structurally equivalent circuits."""

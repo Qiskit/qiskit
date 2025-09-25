@@ -16,16 +16,14 @@
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
 
-from qiskit._accelerate import commutation_optimization
+from qiskit._accelerate import commutative_optimization
 from qiskit._accelerate.commutation_checker import CommutationChecker
 
 from qiskit.transpiler.passes.utils.control_flow import trivial_recurse
 
 
-
 class CommutativeOptimization(TransformationPass):
-    """ToDo
-    """
+    """ToDo"""
 
     def __init__(self):
         """
@@ -46,7 +44,7 @@ class CommutativeOptimization(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
-        result = commutation_optimization.commutation_optimization(dag, self._commutation_checker)
+        result = commutative_optimization.commutative_optimization(dag, self._commutation_checker)
 
         # If the pass did not do anything, the result is None
         if result is None:
