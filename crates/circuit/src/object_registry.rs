@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use hashbrown::hash_map::OccupiedError;
 use hashbrown::HashMap;
 use pyo3::exceptions::{PyKeyError, PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
@@ -233,14 +234,16 @@ where
         })?;
         // Dump the cache
         self.cached.take();
-        if self.indices.try_insert(object.clone(), idx.into()).is_ok() {
-            self.objects.push(object);
-        } else if strict {
-            return Err(PyValueError::new_err(format!(
+        match self.indices.try_insert(object.clone(), idx.into()) {
+            Ok(_) => {
+                self.objects.push(object);
+                Ok(idx.into())
+            }
+            Err(OccupiedError { entry, .. }) if !strict => Ok(*entry.get()),
+            _ => Err(PyValueError::new_err(format!(
                 "Existing object {object:?} cannot be re-added in strict mode."
-            )));
+            ))),
         }
-        Ok(idx.into())
     }
 
     pub fn remove_indices<I>(&mut self, indices: I) -> PyResult<()>
