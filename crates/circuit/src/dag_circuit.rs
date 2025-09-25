@@ -8026,7 +8026,11 @@ pub(crate) fn add_global_phase(phase: &Param, other: &Param) -> PyResult<Param> 
 
 type SortKeyType<'a> = (&'a [Qubit], &'a [Clbit]);
 
-#[pyclass(name = "TopologicalSorter",  module = "qiskit._accelerate.circuit", unsendable)]
+#[pyclass(
+    name = "TopologicalSorter",
+    module = "qiskit._accelerate.circuit",
+    unsendable
+)]
 pub struct TopologicalSorter {
     dag: Py<DAGCircuit>,
     node_degrees: HashMap<NodeIndex, usize>,
@@ -8054,7 +8058,11 @@ impl TopologicalSorter {
         let mut ready_queue: VecDeque<NodeIndex> = VecDeque::new();
         let total_nodes;
 
-        let (in_dir, out_dir) = if !reverse { (Incoming, Outgoing) } else { (Outgoing, Incoming) };
+        let (in_dir, out_dir) = if !reverse {
+            (Incoming, Outgoing)
+        } else {
+            (Outgoing, Incoming)
+        };
 
         if let Some(initial_nodes) = initial {
             let initial_indices: Vec<NodeIndex> = initial_nodes
@@ -8068,7 +8076,8 @@ impl TopologicalSorter {
             // --- partial sort starting from 'initial' nodes ---
             let initial_set: HashSet<NodeIndex> = initial_indices.iter().cloned().collect();
             for start_node in &initial_indices {
-                let mut bfs_queue: VecDeque<NodeIndex> = graph.neighbors_directed(*start_node, out_dir).collect();
+                let mut bfs_queue: VecDeque<NodeIndex> =
+                    graph.neighbors_directed(*start_node, out_dir).collect();
                 while let Some(node) = bfs_queue.pop_front() {
                     if initial_set.contains(&node) {
                         return Err(PyValueError::new_err(
@@ -8078,7 +8087,7 @@ impl TopologicalSorter {
                     bfs_queue.extend(graph.neighbors_directed(node, out_dir));
                 }
             }
-            
+
             ready_queue.extend(initial_indices.iter());
 
             //  Find all reachable nodes to get the correct count for the subgraph.
@@ -8092,11 +8101,13 @@ impl TopologicalSorter {
                 }
             }
             total_nodes = reachable_nodes.len();
-
         } else {
             // --- logic for a full graph sort ---
             total_nodes = graph.node_count();
-            node_degrees = graph.node_indices().map(|n| (n, graph.neighbors_directed(n, in_dir).count())).collect();
+            node_degrees = graph
+                .node_indices()
+                .map(|n| (n, graph.neighbors_directed(n, in_dir).count()))
+                .collect();
 
             for (node, &degree) in &node_degrees {
                 if degree == 0 {
@@ -8124,10 +8135,12 @@ impl TopologicalSorter {
     /// Returns a list of all nodes that are ready to be processed.
     pub fn get_ready(&mut self, py: Python) -> PyResult<Vec<PyObject>> {
         let dag_borrow = self.dag.borrow(py);
-        let ready_nodes_py = self.ready_queue.iter()
+        let ready_nodes_py = self
+            .ready_queue
+            .iter()
             .map(|&node_idx| dag_borrow.get_node(py, node_idx))
             .collect::<PyResult<Vec<PyObject>>>()?;
-        
+
         self.ready_queue.clear();
         Ok(ready_nodes_py)
     }
@@ -8138,7 +8151,11 @@ impl TopologicalSorter {
         let graph = &dag_borrow.dag;
         let node_idx = dag_borrow.get_node_index(node)?;
 
-        let (_, out_dir) = if !self.reverse { (Incoming, Outgoing) } else { (Outgoing, Incoming) };
+        let (_, out_dir) = if !self.reverse {
+            (Incoming, Outgoing)
+        } else {
+            (Outgoing, Incoming)
+        };
 
         for neighbor_idx in graph.neighbors_directed(NodeIndex::new(node_idx), out_dir) {
             let degree = self.node_degrees.get_mut(&neighbor_idx).unwrap();
@@ -8147,12 +8164,12 @@ impl TopologicalSorter {
                 self.ready_queue.push_back(neighbor_idx);
             }
         }
-        
+
         self.num_finished += 1;
         self.num_passed_out += self.ready_queue.len();
         Ok(())
     }
-    
+
     fn __bool__(&self) -> bool {
         self.is_active()
     }
