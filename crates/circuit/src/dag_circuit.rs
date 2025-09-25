@@ -244,6 +244,32 @@ pub struct DAGCircuit {
     stretches_declare: Vec<Stretch>,
 }
 
+/// A Python-facing iterator for DAG nodes yielded from Rust.
+#[pyclass(name = "TopologicalIterator", unsendable)]
+struct TopologicalNodeIterator {
+    dag: Py<DAGCircuit>,
+    nodes: std::vec::IntoIter<NodeIndex>,
+}
+
+#[pymethods]
+impl TopologicalNodeIterator {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
+        slf
+    }
+
+    fn __next__(mut slft: PyRefMut<'_, Self>) -> PyResult<Option<Py<PyAny>>> {
+        Python::attach(|py| {
+            if let Some(node_idx) = slft.nodes.next() {
+                let dag_borrow = slft.dag.borrow(py);
+                let node_obj = dag_borrow.get_node(py, node_idx)?;
+                Ok(Some(node_obj))
+            } else {
+                Ok(None)
+            }
+        })
+    }
+}
+
 #[derive(Clone, Debug)]
 struct PyLegacyResources {
     clbits: Py<PyTuple>,
