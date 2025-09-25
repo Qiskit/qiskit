@@ -5,7 +5,7 @@ features_primitives:
     defined using :class:`.SparseObservable` objects for the observable component of the PUB.
     This is in addition to the existing supported types of: ``str``,
     :class:`~qiskit.quantum_info.Pauli`, :class:`.SparsePauliOp`, and
-    a mapping of ``str`` or :class`~qiskit.quantum_info.Pauli` to ``float`` values.
+    a mapping of ``str`` or :class:`~qiskit.quantum_info.Pauli` to ``float`` values.
     However, if the :class:`.SparseObservable` contains
     projectors, support for handling that depends on the primitive implementation. As of this release the implementations
     in Qiskit (:class:`.StatevectorEstimator` and :class:`.BackendEstimatorV2`), ``qiskit-ibm-runtime``
