@@ -25,12 +25,12 @@ use crate::bit_locator::BitLocator;
 use crate::circuit_data::{CircuitData, CircuitIdentifierInfo, CircuitStretchType, CircuitVarType};
 use crate::circuit_instruction::{CircuitInstruction, CreatePythonOperation, OperationFromPython};
 use crate::classical::expr;
-use crate::converters::{circuit_to_dag, dag_to_circuit, QuantumCircuitData};
+use crate::converters::{circuit_to_dag, QuantumCircuitData};
 use crate::dag_node::{DAGInNode, DAGNode, DAGOpNode, DAGOutNode};
 use crate::dot_utils::build_dot;
 use crate::error::DAGCircuitError;
 use crate::interner::{Interned, InternedMap, Interner};
-use crate::object_registry::{ObjectRegistry, PyObjectAsKey};
+use crate::object_registry::ObjectRegistry;
 use crate::operations::{
     ArrayType, BoxDuration, Condition, ControlFlow, Operation, OperationRef, Param,
     PythonOperation, StandardGate, SwitchTarget,
@@ -4212,13 +4212,10 @@ impl DAGCircuit {
                         let mapped_blocks = blocks
                             .iter()
                             .map(|b| {
-                                block_map
-                                    .entry(*b)
-                                    .or_insert_with(|| {
-                                        let block = self.blocks.get(b.index()).unwrap().clone();
-                                        new_layer.register_block(block)
-                                    })
-                                    .clone()
+                                *block_map.entry(*b).or_insert_with(|| {
+                                    let block = self.blocks.get(b.index()).unwrap().clone();
+                                    new_layer.register_block(block)
+                                })
                             })
                             .collect();
                         PackedInstruction {

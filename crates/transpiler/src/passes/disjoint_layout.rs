@@ -468,13 +468,10 @@ fn separate_dag(dag: &mut DAGCircuit) -> PyResult<Vec<DAGCircuit>> {
                             blocks
                                 .iter()
                                 .map(|b| {
-                                    block_map
-                                        .entry(*b)
-                                        .or_insert_with(|| {
-                                            let block = dag.view_block(*b).clone();
-                                            new_dag.register_block(block)
-                                        })
-                                        .clone()
+                                    *block_map.entry(*b).or_insert_with(|| {
+                                        let block = dag.view_block(*b).clone();
+                                        new_dag.register_block(block)
+                                    })
                                 })
                                 .collect(),
                         )),

@@ -10,7 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use hashbrown::HashMap;
 use numpy::PyReadonlyArray1;
 use pyo3::prelude::*;
 

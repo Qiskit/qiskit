@@ -22,7 +22,7 @@ use crate::bit::{
 use crate::bit_locator::BitLocator;
 use crate::circuit_instruction::{CircuitInstruction, CreatePythonOperation, OperationFromPython};
 use crate::classical::expr;
-use crate::dag_circuit::{add_global_phase, DAGCircuit, DAGStretchType, DAGVarType};
+use crate::dag_circuit::{add_global_phase, DAGStretchType, DAGVarType};
 use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, Interner};
 use crate::object_registry::{ObjectRegistry, PyObjectAsKey};

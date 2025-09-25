@@ -48,9 +48,6 @@ use qiskit_synthesis::two_qubit_decompose::{
     TwoQubitWeylDecomposition,
 };
 
-#[cfg(feature = "cache_pygates")]
-use std::sync::OnceLock;
-
 const PI2: f64 = PI / 2.;
 const PI4: f64 = PI / 4.;
 

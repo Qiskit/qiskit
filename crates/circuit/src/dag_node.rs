@@ -24,7 +24,7 @@ use approx::relative_eq;
 use num_complex::Complex64;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
-use crate::instruction::{InstructionView, IntoInstructionView, StandardGateView};
+use crate::instruction::IntoInstructionView;
 use numpy::IntoPyArray;
 use numpy::PyArray2;
 use pyo3::exceptions::PyValueError;
