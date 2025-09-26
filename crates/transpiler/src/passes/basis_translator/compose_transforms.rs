@@ -18,7 +18,7 @@ use qiskit_circuit::bit::QuantumRegister;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::imports::GATE;
-use qiskit_circuit::instruction::{IntoInstructionView, Parameters};
+use qiskit_circuit::instruction::{Instruction, IntoInstructionView, Parameters};
 use qiskit_circuit::operations::{get_standard_gate_names, StandardGate, StandardInstruction};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
@@ -79,12 +79,7 @@ pub(super) fn compose_transforms<'a>(
                     .extract()
             })
             .unwrap_or_else(|_| panic!("Error creating custom gate for entry {}", gate_name));
-            placeholder_params = extract_py
-                .try_legacy_params()
-                .unwrap()
-                .iter()
-                .cloned()
-                .collect();
+            placeholder_params = extract_py.params_view().iter().cloned().collect();
             extract_py.operation
         };
         let qubits: Vec<Qubit> = (0..dag.num_qubits() as u32).map(Qubit).collect();
@@ -115,8 +110,7 @@ pub(super) fn compose_transforms<'a>(
                 .map(|(node, op)| {
                     (
                         node,
-                        op.try_legacy_params()
-                            .unwrap()
+                        op.params_view()
                             .iter()
                             .cloned()
                             .collect::<SmallVec<[Param; 3]>>(),
@@ -213,7 +207,7 @@ fn get_gates_num_params(
         } else {
             example_gates.insert(
                 (inst.op.name().to_string(), inst.op.num_qubits()),
-                inst.try_legacy_params().unwrap().len(),
+                inst.params_view().len(),
             );
         }
     }

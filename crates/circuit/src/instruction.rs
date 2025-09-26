@@ -38,10 +38,6 @@ pub trait IntoInstructionView<'a> {
     /// Returns a view of this instruction as a standard instruction, if applicable.
     fn try_view_standard_instruction(self) -> Option<StandardInstructionView<'a>>;
 
-    /// Returns the old-style [Param] sequence, unless this is a control
-    /// flow instruction.
-    fn try_legacy_params(self) -> Option<&'a [Param]>;
-
     /// Returns an immutable ergonomic view of this instruction.
     #[inline]
     fn view(self) -> InstructionView<'a, Self::Block>
@@ -82,6 +78,32 @@ pub trait Instruction {
 
     /// Get the label for this instruction.
     fn label(&self) -> Option<&str>;
+
+    /// Get a slice view onto the contained parameters.
+    ///
+    /// Panics if the instruction does not support params.
+    #[inline]
+    fn params_view(&self) -> &[Param] {
+        self.parameters()
+            .map(|p| match p {
+                Parameters::Params(p) => p.as_slice(),
+                _ => panic!("expected parameters"),
+            })
+            .unwrap_or_default()
+    }
+
+    /// Get a slice view onto the contained blocks.
+    ///
+    /// Panics if the instruction does not support blocks.
+    #[inline]
+    fn blocks_view(&self) -> &[PyObject] {
+        self.parameters()
+            .map(|p| match p {
+                Parameters::Blocks(b) => b.as_slice(),
+                _ => panic!("expected blocks"),
+            })
+            .unwrap_or_default()
+    }
 }
 
 /// The parameter list of an instruction.
@@ -93,6 +115,7 @@ pub enum Parameters<T> {
 
 impl<T> Parameters<T> {
     /// Get the number of parameters in this parameter list.
+    #[inline]
     pub fn len(&self) -> usize {
         match self {
             Parameters::Params(params) => params.len(),
@@ -101,6 +124,7 @@ impl<T> Parameters<T> {
     }
 
     /// Check if the parameter list is empty.
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -108,6 +132,7 @@ impl<T> Parameters<T> {
     /// Unwraps the parameter list as as slice of [Param]s.
     ///
     /// Panics if this is not a params list.
+    #[inline]
     pub fn unwrap_params(&self) -> &[Param] {
         match self {
             Parameters::Params(params) => params.as_slice(),
@@ -118,6 +143,7 @@ impl<T> Parameters<T> {
     /// Unwraps the parameter list as a slice of blocks.
     ///
     /// Panics if this is not a block list.
+    #[inline]
     pub fn unwrap_blocks(&self) -> &[T] {
         match self {
             Parameters::Params(_) => panic!("expected params, got blocks"),
@@ -163,30 +189,6 @@ impl<'a, T: Instruction> IntoInstructionView<'a> for &'a T {
             StandardInstruction::Measure => StandardInstructionView::Measure,
             StandardInstruction::Reset => StandardInstructionView::Reset,
         })
-    }
-
-    fn try_legacy_params(self) -> Option<&'a [Param]> {
-        match self.view() {
-            InstructionView::StandardGate(_)
-            | InstructionView::Gate(_)
-            | InstructionView::Operation(_)
-            | InstructionView::Unitary(_)
-            | InstructionView::Instruction(_) => Some(
-                self.parameters()
-                    .map(|p| match p {
-                        Parameters::Params(p) => p.as_slice(),
-                        _ => panic!("expected gate parameters"),
-                    })
-                    .unwrap_or_default(),
-            ),
-            InstructionView::StandardInstruction(inst) => match inst {
-                StandardInstructionView::Delay { duration, .. } => {
-                    Some(std::slice::from_ref(duration))
-                }
-                _ => Some(&[]),
-            },
-            _ => None,
-        }
     }
 }
 

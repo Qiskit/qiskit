@@ -42,7 +42,7 @@ use smallvec::SmallVec;
 use thiserror::Error;
 
 use qiskit_circuit::circuit_instruction::{CreatePythonOperation, OperationFromPython};
-use qiskit_circuit::instruction::{Instruction, IntoInstructionView, Parameters};
+use qiskit_circuit::instruction::{Instruction, Parameters};
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::PhysicalQubit;
@@ -577,7 +577,7 @@ impl Target {
                         let py = _operation_class.py();
                         if normal.into_pyobject(py)?.is_instance(_operation_class)? {
                             if let Some(parameters) = &parameters {
-                                if parameters.len() != normal.try_legacy_params().unwrap().len() {
+                                if parameters.len() != normal.params_view().len() {
                                     continue;
                                 }
                                 if !check_obj_params(parameters, normal) {
@@ -630,9 +630,7 @@ impl Target {
                     }
 
                     let obj_params = match obj {
-                        TargetOperation::Normal(n) => {
-                            n.try_legacy_params().expect("gate operation expected")
-                        }
+                        TargetOperation::Normal(n) => n.params_view(),
                         TargetOperation::Variadic(_) => {
                             unreachable!("only normal operation expected")
                         }
@@ -1542,7 +1540,7 @@ impl Target {
         let operation = self.operation_from_name(name);
         let num_params = match operation {
             Some(TargetOperation::Normal(op)) => {
-                let params = op.try_legacy_params().unwrap();
+                let params = op.params_view();
                 if params
                     .iter()
                     .zip(bounds)
@@ -1643,7 +1641,7 @@ pub enum TargetCouplingError {
 // For instruction_supported
 fn check_obj_params(parameters: &[Param], obj: &NormalOperation) -> bool {
     for (index, param) in parameters.iter().enumerate() {
-        let param_at_index = &obj.try_legacy_params().expect("expected gate")[index];
+        let param_at_index = &obj.params_view()[index];
         match (param, param_at_index) {
             (Param::Float(p1), Param::Float(p2)) => {
                 if p1 != p2 {

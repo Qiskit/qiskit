@@ -335,10 +335,10 @@ fn replace_dag(std_gate: StandardGate, inst: &PackedInstruction) -> PyResult<DAG
         StandardGate::ECR => ecr_replacement_dag(),
         StandardGate::CZ => cz_replacement_dag(),
         StandardGate::Swap => swap_replacement_dag(),
-        StandardGate::RXX => rxx_replacement_dag(inst.try_legacy_params().unwrap()),
-        StandardGate::RYY => ryy_replacement_dag(inst.try_legacy_params().unwrap()),
-        StandardGate::RZZ => rzz_replacement_dag(inst.try_legacy_params().unwrap()),
-        StandardGate::RZX => rzx_replacement_dag(inst.try_legacy_params().unwrap()),
+        StandardGate::RXX => rxx_replacement_dag(inst.params_view()),
+        StandardGate::RYY => ryy_replacement_dag(inst.params_view()),
+        StandardGate::RZZ => rzz_replacement_dag(inst.params_view()),
+        StandardGate::RZX => rzx_replacement_dag(inst.params_view()),
         _ => panic!("Mismatch in supported gates assumption"),
     };
 

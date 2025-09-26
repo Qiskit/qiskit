@@ -45,7 +45,7 @@ use pyo3::types::{IntoPyDict, PyDict, PyList, PySet, PyTuple, PyType};
 use pyo3::IntoPyObjectExt;
 use pyo3::{import_exception, intern, PyTraverseError, PyVisit};
 
-use crate::instruction::{ControlFlowView, IntoInstructionView, Parameters};
+use crate::instruction::{ControlFlowView, Parameters};
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
 use smallvec::SmallVec;
@@ -2926,8 +2926,7 @@ impl CircuitData {
                                 let op = self.unpack_py_op(py, instruction)?.into_bound(py);
                                 let previous = &mut self.data[instruction];
                                 // All "user" operations (e.g. PyOperation) use Parameters::Param.
-                                let previous_param =
-                                    &previous.try_legacy_params().unwrap()[parameter];
+                                let previous_param = &previous.params_view()[parameter];
                                 let new_param = match previous_param {
                                     Param::Float(_) => return Err(inconsistent()),
                                     Param::ParameterExpression(expr) => {

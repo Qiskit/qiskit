@@ -57,7 +57,7 @@ use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::{CX_GATE, H_GATE, ONE_QUBIT_IDENTITY, SDG_GATE, S_GATE};
-use qiskit_circuit::instruction::{IntoInstructionView, Parameters};
+use qiskit_circuit::instruction::{Instruction, Parameters};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::util::{c64, GateArray1Q, GateArray2Q, C_M_ONE, C_ONE, C_ZERO, IM, M_IM};
@@ -2080,10 +2080,13 @@ impl TwoQubitBasisDecomposer {
         euler_basis: &str,
         pulse_optimize: Option<bool>,
     ) -> PyResult<Self> {
-        let params = gate.try_legacy_params().ok_or_else(|| {
-            PyValueError::new_err("Only gates are supported by two qubit decomposer")
-        })?;
-        let gate_params: PyResult<SmallVec<[f64; 3]>> = params
+        if gate.operation.try_control_flow().is_some() {
+            return Err(PyValueError::new_err(
+                "Only gates are supported by two qubit decomposer",
+            ));
+        }
+        let gate_params: PyResult<SmallVec<[f64; 3]>> = gate
+            .params_view()
             .iter()
             .map(|x| match x {
                 Param::Float(val) => Ok(*val),

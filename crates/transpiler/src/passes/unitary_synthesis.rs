@@ -20,7 +20,7 @@ use itertools::Itertools;
 use ndarray::prelude::*;
 use num_complex::Complex64;
 use numpy::{IntoPyArray, ToPyArray};
-use qiskit_circuit::instruction::{IntoInstructionView, Parameters};
+use qiskit_circuit::instruction::{Instruction, IntoInstructionView, Parameters};
 use smallvec::SmallVec;
 
 use pyo3::intern;
@@ -620,8 +620,7 @@ fn get_2q_decomposers_from_target(
             }
             // Add to param_basis if the gate parameters aren't bound (not Float)
             if !op
-                .try_legacy_params()
-                .unwrap()
+                .params_view()
                 .iter()
                 .all(|p| matches!(p, Param::Float(_)))
             {
@@ -734,8 +733,7 @@ fn get_2q_decomposers_from_target(
             }
             let decomposer = TwoQubitBasisDecomposer::new_inner(
                 gate.operation.clone(),
-                gate.try_legacy_params()
-                    .unwrap()
+                gate.params_view()
                     .iter()
                     .map(|x| match x {
                         Param::Float(angle) => *angle,
@@ -1208,7 +1206,7 @@ fn synth_error(
                     let are_params_close = if let Some(params) = inst_params {
                         params
                             .iter()
-                            .zip(target_op.try_legacy_params().unwrap().iter())
+                            .zip(target_op.params_view().iter())
                             .all(|(p1, p2)| {
                                 p1.is_close(p2, 1e-10)
                                     .expect("Unexpected parameter expression error.")
@@ -1217,8 +1215,7 @@ fn synth_error(
                         false
                     };
                     let is_parametrized = target_op
-                        .try_legacy_params()
-                        .unwrap()
+                        .params_view()
                         .iter()
                         .any(|param| matches!(param, Param::ParameterExpression(_)));
                     if target_op.operation.name() == inst_name
@@ -1401,7 +1398,7 @@ fn run_2q_unitary_synthesis(
                             let NodeType::Operation(inst) = &synth_dag[node] else {
                                 unreachable!("DAG node must be an instruction")
                             };
-                            let params = inst.try_legacy_params()?;
+                            let params = inst.params_view();
                             let inst_qubits = synth_dag
                                 .get_qargs(inst.qubits)
                                 .iter()

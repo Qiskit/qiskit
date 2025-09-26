@@ -2804,12 +2804,8 @@ impl DAGCircuit {
             {
                 return Ok(false);
             }
-            let Some(from_self_params) = from_self.try_legacy_params() else {
-                return Ok(false);
-            };
-            let Some(from_other_params) = from_other.try_legacy_params() else {
-                return Ok(false);
-            };
+            let from_self_params = from_self.params_view();
+            let from_other_params = from_other.params_view();
             if from_self_params.len() != from_other_params.len() {
                 return Ok(false);
             }

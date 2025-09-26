@@ -14,7 +14,6 @@ use crate::target::{Qargs, Target};
 use hashbrown::{HashMap, HashSet};
 use pyo3::prelude::*;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::instruction::IntoInstructionView;
 use qiskit_circuit::operations::{Operation, Param};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::PhysicalQubit;
@@ -50,8 +49,7 @@ pub fn gates_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<
             && !gate.is_parameterized()
         {
             let params: Vec<f64> = gate
-                .try_legacy_params()
-                .unwrap()
+                .params_view()
                 .iter()
                 .map(|x| {
                     let Param::Float(val) = x else { unreachable!() };

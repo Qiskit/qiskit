@@ -98,7 +98,7 @@ pub fn run_remove_identity_equiv(
                     | StandardGate::CRY
                     | StandardGate::CRZ
                     | StandardGate::CPhase => {
-                        if let Param::Float(angle) = inst.params()[0] {
+                        if let Param::Float(angle) = inst.params_view()[0] {
                             let (tr_over_dim, dim) =
                                 rotation_trace_and_dim(gate, angle).expect("Since only supported rotation gates are given, the result is not None");
                             (tr_over_dim, dim)

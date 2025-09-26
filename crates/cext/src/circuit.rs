@@ -22,7 +22,7 @@ use num_complex::{Complex64, ComplexFloat};
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::bit::{ShareableClbit, ShareableQubit};
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::instruction::{IntoInstructionView, Parameters};
+use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
     ArrayType, DelayUnit, Operation, Param, StandardGate, StandardInstruction, UnitaryGate,
 };
@@ -909,7 +909,7 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
         cargs_vec.into_boxed_slice()
     };
     let mut params = {
-        let params = packed_inst.try_legacy_params().unwrap_or_default();
+        let params = packed_inst.params_view();
         let params_vec: Vec<f64> = params
             .iter()
             .map(|x| match x {

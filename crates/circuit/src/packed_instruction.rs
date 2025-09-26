@@ -15,7 +15,7 @@ use crate::imports::{
     IF_ELSE_OP, MEASURE, RESET, SWITCH_CASE_OP, UNITARY_GATE, WHILE_LOOP_OP,
 };
 use crate::instruction::{
-    InstructionView, IntoInstructionView, Parameters, StandardGateView, StandardInstructionView,
+    IntoInstructionView, Parameters, StandardGateView, StandardInstructionView,
 };
 use crate::interner::Interned;
 use crate::operations::{
@@ -705,6 +705,48 @@ impl PackedInstruction {
         }
     }
 
+    /// Get a slice view onto the contained parameters.
+    ///
+    /// Panics if the instruction does not support params.
+    #[inline]
+    pub fn params_view(&self) -> &[Param] {
+        self.params
+            .as_deref()
+            .map(|p| match p {
+                Parameters::Params(p) => p.as_slice(),
+                _ => panic!("expected parameters"),
+            })
+            .unwrap_or_default()
+    }
+
+    /// Get a mutable slice view onto the contained parameters.
+    ///
+    /// Panics if the instruction does not support params.
+    #[inline]
+    pub fn params_mut(&mut self) -> &mut [Param] {
+        self.params
+            .as_deref_mut()
+            .map(|p| match p {
+                Parameters::Params(p) => p.as_mut_slice(),
+                Parameters::Blocks(_) => panic!("expected parameters"),
+            })
+            .unwrap_or_default()
+    }
+
+    /// Get a slice view onto the contained blocks.
+    ///
+    /// Panics if the instruction does not support blocks.
+    #[inline]
+    pub fn blocks_view(&self) -> &[Block] {
+        self.params
+            .as_deref()
+            .map(|p| match p {
+                Parameters::Blocks(b) => b.as_slice(),
+                _ => panic!("expected blocks"),
+            })
+            .unwrap_or_default()
+    }
+
     /// Does this instruction contain any compile-time symbolic `ParameterExpression`s?
     pub fn is_parameterized(&self) -> bool {
         self.params
@@ -742,37 +784,11 @@ impl PackedInstruction {
 
     pub fn try_matrix(&self) -> Option<Array2<Complex64>> {
         match self.op.view() {
-            OperationRef::StandardGate(g) => g.matrix(self.params()),
+            OperationRef::StandardGate(g) => g.matrix(self.params_view()),
             OperationRef::Gate(g) => g.matrix(),
             OperationRef::Unitary(u) => u.matrix(),
             _ => None,
         }
-    }
-
-    /// View the params of this instruction as a slice.
-    ///
-    /// Panics if the instruction does not support params.
-    pub fn params(&self) -> &[Param] {
-        self.params
-            .as_deref()
-            .map(|p| match p {
-                Parameters::Params(p) => p.as_slice(),
-                _ => panic!("expected parameters"),
-            })
-            .unwrap_or_default()
-    }
-
-    /// View the blocks of this instruction as a slice.
-    ///
-    /// Panics if the instruction does not support blocks.
-    pub fn blocks(&self) -> &[Block] {
-        self.params
-            .as_deref()
-            .map(|p| match p {
-                Parameters::Blocks(b) => b.as_slice(),
-                _ => panic!("expected blocks"),
-            })
-            .unwrap_or_default()
     }
 }
 
@@ -813,30 +829,5 @@ impl<'a> IntoInstructionView<'a> for &'a PackedInstruction {
             StandardInstruction::Measure => StandardInstructionView::Measure,
             StandardInstruction::Reset => StandardInstructionView::Reset,
         })
-    }
-
-    fn try_legacy_params(self) -> Option<&'a [Param]> {
-        match self.view() {
-            InstructionView::StandardGate(_)
-            | InstructionView::Gate(_)
-            | InstructionView::Operation(_)
-            | InstructionView::Unitary(_)
-            | InstructionView::Instruction(_) => Some(
-                self.params
-                    .as_deref()
-                    .map(|p| match p {
-                        Parameters::Params(p) => p.as_slice(),
-                        _ => panic!("expected gate parameters"),
-                    })
-                    .unwrap_or_default(),
-            ),
-            InstructionView::StandardInstruction(inst) => match inst {
-                StandardInstructionView::Delay { duration, .. } => {
-                    Some(std::slice::from_ref(duration))
-                }
-                _ => Some(&[]),
-            },
-            _ => None,
-        }
     }
 }

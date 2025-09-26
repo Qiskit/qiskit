@@ -1271,8 +1271,7 @@ impl<'a> QASM3Builder {
         let params = if self.disable_constants {
             Python::with_gil(|_py| {
                 instr
-                    .try_legacy_params()
-                    .unwrap()
+                    .params_view()
                     .iter()
                     .map(|param| match param {
                         Param::Float(val) => Expression::Parameter(Parameter {

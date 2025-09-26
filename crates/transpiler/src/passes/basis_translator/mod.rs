@@ -26,7 +26,7 @@ mod compose_transforms;
 mod errors;
 
 use qiskit_circuit::dag_circuit::DAGCircuitBuilder;
-use qiskit_circuit::instruction::{IntoInstructionView, Parameters};
+use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::parameter::parameter_expression::ParameterError;
@@ -437,7 +437,7 @@ fn replace_node(
     };
     let (target_params, target_dag) =
         &instr_map[&(node.op.name().to_string(), node.op.num_qubits())];
-    let params_view = node.try_legacy_params().unwrap();
+    let params_view = node.params_view();
 
     if params_view.len() != target_params.len() {
         return Err(BasisTranslatorError::ReplaceNodeParamMismatch {
