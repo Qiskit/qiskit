@@ -57,13 +57,12 @@ pub struct Var(u32);
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, PartialOrd)]
 pub struct Stretch(u32);
 
-pub use nlayout::PhysicalQubit;
-pub use nlayout::VirtualQubit;
+pub use nlayout::{PhysicalQubit, VirtualQubit};
 
 macro_rules! impl_circuit_identifier {
     ($type:ident) => {
         impl $type {
-            // The maximum storable index.
+            /// The maximum storable index.
             pub const MAX: Self = Self(u32::MAX);
 
             /// Construct a new identifier from a usize, if you have a u32 you can
