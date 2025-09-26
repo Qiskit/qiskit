@@ -8049,7 +8049,7 @@ impl TopologicalSorter {
         py: Python,
         dag: Py<DAGCircuit>,
         reverse: bool,
-        initial: Option<Vec<PyObject>>,
+        initial: Option<Vec<Py<PyAny>>>,
     ) -> PyResult<Self> {
         let dag_borrow = dag.borrow(py);
         let graph = &dag_borrow.dag;
@@ -8133,13 +8133,13 @@ impl TopologicalSorter {
     }
 
     /// Returns a list of all nodes that are ready to be processed.
-    pub fn get_ready(&mut self, py: Python) -> PyResult<Vec<PyObject>> {
+    pub fn get_ready(&mut self, py: Python) -> PyResult<Vec<Py<PyAny>>> {
         let dag_borrow = self.dag.borrow(py);
         let ready_nodes_py = self
             .ready_queue
             .iter()
             .map(|&node_idx| dag_borrow.get_node(py, node_idx))
-            .collect::<PyResult<Vec<PyObject>>>()?;
+            .collect::<PyResult<Vec<Py<PyAny>>>>()?;
 
         self.ready_queue.clear();
         Ok(ready_nodes_py)
