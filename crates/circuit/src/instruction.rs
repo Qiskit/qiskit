@@ -16,9 +16,12 @@ use num_complex::Complex64;
 use pyo3::PyObject;
 use smallvec::SmallVec;
 
-// TODO: rename this to PythonOperation
 /// Represents an instruction that is directly convertible to our Python API
-/// instruction type.
+/// instruction type (i.e. owns its `params` data and label).
+///
+/// It's implemented by our unpacked instruction types like
+/// [CircuitInstruction] and [OperationFromPython] which own all the data they
+/// need to be converted back to a Python instance.
 pub trait Instruction {
     /// Gets a reference to this instruction's operation.
     fn op(&self) -> OperationRef<'_>;
