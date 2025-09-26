@@ -1394,7 +1394,7 @@ fn run_2q_unitary_synthesis(
                     let scoring_info = synth_dag
                         .topological_op_nodes()
                         .expect("Unexpected error in dag.topological_op_nodes()")
-                        .filter_map(|node| {
+                        .map(|node| {
                             let NodeType::Operation(inst) = &synth_dag[node] else {
                                 unreachable!("DAG node must be an instruction")
                             };
@@ -1404,13 +1404,13 @@ fn run_2q_unitary_synthesis(
                                 .iter()
                                 .map(|q| ref_qubits[q.0 as usize])
                                 .collect();
-                            Some((
+                            (
                                 inst.op.name().to_string(),
                                 (!params.is_empty()).then(|| {
                                     params.iter().cloned().collect::<SmallVec<[Param; 3]>>()
                                 }),
                                 inst_qubits,
-                            ))
+                            )
                         });
                     let score = synth_error(scoring_info, target.unwrap());
                     synth_errors_dag.push((synth_dag, score));
