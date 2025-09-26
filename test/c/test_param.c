@@ -20,7 +20,7 @@
 
 int test_param_new(void) {
     QkParam *p = qk_param_new_symbol("a");
-    char *str = qk_param_to_string(p);
+    char *str = qk_param_str(p);
     qk_param_free(p);
 
     if (strcmp(str, "a") != 0) {
@@ -40,7 +40,7 @@ int test_param_binary_ops(void) {
 
     // add
     qk_param_add(ret, a, b);
-    str = qk_param_to_string(ret);
+    str = qk_param_str(ret);
     if (strcmp(str, "a + b") != 0) {
         printf("qk_param_add %s is not a + b\n", str);
         qk_str_free(str);
@@ -53,7 +53,7 @@ int test_param_binary_ops(void) {
 
     // sub
     qk_param_sub(ret, a, b);
-    str = qk_param_to_string(ret);
+    str = qk_param_str(ret);
     if (strcmp(str, "a - b") != 0) {
         printf("qk_param_sub %s is not a - b\n", str);
         qk_str_free(str);
@@ -66,7 +66,7 @@ int test_param_binary_ops(void) {
 
     // mul
     qk_param_mul(ret, a, b);
-    str = qk_param_to_string(ret);
+    str = qk_param_str(ret);
     if (strcmp(str, "a*b") != 0) {
         printf("qk_param_mul %s is not a*b\n", str);
         qk_str_free(str);
@@ -79,7 +79,7 @@ int test_param_binary_ops(void) {
 
     // div
     qk_param_div(ret, a, b);
-    str = qk_param_to_string(ret);
+    str = qk_param_str(ret);
     if (strcmp(str, "a/b") != 0) {
         printf("qk_param_div %s is not a/b\n", str);
         qk_str_free(str);
@@ -92,7 +92,7 @@ int test_param_binary_ops(void) {
 
     // pow
     qk_param_pow(ret, a, b);
-    str = qk_param_to_string(ret);
+    str = qk_param_str(ret);
     if (strcmp(str, "a**b") != 0) {
         printf("qk_param_pow %s is not a**b\n", str);
         qk_str_free(str);
@@ -120,7 +120,7 @@ int test_param_unary_ops(void) {
 
     // sin
     qk_param_sin(ret, c);
-    str = qk_param_to_string(ret);
+    str = qk_param_str(ret);
     if (strcmp(str, "sin(a + b)") != 0) {
         printf("qk_param_sin %s is not sin(a + b)\n", str);
         qk_str_free(str);
@@ -134,7 +134,7 @@ int test_param_unary_ops(void) {
 
     // cos
     qk_param_cos(ret, c);
-    str = qk_param_to_string(ret);
+    str = qk_param_str(ret);
     if (strcmp(str, "cos(a + b)") != 0) {
         printf("qk_param_cos %s is not cos(a + b)\n", str);
         qk_str_free(str);
@@ -148,7 +148,7 @@ int test_param_unary_ops(void) {
 
     // tan
     qk_param_tan(ret, c);
-    str = qk_param_to_string(ret);
+    str = qk_param_str(ret);
     if (strcmp(str, "tan(a + b)") != 0) {
         printf("qk_param_tan %s is not tan(a + b)\n", str);
         qk_str_free(str);
@@ -162,7 +162,7 @@ int test_param_unary_ops(void) {
 
     // asin
     qk_param_asin(ret, c);
-    str = qk_param_to_string(ret);
+    str = qk_param_str(ret);
     if (strcmp(str, "asin(a + b)") != 0) {
         printf("qk_param_asin %s is not asin(a + b)\n", str);
         qk_str_free(str);
@@ -176,7 +176,7 @@ int test_param_unary_ops(void) {
 
     // acos
     qk_param_acos(ret, c);
-    str = qk_param_to_string(ret);
+    str = qk_param_str(ret);
     if (strcmp(str, "acos(a + b)") != 0) {
         printf("qk_param_acos %s is not acos(a + b)\n", str);
         qk_str_free(str);
@@ -190,7 +190,7 @@ int test_param_unary_ops(void) {
 
     // atan
     qk_param_atan(ret, c);
-    str = qk_param_to_string(ret);
+    str = qk_param_str(ret);
     if (strcmp(str, "atan(a + b)") != 0) {
         printf("qk_param_atan %s is not atan(a + b)\n", str);
         qk_str_free(str);
@@ -204,7 +204,7 @@ int test_param_unary_ops(void) {
 
     // log
     qk_param_log(ret, c);
-    str = qk_param_to_string(ret);
+    str = qk_param_str(ret);
     if (strcmp(str, "log(a + b)") != 0) {
         printf("qk_param_log %s is not log(a + b)\n", str);
         qk_str_free(str);
@@ -218,7 +218,7 @@ int test_param_unary_ops(void) {
 
     // exp
     qk_param_exp(ret, c);
-    str = qk_param_to_string(ret);
+    str = qk_param_str(ret);
     if (strcmp(str, "exp(a + b)") != 0) {
         printf("qk_param_exp %s is not exp(a + b)\n", str);
         qk_str_free(str);
@@ -232,7 +232,7 @@ int test_param_unary_ops(void) {
 
     // abs
     qk_param_abs(ret, c);
-    str = qk_param_to_string(ret);
+    str = qk_param_str(ret);
     if (strcmp(str, "abs(a + b)") != 0) {
         printf("qk_param_abs %s is not abs(a + b)\n", str);
         qk_str_free(str);
@@ -246,7 +246,7 @@ int test_param_unary_ops(void) {
 
     // sign
     qk_param_sign(ret, c);
-    str = qk_param_to_string(ret);
+    str = qk_param_str(ret);
     if (strcmp(str, "sign(a + b)") != 0) {
         printf("qk_param_sign %s is not sign(a + b)\n", str);
         qk_str_free(str);
@@ -260,7 +260,7 @@ int test_param_unary_ops(void) {
 
     // neg
     qk_param_neg(ret, c);
-    str = qk_param_to_string(ret);
+    str = qk_param_str(ret);
     if (strcmp(str, "-a - b") != 0) {
         printf("qk_param_neg %s is not -a - b\n", str);
         qk_str_free(str);
@@ -274,7 +274,7 @@ int test_param_unary_ops(void) {
 
     // conj
     qk_param_conjugate(ret, c);
-    str = qk_param_to_string(ret);
+    str = qk_param_str(ret);
     if (strcmp(str, "conj(a) + conj(b)") != 0) {
         printf("qk_param_conj %s is not conj(a) + conj(b)\n", str);
         qk_str_free(str);
@@ -301,7 +301,7 @@ int test_param_with_value(void) {
 
     // add
     qk_param_add(ret, a, v);
-    str = qk_param_to_string(ret);
+    str = qk_param_str(ret);
     qk_param_free(ret);
     if (strcmp(str, "2.5 + a") != 0) {
         printf("qk_param_add %s is not 2.5 + a\n", str);
@@ -334,7 +334,7 @@ int test_param_bind(void) {
 
     double ret;
     if (!qk_param_as_real(&ret, d)) {
-        char *str = qk_param_to_string(d);
+        char *str = qk_param_str(d);
         printf("Parameter has some unbound symbols : %s\n", str);
         qk_str_free(str);
         qk_param_free(d);

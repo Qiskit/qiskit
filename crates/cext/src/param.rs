@@ -172,7 +172,7 @@ pub unsafe extern "C" fn qk_param_copy(expr: *const Param) -> *mut Param {
 /// # Example
 ///
 ///     QkParam *a = qk_param_new_symbol("a");
-///     char* str = qk_param_to_string(a);
+///     char* str = qk_param_str(a);
 ///     printf(str);
 ///     qk_str_free(str);
 ///
@@ -181,7 +181,7 @@ pub unsafe extern "C" fn qk_param_copy(expr: *const Param) -> *mut Param {
 /// expr should be valid pointer to parameter
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_param_to_string(expr: *const Param) -> *mut c_char {
+pub unsafe extern "C" fn qk_param_str(expr: *const Param) -> *mut c_char {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let expr = unsafe { const_ptr_as_ref(expr) };
     let str = match expr {
