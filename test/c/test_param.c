@@ -18,6 +18,9 @@
 #include <stdio.h>
 #include <string.h>
 
+/**
+ * Test creating a new symbol and check the name.
+ */
 int test_param_new(void) {
     QkParam *p = qk_param_new_symbol("a");
     char *str = qk_param_str(p);
@@ -32,291 +35,311 @@ int test_param_new(void) {
     return Ok;
 }
 
+/**
+ * Test calling all binary operations and verify their string representation.
+ */
 int test_param_binary_ops(void) {
     QkParam *a = qk_param_new_symbol("a");
     QkParam *b = qk_param_new_symbol("b");
     QkParam *ret = qk_param_zero();
     char *str;
+    int result = Ok;
 
     // add
-    qk_param_add(ret, a, b);
+    if (qk_param_add(ret, a, b) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+
     str = qk_param_str(ret);
     if (strcmp(str, "a + b") != 0) {
         printf("qk_param_add %s is not a + b\n", str);
-        qk_str_free(str);
-        qk_param_free(a);
-        qk_param_free(b);
-        qk_param_free(ret);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup_str;
     }
     qk_str_free(str);
 
     // sub
-    qk_param_sub(ret, a, b);
+    if (qk_param_sub(ret, a, b) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+
     str = qk_param_str(ret);
     if (strcmp(str, "a - b") != 0) {
         printf("qk_param_sub %s is not a - b\n", str);
-        qk_str_free(str);
-        qk_param_free(a);
-        qk_param_free(b);
-        qk_param_free(ret);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup_str;
     }
     qk_str_free(str);
 
     // mul
-    qk_param_mul(ret, a, b);
+    if (qk_param_mul(ret, a, b) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+
     str = qk_param_str(ret);
     if (strcmp(str, "a*b") != 0) {
         printf("qk_param_mul %s is not a*b\n", str);
-        qk_str_free(str);
-        qk_param_free(a);
-        qk_param_free(b);
-        qk_param_free(ret);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup_str;
     }
     qk_str_free(str);
 
     // div
-    qk_param_div(ret, a, b);
+    if (qk_param_div(ret, a, b) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+
     str = qk_param_str(ret);
     if (strcmp(str, "a/b") != 0) {
         printf("qk_param_div %s is not a/b\n", str);
-        qk_str_free(str);
-        qk_param_free(a);
-        qk_param_free(b);
-        qk_param_free(ret);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup_str;
     }
     qk_str_free(str);
 
     // pow
-    qk_param_pow(ret, a, b);
+    if (qk_param_pow(ret, a, b) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+
     str = qk_param_str(ret);
     if (strcmp(str, "a**b") != 0) {
         printf("qk_param_pow %s is not a**b\n", str);
-        qk_str_free(str);
-        qk_param_free(a);
-        qk_param_free(b);
-        qk_param_free(ret);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup_str;
     }
+
+cleanup_str:
     qk_str_free(str);
+cleanup:
     qk_param_free(a);
     qk_param_free(b);
     qk_param_free(ret);
 
-    return Ok;
+    return result;
 }
 
+/**
+ * Test calling all unary operations and verify their string representation.
+ */
 int test_param_unary_ops(void) {
     QkParam *a = qk_param_new_symbol("a");
     QkParam *b = qk_param_new_symbol("b");
     QkParam *c = qk_param_zero();
-    qk_param_add(c, a, b);
-
     QkParam *ret = qk_param_zero();
+
+    int result = Ok;
+    if (qk_param_add(c, a, b) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+
     char *str;
 
     // sin
-    qk_param_sin(ret, c);
+    if (qk_param_sin(ret, c) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
     str = qk_param_str(ret);
     if (strcmp(str, "sin(a + b)") != 0) {
         printf("qk_param_sin %s is not sin(a + b)\n", str);
-        qk_str_free(str);
-        qk_param_free(a);
-        qk_param_free(b);
-        qk_param_free(c);
-        qk_param_free(ret);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup_str;
     }
     qk_str_free(str);
 
     // cos
-    qk_param_cos(ret, c);
+    if (qk_param_cos(ret, c) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
     str = qk_param_str(ret);
     if (strcmp(str, "cos(a + b)") != 0) {
         printf("qk_param_cos %s is not cos(a + b)\n", str);
-        qk_str_free(str);
-        qk_param_free(a);
-        qk_param_free(b);
-        qk_param_free(c);
-        qk_param_free(ret);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup_str;
     }
     qk_str_free(str);
 
     // tan
-    qk_param_tan(ret, c);
+    if (qk_param_tan(ret, c) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
     str = qk_param_str(ret);
     if (strcmp(str, "tan(a + b)") != 0) {
         printf("qk_param_tan %s is not tan(a + b)\n", str);
-        qk_str_free(str);
-        qk_param_free(a);
-        qk_param_free(b);
-        qk_param_free(c);
-        qk_param_free(ret);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup_str;
     }
     qk_str_free(str);
 
     // asin
-    qk_param_asin(ret, c);
+    if (qk_param_asin(ret, c) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
     str = qk_param_str(ret);
     if (strcmp(str, "asin(a + b)") != 0) {
         printf("qk_param_asin %s is not asin(a + b)\n", str);
-        qk_str_free(str);
-        qk_param_free(a);
-        qk_param_free(b);
-        qk_param_free(c);
-        qk_param_free(ret);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup_str;
     }
     qk_str_free(str);
 
     // acos
-    qk_param_acos(ret, c);
+    if (qk_param_acos(ret, c) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
     str = qk_param_str(ret);
     if (strcmp(str, "acos(a + b)") != 0) {
         printf("qk_param_acos %s is not acos(a + b)\n", str);
-        qk_str_free(str);
-        qk_param_free(a);
-        qk_param_free(b);
-        qk_param_free(c);
-        qk_param_free(ret);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup_str;
     }
     qk_str_free(str);
 
     // atan
-    qk_param_atan(ret, c);
+    if (qk_param_atan(ret, c) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
     str = qk_param_str(ret);
     if (strcmp(str, "atan(a + b)") != 0) {
         printf("qk_param_atan %s is not atan(a + b)\n", str);
-        qk_str_free(str);
-        qk_param_free(a);
-        qk_param_free(b);
-        qk_param_free(c);
-        qk_param_free(ret);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup_str;
     }
     qk_str_free(str);
 
     // log
-    qk_param_log(ret, c);
+    if (qk_param_log(ret, c) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
     str = qk_param_str(ret);
     if (strcmp(str, "log(a + b)") != 0) {
         printf("qk_param_log %s is not log(a + b)\n", str);
-        qk_str_free(str);
-        qk_param_free(a);
-        qk_param_free(b);
-        qk_param_free(c);
-        qk_param_free(ret);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup_str;
     }
     qk_str_free(str);
 
     // exp
-    qk_param_exp(ret, c);
+    if (qk_param_exp(ret, c) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
     str = qk_param_str(ret);
     if (strcmp(str, "exp(a + b)") != 0) {
         printf("qk_param_exp %s is not exp(a + b)\n", str);
-        qk_str_free(str);
-        qk_param_free(a);
-        qk_param_free(b);
-        qk_param_free(c);
-        qk_param_free(ret);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup_str;
     }
     qk_str_free(str);
 
     // abs
-    qk_param_abs(ret, c);
+    if (qk_param_abs(ret, c) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
     str = qk_param_str(ret);
     if (strcmp(str, "abs(a + b)") != 0) {
         printf("qk_param_abs %s is not abs(a + b)\n", str);
-        qk_str_free(str);
-        qk_param_free(a);
-        qk_param_free(b);
-        qk_param_free(c);
-        qk_param_free(ret);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup_str;
     }
     qk_str_free(str);
 
     // sign
-    qk_param_sign(ret, c);
+    if (qk_param_sign(ret, c) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
     str = qk_param_str(ret);
     if (strcmp(str, "sign(a + b)") != 0) {
         printf("qk_param_sign %s is not sign(a + b)\n", str);
-        qk_str_free(str);
-        qk_param_free(a);
-        qk_param_free(b);
-        qk_param_free(c);
-        qk_param_free(ret);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup_str;
     }
     qk_str_free(str);
 
     // neg
-    qk_param_neg(ret, c);
+    if (qk_param_neg(ret, c) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
     str = qk_param_str(ret);
     if (strcmp(str, "-a - b") != 0) {
         printf("qk_param_neg %s is not -a - b\n", str);
-        qk_str_free(str);
-        qk_param_free(a);
-        qk_param_free(b);
-        qk_param_free(c);
-        qk_param_free(ret);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup_str;
     }
     qk_str_free(str);
 
     // conj
-    qk_param_conjugate(ret, c);
+    if (qk_param_conjugate(ret, c) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
     str = qk_param_str(ret);
     if (strcmp(str, "conj(a) + conj(b)") != 0) {
         printf("qk_param_conj %s is not conj(a) + conj(b)\n", str);
-        qk_str_free(str);
-        qk_param_free(a);
-        qk_param_free(b);
-        qk_param_free(c);
-        qk_param_free(ret);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup_str;
     }
-    qk_str_free(str);
 
+cleanup_str:
+    qk_str_free(str);
+cleanup:
     qk_param_free(a);
     qk_param_free(b);
     qk_param_free(c);
     qk_param_free(ret);
-    return Ok;
+
+    return result;
 }
 
+/**
+ * Test operations with free parameters and fixed values.
+ */
 int test_param_with_value(void) {
     QkParam *a = qk_param_new_symbol("a");
     QkParam *v = qk_param_from_double(2.5);
     QkParam *ret = qk_param_zero();
     char *str;
+    int result = Ok;
 
     // add
-    qk_param_add(ret, a, v);
+    if (qk_param_add(ret, a, v) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
     str = qk_param_str(ret);
-    qk_param_free(ret);
     if (strcmp(str, "2.5 + a") != 0) {
         printf("qk_param_add %s is not 2.5 + a\n", str);
-        qk_str_free(str);
-        qk_param_free(a);
-        qk_param_free(v);
-        return EqualityError;
+        result = EqualityError;
     }
     qk_str_free(str);
 
+cleanup:
     qk_param_free(a);
     qk_param_free(v);
-    return Ok;
+    qk_param_free(ret);
+
+    return result;
 }
 
+/**
+ * Test binding parameter values.
+ */
 int test_param_bind(void) {
     QkParam *a = qk_param_new_symbol("a");
     QkParam *b = qk_param_new_symbol("b");
@@ -324,13 +347,18 @@ int test_param_bind(void) {
     double values[2] = {1.5, 2.2};
 
     QkParam *c = qk_param_zero();
-    qk_param_add(c, a, b);
     QkParam *d = qk_param_zero();
-    qk_param_bind(d, c, params, values, 2);
+
+    QkExitCode exit1 = qk_param_add(c, a, b);
+    QkExitCode exit2 = qk_param_bind(d, c, params, values, 2);
 
     qk_param_free(a);
     qk_param_free(b);
     qk_param_free(c);
+    if (exit1 != QkExitCode_Success || exit2 != QkExitCode_Success) {
+        qk_param_free(d);
+        return RuntimeError;
+    }
 
     double ret;
     if (!qk_param_as_real(&ret, d)) {
