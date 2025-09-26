@@ -30,6 +30,7 @@ from qiskit.circuit.library import (
     RZGate,
     RZZGate,
 )
+from qiskit.circuit.classical import expr
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.measures import process_fidelity
@@ -691,3 +692,26 @@ class TestConsolidateBlocks(QiskitTestCase):
             expected = QuantumCircuit(2)
             expected.unitary(np.asarray(RZZGate(angle)), [0, 1])
             self.assertEqual(res, expected)
+
+    def test_collection_inside_control_flow(self):
+        """Test that we handle consolidation based on the physical qubits, not the local indices."""
+        num_qubits = 3
+        target = Target(num_qubits=num_qubits)
+        target.add_instruction(CXGate(), {(i, i + 1): None for i in range(num_qubits - 1)})
+
+        # If the block's numbering system is used, this would always be inside the basis and so
+        # would not consolidate.
+        block = QuantumCircuit(2)
+        block.cx(0, 1)
+
+        qc = QuantumCircuit(num_qubits)
+        # In basis.
+        qc.if_test(expr.lift(True), block, [0, 1], [])
+        # Out of basis.
+        qc.if_test(expr.lift(True), block, [0, 2], [])
+
+        out = ConsolidateBlocks(target=target)(qc)
+        # First should be unchanged.
+        self.assertEqual(out.data[0].operation.blocks[0], block)
+        # Second should be a unitary.
+        self.assertEqual(out.data[1].operation.blocks[0].data[0].name, "unitary")
