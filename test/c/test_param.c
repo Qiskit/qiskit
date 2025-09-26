@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 #include "common.h"
+#include <math.h>
 #include <qiskit.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -19,7 +20,7 @@
 #include <string.h>
 
 /**
- * Test creating a new symbol and check the name.
+ * Test creating a new free symbol and check the name.
  */
 int test_param_new(void) {
     QkParam *p = qk_param_new_symbol("a");
@@ -32,6 +33,62 @@ int test_param_new(void) {
         return EqualityError;
     }
     qk_str_free(str);
+    return Ok;
+}
+
+/**
+ * Test creating a new symbol from values.
+ */
+int test_param_new_values(void) {
+    QkParam *real = qk_param_from_double(0.1);
+    if (real == NULL) {
+        return EqualityError;
+    }
+
+    QkComplex64 c = {0.4, 1.4};
+    QkParam *cmplx = qk_param_from_complex(c);
+    if (cmplx == NULL) {
+        return EqualityError;
+    }
+
+    qk_param_free(real);
+    qk_param_free(cmplx);
+    return Ok;
+}
+
+/**
+ * Test casting to real values.
+ */
+int test_param_to_real(void) {
+    QkParam *x = qk_param_new_symbol("x");
+    QkParam *cmplx = qk_param_from_complex((QkComplex64){1.0, 2.0});
+    QkParam *val = qk_param_from_double(10.0);
+
+    double x_out, cmplx_out, val_out;
+    bool x_ok = qk_param_as_real(&x_out, x);
+    bool cmplx_ok = qk_param_as_real(&cmplx_out, cmplx);
+    bool val_ok = qk_param_as_real(&val_out, val);
+
+    qk_param_free(x);
+    qk_param_free(cmplx);
+    qk_param_free(val);
+
+    if (x_ok || !cmplx_ok || !val_ok) {
+        printf("Unexpected success/failure in qk_param_as_real.");
+        return EqualityError;
+    }
+
+    if (fabs(val_out - 10.0) > 1e-10) {
+        printf("Unexpected extracted value in qk_param_as_real.");
+        return EqualityError;
+    }
+
+    // qk_param_as_real extracts the real part of a complex value
+    if (fabs(cmplx_out - 1.0) > 1e-10) {
+        printf("Unexpected extracted value in qk_param_as_real.");
+        return EqualityError;
+    }
+
     return Ok;
 }
 
@@ -338,6 +395,112 @@ cleanup:
 }
 
 /**
+ * Test equality.
+ */
+int test_param_equal(void) {
+    QkParam *x = qk_param_new_symbol("x");
+    QkParam *x_imposter = qk_param_new_symbol("x");
+    QkParam *y = qk_param_new_symbol("y");
+    QkParam *z = qk_param_new_symbol("z");
+    QkParam *val = qk_param_from_double(0.2);
+    QkParam *sum1 = qk_param_zero();
+    QkParam *sum1_clone = qk_param_zero();
+    QkParam *sum2 = qk_param_zero();
+    QkParam *mul = qk_param_zero();
+
+    int result = Ok;
+
+    if (qk_param_add(sum1, x, y) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+    if (qk_param_add(sum1_clone, x, y) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+    if (qk_param_add(sum2, x, z) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+    if (qk_param_mul(mul, x, val) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+
+    if (!qk_param_equal(x, x)) {
+        printf("Symbol not equal to itself");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    if (qk_param_equal(x, x_imposter)) {
+        printf("Symbol equal a new instance with the same name");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    if (qk_param_equal(x, mul)) {
+        printf("Symbol equals but they differ by a coefficient");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    if (!qk_param_equal(sum1, sum1_clone)) {
+        printf("Expression not equal to the same expression.");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    if (qk_param_equal(sum1, sum2)) {
+        printf("Expression equal to a different sum.");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+cleanup:
+    qk_param_free(x);
+    qk_param_free(x_imposter);
+    qk_param_free(y);
+    qk_param_free(z);
+    qk_param_free(val);
+    qk_param_free(sum1);
+    qk_param_free(sum1_clone);
+    qk_param_free(sum2);
+    qk_param_free(mul);
+
+    return result;
+}
+
+/**
+ * Test copy.
+ */
+int test_param_copy(void) {
+    QkParam *x = qk_param_new_symbol("x");
+    QkParam *y = qk_param_new_symbol("y");
+    QkParam *sum = qk_param_zero();
+
+    int result = Ok;
+
+    if (qk_param_add(sum, x, y) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+
+    QkParam *copy = qk_param_copy(sum);
+    if (!qk_param_equal(sum, copy)) {
+        printf("Copy not equal to original");
+        result = EqualityError;
+    }
+    qk_param_free(copy);
+cleanup:
+    qk_param_free(x);
+    qk_param_free(y);
+    qk_param_free(sum);
+
+    return result;
+}
+
+/**
  * Test binding parameter values.
  */
 int test_param_bind(void) {
@@ -369,7 +532,7 @@ int test_param_bind(void) {
         return RuntimeError;
     }
 
-    if (ret != values[0] + values[1]) {
+    if (fabs(ret - values[0] - values[1]) > 1e-10) {
         printf("bound parameter %f is not %f\n", ret, values[0] + values[1]);
         qk_param_free(d);
         return EqualityError;
@@ -378,13 +541,74 @@ int test_param_bind(void) {
     return Ok;
 }
 
+/**
+ * Test substitution.
+ */
+int test_param_subs(void) {
+    QkParam *x = qk_param_new_symbol("x");
+    QkParam *y = qk_param_new_symbol("y");
+    QkParam *z = qk_param_new_symbol("z");
+    QkParam *val = qk_param_from_double(2.0);
+    QkParam *pow = qk_param_zero();
+    QkParam *z2 = qk_param_zero();
+    QkParam *out = qk_param_zero();
+    QkParam *expect = qk_param_zero();
+
+    int result = Ok;
+
+    if (qk_param_pow(pow, x, y) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+    if (qk_param_div(z2, z, val) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+    if (qk_param_pow(expect, z, z2) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+
+    // we substitute x->z and y->z2
+    const QkParam *keys[2] = {x, y};
+    const QkParam *subs[2] = {z, z2};
+    size_t num = 2;
+    if (qk_param_subs(out, pow, keys, subs, num) != QkExitCode_Success) {
+        result = RuntimeError;
+        printf("Error during substitution");
+        goto cleanup;
+    }
+    if (!qk_param_equal(out, expect)) {
+        result = EqualityError;
+        printf("Substituted expression does not equal expectation.");
+        goto cleanup;
+    }
+
+cleanup:
+    qk_param_free(x);
+    qk_param_free(y);
+    qk_param_free(z);
+    qk_param_free(z2);
+    qk_param_free(val);
+    qk_param_free(pow);
+    qk_param_free(out);
+    qk_param_free(expect);
+
+    return result;
+}
+
 int test_param(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_param_new);
+    num_failed += RUN_TEST(test_param_new_values);
+    num_failed += RUN_TEST(test_param_to_real);
+    num_failed += RUN_TEST(test_param_equal);
+    num_failed += RUN_TEST(test_param_copy);
     num_failed += RUN_TEST(test_param_binary_ops);
     num_failed += RUN_TEST(test_param_unary_ops);
     num_failed += RUN_TEST(test_param_with_value);
     num_failed += RUN_TEST(test_param_bind);
+    num_failed += RUN_TEST(test_param_subs);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);

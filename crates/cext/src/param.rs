@@ -1242,6 +1242,7 @@ pub unsafe extern "C" fn qk_param_subs(
 /// Upon succesful casting, the result is written into the provided ``double*`` and the function
 /// returns ``true``. If the parameter could not be cast to a ``double``, because there were unbound
 /// parameters, the ``double*`` remains unchanged and the function returns ``false``.
+/// Note that for ``QkParam`` representing complex values the real part is returned.
 ///
 /// @param out A pointer to store the ``double``.
 /// @param src A pointer to the ``QkParam`` to evaluate.
@@ -1256,7 +1257,7 @@ pub unsafe extern "C" fn qk_param_subs(
 /// QkParam *x = qk_param_zero();
 /// qk_param_add(x, a, b);
 ///
-/// const QkParam* keys[] = {a, b};
+/// const QkParam* keys[2] = {a, b};
 /// QkParam *y = qk_param_zero();
 /// qk_param_bind(y, x, keys, {1.0, 2.0}, 2);
 ///
