@@ -17,7 +17,7 @@ use pyo3::types::PyString;
 use pyo3::{prelude::*, types::PyList};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::instruction::{IntoInstructionView, StandardGateView};
+use qiskit_circuit::instruction::{Instruction, IntoInstructionView, StandardGateView};
 use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
 
 use crate::discrete_basis::basic_approximations::{BasicApproximations, GateSequence};
@@ -267,7 +267,7 @@ impl SolovayKitaevSynthesis {
     /// Returns:
     ///     CircuitData: The sequence in the set of basic approximations closest to the input.
     fn query_basic_approximation(&self, gate: OperationFromPython) -> PyResult<CircuitData> {
-        let matrix_u2 = match gate.view().try_matrix() {
+        let matrix_u2 = match gate.try_matrix() {
             Some(matrix) => Matrix2::new(
                 matrix[(0, 0)],
                 matrix[(0, 1)],

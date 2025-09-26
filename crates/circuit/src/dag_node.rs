@@ -24,7 +24,7 @@ use approx::relative_eq;
 use num_complex::Complex64;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
-use crate::instruction::IntoInstructionView;
+use crate::instruction::Instruction;
 use numpy::IntoPyArray;
 use numpy::PyArray2;
 use pyo3::exceptions::PyValueError;
@@ -375,13 +375,18 @@ impl DAGOpNode {
 
     #[setter]
     fn set_params(&mut self, val: Bound<PyAny>) -> PyResult<()> {
-        self.instruction.params = extract_params(self.instruction.view_operation(), &val)?;
+        self.instruction.params = extract_params(self.instruction.op(), &val)?;
         Ok(())
     }
 
     #[getter]
     fn matrix<'py>(&'py self, py: Python<'py>) -> Option<Bound<'py, PyArray2<Complex64>>> {
-        let matrix = self.instruction.view().try_matrix();
+        let matrix = match self.instruction.operation.view() {
+            OperationRef::StandardGate(g) => g.matrix(self.instruction.params_view()),
+            OperationRef::Gate(g) => g.matrix(),
+            OperationRef::Unitary(u) => u.matrix(),
+            _ => None,
+        };
         matrix.map(|mat| mat.into_pyarray(py))
     }
 
@@ -423,9 +428,13 @@ impl DAGOpNode {
 
     #[getter]
     fn definition<'py>(&self, py: Python<'py>) -> PyResult<Option<Bound<'py, PyAny>>> {
-        self.instruction
-            .view()
-            .try_definition()
+        let definition = match self.instruction.operation.view() {
+            OperationRef::StandardGate(g) => g.definition(self.instruction.params_view()),
+            OperationRef::Gate(g) => g.definition(),
+            OperationRef::Instruction(i) => i.definition(),
+            _ => None,
+        };
+        definition
             .map(|data| {
                 QUANTUM_CIRCUIT
                     .get_bound(py)

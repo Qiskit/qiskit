@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use crate::circuit_data::CircuitData;
 use crate::imports::{
     get_std_gate_class, BARRIER, BOX_OP, BREAK_LOOP_OP, CONTINUE_LOOP_OP, DELAY, FOR_LOOP_OP,
     IF_ELSE_OP, MEASURE, RESET, SWITCH_CASE_OP, UNITARY_GATE, WHILE_LOOP_OP,
@@ -23,6 +24,7 @@ use crate::operations::{
     PythonOperation, StandardGate, StandardInstruction, UnitaryGate,
 };
 use crate::{Block, Clbit, Qubit};
+use nalgebra::Matrix2;
 use ndarray::Array2;
 use num_complex::Complex64;
 use pyo3::prelude::*;
@@ -790,14 +792,42 @@ impl PackedInstruction {
             _ => None,
         }
     }
+
+    /// Returns a static matrix for 1-qubit gates. Will return `None` when the gate is not 1-qubit.
+    #[inline]
+    pub fn try_matrix_as_static_1q(&self) -> Option<[[Complex64; 2]; 2]> {
+        match self.op.view() {
+            OperationRef::StandardGate(standard) => {
+                standard.matrix_as_static_1q(self.params_view())
+            }
+            OperationRef::Gate(gate) => gate.matrix_as_static_1q(),
+            OperationRef::Unitary(unitary) => unitary.matrix_as_static_1q(),
+            _ => None,
+        }
+    }
+
+    pub fn try_matrix_as_nalgebra_1q(&self) -> Option<Matrix2<Complex64>> {
+        match self.op.view() {
+            OperationRef::Unitary(u) => u.matrix_as_nalgebra_1q(),
+            // default implementation
+            _ => self
+                .try_matrix_as_static_1q()
+                .map(|arr| Matrix2::new(arr[0][0], arr[0][1], arr[1][0], arr[1][1])),
+        }
+    }
+
+    pub fn try_definition(&self) -> Option<CircuitData> {
+        match self.op.view() {
+            OperationRef::StandardGate(g) => g.definition(self.params_view()),
+            OperationRef::Gate(g) => g.definition(),
+            OperationRef::Instruction(i) => i.definition(),
+            _ => None,
+        }
+    }
 }
 
 impl<'a> IntoInstructionView<'a> for &'a PackedInstruction {
     type Block = PyObject;
-
-    fn view_operation(self) -> OperationRef<'a> {
-        self.op.view()
-    }
 
     fn try_view_standard_gate(self) -> Option<StandardGateView<'a>> {
         let OperationRef::StandardGate(gate) = self.op.view() else {

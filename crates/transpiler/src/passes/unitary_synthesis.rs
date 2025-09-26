@@ -20,7 +20,7 @@ use itertools::Itertools;
 use ndarray::prelude::*;
 use num_complex::Complex64;
 use numpy::{IntoPyArray, ToPyArray};
-use qiskit_circuit::instruction::{Instruction, IntoInstructionView, Parameters};
+use qiskit_circuit::instruction::{Instruction, Parameters};
 use smallvec::SmallVec;
 
 use pyo3::intern;
@@ -353,7 +353,7 @@ pub fn run_unitary_synthesis(
                         true,
                         None,
                     ),
-                    _ => match packed_instr.view().try_matrix() {
+                    _ => match packed_instr.try_matrix() {
                         Some(matrix) => unitary_to_gate_sequence_inner(
                             matrix.view(),
                             &target_basis_set,
@@ -417,7 +417,7 @@ pub fn run_unitary_synthesis(
                             run_python_decomposers,
                         )?;
                     }
-                    _ => match packed_instr.view().try_matrix() {
+                    _ => match packed_instr.try_matrix() {
                         Some(matrix) => {
                             run_2q_unitary_synthesis(
                                 matrix.view(),
@@ -454,7 +454,7 @@ pub fn run_unitary_synthesis(
                             OperationRef::Unitary(gate) => {
                                 qs_decomposition.call1((gate.matrix_view().to_pyarray(py),))?
                             }
-                            _ => match packed_instr.view().try_matrix() {
+                            _ => match packed_instr.try_matrix() {
                                 Some(matrix) => {
                                     qs_decomposition.call1((matrix.into_pyarray(py),))?
                                 }
@@ -695,7 +695,7 @@ fn get_2q_decomposers_from_target(
     // Step 2: Try TwoQubitBasisDecomposers
     #[inline]
     fn is_supercontrolled(op: &NormalOperation) -> bool {
-        match op.view().try_matrix() {
+        match op.try_matrix() {
             None => false,
             Some(unitary_matrix) => {
                 let kak = TwoQubitWeylDecomposition::new_inner(unitary_matrix.view(), None, None)
@@ -740,7 +740,7 @@ fn get_2q_decomposers_from_target(
                         _ => unreachable!(),
                     })
                     .collect(),
-                gate.view().try_matrix().unwrap().view(),
+                gate.try_matrix().unwrap().view(),
                 basis_2q_fidelity,
                 basis_1q,
                 pulse_optimize,
@@ -775,7 +775,7 @@ fn get_2q_decomposers_from_target(
     }
     #[inline]
     fn is_controlled(op: &NormalOperation) -> bool {
-        match op.view().try_matrix() {
+        match op.try_matrix() {
             None => false,
             Some(unitary_matrix) => {
                 let kak = TwoQubitWeylDecomposition::new_inner(unitary_matrix.view(), None, None)
@@ -800,7 +800,7 @@ fn get_2q_decomposers_from_target(
             |(name, (op, props))| -> PyResult<(f64, f64, pyo3::Bound<'_, pyo3::PyAny>)> {
                 let strength = 2.0
                     * TwoQubitWeylDecomposition::new_inner(
-                        op.view().try_matrix().unwrap().view(),
+                        op.try_matrix().unwrap().view(),
                         None,
                         None,
                     )

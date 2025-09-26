@@ -15,9 +15,7 @@ use crate::TranspilerError;
 use hashbrown::HashSet;
 use pyo3::prelude::*;
 use qiskit_circuit::bit::{QuantumRegister, Register};
-use qiskit_circuit::instruction::{
-    InstructionView, IntoInstructionView, Parameters, StandardGateView,
-};
+use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::PhysicalQubit;
@@ -185,7 +183,7 @@ pub fn fix_direction_target(dag: &mut DAGCircuit, target: &Target) -> PyResult<(
         ];
 
         // Take this path so Target can check for exact match of the parameterized gate's angle
-        if let InstructionView::StandardGate(StandardGateView(std_gate, params)) = inst.view() {
+        if let OperationRef::StandardGate(std_gate) = inst.op.view() {
             match std_gate {
                 StandardGate::RXX | StandardGate::RYY | StandardGate::RZZ | StandardGate::RZX => {
                     return target
@@ -193,7 +191,7 @@ pub fn fix_direction_target(dag: &mut DAGCircuit, target: &Target) -> PyResult<(
                             Some(std_gate.get_name().to_string()),
                             qargs.into(),
                             None,
-                            Some(params.to_vec()),
+                            Some(inst.params_view().to_vec()),
                             false,
                         )
                         .unwrap_or(false);

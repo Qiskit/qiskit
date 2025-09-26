@@ -18,7 +18,7 @@ use qiskit_circuit::bit::QuantumRegister;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::imports::GATE;
-use qiskit_circuit::instruction::{Instruction, IntoInstructionView, Parameters};
+use qiskit_circuit::instruction::{Instruction, Parameters};
 use qiskit_circuit::operations::{get_standard_gate_names, StandardGate, StandardInstruction};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
@@ -195,10 +195,7 @@ fn get_gates_num_params(
     for (node, inst) in dag.op_nodes(true) {
         if let Some(control_flow) = dag.try_view_control_flow(node) {
             example_gates.insert(
-                (
-                    inst.view_operation().name().to_string(),
-                    inst.view_operation().num_qubits(),
-                ),
+                (inst.op.name().to_string(), inst.op.num_qubits()),
                 inst.op.num_params() as usize,
             );
             for block in control_flow.blocks() {

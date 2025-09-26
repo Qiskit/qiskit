@@ -33,7 +33,7 @@ use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
     ArrayType, BoxDuration, Condition, ControlFlow, Operation, OperationRef, Param,
-    PythonOperation, StandardGate, SwitchTarget,
+    PythonOperation, StandardGate, StandardInstruction, SwitchTarget,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::ParameterExpression;
@@ -75,10 +75,7 @@ use rustworkx_core::traversal::{
 };
 
 use crate::imports::PARAMETER;
-use crate::instruction::{
-    ControlFlowView, InstructionView, IntoInstructionView, Parameters, StandardGateView,
-    StandardInstructionView,
-};
+use crate::instruction::{ControlFlowView, Parameters};
 use crate::parameter_table::ParameterUuid;
 use approx::relative_eq;
 use std::collections::{BTreeMap, VecDeque};
@@ -2515,51 +2512,47 @@ impl DAGCircuit {
                                 _ => Ok(false),
                             }
                         } else {
-                            match [inst1.view(), inst2.view()] {
-                                [InstructionView::StandardGate(StandardGateView(gate1, params1)), InstructionView::StandardGate(StandardGateView(gate2, params2))] => {
+                            match [inst1.op.view(), inst2.op.view()] {
+                                [OperationRef::StandardGate(gate1), OperationRef::StandardGate(gate2)] => {
                                     Ok(gate1 == gate2
                                         && check_args()
-                                        && params1
+                                        && inst1
+                                            .params_view()
                                             .iter()
-                                            .zip(params2)
+                                            .zip(inst2.params_view())
                                             .all(|(a, b)| a.is_close(b, 1e-10).unwrap()))
                                 }
-                                [InstructionView::StandardInstruction(inst1), InstructionView::StandardInstruction(inst2)] => {
-                                    Ok(match [inst1, inst2] {
-                                        [StandardInstructionView::Barrier(n1), StandardInstructionView::Barrier(n2)] => {
+                                [OperationRef::StandardInstruction(op1), OperationRef::StandardInstruction(op2)] => {
+                                    Ok(match [op1, op2] {
+                                        [StandardInstruction::Barrier(n1), StandardInstruction::Barrier(n2)] => {
                                             n1 == n2
                                         }
-                                        [StandardInstructionView::Delay {
-                                            duration: duration1,
-                                            unit: unit1,
-                                        }, StandardInstructionView::Delay {
-                                            duration: duration2,
-                                            unit: unit2,
-                                        }] => {
+                                        [StandardInstruction::Delay(unit1), StandardInstruction::Delay(unit2)] =>
+                                        {
+                                            let duration1 = &inst1.params_view()[0];
+                                            let duration2 = &inst2.params_view()[0];
                                             unit1 == unit2
                                                 && duration1.is_close(duration2, 1e-10)?
                                         }
-                                        [StandardInstructionView::Measure, StandardInstructionView::Measure] => {
+                                        [StandardInstruction::Measure, StandardInstruction::Measure] => {
                                             true
                                         }
-                                        [StandardInstructionView::Reset, StandardInstructionView::Reset] => {
+                                        [StandardInstruction::Reset, StandardInstruction::Reset] => {
                                             true
                                         }
                                         _ => false,
                                     } && check_args())
                                 }
-                                [InstructionView::Instruction(op1), InstructionView::Instruction(op2)] =>
-                                {
+                                [OperationRef::Instruction(op1), OperationRef::Instruction(op2)] => {
                                     Ok(op1.instruction.bind(py).eq(&op2.instruction)?
                                         && check_args())
                                     // Ok(inst1.py_op_eq(py, inst2)? && check_args())
                                 }
-                                [InstructionView::Gate(op1), InstructionView::Gate(op2)] => {
+                                [OperationRef::Gate(op1), OperationRef::Gate(op2)] => {
                                     Ok(op1.gate.bind(py).eq(&op2.gate)? && check_args())
                                     // Ok(inst1.py_op_eq(py, inst2)? && check_args())
                                 }
-                                [InstructionView::Operation(op1), InstructionView::Operation(op2)] =>
-                                {
+                                [OperationRef::Operation(op1), OperationRef::Operation(op2)] => {
                                     Ok(op1.operation.bind(py).eq(&op2.operation)? && check_args())
                                     // Ok(inst1.py_op_eq(py, inst2)? && check_args())
                                 }
@@ -2567,35 +2560,33 @@ impl DAGCircuit {
                                 // gate/instruction.
                                 // This typically only happens if we have a ControlledGate in Python
                                 // and we have mutable state set.
-                                [InstructionView::StandardGate(_), InstructionView::Gate(op2)] => {
-                                    Ok(slf
-                                        .unpack_py_op_internal(py, inst1)?
-                                        .bind(py)
-                                        .eq(&op2.gate)?
-                                        && check_args())
-                                }
-                                [InstructionView::Gate(op1), InstructionView::StandardGate(_)] => {
+                                [OperationRef::StandardGate(_), OperationRef::Gate(op2)] => Ok(slf
+                                    .unpack_py_op_internal(py, inst1)?
+                                    .bind(py)
+                                    .eq(&op2.gate)?
+                                    && check_args()),
+                                [OperationRef::Gate(op1), OperationRef::StandardGate(_)] => {
                                     Ok(other
                                         .unpack_py_op_internal(py, inst2)?
                                         .bind(py)
                                         .eq(&op1.gate)?
                                         && check_args())
                                 }
-                                [InstructionView::StandardInstruction(_), InstructionView::Instruction(op2)] => {
+                                [OperationRef::StandardInstruction(_), OperationRef::Instruction(op2)] => {
                                     Ok(slf
                                         .unpack_py_op_internal(py, inst1)?
                                         .bind(py)
                                         .eq(&op2.instruction)?
                                         && check_args())
                                 }
-                                [InstructionView::Instruction(op1), InstructionView::StandardInstruction(_)] => {
+                                [OperationRef::Instruction(op1), OperationRef::StandardInstruction(_)] => {
                                     Ok(other
                                         .unpack_py_op_internal(py, inst2)?
                                         .bind(py)
                                         .eq(&op1.instruction)?
                                         && check_args())
                                 }
-                                [InstructionView::Unitary(op_a), InstructionView::Unitary(op_b)] => {
+                                [OperationRef::Unitary(op_a), OperationRef::Unitary(op_b)] => {
                                     match [&op_a.array, &op_b.array] {
                                         [ArrayType::NDArray(a), ArrayType::NDArray(b)] => Ok(
                                             relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8),

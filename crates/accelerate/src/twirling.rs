@@ -28,9 +28,9 @@ use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::ONE_QUBIT_IDENTITY;
 use qiskit_circuit::imports::QUANTUM_CIRCUIT;
-use qiskit_circuit::instruction::{InstructionView, IntoInstructionView, StandardGateView};
+use qiskit_circuit::instruction::Instruction;
 use qiskit_circuit::operations::StandardGate::{I, X, Y, Z};
-use qiskit_circuit::operations::{Operation, Param, StandardGate};
+use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::VarsMode;
 use qiskit_transpiler::passes::run_optimize_1q_gates_decomposition;
@@ -279,8 +279,8 @@ fn generate_twirled_circuit(
             ))?;
             continue;
         }
-        match inst.view() {
-            InstructionView::StandardGate(StandardGateView(gate, _)) => match gate {
+        match inst.op.view() {
+            OperationRef::StandardGate(gate) => match gate {
                 StandardGate::CX => {
                     if twirling_mask & CX_MASK != 0 {
                         twirl_gate(circ, rng, &mut out_circ, TWIRLING_SETS[0], inst)?;
@@ -389,7 +389,7 @@ pub(crate) fn twirl_circuit(
                             )
                         )))
                     }
-                    let matrix = gate.view().try_matrix();
+                    let matrix = gate.try_matrix();
                     if let Some(matrix) = matrix {
                         let twirl_set = generate_twirling_set(matrix.view());
                         if twirl_set.is_empty() {

@@ -15,11 +15,13 @@ use pyo3::types::PyAnyMethods;
 use pyo3::{PyResult, Python};
 use qiskit_circuit::circuit_data::{CircuitData, CircuitError};
 use qiskit_circuit::imports;
-use qiskit_circuit::operations::{multiply_param, Operation, Param, PyGate, StandardGate};
+use qiskit_circuit::operations::{
+    multiply_param, Operation, OperationRef, Param, PyGate, StandardGate,
+};
 use qiskit_circuit::{Clbit, Qubit, VarsMode};
 use smallvec::SmallVec;
 
-use qiskit_circuit::instruction::{InstructionView, IntoInstructionView, Parameters};
+use qiskit_circuit::instruction::Parameters;
 use std::f64::consts::PI;
 
 use crate::QiskitError;
@@ -235,8 +237,8 @@ impl CircuitDataForSynthesis for CircuitData {
         for i in 0..data.len() {
             let inst = &data[data.len() - 1 - i];
 
-            let inverse_inst: Option<(StandardGate, SmallVec<[Param; 3]>)> = match &inst.view() {
-                InstructionView::StandardGate(gate) => gate.inverse(),
+            let inverse_inst: Option<(StandardGate, SmallVec<[Param; 3]>)> = match &inst.op.view() {
+                OperationRef::StandardGate(gate) => gate.inverse(inst.params_view()),
                 _ => None,
             };
 

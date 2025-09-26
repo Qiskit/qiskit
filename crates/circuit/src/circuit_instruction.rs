@@ -23,7 +23,7 @@ use pyo3::{intern, PyObject, PyResult};
 
 use crate::duration::Duration;
 use crate::imports::{CONTROLLED_GATE, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN};
-use crate::instruction::{Instruction, IntoInstructionView, Parameters};
+use crate::instruction::{Instruction, Parameters};
 use crate::operations::{
     ArrayType, BoxDuration, ControlFlow, ControlFlowType, Operation, OperationRef, Param, PyGate,
     PyInstruction, PyOperation, StandardGate, StandardInstruction, StandardInstructionType,
@@ -211,7 +211,12 @@ impl CircuitInstruction {
 
     #[getter]
     fn matrix<'py>(&'py self, py: Python<'py>) -> Option<Bound<'py, PyArray2<Complex64>>> {
-        let matrix = self.view().try_matrix();
+        let matrix = match self.operation.view() {
+            OperationRef::StandardGate(g) => g.matrix(self.params_view()),
+            OperationRef::Gate(g) => g.matrix(),
+            OperationRef::Unitary(u) => u.matrix(),
+            _ => None,
+        };
         matrix.map(move |mat| mat.into_pyarray(py))
     }
 

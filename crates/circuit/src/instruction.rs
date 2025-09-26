@@ -29,38 +29,11 @@ pub trait IntoInstructionView<'a> {
     /// The type of inner circuits contained within this instruction's views.
     type Block;
 
-    /// Returns a view of the operation.
-    fn view_operation(self) -> OperationRef<'a>;
-
     /// Returns a view of this instruction as a standard gate, if applicable.
     fn try_view_standard_gate(self) -> Option<StandardGateView<'a>>;
 
     /// Returns a view of this instruction as a standard instruction, if applicable.
     fn try_view_standard_instruction(self) -> Option<StandardInstructionView<'a>>;
-
-    /// Returns an immutable ergonomic view of this instruction.
-    #[inline]
-    fn view(self) -> InstructionView<'a, Self::Block>
-    where
-        Self: Copy + Sized,
-    {
-        match self.view_operation() {
-            OperationRef::ControlFlow(_) => {
-                todo!("should be removed");
-                // InstructionView::ControlFlow(self.try_view_control_flow().unwrap())
-            }
-            OperationRef::StandardGate(_) => {
-                InstructionView::StandardGate(self.try_view_standard_gate().unwrap())
-            }
-            OperationRef::StandardInstruction(_) => {
-                InstructionView::StandardInstruction(self.try_view_standard_instruction().unwrap())
-            }
-            OperationRef::Gate(g) => InstructionView::Gate(g),
-            OperationRef::Instruction(i) => InstructionView::Instruction(i),
-            OperationRef::Operation(o) => InstructionView::Operation(o),
-            OperationRef::Unitary(u) => InstructionView::Unitary(UnitaryGateView(u)),
-        }
-    }
 }
 
 // TODO: rename this to PythonOperation
@@ -103,6 +76,15 @@ pub trait Instruction {
                 _ => panic!("expected blocks"),
             })
             .unwrap_or_default()
+    }
+
+    fn try_matrix(&self) -> Option<Array2<Complex64>> {
+        match self.op() {
+            OperationRef::StandardGate(g) => g.matrix(self.params_view()),
+            OperationRef::Gate(g) => g.matrix(),
+            OperationRef::Unitary(u) => u.matrix(),
+            _ => None,
+        }
     }
 }
 
@@ -154,10 +136,6 @@ impl<T> Parameters<T> {
 
 impl<'a, T: Instruction> IntoInstructionView<'a> for &'a T {
     type Block = PyObject;
-
-    fn view_operation(self) -> OperationRef<'a> {
-        Instruction::op(self)
-    }
 
     fn try_view_standard_gate(self) -> Option<StandardGateView<'a>> {
         let OperationRef::StandardGate(gate) = self.op() else {
