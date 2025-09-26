@@ -17,7 +17,7 @@ use pyo3::types::PyString;
 use pyo3::{prelude::*, types::PyList};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::instruction::{Instruction, IntoInstructionView, StandardGateView};
+use qiskit_circuit::instruction::Instruction;
 use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
 
 use crate::discrete_basis::basic_approximations::{BasicApproximations, GateSequence};
@@ -240,10 +240,10 @@ impl SolovayKitaevSynthesis {
         gate: OperationFromPython,
         recursion_degree: usize,
     ) -> PyResult<CircuitData> {
-        let Some(StandardGateView(gate, params)) = gate.try_view_standard_gate() else {
+        let Some(g) = gate.operation.try_standard_gate() else {
             return Err(PyValueError::new_err("Only standard gates are supported."));
         };
-        self.synthesize_gate(&gate, params, recursion_degree)
+        self.synthesize_gate(&g, gate.params_view(), recursion_degree)
             .map_err(|err| err.into())
     }
 

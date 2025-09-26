@@ -15,9 +15,7 @@ use crate::imports::{
     get_std_gate_class, BARRIER, BOX_OP, BREAK_LOOP_OP, CONTINUE_LOOP_OP, DELAY, FOR_LOOP_OP,
     IF_ELSE_OP, MEASURE, RESET, SWITCH_CASE_OP, UNITARY_GATE, WHILE_LOOP_OP,
 };
-use crate::instruction::{
-    IntoInstructionView, Parameters, StandardGateView, StandardInstructionView,
-};
+use crate::instruction::{IntoInstructionView, Parameters};
 use crate::interner::Interned;
 use crate::operations::{
     ControlFlow, Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation,
@@ -828,36 +826,4 @@ impl PackedInstruction {
 
 impl<'a> IntoInstructionView<'a> for &'a PackedInstruction {
     type Block = PyObject;
-
-    fn try_view_standard_gate(self) -> Option<StandardGateView<'a>> {
-        let OperationRef::StandardGate(gate) = self.op.view() else {
-            return None;
-        };
-        let params = match self.params.as_deref() {
-            Some(Parameters::Params(params)) => params.as_slice(),
-            None => &[],
-            _ => panic!("invalid standard gate parameters"),
-        };
-        Some(StandardGateView(gate, params))
-    }
-
-    fn try_view_standard_instruction(self) -> Option<StandardInstructionView<'a>> {
-        let OperationRef::StandardInstruction(instruction) = self.op.view() else {
-            return None;
-        };
-        Some(match instruction {
-            StandardInstruction::Barrier(n) => StandardInstructionView::Barrier(n),
-            StandardInstruction::Delay(unit) => {
-                let Some([duration]) = self.params.as_deref().and_then(|p| match p {
-                    Parameters::Params(params) => Some(params.as_slice()),
-                    _ => None,
-                }) else {
-                    panic!("invalid delay parameters");
-                };
-                StandardInstructionView::Delay { duration, unit }
-            }
-            StandardInstruction::Measure => StandardInstructionView::Measure,
-            StandardInstruction::Reset => StandardInstructionView::Reset,
-        })
-    }
 }

@@ -11,12 +11,12 @@
 // that they have been altered from the originals.
 
 use crate::TranspilerError;
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::instruction::{IntoInstructionView, StandardInstructionView};
-use qiskit_circuit::operations::DelayUnit;
 use qiskit_circuit::operations::Param;
+use qiskit_circuit::operations::{DelayUnit, OperationRef, StandardInstruction};
 
 /// Run duration validation passes.
 ///
@@ -45,16 +45,21 @@ pub fn run_instruction_duration_check(
     }
 
     // Check delay durations
-    for (_, instr) in dag.op_nodes(false) {
-        if let Some(StandardInstructionView::Delay { duration, unit }) =
-            instr.try_view_standard_instruction()
+    for (_, packed_op) in dag.op_nodes(false) {
+        if let OperationRef::StandardInstruction(StandardInstruction::Delay(unit)) =
+            packed_op.op.view()
         {
+            let params = packed_op.params_view();
+            let param = params.first().ok_or_else(|| {
+                PyValueError::new_err("Delay instruction missing duration parameter")
+            })?;
+
             if unit != DelayUnit::DT {
                 return Err(TranspilerError::new_err(
                     "Delay duration must have dt unit for checking alignment.",
                 ));
             }
-            let duration = match duration {
+            let duration = match param {
                 Param::Obj(val) => val.bind(py).extract::<u32>(),
                 _ => Err(TranspilerError::new_err(
                     "The provided Delay duration is not in terms of dt.",

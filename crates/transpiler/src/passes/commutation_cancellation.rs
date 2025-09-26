@@ -22,7 +22,6 @@ use smallvec::{smallvec, SmallVec};
 use super::analyze_commutations;
 use crate::commutation_checker::CommutationChecker;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
-use qiskit_circuit::instruction::IntoInstructionView;
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::Qubit;
 use qiskit_synthesis::QiskitError;
@@ -230,18 +229,18 @@ pub fn cancel_commutations(
                 let mut total_angle: f64 = 0.0;
                 let mut total_phase: f64 = 0.0;
                 for current_node in cancel_set {
-                    let node_op = &dag[*current_node]
-                        .unwrap_operation()
-                        .try_view_standard_gate()
-                        .expect("standard gate operation expected");
-                    let node_op_name = node_op.gate().name();
+                    let node_op = match &dag[*current_node] {
+                        NodeType::Operation(instr) => instr,
+                        _ => panic!("Unexpected type in commutation set run."),
+                    };
+                    let node_op_name = node_op.op.name();
 
                     let (node_angle, phase_shift) = if ROTATION_GATES.contains(&node_op_name) {
-                        let node_angle = match node_op.params().first() {
+                        let node_angle = match node_op.params_view().first() {
                             Some(Param::Float(f)) => *f,
                             _ => return Err(QiskitError::new_err(format!(
                                 "Rotational gate with parameter expression encountered in cancellation {:?}",
-                                node_op.gate()
+                                node_op.op
                             )))
                         };
                         let phase_shift = z_phase_shift(node_op_name, node_angle);

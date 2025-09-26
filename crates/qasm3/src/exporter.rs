@@ -31,7 +31,7 @@ use qiskit_circuit::bit::{
     ClassicalRegister, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::DelayUnit;
+use qiskit_circuit::operations::{DelayUnit, StandardInstruction};
 use qiskit_circuit::operations::{Operation, Param};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
@@ -39,7 +39,6 @@ use qiskit_circuit::parameter::symbol_expr;
 use thiserror::Error;
 
 use lazy_static::lazy_static;
-use qiskit_circuit::instruction::{IntoInstructionView, StandardInstructionView};
 use regex::Regex;
 
 type ExporterResult<T> = Result<T, QASM3ExporterError>;
@@ -1179,16 +1178,15 @@ impl<'a> QASM3Builder {
     }
 
     fn build_delay(&self, instr: &PackedInstruction) -> ExporterResult<Delay> {
-        let Some(StandardInstructionView::Delay {
-            duration: param,
-            unit: delay_unit,
-        }) = instr.try_view_standard_instruction()
-        else {
+        let standard_instr = instr.op.standard_instruction();
+        let delay_unit = if let StandardInstruction::Delay(delay) = standard_instr {
+            delay
+        } else {
             return Err(QASM3ExporterError::Error(
                 "Expected Delay instruction, but got wrong instruction".to_string(),
             ));
         };
-
+        let param = &instr.params_view()[0];
         let duration: f64 = Python::with_gil(|py| match param {
             Param::Float(val) => *val,
             Param::ParameterExpression(p) => {

@@ -13,7 +13,7 @@
 use crate::circuit_data::CircuitData;
 use crate::operations::{
     BoxDuration, CaseSpecifier, Condition, DelayUnit, OperationRef, Param, PyGate, PyInstruction,
-    PyOperation, StandardGate, StandardInstruction, SwitchTarget, UnitaryGate,
+    PyOperation, StandardGate, SwitchTarget, UnitaryGate,
 };
 use nalgebra::Matrix2;
 use ndarray::Array2;
@@ -28,12 +28,6 @@ use std::ops::Deref;
 pub trait IntoInstructionView<'a> {
     /// The type of inner circuits contained within this instruction's views.
     type Block;
-
-    /// Returns a view of this instruction as a standard gate, if applicable.
-    fn try_view_standard_gate(self) -> Option<StandardGateView<'a>>;
-
-    /// Returns a view of this instruction as a standard instruction, if applicable.
-    fn try_view_standard_instruction(self) -> Option<StandardInstructionView<'a>>;
 }
 
 // TODO: rename this to PythonOperation
@@ -136,38 +130,6 @@ impl<T> Parameters<T> {
 
 impl<'a, T: Instruction> IntoInstructionView<'a> for &'a T {
     type Block = PyObject;
-
-    fn try_view_standard_gate(self) -> Option<StandardGateView<'a>> {
-        let OperationRef::StandardGate(gate) = self.op() else {
-            return None;
-        };
-        let params = match self.parameters() {
-            Some(Parameters::Params(params)) => params.as_slice(),
-            None => &[],
-            _ => panic!("invalid standard gate parameters"),
-        };
-        Some(StandardGateView(gate, params))
-    }
-
-    fn try_view_standard_instruction(self) -> Option<StandardInstructionView<'a>> {
-        let OperationRef::StandardInstruction(instruction) = self.op() else {
-            return None;
-        };
-        Some(match instruction {
-            StandardInstruction::Barrier(n) => StandardInstructionView::Barrier(n),
-            StandardInstruction::Delay(unit) => {
-                let Some([duration]) = self.parameters().and_then(|p| match p {
-                    Parameters::Params(params) => Some(params.as_slice()),
-                    _ => None,
-                }) else {
-                    panic!("invalid delay parameters");
-                };
-                StandardInstructionView::Delay { duration, unit }
-            }
-            StandardInstruction::Measure => StandardInstructionView::Measure,
-            StandardInstruction::Reset => StandardInstructionView::Reset,
-        })
-    }
 }
 
 #[derive(Clone, Debug)]
