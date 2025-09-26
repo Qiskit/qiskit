@@ -2001,6 +2001,40 @@ class QuantumCircuit:
 
         return controlled_circ
 
+    @overload
+    def compose(
+        self,
+        other: Union["QuantumCircuit", Instruction],
+        qubits: QubitSpecifier | Sequence[QubitSpecifier] | None = None,
+        clbits: ClbitSpecifier | Sequence[ClbitSpecifier] | None = None,
+        front: bool = False,
+        inplace: Literal[True] = True,
+        wrap: bool = False,
+        *,
+        copy: bool = True,
+        var_remap: (
+            Mapping[str | expr.Var | expr.Stretch, str | expr.Var | expr.Stretch] | None
+        ) = None,
+        inline_captures: bool = False,
+    ) -> None: ...
+
+    @overload
+    def compose(
+        self,
+        other: Union["QuantumCircuit", Instruction],
+        qubits: QubitSpecifier | Sequence[QubitSpecifier] | None = None,
+        clbits: ClbitSpecifier | Sequence[ClbitSpecifier] | None = None,
+        front: bool = False,
+        inplace: Literal[False] = False,
+        wrap: bool = False,
+        *,
+        copy: bool = True,
+        var_remap: (
+            Mapping[str | expr.Var | expr.Stretch, str | expr.Var | expr.Stretch] | None
+        ) = None,
+        inline_captures: bool = False,
+    ) -> "QuantumCircuit": ...
+
     def compose(
         self,
         other: Union["QuantumCircuit", Instruction],
@@ -2015,7 +2049,7 @@ class QuantumCircuit:
             Mapping[str | expr.Var | expr.Stretch, str | expr.Var | expr.Stretch] | None
         ) = None,
         inline_captures: bool = False,
-    ) -> Optional["QuantumCircuit"]:
+    ) -> "QuantumCircuit" | None:
         """Apply the instructions from one circuit onto specified qubits and/or clbits on another.
 
         .. note::
