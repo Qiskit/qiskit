@@ -89,20 +89,38 @@ pub fn run_optimize_1q_gates_decomposition(
         let target_basis_set = &mut target_basis_per_qubit[qubit.index()];
         if !target_basis_set.initialized() {
             match target {
-                Some(_target) => EULER_BASES
-                    .iter()
-                    .enumerate()
-                    .filter_map(|(idx, gates)| {
-                        if !gates
-                            .iter()
-                            .all(|gate| basis_gates.as_ref().unwrap().contains(gate))
-                        {
-                            return None;
+                Some(target) => {
+                    // Only consider names that can appear in Euler bases
+                    let mut allowed_names: HashSet<&'static str> = HashSet::new();
+                    for basis in EULER_BASES.iter() {
+                        for g in basis.iter() {
+                            allowed_names.insert(*g);
                         }
-                        let basis = EULER_BASIS_NAMES[idx];
-                        Some(basis)
-                    })
-                    .for_each(|basis| target_basis_set.add_basis(basis)),
+                    }
+                    // Gather present gate names on this qubit, intersected with allowed names.
+                    // NOTE: fixed-angle variants like "rx_30" won't match "rx" and will be excluded.
+                    let mut present_allowed: HashSet<String> = HashSet::new();
+                    if let Ok(ops) = target.operations_for_qargs(&[qubit]) {
+                        for op in ops {
+                            let name = op.operation.name();
+                            if allowed_names.contains(name) {
+                                present_allowed.insert(name.to_string());
+                            }
+                        }
+                    }
+
+                    EULER_BASES
+                        .iter()
+                        .enumerate()
+                        .filter_map(|(idx, gates)| {
+                            if !gates.iter().all(|gate| present_allowed.contains(*gate)) {
+                                return None;
+                            }
+                            Some(EULER_BASIS_NAMES[idx])
+                        })
+                        .for_each(|basis| target_basis_set.add_basis(basis));
+                }
+
                 None => match &global_decomposers {
                     Some(bases) => bases
                         .iter()
