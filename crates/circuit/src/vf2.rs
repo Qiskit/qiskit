@@ -39,7 +39,7 @@ use rustworkx_core::petgraph::visit::{
 };
 use rustworkx_core::petgraph::{Direction, Graph, Incoming, Outgoing};
 
-mod alias {
+pub mod alias {
     use std::hash::Hash;
 
     use rustworkx_core::petgraph::data::DataMap;
@@ -809,6 +809,13 @@ where
     NS: Semantics<N::NodeWeight, H::NodeWeight>,
     ES: Semantics<N::EdgeWeight, H::EdgeWeight, Score = NS::Score>,
 {
+    pub fn needle(&self) -> &N {
+        &self.needle
+    }
+    pub fn haystack(&self) -> &H {
+        &self.haystack
+    }
+
     /// Add a limit to the number of candidate extensions the algorithm is allowed to attempt.
     ///
     /// This can be used to upper-bound the runtime of the algorithm while keeping it deterministic.
@@ -1230,10 +1237,10 @@ where
     problem: Problem,
     node_semantics: NS,
     edge_semantics: ES,
-    restriction: Option<Restriction<NS::Score>>,
+    pub restriction: Option<Restriction<NS::Score>>,
     score_stack: Vec<NS::Score>,
     loop_stack: Vec<Frame<N::NodeId, H::NodeId>>,
-    remaining_calls: Option<usize>,
+    pub remaining_calls: Option<usize>,
 }
 
 impl<N, H, NId, HId, NS, ES> Vf2IntoIter<N, H, NId, HId, NS, ES>
