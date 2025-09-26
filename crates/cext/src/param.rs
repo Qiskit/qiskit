@@ -1017,31 +1017,53 @@ pub unsafe extern "C" fn qk_param_equal(lhs: *const Param, rhs: *const Param) ->
 }
 
 /// @ingroup QkParam
-/// bind values to params.
+/// Bind real values to free parameters.
 ///
-/// @param out A pointer to the QkParam to store bound result
-/// @param src A pointer to the input QkParam
-/// @param keys An array of pointer to the QkParam.
-/// @param values An array of values to be bound.
-/// @param num number of pairs of (parameter, value)
+/// This function takes the the symbols to bind and the values as two arrays, where
+/// the ``i``th element in each describes a symbol-value pair to bind. The arrays must both be
+/// readable for ``num`` elements.
 ///
-/// @return An exitcode
+/// Importantly, the symbols in the ``keys`` array must reference the same instance of the
+/// ``QkParam`` used in the symbol; it is not sufficient to match the name.
+/// Symbols that are not present in the ``QkParam`` will be omitted.
+///
+/// @param out A pointer to the ``QkParam`` to store the result.
+/// @param src A pointer to the input ``QkParam`` on which to bind parameter values.
+/// @param keys An array of pointer to the ``QkParam`` to bind. Each of these must
+///   represent a plain, unbound symbol (i.e. the direct output of ``qk_param_new_symbol``).
+/// @param values An array of ``double`` values to be bound.
+/// @param num The number of symbol-value pairs, i.e. the length of the ``keys`` and ``values``
+///   arrays.
+///
+/// @return Upon success, ``QkExitCode_Success`` is returned. A ``QkExitCode_CInputError`` indicates
+///   that a ``QkParam`` in the ``keys`` array did not represent a plain symbol.
+///   A ``QkExitCode_ArithmeticError`` indicates an error during binding the values.
 ///
 /// # Example
 ///
 /// ```c
+/// // Create the expression a+b.
 /// QkParam *a = qk_param_new_symbol("a");
 /// QkParam *b = qk_param_new_symbol("b");
-/// QkParam *c = qk_param_add(a, b);
+/// QkParam *sum = qk_param_zero();
+/// qk_param_add(sum, a, b);
+///
+/// // bind the value of b to 1.5
 /// QkParam *bound = qk_param_zero();
-/// const QkParam *keys[] = {b};
-/// qk_param_bind(bound, c, keys, {1.5}, 1);
+/// const QkParam *keys[1] = {b}; // the symbol to bind
+/// double values[1] = {1.5}; // the value to bind it to
+/// size_t num = 1; // the number of symbols we bind
+/// qk_param_bind(bound, sum, keys, values, num); // a + 1.5
 /// ```
 ///
 /// # Safety
 ///
-/// out and src should be valid pointer to QkParam
-/// keys and values should be valid pointer to array in C
+/// The behavior is undefined if any of the following is violated:
+///
+///   * ``out`` and ``src`` are valid, non-null pointers to ``QkParam`` objects
+///   * ``keys`` and ``values`` are readable arrays for ``num`` elements
+///   * each element of ``keys`` is a valid, non-null pointers to a ``QkParam``
+///
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_param_bind(
@@ -1051,28 +1073,38 @@ pub unsafe extern "C" fn qk_param_bind(
     values: *const f64,
     num: usize,
 ) -> ExitCode {
-    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    // SAFETY: Per documentation, the pointers are non-null and aligned.
     let out = unsafe { mut_ptr_as_ref(out) };
     let src = unsafe { const_ptr_as_ref(src) };
+
     if let Param::ParameterExpression(expr) = src {
-        // SAFETY: Per documentation, the pointer is non-null and aligned.
+        // SAFETY: Per documentation, ``keys`` is readable for ``num`` elements, and each
+        // element is a valid, non-null pointer.
         let keys = unsafe {
             std::slice::from_raw_parts(keys, num)
                 .iter()
                 .map(|k| const_ptr_as_ref(*k))
         };
+        let symbols = keys.map(|param: &Param| match param {
+            Param::ParameterExpression(expr) => expr.try_to_symbol_ref(),
+            _ => Err(ParameterError::NotASymbol),
+        });
+
+        // SAFETY: Per documentation, ``values`` is readable for ``num`` elements.
         let values = unsafe { std::slice::from_raw_parts(values, num) };
 
-        let mut map: HashMap<Symbol, Value> = HashMap::new();
-        keys.zip(values.iter()).for_each(|m| {
-            if let Param::ParameterExpression(e) = m.0 {
-                if let Ok(symbol) = e.try_to_symbol() {
-                    map.insert(symbol, Value::Real(*m.1));
-                }
-            }
-        });
-        let map_ref: HashMap<&Symbol, Value> = map.iter().map(|t| (t.0, *t.1)).collect();
-        let bound = expr.bind(&map_ref, false);
+        // Here we zip the two lists and propagate the Result<&Symbol> to the tuple
+        // Result<(&Symbol, Value)> so only need to collect once to trigger possible errors.
+        let map: HashMap<&Symbol, Value> = match symbols
+            .zip(values)
+            .map(|(sym, val)| sym.map(|s| (s, Value::Real(*val))))
+            .collect::<Result<_, _>>()
+        {
+            Ok(map) => map,
+            Err(_) => return ExitCode::CInputError,
+        };
+
+        let bound = expr.bind(&map, true);
         match bound {
             Ok(bound) => {
                 *out = Param::ParameterExpression(Arc::new(bound));
@@ -1081,39 +1113,66 @@ pub unsafe extern "C" fn qk_param_bind(
             Err(_) => ExitCode::ArithmeticError,
         }
     } else {
-        // return copy of input parameter
+        // If the input is not parameterized, return a copy.
         *out = src.clone();
         ExitCode::Success
     }
 }
 
 /// @ingroup QkParam
-/// substitute params to other params.
+/// Substitute symbols in a ``QkParam`` with other ``QkParam`` objects.
 ///
-/// @param out A pointer to the QkParam to store bound result
-/// @param src A pointer to the input QkParam
-/// @param keys An array of pointer to the QkParam.
-/// @param subs An array of pointer to the new QkParam.
-/// @param num number of pairs of (key, sub)
+/// This function takes the the symbols to substitute and their replacements as two arrays, where
+/// the ``i``th element in each describes a symbol-``QkParam`` pair to substitute. The arrays must
+/// both be readable for ``num`` elements.
 ///
-/// @return An exitcode
+/// Importantly, the symbols in the ``keys`` array must reference the same instance of the
+/// ``QkParam`` used in the symbol; it is not sufficient to match the name.
+/// Symbols that are not present in the ``QkParam`` will be omitted.
+///
+/// @param out A pointer to the ``QkParam`` to store the result.
+/// @param src A pointer to the input ``QkParam`` on which to substitute symbols.
+/// @param keys An array of pointer to the ``QkParam`` to bind. Each of these must
+///   represent a plain, unbound symbol (i.e. the direct output of ``qk_param_new_symbol``).
+/// @param values An array of ``QkParam`` to be used as replacements.
+/// @param num The number of symbol-value pairs, i.e. the length of the ``keys`` and ``values``
+///   arrays.
+///
+/// @return Upon success, ``QkExitCode_Success`` is returned. A ``QkExitCode_CInputError`` indicates
+///   that a ``QkParam`` in the ``keys`` array did not represent a plain symbol.
+///   A ``QkExitCode_ArithmeticError`` indicates an error during binding the values.
 ///
 /// # Example
 ///
-///     QkParam *a = qk_param_new_symbol("a");
-///     QkParam *b = qk_param_new_symbol("b");
-///     QkParam *c = qk_param_new_symbol("c");
-///     QkParam *d = qk_param_zero();
-///     qk_param_add(d, a, b);
-///     QkParam *ret = qk_param_zero();
-///     const QkParam *keys[] = {b};
-///     const QkParam *subs[] = {c};
-///     QkParam *t = qk_param_subs(ret, d, keys, subs, 1);
+/// ```c
+/// // Create a+b.
+/// QkParam *a = qk_param_new_symbol("a");
+/// QkParam *b = qk_param_new_symbol("b");
+/// QkParam *sum = qk_param_zero();
+/// qk_param_add(sum, a, b);
+///
+/// // Create 2c as replacement for b.
+/// QkParam *c = qk_param_new_symbol("c");
+/// QkParam *two = qk_param_from_double(2.0);
+/// QkParam *repl = qk_param_zero();
+/// qk_param_mul(repl, c, two);
+///
+/// // Substitute b with 2c.
+/// QkParam *out = qk_param_zero();
+/// const QkParam *keys[1] = {b};
+/// const QkParam *subs[1] = {repl};
+/// size_t num = 1;
+/// qk_param_subs(out, sum, keys, subs, 1);
+/// ```
 ///
 /// # Safety
 ///
-/// out and src should be valid pointer to QkParam
-/// keys and subs should be valid pointer to array in C
+/// The behavior is undefined if any of the following is violated:
+///
+///   * ``out`` and ``src`` are valid, non-null pointers to ``QkParam`` objects
+///   * ``keys`` and ``subs`` are readable arrays for ``num`` elements
+///   * each element of ``keys`` and ``subs`` is a valid, non-null pointers to a ``QkParam``
+///
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_param_subs(
@@ -1123,35 +1182,46 @@ pub unsafe extern "C" fn qk_param_subs(
     subs: *const *const Param,
     num: usize,
 ) -> ExitCode {
-    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    // SAFETY: Per documentation, the pointer are non-null and aligned.
     let out = unsafe { mut_ptr_as_ref(out) };
     let src = unsafe { const_ptr_as_ref(src) };
+
     if let Param::ParameterExpression(expr) = src {
-        // SAFETY: Per documentation, the pointer is non-null and aligned.
+        // SAFETY: Per documentation, ``keys`` is readable for ``num`` elements, and each
+        // element is a valid, non-null pointer.
         let keys = unsafe {
             std::slice::from_raw_parts(keys, num)
                 .iter()
                 .map(|k| const_ptr_as_ref(*k))
         };
+        let symbols = keys.map(|param: &Param| match param {
+            Param::ParameterExpression(expr) => expr.try_to_symbol(),
+            _ => Err(ParameterError::NotASymbol),
+        });
+
+        // SAFETY: Per documentation, ``subs`` is readable for ``num`` elements, and each
+        // element is a valid, non-null pointer.
         let subs = unsafe {
             std::slice::from_raw_parts(subs, num)
                 .iter()
-                .map(|s| const_ptr_as_ref(*s))
+                .map(|k| const_ptr_as_ref(*k))
+        };
+        let replacements = subs.map(|param: &Param| match param {
+            Param::ParameterExpression(expr) => expr.as_ref().clone(),
+            Param::Float(f) => ParameterExpression::from_f64(*f),
+            Param::Obj(_) => panic!("Param::Obj is unsupported in the C API."),
+        });
+
+        let map = match symbols
+            .zip(replacements)
+            .map(|(sym, expr)| sym.map(|s| (s, expr)))
+            .collect::<Result<_, _>>()
+        {
+            Ok(map) => map,
+            Err(_) => return ExitCode::CInputError,
         };
 
-        let mut map: HashMap<Symbol, ParameterExpression> = HashMap::new();
-        keys.zip(subs).for_each(|m| {
-            if let Param::ParameterExpression(e) = m.0 {
-                if let Ok(symbol) = e.try_to_symbol() {
-                    if let Param::ParameterExpression(s) = m.1 {
-                        map.insert(symbol, s.as_ref().clone());
-                    } else if let Param::Float(f) = m.1 {
-                        map.insert(symbol, ParameterExpression::from_f64(*f));
-                    }
-                }
-            }
-        });
-        let bound = expr.subs(&map, false);
+        let bound = expr.subs(&map, true);
         match bound {
             Ok(bound) => {
                 *out = Param::ParameterExpression(Arc::new(bound));
@@ -1160,7 +1230,7 @@ pub unsafe extern "C" fn qk_param_subs(
             Err(_) => ExitCode::ArithmeticError,
         }
     } else {
-        // return copy of input parameter
+        // If there are no unbound parameters, return a copy
         *out = src.clone();
         ExitCode::Success
     }
