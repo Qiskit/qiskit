@@ -80,7 +80,6 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-          # Used for the x86_64 builds.
           # Used for the ARM builds.
           - macos-14
           - windows-latest
