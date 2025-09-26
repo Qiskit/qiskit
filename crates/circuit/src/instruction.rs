@@ -22,14 +22,6 @@ use pyo3::PyObject;
 use smallvec::SmallVec;
 use std::ops::Deref;
 
-/// Implemented for various instruction-like reference types.
-///
-/// Provides ergonomic views of an underlying instruction.
-pub trait IntoInstructionView<'a> {
-    /// The type of inner circuits contained within this instruction's views.
-    type Block;
-}
-
 // TODO: rename this to PythonOperation
 /// Represents an instruction that is directly convertible to our Python API
 /// instruction type.
@@ -126,10 +118,6 @@ impl<T> Parameters<T> {
             Parameters::Blocks(blocks) => blocks.as_slice(),
         }
     }
-}
-
-impl<'a, T: Instruction> IntoInstructionView<'a> for &'a T {
-    type Block = PyObject;
 }
 
 #[derive(Clone, Debug)]
