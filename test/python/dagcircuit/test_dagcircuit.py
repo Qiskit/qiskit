@@ -3725,7 +3725,6 @@ class TestTopologicalSorter:
             for node in ready_nodes:
                 sorter.done(node)
 
-        # Verify the final sorted order by name
         sorted_names = [node.name for node in sorted_nodes]
         assert sorted_names == ["A", "B", "C"]
 
@@ -3749,14 +3748,12 @@ class TestTopologicalSorter:
         sorter = TopologicalSorter(dag)
         sorted_nodes = []
 
-        # Collect all nodes from the sorter
         while sorter:
             ready_nodes = sorter.get_ready()
             sorted_nodes.extend(ready_nodes)
             for node in ready_nodes:
                 sorter.done(node)
 
-        # In a diamond, B and C can appear in any order, but A must be first and D must be last.
         assert len(sorted_nodes) == 4
         assert sorted_nodes[0] == node_a
         assert sorted_nodes[-1] == node_d
@@ -3795,24 +3792,20 @@ class TestTopologicalSorter:
         dag.add_qreg(qr)
         q = dag.qubits
 
-        # Create a simple circuit: H on q0, then CX on q0, q1
         dag.apply_operation_back(HGate(), [q[0]], [])
         dag.apply_operation_back(CXGate(), [q[0], q[1]], [])
 
         sorter = TopologicalSorter(dag)
         sorted_nodes = []
 
-        # Run the sorter to get all nodes
         while sorter:
             ready_nodes = sorter.get_ready()
             sorted_nodes.extend(ready_nodes)
             for node in ready_nodes:
                 sorter.done(node)
 
-        # Filter for just the operation nodes to check their order
         sorted_ops = [node for node in sorted_nodes if isinstance(node, DAGOpNode)]
 
-        # Verify the operations are in the correct topological order
         assert len(sorted_ops) == 2
         assert isinstance(sorted_ops[0].op, HGate)
         assert isinstance(sorted_ops[1].op, CXGate)
