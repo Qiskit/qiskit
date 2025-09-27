@@ -315,6 +315,40 @@ class BindingsArray(ShapedMixin):
                     f"Length of {parameters} inconsistent with last dimension of {val}"
                 )
 
+    def outer(self, other: BindingsArray) -> BindingsArray:
+        """Return a new BindingsArray that represents the outer product of two BindingsArray instances.
+
+        This method first validates that the two BindingsArray instances have distinct parameters.
+        Then, it reshapes the arrays to append 1 dimension to `self` and prepend 1 dimension to `other`.
+        Finally, it constructs the data dictionary combining the two BindingsArray instances.
+
+        Args:
+            other: Another BindingsArray instance.
+
+        Returns:
+            A new BindingsArray instance that represents the outer product of the two original
+            BindingsArray instances. The shape of the new BindingsArray will be the concatenation
+            of the shapes of the two original BindingsArray instances.
+
+        Raises:
+            ValueError: If the two BindingsArray instances do not have distinct parameters.
+        """
+        if not set(self._data.keys()).isdisjoint(set(other._data.keys())):
+            raise ValueError("The two BindingsArray instances must have distinct parameters.")
+
+        new_shape = self.shape + other.shape
+        new_data = {}
+
+        for key, arr in self._data.items():
+            reshaped = arr.reshape(self.shape + (1,) * len(other.shape) + (arr.shape[-1],))
+            new_data[key] = np.broadcast_to(reshaped, new_shape + (arr.shape[-1],))
+
+        for key, arr in other._data.items():
+            reshaped = arr.reshape((1,) * len(self.shape) + other.shape + (arr.shape[-1],))
+            new_data[key] = np.broadcast_to(reshaped, new_shape + (arr.shape[-1],))
+
+        return BindingsArray(new_data, shape=new_shape)
+
 
 def _standardize_shape(val: np.ndarray, shape: tuple[int, ...]) -> np.ndarray:
     """Return ``val`` or ``val[..., None]``.
