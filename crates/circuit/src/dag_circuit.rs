@@ -244,6 +244,32 @@ pub struct DAGCircuit {
     stretches_declare: Vec<Stretch>,
 }
 
+/// A Python-facing iterator for DAG nodes yielded from Rust.
+#[pyclass(name = "TopologicalIterator", unsendable)]
+struct TopologicalNodeIterator {
+    dag: Py<DAGCircuit>,
+    nodes: std::vec::IntoIter<NodeIndex>,
+}
+
+#[pymethods]
+impl TopologicalNodeIterator {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
+        slf
+    }
+
+    fn __next__(mut slft: PyRefMut<'_, Self>) -> PyResult<Option<Py<PyAny>>> {
+        Python::attach(|py| {
+            if let Some(node_idx) = slft.nodes.next() {
+                let dag_borrow = slft.dag.borrow(py);
+                let node_obj = dag_borrow.get_node(py, node_idx)?;
+                Ok(Some(node_obj))
+            } else {
+                Ok(None)
+            }
+        })
+    }
+}
+
 #[derive(Clone, Debug)]
 struct PyLegacyResources {
     clbits: Py<PyTuple>,
@@ -1116,6 +1142,13 @@ impl DAGCircuit {
             self.add_qubit_unchecked(bit)?;
         }
         Ok(())
+    }
+
+    /// Get the internal `NodeIndex` from a Python node object.
+    fn get_node_index(&self, node: &Bound<PyAny>) -> PyResult<usize> {
+        let index_attr = node.getattr("_node_id")?;
+        let index: usize = index_attr.extract()?;
+        Ok(index)
     }
 
     /// Add individual clbit wires.
@@ -2449,31 +2482,29 @@ impl DAGCircuit {
     ///     key (Callable): A callable which will take a DAGNode object and
     ///         return a string sort key. If not specified the bit qargs and
     ///         cargs of a node will be used for sorting.
+    ///     reverse (bool): If True, yield nodes in reverse topological order.
     ///
     /// Returns:
     ///     generator(DAGOpNode, DAGInNode, or DAGOutNode): node in topological order
-    #[pyo3(name = "topological_nodes", signature=(key=None))]
+    #[pyo3(name = "topological_nodes", signature=(key=None, reverse=false))]
     fn py_topological_nodes(
-        &self,
+        slf: PyRef<Self>,
         py: Python,
         key: Option<Bound<PyAny>>,
-    ) -> PyResult<Py<PyIterator>> {
-        let nodes: PyResult<Vec<_>> = if let Some(key) = key {
-            self.topological_key_sort(py, &key)?
-                .map(|node| self.get_node(py, node))
-                .collect()
+        reverse: bool,
+    ) -> PyResult<TopologicalNodeIterator> {
+        let nodes: Vec<NodeIndex> = if let Some(key) = key {
+            slf.topological_key_sort(py, &key, reverse)?.collect()
         } else {
-            // Good path, using interner IDs.
-            self.topological_nodes()?
-                .map(|n| self.get_node(py, n))
-                .collect()
+            slf.reversible_topological_nodes(reverse)?.collect()
         };
 
-        Ok(PyTuple::new(py, nodes?)?
-            .into_any()
-            .try_iter()
-            .unwrap()
-            .unbind())
+        let dag_clone = slf.into();
+
+        Ok(TopologicalNodeIterator {
+            dag: dag_clone,
+            nodes: nodes.into_iter(),
+        })
     }
 
     /// Yield op nodes in topological order.
@@ -2484,34 +2515,33 @@ impl DAGCircuit {
     ///     key (Callable): A callable which will take a DAGNode object and
     ///         return a string sort key. If not specified the qargs and
     ///         cargs of a node will be used for sorting.
+    ///     reverse (bool): If True, yield op nodes in reverse topological order.
     ///
     /// Returns:
     ///     generator(DAGOpNode): op node in topological order
-    #[pyo3(name = "topological_op_nodes", signature=(key=None))]
+    #[pyo3(name = "topological_op_nodes", signature=(key=None, reverse=false))]
     fn py_topological_op_nodes(
-        &self,
+        slf: PyRef<Self>,
         py: Python,
         key: Option<Bound<PyAny>>,
-    ) -> PyResult<Py<PyIterator>> {
-        let nodes: PyResult<Vec<_>> = if let Some(key) = key {
-            self.topological_key_sort(py, &key)?
-                .filter_map(|node| match self.dag.node_weight(node) {
-                    Some(NodeType::Operation(_)) => Some(self.get_node(py, node)),
-                    _ => None,
-                })
+        reverse: bool,
+    ) -> PyResult<TopologicalNodeIterator> {
+        // Perform all borrow operations on `slf` first.
+        let nodes: Vec<NodeIndex> = if let Some(key) = key {
+            slf.topological_key_sort(py, &key, reverse)?
+                .filter(|node| matches!(slf.dag.node_weight(*node), Some(NodeType::Operation(_))))
                 .collect()
         } else {
-            // Good path, using interner IDs.
-            self.topological_op_nodes()?
-                .map(|n| self.get_node(py, n))
-                .collect()
+            slf.reversible_topological_op_nodes(reverse)?.collect()
         };
 
-        Ok(PyTuple::new(py, nodes?)?
-            .into_any()
-            .try_iter()
-            .unwrap()
-            .unbind())
+        // NOW, consume `slf` to create the owned handle for the iterator.
+        let dag_clone = slf.into();
+
+        Ok(TopologicalNodeIterator {
+            dag: dag_clone,
+            nodes: nodes.into_iter(),
+        })
     }
 
     /// Replace a block of nodes with a single node.
@@ -5631,16 +5661,47 @@ impl DAGCircuit {
         Ok(nodes.into_iter())
     }
 
+    fn reversible_topological_nodes(
+        &self,
+        reverse: bool,
+    ) -> PyResult<impl Iterator<Item = NodeIndex>> {
+        let key = |node: NodeIndex| -> Result<SortKeyType, Infallible> { Ok(self.sort_key(node)) };
+        let nodes = rustworkx_core::dag_algo::lexicographical_topological_sort(
+            &self.dag, key, reverse, None,
+        )
+        .map_err(|e| match e {
+            rustworkx_core::dag_algo::TopologicalSortError::CycleOrBadInitialState => {
+                PyValueError::new_err(format!("{e}"))
+            }
+            rustworkx_core::dag_algo::TopologicalSortError::KeyError(_) => {
+                unreachable!()
+            }
+        })?;
+        Ok(nodes.into_iter())
+    }
+
     pub fn topological_op_nodes(&self) -> PyResult<impl Iterator<Item = NodeIndex> + '_> {
         Ok(self.topological_nodes()?.filter(|node: &NodeIndex| {
             matches!(self.dag.node_weight(*node), Some(NodeType::Operation(_)))
         }))
     }
 
+    pub fn reversible_topological_op_nodes(
+        &self,
+        reverse: bool,
+    ) -> PyResult<impl Iterator<Item = NodeIndex> + '_> {
+        Ok(self
+            .reversible_topological_nodes(reverse)?
+            .filter(|node: &NodeIndex| {
+                matches!(self.dag.node_weight(*node), Some(NodeType::Operation(_)))
+            }))
+    }
+
     fn topological_key_sort(
         &self,
         py: Python,
         key: &Bound<PyAny>,
+        reverse: bool,
     ) -> PyResult<impl Iterator<Item = NodeIndex>> {
         // This path (user provided key func) is not ideal, since we no longer
         // use a string key after moving to Rust, in favor of using a tuple
@@ -5649,18 +5710,16 @@ impl DAGCircuit {
             let node = self.get_node(py, node)?;
             key.call1((node,))?.extract()
         };
-        Ok(
-            rustworkx_core::dag_algo::lexicographical_topological_sort(&self.dag, key, false, None)
-                .map_err(|e| match e {
-                    rustworkx_core::dag_algo::TopologicalSortError::CycleOrBadInitialState => {
-                        PyValueError::new_err(format!("{e}"))
-                    }
-                    rustworkx_core::dag_algo::TopologicalSortError::KeyError(ref e) => {
-                        e.clone_ref(py)
-                    }
-                })?
-                .into_iter(),
+        Ok(rustworkx_core::dag_algo::lexicographical_topological_sort(
+            &self.dag, key, reverse, None,
         )
+        .map_err(|e| match e {
+            rustworkx_core::dag_algo::TopologicalSortError::CycleOrBadInitialState => {
+                PyValueError::new_err(format!("{e}"))
+            }
+            rustworkx_core::dag_algo::TopologicalSortError::KeyError(ref e) => e.clone_ref(py),
+        })?
+        .into_iter())
     }
 
     #[inline]
@@ -8005,6 +8064,155 @@ pub(crate) fn add_global_phase(phase: &Param, other: &Param) -> PyResult<Param> 
 }
 
 type SortKeyType<'a> = (&'a [Qubit], &'a [Clbit]);
+
+#[pyclass(
+    name = "TopologicalSorter",
+    module = "qiskit._accelerate.circuit",
+    unsendable
+)]
+pub struct TopologicalSorter {
+    dag: Py<DAGCircuit>,
+    node_degrees: HashMap<NodeIndex, usize>,
+    ready_queue: VecDeque<NodeIndex>,
+    num_passed_out: usize,
+    num_finished: usize,
+    total_nodes: usize,
+    reverse: bool,
+}
+
+#[pymethods]
+impl TopologicalSorter {
+    #[new]
+    #[pyo3(signature = (dag, /, reverse = false, initial = None))]
+    pub fn new(
+        py: Python,
+        dag: Py<DAGCircuit>,
+        reverse: bool,
+        initial: Option<Vec<Py<PyAny>>>,
+    ) -> PyResult<Self> {
+        let dag_borrow = dag.borrow(py);
+        let graph = &dag_borrow.dag;
+
+        let mut node_degrees: HashMap<NodeIndex, usize> = HashMap::new();
+        let mut ready_queue: VecDeque<NodeIndex> = VecDeque::new();
+        let total_nodes;
+
+        let (in_dir, out_dir) = if !reverse {
+            (Incoming, Outgoing)
+        } else {
+            (Outgoing, Incoming)
+        };
+
+        if let Some(initial_nodes) = initial {
+            let initial_indices: Vec<NodeIndex> = initial_nodes
+                .into_iter()
+                .map(|node_obj| dag_borrow.get_node_index(node_obj.bind(py)))
+                .collect::<PyResult<Vec<_>>>()?
+                .into_iter()
+                .map(NodeIndex::new)
+                .collect();
+
+            // --- partial sort starting from 'initial' nodes ---
+            let initial_set: HashSet<NodeIndex> = initial_indices.iter().cloned().collect();
+            for start_node in &initial_indices {
+                let mut bfs_queue: VecDeque<NodeIndex> =
+                    graph.neighbors_directed(*start_node, out_dir).collect();
+                while let Some(node) = bfs_queue.pop_front() {
+                    if initial_set.contains(&node) {
+                        return Err(PyValueError::new_err(
+                            "The 'initial' nodes are not independent; one is a descendant of another.",
+                        ));
+                    }
+                    bfs_queue.extend(graph.neighbors_directed(node, out_dir));
+                }
+            }
+
+            ready_queue.extend(initial_indices.iter());
+
+            //  Find all reachable nodes to get the correct count for the subgraph.
+            let mut reachable_nodes: HashSet<NodeIndex> = initial_indices.iter().cloned().collect();
+            let mut bfs_queue: VecDeque<NodeIndex> = initial_indices.into();
+            while let Some(node_idx) = bfs_queue.pop_front() {
+                for successor in graph.neighbors_directed(node_idx, out_dir) {
+                    if reachable_nodes.insert(successor) {
+                        bfs_queue.push_back(successor);
+                    }
+                }
+            }
+            total_nodes = reachable_nodes.len();
+        } else {
+            // --- logic for a full graph sort ---
+            total_nodes = graph.node_count();
+            node_degrees = graph
+                .node_indices()
+                .map(|n| (n, graph.neighbors_directed(n, in_dir).count()))
+                .collect();
+
+            for (node, &degree) in &node_degrees {
+                if degree == 0 {
+                    ready_queue.push_back(*node);
+                }
+            }
+        }
+
+        Ok(TopologicalSorter {
+            dag: dag.clone(),
+            node_degrees,
+            ready_queue,
+            num_passed_out: 0, // Should start at 0
+            num_finished: 0,
+            total_nodes,
+            reverse,
+        })
+    }
+
+    /// Returns True if the sort is still in progress.
+    pub fn is_active(&self) -> bool {
+        self.num_finished < self.total_nodes
+    }
+
+    /// Returns a list of all nodes that are ready to be processed.
+    pub fn get_ready(&mut self, py: Python) -> PyResult<Vec<Py<PyAny>>> {
+        let dag_borrow = self.dag.borrow(py);
+        let ready_nodes_py = self
+            .ready_queue
+            .iter()
+            .map(|&node_idx| dag_borrow.get_node(py, node_idx))
+            .collect::<PyResult<Vec<Py<PyAny>>>>()?;
+
+        self.ready_queue.clear();
+        Ok(ready_nodes_py)
+    }
+
+    /// Marks a node as processed.
+    pub fn done(&mut self, py: Python, node: &Bound<PyAny>) -> PyResult<()> {
+        let dag_borrow = self.dag.borrow(py);
+        let graph = &dag_borrow.dag;
+        let node_idx = dag_borrow.get_node_index(node)?;
+
+        let (_, out_dir) = if !self.reverse {
+            (Incoming, Outgoing)
+        } else {
+            (Outgoing, Incoming)
+        };
+
+        for neighbor_idx in graph.neighbors_directed(NodeIndex::new(node_idx), out_dir) {
+            let degree = self.node_degrees.get_mut(&neighbor_idx).unwrap();
+            *degree -= 1;
+            if *degree == 0 {
+                self.ready_queue.push_back(neighbor_idx);
+            }
+        }
+
+        self.num_finished += 1;
+        self.num_passed_out += self.ready_queue.len();
+        Ok(())
+    }
+
+    fn __bool__(&self) -> bool {
+        self.is_active()
+    }
+}
 
 #[cfg(all(test, not(miri)))]
 mod test {
