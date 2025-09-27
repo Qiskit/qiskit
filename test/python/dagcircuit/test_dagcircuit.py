@@ -27,7 +27,14 @@ from ddt import ddt, data
 import numpy as np
 from numpy import pi
 
-from qiskit.dagcircuit import DAGCircuit, DAGOpNode, DAGInNode, DAGOutNode, DAGCircuitError
+from qiskit.dagcircuit import (
+    DAGCircuit,
+    DAGOpNode,
+    DAGInNode,
+    DAGOutNode,
+    DAGCircuitError,
+    TopologicalSorter,
+)
 from qiskit.circuit import (
     QuantumCircuit,
     QuantumRegister,
@@ -3689,6 +3696,126 @@ class TestStructurallyEqual(QiskitTestCase):
         # ... but not structural.  If the node we removed was the final node, it _might_ be ok, but
         # that'd still be an implementation detail.
         self.assertFalse(left.structurally_equal(right))
+
+
+class TestTopologicalSorter:
+    """
+    Test suite for the interactive TopologicalSorter.
+    """
+
+    def test_topological_sort_linear_graph(self):
+        """
+        Tests a simple A -> B -> C graph.
+        """
+        dag = DAGCircuit()
+        node_a = dag.add_node("A")
+        node_b = dag.add_node("B")
+        node_c = dag.add_node("C")
+        dag.add_edge(node_a, node_b)
+        dag.add_edge(node_b, node_c)
+
+        sorter = TopologicalSorter(dag)
+        sorted_nodes = []
+
+        while sorter:
+            ready_nodes = sorter.get_ready()
+            assert ready_nodes is not None
+            ready_nodes.sort(key=lambda n: n.name)
+            sorted_nodes.extend(ready_nodes)
+            for node in ready_nodes:
+                sorter.done(node)
+
+        # Verify the final sorted order by name
+        sorted_names = [node.name for node in sorted_nodes]
+        assert sorted_names == ["A", "B", "C"]
+
+    def test_topological_sort_diamond_graph(self):
+        """
+        Tests a graph with a fork and a join.
+        A -> B \
+                 -> D
+        A -> C /
+        """
+        dag = DAGCircuit()
+        node_a = dag.add_node("A")
+        node_b = dag.add_node("B")
+        node_c = dag.add_node("C")
+        node_d = dag.add_node("D")
+        dag.add_edge(node_a, node_b)
+        dag.add_edge(node_a, node_c)
+        dag.add_edge(node_b, node_d)
+        dag.add_edge(node_c, node_d)
+
+        sorter = TopologicalSorter(dag)
+        sorted_nodes = []
+
+        # Collect all nodes from the sorter
+        while sorter:
+            ready_nodes = sorter.get_ready()
+            sorted_nodes.extend(ready_nodes)
+            for node in ready_nodes:
+                sorter.done(node)
+
+        # In a diamond, B and C can appear in any order, but A must be first and D must be last.
+        assert len(sorted_nodes) == 4
+        assert sorted_nodes[0] == node_a
+        assert sorted_nodes[-1] == node_d
+        assert {sorted_nodes[1], sorted_nodes[2]} == {node_b, node_c}
+
+    def test_topological_sort_reverse(self):
+        """
+        Tests the reverse topological sort.
+        """
+        dag = DAGCircuit()
+        node_a = dag.add_node("A")
+        node_b = dag.add_node("B")
+        node_c = dag.add_node("C")
+        dag.add_edge(node_a, node_b)
+        dag.add_edge(node_b, node_c)
+
+        sorter = TopologicalSorter(dag, reverse=True)
+        sorted_nodes = []
+
+        while sorter:
+            ready_nodes = sorter.get_ready()
+            ready_nodes.sort(key=lambda n: n.name)
+            sorted_nodes.extend(ready_nodes)
+            for node in ready_nodes:
+                sorter.done(node)
+
+        sorted_names = [node.name for node in sorted_nodes]
+        assert sorted_names == ["C", "B", "A"]
+
+    def test_topological_sort_with_real_gates(self):
+        """
+        Tests the sorter with actual Qiskit Gate objects.
+        """
+        dag = DAGCircuit()
+        qr = QuantumRegister(2, "q")
+        dag.add_qreg(qr)
+        q = dag.qubits
+
+        # Create a simple circuit: H on q0, then CX on q0, q1
+        dag.apply_operation_back(HGate(), [q[0]], [])
+        dag.apply_operation_back(CXGate(), [q[0], q[1]], [])
+
+        sorter = TopologicalSorter(dag)
+        sorted_nodes = []
+
+        # Run the sorter to get all nodes
+        while sorter:
+            ready_nodes = sorter.get_ready()
+            sorted_nodes.extend(ready_nodes)
+            for node in ready_nodes:
+                sorter.done(node)
+
+        # Filter for just the operation nodes to check their order
+        sorted_ops = [node for node in sorted_nodes if isinstance(node, DAGOpNode)]
+
+        # Verify the operations are in the correct topological order
+        assert len(sorted_ops) == 2
+        assert isinstance(sorted_ops[0].op, HGate)
+        assert isinstance(sorted_ops[1].op, CXGate)
 
 
 if __name__ == "__main__":

@@ -48,7 +48,7 @@ Utilities
    BlockSplitter
 """
 from .collect_blocks import BlockCollapser, BlockCollector, BlockSplitter
-from .dagcircuit import DAGCircuit
+from .dagcircuit import DAGCircuit, TopologicalSorter
 from .dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
 from .dagdepnode import DAGDepNode
 from .exceptions import DAGCircuitError, DAGDependencyError
