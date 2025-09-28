@@ -17,17 +17,16 @@ use num_complex::Complex64;
 use num_complex::ComplexFloat;
 use pyo3::prelude::*;
 use pyo3::{pyfunction, wrap_pyfunction, Bound, PyResult};
-use qiskit_circuit::circuit_instruction::OperationFromPython;
 use smallvec::smallvec;
 
 use crate::commutation_checker::CommutationChecker;
 use crate::gate_metrics::rotation_trace_and_dim;
+use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::{
     multiply_param, radd_param, Operation, OperationRef, Param, StandardGate,
 };
-
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::VarsMode;
 
@@ -135,15 +134,15 @@ fn is_identity_equiv(
     (false, 0.)
 }
 
-/// Holds the action for each node in the original DAGCircuit
-// ToDo: see if we should store something other than PackedInstruction
-// ToDo: store (PackedOperation, qubits, clbits, params),
-// both for Canonical & Replace
+/// Holds the action for each node in the original DAGCircuit.
 #[derive(Clone, Debug)]
 enum NodeAction {
     /// The node's instruction is unchanged, and can be retrieved from the circuit.
     Keep,
-    /// The node's instruction can be replaced by this representative.
+    /// The node's instruction can be replaced by this representative
+    /// (the second parameter specifies the global phase update).
+    /// However, unless this representative gate is removed or merged,
+    /// we will add the original instruction to the output circuit.
     Canonical(PackedInstruction, Param),
     /// The node's instruction has been removed.
     Drop,
@@ -151,7 +150,7 @@ enum NodeAction {
     Replace(PackedInstruction),
 }
 
-/// Returns true if the two parameter lists are equal
+/// Returns true if the two parameter lists are equal.
 fn compare_params(params1: &[Param], params2: &[Param]) -> bool {
     if params1.len() != params2.len() {
         return false;
@@ -168,6 +167,7 @@ fn compare_params(params1: &[Param], params2: &[Param]) -> bool {
     true
 }
 
+/// List of 2-qubit symmetric gates, that is `G(q1, q2) = G(q2, q1)`.
 static SYMMETRIC_GATES: [StandardGate; 13] = [
     StandardGate::CZ,
     StandardGate::Swap,
@@ -184,13 +184,26 @@ static SYMMETRIC_GATES: [StandardGate; 13] = [
     StandardGate::CCZ,
 ];
 
-/// Computes the canonical representative of a packed instruction, replacing all types of Z-rotations
-/// by RZ-gates and all types of X-rotations by RX-gates (including the global phase update).
-/// SHOULD BE CALLED WITH NEW_DAG
+/// Computes the canonical representative of a packed instruction, and in particular:
+/// * replaces all types of Z-rotations by RZ-gates,
+/// * replaces all types of X-rotations by RX-gates,
+/// * sorts the qubits for symmetric gates.
+///
+/// # Arguments:
+///
+/// * `dag` - The output [DAGCircuit]. We use its `qargs_interner` to store sorted
+///   qubits for symmetric gates.
+/// * `inst` - The instruction to canonicalize.
+///
+/// # Returns:
+///
+/// The canonical instruction and the global phase update. `None` means that the
+/// original instruction is already canonical.
 fn canonicalize(
     dag: &mut DAGCircuit,
     inst: &PackedInstruction,
 ) -> Option<(PackedInstruction, Param)> {
+    // ToDo: possibly consider other rotations as well (e.g. CS -> CRZ).
     let rotation = match inst.op.view() {
         OperationRef::StandardGate(StandardGate::Phase)
         | OperationRef::StandardGate(StandardGate::U1) => Some((
@@ -264,7 +277,14 @@ fn canonicalize(
     None
 }
 
-// Return `true` if two instructions commute.
+/// Return `true` if two instructions commute (up to the specified tolerance).
+///
+/// # Arguments:
+///
+/// * `dag`: The output [DAGCircuit] that contains all interned qubits.
+/// * `approximation_degree`: Specifies tolerance.
+/// * `max_qubits`: The maximum number of qubits to use for more expensive
+///   matrix-based checks.
 fn commute(
     dag: &DAGCircuit,
     inst1: &PackedInstruction,
@@ -298,27 +318,28 @@ fn commute(
         .expect("Commutation checker should work")
 }
 
-// Return true + global phase update if two instructions cancel out
-// symmetric cases?
-// handle more general gates, e.g. PauliEvo
-// todo: handle up to phase, like CIC
-// todo: handle symmetric gates, like rxx
-
-// Return true + new instruction if two instructions can be merged
-// # standard Pauli rotations to merge
-// symmetric_rotations = {"p", "rx", "ry", "rz", "rxx", "ryy", "rzz"}
-// asymmetric_rotations = {"crx", "cry", "crz", "cp", "rzx"}
-// todo: handle merging symmetric gates
-// assumption: gates have already beeen canonicalized
-// todo: check if merges are close to id
-
-// output:
-// (can merge, result, global phase update)
-// if can_merge is false, cannot be merged
-// if can merge is true, and None, cancel out
-// if can merge is true and Some, merged into single
-// third arg: global phase update
-fn can_merge(
+/// Merge two instructions.
+///
+/// The two instructions have already been canonicalized.
+///
+/// Arguments:
+///
+/// * `py`: We need a Python token to habdle Pauli evolution gates.
+/// * `dag`: The output [DAGCircuit] that contains all interned qubits.
+/// * `tol`: Specifies tolerance.
+/// * `max_qubits`: The maximum number of qubits to use for more expensive
+///   matrix-based checks.
+///
+/// # Returns:
+///
+/// A triple, consisting of whether the two instructions can be merged, the
+/// merged instruction (`None` if the two instructions cancel out, up to a
+/// global phase), and the global phase update. In other words:
+/// * (true, None, phase_update): the two instructions cancel out, producing
+///   the given global phase.
+/// * (true, Some(instruction), phase_update): the two instructions are merged.
+/// * (false, None, 0.): the two instructions cannot be merged.
+fn try_merge(
     py: Python,
     dag: &DAGCircuit,
     inst1: &PackedInstruction,
@@ -330,9 +351,6 @@ fn can_merge(
         return Ok((false, None, 0.));
     }
 
-    // examine cases
-    // let op1 = inst1.op.view();
-    // let op2 = inst2.op.view();
     let params1 = inst1.params_view();
     let params2 = inst2.params_view();
     let qargs1 = dag.get_qargs(inst1.qubits);
@@ -435,10 +453,6 @@ fn can_merge(
     Ok((false, None, 0.))
 }
 
-// ToDo:
-// uptophase inverse check -- as per CIC?
-// ToDo: should we check if the gate in the circuit can be already removed?
-// (ie apply can_remove on gates, not only on merged gates)
 #[pyfunction]
 #[pyo3(name = "commutative_optimization")]
 #[pyo3(signature = (dag, commutation_checker, approximation_degree=1., max_qubits=3))]
@@ -451,8 +465,10 @@ pub fn run_commutative_optimization(
 ) -> PyResult<Option<DAGCircuit>> {
     let tol = 1e-12_f64.max(1. - approximation_degree);
 
-    // Create new DAG.
-    // We will use it to produce PackedInstructions.
+    // Create output DAG.
+    // We will use it to intern qubits of canonicalized instructions.
+    // (In theory, we could also change qubits when merging instructions, however
+    // this does not happen right now).
     let mut new_dag = dag.copy_empty_like(VarsMode::Alike)?;
 
     let node_indices = dag.topological_op_nodes()?.collect::<Vec<_>>();
@@ -498,7 +514,7 @@ pub fn run_commutative_optimization(
             };
 
             let (can_be_merged, merged_instruction, phase_update) =
-                can_merge(py, &new_dag, instr1, instr2, tol, max_qubits)?;
+                try_merge(py, &new_dag, instr1, instr2, tol, max_qubits)?;
 
             if can_be_merged {
                 if let Some(merged_instruction) = merged_instruction {
