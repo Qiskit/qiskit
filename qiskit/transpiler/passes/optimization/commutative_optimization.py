@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Remove CIC and CC."""
+"""Commutative Optimization transpiler pass."""
 
 
 from qiskit.transpiler.basepasses import TransformationPass
@@ -22,20 +22,36 @@ from qiskit.transpiler.passes.utils.control_flow import trivial_recurse
 
 
 class CommutativeOptimization(TransformationPass):
-    """ToDo"""
+    """
+    Cancel/merge gates exploiting commutativity relations.
 
-    def __init__(self):
+    The pass will:
+
+    * Cancel pairs of inverse gates.
+    * Cancels pairs of gates that are inverse up to a global phase (adjusting
+      the global phase accordingly).
+    * Combines different types of RZ-rotations into an RZ-gate.
+    * Combines different types of RX-rotations into an RX-gate.
+
+    This pass generalizes both :class:`.CommutativeCancellation` and
+    :class:`.CommutativeInverseCancellation` transpiler passes.
+    """
+
+    def __init__(self, approximation_degree: float = 1.0, max_qubits: int = 4):
         """
-        ToDo
+        Args:
+            approximation_degree: Used in the tolerance computations.
+            max_qubits: Limits the number of qubits in matrix-based commutativity and
+                inverse checks.
         """
         super().__init__()
-
-        # ToDo: not sure about this
-        self._commutation_checker = scc.cc
+        self.commutation_checker = scc.cc
+        self.approximation_degree = approximation_degree
+        self.max_qubits = max_qubits
 
     @trivial_recurse
     def run(self, dag):
-        """Run the CommutativeCancellation pass on `dag`.
+        """Run the CommutativeOptimization pass on `dag`.
 
         Args:
             dag (DAGCircuit): the DAG to be optimized.
@@ -43,7 +59,9 @@ class CommutativeOptimization(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
-        result = commutative_optimization.commutative_optimization(dag, self._commutation_checker)
+        result = commutative_optimization.commutative_optimization(
+            dag, self.commutation_checker, self.approximation_degree, self.max_qubits
+        )
 
         # If the pass did not do anything, the result is None
         if result is None:

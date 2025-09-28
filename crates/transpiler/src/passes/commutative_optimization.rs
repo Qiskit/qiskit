@@ -455,7 +455,7 @@ fn try_merge(
 
 #[pyfunction]
 #[pyo3(name = "commutative_optimization")]
-#[pyo3(signature = (dag, commutation_checker, approximation_degree=1., max_qubits=3))]
+#[pyo3(signature = (dag, commutation_checker, approximation_degree=1., max_qubits=4))]
 pub fn run_commutative_optimization(
     py: Python,
     dag: &mut DAGCircuit,

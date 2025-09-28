@@ -359,9 +359,10 @@ def merge_two_pauli_evolutions(
 
     Returns:
 
-    * None id the arguments are not of type PauliEvolutionGate or cannot be merged
-    * Combined PauliEvolutionGate otherwise
+    * None if the arguments are not of type PauliEvolutionGate or cannot be merged,
+    * Combined PauliEvolutionGate otherwise.
 
+    This function is internal (used from within Rust code) and not a part of public API.
     """
     if not isinstance(gate1, PauliEvolutionGate) or not isinstance(gate2, PauliEvolutionGate):
         return None
@@ -378,7 +379,7 @@ def pauli_rotation_trace_and_dim(gate: PauliEvolutionGate) -> tuple[complex, int
     For a multi-qubit Pauli rotation, return a tuple ``(Tr(gate) / dim, dim)``.
     Return `None` othewise.
 
-    This function is internal and not a part of public API.
+    This function is internal (used from within Rust code) and not a part of public API.
     """
     # Is it even a PauliEvolutionGate?
     if not isinstance(gate, PauliEvolutionGate):
