@@ -17,7 +17,6 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
 
 from qiskit._accelerate import commutative_optimization
-from qiskit._accelerate.commutation_checker import CommutationChecker
 
 from qiskit.transpiler.passes.utils.control_flow import trivial_recurse
 

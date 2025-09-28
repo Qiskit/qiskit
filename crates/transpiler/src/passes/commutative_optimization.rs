@@ -12,48 +12,50 @@
 
 use std::f64::consts::PI;
 
-use pyo3::prelude::*;
+use ndarray::ArrayView2;
 use num_complex::Complex64;
 use num_complex::ComplexFloat;
-use ndarray::ArrayView2;
+use pyo3::prelude::*;
 use pyo3::{pyfunction, wrap_pyfunction, Bound, PyResult};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use smallvec::smallvec;
 
 use crate::commutation_checker::CommutationChecker;
+use crate::gate_metrics::rotation_trace_and_dim;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::{
     multiply_param, radd_param, Operation, OperationRef, Param, StandardGate,
 };
-use crate::gate_metrics::rotation_trace_and_dim;
 
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::VarsMode;
 
-
 /// Check if the given matrix is equivalent to identity up to a global phase, up to
-/// the specified tolerance `tol`. If this is the case, return the tuple 
+/// the specified tolerance `tol`. If this is the case, return the tuple
 /// `(true, global_phase)`, and if not, return the tuple `(false, 0.)`.
 fn is_mat_identity_equiv(mat: ArrayView2<Complex64>, tol: f64) -> (bool, f64) {
     let dim = mat.shape()[0] as f64;
     let tr_over_dim = mat.diag().iter().sum::<Complex64>() / dim;
     let f_pro = tr_over_dim.abs().powi(2);
     let gate_fidelity = (dim * f_pro + 1.) / (dim + 1.);
-    
+
     if (1. - gate_fidelity).abs() < tol {
         (true, tr_over_dim.arg())
-    }
-    else {
+    } else {
         (false, 0.)
     }
 }
 
 /// Check if the given operation is equivalent to identity up to a global phase, up to
-/// the specified tolerance `tol`. If this is the case, return the tuple 
+/// the specified tolerance `tol`. If this is the case, return the tuple
 /// `(true, global_phase)`, and if not, return the tuple `(false, 0.)`.
-fn is_identity_equiv(py: Python, inst: &PackedInstruction, tol: f64, max_qubits: u32) -> (bool, f64)
-{
+fn is_identity_equiv(
+    py: Python,
+    inst: &PackedInstruction,
+    tol: f64,
+    max_qubits: u32,
+) -> (bool, f64) {
     if inst.is_parameterized() {
         // Skip parameterized gates
         return (false, 0.);
@@ -63,82 +65,75 @@ fn is_identity_equiv(py: Python, inst: &PackedInstruction, tol: f64, max_qubits:
 
     // Handle standard gates
     if let OperationRef::StandardGate(gate) = view {
-            let (tr_over_dim, dim) = match gate {
-                StandardGate::RX
-                | StandardGate::RY
-                | StandardGate::RZ
-                | StandardGate::Phase
-                | StandardGate::RXX
-                | StandardGate::RYY
-                | StandardGate::RZX
-                | StandardGate::RZZ
-                | StandardGate::CRX
-                | StandardGate::CRY
-                | StandardGate::CRZ
-                | StandardGate::CPhase => {
-                    if let Param::Float(angle) = inst.params_view()[0] {
-                        let (tr_over_dim, dim) =
-                            rotation_trace_and_dim(gate, angle).expect("Since only supported rotation gates are given, the result is not None");
-                        (tr_over_dim, dim)
-                    } else {
-                        return (false, 0.);
-                    }
-                }
-                _ => {
-                    if let Some(matrix) = gate.matrix(inst.params_view()) {
-                        let dim = matrix.shape()[0] as f64;
-                        let tr_over_dim = matrix.diag().iter().sum::<Complex64>() / dim;
-                        (tr_over_dim, dim)
-                    } else {
-                        return (false, 0.);
-                    }
-                }
-            };
-            
-            let f_pro = tr_over_dim.abs().powi(2);
-            let gate_fidelity = (dim * f_pro + 1.) / (dim + 1.);
-            if (1. - gate_fidelity).abs() < tol {
-                return (true, tr_over_dim.arg());
-            }
-            else {
-                return (false, 0.);
-            }
-        }
-
-        // Perform matrix-based check.
-        if inst.op.num_qubits() <= max_qubits {
-            if let Some(matrix) = view.matrix(inst.params_view()) {
-                return is_mat_identity_equiv(matrix.view(), tol);
-            }
-        }
-
-        // Special handling for large pauli rotation gates.
-        if let OperationRef::Gate(py_gate) = view {
-            let result = imports::PAULI_ROTATION_TRACE_AND_DIM.get_bound(py).call1((py_gate.gate.clone_ref(py),));
-            let result = result.unwrap();
-            let result: Option<(Complex64, usize)> = result.extract().unwrap();
-            if let Some((tr_over_dim, dim)) = result {
-            
-                let f_pro = tr_over_dim.abs().powi(2);
-                let gate_fidelity = (dim as f64 * f_pro + 1.) / (dim as f64 + 1.);
-                if (1. - gate_fidelity).abs() < tol {
-                    return (true, tr_over_dim.arg());
-                }
-                else {
+        let (tr_over_dim, dim) = match gate {
+            StandardGate::RX
+            | StandardGate::RY
+            | StandardGate::RZ
+            | StandardGate::Phase
+            | StandardGate::RXX
+            | StandardGate::RYY
+            | StandardGate::RZX
+            | StandardGate::RZZ
+            | StandardGate::CRX
+            | StandardGate::CRY
+            | StandardGate::CRZ
+            | StandardGate::CPhase => {
+                if let Param::Float(angle) = inst.params_view()[0] {
+                    let (tr_over_dim, dim) = rotation_trace_and_dim(gate, angle).expect(
+                        "Since only supported rotation gates are given, the result is not None",
+                    );
+                    (tr_over_dim, dim)
+                } else {
                     return (false, 0.);
                 }
             }
+            _ => {
+                if let Some(matrix) = gate.matrix(inst.params_view()) {
+                    let dim = matrix.shape()[0] as f64;
+                    let tr_over_dim = matrix.diag().iter().sum::<Complex64>() / dim;
+                    (tr_over_dim, dim)
+                } else {
+                    return (false, 0.);
+                }
+            }
+        };
 
+        let f_pro = tr_over_dim.abs().powi(2);
+        let gate_fidelity = (dim * f_pro + 1.) / (dim + 1.);
+        if (1. - gate_fidelity).abs() < tol {
+            return (true, tr_over_dim.arg());
+        } else {
+            return (false, 0.);
         }
-
-        return (false, 0.);
     }
 
+    // Perform matrix-based check.
+    if inst.op.num_qubits() <= max_qubits {
+        if let Some(matrix) = view.matrix(inst.params_view()) {
+            return is_mat_identity_equiv(matrix.view(), tol);
+        }
+    }
 
+    // Special handling for large pauli rotation gates.
+    if let OperationRef::Gate(py_gate) = view {
+        let result = imports::PAULI_ROTATION_TRACE_AND_DIM
+            .get_bound(py)
+            .call1((py_gate.gate.clone_ref(py),));
+        let result = result.unwrap();
+        let result: Option<(Complex64, usize)> = result.extract().unwrap();
+        if let Some((tr_over_dim, dim)) = result {
+            let f_pro = tr_over_dim.abs().powi(2);
+            let gate_fidelity = (dim as f64 * f_pro + 1.) / (dim as f64 + 1.);
+            if (1. - gate_fidelity).abs() < tol {
+                return (true, tr_over_dim.arg());
+            } else {
+                return (false, 0.);
+            }
+        }
+    }
 
-    
-
-
+    (false, 0.)
+}
 
 /// Holds the action for each node in the original DAGCircuit
 // ToDo: see if we should store something other than PackedInstruction
@@ -186,16 +181,16 @@ static SYMMETRIC_GATES: [StandardGate; 13] = [
     StandardGate::RZZ,
     StandardGate::XXMinusYY,
     StandardGate::XXPlusYY,
-    StandardGate::CCZ
+    StandardGate::CCZ,
 ];
-
-
-
 
 /// Computes the canonical representative of a packed instruction, replacing all types of Z-rotations
 /// by RZ-gates and all types of X-rotations by RX-gates (including the global phase update).
 /// SHOULD BE CALLED WITH NEW_DAG
-fn canonicalize(dag: &mut DAGCircuit, inst: &PackedInstruction) -> Option<(PackedInstruction, Param)> {
+fn canonicalize(
+    dag: &mut DAGCircuit,
+    inst: &PackedInstruction,
+) -> Option<(PackedInstruction, Param)> {
     let rotation = match inst.op.view() {
         OperationRef::StandardGate(StandardGate::Phase)
         | OperationRef::StandardGate(StandardGate::U1) => Some((
@@ -257,15 +252,17 @@ fn canonicalize(dag: &mut DAGCircuit, inst: &PackedInstruction) -> Option<(Packe
                 let mut sorted_qargs = qargs.to_vec();
                 sorted_qargs.sort();
                 let sorted_qubits = dag.add_qargs(&sorted_qargs);
-                let canonical_instruction = PackedInstruction::from_standard_gate(standard_gate, inst.params.clone(), sorted_qubits);
+                let canonical_instruction = PackedInstruction::from_standard_gate(
+                    standard_gate,
+                    inst.params.clone(),
+                    sorted_qubits,
+                );
                 return Some((canonical_instruction, Param::Float(0.)));
             }
-
         }
     }
     None
 }
-
 
 // Return `true` if two instructions commute.
 fn commute(
@@ -274,7 +271,7 @@ fn commute(
     inst2: &PackedInstruction,
     approximation_degree: f64,
     max_qubits: u32,
-    commutation_checker: &mut CommutationChecker
+    commutation_checker: &mut CommutationChecker,
 ) -> bool {
     let op1 = inst1.op.view();
     let op2 = inst2.op.view();
@@ -300,8 +297,6 @@ fn commute(
         )
         .expect("Commutation checker should work")
 }
-
-
 
 // Return true + global phase update if two instructions cancel out
 // symmetric cases?
@@ -331,11 +326,10 @@ fn can_merge(
     tol: f64,
     max_qubits: u32,
 ) -> PyResult<(bool, Option<PackedInstruction>, f64)> {
-
     if inst1.op.num_qubits() != inst2.op.num_qubits() {
         return Ok((false, None, 0.));
     }
-    
+
     // examine cases
     // let op1 = inst1.op.view();
     // let op2 = inst2.op.view();
@@ -380,7 +374,8 @@ fn can_merge(
         let params = Some(Box::new(smallvec![merged_param]));
         let merged_instruction =
             PackedInstruction::from_standard_gate(merged_gate, params, inst1.qubits);
-        let (can_be_removed, phase_update) = is_identity_equiv(py,&merged_instruction, tol, max_qubits);
+        let (can_be_removed, phase_update) =
+            is_identity_equiv(py, &merged_instruction, tol, max_qubits);
 
         if can_be_removed {
             return Ok((true, None, phase_update));
@@ -393,8 +388,11 @@ fn can_merge(
     if inst1.op.num_qubits() <= max_qubits {
         let view1 = inst1.op.view();
         let view2 = inst2.op.view();
-        
-        if let (Some(matrix1), Some(matrix2)) = (view1.matrix(inst1.params_view()), view2.matrix(inst2.params_view())) {
+
+        if let (Some(matrix1), Some(matrix2)) = (
+            view1.matrix(inst1.params_view()),
+            view2.matrix(inst2.params_view()),
+        ) {
             let product_mat = matrix1.dot(&matrix2);
             let (can_be_removed, phase_update) = is_mat_identity_equiv(product_mat.view(), tol);
             if can_be_removed {
@@ -423,11 +421,11 @@ fn can_merge(
                 py_op: std::sync::OnceLock::new(),
             };
 
-            let (can_be_removed, phase_update) = is_identity_equiv(py, &merged_instruction, tol, max_qubits);
+            let (can_be_removed, phase_update) =
+                is_identity_equiv(py, &merged_instruction, tol, max_qubits);
             if can_be_removed {
                 return Ok((true, None, phase_update));
-            }
-            else {
+            } else {
                 return Ok((true, Some(merged_instruction), 0.));
             }
         }
@@ -436,7 +434,6 @@ fn can_merge(
     // Could not merge.
     Ok((false, None, 0.))
 }
-
 
 // ToDo:
 // uptophase inverse check -- as per CIC?
@@ -453,12 +450,10 @@ pub fn run_commutative_optimization(
     max_qubits: u32,
 ) -> PyResult<Option<DAGCircuit>> {
     let tol = 1e-12_f64.max(1. - approximation_degree);
-    
+
     // Create new DAG.
     // We will use it to produce PackedInstructions.
     let mut new_dag = dag.copy_empty_like(VarsMode::Alike)?;
-
-    println!("Running commutation optimization pass!");
 
     let node_indices = dag.topological_op_nodes()?.collect::<Vec<_>>();
     let num_nodes = node_indices.len();
@@ -521,7 +516,14 @@ pub fn run_commutative_optimization(
                 break;
             }
 
-            if !commute(&new_dag, instr1, instr2, approximation_degree, max_qubits, commutation_checker) {
+            if !commute(
+                &new_dag,
+                instr1,
+                instr2,
+                approximation_degree,
+                max_qubits,
+                commutation_checker,
+            ) {
                 break;
             }
         }

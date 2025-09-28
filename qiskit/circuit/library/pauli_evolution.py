@@ -372,6 +372,7 @@ def merge_two_pauli_evolutions(
     return None
 
 
+# pylint: disable=too-many-return-statements
 def pauli_rotation_trace_and_dim(gate: PauliEvolutionGate) -> tuple[complex, int] | None:
     """
     For a multi-qubit Pauli rotation, return a tuple ``(Tr(gate) / dim, dim)``.
