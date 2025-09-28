@@ -134,6 +134,31 @@ pub fn transpile(
     .with_lookahead(0.5, 20, sabre::SetScaling::Size)
     .with_decay(0.001, 5)?;
 
+    let vf2_config = match optimization_level {
+        OptimizationLevel::Level0 => vf2::Vf2PassConfiguration::default_abstract(), // Not used.
+        OptimizationLevel::Level1 => vf2::Vf2PassConfiguration {
+            call_limit: (Some(50_000), Some(1_000)),
+            time_limit: None,
+            max_trials: None,
+            shuffle_seed: None,
+            score_initial_layout: false,
+        },
+        OptimizationLevel::Level2 => vf2::Vf2PassConfiguration {
+            call_limit: (Some(5_000_000), Some(10_000)),
+            time_limit: None,
+            max_trials: None,
+            shuffle_seed: None,
+            score_initial_layout: false,
+        },
+        OptimizationLevel::Level3 => vf2::Vf2PassConfiguration {
+            call_limit: (Some(30_000_000), Some(100_000)),
+            time_limit: None,
+            max_trials: None,
+            shuffle_seed: None,
+            score_initial_layout: false,
+        },
+    };
+
     if optimization_level == OptimizationLevel::Level0 {
         // Apply a trivial layout
         apply_layout(
@@ -153,21 +178,14 @@ pub fn transpile(
                 target.num_qubits.unwrap(),
                 |x| PhysicalQubit(x.0),
             );
-        } else if let Some(vf2_result) = vf2_layout_pass(
-            &dag,
-            target,
-            false,
-            Some(5_000_000),
-            None,
-            Some(2500),
-            None,
-            None,
-        )? {
+        } else if let vf2::Vf2PassReturn::Solution(layout) =
+            vf2_layout_pass(&dag, target, &vf2_config, false, None)?
+        {
             apply_layout(
                 &mut dag,
                 &mut transpile_layout,
                 target.num_qubits.unwrap(),
-                |x| vf2_result[&x],
+                |x| layout[&x],
             );
         } else {
             let (result, initial_layout, final_layout) = sabre::sabre_layout_and_routing(
@@ -186,21 +204,14 @@ pub fn transpile(
                 layout_from_sabre_result(&dag, initial_layout, &final_layout, &transpile_layout);
         }
     } else if optimization_level == OptimizationLevel::Level2 {
-        if let Some(vf2_result) = vf2_layout_pass(
-            &dag,
-            target,
-            false,
-            Some(5_000_000),
-            None,
-            Some(2500),
-            None,
-            None,
-        )? {
+        if let vf2::Vf2PassReturn::Solution(layout) =
+            vf2_layout_pass(&dag, target, &vf2_config, false, None)?
+        {
             apply_layout(
                 &mut dag,
                 &mut transpile_layout,
                 target.num_qubits.unwrap(),
-                |x| vf2_result[&x],
+                |x| layout[&x],
             );
         } else {
             let (result, initial_layout, final_layout) = sabre::sabre_layout_and_routing(
@@ -218,21 +229,14 @@ pub fn transpile(
             transpile_layout =
                 layout_from_sabre_result(&dag, initial_layout, &final_layout, &transpile_layout);
         }
-    } else if let Some(vf2_result) = vf2_layout_pass(
-        &dag,
-        target,
-        false,
-        Some(30_000_000),
-        None,
-        Some(250_000),
-        None,
-        None,
-    )? {
+    } else if let vf2::Vf2PassReturn::Solution(layout) =
+        vf2_layout_pass(&dag, target, &vf2_config, false, None)?
+    {
         apply_layout(
             &mut dag,
             &mut transpile_layout,
             target.num_qubits.unwrap(),
-            |x| vf2_result[&x],
+            |x| layout[&x],
         );
     } else {
         let (result, initial_layout, final_layout) = sabre::sabre_layout_and_routing(
