@@ -244,32 +244,6 @@ pub struct DAGCircuit {
     stretches_declare: Vec<Stretch>,
 }
 
-/// A Python-facing iterator for DAG nodes yielded from Rust.
-#[pyclass(name = "TopologicalIterator", unsendable)]
-struct TopologicalNodeIterator {
-    dag: Py<DAGCircuit>,
-    nodes: std::vec::IntoIter<NodeIndex>,
-}
-
-#[pymethods]
-impl TopologicalNodeIterator {
-    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
-        slf
-    }
-
-    fn __next__(mut slft: PyRefMut<'_, Self>) -> PyResult<Option<Py<PyAny>>> {
-        Python::attach(|py| {
-            if let Some(node_idx) = slft.nodes.next() {
-                let dag_borrow = slft.dag.borrow(py);
-                let node_obj = dag_borrow.get_node(py, node_idx)?;
-                Ok(Some(node_obj))
-            } else {
-                Ok(None)
-            }
-        })
-    }
-}
-
 #[derive(Clone, Debug)]
 struct PyLegacyResources {
     clbits: Py<PyTuple>,
@@ -2481,23 +2455,27 @@ impl DAGCircuit {
     ///     generator(DAGOpNode, DAGInNode, or DAGOutNode): node in topological order
     #[pyo3(name = "topological_nodes", signature=(key=None, reverse=false))]
     fn py_topological_nodes(
-        slf: PyRef<Self>,
+        &self,
         py: Python,
         key: Option<Bound<PyAny>>,
         reverse: bool,
-    ) -> PyResult<TopologicalNodeIterator> {
-        let nodes: Vec<NodeIndex> = if let Some(key) = key {
-            slf.topological_key_sort(py, &key, reverse)?.collect()
+    ) -> PyResult<Py<PyIterator>> {
+        let nodes: PyResult<Vec<_>> = if let Some(key) = key {
+            self.topological_key_sort(py, &key, reverse)?
+                .map(|node| self.get_node(py, node))
+                .collect()
         } else {
-            slf.reversible_topological_nodes(reverse)?.collect()
+            // Good path, using interner IDs.
+            self.reversible_topological_nodes(reverse)?
+                .map(|n| self.get_node(py, n))
+                .collect()
         };
 
-        let dag_clone = slf.into();
-
-        Ok(TopologicalNodeIterator {
-            dag: dag_clone,
-            nodes: nodes.into_iter(),
-        })
+        Ok(PyTuple::new(py, nodes?)?
+            .into_any()
+            .try_iter()
+            .unwrap()
+            .unbind())
     }
 
     /// Yield op nodes in topological order.
@@ -2514,27 +2492,30 @@ impl DAGCircuit {
     ///     generator(DAGOpNode): op node in topological order
     #[pyo3(name = "topological_op_nodes", signature=(key=None, reverse=false))]
     fn py_topological_op_nodes(
-        slf: PyRef<Self>,
+        &self,
         py: Python,
         key: Option<Bound<PyAny>>,
         reverse: bool,
-    ) -> PyResult<TopologicalNodeIterator> {
-        // Perform all borrow operations on `slf` first.
-        let nodes: Vec<NodeIndex> = if let Some(key) = key {
-            slf.topological_key_sort(py, &key, reverse)?
-                .filter(|node| matches!(slf.dag.node_weight(*node), Some(NodeType::Operation(_))))
+    ) -> PyResult<Py<PyIterator>> {
+        let nodes: PyResult<Vec<_>> = if let Some(key) = key {
+            self.topological_key_sort(py, &key, reverse)?
+                .filter_map(|node| match self.dag.node_weight(node) {
+                    Some(NodeType::Operation(_)) => Some(self.get_node(py, node)),
+                    _ => None,
+                })
                 .collect()
         } else {
-            slf.reversible_topological_op_nodes(reverse)?.collect()
+            // Good path, using interner IDs.
+            self.reversible_topological_op_nodes(reverse)?
+                .map(|n| self.get_node(py, n))
+                .collect()
         };
 
-        // NOW, consume `slf` to create the owned handle for the iterator.
-        let dag_clone = slf.into();
-
-        Ok(TopologicalNodeIterator {
-            dag: dag_clone,
-            nodes: nodes.into_iter(),
-        })
+        Ok(PyTuple::new(py, nodes?)?
+            .into_any()
+            .try_iter()
+            .unwrap()
+            .unbind())
     }
 
     /// Replace a block of nodes with a single node.
