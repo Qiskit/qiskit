@@ -1,18 +1,24 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
-# https://help.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
-
 version: 2
 updates:
-  - package-ecosystem: "cargo" # See documentation for possible values
-    directory: "/" # Location of package manifests
+  - package-ecosystem: "cargo"
+    directory: "/"
     schedule:
       interval: "daily"
     labels:
       - "Rust"
       - "dependencies"
       - "Changelog: None"
+    ignore:
+      # Faer has historically made major breaking changes between minor versions, so it's easier to
+      # do things manually ourselves.
+      - "faer"
+      - "faer-ext"
+      # nalgebra 0.34 bumped its MSRV to 1.87, which is too high for us.
+      - "nalgebra"
+      # Used by the experimental OQ3 exporter at a time when we were expecting to make updates
+      # manually to this.
+      - "oq3_semantics"
+
   - package-ecosystem: "github-actions"
     directory: "/"
     groups:
@@ -25,3 +31,10 @@ updates:
       - "type: qa"
       - "dependencies"
       - "Changelog: None"
+    ignore:
+      # This semi-reliably requires us to make manual changes to the wheel-build rules, so it's more
+      # convenient to do it all ourselves.
+      - "pypa/cibuildwheel"
+      # The version of this is used as a cutesy way to select the Rust version instead of doing
+      # things with an Actions input.
+      - "dtolnay/rust-toolchain"
