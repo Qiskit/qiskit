@@ -244,6 +244,32 @@ pub struct DAGCircuit {
     stretches_declare: Vec<Stretch>,
 }
 
+/// A Python-facing iterator for DAG nodes yielded from Rust.
+#[pyclass(name = "TopologicalIterator", unsendable)]
+struct TopologicalNodeIterator {
+    dag: Py<DAGCircuit>,
+    nodes: std::vec::IntoIter<NodeIndex>,
+}
+
+#[pymethods]
+impl TopologicalNodeIterator {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
+        slf
+    }
+
+    fn __next__(mut slft: PyRefMut<'_, Self>) -> PyResult<Option<Py<PyAny>>> {
+        Python::attach(|py| {
+            if let Some(node_idx) = slft.nodes.next() {
+                let dag_borrow = slft.dag.borrow(py);
+                let node_obj = dag_borrow.get_node(py, node_idx)?;
+                Ok(Some(node_obj))
+            } else {
+                Ok(None)
+            }
+        })
+    }
+}
+
 #[derive(Clone, Debug)]
 struct PyLegacyResources {
     clbits: Py<PyTuple>,
@@ -2449,31 +2475,29 @@ impl DAGCircuit {
     ///     key (Callable): A callable which will take a DAGNode object and
     ///         return a string sort key. If not specified the bit qargs and
     ///         cargs of a node will be used for sorting.
+    ///     reverse (bool): If True, yield nodes in reverse topological order.
     ///
     /// Returns:
     ///     generator(DAGOpNode, DAGInNode, or DAGOutNode): node in topological order
-    #[pyo3(name = "topological_nodes", signature=(key=None))]
+    #[pyo3(name = "topological_nodes", signature=(key=None, reverse=false))]
     fn py_topological_nodes(
-        &self,
+        slf: PyRef<Self>,
         py: Python,
         key: Option<Bound<PyAny>>,
-    ) -> PyResult<Py<PyIterator>> {
-        let nodes: PyResult<Vec<_>> = if let Some(key) = key {
-            self.topological_key_sort(py, &key)?
-                .map(|node| self.get_node(py, node))
-                .collect()
+        reverse: bool,
+    ) -> PyResult<TopologicalNodeIterator> {
+        let nodes: Vec<NodeIndex> = if let Some(key) = key {
+            slf.topological_key_sort(py, &key, reverse)?.collect()
         } else {
-            // Good path, using interner IDs.
-            self.topological_nodes()?
-                .map(|n| self.get_node(py, n))
-                .collect()
+            slf.reversible_topological_nodes(reverse)?.collect()
         };
 
-        Ok(PyTuple::new(py, nodes?)?
-            .into_any()
-            .try_iter()
-            .unwrap()
-            .unbind())
+        let dag_clone = slf.into();
+
+        Ok(TopologicalNodeIterator {
+            dag: dag_clone,
+            nodes: nodes.into_iter(),
+        })
     }
 
     /// Yield op nodes in topological order.
@@ -2484,34 +2508,33 @@ impl DAGCircuit {
     ///     key (Callable): A callable which will take a DAGNode object and
     ///         return a string sort key. If not specified the qargs and
     ///         cargs of a node will be used for sorting.
+    ///     reverse (bool): If True, yield op nodes in reverse topological order.
     ///
     /// Returns:
     ///     generator(DAGOpNode): op node in topological order
-    #[pyo3(name = "topological_op_nodes", signature=(key=None))]
+    #[pyo3(name = "topological_op_nodes", signature=(key=None, reverse=false))]
     fn py_topological_op_nodes(
-        &self,
+        slf: PyRef<Self>,
         py: Python,
         key: Option<Bound<PyAny>>,
-    ) -> PyResult<Py<PyIterator>> {
-        let nodes: PyResult<Vec<_>> = if let Some(key) = key {
-            self.topological_key_sort(py, &key)?
-                .filter_map(|node| match self.dag.node_weight(node) {
-                    Some(NodeType::Operation(_)) => Some(self.get_node(py, node)),
-                    _ => None,
-                })
+        reverse: bool,
+    ) -> PyResult<TopologicalNodeIterator> {
+        // Perform all borrow operations on `slf` first.
+        let nodes: Vec<NodeIndex> = if let Some(key) = key {
+            slf.topological_key_sort(py, &key, reverse)?
+                .filter(|node| matches!(slf.dag.node_weight(*node), Some(NodeType::Operation(_))))
                 .collect()
         } else {
-            // Good path, using interner IDs.
-            self.topological_op_nodes()?
-                .map(|n| self.get_node(py, n))
-                .collect()
+            slf.reversible_topological_op_nodes(reverse)?.collect()
         };
 
-        Ok(PyTuple::new(py, nodes?)?
-            .into_any()
-            .try_iter()
-            .unwrap()
-            .unbind())
+        // NOW, consume `slf` to create the owned handle for the iterator.
+        let dag_clone = slf.into();
+
+        Ok(TopologicalNodeIterator {
+            dag: dag_clone,
+            nodes: nodes.into_iter(),
+        })
     }
 
     /// Replace a block of nodes with a single node.
@@ -5631,16 +5654,47 @@ impl DAGCircuit {
         Ok(nodes.into_iter())
     }
 
+    fn reversible_topological_nodes(
+        &self,
+        reverse: bool,
+    ) -> PyResult<impl Iterator<Item = NodeIndex>> {
+        let key = |node: NodeIndex| -> Result<SortKeyType, Infallible> { Ok(self.sort_key(node)) };
+        let nodes = rustworkx_core::dag_algo::lexicographical_topological_sort(
+            &self.dag, key, reverse, None,
+        )
+        .map_err(|e| match e {
+            rustworkx_core::dag_algo::TopologicalSortError::CycleOrBadInitialState => {
+                PyValueError::new_err(format!("{e}"))
+            }
+            rustworkx_core::dag_algo::TopologicalSortError::KeyError(_) => {
+                unreachable!()
+            }
+        })?;
+        Ok(nodes.into_iter())
+    }
+
     pub fn topological_op_nodes(&self) -> PyResult<impl Iterator<Item = NodeIndex> + '_> {
         Ok(self.topological_nodes()?.filter(|node: &NodeIndex| {
             matches!(self.dag.node_weight(*node), Some(NodeType::Operation(_)))
         }))
     }
 
+    pub fn reversible_topological_op_nodes(
+        &self,
+        reverse: bool,
+    ) -> PyResult<impl Iterator<Item = NodeIndex> + '_> {
+        Ok(self
+            .reversible_topological_nodes(reverse)?
+            .filter(|node: &NodeIndex| {
+                matches!(self.dag.node_weight(*node), Some(NodeType::Operation(_)))
+            }))
+    }
+
     fn topological_key_sort(
         &self,
         py: Python,
         key: &Bound<PyAny>,
+        reverse: bool,
     ) -> PyResult<impl Iterator<Item = NodeIndex>> {
         // This path (user provided key func) is not ideal, since we no longer
         // use a string key after moving to Rust, in favor of using a tuple
@@ -5649,18 +5703,16 @@ impl DAGCircuit {
             let node = self.get_node(py, node)?;
             key.call1((node,))?.extract()
         };
-        Ok(
-            rustworkx_core::dag_algo::lexicographical_topological_sort(&self.dag, key, false, None)
-                .map_err(|e| match e {
-                    rustworkx_core::dag_algo::TopologicalSortError::CycleOrBadInitialState => {
-                        PyValueError::new_err(format!("{e}"))
-                    }
-                    rustworkx_core::dag_algo::TopologicalSortError::KeyError(ref e) => {
-                        e.clone_ref(py)
-                    }
-                })?
-                .into_iter(),
+        Ok(rustworkx_core::dag_algo::lexicographical_topological_sort(
+            &self.dag, key, reverse, None,
         )
+        .map_err(|e| match e {
+            rustworkx_core::dag_algo::TopologicalSortError::CycleOrBadInitialState => {
+                PyValueError::new_err(format!("{e}"))
+            }
+            rustworkx_core::dag_algo::TopologicalSortError::KeyError(ref e) => e.clone_ref(py),
+        })?
+        .into_iter())
     }
 
     #[inline]
