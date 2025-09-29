@@ -1,7 +1,24 @@
 ---
 features_c:
   - |
-    Introducing Param C-API to support parameterized circuits on C-API.
-    `QkParam` represents symbolic equations through `qk_param_*` functions.
-    Param C-API supports, add/sub/mul/div/pow binary operations and
-    sin/cos/tan/asin/acos/atan/log/exp/abs/sign/neg/conjugate unary operations.
+    The C API now exposes ``QkParam`` to represent gate parameters, including
+    symbols and parameterized expressions. The ``QkParam`` interface itself 
+    supports symbolic calculations including standard arithmetic operations,
+    trigonometric functions, and binding/substituting values. For example:
+    
+    .. code-block:: c
+    
+        QkParam *x = qk_symbol_new("x"); // a symbol called "x"
+        QkParam *y = qk_symbol_new("y"); // a symbol called "y"
+        QkParam *val = qk_symbol_from_double(2.0); // the value 2.0
+        QkParam *out = qk_symbol_zero(); // to store the final expression
+        
+        // build 2 sin(x + y)
+        qk_param_add(out, x, y); // out = x + y
+        qk_param_sin(out, out); // out = sin(out)
+        qk_param_mul(out, out, val); // out = out * 2
+        
+        qk_param_free(x);
+        qk_param_free(y);
+        qk_param_free(val);
+        qk_param_free(out);
