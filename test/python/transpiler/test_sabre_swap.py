@@ -14,6 +14,9 @@
 
 import unittest
 import itertools
+import pickle
+from copy import deepcopy
+import io
 
 import ddt
 import numpy.random
@@ -100,6 +103,66 @@ def looping_circuit(uphill_swaps=1, additional_local_minimum_gates=0):
 @ddt.ddt
 class TestSabreSwap(QiskitTestCase):
     """Tests the SabreSwap pass."""
+
+    def test_sabre_swap_pickle(self):
+        """Test the pass can be pickled."""
+        coupling = CouplingMap.from_ring(5)
+        target = Target.from_configuration(["u", "cx"], coupling_map=coupling)
+        sabre_swap = SabreSwap(target, "lookahead", seed=42, trials=1024)
+        with io.BytesIO() as buf:
+            pickle.dump(sabre_swap, buf)
+            buf.seek(0)
+            output = pickle.load(buf)
+        self.assertIsInstance(output, SabreSwap)
+        self.assertIsNone(output._routing_target)
+        self.assertEqual(sabre_swap.heuristic, output.heuristic)
+        self.assertEqual(sabre_swap.trials, output.trials)
+        self.assertEqual(sabre_swap.fake_run, output.fake_run)
+
+        test_circuit = QuantumCircuit(5)
+        test_circuit.cx(0, 1)
+        test_circuit.cx(0, 2)
+        test_circuit.cx(0, 3)
+        test_circuit.cx(0, 4)
+        before_result = sabre_swap(test_circuit)
+        with io.BytesIO() as buf:
+            pickle.dump(sabre_swap, buf)
+            buf.seek(0)
+            output = pickle.load(buf)
+        self.assertIsInstance(output, SabreSwap)
+        self.assertIsNotNone(output._routing_target)
+        self.assertEqual(sabre_swap.heuristic, output.heuristic)
+        self.assertEqual(sabre_swap.trials, output.trials)
+        self.assertEqual(sabre_swap.fake_run, output.fake_run)
+        after_result = output(test_circuit)
+        self.assertEqual(before_result, after_result)
+
+    def test_sabre_swap_deepcopy(self):
+        """Test the pass can be deepcopied."""
+        coupling = CouplingMap.from_ring(5)
+        target = Target.from_configuration(["u", "cx"], coupling_map=coupling)
+        sabre_swap = SabreSwap(target, "lookahead", seed=42, trials=1024)
+        output = deepcopy(sabre_swap)
+        self.assertIsInstance(output, SabreSwap)
+        self.assertIsNone(output._routing_target)
+        self.assertEqual(sabre_swap.heuristic, output.heuristic)
+        self.assertEqual(sabre_swap.trials, output.trials)
+        self.assertEqual(sabre_swap.fake_run, output.fake_run)
+
+        test_circuit = QuantumCircuit(5)
+        test_circuit.cx(0, 1)
+        test_circuit.cx(0, 2)
+        test_circuit.cx(0, 3)
+        test_circuit.cx(0, 4)
+        before_result = sabre_swap(test_circuit)
+        output = deepcopy(sabre_swap)
+        self.assertIsInstance(output, SabreSwap)
+        self.assertIsNotNone(output._routing_target)
+        self.assertEqual(sabre_swap.heuristic, output.heuristic)
+        self.assertEqual(sabre_swap.trials, output.trials)
+        self.assertEqual(sabre_swap.fake_run, output.fake_run)
+        after_result = output(test_circuit)
+        self.assertEqual(before_result, after_result)
 
     def test_trivial_case(self):
         """Test that an already mapped circuit is unchanged.
