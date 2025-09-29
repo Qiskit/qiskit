@@ -18,10 +18,18 @@ import numpy as np
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.converters import circuit_to_dag
-from qiskit.circuit.library import U1Gate, RZGate, PhaseGate, UnitaryGate, PauliEvolutionGate
+from qiskit.circuit.library import (
+    U1Gate,
+    RZGate,
+    PhaseGate,
+    UnitaryGate,
+    PauliEvolutionGate,
+    Initialize,
+    U2Gate,
+)
 from qiskit.circuit.parameter import Parameter
 from qiskit.transpiler.passes import CommutativeOptimization
-from qiskit.quantum_info import Operator, SparsePauliOp
+from qiskit.quantum_info import Operator, SparsePauliOp, Clifford
 
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -190,6 +198,21 @@ class TestCommutativeOptimization(QiskitTestCase):
         qct = CommutativeOptimization()(qc)
 
         expected = QuantumCircuit(2, global_phase=np.pi / 3)
+
+        self.assertEqual(Operator(expected), Operator(qc))
+        self.assertEqual(qct, expected)
+
+    def test_unitary_equiv_to_id(self):
+        """Test inverse unitary gates that differ by a phase."""
+        qc = QuantumCircuit(2)
+        u1 = UnitaryGate([[1, 0], [0, 1]])
+        u2 = UnitaryGate([[-1, 0], [0, -1]])
+        qc.append(u1, [0])
+        qc.append(u2, [0])
+
+        qct = CommutativeOptimization()(qc)
+
+        expected = QuantumCircuit(2, global_phase=np.pi)
 
         self.assertEqual(Operator(expected), Operator(qc))
         self.assertEqual(qct, expected)
@@ -815,6 +838,286 @@ measure q0[1] -> c0[1];
 
         # The actual asseertion.
         self.assertTrue(left.structurally_equal(right))
+
+    def test_basic_self_inverse(self):
+        """Test that a single self-inverse gate as input can be cancelled."""
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.h(0)
+
+        qct = CommutativeOptimization()(qc)
+
+        expected = QuantumCircuit(2, 2)
+        self.assertEqual(qct, expected)
+
+    def test_odd_number_self_inverse(self):
+        """Test that an odd number of self-inverse gates leaves one gate remaining."""
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.h(0)
+        qc.h(0)
+
+        qct = CommutativeOptimization()(qc)
+
+        expected = QuantumCircuit(2, 2)
+        expected.h(0)
+        self.assertEqual(qct, expected)
+
+    def test_rx_gates_cancel(self):
+        """Test with a pair of canceling rx gates."""
+        qc = QuantumCircuit(2)
+        qc.rx(np.pi / 4, 0)
+        qc.rx(-np.pi / 4, 0)
+
+        qct = CommutativeOptimization()(qc)
+
+        expected = QuantumCircuit(2)
+        self.assertEqual(Operator(expected), Operator(qc))
+        self.assertEqual(qct, expected)
+
+    def test_rx_gates_merged(self):
+        """Test with a pair of mergeable rx gates."""
+        qc = QuantumCircuit(2)
+        qc.rx(np.pi / 4, 0)
+        qc.rx(np.pi / 4, 0)
+
+        qct = CommutativeOptimization()(qc)
+
+        expected = QuantumCircuit(2)
+        expected.rx(np.pi / 2, 0)
+
+        self.assertEqual(Operator(expected), Operator(qc))
+        self.assertEqual(qct, expected)
+
+    def test_p_gates_merged(self):
+        """Test with a pair of canceling p gates."""
+        qc = QuantumCircuit(2)
+        qc.p(np.pi / 4, 0)
+        qc.p(np.pi / 4, 0)
+
+        qct = CommutativeOptimization()(qc)
+
+        expected = QuantumCircuit(2, global_phase=np.pi / 4)
+        expected.rz(np.pi / 2, 0)
+
+        self.assertEqual(Operator(expected), Operator(qc))
+        self.assertEqual(qct, expected)
+
+    def test_self_inverse_on_different_qubits(self):
+        """Test that self_inverse gates cancel on the correct qubits."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.h(1)
+        qc.h(0)
+        qc.h(1)
+
+        qct = CommutativeOptimization()(qc)
+
+        expected = QuantumCircuit(2)
+
+        self.assertEqual(Operator(expected), Operator(qc))
+        self.assertEqual(qct, expected)
+
+    def test_cancel_both_x_and_z(self):
+        """Test that Z commutes with control qubit of CX, and X commutes with the target qubit."""
+        qc = QuantumCircuit(2)
+        qc.z(0)
+        qc.x(1)
+        qc.cx(0, 1)
+        qc.z(0)
+        qc.x(1)
+
+        qct = CommutativeOptimization()(qc)
+
+        expected = QuantumCircuit(2)
+        expected.cx(0, 1)
+
+        self.assertEqual(Operator(expected), Operator(qc))
+        self.assertEqual(qct, expected)
+
+    def test_no_cancellation_across_barrier(self):
+        """Test that barrier prevents cancellation."""
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.barrier()
+        qc.cx(0, 1)
+
+        qct = CommutativeOptimization()(qc)
+
+        self.assertEqual(qct, qc)
+
+    def test_no_cancellation_across_measure(self):
+        """Test that barrier prevents cancellation."""
+        qc = QuantumCircuit(2, 1)
+        qc.cx(0, 1)
+        qc.measure(0, 0)
+        qc.cx(0, 1)
+
+        qct = CommutativeOptimization()(qc)
+
+        self.assertEqual(qct, qc)
+
+    def test_no_cancellation_across_reset(self):
+        """Test that reset prevents cancellation."""
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.reset(0)
+        qc.cx(0, 1)
+
+        qct = CommutativeOptimization()(qc)
+
+        self.assertEqual(qct, qc)
+
+    def test_circuit_with_custom_gate(self):
+        """Test circuit with custom gate."""
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.cx(0, 1)
+
+        qc = QuantumCircuit(3)
+        qc.append(circuit.to_gate(), [0, 2])
+        qc.cx(1, 2)
+
+        qct = CommutativeOptimization()(qc)
+
+        self.assertEqual(qct, qc)
+
+    def test_inverse_custom_gates_cancel(self):
+        """Test inverse custom gates."""
+        cx_circuit1 = QuantumCircuit(3)
+        cx_circuit1.cx(0, 2)
+
+        cx_circuit2 = QuantumCircuit(3)
+        cx_circuit2.cx(0, 1)
+        cx_circuit2.cx(1, 2)
+        cx_circuit2.cx(0, 1)
+        cx_circuit2.cx(1, 2)
+
+        qc = QuantumCircuit(4)
+        qc.append(cx_circuit1.to_gate(), [0, 1, 2])
+        qc.cx(0, 3)
+        qc.append(cx_circuit2.to_gate(), [0, 1, 2])
+
+        # the two custom gates commute through cx(0, 3) and cancel each other
+        qct = CommutativeOptimization()(qc)
+
+        expected = QuantumCircuit(4)
+        expected.cx(0, 3)
+
+        self.assertEqual(Operator(expected), Operator(qc))
+        self.assertEqual(qct, expected)
+
+    def test_2q_pauli_rot_with_non_cached(self):
+        """Test a cached 2q-Pauli rotation with a non-cached gate.
+
+        Based on regression test of #13742.
+        """
+        qc = QuantumCircuit(2)
+        qc.rxx(np.pi / 2, 1, 0)
+        qc.append(U2Gate(np.pi / 2, -np.pi), [1])
+
+        qct = CommutativeOptimization()(qc)
+
+        self.assertEqual(qct.count_ops().get("u2", 0), 1)
+        self.assertEqual(qct.count_ops().get("rxx", 0), 1)
+
+    def test_clifford(self):
+        """Test a circuit that contains a Clifford."""
+        cliff_circuit = QuantumCircuit(2)
+        cliff_circuit.cx(0, 1)
+        cliff = Clifford(cliff_circuit)
+
+        qc = QuantumCircuit(2)
+        qc.s(0)
+        qc.append(cliff, [0, 1])
+        qc.sdg(0)
+
+        qct = CommutativeOptimization()(qc)
+
+        # The S and Sdg gates should cancel
+        expected = QuantumCircuit(2)
+        expected.append(cliff, [0, 1])
+
+        self.assertEqual(Operator(expected), Operator(qc))
+        self.assertEqual(qct, expected)
+
+    def test_control_flow(self):
+        """Test a circuit that contains a control-flow operation."""
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+
+        with qc.for_loop(range(3)):
+            qc.cx(1, 0)
+
+        qct = CommutativeOptimization()(qc)
+
+        # The pass should run successfully but not reduce anything
+        self.assertEqual(qc, qct)
+
+    def test_initialize(self):
+        """Test a circuit with Initialize instruction."""
+        desired_vector = [0.5, 0.5, 0.5, 0.5]
+        initialize = Initialize(desired_vector)
+
+        qc = QuantumCircuit(2)
+        qc.append(initialize, [0, 1])
+        qc.x(1)
+
+        qct = CommutativeOptimization()(qc)
+
+        # The pass should run successfully but not reduce anything
+        self.assertEqual(qc, qct)
+
+    def test_controlled_state_at_zero(self):
+        """Based on regression test of #14974.
+
+        Two gates with not-all-ones control-states were wrongly
+        detected to commute, leading to invalid simplification.
+        """
+        qc = QuantumCircuit(2)
+        qc.csdg(0, 1, ctrl_state=0)
+        qc.crx(1, 0, 1, ctrl_state=0)
+        qc.cs(0, 1, ctrl_state=0)
+        qc.ry(1, 1)
+
+        qct = CommutativeOptimization()(qc)
+
+        # The pass should run successfully but not reduce anything
+        self.assertEqual(qc, qct)
+
+    def test_circuit_with_clbits(self):
+        """Test optimization for circuit wih classical bits."""
+        qc = QuantumCircuit(2, 2)
+        qc.cx(0, 1)
+        qc.z(0)
+        qc.cx(0, 1)
+        qc.measure(0, 0)
+        qc.measure(1, 1)
+
+        qct = CommutativeOptimization()(qc)
+
+        expected = QuantumCircuit(2, 2)
+        expected.z(0)
+        expected.measure(0, 0)
+        expected.measure(1, 1)
+
+        self.assertEqual(qct, expected)
+
+    def test_circuit_with_global_phase(self):
+        """Test for circuit with global phase."""
+        qc = QuantumCircuit(2, global_phase=np.pi / 3)
+        qc.cx(0, 1)
+        qc.z(0)
+        qc.cx(0, 1)
+
+        qct = CommutativeOptimization()(qc)
+
+        expected = QuantumCircuit(2, global_phase=np.pi / 3)
+        expected.z(0)
+
+        self.assertEqual(Operator(expected), Operator(qc))
+        self.assertEqual(qct, expected)
 
 
 if __name__ == "__main__":

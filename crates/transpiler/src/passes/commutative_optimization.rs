@@ -19,7 +19,7 @@ use pyo3::prelude::*;
 use pyo3::{pyfunction, wrap_pyfunction, Bound, PyResult};
 use smallvec::smallvec;
 
-use crate::commutation_checker::CommutationChecker;
+use crate::commutation_checker::{get_matrix, CommutationChecker};
 use crate::gate_metrics::rotation_trace_and_dim;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::DAGCircuit;
@@ -87,7 +87,7 @@ fn is_identity_equiv(
                 }
             }
             _ => {
-                if let Some(matrix) = gate.matrix(inst.params_view()) {
+                if let Some(matrix) = get_matrix(&inst.op.view(), inst.params_view()) {
                     let dim = matrix.shape()[0] as f64;
                     let tr_over_dim = matrix.diag().iter().sum::<Complex64>() / dim;
                     (tr_over_dim, dim)
@@ -108,7 +108,7 @@ fn is_identity_equiv(
 
     // Perform matrix-based check.
     if inst.op.num_qubits() <= max_qubits {
-        if let Some(matrix) = view.matrix(inst.params_view()) {
+        if let Some(matrix) = get_matrix(&view, inst.params_view()) {
             return is_mat_identity_equiv(matrix.view(), tol);
         }
     }
@@ -408,8 +408,8 @@ fn try_merge(
         let view2 = inst2.op.view();
 
         if let (Some(matrix1), Some(matrix2)) = (
-            view1.matrix(inst1.params_view()),
-            view2.matrix(inst2.params_view()),
+            get_matrix(&view1, inst1.params_view()),
+            get_matrix(&view2, inst2.params_view()),
         ) {
             let product_mat = matrix1.dot(&matrix2);
             let (can_be_removed, phase_update) = is_mat_identity_equiv(product_mat.view(), tol);
@@ -487,6 +487,7 @@ pub fn run_commutative_optimization(
         if can_be_removed {
             node_actions[idx1] = NodeAction::Drop;
             new_global_phase = radd_param(new_global_phase, Param::Float(phase_update));
+            modified = true;
             continue;
         }
 
