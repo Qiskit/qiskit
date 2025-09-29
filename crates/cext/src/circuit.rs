@@ -49,7 +49,7 @@ use qiskit_circuit::imports::QUANTUM_CIRCUIT;
 ///
 ///     QkCircuit *empty = qk_circuit_new(100, 100);
 ///
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_circuit_new(num_qubits: u32, num_clbits: u32) -> *mut CircuitData {
     let qubits = if num_qubits > 0 {
@@ -94,7 +94,7 @@ pub extern "C" fn qk_circuit_new(num_qubits: u32, num_clbits: u32) -> *mut Circu
 /// The `name` parameter must be a pointer to memory that contains a valid
 /// nul terminator at the end of the string. It also must be valid for reads of
 /// bytes up to and including the nul terminator.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_quantum_register_new(
     num_qubits: u32,
@@ -126,7 +126,7 @@ pub unsafe extern "C" fn qk_quantum_register_new(
 ///
 /// Behavior is undefined if ``reg`` is not either null or a valid pointer to a
 /// ``QkQuantumRegister``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_quantum_register_free(reg: *mut QuantumRegister) {
     if !reg.is_null() {
@@ -157,7 +157,7 @@ pub unsafe extern "C" fn qk_quantum_register_free(reg: *mut QuantumRegister) {
 ///
 /// Behavior is undefined if ``reg`` is not either null or a valid pointer to a
 /// ``QkClassicalRegister``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_classical_register_free(reg: *mut ClassicalRegister) {
     if !reg.is_null() {
@@ -192,7 +192,7 @@ pub unsafe extern "C" fn qk_classical_register_free(reg: *mut ClassicalRegister)
 /// The `name` parameter must be a pointer to memory that contains a valid
 /// nul terminator at the end of the string. It also must be valid for reads of
 /// bytes up to and including the nul terminator.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_classical_register_new(
     num_clbits: u32,
@@ -228,7 +228,7 @@ pub unsafe extern "C" fn qk_classical_register_new(
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit`` and
 /// if ``reg`` is not a valid, non-null pointer to a ``QkQuantumRegister``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_add_quantum_register(
     circuit: *mut CircuitData,
@@ -262,7 +262,7 @@ pub unsafe extern "C" fn qk_circuit_add_quantum_register(
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit`` and
 /// if ``reg`` is not a valid, non-null pointer to a ``QkClassicalRegister``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_add_classical_register(
     circuit: *mut CircuitData,
@@ -293,7 +293,7 @@ pub unsafe extern "C" fn qk_circuit_add_classical_register(
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_copy(circuit: *const CircuitData) -> *mut CircuitData {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
@@ -317,7 +317,7 @@ pub unsafe extern "C" fn qk_circuit_copy(circuit: *const CircuitData) -> *mut Ci
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_num_qubits(circuit: *const CircuitData) -> u32 {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
@@ -342,7 +342,7 @@ pub unsafe extern "C" fn qk_circuit_num_qubits(circuit: *const CircuitData) -> u
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_num_clbits(circuit: *const CircuitData) -> u32 {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
@@ -366,7 +366,7 @@ pub unsafe extern "C" fn qk_circuit_num_clbits(circuit: *const CircuitData) -> u
 ///
 /// Behavior is undefined if ``circuit`` is not either null or a valid pointer to a
 /// ``QkCircuit``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_free(circuit: *mut CircuitData) {
     if !circuit.is_null() {
@@ -411,7 +411,7 @@ pub unsafe extern "C" fn qk_circuit_free(circuit: *mut CircuitData) {
 /// determine how many qubits and params are required for a given gate.
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_gate(
     circuit: *mut CircuitData,
@@ -483,7 +483,7 @@ pub unsafe extern "C" fn qk_circuit_gate(
 ///     uint32_t num_qubits = qk_gate_num_qubits(QkGate_CCX);
 /// ```
 ///
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_gate_num_qubits(gate: StandardGate) -> u32 {
     gate.num_qubits()
@@ -501,7 +501,7 @@ pub extern "C" fn qk_gate_num_qubits(gate: StandardGate) -> u32 {
 ///     uint32_t num_params = qk_gate_num_params(QkGate_R);
 /// ```
 ///
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_gate_num_params(gate: StandardGate) -> u32 {
     gate.num_params()
@@ -525,7 +525,7 @@ pub extern "C" fn qk_gate_num_params(gate: StandardGate) -> u32 {
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_measure(
     circuit: *mut CircuitData,
@@ -562,7 +562,7 @@ pub unsafe extern "C" fn qk_circuit_measure(
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_reset(circuit: *mut CircuitData, qubit: u32) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
@@ -600,7 +600,7 @@ pub unsafe extern "C" fn qk_circuit_reset(circuit: *mut CircuitData, qubit: u32)
 /// a mismatch the behavior is undefined.
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_barrier(
     circuit: *mut CircuitData,
@@ -718,7 +718,7 @@ fn is_unitary(matrix: &ArrayType, tol: f64) -> bool {
 ///     ``2 ^ num_qubits x 2 ^ num_qubits``
 ///   * ``qubits`` is a pointer to ``num_qubits`` readable element of type ``uint32_t``
 ///
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_unitary(
     circuit: *mut CircuitData,
@@ -782,7 +782,7 @@ pub unsafe extern "C" fn qk_circuit_unitary(
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_count_ops(circuit: *const CircuitData) -> OpCounts {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
@@ -821,7 +821,7 @@ pub unsafe extern "C" fn qk_circuit_count_ops(circuit: *const CircuitData) -> Op
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_num_instructions(circuit: *const CircuitData) -> usize {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
@@ -883,7 +883,7 @@ pub struct CInstruction {
 /// value for ``index`` must be less than the value returned by ``qk_circuit_num_instructions``
 /// otherwise this function will panic. Behavior is undefined if ``instruction`` is not a valid,
 /// non-null pointer to a memory allocation with sufficient space for a ``QkCircuitInstruction``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_get_instruction(
     circuit: *const CircuitData,
@@ -974,7 +974,7 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
 /// # Safety
 ///
 /// Behavior is undefined if ``inst`` is not a valid, non-null pointer to a ``QkCircuitInstruction``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_instruction_clear(inst: *mut CInstruction) {
     // SAFETY: Loading the data from pointers contained in a CInstruction. These should only be
@@ -1014,7 +1014,7 @@ pub unsafe extern "C" fn qk_circuit_instruction_clear(inst: *mut CInstruction) {
 /// # Safety
 ///
 /// Behavior is undefined if ``op_counts`` is not the object returned by ``qk_circuit_count_ops``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_opcounts_clear(op_counts: *mut OpCounts) {
     // SAFETY: The user guarantees the input is a valid OpCounts pointer.
@@ -1061,7 +1061,7 @@ pub unsafe extern "C" fn qk_opcounts_clear(op_counts: *mut OpCounts) {
 /// It is assumed that the thread currently executing this function holds the
 /// Python GIL. This is required to create the Python object returned by this
 /// function.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "python_binding")]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_to_python(circuit: *mut CircuitData) -> *mut PyObject {
@@ -1124,7 +1124,7 @@ impl From<QkDelayUnit> for DelayUnit {
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_delay(
     circuit: *mut CircuitData,

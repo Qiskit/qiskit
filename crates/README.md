@@ -23,6 +23,8 @@ The intention is that (much) longer term, we might be wanting to expose more of 
   The actual parser lives at https://github.com/Qiskit/openqasm3_parser, and is its own set of Rust-only crates.
 * `qiskit-quantum-info` is the crate for quantum information.
 * `qiskit-synthesis` is the crate for synthesis functionality.
+* `qiskit-circuit-library` is the crate for circuit library functions. It contains constructors or other
+  circuit functionality that builds on the core circuit data model defined in `qiskit-circuit`.
 
 We use a structure with several crates in it for a couple of reasons:
 

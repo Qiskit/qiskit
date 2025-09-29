@@ -728,6 +728,7 @@ def get_vf2_limits(
     optimization_level: int,
     layout_method: Optional[str] = None,
     initial_layout: Optional[Layout] = None,
+    exact_match: bool = False,
 ) -> VF2Limits:
     """Get the VF2 limits for VF2-based layout passes.
 
@@ -739,13 +740,20 @@ def get_vf2_limits(
     if layout_method is None and initial_layout is None:
         if optimization_level in {1, 2}:
             limits = VF2Limits(
-                int(5e4),  # Set call limit to ~100ms with rustworkx 0.10.2
-                2500,  # Limits layout scoring to < 600ms on ~400 qubit devices
+                50_000,  # Set call limit to ~100ms with rustworkx 0.10.2
+                2_500,  # Limits layout scoring to < 600ms on ~400 qubit devices
             )
         elif optimization_level == 3:
             limits = VF2Limits(
-                int(3e7),  # Set call limit to ~60 sec with rustworkx 0.10.2
-                250000,  # Limits layout scoring to < 60 sec on ~400 qubit devices
+                30_000_000,  # Set call limit to ~60 sec with rustworkx 0.10.2
+                250_000,  # Limits layout scoring to < 60 sec on ~400 qubit devices
+            )
+        # In Qiskit 2.2, strict mode still includes heavy Python usage for the semantics and
+        # scoring, so we dial the limits way down.
+        if exact_match:
+            limits = VF2Limits(
+                ((limits.call_limit // 100) or 1) if limits.call_limit is not None else None,
+                ((limits.max_trials // 100) or 1) if limits.max_trials is not None else None,
             )
     return limits
 
