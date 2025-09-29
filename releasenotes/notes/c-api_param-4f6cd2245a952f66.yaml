@@ -3,8 +3,8 @@ features_c:
   - |
     The C API now exposes ``QkParam`` to represent gate parameters, including
     symbols and parameterized expressions. The ``QkParam`` interface itself 
-    supports symbolic calculations including standard arithmetic operations,
-    trigonometric functions, and binding/substituting values. For example:
+    supports symbolic calculations including standard arithmetic operations and
+    trigonometric functions. For example:
     
     .. code-block:: c
     
@@ -22,3 +22,5 @@ features_c:
         qk_param_free(y);
         qk_param_free(val);
         qk_param_free(out);
+
+    Note that binding/substituting parameters is not yet supported.
