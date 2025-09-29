@@ -19,8 +19,8 @@ use std::collections::BTreeMap;
 use std::io::prelude::*;
 
 use crate::dag_circuit::{DAGCircuit, Wire};
-use pyo3::prelude::*;
 use pyo3::IntoPyObjectExt;
+use pyo3::prelude::*;
 use rustworkx_core::petgraph::visit::{
     EdgeRef, IntoEdgeReferences, IntoNodeReferences, NodeIndexable, NodeRef,
 };

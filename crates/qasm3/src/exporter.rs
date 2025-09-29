@@ -25,8 +25,8 @@ use std::io::Write;
 use crate::printer::BasicPrinter;
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
-use pyo3::prelude::*;
 use pyo3::Python;
+use pyo3::prelude::*;
 use qiskit_circuit::bit::{
     ClassicalRegister, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
