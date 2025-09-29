@@ -49,10 +49,10 @@ fn is_mat_identity_equiv(mat: ArrayView2<Complex64>, tol: f64) -> (bool, f64) {
 /// Check if the given operation is equivalent to identity up to a global phase, up to
 /// the specified tolerance `tol`. If this is the case, return the tuple
 /// `(true, global_phase)`, and if not, return the tuple `(false, 0.)`.
-fn is_identity_equiv(inst: &PackedInstruction, tol: f64, max_qubits: u32) -> (bool, f64) {
+fn is_identity_equiv(inst: &PackedInstruction, tol: f64, max_qubits: u32) -> PyResult<(bool, f64)> {
     if inst.is_parameterized() {
         // Skip parameterized gates
-        return (false, 0.);
+        return Ok((false, 0.));
     }
 
     let view = inst.op.view();
@@ -78,7 +78,7 @@ fn is_identity_equiv(inst: &PackedInstruction, tol: f64, max_qubits: u32) -> (bo
                     );
                     (tr_over_dim, dim)
                 } else {
-                    return (false, 0.);
+                    return Ok((false, 0.));
                 }
             }
             _ => {
@@ -87,7 +87,7 @@ fn is_identity_equiv(inst: &PackedInstruction, tol: f64, max_qubits: u32) -> (bo
                     let tr_over_dim = matrix.diag().iter().sum::<Complex64>() / dim;
                     (tr_over_dim, dim)
                 } else {
-                    return (false, 0.);
+                    return Ok((false, 0.));
                 }
             }
         };
@@ -95,42 +95,41 @@ fn is_identity_equiv(inst: &PackedInstruction, tol: f64, max_qubits: u32) -> (bo
         let f_pro = tr_over_dim.abs().powi(2);
         let gate_fidelity = (dim * f_pro + 1.) / (dim + 1.);
         if (1. - gate_fidelity).abs() < tol {
-            return (true, tr_over_dim.arg());
+            return Ok((true, tr_over_dim.arg()));
         } else {
-            return (false, 0.);
+            return Ok((false, 0.));
         }
     }
 
     // Perform matrix-based check.
     if inst.op.num_qubits() <= max_qubits {
         if let Some(matrix) = get_matrix(&view, inst.params_view()) {
-            return is_mat_identity_equiv(matrix.view(), tol);
+            return Ok(is_mat_identity_equiv(matrix.view(), tol));
         }
     }
 
     // Special handling for large pauli rotation gates.
     if let OperationRef::Gate(py_gate) = view {
-        let result = Python::attach(|py| -> Option<(Complex64, usize)> {
+        let result = Python::attach(|py| -> PyResult<Option<(Complex64, usize)>> {
             let result = imports::PAULI_ROTATION_TRACE_AND_DIM
                 .get_bound(py)
-                .call1((py_gate.gate.clone_ref(py),));
-            let result = result.unwrap();
-            let result: Option<(Complex64, usize)> = result.extract().unwrap();
-            result
-        });
+                .call1((py_gate.gate.clone_ref(py),))?
+                .extract()?;
+            Ok(result)
+        })?;
 
         if let Some((tr_over_dim, dim)) = result {
             let f_pro = tr_over_dim.abs().powi(2);
             let gate_fidelity = (dim as f64 * f_pro + 1.) / (dim as f64 + 1.);
             if (1. - gate_fidelity).abs() < tol {
-                return (true, tr_over_dim.arg());
+                return Ok((true, tr_over_dim.arg()));
             } else {
-                return (false, 0.);
+                return Ok((false, 0.));
             }
         }
     }
 
-    (false, 0.)
+    Ok((false, 0.))
 }
 
 /// Holds the action for each node in the original DAGCircuit.
@@ -390,7 +389,7 @@ fn try_merge(
         let merged_instruction =
             PackedInstruction::from_standard_gate(merged_gate, params, inst1.qubits);
         let (can_be_removed, phase_update) =
-            is_identity_equiv(&merged_instruction, tol, max_qubits);
+            is_identity_equiv(&merged_instruction, tol, max_qubits)?;
 
         if can_be_removed {
             return Ok((true, None, phase_update));
@@ -436,11 +435,10 @@ fn try_merge(
                     #[cfg(feature = "cache_pygates")]
                     py_op: std::sync::OnceLock::new(),
                 })
-            })
-            .unwrap();
+            })?;
 
             let (can_be_removed, phase_update) =
-                is_identity_equiv(&merged_instruction, tol, max_qubits);
+                is_identity_equiv(&merged_instruction, tol, max_qubits)?;
             if can_be_removed {
                 return Ok((true, None, phase_update));
             } else {
@@ -482,7 +480,7 @@ pub fn run_commutative_optimization(
         let node_index1 = node_indices[idx1];
         let instr1 = dag[node_index1].unwrap_operation();
 
-        let (can_be_removed, phase_update) = is_identity_equiv(instr1, tol, max_qubits);
+        let (can_be_removed, phase_update) = is_identity_equiv(instr1, tol, max_qubits)?;
         if can_be_removed {
             node_actions[idx1] = NodeAction::Drop;
             new_global_phase = radd_param(new_global_phase, Param::Float(phase_update));
