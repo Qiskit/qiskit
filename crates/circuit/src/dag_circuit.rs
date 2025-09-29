@@ -258,7 +258,7 @@ impl TopologicalNodeIterator {
     }
 
     fn __next__(mut slft: PyRefMut<'_, Self>) -> PyResult<Option<Py<PyAny>>> {
-        Python::attach(|py| {
+        Python::with_gil(|py| {
             if let Some(node_idx) = slft.nodes.next() {
                 let dag_borrow = slft.dag.borrow(py);
                 let node_obj = dag_borrow.get_node(py, node_idx)?;

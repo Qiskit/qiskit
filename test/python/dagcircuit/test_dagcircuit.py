@@ -3785,7 +3785,8 @@ class TestTopologicalSorter:
 
     def test_topological_sort_with_real_gates(self):
         """
-        Tests the sorter with actual Qiskit Gate objects.
+        Tests the sorter with actual Qiskit Gate objects, in both forward and
+        reverse directions.
         """
         dag = DAGCircuit()
         qr = QuantumRegister(2, "q")
@@ -3795,20 +3796,35 @@ class TestTopologicalSorter:
         dag.apply_operation_back(HGate(), [q[0]], [])
         dag.apply_operation_back(CXGate(), [q[0], q[1]], [])
 
-        sorter = TopologicalSorter(dag)
-        sorted_nodes = []
-
-        while sorter:
-            ready_nodes = sorter.get_ready()
-            sorted_nodes.extend(ready_nodes)
+        # --- Test Forward Sort ---
+        sorter_fwd = TopologicalSorter(dag)
+        sorted_nodes_fwd = []
+        while sorter_fwd:
+            ready_nodes = sorter_fwd.get_ready()
+            sorted_nodes_fwd.extend(ready_nodes)
             for node in ready_nodes:
-                sorter.done(node)
+                sorter_fwd.done(node)
 
-        sorted_ops = [node for node in sorted_nodes if isinstance(node, DAGOpNode)]
+        sorted_ops_fwd = [node for node in sorted_nodes_fwd if isinstance(node, DAGOpNode)]
 
-        assert len(sorted_ops) == 2
-        assert isinstance(sorted_ops[0].op, HGate)
-        assert isinstance(sorted_ops[1].op, CXGate)
+        assert len(sorted_ops_fwd) == 2
+        assert isinstance(sorted_ops_fwd[0].op, HGate)
+        assert isinstance(sorted_ops_fwd[1].op, CXGate)
+
+        # --- Test Reverse Sort ---
+        sorter_rev = TopologicalSorter(dag, reverse=True)
+        sorted_nodes_rev = []
+        while sorter_rev:
+            ready_nodes = sorter_rev.get_ready()
+            sorted_nodes_rev.extend(ready_nodes)
+            for node in ready_nodes:
+                sorter_rev.done(node)
+
+        sorted_ops_rev = [node for node in sorted_nodes_rev if isinstance(node, DAGOpNode)]
+
+        assert len(sorted_ops_rev) == 2
+        assert isinstance(sorted_ops_rev[0].op, CXGate)
+        assert isinstance(sorted_ops_rev[1].op, HGate)
 
 
 if __name__ == "__main__":
