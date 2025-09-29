@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::ffi::{c_char, CStr, CString};
+use std::ffi::{CStr, CString, c_char};
 
 use crate::exit_codes::ExitCode;
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
@@ -33,7 +33,7 @@ use pyo3::ffi::PyObject;
 #[cfg(feature = "python_binding")]
 use pyo3::types::PyAnyMethods;
 #[cfg(feature = "python_binding")]
-use pyo3::{intern, Python};
+use pyo3::{Python, intern};
 #[cfg(feature = "python_binding")]
 use qiskit_circuit::imports::QUANTUM_CIRCUIT;
 

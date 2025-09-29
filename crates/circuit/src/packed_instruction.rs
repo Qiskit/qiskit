@@ -21,7 +21,7 @@ use num_complex::Complex64;
 use smallvec::SmallVec;
 
 use crate::circuit_data::CircuitData;
-use crate::imports::{get_std_gate_class, BARRIER, DELAY, MEASURE, RESET, UNITARY_GATE};
+use crate::imports::{BARRIER, DELAY, MEASURE, RESET, UNITARY_GATE, get_std_gate_class};
 use crate::interner::Interned;
 use crate::operations::{
     Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, PythonOperation,
@@ -460,7 +460,7 @@ impl PackedOperation {
                 return get_std_gate_class(py, standard)?
                     .bind(py)
                     .downcast::<PyType>()?
-                    .is_subclass(py_type)
+                    .is_subclass(py_type);
             }
             OperationRef::StandardInstruction(standard) => {
                 return match standard {
@@ -480,7 +480,7 @@ impl PackedOperation {
                         .get_bound(py)
                         .downcast::<PyType>()?
                         .is_subclass(py_type),
-                }
+                };
             }
             OperationRef::Gate(gate) => gate.gate.bind(py),
             OperationRef::Instruction(instruction) => instruction.instruction.bind(py),

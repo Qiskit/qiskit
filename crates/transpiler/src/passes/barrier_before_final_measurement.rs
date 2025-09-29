@@ -14,10 +14,10 @@ use pyo3::prelude::*;
 use rayon::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
+use qiskit_circuit::Qubit;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::operations::{OperationRef, StandardInstruction};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
-use qiskit_circuit::Qubit;
 
 const PARALLEL_THRESHOLD: usize = 150;
 

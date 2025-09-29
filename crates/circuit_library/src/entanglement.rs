@@ -14,8 +14,8 @@ use itertools::Itertools;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use pyo3::{
-    types::{PyAnyMethods, PyList, PyListMethods, PyString, PyTuple},
     Bound, PyAny, PyResult,
+    types::{PyAnyMethods, PyList, PyListMethods, PyString, PyTuple},
 };
 
 use crate::QiskitError;

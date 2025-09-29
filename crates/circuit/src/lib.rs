@@ -40,10 +40,10 @@ pub mod vf2;
 
 mod variable_mapper;
 
+use pyo3::PyTypeInfo;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{PySequence, PyString, PyTuple};
-use pyo3::PyTypeInfo;
 
 #[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject)]
 pub struct Qubit(pub u32);

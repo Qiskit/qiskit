@@ -31,11 +31,11 @@ use hashbrown::HashSet;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use pyo3::{
+    IntoPyObjectExt,
     exceptions::{PyAttributeError, PyIndexError, PyKeyError, PyValueError},
     prelude::*,
     pyclass,
     types::{PyDict, PyList, PySet},
-    IntoPyObjectExt,
 };
 use rustworkx_core::petgraph::prelude::*;
 use smallvec::SmallVec;
@@ -1071,11 +1071,7 @@ impl Target {
                                 qarg_slice.iter().fold(
                                     0,
                                     |acc, x| {
-                                        if acc > x.0 {
-                                            acc
-                                        } else {
-                                            x.0
-                                        }
+                                        if acc > x.0 { acc } else { x.0 }
                                     },
                                 ) + 1,
                             ));
@@ -1556,7 +1552,7 @@ impl Target {
             None => {
                 return Err(TargetError::InvalidKey(format!(
                     "{name} is not an instruction in the target."
-                )))
+                )));
             }
         };
         if num_bounds != num_params {
@@ -1679,7 +1675,7 @@ mod test {
     use std::sync::Arc;
 
     use qiskit_circuit::operations::{
-        get_standard_gate_names, Operation, Param, StandardGate, STANDARD_GATE_SIZE,
+        Operation, Param, STANDARD_GATE_SIZE, StandardGate, get_standard_gate_names,
     };
     use qiskit_circuit::packed_instruction::PackedOperation;
     use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
@@ -1689,7 +1685,7 @@ mod test {
     use crate::target::QargsRef;
     use qiskit_circuit::PhysicalQubit;
 
-    use super::{instruction_properties::InstructionProperties, Qargs, Target, TargetError};
+    use super::{Qargs, Target, TargetError, instruction_properties::InstructionProperties};
 
     #[test]
     fn test_invalid_params_instruction() {
@@ -1770,7 +1766,10 @@ mod test {
         let Err(res) = result else {
             panic!("The operation did not fail as expected.");
         };
-        let expected_message = format!("The number of qubits for cz does not match the number of qubits in the properties dictionary: {:?}.", Qargs::Concrete(qargs));
+        let expected_message = format!(
+            "The number of qubits for cz does not match the number of qubits in the properties dictionary: {:?}.",
+            Qargs::Concrete(qargs)
+        );
         assert_eq!(res.to_string(), expected_message);
     }
 

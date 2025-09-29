@@ -336,11 +336,7 @@ fn map_free_qubits(
 
     let normalize = |err: Option<&f64>| -> f64 {
         let err = err.copied().unwrap_or(f64::INFINITY);
-        if err.is_nan() {
-            0.0
-        } else {
-            err
-        }
+        if err.is_nan() { 0.0 } else { err }
     };
 
     let mut free_physical = (0..num_physical_qubits)

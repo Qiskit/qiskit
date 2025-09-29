@@ -15,10 +15,10 @@ use pyo3::{intern, prelude::*};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::operations;
-use qiskit_circuit::operations::{multiply_param, radd_param, Param, StandardGate};
+use qiskit_circuit::operations::{Param, StandardGate, multiply_param, radd_param};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
-use smallvec::{smallvec, SmallVec};
+use smallvec::{SmallVec, smallvec};
 
 // custom type for a more readable code
 type Instruction = (

@@ -15,14 +15,14 @@ use std::sync::Arc;
 use crate::exit_codes::{CInputError, ExitCode};
 use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
 use indexmap::IndexMap;
+use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::operations::StandardInstruction;
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::Symbol;
-use qiskit_circuit::PhysicalQubit;
 use qiskit_transpiler::target::{InstructionProperties, Qargs, Target};
-use smallvec::{smallvec, SmallVec};
+use smallvec::{SmallVec, smallvec};
 
 /// @ingroup QkTarget
 /// Construct a new ``QkTarget`` with the given number of qubits.

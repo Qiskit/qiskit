@@ -99,10 +99,10 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_commutative_cancellation(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use qiskit_circuit::Qubit;
     use qiskit_circuit::bit::ShareableQubit;
     use qiskit_circuit::circuit_data::CircuitData;
     use qiskit_circuit::operations::StandardGate;
-    use qiskit_circuit::Qubit;
 
     #[test]
     fn test_commutative_cancellation() {
