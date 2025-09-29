@@ -217,7 +217,7 @@ class TestCommutativeOptimization(QiskitTestCase):
         self.assertEqual(Operator(expected), Operator(qc))
         self.assertEqual(qct, expected)
 
-    def test_merge_pauli_evolution_gates(self):
+    def test_merge_pauli_evolutions(self):
         """Test that the pass merges PauliEvolutionGates when appropriate."""
         op = SparsePauliOp.from_list([("IZZ", 1), ("ZII", 2), ("ZIZ", 3)])
 
@@ -233,7 +233,7 @@ class TestCommutativeOptimization(QiskitTestCase):
         self.assertEqual(Operator(expected), Operator(qc))
         self.assertEqual(qct, expected)
 
-    def test_cancel_pauli_evolution_gates(self):
+    def test_cancel_pauli_evolutions(self):
         """Test that the pass cancels PauliEvolutionGates when appropriate."""
         op = SparsePauliOp.from_list([("IZZ", 1), ("ZII", 2), ("ZIZ", 3)])
 
@@ -247,6 +247,18 @@ class TestCommutativeOptimization(QiskitTestCase):
 
         self.assertEqual(Operator(expected), Operator(qc))
         self.assertEqual(qct, expected)
+
+    def test_not_merge_pauli_evolutions(self):
+        """Test that the pass merges PauliEvolutionGates when appropriate."""
+        op1 = SparsePauliOp.from_list([("IZZ", 1), ("ZII", 2), ("ZIZ", 3)])
+        op2 = SparsePauliOp.from_list([("IZZ", 2), ("ZII", 1), ("ZIZ", 3)])
+        qc = QuantumCircuit(4)
+        qc.append(PauliEvolutionGate(op1, 0.7), [0, 1, 2])
+        qc.append(PauliEvolutionGate(op2, -0.5), [0, 1, 2])
+
+        qct = CommutativeOptimization()(qc)
+
+        self.assertEqual(qct, qc)
 
     def test_2pi_multiples(self):
         """Test 2pi multiples are handled with the correct phase they introduce."""

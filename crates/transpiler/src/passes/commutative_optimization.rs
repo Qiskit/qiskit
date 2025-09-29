@@ -420,29 +420,39 @@ fn try_merge(
         if let (OperationRef::Gate(py_gate1), OperationRef::Gate(py_gate2)) =
             (inst1.op.view(), inst2.op.view())
         {
-            let merged_instruction = Python::attach(|py| -> PyResult<PackedInstruction> {
+            let merged_instruction = Python::attach(|py| -> PyResult<Option<PackedInstruction>> {
                 let merge_result = imports::MERGE_TWO_PAULI_EVOLUTIONS
                     .get_bound(py)
                     .call1((py_gate1.gate.clone_ref(py), py_gate2.gate.clone_ref(py)))?;
-                let instr: OperationFromPython = merge_result.extract()?;
-                let merged_params = Some(Box::new(smallvec![instr.params[0].clone()]));
-                Ok(PackedInstruction {
-                    op: instr.operation,
-                    qubits: inst1.qubits,
-                    clbits: inst1.clbits,
-                    params: merged_params,
-                    label: instr.label.clone(),
-                    #[cfg(feature = "cache_pygates")]
-                    py_op: std::sync::OnceLock::new(),
-                })
+
+                if merge_result.is_none() {
+                    Ok(None)
+                } else {
+                    let instr: OperationFromPython = merge_result.extract()?;
+
+                    let merged_params = Some(Box::new(smallvec![instr.params[0].clone()]));
+                    Ok(Some(PackedInstruction {
+                        op: instr.operation,
+                        qubits: inst1.qubits,
+                        clbits: inst1.clbits,
+                        params: merged_params,
+                        label: instr.label.clone(),
+                        #[cfg(feature = "cache_pygates")]
+                        py_op: std::sync::OnceLock::new(),
+                    }))
+                }
             })?;
 
-            let (can_be_removed, phase_update) =
-                is_identity_equiv(&merged_instruction, tol, max_qubits)?;
-            if can_be_removed {
-                return Ok((true, None, phase_update));
+            if let Some(merged_instruction) = merged_instruction {
+                let (can_be_removed, phase_update) =
+                    is_identity_equiv(&merged_instruction, tol, max_qubits)?;
+                if can_be_removed {
+                    return Ok((true, None, phase_update));
+                } else {
+                    return Ok((true, Some(merged_instruction), 0.));
+                }
             } else {
-                return Ok((true, Some(merged_instruction), 0.));
+                return Ok((false, None, 0.));
             }
         }
     }
