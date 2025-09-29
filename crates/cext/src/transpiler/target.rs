@@ -39,7 +39,7 @@ use smallvec::{smallvec, SmallVec};
 ///     QkTarget *target = qk_target_new(5);
 /// ```
 ///
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_target_new(num_qubits: u32) -> *mut Target {
     let target = Target::new(
@@ -73,7 +73,7 @@ pub extern "C" fn qk_target_new(num_qubits: u32) -> *mut Target {
 /// # Safety
 ///
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_num_qubits(target: *const Target) -> u32 {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
@@ -98,7 +98,7 @@ pub unsafe extern "C" fn qk_target_num_qubits(target: *const Target) -> u32 {
 /// # Safety
 ///
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_dt(target: *const Target) -> f64 {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
@@ -123,7 +123,7 @@ pub unsafe extern "C" fn qk_target_dt(target: *const Target) -> f64 {
 /// # Safety
 ///
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_granularity(target: *const Target) -> u32 {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
@@ -148,7 +148,7 @@ pub unsafe extern "C" fn qk_target_granularity(target: *const Target) -> u32 {
 /// # Safety
 ///
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_min_length(target: *const Target) -> u32 {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
@@ -173,7 +173,7 @@ pub unsafe extern "C" fn qk_target_min_length(target: *const Target) -> u32 {
 /// # Safety
 ///
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_pulse_alignment(target: *const Target) -> u32 {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
@@ -198,7 +198,7 @@ pub unsafe extern "C" fn qk_target_pulse_alignment(target: *const Target) -> u32
 /// # Safety
 ///
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_acquire_alignment(target: *const Target) -> u32 {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
@@ -224,7 +224,7 @@ pub unsafe extern "C" fn qk_target_acquire_alignment(target: *const Target) -> u
 /// # Safety
 ///
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_set_dt(target: *mut Target, dt: f64) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
@@ -252,7 +252,7 @@ pub unsafe extern "C" fn qk_target_set_dt(target: *mut Target, dt: f64) -> ExitC
 /// # Safety
 ///
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_set_granularity(
     target: *mut Target,
@@ -283,7 +283,7 @@ pub unsafe extern "C" fn qk_target_set_granularity(
 /// # Safety
 ///
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_set_min_length(
     target: *mut Target,
@@ -313,7 +313,7 @@ pub unsafe extern "C" fn qk_target_set_min_length(
 /// # Safety
 ///
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_set_pulse_alignment(
     target: *mut Target,
@@ -344,7 +344,7 @@ pub unsafe extern "C" fn qk_target_set_pulse_alignment(
 /// # Safety
 ///
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_set_acquire_alignment(
     target: *mut Target,
@@ -377,7 +377,7 @@ pub unsafe extern "C" fn qk_target_set_acquire_alignment(
 /// # Safety
 ///
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_copy(target: *mut Target) -> *mut Target {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
@@ -400,7 +400,7 @@ pub unsafe extern "C" fn qk_target_copy(target: *mut Target) -> *mut Target {
 /// # Safety
 ///
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_free(target: *mut Target) {
     if !target.is_null() {
@@ -502,7 +502,7 @@ impl TargetEntry {
 /// ```c
 ///     QkTargetEntry *entry = qk_target_entry_new(QkGate_H);
 /// ```
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_target_entry_new(operation: StandardGate) -> *mut TargetEntry {
     Box::into_raw(Box::new(TargetEntry::new(operation)))
@@ -527,7 +527,7 @@ pub extern "C" fn qk_target_entry_new(operation: StandardGate) -> *mut TargetEnt
 ///     QkTarget *measure_target = qk_target_new(5);
 ///     qk_target_add_instruction(measure_target, entry);
 /// ```
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_target_entry_new_measure() -> *mut TargetEntry {
     Box::into_raw(Box::new(TargetEntry::new_instruction(
@@ -554,7 +554,7 @@ pub extern "C" fn qk_target_entry_new_measure() -> *mut TargetEntry {
 ///     QkTarget *reset_target = qk_target_new(3);
 ///     qk_target_add_instruction(reset_target, entry);
 /// ```
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_target_entry_new_reset() -> *mut TargetEntry {
     Box::into_raw(Box::new(TargetEntry::new_instruction(
@@ -586,7 +586,7 @@ pub extern "C" fn qk_target_entry_new_reset() -> *mut TargetEntry {
 /// behavior of this function is undefined as this will read outside the bounds of the array.
 /// It can be a null pointer if there are no params for a given gate. You can check
 /// ``qk_gate_num_params`` to determine how many qubits are required for a given gate.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_entry_new_fixed(
     operation: StandardGate,
@@ -618,7 +618,7 @@ pub unsafe extern "C" fn qk_target_entry_new_fixed(
 ///
 /// The behavior is undefined if ``entry`` is not a valid,
 /// non-null pointer to a ``QkTargetEntry`` object.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_entry_num_properties(entry: *const TargetEntry) -> usize {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
@@ -645,7 +645,7 @@ pub unsafe extern "C" fn qk_target_entry_num_properties(entry: *const TargetEntr
 ///
 /// The behavior is undefined if ``entry`` is not a valid,
 /// non-null pointer to a ``QkTargetEntry`` object.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_entry_free(entry: *mut TargetEntry) {
     if !entry.is_null() {
@@ -683,7 +683,7 @@ pub unsafe extern "C" fn qk_target_entry_free(entry: *mut TargetEntry) {
 ///
 /// The behavior is undefined if ``entry`` is not a valid, non-null pointer
 /// to a ``QkTargetEntry`` object.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_entry_add_property(
     entry: *mut TargetEntry,
@@ -735,7 +735,7 @@ pub unsafe extern "C" fn qk_target_entry_add_property(
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
 ///
 /// Behavior is undefined if ``entry`` is not a valid, non-null pointer to a ``QkTargetEntry``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_add_instruction(
     target: *mut Target,
@@ -809,7 +809,7 @@ pub unsafe extern "C" fn qk_target_add_instruction(
 /// outside the bounds of the array. It can be a null pointer if there are no qubits for
 /// a given gate. You can check ``qk_gate_num_qubits`` to determine how many qubits are required
 /// for a given gate.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_update_property(
     target: *mut Target,
@@ -860,7 +860,7 @@ pub unsafe extern "C" fn qk_target_update_property(
 /// # Safety
 ///
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_num_instructions(target: *const Target) -> usize {
     // SAFETY: Per documentation, the pointer is non-null and aligned.

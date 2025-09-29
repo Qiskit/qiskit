@@ -507,27 +507,24 @@ impl State {
                 )),
                 &format!("'{name}' is a parameter, not a qubit"),
             ))),
-            None => {
-                if let Some(symbol) = self.symbols.get(&name) {
-                    Err(QASM2ParseError::new_err(message_generic(
-                        Some(&Position::new(
-                            self.current_filename(),
-                            name_token.line,
-                            name_token.col,
-                        )),
-                        &format!("'{}' is {}, not a qubit", name, symbol.describe()),
-                    )))
-                } else {
-                    Err(QASM2ParseError::new_err(message_generic(
-                        Some(&Position::new(
-                            self.current_filename(),
-                            name_token.line,
-                            name_token.col,
-                        )),
-                        &format!("'{name}' is not defined in this scope"),
-                    )))
-                }
-            }
+            None => match self.symbols.get(&name) {
+                Some(symbol) => Err(QASM2ParseError::new_err(message_generic(
+                    Some(&Position::new(
+                        self.current_filename(),
+                        name_token.line,
+                        name_token.col,
+                    )),
+                    &format!("'{}' is {}, not a qubit", name, symbol.describe()),
+                ))),
+                _ => Err(QASM2ParseError::new_err(message_generic(
+                    Some(&Position::new(
+                        self.current_filename(),
+                        name_token.line,
+                        name_token.col,
+                    )),
+                    &format!("'{name}' is not defined in this scope"),
+                ))),
+            },
         }
     }
 

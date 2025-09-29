@@ -62,7 +62,7 @@ use qiskit_transpiler::passes::run_inverse_cancellation_standard_gates;
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_inverse_cancellation(
     circuit: *mut CircuitData,
