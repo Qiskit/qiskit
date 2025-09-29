@@ -254,21 +254,22 @@ pub unsafe extern "C" fn qk_param_add(
     let rhs = unsafe { const_ptr_as_ref(rhs) };
 
     let ret = match (lhs, rhs) {
-        (Param::ParameterExpression(lhs), Param::ParameterExpression(rhs)) => lhs.add(rhs),
-        (Param::ParameterExpression(lhs), Param::Float(rhs)) => {
-            lhs.add(&ParameterExpression::from_f64(*rhs))
-        }
-        (Param::Float(lhs), Param::ParameterExpression(rhs)) => {
-            ParameterExpression::from_f64(*lhs).add(rhs)
-        }
-        (Param::Float(lhs), Param::Float(rhs)) => Ok(ParameterExpression::from_f64(*lhs + *rhs)),
-        (_, _) => Err(ParameterError::OperatorNotSupported(
-            "add for PyObject".to_string(),
-        )),
+        (Param::ParameterExpression(lhs), Param::ParameterExpression(rhs)) => lhs
+            .add(rhs)
+            .map(|expr| Param::ParameterExpression(expr.into())),
+        (Param::ParameterExpression(lhs), Param::Float(rhs)) => lhs
+            .add(&ParameterExpression::from_f64(*rhs))
+            .map(|expr| Param::ParameterExpression(expr.into())),
+        (Param::Float(lhs), Param::ParameterExpression(rhs)) => ParameterExpression::from_f64(*lhs)
+            .add(rhs)
+            .map(|expr| Param::ParameterExpression(expr.into())),
+        (Param::Float(lhs), Param::Float(rhs)) => Ok(Param::Float(*lhs + *rhs)),
+        _ => return ExitCode::ArithmeticError, // PyObj case is not supported
     };
+
     match ret {
         Ok(ret) => {
-            *out = Param::ParameterExpression(Arc::new(ret));
+            *out = ret;
             ExitCode::Success
         }
         Err(_) => ExitCode::ArithmeticError,
@@ -310,21 +311,21 @@ pub unsafe extern "C" fn qk_param_sub(
     let rhs = unsafe { const_ptr_as_ref(rhs) };
 
     let ret = match (lhs, rhs) {
-        (Param::ParameterExpression(lhs), Param::ParameterExpression(rhs)) => lhs.sub(rhs),
-        (Param::ParameterExpression(lhs), Param::Float(rhs)) => {
-            lhs.sub(&ParameterExpression::from_f64(*rhs))
-        }
-        (Param::Float(lhs), Param::ParameterExpression(rhs)) => {
-            ParameterExpression::from_f64(*lhs).sub(rhs)
-        }
-        (Param::Float(lhs), Param::Float(rhs)) => Ok(ParameterExpression::from_f64(*lhs - *rhs)),
-        (_, _) => Err(ParameterError::OperatorNotSupported(
-            "sub for PyObject".to_string(),
-        )),
+        (Param::ParameterExpression(lhs), Param::ParameterExpression(rhs)) => lhs
+            .sub(rhs)
+            .map(|expr| Param::ParameterExpression(expr.into())),
+        (Param::ParameterExpression(lhs), Param::Float(rhs)) => lhs
+            .sub(&ParameterExpression::from_f64(*rhs))
+            .map(|expr| Param::ParameterExpression(expr.into())),
+        (Param::Float(lhs), Param::ParameterExpression(rhs)) => ParameterExpression::from_f64(*lhs)
+            .sub(rhs)
+            .map(|expr| Param::ParameterExpression(expr.into())),
+        (Param::Float(lhs), Param::Float(rhs)) => Ok(Param::Float(*lhs - *rhs)),
+        _ => return ExitCode::ArithmeticError, // PyObj case is not supported
     };
     match ret {
         Ok(ret) => {
-            *out = Param::ParameterExpression(Arc::new(ret));
+            *out = ret;
             ExitCode::Success
         }
         Err(_) => ExitCode::ArithmeticError,
@@ -366,21 +367,21 @@ pub unsafe extern "C" fn qk_param_mul(
     let rhs = unsafe { const_ptr_as_ref(rhs) };
 
     let ret = match (lhs, rhs) {
-        (Param::ParameterExpression(lhs), Param::ParameterExpression(rhs)) => lhs.mul(rhs),
-        (Param::ParameterExpression(lhs), Param::Float(rhs)) => {
-            lhs.mul(&ParameterExpression::from_f64(*rhs))
-        }
-        (Param::Float(lhs), Param::ParameterExpression(rhs)) => {
-            ParameterExpression::from_f64(*lhs).mul(rhs)
-        }
-        (Param::Float(lhs), Param::Float(rhs)) => Ok(ParameterExpression::from_f64(*lhs * *rhs)),
-        (_, _) => Err(ParameterError::OperatorNotSupported(
-            "mul for PyObject".to_string(),
-        )),
+        (Param::ParameterExpression(lhs), Param::ParameterExpression(rhs)) => lhs
+            .mul(rhs)
+            .map(|expr| Param::ParameterExpression(expr.into())),
+        (Param::ParameterExpression(lhs), Param::Float(rhs)) => lhs
+            .mul(&ParameterExpression::from_f64(*rhs))
+            .map(|expr| Param::ParameterExpression(expr.into())),
+        (Param::Float(lhs), Param::ParameterExpression(rhs)) => ParameterExpression::from_f64(*lhs)
+            .mul(rhs)
+            .map(|expr| Param::ParameterExpression(expr.into())),
+        (Param::Float(lhs), Param::Float(rhs)) => Ok(Param::Float(*lhs * *rhs)),
+        _ => return ExitCode::ArithmeticError, // PyObj case is not supported
     };
     match ret {
         Ok(ret) => {
-            *out = Param::ParameterExpression(Arc::new(ret));
+            *out = ret;
             ExitCode::Success
         }
         Err(_) => ExitCode::ArithmeticError,
@@ -422,21 +423,21 @@ pub unsafe extern "C" fn qk_param_div(
     let den = unsafe { const_ptr_as_ref(den) };
 
     let ret = match (num, den) {
-        (Param::ParameterExpression(num), Param::ParameterExpression(den)) => num.div(den),
-        (Param::ParameterExpression(num), Param::Float(den)) => {
-            num.div(&ParameterExpression::from_f64(*den))
-        }
-        (Param::Float(num), Param::ParameterExpression(den)) => {
-            ParameterExpression::from_f64(*num).div(den)
-        }
-        (Param::Float(num), Param::Float(den)) => Ok(ParameterExpression::from_f64(*num / *den)),
-        (_, _) => Err(ParameterError::OperatorNotSupported(
-            "div for PyObject".to_string(),
-        )),
+        (Param::ParameterExpression(num), Param::ParameterExpression(den)) => num
+            .div(den)
+            .map(|expr| Param::ParameterExpression(expr.into())),
+        (Param::ParameterExpression(num), Param::Float(den)) => num
+            .div(&ParameterExpression::from_f64(*den))
+            .map(|expr| Param::ParameterExpression(expr.into())),
+        (Param::Float(num), Param::ParameterExpression(den)) => ParameterExpression::from_f64(*num)
+            .div(den)
+            .map(|expr| Param::ParameterExpression(expr.into())),
+        (Param::Float(num), Param::Float(den)) => Ok(Param::Float(*num / *den)),
+        _ => return ExitCode::ArithmeticError, // PyObj case is not supported
     };
     match ret {
         Ok(ret) => {
-            *out = Param::ParameterExpression(Arc::new(ret));
+            *out = ret;
             ExitCode::Success
         }
         Err(_) => ExitCode::ArithmeticError,
@@ -478,23 +479,23 @@ pub unsafe extern "C" fn qk_param_pow(
     let pow = unsafe { const_ptr_as_ref(pow) };
 
     let ret = match (base, pow) {
-        (Param::ParameterExpression(base), Param::ParameterExpression(pow)) => base.pow(pow),
-        (Param::ParameterExpression(base), Param::Float(pow)) => {
-            base.pow(&ParameterExpression::from_f64(*pow))
-        }
+        (Param::ParameterExpression(base), Param::ParameterExpression(pow)) => base
+            .pow(pow)
+            .map(|expr| Param::ParameterExpression(expr.into())),
+        (Param::ParameterExpression(base), Param::Float(pow)) => base
+            .pow(&ParameterExpression::from_f64(*pow))
+            .map(|expr| Param::ParameterExpression(expr.into())),
         (Param::Float(base), Param::ParameterExpression(pow)) => {
-            ParameterExpression::from_f64(*base).pow(pow)
+            ParameterExpression::from_f64(*base)
+                .pow(pow)
+                .map(|expr| Param::ParameterExpression(expr.into()))
         }
-        (Param::Float(base), Param::Float(pow)) => {
-            Ok(ParameterExpression::from_f64(base.powf(*pow)))
-        }
-        (_, _) => Err(ParameterError::OperatorNotSupported(
-            "pow for PyObject".to_string(),
-        )),
+        (Param::Float(base), Param::Float(pow)) => Ok(Param::Float(base.powf(*pow))),
+        _ => return ExitCode::ArithmeticError, // PyObj case is not supported
     };
     match ret {
         Ok(ret) => {
-            *out = Param::ParameterExpression(Arc::new(ret));
+            *out = ret;
             ExitCode::Success
         }
         Err(_) => ExitCode::ArithmeticError,
@@ -1077,45 +1078,45 @@ pub unsafe extern "C" fn qk_param_bind(
     let out = unsafe { mut_ptr_as_ref(out) };
     let src = unsafe { const_ptr_as_ref(src) };
 
-    if let Param::ParameterExpression(expr) = src {
-        // SAFETY: Per documentation, ``keys`` is readable for ``num`` elements, and each
-        // element is a valid, non-null pointer.
-        let keys = unsafe {
-            std::slice::from_raw_parts(keys, num)
-                .iter()
-                .map(|k| const_ptr_as_ref(*k))
-        };
-        let symbols = keys.map(|param: &Param| match param {
-            Param::ParameterExpression(expr) => expr.try_to_symbol_ref(),
-            _ => Err(ParameterError::NotASymbol),
-        });
-
-        // SAFETY: Per documentation, ``values`` is readable for ``num`` elements.
-        let values = unsafe { std::slice::from_raw_parts(values, num) };
-
-        // Here we zip the two lists and propagate the Result<&Symbol> to the tuple
-        // Result<(&Symbol, Value)> so only need to collect once to trigger possible errors.
-        let map: HashMap<&Symbol, Value> = match symbols
-            .zip(values)
-            .map(|(sym, val)| sym.map(|s| (s, Value::Real(*val))))
-            .collect::<Result<_, _>>()
-        {
-            Ok(map) => map,
-            Err(_) => return ExitCode::CInputError,
-        };
-
-        let bound = expr.bind(&map, true);
-        match bound {
-            Ok(bound) => {
-                *out = Param::ParameterExpression(Arc::new(bound));
-                ExitCode::Success
-            }
-            Err(_) => ExitCode::ArithmeticError,
-        }
-    } else {
+    let Param::ParameterExpression(expr) = src else {
         // If the input is not parameterized, return a copy.
         *out = src.clone();
-        ExitCode::Success
+        return ExitCode::Success;
+    };
+
+    // SAFETY: Per documentation, ``keys`` is readable for ``num`` elements, and each
+    // element is a valid, non-null pointer.
+    let keys = unsafe {
+        std::slice::from_raw_parts(keys, num)
+            .iter()
+            .map(|k| const_ptr_as_ref(*k))
+    };
+    let symbols = keys.map(|param: &Param| match param {
+        Param::ParameterExpression(expr) => expr.try_to_symbol_ref(),
+        _ => Err(ParameterError::NotASymbol),
+    });
+
+    // SAFETY: Per documentation, ``values`` is readable for ``num`` elements.
+    let values = unsafe { std::slice::from_raw_parts(values, num) };
+
+    // Here we zip the two lists and propagate the Result<&Symbol> to the tuple
+    // Result<(&Symbol, Value)> so only need to collect once to trigger possible errors.
+    let map: HashMap<&Symbol, Value> = match symbols
+        .zip(values)
+        .map(|(sym, val)| sym.map(|s| (s, Value::Real(*val))))
+        .collect::<Result<_, _>>()
+    {
+        Ok(map) => map,
+        Err(_) => return ExitCode::CInputError,
+    };
+
+    let bound = expr.bind(&map, true);
+    match bound {
+        Ok(bound) => {
+            *out = Param::ParameterExpression(Arc::new(bound));
+            ExitCode::Success
+        }
+        Err(_) => ExitCode::ArithmeticError,
     }
 }
 
@@ -1186,68 +1187,66 @@ pub unsafe extern "C" fn qk_param_subs(
     let out = unsafe { mut_ptr_as_ref(out) };
     let src = unsafe { const_ptr_as_ref(src) };
 
-    if let Param::ParameterExpression(expr) = src {
-        // SAFETY: Per documentation, ``keys`` is readable for ``num`` elements, and each
-        // element is a valid, non-null pointer.
-        let keys = unsafe {
-            std::slice::from_raw_parts(keys, num)
-                .iter()
-                .map(|k| const_ptr_as_ref(*k))
-        };
-        let symbols = keys.map(|param: &Param| match param {
-            Param::ParameterExpression(expr) => expr.try_to_symbol(),
-            _ => Err(ParameterError::NotASymbol),
-        });
-
-        // SAFETY: Per documentation, ``subs`` is readable for ``num`` elements, and each
-        // element is a valid, non-null pointer.
-        let subs = unsafe {
-            std::slice::from_raw_parts(subs, num)
-                .iter()
-                .map(|k| const_ptr_as_ref(*k))
-        };
-        let replacements = subs.map(|param: &Param| match param {
-            Param::ParameterExpression(expr) => expr.as_ref().clone(),
-            Param::Float(f) => ParameterExpression::from_f64(*f),
-            Param::Obj(_) => panic!("Param::Obj is unsupported in the C API."),
-        });
-
-        let map = match symbols
-            .zip(replacements)
-            .map(|(sym, expr)| sym.map(|s| (s, expr)))
-            .collect::<Result<_, _>>()
-        {
-            Ok(map) => map,
-            Err(_) => return ExitCode::CInputError,
-        };
-
-        let bound = expr.subs(&map, true);
-        match bound {
-            Ok(bound) => {
-                *out = Param::ParameterExpression(Arc::new(bound));
-                ExitCode::Success
-            }
-            Err(_) => ExitCode::ArithmeticError,
-        }
-    } else {
-        // If there are no unbound parameters, return a copy
+    let Param::ParameterExpression(expr) = src else {
+        // If the input is not parameterized, return a copy.
         *out = src.clone();
-        ExitCode::Success
+        return ExitCode::Success;
+    };
+
+    // SAFETY: Per documentation, ``keys`` is readable for ``num`` elements, and each
+    // element is a valid, non-null pointer.
+    let keys = unsafe {
+        std::slice::from_raw_parts(keys, num)
+            .iter()
+            .map(|k| const_ptr_as_ref(*k))
+    };
+    let symbols = keys.map(|param: &Param| match param {
+        Param::ParameterExpression(expr) => expr.try_to_symbol(),
+        _ => Err(ParameterError::NotASymbol),
+    });
+
+    // SAFETY: Per documentation, ``subs`` is readable for ``num`` elements, and each
+    // element is a valid, non-null pointer.
+    let subs = unsafe {
+        std::slice::from_raw_parts(subs, num)
+            .iter()
+            .map(|k| const_ptr_as_ref(*k))
+    };
+    let replacements = subs.map(|param: &Param| match param {
+        Param::ParameterExpression(expr) => expr.as_ref().clone(),
+        Param::Float(f) => ParameterExpression::from_f64(*f),
+        Param::Obj(_) => panic!("Param::Obj is unsupported in the C API."),
+    });
+
+    let map = match symbols
+        .zip(replacements)
+        .map(|(sym, expr)| sym.map(|s| (s, expr)))
+        .collect::<Result<_, _>>()
+    {
+        Ok(map) => map,
+        Err(_) => return ExitCode::CInputError,
+    };
+
+    let bound = expr.subs(&map, true);
+    match bound {
+        Ok(bound) => {
+            *out = Param::ParameterExpression(Arc::new(bound));
+            ExitCode::Success
+        }
+        Err(_) => ExitCode::ArithmeticError,
     }
 }
 
 /// @ingroup QkParam
 /// Attempt casting the ``QkParam`` as ``double``.
 ///
-/// Upon succesful casting, the result is written into the provided ``double*`` and the function
-/// returns ``true``. If the parameter could not be cast to a ``double``, because there were unbound
-/// parameters, the ``double*`` remains unchanged and the function returns ``false``.
-/// Note that for ``QkParam`` representing complex values the real part is returned.
+/// If the parameter could not be cast to a ``double``, because there were unbound parameters,
+/// ``NAN`` is returned. Note that for ``QkParam`` representing complex values the real part is
+/// returned.
 ///
-/// @param out A pointer to store the ``double``.
 /// @param src A pointer to the ``QkParam`` to evaluate.
 ///
-/// @return ``true`` if the parameter can be evaluated as real number, ``false`` otherwise.
+/// @return The value, if casting was successful, otherwise ``NAN``.
 ///
 /// # Example
 ///
@@ -1261,33 +1260,24 @@ pub unsafe extern "C" fn qk_param_subs(
 /// QkParam *y = qk_param_zero();
 /// qk_param_bind(y, x, keys, {1.0, 2.0}, 2);
 ///
-/// double out;
-/// qk_param_as_real(&out, y)
+/// double out = qk_param_as_real(y);
 /// ```
 ///
 /// # Safety
 ///
-/// The behavior is undefined if ``out`` is not a valid, non-null pointer to a ``double``, or
-/// if ``param`` is not a valid, non-null pointer to a ``QkParam``.
+/// The behavior is undefined if ``param`` is not a valid, non-null pointer to a ``QkParam``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_param_as_real(out: *mut f64, param: *const Param) -> bool {
-    // SAFETY: Per documentation, the pointers are non-null and aligned.
-    let out = unsafe { mut_ptr_as_ref(out) };
+pub unsafe extern "C" fn qk_param_as_real(param: *const Param) -> f64 {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
     let param = unsafe { const_ptr_as_ref(param) };
 
     match param {
         Param::ParameterExpression(expr) => match expr.try_to_value(true) {
-            Ok(v) => {
-                *out = v.as_real();
-                true
-            }
-            Err(_) => false,
+            Ok(v) => v.as_real(),
+            Err(_) => f64::NAN,
         },
-        Param::Float(f) => {
-            *out = *f;
-            true
-        }
+        Param::Float(f) => *f,
         Param::Obj(_) => panic!("Param::Obj is not supported in the C API"),
     }
 }

@@ -1,5 +1,5 @@
 ---
-upgrade_c:
+features_c:
   - |
     Introducing Param C-API to support parameterized circuits on C-API.
     `QkParam` represents symbolic equations through `qk_param_*` functions.

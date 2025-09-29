@@ -58,8 +58,6 @@ pub enum ParameterError {
     NotASymbol,
     #[error("Derivative not supported on expression: {0}")]
     DerivativeNotSupported(String),
-    #[error("Operator {0} is not supported.")]
-    OperatorNotSupported(String),
 }
 
 impl From<ParameterError> for PyErr {
