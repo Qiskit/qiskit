@@ -49,12 +49,7 @@ fn is_mat_identity_equiv(mat: ArrayView2<Complex64>, tol: f64) -> (bool, f64) {
 /// Check if the given operation is equivalent to identity up to a global phase, up to
 /// the specified tolerance `tol`. If this is the case, return the tuple
 /// `(true, global_phase)`, and if not, return the tuple `(false, 0.)`.
-fn is_identity_equiv(
-    py: Python,
-    inst: &PackedInstruction,
-    tol: f64,
-    max_qubits: u32,
-) -> (bool, f64) {
+fn is_identity_equiv(inst: &PackedInstruction, tol: f64, max_qubits: u32) -> (bool, f64) {
     if inst.is_parameterized() {
         // Skip parameterized gates
         return (false, 0.);
@@ -115,11 +110,15 @@ fn is_identity_equiv(
 
     // Special handling for large pauli rotation gates.
     if let OperationRef::Gate(py_gate) = view {
-        let result = imports::PAULI_ROTATION_TRACE_AND_DIM
-            .get_bound(py)
-            .call1((py_gate.gate.clone_ref(py),));
-        let result = result.unwrap();
-        let result: Option<(Complex64, usize)> = result.extract().unwrap();
+        let result = Python::attach(|py| -> Option<(Complex64, usize)> {
+            let result = imports::PAULI_ROTATION_TRACE_AND_DIM
+                .get_bound(py)
+                .call1((py_gate.gate.clone_ref(py),));
+            let result = result.unwrap();
+            let result: Option<(Complex64, usize)> = result.extract().unwrap();
+            result
+        });
+
         if let Some((tr_over_dim, dim)) = result {
             let f_pro = tr_over_dim.abs().powi(2);
             let gate_fidelity = (dim as f64 * f_pro + 1.) / (dim as f64 + 1.);
@@ -324,7 +323,6 @@ fn commute(
 ///
 /// Arguments:
 ///
-/// * `py`: We need a Python token to habdle Pauli evolution gates.
 /// * `dag`: The output [DAGCircuit] that contains all interned qubits.
 /// * `tol`: Specifies tolerance.
 /// * `max_qubits`: The maximum number of qubits to use for more expensive
@@ -340,7 +338,6 @@ fn commute(
 /// * (true, Some(instruction), phase_update): the two instructions are merged.
 /// * (false, None, 0.): the two instructions cannot be merged.
 fn try_merge(
-    py: Python,
     dag: &DAGCircuit,
     inst1: &PackedInstruction,
     inst2: &PackedInstruction,
@@ -393,7 +390,7 @@ fn try_merge(
         let merged_instruction =
             PackedInstruction::from_standard_gate(merged_gate, params, inst1.qubits);
         let (can_be_removed, phase_update) =
-            is_identity_equiv(py, &merged_instruction, tol, max_qubits);
+            is_identity_equiv(&merged_instruction, tol, max_qubits);
 
         if can_be_removed {
             return Ok((true, None, phase_update));
@@ -424,23 +421,26 @@ fn try_merge(
         if let (OperationRef::Gate(py_gate1), OperationRef::Gate(py_gate2)) =
             (inst1.op.view(), inst2.op.view())
         {
-            let merge_result = imports::MERGE_TWO_PAULI_EVOLUTIONS
-                .get_bound(py)
-                .call1((py_gate1.gate.clone_ref(py), py_gate2.gate.clone_ref(py)))?;
-            let instr: OperationFromPython = merge_result.extract()?;
-            let merged_params = Some(Box::new(smallvec![instr.params[0].clone()]));
-            let merged_instruction = PackedInstruction {
-                op: instr.operation,
-                qubits: inst1.qubits,
-                clbits: inst1.clbits,
-                params: merged_params,
-                label: instr.label.clone(),
-                #[cfg(feature = "cache_pygates")]
-                py_op: std::sync::OnceLock::new(),
-            };
+            let merged_instruction = Python::attach(|py| -> PyResult<PackedInstruction> {
+                let merge_result = imports::MERGE_TWO_PAULI_EVOLUTIONS
+                    .get_bound(py)
+                    .call1((py_gate1.gate.clone_ref(py), py_gate2.gate.clone_ref(py)))?;
+                let instr: OperationFromPython = merge_result.extract()?;
+                let merged_params = Some(Box::new(smallvec![instr.params[0].clone()]));
+                Ok(PackedInstruction {
+                    op: instr.operation,
+                    qubits: inst1.qubits,
+                    clbits: inst1.clbits,
+                    params: merged_params,
+                    label: instr.label.clone(),
+                    #[cfg(feature = "cache_pygates")]
+                    py_op: std::sync::OnceLock::new(),
+                })
+            })
+            .unwrap();
 
             let (can_be_removed, phase_update) =
-                is_identity_equiv(py, &merged_instruction, tol, max_qubits);
+                is_identity_equiv(&merged_instruction, tol, max_qubits);
             if can_be_removed {
                 return Ok((true, None, phase_update));
             } else {
@@ -457,7 +457,6 @@ fn try_merge(
 #[pyo3(name = "commutative_optimization")]
 #[pyo3(signature = (dag, commutation_checker, approximation_degree=1., max_qubits=4))]
 pub fn run_commutative_optimization(
-    py: Python,
     dag: &mut DAGCircuit,
     commutation_checker: &mut CommutationChecker,
     approximation_degree: f64,
@@ -483,7 +482,7 @@ pub fn run_commutative_optimization(
         let node_index1 = node_indices[idx1];
         let instr1 = dag[node_index1].unwrap_operation();
 
-        let (can_be_removed, phase_update) = is_identity_equiv(py, instr1, tol, max_qubits);
+        let (can_be_removed, phase_update) = is_identity_equiv(instr1, tol, max_qubits);
         if can_be_removed {
             node_actions[idx1] = NodeAction::Drop;
             new_global_phase = radd_param(new_global_phase, Param::Float(phase_update));
@@ -515,7 +514,7 @@ pub fn run_commutative_optimization(
             };
 
             let (can_be_merged, merged_instruction, phase_update) =
-                try_merge(py, &new_dag, instr1, instr2, tol, max_qubits)?;
+                try_merge(&new_dag, instr1, instr2, tol, max_qubits)?;
 
             if can_be_merged {
                 if let Some(merged_instruction) = merged_instruction {
