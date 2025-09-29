@@ -621,7 +621,7 @@ fn commutation_precheck(
     None
 }
 
-fn get_matrix(operation: &OperationRef, params: &[Param]) -> Option<Array2<Complex64>> {
+pub fn get_matrix(operation: &OperationRef, params: &[Param]) -> Option<Array2<Complex64>> {
     if let Some(matrix) = operation.matrix(params) {
         Some(matrix)
     } else {
