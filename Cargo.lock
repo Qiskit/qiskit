@@ -1452,6 +1452,7 @@ dependencies = [
  "pulp",
  "pyo3",
  "qiskit-circuit",
+ "qiskit-quantum-info",
  "qiskit-transpiler",
  "rand 0.9.2",
  "rand_distr 0.5.1",
@@ -1508,6 +1509,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "qiskit-circuit-library"
+version = "2.3.0-dev"
+dependencies = [
+ "hashbrown 0.15.5",
+ "itertools 0.14.0",
+ "nalgebra",
+ "ndarray",
+ "num-complex",
+ "numpy",
+ "pyo3",
+ "qiskit-circuit",
+ "rand 0.9.2",
+ "rand_distr 0.5.1",
+ "rand_pcg 0.9.0",
+ "rayon",
+ "smallvec",
+ "uuid",
+]
+
+[[package]]
 name = "qiskit-pyext"
 version = "2.3.0-dev"
 dependencies = [
@@ -1515,6 +1536,7 @@ dependencies = [
  "qiskit-accelerate",
  "qiskit-cext",
  "qiskit-circuit",
+ "qiskit-circuit-library",
  "qiskit-qasm2",
  "qiskit-qasm3",
  "qiskit-quantum-info",
