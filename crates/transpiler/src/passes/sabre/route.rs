@@ -17,6 +17,7 @@ use std::num::NonZero;
 
 use numpy::{PyArray2, ToPyArray};
 use pyo3::prelude::*;
+use pyo3::types::PyDict;
 use pyo3::Python;
 
 use hashbrown::HashSet;
@@ -315,6 +316,50 @@ impl RoutingTarget {
 pub struct PyRoutingTarget(pub Option<RoutingTarget>);
 #[pymethods]
 impl PyRoutingTarget {
+    #[new]
+    fn py_new() -> Self {
+        PyRoutingTarget(None)
+    }
+
+    fn __getstate__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
+        let out_dict = PyDict::new(py);
+        out_dict.set_item(
+            "neighbors",
+            self.0.as_ref().map(|x| x.neighbors.neighbors.clone()),
+        )?;
+        out_dict.set_item(
+            "partition",
+            self.0.as_ref().map(|x| x.neighbors.partition.clone()),
+        )?;
+        Ok(out_dict)
+    }
+
+    fn __setstate__(&mut self, value: Bound<PyDict>) -> PyResult<()> {
+        let neighbors_array: Option<Vec<PhysicalQubit>> = value
+            .get_item("neighbors")?
+            .map(|x| x.extract())
+            .transpose()?;
+        if let Some(neighbors_array) = neighbors_array {
+            let partition: Vec<usize> = value
+                .get_item("partition")?
+                .map(|x| x.extract())
+                .transpose()?
+                .unwrap();
+            let neighbors = Neighbors {
+                neighbors: neighbors_array,
+                partition,
+            };
+            if self.0.is_none() {
+                self.0 = Some(RoutingTarget::from_neighbors(neighbors));
+            } else {
+                self.0.as_mut().unwrap().distance =
+                    distance_matrix(&neighbors, usize::MAX, f64::NAN);
+                self.0.as_mut().unwrap().neighbors = neighbors;
+            }
+        }
+        Ok(())
+    }
+
     #[staticmethod]
     pub(crate) fn from_target(target: &Target) -> PyResult<Self> {
         let coupling = match target.coupling_graph() {
