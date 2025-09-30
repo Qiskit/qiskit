@@ -27,13 +27,7 @@ from ddt import ddt, data
 import numpy as np
 from numpy import pi
 
-from qiskit.dagcircuit import (
-    DAGCircuit,
-    DAGOpNode,
-    DAGInNode,
-    DAGOutNode,
-    DAGCircuitError,
-)
+from qiskit.dagcircuit import DAGCircuit, DAGOpNode, DAGInNode, DAGOutNode, DAGCircuitError
 from qiskit.circuit import (
     QuantumCircuit,
     QuantumRegister,
