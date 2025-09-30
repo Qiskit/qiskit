@@ -244,32 +244,6 @@ pub struct DAGCircuit {
     stretches_declare: Vec<Stretch>,
 }
 
-/// A Python-facing iterator for DAG nodes yielded from Rust.
-#[pyclass(name = "TopologicalIterator", unsendable)]
-struct TopologicalNodeIterator {
-    dag: Py<DAGCircuit>,
-    nodes: std::vec::IntoIter<NodeIndex>,
-}
-
-#[pymethods]
-impl TopologicalNodeIterator {
-    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
-        slf
-    }
-
-    fn __next__(mut slft: PyRefMut<'_, Self>) -> PyResult<Option<Py<PyAny>>> {
-        Python::with_gil(|py| {
-            if let Some(node_idx) = slft.nodes.next() {
-                let dag_borrow = slft.dag.borrow(py);
-                let node_obj = dag_borrow.get_node(py, node_idx)?;
-                Ok(Some(node_obj))
-            } else {
-                Ok(None)
-            }
-        })
-    }
-}
-
 #[derive(Clone, Debug)]
 struct PyLegacyResources {
     clbits: Py<PyTuple>,
@@ -2553,6 +2527,40 @@ impl DAGCircuit {
             .try_iter()
             .unwrap()
             .unbind())
+    }
+
+    // Creates an interactive topological sorter for the circuit's nodes.
+    //
+    // This sorter allows for a layer-by-layer traversal of the DAG,
+    // controlled by the user. It can be used to sort the entire graph or
+    // to perform a partial sort on a specific subgraph of descendants.
+    //
+    // The interactive process involves fetching a set of "ready" nodes
+    // (those with no unprocessed dependencies) using `get_ready()`, and then
+    // notifying the sorter that they have been processed using `done()`.
+    //
+    // Args:
+    //     reverse (bool, optional): If `True`, the sort will be reversed,
+    //         yielding successors before their predecessors. Defaults to `False`.
+    //     initial (list[DAGNode], optional): If provided, performs a partial
+    //         topological sort starting from these specific nodes. The sorter
+    //         will only yield nodes that are descendants of this initial set.
+    //         The nodes in this list must be independent (i.e., no node in
+    //         the list is a descendant of another). If `None`, a full sort of
+    //         the entire graph is performed. Defaults to `None`.
+    //
+    // Returns:
+    //     TopologicalSorter: An interactive sorter instance ready to be driven
+    //         by `get_ready()` and `done()` calls.
+
+    #[pyo3(signature = (/, reverse = false, initial = None))]
+    pub fn topological_sorter(
+        slf: PyRef<Self>,
+        py: Python,
+        reverse: bool,
+        initial: Option<Vec<Py<PyAny>>>,
+    ) -> PyResult<TopologicalSorter> {
+        TopologicalSorter::new(py, slf.into(), reverse, initial)
     }
 
     /// Replace a block of nodes with a single node.
@@ -8059,19 +8067,14 @@ pub(crate) fn add_global_phase(phase: &Param, other: &Param) -> PyResult<Param> 
 
 type SortKeyType<'a> = (&'a [Qubit], &'a [Clbit]);
 
-#[pyclass(
-    name = "TopologicalSorter",
-    module = "qiskit._accelerate.circuit",
-    unsendable
-)]
+#[pyclass(name = "TopologicalSorter", unsendable)]
 pub struct TopologicalSorter {
     dag: Py<DAGCircuit>,
     node_degrees: HashMap<NodeIndex, usize>,
     ready_queue: VecDeque<NodeIndex>,
-    num_passed_out: usize,
     num_finished: usize,
     total_nodes: usize,
-    reverse: bool,
+    out_dir: Direction,
 }
 
 #[pymethods]
@@ -8098,6 +8101,7 @@ impl TopologicalSorter {
         };
 
         if let Some(initial_nodes) = initial {
+            // --- LOGIC FOR A PARTIAL SORT ---
             let initial_indices: Vec<NodeIndex> = initial_nodes
                 .into_iter()
                 .map(|node_obj| dag_borrow.get_node_index(node_obj.bind(py)))
@@ -8106,7 +8110,7 @@ impl TopologicalSorter {
                 .map(NodeIndex::new)
                 .collect();
 
-            // --- partial sort starting from 'initial' nodes ---
+            // Validate that initial nodes are independent
             let initial_set: HashSet<NodeIndex> = initial_indices.iter().cloned().collect();
             for start_node in &initial_indices {
                 let mut bfs_queue: VecDeque<NodeIndex> =
@@ -8114,18 +8118,16 @@ impl TopologicalSorter {
                 while let Some(node) = bfs_queue.pop_front() {
                     if initial_set.contains(&node) {
                         return Err(PyValueError::new_err(
-                            "The 'initial' nodes are not independent; one is a descendant of another.",
+                            "The 'initial' nodes are not independent.",
                         ));
                     }
                     bfs_queue.extend(graph.neighbors_directed(node, out_dir));
                 }
             }
 
-            ready_queue.extend(initial_indices.iter());
-
-            //  Find all reachable nodes to get the correct count for the subgraph.
-            let mut reachable_nodes: HashSet<NodeIndex> = initial_indices.iter().cloned().collect();
-            let mut bfs_queue: VecDeque<NodeIndex> = initial_indices.into();
+            // Find all nodes reachable from the initial set
+            let mut reachable_nodes: HashSet<NodeIndex> = initial_set.clone();
+            let mut bfs_queue: VecDeque<NodeIndex> = initial_indices.clone().into();
             while let Some(node_idx) = bfs_queue.pop_front() {
                 for successor in graph.neighbors_directed(node_idx, out_dir) {
                     if reachable_nodes.insert(successor) {
@@ -8133,18 +8135,26 @@ impl TopologicalSorter {
                     }
                 }
             }
-            total_nodes = reachable_nodes.len();
-        } else {
-            // --- logic for a full graph sort ---
-            total_nodes = graph.node_count();
-            node_degrees = graph
-                .node_indices()
-                .map(|n| (n, graph.neighbors_directed(n, in_dir).count()))
-                .collect();
 
-            for (node, &degree) in &node_degrees {
+            // Calculate in-degrees for ALL reachable nodes
+            for &node in &reachable_nodes {
+                let degree = graph
+                    .neighbors_directed(node, in_dir)
+                    .filter(|p| reachable_nodes.contains(p))
+                    .count();
+                node_degrees.insert(node, degree);
+            }
+
+            total_nodes = reachable_nodes.len();
+            ready_queue.extend(initial_indices);
+        } else {
+            // --- FULL GRAPH SORT ---
+            total_nodes = graph.node_count();
+            for n in graph.node_indices() {
+                let degree = graph.neighbors_directed(n, in_dir).count();
+                node_degrees.insert(n, degree);
                 if degree == 0 {
-                    ready_queue.push_back(*node);
+                    ready_queue.push_back(n);
                 }
             }
         }
@@ -8153,10 +8163,9 @@ impl TopologicalSorter {
             dag: dag.clone(),
             node_degrees,
             ready_queue,
-            num_passed_out: 0, // Should start at 0
             num_finished: 0,
             total_nodes,
-            reverse,
+            out_dir,
         })
     }
 
@@ -8182,24 +8191,20 @@ impl TopologicalSorter {
     pub fn done(&mut self, py: Python, node: &Bound<PyAny>) -> PyResult<()> {
         let dag_borrow = self.dag.borrow(py);
         let graph = &dag_borrow.dag;
-        let node_idx = dag_borrow.get_node_index(node)?;
+        let node_idx = NodeIndex::new(dag_borrow.get_node_index(node)?);
 
-        let (_, out_dir) = if !self.reverse {
-            (Incoming, Outgoing)
-        } else {
-            (Outgoing, Incoming)
-        };
-
-        for neighbor_idx in graph.neighbors_directed(NodeIndex::new(node_idx), out_dir) {
-            let degree = self.node_degrees.get_mut(&neighbor_idx).unwrap();
-            *degree -= 1;
-            if *degree == 0 {
-                self.ready_queue.push_back(neighbor_idx);
+        if self.node_degrees.contains_key(&node_idx) {
+            for neighbor_idx in graph.neighbors_directed(node_idx, self.out_dir) {
+                // Only consider neighbors that are part of the sort
+                if let Some(degree) = self.node_degrees.get_mut(&neighbor_idx) {
+                    *degree -= 1;
+                    if *degree == 0 {
+                        self.ready_queue.push_back(neighbor_idx);
+                    }
+                }
             }
+            self.num_finished += 1;
         }
-
-        self.num_finished += 1;
-        self.num_passed_out += self.ready_queue.len();
         Ok(())
     }
 

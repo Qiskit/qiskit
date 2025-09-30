@@ -1,0 +1,28 @@
+---
+features:
+  - |
+      Added :meth:`.DAGCircuit.topological_sorter()`, a new method that returns an interactive sorter for stateful, layer-by-layer traversal of the circuit graph,
+      using the Kahn's algorithm. This implementation is based on the `TopologicalSorter` class from Rustowrkx, but fine-tuned for Qiskit's :class:`.DAGCircuit`. 
+      The returned sorter object is controlled by get_ready() and done() methods, allowing for advanced scheduling and analysis passes. The sorter supports
+      forward, reverse, and partial sorting via the initial argument.
+
+      Example usage:
+
+      ```python
+      from qiskit import QuantumCircuit
+      from qiskit.dagcircuit import DAGCircuit
+      from qiskit.circuit.library import HGate, CXGate
+
+      # Create a DAGCircuit and get its TopologicalSorter
+      qc = QuantumCircuit(3)
+      qc.h(0)
+      qc.cx(0, 1)
+      dag = DAGCircuit.from_circuit(qc)
+
+      sorter = dag.topological_sorter()
+
+      # Implementation: Loop, get a layer, and mark it as done.
+      while sorter:
+          ready_nodes = sorter.get_ready()
+          # ... process nodes in the ready_nodes list ...
+          sorter.done(ready_nodes)

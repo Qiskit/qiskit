@@ -22,4 +22,3 @@ directly from the graph.
 """
 
 from qiskit._accelerate.circuit import DAGCircuit  # pylint: disable=unused-import
-from qiskit._accelerate.circuit import TopologicalSorter  # pylint: disable=unused-import
