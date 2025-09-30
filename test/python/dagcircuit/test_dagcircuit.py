@@ -651,6 +651,7 @@ class TestDagWireRemoval(QiskitTestCase):
         self.assertEqual(dag, expected)
 
 
+@ddt
 class TestDagApplyOperation(QiskitTestCase):
     """Test adding an op node to a dag."""
 
@@ -704,6 +705,37 @@ class TestDagApplyOperation(QiskitTestCase):
         reset_node = self.dag.op_nodes(op=Reset).pop()
 
         self.assertIn(reset_node, set(self.dag.predecessors(h_node)))
+
+    @data("front", "back")
+    def test_apply_operation_duplicate_wires(self, direction):
+        """The apply-front and apply-back methods should only attempt to add a single edge, even if
+        a classical variable is mentioned more than once."""
+        qc = QuantumCircuit()
+        a = qc.add_input("a", types.Bool())
+
+        dag = circuit_to_dag(qc)
+        op = IfElseOp(expr.logic_and(a, a), QuantumCircuit(), None)
+        if direction == "front":
+            dag.apply_operation_front(op, [], [])
+        else:
+            dag.apply_operation_back(op, [], [])
+        self.assertEqual(len(list(dag.edges())), 2)
+
+    @data("front", "back")
+    def test_apply_operation_determinism(self, direction):
+        """When adding a node with many qubits and clbits, the order of the edge ids should be
+        deterministic."""
+        qc = QuantumCircuit(100)
+        qubits = qc.qubits
+        if direction == "front":
+            apply = DAGCircuit.apply_operation_front
+        else:
+            apply = DAGCircuit.apply_operation_back
+        left = circuit_to_dag(qc)
+        apply(left, Barrier(len(qubits)), qubits, [])
+        right = circuit_to_dag(qc)
+        apply(right, Barrier(len(qubits)), qubits, [])
+        self.assertTrue(left.structurally_equal(right))
 
     def test_apply_operation_expr_condition(self):
         """Test that the operation-applying functions correctly handle wires implied from `Expr`
