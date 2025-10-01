@@ -13,7 +13,7 @@
 use nalgebra::{Matrix2, Matrix3, Matrix3x1};
 use ndarray::ArrayView2;
 use num_complex::{Complex64, ComplexFloat};
-use qiskit_circuit::operations::{Operation, Param, StandardGate};
+use qiskit_circuit::operations::{Param, StandardGate};
 use std::{
     f64::consts::{FRAC_1_SQRT_2, FRAC_PI_2, FRAC_PI_4, FRAC_PI_8},
     ops::Div,

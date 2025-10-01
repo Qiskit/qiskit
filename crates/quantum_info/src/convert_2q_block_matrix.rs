@@ -24,7 +24,7 @@ use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::TWO_QUBIT_IDENTITY;
 use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::interner::Interner;
-use qiskit_circuit::operations::{ArrayType, Operation, OperationRef};
+use qiskit_circuit::operations::{ArrayType, OperationRef};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 
 use crate::QiskitError;
@@ -32,7 +32,7 @@ use crate::versor_u2::{VersorSU2, VersorU2, VersorU2Error};
 
 #[inline]
 pub fn get_matrix_from_inst(inst: &PackedInstruction) -> PyResult<Array2<Complex64>> {
-    if let Some(mat) = inst.op.matrix(inst.params_view()) {
+    if let Some(mat) = inst.try_matrix() {
         return Ok(mat);
     }
     if inst.op.try_standard_gate().is_some() {
