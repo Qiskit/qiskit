@@ -8996,7 +8996,7 @@ mod test {
             #[cfg(feature = "cache_pygates")]
             None,
         )?;
-        let empty = dag.physical_empty_like_with_capacity(10, 0, 0)?;
+        let empty = dag.physical_empty_like_with_capacity(10, 0, 0, false)?;
         assert_eq!(empty.name.as_deref(), Some("my dag"));
         assert_eq!(
             empty
