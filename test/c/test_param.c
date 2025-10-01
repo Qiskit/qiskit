@@ -21,60 +21,6 @@
 #include <string.h>
 
 /**
- * Safely print a string of known size.
- *
- * If ``str`` points to a character array of size ``expected_len``, terminated by nul, then
- * this function simply prints the string. In addition, this function handles the cases where
- * the string contains invalid characters, an early nul, or if the string is not correctly
- * terminated with nul after the expected length.
- */
-void printf_limited(char *str, const size_t expected_len, bool newline) {
-    if (str == NULL) {
-        printf("pointer is NULL!");
-    } else {
-        char *buffer = malloc((expected_len + 1) * sizeof(char)); // +1 for EOL
-        bool found_eol = false;
-        bool invalid_char = false;
-        for (size_t i = 0; i < expected_len; i++) {
-            char el = str[i];
-            if (el == '\0') { // if we reached early EOL, stop here
-                buffer[i] = el;
-                found_eol = true;
-                break;
-            }
-            if (isprint(el)) { // add a valid character
-                buffer[i] = el;
-            } else { // stop at invalid characters
-                buffer[i] = '\0';
-                invalid_char = true;
-                found_eol = true;
-                break;
-            }
-        }
-        // add EOL and print the buffer
-        if (!found_eol) {
-            buffer[expected_len] = '\0';
-        }
-        printf("%s", buffer);
-        free(buffer);
-
-        // we expect to have fully read the string, so if the last character was not EOL the
-        // string was corrupted
-        if (!found_eol) {
-            if (str[expected_len] != '\0') {
-                printf("[...]");
-            }
-        } else if (invalid_char) {
-            printf("[invalid char...]");
-        }
-    }
-
-    if (newline) {
-        printf("\n");
-    }
-}
-
-/**
  * Test creating a new free symbol and check the name.
  */
 static int test_param_new(void) {
@@ -83,8 +29,7 @@ static int test_param_new(void) {
     qk_param_free(p);
 
     if (strcmp(str, "a") != 0) {
-        printf("The parameter is not a but ");
-        printf_limited(str, 1, true);
+        printf("The parameter is not a\n");
         qk_str_free(str);
         return EqualityError;
     }
@@ -166,8 +111,7 @@ static int test_param_binary_ops(void) {
 
     str = qk_param_str(ret);
     if (strcmp(str, "a + b") != 0) {
-        printf("qk_param_add is not a + b, but ");
-        printf_limited(str, 5, true);
+        printf("qk_param_add is not a + b\n");
         result = EqualityError;
         goto cleanup_str;
     }
@@ -181,8 +125,7 @@ static int test_param_binary_ops(void) {
 
     str = qk_param_str(ret);
     if (strcmp(str, "a - b") != 0) {
-        printf("qk_param_sub is not a - b but ");
-        printf_limited(str, 5, true);
+        printf("qk_param_sub is not a - b\n");
         result = EqualityError;
         goto cleanup_str;
     }
@@ -196,8 +139,7 @@ static int test_param_binary_ops(void) {
 
     str = qk_param_str(ret);
     if (strcmp(str, "a*b") != 0) {
-        printf("qk_param_mul is not a*b but ");
-        printf_limited(str, 3, true);
+        printf("qk_param_mul is not a*b\n");
         result = EqualityError;
         goto cleanup_str;
     }
@@ -211,8 +153,7 @@ static int test_param_binary_ops(void) {
 
     str = qk_param_str(ret);
     if (strcmp(str, "a/b") != 0) {
-        printf("qk_param_div is not a/b but ");
-        printf_limited(str, 3, true);
+        printf("qk_param_div is not a/b\n");
         result = EqualityError;
         goto cleanup_str;
     }
@@ -226,8 +167,7 @@ static int test_param_binary_ops(void) {
 
     str = qk_param_str(ret);
     if (strcmp(str, "a**b") != 0) {
-        printf("qk_param_pow is not a**b but ");
-        printf_limited(str, 4, true);
+        printf("qk_param_pow is not a**b\n");
         result = EqualityError;
         goto cleanup_str;
     }
@@ -266,8 +206,7 @@ static int test_param_unary_ops(void) {
     }
     str = qk_param_str(ret);
     if (strcmp(str, "sin(a + b)") != 0) {
-        printf("qk_param_sin is not sin(a + b) but ");
-        printf_limited(str, 10, true);
+        printf("qk_param_sin is not sin(a + b)\n");
         result = EqualityError;
         goto cleanup_str;
     }
@@ -280,8 +219,7 @@ static int test_param_unary_ops(void) {
     }
     str = qk_param_str(ret);
     if (strcmp(str, "cos(a + b)") != 0) {
-        printf("qk_param_cos is not cos(a + b) but ");
-        printf_limited(str, 10, true);
+        printf("qk_param_cos is not cos(a + b)\n");
         result = EqualityError;
         goto cleanup_str;
     }
@@ -294,8 +232,7 @@ static int test_param_unary_ops(void) {
     }
     str = qk_param_str(ret);
     if (strcmp(str, "tan(a + b)") != 0) {
-        printf("qk_param_tan is not tan(a + b) but ");
-        printf_limited(str, 10, true);
+        printf("qk_param_tan is not tan(a + b)\n");
         result = EqualityError;
         goto cleanup_str;
     }
@@ -308,8 +245,7 @@ static int test_param_unary_ops(void) {
     }
     str = qk_param_str(ret);
     if (strcmp(str, "asin(a + b)") != 0) {
-        printf("qk_param_asin is not asin(a + b) but ");
-        printf_limited(str, 11, true);
+        printf("qk_param_asin is not asin(a + b)\n");
         result = EqualityError;
         goto cleanup_str;
     }
@@ -322,8 +258,7 @@ static int test_param_unary_ops(void) {
     }
     str = qk_param_str(ret);
     if (strcmp(str, "acos(a + b)") != 0) {
-        printf("qk_param_acos is not acos(a + b) but ");
-        printf_limited(str, 11, true);
+        printf("qk_param_acos is not acos(a + b)\n");
         result = EqualityError;
         goto cleanup_str;
     }
@@ -336,8 +271,7 @@ static int test_param_unary_ops(void) {
     }
     str = qk_param_str(ret);
     if (strcmp(str, "atan(a + b)") != 0) {
-        printf("qk_param_atan is not atan(a + b) but ");
-        printf_limited(str, 11, true);
+        printf("qk_param_atan is not atan(a + b)\n");
         result = EqualityError;
         goto cleanup_str;
     }
@@ -350,8 +284,7 @@ static int test_param_unary_ops(void) {
     }
     str = qk_param_str(ret);
     if (strcmp(str, "log(a + b)") != 0) {
-        printf("qk_param_log is not log(a + b) but ");
-        printf_limited(str, 10, true);
+        printf("qk_param_log is not log(a + b)\n");
         result = EqualityError;
         goto cleanup_str;
     }
@@ -364,8 +297,7 @@ static int test_param_unary_ops(void) {
     }
     str = qk_param_str(ret);
     if (strcmp(str, "exp(a + b)") != 0) {
-        printf("qk_param_exp is not exp(a + b) but ");
-        printf_limited(str, 10, true);
+        printf("qk_param_exp is not exp(a + b)\n");
         result = EqualityError;
         goto cleanup_str;
     }
@@ -378,8 +310,7 @@ static int test_param_unary_ops(void) {
     }
     str = qk_param_str(ret);
     if (strcmp(str, "abs(a + b)") != 0) {
-        printf("qk_param_abs is not abs(a + b) but ");
-        printf_limited(str, 10, true);
+        printf("qk_param_abs is not abs(a + b)\n");
         result = EqualityError;
         goto cleanup_str;
     }
@@ -392,8 +323,7 @@ static int test_param_unary_ops(void) {
     }
     str = qk_param_str(ret);
     if (strcmp(str, "sign(a + b)") != 0) {
-        printf("qk_param_sign is not sign(a + b) but ");
-        printf_limited(str, 11, true);
+        printf("qk_param_sign is not sign(a + b)\n");
         result = EqualityError;
         goto cleanup_str;
     }
@@ -406,8 +336,7 @@ static int test_param_unary_ops(void) {
     }
     str = qk_param_str(ret);
     if (strcmp(str, "-a - b") != 0) {
-        printf("qk_param_neg is not -a - b but ");
-        printf_limited(str, 6, true);
+        printf("qk_param_neg is not -a - b\n");
         result = EqualityError;
         goto cleanup_str;
     }
@@ -420,8 +349,7 @@ static int test_param_unary_ops(void) {
     }
     str = qk_param_str(ret);
     if (strcmp(str, "conj(a) + conj(b)") != 0) {
-        printf("qk_param_conj is not conj(a) + conj(b) but ");
-        printf_limited(str, 17, true);
+        printf("qk_param_conj is not conj(a) + conj(b)\n");
         result = EqualityError;
         goto cleanup_str;
     }
@@ -455,8 +383,7 @@ static int test_param_with_value(void) {
 
     str = qk_param_str(ret);
     if (strcmp(str, "2.5 + a") != 0) {
-        printf("qk_param_add is not 2.5 + a but ");
-        printf_limited(str, 7, true);
+        printf("qk_param_add is not 2.5 + a\n");
         result = EqualityError;
     }
     qk_str_free(str);
