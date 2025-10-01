@@ -452,12 +452,12 @@ static int test_param_with_value(void) {
         goto cleanup;
     }
 
+    str = qk_param_str(ret);
     if (strcmp(str, "2.5 + a") != 0) {
         printf("qk_param_add is not 2.5 + a but ");
         printf_limited(str, 7, true);
         result = EqualityError;
     }
-    str = qk_param_str(ret);
     qk_str_free(str);
 
 cleanup:
