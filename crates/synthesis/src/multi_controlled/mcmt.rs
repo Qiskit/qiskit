@@ -10,15 +10,15 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use crate::QiskitError;
 use pyo3::prelude::*;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
+use qiskit_circuit::instruction::Instruction;
 use qiskit_circuit::operations::{Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
 use smallvec::{SmallVec, smallvec};
-
-use crate::QiskitError;
 
 type CCXChainItem = PyResult<(
     PackedOperation,
@@ -102,8 +102,8 @@ pub fn mcmt_v_chain(
         return Err(QiskitError::new_err("Need at least 1 control qubit."));
     }
 
+    let gate_params: SmallVec<[Param; 3]> = controlled_gate.params_view().iter().cloned().collect();
     let packed_controlled_gate = controlled_gate.operation;
-    let gate_params = controlled_gate.params;
     let num_qubits = if num_ctrl_qubits > 1 {
         2 * num_ctrl_qubits - 1 + num_target_qubits
     } else {

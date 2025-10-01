@@ -16,6 +16,7 @@ use crate::exit_codes::{CInputError, ExitCode};
 use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
 use indexmap::IndexMap;
 use qiskit_circuit::PhysicalQubit;
+use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::StandardInstruction;
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -764,7 +765,7 @@ pub unsafe extern "C" fn qk_target_add_instruction(
 
     match target.add_instruction(
         instruction.into(),
-        &entry.params.unwrap_or_default(),
+        entry.params.map(Parameters::Params),
         None,
         property_map,
     ) {

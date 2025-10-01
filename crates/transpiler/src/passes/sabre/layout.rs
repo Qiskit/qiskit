@@ -172,6 +172,7 @@ pub fn sabre_layout_and_routing(
                 num_physical_qubits,
                 dag.num_ops() + num_swaps,
                 dag.dag().edge_count() + 2 * num_swaps,
+                false,
             )?;
             let qubit_fn = |q: PhysicalQubit| {
                 subset
@@ -314,7 +315,7 @@ pub fn sabre_layout_and_routing(
                 NLayout::from_physical_to_virtual(initial_physical).expect("all indices are valid");
             if skip_routing {
                 Ok((
-                    dag.physical_empty_like_with_capacity(num_physical_qubits, 0, 0)?,
+                    dag.physical_empty_like_with_capacity(num_physical_qubits, 0, 0, false)?,
                     initial_layout.clone(),
                     initial_layout,
                 ))

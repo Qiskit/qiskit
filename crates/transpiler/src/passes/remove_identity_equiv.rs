@@ -18,10 +18,9 @@ use crate::gate_metrics::rotation_trace_and_dim;
 use crate::target::Target;
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::operations::Operation;
-use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::StandardGate;
+use qiskit_circuit::operations::{Operation, OperationRef};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 
 const MINIMUM_TOL: f64 = 1e-12;
@@ -84,8 +83,7 @@ pub fn run_remove_identity_equiv(
             // Skip parameterized gates
             continue;
         }
-        let view = inst.op.view();
-        match view {
+        match inst.op.view() {
             OperationRef::StandardGate(gate) => {
                 let (tr_over_dim, dim) = match gate {
                     StandardGate::RX
@@ -109,7 +107,7 @@ pub fn run_remove_identity_equiv(
                         }
                     }
                     _ => {
-                        if let Some(matrix) = gate.matrix(inst.params_view()) {
+                        if let Some(matrix) = inst.try_matrix() {
                             let dim = matrix.shape()[0] as f64;
                             let tr_over_dim = matrix.diag().iter().sum::<Complex64>() / dim;
                             (tr_over_dim, dim)
@@ -127,7 +125,7 @@ pub fn run_remove_identity_equiv(
                 }
             }
             _ => {
-                let matrix = view.matrix(inst.params_view());
+                let matrix = inst.try_matrix();
                 // If view.matrix() returns None, then there is no matrix and we skip the operation.
                 if let Some(matrix) = matrix {
                     let error = get_error_cutoff(inst);

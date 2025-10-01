@@ -453,7 +453,9 @@ mod tests {
     use super::*;
     use crate::target::InstructionProperties;
     use crate::target::Target;
+    use pyo3::prelude::*;
     use qiskit_circuit::circuit_data::CircuitData;
+    use qiskit_circuit::instruction::Parameters;
     use qiskit_circuit::operations::{Operation, Param, StandardGate, StandardInstruction};
     use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
     use qiskit_circuit::parameter::symbol_expr::Symbol;
@@ -463,7 +465,7 @@ mod tests {
 
     fn build_universal_star_target() -> Target {
         let mut target = Target::default();
-        let u_params = [
+        let u_params: Option<Parameters<Py<PyAny>>> = Some(Parameters::Params(smallvec![
             Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
                 "a", None, None,
             )))),
@@ -473,7 +475,7 @@ mod tests {
             Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
                 "c", None, None,
             )))),
-        ];
+        ]));
 
         let props = (0..5)
             .map(|i| {
@@ -487,7 +489,7 @@ mod tests {
             })
             .collect();
         target
-            .add_instruction(StandardGate::U.into(), &u_params, None, Some(props))
+            .add_instruction(StandardGate::U.into(), u_params, None, Some(props))
             .unwrap();
         let props = (0..5)
             .map(|i| {
@@ -501,7 +503,7 @@ mod tests {
             })
             .collect();
         target
-            .add_instruction(StandardInstruction::Measure.into(), &[], None, Some(props))
+            .add_instruction(StandardInstruction::Measure.into(), None, None, Some(props))
             .unwrap();
         let props = (1..5)
             .map(|i| {
@@ -515,7 +517,7 @@ mod tests {
             })
             .collect();
         target
-            .add_instruction(StandardGate::ECR.into(), &[], None, Some(props))
+            .add_instruction(StandardGate::ECR.into(), None, None, Some(props))
             .unwrap();
         target
     }
