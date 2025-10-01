@@ -60,7 +60,7 @@ pub use basis_translator::{basis_translator_mod, run_basis_translator};
 pub use check_map::{check_map_mod, run_check_map};
 pub use commutation_analysis::{analyze_commutations, commutation_analysis_mod};
 pub use commutation_cancellation::{cancel_commutations, commutation_cancellation_mod};
-pub use consolidate_blocks::{consolidate_blocks_mod, run_consolidate_blocks, DecomposerType};
+pub use consolidate_blocks::{DecomposerType, consolidate_blocks_mod, run_consolidate_blocks};
 pub use dense_layout::{best_subset, dense_layout_mod};
 pub use disjoint_layout::{combine_barriers, disjoint_utils_mod, distribute_components};
 pub use elide_permutations::{elide_permutations_mod, run_elide_permutations};
@@ -71,7 +71,7 @@ pub use gate_direction::{
 };
 pub use gates_in_basis::{gates_in_basis_mod, gates_missing_from_basis, gates_missing_from_target};
 pub use high_level_synthesis::{
-    high_level_synthesis_mod, run_high_level_synthesis, HighLevelSynthesisData,
+    HighLevelSynthesisData, high_level_synthesis_mod, run_high_level_synthesis,
 };
 pub use instruction_duration_check::{
     instruction_duration_check_mod, run_instruction_duration_check,
@@ -88,5 +88,5 @@ pub use remove_identity_equiv::{remove_identity_equiv_mod, run_remove_identity_e
 pub use split_2q_unitaries::{run_split_2q_unitaries, split_2q_unitaries_mod};
 pub use unitary_synthesis::{run_unitary_synthesis, unitary_synthesis_mod};
 pub use unroll_3q_or_more::{run_unroll_3q_or_more, unroll_3q_or_more_mod};
-pub use vf2::{error_map_mod, score_layout, vf2_layout_mod, vf2_layout_pass, ErrorMap};
+pub use vf2::{ErrorMap, error_map_mod, score_layout, vf2_layout_mod, vf2_layout_pass};
 pub use wrap_angles::{run_wrap_angles, wrap_angles_mod};

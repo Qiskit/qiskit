@@ -58,4 +58,4 @@ def synth_cnot_depth_line_kms(mat: np.ndarray[bool]) -> QuantumCircuit:
     circuit_data = fast_kms(mat)
 
     # construct circuit from the data
-    return QuantumCircuit._from_circuit_data(circuit_data, add_regs=True)
+    return QuantumCircuit._from_circuit_data(circuit_data, legacy_qubits=True)

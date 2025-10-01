@@ -14,15 +14,15 @@ use crate::linear::lnn::synth_cnot_lnn_instructions;
 use crate::linear::utils::calc_inverse_matrix_inner;
 
 use hashbrown::HashSet;
-use ndarray::{s, Array2, ArrayView2};
+use ndarray::{Array2, ArrayView2, s};
 use numpy::PyReadonlyArray2;
 use smallvec::smallvec;
 use std::cmp::{max, min};
 
 use pyo3::prelude::*;
+use qiskit_circuit::Qubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{Param, StandardGate};
-use qiskit_circuit::Qubit;
 
 enum CircuitInstructions {
     CX(u32, u32),

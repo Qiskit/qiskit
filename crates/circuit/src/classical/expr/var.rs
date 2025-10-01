@@ -16,7 +16,7 @@ use crate::classical::types::Type;
 use crate::imports::UUID;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyTuple};
-use pyo3::{intern, IntoPyObjectExt};
+use pyo3::{IntoPyObjectExt, intern};
 use uuid::Uuid;
 
 /// A classical variable expression.

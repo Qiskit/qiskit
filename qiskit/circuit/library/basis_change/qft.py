@@ -92,8 +92,7 @@ class QFT(BlueprintCircuit):
         insert_barriers: bool = False,
         name: str | None = None,
     ) -> None:
-        """Construct a new QFT circuit.
-
+        """
         Args:
             num_qubits: The number of qubits on which the QFT acts.
             approximation_degree: The degree of approximation (0 for no approximation).

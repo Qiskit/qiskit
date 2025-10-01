@@ -12,29 +12,29 @@
 
 use hashbrown::HashSet;
 
-use numpy::{PyArray1, PyArrayMethods, PyReadonlyArray1};
+use ndarray::Array2;
+use numpy::{IntoPyArray, PyArray1, PyArray2, PyArrayMethods, PyReadonlyArray1};
 use pyo3::{
+    IntoPyObjectExt, PyErr,
     exceptions::{PyRuntimeError, PyTypeError, PyValueError},
     intern,
     prelude::*,
-    sync::GILOnceCell,
+    sync::PyOnceLock,
     types::{IntoPyDict, PyList, PyString, PyTuple, PyType},
-    IntoPyObjectExt, PyErr,
 };
 use std::{
     collections::btree_map,
+    iter::zip,
     sync::{Arc, RwLock},
 };
 use thiserror::Error;
 
-use qiskit_circuit::{
-    imports::ImportOnceCell,
-    slice::{PySequenceIndex, SequenceIndex},
-};
+use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 
-static PAULI_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "Pauli");
-static PAULI_PY_ENUM: GILOnceCell<Py<PyType>> = GILOnceCell::new();
-static PAULI_INTO_PY: GILOnceCell<[Option<Py<PyAny>>; 16]> = GILOnceCell::new();
+use crate::imports;
+
+static PAULI_PY_ENUM: PyOnceLock<Py<PyType>> = PyOnceLock::new();
+static PAULI_INTO_PY: PyOnceLock<[Option<Py<PyAny>>; 16]> = PyOnceLock::new();
 
 /// Named handle to the alphabet of single-qubit terms.
 ///
@@ -110,7 +110,7 @@ impl Pauli {
     /// returning `Ok(None)` for it.  All other letters outside the alphabet return the complete
     /// error condition.
     #[inline]
-    fn try_from_u8(value: u8) -> Result<Option<Self>, PauliFromU8Error> {
+    pub fn try_from_u8(value: u8) -> Result<Option<Self>, PauliFromU8Error> {
         match value {
             b'I' => Ok(None),
             b'X' => Ok(Some(Pauli::X)),
@@ -161,13 +161,17 @@ impl ::std::convert::TryFrom<u8> for Pauli {
 /// failures on entry to Rust from Python space will automatically raise `TypeError`.
 #[derive(Error, Debug)]
 pub enum CoherenceError {
+    #[error("`phases` ({phases}) must be the same length as `qubit_sparse_pauli_list` ({qspl})")]
+    MismatchedPhaseCount { phases: usize, qspl: usize },
     #[error("`rates` ({rates}) must be the same length as `qubit_sparse_pauli_list` ({qspl})")]
     MismatchedTermCount { rates: usize, qspl: usize },
     #[error("`paulis` ({paulis}) and `indices` ({indices}) must be the same length")]
     MismatchedItemCount { paulis: usize, indices: usize },
     #[error("the first item of `boundaries` ({0}) must be 0")]
     BadInitialBoundary(usize),
-    #[error("the last item of `boundaries` ({last}) must match the length of `paulis` and `indices` ({items})")]
+    #[error(
+        "the last item of `boundaries` ({last}) must match the length of `paulis` and `indices` ({items})"
+    )]
     BadFinalBoundary { last: usize, items: usize },
     #[error("all qubit indices must be less than the number of qubits")]
     BitIndexTooHigh,
@@ -477,6 +481,16 @@ impl QubitSparsePauliList {
         Ok(())
     }
 
+    // Return a Vec of dense labels representing this Pauli list
+    pub fn to_dense_label_list(&self) -> Vec<String> {
+        let mut dense_label_list = Vec::with_capacity(self.num_terms());
+
+        for qubit_sparse_pauli in self.iter() {
+            dense_label_list.push(qubit_sparse_pauli.to_term().to_dense_label());
+        }
+        dense_label_list
+    }
+
     /// Apply a transpiler layout.
     pub fn apply_layout(
         &self,
@@ -577,6 +591,14 @@ impl QubitSparsePauliView<'_> {
         }
     }
 
+    pub fn num_ys(self) -> isize {
+        let mut num_ys = 0;
+        for pauli in self.paulis {
+            num_ys += (*pauli == Pauli::Y) as isize;
+        }
+        num_ys
+    }
+
     pub fn to_sparse_str(self) -> String {
         let paulis = self
             .indices
@@ -624,6 +646,59 @@ impl QubitSparsePauli {
             paulis,
             indices,
         })
+    }
+
+    pub fn from_dense_label(label: &str) -> Result<QubitSparsePauli, LabelError> {
+        let label: &[u8] = label.as_ref();
+        let num_qubits = label.len() as u32;
+        let mut paulis = Vec::new();
+        let mut indices = Vec::new();
+        // The only valid characters in the alphabet are ASCII, so if we see something other than
+        // ASCII, we're already in the failure path.
+        for (i, letter) in label.iter().rev().enumerate() {
+            match Pauli::try_from_u8(*letter) {
+                Ok(Some(term)) => {
+                    paulis.push(term);
+                    indices.push(i as u32);
+                }
+                Ok(None) => (),
+                Err(_) => {
+                    return Err(LabelError::OutsideAlphabet);
+                }
+            }
+        }
+        Ok(unsafe {
+            QubitSparsePauli::new_unchecked(
+                num_qubits,
+                paulis.into_boxed_slice(),
+                indices.into_boxed_slice(),
+            )
+        })
+    }
+
+    // Return a dense label representing this Pauli
+    pub fn to_dense_label(&self) -> String {
+        let mut pauli_str = "".to_string();
+
+        let mut current_idx = 0;
+
+        for (index, pauli) in self.indices().iter().zip(self.paulis().iter()) {
+            if *index > current_idx {
+                pauli_str =
+                    (0..(index - current_idx)).map(|_| "I").collect::<String>() + &pauli_str;
+                current_idx = *index;
+            }
+            pauli_str = pauli.py_label().to_string() + &pauli_str;
+            current_idx += 1;
+        }
+
+        if current_idx < self.num_qubits() {
+            pauli_str = (0..(self.num_qubits() - current_idx))
+                .map(|_| "I")
+                .collect::<String>()
+                + &pauli_str;
+        }
+        pauli_str
     }
 
     /// Create a new [QubitSparsePauli] from the raw components without checking data coherence.
@@ -1068,9 +1143,9 @@ impl<'py> FromPyObject<'py> for Pauli {
 ///                                 string label and the qubits they apply to.
 ///
 ///   :meth:`from_pauli`            Raise a single :class:`~.quantum_info.Pauli` into a
-///                                 single-element :class:`.QubitSparsePauli`.
+///                                 :class:`.QubitSparsePauli`.
 ///
-///   :meth:`from_raw_parts`        Build the list from :ref:`the raw data arrays
+///   :meth:`from_raw_parts`        Build the operator from :ref:`the raw data arrays
 ///                                 <qubit-sparse-pauli-arrays>`.
 ///   ============================  ================================================================
 ///
@@ -1119,7 +1194,7 @@ impl PyQubitSparsePauli {
                 "explicitly given 'num_qubits' ({num_qubits}) does not match operator ({other_qubits})"
             )))
         };
-        if data.is_instance(PAULI_TYPE.get_bound(py))? {
+        if data.is_instance(imports::PAULI_TYPE.get_bound(py))? {
             check_num_qubits(data)?;
             return Self::from_pauli(data);
         }
@@ -1221,29 +1296,7 @@ impl PyQubitSparsePauli {
     #[staticmethod]
     #[pyo3(signature = (label, /))]
     fn from_label(label: &str) -> PyResult<Self> {
-        let label: &[u8] = label.as_ref();
-        let num_qubits = label.len() as u32;
-        let mut paulis = Vec::new();
-        let mut indices = Vec::new();
-        // The only valid characters in the alphabet are ASCII, so if we see something other than
-        // ASCII, we're already in the failure path.
-        for (i, letter) in label.iter().rev().enumerate() {
-            match Pauli::try_from_u8(*letter) {
-                Ok(Some(term)) => {
-                    paulis.push(term);
-                    indices.push(i as u32);
-                }
-                Ok(None) => (),
-                Err(_) => {
-                    return Err(PyErr::from(LabelError::OutsideAlphabet));
-                }
-            }
-        }
-        let inner = QubitSparsePauli::new(
-            num_qubits,
-            paulis.into_boxed_slice(),
-            indices.into_boxed_slice(),
-        )?;
+        let inner = QubitSparsePauli::from_dense_label(label)?;
         Ok(inner.into())
     }
 
@@ -1265,7 +1318,7 @@ impl PyQubitSparsePauli {
     ///         >>> assert QubitSparsePauli.from_label(label) == QubitSparsePauli.from_pauli(pauli)
     #[staticmethod]
     #[pyo3(signature = (pauli, /))]
-    fn from_pauli(pauli: &Bound<PyAny>) -> PyResult<Self> {
+    pub fn from_pauli(pauli: &Bound<PyAny>) -> PyResult<Self> {
         let py = pauli.py();
         let num_qubits = pauli.getattr(intern!(py, "num_qubits"))?.extract::<u32>()?;
         let z = pauli
@@ -1463,6 +1516,13 @@ impl PyQubitSparsePauli {
             .into_pyobject(py)
     }
 
+    /// Return a :class:`~.quantum_info.Pauli` representing the same phaseless Pauli.
+    fn to_pauli<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        imports::PAULI_TYPE
+            .get_bound(py)
+            .call1((self.inner.to_dense_label(),))
+    }
+
     /// Get a copy of this term.
     fn copy(&self) -> Self {
         self.clone()
@@ -1513,7 +1573,7 @@ impl PyQubitSparsePauli {
     // :class:`QubitSparsePauliList`.
     #[allow(non_snake_case)]
     #[classattr]
-    fn Pauli(py: Python) -> PyResult<Py<PyType>> {
+    pub fn Pauli(py: Python) -> PyResult<Py<PyType>> {
         PAULI_PY_ENUM
             .get_or_try_init(py, || make_py_pauli(py))
             .map(|obj| obj.clone_ref(py))
@@ -1630,7 +1690,7 @@ impl PyQubitSparsePauliList {
                 "explicitly given 'num_qubits' ({num_qubits}) does not match operator ({other_qubits})"
             )))
         };
-        if data.is_instance(PAULI_TYPE.get_bound(py))? {
+        if data.is_instance(imports::PAULI_TYPE.get_bound(py))? {
             check_num_qubits(data)?;
             return Self::from_pauli(data);
         }
@@ -2013,6 +2073,38 @@ impl PyQubitSparsePauliList {
         Ok(out.unbind())
     }
 
+    /// Express the list in a dense array format.
+    ///
+    /// Each entry is a u8 following the :class:`Pauli` representation, while the rows index
+    /// distinct Paulis and the columns distinct qubits.
+    ///
+    /// Examples:
+    ///
+    ///         >>> paulis = QubitSparsePauliList.from_sparse_list(
+    ///         ...     [("ZX", (1, 4)), ("YY", (0, 3)), ("XX", (0, 1))],
+    ///         ...     num_qubits=5,
+    ///         ... )
+    ///         >>> paulis.to_dense_array()
+    #[pyo3(signature = ())]
+    fn to_dense_array(&self, py: Python) -> PyResult<Py<PyArray2<u8>>> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let mut out = Array2::zeros((inner.num_terms(), inner.num_qubits.try_into().unwrap()));
+        for (idx, paulis) in inner.iter().enumerate() {
+            for (p, p_idx) in zip(paulis.paulis, paulis.indices) {
+                out[[idx, *p_idx as usize]] = *p as u8;
+            }
+        }
+        Ok(out.into_pyarray(py).unbind())
+    }
+
+    /// Return a :class:`~.quantum_info.PauliList` representing the same phaseless list of Paulis.
+    fn to_pauli_list<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        imports::PAULI_LIST_TYPE
+            .get_bound(py)
+            .call1((inner.to_dense_label_list(),))
+    }
+
     /// Apply a transpiler layout to this qubit sparse Pauli list.
     ///
     /// This enables remapping of qubit indices, e.g. if the list is defined in terms of virtual
@@ -2048,7 +2140,7 @@ impl PyQubitSparsePauliList {
         };
 
         // Normalize the number of qubits in the layout and the layout itself, depending on the
-        // input types, before calling PauliLindbladMap.apply_layout to do the actual work.
+        // input types, before calling QubitSparsePauliList.apply_layout to do the actual work.
         let (num_qubits, layout): (u32, Option<Vec<u32>>) = if layout.is_none() {
             (num_qubits.unwrap_or(inner.num_qubits()), None)
         } else if layout.is_instance(
@@ -2100,7 +2192,7 @@ impl PyQubitSparsePauliList {
                 return PyQubitSparsePauli {
                     inner: inner.term(index).to_term(),
                 }
-                .into_bound_py_any(py)
+                .into_bound_py_any(py);
             }
             indices => indices,
         };

@@ -19,6 +19,7 @@ from typing import Callable
 import scipy
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister
+from qiskit.synthesis.one_qubit.one_qubit_decompose import OneQubitEulerDecomposer
 from qiskit.synthesis.two_qubit import (
     TwoQubitBasisDecomposer,
     two_qubit_decompose,
@@ -28,10 +29,11 @@ from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.circuit.library.standard_gates import CXGate
 from qiskit.circuit.library.generalized_gates.uc_pauli_rot import UCPauliRotGate, _EPS
 from qiskit._accelerate.two_qubit_decompose import two_qubit_decompose_up_to_diagonal
+from qiskit._accelerate import qsd
+
 
 # pylint: disable=invalid-name
-
-
+# pylint: disable=too-many-return-statements
 def qs_decomposition(
     mat: np.ndarray,
     opt_a1: bool | None = None,
@@ -106,6 +108,20 @@ def qs_decomposition(
            n-Qubit Gates Based on Block ZXZ-Decomposition*,
            `arXiv:2403.13692 <https://arxiv.org/abs/2403.13692>`_
     """
+    if (decomposer_1q is None or isinstance(decomposer_1q, OneQubitEulerDecomposer)) and (
+        decomposer_2q is None or isinstance(decomposer_2q, TwoQubitBasisDecomposer)
+    ):
+        basis_1q = None
+        if decomposer_1q is not None:
+            basis_1q = decomposer_1q.basis
+        two_q_decomp = None
+        if decomposer_2q is not None:
+            two_q_decomp = decomposer_2q._inner_decomposer
+        array = np.asarray(mat, dtype=complex)
+        return QuantumCircuit._from_circuit_data(
+            qsd.qs_decomposition(array, opt_a1, opt_a2, basis_1q, two_q_decomp)
+        )
+
     #  _depth (int): Internal use parameter to track recursion depth.
     dim = mat.shape[0]
     nqubits = dim.bit_length() - 1

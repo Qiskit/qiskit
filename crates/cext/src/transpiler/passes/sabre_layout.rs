@@ -45,7 +45,7 @@ pub struct SabreLayoutOptions {
 /// Build a default sabre layout options object. This builds a sabre layout with ``max_iterations``
 /// set to 4, both ``num_swap_trials`` and ``num_random_trials`` set to 20, and the seed selected
 /// by a RNG seeded from system entropy.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn qk_sabre_layout_options_default() -> SabreLayoutOptions {
     SabreLayoutOptions {
         max_iterations: 4,
@@ -102,7 +102,7 @@ pub extern "C" fn qk_sabre_layout_options_default() -> SabreLayoutOptions {
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` or ``target`` is not a valid, non-null pointer to a ``QkCircuit`` and ``QkTarget``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_sabre_layout(
     circuit: *mut CircuitData,
@@ -160,5 +160,6 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_sabre_layout(
         Some(out_permutation),
         result.qubits().objects().clone(),
         num_input_qubits,
+        result.qregs().to_vec(),
     )))
 }
