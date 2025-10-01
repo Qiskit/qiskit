@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use num_complex::Complex64;
-use std::ffi::{c_char, CStr, CString};
+use std::ffi::{CStr, CString, c_char};
 use std::sync::Arc;
 
 use crate::exit_codes::ExitCode;
@@ -39,7 +39,7 @@ use qiskit_circuit::parameter::symbol_expr::{Symbol, SymbolExpr, Value};
 /// The `name` parameter must be a pointer to memory that contains a valid
 /// nul terminator at the end of the string. It also must be valid for reads of
 /// bytes up to and including the nul terminator.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_param_new_symbol(name: *const c_char) -> *mut Param {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
@@ -72,7 +72,7 @@ pub unsafe extern "C" fn qk_param_new_symbol(name: *const c_char) -> *mut Param 
 /// qk_param_add(t, a, b);
 /// ```
 ///
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_param_zero() -> *mut Param {
     Box::into_raw(Box::new(Param::Float(0.)))
@@ -93,7 +93,7 @@ pub extern "C" fn qk_param_zero() -> *mut Param {
 /// # Safety
 ///
 /// Behavior is undefined if ``param`` is not either null or a valid pointer to a ``QkParam``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_param_free(param: *mut Param) {
     if !param.is_null() {
@@ -122,7 +122,7 @@ pub unsafe extern "C" fn qk_param_free(param: *mut Param) {
 /// QkParam *r = qk_param_from_double(2.5);
 /// ```
 ///
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_param_from_double(value: f64) -> *mut Param {
     let value = Param::Float(value);
@@ -143,7 +143,7 @@ pub extern "C" fn qk_param_from_double(value: f64) -> *mut Param {
 /// QkParam *param = qk_param_from_complex(c);
 /// ```
 ///
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_param_from_complex(value: Complex64) -> *mut Param {
     let value = SymbolExpr::Value(Value::Complex(value));
@@ -169,7 +169,7 @@ pub extern "C" fn qk_param_from_complex(value: Complex64) -> *mut Param {
 /// # Safety
 ///
 /// The behavior is undefined if ``param`` is not a valid pointer to a non-null ``QkParam``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_param_copy(param: *const Param) -> *mut Param {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
@@ -204,7 +204,7 @@ pub unsafe extern "C" fn qk_param_copy(param: *const Param) -> *mut Param {
 ///
 /// Do not change the length of the string after it's returned (by writing a nul byte somewhere
 /// inside the string or removing the final one), although values can be mutated.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_param_str(param: *const Param) -> *mut c_char {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
@@ -240,7 +240,7 @@ pub unsafe extern "C" fn qk_param_str(param: *const Param) -> *mut c_char {
 ///
 /// The behavior is undefined if any of ``out``, ``lhs`` or ``rhs`` is not a valid, non-null
 /// pointer to a ``QkParam``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_param_add(
     out: *mut Param,
@@ -297,7 +297,7 @@ pub unsafe extern "C" fn qk_param_add(
 ///
 /// The behavior is undefined if any of ``out``, ``lhs`` or ``rhs`` is not a valid, non-null
 /// pointer to a ``QkParam``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_param_sub(
     out: *mut Param,
@@ -353,7 +353,7 @@ pub unsafe extern "C" fn qk_param_sub(
 ///
 /// The behavior is undefined if any of ``out``, ``lhs`` or ``rhs`` is not a valid, non-null
 /// pointer to a ``QkParam``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_param_mul(
     out: *mut Param,
@@ -409,7 +409,7 @@ pub unsafe extern "C" fn qk_param_mul(
 ///
 /// The behavior is undefined if any of ``out``, ``num`` or ``den`` is not a valid, non-null
 /// pointer to a ``QkParam``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_param_div(
     out: *mut Param,
@@ -465,7 +465,7 @@ pub unsafe extern "C" fn qk_param_div(
 ///
 /// The behavior is undefined if any of ``out``, ``base`` or ``pow`` is not a valid, non-null
 /// pointer to a ``QkParam``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_param_pow(
     out: *mut Param,
@@ -521,7 +521,7 @@ pub unsafe extern "C" fn qk_param_pow(
 ///
 /// The behavior is undefined if any of ``out`` or ``src`` is not a valid, non-null
 /// pointer to a ``QkParam``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_param_sin(out: *mut Param, src: *const Param) -> ExitCode {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
@@ -561,7 +561,7 @@ pub unsafe extern "C" fn qk_param_sin(out: *mut Param, src: *const Param) -> Exi
 ///
 /// The behavior is undefined if any of ``out`` or ``src`` is not a valid, non-null
 /// pointer to a ``QkParam``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_param_cos(out: *mut Param, src: *const Param) -> ExitCode {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
@@ -601,7 +601,7 @@ pub unsafe extern "C" fn qk_param_cos(out: *mut Param, src: *const Param) -> Exi
 ///
 /// The behavior is undefined if any of ``out`` or ``src`` is not a valid, non-null
 /// pointer to a ``QkParam``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_param_tan(out: *mut Param, src: *const Param) -> ExitCode {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
@@ -641,7 +641,7 @@ pub unsafe extern "C" fn qk_param_tan(out: *mut Param, src: *const Param) -> Exi
 ///
 /// The behavior is undefined if any of ``out`` or ``src`` is not a valid, non-null
 /// pointer to a ``QkParam``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_param_asin(out: *mut Param, src: *const Param) -> ExitCode {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
@@ -681,7 +681,7 @@ pub unsafe extern "C" fn qk_param_asin(out: *mut Param, src: *const Param) -> Ex
 ///
 /// The behavior is undefined if any of ``out`` or ``src`` is not a valid, non-null
 /// pointer to a ``QkParam``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_param_acos(out: *mut Param, src: *const Param) -> ExitCode {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
@@ -721,7 +721,7 @@ pub unsafe extern "C" fn qk_param_acos(out: *mut Param, src: *const Param) -> Ex
 ///
 /// The behavior is undefined if any of ``out`` or ``src`` is not a valid, non-null
 /// pointer to a ``QkParam``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_param_atan(out: *mut Param, src: *const Param) -> ExitCode {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
@@ -761,7 +761,7 @@ pub unsafe extern "C" fn qk_param_atan(out: *mut Param, src: *const Param) -> Ex
 ///
 /// The behavior is undefined if any of ``out`` or ``src`` is not a valid, non-null
 /// pointer to a ``QkParam``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_param_log(out: *mut Param, src: *const Param) -> ExitCode {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
@@ -801,7 +801,7 @@ pub unsafe extern "C" fn qk_param_log(out: *mut Param, src: *const Param) -> Exi
 ///
 /// The behavior is undefined if any of ``out`` or ``src`` is not a valid, non-null
 /// pointer to a ``QkParam``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_param_exp(out: *mut Param, src: *const Param) -> ExitCode {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
@@ -841,7 +841,7 @@ pub unsafe extern "C" fn qk_param_exp(out: *mut Param, src: *const Param) -> Exi
 ///
 /// The behavior is undefined if any of ``out`` or ``src`` is not a valid, non-null
 /// pointer to a ``QkParam``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_param_abs(out: *mut Param, src: *const Param) -> ExitCode {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
@@ -881,7 +881,7 @@ pub unsafe extern "C" fn qk_param_abs(out: *mut Param, src: *const Param) -> Exi
 ///
 /// The behavior is undefined if any of ``out`` or ``src`` is not a valid, non-null
 /// pointer to a ``QkParam``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_param_sign(out: *mut Param, src: *const Param) -> ExitCode {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
@@ -921,7 +921,7 @@ pub unsafe extern "C" fn qk_param_sign(out: *mut Param, src: *const Param) -> Ex
 ///
 /// The behavior is undefined if any of ``out`` or ``src`` is not a valid, non-null
 /// pointer to a ``QkParam``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_param_neg(out: *mut Param, src: *const Param) -> ExitCode {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
@@ -961,7 +961,7 @@ pub unsafe extern "C" fn qk_param_neg(out: *mut Param, src: *const Param) -> Exi
 ///
 /// The behavior is undefined if any of ``out`` or ``src`` is not a valid, non-null
 /// pointer to a ``QkParam``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_param_conjugate(out: *mut Param, src: *const Param) -> ExitCode {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
@@ -1006,7 +1006,7 @@ pub unsafe extern "C" fn qk_param_conjugate(out: *mut Param, src: *const Param) 
 ///
 /// The behavior is undefined if any of ``lhs`` or ``rhs`` is not a valid, non-null
 /// pointer to a ``QkParam``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_param_equal(lhs: *const Param, rhs: *const Param) -> bool {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
@@ -1045,7 +1045,7 @@ pub unsafe extern "C" fn qk_param_equal(lhs: *const Param, rhs: *const Param) ->
 /// # Safety
 ///
 /// The behavior is undefined if ``param`` is not a valid, non-null pointer to a ``QkParam``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_param_as_real(param: *const Param) -> f64 {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
