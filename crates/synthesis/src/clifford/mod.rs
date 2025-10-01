@@ -15,9 +15,9 @@ pub(crate) mod greedy_synthesis;
 mod random_clifford;
 pub(crate) mod utils;
 
+use crate::QiskitError;
 use crate::clifford::bm_synthesis::synth_clifford_bm_inner;
 use crate::clifford::greedy_synthesis::GreedyCliffordSynthesis;
-use crate::QiskitError;
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2};
 use pyo3::prelude::*;
 use qiskit_circuit::circuit_data::CircuitData;

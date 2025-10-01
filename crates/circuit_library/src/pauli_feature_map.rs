@@ -15,16 +15,16 @@ use pyo3::types::PySequence;
 use pyo3::types::PyString;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{
-    add_param, multiply_param, multiply_params, Param, StandardGate, StandardInstruction,
+    Param, StandardGate, StandardInstruction, add_param, multiply_param, multiply_params,
 };
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
-use smallvec::{smallvec, SmallVec};
+use smallvec::{SmallVec, smallvec};
 use std::f64::consts::PI;
 
+use crate::QiskitError;
 use crate::entanglement;
 use crate::pauli_evolution;
-use crate::QiskitError;
 
 type Instruction = (
     PackedOperation,

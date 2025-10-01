@@ -15,15 +15,15 @@ use std::sync::OnceLock;
 use hashbrown::HashMap;
 use indexmap::{IndexMap, IndexSet};
 use pyo3::prelude::*;
+use qiskit_circuit::Qubit;
 use qiskit_circuit::bit::QuantumRegister;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::imports::GATE;
-use qiskit_circuit::operations::{get_standard_gate_names, StandardGate, StandardInstruction};
+use qiskit_circuit::operations::{StandardGate, StandardInstruction, get_standard_gate_names};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::Symbol;
 use qiskit_circuit::parameter_table::ParameterUuid;
-use qiskit_circuit::Qubit;
 use qiskit_circuit::{
     circuit_data::CircuitData,
     dag_circuit::DAGCircuit,

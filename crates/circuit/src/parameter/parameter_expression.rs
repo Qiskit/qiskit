@@ -24,8 +24,8 @@ use std::collections::hash_map::DefaultHasher;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
-use pyo3::prelude::*;
 use pyo3::IntoPyObjectExt;
+use pyo3::prelude::*;
 
 use crate::circuit_data::CircuitError;
 use crate::imports::{BUILTIN_HASH, SYMPIFY_PARAMETER_EXPRESSION, UUID};
@@ -33,7 +33,7 @@ use crate::parameter::symbol_expr;
 use crate::parameter::symbol_expr::SymbolExpr;
 use crate::parameter::symbol_parser::parse_expression;
 
-use super::symbol_expr::{Symbol, Value, SYMEXPR_EPSILON};
+use super::symbol_expr::{SYMEXPR_EPSILON, Symbol, Value};
 
 /// Errors for dealing with parameters and parameter expressions.
 #[derive(Error, Debug)]
