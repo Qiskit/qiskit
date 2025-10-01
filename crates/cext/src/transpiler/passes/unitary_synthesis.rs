@@ -114,13 +114,13 @@ mod tests {
 
     use std::sync::Arc;
 
+    use qiskit_circuit::Qubit;
     use qiskit_circuit::bit::ShareableQubit;
     use qiskit_circuit::circuit_data::CircuitData;
     use qiskit_circuit::operations::{ArrayType, Operation, Param, StandardGate, UnitaryGate};
     use qiskit_circuit::packed_instruction::PackedOperation;
     use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
     use qiskit_circuit::parameter::symbol_expr::Symbol;
-    use qiskit_circuit::Qubit;
 
     #[test]
     fn test_pass_synthesis() {

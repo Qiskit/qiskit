@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use ndarray::{
-    azip, concatenate, s, Array1, Array2, ArrayView1, ArrayView2, ArrayViewMut2, Axis, Zip,
+    Array1, Array2, ArrayView1, ArrayView2, ArrayViewMut2, Axis, Zip, azip, concatenate, s,
 };
 use rand::{Rng, SeedableRng};
 use rand_pcg::Pcg64Mcg;

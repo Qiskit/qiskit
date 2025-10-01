@@ -10,25 +10,25 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use pyo3::Python;
 use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::Python;
 
 use num_complex::Complex64;
-use numpy::ndarray::{arr2, aview2, Array2, ArrayView2, ArrayViewMut2};
 use numpy::PyReadonlyArray2;
+use numpy::ndarray::{Array2, ArrayView2, ArrayViewMut2, arr2, aview2};
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
+use qiskit_circuit::Qubit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::TWO_QUBIT_IDENTITY;
 use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::interner::Interner;
 use qiskit_circuit::operations::{ArrayType, Operation, OperationRef};
 use qiskit_circuit::packed_instruction::PackedInstruction;
-use qiskit_circuit::Qubit;
 
-use crate::versor_u2::{VersorSU2, VersorU2, VersorU2Error};
 use crate::QiskitError;
+use crate::versor_u2::{VersorSU2, VersorU2, VersorU2Error};
 
 #[inline]
 pub fn get_matrix_from_inst(inst: &PackedInstruction) -> PyResult<Array2<Complex64>> {

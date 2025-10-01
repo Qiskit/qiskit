@@ -12,10 +12,10 @@
 
 use crate::pointers::mut_ptr_as_ref;
 
+use qiskit_circuit::Qubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::Qubit;
 use qiskit_transpiler::passes::run_split_2q_unitaries;
 use qiskit_transpiler::transpile_layout::TranspileLayout;
 

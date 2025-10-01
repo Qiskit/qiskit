@@ -17,10 +17,10 @@ use num_traits::FloatConst;
 use numpy::{Complex64, PyReadonlyArray2};
 use pyo3::{exceptions::PyValueError, prelude::*};
 use qiskit_circuit::{
+    Qubit,
     circuit_data::CircuitData,
     circuit_instruction::OperationFromPython,
     operations::{Operation, OperationRef, Param, StandardGate},
-    Qubit,
 };
 use rstar::{Point, RTree};
 use serde::{Deserialize, Serialize};
