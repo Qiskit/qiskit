@@ -31,8 +31,7 @@ pub struct PyObjectAsKey {
     /// Python's `hash()` of the wrapped instance.
     hash: isize,
     /// The wrapped instance.
-    // TODO: remove pub again, just a temporary hack to get things working
-    pub ob: Py<PyAny>,
+    ob: Py<PyAny>,
 }
 
 impl PyObjectAsKey {
