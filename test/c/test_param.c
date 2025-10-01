@@ -32,7 +32,7 @@ void printf_limited(char *str, const size_t expected_len, bool newline) {
     if (str == NULL) {
         printf("pointer is NULL!");
     } else {
-        char buffer[expected_len + 1]; // +1 for EOL
+        char *buffer = malloc((expected_len + 1) * sizeof(char)); // +1 for EOL
         bool found_eol = false;
         bool invalid_char = false;
         for (size_t i = 0; i < expected_len; i++) {
@@ -56,6 +56,7 @@ void printf_limited(char *str, const size_t expected_len, bool newline) {
             buffer[expected_len] = '\0';
         }
         printf("%s", buffer);
+        free(buffer);
 
         // we expect to have fully read the string, so if the last character was not EOL the
         // string was corrupted
