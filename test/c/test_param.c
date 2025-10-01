@@ -11,7 +11,6 @@
 // that they have been altered from the originals.
 
 #include "common.h"
-#include <ctype.h>
 #include <math.h>
 #include <qiskit.h>
 #include <stdbool.h>
