@@ -169,8 +169,7 @@ pub fn run_optimize_1q_gates_decomposition(
                     if let Some(target) = target {
                         error *= compute_error_term_from_target(inst.op.name(), target, qubit);
                     }
-                    inst.op
-                        .matrix_as_static_1q(inst.params_view())
+                    inst.try_matrix_as_static_1q()
                         .expect("collect_1q_runs only collects gates that can produce a matrix")
                 } else {
                     unreachable!("Can only have op nodes here")
