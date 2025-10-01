@@ -40,8 +40,7 @@ class WrapAngles(TransformationPass):
        from qiskit.circuit.library import RZGate
        from qiskit.dagcircuit import DAGCircuit
        from qiskit.transpiler.passes import WrapAngles
-       from qiskit.transpiler.target import Target
-       from qiskit.transpiler import WrapAngleRegistry
+       from qiskit.transpiler import Target, WrapAngleRegistry
 
        param = Parameter("a")
        circuit = QuantumCircuit(1)
@@ -68,13 +67,14 @@ class WrapAngles(TransformationPass):
        res.draw("mpl")
 
     Args:
-        target(Target): The :class:`.Target` that
-        registry(WrapAngleRegistry): The registry of wrapping functions used
+        target (Target): The :class:`.Target` representing the target QPU.
+        registry (WrapAngleRegistry): The registry of wrapping functions used
             by the pass to wrap the angles of a gate. If not specified the
-            global ``WRAP_ANGLE_REGISTRY`` object defined in this module will be used.
+            global :data:`.WRAP_ANGLE_REGISTRY` object will be used.
+
             Unless you are planning to run this pass standalone or are building a
             custom :class:`~.transpiler.PassManager` including this pass you will want
-            to rely on ``WRAP_ANGLE_REGISTRY``.
+            to rely on :data:`.WRAP_ANGLE_REGISTRY`.
     """
 
     def __init__(self, target, registry=None):

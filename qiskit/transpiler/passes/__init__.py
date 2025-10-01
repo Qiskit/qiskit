@@ -174,6 +174,20 @@ Additional Passes
    RemoveFinalMeasurements
    UnrollForLoops
    WrapAngles
+
+
+Additional data
+===============
+
+.. py:data:: qiskit.transpiler.passes.utils.wrap_angles.WRAP_ANGLE_REGISTRY
+
+    A global instance of :class:`.WrapAngleRegistry` that is used by default by
+    :class:`.WrapAngles` when no explicit registry is specified.  See the documentation of
+    :class:`.WrapAngles` for how to add entries to a registry.
+
+    .. note::
+        Due to an oversight in Qiskit 2.2, this import path is the only valid way to access the
+        object in that version, despite traversing two non-public internal modules.
 """
 
 # layout selection (placement)
