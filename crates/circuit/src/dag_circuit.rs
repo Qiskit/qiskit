@@ -8082,6 +8082,7 @@ pub struct TopologicalSorter {
     num_finished: usize,
     total_nodes: usize,
     out_dir: Direction,
+    finished_nodes: HashSet<NodeIndex>,
 }
 
 #[pymethods]
@@ -8173,6 +8174,7 @@ impl TopologicalSorter {
             num_finished: 0,
             total_nodes,
             out_dir,
+            finished_nodes: HashSet::new(),
         })
     }
 
@@ -8204,24 +8206,25 @@ impl TopologicalSorter {
         for node_obj_res in iter_obj.try_iter()? {
             let node_obj = node_obj_res?;
             let node_idx_val = dag_borrow.get_node_index(&node_obj)?;
-
             let node_idx: NodeIndex = NodeIndex::new(node_idx_val);
 
-            // get_node_index is called on each item from the list.
-            if let Ok(node_idx_val) = dag_borrow.get_node_index(&node_obj) {
-                let node_idx = NodeIndex::new(node_idx_val);
+            if !self.finished_nodes.insert(node_idx) {
+                return Err(DAGCircuitError::new_err(format!(
+                    "Node {:?} has already been marked as done.",
+                    node_idx
+                )));
+            }
 
-                if self.node_degrees.contains_key(&node_idx) {
-                    for neighbor_idx in graph.neighbors_directed(node_idx, self.out_dir) {
-                        if let Some(degree) = self.node_degrees.get_mut(&neighbor_idx) {
-                            *degree -= 1;
-                            if *degree == 0 {
-                                self.ready_queue.push_back(neighbor_idx);
-                            }
+            if self.node_degrees.contains_key(&node_idx) {
+                for neighbor_idx in graph.neighbors_directed(node_idx, self.out_dir) {
+                    if let Some(degree) = self.node_degrees.get_mut(&neighbor_idx) {
+                        *degree -= 1;
+                        if *degree == 0 {
+                            self.ready_queue.push_back(neighbor_idx);
                         }
                     }
-                    self.num_finished += 1;
                 }
+                self.num_finished += 1;
             }
         }
         Ok(())

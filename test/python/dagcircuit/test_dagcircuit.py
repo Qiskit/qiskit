@@ -3826,9 +3826,9 @@ class TestTopologicalSorter(QiskitTestCase):
         #     CX (q0, q1)
         #       | \
         #       |  \
-        #       |   \    
+        #       |   \
         #       |    +----+   X (q2)
-        #       |         
+        #       |
         #       |             |
         #     RX (q1)         |
         #        \     Barrier (q0, q1, q2)
@@ -3924,6 +3924,29 @@ class TestTopologicalSorter(QiskitTestCase):
 
         expected_error = r"Invalid object type '.*' provided\. Expected a DAGNode object\."
         self.assertRegex(str(cm.exception), expected_error)
+
+    def test_sorter_raises_on_duplicate_done_call(self):
+        """
+        Tests that calling done() twice on the same node raises an error.
+        """
+        dag = DAGCircuit()
+        qr = QuantumRegister(1, "q")
+        dag.add_qreg(qr)
+        dag.apply_operation_back(HGate(), [qr[0]], [])
+
+        sorter = dag.topological_sorter()
+
+        # Get the first layer (which will contain the HGate and input node)
+        ready_nodes = sorter.get_ready()
+
+        # The first call should succeed.
+        sorter.done(ready_nodes)
+
+        # The second call with the same nodes should fail.
+        with self.assertRaises(DAGCircuitError) as cm:
+            sorter.done(ready_nodes)
+
+        self.assertRegex(str(cm.exception), "has already been marked as done")
 
 
 if __name__ == "__main__":
