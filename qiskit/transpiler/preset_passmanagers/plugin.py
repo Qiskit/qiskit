@@ -104,20 +104,17 @@ and falls back to using :class:`~.TrivialLayout` if
     from qiskit.transpiler.passes import VF2Layout, TrivialLayout
     from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
     from qiskit.passmanager import ConditionalController
-    
-    
+
+
     def _vf2_match_not_found(property_set):
-        return (
-                property_set.get("layout") is None
-                or (
-                    property_set.get("VF2Layout_stop_reason") is not None
-                    and property_set.get("VF2Layout_stop_reason")
-                    is not VF2LayoutStopReason.SOLUTION_FOUND
-                )
-            )
-    
+        return property_set.get("layout") is None or (
+            property_set.get("VF2Layout_stop_reason") is not None
+            and property_set.get("VF2Layout_stop_reason")
+            is not VF2LayoutStopReason.SOLUTION_FOUND
+        )
+
+
     class VF2LayoutPlugin(PassManagerStagePlugin):
-    
         def pass_manager(self, pass_manager_config, optimization_level):
             layout_pm = PassManager(
                 [
