@@ -64,9 +64,6 @@ class WrapAngles(TransformationPass):
        res = wrap_pass(circuit)
        res.draw("mpl")
 
-    .. autoattribute:: DEFAULT_REGISTRY
-        :no-value:
-
     Args:
         target (Target): The :class:`.Target` representing the target QPU.
         registry (WrapAngleRegistry): The registry of wrapping functions used
