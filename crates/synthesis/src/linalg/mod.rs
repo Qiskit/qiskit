@@ -29,7 +29,7 @@ fn nalgebra_to_faer<R: Dim, C: Dim, RStride: Dim, CStride: Dim>(
     let dim = ::ndarray::Dim(mat.shape());
     let strides = ::ndarray::Dim(mat.strides());
 
-    // SAFETY: We know the array is a 2x2 and contiguous block (DMatrix uses a vec for backing        storage) so we
+    // SAFETY: We know the array is a 2d array in a contiguous block (DMatrix uses a vec for backing storage) so we
     // don't need to check for invalid format
     let array = unsafe { ArrayView2::from_shape_ptr(dim.strides(strides), mat.get_unchecked(0)) };
     array.into_faer()
