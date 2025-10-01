@@ -1120,6 +1120,13 @@ impl DAGCircuit {
 
     /// Get the internal `NodeIndex` from a Python node object.
     fn get_node_index(&self, node: &Bound<PyAny>) -> PyResult<usize> {
+        if !(node.is_instance_of::<DAGNode>()) {
+            let type_name = node.get_type().name()?;
+            return Err(DAGCircuitError::new_err(format!(
+                "Invalid object type '{}' provided. Expected a DAGNode object.",
+                type_name
+            )));
+        }
         let index_attr = node.getattr("_node_id")?;
         let index: usize = index_attr.extract()?;
         Ok(index)
@@ -8117,7 +8124,7 @@ impl TopologicalSorter {
                     graph.neighbors_directed(*start_node, out_dir).collect();
                 while let Some(node) = bfs_queue.pop_front() {
                     if initial_set.contains(&node) {
-                        return Err(PyValueError::new_err(
+                        return Err(DAGCircuitError::new_err(
                             "The 'initial' nodes are not independent.",
                         ));
                     }
@@ -8188,22 +8195,34 @@ impl TopologicalSorter {
     }
 
     /// Marks a node as processed.
-    pub fn done(&mut self, py: Python, node: &Bound<PyAny>) -> PyResult<()> {
+    #[pyo3(signature = (nodes, /))]
+    pub fn done(&mut self, py: Python, nodes: &Bound<PyAny>) -> PyResult<()> {
         let dag_borrow = self.dag.borrow(py);
         let graph = &dag_borrow.dag;
-        let node_idx = NodeIndex::new(dag_borrow.get_node_index(node)?);
+        let iter_obj = nodes.call_method0("__iter__")?;
 
-        if self.node_degrees.contains_key(&node_idx) {
-            for neighbor_idx in graph.neighbors_directed(node_idx, self.out_dir) {
-                // Only consider neighbors that are part of the sort
-                if let Some(degree) = self.node_degrees.get_mut(&neighbor_idx) {
-                    *degree -= 1;
-                    if *degree == 0 {
-                        self.ready_queue.push_back(neighbor_idx);
+        for node_obj_res in iter_obj.try_iter()? {
+            let node_obj = node_obj_res?;
+            let node_idx_val = dag_borrow.get_node_index(&node_obj)?;
+
+            let node_idx: NodeIndex = NodeIndex::new(node_idx_val);
+
+            // get_node_index is called on each item from the list.
+            if let Ok(node_idx_val) = dag_borrow.get_node_index(&node_obj) {
+                let node_idx = NodeIndex::new(node_idx_val);
+
+                if self.node_degrees.contains_key(&node_idx) {
+                    for neighbor_idx in graph.neighbors_directed(node_idx, self.out_dir) {
+                        if let Some(degree) = self.node_degrees.get_mut(&neighbor_idx) {
+                            *degree -= 1;
+                            if *degree == 0 {
+                                self.ready_queue.push_back(neighbor_idx);
+                            }
+                        }
                     }
+                    self.num_finished += 1;
                 }
             }
-            self.num_finished += 1;
         }
         Ok(())
     }
