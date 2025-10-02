@@ -3892,7 +3892,7 @@ impl PySparseObservable {
 }
 impl PySparseObservable {
     /// This is an immutable reference as opposed to a `copy`.
-    pub fn as_inner(&self) -> Result<RwLockReadGuard<SparseObservable>, InnerReadError> {
+    pub fn as_inner(&self) -> Result<RwLockReadGuard<'_, SparseObservable>, InnerReadError> {
         let data = self.inner.read().map_err(|_| InnerReadError)?;
         Ok(data)
     }
