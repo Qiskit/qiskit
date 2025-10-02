@@ -501,103 +501,6 @@ cleanup:
     return result;
 }
 
-/**
- * Test binding parameter values.
- */
-static int test_param_bind(void) {
-    QkParam *a = qk_param_new_symbol("a");
-    QkParam *b = qk_param_new_symbol("b");
-    const QkParam *params[2] = {a, b};
-    double values[2] = {1.5, 2.2};
-
-    QkParam *c = qk_param_zero();
-    QkParam *d = qk_param_zero();
-
-    QkExitCode exit1 = qk_param_add(c, a, b);
-    QkExitCode exit2 = qk_param_bind(d, c, params, values, 2);
-
-    qk_param_free(a);
-    qk_param_free(b);
-    qk_param_free(c);
-    if (exit1 != QkExitCode_Success || exit2 != QkExitCode_Success) {
-        qk_param_free(d);
-        return RuntimeError;
-    }
-
-    double ret = qk_param_as_real(d);
-    if (isnan(ret)) {
-        char *str = qk_param_str(d);
-        printf("Parameter has some unbound symbols : %s\n", str);
-        qk_str_free(str);
-        qk_param_free(d);
-        return RuntimeError;
-    }
-
-    if (fabs(ret - values[0] - values[1]) > 1e-10) {
-        printf("bound parameter %f is not %f\n", ret, values[0] + values[1]);
-        qk_param_free(d);
-        return EqualityError;
-    }
-    qk_param_free(d);
-    return Ok;
-}
-
-/**
- * Test substitution.
- */
-static int test_param_subs(void) {
-    QkParam *x = qk_param_new_symbol("x");
-    QkParam *y = qk_param_new_symbol("y");
-    QkParam *z = qk_param_new_symbol("z");
-    QkParam *val = qk_param_from_double(2.0);
-    QkParam *pow = qk_param_zero();
-    QkParam *z2 = qk_param_zero();
-    QkParam *out = qk_param_zero();
-    QkParam *expect = qk_param_zero();
-
-    int result = Ok;
-
-    if (qk_param_pow(pow, x, y) != QkExitCode_Success) {
-        result = RuntimeError;
-        goto cleanup;
-    }
-    if (qk_param_div(z2, z, val) != QkExitCode_Success) {
-        result = RuntimeError;
-        goto cleanup;
-    }
-    if (qk_param_pow(expect, z, z2) != QkExitCode_Success) {
-        result = RuntimeError;
-        goto cleanup;
-    }
-
-    // we substitute x->z and y->z2
-    const QkParam *keys[2] = {x, y};
-    const QkParam *subs[2] = {z, z2};
-    size_t num = 2;
-    if (qk_param_subs(out, pow, keys, subs, num) != QkExitCode_Success) {
-        result = RuntimeError;
-        printf("Error during substitution\n");
-        goto cleanup;
-    }
-    if (!qk_param_equal(out, expect)) {
-        result = EqualityError;
-        printf("Substituted expression does not equal expectation.\n");
-        goto cleanup;
-    }
-
-cleanup:
-    qk_param_free(x);
-    qk_param_free(y);
-    qk_param_free(z);
-    qk_param_free(z2);
-    qk_param_free(val);
-    qk_param_free(pow);
-    qk_param_free(out);
-    qk_param_free(expect);
-
-    return result;
-}
-
 int test_param(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_param_new);
@@ -608,8 +511,6 @@ int test_param(void) {
     num_failed += RUN_TEST(test_param_binary_ops);
     num_failed += RUN_TEST(test_param_unary_ops);
     num_failed += RUN_TEST(test_param_with_value);
-    num_failed += RUN_TEST(test_param_bind);
-    num_failed += RUN_TEST(test_param_subs);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);

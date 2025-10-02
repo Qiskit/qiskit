@@ -973,8 +973,7 @@ static int test_get_instruction_params(void) {
         goto cleanup;
     }
 
-    double rz_angle;
-    qk_param_as_real(&rz_angle, inst.params[0]);
+    double rz_angle = qk_param_as_real(inst.params[0]);
     if (fabs(rz_angle - angle[0]) > 1e-10) {
         printf("Unexpected parameter value in RX gate");
         result = EqualityError;
@@ -989,8 +988,7 @@ static int test_get_instruction_params(void) {
         goto cleanup;
     }
 
-    double r_fixed;
-    qk_param_as_real(&r_fixed, inst.params[1]);
+    double r_fixed = qk_param_as_real(inst.params[1]);
     if (fabs(r_fixed - r_angle) > 1e-10) {
         printf("Unexpected parameter value in R gate");
         result = EqualityError;
@@ -1013,6 +1011,8 @@ static int test_get_instruction_params(void) {
 
 cleanup:
     qk_circuit_instruction_clear(&inst);
+    qk_param_free(theta);
+    qk_param_free(val);
     qk_circuit_free(qc);
     return result;
 }
