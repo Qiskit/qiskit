@@ -16,12 +16,14 @@ import unittest
 from numpy import pi
 
 from qiskit.utils import optionals
+from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import HoareOptimizer
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import XGate, RZGate, CSwapGate, SwapGate
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.quantum_info import Statevector
+from qiskit.qasm3 import loads as qasm3_loads
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -312,6 +314,70 @@ class TestHoareOptimizer(QiskitTestCase):
         result = pass_.run(circuit_to_dag(circuit))
 
         self.assertEqual(result, circuit_to_dag(expected))
+
+    def test_issue_14969_regression(self):
+        """Regression test for issue 14969: HoareOptimizer should not crash."""
+
+        bug_qasm = """OPENQASM 3.0;
+include \"stdgates.inc\";
+gate rzx(p0) _gate_q_0, _gate_q_1 {
+  h _gate_q_1;
+  cx _gate_q_0, _gate_q_1;
+  rz(p0) _gate_q_1;
+  cx _gate_q_0, _gate_q_1;
+  h _gate_q_1;
+}
+gate cu1(p0) _gate_q_0, _gate_q_1 {
+  p(0.5*p0) _gate_q_0;
+  cx _gate_q_0, _gate_q_1;
+  p((-0.5)*p0) _gate_q_1;
+  cx _gate_q_0, _gate_q_1;
+  p(0.5*p0) _gate_q_1;
+}
+gate cu1_o0(p0) _gate_q_0, _gate_q_1 {
+  x _gate_q_0;
+  cu1(p0) _gate_q_0, _gate_q_1;
+  x _gate_q_0;
+}
+gate cz_o0 _gate_q_0, _gate_q_1 {
+  x _gate_q_0;
+  cz _gate_q_0, _gate_q_1;
+  x _gate_q_0;
+}
+bit[1] c;
+qubit[4] q;
+cu1_o0(6) q[3], q[2];
+cy q[2], q[1];
+rzx(2) q[1], q[3];
+cx q[1], q[0];
+rx(2) q[0];
+cx q[1], q[0];
+cy q[0], q[3];
+sdg q[0];
+x q[0];
+cz_o0 q[3], q[0];
+sdg q[0];
+sdg q[0];
+cz_o0 q[0], q[1];
+cz q[3], q[2];
+s q[2];
+swap q[3], q[2];
+x q[2];
+rz(5) q[2];
+id q[2];
+y q[2];
+id q[2];
+c[0] = measure q[2];
+"""
+
+        circuit = qasm3_loads(bug_qasm)
+        pm = PassManager(HoareOptimizer())
+
+        # The current bug manifests as a ValueError during the pass run. This test will
+        # fail until the pass is fixed to handle the circuit correctly.
+        result = pm.run(circuit)
+
+        self.assertIsNotNone(result)
 
     def test_targetsuccessive_identity_removal(self):
         """Should remove pair of controlled target successive
