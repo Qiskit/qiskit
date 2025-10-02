@@ -1,3 +1,4 @@
+---
 upgrade_quantum_info:
   - |
     Improved the performance of :meth:`.Statevector.expectation_value` for
