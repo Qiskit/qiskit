@@ -41,7 +41,7 @@ use qiskit_circuit_library::quantum_volume::quantum_volume;
 /// ```c
 /// QkCircuit *qc = qk_circuit_library_quantum_volume(10, 10, -1)
 /// ```
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_circuit_library_quantum_volume(
     num_qubits: u32,
