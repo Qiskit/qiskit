@@ -1171,9 +1171,7 @@ class TestStatevector(QiskitTestCase):
             pauli_label = f"{prefix}I"
             identity_pauli_1 = Pauli(pauli_label)
             with self.subTest(pauli=pauli_label):
-                self.assertAlmostEqual(
-                    state_1.expectation_value(identity_pauli_1), factor + 0j
-                )
+                self.assertAlmostEqual(state_1.expectation_value(identity_pauli_1), factor + 0j)
                 self.assertAlmostEqual(
                     state_1_n1.expectation_value(identity_pauli_1), factor * 4 + 0j
                 )
@@ -1192,9 +1190,7 @@ class TestStatevector(QiskitTestCase):
         self.assertAlmostEqual(expval, target)
 
         coeffs = np.array([1 + 2j, -3j, 4])
-        op_multi = SparsePauliOp.from_list(
-            [("I" * n_qubits, coeff) for coeff in coeffs]
-        )
+        op_multi = SparsePauliOp.from_list([("I" * n_qubits, coeff) for coeff in coeffs])
         expval_multi = state_test.expectation_value(op_multi)
         target_multi = np.sum(coeffs) * np.abs(state_coeff) ** 2
         self.assertAlmostEqual(expval_multi, target_multi)
