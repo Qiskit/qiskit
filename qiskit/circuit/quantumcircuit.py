@@ -1258,21 +1258,13 @@ class QuantumCircuit:
 
     @classmethod
     def _from_circuit_data(
-        cls, data: CircuitData, add_regs: bool = False, name: str | None = None
+        cls, data: CircuitData, legacy_qubits: bool = False, name: str | None = None
     ) -> typing.Self:
         """A private constructor from rust space circuit data."""
         out = QuantumCircuit(name=name)
-
-        if data.num_qubits > 0:
-            if add_regs:
-                data.qregs = [QuantumRegister(name="q", bits=data.qubits)]
-
-        if data.num_clbits > 0:
-            if add_regs:
-                data.creg = [ClassicalRegister(name="c", bits=data.clbits)]
-
         out._data = data
-
+        if legacy_qubits:
+            out.ensure_physical(apply_layout=False)
         return out
 
     @staticmethod
@@ -1683,8 +1675,6 @@ class QuantumCircuit:
             CircuitError: if ``num_qubits`` is set to attempt to expand the circuit, but the circuit
                 already has a layout set.
         """
-        from qiskit.transpiler import Layout, TranspileLayout  # pylint: disable=cyclic-import
-
         original_num_qubits = self.num_qubits
         if num_qubits is not None and num_qubits < original_num_qubits:
             raise ValueError(
@@ -1706,14 +1696,18 @@ class QuantumCircuit:
             return False
 
         if apply_layout:
+            from qiskit.transpiler import Layout  # pylint: disable=cyclic-import
+
             virtuals = self.qubits.copy()
-            if num_qubits is not None:
+            if num_qubits is not None and num_qubits > original_num_qubits:
                 virtuals.extend(QuantumRegister(num_qubits - original_num_qubits, "ancilla"))
             initial_layout = Layout(dict(enumerate(virtuals)))
         else:
             initial_layout = None
         self._data.make_physical(num_qubits)
         if initial_layout is not None:
+            from qiskit.transpiler import TranspileLayout  # pylint: disable=cyclic-import
+
             self._layout = TranspileLayout(
                 initial_layout=initial_layout,
                 input_qubit_mapping=initial_layout.get_virtual_bits().copy(),
@@ -2326,6 +2320,9 @@ class QuantumCircuit:
                     n_op = Store(
                         variable_mapper.map_expr(n_op.lvalue), variable_mapper.map_expr(n_op.rvalue)
                     )
+                elif isinstance(n_op, Delay) and n_op.unit == "expr":
+                    n_op = n_op.copy()
+                    n_op.duration = variable_mapper.map_expr(n_op.duration)
                 return n_op.copy() if n_op is op and copy else n_op
 
             instructions = source._data.copy(copy_instructions=copy)
@@ -3808,6 +3805,7 @@ class QuantumCircuit:
         cregbundle: bool | None = None,
         wire_order: list[int] | None = None,
         expr_len: int = 30,
+        measure_arrows: bool | None = None,
     ):
         r"""Draw the quantum circuit. Use the output parameter to choose the drawing format:
 
@@ -3904,6 +3902,11 @@ class QuantumCircuit:
             expr_len: The number of characters to display if an :class:`~.expr.Expr`
                 is used for the condition in a :class:`.ControlFlowOp`. If this number is exceeded,
                 the string will be truncated at that number and '...' added to the end.
+            measure_arrows: If True, draw an arrow from each measure box down the the classical bit
+                or register where the measure value is placed. If False, do not draw arrow, but
+                instead place the name of the bit or register in the measure box.
+                Default is ``True`` unless the user config file (usually ``~/.qiskit/settings.conf``)
+                has an alternative value set. For example, ``circuit_measure_arrows = False``.
 
         Returns:
             :class:`.TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or
@@ -3956,6 +3959,7 @@ class QuantumCircuit:
             cregbundle=cregbundle,
             wire_order=wire_order,
             expr_len=expr_len,
+            measure_arrows=measure_arrows,
         )
 
     def size(

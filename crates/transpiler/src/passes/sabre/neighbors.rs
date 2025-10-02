@@ -26,8 +26,8 @@ use rustworkx_core::petgraph::visit::*;
 /// small that a linear search is faster).
 #[derive(Clone, Debug)]
 pub struct Neighbors {
-    neighbors: Vec<PhysicalQubit>,
-    partition: Vec<usize>,
+    pub(crate) neighbors: Vec<PhysicalQubit>,
+    pub(crate) partition: Vec<usize>,
 }
 impl Neighbors {
     /// Construct the neighbor adjacency table from a coupling graph.

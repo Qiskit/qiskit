@@ -77,7 +77,7 @@ use qiskit_transpiler::target::Target;
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` or ``target`` is not a valid, non-null pointer to a ``QkCircuit`` and ``QkTarget``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_remove_identity_equivalent(
     circuit: *mut CircuitData,
@@ -95,7 +95,9 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_remove_identity_equivalen
         None
     } else {
         if !(0.0..=1.0).contains(&approximation_degree) {
-            panic!("Invalid value provided for approximation degree, only NAN or values between 0.0 and 1.0 inclusive are valid");
+            panic!(
+                "Invalid value provided for approximation degree, only NAN or values between 0.0 and 1.0 inclusive are valid"
+            );
         }
         Some(approximation_degree)
     };
