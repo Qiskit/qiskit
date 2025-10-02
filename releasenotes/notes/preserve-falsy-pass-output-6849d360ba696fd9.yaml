@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    :class:`.BasePassManager` no longer replaces falsy but valid outputs from
+    passes with the original input program. A pass returning ``0``, ``False``
+    or another falsy value will now be preserved, and only ``None`` indicates
+    failure.
