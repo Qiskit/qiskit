@@ -8,7 +8,6 @@ usize_is_size_t = true
 after_includes = """
 #ifdef QISKIT_C_PYTHON_INTERFACE
     #include <Python.h>
-    typedef PyObject QkPyObject;
 #endif
 
 #include "qiskit/complex.h"
