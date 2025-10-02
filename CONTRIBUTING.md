@@ -236,10 +236,10 @@ When using AI tools for code generation, your submission must still be your own 
 
 - You review and fully understand the generated code, and you can explain the reasoning behind it during review.
 - The usage of the AI tool does not violate any third-party license obligations.
-- The AI tool’s terms and conditions allow its output to be used in open source projects and are compatible with the [Qiskit license](LICENSE.txt), the [Qiskit CLA](https://qisk.it/cla), and [these Contributor Guidelines](CONTRIBUTING.md).
+- The AI tool's terms and conditions allow its output to be used in open source projects and are compatible with the [Qiskit license](LICENSE.txt), the [Qiskit CLA](https://qisk.it/cla), and [these Contributor Guidelines](CONTRIBUTING.md).
 - You only use AI tools that have features to:
   * filter out generated code substantially similar to training data, or
-  * identify similar training code so you can comply with the original license obligations (notice, attribution, etc.) and only contribute if it’s compatible with the [Qiskit license](LICENSE.txt).
+  * identify similar training code so you can comply with the original license obligations (notice, attribution, etc.) and only contribute if it's compatible with the [Qiskit license](LICENSE.txt).
 - You disclose the name and version of the AI tool in your PR description.
 
 Submissions that appear unreviewed or copied directly from an AI tool without proper understanding may be requested to be revised or declined.
