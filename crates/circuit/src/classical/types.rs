@@ -10,15 +10,15 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use pyo3::PyTypeInfo;
 use pyo3::exceptions::PyAttributeError;
 use pyo3::prelude::*;
-use pyo3::sync::GILOnceCell;
+use pyo3::sync::PyOnceLock;
 use pyo3::types::PyTuple;
-use pyo3::PyTypeInfo;
 
-static BOOL_TYPE: GILOnceCell<Py<PyBool>> = GILOnceCell::new();
-static DURATION_TYPE: GILOnceCell<Py<PyDuration>> = GILOnceCell::new();
-static FLOAT_TYPE: GILOnceCell<Py<PyFloat>> = GILOnceCell::new();
+static BOOL_TYPE: PyOnceLock<Py<PyBool>> = PyOnceLock::new();
+static DURATION_TYPE: PyOnceLock<Py<PyDuration>> = PyOnceLock::new();
+static FLOAT_TYPE: PyOnceLock<Py<PyFloat>> = PyOnceLock::new();
 
 /// A classical expression's "type".
 ///

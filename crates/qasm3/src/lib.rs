@@ -67,11 +67,13 @@ pub fn loads(
 ) -> PyResult<circuit::PyCircuit> {
     let default_include_path = || -> PyResult<Vec<OsString>> {
         let filename: PyBackedStr = py.import("qiskit")?.filename()?.try_into()?;
-        Ok(vec![Path::new(filename.deref())
-            .parent()
-            .unwrap()
-            .join(["qasm", "libs", "dummy"].iter().collect::<PathBuf>())
-            .into_os_string()])
+        Ok(vec![
+            Path::new(filename.deref())
+                .parent()
+                .unwrap()
+                .join(["qasm", "libs", "dummy"].iter().collect::<PathBuf>())
+                .into_os_string(),
+        ])
     };
     let include_path = include_path.map(Ok).unwrap_or_else(default_include_path)?;
     let result = parse_source_string(source, None, Some(&include_path));

@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 use std::fmt;
 
-use ndarray::{azip, s, Array2};
+use ndarray::{Array2, azip, s};
 
 /// Symplectic matrix.
 pub struct SymplecticMatrix {

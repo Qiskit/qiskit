@@ -12,18 +12,19 @@ after_includes = """
 
 #include "qiskit/complex.h"
 
-#define QISKIT_RELEASE_LEVEL_DEV 0xA // dev or "alpha"
-#define QISKIT_RELEASE_LEVEL_BETA 0xB // beta
-#define QISKIT_RELEASE_LEVEL_RC 0xC // release candidate
-#define QISKIT_RELEASE_LEVEL_FINAL 0xF // final release
+#define QISKIT_RELEASE_LEVEL_DEV 0xA
+#define QISKIT_RELEASE_LEVEL_BETA 0xB
+#define QISKIT_RELEASE_LEVEL_RC 0xC
+#define QISKIT_RELEASE_LEVEL_FINAL 0xF
 
 #define QISKIT_VERSION_MAJOR 2
-#define QISKIT_VERSION_MINOR 2
+#define QISKIT_VERSION_MINOR 3
 #define QISKIT_VERSION_PATCH 0
-#define QISKIT_RELEASE_LEVEL QISKIT_RELEASE_LEVEL_BETA
-#define QISKIT_RELEASE_SERIAL 1  // for the final release, this should be 0
+#define QISKIT_RELEASE_LEVEL QISKIT_RELEASE_LEVEL_DEV
+// For the final release, set the below to 0.
+#define QISKIT_RELEASE_SERIAL 0
 
-#define QISKIT_VERSION "2.2.0b1"
+#define QISKIT_VERSION "2.3.0-dev"
 
 #define QISKIT_GET_VERSION_HEX(major, minor, patch, level, serial) (\
     (major & 0xff) << 24 | \
@@ -84,3 +85,4 @@ prefix_with_name = true
 "TranspileLayout" = "QkTranspileLayout"
 "TranspileResult" = "QkTranspileResult"
 "TranspileOptions" = "QkTranspileOptions"
+"Param" = "QkParam"

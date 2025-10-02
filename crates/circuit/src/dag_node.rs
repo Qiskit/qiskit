@@ -14,10 +14,10 @@ use std::hash::Hasher;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
+use crate::TupleLikeArg;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::imports::QUANTUM_CIRCUIT;
 use crate::operations::{Operation, OperationRef, Param, PythonOperation};
-use crate::TupleLikeArg;
 
 use ahash::AHasher;
 use approx::relative_eq;
@@ -26,11 +26,11 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use numpy::IntoPyArray;
 use numpy::PyArray2;
+use pyo3::IntoPyObjectExt;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
-use pyo3::IntoPyObjectExt;
-use pyo3::{intern, PyObject, PyResult};
+use pyo3::{PyResult, intern};
 
 /// Parent class for DAGOpNode, DAGInNode, and DAGOutNode.
 #[pyclass(module = "qiskit._accelerate.circuit", subclass)]
@@ -62,7 +62,7 @@ impl DAGNode {
                         Err(_) => {
                             return Err(PyValueError::new_err(
                                 "Invalid node index, must be -1 or a non-negative integer",
-                            ))
+                            ));
                         }
                     };
                     Some(NodeIndex::new(index))
@@ -187,9 +187,10 @@ impl DAGOpNode {
                     [Param::Float(float_a), Param::Float(float_b)] => {
                         relative_eq!(float_a, float_b, max_relative = 1e-10)
                     }
-                    [Param::ParameterExpression(param_a), Param::ParameterExpression(param_b)] => {
-                        param_a == param_b
-                    }
+                    [
+                        Param::ParameterExpression(param_a),
+                        Param::ParameterExpression(param_b),
+                    ] => param_a == param_b,
                     [Param::Obj(param_a), Param::Obj(param_b)] => param_a.bind(py).eq(param_b)?,
                     _ => false,
                 };
@@ -225,7 +226,7 @@ impl DAGOpNode {
         py: Python,
         mut instruction: CircuitInstruction,
         deepcopy: bool,
-    ) -> PyResult<PyObject> {
+    ) -> PyResult<Py<PyAny>> {
         if deepcopy {
             instruction.operation = match instruction.operation.view() {
                 OperationRef::Gate(gate) => gate.py_deepcopy(py, None)?.into(),
@@ -245,7 +246,7 @@ impl DAGOpNode {
         Py::new(py, sub)?.into_py_any(py)
     }
 
-    fn __reduce__(slf: PyRef<Self>, py: Python) -> PyResult<PyObject> {
+    fn __reduce__(slf: PyRef<Self>, py: Python) -> PyResult<Py<PyAny>> {
         let state = slf.as_ref().node.map(|node| node.index());
         let temp = (
             slf.instruction.get_operation(py)?,
@@ -295,7 +296,7 @@ impl DAGOpNode {
     }
 
     #[getter]
-    fn get_op(&self, py: Python) -> PyResult<PyObject> {
+    fn get_op(&self, py: Python) -> PyResult<Py<PyAny>> {
         self.instruction.get_operation(py)
     }
 
@@ -415,7 +416,7 @@ impl DAGOpNode {
 
     /// Sets the Instruction name corresponding to the op for this node
     #[setter]
-    fn set_name(&mut self, py: Python, new_name: PyObject) -> PyResult<()> {
+    fn set_name(&mut self, py: Python, new_name: Py<PyAny>) -> PyResult<()> {
         let op = self.instruction.get_operation_mut(py)?;
         op.setattr(intern!(py, "name"), new_name)?;
         self.instruction.operation = op.extract::<OperationFromPython>()?.operation;
@@ -437,11 +438,11 @@ impl DAGOpNode {
 #[pyclass(module = "qiskit._accelerate.circuit", extends=DAGNode)]
 pub struct DAGInNode {
     #[pyo3(get)]
-    pub wire: PyObject,
+    pub wire: Py<PyAny>,
 }
 
 impl DAGInNode {
-    pub fn new(node: NodeIndex, wire: PyObject) -> (Self, DAGNode) {
+    pub fn new(node: NodeIndex, wire: Py<PyAny>) -> (Self, DAGNode) {
         (DAGInNode { wire }, DAGNode { node: Some(node) })
     }
 }
@@ -449,7 +450,7 @@ impl DAGInNode {
 #[pymethods]
 impl DAGInNode {
     #[new]
-    fn py_new(wire: PyObject) -> PyResult<(Self, DAGNode)> {
+    fn py_new(wire: Py<PyAny>) -> PyResult<(Self, DAGNode)> {
         Ok((DAGInNode { wire }, DAGNode { node: None }))
     }
 
@@ -495,11 +496,11 @@ impl DAGInNode {
 #[pyclass(module = "qiskit._accelerate.circuit", extends=DAGNode)]
 pub struct DAGOutNode {
     #[pyo3(get)]
-    pub wire: PyObject,
+    pub wire: Py<PyAny>,
 }
 
 impl DAGOutNode {
-    pub fn new(node: NodeIndex, wire: PyObject) -> (Self, DAGNode) {
+    pub fn new(node: NodeIndex, wire: Py<PyAny>) -> (Self, DAGNode) {
         (DAGOutNode { wire }, DAGNode { node: Some(node) })
     }
 }
@@ -507,11 +508,11 @@ impl DAGOutNode {
 #[pymethods]
 impl DAGOutNode {
     #[new]
-    fn py_new(wire: PyObject) -> PyResult<(Self, DAGNode)> {
+    fn py_new(wire: Py<PyAny>) -> PyResult<(Self, DAGNode)> {
         Ok((DAGOutNode { wire }, DAGNode { node: None }))
     }
 
-    fn __reduce__(slf: PyRef<Self>, py: Python) -> PyResult<PyObject> {
+    fn __reduce__(slf: PyRef<Self>, py: Python) -> PyResult<Py<PyAny>> {
         let state = slf.as_ref().node.map(|node| node.index());
         (py.get_type::<Self>(), (&slf.wire,), state).into_py_any(py)
     }

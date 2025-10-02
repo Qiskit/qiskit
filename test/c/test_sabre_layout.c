@@ -12,7 +12,6 @@
 
 #include "common.h"
 #include <complex.h>
-#include <math.h>
 #include <qiskit.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -23,7 +22,7 @@
 /**
  * Test running sabre layout that requires layout and routing
  */
-int test_sabre_layout_applies_layout(void) {
+static int test_sabre_layout_applies_layout(void) {
     int result = Ok;
 
     const uint32_t num_qubits = 5;
@@ -131,7 +130,7 @@ cleanup:
 /**
  * Test running sabre layout that performs no transformation.
  */
-int test_sabre_layout_no_swap(void) {
+static int test_sabre_layout_no_swap(void) {
     int result = Ok;
 
     const uint32_t num_qubits = 5;

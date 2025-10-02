@@ -34,7 +34,7 @@ use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit`` and
 /// if ``target`` is not a valid pointer to a ``QkTarget``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_consolidate_blocks(
     circuit: *mut CircuitData,

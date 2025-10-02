@@ -32,7 +32,7 @@ class ZGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.z` method.
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -41,7 +41,7 @@ class ZGate(SingletonGate):
                 0 & -1
             \end{pmatrix}
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -75,7 +75,10 @@ class ZGate(SingletonGate):
     _standard_gate = StandardGate.Z
 
     def __init__(self, label: Optional[str] = None):
-        """Create new Z gate."""
+        """
+        Args:
+            label: An optional label for the gate.
+        """
         super().__init__("z", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
@@ -90,7 +93,7 @@ class ZGate(SingletonGate):
         #    └──────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.Z._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.Z._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def control(
@@ -156,7 +159,7 @@ class CZGate(SingletonControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.cz` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -164,7 +167,7 @@ class CZGate(SingletonControlledGate):
               │
         q_1: ─■─
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 
@@ -214,7 +217,7 @@ class CZGate(SingletonControlledGate):
         #      └───┘└───┘└───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.CZ._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.CZ._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def inverse(self, annotated: bool = False):
@@ -244,7 +247,7 @@ class CCZGate(SingletonControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.ccz` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -254,7 +257,7 @@ class CCZGate(SingletonControlledGate):
               │
         q_2: ─■─
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 
@@ -310,7 +313,7 @@ class CCZGate(SingletonControlledGate):
         #      └───┘└───┘└───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.CCZ._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.CCZ._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def inverse(self, annotated: bool = False):

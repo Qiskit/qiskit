@@ -21,7 +21,7 @@ use pyo3::prelude::*;
 
 use crate::bytecode::InternalBytecode;
 use crate::error::{
-    message_bad_eof, message_generic, message_incorrect_requirement, Position, QASM2ParseError,
+    Position, QASM2ParseError, message_bad_eof, message_generic, message_incorrect_requirement,
 };
 use crate::expr::{Expr, ExprParser};
 use crate::lex::{Token, TokenContext, TokenStream, TokenType, Version};
@@ -111,7 +111,7 @@ pub enum GlobalSymbol {
         index: GateId,
     },
     Classical {
-        callable: PyObject,
+        callable: Py<PyAny>,
         num_params: usize,
     },
 }
@@ -401,7 +401,7 @@ impl State {
                         cause.col,
                     )),
                     required,
-                )))
+                )));
             }
             Some(token) => token,
         };
@@ -473,7 +473,7 @@ impl State {
                         name,
                         symbol.describe()
                     ),
-                )))
+                )));
             }
             None => {
                 return Err(QASM2ParseError::new_err(message_generic(
@@ -483,7 +483,7 @@ impl State {
                         name_token.col,
                     )),
                     &format!("'{name}' is not defined in this scope"),
-                )))
+                )));
             }
         };
         self.complete_operand(&name, register_size, register_start)
@@ -507,27 +507,24 @@ impl State {
                 )),
                 &format!("'{name}' is a parameter, not a qubit"),
             ))),
-            None => {
-                if let Some(symbol) = self.symbols.get(&name) {
-                    Err(QASM2ParseError::new_err(message_generic(
-                        Some(&Position::new(
-                            self.current_filename(),
-                            name_token.line,
-                            name_token.col,
-                        )),
-                        &format!("'{}' is {}, not a qubit", name, symbol.describe()),
-                    )))
-                } else {
-                    Err(QASM2ParseError::new_err(message_generic(
-                        Some(&Position::new(
-                            self.current_filename(),
-                            name_token.line,
-                            name_token.col,
-                        )),
-                        &format!("'{name}' is not defined in this scope"),
-                    )))
-                }
-            }
+            None => match self.symbols.get(&name) {
+                Some(symbol) => Err(QASM2ParseError::new_err(message_generic(
+                    Some(&Position::new(
+                        self.current_filename(),
+                        name_token.line,
+                        name_token.col,
+                    )),
+                    &format!("'{}' is {}, not a qubit", name, symbol.describe()),
+                ))),
+                _ => Err(QASM2ParseError::new_err(message_generic(
+                    Some(&Position::new(
+                        self.current_filename(),
+                        name_token.line,
+                        name_token.col,
+                    )),
+                    &format!("'{name}' is not defined in this scope"),
+                ))),
+            },
         }
     }
 
@@ -581,7 +578,7 @@ impl State {
                         name,
                         symbol.describe()
                     ),
-                )))
+                )));
             }
             None => {
                 return Err(QASM2ParseError::new_err(message_generic(
@@ -591,7 +588,7 @@ impl State {
                         name_token.col,
                     )),
                     &format!("'{name}' is not defined in this scope"),
-                )))
+                )));
             }
         };
         self.complete_operand(&name, register_size, register_start)
@@ -814,7 +811,7 @@ impl State {
                             lbrace_token.col,
                         )),
                         "a closing brace '}' of the gate body",
-                    )))
+                    )));
                 }
             }
         }
@@ -1041,7 +1038,7 @@ impl State {
                                 lparen_token.col,
                             )),
                             "non-constant expression in program body",
-                        )))
+                        )));
                     }
                 }
                 seen_params += 1;

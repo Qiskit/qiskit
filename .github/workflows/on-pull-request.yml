@@ -61,7 +61,7 @@ jobs:
     strategy:
       matrix:
         python_version: ["3.9", "3.13"]
-        runner: ["macos-13", "macos-14"]
+        runner: ["macos-14"]
     uses: ./.github/workflows/test-mac.yml
     with:
       python-version: ${{ matrix.python_version }}
