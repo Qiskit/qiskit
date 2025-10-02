@@ -11,9 +11,9 @@
 // that they have been altered from the originals.
 
 use hashbrown::HashMap;
+use pyo3::IntoPyObjectExt;
 use pyo3::exceptions::PyTypeError;
 use pyo3::exceptions::PyValueError;
-use pyo3::IntoPyObjectExt;
 use std::cmp::Ordering;
 use std::cmp::PartialOrd;
 use std::convert::From;
@@ -34,10 +34,10 @@ pub const SYMEXPR_EPSILON: f64 = f64::EPSILON * 8.0;
 
 #[derive(Debug, Clone)]
 pub struct Symbol {
-    name: String,                 // the name of the symbol
-    pub uuid: Uuid,               // the unique identifier
-    pub index: Option<u32>,       // an optional index, if part of a vector
-    pub vector: Option<PyObject>, // Python only: a reference to the vector, if it is an element
+    name: String,                  // the name of the symbol
+    pub uuid: Uuid,                // the unique identifier
+    pub index: Option<u32>,        // an optional index, if part of a vector
+    pub vector: Option<Py<PyAny>>, // Python only: a reference to the vector, if it is an element
 }
 
 /// Custom implementations of Eq, PartialEq, PartialOrd and Hash to ignore the ``vector`` field
@@ -102,7 +102,7 @@ impl Symbol {
         name: &str,
         uuid: Option<u128>,
         index: Option<u32>,
-        vector: Option<PyObject>,
+        vector: Option<Py<PyAny>>,
     ) -> PyResult<Self> {
         if index.is_some() != vector.is_some() {
             return Err(PyValueError::new_err(

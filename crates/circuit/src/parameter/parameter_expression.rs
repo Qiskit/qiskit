@@ -24,8 +24,8 @@ use std::collections::hash_map::DefaultHasher;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
-use pyo3::prelude::*;
 use pyo3::IntoPyObjectExt;
+use pyo3::prelude::*;
 
 use crate::circuit_data::CircuitError;
 use crate::imports::{BUILTIN_HASH, SYMPIFY_PARAMETER_EXPRESSION, UUID};
@@ -33,7 +33,7 @@ use crate::parameter::symbol_expr;
 use crate::parameter::symbol_expr::SymbolExpr;
 use crate::parameter::symbol_parser::parse_expression;
 
-use super::symbol_expr::{Symbol, Value, SYMEXPR_EPSILON};
+use super::symbol_expr::{SYMEXPR_EPSILON, Symbol, Value};
 
 /// Errors for dealing with parameters and parameter expressions.
 #[derive(Error, Debug)]
@@ -184,6 +184,17 @@ impl ParameterExpression {
     pub fn try_to_symbol(&self) -> Result<Symbol, ParameterError> {
         if let SymbolExpr::Symbol(symbol) = &self.expr {
             Ok(symbol.as_ref().clone())
+        } else {
+            Err(ParameterError::NotASymbol)
+        }
+    }
+
+    /// Try casting to a [Symbol], returning a reference.
+    ///
+    /// This only succeeds if the underlying expression is, in fact, only a symbol.
+    pub fn try_to_symbol_ref(&self) -> Result<&Symbol, ParameterError> {
+        if let SymbolExpr::Symbol(symbol) = &self.expr {
+            Ok(symbol.as_ref())
         } else {
             Err(ParameterError::NotASymbol)
         }
@@ -451,6 +462,14 @@ impl ParameterExpression {
     pub fn conjugate(&self) -> Self {
         Self {
             expr: self.expr.conjugate(),
+            name_map: self.name_map.clone(),
+        }
+    }
+
+    /// negate the expression.
+    pub fn neg(&self) -> Self {
+        Self {
+            expr: -&self.expr,
             name_map: self.name_map.clone(),
         }
     }
@@ -757,7 +776,7 @@ impl PyParameterExpression {
         }
     }
 
-    pub fn coerce_into_py(&self, py: Python) -> PyResult<PyObject> {
+    pub fn coerce_into_py(&self, py: Python) -> PyResult<Py<PyAny>> {
         if let Ok(value) = self.inner.try_to_value(true) {
             match value {
                 Value::Int(i) => Ok(PyInt::new(py, i).unbind().into_any()),
@@ -843,7 +862,7 @@ impl PyParameterExpression {
     ///         if the expression represents a numeric value, regardless of unbound symbols.
     ///         For example ``(0 * Parameter("x"))`` is 0 but has the symbol ``x`` present.
     #[pyo3(signature = (strict=true))]
-    pub fn numeric(&self, py: Python, strict: bool) -> PyResult<PyObject> {
+    pub fn numeric(&self, py: Python, strict: bool) -> PyResult<Py<PyAny>> {
         match self.inner.try_to_value(strict)? {
             Value::Real(r) => r.into_py_any(py),
             Value::Int(i) => i.into_py_any(py),
@@ -859,7 +878,7 @@ impl PyParameterExpression {
     ///
     /// Returns:
     ///     A SymPy equivalent of this expression.
-    pub fn sympify(&self, py: Python) -> PyResult<PyObject> {
+    pub fn sympify(&self, py: Python) -> PyResult<Py<PyAny>> {
         let py_sympify = SYMPIFY_PARAMETER_EXPRESSION.get(py);
         py_sympify.call1(py, (self.clone(),))
     }
@@ -874,7 +893,7 @@ impl PyParameterExpression {
     ///
     #[getter]
     pub fn parameters<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PySet>> {
-        let py_parameters: Vec<PyObject> = self
+        let py_parameters: Vec<Py<PyAny>> = self
             .inner
             .name_map
             .values()
@@ -986,7 +1005,7 @@ impl PyParameterExpression {
     /// Returns:
     ///     The derivative as either a constant numeric value or a symbolic
     ///     :class:`.ParameterExpression`.
-    pub fn gradient(&self, param: &Bound<'_, PyAny>) -> PyResult<PyObject> {
+    pub fn gradient(&self, param: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
         let symbol = symbol_from_py_parameter(param)?;
         let d_expr = self.inner.derivative(&symbol)?;
 
@@ -1002,7 +1021,7 @@ impl PyParameterExpression {
     }
 
     /// Return all values in this equation.
-    pub fn _values(&self, py: Python) -> PyResult<Vec<PyObject>> {
+    pub fn _values(&self, py: Python) -> PyResult<Vec<Py<PyAny>>> {
         self.inner
             .expr
             .values()
@@ -1517,7 +1536,7 @@ impl PyParameter {
     fn py_new(
         py: Python<'_>,
         name: String,
-        uuid: Option<PyObject>,
+        uuid: Option<Py<PyAny>>,
     ) -> PyResult<PyClassInitializer<Self>> {
         let uuid = uuid_from_py(py, uuid)?;
         let symbol = Symbol::new(name.as_str(), uuid, None);
@@ -1541,7 +1560,7 @@ impl PyParameter {
     /// :class:`.Parameter` constructor to produce an instance that compares
     /// equal to another instance.
     #[getter]
-    fn uuid(&self, py: Python<'_>) -> PyResult<PyObject> {
+    fn uuid(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
         uuid_to_py(py, self.symbol.uuid)
     }
 
@@ -1723,9 +1742,9 @@ impl PyParameterVectorElement {
     #[pyo3(signature = (vector, index, uuid=None))]
     pub fn py_new(
         py: Python<'_>,
-        vector: PyObject,
+        vector: Py<PyAny>,
         index: u32,
-        uuid: Option<PyObject>,
+        uuid: Option<Py<PyAny>>,
     ) -> PyResult<PyClassInitializer<Self>> {
         let vector_name = vector.getattr(py, "name")?.extract::<String>(py)?;
         let uuid = uuid_from_py(py, uuid)?.unwrap_or(Uuid::new_v4());
@@ -1743,7 +1762,7 @@ impl PyParameterVectorElement {
         Ok(py_parameter.add_subclass(py_element))
     }
 
-    pub fn __getnewargs__(&self, py: Python) -> PyResult<(PyObject, u32, Option<PyObject>)> {
+    pub fn __getnewargs__(&self, py: Python) -> PyResult<(Py<PyAny>, u32, Option<Py<PyAny>>)> {
         let vector = self
             .symbol
             .vector
@@ -1762,14 +1781,14 @@ impl PyParameterVectorElement {
         PyString::new(py, str.as_str())
     }
 
-    pub fn __getstate__(&self, py: Python) -> PyResult<(PyObject, u32, Option<PyObject>)> {
+    pub fn __getstate__(&self, py: Python) -> PyResult<(Py<PyAny>, u32, Option<Py<PyAny>>)> {
         self.__getnewargs__(py)
     }
 
     pub fn __setstate__(
         &mut self,
         py: Python,
-        state: (PyObject, u32, Option<PyObject>),
+        state: (Py<PyAny>, u32, Option<Py<PyAny>>),
     ) -> PyResult<()> {
         let vector = state.0;
         let index = state.1;
@@ -1789,7 +1808,7 @@ impl PyParameterVectorElement {
 
     /// Get the parent vector instance.
     #[getter]
-    pub fn vector(&self) -> PyObject {
+    pub fn vector(&self) -> Py<PyAny> {
         self.symbol
             .clone()
             .vector
@@ -1799,7 +1818,7 @@ impl PyParameterVectorElement {
     /// For backward compatibility only. This should not be used and we ought to update those
     /// usages!
     #[getter]
-    pub fn _vector(&self) -> PyObject {
+    pub fn _vector(&self) -> Py<PyAny> {
         self.vector()
     }
 
@@ -1815,7 +1834,7 @@ impl PyParameterVectorElement {
 }
 
 /// Try to extract a Uuid from a Python object, which could be a Python UUID or int.
-fn uuid_from_py(py: Python<'_>, uuid: Option<PyObject>) -> PyResult<Option<Uuid>> {
+fn uuid_from_py(py: Python<'_>, uuid: Option<Py<PyAny>>) -> PyResult<Option<Uuid>> {
     if let Some(val) = uuid {
         // construct from u128
         let as_u128 = if let Ok(as_u128) = val.extract::<u128>(py) {
@@ -1834,7 +1853,7 @@ fn uuid_from_py(py: Python<'_>, uuid: Option<PyObject>) -> PyResult<Option<Uuid>
 }
 
 /// Convert a Rust Uuid object to a Python UUID object.
-fn uuid_to_py(py: Python<'_>, uuid: Uuid) -> PyResult<PyObject> {
+fn uuid_to_py(py: Python<'_>, uuid: Uuid) -> PyResult<Py<PyAny>> {
     let uuid = uuid.as_u128();
     let kwargs = [("int", uuid)].into_py_dict(py)?;
     Ok(UUID.get_bound(py).call((), Some(&kwargs))?.unbind())

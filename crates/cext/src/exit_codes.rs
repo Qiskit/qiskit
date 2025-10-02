@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use qiskit_circuit::parameter::parameter_expression::ParameterError;
 use qiskit_quantum_info::sparse_observable::ArithmeticError;
 use qiskit_transpiler::target::TargetError;
 use thiserror::Error;
@@ -94,5 +95,11 @@ impl From<TargetError> for ExitCode {
             } => ExitCode::TargetInvalidQargsKey,
             _ => ExitCode::TargetError,
         }
+    }
+}
+
+impl From<ParameterError> for ExitCode {
+    fn from(_value: ParameterError) -> Self {
+        ExitCode::ArithmeticError
     }
 }

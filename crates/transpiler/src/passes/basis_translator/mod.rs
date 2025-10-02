@@ -38,12 +38,12 @@ use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::Symbol;
 use qiskit_circuit::parameter::symbol_expr::SymbolExpr;
 use qiskit_circuit::parameter::symbol_expr::Value;
+use qiskit_circuit::{Clbit, PhysicalQubit, Qubit, VarsMode};
 use qiskit_circuit::{
     circuit_data::CircuitData,
     dag_circuit::DAGCircuit,
     operations::{Operation, OperationRef, PythonOperation},
 };
-use qiskit_circuit::{Clbit, PhysicalQubit, Qubit, VarsMode};
 use smallvec::SmallVec;
 
 use crate::equivalence::EquivalenceLibrary;
@@ -424,7 +424,7 @@ fn apply_translation(
         let mut new_op: Option<OperationFromPython> = None;
         if target_basis.contains(node_obj.op.name()) || node_qarg.len() < min_qubits {
             if node_obj.op.control_flow() {
-                Python::with_gil(|py| -> PyResult<()> {
+                Python::attach(|py| -> PyResult<()> {
                     // This part is only executed through python because `ControlFlowOp`
                     // does not exist in Rust space yet, and we need the method `replace_blocks`.
                     // TODO: Refactor this condition block once https://github.com/Qiskit/qiskit/pull/14568 merges.
@@ -582,15 +582,15 @@ fn replace_node(
                 .collect();
             let new_op: PackedOperation = match inner_node.op.view() {
                 OperationRef::Gate(gate) => {
-                    Python::with_gil(|py| gate.py_copy(py).map(|op| op.into()))
+                    Python::attach(|py| gate.py_copy(py).map(|op| op.into()))
                         .expect("Error while copying gate instance.")
                 }
                 OperationRef::Instruction(instruction) => {
-                    Python::with_gil(|py| instruction.py_copy(py).map(|op| op.into()))
+                    Python::attach(|py| instruction.py_copy(py).map(|op| op.into()))
                         .expect("Error while copying instruction instance.")
                 }
                 OperationRef::Operation(operation) => {
-                    Python::with_gil(|py| operation.py_copy(py).map(|op| op.into()))
+                    Python::attach(|py| operation.py_copy(py).map(|op| op.into()))
                         .expect("Error while copying operation instance.")
                 }
                 OperationRef::StandardGate(gate) => gate.into(),
@@ -656,17 +656,17 @@ fn replace_node(
                 .map(|clbit| old_cargs[clbit.0 as usize])
                 .collect();
             let new_op: PackedOperation = match inner_node.op.view() {
-                OperationRef::Gate(gate) => Python::with_gil(|py| {
+                OperationRef::Gate(gate) => Python::attach(|py| {
                     gate.py_copy(py).map(|op| op.into())
                 })
                 .map_err(|err| BasisTranslatorError::BasisDAGCircuitError(err.to_string()))?,
                 OperationRef::Instruction(instruction) => {
-                    Python::with_gil(|py| instruction.py_copy(py).map(|op| op.into())).map_err(
+                    Python::attach(|py| instruction.py_copy(py).map(|op| op.into())).map_err(
                         |err| BasisTranslatorError::BasisDAGCircuitError(err.to_string()),
                     )?
                 }
                 OperationRef::Operation(operation) => {
-                    Python::with_gil(|py| operation.py_copy(py).map(|op| op.into())).map_err(
+                    Python::attach(|py| operation.py_copy(py).map(|op| op.into())).map_err(
                         |err| BasisTranslatorError::BasisDAGCircuitError(err.to_string()),
                     )?
                 }
@@ -696,7 +696,7 @@ fn replace_node(
                     // TODO: Remove this.
                     // Acquire the gil if the operation is not native to set the operation parameters in
                     // Python.
-                    Python::with_gil(|py| -> Result<(), BasisTranslatorError> {
+                    Python::attach(|py| -> Result<(), BasisTranslatorError> {
                         match new_op.view() {
                             OperationRef::Instruction(inst) => inst
                                 .instruction
@@ -771,7 +771,7 @@ fn param_expr_assignment(
                 bind_map.insert(key, Value::Real(*val));
             }
             Param::Obj(val) => {
-                let val = Python::with_gil(|py| val.extract::<Value>(py))
+                let val = Python::attach(|py| val.extract::<Value>(py))
                     .map_err(|_| ParameterError::InvalidValue)?;
                 bind_map.insert(key, val);
             }

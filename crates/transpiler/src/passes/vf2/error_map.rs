@@ -10,9 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use pyo3::IntoPyObjectExt;
 use pyo3::exceptions::PyIndexError;
 use pyo3::prelude::*;
-use pyo3::IntoPyObjectExt;
 
 use qiskit_circuit::PhysicalQubit;
 
@@ -106,8 +106,8 @@ impl ErrorMap {
         &self,
         py: Python,
         key: [PhysicalQubit; 2],
-        default: Option<PyObject>,
-    ) -> PyResult<PyObject> {
+        default: Option<Py<PyAny>>,
+    ) -> PyResult<Py<PyAny>> {
         Ok(match self.error_map.get(&key).copied() {
             Some(val) => val.into_py_any(py)?,
             None => match default {
