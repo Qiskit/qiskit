@@ -1,5 +1,5 @@
 ---
 features_c:
   - |
-    Added a new function ``qk_circuit_library_quantum_volume`` to generate a quantum volume
-    model circuit to the C API.
+    Added a new function :cpp:func:`qk_circuit_library_quantum_volume` to
+    generate a quantum volume model circuit to the C API.
