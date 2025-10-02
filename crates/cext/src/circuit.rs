@@ -352,6 +352,47 @@ pub unsafe extern "C" fn qk_circuit_num_clbits(circuit: *const CircuitData) -> u
 }
 
 /// @ingroup QkCircuit
+/// Get the number of free parameters the circuit contains.
+///
+/// @param circuit A pointer to the circuit.
+///
+/// @return The number of free parameters in the circuit.
+///
+/// # Example
+///
+/// ```c
+/// QkCircuit *qc = qk_circuit_new(2, 0);
+/// QkParam *x = qk_param_new_symbol("x");
+/// QkParam *y = qk_param_new_symbol("y");
+///
+/// uint32_t q0[1] = {0};
+/// const QkParam *rx_param[1] = {x};
+/// const QkParam *ry_param[1] = {y};
+///
+/// qk_circuit_gate_param(qc, QkGate_RX, q0, rx_param);
+/// qk_circuit_gate_param(qc, QkGate_RY, q0, ry_param);
+///
+/// // check the number of parameters
+/// size_t num_params = qk_circuit_num_free_parameters(qc);  // == 2
+///
+/// qk_param_free(x);
+/// qk_param_free(y);
+/// qk_circuit_free(qc);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_circuit_num_free_params(circuit: *const CircuitData) -> usize {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+
+    circuit.num_parameters()
+}
+
+/// @ingroup QkCircuit
 /// Free the circuit.
 ///
 /// @param circuit A pointer to the circuit to free.
@@ -469,6 +510,90 @@ pub unsafe extern "C" fn qk_circuit_gate(
         circuit.push_standard_gate(gate, params, qargs).unwrap()
     }
     ExitCode::Success
+}
+
+/// @ingroup QkCircuit
+/// Append a possibly parameterized ``QkGate`` to the circuit.
+///
+/// @param circuit A pointer to the circuit to add the gate to.
+/// @param gate The ``QkGate`` to add to the circuit.
+/// @param qubits The pointer to the array of ``uint32_t`` qubit indices to add the gate on. This
+/// can be a null pointer if there are no qubits for ``gate`` (e.g. ``QkGate_GlobalPhase``).
+/// @param params The pointer to the array of ``QkParam*`` parameters to use for the gate parameters.
+/// This can be a null pointer if there are no parameters for ``gate`` (e.g. ``QkGate_H``).
+///
+/// @return An exit code.
+///
+/// # Example
+///
+/// ```c
+/// QkCircuit *qc = qk_circuit_new(100, 0);
+/// QkParam *theta = qk_param_new_symbol("theta");
+/// uint32_t qubit[1] = {0};
+/// const QkParam* params[1] = {theta};
+/// qk_circuit_gate_param(qc, QkGate_RX, qubit, params); // add RX(theta) to the circuit
+/// ```
+///
+/// # Safety
+///
+/// The ``qubits`` and ``params`` types are expected to be a pointer to an array of ``uint32_t``
+/// and ``QkParam*`` respectively where the length is matching the expectations for the standard
+/// gate. If the array is insufficiently long the behavior of this function is undefined as this
+/// will read outside the bounds of the array. It can be a null pointer if there are no qubits
+/// or params for a given gate. You can check ``qk_gate_num_qubits`` and ``qk_gate_num_params`` to
+/// determine how many qubits and params are required for a given gate.
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``,
+/// or if any of the elements in the ``params`` array is not a valid, non-null pointer to a
+/// ``QkParam``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_circuit_gate_param(
+    circuit: *mut CircuitData,
+    gate: StandardGate,
+    qubits: *const u32,
+    params: *const *const Param,
+) -> ExitCode {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
+
+    // SAFETY: Per the documentation the qubits pointer is an array of num_qubits() elements.
+    let qargs: &[Qubit] = unsafe {
+        match gate.num_qubits() {
+            0 => &[],
+            1 => &[Qubit(*qubits.wrapping_add(0))],
+            2 => &[
+                Qubit(*qubits.wrapping_add(0)),
+                Qubit(*qubits.wrapping_add(1)),
+            ],
+            3 => &[
+                Qubit(*qubits.wrapping_add(0)),
+                Qubit(*qubits.wrapping_add(1)),
+                Qubit(*qubits.wrapping_add(2)),
+            ],
+            4 => &[
+                Qubit(*qubits.wrapping_add(0)),
+                Qubit(*qubits.wrapping_add(1)),
+                Qubit(*qubits.wrapping_add(2)),
+                Qubit(*qubits.wrapping_add(3)),
+            ],
+            // There are no ``QkGate``s > 4 qubits
+            _ => unreachable!(),
+        }
+    };
+
+    // SAFETY: Per documentation, the params pointer is an array of num_params() elements, and
+    // each element is a valid, non-null pointer to a Param.
+    let params: Vec<Param> =
+        unsafe { ::std::slice::from_raw_parts(params, gate.num_params() as usize) }
+            .iter()
+            .map(|&ptr| unsafe { const_ptr_as_ref(ptr) }.clone())
+            .collect();
+
+    match circuit.push_standard_gate(gate, &params, qargs) {
+        Ok(_) => ExitCode::Success,
+        Err(_) => ExitCode::ParameterError,
+    }
 }
 
 /// @ingroup QkCircuit
@@ -843,7 +968,8 @@ pub struct CInstruction {
     /// A pointer to an array of clbit indices this instruction operates on.
     clbits: *mut u32,
     /// A pointer to an array of parameter values for this instruction.
-    params: *mut f64,
+    /// Since ``QkParam`` are immutable this is a pointer to ``const QkParam*``.
+    params: *mut *const Param,
     /// The number of qubits for this instruction.
     num_qubits: u32,
     /// The number of clbits for this instruction.
@@ -908,11 +1034,11 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
     };
     let mut params = {
         let params = packed_inst.params_view();
-        let params_vec: Vec<f64> = params
+        let params_vec: Vec<*const Param> = params
             .iter()
             .map(|x| match x {
-                Param::Float(val) => *val,
-                _ => panic!("Invalid parameter on instruction"),
+                Param::Obj(_) => panic!("Invalid parameter on instruction"),
+                _ => x as *const Param,
             })
             .collect();
         params_vec.into_boxed_slice()
@@ -995,7 +1121,7 @@ pub unsafe extern "C" fn qk_circuit_instruction_clear(inst: *mut CInstruction) {
         inst.num_clbits = 0;
         if inst.num_params > 0 && !inst.params.is_null() {
             let params = std::slice::from_raw_parts_mut(inst.params, inst.num_params as usize);
-            let _ = Box::from_raw(params as *mut [f64]);
+            let _ = Box::from_raw(params);
             inst.params = std::ptr::null_mut();
         }
         inst.num_params = 0;

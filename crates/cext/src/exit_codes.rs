@@ -60,6 +60,8 @@ pub enum ExitCode {
     TargetInvalidInstKey = 304,
     /// Transpilation failed
     TranspilerError = 400,
+    /// Errors concerning parameter handling.
+    ParameterError = 500,
 }
 
 impl From<ArithmeticError> for ExitCode {
