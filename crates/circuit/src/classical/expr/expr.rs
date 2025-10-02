@@ -13,7 +13,7 @@
 use crate::classical::expr::{Binary, Cast, Index, Stretch, Unary, Value, Var};
 use crate::classical::types::Type;
 use pyo3::prelude::*;
-use pyo3::{intern, IntoPyObjectExt};
+use pyo3::{IntoPyObjectExt, intern};
 
 /// A classical expression.
 ///

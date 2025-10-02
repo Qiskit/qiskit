@@ -18,7 +18,7 @@ use crate::equivalence::{EdgeData, Equivalence, EquivalenceLibrary, Key, NodeDat
 use qiskit_circuit::operations::Operation;
 use rustworkx_core::petgraph::stable_graph::{EdgeReference, NodeIndex, StableDiGraph};
 use rustworkx_core::petgraph::visit::Control;
-use rustworkx_core::traversal::{dijkstra_search, DijkstraEvent};
+use rustworkx_core::traversal::{DijkstraEvent, dijkstra_search};
 
 use super::compose_transforms::{BasisTransformIn, GateIdentifier};
 
