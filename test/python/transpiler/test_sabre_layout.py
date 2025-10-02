@@ -17,9 +17,10 @@ import unittest
 import math
 
 from qiskit import QuantumRegister, QuantumCircuit
+from qiskit.circuit import library as lib, Parameter
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.library import efficient_su2, quantum_volume
-from qiskit.transpiler import CouplingMap, AnalysisPass, PassManager
+from qiskit.transpiler import CouplingMap, AnalysisPass, PassManager, Target, Layout
 from qiskit.transpiler.passes import SabreLayout, DenseLayout, Unroll3qOrMore, BasicSwap
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.converters import circuit_to_dag
@@ -207,7 +208,7 @@ rz(0) q4835[1];
         self.assertIsInstance(res, QuantumCircuit)
         layout = res._layout.initial_layout
         self.assertEqual(
-            [layout[q] for q in qc.qubits], [14, 12, 5, 13, 26, 11, 19, 25, 18, 8, 17, 16, 9, 4]
+            [layout[q] for q in qc.qubits], [2, 0, 5, 1, 7, 3, 14, 6, 9, 8, 10, 11, 4, 12]
         )
 
     # pylint: disable=line-too-long
@@ -270,7 +271,7 @@ barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
         self.assertIsInstance(res, QuantumCircuit)
         layout = res._layout.initial_layout
         self.assertEqual(
-            [layout[q] for q in qc.qubits], [0, 12, 7, 8, 6, 3, 1, 10, 4, 9, 2, 11, 13, 5]
+            [layout[q] for q in qc.qubits], [8, 21, 12, 16, 10, 4, 14, 23, 13, 9, 11, 19, 2, 20]
         )
 
     def test_support_var_with_rust_fastpath(self):
@@ -311,6 +312,27 @@ barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
         layout = pass_.property_set["layout"]
         self.assertEqual([layout[q] for q in qc.qubits], [3, 4, 2, 5, 1])
 
+    def test_uninitialized_target(self):
+        """We shouldn't panic if the target isn't initialized."""
+        target = Target(num_qubits=None)
+        qc = QuantumCircuit(2)
+        pass_ = SabreLayout(target, seed=0)
+        with self.assertRaisesRegex(TranspilerError, "not initialized"):
+            pass_(qc)
+
+    def test_out_of_range_partials(self):
+        """We should safely reject partial layouts that are invalid."""
+        pass_ = SabreLayout(
+            Target.from_configuration(
+                num_qubits=5, coupling_map=CouplingMap.from_line(5), basis_gates=["sx", "rz", "cx"]
+            ),
+            seed=0,
+        )
+        qc = QuantumCircuit(2)
+        partial = Layout(dict(zip(qc.qubits, [1, 5])))
+        with self.assertRaisesRegex(TranspilerError, "out-of-range physical qubits"):
+            pass_(qc, property_set={"sabre_starting_layouts": [partial]})
+
     @slow_test
     def test_release_valve_routes_multiple(self):
         """Test Sabre works if the release valve routes more than 1 operation.
@@ -329,6 +351,26 @@ barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
         )
         _ = pm.run(qc)
         self.assertIsNotNone(pm.property_set.get("layout"))
+
+    def test_all_to_all(self):
+        """An implicitly all-to-all backend should just become physical with the trivial layout."""
+        qc = QuantumCircuit(QuantumRegister(5, "virtuals"))
+        for target in qc.qubits[1:]:
+            qc.cx(qc.qubits[0], target)
+        # No qargs in the instruction properties => implicitly all-to-all.
+        target = Target(num_qubits=10)
+        target.add_instruction(lib.RZGate(Parameter("t")))
+        target.add_instruction(lib.SXGate())
+        target.add_instruction(lib.CXGate())
+        pass_ = SabreLayout(target, seed=0)
+        out = pass_(qc)
+        self.assertEqual(out.layout.initial_index_layout(), list(range(10)))
+        self.assertEqual(out.layout.routing_permutation(), list(range(10)))
+
+        expected = QuantumCircuit(QuantumRegister(10, "q"))
+        for target in range(1, qc.num_qubits):
+            expected.cx(0, target)
+        self.assertEqual(out, expected)
 
 
 class DensePartialSabreTrial(AnalysisPass):
@@ -478,8 +520,25 @@ class TestDisjointDeviceSabreLayout(QiskitTestCase):
         layout_routing_pass = SabreLayout(disjoint, seed=2025_02_12, swap_trials=1, layout_trials=1)
         out = layout_routing_pass(qc)
         self.assertEqual(len(out.layout.initial_layout), len(out.layout.final_layout))
-        self.assertEqual(out.layout.initial_index_layout(filter_ancillas=False), [1, 2, 0, 3, 4, 5])
-        self.assertEqual(out.layout.final_index_layout(filter_ancillas=False), [0, 2, 1, 3, 4, 5])
+        self.assertEqual(out.layout.initial_index_layout(filter_ancillas=False), [4, 5, 3, 0, 1, 2])
+        self.assertEqual(out.layout.final_index_layout(filter_ancillas=False), [3, 5, 4, 0, 1, 2])
+
+    def test_sabre_layout_global_1q(self):
+        """Test that the pass runs with a globally defined 1q gate."""
+        target = Target(num_qubits=3)
+        target.add_instruction(lib.XGate())
+        target.add_instruction(lib.CXGate(), {(0, 1): None, (1, 2): None})
+        layout_routing_pass = SabreLayout(target, swap_trials=1, layout_trials=1, seed=42)
+        qc = QuantumCircuit(3)
+        qc.cz(0, 2)
+        out = layout_routing_pass(qc)
+        # sabre maps 2 -> 1, and 0 -> 2 in the layout with no swaps
+        self.assertIsNone(out.count_ops().get("swap", None))
+        self.assertEqual([out.find_bit(x).index for x in out.data[0].qubits], [2, 1])
+        self.assertEqual(len(out.layout.initial_layout), len(out.layout.final_layout))
+        self.assertEqual(out.layout.initial_index_layout(filter_ancillas=False), [2, 0, 1])
+        self.assertEqual(out.layout.routing_permutation(), [0, 1, 2])
+        self.assertEqual(out.layout.final_index_layout(filter_ancillas=False), [2, 0, 1])
 
 
 class TestSabrePreLayout(QiskitTestCase):
@@ -505,7 +564,7 @@ class TestSabrePreLayout(QiskitTestCase):
         layout = pm.property_set["layout"]
         self.assertEqual(
             [layout[q] for q in self.circuit.qubits],
-            [30, 98, 104, 36, 103, 35, 65, 28, 61, 91, 22, 92, 23, 93, 62, 99],
+            [9, 81, 54, 16, 86, 58, 92, 22, 91, 21, 57, 14, 85, 53, 79, 80],
         )
 
     def test_integration_with_pass_manager(self):
@@ -519,7 +578,7 @@ class TestSabrePreLayout(QiskitTestCase):
         qct_initial_layout = qct.layout.initial_layout
         self.assertEqual(
             [qct_initial_layout[q] for q in self.circuit.qubits],
-            [17, 16, 11, 12, 7, 6, 5, 1, 2, 3, 8, 9, 14, 13, 19, 18],
+            [12, 11, 10, 16, 17, 18, 13, 14, 9, 8, 3, 2, 1, 6, 5, 7],
         )
 
 

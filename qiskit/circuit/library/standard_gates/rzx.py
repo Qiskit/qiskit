@@ -17,7 +17,6 @@ from __future__ import annotations
 import math
 from typing import Optional
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
 from qiskit._accelerate.circuit import StandardGate
 
@@ -33,7 +32,7 @@ class RZXGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.rzx` method.
 
-    **Circuit Symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -43,7 +42,7 @@ class RZXGate(Gate):
         q_1: ┤1        ├
              └─────────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -96,65 +95,54 @@ class RZXGate(Gate):
                     0 & RX(-\theta)
                 \end{pmatrix}
 
-    **Examples:**
+    Examples:
 
-        .. math::
+    .. math::
 
-            R_{ZX}(\theta = 0)\ q_0, q_1 = I
+        R_{ZX}(\theta = 0)\ q_0, q_1 = I
 
-        .. math::
+    .. math::
 
-            R_{ZX}(\theta = 2\pi)\ q_0, q_1 = -I
+        R_{ZX}(\theta = 2\pi)\ q_0, q_1 = -I
 
-        .. math::
+    .. math::
 
-            R_{ZX}(\theta = \pi)\ q_0, q_1 = -i X \otimes Z
+        R_{ZX}(\theta = \pi)\ q_0, q_1 = -i X \otimes Z
 
-        .. math::
+    .. math::
 
-            R_{ZX}(\theta = \frac{\pi}{2})\ q_0, q_1 = \frac{1}{\sqrt{2}}
-                                    \begin{pmatrix}
-                                        1  & 0 & -i & 0 \\
-                                        0  & 1 & 0  & i \\
-                                        -i & 0 & 1  & 0 \\
-                                        0  & i & 0  & 1
-                                    \end{pmatrix}
+        R_{ZX}(\theta = \frac{\pi}{2})\ q_0, q_1 = \frac{1}{\sqrt{2}}
+                                \begin{pmatrix}
+                                    1  & 0 & -i & 0 \\
+                                    0  & 1 & 0  & i \\
+                                    -i & 0 & 1  & 0 \\
+                                    0  & i & 0  & 1
+                                \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.RZXGate
+    _standard_gate = StandardGate.RZX
 
     def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
-        """Create new RZX gate."""
+        """
+        Args:
+            theta: The rotation angle.
+            label: An optional label for the gate.
+        """
         super().__init__("rzx", 2, [theta], label=label)
 
     def _define(self):
-        """
-        gate rzx(theta) a, b { h b; cx a, b; u1(theta) b; cx a, b; h b;}
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .h import HGate
-        from .x import CXGate
-        from .rz import RZGate
+        from qiskit.circuit import QuantumCircuit
 
         # q_0: ───────■─────────────■───────
         #      ┌───┐┌─┴─┐┌───────┐┌─┴─┐┌───┐
         # q_1: ┤ H ├┤ X ├┤ Rz(0) ├┤ X ├┤ H ├
         #      └───┘└───┘└───────┘└───┘└───┘
-        theta = self.params[0]
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (HGate(), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (RZGate(theta), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (HGate(), [q[1]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.RZX._get_definition(self.params), legacy_qubits=True, name=self.name
+        )
 
     def control(
         self,

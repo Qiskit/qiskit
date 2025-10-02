@@ -19,9 +19,9 @@ from typing import Optional, Union
 from qiskit.circuit.exceptions import CircuitError
 
 # pylint: disable=cyclic-import
+from . import QuantumRegister
 from .quantumcircuit import QuantumCircuit
 from .gate import Gate
-from .quantumregister import QuantumRegister
 from ._utils import _ctrl_state_to_int
 
 

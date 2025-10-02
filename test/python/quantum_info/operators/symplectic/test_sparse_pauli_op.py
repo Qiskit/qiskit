@@ -26,7 +26,7 @@ from qiskit.circuit import Parameter, ParameterExpression, ParameterVector
 from qiskit.circuit.library import efficient_su2
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.compiler.transpiler import transpile
-from qiskit.primitives import BackendEstimator
+from qiskit.primitives import BackendEstimatorV2
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.quantum_info import SparseObservable
 from qiskit.quantum_info.operators import (
@@ -819,6 +819,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         np.testing.assert_array_equal(zero_op.paulis.phase, np.zeros(zero_op.size))
         np.testing.assert_array_equal(simplified_op.paulis.phase, np.zeros(simplified_op.size))
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
     def test_simplify_parameters(self):
         """Test simplify methods for parameterized SparsePauliOp."""
         a = Parameter("a")
@@ -828,6 +829,21 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         simplified_op = spp_op.simplify()
         target_coeffs = np.array([2 * a, 3 * a])
         target_labels = ["III", "XXX"]
+        target_op = SparsePauliOp(target_labels, target_coeffs)
+        self.assertEqual(simplified_op, target_op)
+        np.testing.assert_array_equal(simplified_op.paulis.phase, np.zeros(simplified_op.size))
+
+    @unittest.skipUnless(optionals.HAS_SYMPY, "Sympy required")
+    def test_simplify_complex_parameters(self):
+        """Test calling simplify when a parameter has a complex coefficient."""
+        a = Parameter("a")
+        b = Parameter("b")
+        coeffs = np.array([a, 1j * a, 1j * b, -1j * b])
+        labels = ["X", "X", "Z", "Z"]
+        spp_op = SparsePauliOp(labels, coeffs)
+        simplified_op = spp_op.simplify()
+        target_coeffs = np.array([(1 + 1j) * a])
+        target_labels = ["X"]
         target_op = SparsePauliOp(target_labels, target_coeffs)
         self.assertEqual(simplified_op, target_op)
         np.testing.assert_array_equal(simplified_op.paulis.phase, np.zeros(simplified_op.size))
@@ -1188,7 +1204,8 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         # bind via array
         bound = op.assign_parameters([3])
         with self.subTest(msg="fully bound"):
-            self.assertTrue(np.allclose(bound.coeffs.astype(complex), [1, 3, 6]))
+            self.assertEqual(bound.coeffs.dtype, np.complex128)
+            self.assertTrue(np.allclose(bound.coeffs, [1, 3, 6]))
 
     def test_paulis_setter_rejects_bad_inputs(self):
         """Test that the setter for `paulis` rejects different-sized inputs."""
@@ -1238,14 +1255,12 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = SparsePauliOp.from_list([("IIII", 1), ("IZZZ", 2), ("XXXI", 3)])
         backend = GenericBackendV2(num_qubits=7, seed=0)
         backend.set_options(seed_simulator=123)
-        with self.assertWarns(DeprecationWarning):
-            estimator = BackendEstimator(backend=backend, skip_transpilation=True)
+        estimator = BackendEstimatorV2(backend=backend)
         thetas = list(range(len(psi.parameters)))
         transpiled_psi = transpile(psi, backend, optimization_level=3)
         permuted_op = op.apply_layout(transpiled_psi.layout)
-        with self.assertWarns(DeprecationWarning):
-            job = estimator.run(transpiled_psi, permuted_op, thetas)
-            res = job.result().values
+        job = estimator.run([(transpiled_psi, permuted_op, thetas)])
+        res = job.result()[0].data.evs
         if optionals.HAS_AER:
             np.testing.assert_allclose(res, [1.419922], rtol=0.5, atol=0.2)
         else:
@@ -1327,6 +1342,53 @@ class TestSparsePauliOpMethods(QiskitTestCase):
             op = SparsePauliOp.from_list([("", 1), ("", 2)])
             res = op.apply_layout(layout=layout, num_qubits=5)
             self.assertEqual(SparsePauliOp.from_list([("IIIII", 1), ("IIIII", 2)]), res)
+
+    def test_simplify_sum_above_tolerance(self):
+        """Test that simplify sums duplicates before applying atol threshold."""
+        # Each coeff < atol, but sum > atol
+        op = SparsePauliOp(["XX"] * 10, [1e-9] * 10)
+        res = op.simplify(atol=2e-9)
+        self.assertEqual(SparsePauliOp.from_list([("XX", 1.0e-08 + 0.0j)]), res)
+
+    def test_simplify_sum_below_tolerance(self):
+        """Test that simplify sums duplicates before applying atol threshold."""
+        # Each coeff > atol, but sum < atol
+        op = SparsePauliOp(["YY", "YY"], [1e-6, -1e-6])
+        res = op.simplify(atol=1e-7)
+        self.assertEqual(SparsePauliOp(["II"], [0j]), res)
+
+    def test_is_unitary_tolerance(self):
+        """Test that is_unitary respects the input tolerance values.
+
+        This test verifies that the tolerance parameters are properly passed through
+        to the internal operations. See issue #14107.
+        """
+        # Create a matrix that's approximately unitary but not exactly
+        a = np.array(
+            [
+                [-9.9801135e-01 + 6.3036762e-02j, 5.6710692e-06 + 8.1099635e-05j],
+                [5.6710610e-06 + 8.1099643e-05j, -9.9707150e-01 + 7.6473624e-02j],
+            ]
+        )
+
+        # Verify the matrix is approximately unitary
+        identity = a @ a.conj().T
+        np.testing.assert_allclose(identity, np.eye(2), atol=1e-5, rtol=1e-3)
+
+        # Create SparsePauliOp from the matrix
+        op = SparsePauliOp.from_operator(a)
+
+        # Test with tolerance that should pass
+        self.assertTrue(
+            op.is_unitary(atol=1e-5, rtol=1e-3),
+            "Operator should be considered unitary with given tolerance",
+        )
+
+        # Test with very small tolerance that should fail
+        self.assertFalse(
+            op.is_unitary(atol=1e-10, rtol=1e-10),
+            "Operator should not be considered unitary with very small tolerance",
+        )
 
 
 if __name__ == "__main__":

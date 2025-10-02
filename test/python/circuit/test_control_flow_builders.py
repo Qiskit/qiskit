@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-function-docstring
+# pylint: disable=missing-function-docstring,invalid-name
 
 """Test operations on the builder interfaces for control flow in dynamic QuantumCircuits."""
 
@@ -2751,46 +2751,71 @@ class TestControlFlowBuilders(QiskitTestCase):
     def test_can_capture_declared(self):
         a = expr.Var.new("a", types.Bool())
         b = expr.Var.new("b", types.Bool())
-        base = QuantumCircuit(declarations=[(a, expr.lift(False)), (b, expr.lift(True))])
+        c = expr.Stretch.new("c")
+        base = QuantumCircuit(1, declarations=[(a, expr.lift(False)), (b, expr.lift(True))])
+        base.add_stretch(c)
         with base.if_test(expr.lift(False)):
             base.store(a, expr.lift(True))
+            base.delay(c)
         self.assertEqual(set(base.data[-1].operation.blocks[0].iter_captured_vars()), {a})
+        self.assertEqual(set(base.data[-1].operation.blocks[0].iter_captured_stretches()), {c})
 
     def test_can_capture_capture(self):
         # It's a bit wild to be manually building an outer circuit that's intended to be a subblock,
         # but be using the control-flow builder interface internally, but eh, it should work.
         a = expr.Var.new("a", types.Bool())
         b = expr.Var.new("b", types.Bool())
-        base = QuantumCircuit(captures=[a, b])
+        c = expr.Stretch.new("c")
+        d = expr.Stretch.new("d")
+        base = QuantumCircuit(1, captures=[a, b, c, d])
         with base.while_loop(expr.lift(False)):
             base.store(a, expr.lift(True))
+            base.delay(c)
+
         self.assertEqual(set(base.data[-1].operation.blocks[0].iter_captured_vars()), {a})
+        self.assertEqual(set(base.data[-1].operation.blocks[0].iter_captured_stretches()), {c})
 
     def test_can_capture_from_nested(self):
         a = expr.Var.new("a", types.Bool())
         b = expr.Var.new("b", types.Bool())
         c = expr.Var.new("c", types.Bool())
-        base = QuantumCircuit(inputs=[a, b])
+        d = expr.Stretch.new("d")
+        e = expr.Stretch.new("e")
+        f = expr.Stretch.new("f")
+        base = QuantumCircuit(1, inputs=[a, b])
+        base.add_stretch(d)
+        base.add_stretch(e)
         with base.switch(expr.lift(False)) as case, case(case.DEFAULT):
             base.add_var(c, expr.lift(False))
+            base.add_stretch(f)
             with base.if_test(expr.lift(False)):
                 base.store(a, c)
+                base.delay(expr.add(d, f))
         outer_block = base.data[-1].operation.blocks[0]
         inner_block = outer_block.data[-1].operation.blocks[0]
         self.assertEqual(set(inner_block.iter_captured_vars()), {a, c})
+        self.assertEqual(set(inner_block.iter_captured_stretches()), {d, f})
 
         # The containing block should have captured it as well, despite not using it explicitly.
         self.assertEqual(set(outer_block.iter_captured_vars()), {a})
         self.assertEqual(set(outer_block.iter_declared_vars()), {c})
+        self.assertEqual(set(outer_block.iter_captured_stretches()), {d})
+        self.assertEqual(set(outer_block.iter_declared_stretches()), {f})
 
     def test_can_manually_capture(self):
         a = expr.Var.new("a", types.Bool())
         b = expr.Var.new("b", types.Bool())
+        c = expr.Stretch.new("c")
+        d = expr.Stretch.new("d")
         base = QuantumCircuit(inputs=[a, b])
+        base.add_stretch(c)
+        base.add_stretch(d)
         with base.while_loop(expr.lift(False)):
             # Why do this?  Who knows, but it clearly has a well-defined meaning.
             base.add_capture(a)
+            base.add_capture(c)
         self.assertEqual(set(base.data[-1].operation.blocks[0].iter_captured_vars()), {a})
+        self.assertEqual(set(base.data[-1].operation.blocks[0].iter_captured_stretches()), {c})
 
     def test_later_blocks_do_not_inherit_captures(self):
         """Neither 'if' nor 'switch' should have later blocks inherit the captures from the earlier
@@ -2798,50 +2823,78 @@ class TestControlFlowBuilders(QiskitTestCase):
         a = expr.Var.new("a", types.Bool())
         b = expr.Var.new("b", types.Bool())
         c = expr.Var.new("c", types.Bool())
+        d = expr.Stretch.new("d")
+        e = expr.Stretch.new("e")
+        f = expr.Stretch.new("f")
 
-        base = QuantumCircuit(inputs=[a, b, c])
+        base = QuantumCircuit(1, inputs=[a, b, c])
+        base.add_stretch(d)
+        base.add_stretch(e)
+        base.add_stretch(f)
         with base.if_test(expr.lift(False)) as else_:
             base.store(a, expr.lift(False))
+            base.delay(d)
         with else_:
             base.store(b, expr.lift(False))
+            base.delay(e)
         blocks = base.data[-1].operation.blocks
         self.assertEqual(set(blocks[0].iter_captured_vars()), {a})
+        self.assertEqual(set(blocks[0].iter_captured_stretches()), {d})
         self.assertEqual(set(blocks[1].iter_captured_vars()), {b})
+        self.assertEqual(set(blocks[1].iter_captured_stretches()), {e})
 
-        base = QuantumCircuit(inputs=[a, b, c])
+        base = QuantumCircuit(1, inputs=[a, b, c])
+        base.add_stretch(d)
+        base.add_stretch(e)
+        base.add_stretch(f)
         with base.switch(expr.lift(False)) as case:
             with case(0):
                 base.store(a, expr.lift(False))
+                base.delay(d)
             with case(case.DEFAULT):
                 base.store(b, expr.lift(False))
+                base.delay(e)
         blocks = base.data[-1].operation.blocks
         self.assertEqual(set(blocks[0].iter_captured_vars()), {a})
+        self.assertEqual(set(blocks[0].iter_captured_stretches()), {d})
         self.assertEqual(set(blocks[1].iter_captured_vars()), {b})
+        self.assertEqual(set(blocks[1].iter_captured_stretches()), {e})
 
     def test_blocks_have_independent_declarations(self):
         """The blocks of if and switch should be separate scopes for declarations."""
         b1 = expr.Var.new("b", types.Bool())
         b2 = expr.Var.new("b", types.Bool())
+        c1 = expr.Stretch.new("c")
+        c2 = expr.Stretch.new("c")
         self.assertNotEqual(b1, b2)
+        self.assertNotEqual(c1, c2)
 
         base = QuantumCircuit()
         with base.if_test(expr.lift(False)) as else_:
             base.add_var(b1, expr.lift(False))
+            base.add_stretch(c1)
         with else_:
             base.add_var(b2, expr.lift(False))
+            base.add_stretch(c2)
         blocks = base.data[-1].operation.blocks
         self.assertEqual(set(blocks[0].iter_declared_vars()), {b1})
+        self.assertEqual(set(blocks[0].iter_declared_stretches()), {c1})
         self.assertEqual(set(blocks[1].iter_declared_vars()), {b2})
+        self.assertEqual(set(blocks[1].iter_declared_stretches()), {c2})
 
         base = QuantumCircuit()
         with base.switch(expr.lift(False)) as case:
             with case(0):
                 base.add_var(b1, expr.lift(False))
+                base.add_stretch(c1)
             with case(case.DEFAULT):
                 base.add_var(b2, expr.lift(False))
+                base.add_stretch(c2)
         blocks = base.data[-1].operation.blocks
         self.assertEqual(set(blocks[0].iter_declared_vars()), {b1})
+        self.assertEqual(set(blocks[0].iter_declared_stretches()), {c1})
         self.assertEqual(set(blocks[1].iter_declared_vars()), {b2})
+        self.assertEqual(set(blocks[1].iter_declared_stretches()), {c2})
 
     def test_can_shadow_outer_name(self):
         outer = expr.Var.new("a", types.Bool())
@@ -2853,57 +2906,124 @@ class TestControlFlowBuilders(QiskitTestCase):
         self.assertEqual(set(block.iter_declared_vars()), {inner})
         self.assertEqual(set(block.iter_captured_vars()), set())
 
+    def test_can_shadow_outer_name_stretch(self):
+        outer = expr.Stretch.new("a")
+        inner = expr.Stretch.new("a")
+        base = QuantumCircuit(captures=[outer])
+        with base.if_test(expr.lift(False)):
+            base.add_stretch(inner)
+        block = base.data[-1].operation.blocks[0]
+        self.assertEqual(set(block.iter_declared_stretches()), {inner})
+        self.assertEqual(set(block.iter_captured_stretches()), set())
+
+    def test_var_can_shadow_outer_stretch(self):
+        outer = expr.Stretch.new("a")
+        inner = expr.Var.new("a", types.Bool())
+        base = QuantumCircuit(captures=[outer])
+        with base.if_test(expr.lift(False)):
+            base.add_var(inner, expr.lift(True))
+        block = base.data[-1].operation.blocks[0]
+        self.assertEqual(set(block.iter_declared_vars()), {inner})
+        self.assertEqual(set(block.iter_captured_stretches()), set())
+
+    def test_stretch_can_shadow_outer_var(self):
+        outer = expr.Var.new("a", types.Bool())
+        inner = expr.Stretch.new("a")
+        base = QuantumCircuit(captures=[outer])
+        with base.if_test(expr.lift(False)):
+            base.add_stretch(inner)
+        block = base.data[-1].operation.blocks[0]
+        self.assertEqual(set(block.iter_declared_stretches()), {inner})
+        self.assertEqual(set(block.iter_captured_vars()), set())
+
     def test_iterators_run_over_scope(self):
         a = expr.Var.new("a", types.Bool())
         b = expr.Var.new("b", types.Bool())
         c = expr.Var.new("c", types.Bool())
         d = expr.Var.new("d", types.Bool())
+        e = expr.Stretch.new("e")
+        f = expr.Stretch.new("f")
+        g = expr.Stretch.new("g")
+        h = expr.Stretch.new("h")
 
-        base = QuantumCircuit(inputs=[a, b, c])
+        base = QuantumCircuit(1, inputs=[a, b, c])
+        base.add_stretch(e)
+        base.add_stretch(f)
+        base.add_stretch(g)
         self.assertEqual(set(base.iter_input_vars()), {a, b, c})
         self.assertEqual(set(base.iter_declared_vars()), set())
         self.assertEqual(set(base.iter_captured_vars()), set())
+        self.assertEqual(set(base.iter_declared_stretches()), {e, f, g})
+        self.assertEqual(set(base.iter_captured_stretches()), set())
 
         with base.switch(expr.lift(3)) as case:
             with case(0):
                 # Nothing here.
                 self.assertEqual(set(base.iter_vars()), set())
+                self.assertEqual(set(base.iter_captures()), set())
                 self.assertEqual(set(base.iter_input_vars()), set())
                 self.assertEqual(set(base.iter_declared_vars()), set())
                 self.assertEqual(set(base.iter_captured_vars()), set())
+                self.assertEqual(set(base.iter_stretches()), set())
+                self.assertEqual(set(base.iter_declared_stretches()), set())
+                self.assertEqual(set(base.iter_captured_stretches()), set())
 
                 # Capture a variable.
                 base.store(a, expr.lift(False))
                 self.assertEqual(set(base.iter_captured_vars()), {a})
+
+                # Capture a stretch.
+                base.delay(e)
+                self.assertEqual(set(base.iter_captured_stretches()), {e})
 
                 # Declare a variable.
                 base.add_var(d, expr.lift(False))
                 self.assertEqual(set(base.iter_declared_vars()), {d})
                 self.assertEqual(set(base.iter_vars()), {a, d})
 
+                # Declare a stretch.
+                base.add_stretch(h)
+                self.assertEqual(set(base.iter_declared_stretches()), {h})
+                self.assertEqual(set(base.iter_stretches()), {e, h})
+
             with case(1):
                 # We should have reset.
                 self.assertEqual(set(base.iter_vars()), set())
+                self.assertEqual(set(base.iter_captures()), set())
                 self.assertEqual(set(base.iter_input_vars()), set())
                 self.assertEqual(set(base.iter_declared_vars()), set())
                 self.assertEqual(set(base.iter_captured_vars()), set())
+                self.assertEqual(set(base.iter_stretches()), set())
+                self.assertEqual(set(base.iter_declared_stretches()), set())
+                self.assertEqual(set(base.iter_captured_stretches()), set())
 
                 # Capture a variable.
                 base.store(b, expr.lift(False))
                 self.assertEqual(set(base.iter_captured_vars()), {b})
 
+                # Capture a stretch.
+                base.delay(f)
+                self.assertEqual(set(base.iter_captured_stretches()), {f})
+
                 # Capture some more in another scope.
                 with base.while_loop(expr.lift(False)):
                     self.assertEqual(set(base.iter_vars()), set())
+                    self.assertEqual(set(base.iter_stretches()), set())
                     base.store(c, expr.lift(False))
+                    base.delay(g)
                     self.assertEqual(set(base.iter_captured_vars()), {c})
+                    self.assertEqual(set(base.iter_captured_stretches()), {g})
 
                 self.assertEqual(set(base.iter_captured_vars()), {b, c})
+                self.assertEqual(set(base.iter_captured_stretches()), {f, g})
                 self.assertEqual(set(base.iter_vars()), {b, c})
+                self.assertEqual(set(base.iter_stretches()), {f, g})
         # And back to the outer scope.
         self.assertEqual(set(base.iter_input_vars()), {a, b, c})
+        self.assertEqual(set(base.iter_declared_stretches()), {e, f, g})
         self.assertEqual(set(base.iter_declared_vars()), set())
         self.assertEqual(set(base.iter_captured_vars()), set())
+        self.assertEqual(set(base.iter_captured_stretches()), set())
 
     def test_get_var_respects_scope(self):
         outer = expr.Var.new("a", types.Bool())
@@ -2923,7 +3043,43 @@ class TestControlFlowBuilders(QiskitTestCase):
             # ... until we shadow it.
             base.add_var(inner, expr.lift(False))
             self.assertEqual(base.get_var("a"), inner)
+        with base.if_test(expr.lift(False)):
+            # New scope, so again we see the outer one.
+            self.assertEqual(base.get_var("a"), outer)
+
+            # Now make sure shadowing the var with a stretch works.
+            s = base.add_stretch("a")
+            self.assertEqual(base.get_var("a", None), None)
+            self.assertEqual(base.get_stretch("a"), s)
         self.assertEqual(base.get_var("a"), outer)
+
+    def test_get_stretch_respects_scope(self):
+        outer = expr.Stretch.new("a")
+        inner = expr.Stretch.new("a")
+        base = QuantumCircuit(captures=[outer])
+        self.assertEqual(base.get_stretch("a"), outer)
+        with base.if_test(expr.lift(False)) as else_:
+            # Before we've done anything, getting the stretch should get the outer one.
+            self.assertEqual(base.get_stretch("a"), outer)
+
+            # If we shadow it, we should get the shadowed one after.
+            base.add_stretch(inner)
+            self.assertEqual(base.get_stretch("a"), inner)
+        with else_:
+            # In a new scope, we should see the outer one again.
+            self.assertEqual(base.get_stretch("a"), outer)
+            # ... until we shadow it.
+            base.add_stretch(inner)
+            self.assertEqual(base.get_stretch("a"), inner)
+        with base.if_test(expr.lift(False)):
+            # New scope, so again we see the outer one.
+            self.assertEqual(base.get_stretch("a"), outer)
+
+            # Now make sure shadowing the stretch with a var works.
+            v = base.add_var("a", expr.lift(True))
+            self.assertEqual(base.get_stretch("a", None), None)
+            self.assertEqual(base.get_var("a"), v)
+        self.assertEqual(base.get_stretch("a"), outer)
 
     def test_has_var_respects_scope(self):
         outer = expr.Var.new("a", types.Bool())
@@ -2954,10 +3110,68 @@ class TestControlFlowBuilders(QiskitTestCase):
             self.assertTrue(base.has_var("a"))
             self.assertFalse(base.has_var(outer))
             self.assertTrue(base.has_var(inner))
+        with base.if_test(expr.lift(False)):
+            # New scope, so again we see the outer one.
+            self.assertTrue(base.has_var("a"))
+            self.assertTrue(base.has_var(outer))
+            self.assertFalse(base.has_var(inner))
+
+            # Now make sure shadowing the var with a stretch works.
+            s = base.add_stretch("a")
+            self.assertFalse(base.has_var("a"))
+            self.assertFalse(base.has_var(outer))
+            self.assertFalse(base.has_var(inner))
+            self.assertTrue(base.has_stretch(s))
 
         self.assertTrue(base.has_var("a"))
         self.assertTrue(base.has_var(outer))
         self.assertFalse(base.has_var(inner))
+
+    def test_has_stretch_respects_scope(self):
+        outer = expr.Stretch.new("a")
+        inner = expr.Stretch.new("a")
+        base = QuantumCircuit(captures=[outer])
+        self.assertEqual(base.get_stretch("a"), outer)
+        with base.if_test(expr.lift(False)) as else_:
+            self.assertFalse(base.has_stretch("b"))
+
+            # Before we've done anything, we should see the outer one.
+            self.assertTrue(base.has_stretch("a"))
+            self.assertTrue(base.has_stretch(outer))
+            self.assertFalse(base.has_stretch(inner))
+
+            # If we shadow it, we should see the shadowed one after.
+            base.add_stretch(inner)
+            self.assertTrue(base.has_stretch("a"))
+            self.assertFalse(base.has_stretch(outer))
+            self.assertTrue(base.has_stretch(inner))
+        with else_:
+            # In a new scope, we should see the outer one again.
+            self.assertTrue(base.has_stretch("a"))
+            self.assertTrue(base.has_stretch(outer))
+            self.assertFalse(base.has_stretch(inner))
+
+            # ... until we shadow it.
+            base.add_stretch(inner)
+            self.assertTrue(base.has_stretch("a"))
+            self.assertFalse(base.has_stretch(outer))
+            self.assertTrue(base.has_stretch(inner))
+        with base.if_test(expr.lift(False)):
+            # New scope, so again we see the outer one.
+            self.assertTrue(base.has_stretch("a"))
+            self.assertTrue(base.has_stretch(outer))
+            self.assertFalse(base.has_stretch(inner))
+
+            # Now make sure shadowing the stretch with a var works.
+            v = base.add_var("a", expr.lift(True))
+            self.assertFalse(base.has_stretch("a"))
+            self.assertFalse(base.has_stretch(outer))
+            self.assertFalse(base.has_stretch(inner))
+            self.assertTrue(base.has_var(v))
+
+        self.assertTrue(base.has_stretch("a"))
+        self.assertTrue(base.has_stretch(outer))
+        self.assertFalse(base.has_stretch(inner))
 
     def test_store_to_clbit_captures_bit(self):
         base = QuantumCircuit(1, 2)
@@ -3071,6 +3285,10 @@ class TestControlFlowBuilders(QiskitTestCase):
         with else_:
             with qc.if_test(expr.lift(True)):
                 qc.noop(2)
+        # Instruction 5.
+        with qc.box():
+            qc.noop(0)
+            qc.noop(2)
 
         expected = QuantumCircuit(qc.qubits, qc.clbits)
         body_0 = QuantumCircuit([qc.qubits[0]])
@@ -3091,6 +3309,163 @@ class TestControlFlowBuilders(QiskitTestCase):
         body_4_false_0 = QuantumCircuit([qc.qubits[2]])
         body_4_false.if_test(expr.lift(True), body_4_false_0, body_4_false_0.qubits, [])
         expected.if_else(expr.lift(True), body_4_true, body_4_false, body_4_true.qubits, [])
+        body_5 = QuantumCircuit([qc.qubits[0], qc.qubits[2]])
+        expected.box(body_5, body_5.qubits, [])
+
+        self.assertEqual(qc, expected)
+
+    def test_box_simple(self):
+        qc = QuantumCircuit(5, 5)
+        with qc.box():  # Instruction 0
+            qc.h(0)
+            qc.cx(0, 1)
+        with qc.box():  # Instruction 1
+            qc.h(3)
+            qc.cx(3, 2)
+            qc.cx(3, 4)
+        with qc.box():  # Instruction 2
+            with qc.box():  # Instruction 2-0
+                qc.measure(qc.qubits, qc.clbits)
+
+        expected = qc.copy_empty_like()
+        body_0 = QuantumCircuit(expected.qubits[0:2])
+        body_0.h(expected.qubits[0])
+        body_0.cx(expected.qubits[0], expected.qubits[1])
+        expected.box(body_0, body_0.qubits, body_0.clbits)
+        body_1 = QuantumCircuit(expected.qubits[2:5])
+        body_1.h(expected.qubits[3])
+        body_1.cx(expected.qubits[3], expected.qubits[2])
+        body_1.cx(expected.qubits[3], expected.qubits[4])
+        expected.box(body_1, body_1.qubits, body_1.clbits)
+        body_2 = QuantumCircuit(expected.qubits, expected.clbits)
+        body_2_0 = QuantumCircuit(expected.qubits, expected.clbits)
+        body_2_0.measure(expected.qubits, expected.clbits)
+        body_2.box(body_2_0, body_2_0.qubits, body_2_0.clbits)
+        expected.box(body_2, body_2.qubits, body_2.clbits)
+
+        self.assertEqual(qc, expected)
+
+    def test_box_register(self):
+        cr1 = ClassicalRegister(3, "cr1")
+        cr2 = ClassicalRegister(3, "cr2")
+        qc = QuantumCircuit([Qubit()], cr1, cr2)
+        with qc.box():  # Instruction 0
+            with qc.if_test((cr1, 7)):  # Instruction 0-0
+                qc.x(0)
+        with qc.box():  # Instruction 1
+            with qc.box():  # Instruction 1-0
+                with qc.if_test((cr2, 7)):  # Instruction 1-0-0
+                    qc.x(0)
+
+        expected = QuantumCircuit([Qubit()], cr1, cr2)
+        body_0 = QuantumCircuit(expected.qubits, cr1)
+        body_0_0 = QuantumCircuit(expected.qubits, cr1)
+        body_0_0.x(0)
+        body_0.if_test((cr1, 7), body_0_0, expected.qubits, cr1[:])
+        expected.box(body_0, expected.qubits, cr1[:])
+
+        body_1 = QuantumCircuit(expected.qubits, cr2)
+        body_1_0 = QuantumCircuit(expected.qubits, cr2)
+        body_1_0_0 = QuantumCircuit(expected.qubits, cr2)
+        body_1_0_0.x(0)
+        body_1_0.if_test((cr2, 7), body_1_0_0, expected.qubits, cr2[:])
+        body_1.box(body_1_0, expected.qubits, cr2[:])
+        expected.box(body_1, expected.qubits, cr2[:])
+
+        self.assertEqual(qc, expected)
+
+    def test_box_duration(self):
+        qc = QuantumCircuit([Qubit()])
+        with qc.box(duration=3, unit="dt"):  # Instruction 0
+            qc.x(0)
+        with qc.box(duration=2.5, unit="ms"):  # Instruction 1
+            qc.x(0)
+        with qc.box(duration=300e-9, unit="s"):  # Instruction 2
+            with qc.box(duration=50.0, unit="ns"):  # Instruction 2-0
+                qc.x(0)
+            qc.delay(250.0, 0, unit="ns")
+
+        expected = QuantumCircuit([Qubit()])
+        body_0 = expected.copy_empty_like()
+        body_0.x(0)
+        expected.box(body_0, expected.qubits, [], duration=3, unit="dt")
+        body_1 = expected.copy_empty_like()
+        body_1.x(0)
+        expected.box(body_1, expected.qubits, [], duration=2.5, unit="ms")
+        body_2 = expected.copy_empty_like()
+        body_2_0 = body_2.copy_empty_like()
+        body_2_0.x(0)
+        body_2.box(body_2_0, expected.qubits, [], duration=50.0, unit="ns")
+        body_2.delay(250.0, 0, unit="ns")
+        expected.box(body_2, expected.qubits, [], duration=300e-9, unit="s")
+
+        self.assertEqual(qc, expected)
+
+    def test_box_stretch_duration(self):
+        qc = QuantumCircuit([Qubit()])
+        a = qc.add_stretch("a")
+        b = qc.add_stretch("b")
+        long_range = qc.add_stretch("long_range")
+        with qc.box(duration=a):  # body_0
+            c = qc.add_stretch("c")
+            with qc.box(duration=expr.mul(2, b)):  # body_1
+                qc.delay(c, 0)
+            with qc.if_test(expr.lift(True)):  # body_2
+                # This capture goes backwards through two scopes.
+                qc.delay(long_range, 0)
+
+        expected = QuantumCircuit([Qubit()])
+        expected.add_stretch(a)
+        expected.add_stretch(b)
+        expected.add_stretch(long_range)
+        body_0 = QuantumCircuit(expected.qubits)
+        body_0.add_capture(b)
+        body_0.add_capture(long_range)
+        body_0.add_stretch(c)
+        body_1 = QuantumCircuit(expected.qubits)
+        body_1.add_capture(c)
+        body_1.delay(c, 0)
+        body_0.box(body_1, expected.qubits, [], duration=expr.mul(2, b))
+        body_2 = QuantumCircuit(expected.qubits)
+        body_2.add_capture(long_range)
+        body_2.delay(long_range, 0)
+        body_0.if_test(expr.lift(True), body_2, expected.qubits, [])
+        expected.box(body_0, expected.qubits, [], duration=a)
+        self.assertEqual(qc, expected)
+
+    def test_box_label(self):
+        qc = QuantumCircuit([Qubit()])
+        with qc.box(label="hello, world"):
+            qc.noop(0)
+        self.assertEqual(qc.data[0].label, "hello, world")
+
+    def test_box_var_scope(self):
+        a = expr.Var.new("a", types.Bool())
+        qc = QuantumCircuit(inputs=[a])
+        b = qc.add_var("b", expr.lift(5, types.Uint(8)))
+        with qc.box():  # Instruction 0
+            qc.store(a, False)
+        with qc.box():  # Instruction 1
+            qc.store(b, 9)
+        with qc.box():  # Instruction 2
+            c = qc.add_var("c", False)
+            with qc.box():  # Instruction 2-0
+                qc.store(c, a)
+
+        expected = QuantumCircuit(inputs=[a])
+        expected.add_var(b, 5)
+        body_0 = QuantumCircuit(captures=[a])
+        body_0.store(a, False)
+        expected.box(body_0, [], [])
+        body_1 = QuantumCircuit(captures=[b])
+        body_1.store(b, 9)
+        expected.box(body_1, [], [])
+        body_2 = QuantumCircuit(captures=[a])
+        body_2.add_var(c, False)
+        body_2_0 = QuantumCircuit(captures=[a, c])
+        body_2_0.store(c, a)
+        body_2.box(body_2_0, [], [])
+        expected.box(body_2, [], [])
 
         self.assertEqual(qc, expected)
 
@@ -3393,6 +3768,15 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
             expected.h(0)
             self.assertEqual(test, expected)
 
+        with self.subTest("box"):
+            test = QuantumCircuit(1, 1)
+            with self.assertRaises(SentinelException), test.box():
+                raise SentinelException
+            test.h(0)
+            expected = test.copy_empty_like()
+            expected.h(0)
+            self.assertEqual(test, expected)
+
     def test_can_reuse_else_manager_after_exception(self):
         """Test that the "else" context manager is usable after a first attempt to construct it
         raises an exception.  Normally you cannot re-enter an "else" block, but we want the user to
@@ -3448,6 +3832,9 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
         with self.subTest("switch"):
             with self.assertRaisesRegex(CircuitError, r"When using 'switch' as a context manager"):
                 test.switch(test.clbits[0], cases=None, qubits=qubits, clbits=clbits)
+        with self.subTest("box"):
+            with self.assertRaisesRegex(CircuitError, r"When using 'box' as a context manager"):
+                test.box(qubits=qubits, clbits=clbits)
 
     @ddt.data((None, [0]), ([0], None), (None, None))
     def test_non_context_manager_calling_states_reject_missing_resources(self, resources):
@@ -3480,6 +3867,12 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
                 r"When using 'switch' with cases, you must pass qubits and clbits\.",
             ):
                 test.switch(test.clbits[0], [(False, body)], qubits=qubits, clbits=clbits)
+        with self.subTest("box"):
+            with self.assertRaisesRegex(
+                CircuitError,
+                r"When using 'box' with a body, you must pass qubits and clbits\.",
+            ):
+                test.box(QuantumCircuit(1, 1), qubits=qubits, clbits=clbits)
 
     def test_compose_front_inplace_invalid_within_builder(self):
         """Test that `QuantumCircuit.compose` raises a sensible error when called within a
@@ -3523,6 +3916,9 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
             with base.switch(base.clbits[0]) as case, case(0):
                 with self.assertRaisesRegex(CircuitError, "not in scope"):
                     base.store(expr.Var.new("a", types.Bool()), expr.lift(False))
+
+        with base.box(), self.assertRaisesRegex(CircuitError, "not in scope"):
+            base.store(expr.Var.new("a", types.Bool()), expr.lift(False))
 
     def test_cannot_add_existing_variable(self):
         a = expr.Var.new("a", types.Bool())
@@ -3640,3 +4036,21 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
                 base.noop(3)
             with self.assertRaises(CircuitError):
                 base.noop(Clbit())
+
+    def test_box_rejects_break_continue(self):
+        with self.subTest("break"):
+            qc = QuantumCircuit(2)
+            with (
+                qc.while_loop(expr.lift(True)),
+                qc.box(),
+                self.assertRaisesRegex(CircuitError, "The current builder scope cannot take"),
+            ):
+                qc.break_loop()
+        with self.subTest("continue"):
+            qc = QuantumCircuit(2)
+            with (
+                qc.while_loop(expr.lift(True)),
+                qc.box(),
+                self.assertRaisesRegex(CircuitError, "The current builder scope cannot take"),
+            ):
+                qc.continue_loop()

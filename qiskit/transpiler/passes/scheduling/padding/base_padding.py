@@ -91,7 +91,9 @@ class BasePadding(TransformationPass):
             if self.target.dt is None:
                 return props.duration
             else:
-                return self.target.seconds_to_dt(props.duration)
+                res = self.target.seconds_to_dt(props.duration)
+                return res
+
         return self.durations.get(node.name, indices)
 
     def run(self, dag: DAGCircuit):
@@ -124,7 +126,7 @@ class BasePadding(TransformationPass):
 
         new_dag.name = dag.name
         new_dag.metadata = dag.metadata
-        new_dag.unit = self.property_set["time_unit"]
+        new_dag._unit = self.property_set["time_unit"]
         new_dag.global_phase = dag.global_phase
 
         idle_after = {bit: 0 for bit in dag.qubits}
@@ -137,7 +139,8 @@ class BasePadding(TransformationPass):
         for node in dag.topological_op_nodes():
             if node in node_start_time:
                 t0 = node_start_time[node]
-                t1 = t0 + self.get_duration(node, dag)
+                dur = self.get_duration(node, dag)
+                t1 = t0 + dur
                 circuit_duration = max(circuit_duration, t1)
 
                 if isinstance(node.op, Delay):
@@ -186,7 +189,7 @@ class BasePadding(TransformationPass):
                     prev_node=prev_node,
                 )
 
-        new_dag.duration = circuit_duration
+        new_dag._duration = circuit_duration
 
         return new_dag
 
@@ -210,6 +213,9 @@ class BasePadding(TransformationPass):
                 f"The input circuit {dag.name} is not scheduled. Call one of scheduling passes "
                 f"before running the {self.__class__.__name__} pass."
             )
+        if self.property_set["time_unit"] == "stretch":
+            # This should have already been raised during scheduling, but just in case.
+            raise TranspilerError("Scheduling cannot run on circuits with stretch durations.")
         for qarg, _ in enumerate(dag.qubits):
             if not self.__delay_supported(qarg):
                 logger.debug(

@@ -10,8 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::prelude::*;
 use pyo3::Python;
+use pyo3::prelude::*;
 
 use crate::error::QASM2ParseError;
 
@@ -56,14 +56,14 @@ impl CustomInstruction {
 pub struct CustomClassical {
     pub name: String,
     pub num_params: usize,
-    pub callable: PyObject,
+    pub callable: Py<PyAny>,
 }
 
 #[pymethods]
 impl CustomClassical {
     #[new]
     #[pyo3(text_signature = "(name, num_params, callable, /)")]
-    fn __new__(name: String, num_params: usize, callable: PyObject) -> Self {
+    fn __new__(name: String, num_params: usize, callable: Py<PyAny>) -> Self {
         Self {
             name,
             num_params,

@@ -29,7 +29,7 @@ class IGate(SingletonGate):
     with the :meth:`~qiskit.circuit.QuantumCircuit.i` and
     :meth:`~qiskit.circuit.QuantumCircuit.id` methods.
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -38,7 +38,7 @@ class IGate(SingletonGate):
                 0 & 1
             \end{pmatrix}
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -47,10 +47,13 @@ class IGate(SingletonGate):
              └───┘
     """
 
-    _standard_gate = StandardGate.IGate
+    _standard_gate = StandardGate.I
 
     def __init__(self, label: Optional[str] = None):
-        """Create new Identity gate."""
+        """
+        Args:
+            label: An optional label for the gate.
+        """
         super().__init__("id", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()

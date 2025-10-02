@@ -14,13 +14,11 @@
 
 from __future__ import annotations
 
-from math import pi
 from typing import Optional, Union
 
 import numpy
 
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 from qiskit._accelerate.circuit import StandardGate
 
@@ -40,7 +38,7 @@ class SGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.s` method.
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -49,7 +47,7 @@ class SGate(SingletonGate):
                 0 & i
             \end{pmatrix}
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -60,30 +58,29 @@ class SGate(SingletonGate):
     Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
     """
 
-    _standard_gate = StandardGate.SGate
+    _standard_gate = StandardGate.S
 
     def __init__(self, label: Optional[str] = None):
-        """Create new S gate."""
+        """
+        Args:
+            label: An optional label for the gate.
+        """
         super().__init__("s", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
-        """
-        gate s a { u1(pi/2) a; }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit
 
-        from .u1 import U1Gate
+        #    ┌────────┐
+        # q: ┤ P(π/2) ├
+        #    └────────┘
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(U1Gate(pi / 2), [q[0]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
-
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.S._get_definition(self.params), legacy_qubits=True, name=self.name
+        )
 
     def control(
         self,
@@ -152,7 +149,7 @@ class SdgGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.sdg` method.
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -161,7 +158,7 @@ class SdgGate(SingletonGate):
                 0 & -i
             \end{pmatrix}
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -172,7 +169,7 @@ class SdgGate(SingletonGate):
     Equivalent to a :math:`-\pi/2` radian rotation about the Z axis.
     """
 
-    _standard_gate = StandardGate.SdgGate
+    _standard_gate = StandardGate.Sdg
 
     def __init__(self, label: Optional[str] = None):
         """Create new Sdg gate."""
@@ -181,21 +178,17 @@ class SdgGate(SingletonGate):
     _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
-        """
-        gate sdg a { u1(-pi/2) a; }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit
 
-        from .u1 import U1Gate
+        #    ┌─────────┐
+        # q: ┤ P(-π/2) ├
+        #    └─────────┘
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(U1Gate(-pi / 2), [q[0]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
-
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.Sdg._get_definition(self.params), legacy_qubits=True, name=self.name
+        )
 
     def control(
         self,
@@ -260,7 +253,7 @@ class CSGate(SingletonControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.cs` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -269,7 +262,7 @@ class CSGate(SingletonControlledGate):
         q_1: ┤ S ├
              └───┘
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 
@@ -283,7 +276,7 @@ class CSGate(SingletonControlledGate):
             \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.CSGate
+    _standard_gate = StandardGate.CS
 
     def __init__(
         self,
@@ -307,12 +300,19 @@ class CSGate(SingletonControlledGate):
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)
 
     def _define(self):
-        """
-        gate cs a,b { h b; cp(pi/2) a,b; h b; }
-        """
-        from .p import CPhaseGate
+        """Default definition"""
+        # pylint: disable=cyclic-import
+        from qiskit.circuit import QuantumCircuit
 
-        self.definition = CPhaseGate(theta=pi / 2).definition
+        #      ┌───┐
+        # q_0: ┤ T ├──■───────────■───────
+        #      └───┘┌─┴─┐┌─────┐┌─┴─┐┌───┐
+        # q_1: ─────┤ X ├┤ Tdg ├┤ X ├┤ T ├
+        #           └───┘└─────┘└───┘└───┘
+
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.CS._get_definition(self.params), legacy_qubits=True, name=self.name
+        )
 
     def inverse(self, annotated: bool = False):
         """Return inverse of CSGate (CSdgGate).
@@ -344,7 +344,7 @@ class CSdgGate(SingletonControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.csdg` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -353,7 +353,7 @@ class CSdgGate(SingletonControlledGate):
         q_1: ┤ Sdg ├
              └─────┘
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 
@@ -367,7 +367,7 @@ class CSdgGate(SingletonControlledGate):
             \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.CSdgGate
+    _standard_gate = StandardGate.CSdg
 
     def __init__(
         self,
@@ -390,12 +390,19 @@ class CSdgGate(SingletonControlledGate):
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)
 
     def _define(self):
-        """
-        gate csdg a,b { h b; cp(-pi/2) a,b; h b; }
-        """
-        from .p import CPhaseGate
+        """Default definition"""
+        # pylint: disable=cyclic-import
+        from qiskit.circuit import QuantumCircuit
 
-        self.definition = CPhaseGate(theta=-pi / 2).definition
+        #      ┌─────┐
+        # q_0: ┤ Tdg ├──■─────────■─────────
+        #      └─────┘┌─┴─┐┌───┐┌─┴─┐┌─────┐
+        # q_1: ───────┤ X ├┤ T ├┤ X ├┤ Tdg ├
+        #             └───┘└───┘└───┘└─────┘
+
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.CSdg._get_definition(self.params), legacy_qubits=True, name=self.name
+        )
 
     def inverse(self, annotated: bool = False):
         """Return inverse of CSdgGate (CSGate).

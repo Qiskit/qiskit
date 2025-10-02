@@ -23,7 +23,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.annotated_operation import AnnotatedOperation, ControlModifier
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit._utils import _compute_control_matrix
 from qiskit.circuit.library.standard_gates.u import UGate
@@ -41,25 +41,25 @@ class UnitaryGate(Gate):
 
     Example:
 
-        We can create a unitary gate from a unitary matrix then add it to a
-        quantum circuit. The matrix can also be directly applied to the quantum
-        circuit, see :meth:`.QuantumCircuit.unitary`.
+    We can create a unitary gate from a unitary matrix then add it to a
+    quantum circuit. The matrix can also be directly applied to the quantum
+    circuit, see :meth:`.QuantumCircuit.unitary`.
 
-        .. plot::
-           :include-source:
-           :nofigs:
+    .. plot::
+        :include-source:
+        :nofigs:
 
-            from qiskit import QuantumCircuit
-            from qiskit.circuit.library import UnitaryGate
+        from qiskit import QuantumCircuit
+        from qiskit.circuit.library import UnitaryGate
 
-            matrix = [[0, 0, 0, 1],
-                      [0, 0, 1, 0],
-                      [1, 0, 0, 0],
-                      [0, 1, 0, 0]]
-            gate = UnitaryGate(matrix)
+        matrix = [[0, 0, 0, 1],
+                    [0, 0, 1, 0],
+                    [1, 0, 0, 0],
+                    [0, 1, 0, 0]]
+        gate = UnitaryGate(matrix)
 
-            circuit = QuantumCircuit(2)
-            circuit.append(gate, [0, 1])
+        circuit = QuantumCircuit(2)
+        circuit.append(gate, [0, 1])
     """
 
     def __init__(
@@ -70,8 +70,7 @@ class UnitaryGate(Gate):
         *,
         num_qubits: int | None = None,
     ) -> None:
-        """Create a gate from a numeric unitary matrix.
-
+        """
         Args:
             data: Unitary operator.
             label: Unitary name for backend [Default: ``None``].
@@ -161,6 +160,15 @@ class UnitaryGate(Gate):
             )
 
             self.definition = qs_decomposition(self.to_matrix())
+            # Since iterative Quantum Shannon Decomposition may provide imprecise matrices,
+            # we use the Isometry decomposition in this case
+            # pylint: disable=cyclic-import
+            from qiskit.quantum_info.operators import Operator
+
+            if not (
+                matrix_equal(Operator(self.definition).to_matrix(), self.to_matrix(), atol=1e-7)
+            ):
+                self.definition = Isometry(self.matrix, 0, 0).definition
 
     def control(
         self,
@@ -185,14 +193,24 @@ class UnitaryGate(Gate):
         if not annotated:
             mat = self.to_matrix()
             cmat = _compute_control_matrix(mat, num_ctrl_qubits, ctrl_state=None)
-            iso = Isometry(cmat, 0, 0)
+            from qiskit.synthesis.unitary.qsd import qs_decomposition
+
+            cmat_def = qs_decomposition(cmat, opt_a1=True, opt_a2=False)
+            # Since iterative cosine-sine decomposition may provide imprecise matrices,
+            # we use the Isometry decomposition in this case
+            # pylint: disable=cyclic-import
+            from qiskit.quantum_info.operators import Operator
+
+            if not matrix_equal(Operator(cmat_def).to_matrix(), cmat, atol=1e-7):
+                self.definition = Isometry(cmat, 0, 0).definition
+
             gate = ControlledGate(
                 "c-unitary",
                 num_qubits=self.num_qubits + num_ctrl_qubits,
                 params=[mat],
                 label=label,
                 num_ctrl_qubits=num_ctrl_qubits,
-                definition=iso.definition,
+                definition=cmat_def,
                 ctrl_state=ctrl_state,
                 base_gate=self.copy(),
             )

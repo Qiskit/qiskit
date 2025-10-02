@@ -12,27 +12,42 @@
 
 """Transform a circuit with virtual qubits into a circuit with physical qubits."""
 
-from qiskit.circuit import QuantumRegister
-from qiskit.dagcircuit import DAGCircuit, DAGOpNode
+from __future__ import annotations
+
+import typing
+
+from qiskit._accelerate.apply_layout import apply_layout, update_layout
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.layout import Layout
+from qiskit.transpiler.layout import TranspileLayout
+
+if typing.TYPE_CHECKING:
+    from qiskit.transpiler import Target
 
 
 class ApplyLayout(TransformationPass):
-    """Transform a circuit with virtual qubits into a circuit with physical qubits.
+    """Apply or update the mapping of virtual qubits to physical qubits in the :class:`.DAGCircuit`.
 
-    Transforms a DAGCircuit with virtual qubits into a DAGCircuit with physical qubits
-    by applying the Layout given in `property_set`.
-    Requires either of passes to set/select Layout, e.g. `SetLayout`, `TrivialLayout`.
-    Assumes the Layout has full physical qubits.
+    A "layout" in Qiskit is a mapping of virtual qubits (as the user typically creates circuits in
+    terms of) to the physical qubits used to represent them on hardware.
 
-    If a post layout pass is run and sets the ``post_layout`` property set field with
-    a new layout to use after ``ApplyLayout`` has already run once this pass will
-    compact the layouts so that we apply
-    ``original_virtual`` -> ``existing_layout`` -> ``new_layout`` -> ``new_physical``
-    so that the output circuit and layout combination become:
-    ``original_virtual`` -> ``new_physical``
+    This pass has two modes of operation, depending on the state of the ``layout`` and
+    ``post_layout`` keys in the :class:`.PropertySet`:
+
+    1. Standard operation: ``post_layout`` is not set.  This takes in a :class:`.DAGCircuit` defined
+       over virtual qubits, and rewrites it in terms of physical qubits.  In this case, the
+       ``layout`` field must have been chosen by a layout pass (for example :class:`.SetLayout` or
+       :class:`.VF2Layout`), and both it and the :class:`.DAGCircuit` must have been expanded with
+       ancillas (see :class:`.EnlargeWithAncilla` and :class:`.FullAncillaAllocation`).
+
+    2. Improving a layout: ``post_layout`` is set (such as by :class:`.VF2PostLayout`).  In this
+       case, the ``post_layout`` must already be the correct size.  It is interpreted as an
+       _additional_ relabelling on top of the relabelling that is already applied to the input
+       :class:`.DAGCircuit`.
+
+       After the pass runs, the ``layout`` field will be updated to represent the composition of the
+       two relabellings, as will the :class:`.DAGCircuit` and any final permutation.  The
+       ``post_layout`` field will be removed.
     """
 
     def run(self, dag):
@@ -47,78 +62,46 @@ class ApplyLayout(TransformationPass):
         Raises:
             TranspilerError: if no layout is found in ``property_set`` or no full physical qubits.
         """
-        layout = self.property_set["layout"]
-        if not layout:
+        if (post_layout := self.property_set.pop("post_layout", None)) is not None:
+            return self._apply_post_layout(dag, post_layout)
+        return self._apply_layout(dag)
+
+    def _apply_layout(self, dag):
+        # We're going to put this layout back later, potentially after ancilla expansion, we just
+        # need it gone to be able to use `TranspileLayout.from_property_set` to normalise any
+        # `virtual_permutation_layout` and `final_layout` that might be there.
+        layout = self.property_set.pop("layout", None)
+        if layout is None:
             raise TranspilerError(
                 "No 'layout' is found in property_set. Please run a Layout pass in advance."
             )
-        if len(layout) != (1 + max(layout.get_physical_bits())):
+        if len(layout) != (1 + max(layout.get_physical_bits(), default=-1)):
             raise TranspilerError("The 'layout' must be full (with ancilla).")
+        num_physical_qubits = len(layout)
 
-        post_layout = self.property_set["post_layout"]
-        q = QuantumRegister(len(layout), "q")
-
-        new_dag = DAGCircuit()
-        new_dag.name = dag.name
-        new_dag.add_qreg(q)
-        for var in dag.iter_input_vars():
-            new_dag.add_input_var(var)
-        for var in dag.iter_captured_vars():
-            new_dag.add_captured_var(var)
-        for var in dag.iter_declared_vars():
-            new_dag.add_declared_var(var)
-        new_dag.metadata = dag.metadata
-        new_dag.add_clbits(dag.clbits)
-        for creg in dag.cregs.values():
-            new_dag.add_creg(creg)
-        if post_layout is None:
-            self.property_set["original_qubit_indices"] = {
-                bit: index for index, bit in enumerate(dag.qubits)
-            }
-            for qreg in dag.qregs.values():
-                self.property_set["layout"].add_register(qreg)
-            virtual_physical_map = layout.get_virtual_bits()
-            for node in dag.topological_op_nodes():
-                qargs = [q[virtual_physical_map[qarg]] for qarg in node.qargs]
-                new_dag._apply_op_node_back(
-                    DAGOpNode.from_instruction(
-                        node._to_circuit_instruction().replace(qubits=qargs)
-                    ),
-                    check=False,
-                )
+        prev_layout = TranspileLayout.from_property_set(dag, self.property_set)
+        if prev_layout is None:
+            permutation = None
+            num_virtual_qubits = self.property_set.get("num_input_qubits", None)
         else:
-            # First build a new layout object going from:
-            # old virtual -> old physical -> new virtual -> new physical
-            # to:
-            # old virtual -> new physical
-            full_layout = Layout()
-            old_phys_to_virtual = layout.get_physical_bits()
-            new_virtual_to_physical = post_layout.get_virtual_bits()
-            phys_map = list(range(len(new_dag.qubits)))
-            for new_virt, new_phys in new_virtual_to_physical.items():
-                old_phys = dag.find_bit(new_virt).index
-                old_virt = old_phys_to_virtual[old_phys]
-                phys_map[old_phys] = new_phys
-                full_layout.add(old_virt, new_phys)
-            for reg in layout.get_registers():
-                full_layout.add_register(reg)
-            # Apply new layout to the circuit
-            for node in dag.topological_op_nodes():
-                qargs = [q[new_virtual_to_physical[qarg]] for qarg in node.qargs]
-                new_dag._apply_op_node_back(
-                    DAGOpNode.from_instruction(
-                        node._to_circuit_instruction().replace(qubits=qargs)
-                    ),
-                    check=False,
-                )
-            self.property_set["layout"] = full_layout
-            if (final_layout := self.property_set["final_layout"]) is not None:
-                final_layout_mapping = {
-                    new_dag.qubits[phys_map[dag.find_bit(old_virt).index]]: phys_map[old_phys]
-                    for old_virt, old_phys in final_layout.get_virtual_bits().items()
-                }
-                out_layout = Layout(final_layout_mapping)
-                self.property_set["final_layout"] = out_layout
-        new_dag.global_phase = dag.global_phase
+            permutation = prev_layout.routing_permutation()
+            num_virtual_qubits = prev_layout._input_qubit_count
+        if num_virtual_qubits is None:
+            num_virtual_qubits = dag.num_qubits()
+        transpile_layout = apply_layout(
+            dag,
+            num_virtual_qubits,
+            num_physical_qubits,
+            [layout[qubit] for qubit in dag.qubits],
+            permutation,
+        )
+        transpile_layout.write_into_property_set(self.property_set)
+        return dag
 
-        return new_dag
+    def _apply_post_layout(self, dag, post_layout):
+        transpile_layout = TranspileLayout.from_property_set(dag, self.property_set)
+        transpile_layout = update_layout(
+            dag, transpile_layout, [post_layout[q] for q in dag.qubits]
+        )
+        transpile_layout.write_into_property_set(self.property_set)
+        return dag

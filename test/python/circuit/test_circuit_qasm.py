@@ -279,7 +279,7 @@ ccz q[0],q[1],q[2];"""
         qasm = dumps(qc)
         expected = """OPENQASM 2.0;
 include "qelib1.inc";
-gate cs q0,q1 { p(pi/4) q0; cx q0,q1; p(-pi/4) q1; cx q0,q1; p(pi/4) q1; }
+gate cs q0,q1 { t q0; cx q0,q1; tdg q1; cx q0,q1; t q1; }
 qreg q[2];
 cs q[0],q[1];"""
         self.assertEqual(qasm, expected)
@@ -291,7 +291,7 @@ cs q[0],q[1];"""
         qasm = dumps(qc)
         expected = """OPENQASM 2.0;
 include "qelib1.inc";
-gate csdg q0,q1 { p(-pi/4) q0; cx q0,q1; p(pi/4) q1; cx q0,q1; p(-pi/4) q1; }
+gate csdg q0,q1 { tdg q0; cx q0,q1; t q1; cx q0,q1; tdg q1; }
 qreg q[2];
 csdg q[0],q[1];"""
         self.assertEqual(qasm, expected)
@@ -318,8 +318,7 @@ rzx(pi/2) q[1],q[0];"""
         qasm = dumps(qc)
         expected = """OPENQASM 2.0;
 include "qelib1.inc";
-gate rzx(param0) q0,q1 { h q1; cx q0,q1; rz(param0) q1; cx q0,q1; h q1; }
-gate ecr q0,q1 { rzx(pi/4) q0,q1; x q0; rzx(-pi/4) q0,q1; }
+gate ecr q0,q1 { s q0; sx q1; cx q0,q1; x q0; }
 qreg q[2];
 ecr q[0],q[1];
 ecr q[1],q[0];"""
@@ -397,29 +396,28 @@ mcx q[0],q[1],q[2],q[3];"""
         self.assertEqual(dumps(qc), expected_qasm)
 
     def test_circuit_qasm_with_mcx_gate_variants(self):
+        # pylint: disable=line-too-long
         """Test circuit qasm() method with MCXGrayCode, MCXRecursive, MCXVChain"""
         import qiskit.circuit.library as cl
 
         n = 5
         qc = QuantumCircuit(2 * n - 1)
-        qc.append(cl.MCXGrayCode(n), range(n + 1))
-        qc.append(cl.MCXRecursive(n), range(n + 2))
-        qc.append(cl.MCXVChain(n), range(2 * n - 1))
-        mcx_vchain_id = id(qc.data[-1].operation)
+        with self.assertWarns(DeprecationWarning):
+            qc.append(cl.MCXGrayCode(n), range(n + 1))
+        with self.assertWarns(DeprecationWarning):
+            qc.append(cl.MCXRecursive(n), range(n + 2))
+        with self.assertWarns(DeprecationWarning):
+            qc.append(cl.MCXVChain(n), range(2 * n - 1))
 
-        # qasm output doesn't support parameterized gate yet.
-        # param0 for "gate mcuq(param0) is not used inside the definition
-        expected_qasm = f"""OPENQASM 2.0;
+        expected_qasm = """OPENQASM 2.0;
 include "qelib1.inc";
-gate mcu1(param0) q0,q1,q2,q3,q4,q5 {{ cu1(pi/16) q4,q5; cx q4,q3; cu1(-pi/16) q3,q5; cx q4,q3; cu1(pi/16) q3,q5; cx q3,q2; cu1(-pi/16) q2,q5; cx q4,q2; cu1(pi/16) q2,q5; cx q3,q2; cu1(-pi/16) q2,q5; cx q4,q2; cu1(pi/16) q2,q5; cx q2,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q3,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q2,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q3,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q1,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q2,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q1,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q2,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; }}
-gate mcx_gray q0,q1,q2,q3,q4,q5 {{ h q5; mcu1(pi) q0,q1,q2,q3,q4,q5; h q5; }}
-gate mcx_vchain q0,q1,q2,q3,q4 {{ h q3; p(pi/8) q0; p(pi/8) q1; p(pi/8) q2; p(pi/8) q3; cx q0,q1; p(-pi/8) q1; cx q0,q1; cx q1,q2; p(-pi/8) q2; cx q0,q2; p(pi/8) q2; cx q1,q2; p(-pi/8) q2; cx q0,q2; cx q2,q3; p(-pi/8) q3; cx q1,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q0,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q1,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q0,q3; h q3; }}
-gate mcx_recursive q0,q1,q2,q3,q4,q5,q6 {{ mcx_vchain q0,q1,q2,q6,q3; mcx_vchain q3,q4,q6,q5,q0; mcx_vchain q0,q1,q2,q6,q3; mcx_vchain q3,q4,q6,q5,q0; }}
-gate mcx_vchain_{mcx_vchain_id} q0,q1,q2,q3,q4,q5,q6,q7,q8 {{ rccx q0,q1,q6; rccx q2,q6,q7; rccx q3,q7,q8; ccx q4,q8,q5; rccx q3,q7,q8; rccx q2,q6,q7; rccx q0,q1,q6; }}
+gate mcx_gray q0,q1,q2,q3,q4,q5 { h q5; cu1(pi/16) q4,q5; cx q4,q3; cu1(-pi/16) q3,q5; cx q4,q3; cu1(pi/16) q3,q5; cx q3,q2; cu1(-pi/16) q2,q5; cx q4,q2; cu1(pi/16) q2,q5; cx q3,q2; cu1(-pi/16) q2,q5; cx q4,q2; cu1(pi/16) q2,q5; cx q2,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q3,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q2,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q3,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q1,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q2,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q1,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q2,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; h q5; }
+gate mcx_recursive q0,q1,q2,q3,q4,q5,q6 { h q6; t q6; cx q2,q6; tdg q6; cx q3,q6; h q3; t q3; cx q1,q3; tdg q3; cx q0,q3; t q3; cx q1,q3; tdg q3; h q3; cx q3,q6; t q6; cx q2,q6; tdg q6; h q6; h q3; t q3; cx q1,q3; tdg q3; cx q0,q3; t q3; cx q1,q3; tdg q3; h q3; h q5; p(pi/8) q3; p(pi/8) q4; p(pi/8) q6; p(pi/8) q5; cx q3,q4; p(-pi/8) q4; cx q3,q4; cx q4,q6; p(-pi/8) q6; cx q3,q6; p(pi/8) q6; cx q4,q6; p(-pi/8) q6; cx q3,q6; cx q6,q5; p(-pi/8) q5; cx q4,q5; p(pi/8) q5; cx q6,q5; p(-pi/8) q5; cx q3,q5; p(pi/8) q5; cx q6,q5; p(-pi/8) q5; cx q4,q5; p(pi/8) q5; cx q6,q5; p(-pi/8) q5; cx q3,q5; h q5; h q3; t q3; cx q1,q3; tdg q3; cx q0,q3; t q3; cx q1,q3; tdg q3; h q3; h q6; t q6; cx q2,q6; tdg q6; cx q3,q6; h q3; t q3; cx q1,q3; tdg q3; cx q0,q3; t q3; cx q1,q3; tdg q3; h q3; cx q3,q6; t q6; cx q2,q6; tdg q6; h q6; h q5; p(pi/8) q3; p(pi/8) q4; p(pi/8) q6; p(pi/8) q5; cx q3,q4; p(-pi/8) q4; cx q3,q4; cx q4,q6; p(-pi/8) q6; cx q3,q6; p(pi/8) q6; cx q4,q6; p(-pi/8) q6; cx q3,q6; cx q6,q5; p(-pi/8) q5; cx q4,q5; p(pi/8) q5; cx q6,q5; p(-pi/8) q5; cx q3,q5; p(pi/8) q5; cx q6,q5; p(-pi/8) q5; cx q4,q5; p(pi/8) q5; cx q6,q5; p(-pi/8) q5; cx q3,q5; h q5; }
+gate mcx_vchain q0,q1,q2,q3,q4,q5,q6,q7,q8 { rccx q0,q1,q6; rccx q2,q6,q7; rccx q3,q7,q8; ccx q4,q8,q5; rccx q3,q7,q8; rccx q2,q6,q7; rccx q0,q1,q6; }
 qreg q[9];
 mcx_gray q[0],q[1],q[2],q[3],q[4],q[5];
 mcx_recursive q[0],q[1],q[2],q[3],q[4],q[5],q[6];
-mcx_vchain_{mcx_vchain_id} q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7],q[8];"""
+mcx_vchain q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7],q[8];"""
 
         self.assertEqual(dumps(qc), expected_qasm)
 

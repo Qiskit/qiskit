@@ -3,6 +3,15 @@
 # https://cmake.org/cmake/help/book/mastering-cmake/chapter/Testing%20With%20CMake%20and%20CTest.html
 cmake_minimum_required (VERSION 3.27)
 
+# On GCC and Clang compilers, we fail upon any warnings and CI requires no warnings for these 
+# compilers. 
+# MSVC is not included since compiler warnings differ signficantly. Using the MSVC options /W2 /WX 
+# get close to the below, but might not include additional checks that we require in CI 
+# (and /W3 /WX includes some we do not require). 
+if (NOT MSVC) 
+    add_compile_options(-Wall -Wextra -Werror -Wshadow)
+endif ()
+
 # All files in this directory (non-recursively! use GLOB_RECURSE if that becomes
 # necessary) which match the pattern `test_*.c` are discovered as test files by
 # the command below. All paths are stored relative to the location of this file.
@@ -19,12 +28,20 @@ file (
 # test file.
 create_test_sourcelist (source_files test_driver.c ${discovered_tests})
 
+add_library(common STATIC common.c)
 # Actually define the test driver program executable to be built...
 add_executable (test_driver ${source_files})
 # ...include the location of the header file...
 target_include_directories (test_driver PRIVATE ${CMAKE_SOURCE_DIR})
 # ...and linked with the qiskit library.
-target_link_libraries (test_driver ${qiskit})
+target_link_libraries (test_driver ${qiskit} common)
+
+# On MSVC we need to link the Python dll, we search it here and adjust the PATH in the tests below
+if (MSVC)
+    # Store the directory where the qiskit_cext.dll is located.
+    get_filename_component(qiskit_dll_dir ${qiskit} DIRECTORY)
+    find_package(Python REQUIRED Interpreter Development)
+endif ()
 
 # Finally, we must define each test to be executed through `ctest` which we do
 # by iterating over all discovered tests and registering it for execution.
@@ -39,4 +56,11 @@ foreach (test ${discovered_tests})
         NAME ${test_name}
         COMMAND test_driver ${test_name}
     )
+
+    # add Python dll to the PATH of the tests
+    if (MSVC)
+        set_tests_properties(
+            ${test_name} PROPERTIES ENVIRONMENT "PATH=%PATH%\;${qiskit_dll_dir}\;${Python_RUNTIME_LIBRARY_DIRS}"
+        )
+    endif ()
 endforeach ()

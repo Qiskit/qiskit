@@ -28,7 +28,7 @@ import numpy as np
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.library.standard_gates.h import HGate
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.exceptions import QiskitError
@@ -62,13 +62,13 @@ class UCGate(Gate):
 
     Unnecessary controls and repeated operators can be removed as described in Ref [2].
 
-    **References:**
+    References:
 
     [1] Bergholm et al., Quantum circuits with uniformly controlled one-qubit gates (2005).
-        `Phys. Rev. A 71, 052330 <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.71.052330>`__.
+    `Phys. Rev. A 71, 052330 <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.71.052330>`__.
 
     [2] de Carvalho et al., Quantum multiplexer simplification for state preparation (2024).
-        `arXiv:2409.05618 <https://arxiv.org/abs/2409.05618>`__.
+    `arXiv:2409.05618 <https://arxiv.org/abs/2409.05618>`__.
 
     """
 
@@ -286,7 +286,7 @@ class UCGate(Gate):
         This method finds the single qubit gate arising in the decomposition of UCGates given in
         https://arxiv.org/pdf/quant-ph/0410066.pdf.
         """
-        single_qubit_gates = [gate.astype(complex) for gate in self.params]
+        single_qubit_gates = [np.asarray(gate, dtype=complex, order="f") for gate in self.params]
         if self.simp_contr[0]:
             return uc_gate.dec_ucg_help(single_qubit_gates, len(self.simp_contr[1]) + 1)
         return uc_gate.dec_ucg_help(single_qubit_gates, self.num_qubits)

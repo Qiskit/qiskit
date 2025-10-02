@@ -2,11 +2,11 @@
 
 [![License](https://img.shields.io/github/license/Qiskit/qiskit.svg?)](https://opensource.org/licenses/Apache-2.0) <!--- long-description-skip-begin -->
 [![Current Release](https://img.shields.io/github/release/Qiskit/qiskit.svg?logo=Qiskit)](https://github.com/Qiskit/qiskit/releases)
-<!-- [![Extended Support Release](https://img.shields.io/github/v/release/Qiskit/qiskit?sort=semver&filter=0.*&logo=Qiskit&label=extended%20support)](https://github.com/Qiskit/qiskit/releases?q=tag%3A0) -->
+[![Extended Support Release](https://img.shields.io/github/v/release/Qiskit/qiskit?sort=semver&filter=1.*&logo=Qiskit&label=extended%20support)](https://github.com/Qiskit/qiskit/releases?q=tag%3A1)
 [![Downloads](https://img.shields.io/pypi/dm/qiskit.svg)](https://pypi.org/project/qiskit/)
 [![Coverage Status](https://coveralls.io/repos/github/Qiskit/qiskit/badge.svg?branch=main)](https://coveralls.io/github/Qiskit/qiskit?branch=main)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/qiskit)
-[![Minimum rustc 1.79](https://img.shields.io/badge/rustc-1.79+-blue.svg)](https://rust-lang.github.io/rfcs/2495-min-rust-version.html)
+[![Minimum rustc 1.85](https://img.shields.io/badge/rustc-1.85+-blue.svg)](https://rust-lang.github.io/rfcs/2495-min-rust-version.html)
 [![Downloads](https://static.pepy.tech/badge/qiskit)](https://pepy.tech/project/qiskit)<!--- long-description-skip-end -->
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2583252.svg)](https://doi.org/10.5281/zenodo.2583252)
 
@@ -17,7 +17,7 @@ It also contains a transpiler that supports optimizing quantum circuits, and a q
 
 For more details on how to use Qiskit, refer to the documentation located here:
 
-<https://docs.quantum.ibm.com/>
+<https://quantum.cloud.ibm.com/docs/>
 
 
 ## Installation
@@ -30,7 +30,7 @@ pip install qiskit
 
 Pip will handle all dependencies automatically and you will always install the latest (and well-tested) version.
 
-To install from source, follow the instructions in the [documentation](https://docs.quantum.ibm.com/guides/install-qiskit-source).
+To install from source, follow the instructions in the [documentation](https://quantum.cloud.ibm.com/docs/guides/install-qiskit-source).
 
 ## Create your first quantum program in Qiskit
 
@@ -67,7 +67,7 @@ from qiskit.primitives import StatevectorSampler
 sampler = StatevectorSampler()
 job = sampler.run([qc_measured], shots=1000)
 result = job.result()
-print(f" > Counts: {result[0].data["meas"].get_counts()}")
+print(f" > Counts: {result[0].data['meas'].get_counts()}")
 ```
 Running this will give an outcome similar to `{'000': 497, '111': 503}` which is `000` 50% of the time and `111` 50% of the time up to statistical fluctuations.
 To illustrate the power of the Estimator, we now use the quantum information toolbox to create the operator $XXY+XYX+YXX-YYY$ and pass it to the `run()` function, along with our quantum circuit. Note that the Estimator requires a circuit _**without**_ measurements, so we use the `qc` circuit we created earlier.
@@ -91,13 +91,20 @@ and see if you can achieve this outcome. (Spoiler alert: this is not possible!)
 Using the Qiskit-provided `qiskit.primitives.StatevectorSampler` and `qiskit.primitives.StatevectorEstimator` will not take you very far.
 The power of quantum computing cannot be simulated on classical computers and you need to use real quantum hardware to scale to larger quantum circuits.
 However, running a quantum circuit on hardware requires rewriting to the basis gates and connectivity of the quantum hardware.
-The tool that does this is the [transpiler](https://docs.quantum.ibm.com/api/qiskit/transpiler), and Qiskit includes transpiler passes for synthesis, optimization, mapping, and scheduling.
+The tool that does this is the [transpiler](https://quantum.cloud.ibm.com/docs/api/qiskit/transpiler), and Qiskit includes transpiler passes for synthesis, optimization, mapping, and scheduling.
 However, it also includes a default compiler, which works very well in most examples.
-The following code will map the example circuit to the `basis_gates = ["cz", "sx", "rz"]` and a linear chain of qubits $0 \rightarrow 1 \rightarrow 2$ with the `coupling_map = [[0, 1], [1, 2]]`.
+The following code will map the example circuit to the `basis_gates = ["cz", "sx", "rz"]` and a
+bidirectional linear chain of qubits $0 \leftrightarrow 1 \leftrightarrow 2$ with the
+`coupling_map = [[0, 1], [1, 0], [1, 2], [2, 1]]`.
 
 ```python
 from qiskit import transpile
-qc_transpiled = transpile(qc, basis_gates=["cz", "sx", "rz"], coupling_map=[[0, 1], [1, 2]], optimization_level=3)
+from qiskit.transpiler import Target, CouplingMap
+target = Target.from_configuration(
+    basis_gates=["cz", "sx", "rz"],
+    coupling_map=CouplingMap.from_line(3),
+)
+qc_transpiled = transpile(qc, target=target)
 ```
 
 ### Executing your code on real quantum hardware
@@ -154,7 +161,7 @@ release.
 
 Additionally, as part of each release, detailed release notes are written to
 document in detail what has changed as part of a release. This includes any
-documentation on potential breaking changes on upgrade and new features. See [all release notes here](https://docs.quantum.ibm.com/api/qiskit/release-notes).
+documentation on potential breaking changes on upgrade and new features. See [all release notes here](https://quantum.cloud.ibm.com/docs/api/qiskit/release-notes).
 
 ## Acknowledgements
 

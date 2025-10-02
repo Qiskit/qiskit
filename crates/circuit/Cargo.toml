@@ -19,15 +19,24 @@ rustworkx-core.workspace = true
 bytemuck.workspace = true
 bitfield-struct.workspace = true
 num-complex.workspace = true
-ndarray.workspace = true
 thiserror.workspace = true
-approx.workspace = true
 itertools.workspace = true
 nalgebra.workspace = true
+uuid.workspace = true
+nom.workspace = true
+nom-unicode.workspace = true
 
 [dependencies.pyo3]
 workspace = true
 features = ["hashbrown", "indexmap", "num-complex", "num-bigint", "smallvec", "py-clone"]
+
+[dependencies.approx]
+workspace = true
+features = ["num-complex"]
+
+[dependencies.ndarray]
+workspace = true
+features = ["rayon", "approx"]
 
 [dependencies.hashbrown]
 workspace = true

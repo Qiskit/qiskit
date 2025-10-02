@@ -26,7 +26,7 @@ import numpy as np
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_isometry
 from qiskit._accelerate import isometry as isometry_rs
@@ -46,9 +46,10 @@ class Isometry(Instruction):
     The decomposition is based on [1].
 
     References:
-        1. Iten et al., Quantum circuits for isometries (2016).
-           `Phys. Rev. A 93, 032318
-           <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.93.032318>`__.
+
+    [1] Iten et al., Quantum circuits for isometries (2016).
+    `Phys. Rev. A 93, 032318
+    <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.93.032318>`__.
 
     """
 

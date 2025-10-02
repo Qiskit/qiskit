@@ -14,7 +14,11 @@
 """Routines for computing expectation values from sampled distributions"""
 import numpy as np
 
-from qiskit._accelerate.sampled_exp_val import sampled_expval_float, sampled_expval_complex
+from qiskit._accelerate.sampled_exp_val import (
+    sampled_expval_float,
+    sampled_expval_complex,
+    sampled_expval_sparse_observable,
+)
 from qiskit.exceptions import QiskitError
 from .distributions import QuasiDistribution, ProbDistribution
 
@@ -23,6 +27,7 @@ from .distributions import QuasiDistribution, ProbDistribution
 OPERS = {"Z", "I", "0", "1"}
 
 
+# pylint: disable=missing-param-doc,missing-type-doc
 def sampled_expectation_value(dist, oper):
     """Computes expectation value from a sampled distribution
 
@@ -30,8 +35,8 @@ def sampled_expectation_value(dist, oper):
 
     Parameters:
         dist (Counts or QuasiDistribution or ProbDistribution or dict): Input sampled distribution
-        oper (str or Pauli or PauliOp or PauliSumOp or SparsePauliOp): The operator for
-                                                                       the observable
+        oper (str or :class:`~.quantum_info.Pauli` or SparsePauliOp): The operator for the
+            observable
 
     Returns:
         float: The expectation value
@@ -39,7 +44,7 @@ def sampled_expectation_value(dist, oper):
         QiskitError: if the input distribution or operator is an invalid type
     """
     from .counts import Counts
-    from qiskit.quantum_info import Pauli, SparsePauliOp
+    from qiskit.quantum_info import Pauli, SparsePauliOp, SparseObservable
 
     # This should be removed when these return bit-string keys
     if isinstance(dist, (QuasiDistribution, ProbDistribution)):
@@ -56,6 +61,8 @@ def sampled_expectation_value(dist, oper):
     elif isinstance(oper, SparsePauliOp):
         oper_strs = oper.paulis.to_labels()
         coeffs = np.asarray(oper.coeffs)
+    elif isinstance(oper, SparseObservable):
+        return sampled_expval_sparse_observable(oper, dist)
     else:
         raise QiskitError("Invalid operator type")
 

@@ -18,7 +18,6 @@ import math
 from typing import Optional
 import numpy
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
 from qiskit._accelerate.circuit import StandardGate
 
@@ -31,7 +30,7 @@ class RXXGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.rxx` method.
 
-    **Circuit Symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -41,7 +40,7 @@ class RXXGate(Gate):
         q_1: ┤0        ├
              └─────────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -55,62 +54,51 @@ class RXXGate(Gate):
                 -i\sin\left(\rotationangle\right) & 0 & 0 & \cos\left(\rotationangle\right)
             \end{pmatrix}
 
-    **Examples:**
+    Examples:
 
-        .. math::
+    .. math::
 
-            R_{XX}(\theta = 0) = I
+        R_{XX}(\theta = 0) = I
 
-        .. math::
+    .. math::
 
-            R_{XX}(\theta = \pi) = -i X \otimes X
+        R_{XX}(\theta = \pi) = -i X \otimes X
 
-        .. math::
+    .. math::
 
-            R_{XX}\left(\theta = \frac{\pi}{2}\right) = \frac{1}{\sqrt{2}}
-                                    \begin{pmatrix}
-                                        1  & 0  & 0  & -i \\
-                                        0  & 1  & -i & 0 \\
-                                        0  & -i & 1  & 0 \\
-                                        -i & 0  & 0  & 1
-                                    \end{pmatrix}
+        R_{XX}\left(\theta = \frac{\pi}{2}\right) = \frac{1}{\sqrt{2}}
+                                \begin{pmatrix}
+                                    1  & 0  & 0  & -i \\
+                                    0  & 1  & -i & 0 \\
+                                    0  & -i & 1  & 0 \\
+                                    -i & 0  & 0  & 1
+                                \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.RXXGate
+    _standard_gate = StandardGate.RXX
 
     def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
-        """Create new RXX gate."""
+        """
+        Args:
+            theta: The rotation angle.
+            label: An optional label for the gate.
+        """
         super().__init__("rxx", 2, [theta], label=label)
 
     def _define(self):
-        """Calculate a subcircuit that implements this unitary."""
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .x import CXGate
-        from .h import HGate
-        from .rz import RZGate
+        from qiskit.circuit import QuantumCircuit
 
         #      ┌───┐                   ┌───┐
         # q_0: ┤ H ├──■─────────────■──┤ H ├
         #      ├───┤┌─┴─┐┌───────┐┌─┴─┐├───┤
         # q_1: ┤ H ├┤ X ├┤ Rz(0) ├┤ X ├┤ H ├
         #      └───┘└───┘└───────┘└───┘└───┘
-        theta = self.params[0]
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (HGate(), [q[0]], []),
-            (HGate(), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (RZGate(theta), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (HGate(), [q[1]], []),
-            (HGate(), [q[0]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.RXX._get_definition(self.params), legacy_qubits=True, name=self.name
+        )
 
     def control(
         self,

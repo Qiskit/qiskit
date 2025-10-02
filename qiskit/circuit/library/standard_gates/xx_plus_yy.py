@@ -16,13 +16,11 @@ from __future__ import annotations
 
 import math
 from cmath import exp
-from math import pi
 from typing import Optional
 
 import numpy
 
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
 from qiskit._accelerate.circuit import StandardGate
 
@@ -33,7 +31,7 @@ class XXPlusYYGate(Gate):
     A 2-qubit parameterized XX+YY interaction, also known as an XY gate. Its action is to induce
     a coherent rotation by some angle between :math:`|01\rangle` and :math:`|10\rangle`.
 
-    **Circuit Symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -43,7 +41,7 @@ class XXPlusYYGate(Gate):
         q_1: ┤1              ├
              └───────────────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -91,7 +89,7 @@ class XXPlusYYGate(Gate):
                 \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.XXPlusYYGate
+    _standard_gate = StandardGate.XXPlusYY
 
     def __init__(
         self,
@@ -99,8 +97,7 @@ class XXPlusYYGate(Gate):
         beta: ParameterValueType = 0,
         label: Optional[str] = "(XX+YY)",
     ):
-        """Create new XX+YY gate.
-
+        """
         Args:
             theta: The rotation angle.
             beta: The phase angle.
@@ -109,56 +106,19 @@ class XXPlusYYGate(Gate):
         super().__init__("xx_plus_yy", 2, [theta, beta], label=label)
 
     def _define(self):
-        """
-        gate xx_plus_yy(theta, beta) a, b {
-            rz(beta) b;
-            rz(-pi/2) a;
-            sx a;
-            rz(pi/2) a;
-            s b;
-            cx a, b;
-            ry(theta/2) a;
-            ry(theta/2) b;
-            cx a, b;
-            sdg b;
-            rz(-pi/2) a;
-            sxdg a;
-            rz(pi/2) a;
-            rz(-beta) b;
-        }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .x import CXGate
-        from .s import SGate, SdgGate
-        from .sx import SXGate, SXdgGate
-        from .rz import RZGate
-        from .ry import RYGate
+        from qiskit.circuit import QuantumCircuit
 
-        theta = self.params[0]
-        beta = self.params[1]
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (RZGate(beta), [q[0]], []),
-            (RZGate(-pi / 2), [q[1]], []),
-            (SXGate(), [q[1]], []),
-            (RZGate(pi / 2), [q[1]], []),
-            (SGate(), [q[0]], []),
-            (CXGate(), [q[1], q[0]], []),
-            (RYGate(-theta / 2), [q[1]], []),
-            (RYGate(-theta / 2), [q[0]], []),
-            (CXGate(), [q[1], q[0]], []),
-            (SdgGate(), [q[0]], []),
-            (RZGate(-pi / 2), [q[1]], []),
-            (SXdgGate(), [q[1]], []),
-            (RZGate(pi / 2), [q[1]], []),
-            (RZGate(-beta), [q[0]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        #      ┌───────┐┌───┐      ┌───┐┌──────────┐┌───┐┌─────┐┌────────┐
+        # q_0: ┤ Rz(β) ├┤ S ├──────┤ X ├┤ Ry(-θ/2) ├┤ X ├┤ Sdg ├┤ Rz(-β) ├─────
+        #      └┬─────┬┘├───┴┐┌───┐└─┬─┘├──────────┤└─┬─┘├─────┤└┬──────┬┘┌───┐
+        # q_1: ─┤ Sdg ├─┤ √X ├┤ S ├──■──┤ Ry(-θ/2) ├──■──┤ Sdg ├─┤ √Xdg ├─┤ S ├
+        #       └─────┘ └────┘└───┘     └──────────┘     └─────┘ └──────┘ └───┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.XXPlusYY._get_definition(self.params), legacy_qubits=True, name=self.name
+        )
 
     def control(
         self,

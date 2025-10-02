@@ -364,7 +364,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.ccx(0, 1, 2)
         circuit.append(XGate().control(3, ctrl_state="010"), [qr[2], qr[3], qr[0], qr[1]])
         circuit.append(MCXGate(num_ctrl_qubits=3, ctrl_state="101"), [qr[0], qr[1], qr[2], qr[4]])
-        circuit.append(MCXVChain(3, dirty_ancillas=True), [qr[0], qr[1], qr[2], qr[3], qr[5]])
+        with self.assertWarns(DeprecationWarning):
+            circuit.append(MCXVChain(3, dirty_ancillas=True), [qr[0], qr[1], qr[2], qr[3], qr[5]])
 
         fname = "cnot.png"
         self.circuit_drawer(circuit, output="mpl", filename=fname)
@@ -1041,6 +1042,33 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         )
         self.assertGreaterEqual(ratio, self.threshold)
 
+    def test_measure_arrows_false(self):
+        """Test measure_arrows set to False"""
+        qr = QuantumRegister(3, "qr")
+        cr = ClassicalRegister(3, "c")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.x(0)
+        circuit.h(0)
+        circuit.measure(0, 0)
+        circuit.x(1)
+        circuit.h(1)
+        circuit.measure(1, 1)
+        circuit.x(2)
+        circuit.h(2)
+        circuit.measure(2, 2)
+
+        fname = "measure_arrows_false.png"
+        self.circuit_drawer(circuit, output="mpl", measure_arrows=False, filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, self.threshold)
+
     def test_user_ax_subplot(self):
         """Test for when user supplies ax for a subplot"""
         import matplotlib.pyplot as plt
@@ -1117,7 +1145,9 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.barrier()
 
         fname = "idle_wires_barrier.png"
-        self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
+        self.circuit_drawer(
+            circuit, output="mpl", cregbundle=False, filename=fname, idle_wires=False
+        )
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1149,6 +1179,29 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             filename=fname,
         )
 
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, self.threshold)
+
+    def test_basic_box(self):
+        """Test that drawing a `box` doesn't explode."""
+        # The exact output is not important - feel free to change it.  We only care that it doesn't
+        # explode when drawing.
+        qc = QuantumCircuit(5)
+        with qc.box():
+            qc.x(0)
+        qc.x(1)
+        with qc.box():
+            qc.cx(2, 3)
+            with qc.box():
+                qc.noop(4)
+        fname = "basic_box.png"
+        self.circuit_drawer(qc, output="mpl", filename=fname)
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
             self._reference_path(fname),

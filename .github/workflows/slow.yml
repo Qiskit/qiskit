@@ -9,8 +9,8 @@ jobs:
     name: Full-test-run-with-slow
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         name: Install Python
         with:
           python-version: '3.10'
@@ -22,7 +22,7 @@ jobs:
           python -m pip install -c constraints.txt -e .
           python -m pip install "qiskit-aer" "z3-solver" "cplex" -c constraints.txt
       - name: Run all tests including slow
-        run: stestr run
+        run: stestr run --slowest
         env:
           RUST_BACKTRACE: 1
           QISKIT_TESTS: "run_slow"

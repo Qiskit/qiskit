@@ -1,31 +1,88 @@
+language = "C"
 include_version = true
-style = "type" 
-sys_includes = ["complex.h"]
-after_includes = """
-// Complex number typedefs -- note these are memory aligned but
-// not calling convention compatible.
-typedef float complex QkComplex32; 
-typedef double complex QkComplex64;
+include_guard = "QISKIT_H"
+style = "type"
+cpp_compat = true
+usize_is_size_t = true
 
-// Always expose [cfg(feature = "cbinding")] -- workaround for 
+after_includes = """
+#ifdef QISKIT_C_PYTHON_INTERFACE
+    #include <Python.h>
+#endif
+
+#include "qiskit/complex.h"
+
+#define QISKIT_RELEASE_LEVEL_DEV 0xA
+#define QISKIT_RELEASE_LEVEL_BETA 0xB
+#define QISKIT_RELEASE_LEVEL_RC 0xC
+#define QISKIT_RELEASE_LEVEL_FINAL 0xF
+
+#define QISKIT_VERSION_MAJOR 2
+#define QISKIT_VERSION_MINOR 3
+#define QISKIT_VERSION_PATCH 0
+#define QISKIT_RELEASE_LEVEL QISKIT_RELEASE_LEVEL_DEV
+// For the final release, set the below to 0.
+#define QISKIT_RELEASE_SERIAL 0
+
+#define QISKIT_VERSION "2.3.0-dev"
+
+#define QISKIT_GET_VERSION_HEX(major, minor, patch, level, serial) (\
+    (major & 0xff) << 24 | \
+    (minor & 0xff) << 16 | \
+    (patch & 0xff) << 8 | \
+    (level & 0xf) << 4 | \
+    (serial & 0xf)\
+)
+
+// HEX version using 4 bytes: 0xMMmmppls. For example, 2.1.0rc1 is 0x020100C1.
+#define QISKIT_VERSION_HEX QISKIT_GET_VERSION_HEX(\
+    QISKIT_VERSION_MAJOR, \
+    QISKIT_VERSION_MINOR, \
+    QISKIT_VERSION_PATCH, \
+    QISKIT_RELEASE_LEVEL, \
+    QISKIT_RELEASE_SERIAL \
+)
+
+// DEPRECATED, to be removed in Qiskit v2.3.
+#define QISKIT_VERSION_NUMERIC(M,m,p) ((M)<<16|(m)<<8|(p))
+
+// Always expose [cfg(feature = "cbinding")] -- workaround for
 // https://github.com/mozilla/cbindgen/issues/995
 #define QISKIT_WITH_CBINDINGS
+
+typedef struct QkQuantumRegister QkQuantumRegister;
+typedef struct QkClassicalRegister QkClassicalRegister;
 """
 
 [defines]
 "feature = cbinding" = "QISKIT_WITH_CBINDINGS"
+"feature = python_binding" = "QISKIT_C_PYTHON_INTERFACE"
 
 [parse]
 parse_deps = true
-include = ["qiskit-accelerate"]
+include = ["qiskit-quantum-info", "qiskit-circuit", "qiskit-transpiler"]
 
 [enum]
 prefix_with_name = true
 
-[export]
-prefix = "Qk"
-renaming_overrides_prefixing = false
-
 [export.rename]
-"SparseObservable" = "Obs"
-"CSparseTerm" = "ObsTerm"
+"SparseObservable" = "QkObs"
+"CSparseTerm" = "QkObsTerm"
+"BitTerm" = "QkBitTerm"
+"Complex64" = "QkComplex64"
+"CircuitData" = "QkCircuit"
+"StandardGate" = "QkGate"
+"OpCounts" = "QkOpCounts"
+"OpCount" = "QkOpCount"
+"CInstruction" = "QkCircuitInstruction"
+"ExitCode" = "QkExitCode"
+"QuantumRegister" = "QkQuantumRegister"
+"ClassicalRegister" = "QkClassicalRegister"
+"Target" = "QkTarget"
+"TargetEntry" = "QkTargetEntry"
+"VF2LayoutResult" = "QkVF2LayoutResult"
+"ElidePermutationsResult" = "QkElidePermutationsResult"
+"TranspileLayout" = "QkTranspileLayout"
+"TranspileResult" = "QkTranspileResult"
+"TranspileOptions" = "QkTranspileOptions"
+"Param" = "QkParam"

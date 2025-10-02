@@ -18,7 +18,7 @@ import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.library.standard_gates.x import XGate
 from qiskit.circuit.library.standard_gates.h import HGate
@@ -75,9 +75,10 @@ class StatePreparation(Gate):
         :class:`~.library.Isometry` synthesis described in [1].
 
         References:
-            1. Iten et al., Quantum circuits for isometries (2016).
-               `Phys. Rev. A 93, 032318
-               <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.93.032318>`__.
+
+        [1] Iten et al., Quantum circuits for isometries (2016).
+        `Phys. Rev. A 93, 032318
+        <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.93.032318>`__.
 
         """
         self._params_arg = params
@@ -259,7 +260,8 @@ class UniformSuperpositionGate(Gate):
         :math:`O(\log_2 (M))` qubits and :math:`O(\log_2 (M))` gates,
         to prepare the superposition.
 
-    **References:**
+    References:
+
     [1]: A. Shukla and P. Vedula (2024), An efficient quantum algorithm for preparation
     of uniform quantum superposition states, `Quantum Inf Process 23, 38
     <https://link.springer.com/article/10.1007/s11128-024-04258-4>`_.

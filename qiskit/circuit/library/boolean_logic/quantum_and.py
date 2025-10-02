@@ -54,9 +54,9 @@ class AND(QuantumCircuit):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="2.1",
         additional_msg="Use qiskit.circuit.library.AndGate instead.",
-        pending=True,
+        removal_timeline="in Qiskit 3.0",
     )
     def __init__(
         self,
@@ -64,8 +64,7 @@ class AND(QuantumCircuit):
         flags: list[int] | None = None,
         mcx_mode: str = "noancilla",
     ) -> None:
-        """Create a new logical AND circuit.
-
+        """
         Args:
             num_variable_qubits: The qubits of which the AND is computed. The result will be written
                 into an additional result qubit.

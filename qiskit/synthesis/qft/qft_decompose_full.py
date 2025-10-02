@@ -56,7 +56,7 @@ def synth_qft_full(
 
     """
     _warn_if_precision_loss(num_qubits - approximation_degree - 1)
-    circuit = QuantumCircuit(num_qubits, name=name)
+    circuit = QuantumCircuit(num_qubits)
 
     for j in reversed(range(num_qubits)):
         circuit.h(j)
@@ -76,6 +76,11 @@ def synth_qft_full(
 
     if inverse:
         circuit = circuit.inverse()
+
+    # It is important to set the name afte the circuit's generic "inverse" is called,
+    # since that will add ``_dg`` to the name.
+    if name is not None:
+        circuit.name = name
 
     return circuit
 

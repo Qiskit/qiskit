@@ -38,7 +38,7 @@ class GraphState(QuantumCircuit):
     in a product basis at the end, there is evidence that the circuit becomes
     hard to simulate [2].
 
-    **Reference Circuit:**
+    Reference Circuit:
 
     .. plot::
        :alt: Diagram illustrating the previously described circuit.
@@ -48,9 +48,10 @@ class GraphState(QuantumCircuit):
        import rustworkx as rx
        G = rx.generators.cycle_graph(5)
        circuit = GraphState(rx.adjacency_matrix(G))
+       circuit.name = "Graph state"
        _generate_circuit_library_visualization(circuit)
 
-    **References:**
+    References:
 
     [1] M. Hein, J. Eisert, H.J. Briegel, Multi-party Entanglement in Graph States,
         `arXiv:0307130 <https://arxiv.org/pdf/quant-ph/0307130.pdf>`_
@@ -59,9 +60,9 @@ class GraphState(QuantumCircuit):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="2.1",
         additional_msg="Use qiskit.circuit.library.GraphStateGate instead.",
-        pending=True,
+        removal_timeline="in Qiskit 3.0",
     )
     def __init__(self, adjacency_matrix: list | np.ndarray) -> None:
         """Create graph state preparation circuit.
@@ -103,7 +104,7 @@ class GraphStateGate(Gate):
     in a product basis at the end, there is evidence that the circuit becomes
     hard to simulate [2].
 
-    **Reference Circuit:**
+    Reference Circuit:
 
     .. plot::
         :alt: Circuit diagram output by the previous code.
@@ -118,12 +119,13 @@ class GraphStateGate(Gate):
         circuit.append(GraphStateGate(rx.adjacency_matrix(G)), [0, 1, 2, 3, 4])
         circuit.decompose().draw('mpl')
 
-    **References:**
+    References:
 
     [1] M. Hein, J. Eisert, H.J. Briegel, Multi-party Entanglement in Graph States,
-        `arXiv:0307130 <https://arxiv.org/pdf/quant-ph/0307130.pdf>`_
+    `arXiv:0307130 <https://arxiv.org/pdf/quant-ph/0307130.pdf>`_
+
     [2] D. Koh, Further Extensions of Clifford Circuits & their Classical Simulation Complexities.
-        `arXiv:1512.07892 <https://arxiv.org/pdf/1512.07892.pdf>`_
+    `arXiv:1512.07892 <https://arxiv.org/pdf/1512.07892.pdf>`_
     """
 
     def __init__(self, adjacency_matrix: list | np.ndarray) -> None:

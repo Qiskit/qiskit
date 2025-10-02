@@ -18,22 +18,23 @@ use pyo3::basic::CompareOp;
 use pyo3::exceptions::{PyDeprecationWarning, PyTypeError};
 use pyo3::prelude::*;
 
-use pyo3::types::{PyBool, PyList, PyTuple, PyType};
 use pyo3::IntoPyObjectExt;
-use pyo3::{intern, PyObject, PyResult};
+use pyo3::types::{PyBool, PyList, PyTuple, PyType};
+use pyo3::{PyResult, intern};
 
-use nalgebra::{MatrixView2, MatrixView4};
+use nalgebra::{Dyn, MatrixView2, MatrixView4};
 use num_complex::Complex64;
 use smallvec::SmallVec;
 
 use crate::imports::{
-    CONTROLLED_GATE, CONTROL_FLOW_OP, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN,
+    CONTROL_FLOW_OP, CONTROLLED_GATE, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN,
 };
 use crate::operations::{
     ArrayType, Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
     StandardInstruction, StandardInstructionType, UnitaryGate,
 };
 use crate::packed_instruction::PackedOperation;
+use crate::parameter::parameter_expression::ParameterExpression;
 
 /// A single instruction in a :class:`.QuantumCircuit`, comprised of the :attr:`operation` and
 /// various operands.
@@ -155,7 +156,7 @@ impl CircuitInstruction {
 
     /// The logical operation that this instruction represents an execution of.
     #[getter]
-    pub fn get_operation(&self, py: Python) -> PyResult<PyObject> {
+    pub fn get_operation(&self, py: Python) -> PyResult<Py<PyAny>> {
         // This doesn't use `get_or_init` because a) the initialiser is fallible and
         // `get_or_try_init` isn't stable, and b) the initialiser can yield to the Python
         // interpreter, which might suspend the thread and allow another to inadvertantly attempt to
@@ -306,7 +307,7 @@ impl CircuitInstruction {
         }
     }
 
-    pub fn __getnewargs__(&self, py: Python<'_>) -> PyResult<PyObject> {
+    pub fn __getnewargs__(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
         (
             self.get_operation(py)?,
             self.qubits.bind(py),
@@ -344,7 +345,7 @@ impl CircuitInstruction {
         )
     }
 
-    pub fn __getitem__(&self, py: Python<'_>, key: &Bound<PyAny>) -> PyResult<PyObject> {
+    pub fn __getitem__(&self, py: Python<'_>, key: &Bound<PyAny>) -> PyResult<Py<PyAny>> {
         warn_on_legacy_circuit_instruction_iteration(py)?;
         self._legacy_format(py)?
             .as_any()
@@ -352,7 +353,7 @@ impl CircuitInstruction {
             .into_py_any(py)
     }
 
-    pub fn __iter__(&self, py: Python<'_>) -> PyResult<PyObject> {
+    pub fn __iter__(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
         warn_on_legacy_circuit_instruction_iteration(py)?;
         self._legacy_format(py)?
             .as_any()
@@ -370,7 +371,7 @@ impl CircuitInstruction {
         other: &Bound<PyAny>,
         op: CompareOp,
         py: Python<'_>,
-    ) -> PyResult<PyObject> {
+    ) -> PyResult<Py<PyAny>> {
         fn params_eq(py: Python, left: &[Param], right: &[Param]) -> PyResult<bool> {
             if left.len() != right.len() {
                 return Ok(false);
@@ -379,16 +380,19 @@ impl CircuitInstruction {
                 let eq = match left {
                     Param::Float(left) => match right {
                         Param::Float(right) => left == right,
-                        Param::ParameterExpression(right) | Param::Obj(right) => {
-                            right.bind(py).eq(left)?
+                        Param::ParameterExpression(right) => {
+                            &ParameterExpression::from_f64(*left) == right.as_ref()
                         }
+                        Param::Obj(right) => right.bind(py).eq(left)?,
                     },
-                    Param::ParameterExpression(left) | Param::Obj(left) => match right {
-                        Param::Float(right) => left.bind(py).eq(right)?,
-                        Param::ParameterExpression(right) | Param::Obj(right) => {
-                            left.bind(py).eq(right)?
+                    Param::ParameterExpression(left) => match right {
+                        Param::Float(right) => {
+                            left.as_ref() == &ParameterExpression::from_f64(*right)
                         }
+                        Param::ParameterExpression(right) => left == right,
+                        Param::Obj(right) => right.bind(py).eq(left.as_ref().clone())?,
                     },
+                    Param::Obj(left) => left.bind(py).eq(right)?,
                 };
                 if !eq {
                     return Ok(false);
@@ -578,9 +582,9 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
         // We need to check by name here to avoid a circular import during initial loading
         if ob.getattr(intern!(py, "name"))?.extract::<String>()? == "unitary" {
             let params = extract_params()?;
-            if let Param::Obj(data) = &params[0] {
+            if let Some(Param::Obj(data)) = params.first() {
                 let py_matrix: PyReadonlyArray2<Complex64> = data.extract(py)?;
-                let matrix: Option<MatrixView2<Complex64>> = py_matrix.try_as_matrix();
+                let matrix: Option<MatrixView2<Complex64, Dyn, Dyn>> = py_matrix.try_as_matrix();
                 if let Some(x) = matrix {
                     let unitary_gate = Box::new(UnitaryGate {
                         array: ArrayType::OneQ(x.into_owned()),
@@ -591,7 +595,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                         label: extract_label()?,
                     });
                 }
-                let matrix: Option<MatrixView4<Complex64>> = py_matrix.try_as_matrix();
+                let matrix: Option<MatrixView4<Complex64, Dyn, Dyn>> = py_matrix.try_as_matrix();
                 if let Some(x) = matrix {
                     let unitary_gate = Box::new(UnitaryGate {
                         array: ArrayType::TwoQ(x.into_owned()),
@@ -660,7 +664,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 label: None,
             });
         }
-        Err(PyTypeError::new_err(format!("invalid input: {}", ob)))
+        Err(PyTypeError::new_err(format!("invalid input: {ob}")))
     }
 }
 
@@ -679,7 +683,7 @@ fn as_tuple<'py>(py: Python<'py>, seq: Option<Bound<'py, PyAny>>) -> PyResult<Bo
             py,
             seq.try_iter()?
                 .map(|o| Ok(o?.unbind()))
-                .collect::<PyResult<Vec<PyObject>>>()?,
+                .collect::<PyResult<Vec<Py<PyAny>>>>()?,
         )
     }
 }
@@ -698,7 +702,7 @@ fn warn_on_legacy_circuit_instruction_iteration(py: Python) -> PyResult<()> {
                 py,
                 concat!(
                     "Treating CircuitInstruction as an iterable is deprecated legacy behavior",
-                    " since Qiskit 1.2, and will be removed in Qiskit 2.0.",
+                    " since Qiskit 1.2, and will be removed in Qiskit 3.0.",
                     " Instead, use the `operation`, `qubits` and `clbits` named attributes."
                 )
             ),

@@ -10,5 +10,11 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+mod pointers;
+
+pub mod circuit;
+pub mod circuit_library;
 pub mod exit_codes;
+pub mod param;
 pub mod sparse_observable;
+pub mod transpiler;

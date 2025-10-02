@@ -17,7 +17,6 @@ import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import _ctrl_state_to_int
 from qiskit._accelerate.circuit import StandardGate
 
@@ -41,10 +40,7 @@ class U1Gate(Gate):
           circuit = QuantumCircuit(1)
           circuit.p(lambda, 0) # or circuit.u(0, 0, lambda, 0)
 
-
-
-
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -52,7 +48,7 @@ class U1Gate(Gate):
         q_0: ┤ U1(θ) ├
              └───────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -62,19 +58,19 @@ class U1Gate(Gate):
                 0 & e^{i\theta}
             \end{pmatrix}
 
-    **Examples:**
+    Examples:
 
-        .. math::
+    .. math::
 
-            U1(\theta = \pi) = Z
+        U1(\theta = \pi) = Z
 
-        .. math::
+    .. math::
 
-            U1(\theta = \pi/2) = S
+        U1(\theta = \pi/2) = S
 
-        .. math::
+    .. math::
 
-            U1(\theta = \pi/4) = T
+        U1(\theta = \pi/4) = T
 
     .. seealso::
 
@@ -93,24 +89,28 @@ class U1Gate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
-    _standard_gate = StandardGate.U1Gate
+    _standard_gate = StandardGate.U1
 
     def __init__(self, theta: ParameterValueType, label: str | None = None):
-        """Create new U1 gate."""
+        """
+        Args:
+            theta: The rotation angle.
+            label: An optional label for the gate.
+        """
         super().__init__("u1", 1, [theta], label=label)
 
     def _define(self):
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .u3 import U3Gate  # pylint: disable=cyclic-import
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(U3Gate(0, 0, self.params[0]), [q[0]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        #    ┌──────┐
+        # q: ┤ P(θ) ├
+        #    └──────┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.U1._get_definition(self.params), legacy_qubits=True, name=self.name
+        )
 
     def control(
         self,
@@ -194,7 +194,7 @@ class CU1Gate(ControlledGate):
 
 
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -204,7 +204,7 @@ class CU1Gate(ControlledGate):
         q_1: ─■──
 
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 
@@ -225,7 +225,7 @@ class CU1Gate(ControlledGate):
         phase difference.
     """
 
-    _standard_gate = StandardGate.CU1Gate
+    _standard_gate = StandardGate.CU1
 
     def __init__(
         self,
@@ -247,35 +247,19 @@ class CU1Gate(ControlledGate):
         )
 
     def _define(self):
-        """
-        gate cu1(lambda) a,b
-        { u1(lambda/2) a; cx a,b;
-          u1(-lambda/2) b; cx a,b;
-          u1(lambda/2) b;
-        }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .x import CXGate  # pylint: disable=cyclic-import
+        from qiskit.circuit import QuantumCircuit
 
-        #      ┌─────────┐
-        # q_0: ┤ U1(λ/2) ├──■────────────────■─────────────
-        #      └─────────┘┌─┴─┐┌──────────┐┌─┴─┐┌─────────┐
-        # q_1: ───────────┤ X ├┤ U1(-λ/2) ├┤ X ├┤ U1(λ/2) ├
-        #                 └───┘└──────────┘└───┘└─────────┘
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (U1Gate(self.params[0] / 2), [q[0]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (U1Gate(-self.params[0] / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (U1Gate(self.params[0] / 2), [q[1]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        #      ┌────────┐
+        # q_0: ┤ P(θ/2) ├──■───────────────■────────────
+        #      └────────┘┌─┴─┐┌─────────┐┌─┴─┐┌────────┐
+        # q_1: ──────────┤ X ├┤ P(-θ/2) ├┤ X ├┤ P(θ/2) ├
+        #                └───┘└─────────┘└───┘└────────┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.CU1._get_definition(self.params), legacy_qubits=True, name=self.name
+        )
 
     def control(
         self,
@@ -368,7 +352,7 @@ class MCU1Gate(ControlledGate):
 
 
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -409,24 +393,16 @@ class MCU1Gate(ControlledGate):
 
     def _define(self):
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-
-        q = QuantumRegister(self.num_qubits, "q")
-        qc = QuantumCircuit(q, name=self.name)
-
         if self.num_ctrl_qubits == 0:
             definition = U1Gate(self.params[0]).definition
-        if self.num_ctrl_qubits == 1:
+        elif self.num_ctrl_qubits == 1:
             definition = CU1Gate(self.params[0]).definition
         else:
-            from .u3 import _gray_code_chain
+            from .p import MCPhaseGate
 
-            scaled_lam = self.params[0] / (2 ** (self.num_ctrl_qubits - 1))
-            bottom_gate = CU1Gate(scaled_lam)
-            definition = _gray_code_chain(q, self.num_ctrl_qubits, bottom_gate)
-        for instr, qargs, cargs in definition:
-            qc._append(instr, qargs, cargs)
-        self.definition = qc
+            definition = MCPhaseGate(self.params[0], self.num_ctrl_qubits).definition
+
+        self.definition = definition
 
     def control(
         self,

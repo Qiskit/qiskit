@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+#include <complex.h>
+#include <qiskit.h>
 #include <stdio.h>
 
 // An enumeration of test results. These should be returned by test functions to
@@ -29,23 +31,7 @@ enum TestResult {
 // A function to run a test function of a given name. This function will also
 // post-process the returned `TestResult` to product a minimal info message for
 // the developer running the test suite.
-int run(const char *name, int (*test_function)(void)) {
-    // TODO: we could consider to change the return value of our test functions
-    // to be a struct containing the integer return value and a custom error
-    // message which could then be included below.
-    int result = test_function();
-    int did_fail = 1;
-    char *msg;
-    if (result == Ok) {
-        did_fail = 0;
-        msg = "Ok";
-    } else if (result == EqualityError) {
-        msg = "FAILED with an EqualityError";
-    } else {
-        msg = "FAILED with unknown error";
-    }
-    fprintf(stderr, "--- %-30s: %s\n", name, msg);
-    fflush(stderr);
+int run(const char *name, int (*test_function)(void));
 
-    return did_fail;
-}
+bool compare_circuits(const QkCircuit *res, const QkCircuit *expected);
+void print_circuit(const QkCircuit *qc);

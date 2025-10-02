@@ -173,9 +173,17 @@ External Python Libraries
 .. py:data:: HAS_SYMENGINE
 
     `Symengine <https://github.com/symengine/symengine>`__ is a fast C++ backend for the
-    symbolic-manipulation library `Sympy <https://www.sympy.org/en/index.html>`__.  Qiskit uses
-    special methods from Symengine to accelerate its handling of
-    :class:`~.circuit.Parameter`\\ s if available.
+    symbolic-manipulation library `Sympy <https://www.sympy.org/en/index.html>`__.  This
+    dependency is used to load legacy QPY formats, where this package was used to handle
+    :class:`~.circuit.Parameter`\\ s.
+
+.. py:data:: HAS_SYMPY
+
+    `SymPy <https://www.sympy.org/en/index.html>`__ is Python library for symbolic mathematics.
+    ``SymPy`` was historically used for the implementation of the :class:`.ParameterExpression`
+    class but isn't any longer. However it is needed for some legacy functionality that uses
+    :meth:`.ParameterExpression.sympify`. It is also used in some visualization functions
+    and template matching.
 
 .. py:data:: HAS_TESTTOOLS
 
@@ -322,7 +330,8 @@ HAS_SKQUANT = _LazyImportTester(
     install="pip install scikit-quant",
 )
 HAS_SQSNOBFIT = _LazyImportTester("SQSnobFit", install="pip install SQSnobFit")
-HAS_SYMENGINE = _LazyImportTester("symengine", install="pip install symengine")
+HAS_SYMENGINE = _LazyImportTester("symengine", install="pip install symengine<0.14")
+HAS_SYMPY = _LazyImportTester("sympy", install="pip install sympy")
 HAS_TESTTOOLS = _LazyImportTester("testtools", install="pip install testtools")
 HAS_TWEEDLEDUM = _LazyImportTester("tweedledum", install="pip install tweedledum")
 HAS_Z3 = _LazyImportTester("z3", install="pip install z3-solver")

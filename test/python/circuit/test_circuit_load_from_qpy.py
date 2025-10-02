@@ -17,6 +17,8 @@ import io
 import json
 import random
 import unittest
+import warnings
+import re
 
 import ddt
 import numpy as np
@@ -24,15 +26,17 @@ import numpy as np
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit import CASE_DEFAULT, IfElseOp, WhileLoopOp, SwitchCaseOp
 from qiskit.circuit.classical import expr, types
-from qiskit.circuit.classicalregister import Clbit
-from qiskit.circuit.quantumregister import Qubit
+from qiskit.circuit import Clbit
+from qiskit.circuit import Qubit
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.library import (
     XGate,
+    ZGate,
     CXGate,
     RYGate,
     QFT,
+    QFTGate,
     QAOAAnsatz,
     PauliEvolutionGate,
     DCXGate,
@@ -41,11 +45,19 @@ from qiskit.circuit.library import (
     MCXGrayCode,
     MCXRecursive,
     MCXVChain,
+    MCMTGate,
     UCRXGate,
     UCRYGate,
     UCRZGate,
     UnitaryGate,
     DiagonalGate,
+    PauliFeatureMap,
+    ZZFeatureMap,
+    RealAmplitudes,
+    pauli_feature_map,
+    zz_feature_map,
+    qaoa_ansatz,
+    real_amplitudes,
 )
 from qiskit.circuit.annotated_operation import (
     AnnotatedOperation,
@@ -626,7 +638,8 @@ class TestLoadFromQPY(QiskitTestCase):
         )
         self.assertDeprecatedBitProperties(qc, new_circ)
 
-    def test_initialize_qft(self):
+    @ddt.data(True, False)
+    def test_initialize_qft(self, use_qft_gate):
         """Test that initialize with a complex statevector and qft work."""
         k = 5
         state = (1 / np.sqrt(8)) * np.array(
@@ -645,7 +658,13 @@ class TestLoadFromQPY(QiskitTestCase):
         qubits = 3
         qc = QuantumCircuit(qubits, qubits)
         qc.initialize(state)
-        qc.append(QFT(qubits), range(qubits))
+        if use_qft_gate:
+            qft = QFTGate(qubits)
+        else:
+            with self.assertWarns(DeprecationWarning):
+                qft = QFT(qubits)
+
+        qc.append(qft, range(qubits))
         qc.measure(range(qubits), range(qubits))
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
@@ -657,7 +676,8 @@ class TestLoadFromQPY(QiskitTestCase):
         )
         self.assertDeprecatedBitProperties(qc, new_circ)
 
-    def test_statepreparation(self):
+    @ddt.data(True, False)
+    def test_statepreparation(self, use_qft_gate):
         """Test that state preparation with a complex statevector and qft work."""
         k = 5
         state = (1 / np.sqrt(8)) * np.array(
@@ -676,7 +696,13 @@ class TestLoadFromQPY(QiskitTestCase):
         qubits = 3
         qc = QuantumCircuit(qubits, qubits)
         qc.prepare_state(state)
-        qc.append(QFT(qubits), range(qubits))
+        if use_qft_gate:
+            qft = QFTGate(qubits)
+        else:
+            with self.assertWarns(DeprecationWarning):
+                qft = QFT(qubits)
+
+        qc.append(qft, range(qubits))
         qc.measure(range(qubits), range(qubits))
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
@@ -711,7 +737,8 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_qaoa(self):
         """Test loading a QAOA circuit works."""
         cost_operator = Pauli("ZIIZ")
-        qaoa = QAOAAnsatz(cost_operator, reps=2)
+        with self.assertWarns(DeprecationWarning):
+            qaoa = QAOAAnsatz(cost_operator, reps=2)
 
         qpy_file = io.BytesIO()
         dump(qaoa, qpy_file)
@@ -863,6 +890,180 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertIsInstance(new_evo, PauliEvolutionGate)
         self.assertDeprecatedBitProperties(qc, new_circ)
 
+    def test_pauli_feature_map_legacy(self):
+        """Regression test for
+        https://github.com/Qiskit/qiskit/issues/13720."""
+        # legacy construction
+        with self.assertWarns(DeprecationWarning):
+            qc = PauliFeatureMap(feature_dimension=5, reps=1)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            new_circuit = load(qpy_file)[0]
+            for warning in w:
+                self.assertFalse(
+                    re.search(
+                        r"is not fully identical to its pre-serialization state",
+                        str(warning.message),
+                    )
+                )
+        self.assertEqual(qc, new_circuit)
+
+    def test_pauli_feature_map_new(self):
+        """Regression test for
+        https://github.com/Qiskit/qiskit/issues/13720."""
+        # new construction
+        qc = pauli_feature_map(feature_dimension=5, reps=1)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            new_circuit = load(qpy_file)[0]
+            for warning in w:
+                self.assertFalse(
+                    re.search(
+                        r"is not fully identical to its pre-serialization state",
+                        str(warning.message),
+                    )
+                )
+        self.assertEqual(qc, new_circuit)
+
+    def test_zz_feature_map_legacy(self):
+        """Regression test for
+        https://github.com/Qiskit/qiskit/issues/14088."""
+        # legacy construction
+        with self.assertWarns(DeprecationWarning):
+            qc = ZZFeatureMap(2, reps=1)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            new_circuit = load(qpy_file)[0]
+            for warning in w:
+                self.assertFalse(
+                    re.search(
+                        r"is not fully identical to its pre-serialization state",
+                        str(warning.message),
+                    )
+                )
+        self.assertEqual(qc, new_circuit)
+
+    def test_zz_feature_map_new(self):
+        """Regression test for
+        https://github.com/Qiskit/qiskit/issues/14088."""
+        # new construction
+        qc = zz_feature_map(2, reps=1)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            new_circuit = load(qpy_file)[0]
+            for warning in w:
+                self.assertFalse(
+                    re.search(
+                        r"is not fully identical to its pre-serialization state",
+                        str(warning.message),
+                    )
+                )
+        self.assertEqual(qc, new_circuit)
+
+    def test_real_amplitudes_legacy(self):
+        """Regression test for
+        https://github.com/Qiskit/qiskit/issues/14088."""
+        # legacy construction
+        with self.assertWarns(DeprecationWarning):
+            qc = RealAmplitudes(2, reps=1)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            new_circuit = load(qpy_file)[0]
+            for warning in w:
+                self.assertFalse(
+                    re.search(
+                        r"is not fully identical to its pre-serialization state",
+                        str(warning.message),
+                    )
+                )
+        self.assertEqual(qc, new_circuit)
+
+    def test_real_amplitudes_new(self):
+        """Regression test for
+        https://github.com/Qiskit/qiskit/issues/14088."""
+        # new construction
+        qc = real_amplitudes(2, reps=1)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            new_circuit = load(qpy_file)[0]
+            for warning in w:
+                self.assertFalse(
+                    re.search(
+                        r"is not fully identical to its pre-serialization state",
+                        str(warning.message),
+                    )
+                )
+        self.assertEqual(qc, new_circuit)
+
+    def test_duplicated_param_name_legacy(self):
+        """Regression test for
+        https://github.com/Qiskit/qiskit/issues/14089."""
+        op = SparsePauliOp(["ZIZI", "IZIZ", "ZIIZ"])
+        x = ParameterVector("γ", 1)
+        # legacy construction
+        with self.assertWarns(DeprecationWarning):
+            ansatz = QAOAAnsatz(op, reps=1)
+        ansatz = ansatz.assign_parameters({ansatz.parameters[1]: x[0]})
+        qc = QuantumCircuit(4)
+        qc.append(ansatz, range(4))
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            new_circuit = load(qpy_file)[0]
+            for warning in w:
+                self.assertFalse(
+                    re.search(
+                        r"is not fully identical to its pre-serialization state",
+                        str(warning.message),
+                    )
+                )
+        self.assertEqual(qc, new_circuit)
+
+    def test_duplicated_param_name_new(self):
+        """Regression test for
+        https://github.com/Qiskit/qiskit/issues/14089."""
+        op = SparsePauliOp(["ZIZI", "IZIZ", "ZIIZ"])
+        x = ParameterVector("γ", 1)
+        # new construction
+        ansatz = qaoa_ansatz(op, reps=1)
+        ansatz = ansatz.assign_parameters({ansatz.parameters[1]: x[0]})
+        qc = QuantumCircuit(4)
+        qc.append(ansatz, range(4))
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            new_circuit = load(qpy_file)[0]
+            for warning in w:
+                self.assertFalse(
+                    re.search(
+                        r"is not fully identical to its pre-serialization state",
+                        str(warning.message),
+                    )
+                )
+        self.assertEqual(qc, new_circuit)
+
     def test_parameter_expression_global_phase(self):
         """Test a circuit with a parameter expression global_phase."""
         theta = Parameter("theta")
@@ -920,12 +1121,51 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual([x.name for x in new_circuit.parameters], expected_params)
         self.assertDeprecatedBitProperties(qc, new_circuit)
 
+    def test_parameter_vector_equality(self):
+        """Test parameter vector equality after serialization."""
+
+        def dump_load_param_vec(qc):
+            params = qc.parameters
+            vector = qc.parameters[0].vector
+            qpy_file = io.BytesIO()
+            dump(qc, qpy_file)
+            qpy_file.seek(0)
+            new_circuit = load(qpy_file)[0]
+            new_params = new_circuit.parameters
+            new_vector = new_circuit.parameters[0].vector
+            return params, new_params, vector, new_vector
+
+        with self.subTest("manual"):
+            x = ParameterVector("γ", 2)
+            qc = QuantumCircuit(3)
+            qc.rzz(x[0], 0, 1)
+            with self.assertWarns(UserWarning):
+                params, new_params, vector, new_vector = dump_load_param_vec(qc)
+
+            self.assertTrue(all(p == q for p, q in zip(params, new_params)))
+            # vector[0] is part of the circuit
+            self.assertTrue(vector[0] == new_vector[0])
+            # vector[1] is not part of the circuit
+            self.assertTrue(vector[1] != new_vector[1])
+
+        with self.subTest("real_amplitudes"):
+            qc = real_amplitudes(2, reps=1)
+            params, new_params, vector, new_vector = dump_load_param_vec(qc)
+            self.assertTrue(all(p == q for p, q in zip(params, new_params)))
+            self.assertTrue(all(p == q for p, q in zip(vector, new_vector)))
+
+        with self.subTest("zz_feature_map"):
+            qc = zz_feature_map(2, reps=1)
+            params, new_params, vector, new_vector = dump_load_param_vec(qc)
+            self.assertTrue(all(p == q for p, q in zip(params, new_params)))
+            self.assertTrue(all(p == q for p, q in zip(vector, new_vector)))
+
     def test_parameter_vector_element_in_expression(self):
         """Test a circuit with a parameter vector used in a parameter expression."""
         qc = QuantumCircuit(7)
         entanglement = [[i, i + 1] for i in range(7 - 1)]
         input_params = ParameterVector("x_par", 14)
-        user_params = ParameterVector("\u03B8_par", 1)
+        user_params = ParameterVector("\u03b8_par", 1)
 
         for i in range(qc.num_qubits):
             qc.ry(user_params[0], qc.qubits[i])
@@ -1258,21 +1498,27 @@ class TestLoadFromQPY(QiskitTestCase):
         qc = QuantumCircuit(6)
         mcu1_gate = MCU1Gate(np.pi, 2)
         mcx_gate = MCXGate(5)
-        mcx_gray_gate = MCXGrayCode(5)
-        mcx_recursive_gate = MCXRecursive(4)
-        mcx_vchain_gate = MCXVChain(3)
+        with self.assertWarns(DeprecationWarning):
+            mcx_gray_gate = MCXGrayCode(5)
+        with self.assertWarns(DeprecationWarning):
+            mcx_recursive_gate = MCXRecursive(4)
+        with self.assertWarns(DeprecationWarning):
+            mcx_vchain_gate = MCXVChain(3)
+        mcmt_gate = MCMTGate(ZGate(), 2, 1)
         qc.append(mcu1_gate, [0, 2, 1])
         qc.append(mcx_gate, list(range(0, 6)))
         qc.append(mcx_gray_gate, list(range(0, 6)))
         qc.append(mcx_recursive_gate, list(range(0, 5)))
         qc.append(mcx_vchain_gate, list(range(0, 5)))
+        qc.append(mcmt_gate, list(range(0, 3)))
         qc.mcp(np.pi, [0, 2], 1)
         qc.mcx([0, 2], 1)
         qc.measure_all()
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
         qpy_file.seek(0)
-        new_circuit = load(qpy_file)[0]
+        with self.assertWarns(DeprecationWarning):
+            new_circuit = load(qpy_file)[0]
         self.assertEqual(qc, new_circuit)
         self.assertDeprecatedBitProperties(qc, new_circuit)
 
@@ -1625,6 +1871,60 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(qc.cregs, new_circuit.cregs)
         self.assertDeprecatedBitProperties(qc, new_circuit)
 
+    def test_box(self):
+        """Test that box, including duration, unit and label roundtrips."""
+        qc = QuantumCircuit(2)
+        with qc.box():  # Instruction 0
+            qc.cx(0, 1)
+        with qc.box(duration=1, unit="dt", label="hello"):  # Instruction 1
+            with qc.box(duration=2.5, unit="s", label="world"):  # Instruction 1-0
+                qc.cx(0, 1)
+
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            out = load(fptr)[0]
+
+        self.assertEqual(qc, out)
+        self.assertDeprecatedBitProperties(qc, out)
+
+        # ... and a couple of manual checks, to be extra sure we check things not in `__eq__`.
+        box_0 = out.data[0].operation
+        self.assertIsNone(box_0.duration)
+        self.assertIsNone(box_0.label)
+
+        box_1 = out.data[1].operation
+        self.assertEqual(box_1.duration, 1)
+        self.assertEqual(box_1.unit, "dt")
+        self.assertEqual(box_1.label, "hello")
+
+        box_1_0 = box_1.blocks[0].data[0].operation
+        self.assertEqual(box_1_0.duration, 2.5)
+        self.assertEqual(box_1_0.unit, "s")
+        self.assertEqual(box_1_0.label, "world")
+
+    def test_box_with_stretch(self):
+        """Test that box's duration and unit round-trip with stretches."""
+        qc = QuantumCircuit(2)
+        a = qc.add_stretch("a")
+        b = qc.add_stretch("b")
+        with qc.box(duration=a):
+            with qc.box(duration=expr.mul(2, b)):
+                pass
+
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            out = load(fptr)[0]
+
+        box_outer = out.data[0].operation
+        self.assertEqual(box_outer.duration, a)
+        self.assertEqual(box_outer.unit, "expr")
+        box_inner = box_outer.blocks[0].data[0].operation
+        self.assertEqual(box_inner.duration, expr.mul(2, b))
+        self.assertEqual(box_inner.unit, "expr")
+        self.assertEqual(qc, out)
+
     def test_multiple_nested_control_custom_definitions(self):
         """Test that circuits with multiple controlled custom gates that in turn depend on custom
         gates can be exported successfully when there are several such gates in the outer circuit.
@@ -1919,8 +2219,49 @@ class TestLoadFromQPY(QiskitTestCase):
             pass
         with (
             io.BytesIO() as fptr,
+            self.assertRaisesRegex(UnsupportedFeatureForVersion, "version 14 is required.*float"),
+        ):
+            dump(qc, fptr, version=version)
+
+    @ddt.idata(range(QPY_COMPATIBILITY_VERSION, 14))
+    def test_pre_v14_rejects_duration_typed_expr(self, version):
+        """Test that dumping to older QPY versions rejects duration-typed expressions."""
+        from qiskit.circuit import Duration
+
+        qc = QuantumCircuit()
+        with qc.if_test(expr.less(Duration.dt(10), Duration.dt(100))):
+            pass
+        with (
+            io.BytesIO() as fptr,
             self.assertRaisesRegex(
-                UnsupportedFeatureForVersion, "version 14 is required.*float-typed expressions"
+                UnsupportedFeatureForVersion, "version 14 is required.*duration"
+            ),
+        ):
+            dump(qc, fptr, version=version)
+
+    @ddt.idata(range(QPY_COMPATIBILITY_VERSION, 14))
+    def test_pre_v14_rejects_stretch_expr(self, version):
+        """Test that dumping to older QPY versions rejects duration-typed expressions."""
+        qc = QuantumCircuit()
+        qc.add_stretch("a")
+        with (
+            io.BytesIO() as fptr,
+            self.assertRaisesRegex(UnsupportedFeatureForVersion, "version 14 is required.*stretch"),
+        ):
+            dump(qc, fptr, version=version)
+
+    @ddt.idata(range(max(QPY_COMPATIBILITY_VERSION, 14), 16))
+    def test_pre_v16_rejects_ps_duration(self, version):
+        """Test that dumping to older QPY versions rejects Duration.ps."""
+        from qiskit.circuit import Duration
+
+        qc = QuantumCircuit()
+        with qc.if_test(expr.less(Duration.ns(1000), Duration.ps(1))):
+            pass
+        with (
+            io.BytesIO() as fptr,
+            self.assertRaisesRegex(
+                UnsupportedFeatureForVersion, "version 16 is required.*Duration.ps"
             ),
         ):
             dump(qc, fptr, version=version)

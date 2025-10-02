@@ -13,7 +13,6 @@
 """Test multiplier circuits."""
 
 import unittest
-import re
 import numpy as np
 from ddt import ddt, data, unpack
 
@@ -85,21 +84,41 @@ class TestMultiplier(QiskitTestCase):
         (3, RGQFTMultiplier, 5),
         (3, RGQFTMultiplier, 4),
         (3, RGQFTMultiplier, 3),
-        (3, multiplier_qft_r17),
-        (3, multiplier_qft_r17, 5),
-        (3, multiplier_qft_r17, 4),
-        (3, multiplier_qft_r17, 3),
         (3, HRSCumulativeMultiplier),
         (3, HRSCumulativeMultiplier, 5),
         (3, HRSCumulativeMultiplier, 4),
         (3, HRSCumulativeMultiplier, 3),
+        (3, HRSCumulativeMultiplier, None, CDKMRippleCarryAdder),
+        (3, HRSCumulativeMultiplier, None, DraperQFTAdder),
+        (3, HRSCumulativeMultiplier, None, VBERippleCarryAdder),
+    )
+    @unpack
+    def test_multiplication_circuit(
+        self, num_state_qubits, multiplier, num_result_qubits=None, adder=None
+    ):
+        """Test multiplication for all implemented multipliers."""
+        if num_result_qubits is None:
+            num_result_qubits = 2 * num_state_qubits
+        if adder is not None:
+            with self.assertWarns(DeprecationWarning):
+                adder = adder(num_state_qubits, kind="half")
+            with self.assertWarns(DeprecationWarning):
+                multiplier = multiplier(num_state_qubits, num_result_qubits, adder=adder)
+        else:
+            with self.assertWarns(DeprecationWarning):
+                multiplier = multiplier(num_state_qubits, num_result_qubits)
+
+        self.assertMultiplicationIsCorrect(num_state_qubits, num_result_qubits, multiplier)
+
+    @data(
+        (3, multiplier_qft_r17),
+        (3, multiplier_qft_r17, 5),
+        (3, multiplier_qft_r17, 4),
+        (3, multiplier_qft_r17, 3),
         (3, multiplier_cumulative_h18),
         (3, multiplier_cumulative_h18, 5),
         (3, multiplier_cumulative_h18, 4),
         (3, multiplier_cumulative_h18, 3),
-        (3, HRSCumulativeMultiplier, None, CDKMRippleCarryAdder),
-        (3, HRSCumulativeMultiplier, None, DraperQFTAdder),
-        (3, HRSCumulativeMultiplier, None, VBERippleCarryAdder),
     )
     @unpack
     def test_multiplication(self, num_state_qubits, multiplier, num_result_qubits=None, adder=None):
@@ -132,18 +151,23 @@ class TestMultiplier(QiskitTestCase):
     def test_raises_on_wrong_num_bits(self, multiplier, num_state_qubits, num_result_qubits=None):
         """Test an error is raised for a bad number of state or result qubits."""
         with self.assertRaises(ValueError):
-            _ = multiplier(num_state_qubits, num_result_qubits)
+            with self.assertWarns(DeprecationWarning):
+                _ = multiplier(num_state_qubits, num_result_qubits)
 
     def test_modular_cumulative_multiplier_custom_adder(self):
         """Test an error is raised when a custom adder is used with modular cumulative multiplier."""
         with self.assertRaises(NotImplementedError):
-            _ = HRSCumulativeMultiplier(3, 3, adder=VBERippleCarryAdder(3))
+            with self.assertWarns(DeprecationWarning):
+                _ = HRSCumulativeMultiplier(3, 3, adder=VBERippleCarryAdder(3))
 
     def test_plugins(self):
-        """Test setting the HLS plugins for the modular adder."""
+        """Test setting HLS plugins for the multiplier."""
 
-        # all gates with the plugins we check, including an expected operation
-        plugins = [("cumulative_h18", "ccircuit-.*"), ("qft_r17", "qft")]
+        # For each plugin, we check the presence of an expected operation after
+        # using this plugin.
+        # Note that HighLevelSynthesis runs without basis_gates, so it does not
+        # synthesize down to 1-qubit and 2-qubit gates.
+        plugins = [("cumulative_h18", "ccx"), ("qft_r17", "mcphase")]
 
         num_state_qubits = 2
 
@@ -159,8 +183,7 @@ class TestMultiplier(QiskitTestCase):
 
                 synth = hls(circuit)
                 ops = set(synth.count_ops().keys())
-
-                self.assertTrue(any(re.match(expected_op, op) for op in ops))
+                self.assertIn(expected_op, ops)
 
 
 if __name__ == "__main__":
