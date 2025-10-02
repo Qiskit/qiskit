@@ -208,7 +208,7 @@ class HoareOptimizer(TransformationPass):
         nodes = list(dag.topological_op_nodes())
         for node in nodes:
             gate = node.op
-            _, ctrlvar, trgtqb, trgtvar = self._seperate_ctrl_trgt(node)
+            _, ctrlvar, trgtqb, trgtvar = self._separate_ctrl_trgt(node)
 
             ctrl_ones = z3.And(*ctrlvar)
 
@@ -221,7 +221,7 @@ class HoareOptimizer(TransformationPass):
                 mapped_nodes = dag.substitute_node_with_dag(node, new_dag)
                 node = next(iter(mapped_nodes.values()))
                 gate = node.op
-                _, ctrlvar, trgtqb, trgtvar = self._seperate_ctrl_trgt(node)
+                _, ctrlvar, trgtqb, trgtvar = self._separate_ctrl_trgt(node)
 
                 ctrl_ones = z3.And(*ctrlvar)
 
@@ -253,8 +253,8 @@ class HoareOptimizer(TransformationPass):
             append = True
             node1 = self.gatecache[qubit][i]
             node2 = self.gatecache[qubit][i + 1]
-            trgtqb1 = self._seperate_ctrl_trgt(node1)[2]
-            trgtqb2 = self._seperate_ctrl_trgt(node2)[2]
+            trgtqb1 = self._separate_ctrl_trgt(node1)[2]
+            trgtqb2 = self._separate_ctrl_trgt(node2)[2]
             i += 1
 
             if trgtqb1 != trgtqb2:
@@ -323,8 +323,8 @@ class HoareOptimizer(TransformationPass):
         import z3
 
         assert len(sequence) == 2
-        ctrlvar1 = self._seperate_ctrl_trgt(sequence[0])[1]
-        ctrlvar2 = self._seperate_ctrl_trgt(sequence[1])[1]
+        ctrlvar1 = self._separate_ctrl_trgt(sequence[0])[1]
+        ctrlvar2 = self._separate_ctrl_trgt(sequence[1])[1]
 
         self.solver.push()
         self.solver.add(
@@ -373,7 +373,7 @@ class HoareOptimizer(TransformationPass):
         # truncate gatecache for this qubit to after above gate
         self.gatecache[qubit] = self.gatecache[qubit][max_idx + 1 :]
 
-    def _seperate_ctrl_trgt(self, node):
+    def _separate_ctrl_trgt(self, node):
         """Get the target qubits and control qubits if available,
         as well as their respective z3 variables.
         """
