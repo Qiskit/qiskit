@@ -23,13 +23,13 @@
 /**
  * Test building a quantum volume circuit
  */
-int test_qv(void) {
+static int test_qv(void) {
     const uint32_t num_qubits = 5;
     int result = Ok;
     QkCircuit *qv = qk_circuit_library_quantum_volume(num_qubits, num_qubits, 42);
     size_t num_instructions = qk_circuit_num_instructions(qv);
     if (num_instructions != 10) {
-        printf("Unexpected number of instructions: %zu", num_instructions);
+        printf("Unexpected number of instructions: %zu\n", num_instructions);
         result = EqualityError;
         goto cleanup;
     }

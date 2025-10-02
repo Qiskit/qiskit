@@ -39,7 +39,7 @@ use qiskit_circuit_library::quantum_volume::quantum_volume;
 /// # Example
 ///
 /// ```c
-///     QkCircuit *qc = qk_circuit_library_quantum_volume(10, 10, -1)
+/// QkCircuit *qc = qk_circuit_library_quantum_volume(10, 10, -1)
 /// ```
 #[no_mangle]
 #[cfg(feature = "cbinding")]
