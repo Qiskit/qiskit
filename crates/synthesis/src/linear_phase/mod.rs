@@ -12,9 +12,9 @@
 
 use numpy::PyReadonlyArray2;
 use pyo3::{
-    pyfunction,
+    Bound, PyResult, pyfunction,
     types::{PyModule, PyModuleMethods},
-    wrap_pyfunction, Bound, PyResult,
+    wrap_pyfunction,
 };
 use qiskit_circuit::{circuit_data::CircuitData, operations::Param};
 mod cx_cz_depth_lnn;

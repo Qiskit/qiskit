@@ -15,5 +15,6 @@ mod pointers;
 pub mod circuit;
 pub mod circuit_library;
 pub mod exit_codes;
+pub mod param;
 pub mod sparse_observable;
 pub mod transpiler;
