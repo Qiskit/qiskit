@@ -26,8 +26,6 @@ logger = logging.getLogger(__name__)
 # Type alias
 PassManagerIR = Any
 
-_UNSET = object()
-
 
 class Task(ABC):
     """An interface of the pass manager task.
@@ -93,7 +91,7 @@ class GenericPass(Task, ABC):
             )
 
         run_state = None
-        ret: PassManagerIR | object = _UNSET
+        ret = None
         start_time = time.time()
         try:
             if self not in state.workflow_status.completed_passes:
@@ -105,8 +103,7 @@ class GenericPass(Task, ABC):
             run_state = RunState.FAIL
             raise
         finally:
-            if ret is _UNSET or ret is None:
-                ret = passmanager_ir
+            ret = passmanager_ir if ret is None else ret
             if run_state != RunState.SKIP:
                 running_time = time.time() - start_time
                 logger.info("Pass: %s - %.5f (ms)", self.name(), running_time * 1000)
