@@ -1188,7 +1188,7 @@ impl PyPauliLindbladMap {
         out
     }
 
-    /// Calculate the probabilities :math:`\p_P` for the map.
+    /// Calculate the probabilities :math:`p_P` for the map.
     /// These can be interpreted as the probabilities each generator is not applied,
     /// and are defined to be independent of the sign of each Lindblad rate.
     fn probabilities<'py>(&self, py: Python<'py>) -> Bound<'py, PyArray1<f64>> {
