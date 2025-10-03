@@ -537,10 +537,19 @@ impl ControlFlow {
     pub fn create_py_op(
         &self,
         py: Python,
-        blocks: Option<&[Py<PyAny>]>,
+        blocks: Option<&[CircuitData]>, // TODO: should this be Vec instead since we end up cloning?
         label: Option<&str>,
     ) -> PyResult<Py<PyAny>> {
-        let blocks = blocks.unwrap_or_default();
+        let blocks: Vec<_> = blocks
+            .unwrap_or_default()
+            .iter()
+            .map(|b| {
+                Ok(QUANTUM_CIRCUIT
+                    .get_bound(py)
+                    .call_method1(intern!(py, "_from_circuit_data"), (b.clone(),))?
+                    .unbind())
+            })
+            .collect::<PyResult<_>>()?;
         let kwargs = label
             .map(|label| [("label", label.into_py_any(py)?)].into_py_dict(py))
             .transpose()?;
@@ -597,7 +606,7 @@ impl ControlFlow {
             ControlFlow::Switch {
                 target, label_spec, ..
             } => {
-                let cases_specifier: Vec<(Vec<CaseSpecifier>, &Py<PyAny>)> =
+                let cases_specifier: Vec<(Vec<CaseSpecifier>, Py<PyAny>)> =
                     label_spec.iter().cloned().zip(blocks).collect();
                 SWITCH_CASE_OP
                     .get(py)
