@@ -3,7 +3,7 @@ features_circuits:
   - |
     Added a new :class:`qiskit.circuit.classical.expr.Range` class that enables the specification
     of dynamic ranges in classical expressions. 
-This class allows users to define ranges with start, stop and step parameters, allowing more flexible and dynamic for-loop statements.
+    This class allows users to define ranges with start, stop and step parameters, allowing more flexible and dynamic for-loop statements.
     At the moment, :class:`~qiskit.circuit.classical.expr.Range` class can only be used in for-loops,
     The index set of the :class:`qiskit.circuit.ForLoop` can now be of type `qiskit.circuit.classical.expr.Range`,
     on top of the existing `List[int]`.
