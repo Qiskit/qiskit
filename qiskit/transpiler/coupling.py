@@ -492,6 +492,10 @@ class CouplingMap:
         This function calls the :func:`~rustworkx.visualization.graphviz_draw` function from the
         ``rustworkx`` package to draw the :class:`CouplingMap` object.
 
+        Args:
+            method (str): The layout method to use. See the documentation for
+                :func:`~rustworkx.visualization.graphviz_draw` for the list of supported methods
+
         Returns:
             PIL.Image: Drawn coupling map.
 
