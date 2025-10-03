@@ -17,7 +17,6 @@ use num_complex::Complex;
 use numpy::IntoPyArray;
 use pyo3::Bound;
 use pyo3::IntoPyObjectExt;
-use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
 use qiskit_circuit::bit::ShareableQubit;
@@ -27,7 +26,7 @@ use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::CX_GATE;
-use qiskit_circuit::imports::{HLS_SYNTHESIZE_OP_USING_PLUGINS, QS_DECOMPOSITION, QUANTUM_CIRCUIT};
+use qiskit_circuit::imports::{HLS_SYNTHESIZE_OP_USING_PLUGINS, QS_DECOMPOSITION};
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::{Operation, OperationRef};
 use qiskit_circuit::operations::{Param, radd_param};
@@ -573,11 +572,10 @@ fn run_on_circuitdata(
         // Check if synthesis for this operation can be skipped
         if definitely_skip_op(py, data, &inst.op, &op_qubits) {
             if let Some(cf) = input_circuit.try_view_control_flow(index) {
-                let blocks: Vec<_> = Python::attach(|py| {
-                    cf.blocks()
-                        .map(|b| output_circuit.register_block(b.bind(py)))
-                        .collect()
-                });
+                let blocks: Vec<_> = cf
+                    .blocks()
+                    .map(|b| output_circuit.register_block(b.clone()))
+                    .collect();
                 output_circuit.push(PackedInstruction {
                     params: (!blocks.is_empty()).then(|| Box::new(Parameters::Blocks(blocks))),
                     ..inst.clone()
@@ -596,13 +594,8 @@ fn run_on_circuitdata(
         // avoid complications related to tracking qubit status for while- loops.
         // In the future, this handling can potentially be improved.
         if let Some(control_flow) = input_circuit.try_view_control_flow(index) {
-            let quantum_circuit_cls = QUANTUM_CIRCUIT.get_bound(py);
-
-            // old_blocks_py keeps the original QuantumCircuit's appearing within control-flow ops
-            // new_blocks_py keeps the recursively synthesized circuits
-            let old_blocks_py: Vec<Bound<PyAny>> =
-                control_flow.blocks().map(|b| b.bind(py).clone()).collect();
-            let mut new_blocks_py: Vec<Bound<PyAny>> = Vec::with_capacity(old_blocks_py.len());
+            let old_blocks = control_flow.blocks();
+            let mut new_blocks: Vec<CircuitData> = Vec::with_capacity(old_blocks.len());
 
             // We do not allow using any additional qubits outside of the block.
             let mut block_tracker = tracker.clone();
@@ -612,30 +605,15 @@ fn run_on_circuitdata(
             block_tracker.disable(to_disable);
             block_tracker.set_dirty(&op_qubits);
 
-            for block_py in old_blocks_py {
-                let old_block_py: QuantumCircuitData = block_py.extract()?;
-                let (new_block, _) = run_on_circuitdata(
-                    py,
-                    &old_block_py.data,
-                    &op_qubits,
-                    data,
-                    &mut block_tracker,
-                )?;
-                let new_block = new_block.into_bound_py_any(py)?;
-
-                // We create the new quantum circuit by calling copy_empty_like on the old quantum circuit
-                // and manually set the circuit data to the (recursively synthesized) data.
-                // This makes sure that all the python-space information (qregs, cregs, input variables)
-                // get copied correctly.
-                let new_block_py: Bound<'_, PyAny> = quantum_circuit_cls
-                    .call_method1(intern!(py, "copy_empty_like"), (block_py,))?;
-                new_block_py.setattr(intern!(py, "_data"), &new_block)?;
-                new_blocks_py.push(new_block_py);
+            for old_block in old_blocks {
+                let (new_block, _) =
+                    run_on_circuitdata(py, old_block, &op_qubits, data, &mut block_tracker)?;
+                new_blocks.push(new_block);
             }
 
-            let blocks = new_blocks_py
+            let blocks = new_blocks
                 .into_iter()
-                .map(|b| output_circuit.register_block(&b))
+                .map(|b| output_circuit.register_block(b))
                 .collect();
             let packed_instruction = PackedInstruction::from_control_flow(
                 inst.op.control_flow().clone(),

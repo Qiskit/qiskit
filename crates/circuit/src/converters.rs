@@ -17,9 +17,7 @@ use crate::bit::{ShareableClbit, ShareableQubit};
 use crate::circuit_data::{CircuitData, CircuitVar};
 use crate::dag_circuit::DAGIdentifierInfo;
 use crate::dag_circuit::{DAGCircuit, NodeType};
-use crate::object_registry::{ObjectRegistry, PyObjectAsKey};
 use crate::operations::{OperationRef, PythonOperation};
-use crate::{Block, imports};
 
 /// An extractable representation of a QuantumCircuit reserved only for
 /// conversion purposes.
@@ -57,19 +55,11 @@ pub fn circuit_to_dag(
 pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<CircuitData> {
     let blocks = {
         let dag_blocks = dag.iter_blocks();
-        let mut registry: ObjectRegistry<Block, PyObjectAsKey> =
-            ObjectRegistry::with_capacity(dag_blocks.len());
-        if dag_blocks.len() > 0 {
-            Python::attach(|py| -> PyResult<()> {
-                let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
-                for dag_block in dag_blocks {
-                    let block = dag_to_circuit.call1((dag_block.clone(),))?;
-                    registry.add(PyObjectAsKey::new(&block), false)?;
-                }
-                Ok(())
-            })?
+        let mut circuit_blocks = Vec::with_capacity(dag_blocks.len());
+        for dag_block in dag_blocks {
+            circuit_blocks.push(dag_to_circuit(dag_block, copy_operations)?);
         }
-        registry
+        circuit_blocks
     };
     CircuitData::from_packed_instructions(
         dag.qubits().clone(),

@@ -24,6 +24,7 @@ use approx::relative_eq;
 use num_complex::Complex64;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
+use crate::dag_circuit::DAGCircuit;
 use crate::instruction::Instruction;
 use numpy::IntoPyArray;
 use numpy::PyArray2;
@@ -211,7 +212,9 @@ impl DAGOpNode {
                 let other_blocks = borrowed_other.instruction.blocks_view();
                 let mut params_eq = true;
                 for (a, b) in slf_blocks.iter().zip(other_blocks) {
-                    if !a.bind(py).eq(b)? {
+                    let a = DAGCircuit::from_circuit_data(a, false, None, None, None, None)?;
+                    let b = DAGCircuit::from_circuit_data(b, false, None, None, None, None)?;
+                    if !a.__eq__(py, &b)? {
                         params_eq = false;
                         break;
                     }

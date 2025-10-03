@@ -21,6 +21,8 @@ use pyo3::IntoPyObjectExt;
 use pyo3::types::{PyBool, PyList, PyTuple, PyType};
 use pyo3::{PyResult, intern};
 
+use crate::circuit_data::CircuitData;
+use crate::dag_circuit::DAGCircuit;
 use crate::duration::Duration;
 use crate::imports::{CONTROLLED_GATE, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN};
 use crate::instruction::{CreatePythonOperation, Instruction, Parameters};
@@ -77,7 +79,7 @@ pub struct CircuitInstruction {
     /// A sequence of the classical bits that this operation reads from or writes to.
     #[pyo3(get)]
     pub clbits: Py<PyTuple>,
-    pub params: Option<Parameters<Py<PyAny>>>,
+    pub params: Option<Parameters<CircuitData>>,
     pub label: Option<Box<String>>,
     #[cfg(feature = "cache_pygates")]
     pub py_op: OnceLock<Py<PyAny>>,
@@ -107,7 +109,7 @@ impl Instruction for CircuitInstruction {
         self.operation.view()
     }
 
-    fn parameters(&self) -> Option<&Parameters<Py<PyAny>>> {
+    fn parameters(&self) -> Option<&Parameters<CircuitData>> {
         self.params.as_ref()
     }
 
@@ -396,8 +398,8 @@ impl CircuitInstruction {
     ) -> PyResult<Py<PyAny>> {
         fn params_eq(
             py: Python,
-            left: &Option<Parameters<Py<PyAny>>>,
-            right: &Option<Parameters<Py<PyAny>>>,
+            left: &Option<Parameters<CircuitData>>,
+            right: &Option<Parameters<CircuitData>>,
         ) -> PyResult<bool> {
             if left.is_none() && right.is_none() {
                 return Ok(true);
@@ -440,7 +442,10 @@ impl CircuitInstruction {
                         return Ok(false);
                     }
                     for (a, b) in blocks_a.iter().zip(blocks_b) {
-                        if !a.bind(py).eq(b)? {
+                        // TODO: it'd be nice to avoid conversion. Is it necessary?
+                        let a = DAGCircuit::from_circuit_data(a, false, None, None, None, None)?;
+                        let b = DAGCircuit::from_circuit_data(b, false, None, None, None, None)?;
+                        if !a.__eq__(py, &b)? {
                             return Ok(false);
                         }
                     }
@@ -512,7 +517,7 @@ impl CircuitInstruction {
 #[derive(Debug)]
 pub struct OperationFromPython {
     pub operation: PackedOperation,
-    pub params: Option<Parameters<Py<PyAny>>>,
+    pub params: Option<Parameters<CircuitData>>,
     pub label: Option<Box<String>>,
 }
 
@@ -521,7 +526,7 @@ impl Instruction for OperationFromPython {
         self.operation.view()
     }
 
-    fn parameters(&self) -> Option<&Parameters<Py<PyAny>>> {
+    fn parameters(&self) -> Option<&Parameters<CircuitData>> {
         self.params.as_ref()
     }
 
@@ -823,7 +828,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
 pub fn extract_params(
     op: OperationRef,
     params: &Bound<PyAny>,
-) -> PyResult<Option<Parameters<Py<PyAny>>>> {
+) -> PyResult<Option<Parameters<CircuitData>>> {
     Ok(match op {
         OperationRef::ControlFlow(cf) => match cf {
             ControlFlow::BreakLoop { .. } => None,
@@ -832,20 +837,21 @@ pub fn extract_params(
                 // We skip the first two parameters (indexset and loop_param) since we
                 // store those directly on the operation in Rust.
                 let mut params = params.try_iter()?.skip(2);
-                Some(Parameters::Blocks(vec![params.next().unwrap()?.unbind()]))
+                Some(Parameters::Blocks(vec![
+                    params.next().unwrap()?.getattr("_data")?.extract()?,
+                ]))
             }
             _ => {
                 // For all other control flow operations with blocks, the 'params' in Python land
                 // are exactly the blocks.
-                let blocks: Vec<Py<PyAny>> = params
-                    .try_iter()?
-                    .take_while(|p| match p {
-                        // In the case of IfElse, the "false" body might be None.
-                        Ok(block) if !block.is_none() => true,
-                        _ => false,
-                    })
-                    .map(|p| p.map(|p| p.unbind()))
-                    .collect::<PyResult<_>>()?;
+                let mut blocks = Vec::new();
+                for param in params.try_iter()?.take_while(|p| match p {
+                    // In the case of IfElse, the "false" body might be None.
+                    Ok(block) if !block.is_none() => true,
+                    _ => false,
+                }) {
+                    blocks.push(param?.getattr("_data")?.extract()?);
+                }
                 Some(Parameters::Blocks(blocks))
             }
         },
