@@ -21,17 +21,20 @@ import numpy as np
 ATOL_DEFAULT = 1e-8
 RTOL_DEFAULT = 1e-5
 
+
 @functools.cache
 def _identity_matrix_cache(size):
-    m =  np.eye(size)
+    m = np.eye(size)
     m.flags.writeable = False
     return m
 
+
 def _identity_matrix(size):
-    """ Return identity matrix """
+    """Return identity matrix"""
     if size <= 64:
         return _identity_matrix_cache(size)
     return np.eye(size)
+
 
 def matrix_equal(mat1, mat2, ignore_phase=False, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT, props=None):
     # pylint: disable-next=consider-using-f-string
