@@ -10,8 +10,8 @@ This class allows users to define ranges with start, stop and step parameters, a
   
 features_qasm:
   - |
-    The `qiskit.qasm3.ast.ForLoopStatement` class now has a new optional parameter `type_` that can be used to specify the type of the index set of the `qiskit.circuit.ForLoop` expression.
-    If not specified, the index set will be of type `qiskit.circuit.classical.types.UintType`.
+    The :class:`qiskit.qasm3.ast.ForLoopStatement` class now has a new parameter `type_` that is used to specify the type of the index set of the for-loop. 
+    If not specified the type, a depreciation warning will raise and that functionality will be removed in coming major versions. 
     This follows the latest standard OpenQASM 3 specification (https://openqasm.com/language/classical.html#for-loops).
     The `qiskit.qasm3.exporter.QASM3Exporter` class has also been updated to export `qiskit.circuit.classical.expr.Range` objects to a format that is compatible with the latest standard OpenQASM 3 specification.
     Furthermore, the type of the index set of the `qiskit.circuit.ForLoop` expression is now correctly exported to OpenQASM 3, as per the latest specification.
