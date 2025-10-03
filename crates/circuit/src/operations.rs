@@ -383,7 +383,7 @@ pub enum ControlFlow {
     ContinueLoop,
     ForLoop {
         indexset: Vec<usize>,
-        loop_param: Option<Py<PyAny>>,
+        loop_param: Option<Symbol>,
     },
     IfElse {
         condition: Condition,
@@ -445,14 +445,7 @@ impl ControlFlowInstruction {
                 ControlFlow::ForLoop {
                     indexset: other_indexset,
                     loop_param: other_loop_param,
-                } => Ok(self_indexset == other_indexset
-                    && self_loop_param
-                        .as_ref()
-                        .zip(other_loop_param.as_ref())
-                        .map(|(p1, p2)| p1.bind(py).eq(p2))
-                        .unwrap_or_else(|| {
-                            Ok(self_loop_param.is_none() && other_loop_param.is_none())
-                        })?),
+                } => Ok(self_indexset == other_indexset && self_loop_param == other_loop_param),
                 _ => Ok(false),
             },
             ControlFlow::IfElse {
@@ -494,7 +487,17 @@ impl ControlFlowInstruction {
         blocks: Option<Vec<CircuitData>>,
         label: Option<&str>,
     ) -> PyResult<Py<PyAny>> {
-        let mut blocks = blocks.into_iter().flatten();
+        let mut blocks = blocks
+            .unwrap_or_default()
+            .iter()
+            .map(|b| {
+                Ok(QUANTUM_CIRCUIT
+                    .get_bound(py)
+                    .call_method1(intern!(py, "_from_circuit_data"), (b.clone(),))?
+                    .unbind())
+            })
+            .collect::<Vec<PyResult<_>>>()?
+            .into_iter();
         let kwargs = label
             .map(|label| [("label", label.into_py_any(py)?)].into_py_dict(py))
             .transpose()?;
@@ -538,12 +541,12 @@ impl ControlFlowInstruction {
             ControlFlow::ForLoop {
                 indexset,
                 loop_param,
-            } => imports::FOR_LOOP_OP.get(py).call(
+            } => FOR_LOOP_OP.get(py).call(
                 py,
-                (indexset, loop_param, blocks.next()),
+                (indexset, loop_param.clone(), blocks.next()),
                 kwargs.as_ref(),
             ),
-            ControlFlow::IfElse { condition } => imports::IF_ELSE_OP.get(py).call(
+            ControlFlow::IfElse { condition, .. } => IF_ELSE_OP.get(py).call(
                 py,
                 (condition.clone(), blocks.next().unwrap(), blocks.next()),
                 kwargs.as_ref(),
