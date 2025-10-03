@@ -491,7 +491,7 @@ impl ControlFlowInstruction {
     pub fn create_py_op(
         &self,
         py: Python,
-        blocks: Option<Vec<Py<PyAny>>>,
+        blocks: Option<Vec<CircuitData>>,
         label: Option<&str>,
     ) -> PyResult<Py<PyAny>> {
         let mut blocks = blocks.into_iter().flatten();
