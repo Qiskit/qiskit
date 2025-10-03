@@ -38,7 +38,7 @@ static int test_circuit_in_basis(void) {
     if (circuit_len != 2) {
         result = EqualityError;
         printf(
-            "The number of gates resulting from the translation is incorrect. Expected 2, got %lu",
+            "The number of gates resulting from the translation is incorrect. Expected 2, got %zu",
             circuit_len);
         goto cleanup;
     }
@@ -85,7 +85,7 @@ static int test_basic_basis_translator(void) {
     if (result_op_counts.len != 1) {
         result = EqualityError;
         printf(
-            "The number of gates resulting from the translation is incorrect. Expected 1, got %lu",
+            "The number of gates resulting from the translation is incorrect. Expected 1, got %zu",
             result_op_counts.len);
         goto cleanup;
     }
@@ -126,7 +126,7 @@ static int test_toffoli_basis_translator(void) {
     if (result_op_counts.len != 4) {
         result = EqualityError;
         printf(
-            "The number of gates resulting from the translation is incorrect. Expected 1, got %lu",
+            "The number of gates resulting from the translation is incorrect. Expected 1, got %zu",
             result_op_counts.len);
         goto cleanup;
     }
