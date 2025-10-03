@@ -74,9 +74,6 @@ fn py_value_to_expr(_py: Python, value: &Bound<PyAny>) -> PyResult<Expr> {
             "Expected non-negative integer or Expr of unsigned integer type, got {}",
             value
                 .get_type()
-                .name()
-                .map(|s| s.to_string())
-                .unwrap_or_else(|_| "<missing name>".to_string())
         )))
     }
 }
