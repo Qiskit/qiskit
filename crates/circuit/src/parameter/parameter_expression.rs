@@ -564,16 +564,11 @@ impl ParameterExpression {
             }
         }
 
-        match self.expr.subs(&symbol_map) {
-            Some(res) => Ok(Self {
-                expr: res,
-                name_map,
-            }),
-            None => Ok(Self {
-                expr: self.expr.clone(),
-                name_map,
-            }),
-        }
+        let res = self.expr.subs(&symbol_map);
+        Ok(Self {
+            expr: res,
+            name_map,
+        })
     }
 
     /// Bind symbols to values.
@@ -610,10 +605,7 @@ impl ParameterExpression {
         }
 
         // bind the symbol expression and then check the outcome for inf/nan, or numeric values
-        let bound_expr = match self.expr.bind(map) {
-            Some(e) => e,
-            None => self.expr.clone(),
-        };
+        let bound_expr = self.expr.bind(map);
         let bound = match bound_expr.eval(true) {
             Some(v) => match &v {
                 Value::Real(r) => {
@@ -1015,6 +1007,10 @@ impl PyParameterExpression {
                 Value::Real(r) => r.into_py_any(param.py()),
                 Value::Int(i) => i.into_py_any(param.py()),
                 Value::Complex(c) => c.into_py_any(param.py()),
+                Value::Rational {
+                    numerator,
+                    denominator,
+                } => (numerator as f64 / denominator as f64).into_py_any(param.py()),
             },
             Err(_) => PyParameterExpression::from(d_expr).into_py_any(param.py()),
         }

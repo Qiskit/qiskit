@@ -304,30 +304,26 @@ impl fmt::Display for SymbolExpr {
 
 impl SymbolExpr {
     /// bind value to symbol node
-    pub fn bind(&self, maps: &HashMap<&Symbol, Value>) -> Option<SymbolExpr> {
+    pub fn bind(&self, maps: &HashMap<&Symbol, Value>) -> SymbolExpr {
         match self {
-            SymbolExpr::Symbol(e) => maps.get(e.as_ref()).map(|v| SymbolExpr::Value(*v)),
-            SymbolExpr::Value(_) => None,
-            SymbolExpr::Unary { op, expr } => expr.bind(maps).map(|expr| SymbolExpr::Unary {
+            SymbolExpr::Symbol(e) => match maps.get(e.as_ref()) {
+                Some(v) => SymbolExpr::Value(*v),
+                None => self.clone(),
+            },
+            SymbolExpr::Value(e) => SymbolExpr::Value(*e),
+            SymbolExpr::Unary { op, expr } => SymbolExpr::Unary {
                 op: op.clone(),
-                expr: Arc::new(expr),
-            }),
+                expr: Arc::new(expr.bind(maps)),
+            },
             SymbolExpr::Binary { op, lhs, rhs } => {
                 let new_lhs = lhs.bind(maps);
                 let new_rhs = rhs.bind(maps);
-                let make_bin = |l: &SymbolExpr, r: &SymbolExpr, op: &BinaryOp| match op {
-                    BinaryOp::Add => l + r,
-                    BinaryOp::Sub => l - r,
-                    BinaryOp::Mul => l * r,
-                    BinaryOp::Div => l / r,
-                    BinaryOp::Pow => _pow(l.clone(), r.clone()),
-                };
-
-                match (&new_lhs, &new_rhs) {
-                    (None, None) => None,
-                    (Some(lhs), None) => Some(make_bin(lhs, rhs.as_ref(), op)),
-                    (None, Some(rhs)) => Some(make_bin(lhs.as_ref(), rhs, op)),
-                    (Some(lhs), Some(rhs)) => Some(make_bin(lhs, rhs, op)),
+                match op {
+                    BinaryOp::Add => new_lhs + new_rhs,
+                    BinaryOp::Sub => new_lhs - new_rhs,
+                    BinaryOp::Mul => new_lhs * new_rhs,
+                    BinaryOp::Div => new_lhs / new_rhs,
+                    BinaryOp::Pow => _pow(new_lhs, new_rhs),
                 }
             }
         }
@@ -336,30 +332,26 @@ impl SymbolExpr {
     /// substitute symbol node to other expression
     /// allows unknown expressions
     /// does not allow duplicate names with different UUID
-    pub fn subs(&self, maps: &HashMap<Symbol, SymbolExpr>) -> Option<SymbolExpr> {
+    pub fn subs(&self, maps: &HashMap<Symbol, SymbolExpr>) -> SymbolExpr {
         match self {
-            SymbolExpr::Symbol(e) => maps.get(e.as_ref()).cloned(),
-            SymbolExpr::Value(_) => None,
-            SymbolExpr::Unary { op, expr } => expr.subs(maps).map(|expr| SymbolExpr::Unary {
+            SymbolExpr::Symbol(e) => match maps.get(e.as_ref()) {
+                Some(v) => v.clone(),
+                None => self.clone(),
+            },
+            SymbolExpr::Value(e) => SymbolExpr::Value(*e),
+            SymbolExpr::Unary { op, expr } => SymbolExpr::Unary {
                 op: op.clone(),
-                expr: Arc::new(expr),
-            }),
+                expr: Arc::new(expr.subs(maps)),
+            },
             SymbolExpr::Binary { op, lhs, rhs } => {
                 let new_lhs = lhs.subs(maps);
                 let new_rhs = rhs.subs(maps);
-                let make_bin = |l: &SymbolExpr, r: &SymbolExpr, op: &BinaryOp| match op {
-                    BinaryOp::Add => l + r,
-                    BinaryOp::Sub => l - r,
-                    BinaryOp::Mul => l * r,
-                    BinaryOp::Div => l / r,
-                    BinaryOp::Pow => _pow(l.clone(), r.clone()),
-                };
-
-                match (&new_lhs, &new_rhs) {
-                    (None, None) => None,
-                    (Some(lhs), None) => Some(make_bin(lhs, rhs.as_ref(), op)),
-                    (None, Some(rhs)) => Some(make_bin(lhs.as_ref(), rhs, op)),
-                    (Some(lhs), Some(rhs)) => Some(make_bin(lhs, rhs, op)),
+                match op {
+                    BinaryOp::Add => new_lhs + new_rhs,
+                    BinaryOp::Sub => new_lhs - new_rhs,
+                    BinaryOp::Mul => new_lhs * new_rhs,
+                    BinaryOp::Div => new_lhs / new_rhs,
+                    BinaryOp::Pow => _pow(new_lhs, new_rhs),
                 }
             }
         }
@@ -1682,16 +1674,16 @@ impl SymbolExpr {
                                                 return match v.mul_opt(l_rhs, recursive) {
                                                     Some(e) => Some(e),
                                                     None => Some(_mul(v, l_rhs.as_ref().clone())),
-                                                }
+                                                };
                                             }
                                             BinaryOp::Div => {
                                                 return match v.div_opt(l_rhs, recursive) {
                                                     Some(e) => Some(e),
                                                     None => Some(_div(v, l_rhs.as_ref().clone())),
-                                                }
+                                                };
                                             }
                                             BinaryOp::Pow => {
-                                                return Some(_pow(v, l_rhs.as_ref().clone()))
+                                                return Some(_pow(v, l_rhs.as_ref().clone()));
                                             }
                                             _ => (),
                                         }
@@ -2038,16 +2030,16 @@ impl SymbolExpr {
                                                 return match v.mul_opt(l_rhs, recursive) {
                                                     Some(e) => Some(e),
                                                     None => Some(_mul(v, l_rhs.as_ref().clone())),
-                                                }
+                                                };
                                             }
                                             BinaryOp::Div => {
                                                 return match v.div_opt(l_rhs, recursive) {
                                                     Some(e) => Some(e),
                                                     None => Some(_div(v, l_rhs.as_ref().clone())),
-                                                }
+                                                };
                                             }
                                             BinaryOp::Pow => {
-                                                return Some(_pow(v, l_rhs.as_ref().clone()))
+                                                return Some(_pow(v, l_rhs.as_ref().clone()));
                                             }
                                             _ => (),
                                         }
@@ -4500,11 +4492,7 @@ fn _gcd(a: u64, b: u64) -> u64 {
     if b > a {
         return _gcd(b, a);
     }
-    if b == 0 {
-        a
-    } else {
-        _gcd(b, a % b)
-    }
+    if b == 0 { a } else { _gcd(b, a % b) }
 }
 
 // make new integer rational number as Binary div
