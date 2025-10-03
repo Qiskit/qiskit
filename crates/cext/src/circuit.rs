@@ -352,11 +352,11 @@ pub unsafe extern "C" fn qk_circuit_num_clbits(circuit: *const CircuitData) -> u
 }
 
 /// @ingroup QkCircuit
-/// Get the number of free parameters the circuit contains.
+/// Get the number of unbound symbols in the circuit.
 ///
 /// @param circuit A pointer to the circuit.
 ///
-/// @return The number of free parameters in the circuit.
+/// @return The number of unbound symbols in the circuit.
 ///
 /// # Example
 ///
@@ -372,8 +372,8 @@ pub unsafe extern "C" fn qk_circuit_num_clbits(circuit: *const CircuitData) -> u
 /// qk_circuit_gate_param(qc, QkGate_RX, q0, rx_param);
 /// qk_circuit_gate_param(qc, QkGate_RY, q0, ry_param);
 ///
-/// // check the number of parameters
-/// size_t num_params = qk_circuit_num_free_parameters(qc);  // == 2
+/// // check the number of symbols
+/// size_t num_symbols = qk_circuit_num_symbols(qc); // == 2
 ///
 /// qk_param_free(x);
 /// qk_param_free(y);
@@ -385,7 +385,7 @@ pub unsafe extern "C" fn qk_circuit_num_clbits(circuit: *const CircuitData) -> u
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_circuit_num_free_params(circuit: *const CircuitData) -> usize {
+pub unsafe extern "C" fn qk_circuit_num_symbols(circuit: *const CircuitData) -> usize {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
 
@@ -513,7 +513,7 @@ pub unsafe extern "C" fn qk_circuit_gate(
 }
 
 /// @ingroup QkCircuit
-/// Append a possibly parameterized ``QkGate`` to the circuit.
+/// Append a ``QkGate`` with ``QkParam*`` parameters to the circuit.
 ///
 /// @param circuit A pointer to the circuit to add the gate to.
 /// @param gate The ``QkGate`` to add to the circuit.
@@ -1037,8 +1037,8 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
         let params_vec: Vec<*const Param> = params
             .iter()
             .map(|x| match x {
-                Param::Obj(_) => panic!("Invalid parameter on instruction"),
-                _ => x as *const Param,
+                Param::Float(_) | Param::ParameterExpression(_) => x as *const Param,
+                _ => panic!("Invalid parameter on instruction"),
             })
             .collect();
         params_vec.into_boxed_slice()

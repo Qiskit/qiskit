@@ -899,14 +899,14 @@ static int test_not_unitary_gate(void) {
 
     int result = Ok;
     if (exit_code != QkExitCode_ExpectedUnitary) {
-        printf("Got exit code %i but expected %i", exit_code, QkExitCode_ExpectedUnitary);
+        printf("Got exit code %i but expected %i\n", exit_code, QkExitCode_ExpectedUnitary);
         result = EqualityError;
         goto cleanup;
     }
 
     size_t num_inst = qk_circuit_num_instructions(qc);
     if (num_inst != 0) { // we expect no gate was added
-        printf("Found gate when none should be added");
+        printf("Found gate when none should be added\n");
         result = EqualityError;
         goto cleanup;
     }
@@ -931,10 +931,12 @@ static int test_get_instruction_params(void) {
 
     QkComplex64 c0 = {0.0, 0.0};
     QkComplex64 c1 = {1.0, 0.0};
-    QkComplex64 matrix[16] = {c1, c1, c0, c0,  // this
-                              c1, c1, c0, c0,  // is
-                              c0, c0, c1, c0,  // for
-                              c0, c0, c0, c1}; // formatting
+    // clang-format off
+    QkComplex64 matrix[16] = {c1, c1, c0, c0, 
+                              c1, c1, c0, c0, 
+                              c0, c0, c1, c0, 
+                              c0, c0, c0, c1};
+    // clang-format on
 
     int result = Ok;
 
@@ -955,62 +957,70 @@ static int test_get_instruction_params(void) {
         goto cleanup;
     }
 
-    QkCircuitInstruction inst;
-
     // SX has no parameters
+    QkCircuitInstruction inst;
     qk_circuit_get_instruction(qc, 0, &inst);
     if (inst.num_params != 0) {
-        printf("Expected 0 parameters in SX, got %u", inst.num_params);
+        printf("Expected 0 parameters in SX, got %u\n", inst.num_params);
         result = EqualityError;
-        goto cleanup;
+        goto cleanup_inst;
     }
+    qk_circuit_instruction_clear(&inst);
 
     // RX has one parameter
     qk_circuit_get_instruction(qc, 1, &inst);
     if (inst.num_params != 1) {
-        printf("Expected 1 parameter in RX, got %u", inst.num_params);
+        printf("Expected 1 parameter in RX, got %u\n", inst.num_params);
         result = EqualityError;
-        goto cleanup;
+        goto cleanup_inst;
     }
 
-    double rz_angle = qk_param_as_real(inst.params[0]);
-    if (fabs(rz_angle - angle[0]) > 1e-10) {
-        printf("Unexpected parameter value in RX gate");
+    double rx_angle = qk_param_as_real(inst.params[0]);
+    if (isnan(rx_angle)) {
+        printf("Unexpected free symbol in RX gate\n");
         result = EqualityError;
-        goto cleanup;
+        goto cleanup_inst;
+    }
+    if (fabs(rx_angle - angle[0]) > 1e-10) {
+        printf("Unexpected parameter value in RX gate\n");
+        result = EqualityError;
+        goto cleanup_inst;
     }
 
     // R has two parameters, one of which is free
+    qk_circuit_instruction_clear(&inst);
     qk_circuit_get_instruction(qc, 2, &inst);
     if (inst.num_params != 2) {
-        printf("Expected 2 parameters in R, got %u", inst.num_params);
+        printf("Expected 2 parameters in R, got %u\n", inst.num_params);
         result = EqualityError;
-        goto cleanup;
+        goto cleanup_inst;
     }
 
     double r_fixed = qk_param_as_real(inst.params[1]);
     if (fabs(r_fixed - r_angle) > 1e-10) {
-        printf("Unexpected parameter value in R gate");
+        printf("Unexpected parameter value in R gate\n");
         result = EqualityError;
-        goto cleanup;
+        goto cleanup_inst;
     }
     const QkParam *r_free = inst.params[0];
     if (!qk_param_equal(r_free, theta)) {
-        printf("Unexpected free parameter in R gate");
+        printf("Unexpected free parameter in R gate\n");
         result = EqualityError;
-        goto cleanup;
+        goto cleanup_inst;
     }
 
     // unitary gate does not store the matrix in the params, hence 0 params
+    qk_circuit_instruction_clear(&inst);
     qk_circuit_get_instruction(qc, 3, &inst);
     if (inst.num_params != 0) {
-        printf("Expected 0 parameters in unitary gate, got %u", inst.num_params);
+        printf("Expected 0 parameters in unitary gate, got %u\n", inst.num_params);
         result = EqualityError;
-        goto cleanup;
+        goto cleanup_inst;
     }
 
-cleanup:
+cleanup_inst:
     qk_circuit_instruction_clear(&inst);
+cleanup:
     qk_param_free(theta);
     qk_param_free(val);
     qk_circuit_free(qc);
@@ -1060,10 +1070,10 @@ static int test_parameterized_circuit(void) {
     }
 
     // check the number of parameters
-    size_t num_params = qk_circuit_num_free_params(qc);
-    if (num_params != 2) {
+    size_t num_symbols = qk_circuit_num_symbols(qc);
+    if (num_symbols != 2) {
         result = EqualityError;
-        printf("Expected 2 free parameters, found %zu", num_params);
+        printf("Expected 2 symbols, found %zu\n", num_symbols);
         goto cleanup;
     }
 
@@ -1071,7 +1081,7 @@ static int test_parameterized_circuit(void) {
     size_t num_gates = qk_circuit_num_instructions(qc);
     if (num_gates != 3) {
         result = EqualityError;
-        printf("Expected 3 instructions, found %zu", num_gates);
+        printf("Expected 3 instructions, found %zu\n", num_gates);
         goto cleanup;
     }
 
