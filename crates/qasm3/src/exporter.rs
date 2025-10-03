@@ -1208,31 +1208,7 @@ impl<'a> QASM3Builder {
             }
         });
 
-        let mut map = HashMap::new();
-        map.insert(DelayUnit::NS, DurationUnit::Nanosecond);
-        map.insert(DelayUnit::US, DurationUnit::Microsecond);
-        map.insert(DelayUnit::MS, DurationUnit::Millisecond);
-        map.insert(DelayUnit::S, DurationUnit::Second);
-        map.insert(DelayUnit::DT, DurationUnit::Sample);
-
-        let duration_literal: DurationLiteral = match map.get(&delay_unit) {
-            Some(found) => DurationLiteral {
-                value: duration,
-                unit: found.clone(),
-            },
-            None => {
-                if delay_unit == DelayUnit::PS {
-                    DurationLiteral {
-                        value: duration * 1000.0,
-                        unit: DurationUnit::Nanosecond,
-                    }
-                } else {
-                    return Err(QASM3ExporterError::Error(format!(
-                        "Unknown delay unit: {delay_unit}"
-                    )));
-                }
-            }
-        };
+        let duration_literal = duration_literal_from_delay(duration, delay_unit)?;
 
         let mut qubits = Vec::new();
         let qargs = self
@@ -1380,6 +1356,86 @@ impl<'a> QASM3Builder {
                 "Failed to get definition for this gate: {}",
                 operation.name()
             )))
+        }
+    }
+}
+
+fn duration_literal_from_delay(
+    duration: f64,
+    delay_unit: DelayUnit,
+) -> ExporterResult<DurationLiteral> {
+    let (value, unit) = match delay_unit {
+        DelayUnit::NS => (duration, DurationUnit::Nanosecond),
+        DelayUnit::US => (duration, DurationUnit::Microsecond),
+        DelayUnit::MS => (duration, DurationUnit::Millisecond),
+        DelayUnit::S => (duration, DurationUnit::Second),
+        DelayUnit::DT => (duration, DurationUnit::Sample),
+        DelayUnit::PS => (duration * 1000.0, DurationUnit::Nanosecond),
+        DelayUnit::EXPR => {
+            return Err(QASM3ExporterError::Error(format!(
+                "Unknown delay unit: {}",
+                delay_unit
+            )))
+        }
+    };
+
+    Ok(DurationLiteral { value, unit })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn assert_duration_literal(literal: DurationLiteral, expected_value: f64, expected_unit: &str) {
+        assert_eq!(literal.value, expected_value);
+        assert_eq!(literal.unit.to_string(), expected_unit);
+    }
+
+    #[test]
+    fn duration_literal_from_delay_maps_known_units() {
+        assert_duration_literal(
+            duration_literal_from_delay(1.0, DelayUnit::NS).unwrap(),
+            1.0,
+            "ns",
+        );
+        assert_duration_literal(
+            duration_literal_from_delay(2.0, DelayUnit::US).unwrap(),
+            2.0,
+            "us",
+        );
+        assert_duration_literal(
+            duration_literal_from_delay(3.0, DelayUnit::MS).unwrap(),
+            3.0,
+            "ms",
+        );
+        assert_duration_literal(
+            duration_literal_from_delay(4.0, DelayUnit::S).unwrap(),
+            4.0,
+            "s",
+        );
+        assert_duration_literal(
+            duration_literal_from_delay(5.0, DelayUnit::DT).unwrap(),
+            5.0,
+            "dt",
+        );
+    }
+
+    #[test]
+    fn duration_literal_from_delay_promotes_picoseconds() {
+        assert_duration_literal(
+            duration_literal_from_delay(6.0, DelayUnit::PS).unwrap(),
+            6000.0,
+            "ns",
+        );
+    }
+
+    #[test]
+    fn duration_literal_from_delay_rejects_unknown_units() {
+        match duration_literal_from_delay(7.0, DelayUnit::EXPR) {
+            Err(QASM3ExporterError::Error(message)) => {
+                assert_eq!(message, "Unknown delay unit: expr");
+            }
+            other => panic!("Expected error for expr unit, got {:?}", other),
         }
     }
 }

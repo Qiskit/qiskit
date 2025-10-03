@@ -785,6 +785,31 @@ c[1] = measure q[1];
         )
         self.assertEqual(Exporter(includes=[]).dumps(qc), expected_qasm)
 
+    def test_delay_units_render_all_variants(self):
+        """Ensure all supported duration units render correctly."""
+        qreg = QuantumRegister(1, "q")
+        qc = QuantumCircuit(qreg)
+        qc.delay(1, qreg[0], unit="s")
+        qc.delay(2, qreg[0], unit="ms")
+        qc.delay(3, qreg[0], unit="us")
+        qc.delay(4, qreg[0], unit="ns")
+        qc.delay(5, qreg[0], unit="dt")
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3.0;",
+                'include "stdgates.inc";',
+                "qubit[1] q;",
+                "delay[1s] q[0];",
+                "delay[2ms] q[0];",
+                "delay[3us] q[0];",
+                "delay[4ns] q[0];",
+                "delay[5dt] q[0];",
+                "",
+            ]
+        )
+        self.assertEqual(dumps(qc), expected_qasm)
+
     def test_loose_qubits(self):
         """Test that qubits that are not in any register can be used without issue."""
         bits = [Qubit(), Qubit()]
@@ -2830,6 +2855,18 @@ class TestQASM3ExporterFailurePaths(QiskitTestCase):
         self.assertIsInstance(cm.exception.__cause__, QASM3ExporterError)
         self.assertRegex(cm.exception.__cause__.message, "cannot use the keyword 'reset'")
 
+    def test_duration_builder_rejects_unknown_unit(self):
+        """Test the builder rejects unknown duration units."""
+        builder = QASM3Builder(
+            QuantumCircuit(),
+            includeslist=(),
+            basis_gates=("U",),
+            disable_constants=False,
+            allow_aliasing=False,
+        )
+        with self.assertRaisesRegex(QASM3ExporterError, "Unsupported duration unit: 'lightyear'"):
+            builder.build_duration(1, "lightyear")
+
     def test_defcal_wrong_num_parameters(self):
         """Test that defcals must match their corresponding instruction."""
         qc = QuantumCircuit(1, 1)
@@ -3009,6 +3046,31 @@ class TestQASM3ExporterRust(QiskitTestCase):
                 "composite_circ qr[0], qr[1];",
                 "cr[0] = measure qr[0];",
                 "cr[1] = measure qr[1];",
+                "",
+            ]
+        )
+        self.assertEqual(dumps_experimental(qc), expected_qasm)
+
+    def test_delay_units_render_all_variants(self):
+        """Ensure all supported duration units render correctly in the Rust exporter."""
+        qreg = QuantumRegister(1, "q")
+        qc = QuantumCircuit(qreg)
+        qc.delay(1, qreg[0], unit="s")
+        qc.delay(2, qreg[0], unit="ms")
+        qc.delay(3, qreg[0], unit="us")
+        qc.delay(4, qreg[0], unit="ns")
+        qc.delay(5, qreg[0], unit="dt")
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3.0;",
+                'include "stdgates.inc";',
+                "qubit[1] q;",
+                "delay[1s] q[0];",
+                "delay[2ms] q[0];",
+                "delay[3us] q[0];",
+                "delay[4ns] q[0];",
+                "delay[5dt] q[0];",
                 "",
             ]
         )
