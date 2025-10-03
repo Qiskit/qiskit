@@ -382,7 +382,7 @@ pub enum ControlFlow {
     },
     ForLoop {
         indexset: Vec<usize>,
-        loop_param: Option<Py<PyAny>>,
+        loop_param: Option<Symbol>,
         qubits: u32,
         clbits: u32,
     },
@@ -474,13 +474,7 @@ impl ControlFlow {
                 } => Ok(self_qubits == other_qubits
                     && self_clbits == other_clbits
                     && self_indexset == other_indexset
-                    && self_loop_param
-                        .as_ref()
-                        .zip(other_loop_param.as_ref())
-                        .map(|(p1, p2)| p1.bind(py).eq(p2))
-                        .unwrap_or_else(|| {
-                            Ok(self_loop_param.is_none() && other_loop_param.is_none())
-                        })?),
+                    && self_loop_param == other_loop_param),
                 _ => Ok(false),
             },
             ControlFlow::IfElse {
@@ -540,7 +534,16 @@ impl ControlFlow {
         blocks: Option<Vec<CircuitData>>,
         label: Option<&str>,
     ) -> PyResult<Py<PyAny>> {
-        let mut blocks = blocks.into_iter().flatten();
+        let mut blocks = blocks
+            .unwrap_or_default()
+            .iter()
+            .map(|b| {
+                Ok(QUANTUM_CIRCUIT
+                    .get_bound(py)
+                    .call_method1(intern!(py, "_from_circuit_data"), (b.clone(),))?
+                    .unbind())
+            })
+            .collect::<Vec<PyResult<_>>>()?.into_iter();
         let kwargs = label
             .map(|label| [("label", label.into_py_any(py)?)].into_py_dict(py))
             .transpose()?;
@@ -586,11 +589,11 @@ impl ControlFlow {
                 indexset,
                 loop_param,
                 ..
-            } => {
-                FOR_LOOP_OP
-                    .get(py)
-                    .call(py, (indexset, loop_param, blocks.next()), kwargs.as_ref())
-            }
+            } => FOR_LOOP_OP.get(py).call(
+                py,
+                (indexset, loop_param.clone(), blocks.next()),
+                kwargs.as_ref(),
+            ),
             ControlFlow::IfElse { condition, .. } => IF_ELSE_OP.get(py).call(
                 py,
                 (condition.clone(), blocks.next().unwrap(), blocks.next()),

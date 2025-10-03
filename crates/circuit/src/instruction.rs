@@ -12,6 +12,7 @@
 
 use crate::circuit_data::CircuitData;
 use crate::operations::{BoxDuration, CaseSpecifier, Condition, OperationRef, Param, SwitchTarget};
+use crate::parameter::symbol_expr::Symbol;
 use ndarray::Array2;
 use num_complex::Complex64;
 use pyo3::prelude::*;
@@ -181,7 +182,7 @@ pub enum ControlFlowView<'a, T> {
     ContinueLoop,
     ForLoop {
         indexset: &'a [usize],
-        loop_param: Option<&'a Py<PyAny>>,
+        loop_param: Option<&'a Symbol>,
         body: &'a T,
     },
     IfElse {

@@ -2385,27 +2385,24 @@ impl CircuitData {
                     .collect();
                 match instr.op.view() {
                     OperationRef::ControlFlow(ControlFlow::ForLoop { loop_param, .. }) => {
-                        Python::attach(|py| -> PyResult<_> {
-                            // The loop param is technically a parameter in Python land, stored at
-                            // argument position 1.
-                            if let Some(loop_param) = loop_param {
-                                self.param_table.track(
-                                    &loop_param.bind(py).extract()?,
-                                    Some(ParameterUse::Index {
-                                        instruction: instruction_index,
-                                        parameter: 1,
-                                    }),
-                                )?;
-                            }
-                            let usage = ParameterUse::Index {
-                                instruction: instruction_index,
-                                parameter: 2,
-                            };
-                            for symbol in blocks[0].parameters() {
-                                self.param_table.track(symbol, Some(usage))?;
-                            }
-                            Ok(())
-                        })?;
+                        // The loop param is technically a parameter in Python land, stored at
+                        // argument position 1.
+                        if let Some(loop_param) = loop_param {
+                            self.param_table.track(
+                                loop_param,
+                                Some(ParameterUse::Index {
+                                    instruction: instruction_index,
+                                    parameter: 1,
+                                }),
+                            )?;
+                        }
+                        let usage = ParameterUse::Index {
+                            instruction: instruction_index,
+                            parameter: 2,
+                        };
+                        for symbol in blocks[0].parameters() {
+                            self.param_table.track(symbol, Some(usage))?;
+                        }
                     }
                     OperationRef::ControlFlow(_) => {
                         // All the other control flow operations are simple, and their "blocks"
@@ -2464,27 +2461,24 @@ impl CircuitData {
                     .collect();
                 match instr.op.view() {
                     OperationRef::ControlFlow(ControlFlow::ForLoop { loop_param, .. }) => {
-                        Python::attach(|py| -> PyResult<_> {
-                            // The loop param is technically a parameter in Python land, stored at
-                            // argument position 1.
-                            if let Some(loop_param) = loop_param {
-                                self.param_table.untrack(
-                                    &loop_param.bind(py).extract()?,
-                                    ParameterUse::Index {
-                                        instruction: instruction_index,
-                                        parameter: 1,
-                                    },
-                                )?;
-                            }
-                            let usage = ParameterUse::Index {
-                                instruction: instruction_index,
-                                parameter: 2,
-                            };
-                            for symbol in blocks[0].parameters() {
-                                self.param_table.untrack(symbol, usage)?;
-                            }
-                            Ok(())
-                        })?;
+                        // The loop param is technically a parameter in Python land, stored at
+                        // argument position 1.
+                        if let Some(loop_param) = loop_param {
+                            self.param_table.untrack(
+                                loop_param,
+                                ParameterUse::Index {
+                                    instruction: instruction_index,
+                                    parameter: 1,
+                                },
+                            )?;
+                        }
+                        let usage = ParameterUse::Index {
+                            instruction: instruction_index,
+                            parameter: 2,
+                        };
+                        for symbol in blocks[0].parameters() {
+                            self.param_table.untrack(symbol, usage)?;
+                        }
                     }
                     OperationRef::ControlFlow(_) => {
                         // All the other control flow operations are simple, and their "blocks"
