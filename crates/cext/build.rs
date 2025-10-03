@@ -10,7 +10,11 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::str::FromStr;
+use std::{
+    fs::File,
+    io::{BufRead, BufReader, BufWriter, Write},
+    str::FromStr,
+};
 
 extern crate cbindgen;
 
@@ -29,12 +33,26 @@ fn generate_qiskit_header() {
     path.push("qiskit.h");
 
     // Build the header.
+    let mut buffer: Vec<u8> = Vec::new();
     cbindgen::Builder::new()
         .with_crate(".")
         .with_config(config)
         .generate()
         .expect("Unable to generate C bindings.")
-        .write_to_file(path);
+        .write(&mut buffer);
+
+    // Undo cbindgen's renaming of QkPyObject to PyObject. We currently only have a single
+    // target-replacement pair, this could be promoted to a HashMap if we have more than that.
+    let target = "QkPyObject";
+    let replacement = "PyObject";
+    let header = String::from_utf8(buffer)
+        .expect("Unable to parse C bindings.")
+        .replace(target, replacement);
+
+    let mut header_file = File::create(&path).expect("The qiskit.h path should exist.");
+    header_file
+        .write(header.as_bytes())
+        .expect("Unable to write header.");
 }
 
 fn main() {
