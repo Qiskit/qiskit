@@ -69,10 +69,8 @@ def matrix_equal(mat1, mat2, ignore_phase=False, rtol=RTOL_DEFAULT, atol=ATOL_DE
     if rtol is None:
         rtol = RTOL_DEFAULT
 
-    if not isinstance(mat1, np.ndarray):
-        mat1 = np.asarray(mat1)
-    if not isinstance(mat2, np.ndarray):
-        mat2 = np.asarray(mat2)
+    mat1 = np.asarray(mat1)
+    mat2 = np.asarray(mat2)
 
     if mat1.shape != mat2.shape:
         return False
