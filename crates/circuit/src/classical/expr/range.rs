@@ -72,8 +72,7 @@ fn py_value_to_expr(_py: Python, value: &Bound<PyAny>) -> PyResult<Expr> {
     } else {
         Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
             "Expected non-negative integer or Expr of unsigned integer type, got {}",
-            value
-                .get_type()
+            value.get_type()
         )))
     }
 }
