@@ -15,7 +15,7 @@ use crate::classical::expr::{Expr, ExprKind, PyExpr, Value};
 use crate::classical::types::Type;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
-use pyo3::{intern, IntoPyObjectExt};
+use pyo3::{IntoPyObjectExt, intern};
 use std::boxed::Box;
 
 /// A range expression that represents a sequence of values.
