@@ -100,10 +100,9 @@ def matrix_equal(mat1, mat2, ignore_phase=False, rtol=RTOL_DEFAULT, atol=ATOL_DE
 
 def is_square_matrix(mat):
     """Test if an array is a square matrix."""
-    mat = np.asarray(mat)
-    if mat.ndim != 2:
+    shape = np.shape(mat)
+    if len(shape) != 2:
         return False
-    shape = mat.shape
     return shape[0] == shape[1]
 
 
