@@ -1375,7 +1375,7 @@ fn duration_literal_from_delay(
             return Err(QASM3ExporterError::Error(format!(
                 "Unknown delay unit: {}",
                 delay_unit
-            )))
+            )));
         }
     };
 
