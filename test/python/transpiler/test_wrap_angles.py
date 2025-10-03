@@ -76,3 +76,9 @@ class TestWrapAngles(QiskitTestCase):
         wrap_pass = WrapAngles(target, registry)
         res = wrap_pass(circuit)
         self.assertEqual(res.count_ops()["my_custom"], 12)
+
+    def test_legacy_default_registy(self):
+        """Test that the legacy Qiskit 2.2 import path works for the default registry."""
+        from qiskit.transpiler.passes.utils.wrap_angles import WRAP_ANGLE_REGISTRY
+
+        self.assertIs(WRAP_ANGLE_REGISTRY, WrapAngles.DEFAULT_REGISTRY)
