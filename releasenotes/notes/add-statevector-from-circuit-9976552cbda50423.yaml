@@ -21,4 +21,3 @@ features_quantum_info:
       
     An optional ``input_state`` parameter allows starting from a custom
     initial state instead of the default |00...0⟩ state.
-git add releasenotes/notes/add-statevector-from-circuit-9976552cbda50423.yaml

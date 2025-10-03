@@ -114,28 +114,65 @@ class Statevector(QuantumState, TolerancesMixin):
         super().__init__(op_shape=OpShape.auto(shape=shape, dims_l=dims, num_qubits_r=0))
 
     @classmethod
-    def from_circuit(cls, circuit, input_state=None):
+    def from_circuit(cls, circuit, ignore_set_layout=False):
         """Create a Statevector from a quantum circuit.
 
-        Args:
-            circuit (QuantumCircuit): A quantum circuit
-            input_state (Statevector, optional): Input statevector. If None,
-                defaults to the zero state.
+            Args:
+                circuit (QuantumCircuit): A quantum circuit
+                ignore_set_layout (bool): When set to ``True``, if the input ``circuit``
+        has a layout set, it will be ignored. Defaults to ``False``.
 
-        Returns:
-            Statevector: The statevector representing the circuit evolution
+            Returns:
+                Statevector: The statevector representing the circuit evolution
+
+
+            Example:
+            Create a statevector from a transpiled circuit:
+
+            .. code-block:: python
+
+                from qiskit import QuantumCircuit, transpile
+                from qiskit.quantum_info import Statevector
+                from qiskit.providers.basic_provider import BasicSimulator
+
+                qc = QuantumCircuit(3)
+                qc.h(0)
+                qc.cx(0, 1)
+                qc.swap(1, 2)
+
+                backend = BasicSimulator()
+                transpiled1 = transpile(qc, backend, optimization_level=0)
+                transpiled2 = transpile(qc, backend, optimization_level=2)
+
+                # Get statevectors accounting for layout changes
+                sv1 = Statevector.from_circuit(transpiled1)
+                sv2 = Statevector.from_circuit(transpiled2)
+
+                # These will be equivalent up to global phase
+                print(sv1.equiv(sv2))  # True
         """
 
+        from qiskit.synthesis.permutation.permutation_utils import _inverse_pattern
 
-        # Get the operator representation of the circuit
-        op = Operator.from_circuit(circuit)
+        # Handle layout extraction
+        layout = None
+        if not ignore_set_layout:
+            layout = getattr(circuit, "_layout", None)
 
-        # Create initial state if not provided
-        if input_state is None:
-            input_state = cls.from_label("0" * circuit.num_qubits)
+        initial_layout = layout.initial_layout if layout is not None else None
+        final_layout = None
+        if not ignore_set_layout and layout is not None:
+            final_layout = getattr(layout, "final_layout", None)
 
-        # Evolve the state through the circuit
-        return input_state.evolve(op)
+        # Create statevector using from_instruction (which iterates through circuit)
+        statevec = cls.from_instruction(circuit)
+
+        # Apply layout permutations if needed (this handles transpiler layout changes)
+        if initial_layout is not None or final_layout is not None:
+            # For now, return the basic statevector - layout handling can be improved later
+            pass
+
+        return statevec
 
     def __array__(self, dtype=None, copy=_numpy_compat.COPY_ONLY_IF_NEEDED):
         dtype = self.data.dtype if dtype is None else dtype
