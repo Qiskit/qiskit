@@ -486,7 +486,7 @@ class CouplingMap:
             return False
         return set(self.graph.edge_list()) == set(other.graph.edge_list())
 
-    def draw(self):
+    def draw(self, method="neato"):
         """Draws the coupling map.
 
         This function calls the :func:`~rustworkx.visualization.graphviz_draw` function from the
@@ -497,4 +497,4 @@ class CouplingMap:
 
         """
 
-        return graphviz_draw(self.graph, method="neato")
+        return graphviz_draw(self.graph, method=method)
