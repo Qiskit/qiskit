@@ -713,8 +713,8 @@ class ForLoopStatement(Statement):
 
         if type_ is None:
             warnings.warn(
-                "ForLoopStatement with type_=None is deprecated. "
-                "Please explicitly specify the type parameter.",
+                "Typeless for-loops support is deprecated and it will be removed at 3.0. "
+                "Specify the type parameter explicitly.",
                 DeprecationWarning,
                 stacklevel=2,
             )
