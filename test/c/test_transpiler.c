@@ -88,7 +88,7 @@ static int test_transpile_bv(void) {
     options.seed = 42;
     int result_code = qk_transpile(qc, target, &options, &transpile_result, &error);
     if (result_code != 0) {
-        fprintf(stderr,"Transpilation failed with: %s\n", error);
+        fprintf(stderr, "Transpilation failed with: %s\n", error);
         result = EqualityError;
         qk_str_free(error);
         goto circuit_cleanup;
@@ -96,7 +96,7 @@ static int test_transpile_bv(void) {
 
     QkOpCounts op_counts = qk_circuit_count_ops(transpile_result.circuit);
     if (op_counts.len != 4) {
-        fprintf(stderr,"More than 4 types of gates in circuit, circuit's instructions are:\n");
+        fprintf(stderr, "More than 4 types of gates in circuit, circuit's instructions are:\n");
         print_circuit(transpile_result.circuit);
         result = EqualityError;
         goto transpile_cleanup;
@@ -107,8 +107,8 @@ static int test_transpile_bv(void) {
         int x_gate = strcmp(op_counts.data[i].name, "x");
         int rz_gate = strcmp(op_counts.data[i].name, "rz");
         if (sx_gate != 0 && ecr_gate != 0 && x_gate != 0 && rz_gate != 0) {
-            fprintf(stderr,"Gate type of %s found in the circuit which isn't expected\n",
-                   op_counts.data[i].name);
+            fprintf(stderr, "Gate type of %s found in the circuit which isn't expected\n",
+                    op_counts.data[i].name);
             result = EqualityError;
             goto transpile_cleanup;
         }
@@ -118,7 +118,7 @@ static int test_transpile_bv(void) {
         qk_circuit_get_instruction(transpile_result.circuit, i, &inst);
         if (strcmp(inst.name, "ecr") == 0) {
             if (inst.num_qubits != 2) {
-                fprintf(stderr,"Unexpected number of qubits for ecr: %d\n", inst.num_qubits);
+                fprintf(stderr, "Unexpected number of qubits for ecr: %d\n", inst.num_qubits);
                 result = EqualityError;
                 qk_circuit_instruction_clear(&inst);
                 goto transpile_cleanup;
@@ -131,8 +131,8 @@ static int test_transpile_bv(void) {
                 }
             }
             if (valid == false) {
-                fprintf(stderr,"ECR Gate outside target on qubits: {%u, %u}\n", inst.qubits[0],
-                       inst.qubits[1]);
+                fprintf(stderr, "ECR Gate outside target on qubits: {%u, %u}\n", inst.qubits[0],
+                        inst.qubits[1]);
                 result = EqualityError;
                 qk_circuit_instruction_clear(&inst);
                 goto transpile_cleanup;
@@ -177,7 +177,7 @@ static int test_transpile_idle_qubits(void) {
         int result_code =
             qk_transpile(circuit, target, &transpile_options, &transpile_result, &error);
         if (result_code != 0) {
-            fprintf(stderr,"Transpilation failed %s\n", error);
+            fprintf(stderr, "Transpilation failed %s\n", error);
             result = EqualityError;
             qk_str_free(error);
             goto cleanup;
@@ -186,20 +186,20 @@ static int test_transpile_idle_qubits(void) {
         qk_circuit_free(transpile_result.circuit);
         qk_transpile_layout_free(transpile_result.layout);
         if (opt_level == 0 && num_instructions != 12) {
-            fprintf(stderr,"opt_level: %d num_instructions: %d is not the expected value 12\n", opt_level,
-                   num_instructions);
+            fprintf(stderr, "opt_level: %d num_instructions: %d is not the expected value 12\n",
+                    opt_level, num_instructions);
             result = EqualityError;
             goto cleanup;
         }
         if ((opt_level == 1 || opt_level == 3) && num_instructions != 8) {
-            fprintf(stderr,"opt_level: %d num_instructions: %d is not the expected value 8\n", opt_level,
-                   num_instructions);
+            fprintf(stderr, "opt_level: %d num_instructions: %d is not the expected value 8\n",
+                    opt_level, num_instructions);
             result = EqualityError;
             goto cleanup;
         }
         if (opt_level == 2 && num_instructions != 7) {
-            fprintf(stderr,"opt_level: %d num_instructions: %d is not the expected value 7\n", opt_level,
-                   num_instructions);
+            fprintf(stderr, "opt_level: %d num_instructions: %d is not the expected value 7\n",
+                    opt_level, num_instructions);
             result = EqualityError;
             goto cleanup;
         }
@@ -236,7 +236,7 @@ static int test_transpile_options_null(void) {
     size_t num_inst = qk_circuit_num_instructions(transpile_result.circuit);
     if (num_inst != 9) {
         result = EqualityError;
-        fprintf(stderr,"Expected 9 instruction, but got %zu\n", num_inst);
+        fprintf(stderr, "Expected 9 instruction, but got %zu\n", num_inst);
     }
 
 cleanup:

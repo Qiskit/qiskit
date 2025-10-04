@@ -28,7 +28,7 @@ static QkTarget *create_target() {
         qk_target_add_instruction(target, cx_entry) != Ok ||
         qk_target_entry_add_property(rzx_entry, qargs, 2, 0.0, 0.0) != Ok ||
         qk_target_add_instruction(target, rzx_entry) != Ok) {
-        fprintf(stderr,"Unexpected error encountered in create_target.");
+        fprintf(stderr, "Unexpected error encountered in create_target.");
         qk_target_free(target);
         return NULL;
     }
@@ -50,7 +50,8 @@ static int test_check_gate_direction(void) {
 
     if ((result = qk_circuit_gate(circuit, QkGate_CX, qargs, NULL)) != Ok ||
         (result = qk_circuit_gate(circuit, QkGate_CX, &qargs[1], NULL)) != Ok) {
-        fprintf(stderr,"Unexpected error encountered while adding CX gates in test_check_gate_direction.");
+        fprintf(stderr,
+                "Unexpected error encountered while adding CX gates in test_check_gate_direction.");
         goto cleanup;
     }
 
@@ -59,8 +60,8 @@ static int test_check_gate_direction(void) {
         result = EqualityError;
     else {
         if ((result = qk_circuit_gate(circuit, QkGate_CX, &qargs[2], NULL)) != Ok) {
-            fprintf(stderr,"Unexpected error encountered while adding a CX gate in "
-                   "test_check_gate_direction.");
+            fprintf(stderr, "Unexpected error encountered while adding a CX gate in "
+                            "test_check_gate_direction.");
             goto cleanup;
         }
         check_pass = qk_transpiler_pass_standalone_check_gate_direction(circuit, target);
@@ -94,7 +95,7 @@ static int test_gate_direction_simple(void) {
             Ok || // would be replaced by 5 gates
         (result = qk_circuit_gate(circuit, QkGate_RZX, &qargs[3], params)) !=
             Ok) { // would be replaced by 5 gates
-        fprintf(stderr,"Unexpected error encountered while adding gates in test_gate_direction.");
+        fprintf(stderr, "Unexpected error encountered while adding gates in test_gate_direction.");
         goto cleanup;
     }
 

@@ -96,9 +96,10 @@ static int test_basic_basis_translator(void) {
     QkOpCount u_count = result_op_counts.data[0];
     if (u_count.count != 1 || strcmp(u_count.name, "u") != 0) {
         result = EqualityError;
-        fprintf(stderr,"The operation resulting from this translation was incorrect. Expected 'u' gate, "
-               "got '%s'",
-               u_count.name);
+        fprintf(stderr,
+                "The operation resulting from this translation was incorrect. Expected 'u' gate, "
+                "got '%s'",
+                u_count.name);
     }
 
 cleanup:

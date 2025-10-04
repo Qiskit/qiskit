@@ -23,7 +23,7 @@ static int build_target(QkTarget *target, uint32_t num_qubits) {
     // Create a target with cx connectivity in a line.
     QkExitCode result_x = qk_target_add_instruction(target, qk_target_entry_new(QkGate_X));
     if (result_x != QkExitCode_Success) {
-        fprintf(stderr,"Unexpected error occurred when adding a global X gate.");
+        fprintf(stderr, "Unexpected error occurred when adding a global X gate.");
         return RuntimeError;
     }
     QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
@@ -35,13 +35,13 @@ static int build_target(QkTarget *target, uint32_t num_qubits) {
         QkExitCode result_cx_props =
             qk_target_entry_add_property(cx_entry, qargs, 2, inst_duration, inst_error);
         if (result_cx_props != QkExitCode_Success) {
-            fprintf(stderr,"Unexpected error occurred when adding property to a CX gate entry.");
+            fprintf(stderr, "Unexpected error occurred when adding property to a CX gate entry.");
             return RuntimeError;
         }
     }
     QkExitCode result_cx = qk_target_add_instruction(target, cx_entry);
     if (result_cx != QkExitCode_Success) {
-        fprintf(stderr,"Unexpected error occurred when adding a CX gate.");
+        fprintf(stderr, "Unexpected error occurred when adding a CX gate.");
         return RuntimeError;
     }
     return Ok;
@@ -69,13 +69,13 @@ static int test_vf2_layout_line(void) {
     QkVF2LayoutResult *layout_result =
         qk_transpiler_pass_standalone_vf2_layout(qc, target, false, -1, 0.0, -1);
     if (!qk_vf2_layout_result_has_match(layout_result)) {
-        fprintf(stderr,"No layout was found");
+        fprintf(stderr, "No layout was found");
         result = EqualityError;
         goto layout_cleanup;
     }
     if (qk_vf2_layout_result_num_qubits(layout_result) != qk_circuit_num_qubits(qc)) {
-        fprintf(stderr,"Layout doesn't contain the same number of qubits as the circuit, %d != %d",
-               qk_vf2_layout_result_num_qubits(layout_result), qk_circuit_num_qubits(qc));
+        fprintf(stderr, "Layout doesn't contain the same number of qubits as the circuit, %d != %d",
+                qk_vf2_layout_result_num_qubits(layout_result), qk_circuit_num_qubits(qc));
         result = EqualityError;
         goto layout_cleanup;
     }
@@ -87,7 +87,8 @@ static int test_vf2_layout_line(void) {
     for (uint32_t i = 0; i < qk_vf2_layout_result_num_qubits(layout_result); i++) {
         uint32_t phys = qk_vf2_layout_result_map_virtual_qubit(layout_result, i);
         if (phys != expected[i]) {
-            fprintf(stderr,"Unexpected layout result virtual qubit %d mapped to %d", phys, expected[i]);
+            fprintf(stderr, "Unexpected layout result virtual qubit %d mapped to %d", phys,
+                    expected[i]);
             result = EqualityError;
             goto layout_cleanup;
         }
@@ -125,7 +126,7 @@ static int test_vf2_no_layout_found(void) {
     QkVF2LayoutResult *layout_result =
         qk_transpiler_pass_standalone_vf2_layout(qc, target, false, -1, 0.0, -1);
     if (qk_vf2_layout_result_has_match(layout_result)) {
-        fprintf(stderr,"Unexpected layout found when one shouldn't be possible");
+        fprintf(stderr, "Unexpected layout found when one shouldn't be possible");
         result = EqualityError;
         goto layout_cleanup;
     }
