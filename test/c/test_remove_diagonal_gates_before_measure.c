@@ -29,7 +29,7 @@ int test_remove_z_gate(void) {
     qk_circuit_measure(qc, 0, 0);
 
     if (2 != qk_circuit_num_instructions(qc)) {
-        printf("Circuit build failure");
+        fprintf(stderr, "Circuit build failure");
         result = RuntimeError;
         goto cleanup;
     }
@@ -37,7 +37,7 @@ int test_remove_z_gate(void) {
     qk_transpiler_pass_standalone_remove_diagonal_gates_before_measure(qc);
 
     if (1 != qk_circuit_num_instructions(qc)) {
-        printf("Circuit should only have a single instruction");
+        fprintf(stderr, "Circuit should only have a single instruction");
         result = EqualityError;
         goto cleanup;
     }
@@ -46,8 +46,9 @@ int test_remove_z_gate(void) {
     qk_circuit_get_instruction(qc, 0, &inst);
 
     if (0 != strcmp("measure", inst.name)) {
-        printf("Circuit should contain a single 'measure' instruction. Instead, it has one: '%s'.",
-               inst.name);
+        fprintf(stderr,
+                "Circuit should contain a single 'measure' instruction. Instead, it has one: '%s'.",
+                inst.name);
         result = EqualityError;
         goto cleanup_inst;
     }
