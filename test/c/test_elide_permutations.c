@@ -35,7 +35,7 @@ static int test_elide_permutations_no_result(void) {
     int result = Ok;
     QkTranspileLayout *pass_result = qk_transpiler_pass_standalone_elide_permutations(qc);
     if (pass_result != NULL) {
-        printf("A gate was elided when one shouldn't have been\n");
+        fprintf(stderr,"A gate was elided when one shouldn't have been\n");
         qk_transpile_layout_free(pass_result);
         result = EqualityError;
     }
@@ -61,7 +61,7 @@ static int test_elide_permutations_swap_result(void) {
     int result = Ok;
     QkTranspileLayout *pass_result = qk_transpiler_pass_standalone_elide_permutations(qc);
     if (pass_result == NULL) {
-        printf("A gate wasn't elided when one should have been\n");
+        fprintf(stderr,"A gate wasn't elided when one should have been\n");
         result = EqualityError;
         goto cleanup;
     }
@@ -70,21 +70,21 @@ static int test_elide_permutations_swap_result(void) {
     uint32_t expected_permutation[5] = {0, 3, 2, 1, 4};
     for (int i = 0; i < 5; i++) {
         if (permutation[i] != expected_permutation[i]) {
-            printf("Permutation doesn't match expected\n");
+            fprintf(stderr,"Permutation doesn't match expected\n");
             result = EqualityError;
             goto result_cleanup;
         }
     }
     QkOpCounts op_counts = qk_circuit_count_ops(qc);
     if (op_counts.len != 1) {
-        printf("More than 1 type of gates in circuit\n");
+        fprintf(stderr,"More than 1 type of gates in circuit\n");
         result = EqualityError;
         goto ops_cleanup;
     }
     for (size_t i = 0; i < op_counts.len; i++) {
         int swap_gate = strcmp(op_counts.data[i].name, "swap");
         if (swap_gate == 0) {
-            printf("Swap gate in circuit which should have been elided\n");
+            fprintf(stderr,"Swap gate in circuit which should have been elided\n");
             result = EqualityError;
             goto ops_cleanup;
         }
