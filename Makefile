@@ -139,16 +139,17 @@ c: $(C_LIBQISKIT) $(C_QISKIT_H)
 
 # Use ctest to run C API tests
 ctest: $(C_DIR_INCLUDE)
-ifndef REUSE_C_DIR
+ifndef SKIP_BUILD
 	cargo rustc --crate-type cdylib -p qiskit-cext
 	cp target/qiskit.h $(C_DIR_INCLUDE)/qiskit.h
 	cp crates/cext/include/complex.h $(C_DIR_INCLUDE)/qiskit/complex.h
-endif
 
 	# -S specifically specifies the source path to be the current folder
 	# -B specifically specifies the build path to be inside test/c/build
 	cmake -S. -B$(C_DIR_TEST_BUILD)
 	cmake --build $(C_DIR_TEST_BUILD)
+endif
+
 	# -V ensures we always produce a logging output to indicate the subtests
 	# -C Debug is needed for windows to work, if you don't specify Debug (or
 	#  release) explicitly ctest doesn't run on windows

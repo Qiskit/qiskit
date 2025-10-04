@@ -27,7 +27,7 @@ jobs:
       - name: Validate Binaries
         run: |
           make ctest \
-            REUSE_C_DIR=1 \
+            SKIP_BUILD=1 \
             C_DIR_TEST_BUILD="${{ env.C_DIR_OUT }}"
       - name: Archive Binaries
         run: |
@@ -59,7 +59,7 @@ jobs:
       - name: Validate Binaries
         run: |
           make ctest \
-            REUSE_C_DIR=1 \
+            SKIP_BUILD=1 \
             C_DIR_TEST_BUILD="${{ env.C_DIR_OUT }}"
       - name: Archive Binaries
         run: |
