@@ -2408,7 +2408,6 @@ impl Operation for StandardGate {
     }
     
     fn py_cls_name(&self) -> Option<(&str, &str)> {
-        let idx = *self as usize;
         let [module_path, class_name] = crate::imports::get_std_gate_import_path(*self);
         Some((module_path, class_name))
     }
