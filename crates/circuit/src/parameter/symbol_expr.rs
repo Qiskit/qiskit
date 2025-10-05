@@ -16,7 +16,7 @@ use pyo3::exceptions::PyTypeError;
 use pyo3::exceptions::PyValueError;
 use std::cmp::Ordering;
 use std::cmp::PartialOrd;
-use std::convert::From;
+use std::convert::{From, TryFrom};
 use std::fmt;
 use std::hash::Hash;
 use std::ops::{Add, Div, Mul, Neg, Sub};
@@ -173,7 +173,7 @@ impl<'py> FromPyObject<'py> for Value {
 }
 
 /// definition of unary operations
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum UnaryOp {
     Abs,
     Neg,
@@ -190,13 +190,20 @@ pub enum UnaryOp {
 }
 
 /// definition of binary operations
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum BinaryOp {
     Add,
     Sub,
     Mul,
     Div,
     Pow,
+}
+
+#[derive(Clone, Copy)]
+enum CanonicalValue {
+    Int(i64),
+    Real(f64),
+    Complex(f64, f64),
 }
 
 // functions to make new expr for add
@@ -929,6 +936,323 @@ impl SymbolExpr {
         self.repr(true)
     }
 
+    fn structural_eq(&self, other: &SymbolExpr) -> bool {
+        match (self, other) {
+            (SymbolExpr::Symbol(lhs), SymbolExpr::Symbol(rhs)) => lhs == rhs,
+            (SymbolExpr::Value(lhs), SymbolExpr::Value(rhs)) => lhs == rhs,
+            (
+                SymbolExpr::Unary {
+                    op: lop,
+                    expr: lexpr,
+                },
+                SymbolExpr::Unary {
+                    op: rop,
+                    expr: rexpr,
+                },
+            ) => lop == rop && lexpr.structural_eq(rexpr),
+            (
+                SymbolExpr::Binary {
+                    op: lop,
+                    lhs: ll,
+                    rhs: lr,
+                },
+                SymbolExpr::Binary {
+                    op: rop,
+                    lhs: rl,
+                    rhs: rr,
+                },
+            ) => lop == rop && ll.structural_eq(rl) && lr.structural_eq(rr),
+            _ => false,
+        }
+    }
+
+    fn expanded_structural_eq(&self, other: &SymbolExpr) -> bool {
+        if self.structural_eq(other) {
+            return true;
+        }
+
+        let lhs_expanded = self.expand();
+        if lhs_expanded.structural_eq(other) {
+            return true;
+        }
+
+        let rhs_expanded = other.expand();
+        if lhs_expanded.structural_eq(&rhs_expanded) {
+            return true;
+        }
+
+        lhs_expanded.canonical_fingerprint() == rhs_expanded.canonical_fingerprint()
+    }
+
+    fn canonical_fingerprint(&self) -> Vec<u8> {
+        let mut out = Vec::new();
+        self.write_canonical_fingerprint(&mut out);
+        out
+    }
+
+    fn write_canonical_fingerprint(&self, out: &mut Vec<u8>) {
+        match self {
+            SymbolExpr::Symbol(sym) => {
+                out.push(0);
+                Self::encode_symbol(out, sym);
+            }
+            SymbolExpr::Value(value) => {
+                out.push(1);
+                Self::encode_value(out, value);
+            }
+            SymbolExpr::Unary { op, expr } => {
+                out.push(2);
+                out.push(Self::encode_unary_op(op));
+                expr.write_canonical_fingerprint(out);
+            }
+            SymbolExpr::Binary { op, lhs, rhs } => match op {
+                BinaryOp::Add | BinaryOp::Sub => {
+                    out.push(3);
+                    Self::write_sum_fingerprint(self, out);
+                }
+                BinaryOp::Mul | BinaryOp::Div => {
+                    out.push(4);
+                    Self::write_product_fingerprint(self, out);
+                }
+                _ => {
+                    out.push(5);
+                    out.push(Self::encode_binary_op(op));
+                    lhs.write_canonical_fingerprint(out);
+                    rhs.write_canonical_fingerprint(out);
+                }
+            },
+        }
+    }
+
+    fn write_sum_fingerprint(expr: &SymbolExpr, out: &mut Vec<u8>) {
+        let mut terms: Vec<(i8, SymbolExpr)> = Vec::new();
+        Self::collect_sum_terms(expr, 1, &mut terms);
+
+        let mut normalized: Vec<(i8, Vec<u8>)> = Vec::new();
+        for (mut sign, mut term) in terms {
+            if term.is_zero() {
+                continue;
+            }
+            if term.is_negative() {
+                if let Some(pos) = term.neg_opt() {
+                    term = pos;
+                    sign = -sign;
+                }
+            }
+
+            let mut bytes = Vec::new();
+            term.write_canonical_fingerprint(&mut bytes);
+            normalized.push((sign, bytes));
+        }
+
+        normalized.sort_by(|(ls, lb), (rs, rb)| lb.cmp(rb).then_with(|| ls.cmp(rs)));
+
+        Self::write_len(out, normalized.len());
+        for (sign, bytes) in normalized {
+            out.push(if sign < 0 { 1 } else { 0 });
+            Self::write_len(out, bytes.len());
+            out.extend(bytes);
+        }
+    }
+
+    fn write_product_fingerprint(expr: &SymbolExpr, out: &mut Vec<u8>) {
+        let mut numerator: Vec<SymbolExpr> = Vec::new();
+        let mut denominator: Vec<SymbolExpr> = Vec::new();
+        Self::collect_product_terms(expr, 1, &mut numerator, &mut denominator);
+
+        let mut neg_parity = false;
+        let mut numerator_bytes: Vec<Vec<u8>> = Vec::new();
+        for mut term in numerator {
+            if term.is_one() {
+                continue;
+            }
+            if term.is_negative() {
+                if let Some(pos) = term.neg_opt() {
+                    term = pos;
+                    neg_parity = !neg_parity;
+                }
+            }
+
+            let mut bytes = Vec::new();
+            term.write_canonical_fingerprint(&mut bytes);
+            numerator_bytes.push(bytes);
+        }
+
+        let mut denominator_bytes: Vec<Vec<u8>> = Vec::new();
+        for mut term in denominator {
+            if term.is_one() {
+                continue;
+            }
+            if term.is_negative() {
+                if let Some(pos) = term.neg_opt() {
+                    term = pos;
+                    neg_parity = !neg_parity;
+                }
+            }
+
+            let mut bytes = Vec::new();
+            term.write_canonical_fingerprint(&mut bytes);
+            denominator_bytes.push(bytes);
+        }
+
+        numerator_bytes.sort();
+        denominator_bytes.sort();
+
+        out.push(if neg_parity { 1 } else { 0 });
+        Self::write_len(out, numerator_bytes.len());
+        for bytes in numerator_bytes {
+            Self::write_len(out, bytes.len());
+            out.extend(bytes);
+        }
+
+        Self::write_len(out, denominator_bytes.len());
+        for bytes in denominator_bytes {
+            Self::write_len(out, bytes.len());
+            out.extend(bytes);
+        }
+    }
+
+    fn collect_sum_terms(expr: &SymbolExpr, sign: i8, out: &mut Vec<(i8, SymbolExpr)>) {
+        match expr {
+            SymbolExpr::Binary {
+                op: BinaryOp::Add,
+                lhs,
+                rhs,
+            } => {
+                Self::collect_sum_terms(lhs, sign, out);
+                Self::collect_sum_terms(rhs, sign, out);
+            }
+            SymbolExpr::Binary {
+                op: BinaryOp::Sub,
+                lhs,
+                rhs,
+            } => {
+                Self::collect_sum_terms(lhs, sign, out);
+                Self::collect_sum_terms(rhs, -sign, out);
+            }
+            _ => out.push((sign, expr.clone())),
+        }
+    }
+
+    fn collect_product_terms(
+        expr: &SymbolExpr,
+        sign: i8,
+        numerator: &mut Vec<SymbolExpr>,
+        denominator: &mut Vec<SymbolExpr>,
+    ) {
+        match expr {
+            SymbolExpr::Binary {
+                op: BinaryOp::Mul,
+                lhs,
+                rhs,
+            } => {
+                Self::collect_product_terms(lhs, sign, numerator, denominator);
+                Self::collect_product_terms(rhs, sign, numerator, denominator);
+            }
+            SymbolExpr::Binary {
+                op: BinaryOp::Div,
+                lhs,
+                rhs,
+            } => {
+                Self::collect_product_terms(lhs, sign, numerator, denominator);
+                Self::collect_product_terms(rhs, -sign, numerator, denominator);
+            }
+            _ => {
+                if sign >= 0 {
+                    numerator.push(expr.clone());
+                } else {
+                    denominator.push(expr.clone());
+                }
+            }
+        }
+    }
+
+    fn write_len(out: &mut Vec<u8>, len: usize) {
+        let len = u32::try_from(len).expect("fingerprint length overflow");
+        out.extend_from_slice(&len.to_le_bytes());
+    }
+
+    fn encode_symbol(out: &mut Vec<u8>, symbol: &Arc<Symbol>) {
+        Self::write_len(out, symbol.name.len());
+        out.extend_from_slice(symbol.name.as_bytes());
+        out.extend_from_slice(symbol.uuid.as_bytes());
+        match symbol.index {
+            Some(index) => {
+                out.push(1);
+                out.extend_from_slice(&index.to_le_bytes());
+            }
+            None => out.push(0),
+        }
+    }
+
+    fn encode_value(out: &mut Vec<u8>, value: &Value) {
+        match Self::canonicalize_value(value) {
+            CanonicalValue::Int(v) => {
+                out.push(0);
+                out.extend_from_slice(&v.to_le_bytes());
+            }
+            CanonicalValue::Real(v) => {
+                out.push(1);
+                out.extend_from_slice(&v.to_le_bytes());
+            }
+            CanonicalValue::Complex(re, im) => {
+                out.push(2);
+                out.extend_from_slice(&re.to_le_bytes());
+                out.extend_from_slice(&im.to_le_bytes());
+            }
+        }
+    }
+
+    fn canonicalize_value(value: &Value) -> CanonicalValue {
+        match value {
+            Value::Int(v) => CanonicalValue::Int(*v),
+            Value::Real(v) => {
+                let rounded = v.round();
+                if (*v - rounded).abs() < SYMEXPR_EPSILON
+                    && rounded >= i64::MIN as f64
+                    && rounded <= i64::MAX as f64
+                {
+                    CanonicalValue::Int(rounded as i64)
+                } else {
+                    CanonicalValue::Real(*v)
+                }
+            }
+            Value::Complex(c) => {
+                if let Some(real) = value.opt_complex() {
+                    return Self::canonicalize_value(&real);
+                }
+                CanonicalValue::Complex(c.re, c.im)
+            }
+        }
+    }
+
+    fn encode_unary_op(op: &UnaryOp) -> u8 {
+        match op {
+            UnaryOp::Abs => 0,
+            UnaryOp::Neg => 1,
+            UnaryOp::Sin => 2,
+            UnaryOp::Asin => 3,
+            UnaryOp::Cos => 4,
+            UnaryOp::Acos => 5,
+            UnaryOp::Tan => 6,
+            UnaryOp::Atan => 7,
+            UnaryOp::Exp => 8,
+            UnaryOp::Log => 9,
+            UnaryOp::Sign => 10,
+            UnaryOp::Conj => 11,
+        }
+    }
+
+    fn encode_binary_op(op: &BinaryOp) -> u8 {
+        match op {
+            BinaryOp::Add => 0,
+            BinaryOp::Sub => 1,
+            BinaryOp::Mul => 2,
+            BinaryOp::Div => 3,
+            BinaryOp::Pow => 4,
+        }
+    }
+
     // Add with heuristic optimization
     fn add_opt(&self, rhs: &SymbolExpr, recursive: bool) -> Option<SymbolExpr> {
         if self.is_zero() {
@@ -1117,7 +1441,7 @@ impl SymbolExpr {
                             r_rhs.as_ref(),
                         ) {
                             (SymbolExpr::Value(lv), _, SymbolExpr::Value(rv), _) => {
-                                if l_rhs.expand().string_id() == r_rhs.expand().string_id() {
+                                if l_rhs.as_ref().expanded_structural_eq(r_rhs.as_ref()) {
                                     let t = SymbolExpr::Value(lv + rv);
                                     if t.is_zero() {
                                         return Some(SymbolExpr::Value(Value::Int(0)));
@@ -1147,9 +1471,9 @@ impl SymbolExpr {
                             }
                             (_, SymbolExpr::Value(lv), _, SymbolExpr::Value(rv)) => {
                                 if let (BinaryOp::Div, BinaryOp::Div) = (op, rop) {
-                                    if l_lhs.expand().string_id() == r_lhs.expand().string_id()
-                                        || _neg(l_lhs.as_ref().clone()).expand().string_id()
-                                            == r_lhs.expand().string_id()
+                                    if l_lhs.as_ref().expanded_structural_eq(r_lhs.as_ref())
+                                        || _neg(l_lhs.as_ref().clone())
+                                            .expanded_structural_eq(r_lhs.as_ref())
                                     {
                                         let tl =
                                             _mul(SymbolExpr::Value(*rv), l_lhs.as_ref().clone());
@@ -1165,9 +1489,9 @@ impl SymbolExpr {
                             }
                             (SymbolExpr::Value(_), _, _, SymbolExpr::Value(rv)) => {
                                 if let (BinaryOp::Mul, BinaryOp::Div) = (op, rop) {
-                                    if l_rhs.expand().string_id() == r_lhs.expand().string_id()
-                                        || _neg(l_rhs.as_ref().clone()).expand().string_id()
-                                            == r_lhs.expand().string_id()
+                                    if l_rhs.as_ref().expanded_structural_eq(r_lhs.as_ref())
+                                        || _neg(l_rhs.as_ref().clone())
+                                            .expanded_structural_eq(r_lhs.as_ref())
                                     {
                                         let r = _mul(
                                             SymbolExpr::Value(Value::Real(1.0) / *rv),
@@ -1181,9 +1505,9 @@ impl SymbolExpr {
                             }
                             (_, SymbolExpr::Value(lv), SymbolExpr::Value(_), _) => {
                                 if let (BinaryOp::Div, BinaryOp::Mul) = (op, rop) {
-                                    if l_lhs.expand().string_id() == r_rhs.expand().string_id()
-                                        || _neg(l_lhs.as_ref().clone()).expand().string_id()
-                                            == r_rhs.expand().string_id()
+                                    if l_lhs.as_ref().expanded_structural_eq(r_rhs.as_ref())
+                                        || _neg(l_lhs.as_ref().clone())
+                                            .expanded_structural_eq(r_rhs.as_ref())
                                     {
                                         let l = _mul(
                                             SymbolExpr::Value(Value::Real(1.0) / *lv),
@@ -1200,7 +1524,7 @@ impl SymbolExpr {
 
                         if op == rop {
                             if let Some(e) = rhs.neg_opt() {
-                                if self.expand().string_id() == e.expand().string_id() {
+                                if self.expanded_structural_eq(&e) {
                                     return Some(SymbolExpr::Value(Value::Int(0)));
                                 }
                             }
@@ -1482,7 +1806,7 @@ impl SymbolExpr {
                             r_rhs.as_ref(),
                         ) {
                             (SymbolExpr::Value(lv), _, SymbolExpr::Value(rv), _) => {
-                                if l_rhs.expand().string_id() == r_rhs.expand().string_id() {
+                                if l_rhs.as_ref().expanded_structural_eq(r_rhs.as_ref()) {
                                     let t = SymbolExpr::Value(lv - rv);
                                     if t.is_zero() {
                                         return Some(SymbolExpr::Value(Value::Int(0)));
@@ -1512,9 +1836,9 @@ impl SymbolExpr {
                             }
                             (_, SymbolExpr::Value(lv), _, SymbolExpr::Value(rv)) => {
                                 if let (BinaryOp::Div, BinaryOp::Div) = (op, rop) {
-                                    if l_lhs.expand().string_id() == r_lhs.expand().string_id()
-                                        || _neg(l_lhs.as_ref().clone()).expand().string_id()
-                                            == r_lhs.expand().string_id()
+                                    if l_lhs.as_ref().expanded_structural_eq(r_lhs.as_ref())
+                                        || _neg(l_lhs.as_ref().clone())
+                                            .expanded_structural_eq(r_lhs.as_ref())
                                     {
                                         let tl =
                                             _mul(SymbolExpr::Value(*rv), l_lhs.as_ref().clone());
@@ -1530,9 +1854,9 @@ impl SymbolExpr {
                             }
                             (SymbolExpr::Value(_), _, _, SymbolExpr::Value(rv)) => {
                                 if let (BinaryOp::Mul, BinaryOp::Div) = (op, rop) {
-                                    if l_rhs.expand().string_id() == r_lhs.expand().string_id()
-                                        || _neg(l_rhs.as_ref().clone()).expand().string_id()
-                                            == r_lhs.expand().string_id()
+                                    if l_rhs.as_ref().expanded_structural_eq(r_lhs.as_ref())
+                                        || _neg(l_rhs.as_ref().clone())
+                                            .expanded_structural_eq(r_lhs.as_ref())
                                     {
                                         let r = _mul(
                                             SymbolExpr::Value(Value::Real(1.0) / *rv),
@@ -1546,9 +1870,9 @@ impl SymbolExpr {
                             }
                             (_, SymbolExpr::Value(lv), SymbolExpr::Value(_), _) => {
                                 if let (BinaryOp::Div, BinaryOp::Mul) = (op, rop) {
-                                    if l_lhs.expand().string_id() == r_rhs.expand().string_id()
-                                        || _neg(l_lhs.as_ref().clone()).expand().string_id()
-                                            == r_rhs.expand().string_id()
+                                    if l_lhs.as_ref().expanded_structural_eq(r_rhs.as_ref())
+                                        || _neg(l_lhs.as_ref().clone())
+                                            .expanded_structural_eq(r_rhs.as_ref())
                                     {
                                         let l = _mul(
                                             SymbolExpr::Value(Value::Real(1.0) / *lv),
@@ -1563,7 +1887,7 @@ impl SymbolExpr {
                             (_, _, _, _) => (),
                         }
 
-                        if op == rop && self.expand().string_id() == rhs.expand().string_id() {
+                        if op == rop && self.expanded_structural_eq(rhs) {
                             return Some(SymbolExpr::Value(Value::Int(0)));
                         }
                     } else if let SymbolExpr::Symbol(r) = rhs {
