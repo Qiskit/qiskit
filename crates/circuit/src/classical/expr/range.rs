@@ -14,7 +14,7 @@ use crate::classical::expr::cast::Cast;
 use crate::classical::expr::{Expr, ExprKind, PyExpr, Value};
 use crate::classical::types::Type;
 use pyo3::prelude::*;
-use pyo3::types::PyAny;
+use pyo3::types::{PyAny, PyTuple};
 use pyo3::{IntoPyObjectExt, intern};
 use std::boxed::Box;
 
@@ -307,5 +307,28 @@ impl PyRangeExpr {
         };
 
         Ok(format!("R({}, {}{})", start_str, stop_str, step_str))
+    }
+
+    fn __copy__(slf: PyRef<Self>) -> PyRef<Self> {
+        // I am immutable...
+        slf
+    }
+
+    fn __deepcopy__<'py>(slf: PyRef<'py, Self>, _memo: Bound<'py, PyAny>) -> PyRef<'py, Self> {
+        // ... as are all my constituent parts.
+        slf
+    }
+
+    fn __reduce__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
+        (
+            py.get_type::<Self>(),
+            (
+                self.get_start(py)?,
+                self.get_stop(py)?,
+                self.get_step(py)?,
+                self.get_type(py)?,
+            ),
+        )
+            .into_pyobject(py)
     }
 }
