@@ -238,6 +238,20 @@ def _append_x(clifford, qubit):
     return clifford
 
 
+def _prepend_x(clifford, qubit):
+    """Apply an X gate before a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        qubit (int): gate qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    clifford.stab_phase[qubit] ^= True
+    return clifford
+
+
 def _append_y(clifford, qubit):
     """Apply a Y gate to a Clifford.
 
@@ -254,6 +268,21 @@ def _append_y(clifford, qubit):
     return clifford
 
 
+def _prepend_y(clifford, qubit):
+    """Apply a Y gate before a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        qubit (int): gate qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    clifford.stab_phase[qubit] ^= True
+    clifford.destab_phase[qubit] ^= True
+    return clifford
+
+
 def _append_z(clifford, qubit):
     """Apply an Z gate to a Clifford.
 
@@ -265,6 +294,20 @@ def _append_z(clifford, qubit):
         Clifford: the updated Clifford.
     """
     clifford.phase ^= clifford.x[:, qubit]
+    return clifford
+
+
+def _prepend_z(clifford, qubit):
+    """Apply a Z gate before a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        qubit (int): gate qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    clifford.destab_phase[qubit] ^= True
     return clifford
 
 
@@ -287,6 +330,25 @@ def _append_h(clifford, qubit):
     return clifford
 
 
+def _prepend_h(clifford, qubit):
+    """Apply a H gate before a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        qubit (int): gate qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    destab = clifford.destab[qubit, :]
+    stab = clifford.stab[qubit, :]
+
+    tmp = destab.copy()
+    destab[:] = stab
+    stab[:] = tmp
+    return clifford
+
+
 def _append_s(clifford, qubit):
     """Apply an S gate to a Clifford.
 
@@ -305,6 +367,30 @@ def _append_s(clifford, qubit):
     return clifford
 
 
+def _prepend_s(clifford, qubit):
+    """Apply an S gate before a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        qubit (int): gate qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    destab_x = clifford.destab_x[qubit, :]
+    stab_x = clifford.stab_x[qubit, :]
+    destab_z = clifford.destab_z[qubit, :]
+    stab_z = clifford.stab_z[qubit, :]
+
+    # destab_phase = clifford.destab_phase[qubit]
+    # stab_phase = clifford.stab_phase[qubit]
+
+    destab_x ^= stab_x
+    destab_z ^= stab_z
+    # clifford.destab_phase ^= clifford.stab_phase
+    return clifford
+
+
 def _append_sdg(clifford, qubit):
     """Apply an Sdg gate to a Clifford.
 
@@ -319,6 +405,23 @@ def _append_sdg(clifford, qubit):
     z = clifford.z[:, qubit]
     clifford.phase ^= x & ~z
     z ^= x
+    return clifford
+
+
+def _prepend_sdg(clifford, qubit):
+    """Apply an Sdg gate before a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        qubit (int): gate qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    destab = clifford.destab[qubit, :]
+    stab = clifford.stab[qubit, :]
+
+    destab ^= stab
     return clifford
 
 
@@ -416,6 +519,27 @@ def _append_cx(clifford, control, target):
     clifford.phase ^= (x1 ^ z0 ^ True) & z1 & x0
     x1 ^= x0
     z0 ^= z1
+    return clifford
+
+
+def _prepend_cx(clifford, control, target):
+    """Apply a CX gate before a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        control (int): gate control qubit index.
+        target (int): gate target qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    destab_target = clifford.destab[target, :]
+    stab_target = clifford.stab[target, :]
+    destab_control = clifford.destab[control, :]
+    stab_control = clifford.stab[control, :]
+
+    destab_control ^= destab_target
+    stab_target ^= stab_control
     return clifford
 
 
