@@ -16,6 +16,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit._accelerate.converters import dag_to_circuit as dag_to_circuit_rs
 
 
+# If updating this signature, update `DAGCircuit.to_circuit` as well.
 def dag_to_circuit(dag, copy_operations=True):
     """Build a ``QuantumCircuit`` object from a ``DAGCircuit``.
 
