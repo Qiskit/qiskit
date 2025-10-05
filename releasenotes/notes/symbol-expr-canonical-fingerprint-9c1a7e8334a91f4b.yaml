@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    Equality on :class:`~qiskit.circuit.SymbolExpr` is now
+    structural on a canonicalized expression graph rather
+    than a string-based representation.

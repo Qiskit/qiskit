@@ -3979,3 +3979,102 @@ pub fn replace_symbol(symbol_expr: &SymbolExpr, name_map: &HashMap<String, Symbo
         },
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::Arc;
+    use uuid::Uuid;
+
+    fn make_symbol(name: &str, seed: u128) -> Arc<Symbol> {
+        Arc::new(Symbol::new(name, Some(Uuid::from_u128(seed)), None))
+    }
+
+    fn sym(symbol: &Arc<Symbol>) -> SymbolExpr {
+        SymbolExpr::Symbol(symbol.clone())
+    }
+
+    #[test]
+    fn canonical_sum_is_commutative() {
+        let x = make_symbol("x", 1);
+        let y = make_symbol("y", 2);
+
+        let lhs = sym(&x) + sym(&y);
+        let rhs = sym(&y) + sym(&x);
+
+        assert!(lhs.expanded_structural_eq(&rhs));
+        assert_eq!(
+            lhs.expand().canonical_fingerprint(),
+            rhs.expand().canonical_fingerprint()
+        );
+    }
+
+    #[test]
+    fn canonical_product_is_commutative_and_associative() {
+        let x = make_symbol("x", 1);
+        let y = make_symbol("y", 2);
+        let z = make_symbol("z", 3);
+
+        let lhs = (sym(&x) * sym(&y)) * sym(&z);
+        let rhs = sym(&z) * (sym(&y) * sym(&x));
+
+        assert!(lhs.expanded_structural_eq(&rhs));
+        assert_eq!(
+            lhs.expand().canonical_fingerprint(),
+            rhs.expand().canonical_fingerprint()
+        );
+    }
+
+    #[test]
+    fn canonical_product_tracks_sign_parity() {
+        let x = make_symbol("x", 1);
+        let y = make_symbol("y", 2);
+
+        let lhs = -(sym(&x) * sym(&y));
+        let rhs = sym(&x) * -sym(&y);
+
+        assert!(lhs.expanded_structural_eq(&rhs));
+        assert_eq!(
+            lhs.expand().canonical_fingerprint(),
+            rhs.expand().canonical_fingerprint()
+        );
+
+        let other = sym(&x) * sym(&y);
+        assert_ne!(
+            lhs.expand().canonical_fingerprint(),
+            other.expand().canonical_fingerprint()
+        );
+    }
+
+    #[test]
+    fn canonical_division_flattens_nested_structure() {
+        let x = make_symbol("x", 1);
+        let y = make_symbol("y", 2);
+        let z = make_symbol("z", 3);
+
+        let lhs = sym(&x) / (sym(&y) * sym(&z));
+        let rhs = (sym(&x) / sym(&y)) / sym(&z);
+
+        assert!(lhs.expanded_structural_eq(&rhs));
+        assert_eq!(
+            lhs.expand().canonical_fingerprint(),
+            rhs.expand().canonical_fingerprint()
+        );
+    }
+
+    #[test]
+    fn canonical_values_collapse_numeric_aliases() {
+        let int_expr = SymbolExpr::Value(Value::Int(2));
+        let real_expr = SymbolExpr::Value(Value::Real(2.0));
+        let complex_expr = SymbolExpr::Value(Value::Complex(Complex64::new(2.0, 0.0)));
+
+        assert_eq!(
+            int_expr.canonical_fingerprint(),
+            real_expr.canonical_fingerprint()
+        );
+        assert_eq!(
+            int_expr.canonical_fingerprint(),
+            complex_expr.canonical_fingerprint()
+        );
+    }
+}
