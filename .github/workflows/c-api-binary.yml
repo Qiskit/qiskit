@@ -28,7 +28,8 @@ jobs:
         run: |
           make ctest \
             SKIP_BUILD=1 \
-            C_DIR_TEST_BUILD="${{ env.C_DIR_OUT }}"
+            C_DIR_TEST_INCLUDE="${{ env.C_DIR_OUT }}/include" \
+            C_DIR_TEST_LIB="${{ env.C_DIR_OUT }}/lib"
       - name: Archive Binaries
         run: |
           tar czf ${{ env.QISKIT_CEXT_DIR }}.tar.gz ${{ env.QISKIT_CEXT_DIR }}
@@ -61,7 +62,7 @@ jobs:
           make ctest \
             SKIP_BUILD=1 \
             C_DIR_TEST_INCLUDE="${{ env.C_DIR_OUT }}/include" \
-            C_DIR_LIB="${{ env.C_DIR_OUT }}/lib"
+            C_DIR_TEST_LIB="${{ env.C_DIR_OUT }}/lib"
       - name: Archive Binaries
         run: |
           tar czf ${{ env.QISKIT_CEXT_DIR }}.tar.gz ${{ env.QISKIT_CEXT_DIR }}
