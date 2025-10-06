@@ -287,21 +287,21 @@ class TestRange(QiskitTestCase):
     def test_range_deepcopy(self):
         """Test that Range objects can be deep copied."""
         import copy
-        
+
         start = expr.lift(5, types.Uint(8))
         stop = expr.lift(10, types.Uint(8))
         step = expr.lift(2, types.Uint(8))
-        
+
         range_expr = expr.Range(start, stop, step)
-        
+
         # Test shallow copy
         range_copy = copy.copy(range_expr)
         self.assertIs(range_copy, range_expr)  # Should be the same object (immutable)
-        
+
         # Test deep copy
         range_deepcopy = copy.deepcopy(range_expr)
         self.assertIs(range_deepcopy, range_expr)  # Should be the same object (immutable)
-        
+
         # Verify the copied object has the same properties
         self.assertEqual(range_deepcopy.start, range_expr.start)
         self.assertEqual(range_deepcopy.stop, range_expr.stop)
@@ -312,39 +312,39 @@ class TestRange(QiskitTestCase):
     def test_range_pickle(self):
         """Test that Range objects can be pickled and unpickled."""
         import pickle
-        
+
         start = expr.lift(5, types.Uint(8))
         stop = expr.lift(10, types.Uint(8))
         step = expr.lift(2, types.Uint(8))
-        
+
         range_expr = expr.Range(start, stop, step)
-        
+
         # Pickle the Range object
         pickled = pickle.dumps(range_expr)
-        
+
         # Unpickle the Range object
         unpickled = pickle.loads(pickled)
-        
+
         # Verify the unpickled object has the same properties
         self.assertEqual(unpickled.start, range_expr.start)
         self.assertEqual(unpickled.stop, range_expr.stop)
         self.assertEqual(unpickled.step, range_expr.step)
         self.assertEqual(unpickled.type, range_expr.type)
         self.assertEqual(unpickled.const, range_expr.const)
-        
+
         # Test with non-constant values
         cr = ClassicalRegister(8, "c")
         start_var = expr.lift(cr)
         stop_var = expr.lift(10, types.Uint(8))
-        
+
         range_expr_var = expr.Range(start_var, stop_var)
-        
+
         # Pickle the Range object with variables
         pickled_var = pickle.dumps(range_expr_var)
-        
+
         # Unpickle the Range object with variables
         unpickled_var = pickle.loads(pickled_var)
-        
+
         # Verify the unpickled object has the same properties
         self.assertEqual(unpickled_var.start, range_expr_var.start)
         self.assertEqual(unpickled_var.stop, range_expr_var.stop)
