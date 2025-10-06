@@ -89,6 +89,8 @@ clean: coverage_erase ;
 C_DIR_OUT = dist/c
 C_DIR_LIB = $(C_DIR_OUT)/lib
 C_DIR_INCLUDE = $(C_DIR_OUT)/include
+C_DIR_TEST_LIB = target/debug
+C_DIR_TEST_INCLUDE = $(C_DIR_INCLUDE)
 C_DIR_TEST_BUILD = test/c/build
 # Whether this is target/debug or target/release depends on the flags in the
 # `cheader` recipe.  For now, they're just hardcoded.
@@ -143,12 +145,15 @@ ifndef SKIP_BUILD
 	cargo rustc --crate-type cdylib -p qiskit-cext
 	cp target/qiskit.h $(C_DIR_INCLUDE)/qiskit.h
 	cp crates/cext/include/complex.h $(C_DIR_INCLUDE)/qiskit/complex.h
+endif
 
 	# -S specifically specifies the source path to be the current folder
 	# -B specifically specifies the build path to be inside test/c/build
-	cmake -S. -B$(C_DIR_TEST_BUILD)
+	cmake -S. -B$(C_DIR_TEST_BUILD) \
+		-DC_DIR_INCLUDE="$(C_DIR_TEST_INCLUDE)" \
+		-DC_DIR_LIB="$(C_DIR_TEST_LIB)"
+
 	cmake --build $(C_DIR_TEST_BUILD)
-endif
 
 	# -V ensures we always produce a logging output to indicate the subtests
 	# -C Debug is needed for windows to work, if you don't specify Debug (or
