@@ -174,13 +174,14 @@ impl CommutationChecker {
         CommutationChecker::new(Some(library), cache_max_entries, gates)
     }
 
-    #[pyo3(signature=(op1, op2, max_num_qubits=3, approximation_degree=1.))]
+    #[pyo3(signature=(op1, op2, max_num_qubits=3, matrix_max_num_qubits=3, approximation_degree=1.))]
     fn commute_nodes(
         &mut self,
         py: Python,
         op1: &DAGOpNode,
         op2: &DAGOpNode,
         max_num_qubits: u32,
+        matrix_max_num_qubits: u32,
         approximation_degree: f64,
     ) -> PyResult<bool> {
         let (qargs1, qargs2) = get_bits_from_py::<Qubit>(
@@ -202,11 +203,12 @@ impl CommutationChecker {
             &qargs2,
             &cargs2,
             max_num_qubits,
+            matrix_max_num_qubits,
             approximation_degree,
         )?)
     }
 
-    #[pyo3(name="commute", signature=(op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits=3, approximation_degree=1.))]
+    #[pyo3(name="commute", signature=(op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits=3, matrix_max_num_qubits=3, approximation_degree=1.))]
     #[allow(clippy::too_many_arguments)]
     fn py_commute(
         &mut self,
@@ -217,6 +219,7 @@ impl CommutationChecker {
         qargs2: &Bound<'_, PyTuple>,
         cargs2: &Bound<'_, PyTuple>,
         max_num_qubits: u32,
+        matrix_max_num_qubits: u32,
         approximation_degree: f64,
     ) -> PyResult<bool> {
         let (qargs1, qargs2) = get_bits_from_py::<Qubit>(qargs1, qargs2)?;
@@ -232,6 +235,7 @@ impl CommutationChecker {
             &qargs2,
             &cargs2,
             max_num_qubits,
+            matrix_max_num_qubits,
             approximation_degree,
         )?)
     }
@@ -323,6 +327,7 @@ impl CommutationChecker {
         qargs2: &[Qubit],
         cargs2: &[Clbit],
         max_num_qubits: u32,
+        matrix_max_num_qubits: u32,
         approximation_degree: f64,
     ) -> Result<bool, CommutationError> {
         // If the average gate infidelity is below this tolerance, they commute. The tolerance
@@ -406,6 +411,12 @@ impl CommutationChecker {
             is_cachable(first_op, first_params) && is_cachable(second_op, second_params);
 
         if !check_cache {
+            if qargs1.len() > matrix_max_num_qubits as usize
+                || qargs2.len() > matrix_max_num_qubits as usize
+            {
+                return Ok(false);
+            }
+
             return self.commute_matmul(
                 first_op,
                 first_params,
@@ -437,6 +448,12 @@ impl CommutationChecker {
             if let Some(commutation) = commutation_dict.get(&(relative_placement.clone(), hashes)) {
                 return Ok(*commutation);
             }
+        }
+
+        if qargs1.len() > matrix_max_num_qubits as usize
+            || qargs2.len() > matrix_max_num_qubits as usize
+        {
+            return Ok(false);
         }
 
         // Perform matrix multiplication to determine commutation
@@ -510,12 +527,12 @@ impl CommutationChecker {
         if first_qarg.len() > second_qarg.len() {
             return Err(CommutationError::FirstInstructionTooLarge);
         };
-        let first_mat = match get_matrix(first_op, first_params) {
+        let first_mat = match get_matrix(first_op, first_params, None, false) {
             Some(matrix) => matrix,
             None => return Ok(false),
         };
 
-        let second_mat = match get_matrix(second_op, second_params) {
+        let second_mat = match get_matrix(second_op, second_params, None, false) {
             Some(matrix) => matrix,
             None => return Ok(false),
         };
@@ -621,41 +638,56 @@ fn commutation_precheck(
     None
 }
 
-pub fn get_matrix(operation: &OperationRef, params: &[Param]) -> Option<Array2<Complex64>> {
+pub fn get_matrix(
+    operation: &OperationRef,
+    params: &[Param],
+    matrix_max_num_qubits: Option<u32>,
+    matrix_use_view_only: bool,
+) -> Option<Array2<Complex64>> {
     if let Some(matrix) = operation.matrix(params) {
-        Some(matrix)
-    } else {
-        match operation {
-            OperationRef::Gate(gate) => Python::attach(|py| -> Option<_> {
-                Some(
-                    QI_OPERATOR
-                        .get_bound(py)
-                        .call1((gate.gate.clone_ref(py),))
-                        .ok()?
-                        .getattr(intern!(py, "data"))
-                        .ok()?
-                        .extract::<PyReadonlyArray2<Complex64>>()
-                        .ok()?
-                        .as_array()
-                        .to_owned(),
-                )
-            }),
-            OperationRef::Operation(operation) => Python::attach(|py| -> Option<_> {
-                Some(
-                    QI_OPERATOR
-                        .get_bound(py)
-                        .call1((operation.operation.clone_ref(py),))
-                        .ok()?
-                        .getattr(intern!(py, "data"))
-                        .ok()?
-                        .extract::<PyReadonlyArray2<Complex64>>()
-                        .ok()?
-                        .as_array()
-                        .to_owned(),
-                )
-            }),
-            _ => None,
-        }
+        return Some(matrix);
+    }
+
+    if matrix_use_view_only {
+        return None;
+    }
+
+    let max_qubits = matrix_max_num_qubits.unwrap_or(u32::MAX);
+
+    if operation.num_qubits() > max_qubits {
+        return None;
+    }
+
+    match operation {
+        OperationRef::Gate(gate) => Python::attach(|py| -> Option<_> {
+            Some(
+                QI_OPERATOR
+                    .get_bound(py)
+                    .call1((gate.gate.clone_ref(py),))
+                    .ok()?
+                    .getattr(intern!(py, "data"))
+                    .ok()?
+                    .extract::<PyReadonlyArray2<Complex64>>()
+                    .ok()?
+                    .as_array()
+                    .to_owned(),
+            )
+        }),
+        OperationRef::Operation(operation) => Python::attach(|py| -> Option<_> {
+            Some(
+                QI_OPERATOR
+                    .get_bound(py)
+                    .call1((operation.operation.clone_ref(py),))
+                    .ok()?
+                    .getattr(intern!(py, "data"))
+                    .ok()?
+                    .extract::<PyReadonlyArray2<Complex64>>()
+                    .ok()?
+                    .as_array()
+                    .to_owned(),
+            )
+        }),
+        _ => None,
     }
 }
 

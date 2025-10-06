@@ -37,7 +37,7 @@ class CommutativeOptimization(TransformationPass):
     :class:`.CommutativeInverseCancellation` transpiler passes.
     """
 
-    def __init__(self, approximation_degree: float = 1.0, max_qubits: int = 4):
+    def __init__(self, approximation_degree: float = 1.0, matrix_max_num_qubits: int = 4):
         """
         Args:
             approximation_degree: Used in the tolerance computations.
@@ -47,7 +47,7 @@ class CommutativeOptimization(TransformationPass):
         super().__init__()
         self.commutation_checker = scc.cc
         self.approximation_degree = approximation_degree
-        self.max_qubits = max_qubits
+        self.matrix_max_num_qubits = matrix_max_num_qubits
 
     @trivial_recurse
     def run(self, dag):
@@ -60,7 +60,7 @@ class CommutativeOptimization(TransformationPass):
             DAGCircuit: the optimized DAG.
         """
         result = commutative_optimization.commutative_optimization(
-            dag, self.commutation_checker, self.approximation_degree, self.max_qubits
+            dag, self.commutation_checker, self.approximation_degree, self.matrix_max_num_qubits
         )
 
         # If the pass did not do anything, the result is None
