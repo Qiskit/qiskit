@@ -20,9 +20,9 @@ use ndarray::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
-use qiskit_circuit::operations::{Operation, Param};
+use qiskit_circuit::operations::{Operation, OperationRef, Param};
 
-use crate::target::Target;
+use crate::target::{Target, TargetOperation};
 use qiskit_circuit::{PhysicalQubit, gate_matrix};
 use qiskit_synthesis::euler_one_qubit_decomposer::{
     EULER_BASES, EULER_BASIS_NAMES, EulerBasis, EulerBasisSet, OneQubitGateSequence,
@@ -76,7 +76,40 @@ pub fn run_optimize_1q_gates_decomposition(
         };
         if basis_gates_per_qubit[qubit.index()].is_none() {
             let basis_gates = match target {
-                Some(target) => Some(target.operation_names_for_qargs(&[qubit])?),
+                Some(target) => Some(
+                    target
+                        .operation_names_for_qargs(&[qubit])?
+                        .into_iter()
+                        .filter_map(|gate_name| {
+                            let target_op = target.operation_from_name(gate_name).unwrap();
+                            let TargetOperation::Normal(gate) = target_op else {
+                                return None;
+                            };
+                            if let OperationRef::StandardGate(_) = gate.operation.view() {
+                                // For standard gates check that the target entry accepts any
+                                // params and if so then pass the gate's canonical name to the output
+                                // set, not the target name. If the gate is parameterized but as a
+                                // custom non-canonical name in the target, pass through the target
+                                // name since this could be a custom workflow and we want it to
+                                // pass through, else filter the operation
+                                if gate
+                                    .params
+                                    .iter()
+                                    .all(|x| matches!(x, Param::ParameterExpression(_)))
+                                {
+                                    Some(gate.operation.name())
+                                } else if gate_name != gate.operation.name() {
+                                    Some(gate_name)
+                                } else {
+                                    None
+                                }
+                            } else {
+                                // For all other gates, use the target name
+                                Some(gate_name)
+                            }
+                        })
+                        .collect(),
+                ),
                 None => {
                     let basis = basis_gates.as_ref();
                     basis.map(|basis| basis.iter().map(|x| x.as_str()).collect())
