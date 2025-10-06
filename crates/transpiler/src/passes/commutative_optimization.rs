@@ -259,15 +259,15 @@ fn try_merge(
     }
 
     // Check: both instructions are standard gates which cancel out.
-    if let OperationRef::StandardGate(gate1) = inst1.op.view()
-        && let OperationRef::StandardGate(gate2) = inst2.op.view()
-        && let Some((gate1inv, params1inv)) = gate1.inverse(params1)
-        && (gate1inv == gate2)
-        && compare_params(&params1inv, params2)
+    if let (OperationRef::StandardGate(gate1), OperationRef::StandardGate(gate2)) =
+        (inst1.op.view(), inst2.op.view())
     {
-        return Ok((true, None, 0.));
+        if let Some((gate1inv, params1inv)) = gate1.inverse(params1) {
+            if (gate1inv == gate2) && compare_params(&params1inv, params2) {
+                return Ok((true, None, 0.));
+            }
+        }
     }
-
     // Check: can merge special standard gates (currently RZ and RX rotations, but we
     // should include more gates).
     let merged_gate = match (inst1.op.view(), inst2.op.view()) {
