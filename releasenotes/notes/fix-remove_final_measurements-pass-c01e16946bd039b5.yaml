@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed an issue where measurements used in control flow operations were incorrectly removed by the `RemoveFinalMeasurements` pass.
+    Refer to `#14319 <https://github.com/Qiskit/qiskit/issues/14319>`for more details.
