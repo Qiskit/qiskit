@@ -174,15 +174,15 @@ impl CommutationChecker {
         CommutationChecker::new(Some(library), cache_max_entries, gates)
     }
 
-    #[pyo3(signature=(op1, op2, max_num_qubits=3, matrix_max_num_qubits=3, approximation_degree=1.))]
+    #[pyo3(signature=(op1, op2, max_num_qubits=3, approximation_degree=1., matrix_max_num_qubits=3))]
     fn commute_nodes(
         &mut self,
         py: Python,
         op1: &DAGOpNode,
         op2: &DAGOpNode,
         max_num_qubits: u32,
-        matrix_max_num_qubits: u32,
         approximation_degree: f64,
+        matrix_max_num_qubits: u32,
     ) -> PyResult<bool> {
         let (qargs1, qargs2) = get_bits_from_py::<Qubit>(
             op1.instruction.qubits.bind(py),
@@ -208,7 +208,7 @@ impl CommutationChecker {
         )?)
     }
 
-    #[pyo3(name="commute", signature=(op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits=3, matrix_max_num_qubits=3, approximation_degree=1.))]
+    #[pyo3(name="commute", signature=(op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits=3, approximation_degree=1., matrix_max_num_qubits=3))]
     #[allow(clippy::too_many_arguments)]
     fn py_commute(
         &mut self,
@@ -219,8 +219,8 @@ impl CommutationChecker {
         qargs2: &Bound<'_, PyTuple>,
         cargs2: &Bound<'_, PyTuple>,
         max_num_qubits: u32,
-        matrix_max_num_qubits: u32,
         approximation_degree: f64,
+        matrix_max_num_qubits: u32,
     ) -> PyResult<bool> {
         let (qargs1, qargs2) = get_bits_from_py::<Qubit>(qargs1, qargs2)?;
         let (cargs1, cargs2) = get_bits_from_py::<Clbit>(cargs1, cargs2)?;
@@ -648,13 +648,9 @@ pub fn get_matrix(
         return Some(matrix);
     }
 
-    if matrix_use_view_only {
-        return None;
-    }
-
-    let max_qubits = matrix_max_num_qubits.unwrap_or(u32::MAX);
-
-    if operation.num_qubits() > max_qubits {
+    if matrix_use_view_only
+        || matrix_max_num_qubits.is_some_and(|max_qubits| max_qubits < operation.num_qubits())
+    {
         return None;
     }
 

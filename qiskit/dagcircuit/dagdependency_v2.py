@@ -305,6 +305,7 @@ class _DAGDependencyV2:
                     max_node.op,
                     max_node.qargs,
                     max_node.cargs,
+                    
                 ):
                     # If prev_node and max_node do not commute, then we add an edge
                     # between the two, and mark all direct predecessors of prev_node

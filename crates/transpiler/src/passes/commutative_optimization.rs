@@ -259,15 +259,13 @@ fn try_merge(
     }
 
     // Check: both instructions are standard gates which cancel out.
-    if let (OperationRef::StandardGate(gate1), OperationRef::StandardGate(gate2)) =
-        (inst1.op.view(), inst2.op.view())
+    if let OperationRef::StandardGate(gate1) = inst1.op.view()
+        && let OperationRef::StandardGate(gate2) = inst2.op.view()
+        && let Some((gate1inv, params1inv)) = gate1.inverse(params1)
+        && (gate1inv == gate2)
+        && compare_params(&params1inv, params2)
     {
-        // Handle the case when both are standard gates
-        if let Some((gate1inv, params1inv)) = gate1.inverse(params1) {
-            if (gate1inv == gate2) && compare_params(&params1inv, params2) {
-                return Ok((true, None, 0.));
-            }
-        }
+        return Ok((true, None, 0.));
     }
 
     // Check: can merge special standard gates (currently RZ and RX rotations, but we
@@ -299,36 +297,6 @@ fn try_merge(
             return Ok((true, None, phase_update));
         } else {
             return Ok((true, Some(merged_instruction), 0.));
-        }
-    }
-
-    // Matrix-based check: the product matrix is equivalent to identity.
-    if inst1.op.num_qubits() <= matrix_max_num_qubits {
-        let view1 = inst1.op.view();
-        let view2 = inst2.op.view();
-
-        if let (Some(matrix1), Some(matrix2)) = (
-            get_matrix(
-                &view1,
-                inst1.params_view(),
-                Some(matrix_max_num_qubits),
-                false,
-            ),
-            get_matrix(
-                &view2,
-                inst2.params_view(),
-                Some(matrix_max_num_qubits),
-                false,
-            ),
-        ) {
-            let product_mat = matrix1.dot(&matrix2);
-            let dim = product_mat.shape()[0] as f64;
-            let tr_over_dim = product_mat.diag().iter().sum::<Complex64>() / dim;
-
-            let (can_be_removed, phase_update) = can_remove(tr_over_dim, dim, tol);
-            if can_be_removed {
-                return Ok((true, None, phase_update));
-            }
         }
     }
 
@@ -374,6 +342,36 @@ fn try_merge(
                 }
             } else {
                 return Ok((false, None, 0.));
+            }
+        }
+    }
+
+    // Matrix-based check: the product matrix is equivalent to identity.
+    if inst1.op.num_qubits() <= matrix_max_num_qubits {
+        let view1 = inst1.op.view();
+        let view2 = inst2.op.view();
+
+        if let (Some(matrix1), Some(matrix2)) = (
+            get_matrix(
+                &view1,
+                inst1.params_view(),
+                Some(matrix_max_num_qubits),
+                false,
+            ),
+            get_matrix(
+                &view2,
+                inst2.params_view(),
+                Some(matrix_max_num_qubits),
+                false,
+            ),
+        ) {
+            let product_mat = matrix1.dot(&matrix2);
+            let dim = product_mat.shape()[0] as f64;
+            let tr_over_dim = product_mat.diag().iter().sum::<Complex64>() / dim;
+
+            let (can_be_removed, phase_update) = can_remove(tr_over_dim, dim, tol);
+            if can_be_removed {
+                return Ok((true, None, phase_update));
             }
         }
     }

@@ -28,6 +28,19 @@ use qiskit_circuit::packed_instruction::PackedInstruction;
 
 const MINIMUM_TOL: f64 = 1e-12;
 
+/// Fidelity-based computation to check whether an operation `G` is equivalent
+/// to identity up to a global phase.
+///
+/// # Arguments
+///
+/// * `tr_over_dim`: `|Tr(G)| / dim(G)`.
+/// * `dim`: `dim(G)`.
+/// * `error`: tolerance.
+///
+/// # Returns
+///
+/// * `(true, update to the global phase)`` if the operation can be removed.
+/// * `(false, 0.)` if the operation cannot be removed.
 pub fn can_remove(tr_over_dim: Complex64, dim: f64, error: f64) -> (bool, f64) {
     let f_pro = tr_over_dim.abs().powi(2);
     let gate_fidelity = (dim * f_pro + 1.) / (dim + 1.);
@@ -38,9 +51,21 @@ pub fn can_remove(tr_over_dim: Complex64, dim: f64, error: f64) -> (bool, f64) {
     }
 }
 
-/// Check if the given operation is equivalent to identity up to a global phase, up to
-/// the specified tolerance `tol`. If this is the case, return the tuple
-/// /// `(true, global_phase)`, and if not, return the tuple `(false, 0.)`.
+/// Fidelity-based computation to check whether an operation `inst` is equivalent
+/// to identity up to a global phase.
+///
+/// # Arguments
+///
+/// * `inst`: the packed instruction
+/// * `matrix_max_num_qubits`: maximum number of qubits allowed for matrix-based checks.
+/// * `matrix_use_view_only`: if `true`, the matrix of the operation is retrieved from its view;
+///   if `false` also calls the Python-space `Operator` class when the above is not sufficient.
+/// * `error_cutoff_fn`: function to compute the allowed error tolerance.
+///
+/// # Returns
+///
+/// * `(true, update to the global phase)`` if the operation can be removed.
+/// * `(false, 0.)` if the operation cannot be removed.
 pub fn is_identity_equiv<F>(
     inst: &PackedInstruction,
     matrix_max_num_qubits: Option<u32>,
@@ -179,10 +204,10 @@ pub fn run_remove_identity_equiv(
     };
 
     for (op_node, inst) in dag.op_nodes(false) {
-        let (can_be_removed, tr_over_dim) = is_identity_equiv(inst, None, true, get_error_cutoff)?;
+        let (can_be_removed, phase_update) = is_identity_equiv(inst, None, true, get_error_cutoff)?;
         if can_be_removed {
             remove_list.push(op_node);
-            global_phase_update += tr_over_dim.arg();
+            global_phase_update += phase_update;
         }
     }
     for node in remove_list {
