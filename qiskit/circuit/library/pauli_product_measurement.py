@@ -54,19 +54,19 @@ class PauliProductMeasurement(Instruction):
             if pauli[i] == Pauli("Z"):
                 pauli_qubits.append(i)
         if pauli.phase == 2:
-            qc.x(0)
+            qc.x(pauli_qubits[0])
         # CX layer
         rev_pauli_qubits = list(reversed(pauli_qubits))
         for i in range(len(rev_pauli_qubits) - 1):
             qc.cx(rev_pauli_qubits[i], rev_pauli_qubits[i + 1])
         # Z-measurement on qubit 0
-        qc.measure(0, 0)
+        qc.measure(pauli_qubits[0], 0)
         # CX layer
         for i in range(len(pauli_qubits) - 1):
             qc.cx(pauli_qubits[i + 1], pauli_qubits[i])
         # Basis change layer
         if pauli.phase == 2:
-            qc.x(0)
+            qc.x(pauli_qubits[0])
         for i in range(num_qubits):
             if pauli[i] == Pauli("X"):
                 qc.h(i)

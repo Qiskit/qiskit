@@ -23,26 +23,31 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 class TestPauliProductMeasurement(QiskitTestCase):
     """Test the PauliProductMeasurement Instruction."""
 
-    @data("-XIYZ", "ZIYXY")
+    @data("-XIYZ", "ZIYXY", "-Y", "-ZXII")
     def test_pauli_evolution(self, p):
         """Asserts that the pauli evolution is correct and that
         the circuit around the measure reduces to identity."""
         pauli = Pauli(p)
         num_qubits = pauli.num_qubits
-        qc = QuantumCircuit(num_qubits, 1)
-        qc.append(PauliProductMeasurement(pauli), range(num_qubits), [0])
+        ppm = PauliProductMeasurement(pauli)
         qc_before_meas = QuantumCircuit(num_qubits)
         qc_no_meas = QuantumCircuit(num_qubits)
-        for inst in qc.decompose().data:
+        for inst in ppm.definition.data:
             if inst.operation.name != "measure":
                 qc_no_meas.append(inst.operation, inst.qubits)
-        for inst in qc.decompose().data:
+        for inst in ppm.definition.data:
             if inst.operation.name == "measure":
                 break
             qc_before_meas.append(inst.operation, inst.qubits)
 
+        ind_z = 0
+        for q in pauli:
+            if Pauli(q) != Pauli("I"):
+                break
+            ind_z += 1
         cliff = Clifford(qc_before_meas)
-        self.assertEqual(Pauli((num_qubits - 1) * "I" + "Z").evolve(cliff), pauli)
+        pauli_z = Pauli((num_qubits - 1 - ind_z) * "I" + "Z" + ind_z * "I")
+        self.assertEqual(pauli_z.evolve(cliff), pauli)
         self.assertEqual(Clifford(qc_no_meas), Clifford(QuantumCircuit(num_qubits)))
 
     @data("-iX", "iZY")
