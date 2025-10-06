@@ -144,17 +144,28 @@ pub struct VisualizationElement<'a>{
 impl<'a> VisualizationMatrix<'a>{
 
     pub fn new(dag_circ: &'a DAGCircuit, packedinst_layers: Vec<Vec<&'a PackedInstruction>>) -> Self {
+        // println!("Creating VisualizationMatrix...");
+        // let mut temp: Vec<VisualizationLayer> = Vec::with_capacity(packedinst_layers.len());
+        // for layer in packedinst_layers.iter() {
+        //     let vis_layer = VisualizationLayer::new(dag_circ, layer.to_vec());
+        //     temp.push(vis_layer);
+        // }
+        // println!("Visualization layers created: {:?}", temp);
+
+        // VisualizationMatrix {
+        //     visualization_layers: temp,
+        //     packedinst_layers,
+        //     dag_circ, // Now we own this, so no borrowing issues
+        // }
         println!("Creating VisualizationMatrix...");
         let mut temp: Vec<VisualizationLayer> = Vec::with_capacity(packedinst_layers.len());
         for layer in packedinst_layers.iter() {
-            let vis_layer = VisualizationLayer::new(dag_circ, layer.to_vec());
+            let vis_layer = VisualizationLayer::new(dag_circ, layer.clone());
             temp.push(vis_layer);
         }
-        println!("Visualization layers created: {:?}", temp);
-
         VisualizationMatrix {
             visualization_layers: temp,
-            packedinst_layers,
+            packedinst_layers: packedinst_layers,
             dag_circ, // Now we own this, so no borrowing issues
         }
     }
@@ -236,7 +247,6 @@ impl<'a> VisualizationLayer<'a>{
         let mut wires: Vec<wire> = Vec::new();
         let mut ct: usize = 0;
         for element in self.elements.iter(){
-
             if let Some(vis_element) = element{
                 let wire_component = vis_element.draw(&self);
                 wires.push(wire_component);
@@ -250,6 +260,7 @@ impl<'a> VisualizationLayer<'a>{
                     wires.push(wire_component);
                 }
             }
+            ct += 1;
         }
         wires
     }
