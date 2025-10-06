@@ -18,7 +18,7 @@
 /**
  * Build the version a string, based on the version numbers.
  */
-char *build_version_string(void) {
+static char *build_version_string(void) {
     char suffix[16];
     switch (QISKIT_RELEASE_LEVEL) {
     case QISKIT_RELEASE_LEVEL_DEV:
@@ -44,7 +44,7 @@ char *build_version_string(void) {
 /**
  * Test the string version.
  */
-int test_version(void) {
+static int test_version(void) {
     char *ref = build_version_string();
     int result;
     if (strcmp(ref, QISKIT_VERSION) == 0)
@@ -61,7 +61,7 @@ int test_version(void) {
 /**
  * Test the version macro and HEX version.
  */
-int test_version_macros(void) {
+static int test_version_macros(void) {
     if (QISKIT_VERSION_MAJOR < 0 || QISKIT_VERSION_MINOR < 0 || QISKIT_VERSION_PATCH < 0) {
         return EqualityError;
     }

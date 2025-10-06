@@ -20,12 +20,22 @@
 #include <stdio.h>
 #include <string.h>
 
-bool args_cmp(uint32_t *args1, uint32_t args1_len, uint32_t *args2, uint32_t args2_len);
+static bool args_cmp(uint32_t *args1, uint32_t args1_len, uint32_t *args2, uint32_t args2_len) {
+    if (args1_len != args2_len) {
+        return false;
+    }
+    for (size_t i = 0; i < args1_len; i++) {
+        if (args1[i] != args2[i]) {
+            return false;
+        }
+    }
+    return true;
+}
 
 /**
  * Test a small block of gates can be turned into a unitary on same wires
  */
-int test_consolidate_small_block(void) {
+static int test_consolidate_small_block(void) {
     int result = Ok;
 
     // Build circuit
@@ -60,7 +70,7 @@ cleanup:
 /**
  * Order of qubits and the corresponding unitary is correct
  */
-int test_wire_order(void) {
+static int test_wire_order(void) {
     int result = Ok;
 
     // Build circuit
@@ -98,7 +108,7 @@ cleanup:
 /**
  * blocks of more than 2 qubits work.
  */
-int test_3q_blocks(void) {
+static int test_3q_blocks(void) {
     int result = Ok;
 
     // Build circuit
@@ -134,7 +144,7 @@ cleanup:
 /**
  * Test a non-cx kak gate is consolidated correctly with a target.
  */
-int test_non_cx_target(void) {
+static int test_non_cx_target(void) {
     int result = Ok;
 
     // Create circuit
@@ -282,16 +292,4 @@ int test_consolidate_blocks(void) {
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
 
     return num_failed;
-}
-
-bool args_cmp(uint32_t *args1, uint32_t args1_len, uint32_t *args2, uint32_t args2_len) {
-    if (args1_len != args2_len) {
-        return false;
-    }
-    for (size_t i = 0; i < args1_len; i++) {
-        if (args1[i] != args2[i]) {
-            return false;
-        }
-    }
-    return true;
 }

@@ -24,24 +24,24 @@ use numpy::{IntoPyArray, ToPyArray};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use smallvec::SmallVec;
 
+use pyo3::Python;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyString, PyType};
 use pyo3::wrap_pyfunction;
-use pyo3::Python;
 
-use qiskit_circuit::converters::{circuit_to_dag, QuantumCircuitData};
+use qiskit_circuit::converters::{QuantumCircuitData, circuit_to_dag};
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder, NodeType};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, PythonOperation, StandardGate};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
-use qiskit_circuit::{imports, Qubit, VarsMode};
+use qiskit_circuit::{Qubit, VarsMode, imports};
 
+use crate::QiskitError;
 use crate::target::{NormalOperation, Target, TargetOperation};
 use crate::target::{Qargs, QargsRef};
-use crate::QiskitError;
 use qiskit_circuit::PhysicalQubit;
 use qiskit_synthesis::euler_one_qubit_decomposer::{
-    unitary_to_gate_sequence_inner, EulerBasis, EulerBasisSet, EULER_BASES, EULER_BASIS_NAMES,
+    EULER_BASES, EULER_BASIS_NAMES, EulerBasis, EulerBasisSet, unitary_to_gate_sequence_inner,
 };
 use qiskit_synthesis::qsd::quantum_shannon_decomposition;
 use qiskit_synthesis::two_qubit_decompose::{
@@ -222,7 +222,7 @@ fn apply_synth_sequence(
             _ => {
                 return Err(QiskitError::new_err(
                     "Decomposed gate sequence contains unexpected operations.",
-                ))
+                ));
             }
         };
 
@@ -1435,13 +1435,13 @@ fn run_2q_unitary_synthesis(
     let synth_sequence = synth_errors_sequence
         .iter()
         .enumerate()
-        .min_by(|error1, error2| error1.1 .1.partial_cmp(&error2.1 .1).unwrap())
+        .min_by(|error1, error2| error1.1.1.partial_cmp(&error2.1.1).unwrap())
         .map(|(index, _)| &synth_errors_sequence[index]);
 
     let synth_dag = synth_errors_dag
         .iter()
         .enumerate()
-        .min_by(|error1, error2| error1.1 .1.partial_cmp(&error2.1 .1).unwrap())
+        .min_by(|error1, error2| error1.1.1.partial_cmp(&error2.1.1).unwrap())
         .map(|(index, _)| &synth_errors_dag[index]);
 
     match (synth_sequence, synth_dag) {

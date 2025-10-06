@@ -12,14 +12,14 @@
 
 use hashbrown::HashMap;
 
+use pyo3::Python;
 use pyo3::exceptions::PyKeyError;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
-use pyo3::Python;
 
 use crate::TranspilerError;
-use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::PhysicalQubit;
+use qiskit_circuit::dag_circuit::DAGCircuit;
 
 #[derive(Clone)]
 pub(crate) enum CallbackType {
@@ -125,10 +125,9 @@ impl WrapAngleRegistry {
         angles: &[f64],
         qubits: &[PhysicalQubit],
     ) -> PyResult<Option<DAGCircuit>> {
-        if let Some(callback) = self.registry.get(name) {
-            Some(callback.call(angles, qubits)).transpose()
-        } else {
-            Err(PyKeyError::new_err("Name: {} not in registry"))
+        match self.registry.get(name) {
+            Some(callback) => Some(callback.call(angles, qubits)).transpose(),
+            None => Err(PyKeyError::new_err("Name: {} not in registry")),
         }
     }
 }

@@ -16,19 +16,19 @@ use ndarray::ArrayView2;
 use num_complex::Complex64;
 use num_complex::ComplexFloat;
 use pyo3::prelude::*;
-use pyo3::{pyfunction, wrap_pyfunction, Bound, PyResult};
+use pyo3::{Bound, PyResult, pyfunction, wrap_pyfunction};
 use smallvec::smallvec;
 
-use crate::commutation_checker::{get_matrix, CommutationChecker};
+use crate::commutation_checker::{CommutationChecker, get_matrix};
 use crate::gate_metrics::rotation_trace_and_dim;
+use qiskit_circuit::VarsMode;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::{
-    multiply_param, radd_param, Operation, OperationRef, Param, StandardGate,
+    Operation, OperationRef, Param, StandardGate, multiply_param, radd_param,
 };
 use qiskit_circuit::packed_instruction::PackedInstruction;
-use qiskit_circuit::VarsMode;
 
 /// Check if the given matrix is equivalent to identity up to a global phase, up to
 /// the specified tolerance `tol`. If this is the case, return the tuple

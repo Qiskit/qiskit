@@ -19,7 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 
-int test_circuit_in_basis(void) {
+static int test_circuit_in_basis(void) {
     // Create circuit
     int result = Ok;
     QkCircuit *circuit = qk_circuit_new(2, 0);
@@ -67,7 +67,7 @@ cleanup:
     return result;
 }
 
-int test_basic_basis_translator(void) {
+static int test_basic_basis_translator(void) {
     // Create circuit
     int result = Ok;
     QkCircuit *circuit = qk_circuit_new(1, 0);
@@ -105,7 +105,7 @@ cleanup:
     return result;
 }
 
-int test_toffoli_basis_translator(void) {
+static int test_toffoli_basis_translator(void) {
     // Create circuit
     int result = Ok;
     QkCircuit *circuit = qk_circuit_new(3, 0);

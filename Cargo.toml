@@ -4,7 +4,7 @@ resolver = "2"
 
 [workspace.package]
 version = "2.3.0-dev"
-edition = "2021"
+edition = "2024"
 rust-version = "1.85"  # Keep in sync with README.md, rust-toolchain.toml, and tools/install_rust_msrv.sh
 license = "Apache-2.0"
 
@@ -48,6 +48,7 @@ pyo3 = { version = "0.26", features = ["abi3-py39"] }
 # These are our own crates.
 qiskit-accelerate = { path = "crates/accelerate" }
 qiskit-circuit = { path = "crates/circuit" }
+qiskit-circuit-library = { path = "crates/circuit_library" }
 qiskit-qasm2 = { path = "crates/qasm2" }
 qiskit-qasm3 = { path = "crates/qasm3" }
 qiskit-cext = { path = "crates/cext" }

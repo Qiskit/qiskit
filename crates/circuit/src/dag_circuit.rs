@@ -40,18 +40,18 @@ use crate::parameter::parameter_expression::ParameterExpression;
 use crate::register_data::RegisterData;
 use crate::slice::PySequenceIndex;
 use crate::variable_mapper::VariableMapper;
-use crate::{imports, vf2, Clbit, Qubit, Stretch, TupleLikeArg, Var, VarsMode};
+use crate::{Clbit, Qubit, Stretch, TupleLikeArg, Var, VarsMode, imports, vf2};
 
 use hashbrown::{HashMap, HashSet};
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use itertools::{EitherOrBoth, Itertools};
 
+use pyo3::IntoPyObjectExt;
 use pyo3::exceptions::{
     PyDeprecationWarning, PyIndexError, PyRuntimeError, PyTypeError, PyValueError,
 };
 use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::IntoPyObjectExt;
 
 use pyo3::types::{
     IntoPyDict, PyDict, PyInt, PyIterator, PyList, PySet, PyString, PyTuple, PyType,
@@ -61,6 +61,7 @@ use rustworkx_core::dag_algo::layers;
 use rustworkx_core::err::ContractError;
 use rustworkx_core::graph_ext::ContractNodesDirected;
 use rustworkx_core::petgraph;
+use rustworkx_core::petgraph::Incoming;
 use rustworkx_core::petgraph::prelude::StableDiGraph;
 use rustworkx_core::petgraph::prelude::*;
 use rustworkx_core::petgraph::stable_graph::{EdgeReference, IndexType, NodeIndex};
@@ -68,7 +69,6 @@ use rustworkx_core::petgraph::unionfind::UnionFind;
 use rustworkx_core::petgraph::visit::{
     EdgeIndexable, IntoEdgeReferences, IntoNodeReferences, NodeFiltered, NodeIndexable,
 };
-use rustworkx_core::petgraph::Incoming;
 use rustworkx_core::traversal::{
     ancestors as core_ancestors, bfs_predecessors as core_bfs_predecessors,
     bfs_successors as core_bfs_successors, descendants as core_descendants,
@@ -1239,7 +1239,7 @@ impl DAGCircuit {
             Err(_) => {
                 return Err(DAGCircuitError::new_err(format!(
                     "clbits not in circuit: {clbits:?}"
-                )))
+                )));
             }
         };
         self.remove_clbits(bit_iter)
@@ -1277,7 +1277,7 @@ impl DAGCircuit {
             Err(_) => {
                 return Err(DAGCircuitError::new_err(format!(
                     "qubits not in circuit: {qubits:?}"
-                )))
+                )));
             }
         };
         self.remove_qubits(bit_iter)
@@ -2122,16 +2122,20 @@ impl DAGCircuit {
                     };
                     match [inst1.op.view(), inst2.op.view()] {
                         [OperationRef::StandardGate(_), OperationRef::StandardGate(_)]
-                        | [OperationRef::StandardInstruction(_), OperationRef::StandardInstruction(_)] => {
-                            Ok(inst1.py_op_eq(py, inst2)?
-                                && check_args()
-                                && inst1
-                                    .params_view()
-                                    .iter()
-                                    .zip(inst2.params_view().iter())
-                                    .all(|(a, b)| a.is_close(b, 1e-10).unwrap()))
-                        }
-                        [OperationRef::Instruction(op1), OperationRef::Instruction(op2)] => {
+                        | [
+                            OperationRef::StandardInstruction(_),
+                            OperationRef::StandardInstruction(_),
+                        ] => Ok(inst1.py_op_eq(py, inst2)?
+                            && check_args()
+                            && inst1
+                                .params_view()
+                                .iter()
+                                .zip(inst2.params_view().iter())
+                                .all(|(a, b)| a.is_close(b, 1e-10).unwrap())),
+                        [
+                            OperationRef::Instruction(op1),
+                            OperationRef::Instruction(op2),
+                        ] => {
                             if op1.control_flow() && op2.control_flow() {
                                 let n1 = self.unpack_into(py, NodeIndex::new(0), n1)?;
                                 let n2 = other.unpack_into(py, NodeIndex::new(0), n2)?;
@@ -2173,10 +2177,14 @@ impl DAGCircuit {
                         // and we have mutable state set.
                         [OperationRef::StandardGate(_), OperationRef::Gate(_)]
                         | [OperationRef::Gate(_), OperationRef::StandardGate(_)]
-                        | [OperationRef::StandardInstruction(_), OperationRef::Instruction(_)]
-                        | [OperationRef::Instruction(_), OperationRef::StandardInstruction(_)] => {
-                            Ok(inst1.py_op_eq(py, inst2)? && check_args())
-                        }
+                        | [
+                            OperationRef::StandardInstruction(_),
+                            OperationRef::Instruction(_),
+                        ]
+                        | [
+                            OperationRef::Instruction(_),
+                            OperationRef::StandardInstruction(_),
+                        ] => Ok(inst1.py_op_eq(py, inst2)? && check_args()),
                         [OperationRef::Unitary(op_a), OperationRef::Unitary(op_b)] => {
                             match [&op_a.array, &op_b.array] {
                                 [ArrayType::NDArray(a), ArrayType::NDArray(b)] => {
@@ -3061,7 +3069,7 @@ impl DAGCircuit {
                     Err(_) => {
                         return Err(DAGCircuitError::new_err(format!(
                             "qubits not in circuit: {qubits:?}"
-                        )))
+                        )));
                     }
                 };
                 new_dag.remove_qubits(bit_iter)?; // TODO: this does not really work, some issue with remove_qubits itself
@@ -3296,7 +3304,7 @@ impl DAGCircuit {
         self.dag
             .node_references()
             .filter_map(|(node_index, node_type)| match node_type {
-                NodeType::Operation(ref node) => {
+                NodeType::Operation(node) => {
                     if node.op.control_flow() {
                         Some(self.unpack_into(py, node_index, node_type))
                     } else {
@@ -3316,7 +3324,7 @@ impl DAGCircuit {
         self.dag
             .node_references()
             .filter_map(|(node, weight)| match weight {
-                NodeType::Operation(ref packed) => match packed.op.view() {
+                NodeType::Operation(packed) => match packed.op.view() {
                     OperationRef::Gate(_) | OperationRef::StandardGate(_) => {
                         Some(self.unpack_into(py, node, weight))
                     }
@@ -3336,7 +3344,7 @@ impl DAGCircuit {
         }
         let mut result: Vec<Py<PyAny>> = Vec::new();
         for (id, weight) in self.dag.node_references() {
-            if let NodeType::Operation(ref packed) = weight {
+            if let NodeType::Operation(packed) = weight {
                 if names_set.contains(packed.op.name()) {
                     result.push(self.unpack_into(py, id, weight)?);
                 }
@@ -3357,7 +3365,7 @@ impl DAGCircuit {
     fn multi_qubit_ops(&self, py: Python) -> PyResult<Vec<Py<PyAny>>> {
         let mut nodes = Vec::new();
         for (node, weight) in self.dag.node_references() {
-            if let NodeType::Operation(ref packed) = weight {
+            if let NodeType::Operation(packed) = weight {
                 if packed.op.directive() {
                     continue;
                 }
@@ -5389,7 +5397,32 @@ impl DAGCircuit {
     /// This is mostly used to apply operations from one DAG to
     /// another that was created from the first via
     /// [DAGCircuit::copy_empty_like].
+    #[inline]
     pub fn push_back(&mut self, instr: PackedInstruction) -> PyResult<NodeIndex> {
+        self.push_external(instr, Direction::Outgoing)
+    }
+
+    /// Apply a [PackedInstruction] to the front of the circuit.
+    ///
+    /// The provided `instr` MUST be valid for this DAG, e.g. its
+    /// bits, registers, vars, and interner IDs must be valid in
+    /// this DAG.
+    ///
+    /// This is mostly used to apply operations from one DAG to
+    /// another that was created from the first via
+    /// [DAGCircuit::copy_empty_like].
+    #[inline]
+    pub fn push_front(&mut self, instr: PackedInstruction) -> PyResult<NodeIndex> {
+        self.push_external(instr, Direction::Incoming)
+    }
+
+    /// Push a [PackedInstruction] to become an external operation node on the DAG, with the edges
+    /// between the instruction and the DAG operations are the given direction, relative to the
+    /// DAG.
+    ///
+    /// Explicitly, [Direction::Outgoing] is equivalent to [push_back], whereas
+    /// [Direction::Incoming] is equivalent to [push_front].
+    fn push_external(&mut self, instr: PackedInstruction, dir: Direction) -> PyResult<NodeIndex> {
         let (all_cbits, vars) = self.get_classical_resources(&instr)?;
 
         // Increment the operation count
@@ -5397,35 +5430,55 @@ impl DAGCircuit {
 
         let qubits_id = instr.qubits;
         let new_node = self.dag.add_node(NodeType::Operation(instr));
-
+        let terminus_index = match dir {
+            Direction::Incoming => 0, // the "in" nodes
+            Direction::Outgoing => 1, // the "out" nodes
+        };
         // Put the new node in-between the previously "last" nodes on each wire
-        // and the output map.
-        let output_nodes: HashSet<NodeIndex> = self
+        // and the terminal map.
+        let termini: IndexSet<NodeIndex, ::ahash::RandomState> = self
             .qargs_interner
             .get(qubits_id)
             .iter()
-            .map(|q| self.qubit_io_map.get(q.index()).map(|x| x[1]).unwrap())
+            .map(|q| self.qubit_io_map[q.index()][terminus_index])
             .chain(
                 all_cbits
                     .iter()
-                    .map(|c| self.clbit_io_map.get(c.index()).map(|x| x[1]).unwrap()),
+                    .map(|c| self.clbit_io_map[c.index()][terminus_index]),
             )
             .chain(
                 vars.iter()
                     .flatten()
-                    .map(|v| self.var_io_map.get(v.index()).map(|x| x[1]).unwrap()),
+                    .map(|v| self.var_io_map[v.index()][terminus_index]),
             )
             .collect();
 
-        for output_node in output_nodes {
+        for terminus in termini {
             let last_edges: Vec<_> = self
                 .dag
-                .edges_directed(output_node, Incoming)
-                .map(|e| (e.source(), e.id(), *e.weight()))
+                .edges_directed(terminus, dir.opposite())
+                .map(|e| {
+                    (
+                        match dir {
+                            Direction::Outgoing => e.source(),
+                            Direction::Incoming => e.target(),
+                        },
+                        e.id(),
+                        *e.weight(),
+                    )
+                })
                 .collect();
-            for (source, old_edge, weight) in last_edges.into_iter() {
-                self.dag.add_edge(source, new_node, weight);
-                self.dag.add_edge(new_node, output_node, weight);
+            for (op_node, old_edge, weight) in last_edges.into_iter() {
+                match dir {
+                    Direction::Outgoing => {
+                        self.dag.add_edge(op_node, new_node, weight);
+                        self.dag.add_edge(new_node, terminus, weight);
+                    }
+                    Direction::Incoming => {
+                        self.dag.add_edge(terminus, new_node, weight);
+                        self.dag.add_edge(new_node, op_node, weight);
+                    }
+                }
                 self.dag.remove_edge(old_edge);
             }
         }
@@ -5439,8 +5492,8 @@ impl DAGCircuit {
     ) -> PyResult<(Vec<Clbit>, Option<Vec<Var>>)> {
         let (all_clbits, vars): (Vec<Clbit>, Option<Vec<Var>>) = {
             if self.may_have_additional_wires(instr.op.view()) {
-                let mut clbits: HashSet<Clbit> =
-                    HashSet::from_iter(self.cargs_interner.get(instr.clbits).iter().copied());
+                let mut clbits: IndexSet<Clbit, ::ahash::RandomState> =
+                    IndexSet::from_iter(self.cargs_interner.get(instr.clbits).iter().copied());
                 let (additional_clbits, additional_vars) =
                     Python::attach(|py| self.additional_wires(py, instr.op.view()))?;
                 for clbit in additional_clbits {
@@ -5452,68 +5505,6 @@ impl DAGCircuit {
             }
         };
         Ok((all_clbits, vars))
-    }
-
-    /// Apply a [PackedInstruction] to the front of the circuit.
-    ///
-    /// The provided `instr` MUST be valid for this DAG, e.g. its
-    /// bits, registers, vars, and interner IDs must be valid in
-    /// this DAG.
-    ///
-    /// This is mostly used to apply operations from one DAG to
-    /// another that was created from the first via
-    /// [DAGCircuit::copy_empty_like].
-    fn push_front(&mut self, inst: PackedInstruction) -> PyResult<NodeIndex> {
-        let op_name = inst.op.name();
-        let (all_cbits, vars): (Vec<Clbit>, Option<Vec<Var>>) = {
-            if self.may_have_additional_wires(inst.op.view()) {
-                let mut clbits: HashSet<Clbit> =
-                    HashSet::from_iter(self.cargs_interner.get(inst.clbits).iter().copied());
-                let (additional_clbits, additional_vars) =
-                    Python::attach(|py| self.additional_wires(py, inst.op.view()))?;
-                for clbit in additional_clbits {
-                    clbits.insert(clbit);
-                }
-                (clbits.into_iter().collect(), Some(additional_vars))
-            } else {
-                (self.cargs_interner.get(inst.clbits).to_vec(), None)
-            }
-        };
-
-        self.increment_op(op_name);
-
-        let qubits_id = inst.qubits;
-        let new_node = self.dag.add_node(NodeType::Operation(inst));
-
-        // Put the new node in-between the input map and the previously
-        // "first" nodes on each wire.
-        let mut input_nodes: Vec<NodeIndex> = self
-            .qargs_interner
-            .get(qubits_id)
-            .iter()
-            .map(|q| self.qubit_io_map[q.index()][0])
-            .chain(all_cbits.iter().map(|c| self.clbit_io_map[c.index()][0]))
-            .collect();
-        if let Some(vars) = vars {
-            for var in vars {
-                input_nodes.push(self.var_io_map[var.index()][0]);
-            }
-        }
-
-        for input_node in input_nodes {
-            let first_edges: Vec<_> = self
-                .dag
-                .edges_directed(input_node, Outgoing)
-                .map(|e| (e.target(), e.id(), *e.weight()))
-                .collect();
-            for (target, old_edge, weight) in first_edges.into_iter() {
-                self.dag.add_edge(input_node, new_node, weight);
-                self.dag.add_edge(new_node, target, weight);
-                self.dag.remove_edge(old_edge);
-            }
-        }
-
-        Ok(new_node)
     }
 
     /// Apply a [PackedOperation] to the back of the circuit.
@@ -5633,7 +5624,7 @@ impl DAGCircuit {
         }
     }
 
-    fn topological_nodes(&self) -> PyResult<impl Iterator<Item = NodeIndex>> {
+    fn topological_nodes(&self) -> PyResult<impl Iterator<Item = NodeIndex> + use<>> {
         let key = |node: NodeIndex| -> Result<SortKeyType, Infallible> { Ok(self.sort_key(node)) };
         let nodes =
             rustworkx_core::dag_algo::lexicographical_topological_sort(&self.dag, key, false, None)
@@ -5658,7 +5649,7 @@ impl DAGCircuit {
         &self,
         py: Python,
         key: &Bound<PyAny>,
-    ) -> PyResult<impl Iterator<Item = NodeIndex>> {
+    ) -> PyResult<impl Iterator<Item = NodeIndex> + use<>> {
         // This path (user provided key func) is not ideal, since we no longer
         // use a string key after moving to Rust, in favor of using a tuple
         // of the qargs and cargs interner IDs of the node.
@@ -6104,7 +6095,7 @@ impl DAGCircuit {
         self.dag
             .node_references()
             .filter_map(move |(node_index, node_type)| match node_type {
-                NodeType::Operation(ref node) => {
+                NodeType::Operation(node) => {
                     (include_directives || !node.op.directive()).then_some((node_index, node))
                 }
                 _ => None,
@@ -6237,7 +6228,9 @@ impl DAGCircuit {
             Some(var_map) => var_map,
             None => {
                 if self.num_vars() > 0 || other.num_vars() > 0 {
-                    unimplemented!("Inferring variable mapping in substitute_node_with_dag is not implemented yet. Consider using py_substitute_node_with_dag instead.");
+                    unimplemented!(
+                        "Inferring variable mapping in substitute_node_with_dag is not implemented yet. Consider using py_substitute_node_with_dag instead."
+                    );
                     // TODO: implement once additional_wires becomes Python-free
                 }
                 &HashMap::<expr::Var, expr::Var>::new()
@@ -6293,7 +6286,7 @@ impl DAGCircuit {
                         Some(&kwargs),
                     )?;
 
-                    if let NodeType::Operation(ref mut new_inst) = &mut self.dag[*new_node_index] {
+                    if let NodeType::Operation(new_inst) = &mut self.dag[*new_node_index] {
                         new_inst.op = PyInstruction {
                             qubits: old_op.num_qubits(),
                             clbits: old_op.num_clbits(),
@@ -6325,9 +6318,7 @@ impl DAGCircuit {
                                     self.add_creg(new_reg.clone())
                                 })?;
 
-                            if let NodeType::Operation(ref mut new_inst) =
-                                &mut self.dag[*new_node_index]
-                            {
+                            if let NodeType::Operation(new_inst) = &mut self.dag[*new_node_index] {
                                 #[cfg(feature = "cache_pygates")]
                                 {
                                     new_inst.py_op.take();
@@ -6918,7 +6909,9 @@ impl DAGCircuit {
             let qubits = if let Wire::Qubit(qubit) = weight {
                 vec![qubit]
             } else {
-                panic!("This method only works if the gate being replaced has no classical incident wires")
+                panic!(
+                    "This method only works if the gate being replaced has no classical incident wires"
+                )
             };
             let inst = PackedInstruction {
                 op: new_op,
@@ -6948,7 +6941,7 @@ impl DAGCircuit {
             Param::Obj(_) => {
                 return Err(PyTypeError::new_err(
                     "Invalid parameter type, only float and parameter expression are supported",
-                ))
+                ));
             }
             _ => self.set_global_phase(add_global_phase(&self.global_phase, value)?)?,
         }
@@ -7290,12 +7283,12 @@ impl DAGCircuit {
                 Some(_) => {
                     return Err(DAGCircuitError::new_err(
                         "Nodes in 'node_block' must be of type 'DAGOpNode'.",
-                    ))
+                    ));
                 }
                 None => {
                     return Err(DAGCircuitError::new_err(
                         "Node in 'node_block' not found in DAG.",
-                    ))
+                    ));
                 }
             }
         }
@@ -7314,7 +7307,9 @@ impl DAGCircuit {
 
         if op.num_qubits() as usize != block_qargs.len() {
             return Err(DAGCircuitError::new_err(format!(
-                "Number of qubits in the replacement operation ({}) is not equal to the number of qubits in the block ({})!", op.num_qubits(), block_qargs.len()
+                "Number of qubits in the replacement operation ({}) is not equal to the number of qubits in the block ({})!",
+                op.num_qubits(),
+                block_qargs.len()
             )));
         }
 
@@ -7647,11 +7642,13 @@ impl DAGCircuit {
         if old_packed.op.num_qubits() != new_op.num_qubits()
             || old_packed.op.num_clbits() != new_op.num_clbits()
         {
-            return Err(DAGCircuitError::new_err(
-                format!(
-                    "Cannot replace node of width ({} qubits, {} clbits) with operation of mismatched width ({} qubits, {} clbits)",
-                    old_packed.op.num_qubits(), old_packed.op.num_clbits(), new_op.num_qubits(), new_op.num_clbits()
-                )));
+            return Err(DAGCircuitError::new_err(format!(
+                "Cannot replace node of width ({} qubits, {} clbits) with operation of mismatched width ({} qubits, {} clbits)",
+                old_packed.op.num_qubits(),
+                old_packed.op.num_clbits(),
+                new_op.num_qubits(),
+                new_op.num_clbits()
+            )));
         }
         let new_op_name = new_op.name().to_string();
         let new_weight = NodeType::Operation(PackedInstruction {
@@ -7706,11 +7703,13 @@ impl DAGCircuit {
         if old_packed.op.num_qubits() != new_op.operation.num_qubits()
             || old_packed.op.num_clbits() != new_op.operation.num_clbits()
         {
-            return Err(DAGCircuitError::new_err(
-                format!(
-                    "Cannot replace node of width ({} qubits, {} clbits) with operation of mismatched width ({} qubits, {} clbits)",
-                    old_packed.op.num_qubits(), old_packed.op.num_clbits(), new_op.operation.num_qubits(), new_op.operation.num_clbits()
-                )));
+            return Err(DAGCircuitError::new_err(format!(
+                "Cannot replace node of width ({} qubits, {} clbits) with operation of mismatched width ({} qubits, {} clbits)",
+                old_packed.op.num_qubits(),
+                old_packed.op.num_clbits(),
+                new_op.operation.num_qubits(),
+                new_op.operation.num_clbits()
+            )));
         }
 
         #[cfg(feature = "cache_pygates")]
@@ -7721,7 +7720,11 @@ impl DAGCircuit {
             // The new wires must be a non-strict subset of the current wires; if they add new
             // wires, we'd not know where to cut the existing wire to insert the new dependency.
             return Err(DAGCircuitError::new_err(format!(
-                "New operation '{:?}' does not span the same wires as the old node '{:?}'. New wires: {:?}, old_wires: {:?}.", op.str(), old_packed.op.view(), new_wires, current_wires
+                "New operation '{:?}' does not span the same wires as the old node '{:?}'. New wires: {:?}, old_wires: {:?}.",
+                op.str(),
+                old_packed.op.view(),
+                new_wires,
+                current_wires
             )));
         }
         let new_op_name = new_op.operation.name().to_string();
