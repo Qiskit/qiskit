@@ -14,6 +14,7 @@ use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2};
 use pyo3::basic::CompareOp;
 use pyo3::exceptions::{PyDeprecationWarning, PyTypeError, PyValueError};
 use pyo3::prelude::*;
+use std::sync::Arc;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 

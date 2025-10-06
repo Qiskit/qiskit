@@ -12,6 +12,7 @@
 
 use pyo3::intern;
 use pyo3::prelude::*;
+use std::sync::Arc;
 
 use crate::bit::{ShareableClbit, ShareableQubit};
 use crate::circuit_data::{CircuitData, CircuitVar};
@@ -57,7 +58,7 @@ pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<Circu
         let dag_blocks = dag.iter_blocks();
         let mut circuit_blocks = Vec::with_capacity(dag_blocks.len());
         for dag_block in dag_blocks {
-            circuit_blocks.push(dag_to_circuit(dag_block, copy_operations)?);
+            circuit_blocks.push(Arc::new(dag_to_circuit(dag_block, copy_operations)?));
         }
         circuit_blocks
     };

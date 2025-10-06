@@ -12,6 +12,7 @@
 
 use std::fmt::Debug;
 use std::hash::{Hash, RandomState};
+use std::sync::Arc;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
@@ -129,7 +130,7 @@ pub struct CircuitData {
     /// Clbits registered in the circuit.
     clbits: ObjectRegistry<Clbit, ShareableClbit>,
     /// Basic blocks registered in the circuit.
-    blocks: Vec<CircuitData>,
+    blocks: Vec<Arc<CircuitData>>,
     /// QuantumRegisters stored in the circuit
     qregs: RegisterData<QuantumRegister>,
     /// ClassicalRegisters stored in the circuit
@@ -1043,7 +1044,7 @@ impl CircuitData {
                     let mut circuits = Vec::with_capacity(blocks.len());
                     for block in blocks {
                         let circuit = &self.blocks[block.index()];
-                        circuits.push(circuit.clone());
+                        circuits.push(circuit.as_ref().clone());
                     }
                     Some(Parameters::Blocks(circuits))
                 }
@@ -1811,7 +1812,7 @@ impl CircuitData {
 impl CircuitData {
     /// Iterate over the blocks registered to the DAG.
     pub fn iter_blocks(&self) -> impl ExactSizeIterator<Item = &CircuitData> {
-        self.blocks.iter()
+        self.blocks.iter().map(|b| b.as_ref())
     }
 
     /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into an
@@ -1845,7 +1846,7 @@ impl CircuitData {
                 let mut circuits = Vec::new();
                 for block in blocks {
                     let circuit = self.blocks[block.index()].clone();
-                    circuits.push(circuit);
+                    circuits.push(circuit.as_ref().clone());
                 }
                 Some(Parameters::Blocks(circuits))
             }
@@ -1875,7 +1876,7 @@ impl CircuitData {
     /// within the circuit.
     pub fn register_block(&mut self, block: CircuitData) -> Block {
         let id = self.blocks.len();
-        self.blocks.push(block);
+        self.blocks.push(Arc::new(block));
         Block::new(id)
     }
 
@@ -1913,7 +1914,10 @@ impl CircuitData {
             ControlFlow::IfElse { condition, .. } => ControlFlowView::IfElse {
                 condition,
                 true_body: &self.blocks[instr.blocks_view()[0].index()],
-                false_body: instr.blocks_view().get(1).map(|b| &self.blocks[b.index()]),
+                false_body: instr
+                    .blocks_view()
+                    .get(1)
+                    .map(|b| self.blocks[b.index()].as_ref()),
             },
             ControlFlow::Switch {
                 target, label_spec, ..
@@ -1924,7 +1928,7 @@ impl CircuitData {
                         instr
                             .blocks_view()
                             .iter()
-                            .map(|case| &self.blocks[case.index()]),
+                            .map(|case| self.blocks[case.index()].as_ref()),
                     )
                     .collect();
                 ControlFlowView::Switch {
@@ -2121,7 +2125,7 @@ impl CircuitData {
     pub fn from_packed_instructions<I>(
         qubits: ObjectRegistry<Qubit, ShareableQubit>,
         clbits: ObjectRegistry<Clbit, ShareableClbit>,
-        blocks: Vec<CircuitData>,
+        blocks: Vec<Arc<CircuitData>>,
         qargs_interner: Interner<[Qubit]>,
         cargs_interner: Interner<[Clbit]>,
         qregs: RegisterData<QuantumRegister>,
@@ -2872,9 +2876,13 @@ impl CircuitData {
                                 }
                             }?;
                             if !seen_blocks.contains(&block_to_edit) {
-                                self.blocks[block_to_edit.index()].assign_parameters_from_mapping(
-                                    [(ParameterUuid::from_symbol(&symbol), &value)],
-                                )?;
+                                let mut new_block =
+                                    self.blocks[block_to_edit.index()].as_ref().clone();
+                                new_block.assign_parameters_from_mapping([(
+                                    ParameterUuid::from_symbol(&symbol),
+                                    &value,
+                                )])?;
+                                self.blocks[block_to_edit.index()] = Arc::new(new_block);
                                 seen_blocks.insert(block_to_edit);
                             }
                             for uuid in uuids.iter() {
