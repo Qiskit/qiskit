@@ -152,7 +152,7 @@ impl CircuitInstruction {
             operation: standard.into(),
             qubits: as_tuple(py, qubits)?.unbind(),
             clbits: PyTuple::empty(py).unbind(),
-            params: Some(Parameters::Params(params)),
+            params: (!params.is_empty()).then(|| Parameters::Params(params)),
             label: label.map(Box::new),
             #[cfg(feature = "cache_pygates")]
             py_op: OnceLock::new(),
