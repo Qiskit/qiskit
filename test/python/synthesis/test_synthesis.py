@@ -1324,7 +1324,7 @@ class TestPulseOptimalDecompose(CheckDecompositions):
             if len(node.qargs) > 1:
                 break
             del_list.append(node)
-        for node in reversed(list(dag.topological_op_nodes())):
+        for node in list(dag.topological_op_nodes(reverse=True)):
             if len(node.qargs) > 1:
                 break
             del_list.append(node)

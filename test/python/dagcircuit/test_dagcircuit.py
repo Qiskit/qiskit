@@ -1145,58 +1145,65 @@ class TestDagNodeSelection(QiskitTestCase):
         self.assertEqual(expected, [(i.op.name, i.qargs) for i in named_nodes])
 
     def test_topological_nodes_reversals(self):
-        """Single-assertion test for topological_nodes reversals."""
-        dag = DAGCircuit()
-        qr = QuantumRegister(3, "q")
-        dag.add_qreg(qr)
-        q = dag.qubits
+        """Test topological_nodes in reverse order following the example pattern."""
 
-        dag.apply_operation_back(HGate(), [q[0]], [])
-        dag.apply_operation_back(CXGate(), [q[0], q[1]], [])
-        dag.apply_operation_back(CXGate(), [q[1], q[2]], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit1, self.qubit2])
+        self.dag.apply_operation_back(XGate(), [self.qubit2])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1])
+        self.dag.apply_operation_back(HGate(), [self.qubit0])
 
-        get_key = lambda n: (
-            ("op", n.op.name, n.qargs)
-            if isinstance(n, DAGOpNode)
-            else ("in", n.wire) if isinstance(n, DAGInNode) else ("out", n.wire)
-        )
+        nodes_in_reverse = self.dag.topological_nodes(reverse=True)
 
-        list_rev = list(dag.topological_nodes(reverse=True))
-        list_rev_ops = list(dag.reverse_ops().topological_nodes())
+        qr = self.dag.qregs["qr"]
+        cr = self.dag.cregs["cr"]
 
-        indices = {get_key(node): i for i, node in enumerate(list_rev)}
-
-        is_valid_sort = all(
-            indices[get_key(node_to)] < indices[get_key(node_from)]
-            for node_from, node_to, _ in dag.edges()
-        )
-        self.assertTrue(is_valid_sort)
-
-        self.assertEqual(
-            Counter([get_key(n) for n in list_rev]),
-            Counter([get_key(n) for n in list_rev_ops]),
-        )
-
-    def test_topological_op_nodes_reversals(self):
-        """Single-assertion test for topological_op_nodes reversals."""
-        dag = DAGCircuit()
-        qr = QuantumRegister(2, "q")
-        dag.add_qreg(qr)
-        dag.apply_operation_back(HGate(), [dag.qubits[0]], [])
-        dag.apply_operation_back(CXGate(), [dag.qubits[0], dag.qubits[1]], [])
-
-        list1_rev_true = list(dag.topological_op_nodes(reverse=True))
-        list2_rev_ops = list(dag.reverse_ops().topological_op_nodes())
-        list3_reversed = list(reversed(list(dag.topological_op_nodes())))
+        expected = [
+            qr[0],
+            ("h", (self.qubit0,)),
+            qr[1],
+            ("cx", (self.qubit0, self.qubit1)),
+            qr[0],
+            qr[2],
+            ("x", (self.qubit2,)),
+            ("cx", (self.qubit1, self.qubit2)),
+            qr[1],
+            qr[2],
+            cr[0],
+            cr[0],
+            cr[1],
+            cr[1],
+        ]
 
         self.assertEqual(
-            Counter([(n.op.name, n.qargs) for n in list1_rev_true]),
-            Counter([(n.op.name, n.qargs) for n in list2_rev_ops]),
+            [
+                ((i.op.name, i.qargs) if isinstance(i, DAGOpNode) else i.wire)
+                for i in nodes_in_reverse
+            ],
+            expected,
         )
 
-        self.assertListEqual(
-            list1_rev_true,
-            list3_reversed,
+    def test_topological_nodes_reversals(self):
+        """Test topological_op_nodes in reverse order following the example pattern."""
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit2, self.qubit1], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit2], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit2], [])
+
+        op_nodes_in_reverse = list(self.dag.topological_op_nodes(reverse=True))
+
+        expected = [
+            ("h", (self.qubit2,)),
+            ("cx", (self.qubit0, self.qubit2)),
+            ("h", (self.qubit0,)),
+            ("cx", (self.qubit2, self.qubit1)),
+            ("cx", (self.qubit0, self.qubit1)),
+        ]
+
+        self.assertEqual(
+            [(i.op.name, i.qargs) for i in op_nodes_in_reverse],
+            expected,
+            f"got {[(i.op.name, i.qargs) for i in op_nodes_in_reverse]} instead",
         )
 
     def test_dag_nodes_on_wire(self):

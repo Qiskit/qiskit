@@ -185,7 +185,7 @@ fn apply_synth_dag(
     out_qargs: &[Qubit],
     synth_dag: &DAGCircuit,
 ) -> PyResult<()> {
-    for out_node in synth_dag.topological_op_nodes()? {
+    for out_node in synth_dag.topological_op_nodes(false)? {
         let mut out_packed_instr = synth_dag[out_node].unwrap_operation().clone();
         let synth_qargs = synth_dag.get_qargs(out_packed_instr.qubits);
         let mapped_qargs: Vec<Qubit> = synth_qargs
@@ -294,7 +294,7 @@ pub fn run_unitary_synthesis(
     let mut out_dag = out_dag.into_builder();
 
     // Iterate over dag nodes and determine unitary synthesis approach
-    for node in dag.topological_op_nodes()? {
+    for node in dag.topological_op_nodes(false)? {
         let mut packed_instr = dag[node].unwrap_operation().clone();
 
         if packed_instr.op.control_flow() {
@@ -1108,7 +1108,7 @@ fn synth_su4_xx_decomposer(
         None => Ok(synth_dag),
         Some(preferred_dir) => {
             let mut synth_direction: Option<Vec<u32>> = None;
-            for node in synth_dag.topological_op_nodes()? {
+            for node in synth_dag.topological_op_nodes(false)? {
                 let inst = &synth_dag[node].unwrap_operation();
                 if inst.op.num_qubits() == 2 {
                     let qargs = synth_dag.get_qargs(inst.qubits);
@@ -1180,7 +1180,7 @@ fn reversed_synth_su4_dag(
     let target_dag = synth_dag.copy_empty_like(VarsMode::Alike)?;
     let flip_bits: [Qubit; 2] = [Qubit(1), Qubit(0)];
     let mut target_dag_builder = target_dag.into_builder();
-    for node in synth_dag.topological_op_nodes()? {
+    for node in synth_dag.topological_op_nodes(false)? {
         let mut inst = synth_dag[node].unwrap_operation().clone();
         let qubits: Vec<Qubit> = synth_dag
             .qargs_interner()
@@ -1406,7 +1406,7 @@ fn run_2q_unitary_synthesis(
                         decomposer.packed_op.clone(),
                     )?;
                     let scoring_info = synth_dag
-                        .topological_op_nodes()
+                        .topological_op_nodes(false)
                         .expect("Unexpected error in dag.topological_op_nodes()")
                         .map(|node| {
                             let NodeType::Operation(inst) = &synth_dag[node] else {

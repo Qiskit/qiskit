@@ -118,7 +118,7 @@ pub fn run_litinski_transformation(
     let mut angles: Vec<Param> = Vec::new();
     let mut global_phase_update = 0.;
     let mut clifford_ops: Vec<PackedInstruction> = Vec::new();
-    for node_index in dag.topological_op_nodes()? {
+    for node_index in dag.topological_op_nodes(false)? {
         if let NodeType::Operation(inst) = &dag[node_index] {
             let (name, angle, phase_update) = match inst.op.view() {
                 OperationRef::StandardGate(StandardGate::T) => {

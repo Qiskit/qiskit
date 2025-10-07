@@ -81,7 +81,7 @@ pub fn run_alap_schedule_analysis<T: TimeOps>(
     // The physical meaning of t0 and t1 is flipped here.
 
     for node_index in dag
-        .topological_op_nodes()?
+        .topological_op_nodes(false)?
         .collect::<Vec<_>>()
         .into_iter()
         .rev()
