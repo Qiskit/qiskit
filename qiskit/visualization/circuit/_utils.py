@@ -289,10 +289,12 @@ def get_wire_label(drawer, register, index, layout=None, cregbundle=True):
                     f"{{{virt_reg.name}}}_{{{virt_reg[:].index(virt_bit)}}} \\mapsto {{{index}}}"
                 )
         except StopIteration:
+            bit_label = index_str if virt_bit._register is None else virt_bit
             if drawer == "text":
-                wire_label = f"{virt_bit} -> {index}"
+                wire_label = f"{bit_label} -> {index}"
             else:
-                wire_label = f"{{{virt_bit}}} \\mapsto {{{index}}}"
+                wire_label = f"{{{bit_label}}} \\mapsto {{{index}}}"
+
         if drawer != "text":
             wire_label = wire_label.replace(" ", "\\;")  # use wider spaces
     else:

@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed the handling of anonymous bits in circuit visualization. Previously, bits that
+    were not associated to a register would be displayed with the default Python
+    representation, whereas now they show the index in a readable fashion.
+    Fixed `#14031 <https://github.com/Qiskit/qiskit/issues/14031>`__.

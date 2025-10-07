@@ -61,6 +61,7 @@ from qiskit.circuit.library import (
     UnitaryGate,
     HamiltonianGate,
     UCGate,
+    z_feature_map,
 )
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
@@ -1406,6 +1407,31 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.swap(qr[0], qr[1])
         circuit.rz(11111, qr[2])
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
+
+    def test_anonymous_qubit(self):
+        """Test drawing a circuit with anonymous qubits.
+
+        Regression test of https://github.com/Qiskit/qiskit/issues/14031.
+        """
+        expected = "\n".join(
+            [
+                "global phase: 1.0*x[0] + 1.0*x[1] + 5π/2",
+                "        ┌─────────┐┌────┐┌─────────┐┌──────────────┐ ░ ┌─┐   ",
+                " 0 -> 0 ┤ Rz(π/2) ├┤ √X ├┤ Rz(π/2) ├┤ Rz(2.0*x[0]) ├─░─┤M├───",
+                "        ├─────────┤├────┤├─────────┤├──────────────┤ ░ └╥┘┌─┐",
+                " 1 -> 1 ┤ Rz(π/2) ├┤ √X ├┤ Rz(π/2) ├┤ Rz(2.0*x[1]) ├─░──╫─┤M├",
+                "        └─────────┘└────┘└─────────┘└──────────────┘ ░  ║ └╥┘",
+                "meas: 2/════════════════════════════════════════════════╩══╩═",
+                "                                                        0  1 ",
+            ]
+        )
+        backend = GenericBackendV2(2)
+
+        qc = z_feature_map(2, reps=1)
+        qc.measure_all()
+        tqc = transpile(qc, backend, initial_layout=[0, 1])
+
+        self.assertEqual(str(circuit_drawer(tqc, output="text")), expected)
 
     @unittest.skipUnless(HAS_TWEEDLEDUM, "Tweedledum is required for these tests.")
     def test_text_synth_no_registerless(self):
@@ -5754,7 +5780,7 @@ class TestTextPhase(QiskitTestCase):
         """Text Bell state with phase."""
         expected = "\n".join(
             [
-                "global phase: \u03C0/2",
+                "global phase: \u03c0/2",
                 "     ┌───┐     ",
                 "q_0: ┤ H ├──■──",
                 "     └───┘┌─┴─┐",
