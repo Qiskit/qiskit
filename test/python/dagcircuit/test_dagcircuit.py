@@ -1203,7 +1203,6 @@ class TestDagNodeSelection(QiskitTestCase):
         self.assertEqual(
             [(i.op.name, i.qargs) for i in op_nodes_in_reverse],
             expected,
-            f"got {[(i.op.name, i.qargs) for i in op_nodes_in_reverse]} instead",
         )
 
     def test_dag_nodes_on_wire(self):
