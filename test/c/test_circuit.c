@@ -35,19 +35,19 @@ static int test_empty(void) {
     qk_circuit_free(qc);
 
     if (opcount != 0) {
-        printf("The operation count %zu is not 0", opcount);
+        fprintf(stderr, "The operation count %zu is not 0", opcount);
         return EqualityError;
     }
     if (num_qubits != 0) {
-        printf("The number of qubits %d is not 0", num_qubits);
+        fprintf(stderr, "The number of qubits %d is not 0", num_qubits);
         return EqualityError;
     }
     if (num_clbits != 0) {
-        printf("The number of clbits %d is not 0", num_clbits);
+        fprintf(stderr, "The number of clbits %d is not 0", num_clbits);
         return EqualityError;
     }
     if (num_instructions != 0) {
-        printf("The number of instructions %zu is not 0", num_instructions);
+        fprintf(stderr, "The number of instructions %zu is not 0", num_instructions);
         return EqualityError;
     }
     return Ok;
@@ -63,15 +63,15 @@ static int test_circuit_with_quantum_reg(void) {
     qk_circuit_free(qc);
     qk_quantum_register_free(qr);
     if (num_qubits != 1024) {
-        printf("The number of qubits %d is not 1024", num_qubits);
+        fprintf(stderr, "The number of qubits %d is not 1024", num_qubits);
         return EqualityError;
     }
     if (num_clbits != 0) {
-        printf("The number of clbits %d is not 0", num_clbits);
+        fprintf(stderr, "The number of clbits %d is not 0", num_clbits);
         return EqualityError;
     }
     if (num_instructions != 0) {
-        printf("The number of instructions %zu is not 0", num_instructions);
+        fprintf(stderr, "The number of instructions %zu is not 0", num_instructions);
         return EqualityError;
     }
     return Ok;
@@ -94,8 +94,8 @@ static int test_circuit_copy(void) {
     qk_circuit_free(qc);
     qk_circuit_free(copy);
     if (num_instructions == num_copy_instructions) {
-        printf("The number of instructions %zu is equal to the copied %zu", num_instructions,
-               num_copy_instructions);
+        fprintf(stderr, "The number of instructions %zu is equal to the copied %zu",
+                num_instructions, num_copy_instructions);
         return EqualityError;
     }
     return Ok;
@@ -111,15 +111,15 @@ static int test_circuit_with_classical_reg(void) {
     qk_circuit_free(qc);
     qk_classical_register_free(cr);
     if (num_qubits != 0) {
-        printf("The number of qubits %d is not 0", num_qubits);
+        fprintf(stderr, "The number of qubits %d is not 0", num_qubits);
         return EqualityError;
     }
     if (num_clbits != 2048) {
-        printf("The number of clbits %d is not 2048", num_clbits);
+        fprintf(stderr, "The number of clbits %d is not 2048", num_clbits);
         return EqualityError;
     }
     if (num_instructions != 0) {
-        printf("The number of instructions %zu is not 0", num_instructions);
+        fprintf(stderr, "The number of instructions %zu is not 0", num_instructions);
         return EqualityError;
     }
     return Ok;
@@ -138,8 +138,8 @@ static int test_circuit_copy_with_instructions(void) {
     size_t num_instructions = qk_circuit_num_instructions(qc);
     size_t num_copy_instructions = qk_circuit_num_instructions(copy);
     if (num_instructions != num_copy_instructions) {
-        printf("The number of instructions %zu does not equal the copied %zu", num_instructions,
-               num_copy_instructions);
+        fprintf(stderr, "The number of instructions %zu does not equal the copied %zu",
+                num_instructions, num_copy_instructions);
         return EqualityError;
     }
 
@@ -163,8 +163,8 @@ static int test_circuit_copy_with_instructions(void) {
     qk_circuit_free(qc);
     qk_circuit_free(copy);
     if (num_instructions == num_copy_instructions) {
-        printf("The number of instructions %zu is equal to the copied %zu", num_instructions,
-               num_copy_instructions);
+        fprintf(stderr, "The number of instructions %zu is equal to the copied %zu",
+                num_instructions, num_copy_instructions);
         return EqualityError;
     }
     return Ok;
@@ -178,15 +178,15 @@ static int test_no_gate_1000_bits(void) {
     qk_circuit_free(qc);
 
     if (num_qubits != 1000) {
-        printf("The number of qubits %d is not 1000", num_qubits);
+        fprintf(stderr, "The number of qubits %d is not 1000", num_qubits);
         return EqualityError;
     }
     if (num_clbits != 1000) {
-        printf("The number of clbits %d is not 1000", num_clbits);
+        fprintf(stderr, "The number of clbits %d is not 1000", num_clbits);
         return EqualityError;
     }
     if (num_instructions != 0) {
-        printf("The number of instructions %zu is not 0", num_instructions);
+        fprintf(stderr, "The number of instructions %zu is not 0", num_instructions);
         return EqualityError;
     }
 
@@ -898,14 +898,14 @@ static int test_not_unitary_gate(void) {
 
     int result = Ok;
     if (exit_code != QkExitCode_ExpectedUnitary) {
-        printf("Got exit code %i but expected %i", exit_code, QkExitCode_ExpectedUnitary);
+        fprintf(stderr, "Got exit code %i but expected %i", exit_code, QkExitCode_ExpectedUnitary);
         result = EqualityError;
         goto cleanup;
     }
 
     size_t num_inst = qk_circuit_num_instructions(qc);
     if (num_inst != 0) { // we expect no gate was added
-        printf("Found gate when none should be added");
+        fprintf(stderr, "Found gate when none should be added");
         result = EqualityError;
         goto cleanup;
     }
