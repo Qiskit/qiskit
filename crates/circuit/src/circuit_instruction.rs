@@ -837,7 +837,10 @@ pub fn extract_params(
                 Some(Parameters::Blocks(blocks))
             }
         },
-        OperationRef::StandardGate(_) => Some(Parameters::Params(params.extract()?)),
+        OperationRef::StandardGate(_) => {
+            let params: SmallVec<[Param; 3]> = params.extract()?;
+            (!params.is_empty()).then(|| Parameters::Params(params))
+        }
         OperationRef::StandardInstruction(i) => {
             match &i {
                 StandardInstruction::Barrier(_) => None,
@@ -857,7 +860,8 @@ pub fn extract_params(
         }
         OperationRef::Unitary(_) => None,
         OperationRef::Gate(_) | OperationRef::Instruction(_) | OperationRef::Operation(_) => {
-            Some(Parameters::Params(params.extract()?))
+            let params: SmallVec<[Param; 3]> = params.extract()?;
+            (!params.is_empty()).then(|| Parameters::Params(params))
         }
     })
 }
