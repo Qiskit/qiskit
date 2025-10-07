@@ -26,6 +26,7 @@ use qiskit_circuit::gate_matrix::{
     TWO_QUBIT_IDENTITY,
 };
 use qiskit_circuit::imports::{QI_OPERATOR, QUANTUM_CIRCUIT};
+use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::{ArrayType, Operation, Param, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -41,7 +42,6 @@ use qiskit_synthesis::two_qubit_decompose::{
 };
 
 use crate::passes::unitary_synthesis::{PARAM_SET, TWO_QUBIT_BASIS_SET};
-use crate::target::Qargs;
 use crate::target::Target;
 use qiskit_circuit::PhysicalQubit;
 
@@ -138,13 +138,10 @@ fn is_supported(
     target: Option<&Target>,
     basis_gates: Option<&HashSet<String>>,
     name: &str,
-    qargs: &[Qubit],
+    qargs: &[PhysicalQubit],
 ) -> bool {
     match target {
-        Some(target) => {
-            let physical_qargs: Qargs = qargs.iter().map(|bit| PhysicalQubit(bit.0)).collect();
-            target.instruction_supported(name, &physical_qargs)
-        }
+        Some(target) => target.instruction_supported(name, qargs),
         None => match basis_gates {
             Some(basis_gates) => basis_gates.contains(name),
             None => true,
@@ -155,9 +152,30 @@ fn is_supported(
 // If depth > 20, there will be 1q gates to consolidate.
 const MAX_2Q_DEPTH: usize = 20;
 
+struct PhysQargsMap {
+    map: Option<Vec<PhysicalQubit>>,
+    cache: HashMap<Interned<[Qubit]>, Vec<PhysicalQubit>>,
+}
+impl PhysQargsMap {
+    fn new(map: Option<Vec<PhysicalQubit>>) -> Self {
+        Self {
+            map,
+            cache: Default::default(),
+        }
+    }
+    fn get<'a>(&'a mut self, dag: &'a DAGCircuit, key: Interned<[Qubit]>) -> &'a [PhysicalQubit] {
+        let Some(map) = self.map.as_ref() else {
+            return PhysicalQubit::lift_slice(dag.get_qargs(key));
+        };
+        self.cache
+            .entry(key)
+            .or_insert_with(|| dag.get_qargs(key).iter().map(|q| map[q.index()]).collect())
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
-#[pyo3(name = "consolidate_blocks", signature = (dag, decomposer, basis_gate_name, force_consolidate, target=None, basis_gates=None, blocks=None, runs=None))]
+#[pyo3(name = "consolidate_blocks", signature = (dag, decomposer, basis_gate_name, force_consolidate, target=None, basis_gates=None, blocks=None, runs=None, qubit_map=None))]
 fn py_run_consolidate_blocks(
     dag: &mut DAGCircuit,
     decomposer: DecomposerType,
@@ -167,6 +185,7 @@ fn py_run_consolidate_blocks(
     basis_gates: Option<HashSet<String>>,
     blocks: Option<Vec<Vec<usize>>>,
     runs: Option<Vec<Vec<usize>>>,
+    qubit_map: Option<Vec<PhysicalQubit>>,
 ) -> PyResult<()> {
     let blocks = match blocks {
         Some(runs) => runs
@@ -199,6 +218,7 @@ fn py_run_consolidate_blocks(
         HashSet::with_capacity(blocks.iter().map(|x| x.len()).sum());
     // In most cases, the qargs in a block will not exceed 2 qubits.
     let mut block_qargs: HashSet<Qubit> = HashSet::with_capacity(2);
+    let mut phys_qargs = PhysQargsMap::new(qubit_map);
     for block in blocks {
         block_qargs.clear();
         if block.len() == 1 {
@@ -208,7 +228,7 @@ fn py_run_consolidate_blocks(
                 target,
                 basis_gates.as_ref(),
                 inst.op.name(),
-                dag.get_qargs(inst.qubits),
+                phys_qargs.get(dag, inst.qubits),
             ) {
                 all_block_gates.insert(inst_node);
                 let matrix = match get_matrix_from_inst(inst) {
@@ -242,7 +262,7 @@ fn py_run_consolidate_blocks(
                 target,
                 basis_gates.as_ref(),
                 inst.op.name(),
-                dag.get_qargs(inst.qubits),
+                phys_qargs.get(dag, inst.qubits),
             ) {
                 outside_basis = true;
             }
@@ -365,7 +385,7 @@ fn py_run_consolidate_blocks(
             }
             let first_inst_node = run[0];
             let first_inst = dag[first_inst_node].unwrap_operation();
-            let first_qubits = dag.get_qargs(first_inst.qubits);
+            let first_qubits = phys_qargs.get(dag, first_inst.qubits);
 
             if run.len() == 1
                 && !is_supported(
@@ -390,7 +410,6 @@ fn py_run_consolidate_blocks(
                 )?;
                 continue;
             }
-            let qubit = first_qubits[0];
             let mut matrix = ONE_QUBIT_IDENTITY;
 
             let mut already_in_block = false;
@@ -423,8 +442,9 @@ fn py_run_consolidate_blocks(
                 let unitary_gate = UnitaryGate {
                     array: ArrayType::OneQ(array),
                 };
+                let dag_qubit = dag.get_qargs(first_inst.qubits)[0];
                 let mut block_index_map: HashMap<Qubit, usize> = HashMap::with_capacity(1);
-                block_index_map.insert(qubit, 0);
+                block_index_map.insert(dag_qubit, 0);
                 let clbit_pos_map = HashMap::new();
                 dag.replace_block(
                     &run,
@@ -471,6 +491,8 @@ pub fn run_consolidate_blocks(
         target,
         None,
         None,
+        None,
+        // TODO: this doesn't handle the possibility of control-flow operations yet.
         None,
     )
 }
