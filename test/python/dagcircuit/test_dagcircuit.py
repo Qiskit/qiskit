@@ -1182,7 +1182,7 @@ class TestDagNodeSelection(QiskitTestCase):
             expected,
         )
 
-    def test_topological_nodes_reversals(self):
+    def test_topological_op_nodes_reversals(self):
         """Test topological_op_nodes in reverse order following the example pattern."""
         self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
         self.dag.apply_operation_back(HGate(), [self.qubit0], [])

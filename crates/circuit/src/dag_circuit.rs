@@ -5636,25 +5636,6 @@ impl DAGCircuit {
         Ok(nodes.into_iter())
     }
 
-    // fn reversible_topological_nodes(
-    //     &self,
-    //     reverse: bool,
-    // ) -> PyResult<impl Iterator<Item = NodeIndex>> {
-    //     let key = |node: NodeIndex| -> Result<SortKeyType, Infallible> { Ok(self.sort_key(node)) };
-    //     let nodes = rustworkx_core::dag_algo::lexicographical_topological_sort(
-    //         &self.dag, key, reverse, None,
-    //     )
-    //     .map_err(|e| match e {
-    //         rustworkx_core::dag_algo::TopologicalSortError::CycleOrBadInitialState => {
-    //             PyValueError::new_err(format!("{e}"))
-    //         }
-    //         rustworkx_core::dag_algo::TopologicalSortError::KeyError(_) => {
-    //             unreachable!()
-    //         }
-    //     })?;
-    //     Ok(nodes.into_iter())
-    // }
-
     pub fn topological_op_nodes(
         &self,
         reverse: bool,
@@ -5663,17 +5644,6 @@ impl DAGCircuit {
             matches!(self.dag.node_weight(*node), Some(NodeType::Operation(_)))
         }))
     }
-
-    // pub fn reversible_topological_op_nodes(
-    //     &self,
-    //     reverse: bool,
-    // ) -> PyResult<impl Iterator<Item = NodeIndex> + '_> {
-    //     Ok(self
-    //         .reversible_topological_nodes(reverse)?
-    //         .filter(|node: &NodeIndex| {
-    //             matches!(self.dag.node_weight(*node), Some(NodeType::Operation(_)))
-    //         }))
-    // }
 
     fn topological_key_sort(
         &self,
