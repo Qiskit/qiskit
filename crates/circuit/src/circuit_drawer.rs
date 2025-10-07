@@ -14,9 +14,10 @@ use core::panic;
 use std::fmt::Debug;
 use hashbrown::{HashSet, HashMap};
 use crate::dag_circuit::DAGCircuit;
-use crate::operations::{Operation, StandardGate, StandardInstruction};
+use crate::operations::{Operation, OperationRef, StandardGate, StandardInstruction};
 use crate::packed_instruction::PackedInstruction;
 use itertools::{Itertools, MinMaxResult};
+use std::ops::Index;
 
 use pyo3::prelude::*;
 use pyo3::{import_exception};
@@ -112,15 +113,15 @@ pub struct Drawable<'a>{
 
 #[derive(Clone, Debug)]
 struct VisualizationMatrix<'a>{
-    visualization_layers: Vec<VisualizationLayer<'a>>,
+    pub visualization_layers: Vec<VisualizationLayer<'a>>,
     packedinst_layers: Vec<Vec<&'a PackedInstruction>>,
     dag_circ: &'a DAGCircuit
 }
 
 #[derive(Clone, Debug)]
 struct VisualizationLayer<'a>{
-    elements: Vec<Option<VisualizationElement<'a>>>,
-    drawables: Vec<Drawable<'a>>,
+    pub elements: Vec<Option<VisualizationElement<'a>>>,
+    pub drawables: Vec<Drawable<'a>>,
     width: u32,
     // circuit_rep: &'a CircuitRep
     //parent: &'a VisualizationMatrix<'a>
@@ -182,6 +183,7 @@ impl<'a> VisualizationMatrix<'a>{
         println!("Drawing VisualizationMatrix...");
         for layer in &self.visualization_layers{
             let wires = layer.draw_layer(circuit_rep);
+            println!("wires {:?}", wires);
             for (i, wire) in wires.iter().enumerate(){
                 circuit_rep.q_wires[i].add_wire_component(wire);
             }
@@ -295,7 +297,7 @@ impl<'a> VisualizationElement<'a>{
         return vis_element;
     }
 
-    // pub fn get_string(&self, layer:&VisualizationLayer) -> String{     
+    // pub fn get_string(&self, layer:&VisualizationLayer) -> String{
     //     layer.drawables[self.layer_element_index].get_name()
     // }
 
@@ -489,7 +491,7 @@ impl<'a> Drawable<'a> {
                         }
                     } else {
                         panic!("Boxed visual has no label");
-                    }    
+                    }
                 }
                 VisualType::BetweenWire(label) => {
                     if let Some(inst_label) = &self.label{
@@ -511,8 +513,8 @@ impl<'a> Drawable<'a> {
                             wire_component.bot.push_str(&format!("{}{}", CONNECTING_WIRE  ," ".repeat(inst_label.len())));
                         }
                     } else {
-                        panic!("BetweenWire visual has no label");  
-                    }       
+                        panic!("BetweenWire visual has no label");
+                    }
                 }
                 VisualType::DirectOnWire(label) => {
                     let inst_label = match &self.label {
@@ -561,7 +563,7 @@ impl<'a> Drawable<'a> {
     }
     // this function returns the indices of wires than an instruction is acting upon.
     // Since rust currently only has StandardInstruction and StandardGates, it always returns
-    // the qubit indices first, where in usually the first index is of the control qubit and the rest are of 
+    // the qubit indices first, where in usually the first index is of the control qubit and the rest are of
     // the target. However once ControlFlows are introduced, this handling needs to be more nuanced.
     pub fn get_wire_indices(&self) -> Vec<u32>{
         let mut qubit_indices: Vec<u32> = self.dag_circ.qargs_interner().get(self.packedinst.qubits)
@@ -618,12 +620,8 @@ impl<'a> DrawElement for Drawable<'a>{
 impl<'a> CircuitRep {
 
     pub fn new(dag_circ: DAGCircuit) -> Self {
-
-        //number of qubits in dag_circuit
-        let qubit = dag_circ.num_qubits();
-
         CircuitRep {
-            q_wires: vec!(wire::new(WireType::Qubit); qubit as usize),
+            q_wires: vec!(wire::new(WireType::Qubit); dag_circ.num_qubits()),
             dag_circ: dag_circ
         }
     }
@@ -1062,38 +1060,149 @@ pub fn get_indices(dag_circ: &DAGCircuit) -> u32{
     total_qubits + total_clbits
 }
 
-pub fn draw_circuit(circuit: &CircuitData) -> PyResult<()> {
-    let dag = DAGCircuit::from_circuit_data(circuit, false, None, None, None, None)?;
 
-    println!("Creating Packed Instruction layers...");
-    
-    let packedinst_layers = build_layers(&dag);
-    for (i, layer) in packedinst_layers.iter().enumerate() {
-        println!("==== LAYER {} ====", i);
-        for inst in layer {
-            println!("{:?}", inst.op.name());
+
+/// Enum for  representing the elements stored in a visualization matrix. The elements
+/// do not directly implement visualization capabilities, but rather carry enough information
+/// to enable visualization later on by the actual drawer.
+#[derive(Default, Clone, Debug)]
+enum VisualizationElement2 {
+    #[default]
+    Empty, // Marker for no element
+    Input, // TODO: should be enum for qubit/clbits
+    Control, // TODO: should be an enum for the control symbols, e.g. closed, open
+    VerticalLine, // TODO: should be an enum for the various types, e.g. single, double
+    Operation, // TODO: should be an enum for the various fine-grained types: standard gates, instruction, etc..
+}
+
+/// A representation of a single column (called here a layer) of a visualization matrix
+#[derive(Clone, Debug)]
+struct VisualizationLayer2(Vec<VisualizationElement2>);
+
+impl VisualizationLayer2 {
+    fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    /// Adds the required visualization elements to represent the given instruction
+    fn add_instruction(&mut self, inst: &PackedInstruction, dag: &DAGCircuit) {
+        match inst.op.view() {
+            OperationRef::StandardGate(gate) => self.add_standard_gate(gate, inst, dag),
+            _ => unimplemented!("{}", format!("Visualization is not implemented for instruction of type {:?}", inst.op)),
         }
     }
 
+    fn add_standard_gate(&mut self, gate: StandardGate, inst: &PackedInstruction, dag: &DAGCircuit) {
+        match gate {
+            StandardGate::CX | StandardGate::CCX => self.add_controlled_gate(inst, dag),
+            _ => unimplemented!("{}", format!("Visualization is not implemented for standard gate of type {:?}", gate)),
+        }
+    }
+
+    fn add_controlled_gate(&mut self, inst: &PackedInstruction, dag: &DAGCircuit) {
+        let qargs = dag.get_qargs(inst.qubits);
+
+        for control in 0..qargs.len() - 1 {
+            self.0[qargs[control].index()] = VisualizationElement2::Control;
+        }
+        self.0[qargs.last().unwrap().index()] = VisualizationElement2::Operation;
+    }
+}
+
+impl Index<usize> for VisualizationLayer2 {
+    type Output = VisualizationElement2;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.0[index]
+    }
+}
+
+/// A Plain, logical 2D representation of a circuit.
+///
+/// A dense representation of the circuit of size N * (M + 1), where the first
+/// layer(column) represents the qubits and clbits inputs in the circuits, and
+/// M is the number of operation layers.
+#[derive(Debug)]
+struct VisualizationMatrix2 {
+    layers: Vec<VisualizationLayer2>,
+}
+
+
+impl VisualizationMatrix2 {
+    fn from_circuit(circuit: &CircuitData) -> PyResult<Self> {
+        let dag = DAGCircuit::from_circuit_data(circuit, false, None, None, None, None)?;
+        let inst_layers = build_layers(&dag);
+
+        let num_wires = circuit.num_qubits() + circuit.num_clbits();
+        let mut layers = vec![VisualizationLayer2(vec![VisualizationElement2::default(); num_wires]); inst_layers.len() + 1]; // Add 1 to account for the inputs layer
+
+        // TODO: add the qubit/clbit inputs here to layer #0
+
+
+        for (i, layer) in inst_layers.iter().enumerate() {
+            for inst in layer {
+                layers[i + 1].add_instruction(inst, &dag);
+            }
+        }
+
+        Ok(VisualizationMatrix2{
+            layers,
+        })
+    }
+
+    fn num_wires(&self) -> usize {
+        self.layers.first().map_or(0, |layer| layer.len())
+    }
+
+    fn num_layers(&self) -> usize {
+        self.layers.len()
+    }
+}
+
+impl Index<usize> for VisualizationMatrix2 {
+    type Output = VisualizationLayer2;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.layers[index]
+    }
+}
+
+pub fn draw_circuit(circuit: &CircuitData) -> PyResult<()> {
+
+    let vis_mat2 = VisualizationMatrix2::from_circuit(circuit)?;
+
+    println!("======================");
+
+    println!("num wires {}, num layers {}", vis_mat2.num_wires(), vis_mat2.num_layers());
+
+    for i in 0..vis_mat2.num_wires() {
+        for j in 0..vis_mat2.num_layers() {
+            print!("{:^15}", format!("{:?}", vis_mat2[j][i]));
+        }
+        println!("");
+    }
     // circuit_rep2.set_qubit_name();
     // let vis_mat:VisualizationMatrix = VisualizationMatrix::new(&circuit_rep, packedinst_layers);
 
     println!("======================");
 
-    //using circuit rep to draw circuit
-    let mut circuit_rep = CircuitRep::new(dag.clone());
-    let vis_mat2:VisualizationMatrix = VisualizationMatrix::new(&dag, packedinst_layers);
-    circuit_rep.set_qubit_name();
-    vis_mat2.draw(&mut circuit_rep);
-    // vis_mat2.print();
-    //println!("{}", &circuit_rep.circuit_string());
-    println!("======================");
+    // //using circuit rep to draw circuit
+    // let mut circuit_rep = CircuitRep::new(dag.clone());
+    // // println!("circuit_rep {:?}", circuit_rep);
+    // let vis_mat2:VisualizationMatrix = VisualizationMatrix::new(&dag, packedinst_layers);
 
-    println!("Drawing circuit...");
-    // let mut circuit_rep2 = CircuitRep::new(dag);
-    // vis_mat2.draw(&mut circuit_rep2);
+    // return Ok(());
+    // circuit_rep.set_qubit_name();
+    // vis_mat2.draw(&mut circuit_rep);
+    // // vis_mat2.print();
+    // //println!("{}", &circuit_rep.circuit_string());
+    // println!("======================");
 
-    println!("finished circuit");
-    // vis_mat.print();
+    // println!("Drawing circuit...");
+    // // let mut circuit_rep2 = CircuitRep::new(dag);
+    // // vis_mat2.draw(&mut circuit_rep2);
+
+    // println!("finished circuit");
+    // // vis_mat.print();
     Ok(())
 }
