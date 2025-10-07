@@ -23,12 +23,12 @@ use numpy::{
     PyReadonlyArray1, PyReadonlyArray2, PyUntypedArrayMethods,
 };
 use pyo3::{
+    IntoPyObjectExt, PyErr,
     exceptions::{PyRuntimeError, PyTypeError, PyValueError, PyZeroDivisionError},
     intern,
     prelude::*,
     sync::PyOnceLock,
     types::{IntoPyDict, PyList, PyString, PyTuple, PyType},
-    IntoPyObjectExt, PyErr,
 };
 use std::{
     cmp::Ordering,
@@ -243,7 +243,9 @@ pub enum CoherenceError {
     MismatchedItemCount { bit_terms: usize, indices: usize },
     #[error("the first item of `boundaries` ({0}) must be 0")]
     BadInitialBoundary(usize),
-    #[error("the last item of `boundaries` ({last}) must match the length of `bit_terms` and `indices` ({items})")]
+    #[error(
+        "the last item of `boundaries` ({last}) must match the length of `bit_terms` and `indices` ({items})"
+    )]
     BadFinalBoundary { last: usize, items: usize },
     #[error("all qubit indices must be less than the number of qubits")]
     BitIndexTooHigh,
@@ -3604,7 +3606,7 @@ impl PySparseObservable {
                 return PySparseTerm {
                     inner: inner.term(index).to_term(),
                 }
-                .into_bound_py_any(py)
+                .into_bound_py_any(py);
             }
             indices => indices,
         };
@@ -3890,7 +3892,7 @@ impl PySparseObservable {
 }
 impl PySparseObservable {
     /// This is an immutable reference as opposed to a `copy`.
-    pub fn as_inner(&self) -> Result<RwLockReadGuard<SparseObservable>, InnerReadError> {
+    pub fn as_inner(&self) -> Result<RwLockReadGuard<'_, SparseObservable>, InnerReadError> {
         let data = self.inner.read().map_err(|_| InnerReadError)?;
         Ok(data)
     }

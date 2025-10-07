@@ -31,11 +31,7 @@ impl TimeOps for u64 {
         0
     }
     fn max<'a>(a: &'a Self, b: &'a Self) -> &'a Self {
-        if a >= b {
-            a
-        } else {
-            b
-        }
+        if a >= b { a } else { b }
     }
 }
 
@@ -44,11 +40,7 @@ impl TimeOps for f64 {
         0.0
     }
     fn max<'a>(a: &'a Self, b: &'a Self) -> &'a Self {
-        if a >= b {
-            a
-        } else {
-            b
-        }
+        if a >= b { a } else { b }
     }
 }
 

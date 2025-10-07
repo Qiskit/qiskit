@@ -174,9 +174,11 @@ fn py_apply_layout<'py>(
         )));
     }
     match permutation.as_ref().map(Vec::len) {
-        Some(len) if len != dag.num_qubits() => return Err(PyValueError::new_err(format!(
-            "Given permutation has difference number of qubits ({len}) than the DAG ({num_dag_qubits})"
-        ))),
+        Some(len) if len != dag.num_qubits() => {
+            return Err(PyValueError::new_err(format!(
+                "Given permutation has difference number of qubits ({len}) than the DAG ({num_dag_qubits})"
+            )));
+        }
         _ => (),
     }
     if physical_from_virtual.len() != dag.num_qubits() {
