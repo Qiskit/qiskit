@@ -34,12 +34,21 @@ jobs:
         run: |
           tar czf ${{ env.QISKIT_CEXT_DIR }}.tar.gz ${{ env.QISKIT_CEXT_DIR }}
       - name: Release
-        uses: softprops/action-gh-release@v2
-        if: github.ref_type == 'tag'
-        with:
-          files: |
+        run: |
+          TARFILE = "${{ env.QISKIT_CEXT_DIR }}.tar.gz"
+
+          if [[ ! -f "$TARFILE" ]];
+          then
+          echo "File not found: $TARFILE"
+            exit 1
+          fi
+
+          gh release upload \
+            --repo ${{ github.repository }} \
+            ${{ github.ref_name }} \
             ${{ env.QISKIT_CEXT_DIR }}.tar.gz
-          fail_on_unmatched_files: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   c-api-binary-macos:
     runs-on: macos-14
     steps:
@@ -67,9 +76,18 @@ jobs:
         run: |
           tar czf ${{ env.QISKIT_CEXT_DIR }}.tar.gz ${{ env.QISKIT_CEXT_DIR }}
       - name: Release
-        uses: softprops/action-gh-release@v2
-        if: github.ref_type == 'tag'
-        with:
-          files: |
+        run: |
+          TARFILE = "${{ env.QISKIT_CEXT_DIR }}.tar.gz"
+
+          if [[ ! -f "$TARFILE" ]];
+          then
+          echo "File not found: $TARFILE"
+            exit 1
+          fi
+
+          gh release upload \
+            --repo ${{ github.repository }} \
+            ${{ github.ref_name }} \
             ${{ env.QISKIT_CEXT_DIR }}.tar.gz
-          fail_on_unmatched_files: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
