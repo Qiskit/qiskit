@@ -5628,7 +5628,10 @@ impl DAGCircuit {
         }
     }
 
-    fn topological_nodes(&self, reverse: bool) -> PyResult<impl Iterator<Item = NodeIndex> + use<>> {
+    fn topological_nodes(
+        &self,
+        reverse: bool,
+    ) -> PyResult<impl Iterator<Item = NodeIndex> + use<>> {
         let key = |node: NodeIndex| -> Result<SortKeyType, Infallible> { Ok(self.sort_key(node)) };
         let nodes = rustworkx_core::dag_algo::lexicographical_topological_sort(
             &self.dag, key, reverse, None,
