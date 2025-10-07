@@ -20,10 +20,11 @@ jobs:
           echo "C_DIR_OUT: $C_DIR_OUT"
       - name: Build Binary
         run: |
-          export LD_LIBRARY_PATH="$(python -c 'import sys; print(sys.base_prefix)')/lib:$LD_LIBRARY_PATH"
-          make c \
-            C_DIR_OUT="${{ env.C_DIR_OUT }}" \
-            LD_LIBRARY_PATH="$LD_LIBRARY_PATH"
+          make c C_DIR_OUT="${{ env.C_DIR_OUT }}"
+
+          ls "${{ env.C_DIR_OUT }}"
+          ls "${{ env.C_DIR_OUT }}/lib"
+          ls "${{ env.C_DIR_OUT }}/include"
       - name: Validate Binaries
         run: |
           make ctest \
@@ -66,6 +67,9 @@ jobs:
       - name: Build Binary
         run: |
           make c C_DIR_OUT="${{ env.C_DIR_OUT }}"
+          ls "${{ env.C_DIR_OUT }}"
+          ls "${{ env.C_DIR_OUT }}/lib"
+          ls "${{ env.C_DIR_OUT }}/include"
       - name: Validate Binaries
         run: |
           make ctest \
