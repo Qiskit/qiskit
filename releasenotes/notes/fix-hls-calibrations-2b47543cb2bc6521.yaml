@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a bug in :class:`.HighLevelSynthesis`, where custom gate calibrations were
+    not recognized if the gate appeared inside a nested instruction.
