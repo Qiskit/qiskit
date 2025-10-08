@@ -696,6 +696,22 @@ def _append_swap(clifford, qubit0, qubit1):
     return clifford
 
 
+def _prepend_swap(clifford, qubit0, qubit1):
+    """Apply a Swap gate before a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        qubit0 (int): first qubit index.
+        qubit1 (int): second  qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    clifford.stab[[qubit0, qubit1], :] = clifford.stab[[qubit1, qubit0], :]
+    clifford.destab[[qubit0, qubit1], :] = clifford.destab[[qubit1, qubit0], :]
+    return clifford
+
+
 def _append_iswap(clifford, qubit0, qubit1):
     """Apply a iSwap gate to a Clifford.
 
