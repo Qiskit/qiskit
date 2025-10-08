@@ -38,12 +38,12 @@ use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::Symbol;
 use qiskit_circuit::parameter::symbol_expr::SymbolExpr;
 use qiskit_circuit::parameter::symbol_expr::Value;
+use qiskit_circuit::{Clbit, PhysicalQubit, Qubit, VarsMode};
 use qiskit_circuit::{
     circuit_data::CircuitData,
     dag_circuit::DAGCircuit,
     operations::{Operation, OperationRef, PythonOperation},
 };
-use qiskit_circuit::{Clbit, PhysicalQubit, Qubit, VarsMode};
 use smallvec::SmallVec;
 
 use crate::equivalence::EquivalenceLibrary;

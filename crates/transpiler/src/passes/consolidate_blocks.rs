@@ -13,11 +13,12 @@
 use hashbrown::{HashMap, HashSet};
 use nalgebra::Matrix2;
 use ndarray::ArrayView2;
-use ndarray::{aview2, Array2};
+use ndarray::{Array2, aview2};
 use num_complex::Complex64;
 use numpy::PyReadonlyArray2;
 use pyo3::intern;
 use pyo3::prelude::*;
+use qiskit_circuit::Qubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::{
@@ -28,16 +29,15 @@ use qiskit_circuit::imports::{QI_OPERATOR, QUANTUM_CIRCUIT};
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::{ArrayType, Operation, Param, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::Qubit;
 use qiskit_synthesis::two_qubit_decompose::RXXEquivalent;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
-use smallvec::smallvec;
 use smallvec::SmallVec;
+use smallvec::smallvec;
 
 use super::optimize_1q_gates_decomposition::matmul_1q;
 use qiskit_quantum_info::convert_2q_block_matrix::{blocks_to_matrix, get_matrix_from_inst};
 use qiskit_synthesis::two_qubit_decompose::{
-    ndarray_to_matrix4, TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer,
+    TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer, ndarray_to_matrix4,
 };
 
 use crate::passes::unitary_synthesis::{PARAM_SET, TWO_QUBIT_BASIS_SET};
@@ -486,8 +486,8 @@ mod test_consolidate_blocks {
     use indexmap::IndexMap;
 
     use qiskit_circuit::{
-        circuit_data::CircuitData, converters::dag_to_circuit, dag_circuit::DAGCircuit,
-        operations::StandardGate, PhysicalQubit, Qubit,
+        PhysicalQubit, Qubit, circuit_data::CircuitData, converters::dag_to_circuit,
+        dag_circuit::DAGCircuit, operations::StandardGate,
     };
     use smallvec::smallvec;
 
@@ -558,7 +558,10 @@ mod test_consolidate_blocks {
 
         let data = circ_result.data();
         if !data.is_empty() {
-            panic!("The output circuit had {} instructions but all instruction should have cancelled out", data.len());
+            panic!(
+                "The output circuit had {} instructions but all instruction should have cancelled out",
+                data.len()
+            );
         }
     }
 }

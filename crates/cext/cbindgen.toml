@@ -85,3 +85,4 @@ prefix_with_name = true
 "TranspileLayout" = "QkTranspileLayout"
 "TranspileResult" = "QkTranspileResult"
 "TranspileOptions" = "QkTranspileOptions"
+"Param" = "QkParam"

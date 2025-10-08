@@ -15,6 +15,8 @@
 import random
 import unittest
 
+from qiskit.circuit.random import random_circuit
+from qiskit.transpiler import passes
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit import QuantumRegister, QuantumCircuit, ClassicalRegister
@@ -155,6 +157,21 @@ class TestBarrierBeforeFinalMeasurements(QiskitTestCase):
         result = pass_.run(circuit_to_dag(circuit))
 
         self.assertEqual(result, circuit_to_dag(expected))
+
+    def test_determinism(self):
+        """Test that the pass modifies the DAG in a deterministic manner.
+
+        Regression test of gh-15305."""
+        seed = 2559722836963369203
+        qc = random_circuit(
+            num_qubits=12, depth=6, max_operands=3, measure=True, reset=True, seed=seed
+        )
+        qc = passes.Unroll3qOrMore()(qc)
+
+        pass_ = passes.BarrierBeforeFinalMeasurements(label="internal")
+        base = pass_.run(circuit_to_dag(qc))
+        others = [pass_.run(circuit_to_dag(qc)) for _ in range(5)]
+        self.assertTrue(all(base.structurally_equal(other) for other in others))
 
 
 class TestBarrierBeforeMeasurementsWhenABarrierIsAlreadyThere(QiskitTestCase):

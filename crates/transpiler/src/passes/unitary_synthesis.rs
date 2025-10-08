@@ -17,35 +17,36 @@ use approx::relative_eq;
 use hashbrown::{HashMap, HashSet};
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
+use nalgebra::DMatrix;
 use ndarray::prelude::*;
 use num_complex::Complex64;
 use numpy::{IntoPyArray, ToPyArray};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use smallvec::SmallVec;
 
+use pyo3::Python;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyString, PyType};
 use pyo3::wrap_pyfunction;
-use pyo3::Python;
 
-use qiskit_circuit::converters::{circuit_to_dag, QuantumCircuitData};
+use qiskit_circuit::converters::{QuantumCircuitData, circuit_to_dag};
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder, NodeType};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, PythonOperation, StandardGate};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
-use qiskit_circuit::{imports, Qubit, VarsMode};
+use qiskit_circuit::{Qubit, VarsMode, imports};
 
+use crate::QiskitError;
 use crate::target::{NormalOperation, Target, TargetOperation};
 use crate::target::{Qargs, QargsRef};
-use crate::QiskitError;
-use crate::TranspilerError;
 use qiskit_circuit::PhysicalQubit;
 use qiskit_synthesis::euler_one_qubit_decomposer::{
-    unitary_to_gate_sequence_inner, EulerBasis, EulerBasisSet, EULER_BASES, EULER_BASIS_NAMES,
+    EULER_BASES, EULER_BASIS_NAMES, EulerBasis, EulerBasisSet, unitary_to_gate_sequence_inner,
 };
+use qiskit_synthesis::qsd::quantum_shannon_decomposition;
 use qiskit_synthesis::two_qubit_decompose::{
-    ndarray_to_matrix4, RXXEquivalent, TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer,
-    TwoQubitGateSequence, TwoQubitWeylDecomposition,
+    RXXEquivalent, TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer, TwoQubitGateSequence,
+    TwoQubitWeylDecomposition, ndarray_to_matrix4,
 };
 
 #[cfg(feature = "cache_pygates")]
@@ -221,7 +222,7 @@ fn apply_synth_sequence(
             _ => {
                 return Err(QiskitError::new_err(
                     "Decomposed gate sequence contains unexpected operations.",
-                ))
+                ));
             }
         };
 
@@ -469,32 +470,25 @@ pub fn run_unitary_synthesis(
             _ => {
                 if basis_gates.is_empty() && target.is_none() {
                     out_dag.push_back(packed_instr.clone())?;
-                } else if !run_python_decomposers {
-                    return Err(TranspilerError::new_err(
-                        "3q+ unitary decomposition requires Python",
-                    ));
                 } else {
-                    let synth_dag = Python::attach(|py| {
-                        let qs_decomposition: &Bound<'_, PyAny> =
-                            imports::QS_DECOMPOSITION.get_bound(py);
-                        let synth_circ = match packed_instr.op.view() {
-                            OperationRef::Unitary(gate) => {
-                                qs_decomposition.call1((gate.matrix_view().to_pyarray(py),))?
+                    let matrix = match packed_instr.op.view() {
+                        OperationRef::Unitary(gate) => {
+                            let array = gate.matrix_view();
+                            let shape = array.shape();
+                            DMatrix::from_fn(shape[0], shape[1], |i, j| array[[i, j]])
+                        }
+                        _ => match packed_instr.op.matrix(packed_instr.params_view()) {
+                            Some(array) => {
+                                let shape = array.shape();
+                                DMatrix::from_fn(shape[0], shape[1], |i, j| array[[i, j]])
                             }
-                            _ => match packed_instr.op.matrix(packed_instr.params_view()) {
-                                Some(matrix) => {
-                                    qs_decomposition.call1((matrix.into_pyarray(py),))?
-                                }
-                                _ => return Err(QiskitError::new_err("Unitary not found")),
-                            },
-                        };
-                        circuit_to_dag(
-                            QuantumCircuitData::extract_bound(&synth_circ)?,
-                            false,
-                            None,
-                            None,
-                        )
-                    })?;
+                            _ => return Err(QiskitError::new_err("Unitary not found")),
+                        },
+                    };
+                    let synth_circ =
+                        quantum_shannon_decomposition(&matrix, None, None, None, None)?;
+                    let synth_dag =
+                        DAGCircuit::from_circuit_data(&synth_circ, false, None, None, None, None)?;
                     let out_qargs = dag.get_qargs(packed_instr.qubits);
                     apply_synth_dag(&mut out_dag, out_qargs, &synth_dag)?;
                 }
@@ -1459,13 +1453,13 @@ fn run_2q_unitary_synthesis(
     let synth_sequence = synth_errors_sequence
         .iter()
         .enumerate()
-        .min_by(|error1, error2| error1.1 .1.partial_cmp(&error2.1 .1).unwrap())
+        .min_by(|error1, error2| error1.1.1.partial_cmp(&error2.1.1).unwrap())
         .map(|(index, _)| &synth_errors_sequence[index]);
 
     let synth_dag = synth_errors_dag
         .iter()
         .enumerate()
-        .min_by(|error1, error2| error1.1 .1.partial_cmp(&error2.1 .1).unwrap())
+        .min_by(|error1, error2| error1.1.1.partial_cmp(&error2.1.1).unwrap())
         .map(|(index, _)| &synth_errors_dag[index]);
 
     match (synth_sequence, synth_dag) {
