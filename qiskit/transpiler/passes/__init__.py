@@ -174,6 +174,14 @@ Additional Passes
    RemoveFinalMeasurements
    UnrollForLoops
    WrapAngles
+
+Additional data
+===============
+
+.. py:data:: qiskit.transpiler.passes.utils.wrap_angles.WRAP_ANGLE_REGISTRY
+
+    A legacy location for :attr:`.WrapAngles.DEFAULT_REGISTRY`.  This path should only be used when
+    full compatibility with Qiskit 2.2 is required.
 """
 
 # layout selection (placement)
