@@ -443,6 +443,23 @@ def _append_sx(clifford, qubit):
     return clifford
 
 
+def _prepend_sx(clifford, qubit):
+    """Apply an SX gate before a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        qubit (int): gate qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    destab = clifford.destab[qubit, :]
+    stab = clifford.stab[qubit, :]
+
+    stab ^= destab
+    return clifford
+
+
 def _append_sxdg(clifford, qubit):
     """Apply an SXdg gate to a Clifford.
 
@@ -458,6 +475,23 @@ def _append_sxdg(clifford, qubit):
 
     clifford.phase ^= x & z
     x ^= z
+    return clifford
+
+
+def _prepend_sxdg(clifford, qubit):
+    """Apply an SXdg gate before a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        qubit (int): gate qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    destab = clifford.destab[qubit, :]
+    stab = clifford.stab[qubit, :]
+
+    stab ^= destab
     return clifford
 
 
@@ -481,6 +515,28 @@ def _append_v(clifford, qubit):
     return clifford
 
 
+def _prepend_v(clifford, qubit):
+    """Apply a V gate before a Clifford.
+
+    This is equivalent to an Sdg gate followed by a H gate.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        qubit (int): gate qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    destab = clifford.destab[qubit, :]
+    stab = clifford.stab[qubit, :]
+
+    tmp = destab.copy()
+    destab ^= stab
+    clifford.stab[qubit, :] = tmp
+
+    return clifford
+
+
 def _append_w(clifford, qubit):
     """Apply a W gate to a Clifford.
 
@@ -498,6 +554,28 @@ def _append_w(clifford, qubit):
     tmp = z.copy()
     z ^= x
     x[:] = tmp
+    return clifford
+
+
+def _prepend_w(clifford, qubit):
+    """Apply a W gate before a Clifford.
+
+    This is equivalent to an H gate followed by an S gate.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        qubit (int): gate qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    destab = clifford.destab[qubit, :]
+    stab = clifford.stab[qubit, :]
+
+    tmp = stab.copy()
+    stab ^= destab
+    clifford.destab[qubit, :] = tmp
+
     return clifford
 
 
