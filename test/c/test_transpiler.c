@@ -170,7 +170,7 @@ static int test_transpile_idle_qubits(void) {
     qk_target_add_instruction(target, cx_entry);
     qk_target_add_instruction(target, qk_target_entry_new(QkGate_U));
 
-    for (unsigned short opt_level = 0; opt_level < 4; opt_level++) {
+    for (uint8_t opt_level = 0; opt_level < 4; opt_level++) {
         QkTranspileOptions transpile_options = {opt_level, 1234, 1.0};
         QkTranspileResult transpile_result;
         char *error;
@@ -182,23 +182,23 @@ static int test_transpile_idle_qubits(void) {
             qk_str_free(error);
             goto cleanup;
         }
-        uint32_t num_instructions = qk_circuit_num_instructions(transpile_result.circuit);
+        size_t num_instructions = qk_circuit_num_instructions(transpile_result.circuit);
         qk_circuit_free(transpile_result.circuit);
         qk_transpile_layout_free(transpile_result.layout);
         if (opt_level == 0 && num_instructions != 12) {
-            printf("opt_level: %d num_instructions: %d is not the expected value 12\n", opt_level,
+            printf("opt_level: %d num_instructions: %zu is not the expected value 12\n", opt_level,
                    num_instructions);
             result = EqualityError;
             goto cleanup;
         }
         if ((opt_level == 1 || opt_level == 3) && num_instructions != 8) {
-            printf("opt_level: %d num_instructions: %d is not the expected value 8\n", opt_level,
+            printf("opt_level: %d num_instructions: %zu is not the expected value 8\n", opt_level,
                    num_instructions);
             result = EqualityError;
             goto cleanup;
         }
         if (opt_level == 2 && num_instructions != 7) {
-            printf("opt_level: %d num_instructions: %d is not the expected value 7\n", opt_level,
+            printf("opt_level: %d num_instructions: %zu is not the expected value 7\n", opt_level,
                    num_instructions);
             result = EqualityError;
             goto cleanup;

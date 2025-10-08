@@ -53,3 +53,7 @@
 /**
  * @defgroup QkTranspiler QkTranspiler
  */
+
+/**
+ * @defgroup QkCircuitLibrary QkCircuitLibrary
+ */
