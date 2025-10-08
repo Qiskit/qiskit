@@ -26,6 +26,7 @@ def deprecate_pulse_func(func):
         since="1.3",
         package_name="Qiskit",
         removal_timeline="in Qiskit 2.0",
+        additional_msg="The entire Qiskit Pulse package has been deprecated.",
     )(func)
 
 
