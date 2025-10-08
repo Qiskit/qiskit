@@ -80,32 +80,22 @@ pub fn run_optimize_1q_gates_decomposition(
                     target
                         .operation_names_for_qargs(&[qubit])?
                         .into_iter()
-                        .filter_map(|gate_name| {
+                        .filter(|gate_name| {
                             let target_op = target.operation_from_name(gate_name).unwrap();
                             let TargetOperation::Normal(gate) = target_op else {
-                                return None;
+                                return false;
                             };
                             if let OperationRef::StandardGate(_) = gate.operation.view() {
                                 // For standard gates check that the target entry accepts any
-                                // params and if so then pass the gate's canonical name to the output
-                                // set, not the target name. If the gate is parameterized but as a
-                                // custom non-canonical name in the target, pass through the target
-                                // name since this could be a custom workflow and we want it to
-                                // pass through, else filter the operation
-                                if gate
-                                    .params
+                                // params and if so then we can use the gate in the pass
+                                // else filter the operation since arbitrary angles are not
+                                // supported
+                                gate.params
                                     .iter()
                                     .all(|x| matches!(x, Param::ParameterExpression(_)))
-                                {
-                                    Some(gate.operation.name())
-                                } else if gate_name != gate.operation.name() {
-                                    Some(gate_name)
-                                } else {
-                                    None
-                                }
                             } else {
-                                // For all other gates, use the target name
-                                Some(gate_name)
+                                // For all other gates pass it through
+                                true
                             }
                         })
                         .collect(),
