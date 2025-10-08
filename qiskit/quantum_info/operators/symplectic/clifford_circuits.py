@@ -642,6 +642,27 @@ def _append_cz(clifford, control, target):
     return clifford
 
 
+def _prepend_cz(clifford, control, target):
+    """Apply a CZ gate before a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        control (int): gate control qubit index.
+        target (int): gate target qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    destab_target = clifford.destab[target, :]
+    stab_target = clifford.stab[target, :]
+    destab_control = clifford.destab[control, :]
+    stab_control = clifford.stab[control, :]
+
+    destab_control ^= stab_target
+    destab_target ^= stab_control
+    return clifford
+
+
 def _append_cy(clifford, control, target):
     """Apply a CY gate to a Clifford.
 
