@@ -336,6 +336,7 @@ class HighLevelSynthesis(TransformationPass):
 
         for node in dag.topological_op_nodes():
             qubits = tuple(dag.find_bit(q).index for q in node.qargs)
+            global_qubits = context.to_globals(qubits)
             processed = False
             synthesized = None
             synthesized_context = None
@@ -349,12 +350,12 @@ class HighLevelSynthesis(TransformationPass):
 
             elif node.op.name == "reset":
                 # reset qubits to 0
-                tracker.set_clean(context.to_globals(qubits))
+                tracker.set_clean(global_qubits)
                 processed = True
 
             # check if synthesis for the operation can be skipped
-            elif self._definitely_skip_node(node, qubits, dag):
-                tracker.set_dirty(context.to_globals(qubits))
+            elif self._definitely_skip_node(node, global_qubits, dag):
+                tracker.set_dirty(global_qubits)
 
             # next check control flow
             elif node.is_control_flow():
