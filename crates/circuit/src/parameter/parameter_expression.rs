@@ -681,7 +681,7 @@ impl ParameterExpression {
     pub fn qpy_replay(&self) -> Vec<OPReplay> {
         let mut replay = Vec::<OPReplay>::new();
         qpy_replay(self, &self.name_map, &mut replay);
-        return replay;
+        replay
     }
 }
 
