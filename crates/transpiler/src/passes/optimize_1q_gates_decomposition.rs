@@ -22,13 +22,8 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
 
-<<<<<<< HEAD
-use crate::target::Target;
-use qiskit_circuit::{gate_matrix, PhysicalQubit};
-=======
 use crate::target::{Target, TargetOperation};
-use qiskit_circuit::{PhysicalQubit, gate_matrix};
->>>>>>> 83b762d31 (Check target gates are parameterized in optimize1qgatesdecomposition (#15131))
+use qiskit_circuit::{gate_matrix, PhysicalQubit};
 use qiskit_synthesis::euler_one_qubit_decomposer::{
     unitary_to_gate_sequence_inner, EulerBasis, EulerBasisSet, OneQubitGateSequence, EULER_BASES,
     EULER_BASIS_NAMES,
