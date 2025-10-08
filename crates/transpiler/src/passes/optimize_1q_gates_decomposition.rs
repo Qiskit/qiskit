@@ -20,9 +20,9 @@ use ndarray::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
-use qiskit_circuit::operations::{Operation, Param};
+use qiskit_circuit::operations::{Operation, OperationRef, Param};
 
-use crate::target::Target;
+use crate::target::{Target, TargetOperation};
 use qiskit_circuit::{PhysicalQubit, gate_matrix};
 use qiskit_synthesis::euler_one_qubit_decomposer::{
     EULER_BASES, EULER_BASIS_NAMES, EulerBasis, EulerBasisSet, OneQubitGateSequence,
@@ -76,7 +76,30 @@ pub fn run_optimize_1q_gates_decomposition(
         };
         if basis_gates_per_qubit[qubit.index()].is_none() {
             let basis_gates = match target {
-                Some(target) => Some(target.operation_names_for_qargs(&[qubit])?),
+                Some(target) => Some(
+                    target
+                        .operation_names_for_qargs(&[qubit])?
+                        .into_iter()
+                        .filter(|gate_name| {
+                            let target_op = target.operation_from_name(gate_name).unwrap();
+                            let TargetOperation::Normal(gate) = target_op else {
+                                return false;
+                            };
+                            if let OperationRef::StandardGate(_) = gate.operation.view() {
+                                // For standard gates check that the target entry accepts any
+                                // params and if so then we can use the gate in the pass
+                                // else filter the operation since arbitrary angles are not
+                                // supported
+                                gate.params
+                                    .iter()
+                                    .all(|x| matches!(x, Param::ParameterExpression(_)))
+                            } else {
+                                // For all other gates pass it through
+                                true
+                            }
+                        })
+                        .collect(),
+                ),
                 None => {
                     let basis = basis_gates.as_ref();
                     basis.map(|basis| basis.iter().map(|x| x.as_str()).collect())
