@@ -10,11 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::{
-    fs::File,
-    io::{BufRead, BufReader, BufWriter, Write},
-    str::FromStr,
-};
+use std::{fs::File, io::Write, str::FromStr};
 
 extern crate cbindgen;
 
@@ -49,10 +45,16 @@ fn generate_qiskit_header() {
         .expect("Unable to parse C bindings.")
         .replace(target, replacement);
 
+    // When writing the header, we're checking that all bytes have been written.
     let mut header_file = File::create(&path).expect("The qiskit.h path should exist.");
-    header_file
+    let header_bytes = header.as_bytes();
+    let expected_bytes_written = header_bytes.len();
+    let bytes_written = header_file
         .write(header.as_bytes())
         .expect("Unable to write header.");
+    if bytes_written != expected_bytes_written {
+        panic!("Unable to write header (partial write detected).");
+    }
 }
 
 fn main() {
