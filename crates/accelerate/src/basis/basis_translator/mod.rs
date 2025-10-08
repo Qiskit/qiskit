@@ -194,6 +194,7 @@ fn run(
         &extra_inst_map,
         min_qubits,
         &qargs_with_non_global_operation,
+        None,
     )?;
     Ok(out_dag)
 }
@@ -328,12 +329,23 @@ fn extract_basis_target(
             // required usage of a python-space method `QuantumCircuit.has_calibration_for`.
             let blocks = bound_inst.getattr("blocks")?.iter()?;
             for block in blocks {
+                let block = block?;
+                let num_qubits = block.getattr("num_qubits")?.extract::<u32>()?;
+                let qarg_mapping: HashMap<Qubit, Qubit> = dag
+                    .qargs_interner()
+                    .get(node_obj.qubits)
+                    .iter()
+                    .copied()
+                    .zip((0..num_qubits).map(Qubit))
+                    .map(|(k, v)| (v, k))
+                    .collect();
                 extract_basis_target_circ(
-                    &block?,
+                    &block,
                     source_basis,
                     qargs_local_source_basis,
                     min_qubits,
                     qargs_with_non_global_operation,
+                    &qarg_mapping,
                 )?;
             }
         }
@@ -351,6 +363,7 @@ fn extract_basis_target_circ(
     qargs_local_source_basis: &mut HashMap<Option<Qargs>, HashSet<GateIdentifier>>,
     min_qubits: usize,
     qargs_with_non_global_operation: &HashMap<Option<Qargs>, HashSet<String>>,
+    qarg_mapping: &HashMap<Qubit, Qubit>,
 ) -> PyResult<()> {
     let py = circuit.py();
     let circ_data_bound = circuit.getattr("_data")?.downcast_into::<CircuitData>()?;
@@ -373,8 +386,10 @@ fn extract_basis_target_circ(
         // single qubit operation for (1,) as valid. This pattern also holds
         // true for > 2q ops too (so for 4q operations we need to check for 3q, 2q,
         // and 1q operations in the same manner)
-        let physical_qargs: SmallVec<[PhysicalQubit; 2]> =
-            qargs.iter().map(|x| PhysicalQubit(x.0)).collect();
+        let physical_qargs: SmallVec<[PhysicalQubit; 2]> = qargs
+            .iter()
+            .map(|x| PhysicalQubit(qarg_mapping[x].0))
+            .collect();
         let physical_qargs_as_set: HashSet<PhysicalQubit> =
             HashSet::from_iter(physical_qargs.iter().copied());
         if qargs_with_non_global_operation.contains_key(&Some(physical_qargs))
@@ -405,12 +420,22 @@ fn extract_basis_target_circ(
             let bound_inst = op.instruction.bind(py);
             let blocks = bound_inst.getattr("blocks")?.iter()?;
             for block in blocks {
+                let block = block?;
+                let num_qubits = block.getattr("num_qubits")?.extract::<u32>()?;
+                let qarg_mapping: HashMap<Qubit, Qubit> = circ_data
+                    .get_qargs(node_obj.qubits)
+                    .iter()
+                    .copied()
+                    .zip((0..num_qubits).map(Qubit))
+                    .map(|(k, v)| (v, qarg_mapping[&k]))
+                    .collect();
                 extract_basis_target_circ(
-                    &block?,
+                    &block,
                     source_basis,
                     qargs_local_source_basis,
                     min_qubits,
                     qargs_with_non_global_operation,
+                    &qarg_mapping,
                 )?;
             }
         }
@@ -426,6 +451,7 @@ fn apply_translation(
     extra_inst_map: &ExtraInstructionMap,
     min_qubits: usize,
     qargs_with_non_global_operation: &HashMap<Option<Qargs>, HashSet<String>>,
+    qarg_mapping: Option<&HashMap<Qubit, Qubit>>,
 ) -> PyResult<(DAGCircuit, bool)> {
     let mut is_updated = false;
     let mut out_dag = dag.copy_empty_like(py, "alike")?;
@@ -445,9 +471,26 @@ fn apply_translation(
                 let blocks = bound_obj.getattr("blocks")?;
                 for block in blocks.iter()? {
                     let block = block?;
+                    let num_qubits = block.getattr("num_qubits")?.extract::<u32>()?;
                     let dag_block: DAGCircuit =
                         circuit_to_dag(py, block.extract()?, true, None, None)?;
                     let updated_dag: DAGCircuit;
+                    let qarg_mapping: HashMap<Qubit, Qubit> =
+                        if let Some(qarg_mapping) = qarg_mapping {
+                            dag.qargs_interner()
+                                .get(node_obj.qubits)
+                                .iter()
+                                .zip((0..num_qubits).map(Qubit))
+                                .map(|(k, v)| (v, qarg_mapping[k]))
+                                .collect()
+                        } else {
+                            dag.qargs_interner()
+                                .get(node_obj.qubits)
+                                .iter()
+                                .zip((0..num_qubits).map(Qubit))
+                                .map(|(k, v)| (v, *k))
+                                .collect()
+                        };
                     (updated_dag, is_updated) = apply_translation(
                         py,
                         &dag_block,
@@ -456,6 +499,7 @@ fn apply_translation(
                         extra_inst_map,
                         min_qubits,
                         qargs_with_non_global_operation,
+                        Some(&qarg_mapping),
                     )?;
                     let flow_circ_block = if is_updated {
                         DAG_TO_CIRCUIT
@@ -474,7 +518,7 @@ fn apply_translation(
                 out_dag.apply_operation_back(
                     py,
                     new_op.operation,
-                    node_qarg,
+                    &node_qarg,
                     node_carg,
                     if new_op.params.is_empty() {
                         None
@@ -489,7 +533,7 @@ fn apply_translation(
                 out_dag.apply_operation_back(
                     py,
                     node_obj.op.clone(),
-                    node_qarg,
+                    &node_qarg,
                     node_carg,
                     if node_obj.params_view().is_empty() {
                         None
@@ -509,15 +553,23 @@ fn apply_translation(
             }
             continue;
         }
-        let node_qarg_as_physical: Option<Qargs> =
-            Some(node_qarg.iter().map(|x| PhysicalQubit(x.0)).collect());
+        let node_qarg_as_physical: Option<Qargs> = if let Some(qarg_mapping) = qarg_mapping {
+            Some(
+                node_qarg
+                    .iter()
+                    .map(|x| PhysicalQubit(qarg_mapping[x].0))
+                    .collect(),
+            )
+        } else {
+            Some(node_qarg.iter().map(|x| PhysicalQubit(x.0)).collect())
+        };
         if qargs_with_non_global_operation.contains_key(&node_qarg_as_physical)
             && qargs_with_non_global_operation[&node_qarg_as_physical].contains(node_obj.op.name())
         {
             out_dag.apply_operation_back(
                 py,
                 node_obj.op.clone(),
-                node_qarg,
+                &node_qarg,
                 node_carg,
                 if node_obj.params_view().is_empty() {
                     None
