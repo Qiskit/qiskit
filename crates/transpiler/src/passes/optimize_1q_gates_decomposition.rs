@@ -20,10 +20,15 @@ use ndarray::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
-use qiskit_circuit::operations::{Operation, Param};
+use qiskit_circuit::operations::{Operation, OperationRef, Param};
 
+<<<<<<< HEAD
 use crate::target::Target;
 use qiskit_circuit::{gate_matrix, PhysicalQubit};
+=======
+use crate::target::{Target, TargetOperation};
+use qiskit_circuit::{PhysicalQubit, gate_matrix};
+>>>>>>> 83b762d31 (Check target gates are parameterized in optimize1qgatesdecomposition (#15131))
 use qiskit_synthesis::euler_one_qubit_decomposer::{
     unitary_to_gate_sequence_inner, EulerBasis, EulerBasisSet, OneQubitGateSequence, EULER_BASES,
     EULER_BASIS_NAMES,
@@ -76,7 +81,30 @@ pub fn run_optimize_1q_gates_decomposition(
         };
         if basis_gates_per_qubit[qubit.index()].is_none() {
             let basis_gates = match target {
-                Some(target) => Some(target.operation_names_for_qargs(&[qubit])?),
+                Some(target) => Some(
+                    target
+                        .operation_names_for_qargs(&[qubit])?
+                        .into_iter()
+                        .filter(|gate_name| {
+                            let target_op = target.operation_from_name(gate_name).unwrap();
+                            let TargetOperation::Normal(gate) = target_op else {
+                                return false;
+                            };
+                            if let OperationRef::StandardGate(_) = gate.operation.view() {
+                                // For standard gates check that the target entry accepts any
+                                // params and if so then we can use the gate in the pass
+                                // else filter the operation since arbitrary angles are not
+                                // supported
+                                gate.params
+                                    .iter()
+                                    .all(|x| matches!(x, Param::ParameterExpression(_)))
+                            } else {
+                                // For all other gates pass it through
+                                true
+                            }
+                        })
+                        .collect(),
+                ),
                 None => {
                     let basis = basis_gates.as_ref();
                     basis.map(|basis| basis.iter().map(|x| x.as_str()).collect())
