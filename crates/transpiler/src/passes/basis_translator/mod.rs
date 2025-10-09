@@ -491,7 +491,7 @@ fn apply_translation(
                         bound_obj.call_method1("replace_blocks", (flow_blocks,))?;
                     new_op = Some(replaced_blocks.extract()?);
                     Ok(())
-                }).map_err(|err| BasisTranslatorError::BasisCircuitError(err.to_string()))?;
+                }).map_err(|_| BasisTranslatorError::BasisCircuitError("Error replacing control flow operation blocks".to_string()))?;
             }
             if let Some(new_op) = new_op {
                 out_dag_builder
