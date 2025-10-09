@@ -123,15 +123,15 @@ fn ndarray_to_matrix2(mat_view: ArrayView2<Complex64>) -> PyResult<Matrix2<Compl
     Ok(Matrix2::from_fn(|i, j| mat_view[(i, j)]))
 }
 
-fn faer_to_matrix4<T>(mat_view: MatRef<T>) -> PyResult<Matrix4<Complex64>>
+fn faer_to_matrix4<T>(mat_view: MatRef<T>) -> Matrix4<Complex64>
 where
     T: Copy + Into<Complex64>,
 {
     debug_assert!(
-        mat_view.ncols() != 4 || mat_view.nrows() != 4,
+        mat_view.ncols() == 4 && mat_view.nrows() == 4,
         "decompose_two_qubit_product_gate: expected a 4x4 matrix",
     );
-    Ok(Matrix4::from_fn(|i, j| mat_view[(i, j)].into()))
+    Matrix4::from_fn(|i, j| mat_view[(i, j)].into())
 }
 
 fn faer_from_matrix4(mat: MatrixView4<Complex64>) -> MatRef<c64> {
@@ -288,7 +288,7 @@ fn weyl_coordinates(py: Python, unitary: PyReadonlyArray2<Complex64>) -> PyResul
 }
 
 fn __weyl_coordinates(unitary: Matrix4<Complex64>) -> PyResult<[f64; 3]> {
-    let unitary = faer_to_matrix4(faer_from_matrix4(unitary.as_view()))?;
+    let unitary = faer_to_matrix4(faer_from_matrix4(unitary.as_view()));
     let unscaled = unitary * (C1 / unitary.determinant().powf(0.25));
     let uup = magic_basis_transform(unscaled, MagicBasisTransform::OutOf);
     let uup = faer_from_matrix4(uup.as_view());
@@ -701,7 +701,7 @@ impl TwoQubitWeylDecomposition {
             // let p_inner_faer = faer_mat
             //     .selfadjoint_eigendecomposition(Lower)
             //     .u();
-            let p_inner = faer_to_matrix4(p_inner_faer)?;
+            let p_inner = faer_to_matrix4(p_inner_faer);
             let d_inner = (p_inner.tr_mul(&m2) * p_inner).diagonal();
             // compare = p_inner * d_inner * p_inner.T
             let compare =
