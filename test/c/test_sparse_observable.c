@@ -21,7 +21,7 @@
 /**
  * Test the zero constructor.
  */
-int test_zero(void) {
+static int test_zero(void) {
     QkObs *obs = qk_obs_zero(100);
     size_t num_terms = qk_obs_num_terms(obs);
     uint32_t num_qubits = qk_obs_num_qubits(obs);
@@ -33,7 +33,7 @@ int test_zero(void) {
 /**
  * Test the identity constructor.
  */
-int test_identity(void) {
+static int test_identity(void) {
     QkObs *obs = qk_obs_identity(100);
     size_t num_terms = qk_obs_num_terms(obs);
     uint32_t num_qubits = qk_obs_num_qubits(obs);
@@ -45,7 +45,7 @@ int test_identity(void) {
 /**
  * Test copying an observable.
  */
-int test_copy(void) {
+static int test_copy(void) {
     QkObs *obs = qk_obs_identity(100);
     QkObs *copied = qk_obs_copy(obs);
 
@@ -60,7 +60,7 @@ int test_copy(void) {
 /**
  * Test adding two observables.
  */
-int test_add(void) {
+static int test_add(void) {
     QkObs *left = qk_obs_identity(100);
     QkObs *right = qk_obs_identity(100);
     QkObs *obs = qk_obs_add(left, right);
@@ -77,7 +77,7 @@ int test_add(void) {
 /**
  * Test composing two observables.
  */
-int test_compose(void) {
+static int test_compose(void) {
     uint32_t num_qubits = 100;
 
     QkObs *op1 = qk_obs_zero(num_qubits);
@@ -119,7 +119,7 @@ int test_compose(void) {
 /**
  * Test composing two observables and specifying the qargs argument.
  */
-int test_compose_map(void) {
+static int test_compose_map(void) {
     uint32_t num_qubits = 100;
 
     QkObs *op1 = qk_obs_zero(num_qubits);
@@ -162,7 +162,7 @@ int test_compose_map(void) {
 /**
  * Test composing an observables with a scalar observable.
  */
-int test_compose_scalar(void) {
+static int test_compose_scalar(void) {
     uint32_t num_qubits = 100;
 
     QkObs *op = qk_obs_zero(num_qubits);
@@ -198,7 +198,7 @@ int test_compose_scalar(void) {
 /**
  * Test multiplying an observable by a complex coefficient.
  */
-int test_mult(void) {
+static int test_mult(void) {
     QkComplex64 coeffs[3] = {{2.0, 0.0}, {0.0, 2.0}, {2.0, 2.0}};
 
     for (int i = 0; i < 3; i++) {
@@ -232,7 +232,7 @@ int test_mult(void) {
 /**
  * Test bringing an observable into canonical form.
  */
-int test_canonicalize(void) {
+static int test_canonicalize(void) {
     QkObs *left = qk_obs_identity(100);
     QkObs *right = qk_obs_identity(100);
     QkObs *obs = qk_obs_add(left, right);
@@ -262,7 +262,7 @@ int test_canonicalize(void) {
 /**
  * Test getting the number of terms in an observable.
  */
-int test_num_terms(void) {
+static int test_num_terms(void) {
     int result = Ok;
     size_t num_terms;
 
@@ -286,7 +286,7 @@ int test_num_terms(void) {
 /**
  * Test getting the number of qubits in an observable.
  */
-int test_num_qubits(void) {
+static int test_num_qubits(void) {
     int result = Ok;
     uint32_t num_qubits;
 
@@ -310,7 +310,7 @@ int test_num_qubits(void) {
 /**
  * Test adding an individual term to an observable.
  */
-int test_custom_build(void) {
+static int test_custom_build(void) {
     uint32_t num_qubits = 100;
     QkObs *obs = qk_obs_zero(num_qubits);
 
@@ -337,7 +337,7 @@ int test_custom_build(void) {
 /**
  * Test getting the terms in an observable.
  */
-int test_term(void) {
+static int test_term(void) {
     uint32_t num_qubits = 100;
     QkObs *obs = qk_obs_identity(num_qubits);
 
@@ -404,7 +404,7 @@ int test_term(void) {
 /**
  * Test copying and modifying a term.
  */
-int test_copy_term(void) {
+static int test_copy_term(void) {
     // create an observable with the term X0 Y1 Z2
     uint32_t num_qubits = 100;
     QkObs *obs = qk_obs_zero(num_qubits);
@@ -465,7 +465,7 @@ int test_copy_term(void) {
 /**
  * Test getting the bit term labels.
  */
-int test_bitterm_label(void) {
+static int test_bitterm_label(void) {
     char expected[9] = {'X', '+', '-', 'Y', 'l', 'r', 'Z', '0', '1'};
     QkBitTerm bits[9] = {QkBitTerm_X, QkBitTerm_Plus, QkBitTerm_Minus,
                          QkBitTerm_Y, QkBitTerm_Left, QkBitTerm_Right,
@@ -484,7 +484,7 @@ int test_bitterm_label(void) {
 /**
  * Test the coeffs access.
  */
-int test_coeffs(void) {
+static int test_coeffs(void) {
     QkObs *obs = qk_obs_identity(2);
     QkComplex64 *coeffs = qk_obs_coeffs(obs);
 
@@ -509,7 +509,7 @@ int test_coeffs(void) {
 /**
  * Test the bit term access.
  */
-int test_bit_terms(void) {
+static int test_bit_terms(void) {
     QkBitTerm bits[6] = {QkBitTerm_Left,  QkBitTerm_Right, QkBitTerm_Plus,
                          QkBitTerm_Minus, QkBitTerm_Zero,  QkBitTerm_One};
     uint32_t indices[6] = {9, 8, 7, 6, 5, 4};
@@ -542,7 +542,7 @@ int test_bit_terms(void) {
 /**
  * Test the index access.
  */
-int test_indices(void) {
+static int test_indices(void) {
     QkBitTerm bits[6] = {QkBitTerm_Left,  QkBitTerm_Right, QkBitTerm_Plus,
                          QkBitTerm_Minus, QkBitTerm_Zero,  QkBitTerm_One};
     uint32_t indices[6] = {9, 8, 7, 6, 5, 4};
@@ -575,7 +575,7 @@ int test_indices(void) {
 /**
  * Test access to the term boundaries.
  */
-int test_boundaries(void) {
+static int test_boundaries(void) {
     uint32_t num_qubits = 100;
     QkObs *obs = qk_obs_identity(num_qubits);
 
@@ -605,7 +605,7 @@ int test_boundaries(void) {
 /**
  * Test direct setting.
  */
-int test_direct_build(void) {
+static int test_direct_build(void) {
     // define the raw data for the 100-qubit observable |01><01|_{0, 1} - |+-><+-|_{98, 99}
     uint32_t num_qubits = 100;
     size_t num_terms = 2;
@@ -652,7 +652,7 @@ int test_direct_build(void) {
 /**
  * Test direct setting fails.
  */
-int test_direct_fail(void) {
+static int test_direct_fail(void) {
     // define the faulty raw data
     uint32_t num_qubits = 100;
     size_t num_terms = 2;
@@ -679,7 +679,7 @@ int test_direct_fail(void) {
 /**
  * Test string generator for observable
  */
-int test_obs_str(void) {
+static int test_obs_str(void) {
     QkObs *obs = qk_obs_identity(100);
     char *string = qk_obs_str(obs);
     char *expected = "SparseObservable { num_qubits: 100, coeffs: [Complex { re: 1.0, im: 0.0 }], "
@@ -694,7 +694,7 @@ int test_obs_str(void) {
 /**
  * Test string generator for observable term
  */
-int test_obsterm_str(void) {
+static int test_obsterm_str(void) {
     // Initialize observable and add a term
     uint32_t num_qubits = 100;
     QkObs *obs = qk_obs_identity(num_qubits);
@@ -724,7 +724,7 @@ int test_obsterm_str(void) {
 /**
  * Test applying a layout in a full workflow.
  */
-int test_apply_layout(void) {
+static int test_apply_layout(void) {
     uint32_t num_qubits = 6;
     QkCircuit *qc = qk_circuit_new(num_qubits, 0);
 
@@ -789,18 +789,28 @@ int test_apply_layout(void) {
 }
 
 /**
- * Test applying a layout to a too large observable fails.
+ * Test applying a layout with too large indices fails.
  */
-int test_apply_layout_too_small(void) {
-    // Build an observable that's too large for the layout
-    uint32_t layout[2] = {80, 2001};
-    QkObs *obs = qk_obs_identity(4);
-
-    // now apply our layout (this should fail)
+static int test_apply_layout_too_small(void) {
+    QkObs *obs = qk_obs_identity(2);
+    // The max index is too large.
+    uint32_t layout[2] = {80, 5001};
     int err = qk_obs_apply_layout(obs, layout, 3000);
     qk_obs_free(obs);
 
     return err == QkExitCode_IndexError ? Ok : EqualityError;
+}
+/**
+ * Test applying a layout with duplicate indices fails.
+ */
+static int test_apply_layout_duplicate(void) {
+    QkObs *obs = qk_obs_identity(2);
+    // There's a duplicate.
+    uint32_t layout[2] = {80, 80};
+    int err = qk_obs_apply_layout(obs, layout, 100);
+    qk_obs_free(obs);
+
+    return err == QkExitCode_DuplicateIndexError ? Ok : EqualityError;
 }
 
 int test_sparse_observable(void) {
@@ -830,6 +840,7 @@ int test_sparse_observable(void) {
     num_failed += RUN_TEST(test_obsterm_str);
     num_failed += RUN_TEST(test_apply_layout);
     num_failed += RUN_TEST(test_apply_layout_too_small);
+    num_failed += RUN_TEST(test_apply_layout_duplicate);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);

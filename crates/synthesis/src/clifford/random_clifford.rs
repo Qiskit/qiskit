@@ -13,7 +13,7 @@
 use crate::linear::utils::{
     binary_matmul_inner, calc_inverse_matrix_inner, replace_row_inner, swap_rows_inner,
 };
-use ndarray::{concatenate, s, Array1, Array2, ArrayView2, ArrayViewMut2, Axis};
+use ndarray::{Array1, Array2, ArrayView2, ArrayViewMut2, Axis, concatenate, s};
 use rand::{Rng, SeedableRng};
 use rand_pcg::Pcg64Mcg;
 

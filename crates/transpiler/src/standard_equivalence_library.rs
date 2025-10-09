@@ -14,12 +14,12 @@ use std::f64::consts::PI;
 use std::sync::Arc;
 
 use pyo3::prelude::*;
+use qiskit_circuit::Qubit;
 use qiskit_circuit::bit::QuantumRegister;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::Symbol;
-use qiskit_circuit::Qubit;
 
 use crate::equivalence::{EquivalenceError, EquivalenceLibrary};
 

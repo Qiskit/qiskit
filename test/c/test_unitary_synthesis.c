@@ -12,7 +12,6 @@
 
 #include "common.h"
 #include <complex.h>
-#include <math.h>
 #include <qiskit.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -20,7 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 
-int build_unitary_target(QkTarget *target, uint32_t num_qubits) {
+static int build_unitary_target(QkTarget *target, uint32_t num_qubits) {
     // Create a target with cx connectivity in a line.
     QkExitCode result_x = qk_target_add_instruction(target, qk_target_entry_new(QkGate_X));
     if (result_x != QkExitCode_Success) {
@@ -63,7 +62,7 @@ int build_unitary_target(QkTarget *target, uint32_t num_qubits) {
 /**
  * Test running UnitarySynthesis on a single gate
  */
-int test_unitary_synthesis_identity_matrix(void) {
+static int test_unitary_synthesis_identity_matrix(void) {
     const uint32_t num_qubits = 5;
     QkTarget *target = qk_target_new(num_qubits);
     int result = Ok;
@@ -95,7 +94,7 @@ cleanup:
 /**
  * Test running UnitarySynthesis on a single gate
  */
-int test_unitary_synthesis_multiqubit_identity_matrix(void) {
+static int test_unitary_synthesis_multiqubit_identity_matrix(void) {
     const uint32_t num_qubits = 5;
     QkTarget *target = qk_target_new(num_qubits);
     int result = Ok;
