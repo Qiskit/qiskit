@@ -200,12 +200,24 @@ impl CircuitInstruction {
 
     #[getter]
     pub fn get_params(&self, py: Python) -> PyResult<Py<PyAny>> {
-        let Some(params) = &self.params else {
+        if self.params.is_none() {
             return Ok(PyList::empty(py).into_any().unbind());
         };
-        match params {
-            Parameters::Params(params) => params.clone().into_py_any(py),
-            Parameters::Blocks(_) => todo!(),
+        match self.operation.view() {
+            OperationRef::ControlFlow(cf) => match cf {
+                ControlFlow::ForLoop {
+                    indexset,
+                    loop_param,
+                    ..
+                } => [
+                    indexset.into_py_any(py)?,
+                    loop_param.into_py_any(py)?,
+                    self.blocks_view()[0].clone_ref(py),
+                ]
+                .into_py_any(py),
+                _ => self.blocks_view().into_py_any(py),
+            },
+            _ => self.params_view().into_py_any(py),
         }
     }
 
