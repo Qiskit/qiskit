@@ -12,9 +12,8 @@
 
 use hashbrown::HashMap;
 use hashbrown::HashSet;
+use nalgebra::DMatrix;
 use ndarray::prelude::*;
-use num_complex::Complex;
-use numpy::IntoPyArray;
 use pyo3::Bound;
 use pyo3::IntoPyObjectExt;
 use pyo3::intern;
@@ -28,7 +27,7 @@ use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::CX_GATE;
-use qiskit_circuit::imports::{HLS_SYNTHESIZE_OP_USING_PLUGINS, QS_DECOMPOSITION, QUANTUM_CIRCUIT};
+use qiskit_circuit::imports::{HLS_SYNTHESIZE_OP_USING_PLUGINS, QUANTUM_CIRCUIT};
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::operations::StandardGate;
@@ -45,6 +44,7 @@ use crate::target::Target;
 use qiskit_circuit::PhysicalQubit;
 use qiskit_synthesis::euler_one_qubit_decomposer::EulerBasis;
 use qiskit_synthesis::euler_one_qubit_decomposer::angles_from_unitary;
+use qiskit_synthesis::qsd::quantum_shannon_decomposition;
 use qiskit_synthesis::two_qubit_decompose::TwoQubitBasisDecomposer;
 
 /// Track global qubits by their state.
@@ -740,18 +740,12 @@ fn run_on_circuitdata(
 /// Essentially this function constructs a default definition for a unitary gate, in which case
 /// ``op.definition`` purposefully returns ``None``.
 /// For all other operation types, it simply calls ``op.definition``.
-fn extract_definition(
-    py: Python,
-    op: &PackedOperation,
-    params: &[Param],
-) -> PyResult<Option<CircuitData>> {
+fn extract_definition(op: &PackedOperation, params: &[Param]) -> PyResult<Option<CircuitData>> {
     match op.view() {
         OperationRef::Unitary(unitary) => {
-            let unitary: Array<Complex<f64>, Dim<[usize; 2]>> = match unitary.matrix(&[]) {
-                Some(unitary) => unitary,
-                None => return Err(TranspilerError::new_err("Unitary not found")),
-            };
-            match unitary.shape() {
+            let unitary = unitary.matrix_view();
+            let shape = unitary.shape();
+            match shape {
                 // Run 1q synthesis
                 [2, 2] => {
                     let [theta, phi, lam, phase] =
@@ -795,11 +789,10 @@ fn extract_definition(
                 }
                 // Run 3q+ synthesis
                 _ => {
-                    let qs_decomposition: &Bound<'_, PyAny> = QS_DECOMPOSITION.get_bound(py);
-                    let synthesized_circuit_py =
-                        qs_decomposition.call1((unitary.into_pyarray(py),))?;
-                    let circuit_data: QuantumCircuitData = synthesized_circuit_py.extract()?;
-                    Ok(Some(circuit_data.data))
+                    let matrix = DMatrix::from_fn(shape[0], shape[1], |i, j| unitary[[i, j]]);
+                    let synth_circ =
+                        quantum_shannon_decomposition(&matrix, None, None, None, None)?;
+                    Ok(Some(synth_circ))
                 }
             }
         }
@@ -876,7 +869,7 @@ fn synthesize_operation(
 
     // Extract definition.
     if output_circuit_and_qubits.is_none() && borrowed_data.unroll_definitions {
-        let definition_circuit = extract_definition(py, op, params)?;
+        let definition_circuit = extract_definition(op, params)?;
         match definition_circuit {
             Some(definition_circuit) => {
                 output_circuit_and_qubits = Some((definition_circuit, input_qubits.to_vec()));

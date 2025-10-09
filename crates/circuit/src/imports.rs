@@ -121,8 +121,6 @@ pub static MCPHASE_GATE: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.library", "MCPhaseGate");
 pub static PAULI_EVOLUTION_GATE: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.library", "PauliEvolutionGate");
-pub static QS_DECOMPOSITION: ImportOnceCell =
-    ImportOnceCell::new("qiskit.synthesis.unitary.qsd", "qs_decomposition");
 pub static XX_DECOMPOSER: ImportOnceCell =
     ImportOnceCell::new("qiskit.synthesis.two_qubit.xx_decompose", "XXDecomposer");
 pub static XX_EMBODIMENTS: ImportOnceCell =

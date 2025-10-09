@@ -63,6 +63,7 @@ from qiskit.quantum_info import (
     SparsePauliOp,
     SparseObservable,
 )
+from qiskit.quantum_info.random import random_unitary
 from qiskit.synthesis.evolution import synth_pauli_network_rustiq, LieTrotter
 from qiskit.synthesis.linear import random_invertible_binary_matrix
 from qiskit.synthesis.arithmetic import adder_qft_d00
@@ -765,6 +766,15 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
         transpiled = HighLevelSynthesis(basis_gates=["cx", "u", "for_loop"])(qc)
         transpiled_block = transpiled[0].operation.blocks[0]
         self.assertNotIn("clifford", transpiled_block.count_ops())
+
+    @data(1, 2, 3, 4)
+    def test_unitary(self, num_qubits):
+        """Test that the pass handles unitary gates."""
+        unitary = random_unitary(2**num_qubits, seed=42)
+        qc = QuantumCircuit(num_qubits)
+        qc.unitary(unitary, qc.qubits)
+        transpiled = HighLevelSynthesis(basis_gates=["cx", "u", "for_loop"])(qc)
+        self.assertNotIn("unitary", transpiled.count_ops())
 
 
 class TestHighLevelSynthesisQuality(QiskitTestCase):
