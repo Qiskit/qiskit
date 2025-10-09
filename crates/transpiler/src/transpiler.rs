@@ -151,7 +151,7 @@ pub fn transpile(
             score_initial_layout: false,
         },
     };
-
+    let mut vf2_match = false;
     if optimization_level == OptimizationLevel::Level0 {
         // Apply a trivial layout
         apply_layout(
@@ -174,6 +174,7 @@ pub fn transpile(
         } else if let vf2::Vf2PassReturn::Solution(layout) =
             vf2_layout_pass_average(&dag, target, &vf2_config, false, None)?
         {
+            vf2_match = true;
             apply_layout(
                 &mut dag,
                 &mut transpile_layout,
@@ -200,6 +201,7 @@ pub fn transpile(
         if let vf2::Vf2PassReturn::Solution(layout) =
             vf2_layout_pass_average(&dag, target, &vf2_config, false, None)?
         {
+            vf2_match = true;
             apply_layout(
                 &mut dag,
                 &mut transpile_layout,
@@ -225,6 +227,7 @@ pub fn transpile(
     } else if let vf2::Vf2PassReturn::Solution(layout) =
         vf2_layout_pass_average(&dag, target, &vf2_config, false, None)?
     {
+        vf2_match = true;
         apply_layout(
             &mut dag,
             &mut transpile_layout,
@@ -270,6 +273,15 @@ pub fn transpile(
             let routing_permutation =
                 TranspileLayout::permutation_from_layouts(initial_layout, &final_layout);
             transpile_layout.add_permutation_inside(|q| routing_permutation[q.index()]);
+        }
+    } else if !vf2_match {
+        if let vf2::Vf2PassReturn::Solution(mut layout) =
+            vf2_layout_pass_average(&dag, target, &vf2_config, false, None)?
+        {
+            allocate_idle_qubits(&dag, target, &mut layout);
+            update_layout(&mut dag, &mut transpile_layout, |x| {
+                Qubit(layout[&VirtualQubit(x.0)].0)
+            });
         }
     }
     // Translation Stage
@@ -382,6 +394,14 @@ pub fn transpile(
             continue_loop = min_state.update_with(&dag);
         }
         dag = min_state.best_dag;
+        if let vf2::Vf2PassReturn::Solution(mut layout) =
+            vf2_layout_pass_exact(&dag, target, &vf2_config)?
+        {
+            allocate_idle_qubits(&dag, target, &mut layout);
+            update_layout(&mut dag, &mut transpile_layout, |x| {
+                Qubit(layout[&VirtualQubit(x.0)].0)
+            });
+        }
     }
     Ok((dag_to_circuit(&dag, false)?, transpile_layout))
 }
