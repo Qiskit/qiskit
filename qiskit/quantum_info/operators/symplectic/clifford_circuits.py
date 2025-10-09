@@ -210,8 +210,43 @@ def _append_rz(clifford, qubit, multiple):
     return clifford
 
 
+def _prepend_rz(clifford, qubit, multiple):
+    """Apply an Rz gate before a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        qubit (int): gate qubit index.
+        multiple (int): z-rotation angle in a multiple of pi/2
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    if multiple % 4 == 1:
+        return _prepend_s(clifford, qubit)
+    if multiple % 4 == 2:
+        return _prepend_z(clifford, qubit)
+    if multiple % 4 == 3:
+        return _prepend_sdg(clifford, qubit)
+
+    return clifford
+
+
 def _append_i(clifford, qubit):
     """Apply an I gate to a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        qubit (int): gate qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    # pylint: disable=unused-argument
+    return clifford
+
+
+def _prepend_i(clifford, qubit):
+    """Apply an I gate before a Clifford.
 
     Args:
         clifford (Clifford): a Clifford.
