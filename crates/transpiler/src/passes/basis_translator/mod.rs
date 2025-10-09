@@ -563,7 +563,15 @@ fn apply_translation(
             continue;
         }
 
-        let unique_qargs: PhysicalQargs = qubit_set.iter().map(|x| PhysicalQubit(x.0)).collect();
+        // Map the unique qargs with the absolute indices as well
+        let unique_qargs: PhysicalQargs = if let Some(qarg_mapping) = qarg_mapping {
+            qubit_set
+                .iter()
+                .map(|x| PhysicalQubit(qarg_mapping[x].0))
+                .collect()
+        } else {
+            qubit_set.iter().map(|x| PhysicalQubit(x.0)).collect()
+        };
         if extra_inst_map.contains_key(&unique_qargs) {
             replace_node(
                 &mut out_dag_builder,
