@@ -30,7 +30,7 @@ from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.utils.deprecate_pulse import deprecate_pulse_dependency
 
 
-@deprecate_pulse_dependency(moving_to_dynamics=True)
+@deprecate_pulse_dependency
 def draw(
     program: Union[Waveform, SymbolicPulse, Schedule, ScheduleBlock],
     style: Optional[Dict[str, Any]] = None,
@@ -246,10 +246,10 @@ def draw(
             (default `True`).
         formatter.unicode_symbol.frame_change: Text that represents the symbol of
             frame change. This text is used when the plotter doesn't support latex
-            (default u'\u21BA').
+            (default u'\u21ba').
         formatter.unicode_symbol.snapshot: Text that represents the symbol of
             snapshot. This text is used when the plotter doesn't support latex
-            (default u'\u21AF').
+            (default u'\u21af').
         formatter.unicode_symbol.phase_parameter: Text that represents the symbol of
             parameterized phase value. This text is used when the plotter doesn't support latex
             (default u'\u03b8').

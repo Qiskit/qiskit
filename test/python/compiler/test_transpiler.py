@@ -2277,6 +2277,34 @@ class TestTranspile(QiskitTestCase):
         )
         self.assertLessEqual(set(transpiled.count_ops().keys()), {"u1", "u2", "u3", "cx"})
 
+    def test_calibration_inside_opaque_block(self):
+        """Test transpiling a circuit with an opaque block that contains a gate with custom cal."""
+        ecr_cal = Gate(name="ecr_cal", num_qubits=2, params=[])
+        inner = QuantumCircuit(2)
+        inner.append(ecr_cal, [0, 1])
+
+        qc = QuantumCircuit(2)
+        qc.append(inner.to_instruction(), [0, 1])
+
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(
+                num_qubits=4,
+                basis_gates=["x", "sx", "ecr", "rz", "measure", "reset"],
+                coupling_map=CouplingMap.from_full(4),
+                calibrate_instructions=True,
+                control_flow=True,
+            )
+
+            with pulse.build(backend, name="custom_sched") as custom_sched:
+                pulse.play(pulse.Constant(100, 0.1), pulse.DriveChannel(3))
+                pulse.play(pulse.Constant(100, 0.2), pulse.DriveChannel(4))
+
+            prop = InstructionProperties(calibration=custom_sched)
+
+        backend.target.add_instruction(ecr_cal, properties={(3, 4): prop})
+        tqc = transpile(qc, backend, initial_layout=(3, 4), optimization_level=1)
+        self.assertEqual(tqc.count_ops().get("ecr_cal", 0), 1)
+
 
 @ddt
 class TestPostTranspileIntegration(QiskitTestCase):

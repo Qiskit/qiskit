@@ -26,21 +26,13 @@ def deprecate_pulse_func(func):
         since="1.3",
         package_name="Qiskit",
         removal_timeline="in Qiskit 2.0",
-        additional_msg="The entire Qiskit Pulse package is being deprecated "
-        "and will be moved to the Qiskit Dynamics repository: "
-        "https://github.com/qiskit-community/qiskit-dynamics",
+        additional_msg="The entire Qiskit Pulse package has been deprecated.",
     )(func)
 
 
-def deprecate_pulse_dependency(*args, moving_to_dynamics: bool = False, **kwargs):
+def deprecate_pulse_dependency(*args, **kwargs):
     # pylint: disable=missing-param-doc
-    """Deprecation message for functions and classes which use or depend on Pulse
-
-    Args:
-        moving_to_dynamics: set to True if the dependency is moving to Qiskit Dynamics. This affects
-            the deprecation message being printed, namely saying explicitly whether the dependency will
-            be moved to Qiskit Dynamics or whether it will just be removed without an alternative.
-    """
+    """Deprecation message for functions and classes which use or depend on Pulse."""
 
     def msg_handler(func):
         fully_qual_name = format(f"{func.__module__}.{func.__qualname__}")
@@ -50,15 +42,8 @@ def deprecate_pulse_dependency(*args, moving_to_dynamics: bool = False, **kwargs
             fully_qual_name += "()"
 
         message = (
-            "The entire Qiskit Pulse package is being deprecated and will be moved to the Qiskit "
-            "Dynamics repository: https://github.com/qiskit-community/qiskit-dynamics."
-            + (
-                format(f" Note that ``{fully_qual_name}`` will be moved as well.")
-                if moving_to_dynamics
-                else format(
-                    f" Note that once removed, ``{fully_qual_name}`` will have no alternative in Qiskit."
-                )
-            )
+            "The entire Qiskit Pulse package has been deprecated. Once removed, "
+            f"``{fully_qual_name}`` will have no alternative in Qiskit."
         )
 
         decorator = deprecate_func(
