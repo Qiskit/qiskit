@@ -537,10 +537,10 @@ impl ControlFlow {
     pub fn create_py_op(
         &self,
         py: Python,
-        blocks: Option<&[Py<PyAny>]>,
+        blocks: Option<Vec<Py<PyAny>>>,
         label: Option<&str>,
     ) -> PyResult<Py<PyAny>> {
-        let blocks = blocks.unwrap_or_default();
+        let mut blocks = blocks.into_iter().flatten();
         let kwargs = label
             .map(|label| [("label", label.into_py_any(py)?)].into_py_dict(py))
             .transpose()?;
@@ -564,7 +564,7 @@ impl ControlFlow {
                 BOX_OP.get(py).call1(
                     py,
                     (
-                        &blocks[0],
+                        blocks.next().unwrap(),
                         duration,
                         unit,
                         label,
@@ -586,18 +586,20 @@ impl ControlFlow {
                 indexset,
                 loop_param,
                 ..
-            } => FOR_LOOP_OP
-                .get(py)
-                .call(py, (indexset, loop_param, &blocks[0]), kwargs.as_ref()),
+            } => {
+                FOR_LOOP_OP
+                    .get(py)
+                    .call(py, (indexset, loop_param, blocks.next()), kwargs.as_ref())
+            }
             ControlFlow::IfElse { condition, .. } => IF_ELSE_OP.get(py).call(
                 py,
-                (condition.clone(), &blocks[0], blocks.get(1)),
+                (condition.clone(), blocks.next().unwrap(), blocks.next()),
                 kwargs.as_ref(),
             ),
             ControlFlow::Switch {
                 target, label_spec, ..
             } => {
-                let cases_specifier: Vec<(Vec<CaseSpecifier>, &Py<PyAny>)> =
+                let cases_specifier: Vec<(Vec<CaseSpecifier>, Py<PyAny>)> =
                     label_spec.iter().cloned().zip(blocks).collect();
                 SWITCH_CASE_OP
                     .get(py)
@@ -606,7 +608,7 @@ impl ControlFlow {
             ControlFlow::While { condition, .. } => {
                 WHILE_LOOP_OP
                     .get(py)
-                    .call(py, (condition.clone(), &blocks[0]), kwargs.as_ref())
+                    .call(py, (condition.clone(), blocks.next()), kwargs.as_ref())
             }
         }
     }
@@ -884,9 +886,10 @@ impl StandardInstruction {
     pub fn create_py_op(
         &self,
         py: Python,
-        params: Option<&[Param]>,
+        params: Option<SmallVec<[Param; 3]>>,
         label: Option<&str>,
     ) -> PyResult<Py<PyAny>> {
+        let mut params = params.into_iter().flatten();
         let kwargs = label
             .map(|label| [("label", label.into_py_any(py)?)].into_py_dict(py))
             .transpose()?;
@@ -895,7 +898,7 @@ impl StandardInstruction {
                 BARRIER.get_bound(py).call((num_qubits,), kwargs.as_ref())?
             }
             StandardInstruction::Delay(unit) => {
-                let duration = &params.unwrap()[0];
+                let duration = params.next().unwrap();
                 DELAY
                     .get_bound(py)
                     .call1((duration.into_py_any(py)?, unit.to_string()))?
@@ -1069,16 +1072,15 @@ impl StandardGate {
     pub fn create_py_op(
         &self,
         py: Python,
-        params: Option<&[Param]>,
+        params: Option<SmallVec<[Param; 3]>>,
         label: Option<&str>,
     ) -> PyResult<Py<PyAny>> {
         let gate_class = get_std_gate_class(py, *self)?;
-        let args = match params.unwrap_or(&[]) {
-            &[] => PyTuple::empty(py),
-            params => PyTuple::new(
-                py,
-                params.iter().map(|x| x.clone().into_pyobject(py).unwrap()),
-            )?,
+        let args = match params {
+            None => PyTuple::empty(py),
+            Some(params) => {
+                PyTuple::new(py, params.into_iter().map(|x| x.into_pyobject(py).unwrap()))?
+            }
         };
         if let Some(label) = label {
             let kwargs = [("label", label.into_pyobject(py)?)].into_py_dict(py)?;

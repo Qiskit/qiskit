@@ -35,7 +35,7 @@ use crate::parameter::symbol_expr::{Symbol, Value};
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
 use crate::register_data::RegisterData;
 use crate::slice::{PySequenceIndex, SequenceIndex};
-use crate::{Block, Clbit, Qubit, Stretch, Var, VarsMode};
+use crate::{Block, Clbit, Qubit, Stretch, Var, VarsMode, instruction};
 
 use num_complex::Complex64;
 use numpy::PyReadonlyArray1;
@@ -45,7 +45,7 @@ use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyList, PySet, PyTuple, PyType};
 use pyo3::{PyTraverseError, PyVisit, import_exception, intern};
 
-use crate::instruction::{ControlFlowView, CreatePythonOperation, Parameters};
+use crate::instruction::{ControlFlowView, Parameters};
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
 use smallvec::SmallVec;
@@ -1854,12 +1854,12 @@ impl CircuitData {
             Some(Parameters::Params(params)) => Some(Parameters::Params(params.clone())),
             None => None,
         };
-        let op = OperationFromPython {
-            operation: instr.op.clone(),
+        let out = instruction::create_py_op(
+            py,
+            instr.op.view(),
             params,
-            label: None,
-        };
-        let out = op.create_py_op(py)?;
+            instr.label.as_deref().map(String::as_str),
+        )?;
         #[cfg(feature = "cache_pygates")]
         // The unpacking operation can cause a thread pause and concurrency, since it can call
         // interpreted Python code for a standard gate, so we need to take care that some other

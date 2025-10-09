@@ -129,40 +129,50 @@ pub trait CreatePythonOperation {
     fn create_py_op(&self, py: Python) -> PyResult<Py<PyAny>>;
 }
 
+pub fn create_py_op(
+    py: Python,
+    op: OperationRef,
+    params: Option<Parameters<Py<PyAny>>>,
+    label: Option<&str>,
+) -> PyResult<Py<PyAny>> {
+    match op {
+        OperationRef::ControlFlow(cf) => cf.create_py_op(
+            py,
+            params.map(|p| match p {
+                Parameters::Blocks(blocks) => blocks,
+                Parameters::Params(_) => {
+                    panic!("control flow operation should not have params")
+                }
+            }),
+            label,
+        ),
+        OperationRef::StandardGate(gate) => gate.create_py_op(
+            py,
+            params.map(|p| match p {
+                Parameters::Params(params) => params,
+                Parameters::Blocks(_) => panic!("standard gate should not have blocks"),
+            }),
+            label,
+        ),
+        OperationRef::StandardInstruction(instruction) => instruction.create_py_op(
+            py,
+            params.map(|p| match p {
+                Parameters::Params(params) => params,
+                Parameters::Blocks(_) => panic!("standard instruction should not have blocks"),
+            }),
+            label,
+        ),
+        OperationRef::Gate(gate) => Ok(gate.gate.clone_ref(py)),
+        OperationRef::Instruction(instruction) => Ok(instruction.instruction.clone_ref(py)),
+        OperationRef::Operation(operation) => Ok(operation.operation.clone_ref(py)),
+        OperationRef::Unitary(unitary) => unitary.create_py_op(py, label),
+    }
+}
+
 impl<T: Instruction> CreatePythonOperation for T {
+    #[inline]
     fn create_py_op(&self, py: Python) -> PyResult<Py<PyAny>> {
-        match self.op() {
-            OperationRef::ControlFlow(cf) => cf.create_py_op(
-                py,
-                self.parameters().map(|p| match p {
-                    Parameters::Blocks(blocks) => blocks.as_slice(),
-                    Parameters::Params(_) => {
-                        panic!("control flow operation should not have params")
-                    }
-                }),
-                self.label(),
-            ),
-            OperationRef::StandardGate(gate) => gate.create_py_op(
-                py,
-                self.parameters().map(|p| match p {
-                    Parameters::Params(params) => params.as_slice(),
-                    Parameters::Blocks(_) => panic!("standard gate should not have blocks"),
-                }),
-                self.label(),
-            ),
-            OperationRef::StandardInstruction(instruction) => instruction.create_py_op(
-                py,
-                self.parameters().map(|p| match p {
-                    Parameters::Params(params) => params.as_slice(),
-                    Parameters::Blocks(_) => panic!("standard instruction should not have blocks"),
-                }),
-                self.label(),
-            ),
-            OperationRef::Gate(gate) => Ok(gate.gate.clone_ref(py)),
-            OperationRef::Instruction(instruction) => Ok(instruction.instruction.clone_ref(py)),
-            OperationRef::Operation(operation) => Ok(operation.operation.clone_ref(py)),
-            OperationRef::Unitary(unitary) => unitary.create_py_op(py, self.label()),
-        }
+        create_py_op(py, self.op(), self.parameters().cloned(), self.label())
     }
 }
 
