@@ -40,7 +40,10 @@ use crate::parameter::parameter_expression::ParameterExpression;
 use crate::register_data::RegisterData;
 use crate::slice::PySequenceIndex;
 use crate::variable_mapper::VariableMapper;
-use crate::{Block, Clbit, Qubit, Stretch, TupleLikeArg, Var, VarsMode, converters, imports, vf2};
+use crate::{
+    Block, Clbit, Qubit, Stretch, TupleLikeArg, Var, VarsMode, converters, imports, instruction,
+    vf2,
+};
 
 use hashbrown::{HashMap, HashSet};
 use indexmap::{IndexMap, IndexSet};
@@ -75,7 +78,7 @@ use rustworkx_core::traversal::{
 };
 
 use crate::imports::PARAMETER;
-use crate::instruction::{ControlFlowView, CreatePythonOperation, Parameters};
+use crate::instruction::{ControlFlowView, Parameters};
 use crate::parameter_table::ParameterUuid;
 use approx::relative_eq;
 use std::collections::{BTreeMap, VecDeque};
@@ -5172,12 +5175,12 @@ impl DAGCircuit {
             Some(Parameters::Params(params)) => Some(Parameters::Params(params.clone())),
             None => None,
         };
-        let op = OperationFromPython {
-            operation: instr.op.clone(),
+        let out = instruction::create_py_op(
+            py,
+            instr.op.view(),
             params,
-            label: None,
-        };
-        let out = op.create_py_op(py)?;
+            instr.label.as_deref().map(String::as_str),
+        )?;
         #[cfg(feature = "cache_pygates")]
         // The unpacking operation can cause a thread pause and concurrency, since it can call
         // interpreted Python code for a standard gate, so we need to take care that some other
