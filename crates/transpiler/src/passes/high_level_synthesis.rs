@@ -956,11 +956,11 @@ fn synthesize_op_using_plugins(
 
     let op_py = match op {
         OperationRef::ControlFlow(_) => panic!("control flow should not be present"),
-        OperationRef::StandardGate(standard) => {
-            standard.create_py_op(py, Some(params), label)?.into_any()
-        }
+        OperationRef::StandardGate(standard) => standard
+            .create_py_op(py, Some(params.iter().cloned().collect()), label)?
+            .into_any(),
         OperationRef::StandardInstruction(instruction) => instruction
-            .create_py_op(py, Some(params), label)?
+            .create_py_op(py, Some(params.iter().cloned().collect()), label)?
             .into_any(),
         OperationRef::Gate(gate) => gate.gate.clone_ref(py),
         OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),

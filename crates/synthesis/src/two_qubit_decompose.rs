@@ -2051,11 +2051,12 @@ type PickleNewArgs<'a> = (Py<PyAny>, Py<PyAny>, f64, &'a str, Option<bool>);
 #[pymethods]
 impl TwoQubitBasisDecomposer {
     fn __getnewargs__(&self, py: Python) -> PyResult<PickleNewArgs<'_>> {
-        let params: Vec<Param> = self.gate_params.iter().map(|x| Param::Float(*x)).collect();
+        let params: SmallVec<[Param; 3]> =
+            self.gate_params.iter().map(|x| Param::Float(*x)).collect();
         Ok((
             match self.gate.view() {
                 OperationRef::StandardGate(standard) => {
-                    standard.create_py_op(py, Some(&params), None)?.into_any()
+                    standard.create_py_op(py, Some(params), None)?.into_any()
                 }
                 OperationRef::Gate(gate) => gate.gate.clone_ref(py),
                 OperationRef::Unitary(unitary) => unitary.create_py_op(py, None)?.into_any(),
