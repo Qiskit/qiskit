@@ -82,27 +82,23 @@ pub trait Instruction {
     fn label(&self) -> Option<&str>;
 
     /// Get a slice view onto the contained parameters.
-    ///
-    /// Panics if the instruction does not support params.
     #[inline]
     fn params_view(&self) -> &[Param] {
         self.parameters()
-            .map(|p| match p {
-                Parameters::Params(p) => p.as_slice(),
-                _ => panic!("expected parameters"),
+            .and_then(|p| match p {
+                Parameters::Params(p) => Some(p.as_slice()),
+                _ => None,
             })
             .unwrap_or_default()
     }
 
     /// Get a slice view onto the contained blocks.
-    ///
-    /// Panics if the instruction does not support blocks.
     #[inline]
     fn blocks_view(&self) -> &[Py<PyAny>] {
         self.parameters()
-            .map(|p| match p {
-                Parameters::Blocks(b) => b.as_slice(),
-                _ => panic!("expected blocks"),
+            .and_then(|p| match p {
+                Parameters::Blocks(b) => Some(b.as_slice()),
+                _ => None,
             })
             .unwrap_or_default()
     }
