@@ -706,43 +706,37 @@ impl PackedInstruction {
     }
 
     /// Get a slice view onto the contained parameters.
-    ///
-    /// Panics if the instruction does not support params.
     #[inline]
     pub fn params_view(&self) -> &[Param] {
         self.params
             .as_deref()
-            .map(|p| match p {
-                Parameters::Params(p) => p.as_slice(),
-                _ => panic!("expected parameters"),
+            .and_then(|p| match p {
+                Parameters::Params(p) => Some(p.as_slice()),
+                Parameters::Blocks(_) => None,
             })
             .unwrap_or_default()
     }
 
     /// Get a mutable slice view onto the contained parameters.
-    ///
-    /// Panics if the instruction does not support params.
     #[inline]
     pub fn params_mut(&mut self) -> &mut [Param] {
         self.params
             .as_deref_mut()
-            .map(|p| match p {
-                Parameters::Params(p) => p.as_mut_slice(),
-                Parameters::Blocks(_) => panic!("expected parameters"),
+            .and_then(|p| match p {
+                Parameters::Params(p) => Some(p.as_mut_slice()),
+                Parameters::Blocks(_) => None,
             })
             .unwrap_or_default()
     }
 
     /// Get a slice view onto the contained blocks.
-    ///
-    /// Panics if the instruction does not support blocks.
     #[inline]
     pub fn blocks_view(&self) -> &[Block] {
         self.params
             .as_deref()
-            .map(|p| match p {
-                Parameters::Blocks(b) => b.as_slice(),
-                _ => panic!("expected blocks"),
+            .and_then(|p| match p {
+                Parameters::Blocks(b) => Some(b.as_slice()),
+                _ => None,
             })
             .unwrap_or_default()
     }
