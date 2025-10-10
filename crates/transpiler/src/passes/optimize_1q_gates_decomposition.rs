@@ -23,6 +23,7 @@ use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
 
 use crate::target::{Target, TargetOperation};
+use qiskit_circuit::instruction::Instruction;
 use qiskit_circuit::{PhysicalQubit, gate_matrix};
 use qiskit_synthesis::euler_one_qubit_decomposer::{
     EULER_BASES, EULER_BASIS_NAMES, EulerBasis, EulerBasisSet, OneQubitGateSequence,
@@ -90,7 +91,7 @@ pub fn run_optimize_1q_gates_decomposition(
                                 // params and if so then we can use the gate in the pass
                                 // else filter the operation since arbitrary angles are not
                                 // supported
-                                gate.params
+                                gate.params_view()
                                     .iter()
                                     .all(|x| matches!(x, Param::ParameterExpression(_)))
                             } else {
