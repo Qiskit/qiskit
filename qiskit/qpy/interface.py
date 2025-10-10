@@ -219,10 +219,7 @@ def dump(
 
     if version >= 16:
         # Determine if we can safely use the in-place seek path
-        can_seek = (
-            file_obj.seekable()
-            and not isinstance(file_obj, KNOWN_BAD_SEEKERS)
-        )
+        can_seek = file_obj.seekable() and not isinstance(file_obj, KNOWN_BAD_SEEKERS)
         # Note: This isinstance() check may not catch all problematic stream types that
         # incorrectly report seekable=True. For most common cases (e.g., gzip.GzipFile),
         # this is sufficient, but if new problematic types are found, consider adding
