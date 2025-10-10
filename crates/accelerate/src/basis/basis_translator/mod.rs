@@ -299,7 +299,8 @@ fn extract_basis_target(
             qargs.iter().map(|x| PhysicalQubit(x.0)).collect();
         let physical_qargs_as_set: HashSet<PhysicalQubit> =
             HashSet::from_iter(physical_qargs.iter().copied());
-        if qargs_with_non_global_operation.contains_key(&Some(physical_qargs))
+        let some_physical = Some(physical_qargs);
+        if qargs_with_non_global_operation.contains_key(&some_physical)
             || qargs_with_non_global_operation
                 .keys()
                 .flatten()
@@ -309,7 +310,7 @@ fn extract_basis_target(
                 })
         {
             qargs_local_source_basis
-                .entry(Some(physical_qargs_as_set.into_iter().collect()))
+                .entry(some_physical.map(|phys| phys.into_iter().collect()))
                 .and_modify(|set| {
                     set.insert((node_obj.op.name().to_string(), node_obj.op.num_qubits()));
                 })
@@ -460,7 +461,6 @@ fn apply_translation(
         let node_obj = dag.dag()[node].unwrap_operation();
         let node_qarg = dag.get_qargs(node_obj.qubits);
         let node_carg = dag.get_cargs(node_obj.clbits);
-        let qubit_set: HashSet<Qubit> = HashSet::from_iter(node_qarg.iter().copied());
         let mut new_op: Option<OperationFromPython> = None;
         if target_basis.contains(node_obj.op.name()) || node_qarg.len() < min_qubits {
             if node_obj.op.control_flow() {
@@ -613,10 +613,21 @@ fn apply_translation(
             )?;
             continue;
         }
-        let unique_qargs: Option<Qargs> = if qubit_set.is_empty() {
+
+        let unique_qargs: Option<Qargs> = if node_qarg.is_empty() {
             None
         } else {
-            Some(qubit_set.iter().map(|x| PhysicalQubit(x.0)).collect())
+            // Map the unique qargs with the absolute indices as well
+            if let Some(qarg_mapping) = qarg_mapping {
+                Some(
+                    node_qarg
+                        .iter()
+                        .map(|x| PhysicalQubit(qarg_mapping[x].0))
+                        .collect(),
+                )
+            } else {
+                Some(node_qarg.iter().map(|x| PhysicalQubit(x.0)).collect())
+            }
         };
         if extra_inst_map.contains_key(&unique_qargs) {
             replace_node(

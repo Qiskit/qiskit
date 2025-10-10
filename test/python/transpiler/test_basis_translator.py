@@ -532,6 +532,38 @@ class TestBasisTranslator(QiskitTestCase):
         result = BasisTranslator(std_eq_lib, [], backend.target)(circ)
         self.assertEqual(circ, result)
 
+    def test_nested_loop_custom_gate_local_indices(self):
+        """Test custom registers in a nested control flow."""
+        # Create 3 qubit backend
+        backend = GenericBackendV2(num_qubits=3, control_flow=True)
+
+        # Add only this pair as native to the Target.
+        pair = (0, 2)
+        alpha = Parameter("alpha")
+        gate = TwoQubitOneParamGate(alpha)
+
+        # Add custom gate to be supported by the Target.
+        backend.target.add_instruction(gate, {pair: None})  # properties omitted for brevity
+
+        qreg = QuantumRegister(3, "data")
+        creg = ClassicalRegister(1, "res")
+        circuit = QuantumCircuit(qreg, creg)
+        circuit.h(0)
+        circuit.cy(0, 2)
+        circuit.measure(0, 0)
+        with circuit.if_test((creg[0], 0)) as else_:
+            with circuit.for_loop(range(2)):
+                circuit.append(gate, [qreg[0], qreg[2]])
+        with else_:
+            circuit.h(0)
+            circuit.cy(0, 2)
+
+        result = BasisTranslator(std_eq_lib, [], backend.target)(circuit)
+        ops = result.count_ops()
+        self.assertEqual(ops.get("if_else", 0), 1)
+        self.assertNotIn(ops, "cy")
+        self.assertNotIn(ops, "h")
+
     def test_loop_custom_calibration(self):
         """Test with custom calibrations inside a loop with different local indices.
 
