@@ -88,6 +88,7 @@ def dump(
     use_symengine: bool = False,
     version: int = common.QPY_VERSION,
     annotation_factories: Optional[Mapping[str, Callable[[], annotation.QPYSerializer]]] = None,
+    use_seeking: Optional[bool] = None,
 ):
     """Write QPY binary data to a file
 
@@ -167,6 +168,10 @@ def dump(
             :class:`.Annotation` objects.  The subsequent call to :func:`load` will need to use
             similar serializer objects, that understand the custom output format of those
             serializers.
+        use_seeking: Optional manual override for seek behavior.
+            - If None (default): autodetect using `seekable()` and `KNOWN_BAD_SEEKERS`.
+            - If True: force the seek-based fast path.
+            - If False: force the buffered write path.
 
 
     Raises:
@@ -218,8 +223,14 @@ def dump(
         )
 
     if version >= 16:
-        # Determine if we can safely use the in-place seek path
-        can_seek = file_obj.seekable() and not isinstance(file_obj, KNOWN_BAD_SEEKERS)
+        # Determine whether to use the fast seek path
+        if use_seeking is None:
+            can_seek = (
+                file_obj.seekable()
+                and not isinstance(file_obj, KNOWN_BAD_SEEKERS)
+            )
+        else:
+            can_seek = use_seeking
         # Note: This isinstance() check may not catch all problematic stream types that
         # incorrectly report seekable=True. For most common cases (e.g., gzip.GzipFile),
         # this is sufficient, but if new problematic types are found, consider adding
