@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import gzip
 import io
 import re
 import shutil
@@ -36,6 +37,8 @@ if TYPE_CHECKING:
 
 # pylint: disable=invalid-name
 QPY_SUPPORTED_TYPES = QuantumCircuit
+# --- Known stream types that incorrectly report seekable=True
+KNOWN_BAD_SEEKERS = (gzip.GzipFile,)
 
 # This version pattern is taken from the pypa packaging project:
 # https://github.com/pypa/packaging/blob/21.3/packaging/version.py#L223-L254
@@ -215,44 +218,26 @@ def dump(
         )
 
     if version >= 16:
-        # We need a circuit table. Some "seekable" streams (like gzip in write mode)
-        # cannot seek backwards, which breaks the fast path. We probe for backward
-        # seek capability and fall back to the buffered path if unavailable.
+        # Determine if we can safely use the in-place seek path
+        can_seek = (
+            file_obj.seekable()
+            and not isinstance(file_obj, KNOWN_BAD_SEEKERS)
+        )
+        # Note: This isinstance() check may not catch all problematic stream types that
+        # incorrectly report seekable=True. For most common cases (e.g., gzip.GzipFile),
+        # this is sufficient, but if new problematic types are found, consider adding
+        # runtime validation or expanding UNRELIABLE_SEEKABLE_STREAMS.
 
-        def _can_back_seek(stream) -> bool:
-            """Return True if the stream supports backward relative seeks while writing."""
-            if not hasattr(stream, "seek") or not hasattr(stream, "tell"):
-                return False
-            try:
-                cur = stream.tell()
-            except Exception:
-                return False
-            # Try a harmless backward-then-forward seek to test support.
-            try:
-                if cur > 0:
-                    stream.seek(-1, 1)  # back one byte
-                    stream.seek(1, 1)  # forward one byte
-                return True
-            except Exception:
-                # Try to restore position if possible
-                try:
-                    stream.seek(cur, 0)
-                except Exception:
-                    pass
-                return False
-
-        if _can_back_seek(file_obj):
-            # Fast path for truly seekable streams
+        if can_seek:
+            # Fast path for properly seekable streams
             file_offsets = []
             table_start = file_obj.tell()
-            # Skip ahead to leave space for the circuit table
+            # Skip past the circuit table to write circuit contents first.
             file_obj.seek(len(programs) * formats.CIRCUIT_TABLE_ENTRY_SIZE, 1)
-
             for program in programs:
                 file_offsets.append(file_obj.tell())
                 _write_circuit(file_obj, program)
-
-            # Seek back to the table start and write offsets
+            # Seek back to the table start and write it out.
             file_obj.seek(table_start)
             for offset in file_offsets:
                 file_obj.write(
@@ -260,21 +245,18 @@ def dump(
                         formats.CIRCUIT_TABLE_ENTRY_PACK, *formats.CIRCUIT_TABLE_ENTRY(offset)
                     )
                 )
-
-            # Move to end of file
+            # Seek to the end of the stream.
             file_obj.seek(0, 2)
-
         else:
-            # Buffered path for non-seekable or limited-seek streams (e.g., gzip write mode)
+            # We need to create a temporary BytesIO buffer since the input
+            # stream isn't seekable.
             buffer_offsets = []
             offset_table_size = len(programs) * formats.CIRCUIT_TABLE_ENTRY_SIZE
-
             with io.BytesIO() as circuits_buffer:
                 for program in programs:
                     buffer_offsets.append(circuits_buffer.tell())
                     _write_circuit(circuits_buffer, program)
-
-                # Write the circuit table first, adjusting offsets
+                # Write circuit table to input stream, adjusting offsets.
                 for offset in buffer_offsets:
                     file_obj.write(
                         struct.pack(
@@ -284,8 +266,7 @@ def dump(
                             ),
                         )
                     )
-
-                # Write actual circuit data to the output stream
+                # Write circuits to the input stream.
                 circuits_buffer.seek(0)
                 shutil.copyfileobj(circuits_buffer, file_obj)
     else:
