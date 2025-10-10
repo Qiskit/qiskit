@@ -773,8 +773,9 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
         unitary = random_unitary(2**num_qubits, seed=42)
         qc = QuantumCircuit(num_qubits)
         qc.unitary(unitary, qc.qubits)
-        transpiled = HighLevelSynthesis(basis_gates=["cx", "u"])(qc)
-        self.assertNotIn("unitary", transpiled.count_ops())
+        target = Target.from_configuration(num_qubits=5, basis_gates=["cx", "u"])
+        transpiled = HighLevelSynthesis(target=target)(qc)
+        self.assertLessEqual(set(transpiled.count_ops()), {"cx", "u"})
 
 
 class TestHighLevelSynthesisQuality(QiskitTestCase):
