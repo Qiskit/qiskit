@@ -41,6 +41,7 @@ from qiskit.visualization import circuit_drawer
 from qiskit.visualization.circuit import text as elements
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.circuit.classical import expr, types
+from qiskit.circuit.controlflow import ForLoopOp
 from qiskit.circuit.library import (
     HGate,
     U2Gate,
@@ -61,6 +62,7 @@ from qiskit.circuit.library import (
     UnitaryGate,
     HamiltonianGate,
     UCGate,
+    get_standard_gate_name_mapping,
 )
 from qiskit.transpiler.passes import ApplyLayout
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -4466,6 +4468,35 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
 
         actual = str(qc.draw("text", fold=-1, initial_state=False))
         self.assertEqual(actual, expected)
+
+    def test_control_flow_different_registers(self):
+        """Test drawing with control flow where the blocks are defined on separate registers."""
+        for name, gate in get_standard_gate_name_mapping().items():
+            # known bug for classical bits: https://github.com/Qiskit/qiskit/issues/15154
+            if gate.num_clbits > 0:
+                continue
+
+            # if there are no bits, there's no register naming to be checked
+            if gate.num_qubits == 0:
+                continue
+
+            # define a block on custom registers
+            block_qreg = QuantumRegister(gate.num_qubits, "qb")
+            block_creg = ClassicalRegister(gate.num_clbits, "cb")
+            block = QuantumCircuit(block_qreg, block_creg)
+            block.append(gate, block_qreg, block_creg)
+            for_loop = ForLoopOp([0, 1, 2], None, block)
+
+            # append to a circuit and check drawing works
+            qreg = QuantumRegister(gate.num_qubits, name="qc")
+            creg = ClassicalRegister(gate.num_clbits, name="cc")
+            circuit = QuantumCircuit(qreg, creg)
+            circuit.append(for_loop, qreg, creg)
+
+            with self.subTest(name=name):
+                # we don't check the full drawing, we just check the drawing didn't fail
+                out = str(circuit_drawer(circuit, output="text"))
+                self.assertTrue("For-0 (0, 1, 2)" in out)
 
     def test_nested_switch_op_var(self):
         """Test switch with standalone Var."""
