@@ -3,6 +3,14 @@
 # https://cmake.org/cmake/help/book/mastering-cmake/chapter/Testing%20With%20CMake%20and%20CTest.html
 cmake_minimum_required (VERSION 3.27)
 
+# Convert warnings into errors. Note that MSVC and GCC/clang do not match here, and CI will
+# require all to pass without errors.
+if (MSVC) 
+    add_compile_options(/W3 /WX)
+else ()
+    add_compile_options(-Wall -Wextra -Werror -Wshadow)
+endif ()
+
 # All files in this directory (non-recursively! use GLOB_RECURSE if that becomes
 # necessary) which match the pattern `test_*.c` are discovered as test files by
 # the command below. All paths are stored relative to the location of this file.

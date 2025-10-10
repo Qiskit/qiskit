@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Test operations on circuit.data."""
+import warnings
 import pickle
 import ddt
 
@@ -29,6 +30,8 @@ from qiskit.circuit.classical import types, expr
 from qiskit.circuit.library import HGate, XGate, CXGate, RXGate, Measure
 from qiskit.circuit.exceptions import CircuitError
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.providers.fake_provider import GenericBackendV2
+from qiskit import transpile
 
 
 @ddt.ddt
@@ -66,6 +69,39 @@ class TestQuantumCircuitData(QiskitTestCase):
         # and does not change order.
         data.add_qubit(qubits[0], strict=False)
         self.assertEqual(data.qubits, qubits)
+
+    def test_add_qubit_raises_warning_with_layout(self):
+        """Test warning is raised when qubit is added to a circuit with layout"""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.rx(0, 1)
+        backend = GenericBackendV2(num_qubits=7)
+        isa_qc = transpile(qc, backend)
+        with self.assertWarnsRegex(UserWarning, "Trying to add bits .* layout"):
+            isa_qc.add_bits([Qubit() for _ in range(1)])
+
+    def test_add_quantum_register_raises_warning_with_layout(self):
+        """Test warning is raised when quantum register is added to a circuit with layout"""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.rx(0, 1)
+        backend = GenericBackendV2(num_qubits=7)
+        isa_qc = transpile(qc, backend)
+        qr = QuantumRegister(1)
+        with self.assertWarnsRegex(UserWarning, "Trying to add QuantumRegister .* layout"):
+            isa_qc.add_register(qr)
+
+    def test_add_clbit_not_raises_warning_with_layout(self):
+        """Test warning is not raised when clbit is added to a circuit with layout"""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.rx(0, 1)
+        backend = GenericBackendV2(num_qubits=7)
+        isa_qc = transpile(qc, backend)
+        with warnings.catch_warnings(record=True) as warnings_log:
+            isa_qc.add_bits([Clbit() for _ in range(1)])
+
+        self.assertEqual(warnings_log, [])
 
     def test_add_clbit(self):
         """Test adding new and duplicate clbits."""

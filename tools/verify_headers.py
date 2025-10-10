@@ -18,6 +18,7 @@
 import argparse
 import multiprocessing
 import os
+import pathlib
 import sys
 import re
 
@@ -29,18 +30,14 @@ copyright_line = re.compile(r"^(\/\/|#) \(C\) Copyright IBM 20")
 
 def discover_files(code_paths):
     """Find all .py, .rs, .c, and .h files in a list of trees"""
-    out_paths = []
-    for path in code_paths:
-        if os.path.isfile(path):
-            out_paths.append(path)
-        else:
-            for directory in os.walk(path):
-                dir_path = directory[0]
-                for subfile in directory[2]:
-                    ending = subfile.rsplit(".", 1)[-1]
-                    if ending in (".py", ".rs", ".c", ".h"):
-                        out_paths.append(os.path.join(dir_path, subfile))
-    return out_paths
+    return [
+        file
+        for extension in ("py", "rs", "c", "h")
+        for path in code_paths
+        for file in pathlib.Path(path).glob(f"**/*.{extension}")
+        # CMake generates some files inside the tree.
+        if not file.is_relative_to("test/c/build")
+    ]
 
 
 def validate_header(file_path):
@@ -84,8 +81,7 @@ def validate_header(file_path):
             start = index
             break
 
-    ending = file_path.rsplit(".", 1)[-1]
-    if ending in (".rs", ".c", ".h"):
+    if file_path.suffix in (".rs", ".c", ".h"):
         if "".join(lines[start : start + 2]) != header_slashes:
             return (file_path, False, f"Header up to copyright line does not match: {header}")
         if not copyright_line.search(lines[start + 2]):

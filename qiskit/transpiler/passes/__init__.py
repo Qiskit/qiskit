@@ -173,6 +173,7 @@ Additional Passes
    RemoveBarriers
    RemoveFinalMeasurements
    UnrollForLoops
+   WrapAngles
 """
 
 # layout selection (placement)
@@ -275,6 +276,7 @@ from .utils import ContainsInstruction
 from .utils import DAGFixedPoint
 from .utils import Error
 from .utils import FilterOpNodes
+from .utils import WrapAngles
 from .utils import FixedPoint
 from .utils import GateDirection
 from .utils import GatesInBasis

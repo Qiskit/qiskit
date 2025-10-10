@@ -34,7 +34,7 @@ class TGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.t` method.
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -43,7 +43,7 @@ class TGate(SingletonGate):
                 0 & e^{i\pi/4}
             \end{pmatrix}
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -57,7 +57,10 @@ class TGate(SingletonGate):
     _standard_gate = StandardGate.T
 
     def __init__(self, label: Optional[str] = None):
-        """Create new T gate."""
+        """
+        Args:
+            label: An optional label for the gate.
+        """
         super().__init__("t", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
@@ -72,7 +75,7 @@ class TGate(SingletonGate):
         #    └────────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.T._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.T._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def inverse(self, annotated: bool = False):
@@ -107,7 +110,7 @@ class TdgGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.tdg` method.
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -116,7 +119,7 @@ class TdgGate(SingletonGate):
                 0 & e^{-i\pi/4}
             \end{pmatrix}
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -145,7 +148,7 @@ class TdgGate(SingletonGate):
         #    └─────────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.Tdg._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.Tdg._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def inverse(self, annotated: bool = False):

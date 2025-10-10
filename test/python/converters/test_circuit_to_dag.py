@@ -41,6 +41,16 @@ class TestCircuitToDag(QiskitTestCase):
         circuit_out = dag_to_circuit(dag)
         self.assertEqual(circuit_out, circuit_in)
 
+    def test_high_degree_determinism(self):
+        """Test that the converter is deterministic in edge order for high-degree nodes."""
+        qr = QuantumRegister(100, "q")
+        cr = ClassicalRegister(100, "c")
+        qc = QuantumCircuit(qr, cr)
+        # This is particularly testing the determinism for "extra" bits that don't appear in the
+        # cargs (aren't used in the circuit body).
+        qc.if_test(expr.equal(cr, 0), QuantumCircuit(qr), qr, [])
+        self.assertTrue(circuit_to_dag(qc).structurally_equal(circuit_to_dag(qc)))
+
     def test_wires_from_expr_nodes_condition(self):
         """Test that the classical wires implied by an `Expr` node in a control-flow op's
         `condition` are correctly transferred."""

@@ -27,16 +27,16 @@ num-traits.workspace = true
 rand.workspace = true
 rand_pcg.workspace = true
 rand_distr.workspace = true
-faer = "0.19.4"
+faer = "0.21"
 rustworkx-core.workspace = true
 rustiq-core = "0.0.11"
 rstar = "0.12.2"
-serde = "1.0.219"
+serde = { version = "1.0", features = ["derive"] }
 thiserror.workspace = true
 
 [dependencies.faer-ext]
-version = "0.3.0"
-features = ["ndarray"]
+version = "0.5.0"
+features = ["ndarray", "nalgebra"]
 
 [dependencies.smallvec]
 workspace = true

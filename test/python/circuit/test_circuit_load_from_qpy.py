@@ -2250,7 +2250,7 @@ class TestLoadFromQPY(QiskitTestCase):
         ):
             dump(qc, fptr, version=version)
 
-    @ddt.idata(range(14, 16))
+    @ddt.idata(range(max(QPY_COMPATIBILITY_VERSION, 14), 16))
     def test_pre_v16_rejects_ps_duration(self, version):
         """Test that dumping to older QPY versions rejects Duration.ps."""
         from qiskit.circuit import Duration

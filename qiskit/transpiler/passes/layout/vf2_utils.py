@@ -16,7 +16,7 @@ from collections import defaultdict
 import random
 
 import numpy as np
-from rustworkx import PyDiGraph, PyGraph, connected_components
+from rustworkx import PyDiGraph, PyGraph, connected_components, weakly_connected_components
 
 from qiskit.circuit import ForLoopOp
 from qiskit.converters import circuit_to_dag
@@ -24,6 +24,17 @@ from qiskit.transpiler.target import Target
 from qiskit._accelerate import vf2_layout
 from qiskit._accelerate.nlayout import NLayout
 from qiskit._accelerate.error_map import ErrorMap
+
+
+def allocate_idle_qubits(dag, target, layout):
+    """Allocate the idle virtual qubits in the input DAG to arbitrary physical qubits."""
+    # Extend with arbitrary decisions for idle qubits.
+    used_physical = set(layout.get_physical_bits())
+    unused_physicals = (q for q in range(target.num_qubits) if q not in used_physical)
+    for bit in dag.qubits:
+        if bit not in layout:
+            layout[bit] = next(unused_physicals)
+    return layout
 
 
 def build_interaction_graph(dag, strict_direction=True):
@@ -86,10 +97,13 @@ def build_interaction_graph(dag, strict_direction=True):
     free_nodes = {}
     if not strict_direction:
         conn_comp = connected_components(im_graph)
-        for comp in conn_comp:
-            if len(comp) == 1:
-                index = comp.pop()
-                free_nodes[index] = im_graph[index]
+    else:
+        conn_comp = weakly_connected_components(im_graph)
+    for comp in conn_comp:
+        if len(comp) == 1:
+            index = comp.pop()
+            free_nodes[index] = im_graph[index]
+            if not strict_direction:
                 im_graph.remove_node(index)
 
     return im_graph, im_graph_node_map, reverse_im_graph_node_map, free_nodes

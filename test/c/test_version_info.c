@@ -12,35 +12,43 @@
 
 #include "common.h"
 #include <qiskit.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 /**
  * Build the version a string, based on the version numbers.
  */
-char *build_version_string(void) {
-    char suffix[4]; // 3 chars + end
+static char *build_version_string(void) {
+    const size_t suffix_len = 16;
+    char *suffix = calloc(suffix_len, sizeof(char));
     switch (QISKIT_RELEASE_LEVEL) {
     case QISKIT_RELEASE_LEVEL_DEV:
-        sprintf(suffix, "dev");
+        snprintf(suffix, suffix_len, "-dev");
+        break;
+    case QISKIT_RELEASE_LEVEL_BETA:
+        snprintf(suffix, suffix_len, "-beta%u", QISKIT_RELEASE_SERIAL);
         break;
     case QISKIT_RELEASE_LEVEL_RC:
-        sprintf(suffix, "rc%u", QISKIT_RELEASE_SERIAL);
+        snprintf(suffix, suffix_len, "-rc%u", QISKIT_RELEASE_SERIAL);
         break;
     default:
         // no suffix
         break;
     }
 
-    char *version = malloc(9 * sizeof(char));
-    sprintf(version, "%u.%u.%u%s", QISKIT_VERSION_MAJOR, QISKIT_VERSION_MINOR, QISKIT_VERSION_PATCH,
-            suffix);
+    const size_t version_len = 32;
+    char *version = calloc(version_len, sizeof(char));
+    snprintf(version, version_len, "%u.%u.%u%s", QISKIT_VERSION_MAJOR, QISKIT_VERSION_MINOR,
+             QISKIT_VERSION_PATCH, suffix);
+    free(suffix);
     return version;
 }
 
 /**
  * Test the string version.
  */
-int test_version(void) {
+static int test_version(void) {
     char *ref = build_version_string();
     int result;
     if (strcmp(ref, QISKIT_VERSION) == 0)
@@ -57,7 +65,7 @@ int test_version(void) {
 /**
  * Test the version macro and HEX version.
  */
-int test_version_macros() {
+static int test_version_macros(void) {
     if (QISKIT_VERSION_MAJOR < 0 || QISKIT_VERSION_MINOR < 0 || QISKIT_VERSION_PATCH < 0) {
         return EqualityError;
     }
@@ -69,7 +77,7 @@ int test_version_macros() {
     return Ok;
 }
 
-int test_version_info() {
+int test_version_info(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_version);
     num_failed += RUN_TEST(test_version_macros);
