@@ -1235,7 +1235,8 @@ class TextDrawing:
             add_connected_gate(node, gates, layer, current_cons, gate_wire_map)
 
         elif len(node.qargs) >= 2 and not node.cargs:
-            layer.set_qu_multibox(node.qargs, gate_text, conditional=conditional)
+            mapped_qargs = [self.qubits[gate_wire_map[q]] for q in node.qargs]
+            layer.set_qu_multibox(mapped_qargs, gate_text, conditional=conditional)
 
         elif node.qargs and node.cargs:
             layer._set_multibox(
