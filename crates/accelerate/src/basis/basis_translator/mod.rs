@@ -443,6 +443,7 @@ fn extract_basis_target_circ(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn apply_translation(
     py: Python,
     dag: &DAGCircuit,
@@ -518,7 +519,7 @@ fn apply_translation(
                 out_dag.apply_operation_back(
                     py,
                     new_op.operation,
-                    &node_qarg,
+                    node_qarg,
                     node_carg,
                     if new_op.params.is_empty() {
                         None
@@ -533,7 +534,7 @@ fn apply_translation(
                 out_dag.apply_operation_back(
                     py,
                     node_obj.op.clone(),
-                    &node_qarg,
+                    node_qarg,
                     node_carg,
                     if node_obj.params_view().is_empty() {
                         None
@@ -569,7 +570,7 @@ fn apply_translation(
             out_dag.apply_operation_back(
                 py,
                 node_obj.op.clone(),
-                &node_qarg,
+                node_qarg,
                 node_carg,
                 if node_obj.params_view().is_empty() {
                     None
