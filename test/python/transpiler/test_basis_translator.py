@@ -19,7 +19,7 @@ from numpy import pi
 import scipy
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import transpile
+from qiskit import transpile, pulse
 from qiskit.circuit import Gate, Parameter, EquivalenceLibrary, Qubit, Clbit, Measure
 from qiskit.circuit.equivalence_library import StandardEquivalenceLibrary as std_eq_lib
 from qiskit.circuit.classical import expr, types
@@ -42,6 +42,7 @@ from qiskit.converters import circuit_to_dag, dag_to_circuit, circuit_to_instruc
 from qiskit.exceptions import QiskitError
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.quantum_info import Operator
+from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.target import Target, InstructionProperties
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.basis import BasisTranslator, UnrollCustomDefinitions
@@ -85,6 +86,13 @@ class TwoQubitZeroParamGate(Gate):
 
     def __init__(self, name="2q0p"):
         super().__init__(name, 2, [])
+
+
+class TwoQubitOneParamGate(Gate):
+    """Mock two qubit one param gate."""
+
+    def __init__(self, theta, name="2q1p"):
+        super().__init__(name, 2, [theta])
 
 
 class VariadicZeroParamGate(Gate):
@@ -497,6 +505,97 @@ class TestBasisTranslator(QiskitTestCase):
 
         inst = std_eq_lib._get_equivalences(rx_key)[0].circuit.data[0]
         self.assertEqual(inst.params, inst.operation.params)
+
+    def test_loop_custom_gate_local_indices(self):
+        """Test with a custom gate inside a loop operation with different local qubit indices"""
+
+        # Create 3 qubit backend
+        backend = GenericBackendV2(num_qubits=3, control_flow=True)
+
+        # Add only this pair as native to the Target.
+        pair = (0, 2)
+        alpha = Parameter("alpha")
+        gate = TwoQubitOneParamGate(alpha)
+
+        # Add custom gate to be supported by the Target.
+        backend.target.add_instruction(gate, {pair: None})  # properties omitted for brevity
+
+        # Make the tracking register
+        qubits = QuantumRegister(3, "data")
+
+        # Create circuit with loop
+        circ = QuantumCircuit(qubits)
+        with circ.for_loop(range(2)):
+            circ.append(gate, [qubits[0], qubits[2]])
+
+        # Run the basis translator
+        result = BasisTranslator(std_eq_lib, [], backend.target)(circ)
+        self.assertEqual(circ, result)
+
+    def test_nested_loop_custom_gate_local_indices(self):
+        """Test custom registers in a nested control flow."""
+        # Create 3 qubit backend
+        backend = GenericBackendV2(num_qubits=3, control_flow=True)
+
+        # Add only this pair as native to the Target.
+        pair = (0, 2)
+        alpha = Parameter("alpha")
+        gate = TwoQubitOneParamGate(alpha)
+
+        # Add custom gate to be supported by the Target.
+        backend.target.add_instruction(gate, {pair: None})  # properties omitted for brevity
+
+        qreg = QuantumRegister(3, "data")
+        creg = ClassicalRegister(1, "res")
+        circuit = QuantumCircuit(qreg, creg)
+        circuit.h(0)
+        circuit.cy(0, 2)
+        circuit.measure(0, 0)
+        with circuit.if_test((creg[0], 0)) as else_:
+            with circuit.for_loop(range(2)):
+                circuit.append(gate, [qreg[0], qreg[2]])
+        with else_:
+            circuit.h(0)
+            circuit.cy(0, 2)
+
+        result = BasisTranslator(std_eq_lib, [], backend.target)(circuit)
+        ops = result.count_ops()
+        self.assertEqual(ops.get("if_else", 0), 1)
+        self.assertNotIn(ops, "cy")
+        self.assertNotIn(ops, "h")
+
+    def test_loop_custom_calibration(self):
+        """Test with custom calibrations inside a loop with different local indices.
+
+        Regression test of #13728.
+        """
+        ecr_cal = Gate(name="ecr_cal", num_qubits=2, params=[])
+        block = QuantumCircuit(2)
+        block.append(ecr_cal, [0, 1])
+
+        circuit = QuantumCircuit(2)
+        with circuit.for_loop([0, 3]) as _:
+            circuit.compose(block, inplace=True)
+
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(
+                num_qubits=4,
+                basis_gates=["x", "sx", "ecr", "rz", "measure", "reset"],
+                coupling_map=CouplingMap.from_full(4),
+                calibrate_instructions=True,
+                control_flow=True,
+            )
+
+            with pulse.build(backend, name="custom_sched") as custom_sched:
+                pulse.play(pulse.Constant(100, 0.1), pulse.DriveChannel(3))
+                pulse.play(pulse.Constant(100, 0.2), pulse.DriveChannel(4))
+
+            backend.target.add_instruction(
+                ecr_cal, properties={(3, 4): InstructionProperties(calibration=custom_sched)}
+            )
+
+        tqc = transpile(circuit, backend, initial_layout=[3, 4])
+        self.assertEqual(tqc.count_ops().get("for_loop", 0), 1)
 
 
 class TestUnrollerCompatability(QiskitTestCase):
