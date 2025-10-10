@@ -262,66 +262,24 @@ def dump(
         for program in programs:
             _write_circuit(file_obj, program)
 
-
-def load(
+def parse_file_header(
     file_obj: BinaryIO,
-    metadata_deserializer: Optional[Type[JSONDecoder]] = None,
-    annotation_factories: Optional[Mapping[str, Callable[[], annotation.QPYSerializer]]] = None,
-) -> List[QPY_SUPPORTED_TYPES]:
-    """Load a QPY binary file
-
-    This function is used to load a serialized QPY Qiskit program file and create
-    :class:`~qiskit.circuit.QuantumCircuit` objects from its contents.
-    For example:
-
-    .. code-block:: python
-
-        from qiskit import qpy
-
-        with open('bell.qpy', 'rb') as fd:
-            circuits = qpy.load(fd)
-
-    or with a gzip compressed file:
-
-    .. code-block:: python
-
-        import gzip
-        from qiskit import qpy
-
-        with gzip.open('bell.qpy.gz', 'rb') as fd:
-            circuits = qpy.load(fd)
-
-    which will read the contents of the qpy and return a list of
-    :class:`~qiskit.circuit.QuantumCircuit` objects from the file.
+) -> formats.FILE_HEADER | formats.FILE_HEADER_V10:
+    """Parses the header from a QPY binary file
 
     Args:
         file_obj: A file like object that contains the QPY binary
             data for a circuit.
-        metadata_deserializer: An optional JSONDecoder class
-            that will be used for the ``cls`` kwarg on the internal
-            ``json.load`` call used to deserialize the JSON payload used for
-            the ``.metadata`` attribute for any programs in the QPY file.
-            If this is not specified the circuit metadata will
-            be parsed as JSON with the stdlib ``json.load()`` function using
-            the default ``JSONDecoder`` class.
-        annotation_factories: Mapping of namespaces to functions that create new instances of
-            :class:`.annotation.QPUSerializer`, for handling the loading of custom
-            :class:`.Annotation` objects.
 
     Returns:
-        The list of Qiskit programs contained in the QPY data.
-        A list is always returned, even if there is only 1 program in the QPY data.
+        The header tuple corresponding to the QPY version
 
     Raises:
         QiskitError: if ``file_obj`` is not a valid QPY file
         TypeError: When invalid data type is loaded.
-        MissingOptionalLibraryError: If the ``symengine`` engine library is
-            not installed when loading a QPY version 10, 11, or 12 payload
-            that is using symengine symbolic encoding and contains
-            :class:`.ParameterExpression` instances.
         QpyError: if known but unsupported data type is loaded.
     """
-
+    
     # identify file header version
     version = struct.unpack("!6sB", file_obj.read(7))[1]
     file_obj.seek(0)
@@ -395,6 +353,70 @@ def load(
     if type_key != type_keys.Program.CIRCUIT:
         raise TypeError(f"Invalid payload format data kind '{type_key}'.")
 
+    return data
+
+
+def load(
+    file_obj: BinaryIO,
+    metadata_deserializer: Optional[Type[JSONDecoder]] = None,
+    annotation_factories: Optional[Mapping[str, Callable[[], annotation.QPYSerializer]]] = None,
+) -> List[QPY_SUPPORTED_TYPES]:
+    """Load a QPY binary file
+
+    This function is used to load a serialized QPY Qiskit program file and create
+    :class:`~qiskit.circuit.QuantumCircuit` objects from its contents.
+    For example:
+
+    .. code-block:: python
+
+        from qiskit import qpy
+
+        with open('bell.qpy', 'rb') as fd:
+            circuits = qpy.load(fd)
+
+    or with a gzip compressed file:
+
+    .. code-block:: python
+
+        import gzip
+        from qiskit import qpy
+
+        with gzip.open('bell.qpy.gz', 'rb') as fd:
+            circuits = qpy.load(fd)
+
+    which will read the contents of the qpy and return a list of
+    :class:`~qiskit.circuit.QuantumCircuit` objects from the file.
+
+    Args:
+        file_obj: A file like object that contains the QPY binary
+            data for a circuit.
+        metadata_deserializer: An optional JSONDecoder class
+            that will be used for the ``cls`` kwarg on the internal
+            ``json.load`` call used to deserialize the JSON payload used for
+            the ``.metadata`` attribute for any programs in the QPY file.
+            If this is not specified the circuit metadata will
+            be parsed as JSON with the stdlib ``json.load()`` function using
+            the default ``JSONDecoder`` class.
+        annotation_factories: Mapping of namespaces to functions that create new instances of
+            :class:`.annotation.QPUSerializer`, for handling the loading of custom
+            :class:`.Annotation` objects.
+
+    Returns:
+        The list of Qiskit programs contained in the QPY data.
+        A list is always returned, even if there is only 1 program in the QPY data.
+
+    Raises:
+        QiskitError: if ``file_obj`` is not a valid QPY file
+        TypeError: When invalid data type is loaded.
+        MissingOptionalLibraryError: If the ``symengine`` engine library is
+            not installed when loading a QPY version 10, 11, or 12 payload
+            that is using symengine symbolic encoding and contains
+            :class:`.ParameterExpression` instances.
+        QpyError: if known but unsupported data type is loaded.
+    """
+
+    data = parse_file_header(file_obj=file_obj)
+    
     if data.qpy_version < 10:
         use_symengine = False
     else:
