@@ -225,10 +225,7 @@ def dump(
     if version >= 16:
         # Determine whether to use the fast seek path
         if use_seeking is None:
-            can_seek = (
-                file_obj.seekable()
-                and not isinstance(file_obj, KNOWN_BAD_SEEKERS)
-            )
+            can_seek = file_obj.seekable() and not isinstance(file_obj, KNOWN_BAD_SEEKERS)
         else:
             can_seek = use_seeking
         # Note: This isinstance() check may not catch all problematic stream types that
