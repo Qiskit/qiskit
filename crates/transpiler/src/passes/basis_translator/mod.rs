@@ -120,6 +120,7 @@ pub fn run_basis_translator(
             &mut qargs_local_source_basis,
             min_qubits,
             &qargs_with_non_global_operation,
+            None,
         );
     } else {
         basic_instrs = ["measure", "reset", "barrier", "snapshot", "delay", "store"]
@@ -248,7 +249,16 @@ fn extract_basis_target(
     qargs_local_source_basis: &mut AhashIndexMap<PhysicalQargs, AhashIndexSet<GateIdentifier>>,
     min_qubits: usize,
     qargs_with_non_global_operation: &AhashIndexMap<Qargs, AhashIndexSet<&str>>,
+    qarg_mapping: Option<&HashMap<Qubit, Qubit>>,
 ) {
+    let qarg_mapping = if let Some(mapping) = qarg_mapping {
+        mapping
+    } else {
+        &(0..dag.num_qubits())
+            .zip(0..dag.num_qubits())
+            .map(|(k, v)| (Qubit::new(k), Qubit::new(v)))
+            .collect()
+    };
     for (node, node_obj) in dag.op_nodes(true) {
         let qargs: &[Qubit] = dag.get_qargs(node_obj.qubits);
         if qargs.len() < min_qubits {
@@ -263,7 +273,10 @@ fn extract_basis_target(
         // single qubit operation for (1,) as valid. This pattern also holds
         // true for > 2q ops too (so for 4q operations we need to check for 3q, 2q,
         // and 1q operations in the same manner)
-        let physical_qargs: PhysicalQargs = qargs.iter().map(|x| PhysicalQubit(x.0)).collect();
+        let physical_qargs: PhysicalQargs = qargs
+            .iter()
+            .map(|x| PhysicalQubit(qarg_mapping[x].0))
+            .collect();
         let physical_qargs_as_set: AhashIndexSet<PhysicalQubit> =
             AhashIndexSet::from_iter(physical_qargs.iter().copied());
         let physical_qargs: Qargs = physical_qargs.into();
@@ -298,14 +311,14 @@ fn extract_basis_target(
         }
         if let Some(control_flow) = dag.try_view_control_flow(node) {
             for block in control_flow.blocks() {
-// Generate a mapping with the absolute indices and the local ones.
+                // Generate a mapping with the absolute indices and the local ones.
                 let qarg_mapping: HashMap<Qubit, Qubit> = dag
                     .qargs_interner()
                     .get(node_obj.qubits)
                     .iter()
                     .copied()
                     .zip((0..(block.num_qubits() as u32)).map(Qubit))
-                    .map(|(k, v)| (v, k))
+                    .map(|(k, v)| (v, qarg_mapping[&k]))
                     .collect();
                 extract_basis_target(
                     block,
@@ -313,7 +326,7 @@ fn extract_basis_target(
                     qargs_local_source_basis,
                     min_qubits,
                     qargs_with_non_global_operation,
-                    &qarg_mapping,
+                    Some(&qarg_mapping),
                 );
             }
         }
@@ -347,11 +360,22 @@ fn apply_translation(
                 for dag_block in control_flow.blocks() {
                     let updated_dag: DAGCircuit;
                     // Generate a mapping between the absolute and local qubit indices
-                        // which will be used to correctly map the operation onto the dag.
-                        let qarg_mapping: HashMap<Qubit, Qubit> = if let Some(qarg_mapping) = qarg_mapping {
-                            dag.qargs_interner().get(node_obj.qubits).iter().zip((0..(block.num_qubits() as u32)).map(Qubit)).map(|(k, v)| (v, qarg_mapping[k])).collect()
+                    // which will be used to correctly map the operation onto the dag.
+                    let qarg_mapping: HashMap<Qubit, Qubit> =
+                        if let Some(qarg_mapping) = qarg_mapping {
+                            dag.qargs_interner()
+                                .get(node_obj.qubits)
+                                .iter()
+                                .zip((0..(dag_block.num_qubits() as u32)).map(Qubit))
+                                .map(|(k, v)| (v, qarg_mapping[k]))
+                                .collect()
                         } else {
-                            dag.qargs_interner().get(node_obj.qubits).iter().zip((0..(block.num_qubits() as u32)).map(Qubit)).map(|(k, v)| (v, *k)).collect()
+                            dag.qargs_interner()
+                                .get(node_obj.qubits)
+                                .iter()
+                                .zip((0..(dag_block.num_qubits() as u32)).map(Qubit))
+                                .map(|(k, v)| (v, *k))
+                                .collect()
                         };
                     (updated_dag, is_updated) = apply_translation(
                         dag_block,
@@ -360,7 +384,7 @@ fn apply_translation(
                         extra_inst_map,
                         min_qubits,
                         qargs_with_non_global_operation,
-			qarg_mapping,
+                        Some(&qarg_mapping),
                     )?;
                     let flow_block = if is_updated {
                         updated_dag
