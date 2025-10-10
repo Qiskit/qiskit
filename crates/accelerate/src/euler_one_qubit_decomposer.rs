@@ -34,12 +34,13 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::dag_node::DAGOpNode;
-use qiskit_circuit::operations::{Operation, Param, StandardGate};
+use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 use qiskit_circuit::util::c64;
 use qiskit_circuit::Qubit;
 
 use crate::nlayout::PhysicalQubit;
+use crate::target_transpiler::exceptions::TranspilerError;
 use crate::target_transpiler::Target;
 
 pub const ANGLE_ZERO_EPSILON: f64 = 1e-12;
@@ -1111,7 +1112,26 @@ pub(crate) fn optimize_1q_gates_decomposition(
                 Some(target) => Some(
                     target
                         .operation_names_for_qargs(Some(&smallvec![qubit]))
-                        .unwrap(),
+                        .map_err(|e| TranspilerError::new_err(e.to_string()))?
+                        .into_iter()
+                        .filter(|gate_name| {
+                            let Ok(gate) = target.operation_from_name(gate_name) else {
+                                return false;
+                            };
+                            if let OperationRef::Standard(_) = gate.operation.view() {
+                                // For standard gates check that the target entry accepts any
+                                // params and if so then we can use the gate in the pass
+                                // else filter the operation since arbitrary angles are not
+                                // supported
+                                gate.params
+                                    .iter()
+                                    .all(|x| matches!(x, Param::ParameterExpression(_)))
+                            } else {
+                                // For all other gates pass it through
+                                true
+                            }
+                        })
+                        .collect(),
                 ),
                 None => {
                     let basis = basis_gates.as_ref();
