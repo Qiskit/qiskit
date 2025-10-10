@@ -262,99 +262,6 @@ def dump(
         for program in programs:
             _write_circuit(file_obj, program)
 
-def parse_file_header(
-    file_obj: BinaryIO,
-) -> formats.FILE_HEADER | formats.FILE_HEADER_V10:
-    """Parses the header from a QPY binary file
-
-    Args:
-        file_obj: A file like object that contains the QPY binary
-            data for a circuit.
-
-    Returns:
-        The header tuple corresponding to the QPY version
-
-    Raises:
-        QiskitError: if ``file_obj`` is not a valid QPY file
-        TypeError: When invalid data type is loaded.
-        QpyError: if known but unsupported data type is loaded.
-    """
-    
-    # identify file header version
-    version = struct.unpack("!6sB", file_obj.read(7))[1]
-    file_obj.seek(0)
-
-    if version > common.QPY_VERSION:
-        raise QiskitError(
-            f"The QPY format version being read, {version}, isn't supported by "
-            "this Qiskit version. Please upgrade your version of Qiskit to load this QPY payload"
-        )
-
-    if version < 10:
-        data = formats.FILE_HEADER._make(
-            struct.unpack(
-                formats.FILE_HEADER_PACK,
-                file_obj.read(formats.FILE_HEADER_SIZE),
-            )
-        )
-    else:
-        data = formats.FILE_HEADER_V10._make(
-            struct.unpack(
-                formats.FILE_HEADER_V10_PACK,
-                file_obj.read(formats.FILE_HEADER_V10_SIZE),
-            )
-        )
-
-    config = user_config.get_config()
-    min_qpy_version = config.get("min_qpy_version")
-    if min_qpy_version is not None and data.qpy_version < min_qpy_version:
-        raise QpyError(
-            f"QPY version {data.qpy_version} is lower than the configured minimum "
-            f"version {min_qpy_version}."
-        )
-
-    if data.preface.decode(common.ENCODE) != "QISKIT":
-        raise QiskitError("Input file is not a valid QPY file")
-    version_match = VERSION_PATTERN_REGEX.search(__version__)
-    env_qiskit_version = [int(x) for x in version_match.group("release").split(".")]
-
-    qiskit_version = (data.major_version, data.minor_version, data.patch_version)
-    # pylint: disable=too-many-boolean-expressions
-    if (
-        env_qiskit_version[0] < qiskit_version[0]
-        or (
-            env_qiskit_version[0] == qiskit_version[0] and qiskit_version[1] > env_qiskit_version[1]
-        )
-        or (
-            env_qiskit_version[0] == qiskit_version[0]
-            and qiskit_version[1] == env_qiskit_version[1]
-            and qiskit_version[2] > env_qiskit_version[2]
-        )
-    ):
-        warnings.warn(
-            "The qiskit version used to generate the provided QPY "
-            f"file, {'.'.join([str(x) for x in qiskit_version])}, "
-            f"is newer than the current qiskit version {__version__}. "
-            "This may result in an error if the QPY file uses "
-            "instructions not present in this current qiskit "
-            "version"
-        )
-
-    if data.qpy_version < 5:
-        type_key = type_keys.Program.CIRCUIT
-    else:
-        type_key = common.read_type_key(file_obj)
-
-    if type_key == type_keys.Program.SCHEDULE_BLOCK:
-        raise QpyError(
-            "Payloads of type `ScheduleBlock` cannot be loaded as of Qiskit 2.0. "
-            "Use an earlier version of Qiskit if you want to load `ScheduleBlock` payloads."
-        )
-    if type_key != type_keys.Program.CIRCUIT:
-        raise TypeError(f"Invalid payload format data kind '{type_key}'.")
-
-    return data
-
 
 def load(
     file_obj: BinaryIO,
@@ -450,6 +357,100 @@ def load(
             )
         )
     return programs
+
+
+def parse_file_header(
+    file_obj: BinaryIO,
+) -> formats.FILE_HEADER | formats.FILE_HEADER_V10:
+    """Parses the header from a QPY binary file
+
+    Args:
+        file_obj: A file like object that contains the QPY binary
+            data for a circuit.
+
+    Returns:
+        The header tuple corresponding to the QPY version
+
+    Raises:
+        QiskitError: if ``file_obj`` is not a valid QPY file
+        TypeError: When invalid data type is loaded.
+        QpyError: if known but unsupported data type is loaded.
+    """
+    
+    # identify file header version
+    version = get_qpy_version(file_obj=file_obj)
+    file_obj.seek(0)
+
+    if version > common.QPY_VERSION:
+        raise QiskitError(
+            f"The QPY format version being read, {version}, isn't supported by "
+            "this Qiskit version. Please upgrade your version of Qiskit to load this QPY payload"
+        )
+
+    if version < 10:
+        data = formats.FILE_HEADER._make(
+            struct.unpack(
+                formats.FILE_HEADER_PACK,
+                file_obj.read(formats.FILE_HEADER_SIZE),
+            )
+        )
+    else:
+        data = formats.FILE_HEADER_V10._make(
+            struct.unpack(
+                formats.FILE_HEADER_V10_PACK,
+                file_obj.read(formats.FILE_HEADER_V10_SIZE),
+            )
+        )
+
+    config = user_config.get_config()
+    min_qpy_version = config.get("min_qpy_version")
+    if min_qpy_version is not None and data.qpy_version < min_qpy_version:
+        raise QpyError(
+            f"QPY version {data.qpy_version} is lower than the configured minimum "
+            f"version {min_qpy_version}."
+        )
+
+    if data.preface.decode(common.ENCODE) != "QISKIT":
+        raise QiskitError("Input file is not a valid QPY file")
+    version_match = VERSION_PATTERN_REGEX.search(__version__)
+    env_qiskit_version = [int(x) for x in version_match.group("release").split(".")]
+
+    qiskit_version = (data.major_version, data.minor_version, data.patch_version)
+    # pylint: disable=too-many-boolean-expressions
+    if (
+        env_qiskit_version[0] < qiskit_version[0]
+        or (
+            env_qiskit_version[0] == qiskit_version[0] and qiskit_version[1] > env_qiskit_version[1]
+        )
+        or (
+            env_qiskit_version[0] == qiskit_version[0]
+            and qiskit_version[1] == env_qiskit_version[1]
+            and qiskit_version[2] > env_qiskit_version[2]
+        )
+    ):
+        warnings.warn(
+            "The qiskit version used to generate the provided QPY "
+            f"file, {'.'.join([str(x) for x in qiskit_version])}, "
+            f"is newer than the current qiskit version {__version__}. "
+            "This may result in an error if the QPY file uses "
+            "instructions not present in this current qiskit "
+            "version"
+        )
+
+    if data.qpy_version < 5:
+        type_key = type_keys.Program.CIRCUIT
+    else:
+        type_key = common.read_type_key(file_obj)
+
+    if type_key == type_keys.Program.SCHEDULE_BLOCK:
+        raise QpyError(
+            "Payloads of type `ScheduleBlock` cannot be loaded as of Qiskit 2.0. "
+            "Use an earlier version of Qiskit if you want to load `ScheduleBlock` payloads."
+        )
+    if type_key != type_keys.Program.CIRCUIT:
+        raise TypeError(f"Invalid payload format data kind '{type_key}'.")
+
+    return data
 
 
 def get_qpy_version(
