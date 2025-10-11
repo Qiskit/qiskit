@@ -36,8 +36,8 @@ import uuid
 import time
 import logging
 import warnings
-
 from collections import Counter
+
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
@@ -47,6 +47,11 @@ from qiskit.providers.backend import BackendV2
 from qiskit.providers.options import Options
 from qiskit.result import Result
 from qiskit.transpiler import Target
+
+
+from qiskit.quantum_info import Clifford, StabilizerState
+from qiskit.exceptions import QiskitError
+
 
 from .basic_provider_job import BasicProviderJob
 from .basic_provider_tools import single_gate_matrix
@@ -500,6 +505,116 @@ class BasicSimulator(BackendV2):
 
         return Result.from_dict(result)
 
+    def _is_clifford_circuit(self, circuit: QuantumCircuit) -> bool:
+        """Check if a circuit contains only Clifford gates.
+
+        Uses Clifford construction to verify if circuit is Clifford.
+        Removes measurements before checking since Clifford class
+        doesn't handle them.
+
+        Args:
+            circuit: The quantum circuit to check
+
+        Returns:
+            True if circuit is Clifford, False otherwise
+        """
+        try:
+            # Remove measurements for Clifford check
+            circ_no_meas = circuit.copy()
+            circ_no_meas.remove_final_measurements()
+
+            # Try to construct Clifford object
+            Clifford(circ_no_meas)
+            return True
+        except QiskitError:
+            return False
+
+    def _run_clifford_circuit(self, circuit: QuantumCircuit) -> dict:
+        """Simulate a Clifford circuit using StabilizerState.
+
+        This method provides efficient simulation for Clifford circuits
+        by using the stabilizer formalism instead of full statevector.
+
+        Args:
+            circuit: Clifford circuit to simulate
+
+        Returns:
+            Result dictionary matching _run_circuit format
+        """
+        start = time.time()
+
+        # Find measurement operations
+        measure_ops = []
+        for operation in circuit.data:
+            if operation.operation.name == "measure":
+                qubit = circuit.find_bit(operation.qubits[0]).index
+                clbit = circuit.find_bit(operation.clbits[0]).index
+                measure_ops.append((qubit, clbit))
+
+        # Create circuit without measurements
+        circ_no_meas = circuit.copy()
+        circ_no_meas.remove_final_measurements()
+
+        # Sample measurements
+        memory = []
+        if measure_ops:
+            # Sample each shot individually
+            for _ in range(self._shots):
+                # Create fresh StabilizerState for each shot
+                stab_state = StabilizerState(circ_no_meas)
+
+                # Set seed if provided (for reproducibility)
+                if self._seed_simulator is not None:
+                    # Use different seed for each shot to get random outcomes
+                    stab_state.seed(self._seed_simulator + _)
+
+                # Sample one measurement outcome
+                sample = stab_state.sample_memory(1)[0]
+
+                # Map measured qubits to classical bits - use same logic as original
+                classical_memory = 0
+                for qubit, clbit in measure_ops:
+                    # Extract bit value from sample (reversed indexing)
+                    bit_val = int(sample[-(qubit + 1)])
+                    # Use bitwise operations same as original _run_circuit
+                    membit = 1 << clbit
+                    classical_memory = (classical_memory & (~membit)) | (bit_val << clbit)
+
+                # Convert to hex format like original _run_circuit
+                outcome = bin(classical_memory)[2:]
+                memory.append(hex(int(outcome, 2)))
+
+        # Build result data
+        data = {"counts": dict(Counter(memory))}
+        if self._memory:
+            data["memory"] = memory
+
+        end = time.time()
+
+        # Build header
+        header = {
+            "name": circuit.name,
+            "n_qubits": circuit.num_qubits,
+            "qreg_sizes": [[qreg.name, qreg.size] for qreg in circuit.qregs],
+            "creg_sizes": [[creg.name, creg.size] for creg in circuit.cregs],
+            "qubit_labels": [[qreg.name, j] for qreg in circuit.qregs for j in range(qreg.size)],
+            "clbit_labels": [[creg.name, j] for creg in circuit.cregs for j in range(creg.size)],
+            "memory_slots": circuit.num_clbits,
+            "global_phase": circuit.global_phase,
+            "metadata": circuit.metadata if circuit.metadata is not None else {},
+        }
+
+        return {
+            "name": circuit.name,
+            "seed_simulator": self._seed_simulator,
+            "shots": self._shots,
+            "data": data,
+            "status": "DONE",
+            "success": True,
+            "header": header,
+            "time_taken": (end - start),
+        }
+
     def _run_circuit(self, circuit) -> dict:
         """Simulate a single circuit run.
 
@@ -535,6 +650,17 @@ class BasicSimulator(BackendV2):
         Raises:
             BasicProviderError: if an error occurred.
         """
+
+        # Set these BEFORE the Clifford check
+        self._number_of_qubits = circuit.num_qubits
+        self._number_of_cmembits = circuit.num_clbits
+
+        # Check if circuit is Clifford and use optimized simulation
+        if self._is_clifford_circuit(circuit):
+            # Only use Clifford optimization if no custom initial state
+            if self._initial_statevector is None:
+                return self._run_clifford_circuit(circuit)
+
         start = time.time()
 
         self._number_of_qubits = circuit.num_qubits
