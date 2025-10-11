@@ -121,6 +121,14 @@ pub static MCPHASE_GATE: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.library", "MCPhaseGate");
 pub static PAULI_EVOLUTION_GATE: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.library", "PauliEvolutionGate");
+pub static PAULI_ROTATION_TRACE_AND_DIM: ImportOnceCell = ImportOnceCell::new(
+    "qiskit.circuit.library.pauli_evolution",
+    "pauli_rotation_trace_and_dim",
+);
+pub static MERGE_TWO_PAULI_EVOLUTIONS: ImportOnceCell = ImportOnceCell::new(
+    "qiskit.circuit.library.pauli_evolution",
+    "merge_two_pauli_evolutions",
+);
 pub static QS_DECOMPOSITION: ImportOnceCell =
     ImportOnceCell::new("qiskit.synthesis.unitary.qsd", "qs_decomposition");
 pub static XX_DECOMPOSER: ImportOnceCell =

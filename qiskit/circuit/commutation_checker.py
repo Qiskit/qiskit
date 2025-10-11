@@ -66,7 +66,7 @@ class CommutationChecker:
         approximation_degree: float = 1.0,
     ) -> bool:
         """Checks if two DAGOpNodes commute."""
-        return self.cc.commute_nodes(op1, op2, max_num_qubits, approximation_degree)
+        return self.cc.commute_nodes(op1, op2, max_num_qubits, approximation_degree, max_num_qubits)
 
     def commute(
         self,
@@ -109,6 +109,7 @@ class CommutationChecker:
             tuple(cargs2),
             max_num_qubits,
             approximation_degree,
+            max_num_qubits,
         )
 
     def num_cached_entries(self):
