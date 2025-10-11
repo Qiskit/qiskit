@@ -691,3 +691,25 @@ class TestConsolidateBlocks(QiskitTestCase):
             expected = QuantumCircuit(2)
             expected.unitary(np.asarray(RZZGate(angle)), [0, 1])
             self.assertEqual(res, expected)
+
+    def test_invalid_python_data_does_not_panic(self):
+        """If a user feeds in invalid/old data, Rust space shouldn't panic."""
+        # It doesn't really matter _what_ the failure mode is, just that we should return a regular
+        # Python `Exception` and not panic.
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.cx(0, 1)
+        qc.cx(0, 1)
+        qc.cx(0, 1)
+        dag = circuit_to_dag(qc)
+        not_an_op_node = dag.input_map[qc.qubits[0]]
+
+        pass_ = ConsolidateBlocks()
+        pass_.property_set["run_list"] = [[not_an_op_node]]
+        with self.assertRaisesRegex(IndexError, "node index.*was not a valid operation"):
+            pass_.run(dag)
+        pass_.property_set.pop("run_list", None)
+
+        pass_.property_set["block_list"] = [[not_an_op_node]]
+        with self.assertRaisesRegex(IndexError, "node index.*was not a valid operation"):
+            pass_.run(dag)
