@@ -36,6 +36,7 @@ use qiskit_circuit::operations::{Param, radd_param};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit, VarsMode};
+use qiskit_synthesis::pauli_product_measurement::synthesize_ppm;
 use smallvec::SmallVec;
 
 use crate::TranspilerError;
@@ -803,6 +804,7 @@ fn extract_definition(
                 }
             }
         }
+        OperationRef::PPM(ppm) => Ok(Some(synthesize_ppm(ppm)?)),
         _ => Ok(op.definition(params)),
     }
 }
@@ -949,6 +951,7 @@ fn synthesize_op_using_plugins(
         OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
         OperationRef::Operation(operation) => operation.operation.clone_ref(py),
         OperationRef::Unitary(unitary) => unitary.create_py_op(py, label)?.into_any(),
+        OperationRef::PPM(ppm) => ppm.create_py_op(py, label)?.into_any(),
     };
     let res = HLS_SYNTHESIZE_OP_USING_PLUGINS
         .get_bound(py)

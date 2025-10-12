@@ -12,64 +12,94 @@
 
 """An instruction to implement a Pauli Product Measurement."""
 
+import numpy as np
+
 from qiskit.circuit import QuantumCircuit, CircuitError
 from qiskit.circuit.instruction import Instruction
 from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 
+from qiskit._accelerate.synthesis.pauli_product_measurement import synth_pauli_product_measurement
+
 
 class PauliProductMeasurement(Instruction):
-    """Pauli Product Measurement instruction"""
+    """Pauli Product Measurement instruction.
 
-    def __init__(self, pauli: Pauli):
+    A Pauli Product Measurement is a fundamental operation in fault-tolerant quantum
+    computing. Mathematically, it corresponds to a joint projective measurement on
+    multiple qubits, where the measured observable is a tensor product of Pauli operators.
+    The outcome of this measurement is a single eigenvalue, either :math:`+1` or :math:`-1`,
+    indicating the eigenstate of the Pauli product.
+
+    References:
+
+    [1] Daniel Litinski.
+    "A Game of Surface Codes: Large-Scale Quantum Computing with Lattice Surgery"
+    `arXiv:1808.02892 <https://arxiv.org/abs/1808.02892>`__
+    """
+
+    # we will accept pauli but internally we will store something else
+    def __init__(
+        self,
+        data: Pauli | tuple,
+        label: str | None = None,
+    ):
+        """
+        Args:
+            data: Pauli or tuple (z, x, phase).
+            label: A label for the gate to display in visualizations. Per default, the label is
+                set to ``exp(-it <operators>)`` where ``<operators>`` is the sum of the Paulis.
+        """
+
+        if isinstance(data, Pauli):
+            print(f"=> Param of type Pauli")
+            if data.phase not in [0, 2]:
+                raise CircuitError("Pauli phase of i or -i is not acceptable.")
+            params = [data.z, data.x, data.phase]
+            num_qubits = len(data.z)
+        else:
+            params = list(data)
+            num_qubits = len(data[0])
+
+        if label is None:
+            label = _get_default_label(*params)
+
+        print(f"=> {params = }, {num_qubits = }")
+
         super().__init__(
-            name="PauliProductMeasurement", num_qubits=pauli.num_qubits, num_clbits=1, params=[]
+            name="PauliProductMeasurement",
+            num_qubits=num_qubits,
+            num_clbits=1,
+            params=params,
+            label=label,
         )
-        self._pauli = pauli
-        if pauli.phase not in [0, 2]:
-            raise CircuitError("Pauli phase of i or -i is not acceptable.")
+        print(f"In PPM::constructor: {self.params = }")
 
     def inverse(self, annotated=False):
+        """Prevents from calling ``inverse`` on a PauliProductMeasurement instruction."""
         raise CircuitError("PauliProductMeasurement is not invertible.")
 
+    def __eq__(self, other):
+        if not isinstance(other, PauliProductMeasurement):
+            return False
+
+        if self.label != other.label:
+            return False
+
+        return (
+            np.all(self.params[0] == other.params[0])
+            and np.all(self.params[1] == other.params[1])
+            and (self.params[2] == other.params[2])
+        )
+
     def _define(self):
-        qc = QuantumCircuit(self.num_qubits, self.num_clbits)
-        # Construct a quantum circuit:
-        # Clifford gates + single Z-measurement + Clifford gates
-        # similar to the code we have in the PauliEvolutionGate,
-        # the only difference is that we apply a Z-measure
-        # instead of a Z rotation in the middle
-        # should be rewritten in rust reusing the code in:
-        # https://github.com/Qiskit/qiskit/blob/main/crates/circuit_library/src/pauli_evolution.rs
-        pauli = self._pauli
-        num_qubits = self._pauli.num_qubits
-        # Basis change layer
-        pauli_qubits = []
-        for i in range(num_qubits):
-            if pauli[i] == Pauli("X"):
-                qc.h(i)
-                pauli_qubits.append(i)
-            if pauli[i] == Pauli("Y"):
-                qc.sx(i)
-                pauli_qubits.append(i)
-            if pauli[i] == Pauli("Z"):
-                pauli_qubits.append(i)
-        if pauli.phase == 2:
-            qc.x(pauli_qubits[0])
-        # CX layer
-        rev_pauli_qubits = list(reversed(pauli_qubits))
-        for i in range(len(rev_pauli_qubits) - 1):
-            qc.cx(rev_pauli_qubits[i], rev_pauli_qubits[i + 1])
-        # Z-measurement on qubit 0
-        qc.measure(pauli_qubits[0], 0)
-        # CX layer
-        for i in range(len(pauli_qubits) - 1):
-            qc.cx(pauli_qubits[i + 1], pauli_qubits[i])
-        # Basis change layer
-        if pauli.phase == 2:
-            qc.x(pauli_qubits[0])
-        for i in range(num_qubits):
-            if pauli[i] == Pauli("X"):
-                qc.h(i)
-            if pauli[i] == Pauli("Y"):
-                qc.sxdg(i)
-        self.definition = qc
+        circuit = QuantumCircuit._from_circuit_data(
+            synth_pauli_product_measurement(self),
+            legacy_qubits=True,
+            name="ppm_circuit",
+        )
+        self.definition = circuit
+
+
+def _get_default_label(z, x, phase):
+    pauli_label = Pauli((z, x, phase)).to_label()
+    return "PPM(" + pauli_label + ")"

@@ -21,11 +21,13 @@ use num_complex::Complex64;
 use smallvec::SmallVec;
 
 use crate::circuit_data::CircuitData;
-use crate::imports::{BARRIER, DELAY, MEASURE, RESET, UNITARY_GATE, get_std_gate_class};
+use crate::imports::{
+    BARRIER, DELAY, MEASURE, PAULI_PRODUCT_MEASUREMENT, RESET, UNITARY_GATE, get_std_gate_class,
+};
 use crate::interner::Interned;
 use crate::operations::{
-    Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, PythonOperation,
-    StandardGate, StandardInstruction, UnitaryGate,
+    Operation, OperationRef, Param, PauliProductMeasurement, PyGate, PyInstruction, PyOperation,
+    PythonOperation, StandardGate, StandardInstruction, UnitaryGate,
 };
 use crate::{Clbit, Qubit};
 
@@ -42,13 +44,14 @@ enum PackedOperationType {
     PyInstruction = 3,
     PyOperation = 4,
     UnitaryGate = 5,
+    PauliProductMeasurement = 6,
 }
 
 unsafe impl ::bytemuck::CheckedBitPattern for PackedOperationType {
     type Bits = u8;
 
     fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
-        *bits < 6
+        *bits < 7
     }
 }
 unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
@@ -65,6 +68,7 @@ unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
 ///     Instruction(Box<PyInstruction>),
 ///     Operation(Box<PyOperation>),
 ///     UnitaryGate(Box<UnitaryGate>),
+///     PauliProductMeasurement(Box<PauliProductMeasurement>),
 /// }
 /// ```
 ///
@@ -251,7 +255,9 @@ mod standard_instruction {
 
 /// A private module to encapsulate the encoding of pointer types.
 mod pointer {
-    use crate::operations::{PyGate, PyInstruction, PyOperation, UnitaryGate};
+    use crate::operations::{
+        PauliProductMeasurement, PyGate, PyInstruction, PyOperation, UnitaryGate,
+    };
     use crate::packed_instruction::{PackedOperation, PackedOperationType};
     use std::ptr::NonNull;
 
@@ -334,6 +340,10 @@ mod pointer {
     impl_packable_pointer!(PyInstruction, PackedOperationType::PyInstruction);
     impl_packable_pointer!(PyOperation, PackedOperationType::PyOperation);
     impl_packable_pointer!(UnitaryGate, PackedOperationType::UnitaryGate);
+    impl_packable_pointer!(
+        PauliProductMeasurement,
+        PackedOperationType::PauliProductMeasurement
+    );
 }
 
 impl PackedOperation {
@@ -390,6 +400,9 @@ impl PackedOperation {
             }
             PackedOperationType::PyOperation => OperationRef::Operation(self.try_into().unwrap()),
             PackedOperationType::UnitaryGate => OperationRef::Unitary(self.try_into().unwrap()),
+            PackedOperationType::PauliProductMeasurement => {
+                OperationRef::PPM(self.try_into().unwrap())
+            }
         }
     }
 
@@ -427,6 +440,10 @@ impl PackedOperation {
         unitary.into()
     }
 
+    pub fn from_ppm(ppm: Box<PauliProductMeasurement>) -> Self {
+        ppm.into()
+    }
+
     /// Check equality of the operation, including Python-space checks, if appropriate.
     pub fn py_eq(&self, py: Python, other: &PackedOperation) -> PyResult<bool> {
         match (self.view(), other.view()) {
@@ -446,6 +463,7 @@ impl PackedOperation {
                 left.operation.bind(py).eq(&right.operation)
             }
             (OperationRef::Unitary(left), OperationRef::Unitary(right)) => Ok(left == right),
+            (OperationRef::PPM(left), OperationRef::PPM(right)) => Ok(left == right),
             _ => Ok(false),
         }
     }
@@ -491,6 +509,12 @@ impl PackedOperation {
                     .downcast::<PyType>()?
                     .is_subclass(py_type);
             }
+            OperationRef::PPM(_) => {
+                return PAULI_PRODUCT_MEASUREMENT
+                    .get_bound(py)
+                    .downcast::<PyType>()?
+                    .is_subclass(py_type);
+            }
         };
         py_op.is_instance(py_type)
     }
@@ -506,6 +530,7 @@ impl Operation for PackedOperation {
             OperationRef::Instruction(instruction) => instruction.name(),
             OperationRef::Operation(operation) => operation.name(),
             OperationRef::Unitary(unitary) => unitary.name(),
+            OperationRef::PPM(ppm) => ppm.name(),
         };
         // SAFETY: all of the inner parts of the view are owned by `self`, so it's valid for us to
         // forcibly reborrowing up to our own lifetime. We avoid using `<OperationRef as Operation>`
@@ -570,6 +595,7 @@ impl Clone for PackedOperation {
                 Self::from_operation(Box::new(operation.to_owned()))
             }
             OperationRef::Unitary(unitary) => Self::from_unitary(Box::new(unitary.clone())),
+            OperationRef::PPM(ppm) => Self::from_ppm(Box::new(ppm.clone())),
         }
     }
 }
@@ -583,6 +609,9 @@ impl Drop for PackedOperation {
             PackedOperationType::PyInstruction => PyInstruction::drop_packed(self),
             PackedOperationType::PyOperation => PyOperation::drop_packed(self),
             PackedOperationType::UnitaryGate => UnitaryGate::drop_packed(self),
+            PackedOperationType::PauliProductMeasurement => {
+                PauliProductMeasurement::drop_packed(self)
+            }
         }
     }
 }
@@ -701,6 +730,9 @@ impl PackedInstruction {
                 OperationRef::Operation(operation) => Ok(operation.operation.clone_ref(py)),
                 OperationRef::Unitary(unitary) => {
                     unitary.create_py_op(py, self.label.as_ref().map(|x| x.as_str()))
+                }
+                OperationRef::PPM(ppm) => {
+                    ppm.create_py_op(py, self.label.as_ref().map(|x| x.as_str()))
                 }
             }
         };

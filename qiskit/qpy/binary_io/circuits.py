@@ -48,7 +48,8 @@ from qiskit.circuit import QuantumRegister, Qubit
 from qiskit.qpy import common, formats, type_keys
 from qiskit.qpy.exceptions import QpyError, UnsupportedFeatureForVersion
 from qiskit.qpy.binary_io import value, schedules
-from qiskit.quantum_info.operators import SparsePauliOp, Clifford
+from qiskit.quantum_info.operators import SparsePauliOp, Clifford, Pauli
+from qiskit.circuit.library import PauliProductMeasurement
 from qiskit.synthesis import evolution as evo_synth
 from qiskit.transpiler.layout import Layout, TranspileLayout
 
@@ -502,6 +503,8 @@ def _read_instruction(
         gate_class = getattr(controlflow, gate_name)
     elif gate_name == "Clifford":
         gate_class = Clifford
+    elif gate_name == "PauliProductMeasurement":
+        gate_class = PauliProductMeasurement
     else:
         raise AttributeError(f"Invalid instruction type: {gate_name}")
 
@@ -555,6 +558,8 @@ def _read_instruction(
             "DiagonalGate",
         }:
             gate = gate_class(params)
+        elif gate_name == "PauliProductMeasurement":
+            gate = gate_class(Pauli((*params,)))
         elif gate_name == "QFTGate":
             gate = gate_class(len(qargs), *params)
         else:
@@ -901,7 +906,7 @@ def _write_instruction(
             not hasattr(library, gate_class_name)
             and not hasattr(circuit_mod, gate_class_name)
             and not hasattr(controlflow, gate_class_name)
-            and gate_class_name != "Clifford"
+            and gate_class_name not in ["Clifford", "PauliProductMeasurement"]
         )
         or gate_class_name == "Gate"
         or gate_class_name == "Instruction"
@@ -978,6 +983,16 @@ def _write_instruction(
         ]
     elif isinstance(instruction.operation, Clifford):
         instruction_params = [instruction.operation.tableau]
+    elif isinstance(instruction.operation, PauliProductMeasurement):
+        # CAN BE REMOVED?
+        # instruction_params = [
+        #     instruction.operation._pauli.z,
+        #     instruction.operation._pauli.x,
+        #     instruction.operation._pauli.phase,
+        # ]
+        instruction_params = instruction.operation.params
+        print(f"QPY: PPM {instruction_params = }")
+
     elif isinstance(instruction.operation, AnnotatedOperation):
         instruction_params = instruction.operation.modifiers
     else:

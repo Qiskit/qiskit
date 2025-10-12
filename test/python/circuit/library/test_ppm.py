@@ -12,10 +12,13 @@
 
 """A Test for Pauli Product Measurement instruction."""
 
+import io
+
 from ddt import ddt, data
 from qiskit.circuit import QuantumCircuit, CircuitError
 from qiskit.circuit.library import PauliProductMeasurement
 from qiskit.quantum_info import Pauli, Clifford
+from qiskit.qpy import dump, load
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -60,3 +63,42 @@ class TestPauliProductMeasurement(QiskitTestCase):
         """Test that the inverse method raises an error."""
         with self.assertRaises(CircuitError):
             _ = PauliProductMeasurement(Pauli("XYZ")).inverse()
+
+    def test_qpy(self):
+        """Test qpy for circuits with PauliProductMeasurement objects."""
+        qc = QuantumCircuit(6, 2)
+        qc.append(PauliProductMeasurement(Pauli("XZ")), [4, 1], [1])
+        qc.append(PauliProductMeasurement(Pauli("Z")), [2], [0])
+        qc.append(PauliProductMeasurement(Pauli("ZZ")), [3, 2], [0])
+        qc.h(0)
+
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
+    def test_gate_equality(self):
+        """Test checking equality of PauliProductMeasurement objects."""
+        self.assertEqual(PauliProductMeasurement(Pauli("XZ")), PauliProductMeasurement(Pauli("XZ")))
+        self.assertNotEqual(
+            PauliProductMeasurement(Pauli("XZ")), PauliProductMeasurement(Pauli("XX"))
+        )
+
+    def test_circuit_with_gate_equality(self):
+        """Test checking equality of circuits with PauliProductMeasurement objects."""
+        qc1 = QuantumCircuit(5, 2)
+        qc1.append(PauliProductMeasurement(Pauli("XZ")), [4, 1], [1])
+
+        qc2 = QuantumCircuit(5, 2)
+        qc2.append(PauliProductMeasurement(Pauli("XZ")), [4, 1], [1])
+
+        qc3 = QuantumCircuit(5, 2)
+        qc3.append(PauliProductMeasurement(Pauli("XZ")), [4, 1], [0])
+
+        qc4 = QuantumCircuit(5, 2)
+        qc4.append(PauliProductMeasurement(Pauli("ZX")), [4, 1], [1])
+
+        self.assertEqual(qc1, qc2)
+        self.assertNotEqual(qc1, qc3)
+        self.assertNotEqual(qc1, qc4)
