@@ -698,6 +698,7 @@ def _append_cx(clifford, control, target):
     return clifford
 
 
+# ToDo: handle phases
 def _prepend_cx(clifford, control, target):
     """Apply a CX gate before a Clifford.
 
@@ -719,6 +720,7 @@ def _prepend_cx(clifford, control, target):
     return clifford
 
 
+# ToDo: handle phases
 def _append_cz(clifford, control, target):
     """Apply a CZ gate to a Clifford.
 
