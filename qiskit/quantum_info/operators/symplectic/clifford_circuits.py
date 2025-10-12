@@ -412,17 +412,22 @@ def _prepend_s(clifford, qubit):
     Returns:
         Clifford: the updated Clifford.
     """
+    destab = clifford.destab[qubit, :]
+    stab = clifford.stab[qubit, :]
+
+    destab ^= stab
+
     destab_x = clifford.destab_x[qubit, :]
     stab_x = clifford.stab_x[qubit, :]
     destab_z = clifford.destab_z[qubit, :]
     stab_z = clifford.stab_z[qubit, :]
 
-    # destab_phase = clifford.destab_phase[qubit]
-    # stab_phase = clifford.stab_phase[qubit]
+    from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 
-    destab_x ^= stab_x
-    destab_z ^= stab_z
-    # clifford.destab_phase ^= clifford.stab_phase
+    pp = Pauli((destab_x, destab_z)).compose(Pauli((stab_x, stab_z)))
+    if pp.phase == 1:
+        clifford.destab_phase[qubit] ^= True
+
     return clifford
 
 
@@ -457,6 +462,18 @@ def _prepend_sdg(clifford, qubit):
     stab = clifford.stab[qubit, :]
 
     destab ^= stab
+
+    destab_x = clifford.destab_x[qubit, :]
+    stab_x = clifford.stab_x[qubit, :]
+    destab_z = clifford.destab_z[qubit, :]
+    stab_z = clifford.stab_z[qubit, :]
+
+    from qiskit.quantum_info.operators.symplectic.pauli import Pauli
+
+    pp = Pauli((destab_x, destab_z)).compose(Pauli((stab_x, stab_z)))
+    if pp.phase == 3:
+        clifford.destab_phase[qubit] ^= True
+
     return clifford
 
 
@@ -492,6 +509,18 @@ def _prepend_sx(clifford, qubit):
     stab = clifford.stab[qubit, :]
 
     stab ^= destab
+
+    destab_x = clifford.destab_x[qubit, :]
+    stab_x = clifford.stab_x[qubit, :]
+    destab_z = clifford.destab_z[qubit, :]
+    stab_z = clifford.stab_z[qubit, :]
+
+    from qiskit.quantum_info.operators.symplectic.pauli import Pauli
+
+    pp = Pauli((stab_x, stab_z)).compose(Pauli((destab_x, destab_z)))
+    if pp.phase == 1:
+        clifford.stab_phase[qubit] ^= True
+
     return clifford
 
 
@@ -527,6 +556,18 @@ def _prepend_sxdg(clifford, qubit):
     stab = clifford.stab[qubit, :]
 
     stab ^= destab
+
+    destab_x = clifford.destab_x[qubit, :]
+    stab_x = clifford.stab_x[qubit, :]
+    destab_z = clifford.destab_z[qubit, :]
+    stab_z = clifford.stab_z[qubit, :]
+
+    from qiskit.quantum_info.operators.symplectic.pauli import Pauli
+
+    pp = Pauli((stab_x, stab_z)).compose(Pauli((destab_x, destab_z)))
+    if pp.phase == 3:
+        clifford.stab_phase[qubit] ^= True
+
     return clifford
 
 
@@ -569,6 +610,17 @@ def _prepend_v(clifford, qubit):
     destab ^= stab
     clifford.stab[qubit, :] = tmp
 
+    destab_x = clifford.destab_x[qubit, :]
+    stab_x = clifford.stab_x[qubit, :]
+    destab_z = clifford.destab_z[qubit, :]
+    stab_z = clifford.stab_z[qubit, :]
+
+    from qiskit.quantum_info.operators.symplectic.pauli import Pauli
+
+    pp = Pauli((destab_x, destab_z)).compose(Pauli((stab_x, stab_z)))
+    if pp.phase == 3:
+        clifford.destab_phase[qubit] ^= True
+
     return clifford
 
 
@@ -610,6 +662,17 @@ def _prepend_w(clifford, qubit):
     tmp = stab.copy()
     stab ^= destab
     clifford.destab[qubit, :] = tmp
+
+    destab_x = clifford.destab_x[qubit, :]
+    stab_x = clifford.stab_x[qubit, :]
+    destab_z = clifford.destab_z[qubit, :]
+    stab_z = clifford.stab_z[qubit, :]
+
+    from qiskit.quantum_info.operators.symplectic.pauli import Pauli
+
+    pp = Pauli((stab_x, stab_z)).compose(Pauli((destab_x, destab_z)))
+    if pp.phase == 1:
+        clifford.stab_phase[qubit] ^= True
 
     return clifford
 
