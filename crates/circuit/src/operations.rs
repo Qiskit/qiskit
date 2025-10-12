@@ -2959,19 +2959,18 @@ impl Operation for PauliProductMeasurement {
 
 impl PauliProductMeasurement {
     pub fn create_py_op(&self, py: Python, label: Option<&str>) -> PyResult<Py<PyAny>> {
-        let kwargs = PyDict::new(py);
-        if let Some(label) = label {
-            kwargs.set_item(intern!(py, "label"), label.into_py_any(py)?)?;
-        }
-
         let z = PyList::new(py, &self.z)?;
         let x = PyList::new(py, &self.x)?;
         let phase = self.phase;
-        let pauli_data = (z, x, phase).into_pyobject(py)?;
+        let py_label = if let Some(label) = label {
+            label.into_py_any(py)?
+        } else {
+            py.None()
+        };
 
         let gate = PAULI_PRODUCT_MEASUREMENT
             .get_bound(py)
-            .call((pauli_data,), Some(&kwargs))?;
+            .call_method1(intern!(py, "_from_pauli_data"), (z, x, phase, py_label))?;
         Ok(gate.unbind())
     }
 }

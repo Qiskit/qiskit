@@ -12,6 +12,8 @@
 
 """An instruction to implement a Pauli Product Measurement."""
 
+from __future__ import annotations
+
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, CircuitError
@@ -37,33 +39,50 @@ class PauliProductMeasurement(Instruction):
     `arXiv:1808.02892 <https://arxiv.org/abs/1808.02892>`__
     """
 
-    # we will accept pauli but internally we will store something else
     def __init__(
         self,
-        data: Pauli | tuple,
+        pauli: Pauli,
         label: str | None = None,
     ):
         """
         Args:
-            data: Pauli or tuple (z, x, phase).
-            label: A label for the gate to display in visualizations. Per default, the label is
-                set to ``exp(-it <operators>)`` where ``<operators>`` is the sum of the Paulis.
+            pauli: A tensor product of Pauli operators defining the measurement,
+                for example ``Pauli("XY")`` or ``Pauli("-XYIZ)``.
+                The identity Pauli operator is not permitted.
+                The Pauli may include a phase of :math:`-1`, but not :math:`i` or :math:`-i`.
+            label: An optional label for the gate to display in circuit visualizations.
+                By default, the label is set to ``PPM(<pauli label>)``.
+
+        .. note::
+
+            While Paulis involving "I"-terms are fully supported, it is recommended to remove
+            "I"-terms from the Pauli when creating a ``PauliProductMeasurement`` instruction,
+            as this does not change the actual measurement but specifies the instruction over
+            a smaller set of qubits.
+
         """
 
-        if isinstance(data, Pauli):
-            print(f"=> Param of type Pauli")
-            if data.phase not in [0, 2]:
-                raise CircuitError("Pauli phase of i or -i is not acceptable.")
-            params = [data.z, data.x, data.phase]
-            num_qubits = len(data.z)
-        else:
-            params = list(data)
-            num_qubits = len(data[0])
+        if not isinstance(pauli, Pauli):
+            raise CircuitError(
+                "A Pauli Product Measurement instruction can only be "
+                "instantiated from a Pauli object."
+            )
+
+        if _is_identity_label(pauli):
+            raise CircuitError(
+                "A Pauli Product Measurement instruction can not have an all-'I' label."
+            )
+
+        if pauli.phase not in [0, 2]:
+            raise CircuitError(
+                "A Pauli Product Measurement instruction can not have a Pauli phase of i or -i."
+            )
+
+        num_qubits = len(pauli.z)
+        params = [pauli.z, pauli.x, pauli.phase]
 
         if label is None:
-            label = _get_default_label(*params)
-
-        print(f"=> {params = }, {num_qubits = }")
+            label = _get_default_label(pauli)
 
         super().__init__(
             name="PauliProductMeasurement",
@@ -72,7 +91,14 @@ class PauliProductMeasurement(Instruction):
             params=params,
             label=label,
         )
-        print(f"In PPM::constructor: {self.params = }")
+
+    @classmethod
+    def _from_pauli_data(cls, z, x, phase, label):
+        """
+        Instantiates a PauliProductMeasurement isntruction from pauli data and label.
+        This function is used internally from within the rust code.
+        """
+        return cls(Pauli((z, x, phase)), label)
 
     def inverse(self, annotated=False):
         """Prevents from calling ``inverse`` on a PauliProductMeasurement instruction."""
@@ -100,6 +126,13 @@ class PauliProductMeasurement(Instruction):
         self.definition = circuit
 
 
-def _get_default_label(z, x, phase):
-    pauli_label = Pauli((z, x, phase)).to_label()
-    return "PPM(" + pauli_label + ")"
+def _get_default_label(pauli: Pauli):
+    """Creates the detault label for PauliProductMeasurement instruction,
+    used for visualization.
+    """
+    return "PPM(" + pauli.to_label() + ")"
+
+
+def _is_identity_label(pauli: Pauli):
+    """Return whether a Pauli has an all-'I' label (up to a phase)."""
+    return not np.any(pauli.z) and not np.any(pauli.x)

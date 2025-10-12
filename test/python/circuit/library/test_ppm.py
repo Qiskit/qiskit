@@ -19,6 +19,8 @@ from qiskit.circuit import QuantumCircuit, CircuitError
 from qiskit.circuit.library import PauliProductMeasurement
 from qiskit.quantum_info import Pauli, Clifford
 from qiskit.qpy import dump, load
+from qiskit.compiler import transpile
+from qiskit.transpiler import CouplingMap, Target
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -54,8 +56,18 @@ class TestPauliProductMeasurement(QiskitTestCase):
         self.assertEqual(Clifford(qc_no_meas), Clifford(QuantumCircuit(num_qubits)))
 
     @data("-iX", "iZY")
-    def test_wrong_phase_raises(self, p):
-        """Test that a Pauli with phase i or -i raises an error."""
+    def test_raises_on_bad_phase(self, p):
+        """Test that creating a PauliProductMeasurement instruction
+        from a Pauli with phase i or -i raises an error.
+        """
+        with self.assertRaises(CircuitError):
+            _ = PauliProductMeasurement(Pauli(p))
+
+    @data("", "II", "-III")
+    def test_raises_on_bad_pauli_label(self, p):
+        """Test that creating a PauliProductMeasurement instruction
+        from a Pauli with all-"I" label raises an error.
+        """
         with self.assertRaises(CircuitError):
             _ = PauliProductMeasurement(Pauli(p))
 
@@ -102,3 +114,76 @@ class TestPauliProductMeasurement(QiskitTestCase):
         self.assertEqual(qc1, qc2)
         self.assertNotEqual(qc1, qc3)
         self.assertNotEqual(qc1, qc4)
+
+    def test_default_label_preserved(self):
+        """
+        Test that a default label is created correctly and
+        preserved when a PauliProductMeasurement instruction
+        is added to a circuit.
+        """
+        ppm = PauliProductMeasurement(Pauli("-XY"))
+        self.assertEqual(ppm.label, "PPM(-XY)")
+
+        qc = QuantumCircuit(2, 1)
+        qc.append(ppm, [0, 1], [0])
+        ppm_from_circuit = qc[0]
+
+        self.assertEqual(ppm_from_circuit.label, ppm.label)
+
+    def test_custom_label_preserved(self):
+        """
+        Test that a custom label is created correctly and
+        preserved when a PauliProductMeasurement instruction
+        is added to a circuit.
+        """
+        custom_label = "I Will Survive"
+        ppm = PauliProductMeasurement(Pauli("-XY"), label=custom_label)
+        self.assertEqual(ppm.label, custom_label)
+
+        qc = QuantumCircuit(2, 1)
+        qc.append(ppm, [0, 1], [0])
+        ppm_from_circuit = qc[0]
+
+        self.assertEqual(ppm_from_circuit.label, custom_label)
+
+    @data(0, 1, 2, 3)
+    def test_transpile(self, optimization_level):
+        """Check that transpiling circuits with PauliProductMeasurement instructions
+        works as expected.
+        """
+        qc = QuantumCircuit(6, 2)
+        qc.append(PauliProductMeasurement(Pauli("XZ")), [4, 1], [1])
+        qc.append(PauliProductMeasurement(Pauli("Z")), [2], [0])
+        qc.append(PauliProductMeasurement(Pauli("ZZ")), [3, 2], [0])
+        qc.h(0)
+
+        basis_gates = ["cx", "u"]
+        coupling_map = CouplingMap.from_line(6)
+
+        qct = transpile(
+            qc,
+            optimization_level=optimization_level,
+            coupling_map=coupling_map,
+            basis_gates=basis_gates,
+        )
+        self.assertEqual(set(qct.count_ops()), {"cx", "u", "measure"})
+
+    @data(0, 1, 2, 3)
+    def test_transpile_with_target(self, optimization_level):
+        """Check that transpiling circuits with PauliProductMeasurement instructions
+        works as expected.
+        """
+        qc = QuantumCircuit(6, 2)
+        qc.append(PauliProductMeasurement(Pauli("XZ")), [4, 1], [1])
+        qc.append(PauliProductMeasurement(Pauli("Z")), [2], [0])
+        qc.append(PauliProductMeasurement(Pauli("ZZ")), [3, 2], [0])
+        qc.h(0)
+
+        basis_gates = ["cx", "u", "measure"]
+        coupling_map = CouplingMap.from_line(6)
+        target = Target.from_configuration(
+            num_qubits=6, coupling_map=coupling_map, basis_gates=basis_gates
+        )
+
+        qct = transpile(qc, optimization_level=optimization_level, target=target)
+        self.assertEqual(set(qct.count_ops()), {"cx", "u", "measure"})

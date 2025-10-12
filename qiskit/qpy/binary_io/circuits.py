@@ -983,16 +983,6 @@ def _write_instruction(
         ]
     elif isinstance(instruction.operation, Clifford):
         instruction_params = [instruction.operation.tableau]
-    elif isinstance(instruction.operation, PauliProductMeasurement):
-        # CAN BE REMOVED?
-        # instruction_params = [
-        #     instruction.operation._pauli.z,
-        #     instruction.operation._pauli.x,
-        #     instruction.operation._pauli.phase,
-        # ]
-        instruction_params = instruction.operation.params
-        print(f"QPY: PPM {instruction_params = }")
-
     elif isinstance(instruction.operation, AnnotatedOperation):
         instruction_params = instruction.operation.modifiers
     else:
