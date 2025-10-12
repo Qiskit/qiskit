@@ -720,7 +720,6 @@ def _prepend_cx(clifford, control, target):
     return clifford
 
 
-# ToDo: handle phases
 def _append_cz(clifford, control, target):
     """Apply a CZ gate to a Clifford.
 
@@ -760,6 +759,24 @@ def _prepend_cz(clifford, control, target):
 
     destab_control ^= stab_target
     destab_target ^= stab_control
+
+    from qiskit.quantum_info.operators.symplectic.pauli import Pauli
+
+    destab_x_c = clifford.destab_x[control]
+    destab_z_c = clifford.destab_z[control]
+    stab_x_c = clifford.stab_x[control]
+    stab_z_c = clifford.stab_z[control]
+    destab_x_t = clifford.destab_x[target]
+    destab_z_t = clifford.destab_z[target]
+    stab_x_t = clifford.stab_x[target]
+    stab_z_t = clifford.stab_z[target]
+    pauli_destab_c = Pauli((destab_x_c, destab_z_c))
+    pauli_stab_c = Pauli((stab_x_c, stab_z_c))
+    pauli_destab_t = Pauli((destab_x_t, destab_z_t))
+    pauli_stab_t = Pauli((stab_x_t, stab_z_t))
+
+    clifford.destab_phase[control] ^= (pauli_destab_c.compose(pauli_stab_t)).phase != 0
+    clifford.destab_phase[target] ^= (pauli_destab_t.compose(pauli_stab_c)).phase != 0
     return clifford
 
 
