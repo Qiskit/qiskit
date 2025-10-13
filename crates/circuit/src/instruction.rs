@@ -130,7 +130,7 @@ pub trait CreatePythonOperation {
 pub fn create_py_op(
     py: Python,
     op: OperationRef,
-    params: Option<Parameters<Py<PyAny>>>,
+    params: Option<Parameters<CircuitData>>,
     label: Option<&str>,
 ) -> PyResult<Py<PyAny>> {
     match op {

@@ -543,7 +543,8 @@ impl ControlFlow {
                     .call_method1(intern!(py, "_from_circuit_data"), (b.clone(),))?
                     .unbind())
             })
-            .collect::<Vec<PyResult<_>>>()?.into_iter();
+            .collect::<PyResult<Vec<_>>>()?
+            .into_iter();
         let kwargs = label
             .map(|label| [("label", label.into_py_any(py)?)].into_py_dict(py))
             .transpose()?;

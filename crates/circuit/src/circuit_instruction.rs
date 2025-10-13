@@ -11,21 +11,21 @@
 // that they have been altered from the originals.
 
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2};
+use pyo3::IntoPyObjectExt;
 use pyo3::basic::CompareOp;
 use pyo3::exceptions::{PyDeprecationWarning, PyTypeError, PyValueError};
 use pyo3::prelude::*;
-use std::sync::Arc;
-#[cfg(feature = "cache_pygates")]
-use std::sync::OnceLock;
-
-use pyo3::IntoPyObjectExt;
 use pyo3::types::{PyBool, PyList, PyTuple, PyType};
 use pyo3::{PyResult, intern};
+#[cfg(feature = "cache_pygates")]
+use std::sync::OnceLock;
 
 use crate::circuit_data::CircuitData;
 use crate::dag_circuit::DAGCircuit;
 use crate::duration::Duration;
-use crate::imports::{CONTROLLED_GATE, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN};
+use crate::imports::{
+    CONTROLLED_GATE, GATE, INSTRUCTION, OPERATION, QUANTUM_CIRCUIT, WARNINGS_WARN,
+};
 use crate::instruction::{CreatePythonOperation, Instruction, Parameters};
 use crate::operations::{
     ArrayType, BoxDuration, ControlFlow, ControlFlowType, Operation, OperationRef, Param, PyGate,
@@ -208,19 +208,32 @@ impl CircuitInstruction {
             return Ok(PyList::empty(py).into_any().unbind());
         };
         match self.operation.view() {
-            OperationRef::ControlFlow(cf) => match cf {
-                ControlFlow::ForLoop {
-                    indexset,
-                    loop_param,
-                    ..
-                } => [
-                    indexset.into_py_any(py)?,
-                    loop_param.into_py_any(py)?,
-                    self.blocks_view()[0].clone_ref(py),
-                ]
-                .into_py_any(py),
-                _ => self.blocks_view().into_py_any(py),
-            },
+            OperationRef::ControlFlow(cf) => {
+                let data_to_circuit = |b: CircuitData| -> PyResult<Py<PyAny>> {
+                    Ok(QUANTUM_CIRCUIT
+                        .get_bound(py)
+                        .call_method1(intern!(py, "_from_circuit_data"), (b,))?
+                        .unbind())
+                };
+                match cf {
+                    ControlFlow::ForLoop {
+                        indexset,
+                        loop_param,
+                        ..
+                    } => [
+                        indexset.into_py_any(py)?,
+                        loop_param.clone().into_py_any(py)?,
+                        data_to_circuit(self.blocks_view()[0].clone())?,
+                    ]
+                    .into_py_any(py),
+                    _ => self
+                        .blocks_view()
+                        .iter()
+                        .map(|b| data_to_circuit(b.clone()))
+                        .collect::<PyResult<Vec<_>>>()?
+                        .into_py_any(py),
+                }
+            }
             _ => self.params_view().into_py_any(py),
         }
     }
