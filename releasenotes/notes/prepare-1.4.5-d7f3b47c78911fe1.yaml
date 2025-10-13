@@ -1,0 +1,4 @@
+---
+prelude: >
+  Qiskit v1.4.5 is the last bugfix release in the 1.4 series and marks the end-of-life of the
+  series. Support for security fixes in the 1.4 series will be continued until March 31st, 2026.
