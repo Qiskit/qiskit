@@ -11,11 +11,14 @@
 // that they have been altered from the originals.
 
 use core::panic;
+use std::boxed;
 use std::fmt::Debug;
-use hashbrown::{HashSet, HashMap};
-use crate::dag_circuit::DAGCircuit;
+use std::io::ErrorKind;
+use hashbrown::HashSet;
+use crate::bit::{ShareableClbit, ShareableQubit};
+use crate::dag_circuit::{DAGCircuit};
 use crate::operations::{Operation, OperationRef, StandardGate, StandardInstruction};
-use crate::packed_instruction::PackedInstruction;
+use crate::packed_instruction::{PackedInstruction,PackedOperation};
 use itertools::{Itertools, MinMaxResult};
 use std::ops::Index;
 
@@ -734,222 +737,239 @@ fn build_layers(dag: &DAGCircuit) -> Vec<Vec<&PackedInstruction>> {
     layers
 }
 
+pub fn get_label(instruction: &PackedInstruction) -> Option<String>{
+    let label = instruction.label();
+    let instruction_param =format!("{:?}",instruction.params_view());
+    let instruction_label = match label {
+        Some(l) => {
+            Some(l.to_string())
+        }
+        None => {
+            if let Some(standard_gate) = instruction.op.try_standard_gate() {
+                match standard_gate {
+                    StandardGate::GlobalPhase => {
+                        // Global phase gate - affects overall circuit phase
+                        None
+                    }
+                    StandardGate::H => {
+                        // Hadamard gate - creates superposition
+                        Some("H".to_string())
+                    }
+                    StandardGate::I => {
+                        // Identity gate - no operation
+                        Some("I".to_string())
+                    }
+                    StandardGate::X => {
+                        // Pauli-X gate (NOT gate)
+                        Some("X".to_string())
+                    }
+                    StandardGate::Y => {
+                        // Pauli-Y gate
+                        Some("Y".to_string())
+                    }
+                    StandardGate::Z => {
+                        // Pauli-Z gate
+                        Some("Z".to_string())
+                    }
+                    StandardGate::Phase => {
+                        // Phase gate (parameterized)
+                        Some(format!("P({})", instruction_param))
+                    }
+                    StandardGate::R => {
+                        // R gate (rotation about axis in XY plane)
+                        Some(format!("R({})", instruction_param))
+                    }
+                    StandardGate::RX => {
+                        // Rotation about X axis
+                        Some(format!("RX({})", instruction_param))
+                    }
+                    StandardGate::RY => {
+                        // Rotation about Y axis
+                        Some(format!("RY({})", instruction_param))
+                    }
+                    StandardGate::RZ => {
+                        // Rotation about Z axis
+                        Some(format!("RZ({})", instruction_param))
+                    }
+                    StandardGate::S => {
+                        // S gate (phase π/2)
+                        Some("S".to_string())
+                    }
+                    StandardGate::Sdg => {
+                        // S dagger gate (phase -π/2)
+                        Some("S†".to_string())
+                    }
+                    StandardGate::SX => {
+                        // Square root of X gate
+                        Some("√X".to_string())
+                    }
+                    StandardGate::SXdg => {
+                        // Square root of X dagger gate
+                        Some("√X†".to_string())
+                    }
+                    StandardGate::T => {
+                        // T gate (phase π/4)
+                        Some("T".to_string())
+                    }
+                    StandardGate::Tdg => {
+                        // T dagger gate (phase -π/4)
+                        Some("T†".to_string())
+                    }
+                    StandardGate::U => {
+                        // Universal single-qubit gate (3 parameters)
+                        Some(format!("U({})", instruction_param))
+                    }
+                    StandardGate::U1 => {
+                        // U1 gate (1 parameter - phase)
+                        Some(format!("U1({})", instruction_param))
+                    }
+                    StandardGate::U2 => {
+                        // U2 gate (2 parameters)
+                        Some(format!("U2({})", instruction_param))
+                    }
+                    StandardGate::U3 => {
+                        // U3 gate (3 parameters - equivalent to U)
+                        Some(format!("U3({})", instruction_param))
+                    }
+                    StandardGate::CH => {
+                        // Controlled Hadamard gate
+                        Some("H".to_string())
+                    }
+                    StandardGate::CX => {
+                        // Controlled-X gate (CNOT)
+                        Some("X".to_string())
+                    }
+                    StandardGate::CY => {
+                        // Controlled-Y gate
+                        Some("Y".to_string())
+                    }
+                    StandardGate::CZ => {
+                        // Controlled-Z gate
+                        Some("Z".to_string())
+                    }
+                    StandardGate::DCX => {
+                        // Double CNOT gate
+                        Some("DCX".to_string())
+                    }
+                    StandardGate::ECR => {
+                        // Echoed cross-resonance gate
+                        Some("ECR".to_string())
+                    }
+                    StandardGate::Swap => {
+                        // Swap gate
+                        None
+                    }
+                    StandardGate::ISwap => {
+                        // i-Swap gate
+                        None
+                    }
+                    StandardGate::CPhase => {
+                        // Controlled phase gate
+
+                        Some(format!("P({})", instruction_param))
+                    }
+                    StandardGate::CRX => {
+                        // Controlled rotation about X
+                        Some(format!("RX({})", instruction_param))
+                    }
+                    StandardGate::CRY => {
+                        // Controlled rotation about Y
+                        Some(format!("RY({})", instruction_param))
+                    }
+                    StandardGate::CRZ => {
+                        // Controlled rotation about Z
+                        Some(format!("RZ({})", instruction_param))
+                    }
+                    StandardGate::CS => {
+                        // Controlled S gate
+                        Some("S".to_string())
+                    }
+                    StandardGate::CSdg => {
+                        // Controlled S dagger gate
+                        Some("S†".to_string())
+                    }
+                    StandardGate::CSX => {
+                        // Controlled square root of X gate
+                        Some("√X".to_string())
+                    }
+                    StandardGate::CU => {
+                        // Controlled U gate (4 parameters)
+                        Some(format!("U({})", instruction_param))
+                    }
+                    StandardGate::CU1 => {
+                        // Controlled U1 gate
+                        Some(format!("U1({})", instruction_param))
+                    }
+                    StandardGate::CU3 => {
+                        // Controlled U3 gate
+                        Some(format!("U3({})", instruction_param))
+                    }
+                    StandardGate::RXX => {
+                        // Two-qubit XX rotation
+                        Some(format!("RXX({})", instruction_param))
+                    }
+                    StandardGate::RYY => {
+                        // Two-qubit YY rotation
+                        Some(format!("RYY({})", instruction_param))
+                    }
+                    StandardGate::RZZ => {
+                        // Two-qubit ZZ rotation
+                        Some(format!("RZZ({})", instruction_param))
+                    }
+                    StandardGate::RZX => {
+                        // Two-qubit ZX rotation
+                        Some(format!("RZX({})", instruction_param))
+                    }
+                    StandardGate::XXMinusYY => {
+                        // XX-YY gate
+                        Some(format!("XX-YY({})", instruction_param))
+                    }
+                    StandardGate::XXPlusYY => {
+                        // XX+YY gate
+                        Some(format!("XX+YY({})", instruction_param))
+                    }
+                    StandardGate::CCX => {
+                        // Toffoli gate (controlled-controlled-X)
+                        Some("X".to_string())
+                    }
+                    StandardGate::CCZ => {
+                        // Controlled-controlled-Z gate
+                        Some("Z".to_string())
+                    }
+                    StandardGate::CSwap => {
+                        // Controlled swap gate (Fredkin gate)
+                        None
+                    }
+                    StandardGate::RCCX => {
+                        // Relative-phase Toffoli gate
+                        Some(format!("RX({})", instruction_param))
+                    }
+                    StandardGate::C3X => {
+                        // 3-controlled X gate (4-qubit controlled X)
+                        Some("X".to_string())
+                    }
+                    StandardGate::C3SX => {
+                        // 3-controlled square root of X gate
+                        Some("√X".to_string())
+                    }
+                    StandardGate::RC3X => {
+                        // Relative-phase 3-controlled X gate
+                        Some(format!("RX({})", instruction_param))
+                    }
+                }
+            } else {
+                Some(instruction.op.name().to_string())
+            }
+        },
+    };
+    instruction_label
+}
+
 pub fn from_instruction<'a>(dag_circ: &'a DAGCircuit, instruction: &'a PackedInstruction) -> Drawable<'a>{
     // println!("{:?}", instruction.label());
+    let instruction_name = instruction.op.name();
     if let Some(standard_gate) = instruction.op.try_standard_gate() {
-        let instruction_name = instruction.op.name();
-        let instruction_param =format!("{:?}",instruction.params_view());
-        let mut instruction_label: Option<String> = match standard_gate {
-            StandardGate::GlobalPhase => {
-                // Global phase gate - affects overall circuit phase
-                None
-            }
-            StandardGate::H => {
-                // Hadamard gate - creates superposition
-                Some("H".to_string())
-            }
-            StandardGate::I => {
-                // Identity gate - no operation
-                Some("I".to_string())
-            }
-            StandardGate::X => {
-                // Pauli-X gate (NOT gate)
-                Some("X".to_string())
-            }
-            StandardGate::Y => {
-                // Pauli-Y gate
-                Some("Y".to_string())
-            }
-            StandardGate::Z => {
-                // Pauli-Z gate
-                Some("Z".to_string())
-            }
-            StandardGate::Phase => {
-                // Phase gate (parameterized)
-                Some(format!("P({})", instruction_param))
-            }
-            StandardGate::R => {
-                // R gate (rotation about axis in XY plane)
-                Some(format!("R({})", instruction_param))
-            }
-            StandardGate::RX => {
-                // Rotation about X axis
-                Some(format!("RX({})", instruction_param))
-            }
-            StandardGate::RY => {
-                // Rotation about Y axis
-                Some(format!("RY({})", instruction_param))
-            }
-            StandardGate::RZ => {
-                // Rotation about Z axis
-                Some(format!("RZ({})", instruction_param))
-            }
-            StandardGate::S => {
-                // S gate (phase π/2)
-                Some("S".to_string())
-            }
-            StandardGate::Sdg => {
-                // S dagger gate (phase -π/2)
-                Some("S†".to_string())
-            }
-            StandardGate::SX => {
-                // Square root of X gate
-                Some("√X".to_string())
-            }
-            StandardGate::SXdg => {
-                // Square root of X dagger gate
-                Some("√X†".to_string())
-            }
-            StandardGate::T => {
-                // T gate (phase π/4)
-                Some("T".to_string())
-            }
-            StandardGate::Tdg => {
-                // T dagger gate (phase -π/4)
-                Some("T†".to_string())
-            }
-            StandardGate::U => {
-                // Universal single-qubit gate (3 parameters)
-                Some(format!("U({})", instruction_param))
-            }
-            StandardGate::U1 => {
-                // U1 gate (1 parameter - phase)
-                Some(format!("U1({})", instruction_param))
-            }
-            StandardGate::U2 => {
-                // U2 gate (2 parameters)
-                Some(format!("U2({})", instruction_param))
-            }
-            StandardGate::U3 => {
-                // U3 gate (3 parameters - equivalent to U)
-                Some(format!("U3({})", instruction_param))
-            }
-            StandardGate::CH => {
-                // Controlled Hadamard gate
-                Some("H".to_string())
-            }
-            StandardGate::CX => {
-                // Controlled-X gate (CNOT)
-                Some("X".to_string())
-            }
-            StandardGate::CY => {
-                // Controlled-Y gate
-                Some("Y".to_string())
-            }
-            StandardGate::CZ => {
-                // Controlled-Z gate
-                Some("Z".to_string())
-            }
-            StandardGate::DCX => {
-                // Double CNOT gate
-                Some("DCX".to_string())
-            }
-            StandardGate::ECR => {
-                // Echoed cross-resonance gate
-                Some("ECR".to_string())
-            }
-            StandardGate::Swap => {
-                // Swap gate
-                None
-            }
-            StandardGate::ISwap => {
-                // i-Swap gate
-                None
-            }
-            StandardGate::CPhase => {
-                // Controlled phase gate
-
-                Some(format!("P({})", instruction_param))
-            }
-            StandardGate::CRX => {
-                // Controlled rotation about X
-                Some(format!("RX({})", instruction_param))
-            }
-            StandardGate::CRY => {
-                // Controlled rotation about Y
-                Some(format!("RY({})", instruction_param))
-            }
-            StandardGate::CRZ => {
-                // Controlled rotation about Z
-                Some(format!("RZ({})", instruction_param))
-            }
-            StandardGate::CS => {
-                // Controlled S gate
-                Some("S".to_string())
-            }
-            StandardGate::CSdg => {
-                // Controlled S dagger gate
-                Some("S†".to_string())
-            }
-            StandardGate::CSX => {
-                // Controlled square root of X gate
-                Some("√X".to_string())
-            }
-            StandardGate::CU => {
-                // Controlled U gate (4 parameters)
-                Some(format!("U({})", instruction_param))
-            }
-            StandardGate::CU1 => {
-                // Controlled U1 gate
-                Some(format!("U1({})", instruction_param))
-            }
-            StandardGate::CU3 => {
-                // Controlled U3 gate
-                Some(format!("U3({})", instruction_param))
-            }
-            StandardGate::RXX => {
-                // Two-qubit XX rotation
-                Some(format!("RXX({})", instruction_param))
-            }
-            StandardGate::RYY => {
-                // Two-qubit YY rotation
-                Some(format!("RYY({})", instruction_param))
-            }
-            StandardGate::RZZ => {
-                // Two-qubit ZZ rotation
-                Some(format!("RZZ({})", instruction_param))
-            }
-            StandardGate::RZX => {
-                // Two-qubit ZX rotation
-                Some(format!("RZX({})", instruction_param))
-            }
-            StandardGate::XXMinusYY => {
-                // XX-YY gate
-                Some(format!("XX-YY({})", instruction_param))
-            }
-            StandardGate::XXPlusYY => {
-                // XX+YY gate
-                Some(format!("XX+YY({})", instruction_param))
-            }
-            StandardGate::CCX => {
-                // Toffoli gate (controlled-controlled-X)
-                Some("X".to_string())
-            }
-            StandardGate::CCZ => {
-                // Controlled-controlled-Z gate
-                Some("Z".to_string())
-            }
-            StandardGate::CSwap => {
-                // Controlled swap gate (Fredkin gate)
-                None
-            }
-            StandardGate::RCCX => {
-                // Relative-phase Toffoli gate
-                Some(format!("RX({})", instruction_param))
-            }
-            StandardGate::C3X => {
-                // 3-controlled X gate (4-qubit controlled X)
-                Some("X".to_string())
-            }
-            StandardGate::C3SX => {
-                // 3-controlled square root of X gate
-                Some("√X".to_string())
-            }
-            StandardGate::RC3X => {
-                // Relative-phase 3-controlled X gate
-                Some(format!("RX({})", instruction_param))
-            }
-        };
+        let mut instruction_label: Option<String> = get_label(instruction);
 
         let label = instruction.label();
         instruction_label = match label {
@@ -977,7 +997,7 @@ pub fn from_instruction<'a>(dag_circ: &'a DAGCircuit, instruction: &'a PackedIns
         };
 
         // for label debugging
-        println!("{}{}",instruction_label.clone().unwrap_or("".to_string()), instruction_name);
+        // println!("{}{}",instruction_label.clone().unwrap_or("".to_string()), instruction_name);
         Drawable {
             packedinst: &instruction,
             wire: WireType::Qubit,
@@ -1073,55 +1093,247 @@ pub fn get_indices(dag_circ: &DAGCircuit) -> u32{
 
 
 
+#[derive(Clone)]
+enum WireInput<'a> {
+    Qubit(&'a ShareableQubit),
+    Clbit(&'a ShareableClbit),
+}
+
+impl<'a> Debug for WireInput<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = match self {
+            WireInput::Qubit(&ref qubit) => "Qubit",
+            WireInput::Clbit(&ref clbit) => "Clbit",
+        };
+
+        write!(f, "{}", name)
+    }
+}
+
+impl<'a> Debug for Boxed<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Boxed::Single(label) => write!(f, "Boxed({})", label),
+            Boxed::Multi(Some(inst)) => write!(f, "MultiBox({})", inst.op.name()),
+            Boxed::Multi(None) => write!(f, "MultiBox(None)"),
+        }
+    }
+}
+
+/// Input Wires. 
+/// The Option<String> is for optional labels and can be used when the registers have different names. This allows us to use
+/// the same enum for both Input and VerticalLine types.
+#[derive(Clone, Debug)]
+enum InputType{
+    Qubit(Option<String>),
+    Clbit(Option<String>)
+}
+
+/// Enum for representing elements that can appear directly on a wire.
+#[derive(Clone, Debug)]
+enum ElementOnWire{
+    Control,
+    Swap
+}
+
+/// Enum for representing elements that appear directly on a wire and how they're connected.
+#[derive(Clone, Debug)]
+enum OnWire{
+    Top(ElementOnWire),
+    Mid(ElementOnWire),
+    Bot(ElementOnWire),
+    Barrier,
+    Reset,
+}
+
+// /// Enum for telling if an qubit in the index of a MultiBox Operation is being acted on or not. If yes, the u32 tells which index qubit it is.
+// #[derive(Clone, Debug)]
+// enum Effect{
+//     Affected(u32),
+//     Unaffected
+// }
+
+// /// Enum for representing where the element appears in the representation of a multi-box operation.
+// #[derive(Clone, Debug)]
+// enum MultiBoxElement{
+//     Top(Effect),
+//     Mid(Effect),
+//     Bot(Effect),
+//     Label(String,Effect)
+// }
+
+/// Enum for representing elements that appear in a boxed operation.
+#[derive(Clone)]
+enum Boxed<'a>{
+    Single(String),
+    // Multi(MultiBoxElement)
+    Multi(Option<&'a PackedInstruction>),
+}
+
 /// Enum for  representing the elements stored in a visualization matrix. The elements
 /// do not directly implement visualization capabilities, but rather carry enough information
 /// to enable visualization later on by the actual drawer.
 #[derive(Default, Clone, Debug)]
-enum VisualizationElement2 {
+enum VisualizationElement2<'a>{
     #[default]
     Empty, // Marker for no element
-    Input, // TODO: should be enum for qubit/clbits
-    Control, // TODO: should be an enum for the control symbols, e.g. closed, open
-    VerticalLine, // TODO: should be an enum for the various types, e.g. single, double
+    Boxed(Boxed<'a>),
+    Input(WireInput<'a>), // TODO: should be enum for qubit/clbits
+    DirectOnWire(OnWire), // TODO: should be an enum for the control symbols, e.g. closed, open
+    VerticalLine(InputType), // TODO: should be an enum for the various types, e.g. single, double
     Operation, // TODO: should be an enum for the various fine-grained types: standard gates, instruction, etc..
 }
 
 /// A representation of a single column (called here a layer) of a visualization matrix
 #[derive(Clone, Debug)]
-struct VisualizationLayer2(Vec<VisualizationElement2>);
+struct VisualizationLayer2<'a>(Vec<VisualizationElement2<'a>>);
 
-impl VisualizationLayer2 {
+impl<'a> VisualizationLayer2<'a> {
     fn len(&self) -> usize {
         self.0.len()
     }
 
+    fn add_input(&mut self, input: WireInput<'a>, idx: usize) {
+        self.0[idx] = VisualizationElement2::Input(input);
+    }
+
     /// Adds the required visualization elements to represent the given instruction
-    fn add_instruction(&mut self, inst: &PackedInstruction, dag: &DAGCircuit) {
-        match inst.op.view() {
-            OperationRef::StandardGate(gate) => self.add_standard_gate(gate, inst, dag),
-            _ => unimplemented!("{}", format!("Visualization is not implemented for instruction of type {:?}", inst.op)),
+    fn add_instruction(&mut self, inst: &'a PackedInstruction, dag: &DAGCircuit) {
+        // match inst.op.view() {
+        //     OperationRef::StandardGate(gate) | OperationRef::StandardInstruction() => self.add_gate(inst, dag),
+        //     _ => unimplemented!("{}", format!("Visualization is not implemented for instruction of type {:?}", inst.op)),
+        // }
+        self.add_gate(inst, dag);
+    }
+
+    fn add_standard_gate(&mut self, gate: StandardGate, inst: &'a PackedInstruction, dag: &DAGCircuit) {
+        self.add_gate(inst, dag);
+    }
+
+    fn get_controls(&self, inst: &PackedInstruction, dag: &DAGCircuit) -> Vec<usize> {
+        let has_control = vec![StandardGate::CX, StandardGate::CCX, StandardGate::CY, StandardGate::CZ,
+            StandardGate::CRX, StandardGate::CRY, StandardGate::CRZ,
+            StandardGate::CPhase, StandardGate::CS, StandardGate::CSdg,
+            StandardGate::CSX, StandardGate::CU, StandardGate::CU1,
+            StandardGate::CU3, StandardGate::CH, StandardGate::C3SX, StandardGate::C3X,
+            StandardGate::RC3X, StandardGate::RCCX];
+    
+        let mut controls = Vec::new();
+
+        // check if gate is standard gate
+        if let std_gate = inst.op.try_standard_gate().unwrap() {
+            if has_control.contains(&std_gate) {
+                let qargs = dag.get_qargs(inst.qubits).into_iter().map(|q| q.index()).collect_vec();
+                let target = qargs.last().unwrap();
+                let (minima,maxima) = get_instruction_range(dag, inst);
+
+                for control in minima..=maxima {
+                    if control != *target && qargs.contains(&control) {
+                        controls.push(control);
+                    }
+                }
+                controls
+            } else {
+                controls
+            }
+        } else {
+            controls
+        }   
+    }
+
+    fn add_controls(&mut self, controls: &Vec<usize>, range: (usize, usize)) {
+        for control in controls {
+            if *control == range.0 {
+                self.0[*control] = VisualizationElement2::DirectOnWire(OnWire::Top(ElementOnWire::Control));
+            } else if *control == range.1 {
+                self.0[*control] = VisualizationElement2::DirectOnWire(OnWire::Bot(ElementOnWire::Control));
+            } else {
+                self.0[*control] = VisualizationElement2::DirectOnWire(OnWire::Mid(ElementOnWire::Control));
+            }
         }
     }
 
-    fn add_standard_gate(&mut self, gate: StandardGate, inst: &PackedInstruction, dag: &DAGCircuit) {
-        match gate {
-            StandardGate::CX | StandardGate::CCX => self.add_controlled_gate(inst, dag),
-            _ => unimplemented!("{}", format!("Visualization is not implemented for standard gate of type {:?}", gate)),
+    fn get_boxed_indices(&mut self, inst: & PackedInstruction, dag: &DAGCircuit) -> Vec<usize>{
+        let single_box = vec![StandardGate::H, StandardGate::X, StandardGate::Y, StandardGate::Z,
+            StandardGate::RX, StandardGate::RY, StandardGate::RZ, StandardGate::U, StandardGate::U1,
+            StandardGate::U2, StandardGate::U3, StandardGate::S, StandardGate::Sdg,
+            StandardGate::T, StandardGate::Tdg, StandardGate::Phase, StandardGate::R, StandardGate::SX,
+            StandardGate::SXdg, StandardGate::CCX, StandardGate::CCZ, StandardGate::CX, StandardGate::CY,
+            StandardGate::CZ, StandardGate::CPhase, StandardGate::CRX, StandardGate::CRY,
+            StandardGate::CRZ, StandardGate::CS, StandardGate::CSdg, StandardGate::CSX,
+            StandardGate::CU, StandardGate::CU1, StandardGate::CU3, StandardGate::C3X, StandardGate::C3SX, StandardGate::RC3X];
+        
+        let single_box_instrusctions = vec![StandardInstruction::Measure, StandardInstruction::Reset];
+        
+        let multi_box = vec![StandardGate::ISwap, StandardGate::DCX,
+            StandardGate::ECR, StandardGate::RXX, StandardGate::RYY, StandardGate::RZZ,
+            StandardGate::RZX, StandardGate::XXMinusYY, StandardGate::XXPlusYY];
+
+        let qargs = dag.get_qargs(inst.qubits).into_iter().map(|q| q.index()).collect_vec();
+        let target = qargs.last().unwrap();
+        let range = get_instruction_range(dag, inst);
+
+        if let Some(std_gate) = inst.op.try_standard_gate(){
+            if single_box.contains(&std_gate){
+                vec![*target]
+            } else if multi_box.contains(&std_gate){
+                (range.0..=range.1).collect()
+            } else {
+                vec![]
+            }
+        } else if let Some(std_instruction) = inst.op.try_standard_instruction(){
+            if single_box_instrusctions.contains(&std_instruction){
+                vec![*target]
+            } else if let StandardInstruction::Barrier(_) = std_instruction {
+                (range.0..=range.1).collect()
+            } else {
+                vec![]
+            }
+        } else {
+            vec![]
+        }
+        
+    }
+
+    fn add_boxed(&mut self, inst: &'a PackedInstruction, dag: &DAGCircuit, boxed_indices: &Vec<usize>) {
+        if boxed_indices.len() == 1 {
+            let qargs = dag.get_qargs(inst.qubits).into_iter().map(|q| q.index()).collect_vec();
+            let target = qargs.last().unwrap();
+            let label = get_label(inst).unwrap_or_else(|| inst.op.name().to_string());
+            self.0[*target] = VisualizationElement2::Boxed(Boxed::Single(label));
+        } else if boxed_indices.len() > 1 {
+            for idx in boxed_indices {
+                self.0[*idx] = VisualizationElement2::Boxed(Boxed::Multi(Some(inst)));
+            }
         }
     }
 
-    fn add_controlled_gate(&mut self, inst: &PackedInstruction, dag: &DAGCircuit) {
-        let qargs = dag.get_qargs(inst.qubits);
-
-        for control in 0..qargs.len() - 1 {
-            self.0[qargs[control].index()] = VisualizationElement2::Control;
+    fn add_gate(&mut self, inst: &'a PackedInstruction, dag: &DAGCircuit) {
+        let qargs = dag.get_qargs(inst.qubits).into_iter().map(|q| q.index()).collect_vec();
+        let (minima,maxima) = get_instruction_range(dag, inst);
+        let controls = self.get_controls(inst, dag);
+        let boxed_elements = self.get_boxed_indices(inst, dag);
+        println!("Adding gate {:?}\n  on qubits {:?} \n with controls {:?} \n and boxed elements {:?}\n ================", inst.op.name(), qargs, controls, boxed_elements);
+        let vert_lines = (minima..=maxima)
+            .filter(|idx| !controls.contains(idx) && !boxed_elements.contains(idx))
+            .collect_vec();
+        self.add_controls(&controls, (minima, maxima));
+        self.add_boxed(inst, dag, &boxed_elements);
+        for vline in vert_lines {
+            let input_type = if vline < dag.num_qubits() {
+                InputType::Qubit(None)
+            } else {
+                InputType::Clbit(None)
+            };
+            self.0[vline] = VisualizationElement2::VerticalLine(input_type);
         }
-        self.0[qargs.last().unwrap().index()] = VisualizationElement2::Operation;
+
+        //self.0[qargs.last().unwrap().index()] = VisualizationElement2::Operation;
     }
 }
 
-impl Index<usize> for VisualizationLayer2 {
-    type Output = VisualizationElement2;
+impl<'a> Index<usize> for VisualizationLayer2<'a> {
+    type Output = VisualizationElement2<'a>;
 
     fn index(&self, index: usize) -> &Self::Output {
         &self.0[index]
@@ -1134,14 +1346,14 @@ impl Index<usize> for VisualizationLayer2 {
 /// layer(column) represents the qubits and clbits inputs in the circuits, and
 /// M is the number of operation layers.
 #[derive(Debug)]
-struct VisualizationMatrix2 {
-    layers: Vec<VisualizationLayer2>,
+struct VisualizationMatrix2<'a> {
+    layers: Vec<VisualizationLayer2<'a>>,
 }
 
 
-impl VisualizationMatrix2 {
-    fn from_circuit(circuit: &CircuitData) -> PyResult<Self> {
-        let dag = DAGCircuit::from_circuit_data(circuit, false, None, None, None, None)?;
+impl<'a> VisualizationMatrix2<'a> {
+
+    fn from_circuit(circuit: &'a CircuitData, dag: &'a DAGCircuit) -> PyResult<Self> {
         let inst_layers = build_layers(&dag);
 
         let num_wires = circuit.num_qubits() + circuit.num_clbits();
@@ -1149,6 +1361,17 @@ impl VisualizationMatrix2 {
 
         // TODO: add the qubit/clbit inputs here to layer #0
 
+        let input_layer = layers.first_mut().unwrap();
+        let mut input_idx = 0;
+        for qubit in circuit.qubits().objects() {
+            input_layer.add_input(WireInput::Qubit(qubit), input_idx);
+            input_idx += 1;
+        }
+
+        for clbit in circuit.clbits().objects() {
+            input_layer.add_input(WireInput::Clbit(clbit), input_idx);
+            input_idx += 1;
+        }
 
         for (i, layer) in inst_layers.iter().enumerate() {
             for inst in layer {
@@ -1170,8 +1393,8 @@ impl VisualizationMatrix2 {
     }
 }
 
-impl Index<usize> for VisualizationMatrix2 {
-    type Output = VisualizationLayer2;
+impl<'a> Index<usize> for VisualizationMatrix2<'a> {
+    type Output = VisualizationLayer2<'a>;
 
     fn index(&self, index: usize) -> &Self::Output {
         &self.layers[index]
@@ -1180,7 +1403,9 @@ impl Index<usize> for VisualizationMatrix2 {
 
 pub fn draw_circuit(circuit: &CircuitData) -> PyResult<()> {
 
-    let vis_mat2 = VisualizationMatrix2::from_circuit(circuit)?;
+    let dag = DAGCircuit::from_circuit_data(circuit, false, None, None, None, None)?;
+
+    let vis_mat2 = VisualizationMatrix2::from_circuit(circuit, &dag)?;
 
     println!("======================");
 
@@ -1188,7 +1413,7 @@ pub fn draw_circuit(circuit: &CircuitData) -> PyResult<()> {
 
     for i in 0..vis_mat2.num_wires() {
         for j in 0..vis_mat2.num_layers() {
-            print!("{:^15}", format!("{:?}", vis_mat2[j][i]));
+            print!("{:^30}", format!("{:?}", vis_mat2[j][i]));
         }
         println!("");
     }
@@ -1197,6 +1422,14 @@ pub fn draw_circuit(circuit: &CircuitData) -> PyResult<()> {
 
     println!("======================");
 
+    for i in 0..vis_mat2.num_wires() {
+        if let VisualizationElement2::Input(wire_input) = &vis_mat2[0][i] {
+            match wire_input {
+                WireInput::Qubit(qubit) => println!("QUBIT: {:?}", qubit),
+                WireInput::Clbit(clbit) => println!("CLBIT: {:?}", clbit),
+            }
+        }
+    }
     // //using circuit rep to draw circuit
     // let mut circuit_rep = CircuitRep::new(dag.clone());
     // // println!("circuit_rep {:?}", circuit_rep);
