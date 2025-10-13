@@ -18,6 +18,7 @@ from .h import HGate, CHGate
 from .i import IGate
 from .p import PhaseGate, CPhaseGate, MCPhaseGate
 from .r import RGate
+from .rv import RVGate
 from .rx import RXGate, CRXGate
 from .rxx import RXXGate
 from .ry import RYGate, CRYGate
@@ -109,6 +110,7 @@ def get_standard_gate_name_mapping():
         PhaseGate(theta),
         RCCXGate(),
         RC3XGate(),
+        RVGate(theta, phi, lambda_),
         RXGate(theta),
         RXXGate(theta),
         RYGate(theta),
