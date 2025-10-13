@@ -809,6 +809,23 @@ def _append_cy(clifford, control, target):
     return clifford
 
 
+def _prepend_cy(clifford, control, target):
+    """Apply a CY gate before a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        control (int): gate control qubit index.
+        target (int): gate target qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    clifford = _prepend_sdg(clifford, target)
+    clifford = _prepend_cx(clifford, control, target)
+    clifford = _prepend_s(clifford, target)
+    return clifford
+
+
 def _append_swap(clifford, qubit0, qubit1):
     """Apply a Swap gate to a Clifford.
 
@@ -861,6 +878,26 @@ def _append_iswap(clifford, qubit0, qubit1):
     return clifford
 
 
+def _prepend_iswap(clifford, qubit0, qubit1):
+    """Apply a iSwap gate before a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        qubit0 (int): first qubit index.
+        qubit1 (int): second  qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    clifford = _prepend_s(clifford, qubit0)
+    clifford = _prepend_h(clifford, qubit0)
+    clifford = _prepend_s(clifford, qubit1)
+    clifford = _prepend_cx(clifford, qubit0, qubit1)
+    clifford = _prepend_cx(clifford, qubit1, qubit0)
+    clifford = _prepend_h(clifford, qubit1)
+    return clifford
+
+
 def _append_dcx(clifford, qubit0, qubit1):
     """Apply a DCX gate to a Clifford.
 
@@ -874,6 +911,22 @@ def _append_dcx(clifford, qubit0, qubit1):
     """
     clifford = _append_cx(clifford, qubit0, qubit1)
     clifford = _append_cx(clifford, qubit1, qubit0)
+    return clifford
+
+
+def _prepend_dcx(clifford, qubit0, qubit1):
+    """Apply a DCX gate before a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        qubit0 (int): first qubit index.
+        qubit1 (int): second  qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    clifford = _prepend_cx(clifford, qubit0, qubit1)
+    clifford = _prepend_cx(clifford, qubit1, qubit0)
     return clifford
 
 
@@ -892,6 +945,25 @@ def _append_ecr(clifford, qubit0, qubit1):
     clifford = _append_sx(clifford, qubit1)
     clifford = _append_cx(clifford, qubit0, qubit1)
     clifford = _append_x(clifford, qubit0)
+
+    return clifford
+
+
+def _prepend_ecr(clifford, qubit0, qubit1):
+    """Apply an ECR gate before a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        qubit0 (int): first qubit index.
+        qubit1 (int): second  qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    clifford = _prepend_s(clifford, qubit0)
+    clifford = _prepend_sx(clifford, qubit1)
+    clifford = _prepend_cx(clifford, qubit0, qubit1)
+    clifford = _prepend_x(clifford, qubit0)
 
     return clifford
 
