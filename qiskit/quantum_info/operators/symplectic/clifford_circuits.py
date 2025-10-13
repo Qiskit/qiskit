@@ -186,6 +186,21 @@ def _n_half_pis(param) -> int:
         raise ValueError(f"{param} is not bounded") from err
 
 
+def _count_y(x, z, dtype=None):
+    """Count the number of I Paulis"""
+    return (x & z).sum(axis=0, dtype=dtype)
+
+
+def _calculate_composed_phased(x1, z1, x2, z2):
+    """Direct calculation of the phase of Pauli((x1, z1)).compose(Pauli(x2, z2))"""
+    cnt_phase = 2 * _count_y(x2, z1)
+    cnt_y1 = _count_y(x1, z1)
+    cnt_y2 = _count_y(x2, z2)
+    cnt_y = _count_y(x1 ^ x2, z1 ^ z2)
+    phase = (cnt_phase + cnt_y - cnt_y1 - cnt_y2) % 4
+    return phase
+
+
 # ---------------------------------------------------------------------
 # Helper functions for applying basis gates
 # ---------------------------------------------------------------------
@@ -422,10 +437,8 @@ def _prepend_s(clifford, qubit):
     destab_z = clifford.destab_z[qubit, :]
     stab_z = clifford.stab_z[qubit, :]
 
-    from qiskit.quantum_info.operators.symplectic.pauli import Pauli
-
-    pp = Pauli((destab_x, destab_z)).compose(Pauli((stab_x, stab_z)))
-    if pp.phase == 1:
+    phase = _calculate_composed_phased(destab_x, destab_z, stab_x, stab_z)
+    if phase == 1:
         clifford.destab_phase[qubit] ^= True
 
     return clifford
@@ -468,10 +481,8 @@ def _prepend_sdg(clifford, qubit):
     destab_z = clifford.destab_z[qubit, :]
     stab_z = clifford.stab_z[qubit, :]
 
-    from qiskit.quantum_info.operators.symplectic.pauli import Pauli
-
-    pp = Pauli((destab_x, destab_z)).compose(Pauli((stab_x, stab_z)))
-    if pp.phase == 3:
+    phase = _calculate_composed_phased(destab_x, destab_z, stab_x, stab_z)
+    if phase == 3:
         clifford.destab_phase[qubit] ^= True
 
     return clifford
@@ -515,10 +526,8 @@ def _prepend_sx(clifford, qubit):
     destab_z = clifford.destab_z[qubit, :]
     stab_z = clifford.stab_z[qubit, :]
 
-    from qiskit.quantum_info.operators.symplectic.pauli import Pauli
-
-    pp = Pauli((stab_x, stab_z)).compose(Pauli((destab_x, destab_z)))
-    if pp.phase == 1:
+    phase = _calculate_composed_phased(stab_x, stab_z, destab_x, destab_z)
+    if phase == 1:
         clifford.stab_phase[qubit] ^= True
 
     return clifford
@@ -562,10 +571,8 @@ def _prepend_sxdg(clifford, qubit):
     destab_z = clifford.destab_z[qubit, :]
     stab_z = clifford.stab_z[qubit, :]
 
-    from qiskit.quantum_info.operators.symplectic.pauli import Pauli
-
-    pp = Pauli((stab_x, stab_z)).compose(Pauli((destab_x, destab_z)))
-    if pp.phase == 3:
+    phase = _calculate_composed_phased(stab_x, stab_z, destab_x, destab_z)
+    if phase == 3:
         clifford.stab_phase[qubit] ^= True
 
     return clifford
@@ -615,10 +622,8 @@ def _prepend_v(clifford, qubit):
     destab_z = clifford.destab_z[qubit, :]
     stab_z = clifford.stab_z[qubit, :]
 
-    from qiskit.quantum_info.operators.symplectic.pauli import Pauli
-
-    pp = Pauli((destab_x, destab_z)).compose(Pauli((stab_x, stab_z)))
-    if pp.phase == 3:
+    phase = _calculate_composed_phased(destab_x, destab_z, stab_x, stab_z)
+    if phase == 3:
         clifford.destab_phase[qubit] ^= True
 
     return clifford
@@ -668,10 +673,8 @@ def _prepend_w(clifford, qubit):
     destab_z = clifford.destab_z[qubit, :]
     stab_z = clifford.stab_z[qubit, :]
 
-    from qiskit.quantum_info.operators.symplectic.pauli import Pauli
-
-    pp = Pauli((stab_x, stab_z)).compose(Pauli((destab_x, destab_z)))
-    if pp.phase == 1:
+    phase = _calculate_composed_phased(stab_x, stab_z, destab_x, destab_z)
+    if phase == 1:
         clifford.stab_phase[qubit] ^= True
 
     return clifford
@@ -760,8 +763,6 @@ def _prepend_cz(clifford, control, target):
     destab_control ^= stab_target
     destab_target ^= stab_control
 
-    from qiskit.quantum_info.operators.symplectic.pauli import Pauli
-
     destab_x_c = clifford.destab_x[control]
     destab_z_c = clifford.destab_z[control]
     stab_x_c = clifford.stab_x[control]
@@ -770,13 +771,11 @@ def _prepend_cz(clifford, control, target):
     destab_z_t = clifford.destab_z[target]
     stab_x_t = clifford.stab_x[target]
     stab_z_t = clifford.stab_z[target]
-    pauli_destab_c = Pauli((destab_x_c, destab_z_c))
-    pauli_stab_c = Pauli((stab_x_c, stab_z_c))
-    pauli_destab_t = Pauli((destab_x_t, destab_z_t))
-    pauli_stab_t = Pauli((stab_x_t, stab_z_t))
 
-    clifford.destab_phase[control] ^= (pauli_destab_c.compose(pauli_stab_t)).phase != 0
-    clifford.destab_phase[target] ^= (pauli_destab_t.compose(pauli_stab_c)).phase != 0
+    phase_control = _calculate_composed_phased(destab_x_c, destab_z_c, stab_x_t, stab_z_t)
+    phase_target = _calculate_composed_phased(destab_x_t, destab_z_t, stab_x_c, stab_z_c)
+    clifford.destab_phase[control] ^= phase_control != 0
+    clifford.destab_phase[target] ^= phase_target != 0
     return clifford
 
 
