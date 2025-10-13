@@ -1313,7 +1313,7 @@ impl<'a> VisualizationLayer2<'a> {
         let (minima,maxima) = get_instruction_range(dag, inst);
         let controls = self.get_controls(inst, dag);
         let boxed_elements = self.get_boxed_indices(inst, dag);
-        println!("Adding gate {:?}\n  on qubits {:?} \n with controls {:?} \n and boxed elements {:?}\n ================", inst.op.name(), qargs, controls, boxed_elements);
+        // println!("Adding gate {:?}\n  on qubits {:?} \n with controls {:?} \n and boxed elements {:?}\n ================", inst.op.name(), qargs, controls, boxed_elements);
         let vert_lines = (minima..=maxima)
             .filter(|idx| !controls.contains(idx) && !boxed_elements.contains(idx))
             .collect_vec();
@@ -1422,14 +1422,14 @@ pub fn draw_circuit(circuit: &CircuitData) -> PyResult<()> {
 
     println!("======================");
 
-    for i in 0..vis_mat2.num_wires() {
-        if let VisualizationElement2::Input(wire_input) = &vis_mat2[0][i] {
-            match wire_input {
-                WireInput::Qubit(qubit) => println!("QUBIT: {:?}", qubit),
-                WireInput::Clbit(clbit) => println!("CLBIT: {:?}", clbit),
-            }
-        }
-    }
+    // for i in 0..vis_mat2.num_wires() {
+    //     if let VisualizationElement2::Input(wire_input) = &vis_mat2[0][i] {
+    //         match wire_input {
+    //             WireInput::Qubit(qubit) => println!("QUBIT: {:?}", qubit),
+    //             WireInput::Clbit(clbit) => println!("CLBIT: {:?}", clbit),
+    //         }
+    //     }
+    // }
     // //using circuit rep to draw circuit
     // let mut circuit_rep = CircuitRep::new(dag.clone());
     // // println!("circuit_rep {:?}", circuit_rep);
