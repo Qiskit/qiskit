@@ -19,10 +19,69 @@ from typing import Iterable, Optional, Union, TYPE_CHECKING
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
+
 from .control_flow import ControlFlowOp
+from qiskit.circuit.classical.expr import Var
+from qiskit.circuit.classical.types import Uint
+
 
 if TYPE_CHECKING:
     from qiskit.circuit import QuantumCircuit
+
+
+class DynamicRange:
+    """
+    A class representing a dynamic range of integers.
+    This class is used to represent a range of integers that can be
+    defined at runtime. It is used in the context of quantum circuits
+    that may require dynamic ranges for control flow operations.
+    The class is initialized with a starting value, an optional stopping
+    value, and a step size. The starting value can be an integer or a
+    variable, and the stopping value can also be an integer or a variable.
+    The step size is an integer or a variable that defines the increment
+    """
+
+    def __init__(self, start: int | Var, stop: Optional[int | Var] = None, step: int | Var = 1):
+        """
+        Args:
+            start: The starting value of the range.
+            stop: The stopping value of the range.
+            step: The step size for the range.
+        """
+        if stop is None:
+            start, stop = 0, start
+
+        for value, name in [(start, "start"), (stop, "stop"), (step, "step")]:
+            if not isinstance(value, (int, Var)):
+                raise CircuitError(
+                    f"DynamicRange {name} value must be an int or Var, but got {type(value)}."
+                )
+
+        if isinstance(step, int):
+            if step == 0:
+                raise CircuitError("DynamicRange step value cannot be zero.")
+
+        for value, name in [(start, "start"), (stop, "stop"), (step, "step")]:
+            if isinstance(value, Var) and not isinstance(value.type, Uint):
+                raise CircuitError(
+                    f"DynamicRange {name} value must be of type Uint, but got {value.type}."
+                )
+        self.start = start
+        self.stop = stop
+        self.step = step
+
+    def __repr__(self):
+        return (
+            f"r({self._format(self.start)}, {self._format(self.stop)}, {self._format(self.step)})"
+        )
+
+    def __str__(self):
+        return (
+            f"r({self._format(self.start)}, {self._format(self.stop)}, {self._format(self.step)})"
+        )
+
+    def _format(self, value):
+        return value if isinstance(value, int) else value.name
 
 
 class ForLoopOp(ControlFlowOp):
@@ -33,14 +92,14 @@ class ForLoopOp(ControlFlowOp):
 
     def __init__(
         self,
-        indexset: Iterable[int],
+        indexset: Iterable[int] | DynamicRange,
         loop_parameter: Union[Parameter, None],
         body: QuantumCircuit,
         label: Optional[str] = None,
     ):
         """
         Args:
-            indexset: A collection of integers to loop over.
+            indexset: A collection of integers to loop over or a DynamicRange object.
             loop_parameter: The placeholder parameterizing ``body`` to which
                 the values from ``indexset`` will be assigned.
             body: The loop body to be repeatedly executed.
@@ -49,7 +108,11 @@ class ForLoopOp(ControlFlowOp):
         num_qubits = body.num_qubits
         num_clbits = body.num_clbits
         super().__init__(
-            "for_loop", num_qubits, num_clbits, [indexset, loop_parameter, body], label=label
+            "for_loop",
+            num_qubits,
+            num_clbits,
+            [indexset, loop_parameter, body],
+            label=label,
         )
 
     @property
@@ -101,7 +164,7 @@ class ForLoopOp(ControlFlowOp):
 
         # Consume indexset into a tuple unless it was provided as a range.
         # Preserve ranges so that they can be exported as OpenQASM 3 ranges.
-        indexset = indexset if isinstance(indexset, range) else tuple(indexset)
+        indexset = indexset if isinstance(indexset, (range, DynamicRange)) else tuple(indexset)
 
         self._params = [indexset, loop_parameter, body]
 
@@ -167,7 +230,7 @@ class ForLoopContext:
     def __init__(
         self,
         circuit: QuantumCircuit,
-        indexset: Iterable[int],
+        indexset: Iterable[int] | DynamicRange,
         loop_parameter: Optional[Parameter] = None,
         *,
         label: Optional[str] = None,
@@ -177,7 +240,9 @@ class ForLoopContext:
         self._loop_parameter = loop_parameter
         # We can pass through `range` instances because OpenQASM 3 has native support for this type
         # of iterator set.
-        self._indexset = indexset if isinstance(indexset, range) else tuple(indexset)
+        self._indexset = (
+            indexset if isinstance(indexset, (range, DynamicRange)) else tuple(indexset)
+        )
         self._label = label
         self._used = False
 
@@ -201,6 +266,7 @@ class ForLoopContext:
         # Loops do not need to pass any further resources in, because this scope itself defines the
         # extent of ``break`` and ``continue`` statements.
         body = scope.build(scope.qubits(), scope.clbits())
+        body.calibrations = self._circuit.calibrations
         # We always bind the loop parameter if the user gave it to us, even if it isn't actually
         # used, because they requested we do that by giving us a parameter.  However, if they asked
         # us to auto-generate a parameter, then we only add it if they actually used it, to avoid

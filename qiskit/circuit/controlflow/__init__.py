@@ -20,7 +20,7 @@ from .break_loop import BreakLoopOp
 
 from .if_else import IfElseOp
 from .while_loop import WhileLoopOp
-from .for_loop import ForLoopOp
+from .for_loop import ForLoopOp, DynamicRange
 from .switch_case import SwitchCaseOp, CASE_DEFAULT
 
 

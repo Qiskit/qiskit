@@ -1,0 +1,30 @@
+features_pulse:
+  - |
+    Custom pulse calibrations are now compatible with control flow bodies in Qiskit 1.x.
+    This enables users to define calibration blocks inside dynamic constructs like
+    `if` and `for` statements, while preserving transpiler visibility into these
+    calibrated gates. This improves support for hybrid classical-quantum routines
+    involving dynamic circuit execution.
+
+features_qasm:
+  - |
+    Updated the OpenQASM3 exporter, printer, and AST to fully support the latest
+    specification (version 1.0.1) of the `for` loop construct. In particular, the
+    loop variable type must now be explicitly declared, as required by the specification.
+
+features_transpiler:
+  - |
+    The transpiler is now aware of calibrations defined inside control flow bodies,
+    enabling better integration of pulse-level custom gate definitions in dynamic
+    circuits. This change improves compatibility between user-defined calibrations
+    and transpiler passes involving control flow logic. This is a consequence of
+    the added calibration support of the ControlFlowOp instructions.
+
+features_circuits:
+  - |
+    Introduced a new `DynamicRange` class for `ForLoopOp`, enabling dynamic
+    specification of start, stop, and step values using runtime parameters or
+    classical registers. This allows use cases such as real-time error amplification
+    loops. While OpenQASM3 permits floating-point expressions for loop ranges,
+    Qiskit 1.x currently restricts the loop variable type to `IntType`.
+    The OpenQASM3 exporter has been updated accordingly to emit dynamic range expressions.
