@@ -32,7 +32,7 @@ class XGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.x` method.
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -41,7 +41,7 @@ class XGate(SingletonGate):
                 1 & 0
             \end{pmatrix}
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -75,7 +75,10 @@ class XGate(SingletonGate):
     _standard_gate = StandardGate.X
 
     def __init__(self, label: Optional[str] = None):
-        """Create new X gate."""
+        """
+        Args:
+            label: An optional label for the gate.
+        """
         super().__init__("x", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
@@ -90,7 +93,7 @@ class XGate(SingletonGate):
         #    └──────────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.X._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.X._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def control(
@@ -109,26 +112,20 @@ class XGate(SingletonGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate should be implemented
-                as an annotated gate.
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with a control modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as a controlled
+                X gate is a multi-controlled X-gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if not annotated:
-            gate = MCXGate(
-                num_ctrl_qubits=num_ctrl_qubits,
-                label=label,
-                ctrl_state=ctrl_state,
-                _base_label=self.label,
-            )
-        else:
-            gate = super().control(
-                num_ctrl_qubits=num_ctrl_qubits,
-                label=label,
-                ctrl_state=ctrl_state,
-                annotated=annotated,
-            )
+        gate = MCXGate(
+            num_ctrl_qubits=num_ctrl_qubits,
+            label=label,
+            ctrl_state=ctrl_state,
+            _base_label=self.label,
+        )
         return gate
 
     def inverse(self, annotated: bool = False):
@@ -157,7 +154,7 @@ class CXGate(SingletonControlledGate):
     with the :meth:`~qiskit.circuit.QuantumCircuit.cx` and
     :meth:`~qiskit.circuit.QuantumCircuit.cnot` methods.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -166,7 +163,7 @@ class CXGate(SingletonControlledGate):
         q_1: ┤ X ├
              └───┘
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 
@@ -251,28 +248,22 @@ class CXGate(SingletonControlledGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate should be implemented
-                as an annotated gate.
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with a control modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as a controlled
+                CX gate is a multi-controlled X-gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if not annotated:
-            ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
-            new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-            gate = MCXGate(
-                num_ctrl_qubits=num_ctrl_qubits + 1,
-                label=label,
-                ctrl_state=new_ctrl_state,
-                _base_label=self.label,
-            )
-        else:
-            gate = super().control(
-                num_ctrl_qubits=num_ctrl_qubits,
-                label=label,
-                ctrl_state=ctrl_state,
-                annotated=annotated,
-            )
+        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
+        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
+        gate = MCXGate(
+            num_ctrl_qubits=num_ctrl_qubits + 1,
+            label=label,
+            ctrl_state=new_ctrl_state,
+            _base_label=self.label,
+        )
         return gate
 
     def inverse(self, annotated: bool = False):
@@ -300,7 +291,7 @@ class CCXGate(SingletonControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.ccx` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -311,7 +302,7 @@ class CCXGate(SingletonControlledGate):
         q_2: ┤ X ├
              └───┘
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 
@@ -398,7 +389,7 @@ class CCXGate(SingletonControlledGate):
         #      └───┘└───┘└─────┘└───┘└───┘└───┘└─────┘└───┘└───┘ └───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.CCX._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.CCX._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def control(
@@ -415,28 +406,22 @@ class CCXGate(SingletonControlledGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate should be implemented
-                as an annotated gate.
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with a control modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as a controlled
+                CCX gate is a multi-controlled X-gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if not annotated:
-            ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
-            new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-            gate = MCXGate(
-                num_ctrl_qubits=num_ctrl_qubits + 2,
-                label=label,
-                ctrl_state=new_ctrl_state,
-                _base_label=self.label,
-            )
-        else:
-            gate = super().control(
-                num_ctrl_qubits=num_ctrl_qubits,
-                label=label,
-                ctrl_state=ctrl_state,
-                annotated=annotated,
-            )
+        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
+        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
+        gate = MCXGate(
+            num_ctrl_qubits=num_ctrl_qubits + 2,
+            label=label,
+            ctrl_state=new_ctrl_state,
+            _base_label=self.label,
+        )
         return gate
 
     def inverse(self, annotated: bool = False):
@@ -507,7 +492,7 @@ class RCCXGate(SingletonGate):
         #      └───┘└───┘└───┘└─────┘└───┘└───┘└───┘└─────┘└───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.RCCX._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.RCCX._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def __eq__(self, other):
@@ -560,7 +545,7 @@ class C3SXGate(SingletonControlledGate):
         from qiskit.circuit import QuantumCircuit
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.C3SX._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.C3SX._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def __eq__(self, other):
@@ -603,7 +588,7 @@ class C3XGate(SingletonControlledGate):
         from qiskit.circuit import QuantumCircuit
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.C3X._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.C3X._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def control(
@@ -620,28 +605,22 @@ class C3XGate(SingletonControlledGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate should be implemented
-                as an annotated gate.
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with a control modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as a controlled
+                C3X gate is a multi-controlled X-gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if not annotated:
-            ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
-            new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-            gate = MCXGate(
-                num_ctrl_qubits=num_ctrl_qubits + 3,
-                label=label,
-                ctrl_state=new_ctrl_state,
-                _base_label=self.label,
-            )
-        else:
-            gate = super().control(
-                num_ctrl_qubits=num_ctrl_qubits,
-                label=label,
-                ctrl_state=ctrl_state,
-                annotated=annotated,
-            )
+        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
+        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
+        gate = MCXGate(
+            num_ctrl_qubits=num_ctrl_qubits + 3,
+            label=label,
+            ctrl_state=new_ctrl_state,
+            _base_label=self.label,
+        )
         return gate
 
     def inverse(self, annotated: bool = False):
@@ -710,7 +689,7 @@ class RC3XGate(SingletonGate):
         from qiskit.circuit import QuantumCircuit
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.RC3X._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.RC3X._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def __eq__(self, other):
@@ -790,28 +769,22 @@ class C4XGate(SingletonControlledGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate should be implemented
-                as an annotated gate.
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with a control modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as a controlled
+                C4X gate is a multi-controlled X-gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if not annotated:
-            ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
-            new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-            gate = MCXGate(
-                num_ctrl_qubits=num_ctrl_qubits + 4,
-                label=label,
-                ctrl_state=new_ctrl_state,
-                _base_label=self.label,
-            )
-        else:
-            gate = super().control(
-                num_ctrl_qubits=num_ctrl_qubits,
-                label=label,
-                ctrl_state=ctrl_state,
-                annotated=annotated,
-            )
+        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
+        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
+        gate = MCXGate(
+            num_ctrl_qubits=num_ctrl_qubits + 4,
+            label=label,
+            ctrl_state=new_ctrl_state,
+            _base_label=self.label,
+        )
         return gate
 
     def inverse(self, annotated: bool = False):
@@ -977,41 +950,42 @@ class MCXGate(ControlledGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate should be implemented
-                as an annotated gate.
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with a control modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as a controlled
+                multi-controlled X gate is another multi-controlled X-gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if not annotated and ctrl_state is None:
-            # use __class__ so this works for derived classes
-            if self.__class__ in [MCXGrayCode, MCXRecursive, MCXVChain]:
-                # DeprecationWarning for internal subclasses (that are deprecated) is fine. We should
-                # still raise warnings for other subclasses out of our control
-                # TODO MCXGate, MCXGrayCode, MCXRecursive, MCXVChain are deprecated and this path can be
-                #   removed once they get removed:
-                #   https://github.com/Qiskit/qiskit/pull/12961
-                with warnings.catch_warnings():
-                    warnings.filterwarnings(
-                        "ignore",
-                        category=DeprecationWarning,
-                        module="qiskit",
-                    )
-                    gate = self.__class__(
-                        self.num_ctrl_qubits + num_ctrl_qubits,
-                        label=label,
-                        ctrl_state=ctrl_state,
-                        _base_label=self.label,
-                    )
-            else:
-                gate = MCXGate(
+        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
+        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
+
+        # use __class__ so this works for derived classes
+        if self.__class__ in [MCXGrayCode, MCXRecursive, MCXVChain]:
+            # DeprecationWarning for internal subclasses (that are deprecated) is fine. We should
+            # still raise warnings for other subclasses out of our control
+            # TODO MCXGate, MCXGrayCode, MCXRecursive, MCXVChain are deprecated and this path can be
+            #   removed once they get removed:
+            #   https://github.com/Qiskit/qiskit/pull/12961
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    module="qiskit",
+                )
+                gate = self.__class__(
                     self.num_ctrl_qubits + num_ctrl_qubits,
                     label=label,
-                    ctrl_state=ctrl_state,
-                    _base_label=self.label,
+                    ctrl_state=new_ctrl_state,
                 )
         else:
-            gate = super().control(num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+            gate = MCXGate(
+                self.num_ctrl_qubits + num_ctrl_qubits,
+                label=label,
+                ctrl_state=new_ctrl_state,
+                _base_label=self.label,
+            )
         return gate
 
     def copy(self, name=None):

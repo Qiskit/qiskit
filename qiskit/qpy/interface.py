@@ -14,6 +14,8 @@
 
 from __future__ import annotations
 
+import io
+import shutil
 from json import JSONEncoder, JSONDecoder
 from typing import Union, List, BinaryIO, Type, Optional, Callable, TYPE_CHECKING
 from collections.abc import Iterable, Mapping
@@ -25,6 +27,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.qpy import formats, common, binary_io, type_keys
 from qiskit.qpy.exceptions import QpyError
+from qiskit import user_config
 from qiskit.version import __version__
 
 if TYPE_CHECKING:
@@ -179,9 +182,9 @@ def dump(
         version = common.QPY_VERSION
     elif common.QPY_COMPATIBILITY_VERSION > version or version > common.QPY_VERSION:
         raise ValueError(
-            f"The specified QPY version {version} is not support for dumping with this version, "
-            f"of Qiskit. The only supported versions between {common.QPY_COMPATIBILITY_VERSION} and "
-            f"{common.QPY_VERSION}"
+            f"Dumping payloads with the specified QPY version ({version}) is not supported by "
+            f"this version of Qiskit. Try selecting a version between "
+            f"{common.QPY_COMPATIBILITY_VERSION} and {common.QPY_VERSION} for `qpy.dump`."
         )
 
     version_match = VERSION_PATTERN_REGEX.search(__version__)
@@ -199,16 +202,65 @@ def dump(
     )
     file_obj.write(header)
     common.write_type_key(file_obj, type_keys.Program.CIRCUIT)
+    header_bytes_written = formats.FILE_HEADER_V10_SIZE + formats.TYPE_KEY_SIZE
 
-    for program in programs:
+    def _write_circuit(out_stream, circuit):
         binary_io.write_circuit(
-            file_obj,
-            program,
+            out_stream,
+            circuit,
             metadata_serializer=metadata_serializer,
             use_symengine=use_symengine,
             version=version,
             annotation_factories=annotation_factories,
         )
+
+    if version >= 16:
+        # We need a circuit table.
+        if file_obj.seekable():
+            # Fast path to write the seekable stream in place.
+            file_offsets = []
+            table_start = file_obj.tell()
+            # Skip past the circuit table to write circuit contents first.
+            file_obj.seek(len(programs) * formats.CIRCUIT_TABLE_ENTRY_SIZE, 1)
+            for program in programs:
+                file_offsets.append(file_obj.tell())
+                _write_circuit(file_obj, program)
+            # Seek back to the table start and write it out.
+            file_obj.seek(table_start)
+            for offset in file_offsets:
+                file_obj.write(
+                    struct.pack(
+                        formats.CIRCUIT_TABLE_ENTRY_PACK, *formats.CIRCUIT_TABLE_ENTRY(offset)
+                    )
+                )
+            # Seek to the end of the stream.
+            file_obj.seek(0, 2)
+        else:
+            # We need to create a temporary BytesIO buffer since the input
+            # stream isn't seekable.
+            buffer_offsets = []
+            offset_table_size = len(programs) * formats.CIRCUIT_TABLE_ENTRY_SIZE
+            with io.BytesIO() as circuits_buffer:
+                for program in programs:
+                    buffer_offsets.append(circuits_buffer.tell())
+                    _write_circuit(circuits_buffer, program)
+                # Write circuit table to input stream, adjusting offsets.
+                for offset in buffer_offsets:
+                    file_obj.write(
+                        struct.pack(
+                            formats.CIRCUIT_TABLE_ENTRY_PACK,
+                            *formats.CIRCUIT_TABLE_ENTRY(
+                                header_bytes_written + offset_table_size + offset
+                            ),
+                        )
+                    )
+                # Write circuits to the input stream.
+                circuits_buffer.seek(0)
+                shutil.copyfileobj(circuits_buffer, file_obj)
+    else:
+        # No circuit table needed, just write the circuits sequentially.
+        for program in programs:
+            _write_circuit(file_obj, program)
 
 
 def load(
@@ -295,6 +347,14 @@ def load(
             )
         )
 
+    config = user_config.get_config()
+    min_qpy_version = config.get("min_qpy_version")
+    if min_qpy_version is not None and data.qpy_version < min_qpy_version:
+        raise QpyError(
+            f"QPY version {data.qpy_version} is lower than the configured minimum "
+            f"version {min_qpy_version}."
+        )
+
     if data.preface.decode(common.ENCODE) != "QISKIT":
         raise QiskitError("Input file is not a valid QPY file")
     version_match = VERSION_PATTERN_REGEX.search(__version__)
@@ -340,8 +400,24 @@ def load(
     else:
         use_symengine = data.symbolic_encoding == type_keys.SymExprEncoding.SYMENGINE
 
+    if data.qpy_version >= 16:
+        # Obtain the byte offsets for each program
+        program_offsets = []
+        for _ in range(data.num_programs):
+            program_offsets.append(
+                formats.CIRCUIT_TABLE_ENTRY(
+                    *struct.unpack(
+                        formats.CIRCUIT_TABLE_ENTRY_PACK,
+                        file_obj.read(formats.CIRCUIT_TABLE_ENTRY_SIZE),
+                    )
+                ).offset
+            )
+
     programs = []
-    for _ in range(data.num_programs):
+    for i in range(data.num_programs):
+        if data.qpy_version >= 16:
+            # Deserialize each program using their byte offsets
+            file_obj.seek(program_offsets[i])
         programs.append(
             binary_io.read_circuit(
                 file_obj,

@@ -33,7 +33,7 @@ impl<R: Register> From<usize> for RegisterIndex<R> {
         Self {
             index: value
                 .try_into()
-                .unwrap_or_else(|_| panic!("'{}' is too big to be converted to u32", value)),
+                .unwrap_or_else(|_| panic!("'{value}' is too big to be converted to u32")),
             _marker: PhantomData,
         }
     }
@@ -69,6 +69,12 @@ where
         Self::new()
     }
 }
+impl<R: Register + PartialEq> PartialEq for RegisterData<R> {
+    fn eq(&self, other: &Self) -> bool {
+        (self.registers == other.registers) && (self.reg_index == other.reg_index)
+    }
+}
+impl<R: Register + Eq> Eq for RegisterData<R> {}
 
 impl<R> RegisterData<R>
 where
@@ -107,12 +113,12 @@ where
             self.cached_registers.take();
             Ok(true)
         } else if strict {
-            return Err(CircuitError::new_err(format!(
+            Err(CircuitError::new_err(format!(
                 "register name \"{}\" already exists",
                 register.name()
-            )));
+            )))
         } else {
-            return Ok(false);
+            Ok(false)
         }
     }
 

@@ -24,7 +24,7 @@ QkTarget *create_sample_target(bool std_inst);
 /**
  * Test empty constructor for Target
  */
-int test_empty_target(void) {
+static int test_empty_target(void) {
     int result = Ok;
     QkTarget *target = qk_target_new(0);
     uint32_t num_qubits = qk_target_num_qubits(target);
@@ -77,7 +77,7 @@ cleanup:
 /**
  * Test constructor for Target
  */
-int test_target_construct(void) {
+static int test_target_construct(void) {
     int result = Ok;
     const uint32_t num_qubits = 2;
     const double dt = 10e-9;
@@ -141,10 +141,133 @@ cleanup:
     return result;
 }
 
+/*
+ * Test target construction with a parameterized gate
+ */
+static int test_target_construction_ibm_like_target(void) {
+    int result = Ok;
+    QkTarget *target = qk_target_new(5);
+    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
+    uint32_t cx_qargs[2] = {0, 1};
+    QkExitCode result_prop = qk_target_entry_add_property(cx_entry, cx_qargs, 2, 2.2e-4, 6.2e-9);
+    if (result_prop != QkExitCode_Success) {
+        printf("Unexpected error occurred when adding entry.");
+        qk_target_entry_free(cx_entry);
+        result = EqualityError;
+        goto cleanup;
+    }
+    cx_qargs[0] = 2;
+    result_prop = qk_target_entry_add_property(cx_entry, cx_qargs, 2, 3.2e-4, 4.2e-9);
+    if (result_prop != QkExitCode_Success) {
+        printf("Unexpected error occurred when adding entry.");
+        qk_target_entry_free(cx_entry);
+        result = EqualityError;
+        goto cleanup;
+    }
+    cx_qargs[1] = 3;
+    result_prop = qk_target_entry_add_property(cx_entry, cx_qargs, 2, 1.2e-4, 4.2e-8);
+    if (result_prop != QkExitCode_Success) {
+        printf("Unexpected error occurred when adding entry.");
+        qk_target_entry_free(cx_entry);
+        result = EqualityError;
+        goto cleanup;
+    }
+    cx_qargs[0] = 4;
+    result_prop = qk_target_entry_add_property(cx_entry, cx_qargs, 2, 1.2e-3, 2.2e-8);
+    if (result_prop != QkExitCode_Success) {
+        printf("Unexpected error occurred when adding entry.");
+        qk_target_entry_free(cx_entry);
+        result = EqualityError;
+        goto cleanup;
+    }
+    QkExitCode result_cx = qk_target_add_instruction(target, cx_entry);
+    if (result_cx != QkExitCode_Success) {
+        printf("Unexpected error occurred when adding a CX gate.");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    QkTargetEntry *rz_entry = qk_target_entry_new(QkGate_RZ);
+    for (uint32_t i = 0; i < 5; i++) {
+        uint32_t qargs[1] = {i};
+        result_prop = qk_target_entry_add_property(rz_entry, qargs, 1, 0, 0);
+        if (result_prop != QkExitCode_Success) {
+            printf("Unexpected error occurred when adding entry.");
+            result = EqualityError;
+            qk_target_entry_free(rz_entry);
+            goto cleanup;
+        }
+    }
+    QkExitCode result_rz = qk_target_add_instruction(target, rz_entry);
+    if (result_rz != QkExitCode_Success) {
+        printf("Unexpected error occurred when adding a parameterized RZ gate.");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    QkTargetEntry *sx_entry = qk_target_entry_new(QkGate_SX);
+    for (uint32_t i = 0; i < 5; i++) {
+        uint32_t qargs[1] = {i};
+        result_prop = qk_target_entry_add_property(sx_entry, qargs, 1, 1.928e-10, 7.9829e-11);
+        if (result_prop != QkExitCode_Success) {
+            printf("Unexpected error occurred when adding entry.");
+            result = EqualityError;
+            qk_target_entry_free(sx_entry);
+            goto cleanup;
+        }
+    }
+    QkExitCode result_sx = qk_target_add_instruction(target, sx_entry);
+    if (result_sx != QkExitCode_Success) {
+        printf("Unexpected error occurred when adding a parameterized RZ gate.");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    QkTargetEntry *x_entry = qk_target_entry_new(QkGate_X);
+    for (uint32_t i = 0; i < 5; i++) {
+        uint32_t qargs[1] = {i};
+        result_prop = qk_target_entry_add_property(x_entry, qargs, 1, 1.928e-10, 7.9829e-11);
+        if (result_prop != QkExitCode_Success) {
+            printf("Unexpected error occurred when adding entry.");
+            result = EqualityError;
+            qk_target_entry_free(x_entry);
+            goto cleanup;
+        }
+    }
+    QkExitCode result_x = qk_target_add_instruction(target, x_entry);
+    if (result_x != QkExitCode_Success) {
+        printf("Unexpected error occurred when adding a parameterized RZ gate.");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    QkTargetEntry *measure_entry = qk_target_entry_new_measure();
+    for (uint32_t i = 0; i < 5; i++) {
+        uint32_t qargs[1] = {i};
+        result_prop = qk_target_entry_add_property(measure_entry, qargs, 1, 1.928e-10, 7.9829e-11);
+        if (result_prop != QkExitCode_Success) {
+            printf("Unexpected error occurred when adding entry.");
+            result = EqualityError;
+            qk_target_entry_free(measure_entry);
+            goto cleanup;
+        }
+    }
+    QkExitCode result_measure = qk_target_add_instruction(target, measure_entry);
+    if (result_measure != QkExitCode_Success) {
+        printf("Unexpected error occurred when adding a parameterized RZ gate.");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+cleanup:
+    qk_target_free(target);
+    return result;
+}
+
 /**
  * Test construction of a QkTargetEntry
  */
-int test_target_entry_construction(void) {
+static int test_target_entry_construction(void) {
     int result = Ok;
     QkTargetEntry *property_map = qk_target_entry_new(QkGate_CX);
 
@@ -190,7 +313,7 @@ cleanup:
 /**
  * Test adding an instruction to the Target.
  */
-int test_target_add_instruction(void) {
+static int test_target_add_instruction(void) {
     const uint32_t num_qubits = 1;
     // Let's create a target with one qubit for now
     QkTarget *target = qk_target_new(num_qubits);
@@ -222,7 +345,7 @@ int test_target_add_instruction(void) {
         goto cleanup;
     }
     size_t current_size = qk_target_num_instructions(target);
-    if (current_num_qubits != 1) {
+    if (current_size != 1) {
         printf("The size of this target is not correct: Expected 1, got %zu", current_size);
         result = EqualityError;
         goto cleanup;
@@ -310,15 +433,20 @@ int test_target_add_instruction(void) {
         uint32_t q[1] = {i};
         qk_target_entry_add_property(meas, q, 1, 1e-6, 1e-4);
     }
-    uint32_t num_meas = qk_target_entry_num_properties(meas);
+    size_t num_meas = qk_target_entry_num_properties(meas);
     if (num_meas != 3) {
-        printf("Expected 3 measurement entries but got: %u", num_meas);
+        printf("Expected 3 measurement entries but got: %zu", num_meas);
         result = EqualityError;
         qk_target_entry_free(meas);
         goto cleanup;
     }
 
     QkExitCode result_meas_props = qk_target_add_instruction(target, meas);
+    if (result_meas_props != 0) {
+        printf("Failed adding measurement instruction.");
+        result = EqualityError;
+        goto cleanup;
+    }
     // Number of qubits of the target should remain 3.
     current_num_qubits = qk_target_num_qubits(target);
     if (current_num_qubits != 3) {
@@ -339,11 +467,11 @@ int test_target_add_instruction(void) {
     QkTargetEntry *reset = qk_target_entry_new_reset();
     for (uint32_t i = 0; i < 3; i++) {
         uint32_t q[1] = {i};
-        qk_target_entry_add_property(meas, q, 1, 2e-6, 2e-4);
+        qk_target_entry_add_property(reset, q, 1, 2e-6, 2e-4);
     }
-    uint32_t num_reset = qk_target_entry_num_properties(reset);
-    if (num_meas != 3) {
-        printf("Expected 3 reset entries but got: %u", num_reset);
+    size_t num_reset = qk_target_entry_num_properties(reset);
+    if (num_reset != 3) {
+        printf("Expected 3 reset entries but got: %zu", num_reset);
         result = EqualityError;
         qk_target_entry_free(reset);
         goto cleanup;
@@ -366,7 +494,7 @@ cleanup:
  * Test updating an instruction property in the Target using
  * `update_instruction_property`.
  */
-int test_target_update_instruction(void) {
+static int test_target_update_instruction(void) {
     const uint32_t num_qubits = 1;
     // Let's create a target with one qubit for now
     QkTarget *target = qk_target_new(num_qubits);
@@ -497,6 +625,7 @@ int test_target(void) {
     num_failed += RUN_TEST(test_target_entry_construction);
     num_failed += RUN_TEST(test_target_add_instruction);
     num_failed += RUN_TEST(test_target_update_instruction);
+    num_failed += RUN_TEST(test_target_construction_ibm_like_target);
     num_failed += RUN_TEST(test_target_instruction_supported);
 
     fflush(stderr);

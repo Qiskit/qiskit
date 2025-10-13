@@ -476,6 +476,35 @@ where
         self.merge_map_using(other, map_fn, &mut out);
         out
     }
+
+    /// Rewrite all the interned values in `self` inplace, maintaining validity of all existing
+    /// [Interned] keys (just with mapped values).
+    ///
+    /// The `map_fn` will be called exactly once for each of the non-default values; the default
+    /// value will not be passed to the `map_fn`, as it is a requirement of the type that the
+    /// default key matches the default value.
+    ///
+    /// # Panics
+    ///
+    /// If the `map_fn` returns two equal values for non-equal inputs; if this happened, we wouldn't
+    /// have the same number of keys in the output.
+    pub fn map_inplace(
+        &mut self,
+        mut map_fn: impl FnMut(<T as ToOwned>::Owned) -> <T as ToOwned>::Owned,
+    ) {
+        // This isn't a one-at-a-time operation because we might have a collision, where a new
+        // value with an early key is equal to an old value with a later key.  That will be resolved
+        // by the end, but if we try to go one-at-a-time, we'll mess up the key order.  We can still
+        // re-use the allocation of the interner, though.
+        let mut values = self.0.drain(..).collect::<Vec<_>>().into_iter();
+        self.0
+            .insert(values.next().expect("must have at least the default key"));
+        for (i, value) in values.enumerate() {
+            let expected = i as u32 + 1;
+            let actual = self.insert_owned(map_fn(value)).index;
+            assert!(actual == expected, "mapping returned a duplicate key");
+        }
+    }
 }
 
 impl<T> Interner<[T]>

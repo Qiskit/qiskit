@@ -66,7 +66,7 @@ class VBERippleCarryAdder(Adder):
         :class:`.FullAdderGate`: A generic inplace adder, with a carry-in bit. This
             is functionally equivalent to ``kind="full"``.
 
-    **References:**
+    References:
 
     [1] Vedral et al., Quantum Networks for Elementary Arithmetic Operations, 1995.
     `arXiv:quant-ph/9511018 <https://arxiv.org/pdf/quant-ph/9511018.pdf>`_

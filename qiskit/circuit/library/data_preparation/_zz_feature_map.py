@@ -98,7 +98,7 @@ class ZZFeatureMap(PauliFeatureMap):
     @deprecate_func(
         since="2.1",
         additional_msg=(
-            "Use the z_feature_map function as a replacement. Note that this will no longer "
+            "Use the zz_feature_map function as a replacement. Note that this will no longer "
             "return a BlueprintCircuit, but just a plain QuantumCircuit."
         ),
         removal_timeline="in Qiskit 3.0",
@@ -117,8 +117,7 @@ class ZZFeatureMap(PauliFeatureMap):
         insert_barriers: bool = False,
         name: str = "ZZFeatureMap",
     ) -> None:
-        """Create a new second-order Pauli-Z expansion.
-
+        """
         Args:
             feature_dimension: Number of features.
             reps: The number of repeated circuits, has a min. value of 1.
