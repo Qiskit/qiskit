@@ -1,0 +1,23 @@
+---
+features_transpiler:
+  - |
+    Re-enabled running :class:`.VF2PostLayout` transpiler pass in the ``optimization``
+    stage for ``optimization_level=3`` with the :func:`.transpile` function and the
+    generated pass manager objects returned by the :func:`.generate_preset_pass_manager`
+    function. The pass runs with ``strict_direction=True`` after all the physical optimizations
+    performed in the stage to attempt and improve the layout one final time with the exact
+    output circuit. This was previously enabled in 2.1.0 but was reverted in 2.1.2 due to issues
+    with the initial implementation. These issues have been fixed and the layout will be properly
+    applied if a better one is found.
+fixes:
+  - |
+    Fixed an issue in the :class:`.VF2PostLayout` transpiler pass. In certain situations
+    when the pass is being run with the argument ``strict_direction=True`` there
+    was a potential runtime scaling issue when the interaction graph of the circuit contained
+    any qubits that only had 1 qubit operations. These mapping problems result in a combinatorial
+    complexity for scoring that would lead to the pass almost always hitting the scoring timeout
+    and typically not improving the layout. In ``strict_direction=False`` mode there is an
+    optimized search implementation for these problems, but the additional constraints for
+    ``strict_direction=True`` don't make this approach viable. Instead in these cases
+    :class:`.VF2PostLayout` will now skip the search since the layout problem isn't viable for
+    the pass.

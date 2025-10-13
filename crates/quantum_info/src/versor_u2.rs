@@ -480,7 +480,7 @@ mod test {
 
     use approx::AbsDiffEq;
     use ndarray::aview2;
-    use qiskit_circuit::operations::{Operation, Param, StandardGate, STANDARD_GATE_SIZE};
+    use qiskit_circuit::operations::{Operation, Param, STANDARD_GATE_SIZE, StandardGate};
 
     #[cfg(not(miri))]
     const ATOL: f64 = 1e-15;

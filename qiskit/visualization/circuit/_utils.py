@@ -47,6 +47,13 @@ def _is_boolean_expression(gate_text, op):
 
 def get_gate_ctrl_text(op, drawer, style=None):
     """Load the gate_text and ctrl_text strings based on names and labels"""
+
+    # if measure_arrows is False, gate_text will be empty for mpl and M- for text drawer
+    if drawer == "mpl" and isinstance(op, Measure):
+        return "", "", ""
+    elif drawer == "text" and isinstance(op, Measure):
+        return "M-", "", ""
+
     anno_list = []
     anno_text = ""
     if isinstance(op, AnnotatedOperation) and op.modifiers:
@@ -399,7 +406,13 @@ def _get_valid_justify_arg(justify):
 
 
 def _get_layered_instructions(
-    circuit, reverse_bits=False, justify=None, idle_wires=True, wire_order=None, wire_map=None
+    circuit,
+    reverse_bits=False,
+    justify=None,
+    idle_wires=True,
+    wire_order=None,
+    wire_map=None,
+    measure_arrows=True,
 ):
     """
     Given a circuit, return a tuple (qubits, clbits, nodes) where
@@ -460,7 +473,7 @@ def _get_layered_instructions(
         for node in dag.topological_op_nodes():
             nodes.append([node])
     else:
-        nodes = _LayerSpooler(dag, qubits, clbits, justify, measure_map)
+        nodes = _LayerSpooler(dag, qubits, clbits, justify, measure_map, measure_arrows)
 
     if not idle_wires:
         # Optionally remove all idle wires and instructions that are on them and
@@ -486,7 +499,7 @@ def _sorted_nodes(dag_layer):
     return nodes
 
 
-def _get_gate_span(qubits, node):
+def _get_gate_span(qubits, node, measure_arrows):
     """Get the list of qubits drawing this gate would cover
     qiskit-terra #2802
     """
@@ -505,7 +518,9 @@ def _get_gate_span(qubits, node):
         # type of op must be the only op in the layer
         # BoxOps are excepted because they have one block executed unconditionally
         span = qubits
-    elif node.cargs or getattr(node, "condition", None):
+    elif node.cargs and (
+        (measure_arrows and isinstance(node.op, Measure)) or getattr(node.op, "condition", None)
+    ):
         span = qubits[min_index : len(qubits)]
     else:
         span = qubits[min_index : max_index + 1]
@@ -513,11 +528,13 @@ def _get_gate_span(qubits, node):
     return span
 
 
-def _any_crossover(qubits, node, nodes):
+def _any_crossover(qubits, node, nodes, measure_arrows):
     """Return True .IFF. 'node' crosses over any 'nodes'."""
     return bool(
-        set(_get_gate_span(qubits, node)).intersection(
-            bit for check_node in nodes for bit in _get_gate_span(qubits, check_node)
+        set(_get_gate_span(qubits, node, measure_arrows)).intersection(
+            bit
+            for check_node in nodes
+            for bit in _get_gate_span(qubits, check_node, measure_arrows)
         )
     )
 
@@ -528,7 +545,7 @@ _GLOBAL_NID = 0
 class _LayerSpooler(list):
     """Manipulate list of layer dicts for _get_layered_instructions."""
 
-    def __init__(self, dag, qubits, clbits, justification, measure_map):
+    def __init__(self, dag, qubits, clbits, justification, measure_map, measure_arrows):
         """Create spool"""
         super().__init__()
         self.dag = dag
@@ -536,6 +553,7 @@ class _LayerSpooler(list):
         self.clbits = clbits
         self.justification = justification
         self.measure_map = measure_map
+        self.measure_arrows = measure_arrows
         self.cregs = [self.dag.cregs[reg] for reg in self.dag.cregs]
 
         if self.justification == "left":
@@ -568,7 +586,7 @@ class _LayerSpooler(list):
 
     def insertable(self, node, nodes):
         """True .IFF. we can add 'node' to layer 'nodes'"""
-        return not _any_crossover(self.qubits, node, nodes)
+        return not _any_crossover(self.qubits, node, nodes, self.measure_arrows)
 
     def slide_from_left(self, node, index):
         """Insert node into first layer where there is no conflict going l > r"""
@@ -583,8 +601,9 @@ class _LayerSpooler(list):
             inserted = False
             curr_index = index
             last_insertable_index = -1
+
             index_stop = -1
-            if (condition := getattr(node, "condition", None)) is not None:
+            if (condition := getattr(node.op, "condition", None)) is not None:
                 index_stop = max(
                     (self.measure_map[bit] for bit in condition_resources(condition).clbits),
                     default=index_stop,

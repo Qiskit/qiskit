@@ -50,5 +50,5 @@ def synth_permutation_depth_lnn_kms(pattern: list[int] | np.ndarray[int]) -> Qua
     # [2, 4, 3, 0, 1] means that 0 maps to 2, 1 to 3, 2 to 3, 3 to 0, and 4 to 1.
     # This is why we invert the pattern.
     return QuantumCircuit._from_circuit_data(
-        _synth_permutation_depth_lnn_kms(pattern), add_regs=True
+        _synth_permutation_depth_lnn_kms(pattern), legacy_qubits=True
     )

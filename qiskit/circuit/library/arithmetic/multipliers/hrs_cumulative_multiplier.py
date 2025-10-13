@@ -66,7 +66,7 @@ class HRSCumulativeMultiplier(Multiplier):
         Specific implementations can be set via the :class:`.HLSConfig`, e.g. this circuit
         can be chosen via ``Multiplier=["cumulative_h18"]``.
 
-    **References:**
+    References:
 
     [1] Häner et al., Optimizing Quantum Circuits for Arithmetic, 2018.
     `arXiv:1805.12445 <https://arxiv.org/pdf/1805.12445.pdf>`_

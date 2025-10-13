@@ -36,7 +36,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_transpiler::passes::basis_translator_mod, "basis_translator")?;
     add_submodule(m, ::qiskit_transpiler::passes::check_map_mod, "check_map")?;
     add_submodule(m, ::qiskit_accelerate::circuit_duration::compute_duration, "circuit_duration")?;
-    add_submodule(m, ::qiskit_accelerate::circuit_library::circuit_library, "circuit_library")?;
+    add_submodule(m, ::qiskit_circuit_library::circuit_library, "circuit_library")?;
     add_submodule(m, ::qiskit_transpiler::passes::commutation_analysis_mod, "commutation_analysis")?;
     add_submodule(m, ::qiskit_transpiler::passes::commutation_cancellation_mod, "commutation_cancellation")?;
     add_submodule(m, ::qiskit_transpiler::commutation_checker::commutation_checker, "commutation_checker")?;
@@ -82,6 +82,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_circuit::converters::converters, "converters")?;
     add_submodule(m, ::qiskit_qasm2::qasm2, "qasm2")?;
     add_submodule(m, ::qiskit_qasm3::qasm3, "qasm3")?;
+    add_submodule(m, ::qiskit_synthesis::qsd::qsd_mod, "qsd")?;
     add_submodule(m, ::qiskit_transpiler::angle_bound_registry::angle_bound_mod, "angle_bound_registry")?;
     add_submodule(m, ::qiskit_transpiler::passes::wrap_angles_mod, "wrap_angles")?;
     Ok(())

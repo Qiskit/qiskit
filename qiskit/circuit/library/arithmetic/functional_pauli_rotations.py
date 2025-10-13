@@ -25,8 +25,7 @@ class FunctionalPauliRotations(BlueprintCircuit, ABC):
     def __init__(
         self, num_state_qubits: Optional[int] = None, basis: str = "Y", name: str = "F"
     ) -> None:
-        r"""Create a new functional Pauli rotation circuit.
-
+        r"""
         Args:
             num_state_qubits: The number of qubits representing the state :math:`|x\rangle`.
             basis: The kind of Pauli rotation to use. Must be 'X', 'Y' or 'Z'.

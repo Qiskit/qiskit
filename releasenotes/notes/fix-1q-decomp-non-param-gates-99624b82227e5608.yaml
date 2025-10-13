@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed an issue in the :class:`.Optimize1qGatesDecomposition` when the
+    pass was initialized with a :class:`.Target` that contains 1q gates with fixed angle
+    parameters. Previously, the pass would potentially output gates outside
+    the target as it wasn't checking that the gate in the target supported
+    arbitrary parameter values.
+    Fixed `#14743 <https://github.com/Qiskit/qiskit/issues/14743>`__.

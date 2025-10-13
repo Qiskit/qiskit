@@ -42,7 +42,7 @@ quantum computation <qiskit-primitives>`, which accumulate data from many shots 
 execution, along with advanced error-mitigation techniques and measurement optimizations, into
 well-typed classical data and error statistics.
 
-In Qiskit, circuits can be defined in one of two regimes:
+In Qiskit, circuits can be :ref:`defined in one of two regimes <circuit-abstract-physical>`:
 
 * an *abstract* circuit, which is defined in terms of *virtual qubits* and arbitrary high-level
   operations, like encapsulated algorithms and user-defined gates.
@@ -52,7 +52,11 @@ In Qiskit, circuits can be defined in one of two regimes:
   this concept referred to as an *ISA circuit*.
 
 You convert from an abstract circuit to a physical circuit by using :ref:`Qiskit's transpilation
-package <qiskit-transpiler>`, of which the top-level access point is :func:`.transpile`.
+package <qiskit-transpiler>`, of which the top-level access point is :func:`.transpile`.  If you
+define a circuit, where you intend the qubit indices to refer to physical qubits, you can use
+:meth:`.QuantumCircuit.ensure_physical` to rewrite the circuit's metadata to ensure that Qiskit
+recognizes the circuit as a physical circuit, though unlike transpilation, this does not enforce
+that the basis-gates and hardware-coupling constraints will be respected.
 
 In Qiskit, a quantum circuit is represented by the :class:`QuantumCircuit` class.  Below is an
 example of a quantum circuit that makes a three-qubit Greenberger–Horne–Zeilinger (GHZ) state

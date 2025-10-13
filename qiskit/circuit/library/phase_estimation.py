@@ -34,18 +34,18 @@ class PhaseEstimation(QuantumCircuit):
     This estimation (and thereby this circuit) is a central routine to several well-known
     algorithms, such as Shor's algorithm or Quantum Amplitude Estimation.
 
-    **References:**
+    References:
 
-    [1]: Kitaev, A. Y. (1995). Quantum measurements and the Abelian Stabilizer Problem. 1–22.
-        `quant-ph/9511026 <http://arxiv.org/abs/quant-ph/9511026>`_
+    [1] Kitaev, A. Y. (1995). Quantum measurements and the Abelian Stabilizer Problem. 1–22.
+    `quant-ph/9511026 <http://arxiv.org/abs/quant-ph/9511026>`_
 
-    [2]: Michael A. Nielsen and Isaac L. Chuang. 2011.
-         Quantum Computation and Quantum Information: 10th Anniversary Edition (10th ed.).
-         Cambridge University Press, New York, NY, USA.
+    [2] Michael A. Nielsen and Isaac L. Chuang. 2011.
+    Quantum Computation and Quantum Information: 10th Anniversary Edition (10th ed.).
+    Cambridge University Press, New York, NY, USA.
 
-    [3]: Qiskit
-        `textbook <https://github.com/Qiskit/textbook/blob/main/notebooks/ch-algorithms/
-        quantum-phase-estimation.ipynb>`_
+    [3] Qiskit
+    `textbook <https://github.com/Qiskit/textbook/blob/main/notebooks/ch-algorithms/
+    quantum-phase-estimation.ipynb>`_
 
     """
 
@@ -75,17 +75,18 @@ class PhaseEstimation(QuantumCircuit):
             The inverse QFT should not include a swap of the qubit order.
 
         Reference Circuit:
-            .. plot::
-               :alt: Diagram illustrating the previously described circuit.
 
-               from qiskit.circuit import QuantumCircuit
-               from qiskit.circuit.library import PhaseEstimation
-               from qiskit.visualization.library import _generate_circuit_library_visualization
-               unitary = QuantumCircuit(2)
-               unitary.x(0)
-               unitary.y(1)
-               circuit = PhaseEstimation(3, unitary)
-               _generate_circuit_library_visualization(circuit)
+        .. plot::
+            :alt: Diagram illustrating the previously described circuit.
+
+            from qiskit.circuit import QuantumCircuit
+            from qiskit.circuit.library import PhaseEstimation
+            from qiskit.visualization.library import _generate_circuit_library_visualization
+            unitary = QuantumCircuit(2)
+            unitary.x(0)
+            unitary.y(1)
+            circuit = PhaseEstimation(3, unitary)
+            _generate_circuit_library_visualization(circuit)
         """
         qr_eval = QuantumRegister(num_evaluation_qubits, "eval")
         qr_state = QuantumRegister(unitary.num_qubits, "q")
@@ -131,7 +132,7 @@ def phase_estimation(
             be more performant, as it allows calling optimized control and power subroutines.
         name: The name of the output circuit.
 
-    **Reference Circuit:**
+    Reference Circuit:
 
     .. plot::
        :alt: A phase estimation circuit.
@@ -146,18 +147,17 @@ def phase_estimation(
        circuit = phase_estimation(3, evo)  # QPE for the evolution operator
        circuit.draw("mpl")
 
-    **References:**
+    References:
 
-    [1]: Kitaev, A. Y. (1995). Quantum measurements and the Abelian Stabilizer Problem. 1–22.
-        `quant-ph/9511026 <http://arxiv.org/abs/quant-ph/9511026>`_
+    [1] Kitaev, A. Y. (1995). Quantum measurements and the Abelian Stabilizer Problem. 1–22.
+    `quant-ph/9511026 <http://arxiv.org/abs/quant-ph/9511026>`_
 
-    [2]: Michael A. Nielsen and Isaac L. Chuang. 2011.
-         Quantum Computation and Quantum Information: 10th Anniversary Edition (10th ed.).
-         Cambridge University Press, New York, NY, USA.
+    [2] Michael A. Nielsen and Isaac L. Chuang. 2011.
+    Quantum Computation and Quantum Information: 10th Anniversary Edition (10th ed.).
+    Cambridge University Press, New York, NY, USA.
 
-    [3]: Qiskit
-        `textbook <https://github.com/Qiskit/textbook/blob/main/notebooks/ch-algorithms/
-        quantum-phase-estimation.ipynb>`_
+    [3] Qiskit `textbook <https://github.com/Qiskit/textbook/blob/main/notebooks/ch-algorithms/
+    quantum-phase-estimation.ipynb>`_
 
     """
     # pylint: disable=cyclic-import

@@ -15,10 +15,10 @@ use pyo3::{intern, prelude::*};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::operations;
-use qiskit_circuit::operations::{multiply_param, radd_param, Param, StandardGate};
+use qiskit_circuit::operations::{Param, StandardGate, multiply_param, radd_param};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
-use smallvec::{smallvec, SmallVec};
+use smallvec::{SmallVec, smallvec};
 
 // custom type for a more readable code
 type Instruction = (
@@ -177,7 +177,7 @@ fn multi_qubit_evolution(
     time: Param,
     phase_gate_for_paulis: bool,
     do_fountain: bool,
-) -> impl Iterator<Item = Instruction> {
+) -> impl Iterator<Item = Instruction> + use<> {
     let mut control_qubits: Vec<Qubit> = Vec::new(); // indices of projectors
     let mut control_states: Vec<bool> = Vec::new(); // +1 projector (true) or -1 projector (false)
     let mut pauli_qubits: Vec<Qubit> = Vec::new(); // indices of Paulis
@@ -472,7 +472,7 @@ fn cx_fountain(qubits: Vec<Qubit>) -> Box<dyn DoubleEndedIterator<Item = Instruc
 fn add_control(gate: StandardGate, params: &[Param], control_state: &[bool]) -> PackedOperation {
     // This function does not return a PyResult to keep the evolution functions free from PyO3.
     // We know that all calls here should be valid and unwrap eagerly.
-    Python::with_gil(|py| {
+    Python::attach(|py| {
         let pygate = gate
             .create_py_op(py, Some(params), None)
             .expect("Failed to create Py version of standard gate.");

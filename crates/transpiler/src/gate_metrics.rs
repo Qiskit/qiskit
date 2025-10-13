@@ -12,7 +12,7 @@
 
 use ndarray::ArrayView2;
 use num_complex::{Complex64, ComplexFloat};
-use qiskit_circuit::{operations::StandardGate, Qubit};
+use qiskit_circuit::{Qubit, operations::StandardGate};
 
 use qiskit_quantum_info::unitary_compose;
 

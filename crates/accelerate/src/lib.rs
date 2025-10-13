@@ -13,7 +13,6 @@
 use pyo3::import_exception;
 
 pub mod circuit_duration;
-pub mod circuit_library;
 pub mod isometry;
 pub mod optimize_1q_gates;
 pub mod pauli_exp_val;

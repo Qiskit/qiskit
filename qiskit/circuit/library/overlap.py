@@ -125,7 +125,7 @@ def unitary_overlap(
     by computing the probability of being in the all-zeros bit-string, or equivalently,
     the expectation value of projector :math:`|0\rangle\langle 0|`.
 
-    **Reference Circuit:**
+    Reference Circuit:
 
     .. plot::
         :alt: Circuit diagram output by the previous code.

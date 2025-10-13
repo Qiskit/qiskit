@@ -15,7 +15,7 @@ use crate::classical::types::Type;
 use crate::duration::Duration;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
-use pyo3::{intern, IntoPyObjectExt};
+use pyo3::{IntoPyObjectExt, intern};
 
 /// A single scalar value expression.
 #[derive(Clone, Debug, PartialEq)]

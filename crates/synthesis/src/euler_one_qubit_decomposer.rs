@@ -15,17 +15,17 @@
 
 use hashbrown::HashMap;
 use num_complex::{Complex64, ComplexFloat};
-use smallvec::{smallvec, SmallVec};
+use smallvec::{SmallVec, smallvec};
 use std::cmp::Ordering;
 use std::f64::consts::PI;
 use std::str::FromStr;
 
+use pyo3::IntoPyObjectExt;
+use pyo3::Python;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PyString};
 use pyo3::wrap_pyfunction;
-use pyo3::IntoPyObjectExt;
-use pyo3::Python;
 
 use ndarray::prelude::*;
 use numpy::PyReadonlyArray2;
@@ -36,7 +36,7 @@ use qiskit_circuit::dag_node::DAGOpNode;
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 use qiskit_circuit::util::c64;
-use qiskit_circuit::{impl_intopyobject_for_copy_pyclass, Qubit};
+use qiskit_circuit::{Qubit, impl_intopyobject_for_copy_pyclass};
 
 pub const ANGLE_ZERO_EPSILON: f64 = 1e-12;
 
@@ -103,7 +103,7 @@ impl OneQubitGateSequence {
         Ok(self.gates.len())
     }
 
-    fn __getitem__(&self, py: Python, idx: PySequenceIndex) -> PyResult<PyObject> {
+    fn __getitem__(&self, py: Python, idx: PySequenceIndex) -> PyResult<Py<PyAny>> {
         match idx.with_len(self.gates.len())? {
             SequenceIndex::Int(idx) => Ok((&self.gates[idx]).into_py_any(py)?),
             indices => Ok(PyList::new(

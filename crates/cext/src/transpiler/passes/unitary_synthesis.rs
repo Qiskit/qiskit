@@ -26,9 +26,6 @@ use qiskit_transpiler::target::Target;
 /// The UnitarySynthesis transpiler pass will synthesize any UnitaryGates in the circuit into gates
 /// available in the target.
 ///
-/// Right now from C this pass only supports 1 and 2 qubit UnitaryGates. Larger unitary matrices
-/// will be supported in a future release.
-///
 /// @param circuit A pointer to the circuit to run UnitarySynthesis on
 /// @param target A pointer to the target to run UnitarySynthesis on
 /// @param min_qubits The minimum number of qubits in the unitary to synthesize. If the unitary
@@ -67,7 +64,7 @@ use qiskit_transpiler::target::Target;
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` or ``target`` is not a valid, non-null pointer to a ``QkCircuit`` and ``QkTarget``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_unitary_synthesis(
     circuit: *mut CircuitData,
@@ -117,13 +114,13 @@ mod tests {
 
     use std::sync::Arc;
 
+    use qiskit_circuit::Qubit;
     use qiskit_circuit::bit::ShareableQubit;
     use qiskit_circuit::circuit_data::CircuitData;
     use qiskit_circuit::operations::{ArrayType, Operation, Param, StandardGate, UnitaryGate};
     use qiskit_circuit::packed_instruction::PackedOperation;
     use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
     use qiskit_circuit::parameter::symbol_expr::Symbol;
-    use qiskit_circuit::Qubit;
 
     #[test]
     fn test_pass_synthesis() {

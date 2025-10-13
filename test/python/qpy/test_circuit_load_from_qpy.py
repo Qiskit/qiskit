@@ -15,9 +15,10 @@
 import io
 import struct
 
-from ddt import ddt, data
+from ddt import ddt, data, idata
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit, Parameter, Gate, annotation
+from qiskit.circuit.random import random_circuit
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.exceptions import QiskitError
 from qiskit.qpy import dump, load, formats, get_qpy_version, QPY_COMPATIBILITY_VERSION
@@ -607,3 +608,57 @@ class TestAnnotations(QpyCircuitTestCase):
             },
         )
         self.assertTrue(triggered_not_implemented)
+
+
+@ddt
+class TestOutputStreamProperties(QpyCircuitTestCase):
+    """Test that QPY works with streams based on capability."""
+
+    class UnseekableStream(io.IOBase):
+        """A wrapper around a binary stream that is not seekable."""
+
+        # pylint: disable=missing-function-docstring
+
+        def __init__(self, base):
+            self._base = base
+
+        def seekable(self) -> bool:  # type: ignore[override]
+            return False
+
+        def read(self, size=-1):
+            return self._base.read(size)
+
+        def write(self, b):
+            return self._base.write(b)
+
+        def readable(self):
+            return self._base.readable()
+
+        def writable(self):
+            return self._base.writable()
+
+        def close(self):
+            return self._base.close()
+
+        def closed(self):
+            return self._base.closed
+
+    @idata(range(QPY_COMPATIBILITY_VERSION, QPY_VERSION + 1))
+    def test_unseekable_equality(self, version):
+        """Test QPY output is equal for seekable and unseekable streams."""
+        circuits = []
+        for i in range(10):
+            circuits.append(
+                random_circuit(10, 10, measure=True, conditional=True, reset=True, seed=42 + i)
+            )
+            # Make sure the circuits round-trip as a sanity check
+            self.assert_roundtrip_equal(circuits[i], version=version)
+
+        # Check that an unseekable stream and seekable stream ended up with the same
+        # contents.
+        with io.BytesIO() as seekable:
+            dump(circuits, seekable)
+            with io.BytesIO() as internal_buffer:
+                unseekable = TestOutputStreamProperties.UnseekableStream(internal_buffer)
+                dump(circuits, unseekable)
+                self.assertEqual(internal_buffer.getbuffer(), seekable.getbuffer())

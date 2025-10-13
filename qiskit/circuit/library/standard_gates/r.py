@@ -22,21 +22,21 @@ from qiskit._accelerate.circuit import StandardGate
 
 
 class RGate(Gate):
-    r"""Rotation θ around the cos(φ)x + sin(φ)y axis.
+    r"""Rotation :math:`\theta` around the :math:`\cos(\phi)x + \sin(\phi)y` axis.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.r` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
-               ┌─────────┐
-        q_0:   ┤ R(θ,ϕ)  ├ 
-               └─────────┘
+               ┌────────┐
+        q_0:   ┤ R(θ,ϕ) ├ 
+               └────────┘
 
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -57,7 +57,12 @@ class RGate(Gate):
         phi: ParameterValueType,
         label: Optional[str] = None,
     ):
-        """Create new r single-qubit gate."""
+        r"""
+        Args:
+            theta: The rotation angle :math:`\theta`.
+            phi: The angle specifying the rotation axis, given by :math:`\cos(\phi) x + \sin(\phi)y`.
+            label: An optional label for the gate.
+        """
         super().__init__("r", 1, [theta, phi], label=label)
 
     def _define(self):
@@ -70,7 +75,7 @@ class RGate(Gate):
         #    └───────────────────────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.R._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.R._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def inverse(self, annotated: bool = False):
