@@ -491,12 +491,12 @@ impl ControlFlowInstruction {
             .unwrap_or_default()
             .iter()
             .map(|b| {
-                Ok(QUANTUM_CIRCUIT
+                Ok(imports::QUANTUM_CIRCUIT
                     .get_bound(py)
                     .call_method1(intern!(py, "_from_circuit_data"), (b.clone(),))?
                     .unbind())
             })
-            .collect::<Vec<PyResult<_>>>()?
+            .collect::<PyResult<Vec<_>>>()?
             .into_iter();
         let kwargs = label
             .map(|label| [("label", label.into_py_any(py)?)].into_py_dict(py))

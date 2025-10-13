@@ -13,7 +13,7 @@
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-use numpy::{IntoPyArray, PyArray2, PyReadonlyArray1, PyReadonlyArray2};
+use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2};
 use pyo3::IntoPyObjectExt;
 use pyo3::basic::CompareOp;
 use pyo3::exceptions::{PyDeprecationWarning, PyTypeError, PyValueError};
@@ -222,7 +222,7 @@ impl CircuitInstruction {
                     ..
                 } => [
                     indexset.into_py_any(py)?,
-                    loop_param.into_py_any(py)?,
+                    loop_param.clone().into_py_any(py)?,
                     data_to_circuit(self.blocks_view()[0].clone())?,
                 ]
                 .into_py_any(py),
