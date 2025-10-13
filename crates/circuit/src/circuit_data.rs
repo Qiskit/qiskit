@@ -24,7 +24,7 @@ use crate::bit_locator::BitLocator;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::classical::expr;
 use crate::dag_circuit::{DAGStretchType, DAGVarType, add_global_phase};
-use crate::imports::{ANNOTATED_OPERATION, DEEPCOPY, QUANTUM_CIRCUIT};
+use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
@@ -1955,19 +1955,8 @@ impl CircuitData {
         res.qargs_interner = self.qargs_interner.clone();
         res.cargs_interner = self.cargs_interner.clone();
 
-        if copy_blocks && !self.blocks.is_empty() {
-            Python::attach(|py| -> PyResult<()> {
-                // We deepcopy the blocks because QuantumCircuit.copy
-                // promises a deepcopy of all instruction params.
-                let deepcopy = DEEPCOPY.get_bound(py);
-                for block in self.blocks.objects() {
-                    res.blocks.add(
-                        PyObjectAsKey::new(&deepcopy.call1((&block.object(),))?),
-                        true,
-                    )?;
-                }
-                Ok(())
-            })?;
+        if copy_blocks {
+            res.blocks = self.blocks.clone();
         }
 
         // After initialization, copy register info.
