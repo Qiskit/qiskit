@@ -701,7 +701,6 @@ def _append_cx(clifford, control, target):
     return clifford
 
 
-# ToDo: handle phases
 def _prepend_cx(clifford, control, target):
     """Apply a CX gate before a Clifford.
 
@@ -720,6 +719,20 @@ def _prepend_cx(clifford, control, target):
 
     destab_control ^= destab_target
     stab_target ^= stab_control
+
+    destab_x_c = clifford.destab_x[control]
+    destab_z_c = clifford.destab_z[control]
+    stab_x_c = clifford.stab_x[control]
+    stab_z_c = clifford.stab_z[control]
+    destab_x_t = clifford.destab_x[target]
+    destab_z_t = clifford.destab_z[target]
+    stab_x_t = clifford.stab_x[target]
+    stab_z_t = clifford.stab_z[target]
+
+    phase_control = _calculate_composed_phased(destab_x_c, destab_z_c, destab_x_t, destab_z_t)
+    phase_target = _calculate_composed_phased(stab_x_c, stab_z_c, stab_x_t, stab_z_t)
+    clifford.destab_phase[control] ^= phase_control != 0
+    clifford.stab_phase[target] ^= phase_target != 0
     return clifford
 
 
