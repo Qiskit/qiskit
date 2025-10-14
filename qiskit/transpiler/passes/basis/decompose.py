@@ -61,6 +61,9 @@ class Decompose(TransformationPass):
         # We might use HLS to synthesize objects that do not have a definition
         hls = HighLevelSynthesis(qubits_initially_zero=False) if self.apply_synthesis else None
 
+        # Handle control flow
+        dag.map_basic_blocks(self.run)
+
         # Walk through the DAG and expand each non-basis node
         for node in dag.op_nodes():
             # Check in self.gates_to_decompose if the operation should be decomposed
@@ -68,8 +71,7 @@ class Decompose(TransformationPass):
                 continue
 
             if node.is_control_flow():
-                decomposition = control_flow.map_blocks(self.run, node.op)
-                dag.substitute_node(node, decomposition, inplace=True)
+                continue
 
             elif getattr(node.op, "definition", None) is None:
                 # if we try to synthesize, turn the node into a DAGCircuit and run HLS

@@ -1330,6 +1330,23 @@ impl DAGCircuit {
         Ok(())
     }
 
+    /// Calls the provided function for each basic block tracked by the circuit,
+    /// replacing it with the result.
+    ///
+    /// This is intended as a fast-path for trivial recursive handling of
+    /// control flow operation blocks in transpiler passes.
+    ///
+    /// Args:
+    ///     func (Callable[[:class:`~.DAGCircuit`], :class:`~.DAGCircuit`]: mapping function
+    #[pyo3(name = "map_basic_blocks", signature = (func))]
+    fn py_map_basic_blocks(&mut self, func: &Bound<PyAny>) -> PyResult<()> {
+        for block in &mut self.blocks {
+            // TODO: move the block into the call once self.blocks is Vec<Option<_>>
+            *block = func.call1((block.clone(),))?.extract()?
+        }
+        Ok(())
+    }
+
     /// Verify that the condition is valid.
     ///
     /// Args:

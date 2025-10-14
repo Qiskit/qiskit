@@ -64,12 +64,11 @@ class UnrollCustomDefinitions(TransformationPass):
         if self._target is None:
             device_insts |= set(self._basis_gates)
 
+        # Handle control flow
+        dag.map_basic_blocks(self.run)
+
         for node in dag.op_nodes():
             if isinstance(node.op, ControlFlowOp):
-                dag.substitute_node(
-                    node,
-                    control_flow.map_blocks(self.run, node.op),
-                )
                 continue
 
             if getattr(node.op, "_directive", False):
