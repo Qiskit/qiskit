@@ -182,7 +182,7 @@ mod tests {
             None,    // concurrent_measurements
         )
         .unwrap();
-        let params: Option<Parameters<Py<PyAny>>> = Some(Parameters::Params(smallvec![
+        let params: Option<Parameters<CircuitData>> = Some(Parameters::Params(smallvec![
             Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
                 "ϴ", None, None,
             )))),

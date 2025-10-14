@@ -544,7 +544,7 @@ mod tests {
 
     fn build_universal_star_target() -> Target {
         let mut target = Target::default();
-        let u_params: Option<Parameters<Py<PyAny>>> = Some(Parameters::Params(smallvec![
+        let u_params: Option<Parameters<CircuitData>> = Some(Parameters::Params(smallvec![
             Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
                 "a", None, None,
             )))),
