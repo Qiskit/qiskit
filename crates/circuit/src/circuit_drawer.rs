@@ -1114,8 +1114,7 @@ impl<'a> Debug for Boxed<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Boxed::Single(label) => write!(f, "Boxed({})", label),
-            Boxed::Multi(Some(inst)) => write!(f, "MultiBox({})", inst.op.name()),
-            Boxed::Multi(None) => write!(f, "MultiBox(None)"),
+            Boxed::Multi(inst) => write!(f, "MultiBox({})", inst.op.name()),
         }
     }
 }
@@ -1146,28 +1145,12 @@ enum OnWire{
     Reset,
 }
 
-// /// Enum for telling if an qubit in the index of a MultiBox Operation is being acted on or not. If yes, the u32 tells which index qubit it is.
-// #[derive(Clone, Debug)]
-// enum Effect{
-//     Affected(u32),
-//     Unaffected
-// }
-
-// /// Enum for representing where the element appears in the representation of a multi-box operation.
-// #[derive(Clone, Debug)]
-// enum MultiBoxElement{
-//     Top(Effect),
-//     Mid(Effect),
-//     Bot(Effect),
-//     Label(String,Effect)
-// }
-
 /// Enum for representing elements that appear in a boxed operation.
 #[derive(Clone)]
 enum Boxed<'a>{
     Single(String),
     // Multi(MultiBoxElement)
-    Multi(Option<&'a PackedInstruction>),
+    Multi(&'a PackedInstruction),
 }
 
 /// Enum for  representing the elements stored in a visualization matrix. The elements
@@ -1199,46 +1182,63 @@ impl<'a> VisualizationLayer2<'a> {
 
     /// Adds the required visualization elements to represent the given instruction
     fn add_instruction(&mut self, inst: &'a PackedInstruction, dag: &DAGCircuit) {
-        // match inst.op.view() {
-        //     OperationRef::StandardGate(gate) | OperationRef::StandardInstruction() => self.add_gate(inst, dag),
-        //     _ => unimplemented!("{}", format!("Visualization is not implemented for instruction of type {:?}", inst.op)),
-        // }
-        self.add_gate(inst, dag);
+        match inst.op.view() {
+            OperationRef::StandardGate(_gate) => self.add_standard(inst, dag),
+            OperationRef::StandardInstruction(_instruction) => self.add_standard(inst, dag),
+            _ => unimplemented!("{}", format!("Visualization is not implemented for instruction of type {:?}", inst.op)),
+        }
     }
 
-    fn add_standard_gate(&mut self, gate: StandardGate, inst: &'a PackedInstruction, dag: &DAGCircuit) {
-        self.add_gate(inst, dag);
-    }
 
     fn get_controls(&self, inst: &PackedInstruction, dag: &DAGCircuit) -> Vec<usize> {
-        let has_control = vec![StandardGate::CX, StandardGate::CCX, StandardGate::CY, StandardGate::CZ,
+        let gate_has_control = vec![StandardGate::CX, StandardGate::CCX, StandardGate::CY, StandardGate::CZ,
             StandardGate::CRX, StandardGate::CRY, StandardGate::CRZ,
             StandardGate::CPhase, StandardGate::CS, StandardGate::CSdg,
             StandardGate::CSX, StandardGate::CU, StandardGate::CU1,
             StandardGate::CU3, StandardGate::CH, StandardGate::C3SX, StandardGate::C3X,
             StandardGate::RC3X, StandardGate::RCCX];
     
-        let mut controls = Vec::new();
+        let inst_has_controls = vec![StandardInstruction::Measure];
 
-        // check if gate is standard gate
-        if let std_gate = inst.op.try_standard_gate().unwrap() {
-            if has_control.contains(&std_gate) {
-                let qargs = dag.get_qargs(inst.qubits).into_iter().map(|q| q.index()).collect_vec();
-                let target = qargs.last().unwrap();
-                let (minima,maxima) = get_instruction_range(dag, inst);
+        let mut controls = vec![];
 
-                for control in minima..=maxima {
-                    if control != *target && qargs.contains(&control) {
-                        controls.push(control);
+        let std_op = inst.op.view();
+
+        match std_op {
+            OperationRef::StandardGate(gate) => {
+                if gate_has_control.contains(&gate) {
+                    let qargs = dag.get_qargs(inst.qubits).into_iter().map(|q| q.index()).collect_vec();
+                    let target = qargs.last().unwrap();
+                    let (minima,maxima) = get_instruction_range(dag, inst);
+
+                    for control in minima..=maxima {
+                        if control != *target && qargs.contains(&control) {
+                            controls.push(control);
+                        }
                     }
+                controls
+                } else {
+                    vec![]
                 }
-                controls
-            } else {
-                controls
             }
-        } else {
-            controls
-        }   
+            OperationRef::StandardInstruction(instruction) => {
+                if inst_has_controls.contains(&instruction) {
+                    let qargs = dag.get_qargs(inst.qubits).into_iter().map(|q| q.index()).collect_vec();
+                    let target = qargs.last().unwrap();
+                    let (minima,maxima) = get_instruction_range(dag, inst);
+
+                    for control in minima..=maxima {
+                        if control != *target && qargs.contains(&control) {
+                            controls.push(control);
+                        }
+                    }
+                controls
+                } else {
+                    vec![]
+                }
+            },
+            _ => vec![]
+        }
     }
 
     fn add_controls(&mut self, controls: &Vec<usize>, range: (usize, usize)) {
@@ -1269,6 +1269,10 @@ impl<'a> VisualizationLayer2<'a> {
             StandardGate::ECR, StandardGate::RXX, StandardGate::RYY, StandardGate::RZZ,
             StandardGate::RZX, StandardGate::XXMinusYY, StandardGate::XXPlusYY];
 
+        let direct_on_wire = vec![StandardGate::Swap, StandardGate::CSwap];
+
+        let special_cases = vec![ StandardGate::GlobalPhase, StandardGate::CPhase];
+
         let qargs = dag.get_qargs(inst.qubits).into_iter().map(|q| q.index()).collect_vec();
         let target = qargs.last().unwrap();
         let range = get_instruction_range(dag, inst);
@@ -1289,6 +1293,8 @@ impl<'a> VisualizationLayer2<'a> {
             } else {
                 vec![]
             }
+
+        // Handle special cases and direct on wire 
         } else {
             vec![]
         }
@@ -1296,6 +1302,7 @@ impl<'a> VisualizationLayer2<'a> {
     }
 
     fn add_boxed(&mut self, inst: &'a PackedInstruction, dag: &DAGCircuit, boxed_indices: &Vec<usize>) {
+        // The case of delay needs to be handled where it is multiple single qubit gates but shown as a box
         if boxed_indices.len() == 1 {
             let qargs = dag.get_qargs(inst.qubits).into_iter().map(|q| q.index()).collect_vec();
             let target = qargs.last().unwrap();
@@ -1303,13 +1310,29 @@ impl<'a> VisualizationLayer2<'a> {
             self.0[*target] = VisualizationElement2::Boxed(Boxed::Single(label));
         } else if boxed_indices.len() > 1 {
             for idx in boxed_indices {
-                self.0[*idx] = VisualizationElement2::Boxed(Boxed::Multi(Some(inst)));
+                self.0[*idx] = VisualizationElement2::Boxed(Boxed::Multi(inst));
             }
         }
     }
 
-    fn add_gate(&mut self, inst: &'a PackedInstruction, dag: &DAGCircuit) {
-        let qargs = dag.get_qargs(inst.qubits).into_iter().map(|q| q.index()).collect_vec();
+    fn add_vertical_lines(&mut self, inst: &'a PackedInstruction, dag: &DAGCircuit, vertical_lines: &Vec<usize>) {
+        let double_lines = vec![StandardInstruction::Measure];
+        let input_type: InputType = if let Some(std_instruction) = inst.op.try_standard_instruction(){
+            if double_lines.contains(&std_instruction){
+                InputType::Qubit(Some("||".to_string()))
+            } else {
+                InputType::Qubit(None)
+            }
+        } else {
+            InputType::Qubit(None)
+        };
+        for vline in vertical_lines {
+            self.0[*vline] = VisualizationElement2::VerticalLine(input_type.clone() );
+        }
+    }
+
+    // function to add standard gates and instructions
+    fn add_standard(&mut self, inst: &'a PackedInstruction, dag: &DAGCircuit) {
         let (minima,maxima) = get_instruction_range(dag, inst);
         let controls = self.get_controls(inst, dag);
         let boxed_elements = self.get_boxed_indices(inst, dag);
@@ -1319,16 +1342,7 @@ impl<'a> VisualizationLayer2<'a> {
             .collect_vec();
         self.add_controls(&controls, (minima, maxima));
         self.add_boxed(inst, dag, &boxed_elements);
-        for vline in vert_lines {
-            let input_type = if vline < dag.num_qubits() {
-                InputType::Qubit(None)
-            } else {
-                InputType::Clbit(None)
-            };
-            self.0[vline] = VisualizationElement2::VerticalLine(input_type);
-        }
-
-        //self.0[qargs.last().unwrap().index()] = VisualizationElement2::Operation;
+        self.add_vertical_lines(inst, dag, &vert_lines);
     }
 }
 
@@ -1398,6 +1412,26 @@ impl<'a> Index<usize> for VisualizationMatrix2<'a> {
 
     fn index(&self, index: usize) -> &Self::Output {
         &self.layers[index]
+    }
+}
+
+struct TextDrawer{
+
+}
+
+impl TextDrawer {
+    fn new() -> Self {
+        TextDrawer{
+
+        }
+    }
+
+    fn create_vismat(circuit: &CircuitData, dag: &DAGCircuit) -> PyResult<VisualizationMatrix2>{
+        VisualizationMatrix2::from_circuit(circuit, dag)
+    }
+
+    fn get_element_width(element: &VisualizationElement2) -> u64 {
+        
     }
 }
 
