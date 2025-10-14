@@ -15,14 +15,19 @@
 """Test Qiskit's QuantumCircuit class."""
 import copy
 import pickle
+from itertools import combinations
 
 import numpy as np
 from ddt import data, ddt
 
-from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, transpile
 from qiskit.circuit import Gate, Instruction, Measure, Parameter, Barrier, AnnotatedOperation
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit import Clbit
+from qiskit.circuit.controlflow.box import BoxOp
+from qiskit.circuit.controlflow.for_loop import ForLoopOp
+from qiskit.circuit.controlflow.switch_case import SwitchCaseOp
+from qiskit.circuit.controlflow.while_loop import WhileLoopOp
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.controlflow import IfElseOp
 from qiskit.circuit.library import CXGate, HGate
@@ -30,8 +35,10 @@ from qiskit.circuit.library.standard_gates import SGate
 from qiskit.circuit.quantumcircuit import BitLocations
 from qiskit.circuit.quantumcircuitdata import CircuitInstruction
 from qiskit.circuit import AncillaQubit, AncillaRegister, Qubit
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.quantum_info import Operator
+from qiskit.transpiler import Layout, CouplingMap
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -1575,6 +1582,167 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(circuit, expected)
         self.assertEqual(circuit.name, "test")
+
+    def test_circuit_has_control_flow_op(self):
+        """Test `has_control_flow_op` method"""
+        circuit_1 = QuantumCircuit(2, 1)
+        circuit_1.x(0)
+        circuit_2 = QuantumCircuit(2, 1)
+        circuit_2.y(0)
+
+        # Build a circuit
+        circ = QuantumCircuit(2, 2)
+        circ.h(0)
+        circ.cx(0, 1)
+        circ.measure(0, 0)
+        circ.measure(1, 1)
+
+        # Check if circuit has any control flow operations
+        self.assertFalse(circ.has_control_flow_op())
+
+        # Create examples of all control flow operations
+        control_flow_ops = [
+            IfElseOp((circ.clbits[1], 1), circuit_1, circuit_2),
+            WhileLoopOp((circ.clbits[1], 1), circuit_1),
+            ForLoopOp((circ.clbits[1], 1), None, body=circuit_1),
+            SwitchCaseOp(circ.clbits[1], [(0, circuit_1), (1, circuit_2)]),
+            BoxOp(circuit_1),
+        ]
+
+        # Create combinations of all control flow operations for the
+        # circuit.
+        op_combinations = [
+            comb_list
+            for comb_n in range(5)
+            for comb_list in combinations(control_flow_ops, comb_n + 1)
+        ]
+
+        # Use combinatorics to test all combinations of control flow operations
+        # to see if we can detect all of them.
+        for op_combination in op_combinations:
+            # Build a circuit
+            circ = QuantumCircuit(2, 2)
+            circ.h(0)
+            circ.cx(0, 1)
+            circ.measure(0, 0)
+            circ.measure(1, 1)
+            self.assertFalse(circ.has_control_flow_op())
+            for op in op_combination:
+                circ.append(op, [0, 1], [1])
+            # Check if circuit has any control flow operation
+            self.assertTrue(circ.has_control_flow_op())
+
+    @data(True, False)
+    def test_ensure_physical_same_size(self, apply_layout):
+        """`num_qubits` need not be set."""
+        qr = QuantumRegister(10, "virtuals")
+        loose = [Qubit() for _ in range(5)]
+        num_qubits = len(qr) + len(loose)
+        qc = QuantumCircuit(qr, loose)
+        qc.h(0)
+        qc.cx(0, 1)
+        self.assertTrue(qc.ensure_physical(apply_layout=apply_layout))
+
+        physical_qreg = QuantumRegister(num_qubits, "q")
+        self.assertEqual(qc.qubits, list(physical_qreg))
+        self.assertEqual(qc.qregs, [physical_qreg])
+        if apply_layout:
+            self.assertEqual(
+                qc.layout.initial_virtual_layout(),
+                Layout(dict(enumerate(list(qr) + loose))),
+            )
+            self.assertEqual(qc.layout.final_index_layout(), list(range(num_qubits)))
+            self.assertEqual(qc.layout.routing_permutation(), list(range(num_qubits)))
+            # After all this, `ensure_physical` should be a no-op.
+            self.assertFalse(qc.ensure_physical())
+        else:
+            self.assertIsNone(qc.layout)
+
+    def test_ensure_physical_can_expand_circuit(self):
+        """`ensure_physical` can add ancillas."""
+        qr = QuantumRegister(10, "virtuals")
+        loose = [Qubit() for _ in range(5)]
+        num_virtual_qubits = len(qr) + len(loose)
+        num_physical_qubits = 20
+        qc = QuantumCircuit(qr, loose)
+        qc.h(0)
+        qc.cx(0, 1)
+        self.assertTrue(qc.ensure_physical(num_physical_qubits))
+
+        ancilla_qreg = QuantumRegister(num_physical_qubits - num_virtual_qubits, "ancilla")
+        physical_qreg = QuantumRegister(num_physical_qubits, "q")
+        self.assertEqual(qc.qubits, list(physical_qreg))
+        self.assertEqual(qc.qregs, [physical_qreg])
+        self.assertEqual(
+            qc.layout.initial_virtual_layout(filter_ancillas=True),
+            Layout(dict(enumerate(list(qr) + loose))),
+        )
+        self.assertEqual(
+            qc.layout.initial_virtual_layout(filter_ancillas=False),
+            Layout(dict(enumerate(list(qr) + loose + list(ancilla_qreg)))),
+        )
+        self.assertEqual(
+            qc.layout.final_index_layout(filter_ancillas=True), list(range(num_virtual_qubits))
+        )
+        self.assertEqual(qc.layout.routing_permutation(), list(range(num_physical_qubits)))
+
+        # After all this, `ensure_physical` should be a no-op.
+        self.assertFalse(qc.ensure_physical())
+
+    def test_ensure_physical_equivalence_to_trivial_layout(self):
+        """`ensure_physical` is equivalent to the `trivial` layout method in metadata."""
+        qr = QuantumRegister(5, "virtuals")
+        qc = QuantumCircuit(qr)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+
+        num_physical_qubits = 10
+        expected = transpile(
+            qc,
+            backend=GenericBackendV2(
+                num_qubits=num_physical_qubits,
+                coupling_map=CouplingMap.from_line(10),
+                basis_gates=["h", "rz", "sx", "cx"],
+                seed=2025_07_22,
+            ),
+            layout_method="trivial",
+            optimization_level=0,
+            seed_transpiler=2025_07_22,
+        )
+        self.assertTrue(qc.ensure_physical(num_physical_qubits))
+        self.assertEqual(qc.layout, expected.layout)
+        self.assertEqual(qc, expected)
+
+    def test_ensure_physical_no_op_if_physical(self):
+        """If the circuit is already physical, nothing should happen."""
+        qr = QuantumRegister(5, "virtuals")
+        qc = QuantumCircuit(qr)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        initial = [4, 5, 6, 7, 8]
+        qc = transpile(
+            qc,
+            backend=GenericBackendV2(
+                num_qubits=10,
+                coupling_map=CouplingMap.from_line(10),
+                basis_gates=["h", "rz", "sx", "cx"],
+                seed=2025_07_22,
+            ),
+            initial_layout=initial,
+            optimization_level=0,
+            seed_transpiler=2025_07_22,
+        )
+        self.assertFalse(qc.ensure_physical())
+        # The layout shouldn't have changed.
+        self.assertEqual(qc.layout.initial_index_layout(filter_ancillas=True), initial)
+
+    def test_ensure_physical_cannot_shrink_circuit(self):
+        """It's an error to try and make a circuit narrower."""
+        qc = QuantumCircuit(10)
+        with self.assertRaisesRegex(ValueError, "cannot have fewer physical qubits"):
+            qc.ensure_physical(5)
 
 
 class TestCircuitPrivateOperations(QiskitTestCase):

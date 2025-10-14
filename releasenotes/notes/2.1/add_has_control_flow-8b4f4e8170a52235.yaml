@@ -1,0 +1,4 @@
+features_circuits:
+  - |
+    Added :meth:`.QuantumCircuit.has_control_flow` to check if a circuit
+    contains any control flow operations.

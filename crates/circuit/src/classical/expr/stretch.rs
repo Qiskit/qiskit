@@ -15,11 +15,11 @@ use crate::classical::types::Type;
 use crate::imports::UUID;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyTuple};
-use pyo3::{intern, IntoPyObjectExt};
+use pyo3::{IntoPyObjectExt, intern};
 use uuid::Uuid;
 
 /// A stretch variable.
-#[derive(Clone, Debug, PartialEq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Stretch {
     pub uuid: u128,
     pub name: String,

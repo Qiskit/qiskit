@@ -445,6 +445,22 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
         pass_ = UnitarySynthesis(["unknown", "gates"])
         self.assertEqual(qc, pass_(qc))
 
+    @data(["unitary"], ["rz"])
+    def test_synth_gates_to_basis(self, synth_gates):
+        """Verify two qubit unitaries are synthesized to match basis gates."""
+        unitary = QuantumCircuit(1)
+        unitary.h(0)
+        unitary_op = Operator(unitary)
+
+        qc = QuantumCircuit(1)
+        qc.unitary(unitary_op, 0)
+        qc.rz(0.1, 0)
+        dag = circuit_to_dag(qc)
+
+        basis_gates = ["u3"]
+        out = UnitarySynthesis(basis_gates=basis_gates, synth_gates=synth_gates).run(dag)
+        self.assertTrue(set(out.count_ops()).isdisjoint(synth_gates))
+
 
 @ddt
 class TestUnitarySynthesisTarget(QiskitTestCase):

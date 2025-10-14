@@ -24,3 +24,4 @@ python-constraint>=1.4
 cvxpy
 scikit-learn>=0.20.0
 z3-solver>=4.7
+sympy>=1.3

@@ -95,6 +95,9 @@ class PassManagerConfig:
         self.target = target
         self.hls_config = hls_config
         self.qubits_initially_zero = qubits_initially_zero
+        # Stores whether the basis gates are Clifford+T,
+        # in which case we use stage manager plugins adapted to Clifford+T.
+        self._is_clifford_t = False
 
     @classmethod
     def from_backend(cls, backend, _skip_target=False, **pass_manager_options):

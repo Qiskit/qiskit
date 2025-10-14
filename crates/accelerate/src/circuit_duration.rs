@@ -16,9 +16,10 @@ use pyo3::wrap_pyfunction;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
 use qiskit_circuit::operations::{DelayUnit, Operation, OperationRef, Param, StandardInstruction};
 
-use crate::nlayout::PhysicalQubit;
-use crate::target_transpiler::Target;
+use qiskit_transpiler::target::Target;
+
 use crate::QiskitError;
+use qiskit_circuit::PhysicalQubit;
 use rustworkx_core::dag_algo::longest_path;
 use rustworkx_core::petgraph::stable_graph::StableDiGraph;
 use rustworkx_core::petgraph::visit::{EdgeRef, IntoEdgeReferences};
@@ -44,24 +45,18 @@ pub(crate) fn compute_estimated_duration(dag: &DAGCircuit, target: &Target) -> P
                             return if unit == DelayUnit::DT {
                                 if let Some(dt) = dt {
                                     match dur {
-                                        Param::Float(val) =>
-                                            {
-                                                Ok(val * dt)
-
-                                            },
-                                        Param::Obj(val) => {
-                                            Python::with_gil(|py| {
-                                                let dur_float: f64 = val.extract(py)?;
-                                                Ok(dur_float * dt)
-                                            })
-                                        },
+                                        Param::Float(val) => Ok(val * dt),
+                                        Param::Obj(val) => Python::attach(|py| {
+                                            let dur_float: f64 = val.extract(py)?;
+                                            Ok(dur_float * dt)
+                                        }),
                                         Param::ParameterExpression(_) => Err(QiskitError::new_err(
-                                            "Circuit contains parameterized delays, can't compute a duration estimate with this circuit"
+                                            "Circuit contains parameterized delays, can't compute a duration estimate with this circuit",
                                         )),
                                     }
                                 } else {
                                     Err(QiskitError::new_err(
-                                        "Circuit contains delays in dt but the target doesn't specify dt"
+                                        "Circuit contains delays in dt but the target doesn't specify dt",
                                     ))
                                 }
                             } else if unit == DelayUnit::S {
@@ -73,7 +68,7 @@ pub(crate) fn compute_estimated_duration(dag: &DAGCircuit, target: &Target) -> P
                                 }
                             } else {
                                 Err(QiskitError::new_err(
-                                    "Circuit contains delays in units other then seconds or dt, the circuit is not scheduled."
+                                    "Circuit contains delays in units other then seconds or dt, the circuit is not scheduled.",
                                 ))
                             };
                         } else if let StandardInstruction::Barrier(_) = op {
@@ -83,8 +78,7 @@ pub(crate) fn compute_estimated_duration(dag: &DAGCircuit, target: &Target) -> P
                     match target.get_duration(name, &physical_qubits) {
                         Some(dur) => Ok(dur),
                         None => Err(QiskitError::new_err(format!(
-                            "Duration not found for {} on qubits: {:?}",
-                            name, qubits
+                            "Duration not found for {name} on qubits: {qubits:?}"
                         ))),
                     }
                 }

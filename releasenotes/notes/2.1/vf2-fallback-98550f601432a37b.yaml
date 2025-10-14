@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    The fallback error heuristic in :class:`.VF2Layout` and :class:`.VF2PostLayout`, used when there
+    were no reported error rates, could previously assign errors greater than one, and have
+    unpredictable effects on the resulting layout scores.

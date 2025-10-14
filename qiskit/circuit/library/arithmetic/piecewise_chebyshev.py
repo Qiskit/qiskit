@@ -13,6 +13,7 @@
 """Piecewise polynomial Chebyshev approximation to a given f(x)."""
 
 from __future__ import annotations
+import warnings
 from typing import Callable
 import numpy as np
 from numpy.polynomial.chebyshev import Chebyshev
@@ -39,29 +40,30 @@ class PiecewiseChebyshev(BlueprintCircuit):
 
     Examples:
 
-        .. plot::
-           :alt: Circuit diagram output by the previous code.
-           :include-source:
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
 
-            import numpy as np
-            from qiskit import QuantumCircuit
-            from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
-            f_x, degree, breakpoints, num_state_qubits = lambda x: np.arcsin(1 / x), 2, [2, 4], 2
-            pw_approximation = PiecewiseChebyshev(f_x, degree, breakpoints, num_state_qubits)
-            pw_approximation._build()
-            qc = QuantumCircuit(pw_approximation.num_qubits)
-            qc.h(list(range(num_state_qubits)))
-            qc.append(pw_approximation.to_instruction(), qc.qubits)
-            qc.draw(output='mpl')
+        import numpy as np
+        from qiskit import QuantumCircuit
+        from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
+        f_x, degree, breakpoints, num_state_qubits = lambda x: np.arcsin(1 / x), 2, [2, 4], 2
+        pw_approximation = PiecewiseChebyshev(f_x, degree, breakpoints, num_state_qubits)
+        pw_approximation._build()
+        qc = QuantumCircuit(pw_approximation.num_qubits)
+        qc.h(list(range(num_state_qubits)))
+        qc.append(pw_approximation.to_instruction(), qc.qubits)
+        qc.draw(output='mpl')
 
     References:
 
-        [1]: Haener, T., Roetteler, M., & Svore, K. M. (2018).
-             Optimizing Quantum Circuits for Arithmetic.
-             `arXiv:1805.12445 <http://arxiv.org/abs/1805.12445>`_
-        [2]: Carrera Vazquez, A., Hiptmair, H., & Woerner, S. (2022).
-             Enhancing the Quantum Linear Systems Algorithm Using Richardson Extrapolation.
-             `ACM Transactions on Quantum Computing 3, 1, Article 2 <https://doi.org/10.1145/3490631>`_
+    [1] Haener, T., Roetteler, M., & Svore, K. M. (2018).
+    Optimizing Quantum Circuits for Arithmetic.
+    `arXiv:1805.12445 <http://arxiv.org/abs/1805.12445>`_
+
+    [2] Carrera Vazquez, A., Hiptmair, H., & Woerner, S. (2022).
+    Enhancing the Quantum Linear Systems Algorithm Using Richardson Extrapolation.
+    `ACM Transactions on Quantum Computing 3, 1, Article 2 <https://doi.org/10.1145/3490631>`_
     """
 
     def __init__(
@@ -345,9 +347,12 @@ class PiecewiseChebyshev(BlueprintCircuit):
 
         super()._build()
 
-        poly_r = PiecewisePolynomialPauliRotations(
-            self.num_state_qubits, self.breakpoints, self.polynomials, name=self.name
-        )
+        # the class itself is deprecated, no need to raise additional warnings during runtime
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+            poly_r = PiecewisePolynomialPauliRotations(
+                self.num_state_qubits, self.breakpoints, self.polynomials, name=self.name
+            )
 
         # Apply polynomial approximation
         self.append(poly_r.to_gate(), self.qubits)
@@ -383,12 +388,13 @@ class PiecewiseChebyshevGate(Gate):
 
     References:
 
-        [1]: Haener, T., Roetteler, M., & Svore, K. M. (2018).
-             Optimizing Quantum Circuits for Arithmetic.
-             `arXiv:1805.12445 <http://arxiv.org/abs/1805.12445>`_
-        [2]: Carrera Vazquez, A., Hiptmair, H., & Woerner, S. (2022).
-             Enhancing the Quantum Linear Systems Algorithm Using Richardson Extrapolation.
-             `ACM Transactions on Quantum Computing 3, 1, Article 2 <https://doi.org/10.1145/3490631>`_
+    [1] Haener, T., Roetteler, M., & Svore, K. M. (2018).
+    Optimizing Quantum Circuits for Arithmetic.
+    `arXiv:1805.12445 <http://arxiv.org/abs/1805.12445>`_
+
+    [2] Carrera Vazquez, A., Hiptmair, H., & Woerner, S. (2022).
+    Enhancing the Quantum Linear Systems Algorithm Using Richardson Extrapolation.
+    `ACM Transactions on Quantum Computing 3, 1, Article 2 <https://doi.org/10.1145/3490631>`_
     """
 
     def __init__(

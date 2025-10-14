@@ -76,12 +76,12 @@ class QFT(BlueprintCircuit):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="2.1",
         additional_msg=(
             "Use qiskit.circuit.library.QFTGate or qiskit.synthesis.qft.synth_qft_full instead, "
             "for access to all previous arguments.",
         ),
-        pending=True,
+        removal_timeline="in Qiskit 3.0",
     )
     def __init__(
         self,
@@ -92,8 +92,7 @@ class QFT(BlueprintCircuit):
         insert_barriers: bool = False,
         name: str | None = None,
     ) -> None:
-        """Construct a new QFT circuit.
-
+        """
         Args:
             num_qubits: The number of qubits on which the QFT acts.
             approximation_degree: The degree of approximation (0 for no approximation).

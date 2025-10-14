@@ -3401,6 +3401,38 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         self.assertEqual(qc, expected)
 
+    def test_box_stretch_duration(self):
+        qc = QuantumCircuit([Qubit()])
+        a = qc.add_stretch("a")
+        b = qc.add_stretch("b")
+        long_range = qc.add_stretch("long_range")
+        with qc.box(duration=a):  # body_0
+            c = qc.add_stretch("c")
+            with qc.box(duration=expr.mul(2, b)):  # body_1
+                qc.delay(c, 0)
+            with qc.if_test(expr.lift(True)):  # body_2
+                # This capture goes backwards through two scopes.
+                qc.delay(long_range, 0)
+
+        expected = QuantumCircuit([Qubit()])
+        expected.add_stretch(a)
+        expected.add_stretch(b)
+        expected.add_stretch(long_range)
+        body_0 = QuantumCircuit(expected.qubits)
+        body_0.add_capture(b)
+        body_0.add_capture(long_range)
+        body_0.add_stretch(c)
+        body_1 = QuantumCircuit(expected.qubits)
+        body_1.add_capture(c)
+        body_1.delay(c, 0)
+        body_0.box(body_1, expected.qubits, [], duration=expr.mul(2, b))
+        body_2 = QuantumCircuit(expected.qubits)
+        body_2.add_capture(long_range)
+        body_2.delay(long_range, 0)
+        body_0.if_test(expr.lift(True), body_2, expected.qubits, [])
+        expected.box(body_0, expected.qubits, [], duration=a)
+        self.assertEqual(qc, expected)
+
     def test_box_label(self):
         qc = QuantumCircuit([Qubit()])
         with qc.box(label="hello, world"):

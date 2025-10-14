@@ -19,6 +19,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Instruction
 from qiskit.circuit.controlflow import (
+    BoxOp,
     IfElseOp,
     WhileLoopOp,
     ForLoopOp,
@@ -265,6 +266,7 @@ class GenericBackendV2(BackendV2):
             self._target.add_instruction(SwitchCaseOp, name="switch_case")
             self._target.add_instruction(BreakLoopOp, name="break")
             self._target.add_instruction(ContinueLoopOp, name="continue")
+            self._target.add_instruction(BoxOp, name="box")
 
     def _add_noisy_instruction_to_target(
         self,

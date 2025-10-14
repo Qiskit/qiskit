@@ -19,8 +19,8 @@ use std::collections::BTreeMap;
 use std::io::prelude::*;
 
 use crate::dag_circuit::{DAGCircuit, Wire};
-use pyo3::prelude::*;
 use pyo3::IntoPyObjectExt;
+use pyo3::prelude::*;
 use rustworkx_core::petgraph::visit::{
     EdgeRef, IntoEdgeReferences, IntoNodeReferences, NodeIndexable, NodeRef,
 };
@@ -33,8 +33,8 @@ pub fn build_dot<T>(
     dag: &DAGCircuit,
     file: &mut T,
     graph_attrs: Option<BTreeMap<String, String>>,
-    node_attrs: Option<PyObject>,
-    edge_attrs: Option<PyObject>,
+    node_attrs: Option<Py<PyAny>>,
+    edge_attrs: Option<Py<PyAny>>,
 ) -> PyResult<()>
 where
     T: Write,
@@ -43,7 +43,7 @@ where
     writeln!(file, "{} {{", TYPE[graph.is_directed() as usize])?;
     if let Some(graph_attr_map) = graph_attrs {
         for (key, value) in graph_attr_map.iter() {
-            writeln!(file, "{}={} ;", key, value)?;
+            writeln!(file, "{key}={value} ;")?;
         }
     }
 
@@ -60,11 +60,7 @@ where
         let edge_weight = match edge.weight() {
             Wire::Qubit(qubit) => dag.qubits().get(*qubit).cloned().into_bound_py_any(py)?,
             Wire::Clbit(clbit) => dag.clbits().get(*clbit).cloned().into_bound_py_any(py)?,
-            Wire::Var(var) => dag
-                .vars()
-                .get(*var)
-                .map(|var| var.clone_ref(py))
-                .into_bound_py_any(py)?,
+            Wire::Var(var) => dag.vars().get(*var).cloned().into_bound_py_any(py)?,
         };
         writeln!(
             file,
@@ -84,7 +80,7 @@ static ATTRS_TO_ESCAPE: [&str; 2] = ["label", "tooltip"];
 /// Convert an attr map to an output string
 fn attr_map_to_string<'py, T: IntoPyObject<'py>>(
     py: Python<'py>,
-    attrs: Option<&'py PyObject>,
+    attrs: Option<&'py Py<PyAny>>,
     weight: T,
 ) -> PyResult<String>
 where
@@ -109,12 +105,12 @@ where
         .iter()
         .map(|(key, value)| {
             if ATTRS_TO_ESCAPE.contains(&key.as_str()) {
-                format!("{}=\"{}\"", key, value)
+                format!("{key}=\"{value}\"")
             } else {
-                format!("{}={}", key, value)
+                format!("{key}={value}")
             }
         })
         .collect::<Vec<String>>()
         .join(", ");
-    Ok(format!("[{}]", attr_string))
+    Ok(format!("[{attr_string}]"))
 }

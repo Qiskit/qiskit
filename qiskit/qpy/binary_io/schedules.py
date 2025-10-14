@@ -18,12 +18,10 @@ The purpose of the `_read` and `_load` methods below is just to advance
 the file handle while consuming pulse data."""
 import json
 import struct
-import zlib
 
 from io import BytesIO
 
 import numpy as np
-import symengine as sym
 
 from qiskit.exceptions import QiskitError
 from qiskit.qpy import formats, common, type_keys
@@ -87,20 +85,6 @@ def _read_discriminator(file_obj, version) -> None:
     value.read_value(file_obj, version, {})  # read name
 
 
-def _loads_symbolic_expr(expr_bytes, use_symengine=False):
-    if expr_bytes == b"":
-        return None
-    expr_bytes = zlib.decompress(expr_bytes)
-    if use_symengine:
-        return common.load_symengine_payload(expr_bytes)
-    else:
-        from sympy import parse_expr
-
-        expr_txt = expr_bytes.decode(common.ENCODE)
-        expr = parse_expr(expr_txt)
-        return sym.sympify(expr)
-
-
 def _read_symbolic_pulse(file_obj, version) -> None:
     make = formats.SYMBOLIC_PULSE._make
     pack = formats.SYMBOLIC_PULSE_PACK
@@ -113,11 +97,9 @@ def _read_symbolic_pulse(file_obj, version) -> None:
         )
     )
     pulse_type = file_obj.read(header.type_size).decode(common.ENCODE)
-    _loads_symbolic_expr(file_obj.read(header.envelope_size))  # read envelope
-    _loads_symbolic_expr(file_obj.read(header.constraints_size))  # read constraints
-    _loads_symbolic_expr(
-        file_obj.read(header.valid_amp_conditions_size)
-    )  # read valid amp conditions
+    file_obj.read(header.envelope_size)  # read envelope
+    file_obj.read(header.constraints_size)  # read constraints
+    file_obj.read(header.valid_amp_conditions_size)  # read valid amp conditions
     # read parameters
     common.read_mapping(
         file_obj,
@@ -146,7 +128,7 @@ def _read_symbolic_pulse(file_obj, version) -> None:
         raise NotImplementedError(f"Unknown class '{class_name}'")
 
 
-def _read_symbolic_pulse_v6(file_obj, version, use_symengine) -> None:
+def _read_symbolic_pulse_v6(file_obj, version) -> None:
     make = formats.SYMBOLIC_PULSE_V2._make
     pack = formats.SYMBOLIC_PULSE_PACK_V2
     size = formats.SYMBOLIC_PULSE_SIZE_V2
@@ -159,11 +141,9 @@ def _read_symbolic_pulse_v6(file_obj, version, use_symengine) -> None:
     )
     class_name = file_obj.read(header.class_name_size).decode(common.ENCODE)
     file_obj.read(header.type_size).decode(common.ENCODE)  # read pulse type
-    _loads_symbolic_expr(file_obj.read(header.envelope_size), use_symengine)  # read envelope
-    _loads_symbolic_expr(file_obj.read(header.constraints_size), use_symengine)  # read constraints
-    _loads_symbolic_expr(
-        file_obj.read(header.valid_amp_conditions_size), use_symengine
-    )  # read valid_amp_conditions
+    file_obj.read(header.envelope_size)  # read envelope
+    file_obj.read(header.constraints_size)  # read constraints
+    file_obj.read(header.valid_amp_conditions_size)  # read valid_amp_conditions
     # read parameters
     common.read_mapping(
         file_obj,
@@ -191,16 +171,14 @@ def _read_alignment_context(file_obj, version) -> None:
 
 
 # pylint: disable=too-many-return-statements
-def _loads_operand(type_key, data_bytes, version, use_symengine):
+def _loads_operand(type_key, data_bytes, version):
     if type_key == type_keys.ScheduleOperand.WAVEFORM:
         return common.data_from_binary(data_bytes, _read_waveform, version=version)
     if type_key == type_keys.ScheduleOperand.SYMBOLIC_PULSE:
         if version < 6:
             return common.data_from_binary(data_bytes, _read_symbolic_pulse, version=version)
         else:
-            return common.data_from_binary(
-                data_bytes, _read_symbolic_pulse_v6, version=version, use_symengine=use_symengine
-            )
+            return common.data_from_binary(data_bytes, _read_symbolic_pulse_v6, version=version)
     if type_key == type_keys.ScheduleOperand.CHANNEL:
         return common.data_from_binary(data_bytes, _read_channel, version=version)
     if type_key == type_keys.ScheduleOperand.OPERAND_STR:
@@ -229,7 +207,9 @@ def _read_element(file_obj, version, metadata_deserializer, use_symengine) -> No
 
     # read operands
     common.read_sequence(
-        file_obj, deserializer=_loads_operand, version=version, use_symengine=use_symengine
+        file_obj,
+        deserializer=_loads_operand,
+        version=version,
     )
     # read name
     value.read_value(file_obj, version, {})

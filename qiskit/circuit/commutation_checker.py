@@ -14,8 +14,10 @@
 
 from __future__ import annotations
 from typing import List, Union, Set, Optional
+from collections.abc import Sequence
 
 from qiskit.circuit.operation import Operation
+from qiskit.circuit import Qubit
 from qiskit._accelerate.commutation_checker import CommutationChecker as RustChecker
 
 
@@ -69,11 +71,11 @@ class CommutationChecker:
     def commute(
         self,
         op1: Operation,
-        qargs1: List,
-        cargs1: List,
+        qargs1: Sequence[Qubit | int],
+        cargs1: Sequence[Qubit | int],
         op2: Operation,
-        qargs2: List,
-        cargs2: List,
+        qargs2: Sequence[Qubit | int],
+        cargs2: Sequence[Qubit | int],
         max_num_qubits: int = 3,
         approximation_degree: float = 1.0,
     ) -> bool:
@@ -99,7 +101,14 @@ class CommutationChecker:
             bool: whether two operations commute.
         """
         return self.cc.commute(
-            op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits, approximation_degree
+            op1,
+            tuple(qargs1),
+            tuple(cargs1),
+            op2,
+            tuple(qargs2),
+            tuple(cargs2),
+            max_num_qubits,
+            approximation_degree,
         )
 
     def num_cached_entries(self):

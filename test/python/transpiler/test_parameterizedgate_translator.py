@@ -15,7 +15,7 @@
 import unittest
 
 from qiskit.circuit import ParameterVector, Parameter, Gate, QuantumCircuit
-from qiskit.circuit.library import TwoLocal
+from qiskit.circuit.library import n_local
 from qiskit.exceptions import QiskitError
 from qiskit.transpiler.passes import TranslateParameterizedGates
 from qiskit.providers.fake_provider import GenericBackendV2
@@ -65,7 +65,7 @@ class TestTranslateParameterized(QiskitTestCase):
     def test_target(self):
         """Test unrolling with a target."""
         target = GenericBackendV2(num_qubits=5).target
-        circuit = TwoLocal(2, "rz", "cx", reps=2, entanglement="linear")
+        circuit = n_local(2, "rz", "cx", reps=2, entanglement="linear")
 
         translator = TranslateParameterizedGates(target=target)
         translated = translator(circuit)

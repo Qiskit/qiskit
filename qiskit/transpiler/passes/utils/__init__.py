@@ -27,6 +27,7 @@ from .gates_basis import GatesInBasis
 from .unroll_forloops import UnrollForLoops
 from .minimum_point import MinimumPoint
 from .filter_op_nodes import FilterOpNodes
+from .wrap_angles import WrapAngles
 
 # Utility functions
 from . import control_flow

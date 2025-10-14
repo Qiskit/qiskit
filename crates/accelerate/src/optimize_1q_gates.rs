@@ -76,7 +76,7 @@ pub fn compose_u3_rust(
         if mat[8] > -1.0 {
             [mat[5].atan2(mat[2]), (mat[8]).acos(), mat[7].atan2(-mat[6])]
         } else {
-            [-1. * (mat[3].atan2(mat[4])), PI, 0.]
+            [-(mat[3].atan2(mat[4])), PI, 0.]
         }
     } else {
         [mat[3].atan2(mat[4]), 0., 0.]

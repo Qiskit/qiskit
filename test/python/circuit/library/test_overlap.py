@@ -29,23 +29,27 @@ class TestUnitaryOverlap(QiskitTestCase):
     @data(True, False)
     def test_identity(self, use_function):
         """Test identity is returned"""
-        unitary = EfficientSU2(2)
+        with self.assertWarns(DeprecationWarning):
+            unitary = EfficientSU2(2)
         unitary.assign_parameters(np.random.random(size=unitary.num_parameters), inplace=True)
         if use_function:
             overlap = unitary_overlap(unitary, unitary)
         else:
-            overlap = UnitaryOverlap(unitary, unitary)
+            with self.assertWarns(DeprecationWarning):
+                overlap = UnitaryOverlap(unitary, unitary)
         self.assertLess(abs(Statevector.from_instruction(overlap)[0] - 1), 1e-12)
 
     @data(True, False)
     def test_parameterized_identity(self, use_function):
         """Test identity is returned"""
-        unitary = EfficientSU2(2)
+        with self.assertWarns(DeprecationWarning):
+            unitary = EfficientSU2(2)
 
         if use_function:
             overlap = unitary_overlap(unitary, unitary)
         else:
-            overlap = UnitaryOverlap(unitary, unitary)
+            with self.assertWarns(DeprecationWarning):
+                overlap = UnitaryOverlap(unitary, unitary)
 
         rands = np.random.random(size=unitary.num_parameters)
         double_rands = np.hstack((rands, rands))
@@ -55,25 +59,31 @@ class TestUnitaryOverlap(QiskitTestCase):
     @data(True, False)
     def test_two_parameterized_inputs(self, use_function):
         """Test two parameterized inputs"""
-        unitary1 = EfficientSU2(2)
-        unitary2 = EfficientSU2(2)
+        with self.assertWarns(DeprecationWarning):
+            unitary1 = EfficientSU2(2)
+        with self.assertWarns(DeprecationWarning):
+            unitary2 = EfficientSU2(2)
 
         if use_function:
             overlap = unitary_overlap(unitary1, unitary2)
         else:
-            overlap = UnitaryOverlap(unitary1, unitary2)
+            with self.assertWarns(DeprecationWarning):
+                overlap = UnitaryOverlap(unitary1, unitary2)
         self.assertEqual(overlap.num_parameters, unitary1.num_parameters + unitary2.num_parameters)
 
     @data(True, False)
     def test_parameter_prefixes(self, use_function):
         """Test two parameterized inputs"""
-        unitary1 = EfficientSU2(2)
-        unitary2 = EfficientSU2(2)
+        with self.assertWarns(DeprecationWarning):
+            unitary1 = EfficientSU2(2)
+        with self.assertWarns(DeprecationWarning):
+            unitary2 = EfficientSU2(2)
 
         if use_function:
             overlap = unitary_overlap(unitary1, unitary2, prefix1="a", prefix2="b")
         else:
-            overlap = UnitaryOverlap(unitary1, unitary2, prefix1="a", prefix2="b")
+            with self.assertWarns(DeprecationWarning):
+                overlap = UnitaryOverlap(unitary1, unitary2, prefix1="a", prefix2="b")
 
         self.assertEqual(overlap.num_parameters, unitary1.num_parameters + unitary2.num_parameters)
 
@@ -85,70 +95,85 @@ class TestUnitaryOverlap(QiskitTestCase):
     @data(True, False)
     def test_partial_parameterized_inputs(self, use_function):
         """Test one parameterized inputs (1)"""
-        unitary1 = EfficientSU2(2)
+        with self.assertWarns(DeprecationWarning):
+            unitary1 = EfficientSU2(2)
         unitary1.assign_parameters(np.random.random(size=unitary1.num_parameters), inplace=True)
 
-        unitary2 = EfficientSU2(2, reps=5)
+        with self.assertWarns(DeprecationWarning):
+            unitary2 = EfficientSU2(2, reps=5)
 
         if use_function:
             overlap = unitary_overlap(unitary1, unitary2)
         else:
-            overlap = UnitaryOverlap(unitary1, unitary2)
+            with self.assertWarns(DeprecationWarning):
+                overlap = UnitaryOverlap(unitary1, unitary2)
 
         self.assertEqual(overlap.num_parameters, unitary2.num_parameters)
 
     @data(True, False)
     def test_partial_parameterized_inputs2(self, use_function):
         """Test one parameterized inputs (2)"""
-        unitary1 = EfficientSU2(2)
-        unitary2 = EfficientSU2(2, reps=5)
+        with self.assertWarns(DeprecationWarning):
+            unitary1 = EfficientSU2(2)
+        with self.assertWarns(DeprecationWarning):
+            unitary2 = EfficientSU2(2, reps=5)
         unitary2.assign_parameters(np.random.random(size=unitary2.num_parameters), inplace=True)
 
         if use_function:
             overlap = unitary_overlap(unitary1, unitary2)
         else:
-            overlap = UnitaryOverlap(unitary1, unitary2)
+            with self.assertWarns(DeprecationWarning):
+                overlap = UnitaryOverlap(unitary1, unitary2)
 
         self.assertEqual(overlap.num_parameters, unitary1.num_parameters)
 
     @data(True, False)
     def test_barrier(self, use_function):
         """Test that barriers on input circuits are well handled"""
-        unitary1 = EfficientSU2(1, reps=0)
+        with self.assertWarns(DeprecationWarning):
+            unitary1 = EfficientSU2(1, reps=0)
         unitary1.barrier()
-        unitary2 = EfficientSU2(1, reps=1)
+        with self.assertWarns(DeprecationWarning):
+            unitary2 = EfficientSU2(1, reps=1)
         unitary2.barrier()
         if use_function:
             overlap = unitary_overlap(unitary1, unitary2)
         else:
-            overlap = UnitaryOverlap(unitary1, unitary2)
+            with self.assertWarns(DeprecationWarning):
+                overlap = UnitaryOverlap(unitary1, unitary2)
         self.assertEqual(overlap.num_parameters, unitary1.num_parameters + unitary2.num_parameters)
 
     @data(True, False)
     def test_measurements(self, use_function):
         """Test that exception is thrown for measurements"""
-        unitary1 = EfficientSU2(2)
+        with self.assertWarns(DeprecationWarning):
+            unitary1 = EfficientSU2(2)
         unitary1.measure_all()
-        unitary2 = EfficientSU2(2)
+        with self.assertWarns(DeprecationWarning):
+            unitary2 = EfficientSU2(2)
 
         with self.assertRaises(CircuitError):
             if use_function:
                 _ = unitary_overlap(unitary1, unitary2)
             else:
-                _ = UnitaryOverlap(unitary1, unitary2)
+                with self.assertWarns(DeprecationWarning):
+                    _ = UnitaryOverlap(unitary1, unitary2)
 
     @data(True, False)
     def test_rest(self, use_function):
         """Test that exception is thrown for rest"""
-        unitary1 = EfficientSU2(1, reps=0)
+        with self.assertWarns(DeprecationWarning):
+            unitary1 = EfficientSU2(1, reps=0)
         unitary1.reset(0)
-        unitary2 = EfficientSU2(1, reps=1)
+        with self.assertWarns(DeprecationWarning):
+            unitary2 = EfficientSU2(1, reps=1)
 
         with self.assertRaises(CircuitError):
             if use_function:
                 _ = unitary_overlap(unitary1, unitary2)
             else:
-                _ = UnitaryOverlap(unitary1, unitary2)
+                with self.assertWarns(DeprecationWarning):
+                    _ = UnitaryOverlap(unitary1, unitary2)
 
     @data(True, False)
     def test_controlflow(self, use_function):
@@ -166,30 +191,37 @@ class TestUnitaryOverlap(QiskitTestCase):
             if use_function:
                 _ = unitary_overlap(unitary1, unitary2)
             else:
-                _ = UnitaryOverlap(unitary1, unitary2)
+                with self.assertWarns(DeprecationWarning):
+                    _ = UnitaryOverlap(unitary1, unitary2)
 
     @data(True, False)
     def test_mismatching_qubits(self, use_function):
         """Test that exception is thrown for mismatching circuit"""
-        unitary1 = EfficientSU2(2)
-        unitary2 = EfficientSU2(1)
+        with self.assertWarns(DeprecationWarning):
+            unitary1 = EfficientSU2(2)
+        with self.assertWarns(DeprecationWarning):
+            unitary2 = EfficientSU2(1)
 
         with self.assertRaises(CircuitError):
             if use_function:
                 _ = unitary_overlap(unitary1, unitary2)
             else:
-                _ = UnitaryOverlap(unitary1, unitary2)
+                with self.assertWarns(DeprecationWarning):
+                    _ = UnitaryOverlap(unitary1, unitary2)
 
     @data(True, False)
     def test_insert_barrier(self, use_function):
         """Test inserting barrier between circuits"""
-        unitary1 = EfficientSU2(1, reps=1)
-        unitary2 = EfficientSU2(1, reps=1)
+        with self.assertWarns(DeprecationWarning):
+            unitary1 = EfficientSU2(1, reps=1)
+        with self.assertWarns(DeprecationWarning):
+            unitary2 = EfficientSU2(1, reps=1)
 
         if use_function:
             overlap = unitary_overlap(unitary1, unitary2, insert_barrier=True)
         else:
-            overlap = UnitaryOverlap(unitary1, unitary2, insert_barrier=True)
+            with self.assertWarns(DeprecationWarning):
+                overlap = UnitaryOverlap(unitary1, unitary2, insert_barrier=True)
 
         self.assertEqual(overlap.count_ops()["barrier"], 1)
         self.assertEqual(
