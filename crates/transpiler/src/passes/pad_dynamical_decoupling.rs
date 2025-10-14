@@ -26,6 +26,7 @@ use qiskit_circuit::operations::{
     DelayUnit, OperationRef, Param, StandardGate, StandardInstruction,
 };
 use qiskit_circuit::packed_instruction::PackedOperation;
+use qiskit_circuit::parameter::parameter_expression::{ParameterExpression, ParameterValueType};
 use qiskit_circuit::Qubit;
 use qiskit_synthesis::euler_one_qubit_decomposer::{angles_from_unitary, EulerBasis};
 use smallvec::{smallvec, SmallVec};
@@ -36,9 +37,9 @@ use std::f64::consts::PI;
 #[pyo3(name = "pad_dynamical_decoupling")]
 pub fn run_pad_dynamical_decoupling(
     py: Python,
-    t_end: usize, // When t_end is passed as a float, it leads to errors & panics (YOU MUST USE A f64...)
-    t_start: usize,
-    alignment: usize,
+    t_end: f64, // When t_end is passed as a float, it leads to errors & panics (YOU MUST USE A f64...)
+    t_start: f64,
+    alignment: f64,
     prev_node: &Bound<PyAny>, // Can't I use rust-native struct(s) for this? (No, because you don't know what sub-class of DAGNode it is...)
     next_node: &Bound<PyAny>,
     _no_dd_qubits: &Bound<PySet>,
@@ -85,7 +86,7 @@ pub fn run_pad_dynamical_decoupling(
     // As you can see, constraints on t0 are all satisfied without explicit scheduling.
 
     let time_interval = t_end - t_start; //Leads to underflow during conversion
-    if time_interval % alignment != 0 {
+    if time_interval % alignment != 0.0 {
         return Err(TranspilerError::new_err(
             format!(
                 "Time interval {time_interval} is not divisible by alignment {alignment} between prev_node and next_node."
@@ -133,21 +134,21 @@ pub fn run_pad_dynamical_decoupling(
     }
 
     let slack = time_interval
-        - _dd_sequence_lengths
+        - (_dd_sequence_lengths
             .get(&qubit)
-            .map_or(0, |lengths| lengths.iter().sum::<usize>());
+            .map_or(0, |lengths| lengths.iter().sum::<usize>()) as f64);
 
     let _sequence_phase: f64 = _sequence_phase.extract()?;
     let mut sequence_gphase = _sequence_phase;
 
-    if slack <= 0 {
+    if slack <= 0.0 {
         // Interval too short
         apply_scheduled_delay_op(
-            py,
-            dag,
-            &(t_start as f64),
-            &(time_interval as f64),
-            &qubit,
+            py, 
+            dag, 
+            &t_start, 
+            &time_interval, 
+            &qubit, 
             property_set,
         )?;
         return Ok(());
@@ -172,8 +173,8 @@ pub fn run_pad_dynamical_decoupling(
                 if let Some((inv_gate, _inv_params)) = gate.inverse(&gate_params) {
                     let inv_packed_op = PackedOperation::from_standard_gate(inv_gate);
                     inv_packed_op
-                        .matrix(&[])
-                        .expect("No matrix representation for inverse gate.") // This is throwing a panic exception in some cases.... (why??; test_insert_midmeas_hahn_asap)
+                        .matrix(&_inv_params)
+                        .expect("No matrix representation for inverse gate.")
                 } else {
                     panic!("No inverse for this standard gate!");
                 }
@@ -221,16 +222,23 @@ pub fn run_pad_dynamical_decoupling(
                         let [theta_new, phi_new, lam_new] =
                             compose_u3_rust(theta_r, phi_r, lam_r, theta, phi, lam);
 
-                        next_node_inst.params = smallvec![
-                            Param::Float(theta_new),
-                            Param::Float(phi_new),
-                            Param::Float(lam_new),
-                        ];
+                        let new_instruction = CircuitInstruction {
+                            operation: next_node_inst.operation.clone(),
+                            qubits: next_node_inst.qubits.clone_ref(py),
+                            clbits: next_node_inst.clbits.clone_ref(py),
+                            label: next_node_inst.label.clone(),
+                            params: smallvec![
+                                Param::Float(theta_new),
+                                Param::Float(phi_new),
+                                Param::Float(lam_new),
+                            ],
+                            #[cfg(feature = "cache_pygates")]
+                            py_op: std::sync::OnceLock::new(),
+                        };
 
-                        // Replace the node in the DAG
-                        let op_obj = next_node_inst.get_operation(py).unwrap();
-                        let op: &Bound<PyAny> = op_obj.bind(py);
-                        dag.substitute_node_with_py_op(next_node_ind, op)?;
+                        let new_op_obj = new_instruction.get_operation(py)?;
+                        dag.substitute_node_with_py_op(next_node_ind, new_op_obj.bind(py))?;
+
                         sequence_gphase += phase;
                     }
                     _ => {}
@@ -265,15 +273,24 @@ pub fn run_pad_dynamical_decoupling(
                             compose_u3_rust(theta, phi, lam, theta_l, phi_l, lam_l);
 
                         // Update the circuit instruction params:
-                        prev_node_inst.params = smallvec![
-                            Param::Float(theta_new),
-                            Param::Float(phi_new),
-                            Param::Float(lam_new),
-                        ];
+                        let new_instruction = CircuitInstruction {
+                            operation: prev_node_inst.operation.clone(),
+                            qubits: prev_node_inst.qubits.clone_ref(py),
+                            clbits: prev_node_inst.clbits.clone_ref(py),
+                            label: prev_node_inst.label.clone(),
+                            params: smallvec![
+                                Param::Float(theta_new),
+                                Param::Float(phi_new),
+                                Param::Float(lam_new),
+                            ],
+                            #[cfg(feature = "cache_pygates")]
+                            py_op: std::sync::OnceLock::new(),
+                        };
 
-                        let op_obj = prev_node_inst.get_operation(py).unwrap();
-                        let op: &Bound<PyAny> = op_obj.bind(py);
-                        dag.substitute_node_with_py_op(prev_node_ind, op)?;
+                        let new_op_obj = new_instruction.get_operation(py)?;
+
+                        // // Substitute the node in the DAG.
+                        dag.substitute_node_with_py_op(prev_node_ind, new_op_obj.bind(py))?;
 
                         let node_start_time_obj = property_set.get_item("node_start_time")?;
                         let node_start_time_dict = node_start_time_obj.downcast::<PyDict>()?;
@@ -290,14 +307,7 @@ pub fn run_pad_dynamical_decoupling(
             }
         } else {
             // Don't do anything if there's no single-qubit gate to absorb the inverse
-            apply_scheduled_delay_op(
-                py,
-                dag,
-                &(t_start as f64),
-                &(time_interval as f64),
-                &qubit,
-                property_set,
-            )?;
+            apply_scheduled_delay_op(py, dag, &t_start, &time_interval, &qubit, property_set)?;
             return Ok(());
         }
     }
@@ -333,7 +343,7 @@ pub fn run_pad_dynamical_decoupling(
 
     // (3) Construct DD sequence with delays
     let num_elements: usize = cmp::max(dd_sequence.len(), taus_len);
-    let mut idle_after = t_start as f64;
+    let mut idle_after = t_start;
 
     for dd_ind in 0..num_elements {
         if dd_ind < taus_len {
@@ -370,9 +380,21 @@ pub fn run_pad_dynamical_decoupling(
         }
     }
 
-    if let Param::Float(curr_global_phase) = dag.get_global_phase() {
-        dag.set_global_phase(Param::Float(curr_global_phase + sequence_gphase))?;
-    }
+    let current_phase = dag.get_global_phase();
+    let new_phase = match current_phase {
+        Param::Float(val) => Param::Float(val + sequence_gphase),
+        Param::ParameterExpression(py_obj) => {
+            let new_expr_obj = py_obj.bind(py).add(sequence_gphase)?;
+            Param::ParameterExpression(new_expr_obj.into())
+        }
+        Param::Obj(_) => {
+            // Explicitly reject the invalid type, matching the setter's behavior.
+            return Err(TranspilerError::new_err(
+                "Cannot add to global phase: phase has an invalid type.",
+            ));
+        }
+    };
+    dag.set_global_phase(new_phase)?;
 
     Ok(())
 }

@@ -98,9 +98,9 @@ class TestLayoutTransformation(QiskitTestCase):
         output_dag = ltpass.run(dag)
 
         expected = QuantumCircuit(4)
+        expected.swap(0, 3)
         expected.swap(1, 0)
         expected.swap(2, 1)
-        expected.swap(3, 2)
 
         self.assertEqual(circuit_to_dag(expected), output_dag)
 

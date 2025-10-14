@@ -2051,7 +2051,31 @@ impl DAGCircuit {
                                     .params_view()
                                     .iter()
                                     .zip(inst2.params_view().iter())
-                                    .all(|(a, b)| a.is_close(py, b, 1e-10).unwrap()))
+                                    .all(|(a, b)| {
+                                        match (a, b) {
+                                            // Special check for Float-to-Float comparison.
+                                            (Param::Float(val_a), Param::Float(val_b)) => {
+                                                (val_a - val_b).abs() <= 1e-10
+                                            }
+
+                                            // Special check for a Rust Float vs. a Python Object (and vice-versa).
+                                            (Param::Float(val_a), Param::Obj(py_b))
+                                            | (Param::Obj(py_b), Param::Float(val_a)) => {
+                                                if let Ok(val_b) = py_b.bind(py).extract::<f64>() {
+                                                    (val_a - val_b).abs() <= 1e-10
+                                                } else if let Ok(val_b_int) =
+                                                    py_b.bind(py).extract::<i64>()
+                                                {
+                                                    (val_a - (val_b_int as f64)).abs() <= 1e-10
+                                                } else {
+                                                    false
+                                                }
+                                            }
+
+                                            // Fallback to the regular checking logic for all other types.
+                                            _ => a.is_close(py, b, 1e-10).unwrap_or(false),
+                                        }
+                                    }))
                         }
                         [OperationRef::Instruction(op1), OperationRef::Instruction(op2)] => {
                             if op1.control_flow() && op2.control_flow() {
