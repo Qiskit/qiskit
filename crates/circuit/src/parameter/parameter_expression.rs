@@ -27,11 +27,11 @@ use std::hash::{Hash, Hasher};
 use pyo3::IntoPyObjectExt;
 use pyo3::prelude::*;
 
-use crate::circuit_data::CircuitError;
 use crate::imports::{BUILTIN_HASH, SYMPIFY_PARAMETER_EXPRESSION, UUID};
 use crate::parameter::symbol_expr;
 use crate::parameter::symbol_expr::SymbolExpr;
 use crate::parameter::symbol_parser::parse_expression;
+use crate::py_error::PyCircuitError;
 
 use super::symbol_expr::{SYMEXPR_EPSILON, Symbol, Value};
 
@@ -70,7 +70,7 @@ impl From<ParameterError> for PyErr {
                 PyZeroDivisionError::new_err("attempted to bind infinite value to parameter")
             }
             ParameterError::UnknownParameters(_) | ParameterError::NameConflict => {
-                CircuitError::new_err(value.to_string())
+                PyCircuitError::new_err(value.to_string())
             }
             ParameterError::UnboundParameters(_) => PyTypeError::new_err(value.to_string()),
             ParameterError::InvalidValue => PyValueError::new_err(value.to_string()),
@@ -1013,7 +1013,7 @@ impl PyParameterExpression {
     ///         If ``True``, any such parameters are simply ignored.
     ///
     /// Raises:
-    ///     CircuitError:
+    ///     PyCircuitError:
     ///         - If parameter_map contains parameters outside those in self.
     ///         - If the replacement parameters in ``parameter_map`` would result in
     ///           a name conflict in the generated expression.
@@ -1050,7 +1050,7 @@ impl PyParameterExpression {
     ///         If ``True``, any such parameters are simply ignored.
     ///
     /// Raises:
-    ///     CircuitError:
+    ///     PyCircuitError:
     ///         - If parameter_values contains parameters outside those in self.
     ///         - If a non-numeric value is passed in ``parameter_values``.
     ///     ZeroDivisionError:
@@ -1562,7 +1562,7 @@ impl PyParameter {
                 if allow_unknown_parameters {
                     self.clone().into_bound_py_any(py)
                 } else {
-                    Err(CircuitError::new_err(
+                    Err(PyCircuitError::new_err(
                         "Cannot bind parameters not present in parameter.",
                     ))
                 }
@@ -1571,7 +1571,7 @@ impl PyParameter {
                 if allow_unknown_parameters || parameter_map.len() == 1 {
                     Ok(replacement.clone())
                 } else {
-                    Err(CircuitError::new_err(
+                    Err(PyCircuitError::new_err(
                         "Cannot bind parameters not present in parameter.",
                     ))
                 }
@@ -1593,7 +1593,7 @@ impl PyParameter {
                 if allow_unknown_parameters {
                     self.clone().into_bound_py_any(py)
                 } else {
-                    Err(CircuitError::new_err(
+                    Err(PyCircuitError::new_err(
                         "Cannot bind parameters not present in parameter.",
                     ))
                 }
@@ -1607,7 +1607,7 @@ impl PyParameter {
                         Err(PyValueError::new_err("Invalid binding value."))
                     }
                 } else {
-                    Err(CircuitError::new_err(
+                    Err(PyCircuitError::new_err(
                         "Cannot bind parameters not present in parameter.",
                     ))
                 }

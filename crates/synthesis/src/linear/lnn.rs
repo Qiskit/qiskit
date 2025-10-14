@@ -321,4 +321,5 @@ pub fn py_synth_cnot_depth_line_kms(mat: PyReadonlyArray2<bool>) -> PyResult<Cir
             )
         });
     CircuitData::from_standard_gates(num_qubits as u32, instructions, Param::Float(0.0))
+        .map_err(|err| err.into())
 }

@@ -12,8 +12,7 @@
 
 use pyo3::PyErr;
 use qiskit_circuit::{
-    circuit_data::CircuitError, parameter::parameter_expression::ParameterError,
-    py_error::DAGCircuitError,
+    error::CircuitError, parameter::parameter_expression::ParameterError, py_error::DAGCircuitError,
 };
 use thiserror::Error;
 
@@ -32,11 +31,8 @@ pub enum BasisTranslatorError {
         BasisTranslator#translation-errors"
     ]]
     TargetMissingEquivalence { basis: String, expanded: String },
-    // TODO: Use rust native CircuitError
-    #[error[
-        "{0}"
-    ]]
-    BasisCircuitError(String),
+    #[error(transparent)]
+    BasisCircuitError(#[from] CircuitError),
     // TODO: Use rust native DAGCircuitError
     #[error[
     "{0}"
@@ -71,10 +67,11 @@ pub enum BasisTranslatorError {
 impl From<BasisTranslatorError> for PyErr {
     fn from(value: BasisTranslatorError) -> Self {
         match value {
-            BasisTranslatorError::BasisCircuitError(_) => CircuitError::new_err(value.to_string()),
+            BasisTranslatorError::BasisCircuitError(error) => error.into(),
             BasisTranslatorError::BasisDAGCircuitError(message) => {
                 DAGCircuitError::new_err(message)
             }
+            BasisTranslatorError::BasisParameterError(error) => error.into(),
             _ => TranspilerError::new_err(value.to_string()),
         }
     }

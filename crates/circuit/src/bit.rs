@@ -27,8 +27,8 @@ use pyo3::{
     types::{PyList, PyType},
 };
 
-use crate::circuit_data::CircuitError;
 use crate::dag_circuit::PyBitLocations;
+use crate::py_error::PyCircuitError;
 use crate::slice::{PySequenceIndex, SequenceIndex};
 
 /// Describes a relationship between a bit and all the registers it belongs to
@@ -667,7 +667,7 @@ macro_rules! create_bit_object {
             ///         populate the register.
             ///
             /// Raises:
-            ///     CircuitError: if any of:
+            ///     PyCircuitError: if any of:
             ///
             ///         * both the ``size`` and ``bits`` arguments are provided, or if neither are.
             ///         * ``size`` is not valid.
@@ -689,23 +689,23 @@ macro_rules! create_bit_object {
                     )
                 });
                 match (size, bits) {
-                    (None, None) | (Some(_), Some(_)) => Err(CircuitError::new_err(
+                    (None, None) | (Some(_), Some(_)) => Err(PyCircuitError::new_err(
                         "Exactly one of the size or bits arguments can be provided.",
                     )),
                     (Some(size), None) => {
                         if size < 0 {
-                            return Err(CircuitError::new_err(
+                            return Err(PyCircuitError::new_err(
                                 "Register size must be non-negative.",
                             ));
                         }
                         let Ok(size) = size.try_into() else {
-                            return Err(CircuitError::new_err("Register size too large."));
+                            return Err(PyCircuitError::new_err("Register size too large."));
                         };
                         Ok((Self($reg_struct::new_owning(name, size)), PyRegister))
                     }
                     (None, Some(bits)) => {
                         if bits.iter().cloned().collect::<HashSet<_>>().len() != bits.len() {
-                            return Err(CircuitError::new_err(
+                            return Err(PyCircuitError::new_err(
                                 "Register bits must not be duplicated.",
                             ));
                         }
@@ -1004,22 +1004,24 @@ impl PyAncillaRegister {
         });
         let reg = match (size, bits) {
             (None, None) | (Some(_), Some(_)) => {
-                return Err(CircuitError::new_err(
+                return Err(PyCircuitError::new_err(
                     "Exactly one of the size or bits arguments can be provided.",
                 ));
             }
             (Some(size), None) => {
                 if size < 0 {
-                    return Err(CircuitError::new_err("Register size must be non-negative."));
+                    return Err(PyCircuitError::new_err(
+                        "Register size must be non-negative.",
+                    ));
                 }
                 let Ok(size) = size.try_into() else {
-                    return Err(CircuitError::new_err("Register size too large."));
+                    return Err(PyCircuitError::new_err("Register size too large."));
                 };
                 QuantumRegister::new_ancilla_owning(name, size)
             }
             (None, Some(bits)) => {
                 if bits.iter().cloned().collect::<HashSet<_>>().len() != bits.len() {
-                    return Err(CircuitError::new_err(
+                    return Err(PyCircuitError::new_err(
                         "Register bits must not be duplicated.",
                     ));
                 }

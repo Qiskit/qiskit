@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use numpy::PyArrayLike1;
+use qiskit_circuit::error::CircuitError;
 use smallvec::smallvec;
 
 use pyo3::prelude::*;
@@ -44,7 +45,7 @@ pub fn _inverse_pattern(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<Py<P
 
 #[pyfunction]
 #[pyo3(signature = (pattern))]
-pub fn _synth_permutation_basic(pattern: PyArrayLike1<i64>) -> PyResult<CircuitData> {
+pub fn _synth_permutation_basic(pattern: PyArrayLike1<i64>) -> Result<CircuitData, CircuitError> {
     let view = pattern.as_array();
     let num_qubits = view.len();
     CircuitData::from_standard_gates(
@@ -62,7 +63,7 @@ pub fn _synth_permutation_basic(pattern: PyArrayLike1<i64>) -> PyResult<CircuitD
 
 #[pyfunction]
 #[pyo3(signature = (pattern))]
-fn _synth_permutation_acg(pattern: PyArrayLike1<i64>) -> PyResult<CircuitData> {
+fn _synth_permutation_acg(pattern: PyArrayLike1<i64>) -> Result<CircuitData, CircuitError> {
     let inverted = utils::invert(&pattern.as_array());
     let view = inverted.view();
     let num_qubits = view.len();
@@ -86,7 +87,9 @@ fn _synth_permutation_acg(pattern: PyArrayLike1<i64>) -> PyResult<CircuitData> {
 /// architecture using the Kutin, Moulton, Smithline method.
 #[pyfunction]
 #[pyo3(signature = (pattern))]
-pub fn _synth_permutation_depth_lnn_kms(pattern: PyArrayLike1<i64>) -> PyResult<CircuitData> {
+pub fn _synth_permutation_depth_lnn_kms(
+    pattern: PyArrayLike1<i64>,
+) -> Result<CircuitData, CircuitError> {
     let mut inverted = utils::invert(&pattern.as_array());
     let mut view = inverted.view_mut();
     let num_qubits = view.len();
@@ -174,7 +177,7 @@ pub(crate) fn _append_reverse_permutation_lnn_kms(gates: &mut LnnGatesVec, num_q
 ///        `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_
 #[pyfunction]
 #[pyo3(signature = (num_qubits))]
-fn synth_permutation_reverse_lnn_kms(num_qubits: usize) -> PyResult<CircuitData> {
+fn synth_permutation_reverse_lnn_kms(num_qubits: usize) -> Result<CircuitData, CircuitError> {
     let mut gates = LnnGatesVec::new();
     _append_reverse_permutation_lnn_kms(&mut gates, num_qubits);
     CircuitData::from_standard_gates(num_qubits as u32, gates, Param::Float(0.0))

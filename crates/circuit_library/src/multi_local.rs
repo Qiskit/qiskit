@@ -15,6 +15,7 @@ use std::ops::Deref;
 use hashbrown::HashSet;
 use pyo3::prelude::*;
 use pyo3::types::PyString;
+use qiskit_circuit::error::CircuitError;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use smallvec::{SmallVec, smallvec};
 
@@ -56,7 +57,7 @@ fn rotation_layer<'a>(
     rotation_blocks: &'a [&'a Block],
     parameters: Vec<Vec<Vec<&'a Param>>>,
     skipped_qubits: &'a HashSet<u32>,
-) -> impl Iterator<Item = PyResult<Instruction>> + 'a {
+) -> impl Iterator<Item = Result<Instruction, CircuitError>> + 'a {
     rotation_blocks
         .iter()
         .zip(parameters)
@@ -108,7 +109,7 @@ fn entanglement_layer<'a>(
     entanglement: &'a LayerEntanglement,
     entanglement_blocks: &'a [&'a Block],
     parameters: LayerParameters<'a>,
-) -> impl Iterator<Item = PyResult<Instruction>> + 'a {
+) -> impl Iterator<Item = Result<Instruction, CircuitError>> + 'a {
     let zipped = izip!(entanglement_blocks, parameters, entanglement);
     zipped.flat_map(move |(block, block_params, block_entanglement)| {
         block_entanglement
@@ -220,9 +221,19 @@ pub fn n_local(
             ledger.get_parameters(LayerType::Rotation, reps),
             &skipped_qubits,
         ));
-        CircuitData::from_packed_operations(num_qubits, 0, packed_insts, Param::Float(0.0))
+        Ok(CircuitData::from_packed_operations(
+            num_qubits,
+            0,
+            packed_insts,
+            Param::Float(0.0),
+        )?)
     } else {
-        CircuitData::from_packed_operations(num_qubits, 0, packed_insts, Param::Float(0.0))
+        Ok(CircuitData::from_packed_operations(
+            num_qubits,
+            0,
+            packed_insts,
+            Param::Float(0.0),
+        )?)
     }
 }
 
@@ -280,7 +291,7 @@ struct MaybeBarrier {
 }
 
 impl MaybeBarrier {
-    fn new(num_qubits: u32, insert_barriers: bool) -> PyResult<Self> {
+    fn new(num_qubits: u32, insert_barriers: bool) -> Result<Self, CircuitError> {
         if !insert_barriers {
             Ok(Self { barrier: None })
         } else {
@@ -299,7 +310,7 @@ impl MaybeBarrier {
         }
     }
 
-    fn get(&self) -> Box<dyn Iterator<Item = PyResult<Instruction>>> {
+    fn get(&self) -> Box<dyn Iterator<Item = Result<Instruction, CircuitError>>> {
         match &self.barrier {
             None => Box::new(std::iter::empty()),
             Some(inst) => Box::new(std::iter::once(Ok(inst.clone()))),

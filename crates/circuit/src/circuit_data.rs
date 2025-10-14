@@ -1517,7 +1517,7 @@ impl CircuitData {
                 self.global_phase = angle;
                 Ok(())
             }
-            Param::Obj(obj) => Err(CircuitError::InvalidGlobalPhase(
+            Param::Obj(_) => Err(CircuitError::InvalidGlobalPhase(
                 "Only floats and expressions are supported".into(),
             )),
         }

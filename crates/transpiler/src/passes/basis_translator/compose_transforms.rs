@@ -136,13 +136,7 @@ pub(super) fn compose_transforms<'a>(
                         .zip(params)
                         .collect();
                 let mut replacement = equiv.clone();
-                replacement
-                    .assign_parameters_from_mapping(param_mapping)
-                    .map_err(|_| {
-                        BasisTranslatorError::BasisCircuitError(
-                            "Error during parameter assignment".to_string(),
-                        )
-                    })?;
+                replacement.assign_parameters_from_mapping(param_mapping)?;
                 let replace_dag: DAGCircuit =
                     DAGCircuit::from_circuit_data(&replacement, true, None, None, None, None)
                         .map_err(|_| {

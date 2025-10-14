@@ -24,7 +24,7 @@ fn py_synth_mcx_n_dirty_i15(
     relative_phase: bool,
     action_only: bool,
 ) -> PyResult<CircuitData> {
-    synth_mcx_n_dirty_i15(num_controls, relative_phase, action_only)
+    synth_mcx_n_dirty_i15(num_controls, relative_phase, action_only).map_err(|err| err.into())
 }
 
 #[pyfunction]
@@ -36,7 +36,7 @@ fn py_synth_mcx_noaux_v24(py: Python, num_controls: usize) -> PyResult<CircuitDa
 #[pyfunction]
 #[pyo3(name="synth_mcx_noaux_hp24", signature = (num_controls))]
 fn py_synth_mcx_noaux_hp24(num_controls: usize) -> PyResult<CircuitData> {
-    synth_mcx_noaux_hp24(num_controls)
+    synth_mcx_noaux_hp24(num_controls).map_err(|err| err.into())
 }
 
 pub fn multi_controlled(m: &Bound<PyModule>) -> PyResult<()> {

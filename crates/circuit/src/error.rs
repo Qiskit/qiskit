@@ -74,6 +74,8 @@ impl From<CircuitError> for PyErr {
                 PyTypeError::new_err(value.to_string())
             }
             CircuitError::InvalidParameterTable => PyRuntimeError::new_err(value.to_string()),
+            CircuitError::ParameterTableError(error) => error.into(),
+            CircuitError::RegistryError(error) => error.into(),
             _ => PyCircuitError::new_err(value.to_string()),
         }
     }

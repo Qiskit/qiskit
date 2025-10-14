@@ -13,7 +13,8 @@
 use pyo3::prelude::*;
 use pyo3::types::PyAnyMethods;
 use pyo3::{PyResult, Python};
-use qiskit_circuit::circuit_data::{CircuitData, CircuitError};
+use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::error::CircuitError;
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, PyGate, StandardGate, multiply_param,
@@ -23,53 +24,42 @@ use smallvec::SmallVec;
 
 use std::f64::consts::PI;
 
-use crate::QiskitError;
 const PI2: f64 = PI / 2.0;
 
 /// Definition circuit for CCX.
-pub fn ccx() -> PyResult<CircuitData> {
+pub fn ccx() -> CircuitData {
     StandardGate::CCX
         .definition(&[])
-        .ok_or(CircuitError::new_err(
-            "Error extracting the definition of CCX",
-        ))
+        .expect("Error extracting the definition of CCX")
 }
 
 /// Definition circuit for C3X.
 #[pyfunction]
-pub fn c3x() -> PyResult<CircuitData> {
+pub fn c3x() -> CircuitData {
     StandardGate::C3X
         .definition(&[])
-        .ok_or(CircuitError::new_err(
-            "Error extracting the definition of C3X",
-        ))
+        .expect("Error extracting the definition of C3X")
 }
 
 /// Definition circuit for RCCX.
-fn rccx() -> PyResult<CircuitData> {
+fn rccx() -> CircuitData {
     StandardGate::RCCX
         .definition(&[])
-        .ok_or(CircuitError::new_err(
-            "Error extracting the definition of RCCX",
-        ))
+        .expect("Error extracting the definition of RCCX")
 }
 
 /// Definition circuit for RC3X.
-fn rc3x() -> PyResult<CircuitData> {
+fn rc3x() -> CircuitData {
     StandardGate::RC3X
         .definition(&[])
-        .ok_or(CircuitError::new_err(
-            "Error extracting the definition of RC3X",
-        ))
+        .expect("Error extracting the definition of RC3X")
 }
 
 /// Definition circuit for C3SX.
-fn c3sx() -> PyResult<CircuitData> {
+fn c3sx() -> CircuitData {
     StandardGate::C3SX
         .definition(&[])
-        .ok_or(CircuitError::new_err(
-            "Error extracting the definition of C3SX",
-        ))
+        .expect("Error extracting the definition of C3SX")
 }
 
 /// Convenience methods to add gates to the circuit.
@@ -78,85 +68,90 @@ fn c3sx() -> PyResult<CircuitData> {
 /// that make the code easier to read and that are used only for synthesis.
 trait CircuitDataForSynthesis {
     /// Appends H to the circuit.
-    fn h(&mut self, q: u32) -> PyResult<()>;
+    fn h(&mut self, q: u32) -> Result<(), CircuitError>;
 
     /// Appends X to the circuit.
     #[allow(dead_code)]
-    fn x(&mut self, q: u32) -> PyResult<()>;
+    fn x(&mut self, q: u32) -> Result<(), CircuitError>;
 
     /// Appends T to the circuit.
-    fn t(&mut self, q: u32) -> PyResult<()>;
+    fn t(&mut self, q: u32) -> Result<(), CircuitError>;
 
     /// Appends Tdg to the circuit.
-    fn tdg(&mut self, q: u32) -> PyResult<()>;
+    fn tdg(&mut self, q: u32) -> Result<(), CircuitError>;
 
     /// Appends Phase to the circuit.
     #[allow(dead_code)]
-    fn p(&mut self, theta: f64, q: u32) -> PyResult<()>;
+    fn p(&mut self, theta: f64, q: u32) -> Result<(), CircuitError>;
 
     /// Appends CX to the circuit.
-    fn cx(&mut self, q1: u32, q2: u32) -> PyResult<()>;
+    fn cx(&mut self, q1: u32, q2: u32) -> Result<(), CircuitError>;
 
     /// Appends CPhase to the circuit.
-    fn cp(&mut self, theta: f64, q1: u32, q2: u32) -> PyResult<()>;
+    fn cp(&mut self, theta: f64, q1: u32, q2: u32) -> Result<(), CircuitError>;
 
     /// Appends CCPhase to the circuit.
-    fn ccp(&mut self, theta: f64, q1: u32, q2: u32, q3: u32) -> PyResult<()>;
+    fn ccp(&mut self, theta: f64, q1: u32, q2: u32, q3: u32) -> Result<(), CircuitError>;
 
     /// Appends CCX to the circuit.
-    fn ccx(&mut self, q1: u32, q2: u32, q3: u32) -> PyResult<()>;
+    fn ccx(&mut self, q1: u32, q2: u32, q3: u32) -> Result<(), CircuitError>;
 
     /// Appends RCCX to the circuit.
-    fn rccx(&mut self, q1: u32, q2: u32, q3: u32) -> PyResult<()>;
+    fn rccx(&mut self, q1: u32, q2: u32, q3: u32) -> Result<(), CircuitError>;
 
     /// Compose ``other`` into ``self``, while remapping the qubits
     /// over which ``other`` is defined. The operations are added in-place.
-    fn compose(&mut self, other: &Self, qargs_map: &[Qubit], cargs_map: &[Clbit]) -> PyResult<()>;
+    fn compose(
+        &mut self,
+        other: &Self,
+        qargs_map: &[Qubit],
+        cargs_map: &[Clbit],
+    ) -> Result<(), CircuitError>;
 
     /// Construct the inverse circuit
-    fn inverse(&self) -> PyResult<CircuitData>;
+    fn inverse(&self) -> Result<CircuitData, CircuitError>;
 }
 
 impl CircuitDataForSynthesis for CircuitData {
     /// Appends H to the circuit.
     #[inline]
-    fn h(&mut self, q: u32) -> PyResult<()> {
+    fn h(&mut self, q: u32) -> Result<(), CircuitError> {
         self.push_standard_gate(StandardGate::H, &[], &[Qubit(q)])
     }
 
     /// Appends X to the circuit.
     #[inline]
-    fn x(&mut self, q: u32) -> PyResult<()> {
+    fn x(&mut self, q: u32) -> Result<(), CircuitError> {
         self.push_standard_gate(StandardGate::X, &[], &[Qubit(q)])
     }
 
     /// Appends T to the circuit.
     #[inline]
-    fn t(&mut self, q: u32) -> PyResult<()> {
+    fn t(&mut self, q: u32) -> Result<(), CircuitError> {
         self.push_standard_gate(StandardGate::T, &[], &[Qubit(q)])
     }
 
     /// Appends Tdg to the circuit.
     #[inline]
-    fn tdg(&mut self, q: u32) -> PyResult<()> {
+    fn tdg(&mut self, q: u32) -> Result<(), CircuitError> {
         self.push_standard_gate(StandardGate::Tdg, &[], &[Qubit(q)])
     }
 
     /// Appends Phase to the circuit.
     #[inline]
-    fn p(&mut self, theta: f64, q: u32) -> PyResult<()> {
+    fn p(&mut self, theta: f64, q: u32) -> Result<(), CircuitError> {
         self.push_standard_gate(StandardGate::Phase, &[Param::Float(theta)], &[Qubit(q)])
     }
 
     /// Appends CX to the circuit.
     #[inline]
-    fn cx(&mut self, q1: u32, q2: u32) -> PyResult<()> {
+    fn cx(&mut self, q1: u32, q2: u32) -> Result<(), CircuitError> {
         self.push_standard_gate(StandardGate::CX, &[], &[Qubit(q1), Qubit(q2)])
     }
 
     /// Appends CPhase to the circuit.
     #[inline]
-    fn cp(&mut self, theta: f64, q1: u32, q2: u32) -> PyResult<()> {
+    fn cp(&mut self, theta: f64, q1: u32, q2: u32) -> Result<(), CircuitError> {
         self.push_standard_gate(
             StandardGate::CPhase,
             &[Param::Float(theta)],
@@ -164,7 +159,7 @@ impl CircuitDataForSynthesis for CircuitData {
         )
     }
 
-    fn ccp(&mut self, theta: f64, q1: u32, q2: u32, q3: u32) -> PyResult<()> {
+    fn ccp(&mut self, theta: f64, q1: u32, q2: u32, q3: u32) -> Result<(), CircuitError> {
         self.cx(q1, q3)?;
         self.p(-theta / 4., q3)?;
         self.cx(q2, q3)?;
@@ -182,22 +177,25 @@ impl CircuitDataForSynthesis for CircuitData {
     }
 
     /// Appends the decomposition of the CCX to the circuit.
-    fn ccx(&mut self, q1: u32, q2: u32, q3: u32) -> PyResult<()> {
-        self.compose(&ccx()?, &[Qubit(q1), Qubit(q2), Qubit(q3)], &[])
+    fn ccx(&mut self, q1: u32, q2: u32, q3: u32) -> Result<(), CircuitError> {
+        self.compose(&ccx(), &[Qubit(q1), Qubit(q2), Qubit(q3)], &[])
     }
 
     /// Appends RCCX to the circuit.
-    fn rccx(&mut self, q1: u32, q2: u32, q3: u32) -> PyResult<()> {
-        self.compose(&rccx()?, &[Qubit(q1), Qubit(q2), Qubit(q3)], &[])
+    fn rccx(&mut self, q1: u32, q2: u32, q3: u32) -> Result<(), CircuitError> {
+        self.compose(&rccx(), &[Qubit(q1), Qubit(q2), Qubit(q3)], &[])
     }
 
     /// Compose ``other`` into ``self``, while remapping the qubits over which ``other`` is defined.
     /// The operations are added in-place.
-    fn compose(&mut self, other: &Self, qargs_map: &[Qubit], cargs_map: &[Clbit]) -> PyResult<()> {
+    fn compose(
+        &mut self,
+        other: &Self,
+        qargs_map: &[Qubit],
+        cargs_map: &[Clbit],
+    ) -> Result<(), CircuitError> {
         if other.num_qubits() > self.num_qubits() {
-            return Err(QiskitError::new_err(
-                "Cannot compose a larger circuit onto a smaller circuit.",
-            ));
+            panic!("Cannot compose a larger circuit onto a smaller circuit.",);
         }
 
         for inst in other.data() {
@@ -225,10 +223,10 @@ impl CircuitDataForSynthesis for CircuitData {
     }
 
     /// Construct the inverse circuit
-    fn inverse(&self) -> PyResult<CircuitData> {
+    fn inverse(&self) -> Result<CircuitData, CircuitError> {
         let inverse_global_phase = multiply_param(self.global_phase(), -1.0);
 
-        let mut inverse_circuit = CircuitData::copy_empty_like(self, VarsMode::Alike)?;
+        let mut inverse_circuit = CircuitData::clone_empty_like(self, None, VarsMode::Alike)?;
         inverse_circuit.set_global_phase(inverse_global_phase)?;
 
         let data = self.data();
@@ -242,10 +240,10 @@ impl CircuitDataForSynthesis for CircuitData {
             };
 
             if inverse_inst.is_none() {
-                return Err(CircuitError::new_err(format!(
+                panic!(
                     "The circuit cannot be inverted: {} is not a standard gate.",
                     inst.op.name()
-                )));
+                );
             }
 
             let (inverse_op, inverse_op_params) = inverse_inst.unwrap();
@@ -263,26 +261,31 @@ impl CircuitDataForSynthesis for CircuitData {
 
 /// Efficient synthesis for 4-controlled X-gate.
 #[pyfunction]
-pub fn c4x() -> PyResult<CircuitData> {
+pub fn c4x() -> Result<CircuitData, CircuitError> {
     let mut circuit = CircuitData::with_capacity(5, 0, 0, Param::Float(0.0))?;
     circuit.h(4)?;
     circuit.cp(PI2, 3, 4)?;
     circuit.h(4)?;
-    circuit.compose(&rc3x()?, &[Qubit(0), Qubit(1), Qubit(2), Qubit(3)], &[])?;
+    circuit.compose(&rc3x(), &[Qubit(0), Qubit(1), Qubit(2), Qubit(3)], &[])?;
     circuit.h(4)?;
     circuit.cp(-PI2, 3, 4)?;
     circuit.h(4)?;
     circuit.compose(
-        &rc3x()?.inverse()?,
+        &rc3x().inverse()?,
         &[Qubit(0), Qubit(1), Qubit(2), Qubit(3)],
         &[],
     )?;
-    circuit.compose(&c3sx()?, &[Qubit(0), Qubit(1), Qubit(2), Qubit(4)], &[])?;
+    circuit.compose(&c3sx(), &[Qubit(0), Qubit(1), Qubit(2), Qubit(4)], &[])?;
     Ok(circuit)
 }
 
 /// Adds gates of the "action gadget" to the circuit
-fn add_action_gadget(circuit: &mut CircuitData, q0: u32, q1: u32, q2: u32) -> PyResult<()> {
+fn add_action_gadget(
+    circuit: &mut CircuitData,
+    q0: u32,
+    q1: u32,
+    q2: u32,
+) -> Result<(), CircuitError> {
     circuit.h(q2)?;
     circuit.t(q2)?;
     circuit.cx(q0, q2)?;
@@ -291,7 +294,12 @@ fn add_action_gadget(circuit: &mut CircuitData, q0: u32, q1: u32, q2: u32) -> Py
 }
 
 /// Adds gates of the "reset gadget" to the circuit
-fn add_reset_gadget(circuit: &mut CircuitData, q0: u32, q1: u32, q2: u32) -> PyResult<()> {
+fn add_reset_gadget(
+    circuit: &mut CircuitData,
+    q0: u32,
+    q1: u32,
+    q2: u32,
+) -> Result<(), CircuitError> {
     circuit.cx(q1, q2)?;
     circuit.t(q2)?;
     circuit.cx(q0, q2)?;
@@ -321,15 +329,15 @@ pub fn synth_mcx_n_dirty_i15(
     num_controls: usize,
     relative_phase: bool,
     action_only: bool,
-) -> PyResult<CircuitData> {
+) -> Result<CircuitData, CircuitError> {
     if num_controls == 1 {
         let mut circuit = CircuitData::with_capacity(2, 0, 1, Param::Float(0.0))?;
         circuit.cx(0, 1)?;
         Ok(circuit)
     } else if num_controls == 2 {
-        ccx()
+        Ok(ccx())
     } else if num_controls == 3 && !relative_phase {
-        c3x()
+        Ok(c3x())
     } else {
         let num_ancillas = num_controls - 2;
         let num_qubits = num_controls + 1 + num_ancillas;
@@ -408,9 +416,9 @@ pub fn synth_mcx_n_dirty_i15(
 ///    [arXiv:2302.06377] (https://arxiv.org/abs/2302.06377).
 pub fn synth_mcx_noaux_v24(py: Python, num_controls: usize) -> PyResult<CircuitData> {
     if num_controls == 3 {
-        c3x()
+        Ok(c3x())
     } else if num_controls == 4 {
-        c4x()
+        c4x().map_err(|err| err.into())
     } else {
         let num_qubits = (num_controls + 1) as u32;
         let target = num_controls as u32;
@@ -456,9 +464,9 @@ pub fn synth_mcx_noaux_v24(py: Python, num_controls: usize) -> PyResult<CircuitD
 /// The construction appears in Fig. 18 in the supplementary material [2].
 ///
 /// Best suitable when n is large.
-fn increment_n_dirty_large(n: u32) -> PyResult<CircuitData> {
+fn increment_n_dirty_large(n: u32) -> Result<CircuitData, CircuitError> {
     // U_x^3-gate from Fig. 22 in [2].
-    fn ux(circuit: &mut CircuitData, q1: u32, q2: u32, q3: u32) -> PyResult<()> {
+    fn ux(circuit: &mut CircuitData, q1: u32, q2: u32, q3: u32) -> Result<(), CircuitError> {
         circuit.cx(q1, q3)?;
         circuit.cx(q1, q2)?;
         circuit.ccx(q2, q3, q1)?;
@@ -466,7 +474,7 @@ fn increment_n_dirty_large(n: u32) -> PyResult<CircuitData> {
     }
 
     // U_z^3-gate from Fig. 24 in [2].
-    fn uz(circuit: &mut CircuitData, q1: u32, q2: u32, q3: u32) -> PyResult<()> {
+    fn uz(circuit: &mut CircuitData, q1: u32, q2: u32, q3: u32) -> Result<(), CircuitError> {
         circuit.ccx(q2, q3, q1)?;
         circuit.cx(q1, q2)?;
         circuit.cx(q2, q3)?;
@@ -544,7 +552,7 @@ fn increment_n_dirty_large(n: u32) -> PyResult<CircuitData> {
 /// The construction appears in Fig. 10 in the main paper [1].
 ///
 /// Best suitable for when n is small.
-fn increment_n_dirty_small(n: u32) -> PyResult<CircuitData> {
+fn increment_n_dirty_small(n: u32) -> Result<CircuitData, CircuitError> {
     let mut circuit = CircuitData::with_capacity(2 * n, 0, 0, Param::Float(0.0))?;
 
     for k in (1..n).rev() {
@@ -565,7 +573,7 @@ fn increment_n_dirty_small(n: u32) -> PyResult<CircuitData> {
 /// # Returns
 ///
 /// A quantum circuit with :math:`2 * n` qubits.
-fn increment_n_dirty(n: u32) -> PyResult<CircuitData> {
+fn increment_n_dirty(n: u32) -> Result<CircuitData, CircuitError> {
     if n <= 10 {
         increment_n_dirty_small(n)
     } else {
@@ -578,16 +586,14 @@ fn increment_n_dirty(n: u32) -> PyResult<CircuitData> {
 /// The construction appears as Fig. 10 in the main paper [1].
 ///
 /// Best suitable for when `num_controls` is small.
-fn synth_relative_mcx(num_controls: usize) -> PyResult<CircuitData> {
+fn synth_relative_mcx(num_controls: usize) -> Result<CircuitData, CircuitError> {
     let num_qubits = (num_controls + 1) as u32;
     let target = num_controls as u32;
     let mut circuit = CircuitData::with_capacity(num_qubits, 0, 0, Param::Float(0.0))?;
 
     match num_controls {
         0 => {
-            return Err(QiskitError::new_err(
-                "synth_relative_mcx requires at least 1 control qubit.",
-            ));
+            panic!("synth_relative_mcx requires at least 1 control qubit.",);
         }
         1 => {
             circuit.cx(0, 1)?;
@@ -642,7 +648,7 @@ fn synth_relative_mcx(num_controls: usize) -> PyResult<CircuitData> {
 }
 
 /// Synthesize a relative MCX gate using up to `num_controls` dirty ancilla qubits.
-fn synth_relative_mcx_n_dirty(num_controls: usize) -> PyResult<CircuitData> {
+fn synth_relative_mcx_n_dirty(num_controls: usize) -> Result<CircuitData, CircuitError> {
     // For small values of num_controls, it is more efficient to use a relative MCX
     // gate that does not require any auxiliary qubits, while for large values it is
     // mot efficient to construct the true MCX gate that uses num_controls ancillas.
@@ -667,11 +673,9 @@ fn synth_relative_mcx_n_dirty(num_controls: usize) -> PyResult<CircuitData> {
 /// # Returns
 ///
 /// A quantum circuit with :math:`n+1` qubits.
-fn increment_1_dirty(n: u32, flag_add: bool) -> PyResult<CircuitData> {
+fn increment_1_dirty(n: u32, flag_add: bool) -> Result<CircuitData, CircuitError> {
     if n % 2 == 0 {
-        return Err(QiskitError::new_err(
-            "increment_1_dirty_large requires an odd number of qubits.",
-        ));
+        panic!("increment_1_dirty_large requires an odd number of qubits.",);
     }
 
     let k = n.div_ceil(2);
@@ -765,7 +769,7 @@ fn increment_1_dirty(n: u32, flag_add: bool) -> PyResult<CircuitData> {
 /// # Returns
 ///
 /// A quantum circuit with :math:`n+2` qubits.
-fn increment_2_dirty(n: u32, flag_add: bool) -> PyResult<CircuitData> {
+fn increment_2_dirty(n: u32, flag_add: bool) -> Result<CircuitData, CircuitError> {
     let k = (n + 2) / 2; // same as (n+1)/2 for n odd, and (n+2)/2 for n even
 
     // This construction is a slight modification of the construction described
@@ -871,7 +875,7 @@ fn increment_2_dirty(n: u32, flag_add: bool) -> PyResult<CircuitData> {
 ///
 /// 1. Huang and Palsberg, *Compiling Conditional Quantum Gates without Using Helper Qubits*, PLDI (2024),
 ///    https://dl.acm.org/doi/10.1145/3656436.
-pub fn synth_mcx_noaux_hp24(num_controls: usize) -> PyResult<CircuitData> {
+pub fn synth_mcx_noaux_hp24(num_controls: usize) -> Result<CircuitData, CircuitError> {
     let n = num_controls + 1;
 
     let mut circuit = CircuitData::with_capacity(n as u32, 0, 0, Param::Float(0.0))?;

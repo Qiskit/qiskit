@@ -282,4 +282,5 @@ pub fn py_synth_cx_cz_depth_line_my(
         CircuitInstructions::Z(qubit) => (StandardGate::Z, smallvec![], smallvec![Qubit(qubit)]),
     });
     CircuitData::from_standard_gates(n as u32, instructions, Param::Float(0.0))
+        .map_err(|err| err.into())
 }
