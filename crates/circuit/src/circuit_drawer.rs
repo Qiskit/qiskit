@@ -1415,25 +1415,6 @@ impl<'a> Index<usize> for VisualizationMatrix2<'a> {
     }
 }
 
-struct TextDrawer{
-
-}
-
-impl TextDrawer {
-    fn new() -> Self {
-        TextDrawer{
-
-        }
-    }
-
-    fn create_vismat(circuit: &CircuitData, dag: &DAGCircuit) -> PyResult<VisualizationMatrix2>{
-        VisualizationMatrix2::from_circuit(circuit, dag)
-    }
-
-    fn get_element_width(element: &VisualizationElement2) -> u64 {
-        
-    }
-}
 
 pub fn draw_circuit(circuit: &CircuitData) -> PyResult<()> {
 
