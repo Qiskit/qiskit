@@ -104,7 +104,7 @@ class LightCone(TransformationPass):
         new_dag = dag.copy_empty_like()
 
         # Iterate over the nodes in reverse topological order
-        for node in list(dag.topological_op_nodes(reverse=True)):
+        for node in dag.topological_op_nodes(reverse=True):
             # Check if the node belongs to the light-cone
             if lightcone_qubits.intersection(node.qargs):
                 # Check commutation with all previous operations
