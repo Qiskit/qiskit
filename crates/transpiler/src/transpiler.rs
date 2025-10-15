@@ -141,18 +141,21 @@ pub fn transpile(
             time_limit: None,
             max_trials: None,
             shuffle_seed: None,
+            score_initial_layout: false,
         },
         OptimizationLevel::Level2 => vf2::Vf2PassConfiguration {
             call_limit: (Some(5_000_000), Some(10_000)),
             time_limit: None,
             max_trials: None,
             shuffle_seed: None,
+            score_initial_layout: false,
         },
         OptimizationLevel::Level3 => vf2::Vf2PassConfiguration {
             call_limit: (Some(30_000_000), Some(100_000)),
             time_limit: None,
             max_trials: None,
             shuffle_seed: None,
+            score_initial_layout: false,
         },
     };
 
@@ -176,7 +179,7 @@ pub fn transpile(
                 |x| PhysicalQubit(x.0),
             );
         } else if let vf2::Vf2PassReturn::Solution(layout) =
-            vf2_layout_pass(&dag, target, &vf2_config, false, None)?
+            vf2_layout_pass_average(&dag, target, &vf2_config, false, None)?
         {
             apply_layout(
                 &mut dag,
@@ -202,7 +205,7 @@ pub fn transpile(
         }
     } else if optimization_level == OptimizationLevel::Level2 {
         if let vf2::Vf2PassReturn::Solution(layout) =
-            vf2_layout_pass(&dag, target, &vf2_config, false, None)?
+            vf2_layout_pass_average(&dag, target, &vf2_config, false, None)?
         {
             apply_layout(
                 &mut dag,
@@ -227,7 +230,7 @@ pub fn transpile(
                 layout_from_sabre_result(&dag, initial_layout, &final_layout, &transpile_layout);
         }
     } else if let vf2::Vf2PassReturn::Solution(layout) =
-        vf2_layout_pass(&dag, target, &vf2_config, false, None)?
+        vf2_layout_pass_average(&dag, target, &vf2_config, false, None)?
     {
         apply_layout(
             &mut dag,
