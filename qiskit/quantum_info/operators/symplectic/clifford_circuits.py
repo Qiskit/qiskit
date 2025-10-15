@@ -50,6 +50,34 @@ def _append_circuit(clifford, circuit, qargs=None):
     return clifford
 
 
+def _prepend_circuit(clifford, circuit, qargs=None):
+    """Update Clifford inplace by prepending a Clifford circuit.
+
+    Args:
+        clifford (Clifford): The Clifford to update.
+        circuit (QuantumCircuit): The circuit to apply before the clifford.
+        qargs (list or None): The qubits to apply circuit to.
+
+    Returns:
+        Clifford: the updated Clifford.
+
+    Raises:
+        QiskitError: if input circuit cannot be decomposed into Clifford operations.
+    """
+    if qargs is None:
+        qargs = list(range(clifford.num_qubits))
+
+    for instruction in circuit:
+        if instruction.clbits:
+            raise QiskitError(
+                f"Cannot apply Instruction with classical bits: {instruction.operation.name}"
+            )
+        # Get the integer position of the flat register
+        new_qubits = [qargs[circuit.find_bit(bit).index] for bit in instruction.qubits]
+        clifford = _prepend_operation(clifford, instruction.operation, new_qubits)
+    return clifford
+
+
 def _append_operation(clifford, operation, qargs=None):
     """Update Clifford inplace by applying a Clifford operation.
 
@@ -164,6 +192,131 @@ def _append_operation(clifford, operation, qargs=None):
             matrix = gate.to_matrix()
             gate_cliff = Clifford.from_matrix(matrix)
             return _append_operation(clifford, gate_cliff, qargs=qargs)
+        except TypeError as err:
+            raise QiskitError(f"Cannot apply {gate.name} gate with unbounded parameters") from err
+        except CircuitError as err:
+            raise QiskitError(f"Cannot apply {gate.name} gate without to_matrix defined") from err
+        except QiskitError as err:
+            raise QiskitError(f"Cannot apply non-Clifford gate: {gate.name}") from err
+
+    raise QiskitError(f"Cannot apply {gate}")
+
+
+def _prepend_operation(clifford, operation, qargs=None):
+    """Update Clifford inplace by prepending a Clifford operation.
+
+    Args:
+        clifford (Clifford): The Clifford to update.
+        operation (Instruction or Clifford or str): The operation or composite operation to apply
+           before the clifford.
+        qargs (list or None): The qubits to apply operation to.
+
+    Returns:
+        Clifford: the updated Clifford.
+
+    Raises:
+        QiskitError: if input operation cannot be converted into Clifford operations.
+    """
+    # pylint: disable=too-many-return-statements
+    if isinstance(operation, (Barrier, Delay)):
+        return clifford
+
+    if qargs is None:
+        qargs = list(range(clifford.num_qubits))
+
+    gate = operation
+
+    if isinstance(gate, str):
+        # Check if gate is a valid Clifford basis gate string
+        if gate not in _BASIS_PREP_1Q and gate not in _BASIS_PREP_2Q:
+            raise QiskitError(f"Invalid Clifford gate name string {gate}")
+        name = gate
+    else:
+        # assert isinstance(gate, Instruction)
+        name = gate.name
+        if getattr(gate, "_condition", None) is not None:
+            raise QiskitError("Conditional gate is not a valid Clifford operation.")
+
+    # Apply gate if it is a Clifford basis gate
+    if name in _NON_CLIFFORD:
+        raise QiskitError(f"Cannot update Clifford with non-Clifford gate {name}")
+    if name in _BASIS_PREP_1Q:
+        if len(qargs) != 1:
+            raise QiskitError("Invalid qubits for 1-qubit gate.")
+        return _BASIS_PREP_1Q[name](clifford, qargs[0])
+    if name in _BASIS_PREP_2Q:
+        if len(qargs) != 2:
+            raise QiskitError("Invalid qubits for 2-qubit gate.")
+        return _BASIS_PREP_2Q[name](clifford, qargs[0], qargs[1])
+
+    # If u gate, check if it is a Clifford, and if so, apply it
+    if isinstance(gate, Gate) and name == "u" and len(qargs) == 1:
+        try:
+            theta, phi, lambd = tuple(_n_half_pis(par) for par in gate.params)
+        except ValueError as err:
+            raise QiskitError("U gate angles must be multiples of pi/2 to be a Clifford") from err
+        if theta == 0:
+            clifford = _prepend_rz(clifford, qargs[0], lambd + phi)
+        elif theta == 1:
+            clifford = _prepend_rz(clifford, qargs[0], lambd - 2)
+            clifford = _prepend_h(clifford, qargs[0])
+            clifford = _prepend_rz(clifford, qargs[0], phi)
+        elif theta == 2:
+            clifford = _prepend_rz(clifford, qargs[0], lambd - 1)
+            clifford = _prepend_x(clifford, qargs[0])
+            clifford = _prepend_rz(clifford, qargs[0], phi + 1)
+        elif theta == 3:
+            clifford = _prepend_rz(clifford, qargs[0], lambd)
+            clifford = _prepend_h(clifford, qargs[0])
+            clifford = _prepend_rz(clifford, qargs[0], phi + 2)
+        return clifford
+
+    # If gate is a Clifford, we can either unroll the gate using the "to_circuit"
+    # method, or we can compose (dot) the Cliffords directly. Experimentally, for large
+    # cliffords the second method is considerably faster.
+
+    # pylint: disable=cyclic-import
+    from qiskit.quantum_info import Clifford
+
+    if isinstance(gate, Clifford):
+        composed_clifford = clifford.dot(gate, qargs=qargs, front=False)
+        clifford.tableau = composed_clifford.tableau
+        return clifford
+
+    # pylint: disable=cyclic-import
+    from qiskit.circuit.library import LinearFunction
+
+    if isinstance(gate, LinearFunction):
+        gate_as_clifford = Clifford.from_linear_function(gate)
+        composed_clifford = clifford.dot(gate_as_clifford, qargs=qargs, front=False)
+        clifford.tableau = composed_clifford.tableau
+        return clifford
+
+    # pylint: disable=cyclic-import
+    from qiskit.circuit.library import PermutationGate
+
+    if isinstance(gate, PermutationGate):
+        gate_as_clifford = Clifford.from_permutation(gate)
+        composed_clifford = clifford.dot(gate_as_clifford, qargs=qargs, front=False)
+        clifford.tableau = composed_clifford.tableau
+        return clifford
+
+    # If the gate is not directly prependable, we try to unroll the gate with its definition.
+    # This succeeds only if the gate has all-Clifford definition (decomposition).
+    # If fails, we need to restore the clifford that was before attempting to unroll and append.
+    if gate.definition is not None:
+        try:
+            return _prepend_circuit(clifford.copy(), gate.definition, qargs)
+        except QiskitError:
+            pass
+
+    # As a final attempt, if the gate is up to 3 qubits,
+    # we try to construct a Clifford to be prepended from its matrix representation.
+    if isinstance(gate, Gate) and len(qargs) <= 3:
+        try:
+            matrix = gate.to_matrix()
+            gate_cliff = Clifford.from_matrix(matrix)
+            return _prepend_operation(clifford, gate_cliff, qargs=qargs)
         except TypeError as err:
             raise QiskitError(f"Cannot apply {gate.name} gate with unbounded parameters") from err
         except CircuitError as err:
@@ -820,9 +973,9 @@ def _prepend_cy(clifford, control, target):
     Returns:
         Clifford: the updated Clifford.
     """
-    clifford = _prepend_sdg(clifford, target)
-    clifford = _prepend_cx(clifford, control, target)
     clifford = _prepend_s(clifford, target)
+    clifford = _prepend_cx(clifford, control, target)
+    clifford = _prepend_sdg(clifford, target)
     return clifford
 
 
@@ -925,8 +1078,8 @@ def _prepend_dcx(clifford, qubit0, qubit1):
     Returns:
         Clifford: the updated Clifford.
     """
-    clifford = _prepend_cx(clifford, qubit0, qubit1)
     clifford = _prepend_cx(clifford, qubit1, qubit0)
+    clifford = _prepend_cx(clifford, qubit0, qubit1)
     return clifford
 
 
@@ -960,10 +1113,10 @@ def _prepend_ecr(clifford, qubit0, qubit1):
     Returns:
         Clifford: the updated Clifford.
     """
-    clifford = _prepend_s(clifford, qubit0)
-    clifford = _prepend_sx(clifford, qubit1)
-    clifford = _prepend_cx(clifford, qubit0, qubit1)
     clifford = _prepend_x(clifford, qubit0)
+    clifford = _prepend_cx(clifford, qubit0, qubit1)
+    clifford = _prepend_sx(clifford, qubit1)
+    clifford = _prepend_s(clifford, qubit0)
 
     return clifford
 
@@ -994,6 +1147,35 @@ _BASIS_2Q = {
     "ecr": _append_ecr,
     "dcx": _append_dcx,
 }
+
+
+# Basis Clifford Gates
+_BASIS_PREP_1Q = {
+    "i": _prepend_i,
+    "id": _prepend_i,
+    "iden": _prepend_i,
+    "x": _prepend_x,
+    "y": _prepend_y,
+    "z": _prepend_z,
+    "h": _prepend_h,
+    "s": _prepend_s,
+    "sdg": _prepend_sdg,
+    "sinv": _prepend_sdg,
+    "sx": _prepend_sx,
+    "sxdg": _prepend_sxdg,
+    "v": _prepend_v,
+    "w": _prepend_w,
+}
+_BASIS_PREP_2Q = {
+    "cx": _prepend_cx,
+    "cz": _prepend_cz,
+    "cy": _prepend_cy,
+    "swap": _prepend_swap,
+    "iswap": _prepend_iswap,
+    "ecr": _prepend_ecr,
+    "dcx": _prepend_dcx,
+}
+
 
 # Clifford gate names
 _CLIFFORD_GATE_NAMES = [
