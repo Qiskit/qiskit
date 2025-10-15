@@ -1113,6 +1113,35 @@ class TestControlledGate(QiskitTestCase):
                 # skip gates that do not have a control attribute (e.g. barrier)
                 pass
 
+    @combine(
+        gate=[cls for cls in allGates.__dict__.values() if isinstance(cls, type)],
+        num_ctrl_qubits=[1, 2],
+        ctrl_state=[None, 0, 1],
+    )
+    def test_double_inverses(self, gate, num_ctrl_qubits, ctrl_state):
+        """Check that the inverse of the inverse of a controlled gate is
+        unitary-equivalent to the original controlled gate.
+        """
+        if not (issubclass(gate, ControlledGate) or issubclass(gate, allGates.IGate)):
+            # Note that in general gate.inverse().inverse() might be different from gate.
+            # For example, the inverse of the standard gate DCX is not a standard gate,
+            # and hence DCXGate().inverse().inverse() is not DCXGate().
+            # However, the operators for DCXGate() is for DCXGate().inverse().inverse()
+            # must be equal. This catches bugs when the inverse method of a controlled gate
+            # loses the controlled state of the gate.
+            try:
+                numargs = len(_get_free_params(gate))
+                args = [2] * numargs
+                gate = gate(*args)
+                controlled_gate = gate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
+                controlled_gate_ii = controlled_gate.inverse().inverse()
+
+                self.assertEqual(Operator(controlled_gate), Operator(controlled_gate_ii))
+
+            except AttributeError:
+                # skip gates that do not have a control attribute (e.g. barrier)
+                pass
+
     @data(2, 3)
     def test_relative_phase_toffoli_gates(self, num_ctrl_qubits):
         """Test the relative phase Toffoli gates.

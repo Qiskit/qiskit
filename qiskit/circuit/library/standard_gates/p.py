@@ -408,7 +408,9 @@ class MCPhaseGate(ControlledGate):
 
     def inverse(self, annotated: bool = False):
         r"""Return inverted MCPhase gate (:math:`MCPhase(\lambda)^{\dagger} = MCPhase(-\lambda)`)"""
-        return MCPhaseGate(-self.params[0], self.num_ctrl_qubits)
+        return MCPhaseGate(
+            -self.params[0], num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state
+        )
 
     def __eq__(self, other):
         return (
