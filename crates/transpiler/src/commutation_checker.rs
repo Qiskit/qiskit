@@ -11,8 +11,8 @@
 // that they have been altered from the originals.
 
 use hashbrown::{HashMap, HashSet};
-use ndarray::linalg::kron;
 use ndarray::Array2;
+use ndarray::linalg::kron;
 use num_complex::Complex64;
 use num_complex::ComplexFloat;
 use qiskit_circuit::object_registry::PyObjectAsKey;
@@ -20,26 +20,26 @@ use smallvec::SmallVec;
 use std::fmt::Debug;
 
 use numpy::PyReadonlyArray2;
+use pyo3::BoundObject;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyDict, PyTuple};
-use pyo3::BoundObject;
 
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_node::DAGOpNode;
 use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::object_registry::ObjectRegistry;
 use qiskit_circuit::operations::{
-    Operation, OperationRef, Param, StandardGate, STANDARD_GATE_SIZE,
+    Operation, OperationRef, Param, STANDARD_GATE_SIZE, StandardGate,
 };
 use qiskit_circuit::{Clbit, Qubit};
 use qiskit_quantum_info::unitary_compose;
 use thiserror::Error;
 
+use crate::QiskitError;
 use crate::gate_metrics;
 use crate::standard_gates_commutations;
-use crate::QiskitError;
 
 #[derive(Error, Debug)]
 pub enum CommutationError {
@@ -842,8 +842,8 @@ fn commutation_entry_to_pydict(py: Python, entry: &CommutationCacheEntry) -> PyR
     let out_dict = PyDict::new(py);
     for (k, v) in entry.iter() {
         let qubits = PyTuple::new(py, k.0.iter().map(|q| q.map(|t| t.0)))?;
-        let params0 = PyTuple::new(py, k.1 .0.iter().map(|pk| pk.0))?;
-        let params1 = PyTuple::new(py, k.1 .1.iter().map(|pk| pk.0))?;
+        let params0 = PyTuple::new(py, k.1.0.iter().map(|pk| pk.0))?;
+        let params1 = PyTuple::new(py, k.1.1.iter().map(|pk| pk.0))?;
         out_dict.set_item(
             PyTuple::new(py, [qubits, PyTuple::new(py, [params0, params1])?])?,
             PyBool::new(py, *v),
@@ -857,8 +857,8 @@ fn commutation_cache_entry_from_pydict(dict: &Bound<PyDict>) -> PyResult<Commuta
     for (k, v) in dict {
         let raw_key: CacheKeyRaw = k.extract()?;
         let qubits = raw_key.0.iter().map(|q| q.map(Qubit)).collect();
-        let params0: SmallVec<_> = raw_key.1 .0;
-        let params1: SmallVec<_> = raw_key.1 .1;
+        let params0: SmallVec<_> = raw_key.1.0;
+        let params1: SmallVec<_> = raw_key.1.1;
         let v: bool = v.extract()?;
         ret.insert((qubits, (params0, params1)), v);
     }
@@ -885,11 +885,7 @@ impl ParameterKey {
         // because -0 has the sign bit set we'd be hashing 9223372036854775808
         // and be storing it separately from 0. So this normalizes all 0s to
         // be represented by 0
-        if self.0 == 0. {
-            0
-        } else {
-            self.0.to_bits()
-        }
+        if self.0 == 0. { 0 } else { self.0.to_bits() }
     }
 }
 

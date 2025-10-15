@@ -15,7 +15,7 @@ use std::sync::OnceLock;
 
 use approx::abs_diff_eq;
 use hashbrown::HashMap;
-use nalgebra::{stack, DMatrix, DMatrixView, DVector, Matrix4, QR};
+use nalgebra::{DMatrix, DMatrixView, DVector, Matrix4, QR, stack};
 use ndarray::prelude::*;
 use num_complex::Complex64;
 use numpy::PyReadonlyArray2;
@@ -24,10 +24,10 @@ use pyo3::prelude::*;
 use smallvec::smallvec;
 
 use crate::euler_one_qubit_decomposer::{
-    unitary_to_gate_sequence_inner, EulerBasis, EulerBasisSet,
+    EulerBasis, EulerBasisSet, unitary_to_gate_sequence_inner,
 };
 use crate::linalg::{closest_unitary, is_hermitian_matrix, svd_decomposition, verify_unitary};
-use crate::two_qubit_decompose::{two_qubit_decompose_up_to_diagonal, TwoQubitBasisDecomposer};
+use crate::two_qubit_decompose::{TwoQubitBasisDecomposer, two_qubit_decompose_up_to_diagonal};
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::interner::Interned;

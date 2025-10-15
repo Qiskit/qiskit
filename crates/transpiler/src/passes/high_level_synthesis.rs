@@ -15,36 +15,36 @@ use hashbrown::HashSet;
 use ndarray::prelude::*;
 use num_complex::Complex;
 use numpy::IntoPyArray;
+use pyo3::Bound;
+use pyo3::IntoPyObjectExt;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
 use pyo3::types::PyTuple;
-use pyo3::Bound;
-use pyo3::IntoPyObjectExt;
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::converters::QuantumCircuitData;
+use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::CX_GATE;
 use qiskit_circuit::imports::{HLS_SYNTHESIZE_OP_USING_PLUGINS, QS_DECOMPOSITION, QUANTUM_CIRCUIT};
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::operations::StandardGate;
-use qiskit_circuit::operations::{radd_param, Param};
+use qiskit_circuit::operations::{Param, radd_param};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit, VarsMode};
 use smallvec::SmallVec;
 
+use crate::TranspilerError;
 use crate::equivalence::EquivalenceLibrary;
 use crate::target::Qargs;
 use crate::target::Target;
-use crate::TranspilerError;
 use qiskit_circuit::PhysicalQubit;
-use qiskit_synthesis::euler_one_qubit_decomposer::angles_from_unitary;
 use qiskit_synthesis::euler_one_qubit_decomposer::EulerBasis;
+use qiskit_synthesis::euler_one_qubit_decomposer::angles_from_unitary;
 use qiskit_synthesis::two_qubit_decompose::TwoQubitBasisDecomposer;
 
 /// Track global qubits by their state.
@@ -380,7 +380,17 @@ impl HighLevelSynthesisData {
     fn __str__(&self) -> String {
         format!(
             "HighLevelSynthesisData(hls_config: {:?}, hls_plugin_manager: {:?}, hls_op_names: {:?}, coupling_map: {:?}, target: {:?},  equivalence_library: {:?}, device_insts: {:?}, use_physical_indices: {:?}, min_qubits: {:?}, unroll_definitions: {:?}, optimize_clifford_t: {:?})",
-            self.hls_config, self.hls_plugin_manager, self.hls_op_names, self.coupling_map, self.target, self.equivalence_library, self.device_insts,  self.use_physical_indices, self.min_qubits, self.unroll_definitions, self.optimize_clifford_t,
+            self.hls_config,
+            self.hls_plugin_manager,
+            self.hls_op_names,
+            self.coupling_map,
+            self.target,
+            self.equivalence_library,
+            self.device_insts,
+            self.use_physical_indices,
+            self.min_qubits,
+            self.unroll_definitions,
+            self.optimize_clifford_t,
         )
     }
 }

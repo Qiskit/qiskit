@@ -16,18 +16,18 @@ use std::sync::Arc;
 use std::{fmt, vec};
 
 use crate::circuit_data::CircuitData;
-use crate::imports::{get_std_gate_class, BARRIER, DELAY, MEASURE, RESET};
+use crate::imports::{BARRIER, DELAY, MEASURE, RESET, get_std_gate_class};
 use crate::imports::{DEEPCOPY, QUANTUM_CIRCUIT, UNITARY_GATE};
 use crate::parameter::parameter_expression::{
     ParameterExpression, PyParameter, PyParameterExpression,
 };
 use crate::parameter::symbol_expr::{Symbol, Value};
-use crate::{gate_matrix, impl_intopyobject_for_copy_pyclass, Qubit};
+use crate::{Qubit, gate_matrix, impl_intopyobject_for_copy_pyclass};
 
 use nalgebra::{Matrix2, Matrix4};
-use ndarray::{array, aview2, Array2, ArrayView2, Dim, ShapeBuilder};
+use ndarray::{Array2, ArrayView2, Dim, ShapeBuilder, array, aview2};
 use num_complex::Complex64;
-use smallvec::{smallvec, SmallVec};
+use smallvec::{SmallVec, smallvec};
 
 use numpy::IntoPyArray;
 use numpy::PyArray2;
@@ -36,7 +36,7 @@ use numpy::ToPyArray;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyList, PyTuple};
-use pyo3::{intern, IntoPyObjectExt, Python};
+use pyo3::{IntoPyObjectExt, Python, intern};
 
 #[derive(Clone, Debug)]
 pub enum Param {
@@ -1130,9 +1130,12 @@ impl Operation for StandardGate {
                 _ => None,
             },
             Self::CU => match params {
-                [Param::Float(theta), Param::Float(phi), Param::Float(lam), Param::Float(gamma)] => {
-                    Some(aview2(&gate_matrix::cu_gate(*theta, *phi, *lam, *gamma)).to_owned())
-                }
+                [
+                    Param::Float(theta),
+                    Param::Float(phi),
+                    Param::Float(lam),
+                    Param::Float(gamma),
+                ] => Some(aview2(&gate_matrix::cu_gate(*theta, *phi, *lam, *gamma)).to_owned()),
                 _ => None,
             },
             Self::CU1 => match params[0] {
@@ -2423,7 +2426,10 @@ pub fn radd_param(param1: Param, param2: Param) -> Param {
         [Param::Float(theta), Param::Float(lambda)] => Param::Float(theta + lambda),
         [Param::Float(theta), Param::ParameterExpression(_lambda)] => add_param(&param2, *theta),
         [Param::ParameterExpression(_theta), Param::Float(lambda)] => add_param(&param1, *lambda),
-        [Param::ParameterExpression(theta), Param::ParameterExpression(lambda)] => {
+        [
+            Param::ParameterExpression(theta),
+            Param::ParameterExpression(lambda),
+        ] => {
             // TODO we could properly propagate the error here
             Param::ParameterExpression(Arc::new(
                 theta.add(lambda).expect("Name conflict during add."),

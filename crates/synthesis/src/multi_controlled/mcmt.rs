@@ -16,7 +16,7 @@ use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::operations::{Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
-use smallvec::{smallvec, SmallVec};
+use smallvec::{SmallVec, smallvec};
 
 use crate::QiskitError;
 
