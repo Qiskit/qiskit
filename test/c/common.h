@@ -14,8 +14,6 @@
 #include <qiskit.h>
 #include <stdio.h>
 
-QkComplex64 make_complex_double(double real, double imag);
-
 // An enumeration of test results. These should be returned by test functions to
 // indicate what kind of error occurred. This will be used to produce more
 // helpful messages for the developer running the test suite.
@@ -34,3 +32,6 @@ enum TestResult {
 // post-process the returned `TestResult` to product a minimal info message for
 // the developer running the test suite.
 int run(const char *name, int (*test_function)(void));
+
+bool compare_circuits(const QkCircuit *res, const QkCircuit *expected);
+void print_circuit(const QkCircuit *qc);

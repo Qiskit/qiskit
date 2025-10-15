@@ -9,6 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+# pylint: disable=missing-function-docstring
 
 """A wrapper class for the purposes of validating modifications to
 QuantumCircuit.data while maintaining the interface of a python list."""

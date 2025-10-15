@@ -23,7 +23,7 @@ from numpy.typing import NDArray
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import Parameter
-from qiskit.circuit.library import RealAmplitudes, UnitaryGate
+from qiskit.circuit.library import real_amplitudes, UnitaryGate
 from qiskit.primitives import PrimitiveResult, PubResult, StatevectorSampler
 from qiskit.primitives.backend_sampler_v2 import BackendSamplerV2
 from qiskit.primitives.containers import BitArray
@@ -129,14 +129,16 @@ class TestBackendSamplerV2(QiskitTestCase):
         bell.measure_all()
         self._cases.append((bell, None, {0: 5000, 3: 5000}))  # case 1
 
-        pqc = RealAmplitudes(num_qubits=2, reps=2)
+        pqc = QuantumCircuit(2)
+        pqc.append(real_amplitudes(num_qubits=2, reps=2), [0, 1])
         pqc.measure_all()
         self._cases.append((pqc, [0] * 6, {0: 10000}))  # case 2
         self._cases.append((pqc, [1] * 6, {0: 168, 1: 3389, 2: 470, 3: 5973}))  # case 3
         self._cases.append((pqc, [0, 1, 1, 2, 3, 5], {0: 1339, 1: 3534, 2: 912, 3: 4215}))  # case 4
         self._cases.append((pqc, [1, 2, 3, 4, 5, 6], {0: 634, 1: 291, 2: 6039, 3: 3036}))  # case 5
 
-        pqc2 = RealAmplitudes(num_qubits=2, reps=3)
+        pqc2 = QuantumCircuit(2)
+        pqc2.append(real_amplitudes(num_qubits=2, reps=3), [0, 1])
         pqc2.measure_all()
         self._cases.append(
             (pqc2, [0, 1, 2, 3, 4, 5, 6, 7], {0: 1898, 1: 6864, 2: 928, 3: 311})
@@ -361,7 +363,8 @@ class TestBackendSamplerV2(QiskitTestCase):
         """Test for errors with run method"""
         qc1 = QuantumCircuit(1)
         qc1.measure_all()
-        qc2 = RealAmplitudes(num_qubits=1, reps=1)
+        qc2 = QuantumCircuit(2)
+        qc2.append(real_amplitudes(num_qubits=1, reps=1), [0])
         qc2.measure_all()
         pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         qc1, qc2 = pm.run([qc1, qc2])
@@ -431,7 +434,8 @@ class TestBackendSamplerV2(QiskitTestCase):
     @combine(backend=BACKENDS)
     def test_run_numpy_params(self, backend):
         """Test for numpy array as parameter values"""
-        qc = RealAmplitudes(num_qubits=2, reps=2)
+        qc = QuantumCircuit(2)
+        qc.append(real_amplitudes(num_qubits=2, reps=2), [0, 1])
         qc.measure_all()
         pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         qc = pm.run(qc)

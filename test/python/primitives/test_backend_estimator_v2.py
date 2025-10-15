@@ -22,7 +22,7 @@ import numpy as np
 from ddt import ddt
 
 from qiskit.circuit import Parameter, QuantumCircuit
-from qiskit.circuit.library import RealAmplitudes
+from qiskit.circuit.library import real_amplitudes
 from qiskit.primitives import BackendEstimatorV2, StatevectorEstimator
 from qiskit.primitives.containers.bindings_array import BindingsArray
 from qiskit.primitives.containers.estimator_pub import EstimatorPub
@@ -56,7 +56,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
         self._seed = 12
         self._rng = np.random.default_rng(self._seed)
         self._options = {"default_precision": self._precision, "seed_simulator": self._seed}
-        self.ansatz = RealAmplitudes(num_qubits=2, reps=2)
+        self.ansatz = QuantumCircuit(2)
+        self.ansatz.append(real_amplitudes(num_qubits=2, reps=2), [0, 1])
         self.observable = SparsePauliOp.from_list(
             [
                 ("II", -1.052373245772859),
@@ -68,7 +69,11 @@ class TestBackendEstimatorV2(QiskitTestCase):
         )
         self.expvals = -1.0284380963435145, -1.284366511861733
 
-        self.psi = (RealAmplitudes(num_qubits=2, reps=2), RealAmplitudes(num_qubits=2, reps=3))
+        ra_2_reps = QuantumCircuit(2)
+        ra_2_reps.append(real_amplitudes(num_qubits=2, reps=2), [0, 1])
+        ra_3_reps = QuantumCircuit(2)
+        ra_3_reps.append(real_amplitudes(num_qubits=2, reps=3), [0, 1])
+        self.psi = (ra_2_reps, ra_3_reps)
         self.params = tuple(psi.parameters for psi in self.psi)
         self.hamiltonian = (
             SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)]),
@@ -333,7 +338,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
     @combine(backend=BACKENDS, abelian_grouping=[True, False])
     def test_run_numpy_params(self, backend, abelian_grouping):
         """Test for numpy array as parameter values"""
-        qc = RealAmplitudes(num_qubits=2, reps=2)
+        qc = QuantumCircuit(2)
+        qc.append(real_amplitudes(num_qubits=2, reps=2), [0, 1])
         pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         qc = pm.run(qc)
         op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
@@ -404,7 +410,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
 
         backend = AerSimulator()
         seed = 123
-        qc = RealAmplitudes(num_qubits=2, reps=1)
+        qc = QuantumCircuit(2)
+        qc.append(real_amplitudes(num_qubits=2, reps=1), [0, 1])
         pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         qc = pm.run(qc)
         op = [SparsePauliOp("IX"), SparsePauliOp("YI")]
@@ -443,7 +450,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
                 return 1
 
         backend = FakeBackendLimitedCircuits(num_qubits=5)
-        qc = RealAmplitudes(num_qubits=2, reps=2)
+        qc = QuantumCircuit(2)
+        qc.append(real_amplitudes(num_qubits=2, reps=2), [0, 1])
         # Note: two qubit-wise commuting groups
         op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
         k = 5

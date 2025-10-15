@@ -708,7 +708,7 @@ class Pauli(BasePauli):
     def apply_layout(
         self, layout: TranspileLayout | list[int] | None, num_qubits: int | None = None
     ) -> Pauli:
-        """Apply a transpiler layout to this :class:`~.Pauli`
+        """Apply a transpiler layout to this :class:`~.quantum_info.Pauli`
 
         Args:
             layout: Either a :class:`~.TranspileLayout`, a list of integers or None.
@@ -722,7 +722,7 @@ class Pauli(BasePauli):
                 None, the operator will be expanded to the given number of qubits.
 
         Returns:
-            A new :class:`.Pauli` with the provided layout applied
+            A new :class:`~.quantum_info.Pauli` with the provided layout applied
         """
         from qiskit.transpiler.layout import TranspileLayout
 

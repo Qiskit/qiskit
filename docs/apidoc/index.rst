@@ -14,6 +14,7 @@ Circuit construction:
 
    circuit
    qiskit.circuit.QuantumCircuit
+   circuit_annotation
    circuit_classical
    circuit_library
    circuit_random

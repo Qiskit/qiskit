@@ -60,9 +60,9 @@ class UnitaryOverlap(QuantumCircuit):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="2.1",
         additional_msg="Use qiskit.circuit.library.unitary_overlap instead.",
-        pending=True,
+        removal_timeline="in Qiskit 3.0",
     )
     def __init__(
         self,
@@ -125,7 +125,7 @@ def unitary_overlap(
     by computing the probability of being in the all-zeros bit-string, or equivalently,
     the expectation value of projector :math:`|0\rangle\langle 0|`.
 
-    **Reference Circuit:**
+    Reference Circuit:
 
     .. plot::
         :alt: Circuit diagram output by the previous code.

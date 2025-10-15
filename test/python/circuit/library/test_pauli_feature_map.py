@@ -39,7 +39,8 @@ class TestDataPreparation(QiskitTestCase):
 
     def test_pauli_empty(self):
         """Test instantiating an empty Pauli expansion."""
-        encoding = PauliFeatureMap()
+        with self.assertWarns(DeprecationWarning):
+            encoding = PauliFeatureMap()
 
         with self.subTest(msg="equal to empty circuit"):
             self.assertTrue(Operator(encoding).equiv(QuantumCircuit()))
@@ -52,13 +53,15 @@ class TestDataPreparation(QiskitTestCase):
     @unpack
     def test_num_parameters(self, num_qubits, reps, pauli_strings):
         """Test the number of parameters equals the number of qubits, independent of reps."""
-        encoding = PauliFeatureMap(num_qubits, paulis=pauli_strings, reps=reps)
+        with self.assertWarns(DeprecationWarning):
+            encoding = PauliFeatureMap(num_qubits, paulis=pauli_strings, reps=reps)
         self.assertEqual(encoding.num_parameters, num_qubits)
         self.assertEqual(encoding.num_parameters_settable, num_qubits)
 
     def test_pauli_evolution(self):
         """Test the generation of Pauli blocks."""
-        encoding = PauliFeatureMap()
+        with self.assertWarns(DeprecationWarning):
+            encoding = PauliFeatureMap()
         time = 1.4
         with self.subTest(pauli_string="ZZ"):
             evo = QuantumCircuit(2)
@@ -99,7 +102,8 @@ class TestDataPreparation(QiskitTestCase):
     def test_first_order_circuit(self):
         """Test a first order expansion circuit."""
         times = [0.2, 1, np.pi, -1.2]
-        encoding = ZFeatureMap(4, reps=3).assign_parameters(times)
+        with self.assertWarns(DeprecationWarning):
+            encoding = ZFeatureMap(4, reps=3).assign_parameters(times)
 
         #      ┌───┐ ┌────────┐┌───┐ ┌────────┐┌───┐ ┌────────┐
         # q_0: ┤ H ├─┤ P(0.4) ├┤ H ├─┤ P(0.4) ├┤ H ├─┤ P(0.4) ├
@@ -121,7 +125,8 @@ class TestDataPreparation(QiskitTestCase):
     def test_second_order_circuit(self):
         """Test a second order expansion circuit."""
         times = [0.2, 1, np.pi]
-        encoding = ZZFeatureMap(3, reps=2).assign_parameters(times)
+        with self.assertWarns(DeprecationWarning):
+            encoding = ZZFeatureMap(3, reps=2).assign_parameters(times)
 
         def zz_evolution(circuit, qubit1, qubit2):
             time = (np.pi - times[qubit1]) * (np.pi - times[qubit2])
@@ -165,14 +170,16 @@ class TestDataPreparation(QiskitTestCase):
     def test_zz_entanglement(self, entanglement):
         """Test the ZZ feature map works with pairwise, linear and reverse_linear entanglement."""
         num_qubits = 5
-        encoding = ZZFeatureMap(num_qubits, entanglement=entanglement, reps=1)
+        with self.assertWarns(DeprecationWarning):
+            encoding = ZZFeatureMap(num_qubits, entanglement=entanglement, reps=1)
         ops = encoding.decompose().count_ops()
         expected_ops = {"h": num_qubits, "p": 2 * num_qubits - 1, "cx": 2 * (num_qubits - 1)}
         self.assertEqual(ops, expected_ops)
 
     def test_pauli_alpha(self):
         """Test  Pauli rotation factor (getter, setter)."""
-        encoding = PauliFeatureMap()
+        with self.assertWarns(DeprecationWarning):
+            encoding = PauliFeatureMap()
         self.assertEqual(encoding.alpha, 2.0)
         encoding.alpha = 1.4
         self.assertEqual(encoding.alpha, 1.4)
@@ -180,15 +187,20 @@ class TestDataPreparation(QiskitTestCase):
     def test_zzfeaturemap_raises_if_too_small(self):
         """Test the ``ZZFeatureMap`` raises an error if the number of qubits is smaller than 2."""
         with self.assertRaises(ValueError):
-            _ = ZZFeatureMap(1)
+            with self.assertWarns(DeprecationWarning):
+                _ = ZZFeatureMap(1)
 
     def test_parameter_prefix(self):
         """Test the Parameter prefix"""
-        encoding_pauli = PauliFeatureMap(
-            feature_dimension=2, reps=2, paulis=["ZY"], parameter_prefix="p"
-        )
-        encoding_z = ZFeatureMap(feature_dimension=2, reps=2, parameter_prefix="q")
-        encoding_zz = ZZFeatureMap(feature_dimension=2, reps=2, parameter_prefix="r")
+        with self.assertWarns(DeprecationWarning):
+            encoding_pauli = PauliFeatureMap(
+                feature_dimension=2, reps=2, paulis=["ZY"], parameter_prefix="p"
+            )
+        with self.assertWarns(DeprecationWarning):
+            encoding_z = ZFeatureMap(feature_dimension=2, reps=2, parameter_prefix="q")
+        with self.assertWarns(DeprecationWarning):
+            encoding_zz = ZZFeatureMap(feature_dimension=2, reps=2, parameter_prefix="r")
+
         x = ParameterVector("x", 2)
         y = Parameter("y")
 
@@ -258,9 +270,11 @@ class TestDataPreparation(QiskitTestCase):
             circuit.cx(q2, q3)
             circuit.cx(q1, q2)
 
-        feat_map = PauliFeatureMap(
-            n_qubits, reps=2, paulis=["Z", "ZZ", "ZZZ"], entanglement=entanglement
-        ).assign_parameters(params)
+        with self.assertWarns(DeprecationWarning):
+            feat_map = PauliFeatureMap(
+                n_qubits, reps=2, paulis=["Z", "ZZ", "ZZZ"], entanglement=entanglement
+            )
+        feat_map.assign_parameters(params, inplace=True)
 
         qc = QuantumCircuit(n_qubits)
         for _ in range(2):
@@ -283,10 +297,11 @@ class TestDataPreparation(QiskitTestCase):
             3: [(0, 1, 2)],
         }
 
-        with self.assertRaises(ValueError):
+        with self.assertWarns(DeprecationWarning):
             feat_map = PauliFeatureMap(
                 n_qubits, reps=2, paulis=["Z", "ZZ", "ZZZ"], entanglement=entanglement
             )
+        with self.assertRaises(ValueError):
             feat_map.count_ops()
 
     def test_entanglement_not_specified(self):
@@ -297,10 +312,11 @@ class TestDataPreparation(QiskitTestCase):
             1: [(0, 1), (2,)],
             3: [(0, 1, 2)],
         }
-        with self.assertRaises(ValueError):
+        with self.assertWarns(DeprecationWarning):
             feat_map = PauliFeatureMap(
                 n_qubits, reps=2, paulis=["Z", "ZZ", "ZZZ"], entanglement=entanglement
             )
+        with self.assertRaises(ValueError):
             feat_map.count_ops()
 
 

@@ -18,19 +18,56 @@
 from io import StringIO
 from math import pi
 import re
+import warnings
+
 
 from ddt import ddt, data
 
+from qiskit.exceptions import ExperimentalWarning
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
-from qiskit.circuit import Parameter, Qubit, Clbit, Duration, Gate, ParameterVector
+from qiskit.circuit import (
+    Parameter,
+    Qubit,
+    Clbit,
+    Duration,
+    Gate,
+    ParameterVector,
+    annotation,
+    Instruction,
+)
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import CASE_DEFAULT
 from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.qasm3 import Exporter, dumps, dump, QASM3ExporterError, ExperimentalFeatures
+from qiskit.qasm3 import (
+    Exporter,
+    dumps,
+    dump,
+    dumps_experimental,
+    QASM3ExporterError,
+    ExperimentalFeatures,
+    DefcalInstruction,
+)
 from qiskit.qasm3.exporter import QASM3Builder
 from qiskit.qasm3.printer import BasicPrinter
+from qiskit.qasm3.exceptions import QASM3ImporterError
 from qiskit.quantum_info import Pauli
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+
+# Custom instruction for defcal testing
+class MyMeasure(Instruction):
+    """Custom measure-like instruction"""
+
+    def __init__(self):
+        super().__init__("measure_2", 1, 1, [])
+
+
+# Custom instruction for defcal testing
+class MyReset(Instruction):
+    """Custom reset-like instruction"""
+
+    def __init__(self, angle):
+        super().__init__("reset_2", 1, 0, [angle])
 
 
 class TestQASM3Functions(QiskitTestCase):
@@ -428,19 +465,24 @@ gate rxx(p0) _gate_q_0, _gate_q_1 {
   h _gate_q_0;
 }
 gate PauliEvolution(_t_0_) _gate_q_0, _gate_q_1 {
-  rxx(2.0*_t_0_) _gate_q_0, _gate_q_1;
+  rxx(2*_t_0_) _gate_q_0, _gate_q_1;
+}
+gate sxdg _gate_q_0 {
+  s _gate_q_0;
+  h _gate_q_0;
+  s _gate_q_0;
 }
 gate ryy(p0) _gate_q_0, _gate_q_1 {
-  rx(pi/2) _gate_q_0;
-  rx(pi/2) _gate_q_1;
+  sxdg _gate_q_0;
+  sxdg _gate_q_1;
   cx _gate_q_0, _gate_q_1;
   rz(p0) _gate_q_1;
   cx _gate_q_0, _gate_q_1;
-  rx(-pi/2) _gate_q_0;
-  rx(-pi/2) _gate_q_1;
+  sx _gate_q_0;
+  sx _gate_q_1;
 }
 gate PauliEvolution_0(_t_1_) _gate_q_0, _gate_q_1 {
-  ryy(2.0*_t_1_) _gate_q_0, _gate_q_1;
+  ryy(2*_t_1_) _gate_q_0, _gate_q_1;
 }
 gate rzz(p0) _gate_q_0, _gate_q_1 {
   cx _gate_q_0, _gate_q_1;
@@ -448,7 +490,7 @@ gate rzz(p0) _gate_q_0, _gate_q_1 {
   cx _gate_q_0, _gate_q_1;
 }
 gate PauliEvolution_1(_t_2_) _gate_q_0, _gate_q_1 {
-  rzz(2.0*_t_2_) _gate_q_0, _gate_q_1;
+  rzz(2*_t_2_) _gate_q_0, _gate_q_1;
 }
 qubit[2] q;
 PauliEvolution(_t_0_) q[0], q[1];
@@ -624,23 +666,17 @@ PauliEvolution_1(_t_2_) q[0], q[1];
         circuit.cx(0, 1)
         expected_qasm = """\
 OPENQASM 3.0;
-gate u3(p0, p1, p2) _gate_q_0 {
-  U(p0, p1, p2) _gate_q_0;
-}
-gate u1(p0) _gate_q_0 {
-  u3(0, 0, p0) _gate_q_0;
+gate p(p0) _gate_q_0 {
+  U(0, 0, p0) _gate_q_0;
 }
 gate rz(p0) _gate_q_0 {
-  u1(p0) _gate_q_0;
+  p(p0) _gate_q_0;
 }
 gate sdg _gate_q_0 {
-  u1(-pi/2) _gate_q_0;
-}
-gate u2(p0, p1) _gate_q_0 {
-  u3(pi/2, p0, p1) _gate_q_0;
+  p(-pi/2) _gate_q_0;
 }
 gate h _gate_q_0 {
-  u2(0, pi) _gate_q_0;
+  U(pi/2, 0, pi) _gate_q_0;
 }
 gate sx _gate_q_0 {
   sdg _gate_q_0;
@@ -729,6 +765,9 @@ c[1] = measure q[1];
         qc.delay(expr.div(s, 2.0), qreg[1])
         qc.delay(expr.add(expr.mul(s, expr.div(Duration.dt(1000), Duration.ns(200))), t), qreg[0])
 
+        # "ps" is not a valid unit in OQ3, so we need to convert.
+        qc.delay(expr.add(expr.mul(s, expr.div(Duration.dt(1000), Duration.ps(2))), t), qreg[0])
+
         expected_qasm = "\n".join(
             [
                 "OPENQASM 3.0;",
@@ -737,9 +776,10 @@ c[1] = measure q[1];
                 "stretch t;",
                 "delay[100ms] qr[0];",
                 "delay[100.0ms] qr[0];",
-                "delay[2000ns] qr[1];",
+                "delay[0.002ns] qr[1];",
                 "delay[s / 2.0] qr[1];",
                 "delay[s * (1000dt / 200.0ns) + t] qr[0];",
+                "delay[s * (1000dt / 0.002ns) + t] qr[0];",
                 "",
             ]
         )
@@ -1338,6 +1378,7 @@ c[1] = measure q[1];
     def test_box(self):
         """Test that 'box' statements can be exported'"""
         qc = QuantumCircuit(2)
+        a = qc.add_stretch("a")
         with qc.box():
             qc.x(0)
         with qc.box(duration=50.0, unit="ms"):
@@ -1345,11 +1386,18 @@ c[1] = measure q[1];
         with qc.box(duration=200, unit="dt"):
             with qc.box(duration=10, unit="dt"):
                 pass
+        with qc.box(duration=a):
+            with qc.box(duration=expr.mul(2, a)):
+                pass
+        with qc.box(duration=a):
+            with qc.box(duration=expr.add(expr.mul(2, a), Duration.ps(2))):
+                pass
 
         expected = """\
 OPENQASM 3.0;
 include "stdgates.inc";
 qubit[2] q;
+stretch a;
 box {
   x q[0];
 }
@@ -1358,6 +1406,14 @@ box[50.0ms] {
 }
 box[200dt] {
   box[10dt] {
+  }
+}
+box[a] {
+  box[2 * a] {
+  }
+}
+box[a] {
+  box[2 * a + 0.002ns] {
   }
 }
 """
@@ -2274,6 +2330,120 @@ switch (switch_dummy_0) {
         test = dumps(qc)
         self.assertEqual(test, expected)
 
+    def test_simple_defcal(self):
+        """Test dumping custom non-unitary instructions using implicit defcals."""
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+        qc.append(MyMeasure(), [0], [0])
+        with qc.if_test(expr.lift(qc.clbits[0])):
+            qc.append(MyReset(2.5), [0])
+        qc.measure(0, 0)
+
+        defcals = {
+            "measure_2": DefcalInstruction("measure_2", 0, 1, types.Bool()),
+            "reset_2": DefcalInstruction("reset_2", 1, 1, None),
+        }
+        out_qasm = dumps(
+            qc,
+            includes=(),
+            basis_gates=("h", "cx"),
+            disable_constants=True,
+            implicit_defcals=defcals,
+        )
+        expected = """
+OPENQASM 3.0;
+bit[1] c;
+qubit[1] q;
+h q[0];
+c[0] = measure_2 q[0];
+if (c[0]) {
+  reset_2(2.5) q[0];
+}
+c[0] = measure q[0];
+"""
+        self.assertEqual(expected.strip(), out_qasm.strip())
+
+    def test_parameters_and_defcals_cannot_have_naming_clashes(self):
+        """Test that parameters are renamed to avoid collisions with defcal names."""
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+        qc.append(MyMeasure(), [0], [0])
+        with qc.if_test(expr.lift(qc.clbits[0])):
+            qc.append(MyReset(2.5), [0])
+        qc.rz(Parameter("measure_2"), 0)
+        qc.measure(0, 0)
+
+        defcals = {
+            "measure_2": DefcalInstruction("measure_2", 0, 1, types.Bool()),
+            "reset_2": DefcalInstruction("reset_2", 1, 1, None),
+        }
+        out_qasm = dumps(
+            qc,
+            includes=(),
+            basis_gates=("h", "cx"),
+            disable_constants=True,
+            implicit_defcals=defcals,
+        )
+        parameter_name = self.scalar_parameter_regex.search(out_qasm)
+        self.assertTrue(parameter_name)
+        self.assertIn("measure_2", parameter_name["name"])
+        self.assertNotIn(parameter_name["name"], ["measure_2", "reset_2"])
+
+    def test_defcal_overriding_instruction_name(self):
+        """Test overriding instruction names using defcals."""
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+        qc.measure(0, 0)
+
+        defcals = {
+            "measure": DefcalInstruction("measure_2", 0, 1, types.Bool()),
+        }
+        out_qasm = dumps(
+            qc,
+            includes=(),
+            basis_gates=("h", "cx"),
+            disable_constants=True,
+            implicit_defcals=defcals,
+        )
+        expected = """
+OPENQASM 3.0;
+bit[1] c;
+qubit[1] q;
+h q[0];
+c[0] = measure_2 q[0];
+"""
+        self.assertEqual(expected.strip(), out_qasm.strip())
+
+    def test_defcal_overriding_ctrl_flow_op_name(self):
+        """Test overriding ContinueLoopOp and BreakLoopOp instruction names using defcals."""
+        # These are edge-case control flow ops that don't subclass ControlFlowOp and
+        # therefore can be overwritten using defcals like regular instructions.
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+        qc.break_loop()
+        qc.continue_loop()
+
+        defcals = {
+            "break_loop": DefcalInstruction("my_name_break", 0, 1, types.Bool()),
+            "continue_loop": DefcalInstruction("my_name_continue", 0, 1, types.Bool()),
+        }
+        out_qasm = dumps(
+            qc,
+            includes=(),
+            basis_gates=("h", "cx"),
+            disable_constants=True,
+            implicit_defcals=defcals,
+        )
+        expected = """
+OPENQASM 3.0;
+bit[1] c;
+qubit[1] q;
+h q[0];
+c[0] = my_name_break q[0];
+c[0] = my_name_continue q[0];
+"""
+        self.assertEqual(expected.strip(), out_qasm.strip())
+
 
 class TestExperimentalFeatures(QiskitTestCase):
     """Tests of features that are hidden behind experimental flags."""
@@ -2659,3 +2829,668 @@ class TestQASM3ExporterFailurePaths(QiskitTestCase):
             dumps(qc, basis_gates=["U", "reset"])
         self.assertIsInstance(cm.exception.__cause__, QASM3ExporterError)
         self.assertRegex(cm.exception.__cause__.message, "cannot use the keyword 'reset'")
+
+    def test_defcal_wrong_num_parameters(self):
+        """Test that defcals must match their corresponding instruction."""
+        qc = QuantumCircuit(1, 1)
+        qc.append(MyMeasure(), [0], [0])
+        defcals = {
+            "measure_2": DefcalInstruction("measure_2", 0, 2, types.Bool()),
+        }
+        with self.assertRaisesRegex(
+            QASM3ExporterError,
+            "has a call signature that is inconsistent with its associated defcal",
+        ):
+            dumps(
+                qc,
+                includes=(),
+                basis_gates=("h", "cx"),
+                disable_constants=True,
+                implicit_defcals=defcals,
+            )
+
+    def test_defcal_wrong_num_qubits(self):
+        """Test that defcals must have the same number of qubits as their reference instruction."""
+        qc = QuantumCircuit(1, 1)
+        qc.append(MyMeasure(), [0], [0])
+        qc.rx(Parameter("a"), 0)
+        defcals = {
+            "measure_2": DefcalInstruction("measure_2", 5, 1, types.Bool()),
+        }
+        with self.assertRaisesRegex(
+            QASM3ExporterError,
+            "has a call signature that is inconsistent with its associated defcal",
+        ):
+            dumps(
+                qc,
+                includes=(),
+                basis_gates=("h", "cx"),
+                disable_constants=True,
+                implicit_defcals=defcals,
+            )
+
+    def test_defcal_wrong_num_clbits(self):
+        """Test that defcals must have the same number of clbits as their reference instruction."""
+        qc = QuantumCircuit(1, 1)
+        qc.append(MyMeasure(), [0], [0])
+        qc.rx(Parameter("a"), 0)
+        defcals = {
+            "measure_2": DefcalInstruction("measure_2", 0, 2, types.Bool()),
+        }
+        with self.assertRaisesRegex(
+            QASM3ExporterError,
+            "has a call signature that is inconsistent with its associated defcal",
+        ):
+            dumps(
+                qc,
+                includes=(),
+                basis_gates=("h", "cx"),
+                disable_constants=True,
+                implicit_defcals=defcals,
+            )
+
+    def test_defcal_wrong_return_type(self):
+        """Test that defcals must follow the allowed return types."""
+        qc = QuantumCircuit(1, 1)
+        qc.append(MyMeasure(), [0], [0])
+        defcals = {
+            "measure_2": DefcalInstruction("measure_2", 0, 1, types.Float()),
+        }
+        with self.assertRaisesRegex(
+            QASM3ExporterError, "returns an unsupported classical type: Float()"
+        ):
+            dumps(
+                qc,
+                includes=(),
+                basis_gates=("h", "cx"),
+                disable_constants=True,
+                implicit_defcals=defcals,
+            )
+
+    def test_defcal_forbidden_name(self):
+        """Test that defcals must not try to overwrite reserved keywords."""
+        qc = QuantumCircuit(1, 1)
+        qc.append(MyMeasure(), [0], [0])
+        defcals = {
+            "measure": DefcalInstruction("measure", 0, 1, types.Bool()),
+        }
+
+        with self.assertRaisesRegex(
+            QASM3ExporterError, "cannot use the keyword 'measure' as a variable name"
+        ):
+            dumps(
+                qc,
+                includes=(),
+                basis_gates=("h", "cx"),
+                disable_constants=True,
+                implicit_defcals=defcals,
+            )
+
+
+class TestQASM3ExporterRust(QiskitTestCase):
+    """Tests of the Rust QASM3 exporter."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls._cm = warnings.catch_warnings()
+        cls._cm.__enter__()
+        # We're knowingly testing the experimental code.
+        warnings.filterwarnings("ignore", category=ExperimentalWarning, module="qiskit.qasm3")
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._cm.__exit__(None, None, None)
+        super().tearDownClass()
+
+    def test_registers_as_aliases(self):
+        """Test that different types of alias creation and concatenation work."""
+        qubits = [Qubit() for _ in [None] * 10]
+        first_four = QuantumRegister(name="first_four", bits=qubits[:4])
+        last_five = QuantumRegister(name="last_five", bits=qubits[5:])
+        alternate = QuantumRegister(name="alternate", bits=qubits[::2])
+        sporadic = QuantumRegister(name="sporadic", bits=[qubits[4], qubits[2], qubits[9]])
+        qc = QuantumCircuit(qubits, first_four, last_five, alternate, sporadic)
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3.0;",
+                'include "stdgates.inc";',
+                "qubit _qubit0;",
+                "qubit _qubit1;",
+                "qubit _qubit2;",
+                "qubit _qubit3;",
+                "qubit _qubit4;",
+                "qubit _qubit5;",
+                "qubit _qubit6;",
+                "qubit _qubit7;",
+                "qubit _qubit8;",
+                "qubit _qubit9;",
+                "let first_four = {_qubit0, _qubit1, _qubit2, _qubit3};",
+                "let last_five = {_qubit5, _qubit6, _qubit7, _qubit8, _qubit9};",
+                "let alternate = {first_four[0], first_four[2], _qubit4, last_five[1], last_five[3]};",
+                "let sporadic = {alternate[2], alternate[1], last_five[4]};",
+                "",
+            ]
+        )
+        self.assertEqual(dumps_experimental(qc, allow_aliasing=True), expected_qasm)
+
+    def test_composite_circuit(self):
+        """Test with a composite circuit instruction and barriers"""
+        composite_circ_qreg = QuantumRegister(2)
+        composite_circ = QuantumCircuit(composite_circ_qreg, name="composite_circ")
+        composite_circ.h(0)
+        composite_circ.x(1)
+        composite_circ.cx(0, 1)
+        composite_circ_instr = composite_circ.to_gate()
+
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(2, "cr")
+        qc = QuantumCircuit(qr, cr)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.barrier()
+        qc.append(composite_circ_instr, [0, 1])
+        qc.measure([0, 1], [0, 1])
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3.0;",
+                'include "stdgates.inc";',
+                "gate composite_circ _gate_q_0, _gate_q_1 {",
+                "  h _gate_q_0;",
+                "  x _gate_q_1;",
+                "  cx _gate_q_0, _gate_q_1;",
+                "}",
+                "bit[2] cr;",
+                "qubit[2] qr;",
+                "h qr[0];",
+                "cx qr[0], qr[1];",
+                "barrier qr[0], qr[1];",
+                "composite_circ qr[0], qr[1];",
+                "cr[0] = measure qr[0];",
+                "cr[1] = measure qr[1];",
+                "",
+            ]
+        )
+        self.assertEqual(dumps_experimental(qc), expected_qasm)
+
+    def test_custom_gate(self):
+        """Test custom gates (via to_gate)."""
+        composite_circ_qreg = QuantumRegister(2)
+        composite_circ = QuantumCircuit(composite_circ_qreg, name="composite_circ")
+        composite_circ.h(0)
+        composite_circ.x(1)
+        composite_circ.cx(0, 1)
+        composite_circ_instr = composite_circ.to_gate()
+
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(2, "cr")
+        qc = QuantumCircuit(qr, cr)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.barrier()
+        qc.append(composite_circ_instr, [0, 1])
+        qc.measure([0, 1], [0, 1])
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3.0;",
+                'include "stdgates.inc";',
+                "gate composite_circ _gate_q_0, _gate_q_1 {",
+                "  h _gate_q_0;",
+                "  x _gate_q_1;",
+                "  cx _gate_q_0, _gate_q_1;",
+                "}",
+                "bit[2] cr;",
+                "qubit[2] qr;",
+                "h qr[0];",
+                "cx qr[0], qr[1];",
+                "barrier qr[0], qr[1];",
+                "composite_circ qr[0], qr[1];",
+                "cr[0] = measure qr[0];",
+                "cr[1] = measure qr[1];",
+                "",
+            ]
+        )
+        self.assertEqual(dumps_experimental(qc), expected_qasm)
+
+    def test_same_composite_circuits(self):
+        """Test when a composite circuit is added to the circuit multiple times."""
+        composite_circ_qreg = QuantumRegister(2)
+        composite_circ = QuantumCircuit(composite_circ_qreg, name="composite_circ")
+        composite_circ.h(0)
+        composite_circ.x(1)
+        composite_circ.cx(0, 1)
+        composite_circ_instr = composite_circ.to_gate()
+
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(2, "cr")
+        qc = QuantumCircuit(qr, cr)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.barrier()
+        qc.append(composite_circ_instr, [0, 1])
+        qc.append(composite_circ_instr, [0, 1])
+        qc.measure([0, 1], [0, 1])
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3.0;",
+                'include "stdgates.inc";',
+                "gate composite_circ _gate_q_0, _gate_q_1 {",
+                "  h _gate_q_0;",
+                "  x _gate_q_1;",
+                "  cx _gate_q_0, _gate_q_1;",
+                "}",
+                "bit[2] cr;",
+                "qubit[2] qr;",
+                "h qr[0];",
+                "cx qr[0], qr[1];",
+                "barrier qr[0], qr[1];",
+                "composite_circ qr[0], qr[1];",
+                "composite_circ qr[0], qr[1];",
+                "cr[0] = measure qr[0];",
+                "cr[1] = measure qr[1];",
+                "",
+            ]
+        )
+        self.assertEqual(dumps_experimental(qc), expected_qasm)
+
+    def test_pi_disable_constants_false(self):
+        """Test pi constant (disable_constants=False)"""
+        circuit = QuantumCircuit(2)
+        circuit.u(2 * pi, 3 * pi, -5 * pi, 0)
+        with self.assertRaises(QASM3ImporterError):
+            dumps_experimental(circuit, disable_constants=False)
+
+    def test_pi_disable_constants_true(self):
+        """Test pi constant (disable_constants=True)"""
+        circuit = QuantumCircuit(2)
+        circuit.u(2 * pi, 3 * pi, -5 * pi, 0)
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3.0;",
+                'include "stdgates.inc";',
+                "qubit[2] q;",
+                "U(6.283185307179586, 9.42477796076938, -15.707963267948966) q[0];",
+                "",
+            ]
+        )
+        self.assertEqual(dumps_experimental(circuit, disable_constants=True), expected_qasm)
+
+    def test_custom_gate_with_bound_parameter(self):
+        """Test custom gate with bound parameter."""
+        parameter_a = Parameter("a")
+
+        custom = QuantumCircuit(1)
+        custom.rx(parameter_a, 0)
+        custom_gate = custom.assign_parameters({parameter_a: 0.5}).to_gate()
+        custom_gate.name = "custom"
+
+        circuit = QuantumCircuit(1)
+        circuit.append(custom_gate, [0])
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3.0;",
+                'include "stdgates.inc";',
+                "gate custom _gate_q_0 {",
+                "  rx(0.5) _gate_q_0;",
+                "}",
+                "qubit[1] q;",
+                "custom q[0];",
+                "",
+            ]
+        )
+        self.assertEqual(dumps_experimental(circuit), expected_qasm)
+
+    def test_custom_gate_with_params_bound_main_call(self):
+        """Custom gate with unbound parameters that are bound in the main circuit"""
+        parameter0 = Parameter("p0")
+        parameter1 = Parameter("p1")
+
+        custom = QuantumCircuit(2, name="custom")
+        custom.rz(parameter0, 0)
+        custom.rz(parameter1 / 2, 1)
+
+        qr_all_qubits = QuantumRegister(3, "q")
+        qr_r = QuantumRegister(3, "r")
+        circuit = QuantumCircuit(qr_all_qubits, qr_r)
+        circuit.append(custom.to_gate(), [qr_all_qubits[0], qr_r[0]])
+
+        circuit.assign_parameters({parameter0: pi, parameter1: pi / 2}, inplace=True)
+
+        # NOTE: this isn't exactly what we want; note that the parameters in the signature are not
+        # actually used.  It would be fine to change the output of the exporter to make `custom` non
+        # parametric in this case.
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3.0;",
+                'include "stdgates.inc";',
+                "gate custom(_gate_p_0, _gate_p_1) _gate_q_0, _gate_q_1 {",
+                "  rz(3.141592653589793) _gate_q_0;",
+                "  rz(0.7853981633974483) _gate_q_1;",
+                "}",
+                "qubit[3] q;",
+                "qubit[3] r;",
+                "custom(3.141592653589793, 1.5707963267948966) q[0], r[0];",
+                "",
+            ]
+        )
+
+        self.assertEqual(dumps_experimental(circuit), expected_qasm)
+
+    def test_gate_qasm_with_ctrl_state(self):
+        """Test with open controlled gate that has ctrl_state"""
+        qc = QuantumCircuit(2)
+        qc.ch(0, 1, ctrl_state=0)
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3.0;",
+                'include "stdgates.inc";',
+                "gate ch_o0 _gate_q_0, _gate_q_1 {",
+                "  x _gate_q_0;",
+                "  ch _gate_q_0, _gate_q_1;",
+                "  x _gate_q_0;",
+                "}",
+                "qubit[2] q;",
+                "ch_o0 q[0], q[1];",
+                "",
+            ]
+        )
+        self.assertEqual(dumps_experimental(qc), expected_qasm)
+
+    def test_opaque_instruction_in_basis_gates(self):
+        """Test that an instruction that is set in the basis gates is output verbatim with no
+        definition."""
+        qc = QuantumCircuit(1)
+        qc.x(0)
+        qc.append(Gate("my_gate", 1, []), [0], [])
+
+        basis_gates = ["my_gate", "x"]
+        transpiled = transpile(qc, initial_layout=[0])
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3.0;",
+                "x $0;",
+                "my_gate $0;",
+                "",
+            ]
+        )
+        self.assertEqual(
+            dumps_experimental(transpiled, includes=[], basis_gates=basis_gates), expected_qasm
+        )
+
+    def test_reset_statement(self):
+        """Test that a reset statement gets output into valid OpenQASM 3.  This includes tests of reset
+        operations on single qubits and in nested scopes."""
+        qreg = QuantumRegister(2, "qr")
+        qc = QuantumCircuit(qreg)
+        qc.reset(0)
+        qc.reset([0, 1])
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3.0;",
+                "qubit[2] qr;",
+                "reset qr[0];",
+                "reset qr[0];",
+                "reset qr[1];",
+                "",
+            ]
+        )
+        self.assertEqual(dumps_experimental(qc, includes=[]), expected_qasm)
+
+    def test_loose_qubits(self):
+        """Test that qubits that are not in any register can be used without issue."""
+        bits = [Qubit(), Qubit()]
+        qr = QuantumRegister(2, name="qr")
+        cr = ClassicalRegister(2, name="cr")
+        qc = QuantumCircuit(bits, qr, cr)
+        qc.h(0)
+        qc.h(1)
+        qc.h(2)
+        qc.h(3)
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3.0;",
+                'include "stdgates.inc";',
+                "bit[2] cr;",
+                "qubit _qubit0;",
+                "qubit _qubit1;",
+                "qubit[2] qr;",
+                "h _qubit0;",
+                "h _qubit1;",
+                "h qr[0];",
+                "h qr[1];",
+                "",
+            ]
+        )
+        self.assertEqual(dumps_experimental(qc), expected_qasm)
+
+    def test_loose_clbits(self):
+        """Test that clbits that are not in any register can be used without issue."""
+        qreg = QuantumRegister(1, name="qr")
+        bits = [Clbit() for _ in [None] * 7]
+        cr1 = ClassicalRegister(name="cr1", bits=bits[1:3])
+        cr2 = ClassicalRegister(name="cr2", bits=bits[4:6])
+        qc = QuantumCircuit(bits, qreg, cr1, cr2)
+        qc.measure(0, 0)
+        qc.measure(0, 1)
+        qc.measure(0, 2)
+        qc.measure(0, 3)
+        qc.measure(0, 4)
+        qc.measure(0, 5)
+        qc.measure(0, 6)
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3.0;",
+                'include "stdgates.inc";',
+                "bit _bit0;",
+                "bit _bit3;",
+                "bit _bit6;",
+                "bit[2] cr1;",
+                "bit[2] cr2;",
+                "qubit[1] qr;",
+                "_bit0 = measure qr[0];",
+                "cr1[0] = measure qr[0];",
+                "cr1[1] = measure qr[0];",
+                "_bit3 = measure qr[0];",
+                "cr2[0] = measure qr[0];",
+                "cr2[1] = measure qr[0];",
+                "_bit6 = measure qr[0];",
+                "",
+            ]
+        )
+        self.assertEqual(dumps_experimental(qc), expected_qasm)
+
+    def test_classical_register_aliasing(self):
+        """Test that clbits that are not in any register can be used without issue."""
+        qreg = QuantumRegister(1, name="qr")
+        bits = [Clbit() for _ in [None] * 7]
+        cr1 = ClassicalRegister(name="cr1", bits=bits[1:3])
+        cr2 = ClassicalRegister(name="cr2", bits=bits[4:6])
+        # cr3 overlaps cr2, but this should be allowed in this alias form.
+        cr3 = ClassicalRegister(name="cr3", bits=bits[5:])
+        qc = QuantumCircuit(bits, qreg, cr1, cr2, cr3)
+        qc.measure(0, 0)
+        qc.measure(0, 1)
+        qc.measure(0, 2)
+        qc.measure(0, 3)
+        qc.measure(0, 4)
+        qc.measure(0, 5)
+        qc.measure(0, 6)
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3.0;",
+                'include "stdgates.inc";',
+                "bit _bit0;",
+                "bit _bit1;",
+                "bit _bit2;",
+                "bit _bit3;",
+                "bit _bit4;",
+                "bit _bit5;",
+                "bit _bit6;",
+                "let cr1 = {_bit1, _bit2};",
+                "let cr2 = {_bit4, _bit5};",
+                "let cr3 = {cr2[1], _bit6};",
+                "qubit[1] qr;",
+                "_bit0 = measure qr[0];",
+                "cr1[0] = measure qr[0];",
+                "cr1[1] = measure qr[0];",
+                "_bit3 = measure qr[0];",
+                "cr2[0] = measure qr[0];",
+                "cr3[0] = measure qr[0];",
+                "cr3[1] = measure qr[0];",
+                "",
+            ]
+        )
+        self.assertEqual(dumps_experimental(qc, allow_aliasing=True), expected_qasm)
+
+    def test_old_alias_classical_registers_option(self):
+        """Test that the ``alias_classical_registers`` option still functions during its changeover
+        period."""
+        qreg = QuantumRegister(1, name="qr")
+        bits = [Clbit() for _ in [None] * 7]
+        cr1 = ClassicalRegister(name="cr1", bits=bits[1:3])
+        cr2 = ClassicalRegister(name="cr2", bits=bits[4:6])
+        # cr3 overlaps cr2, but this should be allowed in this alias form.
+        cr3 = ClassicalRegister(name="cr3", bits=bits[5:])
+        qc = QuantumCircuit(bits, qreg, cr1, cr2, cr3)
+        qc.measure(0, 0)
+        qc.measure(0, 1)
+        qc.measure(0, 2)
+        qc.measure(0, 3)
+        qc.measure(0, 4)
+        qc.measure(0, 5)
+        qc.measure(0, 6)
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3.0;",
+                'include "stdgates.inc";',
+                "bit _bit0;",
+                "bit _bit1;",
+                "bit _bit2;",
+                "bit _bit3;",
+                "bit _bit4;",
+                "bit _bit5;",
+                "bit _bit6;",
+                "let cr1 = {_bit1, _bit2};",
+                "let cr2 = {_bit4, _bit5};",
+                "let cr3 = {cr2[1], _bit6};",
+                "qubit[1] qr;",
+                "_bit0 = measure qr[0];",
+                "cr1[0] = measure qr[0];",
+                "cr1[1] = measure qr[0];",
+                "_bit3 = measure qr[0];",
+                "cr2[0] = measure qr[0];",
+                "cr3[0] = measure qr[0];",
+                "cr3[1] = measure qr[0];",
+                "",
+            ]
+        )
+        self.assertEqual(dumps_experimental(qc, allow_aliasing=True), expected_qasm)
+
+    def test_annotations(self):
+        """Test that the annotation-serialisation framework works."""
+        # pylint: disable=missing-class-docstring,missing-function-docstring
+        assert_in = self.assertIn
+        assert_equal = self.assertEqual
+
+        class MyStr(annotation.Annotation):
+            namespace = "my.str"
+
+            def __init__(self, x):
+                self.x = x
+
+            def __eq__(self, other):
+                return isinstance(other, MyStr) and self.x == other.x
+
+        class MyInt(annotation.Annotation):
+            namespace = "my.int"
+
+            def __init__(self, x):
+                self.x = x
+
+            def __eq__(self, other):
+                return isinstance(other, MyInt) and self.x == other.x
+
+        class Static(annotation.Annotation):
+            namespace = "static"
+
+            def __eq__(self, other):
+                return isinstance(other, Static)
+
+        class StaticGlobal(annotation.Annotation):
+            namespace = "static.global"
+
+            def __eq__(self, other):
+                return isinstance(other, StaticGlobal)
+
+        class MyHandler(annotation.OpenQASM3Serializer):
+            def load(self, namespace, payload):
+                raise NotImplementedError("unused in test")
+
+            def dump(self, annotation):  # pylint: disable=redefined-outer-name
+                base, sub = annotation.namespace.split(".", 1)
+                assert_equal(base, "my")
+                assert_in(sub, ("int", "str"))
+                if sub == "int":
+                    return f"{annotation.x:#04x}"
+                return annotation.x
+
+        skip_triggered = False
+
+        class ExactStaticHandler(annotation.OpenQASM3Serializer):
+            def load(self, namespace, payload):
+                raise NotImplementedError("unused in test")
+
+            def dump(self, annotation):  # pylint: disable=redefined-outer-name
+                if annotation.namespace == "static.global":
+                    nonlocal skip_triggered
+                    skip_triggered = True
+                    return NotImplemented
+                assert_equal(annotation.namespace, "static")
+                return ""
+
+        class GlobalHandler(annotation.OpenQASM3Serializer):
+            def load(self, namespace, payload):
+                raise NotImplementedError("unused in test")
+
+            def dump(self, annotation):  # pylint: disable=redefined-outer-name
+                # This is registered as the global handler, but should only be called when handling
+                # `static.global`.
+                assert_equal(annotation.namespace, "static.global")
+                return ""
+
+        expected = """
+OPENQASM 3.0;
+include "stdgates.inc";
+@my.str hello, world
+@my.int 0x0a
+box {
+  @static
+  @static.global
+  box {
+  }
+}
+"""
+        qc = QuantumCircuit()
+        with qc.box([MyInt(10), MyStr("hello, world")]):
+            with qc.box([StaticGlobal(), Static()]):
+                pass
+        prog = dumps(
+            qc,
+            annotation_handlers={
+                "my": MyHandler(),
+                "static": ExactStaticHandler(),
+                "": GlobalHandler(),
+            },
+        )
+        self.assertEqual(prog.strip(), expected.strip())
+        self.assertTrue(skip_triggered)

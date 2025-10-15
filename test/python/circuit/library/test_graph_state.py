@@ -62,14 +62,16 @@ class TestGraphStateLibrary(QiskitTestCase):
             [0, 0, 1, 0, 1],
             [1, 0, 0, 1, 0],
         ]
-        graph_state = GraphState(adjacency_matrix)
+        with self.assertWarns(DeprecationWarning):
+            graph_state = GraphState(adjacency_matrix)
         self.assertGraphStateIsCorrect(adjacency_matrix, graph_state)
 
     def test_non_symmetric_circuit_raises(self):
         """Test that adjacency matrix is required to be symmetric."""
         adjacency_matrix = [[1, 1, 0], [1, 0, 1], [1, 1, 1]]
         with self.assertRaises(CircuitError):
-            GraphState(adjacency_matrix)
+            with self.assertWarns(DeprecationWarning):
+                GraphState(adjacency_matrix)
 
     def test_graph_state_gate(self):
         """Verify correctness of GraphStatGate by checking that the gate's definition circuit
@@ -101,7 +103,8 @@ class TestGraphStateLibrary(QiskitTestCase):
             [1, 0, 0, 1, 0],
         ]
         graph_state_gate = GraphStateGate(adjacency_matrix)
-        graph_state_circuit = GraphState(adjacency_matrix)
+        with self.assertWarns(DeprecationWarning):
+            graph_state_circuit = GraphState(adjacency_matrix)
         self.assertEqual(Operator(graph_state_gate), Operator(graph_state_circuit))
 
     def test_adjacency_matrix(self):

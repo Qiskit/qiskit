@@ -26,7 +26,7 @@ class GlobalPhaseGate(Gate):
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
 
-    **Mathematical Representation:**
+    Mathematical representation:
 
     .. math::
         \text{GlobalPhaseGate}\ =
@@ -47,12 +47,13 @@ class GlobalPhaseGate(Gate):
 
     def _define(self):
         # pylint: disable=cyclic-import
-        from qiskit.circuit import QuantumCircuit, QuantumRegister
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(0, "q")
-        qc = QuantumCircuit(q, name=self.name, global_phase=self.params[0])
-
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.GlobalPhase._get_definition(self.params),
+            legacy_qubits=True,
+            name=self.name,
+        )
 
     def inverse(self, annotated: bool = False):
         r"""Return inverse GlobalPhaseGate gate.

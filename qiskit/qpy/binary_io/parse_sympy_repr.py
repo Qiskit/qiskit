@@ -15,6 +15,7 @@
 import ast
 
 from qiskit.qpy.exceptions import QpyError
+from qiskit.utils.optionals import HAS_SYMPY
 
 
 ALLOWED_CALLERS = {
@@ -113,6 +114,10 @@ class ParseSympyWalker(ast.NodeVisitor):
             self.stack.append(obj)
 
 
+@HAS_SYMPY.require_in_call(
+    "Sympy is required to parse parameter expressions encoded using sympy's "
+    "srepr in QPY format versions < 13"
+)
 def parse_sympy_repr(sympy_repr: str):
     """Parse a given sympy srepr into a symbolic expression object."""
     tree = ast.parse(sympy_repr, mode="eval")

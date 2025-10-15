@@ -58,13 +58,13 @@ def pauli_two_design(
 
     Examples:
 
-        .. plot::
-            :alt: Circuit diagram output by the previous code.
-            :include-source:
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
 
-            from qiskit.circuit.library import pauli_two_design
-            circuit = pauli_two_design(4, reps=2, seed=5, insert_barriers=True)
-            circuit.draw("mpl")
+        from qiskit.circuit.library import pauli_two_design
+        circuit = pauli_two_design(4, reps=2, seed=5, insert_barriers=True)
+        circuit.draw("mpl")
 
     Args:
         num_qubits: The number of qubits of the Pauli Two-Design circuit.
@@ -81,11 +81,11 @@ def pauli_two_design(
 
     References:
 
-        [1]: Nakata et al., Unitary 2-designs from random X- and Z-diagonal unitaries.
-            `arXiv:1502.07514 <https://arxiv.org/pdf/1502.07514.pdf>`_
+    [1] Nakata et al., Unitary 2-designs from random X- and Z-diagonal unitaries.
+    `arXiv:1502.07514 <https://arxiv.org/pdf/1502.07514.pdf>`_
 
-        [2]: McClean et al., Barren plateaus in quantum neural network training landscapes.
-             `arXiv:1803.11173 <https://arxiv.org/pdf/1803.11173.pdf>`_
+    [2] McClean et al., Barren plateaus in quantum neural network training landscapes.
+    `arXiv:1803.11173 <https://arxiv.org/pdf/1803.11173.pdf>`_
     """
     rng = np.random.default_rng(seed)
     random_block = Block.from_callable(1, 1, lambda params: _random_pauli_builder(params, rng))
@@ -170,9 +170,9 @@ class PauliTwoDesign(TwoLocal):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="2.1",
         additional_msg="Use the function qiskit.circuit.library.pauli_two_design instead.",
-        pending=True,
+        removal_timeline="in Qiskit 3.0",
     )
     def __init__(
         self,

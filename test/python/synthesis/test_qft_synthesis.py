@@ -31,7 +31,8 @@ class TestQFTLNN(QiskitTestCase):
     @combine(num_qubits=[2, 3, 4, 5, 6, 7, 8], do_swaps=[True, False])
     def test_qft_lnn(self, num_qubits, do_swaps):
         """Assert that the original and synthesized QFT circuits are the same."""
-        qft_circ = QFT(num_qubits, do_swaps=do_swaps)
+        with self.assertWarns(DeprecationWarning):
+            qft_circ = QFT(num_qubits, do_swaps=do_swaps)
         qft_lnn = synth_qft_line(num_qubits, do_swaps=do_swaps)
 
         with self.subTest(msg="original and synthesized QFT circuits are not the same"):
@@ -44,7 +45,8 @@ class TestQFTLNN(QiskitTestCase):
     @combine(num_qubits=[5, 6, 7, 8], do_swaps=[True, False], approximation_degree=[2, 3])
     def test_qft_lnn_approximated(self, num_qubits, do_swaps, approximation_degree):
         """Assert that the original and synthesized QFT circuits are the same with approximation."""
-        qft_circ = QFT(num_qubits, do_swaps=do_swaps, approximation_degree=approximation_degree)
+        with self.assertWarns(DeprecationWarning):
+            qft_circ = QFT(num_qubits, do_swaps=do_swaps, approximation_degree=approximation_degree)
         qft_lnn = synth_qft_line(
             num_qubits, do_swaps=do_swaps, approximation_degree=approximation_degree
         )
@@ -64,42 +66,48 @@ class TestQFTFull(QiskitTestCase):
     @data(2, 3, 4, 5, 6)
     def test_synthesis_default(self, num_qubits):
         """Assert that the original and synthesized QFT circuits are the same."""
-        original = QFT(num_qubits)
+        with self.assertWarns(DeprecationWarning):
+            original = QFT(num_qubits)
         synthesized = synth_qft_full(num_qubits)
         self.assertEqual(Operator(original), Operator(synthesized))
 
     @combine(num_qubits=[5, 6, 7, 8], do_swaps=[False, True])
     def test_synthesis_do_swaps(self, num_qubits, do_swaps):
         """Assert that the original and synthesized QFT circuits are the same."""
-        original = QFT(num_qubits, do_swaps=do_swaps)
+        with self.assertWarns(DeprecationWarning):
+            original = QFT(num_qubits, do_swaps=do_swaps)
         synthesized = synth_qft_full(num_qubits, do_swaps=do_swaps)
         self.assertEqual(Operator(original), Operator(synthesized))
 
     @combine(num_qubits=[5, 6, 7, 8], approximation_degree=[0, 1, 2, 3])
     def test_synthesis_arpproximate(self, num_qubits, approximation_degree):
         """Assert that the original and synthesized QFT circuits are the same."""
-        original = QFT(num_qubits, approximation_degree=approximation_degree)
+        with self.assertWarns(DeprecationWarning):
+            original = QFT(num_qubits, approximation_degree=approximation_degree)
         synthesized = synth_qft_full(num_qubits, approximation_degree=approximation_degree)
         self.assertEqual(Operator(original), Operator(synthesized))
 
     @combine(num_qubits=[5, 6, 7, 8], inverse=[False, True])
     def test_synthesis_inverse(self, num_qubits, inverse):
         """Assert that the original and synthesized QFT circuits are the same."""
-        original = QFT(num_qubits, inverse=inverse)
+        with self.assertWarns(DeprecationWarning):
+            original = QFT(num_qubits, inverse=inverse)
         synthesized = synth_qft_full(num_qubits, inverse=inverse)
         self.assertEqual(Operator(original), Operator(synthesized))
 
     @combine(num_qubits=[5, 6, 7, 8], insert_barriers=[False, True])
     def test_synthesis_insert_barriers(self, num_qubits, insert_barriers):
         """Assert that the original and synthesized QFT circuits are the same."""
-        original = QFT(num_qubits, insert_barriers=insert_barriers)
+        with self.assertWarns(DeprecationWarning):
+            original = QFT(num_qubits, insert_barriers=insert_barriers)
         synthesized = synth_qft_full(num_qubits, insert_barriers=insert_barriers)
         self.assertEqual(Operator(original), Operator(synthesized))
 
     @data(5, 6, 7, 8)
     def test_synthesis_name(self, num_qubits):
         """Assert that the original and synthesized QFT circuits are the same."""
-        original = QFT(num_qubits, name="SomeRandomName")
+        with self.assertWarns(DeprecationWarning):
+            original = QFT(num_qubits, name="SomeRandomName")
         synthesized = synth_qft_full(num_qubits, name="SomeRandomName")
         self.assertEqual(original.name, synthesized.name)
 

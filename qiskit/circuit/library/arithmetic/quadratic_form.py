@@ -21,6 +21,7 @@ from collections.abc import Sequence
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ParameterExpression, Gate, CircuitError
+from qiskit.utils.deprecation import deprecate_func
 from ..basis_change import QFT, QFTGate
 
 _ValueType = Union[int, float, np.integer, np.floating, ParameterExpression]
@@ -59,11 +60,17 @@ class QuadraticForm(QuantumCircuit):
     The implementation of this circuit is discussed in [1], Fig. 6.
 
     References:
-        [1]: Gilliam et al., Grover Adaptive Search for Constrained Polynomial Binary Optimization.
-             `arXiv:1912.04088 <https://arxiv.org/pdf/1912.04088.pdf>`_
+
+    [1] Gilliam et al., Grover Adaptive Search for Constrained Polynomial Binary Optimization.
+    `arXiv:1912.04088 <https://arxiv.org/pdf/1912.04088.pdf>`_
 
     """
 
+    @deprecate_func(
+        since="2.1",
+        additional_msg="Use the QuadraticFormGate instead.",
+        removal_timeline="Qiskit 3.0",
+    )
     def __init__(
         self,
         num_result_qubits: Optional[int] = None,
@@ -221,8 +228,9 @@ class QuadraticFormGate(Gate):
     The implementation of this circuit is discussed in [1], Fig. 6.
 
     References:
-        [1]: Gilliam et al., Grover Adaptive Search for Constrained Polynomial Binary Optimization.
-             `arXiv:1912.04088 <https://arxiv.org/pdf/1912.04088.pdf>`_
+
+    [1] Gilliam et al., Grover Adaptive Search for Constrained Polynomial Binary Optimization.
+    `arXiv:1912.04088 <https://arxiv.org/pdf/1912.04088.pdf>`_
 
     """
 

@@ -34,7 +34,11 @@ _EPS = 1e-10
 class Diagonal(QuantumCircuit):
     """Circuit implementing a diagonal transformation."""
 
-    @deprecate_func(since="1.3", additional_msg="Use DiagonalGate instead.", pending=True)
+    @deprecate_func(
+        since="2.1",
+        additional_msg="Use DiagonalGate instead.",
+        removal_timeline="in Qiskit 3.0",
+    )
     def __init__(self, diag: Sequence[complex]) -> None:
         r"""
         Args:
@@ -82,7 +86,7 @@ class DiagonalGate(Gate):
     Theorem 7 of [1]. The code is based on Emanuel Malvetti's semester thesis
     at ETH in 2018, supervised by Raban Iten and Prof. Renato Renner.
 
-    **Reference:**
+    References:
 
     [1] Shende et al., Synthesis of Quantum Logic Circuits, 2009
     `arXiv:0406176 <https://arxiv.org/pdf/quant-ph/0406176.pdf>`_

@@ -25,7 +25,7 @@ import warnings
 from qiskit import qasm3
 from qiskit.exceptions import ExperimentalWarning
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister, Qubit, Clbit
-from qiskit.circuit import library as lib
+from qiskit.circuit import library as lib, annotation
 from qiskit.utils import optionals
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -79,6 +79,160 @@ class TestOldQASM3Import(QiskitTestCase):
         expected.measure(0, 0)
         expected.measure(1, 1)
         self.assertEqual(parsed, expected)
+
+    def test_annotations(self):
+        # Protected by the class-level `skipUnless`.
+        import qiskit_qasm3_import
+
+        if getattr(qiskit_qasm3_import, "VERSION_PARTS", (0, 0, 0)) < (0, 6):
+            raise unittest.SkipTest("needs qiskit_qasm3_import>=0.6.0'")
+        assert_in = self.assertIn
+        assert_equal = self.assertEqual
+
+        class MyStr(annotation.Annotation):
+            namespace = "my.str"
+
+            def __init__(self, x):
+                self.x = x
+
+            def __eq__(self, other):
+                return isinstance(other, MyStr) and self.x == other.x
+
+        class MyInt(annotation.Annotation):
+            namespace = "my.int"
+
+            def __init__(self, x):
+                self.x = x
+
+            def __eq__(self, other):
+                return isinstance(other, MyInt) and self.x == other.x
+
+        class Static(annotation.Annotation):
+            namespace = "static"
+
+            def __eq__(self, other):
+                return isinstance(other, Static)
+
+        class StaticGlobal(annotation.Annotation):
+            namespace = "static.global"
+
+            def __eq__(self, other):
+                return isinstance(other, StaticGlobal)
+
+        class MyHandler(annotation.OpenQASM3Serializer):
+            def load(self, namespace, payload):
+                base, sub = namespace.split(".", 1)
+                assert_equal(base, "my")
+                assert_in(sub, ("str", "int"))
+                if sub == "int":
+                    return MyInt(int(payload, 16))
+                return MyStr(payload)
+
+            def dump(self, annotation):  # pylint: disable=redefined-outer-name
+                raise NotImplementedError("unused in test")
+
+        skip_triggered = False
+
+        class ExactStaticHandler(annotation.OpenQASM3Serializer):
+            def load(self, namespace, payload):
+                assert_equal(namespace[:6], "static")
+                assert_equal(payload, "")
+                if namespace != "static":
+                    # This triggers on the `static.global` one.
+                    nonlocal skip_triggered
+                    skip_triggered = True
+                    return NotImplemented
+                return Static()
+
+            def dump(self, annotation):  # pylint: disable=redefined-outer-name
+                raise NotImplementedError("unused in test")
+
+        class GlobalHandler(annotation.OpenQASM3Serializer):
+            def load(self, namespace, payload):
+                # This is registered as the global handler, but should only be called when handling
+                # `static.global`.
+                assert_equal(namespace, "static.global")
+                assert_equal(payload, "")
+                return StaticGlobal()
+
+            def dump(self, annotation):  # pylint: disable=redefined-outer-name
+                raise NotImplementedError("unused in test")
+
+        program = """
+            OPENQASM 3.0;
+            @my.str hello, world
+            @my.int 0x0a
+            box {
+                @static
+                @static.global
+                box {}
+            }
+        """
+        qc = qasm3.loads(
+            program,
+            annotation_handlers={
+                "my": MyHandler(),
+                "static": ExactStaticHandler(),
+                "": GlobalHandler(),
+            },
+        )
+        expected = QuantumCircuit()
+        with expected.box([MyInt(10), MyStr("hello, world")]):
+            with expected.box([StaticGlobal(), Static()]):
+                pass
+        self.assertEqual(qc, expected)
+        self.assertTrue(skip_triggered)
+
+    def test_num_qubits_physical(self):
+        """Test num_qubits equal the number of qubits in the loaded circuit
+        having only physical qubits
+        """
+        program = """
+            OPENQASM 3.0;
+            include "stdgates.inc";
+            h $0;
+            cx $2, $1;
+        """
+        out = qasm3.loads(program, num_qubits=5)
+        self.assertEqual(out.num_qubits, 5)
+
+    def test_num_qubits_virtual(self):
+        """Test num_qubits equal the number of qubits in the loaded circuit
+        having only physical qubits
+        """
+        program = """
+            OPENQASM 3.0;
+            include "stdgates.inc";
+            qubit[2] qr;
+            h qr[0];
+            cx qr[0], qr[1];
+        """
+        out = qasm3.loads(program, num_qubits=5)
+        self.assertEqual(out.num_qubits, 5)
+
+    def test_loads_virtual_qubits(self):
+        """Test circuit equivalence of base circuit with loaded circuit
+        from OpenQASM3 string having only virtual qubits
+        """
+        num_qubits = 10
+        qc = QuantumCircuit(num_qubits)
+        for i in range(0, num_qubits, 2):
+            qc.h(i)
+            qc.cx(i, i + 1)
+        qc_ser = qasm3.dumps(qc)
+        qc_unser = qasm3.loads(qc_ser, num_qubits=num_qubits)
+        self.assertEqual(qc_unser, qc)
+
+    def test_num_qubits_less_raises_error(self):
+        """Test error is raised when num_qubits less than qubits present in the circuit"""
+        num_qubits = 10
+        qc = QuantumCircuit(num_qubits)
+        for i in range(0, num_qubits, 2):
+            qc.h(i)
+            qc.cx(i, i + 1)
+        qc_ser = qasm3.dumps(qc)
+        with self.assertRaisesRegex(ValueError, "Number of qubits cannot .* qubits"):
+            qasm3.loads(qc_ser, num_qubits=5)
 
 
 class TestQASM3Import(QiskitTestCase):
