@@ -280,10 +280,10 @@ class TestGenericBackendV2(QiskitTestCase):
         self.assertNotEqual(res, {"1": 1000})
 
     def test_same_error_rates_for_bidirectional_gates(self):
-        """Test if the bidirectional gates has the same error rate and
+        """Test if the bidirectional 'cz' gates has the same error rate and
         duration for a given pair of qubits in the coupling map"""
-        target = GenericBackendV2(3, basis_gates=["cz", "rz", "sx", "x"])
-        for _, instr_props in target._gate_map.items():
+        backend_cz = GenericBackendV2(num_qubits=3, basis_gates=["cz", "rz", "sx", "x"], seed=2024)
+        for _, instr_props in backend_cz.target._gate_map.items():
             qargs_checked = set()
             for qargs in instr_props:
                 if len(qargs) == 2:
