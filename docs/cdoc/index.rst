@@ -32,6 +32,15 @@ Quantum Circuit
    qk-quantum-register
    qk-classical-register
 
+Circuit Library
++++++++++++++++
+
+.. toctree::
+   :maxdepth: 1
+
+   qk-circuit-library
+
+
 -------------------
 Quantum information
 -------------------

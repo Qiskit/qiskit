@@ -17,7 +17,7 @@ use pyo3::prelude::*;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardInstruction};
 
-use crate::{unitary_compose, QiskitError};
+use crate::{QiskitError, unitary_compose};
 
 // The code is based on top of unitary_compose. For circuits with 13 or more qubits, einsum
 // throws an "index out of bounds" error.
@@ -33,7 +33,7 @@ pub fn sim_unitary_circuit(circuit: &CircuitData) -> Result<Array2<Complex64>, S
 
     if num_qubits > MAX_NUM_QUBITS {
         return Err(format!(
-            "The number of circuit qubits ({num_qubits}) exceeds the maximum allowed number of qubits allowed for simulation ({MAX_NUM_QUBITS})."  
+            "The number of circuit qubits ({num_qubits}) exceeds the maximum allowed number of qubits allowed for simulation ({MAX_NUM_QUBITS})."
         ));
     }
 

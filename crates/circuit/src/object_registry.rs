@@ -206,10 +206,10 @@ where
 
     /// Map the provided objects to their native indices.
     /// An error is returned if any object is not registered.
-    pub fn map_objects(
+    pub fn map_objects<U: IntoIterator<Item = B>>(
         &self,
-        objects: impl IntoIterator<Item = B>,
-    ) -> Result<impl Iterator<Item = T>, ObjectRegistryError> {
+        objects: U,
+    ) -> Result<impl Iterator<Item = T> + use<T, B, U>, ObjectRegistryError> {
         let v: Result<Vec<_>, _> = objects
             .into_iter()
             .map(|b| {
@@ -224,7 +224,7 @@ where
 
     /// Map the provided native indices to the corresponding object instances.
     /// Panics if any of the indices are out of range.
-    pub fn map_indices(&self, objects: &[T]) -> impl ExactSizeIterator<Item = &B> {
+    pub fn map_indices(&self, objects: &[T]) -> impl ExactSizeIterator<Item = &B> + use<'_, T, B> {
         let v: Vec<_> = objects.iter().map(|i| self.get(*i).unwrap()).collect();
         v.into_iter()
     }
