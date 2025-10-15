@@ -26,6 +26,7 @@ cache_pygates = ["pyo3/extension-module", "qiskit-circuit/cache_pygates", "qiski
 pyo3.workspace = true
 qiskit-accelerate.workspace = true
 qiskit-circuit.workspace = true
+qiskit-circuit-library.workspace = true
 qiskit-qasm2.workspace = true
 qiskit-qasm3.workspace = true
 qiskit-cext = { workspace = true, features = ["python_binding"] }

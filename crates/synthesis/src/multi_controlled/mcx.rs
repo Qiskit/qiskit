@@ -16,7 +16,7 @@ use pyo3::{PyResult, Python};
 use qiskit_circuit::circuit_data::{CircuitData, CircuitError};
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::{
-    multiply_param, Operation, OperationRef, Param, PyGate, StandardGate,
+    Operation, OperationRef, Param, PyGate, StandardGate, multiply_param,
 };
 use qiskit_circuit::{Clbit, Qubit, VarsMode};
 use smallvec::SmallVec;

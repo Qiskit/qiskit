@@ -13,9 +13,9 @@
 use crate::linear_phase::cz_depth_lnn::LnnGatesVec;
 use crate::permutation::_append_reverse_permutation_lnn_kms;
 use pyo3::prelude::*;
+use qiskit_circuit::Qubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{Param, StandardGate};
-use qiskit_circuit::Qubit;
 use smallvec::smallvec;
 use std::f64::consts::PI;
 

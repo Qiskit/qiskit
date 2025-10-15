@@ -14,14 +14,14 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::PyModule;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
-use pyo3::{pyfunction, wrap_pyfunction, Bound, PyResult, Python};
+use pyo3::{Bound, PyResult, Python, pyfunction, wrap_pyfunction};
 
 use indexmap::IndexMap;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use crate::commutation_checker::CommutationChecker;
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
 use qiskit_circuit::Qubit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
 
 // Custom types to store the commutation sets and node indices,
 // see the docstring below for more information.

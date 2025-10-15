@@ -17,10 +17,10 @@ use itertools::Itertools;
 use ndarray::{Array1, ArrayView2};
 
 use qiskit_circuit::{
-    operations::{Param, StandardGate},
     Qubit,
+    operations::{Param, StandardGate},
 };
-use smallvec::{smallvec, SmallVec};
+use smallvec::{SmallVec, smallvec};
 
 use crate::permutation::{_append_cx_stage1, _append_cx_stage2};
 

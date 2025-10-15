@@ -10,53 +10,53 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use pyo3::Python;
 use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::Python;
 
 use num_complex::Complex64;
-use numpy::ndarray::{arr2, aview2, Array2, ArrayView2, ArrayViewMut2};
 use numpy::PyReadonlyArray2;
+use numpy::ndarray::{Array2, ArrayView2, ArrayViewMut2, arr2, aview2};
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
+use qiskit_circuit::Qubit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::TWO_QUBIT_IDENTITY;
 use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::interner::Interner;
 use qiskit_circuit::operations::{ArrayType, Operation, OperationRef};
 use qiskit_circuit::packed_instruction::PackedInstruction;
-use qiskit_circuit::Qubit;
 
-use crate::versor_u2::{VersorSU2, VersorU2, VersorU2Error};
 use crate::QiskitError;
+use crate::versor_u2::{VersorSU2, VersorU2, VersorU2Error};
 
 #[inline]
 pub fn get_matrix_from_inst(inst: &PackedInstruction) -> PyResult<Array2<Complex64>> {
     if let Some(mat) = inst.op.matrix(inst.params_view()) {
-        Ok(mat)
-    } else if inst.op.try_standard_gate().is_some() {
-        Err(QiskitError::new_err(
-            "Parameterized gates can't be consolidated",
-        ))
-    } else if let OperationRef::Gate(gate) = inst.op.view() {
-        // If the operation is a custom python gate, we will acquire the gil
-        // and use an Operator. Otherwise, using op.matrix() should work.
-        // A user should not be able to reach this condition in Rust standalone
-        // mode.
-        Python::attach(|py| -> PyResult<_> {
-            Ok(QI_OPERATOR
-                .get_bound(py)
-                .call1((gate.gate.clone_ref(py),))?
-                .getattr(intern!(py, "data"))?
-                .extract::<PyReadonlyArray2<Complex64>>()?
-                .as_array()
-                .to_owned())
-        })
-    } else {
-        Err(QiskitError::new_err(
-            "Can't compute matrix of non-unitary op",
-        ))
+        return Ok(mat);
     }
+    if inst.op.try_standard_gate().is_some() {
+        return Err(QiskitError::new_err(
+            "Parameterized gates can't be consolidated",
+        ));
+    }
+    let OperationRef::Gate(gate) = inst.op.view() else {
+        return Err(QiskitError::new_err(
+            "Can't compute matrix of non-unitary op",
+        ));
+    };
+    // If the operation is a custom python gate, we will acquire the gil and use an
+    // Operator. Otherwise, using op.matrix() should work.  A user should not be
+    // able to reach this condition in Rust standalone mode.
+    Python::attach(|py| {
+        Ok(QI_OPERATOR
+            .get_bound(py)
+            .call1((gate.gate.clone_ref(py),))?
+            .getattr(intern!(py, "data"))?
+            .extract::<PyReadonlyArray2<Complex64>>()?
+            .as_array()
+            .to_owned())
+    })
 }
 
 /// Quaternion-based collect of two parallel runs of 1q gates.

@@ -34,7 +34,7 @@ pub struct VF2LayoutResult(Option<HashMap<VirtualQubit, PhysicalQubit>>);
 ///
 /// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a
 /// ``QkVF2LayoutResult``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_vf2_layout_result_has_match(layout: *const VF2LayoutResult) -> bool {
     let layout = unsafe { const_ptr_as_ref(layout) };
@@ -52,7 +52,7 @@ pub unsafe extern "C" fn qk_vf2_layout_result_has_match(layout: *const VF2Layout
 ///
 /// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a
 /// ``QkVF2LayoutResult``. The result must have a layout found.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_vf2_layout_result_num_qubits(layout: *const VF2LayoutResult) -> u32 {
     let layout = unsafe { const_ptr_as_ref(layout) };
@@ -75,7 +75,7 @@ pub unsafe extern "C" fn qk_vf2_layout_result_num_qubits(layout: *const VF2Layou
 /// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a
 /// ``QkVF2LayoutResult``. Also qubit must be a valid qubit for the circuit and
 /// there must be a result found.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_vf2_layout_result_map_virtual_qubit(
     layout: *const VF2LayoutResult,
@@ -103,7 +103,7 @@ pub unsafe extern "C" fn qk_vf2_layout_result_map_virtual_qubit(
 /// # Safety
 ///
 /// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a ``QkVF2Layout``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_vf2_layout_result_free(layout: *mut VF2LayoutResult) {
     if !layout.is_null() {
@@ -184,7 +184,7 @@ pub unsafe extern "C" fn qk_vf2_layout_result_free(layout: *mut VF2LayoutResult)
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` or ``target`` is not a valid, non-null pointer to a ``QkCircuit`` and ``QkTarget``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout(
     circuit: *const CircuitData,

@@ -1175,6 +1175,18 @@ class TestStatevector(QiskitTestCase):
         self.assertAlmostEqual(expval_state_1_n1, 4 + 0j)
         self.assertAlmostEqual(expval_state_1_n2, 5 + 0j)
 
+        for prefix, factor in [("", 1), ("-", -1), ("i", 1j), ("-i", -1j)]:
+            pauli_label = f"{prefix}I"
+            identity_pauli_1 = Pauli(pauli_label)
+            with self.subTest(pauli=pauli_label):
+                self.assertAlmostEqual(state_1.expectation_value(identity_pauli_1), factor + 0j)
+                self.assertAlmostEqual(
+                    state_1_n1.expectation_value(identity_pauli_1), factor * 4 + 0j
+                )
+                self.assertAlmostEqual(
+                    state_1_n2.expectation_value(identity_pauli_1), factor * 5 + 0j
+                )
+
         # Let's try a multi-qubit case
         n_qubits = 3
         state_coeff = 3 - 4j
@@ -1184,6 +1196,20 @@ class TestStatevector(QiskitTestCase):
         expval = state_test.expectation_value(op_test)
         target = op_coeff * np.abs(state_coeff) ** 2
         self.assertAlmostEqual(expval, target)
+
+        coeffs = np.array([1 + 2j, -3j, 4])
+        op_multi = SparsePauliOp.from_list([("I" * n_qubits, coeff) for coeff in coeffs])
+        expval_multi = state_test.expectation_value(op_multi)
+        target_multi = np.sum(coeffs) * np.abs(state_coeff) ** 2
+        self.assertAlmostEqual(expval_multi, target_multi)
+
+        for prefix, factor in [("", 1), ("-", -1), ("i", 1j), ("-i", -1j)]:
+            pauli_label = f"{prefix}{'I' * n_qubits}"
+            identity_pauli_n = Pauli(pauli_label)
+            with self.subTest(pauli=pauli_label):
+                expval_pauli = state_test.expectation_value(identity_pauli_n)
+                target_pauli = factor * np.abs(state_coeff) ** 2
+                self.assertAlmostEqual(expval_pauli, target_pauli)
 
     @data(*(qargs for i in range(4) for qargs in permutations(range(4), r=i + 1)))
     def test_probabilities_qargs(self, qargs):

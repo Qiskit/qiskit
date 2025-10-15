@@ -12,10 +12,10 @@
 
 use crate::pointers::mut_ptr_as_ref;
 
+use qiskit_circuit::Qubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::Qubit;
 use qiskit_transpiler::passes::run_split_2q_unitaries;
 use qiskit_transpiler::transpile_layout::TranspileLayout;
 
@@ -47,7 +47,7 @@ use qiskit_transpiler::transpile_layout::TranspileLayout;
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_split_2q_unitaries(
     circuit: *mut CircuitData,

@@ -9,8 +9,8 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
-use std::ffi::c_char;
 use std::ffi::CString;
+use std::ffi::c_char;
 
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_transpiler::target::Target;
@@ -66,7 +66,7 @@ impl Default for TranspileOptions {
 ///
 /// This function generates a QkTranspileOptions with the default settings
 /// This currently is ``optimization_level`` 2, no seed, and no approximation.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_transpiler_default_options() -> TranspileOptions {
     TranspileOptions::default()
@@ -111,7 +111,7 @@ pub extern "C" fn qk_transpiler_default_options() -> TranspileOptions {
 /// pointers to a ``QkCircuit``, ``QkTarget``, or ``QkTranspileResult`` respectively.
 /// ``options`` must be a valid pointer a to a ``QkTranspileOptions`` or ``NULL`.
 /// ``error`` must be a valid pointer to a ``char`` pointer or ``NULL``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile(
     qc: *const CircuitData,
@@ -147,7 +147,9 @@ pub unsafe extern "C" fn qk_transpile(
         None
     } else {
         if !(0.0..=1.0).contains(&options.approximation_degree) {
-            panic!("Invalid value provided for approximation degree, only NAN or values between 0.0 and 1.0 inclusive are valid");
+            panic!(
+                "Invalid value provided for approximation degree, only NAN or values between 0.0 and 1.0 inclusive are valid"
+            );
         }
         Some(options.approximation_degree)
     };

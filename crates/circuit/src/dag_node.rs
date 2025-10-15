@@ -14,10 +14,10 @@ use std::hash::Hasher;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
+use crate::TupleLikeArg;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::imports::QUANTUM_CIRCUIT;
 use crate::operations::{Operation, OperationRef, Param, PythonOperation};
-use crate::TupleLikeArg;
 
 use ahash::AHasher;
 use approx::relative_eq;
@@ -26,11 +26,11 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use numpy::IntoPyArray;
 use numpy::PyArray2;
+use pyo3::IntoPyObjectExt;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
-use pyo3::IntoPyObjectExt;
-use pyo3::{intern, PyResult};
+use pyo3::{PyResult, intern};
 
 /// Parent class for DAGOpNode, DAGInNode, and DAGOutNode.
 #[pyclass(module = "qiskit._accelerate.circuit", subclass)]
@@ -62,7 +62,7 @@ impl DAGNode {
                         Err(_) => {
                             return Err(PyValueError::new_err(
                                 "Invalid node index, must be -1 or a non-negative integer",
-                            ))
+                            ));
                         }
                     };
                     Some(NodeIndex::new(index))
@@ -187,9 +187,10 @@ impl DAGOpNode {
                     [Param::Float(float_a), Param::Float(float_b)] => {
                         relative_eq!(float_a, float_b, max_relative = 1e-10)
                     }
-                    [Param::ParameterExpression(param_a), Param::ParameterExpression(param_b)] => {
-                        param_a == param_b
-                    }
+                    [
+                        Param::ParameterExpression(param_a),
+                        Param::ParameterExpression(param_b),
+                    ] => param_a == param_b,
                     [Param::Obj(param_a), Param::Obj(param_b)] => param_a.bind(py).eq(param_b)?,
                     _ => false,
                 };

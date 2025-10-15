@@ -87,6 +87,13 @@ class TwoQubitZeroParamGate(Gate):
         super().__init__(name, 2, [])
 
 
+class TwoQubitOneParamGate(Gate):
+    """Mock two qubit one param gate."""
+
+    def __init__(self, theta, name="2q1p"):
+        super().__init__(name, 2, [theta])
+
+
 class VariadicZeroParamGate(Gate):
     """Mock variadic zero param gate."""
 
@@ -458,6 +465,32 @@ class TestBasisTranslator(QiskitTestCase):
                 expected.append(OneQubitOneParamGate(alpha * ind, name="1q1p_2"), [qubits[0]])
         dag_expected = circuit_to_dag(expected)
         self.assertEqual(dag_translated, dag_expected)
+
+    def test_loop_custom_gate_local_indices(self):
+        """Test with a custom gate inside a loop operation with different local qubit indices"""
+
+        # Create 3 qubit backend
+        backend = GenericBackendV2(num_qubits=3, control_flow=True)
+
+        # Add only this pair as native to the Target.
+        pair = (0, 2)
+        alpha = Parameter("alpha")
+        gate = TwoQubitOneParamGate(alpha)
+
+        # Add custom gate to be supported by the Target.
+        backend.target.add_instruction(gate, {pair: None})  # properties omitted for brevity
+
+        # Make the tracking register
+        qubits = QuantumRegister(3, "data")
+
+        # Create circuit with loop
+        circ = QuantumCircuit(qubits)
+        with circ.for_loop(range(2)):
+            circ.append(gate, [qubits[0], qubits[2]])
+
+        # Run the basis translator
+        result = BasisTranslator(std_eq_lib, [], backend.target)(circ)
+        self.assertEqual(circ, result)
 
     def test_different_bits(self):
         """Test that the basis translator correctly works when the inner blocks of control-flow

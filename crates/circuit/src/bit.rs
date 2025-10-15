@@ -15,16 +15,16 @@
 use std::{
     fmt::Debug,
     hash::Hash,
-    sync::atomic::{AtomicU32, AtomicU64, Ordering},
     sync::Arc,
+    sync::atomic::{AtomicU32, AtomicU64, Ordering},
 };
 
 use hashbrown::HashSet;
 use pyo3::prelude::*;
 use pyo3::{
+    IntoPyObjectExt, PyTypeInfo,
     exceptions::{PyIndexError, PyTypeError, PyValueError},
     types::{PyList, PyType},
-    IntoPyObjectExt, PyTypeInfo,
 };
 
 use crate::circuit_data::CircuitError;

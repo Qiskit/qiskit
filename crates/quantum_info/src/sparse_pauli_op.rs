@@ -11,24 +11,24 @@
 // that they have been altered from the originals.
 
 use ahash::RandomState;
+use pyo3::Python;
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
 use pyo3::wrap_pyfunction;
-use pyo3::Python;
 
 use numpy::prelude::*;
 use numpy::{PyArray1, PyArray2, PyReadonlyArray1, PyReadonlyArray2, PyUntypedArrayMethods};
 
 use hashbrown::HashMap;
 use indexmap::IndexMap;
-use ndarray::{s, ArrayView1, ArrayView2, Axis};
+use ndarray::{ArrayView1, ArrayView2, Axis, s};
 use num_complex::Complex64;
 use num_traits::Zero;
 use rayon::prelude::*;
 use thiserror::Error;
 
-use qiskit_circuit::util::{c64, C_ZERO};
+use qiskit_circuit::util::{C_ZERO, c64};
 
 use crate::rayon_ext::*;
 
@@ -1268,7 +1268,7 @@ pub fn sparse_pauli_op(m: &Bound<PyModule>) -> PyResult<()> {
 
 #[cfg(test)]
 mod tests {
-    use ndarray::{aview2, Array1};
+    use ndarray::{Array1, aview2};
 
     use super::*;
     use crate::test::*;

@@ -24,7 +24,7 @@ use qiskit_transpiler::transpile_layout::TranspileLayout;
 ///
 /// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a
 /// ``QkTranspileLayout``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_num_input_qubits(
     layout: *const TranspileLayout,
@@ -44,7 +44,7 @@ pub unsafe extern "C" fn qk_transpile_layout_num_input_qubits(
 ///
 /// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a
 /// ``QkTranspileLayout``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_num_output_qubits(
     layout: *const TranspileLayout,
@@ -86,7 +86,7 @@ pub unsafe extern "C" fn qk_transpile_layout_num_output_qubits(
 /// this will be number of input qubits (which can be checked with
 /// ``qk_transpile_layout_num_input_qubits()``) or the number of output qubits if ``filter_ancillas``
 /// is false (which can be queried with ``qk_transpile_layout_num_output_qubits()``).
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_initial_layout(
     layout: *const TranspileLayout,
@@ -141,7 +141,7 @@ pub unsafe extern "C" fn qk_transpile_layout_initial_layout(
 /// allocation to store the size necessary for the output_permutation. This will always be the number
 /// of output qubits in the ``QkTranspileLayout`` which can be queried with
 /// ``qk_transpile_layout_num_output_qubits()``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_output_permutation(
     layout: *const TranspileLayout,
@@ -195,7 +195,7 @@ pub unsafe extern "C" fn qk_transpile_layout_output_permutation(
 /// this will be number of input qubits (which can be checked with
 /// ``qk_transpile_layout_num_input_qubits()``) or the number of output qubits if ``filter_ancillas``
 /// is false (which can be queried with ``qk_transpile_layout_num_output_qubits()``).
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_final_layout(
     layout: *const TranspileLayout,
@@ -224,7 +224,7 @@ pub unsafe extern "C" fn qk_transpile_layout_final_layout(
 /// # Safety
 ///
 /// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a ``QkTranspileLayout``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_free(layout: *mut TranspileLayout) {
     if !layout.is_null() {
@@ -242,9 +242,9 @@ pub unsafe extern "C" fn qk_transpile_layout_free(layout: *mut TranspileLayout) 
 #[cfg(test)]
 mod test {
     use super::*;
+    use qiskit_circuit::Qubit;
     use qiskit_circuit::bit::ShareableQubit;
     use qiskit_circuit::nlayout::{NLayout, PhysicalQubit};
-    use qiskit_circuit::Qubit;
     use qiskit_transpiler::transpile_layout::TranspileLayout;
 
     #[test]
