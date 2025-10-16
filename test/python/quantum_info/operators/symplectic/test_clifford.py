@@ -234,7 +234,7 @@ class TestCliffordGates(QiskitTestCase):
 
     @combine(
         gate=[CXGate(), CZGate(), CYGate(), SwapGate(), iSwapGate(), ECRGate(), DCXGate()],
-        num_qubits=[1, 2, 3],
+        num_qubits=[2, 3],
     )
     def test_append_2_qubits(self, gate, num_qubits):
         """Test _append_operation method for 2-qubit gates"""
@@ -252,7 +252,7 @@ class TestCliffordGates(QiskitTestCase):
 
     @combine(
         gate=[CXGate(), CZGate(), CYGate(), SwapGate(), iSwapGate(), ECRGate(), DCXGate()],
-        num_qubits=[1, 2, 3],
+        num_qubits=[2, 3],
     )
     def test_prepend_2_qubits(self, gate, num_qubits):
         """Test _prepend_operation method for 2-qubit gates"""
@@ -795,6 +795,8 @@ class TestCliffordOperators(QiskitTestCase):
             value = cliff1.compose(cliff2)
             target = Clifford(circ1.compose(circ2))
             self.assertEqual(target, value)
+            value_circ_composed = cliff1.compose(circ2)
+            self.assertEqual(target, value_circ_composed)
 
     @combine(num_qubits=[1, 2, 3])
     def test_dot_method(self, num_qubits):
@@ -813,6 +815,8 @@ class TestCliffordOperators(QiskitTestCase):
             value = cliff1.dot(cliff2)
             target = Clifford(circ2.compose(circ1))
             self.assertEqual(target, value)
+            value_circ_composed = cliff1.dot(circ2)
+            self.assertEqual(target, value_circ_composed)
 
     @combine(num_qubits_1=[1, 2, 3], num_qubits_2=[1, 2, 3])
     def test_tensor_method(self, num_qubits_1, num_qubits_2):
