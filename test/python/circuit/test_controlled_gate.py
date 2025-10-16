@@ -1096,7 +1096,7 @@ class TestControlledGate(QiskitTestCase):
     )
     def test_all_inverses(self, gate, num_ctrl_qubits, ctrl_state):
         """Test all standard gates except those that cannot be controlled."""
-        if not (issubclass(gate, ControlledGate) or issubclass(gate, allGates.IGate)):
+        if not issubclass(gate, ControlledGate):
             # only verify basic gates right now, as already controlled ones
             # will generate differing definitions
             try:
@@ -1122,13 +1122,13 @@ class TestControlledGate(QiskitTestCase):
         """Check that the inverse of the inverse of a controlled gate is
         unitary-equivalent to the original controlled gate.
         """
-        if not (issubclass(gate, ControlledGate) or issubclass(gate, allGates.IGate)):
+        if not issubclass(gate, ControlledGate):
             # Note that in general gate.inverse().inverse() might be different from gate.
             # For example, the inverse of the standard gate DCX is not a standard gate,
             # and hence DCXGate().inverse().inverse() is not DCXGate().
-            # However, the operators for DCXGate() is for DCXGate().inverse().inverse()
-            # must be equal. This catches bugs when the inverse method of a controlled gate
-            # loses the controlled state of the gate.
+            # However, the operators for DCXGate() and for DCXGate().inverse().inverse()
+            # must be equal. This test catches bugs when the inverse method of a controlled gate
+            # does not preserve the controlled state of the gate.
             try:
                 numargs = len(_get_free_params(gate))
                 args = [2] * numargs
