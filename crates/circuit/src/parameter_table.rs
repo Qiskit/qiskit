@@ -123,7 +123,7 @@ impl ParameterTable {
         &mut self,
         symbol: &Symbol,
         usage: Option<ParameterUse>,
-    ) -> PyResult<ParameterUuid> {
+    ) -> Result<ParameterUuid, ParameterUuid> {
         let uuid = ParameterUuid::from_symbol(symbol);
         match self.by_uuid.entry(uuid) {
             Entry::Occupied(mut entry) => {
@@ -134,12 +134,9 @@ impl ParameterTable {
             Entry::Vacant(entry) => {
                 let repr = symbol.repr(false);
                 if self.by_repr.contains_key(&repr) {
-                    return Err(CircuitError::new_err(format!(
-                        "name conflict adding parameter '{}'",
-                        &repr
-                    )));
+                    return Err(self.by_repr[&repr]);
                 }
-                self.by_repr.insert(repr.clone(), uuid);
+                self.by_repr.insert(repr, uuid);
                 let mut uses = HashSet::new();
                 if let Some(usage) = usage {
                     unsafe {
@@ -158,9 +155,12 @@ impl ParameterTable {
 
     /// Untrack one use of a single [Symbol] object from the table, discarding all
     /// other tracking of that [Symbol] if this was the last usage of it.
-    pub fn untrack(&mut self, symbol: &Symbol, usage: ParameterUse) -> PyResult<()> {
+    pub fn untrack(
+        &mut self,
+        symbol: &Symbol,
+        usage: ParameterUse,
+    ) -> Result<(), ParameterTableError> {
         self.remove_use(ParameterUuid::from_symbol(symbol), usage)
-            .map_err(PyErr::from)
     }
 
     /// Lookup the Python parameter object by name.

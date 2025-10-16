@@ -120,7 +120,7 @@ fn qsd_inner(
             unitary_to_gate_sequence_inner(array, one_qubit_decomposer, 0, None, true, None);
 
         return match sequence {
-            Some(seq) => CircuitData::from_standard_gates(
+            Some(seq) => Ok(CircuitData::from_standard_gates(
                 1,
                 seq.gates.into_iter().map(|(gate, params)| {
                     (
@@ -130,7 +130,7 @@ fn qsd_inner(
                     )
                 }),
                 Param::Float(seq.global_phase),
-            ),
+            )?),
             None => {
                 let out_qubits = (0..num_qubits)
                     .map(|_| ShareableQubit::new_anonymous())
@@ -173,7 +173,7 @@ fn qsd_inner(
                     .unwrap()
             });
         let global_phase = sequence.global_phase();
-        return CircuitData::from_packed_operations(
+        return Ok(CircuitData::from_packed_operations(
             num_qubits as u32,
             0,
             sequence
@@ -188,7 +188,7 @@ fn qsd_inner(
                     ))
                 }),
             Param::Float(global_phase),
-        );
+        )?);
     }
     // Check whether the matrix is equivalent to a block diagonal w.r.t ctrl_index
     if opt_a2 != Some(true) {
