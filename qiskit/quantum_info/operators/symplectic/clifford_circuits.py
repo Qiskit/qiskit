@@ -258,17 +258,17 @@ def _prepend_operation(clifford, operation, qargs=None):
         if theta == 0:
             clifford = _prepend_rz(clifford, qargs[0], lambd + phi)
         elif theta == 1:
-            clifford = _prepend_rz(clifford, qargs[0], lambd - 2)
-            clifford = _prepend_h(clifford, qargs[0])
             clifford = _prepend_rz(clifford, qargs[0], phi)
-        elif theta == 2:
-            clifford = _prepend_rz(clifford, qargs[0], lambd - 1)
-            clifford = _prepend_x(clifford, qargs[0])
-            clifford = _prepend_rz(clifford, qargs[0], phi + 1)
-        elif theta == 3:
-            clifford = _prepend_rz(clifford, qargs[0], lambd)
             clifford = _prepend_h(clifford, qargs[0])
+            clifford = _prepend_rz(clifford, qargs[0], lambd - 2)
+        elif theta == 2:
+            clifford = _prepend_rz(clifford, qargs[0], phi + 1)
+            clifford = _prepend_x(clifford, qargs[0])
+            clifford = _prepend_rz(clifford, qargs[0], lambd - 1)
+        elif theta == 3:
             clifford = _prepend_rz(clifford, qargs[0], phi + 2)
+            clifford = _prepend_h(clifford, qargs[0])
+            clifford = _prepend_rz(clifford, qargs[0], lambd)
         return clifford
 
     # If gate is a Clifford, we can either unroll the gate using the "to_circuit"
