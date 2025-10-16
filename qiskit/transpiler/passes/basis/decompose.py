@@ -19,7 +19,6 @@ from typing import Type
 from fnmatch import fnmatch
 
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.transpiler.passes.utils import control_flow
 from qiskit.dagcircuit.dagnode import DAGOpNode
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
@@ -73,7 +72,7 @@ class Decompose(TransformationPass):
             if node.is_control_flow():
                 continue
 
-            elif getattr(node.op, "definition", None) is None:
+            if getattr(node.op, "definition", None) is None:
                 # if we try to synthesize, turn the node into a DAGCircuit and run HLS
                 if self.apply_synthesis:
                     node_as_dag = _node_to_dag(node)

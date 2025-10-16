@@ -23,10 +23,8 @@ from qiskit.circuit import (
     EquivalenceLibrary,
     ControlledGate,
     Operation,
-    ControlFlowOp,
 )
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.transpiler.passes.utils import control_flow
 from qiskit.transpiler.target import Target
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
