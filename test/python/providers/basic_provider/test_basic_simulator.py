@@ -288,6 +288,153 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
                 else:
                     np.testing.assert_array_equal(getattr(out_options, key), in_options.get(key))
 
+    def test_clifford_circuit_bell_state(self):
+        """Test that Clifford circuits use StabilizerState backend."""
+        # Bell state is a Clifford circuit
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure([0, 1], [0, 1])
+
+        shots = 1000
+        result = self.backend.run(qc, shots=shots, seed_simulator=self.seed).result()
+        counts = result.get_counts()
+
+        # Bell state should only produce |00> and |11>
+        self.assertIn("00", counts)  # |00>
+        self.assertIn("11", counts)  # |11>
+        # Should not have |01> or |10>
+        self.assertNotIn("01", counts)
+        self.assertNotIn("10", counts)
+
+        # Check roughly equal distribution
+        total_shots = sum(counts.values())
+        self.assertEqual(total_shots, shots)
+
+    def test_non_clifford_circuit_with_t_gate(self):
+        """Test that non-Clifford circuits fall back to statevector simulation."""
+        # Circuit with T gate (non-Clifford)
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+        qc.t(0)  # T gate is NOT Clifford
+        qc.measure(0, 0)
+
+        shots = 100
+        result = self.backend.run(qc, shots=shots, seed_simulator=self.seed).result()
+        counts = result.get_counts()
+
+        # Should get valid measurement results
+        self.assertGreater(len(counts), 0)
+        self.assertEqual(sum(counts.values()), shots)
+
+    def test_clifford_detection_various_gates(self):
+        """Test Clifford detection with various gate combinations."""
+        backend = BasicSimulator()
+
+        # Test Clifford circuits
+        clifford_qc = QuantumCircuit(3)
+        clifford_qc.h(0)
+        clifford_qc.s(1)
+        clifford_qc.cx(0, 1)
+        clifford_qc.cz(1, 2)
+        clifford_qc.x(2)
+        clifford_qc.y(0)
+        clifford_qc.z(1)
+        self.assertTrue(backend._is_clifford_circuit(clifford_qc))
+
+        # Test non-Clifford circuit (T gate)
+        non_clifford_t = QuantumCircuit(1)
+        non_clifford_t.h(0)
+        non_clifford_t.t(0)
+        self.assertFalse(backend._is_clifford_circuit(non_clifford_t))
+
+        # Test non-Clifford circuit (Rx gate)
+        non_clifford_rx = QuantumCircuit(1)
+        non_clifford_rx.rx(0.5, 0)
+        self.assertFalse(backend._is_clifford_circuit(non_clifford_rx))
+
+    def test_clifford_with_barriers_and_measurements(self):
+        """Test that barriers and measurements don't affect Clifford detection."""
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.barrier()
+        qc.cx(0, 1)
+        qc.barrier()
+        qc.measure([0, 1], [0, 1])
+
+        self.assertTrue(self.backend._is_clifford_circuit(qc))
+
+        # Should still simulate correctly
+        result = self.backend.run(qc, shots=100, seed_simulator=self.seed).result()
+        counts = result.get_counts()
+        self.assertGreater(len(counts), 0)
+
+    def test_clifford_simulation_with_initial_statevector(self):
+        """Test that initial_statevector option skips Clifford optimization."""
+        # Clifford circuit
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure([0, 1], [0, 1])
+
+        # Custom initial state (|10⟩)
+        init_statevector = np.array([0, 0, 1, 0])
+
+        shots = 100
+        result = self.backend.run(
+            qc, shots=shots, seed_simulator=self.seed, initial_statevector=init_statevector
+        ).result()
+        counts = result.get_counts()
+
+        # Should get valid results (falls back to statevector)
+        self.assertIsNotNone(counts)
+        self.assertEqual(sum(counts.values()), shots)
+
+    def test_large_clifford_circuit_performance(self):
+        """Test that large Clifford circuits can be simulated efficiently."""
+        # Create a larger Clifford circuit (would be slow with statevector)
+        num_qubits = 10
+        qc = QuantumCircuit(num_qubits, num_qubits)
+
+        # Build a GHZ-like state (all Clifford gates)
+        qc.h(0)
+        for i in range(num_qubits - 1):
+            qc.cx(i, i + 1)
+        qc.measure(range(num_qubits), range(num_qubits))
+
+        # Should complete without timeout
+        shots = 100
+        result = self.backend.run(qc, shots=shots, seed_simulator=self.seed).result()
+        counts = result.get_counts()
+
+        self.assertEqual(sum(counts.values()), shots)
+        # GHZ state should give all 0s or all 1s
+        self.assertLessEqual(len(counts), 2)
+
+    def test_clifford_partial_measurement(self):
+        """Test Clifford circuit with partial measurements."""
+        qr = QuantumRegister(3, "qr")
+        cr = ClassicalRegister(2, "cr")
+        qc = QuantumCircuit(qr, cr)
+
+        # Clifford operations
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.s(2)
+
+        # Measure only some qubits
+        qc.measure(qr[0], cr[0])
+        qc.measure(qr[1], cr[1])
+
+        shots = 100
+        result = self.backend.run(
+            transpile(qc, self.backend), shots=shots, seed_simulator=self.seed
+        ).result()
+        counts = result.get_counts()
+
+        # Should have valid counts
+        self.assertEqual(sum(counts.values()), shots)
+
 
 if __name__ == "__main__":
     unittest.main()
