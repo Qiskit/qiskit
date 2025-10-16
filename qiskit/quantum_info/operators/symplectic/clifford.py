@@ -33,7 +33,12 @@ from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.symplectic.base_pauli import _count_y
 
 from .base_pauli import BasePauli
-from .clifford_circuits import _append_circuit, _append_operation, _prepend_operation, _prepend_circuit
+from .clifford_circuits import (
+    _append_circuit,
+    _append_operation,
+    _prepend_operation,
+    _prepend_circuit,
+)
 
 
 class Clifford(BaseOperator, AdjointMixin, Operation):
