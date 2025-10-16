@@ -17,7 +17,8 @@ use pyo3::types::PyString;
 use pyo3::{prelude::*, types::PyList};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
+use qiskit_circuit::instruction::Instruction;
+use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
 
 use crate::discrete_basis::basic_approximations::{BasicApproximations, GateSequence};
 
@@ -239,12 +240,10 @@ impl SolovayKitaevSynthesis {
         gate: OperationFromPython,
         recursion_degree: usize,
     ) -> PyResult<CircuitData> {
-        let params = gate.params;
-        let gate = match gate.operation.view() {
-            OperationRef::StandardGate(gate) => gate,
-            _ => return Err(PyValueError::new_err("Only standard gates are supported.")),
+        let Some(g) = gate.operation.try_standard_gate() else {
+            return Err(PyValueError::new_err("Only standard gates are supported."));
         };
-        self.synthesize_gate(&gate, &params, recursion_degree)
+        self.synthesize_gate(&g, gate.params_view(), recursion_degree)
             .map_err(|err| err.into())
     }
 
@@ -268,8 +267,7 @@ impl SolovayKitaevSynthesis {
     /// Returns:
     ///     CircuitData: The sequence in the set of basic approximations closest to the input.
     fn query_basic_approximation(&self, gate: OperationFromPython) -> PyResult<CircuitData> {
-        let params = gate.params;
-        let matrix_u2 = match gate.operation.matrix(&params) {
+        let matrix_u2 = match gate.try_matrix() {
             Some(matrix) => Matrix2::new(
                 matrix[(0, 0)],
                 matrix[(0, 1)],

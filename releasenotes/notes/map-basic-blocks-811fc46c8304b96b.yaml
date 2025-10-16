@@ -1,0 +1,6 @@
+---
+features_transpiler:
+  - |
+    Added a new method :meth:`DAGCircuit.map_basic_blocks`, which
+    provides a fast-path for trivial recursive handling of control
+    flow operation blocks in transpiler passes.

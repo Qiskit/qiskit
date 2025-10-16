@@ -23,10 +23,8 @@ from qiskit.circuit import (
     EquivalenceLibrary,
     ControlledGate,
     Operation,
-    ControlFlowOp,
 )
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.transpiler.passes.utils import control_flow
 from qiskit.transpiler.target import Target
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
@@ -123,12 +121,7 @@ class OptimizeAnnotated(TransformationPass):
                 return dag, False
 
         # Handle control-flow
-        for node in dag.op_nodes():
-            if isinstance(node.op, ControlFlowOp):
-                dag.substitute_node(
-                    node,
-                    control_flow.map_blocks(self.run, node.op),
-                )
+        dag.map_basic_blocks(self.run)
 
         # First, optimize every node in the DAG.
         dag, opt1 = self._canonicalize(dag)
