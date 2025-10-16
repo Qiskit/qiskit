@@ -10,18 +10,15 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-#[cfg(feature = "cache_pygates")]
-use std::sync::OnceLock;
-
 use pyo3::intern;
 use pyo3::prelude::*;
+use std::sync::Arc;
 
 use crate::bit::{ShareableClbit, ShareableQubit};
 use crate::circuit_data::{CircuitData, CircuitVar};
 use crate::dag_circuit::DAGIdentifierInfo;
 use crate::dag_circuit::{DAGCircuit, NodeType};
 use crate::operations::{OperationRef, PythonOperation};
-use crate::packed_instruction::PackedInstruction;
 
 /// An extractable representation of a QuantumCircuit reserved only for
 /// conversion purposes.
@@ -57,9 +54,18 @@ pub fn circuit_to_dag(
 
 #[pyfunction(signature = (dag, copy_operations = true))]
 pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<CircuitData> {
+    let blocks = {
+        let dag_blocks = dag.iter_blocks();
+        let mut circuit_blocks = Vec::with_capacity(dag_blocks.len());
+        for dag_block in dag_blocks {
+            circuit_blocks.push(Arc::new(dag_to_circuit(dag_block, copy_operations)?));
+        }
+        circuit_blocks
+    };
     CircuitData::from_packed_instructions(
         dag.qubits().clone(),
         dag.clbits().clone(),
+        blocks,
         dag.qargs_interner().clone(),
         dag.cargs_interner().clone(),
         dag.qregs_data().clone(),
@@ -74,6 +80,7 @@ pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<Circu
             };
             if copy_operations {
                 let op = match instr.op.view() {
+                    OperationRef::ControlFlow(cf) => cf.clone().into(),
                     OperationRef::Gate(gate) => {
                         Python::attach(|py| gate.py_deepcopy(py, None))?.into()
                     }
@@ -87,15 +94,9 @@ pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<Circu
                     OperationRef::StandardInstruction(instruction) => instruction.into(),
                     OperationRef::Unitary(unitary) => unitary.clone().into(),
                 };
-                Ok(PackedInstruction {
-                    op,
-                    qubits: instr.qubits,
-                    clbits: instr.clbits,
-                    params: Some(Box::new(instr.params_view().iter().cloned().collect())),
-                    label: instr.label.clone(),
-                    #[cfg(feature = "cache_pygates")]
-                    py_op: OnceLock::new(),
-                })
+                let mut instr = instr.clone();
+                instr.op = op;
+                Ok(instr)
             } else {
                 Ok(instr.clone())
             }
