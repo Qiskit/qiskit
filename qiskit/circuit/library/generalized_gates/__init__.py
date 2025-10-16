@@ -18,7 +18,6 @@ from .mcmt import MCMT, MCMTVChain, MCMTGate
 from .gms import GMS, MSGate
 from .gr import GR, GRX, GRY, GRZ
 from .pauli import PauliGate
-from .rv import RVGate
 from .linear_function import LinearFunction
 from .isometry import Isometry
 from .uc import UCGate
