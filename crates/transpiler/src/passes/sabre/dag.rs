@@ -177,7 +177,7 @@ impl SabreDAG {
             };
 
         for dag_node in dag
-            .topological_op_nodes()
+            .topological_op_nodes(false)
             .expect("infallible if DAG is in a valid state")
         {
             let NodeType::Operation(inst) = &dag[dag_node] else {
