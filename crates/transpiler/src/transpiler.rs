@@ -104,7 +104,7 @@ pub fn transpile(
             transpile_layout.add_permutation_inside(|q| Qubit::new(permutation[q.index()]));
         };
         run_remove_diagonal_before_measure(&mut dag);
-        run_remove_identity_equiv(&mut dag, approximation_degree, Some(target));
+        run_remove_identity_equiv(&mut dag, approximation_degree, Some(target))?;
         run_inverse_cancellation_standard_gates(&mut dag);
         cancel_commutations(&mut dag, &mut commutation_checker, None, 1.0)?;
         run_consolidate_blocks(&mut dag, false, approximation_degree, None)?;
@@ -347,7 +347,7 @@ pub fn transpile(
         while new_depth != depth || new_size != size {
             depth = new_depth;
             size = new_size;
-            run_remove_identity_equiv(&mut dag, approximation_degree, Some(target));
+            run_remove_identity_equiv(&mut dag, approximation_degree, Some(target))?;
             run_optimize_1q_gates_decomposition(&mut dag, Some(target), None, None)?;
             cancel_commutations(&mut dag, &mut commutation_checker, None, 1.0)?;
             if gates_missing_from_target(&dag, target)? {
@@ -376,7 +376,7 @@ pub fn transpile(
                 None,
                 false,
             )?;
-            run_remove_identity_equiv(&mut dag, approximation_degree, Some(target));
+            run_remove_identity_equiv(&mut dag, approximation_degree, Some(target))?;
             run_optimize_1q_gates_decomposition(&mut dag, Some(target), None, None)?;
             cancel_commutations(&mut dag, &mut commutation_checker, None, 1.0)?;
             if gates_missing_from_target(&dag, target)? {
