@@ -1,0 +1,9 @@
+---
+features_quantum_info:
+  - |
+    Improve the performance of :meth:`~qiskit.quantum_info.Clifford.dot`,
+    when it is composed with a :class:`QuantumCircuit`.
+    In this case, we use new internal methods to iteratively update the Clifford
+    by prepending with standard Clifford gates.
+    This scheme is significantly more efficient than the previous method of converting
+    the gates to Clifford and composing the Clifford tableaux.
