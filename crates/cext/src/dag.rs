@@ -11,9 +11,13 @@
 // that they have been altered from the originals.
 
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
+use smallvec::smallvec;
 
+use crate::exit_codes::ExitCode;
+use qiskit_circuit::Qubit;
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::operations::{Operation, StandardGate};
 
 /// @ingroup QkDag
 /// Construct a new empty DAG.
@@ -155,6 +159,142 @@ pub unsafe extern "C" fn qk_dag_num_clbits(dag: *const DAGCircuit) -> u32 {
     let dag = unsafe { const_ptr_as_ref(dag) };
 
     dag.num_clbits() as u32
+}
+
+/// @ingroup QkDag
+/// Return the total number of operation nodes in the DAG.
+///
+/// @param dag A pointer to the DAG.
+///
+/// @return The total number of instructions in the DAG.
+///
+/// # Example
+/// ```c
+///     QkDag *dag = qk_dag_new();
+///     QkQuantumRegister *qr = qk_quantum_register_new(1, "my_register");
+///     qk_dag_add_quantum_register(dag, qr);
+///
+///     uint32_t qubit[1] = {0};
+///     qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
+///     size_t num = qk_dag_num_op_nodes(dag); // 1
+///
+///     qk_dag_free(dag);
+///     qk_quantum_register_free(qr);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_num_op_nodes(dag: *const DAGCircuit) -> usize {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let dag = unsafe { const_ptr_as_ref(dag) };
+    dag.num_ops()
+}
+
+/// @ingroup QkDag
+/// Apply a ``QkGate`` to the DAG.
+///
+/// @param dag A pointer to the DAG to apply the gate to.
+/// @param gate The StandardGate to apply.
+/// @param qubits The pointer to the array of ``uint32_t`` qubit indices to add the gate on. This
+///     can be a null pointer if there are no qubits for ``gate`` (e.g. ``QkGate_GlobalPhase``).
+/// @param params The pointer to the array of ``double`` values to use for the gate parameters.
+///     This can be a null pointer if there are no parameters for ``gate`` (e.g. ``QkGate_H``).
+/// @param front If ``true``, the gate is applied as the first operation on the specified qubits,
+///     rather than as the last.
+///
+/// @return An exit code.
+///
+/// # Example
+/// ```c
+///     QkDag *dag = qk_dag_new();
+///     QkQuantumRegister *qr = qk_quantum_register_new(1, "my_register");
+///     qk_dag_add_quantum_register(dag, qr);
+///
+///     uint32_t qubit[1] = {0};
+///     qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
+///
+///     qk_dag_free(dag);
+///     qk_quantum_register_free(qr);
+/// ```
+///
+/// # Safety
+///
+/// The ``qubits`` and ``params`` types are expected to be a pointer to an array of ``uint32_t``
+/// and ``double`` respectively where the length is matching the expectations for the standard
+/// gate. If the array is insufficiently long the behavior of this function is undefined as this
+/// will read outside the bounds of the array. It can be a null pointer if there are no qubits
+/// or params for a given gate. You can check ``qk_gate_num_qubits`` and ``qk_gate_num_params`` to
+/// determine how many qubits and params are required for a given gate.
+///
+/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_apply_gate(
+    dag: *mut DAGCircuit,
+    gate: StandardGate,
+    qubits: *const u32,
+    params: *const f64,
+    front: bool,
+) -> ExitCode {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let dag = unsafe { mut_ptr_as_ref(dag) };
+    // SAFETY: Per the documentation the qubits and params pointers are arrays of num_qubits()
+    // and num_params() elements respectively.
+    unsafe {
+        let qargs: &[Qubit] = match gate.num_qubits() {
+            0 => &[],
+            1 => &[Qubit(*qubits.wrapping_add(0))],
+            2 => &[
+                Qubit(*qubits.wrapping_add(0)),
+                Qubit(*qubits.wrapping_add(1)),
+            ],
+            3 => &[
+                Qubit(*qubits.wrapping_add(0)),
+                Qubit(*qubits.wrapping_add(1)),
+                Qubit(*qubits.wrapping_add(2)),
+            ],
+            4 => &[
+                Qubit(*qubits.wrapping_add(0)),
+                Qubit(*qubits.wrapping_add(1)),
+                Qubit(*qubits.wrapping_add(2)),
+                Qubit(*qubits.wrapping_add(3)),
+            ],
+            // There are no ``QkGate``s > 4 qubits
+            _ => panic!(),
+        };
+        let params = match gate.num_params() {
+            0 => None,
+            1 => Some(smallvec![(*params.wrapping_add(0)).into()]),
+            2 => Some(smallvec![
+                (*params.wrapping_add(0)).into(),
+                (*params.wrapping_add(1)).into(),
+            ]),
+            3 => Some(smallvec![
+                (*params.wrapping_add(0)).into(),
+                (*params.wrapping_add(1)).into(),
+                (*params.wrapping_add(2)).into(),
+            ]),
+            4 => Some(smallvec![
+                (*params.wrapping_add(0)).into(),
+                (*params.wrapping_add(1)).into(),
+                (*params.wrapping_add(2)).into(),
+                (*params.wrapping_add(3)).into(),
+            ]),
+            // There are no ``QkGate``s that take > 4 params
+            _ => panic!(),
+        };
+        if front {
+            dag.apply_operation_front(gate.into(), qargs, &[], params, None)
+                .unwrap();
+        } else {
+            dag.apply_operation_back(gate.into(), qargs, &[], params, None)
+                .unwrap();
+        }
+    }
+    ExitCode::Success
 }
 
 /// @ingroup QkDag

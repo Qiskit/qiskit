@@ -74,11 +74,46 @@ static int test_dag_with_classical_reg(void) {
     return Ok;
 }
 
+static int test_dag_apply_gate(void) {
+    QkDag *dag = qk_dag_new();
+    QkQuantumRegister *qr = qk_quantum_register_new(2, "my_register");
+    qk_dag_add_quantum_register(dag, qr);
+
+    int num_ops = qk_dag_num_op_nodes(dag);
+    if (num_ops != 0) {
+        printf("The number of op nodes %d is not 0", num_ops);
+        return EqualityError;
+    }
+
+    uint32_t h_bits[1] = {0};
+    qk_dag_apply_gate(dag, QkGate_H, h_bits, NULL, false);
+
+    num_ops = qk_dag_num_op_nodes(dag);
+    if (num_ops != 1) {
+        printf("The number of op nodes %d is not 1", num_ops);
+        return EqualityError;
+    }
+
+    uint32_t cx_bits[2] = {0, 1};
+    qk_dag_apply_gate(dag, QkGate_CX, cx_bits, NULL, true);
+
+    num_ops = qk_dag_num_op_nodes(dag);
+    if (num_ops != 2) {
+        printf("The number of op nodes %d is not 2", num_ops);
+        return EqualityError;
+    }
+
+    qk_dag_free(dag);
+    qk_quantum_register_free(qr);
+    return Ok;
+}
+
 int test_dag(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty);
     num_failed += RUN_TEST(test_dag_with_quantum_reg);
     num_failed += RUN_TEST(test_dag_with_classical_reg);
+    num_failed += RUN_TEST(test_dag_apply_gate);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
