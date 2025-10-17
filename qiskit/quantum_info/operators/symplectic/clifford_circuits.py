@@ -580,15 +580,15 @@ def _prepend_s(clifford, qubit):
     Returns:
         Clifford: the updated Clifford.
     """
-    destab = clifford.destab[qubit, :]
-    stab = clifford.stab[qubit, :]
-
-    destab ^= stab
-
     destab_x = clifford.destab_x[qubit, :]
     stab_x = clifford.stab_x[qubit, :]
     destab_z = clifford.destab_z[qubit, :]
     stab_z = clifford.stab_z[qubit, :]
+    stab_phase = clifford.stab_phase[qubit]
+
+    destab_x ^= stab_x
+    destab_z ^= stab_z
+    clifford.destab_phase[qubit] ^= stab_phase
 
     phase = _calculate_composed_phased(destab_x, destab_z, stab_x, stab_z)
     if phase == 1:
@@ -624,15 +624,15 @@ def _prepend_sdg(clifford, qubit):
     Returns:
         Clifford: the updated Clifford.
     """
-    destab = clifford.destab[qubit, :]
-    stab = clifford.stab[qubit, :]
-
-    destab ^= stab
-
     destab_x = clifford.destab_x[qubit, :]
     stab_x = clifford.stab_x[qubit, :]
     destab_z = clifford.destab_z[qubit, :]
     stab_z = clifford.stab_z[qubit, :]
+    stab_phase = clifford.stab_phase[qubit]
+
+    destab_x ^= stab_x
+    destab_z ^= stab_z
+    clifford.destab_phase[qubit] ^= stab_phase
 
     phase = _calculate_composed_phased(destab_x, destab_z, stab_x, stab_z)
     if phase == 3:
@@ -669,15 +669,15 @@ def _prepend_sx(clifford, qubit):
     Returns:
         Clifford: the updated Clifford.
     """
-    destab = clifford.destab[qubit, :]
-    stab = clifford.stab[qubit, :]
-
-    stab ^= destab
-
     destab_x = clifford.destab_x[qubit, :]
     stab_x = clifford.stab_x[qubit, :]
     destab_z = clifford.destab_z[qubit, :]
     stab_z = clifford.stab_z[qubit, :]
+    destab_phase = clifford.destab_phase[qubit]
+
+    stab_x ^= destab_x
+    stab_z ^= destab_z
+    clifford.stab_phase[qubit] ^= destab_phase
 
     phase = _calculate_composed_phased(stab_x, stab_z, destab_x, destab_z)
     if phase == 1:
@@ -714,15 +714,15 @@ def _prepend_sxdg(clifford, qubit):
     Returns:
         Clifford: the updated Clifford.
     """
-    destab = clifford.destab[qubit, :]
-    stab = clifford.stab[qubit, :]
-
-    stab ^= destab
-
     destab_x = clifford.destab_x[qubit, :]
     stab_x = clifford.stab_x[qubit, :]
     destab_z = clifford.destab_z[qubit, :]
     stab_z = clifford.stab_z[qubit, :]
+    destab_phase = clifford.destab_phase[qubit]
+
+    stab_x ^= destab_x
+    stab_z ^= destab_z
+    clifford.stab_phase[qubit] ^= destab_phase
 
     phase = _calculate_composed_phased(stab_x, stab_z, destab_x, destab_z)
     if phase == 3:
@@ -865,14 +865,6 @@ def _prepend_cx(clifford, control, target):
     Returns:
         Clifford: the updated Clifford.
     """
-    destab_target = clifford.destab[target, :]
-    stab_target = clifford.stab[target, :]
-    destab_control = clifford.destab[control, :]
-    stab_control = clifford.stab[control, :]
-
-    destab_control ^= destab_target
-    stab_target ^= stab_control
-
     destab_x_c = clifford.destab_x[control]
     destab_z_c = clifford.destab_z[control]
     stab_x_c = clifford.stab_x[control]
@@ -881,6 +873,13 @@ def _prepend_cx(clifford, control, target):
     destab_z_t = clifford.destab_z[target]
     stab_x_t = clifford.stab_x[target]
     stab_z_t = clifford.stab_z[target]
+
+    destab_x_c ^= destab_x_t
+    destab_z_c ^= destab_z_t
+    stab_x_t ^= stab_x_c
+    stab_z_t ^= stab_z_c
+    clifford.destab_phase[control] ^= clifford.destab_phase[target]
+    clifford.stab_phase[target] ^= clifford.stab_phase[control]
 
     phase_control = _calculate_composed_phased(destab_x_c, destab_z_c, destab_x_t, destab_z_t)
     phase_target = _calculate_composed_phased(stab_x_c, stab_z_c, stab_x_t, stab_z_t)
@@ -921,14 +920,6 @@ def _prepend_cz(clifford, control, target):
     Returns:
         Clifford: the updated Clifford.
     """
-    destab_target = clifford.destab[target, :]
-    stab_target = clifford.stab[target, :]
-    destab_control = clifford.destab[control, :]
-    stab_control = clifford.stab[control, :]
-
-    destab_control ^= stab_target
-    destab_target ^= stab_control
-
     destab_x_c = clifford.destab_x[control]
     destab_z_c = clifford.destab_z[control]
     stab_x_c = clifford.stab_x[control]
@@ -937,6 +928,13 @@ def _prepend_cz(clifford, control, target):
     destab_z_t = clifford.destab_z[target]
     stab_x_t = clifford.stab_x[target]
     stab_z_t = clifford.stab_z[target]
+
+    destab_x_c ^= stab_x_t
+    destab_z_c ^= stab_z_t
+    destab_x_t ^= stab_x_c
+    destab_z_t ^= stab_z_c
+    clifford.destab_phase[control] ^= clifford.stab_phase[target]
+    clifford.destab_phase[target] ^= clifford.stab_phase[control]
 
     phase_control = _calculate_composed_phased(destab_x_c, destab_z_c, stab_x_t, stab_z_t)
     phase_target = _calculate_composed_phased(destab_x_t, destab_z_t, stab_x_c, stab_z_c)
