@@ -62,8 +62,7 @@ pub unsafe extern "C" fn qk_dag_add_quantum_register(
     let dag = unsafe { mut_ptr_as_ref(dag) };
     let qreg = unsafe { const_ptr_as_ref(reg) };
 
-    dag
-        .add_qreg(qreg.clone())
+    dag.add_qreg(qreg.clone())
         .expect("Invalid register unable to be added to DAG");
 }
 
@@ -96,8 +95,7 @@ pub unsafe extern "C" fn qk_dag_add_classical_register(
     let dag = unsafe { mut_ptr_as_ref(dag) };
     let creg = unsafe { const_ptr_as_ref(reg) };
 
-    dag
-        .add_creg(creg.clone())
+    dag.add_creg(creg.clone())
         .expect("Invalid register unable to be added to DAG");
 }
 
