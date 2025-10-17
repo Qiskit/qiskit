@@ -20,6 +20,8 @@
 #include <stdio.h>
 #include <string.h>
 
+QkTarget *create_sample_target(bool std_inst);
+
 /**
  * Test empty constructor for Target
  */
@@ -544,6 +546,46 @@ cleanup:
     return result;
 }
 
+static int test_target_iteration(void) {
+    QkTarget *target = create_sample_target(true);
+
+    QkTargetIterator *iterator = qk_target_iter(target);
+    QkTargetPropsIterator *props_iter = qk_target_iter_next(iterator);
+    while (props_iter) {
+        const char *name = qk_target_props_inst_name(props_iter);
+        printf("Name: %s\n", name);
+        printf("Num of props: %zu\n", qk_target_props_len(props_iter));
+
+        QkTargetProps *property = qk_target_props_iter_next(props_iter);
+        while (property) {
+            printf("\tProp:\n");
+            if (property->qargs == NULL) {
+                printf("\t\tQargs: Global\n");
+            } else {
+                printf("\t\tQargs: [");
+                for (size_t idx = 0; idx < property->num_qargs; idx++) {
+                    if (idx < property->num_qargs - 1) {
+                        printf("%u, ", property->qargs[idx]);
+                    } else {
+                        printf("%u", property->qargs[idx]);
+                    }
+                }
+                printf("]\n");
+            }
+            printf("\t\tDuration: %lf\n", property->duration);
+            printf("\t\tError: %lf\n", property->error);
+            qk_target_props_free(property);
+            property = qk_target_props_iter_next(props_iter);
+        }
+        printf("\n");
+        qk_target_props_iter_free(props_iter);
+        props_iter = qk_target_iter_next(iterator);
+    }
+    qk_target_iter_free(iterator);
+    qk_target_free(target);
+    return Ok;
+}
+
 int test_target(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty_target);
@@ -552,9 +594,82 @@ int test_target(void) {
     num_failed += RUN_TEST(test_target_add_instruction);
     num_failed += RUN_TEST(test_target_update_instruction);
     num_failed += RUN_TEST(test_target_construction_ibm_like_target);
+    num_failed += RUN_TEST(test_target_iteration);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
 
     return num_failed;
+}
+
+QkTarget *create_sample_target(bool std_inst) {
+    // Build sample target
+    QkTarget *target = qk_target_new(0);
+    QkTargetEntry *i_entry = qk_target_entry_new(QkGate_I);
+    for (int i = 0; i < 4; i++) {
+        uint32_t qargs[1] = {i};
+        qk_target_entry_add_property(i_entry, qargs, 1, 35.5e-9, 0.);
+    }
+    qk_target_add_instruction(target, i_entry);
+
+    double rz_params[1] = {3.14};
+    QkTargetEntry *rz_entry = qk_target_entry_new_fixed(QkGate_RZ, rz_params);
+    for (int i = 0; i < 4; i++) {
+        uint32_t qargs[1] = {i};
+        qk_target_entry_add_property(rz_entry, qargs, 1, 0., 0.);
+    }
+    qk_target_add_instruction(target, rz_entry);
+
+    QkTargetEntry *sx_entry = qk_target_entry_new(QkGate_SX);
+    for (int i = 0; i < 4; i++) {
+        uint32_t qargs[1] = {i};
+        qk_target_entry_add_property(sx_entry, qargs, 1, 35.5e-9, 0.);
+    }
+    qk_target_add_instruction(target, sx_entry);
+
+    QkTargetEntry *x_entry = qk_target_entry_new(QkGate_X);
+    for (int i = 0; i < 4; i++) {
+        uint32_t qargs[1] = {i};
+        qk_target_entry_add_property(x_entry, qargs, 1, 35.5e-9, 0.0005);
+    }
+    qk_target_add_instruction(target, x_entry);
+
+    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
+    uint32_t qarg_samples[8][2] = {
+        {3, 4}, {4, 3}, {3, 1}, {1, 3}, {1, 2}, {2, 1}, {0, 1}, {1, 0},
+    };
+    double props[8][2] = {
+        {2.7022e-11, 0.00713}, {3.0577e-11, 0.00713}, {4.6222e-11, 0.00929}, {4.9777e-11, 0.00929},
+        {2.2755e-11, 0.00659}, {2.6311e-11, 0.00659}, {5.1911e-11, 0.01201}, {5.1911e-11, 0.01201},
+    };
+    for (int i = 0; i < 8; i++) {
+        qk_target_entry_add_property(cx_entry, qarg_samples[i], 2, props[i][0], props[i][1]);
+    }
+    qk_target_add_instruction(target, cx_entry);
+
+    // Add global Y Gate
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_Y));
+
+    // Add glbal phase gate
+    QkTargetEntry *gp_entry = qk_target_entry_new(QkGate_GlobalPhase);
+    qk_target_entry_add_property(gp_entry, (uint32_t[0]){}, 0, NAN, NAN);
+    qk_target_add_instruction(target, gp_entry);
+
+    if (std_inst) {
+        QkTargetEntry *meas = qk_target_entry_new_measure();
+        for (uint32_t i = 0; i < 2; i++) {
+            uint32_t q[1] = {i};
+            qk_target_entry_add_property(meas, q, 1, 1e-6, 1e-4);
+        }
+        qk_target_add_instruction(target, meas);
+
+        QkTargetEntry *reset = qk_target_entry_new_reset();
+        for (uint32_t i = 0; i < 4; i++) {
+            uint32_t q[1] = {i};
+            qk_target_entry_add_property(reset, q, 1, 1e-6, 1e-4);
+        }
+        qk_target_add_instruction(target, reset);
+    }
+
+    return target;
 }
