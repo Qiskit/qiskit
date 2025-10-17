@@ -20,6 +20,15 @@ operations (currently :class:`.Barrier`, :class:`.Measure`, :class:`.Reset`, and
 expanded over time as the Rust data model is expanded to natively support
 more functionality.
 
+Data Types
+==========
+
+.. doxygenstruct:: QkDagNodeType
+   :members:
+
+.. doxygenstruct:: QkOperationKind
+   :members:
+
 Functions
 =========
 
