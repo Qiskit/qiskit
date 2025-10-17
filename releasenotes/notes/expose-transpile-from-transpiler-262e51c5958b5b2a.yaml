@@ -1,0 +1,8 @@
+---
+features_transpiler:
+  - |
+    The :func:`~qiskit.transpiler.transpile` function is now implemented in the
+    :mod:`qiskit.transpiler` package and available as
+    :func:`qiskit.transpiler.transpile`. The legacy
+    :mod:`qiskit.compiler` import path continues to re-export the function for
+    backwards compatibility.
