@@ -335,3 +335,11 @@ pub fn get_std_gate_class(py: Python, rs_gate: StandardGate) -> PyResult<&'stati
         Ok(py.import(py_mod)?.getattr(py_class)?.unbind())
     })
 }
+
+/// Get the Python module path and class name for a StandardGate.
+/// This is used for QPY serialization and other cases where the Python class name
+/// is needed without going through Python.
+#[inline]
+pub fn get_std_gate_import_path(rs_gate: StandardGate) -> [&'static str; 2] {
+    STDGATE_IMPORT_PATHS[rs_gate as usize]
+}
