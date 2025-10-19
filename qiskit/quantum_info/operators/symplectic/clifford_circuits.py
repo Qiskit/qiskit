@@ -50,7 +50,7 @@ def _append_circuit(clifford, circuit, qargs=None):
     return clifford
 
 
-def _prepend_circuit(clifford, circuit, qargs=None):
+def _prepend_reversed_circuit(clifford, circuit, qargs=None):
     """Update Clifford inplace by prepending a Clifford circuit.
 
     Args:
@@ -67,7 +67,8 @@ def _prepend_circuit(clifford, circuit, qargs=None):
     if qargs is None:
         qargs = list(range(clifford.num_qubits))
 
-    for instruction in circuit:
+    # reverse the order of instructions when prepending a circuit
+    for instruction in circuit.reverse_ops():
         if instruction.clbits:
             raise QiskitError(
                 f"Cannot apply Instruction with classical bits: {instruction.operation.name}"
@@ -109,8 +110,6 @@ def _append_operation(clifford, operation, qargs=None):
     else:
         # assert isinstance(gate, Instruction)
         name = gate.name
-        if getattr(gate, "_condition", None) is not None:
-            raise QiskitError("Conditional gate is not a valid Clifford operation.")
 
     # Apply gate if it is a Clifford basis gate
     if name in _NON_CLIFFORD:
@@ -127,21 +126,21 @@ def _append_operation(clifford, operation, qargs=None):
     # If u gate, check if it is a Clifford, and if so, apply it
     if isinstance(gate, Gate) and name == "u" and len(qargs) == 1:
         try:
-            theta, phi, lambd = tuple(_n_half_pis(par) for par in gate.params)
+            theta, phi, lam = tuple(_n_half_pis(par) for par in gate.params)
         except ValueError as err:
             raise QiskitError("U gate angles must be multiples of pi/2 to be a Clifford") from err
         if theta == 0:
-            clifford = _append_rz(clifford, qargs[0], lambd + phi)
+            clifford = _append_rz(clifford, qargs[0], lam + phi)
         elif theta == 1:
-            clifford = _append_rz(clifford, qargs[0], lambd - 2)
+            clifford = _append_rz(clifford, qargs[0], lam - 2)
             clifford = _append_h(clifford, qargs[0])
             clifford = _append_rz(clifford, qargs[0], phi)
         elif theta == 2:
-            clifford = _append_rz(clifford, qargs[0], lambd - 1)
+            clifford = _append_rz(clifford, qargs[0], lam - 1)
             clifford = _append_x(clifford, qargs[0])
             clifford = _append_rz(clifford, qargs[0], phi + 1)
         elif theta == 3:
-            clifford = _append_rz(clifford, qargs[0], lambd)
+            clifford = _append_rz(clifford, qargs[0], lam)
             clifford = _append_h(clifford, qargs[0])
             clifford = _append_rz(clifford, qargs[0], phi + 2)
         return clifford
@@ -234,8 +233,6 @@ def _prepend_operation(clifford, operation, qargs=None):
     else:
         # assert isinstance(gate, Instruction)
         name = gate.name
-        if getattr(gate, "_condition", None) is not None:
-            raise QiskitError("Conditional gate is not a valid Clifford operation.")
 
     # Apply gate if it is a Clifford basis gate
     if name in _NON_CLIFFORD:
@@ -252,23 +249,23 @@ def _prepend_operation(clifford, operation, qargs=None):
     # If u gate, check if it is a Clifford, and if so, apply it
     if isinstance(gate, Gate) and name == "u" and len(qargs) == 1:
         try:
-            theta, phi, lambd = tuple(_n_half_pis(par) for par in gate.params)
+            theta, phi, lam = tuple(_n_half_pis(par) for par in gate.params)
         except ValueError as err:
             raise QiskitError("U gate angles must be multiples of pi/2 to be a Clifford") from err
         if theta == 0:
-            clifford = _prepend_rz(clifford, qargs[0], lambd + phi)
+            clifford = _prepend_rz(clifford, qargs[0], lam + phi)
         elif theta == 1:
             clifford = _prepend_rz(clifford, qargs[0], phi)
             clifford = _prepend_h(clifford, qargs[0])
-            clifford = _prepend_rz(clifford, qargs[0], lambd - 2)
+            clifford = _prepend_rz(clifford, qargs[0], lam - 2)
         elif theta == 2:
             clifford = _prepend_rz(clifford, qargs[0], phi + 1)
             clifford = _prepend_x(clifford, qargs[0])
-            clifford = _prepend_rz(clifford, qargs[0], lambd - 1)
+            clifford = _prepend_rz(clifford, qargs[0], lam - 1)
         elif theta == 3:
             clifford = _prepend_rz(clifford, qargs[0], phi + 2)
             clifford = _prepend_h(clifford, qargs[0])
-            clifford = _prepend_rz(clifford, qargs[0], lambd)
+            clifford = _prepend_rz(clifford, qargs[0], lam)
         return clifford
 
     # If gate is a Clifford, we can either unroll the gate using the "to_circuit"
@@ -306,7 +303,7 @@ def _prepend_operation(clifford, operation, qargs=None):
     # If fails, we need to restore the clifford that was before attempting to unroll and append.
     if gate.definition is not None:
         try:
-            return _prepend_circuit(clifford.copy(), gate.definition, qargs)
+            return _prepend_reversed_circuit(clifford.copy(), gate.definition, qargs)
         except QiskitError:
             pass
 
@@ -340,11 +337,11 @@ def _n_half_pis(param) -> int:
 
 
 def _count_y(x, z, dtype=None):
-    """Count the number of I Paulis"""
+    """Count the number of Y Paulis"""
     return (x & z).sum(axis=0, dtype=dtype)
 
 
-def _calculate_composed_phased(x1, z1, x2, z2):
+def _calculate_composed_phase(x1, z1, x2, z2):
     """Direct calculation of the phase of Pauli((x1, z1)).compose(Pauli(x2, z2))"""
     cnt_phase = 2 * _count_y(x2, z1)
     cnt_y1 = _count_y(x1, z1)
@@ -584,13 +581,12 @@ def _prepend_s(clifford, qubit):
     stab_x = clifford.stab_x[qubit, :]
     destab_z = clifford.destab_z[qubit, :]
     stab_z = clifford.stab_z[qubit, :]
-    stab_phase = clifford.stab_phase[qubit]
 
     destab_x ^= stab_x
     destab_z ^= stab_z
-    clifford.destab_phase[qubit] ^= stab_phase
+    clifford.destab_phase[qubit] ^= clifford.stab_phase[qubit]
 
-    phase = _calculate_composed_phased(destab_x, destab_z, stab_x, stab_z)
+    phase = _calculate_composed_phase(destab_x, destab_z, stab_x, stab_z)
     if phase == 1:
         clifford.destab_phase[qubit] ^= True
 
@@ -628,13 +624,12 @@ def _prepend_sdg(clifford, qubit):
     stab_x = clifford.stab_x[qubit, :]
     destab_z = clifford.destab_z[qubit, :]
     stab_z = clifford.stab_z[qubit, :]
-    stab_phase = clifford.stab_phase[qubit]
 
     destab_x ^= stab_x
     destab_z ^= stab_z
-    clifford.destab_phase[qubit] ^= stab_phase
+    clifford.destab_phase[qubit] ^= clifford.stab_phase[qubit]
 
-    phase = _calculate_composed_phased(destab_x, destab_z, stab_x, stab_z)
+    phase = _calculate_composed_phase(destab_x, destab_z, stab_x, stab_z)
     if phase == 3:
         clifford.destab_phase[qubit] ^= True
 
@@ -673,13 +668,12 @@ def _prepend_sx(clifford, qubit):
     stab_x = clifford.stab_x[qubit, :]
     destab_z = clifford.destab_z[qubit, :]
     stab_z = clifford.stab_z[qubit, :]
-    destab_phase = clifford.destab_phase[qubit]
 
     stab_x ^= destab_x
     stab_z ^= destab_z
-    clifford.stab_phase[qubit] ^= destab_phase
+    clifford.stab_phase[qubit] ^= clifford.destab_phase[qubit]
 
-    phase = _calculate_composed_phased(stab_x, stab_z, destab_x, destab_z)
+    phase = _calculate_composed_phase(stab_x, stab_z, destab_x, destab_z)
     if phase == 1:
         clifford.stab_phase[qubit] ^= True
 
@@ -718,13 +712,12 @@ def _prepend_sxdg(clifford, qubit):
     stab_x = clifford.stab_x[qubit, :]
     destab_z = clifford.destab_z[qubit, :]
     stab_z = clifford.stab_z[qubit, :]
-    destab_phase = clifford.destab_phase[qubit]
 
     stab_x ^= destab_x
     stab_z ^= destab_z
-    clifford.stab_phase[qubit] ^= destab_phase
+    clifford.stab_phase[qubit] ^= clifford.destab_phase[qubit]
 
-    phase = _calculate_composed_phased(stab_x, stab_z, destab_x, destab_z)
+    phase = _calculate_composed_phase(stab_x, stab_z, destab_x, destab_z)
     if phase == 3:
         clifford.stab_phase[qubit] ^= True
 
@@ -775,7 +768,7 @@ def _prepend_v(clifford, qubit):
     destab_z = clifford.destab_z[qubit, :]
     stab_z = clifford.stab_z[qubit, :]
 
-    phase = _calculate_composed_phased(destab_x, destab_z, stab_x, stab_z)
+    phase = _calculate_composed_phase(destab_x, destab_z, stab_x, stab_z)
     if phase == 3:
         clifford.destab_phase[qubit] ^= True
 
@@ -826,7 +819,7 @@ def _prepend_w(clifford, qubit):
     destab_z = clifford.destab_z[qubit, :]
     stab_z = clifford.stab_z[qubit, :]
 
-    phase = _calculate_composed_phased(stab_x, stab_z, destab_x, destab_z)
+    phase = _calculate_composed_phase(stab_x, stab_z, destab_x, destab_z)
     if phase == 1:
         clifford.stab_phase[qubit] ^= True
 
@@ -881,8 +874,8 @@ def _prepend_cx(clifford, control, target):
     clifford.destab_phase[control] ^= clifford.destab_phase[target]
     clifford.stab_phase[target] ^= clifford.stab_phase[control]
 
-    phase_control = _calculate_composed_phased(destab_x_c, destab_z_c, destab_x_t, destab_z_t)
-    phase_target = _calculate_composed_phased(stab_x_c, stab_z_c, stab_x_t, stab_z_t)
+    phase_control = _calculate_composed_phase(destab_x_c, destab_z_c, destab_x_t, destab_z_t)
+    phase_target = _calculate_composed_phase(stab_x_c, stab_z_c, stab_x_t, stab_z_t)
     clifford.destab_phase[control] ^= phase_control != 0
     clifford.stab_phase[target] ^= phase_target != 0
     return clifford
@@ -936,8 +929,8 @@ def _prepend_cz(clifford, control, target):
     clifford.destab_phase[control] ^= clifford.stab_phase[target]
     clifford.destab_phase[target] ^= clifford.stab_phase[control]
 
-    phase_control = _calculate_composed_phased(destab_x_c, destab_z_c, stab_x_t, stab_z_t)
-    phase_target = _calculate_composed_phased(destab_x_t, destab_z_t, stab_x_c, stab_z_c)
+    phase_control = _calculate_composed_phase(destab_x_c, destab_z_c, stab_x_t, stab_z_t)
+    phase_target = _calculate_composed_phase(destab_x_t, destab_z_t, stab_x_c, stab_z_c)
     clifford.destab_phase[control] ^= phase_control != 0
     clifford.destab_phase[target] ^= phase_target != 0
     return clifford

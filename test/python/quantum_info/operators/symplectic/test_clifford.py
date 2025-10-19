@@ -243,7 +243,7 @@ class TestCliffordGates(QiskitTestCase):
         seed = 800
         gates = "all"
         for i in range(samples):
-            for qubits in list(itertools.combinations(range(num_qubits), 2)):
+            for qubits in itertools.combinations(range(num_qubits), 2):
                 circ = random_clifford_circuit(num_qubits, num_gates, gates=gates, seed=seed + i)
                 cliff = Clifford(circ)
                 cliff = _append_operation(cliff, gate.name, qubits)
@@ -261,7 +261,7 @@ class TestCliffordGates(QiskitTestCase):
         seed = 800
         gates = "all"
         for i in range(samples):
-            for qubits in list(itertools.combinations(range(num_qubits), 2)):
+            for qubits in itertools.combinations(range(num_qubits), 2):
                 circ = random_clifford_circuit(num_qubits, num_gates, gates=gates, seed=seed + i)
                 cliff = Clifford(circ)
                 cliff = _prepend_operation(cliff, gate.name, qubits)
