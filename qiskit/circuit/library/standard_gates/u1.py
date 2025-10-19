@@ -456,7 +456,9 @@ class MCU1Gate(ControlledGate):
         Returns:
             MCU1Gate: inverse gate.
         """
-        return MCU1Gate(-self.params[0], self.num_ctrl_qubits)
+        return MCU1Gate(
+            -self.params[0], num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state
+        )
 
     def __eq__(self, other):
         return (
