@@ -30,10 +30,8 @@ pub fn synthesize_ppm(ppm: &PauliProductMeasurement) -> PyResult<CircuitData> {
     // The code is somewhat similar to pauli_evolution synthesis, however combining the two branches
     // is tricky.
     let num_qubits = ppm.num_qubits();
-    let num_clbits = ppm.num_clbits();
 
-    let mut circuit = CircuitData::with_capacity(num_qubits, num_clbits, 0, Param::Float(0.0))
-        .expect("Unexpected Qiskit python bug");
+    let mut circuit = CircuitData::with_capacity(num_qubits, 1, 0, Param::Float(0.0))?;
 
     // Filtering 'I's
     let pauli_qubits = ppm
@@ -58,61 +56,47 @@ pub fn synthesize_ppm(ppm: &PauliProductMeasurement) -> PyResult<CircuitData> {
         match (z, x) {
             (_, false) => {}
             (false, true) => {
-                circuit
-                    .push_standard_gate(StandardGate::H, &[], &[Qubit(*i as u32)])
-                    .expect("Unexpected Qiskit python bug");
+                circuit.push_standard_gate(StandardGate::H, &[], &[Qubit(*i as u32)])?;
             }
             (true, true) => {
-                circuit
-                    .push_standard_gate(StandardGate::SX, &[], &[Qubit(*i as u32)])
-                    .expect("Unexpected Qiskit python bug");
+                circuit.push_standard_gate(StandardGate::SX, &[], &[Qubit(*i as u32)])?;
             }
         }
     }
 
     if ppm.phase == 2 {
-        circuit
-            .push_standard_gate(StandardGate::X, &[], &[first_qubit])
-            .expect("Unexpected Qiskit python bug");
+        circuit.push_standard_gate(StandardGate::X, &[], &[first_qubit])?;
     }
 
     // CX-layer
     for w in pauli_qubits.windows(2).rev() {
-        circuit
-            .push_standard_gate(
-                StandardGate::CX,
-                &[],
-                &[Qubit(w[1].0 as u32), Qubit(w[0].0 as u32)],
-            )
-            .expect("Unexpected Qiskit python bug");
+        circuit.push_standard_gate(
+            StandardGate::CX,
+            &[],
+            &[Qubit(w[1].0 as u32), Qubit(w[0].0 as u32)],
+        )?;
     }
 
     // Z-measurement on first qubit
-    circuit
-        .push_packed_operation(
-            PackedOperation::from_standard_instruction(StandardInstruction::Measure),
-            &[],
-            &[first_qubit],
-            &[Clbit(0)],
-        )
-        .expect("Unexpected Qiskit python bug");
+    circuit.push_packed_operation(
+        PackedOperation::from_standard_instruction(StandardInstruction::Measure),
+        &[],
+        &[first_qubit],
+        &[Clbit(0)],
+    )?;
 
     // CX-layer
     for w in pauli_qubits.windows(2) {
-        circuit
-            .push_standard_gate(
-                StandardGate::CX,
-                &[],
-                &[Qubit(w[1].0 as u32), Qubit(w[0].0 as u32)],
-            )
-            .expect("Unexpected Qiskit python bug");
+        circuit.push_standard_gate(
+            StandardGate::CX,
+            &[],
+            &[Qubit(w[1].0 as u32), Qubit(w[0].0 as u32)],
+        )?;
     }
 
     // Basis change layer
     if ppm.phase == 2 {
-        circuit
-            .push_standard_gate(StandardGate::X, &[], &[first_qubit])
-            .expect("Unexpected Qiskit python bug");
+        circuit.push_standard_gate(StandardGate::X, &[], &[first_qubit])?;
     }
 
     // Basis change layer
@@ -120,14 +104,10 @@ pub fn synthesize_ppm(ppm: &PauliProductMeasurement) -> PyResult<CircuitData> {
         match (z, x) {
             (_, false) => {}
             (false, true) => {
-                circuit
-                    .push_standard_gate(StandardGate::H, &[], &[Qubit(*i as u32)])
-                    .expect("Unexpected Qiskit python bug");
+                circuit.push_standard_gate(StandardGate::H, &[], &[Qubit(*i as u32)])?;
             }
             (true, true) => {
-                circuit
-                    .push_standard_gate(StandardGate::SXdg, &[], &[Qubit(*i as u32)])
-                    .expect("Unexpected Qiskit python bug");
+                circuit.push_standard_gate(StandardGate::SXdg, &[], &[Qubit(*i as u32)])?;
             }
         }
     }
@@ -136,10 +116,10 @@ pub fn synthesize_ppm(ppm: &PauliProductMeasurement) -> PyResult<CircuitData> {
 }
 
 #[pyfunction]
-fn synth_pauli_product_measurement(py: Python, py_op: Py<PyAny>) -> PyResult<CircuitData> {
-    let op_from_python = py_op.extract::<OperationFromPython>(py)?;
+fn synth_pauli_product_measurement(operation: &Bound<PyAny>) -> PyResult<CircuitData> {
+    let op_from_python = operation.extract::<OperationFromPython>()?;
 
-    if let OperationRef::PPM(ppm) = op_from_python.operation.view() {
+    if let OperationRef::PauliProductMeasurement(ppm) = op_from_python.operation.view() {
         synthesize_ppm(ppm)
     } else {
         Err(CircuitError::new_err(

@@ -190,7 +190,7 @@ impl CircuitInstruction {
             OperationRef::Unitary(unitary) => unitary
                 .create_py_op(py, self.label.as_ref().map(|x| x.as_str()))?
                 .into_any(),
-            OperationRef::PPM(ppm) => ppm
+            OperationRef::PauliProductMeasurement(ppm) => ppm
                 .create_py_op(py, self.label.as_ref().map(|x| x.as_str()))?
                 .into_any(),
         };

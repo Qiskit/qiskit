@@ -753,7 +753,7 @@ impl CircuitData {
                     OperationRef::StandardGate(gate) => gate.into(),
                     OperationRef::StandardInstruction(instruction) => instruction.into(),
                     OperationRef::Unitary(unitary) => unitary.clone().into(),
-                    OperationRef::PPM(ppm) => ppm.clone().into(),
+                    OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
                 };
                 res.data.push(PackedInstruction {
                     op: new_op,
@@ -774,7 +774,7 @@ impl CircuitData {
                     OperationRef::StandardGate(gate) => gate.into(),
                     OperationRef::StandardInstruction(instruction) => instruction.into(),
                     OperationRef::Unitary(unitary) => unitary.clone().into(),
-                    OperationRef::PPM(ppm) => ppm.clone().into(),
+                    OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
                 };
                 res.data.push(PackedInstruction {
                     op: new_op,

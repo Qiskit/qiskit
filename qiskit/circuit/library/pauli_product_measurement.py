@@ -47,7 +47,7 @@ class PauliProductMeasurement(Instruction):
         """
         Args:
             pauli: A tensor product of Pauli operators defining the measurement,
-                for example ``Pauli("XY")`` or ``Pauli("-XYIZ)``.
+                for example ``Pauli("XY")`` or ``Pauli("-XYIZ")``.
                 The identity Pauli operator is not permitted.
                 The Pauli may include a phase of :math:`-1`, but not :math:`i` or :math:`-i`.
             label: An optional label for the gate to display in circuit visualizations.
@@ -55,8 +55,8 @@ class PauliProductMeasurement(Instruction):
 
         .. note::
 
-            While Paulis involving "I"-terms are fully supported, it is recommended to remove
-            "I"-terms from the Pauli when creating a ``PauliProductMeasurement`` instruction,
+            While Paulis involving ``"I"``-terms are fully supported, it is recommended to remove
+            ``"I"``-terms from the Pauli when creating a ``PauliProductMeasurement`` instruction,
             as this does not change the actual measurement but specifies the instruction over
             a smaller set of qubits.
 
@@ -68,9 +68,14 @@ class PauliProductMeasurement(Instruction):
                 "instantiated from a Pauli object."
             )
 
-        if _is_identity_label(pauli):
+        if _is_empty_pauli(pauli):
             raise CircuitError(
-                "A Pauli Product Measurement instruction can not have an all-'I' label."
+                "A Pauli Product Measurement instruction can not have an empty Pauli label."
+            )
+
+        if _is_identity_pauli(pauli):
+            raise CircuitError(
+                "A Pauli Product Measurement instruction can not have an all-'I' Pauli label."
             )
 
         if pauli.phase not in [0, 2]:
@@ -133,6 +138,11 @@ def _get_default_label(pauli: Pauli):
     return "PPM(" + pauli.to_label() + ")"
 
 
-def _is_identity_label(pauli: Pauli):
+def _is_empty_pauli(pauli: Pauli):
+    """Return whether a Pauli has no qubits."""
+    return len(pauli.x) == 0
+
+
+def _is_identity_pauli(pauli: Pauli):
     """Return whether a Pauli has an all-'I' label (up to a phase)."""
     return not np.any(pauli.z) and not np.any(pauli.x)

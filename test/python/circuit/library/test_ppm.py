@@ -21,6 +21,13 @@ from qiskit.quantum_info import Pauli, Clifford
 from qiskit.qpy import dump, load
 from qiskit.compiler import transpile
 from qiskit.transpiler import CouplingMap, Target
+from qiskit.transpiler.passes import (
+    RemoveDiagonalGatesBeforeMeasure,
+    ElidePermutations,
+    OptimizeSwapBeforeMeasure,
+    ResetAfterMeasureSimplification,
+    BarrierBeforeFinalMeasurements,
+)
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -66,7 +73,8 @@ class TestPauliProductMeasurement(QiskitTestCase):
     @data("", "II", "-III")
     def test_raises_on_bad_pauli_label(self, p):
         """Test that creating a PauliProductMeasurement instruction
-        from a Pauli with all-"I" label raises an error.
+        from a Pauli with either an empty label or an all-"I" label
+        raises an error.
         """
         with self.assertRaises(CircuitError):
             _ = PauliProductMeasurement(Pauli(p))
@@ -187,3 +195,23 @@ class TestPauliProductMeasurement(QiskitTestCase):
 
         qct = transpile(qc, optimization_level=optimization_level, target=target)
         self.assertEqual(set(qct.count_ops()), {"cx", "u", "measure"})
+
+    @data(
+        RemoveDiagonalGatesBeforeMeasure(),
+        ElidePermutations(),
+        OptimizeSwapBeforeMeasure(),
+        ResetAfterMeasureSimplification(),
+        BarrierBeforeFinalMeasurements(),
+    )
+    def test_transpiler_passes_on_ppms(self, pass_):
+        """Check that running various transpiler passes on circuits
+        with PauliProductMeasurement instructions does not produce unexpected
+        errors.
+        """
+        qc = QuantumCircuit(6, 2)
+        qc.append(PauliProductMeasurement(Pauli("XZY")), [4, 1, 2], [1])
+        qc.append(PauliProductMeasurement(Pauli("Z")), [2], [0])
+        qc.append(PauliProductMeasurement(Pauli("ZZ")), [3, 2], [0])
+        qc.h(0)
+
+        _ = pass_(qc)

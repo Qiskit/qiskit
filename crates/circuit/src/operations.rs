@@ -277,7 +277,7 @@ pub enum OperationRef<'a> {
     Instruction(&'a PyInstruction),
     Operation(&'a PyOperation),
     Unitary(&'a UnitaryGate),
-    PPM(&'a PauliProductMeasurement),
+    PauliProductMeasurement(&'a PauliProductMeasurement),
 }
 
 impl Operation for OperationRef<'_> {
@@ -290,7 +290,7 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.name(),
             Self::Operation(operation) => operation.name(),
             Self::Unitary(unitary) => unitary.name(),
-            Self::PPM(ppm) => ppm.name(),
+            Self::PauliProductMeasurement(ppm) => ppm.name(),
         }
     }
     #[inline]
@@ -302,7 +302,7 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.num_qubits(),
             Self::Operation(operation) => operation.num_qubits(),
             Self::Unitary(unitary) => unitary.num_qubits(),
-            Self::PPM(ppm) => ppm.num_qubits(),
+            Self::PauliProductMeasurement(ppm) => ppm.num_qubits(),
         }
     }
     #[inline]
@@ -314,7 +314,7 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.num_clbits(),
             Self::Operation(operation) => operation.num_clbits(),
             Self::Unitary(unitary) => unitary.num_clbits(),
-            Self::PPM(ppm) => ppm.num_clbits(),
+            Self::PauliProductMeasurement(ppm) => ppm.num_clbits(),
         }
     }
     #[inline]
@@ -326,7 +326,7 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.num_params(),
             Self::Operation(operation) => operation.num_params(),
             Self::Unitary(unitary) => unitary.num_params(),
-            Self::PPM(ppm) => ppm.num_params(),
+            Self::PauliProductMeasurement(ppm) => ppm.num_params(),
         }
     }
     #[inline]
@@ -338,7 +338,7 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.control_flow(),
             Self::Operation(operation) => operation.control_flow(),
             Self::Unitary(unitary) => unitary.control_flow(),
-            Self::PPM(ppm) => ppm.control_flow(),
+            Self::PauliProductMeasurement(ppm) => ppm.control_flow(),
         }
     }
     #[inline]
@@ -350,7 +350,7 @@ impl Operation for OperationRef<'_> {
             OperationRef::Instruction(instruction) => instruction.blocks(),
             OperationRef::Operation(operation) => operation.blocks(),
             Self::Unitary(unitary) => unitary.blocks(),
-            Self::PPM(ppm) => ppm.blocks(),
+            Self::PauliProductMeasurement(ppm) => ppm.blocks(),
         }
     }
     #[inline]
@@ -362,7 +362,7 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.matrix(params),
             Self::Operation(operation) => operation.matrix(params),
             Self::Unitary(unitary) => unitary.matrix(params),
-            Self::PPM(ppm) => ppm.matrix(params),
+            Self::PauliProductMeasurement(ppm) => ppm.matrix(params),
         }
     }
     #[inline]
@@ -374,7 +374,7 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.definition(params),
             Self::Operation(operation) => operation.definition(params),
             Self::Unitary(unitary) => unitary.definition(params),
-            Self::PPM(ppm) => ppm.definition(params),
+            Self::PauliProductMeasurement(ppm) => ppm.definition(params),
         }
     }
     #[inline]
@@ -386,7 +386,7 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.directive(),
             Self::Operation(operation) => operation.directive(),
             Self::Unitary(unitary) => unitary.directive(),
-            Self::PPM(ppm) => ppm.directive(),
+            Self::PauliProductMeasurement(ppm) => ppm.directive(),
         }
     }
 
@@ -400,7 +400,7 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.matrix_as_static_1q(params),
             Self::Operation(operation) => operation.matrix_as_static_1q(params),
             Self::Unitary(unitary) => unitary.matrix_as_static_1q(params),
-            Self::PPM(ppm) => ppm.matrix_as_static_1q(params),
+            Self::PauliProductMeasurement(ppm) => ppm.matrix_as_static_1q(params),
         }
     }
 }
@@ -2942,7 +2942,7 @@ impl Operation for PauliProductMeasurement {
         // Similarly to UnitaryGate, we do not provide the actual decomposition here.
         // Instead, the HighLevelSynthesis transpiler pass is modified to call the
         // relevant synthesis function when requiring the definition for a
-        // PauliProudctMeasurement.
+        // PauliProductMeasurement.
         None
     }
     fn directive(&self) -> bool {

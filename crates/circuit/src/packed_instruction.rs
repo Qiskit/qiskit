@@ -401,7 +401,7 @@ impl PackedOperation {
             PackedOperationType::PyOperation => OperationRef::Operation(self.try_into().unwrap()),
             PackedOperationType::UnitaryGate => OperationRef::Unitary(self.try_into().unwrap()),
             PackedOperationType::PauliProductMeasurement => {
-                OperationRef::PPM(self.try_into().unwrap())
+                OperationRef::PauliProductMeasurement(self.try_into().unwrap())
             }
         }
     }
@@ -463,7 +463,10 @@ impl PackedOperation {
                 left.operation.bind(py).eq(&right.operation)
             }
             (OperationRef::Unitary(left), OperationRef::Unitary(right)) => Ok(left == right),
-            (OperationRef::PPM(left), OperationRef::PPM(right)) => Ok(left == right),
+            (
+                OperationRef::PauliProductMeasurement(left),
+                OperationRef::PauliProductMeasurement(right),
+            ) => Ok(left == right),
             _ => Ok(false),
         }
     }
@@ -509,7 +512,7 @@ impl PackedOperation {
                     .downcast::<PyType>()?
                     .is_subclass(py_type);
             }
-            OperationRef::PPM(_) => {
+            OperationRef::PauliProductMeasurement(_) => {
                 return PAULI_PRODUCT_MEASUREMENT
                     .get_bound(py)
                     .downcast::<PyType>()?
@@ -530,7 +533,7 @@ impl Operation for PackedOperation {
             OperationRef::Instruction(instruction) => instruction.name(),
             OperationRef::Operation(operation) => operation.name(),
             OperationRef::Unitary(unitary) => unitary.name(),
-            OperationRef::PPM(ppm) => ppm.name(),
+            OperationRef::PauliProductMeasurement(ppm) => ppm.name(),
         };
         // SAFETY: all of the inner parts of the view are owned by `self`, so it's valid for us to
         // forcibly reborrowing up to our own lifetime. We avoid using `<OperationRef as Operation>`
@@ -595,7 +598,7 @@ impl Clone for PackedOperation {
                 Self::from_operation(Box::new(operation.to_owned()))
             }
             OperationRef::Unitary(unitary) => Self::from_unitary(Box::new(unitary.clone())),
-            OperationRef::PPM(ppm) => Self::from_ppm(Box::new(ppm.clone())),
+            OperationRef::PauliProductMeasurement(ppm) => Self::from_ppm(Box::new(ppm.clone())),
         }
     }
 }
@@ -731,7 +734,7 @@ impl PackedInstruction {
                 OperationRef::Unitary(unitary) => {
                     unitary.create_py_op(py, self.label.as_ref().map(|x| x.as_str()))
                 }
-                OperationRef::PPM(ppm) => {
+                OperationRef::PauliProductMeasurement(ppm) => {
                     ppm.create_py_op(py, self.label.as_ref().map(|x| x.as_str()))
                 }
             }

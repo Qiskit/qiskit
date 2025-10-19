@@ -2239,7 +2239,10 @@ impl DAGCircuit {
                                 _ => Ok(false),
                             }
                         }
-                        [OperationRef::PPM(op_a), OperationRef::PPM(op_b)] => Ok(op_a == op_b),
+                        [
+                            OperationRef::PauliProductMeasurement(op_a),
+                            OperationRef::PauliProductMeasurement(op_b),
+                        ] => Ok(op_a == op_b),
                         _ => Ok(false),
                     }
                 }
@@ -7211,7 +7214,7 @@ impl DAGCircuit {
                         OperationRef::StandardGate(gate) => gate.into(),
                         OperationRef::StandardInstruction(instruction) => instruction.into(),
                         OperationRef::Unitary(unitary) => unitary.clone().into(),
-                        OperationRef::PPM(ppm) => ppm.clone().into(),
+                        OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
                     }
                 } else {
                     instr.op.clone()

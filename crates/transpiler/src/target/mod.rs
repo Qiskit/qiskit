@@ -119,7 +119,7 @@ impl NormalOperation {
             OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
             OperationRef::Operation(operation) => operation.operation.clone_ref(py),
             OperationRef::Unitary(unitary) => unitary.create_py_op(py, label)?,
-            OperationRef::PPM(ppm) => ppm.create_py_op(py, label)?,
+            OperationRef::PauliProductMeasurement(ppm) => ppm.create_py_op(py, label)?,
         };
         Ok(obj)
     }
@@ -802,7 +802,9 @@ impl Target {
                     OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
                     OperationRef::Operation(operation) => operation.operation.clone_ref(py),
                     OperationRef::Unitary(unitary) => unitary.create_py_op(py, None)?.into_any(),
-                    OperationRef::PPM(ppm) => ppm.create_py_op(py, None)?.into_any(),
+                    OperationRef::PauliProductMeasurement(ppm) => {
+                        ppm.create_py_op(py, None)?.into_any()
+                    }
                 },
                 TargetOperation::Variadic(op_cls) => op_cls.clone_ref(py),
             };
