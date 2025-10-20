@@ -47,8 +47,8 @@ use qiskit_circuit::packed_instruction::PackedOperation;
 use crate::standard_equivalence_library::generate_standard_equivalence_library;
 
 mod exceptions {
-    use pyo3::import_exception_bound;
-    import_exception_bound! {qiskit.circuit.exceptions, CircuitError}
+    use pyo3::import_exception;
+    import_exception! {qiskit.circuit.exceptions, CircuitError}
 }
 pub static PYDIGRAPH: ImportOnceCell = ImportOnceCell::new("rustworkx", "PyDiGraph");
 
