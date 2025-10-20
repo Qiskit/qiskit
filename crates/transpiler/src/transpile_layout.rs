@@ -569,7 +569,7 @@ impl TranspileLayout {
             .call_method0(intern!(py, "get_registers"))?
             .cast::<PySet>()?
             .iter()
-            .map(|x| x.extract::<QuantumRegister>())
+            .map(|x| x.extract::<QuantumRegister>().map_err(PyErr::from))
             .collect::<PyResult<Vec<QuantumRegister>>>()?;
         Ok(Self::new(
             initial_layout,

@@ -1612,7 +1612,7 @@ impl DAGCircuit {
                         if q.is_instance_of::<PyInt>() {
                             Ok(self.qubits.get(Qubit::new(q.extract()?)).unwrap().clone())
                         } else {
-                            q.extract::<ShareableQubit>()
+                            q.extract::<ShareableQubit>().map_err(Into::into)
                         }
                     })
                     .collect::<PyResult<Vec<ShareableQubit>>>()
@@ -1627,7 +1627,7 @@ impl DAGCircuit {
                         if c.is_instance_of::<PyInt>() {
                             Ok(self.clbits.get(Clbit::new(c.extract()?)).unwrap().clone())
                         } else {
-                            c.extract::<ShareableClbit>()
+                            c.extract::<ShareableClbit>().map_err(Into::into)
                         }
                     })
                     .collect::<PyResult<Vec<ShareableClbit>>>()

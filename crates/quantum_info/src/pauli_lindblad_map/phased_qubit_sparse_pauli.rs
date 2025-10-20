@@ -1279,9 +1279,7 @@ impl PyPhasedQubitSparsePauliList {
             }
         };
         for bound_py_term in iter {
-            let py_term = bound_py_term?
-                .cast::<PyPhasedQubitSparsePauli>()?
-                .borrow();
+            let py_term = bound_py_term?.cast::<PyPhasedQubitSparsePauli>()?.borrow();
             inner.add_phased_qubit_sparse_pauli(py_term.inner.view())?;
         }
         Ok(inner.into())

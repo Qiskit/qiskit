@@ -214,10 +214,7 @@ impl PyCircuitModule {
                 .getattr("CircuitInstruction")?
                 .cast_into::<PyType>()?
                 .unbind(),
-            barrier: module
-                .getattr("Barrier")?
-                .cast_into::<PyType>()?
-                .unbind(),
+            barrier: module.getattr("Barrier")?.cast_into::<PyType>()?.unbind(),
             // Measure is a singleton, so just store the object.
             measure: module.getattr("Measure")?.call0()?.into_py_any(py)?,
         })

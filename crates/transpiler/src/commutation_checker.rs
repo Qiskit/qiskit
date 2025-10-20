@@ -814,14 +814,16 @@ impl<'py> IntoPyObject<'py> for CommutationLibraryEntry {
     }
 }
 
-impl<'py> FromPyObject<'py> for CommutationLibraryEntry {
-    fn extract_bound(b: &Bound<'py, PyAny>) -> Result<Self, PyErr> {
+impl<'a, 'py> FromPyObject<'a, 'py> for CommutationLibraryEntry {
+    type Error = PyErr;
+
+    fn extract(b: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         if let Ok(b) = b.extract::<bool>() {
             return Ok(CommutationLibraryEntry::Commutes(b));
         }
         let dict = b.cast::<PyDict>()?;
         let mut ret = hashbrown::HashMap::with_capacity(dict.len());
-        for (k, v) in dict {
+        for (k, v) in &*dict {
             let raw_key: SmallVec<[Option<u32>; 2]> = k.extract()?;
             let v: bool = v.extract()?;
             let key = raw_key.into_iter().map(|key| key.map(Qubit)).collect();

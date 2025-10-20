@@ -159,13 +159,15 @@ impl<'a, 'py> IntoPyObject<'py> for &'a NormalOperation {
     }
 }
 
-impl<'py> FromPyObject<'py> for NormalOperation {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for NormalOperation {
+    type Error = <OperationFromPython as FromPyObject<'a, 'py>>::Error;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let operation: OperationFromPython = ob.extract()?;
         Ok(Self {
             operation: operation.operation,
             params: operation.params,
-            op_object: Ok(ob.clone().unbind()).into(),
+            op_object: Ok(ob.to_owned().unbind()).into(),
         })
     }
 }
