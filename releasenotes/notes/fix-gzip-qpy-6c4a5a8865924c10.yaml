@@ -2,4 +2,4 @@
 fixes:
   - |
     :func:`.qpy.dump` can now handle writing out to ``.gz`` files opened using the standard-library
-    :mod:`gzip` module with QPY versions 16 or greater.  See `#1518 <https://github.com/Qiskit/qiskit/pull/15158>`__ for details.
+    :mod:`gzip` module with QPY versions 16 or greater.  See `#15157 <https://github.com/Qiskit/qiskit/pull/15157>`__ for details.
