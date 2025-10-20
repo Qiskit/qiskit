@@ -21,6 +21,7 @@
 #include <string.h>
 
 QkTarget *create_sample_target(bool std_inst);
+bool compare_qargs(uint32_t *lhs, uint32_t *rhs, size_t length);
 
 /**
  * Test empty constructor for Target
@@ -548,58 +549,191 @@ cleanup:
 
 static int test_target_iteration(void) {
     QkTarget *target = create_sample_target(true);
-
-    QkTargetIterator *iterator = qk_target_iter(target);
-    QkTargetPropsIterator *props_iter = qk_target_iter_next(iterator);
-    while (props_iter) {
-        const char *name = qk_target_props_inst_name(props_iter);
-        printf("Name: %s\n", name);
-        printf("Num of props: %zu\n", qk_target_props_len(props_iter));
-
-        QkTargetProps *property = qk_target_props_iter_next(props_iter);
-        while (property) {
-            printf("\tProp:\n");
-            if (property->qargs == NULL) {
-                printf("\t\tQargs: Global\n");
+    int result = Ok;
+    size_t target_length = qk_target_num_instructions(target);
+    for (size_t inst_idx = 0; inst_idx < target_length; inst_idx++) {
+        QkQargs qargs;
+        QkInstructionProperties props;
+        char *name = qk_target_op_name_from_index(target, inst_idx);
+        printf("Op name: '%s'\nProps:\n", name);
+        size_t num_props = qk_target_num_properties(target, inst_idx);
+        for (size_t props_idx = 0; props_idx < num_props; props_idx++) {
+            if (qk_target_op_get_qargs(target, inst_idx, props_idx, &qargs) != QkExitCode_Success) {
+                result = RuntimeError;
+                goto break_loop;
+            };
+            if (qk_target_op_get_props(target, inst_idx, props_idx, &props) != QkExitCode_Success) {
+                result = RuntimeError;
+                goto break_loop;
+            }
+            printf("\tQargs: ");
+            if (qargs.qargs == NULL) {
+                printf("Global\n");
             } else {
-                printf("\t\tQargs: [");
-                for (size_t idx = 0; idx < property->num_qargs; idx++) {
-                    if (idx < property->num_qargs - 1) {
-                        printf("%u, ", property->qargs[idx]);
+                printf("[");
+                for (uint32_t q_idx = 0; q_idx < qargs.len; q_idx++) {
+                    if (q_idx < qargs.len - 1) {
+                        printf("%u, ", qargs.qargs[q_idx]);
                     } else {
-                        printf("%u", property->qargs[idx]);
+                        printf("%u", qargs.qargs[q_idx]);
                     }
                 }
                 printf("]\n");
             }
-            printf("\t\tDuration: %lf\n", property->duration);
-            printf("\t\tError: %lf\n", property->error);
-            qk_target_props_free(property);
-            property = qk_target_props_iter_next(props_iter);
+            printf("\tDuration: %lf\n", props.duration);
+            printf("\tError: %lf\n\n", props.error);
         }
-        printf("\n");
-        qk_target_props_iter_free(props_iter);
-        props_iter = qk_target_iter_next(iterator);
+    break_loop:
+        qk_target_qargs_clear(&qargs);
+        qk_target_inst_props_clear(&props);
+        qk_str_free(name);
+        if (result != Ok) {
+            break;
+        }
     }
-    qk_target_iter_free(iterator);
     qk_target_free(target);
-    return Ok;
+    return result;
 }
 
-int test_target(void) {
-    int num_failed = 0;
-    num_failed += RUN_TEST(test_empty_target);
-    num_failed += RUN_TEST(test_target_construct);
-    num_failed += RUN_TEST(test_target_entry_construction);
-    num_failed += RUN_TEST(test_target_add_instruction);
-    num_failed += RUN_TEST(test_target_update_instruction);
-    num_failed += RUN_TEST(test_target_construction_ibm_like_target);
-    num_failed += RUN_TEST(test_target_iteration);
+static int test_target_indexing(void) {
+    QkTarget *target = create_sample_target(true);
+    int result = Ok;
 
-    fflush(stderr);
-    fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
+    // Retrieve the index for CX
+    size_t cx_idx = qk_target_op_get_index(target, "cx");
+    if (cx_idx != 4) {
+        printf("Invalid index for cx entry: expected %d, got %zu.", 4, cx_idx);
+        result = EqualityError;
+        goto cleanup;
+    }
 
-    return num_failed;
+    // Retrieve the index for cz (should fail).
+    size_t cz_idx = qk_target_op_get_index(target, "cz");
+    if (cz_idx != (size_t)-1) {
+        printf("Found index for non-existing cz entry: got %zu.", cz_idx);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    // Check if qargs [0,1] exist in cx
+    uint32_t cx_qargs_query[2] = {0, 1};
+    if (!qk_target_op_has_qargs(target, cx_idx, cx_qargs_query, 2)) {
+        printf("Couldn't find valid qarg entry [0, 1] for cx.");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    // Check if qargs [2,3] exist in cx (should fail)
+    uint32_t cx_qargs_bad_query[2] = {2, 3};
+    if (qk_target_op_has_qargs(target, cx_idx, cx_qargs_bad_query, 2)) {
+        printf("Found valid qarg entry non-existing qargs [2, 3] for cx.");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    // Since index exists, this should return properly
+    size_t cx_qargs_idx = qk_target_op_qargs_index(target, cx_idx, cx_qargs_query, 2);
+    if (cx_qargs_idx != 6) {
+        printf("Invalid index for cx qargs [0,1]: expected %d, got %zu.", 6, cx_idx);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    // Same test on the invalid query
+    size_t cx_qargs_bad_idx = qk_target_op_qargs_index(target, cx_idx, cx_qargs_bad_query, 2);
+    if (cx_qargs_bad_idx != (size_t)-1) {
+        printf("Found index for non-existing qargs [2,3].");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    // Retrieving qargs [4,3] at index 1, with properties d=3.0577e-11, e=0.00713
+    QkInstructionProperties cx_props;
+    QkQargs cx_qargs;
+
+    if (qk_target_op_get_qargs(target, cx_idx, 1, &cx_qargs) != QkExitCode_Success) {
+        printf("Unable to retreive qargs [4,3] at index 1 for 'cx'.");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    if (!compare_qargs(cx_qargs.qargs, (uint32_t[2]){4, 3}, cx_qargs.len)) {
+        printf("Retrieved incorrect qargs, expected [4, 3], got [%u, %u]", cx_qargs.qargs[0],
+               cx_qargs.qargs[1]);
+        result = EqualityError;
+        goto cleanup_qargs;
+    }
+
+    if (qk_target_op_get_props(target, cx_idx, 1, &cx_props) != QkExitCode_Success) {
+        printf("Unable to retreive properties for qargs [4,3] at index 1 for 'cx'.");
+        result = EqualityError;
+        goto cleanup_qargs;
+    }
+
+    if (cx_props.duration != 3.0577e-11) {
+        printf("Retrieved incorrect duration property, expected 3.0577e-11, got %lf",
+               cx_props.duration);
+        result = EqualityError;
+        goto cleanup_props;
+    }
+    if (cx_props.error != 0.00713) {
+        printf("Retrieved incorrect error property, expected 0.00713, got %lf", cx_props.error);
+        result = EqualityError;
+        goto cleanup_props;
+    }
+
+    // Try retrieving global index for y gate
+    size_t y_idx = qk_target_op_get_index(target, "y");
+    if (y_idx != 5) {
+        printf("Invalid index for y entry: expected %d, got %zu.", 5, y_idx);
+        result = EqualityError;
+        goto cleanup_props;
+    }
+
+    QkQargs y_qargs;
+    if (qk_target_op_get_qargs(target, y_idx, 0, &y_qargs) != QkExitCode_Success) {
+        printf("Unable to retreive global qargs at index 0 for 'y'.");
+        result = EqualityError;
+        goto cleanup_yqargs;
+    }
+
+    if (y_qargs.qargs != NULL) {
+        printf("Obtained non-null global qargs at index 0 for 'y'.");
+        result = EqualityError;
+        goto cleanup_yqargs;
+    }
+
+    // Try retrieving [] index for global_phase gate
+    size_t gp_idx = qk_target_op_get_index(target, "global_phase");
+    if (gp_idx != 6) {
+        printf("Invalid index for y entry: expected %d, got %zu.", 6, gp_idx);
+        result = EqualityError;
+        goto cleanup_yqargs;
+    }
+
+    QkQargs gp_qargs;
+    if (qk_target_op_get_qargs(target, gp_idx, 0, &gp_qargs) != QkExitCode_Success) {
+        printf("Unable to retreive qargs [] at index 0 for 'global_phase'.");
+        result = EqualityError;
+        goto cleanup_gpqargs;
+    }
+
+    if (gp_qargs.qargs == NULL || gp_qargs.len != 0) {
+        printf("Obtained null or invalid qargs at index 0 for 'global_phase'.");
+        result = EqualityError;
+        goto cleanup_gpqargs;
+    }
+cleanup_gpqargs:
+    qk_target_qargs_clear(&gp_qargs);
+cleanup_yqargs:
+    qk_target_qargs_clear(&y_qargs);
+cleanup_props:
+    qk_target_inst_props_clear(&cx_props);
+cleanup_qargs:
+    qk_target_qargs_clear(&cx_qargs);
+cleanup:
+    qk_target_free(target);
+    return result;
 }
 
 QkTarget *create_sample_target(bool std_inst) {
@@ -672,4 +806,30 @@ QkTarget *create_sample_target(bool std_inst) {
     }
 
     return target;
+}
+
+bool compare_qargs(uint32_t *lhs, uint32_t *rhs, size_t length) {
+    for (size_t idx = 0; idx < length; idx++) {
+        if (lhs[idx] != rhs[idx]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+int test_target(void) {
+    int num_failed = 0;
+    num_failed += RUN_TEST(test_empty_target);
+    num_failed += RUN_TEST(test_target_construct);
+    num_failed += RUN_TEST(test_target_entry_construction);
+    num_failed += RUN_TEST(test_target_add_instruction);
+    num_failed += RUN_TEST(test_target_update_instruction);
+    num_failed += RUN_TEST(test_target_construction_ibm_like_target);
+    num_failed += RUN_TEST(test_target_iteration);
+    num_failed += RUN_TEST(test_target_indexing);
+
+    fflush(stderr);
+    fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
+
+    return num_failed;
 }

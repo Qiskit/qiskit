@@ -12,7 +12,7 @@
 
 use std::f64;
 use std::ffi::{CStr, CString, c_char};
-use std::ptr::{null, null_mut};
+use std::ptr::{null_mut, write};
 use std::sync::Arc;
 
 use crate::exit_codes::{CInputError, ExitCode};
@@ -872,6 +872,203 @@ pub unsafe extern "C" fn qk_target_num_instructions(target: *const Target) -> us
     target.len()
 }
 
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_op_get_index(
+    target: *const Target,
+    name: *const c_char,
+) -> usize {
+    let target_borrowed = unsafe { const_ptr_as_ref(target) };
+    let name = unsafe {
+        CStr::from_ptr(name)
+            .to_str()
+            .expect("Error extracting gate name.")
+    };
+
+    if let Some(index) = target_borrowed.get_gate_index(name) {
+        index
+    } else {
+        usize::MAX
+    }
+}
+
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_op_name_from_index(
+    target: *const Target,
+    index: usize,
+) -> *mut c_char {
+    let target_borrowed = unsafe { const_ptr_as_ref(target) };
+    if let Some((retrieved, _)) = target_borrowed.get_from_index(index) {
+        CString::new(retrieved.clone())
+            .expect("Error allocating space for string")
+            .into_raw()
+    } else {
+        panic!("Index does not map to any operation in the Target.")
+    }
+}
+
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_contains_op(target: *const Target, name: *const c_char) -> bool {
+    let target_borrowed = unsafe { const_ptr_as_ref(target) };
+    let name = unsafe {
+        CStr::from_ptr(name)
+            .to_str()
+            .expect("Error extracting gate name.")
+    };
+
+    target_borrowed.contains_key(name)
+}
+
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_num_properties(target: *const Target, index: usize) -> usize {
+    let target_borrowed = unsafe { const_ptr_as_ref(target) };
+    target_borrowed
+        .get_from_index(index)
+        .map(|(_, v)| v.len())
+        .unwrap_or_default()
+}
+
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_op_has_qargs(
+    target: *const Target,
+    inst_idx: usize,
+    qargs: *const u32,
+    num_qubits: u32,
+) -> bool {
+    let target_borrowed = unsafe { const_ptr_as_ref(target) };
+
+    let parsed = unsafe { parse_qargs(qargs, num_qubits) };
+    target_borrowed
+        .get_from_index(inst_idx)
+        .map(|(_, inst_map)| inst_map.contains_key(&parsed))
+        .unwrap_or(false)
+}
+
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_op_qargs_index(
+    target: *const Target,
+    inst_idx: usize,
+    qargs: *const u32,
+    num_qubits: u32,
+) -> usize {
+    let target_borrowed = unsafe { const_ptr_as_ref(target) };
+    let parsed = unsafe { parse_qargs(qargs, num_qubits) };
+    if let Some(idx) = target_borrowed
+        .get_from_index(inst_idx)
+        .and_then(|(_, inst_map)| inst_map.get_index_of(&parsed))
+    {
+        idx
+    } else {
+        usize::MAX
+    }
+}
+
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_op_get_qargs(
+    target: *const Target,
+    inst_idx: usize,
+    qarg_idx: usize,
+    qargs: *mut CQargs,
+) -> ExitCode {
+    let target_borrowed = unsafe { const_ptr_as_ref(target) };
+    if let Some((_, props_map)) = target_borrowed.get_from_index(inst_idx) {
+        if let Some((retrieved_qargs, _)) = props_map.get_index(qarg_idx) {
+            unsafe {
+                let (qargs_ptr, qargs_length) = qargs_to_ptr(retrieved_qargs);
+                write(
+                    qargs,
+                    CQargs {
+                        qargs: qargs_ptr,
+                        len: qargs_length,
+                    },
+                );
+            }
+            ExitCode::Success
+        } else {
+            ExitCode::IndexError
+        }
+    } else {
+        ExitCode::IndexError
+    }
+}
+
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_op_get_props(
+    target: *const Target,
+    inst_idx: usize,
+    qarg_idx: usize,
+    inst_props: *mut CInstructionProperties,
+) -> ExitCode {
+    let target_borrowed = unsafe { const_ptr_as_ref(target) };
+    if let Some((_, props_map)) = target_borrowed.get_from_index(inst_idx) {
+        if let Some((_, retrieved_props)) = props_map.get_index(qarg_idx) {
+            unsafe {
+                if let Some(props) = retrieved_props {
+                    write(
+                        inst_props,
+                        CInstructionProperties {
+                            duration: props.duration.unwrap_or(f64::NAN),
+                            error: props.error.unwrap_or(f64::NAN),
+                        },
+                    );
+                } else {
+                    // If no property is found but there are qargs, clear the instruction to represent a null instance.
+                    qk_target_inst_props_clear(inst_props);
+                }
+            }
+            ExitCode::Success
+        } else {
+            ExitCode::IndexError
+        }
+    } else {
+        ExitCode::IndexError
+    }
+}
+
+#[repr(C)]
+pub struct CInstructionProperties {
+    duration: f64,
+    error: f64,
+}
+
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_inst_props_clear(inst_props: *mut CInstructionProperties) {
+    unsafe {
+        let inst_props = mut_ptr_as_ref(inst_props);
+        inst_props.duration = f64::NAN;
+        inst_props.error = f64::NAN;
+    }
+}
+
+#[repr(C)]
+pub struct CQargs {
+    qargs: *mut u32,
+    len: u32,
+}
+
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_qargs_clear(qargs: *mut CQargs) {
+    unsafe {
+        let qargs = mut_ptr_as_ref(qargs);
+        if qargs.len > 0 && !qargs.qargs.is_null() {
+            let qubits = std::slice::from_raw_parts_mut(qargs.qargs, qargs.len as usize);
+            let _: Box<[u32]> = Box::from_raw(qubits as *mut [u32]);
+            qargs.qargs = std::ptr::null_mut();
+        }
+        qargs.len = 0;
+    }
+}
+
+
 /// Parses qargs based on a pointer and its size.
 ///
 /// # Arguments
@@ -946,249 +1143,21 @@ unsafe fn parse_params(gate: StandardGate, params: *mut f64) -> SmallVec<[Param;
     }
 }
 
-#[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_gate_map_get_index(
-    target: *const Target,
-    name: *const c_char,
-) -> usize {
-    let target_borrowed = unsafe { const_ptr_as_ref(target) };
-    let name = unsafe {
-        CStr::from_ptr(name)
-            .to_str()
-            .expect("Error extracting gate name.")
-    };
-
-    if let Some(index) = target_borrowed.get_gate_index(name) {
-        index
-    } else {
-        panic!("Gate is not in Target.")
-    }
-}
-
-pub struct TargetIterator {
-    target: *const Target,
-    index: usize,
-}
-
-#[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_iter(target: *const Target) -> *mut TargetIterator {
-    Box::into_raw(Box::new(TargetIterator { target, index: 0 }))
-}
-
-#[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_iter_free(iter: *mut TargetIterator) {
-    let _ = unsafe { Box::from_raw(iter) };
-}
-
-fn get_target_props_by_index(target: &Target, index: usize) -> TargetPropsIterator {
-    if target.get_from_index(index).is_some() {
-        TargetPropsIterator {
-            target,
-            inst_index: index,
-            prop_index: 0,
-        }
-    } else {
-        panic!("Invalid index. Instruction not on target.")
-    }
-}
-
-#[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_iter_next(
-    iter: *mut TargetIterator,
-) -> *mut TargetPropsIterator {
-    let iter_borrow = unsafe { mut_ptr_as_ref(iter) };
-    let target_borrow = unsafe { const_ptr_as_ref(iter_borrow.target) };
-    if target_borrow.get_from_index(iter_borrow.index).is_some() {
-        let ret = get_target_props_by_index(target_borrow, iter_borrow.index);
-        iter_borrow.index += 1;
-        Box::into_raw(Box::new(ret))
-    } else {
-        null_mut()
-    }
-}
-
-#[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_props_by_index(
-    target: *const Target,
-    index: usize,
-) -> *mut TargetPropsIterator {
-    let target_borrow = unsafe { const_ptr_as_ref(target) };
-    Box::into_raw(Box::new(get_target_props_by_index(target_borrow, index)))
-}
-
-pub struct TargetPropsIterator {
-    target: *const Target, // We don't modify this
-    inst_index: usize,     // We don't modify this
-    prop_index: usize,
-}
-
-#[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_props_inst_name(
-    iter: *const TargetPropsIterator,
-) -> *const c_char {
-    let target_props = unsafe { const_ptr_as_ref(iter) };
-    let target = unsafe { const_ptr_as_ref(target_props.target) };
-    if let Some((gate_name, _)) = target.get_from_index(target_props.inst_index) {
-        CString::new(gate_name.as_str())
-            .expect("Index contained a valid gate, but the program failed to parse the name.")
-            .into_raw()
-    } else {
-        unreachable!("Gate index not in Target.")
-    }
-}
-
-#[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_props_iter_free(iter: *mut TargetPropsIterator) {
-    let _ = unsafe { Box::from_raw(iter) };
-}
-
-#[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_props_len(iter: *mut TargetPropsIterator) -> usize {
-    let target_props = unsafe { const_ptr_as_ref(iter) };
-    let target = unsafe { const_ptr_as_ref(target_props.target) };
-    if let Some((_, props_map)) = target.get_from_index(target_props.inst_index) {
-        props_map.len()
-    } else {
-        unreachable!("Gate index not in Target.")
-    }
-}
-
-#[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_props_contains(
-    iter: *mut TargetPropsIterator,
-    qargs: *const u32,
-    num_qubits: u32,
-) -> bool {
-    let target_props = unsafe { const_ptr_as_ref(iter) };
-    let target = unsafe { const_ptr_as_ref(target_props.target) };
-    let qargs = unsafe { parse_qargs(qargs, num_qubits) };
-    if let Some((_, props_map)) = target.get_from_index(target_props.inst_index) {
-        props_map.contains_key(&qargs)
-    } else {
-        unreachable!("Gate index not in Target.")
-    }
-}
-
-#[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_props_iter_next(
-    iter: *mut TargetPropsIterator,
-) -> *mut TargetProps {
-    let target_props = unsafe { mut_ptr_as_ref(iter) };
-    let target = unsafe { const_ptr_as_ref(target_props.target) };
-    if let Some((_, props_map)) = target.get_from_index(target_props.inst_index) {
-        if let Some((qargs, props)) = props_map.get_index(target_props.prop_index) {
-            let (out_qargs, length) = unsafe { qargs_to_ptr(qargs) };
-            let (duration, error) = if let Some(props) = props {
-                (
-                    props.duration.unwrap_or(f64::NAN),
-                    props.error.unwrap_or(f64::NAN),
-                )
-            } else {
-                (f64::NAN, f64::NAN)
-            };
-            let ret = TargetProps {
-                qargs: out_qargs,
-                num_qargs: length,
-                duration,
-                error,
-            };
-            target_props.prop_index += 1;
-            Box::into_raw(Box::new(ret))
-        } else {
-            null_mut()
-        }
-    } else {
-        unreachable!("Invalid instruction index")
-    }
-}
-
-#[repr(C)]
-pub struct TargetProps {
-    qargs: *const u32,
-    num_qargs: usize,
-    duration: f64,
-    error: f64,
-}
-
-#[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_props_free(props: *mut TargetProps) {
-    let _ = unsafe { Box::from_raw(props) };
-}
-
-#[repr(C)]
-pub struct CInstructionProperties {
-    duration: f64,
-    error: f64,
-}
-
-unsafe fn qargs_to_ptr(qargs: &Qargs) -> (*const u32, usize) {
+unsafe fn qargs_to_ptr(qargs: &Qargs) -> (*mut u32, u32) {
     match qargs {
-        Qargs::Global => (null(), 0),
+        Qargs::Global => (null_mut(), 0),
         Qargs::Concrete(small_vec) => {
             let length = small_vec.len();
             let qargs: Vec<u32> = small_vec.iter().map(|bit| bit.0).collect();
             let mut ret = qargs.into_boxed_slice();
             let out_qargs = ret.as_mut_ptr();
             let _ = Box::into_raw(ret);
-            (out_qargs, length)
+            (
+                out_qargs,
+                length
+                    .try_into()
+                    .expect("The length of these qargs exceeds the limit"),
+            )
         }
     }
 }
-
-// pub unsafe extern fn qk_target_iter_next(iter: *mut TargetIterator) -> Target
-/*
-
-// Pointer, must be freed
-TargetIterator {
-    *target,
-    index
-}
-
-meth target_iter
-meth target_iter_next // returns a properties iterator
-
-
-meth target_mapping_op_name
-meth target mapping_op_index (name: string)
-meth target_length
-
-// Pointer, must be freed
-TargetPropertiesIterator {
-    *target,
-    inst_index,
-    prop_index
-}
-
-meth target_props_iter_next
-meth target_props_length (index: usize)
-meth target_props_contains_qargs
-
-// C repr, must be freed
-TargetProperties {
-    qargs: CQargs,
-    props: CInstructionProperties
-}
-
-// C repr (??) must be freed
-CQargs {
-    *u32,
-    usize length,
-}
-
-// C repr, must be freed
-CInstructionProperties {
-    duration: f64,
-    error: f64,
-}
- */
