@@ -1,0 +1,27 @@
+---
+features:
+  - |
+    Improved documentation for state visualization functions to clarify numerical precision behavior.
+    The :func:`~qiskit.visualization.plot_state_city` and :func:`~qiskit.visualization.plot_state_hinton`
+    functions now include comprehensive explanations of why small non-zero values (typically 1e-16 to 1e-17)
+    may appear when visualizing quantum states where certain components should theoretically be zero.
+    This documentation clarifies that these small values represent the true computational results
+    rather than errors, helping users understand the expected behavior and reducing confusion.
+    The improvements include:
+    
+    * Enhanced module-level docstring explaining numerical precision across all visualization functions
+    * Detailed "Important Note on Numerical Precision" sections in function docstrings
+    * Practical examples showing how to interpret the output
+    * Clear explanation that small bars representing tiny values are expected and correct
+    
+    This addresses GitHub issue #14879 and improves the user experience for all Qiskit users
+    working with state visualizations.
+
+upgrade:
+  - |
+    The documentation for :func:`~qiskit.visualization.plot_state_city` and related state
+    visualization functions has been significantly enhanced to address user confusion about
+    numerical precision. Users will now see clear explanations that small non-zero values
+    in visualizations are expected behavior representing the true computational results,
+    not errors or bugs. This change helps users understand what they're seeing and
+    prevents false bug reports while maintaining scientific accuracy.
