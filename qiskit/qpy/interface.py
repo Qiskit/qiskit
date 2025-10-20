@@ -16,19 +16,19 @@ from __future__ import annotations
 
 import gzip
 import io
-import re
 import shutil
+from json import JSONEncoder, JSONDecoder
+from typing import Union, List, BinaryIO, Type, Optional, Callable, TYPE_CHECKING
+from collections.abc import Iterable, Mapping
 import struct
 import warnings
-from collections.abc import Iterable, Mapping
-from json import JSONDecoder, JSONEncoder
-from typing import TYPE_CHECKING, BinaryIO, Callable, List, Optional, Type, Union
+import re
 
-from qiskit import user_config
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.qpy import binary_io, common, formats, type_keys
+from qiskit.qpy import formats, common, binary_io, type_keys
 from qiskit.qpy.exceptions import QpyError
+from qiskit import user_config
 from qiskit.version import __version__
 
 if TYPE_CHECKING:
