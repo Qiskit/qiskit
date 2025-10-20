@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Test gate counts of synthesis algorithms for adder circuits."""
+"""Test gate counts of synthesis algorithms for adder circuits."""
 
 from __future__ import annotations
 import unittest
