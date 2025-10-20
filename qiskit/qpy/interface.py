@@ -37,7 +37,12 @@ if TYPE_CHECKING:
 
 # pylint: disable=invalid-name
 QPY_SUPPORTED_TYPES = QuantumCircuit
-# --- Known stream types that incorrectly report seekable=True
+
+# Some standard-library types claim to be `IOBase.seekable`, but don't actually support arbitrary
+# seeking in write mode.  We won't expand this list for incorrect third-party types, but
+# pragmatically, we can workaround trouble in the stdlib.
+#
+# See https://github.com/Qiskit/qiskit/issues/15157#issuecomment-3389209015 for more detail.
 KNOWN_BAD_SEEKERS = (gzip.GzipFile,)
 
 # This version pattern is taken from the pypa packaging project:
@@ -218,14 +223,7 @@ def dump(
         )
 
     if version >= 16:
-        # Determine if we can safely use the in-place seek path
-        can_seek = file_obj.seekable() and not isinstance(file_obj, KNOWN_BAD_SEEKERS)
-        # Note: This isinstance() check may not catch all problematic stream types that
-        # incorrectly report seekable=True. For most common cases (e.g., gzip.GzipFile),
-        # this is sufficient, but if new problematic types are found, consider adding
-        # runtime validation or expanding UNRELIABLE_SEEKABLE_STREAMS.
-
-        if can_seek:
+        if file_obj.seekable() and not isinstance(file_obj, KNOWN_BAD_SEEKERS):
             # Fast path for properly seekable streams
             file_offsets = []
             table_start = file_obj.tell()
