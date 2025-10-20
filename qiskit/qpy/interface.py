@@ -223,6 +223,7 @@ def dump(
         )
 
     if version >= 16:
+        # We need a circuit table.
         if file_obj.seekable() and not isinstance(file_obj, KNOWN_BAD_SEEKERS):
             # Fast path for properly seekable streams
             file_offsets = []
