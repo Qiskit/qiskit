@@ -37,7 +37,7 @@ from .clifford_circuits import (
     _append_circuit,
     _append_operation,
     _prepend_operation,
-    _prepend_reversed_circuit,
+    _prepend_circuit,
 )
 
 
@@ -440,7 +440,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
                 return _append_operation(self.copy(), other, qargs=qargs)
         else:
             if isinstance(other, QuantumCircuit):
-                return _prepend_reversed_circuit(self.copy(), other, qargs=qargs)
+                return _prepend_circuit(self.copy(), other, qargs=qargs)
             if isinstance(other, Instruction):
                 return _prepend_operation(self.copy(), other, qargs=qargs)
 

@@ -50,7 +50,7 @@ def _append_circuit(clifford, circuit, qargs=None):
     return clifford
 
 
-def _prepend_reversed_circuit(clifford, circuit, qargs=None):
+def _prepend_circuit(clifford, circuit, qargs=None):
     """Update Clifford inplace by prepending a Clifford circuit.
 
     Args:
@@ -303,7 +303,7 @@ def _prepend_operation(clifford, operation, qargs=None):
     # If fails, we need to restore the clifford that was before attempting to unroll and append.
     if gate.definition is not None:
         try:
-            return _prepend_reversed_circuit(clifford.copy(), gate.definition, qargs)
+            return _prepend_circuit(clifford.copy(), gate.definition, qargs)
         except QiskitError:
             pass
 
