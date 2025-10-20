@@ -36,8 +36,10 @@ impl<'py> IntoPyObject<'py> for Cast {
     }
 }
 
-impl<'py> FromPyObject<'py> for Cast {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for Cast {
+    type Error = <PyCast as FromPyObject<'a, 'py>>::Error;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let PyCast(c) = ob.extract()?;
         Ok(c)
     }

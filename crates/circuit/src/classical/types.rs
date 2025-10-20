@@ -48,8 +48,10 @@ impl<'py> IntoPyObject<'py> for Type {
     }
 }
 
-impl<'py> FromPyObject<'py> for Type {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for Type {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let PyType(kind) = ob.extract()?;
         Ok(match kind {
             TypeKind::Bool => Type::Bool,

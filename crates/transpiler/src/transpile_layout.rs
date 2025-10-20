@@ -543,7 +543,7 @@ impl TranspileLayout {
         };
         let index_map = py_layout
             .getattr(intern!(py, "input_qubit_mapping"))?
-            .downcast::<PyDict>()?
+            .cast::<PyDict>()?
             .iter()
             .map(|(k, v)| -> PyResult<(usize, ShareableQubit)> {
                 let index: usize = v.extract()?;
@@ -567,9 +567,9 @@ impl TranspileLayout {
         let input_registers: Vec<QuantumRegister> = py_layout
             .getattr(intern!(py, "initial_layout"))?
             .call_method0(intern!(py, "get_registers"))?
-            .downcast::<PySet>()?
+            .cast::<PySet>()?
             .iter()
-            .map(|x| x.extract::<QuantumRegister>())
+            .map(|x| x.extract::<QuantumRegister>().map_err(PyErr::from))
             .collect::<PyResult<Vec<QuantumRegister>>>()?;
         Ok(Self::new(
             initial_layout,

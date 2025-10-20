@@ -72,9 +72,11 @@ macro_rules! qubit_newtype {
             }
         }
 
-        impl pyo3::FromPyObject<'_> for $id {
-            fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
-                Ok(Self(ob.extract()?))
+        impl<'a, 'py> ::pyo3::FromPyObject<'a, 'py> for $id {
+            type Error = <u32 as FromPyObject<'a, 'py>>::Error;
+
+            fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+                ob.extract().map(Self)
             }
         }
 

@@ -14,7 +14,6 @@ use crate::bit::{ClassicalRegister, Register, ShareableClbit};
 use crate::classical::expr;
 use hashbrown::{HashMap, HashSet};
 use pyo3::prelude::*;
-use pyo3::{Bound, FromPyObject, PyAny, PyResult};
 use std::cell::RefCell;
 
 /// A control flow operation's condition.
@@ -27,8 +26,10 @@ pub(crate) enum Condition {
     Expr(expr::Expr),
 }
 
-impl<'py> FromPyObject<'py> for Condition {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for Condition {
+    type Error = <expr::Expr as FromPyObject<'a, 'py>>::Error;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         if let Ok((bit, value)) = ob.extract::<(ShareableClbit, usize)>() {
             Ok(Condition::Bit(bit, value))
         } else if let Ok((register, value)) = ob.extract::<(ClassicalRegister, usize)>() {
@@ -49,8 +50,10 @@ pub(crate) enum SwitchTarget {
     Expr(expr::Expr),
 }
 
-impl<'py> FromPyObject<'py> for SwitchTarget {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for SwitchTarget {
+    type Error = <expr::Expr as FromPyObject<'a, 'py>>::Error;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         if let Ok(bit) = ob.extract::<ShareableClbit>() {
             Ok(SwitchTarget::Bit(bit))
         } else if let Ok(register) = ob.extract::<ClassicalRegister>() {
