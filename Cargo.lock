@@ -1480,6 +1480,7 @@ dependencies = [
  "qiskit-transpiler",
  "rand 0.9.2",
  "rand_pcg 0.9.0",
+ "rustworkx-core",
  "smallvec",
  "thiserror 2.0.16",
 ]

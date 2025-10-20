@@ -86,7 +86,7 @@ static int test_dag_apply_gate(void) {
     }
 
     uint32_t h_bits[1] = {0};
-    qk_dag_apply_gate(dag, QkGate_H, h_bits, NULL, false);
+    qk_dag_apply_gate(dag, QkGate_H, h_bits, NULL, false, NULL);
 
     num_ops = qk_dag_num_op_nodes(dag);
     if (num_ops != 1) {
@@ -95,7 +95,8 @@ static int test_dag_apply_gate(void) {
     }
 
     uint32_t cx_bits[2] = {0, 1};
-    qk_dag_apply_gate(dag, QkGate_CX, cx_bits, NULL, true);
+    uint32_t cx_node_idx;
+    qk_dag_apply_gate(dag, QkGate_CX, cx_bits, NULL, true, &cx_node_idx);
 
     num_ops = qk_dag_num_op_nodes(dag);
     if (num_ops != 2) {
@@ -108,12 +109,113 @@ static int test_dag_apply_gate(void) {
     return Ok;
 }
 
+static int test_dag_node_type(void) {
+    QkDag *dag = qk_dag_new();
+    QkQuantumRegister *qr = qk_quantum_register_new(1, "qr");
+    QkClassicalRegister *cr = qk_classical_register_new(1, "cr");
+    qk_dag_add_quantum_register(dag, qr);
+    qk_dag_add_classical_register(dag, cr);
+
+    // Get the wire node indices for the qubit.
+    uint32_t qubit_in_idx = qk_dag_qubit_in_node(dag, 0);
+    uint32_t qubit_out_idx = qk_dag_qubit_out_node(dag, 0);
+
+    // Get the wire node indices for the clbit.
+    uint32_t clbit_in_idx = qk_dag_clbit_in_node(dag, 0);
+    uint32_t clbit_out_idx = qk_dag_clbit_out_node(dag, 0);
+
+    // Add an operation node and save the node index.
+    uint32_t h_bits[1] = {0};
+    uint32_t h_node_idx;
+    qk_dag_apply_gate(dag, QkGate_H, h_bits, NULL, false, &h_node_idx);
+
+    QkDagNodeType node_type = qk_dag_node_type(dag, qubit_in_idx);
+    if (node_type != QkDagNodeType_QubitIn) {
+        printf("Expected node type %d but got %d\n", QkDagNodeType_QubitIn, node_type);
+        return EqualityError;
+    }
+
+    node_type = qk_dag_node_type(dag, qubit_out_idx);
+    if (node_type != QkDagNodeType_QubitOut) {
+        printf("Expected node type %d but got %d\n", QkDagNodeType_QubitOut, node_type);
+        return EqualityError;
+    }
+
+    node_type = qk_dag_node_type(dag, clbit_in_idx);
+    if (node_type != QkDagNodeType_ClbitIn) {
+        printf("Expected node type %d but got %d\n", QkDagNodeType_ClbitIn, node_type);
+        return EqualityError;
+    }
+
+    node_type = qk_dag_node_type(dag, clbit_out_idx);
+    if (node_type != QkDagNodeType_ClbitOut) {
+        printf("Expected node type %d but got %d\n", QkDagNodeType_ClbitOut, node_type);
+        return EqualityError;
+    }
+
+    node_type = qk_dag_node_type(dag, h_node_idx);
+    if (node_type != QkDagNodeType_Operation) {
+        printf("Expected node type %d but got %d\n", QkDagNodeType_Operation, node_type);
+        return EqualityError;
+    }
+
+    qk_dag_free(dag);
+    qk_quantum_register_free(qr);
+    qk_classical_register_free(cr);
+    return Ok;
+}
+
+static int test_dag_endpoint_node_value(void) {
+    QkDag *dag = qk_dag_new();
+    QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
+    QkClassicalRegister *cr = qk_classical_register_new(2, "cr");
+    qk_dag_add_quantum_register(dag, qr);
+    qk_dag_add_classical_register(dag, cr);
+
+    // For each bit (we have two qubits and two clbits!), check that the wire values
+    // are correct.
+    for (uint32_t i = 0; i < 2; i++) {
+        uint32_t qubit_in_idx = qk_dag_qubit_in_node(dag, i);
+        uint32_t qubit_out_idx = qk_dag_qubit_out_node(dag, i);
+        uint32_t clbit_in_idx = qk_dag_clbit_in_node(dag, i);
+        uint32_t clbit_out_idx = qk_dag_clbit_out_node(dag, i);
+
+        uint32_t actual = qk_dag_endpoint_node_value(dag, qubit_in_idx);
+        if (actual != i) {
+            printf("Expected wire endpoint qubit value to be %ul but got %ul\n", i, actual);
+            return EqualityError;
+        }
+        actual = qk_dag_endpoint_node_value(dag, qubit_out_idx);
+        if (actual != i) {
+            printf("Expected wire endpoint qubit value to be %ul but got %ul\n", i, actual);
+            return EqualityError;
+        }
+        actual = qk_dag_endpoint_node_value(dag, clbit_in_idx);
+        if (actual != i) {
+            printf("Expected wire endpoint clbit value to be %ul but got %ul\n", i, actual);
+            return EqualityError;
+        }
+        actual = qk_dag_endpoint_node_value(dag, clbit_out_idx);
+        if (actual != i) {
+            printf("Expected wire endpoint clbit value to be %ul but got %ul\n", i, actual);
+            return EqualityError;
+        }
+    }
+
+    qk_dag_free(dag);
+    qk_quantum_register_free(qr);
+    qk_classical_register_free(cr);
+    return Ok;
+}
+
 int test_dag(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty);
     num_failed += RUN_TEST(test_dag_with_quantum_reg);
     num_failed += RUN_TEST(test_dag_with_classical_reg);
     num_failed += RUN_TEST(test_dag_apply_gate);
+    num_failed += RUN_TEST(test_dag_node_type);
+    num_failed += RUN_TEST(test_dag_endpoint_node_value);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
