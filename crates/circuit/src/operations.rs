@@ -2962,7 +2962,8 @@ impl PauliProductMeasurement {
     pub fn create_py_op(&self, py: Python, label: Option<&str>) -> PyResult<Py<PyAny>> {
         let z = PyList::new(py, &self.z)?;
         let x = PyList::new(py, &self.x)?;
-        let phase = if self.neg { 0 } else { 2 };
+        let phase = if self.neg { 2 } else { 0 };
+
         let py_label = if let Some(label) = label {
             label.into_py_any(py)?
         } else {

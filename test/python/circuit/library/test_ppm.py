@@ -85,7 +85,7 @@ class TestPauliProductMeasurement(QiskitTestCase):
             _ = PauliProductMeasurement(Pauli("XYZ")).inverse()
 
     def test_qpy(self):
-        """Test qpy for circuits with PauliProductMeasurement objects."""
+        """Test qpy for circuits with PauliProductMeasurement instructions."""
         qc = QuantumCircuit(6, 2)
         qc.append(PauliProductMeasurement(Pauli("XZ")), [4, 1], [1])
         qc.append(PauliProductMeasurement(Pauli("Z")), [2], [0])
@@ -98,15 +98,31 @@ class TestPauliProductMeasurement(QiskitTestCase):
         new_circuit = load(qpy_file)[0]
         self.assertEqual(qc, new_circuit)
 
-    def test_gate_equality(self):
-        """Test checking equality of PauliProductMeasurement objects."""
+    def test_instructions_equal(self):
+        """Test checking equality of PauliProductMeasurement instructions."""
         self.assertEqual(PauliProductMeasurement(Pauli("XZ")), PauliProductMeasurement(Pauli("XZ")))
         self.assertNotEqual(
             PauliProductMeasurement(Pauli("XZ")), PauliProductMeasurement(Pauli("XX"))
         )
 
-    def test_circuit_with_gate_equality(self):
-        """Test checking equality of circuits with PauliProductMeasurement objects."""
+    def test_add_instruction_to_circuit(self):
+        """Test that adding a PauliProductMeasurement instruction to a circuit
+        and retrieving it back is equivalent to the original instruction.
+        """
+        # Note that adding a PauliProductMeasurement instruction to a circuit
+        # converts the Python instruction to a Rust instruction.
+        # Copying the circuit avoids the gate-caching optimization, so that
+        # the queried instruction is a Python instruction faithfully constructed
+        # from the Rust instruction.
+        gate = PauliProductMeasurement(Pauli("-XZ"))
+        qc = QuantumCircuit(3, 2)
+        qc.append(gate, [1, 2], [1])
+        qc1 = qc.copy()
+        gate_on_circuit = qc1[0].operation
+        self.assertEqual(gate, gate_on_circuit)
+
+    def test_circuits_with_instructions_equal(self):
+        """Test checking equality of circuits with PauliProductMeasurement instructions."""
         qc1 = QuantumCircuit(5, 2)
         qc1.append(PauliProductMeasurement(Pauli("XZ")), [4, 1], [1])
 
