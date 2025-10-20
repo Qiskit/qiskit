@@ -64,7 +64,7 @@ pub fn synthesize_ppm(ppm: &PauliProductMeasurement) -> PyResult<CircuitData> {
         }
     }
 
-    if ppm.phase == 2 {
+    if ppm.neg {
         circuit.push_standard_gate(StandardGate::X, &[], &[first_qubit])?;
     }
 
@@ -95,7 +95,7 @@ pub fn synthesize_ppm(ppm: &PauliProductMeasurement) -> PyResult<CircuitData> {
     }
 
     // Basis change layer
-    if ppm.phase == 2 {
+    if ppm.neg {
         circuit.push_standard_gate(StandardGate::X, &[], &[first_qubit])?;
     }
 

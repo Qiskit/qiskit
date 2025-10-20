@@ -2912,8 +2912,9 @@ pub struct PauliProductMeasurement {
     pub z: Vec<bool>,
     /// The x-component of the pauli.
     pub x: Vec<bool>,
-    /// The phase of the pauli. This is an integer modulo 4.
-    pub phase: u8,
+    /// For a PauliProductMeasurement instruction, the phase of the Pauli can be either 0 or 2,
+    /// where the value of 2 corresponds to a sign of `-1`.
+    pub neg: bool,
 }
 
 impl Operation for PauliProductMeasurement {
@@ -2961,7 +2962,8 @@ impl PauliProductMeasurement {
     pub fn create_py_op(&self, py: Python, label: Option<&str>) -> PyResult<Py<PyAny>> {
         let z = PyList::new(py, &self.z)?;
         let x = PyList::new(py, &self.x)?;
-        let phase = self.phase;
+        let phase = if self.neg { 2 } else { 0 };
+
         let py_label = if let Some(label) = label {
             label.into_py_any(py)?
         } else {
@@ -2977,7 +2979,7 @@ impl PauliProductMeasurement {
 
 impl PartialEq for PauliProductMeasurement {
     fn eq(&self, other: &Self) -> bool {
-        self.x == other.x && self.z == other.z && self.phase == other.phase
+        self.x == other.x && self.z == other.z && self.neg == other.neg
     }
 }
 
