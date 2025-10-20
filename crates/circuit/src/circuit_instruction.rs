@@ -415,7 +415,7 @@ impl CircuitInstruction {
             if other.is_instance_of::<PyTuple>() {
                 return Ok(Some(self_._legacy_format(py)?.eq(other)?));
             }
-            let Ok(other) = other.downcast::<CircuitInstruction>() else {
+            let Ok(other) = other.cast::<CircuitInstruction>() else {
                 return Ok(None);
             };
             let other = other.try_borrow()?;
@@ -473,7 +473,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
         let ob_type = ob
             .getattr(intern!(py, "base_class"))
             .ok()
-            .map(|base| base.downcast_into::<PyType>())
+            .map(|base| base.cast_into::<PyType>())
             .transpose()?
             .unwrap_or_else(|| ob.get_type());
 
@@ -674,9 +674,9 @@ fn as_tuple<'py>(py: Python<'py>, seq: Option<Bound<'py, PyAny>>) -> PyResult<Bo
         return Ok(PyTuple::empty(py));
     };
     if seq.is_instance_of::<PyTuple>() {
-        Ok(seq.downcast_into_exact::<PyTuple>()?)
+        Ok(seq.cast_into_exact::<PyTuple>()?)
     } else if seq.is_instance_of::<PyList>() {
-        Ok(seq.downcast_exact::<PyList>()?.to_tuple())
+        Ok(seq.cast_exact::<PyList>()?.to_tuple())
     } else {
         // New tuple from iterable.
         PyTuple::new(

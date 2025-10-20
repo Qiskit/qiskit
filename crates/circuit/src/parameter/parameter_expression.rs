@@ -728,27 +728,27 @@ impl PyParameterExpression {
     /// * `Ok(Self)` - The extracted expression.
     /// * `Err(PyResult)` - An error if extraction to all above types failed.
     pub fn extract_coerce(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
-        if let Ok(i) = ob.downcast::<PyInt>() {
+        if let Ok(i) = ob.cast::<PyInt>() {
             Ok(ParameterExpression::new(
                 SymbolExpr::Value(Value::from(i.extract::<i64>()?)),
                 HashMap::new(),
             )
             .into())
-        } else if let Ok(r) = ob.downcast::<PyFloat>() {
+        } else if let Ok(r) = ob.cast::<PyFloat>() {
             let r: f64 = r.extract()?;
             if r.is_infinite() || r.is_nan() {
                 return Err(ParameterError::InvalidValue.into());
             }
             Ok(ParameterExpression::new(SymbolExpr::Value(Value::from(r)), HashMap::new()).into())
-        } else if let Ok(c) = ob.downcast::<PyComplex>() {
+        } else if let Ok(c) = ob.cast::<PyComplex>() {
             let c: Complex64 = c.extract()?;
             if c.is_infinite() || c.is_nan() {
                 return Err(ParameterError::InvalidValue.into());
             }
             Ok(ParameterExpression::new(SymbolExpr::Value(Value::from(c)), HashMap::new()).into())
-        } else if let Ok(element) = ob.downcast::<PyParameterVectorElement>() {
+        } else if let Ok(element) = ob.cast::<PyParameterVectorElement>() {
             Ok(ParameterExpression::from_symbol(element.borrow().symbol.clone()).into())
-        } else if let Ok(parameter) = ob.downcast::<PyParameter>() {
+        } else if let Ok(parameter) = ob.cast::<PyParameter>() {
             Ok(ParameterExpression::from_symbol(parameter.borrow().symbol.clone()).into())
         } else {
             ob.extract::<PyParameterExpression>()
@@ -1127,7 +1127,7 @@ impl PyParameterExpression {
     ///     A new expression parameterized by any parameters which were not bound by assignment.
     #[pyo3(name = "assign")]
     pub fn py_assign(&self, parameter: PyParameter, value: &Bound<PyAny>) -> PyResult<Self> {
-        if let Ok(expr) = value.downcast::<Self>() {
+        if let Ok(expr) = value.cast::<Self>() {
             let map = [(parameter, expr.borrow().clone())].into_iter().collect();
             self.py_subs(map, false)
         } else if value.extract::<Value>().is_ok() {
@@ -1631,7 +1631,7 @@ impl PyParameter {
         parameter: PyParameter,
         value: &Bound<'py, PyAny>,
     ) -> PyResult<Bound<'py, PyAny>> {
-        if value.downcast::<PyParameterExpression>().is_ok() {
+        if value.cast::<PyParameterExpression>().is_ok() {
             let map = [(parameter, value.clone())].into_iter().collect();
             self.py_subs(py, map, false)
         } else if value.extract::<Value>().is_ok() {
@@ -1942,7 +1942,7 @@ impl OpCode {
     }
 
     fn __eq__(&self, other: &Bound<'_, PyAny>) -> bool {
-        if let Ok(code) = other.downcast::<OpCode>() {
+        if let Ok(code) = other.cast::<OpCode>() {
             *code.borrow() == *self
         } else {
             false

@@ -230,7 +230,7 @@ fn _get_paulis(
             v.iter() // iterate over the list of Paulis
                 .map(|el| {
                     // Get the string and check whether it fits the feature dimension
-                    let as_string = (*el.downcast::<PyString>()?).to_string();
+                    let as_string = (*el.cast::<PyString>()?).to_string();
                     if as_string.len() > feature_dimension as usize {
                         Err(QiskitError::new_err(format!(
                             "feature_dimension ({feature_dimension}) smaller than the Pauli ({as_string})"

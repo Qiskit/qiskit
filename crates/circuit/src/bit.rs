@@ -86,7 +86,7 @@ where
             self.index as usize,
             self.registers
                 .into_pyobject(py)?
-                .downcast_into::<PyList>()?
+                .cast_into::<PyList>()?
                 .unbind(),
         )
         .into_pyobject(py)
@@ -98,7 +98,7 @@ where
     R: Debug + Clone + Register + for<'a> IntoPyObject<'a> + for<'a> FromPyObject<'a>,
 {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let ob_down = ob.downcast::<PyBitLocations>()?.borrow();
+        let ob_down = ob.cast::<PyBitLocations>()?.borrow();
         Ok(Self {
             index: ob_down.index as u32,
             registers: ob_down.registers.extract(ob.py())?,
@@ -511,7 +511,7 @@ macro_rules! create_bit_object {
 
         impl<'py> FromPyObject<'py> for $bit_struct {
             fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-                Ok(ob.downcast::<$pybit_struct>()?.borrow().0.clone())
+                Ok(ob.cast::<$pybit_struct>()?.borrow().0.clone())
             }
         }
         // The owning impl of `IntoPyObject` needs to be done manually, to better handle
@@ -631,7 +631,7 @@ macro_rules! create_bit_object {
 
         impl<'py> FromPyObject<'py> for $reg_struct {
             fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-                Ok(ob.downcast::<$pyreg_struct>()?.borrow().0.clone())
+                Ok(ob.cast::<$pyreg_struct>()?.borrow().0.clone())
             }
         }
         // The owning impl of `IntoPyObject` needs to be done manually, to better handle
@@ -761,7 +761,7 @@ macro_rules! create_bit_object {
                             Ok(PyList::new(ob.py(), s.into_iter().map(get_inner))?.into_any())
                         }
                     }
-                } else if let Ok(list) = ob.downcast::<PyList>() {
+                } else if let Ok(list) = ob.cast::<PyList>() {
                     let out = PyList::empty(ob.py());
                     for item in list.iter() {
                         out.append(get_inner(PySequenceIndex::convert_idx(

@@ -684,7 +684,7 @@ fn get_2q_decomposers_from_target(
                     let py_type = module.getattr("type")?;
                     Ok(py_type
                         .call1((gate.clone().into_pyobject(py)?,))?
-                        .downcast_into::<PyType>()?
+                        .cast_into::<PyType>()?
                         .unbind())
                 })?;
                 RXXEquivalent::CustomPython(gate_type)

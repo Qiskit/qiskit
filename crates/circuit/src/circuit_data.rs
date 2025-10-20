@@ -184,7 +184,7 @@ impl CircuitVarInfo {
     }
 
     fn from_pickle(ob: &Bound<PyAny>) -> PyResult<Self> {
-        let val_tuple = ob.downcast::<PyTuple>()?;
+        let val_tuple = ob.cast::<PyTuple>()?;
         Ok(CircuitVarInfo {
             var: Var(val_tuple.get_item(0)?.extract()?),
             type_: match val_tuple.get_item(1)?.extract::<u8>()? {
@@ -232,7 +232,7 @@ impl CircuitStretchInfo {
     }
 
     fn from_pickle(ob: &Bound<PyAny>) -> PyResult<Self> {
-        let val_tuple = ob.downcast::<PyTuple>()?;
+        let val_tuple = ob.cast::<PyTuple>()?;
         Ok(CircuitStretchInfo {
             stretch: Stretch(val_tuple.get_item(0)?.extract()?),
             type_: match val_tuple.get_item(1)?.extract::<u8>()? {
@@ -267,7 +267,7 @@ impl CircuitIdentifierInfo {
     }
 
     fn from_pickle(ob: &Bound<PyAny>) -> PyResult<Self> {
-        let val_tuple = ob.downcast::<PyTuple>()?;
+        let val_tuple = ob.cast::<PyTuple>()?;
         match val_tuple.get_item(0)?.extract::<u8>()? {
             0 => Ok(CircuitIdentifierInfo::Stretch(
                 CircuitStretchInfo::from_pickle(&val_tuple.get_item(1)?)?,
@@ -1104,7 +1104,7 @@ impl CircuitData {
         fn set_single(slf: &mut CircuitData, index: usize, value: &Bound<PyAny>) -> PyResult<()> {
             let py = value.py();
             slf.untrack_instruction_parameters(index)?;
-            slf.data[index] = slf.pack(py, &value.downcast::<CircuitInstruction>()?.borrow())?;
+            slf.data[index] = slf.pack(py, &value.cast::<CircuitInstruction>()?.borrow())?;
             slf.track_instruction_parameters(index)?;
             Ok(())
         }
@@ -1129,7 +1129,7 @@ impl CircuitData {
                     })?
                 } else {
                     for value in values[indices.len()..].iter().rev() {
-                        self.insert(stop as isize, value.downcast()?.borrow())?;
+                        self.insert(stop as isize, value.cast()?.borrow())?;
                     }
                 }
                 Ok(())
@@ -1225,7 +1225,7 @@ impl CircuitData {
     }
 
     pub fn extend(&mut self, itr: &Bound<PyAny>) -> PyResult<()> {
-        if let Ok(other) = itr.downcast::<CircuitData>() {
+        if let Ok(other) = itr.cast::<CircuitData>() {
             let other = other.borrow();
             // Fast path to avoid unnecessary construction of CircuitInstruction instances.
             self.data.reserve(other.data.len());
@@ -1259,7 +1259,7 @@ impl CircuitData {
             return Ok(());
         }
         for v in itr.try_iter()? {
-            self.append(v?.downcast()?)?;
+            self.append(v?.cast()?)?;
         }
         Ok(())
     }
@@ -1345,7 +1345,7 @@ impl CircuitData {
             return Ok(false);
         }
 
-        if let Ok(other_cd) = other.downcast::<CircuitData>() {
+        if let Ok(other_cd) = other.cast::<CircuitData>() {
             if !slf
                 .getattr("global_phase")?
                 .eq(other_cd.getattr("global_phase")?)?
@@ -3052,7 +3052,7 @@ where
                 })
                 .collect::<PyResult<_>>();
         }
-        let err_message = if let Ok(bit) = specifier.downcast::<PyBit>() {
+        let err_message = if let Ok(bit) = specifier.cast::<PyBit>() {
             format!(
                 "Incorrect bit type: expected '{}' but got '{}'",
                 stringify!(B),
@@ -3102,7 +3102,7 @@ where
             )))
         }
     } else {
-        let err_message = if let Ok(bit) = specifier.downcast::<PyBit>() {
+        let err_message = if let Ok(bit) = specifier.cast::<PyBit>() {
             format!(
                 "Incorrect bit type: expected '{}' but got '{}'",
                 stringify!(B),
