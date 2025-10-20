@@ -786,7 +786,7 @@ QkTarget *create_sample_target(bool std_inst) {
 
     // Add glbal phase gate
     QkTargetEntry *gp_entry = qk_target_entry_new(QkGate_GlobalPhase);
-    qk_target_entry_add_property(gp_entry, (uint32_t[0]){}, 0, NAN, NAN);
+    qk_target_entry_add_property(gp_entry, (uint32_t *)4, 0, NAN, NAN);
     qk_target_add_instruction(target, gp_entry);
 
     if (std_inst) {
