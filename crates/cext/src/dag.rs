@@ -133,7 +133,7 @@ pub unsafe extern "C" fn qk_dag_num_qubits(dag: *const DAGCircuit) -> u32 {
 ///
 /// @param dag A pointer to the DAG.
 ///
-/// @return The number of qubits the DAG is defined on.
+/// @return The number of clbits the DAG is defined on.
 ///
 /// # Example
 /// ```c
