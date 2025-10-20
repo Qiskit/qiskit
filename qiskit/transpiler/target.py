@@ -233,6 +233,8 @@ class Target(BaseTarget):
         acquire_alignment: int = 1,
         qubit_properties: list | None = None,
         concurrent_measurements: list | None = None,
+        *args,
+        **kwargs,
     ):
         """
         Create a new ``Target`` object
