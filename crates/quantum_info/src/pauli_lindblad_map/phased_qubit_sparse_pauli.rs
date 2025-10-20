@@ -800,7 +800,7 @@ impl PyPhasedQubitSparsePauli {
         if slf.is(&other) {
             return Ok(true);
         }
-        let Ok(other) = other.downcast_into::<Self>() else {
+        let Ok(other) = other.cast_into::<Self>() else {
             return Ok(false);
         };
         let slf = slf.borrow();
@@ -1039,7 +1039,7 @@ impl PyPhasedQubitSparsePauliList {
             }
             return Self::from_label(&label);
         }
-        if let Ok(pauli_list) = data.downcast_exact::<Self>() {
+        if let Ok(pauli_list) = data.cast_exact::<Self>() {
             check_num_qubits(data)?;
             let borrowed = pauli_list.borrow();
             let inner = borrowed.inner.read().map_err(|_| InnerReadError)?;
@@ -1059,7 +1059,7 @@ impl PyPhasedQubitSparsePauliList {
             };
             return Self::from_sparse_list(vec, num_qubits);
         }
-        if let Ok(term) = data.downcast_exact::<PyPhasedQubitSparsePauli>() {
+        if let Ok(term) = data.cast_exact::<PyPhasedQubitSparsePauli>() {
             return term.borrow().to_phased_qubit_sparse_pauli_list();
         };
         if let Ok(pauli_list) = Self::from_phased_qubit_sparse_paulis(data, num_qubits) {
@@ -1274,13 +1274,13 @@ impl PyPhasedQubitSparsePauliList {
                         "cannot construct an empty PhasedQubitSparsePauliList without knowing `num_qubits`",
                     ));
                 };
-                let py_term = first?.downcast::<PyPhasedQubitSparsePauli>()?.borrow();
+                let py_term = first?.cast::<PyPhasedQubitSparsePauli>()?.borrow();
                 py_term.inner.to_phased_qubit_sparse_pauli_list()
             }
         };
         for bound_py_term in iter {
             let py_term = bound_py_term?
-                .downcast::<PyPhasedQubitSparsePauli>()?
+                .cast::<PyPhasedQubitSparsePauli>()?
                 .borrow();
             inner.add_phased_qubit_sparse_pauli(py_term.inner.view())?;
         }
@@ -1537,7 +1537,7 @@ impl PyPhasedQubitSparsePauliList {
         if slf.is(&other) {
             return Ok(true);
         }
-        let Ok(other) = other.downcast_into::<Self>() else {
+        let Ok(other) = other.cast_into::<Self>() else {
             return Ok(false);
         };
         let slf_borrowed = slf.borrow();

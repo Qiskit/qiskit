@@ -908,7 +908,7 @@ impl Target {
                 .extract::<Vec<(Qargs, HashSet<String>)>>()?,
         );
         let angle_bounds_raw = state.get_item("angle_bounds")?.unwrap();
-        let angle_bounds_dict = angle_bounds_raw.downcast::<PyDict>()?;
+        let angle_bounds_dict = angle_bounds_raw.cast::<PyDict>()?;
         type AngleBoundIterList = Vec<(String, SmallVec<[Option<[f64; 2]>; 3]>)>;
         let angle_bounds_list: AngleBoundIterList = angle_bounds_dict.items().extract()?;
         for (gate, bounds) in angle_bounds_list {

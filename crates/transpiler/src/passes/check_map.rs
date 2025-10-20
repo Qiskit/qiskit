@@ -56,7 +56,7 @@ fn recurse(
                     let block_obj = raw_block?;
                     let block = block_obj
                         .getattr(intern!(py, "_data"))?
-                        .downcast::<CircuitData>()?
+                        .cast::<CircuitData>()?
                         .borrow();
                     let new_dag: DAGCircuit =
                         circuit_to_dag.call1((block_obj.clone(),))?.extract()?;

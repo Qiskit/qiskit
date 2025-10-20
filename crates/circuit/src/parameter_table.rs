@@ -62,10 +62,10 @@ impl ParameterUuid {
     /// Extract a UUID from a Python-space `Parameter` object. This assumes that the object is known
     /// to be a parameter.
     pub fn from_parameter(ob: &Bound<PyAny>) -> PyResult<Self> {
-        let uuid = if let Ok(param) = ob.downcast::<PyParameter>() {
+        let uuid = if let Ok(param) = ob.cast::<PyParameter>() {
             // this downcast should cover both PyParameterVectorElement and PyParameter
             param.borrow().symbol().uuid.as_u128()
-        } else if let Ok(expr) = ob.downcast::<PyParameterExpression>() {
+        } else if let Ok(expr) = ob.cast::<PyParameterExpression>() {
             let expr_borrowed = expr.borrow();
             // We know the ParameterExpression is in fact representing a single Symbol
             let symbol = &expr_borrowed.inner.try_to_symbol()?;

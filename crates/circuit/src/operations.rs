@@ -130,7 +130,7 @@ impl Param {
                         .try_iter()?
                         .map(|elem| {
                             let elem = elem?;
-                            let py_param_bound = elem.downcast::<PyParameter>()?;
+                            let py_param_bound = elem.cast::<PyParameter>()?;
                             let py_param = py_param_bound.borrow();
                             let symbol = py_param.symbol();
                             Ok(symbol.clone())
@@ -2512,7 +2512,7 @@ impl Operation for PyInstruction {
             // We expect that if PyInstruction::control_flow is true then the operation WILL
             // have a 'blocks' attribute which is a tuple of the Python QuantumCircuit.
             let raw_blocks = self.instruction.getattr(py, "blocks").unwrap();
-            let blocks: &Bound<PyTuple> = raw_blocks.downcast_bound::<PyTuple>(py).unwrap();
+            let blocks: &Bound<PyTuple> = raw_blocks.cast_bound::<PyTuple>(py).unwrap();
             blocks
                 .iter()
                 .map(|b| {

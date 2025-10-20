@@ -34,7 +34,7 @@ impl<'py> FromPyObject<'py> for PySequenceIndex<'py> {
         // The `downcast_exact` check is just a pointer comparison, so while `slice` is the less
         // common input, doing that first has little-to-no impact on the speed of the `isize` path,
         // while the reverse makes `slice` inputs significantly slower.
-        if let Ok(slice) = ob.downcast_exact::<PySlice>() {
+        if let Ok(slice) = ob.cast_exact::<PySlice>() {
             return Ok(Self::Slice(slice.clone()));
         }
         Ok(Self::Int(ob.extract()?))

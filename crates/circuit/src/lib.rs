@@ -110,7 +110,7 @@ pub struct TupleLikeArg<'py> {
 
 impl<'py> FromPyObject<'py> for TupleLikeArg<'py> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let value = match ob.downcast::<PySequence>() {
+        let value = match ob.cast::<PySequence>() {
             Ok(seq) => seq.to_tuple()?,
             Err(_) => PyTuple::new(
                 ob.py(),
@@ -172,7 +172,7 @@ pub enum VarsMode {
 
 impl<'py> FromPyObject<'py> for VarsMode {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        match &*ob.downcast::<PyString>()?.to_string_lossy() {
+        match &*ob.cast::<PyString>()?.to_string_lossy() {
             "alike" => Ok(VarsMode::Alike),
             "captures" => Ok(VarsMode::Captures),
             "drop" => Ok(VarsMode::Drop),

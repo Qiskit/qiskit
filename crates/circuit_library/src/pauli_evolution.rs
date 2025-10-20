@@ -358,8 +358,8 @@ pub fn py_pauli_evolution(
     let mut modified_phase = false; // keep track of whether we modified the phase
 
     for el in sparse_paulis.iter() {
-        let tuple = el.downcast::<PyTuple>()?;
-        let pauli = tuple.get_item(0)?.downcast::<PyString>()?.to_string();
+        let tuple = el.cast::<PyTuple>()?;
+        let pauli = tuple.get_item(0)?.cast::<PyString>()?.to_string();
         let time = Param::extract_no_coerce(&tuple.get_item(2)?)?;
 
         if pauli.as_str().chars().all(|p| p == 'i') {

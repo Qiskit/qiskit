@@ -968,7 +968,7 @@ fn make_py_pauli(py: Python) -> PyResult<Py<PyType>> {
         .getattr("property")?
         .call1((wrap_pyfunction!(pauli_label, py)?,))?;
     obj.setattr("label", label_property)?;
-    Ok(obj.downcast_into::<PyType>()?.unbind())
+    Ok(obj.cast_into::<PyType>()?.unbind())
 }
 
 // Return the relevant value from the Python-space sister enumeration.  These are Python-space
@@ -1470,7 +1470,7 @@ impl PyQubitSparsePauli {
         if slf.is(&other) {
             return Ok(true);
         }
-        let Ok(other) = other.downcast_into::<Self>() else {
+        let Ok(other) = other.cast_into::<Self>() else {
             return Ok(false);
         };
         let slf = slf.borrow();
@@ -1705,7 +1705,7 @@ impl PyQubitSparsePauliList {
             }
             return Self::from_label(&label).map_err(PyErr::from);
         }
-        if let Ok(pauli_list) = data.downcast_exact::<Self>() {
+        if let Ok(pauli_list) = data.cast_exact::<Self>() {
             check_num_qubits(data)?;
             let borrowed = pauli_list.borrow();
             let inner = borrowed.inner.read().map_err(|_| InnerReadError)?;
@@ -1725,7 +1725,7 @@ impl PyQubitSparsePauliList {
             };
             return Self::from_sparse_list(vec, num_qubits);
         }
-        if let Ok(term) = data.downcast_exact::<PyQubitSparsePauli>() {
+        if let Ok(term) = data.cast_exact::<PyQubitSparsePauli>() {
             return term.borrow().to_qubit_sparse_pauli_list();
         };
         if let Ok(pauli_list) = Self::from_qubit_sparse_paulis(data, num_qubits) {
@@ -1958,12 +1958,12 @@ impl PyQubitSparsePauliList {
                         "cannot construct an empty QubitSparsePauliList without knowing `num_qubits`",
                     ));
                 };
-                let py_term = first?.downcast::<PyQubitSparsePauli>()?.borrow();
+                let py_term = first?.cast::<PyQubitSparsePauli>()?.borrow();
                 py_term.inner.to_qubit_sparse_pauli_list()
             }
         };
         for bound_py_term in iter {
-            let py_term = bound_py_term?.downcast::<PyQubitSparsePauli>()?.borrow();
+            let py_term = bound_py_term?.cast::<PyQubitSparsePauli>()?.borrow();
             inner.add_qubit_sparse_pauli(py_term.inner.view())?;
         }
         Ok(inner.into())
@@ -2208,7 +2208,7 @@ impl PyQubitSparsePauliList {
         if slf.is(&other) {
             return Ok(true);
         }
-        let Ok(other) = other.downcast_into::<Self>() else {
+        let Ok(other) = other.cast_into::<Self>() else {
             return Ok(false);
         };
         let slf_borrowed = slf.borrow();

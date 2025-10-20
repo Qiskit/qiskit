@@ -205,7 +205,7 @@ pub fn dumps(
     }
     let circuit_data = circuit
         .getattr("_data")?
-        .downcast::<CircuitData>()?
+        .cast::<CircuitData>()?
         .borrow();
 
     let islayout = !circuit.getattr("layout")?.is_none();
@@ -256,7 +256,7 @@ pub fn dump(
     }
     let circuit_data = circuit
         .getattr("_data")?
-        .downcast::<CircuitData>()?
+        .cast::<CircuitData>()?
         .borrow();
 
     let islayout = !circuit.getattr("layout")?.is_none();
