@@ -467,8 +467,10 @@ pub struct OperationFromPython {
     pub label: Option<Box<String>>,
 }
 
-impl<'py> FromPyObject<'py> for OperationFromPython {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for OperationFromPython {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let py = ob.py();
         let ob_type = ob
             .getattr(intern!(py, "base_class"))
@@ -491,7 +493,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 .map(|params| {
                     params
                         .try_iter()?
-                        .map(|p| Param::extract_no_coerce(&p?))
+                        .map(|p| Param::extract_no_coerce(p?.as_borrowed()))
                         .collect()
                 })
                 .transpose()
@@ -508,8 +510,8 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
             // quickly identify them here without an `isinstance` check.
             let Some(standard) = ob_type
                 .getattr(intern!(py, "_standard_gate"))
-                .and_then(|standard| standard.extract::<StandardGate>())
                 .ok()
+                .and_then(|standard| standard.extract::<StandardGate>().ok())
             else {
                 break 'standard_gate;
             };
@@ -547,8 +549,8 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
             // read (e.g. a Barrier's number of qubits) to build the Rust representation.
             let Some(standard_type) = ob_type
                 .getattr(intern!(py, "_standard_instruction_type"))
-                .and_then(|standard| standard.extract::<StandardInstructionType>())
                 .ok()
+                .and_then(|standard| standard.extract::<StandardInstructionType>().ok())
             else {
                 break 'standard_instr;
             };
@@ -625,7 +627,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 clbits: 0,
                 params: params.len() as u32,
                 op_name: ob.getattr(intern!(py, "name"))?.extract()?,
-                gate: ob.clone().unbind(),
+                gate: ob.to_owned().unbind(),
             });
             return Ok(OperationFromPython {
                 operation: PackedOperation::from_gate(gate),
@@ -641,7 +643,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 params: params.len() as u32,
                 op_name: ob.getattr(intern!(py, "name"))?.extract()?,
                 control_flow: ob.is_instance(CONTROL_FLOW_OP.get_bound(py))?,
-                instruction: ob.clone().unbind(),
+                instruction: ob.to_owned().unbind(),
             });
             return Ok(OperationFromPython {
                 operation: PackedOperation::from_instruction(instruction),
@@ -656,7 +658,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 clbits: ob.getattr(intern!(py, "num_clbits"))?.extract()?,
                 params: params.len() as u32,
                 op_name: ob.getattr(intern!(py, "name"))?.extract()?,
-                operation: ob.clone().unbind(),
+                operation: ob.to_owned().unbind(),
             });
             return Ok(OperationFromPython {
                 operation: PackedOperation::from_operation(operation),
@@ -664,7 +666,10 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 label: None,
             });
         }
-        Err(PyTypeError::new_err(format!("invalid input: {ob}")))
+        Err(PyTypeError::new_err(format!(
+            "invalid input: {}",
+            ob.repr()?
+        )))
     }
 }
 

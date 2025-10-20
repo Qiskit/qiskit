@@ -73,7 +73,7 @@ pub fn pauli_feature_map(
     // extract the parameters from the input variable ``parameters``
     let parameter_vector = parameters
         .try_iter()?
-        .map(|el| Param::extract_no_coerce(&el?))
+        .map(|el| Param::extract_no_coerce(el?.as_borrowed()))
         .collect::<PyResult<Vec<Param>>>()?;
 
     // construct a Barrier object Python side to (possibly) add to the circuit

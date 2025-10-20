@@ -93,15 +93,21 @@ where
     }
 }
 
-impl<'py, R> FromPyObject<'py> for BitLocations<R>
+impl<'a, 'py, R> FromPyObject<'a, 'py> for BitLocations<R>
 where
-    R: Debug + Clone + Register + for<'a> IntoPyObject<'a> + for<'a> FromPyObject<'a>,
+    R: Debug
+        + Clone
+        + Register
+        + IntoPyObject<'py>
+        + for<'b> FromPyObject<'b, 'py, Error: Into<PyErr>>,
 {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, PyErr> {
         let ob_down = ob.cast::<PyBitLocations>()?.borrow();
         Ok(Self {
             index: ob_down.index as u32,
-            registers: ob_down.registers.extract(ob.py())?,
+            registers: ob_down.registers.bind(ob.py()).extract()?,
         })
     }
 }
@@ -509,9 +515,11 @@ macro_rules! create_bit_object {
             }
         }
 
-        impl<'py> FromPyObject<'py> for $bit_struct {
-            fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-                Ok(ob.cast::<$pybit_struct>()?.borrow().0.clone())
+        impl<'a, 'py> FromPyObject<'a, 'py> for $bit_struct {
+            type Error = ::pyo3::CastError<'a, 'py>;
+
+            fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+                ob.cast::<$pybit_struct>().map(|ob| ob.borrow().0.clone())
             }
         }
         // The owning impl of `IntoPyObject` needs to be done manually, to better handle
@@ -629,9 +637,11 @@ macro_rules! create_bit_object {
             }
         }
 
-        impl<'py> FromPyObject<'py> for $reg_struct {
-            fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-                Ok(ob.cast::<$pyreg_struct>()?.borrow().0.clone())
+        impl<'a, 'py> FromPyObject<'a, 'py> for $reg_struct {
+            type Error = ::pyo3::CastError<'a, 'py>;
+
+            fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+                ob.cast::<$pyreg_struct>().map(|ob| ob.borrow().0.clone())
             }
         }
         // The owning impl of `IntoPyObject` needs to be done manually, to better handle

@@ -30,7 +30,7 @@ use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyString, PyType};
 use pyo3::wrap_pyfunction;
 
-use qiskit_circuit::converters::{QuantumCircuitData, circuit_to_dag};
+use qiskit_circuit::converters::circuit_to_dag;
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder, NodeType};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, PythonOperation, StandardGate};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
@@ -319,12 +319,7 @@ pub fn run_unitary_synthesis(
                         .map(|qarg| qubit_indices[qarg.0 as usize])
                         .collect_vec();
                     let res = run_unitary_synthesis(
-                        &mut circuit_to_dag(
-                            QuantumCircuitData::extract_bound(&raw_block?)?,
-                            false,
-                            None,
-                            None,
-                        )?,
+                        &mut circuit_to_dag(raw_block?.extract()?, false, None, None)?,
                         new_ids,
                         min_qubits,
                         target,

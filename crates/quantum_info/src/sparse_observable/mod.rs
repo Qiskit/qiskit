@@ -1752,8 +1752,10 @@ impl<'py> IntoPyObject<'py> for BitTerm {
     }
 }
 
-impl<'py> FromPyObject<'py> for BitTerm {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for BitTerm {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let value = ob
             .extract::<isize>()
             .map_err(|_| match ob.get_type().repr() {
@@ -4008,19 +4010,22 @@ impl ArrayView {
         /// This allows broadcasting a single item into many locations in a slice (like Numpy), but
         /// otherwise requires that the index and values are the same length (unlike Python's
         /// `list`) because that would change the length.
-        fn set_in_slice<'py, T, S>(
+        fn set_in_slice<'a, 'py, T, S>(
             slice: &mut [T],
             index: PySequenceIndex<'py>,
-            values: &Bound<'py, PyAny>,
+            values: Borrowed<'a, 'py, PyAny>,
         ) -> PyResult<()>
         where
             T: Copy + TryFrom<S>,
-            S: FromPyObject<'py>,
+            S: for<'b> FromPyObject<'b, 'py, Error: Into<PyErr>>,
             PyErr: From<<T as TryFrom<S>>::Error>,
         {
             match index.with_len(slice.len())? {
                 SequenceIndex::Int(index) => {
-                    slice[index] = values.extract::<S>()?.try_into()?;
+                    slice[index] = values
+                        .extract::<S>()
+                        .map_err(Into::<PyErr>::into)?
+                        .try_into()?;
                     Ok(())
                 }
                 indices => {
@@ -4032,7 +4037,13 @@ impl ArrayView {
                     } else {
                         let values = values
                             .try_iter()?
-                            .map(|value| value?.extract::<S>()?.try_into().map_err(PyErr::from))
+                            .map(|value| {
+                                value?
+                                    .extract::<S>()
+                                    .map_err(Into::<PyErr>::into)?
+                                    .try_into()
+                                    .map_err(PyErr::from)
+                            })
                             .collect::<PyResult<Vec<_>>>()?;
                         if indices.len() != values.len() {
                             return Err(PyValueError::new_err(format!(
@@ -4051,6 +4062,7 @@ impl ArrayView {
         }
 
         let mut obs = self.base.write().map_err(|_| InnerWriteError)?;
+        let values = values.as_borrowed();
         match self.slot {
             ArraySlot::Coeffs => set_in_slice::<_, Complex64>(obs.coeffs_mut(), index, values),
             ArraySlot::BitTerms => set_in_slice::<BitTerm, u8>(obs.bit_terms_mut(), index, values),

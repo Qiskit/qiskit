@@ -1005,8 +1005,10 @@ impl<'py> IntoPyObject<'py> for Pauli {
     }
 }
 
-impl<'py> FromPyObject<'py> for Pauli {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for Pauli {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let value = ob
             .extract::<isize>()
             .map_err(|_| match ob.get_type().repr() {

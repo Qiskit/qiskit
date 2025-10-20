@@ -203,10 +203,7 @@ pub fn dumps(
             options.indent = val.extract::<String>()?;
         }
     }
-    let circuit_data = circuit
-        .getattr("_data")?
-        .cast::<CircuitData>()?
-        .borrow();
+    let circuit_data = circuit.getattr("_data")?.cast::<CircuitData>()?.borrow();
 
     let islayout = !circuit.getattr("layout")?.is_none();
 
@@ -254,10 +251,7 @@ pub fn dump(
             options.indent = val.extract::<String>()?;
         }
     }
-    let circuit_data = circuit
-        .getattr("_data")?
-        .cast::<CircuitData>()?
-        .borrow();
+    let circuit_data = circuit.getattr("_data")?.cast::<CircuitData>()?.borrow();
 
     let islayout = !circuit.getattr("layout")?.is_none();
 

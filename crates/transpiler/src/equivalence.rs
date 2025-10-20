@@ -293,8 +293,10 @@ pub struct GateOper {
     params: SmallVec<[Param; 3]>,
 }
 
-impl<'py> FromPyObject<'py> for GateOper {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for GateOper {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let op_struct: OperationFromPython = ob.extract()?;
         Ok(Self {
             operation: op_struct.operation,
@@ -328,8 +330,10 @@ impl<'py> IntoPyObject<'py> for CircuitFromPython {
     }
 }
 
-impl FromPyObject<'_> for CircuitFromPython {
-    fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for CircuitFromPython {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         if ob.is_instance(QUANTUM_CIRCUIT.get_bound(ob.py()))? {
             let data: Bound<PyAny> = ob.getattr("_data")?;
             let data_downcast: Bound<CircuitData> = data.cast_into()?;

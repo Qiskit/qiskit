@@ -51,7 +51,7 @@ impl BlockOperation {
                 let bound_params = result
                     .get_item(1)?
                     .try_iter()?
-                    .map(|ob| Param::extract_no_coerce(&ob?))
+                    .map(|ob| Param::extract_no_coerce(ob?.as_borrowed()))
                     .collect::<PyResult<SmallVec<[Param; 3]>>>()?;
 
                 Ok((operation.operation, bound_params))

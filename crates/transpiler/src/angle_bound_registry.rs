@@ -32,7 +32,13 @@ impl CallbackType {
         match self {
             Self::Python(inner) => {
                 let qubits: Vec<usize> = qubits.iter().map(|x| x.index()).collect();
-                Python::attach(|py| inner.bind(py).call1((angles, qubits))?.extract())
+                Python::attach(|py| {
+                    inner
+                        .bind(py)
+                        .call1((angles, qubits))?
+                        .extract()
+                        .map_err(PyErr::from)
+                })
             }
             Self::Native(inner) => Ok(inner(angles, qubits)),
         }
