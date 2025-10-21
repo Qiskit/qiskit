@@ -65,8 +65,12 @@ fn faer_to_nalgebra<'a>(
             ptr,
             (Dyn(nrows), Dyn(ncols)),
             (
-                Dyn(row_stride.try_into().expect("only works for positive strides")),
-                Dyn(col_stride.try_into().expect("only works for positive strides")),
+                Dyn(row_stride
+                    .try_into()
+                    .expect("only works for positive strides")),
+                Dyn(col_stride
+                    .try_into()
+                    .expect("only works for positive strides")),
             ),
         ))
     }
