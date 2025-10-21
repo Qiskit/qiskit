@@ -26,11 +26,11 @@ static int test_empty(void) {
     qk_dag_free(dag);
 
     if (num_qubits != 0) {
-        printf("The number of qubits %ul is not 0\n", num_qubits);
+        printf("The number of qubits %u is not 0\n", num_qubits);
         return EqualityError;
     }
     if (num_clbits != 0) {
-        printf("The number of clbits %ul is not 0\n", num_clbits);
+        printf("The number of clbits %u is not 0\n", num_clbits);
         return EqualityError;
     }
     return Ok;
@@ -45,11 +45,11 @@ static int test_dag_with_quantum_reg(void) {
     qk_dag_free(dag);
     qk_quantum_register_free(qr);
     if (num_qubits != 1024) {
-        printf("The number of qubits %ul is not 1024\n", num_qubits);
+        printf("The number of qubits %u is not 1024\n", num_qubits);
         return EqualityError;
     }
     if (num_clbits != 0) {
-        printf("The number of clbits %ul is not 0\n", num_clbits);
+        printf("The number of clbits %u is not 0\n", num_clbits);
         return EqualityError;
     }
     return Ok;
@@ -64,11 +64,11 @@ static int test_dag_with_classical_reg(void) {
     qk_dag_free(dag);
     qk_classical_register_free(cr);
     if (num_qubits != 0) {
-        printf("The number of qubits %ul is not 0\n", num_qubits);
+        printf("The number of qubits %u is not 0\n", num_qubits);
         return EqualityError;
     }
     if (num_clbits != 2048) {
-        printf("The number of clbits %ul is not 2048\n", num_clbits);
+        printf("The number of clbits %u is not 2048\n", num_clbits);
         return EqualityError;
     }
     return Ok;
@@ -79,9 +79,9 @@ static int test_dag_apply_gate(void) {
     QkQuantumRegister *qr = qk_quantum_register_new(2, "my_register");
     qk_dag_add_quantum_register(dag, qr);
 
-    int num_ops = qk_dag_num_op_nodes(dag);
+    size_t num_ops = qk_dag_num_op_nodes(dag);
     if (num_ops != 0) {
-        printf("The number of op nodes %d is not 0", num_ops);
+        printf("The number of op nodes %zu is not 0", num_ops);
         return EqualityError;
     }
 
@@ -90,7 +90,7 @@ static int test_dag_apply_gate(void) {
 
     num_ops = qk_dag_num_op_nodes(dag);
     if (num_ops != 1) {
-        printf("The number of op nodes %d is not 1", num_ops);
+        printf("The number of op nodes %zu is not 1", num_ops);
         return EqualityError;
     }
 
@@ -100,7 +100,7 @@ static int test_dag_apply_gate(void) {
 
     num_ops = qk_dag_num_op_nodes(dag);
     if (num_ops != 2) {
-        printf("The number of op nodes %d is not 2", num_ops);
+        printf("The number of op nodes %zu is not 2", num_ops);
         return EqualityError;
     }
 
@@ -182,22 +182,22 @@ static int test_dag_endpoint_node_value(void) {
 
         uint32_t actual = qk_dag_endpoint_node_value(dag, qubit_in_idx);
         if (actual != i) {
-            printf("Expected wire endpoint qubit value to be %ul but got %ul\n", i, actual);
+            printf("Expected wire endpoint qubit value to be %u but got %u\n", i, actual);
             return EqualityError;
         }
         actual = qk_dag_endpoint_node_value(dag, qubit_out_idx);
         if (actual != i) {
-            printf("Expected wire endpoint qubit value to be %ul but got %ul\n", i, actual);
+            printf("Expected wire endpoint qubit value to be %u but got %u\n", i, actual);
             return EqualityError;
         }
         actual = qk_dag_endpoint_node_value(dag, clbit_in_idx);
         if (actual != i) {
-            printf("Expected wire endpoint clbit value to be %ul but got %ul\n", i, actual);
+            printf("Expected wire endpoint clbit value to be %u but got %u\n", i, actual);
             return EqualityError;
         }
         actual = qk_dag_endpoint_node_value(dag, clbit_out_idx);
         if (actual != i) {
-            printf("Expected wire endpoint clbit value to be %ul but got %ul\n", i, actual);
+            printf("Expected wire endpoint clbit value to be %u but got %u\n", i, actual);
             return EqualityError;
         }
     }
