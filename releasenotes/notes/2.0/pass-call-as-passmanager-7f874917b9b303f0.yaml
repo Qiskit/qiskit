@@ -4,7 +4,7 @@ features_transpiler:
     :meth:`.PassManager.run` now accepts a ``property_set`` argument, which can be set to a
     :class:`~collections.abc.Mapping`-like object to provide the initial values of the pipeline's
     :class:`.PropertySet`.  This can be used to recommence a partially applied compilation, or to
-    reuse certain analysis from a prior compilation in a new place. 
+    reuse certain analysis from a prior compilation in a new place.
 upgrade_transpiler:
   - |
     The keyword argument ``property_set`` is now reserved in :meth:`.BasePassManager.run`, and

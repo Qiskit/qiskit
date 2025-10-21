@@ -1,7 +1,7 @@
 ---
 upgrade:
   - |
-    :meth:`.BlueprintCircuit.copy_empty_like` now returns an empty :class:`.QuantumCircuit`
+    :meth:`.BlueprintCircuit.copy_empty_like` now returns an empty :class:`.QuantumCircuit` 
     with the same number of qubits/clbits and the same metadata as the original circuit, instead 
     of a :class:`.BlueprintCircuit`. This change is to mitigate unexpected behavior where dealing 
     with an "empty" copy of a blueprint circuit would re-build the circuit data.

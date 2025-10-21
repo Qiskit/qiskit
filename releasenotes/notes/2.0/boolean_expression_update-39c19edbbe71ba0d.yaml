@@ -13,12 +13,12 @@ upgrade_circuits:
     can only be a string; `ClassicalElement` has been deprecated in Qiskit 1.4.
 
     :class:`.PhaseOracle` is used exactly as before:
-
+    
     .. code-block:: python
-
-          from qiskit.circuit.library.phase_oracle import PhaseOracle
-          bool_expr = "(x0 & x1 | ~x2) & x4"
-          oracle = PhaseOracle(bool_expr)
+      
+      from qiskit.circuit.library.phase_oracle import PhaseOracle
+      bool_expr = "(x0 & x1 | ~x2) & x4"
+      oracle = PhaseOracle(bool_expr)
       print(oracle)
     
     .. code-block:: text
@@ -30,7 +30,7 @@ upgrade_circuits:
       q_2: ─o──o──┼─
             │  │  │ 
       q_3: ─■──■──■─
-
+                      
 features_circuits:
   - |
     The new :class:`.BitFlipOracleGate` and :class:`.PhaseOracleGate`
@@ -42,14 +42,14 @@ features_circuits:
     control is the value of the expression encoded by the oracle.
 
     .. code-block:: python
-
-          from qiskit import QuantumCircuit
-          from qiskit.circuit.library.bit_flip_oracle import BitFlipOracleGate
+    
+      from qiskit import QuantumCircuit
+      from qiskit.circuit.library.bit_flip_oracle import BitFlipOracleGate
       from qiskit.circuit.library.phase_oracle import PhaseOracleGate
-          qc = QuantumCircuit(5)
-          bool_expr = "(x0 & x1 | ~x2) & x4"
-          oracle = BitFlipOracleGate(bool_expr)
-          qc.compose(oracle, inplace=True)
+      qc = QuantumCircuit(5)
+      bool_expr = "(x0 & x1 | ~x2) & x4"
+      oracle = BitFlipOracleGate(bool_expr)
+      qc.compose(oracle, inplace=True)
       print(qc)
 
     .. code-block:: text
@@ -85,10 +85,10 @@ features_circuits:
 
     .. code-block:: python
 
-          qc = QuantumCircuit(5)
-          bool_expr = "(x0 & x1 | ~x2) & x4"
-          oracle = PhaseOracleGate(bool_expr)
-          qc.compose(oracle, inplace=True)
+      qc = QuantumCircuit(5)
+      bool_expr = "(x0 & x1 | ~x2) & x4"
+      oracle = PhaseOracleGate(bool_expr)
+      qc.compose(oracle, inplace=True)
       print(qc)
 
     .. code-block:: text
