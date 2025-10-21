@@ -218,8 +218,17 @@ class Target(BaseTarget):
     While it is technically possible to subclass :class:`Target`, beware that the majority of the
     built-in information is in Rust and is queried from Rust in built-in transpiler passes.
     Python-space overrides are not visible to Rust, and you should not rely on these to change the
-    behavior of Qiskit's built-in transpiler passes.  In general, you should prefer to provide an
-    API to your users based around constructor functions to the standard :class:`Target`.
+    behavior of Qiskit's built-in transpiler passes.  :class:`Target` is largely supposed to be a
+    representation of a QPU that has specialized *constructors*, not specialized subclasses; the
+    usual API for constructing a :class:`Target` should be a function that returns a base
+    :class:`Target`, not a subclass with a custom initializer.
+
+    You may use subclassing to add *addition* Python-space properties to your :class:`Target`, for
+    example to then interpret in custom backend-specific transpiler stages; the :class:`Target` is
+    passed to stage-plugin constructors.
+
+    You should not subclass :class:`Target` to attempt to modify the behavior of Qiskit's built-in
+    passes; the Python-space subclassing will not be seen by passes written in Rust.
 
     Further, as the core of :class:`Target` is written in Rust, it uses :meth:`~object.__new__` as
     its initializer, and you must ensure that the correct arguments are passed through to the
