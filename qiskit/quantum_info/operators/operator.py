@@ -21,6 +21,7 @@ import copy as _copy
 import re
 from numbers import Number
 from typing import TYPE_CHECKING
+
 import numpy as np
 
 from qiskit import _numpy_compat
