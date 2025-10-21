@@ -62,6 +62,8 @@ class GroupMixin(ABC):
         return self.tensor(other)
 
     def __matmul__(self, other) -> Self:
+        if other.__class__.__name__ == "Statevector":
+            return other.evolve(self)
         return self.dot(other)
 
     @abstractmethod
@@ -146,8 +148,7 @@ class GroupMixin(ABC):
             The dot product can be obtained using the ``@`` binary operator.
             Hence ``a.dot(b)`` is equivalent to ``a @ b``.
         """
-        front = other.__class__.__name__ != "Statevector"
-        return self.compose(other, qargs=qargs, front=front)
+        return self.compose(other, qargs=qargs, front=True)
 
     def power(self, n) -> Self:
         """Return the compose of a operator with itself n times.

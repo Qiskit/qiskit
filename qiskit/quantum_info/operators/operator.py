@@ -23,7 +23,6 @@ from numbers import Number
 from typing import TYPE_CHECKING
 import numpy as np
 
-import qiskit.quantum_info as qi
 from qiskit import _numpy_compat
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.library.standard_gates import HGate, IGate, SGate, TGate, XGate, YGate, ZGate
@@ -37,7 +36,6 @@ from qiskit.quantum_info.operators.predicates import is_unitary_matrix, matrix_e
 
 if TYPE_CHECKING:
     from qiskit.transpiler.layout import Layout
-    from qiskit.quantum_info import Statevector  # pylint: disable=cyclic-import
 
 
 class Operator(LinearOp):
@@ -496,18 +494,9 @@ class Operator(LinearOp):
         ret._op_shape = self._op_shape.transpose()
         return ret
 
-    def compose(
-        self, other: Operator | Statevector, qargs: list | None = None, front: bool = False
-    ) -> Operator | Statevector:
-
+    def compose(self, other: Operator, qargs: list | None = None, front: bool = False) -> Operator:
         if qargs is None:
             qargs = getattr(other, "qargs", None)
-        if isinstance(other, qi.Statevector):
-            if front:
-                raise QiskitError(
-                    "The 'front' kwarg is not supported when composing with a Statevector."
-                )
-            return other.evolve(self, qargs=qargs)
         if not isinstance(other, Operator):
             other = Operator(other)
 
