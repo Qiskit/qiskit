@@ -20,8 +20,12 @@ jobs:
           - ubuntu-24.04-arm
           - windows-latest
     steps:
+<<<<<<< HEAD
       - uses: actions/checkout@v4
       - name: Install dependencies
         run: cargo install cbindgen
+=======
+      - uses: actions/checkout@v5
+>>>>>>> aaff6c56b (Remove unnecessary `cargo install cbindgen` (#15229))
       - name: Run tests
         run: make ctest
