@@ -1,0 +1,7 @@
+fixes:
+  - |
+    Fixed an issue in :class:`~qiskit.primitives.BindingsArray` shape inference that
+    collapsed trailing singleton axes for single-parameter sweeps.  Parameter
+    bindings shaped like ``(n, 1)`` now retain their final dimension, so
+    primitives such as :class:`~qiskit.primitives.StatevectorEstimator` accept
+    column-vector sweeps when broadcasting against observable arrays.
