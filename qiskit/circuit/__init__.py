@@ -571,7 +571,7 @@ Hardware can be instructed to apply a real-time idle period on a given qubit.  A
 
 .. autoclass:: Delay
     :show-inheritance:
-.. autoclass:: Duration
+.. autoclass:: BoxOp.Duration
 
 
 Delay durations can be specified either with concrete, constant times, or with delayed-resolution
