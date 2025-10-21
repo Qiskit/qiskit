@@ -274,9 +274,9 @@ pub unsafe extern "C" fn qk_dag_qubit_in_node(dag: *const DAGCircuit, qubit: u32
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_dag_clbit_out_node(dag: *const DAGCircuit, clbit: u32) -> u32 {
+pub unsafe extern "C" fn qk_dag_qubit_out_node(dag: *const DAGCircuit, qubit: u32) -> u32 {
     let dag = unsafe { const_ptr_as_ref(dag) };
-    dag.clbit_io_map()[clbit as usize][1].index() as u32
+    dag.qubit_io_map()[qubit as usize][1].index() as u32
 }
 
 /// @ingroup QkDag
@@ -306,9 +306,9 @@ pub unsafe extern "C" fn qk_dag_clbit_in_node(dag: *const DAGCircuit, clbit: u32
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_dag_qubit_out_node(dag: *const DAGCircuit, qubit: u32) -> u32 {
+pub unsafe extern "C" fn qk_dag_clbit_out_node(dag: *const DAGCircuit, clbit: u32) -> u32 {
     let dag = unsafe { const_ptr_as_ref(dag) };
-    dag.qubit_io_map()[qubit as usize][1].index() as u32
+    dag.clbit_io_map()[clbit as usize][1].index() as u32
 }
 
 /// @ingroup QkDag
