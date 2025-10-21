@@ -52,6 +52,13 @@ macro_rules! qubit_newtype {
             pub fn index(&self) -> usize {
                 self.0 as usize
             }
+
+            /// Specialise a slice of `Qubit` values into a slice of this type's values.
+            pub fn lift_slice(slice: &[$crate::Qubit]) -> &[$id] {
+                // SAFETY: `Qubit` and this type share the exact same set of valid bit patterns and
+                // alignments.
+                unsafe { ::std::slice::from_raw_parts(slice.as_ptr() as *const $id, slice.len()) }
+            }
         }
 
         impl From<$id> for $crate::Qubit {

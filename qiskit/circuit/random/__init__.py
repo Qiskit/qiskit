@@ -20,10 +20,10 @@ Random Circuits (:mod:`qiskit.circuit.random`)
 Overview
 ========
 
-The :mod:`qiskit.circuit.random` module offers functions that can be used for generating 
-arbitrary circuits with gates randomly selected from a given set of gates. 
+The :mod:`qiskit.circuit.random` module offers functions that can be used for generating
+arbitrary circuits with gates randomly selected from a given set of gates.
 
-These circuits can be used for benchmarking existing quantum hardware and estimating 
+These circuits can be used for benchmarking existing quantum hardware and estimating
 the performance of quantum circuit transpilers and software infrastructure.
 The functions below can generate bespoke quantum circuits respecting various properties
 such as number of qubits, depth of the circuit, coupling map, gate set, etc.
