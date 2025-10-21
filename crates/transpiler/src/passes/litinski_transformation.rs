@@ -17,16 +17,16 @@ use qiskit_circuit::imports::PAULI_EVOLUTION_GATE;
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, PyGate, StandardGate, multiply_param,
 };
-use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::{Clbit, Qubit, VarsMode};
 
 use qiskit_quantum_info::clifford::Clifford;
 use qiskit_quantum_info::sparse_observable::PySparseObservable;
 
+use crate::TranspilerError;
+use qiskit_circuit::instruction::Parameters;
+use qiskit_circuit::packed_instruction::PackedInstruction;
 use smallvec::smallvec;
 use std::f64::consts::PI;
-
-use crate::TranspilerError;
 
 // List of gate names supported by the pass: the pass is skipped if the circuit
 // contains gate names outside of this list.
@@ -193,7 +193,7 @@ pub fn run_litinski_transformation(
             py_gate.into(),
             &qubits,
             &no_clbits,
-            Some(smallvec![time]),
+            Some(Parameters::Params(smallvec![time])),
             None,
             #[cfg(feature = "cache_pygates")]
             None,

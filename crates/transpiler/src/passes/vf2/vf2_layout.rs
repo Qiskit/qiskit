@@ -21,19 +21,17 @@ use rand_pcg::Pcg64Mcg;
 use rayon::prelude::*;
 use rustworkx_core::petgraph::prelude::*;
 
-use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
-use pyo3::types::PyTuple;
 use pyo3::{create_exception, wrap_pyfunction};
 
-use qiskit_circuit::converters::circuit_to_dag;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::operations::{Operation, OperationRef, Param};
+use qiskit_circuit::operations::Operation;
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::vf2;
 
 use super::error_map::ErrorMap;
 use crate::target::{Qargs, QargsRef, Target};
+use qiskit_circuit::instruction::ControlFlowView;
 use qiskit_circuit::nlayout::NLayout;
 use qiskit_circuit::{PhysicalQubit, VirtualQubit};
 
@@ -188,35 +186,18 @@ impl<T: Default> VirtualInteractions<T> {
     where
         W: Fn(&mut T, &PackedInstruction, usize),
     {
-        for (_, inst) in dag.op_nodes(false) {
+        for (index, inst) in dag.op_nodes(false) {
             let qubits = dag.get_qargs(inst.qubits);
-            if inst.op.control_flow() {
-                Python::attach(|py| -> PyResult<()> {
-                    let OperationRef::Instruction(py_inst) = inst.op.view() else {
-                        unreachable!("control-flow nodes are always PyInstructions");
-                    };
-                    let repeats = if py_inst.name() == "for_loop" {
-                        let Param::Obj(indexset) = &inst.params_view()[0] else {
-                            return Err(PyTypeError::new_err(
-                                "unexpected object as for-loop indexset parameter",
-                            ));
-                        };
-                        repeats * indexset.bind(py).len()?
-                    } else {
-                        repeats
-                    };
-                    let wire_map: Vec<_> = qubits.iter().map(|i| wire_map[i.index()]).collect();
-                    let blocks = py_inst.instruction.bind(py).getattr("blocks")?;
-                    for block in blocks.downcast::<PyTuple>()?.iter() {
-                        self.add_interactions_from(
-                            &circuit_to_dag(block.extract()?, false, None, None)?,
-                            &wire_map,
-                            repeats,
-                            weighter,
-                        )?;
-                    }
-                    Ok(())
-                })?;
+            if let Some(control_flow) = dag.try_view_control_flow(index) {
+                let repeats = if let ControlFlowView::ForLoop { indexset, .. } = control_flow {
+                    repeats * indexset.len()
+                } else {
+                    repeats
+                };
+                let wire_map: Vec<_> = qubits.iter().map(|i| wire_map[i.index()]).collect();
+                for block in control_flow.blocks() {
+                    self.add_interactions_from(block, &wire_map, repeats, weighter)?;
+                }
                 continue;
             }
             match qubits {
