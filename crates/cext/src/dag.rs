@@ -436,11 +436,27 @@ pub unsafe extern "C" fn qk_dag_apply_gate(
             _ => panic!(),
         };
         let new_node = if front {
-            dag.apply_operation_front(gate.into(), qargs, &[], params, None)
-                .unwrap()
+            dag.apply_operation_front(
+                gate.into(),
+                qargs,
+                &[],
+                params,
+                None,
+                #[cfg(feature = "cache_pygates")]
+                None,
+            )
+            .unwrap()
         } else {
-            dag.apply_operation_back(gate.into(), qargs, &[], params, None)
-                .unwrap()
+            dag.apply_operation_back(
+                gate.into(),
+                qargs,
+                &[],
+                params,
+                None,
+                #[cfg(feature = "cache_pygates")]
+                None,
+            )
+            .unwrap()
         };
         if !out_node.is_null() {
             *out_node = new_node.index() as u32;
