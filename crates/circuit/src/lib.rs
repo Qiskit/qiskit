@@ -40,6 +40,9 @@ pub mod vf2;
 
 mod variable_mapper;
 
+#[cfg(test)]
+pub mod tests;
+
 use pyo3::PyTypeInfo;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
