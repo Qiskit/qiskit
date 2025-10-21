@@ -76,8 +76,8 @@ pub fn cos_sin_decomposition(u: MatRef<Complex64>) -> CosSinDecompReturn {
 
     // Apply SVD to u00
     let svd = u00.svd().expect("Problem with SVD decomposition");
-    let l0 = svd.U().to_owned();
-    let r0 = svd.V().adjoint().to_owned();
+    let l0 = svd.U();
+    let r0 = svd.V().adjoint();
     let mut c: Vec<f64> = svd.S().column_vector().iter().map(|z| z.re()).collect();
 
     // We have u00 = l0 c r0, where l0 and r0 are unitary, and c is a diagonal matrix
