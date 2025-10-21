@@ -23,9 +23,9 @@ pub mod cos_sin_decomp;
 const ATOL_DEFAULT: f64 = 1e-8;
 const RTOL_DEFAULT: f64 = 1e-5;
 
-fn nalgebra_to_faer<R: Dim, C: Dim, RStride: Dim, CStride: Dim>(
-    mat: MatrixView<Complex64, R, C, RStride, CStride>,
-) -> MatRef<Complex64> {
+fn nalgebra_to_faer<'a, R: Dim, C: Dim, RStride: Dim, CStride: Dim>(
+    mat: MatrixView<'a, Complex64, R, C, RStride, CStride>,
+) -> MatRef<'a, Complex64> {
     let dim = ::ndarray::Dim(mat.shape());
     let strides = ::ndarray::Dim(mat.strides());
 
@@ -37,7 +37,9 @@ fn nalgebra_to_faer<R: Dim, C: Dim, RStride: Dim, CStride: Dim>(
 
 // This code function is based on faer-ext's IntoNalgebra::into_nalgebra implementation at:
 // https://codeberg.org/sarah-quinones/faer-ext/src/commit/0f055b39529c94d1a000982df745cb9ce170f994/src/lib.rs#L77-L96
-fn faer_to_nalgebra(mat: MatRef<Complex64>) -> MatrixView<Complex64, Dyn, Dyn, Dyn, Dyn> {
+fn faer_to_nalgebra<'a>(
+    mat: MatRef<'a, Complex64>,
+) -> MatrixView<'a, Complex64, Dyn, Dyn, Dyn, Dyn> {
     let nrows = mat.nrows();
     let ncols = mat.ncols();
     let row_stride = mat.row_stride();
