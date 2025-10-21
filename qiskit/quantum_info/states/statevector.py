@@ -158,19 +158,28 @@ class Statevector(QuantumState, TolerancesMixin):
         layout = None
         if not ignore_set_layout:
             layout = getattr(circuit, "_layout", None)
-
-        initial_layout = layout.initial_layout if layout is not None else None
-        final_layout = None
-        if not ignore_set_layout and layout is not None:
-            final_layout = getattr(layout, "final_layout", None)
-
         # Create statevector using from_instruction (which iterates through circuit)
         statevec = cls.from_instruction(circuit)
 
         # Apply layout permutations if needed (this handles transpiler layout changes)
-        if initial_layout is not None or final_layout is not None:
-            # For now, return the basic statevector - layout handling can be improved later
-            pass
+        if not ignore_set_layout and layout is not None:
+            final_index_layout = getattr(layout, "final_index_layout", None)
+            if final_index_layout is not None and callable(final_index_layout):
+                layout_indices = final_index_layout()
+
+                # Reverse for Qiskit's little-endian qubit ordering
+                num_qubits = statevec.num_qubits
+                reversed_perm = [
+                    num_qubits - 1 - layout_indices[num_qubits - 1 - i] for i in range(num_qubits)
+                ]
+
+                # Use NumPy tensor reordering to apply the permutation efficiently
+                # Reshape to tensor (one dimension per qubit)
+                data_tensor = np.reshape(statevec._data, (2,) * num_qubits)
+                # Apply permutation via transpose
+                permuted_tensor = np.transpose(data_tensor, reversed_perm)
+                # Flatten back to statevector
+                statevec._data = np.reshape(permuted_tensor, -1)
 
         return statevec
 
