@@ -189,6 +189,17 @@ impl ParameterExpression {
         }
     }
 
+    /// Try casting to a [Symbol], returning a reference.
+    ///
+    /// This only succeeds if the underlying expression is, in fact, only a symbol.
+    pub fn try_to_symbol_ref(&self) -> Result<&Symbol, ParameterError> {
+        if let SymbolExpr::Symbol(symbol) = &self.expr {
+            Ok(symbol.as_ref())
+        } else {
+            Err(ParameterError::NotASymbol)
+        }
+    }
+
     /// Try casting to a [Value].
     ///
     /// Attempt to evaluate the expression recursively and return a [Value] if fully bound.
@@ -451,6 +462,14 @@ impl ParameterExpression {
     pub fn conjugate(&self) -> Self {
         Self {
             expr: self.expr.conjugate(),
+            name_map: self.name_map.clone(),
+        }
+    }
+
+    /// negate the expression.
+    pub fn neg(&self) -> Self {
+        Self {
+            expr: -&self.expr,
             name_map: self.name_map.clone(),
         }
     }

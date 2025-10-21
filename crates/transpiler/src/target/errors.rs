@@ -51,3 +51,9 @@ pub enum TargetError {
     #[error["Lower bound {low} is not less than higher bound {high}."]]
     InvalidBounds { low: f64, high: f64 },
 }
+
+impl From<TargetError> for ::pyo3::PyErr {
+    fn from(val: TargetError) -> Self {
+        crate::TranspilerError::new_err(val.to_string())
+    }
+}
