@@ -14,20 +14,21 @@
 
 from __future__ import annotations
 
+import gzip
 import io
+import re
 import shutil
-from json import JSONEncoder, JSONDecoder
-from typing import Union, List, BinaryIO, Type, Optional, Callable, TYPE_CHECKING
-from collections.abc import Iterable, Mapping
 import struct
 import warnings
-import re
+from collections.abc import Iterable, Mapping
+from json import JSONDecoder, JSONEncoder
+from typing import TYPE_CHECKING, BinaryIO, Callable, List, Optional, Type, Union
 
+from qiskit import user_config
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.qpy import formats, common, binary_io, type_keys
+from qiskit.qpy import binary_io, common, formats, type_keys
 from qiskit.qpy.exceptions import QpyError
-from qiskit import user_config
 from qiskit.version import __version__
 
 if TYPE_CHECKING:
@@ -36,6 +37,8 @@ if TYPE_CHECKING:
 
 # pylint: disable=invalid-name
 QPY_SUPPORTED_TYPES = QuantumCircuit
+# --- Known stream types that incorrectly report seekable=True
+KNOWN_BAD_SEEKERS = (gzip.GzipFile,)
 
 # This version pattern is taken from the pypa packaging project:
 # https://github.com/pypa/packaging/blob/21.3/packaging/version.py#L223-L254
@@ -85,6 +88,7 @@ def dump(
     use_symengine: bool = False,
     version: int = common.QPY_VERSION,
     annotation_factories: Optional[Mapping[str, Callable[[], annotation.QPYSerializer]]] = None,
+    use_seeking: Optional[bool] = None,
 ):
     """Write QPY binary data to a file
 
@@ -164,6 +168,10 @@ def dump(
             :class:`.Annotation` objects.  The subsequent call to :func:`load` will need to use
             similar serializer objects, that understand the custom output format of those
             serializers.
+        use_seeking: Optional manual override for seek behavior.
+            - If None (default): autodetect using `seekable()` and `KNOWN_BAD_SEEKERS`.
+            - If True: force the seek-based fast path.
+            - If False: force the buffered write path.
 
 
     Raises:
@@ -215,9 +223,18 @@ def dump(
         )
 
     if version >= 16:
-        # We need a circuit table.
-        if file_obj.seekable():
-            # Fast path to write the seekable stream in place.
+        # Determine whether to use the fast seek path
+        if use_seeking is None:
+            can_seek = file_obj.seekable() and not isinstance(file_obj, KNOWN_BAD_SEEKERS)
+        else:
+            can_seek = use_seeking
+        # Note: This isinstance() check may not catch all problematic stream types that
+        # incorrectly report seekable=True. For most common cases (e.g., gzip.GzipFile),
+        # this is sufficient, but if new problematic types are found, consider adding
+        # runtime validation or expanding UNRELIABLE_SEEKABLE_STREAMS.
+
+        if can_seek:
+            # Fast path for properly seekable streams
             file_offsets = []
             table_start = file_obj.tell()
             # Skip past the circuit table to write circuit contents first.
