@@ -67,7 +67,7 @@ static int test_vf2_layout_line(void) {
         }
     }
     QkVF2LayoutConfiguration *layout_config = qk_vf2_layout_configuration_new();
-    qk_vf2_layout_configuration_call_limit(layout_config, 10000);
+    qk_vf2_layout_configuration_set_call_limit(layout_config, 10000);
     QkVF2LayoutResult *layout_result =
         qk_transpiler_pass_standalone_vf2_layout(qc, target, layout_config, false);
     if (!qk_vf2_layout_result_has_match(layout_result)) {

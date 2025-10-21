@@ -40,6 +40,7 @@ pub struct VF2LayoutResult(Vf2PassReturn);
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_vf2_layout_result_has_match(layout: *const VF2LayoutResult) -> bool {
+    // SAFETY: per documentation this is a valid pointer to a layout.
     let layout = unsafe { const_ptr_as_ref(layout) };
     layout.0 != Vf2PassReturn::NoSolution
 }
@@ -60,6 +61,7 @@ pub unsafe extern "C" fn qk_vf2_layout_result_has_match(layout: *const VF2Layout
 pub unsafe extern "C" fn qk_vf2_layout_result_has_improvement(
     layout: *const VF2LayoutResult,
 ) -> bool {
+    // SAFETY: per documentation this is a valid pointer to a layout.
     let layout = unsafe { const_ptr_as_ref(layout) };
     matches!(layout.0, Vf2PassReturn::Solution(_))
 }
@@ -83,6 +85,7 @@ pub unsafe extern "C" fn qk_vf2_layout_result_map_virtual_qubit(
     layout: *const VF2LayoutResult,
     qubit: u32,
 ) -> u32 {
+    // SAFETY: per documentation this is a valid pointer to a layout.
     let layout = unsafe { const_ptr_as_ref(layout) };
     match &layout.0 {
         Vf2PassReturn::NoSolution => panic!("There was no layout found!"),
@@ -128,6 +131,8 @@ pub struct VF2LayoutConfiguration(Vf2PassConfiguration);
 /// Create a new configuration for the VF2 passes that runs everything completely unbounded.
 ///
 /// Call ``qk_vf2_layout_configuration_free`` with the return value to free the memory when done.
+///
+/// @return A pointer to the configuration.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_vf2_layout_configuration_new() -> *mut VF2LayoutConfiguration {
@@ -136,12 +141,14 @@ pub extern "C" fn qk_vf2_layout_configuration_new() -> *mut VF2LayoutConfigurati
     )))
 }
 /// @ingroup QkVF2LayoutConfiguration
-/// Create a new configuration for the VF2 passes that runs everything completely unbounded.
+/// Free a `QkVf2LayoutConfiguration` object.
+///
+/// @param config A pointer to the configuration.
 ///
 /// # Safety
 ///
 /// Behavior is undefined if ``config`` is a non-null pointer, but does not point to a valid,
-/// aligned ``VF2LayoutConfiguration`` object.
+/// aligned `QkVF2LayoutConfiguration` object.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_vf2_layout_configuration_free(config: *mut VF2LayoutConfiguration) {
@@ -149,6 +156,8 @@ pub unsafe extern "C" fn qk_vf2_layout_configuration_free(config: *mut VF2Layout
         if !config.is_aligned() {
             panic!("Attempted to free a non-aligned pointer.");
         }
+        // SAFETY: per documentation and above checks, this points to valid data that was previously
+        // boxed.
         let _ = unsafe { Box::from_raw(config) };
     }
 }
@@ -161,16 +170,17 @@ pub unsafe extern "C" fn qk_vf2_layout_configuration_free(config: *mut VF2Layout
 /// # Safety
 ///
 /// Behavior is undefined if `config` is not a valid, aligned, non-null pointer to a
-/// `VF2LayoutConfiguration`.
+/// `QkVF2LayoutConfiguration`.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_vf2_layout_configuration_call_limit(
+pub unsafe extern "C" fn qk_vf2_layout_configuration_set_call_limit(
     config: *mut VF2LayoutConfiguration,
     limit: i64,
 ) {
     let lift = |limit: i64| -> Option<usize> {
         (limit > 0).then(|| limit.try_into().unwrap_or(usize::MAX))
     };
+    // SAFETY: per documentation this is a valid configuration pointer.
     unsafe { (*config).0.call_limit = lift(limit) };
 }
 /// @ingroup QkVF2LayoutConfiguration
@@ -178,7 +188,7 @@ pub unsafe extern "C" fn qk_vf2_layout_configuration_call_limit(
 ///
 /// This is not a hard limit; it is only checked when an improved layout is encountered.  Using this
 /// option also makes the pass non-deterministic. It is generally recommended to use
-/// ``qk_vf2_layout_configuration_call_limit`` instead.
+/// `qk_vf2_layout_configuration_set_call_limit` instead.
 ///
 /// @param config The configuration to update.
 /// @param limit The time in seconds to allow.  Set to a non-positive value to run with no limit.
@@ -186,20 +196,22 @@ pub unsafe extern "C" fn qk_vf2_layout_configuration_call_limit(
 /// # Safety
 ///
 /// Behavior is undefined if `config` is not a valid, aligned, non-null pointer to a
-/// `VF2LayoutConfiguration`.
+/// `QkVF2LayoutConfiguration`.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_vf2_layout_configuration_time_limit(
+pub unsafe extern "C" fn qk_vf2_layout_configuration_set_time_limit(
     config: *mut VF2LayoutConfiguration,
     limit: f64,
 ) {
+    // SAFETY: per documentation this is a valid pointer to a configuration.
     unsafe { (*config).0.time_limit = (limit > 0.0).then_some(limit) };
 }
 /// @ingroup QkVF2LayoutConfiguration
 /// Limit the total number of complete improvements found.
 ///
-/// Since the VF2 search tree is pruned on-the-fly based on scoring in the ``Target``, this limit
-/// is not especially powerful.  See ``qk_vf2_layout_configuration_call_limit`` for a tighter bound.
+/// Since the VF2 search tree is pruned on-the-fly based on scoring in the `QkTarget`, this limit
+/// is not especially powerful.  See `qk_vf2_layout_configuration_set_call_limit` for a tighter
+/// bound.
 ///
 /// @param config The configuration to update.
 /// @param limit The number of complete layouts to allow before terminating.  Set to 0 to run
@@ -208,13 +220,14 @@ pub unsafe extern "C" fn qk_vf2_layout_configuration_time_limit(
 /// # Safety
 ///
 /// Behavior is undefined if `config` is not a valid, aligned, non-null pointer to a
-/// `VF2LayoutConfiguration`.
+/// `QkVF2LayoutConfiguration`.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_vf2_layout_configuration_max_trials(
+pub unsafe extern "C" fn qk_vf2_layout_configuration_set_max_trials(
     config: *mut VF2LayoutConfiguration,
     limit: u64,
 ) {
+    // SAFETY: per documentation this is a valid pointer to a configuration.
     unsafe { (*config).0.max_trials = Some(limit.try_into().unwrap_or(usize::MAX)) };
 }
 /// @ingroup QkVF2LayoutConfiguration
@@ -235,13 +248,14 @@ pub unsafe extern "C" fn qk_vf2_layout_configuration_max_trials(
 /// # Safety
 ///
 /// Behavior is undefined if `config` is not a valid, aligned, non-null pointer to a
-/// `VF2LayoutConfiguration`.
+/// `QkVF2LayoutConfiguration`.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_vf2_layout_configuration_shuffle_nodes(
+pub unsafe extern "C" fn qk_vf2_layout_configuration_set_shuffle_seed(
     config: *mut VF2LayoutConfiguration,
     seed: u64,
 ) {
+    // SAFETY: per documentation this is a valid pointer to a configuration.
     unsafe { (*config).0.shuffle_seed = Some(seed) };
 }
 
@@ -297,7 +311,7 @@ pub unsafe extern "C" fn qk_vf2_layout_configuration_shuffle_nodes(
 ///         }
 ///     }
 ///     QkVF2LayoutConfiguration *config = qk_vf2_layout_configuration_new();
-///     qk_vf2_layout_configuration_call_limit(config, 10000);
+///     qk_vf2_layout_configuration_set_call_limit(config, 10000);
 ///     QkVF2LayoutResult *layout_result = qk_transpiler_pass_standalone_vf2_layout(qc, target, config, false);
 ///     qk_vf2_layout_result_free(layout_result);
 ///     qk_vf2_layout_configuration_free(config);
@@ -327,6 +341,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout(
     let config = if config.is_null() {
         &config_default
     } else {
+        // SAFETY: per documentation this is a valid pointer to a configuration.
         unsafe { &const_ptr_as_ref(config).0 }
     };
     vf2_layout_pass(&dag, target, config, strict_direction, None)
