@@ -8,7 +8,7 @@ upgrade_providers:
 
     * ``BackendV1`` class: the core of the removed model
 
-    * All elements in ``qiskit/providers/models``, as they were used to represent
+    * All elements in `qiskit/providers/models`, as they were used to represent 
       components of the ``BackendV1`` model:
 
         * ``BackendConfiguration``
@@ -59,10 +59,10 @@ upgrade_visualization:
 
 upgrade_misc:
   - |
-    The ``Qobj`` structure and related classes, deprecated in Qiskit v1.2.0,
+    The ``Qobj`` structure and related classes, deprecated in Qiskit 1.2.0,
     have been removed. They were introduced as part of the ``BackendV1``
     workflow and are no longer necessary for interacting with :class:`.BackendV2` backends.
-    This removal affects the following classes:
+    This removal includes:
 
     *    ``QobjExperimentHeader``
     *    ``QobjHeader``
@@ -82,7 +82,7 @@ upgrade_misc:
     *    ``PulseLibraryItem``
 
   - |
-    The :class:`.MeasLevel` and :class:`.MeasReturnType` classes, previously defined in
+    The :class:`.MeasLevel` and :class`.MeasReturnType` classes, previously defined in 
     ``qobj/utils.py``, have been migrated to ``result/models.py`` following the removal
     of the ``qobj`` module. These classes were not part of the public API.
     The import path has been updated
