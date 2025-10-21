@@ -29,8 +29,11 @@ fn nalgebra_to_faer<'a, R: Dim, C: Dim, RStride: Dim, CStride: Dim>(
     let dim = ::ndarray::Dim(mat.shape());
     let strides = ::ndarray::Dim(mat.strides());
 
-    // SAFETY: We know the array is a 2d array in a contiguous block (DMatrix uses a vec for backing storage) so we
-    // don't need to check for invalid format
+    // SAFETY: We know the array is a 2d array from nalgebra and we get the pointer and memory layout
+    // description from nalgebra and can be assumed to be valid since the constraints on
+    // `ArrayView2::from_shape_ptr()`
+    // (https://docs.rs/ndarray/latest/ndarray/type.ArrayView.html#method.from_shape_ptr)
+    // should be be met for a valid nalgebra matrix.
     let array = unsafe { ArrayView2::from_shape_ptr(dim.strides(strides), mat.get_unchecked(0)) };
     array.into_faer()
 }
