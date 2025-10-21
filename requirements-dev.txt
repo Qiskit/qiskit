@@ -13,7 +13,7 @@ setuptools>=77.0
 setuptools-rust
 
 # Style
-black[jupyter]~=24.1
+black[jupyter]~=25.1
 
 
 # Lint
