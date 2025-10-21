@@ -132,7 +132,7 @@ However, the **release manager** should manually follow these steps:
 
  1. [Check the milestone state](#1-check-the-milestone-state)
  2. [Audit `Changelog:*` labels](#2-audit-changelog-labels)
- 3. [Creating, submitting, and merging a PR to handle release-specific changes as last commit on the milestone](#3-submit-a-prepare-xyz-release-pr)
+ 3. [Create, submit, and merge a PR to handle release-specific changes as last commit on the milestone](#3-submit-a-prepare-xyz-release-pr)
  4. [Tag the commit from step 3 to trigger the release automation process](#4-tag-the-prepare-xyz-release-commit)
  5. [Make post-release changes in the repository](#5-post-release-actions)
 
@@ -162,7 +162,7 @@ Verify that the milestone is in a suitable place to release:
 ### 2. Audit `Changelog:*` labels
 
 > [!NOTE]
-> In this section, `(x.y.z)-1` refers to the **the previous version tag**, since the tool needs to consider changes _since_ the version supplied.
+> In this section, `(x.y.z)-1` refers to **the previous version tag**, since the tool needs to consider changes _since_ the version supplied.
 > Examples:
 > 
 >  * For the second release candidate `1.3.0rc2`, `(x.y.z)-1` is previous release candidate `1.3.0rc1`.   
@@ -231,7 +231,7 @@ The places to update are:
 * `crates/cext/cbindgen.toml`: the `define QISKIT_VERSION_*` macros. 
 
 
-#### 3.3 Update Rust dependency
+#### 3.3 Update Rust dependencies
 
 > [!IMPORTANT]
 > Skip this step if you are doing a **_follow-up_ release**.
@@ -263,8 +263,7 @@ Consider the following guidelines:
 
 * For patch releases, the prelude can just be something like:
 
-  > Qiskit x.y.z is a small patch release, fixing several bugs found  
-  > in the x.y series.
+  > Qiskit x.y.z is a small patch release, fixing several bugs found in the x.y series.
 
 
 #### 3.5 Prepare the release notes
@@ -276,9 +275,9 @@ In the busy pre-RC period, your time is likely better spent coordinating and doi
 However, if this is a **_follow-up_ release** keep the loose files in `/releasenotes/notes` and spend some time looking for typos, broken links, and any broken example code blocks in these files.
 It's convenient to [build the docs locally](https://github.com/Qiskit/qiskit/blob/main/CONTRIBUTING.md#building-release-notes-locally) and read through the page, trying the links and code blocks.
 
-When release a major or minor version, check for  duplicated bugfix entries, i.e. there is a chance bug fixes in `X.Y` were also back-ported to `X.Y-1`.
+When releasing a major or minor version, check for duplicated bugfix entries, i.e. there is a chance that bug fixes in `X.Y` were also back-ported to `X.Y-1`.
 You can remove them from the release notes of `X.Y`.
-[Here an example](https://github.com/Qiskit/qiskit/pull/14565#pullrequestreview-2938767230) of that situation. 
+[Here is an example](https://github.com/Qiskit/qiskit/pull/14565#pullrequestreview-2938767230) of that situation. 
 
 #### 3.6 Submit the PR for review
 
@@ -462,7 +461,7 @@ For patch releases:
 > [!IMPORTANT]
 > Skip this step if your PR from section Releasing the package - step 3 was to the  `main` branch
 
-Make a PR to the `main` branch that sets the version number to the _next_ minor (e.g. `2.2.0` if you have just released `2.1.0rc1`).
+Make a PR to the `main` branch that sets the version number to the _next_ minor (e.g. `2.2.0.dev0` if you have just released `2.1.0rc1`).
 The places to update are:
 
 * `qiskit/VERSION.txt`: the only line in the file.
