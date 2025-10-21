@@ -51,7 +51,8 @@ fn faer_to_nalgebra<'a>(
     let ptr = mat.as_ptr();
     // SAFETY: Pointer came from a faer MatRef as does the description of the memory layout
     // so creating a view of the data from the from the pointer is safe unless the faer object
-    // is already corrupt.
+    // is already corrupt. nalgebra doesn't support negative striding so that panics and we
+    // only work with positive strides
     unsafe {
         MatrixView::<'_, Complex64, Dyn, Dyn, Dyn, Dyn>::from_data(ViewStorage::<
             '_,
@@ -64,8 +65,8 @@ fn faer_to_nalgebra<'a>(
             ptr,
             (Dyn(nrows), Dyn(ncols)),
             (
-                Dyn(row_stride.try_into().unwrap()),
-                Dyn(col_stride.try_into().unwrap()),
+                Dyn(row_stride.try_into().expect("only works for positive strides")),
+                Dyn(col_stride.try_into().expect("only works for positive strides")),
             ),
         ))
     }
