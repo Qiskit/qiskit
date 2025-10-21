@@ -23,13 +23,13 @@ use faer_ext::IntoNdarray;
 use num_complex::{Complex64, ComplexFloat};
 const EPS: f64 = 1e-11;
 
-type CosSinDecompReturn = (
-    Mat<Complex64>,
-    Mat<Complex64>,
-    Mat<Complex64>,
-    Mat<Complex64>,
-    Vec<f64>,
-);
+pub struct CosSinDecompReturn {
+    pub l0: Mat<Complex64>,
+    pub l1: Mat<Complex64>,
+    pub r0: Mat<Complex64>,
+    pub r1: Mat<Complex64>,
+    pub thetas: Vec<f64>,
+}
 
 /// Computes the cosine-sin decomposition (CSD) of a unitary matrix.
 ///
@@ -172,7 +172,13 @@ pub fn cos_sin_decomposition(u: MatRef<Complex64>) -> CosSinDecompReturn {
         .map(|(&ci, &si)| si.atan2(ci))
         .collect();
 
-    (l0, l1, r0, r1, thetas)
+    CosSinDecompReturn {
+        l0,
+        l1,
+        r0,
+        r1,
+        thetas,
+    }
 }
 
 #[pyfunction]
@@ -182,12 +188,12 @@ pub fn cossin<'py>(py: Python<'py>, u: PyReadonlyArray2<Complex64>) -> PyResult<
     let mat: Mat<Complex64> = Mat::from_fn(shape[0], shape[1], |i, j| array[[i, j]]);
     let res = cos_sin_decomposition(mat.as_ref());
 
-    let arr0 = res.0.as_ref().into_ndarray().to_pyarray(py);
-    let arr1 = res.1.as_ref().into_ndarray().to_pyarray(py);
-    let arr2 = res.2.as_ref().into_ndarray().to_pyarray(py);
-    let arr3 = res.3.as_ref().into_ndarray().to_pyarray(py);
+    let arr0 = res.l0.as_ref().into_ndarray().to_pyarray(py);
+    let arr1 = res.l1.as_ref().into_ndarray().to_pyarray(py);
+    let arr2 = res.r0.as_ref().into_ndarray().to_pyarray(py);
+    let arr3 = res.r1.as_ref().into_ndarray().to_pyarray(py);
 
-    Ok(((arr0, arr1), res.4, (arr2, arr3))
+    Ok(((arr0, arr1), res.thetas, (arr2, arr3))
         .into_pyobject(py)?
         .into_any())
 }
