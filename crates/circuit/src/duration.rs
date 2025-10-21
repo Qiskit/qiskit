@@ -10,9 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::prelude::*;
 use pyo3::IntoPyObjectExt;
 use pyo3::PyTypeInfo;
+use pyo3::prelude::*;
 
 /// A length of time used to express circuit timing.
 ///
@@ -69,7 +69,7 @@ impl Duration {
     /// This will be a Python ``int`` if the :meth:`~Duration.unit` is ``"dt"``,
     /// else a ``float``.
     #[pyo3(name = "value")]
-    fn py_value(&self, py: Python) -> PyResult<PyObject> {
+    fn py_value(&self, py: Python) -> PyResult<Py<PyAny>> {
         match self {
             Duration::dt(v) => v.into_py_any(py),
             Duration::ps(v)

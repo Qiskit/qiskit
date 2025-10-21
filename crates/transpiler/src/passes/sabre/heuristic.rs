@@ -10,11 +10,11 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use pyo3::IntoPyObjectExt;
+use pyo3::Python;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::PyString;
-use pyo3::IntoPyObjectExt;
-use pyo3::Python;
 
 use qiskit_circuit::impl_intopyobject_for_copy_pyclass;
 
@@ -70,11 +70,7 @@ impl BasicHeuristic {
     }
 
     pub fn __eq__(&self, py: Python, other: Py<PyAny>) -> bool {
-        if let Ok(other) = other.extract::<Self>(py) {
-            self == &other
-        } else {
-            false
-        }
+        other.extract::<Self>(py).is_ok_and(|other| self == &other)
     }
 
     pub fn __repr__(&self, py: Python) -> PyResult<Py<PyAny>> {
@@ -116,11 +112,7 @@ impl LookaheadHeuristic {
     }
 
     pub fn __eq__(&self, py: Python, other: Py<PyAny>) -> bool {
-        if let Ok(other) = other.extract::<Self>(py) {
-            self == &other
-        } else {
-            false
-        }
+        other.extract::<Self>(py).is_ok_and(|other| self == &other)
     }
 
     pub fn __repr__(&self, py: Python) -> PyResult<Py<PyAny>> {
@@ -157,11 +149,7 @@ impl DecayHeuristic {
     }
 
     pub fn __eq__(&self, py: Python, other: Py<PyAny>) -> bool {
-        if let Ok(other) = other.extract::<Self>(py) {
-            self == &other
-        } else {
-            false
-        }
+        other.extract::<Self>(py).is_ok_and(|other| self == &other)
     }
 
     pub fn __repr__(&self, py: Python) -> PyResult<Py<PyAny>> {
@@ -266,11 +254,7 @@ impl Heuristic {
     }
 
     pub fn __eq__(&self, py: Python, other: Py<PyAny>) -> bool {
-        if let Ok(other) = other.extract::<Self>(py) {
-            self == &other
-        } else {
-            false
-        }
+        other.extract::<Self>(py).is_ok_and(|other| self == &other)
     }
 
     pub fn __repr__(&self, py: Python) -> PyResult<Py<PyAny>> {

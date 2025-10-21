@@ -13,20 +13,21 @@
 use std::f64::consts::PI;
 
 use hashbrown::HashMap;
+use ndarray::ArrayView2;
 use ndarray::linalg::kron;
 use ndarray::prelude::*;
-use ndarray::ArrayView2;
 use num_complex::Complex64;
+use pyo3::IntoPyObjectExt;
+use pyo3::Python;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyList;
 use pyo3::wrap_pyfunction;
-use pyo3::IntoPyObjectExt;
-use pyo3::Python;
 use rand::prelude::*;
 use rand_pcg::Pcg64Mcg;
 use smallvec::SmallVec;
 
+use qiskit_circuit::VarsMode;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::dag_to_circuit;
@@ -36,7 +37,6 @@ use qiskit_circuit::imports::QUANTUM_CIRCUIT;
 use qiskit_circuit::operations::StandardGate::{I, X, Y, Z};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, PyInstruction, StandardGate};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
-use qiskit_circuit::VarsMode;
 
 use crate::QiskitError;
 
@@ -276,10 +276,10 @@ fn generate_twirled_circuit(
             },
             OperationRef::Instruction(py_inst) => {
                 if py_inst.control_flow() {
-                    let new_blocks: PyResult<Vec<PyObject>> = py_inst
+                    let new_blocks: PyResult<Vec<Py<PyAny>>> = py_inst
                         .blocks()
                         .iter()
-                        .map(|block| -> PyResult<PyObject> {
+                        .map(|block| -> PyResult<Py<PyAny>> {
                             let new_block = generate_twirled_circuit(
                                 py,
                                 block,
@@ -375,9 +375,10 @@ pub(crate) fn twirl_circuit(
                     StandardGate::ECR => ECR_MASK,
                     StandardGate::ISwap => ISWAP_MASK,
                     _ => {
-                        return Err(QiskitError::new_err(
-                          format!("Provided gate to twirl, {}, is not currently supported you can only use cx, cz, ecr or iswap.", gate.name())
-                        ))
+                        return Err(QiskitError::new_err(format!(
+                            "Provided gate to twirl, {}, is not currently supported you can only use cx, cz, ecr or iswap.",
+                            gate.name()
+                        )));
                     }
                 };
                 out_mask |= new_mask;
