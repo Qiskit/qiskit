@@ -187,7 +187,7 @@ def dump(
             f"{common.QPY_COMPATIBILITY_VERSION} and {common.QPY_VERSION} for `qpy.dump`."
         )
 
-    if version < common.QPY_RUST_VERSION:
+    if version < common.QPY_RUST_MIN_VERSION or version > common.QPY_RUST_MAX_VERSION:
         use_rust = False
 
     version_match = VERSION_PATTERN_REGEX.search(__version__)
@@ -326,7 +326,7 @@ def load(
             )
         )
 
-    if version < common.QPY_RUST_VERSION:
+    if version < common.QPY_RUST_MIN_VERSION or version > common.QPY_RUST_MAX_VERSION:
         use_rust = False
 
     config = user_config.get_config()

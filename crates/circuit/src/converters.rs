@@ -30,6 +30,7 @@ pub struct QuantumCircuitData<'py> {
     pub data: CircuitData,
     pub name: Option<String>,
     pub metadata: Option<Bound<'py, PyAny>>,
+    pub custom_layout: Option<Bound<'py, PyAny>>,
 }
 
 impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
@@ -41,6 +42,7 @@ impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
             data: data_borrowed,
             name: ob.getattr(intern!(py, "name"))?.extract()?,
             metadata: ob.getattr(intern!(py, "metadata")).ok(),
+            custom_layout: ob.getattr(intern!(py, "layout")).ok(),
         })
     }
 }

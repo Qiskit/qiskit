@@ -22,6 +22,7 @@ mod consts;
 mod formats;
 mod params;
 mod value;
+mod py_methods;
 
 /// Internal module supplying the QPY capabilities.  The entries in it should largely
 /// be re-exposed directly to public Python space.

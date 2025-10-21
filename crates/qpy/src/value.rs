@@ -19,7 +19,8 @@ use pyo3::IntoPyObjectExt;
 use pyo3::{intern, prelude::*};
 
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::classical::expr::Expr;
+use qiskit_circuit::classical::expr::{Expr, Stretch, Var};
+use qiskit_circuit::classical::types::Type;
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::{OperationRef, Param};
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -33,6 +34,7 @@ use crate::params::{
     unpack_parameter_expression, unpack_parameter_vector,
 };
 use crate::{QpyError, UnsupportedFeatureForVersion};
+
 use core::fmt;
 use std::fmt::Debug;
 use std::io::{Cursor, Read, Seek, Write};
@@ -40,11 +42,17 @@ use uuid::Uuid;
 
 const QPY_VERSION: u32 = 15;
 
+#[derive(Eq, PartialEq, Hash, Debug)]
+pub enum VarOrStretch{
+    Var(Var),
+    Stretch(Stretch),
+}
 pub struct QPYWriteData<'a> {
     pub version: u32,
     pub _use_symengine: bool,
     pub clbit_indices: Py<PyDict>,
-    pub standalone_var_indices: Py<PyDict>,
+    pub standalone_var_indices: HashMap<VarOrStretch, usize>,
+    pub py_standalone_var_indices: Py<PyDict>,
     pub annotation_handler: AnnotationHandler<'a>,
 }
 
@@ -200,57 +208,59 @@ pub fn get_type_key(py_object: &Bound<PyAny>) -> PyResult<u8> {
     )))
 }
 
-pub fn dumps_value(py_object: &Bound<PyAny>, qpy_data: &QPYWriteData) -> PyResult<(u8, Bytes)> {
-    let py = py_object.py();
-    let type_key: u8 = get_type_key(py_object)?;
-    let value: Bytes = match type_key {
-        tags::INTEGER => py_object.extract::<i64>()?.to_be_bytes().into(),
-        tags::FLOAT => py_object.extract::<f64>()?.to_be_bytes().into(),
-        tags::COMPLEX => {
-            let complex_num = py_object.downcast::<PyComplex>()?;
-            let mut bytes = Vec::with_capacity(16);
-            bytes.extend_from_slice(&complex_num.real().to_be_bytes());
-            bytes.extend_from_slice(&complex_num.imag().to_be_bytes());
-            bytes.into()
-        }
-        tags::RANGE => serialize_range(py_object)?,
-        tags::TUPLE => serialize(&pack_generic_sequence(py_object, qpy_data)?)?,
-        tags::PARAMETER => serialize(&pack_parameter(py_object)?)?,
-        tags::PARAMETER_VECTOR => serialize(&pack_parameter_vector(py_object)?)?,
-        tags::PARAMETER_EXPRESSION => serialize(&pack_parameter_expression(py_object, qpy_data)?)?,
-        tags::NUMPY_OBJ => {
-            let np = py.import("numpy")?;
-            let io = py.import("io")?;
-            let buffer = io.call_method0("BytesIO")?;
-            np.call_method1("save", (&buffer, py_object))?;
-            buffer.call_method0("getvalue")?.extract::<Bytes>()?
-        }
-        tags::MODIFIER => serialize(&pack_modifier(py_object)?)?,
-        tags::STRING => py_object.extract::<String>()?.into(),
-        tags::EXPRESSION => serialize_expression(py_object, qpy_data)?,
-        tags::NULL | tags::CASE_DEFAULT => Bytes::new(),
-        tags::CIRCUIT => serialize(&pack_circuit(
-            py_object,
-            py.None().bind(py),
-            false,
-            QPY_VERSION,
-            qpy_data.annotation_handler.annotation_factories,
-        )?)?,
-        _ => {
-            return Err(PyTypeError::new_err(format!(
-                "dumps_value: Unhandled type_key: {}",
-                type_key
-            )))
-        }
-    };
-    Ok((type_key, value))
+pub fn dumps_value(py_object: PyObject, qpy_data: &QPYWriteData) -> PyResult<(u8, Bytes)> {
+    Python::with_gil(|py| -> PyResult<(u8, Bytes)> {
+        let py_object = py_object.bind(py);
+        let type_key: u8 = get_type_key(py_object)?;
+        let value: Bytes = match type_key {
+            tags::INTEGER => py_object.extract::<i64>()?.to_be_bytes().into(),
+            tags::FLOAT => py_object.extract::<f64>()?.to_be_bytes().into(),
+            tags::COMPLEX => {
+                let complex_num = py_object.downcast::<PyComplex>()?;
+                let mut bytes = Vec::with_capacity(16);
+                bytes.extend_from_slice(&complex_num.real().to_be_bytes());
+                bytes.extend_from_slice(&complex_num.imag().to_be_bytes());
+                bytes.into()
+            }
+            tags::RANGE => serialize_range(py_object)?,
+            tags::TUPLE => serialize(&pack_generic_sequence(py_object, qpy_data)?)?,
+            tags::PARAMETER => serialize(&pack_parameter(py_object)?)?,
+            tags::PARAMETER_VECTOR => serialize(&pack_parameter_vector(py_object)?)?,
+            tags::PARAMETER_EXPRESSION => serialize(&pack_parameter_expression(py_object, qpy_data)?)?,
+            tags::NUMPY_OBJ => {
+                let np = py.import("numpy")?;
+                let io = py.import("io")?;
+                let buffer = io.call_method0("BytesIO")?;
+                np.call_method1("save", (&buffer, py_object))?;
+                buffer.call_method0("getvalue")?.extract::<Bytes>()?
+            }
+            tags::MODIFIER => serialize(&pack_modifier(py_object)?)?,
+            tags::STRING => py_object.extract::<String>()?.into(),
+            tags::EXPRESSION => serialize_expression(py_object, qpy_data)?,
+            tags::NULL | tags::CASE_DEFAULT => Bytes::new(),
+            tags::CIRCUIT => serialize(&pack_circuit(
+                py_object.extract()?,
+                py.None().bind(py),
+                false,
+                QPY_VERSION,
+                qpy_data.annotation_handler.annotation_factories,
+            )?)?,
+            _ => {
+                return Err(PyTypeError::new_err(format!(
+                    "dumps_value: Unhandled type_key: {}",
+                    type_key
+                )))
+            }
+        };
+        Ok((type_key, value))
+    })
 }
 
 pub fn pack_generic_data(
     py_data: &Bound<PyAny>,
     qpy_data: &QPYWriteData,
 ) -> PyResult<formats::GenericDataPack> {
-    let (type_key, data) = dumps_value(py_data, qpy_data)?;
+    let (type_key, data) = dumps_value(py_data.clone().unbind(), qpy_data)?;
     Ok(formats::GenericDataPack { type_key, data })
 }
 
@@ -369,7 +379,8 @@ fn serialize_expression(py_object: &Bound<PyAny>, qpy_data: &QPYWriteData) -> Py
             &buffer,
             py_object,
             clbit_indices,
-            &qpy_data.standalone_var_indices,
+            PyList::new(py, Vec::new())?, // TODO: temporary placeholder; we need to start using the rust Expr visitor
+            //&qpy_data.standalone_var_indices,
             qpy_data.version,
         ),
     )?;
@@ -461,65 +472,57 @@ fn unpack_modifier(py: Python, packed_modifier: &formats::ModifierPack) -> PyRes
 }
 
 pub fn pack_standalone_var(
-    var: &Bound<PyAny>,
+    var: &Var,
     usage: u8,
     version: u32,
 ) -> PyResult<formats::ExpressionVarDeclarationPack> {
-    let name = var.getattr("name")?.extract::<String>()?;
-    let exp_type = pack_expression_type(&var.getattr("type")?, version)?;
-    let uuid_bytes = var
-        .getattr("var")?
-        .getattr("bytes")?
-        .extract::<[u8; 16]>()?;
-    Ok(formats::ExpressionVarDeclarationPack {
-        uuid_bytes,
-        usage,
-        exp_type,
-        name,
-    })
-}
-
-fn pack_expression_type(exp_type: &Bound<PyAny>, version: u32) -> PyResult<ExpressionType> {
-    let kind = exp_type.getattr("kind")?;
-    let py = exp_type.py();
-    let types_module = py.import("qiskit.circuit.classical.types")?;
-    if kind.is(&types_module.getattr("Bool")?) {
-        Ok(ExpressionType::Bool)
-    } else if kind.is(&types_module.getattr("Uint")?) {
-        let width = exp_type.getattr("width")?.extract::<u32>()?;
-        Ok(ExpressionType::Uint(width))
-    } else if kind.is(&types_module.getattr("Float")?) {
-        if version < 14 {
-            return Err(UnsupportedFeatureForVersion::new_err((
-                "float-typed expressions",
-                14,
-                version,
-            )));
+    match var {
+        Var::Standalone { uuid, name, ty } => {
+            let exp_type = pack_expression_type(ty, version)?;
+            let uuid_bytes = uuid.to_be_bytes();
+            Ok(formats::ExpressionVarDeclarationPack {
+                uuid_bytes,
+                usage,
+                exp_type,
+                name: name.clone(),
+            })
         }
-        Ok(ExpressionType::Float)
-    } else if kind.is(&types_module.getattr("Duration")?) {
-        if version < 14 {
-            return Err(UnsupportedFeatureForVersion::new_err((
-                "duration-typed expressions",
-                14,
-                version,
-            )));
+        _ => {
+            Err(QpyError::new_err(format!("attempted to pack as standalone var the non-standalone var {:?}",var)))
         }
-        Ok(ExpressionType::Duration)
-    } else {
-        return Err(QpyError::new_err((format!(
-            "unhandled Type object {:?}",
-            exp_type
-        ),)));
     }
 }
+
+pub fn pack_stretch(
+    stretch: &Stretch,
+    usage: u8,
+) -> formats::ExpressionVarDeclarationPack {
+    formats::ExpressionVarDeclarationPack {
+        uuid_bytes: stretch.uuid.to_be_bytes(),
+        usage,
+        exp_type: ExpressionType::Duration,
+        name: stretch.name.clone()
+    }
+}
+
+// we convert the type to the serializable struct; this amounts to simple copy unless
+// there's a field not supported in the expected version
+fn pack_expression_type(exp_type: &Type, version: u32) -> PyResult<ExpressionType> {
+    match exp_type {
+        Type::Bool => Ok(ExpressionType::Bool),
+        Type::Duration => if version >= 14 {Ok(ExpressionType::Duration)} else {Err(UnsupportedFeatureForVersion::new_err(("duration-typed expressions",14,version)))}
+        Type::Float => if version >= 14 {Ok(ExpressionType::Float)} else {Err(UnsupportedFeatureForVersion::new_err(("float-typed expressions",14,version)))}
+        Type::Uint(width) => Ok(ExpressionType::Uint(*width as u32))
+    }
+}
+
 pub struct DumpedValue {
     pub data_type: u8,
     pub data: Bytes,
 }
 
 impl DumpedValue {
-    pub fn from(py_object: &Bound<PyAny>, qpy_data: &QPYWriteData) -> PyResult<Self> {
+    pub fn from(py_object: PyObject, qpy_data: &QPYWriteData) -> PyResult<Self> {
         let (data_type, data) = dumps_value(py_object, qpy_data)?;
         Ok(DumpedValue { data_type, data })
     }
@@ -623,6 +626,13 @@ impl DumpedValue {
                 Ok(Param::ParameterExpression(self.to_python(py, qpy_data)?))
             }
             _ => Ok(Param::Obj(self.to_python(py, qpy_data)?)),
+        }
+    }
+    pub fn from_param(param: &Param, qpy_data: &QPYWriteData) -> PyResult<DumpedValue> {
+        match param {
+            Param::Float(value) => Ok(DumpedValue { data_type: (tags::FLOAT), data: (value.into())}),
+            Param::Obj(py_object) => DumpedValue::from(py_object.clone(), qpy_data),
+            Param::ParameterExpression(py_object) => DumpedValue::from(py_object.clone(), qpy_data),
         }
     }
 }

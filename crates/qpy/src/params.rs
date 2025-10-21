@@ -181,7 +181,7 @@ fn pack_replay_subs(
                     .getattr(intern!(py, "uuid"))?
                     .getattr(intern!(py, "bytes"))?
                     .extract::<Bytes>()?;
-                let (item_type, item_bytes) = dumps_value(value.bind(py), qpy_data)?;
+                let (item_type, item_bytes) = dumps_value(value, qpy_data)?;
                 Ok(formats::MappingItem {
                     item_type,
                     key_bytes,
@@ -331,7 +331,7 @@ fn pack_symbol(
     let symbol_key = get_type_key(symbol)?;
     let (value_key, value_data): (u8, Bytes) = match value {
         None => (symbol_key, Bytes::new()),
-        Some(py_value) => dumps_value(py_value, qpy_data)?,
+        Some(py_value) => dumps_value(py_value.clone().unbind(), qpy_data)?,
     };
     match symbol_key {
         tags::PARAMETER_EXPRESSION => {
@@ -705,7 +705,7 @@ pub fn dumps_instruction_param_value(
         )?)?,
         tags::REGISTER => dumps_register_param(py_object)?,
         _ => {
-            let (_, value) = dumps_value(py_object, qpy_data)?;
+            let (_, value) = dumps_value(py_object.clone().unbind(), qpy_data)?;
             value
         }
     };
@@ -761,7 +761,7 @@ pub fn pack_param_obj(
 ) -> PyResult<formats::PackedParam> {
     let (type_key, data) = match param {
         Param::Float(val) => (tags::FLOAT, val.to_le_bytes().into()), // using le instead of be for this QPY version
-        Param::ParameterExpression(py_object) => dumps_value(py_object.bind(py), qpy_data)?,
+        Param::ParameterExpression(py_object) => dumps_value(py_object.clone(), qpy_data)?,
         Param::Obj(py_object) => dumps_instruction_param_value(py_object.bind(py), qpy_data)?,
     };
     Ok(formats::PackedParam { type_key, data })

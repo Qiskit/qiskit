@@ -428,6 +428,13 @@ impl CircuitData {
         Ok(())
     }
 
+    pub fn qubit_index(&self, qubit: ShareableQubit) -> Option<u32> {
+        self.qubits.find(&qubit).map(|qubit| qubit.0)
+    }
+
+    pub fn clbit_index(&self, clbit: ShareableClbit) -> Option<u32> {
+        self.clbits.find(&clbit).map(|clbit| clbit.0)
+    }
     /// The list of registered :class:`.QuantumRegister` instances.
     ///
     /// .. warning::
@@ -1682,6 +1689,11 @@ impl CircuitData {
     #[getter]
     pub fn num_declared_vars(&self) -> usize {
         self.vars_declare.len()
+    }
+
+    // return the total number of identifiers in the circuit (vars + stretches)
+    pub fn num_identifiers(&self) -> usize {
+        self.num_input_vars() + self.num_captured_vars() + self.num_declared_vars() + self.num_captured_stretches() + self.num_declared_stretches()
     }
 
     /// Add a captured stretch to the circuit.

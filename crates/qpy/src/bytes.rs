@@ -148,6 +148,12 @@ impl From<Cursor<Vec<u8>>> for Bytes {
     }
 }
 
+impl From<&f64> for Bytes {
+    fn from(value: &f64) -> Self {
+        Bytes(value.to_be_bytes().into())
+    }
+}
+
 impl Deref for Bytes {
     type Target = Vec<u8>;
     fn deref(&self) -> &Self::Target {
