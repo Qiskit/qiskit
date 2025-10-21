@@ -38,7 +38,7 @@ use qiskit_transpiler::passes::run_remove_diagonal_before_measure;
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_remove_diagonal_gates_before_measure(
     circuit: *mut CircuitData,

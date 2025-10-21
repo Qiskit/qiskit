@@ -13,11 +13,11 @@
 use hashbrown::HashSet;
 use numpy::{PyArray1, PyArrayMethods, ToPyArray};
 use pyo3::{
+    IntoPyObjectExt, PyErr,
     exceptions::{PyTypeError, PyValueError},
     intern,
     prelude::*,
     types::{PyList, PyString, PyTuple, PyType},
-    IntoPyObjectExt, PyErr,
 };
 use std::{
     collections::btree_map,
@@ -31,9 +31,9 @@ use rand_pcg::Pcg64Mcg;
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 
 use super::qubit_sparse_pauli::{
-    raw_parts_from_sparse_list, ArithmeticError, CoherenceError, InnerReadError, InnerWriteError,
-    LabelError, Pauli, PyQubitSparsePauli, PyQubitSparsePauliList, QubitSparsePauli,
-    QubitSparsePauliList, QubitSparsePauliView,
+    ArithmeticError, CoherenceError, InnerReadError, InnerWriteError, LabelError, Pauli,
+    PyQubitSparsePauli, PyQubitSparsePauliList, QubitSparsePauli, QubitSparsePauliList,
+    QubitSparsePauliView, raw_parts_from_sparse_list,
 };
 
 /// A Pauli Lindblad map that stores its data in a qubit-sparse format. Note that gamma,
@@ -1575,7 +1575,7 @@ impl PyPauliLindbladMap {
         for non_negative in inner.non_negative_rates.iter() {
             if !non_negative {
                 return Err(PyValueError::new_err(
-                    "PauliLindbladMap.sample called for a map with negative rates. Use PauliLindbladMap.signed_sample"
+                    "PauliLindbladMap.sample called for a map with negative rates. Use PauliLindbladMap.signed_sample",
                 ));
             }
         }
@@ -1710,7 +1710,7 @@ impl PyPauliLindbladMap {
                 return PyGeneratorTerm {
                     inner: inner.term(index).to_term(),
                 }
-                .into_bound_py_any(py)
+                .into_bound_py_any(py);
             }
             indices => indices,
         };

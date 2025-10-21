@@ -20,9 +20,9 @@ use pyo3::prelude::*;
 use pyo3::types::{PyList, PyTuple};
 use rayon::prelude::*;
 use rustworkx_core::connectivity::connected_components;
+use rustworkx_core::petgraph::EdgeType;
 use rustworkx_core::petgraph::prelude::*;
 use rustworkx_core::petgraph::visit::{IntoEdgeReferences, IntoNodeReferences, NodeFiltered};
-use rustworkx_core::petgraph::EdgeType;
 use smallvec::SmallVec;
 use uuid::Uuid;
 
@@ -34,8 +34,8 @@ use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardInstruc
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, PhysicalQubit, Qubit, VarsMode, VirtualQubit};
 
-use crate::target::{Qargs, Target};
 use crate::TranspilerError;
+use crate::target::{Qargs, Target};
 
 create_exception!(qiskit, MultiQEncountered, pyo3::exceptions::PyException);
 
@@ -284,7 +284,9 @@ fn map_components(
             }
         }
         if !found {
-            return Err(TranspilerError::new_err("A connected component of the DAGCircuit is too large for any of the connected components in the coupling map"));
+            return Err(TranspilerError::new_err(
+                "A connected component of the DAGCircuit is too large for any of the connected components in the coupling map",
+            ));
         }
     }
     Ok(out_mapping)

@@ -12,10 +12,10 @@
 
 use hashbrown::HashMap;
 
+use qiskit_circuit::Qubit;
 use qiskit_circuit::bit::QuantumRegister;
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::nlayout::{NLayout, PhysicalQubit, VirtualQubit};
-use qiskit_circuit::Qubit;
 
 // TODO: Conditionally compile these imports for Python builds
 use pyo3::intern;
@@ -584,9 +584,9 @@ impl TranspileLayout {
 #[cfg(test)]
 mod test_transpile_layout {
     use super::TranspileLayout;
+    use qiskit_circuit::Qubit;
     use qiskit_circuit::bit::ShareableQubit;
     use qiskit_circuit::nlayout::{NLayout, PhysicalQubit, VirtualQubit};
-    use qiskit_circuit::Qubit;
 
     #[test]
     fn test_final_index_layout() {

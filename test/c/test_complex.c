@@ -30,7 +30,7 @@ ComplexDouble make_complex(double real, double imag) { return real + I * imag; }
 /**
  * Test converting a native number to QkComplex64.
  */
-int test_from_native(void) {
+static int test_from_native(void) {
     const double real = -1;
     const double imag = 2;
     ComplexDouble native = make_complex(real, imag);
@@ -45,7 +45,7 @@ int test_from_native(void) {
 /**
  * Test converting QkComplex64 to native number.
  */
-int test_to_native(void) {
+static int test_to_native(void) {
     const double real = 1.65;
     const double imag = -5.21;
     QkComplex64 value = {real, imag};
@@ -76,7 +76,7 @@ int test_qkcomplex_roundtrip(void) {
 /**
  * Test roundtrips.
  */
-int test_native_roundtrip(void) {
+static int test_native_roundtrip(void) {
     const double real = 1.003;
     const double imag = 2.31;
     ComplexDouble native = make_complex(real, imag);

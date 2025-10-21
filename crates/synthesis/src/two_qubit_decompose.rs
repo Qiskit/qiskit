@@ -21,31 +21,31 @@
 use approx::{abs_diff_eq, relative_eq};
 use num_complex::{Complex, Complex64, ComplexFloat};
 use num_traits::Zero;
-use smallvec::{smallvec, SmallVec};
+use smallvec::{SmallVec, smallvec};
 use std::f64::consts::{FRAC_1_SQRT_2, PI};
 use std::ops::Deref;
 
 use faer::Side::Lower;
-use faer::{prelude::*, Mat, MatRef, Scale};
+use faer::{Mat, MatRef, Scale, prelude::*};
 use faer_ext::{IntoFaer, IntoNdarray};
+use ndarray::Zip;
 use ndarray::linalg::kron;
 use ndarray::prelude::*;
-use ndarray::Zip;
 use numpy::{IntoPyArray, ToPyArray};
 use numpy::{PyArray2, PyArrayLike2, PyReadonlyArray1, PyReadonlyArray2};
 
+use pyo3::IntoPyObjectExt;
 use pyo3::exceptions::PyValueError;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
 use pyo3::types::PyType;
-use pyo3::IntoPyObjectExt;
 
-use crate::euler_one_qubit_decomposer::{
-    angles_from_unitary, det_one_qubit, unitary_to_gate_sequence_inner, EulerBasis, EulerBasisSet,
-    OneQubitGateSequence, ANGLE_ZERO_EPSILON,
-};
 use crate::QiskitError;
+use crate::euler_one_qubit_decomposer::{
+    ANGLE_ZERO_EPSILON, EulerBasis, EulerBasisSet, OneQubitGateSequence, angles_from_unitary,
+    det_one_qubit, unitary_to_gate_sequence_inner,
+};
 use qiskit_quantum_info::convert_2q_block_matrix::change_basis;
 
 use rand::prelude::*;
@@ -56,11 +56,11 @@ use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::gate_matrix::{CX_GATE, H_GATE, ONE_QUBIT_IDENTITY, SDG_GATE, S_GATE};
+use qiskit_circuit::gate_matrix::{CX_GATE, H_GATE, ONE_QUBIT_IDENTITY, S_GATE, SDG_GATE};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::util::{c64, GateArray1Q, GateArray2Q, C_M_ONE, C_ONE, C_ZERO, IM, M_IM};
-use qiskit_circuit::{impl_intopyobject_for_copy_pyclass, Qubit};
+use qiskit_circuit::util::{C_M_ONE, C_ONE, C_ZERO, GateArray1Q, GateArray2Q, IM, M_IM, c64};
+use qiskit_circuit::{Qubit, impl_intopyobject_for_copy_pyclass};
 
 const PI2: f64 = PI / 2.;
 const PI4: f64 = PI / 4.;
@@ -1046,9 +1046,7 @@ impl TwoQubitWeylDecomposition {
             if specialized.calculated_fidelity + 1.0e-13 < fid {
                 return Err(QiskitError::new_err(format!(
                     "Specialization: {:?} calculated fidelity: {} is worse than requested fidelity: {}",
-                    specialized.specialization,
-                    specialized.calculated_fidelity,
-                    fid
+                    specialized.specialization, specialized.calculated_fidelity, fid
                 )));
             }
         }
@@ -1476,7 +1474,7 @@ impl TwoQubitBasisDecomposer {
         global_phase -= 3. * self.basis_decomposer.global_phase;
         global_phase = global_phase.rem_euclid(TWO_PI);
         let atol = 1e-10; // absolute tolerance for floats
-                          // Decompose source unitaries to zxz
+        // Decompose source unitaries to zxz
         let euler_q0: Vec<[f64; 3]> = decomposition
             .iter()
             .step_by(2)

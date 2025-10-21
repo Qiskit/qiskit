@@ -263,7 +263,7 @@ def default_style() -> Dict[str, Any]:
             "measure": r"{\rm Measure}",
         },
         "formatter.latex_symbol.frame_change": r"\circlearrowleft",
-        "formatter.unicode_symbol.frame_change": "\u21BA",
+        "formatter.unicode_symbol.frame_change": "\u21ba",
         "formatter.box_height.gate": 0.5,
         "formatter.box_height.timeslot": 0.6,
         "formatter.layer.gate": 3,

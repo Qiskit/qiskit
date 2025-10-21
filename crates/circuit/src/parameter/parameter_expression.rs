@@ -24,8 +24,8 @@ use std::collections::hash_map::DefaultHasher;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
-use pyo3::prelude::*;
 use pyo3::IntoPyObjectExt;
+use pyo3::prelude::*;
 
 use crate::circuit_data::CircuitError;
 use crate::imports::{BUILTIN_HASH, SYMPIFY_PARAMETER_EXPRESSION, UUID};
@@ -33,7 +33,7 @@ use crate::parameter::symbol_expr;
 use crate::parameter::symbol_expr::SymbolExpr;
 use crate::parameter::symbol_parser::parse_expression;
 
-use super::symbol_expr::{Symbol, Value, SYMEXPR_EPSILON};
+use super::symbol_expr::{SYMEXPR_EPSILON, Symbol, Value};
 
 /// Errors for dealing with parameters and parameter expressions.
 #[derive(Error, Debug)]
@@ -184,6 +184,17 @@ impl ParameterExpression {
     pub fn try_to_symbol(&self) -> Result<Symbol, ParameterError> {
         if let SymbolExpr::Symbol(symbol) = &self.expr {
             Ok(symbol.as_ref().clone())
+        } else {
+            Err(ParameterError::NotASymbol)
+        }
+    }
+
+    /// Try casting to a [Symbol], returning a reference.
+    ///
+    /// This only succeeds if the underlying expression is, in fact, only a symbol.
+    pub fn try_to_symbol_ref(&self) -> Result<&Symbol, ParameterError> {
+        if let SymbolExpr::Symbol(symbol) = &self.expr {
+            Ok(symbol.as_ref())
         } else {
             Err(ParameterError::NotASymbol)
         }
@@ -451,6 +462,14 @@ impl ParameterExpression {
     pub fn conjugate(&self) -> Self {
         Self {
             expr: self.expr.conjugate(),
+            name_map: self.name_map.clone(),
+        }
+    }
+
+    /// negate the expression.
+    pub fn neg(&self) -> Self {
+        Self {
+            expr: -&self.expr,
             name_map: self.name_map.clone(),
         }
     }

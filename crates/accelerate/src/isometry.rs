@@ -14,9 +14,9 @@ use std::ops::BitAnd;
 
 use approx::abs_diff_eq;
 use num_complex::{Complex64, ComplexFloat};
+use pyo3::Python;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
-use pyo3::Python;
 
 use hashbrown::HashSet;
 use itertools::Itertools;

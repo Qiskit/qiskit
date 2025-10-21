@@ -94,7 +94,7 @@ fn rotation_axis_from_so3(matrix: &Matrix3<f64>, do_checks: bool) -> Matrix3x1<f
     let index = axis
         .iter()
         .enumerate()
-        .find(|(_, &el)| el.abs() > eps)
+        .find(|&(_, &el)| el.abs() > eps)
         .expect("At least one element must be nonzero.")
         .0;
     match index {

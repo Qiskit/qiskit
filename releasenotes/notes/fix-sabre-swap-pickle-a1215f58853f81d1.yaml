@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed an issue with :mod:`pickle` support for the :class:`.SabreSwap` where a
+    :class:`.SabreSwap` instance would error when being pickled after the
+    :meth:`.SabreSwap.run` method was run.
+    Fixed `#15071 <https://github.com/Qiskit/qiskit/issues/15071>`__.
