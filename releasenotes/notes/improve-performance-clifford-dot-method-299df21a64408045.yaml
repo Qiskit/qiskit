@@ -1,9 +1,12 @@
 ---
 features_quantum_info:
   - |
-    Improve the performance of :meth:`~qiskit.quantum_info.Clifford.dot`,
-    when it is composed with a :class:`QuantumCircuit`.
-    In this case, we iteratively update the Clifford by prepending it with standard Clifford gates.
-    This scheme is significantly more efficient than the previous method of converting
-    the gates to Clifford and composing the Clifford tableaux, when the number of prepended
-    gates is small compared to the Clifford size.
+    Improve the performance of :meth:`.Clifford.dot` and of :meth:`.Clifford.compose`
+    when called with `front=True`, in the case that the Clifford is composed with a
+    :class:`.QuantumCircuit` consisting of Clifford operations (for instance, of standard
+    Clifford gates). The new method consists of iteratively updating the Clifford by
+    prepending it with Clifford operations, similarly to the current behavior of
+    :meth:`.Clifford.compose` when called with `front=False`. When the number of
+    operations in the circuit is small, this method is significantly more efficient than
+    the old method consisting of converting the circuit into a Clifford and composing
+    the two Cliffords.
