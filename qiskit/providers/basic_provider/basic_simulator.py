@@ -505,31 +505,15 @@ class BasicSimulator(BackendV2):
 
         return Result.from_dict(result)
 
-    def _is_clifford_circuit(self, circuit: QuantumCircuit) -> bool:
-        """Check if a circuit contains only Clifford gates.
-
-        Uses Clifford construction to verify if circuit is Clifford.
-        Removes measurements before checking since Clifford class
-        doesn't handle them.
-
-        Args:
-            circuit: The quantum circuit to check
-
-        Returns:
-            True if circuit is Clifford, False otherwise
-        """
+    def _is_clifford_circuit(self, circuit: QuantumCircuit):
+        """Check if circuit is Clifford and return Clifford object or None."""
         try:
-            # Remove measurements for Clifford check
-            circ_no_meas = circuit.copy()
-            circ_no_meas.remove_final_measurements()
-
-            # Try to construct Clifford object
-            Clifford(circ_no_meas)
-            return True
+            circ_no_meas = circuit.remove_final_measurements(inplace=False)
+            return Clifford(circ_no_meas)
         except QiskitError:
-            return False
+            return None
 
-    def _run_clifford_circuit(self, circuit: QuantumCircuit) -> dict:
+    def _run_clifford_circuit(self, circuit: QuantumCircuit, clifford_obj) -> dict:
         """Simulate a Clifford circuit using StabilizerState.
 
         This method provides efficient simulation for Clifford circuits
@@ -551,17 +535,13 @@ class BasicSimulator(BackendV2):
                 clbit = circuit.find_bit(operation.clbits[0]).index
                 measure_ops.append((qubit, clbit))
 
-        # Create circuit without measurements
-        circ_no_meas = circuit.copy()
-        circ_no_meas.remove_final_measurements()
-
         # Sample measurements
         memory = []
         if measure_ops:
             # Sample each shot individually
             for _ in range(self._shots):
                 # Create fresh StabilizerState for each shot
-                stab_state = StabilizerState(circ_no_meas)
+                stab_state = StabilizerState(clifford_obj)
 
                 # Set seed if provided (for reproducibility)
                 if self._seed_simulator is not None:
@@ -656,10 +636,11 @@ class BasicSimulator(BackendV2):
         self._number_of_cmembits = circuit.num_clbits
 
         # Check if circuit is Clifford and use optimized simulation
-        if self._is_clifford_circuit(circuit):
-            # Only use Clifford optimization if no custom initial state
-            if self._initial_statevector is None:
-                return self._run_clifford_circuit(circuit)
+        # Check initial_statevector first (cheaper)
+        if self._initial_statevector is None:
+            clifford_obj = self._is_clifford_circuit(circuit)
+            if clifford_obj is not None:
+                return self._run_clifford_circuit(circuit, clifford_obj)
 
         start = time.time()
 
