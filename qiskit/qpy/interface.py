@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import gzip
 import io
 import shutil
 from json import JSONEncoder, JSONDecoder
@@ -36,6 +37,13 @@ if TYPE_CHECKING:
 
 # pylint: disable=invalid-name
 QPY_SUPPORTED_TYPES = QuantumCircuit
+
+# Some standard-library types claim to be `IOBase.seekable`, but don't actually support arbitrary
+# seeking in write mode.  We won't expand this list for incorrect third-party types, but
+# pragmatically, we can workaround trouble in the stdlib.
+#
+# See https://github.com/Qiskit/qiskit/issues/15157#issuecomment-3389209015 for more detail.
+KNOWN_BAD_SEEKERS = (gzip.GzipFile,)
 
 # This version pattern is taken from the pypa packaging project:
 # https://github.com/pypa/packaging/blob/21.3/packaging/version.py#L223-L254
@@ -216,8 +224,8 @@ def dump(
 
     if version >= 16:
         # We need a circuit table.
-        if file_obj.seekable():
-            # Fast path to write the seekable stream in place.
+        if file_obj.seekable() and not isinstance(file_obj, KNOWN_BAD_SEEKERS):
+            # Fast path for properly seekable streams
             file_offsets = []
             table_start = file_obj.tell()
             # Skip past the circuit table to write circuit contents first.
