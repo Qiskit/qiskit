@@ -867,7 +867,7 @@ class TestControlledGate(QiskitTestCase):
         cgate = base_gate.control(num_ctrl_qubits)
         test_op = Operator(cgate)
         cop_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
-        self.assertTrue(matrix_equal(cop_mat, test_op.data, atol=1e-7))
+        self.assertTrue(matrix_equal(cop_mat, test_op.data, atol=1e-8))
 
     @combine(num_ctrl_qubits=[1, 2, 3], ctrl_state=[0, None])
     def test_open_controlled_unitary_z(self, num_ctrl_qubits, ctrl_state):
@@ -1096,7 +1096,7 @@ class TestControlledGate(QiskitTestCase):
     )
     def test_all_inverses(self, gate, num_ctrl_qubits, ctrl_state):
         """Test all standard gates except those that cannot be controlled."""
-        if not (issubclass(gate, ControlledGate) or issubclass(gate, allGates.IGate)):
+        if not issubclass(gate, ControlledGate):
             # only verify basic gates right now, as already controlled ones
             # will generate differing definitions
             try:
@@ -1108,6 +1108,35 @@ class TestControlledGate(QiskitTestCase):
                     gate.inverse().control(num_ctrl_qubits, ctrl_state=ctrl_state),
                     gate.control(num_ctrl_qubits, ctrl_state=ctrl_state).inverse(),
                 )
+
+            except AttributeError:
+                # skip gates that do not have a control attribute (e.g. barrier)
+                pass
+
+    @combine(
+        gate=[cls for cls in allGates.__dict__.values() if isinstance(cls, type)],
+        num_ctrl_qubits=[1, 2],
+        ctrl_state=[None, 0, 1],
+    )
+    def test_double_inverses(self, gate, num_ctrl_qubits, ctrl_state):
+        """Check that the inverse of the inverse of a controlled gate is
+        unitary-equivalent to the original controlled gate.
+        """
+        if not issubclass(gate, ControlledGate):
+            # Note that in general gate.inverse().inverse() might be different from gate.
+            # For example, the inverse of the standard gate DCX is not a standard gate,
+            # and hence DCXGate().inverse().inverse() is not DCXGate().
+            # However, the operators for DCXGate() and for DCXGate().inverse().inverse()
+            # must be equal. This test catches bugs when the inverse method of a controlled gate
+            # does not preserve the controlled state of the gate.
+            try:
+                numargs = len(_get_free_params(gate))
+                args = [2] * numargs
+                gate = gate(*args)
+                controlled_gate = gate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
+                controlled_gate_ii = controlled_gate.inverse().inverse()
+
+                self.assertEqual(Operator(controlled_gate), Operator(controlled_gate_ii))
 
             except AttributeError:
                 # skip gates that do not have a control attribute (e.g. barrier)
@@ -1748,7 +1777,7 @@ class TestControlledAnnotatedGate(QiskitTestCase):
         controlled = XGate().control(annotated=False)
         annotated = XGate().control(annotated=True)
         self.assertNotIsInstance(controlled, AnnotatedOperation)
-        self.assertIsInstance(annotated, AnnotatedOperation)
+        self.assertNotIsInstance(annotated, AnnotatedOperation)
         self.assertEqual(Operator(controlled), Operator(annotated))
 
     def test_controlled_y(self):
@@ -1843,7 +1872,7 @@ class TestControlledAnnotatedGate(QiskitTestCase):
         controlled = CXGate().control(annotated=False)
         annotated = CXGate().control(annotated=True)
         self.assertNotIsInstance(controlled, AnnotatedOperation)
-        self.assertIsInstance(annotated, AnnotatedOperation)
+        self.assertNotIsInstance(annotated, AnnotatedOperation)
         self.assertEqual(Operator(controlled), Operator(annotated))
 
     def test_controlled_swap(self):

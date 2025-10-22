@@ -403,9 +403,9 @@ encoding scheme used for symbolic expressions:
         char symbolic_encoding;
     }
 
-From V16 on, the file header struct is immediately followed by a circuit start table 
+From V16 on, the file header struct is immediately followed by a circuit start table
 containing the byte offsets of each circuit payload in the file. There are ``num_circuits``
-entries in the circuit start table, each of which is of type ``uint64_t``. In all previous 
+entries in the circuit start table, each of which is of type ``uint64_t``. In all previous
 versions, the file header is immediately followed by the circuit payloads in sequence
 without any padding in-between.
 
@@ -443,6 +443,19 @@ Version 16 adds a circuit start table to the QPY file format. It serves as an in
 byte offsets of each circuit payload in the file. The motivation for this change is to
 enable a more efficient loading of circuits using multi-threading in a future Rust
 implementation of the QPY deserializer.
+
+Changes to DURATION
+~~~~~~~~~~~~~~~~~~~
+
+A new variant has been added to the existing DURATION type encoding for picoseconds. This
+is encoded as follows, and is in addition to the previously supported variants.
+
+==============================  =========  =========================================================
+Qiskit class                    Type code  Payload
+==============================  =========  =========================================================
+:class:`~.circuit.Duration.ps`    ``p``    One ``double value``.
+
+==============================  =========  =========================================================
 
 .. _qpy_version_15:
 

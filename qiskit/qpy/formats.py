@@ -42,6 +42,9 @@ FILE_HEADER = namedtuple(
 FILE_HEADER_PACK = "!6sBBBBQ"
 FILE_HEADER_SIZE = struct.calcsize(FILE_HEADER_PACK)
 
+TYPE_KEY = namedtuple("TYPE_KEY", ["key"])
+TYPE_KEY_PACK = "!1c"
+TYPE_KEY_SIZE = struct.calcsize(TYPE_KEY_PACK)
 
 CIRCUIT_HEADER_V12 = namedtuple(
     "HEADER",
@@ -445,6 +448,10 @@ DURATION_DISCRIMINATOR_SIZE = 1
 DURATION_DT = namedtuple("DURATION_DT", ["value"])
 DURATION_DT_PACK = "!Q"
 DURATION_DT_SIZE = struct.calcsize(DURATION_DT_PACK)
+
+DURATION_PS = namedtuple("DURATION_PS", ["value"])
+DURATION_PS_PACK = "!d"
+DURATION_PS_SIZE = struct.calcsize(DURATION_PS_PACK)
 
 DURATION_NS = namedtuple("DURATION_NS", ["value"])
 DURATION_NS_PACK = "!d"

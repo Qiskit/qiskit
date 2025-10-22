@@ -12,6 +12,7 @@
 
 """Test operations on control flow for dynamic QuantumCircuits."""
 
+import copy
 import math
 
 from ddt import ddt, data, unpack, idata
@@ -655,6 +656,36 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
         self.assertNotEqual(BoxOp(body_b, duration=300.0, unit="ns"), base)
         self.assertNotEqual(BoxOp(body_a, duration=100.0, unit="ns"), base)
         self.assertNotEqual(BoxOp(body_a, duration=300.0, unit="ms"), base)
+
+    def test_box_copy_is_deep(self):
+        """Copying a circuit with a box should deep copy the body."""
+        qc = QuantumCircuit(2)
+        with qc.box():
+            qc.cx(0, 1)
+
+        qc_copy = qc.copy()
+
+        self.assertIsNot(
+            qc[0].operation.blocks[0],
+            qc_copy[0].operation.blocks[0],
+        )
+
+        qc_copy[0].operation.blocks[0].cx(0, 1)
+
+        self.assertEqual(len(qc[0].operation.blocks[0].data), 1)
+        self.assertEqual(len(qc_copy[0].operation.blocks[0].data), 2)
+
+        qc_deepcopy = copy.deepcopy(qc)
+
+        self.assertIsNot(
+            qc[0].operation.blocks[0],
+            qc_deepcopy[0].operation.blocks[0],
+        )
+
+        qc_deepcopy[0].operation.blocks[0].cx(0, 1)
+
+        self.assertEqual(len(qc[0].operation.blocks[0].data), 1)
+        self.assertEqual(len(qc_deepcopy[0].operation.blocks[0].data), 2)
 
 
 @ddt
