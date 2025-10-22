@@ -1,0 +1,8 @@
+---
+features_circuits:
+  - |
+    A new fast-path method :meth:`.ParameterExpression.bind_all` is added to support the use-case of
+    binding many different :class:`.ParameterExpression` instances to numeric values using the same
+    mappings dictionary.  The existing :meth:`~.ParameterExpression.bind` method has a large amount
+    of overhead and unnecessary allocations, since it always returns a :class:`.ParameterExpression`
+    for typing consistency.

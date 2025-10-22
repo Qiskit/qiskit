@@ -359,7 +359,7 @@ pub struct EquivalenceLibrary {
     graph: GraphType,
     key_to_node_index: KTIType,
     rule_id: usize,
-    _graph: Option<PyObject>,
+    _graph: Option<Py<PyAny>>,
 }
 
 #[pymethods]
@@ -489,7 +489,7 @@ impl EquivalenceLibrary {
     /// Returns:
     ///     PyDiGraph: A graph object with equivalence data in each node.
     #[getter]
-    fn get_graph(&mut self, py: Python) -> PyResult<PyObject> {
+    fn get_graph(&mut self, py: Python) -> PyResult<Py<PyAny>> {
         if let Some(graph) = &self._graph {
             Ok(graph.clone_ref(py))
         } else {
@@ -516,7 +516,7 @@ impl EquivalenceLibrary {
     /// Returns:
     ///     List: Keys to the key to node index map.
     #[pyo3(name = "keys")]
-    fn py_keys(slf: PyRef<Self>) -> PyResult<PyObject> {
+    fn py_keys(slf: PyRef<Self>) -> PyResult<Py<PyAny>> {
         let py_dict = PyDict::new(slf.py());
         for key in slf.keys() {
             py_dict.set_item(key.clone(), slf.py().None())?;
@@ -810,7 +810,10 @@ impl Display for EquivalenceError {
 
 // Conversion helpers
 
-fn to_pygraph<'py, N, E>(py: Python<'py>, pet_graph: &'py StableDiGraph<N, E>) -> PyResult<PyObject>
+fn to_pygraph<'py, N, E>(
+    py: Python<'py>,
+    pet_graph: &'py StableDiGraph<N, E>,
+) -> PyResult<Py<PyAny>>
 where
     N: IntoPyObject<'py> + Clone,
     E: IntoPyObject<'py> + Clone,

@@ -35,6 +35,10 @@
  */
 
 /**
+ * @defgroup QkDag QkDag
+ */
+
+/**
  * @defgroup QkTranspilerPasses QkTranspilerPasses
  */
 
@@ -48,4 +52,12 @@
 
 /**
  * @defgroup QkSabreLayoutOptions QkSabreLayoutOptions
+ */
+
+/**
+ * @defgroup QkTranspiler QkTranspiler
+ */
+
+/**
+ * @defgroup QkCircuitLibrary QkCircuitLibrary
  */

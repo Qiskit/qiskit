@@ -57,7 +57,7 @@ class PauliEvolutionGate(Gate):
     Note that the order in which the approximation and methods like :meth:`control` and
     :meth:`power` are called matters. Changing the order can lead to different unitaries.
 
-    **Examples:**
+    Examples:
 
     .. plot::
        :include-source:
@@ -91,11 +91,11 @@ class PauliEvolutionGate(Gate):
              └──────────────────────────┘
 
 
-    **References:**
+    References:
 
     [1] G. Li et al. Paulihedral: A Generalized Block-Wise Compiler Optimization
     Framework For Quantum Simulation Kernels (2021).
-    [`arXiv:2109.03371 <https://arxiv.org/abs/2109.03371>`_]
+    `arXiv:2109.03371 <https://arxiv.org/abs/2109.03371>`__
     """
 
     def __init__(

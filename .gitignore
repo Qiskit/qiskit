@@ -77,9 +77,6 @@ instance/
 .scrapy
 
 
-# PyBuilder
-target/
-
 # Jupyter Notebook
 .ipynb_checkpoints
 

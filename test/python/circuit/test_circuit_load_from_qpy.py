@@ -13,9 +13,11 @@
 
 """Test cases for qpy serialization."""
 
+import gzip
 import io
 import json
 import random
+import tempfile
 import unittest
 import warnings
 import re
@@ -2250,7 +2252,7 @@ class TestLoadFromQPY(QiskitTestCase):
         ):
             dump(qc, fptr, version=version)
 
-    @ddt.idata(range(14, 16))
+    @ddt.idata(range(max(QPY_COMPATIBILITY_VERSION, 14), 16))
     def test_pre_v16_rejects_ps_duration(self, version):
         """Test that dumping to older QPY versions rejects Duration.ps."""
         from qiskit.circuit import Duration
@@ -2265,6 +2267,24 @@ class TestLoadFromQPY(QiskitTestCase):
             ),
         ):
             dump(qc, fptr, version=version)
+
+    def test_roundtrip_from_gzip(self):
+        """Test that we can write out and read from a stdlib gzip file.
+
+        Regression test of https://github.com/Qiskit/qiskit/issues/15157."""
+        qc = QuantumCircuit(2, 2, name="first")
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure(qc.qubits, qc.clbits)
+        circuits = [qc, qc.copy(name="second")]
+        with tempfile.TemporaryFile() as base_fptr:
+            with gzip.open(base_fptr, mode="w+b") as fptr:
+                dump(circuits, fptr)
+            base_fptr.seek(0)
+            with gzip.open(base_fptr, mode="r+b") as fptr:
+                out_circuits = load(fptr)
+        self.assertEqual(circuits, out_circuits)
+        self.assertEqual([qc.name for qc in circuits], [qc.name for qc in out_circuits])
 
 
 class TestSymengineLoadFromQPY(QiskitTestCase):

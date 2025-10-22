@@ -42,6 +42,9 @@ FILE_HEADER = namedtuple(
 FILE_HEADER_PACK = "!6sBBBBQ"
 FILE_HEADER_SIZE = struct.calcsize(FILE_HEADER_PACK)
 
+TYPE_KEY = namedtuple("TYPE_KEY", ["key"])
+TYPE_KEY_PACK = "!1c"
+TYPE_KEY_SIZE = struct.calcsize(TYPE_KEY_PACK)
 
 CIRCUIT_HEADER_V12 = namedtuple(
     "HEADER",
