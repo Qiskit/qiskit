@@ -1693,7 +1693,11 @@ impl CircuitData {
 
     // return the total number of identifiers in the circuit (vars + stretches)
     pub fn num_identifiers(&self) -> usize {
-        self.num_input_vars() + self.num_captured_vars() + self.num_declared_vars() + self.num_captured_stretches() + self.num_declared_stretches()
+        self.num_input_vars()
+            + self.num_captured_vars()
+            + self.num_declared_vars()
+            + self.num_captured_stretches()
+            + self.num_declared_stretches()
     }
 
     /// Add a captured stretch to the circuit.

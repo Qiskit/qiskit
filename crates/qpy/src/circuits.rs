@@ -28,17 +28,16 @@ use pyo3::types::{PyAny, PyBytes, PyDict, PyList, PyString, PyTuple, PyType};
 use pyo3::IntoPyObjectExt;
 
 use qiskit_circuit::bit::{
-    ClassicalRegister, PyClbit, PyQubit, QuantumRegister, Register, ShareableClbit,
-    ShareableQubit,
+    ClassicalRegister, PyClbit, PyQubit, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
 use qiskit_circuit::circuit_data::{CircuitData, CircuitStretchType, CircuitVarType};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::classical;
+use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::imports;
-use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardInstruction};
+use qiskit_circuit::operations::{OperationRef, Param, StandardInstruction};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::{Clbit, Qubit};
-use qiskit_circuit::converters::QuantumCircuitData;
 
 use smallvec::SmallVec;
 
@@ -47,16 +46,17 @@ use crate::bytes::Bytes;
 use crate::consts::standard_gate_from_gate_class_name;
 use crate::formats;
 use crate::params::unpack_param;
-use crate::value::{
-    circuit_instruction_types, deserialize, deserialize_with_args,
-    expression_var_declaration, pack_standalone_var, pack_stretch, 
-    serialize, tags, unpack_generic_data, DumpedValue, ExpressionType, QPYReadData, QPYWriteData, VarOrStretch
+use crate::py_methods::{
+    get_condition_data_from_inst, get_python_gate_class, pack_py_custom_instruction,
+    pack_py_instruction, pack_py_registers, serialize_metadata,
 };
-use crate::py_methods::{serialize_metadata, pack_py_registers, pack_py_instruction, pack_py_custom_instruction, get_condition_data_from_inst, get_python_gate_class};
+use crate::value::{
+    circuit_instruction_types, deserialize, deserialize_with_args, expression_var_declaration,
+    pack_standalone_var, pack_stretch, serialize, tags, unpack_generic_data, DumpedValue,
+    ExpressionType, QPYReadData, QPYWriteData, VarOrStretch,
+};
 
 use crate::UnsupportedFeatureForVersion;
-
-
 
 // This is a helper struct, designed to pass data within methods
 // It is not meant to be serialized, so it's not in formats.rs
@@ -100,8 +100,6 @@ pub fn get_packed_bit_list(
     result
 }
 
-
-
 pub fn load_register(
     py: Python,
     data_bytes: Bytes,
@@ -142,8 +140,6 @@ pub fn load_register(
     }
 }
 
-
-
 pub fn get_condition_data(
     op: &PackedOperation,
     circuit_data: &CircuitData,
@@ -162,8 +158,6 @@ pub fn get_condition_data(
         }),
     }
 }
-
-
 
 fn deserialize_standard_instruction(
     instruction: &formats::CircuitInstructionV2Pack,
@@ -552,8 +546,6 @@ pub fn pack_instructions(
     ))
 }
 
-
-
 fn deserialize_metadata(
     py: Python,
     metadata_bytes: &Bytes,
@@ -568,66 +560,87 @@ fn deserialize_metadata(
         .unbind())
 }
 
-
 // packs the quantum registers in the circuit. we pack:
 // 1) registers appearing explicitly in the circuit register list (identified using in_circ_lookup)
 // 2) registers appearing implicitly for bits (in python: as their "_register" data field)
 fn pack_quantum_registers(circuit_data: &CircuitData) -> Vec<formats::RegisterV4Pack> {
     let in_circ_lookup: HashSet<QuantumRegister> = circuit_data.qregs().iter().cloned().collect();
-    let mut registers_to_pack: IndexSet<QuantumRegister> = circuit_data.qregs().iter().cloned().collect();
+    let mut registers_to_pack: IndexSet<QuantumRegister> =
+        circuit_data.qregs().iter().cloned().collect();
     registers_to_pack.extend(
         circuit_data
-        .qubits()
-        .objects()
-        .iter()
-        .filter_map(|qubit| circuit_data.qubit_indices().get(qubit)) // only qubits with register data
-        .flat_map(|qreg_locations| qreg_locations.registers().iter().map(|(qreg, _)| qreg.clone()))
+            .qubits()
+            .objects()
+            .iter()
+            .filter_map(|qubit| circuit_data.qubit_indices().get(qubit)) // only qubits with register data
+            .flat_map(|qreg_locations| {
+                qreg_locations
+                    .registers()
+                    .iter()
+                    .map(|(qreg, _)| qreg.clone())
+            }),
     );
     registers_to_pack
-    .iter()
-    .map(|qreg| {
-        let bit_indices = qreg
-        .bits()
-        .map(|qubit| circuit_data.qubit_index(qubit).map(|index| index as i64).unwrap_or(-1))
-        .collect();
-        formats::RegisterV4Pack {
-            register_type: 'q' as u8,
-            standalone: qreg.is_owning() as u8,
-            in_circuit: in_circ_lookup.contains(qreg) as u8,
-            name: qreg.name().to_string(),
-            bit_indices
-        }
-    })
-    .collect()
+        .iter()
+        .map(|qreg| {
+            let bit_indices = qreg
+                .bits()
+                .map(|qubit| {
+                    circuit_data
+                        .qubit_index(qubit)
+                        .map(|index| index as i64)
+                        .unwrap_or(-1)
+                })
+                .collect();
+            formats::RegisterV4Pack {
+                register_type: b'q',
+                standalone: qreg.is_owning() as u8,
+                in_circuit: in_circ_lookup.contains(qreg) as u8,
+                name: qreg.name().to_string(),
+                bit_indices,
+            }
+        })
+        .collect()
 }
 
 fn pack_classical_registers(circuit_data: &CircuitData) -> Vec<formats::RegisterV4Pack> {
     let in_circ_lookup: HashSet<ClassicalRegister> = circuit_data.cregs().iter().cloned().collect();
-    let mut registers_to_pack: IndexSet<ClassicalRegister> = circuit_data.cregs().iter().cloned().collect();
+    let mut registers_to_pack: IndexSet<ClassicalRegister> =
+        circuit_data.cregs().iter().cloned().collect();
     registers_to_pack.extend(
         circuit_data
-        .clbits()
-        .objects()
-        .iter()
-        .filter_map(|clbit| circuit_data.clbit_indices().get(clbit)) // only qubits with register data
-        .flat_map(|creg_locations| creg_locations.registers().iter().map(|(creg, _)| creg.clone()))
+            .clbits()
+            .objects()
+            .iter()
+            .filter_map(|clbit| circuit_data.clbit_indices().get(clbit)) // only qubits with register data
+            .flat_map(|creg_locations| {
+                creg_locations
+                    .registers()
+                    .iter()
+                    .map(|(creg, _)| creg.clone())
+            }),
     );
     registers_to_pack
-    .iter()
-    .map(|creg| {
-        let bit_indices = creg
-        .bits()
-        .map(|clbit| circuit_data.clbit_index(clbit).map(|index| index as i64).unwrap_or(-1))
-        .collect();
-        formats::RegisterV4Pack {
-            register_type: 'c' as u8,
-            standalone: creg.is_owning() as u8,
-            in_circuit: in_circ_lookup.contains(creg) as u8,
-            name: creg.name().to_string(),
-            bit_indices
-        }
-    })
-    .collect()
+        .iter()
+        .map(|creg| {
+            let bit_indices = creg
+                .bits()
+                .map(|clbit| {
+                    circuit_data
+                        .clbit_index(clbit)
+                        .map(|index| index as i64)
+                        .unwrap_or(-1)
+                })
+                .collect();
+            formats::RegisterV4Pack {
+                register_type: b'c',
+                standalone: creg.is_owning() as u8,
+                in_circuit: in_circ_lookup.contains(creg) as u8,
+                name: creg.name().to_string(),
+                bit_indices,
+            }
+        })
+        .collect()
 }
 
 fn pack_circuit_header(
@@ -637,12 +650,9 @@ fn pack_circuit_header(
 ) -> PyResult<formats::CircuitHeaderV12Pack> {
     // let py = circuit.py();
     // let circuit_name = circuit.getattr(intern!(py, "name"))?.extract::<String>()?;
-    let metadata = serialize_metadata(
-        circuit.metadata,
-        metadata_serializer,
-    )?;
+    let metadata = serialize_metadata(&circuit.metadata, metadata_serializer)?;
     let global_phase_data = DumpedValue::from_param(circuit.data.global_phase(), qpy_data)?;
-        // DumpedValue::from(&circuit.getattr(intern!(py, "global_phase"))?, qpy_data)?;
+    // DumpedValue::from(&circuit.getattr(intern!(py, "global_phase"))?, qpy_data)?;
     // let qregs = pack_registers(
     //     &circuit.getattr(intern!(py, "qregs"))?,
     //     circuit
@@ -664,7 +674,7 @@ fn pack_circuit_header(
         num_clbits: circuit.data.num_clbits() as u32,
         num_instructions: circuit.data.__len__() as u64,
         num_vars: circuit.data.num_identifiers() as u32,
-        circuit_name: circuit.name.unwrap_or_else(|| String::new()),
+        circuit_name: circuit.name.clone().unwrap_or_default(),
         global_phase_data,
         metadata,
         registers,
@@ -674,19 +684,26 @@ fn pack_circuit_header(
 }
 
 pub fn pack_layout(circuit: &QuantumCircuitData) -> PyResult<formats::LayoutV2Pack> {
-    match circuit.custom_layout {
-        None => Ok(formats::LayoutV2Pack {
-            exists: 0,
-            initial_layout_size: -1,
-            input_mapping_size: -1,
-            final_layout_size: -1,
-            input_qubit_count: 0,
-            extra_registers: Vec::new(),
-            initial_layout_items: Vec::new(),
-            input_mapping_items: Vec::new(),
-            final_layout_items: Vec::new(),
-        }),
-        Some(custom_layout) => pack_custom_layout(&custom_layout, &circuit.data)
+    let default_layout = formats::LayoutV2Pack {
+        exists: 0,
+        initial_layout_size: -1,
+        input_mapping_size: -1,
+        final_layout_size: -1,
+        input_qubit_count: 0,
+        extra_registers: Vec::new(),
+        initial_layout_items: Vec::new(),
+        input_mapping_items: Vec::new(),
+        final_layout_items: Vec::new(),
+    };
+    match &circuit.custom_layout {
+        None => Ok(default_layout),
+        Some(custom_layout) => {
+            if custom_layout.is_none() {
+                Ok(default_layout)
+            } else {
+                pack_custom_layout(custom_layout, &circuit.data)
+            }
+        }
     }
 }
 
@@ -701,7 +718,10 @@ fn unpack_layout<'py>(
     }
 }
 
-fn pack_custom_layout(layout: &Bound<PyAny>, circuit: &CircuitData) -> PyResult<formats::LayoutV2Pack> {
+fn pack_custom_layout(
+    layout: &Bound<PyAny>,
+    circuit: &CircuitData,
+) -> PyResult<formats::LayoutV2Pack> {
     let py = layout.py();
     let mut initial_layout_size = -1; // initial_size
     let input_qubit_mapping = PyDict::new(py);
@@ -779,17 +799,27 @@ fn pack_custom_layout(layout: &Bound<PyAny>, circuit: &CircuitData) -> PyResult<
         let final_layout_physical = final_layout.call_method0("get_physical_bits")?;
         for i in 0..circuit.num_qubits() {
             // this part is alternative to calling `find_bit` for the python version of the quantum circuit
-            let virtual_bit = final_layout_physical.downcast::<PyDict>()?.get_item(i)?.unwrap(); // TODO: handle unwrap failure
+            let virtual_bit = final_layout_physical
+                .downcast::<PyDict>()?
+                .get_item(i)?
+                .unwrap(); // TODO: handle unwrap failure
             if virtual_bit.is_instance_of::<PyClbit>() {
-                match circuit.get_clbit_indices(py).bind(py).get_item(virtual_bit)? {
+                match circuit
+                    .get_clbit_indices(py)
+                    .bind(py)
+                    .get_item(virtual_bit)?
+                {
                     None => (), // TODO: error?
-                    Some(bit_data) => final_layout_array.append(bit_data.getattr("index")?)?
+                    Some(bit_data) => final_layout_array.append(bit_data.getattr("index")?)?,
                 }
-            }
-            if virtual_bit.is_instance_of::<PyQubit>() {
-                match circuit.get_qubit_indices(py).bind(py).get_item(virtual_bit)? {
+            } else if virtual_bit.is_instance_of::<PyQubit>() {
+                match circuit
+                    .get_qubit_indices(py)
+                    .bind(py)
+                    .get_item(virtual_bit)?
+                {
                     None => (), // TODO: error?
-                    Some(bit_data) => final_layout_array.append(bit_data.getattr("index")?)?
+                    Some(bit_data) => final_layout_array.append(bit_data.getattr("index")?)?,
                 }
             }
         }
@@ -988,18 +1018,18 @@ fn pack_standalone_vars(
     // input vars
     for var in circuit_data.get_vars(CircuitVarType::Input) {
         result.push(pack_standalone_var(
-            &var,
+            var,
             expression_var_declaration::INPUT,
             version,
         )?);
         standalone_var_indices.insert(VarOrStretch::Var(var.clone()), index);
         index += 1;
     }
-    
+
     // captured vars
     for var in circuit_data.get_vars(CircuitVarType::Capture) {
         result.push(pack_standalone_var(
-            &var,
+            var,
             expression_var_declaration::CAPTURE,
             version,
         )?);
@@ -1010,22 +1040,23 @@ fn pack_standalone_vars(
     // declared vars
     for var in circuit_data.get_vars(CircuitVarType::Declare) {
         result.push(pack_standalone_var(
-            &var,
+            var,
             expression_var_declaration::LOCAL,
             version,
         )?);
         standalone_var_indices.insert(VarOrStretch::Var(var.clone()), index);
         index += 1;
     }
-    if version < 14 && (circuit_data.num_captured_stretches() > 0 || circuit_data.num_declared_stretches() > 0) {
+    if version < 14
+        && (circuit_data.num_captured_stretches() > 0 || circuit_data.num_declared_stretches() > 0)
+    {
         return Err(UnsupportedFeatureForVersion::new_err((
             "circuits containing stretch variables",
             14,
             version,
         )));
     }
-    for stretch in circuit_data.get_stretches(CircuitStretchType::Capture)
-    {
+    for stretch in circuit_data.get_stretches(CircuitStretchType::Capture) {
         result.push(pack_stretch(
             stretch,
             expression_var_declaration::STRETCH_CAPTURE,
@@ -1033,8 +1064,7 @@ fn pack_standalone_vars(
         standalone_var_indices.insert(VarOrStretch::Stretch(stretch.clone()), index);
         index += 1;
     }
-    for stretch in circuit_data.get_stretches(CircuitStretchType::Declare)
-    {
+    for stretch in circuit_data.get_stretches(CircuitStretchType::Declare) {
         result.push(pack_stretch(
             stretch,
             expression_var_declaration::STRETCH_LOCAL,
@@ -1053,17 +1083,18 @@ pub fn pack_circuit(
     annotation_factories: &Bound<PyDict>,
 ) -> PyResult<formats::QPYFormatV15> {
     let py = metadata_serializer.py();
-//    circuit.getattr("data")?; // in case _data is lazily generated in python
-//    let mut circuit_data = circuit.getattr("_data")?.extract::<CircuitData>()?;
+    //    circuit.getattr("data")?; // in case _data is lazily generated in python
+    //    let mut circuit_data = circuit.getattr("_data")?.extract::<CircuitData>()?;
     let clbit_indices = circuit.data.get_clbit_indices(py).clone();
     let mut standalone_var_indices: HashMap<VarOrStretch, usize> = HashMap::new();
-    let standalone_vars = pack_standalone_vars(&circuit.data, version, &mut standalone_var_indices)?;
+    let standalone_vars =
+        pack_standalone_vars(&circuit.data, version, &mut standalone_var_indices)?;
     let annotation_handler = AnnotationHandler::new(annotation_factories);
     let mut qpy_data = QPYWriteData {
         version,
         _use_symengine: use_symengine,
         clbit_indices,
-        standalone_var_indices,
+        // standalone_var_indices,
         py_standalone_var_indices: PyDict::new(py).unbind(),
         annotation_handler,
     };

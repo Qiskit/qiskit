@@ -637,7 +637,7 @@ macro_rules! create_bit_object {
                 }
             }
         }
-        
+
         impl<'py> FromPyObject<'py> for $reg_struct {
             fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
                 Ok(ob.downcast::<$pyreg_struct>()?.borrow().0.clone())

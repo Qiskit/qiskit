@@ -26,7 +26,9 @@ from qiskit.qpy import formats, exceptions
 QPY_VERSION = 16
 QPY_COMPATIBILITY_VERSION = 13
 QPY_RUST_MIN_VERSION = 15  # we do not support encoding/decoding in Rust for previous versions yet
-QPY_RUST_MAX_VERSION = 16 # version 16 has a circuit offset table (#14571) which is not yet supported in Rust
+QPY_RUST_MAX_VERSION = (
+    16  # version 16 has a circuit offset table (#14571) which is not yet supported in Rust
+)
 ENCODE = "utf8"
 
 

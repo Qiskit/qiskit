@@ -43,7 +43,7 @@ use uuid::Uuid;
 const QPY_VERSION: u32 = 15;
 
 #[derive(Eq, PartialEq, Hash, Debug)]
-pub enum VarOrStretch{
+pub enum VarOrStretch {
     Var(Var),
     Stretch(Stretch),
 }
@@ -51,7 +51,7 @@ pub struct QPYWriteData<'a> {
     pub version: u32,
     pub _use_symengine: bool,
     pub clbit_indices: Py<PyDict>,
-    pub standalone_var_indices: HashMap<VarOrStretch, usize>,
+    // pub standalone_var_indices: HashMap<VarOrStretch, usize>, // TODO: should replace the python version once we write a visitor for Rust expressions
     pub py_standalone_var_indices: Py<PyDict>,
     pub annotation_handler: AnnotationHandler<'a>,
 }
@@ -226,7 +226,9 @@ pub fn dumps_value(py_object: PyObject, qpy_data: &QPYWriteData) -> PyResult<(u8
             tags::TUPLE => serialize(&pack_generic_sequence(py_object, qpy_data)?)?,
             tags::PARAMETER => serialize(&pack_parameter(py_object)?)?,
             tags::PARAMETER_VECTOR => serialize(&pack_parameter_vector(py_object)?)?,
-            tags::PARAMETER_EXPRESSION => serialize(&pack_parameter_expression(py_object, qpy_data)?)?,
+            tags::PARAMETER_EXPRESSION => {
+                serialize(&pack_parameter_expression(py_object, qpy_data)?)?
+            }
             tags::NUMPY_OBJ => {
                 let np = py.import("numpy")?;
                 let io = py.import("io")?;
@@ -373,14 +375,14 @@ fn serialize_expression(py_object: &Bound<PyAny>, qpy_data: &QPYWriteData) -> Py
     let io = py.import("io")?;
     let buffer = io.call_method0("BytesIO")?;
     let value = py.import("qiskit.qpy.binary_io.value")?;
+    // TODO: I don't think unit tests cover this relatively complex part
     value.call_method1(
         "_write_expr",
         (
             &buffer,
             py_object,
             clbit_indices,
-            PyList::new(py, Vec::new())?, // TODO: temporary placeholder; we need to start using the rust Expr visitor
-            //&qpy_data.standalone_var_indices,
+            &qpy_data.py_standalone_var_indices,
             qpy_data.version,
         ),
     )?;
@@ -487,21 +489,19 @@ pub fn pack_standalone_var(
                 name: name.clone(),
             })
         }
-        _ => {
-            Err(QpyError::new_err(format!("attempted to pack as standalone var the non-standalone var {:?}",var)))
-        }
+        _ => Err(QpyError::new_err(format!(
+            "attempted to pack as standalone var the non-standalone var {:?}",
+            var
+        ))),
     }
 }
 
-pub fn pack_stretch(
-    stretch: &Stretch,
-    usage: u8,
-) -> formats::ExpressionVarDeclarationPack {
+pub fn pack_stretch(stretch: &Stretch, usage: u8) -> formats::ExpressionVarDeclarationPack {
     formats::ExpressionVarDeclarationPack {
         uuid_bytes: stretch.uuid.to_be_bytes(),
         usage,
         exp_type: ExpressionType::Duration,
-        name: stretch.name.clone()
+        name: stretch.name.clone(),
     }
 }
 
@@ -510,9 +510,29 @@ pub fn pack_stretch(
 fn pack_expression_type(exp_type: &Type, version: u32) -> PyResult<ExpressionType> {
     match exp_type {
         Type::Bool => Ok(ExpressionType::Bool),
-        Type::Duration => if version >= 14 {Ok(ExpressionType::Duration)} else {Err(UnsupportedFeatureForVersion::new_err(("duration-typed expressions",14,version)))}
-        Type::Float => if version >= 14 {Ok(ExpressionType::Float)} else {Err(UnsupportedFeatureForVersion::new_err(("float-typed expressions",14,version)))}
-        Type::Uint(width) => Ok(ExpressionType::Uint(*width as u32))
+        Type::Duration => {
+            if version >= 14 {
+                Ok(ExpressionType::Duration)
+            } else {
+                Err(UnsupportedFeatureForVersion::new_err((
+                    "duration-typed expressions",
+                    14,
+                    version,
+                )))
+            }
+        }
+        Type::Float => {
+            if version >= 14 {
+                Ok(ExpressionType::Float)
+            } else {
+                Err(UnsupportedFeatureForVersion::new_err((
+                    "float-typed expressions",
+                    14,
+                    version,
+                )))
+            }
+        }
+        Type::Uint(width) => Ok(ExpressionType::Uint(*width as u32)),
     }
 }
 
@@ -630,7 +650,10 @@ impl DumpedValue {
     }
     pub fn from_param(param: &Param, qpy_data: &QPYWriteData) -> PyResult<DumpedValue> {
         match param {
-            Param::Float(value) => Ok(DumpedValue { data_type: (tags::FLOAT), data: (value.into())}),
+            Param::Float(value) => Ok(DumpedValue {
+                data_type: (tags::FLOAT),
+                data: (value.into()),
+            }),
             Param::Obj(py_object) => DumpedValue::from(py_object.clone(), qpy_data),
             Param::ParameterExpression(py_object) => DumpedValue::from(py_object.clone(), qpy_data),
         }

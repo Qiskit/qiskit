@@ -11,16 +11,14 @@
 // that they have been altered from the originals.
 
 // Methods for QPY serialization working directly with Python-based data
-use hashbrown::{HashMap};
+use hashbrown::HashMap;
 use numpy::ToPyArray;
 use pyo3::exceptions::{PyIOError, PyValueError};
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyDict, PyIterator, PyList, PyTuple};
 
-use qiskit_circuit::bit::{
-    PyClassicalRegister, PyClbit, Register, ShareableClbit,
-};
+use qiskit_circuit::bit::{PyClassicalRegister, PyClbit, ShareableClbit};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::CircuitInstruction;
 use qiskit_circuit::classical;
@@ -34,14 +32,15 @@ use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
 use crate::formats;
 use crate::params::{pack_param, pack_param_obj};
-use crate::{QpyError, UnsupportedFeatureForVersion};
 use crate::value::{
-    circuit_instruction_types, dumps_value,
-    expression_var_declaration, get_circuit_type_key, pack_generic_data,
-    serialize, DumpedValue, ExpressionType, QPYWriteData,
+    circuit_instruction_types, dumps_value, expression_var_declaration, get_circuit_type_key,
+    pack_generic_data, serialize, DumpedValue, ExpressionType, QPYWriteData,
 };
+use crate::{QpyError, UnsupportedFeatureForVersion};
 
-use crate::circuits::{pack_instructions, pack_custom_instructions, get_packed_bit_list, get_condition_data};
+use crate::circuits::{
+    get_condition_data, get_packed_bit_list, pack_custom_instructions, pack_instructions,
+};
 
 const UNITARY_GATE_CLASS_NAME: &str = "UnitaryGate";
 
@@ -127,7 +126,7 @@ pub fn get_python_gate_class<'a>(
 
 // serializes python metadata to JSON using a python JSON serializer
 pub fn serialize_metadata(
-    metadata_opt: Option<Bound<PyAny>>,
+    metadata_opt: &Option<Bound<PyAny>>,
     metadata_serializer: &Bound<PyAny>,
 ) -> PyResult<Bytes> {
     match metadata_opt {
@@ -139,9 +138,9 @@ pub fn serialize_metadata(
             kwargs.set_item("separators", PyTuple::new(py, [",", ":"])?)?;
             kwargs.set_item("cls", metadata_serializer)?;
             Ok(json
-            .call_method("dumps", (metadata,), Some(&kwargs))?
-            .extract::<String>()?
-            .into())
+                .call_method("dumps", (metadata,), Some(&kwargs))?
+                .extract::<String>()?
+                .into())
         }
     }
 }
@@ -216,7 +215,6 @@ fn pack_expression_type(exp_type: &Bound<PyAny>, version: u32) -> PyResult<Expre
         ),)));
     }
 }
-
 
 fn pack_py_standalone_vars(
     circuit: &Bound<PyAny>,
@@ -393,11 +391,13 @@ fn pack_py_circuit_header(
     let py = circuit.py();
     let circuit_name = circuit.getattr(intern!(py, "name"))?.extract::<String>()?;
     let metadata = serialize_metadata(
-        Some(circuit.getattr(intern!(py, "metadata"))?),
+        &Some(circuit.getattr(intern!(py, "metadata"))?),
         metadata_serializer,
     )?;
-    let global_phase_data =
-        DumpedValue::from(circuit.getattr(intern!(py, "global_phase"))?.unbind(), qpy_data)?;
+    let global_phase_data = DumpedValue::from(
+        circuit.getattr(intern!(py, "global_phase"))?.unbind(),
+        qpy_data,
+    )?;
     let qregs = pack_py_registers(
         &circuit.getattr(intern!(py, "qregs"))?,
         circuit
@@ -622,7 +622,7 @@ pub fn pack_py_circuit(
         version,
         _use_symengine: use_symengine,
         clbit_indices,
-        standalone_var_indices: HashMap::new(),
+        // standalone_var_indices: HashMap::new(),
         py_standalone_var_indices: standalone_var_indices.unbind(),
         annotation_handler,
     };
@@ -1104,42 +1104,40 @@ pub fn get_condition_data_from_inst(
     circuit_data: &CircuitData,
     qpy_data: &QPYWriteData,
 ) -> PyResult<formats::ConditionPack> {
-    Python::with_gil(|py| {
-        match getattr_or_none(inst.bind(py), "_condition")? {
-            None => Ok(formats::ConditionPack {
-                key: formats::condition_types::NONE,
-                register_size: 0u16,
-                value: 0i64,
-                data: formats::ConditionData::None,
-            }),
-            Some(condition) => {
-                if condition.extract::<classical::expr::Expr>().is_ok() {
-                    let expression = pack_generic_data(&condition, qpy_data)?;
-                    Ok(formats::ConditionPack {
-                        key: formats::condition_types::EXPRESSION,
-                        register_size: 0u16,
-                        value: 0i64,
-                        data: formats::ConditionData::Expression(expression),
-                    })
-                } else if condition.is_instance_of::<PyTuple>() {
-                    let key = formats::condition_types::TWO_TUPLE;
-                    let value = condition
-                        .downcast::<PyTuple>()?
-                        .get_item(1)?
-                        .extract::<i64>()?;
-                    let register =
-                        dumps_register(condition.downcast::<PyTuple>()?.get_item(0)?, circuit_data)?;
-                    Ok(formats::ConditionPack {
-                        key,
-                        register_size: register.len() as u16,
-                        value,
-                        data: formats::ConditionData::Register(register),
-                    })
-                } else {
-                    Err(PyValueError::new_err(
-                        "Expression handling not implemented for get_condition_data_from_inst",
-                    ))
-                }
+    Python::with_gil(|py| match getattr_or_none(inst.bind(py), "_condition")? {
+        None => Ok(formats::ConditionPack {
+            key: formats::condition_types::NONE,
+            register_size: 0u16,
+            value: 0i64,
+            data: formats::ConditionData::None,
+        }),
+        Some(condition) => {
+            if condition.extract::<classical::expr::Expr>().is_ok() {
+                let expression = pack_generic_data(&condition, qpy_data)?;
+                Ok(formats::ConditionPack {
+                    key: formats::condition_types::EXPRESSION,
+                    register_size: 0u16,
+                    value: 0i64,
+                    data: formats::ConditionData::Expression(expression),
+                })
+            } else if condition.is_instance_of::<PyTuple>() {
+                let key = formats::condition_types::TWO_TUPLE;
+                let value = condition
+                    .downcast::<PyTuple>()?
+                    .get_item(1)?
+                    .extract::<i64>()?;
+                let register =
+                    dumps_register(condition.downcast::<PyTuple>()?.get_item(0)?, circuit_data)?;
+                Ok(formats::ConditionPack {
+                    key,
+                    register_size: register.len() as u16,
+                    value,
+                    data: formats::ConditionData::Register(register),
+                })
+            } else {
+                Err(PyValueError::new_err(
+                    "Expression handling not implemented for get_condition_data_from_inst",
+                ))
             }
         }
     })
