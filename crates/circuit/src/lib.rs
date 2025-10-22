@@ -46,9 +46,11 @@ use pyo3::prelude::*;
 use pyo3::types::{PySequence, PyString, PyTuple};
 
 #[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject)]
+#[repr(transparent)]
 pub struct Qubit(pub u32);
 
 #[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject)]
+#[repr(transparent)]
 pub struct Clbit(pub u32);
 
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
