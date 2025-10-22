@@ -38,9 +38,20 @@ fn nalgebra_to_faer<R: Dim, C: Dim, RStride: Dim, CStride: Dim>(
     array.into_faer()
 }
 
-// This code function is based on faer-ext's IntoNalgebra::into_nalgebra implementation at:
-// https://codeberg.org/sarah-quinones/faer-ext/src/commit/0f055b39529c94d1a000982df745cb9ce170f994/src/lib.rs#L77-L96
+/// Convert a faer MatRef into a nalgebra MatrixView without copying
+///
+/// This function has some potential sharp edeges around converting strided
+/// views. If you are using a strided `MatRef` you'll typically want to ensure
+/// the underlying matrix the view is over is contiguous. Specifically if it's
+/// not there is a potential path to undefined behavior when using nalgebra
+/// methods like `MatrixView::into_slice()` which doesn't understand
+/// striding and will access the memory as if the array was a contiguous R x C
+/// matrix. If using striding here it's best to not ever call `into_slice()`. There
+/// might also be similar sharp edges with strided matrices.
 fn faer_to_nalgebra(mat: MatRef<'_, Complex64>) -> MatrixView<'_, Complex64, Dyn, Dyn, Dyn, Dyn> {
+    // This function's code is based on faer-ext's IntoNalgebra::into_nalgebra implementation at:
+    // https://codeberg.org/sarah-quinones/faer-ext/src/commit/0f055b39529c94d1a000982df745cb9ce170f994/src/lib.rs#L77-L96
+
     let nrows = mat.nrows();
     let ncols = mat.ncols();
     let row_stride = mat.row_stride();
@@ -180,4 +191,32 @@ pub fn svd_decomposition(
     ));
 
     (u_na.into(), s_na, v_na)
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use faer::prelude::*;
+    use nalgebra::DMatrix;
+
+    #[test]
+    fn test_basic_faer_to_nalgebra_conversion() {
+        let matrix = Mat::identity(10, 10);
+        let mat_view = faer_to_nalgebra(matrix.as_ref());
+        assert_eq!(mat_view, DMatrix::identity(10, 10));
+    }
+
+    #[test]
+    fn test_row_strided_view_faer_to_nalgebra_conversion() {
+        let matrix = Mat::identity(10, 10);
+        let mat_view = faer_to_nalgebra(matrix.transpose());
+        assert_eq!(mat_view, DMatrix::identity(10, 10));
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_negative_strided_view_faer_to_nalgebra_conversion() {
+        let matrix = Mat::identity(10, 10);
+        faer_to_nalgebra(matrix.reverse_rows());
+    }
 }
