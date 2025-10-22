@@ -17,7 +17,7 @@ use crate::exit_codes::ExitCode;
 use qiskit_circuit::Qubit;
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
-use qiskit_circuit::operations::{Operation, StandardGate};
+use qiskit_circuit::operations::{Operation, Param, StandardGate};
 
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
@@ -225,6 +225,8 @@ pub enum CDagNodeType {
 /// @param dag A pointer to the DAG.
 /// @param qubit The node to get the type of.
 ///
+/// @return The type of the node.
+///
 /// # Safety
 ///
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
@@ -253,6 +255,8 @@ pub unsafe extern "C" fn qk_dag_node_type(dag: *const DAGCircuit, node: u32) -> 
 /// @param dag A pointer to the DAG.
 /// @param qubit The qubit to get the input node index of.
 ///
+/// @return The input node of the qubit wire.
+///
 /// # Safety
 ///
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
@@ -268,6 +272,8 @@ pub unsafe extern "C" fn qk_dag_qubit_in_node(dag: *const DAGCircuit, qubit: u32
 ///
 /// @param dag A pointer to the DAG.
 /// @param qubit The qubit to get the output node index of.
+///
+/// @return The output node of the qubit wire.
 ///
 /// # Safety
 ///
@@ -285,6 +291,8 @@ pub unsafe extern "C" fn qk_dag_qubit_out_node(dag: *const DAGCircuit, qubit: u3
 /// @param dag A pointer to the DAG.
 /// @param clbit The clbit to get the input node index of.
 ///
+/// @return The input node of the clbit wire.
+///
 /// # Safety
 ///
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
@@ -301,6 +309,8 @@ pub unsafe extern "C" fn qk_dag_clbit_in_node(dag: *const DAGCircuit, clbit: u32
 /// @param dag A pointer to the DAG.
 /// @param qubit The qubit to get the output node index of.
 ///
+/// @return The output node of the clbit wire.
+///
 /// # Safety
 ///
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
@@ -316,6 +326,8 @@ pub unsafe extern "C" fn qk_dag_clbit_out_node(dag: *const DAGCircuit, clbit: u3
 ///
 /// @param dag A pointer to the DAG.
 /// @param qubit The endpoint node to get the wire value of.
+///
+/// @return The value (e.g. qubit or clbit) within the endpoint node.
 ///
 /// # Safety
 ///
@@ -337,6 +349,178 @@ pub unsafe extern "C" fn qk_dag_endpoint_node_value(dag: *const DAGCircuit, node
         NodeType::VarOut(value) => value.index(),
         NodeType::Operation(_) => panic!("Specified node is not a wire endpoint node."),
     }) as u32
+}
+
+/// @ingroup QkDag
+/// Gets the number of qubits of the specified operation node.
+///
+/// Panics if the node is not an operation.
+///
+/// @param dag A pointer to the DAG.
+/// @param node The operation node to get the number of qubits of.
+///
+/// @return The number of qubits of the operation.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_op_node_num_qubits(dag: *const DAGCircuit, node: u32) -> u32 {
+    let dag = unsafe { const_ptr_as_ref(dag) };
+    let instr = dag
+        .dag()
+        .node_weight(NodeIndex::new(node as usize))
+        .unwrap()
+        .unwrap_operation();
+    instr.op.num_qubits()
+}
+
+/// @ingroup QkDag
+/// Gets the number of clbits of the specified operation node.
+///
+/// Panics if the node is not an operation.
+///
+/// @param dag A pointer to the DAG.
+/// @param node The operation node to get the number of clbits of.
+///
+/// @return The number of clbits of the operation.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_op_node_num_clbits(dag: *const DAGCircuit, node: u32) -> u32 {
+    let dag = unsafe { const_ptr_as_ref(dag) };
+    let instr = dag
+        .dag()
+        .node_weight(NodeIndex::new(node as usize))
+        .unwrap()
+        .unwrap_operation();
+    instr.op.num_clbits()
+}
+
+/// @ingroup QkDag
+/// Gets the number of params of the specified operation node.
+///
+/// Panics if the node is not an operation.
+///
+/// @param dag A pointer to the DAG.
+/// @param node The operation node to get the number of params of.
+///
+/// @return The number of params of the operation.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_op_node_num_params(dag: *const DAGCircuit, node: u32) -> u32 {
+    let dag = unsafe { const_ptr_as_ref(dag) };
+    let instr = dag
+        .dag()
+        .node_weight(NodeIndex::new(node as usize))
+        .unwrap()
+        .unwrap_operation();
+    instr.op.num_params()
+}
+
+/// @ingroup QkDag
+/// Retrieve the qubits of the specified operation node.
+///
+/// Panics if the node is not an operation.
+///
+/// @param dag A pointer to the DAG.
+/// @param node The operation node to get the qubits of.
+///
+/// @return A pointer to the qubits. Use ``qk_dag_op_node_num_qubits`` to determine the number of
+///     elements.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_op_node_qubits(dag: *const DAGCircuit, node: u32) -> *const u32 {
+    let dag = unsafe { const_ptr_as_ref(dag) };
+    let instr = dag
+        .dag()
+        .node_weight(NodeIndex::new(node as usize))
+        .unwrap()
+        .unwrap_operation();
+    dag.qargs_interner().get(instr.qubits).as_ptr().cast()
+}
+
+/// @ingroup QkDag
+/// Retrieve the clbits of the specified operation node.
+///
+/// Panics if the node is not an operation.
+///
+/// @param dag A pointer to the DAG.
+/// @param node The operation node to get the clbits of.
+///
+/// @return A pointer to the clbits. Use ``qk_dag_op_node_num_clbits`` to determine the number of
+///     elements.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_op_node_clbits(dag: *const DAGCircuit, node: u32) -> *const u32 {
+    let dag = unsafe { const_ptr_as_ref(dag) };
+    let instr = dag
+        .dag()
+        .node_weight(NodeIndex::new(node as usize))
+        .unwrap()
+        .unwrap_operation();
+    dag.cargs_interner().get(instr.clbits).as_ptr().cast()
+}
+
+/// @ingroup QkDag
+/// Retrieve the params of the specified operation node.
+///
+/// Panics if the node is not an operation.
+///
+/// @param dag A pointer to the DAG.
+/// @param node The operation node to get the clbits of.
+/// @param out_params A buffer where the params will be written.
+///
+/// @return A pointer to the clbits. Use ``qk_dag_op_node_num_clbits`` to determine the number of
+///     elements.
+///
+/// # Safety
+///
+/// The ``out_params`` buffer must be large enough to hold all the operation's params.
+///
+/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_op_node_params(
+    dag: *const DAGCircuit,
+    node: u32,
+    out_params: *mut f64,
+) {
+    let dag = unsafe { const_ptr_as_ref(dag) };
+    let instr = dag
+        .dag()
+        .node_weight(NodeIndex::new(node as usize))
+        .unwrap()
+        .unwrap_operation();
+    let params = instr.params_view();
+    for (i, param) in params
+        .iter()
+        .map(|x| match x {
+            Param::Float(val) => *val,
+            _ => panic!("Invalid parameter on instruction"),
+        })
+        .enumerate()
+    {
+        unsafe {
+            out_params.add(i).write(param);
+        }
+    }
 }
 
 /// @ingroup QkDag
@@ -463,6 +647,29 @@ pub unsafe extern "C" fn qk_dag_apply_gate(
         }
     }
     ExitCode::Success
+}
+
+/// @ingroup QkDag
+/// Retrieve the standard gate of the specified node.
+///
+/// Panics if the node is not a standard gate operation.
+///
+/// @param dag A pointer to the DAG.
+/// @param node The operation node to get the standard gate of.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_op_node_gate(dag: *const DAGCircuit, node: u32) -> StandardGate {
+    let dag = unsafe { const_ptr_as_ref(dag) };
+    dag.dag()
+        .node_weight(NodeIndex::new(node as usize))
+        .unwrap()
+        .unwrap_operation()
+        .standard_gate()
+        .unwrap()
 }
 
 /// @ingroup QkDag
