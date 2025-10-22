@@ -1,0 +1,83 @@
+---
+features_c:
+  - |
+    Ways of iterating and checking the ``QkTarget``'s gate map have
+    been added to the C API. The following methods were added:
+      
+      * :cpp:func:`qk_target_num_properties`.
+      * :cpp:func:`qk_target_op_get_index`.
+      * :cpp:func:`qk_target_op_name_from_index`.
+      * :cpp:func:`qk_target_contains_op`.
+      * :cpp:func:`qk_target_op_has_qargs`.
+      * :cpp:func:`qk_target_op_qargs_index`.
+      * :cpp:func:`qk_target_op_get_qargs`.
+      * :cpp:func:`qk_target_op_get_props`.
+
+    And the following representations were added:
+      
+      * :cpp:struct:`QkInstructionProperties`: to represent the :class:`.InstructionProperties`.
+      * :cpp:struct:`QkQargs`: to represent a collection of qargs.
+
+    Example:
+
+    .. code-block:: C
+      
+      #include <qiskit.h>
+
+      // Create Target with a mix of global and non-global gates.
+      QkTarget *target = qk_target_new(2);
+      
+      // Create a CX entry
+      QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
+      uint32_t qarg_samples[2][2] = {
+          {0, 1}, {1, 0},
+      };
+      double props[2][2] = {
+          {2.7022e-11, 0.00713}, {3.0577e-11, 0.00713}
+      };
+      for (int i = 0; i < 2; i++) {
+          qk_target_entry_add_property(cx_entry, qarg_samples[i], 2, props[i][0], props[i][1]);
+      }
+      qk_target_add_instruction(target, cx_entry);
+
+      // Create an SX entry
+      QkTargetEntry *sx_entry = qk_target_entry_new(QkGate_SX);
+      for (int i = 0; i < 2; i++) {
+          uint32_t qargs[1] = {i};
+          qk_target_entry_add_property(sx_entry, qargs, 1, 35.5e-9, 0.);
+      }
+      qk_target_add_instruction(target, sx_entry);
+      
+      // Create an H entry
+      qk_target_add_instruction(target, qk_target_entry_new(QkGate_H));
+
+      // Get the size of the 
+      size_t target_length = qk_target_num_instructions(target);
+
+      for (size_t inst_idx = 0; inst_idx < target_length; inst_idx++) {
+        // Allocate space for qargs and props
+        QkQargs qargs;
+        QkInstructionProperties props;
+
+        // Retrieve the operation's name
+        char *name = qk_target_op_name_from_index(target, inst_idx);
+        size_t num_props = qk_target_num_properties(target, inst_idx);
+        for (size_t props_idx = 0; props_idx < num_props; props_idx++) {
+          // Populate qargs
+          qk_target_op_get_qargs(target, inst_idx, props_idx, &qargs);
+          // Populate properties
+          qk_target_op_get_props(target, inst_idx, props_idx, &props);
+
+          // After usage, clear the objects.
+          qk_target_qargs_clear(&qargs);
+          qk_target_inst_props_clear(&props);
+        }
+        // Free the name string
+        qk_str_free(name);
+      }
+    
+
+
+
+
+
