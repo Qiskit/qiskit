@@ -521,10 +521,12 @@ class BasicSimulator(BackendV2):
 
         Args:
             circuit: Clifford circuit to simulate
+            clifford_obj: Pre-computed Clifford object representing the circuit
 
         Returns:
             Result dictionary matching _run_circuit format
         """
+
         start = time.time()
 
         # Find measurement operations
