@@ -280,7 +280,7 @@ pub unsafe extern "C" fn qk_vf2_layout_configuration_set_shuffle_seed(
 /// @param target A pointer to the target to run the VF2Layout pass on
 /// @param config A pointer to the ``QkVF2LayoutConfiguration`` configuration structure.  If this
 ///     pointer is null, the pass defaults are used.
-/// @param strict_direction If true, the pass will consider the edge direction in the
+/// @param strict_direction If ``true``, the pass will consider the edge direction in the
 ///     connectivity described in the ``target``. Typically, setting this to ``false``
 ///     is desireable as the error heuristic is already very approximate, and two-qubit gates can
 ///     almost invariably be synthesised to "flip" direction using only local one-qubit gates and
