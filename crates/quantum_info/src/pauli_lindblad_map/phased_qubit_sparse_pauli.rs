@@ -12,11 +12,11 @@
 
 use numpy::{PyArray1, PyArrayMethods, PyReadonlyArray1};
 use pyo3::{
+    IntoPyObjectExt, PyErr,
     exceptions::{PyTypeError, PyValueError},
     intern,
     prelude::*,
     types::{PyInt, PyList, PyString, PyTuple, PyType},
-    IntoPyObjectExt, PyErr,
 };
 use std::{
     collections::btree_map,
@@ -26,9 +26,9 @@ use std::{
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 
 use super::qubit_sparse_pauli::{
-    raw_parts_from_sparse_list, ArithmeticError, CoherenceError, InnerReadError, InnerWriteError,
-    LabelError, Pauli, PyQubitSparsePauli, QubitSparsePauli, QubitSparsePauliList,
-    QubitSparsePauliView,
+    ArithmeticError, CoherenceError, InnerReadError, InnerWriteError, LabelError, Pauli,
+    PyQubitSparsePauli, QubitSparsePauli, QubitSparsePauliList, QubitSparsePauliView,
+    raw_parts_from_sparse_list,
 };
 use crate::imports;
 
@@ -1521,7 +1521,7 @@ impl PyPhasedQubitSparsePauliList {
                 return PyPhasedQubitSparsePauli {
                     inner: inner.term(index).to_term(),
                 }
-                .into_bound_py_any(py)
+                .into_bound_py_any(py);
             }
             indices => indices,
         };
