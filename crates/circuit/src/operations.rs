@@ -2556,6 +2556,29 @@ impl Operation for PyInstruction {
     }
 }
 
+impl PyInstruction {
+    /// returns the number of control qubits in the instruction
+    /// returns 0 if the instruction is not controlled
+    pub fn num_ctrl_qubits(&self) -> u32 {
+        Python::with_gil(|py| {
+            self.instruction
+                .getattr(py, "num_ctrl_qubits")
+                .and_then(|py_num_ctrl_qubits| py_num_ctrl_qubits.extract::<u32>(py))
+                .unwrap_or(0)
+        })
+    }
+
+    /// returns the control state of the gate as a decimal number
+    /// returns 2^num_ctrl_bits-1 (the '11...1' state) if the gate has not control state data
+    pub fn ctrl_state(&self) -> u32 {
+        Python::with_gil(|py| {
+            self.instruction
+                .getattr(py, "ctrl_state")
+                .and_then(|py_ctrl_state| py_ctrl_state.extract::<u32>(py))
+                .unwrap_or((1 << self.num_ctrl_qubits()) - 1)
+        })
+    }
+}
 /// This class is used to wrap a Python side Gate that is not in the standard library
 #[derive(Clone, Debug)]
 // We bit-pack pointers to this, so having a known alignment even on 32-bit systems is good.
@@ -2658,6 +2681,30 @@ impl Operation for PyGate {
                 .ok()?;
             let arr = array.as_array();
             Some([[arr[[0, 0]], arr[[0, 1]]], [arr[[1, 0]], arr[[1, 1]]]])
+        })
+    }
+}
+
+impl PyGate {
+    /// returns the number of control qubits in the gate
+    /// returns 0 if the gate is not controlled
+    pub fn num_ctrl_qubits(&self) -> u32 {
+        Python::with_gil(|py| {
+            self.gate
+                .getattr(py, "num_ctrl_qubits")
+                .and_then(|py_num_ctrl_qubits| py_num_ctrl_qubits.extract::<u32>(py))
+                .unwrap_or(0)
+        })
+    }
+
+    /// returns the control state of the gate as a decimal number
+    /// returns 2^num_ctrl_bits-1 (the '11...1' state) if the gate has not control state data
+    pub fn ctrl_state(&self) -> u32 {
+        Python::with_gil(|py| {
+            self.gate
+                .getattr(py, "ctrl_state")
+                .and_then(|py_ctrl_state| py_ctrl_state.extract::<u32>(py))
+                .unwrap_or((1 << self.num_ctrl_qubits()) - 1)
         })
     }
 }

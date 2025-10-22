@@ -325,14 +325,14 @@ pub mod circuit_instruction_types {
     pub const ANNOTATED_OPERATION: u8 = b'a';
 }
 
-pub fn get_circuit_type_key(py: Python, op: &PackedOperation) -> PyResult<u8> {
+pub fn get_circuit_type_key(op: &PackedOperation) -> PyResult<u8> {
     match op.view() {
         OperationRef::StandardGate(_) => Ok(circuit_instruction_types::GATE),
         OperationRef::StandardInstruction(_) | OperationRef::Instruction(_) => {
             Ok(circuit_instruction_types::INSTRUCTION)
         }
         OperationRef::Unitary(_) => Ok(circuit_instruction_types::GATE),
-        OperationRef::Gate(pygate) => {
+        OperationRef::Gate(pygate) => Python::with_gil(|py| {
             let gate = pygate.gate.bind(py);
             if gate.is_instance(imports::PAULI_EVOLUTION_GATE.get_bound(py))? {
                 Ok(circuit_instruction_types::PAULI_EVOL_GATE)
@@ -341,8 +341,8 @@ pub fn get_circuit_type_key(py: Python, op: &PackedOperation) -> PyResult<u8> {
             } else {
                 Ok(circuit_instruction_types::GATE)
             }
-        }
-        OperationRef::Operation(operation) => {
+        }),
+        OperationRef::Operation(operation) => Python::with_gil(|py| {
             if operation
                 .operation
                 .bind(py)
@@ -355,7 +355,7 @@ pub fn get_circuit_type_key(py: Python, op: &PackedOperation) -> PyResult<u8> {
                     operation
                 )))
             }
-        }
+        }),
     }
 }
 

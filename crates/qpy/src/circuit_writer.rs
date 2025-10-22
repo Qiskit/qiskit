@@ -27,14 +27,15 @@ use pyo3::types::{PyAny, PyDict, PyList, PyTuple};
 use qiskit_circuit::bit::{ClassicalRegister, PyClbit, PyQubit, QuantumRegister, Register};
 use qiskit_circuit::circuit_data::{CircuitData, CircuitStretchType, CircuitVarType};
 use qiskit_circuit::converters::QuantumCircuitData;
-use qiskit_circuit::operations::OperationRef;
+use qiskit_circuit::operations::{Operation, OperationRef};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 
 use crate::annotations::AnnotationHandler;
 use crate::formats;
 use crate::py_methods::{
-    get_condition_data_from_inst, pack_py_custom_instruction, pack_py_instruction,
-    pack_py_registers, serialize_metadata,
+    gate_class_name, get_condition_data_from_inst, get_instruction_annotations,
+    get_instruction_params, pack_custom_instruction, pack_py_registers, recognize_custom_operation,
+    serialize_metadata,
 };
 use crate::value::{
     bit_types, expression_var_declaration, pack_standalone_var, pack_stretch, register_types,
@@ -83,7 +84,6 @@ pub fn get_condition_data(
 }
 
 pub fn pack_instructions(
-    py: Python,
     circuit_data: &CircuitData,
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<(
@@ -97,8 +97,7 @@ pub fn pack_instructions(
             .data()
             .iter()
             .map(|instruction| {
-                pack_py_instruction(
-                    py,
+                pack_instruction(
                     instruction,
                     circuit_data,
                     &mut custom_operations,
@@ -109,6 +108,57 @@ pub fn pack_instructions(
             .collect::<PyResult<_>>()?,
         custom_operations,
     ))
+}
+
+pub fn pack_instruction(
+    instruction: &PackedInstruction,
+    circuit_data: &CircuitData,
+    custom_operations: &mut HashMap<String, PackedOperation>,
+    new_custom_operations: &mut Vec<String>,
+    qpy_data: &mut QPYWriteData,
+) -> PyResult<formats::CircuitInstructionV2Pack> {
+    let mut gate_class_name = gate_class_name(&instruction.op)?;
+    if let Some(new_name) = recognize_custom_operation(&instruction.op, &gate_class_name)? {
+        gate_class_name = new_name;
+        new_custom_operations.push(gate_class_name.clone());
+        custom_operations.insert(gate_class_name.clone(), instruction.op.clone());
+    }
+    let label = match instruction.label() {
+        Some(label) => String::from(label),
+        None => String::from(""),
+    };
+    let num_ctrl_qubits = match &instruction.op.view() {
+        OperationRef::StandardGate(gate) => gate.num_ctrl_qubits(),
+        OperationRef::Gate(py_gate) => py_gate.num_ctrl_qubits(),
+        OperationRef::Instruction(py_inst) => py_inst.num_ctrl_qubits(),
+        _ => 0,
+    };
+    let ctrl_state = match &instruction.op.view() {
+        OperationRef::Gate(py_gate) => py_gate.ctrl_state(),
+        OperationRef::Instruction(py_inst) => py_inst.ctrl_state(),
+        _ => (1 << num_ctrl_qubits) - 1,
+    };
+    let params: Vec<formats::PackedParam> = get_instruction_params(instruction, qpy_data)?;
+    let bit_data = get_packed_bit_list(instruction, circuit_data);
+    let condition = get_condition_data(&instruction.op, circuit_data, qpy_data)?;
+    let annotations = get_instruction_annotations(instruction, qpy_data)?;
+    let mut extras_key = condition.key;
+    if annotations.is_some() {
+        extras_key |= formats::extras_key_parts::ANNOTATIONS;
+    }
+    Ok(formats::CircuitInstructionV2Pack {
+        num_qargs: instruction.op.num_qubits(),
+        num_cargs: instruction.op.num_clbits(),
+        extras_key,
+        num_ctrl_qubits,
+        ctrl_state,
+        gate_class_name,
+        label,
+        condition,
+        bit_data,
+        params,
+        annotations,
+    })
 }
 
 // packs the quantum registers in the circuit. we pack:
@@ -413,7 +463,6 @@ fn pack_custom_layout(
 }
 
 pub fn pack_custom_instructions(
-    py: Python,
     custom_instructions_hash: &mut HashMap<String, PackedOperation>,
     circuit_data: &mut CircuitData,
     qpy_data: &mut QPYWriteData,
@@ -421,8 +470,7 @@ pub fn pack_custom_instructions(
     let mut custom_instructions: Vec<formats::CustomCircuitInstructionDefPack> = Vec::new();
     let mut instructions_to_pack: Vec<String> = custom_instructions_hash.keys().cloned().collect();
     while let Some(name) = instructions_to_pack.pop() {
-        custom_instructions.push(pack_py_custom_instruction(
-            py,
+        custom_instructions.push(pack_custom_instruction(
             &name,
             custom_instructions_hash,
             &mut instructions_to_pack,
@@ -528,9 +576,8 @@ pub fn pack_circuit(
     // we need to write an empty calibrations header since read_circuit expects it
     let calibrations = formats::CalibrationsPack { num_cals: 0 };
     let (instructions, mut custom_instructions_hash) =
-        pack_instructions(py, &circuit.data, &mut qpy_data)?;
+        pack_instructions(&circuit.data, &mut qpy_data)?;
     let custom_instructions = pack_custom_instructions(
-        py,
         &mut custom_instructions_hash,
         &mut circuit.data,
         &mut qpy_data,
