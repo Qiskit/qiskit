@@ -4,3 +4,4 @@ fixes:
     :class:`.ConsolidateBlocks` will now return a Python-space exception instead of panicking when
     it detects invalid or out-of-date analysis in the legacy ``run_list`` or ``block_list``
     :class:`.PropertySet` keys.
+    Fixed `#14646 <https://github.com/Qiskit/qiskit/issues/14646>`__.
