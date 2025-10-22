@@ -26,7 +26,6 @@ use qiskit_circuit::operations::{
     DelayUnit, OperationRef, Param, StandardGate, StandardInstruction,
 };
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::parameter::parameter_expression::{ParameterExpression, ParameterValueType};
 use qiskit_circuit::Qubit;
 use qiskit_synthesis::euler_one_qubit_decomposer::{angles_from_unitary, EulerBasis};
 use smallvec::{smallvec, SmallVec};
