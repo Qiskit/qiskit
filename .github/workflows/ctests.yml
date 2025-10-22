@@ -20,8 +20,6 @@ jobs:
           - ubuntu-24.04-arm
           - windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Install dependencies
-        run: cargo install cbindgen
+      - uses: actions/checkout@v5
       - name: Run tests
         run: make ctest
