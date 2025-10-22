@@ -23,7 +23,7 @@ from qiskit.primitives import StatevectorEstimator
 from qiskit.primitives.containers.bindings_array import BindingsArray
 from qiskit.primitives.containers.estimator_pub import EstimatorPub
 from qiskit.primitives.containers.observables_array import ObservablesArray
-from qiskit.quantum_info import SparsePauliOp
+from qiskit.quantum_info import SparsePauliOp, SparseObservable
 
 
 class TestStatevectorEstimator(QiskitTestCase):
@@ -202,6 +202,7 @@ class TestStatevectorEstimator(QiskitTestCase):
         op = SparsePauliOp.from_list([("II", 1)])
         op2 = SparsePauliOp.from_list([("ZI", 1)])
         op3 = SparsePauliOp.from_list([("IZ", 1)])
+        op4 = SparseObservable.from_list([("++", 1), ("--", 2)])
 
         est = StatevectorEstimator()
         result = est.run([(qc, op)]).result()
@@ -221,6 +222,9 @@ class TestStatevectorEstimator(QiskitTestCase):
 
         result = est.run([(qc2, op3)]).result()
         np.testing.assert_allclose(result[0].data.evs, [-1])
+
+        result = est.run([(qc, op4)]).result()
+        np.testing.assert_allclose(result[0].data.evs, [0.75])
 
     def test_run_errors(self):
         """Test for errors"""
