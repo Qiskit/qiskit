@@ -18,16 +18,16 @@ use pyo3::basic::CompareOp;
 use pyo3::exceptions::{PyDeprecationWarning, PyTypeError};
 use pyo3::prelude::*;
 
-use pyo3::types::{PyBool, PyList, PyTuple, PyType};
 use pyo3::IntoPyObjectExt;
-use pyo3::{intern, PyResult};
+use pyo3::types::{PyBool, PyList, PyTuple, PyType};
+use pyo3::{PyResult, intern};
 
 use nalgebra::{Dyn, MatrixView2, MatrixView4};
 use num_complex::Complex64;
 use smallvec::SmallVec;
 
 use crate::imports::{
-    CONTROLLED_GATE, CONTROL_FLOW_OP, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN,
+    CONTROL_FLOW_OP, CONTROLLED_GATE, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN,
 };
 use crate::operations::{
     ArrayType, Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,

@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" UnrollForLoops transpilation pass """
+"""UnrollForLoops transpilation pass"""
 
 from qiskit.circuit import ForLoopOp, ContinueLoopOp, BreakLoopOp, IfElseOp
 from qiskit.transpiler.basepasses import TransformationPass

@@ -23,7 +23,7 @@
 /**
  * Test empty constructor for Target
  */
-int test_empty_target(void) {
+static int test_empty_target(void) {
     int result = Ok;
     QkTarget *target = qk_target_new(0);
     uint32_t num_qubits = qk_target_num_qubits(target);
@@ -76,7 +76,7 @@ cleanup:
 /**
  * Test constructor for Target
  */
-int test_target_construct(void) {
+static int test_target_construct(void) {
     int result = Ok;
     const uint32_t num_qubits = 2;
     const double dt = 10e-9;
@@ -143,7 +143,7 @@ cleanup:
 /*
  * Test target construction with a parameterized gate
  */
-int test_target_construction_ibm_like_target(void) {
+static int test_target_construction_ibm_like_target(void) {
     int result = Ok;
     QkTarget *target = qk_target_new(5);
     QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
@@ -266,7 +266,7 @@ cleanup:
 /**
  * Test construction of a QkTargetEntry
  */
-int test_target_entry_construction(void) {
+static int test_target_entry_construction(void) {
     int result = Ok;
     QkTargetEntry *property_map = qk_target_entry_new(QkGate_CX);
 
@@ -312,7 +312,7 @@ cleanup:
 /**
  * Test adding an instruction to the Target.
  */
-int test_target_add_instruction(void) {
+static int test_target_add_instruction(void) {
     const uint32_t num_qubits = 1;
     // Let's create a target with one qubit for now
     QkTarget *target = qk_target_new(num_qubits);
@@ -493,7 +493,7 @@ cleanup:
  * Test updating an instruction property in the Target using
  * `update_instruction_property`.
  */
-int test_target_update_instruction(void) {
+static int test_target_update_instruction(void) {
     const uint32_t num_qubits = 1;
     // Let's create a target with one qubit for now
     QkTarget *target = qk_target_new(num_qubits);
@@ -506,16 +506,16 @@ int test_target_update_instruction(void) {
     double inst_error = 0.0090393;
     double inst_duration = 0.020039;
     qk_target_entry_add_property(cx_entry, qargs, 2, inst_duration, inst_error);
-    // CX Gate is not paramtric. Re-use Null
+    // CX Gate is not parametric. Re-use Null
     qk_target_add_instruction(target, cx_entry);
 
-    // change the intruction property of cx
+    // Change the instruction property of cx
     double cx_new_inst_error = NAN;
     double cx_new_inst_duration = 0.09457;
     QkExitCode result_1 = qk_target_update_property(target, QkGate_CX, qargs, 2,
                                                     cx_new_inst_duration, cx_new_inst_error);
     if (result_1 != QkExitCode_Success) {
-        printf("An unexpected error occured while modifying the property.");
+        printf("An unexpected error occurred while modifying the property.");
         result = RuntimeError;
         goto cleanup;
     }

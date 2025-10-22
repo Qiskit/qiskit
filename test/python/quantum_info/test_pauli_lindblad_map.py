@@ -1122,21 +1122,21 @@ class TestPauliLindbladMap(QiskitTestCase):
             [("XY", [0, 1], 1.23), ("Z", [1], -0.23), ("X", [2], 0.3)], num_qubits=4
         )
         self.assertEqual(pauli_lindblad_map.pauli_fidelity(QubitSparsePauli(("X", [0]), 4)), 1.0)
-        self.assertEqual(
-            pauli_lindblad_map.pauli_fidelity(QubitSparsePauli(("Y", [0]), 4)), np.exp(-2 * 1.23)
+        np.testing.assert_array_max_ulp(
+            pauli_lindblad_map.pauli_fidelity(QubitSparsePauli(("Y", [0]), 4)),
+            np.exp(-2 * 1.23),
+            maxulp=3,
         )
-        self.assertEqual(
-            pauli_lindblad_map.pauli_fidelity(QubitSparsePauli(("X", [1]), 4)), np.exp(-2 * 1.0)
+        np.testing.assert_array_max_ulp(
+            pauli_lindblad_map.pauli_fidelity(QubitSparsePauli(("X", [1]), 4)),
+            np.exp(-2 * 1.0),
+            maxulp=3,
         )
         self.assertEqual(pauli_lindblad_map.pauli_fidelity(QubitSparsePauli(("Z", [3]), 4)), 1.0)
-        # np.allclose needed for machine precision
-        self.assertTrue(
-            np.allclose(
-                pauli_lindblad_map.pauli_fidelity(QubitSparsePauli(("ZXY", [0, 1, 2]), 4)),
-                np.exp(-2 * 0.07),
-                atol=1e-12,
-                rtol=1e-12,
-            )
+        np.testing.assert_array_max_ulp(
+            pauli_lindblad_map.pauli_fidelity(QubitSparsePauli(("ZXY", [0, 1, 2]), 4)),
+            np.exp(-2 * 0.07),
+            maxulp=3,
         )
 
         self.assertEqual(

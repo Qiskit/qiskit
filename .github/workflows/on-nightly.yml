@@ -31,7 +31,7 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
-        runner: ["macos-13", "macos-14"]
+        runner: ["macos-14"]
 
     with:
       python-version: ${{ matrix.python-version }}

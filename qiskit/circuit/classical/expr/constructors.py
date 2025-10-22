@@ -701,8 +701,8 @@ def div(left: typing.Any, right: typing.Any) -> Expr:
     lifting the values into :class:`Value` nodes if required.
 
     This can be used to divide numeric operands of the same type kind, to divide a
-    :class`~.types.Duration` operand by a numeric operand, or to divide two
-    :class`~.types.Duration` operands which yields an expression of type
+    :class:`~.types.Duration` operand by a numeric operand, or to divide two
+    :class:`~.types.Duration` operands which yields an expression of type
     :class:`~.types.Float`.
 
     Examples:

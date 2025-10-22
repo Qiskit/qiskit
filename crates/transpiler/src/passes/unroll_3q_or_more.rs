@@ -14,8 +14,8 @@ use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
-use crate::target::Target;
 use crate::QiskitError;
+use crate::target::Target;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::Operation;
 use thiserror::Error;
@@ -59,7 +59,7 @@ pub fn run_unroll_3q_or_more(
                 let definition = match inst.op.definition(inst.params_view()) {
                     Some(def) => def,
                     None => {
-                        return Some(Err(Unroll3qError::NoDefinition(inst.op.name().to_string())))
+                        return Some(Err(Unroll3qError::NoDefinition(inst.op.name().to_string())));
                     }
                 };
                 let mut decomp_dag =

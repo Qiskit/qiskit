@@ -13,8 +13,6 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-          # Used for the x86_64 builds.
-          - macos-13
           # Used for the ARM builds.
           - macos-14
           - ubuntu-24.04-arm

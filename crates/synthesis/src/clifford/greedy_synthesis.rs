@@ -12,15 +12,15 @@
 
 use ahash::RandomState;
 use indexmap::IndexSet;
-use ndarray::{s, ArrayView2};
+use ndarray::{ArrayView2, s};
 use smallvec::smallvec;
 
 use crate::clifford::utils::{
-    adjust_final_pauli_gates, clifford_from_gate_sequence, CliffordGatesVec, SymplecticMatrix,
+    CliffordGatesVec, SymplecticMatrix, adjust_final_pauli_gates, clifford_from_gate_sequence,
 };
 
-use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::Qubit;
+use qiskit_circuit::operations::StandardGate;
 
 /// Converts a pair of Paulis pauli_x and pauli_z acting on a specific qubit
 /// to the corresponding index in [PauliPairsClass] or [SingleQubitGate] classes.

@@ -13,16 +13,16 @@
 //! Parser for equation strings to generate symbolic expression
 use std::sync::Arc;
 
+use nom::IResult;
+use nom::Parser;
 use nom::branch::{alt, permutation};
 use nom::bytes::complete::tag;
 use nom::character::complete::{char, digit1, multispace0};
 use nom::combinator::{all_consuming, map_res, opt, recognize};
-use nom::error::{convert_error, VerboseError};
+use nom::error::{VerboseError, convert_error};
 use nom::multi::{many0, many0_count};
 use nom::number::complete::double;
 use nom::sequence::{delimited, pair, tuple};
-use nom::IResult;
-use nom::Parser;
 
 use num_complex::c64;
 

@@ -11,11 +11,11 @@
 // that they have been altered from the originals.
 
 use crate::linear::utils::calc_inverse_matrix_inner;
-use ndarray::{azip, s, Array1, Array2, ArrayView2};
-use qiskit_circuit::operations::{Param, StandardGate};
+use ndarray::{Array1, Array2, ArrayView2, azip, s};
 use qiskit_circuit::Qubit;
+use qiskit_circuit::operations::{Param, StandardGate};
 use qiskit_quantum_info::clifford::Clifford;
-use smallvec::{smallvec, SmallVec};
+use smallvec::{SmallVec, smallvec};
 
 /// Symplectic matrix.
 /// Currently this class is internal to the synthesis library.

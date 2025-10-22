@@ -12,7 +12,6 @@
 
 #include "common.h"
 #include <complex.h>
-#include <math.h>
 #include <qiskit.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -20,7 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 
-int build_target(QkTarget *target, uint32_t num_qubits) {
+static int build_target(QkTarget *target, uint32_t num_qubits) {
     // Create a target with cx connectivity in a line.
     QkExitCode result_x = qk_target_add_instruction(target, qk_target_entry_new(QkGate_X));
     if (result_x != QkExitCode_Success) {
@@ -51,7 +50,7 @@ int build_target(QkTarget *target, uint32_t num_qubits) {
 /**
  * Test running VF2Layout on a line connectivity
  */
-int test_vf2_layout_line(void) {
+static int test_vf2_layout_line(void) {
     const uint32_t num_qubits = 5;
     QkTarget *target = qk_target_new(num_qubits);
     int result = Ok;
@@ -105,7 +104,7 @@ cleanup:
 /**
  * Test VF2Layout where a solution isn't possible
  */
-int test_vf2_no_layout_found(void) {
+static int test_vf2_no_layout_found(void) {
     const uint32_t num_qubits = 5;
     QkTarget *target = qk_target_new(num_qubits);
     int result = Ok;
