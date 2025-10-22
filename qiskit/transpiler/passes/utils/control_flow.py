@@ -23,7 +23,19 @@ from qiskit.dagcircuit import DAGCircuit
 def map_blocks(dag_mapping: Callable[[DAGCircuit], DAGCircuit], op: ControlFlowOp) -> ControlFlowOp:
     """Use the ``dag_mapping`` function to replace the blocks of a :class:`.ControlFlowOp` with new
     ones.  Each block will be automatically converted to a :class:`.DAGCircuit` and then returned
-    to a :class:`.QuantumCircuit`."""
+    to a :class:`.QuantumCircuit`.
+
+    .. warning::
+
+        This function is **slow** given that it requires multiple conversions for each
+        block into and out of its circuit form. Consider using
+        :meth:`DAGCircuit.map_basic_blocks` instead, which can perform the replacement
+        without conversions.
+
+    .. seealso::
+
+       :meth:`DAGCircuit.map_basic_blocks` for faster block replacement within a DAG.
+    """
     return op.replace_blocks(
         [
             dag_to_circuit(dag_mapping(circuit_to_dag(block)), copy_operations=False)
@@ -54,8 +66,7 @@ def trivial_recurse(method):
         def bound_wrapped_method(dag):
             return out(self, dag)
 
-        for node in dag.control_flow_op_nodes():
-            dag.substitute_node(node, map_blocks(bound_wrapped_method, node.op))
+        dag.map_basic_blocks(bound_wrapped_method)
         return method(self, dag)
 
     return out

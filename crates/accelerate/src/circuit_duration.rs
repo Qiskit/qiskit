@@ -41,7 +41,7 @@ pub(crate) fn compute_estimated_duration(dag: &DAGCircuit, target: &Target) -> P
 
                     if let OperationRef::StandardInstruction(op) = inst.op.view() {
                         if let StandardInstruction::Delay(unit) = op {
-                            let dur = &inst.params.as_ref().unwrap()[0];
+                            let dur = &inst.params_view()[0];
                             return if unit == DelayUnit::DT {
                                 if let Some(dt) = dt {
                                     match dur {
