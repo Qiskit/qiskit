@@ -1,4 +1,3 @@
-
 ---
 features_quantum_info:
   - |
@@ -18,6 +17,7 @@ features_quantum_info:
       
       # Get the final statevector
       sv = Statevector.from_circuit(qc)
-      
-    An optional ``input_state`` parameter allows starting from a custom
-    initial state instead of the default |00...0⟩ state.
+    
+    An optional ``ignore_set_layout`` parameter allows ignoring layout
+    information from transpiled circuits, similar to the behavior in
+    :meth:`~qiskit.quantum_info.Operator.from_circuit`.
