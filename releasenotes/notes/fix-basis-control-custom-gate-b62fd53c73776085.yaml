@@ -2,5 +2,5 @@
 fixes:
   - |
     Fixed incorrect behavior in the :class:`.BasisTranslator` pass where a multi-qubit
-    gate within a :class:`.ControlFlowOp` block would track with its local qubit indices
+    gate within a :class:`.ControlFlowOp` block would track using its local qubit indices
     instead of using the absolute indices from the source circuit.

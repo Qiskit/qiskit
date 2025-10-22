@@ -1,6 +1,6 @@
 ---
 fixes:
   - |
-    Fixed the methods :meth:`.MCPhaseGate.inverse` and :meth:`.MCU1Gate.inverse` to
+    Fixed the method :meth:`.MCPhaseGate.inverse` to
     preserve the control states of open-controlled gates when computing their
     inverses.
