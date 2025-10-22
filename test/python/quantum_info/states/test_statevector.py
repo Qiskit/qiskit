@@ -64,13 +64,11 @@ class TestStatevector(QiskitTestCase):
         backend = BasicSimulator()
         transpiled_opt0 = transpile(qc, backend, optimization_level=0)
         transpiled_opt2 = transpile(qc, backend, optimization_level=2)
-       
+
         sv1 = Statevector.from_circuit(transpiled_opt0)
         sv2 = Statevector.from_circuit(transpiled_opt2)
-        
 
         self.assertTrue(sv1.equiv(sv2))
-
 
     def test_from_circuit_vs_manual_method(self):
         """Test from_circuit matches manual operator evolution."""
