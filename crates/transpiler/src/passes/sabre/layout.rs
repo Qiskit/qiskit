@@ -25,6 +25,7 @@ use qiskit_circuit::nlayout::NLayout;
 use qiskit_circuit::{PhysicalQubit, VirtualQubit, getenv_use_multiple_threads};
 
 use crate::TranspilerError;
+use crate::neighbors::Neighbors;
 use crate::passes::{
     dense_layout,
     disjoint_layout::{self, DisjointSplit},
@@ -33,7 +34,6 @@ use crate::target::{Target, TargetCouplingError};
 
 use super::dag::SabreDAG;
 use super::heuristic::Heuristic;
-use super::neighbors::Neighbors;
 use super::route::{RoutingProblem, RoutingResult, RoutingTarget, swap_map, swap_map_trial};
 
 #[allow(clippy::too_many_arguments)]

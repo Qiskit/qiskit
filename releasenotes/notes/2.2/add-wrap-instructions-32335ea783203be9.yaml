@@ -14,7 +14,7 @@ features_transpiler:
     There are several methods available for working with the angle bounds on the target. The first is
     :meth:`.Target.add_instruction` which has a new ``angle_bounds`` keyword argument that is used to
     add an angle bound to an instruction in the :class:`.Target`. To work with angle bounds you will also
-    want to register a callback function to the global ``WRAP_ANGLE_REGISTRY`` registry that will tell the
+    want to register a callback function to the global :data:`.WRAP_ANGLE_REGISTRY` registry that will tell the
     transpiler and :class:`.WrapAngles` pass how to adjust gates for angle bounds. The callback function
     will take a list of  arbitrary ``float`` values representing the gate angles from the circuit, as well
     as the qubit indices in the circuit the gate was operating on and it will return a :class:`.DAGCircuit`
@@ -24,7 +24,7 @@ features_transpiler:
         import math
 
         from qiskit.dagcircuit import DAGCircuit
-        from qiskit.transpiler import target
+        from qiskit.transpiler import Target
         from qiskit.transpiler.passes.utils.wrap_angles import WRAP_ANGLE_REGISTRY
 
         target = Target(num_qubits=1)
