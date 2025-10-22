@@ -1603,13 +1603,7 @@ impl Target {
     }
 
     /// Retrieves a gate location in the gate map by index
-    pub fn get_from_index(
-        &self,
-        index: usize,
-    ) -> Option<(
-        &String,
-        &IndexMap<Qargs, Option<InstructionProperties>, ahash::RandomState>,
-    )> {
+    pub fn get_from_index(&self, index: usize) -> Option<(&String, &PropsMap)> {
         self.gate_map.get_index(index)
     }
 }
