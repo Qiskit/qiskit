@@ -21,7 +21,15 @@ from ddt import ddt, data
 import numpy as np
 
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-from qiskit.circuit import Qubit, Gate, ControlFlowOp, ForLoopOp, Measure, library as lib, Parameter
+from qiskit.circuit import (
+    Qubit,
+    Gate,
+    ControlFlowOp,
+    Measure,
+    library as lib,
+    Parameter,
+    AncillaRegister,
+)
 from qiskit.compiler import transpile
 from qiskit.transpiler import (
     CouplingMap,
@@ -44,7 +52,9 @@ from qiskit.quantum_info import random_unitary
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.preset_passmanagers import level0, level1, level2, level3
 from qiskit.transpiler.passes import ConsolidateBlocks, GatesInBasis
+from qiskit.transpiler.passes.scheduling.alignments.check_durations import InstructionDurationCheck
 from qiskit.transpiler.preset_passmanagers.builtin_plugins import OptimizationPassManager
+from qiskit.transpiler.timing_constraints import TimingConstraints
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 from ..legacy_cmaps import MELBOURNE_CMAP, RUESCHLIKON_CMAP, LAGOS_CMAP, TOKYO_CMAP, BOGOTA_CMAP
@@ -300,6 +310,47 @@ class TestPresetPassManager(QiskitTestCase):
             translation_method="synthesis",
         )
         self.assertEqual(gates_in_basis_true_count + 2, consolidate_blocks_count)
+
+    @data(0, 1, 2, 3)
+    def test_layout_registers_preserved(self, optimization_level):
+        """Test that registers in circuit are preserved in TranspileLayout
+
+        Reproduce from `#15014 <https://github.com/Qiskit/qiskit/issues/15014>`__
+        """
+        a = QuantumRegister(2, "a")
+        b = AncillaRegister(1, "b")
+        qc = QuantumCircuit(b, a)
+        qc.x(0)
+
+        initial_layout = [0, 1, 2]
+        qc_transpiled = transpile(
+            qc, initial_layout=initial_layout, optimization_level=optimization_level
+        )
+
+        self.assertEqual(qc_transpiled.layout.initial_layout.get_registers(), {a, b})
+
+    @data(0, 1, 2, 3)
+    def test_layout_registers_preserved_with_allocated_ancilla(self, optimization_level):
+        """Test that allocated ancilla register is preserved in output layout."""
+        a = QuantumRegister(3, "a")
+        b = AncillaRegister(1, "b")
+        qc = QuantumCircuit(b, a)
+        qc.x(0)
+        qc.h(3)
+        qc.cx(3, 0)
+        qc.cx(3, 1)
+        qc.cx(3, 2)
+
+        target = Target.from_configuration(["u", "cx"], coupling_map=CouplingMap.from_line(10))
+        tqc = transpile(qc, optimization_level=optimization_level, target=target)
+        out_registers = tqc.layout.initial_layout.get_registers()
+        self.assertEqual(len(out_registers), 3)
+        self.assertIn(a, out_registers)
+        self.assertIn(b, out_registers)
+        out_registers.remove(a)
+        out_registers.remove(b)
+        last = out_registers.pop()
+        self.assertTrue(last.name.startswith("ancilla"))
 
 
 @ddt
@@ -608,9 +659,8 @@ class TestPassesInspection(QiskitTestCase):
             basis_gates=["cx", "id", "rz", "sx", "x"],
             coupling_map=LAGOS_CMAP,
             seed=42,
+            control_flow=True,
         )
-        _target = target.target
-        target._target.add_instruction(ForLoopOp, name="for_loop")
         qc = QuantumCircuit(5)
         qc.h(0)
         qc.cy(0, 1)
@@ -638,9 +688,8 @@ class TestPassesInspection(QiskitTestCase):
             basis_gates=["cx", "id", "rz", "sx", "x"],
             coupling_map=LAGOS_CMAP,
             seed=42,
+            control_flow=True,
         )
-        _target = target.target
-        target._target.add_instruction(ForLoopOp, name="for_loop")
         qc = QuantumCircuit(5)
         qc.h(0)
         qc.cy(0, 1)
@@ -667,9 +716,8 @@ class TestPassesInspection(QiskitTestCase):
             basis_gates=["cx", "id", "rz", "sx", "x"],
             coupling_map=LAGOS_CMAP,
             seed=42,
+            control_flow=True,
         )
-        _target = target.target
-        target._target.add_instruction(ForLoopOp, name="for_loop")
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.cx(0, 1)
@@ -690,9 +738,8 @@ class TestPassesInspection(QiskitTestCase):
             basis_gates=["cx", "id", "rz", "sx", "x"],
             coupling_map=LAGOS_CMAP,
             seed=42,
+            control_flow=True,
         )
-        _target = target.target
-        target._target.add_instruction(ForLoopOp, name="for_loop")
         qc = QuantumCircuit(4)
         qc.h(0)
         qc.cx(0, 1)
@@ -707,6 +754,57 @@ class TestPassesInspection(QiskitTestCase):
         self.assertNotIn("SabreLayout", self.passes)
         self.assertNotIn("VF2PostLayout", self.passes)
         self.assertNotIn("SabreSwap", self.passes)
+
+    def test_level3_does_not_run_vf2post_layout_when_initial_layout_set(self):
+        """Test that level 3 does not run VF2PostLayout when an initial layout is set."""
+        target = GenericBackendV2(
+            num_qubits=7,
+            basis_gates=["cx", "id", "rz", "sx", "x"],
+            coupling_map=LAGOS_CMAP,
+            seed=42,
+            control_flow=True,
+        )
+        qc = QuantumCircuit(4)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        with qc.for_loop((1,)):
+            qc.cx(0, 1)
+        qc.measure_all()
+        _ = transpile(
+            qc, target, optimization_level=1, callback=self.callback, initial_layout=[0, 1, 5, 6]
+        )
+        self.assertIn("SetLayout", self.passes)
+        self.assertNotIn("VF2Layout", self.passes)
+        self.assertNotIn("SabreLayout", self.passes)
+        self.assertNotIn("VF2PostLayout", self.passes)
+
+    def test_level3_does_not_run_vf2post_layout_when_layout_method_set(self):
+        """Test that level 3 does not run VF2PostLayout when layout_method is set."""
+        target = GenericBackendV2(
+            num_qubits=7,
+            basis_gates=["cx", "id", "rz", "sx", "x"],
+            coupling_map=LAGOS_CMAP,
+            seed=42,
+            control_flow=True,
+        )
+        qc = QuantumCircuit(4)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        with qc.for_loop((1,)):
+            qc.cx(0, 1)
+        qc.measure_all()
+        _ = transpile(
+            qc, target, optimization_level=1, callback=self.callback, layout_method="dense"
+        )
+        self.assertIn("SetLayout", self.passes)
+        self.assertNotIn("VF2Layout", self.passes)
+        self.assertNotIn("SabreLayout", self.passes)
+        self.assertNotIn("VF2PostLayout", self.passes)
+        self.assertIn("DenseLayout", self.passes)
 
 
 @ddt
@@ -960,9 +1058,9 @@ class TestFinalLayouts(QiskitTestCase):
                     qc.cx(qubit_control, qubit_target)
         expected_layouts = [
             [0, 1, 2, 3, 4],
-            [6, 5, 11, 10, 2],
+            [6, 5, 10, 11, 2],
             [6, 5, 2, 11, 10],
-            [6, 5, 2, 11, 10],
+            [5, 6, 0, 10, 11],
         ]
         backend = GenericBackendV2(num_qubits=20, coupling_map=TOKYO_CMAP, seed=42)
         result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
@@ -1503,6 +1601,25 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
         res = pm.run(circuit)
         self.assertEqual(res.metadata, metadata)
         self.assertEqual(res.name, name)
+
+    def test_timing_constraints_from_target_no_backend(self):
+        """Test that timing constrains are obtained from target when no backend is provided."""
+        target = Target.from_configuration(
+            basis_gates=["sx", "rz", "cz", "measure", "delay"],
+            coupling_map=CouplingMap.from_line(4),
+            timing_constraints=TimingConstraints(acquire_alignment=2),
+        )
+        pm = generate_preset_pass_manager(optimization_level=2, target=target)
+
+        timing_constraint_from_target = False
+
+        # Check to ensure that one of the tasks is of the type 'InstructionDurationsCheck'
+        for task in pm.scheduling.__dict__["_tasks"]:
+            if isinstance(task[0], InstructionDurationCheck):
+                self.assertEqual(task[0].acquire_align, 2)
+                timing_constraint_from_target = True
+
+        self.assertTrue(timing_constraint_from_target)
 
 
 @ddt

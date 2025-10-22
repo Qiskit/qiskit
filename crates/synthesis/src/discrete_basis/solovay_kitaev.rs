@@ -279,7 +279,7 @@ impl SolovayKitaevSynthesis {
             None => {
                 return Err(PyValueError::new_err(
                     "Failed to construct matrix representation.",
-                ))
+                ));
             }
         };
 

@@ -13,16 +13,16 @@
 //! Parser for equation strings to generate symbolic expression
 use std::sync::Arc;
 
+use nom::IResult;
+use nom::Parser;
 use nom::branch::{alt, permutation};
 use nom::bytes::complete::tag;
 use nom::character::complete::{char, digit1, multispace0};
 use nom::combinator::{all_consuming, map_res, opt, recognize};
-use nom::error::{convert_error, VerboseError};
+use nom::error::{VerboseError, convert_error};
 use nom::multi::{many0, many0_count};
 use nom::number::complete::double;
 use nom::sequence::{delimited, pair, tuple};
-use nom::IResult;
-use nom::Parser;
 
 use num_complex::c64;
 
@@ -76,9 +76,13 @@ fn parse_symbol(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
                     // if array indexing is required in the future
                     // add indexing in Symbol struct
                     let i_u32 = i.parse::<u32>().map_err(|_| "Failed to parse index.")?;
-                    Ok(SymbolExpr::Symbol(Symbol::new(v, None, Some(i_u32))))
+                    Ok(SymbolExpr::Symbol(Arc::new(Symbol::new(
+                        v,
+                        None,
+                        Some(i_u32),
+                    ))))
                 }
-                None => Ok(SymbolExpr::Symbol(Symbol::new(v, None, None))),
+                None => Ok(SymbolExpr::Symbol(Arc::new(Symbol::new(v, None, None)))),
             }
         },
     )(s)

@@ -69,6 +69,12 @@ where
         Self::new()
     }
 }
+impl<R: Register + PartialEq> PartialEq for RegisterData<R> {
+    fn eq(&self, other: &Self) -> bool {
+        (self.registers == other.registers) && (self.reg_index == other.reg_index)
+    }
+}
+impl<R: Register + Eq> Eq for RegisterData<R> {}
 
 impl<R> RegisterData<R>
 where

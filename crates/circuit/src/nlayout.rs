@@ -10,9 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use pyo3::IntoPyObjectExt;
 use pyo3::prelude::*;
 use pyo3::types::PyList;
-use pyo3::IntoPyObjectExt;
 
 use hashbrown::HashMap;
 
@@ -24,6 +24,7 @@ use hashbrown::HashMap;
 /// overhead, so we just allow conversion to and from any valid `PyLong`.
 macro_rules! qubit_newtype {
     ($id: ident) => {
+        #[repr(transparent)]
         #[derive(
             Debug,
             Clone,
@@ -40,6 +41,9 @@ macro_rules! qubit_newtype {
         pub struct $id(pub u32);
 
         impl $id {
+            /// The maximum storable index.
+            pub const MAX: Self = $id($crate::Qubit::MAX.index() as _);
+
             #[inline]
             pub fn new(val: u32) -> Self {
                 Self(val)
@@ -47,6 +51,24 @@ macro_rules! qubit_newtype {
             #[inline]
             pub fn index(&self) -> usize {
                 self.0 as usize
+            }
+
+            /// Specialise a slice of `Qubit` values into a slice of this type's values.
+            pub fn lift_slice(slice: &[$crate::Qubit]) -> &[$id] {
+                // SAFETY: `Qubit` and this type share the exact same set of valid bit patterns and
+                // alignments.
+                unsafe { ::std::slice::from_raw_parts(slice.as_ptr() as *const $id, slice.len()) }
+            }
+        }
+
+        impl From<$id> for $crate::Qubit {
+            fn from(val: $id) -> Self {
+                $crate::Qubit(val.0)
+            }
+        }
+        impl From<$crate::Qubit> for $id {
+            fn from(val: $crate::Qubit) -> Self {
+                Self(val.0)
             }
         }
 
@@ -76,7 +98,7 @@ macro_rules! qubit_newtype {
                 self.0 as usize
             }
             fn max() -> Self {
-                Self(u32::MAX)
+                Self::MAX
             }
         }
     };

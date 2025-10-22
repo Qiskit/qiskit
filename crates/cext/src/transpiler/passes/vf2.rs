@@ -34,7 +34,7 @@ pub struct VF2LayoutResult(Option<HashMap<VirtualQubit, PhysicalQubit>>);
 ///
 /// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a
 /// ``QkVF2LayoutResult``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_vf2_layout_result_has_match(layout: *const VF2LayoutResult) -> bool {
     let layout = unsafe { const_ptr_as_ref(layout) };
@@ -52,7 +52,7 @@ pub unsafe extern "C" fn qk_vf2_layout_result_has_match(layout: *const VF2Layout
 ///
 /// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a
 /// ``QkVF2LayoutResult``. The result must have a layout found.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_vf2_layout_result_num_qubits(layout: *const VF2LayoutResult) -> u32 {
     let layout = unsafe { const_ptr_as_ref(layout) };
@@ -75,7 +75,7 @@ pub unsafe extern "C" fn qk_vf2_layout_result_num_qubits(layout: *const VF2Layou
 /// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a
 /// ``QkVF2LayoutResult``. Also qubit must be a valid qubit for the circuit and
 /// there must be a result found.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_vf2_layout_result_map_virtual_qubit(
     layout: *const VF2LayoutResult,
@@ -103,7 +103,7 @@ pub unsafe extern "C" fn qk_vf2_layout_result_map_virtual_qubit(
 /// # Safety
 ///
 /// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a ``QkVF2Layout``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_vf2_layout_result_free(layout: *mut VF2LayoutResult) {
     if !layout.is_null() {
@@ -138,7 +138,7 @@ pub unsafe extern "C" fn qk_vf2_layout_result_free(layout: *mut VF2LayoutResult)
 /// @param target A pointer to the target to run the VF2Layout pass on
 /// @param strict_direction If true the pass will consider the edge direction in the
 ///     connectivity described in the ``target``. Typically setting this to ``false``
-///     is desireable as an undirected search has more degrees of freedom and is more likely
+///     is desirable as an undirected search has more degrees of freedom and is more likely
 ///     to find a layout (or a better layout if there are multiple choices) and correcting
 ///     directionality is a simple operation for later transpilation stages.
 /// @param call_limit The number of state visits to attempt in each execution of the VF2 algorithm.
@@ -160,7 +160,8 @@ pub unsafe extern "C" fn qk_vf2_layout_result_free(layout: *mut VF2LayoutResult)
 /// # Example
 ///
 /// ```c
-///     QkTarget *target = qk_target_new(5)
+///     QkTarget *target = qk_target_new(5);
+///     uint32_t current_num_qubits = qk_target_num_qubits(target);
 ///     QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
 ///     for (uint32_t i = 0; i < current_num_qubits - 1; i++) {
 ///         uint32_t qargs[2] = {i, i + 1};
@@ -183,7 +184,7 @@ pub unsafe extern "C" fn qk_vf2_layout_result_free(layout: *mut VF2LayoutResult)
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` or ``target`` is not a valid, non-null pointer to a ``QkCircuit`` and ``QkTarget``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout(
     circuit: *const CircuitData,
@@ -191,7 +192,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout(
     strict_direction: bool,
     call_limit: i64,
     time_limit: f64,
-    max_trials: isize,
+    max_trials: i64,
 ) -> *mut VF2LayoutResult {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
@@ -215,7 +216,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout(
     } else if max_trials == 0 {
         None
     } else {
-        Some(max_trials)
+        Some(max_trials as isize)
     };
     let layout = match vf2_layout_pass(
         &dag,
@@ -224,6 +225,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout(
         call_limit,
         time_limit,
         max_trials,
+        None,
         None,
     ) {
         Ok(layout) => layout,

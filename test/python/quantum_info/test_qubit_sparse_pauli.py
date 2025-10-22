@@ -22,11 +22,7 @@ import numpy as np
 
 from qiskit import transpile
 from qiskit.circuit import Measure, Parameter, library, QuantumCircuit
-from qiskit.quantum_info import (
-    QubitSparsePauli,
-    QubitSparsePauliList,
-    Pauli,
-)
+from qiskit.quantum_info import QubitSparsePauli, QubitSparsePauliList, Pauli, PauliList
 from qiskit.transpiler import Target
 
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -480,6 +476,22 @@ class TestQubitSparsePauli(QiskitTestCase):
         with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits: 3, 4"):
             p1.commutes(p0)
 
+    def test_to_pauli(self):
+        pauli = Pauli("XIZIY")
+        self.assertEqual(pauli, QubitSparsePauli(pauli).to_pauli())
+
+        # leading identities
+        pauli = Pauli("IIZIY")
+        self.assertEqual(pauli, QubitSparsePauli(pauli).to_pauli())
+
+        # trailing identities
+        pauli = Pauli("XIZIYII")
+        self.assertEqual(pauli, QubitSparsePauli(pauli).to_pauli())
+
+        # both
+        pauli = Pauli("IIXIZIYII")
+        self.assertEqual(pauli, QubitSparsePauli(pauli).to_pauli())
+
 
 @ddt.ddt
 class TestQubitSparsePauliList(QiskitTestCase):
@@ -873,38 +885,6 @@ class TestQubitSparsePauliList(QiskitTestCase):
         self.assertEqual(len(QubitSparsePauliList.empty(10)), 0)
         self.assertEqual(len(QubitSparsePauliList.from_list(["IIIXIZ", "YYXXII"])), 2)
 
-    def test_pauli_enum(self):
-        # These are very explicit tests that effectively just duplicate magic numbers, but the point
-        # is that those magic numbers are required to be constant as their values are part of the
-        # public interface.
-
-        self.assertEqual(
-            set(QubitSparsePauli.Pauli),
-            {
-                QubitSparsePauli.Pauli.X,
-                QubitSparsePauli.Pauli.Y,
-                QubitSparsePauli.Pauli.Z,
-            },
-        )
-        # All the enumeration items should also be integers.
-        self.assertIsInstance(QubitSparsePauli.Pauli.X, int)
-        values = {
-            "X": 0b10,
-            "Y": 0b11,
-            "Z": 0b01,
-        }
-        self.assertEqual({name: getattr(QubitSparsePauli.Pauli, name) for name in values}, values)
-
-        # The single-character label aliases can be accessed with index notation.
-        labels = {
-            "X": QubitSparsePauli.Pauli.X,
-            "Y": QubitSparsePauli.Pauli.Y,
-            "Z": QubitSparsePauli.Pauli.Z,
-        }
-        self.assertEqual({label: QubitSparsePauli.Pauli[label] for label in labels}, labels)
-        # The `label` property returns known values.
-        self.assertEqual({pauli.label: pauli for pauli in QubitSparsePauli.Pauli}, labels)
-
     @ddt.idata(single_cases_list())
     def test_pickle(self, qubit_sparse_pauli_list):
         self.assertEqual(qubit_sparse_pauli_list, copy.copy(qubit_sparse_pauli_list))
@@ -1220,6 +1200,33 @@ class TestQubitSparsePauliList(QiskitTestCase):
                 canonicalize_sparse_list(expected),
                 canonicalize_sparse_list(pauli_list.to_sparse_list()),
             )
+
+    def test_to_pauli_list(self):
+        pauli_strings = ["XIZIY", "IIZIY", "ZIYII", "IIZII"]
+        pauli_list = PauliList(pauli_strings)
+        self.assertEqual(pauli_list, QubitSparsePauliList.from_list(pauli_strings).to_pauli_list())
+
+        # single element
+        pauli_strings = ["XIZIY"]
+        pauli_list = PauliList(pauli_strings)
+        self.assertEqual(pauli_list, QubitSparsePauliList.from_list(pauli_strings).to_pauli_list())
+
+    def test_to_dense_array(self):
+        """Test converting to a dense array."""
+        with self.subTest(msg="empty"):
+            pauli_list = QubitSparsePauliList.empty(100)
+            expected = np.zeros((0, 100), dtype=np.uint8)
+            np.testing.assert_array_equal(pauli_list.to_dense_array(), expected, strict=True)
+
+        with self.subTest(msg="single"):
+            pauli_list = QubitSparsePauliList.from_sparse_list([("XZ", (0, 2))], num_qubits=5)
+            expected = np.array([[2, 0, 1, 0, 0]], dtype=np.uint8)
+            np.testing.assert_array_equal(pauli_list.to_dense_array(), expected, strict=True)
+
+        with self.subTest(msg="multiple"):
+            pauli_list = QubitSparsePauliList.from_list(["IXI", "YII", "IIZ"])
+            expected = np.array([[0, 2, 0], [0, 0, 3], [1, 0, 0]], dtype=np.uint8)
+            np.testing.assert_array_equal(pauli_list.to_dense_array(), expected, strict=True)
 
 
 def canonicalize_term(pauli, indices):

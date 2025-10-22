@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister, Gate
 from qiskit.utils.deprecation import deprecate_func
 from qiskit.circuit.library import QFT
 
@@ -34,18 +34,18 @@ class PhaseEstimation(QuantumCircuit):
     This estimation (and thereby this circuit) is a central routine to several well-known
     algorithms, such as Shor's algorithm or Quantum Amplitude Estimation.
 
-    **References:**
+    References:
 
-    [1]: Kitaev, A. Y. (1995). Quantum measurements and the Abelian Stabilizer Problem. 1–22.
-        `quant-ph/9511026 <http://arxiv.org/abs/quant-ph/9511026>`_
+    [1] Kitaev, A. Y. (1995). Quantum measurements and the Abelian Stabilizer Problem. 1–22.
+    `quant-ph/9511026 <http://arxiv.org/abs/quant-ph/9511026>`_
 
-    [2]: Michael A. Nielsen and Isaac L. Chuang. 2011.
-         Quantum Computation and Quantum Information: 10th Anniversary Edition (10th ed.).
-         Cambridge University Press, New York, NY, USA.
+    [2] Michael A. Nielsen and Isaac L. Chuang. 2011.
+    Quantum Computation and Quantum Information: 10th Anniversary Edition (10th ed.).
+    Cambridge University Press, New York, NY, USA.
 
-    [3]: Qiskit
-        `textbook <https://github.com/Qiskit/textbook/blob/main/notebooks/ch-algorithms/
-        quantum-phase-estimation.ipynb>`_
+    [3] Qiskit
+    `textbook <https://github.com/Qiskit/textbook/blob/main/notebooks/ch-algorithms/
+    quantum-phase-estimation.ipynb>`_
 
     """
 
@@ -75,17 +75,18 @@ class PhaseEstimation(QuantumCircuit):
             The inverse QFT should not include a swap of the qubit order.
 
         Reference Circuit:
-            .. plot::
-               :alt: Diagram illustrating the previously described circuit.
 
-               from qiskit.circuit import QuantumCircuit
-               from qiskit.circuit.library import PhaseEstimation
-               from qiskit.visualization.library import _generate_circuit_library_visualization
-               unitary = QuantumCircuit(2)
-               unitary.x(0)
-               unitary.y(1)
-               circuit = PhaseEstimation(3, unitary)
-               _generate_circuit_library_visualization(circuit)
+        .. plot::
+            :alt: Diagram illustrating the previously described circuit.
+
+            from qiskit.circuit import QuantumCircuit
+            from qiskit.circuit.library import PhaseEstimation
+            from qiskit.visualization.library import _generate_circuit_library_visualization
+            unitary = QuantumCircuit(2)
+            unitary.x(0)
+            unitary.y(1)
+            circuit = PhaseEstimation(3, unitary)
+            _generate_circuit_library_visualization(circuit)
         """
         qr_eval = QuantumRegister(num_evaluation_qubits, "eval")
         qr_state = QuantumRegister(unitary.num_qubits, "q")
@@ -107,7 +108,7 @@ class PhaseEstimation(QuantumCircuit):
 
 def phase_estimation(
     num_evaluation_qubits: int,
-    unitary: QuantumCircuit,
+    unitary: QuantumCircuit | Gate,
     name: str = "QPE",
 ) -> QuantumCircuit:
     r"""Phase Estimation circuit.
@@ -126,35 +127,37 @@ def phase_estimation(
 
     Args:
         num_evaluation_qubits: The number of evaluation qubits.
-        unitary: The unitary operation :math:`U` which will be repeated and controlled.
-        name: The name of the circuit.
+        unitary: The unitary operation :math:`U` which will be repeated and controlled. This
+            can either be a :class:`.QuantumCircuit` or a :class:`.Gate`. Passing gates can often
+            be more performant, as it allows calling optimized control and power subroutines.
+        name: The name of the output circuit.
 
-    **Reference Circuit:**
+    Reference Circuit:
 
     .. plot::
-       :alt: Circuit diagram output by the previous code.
+       :alt: A phase estimation circuit.
        :include-source:
 
-       from qiskit.circuit import QuantumCircuit
-       from qiskit.circuit.library import phase_estimation
-       unitary = QuantumCircuit(2)
-       unitary.x(0)
-       unitary.y(1)
-       circuit = phase_estimation(3, unitary)
-       circuit.draw('mpl')
+       from qiskit.circuit.library import phase_estimation, PauliEvolutionGate
+       from qiskit.quantum_info import SparsePauliOp
 
-    **References:**
+       hamiltonian = SparsePauliOp(["ZZ", "IX", "XI"])
+       evo = PauliEvolutionGate(hamiltonian, time=0.1)  # implements exp(-itH)
 
-    [1]: Kitaev, A. Y. (1995). Quantum measurements and the Abelian Stabilizer Problem. 1–22.
-        `quant-ph/9511026 <http://arxiv.org/abs/quant-ph/9511026>`_
+       circuit = phase_estimation(3, evo)  # QPE for the evolution operator
+       circuit.draw("mpl")
 
-    [2]: Michael A. Nielsen and Isaac L. Chuang. 2011.
-         Quantum Computation and Quantum Information: 10th Anniversary Edition (10th ed.).
-         Cambridge University Press, New York, NY, USA.
+    References:
 
-    [3]: Qiskit
-        `textbook <https://github.com/Qiskit/textbook/blob/main/notebooks/ch-algorithms/
-        quantum-phase-estimation.ipynb>`_
+    [1] Kitaev, A. Y. (1995). Quantum measurements and the Abelian Stabilizer Problem. 1–22.
+    `quant-ph/9511026 <http://arxiv.org/abs/quant-ph/9511026>`_
+
+    [2] Michael A. Nielsen and Isaac L. Chuang. 2011.
+    Quantum Computation and Quantum Information: 10th Anniversary Edition (10th ed.).
+    Cambridge University Press, New York, NY, USA.
+
+    [3] Qiskit `textbook <https://github.com/Qiskit/textbook/blob/main/notebooks/ch-algorithms/
+    quantum-phase-estimation.ipynb>`_
 
     """
     # pylint: disable=cyclic-import

@@ -11,24 +11,24 @@
 // that they have been altered from the originals.
 
 use ahash::RandomState;
+use pyo3::Python;
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
 use pyo3::wrap_pyfunction;
-use pyo3::Python;
 
 use numpy::prelude::*;
 use numpy::{PyArray1, PyArray2, PyReadonlyArray1, PyReadonlyArray2, PyUntypedArrayMethods};
 
 use hashbrown::HashMap;
 use indexmap::IndexMap;
-use ndarray::{s, ArrayView1, ArrayView2, Axis};
+use ndarray::{ArrayView1, ArrayView2, Axis, s};
 use num_complex::Complex64;
 use num_traits::Zero;
 use rayon::prelude::*;
 use thiserror::Error;
 
-use qiskit_circuit::util::{c64, C_ZERO};
+use qiskit_circuit::util::{C_ZERO, c64};
 
 use crate::rayon_ext::*;
 
@@ -51,7 +51,7 @@ use crate::rayon_ext::*;
 ///         - the indices of the unique array that reconstruct the input array
 ///
 #[pyfunction]
-pub fn unordered_unique(py: Python, array: PyReadonlyArray2<u16>) -> (PyObject, PyObject) {
+pub fn unordered_unique(py: Python, array: PyReadonlyArray2<u16>) -> (Py<PyAny>, Py<PyAny>) {
     let array = array.as_array();
     let shape = array.shape();
     let mut table = HashMap::<ArrayView1<u16>, usize>::with_capacity(shape[0]);
@@ -408,7 +408,7 @@ pub fn decompose_dense(
     tolerance: f64,
 ) -> PyResult<ZXPaulis> {
     let array_view = operator.as_array();
-    let out = py.allow_threads(|| decompose_dense_inner(array_view, tolerance))?;
+    let out = py.detach(|| decompose_dense_inner(array_view, tolerance))?;
     Ok(ZXPaulis {
         z: PyArray1::from_vec(py, out.z)
             .reshape([out.phases.len(), out.num_qubits])?
@@ -1268,10 +1268,13 @@ pub fn sparse_pauli_op(m: &Bound<PyModule>) -> PyResult<()> {
 
 #[cfg(test)]
 mod tests {
-    use ndarray::{aview2, Array1};
+    use ndarray::{Array1, aview2};
 
     use super::*;
     use crate::test::*;
+
+    #[cfg(miri)]
+    use approx::AbsDiffEq;
 
     // The purpose of these tests is more about exercising the `unsafe` code under Miri; we test for
     // full numerical correctness from Python space.
@@ -1414,7 +1417,16 @@ mod tests {
                 .unwrap();
             let expected: DecomposeMinimal = paulis.into();
             let actual: DecomposeMinimal = decompose_dense_inner(arr.view(), 0.0).unwrap().into();
+            #[cfg(not(miri))]
             assert_eq!(actual, expected);
+            #[cfg(miri)]
+            {
+                assert!(actual.coeffs.abs_diff_eq(&expected.coeffs, 1e-8));
+                assert_eq!(actual.z, expected.z);
+                assert_eq!(actual.x, expected.x);
+                assert_eq!(actual.phases, expected.phases);
+                assert_eq!(actual.num_qubits, expected.num_qubits);
+            }
         }
     }
 
@@ -1449,7 +1461,16 @@ mod tests {
                 .unwrap();
             let expected: DecomposeMinimal = paulis.into();
             let actual: DecomposeMinimal = decompose_dense_inner(arr.view(), 0.0).unwrap().into();
+            #[cfg(not(miri))]
             assert_eq!(actual, expected);
+            #[cfg(miri)]
+            {
+                assert!(actual.coeffs.abs_diff_eq(&expected.coeffs, 1e-8));
+                assert_eq!(actual.z, expected.z);
+                assert_eq!(actual.x, expected.x);
+                assert_eq!(actual.phases, expected.phases);
+                assert_eq!(actual.num_qubits, expected.num_qubits);
+            }
         }
     }
 
