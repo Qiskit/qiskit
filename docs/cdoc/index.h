@@ -35,6 +35,10 @@
  */
 
 /**
+ * @defgroup QkDag QkDag
+ */
+
+/**
  * @defgroup QkTranspilerPasses QkTranspilerPasses
  */
 

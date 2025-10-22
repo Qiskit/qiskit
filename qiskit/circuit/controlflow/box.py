@@ -52,9 +52,9 @@ class BoxOp(ControlFlowOp):
         Default constructor of :class:`BoxOp`.
 
         Args:
-            body: the circuit to use as the body of the box.  This should explicit close over any
+            body: the circuit to use as the body of the box.  This should explicitly close over any
                 :class:`.expr.Var` variables that must be incident from the outer circuit.  The
-                expected number of qubit and clbits for the resulting instruction are inferred from
+                required number of qubit and clbits for the resulting instruction are inferred from
                 the number in the circuit, even if they are idle.
             duration: an optional duration for the box as a whole.
             unit: the unit of the ``duration``.
@@ -98,7 +98,7 @@ class BoxOp(ControlFlowOp):
     def body(self):
         """The ``body`` :class:`.QuantumCircuit` of the operation.
 
-        This is the same as object returned as the sole entry in :meth:`params` and :meth:`blocks`.
+        This is the same object returned as the sole entry in :meth:`params` and :meth:`blocks`.
         """
         # Not settable via this property; the only meaningful way to replace a body is via
         # larger `QuantumCircuit` methods, or using `replace_blocks`.
