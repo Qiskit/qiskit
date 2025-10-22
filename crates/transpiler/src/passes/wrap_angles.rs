@@ -69,7 +69,7 @@ pub fn run_wrap_angles(
             let new_dag =
                 bounds_registry.substitute_angle_bounds(inst.op.name(), &params, &qargs)?;
             if let Some(new_dag) = new_dag {
-                dag.substitute_node_with_dag(node, &new_dag, None, None, None)?;
+                dag.substitute_node_with_dag(node, &new_dag, None, None, None, None)?;
             }
         }
     }
