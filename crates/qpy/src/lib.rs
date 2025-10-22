@@ -17,7 +17,8 @@ use pyo3::{wrap_pyfunction, Bound, PyResult};
 
 mod annotations;
 mod bytes;
-mod circuits;
+mod circuit_reader;
+mod circuit_writer;
 mod consts;
 mod formats;
 mod params;
@@ -27,8 +28,8 @@ mod value;
 /// Internal module supplying the QPY capabilities.  The entries in it should largely
 /// be re-exposed directly to public Python space.
 pub fn qpy(module: &Bound<PyModule>) -> PyResult<()> {
-    module.add_function(wrap_pyfunction!(circuits::py_write_circuit, module)?)?;
-    module.add_function(wrap_pyfunction!(circuits::py_read_circuit, module)?)?;
+    module.add_function(wrap_pyfunction!(circuit_writer::py_write_circuit, module)?)?;
+    module.add_function(wrap_pyfunction!(circuit_reader::py_read_circuit, module)?)?;
     Ok(())
 }
 

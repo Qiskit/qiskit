@@ -19,7 +19,7 @@ use std::vec;
 use uuid::Uuid;
 
 use crate::bytes::Bytes;
-use crate::circuits::load_register;
+use crate::circuit_reader::load_register;
 use crate::formats;
 use crate::value::{
     bytes_to_uuid, deserialize, deserialize_vec, dumps_value, get_type_key, serialize, tags,

@@ -27,7 +27,8 @@ use qiskit_circuit::packed_instruction::PackedOperation;
 
 use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
-use crate::circuits::{deserialize_circuit, pack_circuit};
+use crate::circuit_reader::deserialize_circuit;
+use crate::circuit_writer::pack_circuit;
 use crate::formats;
 use crate::params::{
     pack_parameter, pack_parameter_expression, pack_parameter_vector, unpack_parameter,
@@ -41,6 +42,17 @@ use std::io::{Cursor, Read, Seek, Write};
 use uuid::Uuid;
 
 const QPY_VERSION: u32 = 15;
+
+// Standard char representation of register types: 'q' qreg, 'c' for creg
+pub mod register_types {
+    pub const QREG: u8 = b'q';
+    pub const CREG: u8 = b'c';
+}
+
+pub mod bit_types {
+    pub const QUBIT: u8 = b'q';
+    pub const CLBIT: u8 = b'c';
+}
 
 #[derive(Eq, PartialEq, Hash, Debug)]
 pub enum VarOrStretch {

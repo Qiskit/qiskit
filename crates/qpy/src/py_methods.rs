@@ -38,7 +38,7 @@ use crate::value::{
 };
 use crate::{QpyError, UnsupportedFeatureForVersion};
 
-use crate::circuits::{
+use crate::circuit_writer::{
     get_condition_data, get_packed_bit_list, pack_custom_instructions, pack_instructions,
 };
 
