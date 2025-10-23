@@ -389,6 +389,20 @@ pub fn optimization_stage(
     Ok(())
 }
 
+#[inline]
+pub fn get_sabre_heuristic(target: &Target) -> Result<sabre::Heuristic> {
+    Ok(sabre::Heuristic::new(
+        None,
+        None,
+        None,
+        target.num_qubits.map(|x| (x * 10) as usize),
+        1e-10,
+    )
+    .with_basic(1.0, sabre::SetScaling::Constant)
+    .with_lookahead(0.5, 20, sabre::SetScaling::Size)
+    .with_decay(0.001, 5)?)
+}
+
 /// A transpilation function for Rust native circuits for use in the C API. This will not cover
 /// things that only exist in the Python API such as custom gates or control flow. When those
 /// concepts exist in the rust data model this function must be expanded before adding them to the
@@ -403,16 +417,7 @@ pub fn transpile(
     let mut dag = DAGCircuit::from_circuit_data(circuit, false, None, None, None, None)?;
     let mut commutation_checker = get_standard_commutation_checker();
     let mut equivalence_library = generate_standard_equivalence_library();
-    let sabre_heuristic = sabre::Heuristic::new(
-        None,
-        None,
-        None,
-        target.num_qubits.map(|x| (x * 10) as usize),
-        1e-10,
-    )
-    .with_basic(1.0, sabre::SetScaling::Constant)
-    .with_lookahead(0.5, 20, sabre::SetScaling::Size)
-    .with_decay(0.001, 5)?;
+    let sabre_heuristic = get_sabre_heuristic(target)?;
 
     let mut transpile_layout: TranspileLayout = TranspileLayout::new(
         None,
