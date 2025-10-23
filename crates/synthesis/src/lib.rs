@@ -21,6 +21,7 @@ mod multi_controlled;
 mod permutation;
 mod qft;
 pub mod qsd;
+pub mod ross_selinger;
 pub mod two_qubit_decompose;
 
 use pyo3::import_exception;

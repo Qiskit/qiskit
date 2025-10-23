@@ -14,3 +14,4 @@
 
 from .solovay_kitaev import SolovayKitaevDecomposition
 from .generate_basis_approximations import generate_basic_approximations
+from .ross_selinger import approximate_rz_rotation, approximate_1q_unitary

@@ -85,6 +85,8 @@ Discrete Basis Synthesis
 
    SolovayKitaevDecomposition
 
+.. autofunction:: approximate_rz_rotation
+.. autofunction:: approximate_1q_unitary
 .. autofunction:: generate_basic_approximations
 
 Basis Change Synthesis
@@ -214,7 +216,12 @@ from .stabilizer import (
     synth_stabilizer_depth_lnn,
     synth_circuit_from_stabilizers,
 )
-from .discrete_basis import SolovayKitaevDecomposition, generate_basic_approximations
+from .discrete_basis import (
+    SolovayKitaevDecomposition,
+    generate_basic_approximations,
+    approximate_rz_rotation,
+    approximate_1q_unitary,
+)
 from .qft import synth_qft_line, synth_qft_full
 from .unitary.qsd import qs_decomposition
 from .unitary import aqc
