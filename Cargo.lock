@@ -810,15 +810,6 @@ dependencies = [
 
 [[package]]
 name = "itertools"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1c173a5686ce8bfa551b3563d0c2170bf24ca44da99c7ca4bfdab5418c3fe57"
-dependencies = [
- "either",
-]
-
-[[package]]
-name = "itertools"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
@@ -1259,12 +1250,14 @@ dependencies = [
 
 [[package]]
 name = "petgraph"
-version = "0.7.1"
+version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3672b37090dbd86368a4145bc067582552b29c27377cad4e0a306c97f9bd7772"
+checksum = "8701b58ea97060d5e5b155d383a69952a60943f0e6dfe30b04c287beb0b27455"
 dependencies = [
  "fixedbitset 0.5.7",
+ "hashbrown 0.15.5",
  "indexmap",
+ "serde",
 ]
 
 [[package]]
@@ -1458,7 +1451,7 @@ dependencies = [
  "qiskit-transpiler",
  "rand 0.9.2",
  "rand_distr 0.5.1",
- "rand_pcg 0.9.0",
+ "rand_pcg",
  "rayon",
  "rustworkx-core",
  "smallvec",
@@ -1481,7 +1474,7 @@ dependencies = [
  "qiskit-quantum-info",
  "qiskit-transpiler",
  "rand 0.9.2",
- "rand_pcg 0.9.0",
+ "rand_pcg",
  "smallvec",
  "thiserror 2.0.16",
 ]
@@ -1526,7 +1519,7 @@ dependencies = [
  "qiskit-circuit",
  "rand 0.9.2",
  "rand_distr 0.5.1",
- "rand_pcg 0.9.0",
+ "rand_pcg",
  "rayon",
  "smallvec",
  "uuid",
@@ -1594,7 +1587,7 @@ dependencies = [
  "qiskit-circuit",
  "rand 0.9.2",
  "rand_distr 0.5.1",
- "rand_pcg 0.9.0",
+ "rand_pcg",
  "rayon",
  "rustworkx-core",
  "thiserror 2.0.16",
@@ -1623,7 +1616,7 @@ dependencies = [
  "qiskit-quantum-info",
  "rand 0.9.2",
  "rand_distr 0.5.1",
- "rand_pcg 0.9.0",
+ "rand_pcg",
  "rayon",
  "rstar",
  "rustiq-core",
@@ -1654,9 +1647,9 @@ dependencies = [
  "qiskit-quantum-info",
  "qiskit-synthesis",
  "rand 0.9.2",
- "rand_pcg 0.9.0",
+ "rand_pcg",
  "rayon",
- "rayon-cond 0.4.0",
+ "rayon-cond",
  "rustworkx-core",
  "smallvec",
  "thiserror 2.0.16",
@@ -1765,15 +1758,6 @@ dependencies = [
 
 [[package]]
 name = "rand_pcg"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59cad018caf63deb318e5a4586d99a24424a364f40f1e5778c29aca23f4fc73e"
-dependencies = [
- "rand_core 0.6.4",
-]
-
-[[package]]
-name = "rand_pcg"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b48ac3f7ffaab7fac4d2376632268aa5f89abdb55f7ebf8f4d11fffccb2320f7"
@@ -1804,17 +1788,6 @@ checksum = "368f01d005bf8fd9b1206fb6fa653e6c4a81ceb1466406b81792d87c5677a58f"
 dependencies = [
  "either",
  "rayon-core",
-]
-
-[[package]]
-name = "rayon-cond"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "059f538b55efd2309c9794130bc149c6a553db90e9d99c2030785c82f0bd7df9"
-dependencies = [
- "either",
- "itertools 0.11.0",
- "rayon",
 ]
 
 [[package]]
@@ -1941,22 +1914,23 @@ checksum = "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d"
 
 [[package]]
 name = "rustworkx-core"
-version = "0.16.0"
+version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8a4717d3df536ce531369b8c9a0c7f9624a51cf9c3948038ed3cb18e9a16c92"
+checksum = "aaeee6f84153fd6f62507fc22bfe9499c8485075b44186dcbb918166ef75116f"
 dependencies = [
- "ahash 0.8.12",
  "fixedbitset 0.5.7",
+ "foldhash",
  "hashbrown 0.15.5",
  "indexmap",
  "ndarray",
  "num-traits",
- "petgraph 0.7.1",
+ "petgraph 0.8.3",
  "priority-queue",
- "rand 0.8.5",
- "rand_pcg 0.3.1",
+ "rand 0.9.2",
+ "rand_distr 0.5.1",
+ "rand_pcg",
  "rayon",
- "rayon-cond 0.3.0",
+ "rayon-cond",
 ]
 
 [[package]]
