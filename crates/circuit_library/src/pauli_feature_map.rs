@@ -121,12 +121,12 @@ pub fn pauli_feature_map(
         }
     }
 
-    CircuitData::from_packed_operations(
+    Ok(CircuitData::from_packed_operations(
         feature_dimension,
         0,
         packed_insts.into_iter().map(Ok),
         Param::Float(0.0),
-    )
+    )?)
 }
 
 fn _get_h_layer(feature_dimension: u32) -> impl Iterator<Item = Instruction> {

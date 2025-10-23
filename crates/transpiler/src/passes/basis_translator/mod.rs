@@ -452,6 +452,7 @@ fn apply_translation(
         let mut new_op: Option<OperationFromPython> = None;
         if target_basis.contains(node_obj.op.name()) || node_qarg.len() < min_qubits {
             if node_obj.op.control_flow() {
+                // TODO: Handle this with Rust native control flow.
                 Python::attach(|py| -> PyResult<()> {
                     // This part is only executed through python because `ControlFlowOp`
                     // does not exist in Rust space yet, and we need the method `replace_blocks`.
@@ -491,7 +492,7 @@ fn apply_translation(
                         bound_obj.call_method1("replace_blocks", (flow_blocks,))?;
                     new_op = Some(replaced_blocks.extract()?);
                     Ok(())
-                }).map_err(|_| BasisTranslatorError::BasisCircuitError("Error replacing control flow operation blocks".to_string()))?;
+                }).unwrap();
             }
             if let Some(new_op) = new_op {
                 out_dag_builder
