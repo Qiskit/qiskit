@@ -1,0 +1,35 @@
+---
+features_transpiler:
+  - |
+    Add functions ``qk_target_instruction_supported``, ``qk_target_reset_supported``, and
+    ``qk_target_measure_supported`` to check the compatibility of a :c::`QkGate`, a :class:`.Reset`
+    instruction, or a :class:`.Measure` with the instance of :c:type:`QkTarget`.
+
+    .. code-block:: c
+      
+      // Build a sample target
+      QkTarget *target = qk_target_new(0);
+      
+      // Create an entry for a CX gate
+      QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
+      
+      // Add some properties to the entry
+      qk_target_entry_add_property(cx_entry, (uint32_t[2]){3,4}, 2, 2.7022e-11, 0.00713);
+      qk_target_entry_add_property(cx_entry, (uint32_t[2]){4,3}, 2, 3.0577e-11, 0.00713);
+
+      // Add the CX Gate to the Target
+      qk_target_add_instruction(target, cx_entry);
+
+      // Add global Y Gate
+      qk_target_add_instruction(target, qk_target_entry_new(QkGate_Y));
+
+      // Check if a CX gate at qargs (3, 4) is compatible
+      uint32_t cx_qargs[2] = { 3, 4 };
+      qk_target_instruction_supported(target, QkGate_CX, cx_qargs);
+
+      // Check if a Y gate at qargs (4,) is compatible
+      uint32_t y_qargs[1] = { 4, };
+      qk_target_instruction_supported(target, QkGate_Y, y_qargs);
+
+      // Free the target once done
+      qk_target_free(target);
