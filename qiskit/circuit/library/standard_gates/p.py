@@ -15,6 +15,7 @@
 from __future__ import annotations
 from cmath import exp
 import numpy
+from qiskit.circuit._utils import _ctrl_state_to_int
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
@@ -105,31 +106,33 @@ class PhaseGate(Gate):
         ctrl_state: str | int | None = None,
         annotated: bool | None = None,
     ):
-        """Return a (multi-)controlled-Phase gate.
+        """Return a controlled version of the Phase gate.
+
+        For a single control qubit, the controlled gate is implemented as :class:`.CPhaseGate`.
+        For more than one control qubits, the controlled gate is implemented as :class:`.MCPhaseGate`.
+        In each case, the value of ``annotated`` is ignored.
 
         Args:
-            num_ctrl_qubits: number of control qubits.
-            label: An optional label for the gate [Default: ``None``]
-            ctrl_state: control state expressed as integer,
-                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate should be implemented
-                as an annotated gate. If ``None``, this is handled as ``False``.
+            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            label: Optional gate label. Defaults to ``None``.
+            ctrl_state: The control state of the gate, specified either as an integer or a bitstring
+                (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``
+            annotated: Ignored.
 
         Returns:
-            ControlledGate: controlled version of this gate.
+            A controlled version of this gate.
         """
-        if not annotated and num_ctrl_qubits == 1:
-            gate = CPhaseGate(self.params[0], label=label, ctrl_state=ctrl_state)
-            gate.base_gate.label = self.label
-        elif not annotated and ctrl_state is None and num_ctrl_qubits > 1:
-            gate = MCPhaseGate(self.params[0], num_ctrl_qubits, label=label)
-            gate.base_gate.label = self.label
+        if num_ctrl_qubits == 1:
+            gate = CPhaseGate(
+                self.params[0], label=label, ctrl_state=ctrl_state, _base_label=self.label
+            )
         else:
-            gate = super().control(
+            gate = MCPhaseGate(
+                self.params[0],
                 num_ctrl_qubits=num_ctrl_qubits,
-                label=label,
                 ctrl_state=ctrl_state,
-                annotated=annotated,
+                label=label,
+                _base_label=self.label,
             )
         return gate
 
@@ -247,29 +250,32 @@ class CPhaseGate(ControlledGate):
         ctrl_state: str | int | None = None,
         annotated: bool | None = None,
     ):
-        """Controlled version of this gate.
+        """Return a controlled version of the CPhase gate.
+
+        The controlled gate is implemented as :class:`.MCPhaseGate`, regardless of
+        the value of ``annotated``.
 
         Args:
-            num_ctrl_qubits: number of control qubits.
-            label: An optional label for the gate [Default: ``None``]
-            ctrl_state: control state expressed as integer,
-                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate should be implemented
-                as an annotated gate. If ``None``, this is handled as ``False``.
+            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            label: Optional gate label. Defaults to ``None``.
+            ctrl_state: The control state of the gate, specified either as an integer or a bitstring
+                (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``
+            annotated: Ignored.
 
         Returns:
-            ControlledGate: controlled version of this gate.
+            A controlled version of this gate.
         """
-        if not annotated and ctrl_state is None:
-            gate = MCPhaseGate(self.params[0], num_ctrl_qubits=num_ctrl_qubits + 1, label=label)
-            gate.base_gate.label = self.label
-        else:
-            gate = super().control(
-                num_ctrl_qubits=num_ctrl_qubits,
-                label=label,
-                ctrl_state=ctrl_state,
-                annotated=annotated,
-            )
+        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
+        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
+
+        gate = MCPhaseGate(
+            self.params[0],
+            num_ctrl_qubits=num_ctrl_qubits + 1,
+            ctrl_state=new_ctrl_state,
+            label=label,
+            _base_label=self.label,
+        )
+
         return gate
 
     def inverse(self, annotated: bool = False):
@@ -377,33 +383,33 @@ class MCPhaseGate(ControlledGate):
         ctrl_state: str | int | None = None,
         annotated: bool | None = None,
     ):
-        """Controlled version of this gate.
+        """Return a controlled version of the MCPhaseGate gate.
+
+
+        The controlled gate is implemented as :class:`.MCPhaseGate`, regardless of
+        the value of ``annotated``.
 
         Args:
-            num_ctrl_qubits: number of control qubits.
-            label: An optional label for the gate [Default: ``None``]
-            ctrl_state: control state expressed as integer,
-                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate should be implemented
-                as an annotated gate. If ``None``, this is handled as ``False``.
+            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            label: Optional gate label. Defaults to ``None``.
+            ctrl_state: The control state of the gate, specified either as an integer or a bitstring
+                (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``
+            annotated: Ignored.
 
         Returns:
-            ControlledGate: controlled version of this gate.
+            A controlled version of this gate.
         """
-        if not annotated and ctrl_state is None:
-            gate = MCPhaseGate(
-                self.params[0],
-                num_ctrl_qubits=num_ctrl_qubits + self.num_ctrl_qubits,
-                label=label,
-            )
-            gate.base_gate.label = self.label
-        else:
-            gate = super().control(
-                num_ctrl_qubits=num_ctrl_qubits,
-                label=label,
-                ctrl_state=ctrl_state,
-                annotated=annotated,
-            )
+        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
+        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
+
+        gate = MCPhaseGate(
+            self.params[0],
+            num_ctrl_qubits=num_ctrl_qubits + self.num_ctrl_qubits,
+            ctrl_state=new_ctrl_state,
+            label=label,
+            _base_label=self.label,
+        )
+
         return gate
 
     def inverse(self, annotated: bool = False):
