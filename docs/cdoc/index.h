@@ -47,6 +47,10 @@
  */
 
 /**
+ * @defgroup QkVF2LayoutConfiguration QkVF2LayoutConfiguration
+ */
+
+/**
  * @defgroup QkTranspileLayout QkTranspileLayout
  */
 
