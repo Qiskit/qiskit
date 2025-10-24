@@ -201,16 +201,26 @@ mod test {
 
     #[test]
     fn test_basic_faer_to_nalgebra_conversion() {
-        let matrix = Mat::identity(10, 10);
+        let matrix = Mat::from_fn(10, 10, |i, j| {
+            Complex64::new(i as f64, 0.0) + Complex64::new(j as f64 * 10., 0.)
+        });
         let mat_view = faer_to_nalgebra(matrix.as_ref());
-        assert_eq!(mat_view, DMatrix::identity(10, 10));
+        let expected = DMatrix::from_fn(10, 10, |i, j| {
+            Complex64::new(i as f64, 0.0) + Complex64::new(j as f64 * 10., 0.)
+        });
+        assert_eq!(mat_view, expected);
     }
 
     #[test]
-    fn test_row_strided_view_faer_to_nalgebra_conversion() {
-        let matrix = Mat::identity(10, 10);
+    fn test_transpose_faer_to_nalgebra_conversion() {
+        let matrix = Mat::from_fn(10, 10, |i, j| {
+            Complex64::new(i as f64, 0.0) + Complex64::new(j as f64 * 10., 0.)
+        });
         let mat_view = faer_to_nalgebra(matrix.transpose());
-        assert_eq!(mat_view, DMatrix::identity(10, 10));
+        let expected = DMatrix::from_fn(10, 10, |i, j| {
+            Complex64::new(j as f64, 0.0) + Complex64::new(i as f64 * 10., 0.)
+        });
+        assert_eq!(mat_view, expected);
     }
 
     #[test]
