@@ -117,16 +117,15 @@ class Statevector(QuantumState, TolerancesMixin):
     def from_circuit(cls, circuit, ignore_set_layout=False):
         """Create a Statevector from a quantum circuit.
 
-            Args:
-                circuit (QuantumCircuit): A quantum circuit
-                ignore_set_layout (bool): When set to ``True``, if the input ``circuit``
-        has a layout set, it will be ignored. Defaults to ``False``.
+        Args:
+            circuit (QuantumCircuit): A quantum circuit
+            ignore_set_layout (bool): When set to ``True``, if the input ``circuit``
+                has a layout set, it will be ignored. Defaults to ``False``.
 
-            Returns:
-                Statevector: The statevector representing the circuit evolution
+        Returns:
+            Statevector: The statevector representing the circuit evolution
 
-
-            Example:
+        Example:
             Create a statevector from a transpiled circuit:
 
             .. code-block:: python
@@ -164,9 +163,8 @@ class Statevector(QuantumState, TolerancesMixin):
         # Apply layout permutations if needed (this handles transpiler layout changes)
         if not ignore_set_layout and layout is not None:
             final_index_layout = getattr(layout, "final_index_layout", None)
-            if final_index_layout is not None and callable(final_index_layout):
-                layout_indices = final_index_layout()
-
+            if final_index_layout is not None:
+                layout_indices = final_index_layout
                 # Reverse for Qiskit's little-endian qubit ordering
                 num_qubits = statevec.num_qubits
                 reversed_perm = [
