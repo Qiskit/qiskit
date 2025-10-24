@@ -307,6 +307,10 @@ mod visit {
         }
     }
 
+    impl visit::GraphProp for Neighbors {
+        type EdgeType = Undirected;
+    }
+
     impl visit::IntoNodeIdentifiers for &'_ Neighbors {
         type NodeIdentifiers = NodeIdentifiers;
         #[inline]
