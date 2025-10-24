@@ -15,7 +15,7 @@ license = "Apache-2.0"
 # Each crate can add on specific features freely as it inherits.
 [workspace.dependencies]
 bytemuck = "1.24"
-bitfield-struct = "0.9.5"
+bitfield-struct = "0.12.0"
 indexmap.version = "2.10.0"
 hashbrown.version = "0.15.2"
 num-bigint = "0.4"
