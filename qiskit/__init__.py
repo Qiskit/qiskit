@@ -84,6 +84,7 @@ sys.modules["qiskit._accelerate.euler_one_qubit_decomposer"] = (
 sys.modules["qiskit._accelerate.optimize_1q_gates_decomposition"] = (
     _accelerate.optimize_1q_gates_decomposition
 )
+sys.modules["qiskit._accelerate.optimize_clifford_t"] = _accelerate.optimize_clifford_t
 sys.modules["qiskit._accelerate.nlayout"] = _accelerate.nlayout
 sys.modules["qiskit._accelerate.optimize_1q_gates"] = _accelerate.optimize_1q_gates
 sys.modules["qiskit._accelerate.pauli_expval"] = _accelerate.pauli_expval
