@@ -18,7 +18,7 @@ use crate::target::{Qargs, Target};
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::Qubit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::operations::{Operation, Param};
+use qiskit_circuit::operations::Operation;
 use qiskit_circuit::packed_instruction::PackedInstruction;
 
 #[pyfunction]
@@ -36,28 +36,17 @@ pub fn gates_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<
         wire_map: &HashMap<Qubit, PhysicalQubit>,
     ) -> PyResult<bool> {
         let qargs_mapped: Qargs = qargs.iter().map(|q| wire_map[q]).collect();
-        if !target.instruction_supported(gate.op.name(), &qargs_mapped) {
+        // Skip parameter checking if the gate is control flow.
+        if !target.instruction_supported(
+            gate.op.name(),
+            &qargs_mapped,
+            (!gate.op.control_flow())
+                .then_some(gate.params_view())
+                .unwrap_or_default(),
+            !gate.is_parameterized() && !gate.op.control_flow(),
+        ) {
             return Ok(true);
         }
-        if target.has_angle_bounds()
-            && target.gate_has_angle_bounds(gate.op.name())
-            && !gate.is_parameterized()
-        {
-            let params: Vec<f64> = gate
-                .params
-                .as_ref()
-                .unwrap()
-                .iter()
-                .map(|x| {
-                    let Param::Float(val) = x else { unreachable!() };
-                    *val
-                })
-                .collect();
-            if !target.gate_supported_angle_bound(gate.op.name(), &params) {
-                return Ok(true);
-            }
-        }
-
         if gate.op.control_flow() {
             for block in gate.op.blocks() {
                 let block_qubits = (0..block.num_qubits()).map(Qubit::new);

@@ -142,7 +142,7 @@ fn is_supported(
     qargs: &[PhysicalQubit],
 ) -> bool {
     match target {
-        Some(target) => target.instruction_supported(name, qargs),
+        Some(target) => target.instruction_supported(name, qargs, &[], false),
         None => match basis_gates {
             Some(basis_gates) => basis_gates.contains(name),
             None => true,
