@@ -1596,6 +1596,16 @@ impl Target {
     pub fn contains_qargs<'a, T: Into<QargsRef<'a>>>(&self, qargs: T) -> bool {
         self.qarg_gate_map.contains_key(&qargs.into())
     }
+
+    /// Retrieves a gate location in the gate map by index
+    pub fn get_gate_index(&self, gate_name: &str) -> Option<usize> {
+        self.gate_map.get_index_of(gate_name)
+    }
+
+    /// Retrieves a gate location in the gate map by index
+    pub fn get_from_index(&self, index: usize) -> Option<(&String, &PropsMap)> {
+        self.gate_map.get_index(index)
+    }
 }
 
 // To access the Target's gate map by gate name.
