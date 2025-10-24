@@ -1144,6 +1144,67 @@ class TestDagNodeSelection(QiskitTestCase):
         ]
         self.assertEqual(expected, [(i.op.name, i.qargs) for i in named_nodes])
 
+    def test_topological_nodes_reversals(self):
+        """Test topological_nodes in reverse order following the example pattern."""
+
+        self.dag.apply_operation_back(CXGate(), [self.qubit1, self.qubit2])
+        self.dag.apply_operation_back(XGate(), [self.qubit2])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1])
+        self.dag.apply_operation_back(HGate(), [self.qubit0])
+
+        nodes_in_reverse = self.dag.topological_nodes(reverse=True)
+
+        qr = self.dag.qregs["qr"]
+        cr = self.dag.cregs["cr"]
+
+        expected = [
+            qr[0],
+            ("h", (self.qubit0,)),
+            qr[1],
+            ("cx", (self.qubit0, self.qubit1)),
+            qr[0],
+            qr[2],
+            ("x", (self.qubit2,)),
+            ("cx", (self.qubit1, self.qubit2)),
+            qr[1],
+            qr[2],
+            cr[0],
+            cr[0],
+            cr[1],
+            cr[1],
+        ]
+
+        self.assertEqual(
+            [
+                ((i.op.name, i.qargs) if isinstance(i, DAGOpNode) else i.wire)
+                for i in nodes_in_reverse
+            ],
+            expected,
+        )
+
+    def test_topological_op_nodes_reversals(self):
+        """Test topological_op_nodes in reverse order following the example pattern."""
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit2, self.qubit1], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit2], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit2], [])
+
+        op_nodes_in_reverse = list(self.dag.topological_op_nodes(reverse=True))
+
+        expected = [
+            ("h", (self.qubit2,)),
+            ("cx", (self.qubit0, self.qubit2)),
+            ("h", (self.qubit0,)),
+            ("cx", (self.qubit2, self.qubit1)),
+            ("cx", (self.qubit0, self.qubit1)),
+        ]
+
+        self.assertEqual(
+            [(i.op.name, i.qargs) for i in op_nodes_in_reverse],
+            expected,
+        )
+
     def test_dag_nodes_on_wire(self):
         """Test that listing the gates on a qubit/classical bit gets the correct gates"""
         self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
