@@ -17,6 +17,7 @@ use std::num::NonZero;
 
 use numpy::{PyArray2, ToPyArray};
 use pyo3::Python;
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 
@@ -41,13 +42,13 @@ use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::{PhysicalQubit, Qubit, VirtualQubit, getenv_use_multiple_threads, imports};
 
 use crate::TranspilerError;
+use crate::neighbors::Neighbors;
 use crate::target::{Target, TargetCouplingError};
 
 use super::dag::{InteractionKind, SabreDAG};
 use super::distance::distance_matrix;
 use super::heuristic::{BasicHeuristic, DecayHeuristic, Heuristic, LookaheadHeuristic, SetScaling};
 use super::layer::{ExtendedSet, FrontLayer};
-use super::neighbors::Neighbors;
 
 /// Number of trials for control flow block swap epilogues.
 const SWAP_EPILOGUE_TRIALS: usize = 4;
@@ -322,41 +323,32 @@ impl PyRoutingTarget {
     }
 
     fn __getstate__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
+        let (neighbors, partition) = self
+            .0
+            .as_ref()
+            .map(|tg| tg.neighbors.clone().take())
+            .unzip();
         let out_dict = PyDict::new(py);
-        out_dict.set_item(
-            "neighbors",
-            self.0.as_ref().map(|x| x.neighbors.neighbors.clone()),
-        )?;
-        out_dict.set_item(
-            "partition",
-            self.0.as_ref().map(|x| x.neighbors.partition.clone()),
-        )?;
+        out_dict.set_item("neighbors", neighbors)?;
+        out_dict.set_item("partition", partition)?;
         Ok(out_dict)
     }
 
     fn __setstate__(&mut self, value: Bound<PyDict>) -> PyResult<()> {
-        let neighbors_array: Option<Vec<PhysicalQubit>> = value
+        let neighbors = value
             .get_item("neighbors")?
             .map(|x| x.extract())
             .transpose()?;
-        if let Some(neighbors_array) = neighbors_array {
-            let partition: Vec<usize> = value
-                .get_item("partition")?
-                .map(|x| x.extract())
-                .transpose()?
-                .unwrap();
-            let neighbors = Neighbors {
-                neighbors: neighbors_array,
-                partition,
-            };
-            if self.0.is_none() {
-                self.0 = Some(RoutingTarget::from_neighbors(neighbors));
-            } else {
-                self.0.as_mut().unwrap().distance =
-                    distance_matrix(&neighbors, usize::MAX, f64::NAN);
-                self.0.as_mut().unwrap().neighbors = neighbors;
-            }
-        }
+        let partition = value
+            .get_item("partition")?
+            .map(|x| x.extract())
+            .transpose()?;
+        let (Some(neighbors), Some(partition)) = (neighbors, partition) else {
+            return Ok(());
+        };
+        let neighbors = Neighbors::from_parts(neighbors, partition)
+            .map_err(|e| PyValueError::new_err(e.to_string()))?;
+        self.0 = Some(RoutingTarget::from_neighbors(neighbors));
         Ok(())
     }
 
