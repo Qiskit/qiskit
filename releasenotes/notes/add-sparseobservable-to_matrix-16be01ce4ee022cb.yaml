@@ -1,0 +1,7 @@
+---
+features_quantum_info:
+  - |
+    The high-performance, Rust-accelerated :meth:~.SparseObservable.to_matrix logic has been
+    migrated from :class:.SparsePauliOp to :class:.SparseObservable, enabling efficient matrix
+    conversion for observables defined with projectors (the extended Pauli alphabet). The
+    :meth:~.SparsePauliOp.to_matrix method now uses this new, more general implementation.
