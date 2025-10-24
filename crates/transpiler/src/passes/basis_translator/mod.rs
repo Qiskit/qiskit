@@ -649,6 +649,7 @@ fn replace_node(
                 OperationRef::StandardGate(gate) => gate.into(),
                 OperationRef::StandardInstruction(instruction) => instruction.into(),
                 OperationRef::Unitary(unitary) => unitary.clone().into(),
+                OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
             };
             let new_params: SmallVec<[Param; 3]> =
                 inner_node.params_view().iter().cloned().collect();
@@ -726,6 +727,7 @@ fn replace_node(
                 OperationRef::StandardGate(gate) => gate.into(),
                 OperationRef::StandardInstruction(instruction) => instruction.into(),
                 OperationRef::Unitary(unitary) => unitary.clone().into(),
+                OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
             };
 
             let mut new_params: SmallVec<[Param; 3]> =
