@@ -74,6 +74,7 @@ results transpiling circuits from Python via the C API.
    qk-transpiler
    qk-target
    qk-target-entry
+   qk-neighbors
    qk-transpile-layout
    qk-transpiler-passes
    qk-vf2-layout-result

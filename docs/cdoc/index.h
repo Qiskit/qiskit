@@ -35,6 +35,10 @@
  */
 
 /**
+ * @defgroup QkNeighbors QkNeighbors
+ */
+
+/**
  * @defgroup QkDag QkDag
  */
 
