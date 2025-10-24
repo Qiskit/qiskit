@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    The :meth:`.Operator.__matmul__` method now correctly handles
+    :class:`.Statevector` inputs by delegating to
+    :meth:`.Statevector.evolve`, ensuring consistent behavior with
+    operator–statevector application.

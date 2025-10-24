@@ -62,6 +62,8 @@ class GroupMixin(ABC):
         return self.tensor(other)
 
     def __matmul__(self, other) -> Self:
+        if other.__class__.__name__ == "Statevector":
+            return other.evolve(self)
         return self.dot(other)
 
     @abstractmethod
