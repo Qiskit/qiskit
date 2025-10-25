@@ -18,7 +18,7 @@ use std::thread::current;
 use hashbrown::HashSet;
 use crate::bit::{ShareableClbit, ShareableQubit};
 use crate::dag_circuit::{DAGCircuit};
-use crate::operations::{Operation, OperationRef, StandardGate, StandardInstruction};
+use crate::operations::{Operation, OperationRef, StandardGate, StandardInstruction, Param};
 use crate::packed_instruction::{self, PackedInstruction, PackedOperation};
 use itertools::{Itertools, MinMaxResult};
 use std::ops::Index;
@@ -100,7 +100,7 @@ pub fn get_indices(dag_circ: &DAGCircuit) -> u32{
     total_qubits + total_clbits
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 enum ElementWireInput<'a> {
     Qubit(&'a ShareableQubit),
     Clbit(&'a ShareableClbit),
@@ -120,14 +120,14 @@ impl<'a> Debug for ElementWireInput<'a> {
 /// Input ElementWires. 
 /// The Option<String> is for optional labels and can be used when the registers have different names. This allows us to use
 /// the same enum for both Input and VerticalLine types.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 enum InputType{
     Qubit(Option<String>),
     Clbit(Option<String>)
 }
 
 /// Enum for representing elements that can appear directly on a wire.
-#[derive(Clone, Debug, Copy)]
+#[derive(Clone, Debug, Copy, PartialEq)]
 enum ElementOnWire{
     Top,
     Mid,
@@ -136,7 +136,7 @@ enum ElementOnWire{
 
 
 /// Enum for representing elements that appear directly on a wire and how they're connected.
-#[derive(Clone, Debug, Copy)]
+#[derive(Clone, Debug, Copy, PartialEq)]
 enum OnElementWire{
     Control(ElementOnWire),
     Swap(ElementOnWire),
@@ -150,6 +150,20 @@ enum Boxed<'a>{
     Single(&'a PackedInstruction),
     // Multi(MultiBoxElement)
     Multi(&'a PackedInstruction),
+}
+
+// This is a temporary work around for a derive issue
+// however the behaviour of this PartialEq is not ideal as it only checks the variant type
+// because PackedInstructions cannot be compared directly
+
+impl PartialEq for Boxed<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Boxed::Single(inst1), Boxed::Single(inst2)) => true,
+            (Boxed::Multi(inst1), Boxed::Multi(inst2)) => true,
+            _ => false,
+        }
+    }
 }
 
 impl<'a> Debug for Boxed<'a> {
@@ -171,7 +185,7 @@ struct Op<'a>{
 
 }
 
-#[derive(Default, Clone, Debug)]
+#[derive(Default, Clone, Debug, PartialEq)]
 enum VisualizationElement<'a>{
     #[default]
     Empty, // Marker for no element
@@ -185,6 +199,14 @@ enum VisualizationElement<'a>{
 /// A representation of a single column (called here a layer) of a visualization matrix
 #[derive(Clone, Debug)]
 struct VisualizationLayer<'a>(Vec<VisualizationElement<'a>>);
+
+impl<'a> Index<usize> for VisualizationLayer<'a> {
+    type Output = VisualizationElement<'a>;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.0[index]
+    }
+}
 
 impl<'a> VisualizationLayer<'a> {
     fn len(&self) -> usize {
@@ -325,6 +347,8 @@ impl<'a> VisualizationLayer<'a> {
                 vec![*target]
             } else if let StandardInstruction::Barrier(_) = std_instruction {
                 (range.0..=range.1).collect()
+            } else if let StandardInstruction::Reset = std_instruction{
+                qargs    
             } else {
                 vec![]
             }
@@ -349,25 +373,7 @@ impl<'a> VisualizationLayer<'a> {
     // []
 
     fn add_boxed(&mut self, inst: &'a PackedInstruction, circuit: &CircuitData, boxed_indices: &Vec<usize>) {
-        // The case of delay needs to be handled where it is multiple single qubit gates but shown as a box
-        // check if packed instruction is swap or cswap
-        // let qargs = circuit.get_qargs(inst.qubits).into_iter().map(|q| q.index()).collect_vec();
         let special_cases = vec![StandardGate::Swap, StandardGate::CSwap];
-        // if let Some(std_gate) = inst.op.try_standard_gate(){
-        //     if special_cases.contains(&std_gate){
-        //         let range= get_instruction_range(circuit, inst);
-        //         let targets = qargs.iter().rev().take(2).collect_vec();
-        //         for target in targets {
-        //             if *target == range.0 {
-        //                 self.0[*target] = VisualizationElement::DirectOnElementWire(OnElementWire::Swap(ElementOnWire::Top));
-        //             } else if *target == range.1 {
-        //                 self.0[*target] = VisualizationElement::DirectOnElementWire(OnElementWire::Swap(ElementOnWire::Bot));
-        //             } else {
-        //                 self.0[*target] = VisualizationElement::DirectOnElementWire(OnElementWire::Swap(ElementOnWire::Mid));
-        //             }
-        //         }
-        //     }
-        // }
         if boxed_indices.len() == 1 {
             let qargs = circuit.get_qargs(inst.qubits).into_iter().map(|q| q.index()).collect_vec();
             let target = qargs.last().unwrap();
@@ -428,14 +434,6 @@ impl<'a> VisualizationLayer<'a> {
         self.add_boxed(inst, circuit, &boxed_elements);
         self.add_vertical_lines(inst, circuit, &vert_lines);
 
-    }
-}
-
-impl<'a> Index<usize> for VisualizationLayer<'a> {
-    type Output = VisualizationElement<'a>;
-
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.0[index]
     }
 }
 
@@ -599,6 +597,8 @@ pub const Q_WIRE: char = '─';
 pub const C_WIRE: char = '═';
 pub const TOP_CON: char = '┴';
 pub const BOT_CON: char = '┬';
+pub const C_WIRE_CON_TOP:char = '╩';
+pub const C_BOT_CON:char = '╥';
 pub const Q_LEFT_CON: char = '┤';
 pub const Q_RIGHT_CON: char = '├';
 pub const CL_LEFT_CON: char = '╡';
@@ -609,7 +609,6 @@ pub const BOT_LEFT_BOX: char = '└';
 pub const BOT_RIGHT_BOX: char = '┘';
 pub const BARRIER: char = '░';
 pub const BULLET:char = '■';
-pub const C_BULLET:char = '╩';
 pub const CONNECTING_WIRE:char = '│';
 pub const CL_CONNECTING_WIRE:char = '║';
 pub const Q_Q_CROSSED_WIRE:char = '┼';
@@ -633,7 +632,19 @@ impl TextDrawer{
 
     fn get_label(instruction: &PackedInstruction) -> Option<String>{
         let label = instruction.label();
-        let instruction_param =format!("{:?}",instruction.params_view());
+        let mut instruction_param = String::new();
+        for param in instruction.params_view(){
+            let param_sub_str = match param {
+                Param::Float(f) => format!("{:.2}", f),
+                _ => format!("{:?}", param),
+            };
+            if instruction_param.is_empty(){
+                instruction_param = param_sub_str;
+            } else {
+                instruction_param = format!("{}, {}", instruction_param, param_sub_str);
+            }
+        }
+        // let instruction_param =format!("{:?}",instruction.params_view());
         let instruction_label = match label {
             Some(l) => {
                 Some(format!("{}{}{}"," ",l.to_string()," "))
@@ -873,15 +884,8 @@ impl TextDrawer{
 
     fn from_visualization_matrix(vis_mat: &VisualizationMatrix) -> Self{
         let mut wires: Vec<Vec<ElementWire>> = vec![];
-        for _ in 0..vis_mat.num_layers(){
+        for _ in 0..vis_mat.num_wires(){
             wires.push(vec![]);
-        }
-        for i in 0..vis_mat.num_wires(){
-            wires[i].push(ElementWire{
-                top: String::new(),
-                mid: String::new(),
-                bot: String::new(),
-            });
         }
 
         let mut text_drawer = TextDrawer{
@@ -890,7 +894,7 @@ impl TextDrawer{
 
         let mut ct = 0;
         for layer in &vis_mat.layers{
-            let layer_wires = Self::draw_layer(layer, vis_mat.circuit, ct);
+            let layer_wires = Self::draw_layer(layer, vis_mat, ct);
             ct += 1;
             for (i, wire) in layer_wires.iter().enumerate(){
                 text_drawer.wires[i].push(wire.clone());
@@ -900,29 +904,14 @@ impl TextDrawer{
         text_drawer
     }
 
-    // fn get_layer_width(&self, layer: &VisualizationLayer, circ_data: &CircuitData) -> usize{
-    //     let mut width:usize = 0;
-    //     for element in layer.0.iter(){
-    //         let ele_width = Self::get_element_width(self, &element, circ_data);
-    //         if ele_width > width{
-    //             width = ele_width;
-    //         }
-    //     }
-    //     width
-    // }
-
-    // fn get_element_width(&self, element: &VisualizationElement, circ_data: &CircuitData) -> usize{
-    //     Self::draw_element(element.clone(), circ_data, 0).width()
-    // }
-
-    fn draw_layer(layer: &VisualizationLayer, circ_data: &CircuitData, layer_ind: usize) -> Vec<ElementWire>{
+    fn draw_layer(layer: &VisualizationLayer, vis_mat: &VisualizationMatrix, layer_ind: usize) -> Vec<ElementWire>{
         let mut wires: Vec<ElementWire> = vec![];
         for (i,element) in layer.0.iter().enumerate(){
-            let wire = Self::draw_element(element.clone(), circ_data,i);
+            let wire = Self::draw_element(element.clone(), layer, vis_mat.circuit, i);
             wires.push(wire);
         }
 
-        let num_qubits = circ_data.num_qubits();
+        let num_qubits = vis_mat.circuit.num_qubits();
 
         //let layer_width = wires.iter().map(|w| w.width()).max().unwrap_or(0);
         let mut layer_width = 0;
@@ -948,26 +937,104 @@ impl TextDrawer{
         wires
     }
 
-    pub fn draw_element(vis_ele: VisualizationElement, circ_data: &CircuitData, ind: usize) -> ElementWire {
+    pub fn draw_element(vis_ele: VisualizationElement, vis_layer: &VisualizationLayer, circuit: &CircuitData, ind: usize) -> ElementWire {
         match vis_ele {
             VisualizationElement::Boxed(sub_type) => {
                 // implement for cases where the box is on classical wires. The left and right connectors will change
                 // from single wired to double wired.
 
+                let top_cases: Vec<VisualizationElement> = vec![
+                    VisualizationElement::DirectOnElementWire(OnElementWire::Control(ElementOnWire::Top)),
+                    VisualizationElement::DirectOnElementWire(OnElementWire::Swap(ElementOnWire::Top)),
+                    VisualizationElement::DirectOnElementWire(OnElementWire::Swap(ElementOnWire::Mid)),
+                    VisualizationElement::DirectOnElementWire(OnElementWire::Swap(ElementOnWire::Mid)),
+                    VisualizationElement::VerticalLine(InputType::Qubit(None)),
+                    VisualizationElement::VerticalLine(InputType::Clbit(None)),
+                ];
+
+                let bot_cases: Vec<VisualizationElement> = vec![
+                    VisualizationElement::DirectOnElementWire(OnElementWire::Control(ElementOnWire::Bot)),
+                    VisualizationElement::DirectOnElementWire(OnElementWire::Swap(ElementOnWire::Bot)),
+                    VisualizationElement::DirectOnElementWire(OnElementWire::Swap(ElementOnWire::Mid)),
+                    VisualizationElement::DirectOnElementWire(OnElementWire::Swap(ElementOnWire::Mid)),
+                    VisualizationElement::VerticalLine(InputType::Qubit(None)),
+                    VisualizationElement::VerticalLine(InputType::Clbit(None)),
+                ];
+
+                // if subtype is measurement then classical connectors
+                let is_measure = match &sub_type {
+                    Boxed::Single(inst) => {
+                        if let Some(std_instruction) = inst.op.try_standard_instruction(){
+                            if std_instruction == StandardInstruction::Measure{
+                                true
+                            } else {
+                                false
+                            }
+                        } else {
+                            false
+                        }
+                    },
+                    _ => false,
+                };
+
+                let top_con =  {
+                    if ind >= 1 {
+                        if top_cases.contains(&vis_layer.0[ind - 1]) {
+                            if is_measure{
+                                C_WIRE_CON_TOP
+                            } else {
+                                TOP_CON
+                            }
+                        } else {
+                            Q_WIRE
+                        }
+                    } else {
+                        Q_WIRE
+                    }
+                };
+
+                let bot_con = {
+                    if ind + 1 < vis_layer.0.len() {
+                        if bot_cases.contains(&vis_layer.0[ind + 1]) {
+                            if is_measure {
+                                C_BOT_CON
+                            } else {
+                                BOT_CON
+                            }
+                        } else {
+                            Q_WIRE
+                        }
+                    } else {
+                        Q_WIRE
+                    }
+                }; 
+
                 match sub_type {
                     Boxed::Single(inst) => {
                         let label = Self::get_label(inst).unwrap_or(" ".to_string());
+                        let left_len = (label.len() - 1) / 2;
+                        let right_len = label.len() - left_len - 1;
                         ElementWire{
-                            top: format!("{}{}{}", TOP_LEFT_BOX, Q_WIRE.to_string().repeat(label.len()), TOP_RIGHT_BOX),
-                            mid: format!("{}{}{}", Q_LEFT_CON  , label, Q_RIGHT_CON),
-                            bot: format!("{}{}{}", BOT_LEFT_BOX, Q_WIRE.to_string().repeat(label.len()), BOT_RIGHT_BOX),
+                            top: format!("{}{}{}{}{}", 
+                                TOP_LEFT_BOX, 
+                                Q_WIRE.to_string().repeat(left_len),
+                                top_con,
+                                Q_WIRE.to_string().repeat(right_len), 
+                                TOP_RIGHT_BOX),
+                            mid: format!("{}{}{}", Q_LEFT_CON, label, Q_RIGHT_CON),
+                            bot: format!("{}{}{}{}{}", 
+                                BOT_LEFT_BOX,
+                                Q_WIRE.to_string().repeat(left_len),
+                                bot_con,
+                                Q_WIRE.to_string().repeat(right_len),
+                                BOT_RIGHT_BOX),
                         }
                     },
                     Boxed::Multi(inst) => {
                         let label = Self::get_label(inst).unwrap_or(" ".to_string());
                         // get all the indices affected by this multi-box
-                        let qargs = circ_data.qargs_interner().get(inst.qubits).into_iter().map(|q| q.index()).collect_vec();
-                        let cargs = circ_data.cargs_interner().get(inst.clbits).into_iter().map(|c| c.index() + circ_data.num_qubits()).collect_vec();
+                        let qargs = circuit.qargs_interner().get(inst.qubits).into_iter().map(|q| q.index()).collect_vec();
+                        let cargs = circuit.cargs_interner().get(inst.clbits).into_iter().map(|c| c.index() + circuit.num_qubits()).collect_vec();
                         let minmax = qargs.iter().chain(cargs.iter()).minmax();
                         let range = match minmax {
                             MinMaxResult::MinMax(min, max) => (*min, *max),
@@ -1005,9 +1072,17 @@ impl TextDrawer{
                             format!("{:^total_q$} {:^label_len$}", num_affected, " ", total_q = qargs.len(), label_len=label.len())
                         };
 
+                        let left_len = (mid_section.len() - 1) / 2;
+                        let right_len = mid_section.len() - left_len - 1;
+
                         if ind == range.0 {
                             ElementWire{
-                                top: format!("{}{}{}", TOP_LEFT_BOX, Q_WIRE.to_string().repeat(mid_section.len()), TOP_RIGHT_BOX),
+                                top: format!("{}{}{}{}{}", 
+                                    TOP_LEFT_BOX, 
+                                    Q_WIRE.to_string().repeat(left_len),
+                                    top_con,
+                                    Q_WIRE.to_string().repeat(right_len), 
+                                    TOP_RIGHT_BOX),
                                 mid: format!("{}{}{}", Q_LEFT_CON, mid_section, Q_RIGHT_CON),
                                 bot: format!("{}{}{}", CONNECTING_WIRE, " ".repeat(mid_section.len()), CONNECTING_WIRE),
                             }
@@ -1015,7 +1090,12 @@ impl TextDrawer{
                             ElementWire{
                                 top: format!("{}{}{}", CONNECTING_WIRE," ".to_string().repeat(mid_section.len()), CONNECTING_WIRE),
                                 mid: format!("{}{}{}", Q_LEFT_CON, mid_section, Q_RIGHT_CON),
-                                bot: format!("{}{}{}", BOT_LEFT_BOX, Q_WIRE.to_string().repeat(mid_section.len()), BOT_RIGHT_BOX),
+                                bot: format!("{}{}{}{}{}", 
+                                    BOT_LEFT_BOX,
+                                    Q_WIRE.to_string().repeat(left_len),
+                                    bot_con,
+                                    Q_WIRE.to_string().repeat(right_len),
+                                    BOT_RIGHT_BOX),
                             }
                         } else {
                             ElementWire{
@@ -1029,7 +1109,7 @@ impl TextDrawer{
             },
             VisualizationElement::DirectOnElementWire(on_wire) => {
 
-                let connecting_wire = if ind < circ_data.num_qubits() {
+                let connecting_wire = if ind < circuit.num_qubits() {
                     CONNECTING_WIRE
                 } else {
                     CL_CONNECTING_WIRE
@@ -1037,10 +1117,10 @@ impl TextDrawer{
 
                 let wire_char: String = match on_wire {
                     OnElementWire::Control(position) => {
-                        if ind < circ_data.num_qubits() {
+                        if ind < circuit.num_qubits() {
                             BULLET.to_string()
                         } else {
-                            C_BULLET.to_string()
+                            C_WIRE_CON_TOP.to_string()
                         }
                     },
                     OnElementWire::Swap(position) => {
@@ -1096,7 +1176,7 @@ impl TextDrawer{
                     },
                 };
 
-                let wire = if ind < circ_data.num_qubits() {
+                let wire = if ind < circuit.num_qubits() {
                     Q_WIRE
                 } else {
                     C_WIRE
@@ -1112,7 +1192,7 @@ impl TextDrawer{
             VisualizationElement::Input(wire_input) => {    
                 match wire_input {
                     ElementWireInput::Qubit(qubit) => {
-                        let qubit_name = if let Some(bit_info) = circ_data.qubit_indices().get(qubit) {
+                        let qubit_name = if let Some(bit_info) = circuit.qubit_indices().get(qubit) {
                             if let Some((register, index)) = bit_info.registers().first() {
                                 format!("{}_{}:", register.name(), index)
                             } else {
@@ -1128,7 +1208,7 @@ impl TextDrawer{
                         }
                     }
                     ElementWireInput::Clbit(clbit) => {
-                        let clbit_name = if let Some(bit_info) = circ_data.clbit_indices().get(clbit) {
+                        let clbit_name = if let Some(bit_info) = circuit.clbit_indices().get(clbit) {
                             if let Some((register, index)) = bit_info.registers().first() {
                                 format!("{}_{}:", register.name(), index)
                             } else {
@@ -1149,14 +1229,14 @@ impl TextDrawer{
                 let crossed = {
                     match &input_type {
                         InputType::Qubit(label) => {
-                            if ind < circ_data.num_qubits() {
+                            if ind < circuit.num_qubits() {
                                 Q_Q_CROSSED_WIRE
                             } else {
                                 Q_CL_CROSSED_WIRE
                             }
                         },
                         InputType::Clbit(label) => {
-                            if ind < circ_data.num_qubits() {
+                            if ind < circuit.num_qubits() {
                                 CL_Q_CROSSED_WIRE
                             } else {
                                 CL_CL_CROSSED_WIRE
@@ -1176,7 +1256,7 @@ impl TextDrawer{
             },
             VisualizationElement::Empty => {
                 let wire = {
-                    if ind < circ_data.num_qubits() {
+                    if ind < circuit.num_qubits() {
                         Q_WIRE
                     } else {
                         C_WIRE
