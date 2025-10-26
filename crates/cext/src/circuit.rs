@@ -22,6 +22,7 @@ use num_complex::{Complex64, ComplexFloat};
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::bit::{ShareableClbit, ShareableQubit};
 use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{
     ArrayType, DelayUnit, Operation, Param, StandardGate, StandardInstruction, UnitaryGate,
 };
@@ -1150,4 +1151,99 @@ pub unsafe extern "C" fn qk_circuit_delay(
         .unwrap();
 
     ExitCode::Success
+}
+
+/// @ingroup QkCircuit
+/// Convert a given circuit to a DAG.
+///
+/// @param circuit A pointer to the circuit from which to create the DAG.
+/// @param copy_operations Performs a deep copy of operations if set to true
+/// @param qubit_order The order of the qubits in the output DAG. Defaults to the same order
+///     as the input circuit if NULL. If not NULL, it must be of length ``qk_circuit_num_qubits()``.
+/// @param clbit_order The order of the clbits in the output DAG. Defaults to the same order
+///     as the input circuit if NULL. If not NULL, it must be of length ``qk_circuit_num_clbits()``.
+///
+/// @return A pointer to the new DAG.
+///
+/// # Example
+/// ```c
+/// QkCircuit *qc = qk_circuit_new(0, 0);
+/// QkQuantumRegister *qr = qk_quantum_register_new(3, "qr");
+/// qk_circuit_add_quantum_register(qc, qr);
+///
+/// QkDag *dag = qk_circuit_to_dag(qc, false, (uint32_t[]){2, 0, 1}, NULL);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``, or if  
+/// ``qubit_order`` or ``clbit_order`` are not of length ``qk_circuit_num_qubits()`` and ``qk_circuit_num_clbits()``,
+/// respectively.  
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_circuit_to_dag(
+    circuit: *const CircuitData,
+    copy_operations: bool,
+    qubit_order: *const u32,
+    clbit_order: *const u32,
+) -> *mut DAGCircuit {
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+
+    let qubit_order = if qubit_order.is_null() {
+        None
+    } else {
+        if !qubit_order.is_aligned() {
+            panic!("qubit_order is not aligned");
+        }
+        unsafe {
+            let qubits = std::slice::from_raw_parts(qubit_order, circuit.num_qubits());
+            Some(
+                qubits
+                    .iter()
+                    .map(|q| {
+                        circuit
+                            .qubits()
+                            .get(Qubit(*q))
+                            .unwrap_or_else(|| panic!("Qubit index {} not found in the circuit", q))
+                            .clone()
+                    })
+                    .collect(),
+            )
+        }
+    };
+    let clbit_order = if clbit_order.is_null() {
+        None
+    } else {
+        unsafe {
+            if !clbit_order.is_aligned() {
+                panic!("clbit_order is not aligned");
+            }
+
+            let clbits = std::slice::from_raw_parts(clbit_order, circuit.num_clbits());
+            Some(
+                clbits
+                    .iter()
+                    .map(|c| {
+                        circuit
+                            .clbits()
+                            .get(Clbit(*c))
+                            .unwrap_or_else(|| panic!("Clbit index {} not found in the circuit", c))
+                            .clone()
+                    })
+                    .collect(),
+            )
+        }
+    };
+
+    let dag = DAGCircuit::from_circuit_data(
+        circuit,
+        copy_operations,
+        None,
+        None,
+        qubit_order,
+        clbit_order,
+    )
+    .expect("Error occurred while converting CircuitData to DAGCircuit");
+
+    Box::into_raw(Box::new(dag))
 }

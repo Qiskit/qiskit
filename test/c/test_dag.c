@@ -74,11 +74,29 @@ static int test_dag_with_classical_reg(void) {
     return Ok;
 }
 
+static int test_circuit_to_dag(void) {
+    QkCircuit *qc = qk_circuit_new(2, 1);
+
+    QkDag *dag = qk_dag_from_circuit(qc, false, (uint32_t[]){1, 0}, NULL);
+
+    int result = Ok;
+    if (qk_dag_num_qubits(dag) != 2 || qk_dag_num_clbits(dag) != 1) {
+        printf("CircuitData to DAGCircuit conversion encountered an issue");
+        result = EqualityError;
+    }
+
+    qk_circuit_free(qc);
+    qk_dag_free(dag);
+
+    return result;
+}
+
 int test_dag(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty);
     num_failed += RUN_TEST(test_dag_with_quantum_reg);
     num_failed += RUN_TEST(test_dag_with_classical_reg);
+    num_failed += RUN_TEST(test_circuit_to_dag);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
