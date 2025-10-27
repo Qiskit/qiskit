@@ -554,9 +554,9 @@ static int test_target_iteration(void) {
     for (size_t inst_idx = 0; inst_idx < target_length; inst_idx++) {
         QkQargs qargs;
         QkInstructionProperties props;
-        char *name = qk_target_op_name_from_index(target, inst_idx);
+        char *name = qk_target_op_name(target, inst_idx);
         printf("Op name: '%s'\nProps:\n", name);
-        size_t num_props = qk_target_num_properties(target, inst_idx);
+        size_t num_props = qk_target_op_num_properties(target, inst_idx);
         for (size_t props_idx = 0; props_idx < num_props; props_idx++) {
             if (qk_target_op_get_qargs(target, inst_idx, props_idx, &qargs) != QkExitCode_Success) {
                 result = RuntimeError;
@@ -617,7 +617,7 @@ static int test_target_indexing(void) {
 
     // Check if qargs [0,1] exist in cx
     uint32_t cx_qargs_query[2] = {0, 1};
-    if (!qk_target_op_has_qargs(target, cx_idx, cx_qargs_query, 2)) {
+    if (!qk_target_op_has_qargs(target, cx_idx, cx_qargs_query)) {
         printf("Couldn't find valid qarg entry [0, 1] for cx.");
         result = EqualityError;
         goto cleanup;
@@ -625,14 +625,14 @@ static int test_target_indexing(void) {
 
     // Check if qargs [2,3] exist in cx (should fail)
     uint32_t cx_qargs_bad_query[2] = {2, 3};
-    if (qk_target_op_has_qargs(target, cx_idx, cx_qargs_bad_query, 2)) {
+    if (qk_target_op_has_qargs(target, cx_idx, cx_qargs_bad_query)) {
         printf("Found valid qarg entry non-existing qargs [2, 3] for cx.");
         result = EqualityError;
         goto cleanup;
     }
 
     // Since index exists, this should return properly
-    size_t cx_qargs_idx = qk_target_op_qargs_index(target, cx_idx, cx_qargs_query, 2);
+    size_t cx_qargs_idx = qk_target_op_qargs_index(target, cx_idx, cx_qargs_query);
     if (cx_qargs_idx != 6) {
         printf("Invalid index for cx qargs [0,1]: expected %d, got %zu.", 6, cx_idx);
         result = EqualityError;
@@ -640,7 +640,7 @@ static int test_target_indexing(void) {
     }
 
     // Same test on the invalid query
-    size_t cx_qargs_bad_idx = qk_target_op_qargs_index(target, cx_idx, cx_qargs_bad_query, 2);
+    size_t cx_qargs_bad_idx = qk_target_op_qargs_index(target, cx_idx, cx_qargs_bad_query);
     if (cx_qargs_bad_idx != (size_t)-1) {
         printf("Found index for non-existing qargs [2,3].");
         result = EqualityError;

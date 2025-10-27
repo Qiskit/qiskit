@@ -4,10 +4,10 @@ features_c:
     Ways of iterating and checking the ``QkTarget``'s gate map have
     been added to the C API. The following methods were added:
       
-      * :cpp:func:`qk_target_num_properties`.
+      * :cpp:func:`qk_target_op_num_properties`.
       * :cpp:func:`qk_target_op_get_index`.
-      * :cpp:func:`qk_target_op_name_from_index`.
-      * :cpp:func:`qk_target_contains_op`.
+      * :cpp:func:`qk_target_op_name`.
+      * :cpp:func:`qk_target_contains`.
       * :cpp:func:`qk_target_op_has_qargs`.
       * :cpp:func:`qk_target_op_qargs_index`.
       * :cpp:func:`qk_target_op_get_qargs`.
@@ -60,8 +60,8 @@ features_c:
         QkInstructionProperties props;
 
         // Retrieve the operation's name
-        char *name = qk_target_op_name_from_index(target, inst_idx);
-        size_t num_props = qk_target_num_properties(target, inst_idx);
+        char *name = qk_target_op_name(target, inst_idx);
+        size_t num_props = qk_target_op_num_properties(target, inst_idx);
         for (size_t props_idx = 0; props_idx < num_props; props_idx++) {
           // Populate qargs
           qk_target_op_get_qargs(target, inst_idx, props_idx, &qargs);
