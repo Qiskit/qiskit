@@ -105,7 +105,8 @@ class VariableMapper(expr.ExprVisitor[expr.Expr]):
                 break
         else:
             if self.add_register is None:
-                raise self.exc_type(
+                # FIX: self.exc_type no existe; usa ValueError como en _map_register.
+                raise ValueError(
                     f"Register '{target.name}' has no counterpart in the destination."
                 )
             mapped_theirs = ClassicalRegister(bits=mapped_bits_order)
