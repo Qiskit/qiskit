@@ -1233,7 +1233,7 @@ where
     problem: Problem,
     node_semantics: NS,
     edge_semantics: ES,
-    pub restriction: Option<Restriction<NS::Score>>,
+    restriction: Option<Restriction<NS::Score>>,
     score_stack: Vec<NS::Score>,
     loop_stack: Vec<Frame<N::NodeId, H::NodeId>>,
     pub remaining_calls: Option<usize>,
