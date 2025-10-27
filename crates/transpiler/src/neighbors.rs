@@ -180,8 +180,7 @@ impl Neighbors {
         {
             return Err(ConstructionError::Unsorted);
         }
-        let mut asymmetry =
-            HashSet::<(PhysicalQubit, PhysicalQubit), ahash::RandomState>::default();
+        let mut asymmetry = HashSet::new();
         for (i, (start, end)) in std::iter::zip(&partition, &partition[1..]).enumerate() {
             let us = PhysicalQubit::new(i as u32);
             for &other in &neighbors[*start..*end] {
