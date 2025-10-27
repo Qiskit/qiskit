@@ -168,18 +168,9 @@ mod tests {
         qc.push_packed_operation(operation, &[], &[Qubit(0), Qubit(2)], &[])
             .unwrap();
 
-        let mut target = Target::new(
-            Some("Fake Target".to_string()),
-            Some(3), // num_qubits
-            None,    // dt
-            None,    // granularity
-            None,    // min_length
-            None,    // pulse_alignment
-            None,    // acquire_alignment
-            None,    // qubit_properties
-            None,    // concurrent_measurements
-        )
-        .unwrap();
+        let mut target = Target::new()
+            .with_description("Fake Target")
+            .with_num_qubits(3);
         let params: [Param; 3] = [
             Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
                 "ϴ", None, None,
