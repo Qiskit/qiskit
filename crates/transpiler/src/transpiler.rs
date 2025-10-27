@@ -136,13 +136,7 @@ pub fn transpile(
 
     let vf2_config = match optimization_level {
         OptimizationLevel::Level0 => vf2::Vf2PassConfiguration::default_abstract(), // Not used.
-        OptimizationLevel::Level1 => vf2::Vf2PassConfiguration {
-            call_limit: (Some(50_000), Some(1_000)),
-            time_limit: None,
-            max_trials: None,
-            shuffle_seed: None,
-        },
-        OptimizationLevel::Level2 => vf2::Vf2PassConfiguration {
+        OptimizationLevel::Level1 | OptimizationLevel::Level2 => vf2::Vf2PassConfiguration {
             call_limit: (Some(5_000_000), Some(10_000)),
             time_limit: None,
             max_trials: None,
