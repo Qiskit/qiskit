@@ -10,7 +10,7 @@ The intention is that (much) longer term, we might be wanting to expose more of 
   Our C extension is built as `qiskit._accelerate` in Python space.
 * `qiskit-cext` is the crate that defines the C FFI for Qiskit. It defines the C API to work with the Rust code directly. It has 2 modes of operation a standalone mode
   that compiles to a C dynamic library without any runtime dependency on the Python interpreter and a embedded mode where the API is re-exported from `qiskit-pyext`
-  and used to accelerate Python worklows when writing compiled extensions that interact with Qiskit.
+  and used to accelerate Python workflows when writing compiled extensions that interact with Qiskit.
 * `qiskit-accelerate` is a catch-all crate for one-off accelerators. This should be the end of the dependency tree and only be in the dependency list for the public
   interface crates: `qiskit-pyext` or `qiskit-cext`. If what you're working on is small and largely self-contained, and doesn't fit in another crate you probably just
   want to put it in here, then bind it to the C extension module in `qiskit-pyext`.
@@ -47,19 +47,17 @@ This is because, unlike pure-Python modules, the initialization of `_accelerate`
 In general, this should not be too onerous a requirement, but if you violate it, you might see Rust panics on import, and PyO3 should wrap that up into an exception.
 You might be able to track down the Rust source of the import cycle by running the import with the environment variable `RUST_BACKTRACE=full`.
 
-
 ### Tests
 
 Most of our functionality is tested through the Python-space tests of the `qiskit` Python package, since the Rust implementations are (to begin with) just private implementation details.
 However, where it's more useful, Rust crates can also include Rust-space tests within themselves.
 
-Each of the Rust crates disables `doctest` because our documentation tends to be written in Sphinx's rST rather than Markdown, so `rustdoc` has a habit of thinking various random bits of syntax are codeblocks.
+Each of the Rust crates disables `doctest` because our documentation tends to be written in Sphinx's rST rather than Markdown, so `rustdoc` has a habit of thinking various random bits of syntax are code blocks.
 We can revisit that if we start writing crates that we intend to publish.
 
 #### Running the tests
 
-You need to make sure that the tests can build in standalone mode, i.e. that they link in `libpython`.
-By default, we activate PyO3's `extension-module` feature in `crates/pyext`, so you have to run the tests with that disabled:
+The easiest way to run the Rust tests is:
 
 ```bash
-cargo test --no-default-features
+python tools/run_cargo_test.py
