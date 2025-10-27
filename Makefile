@@ -47,10 +47,10 @@ ruff:
 	ruff qiskit test tools setup.py
 
 style:
-	black --check qiskit test tools setup.py
+	black --check qiskit test tools setup.py docs/conf.py
 
 black:
-	black qiskit test tools setup.py
+	black qiskit test tools setup.py docs/conf.py
 
 # Use the -s (starting directory) flag for "unittest discover" is necessary,
 # otherwise the QuantumCircuit header will be modified during the discovery.
