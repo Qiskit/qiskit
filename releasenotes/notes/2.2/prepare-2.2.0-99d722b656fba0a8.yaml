@@ -4,7 +4,7 @@ prelude: >
     and bug fixes. The major features of this new release are:
 
       * **C API transpile function:** The C API now includes a function for transpiling a
-        quantum circuit: :cpp:func:`qk_transpile`. This function is equivalent to the Python
+        quantum circuit: :c:func:`qk_transpile`. This function is equivalent to the Python
         :func:`.transpile` function for a standalone C context.
 
       * **Litinski transformation pass:** A new transformation pass :class:`.LitinskiTransformation` that implements
