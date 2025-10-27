@@ -3,12 +3,12 @@
 All the crates in here are called `qiskit-*`, and are stored in directories that omit the `qiskit-`.
 
 This crate structure currently serves the purpose of building only a single Python extension module, which still separates out some of the Rust code into separate logical chunks.
-The intention is that (much) longer term, we might be wanting to expose more of Qiskit functionality directly for other languages to interact with without going through Python.
+The intention is that (much) longer term, we might be wanting to expose more of Qiskit's functionality directly for other languages to interact with without going through Python.
 
 * `qiskit-pyext` is the only crate that actually builds a Python C extension library.
   This is kind of like the parent crate of all the others, from an FFI perspective; others define `pyclass`es and `pyfunction`s and the like, but it's `qiskit-pyext` that builds the C extension.
   Our C extension is built as `qiskit._accelerate` in Python space.
-* `qiskit-cext` is the crate that defines the C FFI for Qiskit. It defines the C API to work with the rust code directly. It has 2 modes of operation a standalone mode
+* `qiskit-cext` is the crate that defines the C FFI for Qiskit. It defines the C API to work with the Rust code directly. It has 2 modes of operation a standalone mode
   that compiles to a C dynamic library without any runtime dependency on the Python interpreter and a embedded mode where the API is re-exported from `qiskit-pyext`
   and used to accelerate Python worklows when writing compiled extensions that interact with Qiskit.
 * `qiskit-accelerate` is a catch-all crate for one-off accelerators. This should be the end of the dependency tree and only be in the dependency list for the public
@@ -59,15 +59,7 @@ We can revisit that if we start writing crates that we intend to publish.
 #### Running the tests
 
 You need to make sure that the tests can build in standalone mode, i.e. that they link in `libpython`.
-By default, we activate PyO3's `extension-module` feature in `crates/pyext`, so you have to run with the tests with that disabled:
+By default, we activate PyO3's `extension-module` feature in `crates/pyext`, so you have to run the tests with that disabled:
 
 ```bash
 cargo test --no-default-features
-```
-
-On Linux, you might find that the dynamic linker still can't find `libpython`.
-If so, you can extend the environment variable `LD_LIBRARY_PATH` to include it:
-
-```bash
-export LD_LIBRARY_PATH="$(python -c 'import sys; print(sys.base_prefix)')/lib:$LD_LIBRARY_PATH"
-```
