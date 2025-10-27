@@ -274,18 +274,8 @@ pub fn run_pad_dynamical_decoupling(
                             "DEBUG substitute (next_node): PyObject_to_sub='{}'",
                             new_op_obj.bind(py).repr()?
                         );
-                        let old_node_key = next_node;
                         dag.substitute_node_with_py_op(next_node_ind, new_op_obj.bind(py))?;
 
-                        if let Ok(node_start_time_obj) = property_set.get_item("node_start_time") {
-                            if let Ok(node_start_time_dict) = node_start_time_obj.downcast::<PyDict>() {
-                                if let Some(start_time) = node_start_time_dict.get_item(old_node_key)? {
-                                    let new_node_obj = dag.get_node(py, next_node_ind)?; // Get new node
-                                    node_start_time_dict.del_item(old_node_key)?;      // Delete old key
-                                    node_start_time_dict.set_item(new_node_obj, start_time)?; // Set new key
-                                }
-                            }
-                        }
                         sequence_gphase += phase;
                     }
                     _ => {
@@ -358,18 +348,8 @@ pub fn run_pad_dynamical_decoupling(
 
                             let new_op_obj = new_instruction.get_operation(py)?;
                             // // Substitute the node in the DAG.
-                            let old_node_key = prev_node;
                             dag.substitute_node_with_py_op(prev_node_ind, new_op_obj.bind(py))?;
 
-                            if let Ok(node_start_time_obj) = property_set.get_item("node_start_time") {
-                                if let Ok(node_start_time_dict) = node_start_time_obj.downcast::<PyDict>() {
-                                    if let Some(start_time) = node_start_time_dict.get_item(old_node_key)? {
-                                        let new_node_obj = dag.get_node(py, prev_node_ind)?; // Get new node
-                                        node_start_time_dict.del_item(old_node_key)?;      // Delete old key
-                                        node_start_time_dict.set_item(new_node_obj, start_time)?; // Set new key
-                                    }
-                                }
-                            }
                             // --- ADD DEBUG HERE ---
                             let substituted_node_obj = dag.get_node(py, prev_node_ind)?;
                             if let Ok(op_node_ref) = substituted_node_obj.extract::<PyRef<DAGOpNode>>(py) {
