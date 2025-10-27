@@ -67,4 +67,3 @@ a uuid and a name to uniquely identify it. The parameter table maps the `Paramet
 The `ParamEntry` is just a `HashSet` of 2-tuples with usize elements. The two usizes represent the instruction index in the `CircuitData` and the index of the `CircuitInstruction.params` field of
 a give instruction where the given `Parameter` is used in the circuit. If the instruction index is
 `GLOBAL_PHASE_MAX`, that points to the global phase property of the circuit instead of a `CircuitInstruction`.
-
