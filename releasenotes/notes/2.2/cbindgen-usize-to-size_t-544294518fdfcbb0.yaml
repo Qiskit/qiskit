@@ -1,11 +1,11 @@
 ---
 upgrade_c:
   - |
-    Most usage of `uintptr_t`` has been changed to ``size_t``. Specifically the following usages have been changed:
+    Most usage of ``uintptr_t`` has been changed to ``size_t``. Specifically the following usages have been changed:
 
-      * :c:member:`QkOpCount::count`
-      * :c:member:`QkOpCounts::len`
-      * :c:member:`QkObsTerm::len`
+      * :c:member:`QkOpCount.count`
+      * :c:member:`QkOpCounts.len`
+      * :c:member:`QkObsTerm.len`
       * The return type of :c:func:`qk_circuit_num_instructions`.
       * The ``index`` argument in :c:func:`qk_circuit_get_instruction`.
       * The ``boundaries`` argument in :c:func:`qk_obs_new`.
