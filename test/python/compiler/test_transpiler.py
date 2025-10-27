@@ -2379,6 +2379,8 @@ class TestTranspile(QiskitTestCase):
         shared_circuits = [shared_pm.run(circuit) for circuit in circuits]
         own_circuits = [make_pm().run(circuit) for circuit in circuits]
         self.assertEqual(shared_circuits, own_circuits)
+        together_circuits = make_pm().run(circuits)
+        self.assertEqual(together_circuits, own_circuits)
 
 
 @ddt
