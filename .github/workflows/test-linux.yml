@@ -137,7 +137,7 @@ jobs:
           popd
           cp -r /tmp/terra-tests/.stestr .
       - name: Copy and Publish images
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: ${{ failure() }}
         with:
           name: copied-images-${{ runner.name }}-tests-Python-${{ inputs.python-version }}

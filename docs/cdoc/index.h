@@ -35,11 +35,23 @@
  */
 
 /**
+ * @defgroup QkNeighbors QkNeighbors
+ */
+
+/**
+ * @defgroup QkDag QkDag
+ */
+
+/**
  * @defgroup QkTranspilerPasses QkTranspilerPasses
  */
 
 /**
  * @defgroup QkVF2LayoutResult QkVF2LayoutResult
+ */
+
+/**
+ * @defgroup QkVF2LayoutConfiguration QkVF2LayoutConfiguration
  */
 
 /**
