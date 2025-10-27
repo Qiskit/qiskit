@@ -56,6 +56,9 @@ extensions = [
 
 breathe_projects = {"qiskit": "xml/"}
 breathe_default_project = "qiskit"
+breathe_domain_by_extension = {
+    "h" : "c",
+}
 
 templates_path = ["_templates"]
 
