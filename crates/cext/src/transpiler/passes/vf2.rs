@@ -182,9 +182,7 @@ pub unsafe extern "C" fn qk_vf2_layout_configuration_set_call_limit(
     before: i64,
     after: i64,
 ) {
-    let lift = |limit: i64| -> Option<usize> {
-        (limit > 0).then(|| limit.try_into().unwrap_or(usize::MAX))
-    };
+    let lift = |limit: i64| usize::try_from(limit).ok();
     // SAFETY: per documentation this is a valid configuration pointer.
     unsafe { (*config).0.call_limit = (lift(before), lift(after)) };
 }
