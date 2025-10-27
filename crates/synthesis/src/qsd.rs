@@ -721,18 +721,16 @@ fn apply_a2(
         phase,
     )?;
     diagonal_rollover.insert(*last_idx, qc3);
-    let mut out_circ = CircuitData::clone_empty_like(
-        circ,
-        Some(
-            circ.data().len()
-                + diagonal_rollover
-                    .values()
-                    .map(|x| x.data().len())
-                    .sum::<usize>()
-                - ind2q.len(),
-        ),
+    let mut out_circ = circ.copy_empty_like_with_capacity(
+        circ.data().len()
+            + diagonal_rollover
+                .values()
+                .map(|x| x.data().len())
+                .sum::<usize>()
+            - ind2q.len(),
         VarsMode::Alike,
     )?;
+
     for (idx, inst) in circ.data().iter().enumerate() {
         if let Some(new_circ) = diagonal_rollover.get(&idx) {
             let block_index_map = circ.get_qargs(circ.data()[idx].qubits);

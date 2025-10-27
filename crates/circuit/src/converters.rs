@@ -17,8 +17,7 @@ use pyo3::intern;
 use pyo3::prelude::*;
 
 use crate::bit::{ShareableClbit, ShareableQubit};
-use crate::circuit_data::{CircuitData, CircuitVar};
-use crate::dag_circuit::DAGIdentifierInfo;
+use crate::circuit_data::CircuitData;
 use crate::dag_circuit::{DAGCircuit, NodeType};
 use crate::operations::{OperationRef, PythonOperation};
 use crate::packed_instruction::PackedInstruction;
@@ -101,22 +100,7 @@ pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<Circu
             }
         }),
         dag.get_global_phase(),
-        dag.identifiers() // Map and pass DAGCircuit variables and stretches to CircuitData style
-            .map(|identifier| match identifier {
-                DAGIdentifierInfo::Stretch(dag_stretch_info) => CircuitVar::Stretch(
-                    dag.get_stretch(dag_stretch_info.get_stretch())
-                        .expect("Stretch not found for the specified index")
-                        .clone(),
-                    dag_stretch_info.get_type().into(),
-                ),
-                DAGIdentifierInfo::Var(dag_var_info) => CircuitVar::Var(
-                    dag.get_var(dag_var_info.get_var())
-                        .expect("Var not found for the specified index")
-                        .clone(),
-                    dag_var_info.get_type().into(),
-                ),
-            })
-            .collect::<Vec<CircuitVar>>(),
+        Some(dag.get_var_stretch_container()),
     )
 }
 
