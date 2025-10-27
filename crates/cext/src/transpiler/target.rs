@@ -873,10 +873,13 @@ pub unsafe extern "C" fn qk_target_num_instructions(target: *const Target) -> us
 }
 
 /// @ingroup QkTarget
-/// Return the index in which an operation is located based on its name.
+/// Return the index at which an operation is located based on its name.
 ///
 /// @param target A pointer to the ``QkTarget``.
-/// @param name A pointer to the name string which we will look up an index for.
+/// @param name A pointer to the name to get the index of.
+///
+/// @return the index in which the operation is located or an invalid index
+///     in the case it is not in the Target.
 ///
 /// # Example
 /// ```c
@@ -919,7 +922,7 @@ pub unsafe extern "C" fn qk_target_op_get_index(
 /// gate map.
 ///
 /// @param target A pointer to the ``QkTarget``.
-/// @param index The index in which the gate is stored.
+/// @param index The index at which the gate is stored.
 ///
 /// # Example
 /// ```c
@@ -927,7 +930,7 @@ pub unsafe extern "C" fn qk_target_op_get_index(
 ///     QkTargetEntry *target_entry = qk_target_entry_new(QkGate_H);
 ///     qk_target_add_instruction(target, target_entry);
 ///
-///     char *op_name = qk_target_op_name_from_index(target, 0);
+///     char *op_name = qk_target_op_name(target, 0);
 ///     // Free after use
 ///     qk_str_free(op_name);
 /// ```
@@ -937,13 +940,10 @@ pub unsafe extern "C" fn qk_target_op_get_index(
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_op_name_from_index(
-    target: *const Target,
-    index: usize,
-) -> *mut c_char {
+pub unsafe extern "C" fn qk_target_op_name(target: *const Target, index: usize) -> *mut c_char {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target_borrowed = unsafe { const_ptr_as_ref(target) };
-    if let Some((retrieved, _)) = target_borrowed.get_from_index(index) {
+    if let Some((retrieved, _)) = target_borrowed.get_by_index(index) {
         CString::new(retrieved.clone())
             .expect("Error allocating space for string")
             .into_raw()
@@ -953,7 +953,7 @@ pub unsafe extern "C" fn qk_target_op_name_from_index(
 }
 
 /// @ingroup QkTarget
-/// Checks whether an operation is present in the ``QkTarget`` instance by index.
+/// Checks whether an operation is present in the ``QkTarget`` instance by name.
 ///
 /// @param target A pointer to the ``QkTarget``.
 /// @param name A pointer to the name string which we will look up.
@@ -964,7 +964,7 @@ pub unsafe extern "C" fn qk_target_op_name_from_index(
 ///     QkTargetEntry *target_entry = qk_target_entry_new(QkGate_H);
 ///     qk_target_add_instruction(target, target_entry);
 ///
-///     if (qk_target_contains_op(target, "h")) {
+///     if (qk_target_contains(target, "h")) {
 ///         printf("'h' has been added to the Target.");
 ///     };
 /// ```
@@ -975,7 +975,7 @@ pub unsafe extern "C" fn qk_target_op_name_from_index(
 /// Behavior is undefined if ``name`` is not a pointer to a valid null-terminated string.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_contains_op(target: *const Target, name: *const c_char) -> bool {
+pub unsafe extern "C" fn qk_target_contains(target: *const Target, name: *const c_char) -> bool {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target_borrowed = unsafe { const_ptr_as_ref(target) };
     // SAFETY: Per documentation, this should point to a valid, null-terminated
@@ -1003,7 +1003,7 @@ pub unsafe extern "C" fn qk_target_contains_op(target: *const Target, name: *con
 ///     QkTargetEntry *target_entry = qk_target_entry_new(QkGate_H);
 ///     qk_target_add_instruction(target, target_entry);
 ///
-///     size_t num_props = qk_target_num_properties(target, 0);
+///     size_t num_props = qk_target_op_num_properties(target, 0);
 /// ```
 ///
 /// # Safety
@@ -1011,11 +1011,11 @@ pub unsafe extern "C" fn qk_target_contains_op(target: *const Target, name: *con
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_num_properties(target: *const Target, index: usize) -> usize {
+pub unsafe extern "C" fn qk_target_op_num_properties(target: *const Target, index: usize) -> usize {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target_borrowed = unsafe { const_ptr_as_ref(target) };
     target_borrowed
-        .get_from_index(index)
+        .get_by_index(index)
         .map(|(_, v)| v.len())
         .unwrap_or(usize::MAX)
 }
@@ -1027,7 +1027,6 @@ pub unsafe extern "C" fn qk_target_num_properties(target: *const Target, index: 
 /// @param index The index in which the gate is stored.
 /// @param qargs A pointer to the array of ``uint32_t`` qubit indices to add the
 ///     check for, can be a null pointer to check for global properties.
-/// @param num_qubits The length of the qargs array.
 ///
 ///
 /// # Example
@@ -1052,30 +1051,31 @@ pub unsafe extern "C" fn qk_target_num_properties(target: *const Target, index: 
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_op_has_qargs(
     target: *const Target,
-    inst_idx: usize,
+    index: usize,
     qargs: *const u32,
-    num_qubits: u32,
 ) -> bool {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target_borrowed = unsafe { const_ptr_as_ref(target) };
-    // SAFETY: Per the documentation the qubits pointer is an array of num_qubits
-    // elements or a NULL pointer.
-    let parsed = unsafe { parse_qargs(qargs, num_qubits) };
-    target_borrowed
-        .get_from_index(inst_idx)
-        .map(|(_, inst_map)| inst_map.contains_key(&parsed))
-        .unwrap_or(false)
+    if let Some((_, inst_map)) = target_borrowed.get_by_index(index) {
+        let op = target_borrowed.get_op_by_index(index).unwrap();
+
+        // SAFETY: Per the documentation the qubits pointer is an array of the size
+        // associated with the operation or a NULL pointer.
+        let parsed = unsafe { parse_qargs(qargs, op.num_qubits()) };
+        inst_map.contains_key(&parsed)
+    } else {
+        panic!("Index '{}' not present in the Target.", index)
+    }
 }
 
 /// @ingroup QkTarget
-/// Retrieve the index in which some qargs are stored. Returns invalid number
+/// Retrieve the index at which some qargs are stored. Returns SIZE_MAX
 /// if not found.
 ///
 /// @param target A pointer to the ``QkTarget``.
-/// @param index The index in which the gate is stored.
+/// @param index The index at which the gate is stored.
 /// @param qargs A pointer to the array of ``uint32_t`` qubit indices to
 ///     check for, can be a null pointer to check for global properties.
-/// @param num_qubits The length of the qargs array.
 ///
 /// # Example
 /// ```c
@@ -1086,7 +1086,7 @@ pub unsafe extern "C" fn qk_target_op_has_qargs(
 ///     qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
 ///     qk_target_add_instruction(target, entry);
 ///
-///     size_t idx_0_1 = qk_target_op_qargs_index(target, 0, qargs, 2);
+///     size_t idx_0_1 = qk_target_op_qargs_index(target, 0, qargs);
 /// ```
 ///
 /// # Safety
@@ -1098,29 +1098,26 @@ pub unsafe extern "C" fn qk_target_op_qargs_index(
     target: *const Target,
     inst_idx: usize,
     qargs: *const u32,
-    num_qubits: u32,
 ) -> usize {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target_borrowed = unsafe { const_ptr_as_ref(target) };
-    // SAFETY: Per the documentation the qubits pointer is an array of num_qubits
-    // elements or a NULL pointer.
-    let parsed = unsafe { parse_qargs(qargs, num_qubits) };
-    if let Some(idx) = target_borrowed
-        .get_from_index(inst_idx)
-        .and_then(|(_, inst_map)| inst_map.get_index_of(&parsed))
-    {
-        idx
+    if let Some((_, inst_map)) = target_borrowed.get_by_index(inst_idx) {
+        let op = target_borrowed.get_op_by_index(inst_idx).unwrap();
+        // SAFETY: Per the documentation the qubits pointer is an array of the size
+        // associated with the operation or a NULL pointer.
+        let parsed = unsafe { parse_qargs(qargs, op.num_qubits()) };
+        inst_map.get_index_of(&parsed).unwrap_or(usize::MAX)
     } else {
-        usize::MAX
+        panic!("Index '{}' not present in the Target.", inst_idx)
     }
 }
 
 /// @ingroup QkTarget
-/// Retrieve the qargs for the operation stored in its respective indices.
+/// Retrieve the qargs for the operation by index.
 ///
 /// @param target A pointer to the ``QkTarget``.
-/// @param inst_idx The index in which the gate is stored.
-/// @param qarg_idx The index in which the qargs are stored.
+/// @param inst_idx The index at which the gate is stored.  
+/// @param qarg_idx The index at which the qargs are stored.  
 /// @param qargs A pointer to write out the ``QkQargs`` instance.
 ///
 /// @return An exit code.
@@ -1153,7 +1150,7 @@ pub unsafe extern "C" fn qk_target_op_get_qargs(
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target_borrowed = unsafe { const_ptr_as_ref(target) };
-    if let Some((_, props_map)) = target_borrowed.get_from_index(inst_idx) {
+    if let Some((_, props_map)) = target_borrowed.get_by_index(inst_idx) {
         if let Some((retrieved_qargs, _)) = props_map.get_index(qarg_idx) {
             // SAFETY: Per documentation, the pointer goes to an address
             // pre-allocated for a ``CQargs`` object.
@@ -1214,7 +1211,7 @@ pub unsafe extern "C" fn qk_target_op_get_props(
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target_borrowed = unsafe { const_ptr_as_ref(target) };
-    if let Some((_, props_map)) = target_borrowed.get_from_index(inst_idx) {
+    if let Some((_, props_map)) = target_borrowed.get_by_index(inst_idx) {
         if let Some((_, retrieved_props)) = props_map.get_index(qarg_idx) {
             // SAFETY: Per documentation, the pointer goes to an address
             // pre-allocated for a ``CInstructionProperties`` object.

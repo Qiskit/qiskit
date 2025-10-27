@@ -1603,8 +1603,12 @@ impl Target {
     }
 
     /// Retrieves a gate location in the gate map by index
-    pub fn get_from_index(&self, index: usize) -> Option<(&String, &PropsMap)> {
+    pub fn get_by_index(&self, index: usize) -> Option<(&String, &PropsMap)> {
         self.gate_map.get_index(index)
+    }
+    /// Retrieves a gate location in the gate map by index
+    pub fn get_op_by_index(&self, index: usize) -> Option<&TargetOperation> {
+        self._gate_name_map.get_index(index).map(|(_, op)| op)
     }
 }
 
