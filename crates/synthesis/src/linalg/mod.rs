@@ -211,6 +211,7 @@ mod test {
         assert_eq!(mat_view, expected);
     }
 
+    #[cfg(not(miri))] // TODO: Remove this after dimforge/nalgebra#1562 is released
     #[test]
     fn test_transpose_faer_to_nalgebra_conversion() {
         let matrix = Mat::from_fn(10, 10, |i, j| {
