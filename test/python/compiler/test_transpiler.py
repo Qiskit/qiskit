@@ -2333,6 +2333,53 @@ class TestTranspile(QiskitTestCase):
         for i in range(10):
             self.assertEqual(isa_circs[0], isa_circs[i])
 
+    @data(0, 1, 2, 3)
+    def test_reuse_on_differing_circuits(self, optimization_level):
+        """Test that re-using the same `PassManager` instance on two different circuits is the same
+        as using new instances of the `PassManager`."""
+
+        def make_pm():
+            num_qubits = 12
+            target = Target()
+            target.add_instruction(
+                SXGate(),
+                {(i,): InstructionProperties(error=1e-5 * (i + 1)) for i in range(num_qubits)},
+            )
+            target.add_instruction(
+                RZGate(Parameter("a")), {(i,): InstructionProperties() for i in range(num_qubits)}
+            )
+            target.add_instruction(
+                Measure(),
+                {
+                    (i,): InstructionProperties(error=1e-3 * (num_qubits - i))
+                    for i in range(num_qubits)
+                },
+            )
+            target.add_instruction(
+                CZGate(),
+                {
+                    pair: InstructionProperties(error=1e-3 * sum(pair))
+                    for pair in CouplingMap.from_line(num_qubits)
+                },
+            )
+            return generate_preset_pass_manager(
+                optimization_level=optimization_level, target=target, seed_transpiler=2025_10_27
+            )
+
+        def ghz(num_qubits):
+            qc = QuantumCircuit(num_qubits, num_qubits)
+            qc.h(0)
+            for i in range(1, num_qubits):
+                qc.cx(0, i)
+            qc.measure(qc.qubits, qc.clbits)
+            return qc
+
+        circuits = [ghz(5), ghz(8), ghz(10)]
+        shared_pm = make_pm()
+        shared_circuits = [shared_pm.run(circuit) for circuit in circuits]
+        own_circuits = [make_pm().run(circuit) for circuit in circuits]
+        self.assertEqual(shared_circuits, own_circuits)
+
 
 @ddt
 class TestPostTranspileIntegration(QiskitTestCase):
