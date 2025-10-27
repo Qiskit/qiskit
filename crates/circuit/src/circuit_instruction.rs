@@ -170,20 +170,31 @@ impl CircuitInstruction {
         }
 
         let out = match self.operation.view() {
-            OperationRef::StandardGate(standard) => standard
-                .create_py_op(
+            OperationRef::StandardGate(standard) =>{
+                eprintln!(
+                            "DEBUG get_operation (StandardGate) -> create_py_op: OpName='{}', Params_passed={:?}",
+                            standard.name(), // Or self.operation.name()
+                            self.params // CHECK THIS VALUE
+                        );
+            standard.create_py_op(
                     py,
                     Some(&self.params),
                     self.label.as_ref().map(|x| x.as_str()),
                 )?
-                .into_any(),
-            OperationRef::StandardInstruction(instruction) => instruction
-                .create_py_op(
+                .into_any()}
+            OperationRef::StandardInstruction(instruction) => {
+                eprintln!(
+                 "DEBUG get_operation (StandardInstruction): OpName='{}', Params_to_convert={:?}",
+                 instruction.name(), // Use instruction.name() or self.operation.name()
+                 self.params // Check the params held by the instruction
+             );
+             instruction.create_py_op(
                     py,
                     Some(&self.params),
                     self.label.as_ref().map(|x| x.as_str()),
                 )?
-                .into_any(),
+                .into_any()
+            }
             OperationRef::Gate(gate) => gate.gate.clone_ref(py),
             OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
             OperationRef::Operation(operation) => operation.operation.clone_ref(py),
