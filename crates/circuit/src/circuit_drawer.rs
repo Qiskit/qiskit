@@ -1272,15 +1272,90 @@ impl TextDrawer{
     }
 
     fn print(&self){
-        let mut output = String::new();
-        for i in self.wires.iter(){
-            let top_line: String = i.iter().map(|wire| wire.top.clone()).collect::<Vec<String>>().join("");
-            let mid_line: String = i.iter().map(|wire| wire.mid.clone()).collect::<Vec<String>>().join("");
-            let bot_line: String = i.iter().map(|wire| wire.bot.clone()).collect::<Vec<String>>().join("");
-            output.push_str(&format!("{}\n{}\n{}\n", top_line, mid_line, bot_line));
+        // let mut output = String::new();
+        // for i in self.wires.iter(){
+        //     let top_line: String = i.iter().map(|wire| wire.top.clone()).collect::<Vec<String>>().join("");
+        //     let mid_line: String = i.iter().map(|wire| wire.mid.clone()).collect::<Vec<String>>().join("");
+        //     let bot_line: String = i.iter().map(|wire| wire.bot.clone()).collect::<Vec<String>>().join("");
+        //     output.push_str(&format!("{}\n{}\n{}\n", top_line, mid_line, bot_line));
+        // }
+        // println!("{}", output);
+
+         // print using merge lines
+        let num_wires = self.wires.len();
+        for i in 0..num_wires - 1 {
+            if i == 0 {
+                let top_line = self.wires[i].iter().map(|wire| wire.top.clone()).collect::<Vec<String>>().join("");
+                let mid_line = self.wires[i].iter().map(|wire| wire.mid.clone()).collect::<Vec<String>>().join("");
+                println!("{}", top_line);
+                println!("{}", mid_line);
+            }
+            let bot_line = self.wires[i].iter().map(|wire| wire.bot.clone()).collect::<Vec<String>>().join("");
+            let top_line_next = self.wires[i + 1].iter().map(|wire| wire.top.clone()).collect::<Vec<String>>().join("");
+            let merged_line = Self::merge_lines(&bot_line, &top_line_next, "top");
+            println!("{}", merged_line);
+            let mid_line_next = self.wires[i + 1].iter().map(|wire| wire.mid.clone()).collect::<Vec<String>>().join("");
+            println!("{}", mid_line_next);
         }
-        println!("{}", output);
+        let last_index = num_wires - 1;
+        let bot_line = self.wires[last_index].iter().map(|wire| wire.bot.clone()).collect::<Vec<String>>().join("");
+        println!("{}", bot_line);
+
     }
+
+    pub fn merge_lines(top: &str, bot: &str, icod: &str) -> String {
+        let mut ret = String::new();
+
+        for (topc, botc) in top.chars().zip(bot.chars()) {
+            if topc == botc {
+                ret.push(topc);
+            } else if "┼╪".contains(topc) && botc == ' ' {
+                ret.push('│');
+            } else if topc == ' ' {
+                ret.push(botc);
+            } else if "┬╥".contains(topc) && " ║│".contains(botc) && icod == "top" {
+                ret.push(topc);
+            } else if topc == '┬' && botc == ' ' && icod == "bot" {
+                ret.push('│');
+            } else if topc == '╥' && botc == ' ' && icod == "bot" {
+                ret.push('║');
+            } else if "┬│".contains(topc) && botc == '═' {
+                ret.push('╪');
+            } else if "┬│".contains(topc) && botc == '─' {
+                ret.push('┼');
+            } else if "└┘║│░".contains(topc) && botc == ' ' && icod == "top" {
+                ret.push(topc);
+            } else if "─═".contains(topc) && botc == ' ' && icod == "top" {
+                ret.push(topc);
+            } else if "─═".contains(topc) && botc == ' ' && icod == "bot" {
+                ret.push(botc);
+            } else if "║╥".contains(topc) && botc == '═' {
+                ret.push('╬');
+            } else if "║╥".contains(topc) && botc == '─' {
+                ret.push('╫');
+            } else if "║╫╬".contains(topc) && botc == ' ' {
+                ret.push('║');
+            } else if "│┼╪".contains(topc) && botc == ' ' {
+                ret.push('│');
+            } else if topc == '└' && botc == '┌' && icod == "top" {
+                ret.push('├');
+            } else if topc == '┘' && botc == '┐' && icod == "top" {
+                ret.push('┤');
+            } else if "┐┌".contains(botc) && icod == "top" {
+                ret.push('┬');
+            } else if "┘└".contains(topc) && botc == '─' && icod == "top" {
+                ret.push('┴');
+            } else if botc == ' ' && icod == "top" {
+                ret.push(topc);
+            } else {
+                ret.push(botc);
+            }
+        }
+
+        ret
+    }
+}
+
 
     // fn add_wire(&mut self, wire: &ElementWire, ind: usize){
     //     self.wires[ind].top.push_str(&wire.top);
@@ -1290,7 +1365,6 @@ impl TextDrawer{
     //     // self.wires[ind].mid.push_str(&format!("{}{}",&wire.mid,"$"));
     //     // self.wires[ind].bot.push_str(&format!("{}{}",&wire.bot,"$"));
     // }
-}
 
 pub fn draw_circuit(circuit: &CircuitData) -> PyResult<()> {
     let dag = DAGCircuit::from_circuit_data(circuit, false, None, None, None, None)?;
