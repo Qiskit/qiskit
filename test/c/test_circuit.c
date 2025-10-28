@@ -945,7 +945,7 @@ static int test_circuit_to_dag(void) {
 
     int result = Ok;
     if (qk_dag_num_qubits(dag) != 2 || qk_dag_num_clbits(dag) != 1) {
-        printf("Circuit to DAG conversion encountered an issue");
+        printf("Circuit to DAG conversion encountered an issue\n");
         result = EqualityError;
     }
 
