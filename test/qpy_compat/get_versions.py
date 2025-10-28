@@ -65,7 +65,7 @@ def available_versions():
                 # compatibility with release candidates.
                 continue
             try:
-                python_versions = set(p["requires_python"] for p in payload)
+                python_versions = {p["requires_python"] for p in payload}
                 python_version = re.search(r"\d+(?:\.\d+)*", next(iter(python_versions))).group()
             except (TypeError, KeyError, StopIteration, AttributeError) as err:
                 print(
