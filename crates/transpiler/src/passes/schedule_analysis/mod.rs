@@ -13,7 +13,7 @@
 pub mod alap_schedule_analysis;
 pub mod asap_schedule_analysis;
 
-use std::ops::{Add, Sub};
+use std::ops::{Add, Deref, Sub};
 
 use hashbrown::HashMap;
 use pyo3::{
@@ -88,34 +88,61 @@ impl<'py> FromPyObject<'py> for NodeDurations {
 #[derive(Debug, Clone)]
 pub struct PyNodeDurations(NodeDurations);
 
+impl Deref for PyNodeDurations {
+    type Target = NodeDurations;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 #[pymethods]
 impl PyNodeDurations {
     #[new]
-    fn new(mapping: NodeDurations) -> Self {
+    pub fn new(mapping: NodeDurations) -> Self {
         Self(mapping)
     }
 
     fn __getitem__<'py>(
-        slf: PyRef<'py, Self>,
+        &'py self,
+        py: Python<'py>,
         node: Bound<'py, DAGOpNode>,
     ) -> PyResult<Bound<'py, PyAny>> {
         let node_as_base: &Bound<DAGNode> = node.cast()?;
-        match &slf.0 {
+        match &self.0 {
             NodeDurations::Dt(map) => map
                 .get(&node_as_base.borrow().node.expect("Node index not found."))
                 .ok_or(PyKeyError::new_err(format!(
                     "key '{}' not in mapping",
                     node.repr()?
                 )))?
-                .into_bound_py_any(slf.py()),
+                .into_bound_py_any(py),
             NodeDurations::Seconds(map) => map
                 .get(&node_as_base.borrow().node.expect("Node index not found."))
                 .ok_or(PyKeyError::new_err(format!(
                     "key '{}' not in mapping",
                     node.repr()?
                 )))?
-                .into_bound_py_any(slf.py()),
+                .into_bound_py_any(py),
         }
+    }
+
+    fn get<'py>(
+        &'py self,
+        py: Python<'py>,
+        node: Bound<'py, DAGOpNode>,
+        default: Bound<'py, PyAny>,
+    ) -> Bound<'py, PyAny> {
+        match self.__getitem__(py, node) {
+            Ok(res) => res,
+            Err(_) => default,
+        }
+    }
+
+    fn __contains__<'py>(&'py self, py: Python<'py>, node: Bound<'py, PyAny>) -> bool {
+        node.downcast_into()
+            .map(|node| self.__getitem__(py, node).is_ok())
+            .is_ok_and(|val| val)
     }
 }
 
@@ -165,5 +192,17 @@ impl<'py> FromPyObject<'py> for NodeDurations {
         } else {
             Ok(Self::Dt(Default::default()))
         }
+    }
+}
+
+impl From<HashMap<NodeIndex<u32>, u64>> for NodeDurations {
+    fn from(value: HashMap<NodeIndex<u32>, u64>) -> Self {
+        Self::Dt(value)
+    }
+}
+
+impl From<HashMap<NodeIndex<u32>, f64>> for NodeDurations {
+    fn from(value: HashMap<NodeIndex<u32>, f64>) -> Self {
+        Self::Seconds(value)
     }
 }
