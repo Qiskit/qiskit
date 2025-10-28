@@ -21,9 +21,7 @@
 //! crate. These are public to be passed to qiskit-pyext and are only used
 //! for building Python submodules.
 
-mod alap_schedule_analysis;
 mod apply_layout;
-mod asap_schedule_analysis;
 mod barrier_before_final_measurement;
 mod basis_translator;
 mod check_map;
@@ -44,15 +42,14 @@ mod optimize_1q_gates_decomposition;
 mod remove_diagonal_gates_before_measure;
 mod remove_identity_equiv;
 pub mod sabre;
+mod schedule_analysis;
 mod split_2q_unitaries;
 mod unitary_synthesis;
 mod unroll_3q_or_more;
 pub mod vf2;
 mod wrap_angles;
 
-pub use alap_schedule_analysis::{alap_schedule_analysis_mod, run_alap_schedule_analysis};
 pub use apply_layout::{apply_layout, apply_layout_mod, update_layout};
-pub use asap_schedule_analysis::{asap_schedule_analysis_mod, run_asap_schedule_analysis};
 pub use barrier_before_final_measurement::{
     barrier_before_final_measurements_mod, run_barrier_before_final_measurements,
 };
@@ -85,6 +82,12 @@ pub use remove_diagonal_gates_before_measure::{
     remove_diagonal_gates_before_measure_mod, run_remove_diagonal_before_measure,
 };
 pub use remove_identity_equiv::{remove_identity_equiv_mod, run_remove_identity_equiv};
+pub use schedule_analysis::alap_schedule_analysis::{
+    alap_schedule_analysis_mod, run_alap_schedule_analysis,
+};
+pub use schedule_analysis::asap_schedule_analysis::{
+    asap_schedule_analysis_mod, run_asap_schedule_analysis,
+};
 pub use split_2q_unitaries::{run_split_2q_unitaries, split_2q_unitaries_mod};
 pub use unitary_synthesis::{run_unitary_synthesis, unitary_synthesis_mod};
 pub use unroll_3q_or_more::{run_unroll_3q_or_more, unroll_3q_or_more_mod};
