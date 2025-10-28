@@ -668,7 +668,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for OperationFromPython {
         }
         Err(PyTypeError::new_err(format!(
             "invalid input: {}",
-            ob.repr()?
+            ob.to_owned()
         )))
     }
 }
