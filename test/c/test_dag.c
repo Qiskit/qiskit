@@ -85,7 +85,7 @@ static int test_dag_to_circuit(void) {
 
     QkCircuit *qc = qk_dag_to_circuit(dag, false);
     if (qk_circuit_num_qubits(qc) != 2 || qk_circuit_num_clbits(qc) != 1) {
-        printf("DAG to circuit conversion encountered an issue");
+        printf("DAG to circuit conversion encountered an issue\n");
         result = EqualityError;
     }
 
