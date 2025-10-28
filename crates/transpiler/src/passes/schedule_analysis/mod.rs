@@ -13,14 +13,13 @@
 pub mod alap_schedule_analysis;
 pub mod asap_schedule_analysis;
 
-use std::ops::{Add, Sub};
+use std::ops::{Add, Deref, Sub};
 
 use hashbrown::HashMap;
 use pyo3::{
     IntoPyObjectExt,
-    exceptions::{PyKeyError, PyTypeError},
+    exceptions::PyKeyError,
     prelude::*,
-    types::PyDict,
 };
 use qiskit_circuit::dag_node::{DAGNode, DAGOpNode};
 use rustworkx_core::petgraph::graph::NodeIndex;
@@ -84,38 +83,65 @@ impl<'py> FromPyObject<'py> for NodeDurations {
 }
 */
 
-#[pyclass(mapping)]
+#[pyclass(mapping, from_py_object)]
 #[derive(Debug, Clone)]
 pub struct PyNodeDurations(NodeDurations);
+
+impl Deref for PyNodeDurations {
+    type Target = NodeDurations;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 #[pymethods]
 impl PyNodeDurations {
     #[new]
-    fn new(mapping: NodeDurations) -> Self {
+    pub fn new(mapping: NodeDurations) -> Self {
         Self(mapping)
     }
 
     fn __getitem__<'py>(
-        slf: PyRef<'py, Self>,
+        &'py self,
+        py: Python<'py>,
         node: Bound<'py, DAGOpNode>,
     ) -> PyResult<Bound<'py, PyAny>> {
         let node_as_base: &Bound<DAGNode> = node.cast()?;
-        match &slf.0 {
+        match &self.0 {
             NodeDurations::Dt(map) => map
                 .get(&node_as_base.borrow().node.expect("Node index not found."))
                 .ok_or(PyKeyError::new_err(format!(
                     "key '{}' not in mapping",
                     node.repr()?
                 )))?
-                .into_bound_py_any(slf.py()),
+                .into_bound_py_any(py),
             NodeDurations::Seconds(map) => map
                 .get(&node_as_base.borrow().node.expect("Node index not found."))
                 .ok_or(PyKeyError::new_err(format!(
                     "key '{}' not in mapping",
                     node.repr()?
                 )))?
-                .into_bound_py_any(slf.py()),
+                .into_bound_py_any(py),
         }
+    }
+
+    fn get<'py>(
+        &'py self,
+        py: Python<'py>,
+        node: Bound<'py, DAGOpNode>,
+        default: Bound<'py, PyAny>,
+    ) -> Bound<'py, PyAny> {
+        match self.__getitem__(py, node) {
+            Ok(res) => res,
+            Err(_) => default,
+        }
+    }
+
+    fn __contains__<'py>(&'py self, py: Python<'py>, node: Bound<'py, PyAny>) -> bool {
+        node.cast_into()
+            .map(|node| self.__getitem__(py, node).is_ok())
+            .is_ok_and(|val| val)
     }
 }
 
@@ -125,45 +151,24 @@ pub enum NodeDurations {
     Seconds(HashMap<NodeIndex<u32>, f64>),
 }
 
-impl<'py> FromPyObject<'py> for NodeDurations {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let dict_downcast: &Bound<'py, PyDict> = ob.downcast()?;
-        if let Some((_, key)) = dict_downcast.iter().next() {
-            if key.extract::<u64>().is_ok() {
-                // All durations are of type u64
-                let mut op_durations = HashMap::default();
-                for (py_node, py_duration) in dict_downcast.iter() {
-                    let node_idx = py_node
-                        .downcast_into::<DAGOpNode>()?
-                        .cast::<DAGNode>()?
-                        .borrow()
-                        .node
-                        .expect("Node index not found.");
-                    let val = py_duration.extract()?;
-                    op_durations.insert(node_idx, val);
-                }
-                Ok(Self::Dt(op_durations))
-            } else if key.extract::<f64>().is_ok() {
-                // All durations are of type u64
-                let mut op_durations = HashMap::default();
-                for (py_node, py_duration) in dict_downcast.iter() {
-                    let node_idx = py_node
-                        .downcast_into::<DAGOpNode>()?
-                        .cast::<DAGNode>()?
-                        .borrow()
-                        .node
-                        .expect("Node index not found.");
-                    let val = py_duration.extract()?;
-                    op_durations.insert(node_idx, val);
-                }
-                Ok(Self::Seconds(op_durations))
-            } else {
-                Err(PyTypeError::new_err(
-                    "Only integer or float types allowed for durations",
-                ))
-            }
-        } else {
-            Ok(Self::Dt(Default::default()))
-        }
+impl<'a, 'py> FromPyObject<'a, 'py> for NodeDurations {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+        let as_durations: Borrowed<'a, 'py, PyNodeDurations> = obj.cast::<PyNodeDurations>()?;
+        let extracted: PyNodeDurations = as_durations.extract()?;
+        Ok(extracted.0)
+    }
+}
+
+impl From<HashMap<NodeIndex<u32>, u64>> for NodeDurations {
+    fn from(value: HashMap<NodeIndex<u32>, u64>) -> Self {
+        Self::Dt(value)
+    }
+}
+
+impl From<HashMap<NodeIndex<u32>, f64>> for NodeDurations {
+    fn from(value: HashMap<NodeIndex<u32>, f64>) -> Self {
+        Self::Seconds(value)
     }
 }
