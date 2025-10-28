@@ -14,6 +14,7 @@
 
 import json
 import sys
+import re
 import urllib.request
 
 import packaging.version
@@ -78,21 +79,29 @@ def available_versions():
                     file=sys.stderr,
                 )
                 continue
-            yield other_version
+            try:
+                python_versions = set(p['requires_python'] for p in payload)
+                python_version = re.search(r"\d+(?:\.\d+)*", next(iter(python_versions))).group()
+            except (TypeError, KeyError, StopIteration, AttributeError) as err:
+                print(
+                    f"skipping '{other_version}', which has no explicit minimum python version",
+                    file=sys.stderr,
+                )
+            yield (other_version, python_version)
 
     yield from (
-        ("qiskit-terra", version)
-        for version in available_versions_for_package("qiskit-terra", "0.18.0", "1.0.0")
+        ("qiskit-terra", version, python_version)
+        for version, python_version in available_versions_for_package("qiskit-terra", "0.18.0", "1.0.0")
     )
     yield from (
-        ("qiskit", version) for version in available_versions_for_package("qiskit", "1.0.0")
+        ("qiskit", version, python_version) for version, python_version in available_versions_for_package("qiskit", "1.0.0")
     )
 
 
 def main():
     """main"""
-    for package, version in available_versions():
-        print(package, version)
+    for package, version, python_version in available_versions():
+        print(package, version, python_version)
 
 
 if __name__ == "__main__":
