@@ -2151,7 +2151,7 @@ impl DAGCircuit {
                                             }
 
                                             // Fallback to the regular checking logic for all other types.
-                                            _ => a.is_close(py, b, 1e-10).unwrap_or(false),
+                                            _ => a.is_close(b, 1e-10).unwrap_or(false),
                                         }
                                     }))
                         }

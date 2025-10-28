@@ -275,6 +275,7 @@ class PadDynamicalDecoupling(BasePadding):
     ):  
         # NOTE: The :meth:`._pad` method is currently being ported as it is the core logic within the ``PadDynamicalDecoupling`` pass
         # and the :meth:`.run` method would need to be ported along with the :class:`.BasePadding` class when the ``PadDelay`` pass is also ported.
+        print(f"DEBUG: Calling pad_dynamical_decoupling from _pad method.: t_start={t_start}, t_end={t_end}, prev_node={_format_node(prev_node)}, next_node={_format_node(next_node)}")
         pad_dynamical_decoupling(
             t_end,
             t_start,
