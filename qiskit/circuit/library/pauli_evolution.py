@@ -347,5 +347,6 @@ def _operator_label(operator):
 
 def _get_default_label(operator):
     if isinstance(operator, list):
-        return f"exp(-it ({[_operator_label(op) for op in operator]}))"
+        labels = " + ".join(_operator_label(op) for op in operator)
+        return f"exp(-it ({labels}))"
     return f"exp(-it {_operator_label(operator)})"
