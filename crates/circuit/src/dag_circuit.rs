@@ -2122,7 +2122,10 @@ impl DAGCircuit {
                     };
                     match [inst1.op.view(), inst2.op.view()] {
                         [OperationRef::StandardGate(_), OperationRef::StandardGate(_)]
-                        | [OperationRef::StandardInstruction(_), OperationRef::StandardInstruction(_)] => {
+                        | [
+                            OperationRef::StandardInstruction(_),
+                            OperationRef::StandardInstruction(_),
+                        ] => {
                             Ok(inst1.py_op_eq(py, inst2)?
                                 && check_args()
                                 && inst1
@@ -2155,7 +2158,10 @@ impl DAGCircuit {
                                         }
                                     }))
                         }
-                        [OperationRef::Instruction(op1), OperationRef::Instruction(op2)] => {
+                        [
+                            OperationRef::Instruction(op1),
+                            OperationRef::Instruction(op2),
+                        ] => {
                             if op1.control_flow() && op2.control_flow() {
                                 let n1 = self.unpack_into(py, NodeIndex::new(0), n1)?;
                                 let n2 = other.unpack_into(py, NodeIndex::new(0), n2)?;
