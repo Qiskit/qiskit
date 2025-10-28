@@ -499,42 +499,72 @@ def _sorted_nodes(dag_layer):
     return nodes
 
 
-def _get_gate_span(qubits, node, measure_arrows):
+def _get_gate_span(qubits, clbits, node, measure_arrows):
     """Get the list of qubits drawing this gate would cover
     qiskit-terra #2802
     """
-    min_index = len(qubits)
-    max_index = 0
+    wire_indices = []
     for qreg in node.qargs:
-        index = qubits.index(qreg)
+        try:
+            wire_indices.append(qubits.index(qreg))
+        except ValueError:
+            continue
 
-        if index < min_index:
-            min_index = index
-        if index > max_index:
-            max_index = index
+    offset = len(qubits)
+    for creg in node.cargs:
+        try:
+            wire_indices.append(offset + clbits.index(creg))
+        except ValueError:
+            continue
+
+    condition = getattr(node.op, "condition", None)
+    if condition is not None:
+        for bit in condition_resources(condition).clbits:
+            try:
+                wire_indices.append(offset + clbits.index(bit))
+            except ValueError:
+                continue
+
+    if not wire_indices:
+        # Operations with no wires shouldn't collide with anything.
+        return []
+
+    min_index = min(wire_indices)
+    max_index = max(wire_indices)
 
     if isinstance(node.op, ControlFlowOp) and not isinstance(node.op, BoxOp):
         # Because of wrapping boxes for mpl control flow ops, this
         # type of op must be the only op in the layer
         # BoxOps are excepted because they have one block executed unconditionally
         span = qubits
-    elif node.cargs and (
-        (measure_arrows and isinstance(node.op, Measure)) or getattr(node.op, "condition", None)
-    ):
-        span = qubits[min_index : len(qubits)]
     else:
-        span = qubits[min_index : max_index + 1]
+        wires = list(qubits) + list(clbits)
+        if isinstance(node.op, Measure) and node.cargs and not measure_arrows:
+            # When measure arrows are disabled, the text drawer renders the measurement label on
+            # the qubit wire without spanning the intermediate wires down to the classical target.
+            # Returning just the directly-touched wires prevents stacked measurements on distinct
+            # classical bits from being forced into separate columns when the registers are bundled.
+            span = [wires[index] for index in sorted(set(wire_indices))]
+        else:
+            if (
+                node.cargs
+                and measure_arrows
+                and isinstance(node.op, Measure)
+                and max_index < offset
+            ):
+                max_index = offset - 1
+            span = wires[min_index : max_index + 1]
 
     return span
 
 
-def _any_crossover(qubits, node, nodes, measure_arrows):
+def _any_crossover(qubits, clbits, node, nodes, measure_arrows):
     """Return True .IFF. 'node' crosses over any 'nodes'."""
     return bool(
-        set(_get_gate_span(qubits, node, measure_arrows)).intersection(
+        set(_get_gate_span(qubits, clbits, node, measure_arrows)).intersection(
             bit
             for check_node in nodes
-            for bit in _get_gate_span(qubits, check_node, measure_arrows)
+            for bit in _get_gate_span(qubits, clbits, check_node, measure_arrows)
         )
     )
 
@@ -586,36 +616,31 @@ class _LayerSpooler(list):
 
     def insertable(self, node, nodes):
         """True .IFF. we can add 'node' to layer 'nodes'"""
-        return not _any_crossover(self.qubits, node, nodes, self.measure_arrows)
+        return not _any_crossover(self.qubits, self.clbits, node, nodes, self.measure_arrows)
 
     def slide_from_left(self, node, index):
         """Insert node into first layer where there is no conflict going l > r"""
-        measure_layer = None
-        if isinstance(node.op, Measure):
-            measure_bit = next(bit for bit in self.measure_map if node.cargs[0] == bit)
-
         if not self:
-            inserted = True
             self.append([node])
+            placed_layer = len(self) - 1
         else:
-            inserted = False
             curr_index = index
             last_insertable_index = -1
 
             index_stop = -1
             if (condition := getattr(node.op, "condition", None)) is not None:
                 index_stop = max(
-                    (self.measure_map[bit] for bit in condition_resources(condition).clbits),
+                    (
+                        self.measure_map[bit]
+                        for bit in condition_resources(condition).clbits
+                        if bit in self.measure_map
+                    ),
                     default=index_stop,
                 )
             if node.cargs:
                 for carg in node.cargs:
-                    try:
-                        carg_bit = next(bit for bit in self.measure_map if carg == bit)
-                        if self.measure_map[carg_bit] > index_stop:
-                            index_stop = self.measure_map[carg_bit]
-                    except StopIteration:
-                        pass
+                    if carg in self.measure_map and self.measure_map[carg] > index_stop:
+                        index_stop = self.measure_map[carg]
             while curr_index > index_stop:
                 if self.is_found_in(node, self[curr_index]):
                     break
@@ -624,36 +649,30 @@ class _LayerSpooler(list):
                 curr_index = curr_index - 1
 
             if last_insertable_index >= 0:
-                inserted = True
                 self[last_insertable_index].append(node)
-                measure_layer = last_insertable_index
+                placed_layer = last_insertable_index
             else:
-                inserted = False
                 curr_index = index
+                placed_layer = None
                 while curr_index < len(self):
                     if self.insertable(node, self[curr_index]):
                         self[curr_index].append(node)
-                        measure_layer = curr_index
-                        inserted = True
+                        placed_layer = curr_index
                         break
                     curr_index = curr_index + 1
+                if placed_layer is None:
+                    self.append([node])
+                    placed_layer = len(self) - 1
 
-        if not inserted:
-            self.append([node])
-
-        if isinstance(node.op, Measure):
-            if not measure_layer:
-                measure_layer = len(self) - 1
-            if measure_layer > self.measure_map[measure_bit]:
-                self.measure_map[measure_bit] = measure_layer
+        self._update_clbit_writes(node, placed_layer)
+        return placed_layer
 
     def slide_from_right(self, node, index):
         """Insert node into rightmost layer as long there is no conflict."""
         if not self:
             self.insert(0, [node])
-            inserted = True
+            placed_layer = 0
         else:
-            inserted = False
             curr_index = index
             last_insertable_index = None
 
@@ -664,20 +683,24 @@ class _LayerSpooler(list):
                     last_insertable_index = curr_index
                 curr_index = curr_index + 1
 
-            if last_insertable_index:
+            if last_insertable_index is not None:
                 self[last_insertable_index].append(node)
-                inserted = True
+                placed_layer = last_insertable_index
             else:
                 curr_index = index
+                placed_layer = None
                 while curr_index > -1:
                     if self.insertable(node, self[curr_index]):
                         self[curr_index].append(node)
-                        inserted = True
+                        placed_layer = curr_index
                         break
                     curr_index = curr_index - 1
+                if placed_layer is None:
+                    self.insert(0, [node])
+                    placed_layer = 0
 
-        if not inserted:
-            self.insert(0, [node])
+        self._update_clbit_writes(node, placed_layer)
+        return placed_layer
 
     def add(self, node, index):
         """Add 'node' where it belongs, starting the try at 'index'."""
@@ -694,3 +717,12 @@ class _LayerSpooler(list):
             self.slide_from_left(node, index)
         else:
             self.slide_from_right(node, index)
+
+    def _update_clbit_writes(self, node, layer):
+        """Record that ``node`` wrote to any classical bits in ``layer``."""
+        if layer is None or layer < 0:
+            return
+
+        for carg in getattr(node, "cargs", []):
+            if carg in self.measure_map and layer > self.measure_map[carg]:
+                self.measure_map[carg] = layer

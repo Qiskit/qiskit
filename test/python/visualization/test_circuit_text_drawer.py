@@ -1442,6 +1442,120 @@ q_4: ───────────────────────┤   
         circuit.rz(11111, qr[2])
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
+    def test_text_classical_wires_break_layers(self):
+        """Instructions spanning classical wires do not share layers."""
+
+        instruction_a = Instruction("NameA", 4, 1, [], label="A")
+        instruction_b = Instruction("NameB", 2, 1, [], label="B")
+        instruction_c = Instruction("NameC", 1, 1, [], label="C")
+
+        circuit = QuantumCircuit(4, 4)
+        circuit.append(instruction_a, [0, 1, 2, 3], [0])
+        circuit.append(instruction_b, [0, 1], [1])
+        circuit.append(instruction_c, [2], [2])
+
+        expected = "\n".join(
+            [
+                "        ┌────┐┌────┐      ",
+                "q_0: |0>┤0   ├┤0   ├──────",
+                "        │    ││    │      ",
+                "q_1: |0>┤1   ├┤1   ├──────",
+                "        │    ││    │┌────┐",
+                "q_2: |0>┤2 A ├┤    ├┤0   ├",
+                "        │    ││  B ││    │",
+                "q_3: |0>┤3   ├┤    ├┤    ├",
+                "        │    ││    ││    │",
+                " c_0: 0 ╡0   ╞╡    ╞╡  C ╞",
+                "        └────┘│    ││    │",
+                " c_1: 0 ══════╡0   ╞╡    ╞",
+                "              └────┘│    │",
+                " c_2: 0 ════════════╡0   ╞",
+                "                    └────┘",
+                " c_3: 0 ══════════════════",
+                "                          ",
+            ]
+        )
+
+        self.assertEqual(
+            str(circuit_drawer(circuit, output="text", initial_state=True, cregbundle=False)),
+            expected,
+        )
+
+    def test_text_classical_wires_break_layers_right_justify(self):
+        """Hybrid classical writes stay separated when right-justified."""
+
+        instruction_a = Instruction("NameA", 4, 1, [], label="A")
+        instruction_b = Instruction("NameB", 2, 1, [], label="B")
+        instruction_c = Instruction("NameC", 1, 1, [], label="C")
+
+        circuit = QuantumCircuit(4, 4)
+        circuit.append(instruction_a, [0, 1, 2, 3], [0])
+        circuit.append(instruction_b, [0, 1], [1])
+        circuit.append(instruction_c, [2], [2])
+
+        expected = "\n".join(
+            [
+                "        ┌────┐      ┌────┐",
+                "q_0: |0>┤0   ├──────┤0   ├",
+                "        │    │      │    │",
+                "q_1: |0>┤1   ├──────┤1   ├",
+                "        │    │┌────┐│    │",
+                "q_2: |0>┤2 A ├┤0   ├┤    ├",
+                "        │    ││    ││  B │",
+                "q_3: |0>┤3   ├┤    ├┤    ├",
+                "        │    ││    ││    │",
+                " c_0: 0 ╡0   ╞╡  C ╞╡    ╞",
+                "        └────┘│    ││    │",
+                " c_1: 0 ══════╡    ╞╡0   ╞",
+                "              │    │└────┘",
+                " c_2: 0 ══════╡0   ╞══════",
+                "              └────┘      ",
+                " c_3: 0 ══════════════════",
+                "                          ",
+            ]
+        )
+
+        self.assertEqual(
+            str(
+                circuit_drawer(
+                    circuit,
+                    output="text",
+                    initial_state=True,
+                    cregbundle=False,
+                    justify="right",
+                )
+            ),
+            expected,
+        )
+
+    def test_text_hybrid_writes_preserve_conditional_order(self):
+        """Classical targets updated by non-measure ops block earlier condition columns."""
+
+        write = Instruction("Writer", 1, 1, [], label="W")
+        conditional = Instruction("Conditional", 1, 0, [], label="X")
+
+        circuit = QuantumCircuit(2, 1)
+        circuit.append(write, [1], [0])
+        conditional.condition = (circuit.clbits[0], 1)
+        circuit.append(conditional, [0], [])
+
+        expected = "\n".join(
+            [
+                "              ┌───┐",
+                "q_0: |0>──────┤ X ├",
+                "        ┌────┐└─╥─┘",
+                "q_1: |0>┤0   ├──╫──",
+                "        │  W │  ║  ",
+                "   c: 0 ╡0   ╞══■══",
+                "        └────┘     ",
+            ]
+        )
+
+        self.assertEqual(
+            str(circuit_drawer(circuit, output="text", initial_state=True, cregbundle=False)),
+            expected,
+        )
+
 
 class TestTextDrawerLabels(QiskitTestCase):
     """Gates with labels."""

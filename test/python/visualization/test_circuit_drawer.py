@@ -22,8 +22,9 @@ import warnings
 from unittest.mock import patch
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, visualization
+from qiskit.circuit import Instruction
 from qiskit.utils import optionals
-from qiskit.visualization.circuit import styles, text
+from qiskit.visualization.circuit import _utils, styles, text
 from qiskit.visualization.exceptions import VisualizationError
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -208,6 +209,38 @@ class TestCircuitDrawer(QiskitTestCase):
             circuit, output="text", wire_order=[2, 3, 0, 1], cregbundle=True
         )
         self.assertEqual(result.__str__(), expected)
+
+    def test_layer_spooler_separates_hybrid_ops(self):
+        """Hybrid instructions stay ordered for every drawer backend."""
+
+        writer = Instruction("Writer", 4, 1, [], label="A")
+        reader = Instruction("Reader", 1, 0, [], label="B")
+
+        circuit = QuantumCircuit(4, 2)
+        circuit.append(writer, [0, 1, 2, 3], [0])
+        reader.condition = (circuit.clbits[0], 1)
+        circuit.append(reader, [3], [])
+
+        _, _, layers = _utils._get_layered_instructions(circuit)
+        self.assertEqual(
+            [[node.op.name for node in layer] for layer in layers], [["Writer"], ["Reader"]]
+        )
+
+    def test_layer_spooler_separates_hybrid_ops_right_justify(self):
+        """Hybrid layering holds when building columns from the right."""
+
+        writer = Instruction("Writer", 4, 1, [], label="A")
+        reader = Instruction("Reader", 1, 0, [], label="B")
+
+        circuit = QuantumCircuit(4, 2)
+        circuit.append(writer, [0, 1, 2, 3], [0])
+        reader.condition = (circuit.clbits[0], 1)
+        circuit.append(reader, [3], [])
+
+        _, _, layers = _utils._get_layered_instructions(circuit, justify="right")
+        self.assertEqual(
+            [[node.op.name for node in layer] for layer in layers], [["Writer"], ["Reader"]]
+        )
 
     def test_wire_order_raises(self):
         """Verify we raise if using wire order incorrectly."""
