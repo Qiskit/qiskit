@@ -776,8 +776,8 @@ impl PyGeneratorTerm {
 /// Internally, :class:`.PauliLindbladMap` stores an array of rates and a
 /// :class:`.QubitSparsePauliList` containing the corresponding sparse Pauli operators.
 /// Additionally, :class:`.PauliLindbladMap` can compute the overall channel :math:`\gamma` in the
-/// :meth:`get_gamma` method, as well as the corresponding probabilities (or quasi-probabilities)
-/// via the :meth:`get_probabilities` method.
+/// :meth:`gamma` method, as well as the corresponding probabilities :math:`p_P`
+/// via the :meth:`probabilities` method.
 ///
 /// Indexing
 /// --------
@@ -1188,7 +1188,9 @@ impl PyPauliLindbladMap {
         out
     }
 
-    /// Calculate the probabilities for the map.
+    /// Calculate the probabilities :math:`p_P` for the map.
+    /// These can be interpreted as the probabilities each generator is not applied,
+    /// and are defined to be independent of the sign of each Lindblad rate.
     fn probabilities<'py>(&self, py: Python<'py>) -> Bound<'py, PyArray1<f64>> {
         let inner = self.inner.read().unwrap();
         inner.probabilities().to_pyarray(py)
