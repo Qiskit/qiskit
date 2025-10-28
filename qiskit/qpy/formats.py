@@ -181,7 +181,14 @@ SPARSE_OBSERVABLE_OP_LIST_ELEM_SIZE = struct.calcsize(SPARSE_OBSERVABLE_OP_LIST_
 # Pauli Evolution Gate
 PAULI_EVOLUTION_DEF = namedtuple(
     "PAULI_EVOLUTION_DEF",
-    ["operator_size", "sparse_operator", "standalone_op", "time_type", "time_size", "synth_method_size"],
+    [
+        "operator_size",
+        "sparse_operator",
+        "standalone_op",
+        "time_type",
+        "time_size",
+        "synth_method_size",
+    ],
 )
 PAULI_EVOLUTION_DEF_PACK = "!Q??1cQQ"
 PAULI_EVOLUTION_DEF_SIZE = struct.calcsize(PAULI_EVOLUTION_DEF_PACK)

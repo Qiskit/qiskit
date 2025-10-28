@@ -704,7 +704,9 @@ def _read_pauli_evolution_gate(file_obj, version, vectors):
             )
         )
         if pauli_evolution_def.sparse_operator:
-            op_raw_data = common.data_from_binary(file_obj.read(op_elem.size), np.load, allow_pickle=True)
+            op_raw_data = common.data_from_binary(
+                file_obj.read(op_elem.size), np.load, allow_pickle=True
+            )
             operator_list.append(SparseObservable.from_terms(op_raw_data))
         else:
             op_raw_data = common.data_from_binary(file_obj.read(op_elem.size), np.load)
@@ -1078,7 +1080,7 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate, version):
         buffer.write(elem_data)
 
     def _write_elem_sparse(buffer, op):
-        elem_data = common.data_to_binary(np.array(op, dtype = object), np.save)
+        elem_data = common.data_to_binary(np.array(op, dtype=object), np.save)
         elem_metadata = struct.pack(formats.SPARSE_OBSERVABLE_OP_LIST_ELEM_PACK, len(elem_data))
         buffer.write(elem_metadata)
         buffer.write(elem_data)

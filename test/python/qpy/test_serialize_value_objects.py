@@ -16,6 +16,9 @@ import io
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit import qpy
+from qiskit.quantum_info import SparseObservable
+from qiskit.quantum_info.operators import SparsePauliOp
+from qiskit.circuit.library import PauliEvolutionGate
 
 
 class TestQpySerializeParameterExpression(QiskitTestCase):
@@ -41,3 +44,43 @@ class TestQpySerializeParameterExpression(QiskitTestCase):
             qc_from_qpy = qpy.load(container)[0]
 
         self.assertEqual(qc, qc_from_qpy)
+
+
+class TestPauliEvolution(QiskitTestCase):
+    """QPY serializing PauliEvolutionGate with SparseObservable and SparsePauliOp"""
+
+    def test_pauli_evolution_sparseobservable(self):
+        """Test PauliEvolutionGate with SparseObservable"""
+        op = SparseObservable.from_list([("XIX", 0.1), ("ZIZ", 0.3)])
+
+        # build the evolution gate
+        evo = PauliEvolutionGate(op)
+        circuit = QuantumCircuit(evo.num_qubits)
+        circuit.append(evo, circuit.qubits)
+
+        with io.BytesIO() as container:
+            qpy.dump(circuit, container)
+            qc_qpy_str = container.getvalue()
+
+        with io.BytesIO(qc_qpy_str) as container:
+            qc_from_qpy = qpy.load(container)[0]
+
+        self.assertEqual(circuit, qc_from_qpy)
+
+    def test_pauli_evolution_sparse_pauliop(self):
+        """Test PauliEvolutionGate with SparsePauliOp"""
+        operator = SparsePauliOp.from_list([("ZZ", 1), ("XI", -0.1)])
+
+        # build the evolution gate
+        evo = PauliEvolutionGate(operator, time=0.2)
+        circuit = QuantumCircuit(evo.num_qubits)
+        circuit.append(evo, circuit.qubits)
+
+        with io.BytesIO() as container:
+            qpy.dump(circuit, container)
+            qc_qpy_str = container.getvalue()
+
+        with io.BytesIO(qc_qpy_str) as container:
+            qc_from_qpy = qpy.load(container)[0]
+
+        self.assertEqual(circuit, qc_from_qpy)
