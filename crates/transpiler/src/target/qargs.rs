@@ -99,8 +99,10 @@ impl<'py> IntoPyObject<'py> for &Qargs {
     }
 }
 
-impl<'py> FromPyObject<'py> for Qargs {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for Qargs {
+    type Error = <TargetQargs as FromPyObject<'a, 'py>>::Error;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let qargs: Option<TargetQargs> = ob.extract()?;
         match qargs {
             Some(qargs) => Ok(Self::Concrete(qargs)),

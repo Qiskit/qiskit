@@ -35,8 +35,10 @@ impl<'py> IntoPyObject<'py> for Index {
     }
 }
 
-impl<'py> FromPyObject<'py> for Index {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for Index {
+    type Error = <PyIndex as FromPyObject<'a, 'py>>::Error;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let PyIndex(i) = ob.extract()?;
         Ok(i)
     }

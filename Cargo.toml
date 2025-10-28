@@ -17,11 +17,11 @@ license = "Apache-2.0"
 bytemuck = "1.24"
 bitfield-struct = "0.12.1"
 indexmap.version = "2.10.0"
-hashbrown.version = "0.15.2"
+hashbrown.version = "0.15.5"
 num-bigint = "0.4"
 num-complex = "0.4"
 nalgebra = "0.33"
-numpy = "0.26"
+numpy = "0.27"
 ndarray = "0.16"
 smallvec = "1.15"
 thiserror = "2.0"
@@ -44,7 +44,7 @@ uuid = { version = "1.18", features = ["v4", "fast-rng"], default-features = fal
 # distributions).  We only activate that feature when building the C extension module; we still need
 # it disabled for Rust-only tests to avoid linker errors with it not being loaded.  See
 # https://pyo3.rs/main/features#extension-module for more.
-pyo3 = { version = "0.26", features = ["abi3-py39"] }
+pyo3 = { version = "0.27", features = ["abi3-py39"] }
 
 # These are our own crates.
 qiskit-accelerate = { path = "crates/accelerate" }

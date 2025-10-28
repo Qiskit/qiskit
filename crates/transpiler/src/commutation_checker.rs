@@ -261,7 +261,7 @@ impl CommutationChecker {
     }
 
     fn __setstate__(&mut self, py: Python, state: Py<PyAny>) -> PyResult<()> {
-        let dict_state = state.downcast_bound::<PyDict>(py)?;
+        let dict_state = state.cast_bound::<PyDict>(py)?;
         self.cache_max_entries = dict_state
             .get_item("cache_max_entries")?
             .unwrap()
@@ -276,7 +276,7 @@ impl CommutationChecker {
         let raw_cache: Bound<PyDict> = dict_state.get_item("cache")?.unwrap().extract()?;
         self.cache = HashMap::with_capacity(raw_cache.len());
         for (key, value) in raw_cache.iter() {
-            let value_dict: &Bound<PyDict> = value.downcast()?;
+            let value_dict: &Bound<PyDict> = value.cast()?;
             self.cache.insert(
                 key.extract()?,
                 commutation_cache_entry_from_pydict(value_dict)?,
@@ -814,14 +814,16 @@ impl<'py> IntoPyObject<'py> for CommutationLibraryEntry {
     }
 }
 
-impl<'py> FromPyObject<'py> for CommutationLibraryEntry {
-    fn extract_bound(b: &Bound<'py, PyAny>) -> Result<Self, PyErr> {
+impl<'a, 'py> FromPyObject<'a, 'py> for CommutationLibraryEntry {
+    type Error = PyErr;
+
+    fn extract(b: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         if let Ok(b) = b.extract::<bool>() {
             return Ok(CommutationLibraryEntry::Commutes(b));
         }
-        let dict = b.downcast::<PyDict>()?;
+        let dict = b.cast::<PyDict>()?;
         let mut ret = hashbrown::HashMap::with_capacity(dict.len());
-        for (k, v) in dict {
+        for (k, v) in &*dict {
             let raw_key: SmallVec<[Option<u32>; 2]> = k.extract()?;
             let v: bool = v.extract()?;
             let key = raw_key.into_iter().map(|key| key.map(Qubit)).collect();

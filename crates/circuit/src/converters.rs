@@ -32,8 +32,10 @@ pub struct QuantumCircuitData<'py> {
     pub metadata: Option<Bound<'py, PyAny>>,
 }
 
-impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for QuantumCircuitData<'py> {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> PyResult<Self> {
         let py = ob.py();
         let circuit_data = ob.getattr("_data")?;
         let data_borrowed = circuit_data.extract::<CircuitData>()?;
