@@ -64,6 +64,21 @@ def available_versions():
                 # We skip alpha and beta prereleases, but we currently want to test for
                 # compatibility with release candidates.
                 continue
+            # Note: For non-docker runs, this ignores versions that are uninstallable because we're using
+            # a Python version that's too new, which can be a problem for the oldest Terras, especially from
+            # before we built for abi3.  We're not counting sdists, since if we didn't release a
+            # compatible wheel for the current Python version, there's no guarantee it'll install.
+            if "--no-docker" in sys.argv and not any(
+                tag in supported_tags
+                for release in payload
+                if release["packagetype"] == "bdist_wheel" and not release["yanked"]
+                for tag in tags_from_wheel_name(release["filename"])
+            ):
+                print(
+                    f"skipping '{other_version}', which has no installable binary artifacts",
+                    file=sys.stderr,
+                )
+                continue
             try:
                 python_versions = {p["requires_python"] for p in payload}
                 python_version = re.search(r"\d+(?:\.\d+)*", next(iter(python_versions))).group()

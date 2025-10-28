@@ -11,6 +11,11 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+no_docker=false
+if [[ " $@ " =~ " --no-docker " ]]; then
+    no_docker=true
+fi
+
 set -e
 set -o pipefail
 set -x
@@ -42,7 +47,11 @@ python -m venv "$qiskit_venv"
 "$qiskit_venv/bin/pip" install -c "$repo_root/constraints.txt" "$qiskit_dev_wheel" packaging "symengine<0.14" "sympy>1.3"
 
 # Run all of the tests of cross-Qiskit-version compatibility.
-"$qiskit_python" "$our_dir/get_versions.py" | parallel -j 2 --colsep=" " bash "$our_dir/process_version.sh" -p "$qiskit_python"
+if $no_docker
+    "$qiskit_python" "$our_dir/get_versions.py" --no-docker | parallel -j 2 --colsep=" " bash "$our_dir/process_version_with_venv.sh" -p "$qiskit_python"
+else
+    "$qiskit_python" "$our_dir/get_versions.py" | parallel -j 2 --colsep=" " bash "$our_dir/process_version.sh" -p "$qiskit_python"
+fi
 
 # Test dev compatibility with itself.
 dev_version="$("$qiskit_python" -c 'import qiskit; print(qiskit.__version__)')"
