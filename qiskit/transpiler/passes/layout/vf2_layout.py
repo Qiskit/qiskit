@@ -13,14 +13,13 @@
 
 """VF2Layout pass to find a layout using subgraph isomorphism"""
 
-import random
 from enum import Enum
 
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.layout import vf2_utils
-from qiskit._accelerate.vf2_layout import vf2_layout_pass, MultiQEncountered
+from qiskit._accelerate.vf2_layout import vf2_layout_pass, MultiQEncountered, VF2PassConfiguration
 
 
 class VF2LayoutStopReason(Enum):
@@ -131,31 +130,24 @@ class VF2Layout(AnalysisPass):
             else:
                 target = self.target
         self.avg_error_map = self.property_set["vf2_avg_error_map"]
-        if self.seed == -1:
-            # Happy path of no shuffling.
-            seed = None
-        elif self.seed is None or self.seed < -1:
-            # `seed is None` is OS entropy, `seed < -1` is a bad value (most pRNGs we're
-            # concerned with deal with `u64`), but the stdlib `random` handles it, so just use
-            # that to fix it up into something else.
-            seed = random.Random(self.seed).randrange((1 << 64) - 1)
-        else:
-            seed = self.seed
+        config = VF2PassConfiguration.from_legacy_api(
+            call_limit=self.call_limit,
+            time_limit=self.time_limit,
+            max_trials=self.max_trials,
+            shuffle_seed=self.seed,
+        )
         try:
-            layout = vf2_layout_pass(
+            output = vf2_layout_pass(
                 dag,
                 target,
+                config=config,
                 strict_direction=self.strict_direction,
-                call_limit=self.call_limit,
-                time_limit=self.time_limit,
-                max_trials=self.max_trials,
                 avg_error_map=self.avg_error_map,
-                shuffle_seed=seed,
             )
         except MultiQEncountered:
             self.property_set["VF2Layout_stop_reason"] = VF2LayoutStopReason.MORE_THAN_2Q
             return
-        if layout is None:
+        if (layout := output.new_mapping()) is None:
             self.property_set["VF2Layout_stop_reason"] = VF2LayoutStopReason.NO_SOLUTION_FOUND
             return
 
