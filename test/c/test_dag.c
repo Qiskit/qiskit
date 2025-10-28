@@ -105,22 +105,20 @@ static int test_dag_apply_gate(void) {
         return EqualityError;
     }
 
-    // Make sure we can get the standard gate back from the node.
-    if (qk_dag_op_node_gate(dag, crx_node_idx) != QkGate_CRX) {
-        printf("Expected gate of type %u but got %u\n", QkGate_CRX,
-               qk_dag_op_node_gate(dag, crx_node_idx));
-        return EqualityError;
-    }
-
-    // Check that it has its param.
+    // Check the gate has the right number of params.
     uint32_t num_params = qk_dag_op_node_num_params(dag, crx_node_idx);
     if (num_params != 1) {
         printf("Expected num params 1 but got %u\n", num_params);
         return EqualityError;
     }
 
+    // Make sure we can get the standard gate and params back from the node.
     double actual_crx_params[1];
-    qk_dag_op_node_params(dag, crx_node_idx, actual_crx_params);
+    QkGate actual_gate = qk_dag_op_node_gate(dag, crx_node_idx, actual_crx_params);
+    if (actual_gate != QkGate_CRX) {
+        printf("Expected gate of type %u but got %u\n", QkGate_CRX, actual_gate);
+        return EqualityError;
+    }
 
     if (actual_crx_params[0] != crx_params[0]) {
         printf("Expected param %f but got %f\n", crx_params[0], actual_crx_params[0]);
