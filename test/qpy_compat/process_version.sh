@@ -31,7 +31,7 @@ while getopts "p:" opt; do
     esac
 done
 shift "$((OPTIND-1))"
-if [[ $# != 2 ]]; then
+if [[ $# != 3 ]]; then
     usage
 fi
 
@@ -40,21 +40,21 @@ fi
 # under test.
 package="$1"
 version="$2"
+python_version="$3"
 
 our_dir="$(realpath -- "$(dirname -- "${BASH_SOURCE[0]}")")"
 cache_dir="$(pwd -P)/qpy_cache/$version"
 venv_dir="$(pwd -P)/venvs/$package-$version"
 
 if [[ ! -d $cache_dir ]] ; then
-    echo "Building venv for $package==$version"
-    "$python" -m venv "$venv_dir"
-    "$venv_dir/bin/pip" install -c "${our_dir}/qpy_test_constraints.txt" "${package}==${version}"
+    echo "Building docker image for $package==$version (python version $python_version)"
+    docker build -t $package:$version --build-arg PYTHON_VERSION=$python_version --build-arg PACKAGE_NAME=$package --build-arg PACKAGE_VERSION=$version .
     mkdir -p "$cache_dir"
     pushd "$cache_dir"
     echo "Generating QPY files with $package==$version"
     # If the generation script fails, we still want to tidy up before exiting.
-    "$venv_dir/bin/python" "${our_dir}/test_qpy.py" generate --version="$version" || { rm -rf "$venv_dir"; exit 1; }
-    rm -rf "$venv_dir"
+    docker run --rm -v "${our_dir}":/work/src -v "$PWD":/work -w /work $package:$version python src/test_qpy.py generate --version="$version" || { docker rmi $package:$version; exit 1; }
+    docker rmi $package:$version
 else
     echo "Using cached QPY files for $version"
     pushd "${cache_dir}"

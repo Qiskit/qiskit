@@ -80,7 +80,7 @@ def available_versions():
                 )
                 continue
             try:
-                python_versions = set(p['requires_python'] for p in payload)
+                python_versions = set(p["requires_python"] for p in payload)
                 python_version = re.search(r"\d+(?:\.\d+)*", next(iter(python_versions))).group()
             except (TypeError, KeyError, StopIteration, AttributeError) as err:
                 print(
@@ -91,10 +91,13 @@ def available_versions():
 
     yield from (
         ("qiskit-terra", version, python_version)
-        for version, python_version in available_versions_for_package("qiskit-terra", "0.18.0", "1.0.0")
+        for version, python_version in available_versions_for_package(
+            "qiskit-terra", "0.18.0", "1.0.0"
+        )
     )
     yield from (
-        ("qiskit", version, python_version) for version, python_version in available_versions_for_package("qiskit", "1.0.0")
+        ("qiskit", version, python_version)
+        for version, python_version in available_versions_for_package("qiskit", "1.0.0")
     )
 
 
