@@ -24,12 +24,12 @@ use numpy::{
     PyReadonlyArray1, PyReadonlyArray2, PyUntypedArrayMethods,
 };
 use pyo3::{
+    IntoPyObjectExt, PyErr,
     exceptions::{PyRuntimeError, PyTypeError, PyValueError, PyZeroDivisionError},
     intern,
     prelude::*,
-    sync::GILOnceCell,
+    sync::PyOnceLock,
     types::{IntoPyDict, PyList, PyString, PyTuple, PyType},
-    IntoPyObjectExt, PyErr,
 };
 use rayon::prelude::*;
 use std::{
@@ -37,7 +37,7 @@ use std::{
     cmp::Ordering,
     collections::btree_map,
     ops::{AddAssign, DivAssign, MulAssign, SubAssign},
-    sync::{Arc, RwLock},
+    sync::{Arc, RwLock, RwLockReadGuard},
 };
 use thiserror::Error;
 
@@ -50,8 +50,8 @@ static PAULI_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "
 static PAULI_LIST_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "PauliList");
 static SPARSE_PAULI_OP_TYPE: ImportOnceCell =
     ImportOnceCell::new("qiskit.quantum_info", "SparsePauliOp");
-static BIT_TERM_PY_ENUM: GILOnceCell<Py<PyType>> = GILOnceCell::new();
-static BIT_TERM_INTO_PY: GILOnceCell<[Option<Py<PyAny>>; 16]> = GILOnceCell::new();
+static BIT_TERM_PY_ENUM: PyOnceLock<Py<PyType>> = PyOnceLock::new();
+static BIT_TERM_INTO_PY: PyOnceLock<[Option<Py<PyAny>>; 16]> = PyOnceLock::new();
 
 type CSRData<T> = (Vec<Complex64>, Vec<T>, Vec<T>);
 
@@ -248,7 +248,9 @@ pub enum CoherenceError {
     MismatchedItemCount { bit_terms: usize, indices: usize },
     #[error("the first item of `boundaries` ({0}) must be 0")]
     BadInitialBoundary(usize),
-    #[error("the last item of `boundaries` ({last}) must match the length of `bit_terms` and `indices` ({items})")]
+    #[error(
+        "the last item of `boundaries` ({last}) must match the length of `bit_terms` and `indices` ({items})"
+    )]
     BadFinalBoundary { last: usize, items: usize },
     #[error("all qubit indices must be less than the number of qubits")]
     BitIndexTooHigh,
@@ -374,7 +376,7 @@ pub struct SparseObservable {
     /// The number of qubits the operator acts on.  This is not inferable from any other shape or
     /// values, since identities are not stored explicitly.
     num_qubits: u32,
-    /// The coefficients of each abstract term in in the sum.  This has as many elements as terms in
+    /// The coefficients of each abstract term in the sum.  This has as many elements as terms in
     /// the sum.
     coeffs: Vec<Complex64>,
     /// A flat list of single-qubit terms.  This is more naturally a list of lists, but is stored
@@ -1362,7 +1364,6 @@ impl SparseObservable {
             None => {
                 let mut out = self.clone();
                 if num_qubits < self.num_qubits {
-                    // return Err(CoherenceError::BitIndexTooHigh);
                     return Err(CoherenceError::NotEnoughQubits {
                         current: self.num_qubits as usize,
                         target: num_qubits as usize,
@@ -1958,7 +1959,7 @@ impl SparseTerm {
 }
 
 #[derive(Error, Debug)]
-struct InnerReadError;
+pub struct InnerReadError;
 
 #[derive(Error, Debug)]
 struct InnerWriteError;
@@ -2776,6 +2777,7 @@ pub struct PySparseObservable {
     // This class keeps a pointer to a pure Rust-SparseTerm and serves as interface from Python.
     inner: Arc<RwLock<SparseObservable>>,
 }
+
 #[pymethods]
 impl PySparseObservable {
     #[pyo3(signature = (data, /, num_qubits=None))]
@@ -4046,7 +4048,7 @@ impl PySparseObservable {
                 return PySparseTerm {
                     inner: inner.term(index).to_term(),
                 }
-                .into_bound_py_any(py)
+                .into_bound_py_any(py);
             }
             indices => indices,
         };
@@ -4328,6 +4330,13 @@ impl PySparseObservable {
     #[classattr]
     fn Term(py: Python) -> Bound<PyType> {
         py.get_type::<PySparseTerm>()
+    }
+}
+impl PySparseObservable {
+    /// This is an immutable reference as opposed to a `copy`.
+    pub fn as_inner(&self) -> Result<RwLockReadGuard<'_, SparseObservable>, InnerReadError> {
+        let data = self.inner.read().map_err(|_| InnerReadError)?;
+        Ok(data)
     }
 }
 impl From<SparseObservable> for PySparseObservable {

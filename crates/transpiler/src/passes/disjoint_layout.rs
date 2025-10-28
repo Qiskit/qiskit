@@ -20,9 +20,9 @@ use pyo3::prelude::*;
 use pyo3::types::{PyList, PyTuple};
 use rayon::prelude::*;
 use rustworkx_core::connectivity::connected_components;
+use rustworkx_core::petgraph::EdgeType;
 use rustworkx_core::petgraph::prelude::*;
 use rustworkx_core::petgraph::visit::{IntoEdgeReferences, IntoNodeReferences, NodeFiltered};
-use rustworkx_core::petgraph::EdgeType;
 use smallvec::SmallVec;
 use uuid::Uuid;
 
@@ -34,8 +34,8 @@ use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardInstruc
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, PhysicalQubit, Qubit, VarsMode, VirtualQubit};
 
-use crate::target::{Qargs, Target};
 use crate::TranspilerError;
+use crate::target::{Qargs, Target};
 
 create_exception!(qiskit, MultiQEncountered, pyo3::exceptions::PyException);
 
@@ -92,9 +92,9 @@ pub fn py_run_pass_over_connected_components(
     dag: Bound<DAGCircuit>,
     target: &Target,
     run_func: Bound<PyAny>,
-) -> PyResult<Option<Vec<PyObject>>> {
+) -> PyResult<Option<Vec<Py<PyAny>>>> {
     let py = dag.py();
-    let func = |dag: Bound<DAGCircuit>, cmap: &CouplingMap| -> PyResult<PyObject> {
+    let func = |dag: Bound<DAGCircuit>, cmap: &CouplingMap| -> PyResult<Py<PyAny>> {
         let py = run_func.py();
         let coupling_map_cls = COUPLING_MAP.get_bound(py);
         let endpoints: Vec<[usize; 2]> = cmap
@@ -284,7 +284,9 @@ fn map_components(
             }
         }
         if !found {
-            return Err(TranspilerError::new_err("A connected component of the DAGCircuit is too large for any of the connected components in the coupling map"));
+            return Err(TranspilerError::new_err(
+                "A connected component of the DAGCircuit is too large for any of the connected components in the coupling map",
+            ));
         }
     }
     Ok(out_mapping)
@@ -358,7 +360,7 @@ fn build_interaction_graph<Ty: EdgeType>(
 ) -> PyResult<()> {
     for (_index, inst) in dag.op_nodes(false) {
         if inst.op.control_flow() {
-            Python::with_gil(|py| -> PyResult<_> {
+            Python::attach(|py| -> PyResult<_> {
                 let OperationRef::Instruction(py_inst) = inst.op.view() else {
                     unreachable!("Control flow must be a python instruction");
                 };

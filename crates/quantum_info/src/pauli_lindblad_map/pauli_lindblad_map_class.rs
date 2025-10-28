@@ -13,11 +13,11 @@
 use hashbrown::HashSet;
 use numpy::{PyArray1, PyArrayMethods, ToPyArray};
 use pyo3::{
+    IntoPyObjectExt, PyErr,
     exceptions::{PyTypeError, PyValueError},
     intern,
     prelude::*,
     types::{PyList, PyString, PyTuple, PyType},
-    IntoPyObjectExt, PyErr,
 };
 use std::{
     collections::btree_map,
@@ -31,9 +31,9 @@ use rand_pcg::Pcg64Mcg;
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 
 use super::qubit_sparse_pauli::{
-    raw_parts_from_sparse_list, ArithmeticError, CoherenceError, InnerReadError, InnerWriteError,
-    LabelError, Pauli, PyQubitSparsePauli, PyQubitSparsePauliList, QubitSparsePauli,
-    QubitSparsePauliList, QubitSparsePauliView,
+    ArithmeticError, CoherenceError, InnerReadError, InnerWriteError, LabelError, Pauli,
+    PyQubitSparsePauli, PyQubitSparsePauliList, QubitSparsePauli, QubitSparsePauliList,
+    QubitSparsePauliView, raw_parts_from_sparse_list,
 };
 
 /// A Pauli Lindblad map that stores its data in a qubit-sparse format. Note that gamma,
@@ -776,8 +776,8 @@ impl PyGeneratorTerm {
 /// Internally, :class:`.PauliLindbladMap` stores an array of rates and a
 /// :class:`.QubitSparsePauliList` containing the corresponding sparse Pauli operators.
 /// Additionally, :class:`.PauliLindbladMap` can compute the overall channel :math:`\gamma` in the
-/// :meth:`get_gamma` method, as well as the corresponding probabilities (or quasi-probabilities)
-/// via the :meth:`get_probabilities` method.
+/// :meth:`gamma` method, as well as the corresponding probabilities :math:`p_P`
+/// via the :meth:`probabilities` method.
 ///
 /// Indexing
 /// --------
@@ -1188,7 +1188,9 @@ impl PyPauliLindbladMap {
         out
     }
 
-    /// Calculate the probabilities for the map.
+    /// Calculate the probabilities :math:`p_P` for the map.
+    /// These can be interpreted as the probabilities each generator is not applied,
+    /// and are defined to be independent of the sign of each Lindblad rate.
     fn probabilities<'py>(&self, py: Python<'py>) -> Bound<'py, PyArray1<f64>> {
         let inner = self.inner.read().unwrap();
         inner.probabilities().to_pyarray(py)
@@ -1528,7 +1530,7 @@ impl PyPauliLindbladMap {
         seed: Option<u64>,
     ) -> PyResult<Bound<'py, PyTuple>> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        let (signs, paulis) = py.allow_threads(|| inner.sample(num_samples, seed));
+        let (signs, paulis) = py.detach(|| inner.sample(num_samples, seed));
 
         let signs = PyArray1::from_vec(py, signs);
         let paulis = paulis.into_pyobject(py).unwrap();
@@ -1575,12 +1577,12 @@ impl PyPauliLindbladMap {
         for non_negative in inner.non_negative_rates.iter() {
             if !non_negative {
                 return Err(PyValueError::new_err(
-                    "PauliLindbladMap.sample called for a map with negative rates. Use PauliLindbladMap.signed_sample"
+                    "PauliLindbladMap.sample called for a map with negative rates. Use PauliLindbladMap.signed_sample",
                 ));
             }
         }
 
-        let (_, paulis) = py.allow_threads(|| inner.sample(num_samples, seed));
+        let (_, paulis) = py.detach(|| inner.sample(num_samples, seed));
 
         paulis.into_pyobject(py)
     }
@@ -1710,7 +1712,7 @@ impl PyPauliLindbladMap {
                 return PyGeneratorTerm {
                     inner: inner.term(index).to_term(),
                 }
-                .into_bound_py_any(py)
+                .into_bound_py_any(py);
             }
             indices => indices,
         };

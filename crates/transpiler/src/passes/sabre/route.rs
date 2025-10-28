@@ -16,8 +16,10 @@ use std::convert::Infallible;
 use std::num::NonZero;
 
 use numpy::{PyArray2, ToPyArray};
-use pyo3::prelude::*;
 use pyo3::Python;
+use pyo3::exceptions::PyValueError;
+use pyo3::prelude::*;
+use pyo3::types::PyDict;
 
 use hashbrown::HashSet;
 use indexmap::IndexMap;
@@ -30,23 +32,23 @@ use rustworkx_core::petgraph::prelude::*;
 use rustworkx_core::petgraph::visit::{EdgeCount, EdgeRef};
 use rustworkx_core::shortest_path::dijkstra;
 use rustworkx_core::token_swapper::token_swapper;
-use smallvec::{smallvec, SmallVec};
+use smallvec::{SmallVec, smallvec};
 
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder, NodeType, Wire};
 use qiskit_circuit::nlayout::NLayout;
 use qiskit_circuit::operations::{OperationRef, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
-use qiskit_circuit::{getenv_use_multiple_threads, imports, PhysicalQubit, Qubit, VirtualQubit};
+use qiskit_circuit::{PhysicalQubit, Qubit, VirtualQubit, getenv_use_multiple_threads, imports};
 
-use crate::target::{Target, TargetCouplingError};
 use crate::TranspilerError;
+use crate::neighbors::Neighbors;
+use crate::target::{Target, TargetCouplingError};
 
 use super::dag::{InteractionKind, SabreDAG};
 use super::distance::distance_matrix;
 use super::heuristic::{BasicHeuristic, DecayHeuristic, Heuristic, LookaheadHeuristic, SetScaling};
 use super::layer::{ExtendedSet, FrontLayer};
-use super::neighbors::Neighbors;
 
 /// Number of trials for control flow block swap epilogues.
 const SWAP_EPILOGUE_TRIALS: usize = 4;
@@ -239,7 +241,7 @@ impl RoutingResult<'_> {
                             idle.push(qubit);
                         }
                     }
-                    let new_inst = Python::with_gil(|py| -> PyResult<_> {
+                    let new_inst = Python::attach(|py| -> PyResult<_> {
                         // TODO: have to use Python-space `dag_to_circuit` because the Rust-space is
                         // only half the conversion (since it doesn't handle vars or stretches).
                         let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
@@ -315,13 +317,48 @@ impl RoutingTarget {
 pub struct PyRoutingTarget(pub Option<RoutingTarget>);
 #[pymethods]
 impl PyRoutingTarget {
+    #[new]
+    fn py_new() -> Self {
+        PyRoutingTarget(None)
+    }
+
+    fn __getstate__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
+        let (neighbors, partition) = self
+            .0
+            .as_ref()
+            .map(|tg| tg.neighbors.clone().take())
+            .unzip();
+        let out_dict = PyDict::new(py);
+        out_dict.set_item("neighbors", neighbors)?;
+        out_dict.set_item("partition", partition)?;
+        Ok(out_dict)
+    }
+
+    fn __setstate__(&mut self, value: Bound<PyDict>) -> PyResult<()> {
+        let neighbors = value
+            .get_item("neighbors")?
+            .map(|x| x.extract())
+            .transpose()?;
+        let partition = value
+            .get_item("partition")?
+            .map(|x| x.extract())
+            .transpose()?;
+        let (Some(neighbors), Some(partition)) = (neighbors, partition) else {
+            return Ok(());
+        };
+        let neighbors = Neighbors::from_parts(neighbors, partition)
+            .map_err(|e| PyValueError::new_err(e.to_string()))?;
+        self.0 = Some(RoutingTarget::from_neighbors(neighbors));
+        Ok(())
+    }
+
     #[staticmethod]
     pub(crate) fn from_target(target: &Target) -> PyResult<Self> {
         let coupling = match target.coupling_graph() {
             Ok(coupling) => coupling,
             Err(TargetCouplingError::AllToAll) => return Ok(Self(None)),
             Err(e @ TargetCouplingError::MultiQ(_)) => {
-                return Err(TranspilerError::new_err(e.to_string()))
+                return Err(TranspilerError::new_err(e.to_string()));
             }
         };
         Ok(Self(Some(RoutingTarget::from_neighbors(

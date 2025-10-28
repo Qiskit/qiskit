@@ -40,10 +40,10 @@ pub mod vf2;
 
 mod variable_mapper;
 
+use pyo3::PyTypeInfo;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{PySequence, PyString, PyTuple};
-use pyo3::PyTypeInfo;
 
 #[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject)]
 pub struct Qubit(pub u32);
@@ -116,7 +116,7 @@ impl<'py> FromPyObject<'py> for TupleLikeArg<'py> {
                 ob.py(),
                 ob.try_iter()?
                     .map(|o| Ok(o?.unbind()))
-                    .collect::<PyResult<Vec<PyObject>>>()?,
+                    .collect::<PyResult<Vec<Py<PyAny>>>>()?,
             )?,
         };
         Ok(TupleLikeArg { value })

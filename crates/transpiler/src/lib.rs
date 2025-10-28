@@ -10,8 +10,10 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+pub mod angle_bound_registry;
 pub mod commutation_checker;
 pub mod equivalence;
+pub mod neighbors;
 pub mod passes;
 pub mod standard_equivalence_library;
 pub mod standard_gates_commutations;

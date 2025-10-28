@@ -67,10 +67,10 @@ pub fn transpile(
         None,
         dag.qubits().objects().to_owned(),
         dag.num_qubits() as u32,
+        dag.qregs().to_vec(),
     );
 
     let unroll_3q_or_more = |dag: &mut DAGCircuit| -> Result<()> {
-        // This will panic if there is a 3q unitary until qsd is ported
         let mut out_dag = run_unitary_synthesis(
             dag,
             (0..dag.num_qubits()).collect(),
@@ -134,6 +134,22 @@ pub fn transpile(
     .with_lookahead(0.5, 20, sabre::SetScaling::Size)
     .with_decay(0.001, 5)?;
 
+    let vf2_config = match optimization_level {
+        OptimizationLevel::Level0 => vf2::Vf2PassConfiguration::default_abstract(), // Not used.
+        OptimizationLevel::Level1 | OptimizationLevel::Level2 => vf2::Vf2PassConfiguration {
+            call_limit: Some(5_000_000),
+            time_limit: None,
+            max_trials: Some(2_500),
+            shuffle_seed: None,
+        },
+        OptimizationLevel::Level3 => vf2::Vf2PassConfiguration {
+            call_limit: Some(30_000_000),
+            time_limit: None,
+            max_trials: Some(250_000),
+            shuffle_seed: None,
+        },
+    };
+
     if optimization_level == OptimizationLevel::Level0 {
         // Apply a trivial layout
         apply_layout(
@@ -153,14 +169,14 @@ pub fn transpile(
                 target.num_qubits.unwrap(),
                 |x| PhysicalQubit(x.0),
             );
-        } else if let Some(vf2_result) =
-            vf2_layout_pass(&dag, target, false, Some(5_000_000), None, Some(2500), None)?
+        } else if let vf2::Vf2PassReturn::Solution(layout) =
+            vf2_layout_pass(&dag, target, &vf2_config, false, None)?
         {
             apply_layout(
                 &mut dag,
                 &mut transpile_layout,
                 target.num_qubits.unwrap(),
-                |x| vf2_result[&x],
+                |x| layout[&x],
             );
         } else {
             let (result, initial_layout, final_layout) = sabre::sabre_layout_and_routing(
@@ -179,14 +195,14 @@ pub fn transpile(
                 layout_from_sabre_result(&dag, initial_layout, &final_layout, &transpile_layout);
         }
     } else if optimization_level == OptimizationLevel::Level2 {
-        if let Some(vf2_result) =
-            vf2_layout_pass(&dag, target, false, Some(5_000_000), None, Some(2500), None)?
+        if let vf2::Vf2PassReturn::Solution(layout) =
+            vf2_layout_pass(&dag, target, &vf2_config, false, None)?
         {
             apply_layout(
                 &mut dag,
                 &mut transpile_layout,
                 target.num_qubits.unwrap(),
-                |x| vf2_result[&x],
+                |x| layout[&x],
             );
         } else {
             let (result, initial_layout, final_layout) = sabre::sabre_layout_and_routing(
@@ -204,20 +220,14 @@ pub fn transpile(
             transpile_layout =
                 layout_from_sabre_result(&dag, initial_layout, &final_layout, &transpile_layout);
         }
-    } else if let Some(vf2_result) = vf2_layout_pass(
-        &dag,
-        target,
-        false,
-        Some(30_000_000),
-        None,
-        Some(250_000),
-        None,
-    )? {
+    } else if let vf2::Vf2PassReturn::Solution(layout) =
+        vf2_layout_pass(&dag, target, &vf2_config, false, None)?
+    {
         apply_layout(
             &mut dag,
             &mut transpile_layout,
             target.num_qubits.unwrap(),
-            |x| vf2_result[&x],
+            |x| layout[&x],
         );
     } else {
         let (result, initial_layout, final_layout) = sabre::sabre_layout_and_routing(
@@ -424,6 +434,7 @@ fn layout_from_sabre_result(
         final_layout,
         dag.qubits().objects().clone(),
         old_transpile_layout.num_input_qubits(),
+        dag.qregs().to_vec(),
     );
     if let Some(old_permutation) = old_transpile_layout.output_permutation() {
         new_transpile_layout

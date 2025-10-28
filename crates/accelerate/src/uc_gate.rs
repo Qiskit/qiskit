@@ -11,15 +11,15 @@
 // that they have been altered from the originals.
 
 use num_complex::{Complex64, ComplexFloat};
+use pyo3::Python;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
-use pyo3::Python;
 use std::f64::consts::{FRAC_1_SQRT_2, PI};
 
 use nalgebra::{Matrix2, MatrixView2, Vector2};
 use numpy::{IntoPyArray, PyReadonlyArray2, ToPyArray};
 
-use qiskit_circuit::util::{c64, C_ZERO, IM};
+use qiskit_circuit::util::{C_ZERO, IM, c64};
 
 const EPS: f64 = 1e-10;
 
@@ -121,7 +121,7 @@ pub fn dec_ucg_help(
     py: Python,
     sq_gates: Vec<PyReadonlyArray2<Complex64>>,
     num_qubits: u32,
-) -> (Vec<PyObject>, PyObject) {
+) -> (Vec<Py<PyAny>>, Py<PyAny>) {
     let mut single_qubit_gates: Vec<Matrix2<Complex64>> = sq_gates
         .into_iter()
         .map(|x| {

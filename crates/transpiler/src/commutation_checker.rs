@@ -11,8 +11,8 @@
 // that they have been altered from the originals.
 
 use hashbrown::{HashMap, HashSet};
-use ndarray::linalg::kron;
 use ndarray::Array2;
+use ndarray::linalg::kron;
 use num_complex::Complex64;
 use num_complex::ComplexFloat;
 use qiskit_circuit::object_registry::PyObjectAsKey;
@@ -20,26 +20,26 @@ use smallvec::SmallVec;
 use std::fmt::Debug;
 
 use numpy::PyReadonlyArray2;
+use pyo3::BoundObject;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyDict, PyTuple};
-use pyo3::BoundObject;
 
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_node::DAGOpNode;
 use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::object_registry::ObjectRegistry;
 use qiskit_circuit::operations::{
-    Operation, OperationRef, Param, StandardGate, STANDARD_GATE_SIZE,
+    Operation, OperationRef, Param, STANDARD_GATE_SIZE, StandardGate,
 };
 use qiskit_circuit::{Clbit, Qubit};
 use qiskit_quantum_info::unitary_compose;
 use thiserror::Error;
 
+use crate::QiskitError;
 use crate::gate_metrics;
 use crate::standard_gates_commutations;
-use crate::QiskitError;
 
 #[derive(Error, Debug)]
 pub enum CommutationError {
@@ -260,7 +260,7 @@ impl CommutationChecker {
         Ok(out_dict.unbind())
     }
 
-    fn __setstate__(&mut self, py: Python, state: PyObject) -> PyResult<()> {
+    fn __setstate__(&mut self, py: Python, state: Py<PyAny>) -> PyResult<()> {
         let dict_state = state.downcast_bound::<PyDict>(py)?;
         self.cache_max_entries = dict_state
             .get_item("cache_max_entries")?
@@ -395,8 +395,9 @@ impl CommutationChecker {
         //  * gates we know are in the cache (SUPPORTED_OPS), or
         //  * standard gates with float params (otherwise we cannot cache them)
         let is_cachable = |op: &OperationRef, params: &[Param]| {
-            if let Some(gate) = op.standard_gate() {
-                SUPPORTED_OP[gate as usize] || params.iter().all(|p| matches!(p, Param::Float(_)))
+            if let OperationRef::StandardGate(gate) = op {
+                SUPPORTED_OP[(*gate) as usize]
+                    || params.iter().all(|p| matches!(p, Param::Float(_)))
             } else {
                 false
             }
@@ -595,9 +596,9 @@ fn commutation_precheck(
         return Some(false);
     }
 
-    if let Some(gate_1) = op1.standard_gate() {
-        if let Some(gate_2) = op2.standard_gate() {
-            if SUPPORTED_OP[gate_1 as usize] && SUPPORTED_OP[gate_2 as usize] {
+    if let OperationRef::StandardGate(gate_1) = op1 {
+        if let OperationRef::StandardGate(gate_2) = op2 {
+            if SUPPORTED_OP[(*gate_1) as usize] && SUPPORTED_OP[(*gate_2) as usize] {
                 return None;
             }
         }
@@ -625,7 +626,7 @@ fn get_matrix(operation: &OperationRef, params: &[Param]) -> Option<Array2<Compl
         Some(matrix)
     } else {
         match operation {
-            OperationRef::Gate(gate) => Python::with_gil(|py| -> Option<_> {
+            OperationRef::Gate(gate) => Python::attach(|py| -> Option<_> {
                 Some(
                     QI_OPERATOR
                         .get_bound(py)
@@ -639,7 +640,7 @@ fn get_matrix(operation: &OperationRef, params: &[Param]) -> Option<Array2<Compl
                         .to_owned(),
                 )
             }),
-            OperationRef::Operation(operation) => Python::with_gil(|py| -> Option<_> {
+            OperationRef::Operation(operation) => Python::attach(|py| -> Option<_> {
                 Some(
                     QI_OPERATOR
                         .get_bound(py)
@@ -678,18 +679,18 @@ fn map_rotation<'a>(
     params: &'a [Param],
     tol: f64,
 ) -> (Option<StandardGate>, &'a [Param], bool) {
-    if let Some(gate) = op.standard_gate() {
-        if let Some(generator) = SUPPORTED_ROTATIONS[gate as usize] {
+    if let OperationRef::StandardGate(gate) = op {
+        if let Some(generator) = SUPPORTED_ROTATIONS[(*gate) as usize] {
             // If the rotation angle is below the tolerance, the gate is assumed to
             // commute with everything, and we simply return the operation with the flag that
             // it commutes trivially.
             if let Param::Float(angle) = params[0] {
-                let (tr_over_dim, dim) = gate_metrics::rotation_trace_and_dim(gate, angle)
+                let (tr_over_dim, dim) = gate_metrics::rotation_trace_and_dim(*gate, angle)
                     .expect("All rotation should be covered at this point");
                 let gate_fidelity = tr_over_dim.abs().powi(2);
                 let process_fidelity = (dim * gate_fidelity + 1.) / (dim + 1.);
                 if (1. - process_fidelity).abs() <= tol {
-                    return (Some(gate), params, true);
+                    return (Some(*gate), params, true);
                 };
             };
 
@@ -841,8 +842,8 @@ fn commutation_entry_to_pydict(py: Python, entry: &CommutationCacheEntry) -> PyR
     let out_dict = PyDict::new(py);
     for (k, v) in entry.iter() {
         let qubits = PyTuple::new(py, k.0.iter().map(|q| q.map(|t| t.0)))?;
-        let params0 = PyTuple::new(py, k.1 .0.iter().map(|pk| pk.0))?;
-        let params1 = PyTuple::new(py, k.1 .1.iter().map(|pk| pk.0))?;
+        let params0 = PyTuple::new(py, k.1.0.iter().map(|pk| pk.0))?;
+        let params1 = PyTuple::new(py, k.1.1.iter().map(|pk| pk.0))?;
         out_dict.set_item(
             PyTuple::new(py, [qubits, PyTuple::new(py, [params0, params1])?])?,
             PyBool::new(py, *v),
@@ -856,8 +857,8 @@ fn commutation_cache_entry_from_pydict(dict: &Bound<PyDict>) -> PyResult<Commuta
     for (k, v) in dict {
         let raw_key: CacheKeyRaw = k.extract()?;
         let qubits = raw_key.0.iter().map(|q| q.map(Qubit)).collect();
-        let params0: SmallVec<_> = raw_key.1 .0;
-        let params1: SmallVec<_> = raw_key.1 .1;
+        let params0: SmallVec<_> = raw_key.1.0;
+        let params1: SmallVec<_> = raw_key.1.1;
         let v: bool = v.extract()?;
         ret.insert((qubits, (params0, params1)), v);
     }
@@ -884,11 +885,7 @@ impl ParameterKey {
         // because -0 has the sign bit set we'd be hashing 9223372036854775808
         // and be storing it separately from 0. So this normalizes all 0s to
         // be represented by 0
-        if self.0 == 0. {
-            0
-        } else {
-            self.0.to_bits()
-        }
+        if self.0 == 0. { 0 } else { self.0.to_bits() }
     }
 }
 

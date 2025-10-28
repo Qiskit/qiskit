@@ -67,29 +67,29 @@ def excitation_preserving(
 
     Examples:
 
-        With linear entanglement, this circuit is given by:
+    With linear entanglement, this circuit is given by:
 
-        .. plot::
-            :alt: Circuit diagram output by the previous code.
-            :include-source:
-            :context: close-figs
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
+        :context: close-figs
 
-            from qiskit.circuit.library import excitation_preserving
+        from qiskit.circuit.library import excitation_preserving
 
-            ansatz = excitation_preserving(3, reps=1, insert_barriers=True, entanglement="linear")
-            ansatz.draw("mpl")
+        ansatz = excitation_preserving(3, reps=1, insert_barriers=True, entanglement="linear")
+        ansatz.draw("mpl")
 
-        The entanglement structure can be explicitly specified with the ``entanglement``
-        argument. The ``"fsim"`` mode includes an additional parameterized :class:`.CPhaseGate`
-        in each block:
+    The entanglement structure can be explicitly specified with the ``entanglement``
+    argument. The ``"fsim"`` mode includes an additional parameterized :class:`.CPhaseGate`
+    in each block:
 
-        .. plot::
-            :alt: Circuit diagram output by the previous code.
-            :include-source:
-            :context:
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
+        :context:
 
-            ansatz = excitation_preserving(3, reps=1, mode="fsim", entanglement=[[0, 2]])
-            ansatz.draw("mpl")
+        ansatz = excitation_preserving(3, reps=1, mode="fsim", entanglement=[[0, 2]])
+        ansatz.draw("mpl")
 
     Args:
         num_qubits: The number of qubits.
