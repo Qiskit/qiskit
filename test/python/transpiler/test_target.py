@@ -1225,6 +1225,25 @@ Instructions:
             target.operation_from_name("unitary"), target._raw_operation_from_name("unitary")
         )
 
+    def test_num_qubits_inference_with_globals(self):
+        """If explicitly overriding `num_qubits` to be "any", it should persist."""
+        target = Target(num_qubits=None)
+        self.assertIsNone(target.num_qubits)
+        target.add_instruction(SXGate())
+        self.assertIsNone(target.num_qubits)
+        target.add_instruction(XGate(), {None: None})
+        self.assertIsNone(target.num_qubits)
+        target.add_instruction(IfElseOp, name="if_else")
+        self.assertIsNone(target.num_qubits)
+
+        # ... and now check that inference _is_ doing its job.
+        num_qubits = 5
+        target.add_instruction(CXGate(), {(i, i + 1): None for i in range(num_qubits - 1)})
+        self.assertEqual(target.num_qubits, num_qubits)
+        # Further globals shouldn't reset it.
+        target.add_instruction(CZGate(), {None: None})
+        self.assertEqual(target.num_qubits, num_qubits)
+
 
 class TestGlobalVariableWidthOperations(QiskitTestCase):
     def setUp(self):
