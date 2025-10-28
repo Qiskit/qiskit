@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use hashbrown::hash_set::{Entry, HashSet};
 use qiskit_circuit::PhysicalQubit;
 use rustworkx_core::petgraph::visit::*;
 use thiserror::Error;
@@ -157,6 +158,8 @@ impl Neighbors {
     /// * contain only qubit indices that are less than `partition.len()`
     /// * be in sorted order
     /// * contain no duplicates
+    ///
+    /// The `neighbors` should be symmetric; the graph is undirected.
     pub fn from_parts(
         neighbors: Vec<PhysicalQubit>,
         partition: Vec<usize>,
@@ -176,6 +179,23 @@ impl Neighbors {
             .any(|(&start, &end)| !neighbors[start..end].is_sorted_by(|a, b| a < b))
         {
             return Err(ConstructionError::Unsorted);
+        }
+        let mut asymmetry = HashSet::new();
+        for (i, (start, end)) in std::iter::zip(&partition, &partition[1..]).enumerate() {
+            let us = PhysicalQubit::new(i as u32);
+            for &other in &neighbors[*start..*end] {
+                match asymmetry.entry((us.min(other), us.max(other))) {
+                    Entry::Occupied(e) => {
+                        e.remove();
+                    }
+                    Entry::Vacant(e) => {
+                        e.insert();
+                    }
+                };
+            }
+        }
+        if !asymmetry.is_empty() {
+            return Err(ConstructionError::Asymmetric);
         }
         Ok(Self {
             neighbors,
@@ -233,6 +253,8 @@ pub enum ConstructionError {
     QubitOutOfBounds,
     #[error("the partitions do not monotonically increase from 0 to the length of the adjacencies")]
     PartitionInconsistent,
+    #[error("the neighbors are not symmetric")]
+    Asymmetric,
 }
 
 /// Implementations of the various `petgraph` graph-visiting traits, which makes [Neighbors] (or
@@ -305,6 +327,10 @@ mod visit {
         fn neighbors_directed(self, n: PhysicalQubit, _: Direction) -> Self::NeighborsDirected {
             <Self as visit::IntoNeighbors>::neighbors(self, n)
         }
+    }
+
+    impl visit::GraphProp for Neighbors {
+        type EdgeType = Undirected;
     }
 
     impl visit::IntoNodeIdentifiers for &'_ Neighbors {
@@ -487,6 +513,12 @@ mod test {
         assert_eq!(
             Neighbors::from_parts(lift(vec![2, 0]), vec![0, 1, 2]),
             Err(ConstructionError::QubitOutOfBounds),
+        );
+
+        // Neighbors is asymmetric.
+        assert_eq!(
+            Neighbors::from_parts(lift(vec![1]), vec![0, 1, 1]),
+            Err(ConstructionError::Asymmetric),
         );
     }
 }
