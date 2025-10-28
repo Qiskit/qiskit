@@ -15,11 +15,9 @@ Quantum Shannon Decomposition.
 Method is described in arXiv:quant-ph/0406176.
 """
 from __future__ import annotations
-from typing import Optional
-import warnings
+from typing import Callable
 import scipy
 import numpy as np
-
 from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister
 from qiskit.synthesis.one_qubit.one_qubit_decompose import OneQubitEulerDecomposer
 from qiskit.synthesis.two_qubit import (
@@ -38,10 +36,10 @@ from qiskit._accelerate import qsd
 # pylint: disable=too-many-return-statements
 def qs_decomposition(
     mat: np.ndarray,
-    opt_a1: Optional[bool] = None,
-    opt_a2: Optional[bool] = None,
-    decomposer_1q: Optional[OneQubitEulerDecomposer] = None,
-    decomposer_2q: Optional[TwoQubitBasisDecomposer] = None,
+    opt_a1: bool | None = None,
+    opt_a2: bool | None = None,
+    decomposer_1q: Callable[[np.ndarray], QuantumCircuit] | None = None,
+    decomposer_2q: Callable[[np.ndarray], QuantumCircuit] | None = None,
     *,
     _depth=0,
 ):
@@ -73,6 +71,8 @@ def qs_decomposition(
 
         \frac{2}{3} (4^{n - 2} - 1).
 
+    Saving two :class:`.CXGate`\ s instead of one in each step of the recursion.
+
     If ``opt_a2 = True``, the CX count is reduced, as in [1], by:
 
     .. math::
@@ -87,17 +87,16 @@ def qs_decomposition(
 
     Args:
         mat: unitary matrix to decompose
-        opt_a1: (Deprecated) whether to try optimization A.1.
-        opt_a2: (Deprecated) whether to try optimization A.2.
-        decomposer_1q: optional 1Q decomposer instance.
-        decomposer_2q: optional 2Q decomposer instance.
-
-    .. deprecated:: 2.3.0
-        The parameters ``opt_a1`` and ``opt_a2`` are deprecated and will be removed in Qiskit 3.0.
-        The decomposition will automatically determine optimization settings.
-        Passing custom callables for ``decomposer_1q`` or ``decomposer_2q`` is also deprecated;
-        only :class:`.OneQubitEulerDecomposer` and :class:`.TwoQubitBasisDecomposer` instances
-        will be supported.
+        opt_a1: whether to try optimization A.1 from [1, 2].
+            This should eliminate 2 ``cx`` per call.
+        opt_a2: whether to try optimization A.2 from [1, 2].
+            This decomposes two qubit unitaries into a diagonal gate and
+            a two ``cx`` unitary and reduces overall ``cx`` count by :math:`4^{n-2} - 1`.
+            This optimization should not be done if the original unitary is controlled.
+        decomposer_1q: optional 1Q decomposer. If None, uses
+            :class:`~qiskit.synthesis.OneQubitEulerDecomposer`.
+        decomposer_2q: optional 2Q decomposer. If None, uses
+            :class:`~qiskit.synthesis.TwoQubitBasisDecomposer`.
 
     Returns:
         QuantumCircuit: Decomposed quantum circuit.
@@ -109,39 +108,6 @@ def qs_decomposition(
            n-Qubit Gates Based on Block ZXZ-Decomposition*,
            `arXiv:2403.13692 <https://arxiv.org/abs/2403.13692>`_
     """
-    # ---------------------------------------------------------------------
-    # Deprecation warnings (Qiskit 2.3.0 → removal in 3.0)
-    # ---------------------------------------------------------------------
-    if opt_a1 is not None or opt_a2 is not None:
-        warnings.warn(
-            "The 'opt_a1' and 'opt_a2' parameters are deprecated as of Qiskit 2.3.0 "
-            "and will be removed in Qiskit 3.0. The decomposition will automatically "
-            "select the appropriate optimizations.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-    if decomposer_1q is not None and not isinstance(decomposer_1q, OneQubitEulerDecomposer):
-        warnings.warn(
-            "Passing a custom callable for 'decomposer_1q' is deprecated as of Qiskit 2.3.0 "
-            "and will be removed in Qiskit 3.0. Only instances of "
-            "OneQubitEulerDecomposer will be supported.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-    if decomposer_2q is not None and not isinstance(decomposer_2q, TwoQubitBasisDecomposer):
-        warnings.warn(
-            "Passing a custom callable for 'decomposer_2q' is deprecated as of Qiskit 2.3.0 "
-            "and will be removed in Qiskit 3.0. Only instances of "
-            "TwoQubitBasisDecomposer will be supported.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-    # ---------------------------------------------------------------------
-    # Main function logic
-    # ---------------------------------------------------------------------
     if (decomposer_1q is None or isinstance(decomposer_1q, OneQubitEulerDecomposer)) and (
         decomposer_2q is None or isinstance(decomposer_2q, TwoQubitBasisDecomposer)
     ):
@@ -257,6 +223,7 @@ def _block_zxz_decomp(Umat):
     """Block ZXZ decomposition method, by Krol and Al-Ars [2]."""
     dim = Umat.shape[0]
     n = dim // 2
+    # from now on we keep the notations of [2]
     X = Umat[:n, :n]
     Y = Umat[:n, n:]
     U21 = Umat[n:, :n]
@@ -284,6 +251,7 @@ def _block_zxz_decomp(Umat):
 
 def _closest_unitary(mat):
     """Find the closest unitary matrix to a matrix mat."""
+
     V, _S, Wdg = scipy.linalg.svd(mat)
     mat = V @ Wdg
     return mat
@@ -292,8 +260,47 @@ def _closest_unitary(mat):
 def _demultiplex(
     um0, um1, opt_a1=False, opt_a2=False, *, _vw_type="all", _depth=0, _ctrl_index=None
 ):
-    """Decompose a generic multiplexer."""
-    dim = um0.shape[0] + um1.shape[0]
+    """Decompose a generic multiplexer.
+
+          ────□────
+           ┌──┴──┐
+         /─┤     ├─
+           └─────┘
+
+    represented by the block diagonal matrix
+
+            ┏         ┓
+            ┃ um0     ┃
+            ┃     um1 ┃
+            ┗         ┛
+
+    to
+               ┌───┐
+        ───────┤ Rz├──────
+          ┌───┐└─┬─┘┌───┐
+        /─┤ w ├──□──┤ v ├─
+          └───┘     └───┘
+
+    where v and w are general unitaries determined from decomposition.
+
+    Args:
+       um0 (ndarray): applied if MSB is 0
+       um1 (ndarray): applied if MSB is 1
+       opt_a1 (bool): whether to try optimization A.1 from [1, 2]. This should eliminate
+          two ``cx`` gates per call.
+       opt_a2 (bool): whether to try  optimization A.2 from [1, 2]. This decomposes two qubit
+          unitaries into a diagonal gate and a two cx unitary and reduces overall ``cx`` count by
+          4^(n-2) - 1. This optimization should not be done if the original unitary is controlled.
+       _vw_type (string): "only_v", "only_w" or "all" for reductions.
+          This is needed in order to combine the vmat or wmat into the B matrix in [2],
+          instead of decomposing them.
+       _depth (int): This is an internal variable to track the recursion depth.
+       _ctrl_index (int): The index wrt which um0 and um1 are controlled.
+
+    Returns:
+        QuantumCircuit: decomposed circuit
+    """
+    dim = um0.shape[0] + um1.shape[0]  # these should be same dimension
     nqubits = dim.bit_length() - 1
     if _ctrl_index is None:
         _ctrl_index = nqubits - 1
@@ -311,12 +318,16 @@ def _demultiplex(
 
     circ = QuantumCircuit(nqubits)
 
+    # left gate. In this case we decompose wmat.
+    # Otherwise, it is combined with the B matrix.
     if _vw_type in ["only_w", "all"]:
         left_gate = qs_decomposition(
             wmat, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth + 1
         ).to_instruction()
         circ.append(left_gate, layout[: nqubits - 1])
 
+    # multiplexed Rz gate
+    # If opt_a1 = ``True``, then we reduce 2 ``cx`` gates per call.
     angles = 2 * np.angle(np.conj(dvals))
     if _vw_type == "only_w" and opt_a1:
         ucrz = _get_ucrz(nqubits, angles)
@@ -326,6 +337,8 @@ def _demultiplex(
         ucrz = _get_ucrz(nqubits, angles, _vw_type="all")
     circ.append(ucrz, [layout[-1]] + layout[: nqubits - 1])
 
+    # right gate. In this case we decompose vmat.
+    # Otherwise, it is combined with the B matrix.
     if _vw_type in ["only_v", "all"]:
         right_gate = qs_decomposition(
             vmat, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth + 1
@@ -358,7 +371,10 @@ def _get_ucrz(nqubits, angles, _vw_type=None):
 
 
 def _apply_a2(circ):
-    """Optimization A.2 from [1, 2]."""
+    """The optimization A.2 from [1, 2]. This decomposes two qubit unitaries into a
+    diagonal gate and a two cx unitary and reduces overall ``cx`` count by
+    4^(n-2) - 1. This optimization should not be done if the original unitary is controlled.
+    """
     from qiskit.quantum_info import Operator
     from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
     from qiskit.transpiler.passes.synthesis import HighLevelSynthesis
@@ -367,43 +383,85 @@ def _apply_a2(circ):
     hls = HighLevelSynthesis(basis_gates=["u", "cx", "qsd2q"], qubits_initially_zero=False)
     ccirc = hls(circ)
     ind2q = []
+    # collect 2q instrs
     for i, instruction in enumerate(ccirc.data):
-        if isinstance(instruction.operation, UnitaryGate):
+        if instruction.operation.name == "qsd2q":
             ind2q.append(i)
-    i0 = ind2q[0]
-    i1 = ind2q[1]
-    qubits = ccirc.data[i0].qubits
-    mat = Operator(ccirc.data[i0].operation).data
-    mat2 = Operator(ccirc.data[i1].operation).data
-    circ2 = decomposer(mat, mat2)
-    ccirc.data.pop(i1)
-    ccirc.data.pop(i0)
-    ccirc.append(circ2.to_instruction(), qubits)
+    if len(ind2q) == 0:
+        return ccirc
+    elif len(ind2q) == 1:
+        # No neighbors to merge diagonal into; revert name
+        ccirc.data[ind2q[0]].operation.name = "Unitary"
+        return ccirc
+    # rolling over diagonals
+    ind2 = None  # lint
+    for ind1, ind2 in zip(ind2q[0:-1:], ind2q[1::]):
+        # get neighboring 2q gates separated by controls
+        instr1 = ccirc.data[ind1]
+        mat1 = Operator(instr1.operation).data
+        instr2 = ccirc.data[ind2]
+        mat2 = Operator(instr2.operation).data
+        # rollover
+        dmat, qc2cx_data = decomposer(mat1)
+        qc2cx = QuantumCircuit._from_circuit_data(qc2cx_data)
+        ccirc.data[ind1] = instr1.replace(operation=qc2cx.to_gate())
+        mat2 = mat2 @ dmat
+        ccirc.data[ind2] = instr2.replace(UnitaryGate(mat2))
+    qc3 = two_qubit_decompose.two_qubit_cnot_decompose(mat2)
+    ccirc.data[ind2] = ccirc.data[ind2].replace(operation=qc3.to_gate())
     return ccirc
 
 
-def _extract_multiplex_blocks(mat, ctrl_index):
-    """Return the 4 blocks of a unitary, assuming the ctrl_index is the control qubit."""
-    dim = mat.shape[0]
+def _extract_multiplex_blocks(umat, k):
+    """
+    A block diagonal gate is represented as:
+    [ um00 | um01 ]
+    [ ---- | ---- ]
+    [ um10 | um11 ]
+
+    Args:
+       umat (ndarray): unitary matrix
+       k (integer): qubit which indicates the ctrl index
+
+    Returns:
+       um00 (ndarray): upper left block
+       um01 (ndarray): upper right block
+       um10 (ndarray): lower left block
+       um11 (ndarray): lower right block
+    """
+    dim = umat.shape[0]
     nqubits = dim.bit_length() - 1
-    q_n = nqubits - 1 - ctrl_index
-    indices = np.arange(0, dim, dtype=int)
-    base = 2**q_n
-    step = base * 2
-    mask = (indices // base) % 2 == 1
-    odd = np.where(mask)[0]
-    even = np.where(mask == 0)[0]
+    halfdim = dim // 2
 
-    um00 = mat[np.ix_(even, even)]
-    um01 = mat[np.ix_(even, odd)]
-    um10 = mat[np.ix_(odd, even)]
-    um11 = mat[np.ix_(odd, odd)]
+    utensor = umat.reshape((2,) * (2 * nqubits))
 
+    # Move qubit k to top
+    if k != 0:
+        utensor = np.moveaxis(utensor, k, 0)
+        utensor = np.moveaxis(utensor, k + nqubits, nqubits)
+
+    # reshape for extraction
+    ud4 = utensor.reshape(2, halfdim, 2, halfdim)
+    # block for qubit k = |0>
+    um00 = ud4[0, :, 0, :]
+    # block for qubit k = |1>
+    um11 = ud4[1, :, 1, :]
+    # off diagonal blocks
+    um01 = ud4[0, :, 1, :]
+    um10 = ud4[1, :, 0, :]
     return um00, um11, um01, um10
 
 
-def _off_diagonals_are_zero(um01, um10, tol=1e-10):
-    """Check whether the off-diagonal blocks are close to zero."""
-    return np.allclose(um01, np.zeros_like(um01), atol=tol) and np.allclose(
-        um10, np.zeros_like(um10), atol=tol
-    )
+def _off_diagonals_are_zero(um01, um10, atol=1e-12):
+    """
+    Checks whether off-diagonal blocks are zero.
+
+    Args:
+       um01 (ndarray): upper right block
+       um10 (ndarray): lower left block
+       atol (float): absolute tolerance
+
+    Returns:
+       bool: whether both blocks are zero within tolerance
+    """
+    return np.allclose(um01, 0, atol=atol) and np.allclose(um10, 0, atol=atol)
