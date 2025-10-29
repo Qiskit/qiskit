@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use ndarray::{s, Array1, Array2, ArrayView1};
+use ndarray::{Array1, Array2, ArrayView1, s};
 
 /// Clifford.
 #[derive(Clone)]
@@ -33,19 +33,18 @@ pub struct Pauli {
 
 impl Pauli {
     /// Composition of two Paulis: p1 and p2
-    fn compose(p1: Pauli, p2: Pauli) -> Pauli {
+    fn compose(p1: Pauli, p2: Pauli, front: bool) -> Pauli {
         let x1 = p1.x;
         let z1 = p1.z;
         let x2 = p2.x;
         let z2 = p2.z;
 
         let mut phase = p1.phase + p2.phase;
-        //if front {
-        phase += 2 * _count_y(x1.view(), z2.view());
-        //}
-        //else {
-        // phase += 2 * _count_y(x2.view(), z1.view());
-        //}
+        if front {
+            phase += 2 * _count_y(x1.view(), z2.view());
+        } else {
+            phase += 2 * _count_y(x2.view(), z1.view());
+        }
 
         let cnt_y1 = _count_y(x1.view(), z1.view());
         let cnt_y2 = _count_y(x2.view(), z2.view());
@@ -54,8 +53,7 @@ impl Pauli {
         let cnt_y = _count_y(x.view(), z.view());
         phase = (4 + phase + cnt_y - cnt_y1 - cnt_y2) % 4;
         // println!("{} {} {} {}", cnt_y, cnt_y1, cnt_y2, phase);
-        let ret = Pauli { x, z, phase };
-        ret
+        Pauli { x, z, phase }
     }
 
     /// Evolve a Pauli p by a Clifford cliff, with frame="s".
@@ -78,7 +76,7 @@ impl Pauli {
                     phase: 2 * (cliff_phase[id_z + n] as u8),
                 };
                 let ret1 = ret.clone();
-                ret = Pauli::compose(ret1, p_cliff);
+                ret = Pauli::compose(ret1, p_cliff, true);
             }
         }
         for (id_x, &x) in (p.x).iter().enumerate() {
@@ -90,7 +88,7 @@ impl Pauli {
                     phase: 2 * (cliff_phase[id_x] as u8),
                 };
                 let ret1 = ret.clone();
-                ret = Pauli::compose(ret1, p_cliff);
+                ret = Pauli::compose(ret1, p_cliff, true);
             }
         }
         let cnt_y = _count_y((p.x).view(), (p.z).view());
@@ -98,18 +96,13 @@ impl Pauli {
         let x = ret.x;
         let z = ret.z;
 
-        let out = Pauli {
-            x: x,
-            z: z,
-            phase: phase,
-        };
-        // println!("{},{}, {},{},{}", out.x, out.z, out.phase, ret.phase, cnt_y);
-        out
+        Pauli { x, z, phase }
+        // println!("{},{}, {},{},{}", x, z, phase, ret.phase, cnt_y);
     }
 }
 
 fn _count_y(x: ArrayView1<bool>, z: ArrayView1<bool>) -> u8 {
-    let out = x.iter().zip(z.iter()).filter(|(&x, &y)| x && y).count();
+    let out = x.iter().zip(z.iter()).filter(|&(&x, &y)| x && y).count();
     // println!("{}", out);
     out as u8
 }
@@ -137,7 +130,7 @@ mod test {
             phase: 0,
         }; // Z
 
-        let p = Pauli::compose(px.clone(), py.clone());
+        let p = Pauli::compose(px.clone(), py.clone(), true);
         let expect_p = Pauli {
             x: Array1::from(vec![false]),
             z: Array1::from(vec![true]),
@@ -147,7 +140,17 @@ mod test {
         assert_eq!(p.z, expect_p.z);
         assert_eq!(p.phase, expect_p.phase);
 
-        let p = Pauli::compose(px.clone(), pz.clone());
+        let p = Pauli::compose(px.clone(), py.clone(), false);
+        let expect_p = Pauli {
+            x: Array1::from(vec![false]),
+            z: Array1::from(vec![true]),
+            phase: 3,
+        }; // iZ
+        assert_eq!(p.x, expect_p.x);
+        assert_eq!(p.z, expect_p.z);
+        assert_eq!(p.phase, expect_p.phase);
+
+        let p = Pauli::compose(px.clone(), pz.clone(), true);
         let expect_p = Pauli {
             x: Array1::from(vec![true]),
             z: Array1::from(vec![true]),
@@ -157,12 +160,32 @@ mod test {
         assert_eq!(p.z, expect_p.z);
         assert_eq!(p.phase, expect_p.phase);
 
-        let p = Pauli::compose(py.clone(), pz.clone());
+        let p = Pauli::compose(px.clone(), pz.clone(), false);
+        let expect_p = Pauli {
+            x: Array1::from(vec![true]),
+            z: Array1::from(vec![true]),
+            phase: 1,
+        }; // -iY
+        assert_eq!(p.x, expect_p.x);
+        assert_eq!(p.z, expect_p.z);
+        assert_eq!(p.phase, expect_p.phase);
+
+        let p = Pauli::compose(py.clone(), pz.clone(), true);
         let expect_p = Pauli {
             x: Array1::from(vec![true]),
             z: Array1::from(vec![false]),
             phase: 1,
         }; // -iX
+        assert_eq!(p.x, expect_p.x);
+        assert_eq!(p.z, expect_p.z);
+        assert_eq!(p.phase, expect_p.phase);
+
+        let p = Pauli::compose(py.clone(), pz.clone(), false);
+        let expect_p = Pauli {
+            x: Array1::from(vec![true]),
+            z: Array1::from(vec![false]),
+            phase: 3,
+        }; // iX
         assert_eq!(p.x, expect_p.x);
         assert_eq!(p.z, expect_p.z);
         assert_eq!(p.phase, expect_p.phase);
@@ -177,12 +200,21 @@ mod test {
             z: Array1::from(vec![true, false]),
             phase: 0,
         }; // XY
-        let p = Pauli::compose(pxx, pxy);
+        let p = Pauli::compose(pxx.clone(), pxy.clone(), true);
         let expect_p = Pauli {
             x: Array1::from(vec![false, false]),
             z: Array1::from(vec![true, false]),
             phase: 1,
         }; // -iIZ
+        assert_eq!(p.x, expect_p.x);
+        assert_eq!(p.z, expect_p.z);
+        assert_eq!(p.phase, expect_p.phase);
+        let p = Pauli::compose(pxx.clone(), pxy.clone(), false);
+        let expect_p = Pauli {
+            x: Array1::from(vec![false, false]),
+            z: Array1::from(vec![true, false]),
+            phase: 3,
+        }; // iIZ
         assert_eq!(p.x, expect_p.x);
         assert_eq!(p.z, expect_p.z);
         assert_eq!(p.phase, expect_p.phase);
