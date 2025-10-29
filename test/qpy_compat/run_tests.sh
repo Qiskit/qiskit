@@ -32,6 +32,7 @@ repo_root="$(realpath -- "$our_dir/../..")"
 # First, prepare a wheel file for the dev version.  We install several venvs with this, and while
 # cargo will cache some rust artefacts, it still has to re-link each time, so the wheel build takes
 # a little while.
+
 wheel_dir="$(pwd -P)/wheels"
 python -m pip wheel --no-deps --wheel-dir "$wheel_dir" "$repo_root"
 all_wheels=("$wheel_dir"/*.whl)
@@ -47,7 +48,7 @@ python -m venv "$qiskit_venv"
 "$qiskit_venv/bin/pip" install -c "$repo_root/constraints.txt" "$qiskit_dev_wheel" packaging "symengine<0.14" "sympy>1.3"
 
 # Run all of the tests of cross-Qiskit-version compatibility.
-if $no_docker
+if $no_docker; then
     "$qiskit_python" "$our_dir/get_versions.py" --no-docker | parallel -j 2 --colsep=" " bash "$our_dir/process_version_with_venv.sh" -p "$qiskit_python"
 else
     "$qiskit_python" "$our_dir/get_versions.py" | parallel -j 2 --colsep=" " bash "$our_dir/process_version.sh" -p "$qiskit_python"

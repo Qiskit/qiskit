@@ -68,30 +68,39 @@ def available_versions():
             # a Python version that's too new, which can be a problem for the oldest Terras, especially from
             # before we built for abi3.  We're not counting sdists, since if we didn't release a
             # compatible wheel for the current Python version, there's no guarantee it'll install.
-            if "--no-docker" in sys.argv and not any(
-                tag in supported_tags
-                for release in payload
-                if release["packagetype"] == "bdist_wheel" and not release["yanked"]
-                for tag in tags_from_wheel_name(release["filename"])
-            ):
-                print(
-                    f"skipping '{other_version}', which has no installable binary artifacts",
-                    file=sys.stderr,
-                )
-                continue
-            try:
-                python_version_regex = re.compile(r"Programming Language :: Python :: (\d+\.\d+)")
-                python_versions = []
-                for classifier in data["info"].get("classifiers", []):
-                    match = python_version_regex.search(classifier)
-                    if match:
-                        python_versions.append(match.group(1))
-                python_version = max(python_versions, key=lambda s: tuple(map(int, s.split("."))))
-            except ValueError:
-                print(
-                    f"skipping '{other_version}', which has no explicit maximum supported python version",
-                    file=sys.stderr,
-                )
+            if "--no-docker" in sys.argv:
+                if not any(
+                    tag in supported_tags
+                    for release in payload
+                    if release["packagetype"] == "bdist_wheel" and not release["yanked"]
+                    for tag in tags_from_wheel_name(release["filename"])
+                ):
+                    print(
+                        f"skipping '{other_version}', which has no installable binary artifacts",
+                        file=sys.stderr,
+                    )
+                    continue
+                # we run in no-docker mode, so the python version should be empty
+                python_version = ""
+            else:  # we run in docker mode, so we need to decide which python version to pull
+                try:
+                    python_versions = [
+                        release["python_version"]
+                        for release in payload
+                        if release["packagetype"] == "bdist_wheel" and not release["yanked"]
+                    ]
+                    python_versions = [
+                        re.sub(r"^cp(\d)(\d+)$", r"\1.\2", version) for version in python_versions
+                    ]  # convert "cp311" to "3.11"
+                    python_version = max(
+                        python_versions, key=lambda s: tuple(map(int, s.split(".")))
+                    )
+                except ValueError:
+                    print(
+                        f"skipping '{other_version}', which has no installable binary artifacts",
+                        file=sys.stderr,
+                    )
+                    continue
             yield (other_version, python_version)
 
     yield from (
