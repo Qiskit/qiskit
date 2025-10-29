@@ -88,6 +88,7 @@ pub use schedule_analysis::alap_schedule_analysis::{
 pub use schedule_analysis::asap_schedule_analysis::{
     asap_schedule_analysis_mod, run_asap_schedule_analysis,
 };
+pub use schedule_analysis::scheduling_mod;
 pub use split_2q_unitaries::{run_split_2q_unitaries, split_2q_unitaries_mod};
 pub use unitary_synthesis::{run_unitary_synthesis, unitary_synthesis_mod};
 pub use unroll_3q_or_more::{run_unroll_3q_or_more, unroll_3q_or_more_mod};

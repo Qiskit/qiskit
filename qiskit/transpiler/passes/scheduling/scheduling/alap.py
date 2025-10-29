@@ -15,6 +15,7 @@
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.scheduling.scheduling.base_scheduler import BaseScheduler
 from qiskit._accelerate.alap_schedule_analysis import alap_schedule_analysis
+from qiskit._accelerate.scheduling import NodeDurations
 
 
 class ALAPScheduleAnalysis(BaseScheduler):
@@ -46,7 +47,7 @@ class ALAPScheduleAnalysis(BaseScheduler):
         }
         clbit_write_latency = self.property_set.get("clbit_write_latency", 0)
         self.property_set["node_start_time"] = alap_schedule_analysis(
-            dag, clbit_write_latency, node_durations
+            dag, clbit_write_latency, NodeDurations(node_durations)
         )
 
         return dag
