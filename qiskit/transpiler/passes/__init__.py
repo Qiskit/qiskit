@@ -268,6 +268,7 @@ from .synthesis import HighLevelSynthesis
 from .synthesis import LinearFunctionsToPermutations
 from .synthesis import SolovayKitaev
 from .synthesis import SolovayKitaevSynthesis
+from .synthesis import RossSelingerSynthesis
 from .synthesis import UnitarySynthesis
 from .synthesis import unitary_synthesis_plugin_names
 
