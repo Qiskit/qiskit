@@ -97,7 +97,11 @@ class BindingsArray(ShapedMixin):
         be inferred from the provided arrays. Ambiguity arises whenever the key of an entry of
         ``data`` contains only one parameter and the corresponding array's shape ends in a one.
         In this case, it can't be decided whether that one is an index over parameters, or whether
-        it should be incorporated in :attr:`~shape`.
+        it should be incorporated in :attr:`~shape`. When such arrays do not conflict with
+        higher-dimensional data, :class:`~.BindingsArray` preserves the trailing singleton axis so
+        downstream code can rely on NumPy broadcasting. For example, a sweep shaped ``(N, 1)`` will
+        combine with an observable array shaped ``(M,)`` to produce broadcast results of shape
+        ``(N, M)``.
 
         Since :class:`~.Parameter` objects are only allowed to represent float values, this
         class casts all given values to float. If an incompatible dtype is given, such as complex
