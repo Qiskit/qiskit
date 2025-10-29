@@ -80,11 +80,16 @@ def available_versions():
                 )
                 continue
             try:
-                python_versions = {p["requires_python"] for p in payload}
-                python_version = re.search(r"\d+(?:\.\d+)*", next(iter(python_versions))).group()
-            except (TypeError, KeyError, StopIteration, AttributeError) as err:
+                python_version_regex = re.compile(r"Programming Language :: Python :: (\d+\.\d+)")
+                python_versions = []
+                for classifier in data["info"].get("classifiers", []):
+                    match = python_version_regex.search(classifier)
+                    if match:
+                        python_versions.append(match.group(1))
+                python_version = max(python_versions, key=lambda s: tuple(map(int, s.split("."))))
+            except ValueError:
                 print(
-                    f"skipping '{other_version}', which has no explicit minimum python version",
+                    f"skipping '{other_version}', which has no explicit maximum supported python version",
                     file=sys.stderr,
                 )
             yield (other_version, python_version)

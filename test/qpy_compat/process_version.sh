@@ -31,7 +31,7 @@ while getopts "p:" opt; do
     esac
 done
 shift "$((OPTIND-1))"
-if [[ (no_docker && $# != 3) || (!no_docker &&) ]]; then
+if [[ $# != 3 ]]; then
     usage
 fi
 
