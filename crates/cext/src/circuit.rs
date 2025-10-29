@@ -1229,6 +1229,7 @@ pub unsafe extern "C" fn qk_circuit_to_dag(
 #[cfg(test)]
 mod tests {
     use crate::circuit::qk_circuit_to_dag;
+    use crate::dag::qk_dag_free;
     use crate::pointers::mut_ptr_as_ref;
     use qiskit_circuit::bit::{ShareableClbit, ShareableQubit};
     use qiskit_circuit::circuit_data::CircuitData;
@@ -1273,5 +1274,7 @@ mod tests {
                 l
             );
         }
+
+        unsafe { qk_dag_free(dag); }
     }
 }
