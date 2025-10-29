@@ -16,11 +16,7 @@ pub mod asap_schedule_analysis;
 use std::ops::{Add, Deref, Sub};
 
 use hashbrown::HashMap;
-use pyo3::{
-    IntoPyObjectExt,
-    exceptions::PyKeyError,
-    prelude::*,
-};
+use pyo3::{IntoPyObjectExt, exceptions::PyKeyError, prelude::*};
 use qiskit_circuit::dag_node::{DAGNode, DAGOpNode};
 use rustworkx_core::petgraph::graph::NodeIndex;
 
@@ -83,7 +79,12 @@ impl<'py> FromPyObject<'py> for NodeDurations {
 }
 */
 
-#[pyclass(mapping, from_py_object)]
+#[pyclass(
+    mapping,
+    name = "NodeDurations",
+    module = "qiskit._accelerate.scheduling",
+    from_py_object
+)]
 #[derive(Debug, Clone)]
 pub struct PyNodeDurations(NodeDurations);
 
@@ -143,6 +144,19 @@ impl PyNodeDurations {
             .map(|node| self.__getitem__(py, node).is_ok())
             .is_ok_and(|val| val)
     }
+
+    #[pyo3(name = "clear")]
+    fn py_clear(&mut self) {
+        self.0.clear();
+    }
+
+    fn copy(&self) -> Self {
+        self.__copy__()
+    }
+
+    fn __copy__(&self) -> Self {
+        self.clone()
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -161,6 +175,15 @@ impl<'a, 'py> FromPyObject<'a, 'py> for NodeDurations {
     }
 }
 
+impl NodeDurations {
+    pub fn clear(&mut self) {
+        match self {
+            NodeDurations::Dt(map) => map.clear(),
+            NodeDurations::Seconds(map) => map.clear(),
+        }
+    }
+}
+
 impl From<HashMap<NodeIndex<u32>, u64>> for NodeDurations {
     fn from(value: HashMap<NodeIndex<u32>, u64>) -> Self {
         Self::Dt(value)
@@ -171,4 +194,9 @@ impl From<HashMap<NodeIndex<u32>, f64>> for NodeDurations {
     fn from(value: HashMap<NodeIndex<u32>, f64>) -> Self {
         Self::Seconds(value)
     }
+}
+
+pub fn scheduling_mod(m: &Bound<PyModule>) -> PyResult<()> {
+    m.add_class::<PyNodeDurations>()?;
+    Ok(())
 }

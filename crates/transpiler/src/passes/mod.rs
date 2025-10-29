@@ -93,6 +93,7 @@ pub use schedule_analysis::alap_schedule_analysis::{
 pub use schedule_analysis::asap_schedule_analysis::{
     asap_schedule_analysis_mod, run_asap_schedule_analysis,
 };
+pub use schedule_analysis::scheduling_mod;
 pub use split_2q_unitaries::{run_split_2q_unitaries, split_2q_unitaries_mod};
 pub use substitute_pi4_rotations::{py_run_substitute_pi4_rotations, substitute_pi4_rotations_mod};
 pub use unitary_synthesis::{
