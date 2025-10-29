@@ -4545,9 +4545,6 @@ class QuantumCircuit:
         Returns:
             QuantumCircuit: Returns circuit with measurements when ``inplace = False``.
         """
-        # pylint: disable=cyclic-import
-        from qiskit.converters.circuit_to_dag import circuit_to_dag
-
         if inplace:
             circ = self
         else:
