@@ -176,7 +176,7 @@ pub fn py_run_asap_schedule_analysis(
         let mut op_durations = HashMap::new();
         for (py_node, py_duration) in node_durations.iter() {
             let node_idx = py_node
-                .downcast_into::<DAGOpNode>()?
+                .cast_into::<DAGOpNode>()?
                 .extract::<DAGNode>()?
                 .node
                 .expect("Node index not found.");
@@ -194,7 +194,7 @@ pub fn py_run_asap_schedule_analysis(
         let mut op_durations = HashMap::new();
         for (py_node, py_duration) in node_durations.iter() {
             let node_idx = py_node
-                .downcast_into::<DAGOpNode>()?
+                .cast_into::<DAGOpNode>()?
                 .extract::<DAGNode>()?
                 .node
                 .expect("Node index not found.");
