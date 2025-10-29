@@ -22,9 +22,12 @@ class LitinskiTransformation(TransformationPass):
     """
     Applies Litinski transform to a circuit.
 
-    The transform applies to a circuit containing Clifford + RZ-rotation gates (including T and Tdg),
-    and moves Clifford gates to the end of the circuit, while changing rotation gates to multi-qubit
-    rotations (represented using PauliEvolution gates).
+    The transform applies to a circuit containing Clifford, single-qubit RZ-rotation gates
+    (including T and Tdg), and standard Z-measurements, and moves Clifford gates to the end
+    of the circuit. In the process, it changes RZ-rotations to product pauli rotations
+    (implemented as :class:`.PauliEvolutionGate` gates), and changes Z-measurements
+    to product pauli measurements (implemented using :class:`.PauliProductMeasurement`
+    instructions).
 
     The pass supports all of the Clifford gates in the list returned by
     :func:`.get_clifford_gate_names`:

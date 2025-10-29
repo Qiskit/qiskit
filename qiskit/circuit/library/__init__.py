@@ -898,6 +898,7 @@ from .generalized_gates import (
     UCRZGate,
 )
 from .pauli_evolution import PauliEvolutionGate
+from .pauli_product_measurement import PauliProductMeasurement
 from .hamiltonian_gate import HamiltonianGate
 from .boolean_logic import (
     AND,
