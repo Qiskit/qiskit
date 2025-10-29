@@ -31,7 +31,8 @@ while getopts "p:" opt; do
     esac
 done
 shift "$((OPTIND-1))"
-if [[ $# != 2 ]]; then
+if [[ $# < 2 ]]; then
+    echo $@
     usage
 fi
 

@@ -50,6 +50,11 @@ venv_dir="$(pwd -P)/venvs/$package-$version"
 
 if [[ ! -d $cache_dir ]] ; then
     echo "Building docker image for $package==$version (python version $python_version)"
+    echo "Current docker images and space usage:"
+    docker image ls -a
+    docker system df
+    echo "System free space:"
+    df -h /
     docker build -t $package:$version --build-arg PYTHON_VERSION=$python_version --build-arg PACKAGE_NAME=$package --build-arg PACKAGE_VERSION=$version .
     mkdir -p "$cache_dir"
     pushd "$cache_dir"
