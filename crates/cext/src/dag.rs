@@ -194,16 +194,19 @@ pub unsafe extern "C" fn qk_dag_free(dag: *mut DAGCircuit) {
 /// Convert a given DAG to a circuit.
 ///
 /// @param dag A pointer to the DAG from which to create the circuit.
-/// @param copy_operations Performs a deep copy of operations if set to true.
 ///
-/// @return A pointer to the new circuit.
+/// @return A pointer to the new circuit. The pointer needs to be freed with ``qk_circuit_free``.
 ///
 /// # Example
 /// ```c
 /// QkDag *dag = qk_dag_new();
 /// QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
 /// qk_dag_add_quantum_register(dag, qr);
-/// QkCircuit *qc = qk_dag_to_circuit(dag, false);
+/// qk_quantum_register_free(qr);
+///
+/// QkCircuit *qc = qk_dag_to_circuit(dag);
+///
+/// qk_circuit_free(qc);
 /// ```
 ///
 /// # Safety
@@ -211,13 +214,10 @@ pub unsafe extern "C" fn qk_dag_free(dag: *mut DAGCircuit) {
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_dag_to_circuit(
-    dag: *const DAGCircuit,
-    copy_operations: bool,
-) -> *mut CircuitData {
+pub unsafe extern "C" fn qk_dag_to_circuit(dag: *const DAGCircuit) -> *mut CircuitData {
     let dag = unsafe { const_ptr_as_ref(dag) };
-    let circuit = dag_to_circuit(dag, copy_operations)
-        .expect("Error occurred while converting DAGCircuit to CircuitData"); // TODO: handle the unwrap
+    let circuit = dag_to_circuit(dag, true)
+        .expect("Error occurred while converting DAGCircuit to CircuitData");
 
     Box::into_raw(Box::new(circuit))
 }

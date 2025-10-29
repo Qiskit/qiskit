@@ -936,12 +936,13 @@ cleanup:
 }
 
 /**
- * Test dag to circuit conversion.
+ * Test circuit to dag conversion.
  */
 static int test_circuit_to_dag(void) {
     QkCircuit *qc = qk_circuit_new(2, 1);
 
-    QkDag *dag = qk_circuit_to_dag(qc, false, (uint32_t[]){1, 0}, NULL);
+    QkDag *dag = qk_circuit_to_dag(qc, (uint32_t[]){1, 0}, NULL);
+    qk_circuit_free(qc);
 
     int result = Ok;
     if (qk_dag_num_qubits(dag) != 2 || qk_dag_num_clbits(dag) != 1) {
@@ -949,9 +950,7 @@ static int test_circuit_to_dag(void) {
         result = EqualityError;
     }
 
-    qk_circuit_free(qc);
     qk_dag_free(dag);
-
     return result;
 }
 

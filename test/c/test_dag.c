@@ -78,22 +78,22 @@ static int test_dag_to_circuit(void) {
     QkDag *dag = qk_dag_new();
     QkQuantumRegister *qr = qk_quantum_register_new(2, "q1");
     qk_dag_add_quantum_register(dag, qr);
+    qk_quantum_register_free(qr);
     QkClassicalRegister *cr = qk_classical_register_new(1, "c1");
     qk_dag_add_classical_register(dag, cr);
+    qk_classical_register_free(cr);
 
     int result = Ok;
 
-    QkCircuit *qc = qk_dag_to_circuit(dag, false);
+    QkCircuit *qc = qk_dag_to_circuit(dag);
+    qk_dag_free(dag);
+
     if (qk_circuit_num_qubits(qc) != 2 || qk_circuit_num_clbits(qc) != 1) {
         printf("DAG to circuit conversion encountered an issue\n");
         result = EqualityError;
     }
 
-    qk_dag_free(dag);
     qk_circuit_free(qc);
-    qk_quantum_register_free(qr);
-    qk_classical_register_free(cr);
-
     return result;
 }
 
