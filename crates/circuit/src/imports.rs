@@ -17,7 +17,7 @@
 use pyo3::prelude::*;
 use pyo3::sync::PyOnceLock;
 
-use crate::operations::{StandardGate, STANDARD_GATE_SIZE};
+use crate::operations::{STANDARD_GATE_SIZE, StandardGate};
 
 /// Helper wrapper around `PyOnceLock` instances that are just intended to store a Python object
 /// that is lazily imported.

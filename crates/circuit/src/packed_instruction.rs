@@ -21,7 +21,7 @@ use num_complex::Complex64;
 use smallvec::SmallVec;
 
 use crate::circuit_data::CircuitData;
-use crate::imports::{get_std_gate_class, BARRIER, DELAY, MEASURE, RESET, UNITARY_GATE};
+use crate::imports::{BARRIER, DELAY, MEASURE, RESET, UNITARY_GATE, get_std_gate_class};
 use crate::interner::Interned;
 use crate::operations::{
     Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, PythonOperation,
@@ -459,28 +459,24 @@ impl PackedOperation {
             OperationRef::StandardGate(standard) => {
                 return get_std_gate_class(py, standard)?
                     .bind(py)
-                    .downcast::<PyType>()?
-                    .is_subclass(py_type)
+                    .cast::<PyType>()?
+                    .is_subclass(py_type);
             }
             OperationRef::StandardInstruction(standard) => {
                 return match standard {
-                    StandardInstruction::Barrier(_) => BARRIER
-                        .get_bound(py)
-                        .downcast::<PyType>()?
-                        .is_subclass(py_type),
-                    StandardInstruction::Delay(_) => DELAY
-                        .get_bound(py)
-                        .downcast::<PyType>()?
-                        .is_subclass(py_type),
-                    StandardInstruction::Measure => MEASURE
-                        .get_bound(py)
-                        .downcast::<PyType>()?
-                        .is_subclass(py_type),
-                    StandardInstruction::Reset => RESET
-                        .get_bound(py)
-                        .downcast::<PyType>()?
-                        .is_subclass(py_type),
-                }
+                    StandardInstruction::Barrier(_) => {
+                        BARRIER.get_bound(py).cast::<PyType>()?.is_subclass(py_type)
+                    }
+                    StandardInstruction::Delay(_) => {
+                        DELAY.get_bound(py).cast::<PyType>()?.is_subclass(py_type)
+                    }
+                    StandardInstruction::Measure => {
+                        MEASURE.get_bound(py).cast::<PyType>()?.is_subclass(py_type)
+                    }
+                    StandardInstruction::Reset => {
+                        RESET.get_bound(py).cast::<PyType>()?.is_subclass(py_type)
+                    }
+                };
             }
             OperationRef::Gate(gate) => gate.gate.bind(py),
             OperationRef::Instruction(instruction) => instruction.instruction.bind(py),
@@ -488,7 +484,7 @@ impl PackedOperation {
             OperationRef::Unitary(_) => {
                 return UNITARY_GATE
                     .get_bound(py)
-                    .downcast::<PyType>()?
+                    .cast::<PyType>()?
                     .is_subclass(py_type);
             }
         };

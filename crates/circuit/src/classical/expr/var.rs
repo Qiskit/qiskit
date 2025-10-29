@@ -16,7 +16,7 @@ use crate::classical::types::Type;
 use crate::imports::UUID;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyTuple};
-use pyo3::{intern, IntoPyObjectExt};
+use pyo3::{IntoPyObjectExt, intern};
 use uuid::Uuid;
 
 /// A classical variable expression.
@@ -59,8 +59,10 @@ impl<'py> IntoPyObject<'py> for Var {
     }
 }
 
-impl<'py> FromPyObject<'py> for Var {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for Var {
+    type Error = <PyVar as FromPyObject<'a, 'py>>::Error;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let PyVar(v) = ob.extract()?;
         Ok(v)
     }

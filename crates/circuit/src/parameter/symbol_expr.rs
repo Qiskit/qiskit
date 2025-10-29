@@ -11,9 +11,8 @@
 // that they have been altered from the originals.
 
 use hashbrown::HashMap;
-use pyo3::exceptions::PyTypeError;
-use pyo3::exceptions::PyValueError;
 use pyo3::IntoPyObjectExt;
+use pyo3::exceptions::PyValueError;
 use std::cmp::Ordering;
 use std::cmp::PartialOrd;
 use std::convert::From;
@@ -61,14 +60,16 @@ impl Hash for Symbol {
     }
 }
 
-impl<'py> FromPyObject<'py> for Symbol {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for Symbol {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         if let Ok(py_vector_element) = ob.extract::<PyParameterVectorElement>() {
             Ok(py_vector_element.symbol().clone())
-        } else if let Ok(py_param) = ob.extract::<PyParameter>() {
-            Ok(py_param.symbol().clone())
         } else {
-            Err(PyTypeError::new_err("Cannot extract Symbol from {ob:?}"))
+            ob.extract::<PyParameter>()
+                .map(|ob| ob.symbol().clone())
+                .map_err(PyErr::from)
         }
     }
 }
@@ -156,18 +157,16 @@ pub enum Value {
     Complex(Complex64),
 }
 
-impl<'py> FromPyObject<'py> for Value {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for Value {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         if let Ok(i) = ob.extract::<i64>() {
             Ok(Value::Int(i))
         } else if let Ok(r) = ob.extract::<f64>() {
             Ok(Value::Real(r))
-        } else if let Ok(c) = ob.extract::<Complex64>() {
-            Ok(Value::Complex(c))
         } else {
-            Err(PyValueError::new_err(
-                "Could not cast Bound<PyAny> to Value.",
-            ))
+            ob.extract::<Complex64>().map(Value::Complex)
         }
     }
 }
@@ -1127,19 +1126,19 @@ impl SymbolExpr {
                                             return match t.mul_opt(l_rhs, recursive) {
                                                 Some(e) => Some(e),
                                                 None => Some(_mul(t, l_rhs.as_ref().clone())),
-                                            }
+                                            };
                                         }
                                         (BinaryOp::Div, BinaryOp::Div) => {
                                             return match t.div_opt(l_rhs, recursive) {
                                                 Some(e) => Some(e),
                                                 None => Some(_div(t, l_rhs.as_ref().clone())),
-                                            }
+                                            };
                                         }
                                         (BinaryOp::Pow, BinaryOp::Pow) => {
                                             return match t.pow_opt(l_rhs) {
                                                 Some(e) => Some(e),
                                                 None => Some(_pow(t, l_rhs.as_ref().clone())),
-                                            }
+                                            };
                                         }
                                         (_, _) => (),
                                     }
@@ -1492,19 +1491,19 @@ impl SymbolExpr {
                                             return match t.mul_opt(l_rhs, recursive) {
                                                 Some(e) => Some(e),
                                                 None => Some(_mul(t, l_rhs.as_ref().clone())),
-                                            }
+                                            };
                                         }
                                         (BinaryOp::Div, BinaryOp::Div) => {
                                             return match t.div_opt(l_rhs, recursive) {
                                                 Some(e) => Some(e),
                                                 None => Some(_div(t, l_rhs.as_ref().clone())),
-                                            }
+                                            };
                                         }
                                         (BinaryOp::Pow, BinaryOp::Pow) => {
                                             return match t.pow_opt(l_rhs) {
                                                 Some(e) => Some(e),
                                                 None => Some(_pow(t, l_rhs.as_ref().clone())),
-                                            }
+                                            };
                                         }
                                         (_, _) => (),
                                     }
