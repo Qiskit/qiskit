@@ -303,6 +303,8 @@ pub trait Register {
     fn bits(&self) -> impl ExactSizeIterator<Item = Self::Bit>;
     /// Gets a bit by index
     fn get(&self, index: usize) -> Option<Self::Bit>;
+    /// Checks if the register is owning or alias
+    fn is_owning(&self) -> bool;
 }
 
 /// Create a (Bit, Register) pair, and the associated Python objects.
@@ -612,6 +614,7 @@ macro_rules! create_bit_object {
             pub fn iter(&self) -> impl ExactSizeIterator<Item = $bit_struct> + '_ {
                 self.0.iter()
             }
+
         }
 
         impl Register for $reg_struct {
@@ -634,6 +637,12 @@ macro_rules! create_bit_object {
             }
             fn get(&self, index: usize) -> Option<Self::Bit> {
                 self.0.get(index)
+            }
+            fn is_owning(&self) -> bool {
+                match &*self.0 {
+                    RegisterInfo::Owning(_) => true,
+                    RegisterInfo::Alias {..} => false,
+                }
             }
         }
 
