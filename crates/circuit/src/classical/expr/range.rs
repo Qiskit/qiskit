@@ -43,7 +43,7 @@ impl<'py> IntoPyObject<'py> for Range {
 
 impl<'a, 'py> FromPyObject<'a, 'py> for Range {
     type Error = <PyRangeExpr as FromPyObject<'a, 'py>>::Error;
-        
+    
     fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let PyRangeExpr(r) = ob.extract()?;
         Ok(r)
