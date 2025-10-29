@@ -154,8 +154,8 @@ impl Ord for ElementWireInput<'_> {
 impl<'a> Debug for ElementWireInput<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
-            ElementWireInput::Qubit(&ref qubit) => "Qubit",
-            ElementWireInput::Clbit(&ref clbit) => "Clbit",
+            ElementWireInput::Qubit(qubit) => "Qubit",
+            ElementWireInput::Clbit(clbit) => "Clbit",
         };
 
         write!(f, "{}", name)
@@ -238,16 +238,13 @@ impl<'a> Debug for Boxed<'a> {
     }
 }
 
-/// Enum for  representing the elements stored in a visualization matrix. The elements
+
+/// Enum for representing the elements stored in a visualization matrix. The elements
 /// do not directly implement visualization capabilities, but rather carry enough information
 /// to enable visualization later on by the actual drawer.
 
-struct Op<'a> {
-    instruction: &'a PackedInstruction,
-}
-
 #[derive(Default, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-enum VisualizationElement<'a> {
+enum VisualizationElement<'a>{
     #[default]
     Empty, // Marker for no element
     VerticalLine(InputType),
