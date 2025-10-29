@@ -15,7 +15,6 @@ mod distance;
 pub mod heuristic;
 mod layer;
 mod layout;
-mod neighbors;
 pub(crate) mod route;
 
 use pyo3::prelude::*;

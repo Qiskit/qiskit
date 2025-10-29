@@ -599,7 +599,7 @@ impl PyGeneratorTerm {
         if slf.is(&other) {
             return Ok(true);
         }
-        let Ok(other) = other.downcast_into::<Self>() else {
+        let Ok(other) = other.cast_into::<Self>() else {
             return Ok(false);
         };
         let slf = slf.borrow();
@@ -776,8 +776,8 @@ impl PyGeneratorTerm {
 /// Internally, :class:`.PauliLindbladMap` stores an array of rates and a
 /// :class:`.QubitSparsePauliList` containing the corresponding sparse Pauli operators.
 /// Additionally, :class:`.PauliLindbladMap` can compute the overall channel :math:`\gamma` in the
-/// :meth:`get_gamma` method, as well as the corresponding probabilities (or quasi-probabilities)
-/// via the :meth:`get_probabilities` method.
+/// :meth:`gamma` method, as well as the corresponding probabilities :math:`p_P`
+/// via the :meth:`probabilities` method.
 ///
 /// Indexing
 /// --------
@@ -884,7 +884,7 @@ impl PyPauliLindbladMap {
                 "explicitly given 'num_qubits' ({num_qubits}) does not match operator ({other_qubits})"
             )))
         };
-        if let Ok(pauli_lindblad_map) = data.downcast_exact::<Self>() {
+        if let Ok(pauli_lindblad_map) = data.cast_exact::<Self>() {
             check_num_qubits(data)?;
             let borrowed = pauli_lindblad_map.borrow();
             let inner = borrowed.inner.read().map_err(|_| InnerReadError)?;
@@ -904,7 +904,7 @@ impl PyPauliLindbladMap {
             };
             return Self::from_sparse_list(vec, num_qubits);
         }
-        if let Ok(term) = data.downcast_exact::<PyGeneratorTerm>() {
+        if let Ok(term) = data.cast_exact::<PyGeneratorTerm>() {
             return term.borrow().to_pauli_lindblad_map();
         };
         if let Ok(pauli_lindblad_map) = Self::from_terms(data, num_qubits) {
@@ -1047,12 +1047,12 @@ impl PyPauliLindbladMap {
                         "cannot construct a PauliLindbladMap from an empty list without knowing `num_qubits`",
                     ));
                 };
-                let py_term = first?.downcast::<PyGeneratorTerm>()?.borrow();
+                let py_term = first?.cast::<PyGeneratorTerm>()?.borrow();
                 py_term.inner.to_pauli_lindblad_map()?
             }
         };
         for bound_py_term in iter {
-            let py_term = bound_py_term?.downcast::<PyGeneratorTerm>()?.borrow();
+            let py_term = bound_py_term?.cast::<PyGeneratorTerm>()?.borrow();
             inner.add_term(py_term.inner.view())?;
         }
         Ok(inner.into())
@@ -1188,7 +1188,9 @@ impl PyPauliLindbladMap {
         out
     }
 
-    /// Calculate the probabilities for the map.
+    /// Calculate the probabilities :math:`p_P` for the map.
+    /// These can be interpreted as the probabilities each generator is not applied,
+    /// and are defined to be independent of the sign of each Lindblad rate.
     fn probabilities<'py>(&self, py: Python<'py>) -> Bound<'py, PyArray1<f64>> {
         let inner = self.inner.read().unwrap();
         inner.probabilities().to_pyarray(py)
@@ -1726,7 +1728,7 @@ impl PyPauliLindbladMap {
         if slf.is(&other) {
             return Ok(true);
         }
-        let Ok(other) = other.downcast_into::<Self>() else {
+        let Ok(other) = other.cast_into::<Self>() else {
             return Ok(false);
         };
         let slf_borrowed = slf.borrow();
@@ -1808,7 +1810,7 @@ fn coerce_to_map<'py>(
     value: &Bound<'py, PyAny>,
 ) -> PyResult<Option<Bound<'py, PyPauliLindbladMap>>> {
     let py = value.py();
-    if let Ok(obs) = value.downcast_exact::<PyPauliLindbladMap>() {
+    if let Ok(obs) = value.cast_exact::<PyPauliLindbladMap>() {
         return Ok(Some(obs.clone()));
     }
     match PyPauliLindbladMap::py_new(value, None) {

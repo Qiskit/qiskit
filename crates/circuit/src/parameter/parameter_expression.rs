@@ -740,31 +740,31 @@ impl PyParameterExpression {
     ///
     /// * `Ok(Self)` - The extracted expression.
     /// * `Err(PyResult)` - An error if extraction to all above types failed.
-    pub fn extract_coerce(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
-        if let Ok(i) = ob.downcast::<PyInt>() {
+    pub fn extract_coerce(ob: Borrowed<PyAny>) -> PyResult<Self> {
+        if let Ok(i) = ob.cast::<PyInt>() {
             Ok(ParameterExpression::new(
                 SymbolExpr::Value(Value::from(i.extract::<i64>()?)),
                 HashMap::new(),
             )
             .into())
-        } else if let Ok(r) = ob.downcast::<PyFloat>() {
+        } else if let Ok(r) = ob.cast::<PyFloat>() {
             let r: f64 = r.extract()?;
             if r.is_infinite() || r.is_nan() {
                 return Err(ParameterError::InvalidValue.into());
             }
             Ok(ParameterExpression::new(SymbolExpr::Value(Value::from(r)), HashMap::new()).into())
-        } else if let Ok(c) = ob.downcast::<PyComplex>() {
+        } else if let Ok(c) = ob.cast::<PyComplex>() {
             let c: Complex64 = c.extract()?;
             if c.is_infinite() || c.is_nan() {
                 return Err(ParameterError::InvalidValue.into());
             }
             Ok(ParameterExpression::new(SymbolExpr::Value(Value::from(c)), HashMap::new()).into())
-        } else if let Ok(element) = ob.downcast::<PyParameterVectorElement>() {
+        } else if let Ok(element) = ob.cast::<PyParameterVectorElement>() {
             Ok(ParameterExpression::from_symbol(element.borrow().symbol.clone()).into())
-        } else if let Ok(parameter) = ob.downcast::<PyParameter>() {
+        } else if let Ok(parameter) = ob.cast::<PyParameter>() {
             Ok(ParameterExpression::from_symbol(parameter.borrow().symbol.clone()).into())
         } else {
-            ob.extract::<PyParameterExpression>()
+            ob.extract::<PyParameterExpression>().map_err(Into::into)
         }
     }
 
@@ -835,7 +835,7 @@ impl PyParameterExpression {
     #[allow(non_snake_case)]
     #[staticmethod]
     pub fn _Value(value: &Bound<PyAny>) -> PyResult<Self> {
-        Self::extract_coerce(value)
+        Self::extract_coerce(value.as_borrowed())
     }
 
     /// Check if the expression corresponds to a plain symbol.
@@ -1158,7 +1158,7 @@ impl PyParameterExpression {
     ///     A new expression parameterized by any parameters which were not bound by assignment.
     #[pyo3(name = "assign")]
     pub fn py_assign(&self, parameter: PyParameter, value: &Bound<PyAny>) -> PyResult<Self> {
-        if let Ok(expr) = value.downcast::<Self>() {
+        if let Ok(expr) = value.cast::<Self>() {
             let map = [(parameter, expr.borrow().clone())].into_iter().collect();
             self.py_subs(map, false)
         } else if value.extract::<Value>().is_ok() {
@@ -1184,7 +1184,7 @@ impl PyParameterExpression {
     }
 
     pub fn __eq__(&self, rhs: &Bound<PyAny>) -> PyResult<bool> {
-        if let Ok(rhs) = Self::extract_coerce(rhs) {
+        if let Ok(rhs) = Self::extract_coerce(rhs.as_borrowed()) {
             match rhs.inner.expr {
                 SymbolExpr::Value(v) => match self.inner.try_to_value(false) {
                     Ok(e) => Ok(e == v),
@@ -1214,7 +1214,7 @@ impl PyParameterExpression {
     }
 
     pub fn __add__(&self, rhs: &Bound<PyAny>) -> PyResult<Self> {
-        if let Ok(rhs) = Self::extract_coerce(rhs) {
+        if let Ok(rhs) = Self::extract_coerce(rhs.as_borrowed()) {
             Ok(self.inner.add(&rhs.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
@@ -1224,7 +1224,7 @@ impl PyParameterExpression {
     }
 
     pub fn __radd__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
-        if let Ok(lhs) = Self::extract_coerce(lhs) {
+        if let Ok(lhs) = Self::extract_coerce(lhs.as_borrowed()) {
             Ok(lhs.inner.add(&self.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
@@ -1234,7 +1234,7 @@ impl PyParameterExpression {
     }
 
     pub fn __sub__(&self, rhs: &Bound<PyAny>) -> PyResult<Self> {
-        if let Ok(rhs) = Self::extract_coerce(rhs) {
+        if let Ok(rhs) = Self::extract_coerce(rhs.as_borrowed()) {
             Ok(self.inner.sub(&rhs.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
@@ -1244,7 +1244,7 @@ impl PyParameterExpression {
     }
 
     pub fn __rsub__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
-        if let Ok(lhs) = Self::extract_coerce(lhs) {
+        if let Ok(lhs) = Self::extract_coerce(lhs.as_borrowed()) {
             Ok(lhs.inner.sub(&self.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
@@ -1255,7 +1255,7 @@ impl PyParameterExpression {
 
     pub fn __mul__<'py>(&self, rhs: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
         let py = rhs.py();
-        if let Ok(rhs) = Self::extract_coerce(rhs) {
+        if let Ok(rhs) = Self::extract_coerce(rhs.as_borrowed()) {
             match self.inner.mul(&rhs.inner) {
                 Ok(result) => PyParameterExpression::from(result).into_bound_py_any(py),
                 Err(e) => Err(PyErr::from(e)),
@@ -1266,7 +1266,7 @@ impl PyParameterExpression {
     }
 
     pub fn __rmul__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
-        if let Ok(lhs) = Self::extract_coerce(lhs) {
+        if let Ok(lhs) = Self::extract_coerce(lhs.as_borrowed()) {
             Ok(lhs.inner.mul(&self.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
@@ -1276,7 +1276,7 @@ impl PyParameterExpression {
     }
 
     pub fn __truediv__(&self, rhs: &Bound<PyAny>) -> PyResult<Self> {
-        if let Ok(rhs) = Self::extract_coerce(rhs) {
+        if let Ok(rhs) = Self::extract_coerce(rhs.as_borrowed()) {
             Ok(self.inner.div(&rhs.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
@@ -1286,7 +1286,7 @@ impl PyParameterExpression {
     }
 
     pub fn __rtruediv__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
-        if let Ok(lhs) = Self::extract_coerce(lhs) {
+        if let Ok(lhs) = Self::extract_coerce(lhs.as_borrowed()) {
             Ok(lhs.inner.div(&self.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
@@ -1296,7 +1296,7 @@ impl PyParameterExpression {
     }
 
     pub fn __pow__(&self, rhs: &Bound<PyAny>, _modulo: Option<i32>) -> PyResult<Self> {
-        if let Ok(rhs) = Self::extract_coerce(rhs) {
+        if let Ok(rhs) = Self::extract_coerce(rhs.as_borrowed()) {
             Ok(self.inner.pow(&rhs.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
@@ -1306,7 +1306,7 @@ impl PyParameterExpression {
     }
 
     pub fn __rpow__(&self, lhs: &Bound<PyAny>, _modulo: Option<i32>) -> PyResult<Self> {
-        if let Ok(lhs) = Self::extract_coerce(lhs) {
+        if let Ok(lhs) = Self::extract_coerce(lhs.as_borrowed()) {
             Ok(lhs.inner.pow(&self.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
@@ -1647,7 +1647,7 @@ impl PyParameter {
             }
             Some(replacement) => {
                 if allow_unknown_parameters || parameter_values.len() == 1 {
-                    let expr = PyParameterExpression::extract_coerce(replacement)?;
+                    let expr = PyParameterExpression::extract_coerce(replacement.as_borrowed())?;
                     if let SymbolExpr::Value(_) = &expr.inner.expr {
                         expr.clone().into_bound_py_any(py)
                     } else {
@@ -1678,7 +1678,7 @@ impl PyParameter {
         parameter: PyParameter,
         value: &Bound<'py, PyAny>,
     ) -> PyResult<Bound<'py, PyAny>> {
-        if value.downcast::<PyParameterExpression>().is_ok() {
+        if value.cast::<PyParameterExpression>().is_ok() {
             let map = [(parameter, value.clone())].into_iter().collect();
             self.py_subs(py, map, false)
         } else if value.extract::<Value>().is_ok() {
@@ -1995,7 +1995,7 @@ impl OpCode {
     }
 
     fn __eq__(&self, other: &Bound<'_, PyAny>) -> bool {
-        if let Ok(code) = other.downcast::<OpCode>() {
+        if let Ok(code) = other.cast::<OpCode>() {
             *code.borrow() == *self
         } else {
             false

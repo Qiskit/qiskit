@@ -12,7 +12,6 @@
 
 use hashbrown::HashMap;
 use pyo3::IntoPyObjectExt;
-use pyo3::exceptions::PyTypeError;
 use pyo3::exceptions::PyValueError;
 use std::cmp::Ordering;
 use std::cmp::PartialOrd;
@@ -61,14 +60,16 @@ impl Hash for Symbol {
     }
 }
 
-impl<'py> FromPyObject<'py> for Symbol {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for Symbol {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         if let Ok(py_vector_element) = ob.extract::<PyParameterVectorElement>() {
             Ok(py_vector_element.symbol().clone())
-        } else if let Ok(py_param) = ob.extract::<PyParameter>() {
-            Ok(py_param.symbol().clone())
         } else {
-            Err(PyTypeError::new_err("Cannot extract Symbol from {ob:?}"))
+            ob.extract::<PyParameter>()
+                .map(|ob| ob.symbol().clone())
+                .map_err(PyErr::from)
         }
     }
 }
@@ -157,18 +158,16 @@ pub enum Value {
     Rational { numerator: i64, denominator: i64 },
 }
 
-impl<'py> FromPyObject<'py> for Value {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for Value {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         if let Ok(i) = ob.extract::<i64>() {
             Ok(Value::Int(i))
         } else if let Ok(r) = ob.extract::<f64>() {
             Ok(Value::Real(r))
-        } else if let Ok(c) = ob.extract::<Complex64>() {
-            Ok(Value::Complex(c))
         } else {
-            Err(PyValueError::new_err(
-                "Could not cast Bound<PyAny> to Value.",
-            ))
+            ob.extract::<Complex64>().map(Value::Complex)
         }
     }
 }
