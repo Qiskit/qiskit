@@ -44,7 +44,7 @@ use pyo3::types::{IntoPyDict, PyDict, PyList, PySet, PyTuple, PyType};
 use pyo3::{PyTraverseError, PyVisit, import_exception, intern};
 
 use hashbrown::{HashMap, HashSet};
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use smallvec::SmallVec;
 
 import_exception!(qiskit.circuit.exceptions, CircuitError);
@@ -894,6 +894,36 @@ impl CircuitData {
         }
 
         Ok((qubits, clbits).into_pyobject(py)?.unbind())
+    }
+
+    /// Return a list of active qubit indices in the circuit
+    ///
+    /// Returns:
+    ///     list[int]: The list of qubit indices in the circuit that have operations. The list
+    ///     order is deterministic and determined by the instruction order in the circuit.
+    pub fn active_qubits<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
+        let qubits: IndexSet<Qubit, ahash::RandomState> = self
+            .data
+            .iter()
+            .flat_map(|inst| self.qargs_interner.get(inst.qubits))
+            .copied()
+            .collect();
+        PyList::new(py, qubits.into_iter().map(|x| x.0))
+    }
+
+    /// Return a list of active clbit indices in the circuit
+    ///
+    /// Returns:
+    ///     list[int]: The list of clbit indices in the circuit that have operations. The list
+    ///     order is deterministic and determined by the instruction order in the circuit.
+    pub fn active_clbits<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
+        let clbits: IndexSet<Clbit, ahash::RandomState> = self
+            .data
+            .iter()
+            .flat_map(|inst| self.cargs_interner.get(inst.clbits))
+            .copied()
+            .collect();
+        PyList::new(py, clbits.into_iter().map(|x| x.0))
     }
 
     /// Invokes callable ``func`` with each instruction's operation.
