@@ -1,0 +1,4 @@
+---
+prelude: >
+    Qiskit 2.2.3 fixes a bug that was introduced by Qiskit 2.2.2 when
+    using a :class:`.PassManager` for more than one circuit.
