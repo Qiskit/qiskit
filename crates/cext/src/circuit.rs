@@ -1275,6 +1275,8 @@ mod tests {
             );
         }
 
-        unsafe { qk_dag_free(dag); }
+        unsafe {
+            qk_dag_free(dag);
+        }
     }
 }
