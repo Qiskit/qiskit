@@ -47,8 +47,8 @@ use qiskit_circuit::packed_instruction::PackedOperation;
 use crate::standard_equivalence_library::generate_standard_equivalence_library;
 
 mod exceptions {
-    use pyo3::import_exception_bound;
-    import_exception_bound! {qiskit.circuit.exceptions, CircuitError}
+    use pyo3::import_exception;
+    import_exception! {qiskit.circuit.exceptions, CircuitError}
 }
 pub static PYDIGRAPH: ImportOnceCell = ImportOnceCell::new("rustworkx", "PyDiGraph");
 
@@ -293,8 +293,10 @@ pub struct GateOper {
     params: SmallVec<[Param; 3]>,
 }
 
-impl<'py> FromPyObject<'py> for GateOper {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for GateOper {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let op_struct: OperationFromPython = ob.extract()?;
         Ok(Self {
             operation: op_struct.operation,
@@ -328,11 +330,13 @@ impl<'py> IntoPyObject<'py> for CircuitFromPython {
     }
 }
 
-impl FromPyObject<'_> for CircuitFromPython {
-    fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for CircuitFromPython {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         if ob.is_instance(QUANTUM_CIRCUIT.get_bound(ob.py()))? {
             let data: Bound<PyAny> = ob.getattr("_data")?;
-            let data_downcast: Bound<CircuitData> = data.downcast_into()?;
+            let data_downcast: Bound<CircuitData> = data.cast_into()?;
             let data_extract: CircuitData = data_downcast.extract()?;
             Ok(Self(data_extract))
         } else {
@@ -567,9 +571,9 @@ impl EquivalenceLibrary {
     fn __setstate__(mut slf: PyRefMut<Self>, state: &Bound<PyDict>) -> PyResult<()> {
         slf.rule_id = state.get_item("rule_id")?.unwrap().extract()?;
         let graph_nodes_ref: Bound<PyAny> = state.get_item("graph_nodes")?.unwrap();
-        let graph_nodes: &Bound<PyList> = graph_nodes_ref.downcast()?;
+        let graph_nodes: &Bound<PyList> = graph_nodes_ref.cast()?;
         let graph_edge_ref: Bound<PyAny> = state.get_item("graph_edges")?.unwrap();
-        let graph_edges: &Bound<PyList> = graph_edge_ref.downcast()?;
+        let graph_edges: &Bound<PyList> = graph_edge_ref.cast()?;
         slf.graph = GraphType::new();
         for node_weight in graph_nodes {
             slf.graph.add_node(node_weight.extract()?);

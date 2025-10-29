@@ -26,7 +26,7 @@ pub use transpiler::transpile;
 
 mod gate_metrics;
 
-use pyo3::import_exception_bound;
+use pyo3::import_exception;
 
-import_exception_bound! {qiskit.exceptions, QiskitError}
-import_exception_bound! {qiskit.transpiler.exceptions, TranspilerError}
+import_exception! {qiskit.exceptions, QiskitError}
+import_exception! {qiskit.transpiler.exceptions, TranspilerError}
