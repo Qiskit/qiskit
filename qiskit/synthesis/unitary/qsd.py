@@ -16,6 +16,7 @@ Method is described in arXiv:quant-ph/0406176.
 """
 from __future__ import annotations
 from typing import Callable
+import warnings
 import scipy
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister
@@ -89,14 +90,37 @@ def qs_decomposition(
         mat: unitary matrix to decompose
         opt_a1: whether to try optimization A.1 from [1, 2].
             This should eliminate 2 ``cx`` per call.
+            
+            .. deprecated:: 2.3.0
+                The ``opt_a1`` parameter is deprecated and will be removed in Qiskit 3.0.
+                The decomposition now automatically determines when to apply optimizations.
+                
         opt_a2: whether to try optimization A.2 from [1, 2].
             This decomposes two qubit unitaries into a diagonal gate and
             a two ``cx`` unitary and reduces overall ``cx`` count by :math:`4^{n-2} - 1`.
             This optimization should not be done if the original unitary is controlled.
+            
+            .. deprecated:: 2.3.0
+                The ``opt_a2`` parameter is deprecated and will be removed in Qiskit 3.0.
+                The decomposition now automatically determines when to apply optimizations.
+                
         decomposer_1q: optional 1Q decomposer. If None, uses
             :class:`~qiskit.synthesis.OneQubitEulerDecomposer`.
+            
+            .. deprecated:: 2.3.0
+                Passing a callable that is not an instance of 
+                :class:`~qiskit.synthesis.OneQubitEulerDecomposer` is deprecated and will not
+                be supported in Qiskit 3.0. Please pass an instance of 
+                :class:`~qiskit.synthesis.OneQubitEulerDecomposer` instead.
+                
         decomposer_2q: optional 2Q decomposer. If None, uses
             :class:`~qiskit.synthesis.TwoQubitBasisDecomposer`.
+            
+            .. deprecated:: 2.3.0
+                Passing a callable that is not an instance of 
+                :class:`~qiskit.synthesis.TwoQubitBasisDecomposer` is deprecated and will not
+                be supported in Qiskit 3.0. Please pass an instance of 
+                :class:`~qiskit.synthesis.TwoQubitBasisDecomposer` instead.
 
     Returns:
         QuantumCircuit: Decomposed quantum circuit.
@@ -108,6 +132,44 @@ def qs_decomposition(
            n-Qubit Gates Based on Block ZXZ-Decomposition*,
            `arXiv:2403.13692 <https://arxiv.org/abs/2403.13692>`_
     """
+    # Deprecation warnings for opt_a1 and opt_a2
+    if opt_a1 is not None:
+        warnings.warn(
+            "The 'opt_a1' parameter is deprecated as of Qiskit 2.3.0 and will be removed in "
+            "Qiskit 3.0.0. The decomposition now automatically determines when to apply "
+            "optimization A.1.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    
+    if opt_a2 is not None:
+        warnings.warn(
+            "The 'opt_a2' parameter is deprecated as of Qiskit 2.3.0 and will be removed in "
+            "Qiskit 3.0.0. The decomposition now automatically determines when to apply "
+            "optimization A.2.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    
+    # Deprecation warnings for decomposer types
+    if decomposer_1q is not None and not isinstance(decomposer_1q, OneQubitEulerDecomposer):
+        warnings.warn(
+            "Passing a callable that is not an instance of OneQubitEulerDecomposer for "
+            "'decomposer_1q' is deprecated as of Qiskit 2.3.0 and will not be supported in "
+            "Qiskit 3.0.0. Please pass an instance of OneQubitEulerDecomposer instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    
+    if decomposer_2q is not None and not isinstance(decomposer_2q, TwoQubitBasisDecomposer):
+        warnings.warn(
+            "Passing a callable that is not an instance of TwoQubitBasisDecomposer for "
+            "'decomposer_2q' is deprecated as of Qiskit 2.3.0 and will not be supported in "
+            "Qiskit 3.0.0. Please pass an instance of TwoQubitBasisDecomposer instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    
     if (decomposer_1q is None or isinstance(decomposer_1q, OneQubitEulerDecomposer)) and (
         decomposer_2q is None or isinstance(decomposer_2q, TwoQubitBasisDecomposer)
     ):
