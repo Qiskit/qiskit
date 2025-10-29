@@ -437,7 +437,7 @@ impl MatrixComputationData {
                         y_count += 1;
                     }
                     BitTerm::Z => z_bits |= 1u32 << qubit,
-                    _ => panic!("Expected only Pauli terms in precomputation"),
+                    _ => (),
                 }
             }
 
@@ -3389,7 +3389,7 @@ impl PySparseObservable {
 
     /// Convert to dense or sparse matrix.
     #[pyo3(signature = (sparse=false, force_serial=false))]
-    fn to_matrix(&self, py: Python, sparse: bool, force_serial: bool) -> PyResult<PyObject> {
+    fn to_matrix(&self, py: Python, sparse: bool, force_serial: bool) -> PyResult<Py<PyAny>> {
         if sparse {
             Ok(self.to_matrix_sparse(py, force_serial)?.into())
         } else {
