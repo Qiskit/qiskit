@@ -30,7 +30,7 @@ use rayon_cond::CondIterator;
 use rustworkx_core::dictmap::*;
 use rustworkx_core::petgraph::prelude::*;
 use rustworkx_core::petgraph::visit::{EdgeCount, EdgeRef};
-use rustworkx_core::shortest_path::dijkstra;
+use rustworkx_core::shortest_path::{dijkstra, distance_matrix};
 use rustworkx_core::token_swapper::token_swapper;
 use smallvec::{SmallVec, smallvec};
 
@@ -46,7 +46,6 @@ use crate::neighbors::Neighbors;
 use crate::target::{Target, TargetCouplingError};
 
 use super::dag::{InteractionKind, SabreDAG};
-use super::distance::distance_matrix;
 use super::heuristic::{BasicHeuristic, DecayHeuristic, Heuristic, LookaheadHeuristic, SetScaling};
 use super::layer::{ExtendedSet, FrontLayer};
 
@@ -297,7 +296,7 @@ pub struct RoutingTarget {
 impl RoutingTarget {
     pub fn from_neighbors(neighbors: Neighbors) -> Self {
         Self {
-            distance: distance_matrix(&neighbors, usize::MAX, f64::NAN),
+            distance: distance_matrix(&neighbors, usize::MAX, false, f64::NAN),
             neighbors,
         }
     }
