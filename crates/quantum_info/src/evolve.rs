@@ -10,18 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use ndarray::{Array1, Array2, ArrayView1, s};
-
-/// Clifford.
-#[derive(Clone)]
-pub struct Clifford {
-    /// Number of qubits.
-    pub num_qubits: usize,
-    /// Matrix with dimensions (2 * num_qubits) x (2 * num_qubits).
-    pub tableau: Array2<bool>,
-    /// Phases.
-    pub phase: Array1<bool>,
-}
+use crate::clifford::Clifford;
+use ndarray::{Array1, ArrayView1, s};
 
 /// Pauli.
 #[derive(Clone, PartialEq)]
@@ -60,7 +50,7 @@ impl Pauli {
     /// For frame="h" we should calculate the adjoint of the Clifford.
     fn evolve(p: Pauli, cliff: Clifford) -> Pauli {
         let n = cliff.num_qubits;
-        let cliff_phase = cliff.phase;
+        let cliff_phase = cliff.tableau.slice(s![.., 2 * n]).to_owned();
         let mut ret = Pauli {
             x: Array1::from(vec![false; n]),
             z: Array1::from(vec![false; n]),
@@ -224,18 +214,15 @@ mod test {
     fn test_evolve() {
         let cliff_s = Clifford {
             num_qubits: 1,
-            tableau: Array2::from(vec![[true, true], [false, true]]),
-            phase: Array1::from(vec![false, false]),
+            tableau: Array2::from(vec![[true, true, false], [false, true, false]]),
         }; // S
         let cliff_h = Clifford {
             num_qubits: 1,
-            tableau: Array2::from(vec![[false, true], [true, false]]),
-            phase: Array1::from(vec![false, false]),
+            tableau: Array2::from(vec![[false, true, false], [true, false, false]]),
         }; // H
         let cliff_sdg = Clifford {
             num_qubits: 1,
-            tableau: Array2::from(vec![[true, true], [false, true]]),
-            phase: Array1::from(vec![true, false]),
+            tableau: Array2::from(vec![[true, true, true], [false, true, false]]),
         }; // Sdg
 
         let px = Pauli {
@@ -312,12 +299,11 @@ mod test {
         let cliff = Clifford {
             num_qubits: 2,
             tableau: Array2::from(vec![
-                [true, false, false, false],
-                [false, true, false, false],
-                [false, true, true, false],
-                [true, true, false, true],
+                [true, false, false, false, false],
+                [false, true, false, false, false],
+                [false, true, true, false, false],
+                [true, true, false, true, false],
             ]),
-            phase: Array1::from(vec![false, false, false, false]),
         };
         let pxx = Pauli {
             x: Array1::from(vec![true, true]),
