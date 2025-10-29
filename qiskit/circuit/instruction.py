@@ -41,7 +41,7 @@ from typing import Type
 import numpy
 
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.parameter import ParameterExpression
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.operation import Operation
 
 from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier
@@ -58,8 +58,7 @@ class Instruction(Operation):
     _standard_gate = None
 
     def __init__(self, name, num_qubits, num_clbits, params, label=None):
-        """Create a new instruction.
-
+        """
         .. deprecated:: 1.3
            The parameters ``duration`` and ``unit`` are deprecated since
            Qiskit 1.3, and they will be removed in 2.0 or later.

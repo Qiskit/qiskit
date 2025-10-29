@@ -1,0 +1,28 @@
+---
+features_c:
+  - |
+    Add support for the :class:`.Optimize1qGatesDecomposition` transpiler pass through
+    the C API, via the :cpp:func:`qk_transpiler_standalone_optimize_1q_sequences`
+    method.
+
+    Here's an example:
+
+    .. code-block:: C
+      
+      #include <qiskit.h>
+
+      // Build a circuit
+      QkCircuit *circuit = qk_circuit_new(1, 0);
+      uint32_t qubits[1] = {0};
+      double params_pos[1] = {3.14 / 7.};
+      double params_neg[1] = {-3.14 / 7.};
+      qk_circuit_gate(circuit, QkGate_RY, qubits, params_pos);
+      qk_circuit_gate(circuit, QkGate_RY, qubits, params_neg);
+
+      // Run the transpiler pass with no Target, which signals the pass to choose
+      // the sequence wiith the least amount of gates and support all basis gates
+      // on its Euler basis set.
+      qk_transpiler_standalone_optimize_1q_sequences(circuit, NULL);
+
+      // Free both circuits
+      qk_circuit_free(circuit);

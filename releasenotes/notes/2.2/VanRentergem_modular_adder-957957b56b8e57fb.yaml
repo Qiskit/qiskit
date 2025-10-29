@@ -1,0 +1,23 @@
+---
+features_synthesis:
+  - |
+    Added new synthesis algorithm for :class:`.ModularAdderGate` that requires no ancillary qubits
+    and has better CX count compared to :func:`.adder_qft_d00`:
+
+    * :func:`.adder_modular_v17`
+
+features_transpiler:
+  - |
+    Added new high-level-synthesis plugin for synthesizing a :class:`.ModularAdderGate`:
+
+    * :class:`.ModularAdderSynthesisV17`, based on :func:`.adder_modular_v17`.
+
+    The :class:`.ModularAdderSynthesisDefault` has also been updated to follow the following sequence
+    of modular adder synthesizers: ``"ModularAdder.qft_d00"`` when the number of qubits is 
+    :math:`\leq 4`, ``"ModularAdder.modular_v17"`` in all other cases.
+
+upgrade_circuits:
+  - |
+    The circuit definition of :class:`.ModularAdderGate` has been upgraded to use
+    :func:`.adder_modular_v17`. To obtain the old behaviour, use the definition of
+    :func:`.adder_qft_d00` instead.

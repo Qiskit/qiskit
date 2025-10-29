@@ -36,6 +36,7 @@ class UserConfig:
     parallel = False
     num_processes = 4
     sabre_all_threads = true
+    min_qpy_version = 13
 
     """
 
@@ -144,6 +145,18 @@ class UserConfig:
             if circuit_idle_wires is not None:
                 self.settings["circuit_idle_wires"] = circuit_idle_wires
 
+            # Parse circuit_measure_arrows
+            try:
+                circuit_measure_arrows = self.config_parser.getboolean(
+                    "default", "circuit_measure_arrows", fallback=None
+                )
+            except ValueError as err:
+                raise exceptions.QiskitUserConfigError(
+                    f"Value assigned to circuit_measure_arrows is not valid. {str(err)}"
+                )
+            if circuit_measure_arrows is not None:
+                self.settings["circuit_measure_arrows"] = circuit_measure_arrows
+
             # Parse transpile_optimization_level
             transpile_optimization_level = self.config_parser.getint(
                 "default", "transpile_optimization_level", fallback=-1
@@ -175,6 +188,15 @@ class UserConfig:
             )
             if sabre_all_threads is not None:
                 self.settings["sabre_all_threads"] = sabre_all_threads
+
+            # Parse min_qpy_version
+            min_qpy_version = self.config_parser.getint("default", "min_qpy_version", fallback=None)
+            if min_qpy_version:
+                if min_qpy_version < 0:
+                    raise exceptions.QiskitUserConfigError(
+                        f"{min_qpy_version} is not a valid QPY version."
+                    )
+                self.settings["min_qpy_version"] = min_qpy_version
 
 
 def set_config(key, value, section=None, file_path=None):
@@ -217,6 +239,7 @@ def set_config(key, value, section=None, file_path=None):
         "parallel",
         "num_processes",
         "sabre_all_threads",
+        "min_qpy_version",
     }
 
     if section in [None, "default"]:

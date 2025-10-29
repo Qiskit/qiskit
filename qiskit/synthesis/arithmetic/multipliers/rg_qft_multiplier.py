@@ -58,7 +58,7 @@ def multiplier_qft_r17(
         ValueError: If ``num_result_qubits`` is given and not valid, meaning not
             in ``[num_state_qubits, 2 * num_state_qubits]``.
 
-    **References:**
+    References:
 
     [1] Ruiz-Perez et al., Quantum arithmetic with the Quantum Fourier Transform, 2017.
     `arXiv:1411.5949 <https://arxiv.org/pdf/1411.5949.pdf>`_

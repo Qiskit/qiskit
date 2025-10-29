@@ -12,6 +12,8 @@
 
 """Extend the dag with virtual qubits that are in layout but not in the circuit yet."""
 
+import itertools
+
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
@@ -37,6 +39,7 @@ class EnlargeWithAncilla(TransformationPass):
             TranspilerError: If there is no layout in the property set or not set at init time.
         """
         layout = self.property_set["layout"]
+        qubit_indices = self.property_set["original_qubit_indices"]
 
         if layout is None:
             raise TranspilerError('EnlargeWithAncilla requires property_set["layout"]')
@@ -44,6 +47,9 @@ class EnlargeWithAncilla(TransformationPass):
         new_qregs = {reg for reg in layout.get_registers() if reg not in dag.qregs.values()}
 
         for qreg in new_qregs:
+            if qubit_indices is not None:
+                qubit_indices.update(zip(qreg, itertools.count(dag.num_qubits())))
             dag.add_qreg(qreg)
 
+        self.property_set["original_qubit_indices"] = qubit_indices
         return dag

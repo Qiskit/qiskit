@@ -23,18 +23,18 @@ use numpy::{
     PyReadonlyArray1, PyReadonlyArray2, PyUntypedArrayMethods,
 };
 use pyo3::{
+    IntoPyObjectExt, PyErr,
     exceptions::{PyRuntimeError, PyTypeError, PyValueError, PyZeroDivisionError},
     intern,
     prelude::*,
-    sync::GILOnceCell,
+    sync::PyOnceLock,
     types::{IntoPyDict, PyList, PyString, PyTuple, PyType},
-    IntoPyObjectExt, PyErr,
 };
 use std::{
     cmp::Ordering,
     collections::btree_map,
     ops::{AddAssign, DivAssign, MulAssign, SubAssign},
-    sync::{Arc, RwLock},
+    sync::{Arc, RwLock, RwLockReadGuard},
 };
 use thiserror::Error;
 
@@ -47,8 +47,8 @@ static PAULI_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "
 static PAULI_LIST_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "PauliList");
 static SPARSE_PAULI_OP_TYPE: ImportOnceCell =
     ImportOnceCell::new("qiskit.quantum_info", "SparsePauliOp");
-static BIT_TERM_PY_ENUM: GILOnceCell<Py<PyType>> = GILOnceCell::new();
-static BIT_TERM_INTO_PY: GILOnceCell<[Option<Py<PyAny>>; 16]> = GILOnceCell::new();
+static BIT_TERM_PY_ENUM: PyOnceLock<Py<PyType>> = PyOnceLock::new();
+static BIT_TERM_INTO_PY: PyOnceLock<[Option<Py<PyAny>>; 16]> = PyOnceLock::new();
 
 /// Named handle to the alphabet of single-qubit terms.
 ///
@@ -243,7 +243,9 @@ pub enum CoherenceError {
     MismatchedItemCount { bit_terms: usize, indices: usize },
     #[error("the first item of `boundaries` ({0}) must be 0")]
     BadInitialBoundary(usize),
-    #[error("the last item of `boundaries` ({last}) must match the length of `bit_terms` and `indices` ({items})")]
+    #[error(
+        "the last item of `boundaries` ({last}) must match the length of `bit_terms` and `indices` ({items})"
+    )]
     BadFinalBoundary { last: usize, items: usize },
     #[error("all qubit indices must be less than the number of qubits")]
     BitIndexTooHigh,
@@ -369,7 +371,7 @@ pub struct SparseObservable {
     /// The number of qubits the operator acts on.  This is not inferable from any other shape or
     /// values, since identities are not stored explicitly.
     num_qubits: u32,
-    /// The coefficients of each abstract term in in the sum.  This has as many elements as terms in
+    /// The coefficients of each abstract term in the sum.  This has as many elements as terms in
     /// the sum.
     coeffs: Vec<Complex64>,
     /// A flat list of single-qubit terms.  This is more naturally a list of lists, but is stored
@@ -857,7 +859,7 @@ impl SparseObservable {
     /// # Panics
     ///
     /// If the index is out of bounds.
-    pub fn term(&self, index: usize) -> SparseTermView {
+    pub fn term(&self, index: usize) -> SparseTermView<'_> {
         debug_assert!(index < self.num_terms(), "index {index} out of bounds");
         let start = self.boundaries[index];
         let end = self.boundaries[index + 1];
@@ -1003,7 +1005,6 @@ impl SparseObservable {
             None => {
                 let mut out = self.clone();
                 if num_qubits < self.num_qubits {
-                    // return Err(CoherenceError::BitIndexTooHigh);
                     return Err(CoherenceError::NotEnoughQubits {
                         current: self.num_qubits as usize,
                         target: num_qubits as usize,
@@ -1345,7 +1346,7 @@ mod compose {
             }
         }
         /// Expose the current iteration item, assuming the state has been updated.
-        fn iter_item(&self) -> SparseTermView {
+        fn iter_item(&self) -> SparseTermView<'_> {
             SparseTermView {
                 num_qubits: self.num_qubits,
                 coeff: *self.coeffs.last().expect("coeffs is never empty"),
@@ -1355,7 +1356,7 @@ mod compose {
         }
         // Not actually the iterator method, because we're borrowing from `self`.
         /// Get the next term in the iteration.
-        pub fn next(&mut self) -> Option<SparseTermView> {
+        pub fn next(&mut self) -> Option<SparseTermView<'_>> {
             if self.exhausted {
                 return None;
             }
@@ -1443,7 +1444,7 @@ impl SparseTermView<'_> {
             .map(|(i, op)| format!("{}_{}", op.py_label(), i))
             .collect::<Vec<String>>()
             .join(" ");
-        format!("({})({})", coeff, paulis)
+        format!("({coeff})({paulis})")
     }
 }
 
@@ -1473,7 +1474,7 @@ pub struct IterMut<'a> {
     i: usize,
 }
 impl<'a> From<&'a mut SparseObservable> for IterMut<'a> {
-    fn from(value: &mut SparseObservable) -> IterMut {
+    fn from(value: &mut SparseObservable) -> IterMut<'_> {
         IterMut {
             num_qubits: value.num_qubits,
             coeffs: &mut value.coeffs,
@@ -1577,7 +1578,7 @@ impl SparseTerm {
         &self.bit_terms
     }
 
-    pub fn view(&self) -> SparseTermView {
+    pub fn view(&self) -> SparseTermView<'_> {
         SparseTermView {
             num_qubits: self.num_qubits,
             coeff: self.coeff,
@@ -1599,7 +1600,7 @@ impl SparseTerm {
 }
 
 #[derive(Error, Debug)]
-struct InnerReadError;
+pub struct InnerReadError;
 
 #[derive(Error, Debug)]
 struct InnerWriteError;
@@ -1652,7 +1653,7 @@ impl From<ArithmeticError> for PyErr {
 /// alphabet.
 #[pyfunction]
 #[pyo3(name = "label")]
-fn bit_term_label(py: Python, slf: BitTerm) -> &Bound<PyString> {
+fn bit_term_label(py: Python<'_>, slf: BitTerm) -> &Bound<'_, PyString> {
     // This doesn't use `py_label` so we can use `intern!`.
     match slf {
         BitTerm::X => intern!(py, "X"),
@@ -1756,13 +1757,12 @@ impl<'py> FromPyObject<'py> for BitTerm {
         let value = ob
             .extract::<isize>()
             .map_err(|_| match ob.get_type().repr() {
-                Ok(repr) => PyTypeError::new_err(format!("bad type for 'BitTerm': {}", repr)),
+                Ok(repr) => PyTypeError::new_err(format!("bad type for 'BitTerm': {repr}")),
                 Err(err) => err,
             })?;
         let value_error = || {
             PyValueError::new_err(format!(
-                "value {} is not a valid letter of the single-qubit alphabet for 'BitTerm'",
-                value
+                "value {value} is not a valid letter of the single-qubit alphabet for 'BitTerm'"
             ))
         };
         let value: u8 = value.try_into().map_err(|_| value_error())?;
@@ -2415,6 +2415,7 @@ pub struct PySparseObservable {
     // This class keeps a pointer to a pure Rust-SparseTerm and serves as interface from Python.
     inner: Arc<RwLock<SparseObservable>>,
 }
+
 #[pymethods]
 impl PySparseObservable {
     #[pyo3(signature = (data, /, num_qubits=None))]
@@ -2697,7 +2698,7 @@ impl PySparseObservable {
     ///         and their corresponding coefficients.
     #[staticmethod]
     #[pyo3(signature = (label, /))]
-    fn from_label(label: &str) -> Result<Self, LabelError> {
+    pub fn from_label(label: &str) -> Result<Self, LabelError> {
         let mut inner = SparseObservable::zero(label.len() as u32);
         inner.add_dense_label(label, Complex64::new(1.0, 0.0))?;
         Ok(inner.into())
@@ -3605,7 +3606,7 @@ impl PySparseObservable {
                 return PySparseTerm {
                     inner: inner.term(index).to_term(),
                 }
-                .into_bound_py_any(py)
+                .into_bound_py_any(py);
             }
             indices => indices,
         };
@@ -3657,8 +3658,7 @@ impl PySparseObservable {
                 .join(" + ")
         };
         Ok(format!(
-            "<SparseObservable with {} on {}: {}>",
-            str_num_terms, str_num_qubits, str_terms
+            "<SparseObservable with {str_num_terms} on {str_num_qubits}: {str_terms}>"
         ))
     }
 
@@ -3888,6 +3888,13 @@ impl PySparseObservable {
     #[classattr]
     fn Term(py: Python) -> Bound<PyType> {
         py.get_type::<PySparseTerm>()
+    }
+}
+impl PySparseObservable {
+    /// This is an immutable reference as opposed to a `copy`.
+    pub fn as_inner(&self) -> Result<RwLockReadGuard<'_, SparseObservable>, InnerReadError> {
+        let data = self.inner.read().map_err(|_| InnerReadError)?;
+        Ok(data)
     }
 }
 impl From<SparseObservable> for PySparseObservable {

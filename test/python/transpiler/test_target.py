@@ -1090,6 +1090,9 @@ Instructions:
         self.assertTrue(
             mumbai.target.instruction_supported("rzx_45", qargs=(0, 1), parameters=[math.pi / 4])
         )
+        self.assertFalse(
+            mumbai.target.instruction_supported("rzx_45", qargs=(1, 0), parameters=[math.pi / 4])
+        )
         self.assertTrue(mumbai.target.instruction_supported("rzx_45", qargs=(0, 1)))
         self.assertTrue(mumbai.target.instruction_supported("rzx_45", parameters=[math.pi / 4]))
         self.assertFalse(mumbai.target.instruction_supported("rzx_45", parameters=[math.pi / 6]))
@@ -1794,3 +1797,75 @@ class TestFakeTarget(QiskitTestCase):
             _ = _FakeTarget.from_configuration(
                 basis_gates=["cx"], coupling_map=CouplingMap([[0, 1]])
             )
+
+
+class TestAngleBounds(QiskitTestCase):
+    """Test angle bounds work correctly."""
+
+    def test_angle_bounds_mismatched_length(self):
+        """Test adding angle bounds method on incorrect number of params."""
+        target = Target("bounds", 1)
+        theta = Parameter("theta")
+        phi = Parameter("phi")
+        lam = Parameter("Lambda")
+        with self.assertRaisesRegex(TranspilerError, "The number of bounds"):
+            target.add_instruction(UGate(theta, phi, lam), angle_bounds=[(0, 1), (0, 3)])
+
+    def test_angle_bound_on_fixed_angle(self):
+        """Test adding angle bounds method on fixed value."""
+        target = Target("bounds", 1)
+        theta = Parameter("theta")
+        lam = Parameter("Lambda")
+        with self.assertRaisesRegex(TranspilerError, "Angle bound set on a fixed value"):
+            target.add_instruction(UGate(theta, 3.14, lam), angle_bounds=[(0, 1), (0, 2), (0, 3)])
+
+    def test_has_angle_bound(self):
+        """Test target has angle bounds method with bounds."""
+        target = Target("bounds", 1)
+        theta = Parameter("theta")
+        phi = Parameter("phi")
+        lam = Parameter("Lambda")
+        target.add_instruction(
+            UGate(theta, phi, lam), angle_bounds=[(0, 1), (0, 3), (-math.pi, math.pi)]
+        )
+        self.assertTrue(target.has_angle_bounds)
+
+    def test_not_has_angle_bound(self):
+        """Test target has angle bounds method with no bounds."""
+        target = Target("bounds", 1)
+        theta = Parameter("theta")
+        phi = Parameter("phi")
+        lam = Parameter("Lambda")
+        target.add_instruction(UGate(theta, phi, lam))
+        self.assertFalse(target.has_angle_bounds())
+
+    def test_gate_has_angle_bound(self):
+        """Test gate has angle bounds method."""
+        target = Target("bounds", 1)
+        theta = Parameter("theta")
+        phi = Parameter("phi")
+        lam = Parameter("Lambda")
+        target.add_instruction(
+            UGate(theta, phi, lam), angle_bounds=[(0, 1), (0, 3), (-math.pi, math.pi)]
+        )
+        target.add_instruction(XGate())
+        self.assertTrue(target.gate_has_angle_bounds("u"))
+        self.assertFalse(target.gate_has_angle_bounds("x"))
+
+    def test_instruction_supported_angle_check(self):
+        """Test instruction supported with angle bounds check enabled."""
+        target = Target("bounds", 1)
+        theta = Parameter("theta")
+        phi = Parameter("phi")
+        lam = Parameter("Lambda")
+        target.add_instruction(
+            UGate(theta, phi, lam), angle_bounds=[(0, 1), (0, 3), (-math.pi, math.pi)]
+        )
+        target.add_instruction(XGate())
+        self.assertTrue(
+            target.instruction_supported("u", parameters=[0, 0, 0], check_angle_bounds=True)
+        )
+        self.assertFalse(
+            target.instruction_supported("u", parameters=[-3, 0, 0], check_angle_bounds=True)
+        )
+        self.assertTrue(target.instruction_supported("x", check_angle_bounds=True))

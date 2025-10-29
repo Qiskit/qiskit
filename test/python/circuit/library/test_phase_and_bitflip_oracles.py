@@ -13,6 +13,7 @@
 """Test the phase and bit-flip oracle circuits."""
 
 import unittest
+import tempfile
 from ddt import ddt, data, unpack
 from numpy import sqrt, isclose
 
@@ -109,6 +110,28 @@ class TestPhaseOracleAndGate(QiskitTestCase):
                 self.assertListEqual(expected_valid, result_valid)
                 self.assertListEqual(expected_invalid, result_invalid)
 
+    def test_from_dimacs_file(self):
+        """Initializing from DIMACS file"""
+        input_3sat_instance = """
+        c DIMACS CNF file with 3 satisfying assignments: 1 -2 3, -1 -2 -3, 1 2 -3.
+        p cnf 3 5
+        -1 -2 -3 0
+        1 -2 3 0
+        1 2 -3 0
+        1 -2 -3 0
+        -1 2 3 0
+        """
+        filename = tempfile.mkstemp(suffix=".dimacs")[1]
+        with open(filename, "w") as file:
+            file.write(input_3sat_instance)
+        for use_gate in [True, False]:
+            if use_gate:
+                oracle = PhaseOracleGate.from_dimacs_file(filename)
+            else:
+                with self.assertWarns(DeprecationWarning):
+                    oracle = PhaseOracle.from_dimacs_file(filename)
+            self.assertEqual(oracle.num_qubits, 3)
+
 
 @ddt
 class TestBitFlipOracleGate(QiskitTestCase):
@@ -179,6 +202,23 @@ class TestBitFlipOracleGate(QiskitTestCase):
         result_invalid = [isclose(statevector.data[state], invalid_state) for state in states]
         self.assertListEqual(expected_valid, result_valid)
         self.assertListEqual(expected_invalid, result_invalid)
+
+    def test_from_dimacs_file(self):
+        """Initializing from DIMACS file"""
+        input_3sat_instance = """
+        c DIMACS CNF file with 3 satisfying assignments: 1 -2 3, -1 -2 -3, 1 2 -3.
+        p cnf 3 5
+        -1 -2 -3 0
+        1 -2 3 0
+        1 2 -3 0
+        1 -2 -3 0
+        -1 2 3 0
+        """
+        filename = tempfile.mkstemp(suffix=".dimacs")[1]
+        with open(filename, "w") as file:
+            file.write(input_3sat_instance)
+        oracle = BitFlipOracleGate.from_dimacs_file(filename)
+        self.assertEqual(oracle.num_qubits, 4)
 
 
 if __name__ == "__main__":

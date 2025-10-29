@@ -159,6 +159,45 @@ class Target(BaseTarget):
     angle :class:`~qiskit.circuit.library.RXGate` while ``rx`` will get the
     parameterized :class:`~qiskit.circuit.library.RXGate`.
 
+    You can optionally specify a bound on valid values on a gate in the target
+    by using the ``angle_bounds`` keyword argument when calling the :meth:`.add_instruction`
+    method. Bounds are set on operations not individual instructions, so when
+    you call :meth:`.add_instruction` the bounds are applied for all qargs that it
+    is defined on. The bounds are specified of a list of 2-tuples of floats where
+    the first float is the lower bound and the second float is the upper bound. For example,
+    if you specfied an angle bound::
+
+        [(0.0, 3.14), (-3.14, 3.14), (0.0, 1.0)]
+
+    this indicates the angle bounds for a 3 parameter gate where the first
+    parameter accepts angles between 0 and 3.14, the second between -3.14 and
+    3.14, and the third parameter between 0 and 1. All bounds are set
+    inclusively as well. A bound can also be specified with ``None`` instead
+    of a 2-tuple which indicates that parameter has no constraints. For example::
+
+        [(0.0, 3.14, None, None)]
+
+    indicates an angle bound for a 3 parameter gate where only the first
+    parameter is restricted to angles between 0.0 and 3.14 and the other
+    parameters accept any value.
+
+    You can check if any operations in the target have angle bounds set with,
+    :meth:`.has_angle_bounds` and also if a specific name in the target has
+    angle bounds set with :meth:`.gate_has_angle_bounds`. Whether a particular
+    set of parameter values conforms to the angle bounds can be checked
+    with :meth:`.supported_angle_bound`. In the preset pass managers the
+    :class:`.WrapAngles` pass is used to enforce the angle bounds, for this
+    to work you need to provide a function to the :class:`.WrapAngleRegistry`
+    used by the pass. You can see more details on this in:
+    :ref:`angle-bounds-on-gates`.
+
+    This class can be queried via the mapping protocol, using the
+    instruction's name as a key. You can modify any property for an
+    instruction via the :meth:`.update_instruction_properties` method.
+    Modification via the mapping protocol or mutating the attributes of
+    a :class:`.InstructionProperties` object is **not** supported and
+    doing so will invalidate the internal state of the object.
+
     .. note::
 
         This class assumes that qubit indices start at 0 and are a contiguous
@@ -167,7 +206,7 @@ class Target(BaseTarget):
 
     .. note::
 
-        This class only supports additions of gates, qargs, and qubits.
+        This class only supports additions of gates, qargs, and properties.
         If you need to remove one of these the best option is to iterate over
         an existing object and create a new subset (or use one of the methods
         to do this). The object internally caches different views and these
@@ -179,6 +218,8 @@ class Target(BaseTarget):
         "_coupling_graph",
         "_instruction_durations",
         "_instruction_schedule_map",
+        "_non_global_basis_strict",
+        "_non_global_basis",
     )
 
     def __new__(  # pylint: disable=keyword-arg-before-vararg
@@ -192,8 +233,6 @@ class Target(BaseTarget):
         acquire_alignment: int = 1,
         qubit_properties: list | None = None,
         concurrent_measurements: list | None = None,
-        *args,  # pylint: disable=unused-argument disable=keyword-arg-before-vararg
-        **kwargs,  # pylint: disable=unused-argument
     ):
         """
         Create a new ``Target`` object
@@ -239,7 +278,7 @@ class Target(BaseTarget):
         """
         if description is not None:
             description = str(description)
-        return super(Target, cls).__new__(  # pylint: disable=too-many-function-args
+        out = super(Target, cls).__new__(  # pylint: disable=too-many-function-args
             cls,
             description,
             num_qubits,
@@ -251,6 +290,14 @@ class Target(BaseTarget):
             qubit_properties,
             concurrent_measurements,
         )
+        # A nested mapping of gate name -> qargs -> properties
+        out._gate_map = {}
+        out._coupling_graph = None
+        out._instruction_durations = None
+        out._instruction_schedule_map = None
+        out._non_global_basis = None
+        out._non_global_basis_strict = None
+        return out
 
     def __init__(
         self,
@@ -264,11 +311,36 @@ class Target(BaseTarget):
         qubit_properties=None,  # pylint: disable=unused-argument
         concurrent_measurements=None,  # pylint: disable=unused-argument
     ):
-        # A nested mapping of gate name -> qargs -> properties
-        self._gate_map = {}
-        self._coupling_graph = None
-        self._instruction_durations = None
-        self._instruction_schedule_map = None
+        super().__init__()
+
+    def get_non_global_operation_names(self, strict_direction=False):
+        """Return the non-global operation names for the target
+
+        The non-global operations are those in the target which don't apply
+        on all qubits (for single qubit operations) or all multi-qubit qargs
+        (for multi-qubit operations).
+
+        Args:
+            strict_direction (bool): If set to ``True`` the multi-qubit
+                operations considered as non-global respect the strict
+                direction (or order of qubits in the qargs is significant). For
+                example, if ``cx`` is defined on ``(0, 1)`` and ``ecr`` is
+                defined over ``(1, 0)`` by default neither would be considered
+                non-global, but if ``strict_direction`` is set ``True`` both
+                ``cx`` and ``ecr`` would be returned.
+
+        Returns:
+            List[str]: A list of operation names for operations that aren't global in this target
+        """
+        if strict_direction:
+            if self._non_global_basis_strict is None:
+                self._non_global_basis_strict = super()._get_non_global_operation_names(
+                    strict_direction
+                )
+            return self._non_global_basis_strict
+        if self._non_global_basis is None:
+            self._non_global_basis = super()._get_non_global_operation_names(strict_direction)
+        return self._non_global_basis
 
     @property
     def dt(self):
@@ -281,7 +353,7 @@ class Target(BaseTarget):
         self._dt = dt
         self._instruction_durations = None
 
-    def add_instruction(self, instruction, properties=None, name=None):
+    def add_instruction(self, instruction, properties=None, name=None, *, angle_bounds=None):
         """Add a new instruction to the :class:`~qiskit.transpiler.Target`
 
         As ``Target`` objects are strictly additive this is the primary method
@@ -343,6 +415,13 @@ class Target(BaseTarget):
                 parameterization of a single gate by providing a unique name for
                 each (e.g. `"rx30"`, `"rx60", ``"rx90"`` similar to the example in the
                 documentation for the :class:`~qiskit.transpiler.Target` class).
+            angle_bounds (list): The bounds on the parameters for a given gate. This is specified by
+                a list of tuples (low, high) which represent the low and high bound (inclusively) on
+                what float values are allowed for the parameter in that position. If a parameter
+                doesn't have an angle bound you can use ``None`` to represent that. For example if
+                a 3 parameter gate only had a bound on the second parameter you would represent
+                that with: ``[None, [0, 3.14], None]`` which means the first and third parameter
+                allow any value but the second parameter only accepts values between 0 and 3.14.
         Raises:
             AttributeError: If gate is already in map
             TranspilerError: If an operation class is passed in for ``instruction`` and no name
@@ -366,14 +445,24 @@ class Target(BaseTarget):
             properties = {None: None}
         if instruction_name in self._gate_map:
             raise AttributeError(f"Instruction {instruction_name} is already in the target")
-        super().add_instruction(instruction, instruction_name, properties)
+        super().add_instruction(
+            instruction, instruction_name, properties, angle_bounds=angle_bounds
+        )
         self._gate_map[instruction_name] = properties
         self._coupling_graph = None
         self._instruction_durations = None
         self._instruction_schedule_map = None
+        self._non_global_basis_strict = None
+        self._non_global_basis = None
 
     def update_instruction_properties(self, instruction, qargs, properties):
-        """Update the property object for an instruction qarg pair already in the Target
+        """Update the property object for an instruction qarg pair already in the Target.
+
+        For ease of access, a user is able to obtain the mapping between an instruction's
+        applicable qargs and its instruction properties via the mapping protocol (using ``__getitem__``),
+        with the instruction's name as the key. This method is the only way to
+        modify/update the properties of an instruction in the ``Target``. Usage of the mapping protocol
+        for modifications is not supported.
 
         Args:
             instruction (str): The instruction name to update
@@ -867,8 +956,46 @@ class _FakeTarget(Target):
     This is intended to replace the use of loose constraints in the pipeline.
     """
 
-    def __init__(self, coupling_map=None, **kwargs):
-        super().__init__(**kwargs)
+    def __new__(
+        cls,
+        coupling_map=None,  # pylint: disable=unused-argument
+        description=None,
+        num_qubits=0,
+        dt=None,
+        granularity=1,
+        min_length=1,
+        pulse_alignment=1,
+        acquire_alignment=1,
+        qubit_properties=None,
+        concurrent_measurements=None,
+    ):
+        return super().__new__(
+            cls,
+            description=description,
+            num_qubits=num_qubits,
+            dt=dt,
+            granularity=granularity,
+            min_length=min_length,
+            pulse_alignment=pulse_alignment,
+            acquire_alignment=acquire_alignment,
+            qubit_properties=qubit_properties,
+            concurrent_measurements=concurrent_measurements,
+        )
+
+    def __init__(
+        self,
+        coupling_map=None,
+        description=None,  # pylint: disable=unused-argument
+        num_qubits=0,  # pylint: disable=unused-argument
+        dt=None,  # pylint: disable=unused-argument
+        granularity=1,  # pylint: disable=unused-argument
+        min_length=1,  # pylint: disable=unused-argument
+        pulse_alignment=1,  # pylint: disable=unused-argument
+        acquire_alignment=1,  # pylint: disable=unused-argument
+        qubit_properties=None,  # pylint: disable=unused-argument
+        concurrent_measurements=None,  # pylint: disable=unused-argument
+    ):
+        super().__init__()
         if coupling_map is None or isinstance(coupling_map, CouplingMap):
             self._coupling_map = coupling_map
         else:

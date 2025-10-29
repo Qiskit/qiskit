@@ -1,0 +1,5 @@
+---
+features_quantum_info:
+  - |
+    Added the :func:`.PauliLindbladMap.drop_qubits` and :func:`.PauliLindbladMap.keep_qubits`
+    methods to trace subsystems out of Pauli Lindblad maps.
