@@ -10,10 +10,10 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use num_bigint::BigUint;
 use crate::classical::expr::{ExprKind, PyExpr};
 use crate::classical::types::Type;
 use crate::duration::Duration;
+use num_bigint::BigUint;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
 use pyo3::{IntoPyObjectExt, intern};
