@@ -144,7 +144,7 @@ impl PyNodeDurations {
     }
 
     fn __contains__<'py>(&'py self, py: Python<'py>, node: Bound<'py, PyAny>) -> bool {
-        node.downcast_into()
+        node.cast_into()
             .map(|node| self.__getitem__(py, node).is_ok())
             .is_ok_and(|val| val)
     }
@@ -178,16 +178,18 @@ impl NodeDurations {
     }
 }
 
-impl<'py> FromPyObject<'py> for NodeDurations {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let dict_downcast: &Bound<'py, PyDict> = ob.downcast()?;
+impl<'a, 'py> FromPyObject<'a, 'py> for NodeDurations {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+        let dict_downcast: Borrowed<'a, 'py, PyDict> = obj.cast()?;
         if let Some((_, key)) = dict_downcast.iter().next() {
             if key.extract::<u64>().is_ok() {
                 // All durations are of type u64
                 let mut op_durations = HashMap::default();
                 for (py_node, py_duration) in dict_downcast.iter() {
                     let node_idx = py_node
-                        .downcast_into::<DAGOpNode>()?
+                        .cast_into::<DAGOpNode>()?
                         .cast::<DAGNode>()?
                         .borrow()
                         .node
@@ -201,7 +203,7 @@ impl<'py> FromPyObject<'py> for NodeDurations {
                 let mut op_durations = HashMap::default();
                 for (py_node, py_duration) in dict_downcast.iter() {
                     let node_idx = py_node
-                        .downcast_into::<DAGOpNode>()?
+                        .cast_into::<DAGOpNode>()?
                         .cast::<DAGNode>()?
                         .borrow()
                         .node

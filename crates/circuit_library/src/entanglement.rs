@@ -166,19 +166,19 @@ pub fn get_entanglement<'a>(
         entanglement.to_owned()
     };
 
-    if let Ok(strategy) = entanglement.downcast::<PyString>() {
+    if let Ok(strategy) = entanglement.cast::<PyString>() {
         let as_str = strategy.to_string();
         return Ok(Box::new(
             get_entanglement_from_str(num_qubits, block_size, as_str.as_str(), offset)?.map(Ok),
         ));
-    } else if let Ok(dict) = entanglement.downcast::<PyDict>() {
+    } else if let Ok(dict) = entanglement.cast::<PyDict>() {
         if let Some(value) = dict.get_item(block_size)? {
-            let list = value.downcast::<PyList>()?;
+            let list = value.cast::<PyList>()?;
             return _check_entanglement_list(list.to_owned(), block_size);
         } else {
             return Ok(Box::new(std::iter::empty()));
         }
-    } else if let Ok(list) = entanglement.downcast::<PyList>() {
+    } else if let Ok(list) = entanglement.cast::<PyList>() {
         return _check_entanglement_list(list.to_owned(), block_size);
     }
     Err(QiskitError::new_err(
