@@ -75,6 +75,7 @@ static int test_dag_with_classical_reg(void) {
 }
 
 static int test_dag_apply_gate(void) {
+    int result = Ok;
     QkDag *dag = qk_dag_new();
     QkQuantumRegister *qr = qk_quantum_register_new(2, "my_register");
     qk_dag_add_quantum_register(dag, qr);
@@ -82,7 +83,8 @@ static int test_dag_apply_gate(void) {
     size_t num_ops = qk_dag_num_op_nodes(dag);
     if (num_ops != 0) {
         printf("The number of op nodes %zu is not 0\n", num_ops);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
 
     uint32_t h_bits[1] = {0};
@@ -91,7 +93,8 @@ static int test_dag_apply_gate(void) {
     num_ops = qk_dag_num_op_nodes(dag);
     if (num_ops != 1) {
         printf("The number of op nodes %zu is not 1\n", num_ops);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
 
     uint32_t crx_bits[2] = {0, 1};
@@ -102,20 +105,23 @@ static int test_dag_apply_gate(void) {
     num_ops = qk_dag_num_op_nodes(dag);
     if (num_ops != 2) {
         printf("The number of op nodes %zu is not 2\n", num_ops);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
 
     // Check the node's kind.
     if (qk_dag_op_node_kind(dag, crx_node_idx) != QkOperationKind_Gate) {
         printf("Expected gate kind\n");
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
 
     // Check the gate has the right number of params.
     uint32_t num_params = qk_dag_op_node_num_params(dag, crx_node_idx);
     if (num_params != 1) {
         printf("Expected num params 1 but got %u\n", num_params);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
 
     // Make sure we can get the standard gate and params back from the node.
@@ -123,20 +129,22 @@ static int test_dag_apply_gate(void) {
     QkGate actual_gate = qk_dag_op_node_gate(dag, crx_node_idx, actual_crx_params);
     if (actual_gate != QkGate_CRX) {
         printf("Expected gate of type %u but got %u\n", QkGate_CRX, actual_gate);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
 
     if (actual_crx_params[0] != crx_params[0]) {
         printf("Expected param %f but got %f\n", crx_params[0], actual_crx_params[0]);
-        return EqualityError;
+        result = EqualityError;
     }
-
+cleanup:
     qk_dag_free(dag);
     qk_quantum_register_free(qr);
-    return Ok;
+    return result;
 }
 
 static int test_op_node_bits_explicit(void) {
+    int result = Ok;
     QkDag *dag = qk_dag_new();
     QkQuantumRegister *qr = qk_quantum_register_new(2, "my_register");
     qk_dag_add_quantum_register(dag, qr);
@@ -148,19 +156,22 @@ static int test_op_node_bits_explicit(void) {
     uint32_t num_qubits = qk_dag_op_node_num_qubits(dag, h_node_idx);
     if (num_qubits != 1) {
         printf("The number of qubits %u is not 1\n", num_qubits);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
 
     if (qk_dag_op_node_qubits(dag, h_node_idx)[0] != h_bits[0]) {
         printf("Expected a single qubit of value %u but got %u\n", h_bits[0],
                qk_dag_op_node_qubits(dag, h_node_idx)[0]);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
 
     uint32_t num_clbits = qk_dag_op_node_num_clbits(dag, h_node_idx);
     if (num_clbits != 0) {
         printf("The number of clbits %u is not 0\n", num_clbits);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
 
     uint32_t cx_bits[2] = {1, 0};
@@ -170,29 +181,32 @@ static int test_op_node_bits_explicit(void) {
     num_qubits = qk_dag_op_node_num_qubits(dag, cx_node_idx);
     if (num_qubits != 2) {
         printf("The number of qubits %u is not 2\n", num_qubits);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
 
     for (uint32_t i = 0; i < num_qubits; i++) {
         if (qk_dag_op_node_qubits(dag, cx_node_idx)[i] != cx_bits[i]) {
             printf("Expected a qubit of value %u in position %u but got %u\n", cx_bits[0], i,
                    qk_dag_op_node_qubits(dag, cx_node_idx)[0]);
-            return EqualityError;
+            result = EqualityError;
+            goto cleanup;
         }
     }
 
     num_clbits = qk_dag_op_node_num_clbits(dag, cx_node_idx);
     if (num_clbits != 0) {
         printf("The number of clbits %u is not 0\n", num_clbits);
-        return EqualityError;
+        result = EqualityError;
     }
-
+cleanup:
     qk_dag_free(dag);
     qk_quantum_register_free(qr);
-    return Ok;
+    return result;
 }
 
 static int test_dag_node_type(void) {
+    int result = Ok;
     QkDag *dag = qk_dag_new();
     QkQuantumRegister *qr = qk_quantum_register_new(1, "qr");
     QkClassicalRegister *cr = qk_classical_register_new(1, "cr");
@@ -215,40 +229,46 @@ static int test_dag_node_type(void) {
     QkDagNodeType node_type = qk_dag_node_type(dag, qubit_in_idx);
     if (node_type != QkDagNodeType_QubitIn) {
         printf("Expected node type %d but got %d\n", QkDagNodeType_QubitIn, node_type);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
 
     node_type = qk_dag_node_type(dag, qubit_out_idx);
     if (node_type != QkDagNodeType_QubitOut) {
         printf("Expected node type %d but got %d\n", QkDagNodeType_QubitOut, node_type);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
 
     node_type = qk_dag_node_type(dag, clbit_in_idx);
     if (node_type != QkDagNodeType_ClbitIn) {
         printf("Expected node type %d but got %d\n", QkDagNodeType_ClbitIn, node_type);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
 
     node_type = qk_dag_node_type(dag, clbit_out_idx);
     if (node_type != QkDagNodeType_ClbitOut) {
         printf("Expected node type %d but got %d\n", QkDagNodeType_ClbitOut, node_type);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
 
     node_type = qk_dag_node_type(dag, h_node_idx);
     if (node_type != QkDagNodeType_Operation) {
         printf("Expected node type %d but got %d\n", QkDagNodeType_Operation, node_type);
-        return EqualityError;
+        result = EqualityError;
     }
 
+cleanup:
     qk_dag_free(dag);
     qk_quantum_register_free(qr);
     qk_classical_register_free(cr);
-    return Ok;
+    return result;
 }
 
 static int test_dag_endpoint_node_value(void) {
+    int result = Ok;
     QkDag *dag = qk_dag_new();
     QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
     QkClassicalRegister *cr = qk_classical_register_new(2, "cr");
@@ -266,29 +286,33 @@ static int test_dag_endpoint_node_value(void) {
         uint32_t actual = qk_dag_endpoint_node_value(dag, qubit_in_idx);
         if (actual != i) {
             printf("Expected wire endpoint qubit value to be %u but got %u\n", i, actual);
-            return EqualityError;
+            result = EqualityError;
+            goto cleanup;
         }
         actual = qk_dag_endpoint_node_value(dag, qubit_out_idx);
         if (actual != i) {
             printf("Expected wire endpoint qubit value to be %u but got %u\n", i, actual);
-            return EqualityError;
+            result = EqualityError;
+            goto cleanup;
         }
         actual = qk_dag_endpoint_node_value(dag, clbit_in_idx);
         if (actual != i) {
             printf("Expected wire endpoint clbit value to be %u but got %u\n", i, actual);
-            return EqualityError;
+            result = EqualityError;
+            goto cleanup;
         }
         actual = qk_dag_endpoint_node_value(dag, clbit_out_idx);
         if (actual != i) {
             printf("Expected wire endpoint clbit value to be %u but got %u\n", i, actual);
-            return EqualityError;
+            result = EqualityError;
+            goto cleanup;
         }
     }
-
+cleanup:
     qk_dag_free(dag);
     qk_quantum_register_free(qr);
     qk_classical_register_free(cr);
-    return Ok;
+    return result;
 }
 
 int test_dag(void) {
