@@ -98,7 +98,7 @@ class TestOptimizeCliffordT(QiskitTestCase):
         qc.h(0)
         qc.tdg(0)
         optimized = OptimizeCliffordT()(qc)
-        print(optimized)
+
         # The Clifford gates in the middle correspond to an identity
         # Clifford up a global phase of pi/4. The two Tdg gates on the ends
         # can be combined into an Sdg-gate (which gets implemented as S,Z).
