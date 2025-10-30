@@ -16,7 +16,12 @@ pub mod asap_schedule_analysis;
 use std::ops::{Add, Deref, Sub};
 
 use hashbrown::HashMap;
-use pyo3::{IntoPyObjectExt, exceptions::PyKeyError, prelude::*, types::PyList};
+use pyo3::{
+    IntoPyObjectExt,
+    exceptions::PyKeyError,
+    prelude::*,
+    types::PyList,
+};
 use qiskit_circuit::dag_node::{DAGNode, DAGOpNode};
 use rustworkx_core::petgraph::graph::NodeIndex;
 
