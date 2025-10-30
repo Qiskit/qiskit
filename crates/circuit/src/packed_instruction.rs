@@ -511,7 +511,7 @@ impl PackedOperation {
             OperationRef::PauliProductMeasurement(_) => {
                 return PAULI_PRODUCT_MEASUREMENT
                     .get_bound(py)
-                    .downcast::<PyType>()?
+                    .cast::<PyType>()?
                     .is_subclass(py_type);
             }
         };

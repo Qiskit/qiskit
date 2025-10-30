@@ -630,7 +630,10 @@ impl<'a, 'py> FromPyObject<'a, 'py> for OperationFromPython {
                     .as_slice()?
                     .to_vec()
             } else {
-                return Err(PyTypeError::new_err(format!("invalid input: {ob}")));
+                return Err(PyTypeError::new_err(format!(
+                    "invalid input: {}",
+                    ob.to_owned()
+                )));
             };
 
             let x = if let Param::Obj(x) = &params[1] {
@@ -638,13 +641,19 @@ impl<'a, 'py> FromPyObject<'a, 'py> for OperationFromPython {
                     .as_slice()?
                     .to_vec()
             } else {
-                return Err(PyTypeError::new_err(format!("invalid input: {ob}")));
+                return Err(PyTypeError::new_err(format!(
+                    "invalid input: {}",
+                    ob.to_owned()
+                )));
             };
 
             let phase = if let Param::Obj(phase) = &params[2] {
                 phase.extract::<u8>(py)?
             } else {
-                return Err(PyTypeError::new_err(format!("invalid input: {ob}")));
+                return Err(PyTypeError::new_err(format!(
+                    "invalid input: {}",
+                    ob.to_owned()
+                )));
             };
 
             let pauli_product_measurement = Box::new(PauliProductMeasurement {
