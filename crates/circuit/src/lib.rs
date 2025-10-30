@@ -38,8 +38,6 @@ pub mod register_data;
 pub mod slice;
 pub mod util;
 pub mod vf2;
-pub mod circuit_drawer;
-
 mod variable_mapper;
 
 use pyo3::PyTypeInfo;
