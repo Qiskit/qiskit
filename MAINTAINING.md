@@ -6,14 +6,18 @@ The information detailed here is mostly related to Qiskit releases and other int
 
 ## Package Version
 
-The version of the Qiskit package and crates is set in a few places:
+The version of the Qiskit package and crates is mentioned in a few places:
 
-* `qiskit/VERSION.txt` for the Python package and docs
-* `Cargo.toml` for the Rust crates
-* `crates/cext/cbindgen.toml` for the C header file
+* `qiskit/VERSION.txt` for defining the Python package and docs
+* `Cargo.toml` for defining the Rust crates
+* `crates/cext/cbindgen.toml` for defining the C header file
+* `docs/release_notes.rst` for configuring the release-notes documentation build
 
-In principle, all three version numbers should be the same at all times.
+In principle, the first three version numbers should be the same at all times.
 However, the different languages have different conventions about formatting.
+
+The `docs/release_notes.rst` version (in the `:earliest-version:` directive to `reno`) should match the git tag of the earliest release in the series (including pre-releases).
+We use Python version-number formatting for our git tags.
 
 ### Version-number formatting
 
@@ -39,6 +43,9 @@ The package version stored into the repository should be changed as follows:
 
 - on a stable branch, the version number should be whatever the most recent release on the stable branch was; it is incremented as part of the release process.
   For example, the `stable/2.3` branch is created from the commit that bumps the version number to `2.3.0rc1`.
+
+  The `:earliest-version:` number in `docs/release_notes.rst` should be the earliest tag (including pre-releases) in that minor series.
+  For example, `stable/2.2`'s earliest release is `2.2.0b1`, whereas `stable/2.1`'s is `2.1.0rc1`.
 
 The procedure for a new minor-version release, with respect to version numbers is:
 
@@ -84,15 +91,12 @@ like normal.
 
 ## Documentation Structure
 
-The way documentation is structured in Qiskit is to push as much of the actual
-documentation into the docstrings as possible. This makes it easier for
-additions and corrections to be made during development, because the majority
-of the documentation lives near the code being changed. These docstrings are then pulled into
-the API Reference section of https://quantum.cloud.ibm.com/docs.
+Qiskit documentation is structured to keep as much of the content as possible within [docstrings](https://peps.python.org/pep-0257/#what-is-a-docstring).
+This approach makes it easier to add or update documentation during development, since most of it lives close to the code being modified.
+These docstrings are then pulled into [the API Reference section](https://quantum.cloud.ibm.com/docs/api/qiskit) of [quantum.cloud.ibm.com/docs](https://quantum.cloud.ibm.com/docs/).
 
-Refer to https://qiskit.github.io/qiskit_sphinx_theme/apidocs/index.html for how to create and
+Refer to [`qiskit_sphinx_theme` docs](https://qiskit.github.io/qiskit_sphinx_theme/apidocs/index.html) for how to create and
 write effective API documentation, such as setting up the RST files and docstrings.
 
-If changes you are making affect non-API reference content in https://quantum.cloud.ibm.com/docs
-you can open an issue (or better yet a PR) to update the relevant page in https://github.com/Qiskit/documentation.
-You can also use this repo to suggest or contribute brand new content beyond updates to the API reference.
+If your changes affect non-API content on [quantum.cloud.ibm.com/docs](https://quantum.cloud.ibm.com/docs), you can open an issue (or better yet, a PR) in the [Qiskit/documentation](https://github.com/Qiskit/documentation) repository.
+That repository can also be used to suggest or contribute brand-new content beyond updates to the API reference.

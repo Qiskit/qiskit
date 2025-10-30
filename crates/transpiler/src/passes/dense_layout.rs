@@ -19,9 +19,9 @@ use numpy::IntoPyArray;
 use numpy::PyReadonlyArray2;
 use rayon::prelude::*;
 
+use pyo3::Python;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
-use pyo3::Python;
 
 use qiskit_circuit::getenv_use_multiple_threads;
 
@@ -110,7 +110,7 @@ pub fn py_best_subset(
     use_error: bool,
     symmetric_coupling_map: bool,
     error_matrix: PyReadonlyArray2<f64>,
-) -> (PyObject, PyObject, PyObject) {
+) -> (Py<PyAny>, Py<PyAny>, Py<PyAny>) {
     let coupling_adj_mat = coupling_adjacency.as_array();
     let err = error_matrix.as_array();
     let [rows, cols, best_map] = best_subset(

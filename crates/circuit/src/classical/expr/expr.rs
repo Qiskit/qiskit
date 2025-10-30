@@ -13,7 +13,7 @@
 use crate::classical::expr::{Binary, Cast, Index, Stretch, Unary, Value, Var};
 use crate::classical::types::Type;
 use pyo3::prelude::*;
-use pyo3::{intern, IntoPyObjectExt};
+use pyo3::{IntoPyObjectExt, intern};
 
 /// A classical expression.
 ///
@@ -453,9 +453,11 @@ impl<'py> IntoPyObject<'py> for Expr {
     }
 }
 
-impl<'py> FromPyObject<'py> for Expr {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let expr: PyRef<'_, PyExpr> = ob.downcast()?.borrow();
+impl<'a, 'py> FromPyObject<'a, 'py> for Expr {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+        let expr: PyRef<'_, PyExpr> = ob.cast()?.borrow();
         match expr.0 {
             ExprKind::Unary => Ok(Expr::Unary(Box::new(ob.extract()?))),
             ExprKind::Binary => Ok(Expr::Binary(Box::new(ob.extract()?))),

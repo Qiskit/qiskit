@@ -2001,6 +2001,40 @@ class QuantumCircuit:
 
         return controlled_circ
 
+    @overload
+    def compose(
+        self,
+        other: Union["QuantumCircuit", Instruction],
+        qubits: QubitSpecifier | Sequence[QubitSpecifier] | None = None,
+        clbits: ClbitSpecifier | Sequence[ClbitSpecifier] | None = None,
+        front: bool = False,
+        inplace: Literal[True] = True,
+        wrap: bool = False,
+        *,
+        copy: bool = True,
+        var_remap: (
+            Mapping[str | expr.Var | expr.Stretch, str | expr.Var | expr.Stretch] | None
+        ) = None,
+        inline_captures: bool = False,
+    ) -> None: ...
+
+    @overload
+    def compose(
+        self,
+        other: Union["QuantumCircuit", Instruction],
+        qubits: QubitSpecifier | Sequence[QubitSpecifier] | None = None,
+        clbits: ClbitSpecifier | Sequence[ClbitSpecifier] | None = None,
+        front: bool = False,
+        inplace: Literal[False] = False,
+        wrap: bool = False,
+        *,
+        copy: bool = True,
+        var_remap: (
+            Mapping[str | expr.Var | expr.Stretch, str | expr.Var | expr.Stretch] | None
+        ) = None,
+        inline_captures: bool = False,
+    ) -> "QuantumCircuit": ...
+
     def compose(
         self,
         other: Union["QuantumCircuit", Instruction],
@@ -2015,7 +2049,7 @@ class QuantumCircuit:
             Mapping[str | expr.Var | expr.Stretch, str | expr.Var | expr.Stretch] | None
         ) = None,
         inline_captures: bool = False,
-    ) -> Optional["QuantumCircuit"]:
+    ) -> "QuantumCircuit" | None:
         """Apply the instructions from one circuit onto specified qubits and/or clbits on another.
 
         .. note::
@@ -2320,6 +2354,9 @@ class QuantumCircuit:
                     n_op = Store(
                         variable_mapper.map_expr(n_op.lvalue), variable_mapper.map_expr(n_op.rvalue)
                     )
+                elif isinstance(n_op, Delay) and n_op.unit == "expr":
+                    n_op = n_op.copy()
+                    n_op.duration = variable_mapper.map_expr(n_op.duration)
                 return n_op.copy() if n_op is op and copy else n_op
 
             instructions = source._data.copy(copy_instructions=copy)

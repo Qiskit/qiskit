@@ -28,7 +28,9 @@ pub enum TargetError {
         instruction: String,
         arguments: String,
     },
-    #[error("The number of parameters for {instruction}: {instruction_num} does not match the provided number of parameters: {argument_num}.")]
+    #[error(
+        "The number of parameters for {instruction}: {instruction_num} does not match the provided number of parameters: {argument_num}."
+    )]
     ParamsMismatch {
         instruction: String,
         instruction_num: usize,
@@ -48,4 +50,10 @@ pub enum TargetError {
     ///The specified bounds for the instruction are not valid.
     #[error["Lower bound {low} is not less than higher bound {high}."]]
     InvalidBounds { low: f64, high: f64 },
+}
+
+impl From<TargetError> for ::pyo3::PyErr {
+    fn from(val: TargetError) -> Self {
+        crate::TranspilerError::new_err(val.to_string())
+    }
 }

@@ -153,11 +153,19 @@ class VF2PostLayout(AnalysisPass):
             self.property_set["VF2PostLayout_stop_reason"] = VF2PostLayoutStopReason.MORE_THAN_2Q
             return
         im_graph, im_graph_node_map, reverse_im_graph_node_map, free_nodes = result
-        if len(free_nodes) > 1 and self.strict_direction:
-            self.property_set["VF2PostLayout_stop_reason"] = (
-                VF2PostLayoutStopReason.NO_BETTER_SOLUTION_FOUND
-            )
-            return
+        if self.strict_direction and free_nodes:
+            # If there are uncoupled qubits, in non-strict modes we just allocate them to the
+            # lowest-error states at the end.  However, in strict mode, we have to consider them at
+            # the same time to handle heterogeneous targets correctly.  This risks a factorial
+            # combinatoric explosion in complexity, though, so we put a limit on how many we'll
+            # handle.  The builder still builds the graph entirely, it just returns the free nodes
+            # for us to check on, so we clear that out after we've checked it.
+            if len(free_nodes) > 1:
+                self.property_set["VF2PostLayout_stop_reason"] = (
+                    VF2PostLayoutStopReason.NO_BETTER_SOLUTION_FOUND
+                )
+                return
+            free_nodes.clear()
         scoring_bit_list = vf2_utils.build_bit_list(im_graph, im_graph_node_map)
         scoring_edge_list = vf2_utils.build_edge_list(im_graph)
 

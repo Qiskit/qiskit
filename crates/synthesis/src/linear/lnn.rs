@@ -16,9 +16,9 @@ use numpy::PyReadonlyArray2;
 use smallvec::smallvec;
 
 use pyo3::prelude::*;
+use qiskit_circuit::Qubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{Param, StandardGate};
-use qiskit_circuit::Qubit;
 
 // Optimize the synthesis of an n-qubit circuit contains only CX gates for
 // linear nearest neighbor (LNN) connectivity.
