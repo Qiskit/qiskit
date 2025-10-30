@@ -124,8 +124,8 @@ class TestExprProperties(QiskitTestCase):
 
     def test_big_int_values(self):
         """Test that ``Value`` of type ``Uint`` can handle arbitrarily large integer"""
-        for raw_value in [10, 10**20, 10**50]:        
-            val = expr.Value(raw_value, types.Uint(1)),
+        for raw_value in [10, 10**20, 10**50]:
+            val = (expr.Value(raw_value, types.Uint(1)),)
             self.assertEqual(raw_value, val[0].value)
 
     def test_var_hashable(self):
