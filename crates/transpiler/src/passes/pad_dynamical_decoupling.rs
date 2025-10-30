@@ -422,7 +422,6 @@ pub fn run_pad_dynamical_decoupling(
                 .copied()
                 .unwrap_or(0) as f64;
 
-            // FIX: Safe qubit index unwrap
             let qubit_idx = qubit
                 .index()
                 .ok_or_else(|| TranspilerError::new_err("DD qubit has no index."))?;
@@ -431,7 +430,7 @@ pub fn run_pad_dynamical_decoupling(
                 gate.clone().into(),
                 &[Qubit(qubit_idx as u32)],
                 &[],
-                Some(params.clone()), // FIX: Pass params
+                Some(params.clone()),
                 None,
                 #[cfg(feature = "cache_pygates")]
                 None,
