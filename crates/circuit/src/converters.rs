@@ -17,7 +17,7 @@ use pyo3::intern;
 use pyo3::prelude::*;
 
 use crate::bit::{ShareableClbit, ShareableQubit};
-use crate::circuit_data::{CircuitData, CircuitVar};
+use crate::circuit_data::{CircuitData, CircuitDataError, CircuitVar};
 use crate::dag_circuit::DAGIdentifierInfo;
 use crate::dag_circuit::{DAGCircuit, NodeType};
 use crate::operations::{OperationRef, PythonOperation};
@@ -58,7 +58,10 @@ pub fn circuit_to_dag(
 }
 
 #[pyfunction(signature = (dag, copy_operations = true))]
-pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<CircuitData> {
+pub fn dag_to_circuit(
+    dag: &DAGCircuit,
+    copy_operations: bool,
+) -> Result<CircuitData, CircuitDataError> {
     CircuitData::from_packed_instructions(
         dag.qubits().clone(),
         dag.clbits().clone(),
@@ -68,40 +71,48 @@ pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<Circu
         dag.cregs_data().clone(),
         dag.qubit_locations().clone(),
         dag.clbit_locations().clone(),
-        dag.topological_op_nodes()?.map(|node_index| {
-            let NodeType::Operation(ref instr) = dag[node_index] else {
-                unreachable!(
-                    "The received node from topological_op_nodes() is not an Operation node."
-                )
-            };
-            if copy_operations {
-                let op = match instr.op.view() {
-                    OperationRef::Gate(gate) => {
-                        Python::attach(|py| gate.py_deepcopy(py, None))?.into()
-                    }
-                    OperationRef::Instruction(instruction) => {
-                        Python::attach(|py| instruction.py_deepcopy(py, None))?.into()
-                    }
-                    OperationRef::Operation(operation) => {
-                        Python::attach(|py| operation.py_deepcopy(py, None))?.into()
-                    }
-                    OperationRef::StandardGate(gate) => gate.into(),
-                    OperationRef::StandardInstruction(instruction) => instruction.into(),
-                    OperationRef::Unitary(unitary) => unitary.clone().into(),
+        dag.topological_op_nodes()
+            // TODO: Map to a native rust error when dag circuit is updated to not use
+            // PyErr for its rust API anymore.
+            .map_err(CircuitDataError::ErrorFromPython)?
+            .map(|node_index| {
+                let NodeType::Operation(ref instr) = dag[node_index] else {
+                    unreachable!(
+                        "The received node from topological_op_nodes() is not an Operation node."
+                    )
                 };
-                Ok(PackedInstruction {
-                    op,
-                    qubits: instr.qubits,
-                    clbits: instr.clbits,
-                    params: Some(Box::new(instr.params_view().iter().cloned().collect())),
-                    label: instr.label.clone(),
-                    #[cfg(feature = "cache_pygates")]
-                    py_op: OnceLock::new(),
-                })
-            } else {
-                Ok(instr.clone())
-            }
-        }),
+                if copy_operations {
+                    let op = match instr.op.view() {
+                        OperationRef::Gate(gate) => Python::attach(|py| gate.py_deepcopy(py, None))
+                            .map_err(CircuitDataError::ErrorFromPython)?
+                            .into(),
+                        OperationRef::Instruction(instruction) => {
+                            Python::attach(|py| instruction.py_deepcopy(py, None))
+                                .map_err(CircuitDataError::ErrorFromPython)?
+                                .into()
+                        }
+                        OperationRef::Operation(operation) => {
+                            Python::attach(|py| operation.py_deepcopy(py, None))
+                                .map_err(CircuitDataError::ErrorFromPython)?
+                                .into()
+                        }
+                        OperationRef::StandardGate(gate) => gate.into(),
+                        OperationRef::StandardInstruction(instruction) => instruction.into(),
+                        OperationRef::Unitary(unitary) => unitary.clone().into(),
+                    };
+                    Ok(PackedInstruction {
+                        op,
+                        qubits: instr.qubits,
+                        clbits: instr.clbits,
+                        params: Some(Box::new(instr.params_view().iter().cloned().collect())),
+                        label: instr.label.clone(),
+                        #[cfg(feature = "cache_pygates")]
+                        py_op: OnceLock::new(),
+                    })
+                } else {
+                    Ok(instr.clone())
+                }
+            }),
         dag.get_global_phase(),
         dag.identifiers() // Map and pass DAGCircuit variables and stretches to CircuitData style
             .map(|identifier| match identifier {

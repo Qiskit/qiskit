@@ -17,6 +17,33 @@ use pyo3::types::PyList;
 use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
 use std::sync::OnceLock;
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum ObjectRegistryError {
+    #[error("Object {0} has not been added to this circuit.")]
+    ObjectMissing(String),
+    #[error("Cannot add object {0}, which would exceed circuit capacity for its kind.")]
+    ExceedsCapacity(String),
+    #[error("Existing object {0} cannot be re-added in strict mode.")]
+    DuplicateObject(String),
+}
+
+impl From<ObjectRegistryError> for PyErr {
+    fn from(error: ObjectRegistryError) -> Self {
+        match error {
+            ObjectRegistryError::ObjectMissing(b) => {
+                PyKeyError::new_err(format!("Object {b} has not been added to this circuit."))
+            }
+            ObjectRegistryError::ExceedsCapacity(b) => PyRuntimeError::new_err(format!(
+                "Cannot add object {b}, which would exceed circuit capacity for its kind.",
+            )),
+            ObjectRegistryError::DuplicateObject(b) => PyValueError::new_err(format!(
+                "Existing object {b} cannot be re-added in strict mode."
+            )),
+        }
+    }
+}
 
 /// Wrapper for Python-side objects that implements [Hash] and [Eq], allowing them to be
 /// used in Rust hash-based sets and maps.
@@ -187,13 +214,14 @@ where
     pub fn map_objects<U: IntoIterator<Item = B>>(
         &self,
         objects: U,
-    ) -> PyResult<impl Iterator<Item = T> + use<T, B, U>> {
+    ) -> Result<impl Iterator<Item = T> + use<T, B, U>, ObjectRegistryError> {
         let v: Result<Vec<_>, _> = objects
             .into_iter()
             .map(|b| {
-                self.indices.get(&b).copied().ok_or_else(|| {
-                    PyKeyError::new_err(format!("Object {b:?} has not been added to this circuit."))
-                })
+                self.indices
+                    .get(&b)
+                    .copied()
+                    .ok_or_else(|| ObjectRegistryError::ObjectMissing(format!("{b:?}")))
             })
             .collect();
         v.map(|x| x.into_iter())
@@ -219,25 +247,23 @@ where
     }
 
     /// Registers a new object, automatically creating a unique index within the registry.
-    pub fn add(&mut self, object: B, strict: bool) -> PyResult<T> {
-        let idx: u32 = self.objects.len().try_into().map_err(|_| {
-            PyRuntimeError::new_err(format!(
-                "Cannot add object {object:?}, which would exceed circuit capacity for its kind.",
-            ))
-        })?;
+    pub fn add(&mut self, object: B, strict: bool) -> Result<T, ObjectRegistryError> {
+        let idx: u32 = self
+            .objects
+            .len()
+            .try_into()
+            .map_err(|_| ObjectRegistryError::ExceedsCapacity(format!("{object:?}")))?;
         // Dump the cache
         self.cached.take();
         if self.indices.try_insert(object.clone(), idx.into()).is_ok() {
             self.objects.push(object);
         } else if strict {
-            return Err(PyValueError::new_err(format!(
-                "Existing object {object:?} cannot be re-added in strict mode."
-            )));
+            return Err(ObjectRegistryError::DuplicateObject(format!("{object:?}")));
         }
         Ok(idx.into())
     }
 
-    pub fn remove_indices<I>(&mut self, indices: I) -> PyResult<()>
+    pub fn remove_indices<I>(&mut self, indices: I)
     where
         I: IntoIterator<Item = T>,
     {
@@ -255,7 +281,6 @@ where
         for (i, object) in self.objects.iter().enumerate() {
             self.indices.insert(object.clone(), (i as u32).into());
         }
-        Ok(())
     }
 
     /// Called during Python garbage collection, only!.
