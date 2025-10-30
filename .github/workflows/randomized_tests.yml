@@ -31,7 +31,7 @@ jobs:
           QISKIT_IGNORE_USER_SETTINGS: TRUE
       - name: Create comment on failed test run
         if: ${{ failure() }}
-        uses: peter-evans/create-or-update-comment@v4
+        uses: peter-evans/create-or-update-comment@v5
         with:
           issue-number: 2645
           body: |

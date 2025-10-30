@@ -158,7 +158,7 @@ impl DAGOpNode {
         // like parameter equality are stricter to reject things like
         // Param::Float(0.1) == Param::ParameterExpression(0.1) (if the expression was
         // a python parameter equivalent to a bound value).
-        let Ok(other) = other.downcast::<Self>() else {
+        let Ok(other) = other.cast::<Self>() else {
             return Ok(false);
         };
         let borrowed_other = other.borrow();
@@ -476,7 +476,7 @@ impl DAGInNode {
     }
 
     fn __eq__(slf: PyRef<Self>, py: Python, other: &Bound<PyAny>) -> PyResult<bool> {
-        match other.downcast::<Self>() {
+        match other.cast::<Self>() {
             Ok(other) => {
                 let borrowed_other = other.borrow();
                 let other_super = borrowed_other.as_ref();
@@ -539,7 +539,7 @@ impl DAGOutNode {
     }
 
     fn __eq__(slf: PyRef<Self>, py: Python, other: &Bound<PyAny>) -> PyResult<bool> {
-        match other.downcast::<Self>() {
+        match other.cast::<Self>() {
             Ok(other) => {
                 let borrowed_other = other.borrow();
                 let other_super = borrowed_other.as_ref();
