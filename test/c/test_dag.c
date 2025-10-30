@@ -105,6 +105,12 @@ static int test_dag_apply_gate(void) {
         return EqualityError;
     }
 
+    // Check the node's kind.
+    if (qk_dag_op_node_kind(dag, crx_node_idx) != QkOperationKind_Gate) {
+        printf("Expected gate kind\n");
+        return EqualityError;
+    }
+
     // Check the gate has the right number of params.
     uint32_t num_params = qk_dag_op_node_num_params(dag, crx_node_idx);
     if (num_params != 1) {

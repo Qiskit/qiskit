@@ -17,7 +17,9 @@ use crate::exit_codes::ExitCode;
 use qiskit_circuit::Qubit;
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
-use qiskit_circuit::operations::{Operation, Param, StandardGate};
+use qiskit_circuit::operations::{
+    Operation, OperationRef, Param, StandardGate, StandardInstruction,
+};
 
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
@@ -664,6 +666,63 @@ pub unsafe extern "C" fn qk_dag_op_node_gate(
         }
     }
     instr.standard_gate().unwrap()
+}
+
+/// The operation's kind.
+///
+/// This is returned when querying a particular node in the graph with ``qk_dag_op_node_kind``,
+/// and is intended to allow the caller to dispatch (e.g. via a "switch") calls specific to
+/// the contained operation's kind.
+#[repr(u8)]
+pub enum COperationKind {
+    Gate = 0,
+    Barrier = 1,
+    Delay = 2,
+    Measure = 3,
+    Reset = 4,
+    Unitary = 5,
+}
+
+/// @ingroup QkDag
+/// Get the "kind" of an operation node.
+///
+/// The result can be used in a switch statement to dispatch proper handling
+/// when iterating over operation nodes.
+///
+/// Panics if ``node`` is not an operation node.
+///
+/// @param dag A pointer to the DAG.
+/// @param node The operation node to get the "kind" of.
+///
+/// @return The "kind" of the node.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_op_node_kind(dag: *const DAGCircuit, node: u32) -> COperationKind {
+    let dag = unsafe { const_ptr_as_ref(dag) };
+    match dag
+        .dag()
+        .node_weight(NodeIndex::new(node as usize))
+        .unwrap()
+        .unwrap_operation()
+        .op
+        .view()
+    {
+        OperationRef::StandardGate(_) => COperationKind::Gate,
+        OperationRef::StandardInstruction(instr) => match instr {
+            StandardInstruction::Barrier(_) => COperationKind::Barrier,
+            StandardInstruction::Delay(_) => COperationKind::Delay,
+            StandardInstruction::Measure => COperationKind::Measure,
+            StandardInstruction::Reset => COperationKind::Reset,
+        },
+        OperationRef::Unitary(_) => COperationKind::Unitary,
+        OperationRef::Gate(_) | OperationRef::Instruction(_) | OperationRef::Operation(_) => {
+            panic!("Python instances are not supported via the C API");
+        }
+    }
 }
 
 /// @ingroup QkDag
