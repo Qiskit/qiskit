@@ -12,14 +12,78 @@
 
 use approx::{abs_diff_eq, relative_ne};
 use faer::MatRef;
-use faer_ext::{IntoFaer, IntoNalgebra};
-use nalgebra::{DMatrix, DMatrixView};
+use faer_ext::IntoFaer;
+use nalgebra::{DMatrix, DMatrixView, Dim, Dyn, MatrixView, ViewStorage};
+use ndarray::ArrayView2;
+use ndarray::ShapeBuilder;
 use num_complex::Complex64;
 
 pub mod cos_sin_decomp;
 
 const ATOL_DEFAULT: f64 = 1e-8;
 const RTOL_DEFAULT: f64 = 1e-5;
+
+fn nalgebra_to_faer<R: Dim, C: Dim, RStride: Dim, CStride: Dim>(
+    mat: MatrixView<'_, Complex64, R, C, RStride, CStride>,
+) -> MatRef<'_, Complex64> {
+    let dim = ::ndarray::Dim(mat.shape());
+    let strides = ::ndarray::Dim(mat.strides());
+
+    // SAFETY: We know the array is a 2d array from nalgebra and we get the pointer and memory layout
+    // description from nalgebra and can be assumed to be valid since the constraints on
+    // `ArrayView2::from_shape_ptr()`
+    // (https://docs.rs/ndarray/latest/ndarray/type.ArrayView.html#method.from_shape_ptr)
+    // should be be met for a valid nalgebra matrix.
+    let array = unsafe { ArrayView2::from_shape_ptr(dim.strides(strides), mat.get_unchecked(0)) };
+    array.into_faer()
+}
+
+/// Convert a faer MatRef into a nalgebra MatrixView without copying
+///
+/// This function has some potential sharp edeges around converting strided
+/// views. If you are using a strided `MatRef` you'll typically want to ensure
+/// the underlying matrix the view is over is contiguous. Specifically if it's
+/// not there is a potential path to undefined behavior when using nalgebra
+/// methods like `MatrixView::into_slice()` which doesn't understand
+/// striding and will access the memory as if the array was a contiguous R x C
+/// matrix. If using striding here it's best to not ever call `into_slice()`. There
+/// might also be similar sharp edges with strided matrices.
+fn faer_to_nalgebra(mat: MatRef<'_, Complex64>) -> MatrixView<'_, Complex64, Dyn, Dyn, Dyn, Dyn> {
+    // This function's code is based on faer-ext's IntoNalgebra::into_nalgebra implementation at:
+    // https://codeberg.org/sarah-quinones/faer-ext/src/commit/0f055b39529c94d1a000982df745cb9ce170f994/src/lib.rs#L77-L96
+
+    let nrows = mat.nrows();
+    let ncols = mat.ncols();
+    let row_stride = mat.row_stride();
+    let col_stride = mat.col_stride();
+
+    let ptr = mat.as_ptr();
+    // SAFETY: Pointer came from a faer MatRef as does the description of the memory layout
+    // so creating a view of the data from the from the pointer is safe unless the faer object
+    // is already corrupt. nalgebra doesn't support negative striding so that panics and we
+    // only work with positive strides
+    unsafe {
+        MatrixView::<'_, Complex64, Dyn, Dyn, Dyn, Dyn>::from_data(ViewStorage::<
+            '_,
+            Complex64,
+            Dyn,
+            Dyn,
+            Dyn,
+            Dyn,
+        >::from_raw_parts(
+            ptr,
+            (Dyn(nrows), Dyn(ncols)),
+            (
+                Dyn(row_stride
+                    .try_into()
+                    .expect("only works for positive strides")),
+                Dyn(col_stride
+                    .try_into()
+                    .expect("only works for positive strides")),
+            ),
+        ))
+    }
+}
 
 /// Check whether the given matrix is hermitian by comparing it (up to tolerance) with its hermitian adjoint.
 pub fn is_hermitian_matrix(mat: DMatrixView<Complex64>) -> bool {
@@ -101,7 +165,7 @@ pub fn svd_decomposition(
     mat: DMatrixView<Complex64>,
 ) -> (DMatrix<Complex64>, DMatrix<Complex64>, DMatrix<Complex64>) {
     let mat_view: DMatrixView<Complex64> = mat.as_view();
-    let faer_mat: MatRef<Complex64> = mat_view.into_faer();
+    let faer_mat: MatRef<Complex64> = nalgebra_to_faer(mat_view);
     let faer_svd = faer_mat.svd().unwrap();
 
     let u_faer = faer_svd.U();
@@ -116,8 +180,8 @@ pub fn svd_decomposition(
         }
     });
 
-    let u_na = u_faer.into_nalgebra();
-    let v_na = v_faer.into_nalgebra().adjoint();
+    let u_na = faer_to_nalgebra(u_faer);
+    let v_na = faer_to_nalgebra(v_faer).adjoint();
 
     debug_assert!(verify_svd_decomp(
         mat_view,
@@ -127,4 +191,43 @@ pub fn svd_decomposition(
     ));
 
     (u_na.into(), s_na, v_na)
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use faer::prelude::*;
+    use nalgebra::DMatrix;
+
+    #[test]
+    fn test_basic_faer_to_nalgebra_conversion() {
+        let matrix = Mat::from_fn(10, 10, |i, j| {
+            Complex64::new(i as f64, 0.0) + Complex64::new(j as f64 * 10., 0.)
+        });
+        let mat_view = faer_to_nalgebra(matrix.as_ref());
+        let expected = DMatrix::from_fn(10, 10, |i, j| {
+            Complex64::new(i as f64, 0.0) + Complex64::new(j as f64 * 10., 0.)
+        });
+        assert_eq!(mat_view, expected);
+    }
+
+    #[cfg(not(miri))] // TODO: Remove this after dimforge/nalgebra#1562 is released
+    #[test]
+    fn test_transpose_faer_to_nalgebra_conversion() {
+        let matrix = Mat::from_fn(10, 10, |i, j| {
+            Complex64::new(i as f64, 0.0) + Complex64::new(j as f64 * 10., 0.)
+        });
+        let mat_view = faer_to_nalgebra(matrix.transpose());
+        let expected = DMatrix::from_fn(10, 10, |i, j| {
+            Complex64::new(j as f64, 0.0) + Complex64::new(i as f64 * 10., 0.)
+        });
+        assert_eq!(mat_view, expected);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_negative_strided_view_faer_to_nalgebra_conversion() {
+        let matrix = Mat::identity(10, 10);
+        faer_to_nalgebra(matrix.reverse_rows());
+    }
 }
