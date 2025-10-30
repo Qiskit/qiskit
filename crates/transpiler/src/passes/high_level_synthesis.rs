@@ -591,7 +591,7 @@ fn run_on_circuitdata(
                 // old_blocks_py keeps the original QuantumCircuit's appearing within control-flow ops
                 // new_blocks_py keeps the recursively synthesized circuits
                 let old_blocks_py = old_blocks_as_bound_obj.getattr(intern!(py, "blocks"))?;
-                let old_blocks_py = old_blocks_py.downcast::<PyTuple>()?;
+                let old_blocks_py = old_blocks_py.cast::<PyTuple>()?;
                 let mut new_blocks_py: Vec<Bound<PyAny>> = Vec::with_capacity(old_blocks_py.len());
 
                 // We do not allow using any additional qubits outside of the block.
