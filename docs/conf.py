@@ -12,10 +12,6 @@
 
 from __future__ import annotations
 
-# pylint: disable=invalid-name,missing-function-docstring
-
-"""Sphinx documentation builder."""
-
 import datetime
 import doctest
 import importlib
@@ -25,6 +21,8 @@ import re
 from pathlib import Path
 
 import qiskit
+
+# pylint: disable=invalid-name,missing-function-docstring,missing-module-docstring
 
 
 project = "Qiskit"
@@ -56,9 +54,7 @@ extensions = [
 
 breathe_projects = {"qiskit": "xml/"}
 breathe_default_project = "qiskit"
-breathe_domain_by_extension = {
-    "h" : "c",
-}
+breathe_domain_by_extension = {"h": "c"}
 
 templates_path = ["_templates"]
 
