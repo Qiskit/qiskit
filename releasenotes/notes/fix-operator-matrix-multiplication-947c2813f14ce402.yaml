@@ -5,4 +5,4 @@ fixes:
     :class:`.Statevector` inputs by delegating to
     :meth:`.Statevector.evolve`, ensuring consistent behavior with
     operator–statevector application, and returning a :class:`.Statevector` of the
-    appropriate dimension and mathematical matrix multiplication value.
+    appropriate dimension and mathematical matrix multiplication value. Fixes Issue #14726.
