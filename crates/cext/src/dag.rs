@@ -171,16 +171,16 @@ pub unsafe extern "C" fn qk_dag_num_clbits(dag: *const DAGCircuit) -> u32 {
 ///
 /// # Example
 /// ```c
-///     QkDag *dag = qk_dag_new();
-///     QkQuantumRegister *qr = qk_quantum_register_new(1, "my_register");
-///     qk_dag_add_quantum_register(dag, qr);
+/// QkDag *dag = qk_dag_new();
+/// QkQuantumRegister *qr = qk_quantum_register_new(1, "my_register");
+/// qk_dag_add_quantum_register(dag, qr);
 ///
-///     uint32_t qubit[1] = {0};
-///     qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
-///     size_t num = qk_dag_num_op_nodes(dag); // 1
+/// uint32_t qubit[1] = {0};
+/// qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
+/// size_t num = qk_dag_num_op_nodes(dag); // 1
 ///
-///     qk_dag_free(dag);
-///     qk_quantum_register_free(qr);
+/// qk_dag_free(dag);
+/// qk_quantum_register_free(qr);
 /// ```
 ///
 /// # Safety
@@ -495,15 +495,15 @@ pub unsafe extern "C" fn qk_dag_op_node_clbits(dag: *const DAGCircuit, node: u32
 ///
 /// # Example
 /// ```c
-///     QkDag *dag = qk_dag_new();
-///     QkQuantumRegister *qr = qk_quantum_register_new(1, "my_register");
-///     qk_dag_add_quantum_register(dag, qr);
+/// QkDag *dag = qk_dag_new();
+/// QkQuantumRegister *qr = qk_quantum_register_new(1, "my_register");
+/// qk_dag_add_quantum_register(dag, qr);
 ///
-///     uint32_t qubit[1] = {0};
-///     qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
+/// uint32_t qubit[1] = {0};
+/// qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
 ///
-///     qk_dag_free(dag);
-///     qk_quantum_register_free(qr);
+/// qk_dag_free(dag);
+/// qk_quantum_register_free(qr);
 /// ```
 ///
 /// # Safety
@@ -613,17 +613,17 @@ pub unsafe extern "C" fn qk_dag_apply_gate(
 ///
 /// # Example
 /// ```c
-///     QkDag *dag = qk_dag_new();
-///     QkQuantumRegister *qr = qk_quantum_register_new(1, "my_register");
-///     qk_dag_add_quantum_register(dag, qr);
+/// QkDag *dag = qk_dag_new();
+/// QkQuantumRegister *qr = qk_quantum_register_new(1, "my_register");
+/// qk_dag_add_quantum_register(dag, qr);
 ///
-///     uint32_t qubit[1] = {0};
-///     uint32_t h_gate_idx = qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
+/// uint32_t qubit[1] = {0};
+/// uint32_t h_gate_idx = qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
 ///
-///     QkGate gate = qk_dag_op_node_gate(dag, h_gate_idx, NULL);
+/// QkGate gate = qk_dag_op_node_gate(dag, h_gate_idx, NULL);
 ///
-///     qk_dag_free(dag);
-///     qk_quantum_register_free(qr);
+/// qk_dag_free(dag);
+/// qk_quantum_register_free(qr);
 /// ```
 ///
 /// # Safety
