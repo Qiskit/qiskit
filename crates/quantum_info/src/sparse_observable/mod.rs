@@ -402,7 +402,7 @@ struct MatrixComputationData {
 
 impl MatrixComputationData {
     /// Create optimized matrix computation data from SparseObservable
-    fn from_sparse_observable(obs: &SparseObservable) -> Self {
+    fn from_sparse_observable(obs: &SparseObservable) -> PyResult<Self> {
         if obs.is_pure_pauli() {
             // Direct precomputation for pure Pauli, no expansion needed
             Self::from_pauli_like(obs)
@@ -414,7 +414,7 @@ impl MatrixComputationData {
     }
 
     /// Precompute X/Z masks from a type that implements PauliLike
-    fn from_pauli_like<T: PauliLike>(obs: &T) -> Self {
+    fn from_pauli_like<T: PauliLike>(obs: &T) -> PyResult<Self> {
         let num_terms = obs.num_terms();
         let mut x_like = Vec::with_capacity(num_terms);
         let mut z_like = Vec::with_capacity(num_terms);
@@ -437,7 +437,12 @@ impl MatrixComputationData {
                         y_count += 1;
                     }
                     BitTerm::Z => z_bits |= 1u32 << qubit,
-                    _ => (),
+                    _ => {
+                        return Err(PyValueError::new_err(format!(
+                            "Non-Pauli term found in Pauli-like observable at qubit index {}: {:?}",
+                            qubit, bit_term
+                        )));
+                    }
                 }
             }
 
@@ -457,12 +462,12 @@ impl MatrixComputationData {
             new_coeffs.push(final_coeff);
         }
 
-        Self {
+        Ok(Self {
             x_like,
             z_like,
             coeffs: new_coeffs,
             num_qubits: obs.num_qubits(),
-        }
+        })
     }
 
     fn num_ops(&self) -> usize {
@@ -1185,20 +1190,28 @@ impl SparseObservable {
     /// # Returns
     /// Returns either (Vec<Complex64>, Vec<i32>, Vec<i32>) or (Vec<Complex64>, Vec<i64>, Vec<i64>)
     /// depending on matrix size requirements.
-    pub fn to_matrix_sparse_32(&self, force_serial: bool) -> (Vec<Complex64>, Vec<i32>, Vec<i32>) {
+    pub fn to_matrix_sparse_32(
+        &self,
+        force_serial: bool,
+    ) -> PyResult<(Vec<Complex64>, Vec<i32>, Vec<i32>)> {
         // Single precomputation step handles both expansion and optimization
-        let computation_data = MatrixComputationData::from_sparse_observable(self);
+        let computation_data = MatrixComputationData::from_sparse_observable(self)?;
 
-        if qiskit_circuit::getenv_use_multiple_threads() && !force_serial {
+        let result = if qiskit_circuit::getenv_use_multiple_threads() && !force_serial {
             sparse_observable_to_matrix_parallel_32(&computation_data)
         } else {
             sparse_observable_to_matrix_serial_32(&computation_data)
-        }
+        };
+
+        Ok(result)
     }
 
     /// Convert to dense matrix format, handling the extended alphabet.
-    pub fn to_matrix_dense(&self, force_serial: bool) -> Vec<Complex64> {
-        let computation_data = MatrixComputationData::from_sparse_observable(self);
+    pub fn to_matrix_dense(
+        &self,
+        force_serial: bool,
+    ) -> Result<Vec<num_complex::Complex<f64>>, pyo3::PyErr> {
+        let computation_data = MatrixComputationData::from_sparse_observable(self)?;
         let side = 1usize << computation_data.num_qubits();
         let mut out = vec![Complex64::new(0.0, 0.0); side * side];
 
@@ -1221,7 +1234,7 @@ impl SparseObservable {
         } else {
             out.chunks_mut(side).enumerate().for_each(write_row);
         }
-        out
+        Ok(out)
     }
 
     /// Checks if the observable contains only Pauli terms (X, Y, Z).
@@ -3343,7 +3356,7 @@ impl PySparseObservable {
         }
 
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        let computation_data = MatrixComputationData::from_sparse_observable(&inner);
+        let computation_data = MatrixComputationData::from_sparse_observable(&inner)?;
 
         let num_qubits = computation_data.num_qubits() as u64;
         let max_entries_per_row = (computation_data.num_ops() as u64).min(1u64 << num_qubits);
@@ -3382,9 +3395,9 @@ impl PySparseObservable {
     ) -> PyResult<Bound<'py, PyArray2<Complex64>>> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         let side = 1usize << inner.num_qubits();
-        let matrix_data = inner.to_matrix_dense(force_serial);
+        let matrix_data = inner.to_matrix_dense(force_serial)?;
 
-        PyArray1::from_vec(py, matrix_data).reshape([side, side])
+        Ok(PyArray1::from_vec(py, matrix_data).reshape([side, side])?)
     }
 
     /// Convert to dense or sparse matrix.
