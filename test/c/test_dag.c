@@ -88,7 +88,7 @@ static int test_dag_apply_gate(void) {
     }
 
     uint32_t h_bits[1] = {0};
-    qk_dag_apply_gate(dag, QkGate_H, h_bits, NULL, false, NULL);
+    qk_dag_apply_gate(dag, QkGate_H, h_bits, NULL, false);
 
     num_ops = qk_dag_num_op_nodes(dag);
     if (num_ops != 1) {
@@ -99,8 +99,7 @@ static int test_dag_apply_gate(void) {
 
     uint32_t crx_bits[2] = {0, 1};
     double crx_params[1] = {0.12};
-    uint32_t crx_node_idx;
-    qk_dag_apply_gate(dag, QkGate_CRX, crx_bits, crx_params, true, &crx_node_idx);
+    uint32_t crx_node_idx = qk_dag_apply_gate(dag, QkGate_CRX, crx_bits, crx_params, true);
 
     num_ops = qk_dag_num_op_nodes(dag);
     if (num_ops != 2) {
@@ -150,8 +149,7 @@ static int test_op_node_bits_explicit(void) {
     qk_dag_add_quantum_register(dag, qr);
 
     uint32_t h_bits[1] = {0};
-    uint32_t h_node_idx;
-    qk_dag_apply_gate(dag, QkGate_H, h_bits, NULL, false, &h_node_idx);
+    uint32_t h_node_idx = qk_dag_apply_gate(dag, QkGate_H, h_bits, NULL, false);
 
     uint32_t num_qubits = qk_dag_op_node_num_qubits(dag, h_node_idx);
     if (num_qubits != 1) {
@@ -175,8 +173,7 @@ static int test_op_node_bits_explicit(void) {
     }
 
     uint32_t cx_bits[2] = {1, 0};
-    uint32_t cx_node_idx;
-    qk_dag_apply_gate(dag, QkGate_CX, cx_bits, NULL, true, &cx_node_idx);
+    uint32_t cx_node_idx = qk_dag_apply_gate(dag, QkGate_CX, cx_bits, NULL, true);
 
     num_qubits = qk_dag_op_node_num_qubits(dag, cx_node_idx);
     if (num_qubits != 2) {
@@ -185,8 +182,9 @@ static int test_op_node_bits_explicit(void) {
         goto cleanup;
     }
 
+    const uint32_t *actual_cx_bits = qk_dag_op_node_qubits(dag, cx_node_idx);
     for (uint32_t i = 0; i < num_qubits; i++) {
-        if (qk_dag_op_node_qubits(dag, cx_node_idx)[i] != cx_bits[i]) {
+        if (actual_cx_bits[i] != cx_bits[i]) {
             printf("Expected a qubit of value %u in position %u but got %u\n", cx_bits[0], i,
                    qk_dag_op_node_qubits(dag, cx_node_idx)[0]);
             result = EqualityError;
@@ -223,8 +221,7 @@ static int test_dag_node_type(void) {
 
     // Add an operation node and save the node index.
     uint32_t h_bits[1] = {0};
-    uint32_t h_node_idx;
-    qk_dag_apply_gate(dag, QkGate_H, h_bits, NULL, false, &h_node_idx);
+    uint32_t h_node_idx = qk_dag_apply_gate(dag, QkGate_H, h_bits, NULL, false);
 
     QkDagNodeType node_type = qk_dag_node_type(dag, qubit_in_idx);
     if (node_type != QkDagNodeType_QubitIn) {

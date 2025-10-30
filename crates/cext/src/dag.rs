@@ -13,7 +13,6 @@
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 use smallvec::smallvec;
 
-use crate::exit_codes::ExitCode;
 use qiskit_circuit::Qubit;
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeIndex, NodeType};
@@ -501,7 +500,7 @@ pub unsafe extern "C" fn qk_dag_op_node_clbits(dag: *const DAGCircuit, node: u32
 ///     qk_dag_add_quantum_register(dag, qr);
 ///
 ///     uint32_t qubit[1] = {0};
-///     qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false, NULL);
+///     qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
 ///
 ///     qk_dag_free(dag);
 ///     qk_quantum_register_free(qr);
@@ -525,8 +524,7 @@ pub unsafe extern "C" fn qk_dag_apply_gate(
     qubits: *const u32,
     params: *const f64,
     front: bool,
-    out_node: *mut u32,
-) -> ExitCode {
+) -> u32 {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let dag = unsafe { mut_ptr_as_ref(dag) };
     // SAFETY: Per the documentation the qubits and params pointers are arrays of num_qubits()
@@ -597,11 +595,8 @@ pub unsafe extern "C" fn qk_dag_apply_gate(
             )
             .unwrap()
         };
-        if !out_node.is_null() {
-            *out_node = new_node.index() as u32;
-        }
+        new_node.index() as u32
     }
-    ExitCode::Success
 }
 
 /// @ingroup QkDag
@@ -623,8 +618,7 @@ pub unsafe extern "C" fn qk_dag_apply_gate(
 ///     qk_dag_add_quantum_register(dag, qr);
 ///
 ///     uint32_t qubit[1] = {0};
-///     uint32_t h_gate_idx;
-///     qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false, &h_gate_idx);
+///     uint32_t h_gate_idx = qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
 ///
 ///     QkGate gate = qk_dag_op_node_gate(dag, h_gate_idx, NULL);
 ///
