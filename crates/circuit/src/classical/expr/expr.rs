@@ -108,9 +108,8 @@ impl Expr {
             Expr::Cast(c) => c.ty,
             Expr::Value(v) => match v {
                 Value::Duration(_) => Type::Duration,
-                Value::Float(_) => Type::Float,
-                Value::Bool(_) => Type::Bool,
-                Value::Uint(_, width) => Type::Uint(*width),
+                Value::Float { ty, .. } => *ty,
+                Value::Uint { ty, .. } => *ty,
             },
             Expr::Var(v) => match v {
                 Var::Standalone { ty, .. } => *ty,
@@ -726,7 +725,11 @@ mod tests {
                 constant: false,
             }
             .into(),
-            right: Value::Bool(true).into(),
+            right: Value::Uint {
+                raw: 1,
+                ty: Type::Bool,
+            }
+            .into(),
             ty: Type::Bool,
             constant: false,
         }
@@ -757,7 +760,10 @@ mod tests {
                 register: ClassicalRegister::new_owning("a", 3),
                 ty: Type::Uint(3),
             }),
-            Expr::Value(Value::new_small_int(3, 2)),
+            Expr::Value(Value::Uint {
+                raw: 3,
+                ty: Type::Uint(2),
+            }),
             Expr::Cast(
                 Cast {
                     operand: Expr::Var(Var::Register {
@@ -784,7 +790,10 @@ mod tests {
             Expr::Binary(
                 Binary {
                     op: BinaryOp::BitAnd,
-                    left: Expr::Value(Value::new_small_int(5, 3)),
+                    left: Expr::Value(Value::Uint {
+                        raw: 5,
+                        ty: Type::Uint(3),
+                    }),
                     right: Expr::Var(Var::Register {
                         register: ClassicalRegister::new_owning("a", 3),
                         ty: Type::Uint(3),
@@ -800,7 +809,10 @@ mod tests {
                     left: Expr::Binary(
                         Binary {
                             op: BinaryOp::Less,
-                            left: Expr::Value(Value::new_small_int(2, 3)),
+                            left: Expr::Value(Value::Uint {
+                                raw: 2,
+                                ty: Type::Uint(3),
+                            }),
                             right: Expr::Var(Var::Register {
                                 register: ClassicalRegister::new_owning("a", 3),
                                 ty: Type::Uint(3),
@@ -824,14 +836,23 @@ mod tests {
                     left: Expr::Binary(
                         Binary {
                             op: BinaryOp::ShiftRight,
-                            left: Expr::Value(Value::new_small_int(255, 8)),
-                            right: Expr::Value(Value::new_small_int(3, 8)),
+                            left: Expr::Value(Value::Uint {
+                                raw: 255,
+                                ty: Type::Uint(8),
+                            }),
+                            right: Expr::Value(Value::Uint {
+                                raw: 3,
+                                ty: Type::Uint(8),
+                            }),
                             ty: Type::Uint(8),
                             constant: true,
                         }
                         .into(),
                     ),
-                    right: Expr::Value(Value::new_small_int(3, 8)),
+                    right: Expr::Value(Value::Uint {
+                        raw: 3,
+                        ty: Type::Uint(8),
+                    }),
                     ty: Type::Uint(8),
                     constant: true,
                 }
@@ -844,7 +865,10 @@ mod tests {
                         name: "a".to_string(),
                         ty: Type::Uint(8),
                     }),
-                    index: Expr::Value(Value::new_small_int(0, 8)),
+                    index: Expr::Value(Value::Uint {
+                        raw: 0,
+                        ty: Type::Uint(8),
+                    }),
                     ty: Type::Uint(1),
                     constant: false,
                 }
@@ -897,14 +921,20 @@ mod tests {
         for op in all_ops.iter().copied() {
             let (left, right, out_ty) = match op {
                 BinaryOp::LogicAnd | BinaryOp::LogicOr => (
-                    Expr::Value(Value::Bool(true)),
+                    Expr::Value(Value::Uint {
+                        raw: 1,
+                        ty: Type::Bool,
+                    }),
                     Expr::Var(Var::Bit {
                         bit: ShareableClbit::new_anonymous(),
                     }),
                     Type::Bool,
                 ),
                 _ => (
-                    Expr::Value(Value::new_small_int(5, 3)),
+                    Expr::Value(Value::Uint {
+                        raw: 5,
+                        ty: Type::Uint(3),
+                    }),
                     Expr::Var(Var::Register {
                         register: ClassicalRegister::new_owning("a", 3),
                         ty: Type::Uint(3),
@@ -967,7 +997,10 @@ mod tests {
                         left: Expr::Binary(
                             Binary {
                                 op: BinaryOp::Less,
-                                left: Expr::Value(Value::new_small_int(5, 3)),
+                                left: Expr::Value(Value::Uint {
+                                    raw: 5,
+                                    ty: Type::Uint(3),
+                                }),
                                 right: Expr::Var(Var::Register {
                                     register: left_cr.clone(),
                                     ty: Type::Uint(3),
@@ -1000,7 +1033,10 @@ mod tests {
                         left: Expr::Binary(
                             Binary {
                                 op: BinaryOp::Less,
-                                left: Expr::Value(Value::new_small_int(5, 3)),
+                                left: Expr::Value(Value::Uint {
+                                    raw: 5,
+                                    ty: Type::Uint(3),
+                                }),
                                 right: Expr::Var(Var::Register {
                                     register: right_cr.clone(),
                                     ty: Type::Uint(3),

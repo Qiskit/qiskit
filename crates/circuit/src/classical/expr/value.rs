@@ -10,26 +10,20 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use num_bigint::BigUint;
 use crate::classical::expr::{ExprKind, PyExpr};
 use crate::classical::types::Type;
 use crate::duration::Duration;
 use pyo3::prelude::*;
-use pyo3::types::{PyBytes, PyTuple};
+use pyo3::types::PyTuple;
 use pyo3::{IntoPyObjectExt, intern};
 
 /// A single scalar value expression.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     Duration(Duration),
-    Float(f64),
-    Bool(bool),
-    Uint(Vec<u8>, u16), // Vec<u8> encodes the unbounded integer value, u16 encoded the width of the value
-}
-
-impl Value {
-    pub fn new_small_int(value: u8, width: u16) -> Value {
-        Value::Uint(vec![value], width)
-    }
+    Float { raw: f64, ty: Type },
+    Uint { raw: BigUint, ty: Type },
 }
 
 impl<'py> IntoPyObject<'py> for Value {
@@ -60,46 +54,23 @@ pub struct PyValue(Value);
 impl PyValue {
     #[new]
     #[pyo3(text_signature = "(value, type)")]
-    fn new(py: Python, py_value: Bound<PyAny>, ty: Type) -> PyResult<Py<Self>> {
-        let value = match ty {
-            Type::Bool => Value::Bool(py_value.extract()?),
-            Type::Float => Value::Float(py_value.extract()?),
-            Type::Duration => Value::Duration(py_value.extract()?),
-            Type::Uint(width) => {
-                let bit_length: usize = py_value.call_method0("bit_length")?.extract()?;
-                let byte_len = ((bit_length + 7) / 8).max(1);
-                let py_bytes: Bound<PyBytes> = py_value
-                    .call_method1("to_bytes", (byte_len, "big"))?
-                    .extract()?;
-                Value::Uint(py_bytes.as_bytes().to_vec(), width)
-            }
+    fn new(py: Python, value: Bound<PyAny>, ty: Type) -> PyResult<Py<Self>> {
+        let value = if let Ok(raw) = value.extract::<BigUint>() {
+            Value::Uint { raw, ty }
+        } else if let Ok(raw) = value.extract::<f64>() {
+            Value::Float { raw, ty }
+        } else {
+            Value::Duration(value.extract()?)
         };
         Py::new(py, (PyValue(value), PyExpr(ExprKind::Value)))
     }
-    // fn new(py: Python, value: Bound<PyAny>, ty: Type) -> PyResult<Py<Self>> {
-    //     let value = if let Ok(raw) = value.extract::<u64>() {
-    //         println!("Creating Value::Uint with raw {:?} and ty {:?}", raw, ty);
-    //         Value::Uint { raw, ty }
-    //     } else if let Ok(raw) = value.extract::<f64>() {
-    //         println!("Creating Value::Float with raw {:?} and ty {:?}", raw, ty);
-    //         Value::Float { raw, ty }
-    //     } else {
-    //         Value::Duration(value.extract()?)
-    //     };
-    //     Py::new(py, (PyValue(value), PyExpr(ExprKind::Value)))
-    // }
 
     #[getter]
     fn get_value(&self, py: Python) -> PyResult<Py<PyAny>> {
         match &self.0 {
             Value::Duration(d) => d.into_py_any(py),
-            Value::Float(f) => f.into_py_any(py),
-            Value::Bool(b) => b.into_py_any(py),
-            Value::Uint(raw, _width) => py
-                .import("builtins")?
-                .getattr("int")?
-                .call_method1("from_bytes", (&raw, "big"))?
-                .into_py_any(py),
+            Value::Float { raw, .. } => raw.into_py_any(py),
+            Value::Uint { raw, .. } => raw.into_py_any(py),
         }
     }
 
@@ -110,11 +81,9 @@ impl PyValue {
 
     #[getter]
     fn get_type(&self, py: Python) -> PyResult<Py<PyAny>> {
-        match &self.0 {
+        match self.0 {
             Value::Duration(_) => Type::Duration.into_py_any(py),
-            Value::Float(_) => Type::Float.into_py_any(py),
-            Value::Bool(_) => Type::Bool.into_py_any(py),
-            Value::Uint(_raw, width) => Type::Uint(*width).into_py_any(py),
+            Value::Float { ty, .. } | Value::Uint { ty, .. } => ty.into_py_any(py),
         }
     }
 
