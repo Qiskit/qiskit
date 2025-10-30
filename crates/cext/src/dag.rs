@@ -197,6 +197,7 @@ pub unsafe extern "C" fn qk_dag_num_op_nodes(dag: *const DAGCircuit) -> usize {
 /// @ingroup QkDag
 ///
 /// DAG node type.
+#[derive(Copy, Clone, Debug)]
 #[repr(u8)]
 pub enum CDagNodeType {
     /// Operation node.
@@ -222,7 +223,7 @@ pub enum CDagNodeType {
 /// when iterating over nodes of unknown type.
 ///
 /// @param dag A pointer to the DAG.
-/// @param qubit The node to get the type of.
+/// @param node The node to get the type of.
 ///
 /// @return The type of the node.
 ///
@@ -234,11 +235,7 @@ pub enum CDagNodeType {
 pub unsafe extern "C" fn qk_dag_node_type(dag: *const DAGCircuit, node: u32) -> CDagNodeType {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
-    match dag
-        .dag()
-        .node_weight(NodeIndex::new(node as usize))
-        .unwrap()
-    {
+    match dag.dag()[NodeIndex::new(node as usize)] {
         NodeType::QubitIn(_) => CDagNodeType::QubitIn,
         NodeType::QubitOut(_) => CDagNodeType::QubitOut,
         NodeType::ClbitIn(_) => CDagNodeType::ClbitIn,
@@ -341,11 +338,7 @@ pub unsafe extern "C" fn qk_dag_clbit_out_node(dag: *const DAGCircuit, clbit: u3
 pub unsafe extern "C" fn qk_dag_endpoint_node_value(dag: *const DAGCircuit, node: u32) -> u32 {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
-    (match dag
-        .dag()
-        .node_weight(NodeIndex::new(node as usize))
-        .unwrap()
-    {
+    (match dag.dag()[NodeIndex::new(node as usize)] {
         NodeType::QubitIn(value) => value.index(),
         NodeType::QubitOut(value) => value.index(),
         NodeType::ClbitIn(value) => value.index(),
@@ -374,11 +367,7 @@ pub unsafe extern "C" fn qk_dag_endpoint_node_value(dag: *const DAGCircuit, node
 pub unsafe extern "C" fn qk_dag_op_node_num_qubits(dag: *const DAGCircuit, node: u32) -> u32 {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
-    let instr = dag
-        .dag()
-        .node_weight(NodeIndex::new(node as usize))
-        .expect("expected operation node")
-        .unwrap_operation();
+    let instr = dag.dag()[NodeIndex::new(node as usize)].unwrap_operation();
     instr.op.num_qubits()
 }
 
@@ -400,11 +389,7 @@ pub unsafe extern "C" fn qk_dag_op_node_num_qubits(dag: *const DAGCircuit, node:
 pub unsafe extern "C" fn qk_dag_op_node_num_clbits(dag: *const DAGCircuit, node: u32) -> u32 {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
-    let instr = dag
-        .dag()
-        .node_weight(NodeIndex::new(node as usize))
-        .expect("expected operation node")
-        .unwrap_operation();
+    let instr = dag.dag()[NodeIndex::new(node as usize)].unwrap_operation();
     instr.op.num_clbits()
 }
 
@@ -426,11 +411,7 @@ pub unsafe extern "C" fn qk_dag_op_node_num_clbits(dag: *const DAGCircuit, node:
 pub unsafe extern "C" fn qk_dag_op_node_num_params(dag: *const DAGCircuit, node: u32) -> u32 {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
-    let instr = dag
-        .dag()
-        .node_weight(NodeIndex::new(node as usize))
-        .expect("expected operation node")
-        .unwrap_operation();
+    let instr = dag.dag()[NodeIndex::new(node as usize)].unwrap_operation();
     instr.op.num_params()
 }
 
@@ -453,11 +434,7 @@ pub unsafe extern "C" fn qk_dag_op_node_num_params(dag: *const DAGCircuit, node:
 pub unsafe extern "C" fn qk_dag_op_node_qubits(dag: *const DAGCircuit, node: u32) -> *const u32 {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
-    let instr = dag
-        .dag()
-        .node_weight(NodeIndex::new(node as usize))
-        .expect("expected operation node")
-        .unwrap_operation();
+    let instr = dag.dag()[NodeIndex::new(node as usize)].unwrap_operation();
     dag.qargs_interner().get(instr.qubits).as_ptr().cast()
 }
 
@@ -480,11 +457,7 @@ pub unsafe extern "C" fn qk_dag_op_node_qubits(dag: *const DAGCircuit, node: u32
 pub unsafe extern "C" fn qk_dag_op_node_clbits(dag: *const DAGCircuit, node: u32) -> *const u32 {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
-    let instr = dag
-        .dag()
-        .node_weight(NodeIndex::new(node as usize))
-        .expect("expected operation node")
-        .unwrap_operation();
+    let instr = dag.dag()[NodeIndex::new(node as usize)].unwrap_operation();
     dag.cargs_interner().get(instr.clbits).as_ptr().cast()
 }
 
@@ -651,11 +624,7 @@ pub unsafe extern "C" fn qk_dag_op_node_gate(
 ) -> StandardGate {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
-    let instr = dag
-        .dag()
-        .node_weight(NodeIndex::new(node as usize))
-        .expect("expected operation node")
-        .unwrap_operation();
+    let instr = dag.dag()[NodeIndex::new(node as usize)].unwrap_operation();
     if !out_params.is_null() {
         let params = instr.params_view();
         for (i, param) in params
@@ -680,6 +649,7 @@ pub unsafe extern "C" fn qk_dag_op_node_gate(
 /// This is returned when querying a particular node in the graph with ``qk_dag_op_node_kind``,
 /// and is intended to allow the caller to dispatch (e.g. via a "switch") calls specific to
 /// the contained operation's kind.
+#[derive(Copy, Clone, Debug)]
 #[repr(u8)]
 pub enum COperationKind {
     Gate = 0,
@@ -711,10 +681,7 @@ pub enum COperationKind {
 pub unsafe extern "C" fn qk_dag_op_node_kind(dag: *const DAGCircuit, node: u32) -> COperationKind {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
-    match dag
-        .dag()
-        .node_weight(NodeIndex::new(node as usize))
-        .unwrap()
+    match dag.dag()[NodeIndex::new(node as usize)]
         .unwrap_operation()
         .op
         .view()
