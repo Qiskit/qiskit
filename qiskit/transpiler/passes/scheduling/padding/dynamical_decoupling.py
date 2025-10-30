@@ -191,6 +191,80 @@ class PadDynamicalDecoupling(BasePadding):
                         f"{gate.name} in dd_sequence is not supported in the target"
                     )
 
+    def run(self, dag: DAGCircuit):
+        """Run the padding pass on ``dag``.
+
+        This method is overridden from BasePadding to operate in-place
+        on the DAG, which is necessary to support the node substitution
+        logic used for single-gate absorption (which fixes KeyError)
+        and to ensure node references are valid (which fixes PanicException).
+        """
+        self._pre_runhook(dag)
+
+        try:
+            # Use .get() to be safe against missing keys
+            node_start_time = self.property_set.get("node_start_time")
+            if node_start_time is None:
+                 raise TranspilerError("PadDynamicalDecoupling requires a schedule.")
+        except KeyError as e:
+            raise TranspilerError(
+                "PadDynamicalDecoupling requires a schedule. Run a scheduler first."
+            ) from e
+
+        idle_after = {bit: 0 for bit in dag.qubits}
+        circuit_duration = 0
+
+        # Iterate over a static list of nodes, as the DAG will be modified
+        for node in list(dag.topological_op_nodes()):
+            # FIX: Safely check if node was scheduled (fixes ALAP panic)
+            if node not in node_start_time:
+                continue
+
+            t0 = node_start_time[node]
+            dur = self.get_duration(node, dag)
+            t1 = t0 + dur
+            circuit_duration = max(circuit_duration, t1)
+
+            if isinstance(node.op, Delay):
+                # Remove delays so we can pad the space they occupied
+                dag.remove_op_node(node)
+                continue
+
+            for bit in node.qargs:
+                if t0 - idle_after[bit] > 0 and self.__delay_supported(dag.find_bit(bit).index):
+                    # Find predecessor *in the same DAG*
+                    prev_node = next(dag.predecessors(node))
+                    
+                    # Call _pad, now all node references are valid
+                    self._pad(
+                        dag=dag,
+                        qubit=bit,
+                        t_start=idle_after[bit],
+                        t_end=t0,
+                        next_node=node,
+                        prev_node=prev_node,
+                    )
+                idle_after[bit] = t1
+        
+        # Add delays until the end of circuit
+        for bit in dag.qubits:
+            if circuit_duration - idle_after[bit] > 0 and self.__delay_supported(
+                dag.find_bit(bit).index
+            ):
+                node = dag.output_map[bit]
+                prev_node = next(dag.predecessors(node))
+                self._pad(
+                    dag=dag,
+                    qubit=bit,
+                    t_start=idle_after[bit],
+                    t_end=circuit_duration,
+                    next_node=node,
+                    prev_node=prev_node,
+                )
+
+        dag._duration = circuit_duration
+        return dag
+
     def _pre_runhook(self, dag: DAGCircuit):
         super()._pre_runhook(dag)
 

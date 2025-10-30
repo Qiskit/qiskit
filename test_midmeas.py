@@ -44,8 +44,14 @@ if __name__ == "__main__":
                 PadDynamicalDecoupling(durations, dd_sequence),
             ]
         )
+        pm2= PassManager(
+            [
+                ALAPScheduleAnalysis(durations),
+            ]
+        )
 
         midmeas_dd = pm.run(midmeas)
+        midmeas2_dd = pm2.run(midmeas_dd)
 
         combined_u = UGate(3 * pi / 4, -pi / 2, pi / 2)
 
@@ -62,6 +68,13 @@ if __name__ == "__main__":
         expected.cx(1, 2)
         expected.cx(0, 1)
         expected.delay(700, 2)
+
+        print("Mid-measurement circuit with DD:")
+        print(midmeas2_dd)
+        print("Expected circuit:")
+        print(midmeas_dd)
+        print("Expected ckt gate:")
+        print(expected)
 
         assert midmeas_dd == expected
         # check the absorption into U was done correctly

@@ -16,22 +16,20 @@ use ndarray::{Array1, Array2, ArrayView1};
 use num_complex::Complex64;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PySet};
+use qiskit_circuit::Qubit;
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_instruction::CircuitInstruction;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::dag_node::{DAGInNode, DAGOpNode};
 use qiskit_circuit::operations::Operation;
-use qiskit_circuit::parameter::parameter_expression::{
-    ParameterExpression, ParameterValueType,
-};
 use qiskit_circuit::operations::{
     DelayUnit, OperationRef, Param, StandardGate, StandardInstruction,
 };
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::Qubit;
-use qiskit_synthesis::euler_one_qubit_decomposer::{angles_from_unitary, EulerBasis};
-use smallvec::{smallvec, SmallVec};
+use qiskit_circuit::parameter::parameter_expression::{ParameterExpression, ParameterValueType};
+use qiskit_synthesis::euler_one_qubit_decomposer::{EulerBasis, angles_from_unitary};
+use smallvec::{SmallVec, smallvec};
 use std::cmp;
 use std::f64::consts::PI;
 
@@ -39,22 +37,22 @@ use std::f64::consts::PI;
 #[pyo3(name = "pad_dynamical_decoupling")]
 pub fn run_pad_dynamical_decoupling(
     py: Python,
-    t_end: f64, // When t_end is passed as a float, it leads to errors & panics (YOU MUST USE A f64...)
+    t_end: f64,
     t_start: f64,
     alignment: f64,
-    prev_node: &Bound<PyAny>, // Can't I use rust-native struct(s) for this? (No, because you don't know what sub-class of DAGNode it is...)
+    prev_node: &Bound<PyAny>,
     next_node: &Bound<PyAny>,
     _no_dd_qubits: &Bound<PySet>,
     _qubits: Option<Vec<usize>>,
     qubit: ShareableQubit,
-    dag: &mut DAGCircuit, // I don't think a &Bound<PyAny> is required since even Python references a rust-native DAGCircuit
+    dag: &mut DAGCircuit,
     property_set: &Bound<PyAny>,
     skip_reset_qubits: bool,
     _dd_sequence_lengths: HashMap<ShareableQubit, Vec<usize>>,
     _sequence_phase: &Bound<PyAny>,
     _dd_sequence: Option<Vec<OperationFromPython>>,
     prev_node_op_is_reset: bool,
-    spacing: Vec<f64>, // I think an Option<Vec<f64>> isn't required because _pre_runhook sets default values
+    spacing: Vec<f64>,
     extra_slack_distribution: &str,
 ) -> PyResult<()> {
     // This routine takes care of the pulse alignment constraint for the DD sequence.
@@ -87,323 +85,311 @@ pub fn run_pad_dynamical_decoupling(
 
     // As you can see, constraints on t0 are all satisfied without explicit scheduling.
 
-    let time_interval = t_end - t_start; //Leads to underflow during conversion
+    let time_interval = t_end - t_start;
     if time_interval % alignment != 0.0 {
-        return Err(TranspilerError::new_err(
-            format!(
-                "Time interval {time_interval} is not divisible by alignment {alignment} between prev_node and next_node."
-            )
-        ));
+        return Err(TranspilerError::new_err(format!(
+            "Time interval {} is not divisible by alignment {}",
+            time_interval, alignment
+        )));
     }
 
-    // Extract _no_dd_qubits into a HashSet
     let _no_dd_qubits: HashSet<usize> = _no_dd_qubits
         .iter()
-        .map(|item| item.extract::<usize>())
+        .map(|item| item.extract())
         .collect::<PyResult<_>>()?;
-
-    let qubit_index = dag
-        .qubits()
-        .objects()
-        .iter()
-        .position(|q| q == &qubit)
+    let qubit_index = qubit
+        .index()
         .ok_or_else(|| TranspilerError::new_err("Qubit not found in dag.qubits".to_string()))?;
 
     if !__is_dd_qubit(qubit_index, &_no_dd_qubits, &_qubits) {
-        // Target physical qubit is not the target of this DD sequence.
-        eprintln!("DEBUG: Calling apply_scheduled_delay_op (is_dd_qubit check). t_start={}, time_interval={}", t_start, time_interval);
-        apply_scheduled_delay_op(
-            py,
-            dag,
-            &(t_start as f64),
-            &(time_interval as f64),
-            &qubit,
-            property_set,
-        )?;
+        apply_scheduled_delay_op(py, dag, &t_start, &time_interval, &qubit, property_set)?;
         return Ok(());
     }
 
-    if skip_reset_qubits && ((prev_node.is_instance_of::<DAGInNode>()) || prev_node_op_is_reset) {
-        // Previous node is the start edge or reset, i.e. qubit is ground state
-        apply_scheduled_delay_op(
-            py,
-            dag,
-            &(t_start as f64),
-            &(time_interval as f64),
-            &qubit,
-            property_set,
-        )?;
+    if skip_reset_qubits && (prev_node.is_instance_of::<DAGInNode>() || prev_node_op_is_reset) {
+        apply_scheduled_delay_op(py, dag, &t_start, &time_interval, &qubit, property_set)?;
         return Ok(());
     }
 
     let slack = time_interval
         - (_dd_sequence_lengths
             .get(&qubit)
-            .map_or(0, |lengths| lengths.iter().sum::<usize>()) as f64);
-
-    let _sequence_phase: f64 = _sequence_phase.extract()?;
-    let mut sequence_gphase = _sequence_phase;
+            .map_or(0.0, |lengths| lengths.iter().sum::<usize>() as f64));
+    let mut sequence_gphase: f64 = _sequence_phase.extract()?;
 
     if slack <= 0.0 {
-        // Interval too short
-        apply_scheduled_delay_op(
-            py, 
-            dag, 
-            &t_start, 
-            &time_interval, 
-            &qubit, 
-            property_set,
-        )?;
-        return Ok(());
-    }
-
-    let dd_sequence: Vec<PackedOperation> = match &_dd_sequence {
-        Some(seq) => seq.iter().map(|op| op.operation.clone()).collect(),
-        None => vec![],
-    };
-
-    if dd_sequence.len() == 1 {
-        // Special case of using a single gate for DD
-
-        let gate_params: SmallVec<[Param; 3]> = match &_dd_sequence {
-            Some(gate_seq) => gate_seq[0].params.clone(),
-            None => smallvec![],
-        };
-
-        // Obtain the the inverse:
-        let u_inv: Array2<Complex64> = match dd_sequence[0].view() {
-            OperationRef::StandardGate(gate) => {
-                if let Some((inv_gate, _inv_params)) = gate.inverse(&gate_params) {
-                    let inv_packed_op = PackedOperation::from_standard_gate(inv_gate);
-                    inv_packed_op
-                        .matrix(&_inv_params)
-                        .expect("No matrix representation for inverse gate.")
-                } else {
-                    panic!("No inverse for this standard gate!");
-                }
-            }
-            OperationRef::Gate(py_gate) => {
-                // Extract the inverse from the Python gate
-                let inv_gate: Py<PyAny> = py_gate.gate.call_method0(py, "inverse")?;
-                let inv_gate_rust: PackedOperation = inv_gate.extract::<OperationFromPython>(py).unwrap().operation.clone();
-                let inv_matrix: Array2<Complex64> = inv_gate_rust
-                    .matrix(&[])
-                    .expect("No matrix representation for inverse gate.");
-                inv_matrix
-            }
-            _ => unreachable!("Only Python Gate types (standard/non-standard) should be passed into this function."),
-        };
-
-        let [theta, phi, lam, phase] = angles_from_unitary(u_inv.view(), EulerBasis::U3);
-        eprintln!(
-            "DEBUG substitute: prev_node type: {}, next_node type: {}",
-            // For prev_node
-            if prev_node.is_instance_of::<DAGOpNode>() {
-                // Use if let Ok to safely get the PyRef before accessing fields
-                if let Ok(op_ref) = prev_node.extract::<PyRef<DAGOpNode>>() {
-                    op_ref.instruction.operation.name().to_string()
-                } else {
-                    // Handle case where extract fails unexpectedly
-                    "DAGOpNode (extract failed)".to_string()
-                }
-            } else {
-                prev_node.get_type().name()?.to_string()
-            },
-            // For next_node (repeat the same pattern)
-            if next_node.is_instance_of::<DAGOpNode>(){
-                if let Ok(op_ref) = next_node.extract::<PyRef<DAGOpNode>>() {
-                    op_ref.instruction.operation.name().to_string()
-                } else {
-                    "DAGOpNode (extract failed)".to_string()
-                }
-            } else {
-                next_node.get_type().name()?.to_string()
-            }
-        );
-        let mut absorbed = false; // Initialize absorbed flag
-        if next_node.is_instance_of::<DAGOpNode>() {
-            eprintln!("DEBUG: next_node IS instance of DAGOpNode."); 
-            let mut next_node_ref: PyRefMut<DAGOpNode> = next_node.extract()?;
-            let next_node_ind = next_node_ref.as_ref().node.unwrap();
-            let next_node_inst: &mut CircuitInstruction = &mut next_node_ref.instruction; //Replace the node in the DAG instead (or else, just call the python to update it manually...)
-            let next_node_op: &PackedOperation = &next_node_inst.operation;
-
-            // Check if the next node corresponds to a U/U3 gate
-            if let Some(gate) = next_node_op.try_standard_gate() {
-                match gate {
-                    StandardGate::U | StandardGate::U3 => {
-                        // Absorb the inverse into the successor (from right in circuit)
-                        let [theta_r_param, phi_r_param, lam_r_param]: [Param; 3] =
-                            next_node_inst.params.clone().into_inner().ok().unwrap();
-                        let mut theta_r: f64 = 0.;
-                        let mut phi_r: f64 = 0.;
-                        let mut lam_r: f64 = 0.;
-                        if let Param::Float(theta) = theta_r_param {
-                            theta_r = theta;
-                        }
-                        if let Param::Float(phi) = phi_r_param {
-                            phi_r = phi;
-                        }
-                        if let Param::Float(lam) = lam_r_param {
-                            lam_r = lam;
-                        }
-
-                        let [theta_new, phi_new, lam_new] =
-                            compose_u3_rust(theta_r, phi_r, lam_r, theta, phi, lam);
-
-                        let new_instruction = CircuitInstruction {
-                            operation: next_node_inst.operation.clone(),
-                            qubits: next_node_inst.qubits.clone_ref(py),
-                            clbits: next_node_inst.clbits.clone_ref(py),
-                            label: next_node_inst.label.clone(),
-                            params: smallvec![
-                                Param::Float(theta_new),
-                                Param::Float(phi_new),
-                                Param::Float(lam_new),
-                            ],
-                            #[cfg(feature = "cache_pygates")]
-                            py_op: std::sync::OnceLock::new(),
-                        };
-                        eprintln!(
-                            "DEBUG substitute (next_node): New_Instruction='{}', New_Params={:?}",
-                            new_instruction.operation.name(),
-                            new_instruction.params
-                        );
-                        let new_op_obj = new_instruction.get_operation(py)?;
-                        eprintln!(
-                            "DEBUG substitute (next_node): PyObject_to_sub='{}'",
-                            new_op_obj.bind(py).repr()?
-                        );
-                        dag.substitute_node_with_py_op(next_node_ind, new_op_obj.bind(py))?;
-
-                        sequence_gphase += phase;
-                    }
-                    _ => {
-                        eprintln!("DEBUG: Matched next_node gate {:?} but it wasn't U or U3!", gate);
-                    }
-                }
-            }
-        } 
-        if !absorbed {
-            eprintln!("DEBUG: Checking prev_node. absorbed={}", absorbed); // Should be false here
-            if prev_node.is_instance_of::<DAGOpNode>() {
-                let mut prev_node_ref: PyRefMut<DAGOpNode> = prev_node.extract()?;
-                let prev_node_ind = prev_node_ref.as_ref().node.unwrap();
-                let prev_node_inst: &mut CircuitInstruction = &mut prev_node_ref.instruction;
-                let prev_node_op: &PackedOperation = &prev_node_inst.operation;
-                eprintln!("DEBUG: Checking prev_node op name: {}", prev_node_op.name()); // Requires Operation trait
-                let standard_gate_result = prev_node_op.try_standard_gate();
-                eprintln!("DEBUG: try_standard_gate() returned: {:?}", standard_gate_result);
-
-                // Check if the next node corresponds to a U/U3 gate
-                if let Some(gate) = standard_gate_result {
-                    // --- ADD PRINT ---
-                    eprintln!("DEBUG: REACHED MATCH. Gate value is: {:?}", gate); 
-                    // --- END ADD ---
-                    match gate {
-                        StandardGate::U | StandardGate::U3 => {
-                            eprintln!("DEBUG: prev_node is U/U3, proceeding...");
-                            // Absorb the inverse into the predecessor (from left in circuit)
-                            let [theta_l_param, phi_l_param, lam_l_param]: [Param; 3] =
-                                prev_node_inst.params.clone().into_inner().ok().unwrap();
-                            let mut theta_l: f64 = 0.;
-                            let mut phi_l: f64 = 0.;
-                            let mut lam_l: f64 = 0.;
-                            if let Param::Float(theta) = theta_l_param {
-                                theta_l = theta;
-                            }
-                            if let Param::Float(phi) = phi_l_param {
-                                phi_l = phi;
-                            }
-                            if let Param::Float(lam) = lam_l_param {
-                                lam_l = lam;
-                            }
-                            let [theta_new, phi_new, lam_new] =
-                                compose_u3_rust(theta, phi, lam, theta_l, phi_l, lam_l);
-
-                            eprintln!(
-                                "DEBUG substitute (prev_node): Composed angles: theta_new={}, phi_new={}, lam_new={}",
-                                theta_new, phi_new, lam_new
-                            );
-
-                            // Update the circuit instruction params:
-                            let new_instruction = CircuitInstruction {
-                                operation: prev_node_inst.operation.clone(),
-                                qubits: prev_node_inst.qubits.clone_ref(py),
-                                clbits: prev_node_inst.clbits.clone_ref(py),
-                                label: prev_node_inst.label.clone(),
-                                params: smallvec![
-                                    Param::Float(theta_new),
-                                    Param::Float(phi_new),
-                                    Param::Float(lam_new),
-                                ],
-                                #[cfg(feature = "cache_pygates")]
-                                py_op: std::sync::OnceLock::new(),
-                            };
-                            eprintln!(
-                                "DEBUG substitute (prev_node) BEFORE: Node='{}', Params_to_sub={:?}",
-                                new_instruction.operation.name(), // Should be 'u' or 'u3'
-                                new_instruction.params
-                            );
-
-                            let new_op_obj = new_instruction.get_operation(py)?;
-                            // // Substitute the node in the DAG.
-                            dag.substitute_node_with_py_op(prev_node_ind, new_op_obj.bind(py))?;
-
-                            // --- ADD DEBUG HERE ---
-                            let substituted_node_obj = dag.get_node(py, prev_node_ind)?;
-                            if let Ok(op_node_ref) = substituted_node_obj.extract::<PyRef<DAGOpNode>>(py) {
-                                eprintln!(
-                                    "DEBUG substitute (prev_node) AFTER: Node='{}', Actual_Params={:?}",
-                                    op_node_ref.instruction.operation.name(), // Should still be 'u' or 'u3'
-                                    op_node_ref.instruction.params // Check if these match Params_to_sub
-                                );
-                            } else {
-                                eprintln!("DEBUG substitute (prev_node) AFTER: Node is not an OpNode?");
-                            }
-
-                            sequence_gphase += phase;
-                            absorbed = true;
-                        }
-                        _ => {
-                            eprintln!("DEBUG: Matched prev_node gate {:?} but it wasn't U or U3!", gate);
-                        }
-                    }
-                }
-        } else {
-        eprintln!("DEBUG: prev_node IS NOT instance of DAGOpNode. Type: {:?}", prev_node.get_type());
-        }
-    } else {
-        eprintln!("DEBUG: Skipping prev_node check because absorbed=true.");
-    }
-    if !absorbed {
-        eprintln!("DEBUG: Absorption failed or neighbors unsuitable. Falling back to delay.");
         apply_scheduled_delay_op(py, dag, &t_start, &time_interval, &qubit, property_set)?;
-    }
         return Ok(());
     }
 
-    // (1) Compute DD intervals satisfying the constraint
+    // Process the DD sequence only if it exists
+    if let Some(dd_instructions) = &_dd_sequence {
+        // --- START: ROBUST SINGLE-GATE DD BLOCK ---
+        if dd_instructions.len() == 1 {
+            let instruction = &dd_instructions[0];
+            let gate_op = &instruction.operation;
+            let gate_params = &instruction.params;
+
+            // Step 1: Try to get the inverse operation.
+            let inv_op_res: PyResult<Option<(PackedOperation, SmallVec<[Param; 3]>)>> =
+                match gate_op.view() {
+                    OperationRef::StandardGate(gate) => {
+                        Ok(gate.inverse(gate_params).map(|(inv_gate, inv_params)| {
+                            (PackedOperation::from_standard_gate(inv_gate), inv_params)
+                        }))
+                    }
+                    OperationRef::Gate(py_gate) => {
+                        let inv_gate_py: Py<PyAny> =
+                            py_gate.gate.call_method(py, "inverse", (), None)?;
+                        inv_gate_py
+                            .extract::<OperationFromPython>(py)
+                            .map(|inv_op_from_py| {
+                                Some((inv_op_from_py.operation, inv_op_from_py.params))
+                            })
+                    }
+                    _ => Ok(None), // Not a gate
+                };
+
+            // Safely handle potential error during inverse calculation (e.g. Python exception)
+            let inv_op_tuple_opt = inv_op_res.unwrap_or(None); // Default to None on PyErr
+
+            // Step 2: If we got an inverse, try to get its matrix using correct parameters.
+            if let Some((inv_op, inv_params)) = inv_op_tuple_opt {
+                if let Some(u_inv) = inv_op.matrix(&inv_params) {
+                    // --- SUCCESS: We have the matrix, proceed with absorption. ---
+                    let [theta, phi, lam, phase] =
+                        angles_from_unitary(u_inv.view(), EulerBasis::U3);
+                    let inverse_phase_shift = phase;
+                    let mut absorbed = false;
+
+                    // --- Check next_node ---
+                    if next_node.is_instance_of::<DAGOpNode>() {
+                        if let Ok(next_node_ref) = next_node.extract::<PyRef<DAGOpNode>>() {
+                            let next_node_ind = next_node_ref
+                                .as_ref()
+                                .node
+                                .expect("Node index missing in next_node");
+                            let next_node_inst = &next_node_ref.instruction;
+                            if let Some(gate) = next_node_inst.operation.try_standard_gate() {
+                                if matches!(gate, StandardGate::U | StandardGate::U3) {
+                                    if let Ok(params) = next_node_inst.params.clone().into_inner() {
+                                        let theta_r = if let Param::Float(val) = params[0] {
+                                            val
+                                        } else {
+                                            0.0
+                                        };
+                                        let phi_r = if let Param::Float(val) = params[1] {
+                                            val
+                                        } else {
+                                            0.0
+                                        };
+                                        let lam_r = if let Param::Float(val) = params[2] {
+                                            val
+                                        } else {
+                                            0.0
+                                        };
+                                        let [theta_new, phi_new, lam_new] =
+                                            compose_u3_rust(theta_r, phi_r, lam_r, theta, phi, lam);
+
+                                        let new_instruction = CircuitInstruction {
+                                            operation: next_node_inst.operation.clone(),
+                                            qubits: next_node_inst.qubits.clone_ref(py),
+                                            clbits: next_node_inst.clbits.clone_ref(py),
+                                            label: next_node_inst.label.clone(),
+                                            params: smallvec![
+                                                Param::Float(theta_new),
+                                                Param::Float(phi_new),
+                                                Param::Float(lam_new)
+                                            ],
+                                            #[cfg(feature = "cache_pygates")]
+                                            py_op: std::sync::OnceLock::new(),
+                                        };
+                                        let new_op_obj = new_instruction.get_operation(py)?;
+
+                                        if let Ok(start_times) =
+                                            property_set.get_item("node_start_time")
+                                        {
+                                            if let Ok(start_times_dict) =
+                                                start_times.downcast::<PyDict>()
+                                            {
+                                                if let Some(start_time) =
+                                                    start_times_dict.get_item(next_node)?
+                                                {
+                                                    let old_node_key = next_node;
+                                                    dag.substitute_node_with_py_op(
+                                                        next_node_ind,
+                                                        new_op_obj.bind(py),
+                                                    )?; // Substitute *before* getting new node
+                                                    let new_node_obj =
+                                                        dag.get_node(py, next_node_ind)?;
+                                                    start_times_dict.del_item(old_node_key)?;
+                                                    start_times_dict
+                                                        .set_item(new_node_obj, start_time)?;
+                                                } else {
+                                                    dag.substitute_node_with_py_op(
+                                                        next_node_ind,
+                                                        new_op_obj.bind(py),
+                                                    )?;
+                                                }
+                                            } else {
+                                                dag.substitute_node_with_py_op(
+                                                    next_node_ind,
+                                                    new_op_obj.bind(py),
+                                                )?;
+                                            }
+                                        } else {
+                                            dag.substitute_node_with_py_op(
+                                                next_node_ind,
+                                                new_op_obj.bind(py),
+                                            )?;
+                                        }
+
+                                        sequence_gphase += inverse_phase_shift;
+                                        absorbed = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // --- Check prev_node ---
+                    if !absorbed && prev_node.is_instance_of::<DAGOpNode>() {
+                        if let Ok(prev_node_ref) = prev_node.extract::<PyRef<DAGOpNode>>() {
+                            let prev_node_ind = prev_node_ref
+                                .as_ref()
+                                .node
+                                .expect("Node index missing in prev_node");
+                            let prev_node_inst = &prev_node_ref.instruction;
+                            if let Some(gate) = prev_node_inst.operation.try_standard_gate() {
+                                if matches!(gate, StandardGate::U | StandardGate::U3) {
+                                    if let Ok(params) = prev_node_inst.params.clone().into_inner() {
+                                        let theta_l = if let Param::Float(val) = params[0] {
+                                            val
+                                        } else {
+                                            0.0
+                                        };
+                                        let phi_l = if let Param::Float(val) = params[1] {
+                                            val
+                                        } else {
+                                            0.0
+                                        };
+                                        let lam_l = if let Param::Float(val) = params[2] {
+                                            val
+                                        } else {
+                                            0.0
+                                        };
+                                        let [theta_new, phi_new, lam_new] =
+                                            compose_u3_rust(theta, phi, lam, theta_l, phi_l, lam_l);
+
+                                        let new_instruction = CircuitInstruction {
+                                            operation: prev_node_inst.operation.clone(),
+                                            qubits: prev_node_inst.qubits.clone_ref(py),
+                                            clbits: prev_node_inst.clbits.clone_ref(py),
+                                            label: prev_node_inst.label.clone(),
+                                            params: smallvec![
+                                                Param::Float(theta_new),
+                                                Param::Float(phi_new),
+                                                Param::Float(lam_new),
+                                            ],
+                                            #[cfg(feature = "cache_pygates")]
+                                            py_op: std::sync::OnceLock::new(),
+                                        };
+                                        let new_op_obj = new_instruction.get_operation(py)?;
+
+                                        // FIX: Update property_set
+                                        if let Ok(start_times) =
+                                            property_set.get_item("node_start_time")
+                                        {
+                                            if let Ok(start_times_dict) =
+                                                start_times.downcast::<PyDict>()
+                                            {
+                                                if let Some(start_time) =
+                                                    start_times_dict.get_item(prev_node)?
+                                                {
+                                                    let old_node_key = prev_node;
+                                                    dag.substitute_node_with_py_op(
+                                                        prev_node_ind,
+                                                        new_op_obj.bind(py),
+                                                    )?;
+                                                    let new_node_obj =
+                                                        dag.get_node(py, prev_node_ind)?;
+                                                    start_times_dict.del_item(old_node_key)?;
+                                                    start_times_dict
+                                                        .set_item(new_node_obj, start_time)?;
+                                                } else {
+                                                    dag.substitute_node_with_py_op(
+                                                        prev_node_ind,
+                                                        new_op_obj.bind(py),
+                                                    )?;
+                                                }
+                                            } else {
+                                                dag.substitute_node_with_py_op(
+                                                    prev_node_ind,
+                                                    new_op_obj.bind(py),
+                                                )?;
+                                            }
+                                        } else {
+                                            dag.substitute_node_with_py_op(
+                                                prev_node_ind,
+                                                new_op_obj.bind(py),
+                                            )?;
+                                        }
+
+                                        sequence_gphase += inverse_phase_shift;
+                                        absorbed = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // --- Fallback if absorption didn't happen ---
+                    if !absorbed {
+                        apply_scheduled_delay_op(
+                            py,
+                            dag,
+                            &t_start,
+                            &time_interval,
+                            &qubit,
+                            property_set,
+                        )?;
+                    }
+                } else {
+                    // Matrix calculation failed
+                    apply_scheduled_delay_op(
+                        py,
+                        dag,
+                        &t_start,
+                        &time_interval,
+                        &qubit,
+                        property_set,
+                    )?;
+                }
+            } else {
+                // Inverse calculation failed
+                apply_scheduled_delay_op(py, dag, &t_start, &time_interval, &qubit, property_set)?;
+            }
+            return Ok(());
+        } 
+    }
+
+    // --- If _dd_sequence was None OR len > 1, proceed with multi-gate logic or simple padding ---
     let mut taus: Array1<f64> = constrained_length(
-        alignment as f64,
-        &ArrayView1::from(&spacing).mapv(|v| slack as f64 * v).view(),
+        alignment,
+        &ArrayView1::from(&spacing).mapv(|v| slack * v).view(),
     );
-    let extra_slack: f64 = slack as f64 - taus.sum();
+    let extra_slack: f64 = slack - taus.sum();
     let taus_len = taus.len();
 
     // (2) Distribute extra slack
     if extra_slack_distribution == "middle" {
         let mid_ind: usize = (taus_len - 1) / 2;
-        let to_middle: f64 = constrained_length_scalar(alignment as f64, extra_slack);
+        let to_middle: f64 = constrained_length_scalar(alignment, extra_slack);
         taus[mid_ind] += to_middle;
         if (extra_slack - to_middle) != 0.0 {
-            // If to_middle is not a multiple value of the pulse alignment,
-            // it is truncated to the nearlest multiple value and
-            // the rest of slack is added to the end.
             taus[taus_len - 1] += extra_slack - to_middle;
         }
     } else if extra_slack_distribution == "edges" {
-        let to_begin_edge: f64 = constrained_length_scalar(alignment as f64, extra_slack / 2.0);
+        let to_begin_edge: f64 = constrained_length_scalar(alignment, extra_slack / 2.0);
         taus[0] += to_begin_edge;
         taus[taus_len - 1] += extra_slack - to_begin_edge;
     } else {
@@ -413,7 +399,8 @@ pub fn run_pad_dynamical_decoupling(
     }
 
     // (3) Construct DD sequence with delays
-    let num_elements: usize = cmp::max(dd_sequence.len(), taus_len);
+    let num_dd_gates = _dd_sequence.as_ref().map_or(0, |s| s.len());
+    let num_elements = cmp::max(num_dd_gates, taus_len);
     let mut idle_after = t_start;
 
     for dd_ind in 0..num_elements {
@@ -424,41 +411,33 @@ pub fn run_pad_dynamical_decoupling(
                 idle_after += tau;
             }
         }
-        if dd_ind < dd_sequence.len() {
-            // Apply the DD gate at this position
-            let gate = &dd_sequence[dd_ind];
-            let params = match &_dd_sequence {
-                Some(gate_seq) => gate_seq[dd_ind].params.clone(),
-                None => smallvec![],
-            };
+        if dd_ind < num_dd_gates {
+            let full_instruction = &_dd_sequence.as_ref().unwrap()[dd_ind];
+            let gate = &full_instruction.operation;
+            let params = &full_instruction.params;
+
             let gate_length = _dd_sequence_lengths
                 .get(&qubit)
                 .and_then(|v| v.get(dd_ind))
                 .copied()
                 .unwrap_or(0) as f64;
-            // --- ADD DEBUG ---
-            eprintln!("DEBUG Loop (gate): dd_ind={}, gate='{}', length={}, current idle_after={}", dd_ind, gate.name(), gate_length, idle_after);
-            // --- END DEBUG ---
+
+            // FIX: Safe qubit index unwrap
+            let qubit_idx = qubit
+                .index()
+                .ok_or_else(|| TranspilerError::new_err("DD qubit has no index."))?;
+
             let new_node = dag.apply_operation_back(
-                gate.clone().into(),                     // PackedOperation -> Operation
-                &[Qubit(qubit.index().ok_or_else(|| TranspilerError::new_err("Delay qubit has no index."))? as u32)],
+                gate.clone().into(),
+                &[Qubit(qubit_idx as u32)],
                 &[],
-                Some(params.clone()),
+                Some(params.clone()), // FIX: Pass params
                 None,
                 #[cfg(feature = "cache_pygates")]
                 None,
             )?;
             // Set the node start time in the property set
             let py_new_node = dag.get_node(py, new_node)?;
-            if let Ok(op_node_ref) = py_new_node.extract::<PyRef<DAGOpNode>>(py) {
-                eprintln!(
-                    "DEBUG apply_operation_back: Node_created='{}', Node_params={:?}",
-                    op_node_ref.instruction.operation.name(),
-                    op_node_ref.instruction.params
-                );
-            } else {
-                eprintln!("DEBUG apply_operation_back: Created node is not an OpNode?");
-            }
             let node_start_time_obj = property_set.get_item("node_start_time")?;
             let node_start_time_dict = node_start_time_obj.downcast::<PyDict>()?;
             node_start_time_dict.set_item(py_new_node, idle_after)?;
@@ -466,19 +445,20 @@ pub fn run_pad_dynamical_decoupling(
         }
     }
 
+    // --- Global Phase Update (Using Native Rust Add) ---
     let current_phase = dag.get_global_phase();
     let new_phase = match current_phase {
         Param::Float(val) => Param::Float(val + sequence_gphase),
         Param::ParameterExpression(py_obj) => {
+            // py_obj is Arc<ParameterExpression>
             let rhs_value = ParameterValueType::Float(sequence_gphase);
             let rhs_expr = ParameterExpression::from(rhs_value);
-            let new_expr_obj = py_obj.add(&rhs_expr)?;
-            Param::ParameterExpression(new_expr_obj.into())
+            let new_expr_arc = py_obj.add(&rhs_expr)?; // add returns Result<Arc<...>>
+            Param::ParameterExpression(new_expr_arc.into())
         }
         Param::Obj(_) => {
-            // Explicitly reject the invalid type, matching the setter's behavior.
             return Err(TranspilerError::new_err(
-                "Cannot add to global phase: phase has an invalid type.",
+                "Cannot add to global phase: phase has an invalid type 'Obj'.",
             ));
         }
     };
@@ -522,13 +502,6 @@ fn apply_scheduled_delay_op(
     qubit: &ShareableQubit,
     property_set: &Bound<PyAny>,
 ) -> PyResult<()> {
-    // --- ADD DEBUG ---
-    eprintln!("DEBUG: Inside apply_scheduled_delay_op.");
-    eprintln!("DEBUG:   t_start = {}, time_interval = {}", t_start, time_interval);
-    if *time_interval <= 0.0 { // Check if interval is valid
-         eprintln!("DEBUG:   WARNING! time_interval is zero or negative.");
-    }
-    // --- END DEBUG ---
     let delay_instr = StandardInstruction::Delay(map_delay_str_to_enum(
         &dag.get_internal_unit()
             .unwrap_or("dt".to_string())
@@ -537,7 +510,12 @@ fn apply_scheduled_delay_op(
     let params = Some(smallvec![Param::Float(*time_interval)]);
     let new_node = dag.apply_operation_back(
         delay_instr.into(),
-        &[Qubit(qubit.index().ok_or_else(|| TranspilerError::new_err("Delay qubit has no index."))? as u32)],
+        &[Qubit(
+            qubit
+                .index()
+                .ok_or_else(|| TranspilerError::new_err("Delay qubit has no index."))?
+                as u32,
+        )],
         &[],
         params,
         None,
@@ -548,7 +526,7 @@ fn apply_scheduled_delay_op(
     let py_new_node = dag.get_node(py, new_node)?;
     let node_start_time_obj = property_set.get_item("node_start_time")?;
     let node_start_time_dict = node_start_time_obj.downcast::<PyDict>()?;
-    node_start_time_dict.set_item(&py_new_node, t_start)?;
+    node_start_time_dict.set_item(py_new_node, t_start)?;
 
     Ok(())
 }
