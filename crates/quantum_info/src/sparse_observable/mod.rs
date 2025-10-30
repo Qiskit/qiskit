@@ -3397,7 +3397,7 @@ impl PySparseObservable {
         let side = 1usize << inner.num_qubits();
         let matrix_data = inner.to_matrix_dense(force_serial)?;
 
-        Ok(PyArray1::from_vec(py, matrix_data).reshape([side, side])?)
+        PyArray1::from_vec(py, matrix_data).reshape([side, side])
     }
 
     /// Convert to dense or sparse matrix.
