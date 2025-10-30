@@ -1475,7 +1475,6 @@ dependencies = [
  "qiskit-transpiler",
  "rand 0.9.2",
  "rand_pcg",
- "rustworkx-core",
  "smallvec",
  "thiserror 2.0.16",
 ]

@@ -30,7 +30,6 @@ nalgebra.workspace = true
 hashbrown.workspace = true
 rand.workspace = true
 rand_pcg.workspace = true
-rustworkx-core.workspace = true
 
 [build-dependencies]
 cbindgen = "0.29"

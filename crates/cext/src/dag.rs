@@ -16,12 +16,10 @@ use smallvec::smallvec;
 use crate::exit_codes::ExitCode;
 use qiskit_circuit::Qubit;
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeIndex, NodeType};
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, StandardGate, StandardInstruction,
 };
-
-use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 /// @ingroup QkDag
 /// Construct a new empty DAG.
