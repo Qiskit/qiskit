@@ -1482,7 +1482,7 @@ q_4: ───────────────────────┤   
         )
 
     def test_text_classical_wires_break_layers_right_justify(self):
-        """Hybrid classical writes stay separated when right-justified."""
+        """Hybrid classical writes stay separated when ``justify='right'``."""
 
         instruction_a = Instruction("NameA", 4, 1, [], label="A")
         instruction_b = Instruction("NameB", 2, 1, [], label="B")
@@ -1529,25 +1529,35 @@ q_4: ───────────────────────┤   
         )
 
     def test_text_hybrid_writes_preserve_conditional_order(self):
-        """Classical targets updated by non-measure ops block earlier condition columns."""
+        """Hybrid classical writes remain ordered around subsequent measurements."""
 
-        write = Instruction("Writer", 1, 1, [], label="W")
-        conditional = Instruction("Conditional", 1, 0, [], label="X")
+        write = Instruction("Writer", 4, 1, [], label="A")
+        follow = Instruction("Follower", 1, 1, [], label="C")
 
-        circuit = QuantumCircuit(2, 1)
-        circuit.append(write, [1], [0])
-        conditional.condition = (circuit.clbits[0], 1)
-        circuit.append(conditional, [0], [])
+        circuit = QuantumCircuit(4, 4)
+        circuit.append(write, [0, 1, 2, 3], [0])
+        circuit.measure(3, 0)
+        circuit.append(follow, [2], [2])
 
         expected = "\n".join(
             [
-                "              ┌───┐",
-                "q_0: |0>──────┤ X ├",
-                "        ┌────┐└─╥─┘",
-                "q_1: |0>┤0   ├──╫──",
-                "        │  W │  ║  ",
-                "   c: 0 ╡0   ╞══■══",
-                "        └────┘     ",
+                "        ┌────┐         ",
+                "q_0: |0>┤0   ├─────────",
+                "        │    │         ",
+                "q_1: |0>┤1   ├─────────",
+                "        │    │   ┌────┐",
+                "q_2: |0>┤2 A ├───┤0   ├",
+                "        │    │┌─┐│    │",
+                "q_3: |0>┤3   ├┤M├┤    ├",
+                "        │    │└╥┘│    │",
+                " c_0: 0 ╡0   ╞═╩═╡  C ╞",
+                "        └────┘   │    │",
+                " c_1: 0 ═════════╡    ╞",
+                "                 │    │",
+                " c_2: 0 ═════════╡0   ╞",
+                "                 └────┘",
+                " c_3: 0 ═══════════════",
+                "                       ",
             ]
         )
 
