@@ -51,7 +51,7 @@ pub fn get_matrix_from_inst(inst: &PackedInstruction) -> PyResult<Array2<Complex
     Python::attach(|py| {
         Ok(QI_OPERATOR
             .get_bound(py)
-            .call1((gate.gate.clone_ref(py),))?
+            .call1((gate.instruction.clone_ref(py),))?
             .getattr(intern!(py, "data"))?
             .extract::<PyReadonlyArray2<Complex64>>()?
             .as_array()

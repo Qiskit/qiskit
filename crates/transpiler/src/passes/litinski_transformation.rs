@@ -15,7 +15,7 @@ use pyo3::prelude::*;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::imports::PAULI_EVOLUTION_GATE;
 use qiskit_circuit::operations::{
-    Operation, OperationRef, Param, PyGate, StandardGate, multiply_param,
+    Operation, OperationRef, Param, PyInstruction, PyOperationTypes, StandardGate, multiply_param,
 };
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::{Clbit, Qubit, VarsMode};
@@ -181,16 +181,17 @@ pub fn run_litinski_transformation(
             angle
         };
         let py_evo = py_evo_cls.call1((py_pauli, time.clone()))?;
-        let py_gate = PyGate {
+        let py_gate = PyInstruction {
             qubits: qubits.len() as u32,
             clbits: 0,
             params: 1,
             op_name: "PauliEvolution".to_string(),
-            gate: py_evo.into(),
+            instruction: py_evo.into(),
+            control_flow: false,
         };
 
         new_dag.apply_operation_back(
-            py_gate.into(),
+            PyOperationTypes::Gate(py_gate).into(),
             &qubits,
             &no_clbits,
             Some(smallvec![time]),

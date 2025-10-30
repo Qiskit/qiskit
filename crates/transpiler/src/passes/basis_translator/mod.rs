@@ -42,7 +42,7 @@ use qiskit_circuit::{Clbit, PhysicalQubit, Qubit, VarsMode};
 use qiskit_circuit::{
     circuit_data::CircuitData,
     dag_circuit::DAGCircuit,
-    operations::{Operation, OperationRef, PythonOperation},
+    operations::{Operation, OperationRef, PyOperationTypes, PythonOperation},
 };
 use smallvec::SmallVec;
 
@@ -634,18 +634,22 @@ fn replace_node(
                 .map(|clbit| old_cargs[clbit.0 as usize])
                 .collect();
             let new_op: PackedOperation = match inner_node.op.view() {
-                OperationRef::Gate(gate) => {
-                    Python::attach(|py| gate.py_copy(py).map(|op| op.into()))
-                        .expect("Error while copying gate instance.")
-                }
-                OperationRef::Instruction(instruction) => {
-                    Python::attach(|py| instruction.py_copy(py).map(|op| op.into()))
-                        .expect("Error while copying instruction instance.")
-                }
-                OperationRef::Operation(operation) => {
-                    Python::attach(|py| operation.py_copy(py).map(|op| op.into()))
-                        .expect("Error while copying operation instance.")
-                }
+                OperationRef::Gate(gate) => Python::attach(|py| {
+                    gate.py_copy(py).map(|op| PyOperationTypes::Gate(op).into())
+                })
+                .expect("Error while copying gate instance."),
+                OperationRef::Instruction(instruction) => Python::attach(|py| {
+                    instruction
+                        .py_copy(py)
+                        .map(|op| PyOperationTypes::Instruction(op).into())
+                })
+                .expect("Error while copying instruction instance."),
+                OperationRef::Operation(operation) => Python::attach(|py| {
+                    operation
+                        .py_copy(py)
+                        .map(|op| PyOperationTypes::Operation(op).into())
+                })
+                .expect("Error while copying operation instance."),
                 OperationRef::StandardGate(gate) => gate.into(),
                 OperationRef::StandardInstruction(instruction) => instruction.into(),
                 OperationRef::Unitary(unitary) => unitary.clone().into(),
@@ -710,19 +714,21 @@ fn replace_node(
                 .collect();
             let new_op: PackedOperation = match inner_node.op.view() {
                 OperationRef::Gate(gate) => Python::attach(|py| {
-                    gate.py_copy(py).map(|op| op.into())
+                    gate.py_copy(py).map(|op| PyOperationTypes::Gate(op).into())
                 })
                 .map_err(|err| BasisTranslatorError::BasisDAGCircuitError(err.to_string()))?,
-                OperationRef::Instruction(instruction) => {
-                    Python::attach(|py| instruction.py_copy(py).map(|op| op.into())).map_err(
-                        |err| BasisTranslatorError::BasisDAGCircuitError(err.to_string()),
-                    )?
-                }
-                OperationRef::Operation(operation) => {
-                    Python::attach(|py| operation.py_copy(py).map(|op| op.into())).map_err(
-                        |err| BasisTranslatorError::BasisDAGCircuitError(err.to_string()),
-                    )?
-                }
+                OperationRef::Instruction(instruction) => Python::attach(|py| {
+                    instruction
+                        .py_copy(py)
+                        .map(|op| PyOperationTypes::Instruction(op).into())
+                })
+                .map_err(|err| BasisTranslatorError::BasisDAGCircuitError(err.to_string()))?,
+                OperationRef::Operation(operation) => Python::attach(|py| {
+                    operation
+                        .py_copy(py)
+                        .map(|op| PyOperationTypes::Operation(op).into())
+                })
+                .map_err(|err| BasisTranslatorError::BasisDAGCircuitError(err.to_string()))?,
                 OperationRef::StandardGate(gate) => gate.into(),
                 OperationRef::StandardInstruction(instruction) => instruction.into(),
                 OperationRef::Unitary(unitary) => unitary.clone().into(),
@@ -759,14 +765,14 @@ fn replace_node(
                                     BasisTranslatorError::BasisDAGCircuitError(err.to_string())
                                 }),
                             OperationRef::Gate(gate) => gate
-                                .gate
+                                .instruction
                                 .bind(py)
                                 .setattr("params", new_params.clone())
                                 .map_err(|err| {
                                     BasisTranslatorError::BasisDAGCircuitError(err.to_string())
                                 }),
                             OperationRef::Operation(oper) => oper
-                                .operation
+                                .instruction
                                 .bind(py)
                                 .setattr("params", new_params.clone())
                                 .map_err(|err| {

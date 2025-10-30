@@ -2054,7 +2054,7 @@ impl TwoQubitBasisDecomposer {
                 OperationRef::StandardGate(standard) => {
                     standard.create_py_op(py, Some(&params), None)?.into_any()
                 }
-                OperationRef::Gate(gate) => gate.gate.clone_ref(py),
+                OperationRef::Gate(gate) => gate.instruction.clone_ref(py),
                 OperationRef::Unitary(unitary) => unitary.create_py_op(py, None)?.into_any(),
                 _ => unreachable!("decomposer gate must be a gate"),
             },
@@ -2545,7 +2545,7 @@ impl TwoQubitControlledUDecomposer {
             }
             OperationRef::Gate(gate) => {
                 Python::attach(|py: Python| -> PyResult<(PackedOperation, SmallVec<_>)> {
-                    let raw_inverse = gate.gate.call_method0(py, intern!(py, "inverse"))?;
+                    let raw_inverse = gate.instruction.call_method0(py, intern!(py, "inverse"))?;
                     let inverse: OperationFromPython = raw_inverse.extract(py)?;
                     Ok((inverse.operation, inverse.params))
                 })?

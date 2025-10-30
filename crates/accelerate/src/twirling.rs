@@ -35,7 +35,9 @@ use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::ONE_QUBIT_IDENTITY;
 use qiskit_circuit::imports::QUANTUM_CIRCUIT;
 use qiskit_circuit::operations::StandardGate::{I, X, Y, Z};
-use qiskit_circuit::operations::{Operation, OperationRef, Param, PyInstruction, StandardGate};
+use qiskit_circuit::operations::{
+    Operation, OperationRef, Param, PyInstruction, PyOperationTypes, StandardGate,
+};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 
 use crate::QiskitError;
@@ -316,7 +318,9 @@ fn generate_twirled_circuit(
                         instruction: new_inst_obj.clone_ref(py),
                     };
                     let new_inst = PackedInstruction {
-                        op: PackedOperation::from_instruction(Box::new(new_inst)),
+                        op: PackedOperation::from_py_operation(Box::new(
+                            PyOperationTypes::Instruction(new_inst),
+                        )),
                         qubits: inst.qubits,
                         clbits: inst.clbits,
                         params: Some(Box::new(

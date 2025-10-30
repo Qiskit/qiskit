@@ -30,7 +30,7 @@ use crate::imports::{
     CONTROL_FLOW_OP, CONTROLLED_GATE, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN,
 };
 use crate::operations::{
-    ArrayType, Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
+    ArrayType, Operation, OperationRef, Param, PyInstruction, PyOperationTypes, StandardGate,
     StandardInstruction, StandardInstructionType, UnitaryGate,
 };
 use crate::packed_instruction::PackedOperation;
@@ -184,9 +184,9 @@ impl CircuitInstruction {
                     self.label.as_ref().map(|x| x.as_str()),
                 )?
                 .into_any(),
-            OperationRef::Gate(gate) => gate.gate.clone_ref(py),
+            OperationRef::Gate(gate) => gate.instruction.clone_ref(py),
             OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
-            OperationRef::Operation(operation) => operation.operation.clone_ref(py),
+            OperationRef::Operation(operation) => operation.instruction.clone_ref(py),
             OperationRef::Unitary(unitary) => unitary
                 .create_py_op(py, self.label.as_ref().map(|x| x.as_str()))?
                 .into_any(),
@@ -233,7 +233,7 @@ impl CircuitInstruction {
         match self.operation.view() {
             OperationRef::StandardGate(standard) => Ok(standard.num_ctrl_qubits() != 0),
             OperationRef::Gate(gate) => gate
-                .gate
+                .instruction
                 .bind(py)
                 .is_instance(CONTROLLED_GATE.get_bound(py)),
             _ => Ok(false),
@@ -622,46 +622,48 @@ impl<'a, 'py> FromPyObject<'a, 'py> for OperationFromPython {
 
         if ob_type.is_subclass(GATE.get_bound(py))? {
             let params = extract_params()?;
-            let gate = Box::new(PyGate {
+            let gate = Box::new(PyOperationTypes::Gate(PyInstruction {
                 qubits: ob.getattr(intern!(py, "num_qubits"))?.extract()?,
                 clbits: 0,
                 params: params.len() as u32,
+                control_flow: false,
                 op_name: ob.getattr(intern!(py, "name"))?.extract()?,
-                gate: ob.to_owned().unbind(),
-            });
+                instruction: ob.to_owned().unbind(),
+            }));
             return Ok(OperationFromPython {
-                operation: PackedOperation::from_gate(gate),
+                operation: PackedOperation::from_py_operation(gate),
                 params,
                 label: extract_label()?,
             });
         }
         if ob_type.is_subclass(INSTRUCTION.get_bound(py))? {
             let params = extract_params()?;
-            let instruction = Box::new(PyInstruction {
+            let instruction = Box::new(PyOperationTypes::Instruction(PyInstruction {
                 qubits: ob.getattr(intern!(py, "num_qubits"))?.extract()?,
                 clbits: ob.getattr(intern!(py, "num_clbits"))?.extract()?,
                 params: params.len() as u32,
                 op_name: ob.getattr(intern!(py, "name"))?.extract()?,
                 control_flow: ob.is_instance(CONTROL_FLOW_OP.get_bound(py))?,
                 instruction: ob.to_owned().unbind(),
-            });
+            }));
             return Ok(OperationFromPython {
-                operation: PackedOperation::from_instruction(instruction),
+                operation: PackedOperation::from_py_operation(instruction),
                 params,
                 label: extract_label()?,
             });
         }
         if ob_type.is_subclass(OPERATION.get_bound(py))? {
             let params = extract_params()?;
-            let operation = Box::new(PyOperation {
+            let operation = Box::new(PyOperationTypes::Operation(PyInstruction {
                 qubits: ob.getattr(intern!(py, "num_qubits"))?.extract()?,
                 clbits: ob.getattr(intern!(py, "num_clbits"))?.extract()?,
                 params: params.len() as u32,
+                control_flow: false,
                 op_name: ob.getattr(intern!(py, "name"))?.extract()?,
-                operation: ob.to_owned().unbind(),
-            });
+                instruction: ob.to_owned().unbind(),
+            }));
             return Ok(OperationFromPython {
-                operation: PackedOperation::from_operation(operation),
+                operation: PackedOperation::from_py_operation(operation),
                 params,
                 label: None,
             });

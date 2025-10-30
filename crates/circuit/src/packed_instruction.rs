@@ -24,8 +24,8 @@ use crate::circuit_data::CircuitData;
 use crate::imports::{BARRIER, DELAY, MEASURE, RESET, UNITARY_GATE, get_std_gate_class};
 use crate::interner::Interned;
 use crate::operations::{
-    Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, PythonOperation,
-    StandardGate, StandardInstruction, UnitaryGate,
+    Operation, OperationRef, Param, PyOperationTypes, PythonOperation, StandardGate,
+    StandardInstruction, UnitaryGate,
 };
 use crate::{Clbit, Qubit};
 
@@ -38,17 +38,15 @@ enum PackedOperationType {
     // dereferencing.
     StandardGate = 0,
     StandardInstruction = 1,
-    PyGate = 2,
-    PyInstruction = 3,
-    PyOperation = 4,
-    UnitaryGate = 5,
+    PyOperationTypes = 2,
+    UnitaryGate = 3,
 }
 
 unsafe impl ::bytemuck::CheckedBitPattern for PackedOperationType {
     type Bits = u8;
 
     fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
-        *bits < 6
+        *bits < 4
     }
 }
 unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
@@ -61,9 +59,7 @@ unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
 /// enum Operation {
 ///     StandardGate(StandardGate),
 ///     StandardInstruction(StandardInstruction),
-///     Gate(Box<PyGate>),
-///     Instruction(Box<PyInstruction>),
-///     Operation(Box<PyOperation>),
+///     PyOperation(Box<PyOperationTypes>),
 ///     UnitaryGate(Box<UnitaryGate>),
 /// }
 /// ```
@@ -251,7 +247,7 @@ mod standard_instruction {
 
 /// A private module to encapsulate the encoding of pointer types.
 mod pointer {
-    use crate::operations::{PyGate, PyInstruction, PyOperation, UnitaryGate};
+    use crate::operations::{PyOperationTypes, UnitaryGate};
     use crate::packed_instruction::{PackedOperation, PackedOperationType};
     use std::ptr::NonNull;
 
@@ -330,9 +326,7 @@ mod pointer {
         };
     }
 
-    impl_packable_pointer!(PyGate, PackedOperationType::PyGate);
-    impl_packable_pointer!(PyInstruction, PackedOperationType::PyInstruction);
-    impl_packable_pointer!(PyOperation, PackedOperationType::PyOperation);
+    impl_packable_pointer!(PyOperationTypes, PackedOperationType::PyOperationTypes);
     impl_packable_pointer!(UnitaryGate, PackedOperationType::UnitaryGate);
 }
 
@@ -384,11 +378,14 @@ impl PackedOperation {
             PackedOperationType::StandardInstruction => {
                 OperationRef::StandardInstruction(self.standard_instruction())
             }
-            PackedOperationType::PyGate => OperationRef::Gate(self.try_into().unwrap()),
-            PackedOperationType::PyInstruction => {
-                OperationRef::Instruction(self.try_into().unwrap())
+            PackedOperationType::PyOperationTypes => {
+                let op: &PyOperationTypes = self.try_into().unwrap();
+                match op {
+                    PyOperationTypes::Gate(gate) => OperationRef::Gate(gate),
+                    PyOperationTypes::Instruction(inst) => OperationRef::Instruction(inst),
+                    PyOperationTypes::Operation(op) => OperationRef::Operation(op),
+                }
             }
-            PackedOperationType::PyOperation => OperationRef::Operation(self.try_into().unwrap()),
             PackedOperationType::UnitaryGate => OperationRef::Unitary(self.try_into().unwrap()),
         }
     }
@@ -407,20 +404,8 @@ impl PackedOperation {
 
     /// Construct a new `PackedOperation` from an owned heap-allocated `PyGate`.
     #[inline]
-    pub fn from_gate(gate: Box<PyGate>) -> Self {
-        gate.into()
-    }
-
-    /// Construct a new `PackedOperation` from an owned heap-allocated `PyInstruction`.
-    #[inline]
-    pub fn from_instruction(instruction: Box<PyInstruction>) -> Self {
-        instruction.into()
-    }
-
-    /// Construct a new `PackedOperation` from an owned heap-allocated `PyOperation`.
-    #[inline]
-    pub fn from_operation(operation: Box<PyOperation>) -> Self {
-        operation.into()
+    pub fn from_py_operation(op: Box<PyOperationTypes>) -> Self {
+        op.into()
     }
 
     pub fn from_unitary(unitary: Box<UnitaryGate>) -> Self {
@@ -437,13 +422,13 @@ impl PackedOperation {
                 Ok(left == right)
             }
             (OperationRef::Gate(left), OperationRef::Gate(right)) => {
-                left.gate.bind(py).eq(&right.gate)
+                left.instruction.bind(py).eq(&right.instruction)
             }
             (OperationRef::Instruction(left), OperationRef::Instruction(right)) => {
                 left.instruction.bind(py).eq(&right.instruction)
             }
             (OperationRef::Operation(left), OperationRef::Operation(right)) => {
-                left.operation.bind(py).eq(&right.operation)
+                left.instruction.bind(py).eq(&right.instruction)
             }
             (OperationRef::Unitary(left), OperationRef::Unitary(right)) => Ok(left == right),
             _ => Ok(false),
@@ -478,9 +463,9 @@ impl PackedOperation {
                     }
                 };
             }
-            OperationRef::Gate(gate) => gate.gate.bind(py),
+            OperationRef::Gate(gate) => gate.instruction.bind(py),
             OperationRef::Instruction(instruction) => instruction.instruction.bind(py),
-            OperationRef::Operation(operation) => operation.operation.bind(py),
+            OperationRef::Operation(operation) => operation.instruction.bind(py),
             OperationRef::Unitary(_) => {
                 return UNITARY_GATE
                     .get_bound(py)
@@ -558,12 +543,14 @@ impl Clone for PackedOperation {
             OperationRef::StandardInstruction(instruction) => {
                 Self::from_standard_instruction(instruction)
             }
-            OperationRef::Gate(gate) => Self::from_gate(Box::new(gate.to_owned())),
-            OperationRef::Instruction(instruction) => {
-                Self::from_instruction(Box::new(instruction.to_owned()))
+            OperationRef::Gate(gate) => {
+                Self::from_py_operation(Box::new(PyOperationTypes::Gate(gate.to_owned())))
             }
+            OperationRef::Instruction(instruction) => Self::from_py_operation(Box::new(
+                PyOperationTypes::Instruction(instruction.to_owned()),
+            )),
             OperationRef::Operation(operation) => {
-                Self::from_operation(Box::new(operation.to_owned()))
+                Self::from_py_operation(Box::new(PyOperationTypes::Operation(operation.to_owned())))
             }
             OperationRef::Unitary(unitary) => Self::from_unitary(Box::new(unitary.clone())),
         }
@@ -575,9 +562,7 @@ impl Drop for PackedOperation {
         use crate::packed_instruction::pointer::PackablePointer;
         match self.discriminant() {
             PackedOperationType::StandardGate | PackedOperationType::StandardInstruction => (),
-            PackedOperationType::PyGate => PyGate::drop_packed(self),
-            PackedOperationType::PyInstruction => PyInstruction::drop_packed(self),
-            PackedOperationType::PyOperation => PyOperation::drop_packed(self),
+            PackedOperationType::PyOperationTypes => PyOperationTypes::drop_packed(self),
             PackedOperationType::UnitaryGate => UnitaryGate::drop_packed(self),
         }
     }
@@ -692,9 +677,9 @@ impl PackedInstruction {
                     self.params.as_deref().map(SmallVec::as_slice),
                     self.label.as_ref().map(|x| x.as_str()),
                 ),
-                OperationRef::Gate(gate) => Ok(gate.gate.clone_ref(py)),
+                OperationRef::Gate(gate) => Ok(gate.instruction.clone_ref(py)),
                 OperationRef::Instruction(instruction) => Ok(instruction.instruction.clone_ref(py)),
-                OperationRef::Operation(operation) => Ok(operation.operation.clone_ref(py)),
+                OperationRef::Operation(operation) => Ok(operation.instruction.clone_ref(py)),
                 OperationRef::Unitary(unitary) => {
                     unitary.create_py_op(py, self.label.as_ref().map(|x| x.as_str()))
                 }
@@ -732,22 +717,22 @@ impl PackedInstruction {
                 Ok(left == right)
             }
             (OperationRef::Gate(left), OperationRef::Gate(right)) => {
-                left.gate.bind(py).eq(&right.gate)
+                left.instruction.bind(py).eq(&right.instruction)
             }
             (OperationRef::Instruction(left), OperationRef::Instruction(right)) => {
                 left.instruction.bind(py).eq(&right.instruction)
             }
             (OperationRef::Operation(left), OperationRef::Operation(right)) => {
-                left.operation.bind(py).eq(&right.operation)
+                left.instruction.bind(py).eq(&right.instruction)
             }
             // Handle the case we end up with a pygate for a standard gate
             // this typically only happens if it's a ControlledGate in python
             // and we have mutable state set.
             (OperationRef::StandardGate(_left), OperationRef::Gate(right)) => {
-                self.unpack_py_op(py)?.bind(py).eq(&right.gate)
+                self.unpack_py_op(py)?.bind(py).eq(&right.instruction)
             }
             (OperationRef::Gate(left), OperationRef::StandardGate(_right)) => {
-                other.unpack_py_op(py)?.bind(py).eq(&left.gate)
+                other.unpack_py_op(py)?.bind(py).eq(&left.instruction)
             }
             // Handle the case we end up with a pyinstruction for a standard instruction
             (OperationRef::StandardInstruction(_left), OperationRef::Instruction(right)) => {
@@ -766,9 +751,15 @@ impl PackedInstruction {
         memo: Option<&Bound<'py, PyDict>>,
     ) -> PyResult<()> {
         match self.op.view() {
-            OperationRef::Gate(gate) => self.op = gate.py_deepcopy(py, memo)?.into(),
-            OperationRef::Instruction(inst) => self.op = inst.py_deepcopy(py, memo)?.into(),
-            OperationRef::Operation(op) => self.op = op.py_deepcopy(py, memo)?.into(),
+            OperationRef::Gate(gate) => {
+                self.op = PyOperationTypes::Gate(gate.py_deepcopy(py, memo)?).into()
+            }
+            OperationRef::Instruction(inst) => {
+                self.op = PyOperationTypes::Instruction(inst.py_deepcopy(py, memo)?).into()
+            }
+            OperationRef::Operation(op) => {
+                self.op = PyOperationTypes::Operation(op.py_deepcopy(py, memo)?).into()
+            }
             _ => (),
         };
         for param in self.params_mut() {
