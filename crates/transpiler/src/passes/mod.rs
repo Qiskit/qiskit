@@ -41,6 +41,7 @@ mod instruction_duration_check;
 mod inverse_cancellation;
 mod litinski_transformation;
 mod optimize_1q_gates_decomposition;
+mod optimize_clifford_t;
 mod remove_diagonal_gates_before_measure;
 mod remove_identity_equiv;
 pub mod sabre;
@@ -81,6 +82,7 @@ pub use litinski_transformation::{litinski_transformation_mod, run_litinski_tran
 pub use optimize_1q_gates_decomposition::{
     optimize_1q_gates_decomposition_mod, run_optimize_1q_gates_decomposition,
 };
+pub use optimize_clifford_t::{optimize_clifford_t_mod, run_optimize_clifford_t};
 pub use remove_diagonal_gates_before_measure::{
     remove_diagonal_gates_before_measure_mod, run_remove_diagonal_before_measure,
 };
