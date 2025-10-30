@@ -17,10 +17,7 @@ use std::ops::{Add, Deref, Sub};
 
 use hashbrown::HashMap;
 use pyo3::{
-    IntoPyObjectExt,
-    exceptions::{PyKeyError, PyTypeError},
-    prelude::*,
-    types::PyDict,
+    exceptions::{PyKeyError, PyTypeError}, prelude::*, types::{PyDict, PyList}, IntoPyObjectExt
 };
 use qiskit_circuit::dag_node::{DAGNode, DAGOpNode};
 use rustworkx_core::petgraph::graph::NodeIndex;
@@ -109,10 +106,10 @@ impl PyNodeDurations {
 
     fn __getitem__<'py>(
         &'py self,
-        py: Python<'py>,
         node: Bound<'py, DAGOpNode>,
     ) -> PyResult<Bound<'py, PyAny>> {
         let node_as_base: &Bound<DAGNode> = node.cast()?;
+        let py = node.py();
         match &self.0 {
             NodeDurations::Dt(map) => map
                 .get(&node_as_base.borrow().node.expect("Node index not found."))
@@ -131,21 +128,53 @@ impl PyNodeDurations {
         }
     }
 
+    fn __setitem__<'py>(
+        &'py mut self,
+        node: Bound<'py, DAGOpNode>,
+        value: Bound<'py, PyAny>,
+    ) -> PyResult<()> {
+        let node_as_base: &Bound<DAGNode> = node.cast()?;
+        match &mut self.0 {
+            NodeDurations::Dt(map) => {
+                let value = value.extract()?;
+                map
+                .entry(node_as_base.borrow().node.expect("Node index not found."))
+                .and_modify(|val| *val = value)
+                .or_insert(value);
+                Ok(())
+            }
+            NodeDurations::Seconds(map) => {
+                let value = value.extract()?;
+                map
+                .entry(node_as_base.borrow().node.expect("Node index not found."))
+                .and_modify(|val| *val = value)
+                .or_insert(value);
+                Ok(())
+            }
+        }
+    }
+
+    fn items<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
+        match &**self {
+            NodeDurations::Dt(map) => PyList::new(py, map.iter().map(|(k, v)| (k.index(), *v))),
+            NodeDurations::Seconds(map) => PyList::new(py, map.iter().map(|(k, v)| (k.index(), *v))),
+        }
+    }
+
     fn get<'py>(
         &'py self,
-        py: Python<'py>,
         node: Bound<'py, DAGOpNode>,
         default: Bound<'py, PyAny>,
     ) -> Bound<'py, PyAny> {
-        match self.__getitem__(py, node) {
+        match self.__getitem__(node) {
             Ok(res) => res,
             Err(_) => default,
         }
     }
 
-    fn __contains__<'py>(&'py self, py: Python<'py>, node: Bound<'py, PyAny>) -> bool {
+    fn __contains__<'py>(&'py self, node: Bound<'py, PyAny>) -> bool {
         node.cast_into()
-            .map(|node| self.__getitem__(py, node).is_ok())
+            .map(|node| self.__getitem__(node).is_ok())
             .is_ok_and(|val| val)
     }
 
