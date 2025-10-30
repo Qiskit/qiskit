@@ -10,9 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use pyo3::IntoPyObjectExt;
 use pyo3::prelude::*;
 use pyo3::types::PyList;
-use pyo3::IntoPyObjectExt;
 
 use hashbrown::HashMap;
 
@@ -52,6 +52,13 @@ macro_rules! qubit_newtype {
             pub fn index(&self) -> usize {
                 self.0 as usize
             }
+
+            /// Specialise a slice of `Qubit` values into a slice of this type's values.
+            pub fn lift_slice(slice: &[$crate::Qubit]) -> &[$id] {
+                // SAFETY: `Qubit` and this type share the exact same set of valid bit patterns and
+                // alignments.
+                unsafe { ::std::slice::from_raw_parts(slice.as_ptr() as *const $id, slice.len()) }
+            }
         }
 
         impl From<$id> for $crate::Qubit {
@@ -65,9 +72,11 @@ macro_rules! qubit_newtype {
             }
         }
 
-        impl pyo3::FromPyObject<'_> for $id {
-            fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
-                Ok(Self(ob.extract()?))
+        impl<'a, 'py> ::pyo3::FromPyObject<'a, 'py> for $id {
+            type Error = <u32 as FromPyObject<'a, 'py>>::Error;
+
+            fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+                ob.extract().map(Self)
             }
         }
 

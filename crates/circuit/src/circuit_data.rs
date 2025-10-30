@@ -22,9 +22,9 @@ use crate::bit::{
 use crate::bit_locator::BitLocator;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::classical::expr;
-use crate::dag_circuit::{add_global_phase, DAGStretchType, DAGVarType};
+use crate::dag_circuit::{DAGStretchType, DAGVarType, add_global_phase};
 use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
-use crate::interner::{Interned, Interner};
+use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{Operation, OperationRef, Param, PythonOperation, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
@@ -37,11 +37,11 @@ use crate::{Clbit, Qubit, Stretch, Var, VarsMode};
 
 use num_complex::Complex64;
 use numpy::PyReadonlyArray1;
+use pyo3::IntoPyObjectExt;
 use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyList, PySet, PyTuple, PyType};
-use pyo3::IntoPyObjectExt;
-use pyo3::{import_exception, intern, PyTraverseError, PyVisit};
+use pyo3::{PyTraverseError, PyVisit, import_exception, intern};
 
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
@@ -55,7 +55,7 @@ type CircuitDataState<'py> = (
     Vec<ClassicalRegister>,
     Bound<'py, PyDict>,
     Bound<'py, PyDict>,
-    Vec<(String, PyObject)>,
+    Vec<(String, Py<PyAny>)>,
     Vec<expr::Var>,
     Vec<expr::Stretch>,
 );
@@ -179,12 +179,12 @@ pub struct CircuitVarInfo {
 }
 
 impl CircuitVarInfo {
-    fn to_pickle(&self, py: Python) -> PyResult<PyObject> {
+    fn to_pickle(&self, py: Python) -> PyResult<Py<PyAny>> {
         (self.var.0, self.type_ as u8).into_py_any(py)
     }
 
     fn from_pickle(ob: &Bound<PyAny>) -> PyResult<Self> {
-        let val_tuple = ob.downcast::<PyTuple>()?;
+        let val_tuple = ob.cast::<PyTuple>()?;
         Ok(CircuitVarInfo {
             var: Var(val_tuple.get_item(0)?.extract()?),
             type_: match val_tuple.get_item(1)?.extract::<u8>()? {
@@ -227,12 +227,12 @@ pub struct CircuitStretchInfo {
 }
 
 impl CircuitStretchInfo {
-    fn to_pickle(&self, py: Python) -> PyResult<PyObject> {
+    fn to_pickle(&self, py: Python) -> PyResult<Py<PyAny>> {
         (self.stretch.0, self.type_ as u8).into_py_any(py)
     }
 
     fn from_pickle(ob: &Bound<PyAny>) -> PyResult<Self> {
-        let val_tuple = ob.downcast::<PyTuple>()?;
+        let val_tuple = ob.cast::<PyTuple>()?;
         Ok(CircuitStretchInfo {
             stretch: Stretch(val_tuple.get_item(0)?.extract()?),
             type_: match val_tuple.get_item(1)?.extract::<u8>()? {
@@ -259,7 +259,7 @@ pub enum CircuitIdentifierInfo {
 }
 
 impl CircuitIdentifierInfo {
-    fn to_pickle(&self, py: Python) -> PyResult<PyObject> {
+    fn to_pickle(&self, py: Python) -> PyResult<Py<PyAny>> {
         match self {
             CircuitIdentifierInfo::Stretch(info) => (0, info.to_pickle(py)?).into_py_any(py),
             CircuitIdentifierInfo::Var(info) => (1, info.to_pickle(py)?).into_py_any(py),
@@ -267,7 +267,7 @@ impl CircuitIdentifierInfo {
     }
 
     fn from_pickle(ob: &Bound<PyAny>) -> PyResult<Self> {
-        let val_tuple = ob.downcast::<PyTuple>()?;
+        let val_tuple = ob.cast::<PyTuple>()?;
         match val_tuple.get_item(0)?.extract::<u8>()? {
             0 => Ok(CircuitIdentifierInfo::Stretch(
                 CircuitStretchInfo::from_pickle(&val_tuple.get_item(1)?)?,
@@ -378,7 +378,7 @@ impl CircuitData {
         Ok(())
     }
 
-    pub fn __reduce__(self_: &Bound<CircuitData>, py: Python<'_>) -> PyResult<PyObject> {
+    pub fn __reduce__(self_: &Bound<CircuitData>, py: Python<'_>) -> PyResult<Py<PyAny>> {
         let ty: Bound<PyType> = self_.get_type();
         let args = {
             let self_ = self_.borrow();
@@ -401,7 +401,7 @@ impl CircuitData {
                     .identifier_info
                     .iter()
                     .map(|(k, v)| (k.clone(), v.clone().to_pickle(py).unwrap()))
-                    .collect::<Vec<(String, PyObject)>>(),
+                    .collect::<Vec<(String, Py<PyAny>)>>(),
                 borrowed.vars.objects().clone(),
                 borrowed.stretches.objects().clone(),
             )
@@ -1068,7 +1068,7 @@ impl CircuitData {
     }
 
     // Note: we also rely on this to make us iterable!
-    pub fn __getitem__(&self, py: Python, index: PySequenceIndex) -> PyResult<PyObject> {
+    pub fn __getitem__(&self, py: Python, index: PySequenceIndex) -> PyResult<Py<PyAny>> {
         // Get a single item, assuming the index is validated as in bounds.
         let get_single = |index: usize| {
             let inst = &self.data[index];
@@ -1104,7 +1104,7 @@ impl CircuitData {
         fn set_single(slf: &mut CircuitData, index: usize, value: &Bound<PyAny>) -> PyResult<()> {
             let py = value.py();
             slf.untrack_instruction_parameters(index)?;
-            slf.data[index] = slf.pack(py, &value.downcast::<CircuitInstruction>()?.borrow())?;
+            slf.data[index] = slf.pack(py, &value.cast::<CircuitInstruction>()?.borrow())?;
             slf.track_instruction_parameters(index)?;
             Ok(())
         }
@@ -1129,7 +1129,7 @@ impl CircuitData {
                     })?
                 } else {
                     for value in values[indices.len()..].iter().rev() {
-                        self.insert(stop as isize, value.downcast()?.borrow())?;
+                        self.insert(stop as isize, value.cast()?.borrow())?;
                     }
                 }
                 Ok(())
@@ -1179,7 +1179,7 @@ impl CircuitData {
     }
 
     #[pyo3(signature = (index=None))]
-    pub fn pop(&mut self, py: Python<'_>, index: Option<PySequenceIndex>) -> PyResult<PyObject> {
+    pub fn pop(&mut self, py: Python<'_>, index: Option<PySequenceIndex>) -> PyResult<Py<PyAny>> {
         let index = index.unwrap_or(PySequenceIndex::Int(-1));
         let native_index = index.with_len(self.data.len())?;
         let item = self.__getitem__(py, index)?;
@@ -1225,7 +1225,7 @@ impl CircuitData {
     }
 
     pub fn extend(&mut self, itr: &Bound<PyAny>) -> PyResult<()> {
-        if let Ok(other) = itr.downcast::<CircuitData>() {
+        if let Ok(other) = itr.cast::<CircuitData>() {
             let other = other.borrow();
             // Fast path to avoid unnecessary construction of CircuitInstruction instances.
             self.data.reserve(other.data.len());
@@ -1259,7 +1259,7 @@ impl CircuitData {
             return Ok(());
         }
         for v in itr.try_iter()? {
-            self.append(v?.downcast()?)?;
+            self.append(v?.cast()?)?;
         }
         Ok(())
     }
@@ -1287,7 +1287,7 @@ impl CircuitData {
         } else {
             let values = sequence
                 .try_iter()?
-                .map(|ob| Param::extract_no_coerce(&ob?))
+                .map(|ob| Param::extract_no_coerce(ob?.as_borrowed()))
                 .collect::<PyResult<Vec<_>>>()?;
             self.assign_parameters_from_slice(&values)
         }
@@ -1345,7 +1345,7 @@ impl CircuitData {
             return Ok(false);
         }
 
-        if let Ok(other_cd) = other.downcast::<CircuitData>() {
+        if let Ok(other_cd) = other.cast::<CircuitData>() {
             if !slf
                 .getattr("global_phase")?
                 .eq(other_cd.getattr("global_phase")?)?
@@ -1670,7 +1670,7 @@ impl CircuitData {
 
     // Return the variable in the circuit corresponding to the given name, or None if no such variable.
     #[pyo3(name = "get_var")]
-    fn py_get_var(&self, py: Python, name: &str) -> PyResult<PyObject> {
+    fn py_get_var(&self, py: Python, name: &str) -> PyResult<Py<PyAny>> {
         if let Some(CircuitIdentifierInfo::Var(var_info)) = self.identifier_info.get(name) {
             let var = self
                 .vars
@@ -1772,7 +1772,7 @@ impl CircuitData {
 
     // Return the stretch variable in the circuit corresponding to the given name, or None if no such variable.
     #[pyo3(name = "get_stretch")]
-    pub fn py_get_stretch(&self, py: Python, name: &str) -> PyResult<PyObject> {
+    pub fn py_get_stretch(&self, py: Python, name: &str) -> PyResult<Py<PyAny>> {
         if let Some(CircuitIdentifierInfo::Stretch(stretch_info)) = self.identifier_info.get(name) {
             let stretch = self
                 .stretches
@@ -2310,6 +2310,41 @@ impl CircuitData {
         &self.qargs_interner
     }
 
+    /// Merge the `qargs` in a different [Interner] into this Circuit, remapping the qubits.
+    ///
+    /// This is useful for simplifying the direct mapping of [PackedInstruction]s from one circuit to
+    /// another, like when composing two circuits. See [Interner::merge_map_slice] for more
+    /// information on the mapping function.
+    ///
+    /// The input [InternedMap] is cleared of its previous entries by this method, and then we
+    /// re-use the allocation.
+    pub fn merge_qargs_using(
+        &mut self,
+        other: &Interner<[Qubit]>,
+        map_fn: impl FnMut(&Qubit) -> Option<Qubit>,
+        map: &mut InternedMap<[Qubit]>,
+    ) {
+        // 4 is an arbitrary guess for the amount of stack space to allocate for mapping the
+        // `qargs`, but it doesn't matter if it's too short because it'll safely spill to the heap.
+        self.qargs_interner
+            .merge_map_slice_using::<4>(other, map_fn, map);
+    }
+
+    /// Merge the `qargs` in a different [Interner] into this circuit, remapping the qubits.
+    ///
+    /// This is useful for simplifying the direct mapping of [PackedInstruction]s from one circuit to
+    /// another, like when composing two circuits. See [Interner::merge_map_slice] for more
+    /// information on the mapping function.
+    pub fn merge_qargs(
+        &mut self,
+        other: &Interner<[Qubit]>,
+        map_fn: impl FnMut(&Qubit) -> Option<Qubit>,
+    ) -> InternedMap<[Qubit]> {
+        let mut out = InternedMap::new();
+        self.merge_qargs_using(other, map_fn, &mut out);
+        out
+    }
+
     /// Returns an immutable view of the Interner used for Cargs
     pub fn cargs_interner(&self) -> &Interner<[Clbit]> {
         &self.cargs_interner
@@ -2404,7 +2439,7 @@ impl CircuitData {
                     expr.subs(&map, false)?
                 }
                 Param::Obj(ob) => {
-                    Python::with_gil(|py| {
+                    Python::attach(|py| {
                         // The integer handling is only needed to support the case where an int is
                         // passed in directly instead of a float. This will be handled when we add
                         // int to the param enum to support dt target.
@@ -2493,10 +2528,10 @@ impl CircuitData {
                             // gates. Technically `StandardInstruction::Delay` could, but in
                             // practice that's not a common path, and it's only supported for
                             // backwards compatability from before Stretch was introduced. If we did
-                            // it in rust without Python that's a mistake and this with_gil() call
+                            // it in rust without Python that's a mistake and this attach() call
                             // will panic and point out the error of your ways when this comment is
                             // read.
-                            Python::with_gil(|py| {
+                            Python::attach(|py| {
                                 let validate_parameter_attr = intern!(py, "validate_parameter");
                                 let assign_parameters_attr = intern!(py, "assign_parameters");
 
@@ -2518,24 +2553,28 @@ impl CircuitData {
                                         // to a numeric quantity already, so the match here is
                                         // definitely parameterized.
                                         match &new_param {
-                                            Param::ParameterExpression(expr) => match expr
-                                                .try_to_value(true)
-                                            {
-                                                Ok(_) => {
-                                                    // fully bound, validate parameters
-                                                    Param::extract_no_coerce(&op.call_method1(
-                                                        validate_parameter_attr,
-                                                        (new_param,),
-                                                    )?)?
+                                            Param::ParameterExpression(expr) => {
+                                                match expr.try_to_value(true) {
+                                                    Ok(_) => {
+                                                        // fully bound, validate parameters
+                                                        Param::extract_no_coerce(
+                                                            op.call_method1(
+                                                                validate_parameter_attr,
+                                                                (new_param,),
+                                                            )?
+                                                            .as_borrowed(),
+                                                        )?
+                                                    }
+                                                    Err(_) => new_param, // not bound yet, cannot validate
                                                 }
-                                                Err(_) => new_param, // not bound yet, cannot validate
-                                            },
-                                            new_param => {
-                                                Param::extract_no_coerce(&op.call_method1(
+                                            }
+                                            new_param => Param::extract_no_coerce(
+                                                op.call_method1(
                                                     validate_parameter_attr,
                                                     (new_param,),
-                                                )?)?
-                                            }
+                                                )?
+                                                .as_borrowed(),
+                                            )?,
                                         }
                                     }
                                     Param::Obj(obj) => {
@@ -2544,7 +2583,7 @@ impl CircuitData {
                                             return Err(inconsistent());
                                         }
                                         Param::extract_no_coerce(
-                                            &obj.call_method(
+                                            obj.call_method(
                                                 assign_parameters_attr,
                                                 ([(symbol.clone(), value.as_ref())]
                                                     .into_py_dict(py)?,),
@@ -2552,7 +2591,8 @@ impl CircuitData {
                                                     &[("inplace", false), ("flat_input", true)]
                                                         .into_py_dict(py)?,
                                                 ),
-                                            )?,
+                                            )?
+                                            .as_borrowed(),
                                         )?
                                     }
                                 };
@@ -2579,7 +2619,7 @@ impl CircuitData {
 
         // handle custom gates, this can only happen in Py-space
         if !user_operations.is_empty() {
-            Python::with_gil(|py| -> PyResult<()> {
+            Python::attach(|py| -> PyResult<()> {
                 let _definition_attr = intern!(py, "_definition");
                 let assign_parameters_attr = intern!(py, "assign_parameters");
 
@@ -2634,9 +2674,111 @@ impl CircuitData {
         &self.data
     }
 
+    /// Consume the CircuitData and create an iterator of the [`PackedInstruction`] objects in the
+    /// circuit.
+    pub fn into_data_iter(self) -> impl Iterator<Item = PackedInstruction> {
+        self.data.into_iter()
+    }
+
     /// Returns an iterator over the stored identifiers in order of insertion
     pub fn identifiers(&self) -> impl ExactSizeIterator<Item = &CircuitIdentifierInfo> {
         self.identifier_info.values()
+    }
+
+    /// Remove the label for an instruction in the circuit
+    ///
+    /// This modifies the circuit in place and sets the label
+    /// field of an instruction to ``None``.
+    ///
+    /// # Arguments
+    ///
+    /// * index: The index of the instruction in the circuit to remove the label of.
+    pub fn invalidate_label(&mut self, index: usize) {
+        self.data[index].label = None;
+    }
+
+    /// Clone an empty CircuitData from a given reference.
+    ///
+    /// The new copy will have the global properties from the provided `CircuitData`.
+    /// The bit data fields and interners, global phase, etc will be copied to
+    /// the new returned `CircuitData`, but the `data` field's instruction list will
+    /// be empty. This can be useful for scenarios where you want to rebuild a copy
+    /// of the circuit from a reference but insert new gates in the middle.
+    ///
+    /// # Arguments
+    ///
+    /// * other - The other `CircuitData` to clone an empty `CircuitData` from.
+    /// * capacity - The capacity for instructions to use in the output `CircuitData`
+    ///   If `None` the length of `other` will be used, if `Some` the integer
+    ///   value will be used as the capacity.
+    pub fn clone_empty_like(
+        other: &Self,
+        capacity: Option<usize>,
+        vars_mode: VarsMode,
+    ) -> PyResult<Self> {
+        let mut res = CircuitData {
+            data: Vec::with_capacity(capacity.unwrap_or(other.data.len())),
+            qargs_interner: other.qargs_interner.clone(),
+            cargs_interner: other.cargs_interner.clone(),
+            qubits: other.qubits.clone(),
+            clbits: other.clbits.clone(),
+            param_table: ParameterTable::new(),
+            global_phase: Param::Float(0.0),
+            qregs: other.qregs.clone(),
+            cregs: other.cregs.clone(),
+            qubit_indices: other.qubit_indices.clone(),
+            clbit_indices: other.clbit_indices.clone(),
+            vars: ObjectRegistry::new(),
+            stretches: ObjectRegistry::new(),
+            identifier_info: IndexMap::new(),
+            vars_input: Vec::new(),
+            vars_capture: Vec::new(),
+            vars_declare: Vec::new(),
+            stretches_capture: Vec::new(),
+            stretches_declare: Vec::new(),
+        };
+        res.set_global_phase(other.global_phase.clone())?;
+        if let VarsMode::Drop = vars_mode {
+            return Ok(res);
+        }
+
+        let map_stretch_type = |type_| {
+            if let VarsMode::Captures = vars_mode {
+                CircuitStretchType::Capture
+            } else {
+                type_
+            }
+        };
+
+        let map_var_type = |type_| {
+            if let VarsMode::Captures = vars_mode {
+                CircuitVarType::Capture
+            } else {
+                type_
+            }
+        };
+
+        for info in other.identifier_info.values() {
+            match info {
+                CircuitIdentifierInfo::Stretch(CircuitStretchInfo { stretch, type_ }) => {
+                    let stretch = other
+                        .stretches
+                        .get(*stretch)
+                        .expect("Stretch not found for the specified index")
+                        .clone();
+                    res.add_stretch(stretch, map_stretch_type(*type_))?;
+                }
+                CircuitIdentifierInfo::Var(CircuitVarInfo { var, type_, .. }) => {
+                    let var = other
+                        .vars
+                        .get(*var)
+                        .expect("Var not found for the specified index")
+                        .clone();
+                    res.add_var(var, map_var_type(*type_))?;
+                }
+            }
+        }
+        Ok(res)
     }
 
     /// Append a PackedInstruction to the circuit data.
@@ -2827,14 +2969,25 @@ impl CircuitData {
         .iter()
         .map(|stretch| self.stretches.get(*stretch).unwrap())
     }
+
+    /// Return a copy of the circuit with instructions in reverse order
+    pub fn reverse(self) -> PyResult<Self> {
+        let mut out = Self::clone_empty_like(&self, Some(self.data().len()), VarsMode::Alike)?;
+        for inst in self.data().iter().rev() {
+            out.push(inst.clone())?;
+        }
+        Ok(out)
+    }
 }
 
 /// Helper struct for `assign_parameters` to allow use of `Param::extract_no_coerce` in
 /// PyO3-provided `FromPyObject` implementations on containers.
 #[repr(transparent)]
 struct AssignParam(Param);
-impl<'py> FromPyObject<'py> for AssignParam {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for AssignParam {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         Ok(Self(Param::extract_no_coerce(ob)?))
     }
 }
@@ -2861,8 +3014,8 @@ fn bit_argument_conversion<B, R>(
     bit_set: &BitLocator<B, R>,
 ) -> PyResult<Vec<B>>
 where
-    B: Debug + Clone + Hash + Eq + for<'py> FromPyObject<'py>,
-    R: Register + Debug + Clone + Hash + for<'py> FromPyObject<'py>,
+    B: Debug + Clone + Hash + Eq + for<'a, 'py> FromPyObject<'a, 'py>,
+    R: Register + Debug + Clone + Hash + for<'a, 'py> FromPyObject<'a, 'py>,
 {
     // The duplication between this function and `_bit_argument_conversion_scalar` is so that fast
     // paths return as quickly as possible, and all valid specifiers will resolve without needing to
@@ -2906,7 +3059,7 @@ where
                 })
                 .collect::<PyResult<_>>();
         }
-        let err_message = if let Ok(bit) = specifier.downcast::<PyBit>() {
+        let err_message = if let Ok(bit) = specifier.cast::<PyBit>() {
             format!(
                 "Incorrect bit type: expected '{}' but got '{}'",
                 stringify!(B),
@@ -2928,8 +3081,8 @@ fn bit_argument_conversion_scalar<B, R>(
     bit_set: &BitLocator<B, R>,
 ) -> PyResult<B>
 where
-    B: Debug + Clone + Hash + Eq + for<'py> FromPyObject<'py>,
-    R: Register + Debug + Clone + Hash + for<'py> FromPyObject<'py>,
+    B: Debug + Clone + Hash + Eq + for<'a, 'py> FromPyObject<'a, 'py>,
+    R: Register + Debug + Clone + Hash + for<'a, 'py> FromPyObject<'a, 'py>,
 {
     if let Ok(bit) = specifier.extract() {
         if bit_set.contains_key(&bit) {
@@ -2956,7 +3109,7 @@ where
             )))
         }
     } else {
-        let err_message = if let Ok(bit) = specifier.downcast::<PyBit>() {
+        let err_message = if let Ok(bit) = specifier.cast::<PyBit>() {
             format!(
                 "Incorrect bit type: expected '{}' but got '{}'",
                 stringify!(B),

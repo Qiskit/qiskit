@@ -33,7 +33,7 @@ fn control_flow_block_dags<'a>(
         .instruction
         .bind(py)
         .getattr("blocks")?
-        .downcast::<PyTuple>()?
+        .cast::<PyTuple>()?
         .iter()
         .map(move |block| circuit_to_dag(block.extract()?, false, None, None)))
 }
@@ -65,7 +65,7 @@ impl InteractionKind {
             let OperationRef::Instruction(inst) = op.view() else {
                 panic!("control-flow ops should always be PyInstruction");
             };
-            let blocks = Python::with_gil(|py| {
+            let blocks = Python::attach(|py| {
                 control_flow_block_dags(py, inst)?
                     .map(|dag| {
                         dag.and_then(|dag| Ok((SabreDAG::from_dag(&dag)?, dag)))

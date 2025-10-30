@@ -9,8 +9,8 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
-use std::ffi::c_char;
 use std::ffi::CString;
+use std::ffi::c_char;
 
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_transpiler::target::Target;
@@ -32,7 +32,9 @@ use crate::pointers::const_ptr_as_ref;
 /// members of this struct.
 #[repr(C)]
 pub struct TranspileResult {
+    /// The compiled circuit.
     circuit: *mut CircuitData,
+    /// Metadata about the initial and final virtual-to-physical layouts.
     layout: *mut TranspileLayout,
 }
 
@@ -66,7 +68,7 @@ impl Default for TranspileOptions {
 ///
 /// This function generates a QkTranspileOptions with the default settings
 /// This currently is ``optimization_level`` 2, no seed, and no approximation.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_transpiler_default_options() -> TranspileOptions {
     TranspileOptions::default()
@@ -88,7 +90,7 @@ pub extern "C" fn qk_transpiler_default_options() -> TranspileOptions {
 /// number of threads with the ``RAYON_NUM_THREADS`` environment variable. For example, setting
 /// ``RAYON_NUM_THREADS=4`` would limit the thread pool to 4 threads.
 ///
-/// @param circuit A pointer to the circuit to run the transpiler on.
+/// @param qc A pointer to the circuit to run the transpiler on.
 /// @param target A pointer to the target to compile the circuit for.
 /// @param options A pointer to an options object that defines user options. If this is a null
 ///   pointer the default values will be used. See ``qk_transpile_default_options``
@@ -111,7 +113,7 @@ pub extern "C" fn qk_transpiler_default_options() -> TranspileOptions {
 /// pointers to a ``QkCircuit``, ``QkTarget``, or ``QkTranspileResult`` respectively.
 /// ``options`` must be a valid pointer a to a ``QkTranspileOptions`` or ``NULL`.
 /// ``error`` must be a valid pointer to a ``char`` pointer or ``NULL``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile(
     qc: *const CircuitData,
@@ -147,7 +149,9 @@ pub unsafe extern "C" fn qk_transpile(
         None
     } else {
         if !(0.0..=1.0).contains(&options.approximation_degree) {
-            panic!("Invalid value provided for approximation degree, only NAN or values between 0.0 and 1.0 inclusive are valid");
+            panic!(
+                "Invalid value provided for approximation degree, only NAN or values between 0.0 and 1.0 inclusive are valid"
+            );
         }
         Some(options.approximation_degree)
     };
