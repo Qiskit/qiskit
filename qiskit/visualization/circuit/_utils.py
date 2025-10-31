@@ -499,42 +499,44 @@ def _sorted_nodes(dag_layer):
     return nodes
 
 
-def _get_gate_span(qubits, node, measure_arrows):
-    """Get the list of qubits drawing this gate would cover
-    qiskit-terra #2802
-    """
-    min_index = len(qubits)
-    max_index = 0
-    for qreg in node.qargs:
-        index = qubits.index(qreg)
+def _get_gate_span(qubits, clbits, node, measure_arrows):
+    """Return the ordered wires this node would occupy when drawn."""
+    wires = list(qubits) + list(clbits)
+    offset = len(qubits)
 
-        if index < min_index:
-            min_index = index
-        if index > max_index:
-            max_index = index
+    qubit_indices = [qubits.index(qreg) for qreg in node.qargs if qreg in qubits]
+    classical_indices = [offset + clbits.index(creg) for creg in node.cargs if creg in clbits]
+
+    if not qubit_indices and not classical_indices:
+        # Operations with no wires shouldn't collide with anything.
+        return []
 
     if isinstance(node.op, ControlFlowOp) and not isinstance(node.op, BoxOp):
-        # Because of wrapping boxes for mpl control flow ops, this
-        # type of op must be the only op in the layer
-        # BoxOps are excepted because they have one block executed unconditionally
-        span = qubits
-    elif node.cargs and (
-        (measure_arrows and isinstance(node.op, Measure)) or getattr(node.op, "condition", None)
-    ):
-        span = qubits[min_index : len(qubits)]
+        # Because of wrapping boxes for mpl control flow ops, this type of op must be the only op in
+        # the layer. BoxOps are excepted because they have one block executed unconditionally.
+        return qubits
+
+    min_index = min(qubit_indices + classical_indices or [offset])
+    max_index = max(qubit_indices + classical_indices or [offset])
+
+    if classical_indices:
+        span = wires[min_index : max_index + 1]
+        if isinstance(node.op, Measure) and not measure_arrows:
+            indices = sorted(set(qubit_indices + classical_indices))
+            span = [wires[index] for index in indices]
     else:
-        span = qubits[min_index : max_index + 1]
+        span = wires[min_index : max_index + 1]
 
     return span
 
 
-def _any_crossover(qubits, node, nodes, measure_arrows):
+def _any_crossover(qubits, clbits, node, nodes, measure_arrows):
     """Return True .IFF. 'node' crosses over any 'nodes'."""
     return bool(
-        set(_get_gate_span(qubits, node, measure_arrows)).intersection(
+        set(_get_gate_span(qubits, clbits, node, measure_arrows)).intersection(
             bit
             for check_node in nodes
-            for bit in _get_gate_span(qubits, check_node, measure_arrows)
+            for bit in _get_gate_span(qubits, clbits, check_node, measure_arrows)
         )
     )
 
@@ -586,7 +588,7 @@ class _LayerSpooler(list):
 
     def insertable(self, node, nodes):
         """True .IFF. we can add 'node' to layer 'nodes'"""
-        return not _any_crossover(self.qubits, node, nodes, self.measure_arrows)
+        return not _any_crossover(self.qubits, self.clbits, node, nodes, self.measure_arrows)
 
     def slide_from_left(self, node, index):
         """Insert node into first layer where there is no conflict going l > r"""
@@ -605,17 +607,17 @@ class _LayerSpooler(list):
             index_stop = -1
             if (condition := getattr(node.op, "condition", None)) is not None:
                 index_stop = max(
-                    (self.measure_map[bit] for bit in condition_resources(condition).clbits),
+                    (
+                        self.measure_map[bit]
+                        for bit in condition_resources(condition).clbits
+                        if bit in self.measure_map
+                    ),
                     default=index_stop,
                 )
             if node.cargs:
                 for carg in node.cargs:
-                    try:
-                        carg_bit = next(bit for bit in self.measure_map if carg == bit)
-                        if self.measure_map[carg_bit] > index_stop:
-                            index_stop = self.measure_map[carg_bit]
-                    except StopIteration:
-                        pass
+                    if carg in self.measure_map and self.measure_map[carg] > index_stop:
+                        index_stop = self.measure_map[carg]
             while curr_index > index_stop:
                 if self.is_found_in(node, self[curr_index]):
                     break

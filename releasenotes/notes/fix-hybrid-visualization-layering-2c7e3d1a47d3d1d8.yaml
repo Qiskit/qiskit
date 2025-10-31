@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed all circuit drawers to respect classical write ordering when scheduling hybrid operations,
+    so boxes that touch classical wires no longer overlap when registers are bundled, right justified,
+    or measurement arrows are disabled.
