@@ -1236,7 +1236,7 @@ where
     restriction: Option<Restriction<NS::Score>>,
     score_stack: Vec<NS::Score>,
     loop_stack: Vec<Frame<N::NodeId, H::NodeId>>,
-    remaining_calls: Option<usize>,
+    pub remaining_calls: Option<usize>,
 }
 
 impl<N, H, NId, HId, NS, ES> Vf2IntoIter<N, H, NId, HId, NS, ES>

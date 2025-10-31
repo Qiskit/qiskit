@@ -56,8 +56,9 @@ create_exception!(qiskit, MultiQEncountered, pyo3::exceptions::PyException);
 #[pyclass(name = "VF2PassConfiguration")]
 #[derive(Clone, Debug)]
 pub struct Vf2PassConfiguration {
-    /// Number of times to allow extending the VF2 partial solution.  `None` means "no bound".
-    pub call_limit: Option<usize>,
+    /// Number of times to allow extending the VF2 partial solution `(before, after)` the first
+    /// solution is found.  In both cases, `None` means "no bound".
+    pub call_limit: (Option<usize>, Option<usize>),
     /// Time in seconds to spend optimizing.  This is not a tight limit; control only returns to the
     /// iterator to check for the time limit when a successful _improved_ match is found.
     pub time_limit: Option<f64>,
@@ -72,7 +73,7 @@ impl Vf2PassConfiguration {
     /// A set of defaults that just runs everything completely unbounded.
     pub fn default_unbounded() -> Self {
         Self {
-            call_limit: None,
+            call_limit: (None, None),
             time_limit: None,
             max_trials: Some(0),
             shuffle_seed: None,
@@ -83,7 +84,7 @@ impl Vf2PassConfiguration {
     /// that has not been lowered to hardware instructions.
     pub fn default_abstract() -> Self {
         Self {
-            call_limit: None,
+            call_limit: (None, None),
             time_limit: None,
             // There's no need to attempt to improve the layout, since everything's so approximate
             // anyway.
@@ -96,7 +97,7 @@ impl Vf2PassConfiguration {
     /// and we want to find the _best_ layout.
     pub fn default_concrete() -> Self {
         Self {
-            call_limit: None,
+            call_limit: (None, None),
             time_limit: None,
             // Unbounded trials.
             max_trials: Some(0),
@@ -107,9 +108,9 @@ impl Vf2PassConfiguration {
 #[pymethods]
 impl Vf2PassConfiguration {
     #[new]
-    #[pyo3(signature = (*, call_limit=None, time_limit=None, max_trials=None, shuffle_seed=None))]
+    #[pyo3(signature = (*, call_limit=(None, None), time_limit=None, max_trials=None, shuffle_seed=None))]
     fn py_new(
-        call_limit: Option<usize>,
+        call_limit: (Option<usize>, Option<usize>),
         time_limit: Option<f64>,
         max_trials: Option<usize>,
         shuffle_seed: Option<u64>,
@@ -126,11 +127,21 @@ impl Vf2PassConfiguration {
     #[staticmethod]
     #[pyo3(signature = (*, call_limit=None, time_limit=None, max_trials=None, shuffle_seed=None))]
     fn from_legacy_api(
-        call_limit: Option<usize>,
+        call_limit: Option<Bound<PyAny>>,
         time_limit: Option<f64>,
         max_trials: Option<isize>,
         shuffle_seed: Option<i64>,
     ) -> PyResult<Self> {
+        let call_limit = match call_limit {
+            Some(call_limit) => {
+                if let Ok(call_limit) = call_limit.extract::<usize>() {
+                    (Some(call_limit), Some(call_limit))
+                } else {
+                    call_limit.extract()?
+                }
+            }
+            None => (None, None),
+        };
         // In the leagcy API, negative `max_trials` means unbounded (which we represent as 0) and
         // `None` means "choose some values based on the size of the graph structures".
         let max_trials = max_trials.map(|value| value.try_into().unwrap_or(0));
@@ -569,14 +580,22 @@ where
         trials += 1;
         max_trials == 0 || trials <= max_trials
     };
-    vf2.with_call_limit(config.call_limit)
-        .into_iter()
-        .take_while(|_| can_continue())
-        .last()
-        .map(|v| {
-            let (mapping, _score) = v.expect("error is infallible");
-            mapping
-        })
+    let mut vf2 = vf2.with_call_limit(config.call_limit.0).into_iter();
+    let (mut mapping, _score) = vf2.next()?.expect("error is infallible");
+    if can_continue() {
+        vf2.remaining_calls = config
+            .call_limit
+            .1
+            .map(|new| new.min(vf2.remaining_calls.unwrap_or(new)));
+        if let Some((new_mapping, _score)) = vf2
+            .take_while(|_| can_continue())
+            .last()
+            .map(|v| v.expect("error is infallible"))
+        {
+            mapping = new_mapping;
+        }
+    }
+    Some(mapping)
 }
 
 #[pyfunction]
