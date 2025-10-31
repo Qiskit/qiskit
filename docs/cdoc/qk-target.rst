@@ -43,6 +43,15 @@ with either no parameters or fixed parameters. Support for regular parameters
 will be added in the future. The functionality will keep expanding over time
 as we improve our Rust data model capabilities.
 
+Data Types
+==========
+
+.. doxygenstruct:: QkQargs
+   :members:
+
+.. doxygenstruct:: QkInstructionProperties
+   :members:
+
 Functions
 =========
 
