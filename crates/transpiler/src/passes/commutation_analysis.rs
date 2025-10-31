@@ -101,6 +101,7 @@ pub fn analyze_commutations(
                             qargs2,
                             cargs2,
                             MAX_NUM_QUBITS,
+                            MAX_NUM_QUBITS,
                             approximation_degree,
                         )?;
                         if !all_commute {
