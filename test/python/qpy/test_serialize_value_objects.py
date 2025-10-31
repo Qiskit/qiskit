@@ -57,9 +57,10 @@ class TestPauliEvolution(QiskitTestCase):
         evo = PauliEvolutionGate(op)
         circuit = QuantumCircuit(evo.num_qubits)
         circuit.append(evo, circuit.qubits)
+        version = 17
 
         with io.BytesIO() as container:
-            qpy.dump(circuit, container)
+            qpy.dump(circuit, container, version=version)
             qc_qpy_str = container.getvalue()
 
         with io.BytesIO(qc_qpy_str) as container:
@@ -67,7 +68,7 @@ class TestPauliEvolution(QiskitTestCase):
 
         self.assertEqual(circuit, qc_from_qpy)
 
-    def test_pauli_evolution_sparse_pauliop(self):
+    def test_pauli_evolution_sparse_pauliop_V17(self):
         """Test PauliEvolutionGate with SparsePauliOp"""
         operator = SparsePauliOp.from_list([("ZZ", 1), ("XI", -0.1)])
 
@@ -75,9 +76,29 @@ class TestPauliEvolution(QiskitTestCase):
         evo = PauliEvolutionGate(operator, time=0.2)
         circuit = QuantumCircuit(evo.num_qubits)
         circuit.append(evo, circuit.qubits)
+        version = 17
 
         with io.BytesIO() as container:
-            qpy.dump(circuit, container)
+            qpy.dump(circuit, container, version=version)
+            qc_qpy_str = container.getvalue()
+
+        with io.BytesIO(qc_qpy_str) as container:
+            qc_from_qpy = qpy.load(container)[0]
+
+        self.assertEqual(circuit, qc_from_qpy)
+
+    def test_pauli_evolution_sparse_pauliop_V16_below(self):
+        """Test PauliEvolutionGate with SparsePauliOp"""
+        operator = SparsePauliOp.from_list([("ZZ", 1), ("XI", -0.1)])
+
+        # build the evolution gate
+        evo = PauliEvolutionGate(operator, time=0.2)
+        circuit = QuantumCircuit(evo.num_qubits)
+        circuit.append(evo, circuit.qubits)
+        version = 16
+
+        with io.BytesIO() as container:
+            qpy.dump(circuit, container, version=version)
             qc_qpy_str = container.getvalue()
 
         with io.BytesIO(qc_qpy_str) as container:
