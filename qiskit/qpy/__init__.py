@@ -471,13 +471,13 @@ deserialized as a `SparseObservable`.
 
 Changes to FORMATS
 ~~~~~~~~~~~~~~~~~~~
-A new variable `sparse_operator` is added to `PAULI_EVOLUTION_GATE_DEF` format to indicate whether the
-operator is a `SparseObservable`.
+A new namedtuple `PAULI_EVOLUTION_GATE_DEF_17` consisting of the boolean parameter `sparse_operator`
+is added to indicate whether the operator is a `SparseObservable`.
 
 .. code-block:: python
 
-    PAULI_EVOLUTION_DEF = namedtuple(
-      "PAULI_EVOLUTION_DEF",
+    PAULI_EVOLUTION_DEF_17 = namedtuple(
+      "PAULI_EVOLUTION_DEF_17",
       [
           "operator_size",
           "sparse_operator",
@@ -487,8 +487,8 @@ operator is a `SparseObservable`.
           "synth_method_size",
       ],
     )
-    PAULI_EVOLUTION_DEF_PACK = "!Q??1cQQ"
-    PAULI_EVOLUTION_DEF_SIZE = struct.calcsize(PAULI_EVOLUTION_DEF_PACK)
+    PAULI_EVOLUTION_DEF_PACK_17 = "!Q??1cQQ"
+    PAULI_EVOLUTION_DEF_SIZE_17 = struct.calcsize(PAULI_EVOLUTION_DEF_PACK_17)
 
 .. _qpy_version_16:
 
