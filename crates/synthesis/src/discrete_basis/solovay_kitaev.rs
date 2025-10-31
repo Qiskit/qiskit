@@ -80,7 +80,7 @@ impl SolovayKitaevSynthesis {
     /// This attempts to directly construct the SO(3) matrix representation to minimize roundoff
     /// errors. If unsuccessful, this falls back onto constructing the standard U(2) matrix
     /// representation and converting it to SO(3).
-    pub fn synthesize_gate(
+    pub fn synthesize_standard_gate(
         &self,
         gate: &StandardGate,
         params: &[Param],
@@ -98,6 +98,36 @@ impl SolovayKitaevSynthesis {
         let matrix_u2 = math::array2_to_matrix2(&array_u2.view());
         let circuit = output.to_circuit(Some((&matrix_u2, phase)))?;
         Ok(circuit)
+    }
+
+    /// Run the Solovay Kitaev algorithm on an operation.
+    pub fn synthesize_operation(
+        &self,
+        op: &OperationRef,
+        params: &[Param],
+        recursion_degree: usize,
+    ) -> Result<CircuitData, DiscreteBasisError> {
+        match op {
+            OperationRef::StandardGate(gate) => {
+                self.synthesize_standard_gate(gate, params, recursion_degree)
+            }
+            OperationRef::Unitary(unitary) => {
+                let matrix = unitary.matrix_view();
+                let matrix_nalgebra: Matrix2<Complex64> = Matrix2::from_fn(|i, j| matrix[(i, j)]);
+                self.synthesize_matrix(&matrix_nalgebra, recursion_degree)
+            }
+            _ => {
+                let matrix = op.matrix(params);
+                match matrix {
+                    Some(matrix) => {
+                        let matrix_nalgebra: Matrix2<Complex64> =
+                            Matrix2::from_fn(|i, j| matrix[(i, j)]);
+                        self.synthesize_matrix(&matrix_nalgebra, recursion_degree)
+                    }
+                    None => Err(DiscreteBasisError::NoMatrix),
+                }
+            }
+        }
     }
 
     /// Run a recursion step for a gate sequence, given a recursion degree.
@@ -226,10 +256,10 @@ impl SolovayKitaevSynthesis {
             .map_err(|err| err.into())
     }
 
-    /// Run the Solovay-Kitaev algorithm on a standard gate.
+    /// Run the Solovay-Kitaev algorithm on an operation.
     ///
     /// Args:
-    ///     gate (Gate): The standard gate to approximate.
+    ///     gate (Gate): The operation to approximate.
     ///     recursion_degree (int): The recursion degree of the algorithm.
     ///
     /// Returns:
@@ -239,12 +269,7 @@ impl SolovayKitaevSynthesis {
         gate: OperationFromPython,
         recursion_degree: usize,
     ) -> PyResult<CircuitData> {
-        let params = gate.params;
-        let gate = match gate.operation.view() {
-            OperationRef::StandardGate(gate) => gate,
-            _ => return Err(PyValueError::new_err("Only standard gates are supported.")),
-        };
-        self.synthesize_gate(&gate, &params, recursion_degree)
+        self.synthesize_operation(&gate.operation.view(), &gate.params, recursion_degree)
             .map_err(|err| err.into())
     }
 
