@@ -26,6 +26,15 @@ use crate::parameter::symbol_expr::Symbol;
 
 import_exception!(qiskit.circuit, CircuitError);
 
+/// This struct models the error conditions that can be raised from the
+/// rust methods of the [ParameterTable] struct. The goal is to explicitly
+/// enumerate all the error types that are returned by these functions and
+/// make it clear that the return type is part of the interface.
+///
+/// In the the future it is expected this single enum will be replaced by per
+/// method error types to make it even more obvious, but this is a step
+/// towards that as we migrate from Python -> Rust.
+#[non_exhaustive]
 #[derive(Error, Debug)]
 pub enum ParameterTableError {
     #[error("parameter '{0:?}' is not tracked in the table")]
