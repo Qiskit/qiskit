@@ -33,7 +33,8 @@ use crate::error::DAGCircuitError;
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
-    ArrayType, Operation, OperationRef, Param, PyInstruction, PythonOperation, StandardGate,
+    ArrayType, Operation, OperationRef, Param, PyInstruction, PyOperationTypes, PythonOperation,
+    StandardGate,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::ParameterExpression;
@@ -2393,13 +2394,13 @@ impl DAGCircuit {
                 ) => Ok(left == right),
                 (OperationRef::Unitary(left), OperationRef::Unitary(right)) => Ok(left == right),
                 (OperationRef::Gate(left), OperationRef::Gate(right)) => {
-                    Python::attach(|py| left.gate.bind(py).eq(&right.gate))
+                    Python::attach(|py| left.instruction.bind(py).eq(&right.instruction))
                 }
                 (OperationRef::Instruction(left), OperationRef::Instruction(right)) => {
                     Python::attach(|py| left.instruction.bind(py).eq(&right.instruction))
                 }
                 (OperationRef::Operation(left), OperationRef::Operation(right)) => {
-                    Python::attach(|py| left.operation.bind(py).eq(&right.operation))
+                    Python::attach(|py| left.instruction.bind(py).eq(&right.instruction))
                 }
                 _ => Ok(false),
             }
@@ -6292,14 +6293,14 @@ impl DAGCircuit {
                     )?;
 
                     if let NodeType::Operation(new_inst) = &mut self.dag[*new_node_index] {
-                        new_inst.op = PyInstruction {
+                        new_inst.op = PyOperationTypes::Instruction(PyInstruction {
                             qubits: old_op.num_qubits(),
                             clbits: old_op.num_clbits(),
                             params: old_op.num_params(),
                             control_flow: old_op.control_flow(),
                             op_name: old_op.name().to_string(),
                             instruction: new_op.clone().unbind(),
-                        }
+                        })
                         .into();
                         #[cfg(feature = "cache_pygates")]
                         {
@@ -7204,13 +7205,20 @@ impl DAGCircuit {
                 op: if copy_op {
                     match instr.op.view() {
                         OperationRef::Gate(gate) => {
-                            Python::attach(|py| gate.py_deepcopy(py, None))?.into()
+                            PyOperationTypes::Gate(Python::attach(|py| gate.py_deepcopy(py, None))?)
+                                .into()
                         }
                         OperationRef::Instruction(instruction) => {
-                            Python::attach(|py| instruction.py_deepcopy(py, None))?.into()
+                            PyOperationTypes::Instruction(Python::attach(|py| {
+                                instruction.py_deepcopy(py, None)
+                            })?)
+                            .into()
                         }
                         OperationRef::Operation(operation) => {
-                            Python::attach(|py| operation.py_deepcopy(py, None))?.into()
+                            PyOperationTypes::Operation(Python::attach(|py| {
+                                operation.py_deepcopy(py, None)
+                            })?)
+                            .into()
                         }
                         OperationRef::StandardGate(gate) => gate.into(),
                         OperationRef::StandardInstruction(instruction) => instruction.into(),
@@ -7586,17 +7594,16 @@ impl DAGCircuit {
                             Ok(py_op.unbind())
                         })?;
                         PackedInstruction {
-                            op: PackedOperation::from_instruction(
-                                PyInstruction {
+                            op: PackedOperation::from_py_operation(Box::new(
+                                PyOperationTypes::Instruction(PyInstruction {
                                     qubits: op.qubits,
                                     clbits: op.clbits,
                                     params: op.params,
                                     op_name: op.op_name.clone(),
                                     control_flow: op.control_flow,
                                     instruction: py_op,
-                                }
-                                .into(),
-                            ),
+                                }),
+                            )),
                             qubits: self.qargs_interner.insert_owned(mapped_qargs),
                             clbits: self.cargs_interner.insert_owned(mapped_cargs),
                             params: inst.params.clone(),
