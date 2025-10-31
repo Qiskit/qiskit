@@ -335,7 +335,7 @@ pub unsafe extern "C" fn qk_dag_clbit_out_node(dag: *const DAGCircuit, clbit: u3
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_dag_endpoint_node_value(dag: *const DAGCircuit, node: u32) -> u32 {
+pub unsafe extern "C" fn qk_dag_wire_node_value(dag: *const DAGCircuit, node: u32) -> u32 {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
     (match dag.dag()[NodeIndex::new(node as usize)] {
@@ -602,7 +602,7 @@ pub unsafe extern "C" fn qk_dag_apply_gate(
 /// uint32_t qubit[1] = {0};
 /// uint32_t h_gate_idx = qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
 ///
-/// QkGate gate = qk_dag_op_node_gate(dag, h_gate_idx, NULL);
+/// QkGate gate = qk_dag_op_node_gate_op(dag, h_gate_idx, NULL);
 ///
 /// qk_dag_free(dag);
 /// qk_quantum_register_free(qr);
@@ -619,7 +619,7 @@ pub unsafe extern "C" fn qk_dag_apply_gate(
 /// are required for any given operation node.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_dag_op_node_gate(
+pub unsafe extern "C" fn qk_dag_op_node_gate_op(
     dag: *const DAGCircuit,
     node: u32,
     out_params: *mut f64,

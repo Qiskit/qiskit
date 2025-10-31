@@ -125,7 +125,7 @@ static int test_dag_apply_gate(void) {
 
     // Make sure we can get the standard gate and params back from the node.
     double actual_crx_params[1];
-    QkGate actual_gate = qk_dag_op_node_gate(dag, crx_node_idx, actual_crx_params);
+    QkGate actual_gate = qk_dag_op_node_gate_op(dag, crx_node_idx, actual_crx_params);
     if (actual_gate != QkGate_CRX) {
         printf("Expected gate of type %u but got %u\n", QkGate_CRX, actual_gate);
         result = EqualityError;
@@ -280,25 +280,25 @@ static int test_dag_endpoint_node_value(void) {
         uint32_t clbit_in_idx = qk_dag_clbit_in_node(dag, i);
         uint32_t clbit_out_idx = qk_dag_clbit_out_node(dag, i);
 
-        uint32_t actual = qk_dag_endpoint_node_value(dag, qubit_in_idx);
+        uint32_t actual = qk_dag_wire_node_value(dag, qubit_in_idx);
         if (actual != i) {
             printf("Expected wire endpoint qubit value to be %u but got %u\n", i, actual);
             result = EqualityError;
             goto cleanup;
         }
-        actual = qk_dag_endpoint_node_value(dag, qubit_out_idx);
+        actual = qk_dag_wire_node_value(dag, qubit_out_idx);
         if (actual != i) {
             printf("Expected wire endpoint qubit value to be %u but got %u\n", i, actual);
             result = EqualityError;
             goto cleanup;
         }
-        actual = qk_dag_endpoint_node_value(dag, clbit_in_idx);
+        actual = qk_dag_wire_node_value(dag, clbit_in_idx);
         if (actual != i) {
             printf("Expected wire endpoint clbit value to be %u but got %u\n", i, actual);
             result = EqualityError;
             goto cleanup;
         }
-        actual = qk_dag_endpoint_node_value(dag, clbit_out_idx);
+        actual = qk_dag_wire_node_value(dag, clbit_out_idx);
         if (actual != i) {
             printf("Expected wire endpoint clbit value to be %u but got %u\n", i, actual);
             result = EqualityError;
