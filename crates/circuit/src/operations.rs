@@ -16,7 +16,9 @@ use std::sync::Arc;
 use std::{fmt, vec};
 
 use crate::circuit_data::CircuitData;
-use crate::imports::{BARRIER, DELAY, MEASURE, RESET, get_std_gate_class};
+use crate::imports::{
+    BARRIER, DELAY, MEASURE, PAULI_PRODUCT_MEASUREMENT, RESET, get_std_gate_class,
+};
 use crate::imports::{DEEPCOPY, QUANTUM_CIRCUIT, UNITARY_GATE};
 use crate::parameter::parameter_expression::{
     ParameterExpression, PyParameter, PyParameterExpression,
@@ -279,6 +281,7 @@ pub enum OperationRef<'a> {
     Instruction(&'a PyInstruction),
     Operation(&'a PyOperation),
     Unitary(&'a UnitaryGate),
+    PauliProductMeasurement(&'a PauliProductMeasurement),
 }
 
 impl Operation for OperationRef<'_> {
@@ -291,6 +294,7 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.name(),
             Self::Operation(operation) => operation.name(),
             Self::Unitary(unitary) => unitary.name(),
+            Self::PauliProductMeasurement(ppm) => ppm.name(),
         }
     }
     #[inline]
@@ -302,6 +306,7 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.num_qubits(),
             Self::Operation(operation) => operation.num_qubits(),
             Self::Unitary(unitary) => unitary.num_qubits(),
+            Self::PauliProductMeasurement(ppm) => ppm.num_qubits(),
         }
     }
     #[inline]
@@ -313,6 +318,7 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.num_clbits(),
             Self::Operation(operation) => operation.num_clbits(),
             Self::Unitary(unitary) => unitary.num_clbits(),
+            Self::PauliProductMeasurement(ppm) => ppm.num_clbits(),
         }
     }
     #[inline]
@@ -324,6 +330,7 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.num_params(),
             Self::Operation(operation) => operation.num_params(),
             Self::Unitary(unitary) => unitary.num_params(),
+            Self::PauliProductMeasurement(ppm) => ppm.num_params(),
         }
     }
     #[inline]
@@ -335,6 +342,7 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.control_flow(),
             Self::Operation(operation) => operation.control_flow(),
             Self::Unitary(unitary) => unitary.control_flow(),
+            Self::PauliProductMeasurement(ppm) => ppm.control_flow(),
         }
     }
     #[inline]
@@ -346,6 +354,7 @@ impl Operation for OperationRef<'_> {
             OperationRef::Instruction(instruction) => instruction.blocks(),
             OperationRef::Operation(operation) => operation.blocks(),
             Self::Unitary(unitary) => unitary.blocks(),
+            Self::PauliProductMeasurement(ppm) => ppm.blocks(),
         }
     }
     #[inline]
@@ -357,6 +366,7 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.matrix(params),
             Self::Operation(operation) => operation.matrix(params),
             Self::Unitary(unitary) => unitary.matrix(params),
+            Self::PauliProductMeasurement(ppm) => ppm.matrix(params),
         }
     }
     #[inline]
@@ -368,6 +378,7 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.definition(params),
             Self::Operation(operation) => operation.definition(params),
             Self::Unitary(unitary) => unitary.definition(params),
+            Self::PauliProductMeasurement(ppm) => ppm.definition(params),
         }
     }
     #[inline]
@@ -379,6 +390,7 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.directive(),
             Self::Operation(operation) => operation.directive(),
             Self::Unitary(unitary) => unitary.directive(),
+            Self::PauliProductMeasurement(ppm) => ppm.directive(),
         }
     }
 
@@ -392,6 +404,7 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.matrix_as_static_1q(params),
             Self::Operation(operation) => operation.matrix_as_static_1q(params),
             Self::Unitary(unitary) => unitary.matrix_as_static_1q(params),
+            Self::PauliProductMeasurement(ppm) => ppm.matrix_as_static_1q(params),
         }
     }
 }
@@ -2896,3 +2909,84 @@ impl UnitaryGate {
         }
     }
 }
+
+/// This class represents a PauliProductMeasurement instruction.
+#[derive(Clone, Debug)]
+#[repr(align(8))]
+pub struct PauliProductMeasurement {
+    /// The z-component of the pauli.
+    pub z: Vec<bool>,
+    /// The x-component of the pauli.
+    pub x: Vec<bool>,
+    /// For a PauliProductMeasurement instruction, the phase of the Pauli can be either 0 or 2,
+    /// where the value of 2 corresponds to a sign of `-1`.
+    pub neg: bool,
+}
+
+impl Operation for PauliProductMeasurement {
+    fn name(&self) -> &str {
+        "PauliProductMeasurement"
+    }
+    fn num_qubits(&self) -> u32 {
+        self.z.len() as u32
+    }
+    fn num_clbits(&self) -> u32 {
+        1
+    }
+    fn num_params(&self) -> u32 {
+        0
+    }
+    fn control_flow(&self) -> bool {
+        false
+    }
+    fn blocks(&self) -> Vec<CircuitData> {
+        vec![]
+    }
+    fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
+        None
+    }
+    fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
+        // Similarly to UnitaryGate, we do not provide the actual decomposition here.
+        // Instead, the HighLevelSynthesis transpiler pass is modified to call the
+        // relevant synthesis function when requiring the definition for a
+        // PauliProductMeasurement.
+        None
+    }
+    fn directive(&self) -> bool {
+        false
+    }
+    fn matrix_as_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+        None
+    }
+
+    fn matrix_as_nalgebra_1q(&self, _params: &[Param]) -> Option<Matrix2<Complex64>> {
+        None
+    }
+}
+
+impl PauliProductMeasurement {
+    pub fn create_py_op(&self, py: Python, label: Option<&str>) -> PyResult<Py<PyAny>> {
+        let z = PyList::new(py, &self.z)?;
+        let x = PyList::new(py, &self.x)?;
+        let phase = if self.neg { 2 } else { 0 };
+
+        let py_label = if let Some(label) = label {
+            label.into_py_any(py)?
+        } else {
+            py.None()
+        };
+
+        let gate = PAULI_PRODUCT_MEASUREMENT
+            .get_bound(py)
+            .call_method1(intern!(py, "_from_pauli_data"), (z, x, phase, py_label))?;
+        Ok(gate.unbind())
+    }
+}
+
+impl PartialEq for PauliProductMeasurement {
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x && self.z == other.z && self.neg == other.neg
+    }
+}
+
+impl Eq for PauliProductMeasurement {}
