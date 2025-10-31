@@ -49,6 +49,7 @@ from qiskit.qpy import common, formats, type_keys
 from qiskit.qpy.exceptions import QpyError, UnsupportedFeatureForVersion
 from qiskit.qpy.binary_io import value, schedules
 from qiskit.quantum_info.operators import SparsePauliOp, Clifford
+from qiskit.quantum_info import SparseObservable
 from qiskit.synthesis import evolution as evo_synth
 from qiskit.transpiler.layout import Layout, TranspileLayout
 
@@ -683,11 +684,22 @@ def _parse_custom_operation(
 
 
 def _read_pauli_evolution_gate(file_obj, version, vectors):
-    pauli_evolution_def = formats.PAULI_EVOLUTION_DEF._make(
-        struct.unpack(
-            formats.PAULI_EVOLUTION_DEF_PACK, file_obj.read(formats.PAULI_EVOLUTION_DEF_SIZE)
+    if version >= 17:
+        pauli_evolution_def = formats.PAULI_EVOLUTION_DEF_V17._make(
+            struct.unpack(
+                formats.PAULI_EVOLUTION_DEF_PACK_V17,
+                file_obj.read(formats.PAULI_EVOLUTION_DEF_SIZE_V17),
+            )
         )
-    )
+        sparse_operator = pauli_evolution_def.sparse_operator
+    else:
+        pauli_evolution_def = formats.PAULI_EVOLUTION_DEF._make(
+            struct.unpack(
+                formats.PAULI_EVOLUTION_DEF_PACK, file_obj.read(formats.PAULI_EVOLUTION_DEF_SIZE)
+            )
+        )
+        sparse_operator = False
+
     if pauli_evolution_def.operator_size != 1 and pauli_evolution_def.standalone_op:
         raise ValueError(
             "Can't have a standalone operator with {pauli_evolution_raw[0]} operators in the payload"
@@ -701,8 +713,14 @@ def _read_pauli_evolution_gate(file_obj, version, vectors):
                 file_obj.read(formats.SPARSE_PAULI_OP_LIST_ELEM_SIZE),
             )
         )
-        op_raw_data = common.data_from_binary(file_obj.read(op_elem.size), np.load)
-        operator_list.append(SparsePauliOp.from_list(op_raw_data))
+        if version >= 17 and sparse_operator:
+            op_raw_data = common.data_from_binary(
+                file_obj.read(op_elem.size), np.load, allow_pickle=True
+            )
+            operator_list.append(SparseObservable.from_terms(op_raw_data))
+        else:
+            op_raw_data = common.data_from_binary(file_obj.read(op_elem.size), np.load)
+            operator_list.append(SparsePauliOp.from_list(op_raw_data))
 
     if pauli_evolution_def.standalone_op:
         pauli_op = operator_list[0]
@@ -1055,6 +1073,12 @@ def _write_instruction(
 def _write_pauli_evolution_gate(file_obj, evolution_gate, version):
     operator_list = evolution_gate.operator
     standalone = False
+    sparse_operator = False
+
+    if version >= 17:
+        if isinstance(operator_list, SparseObservable):
+            sparse_operator = True
+
     if not isinstance(operator_list, list):
         operator_list = [operator_list]
         standalone = True
@@ -1066,9 +1090,19 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate, version):
         buffer.write(elem_metadata)
         buffer.write(elem_data)
 
+    def _write_elem_sparse(buffer, op):
+        elem_data = common.data_to_binary(np.array(op, dtype=object), np.save)
+        elem_metadata = struct.pack(formats.SPARSE_OBSERVABLE_OP_LIST_ELEM_PACK, len(elem_data))
+        buffer.write(elem_metadata)
+        buffer.write(elem_data)
+
     pauli_data_buf = io.BytesIO()
+
     for operator in operator_list:
-        data = common.data_to_binary(operator, _write_elem)
+        if version >= 17 and sparse_operator:
+            data = common.data_to_binary(operator, _write_elem_sparse)
+        else:
+            data = common.data_to_binary(operator, _write_elem)
         pauli_data_buf.write(data)
 
     time_type, time_data = value.dumps_value(evolution_gate.time, version=version)
@@ -1077,14 +1111,25 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate, version):
     settings_dict = evolution_gate.synthesis.settings
     synth_data = json.dumps({"class": synth_class, "settings": settings_dict}).encode(common.ENCODE)
     synth_size = len(synth_data)
-    pauli_evolution_raw = struct.pack(
-        formats.PAULI_EVOLUTION_DEF_PACK,
-        num_operators,
-        standalone,
-        time_type,
-        time_size,
-        synth_size,
-    )
+    if version >= 17:
+        pauli_evolution_raw = struct.pack(
+            formats.PAULI_EVOLUTION_DEF_PACK_V17,
+            num_operators,
+            sparse_operator,
+            standalone,
+            time_type,
+            time_size,
+            synth_size,
+        )
+    else:
+        pauli_evolution_raw = struct.pack(
+            formats.PAULI_EVOLUTION_DEF_PACK,
+            num_operators,
+            standalone,
+            time_type,
+            time_size,
+            synth_size,
+        )
     file_obj.write(pauli_evolution_raw)
     file_obj.write(pauli_data_buf.getvalue())
     pauli_data_buf.close()

@@ -173,6 +173,11 @@ SPARSE_PAULI_OP_LIST_ELEM = namedtuple("SPARSE_PAULI_OP_LIST_ELEMENT", ["size"])
 SPARSE_PAULI_OP_LIST_ELEM_PACK = "!Q"
 SPARSE_PAULI_OP_LIST_ELEM_SIZE = struct.calcsize(SPARSE_PAULI_OP_LIST_ELEM_PACK)
 
+# SparseObservable
+SPARSE_OBSERVABLE_OP_LIST_ELEM = namedtuple("SPARSE_OBSERVABLE_ELEM", ["size"])
+SPARSE_OBSERVABLE_OP_LIST_ELEM_PACK = "!Q"
+SPARSE_OBSERVABLE_OP_LIST_ELEM_SIZE = struct.calcsize(SPARSE_OBSERVABLE_OP_LIST_ELEM_PACK)
+
 # Pauli Evolution Gate
 PAULI_EVOLUTION_DEF = namedtuple(
     "PAULI_EVOLUTION_DEF",
@@ -180,6 +185,21 @@ PAULI_EVOLUTION_DEF = namedtuple(
 )
 PAULI_EVOLUTION_DEF_PACK = "!Q?1cQQ"
 PAULI_EVOLUTION_DEF_SIZE = struct.calcsize(PAULI_EVOLUTION_DEF_PACK)
+
+# Pauli Evolution Gate - V17
+PAULI_EVOLUTION_DEF_V17 = namedtuple(
+    "PAULI_EVOLUTION_DEF_V17",
+    [
+        "operator_size",
+        "sparse_operator",
+        "standalone_op",
+        "time_type",
+        "time_size",
+        "synth_method_size",
+    ],
+)
+PAULI_EVOLUTION_DEF_PACK_V17 = "!Q??1cQQ"
+PAULI_EVOLUTION_DEF_SIZE_V17 = struct.calcsize(PAULI_EVOLUTION_DEF_PACK_V17)
 
 # Modifier
 MODIFIER_DEF = namedtuple("MODIFIER_DEF", ["type", "num_ctrl_qubits", "ctrl_state", "power"])
