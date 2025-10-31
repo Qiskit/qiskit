@@ -85,5 +85,6 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_synthesis::qsd::qsd_mod, "qsd")?;
     add_submodule(m, ::qiskit_transpiler::angle_bound_registry::angle_bound_mod, "angle_bound_registry")?;
     add_submodule(m, ::qiskit_transpiler::passes::wrap_angles_mod, "wrap_angles")?;
+    add_submodule(m, ::qiskit_transpiler::passes::optimize_clifford_t_mod, "optimize_clifford_t")?;
     Ok(())
 }
