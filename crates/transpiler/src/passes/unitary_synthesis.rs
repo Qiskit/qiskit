@@ -391,6 +391,7 @@ fn synthesize_unitary_matrix(
                                 None,
                             )?;
                         }
+                        out_dag.add_global_phase(&circuit.global_phase())?;
                     }
                     Err(_) => {
                         apply_original_op(out_dag)?;

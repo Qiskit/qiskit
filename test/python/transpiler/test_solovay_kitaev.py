@@ -94,6 +94,25 @@ class TestSolovayKitaev(QiskitTestCase):
         self.assertLess(diff, 1e-4)
         self.assertEqual(set(compiled.count_ops().keys()), {"h", "t", "tdg", "cx"})
 
+    def test_unitary_synthesis_default(self):
+        """Test the default unitary synthesis transpiler pass with Clifford+T basis set
+        (which would run Solovay-Kitaev).
+        """
+        circuit = QuantumCircuit(2)
+        circuit.rx(0.8, 0)
+        circuit.cx(0, 1)
+        circuit.x(1)
+
+        _1q = Collect1qRuns()
+        _cons = ConsolidateBlocks()
+        _synth = UnitarySynthesis(["h", "t", "tdg"], method="default")
+        passes = PassManager([_1q, _cons, _synth])
+        compiled = passes.run(circuit)
+
+        diff = _trace_distance(circuit, compiled)
+        self.assertLess(diff, 1e-4)
+        self.assertEqual(set(compiled.count_ops().keys()), {"h", "t", "tdg", "cx"})
+
     def test_plugin(self):
         """Test calling the plugin directly."""
         circuit = QuantumCircuit(1)
