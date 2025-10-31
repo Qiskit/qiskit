@@ -804,6 +804,22 @@ class TestCircuitProperties(QiskitTestCase):
         with self.assertRaises(AttributeError):
             _ = qc.op_start_times
 
+    def test_active_qubits(self):
+        """Test active qubits."""
+        qc = QuantumCircuit(4)
+        qc.h(1)
+        qc.z(3)
+        bits = qc.active_qubits()
+        self.assertEqual([1, 3], bits)
+
+    def test_active_clbits(self):
+        """Test active clbits."""
+        qc = QuantumCircuit(4, 4)
+        qc.measure(0, 0)
+        qc.measure(3, 2)
+        bits = qc.active_clbits()
+        self.assertEqual([0, 2], bits)
+
 
 if __name__ == "__main__":
     unittest.main()
