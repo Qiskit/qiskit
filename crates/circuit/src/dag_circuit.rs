@@ -29,7 +29,6 @@ use crate::classical::expr;
 use crate::converters::QuantumCircuitData;
 use crate::dag_node::{DAGInNode, DAGNode, DAGOpNode, DAGOutNode};
 use crate::dot_utils::build_dot;
-use crate::error::DAGCircuitError;
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
@@ -37,6 +36,7 @@ use crate::operations::{
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::ParameterExpression;
+use crate::py_error::DAGCircuitError;
 use crate::register_data::RegisterData;
 use crate::slice::PySequenceIndex;
 use crate::variable_mapper::VariableMapper;
@@ -4935,7 +4935,7 @@ impl DAGCircuit {
 
         // Remove the qubit indices, which will invalidate our mapping of Qubit to
         // Python bits throughout the entire DAG.
-        self.qubits.remove_indices(qubits.clone())?;
+        self.qubits.remove_indices(qubits.clone());
 
         // Update input/output maps to use new Qubits.
         let io_mapping: HashMap<Qubit, [NodeIndex; 2]> = self
@@ -5063,7 +5063,7 @@ impl DAGCircuit {
 
         // Remove the clbit indices, which will invalidate our mapping of Clbit to
         // Python bits throughout the entire DAG.
-        self.clbits.remove_indices(clbits.clone())?;
+        self.clbits.remove_indices(clbits.clone());
 
         // Update input/output maps to use new Clbits.
         let io_mapping: HashMap<Clbit, [NodeIndex; 2]> = self

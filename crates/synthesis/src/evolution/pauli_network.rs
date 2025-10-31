@@ -360,4 +360,5 @@ pub fn pauli_network_synthesis_inner(
     }
 
     CircuitData::from_standard_gates(num_qubits as u32, gates, global_phase)
+        .map_err(|err| err.into())
 }

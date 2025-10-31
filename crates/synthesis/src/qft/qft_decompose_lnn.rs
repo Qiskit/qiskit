@@ -15,6 +15,7 @@ use crate::permutation::_append_reverse_permutation_lnn_kms;
 use pyo3::prelude::*;
 use qiskit_circuit::Qubit;
 use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::error::CircuitError;
 use qiskit_circuit::operations::{Param, StandardGate};
 use smallvec::smallvec;
 use std::f64::consts::PI;
@@ -54,7 +55,7 @@ pub fn synth_qft_line(
     num_qubits: usize,
     do_swaps: bool,
     approximation_degree: usize,
-) -> PyResult<CircuitData> {
+) -> Result<CircuitData, CircuitError> {
     // Total number of compound gates required = L(L-1)/2
     // Compound gate: H + 3CX + 3P or 3CX + 3P
     // For approximation degree D, D(D+1)/2 * 3 gates will be reduced
