@@ -38,3 +38,4 @@ cbindgen = "0.29"
 default = ["cbinding"]
 python_binding = ["dep:pyo3"]
 cbinding = []
+cache_pygates = ["qiskit-circuit/cache_pygates", "qiskit-transpiler/cache_pygates"]
