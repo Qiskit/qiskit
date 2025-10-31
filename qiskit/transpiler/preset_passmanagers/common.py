@@ -542,14 +542,16 @@ def generate_translation_passmanager(
             # We use the "clifford" unitary synthesis plugin to replace single-qubit
             # unitary gates that can be represented as Cliffords by Clifford gates.
             UnitarySynthesis(method="clifford", plugin_config={"max_qubits": 1}),
-            # We use the Solovay-Kitaev decomposition via the plugin mechanism for "sk"
-            # UnitarySynthesisPlugin.
+            # We use the "default" unitary synthesis algorithm for the original Clifford+T
+            # basis set. Currently this run the Solovay-Kitaev synthesis. The value
+            # of "default" is hard-coded till we provide a robust mechanism to handle
+            # user-specified synthesis plugins and fallback on the default plugin.
             UnitarySynthesis(
-                basis_gates=["h", "t", "tdg"],
+                basis_gates=basis_gates,
                 approximation_degree=approximation_degree,
                 coupling_map=coupling_map,
                 plugin_config=unitary_synthesis_plugin_config,
-                method="sk",
+                method="default",
                 min_qubits=1,
                 target=None,
             ),
