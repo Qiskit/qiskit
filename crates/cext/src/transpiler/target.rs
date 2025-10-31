@@ -15,6 +15,7 @@ use std::ffi::{CStr, CString, c_char};
 use std::ptr::null_mut;
 use std::sync::Arc;
 
+use crate::dag::COperationKind;
 use crate::exit_codes::{CInputError, ExitCode};
 use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
 use indexmap::IndexMap;
@@ -1324,6 +1325,114 @@ pub struct CInstructionProperties {
     /// The average error rate for the instruction on the specified set of qubits.
     /// Will be set to ``NaN`` if the property is not defined.
     pub error: f64,
+}
+
+#[repr(C)]
+pub struct CTargetOperation {
+    op_type: COperationKind,
+    name: *const c_char,
+    num_qubits: u32,
+    params: *const f64,
+    num_params: u32,
+}
+
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_op_get(
+    target: *const Target,
+    index: usize,
+    op_kind: *mut CTargetOperation,
+) -> ExitCode {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let target_borrowed = unsafe { const_ptr_as_ref(target) };
+
+    if let Some(operation) = target_borrowed.get_op_by_index(index) {
+        let kind = match operation {
+            qiskit_transpiler::target::TargetOperation::Normal(normal_operation) => {
+                match normal_operation.operation.view() {
+                    qiskit_circuit::operations::OperationRef::StandardGate(_) => {
+                        COperationKind::Gate
+                    }
+                    qiskit_circuit::operations::OperationRef::StandardInstruction(
+                        standard_instruction,
+                    ) => match standard_instruction {
+                        StandardInstruction::Barrier(_) => COperationKind::Barrier,
+                        StandardInstruction::Delay(_) => COperationKind::Delay,
+                        StandardInstruction::Measure => COperationKind::Measure,
+                        StandardInstruction::Reset => COperationKind::Reset,
+                    },
+                    qiskit_circuit::operations::OperationRef::Unitary(_) => COperationKind::Unitary,
+                    _ => panic!(
+                        "Unsupported operation type found: {}",
+                        stringify!(normal_operation.view())
+                    ),
+                }
+            }
+            qiskit_transpiler::target::TargetOperation::Variadic(_) => panic!(
+                "Unsupported operation type found: {}",
+                stringify!(normal_operation.view())
+            ),
+        };
+        let name = CString::new(
+            target_borrowed
+                .get_by_index(index)
+                .expect("Inconsistent indices")
+                .0
+                .clone(),
+        )
+        .expect("Error extracting cstring from Target name")
+        .into_raw();
+        let params: Vec<f64> = operation
+            .params()
+            .iter()
+            .filter_map(|param| match param {
+                Param::Float(number) => Some(*number),
+                _ => None,
+            })
+            .collect();
+        let num_params = params
+            .len()
+            .try_into()
+            .expect("The number of parameters exceeds the alotted amount");
+        let params_boxed = params.into_boxed_slice();
+        unsafe {
+            write(
+                op_kind,
+                CTargetOperation {
+                    op_type: kind,
+                    name,
+                    num_qubits: operation.num_qubits(),
+                    params: params_boxed.as_ptr(),
+                    num_params,
+                },
+            )
+        };
+        let _ = Box::into_raw(params_boxed);
+        ExitCode::Success
+    } else {
+        ExitCode::IndexError
+    }
+}
+
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_op_try_gate(
+    target: *const Target,
+    index: usize,
+) -> StandardGate {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let target_borrowed = unsafe { const_ptr_as_ref(target) };
+
+    match target_borrowed
+        .get_op_by_index(index)
+        .expect("Invalid index")
+    {
+        qiskit_transpiler::target::TargetOperation::Normal(normal_operation) => normal_operation
+            .operation
+            .try_standard_gate()
+            .expect("Not a standard gate."),
+        qiskit_transpiler::target::TargetOperation::Variadic(_) => panic!("Not a standard gate."),
+    }
 }
 
 /// Parses qargs based on a pointer and its size.
