@@ -209,6 +209,18 @@ fn get_target_basis_set(target: &Target, qubit: PhysicalQubit) -> EulerBasisSet 
     target_basis_set
 }
 
+static SKIP_NAMES_FOR_CLIFFORD_T: [&str; 9] = [
+    "for_loop",
+    "while_loop",
+    "if_else",
+    "switch_case",
+    "box",
+    "delay",
+    "barrier",
+    "reset",
+    "measure",
+];
+
 /// Find whether the basis supported for a specific `PhysicalQubit` is is of the form Clifford+T.
 fn is_clifford_t_basis_set(
     target: Option<&Target>,
@@ -220,16 +232,17 @@ fn is_clifford_t_basis_set(
         Some(target) => {
             let target_basis_list = target.operation_names_for_qargs(&[qubit]);
             match target_basis_list {
-                Ok(basis_list) => basis_list
-                    .into_iter()
-                    .all(|k| CLIFFORD_T_GATE_NAMES.contains(&k)),
+                Ok(basis_list) => basis_list.into_iter().all(|k| {
+                    CLIFFORD_T_GATE_NAMES.contains(&k) || SKIP_NAMES_FOR_CLIFFORD_T.contains(&k)
+                }),
                 Err(_) => false,
             }
         }
         // Otherwise, basis_gates is used.
-        None => basis_gates
-            .into_iter()
-            .all(|k| CLIFFORD_T_GATE_NAMES.contains(&k.as_str())),
+        None => basis_gates.into_iter().all(|k| {
+            CLIFFORD_T_GATE_NAMES.contains(&k.as_str())
+                || SKIP_NAMES_FOR_CLIFFORD_T.contains(&k.as_str())
+        }),
     }
 }
 
