@@ -108,6 +108,7 @@ class VariableMapper(expr.ExprVisitor[expr.Expr]):
                 raise self.exc_type(
                     f"Register '{target.name}' has no counterpart in the destination."
                 )
+
             mapped_theirs = ClassicalRegister(bits=mapped_bits_order)
             self.add_register(mapped_theirs)
         new_order = {bit: i for i, bit in enumerate(mapped_bits_order)}
