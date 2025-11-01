@@ -22,6 +22,7 @@ from ddt import ddt, data, unpack
 from qiskit import transpile
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import PauliEvolutionGate, HamiltonianGate, PhaseGate, RZGate
+from qiskit.circuit.library.pauli_evolution import _get_default_label
 from qiskit.synthesis import LieTrotter, SuzukiTrotter, MatrixExponential, QDrift
 from qiskit.synthesis.evolution.product_formula import reorder_paulis
 from qiskit.converters import circuit_to_dag
@@ -827,6 +828,34 @@ class TestEvolutionGate(QiskitTestCase):
             pauli = Pauli("XYZ")  # 3 qubits
             op = SparsePauliOp(["XYIZ"], [1])  # 4 qubits
             PauliEvolutionGate([pauli, op], time=1)
+
+    def test_get_default_label_multiple_operators(self):
+        """Test _get_default_label returns correctly formatted string for list of multiple operators."""
+        op1 = SparsePauliOp("X")
+        op2 = SparsePauliOp("Y")
+        op3 = SparsePauliOp("Z")
+        operator_list = [op1, op2, op3]
+        
+        label = _get_default_label(operator_list)
+        expected = "exp(-it (X + Y + Z))"
+        self.assertEqual(label, expected)
+
+    def test_get_default_label_single_operator_in_list(self):
+        """Test _get_default_label returns correctly formatted string for list of a single operator."""
+        op = SparsePauliOp("X")
+        operator_list = [op]
+        
+        label = _get_default_label(operator_list)
+        expected = "exp(-it (X))"
+        self.assertEqual(label, expected)
+
+    def test_get_default_label_single_operator(self):
+        """Test _get_default_label does not alter formatting for single operator (non-list input)."""
+        op = SparsePauliOp("Z")
+        
+        label = _get_default_label(op)
+        expected = "exp(-it Z)"
+        self.assertEqual(label, expected)
 
 
 def exact_atomic_evolution(circuit, pauli, time):
