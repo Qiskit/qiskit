@@ -12,25 +12,21 @@
 
 use ahash::RandomState;
 use pyo3::Python;
-use pyo3::exceptions::{PyRuntimeError, PyValueError};
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::types::PyTuple;
 use pyo3::wrap_pyfunction;
 
 use numpy::prelude::*;
-use numpy::{PyArray1, PyArray2, PyReadonlyArray1, PyReadonlyArray2, PyUntypedArrayMethods};
+use numpy::{PyArray1, PyArray2, PyReadonlyArray2, PyUntypedArrayMethods};
 
 use hashbrown::HashMap;
 use indexmap::IndexMap;
 use ndarray::{ArrayView1, ArrayView2, Axis, s};
 use num_complex::Complex64;
 use num_traits::Zero;
-use rayon::prelude::*;
 use thiserror::Error;
 
 use qiskit_circuit::util::{C_ZERO, c64};
-
-use crate::rayon_ext::*;
 
 /// Find the unique elements of an array.
 ///
@@ -163,46 +159,6 @@ impl ZXPaulis {
             phases: phases.to_owned().unbind(),
             coeffs: coeffs.to_owned().unbind(),
         })
-    }
-}
-
-impl ZXPaulis {
-    /// Attempt to acquire a Rust-enforced Rust-only immutable borrow onto the underlying
-    /// Python-space data. This returns `None` if any of the underlying arrays already has a
-    /// mutable borrow taken out onto it.
-    pub fn try_readonly<'a, 'py>(&'a self, py: Python<'py>) -> Option<ZXPaulisReadonly<'py>>
-    where
-        'a: 'py,
-    {
-        Some(ZXPaulisReadonly {
-            x: self.x.bind(py).try_readonly().ok()?,
-            z: self.z.bind(py).try_readonly().ok()?,
-            phases: self.phases.bind(py).try_readonly().ok()?,
-            coeffs: self.coeffs.bind(py).try_readonly().ok()?,
-        })
-    }
-}
-
-/// Intermediate structure that represents readonly views onto the Python-space sparse Pauli data.
-/// This is used in the chained methods so that the lifetime extension can occur; we can't have the
-/// readonly array temporaries only live within a method that returns [ZXPaulisView], because
-/// otherwise the lifetimes of the [PyReadonlyArray] elements will be too short.
-pub struct ZXPaulisReadonly<'a> {
-    x: PyReadonlyArray2<'a, bool>,
-    z: PyReadonlyArray2<'a, bool>,
-    phases: PyReadonlyArray1<'a, u8>,
-    coeffs: PyReadonlyArray1<'a, Complex64>,
-}
-
-impl ZXPaulisReadonly<'_> {
-    /// Get a [ndarray] view of the data of these [rust-numpy] objects.
-    fn as_array(&self) -> ZXPaulisView<'_> {
-        ZXPaulisView {
-            x: self.x.as_array(),
-            z: self.z.as_array(),
-            phases: self.phases.as_array(),
-            coeffs: self.coeffs.as_array(),
-        }
     }
 }
 
@@ -929,339 +885,9 @@ impl PauliLocation {
     }
 }
 
-/// Convert the given [ZXPaulis] object to a dense 2D Numpy matrix.
-#[pyfunction]
-#[pyo3(signature = (/, paulis, force_serial=false))]
-pub fn to_matrix_dense<'py>(
-    py: Python<'py>,
-    paulis: &ZXPaulis,
-    force_serial: bool,
-) -> PyResult<Bound<'py, PyArray2<Complex64>>> {
-    let paulis_readonly = paulis
-        .try_readonly(py)
-        .ok_or_else(|| PyRuntimeError::new_err("could not produce a safe view onto the data"))?;
-    let mut paulis = paulis_readonly.as_array().matrix_compress()?;
-    paulis.combine();
-    let side = 1usize << paulis.num_qubits();
-    let parallel = !force_serial && qiskit_circuit::getenv_use_multiple_threads();
-    let out = to_matrix_dense_inner(&paulis, parallel);
-    PyArray1::from_vec(py, out).reshape([side, side])
-}
-
-/// Inner worker of the Python-exposed [to_matrix_dense].  This is separate primarily to allow
-/// Rust-space unit testing even if Python isn't available for execution.  This returns a C-ordered
-/// [Vec] of the 2D matrix.
-fn to_matrix_dense_inner(paulis: &MatrixCompressedPaulis, parallel: bool) -> Vec<Complex64> {
-    let side = 1usize << paulis.num_qubits();
-    #[allow(clippy::uninit_vec)]
-    let mut out = {
-        let mut out = Vec::with_capacity(side * side);
-        // SAFETY: we iterate through the vec in chunks of `side`, and start each row by filling it
-        // with zeros before ever reading from it.  It's fine to overwrite the uninitialised memory
-        // because `Complex64: !Drop`.
-        unsafe { out.set_len(side * side) };
-        out
-    };
-    let write_row = |(i_row, row): (usize, &mut [Complex64])| {
-        // Doing the initialization here means that when we're in parallel contexts, we do the
-        // zeroing across the whole threadpool.  This also seems to give a speed-up in serial
-        // contexts, but I don't understand that. ---Jake
-        row.fill(C_ZERO);
-        for ((&x_like, &z_like), &coeff) in paulis
-            .x_like
-            .iter()
-            .zip(paulis.z_like.iter())
-            .zip(paulis.coeffs.iter())
-        {
-            // Technically this discards part of the storable data, but in practice, a dense
-            // operator with more than 32 qubits needs in the region of 1 ZiB memory.  We still use
-            // `u64` to help sparse-matrix construction, though.
-            let coeff = if (i_row as u32 & z_like as u32).count_ones() % 2 == 0 {
-                coeff
-            } else {
-                -coeff
-            };
-            row[i_row ^ (x_like as usize)] += coeff;
-        }
-    };
-    if parallel {
-        out.par_chunks_mut(side).enumerate().for_each(write_row);
-    } else {
-        out.chunks_mut(side).enumerate().for_each(write_row);
-    }
-    out
-}
-
-type CSRData<T> = (Vec<Complex64>, Vec<T>, Vec<T>);
-type ToCSRData<T> = fn(&MatrixCompressedPaulis) -> CSRData<T>;
-
-/// Convert the given [ZXPaulis] object to the three-array CSR form.  The output type of the
-/// `indices` and `indptr` matrices will be `i32` if that type is guaranteed to be able to hold the
-/// number of non-zeros, otherwise it will be `i64`.  Signed types are used to match Scipy.  `i32`
-/// is preferentially returned, because Scipy will downcast to this on `csr_matrix` construction if
-/// all array elements would fit.  For large operators with significant cancellation, it is
-/// possible that `i64` will be returned when `i32` would suffice, but this will not cause
-/// unsoundness, just a copy overhead when constructing the Scipy matrix.
-#[pyfunction]
-#[pyo3(signature = (/, paulis, force_serial=false))]
-pub fn to_matrix_sparse(
-    py: Python,
-    paulis: &ZXPaulis,
-    force_serial: bool,
-) -> PyResult<Py<PyTuple>> {
-    let paulis_readonly = paulis
-        .try_readonly(py)
-        .ok_or_else(|| PyRuntimeError::new_err("could not produce a safe view onto the data"))?;
-    let mut paulis = paulis_readonly.as_array().matrix_compress()?;
-    paulis.combine();
-
-    // This deliberately erases the Rust types in the output so we can return either 32- or 64-bit
-    // indices as appropriate without breaking Rust's typing.
-    fn to_py_tuple<T>(py: Python, csr_data: CSRData<T>) -> PyResult<Py<PyTuple>>
-    where
-        T: numpy::Element,
-    {
-        let (values, indices, indptr) = csr_data;
-        Ok(PyTuple::new(
-            py,
-            [
-                PyArray1::from_vec(py, values).into_any(),
-                PyArray1::from_vec(py, indices).into_any(),
-                PyArray1::from_vec(py, indptr).into_any(),
-            ],
-        )?
-        .unbind())
-    }
-
-    // Pessimistic estimation of whether we can fit in `i32`.  If there's any risk of overflowing
-    // `i32`, we use `i64`, but Scipy will always try to downcast to `i32`, so we try to match it.
-    let max_entries_per_row = (paulis.num_ops() as u64).min(1u64 << (paulis.num_qubits() - 1));
-    let use_32_bit =
-        max_entries_per_row.saturating_mul(1u64 << paulis.num_qubits()) <= (i32::MAX as u64);
-    if use_32_bit {
-        let to_sparse: ToCSRData<i32> =
-            if qiskit_circuit::getenv_use_multiple_threads() && !force_serial {
-                to_matrix_sparse_parallel_32
-            } else {
-                to_matrix_sparse_serial_32
-            };
-        to_py_tuple(py, to_sparse(&paulis))
-    } else {
-        let to_sparse: ToCSRData<i64> =
-            if qiskit_circuit::getenv_use_multiple_threads() && !force_serial {
-                to_matrix_sparse_parallel_64
-            } else {
-                to_matrix_sparse_serial_64
-            };
-        to_py_tuple(py, to_sparse(&paulis))
-    }
-}
-
-/// Copy several slices into a single flat vec, in parallel.  Allocates a temporary `Vec<usize>` of
-/// the same length as the input slice to track the chunking.
-fn copy_flat_parallel<T, U>(slices: &[U]) -> Vec<T>
-where
-    T: Copy + Send + Sync,
-    U: AsRef<[T]> + Sync,
-{
-    let lens = slices
-        .iter()
-        .map(|slice| slice.as_ref().len())
-        .collect::<Vec<_>>();
-    let size = lens.iter().sum();
-    #[allow(clippy::uninit_vec)]
-    let mut out = {
-        let mut out = Vec::with_capacity(size);
-        // SAFETY: we've just calculated that the lengths of the given vecs add up to the right
-        // thing, and we're about to copy in the data from each of them into this uninitialised
-        // array.  It's guaranteed safe to write `T` to the uninitialised space, because `Copy`
-        // implies `!Drop`.
-        unsafe { out.set_len(size) };
-        out
-    };
-    out.par_uneven_chunks_mut(&lens)
-        .zip(slices.par_iter().map(|x| x.as_ref()))
-        .for_each(|(out_slice, in_slice)| out_slice.copy_from_slice(in_slice));
-    out
-}
-
-macro_rules! impl_to_matrix_sparse {
-    ($serial_fn:ident, $parallel_fn:ident, $int_ty:ty, $uint_ty:ty $(,)?) => {
-        /// Build CSR data arrays for the matrix-compressed set of the Pauli operators, using a
-        /// completely serial strategy.
-        fn $serial_fn(paulis: &MatrixCompressedPaulis) -> CSRData<$int_ty> {
-            let side = 1 << paulis.num_qubits();
-            let num_ops = paulis.num_ops();
-            if num_ops == 0 {
-                return (vec![], vec![], vec![0; side + 1]);
-            }
-
-            let mut order = (0..num_ops).collect::<Vec<_>>();
-            let mut values = Vec::<Complex64>::with_capacity(side * (num_ops + 1) / 2);
-            let mut indices = Vec::<$int_ty>::with_capacity(side * (num_ops + 1) / 2);
-            let mut indptr: Vec<$int_ty> = vec![0; side + 1];
-            let mut nnz = 0;
-            for i_row in 0..side {
-                order.sort_unstable_by(|&a, &b| {
-                    ((i_row as $uint_ty) ^ (paulis.x_like[a] as $uint_ty))
-                        .cmp(&((i_row as $uint_ty) ^ (paulis.x_like[b] as $uint_ty)))
-                });
-                let mut running = C_ZERO;
-                let mut prev_index = i_row ^ (paulis.x_like[order[0]] as usize);
-                for (x_like, z_like, coeff) in order
-                    .iter()
-                    .map(|&i| (paulis.x_like[i], paulis.z_like[i], paulis.coeffs[i]))
-                {
-                    let coeff =
-                        if ((i_row as $uint_ty) & (z_like as $uint_ty)).count_ones() % 2 == 0 {
-                            coeff
-                        } else {
-                            -coeff
-                        };
-                    let index = i_row ^ (x_like as usize);
-                    if index == prev_index {
-                        running += coeff;
-                    } else {
-                        nnz += 1;
-                        values.push(running);
-                        indices.push(prev_index as $int_ty);
-                        running = coeff;
-                        prev_index = index;
-                    }
-                }
-                nnz += 1;
-                values.push(running);
-                indices.push(prev_index as $int_ty);
-                indptr[i_row + 1] = nnz;
-            }
-            (values, indices, indptr)
-        }
-
-        /// Build CSR data arrays for the matrix-compressed set of the Pauli operators, using a
-        /// parallel strategy.  This involves more data copying than the serial form, so there is a
-        /// nontrivial amount of parallel overhead.
-        fn $parallel_fn(paulis: &MatrixCompressedPaulis) -> CSRData<$int_ty> {
-            let side = 1 << paulis.num_qubits();
-            let num_ops = paulis.num_ops();
-            if num_ops == 0 {
-                return (vec![], vec![], vec![0; side + 1]);
-            }
-
-            let mut indptr = Vec::<$int_ty>::with_capacity(side + 1);
-            indptr.push(0);
-            // SAFETY: we allocate the space for the `indptr` array here, then each thread writes
-            // in the number of nonzero entries for each row it was responsible for.  We know ahead
-            // of time exactly how many entries we need (one per row, plus an explicit 0 to start).
-            // It's also important that `$int_ty` does not implement `Drop`, since otherwise it
-            // will be called on uninitialised memory (all primitive int types satisfy this).
-            unsafe {
-                indptr.set_len(side + 1);
-            }
-
-            // The parallel overhead from splitting a subtask is fairly high (allocating and
-            // potentially growing a couple of vecs), so we're trading off some of Rayon's ability
-            // to keep threads busy by subdivision with minimizing overhead; we're setting the
-            // chunk size such that the iterator will have as many elements as there are threads.
-            let num_threads = rayon::current_num_threads();
-            let chunk_size = side.div_ceil(num_threads);
-            let mut values_chunks = Vec::with_capacity(num_threads);
-            let mut indices_chunks = Vec::with_capacity(num_threads);
-            // SAFETY: the slice here is uninitialised data; it must not be read.
-            indptr[1..]
-                .par_chunks_mut(chunk_size)
-                .enumerate()
-                .map(|(i, indptr_chunk)| {
-                    let start = chunk_size * i;
-                    let end = (chunk_size * (i + 1)).min(side);
-                    let mut order = (0..num_ops).collect::<Vec<_>>();
-                    // Since we compressed the Paulis by summing equal elements, we're
-                    // lower-bounded on the number of elements per row by this value, up to
-                    // cancellations.  This should be a reasonable trade-off between sometimes
-                    // expanding the vector and overallocation.
-                    let mut values =
-                        Vec::<Complex64>::with_capacity(chunk_size * (num_ops + 1) / 2);
-                    let mut indices = Vec::<$int_ty>::with_capacity(chunk_size * (num_ops + 1) / 2);
-                    let mut nnz = 0;
-                    for i_row in start..end {
-                        order.sort_unstable_by(|&a, &b| {
-                            (i_row as $uint_ty ^ paulis.x_like[a] as $uint_ty)
-                                .cmp(&(i_row as $uint_ty ^ paulis.x_like[b] as $uint_ty))
-                        });
-                        let mut running = C_ZERO;
-                        let mut prev_index = i_row ^ (paulis.x_like[order[0]] as usize);
-                        for (x_like, z_like, coeff) in order
-                            .iter()
-                            .map(|&i| (paulis.x_like[i], paulis.z_like[i], paulis.coeffs[i]))
-                        {
-                            let coeff =
-                                if (i_row as $uint_ty & z_like as $uint_ty).count_ones() % 2 == 0 {
-                                    coeff
-                                } else {
-                                    -coeff
-                                };
-                            let index = i_row ^ (x_like as usize);
-                            if index == prev_index {
-                                running += coeff;
-                            } else {
-                                nnz += 1;
-                                values.push(running);
-                                indices.push(prev_index as $int_ty);
-                                running = coeff;
-                                prev_index = index;
-                            }
-                        }
-                        nnz += 1;
-                        values.push(running);
-                        indices.push(prev_index as $int_ty);
-                        // When we write it, this is a cumulative `nnz` _within the chunk_.  We
-                        // turn that into a proper cumulative sum in serial afterwards.
-                        indptr_chunk[i_row - start] = nnz;
-                    }
-                    (values, indices)
-                })
-                .unzip_into_vecs(&mut values_chunks, &mut indices_chunks);
-            // Turn the chunkwise nnz counts into absolute nnz counts.
-            let mut start_nnz = 0usize;
-            let chunk_nnz = values_chunks
-                .iter()
-                .map(|chunk| {
-                    let prev = start_nnz;
-                    start_nnz += chunk.len();
-                    prev as $int_ty
-                })
-                .collect::<Vec<_>>();
-            indptr[1..]
-                .par_chunks_mut(chunk_size)
-                .zip(chunk_nnz)
-                .for_each(|(indptr_chunk, start_nnz)| {
-                    indptr_chunk.iter_mut().for_each(|nnz| *nnz += start_nnz);
-                });
-            // Concatenate the chunkwise values and indices togther.
-            let values = copy_flat_parallel(&values_chunks);
-            let indices = copy_flat_parallel(&indices_chunks);
-            (values, indices, indptr)
-        }
-    };
-}
-
-impl_to_matrix_sparse!(
-    to_matrix_sparse_serial_32,
-    to_matrix_sparse_parallel_32,
-    i32,
-    u32
-);
-impl_to_matrix_sparse!(
-    to_matrix_sparse_serial_64,
-    to_matrix_sparse_parallel_64,
-    i64,
-    u64
-);
-
 pub fn sparse_pauli_op(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(unordered_unique))?;
     m.add_wrapped(wrap_pyfunction!(decompose_dense))?;
-    m.add_wrapped(wrap_pyfunction!(to_matrix_dense))?;
-    m.add_wrapped(wrap_pyfunction!(to_matrix_sparse))?;
     m.add_class::<ZXPaulis>()?;
     Ok(())
 }
@@ -1272,6 +898,8 @@ mod tests {
 
     use super::*;
     use crate::test::*;
+
+    use crate::sparse_observable::SparseObservable;
 
     #[cfg(miri)]
     use approx::AbsDiffEq;
@@ -1412,7 +1040,7 @@ mod tests {
                 x_like,
                 z_like,
             };
-            let arr = Array1::from_vec(to_matrix_dense_inner(&paulis, false))
+            let arr = Array1::from_vec(SparseObservable::to_matrix_dense(&paulis, false))
                 .into_shape_with_order((2, 2))
                 .unwrap();
             let expected: DecomposeMinimal = paulis.into();
@@ -1456,7 +1084,7 @@ mod tests {
                 x_like,
                 z_like,
             };
-            let arr = Array1::from_vec(to_matrix_dense_inner(&paulis, false))
+            let arr = Array1::from_vec(SparseObservable::to_matrix_dense(&paulis, false))
                 .into_shape_with_order((8, 8))
                 .unwrap();
             let expected: DecomposeMinimal = paulis.into();
@@ -1472,29 +1100,5 @@ mod tests {
                 assert_eq!(actual.num_qubits, expected.num_qubits);
             }
         }
-    }
-
-    #[test]
-    fn dense_threaded_and_serial_equal() {
-        let paulis = example_paulis();
-        let parallel = in_scoped_thread_pool(|| to_matrix_dense_inner(&paulis, true)).unwrap();
-        let serial = to_matrix_dense_inner(&paulis, false);
-        assert_eq!(parallel, serial);
-    }
-
-    #[test]
-    fn sparse_threaded_and_serial_equal_32() {
-        let paulis = example_paulis();
-        let parallel = in_scoped_thread_pool(|| to_matrix_sparse_parallel_32(&paulis)).unwrap();
-        let serial = to_matrix_sparse_serial_32(&paulis);
-        assert_eq!(parallel, serial);
-    }
-
-    #[test]
-    fn sparse_threaded_and_serial_equal_64() {
-        let paulis = example_paulis();
-        let parallel = in_scoped_thread_pool(|| to_matrix_sparse_parallel_64(&paulis)).unwrap();
-        let serial = to_matrix_sparse_serial_64(&paulis);
-        assert_eq!(parallel, serial);
     }
 }
