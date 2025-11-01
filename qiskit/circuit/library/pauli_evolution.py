@@ -335,14 +335,20 @@ def _to_sparse_op(
 
 def _operator_label(operator):
     if isinstance(operator, SparseObservable):
-        if len(operator) == 1:
-            return operator[0].bit_labels()[::-1]
-        return "(" + " + ".join(term.bit_labels()[::-1] for term in operator) + ")"
-
-    # else: is a SparsePauliOp
+        # Convert to SparsePauliOp to preserve identity terms in labels
+        if hasattr(SparsePauliOp, "from_sparse_observable"):
+            operator = SparsePauliOp.from_sparse_observable(operator)
+        else:
+            # Fallback for older Qiskit versions
+            operator = SparsePauliOp.from_list(
+                [(term.bit_labels()[::-1], term.coefficient) for term in operator]
+            )
+    
+    # SparsePauliOp correctly includes 'I' terms
     if len(operator.paulis) == 1:
         return operator.paulis.to_labels()[0]
     return "(" + " + ".join(operator.paulis.to_labels()) + ")"
+
 
 
 def _get_default_label(operator):
