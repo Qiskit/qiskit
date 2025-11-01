@@ -171,52 +171,12 @@ class UnitarySynthesis(TransformationPass):
         if not set(self._synth_gates).intersection(dag.count_ops()):
             return dag
 
-        if self.plugins:
-            plugin_method = self.plugins.ext_plugins[self.method].obj
-        else:
-            from qiskit.transpiler.passes.synthesis.default_unitary_synth_plugin import (
-                DefaultUnitarySynthesis,
-            )
-
-            plugin_method = DefaultUnitarySynthesis()
-        plugin_kwargs: dict[str, Any] = {"config": self._plugin_config}
-        _gate_lengths = _gate_errors = None
-        _gate_lengths_by_qubit = _gate_errors_by_qubit = None
-
-        if self.method == "default":
-            # If the method is the default, we only need to evaluate one set of keyword arguments.
-            # To simplify later logic, and avoid cases where static analysis might complain that we
-            # haven't initialized the "default" handler, we rebind the names so they point to the
-            # same object as the chosen method.
-            default_method = plugin_method
-            default_kwargs = plugin_kwargs
-            method_list = [(plugin_method, plugin_kwargs)]
-        else:
-            # If the method is not the default, we still need to initialise the default plugin's
-            # keyword arguments in case we have to fall back on it during the actual run.
-            default_method = self.plugins.ext_plugins["default"].obj
-            default_kwargs = {}
-            method_list = [(plugin_method, plugin_kwargs), (default_method, default_kwargs)]
-
-        # Handle approximation degree as a special case for backwards compatibility, it's
-        # not part of the plugin interface and only something needed for the default
-        # pass.
-        # pylint: disable=attribute-defined-outside-init
-        default_method._approximation_degree = self._approximation_degree
-        if self.method == "default":
-            # pylint: disable=attribute-defined-outside-init
-            plugin_method._approximation_degree = self._approximation_degree
-
-        qubit_indices = (
-            {bit: i for i, bit in enumerate(dag.qubits)}
-            if plugin_method.supports_coupling_map or default_method.supports_coupling_map
-            else {}
-        )
-
+        # Special flow for the "default" method
         if self.method == "default":
             _coupling_edges = (
                 set(self._coupling_map.get_edges()) if self._coupling_map is not None else set()
             )
+            qubit_indices = {bit: i for i, bit in enumerate(dag.qubits)}
             out = run_main_loop(
                 dag,
                 list(qubit_indices.values()),
@@ -230,40 +190,70 @@ class UnitarySynthesis(TransformationPass):
                 self._pulse_optimize,
             )
             return out
-        else:
-            for method, kwargs in method_list:
-                if method.supports_basis_gates:
-                    kwargs["basis_gates"] = self._basis_gates
-                if method.supports_natural_direction:
-                    kwargs["natural_direction"] = self._natural_direction
-                if method.supports_pulse_optimize:
-                    kwargs["pulse_optimize"] = self._pulse_optimize
-                if method.supports_gate_lengths:
-                    _gate_lengths = _gate_lengths or _build_gate_lengths(self._target)
-                    kwargs["gate_lengths"] = _gate_lengths
-                if method.supports_gate_errors:
-                    _gate_errors = _gate_errors or _build_gate_errors(self._target)
-                    kwargs["gate_errors"] = _gate_errors
-                if method.supports_gate_lengths_by_qubit:
-                    _gate_lengths_by_qubit = _gate_lengths_by_qubit or _build_gate_lengths_by_qubit(
-                        self._target
-                    )
-                    kwargs["gate_lengths_by_qubit"] = _gate_lengths_by_qubit
-                if method.supports_gate_errors_by_qubit:
-                    _gate_errors_by_qubit = _gate_errors_by_qubit or _build_gate_errors_by_qubit(
-                        self._target
-                    )
-                    kwargs["gate_errors_by_qubit"] = _gate_errors_by_qubit
-                supported_bases = method.supported_bases
-                if supported_bases is not None:
-                    kwargs["matched_basis"] = _choose_bases(self._basis_gates, supported_bases)
-                if method.supports_target:
-                    kwargs["target"] = self._target
 
-            out = self._run_main_loop(
-                dag, qubit_indices, plugin_method, plugin_kwargs, default_method, default_kwargs
+        if self.plugins:
+            plugin_method = self.plugins.ext_plugins[self.method].obj
+        else:
+            from qiskit.transpiler.passes.synthesis.default_unitary_synth_plugin import (
+                DefaultUnitarySynthesis,
             )
-            return out
+
+            plugin_method = DefaultUnitarySynthesis()
+        plugin_kwargs: dict[str, Any] = {"config": self._plugin_config}
+        _gate_lengths = _gate_errors = None
+        _gate_lengths_by_qubit = _gate_errors_by_qubit = None
+
+        # If the method is not the default, we still need to initialise the default plugin's
+        # keyword arguments in case we have to fall back on it during the actual run.
+        default_method = self.plugins.ext_plugins["default"].obj
+        default_kwargs = {}
+        method_list = [(plugin_method, plugin_kwargs), (default_method, default_kwargs)]
+
+        # Handle approximation degree as a special case for backwards compatibility, it's
+        # not part of the plugin interface and only something needed for the default
+        # pass.
+        # pylint: disable=attribute-defined-outside-init
+        default_method._approximation_degree = self._approximation_degree
+
+        qubit_indices = (
+            {bit: i for i, bit in enumerate(dag.qubits)}
+            if plugin_method.supports_coupling_map or default_method.supports_coupling_map
+            else {}
+        )
+
+        for method, kwargs in method_list:
+            if method.supports_basis_gates:
+                kwargs["basis_gates"] = self._basis_gates
+            if method.supports_natural_direction:
+                kwargs["natural_direction"] = self._natural_direction
+            if method.supports_pulse_optimize:
+                kwargs["pulse_optimize"] = self._pulse_optimize
+            if method.supports_gate_lengths:
+                _gate_lengths = _gate_lengths or _build_gate_lengths(self._target)
+                kwargs["gate_lengths"] = _gate_lengths
+            if method.supports_gate_errors:
+                _gate_errors = _gate_errors or _build_gate_errors(self._target)
+                kwargs["gate_errors"] = _gate_errors
+            if method.supports_gate_lengths_by_qubit:
+                _gate_lengths_by_qubit = _gate_lengths_by_qubit or _build_gate_lengths_by_qubit(
+                    self._target
+                )
+                kwargs["gate_lengths_by_qubit"] = _gate_lengths_by_qubit
+            if method.supports_gate_errors_by_qubit:
+                _gate_errors_by_qubit = _gate_errors_by_qubit or _build_gate_errors_by_qubit(
+                    self._target
+                )
+                kwargs["gate_errors_by_qubit"] = _gate_errors_by_qubit
+            supported_bases = method.supported_bases
+            if supported_bases is not None:
+                kwargs["matched_basis"] = _choose_bases(self._basis_gates, supported_bases)
+            if method.supports_target:
+                kwargs["target"] = self._target
+
+        out = self._run_main_loop(
+            dag, qubit_indices, plugin_method, plugin_kwargs, default_method, default_kwargs
+        )
+        return out
 
     def _run_main_loop(
         self, dag, qubit_indices, plugin_method, plugin_kwargs, default_method, default_kwargs
