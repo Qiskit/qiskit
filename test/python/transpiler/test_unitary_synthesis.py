@@ -31,6 +31,7 @@ from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info import get_clifford_gate_names
 from qiskit.transpiler import PassManager, CouplingMap, Target, InstructionProperties
 from qiskit.exceptions import QiskitError
 from qiskit.transpiler.passes import (
@@ -460,6 +461,19 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
         basis_gates = ["u3"]
         out = UnitarySynthesis(basis_gates=basis_gates, synth_gates=synth_gates).run(dag)
         self.assertTrue(set(out.count_ops()).isdisjoint(synth_gates))
+
+    def test_one_qubit_clifford_t_synthesis(self):
+        """Check that when basis_set if of the form Clifford+T, 1-qubit unitaries are
+        indeed synthesized to Clifford+T gates.
+        """
+        qc = QuantumCircuit(1)
+        qc.append(random_unitary(2, seed=1), [0])
+        dag = circuit_to_dag(qc)
+
+        out = UnitarySynthesis(basis_gates=["cx", "h", "t", "tdg"]).run(dag)
+        self.assertTrue(
+            set(out.count_ops()).issubset(set(get_clifford_gate_names()).union({"t", "tdg"}))
+        )
 
 
 @ddt

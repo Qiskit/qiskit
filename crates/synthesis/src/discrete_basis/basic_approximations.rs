@@ -33,6 +33,9 @@ use super::math;
 pub enum DiscreteBasisError {
     #[error("Parameterized gates cannot be decomposed.")]
     ParameterizedGate,
+
+    #[error("Cannot extract matrix from operation.")]
+    NoMatrix,
 }
 
 impl From<DiscreteBasisError> for PyErr {
