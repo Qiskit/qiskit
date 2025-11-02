@@ -334,20 +334,28 @@ def _to_sparse_op(
 
 
 def _operator_label(operator):
+    """Generate label for operator, preserving identity terms for SparseObservable."""
     if isinstance(operator, SparseObservable):
-        # Convert to SparsePauliOp to preserve identity terms in labels
-        if hasattr(SparsePauliOp, "from_sparse_observable"):
-            operator = SparsePauliOp.from_sparse_observable(operator)
-        else:
-            # Fallback for older Qiskit versions
-            operator = SparsePauliOp.from_list(
-                [(term.bit_labels()[::-1], term.coefficient) for term in operator]
-            )
-    
-    # SparsePauliOp correctly includes 'I' terms
-    if len(operator.paulis) == 1:
-        return operator.paulis.to_labels()[0]
-    return "(" + " + ".join(operator.paulis.to_labels()) + ")"
+        labels = []
+        for term in operator:
+            pauli_str = ["I"] * term.num_qubits
+            sparse_labels = term.bit_labels()[::-1]  # non-identity labels
+            indices = term.indices  # indices of non-identity terms
+            for idx, label in zip(indices, sparse_labels):
+                pauli_str[term.num_qubits - 1 - idx] = label  # reverse mapping
+            labels.append("".join(pauli_str))
+        return "(" + " + ".join(labels) + ")" if len(labels) > 1 else labels[0]
+
+    elif isinstance(operator, list):
+        labels = " + ".join(_operator_label(op) for op in operator)
+        return f"exp(-it ({labels}))"
+
+    elif isinstance(operator, SparsePauliOp):
+        # SparsePauliOp includes identities correctly already
+        return "(" + " + ".join(operator.paulis.to_labels()) + ")" if len(operator.paulis) > 1 else operator.paulis.to_labels()[0]
+
+    return str(operator)
+
 
 
 
