@@ -16,6 +16,7 @@ pub mod annotation;
 pub mod bit;
 pub mod bit_locator;
 pub mod circuit_data;
+pub mod circuit_drawer;
 pub mod circuit_instruction;
 pub mod classical;
 pub mod converters;
@@ -37,7 +38,6 @@ pub mod register_data;
 pub mod slice;
 pub mod util;
 pub mod vf2;
-pub mod circuit_drawer;
 
 mod variable_mapper;
 
