@@ -256,17 +256,19 @@ impl<'a> VisualizationLayer<'a> {
     }
 
     /// Adds the required visualization elements to represent the given instruction
-    fn add_instruction(&mut self, packed_inst: &'a PackedInstruction, circuit: &CircuitData) {
-        match packed_inst.op.view() {
-            OperationRef::StandardGate(gate) => self.add_standard_gate(gate, packed_inst, circuit),
+    fn add_instruction(&mut self, inst: &'a PackedInstruction, circuit: &CircuitData) {
+        match inst.op.view() {
+            OperationRef::StandardGate(gate) => {
+                self.add_standard_gate(gate, inst, circuit);
+            }
             OperationRef::StandardInstruction(std_inst) => {
-                self.add_standard_instruction(std_inst, packed_inst, circuit)
+                self.add_standard_instruction(std_inst, inst, circuit);
             }
             _ => unimplemented!(
                 "{}",
                 format!(
                     "Visualization is not implemented for instruction of type {:?}",
-                    packed_inst.op
+                    inst.op
                 )
             ),
         }
@@ -360,8 +362,14 @@ impl<'a> VisualizationLayer<'a> {
                 self.0[qargs.last().unwrap().index()] = VisualizationElement::Boxed(Boxed::Single(inst));
                 let mut control_indices: HashSet<usize> = HashSet::new();
                 if gate.num_ctrl_qubits() > 0 {
-                    control_indices.extend(qargs.iter().take(qargs.len() - 1).map(|q| q.index()));
-                    self.add_controls(&control_indices, (minima, maxima));
+                    self.add_controls(
+                        &qargs
+                            .iter()
+                            .take(qargs.len() - 1)
+                            .map(|q| q.index())
+                            .collect(),
+                        (minima, maxima),
+                    );
                 }
 
             }
