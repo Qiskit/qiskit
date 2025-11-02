@@ -256,6 +256,7 @@ class _ExprWriter(expr.ExprVisitor[None]):
         raise exceptions.QpyError(f"unhandled Expr object '{node}'")
 
     def visit_var(self, node, /):
+        print("PYTHON VISITOR USED")
         self.file_obj.write(type_keys.Expression.VAR)
         self._write_expr_type(node.type)
         if node.standalone:

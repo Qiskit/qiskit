@@ -11,9 +11,14 @@
 // that they have been altered from the originals.
 
 use crate::bytes::Bytes;
-use crate::value::{DumpedValue, ExpressionType};
+use crate::value::{DumpedValue, ExpressionType, serialize, deserialize};
 use binrw::{binread, binrw, binwrite, BinRead, BinResult, BinWrite, Endian};
+use num_bigint::BigUint;
+use qiskit_circuit::classical::expr::{Expr, Value, Var};
+use qiskit_circuit::classical::types::Type;
+use qiskit_circuit::duration::{self, Duration};
 use std::io::{Read, Seek, Write};
+
 
 /// The overall structure of the QPY file
 
@@ -513,6 +518,182 @@ pub struct SparsePauliOpListElemPack {
     #[br(count = size)]
     pub data: Bytes,
 }
+
+// Expression handling
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct ExpressionPack {
+    // expressions are stored as a consecutive list of expression elements
+    // that encode a tree structure in inorder traversal
+    // since QPY doesn't explicitly store the number of elements in the expression
+    // we need to manually handle byte-level reading along with parsing the expression
+    #[br(parse_with = read_expression)]
+    #[bw(write_with = write_expression)]
+    pub expression: Expr,
+}
+    
+#[derive(BinWrite, BinRead, Debug)]
+#[brw(big)]
+pub enum ExpressionTypePack {
+    #[brw(magic = b'b')]
+    Bool,
+    #[brw(magic = b'i')]
+    Int(u32), // int type also have a width parameter
+    #[brw(magic = b'f')]
+    Float,
+    #[brw(magic = b'd')]
+    Duration,
+}
+
+#[derive(BinWrite, BinRead, Debug)]
+#[brw(big)]
+pub enum ExpressionElementPack {
+    #[brw(magic = b'x')]
+    Var(ExpressionTypePack, ExpressionVarElementPack),
+    #[brw(magic = b's')]
+    Stretch(ExpressionTypePack, u16),
+    #[brw(magic = b'v')]
+    Value(ExpressionTypePack, ExpressionValueElementPack),
+    #[brw(magic = b'c')]
+    Cast,
+    #[brw(magic = b'u')]
+    Unary,
+    #[brw(magic = b'b')]
+    Binary,
+    #[brw(magic = b'i')]
+    Index,
+}
+
+#[derive(BinWrite, BinRead, Debug)]
+#[brw(big)]
+pub enum ExpressionVarElementPack {
+    #[brw(magic = b'C')]
+    Clbit(u32),
+    #[brw(magic = b'R')]
+    Register(u16),
+    #[brw(magic = b'U')]
+    UUID(u16),
+}
+
+#[derive(BinWrite, BinRead, Debug)]
+#[brw(big)]
+pub enum ExpressionValueElementPack {
+    #[brw(magic = b'b')]
+    Bool(u8),
+    #[brw(magic = b'i')]
+    Int(BigIntPack),
+    #[brw(magic = b'f')]
+    Float(f64),
+    #[brw(magic = b't')]
+    Duration(ExpressionDurationPack),
+}
+
+#[derive(BinWrite, BinRead, Debug)]
+#[brw(big)]
+pub enum ExpressionDurationPack {
+    #[brw(magic = b't')] // DT
+    DT(u64),
+    #[brw(magic = b'p')] // PS
+    PS(f64),
+    #[brw(magic = b'n')]  // NS
+    NS(f64),
+    #[brw(magic = b'u')] // US
+    US(f64),
+    #[brw(magic = b'm')] // MS
+    MS(f64),
+    #[brw(magic = b's')] // S
+    S(f64)
+}
+
+// A struct for storing arbitrary-length integers, as they are saved in QPY
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct BigIntPack {
+    #[bw(calc = bytes.len() as u8)]
+    num_bytes: u8,
+    #[br(count = num_bytes)]
+    bytes: Bytes,
+}
+
+pub fn pack_biguint(bigint: BigUint) -> BigIntPack {
+    let bytes = Bytes(bigint.to_bytes_be());
+    BigIntPack { bytes }
+}
+
+pub fn unpack_biguint(big_int_pack: BigIntPack) -> BigUint {
+    BigUint::from_bytes_be(&big_int_pack.bytes)
+}
+
+pub fn pack_expression_duration(duration: &Duration) -> ExpressionDurationPack {
+    match duration {
+        Duration::dt(dt) => ExpressionDurationPack::DT(*dt as u64),
+        Duration::ps(ps) => ExpressionDurationPack::PS(*ps),
+        Duration::ns(ns) => ExpressionDurationPack::NS(*ns),
+        Duration::us(us) => ExpressionDurationPack::US(*us),
+        Duration::ms(ms) => ExpressionDurationPack::MS(*ms),
+        Duration::s(s) => ExpressionDurationPack::S(*s),
+    }
+}
+
+// packed expression types implicitly contain the magic number identifying them in the qpy file
+pub fn pack_expression_type(ty: &Type) -> ExpressionTypePack{
+    match ty {
+        Type::Bool => ExpressionTypePack::Bool,
+        Type::Uint(width) => ExpressionTypePack::Int(width),
+        Type::Duration => ExpressionTypePack::Duration,
+        Type::Float => ExpressionTypePack::Float
+    }
+}
+
+pub fn pack_expression_value(value: &Value) -> ExpressionElementPack {
+    let (ty, value_pack) = match value {
+        Value::Uint { raw, ty } => {
+            match ty {
+                Type::Bool => (ty, ExpressionValueElementPack::Bool(*raw as u8)),
+                Type::Uint(_) => (ty, ExpressionValueElementPack::Int(pack_biguint(raw))),
+                _ => (ty, ExpressionValueElementPack::Bool(*raw as u8)), // TODO: should this be different?
+            }
+        }   
+        Value::Float { raw, ty } => (ty, ExpressionValueElementPack::Float(*raw)),
+        Value::Duration(duration) => (&Type::Duration, ExpressionValueElementPack::Duration(pack_expression_duration(duration)))
+    };
+    ExpressionElementPack::Value(pack_expression_type(ty), value_pack)
+}
+
+pub fn pack_expression_var(var: &Var) -> ExpressionElementPack {
+    let (ty, value_pack) = match var {
+        Var::Bit { bit } => (&Type::Bool, ExpressionVarElementPack::Clbit(0)), // TODO: set correct clbit value (based on clbit indices)
+        Var::Register { register, ty } => (ty, ExpressionVarElementPack::Register(0)), // TODO: set correct register value
+        Var::Standalone { uuid, name, ty } => (ty, ExpressionVarElementPack::UUID(0)) // TODO: see what's going on with the uuid
+    };
+    ExpressionElementPack::Var(pack_expression_type(ty), value_pack)
+}
+
+pub fn write_expression<W: Write + Seek>(
+    exp: &Expr,
+    writer: &mut W,
+    endian: Endian,
+    args: (),
+) -> binrw::BinResult<()> {
+    match exp {
+        Expr::Value(val) => serialize(&pack_expression_value(val)).write_options(writer, endian, args),
+        Expr::Var(var) => serialize(&pack_expression_var(var)).write_options(writer, endian, args),
+    };
+    Ok(())
+}
+
+// pub fn read_expression<R: Read + Seek>(
+//     reader: &mut R,
+//     _endian: Endian,
+//     (len,): (usize,),
+// ) -> BinResult<Expr> {
+//     let mut buf = vec![0u8; len];
+//     reader.read_exact(&mut buf)?;
+//     Ok(String::from_utf8(buf).unwrap())
+// }
 
 // general data types
 

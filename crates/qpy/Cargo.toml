@@ -19,6 +19,7 @@ hashbrown.workspace = true
 oq3_semantics = "0.7.0"
 ahash.workspace = true
 qiskit-circuit.workspace = true
+num-bigint.workspace = true
 binrw = "0.13"
 uuid = {version = "1", features = ["v4"]}
 

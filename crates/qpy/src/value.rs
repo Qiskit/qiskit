@@ -9,7 +9,6 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
-
 use binrw::meta::{ReadEndian, WriteEndian};
 use binrw::{binrw, BinRead, BinResult, BinWrite, Endian};
 use hashbrown::HashMap;
@@ -24,6 +23,7 @@ use qiskit_circuit::classical::types::Type;
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::{OperationRef, Param};
 use qiskit_circuit::packed_instruction::PackedOperation;
+use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 
 use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
@@ -31,7 +31,7 @@ use crate::circuit_reader::deserialize_circuit;
 use crate::circuit_writer::pack_circuit;
 use crate::formats;
 use crate::params::{
-    pack_parameter, pack_parameter_expression, pack_parameter_vector, unpack_parameter,
+    pack_py_parameter, pack_py_parameter_expression, pack_parameter_vector, unpack_parameter,
     unpack_parameter_expression, unpack_parameter_vector,
 };
 use crate::{QpyError, UnsupportedFeatureForVersion};
@@ -125,15 +125,14 @@ pub mod expression_var_declaration {
     pub const STRETCH_LOCAL: u8 = b'O';
 }
 
-pub fn serialize<T>(value: &T) -> PyResult<Bytes>
+pub fn serialize<T>(value: &T) -> Bytes
 where
     T: BinWrite + WriteEndian + Debug,
     for<'a> <T as BinWrite>::Args<'a>: Default,
 {
     let mut buffer = Cursor::new(Vec::new());
     value.write(&mut buffer).unwrap();
-    let result: Bytes = buffer.into();
-    Ok(result)
+    buffer.into()
 }
 
 pub fn deserialize<T>(bytes: &[u8]) -> PyResult<(T, usize)>
@@ -220,8 +219,8 @@ pub fn get_type_key(py_object: &Bound<PyAny>) -> PyResult<u8> {
     )))
 }
 
-pub fn dumps_value(py_object: PyObject, qpy_data: &QPYWriteData) -> PyResult<(u8, Bytes)> {
-    Python::with_gil(|py| -> PyResult<(u8, Bytes)> {
+pub fn dumps_value(py_object: Py<PyAny>, qpy_data: &QPYWriteData) -> PyResult<(u8, Bytes)> {
+    Python::attach(|py| -> PyResult<(u8, Bytes)> {
         let py_object = py_object.bind(py);
         let type_key: u8 = get_type_key(py_object)?;
         let value: Bytes = match type_key {
@@ -236,10 +235,10 @@ pub fn dumps_value(py_object: PyObject, qpy_data: &QPYWriteData) -> PyResult<(u8
             }
             tags::RANGE => serialize_range(py_object)?,
             tags::TUPLE => serialize(&pack_generic_sequence(py_object, qpy_data)?)?,
-            tags::PARAMETER => serialize(&pack_parameter(py_object)?)?,
+            tags::PARAMETER => serialize(&pack_py_parameter(py_object)?)?,
             tags::PARAMETER_VECTOR => serialize(&pack_parameter_vector(py_object)?)?,
             tags::PARAMETER_EXPRESSION => {
-                serialize(&pack_parameter_expression(py_object, qpy_data)?)?
+                serialize(&pack_py_parameter_expression(py_object, qpy_data)?)?
             }
             tags::NUMPY_OBJ => {
                 let np = py.import("numpy")?;
@@ -250,7 +249,8 @@ pub fn dumps_value(py_object: PyObject, qpy_data: &QPYWriteData) -> PyResult<(u8
             }
             tags::MODIFIER => serialize(&pack_modifier(py_object)?)?,
             tags::STRING => py_object.extract::<String>()?.into(),
-            tags::EXPRESSION => serialize_expression(py_object, qpy_data)?,
+            tags::EXPRESSION => serialize_expression(py_object.extract::<Expr>()?, qpy_data)?,
+            // tags::EXPRESSION => serialize_expression(py_object, qpy_data)?,
             tags::NULL | tags::CASE_DEFAULT => Bytes::new(),
             tags::CIRCUIT => serialize(&pack_circuit(
                 py_object.extract()?,
@@ -332,7 +332,7 @@ pub fn get_circuit_type_key(op: &PackedOperation) -> PyResult<u8> {
             Ok(circuit_instruction_types::INSTRUCTION)
         }
         OperationRef::Unitary(_) => Ok(circuit_instruction_types::GATE),
-        OperationRef::Gate(pygate) => Python::with_gil(|py| {
+        OperationRef::Gate(pygate) => Python::attach(|py| {
             let gate = pygate.gate.bind(py);
             if gate.is_instance(imports::PAULI_EVOLUTION_GATE.get_bound(py))? {
                 Ok(circuit_instruction_types::PAULI_EVOL_GATE)
@@ -342,7 +342,7 @@ pub fn get_circuit_type_key(op: &PackedOperation) -> PyResult<u8> {
                 Ok(circuit_instruction_types::GATE)
             }
         }),
-        OperationRef::Operation(operation) => Python::with_gil(|py| {
+        OperationRef::Operation(operation) => Python::attach(|py| {
             if operation
                 .operation
                 .bind(py)
@@ -377,7 +377,12 @@ fn deserialize_range(py: Python, raw_range: &Bytes) -> PyResult<Py<PyAny>> {
         .unbind())
 }
 
-fn serialize_expression(py_object: &Bound<PyAny>, qpy_data: &QPYWriteData) -> PyResult<Bytes> {
+fn serialize_expression(exp: Expr, qpy_data: &QPYWriteData) -> PyResult<Bytes> {
+    println!("got to serialize_expression with exp={:?}", exp);
+    Ok(Bytes::new())
+}
+
+fn serialize_py_expression(py_object: &Bound<PyAny>, qpy_data: &QPYWriteData) -> PyResult<Bytes> {
     let py = py_object.py();
     let clbit_indices = PyDict::new(py);
     for (key, val) in qpy_data.clbit_indices.bind(py).iter() {
@@ -554,7 +559,7 @@ pub struct DumpedValue {
 }
 
 impl DumpedValue {
-    pub fn from(py_object: PyObject, qpy_data: &QPYWriteData) -> PyResult<Self> {
+    pub fn from(py_object: Py<PyAny>, qpy_data: &QPYWriteData) -> PyResult<Self> {
         let (data_type, data) = dumps_value(py_object, qpy_data)?;
         Ok(DumpedValue { data_type, data })
     }
@@ -580,7 +585,7 @@ impl DumpedValue {
         })
     }
 
-    pub fn to_python(&self, py: Python<'_>, qpy_data: &mut QPYReadData) -> PyResult<PyObject> {
+    pub fn to_python(&self, py: Python<'_>, qpy_data: &mut QPYReadData) -> PyResult<Py<PyAny>> {
         Ok(match self.data_type {
             tags::INTEGER => {
                 let value: i64 = (&self.data).try_into()?;
@@ -655,7 +660,9 @@ impl DumpedValue {
         match self.data_type {
             tags::FLOAT => Ok(Param::Float((&self.data).try_into()?)),
             tags::PARAMETER_EXPRESSION | tags::PARAMETER | tags::PARAMETER_VECTOR => {
-                Ok(Param::ParameterExpression(self.to_python(py, qpy_data)?))
+                // TODO: implement for the new parameter expression
+                Ok(Param::Obj(self.to_python(py, qpy_data)?))
+                //Ok(Param::ParameterExpression(self.to_python(py, qpy_data)?))
             }
             _ => Ok(Param::Obj(self.to_python(py, qpy_data)?)),
         }
@@ -667,8 +674,19 @@ impl DumpedValue {
                 data: (value.into()),
             }),
             Param::Obj(py_object) => DumpedValue::from(py_object.clone(), qpy_data),
-            Param::ParameterExpression(py_object) => DumpedValue::from(py_object.clone(), qpy_data),
+            Param::ParameterExpression(exp) => DumpedValue::from_parameter_expression(exp, qpy_data),
         }
+    }
+    pub fn to_parameter_expression(&self, qpy_data: &mut QPYReadData) -> PyResult<ParameterExpression> {
+        // TODO: implement
+        Ok(ParameterExpression::default())
+    }
+    pub fn from_parameter_expression(exp: &ParameterExpression, qpy_data: &QPYWriteData) -> PyResult<DumpedValue> {
+        // TODO: implement!
+        Ok(DumpedValue {
+            data_type: tags::PARAMETER_EXPRESSION,
+            data: Bytes::new(),
+        })
     }
 }
 
@@ -681,7 +699,7 @@ impl fmt::Debug for DumpedValue {
     }
 }
 
-pub fn bytes_to_uuid(py: Python, bytes: [u8; 16]) -> PyResult<PyObject> {
+pub fn bytes_to_uuid(py: Python, bytes: [u8; 16]) -> PyResult<Py<PyAny>> {
     let uuid_module = py.import("uuid")?;
     let py_bytes = PyBytes::new(py, &bytes);
     let kwargs = PyDict::new(py);

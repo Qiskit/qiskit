@@ -58,7 +58,7 @@ fn is_python_gate(py: Python, op: &PackedOperation, python_gate: &Bound<PyAny>) 
 }
 
 pub fn recognize_custom_operation(op: &PackedOperation, name: &String) -> PyResult<Option<String>> {
-    Python::with_gil(|py| {
+    Python::attach(|py| {
         let library = py.import("qiskit.circuit.library")?;
         let circuit_mod = py.import("qiskit.circuit")?;
         let controlflow = py.import("qiskit.circuit.controlflow")?;
@@ -300,7 +300,7 @@ pub fn pack_py_registers(
 ) -> PyResult<Vec<formats::RegisterV4Pack>> {
     let py = in_circ_regs.py();
     let bitmap = PyDict::new(py);
-    let out_circ_regs = PyList::new(py, Vec::<PyObject>::new())?;
+    let out_circ_regs = PyList::new(py, Vec::<Py<PyAny>>::new())?;
 
     bits.iter()
         .enumerate()
@@ -708,7 +708,7 @@ fn pack_pauli_evolution_gate(
 }
 
 pub fn gate_class_name(op: &PackedOperation) -> PyResult<String> {
-    Python::with_gil(|py| {
+    Python::attach(|py| {
         let name = match op.view() {
             // getting __name__ for standard gates and instructions should
             // eventually be replaced with a Rust-side mapping
@@ -762,7 +762,7 @@ pub fn get_instruction_params(
 ) -> PyResult<Vec<formats::PackedParam>> {
     // The instruction params we store are about being able to reconstruct the objects; they don't
     // necessarily need to match one-to-one to the `params` field.
-    Python::with_gil(|py| {
+    Python::attach(|py| {
         if let OperationRef::Instruction(inst) = instruction.op.view() {
             if inst
                 .instruction
@@ -851,7 +851,7 @@ pub fn get_instruction_annotations(
     instruction: &PackedInstruction,
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<Option<formats::InstructionsAnnotationPack>> {
-    Python::with_gil(|py| {
+    Python::attach(|py| {
         if let OperationRef::Instruction(inst) = instruction.op.view() {
             let op = inst.instruction.bind(py);
             if op.is_instance(imports::CONTROL_FLOW_BOX_OP.get_bound(py))? {
@@ -882,7 +882,7 @@ pub fn pack_custom_instruction(
     circuit_data: &mut CircuitData,
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<formats::CustomCircuitInstructionDefPack> {
-    Python::with_gil(|py| {
+    Python::attach(|py| {
         let operation = custom_instructions_hash.get(name).ok_or_else(|| {
             PyValueError::new_err(format!("Could not find operation data for {}", name))
         })?;
@@ -1034,7 +1034,7 @@ pub fn get_condition_data_from_inst(
     circuit_data: &CircuitData,
     qpy_data: &QPYWriteData,
 ) -> PyResult<formats::ConditionPack> {
-    Python::with_gil(|py| match getattr_or_none(inst.bind(py), "_condition")? {
+    Python::attach(|py| match getattr_or_none(inst.bind(py), "_condition")? {
         None => Ok(formats::ConditionPack {
             key: formats::condition_types::NONE,
             register_size: 0u16,

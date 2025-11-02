@@ -466,7 +466,7 @@ fn deserialize_metadata(
     py: Python,
     metadata_bytes: &Bytes,
     metadata_deserializer: &Bound<PyAny>,
-) -> PyResult<PyObject> {
+) -> PyResult<Py<PyAny>> {
     let json = py.import("json")?;
     let kwargs: Bound<'_, PyDict> = PyDict::new(py);
     kwargs.set_item("cls", metadata_deserializer)?;
@@ -511,7 +511,7 @@ fn unpack_custom_layout<'py>(
     for qreg in circuit_data.qregs() {
         existing_register_map.insert(qreg.name(), qreg);
     }
-    let initial_layout_virtual_bits = PyList::new(py, Vec::<PyObject>::new())?;
+    let initial_layout_virtual_bits = PyList::new(py, Vec::<Py<PyAny>>::new())?;
     for virtual_bit in &layout.initial_layout_items {
         let qubit = if let Some(register) =
             extra_register_map.get(virtual_bit.register_name.as_str())
@@ -776,7 +776,7 @@ fn add_registers_and_bits(
                             clbits[index as usize] = Some(clbit);
                         }
                     }
-                    Python::with_gil(|py| -> PyResult<()> {
+                    Python::attach(|py| -> PyResult<()> {
                         qpy_data
                             .cregs
                             .bind(py)
@@ -870,7 +870,7 @@ fn add_registers_and_bits(
         qpy_data.circuit_data.add_creg(creg, true)?;
     }
 
-    Python::with_gil(|py| -> PyResult<()> {
+    Python::attach(|py| -> PyResult<()> {
         qpy_data.clbit_indices = qpy_data.circuit_data.get_clbit_indices(py).clone();
         Ok(())
     })?;

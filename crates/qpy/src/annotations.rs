@@ -123,7 +123,7 @@ impl<'a> AnnotationHandler<'a> {
     pub fn dump_serializers(&self) -> PyResult<Vec<(String, Bytes)>> {
         // we need to be a little careful to keep the result sorted by index order
         let mut result: Vec<Option<(String, Bytes)>> = vec![None; self.serializers.len()];
-        Python::with_gil(|py| -> PyResult<()> {
+        Python::attach(|py| -> PyResult<()> {
             for (namespace, (index, serializer)) in &self.serializers {
                 let state: Bytes = serializer.call_method0(py, "dump_state")?.extract(py)?;
                 result[*index] = Some((namespace.clone(), state));
@@ -134,7 +134,7 @@ impl<'a> AnnotationHandler<'a> {
     }
 
     pub fn load_deserializers(&mut self, data: Vec<(String, Bytes)>) -> PyResult<()> {
-        Python::with_gil(|py| -> PyResult<()> {
+        Python::attach(|py| -> PyResult<()> {
             for (namespace, state) in data {
                 if let Some(factory) = self.factories.get(&namespace) {
                     let serializer = factory.call0(py)?;
