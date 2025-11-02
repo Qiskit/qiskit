@@ -35,9 +35,9 @@ import_exception!(qiskit.circuit.exceptions, CircuitError);
 
 // TODO: remove when dev is done, since this is only for manual testing
 #[pyfunction(name = "draw")]
-#[pyo3(signature = (circuit, cregbundle=true))]
-pub fn py_drawer(circuit: QuantumCircuitData, cregbundle: bool) -> PyResult<()> {
-    draw_circuit(&circuit.data, &cregbundle)?;
+#[pyo3(signature = (circuit, cregbundle=true, mergewires=true))]
+pub fn py_drawer(circuit: QuantumCircuitData, cregbundle: bool, mergewires: bool) -> PyResult<()> {
+    draw_circuit(&circuit.data, &cregbundle, &mergewires)?;
     Ok(())
 }
 
@@ -1318,59 +1318,37 @@ impl TextDrawer {
         }
     }
 
-    fn print(&self) {
-        // let mut output = String::new();
-        // for i in self.wires.iter(){
-        //     let top_line: String = i.iter().map(|wire| wire.top.clone()).collect::<Vec<String>>().join("");
-        //     let mid_line: String = i.iter().map(|wire| wire.mid.clone()).collect::<Vec<String>>().join("");
-        //     let bot_line: String = i.iter().map(|wire| wire.bot.clone()).collect::<Vec<String>>().join("");
-        //     output.push_str(&format!("{}\n{}\n{}\n", top_line, mid_line, bot_line));
-        // }
-        // println!("{}", output);
+    fn print(&self, mergewires: &bool){
 
-        // print using merge lines
-        let num_wires = self.wires.len();
-        for i in 0..num_wires - 1 {
-            if i == 0 {
-                let top_line = self.wires[i]
-                    .iter()
-                    .map(|wire| wire.top.clone())
-                    .collect::<Vec<String>>()
-                    .join("");
-                let mid_line = self.wires[i]
-                    .iter()
-                    .map(|wire| wire.mid.clone())
-                    .collect::<Vec<String>>()
-                    .join("");
-                println!("{}", top_line);
-                println!("{}", mid_line);
+        if !*mergewires {
+            let mut output = String::new();
+            for i in self.wires.iter(){
+                let top_line: String = i.iter().map(|wire| wire.top.clone()).collect::<Vec<String>>().join("");
+                let mid_line: String = i.iter().map(|wire| wire.mid.clone()).collect::<Vec<String>>().join("");
+                let bot_line: String = i.iter().map(|wire| wire.bot.clone()).collect::<Vec<String>>().join("");
+                output.push_str(&format!("{}\n{}\n{}\n", top_line, mid_line, bot_line));
             }
-            let bot_line = self.wires[i]
-                .iter()
-                .map(|wire| wire.bot.clone())
-                .collect::<Vec<String>>()
-                .join("");
-            let top_line_next = self.wires[i + 1]
-                .iter()
-                .map(|wire| wire.top.clone())
-                .collect::<Vec<String>>()
-                .join("");
-            let merged_line = Self::merge_lines(&bot_line, &top_line_next, "top");
-            println!("{}", merged_line);
-            let mid_line_next = self.wires[i + 1]
-                .iter()
-                .map(|wire| wire.mid.clone())
-                .collect::<Vec<String>>()
-                .join("");
-            println!("{}", mid_line_next);
+            println!("{}", output);
+        } else {
+            let num_wires = self.wires.len();
+            for i in 0..num_wires - 1 {
+                if i == 0 {
+                    let top_line = self.wires[i].iter().map(|wire| wire.top.clone()).collect::<Vec<String>>().join("");
+                    let mid_line = self.wires[i].iter().map(|wire| wire.mid.clone()).collect::<Vec<String>>().join("");
+                    println!("{}", top_line);
+                    println!("{}", mid_line);
+                }
+                let bot_line = self.wires[i].iter().map(|wire| wire.bot.clone()).collect::<Vec<String>>().join("");
+                let top_line_next = self.wires[i + 1].iter().map(|wire| wire.top.clone()).collect::<Vec<String>>().join("");
+                let merged_line = Self::merge_lines(&bot_line, &top_line_next, "top");
+                println!("{}", merged_line);
+                let mid_line_next = self.wires[i + 1].iter().map(|wire| wire.mid.clone()).collect::<Vec<String>>().join("");
+                println!("{}", mid_line_next);
+            }
+            let last_index = num_wires - 1;
+            let bot_line = self.wires[last_index].iter().map(|wire| wire.bot.clone()).collect::<Vec<String>>().join("");
+            println!("{}", bot_line);
         }
-        let last_index = num_wires - 1;
-        let bot_line = self.wires[last_index]
-            .iter()
-            .map(|wire| wire.bot.clone())
-            .collect::<Vec<String>>()
-            .join("");
-        println!("{}", bot_line);
     }
 
     pub fn merge_lines(top: &str, bot: &str, icod: &str) -> String {
@@ -1426,12 +1404,12 @@ impl TextDrawer {
     }
 }
 
-pub fn draw_circuit(circuit: &CircuitData, cregbundle: &bool) -> PyResult<()> {
+pub fn draw_circuit(circuit: &CircuitData, cregbundle: &bool, mergewires: &bool) -> PyResult<()> {
     let dag = DAGCircuit::from_circuit_data(circuit, false, None, None, None, None)?;
 
     let vis_mat2 = VisualizationMatrix::from_circuit(circuit)?;
 
     let circuit_rep = TextDrawer::from_visualization_matrix(&vis_mat2, cregbundle);
-    circuit_rep.print();
+    circuit_rep.print(mergewires);
     Ok(())
 }
