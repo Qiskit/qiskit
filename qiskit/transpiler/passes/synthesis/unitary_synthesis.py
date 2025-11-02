@@ -66,6 +66,7 @@ class UnitarySynthesis(TransformationPass):
         min_qubits: int = 0,
         plugin_config: dict = None,
         target: Target = None,
+        fallback_on_default: bool = False,
     ):
         """Synthesize unitaries over some basis gates.
 
@@ -120,6 +121,10 @@ class UnitarySynthesis(TransformationPass):
             target: The optional :class:`~.Target` for the target device the pass
                 is compiling for. If specified this will supersede the values
                 set for ``basis_gates`` and ``coupling_map``.
+            fallback_on_default: specifies whether the default synthesis method in the case
+                that a non-default synthesis ``method`` is specified but is either unable
+                to synthesize the operation or the synthesized circuit does not conform to the
+                target.
 
         Raises:
             TranspilerError: if ``method`` was specified but is not found in the
@@ -138,11 +143,13 @@ class UnitarySynthesis(TransformationPass):
         self._pulse_optimize = pulse_optimize
         self._natural_direction = natural_direction
         self._plugin_config = plugin_config
+        self._fallback_on_default = fallback_on_default
         # Bypass target if it doesn't contain any basis gates (i.e it's _FakeTarget), as this
         # not part of the official target model.
         self._target = target if target is not None and len(target.operation_names) > 0 else None
         if target is not None:
             self._coupling_map = target.build_coupling_map()
+            self._basis_gates = set(target.operation_names)
         if synth_gates:
             self._synth_gates = synth_gates
         else:
@@ -289,18 +296,42 @@ class UnitarySynthesis(TransformationPass):
                 synth_dag = None
                 unitary = node.matrix
                 n_qubits = len(node.qargs)
-                if (
+                use_default_method = (
                     plugin_method.max_qubits is not None and n_qubits > plugin_method.max_qubits
-                ) or (plugin_method.min_qubits is not None and n_qubits < plugin_method.min_qubits):
+                ) or (plugin_method.min_qubits is not None and n_qubits < plugin_method.min_qubits)
+
+                if use_default_method:
                     method, kwargs = default_method, default_kwargs
                 else:
                     method, kwargs = plugin_method, plugin_kwargs
+
                 if method.supports_coupling_map:
                     kwargs["coupling_map"] = (
                         self._coupling_map,
                         [qubit_indices[x] for x in node.qargs],
                     )
                 synth_dag = method.run(unitary, **kwargs)
+
+                # In the case that a non-default method was used and the option fallback_on_default
+                # is set, check whether the unitary was successfull synthesized: the returned
+                # circuit is not ``None`` and conforms to the target. If not, we fall back on
+                # running the default plugin.
+                if (
+                    (not use_default_method)
+                    and self._fallback_on_default
+                    and (
+                        (synth_dag is None)
+                        or not set(synth_dag.count_ops().keys()).issubset(self._basis_gates)
+                    )
+                ):
+                    method, kwargs = default_method, default_kwargs
+                    if method.supports_coupling_map:
+                        kwargs["coupling_map"] = (
+                            self._coupling_map,
+                            [qubit_indices[x] for x in node.qargs],
+                        )
+                    synth_dag = method.run(unitary, **kwargs)
+
                 if synth_dag is None:
                     out_dag._apply_op_node_back(node)
                     continue
