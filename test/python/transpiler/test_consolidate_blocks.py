@@ -728,6 +728,24 @@ class TestConsolidateBlocks(QiskitTestCase):
         self.assertEqual(actual_outer.data[0].operation.blocks[0], block)
         self.assertEqual(actual_outer.data[1].operation.blocks[0].data[0].name, "unitary")
 
+    def test_pass_reuse(self):
+        """Test that the pass can be used more than once on different circuits."""
+        # It matters that these have different numbers of qubits.
+        hadamard = QuantumCircuit(1, 1)
+        hadamard.h(0)
+        hadamard.measure(0, 0)
+        bell = QuantumCircuit(2, 2)
+        bell.h(0)
+        bell.cx(0, 1)
+        bell.measure([0, 1], [0, 1])
+
+        def make_pass():
+            return ConsolidateBlocks(force_consolidate=True)
+
+        shared = make_pass()
+        self.assertEqual(shared(hadamard), make_pass()(hadamard))
+        self.assertEqual(shared(bell), make_pass()(bell))
+
     def test_invalid_python_data_does_not_panic(self):
         """If a user feeds in invalid/old data, Rust space shouldn't panic."""
         # It doesn't really matter _what_ the failure mode is, just that we should return a regular

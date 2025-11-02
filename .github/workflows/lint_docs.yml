@@ -30,7 +30,7 @@ jobs:
       - name: Clean up docs detritus
         run: rm -rf docs/_build/html/{.doctrees,.buildinfo}
       - name: Store built documentation artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: qiskit-docs
           path: |
