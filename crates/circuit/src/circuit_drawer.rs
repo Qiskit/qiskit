@@ -1426,31 +1426,10 @@ impl TextDrawer {
     }
 }
 
-
-    // fn add_wire(&mut self, wire: &ElementWire, ind: usize){
-    //     self.wires[ind].top.push_str(&wire.top);
-    //     self.wires[ind].mid.push_str(&wire.mid);
-    //     self.wires[ind].bot.push_str(&wire.bot);
-    //     // self.wires[ind].top.push_str(&format!("{}{}",&wire.top,"$"));
-    //     // self.wires[ind].mid.push_str(&format!("{}{}",&wire.mid,"$"));
-    //     // self.wires[ind].bot.push_str(&format!("{}{}",&wire.bot,"$"));
-    // }
-
 pub fn draw_circuit(circuit: &CircuitData, cregbundle: &bool) -> PyResult<()> {
     let dag = DAGCircuit::from_circuit_data(circuit, false, None, None, None, None)?;
 
     let vis_mat2 = VisualizationMatrix::from_circuit(circuit)?;
-
-    println!("======================");
-
-    println!("num wires {}, num layers {}", vis_mat2.num_wires(), vis_mat2.num_layers());
-
-    for i in 0..vis_mat2.num_wires() {
-        for j in 0..vis_mat2.num_layers() {
-            print!("{:^30}", format!("{:?}", vis_mat2[j][i]));
-        }
-        println!("");
-    }
 
     let circuit_rep = TextDrawer::from_visualization_matrix(&vis_mat2, cregbundle);
     circuit_rep.print();
