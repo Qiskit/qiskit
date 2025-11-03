@@ -114,10 +114,6 @@ During the release cycle, the release manager is responsible for:
 
 - Making sure there are sufficient coders and reviewers assigned to each PR, and checking up on them to make sure they're progressing.
 
-- If this release is a release candidate for a major or minor release, there is a feature freeze starting two weeks before release day.
-  No new public-API-changing PRs (new features or deprecations) can be added to the milestone during this period; they must wait until the next minor release.
-  If the API-change is not backwards compatible (like a removal), it needs to wait until the next major, following SemVer.
-
 When we're getting close to release day, **do not** try and race through large and non-blocking PRs.
 The release cycle for major and minor releases is regular so these can wait, and if it is a bugfix, we are free to make another patch release quickly.
 Non-blocking issues with no associated PR within a day of the release
@@ -153,6 +149,9 @@ However, for convenience, let's put names to two main scenarios for a release:
 Verify that the milestone is in a suitable place to release:
 
  - Set the due date for an estimated time for the release, if not set already (for example, in patch release cases).
+- If this release is a release candidate for a major or minor release, there is a feature freeze starting two weeks before release day.
+  No new public-API-changing PRs (new features or deprecations) can be added to the milestone during this period; they must wait until the next minor release.
+  If the API-change is not backwards compatible (like a removal), it needs to wait until the next major, following SemVer.
  - Check for missing items in the milestone. For example, [search for open PRs against stable branches](https://github.com/Qiskit/qiskit/pulls?q=is%3Apr+is%3Aopen+-base%3Amain) and ensure they are labeled with the upcoming release milestone.
  - The day before the release: 
    * all the blocking issues/PR should be merged the day before the release.
