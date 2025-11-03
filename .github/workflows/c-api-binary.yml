@@ -33,7 +33,7 @@ jobs:
           tar czf ${{ env.QISKIT_CEXT_DIR }}.tar.gz ${{ env.QISKIT_CEXT_DIR }}
       - name: Release
         run: |
-          TARFILE = "${{ env.QISKIT_CEXT_DIR }}.tar.gz"
+          TARFILE="${{ env.QISKIT_CEXT_DIR }}.tar.gz"
 
           if [[ ! -f "$TARFILE" ]];
           then
@@ -76,7 +76,7 @@ jobs:
           tar czf ${{ env.QISKIT_CEXT_DIR }}.tar.gz ${{ env.QISKIT_CEXT_DIR }}
       - name: Release
         run: |
-          TARFILE = "${{ env.QISKIT_CEXT_DIR }}.tar.gz"
+          TARFILE="${{ env.QISKIT_CEXT_DIR }}.tar.gz"
 
           if [[ ! -f "$TARFILE" ]];
           then
