@@ -13,6 +13,7 @@
 use crate::classical::expr::cast::Cast;
 use crate::classical::expr::{Expr, ExprKind, PyExpr, Value};
 use crate::classical::types::Type;
+use num_bigint::BigUint;
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyTuple};
 use pyo3::{IntoPyObjectExt, intern};
@@ -59,7 +60,7 @@ fn py_value_to_expr(_py: Python, value: &Bound<PyAny>) -> PyResult<Expr> {
             ));
         }
         Ok(Value::Uint {
-            raw: raw as u64,
+            raw: BigUint::from(raw as u64),
             ty: Type::Uint(64),
         }
         .into())
@@ -161,7 +162,7 @@ impl PyRangeExpr {
             // Create a default step value of 1 in the target type
             match target_ty {
                 Type::Uint(_) => Value::Uint {
-                    raw: 1,
+                    raw: BigUint::from(1u64),
                     ty: target_ty,
                 }
                 .into(),
