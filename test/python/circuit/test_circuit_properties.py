@@ -812,6 +812,17 @@ class TestCircuitProperties(QiskitTestCase):
         bits = qc.active_qubits()
         self.assertEqual([1, 3], bits)
 
+    def test_active_qubits_filtering(self):
+        """Test active qubits."""
+        qc = QuantumCircuit(4)
+        qc.h(1)
+        qc.z(3)
+        qc.delay(0, 0)
+        bits = qc.active_qubits()
+        self.assertEqual([1, 3], bits)
+        bits = qc.active_qubits(False)
+        self.assertEqual([1, 3, 0], bits)
+
     def test_active_clbits(self):
         """Test active clbits."""
         qc = QuantumCircuit(4, 4)

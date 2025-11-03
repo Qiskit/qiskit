@@ -4159,15 +4159,20 @@ class QuantumCircuit:
         """
         return self._data.num_clbits
 
-    def active_qubits(self) -> list[int]:
+    def active_qubits(self, filter_inactive_operations: bool = True) -> list[int]:
         """Return a list of active qubit indices in the circuit
+
+        Args:
+            filter_inactive_operations: If True (the default) directives (such as :class:`.Barrier`) and
+                :class:`.Delay` operations in the circuit will not be considered when determining active
+                qubits.
 
         Returns:
             The list of qubit indices in the circuit that have any operations.
             The list order is deterministic and determined by the instruction
             order in the circuit.
         """
-        return self._data.active_qubits()
+        return self._data.active_qubits(filter_inactive_operations)
 
     def active_clbits(self) -> list[int]:
         """Return a list of active clbit indices in the circuit
