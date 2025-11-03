@@ -1229,7 +1229,8 @@ class QASM3Builder:
                         f" '{indexset}'."
                     ) from None
             body_ast = ast.ProgramBlock(self.build_current_scope())
-        return ast.ForLoopStatement(indexset_ast, loop_parameter_ast, body_ast)
+            type_ = ast.IntType()
+        return ast.ForLoopStatement(indexset_ast, loop_parameter_ast, body_ast, type_)
 
     def build_annotation(self, annotation: Annotation) -> ast.Annotation:
         """Use the custom serializers to construct an annotation object."""

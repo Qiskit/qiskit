@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import enum
 from typing import Optional, List, Union, Iterable, Tuple, Sequence
+import warnings
 
 
 class ASTNode:
@@ -697,17 +698,26 @@ class ForLoopStatement(Statement):
             | "[" Range "]"
     """
 
-    __slots__ = ("indexset", "parameter", "body")
+    __slots__ = ("indexset", "parameter", "body", "type")
 
     def __init__(
         self,
         indexset: Union[Identifier, IndexSet, Range],
         parameter: Identifier,
         body: ProgramBlock,
+        type_: Optional[ClassicalType] = None,
     ):
         self.indexset = indexset
         self.parameter = parameter
         self.body = body
+        self.type = type_ if type_ is not None else IntType()
+        if type_ is None:
+            warnings.warn(
+                "Typeless for-loops support is deprecated and it will be removed at 3.0. "
+                "Specify the type parameter explicitly.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
 
 class WhileLoopStatement(Statement):
