@@ -464,7 +464,7 @@ impl CircuitInstruction {
             if other.is_instance_of::<PyTuple>() {
                 return Ok(Some(self_._legacy_format(py)?.eq(other)?));
             }
-            let Ok(other) = other.downcast::<CircuitInstruction>() else {
+            let Ok(other) = other.cast::<CircuitInstruction>() else {
                 return Ok(None);
             };
             let other = other.try_borrow()?;
@@ -530,13 +530,15 @@ impl Instruction for OperationFromPython {
     }
 }
 
-impl<'py> FromPyObject<'py> for OperationFromPython {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for OperationFromPython {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let py = ob.py();
         let ob_type = ob
             .getattr(intern!(py, "base_class"))
             .ok()
-            .map(|base| base.downcast_into::<PyType>())
+            .map(|base| base.cast_into::<PyType>())
             .transpose()?
             .unwrap_or_else(|| ob.get_type());
 
@@ -555,8 +557,8 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
             // quickly identify them here without an `isinstance` check.
             let Some(standard) = ob_type
                 .getattr(intern!(py, "_standard_gate"))
-                .and_then(|standard| standard.extract::<StandardGate>())
                 .ok()
+                .and_then(|standard| standard.extract::<StandardGate>().ok())
             else {
                 break 'standard_gate;
             };
@@ -596,8 +598,8 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
             // read (e.g. a Barrier's number of qubits) to build the Rust representation.
             let Some(standard_type) = ob_type
                 .getattr(intern!(py, "_standard_instruction_type"))
-                .and_then(|standard| standard.extract::<StandardInstructionType>())
                 .ok()
+                .and_then(|standard| standard.extract::<StandardInstructionType>().ok())
             else {
                 break 'standard_instr;
             };
@@ -628,8 +630,8 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
             // read to build the Rust representation.
             let Some(control_flow_type) = ob_type
                 .getattr(intern!(py, "_control_flow_type"))
-                .and_then(|cf| cf.extract::<ControlFlowType>())
                 .ok()
+                .and_then(|cf| cf.extract::<ControlFlowType>().ok())
             else {
                 break 'control_flow;
             };
@@ -773,7 +775,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 clbits: 0,
                 params: params.len()? as u32,
                 op_name: ob.getattr(intern!(py, "name"))?.extract()?,
-                gate: ob.clone().unbind(),
+                gate: ob.to_owned().unbind(),
             }));
             let params = extract_params(operation.view(), &params)?;
             return Ok(OperationFromPython {
@@ -789,7 +791,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 clbits: ob.getattr(intern!(py, "num_clbits"))?.extract()?,
                 params: params.len()? as u32,
                 op_name: ob.getattr(intern!(py, "name"))?.extract()?,
-                instruction: ob.clone().unbind(),
+                instruction: ob.to_owned().unbind(),
             }));
             let params = extract_params(operation.view(), &params)?;
             return Ok(OperationFromPython {
@@ -805,7 +807,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 clbits: ob.getattr(intern!(py, "num_clbits"))?.extract()?,
                 params: params.len()? as u32,
                 op_name: ob.getattr(intern!(py, "name"))?.extract()?,
-                operation: ob.clone().unbind(),
+                operation: ob.to_owned().unbind(),
             }));
             let params = extract_params(operation.view(), &params)?;
             return Ok(OperationFromPython {
@@ -814,7 +816,10 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 label: None,
             });
         }
-        Err(PyTypeError::new_err(format!("invalid input: {ob}")))
+        Err(PyTypeError::new_err(format!(
+            "invalid input: {}",
+            ob.to_owned()
+        )))
     }
 }
 
@@ -862,7 +867,7 @@ pub fn extract_params(
                     Some(Parameters::Params(
                         params
                             .try_iter()?
-                            .map(|p| Param::extract_no_coerce(&p?))
+                            .map(|p| Param::extract_no_coerce(p?.as_borrowed()))
                             .collect::<PyResult<_>>()?,
                     ))
                 }
@@ -884,9 +889,9 @@ fn as_tuple<'py>(py: Python<'py>, seq: Option<Bound<'py, PyAny>>) -> PyResult<Bo
         return Ok(PyTuple::empty(py));
     };
     if seq.is_instance_of::<PyTuple>() {
-        Ok(seq.downcast_into_exact::<PyTuple>()?)
+        Ok(seq.cast_into_exact::<PyTuple>()?)
     } else if seq.is_instance_of::<PyList>() {
-        Ok(seq.downcast_exact::<PyList>()?.to_tuple())
+        Ok(seq.cast_exact::<PyList>()?.to_tuple())
     } else {
         // New tuple from iterable.
         PyTuple::new(

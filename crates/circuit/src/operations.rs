@@ -79,14 +79,16 @@ impl<'py> IntoPyObject<'py> for Param {
     }
 }
 
-impl<'py> FromPyObject<'py> for Param {
-    fn extract_bound(b: &Bound<'py, PyAny>) -> Result<Self, PyErr> {
+impl<'a, 'py> FromPyObject<'a, 'py> for Param {
+    type Error = ::std::convert::Infallible;
+
+    fn extract(b: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         Ok(if let Ok(py_expr) = b.extract::<PyParameterExpression>() {
             Param::ParameterExpression(Arc::new(py_expr.inner))
         } else if let Ok(val) = b.extract::<f64>() {
             Param::Float(val)
         } else {
-            Param::Obj(b.clone().unbind())
+            Param::Obj(b.to_owned().unbind())
         })
     }
 }
@@ -140,7 +142,7 @@ impl Param {
                             .try_iter()?
                             .map(|elem| {
                                 let elem = elem?;
-                                let py_param_bound = elem.downcast::<PyParameter>()?;
+                                let py_param_bound = elem.cast::<PyParameter>()?;
                                 let py_param = py_param_bound.borrow();
                                 let symbol = py_param.symbol();
                                 Ok(symbol.clone())
@@ -198,19 +200,19 @@ impl Param {
     /// Extract from a Python object without numeric coercion to float.  The default conversion will
     /// coerce integers into floats, but in things like `assign_parameters`, this is not always
     /// desirable.
-    pub fn extract_no_coerce(ob: &Bound<PyAny>) -> PyResult<Self> {
+    pub fn extract_no_coerce(ob: Borrowed<PyAny>) -> PyResult<Self> {
         Ok(if ob.is_instance_of::<PyFloat>() {
             Param::Float(ob.extract()?)
         } else if let Ok(py_expr) = PyParameterExpression::extract_coerce(ob) {
             // don't get confused by the `coerce` name here -- we promise to not coerce to
             // Param::Float. But if it's an int or complex we need to store it as an Obj.
             if Some(true) == py_expr.inner.is_int() || Some(true) == py_expr.inner.is_complex() {
-                Param::Obj(ob.clone().unbind())
+                Param::Obj(ob.to_owned().unbind())
             } else {
                 Param::ParameterExpression(Arc::new(py_expr.inner))
             }
         } else {
-            Param::Obj(ob.clone().unbind())
+            Param::Obj(ob.to_owned().unbind())
         })
     }
 
@@ -233,7 +235,9 @@ impl Param {
             _ => DEEPCOPY
                 .get_bound(py)
                 .call1((self.clone(), memo))?
-                .extract(),
+                .extract()
+                // The extraction is infallible.
+                .map_err(|x| match x {}),
         }
     }
 }
@@ -676,17 +680,16 @@ pub enum Condition {
     Expr(expr::Expr),
 }
 
-impl<'py> FromPyObject<'py> for Condition {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for Condition {
+    type Error = <expr::Expr as FromPyObject<'a, 'py>>::Error;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         if let Ok((bit, value)) = ob.extract::<(ShareableClbit, usize)>() {
             Ok(Condition::Bit(bit, value))
         } else if let Ok((register, value)) = ob.extract::<(ClassicalRegister, BigUint)>() {
             Ok(Condition::Register(register, value))
         } else {
-            let Ok(condition) = ob.extract() else {
-                panic!("failed to extract condition! {}", ob);
-            };
-            Ok(Condition::Expr(condition))
+            Ok(Condition::Expr(ob.extract()?))
         }
     }
 }
@@ -699,8 +702,10 @@ pub enum SwitchTarget {
     Expr(expr::Expr),
 }
 
-impl<'py> FromPyObject<'py> for SwitchTarget {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for SwitchTarget {
+    type Error = <expr::Expr as FromPyObject<'a, 'py>>::Error;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         if let Ok(bit) = ob.extract::<ShareableClbit>() {
             Ok(SwitchTarget::Bit(bit))
         } else if let Ok(register) = ob.extract::<ClassicalRegister>() {
@@ -717,8 +722,10 @@ pub enum CaseSpecifier {
     Default,
 }
 
-impl<'py> FromPyObject<'py> for CaseSpecifier {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for CaseSpecifier {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         if let Ok(i) = ob.extract::<usize>() {
             Ok(CaseSpecifier::Uint(i))
         } else if ob.is(SWITCH_CASE_DEFAULT.get_bound(ob.py())) {
@@ -781,8 +788,10 @@ impl fmt::Display for DelayUnit {
     }
 }
 
-impl<'py> FromPyObject<'py> for DelayUnit {
-    fn extract_bound(b: &Bound<'py, PyAny>) -> Result<Self, PyErr> {
+impl<'a, 'py> FromPyObject<'a, 'py> for DelayUnit {
+    type Error = PyErr;
+
+    fn extract(b: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let str: String = b.extract()?;
         Ok(match str.as_str() {
             "ns" => DelayUnit::NS,

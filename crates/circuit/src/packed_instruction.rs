@@ -488,60 +488,55 @@ impl PackedOperation {
         let py_op = match self.view() {
             OperationRef::ControlFlow(control_flow) => {
                 return match control_flow {
-                    ControlFlow::Box { .. } => BOX_OP
-                        .get_bound(py)
-                        .downcast::<PyType>()?
-                        .is_subclass(py_type),
+                    ControlFlow::Box { .. } => {
+                        BOX_OP.get_bound(py).cast::<PyType>()?.is_subclass(py_type)
+                    }
                     ControlFlow::BreakLoop { .. } => BREAK_LOOP_OP
                         .get_bound(py)
-                        .downcast::<PyType>()?
+                        .cast::<PyType>()?
                         .is_subclass(py_type),
                     ControlFlow::ContinueLoop { .. } => CONTINUE_LOOP_OP
                         .get_bound(py)
-                        .downcast::<PyType>()?
+                        .cast::<PyType>()?
                         .is_subclass(py_type),
                     ControlFlow::ForLoop { .. } => FOR_LOOP_OP
                         .get_bound(py)
-                        .downcast::<PyType>()?
+                        .cast::<PyType>()?
                         .is_subclass(py_type),
                     ControlFlow::IfElse { .. } => IF_ELSE_OP
                         .get_bound(py)
-                        .downcast::<PyType>()?
+                        .cast::<PyType>()?
                         .is_subclass(py_type),
                     ControlFlow::Switch { .. } => SWITCH_CASE_OP
                         .get_bound(py)
-                        .downcast::<PyType>()?
+                        .cast::<PyType>()?
                         .is_subclass(py_type),
                     ControlFlow::While { .. } => WHILE_LOOP_OP
                         .get_bound(py)
-                        .downcast::<PyType>()?
+                        .cast::<PyType>()?
                         .is_subclass(py_type),
                 };
             }
             OperationRef::StandardGate(standard) => {
                 return get_std_gate_class(py, standard)?
                     .bind(py)
-                    .downcast::<PyType>()?
+                    .cast::<PyType>()?
                     .is_subclass(py_type);
             }
             OperationRef::StandardInstruction(standard) => {
                 return match standard {
-                    StandardInstruction::Barrier(_) => BARRIER
-                        .get_bound(py)
-                        .downcast::<PyType>()?
-                        .is_subclass(py_type),
-                    StandardInstruction::Delay(_) => DELAY
-                        .get_bound(py)
-                        .downcast::<PyType>()?
-                        .is_subclass(py_type),
-                    StandardInstruction::Measure => MEASURE
-                        .get_bound(py)
-                        .downcast::<PyType>()?
-                        .is_subclass(py_type),
-                    StandardInstruction::Reset => RESET
-                        .get_bound(py)
-                        .downcast::<PyType>()?
-                        .is_subclass(py_type),
+                    StandardInstruction::Barrier(_) => {
+                        BARRIER.get_bound(py).cast::<PyType>()?.is_subclass(py_type)
+                    }
+                    StandardInstruction::Delay(_) => {
+                        DELAY.get_bound(py).cast::<PyType>()?.is_subclass(py_type)
+                    }
+                    StandardInstruction::Measure => {
+                        MEASURE.get_bound(py).cast::<PyType>()?.is_subclass(py_type)
+                    }
+                    StandardInstruction::Reset => {
+                        RESET.get_bound(py).cast::<PyType>()?.is_subclass(py_type)
+                    }
                 };
             }
             OperationRef::Gate(gate) => gate.gate.bind(py),
@@ -550,7 +545,7 @@ impl PackedOperation {
             OperationRef::Unitary(_) => {
                 return UNITARY_GATE
                     .get_bound(py)
-                    .downcast::<PyType>()?
+                    .cast::<PyType>()?
                     .is_subclass(py_type);
             }
         };
