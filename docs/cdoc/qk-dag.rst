@@ -24,10 +24,8 @@ Data Types
 ==========
 
 .. doxygenenum:: QkDagNodeType
-   :members:
 
 .. doxygenenum:: QkOperationKind
-   :members:
 
 Functions
 =========
