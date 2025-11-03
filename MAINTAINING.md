@@ -225,7 +225,6 @@ Once in the `prepare-x.y.z` branch, bump the package version number to `x.y.z` (
 The places to update are:
 
 * `qiskit/VERSION.txt`: the only line in the file.
-* `docs/conf.py`: the variables `version` and `release`.
 * `Cargo.toml` (only the file in the repository root and none of the other `**/Cargo.toml`s): the variable `version` and run `cargo build`. Cargo needs a dash before 'rc' dev versions. Therefore, for releasing `x.y.0rc1`, the cargo version should be `x.y.0-rc1`.
 * `crates/cext/cbindgen.toml`: the `define QISKIT_VERSION_*` macros. 
 
@@ -464,7 +463,6 @@ Make a PR to the `main` branch that sets the version number to the _next_ minor 
 The places to update are:
 
 * `qiskit/VERSION.txt`: the only line in the file.
-* `docs/conf.py`: the variables `version` and `release`.
 * `Cargo.toml` (only the file in the repository root and none of the other `**/Cargo.toml`s): the variable `version` and run `cargo build`.
 * `crates/cext/cbindgen.toml`: the `#define QISKIT_VERSION_*` macros.
 * `.mergify.yml`: change the `backport` action to target the new stable branch that `qiskit-bot` created as part of the release (see [*Backporting* section](#Backporting) for details on Mergify).
