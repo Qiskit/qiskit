@@ -710,6 +710,7 @@ class ForLoopStatement(Statement):
         self.indexset = indexset
         self.parameter = parameter
         self.body = body
+        self.type = type_ if type_ is not None else IntType()
 
         if type_ is None:
             warnings.warn(
@@ -718,9 +719,6 @@ class ForLoopStatement(Statement):
                 DeprecationWarning,
                 stacklevel=2,
             )
-            self.type = UintType()
-        else:
-            self.type = type_
 
 
 class WhileLoopStatement(Statement):
