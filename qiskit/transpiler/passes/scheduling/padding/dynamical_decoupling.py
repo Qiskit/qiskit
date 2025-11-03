@@ -272,29 +272,34 @@ class PadDynamicalDecoupling(BasePadding):
         t_end: int,
         next_node: DAGNode,
         prev_node: DAGNode,
-    ):  
+    ):
         # NOTE: The :meth:`._pad` method is currently being ported as it is the core logic within the ``PadDynamicalDecoupling`` pass
         # and the :meth:`.run` method would need to be ported along with the :class:`.BasePadding` class when the ``PadDelay`` pass is also ported.
-        print(f"DEBUG: Calling pad_dynamical_decoupling from _pad method.: t_start={t_start}, t_end={t_end}, prev_node={_format_node(prev_node)}, next_node={_format_node(next_node)}")
+        interval = {
+            "t_start": t_start,
+            "t_end": t_end,
+            "prev_node": prev_node,
+            "next_node": next_node,
+            "qubit": qubit,
+            "prev_node_op_is_reset": hasattr(prev_node, "op") and isinstance(prev_node.op, Reset),
+            }
+        config = {
+                "alignment": self._alignment,
+                "no_dd_qubits": self._no_dd_qubits,
+                "qubits": self._qubits,
+                "skip_reset_qubits": self._skip_reset_qubits,
+                "dd_sequence_lengths": self._dd_sequence_lengths,
+                "sequence_phase": self._sequence_phase,
+                "dd_sequence": self._dd_sequence,
+                "spacing": self._spacing,
+                "extra_slack_distribution": self._extra_slack_distribution,
+            }
         pad_dynamical_decoupling(
-            t_end,
-            t_start,
-            self._alignment,
-            prev_node,
-            next_node,
-            self._no_dd_qubits,
-            self._qubits,
-            qubit,
-            dag,
-            self.property_set,
-            self._skip_reset_qubits,
-            self._dd_sequence_lengths,
-            self._sequence_phase,
-            self._dd_sequence,
-            hasattr(prev_node, "op") and isinstance(prev_node.op, Reset),
-            self._spacing,
-            self._extra_slack_distribution,
-        )
+                dag,
+                self.property_set,
+                interval,
+                config,
+            )
 
     @staticmethod
     def _resolve_params(gate: Gate) -> tuple:
