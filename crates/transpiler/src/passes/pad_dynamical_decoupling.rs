@@ -182,19 +182,18 @@ pub fn run_pad_dynamical_decoupling(
                                 next_node_ref.instruction.operation.try_standard_gate()
                             {
                                 if matches!(gate, StandardGate::U | StandardGate::U3) {
-                                    // Get the Python operation object (e.g., UGate)
+                                    // Get the Python operation object
                                     let op_obj = next_node.getattr("op")?;
                                     let params_list: Bound<PyAny> = op_obj.getattr("params")?;
                                     let params: Vec<f64> = params_list.extract()?;
                                     (true, params[0], params[1], params[2])
                                 } else {
-                                    (false, 0.0, 0.0, 0.0) // Not a U gate
+                                    (false, 0.0, 0.0, 0.0)
                                 }
                             } else {
-                                (false, 0.0, 0.0, 0.0) // Not a standard gate
+                                (false, 0.0, 0.0, 0.0)
                             }
                         } else {
-                            // Could not get immutable borrow, so it's definitely not a U gate we can modify
                             (false, 0.0, 0.0, 0.0)
                         }
                     };
@@ -277,7 +276,7 @@ pub fn run_pad_dynamical_decoupling(
                                             };
                                             let new_op_obj = new_instruction.get_operation(py)?;
 
-                                            // Substitute the node (inplace=False logic)
+                                            // Substitute the node (inplace=False logic from python)
                                             dag.substitute_node_with_py_op(
                                                 prev_node_ind,
                                                 new_op_obj.bind(py),
