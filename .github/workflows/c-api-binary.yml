@@ -16,15 +16,12 @@ jobs:
       - name: Set Environment Variables
         run: |
           QISKIT_CEXT_DIR="qiskit-cext-${{ env.GITHUB_REF_NAME }}-linux-amd64"
+          echo "QISKIT_CEXT_DIR=${QISKIT_CEXT_DIR}" >> $GITHUB_ENV
           echo "C_DIR_OUT=${QISKIT_CEXT_DIR}/dist/c" >> $GITHUB_ENV
           echo "C_DIR_OUT: $C_DIR_OUT"
       - name: Build Binary
         run: |
           make c C_DIR_OUT="${{ env.C_DIR_OUT }}"
-
-          ls "${{ env.C_DIR_OUT }}"
-          ls "${{ env.C_DIR_OUT }}/lib"
-          ls "${{ env.C_DIR_OUT }}/include"
       - name: Validate Binaries
         run: |
           make ctest \
@@ -62,20 +59,18 @@ jobs:
       - name: Set Environment Variables
         run: |
           QISKIT_CEXT_DIR="qiskit-c-${{ env.GITHUB_REF_NAME }}-macos-arm64"
+          echo "QISKIT_CEXT_DIR=${QISKIT_CEXT_DIR}" >> $GITHUB_ENV
           echo "C_DIR_OUT=${QISKIT_CEXT_DIR}/dist/c" >> $GITHUB_ENV
           echo "C_DIR_OUT: $C_DIR_OUT"
       - name: Build Binary
         run: |
           make c C_DIR_OUT="${{ env.C_DIR_OUT }}"
-          ls "${{ env.C_DIR_OUT }}"
-          ls "${{ env.C_DIR_OUT }}/lib"
-          ls "${{ env.C_DIR_OUT }}/include"
       - name: Validate Binaries
         run: |
           make ctest \
             SKIP_BUILD=1 \
             C_DIR_TEST_INCLUDE="${{ env.C_DIR_OUT }}/include" \
-            C_DIR_TEST_LIB="${{ env.C_DIR_OUT }}/lib"
+            C_DIR_TEST_LIB="${{ env.C_DIR_OUT }}/lib" \
       - name: Archive Binaries
         run: |
           tar czf ${{ env.QISKIT_CEXT_DIR }}.tar.gz ${{ env.QISKIT_CEXT_DIR }}
