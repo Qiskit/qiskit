@@ -46,7 +46,7 @@ if __name__ == "__main__":
         )
         pm2= PassManager(
             [
-                ALAPScheduleAnalysis(durations),
+                ASAPScheduleAnalysis(durations),
             ]
         )
 
@@ -69,11 +69,11 @@ if __name__ == "__main__":
         expected.cx(0, 1)
         expected.delay(700, 2)
 
-        print("Mid-measurement circuit with DD:")
+        print("Mid-measurement circuit with only ASAP:")
         print(midmeas2_dd)
-        print("Expected circuit:")
+        print("Mid-measurement circuit with both ASAP and DD:")
         print(midmeas_dd)
-        print("Expected ckt gate:")
+        print("Expected circuit:")
         print(expected)
 
         assert midmeas_dd == expected
