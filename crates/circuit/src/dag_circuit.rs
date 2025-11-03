@@ -8792,9 +8792,8 @@ type SortKeyType<'a> = (&'a [Qubit], &'a [Clbit]);
 #[cfg(all(test, not(miri)))]
 mod test {
     use crate::bit::{ClassicalRegister, QuantumRegister};
-    use crate::classical::expr::Expr;
     use crate::dag_circuit::{DAGCircuit, Wire};
-    use crate::operations::{Condition, ControlFlow, StandardGate, StandardInstruction};
+    use crate::operations::{StandardGate, StandardInstruction};
     use crate::packed_instruction::{PackedInstruction, PackedOperation};
     use crate::{Clbit, Qubit};
     use hashbrown::HashSet;
