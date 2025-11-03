@@ -33,37 +33,28 @@ use smallvec::{SmallVec, smallvec};
 use std::cmp;
 use std::f64::consts::PI;
 
-#[derive(FromPyObject)]
-struct DDConfig<'py> {
-    alignment: f64,
-    no_dd_qubits: &'py PySet,
-    qubits: Option<Vec<usize>>,
-    skip_reset_qubits: bool,
-    dd_sequence_lengths: HashMap<ShareableQubit, Vec<usize>>,
-    sequence_phase: &'py PyAny,
-    dd_sequence: Option<Vec<OperationFromPython>>,
-    spacing: Vec<f64>,
-    extra_slack_distribution: String, // Use String for owned data
-}
-
-#[derive(FromPyObject)]
-struct PadInterval<'py> {
-    interval.t_start: f64,
-    t_end: f64,
-    prev_node: &'py PyAny,
-    next_node: &'py PyAny,
-    qubit: ShareableQubit,
-    prev_node_op_is_reset: bool,
-}
-
+#[allow(clippy::too_many_arguments)]
 #[pyfunction]
 #[pyo3(name = "pad_dynamical_decoupling")]
 pub fn run_pad_dynamical_decoupling(
     py: Python,
+    t_end: f64,
+    t_start: f64,
+    alignment: f64,
+    prev_node: &Bound<PyAny>,
+    next_node: &Bound<PyAny>,
+    _no_dd_qubits: &Bound<PySet>,
+    _qubits: Option<Vec<usize>>,
+    qubit: ShareableQubit,
     dag: &mut DAGCircuit,
     property_set: &Bound<PyAny>,
-    interval: PadInterval,
-    config: DDConfig,
+    skip_reset_qubits: bool,
+    _dd_sequence_lengths: HashMap<ShareableQubit, Vec<usize>>,
+    _sequence_phase: &Bound<PyAny>,
+    _dd_sequence: Option<Vec<OperationFromPython>>,
+    prev_node_op_is_reset: bool,
+    spacing: Vec<f64>,
+    extra_slack_distribution: String,
 ) -> PyResult<()> {
     // This routine takes care of the pulse alignment constraint for the DD sequence.
     // Note that the alignment constraint acts on the t0 of the DAGOpNode.
@@ -95,7 +86,7 @@ pub fn run_pad_dynamical_decoupling(
 
     // As you can see, constraints on t0 are all satisfied without explicit scheduling.
 
-    let time_interval = t_end - interval.t_start;
+    let time_interval = t_end - t_start;
     if time_interval % alignment != 0.0 {
         return Err(TranspilerError::new_err(format!(
             "Time interval {} is not divisible by alignment {}",
@@ -112,12 +103,12 @@ pub fn run_pad_dynamical_decoupling(
         .ok_or_else(|| TranspilerError::new_err("Qubit not found in dag.qubits".to_string()))?;
 
     if !__is_dd_qubit(qubit_index, &_no_dd_qubits, &_qubits) {
-        apply_scheduled_delay_op(py, dag, &interval.t_start, &time_interval, &qubit, property_set)?;
+        apply_scheduled_delay_op(py, dag, &t_start, &time_interval, &qubit, property_set)?;
         return Ok(());
     }
 
     if skip_reset_qubits && (prev_node.is_instance_of::<DAGInNode>() || prev_node_op_is_reset) {
-        apply_scheduled_delay_op(py, dag, &interval.t_start, &time_interval, &qubit, property_set)?;
+        apply_scheduled_delay_op(py, dag, &t_start, &time_interval, &qubit, property_set)?;
         return Ok(());
     }
 
@@ -128,7 +119,7 @@ pub fn run_pad_dynamical_decoupling(
     let mut sequence_gphase: f64 = _sequence_phase.extract()?;
 
     if slack <= 0.0 {
-        apply_scheduled_delay_op(py, dag, &interval.t_start, &time_interval, &qubit, property_set)?;
+        apply_scheduled_delay_op(py, dag, &t_start, &time_interval, &qubit, property_set)?;
         return Ok(());
     }
 
@@ -326,7 +317,7 @@ pub fn run_pad_dynamical_decoupling(
                         apply_scheduled_delay_op(
                             py,
                             dag,
-                            &interval.t_start,
+                            &t_start,
                             &time_interval,
                             &qubit,
                             property_set,
@@ -338,7 +329,7 @@ pub fn run_pad_dynamical_decoupling(
                     apply_scheduled_delay_op(
                         py,
                         dag,
-                        &interval.t_start,
+                        &t_start,
                         &time_interval,
                         &qubit,
                         property_set,
@@ -347,7 +338,7 @@ pub fn run_pad_dynamical_decoupling(
                 }
             } else {
                 // Inverse calculation failed
-                apply_scheduled_delay_op(py, dag, &interval.t_start, &time_interval, &qubit, property_set)?;
+                apply_scheduled_delay_op(py, dag, &t_start, &time_interval, &qubit, property_set)?;
                 return Ok(());
             }
         }
@@ -382,7 +373,7 @@ pub fn run_pad_dynamical_decoupling(
     // Construct DD sequence with delays
     let num_dd_gates = _dd_sequence.as_ref().map_or(0, |s| s.len());
     let num_elements = cmp::max(num_dd_gates, taus_len);
-    let mut idle_after = interval.t_start;
+    let mut idle_after = t_start;
 
     for dd_ind in 0..num_elements {
         if dd_ind < taus_len {
@@ -475,7 +466,7 @@ fn map_delay_str_to_enum(delay_str: &str) -> DelayUnit {
 fn apply_scheduled_delay_op(
     py: Python, //If we want to avoid using the Python GIL (fully porting to Rust), we first need to port ``PropertySet`` to a rust-native type...
     dag: &mut DAGCircuit,
-    interval.t_start: &f64,
+    t_start: &f64,
     time_interval: &f64,
     qubit: &ShareableQubit,
     property_set: &Bound<PyAny>,
@@ -504,7 +495,7 @@ fn apply_scheduled_delay_op(
     let py_new_node = dag.get_node(py, new_node)?;
     let node_start_time_obj = property_set.get_item("node_start_time")?;
     let node_start_time_dict = node_start_time_obj.cast::<PyDict>()?;
-    node_start_time_dict.set_item(py_new_node, interval.t_start)?;
+    node_start_time_dict.set_item(py_new_node, t_start)?;
 
     Ok(())
 }
