@@ -459,7 +459,8 @@ For patch releases:
 > [!IMPORTANT]
 > Skip this step if your PR from section Releasing the package - step 3 was to the  `main` branch
 
-Make a PR to the `main` branch that sets the version number to the _next_ minor (e.g. `2.2.0.dev0` if you have just released `2.1.0rc1`).
+Make a PR to the `main` branch that sets the version number to the _next_ minor (e.g. `2.2.0.dev0` if you have just released `2.1.0rc1`). Follow the convention introduced in [#14697](https://github.com/Qiskit/qiskit/pull/14697).
+ 
 The places to update are:
 
 * `qiskit/VERSION.txt`: the only line in the file.
@@ -469,9 +470,9 @@ The places to update are:
 
 This opens the `main` branch for feature development for the next release.
 
-Examples for post-release PR:
+Example for post-release PR (previous to the introduction of [#14697](https://github.com/Qiskit/qiskit/pull/14697)):
+
  * [following 2.1.0rc1, a PR preparing `main` for 2.2.0](https://github.com/Qiskit/qiskit/pull/14546)
- * [following 2.0.0rc1, a PR preparing `main` for 2.1.0](https://github.com/Qiskit/qiskit/pull/13982)
 
 #### 5.3 Create a milestone for the next patch release
 
