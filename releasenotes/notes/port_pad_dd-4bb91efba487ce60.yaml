@@ -1,0 +1,9 @@
+---
+upgrade_transpiler:
+  - |
+    The transpiler pass, :class:`.PadDynamicalDecoupling` has been ported to Rust for
+    improved performance. This pass is responsible for inserting dynamical
+    decoupling sequences into quantum circuits for error mitigation.
+    The ported version maintains the same functionality and interface as the
+    previous Python implementation, ensuring compatibility with existing
+    workflows while benefiting from the performance enhancements of Rust.
