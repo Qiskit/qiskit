@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed an issue in :class:`~qiskit.circuit.library.PauliEvolutionGate` where
+    labels were not correctly generated for observables composed of multiple
+    Pauli terms or lists of :class:`~qiskit.quantum_info.SparseObservable` objects.
+    This fix ensures that all contributing Pauli strings are reflected in the
+    gate label and in circuit drawings.
+    (:issue:`15167`)
