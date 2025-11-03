@@ -12,11 +12,13 @@
 
 """Test the Range expression class."""
 
+import ddt
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit import QuantumCircuit, ClassicalRegister
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
+@ddt.ddt
 class TestRange(QiskitTestCase):
     """Test the Range expression class."""
 
@@ -71,21 +73,44 @@ class TestRange(QiskitTestCase):
         self.assertEqual(range_expr.type, types.Uint(8))
         self.assertTrue(range_expr.const)
 
-    def test_range_with_float_values(self):
-        """Test that creating a Range with float values raises an error."""
-        start = expr.lift(5.0, types.Float())
-        stop = expr.lift(10.0, types.Float())
+    @ddt.data(
+        # Wrong start, correct stop, no step
+        {
+            "start": expr.lift(5.0, types.Float()),
+            "stop": expr.lift(10, types.Uint(8)),
+            "step": None,
+        },
+        # Correct start, wrong stop, no step
+        {
+            "start": expr.lift(5, types.Uint(8)),
+            "stop": expr.lift(10.0, types.Float()),
+            "step": None,
+        },
+        # Correct start/stop, wrong step
+        {
+            "start": expr.lift(0, types.Uint(8)),
+            "stop": expr.lift(10, types.Uint(8)),
+            "step": expr.lift(1.5, types.Float()),
+        },
+        # Wrong start and stop, no step
+        {
+            "start": expr.lift(5.0, types.Float()),
+            "stop": expr.lift(10.0, types.Float()),
+            "step": None,
+        },
+    )
+    @ddt.unpack
+    def test_range_with_wrong_expr_types(self, start, stop, step):
+        """Test that creating a Range with wrong expr types raises an error.
 
+        Each dataset isolates the wrong variable to avoid shadowing, with a case
+        where both bounds are wrong included for completeness.
+        """
         with self.assertRaisesRegex(TypeError, "Range values must be of unsigned integer type"):
-            expr.Range(start, stop)
-
-    def test_range_with_mixed_types(self):
-        """Test that creating a Range with mixed integer and float types raises an error."""
-        start = expr.lift(5, types.Uint(8))
-        stop = expr.lift(10.0, types.Float())
-
-        with self.assertRaisesRegex(TypeError, "Range values must be of unsigned integer type"):
-            expr.Range(start, stop)
+            if step is None:
+                expr.Range(start, stop)
+            else:
+                expr.Range(start, stop, step)
 
     def test_range_with_non_constant_values(self):
         """Test creating a Range with non-constant values."""
