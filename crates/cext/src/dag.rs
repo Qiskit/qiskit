@@ -194,9 +194,11 @@ pub unsafe extern "C" fn qk_dag_num_op_nodes(dag: *const DAGCircuit) -> usize {
     dag.num_ops()
 }
 
-/// @ingroup QkDag
+/// The type of node in a ``QkDag``.
 ///
-/// DAG node type.
+/// Operation nodes represent an applied instruction. The rest of the nodes are
+/// considered "wire" nodes and represent the endpoints of the DAG's data dependency
+/// chains.
 #[derive(Copy, Clone, Debug)]
 #[repr(u8)]
 pub enum CDagNodeType {

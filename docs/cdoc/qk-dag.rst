@@ -23,10 +23,10 @@ more functionality.
 Data Types
 ==========
 
-.. doxygenstruct:: QkDagNodeType
+.. doxygenenum:: QkDagNodeType
    :members:
 
-.. doxygenstruct:: QkOperationKind
+.. doxygenenum:: QkOperationKind
    :members:
 
 Functions
