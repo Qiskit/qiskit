@@ -163,39 +163,28 @@ pub fn run_pad_dynamical_decoupling(
                     let inverse_phase_shift = phase;
                     let mut absorbed = false;
 
-                    let next_node_ind_opt: Option<NodeIndex> = if next_node.is_instance_of::<DAGOpNode>() {
-                        next_node
-                            .extract::<PyRef<DAGOpNode>>()
-                            .ok()
-                            .and_then(|node_ref| node_ref.as_ref().node)
-                            .filter(|&node_ind| dag.dag().contains_node(node_ind))
-                    } else {
-                        None
-                    };
+                    let next_node_ind_opt: Option<NodeIndex> =
+                        if next_node.is_instance_of::<DAGOpNode>() {
+                            next_node
+                                .extract::<PyRef<DAGOpNode>>()
+                                .ok()
+                                .and_then(|node_ref| node_ref.as_ref().node)
+                                .filter(|&node_ind| dag.dag().contains_node(node_ind))
+                        } else {
+                            None
+                        };
 
                     // Extract node index from prev_node, verifying it exists in the DAG
-                    let prev_node_ind_opt: Option<NodeIndex> = if prev_node.is_instance_of::<DAGOpNode>() {
-                        prev_node
-                            .extract::<PyRef<DAGOpNode>>()
-                            .ok()
-                            .and_then(|node_ref| node_ref.as_ref().node)
-                            .filter(|&node_ind| dag.dag().contains_node(node_ind))
-                    } else {
-                        None
-                    };
-
-                    // If neither node exists in the DAG, we cannot perform absorption
-                    if next_node_ind_opt.is_none() && prev_node_ind_opt.is_none() {
-                        apply_scheduled_delay_op(
-                            py,
-                            dag,
-                            &t_start,
-                            &time_interval,
-                            &qubit,
-                            property_set,
-                        )?;
-                        return Ok(());
-                    }
+                    let prev_node_ind_opt: Option<NodeIndex> =
+                        if prev_node.is_instance_of::<DAGOpNode>() {
+                            prev_node
+                                .extract::<PyRef<DAGOpNode>>()
+                                .ok()
+                                .and_then(|node_ref| node_ref.as_ref().node)
+                                .filter(|&node_ind| dag.dag().contains_node(node_ind))
+                        } else {
+                            None
+                        };
 
                     // --- Check next_node ---
                     if let Some(next_node_ind) = next_node_ind_opt {
@@ -236,45 +225,12 @@ pub fn run_pad_dynamical_decoupling(
                                             py_op: std::sync::OnceLock::new(),
                                         };
                                         let new_op_obj = new_instruction.get_operation(py)?;
-
-                                        if let Ok(start_times) =
-                                            property_set.get_item("node_start_time")
-                                        {
-                                            if let Ok(start_times_dict) =
-                                                start_times.downcast::<PyDict>()
-                                            {
-                                                if let Some(start_time) =
-                                                    start_times_dict.get_item(next_node)?
-                                                {
-                                                    let old_node_key = next_node;
-                                                    dag.substitute_node_with_py_op(
-                                                        next_node_ind,
-                                                        new_op_obj.bind(py),
-                                                    )?; // Substitute *before* getting new node
-                                                    let new_node_obj =
-                                                        dag.get_node(py, next_node_ind)?;
-                                                    start_times_dict.del_item(old_node_key)?;
-                                                    start_times_dict
-                                                        .set_item(new_node_obj, start_time)?;
-                                                } else {
-                                                    dag.substitute_node_with_py_op(
-                                                        next_node_ind,
-                                                        new_op_obj.bind(py),
-                                                    )?;
-                                                }
-                                            } else {
-                                                dag.substitute_node_with_py_op(
-                                                    next_node_ind,
-                                                    new_op_obj.bind(py),
-                                                )?;
-                                            }
-                                        } else {
-                                            dag.substitute_node_with_py_op(
-                                                next_node_ind,
-                                                new_op_obj.bind(py),
-                                            )?;
-                                        }
-
+                                        // Mutate the instruction in-place instead of substituting the node.
+                                        // This preserves the node object as a key in the property_set.
+                                        dag.substitute_node_with_py_op(
+                                            next_node_ind,
+                                            new_op_obj.bind(py),
+                                        )?;
                                         sequence_gphase += inverse_phase_shift;
                                         absorbed = true;
                                     }
@@ -289,24 +245,16 @@ pub fn run_pad_dynamical_decoupling(
                                 let prev_node_inst = &prev_node_ref.instruction;
                                 if let Some(gate) = prev_node_inst.operation.try_standard_gate() {
                                     if matches!(gate, StandardGate::U | StandardGate::U3) {
-                                        if let Ok(params) = prev_node_inst.params.clone().into_inner() {
-                                            let theta_l = if let Param::Float(val) = params[0] {
-                                                val
-                                            } else {
-                                                0.0
-                                            };
-                                            let phi_l = if let Param::Float(val) = params[1] {
-                                                val
-                                            } else {
-                                                0.0
-                                            };
-                                            let lam_l = if let Param::Float(val) = params[2] {
-                                                val
-                                            } else {
-                                                0.0
-                                            };
-                                            let [theta_new, phi_new, lam_new] =
-                                                compose_u3_rust(theta, phi, lam, theta_l, phi_l, lam_l);
+                                        if let Ok(params) =
+                                            prev_node_inst.params.clone().into_inner()
+                                        {
+                                            let theta_l = if let Param::Float(val) = params[0] { val } else { 0.0 };
+                                            let phi_l = if let Param::Float(val) = params[1] { val } else { 0.0 };
+                                            let lam_l = if let Param::Float(val) = params[2] { val } else { 0.0 };
+                                            
+                                            let [theta_new, phi_new, lam_new] = compose_u3_rust(
+                                                theta, phi, lam, theta_l, phi_l, lam_l,
+                                            );
 
                                             let new_instruction = CircuitInstruction {
                                                 operation: prev_node_inst.operation.clone(),
@@ -323,6 +271,12 @@ pub fn run_pad_dynamical_decoupling(
                                             };
                                             let new_op_obj = new_instruction.get_operation(py)?;
 
+                                            // Substitute the node (inplace=False logic)
+                                            dag.substitute_node_with_py_op(
+                                                prev_node_ind,
+                                                new_op_obj.bind(py),
+                                            )?;
+
                                             // Update property_set
                                             if let Ok(start_times) =
                                                 property_set.get_item("node_start_time")
@@ -334,32 +288,13 @@ pub fn run_pad_dynamical_decoupling(
                                                         start_times_dict.get_item(prev_node)?
                                                     {
                                                         let old_node_key = prev_node;
-                                                        dag.substitute_node_with_py_op(
-                                                            prev_node_ind,
-                                                            new_op_obj.bind(py),
-                                                        )?;
                                                         let new_node_obj =
                                                             dag.get_node(py, prev_node_ind)?;
                                                         start_times_dict.del_item(old_node_key)?;
                                                         start_times_dict
                                                             .set_item(new_node_obj, start_time)?;
-                                                    } else {
-                                                        dag.substitute_node_with_py_op(
-                                                            prev_node_ind,
-                                                            new_op_obj.bind(py),
-                                                        )?;
                                                     }
-                                                } else {
-                                                    dag.substitute_node_with_py_op(
-                                                        prev_node_ind,
-                                                        new_op_obj.bind(py),
-                                                    )?;
                                                 }
-                                            } else {
-                                                dag.substitute_node_with_py_op(
-                                                    prev_node_ind,
-                                                    new_op_obj.bind(py),
-                                                )?;
                                             }
 
                                             sequence_gphase += inverse_phase_shift;
@@ -381,6 +316,7 @@ pub fn run_pad_dynamical_decoupling(
                             &qubit,
                             property_set,
                         )?;
+                        return Ok(());
                     }
                 } else {
                     // Matrix calculation failed
@@ -392,12 +328,13 @@ pub fn run_pad_dynamical_decoupling(
                         &qubit,
                         property_set,
                     )?;
+                    return Ok(());
                 }
             } else {
                 // Inverse calculation failed
                 apply_scheduled_delay_op(py, dag, &t_start, &time_interval, &qubit, property_set)?;
+                return Ok(());
             }
-            return Ok(());
         }
     }
 
