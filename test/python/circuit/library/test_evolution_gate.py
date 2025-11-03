@@ -955,6 +955,37 @@ def observable_supporting_evolution(circuit, pauli, time):
 
     custom_atomic_evolution(circuit, pauli, time)
 
+class TestPauliEvolutionGateLabels:
+    """Tests for verifying PauliEvolutionGate label correctness."""
+
+    def test_single_term_label(self):
+        evo = PauliEvolutionGate(SparseObservable.from_list([("XXII", 1)]), time=1)
+        assert evo.label == "XXII"
+
+    def test_multiple_term_label(self):
+        evo = PauliEvolutionGate(
+            SparseObservable.from_list([("IIXX", 1), ("IYYI", 2), ("ZZII", 3)]), time=1
+        )
+        expected_label = "IIXX + IYYI + ZZII"
+        assert evo.label == expected_label
+
+    def test_list_of_observables_label(self):
+        evo = PauliEvolutionGate(
+            [
+                SparseObservable.from_list([("IIXX", 1), ("IYYI", 2), ("ZZII", 3)]),
+                SparseObservable.from_list([("XXII", 4)]),
+            ],
+            time=1,
+        )
+        expected_label = "(IIXX + IYYI + ZZII) + (XXII)"
+        assert evo.label == expected_label
+
+    def test_circuit_display_labels(self):
+        evo = PauliEvolutionGate(SparseObservable.from_list([("XXII", 1)]), time=1)
+        qc = QuantumCircuit(4)
+        qc.append(evo, [0, 1, 2, 3])
+        text = qc.draw(output="text")
+        assert "XXII" in text
 
 if __name__ == "__main__":
     unittest.main()
