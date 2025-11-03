@@ -163,8 +163,9 @@ class Statevector(QuantumState, TolerancesMixin):
         # Apply layout permutations if needed (this handles transpiler layout changes)
         if not ignore_set_layout and layout is not None:
             final_index_layout = getattr(layout, "final_index_layout", None)
-            if final_index_layout is not None:
-                layout_indices = final_index_layout
+            if final_index_layout is not None and callable(final_index_layout):
+                # pylint: disable-next=not-callable
+                layout_indices = final_index_layout()
                 # Reverse for Qiskit's little-endian qubit ordering
                 num_qubits = statevec.num_qubits
                 reversed_perm = [
