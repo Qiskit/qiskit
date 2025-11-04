@@ -40,7 +40,7 @@ class DataBin(ShapedMixin):
     This class will have different attributes and keys, depending on the primitive used and the
     pub submitted.  These "special" attributes will have names that match the keys.  For example, if
     you submitted a :class:`.SamplerV2` job, typically the attributes and keys are the names of the
-    :class:`.ClassicalRegister`s that were in the circuit defining this pub.
+    :class:`.ClassicalRegister` objects that were in the circuit defining this pub.
 
     All of the attributes and keys have the same shape associated with them, which is the
     n-dimensional shape of the corresponding pub.  The attributes and keys will typically either be
