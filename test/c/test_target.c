@@ -552,13 +552,16 @@ static int test_target_iteration(void) {
     int result = Ok;
     size_t target_length = qk_target_num_instructions(target);
     for (size_t inst_idx = 0; inst_idx < target_length; inst_idx++) {
-        QkQargs qargs;
+        // Use default size of 2 for qargs, as rarely do we have qargs bigger than 2
+        uint32_t *qargs;
+        uint32_t qargs_len;
         QkInstructionProperties props;
         char *name = qk_target_op_name(target, inst_idx);
         printf("Op name: '%s'\nProps:\n", name);
         size_t num_props = qk_target_op_num_properties(target, inst_idx);
         for (size_t props_idx = 0; props_idx < num_props; props_idx++) {
-            if (qk_target_op_get_qargs(target, inst_idx, props_idx, &qargs) != QkExitCode_Success) {
+            if (qk_target_op_get_qargs(target, inst_idx, props_idx, &qargs, &qargs_len) !=
+                QkExitCode_Success) {
                 result = RuntimeError;
                 goto break_loop;
             };
@@ -567,15 +570,15 @@ static int test_target_iteration(void) {
                 goto break_loop;
             }
             printf("\tQargs: ");
-            if (qargs.qargs == NULL) {
+            if (qargs == NULL) {
                 printf("Global\n");
             } else {
                 printf("[");
-                for (uint32_t q_idx = 0; q_idx < qargs.len; q_idx++) {
-                    if (q_idx < qargs.len - 1) {
-                        printf("%u, ", qargs.qargs[q_idx]);
+                for (uint32_t q_idx = 0; q_idx < qargs_len; q_idx++) {
+                    if (q_idx < qargs_len - 1) {
+                        printf("%u, ", qargs[q_idx]);
                     } else {
-                        printf("%u", qargs.qargs[q_idx]);
+                        printf("%u", qargs[q_idx]);
                     }
                 }
                 printf("]\n");
@@ -584,8 +587,6 @@ static int test_target_iteration(void) {
             printf("\tError: %lf\n\n", props.error);
         }
     break_loop:
-        qk_target_qargs_clear(&qargs);
-        qk_target_inst_props_clear(&props);
         qk_str_free(name);
         if (result != Ok) {
             break;
@@ -649,37 +650,38 @@ static int test_target_indexing(void) {
 
     // Retrieving qargs [4,3] at index 1, with properties d=3.0577e-11, e=0.00713
     QkInstructionProperties cx_props;
-    QkQargs cx_qargs;
+    uint32_t *cx_qargs;
+    uint32_t cx_qargs_len;
 
-    if (qk_target_op_get_qargs(target, cx_idx, 1, &cx_qargs) != QkExitCode_Success) {
+    if (qk_target_op_get_qargs(target, cx_idx, 1, &cx_qargs, &cx_qargs_len) != QkExitCode_Success) {
         printf("Unable to retreive qargs [4,3] at index 1 for 'cx'.");
         result = EqualityError;
         goto cleanup;
     }
 
-    if (!compare_qargs(cx_qargs.qargs, (uint32_t[2]){4, 3}, cx_qargs.len)) {
-        printf("Retrieved incorrect qargs, expected [4, 3], got [%u, %u]", cx_qargs.qargs[0],
-               cx_qargs.qargs[1]);
+    if (!compare_qargs(cx_qargs, (uint32_t[2]){4, 3}, cx_qargs_len)) {
+        printf("Retrieved incorrect qargs, expected [4, 3], got [%u, %u]", cx_qargs[0],
+               cx_qargs[1]);
         result = EqualityError;
-        goto cleanup_qargs;
+        goto cleanup;
     }
 
     if (qk_target_op_get_props(target, cx_idx, 1, &cx_props) != QkExitCode_Success) {
         printf("Unable to retreive properties for qargs [4,3] at index 1 for 'cx'.");
         result = EqualityError;
-        goto cleanup_qargs;
+        goto cleanup;
     }
 
     if (cx_props.duration != 3.0577e-11) {
         printf("Retrieved incorrect duration property, expected 3.0577e-11, got %lf",
                cx_props.duration);
         result = EqualityError;
-        goto cleanup_props;
+        goto cleanup;
     }
     if (cx_props.error != 0.00713) {
         printf("Retrieved incorrect error property, expected 0.00713, got %lf", cx_props.error);
         result = EqualityError;
-        goto cleanup_props;
+        goto cleanup;
     }
 
     // Try retrieving global index for y gate
@@ -687,20 +689,21 @@ static int test_target_indexing(void) {
     if (y_idx != 5) {
         printf("Invalid index for y entry: expected %d, got %zu.", 5, y_idx);
         result = EqualityError;
-        goto cleanup_props;
+        goto cleanup;
     }
 
-    QkQargs y_qargs;
-    if (qk_target_op_get_qargs(target, y_idx, 0, &y_qargs) != QkExitCode_Success) {
+    uint32_t *y_qargs;
+    uint32_t y_qargs_len;
+    if (qk_target_op_get_qargs(target, y_idx, 0, &y_qargs, &y_qargs_len) != QkExitCode_Success) {
         printf("Unable to retreive global qargs at index 0 for 'y'.");
         result = EqualityError;
-        goto cleanup_yqargs;
+        goto cleanup;
     }
 
-    if (y_qargs.qargs != NULL) {
+    if (y_qargs != NULL) {
         printf("Obtained non-null global qargs at index 0 for 'y'.");
         result = EqualityError;
-        goto cleanup_yqargs;
+        goto cleanup;
     }
 
     // Try retrieving [] index for global_phase gate
@@ -708,29 +711,22 @@ static int test_target_indexing(void) {
     if (gp_idx != 6) {
         printf("Invalid index for y entry: expected %d, got %zu.", 6, gp_idx);
         result = EqualityError;
-        goto cleanup_yqargs;
+        goto cleanup;
     }
 
-    QkQargs gp_qargs;
-    if (qk_target_op_get_qargs(target, gp_idx, 0, &gp_qargs) != QkExitCode_Success) {
+    uint32_t *gp_qargs;
+    uint32_t gp_qargs_len;
+    if (qk_target_op_get_qargs(target, gp_idx, 0, &gp_qargs, &gp_qargs_len) != QkExitCode_Success) {
         printf("Unable to retreive qargs [] at index 0 for 'global_phase'.");
         result = EqualityError;
-        goto cleanup_gpqargs;
+        goto cleanup;
     }
 
-    if (gp_qargs.qargs == NULL || gp_qargs.len != 0) {
+    if (gp_qargs == NULL || gp_qargs_len != 0) {
         printf("Obtained null or invalid qargs at index 0 for 'global_phase'.");
         result = EqualityError;
-        goto cleanup_gpqargs;
+        goto cleanup;
     }
-cleanup_gpqargs:
-    qk_target_qargs_clear(&gp_qargs);
-cleanup_yqargs:
-    qk_target_qargs_clear(&y_qargs);
-cleanup_props:
-    qk_target_inst_props_clear(&cx_props);
-cleanup_qargs:
-    qk_target_qargs_clear(&cx_qargs);
 cleanup:
     qk_target_free(target);
     return result;

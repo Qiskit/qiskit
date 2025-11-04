@@ -1118,7 +1118,8 @@ pub unsafe extern "C" fn qk_target_op_qargs_index(
 /// @param target A pointer to the ``QkTarget``.
 /// @param inst_idx The index at which the gate is stored.  
 /// @param qarg_idx The index at which the qargs are stored.  
-/// @param qargs A pointer to write out the ``QkQargs`` instance.
+/// @param qargs_out A pointer to an array with enough capacity to write out the ``qargs``.
+/// @param qargs_len A pointer to a ``uint32_t`` to write the length of the qargs.
 ///
 /// @return An exit code.
 ///
@@ -1131,39 +1132,38 @@ pub unsafe extern "C" fn qk_target_op_qargs_index(
 ///     qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
 ///     qk_target_add_instruction(target, entry);
 ///
-///     QkQargs qargs_retrieved;
-///     qk_target_op_get_qargs(target, 0, 0, &qargs);
+///     uint32_t *qargs_retrieved;
+///     uint32_t qargs_length;
+///     qk_target_op_get_qargs(target, 0, 0, &qargs_retrieved, &qargs_length);
 /// ```
 ///
 /// # Safety
 ///
 /// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
 /// Behavior is undefined if ``qargs`` does not point to an address of the correct size to
-/// store ``QkQargs`` in.
+/// store the indices in.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_op_get_qargs(
     target: *const Target,
     inst_idx: usize,
     qarg_idx: usize,
-    qargs: *mut CQargs,
+    qargs_out: *mut *mut u32,
+    qargs_len: *mut u32,
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target_borrowed = unsafe { const_ptr_as_ref(target) };
     if let Some((_, props_map)) = target_borrowed.get_by_index(inst_idx) {
         if let Some((retrieved_qargs, _)) = props_map.get_index(qarg_idx) {
-            // SAFETY: Per documentation, the pointer goes to an address
-            // pre-allocated for a ``CQargs`` object.
             let (qargs_ptr, qargs_length) = qargs_to_ptr(retrieved_qargs);
-            unsafe {
-                write(
-                    qargs,
-                    CQargs {
-                        qargs: qargs_ptr,
-                        len: qargs_length,
-                    },
-                );
-            }
+
+            // SAFETY: Per documentation, the pointer is not-null goes to an address
+            // with enough capacity for this array.
+            unsafe { qargs_out.write(qargs_ptr.cast()) };
+
+            // SAFETY: Per documentation, the pointer goes to an address
+            // expecting a uint32_t.
+            unsafe { qargs_len.write(qargs_length) };
             ExitCode::Success
         } else {
             ExitCode::IndexError
@@ -1225,8 +1225,14 @@ pub unsafe extern "C" fn qk_target_op_get_props(
                         },
                     );
                 } else {
-                    // If no property is found but there are qargs, clear the instruction to represent a null instance.
-                    qk_target_inst_props_clear(inst_props);
+                    // If no property is found but there are qargs, return a null instance.
+                    write(
+                        inst_props,
+                        CInstructionProperties {
+                            duration: f64::NAN,
+                            error: f64::NAN,
+                        },
+                    );
                 }
             }
             ExitCode::Success
@@ -1241,100 +1247,10 @@ pub unsafe extern "C" fn qk_target_op_get_props(
 /// A representation of a Target operation's instruction properties.
 #[repr(C)]
 pub struct CInstructionProperties {
-    duration: f64,
-    error: f64,
-}
-
-/// @ingroup QkTarget
-/// Clear the data in the ``QkInstructionProperties`` object.
-///
-/// This function does not free the allocation for the provided ``QkInstructionProperties``
-/// pointer, but it resets the internal values to ``NAN``.
-///
-/// @param inst_props A pointer to the ``QkInstructionProperties`` object to clear.
-///
-/// # Example
-/// ```c
-///     QkTarget *target = qk_target_new(5);
-///
-///     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
-///     uint32_t qargs[2] = {0, 1};
-///     qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
-///     qk_target_add_instruction(target, entry);
-///
-///     QkInstructionProperties inst_props;
-///     qk_target_op_get_props(target, 0, 0, &inst_props);
-///     
-///     // free after usage
-///     qk_target_inst_props_clear(&inst_props);
-/// ```
-///
-/// # Safety
-///
-/// Behavior is undefined if ``inst_props`` is a valid, non-null pointer
-/// to ``QkInstructionProperties``.
-#[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_inst_props_clear(inst_props: *mut CInstructionProperties) {
-    // SAFETY: As per documentation, the pointer is a valid pointer to ``QkInstructionProperties``
-    unsafe {
-        let inst_props = mut_ptr_as_ref(inst_props);
-        inst_props.duration = f64::NAN;
-        inst_props.error = f64::NAN;
-    }
-}
-
-/// A representation of a Target operations's quantum arguments.
-#[repr(C)]
-pub struct CQargs {
-    qargs: *mut u32,
-    len: u32,
-}
-
-/// @ingroup QkTarget
-/// Clear the data in the ``QkQargs`` object.
-///
-/// This function does not free the allocation for the provided ``QkQargs``
-/// pointer, but it resets the internal values and frees the internal qarg
-/// pointer.
-///
-/// @param qargs A pointer to the ``QkQargs`` object to clear.
-///
-/// # Example
-/// ```c
-///     QkTarget *target = qk_target_new(5);
-///
-///     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
-///     uint32_t qargs[2] = {0, 1};
-///     qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
-///     qk_target_add_instruction(target, entry);
-///
-///     QkQargs qargs;
-///     qk_target_op_get_qargs(target, 0, 0, &qargs);
-///     
-///     // free after usage
-///     qk_target_qargs_clear(&qargs);
-/// ```
-///
-/// # Safety
-///
-/// Behavior is undefined if ``qargs`` is a valid, non-null pointer
-/// to ``QkQargs``.
-#[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_qargs_clear(qargs: *mut CQargs) {
-    // SAFETY: The data loaded from the pointer contained in a ``CQargs``
-    // object should only ever be generated by rust code and constructed
-    // internally from Vecs.
-    unsafe {
-        let qargs = mut_ptr_as_ref(qargs);
-        if qargs.len > 0 && !qargs.qargs.is_null() {
-            let qubits = std::slice::from_raw_parts_mut(qargs.qargs, qargs.len as usize);
-            let _: Box<[u32]> = Box::from_raw(qubits as *mut [u32]);
-            qargs.qargs = std::ptr::null_mut();
-        }
-        qargs.len = 0;
-    }
+    /// The duration, in seconds, of the instruction on the specified set of qubits
+    pub duration: f64,
+    /// The average error rate for the instruction on the specified set of qubits.
+    pub error: f64,
 }
 
 /// Parses qargs based on a pointer and its size.
@@ -1421,21 +1337,17 @@ unsafe fn parse_params(gate: StandardGate, params: *mut f64) -> SmallVec<[Param;
 ///
 /// A tuple with a mutable pointer to an array of `u32` members and the length
 /// as a `u32`.
-fn qargs_to_ptr(qargs: &Qargs) -> (*mut u32, u32) {
+fn qargs_to_ptr(qargs: &Qargs) -> (*mut PhysicalQubit, u32) {
     match qargs {
         Qargs::Global => (null_mut(), 0),
-        Qargs::Concrete(small_vec) => {
-            let length = small_vec.len();
-            let qargs: Vec<u32> = small_vec.iter().map(|bit| bit.0).collect();
-            let mut ret = qargs.into_boxed_slice();
-            let out_qargs = ret.as_mut_ptr();
-            let _ = Box::into_raw(ret);
-            (
-                out_qargs,
-                length
-                    .try_into()
-                    .expect("The length of these qargs exceeds the limit"),
-            )
-        }
+        Qargs::Concrete(small_vec) => (
+            small_vec.as_ptr().cast_mut(),
+            small_vec.len().try_into().unwrap_or_else(|_| {
+                panic!(
+                    "The length of these qargs exceeds the capacity of {}",
+                    u32::MAX
+                )
+            }),
+        ),
     }
 }

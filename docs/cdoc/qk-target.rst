@@ -46,9 +46,6 @@ as we improve our Rust data model capabilities.
 Data Types
 ==========
 
-.. doxygenstruct:: QkQargs
-   :members:
-
 .. doxygenstruct:: QkInstructionProperties
    :members:
 

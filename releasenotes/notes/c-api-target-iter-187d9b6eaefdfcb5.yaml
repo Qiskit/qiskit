@@ -4,19 +4,18 @@ features_c:
     Ways of iterating and checking the ``QkTarget``'s gate map have
     been added to the C API. The following methods were added:
       
-      * :cpp:func:`qk_target_op_num_properties`.
-      * :cpp:func:`qk_target_op_get_index`.
-      * :cpp:func:`qk_target_op_name`.
-      * :cpp:func:`qk_target_contains`.
-      * :cpp:func:`qk_target_op_has_qargs`.
-      * :cpp:func:`qk_target_op_qargs_index`.
-      * :cpp:func:`qk_target_op_get_qargs`.
-      * :cpp:func:`qk_target_op_get_props`.
+      * :c:func:`qk_target_op_num_properties`.
+      * :c:func:`qk_target_op_get_index`.
+      * :c:func:`qk_target_op_name`.
+      * :c:func:`qk_target_contains`.
+      * :c:func:`qk_target_op_has_qargs`.
+      * :c:func:`qk_target_op_qargs_index`.
+      * :c:func:`qk_target_op_get_qargs`.
+      * :c:func:`qk_target_op_get_props`.
 
-    And the following representations were added:
+    And the following representation was added:
       
-      * :cpp:struct:`QkInstructionProperties`: to represent the :class:`.InstructionProperties`.
-      * :cpp:struct:`QkQargs`: to represent a collection of qargs.
+      * :c:struct:`QkInstructionProperties`: to represent the :class:`.InstructionProperties`.
 
     Example:
 
@@ -54,23 +53,20 @@ features_c:
       // Get the size of the 
       size_t target_length = qk_target_num_instructions(target);
 
-      for (size_t inst_idx = 0; inst_idx < target_length; inst_idx++) {
+      for (size_t op_idx = 0; op_idx < target_length; op_idx++) {
         // Allocate space for qargs and props
-        QkQargs qargs;
+        uint32_t *qargs;
+        uint32_t qargs_len;
         QkInstructionProperties props;
 
         // Retrieve the operation's name
-        char *name = qk_target_op_name(target, inst_idx);
-        size_t num_props = qk_target_op_num_properties(target, inst_idx);
+        char *name = qk_target_op_name(target, op_idx);
+        size_t num_props = qk_target_op_num_properties(target, op_idx);
         for (size_t props_idx = 0; props_idx < num_props; props_idx++) {
           // Populate qargs
-          qk_target_op_get_qargs(target, inst_idx, props_idx, &qargs);
+          qk_target_op_get_qargs(target, op_idx, props_idx, &qargs, &qargs_len);
           // Populate properties
-          qk_target_op_get_props(target, inst_idx, props_idx, &props);
-
-          // After usage, clear the objects.
-          qk_target_qargs_clear(&qargs);
-          qk_target_inst_props_clear(&props);
+          qk_target_op_get_props(target, op_idx, props_idx, &props);
         }
         // Free the name string
         qk_str_free(name);
