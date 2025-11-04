@@ -1024,7 +1024,7 @@ pub unsafe extern "C" fn qk_opcounts_clear(op_counts: *mut OpCounts) {
         // SAFETY: We load the box from a slice pointer created from
         // the raw parts from the OpCounts::data attribute.
         unsafe {
-            let slice: Box<[OpCount]> = Box::from_raw(std::slice::from_raw_parts_mut(
+            let slice: Box<[OpCount]> = Box::from_raw(std::ptr::slice_from_raw_parts_mut(
                 op_counts.data,
                 op_counts.len,
             ));
