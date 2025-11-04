@@ -137,7 +137,9 @@ class TestSampledExpval(QiskitTestCase):
         self.assertAlmostEqual(var2, 1.0)
 
         spo = SparsePauliOp(["ZZ", "IZ"], coeffs=[0.5, 0.5])
-        with self.assertRaisesRegex(ValueError, "Variance calculation only supported for single Pauli string operators."):
+        with self.assertRaisesRegex(
+            ValueError, "Variance calculation only supported for single Pauli string operators."
+        ):
             _ = sampled_expectation_value(dist2, spo, variance=True)
 
 
