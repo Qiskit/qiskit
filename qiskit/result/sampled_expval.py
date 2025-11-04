@@ -45,6 +45,7 @@ def sampled_expectation_value(dist, oper, variance: bool = False):
 
     Raises:
         QiskitError: if the input distribution or operator is an invalid type
+        ValueError: if variance is True and multiple operators are provided
     """
     from .counts import Counts
     from qiskit.quantum_info import Pauli, SparsePauliOp, SparseObservable
