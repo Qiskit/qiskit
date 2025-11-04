@@ -1096,19 +1096,19 @@ pub unsafe extern "C" fn qk_target_op_has_qargs(
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_op_qargs_index(
     target: *const Target,
-    inst_idx: usize,
+    op_idx: usize,
     qargs: *const u32,
 ) -> usize {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target_borrowed = unsafe { const_ptr_as_ref(target) };
-    if let Some((_, inst_map)) = target_borrowed.get_by_index(inst_idx) {
-        let op = target_borrowed.get_op_by_index(inst_idx).unwrap();
+    if let Some((_, inst_map)) = target_borrowed.get_by_index(op_idx) {
+        let op = target_borrowed.get_op_by_index(op_idx).unwrap();
         // SAFETY: Per the documentation the qubits pointer is an array of the size
         // associated with the operation or a NULL pointer.
         let parsed = unsafe { parse_qargs(qargs, op.num_qubits()) };
         inst_map.get_index_of(&parsed).unwrap_or(usize::MAX)
     } else {
-        panic!("Index '{}' not present in the Target.", inst_idx)
+        panic!("Index '{}' not present in the Target.", op_idx)
     }
 }
 
@@ -1116,7 +1116,7 @@ pub unsafe extern "C" fn qk_target_op_qargs_index(
 /// Retrieve the qargs for the operation by index.
 ///
 /// @param target A pointer to the ``QkTarget``.
-/// @param inst_idx The index at which the gate is stored.  
+/// @param op_idx The index at which the gate is stored.  
 /// @param qarg_idx The index at which the qargs are stored.  
 /// @param qargs_out A pointer to an array with enough capacity to write out the ``qargs``.
 /// @param qargs_len A pointer to a ``uint32_t`` to write the length of the qargs.
@@ -1146,14 +1146,14 @@ pub unsafe extern "C" fn qk_target_op_qargs_index(
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_op_get_qargs(
     target: *const Target,
-    inst_idx: usize,
+    op_idx: usize,
     qarg_idx: usize,
     qargs_out: *mut *mut u32,
     qargs_len: *mut u32,
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target_borrowed = unsafe { const_ptr_as_ref(target) };
-    if let Some((_, props_map)) = target_borrowed.get_by_index(inst_idx) {
+    if let Some((_, props_map)) = target_borrowed.get_by_index(op_idx) {
         if let Some((retrieved_qargs, _)) = props_map.get_index(qarg_idx) {
             let (qargs_ptr, qargs_length) = qargs_to_ptr(retrieved_qargs);
 
@@ -1177,7 +1177,7 @@ pub unsafe extern "C" fn qk_target_op_get_qargs(
 /// Retrieve the qargs for the operation stored in its respective indices.
 ///
 /// @param target A pointer to the ``QkTarget``.
-/// @param inst_idx The index in which the gate is stored.
+/// @param op_idx The index in which the gate is stored.
 /// @param qarg_idx The index in which the qargs are stored.
 /// @param inst_props A pointer to write out the ``QkInstructionProperties`` instance.
 ///
@@ -1205,13 +1205,13 @@ pub unsafe extern "C" fn qk_target_op_get_qargs(
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_op_get_props(
     target: *const Target,
-    inst_idx: usize,
+    op_idx: usize,
     qarg_idx: usize,
     inst_props: *mut CInstructionProperties,
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target_borrowed = unsafe { const_ptr_as_ref(target) };
-    if let Some((_, props_map)) = target_borrowed.get_by_index(inst_idx) {
+    if let Some((_, props_map)) = target_borrowed.get_by_index(op_idx) {
         if let Some((_, retrieved_props)) = props_map.get_index(qarg_idx) {
             // SAFETY: Per documentation, the pointer goes to an address
             // pre-allocated for a ``CInstructionProperties`` object.

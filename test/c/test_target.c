@@ -551,21 +551,21 @@ static int test_target_iteration(void) {
     QkTarget *target = create_sample_target(true);
     int result = Ok;
     size_t target_length = qk_target_num_instructions(target);
-    for (size_t inst_idx = 0; inst_idx < target_length; inst_idx++) {
+    for (size_t op_idx = 0; op_idx < target_length; op_idx++) {
         // Use default size of 2 for qargs, as rarely do we have qargs bigger than 2
         uint32_t *qargs;
         uint32_t qargs_len;
         QkInstructionProperties props;
-        char *name = qk_target_op_name(target, inst_idx);
+        char *name = qk_target_op_name(target, op_idx);
         printf("Op name: '%s'\nProps:\n", name);
-        size_t num_props = qk_target_op_num_properties(target, inst_idx);
+        size_t num_props = qk_target_op_num_properties(target, op_idx);
         for (size_t props_idx = 0; props_idx < num_props; props_idx++) {
-            if (qk_target_op_get_qargs(target, inst_idx, props_idx, &qargs, &qargs_len) !=
+            if (qk_target_op_get_qargs(target, op_idx, props_idx, &qargs, &qargs_len) !=
                 QkExitCode_Success) {
                 result = RuntimeError;
                 goto break_loop;
             };
-            if (qk_target_op_get_props(target, inst_idx, props_idx, &props) != QkExitCode_Success) {
+            if (qk_target_op_get_props(target, op_idx, props_idx, &props) != QkExitCode_Success) {
                 result = RuntimeError;
                 goto break_loop;
             }
