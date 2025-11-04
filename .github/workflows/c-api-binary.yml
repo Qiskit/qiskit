@@ -70,6 +70,7 @@ jobs:
           cd ${{ env.C_DIR_OUT }}/lib
           install_name_tool -id libqiskit.dylib libqiskit.dylib
           cd -
+          tree .
       - name: Validate Binaries
         run: |
           make ctest \
