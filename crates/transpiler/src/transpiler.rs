@@ -150,22 +150,16 @@ pub fn layout_stage(
         // run_check_map returns Some((gate, qargs)) if the circuit violates the connectivity
         // constraints in the target and returns None if the circuit conforms to the undirected
         // connectivity constraints
-        if run_check_map(&dag, target).is_none() {
-            apply_layout(
-                dag,
-                transpile_layout,
-                target.num_qubits.unwrap(),
-                |x| PhysicalQubit(x.0),
-            );
+        if run_check_map(dag, target).is_none() {
+            apply_layout(dag, transpile_layout, target.num_qubits.unwrap(), |x| {
+                PhysicalQubit(x.0)
+            });
         } else if let vf2::Vf2PassReturn::Solution(layout) =
-            vf2_layout_pass(&dag, target, &vf2_config, false, None)?
+            vf2_layout_pass(dag, target, &vf2_config, false, None)?
         {
-            apply_layout(
-                dag,
-                transpile_layout,
-                target.num_qubits.unwrap(),
-                |x| layout[&x],
-            );
+            apply_layout(dag, transpile_layout, target.num_qubits.unwrap(), |x| {
+                layout[&x]
+            });
         } else {
             let (result, initial_layout, final_layout) = sabre::sabre_layout_and_routing(
                 dag,
@@ -184,14 +178,11 @@ pub fn layout_stage(
         }
     } else if optimization_level == OptimizationLevel::Level2 {
         if let vf2::Vf2PassReturn::Solution(layout) =
-            vf2_layout_pass(&dag, target, &vf2_config, false, None)?
+            vf2_layout_pass(dag, target, &vf2_config, false, None)?
         {
-            apply_layout(
-                dag,
-                transpile_layout,
-                target.num_qubits.unwrap(),
-                |x| layout[&x],
-            );
+            apply_layout(dag, transpile_layout, target.num_qubits.unwrap(), |x| {
+                layout[&x]
+            });
         } else {
             let (result, initial_layout, final_layout) = sabre::sabre_layout_and_routing(
                 dag,
@@ -209,14 +200,11 @@ pub fn layout_stage(
                 layout_from_sabre_result(dag, initial_layout, &final_layout, transpile_layout);
         }
     } else if let vf2::Vf2PassReturn::Solution(layout) =
-        vf2_layout_pass(&dag, target, &vf2_config, false, None)?
+        vf2_layout_pass(dag, target, &vf2_config, false, None)?
     {
-        apply_layout(
-            dag,
-            transpile_layout,
-            target.num_qubits.unwrap(),
-            |x| layout[&x],
-        );
+        apply_layout(dag, transpile_layout, target.num_qubits.unwrap(), |x| {
+            layout[&x]
+        });
     } else {
         let (result, initial_layout, final_layout) = sabre::sabre_layout_and_routing(
             dag,
