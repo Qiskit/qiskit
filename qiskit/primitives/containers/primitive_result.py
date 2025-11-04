@@ -25,8 +25,8 @@ T = TypeVar("T", bound=PubResult)
 class PrimitiveResult(Generic[T]):
     """A container for multiple pub results and global metadata.
 
-    This is the return value from any V2 primitive's ``run`` method.  This object corresponds to the
-    *entire* execution, not any single pub; it does not contain any actual data, but may contain
+    This is the return value from any V2 primitive's ``run().result()``.  This object corresponds to
+    the *entire* execution, not any single pub; it does not contain any actual data, but may contain
     freeform :attr:`metadata` returned by the primitive implementer about the entire submission (as
     opposed to :attr:`.PubResult.metadata`, which is metadata about a single pub).
 
