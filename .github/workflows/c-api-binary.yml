@@ -65,6 +65,9 @@ jobs:
       - name: Build Binary
         run: |
           make c C_DIR_OUT="${{ env.C_DIR_OUT }}"
+
+          # macos requires the dylib name to be changed separately
+          install_name_tool -id libqiskit.dylib ${{ env.C_DIR_OUT }}/dist/c/lib/libqiskit.dylib
       - name: Validate Binaries
         run: |
           make ctest \
