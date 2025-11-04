@@ -64,7 +64,13 @@ class BitArray(ShapedMixin):
     correspond to the shape of the pub that was executed to sample these bits.
 
     You typically get this object back as one part of a :class:`.DataBin` accessed through
-    a single :class:`.PubResult.data`.  Users do not typically need to create this class themselves.
+    a single :class:`.PubResult.data`.  Users do not typically create this class themselves, however
+    if you have bitstring-like data in an alternate form that you would like to convert to a
+    :class:`BitArray`, you can use one of :meth:`from_bool_array`, :meth:`from_counts` or
+    :meth:`from_samples`.
+
+    You can "unpack" the bitstrings into expanded array of :class:`bool` by using the
+    :meth:`to_bool_array` method.
 
     This class supports the bitwise ``&`` (and), ``|`` (or), ``^`` (xor) and ``~`` (not) operators,
     where the binary operators act on two :class:`BitArray` instances.
