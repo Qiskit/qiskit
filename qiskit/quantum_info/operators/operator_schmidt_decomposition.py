@@ -24,6 +24,7 @@ from qiskit.exceptions import QiskitError
 # def _permutation_matrix_from_qubit_order(new_order: Sequence[int], n: int) -> np.ndarray:
 #     """Return the ``2**n x 2**n`` permutation matrix that reorders little‑endian qubits.
 
+
 #     Mapping:
 #       * ``new_order[k]`` = which **original** qubit becomes bit-position ``k`` (``k=0`` is LSB).
 #       * State: ``|psi_new> = P |psi_old>``
@@ -92,7 +93,10 @@ def _permutation_matrix_from_qubit_order(new_order: Sequence[int], n: int) -> np
     # Build permutation matrix with columns permuted by new_indices
     return np.eye(dim, dtype=bool)[:, new_indices]
 
-def _check_inputs(op: np.ndarray, qargs: Sequence[int]) -> Tuple[int, Tuple[int, ...], Tuple[int, ...]]:
+
+def _check_inputs(
+    op: np.ndarray, qargs: Sequence[int]
+) -> Tuple[int, Tuple[int, ...], Tuple[int, ...]]:
     if not isinstance(op, np.ndarray):
         raise QiskitError("`op` must be a numpy.ndarray.")
     if op.ndim != 2 or op.shape[0] != op.shape[1]:
@@ -103,7 +107,7 @@ def _check_inputs(op: np.ndarray, qargs: Sequence[int]) -> Tuple[int, Tuple[int,
     n = int(round(n_float))
     if op.shape != (2**n, 2**n):
         raise QiskitError(f"`op` must have shape {(2**n, 2**n)}.")
-    S = tuple(sorted(set(int(q) for q in qargs)))
+    S = tuple(sorted({int(q) for q in qargs}))
     if any(q < 0 or q >= n for q in S):
         raise QiskitError(f"All indices in `qargs` must be in [0, {n-1}].")
     Sc = tuple(sorted(set(range(n)) - set(S)))
@@ -246,8 +250,8 @@ def operator_schmidt_decomposition(
             "matrix": P,
         },
         "singular_values": s.copy(),  # full spectrum (not truncated)
-        "A_factors": A_list,          # truncated list (num terms)
-        "B_factors": B_list,          # truncated list (num terms)
+        "A_factors": A_list,  # truncated list (num terms)
+        "B_factors": B_list,  # truncated list (num terms)
         "truncation": {
             "kept_terms": num,
             "discarded_terms": total_terms - num,

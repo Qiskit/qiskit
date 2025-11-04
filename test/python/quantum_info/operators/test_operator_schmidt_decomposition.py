@@ -48,6 +48,7 @@ def _fro_error(a: np.ndarray, b: np.ndarray) -> float:
 
 # ---------- Helper case generators (evaluated at import time for DDT) ----------
 
+
 def _cases_exact_unitary() -> Iterable[Tuple[int, int, Tuple[int, ...]]]:
     # (seed, n, S)
     for seed in SEEDS_FAST:
@@ -111,6 +112,7 @@ def _cases_k_validation() -> Iterable[Tuple[int]]:
 
 
 # ------------------------- Main test class (fast set) --------------------------
+
 
 @ddt
 class TestOperatorSchmidtDecomposition(QiskitTestCase):
@@ -214,7 +216,9 @@ class TestOperatorSchmidtDecomposition(QiskitTestCase):
 
     @idata(list(_cases_truncation_meta()))
     @unpack
-    def test_truncation_frobenius_optimality_and_metadata(self, seed: int, n: int, S: Tuple[int, ...]):
+    def test_truncation_frobenius_optimality_and_metadata(
+        self, seed: int, n: int, S: Tuple[int, ...]
+    ):
         """Top-k truncation gives Frobenius-optimal tail error and correct metadata."""
         rng = np.random.default_rng(seed)
         U = rng.normal(size=(2**n, 2**n)) + 1j * rng.normal(size=(2**n, 2**n))
@@ -230,7 +234,9 @@ class TestOperatorSchmidtDecomposition(QiskitTestCase):
             self.assertEqual(disc, max(0, total_terms - k))
             expected_tail = np.sqrt(np.sum(s[k:] ** 2)) if k < total_terms else 0.0
             fro_err = out["truncation"]["frobenius_error"]
-            self.assertAlmostEqual(fro_err, expected_tail, delta=max(ATOL, RTOL * max(1.0, expected_tail)))
+            self.assertAlmostEqual(
+                fro_err, expected_tail, delta=max(ATOL, RTOL * max(1.0, expected_tail))
+            )
             denom = np.linalg.norm(s)
             rel_expected = (expected_tail / denom) if denom > 0 else 0.0
             self.assertAlmostEqual(
@@ -241,7 +247,9 @@ class TestOperatorSchmidtDecomposition(QiskitTestCase):
             # Reconstruction is in original order; its error equals tail error.
             U_rec = out["reconstruction"]
             self.assertIsInstance(U_rec, np.ndarray)
-            self.assertAlmostEqual(_fro_error(U, U_rec), expected_tail, delta=max(ATOL, RTOL * max(1.0, expected_tail)))
+            self.assertAlmostEqual(
+                _fro_error(U, U_rec), expected_tail, delta=max(ATOL, RTOL * max(1.0, expected_tail))
+            )
 
     @idata(list(_cases_truncation_low_rank()))
     @unpack
@@ -298,6 +306,7 @@ class TestOperatorSchmidtDecomposition(QiskitTestCase):
 
 
 # ----------------------------- Stress tests (DDT) ------------------------------
+
 
 @ddt
 class TestOperatorSchmidtDecompositionStress(QiskitTestCase):
