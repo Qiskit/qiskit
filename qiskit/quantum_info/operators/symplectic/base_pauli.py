@@ -26,6 +26,7 @@ from qiskit.circuit.delay import Delay
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.mixins import AdjointMixin, MultiplyMixin
+from qiskit.quantum_info.operators.symplectic.clifford_circuits import _n_half_pis
 
 if TYPE_CHECKING:
     from qiskit.quantum_info.operators.symplectic.clifford import Clifford
@@ -555,8 +556,6 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
                 return _basis_2q[name](self, qargs[0], qargs[1])
 
             # If u gate, check if it is a Clifford, and if so, apply it
-            from qiskit.quantum_info.operators.symplectic.clifford_circuits import _n_half_pis
-
             if isinstance(gate, Gate) and name == "u" and len(qargs) == 1:
                 try:
                     theta, phi, lam = tuple(_n_half_pis(par) for par in gate.params)
