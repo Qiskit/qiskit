@@ -31,10 +31,7 @@ use ndarray::{Array2, ArrayView2, Dim, ShapeBuilder, array, aview2};
 use num_complex::Complex64;
 use smallvec::{SmallVec, smallvec};
 
-use numpy::IntoPyArray;
-use numpy::PyArray2;
-use numpy::PyReadonlyArray2;
-use numpy::ToPyArray;
+use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2, ToPyArray};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyList, PyTuple};
@@ -2966,8 +2963,9 @@ impl Operation for PauliProductMeasurement {
 
 impl PauliProductMeasurement {
     pub fn create_py_op(&self, py: Python, label: Option<&str>) -> PyResult<Py<PyAny>> {
-        let z = PyList::new(py, &self.z)?;
-        let x = PyList::new(py, &self.x)?;
+        let z = self.z.clone().into_bound_py_any(py)?;
+        let x = self.x.clone().into_bound_py_any(py)?;
+
         let phase = if self.neg { 2 } else { 0 };
 
         let py_label = if let Some(label) = label {
