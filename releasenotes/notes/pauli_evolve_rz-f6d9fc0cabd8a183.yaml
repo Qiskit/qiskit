@@ -2,5 +2,5 @@
 fixes:
   - |
     :meth:`.Pauli.evolve` now correctly handles quantum circuits containing certain parametrized rotation gates,
-    when the angle is a multiple of pi/2, e.g. :class:`.RZGate(np.pi/2)` or :class:`.RZZGate(np.pi/2)`.
+    when the angle is a multiple of pi/2, e.g. `RZGate(np.pi/2)` or `RZZGate(np.pi/2)`.
     Formerly they were not recognized as Clifford gates, and an error was raised.
