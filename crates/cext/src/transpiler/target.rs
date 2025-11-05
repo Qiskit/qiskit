@@ -1073,7 +1073,7 @@ pub unsafe extern "C" fn qk_target_op_has_qargs(
 /// if not found.
 ///
 /// @param target A pointer to the ``QkTarget``.
-/// @param index The index at which the gate is stored.
+/// @param op_idx The index at which the operation is stored.
 /// @param qargs A pointer to the array of ``uint32_t`` qubit indices to
 ///     check for, can be a null pointer to check for global properties.
 ///
