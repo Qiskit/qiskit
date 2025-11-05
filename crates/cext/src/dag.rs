@@ -247,7 +247,6 @@ pub unsafe extern "C" fn qk_dag_topological_op_nodes(dag: *const DAGCircuit, ord
 
     // SAFETY: Per documentation, ``order`` is a valid pointer with a sufficient allocation for the output
     // array.
-    let order = unsafe { mut_ptr_as_ref(order) };
     unsafe {
         let out_slice = std::slice::from_raw_parts_mut(order, dag.num_ops());
         out_slice
