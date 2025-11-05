@@ -355,12 +355,29 @@ impl<'a> VisualizationLayer<'a> {
             //     //             ));
             //     //         }
             // },
-            StandardGate::H | StandardGate::RX | StandardGate::RZ => {
+            StandardGate::H 
+            | StandardGate::RX 
+            | StandardGate::RZ 
+            | StandardGate::RY
+            | StandardGate::X
+            | StandardGate::SX
+            | StandardGate::Z
+            | StandardGate::Y
+            | StandardGate::S 
+            | StandardGate::T => {
                 self.0[qargs[0].index()] = VisualizationElement::Boxed(Boxed::Single(inst));
-            },
-            StandardGate::CX | StandardGate::CCX => {
-                self.0[qargs.last().unwrap().index()] = VisualizationElement::Boxed(Boxed::Single(inst));
-                let mut control_indices: HashSet<usize> = HashSet::new();
+            }
+            StandardGate::CX 
+            | StandardGate::CCX 
+            | StandardGate::CSdg 
+            | StandardGate::CCZ 
+            | StandardGate::CU 
+            | StandardGate::CU1
+            | StandardGate::CU3 
+            | StandardGate::CY
+            | StandardGate::CZ => {
+                self.0[qargs.last().unwrap().index()] =
+                    VisualizationElement::Boxed(Boxed::Single(inst));
                 if gate.num_ctrl_qubits() > 0 {
                     self.add_controls(
                         &qargs
@@ -372,13 +389,12 @@ impl<'a> VisualizationLayer<'a> {
                     );
                 }
 
+                let vert_lines = (minima..=maxima)
+                .filter(|idx| !(qargs.iter().map(|q| q.0 as usize)).contains(idx));
+                self.add_vertical_lines(inst, vert_lines);
             }
-            _ => unimplemented!("{}", format!("{:?} is not supported yet", gate))
+            _ => unimplemented!("")
         }
-
-    //     let vert_lines = (minima..=maxima)
-    //         .filter(|idx| !control_indices.contains(idx) && !box_indices.contains(idx));
-    //     self.add_vertical_lines(inst, vert_lines);
     }
 
     fn add_standard_instruction(
@@ -850,6 +866,8 @@ impl TextDrawer {
                         Some("|0>".to_string())
                     } else if let StandardInstruction::Barrier(_) = std_instruction {
                         Some("░".to_string())
+                    } else if let StandardInstruction::Delay(_) = std_instruction {
+                        Some(format!("Delay({})", instruction_param))
                     } else {
                         // Fallback for non-standard instructions
                         Some(format!(
