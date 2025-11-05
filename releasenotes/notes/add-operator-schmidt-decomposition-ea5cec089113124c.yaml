@@ -1,0 +1,16 @@
+---
+features:
+  - |
+    Added `operator_schmidt_decomposition` to `qiskit.quantum_info`. This function
+    computes the **operator Schmidt decomposition** of an operator acting on `n` qubits
+    across a specified bipartition. It returns:
+
+      * The full set of singular values (Schmidt coefficients).
+      * Lists of Schmidt factors `A_r` and `B_r` in the permuted basis.
+      * Partition and permutation metadata, including the permutation matrix.
+      * Optional reconstruction of the operator in the original qubit order.
+      * Truncation support: keep only the top-`k` Schmidt terms with Frobenius-optimal
+        error reporting.
+
+    This utility is useful for analyzing entanglement structure of operators, validating
+    tensor decompositions, and benchmarking low-rank approximations.
