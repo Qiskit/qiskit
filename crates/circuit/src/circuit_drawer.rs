@@ -463,8 +463,10 @@ impl<'a> VisualizationLayer<'a> {
                 }
             }
             StandardInstruction::Measure => {
-                self.0[qargs.last().unwrap().index()] = VisualizationElement::Boxed(Boxed::Single(inst));
-                self.add_vertical_lines(inst, minima + 1..=maxima);
+                self.0[qargs.last().unwrap().index()] =
+                    VisualizationElement::Boxed(Boxed::Single(inst));
+                self.add_vertical_lines(inst, minima + 1..maxima);
+                self.0[maxima] = VisualizationElement::DirectOnWire(OnWire::Control(ElementOnWire::Bot))
             }
             StandardInstruction::Delay(_) => {
                 for q in qargs {
