@@ -326,6 +326,7 @@ impl<'a> VisualizationLayer<'a> {
             StandardGate::ISwap
             | StandardGate::DCX
             | StandardGate::ECR
+            | StandardGate::ISwap
             | StandardGate::RXX
             | StandardGate::RYY
             | StandardGate::RZZ
@@ -356,26 +357,46 @@ impl<'a> VisualizationLayer<'a> {
             //     //         }
             // },
             StandardGate::H 
-            | StandardGate::RX 
-            | StandardGate::RZ 
+            | StandardGate::I 
+            | StandardGate::X 
+            | StandardGate::Y 
+            | StandardGate::Z 
+            | StandardGate::Phase 
+            | StandardGate::R
+            | StandardGate::RX
             | StandardGate::RY
-            | StandardGate::X
+            | StandardGate::RZ
+            | StandardGate::S
+            | StandardGate::Sdg
             | StandardGate::SX
-            | StandardGate::Z
-            | StandardGate::Y
-            | StandardGate::S 
-            | StandardGate::T => {
+            | StandardGate::SXdg
+            | StandardGate::T
+            | StandardGate::Tdg
+            | StandardGate::U
+            | StandardGate::U1
+            | StandardGate::U2
+            | StandardGate::U3 => {
                 self.0[qargs[0].index()] = VisualizationElement::Boxed(Boxed::Single(inst));
             }
-            StandardGate::CX 
-            | StandardGate::CCX 
-            | StandardGate::CSdg 
-            | StandardGate::CCZ 
-            | StandardGate::CU 
-            | StandardGate::CU1
-            | StandardGate::CU3 
+            StandardGate::CH
+            | StandardGate::CX 
             | StandardGate::CY
-            | StandardGate::CZ => {
+            | StandardGate::CZ 
+            | StandardGate::CRX
+            | StandardGate::CRY
+            | StandardGate::CRZ
+            | StandardGate::CS
+            | StandardGate::CSdg
+            | StandardGate::CSX
+            | StandardGate::CU
+            | StandardGate::CU1
+            | StandardGate::CU3
+            | StandardGate::CCX
+            | StandardGate::CCZ
+            | StandardGate::C3X
+            | StandardGate::C3SX
+            | StandardGate::CPhase
+             => {
                 self.0[qargs.last().unwrap().index()] =
                     VisualizationElement::Boxed(Boxed::Single(inst));
                 if gate.num_ctrl_qubits() > 0 {
@@ -393,7 +414,30 @@ impl<'a> VisualizationLayer<'a> {
                 .filter(|idx| !(qargs.iter().map(|q| q.0 as usize)).contains(idx));
                 self.add_vertical_lines(inst, vert_lines);
             }
-            _ => unimplemented!("")
+            StandardGate::GlobalPhase => {
+
+            }
+            StandardGate::Swap
+            | StandardGate::CSwap => {
+                // taking the last 2 elements of qargs
+                let swap_qubits = qargs.iter().map(|q| q.0 as usize).rev().take(2);
+                for qubit in swap_qubits {
+                    if qubit == minima {
+                        self.0[qubit] =
+                            VisualizationElement::DirectOnWire(OnWire::Swap(ElementOnWire::Top));
+                    } else if qubit == maxima {
+                        self.0[qubit] =
+                            VisualizationElement::DirectOnWire(OnWire::Swap(ElementOnWire::Bot));
+                    } else {
+                        self.0[qubit] =
+                            VisualizationElement::DirectOnWire(OnWire::Swap(ElementOnWire::Mid));
+                    }
+                }
+
+                let vert_lines = (minima..=maxima)
+                .filter(|idx| !(qargs.iter().map(|q| q.0 as usize)).contains(idx));
+                self.add_vertical_lines(inst, vert_lines);
+            }
         }
     }
 
@@ -1123,7 +1167,7 @@ impl TextDrawer {
 
                         let mid_section = if ind == mid {
                             format!(
-                                "{:^total_q$} {:^label_len$}",
+                                "{:^total_q$}{:^label_len$}",
                                 num_affected,
                                 label,
                                 total_q = qargs.len(),
@@ -1131,7 +1175,7 @@ impl TextDrawer {
                             )
                         } else {
                             format!(
-                                "{:^total_q$} {:^label_len$}",
+                                "{:^total_q$}{:^label_len$}",
                                 num_affected,
                                 " ",
                                 total_q = qargs.len(),
