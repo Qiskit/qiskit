@@ -421,6 +421,8 @@ class TestPauli(QiskitTestCase):
                 RXGate(theta=np.pi / 2),
                 RYGate(theta=np.pi / 2),
                 RZGate(phi=np.pi / 2),
+                RZGate(phi=17 * np.pi / 2),
+                RXGate(theta=-5 * np.pi / 2),
             ),
             pauli_group_labels(1, False),
         )
@@ -458,6 +460,8 @@ class TestPauli(QiskitTestCase):
                 RZXGate(theta=np.pi / 2),
                 XXMinusYYGate(theta=np.pi),
                 XXPlusYYGate(theta=-np.pi),
+                RZZGate(theta=7 * np.pi / 2),
+                RXXGate(theta=-15 * np.pi / 2),
             ),
             pauli_group_labels(2, False),
         )
