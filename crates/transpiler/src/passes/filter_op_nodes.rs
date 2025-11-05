@@ -13,7 +13,7 @@
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::PyDAGCircuit;
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
@@ -21,7 +21,7 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 #[pyo3(name = "filter_op_nodes")]
 pub fn py_filter_op_nodes(
     py: Python,
-    dag: &mut DAGCircuit,
+    dag: &mut PyDAGCircuit,
     predicate: &Bound<PyAny>,
 ) -> PyResult<()> {
     let callable = |node: NodeIndex| -> PyResult<bool> {
@@ -29,13 +29,13 @@ pub fn py_filter_op_nodes(
         predicate.call1((dag_op_node,))?.extract()
     };
     let mut remove_nodes: Vec<NodeIndex> = Vec::new();
-    for node in dag.op_node_indices(true) {
+    for node in dag.dag_circuit.op_node_indices(true) {
         if !callable(node)? {
             remove_nodes.push(node);
         }
     }
     for node in remove_nodes {
-        dag.remove_op_node(node);
+        dag.dag_circuit.remove_op_node(node);
     }
     Ok(())
 }
@@ -46,14 +46,14 @@ pub fn py_filter_op_nodes(
 ///     dag (DAGCircuit): The dag circuit to filter the ops from
 ///     label (str): The label to filter nodes on
 #[pyfunction]
-pub fn filter_labeled_op(dag: &mut DAGCircuit, label: String) {
+pub fn filter_labeled_op(dag: &mut PyDAGCircuit, label: String) {
     let predicate = |node: &PackedInstruction| -> bool {
         match node.label() {
             Some(inst_label) => inst_label != label,
             None => false,
         }
     };
-    dag.filter_op_nodes(predicate);
+    dag.dag_circuit.filter_op_nodes(predicate);
 }
 
 pub fn filter_op_nodes_mod(m: &Bound<PyModule>) -> PyResult<()> {

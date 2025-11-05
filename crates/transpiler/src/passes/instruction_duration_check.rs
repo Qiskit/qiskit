@@ -14,7 +14,7 @@ use crate::TranspilerError;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::{DelayUnit, OperationRef, StandardInstruction};
 
@@ -30,7 +30,16 @@ use qiskit_circuit::operations::{DelayUnit, OperationRef, StandardInstruction};
 ///     True if rescheduling is required, False otherwise.
 
 #[pyfunction]
-#[pyo3(signature=(dag, acquire_align, pulse_align))]
+#[pyo3(name = "run_instruction_duration_check", signature=(dag, acquire_align, pulse_align))]
+pub fn py_run_instruction_duration_check(
+    py: Python,
+    dag: &PyDAGCircuit,
+    acquire_align: u32,
+    pulse_align: u32,
+) -> PyResult<bool> {
+    run_instruction_duration_check(py, &dag.dag_circuit, acquire_align, pulse_align)
+}
+
 pub fn run_instruction_duration_check(
     py: Python,
     dag: &DAGCircuit,
@@ -75,6 +84,6 @@ pub fn run_instruction_duration_check(
 }
 
 pub fn instruction_duration_check_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(run_instruction_duration_check))?;
+    m.add_wrapped(wrap_pyfunction!(py_run_instruction_duration_check))?;
     Ok(())
 }

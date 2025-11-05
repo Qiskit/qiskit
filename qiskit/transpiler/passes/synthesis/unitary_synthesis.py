@@ -217,7 +217,7 @@ class UnitarySynthesis(TransformationPass):
             _coupling_edges = (
                 set(self._coupling_map.get_edges()) if self._coupling_map is not None else set()
             )
-            out = run_main_loop(
+            run_main_loop(
                 dag,
                 list(qubit_indices.values()),
                 self._min_qubits,
@@ -229,7 +229,7 @@ class UnitarySynthesis(TransformationPass):
                 self._natural_direction,
                 self._pulse_optimize,
             )
-            return out
+            return dag
         else:
             for method, kwargs in method_list:
                 if method.supports_basis_gates:

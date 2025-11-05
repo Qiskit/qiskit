@@ -20,7 +20,7 @@ use rand_pcg::Pcg64Mcg;
 use rayon_cond::CondIterator;
 use rustworkx_core::petgraph::graph::NodeIndex;
 
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
 use qiskit_circuit::nlayout::NLayout;
 use qiskit_circuit::{PhysicalQubit, VirtualQubit, getenv_use_multiple_threads};
 
@@ -38,7 +38,45 @@ use super::route::{RoutingProblem, RoutingResult, RoutingTarget, swap_map, swap_
 
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
-#[pyo3(signature = (dag, target, heuristic, max_iterations, num_swap_trials, num_random_trials, seed=None, partial_layouts=vec![], skip_routing=false))]
+#[pyo3(name = "sabre_layout_and_routing", signature = (dag, target, heuristic, max_iterations, num_swap_trials, num_random_trials, seed=None, partial_layouts=vec![], skip_routing=false))]
+pub fn py_sabre_layout_and_routing(
+    dag: &mut PyDAGCircuit,
+    target: &Target,
+    heuristic: &Heuristic,
+    max_iterations: usize,
+    num_swap_trials: usize,
+    num_random_trials: usize,
+    seed: Option<u64>,
+    partial_layouts: Vec<Vec<Option<PhysicalQubit>>>,
+    skip_routing: bool,
+) -> PyResult<(PyDAGCircuit, NLayout, NLayout)> {
+    sabre_layout_and_routing(
+        &mut dag.dag_circuit,
+        target,
+        heuristic,
+        max_iterations,
+        num_swap_trials,
+        num_random_trials,
+        seed,
+        partial_layouts,
+        skip_routing,
+    )
+    .map(|x| {
+        (
+            PyDAGCircuit {
+                name: dag.name.clone(),
+                metadata: dag.metadata.clone(),
+                dag_circuit: x.0,
+                unit: dag.unit.clone(),
+                duration: None, // Duration is no longer valid
+            },
+            x.1,
+            x.2,
+        )
+    })
+}
+
+#[allow(clippy::too_many_arguments)]
 pub fn sabre_layout_and_routing(
     dag: &mut DAGCircuit,
     target: &Target,
@@ -193,7 +231,7 @@ pub fn sabre_layout_and_routing(
             // The DAG needs splitting across multiple chips.  We can build an initial layout
             // safely, but the final routing needs to be done altogether, with cross-chip
             // synchronisation points (e.g. barriers, classical communication, etc) fully in place.
-            let mut full_layout = vec![PhysicalQubit::new(u32::MAX); dag.num_qubits()];
+            let mut full_layout = vec![PhysicalQubit::new(u32::MAX); dag.qubits().len()];
             // Mapping of the "proper" (full-target) physical qubits to the "fake" restricted
             // physical qubit index used in the disjoint handling.  At the end of the loop, there
             // will be duplicates in the list, and there may still be un-set entries, but that
@@ -299,7 +337,9 @@ pub fn sabre_layout_and_routing(
                 .enumerate()
                 // Loop through unassigned virtual qubits and ancillas to make us full width...
                 .filter_map(|(i, p)| (*p == max_phys).then_some(VirtualQubit::new(i as u32)))
-                .chain((dag.num_qubits()..num_physical_qubits).map(|i| VirtualQubit::new(i as u32)))
+                .chain(
+                    (dag.qubits().len()..num_physical_qubits).map(|i| VirtualQubit::new(i as u32)),
+                )
                 // ...and assign them to the unassigned physical qubits in increasing order of both.
                 .zip(initial_physical.iter_mut().filter(|v| **v == max_virt))
                 .for_each(|(v, slot)| *slot = v);
@@ -390,7 +430,7 @@ fn layout_trial<'a>(
     // Remap implicit ancillas to be assigned in numerical order.  This is pretty meaningless, but
     // ensures we have exact RNG compatibility with previous versions of Sabre.
     let initial_layout = {
-        let first_ancilla = problem.dag.num_qubits();
+        let first_ancilla = problem.dag.qubits().len();
         let (mut virt_to_phys, mut phys_to_virt) = initial_layout.take();
         let ancillas = &mut virt_to_phys[first_ancilla..];
         ancillas.sort_unstable_by_key(|q| q.index());
@@ -444,7 +484,7 @@ fn add_heuristic_layouts(
     let num_physical_qubits = problem.target.neighbors.num_qubits();
     // Run a dense layout trial
     starting_layouts.push(compute_dense_starting_layout(
-        problem.dag.num_qubits(),
+        problem.dag.qubits().len(),
         problem.target,
         run_in_parallel,
     ));

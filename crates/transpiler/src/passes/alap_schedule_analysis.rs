@@ -14,7 +14,7 @@ use crate::TranspilerError;
 use hashbrown::HashMap;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
-use qiskit_circuit::dag_circuit::{DAGCircuit, Wire};
+use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit, Wire};
 use qiskit_circuit::dag_node::{DAGNode, DAGOpNode};
 use qiskit_circuit::operations::{OperationRef, StandardInstruction};
 use qiskit_circuit::{Clbit, Qubit};
@@ -182,7 +182,7 @@ pub fn run_alap_schedule_analysis<T: TimeOps>(
 #[pyo3(name = "alap_schedule_analysis", signature= (dag, clbit_write_latency, node_durations))]
 pub fn py_run_alap_schedule_analysis(
     py: Python,
-    dag: &DAGCircuit,
+    dag: &PyDAGCircuit,
     clbit_write_latency: u64,
     node_durations: &Bound<PyDict>,
 ) -> PyResult<Py<PyDict>> {
@@ -207,7 +207,7 @@ pub fn py_run_alap_schedule_analysis(
             op_durations.insert(node_idx, val);
         }
         let node_start_time =
-            run_alap_schedule_analysis::<u64>(dag, clbit_write_latency, op_durations)?;
+            run_alap_schedule_analysis::<u64>(&dag.dag_circuit, clbit_write_latency, op_durations)?;
         for (node_idx, t1) in node_start_time {
             let node = dag.get_node(py, node_idx)?;
             py_dict.set_item(node, t1)?;
@@ -224,8 +224,11 @@ pub fn py_run_alap_schedule_analysis(
             let val = py_duration.extract::<f64>()?;
             op_durations.insert(node_idx, val);
         }
-        let node_start_time =
-            run_alap_schedule_analysis::<f64>(dag, clbit_write_latency as f64, op_durations)?;
+        let node_start_time = run_alap_schedule_analysis::<f64>(
+            &dag.dag_circuit,
+            clbit_write_latency as f64,
+            op_durations,
+        )?;
         for (node_idx, t1) in node_start_time {
             let node = dag.get_node(py, node_idx)?;
             py_dict.set_item(node, t1)?;

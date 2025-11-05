@@ -21,7 +21,7 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use qiskit_circuit::Qubit;
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, PyDAGCircuit};
 use qiskit_circuit::gate_matrix::{
     CH_GATE, CX_GATE, CY_GATE, CZ_GATE, DCX_GATE, ECR_GATE, ISWAP_GATE, ONE_QUBIT_IDENTITY,
     TWO_QUBIT_IDENTITY,
@@ -178,6 +178,31 @@ impl PhysQargsMap {
 #[pyfunction]
 #[pyo3(name = "consolidate_blocks", signature = (dag, decomposer, basis_gate_name, force_consolidate, target=None, basis_gates=None, blocks=None, runs=None, qubit_map=None))]
 fn py_run_consolidate_blocks(
+    dag: &mut PyDAGCircuit,
+    decomposer: DecomposerType,
+    basis_gate_name: &str,
+    force_consolidate: bool,
+    target: Option<&Target>,
+    basis_gates: Option<HashSet<String>>,
+    blocks: Option<Vec<Vec<usize>>>,
+    runs: Option<Vec<Vec<usize>>>,
+    qubit_map: Option<Vec<PhysicalQubit>>,
+) -> PyResult<()> {
+    consolidate_blocks(
+        &mut dag.dag_circuit,
+        decomposer,
+        basis_gate_name,
+        force_consolidate,
+        target,
+        basis_gates,
+        blocks,
+        runs,
+        qubit_map,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn consolidate_blocks(
     dag: &mut DAGCircuit,
     decomposer: DecomposerType,
     basis_gate_name: &str,
@@ -499,7 +524,7 @@ pub fn run_consolidate_blocks(
 ) -> PyResult<()> {
     let approximation_degree = approximation_degree.unwrap_or(1.0);
     let (decomposer, basis_gate) = get_decomposer_and_basis_gate(target, approximation_degree);
-    py_run_consolidate_blocks(
+    consolidate_blocks(
         dag,
         decomposer,
         basis_gate.name(),
@@ -584,9 +609,8 @@ mod test_consolidate_blocks {
             .expect("Error while adding CXGate to target");
 
         // Convert the circuit to a DAG.
-        let mut circ_as_dag =
-            DAGCircuit::from_circuit_data(&circuit, false, None, None, None, None)
-                .expect("Error converting circuit to DAG.");
+        let mut circ_as_dag = DAGCircuit::from_circuit_data(&circuit, false, None, None)
+            .expect("Error converting circuit to DAG.");
         // Run the pass
         run_consolidate_blocks(&mut circ_as_dag, false, None, Some(&target))
             .expect("Error while running the consolidate blocks pass.");

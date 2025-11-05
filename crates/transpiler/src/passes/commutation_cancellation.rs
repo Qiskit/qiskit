@@ -22,7 +22,7 @@ use smallvec::{SmallVec, smallvec};
 use super::analyze_commutations;
 use crate::commutation_checker::CommutationChecker;
 use qiskit_circuit::Qubit;
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, PyDAGCircuit, Wire};
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_synthesis::QiskitError;
 
@@ -66,7 +66,21 @@ struct CancellationSetKey {
 }
 
 #[pyfunction]
-#[pyo3(signature = (dag, commutation_checker, basis_gates=None, approximation_degree=1.))]
+#[pyo3(name = "cancel_commutations", signature = (dag, commutation_checker, basis_gates=None, approximation_degree=1.))]
+pub fn py_cancel_commutations(
+    dag: &mut PyDAGCircuit,
+    commutation_checker: &mut CommutationChecker,
+    basis_gates: Option<Vec<String>>,
+    approximation_degree: f64,
+) -> PyResult<()> {
+    cancel_commutations(
+        &mut dag.dag_circuit,
+        commutation_checker,
+        basis_gates,
+        approximation_degree,
+    )
+}
+
 pub fn cancel_commutations(
     dag: &mut DAGCircuit,
     commutation_checker: &mut CommutationChecker,
@@ -127,7 +141,7 @@ pub fn cancel_commutations(
         analyze_commutations(dag, commutation_checker, approximation_degree)?;
     let mut cancellation_sets = IndexMap::with_hasher(::ahash::RandomState::new());
 
-    (0..dag.num_qubits() as u32).for_each(|qubit| {
+    (0..dag.qubits().len() as u32).for_each(|qubit| {
         let wire = Qubit(qubit);
         if let Some(wire_commutation_set) = commutation_set.get(&Wire::Qubit(wire)) {
             for (com_set_idx, com_set) in wire_commutation_set.iter().enumerate() {
@@ -291,6 +305,6 @@ pub fn cancel_commutations(
 }
 
 pub fn commutation_cancellation_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(cancel_commutations))?;
+    m.add_wrapped(wrap_pyfunction!(py_cancel_commutations))?;
     Ok(())
 }

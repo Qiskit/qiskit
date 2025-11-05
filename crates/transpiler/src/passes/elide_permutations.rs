@@ -13,7 +13,7 @@
 use numpy::PyReadonlyArray1;
 use pyo3::prelude::*;
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, PyDAGCircuit};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::{Qubit, VarsMode};
 
@@ -27,6 +27,23 @@ use qiskit_circuit::{Qubit, VarsMode};
 ///     tuple consisting of the optimized DAG and the induced qubit permutation.
 #[pyfunction]
 #[pyo3(name = "run")]
+pub fn py_run_elide_permutations(
+    dag: &PyDAGCircuit,
+) -> PyResult<Option<(PyDAGCircuit, Vec<usize>)>> {
+    Ok(run_elide_permutations(&dag.dag_circuit)?.map(|x| {
+        (
+            PyDAGCircuit {
+                name: dag.name.clone(),
+                metadata: dag.metadata.clone(),
+                dag_circuit: x.0,
+                unit: dag.unit.clone(),
+                duration: None, // Duration is no longer valid,
+            },
+            x.1,
+        )
+    }))
+}
+
 pub fn run_elide_permutations(dag: &DAGCircuit) -> PyResult<Option<(DAGCircuit, Vec<usize>)>> {
     let permutation_gate_names = ["swap".to_string(), "permutation".to_string()];
     let op_counts = dag.get_op_counts();
@@ -36,10 +53,10 @@ pub fn run_elide_permutations(dag: &DAGCircuit) -> PyResult<Option<(DAGCircuit, 
     {
         return Ok(None);
     }
-    let mut mapping: Vec<usize> = (0..dag.num_qubits()).collect();
+    let mut mapping: Vec<usize> = (0..dag.qubits().len()).collect();
 
     // note that DAGCircuit::copy_empty_like clones the interners
-    let mut new_dag = dag.copy_empty_like(VarsMode::Alike)?;
+    let mut new_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike)?;
     for node_index in dag.topological_op_nodes()? {
         if let NodeType::Operation(inst) = &dag[node_index] {
             match inst.op.view() {
@@ -101,6 +118,6 @@ pub fn run_elide_permutations(dag: &DAGCircuit) -> PyResult<Option<(DAGCircuit, 
 }
 
 pub fn elide_permutations_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(run_elide_permutations))?;
+    m.add_wrapped(wrap_pyfunction!(py_run_elide_permutations))?;
     Ok(())
 }

@@ -17,12 +17,16 @@ use qiskit_circuit::circuit_data::CircuitData;
 use crate::target::{Qargs, Target};
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::Qubit;
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
 use qiskit_circuit::operations::{Operation, Param};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 
 #[pyfunction]
 #[pyo3(name = "any_gate_missing_from_target")]
+pub fn py_gates_missing_from_target(dag: &PyDAGCircuit, target: &Target) -> PyResult<bool> {
+    gates_missing_from_target(&dag.dag_circuit, target)
+}
+
 pub fn gates_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<bool> {
     #[inline]
     fn is_universal(gate: &PackedInstruction) -> bool {
@@ -93,7 +97,7 @@ pub fn gates_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<
 
     // In the outer DAG, virtual and physical bits are the same thing.
     let wire_map: HashMap<Qubit, PhysicalQubit> = HashMap::from_iter(
-        (0..dag.num_qubits()).map(|i| (Qubit::new(i), PhysicalQubit::new(i.try_into().unwrap()))),
+        (0..dag.qubits().len()).map(|i| (Qubit::new(i), PhysicalQubit::new(i.try_into().unwrap()))),
     );
 
     // Process the DAG.
@@ -111,6 +115,14 @@ pub fn gates_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<
 
 #[pyfunction]
 #[pyo3(name = "any_gate_missing_from_basis")]
+pub fn py_gates_missing_from_basis(
+    py: Python,
+    dag: &PyDAGCircuit,
+    basis: HashSet<String>,
+) -> PyResult<bool> {
+    gates_missing_from_basis(py, &dag.dag_circuit, basis)
+}
+
 pub fn gates_missing_from_basis(
     py: Python,
     dag: &DAGCircuit,
@@ -125,7 +137,7 @@ pub fn gates_missing_from_basis(
 }
 
 pub fn gates_in_basis_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(gates_missing_from_target))?;
-    m.add_wrapped(wrap_pyfunction!(gates_missing_from_basis))?;
+    m.add_wrapped(wrap_pyfunction!(py_gates_missing_from_target))?;
+    m.add_wrapped(wrap_pyfunction!(py_gates_missing_from_basis))?;
     Ok(())
 }

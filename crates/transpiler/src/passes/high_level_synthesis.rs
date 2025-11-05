@@ -26,7 +26,7 @@ use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::converters::dag_to_circuit;
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
 use qiskit_circuit::gate_matrix::CX_GATE;
 use qiskit_circuit::imports::{HLS_SYNTHESIZE_OP_USING_PLUGINS, QS_DECOMPOSITION, QUANTUM_CIRCUIT};
 use qiskit_circuit::operations::Operation;
@@ -1008,6 +1008,25 @@ fn py_synthesize_operation(
 /// Otherwise, the new DAG is returned.
 #[pyfunction]
 #[pyo3(name = "run_on_dag", signature = (dag, data, qubits_initially_zero))]
+pub fn py_run_high_level_synthesis(
+    py: Python,
+    dag: &PyDAGCircuit,
+    data: &Bound<HighLevelSynthesisData>,
+    qubits_initially_zero: bool,
+) -> PyResult<Option<PyDAGCircuit>> {
+    Ok(
+        run_high_level_synthesis(py, &dag.dag_circuit, data, qubits_initially_zero)?.map(|x| {
+            PyDAGCircuit {
+                name: dag.name.clone(),
+                metadata: dag.metadata.clone(),
+                dag_circuit: x,
+                unit: dag.unit.clone(),
+                duration: None, // Duration is no longer valid
+            }
+        }),
+    )
+}
+
 pub fn run_high_level_synthesis(
     py: Python,
     dag: &DAGCircuit,
@@ -1051,23 +1070,14 @@ pub fn run_high_level_synthesis(
             run_on_circuitdata(py, &circuit, &input_qubits, data, &mut tracker)?;
 
         // Using this constructor so name and metadata are not lost
-        let new_dag = DAGCircuit::from_circuit(
-            QuantumCircuitData {
-                data: output_circuit,
-                name: dag.get_name().cloned(),
-                metadata: dag.get_metadata().map(|m| m.bind(py)).cloned(),
-            },
-            false,
-            None,
-            None,
-        )?;
+        let new_dag = DAGCircuit::from_circuit_data(&output_circuit, false, None, None)?;
 
         Ok(Some(new_dag))
     }
 }
 
 pub fn high_level_synthesis_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(run_high_level_synthesis))?;
+    m.add_wrapped(wrap_pyfunction!(py_run_high_level_synthesis))?;
     m.add_wrapped(wrap_pyfunction!(py_synthesize_operation))?;
 
     m.add_class::<QubitTracker>()?;

@@ -14,7 +14,7 @@ use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use std::f64::consts::PI;
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, PyDAGCircuit};
 use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
@@ -312,6 +312,10 @@ fn optimize_clifford_t_1q(
 
 #[pyfunction]
 #[pyo3(name = "optimize_clifford_t")]
+pub fn py_run_optimize_clifford_t(dag: &mut PyDAGCircuit) -> PyResult<()> {
+    run_optimize_clifford_t(&mut dag.dag_circuit)
+}
+
 pub fn run_optimize_clifford_t(dag: &mut DAGCircuit) -> PyResult<()> {
     let op_counts = dag.get_op_counts();
 
@@ -353,7 +357,7 @@ pub fn run_optimize_clifford_t(dag: &mut DAGCircuit) -> PyResult<()> {
 }
 
 pub fn optimize_clifford_t_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(run_optimize_clifford_t))?;
+    m.add_wrapped(wrap_pyfunction!(py_run_optimize_clifford_t))?;
     Ok(())
 }
 

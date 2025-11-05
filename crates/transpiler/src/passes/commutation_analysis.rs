@@ -21,7 +21,7 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use crate::commutation_checker::CommutationChecker;
 use qiskit_circuit::Qubit;
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, PyDAGCircuit, Wire};
 
 // Custom types to store the commutation sets and node indices,
 // see the docstring below for more information.
@@ -51,14 +51,14 @@ const MAX_NUM_QUBITS: u32 = 3;
 ///     node_indices = {(0, 0): 0, (1, 0): 3, (2, 0): 1, (3, 0): 1, (4, 0): 2}
 ///
 pub fn analyze_commutations(
-    dag: &mut DAGCircuit,
+    dag: &DAGCircuit,
     commutation_checker: &mut CommutationChecker,
     approximation_degree: f64,
 ) -> PyResult<(CommutationSet, NodeIndices)> {
     let mut commutation_set: CommutationSet = Default::default();
     let mut node_indices: NodeIndices = Default::default();
 
-    for qubit in 0..dag.num_qubits() {
+    for qubit in 0..dag.qubits().len() {
         let wire = Wire::Qubit(Qubit(qubit as u32));
 
         for current_gate_idx in dag.nodes_on_wire(wire, false) {
@@ -132,7 +132,7 @@ pub fn analyze_commutations(
 #[pyo3(name = "analyze_commutations", signature = (dag, commutation_checker, approximation_degree=1.))]
 pub fn py_analyze_commutations(
     py: Python,
-    dag: &mut DAGCircuit,
+    dag: &mut PyDAGCircuit,
     commutation_checker: &mut CommutationChecker,
     approximation_degree: f64,
 ) -> PyResult<Py<PyDict>> {
@@ -141,7 +141,7 @@ pub fn py_analyze_commutations(
     //   * The index in which commutation set a given node is located on a wire: {(node, wire): index}
     // The Python dict will store both of these dictionaries in one.
     let (commutation_set, node_indices) =
-        analyze_commutations(dag, commutation_checker, approximation_degree)?;
+        analyze_commutations(&dag.dag_circuit, commutation_checker, approximation_degree)?;
 
     let out_dict = PyDict::new(py);
 
@@ -150,7 +150,7 @@ pub fn py_analyze_commutations(
         // we know all wires are of type Wire::Qubit, since in analyze_commutations_inner
         // we only iterater over the qubits
         let py_wire = match wire {
-            Wire::Qubit(q) => dag.qubits().get(q).unwrap().into_pyobject(py),
+            Wire::Qubit(q) => dag.dag_circuit.qubits().get(q).unwrap().into_pyobject(py),
             _ => return Err(PyValueError::new_err("Unexpected wire type.")),
         }?;
 
@@ -174,7 +174,7 @@ pub fn py_analyze_commutations(
     // Then we add the {(node, wire): index} dictionary
     for ((node_index, wire), index) in node_indices {
         let py_wire = match wire {
-            Wire::Qubit(q) => dag.qubits().get(q).unwrap().into_pyobject(py),
+            Wire::Qubit(q) => dag.dag_circuit.qubits().get(q).unwrap().into_pyobject(py),
             _ => return Err(PyValueError::new_err("Unexpected wire type.")),
         }?;
         out_dict.set_item((dag.get_node(py, node_index)?, py_wire), index)?;

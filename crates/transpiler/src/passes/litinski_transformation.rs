@@ -12,7 +12,7 @@
 
 use pyo3::prelude::*;
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, PyDAGCircuit};
 use qiskit_circuit::imports::PAULI_EVOLUTION_GATE;
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, PyGate, StandardGate, multiply_param,
@@ -77,7 +77,25 @@ pub fn extract_rotations(
 }
 
 #[pyfunction]
-#[pyo3(signature = (dag, fix_clifford=true))]
+#[pyo3(name = "run_litinski_transformation", signature = (dag, fix_clifford=true))]
+pub fn py_run_litinski_transformation(
+    py: Python,
+    dag: &PyDAGCircuit,
+    fix_clifford: bool,
+) -> PyResult<Option<PyDAGCircuit>> {
+    Ok(
+        run_litinski_transformation(py, &dag.dag_circuit, fix_clifford)?.map(|x| {
+            PyDAGCircuit {
+                name: dag.name.clone(),
+                metadata: dag.metadata.clone(),
+                dag_circuit: x,
+                unit: dag.unit.clone(),
+                duration: None, // Duration is no longer valid,
+            }
+        }),
+    )
+}
+
 pub fn run_litinski_transformation(
     py: Python,
     dag: &DAGCircuit,
@@ -109,7 +127,7 @@ pub fn run_litinski_transformation(
         )));
     }
 
-    let num_qubits = dag.num_qubits();
+    let num_qubits = dag.qubits().len();
 
     // Turn the Qiskit circuit into a vector of (gate name, qubit indices).
     // Additionally, keep track of the rotation angles, an update to the global phase (produced when
@@ -165,7 +183,7 @@ pub fn run_litinski_transformation(
     let py_evo_cls = PAULI_EVOLUTION_GATE.get_bound(py);
     let no_clbits: Vec<Clbit> = Vec::new();
 
-    let mut new_dag = dag.copy_empty_like(VarsMode::Alike)?;
+    let mut new_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike)?;
     new_dag.add_global_phase(&Param::Float(global_phase_update))?;
 
     // Add Pauli rotation gates to the Qiskit circuit.
@@ -219,6 +237,6 @@ pub fn run_litinski_transformation(
 }
 
 pub fn litinski_transformation_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(run_litinski_transformation))?;
+    m.add_wrapped(wrap_pyfunction!(py_run_litinski_transformation))?;
     Ok(())
 }

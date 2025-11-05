@@ -17,7 +17,7 @@ use pyo3::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, PyDAGCircuit};
 use qiskit_circuit::operations::{Operation, OperationRef, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 
@@ -279,6 +279,12 @@ fn std_inverse_pairs(dag: &mut DAGCircuit) {
 }
 
 #[pyfunction]
+#[pyo3(name = "run_inverse_cancellation_standard_gates")]
+pub fn py_run_inverse_cancellation_standard_gates(dag: &mut PyDAGCircuit) {
+    run_inverse_cancellation_standard_gates(&mut dag.dag_circuit)
+}
+
+#[inline]
 pub fn run_inverse_cancellation_standard_gates(dag: &mut DAGCircuit) {
     std_self_inverse(dag);
     std_inverse_pairs(dag);
@@ -288,7 +294,7 @@ pub fn run_inverse_cancellation_standard_gates(dag: &mut DAGCircuit) {
 #[pyo3(name = "inverse_cancellation")]
 pub fn py_run_inverse_cancellation(
     py: Python,
-    dag: &mut DAGCircuit,
+    dag: &mut PyDAGCircuit,
     inverse_gates: Vec<[OperationFromPython; 2]>,
     self_inverse_gates: Vec<OperationFromPython>,
     inverse_gate_names: HashSet<String>,
@@ -298,22 +304,32 @@ pub fn py_run_inverse_cancellation(
     if self_inverse_gate_names.is_empty() && inverse_gate_names.is_empty() {
         return Ok(());
     }
-    let op_counts = dag.count_ops(py, true)?;
+    let op_counts = dag.dag_circuit.count_ops(py, true)?;
     if !self_inverse_gate_names.is_empty() {
-        run_on_self_inverse(dag, &op_counts, self_inverse_gate_names, self_inverse_gates)?;
+        run_on_self_inverse(
+            &mut dag.dag_circuit,
+            &op_counts,
+            self_inverse_gate_names,
+            self_inverse_gates,
+        )?;
     }
     if !inverse_gate_names.is_empty() {
-        run_on_inverse_pairs(dag, &op_counts, inverse_gate_names, inverse_gates)?;
+        run_on_inverse_pairs(
+            &mut dag.dag_circuit,
+            &op_counts,
+            inverse_gate_names,
+            inverse_gates,
+        )?;
     }
     if run_defaults {
-        std_self_inverse(dag);
-        std_inverse_pairs(dag);
+        std_self_inverse(&mut dag.dag_circuit);
+        std_inverse_pairs(&mut dag.dag_circuit);
     }
     Ok(())
 }
 
 pub fn inverse_cancellation_mod(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(py_run_inverse_cancellation))?;
-    m.add_wrapped(wrap_pyfunction!(run_inverse_cancellation_standard_gates))?;
+    m.add_wrapped(wrap_pyfunction!(py_run_inverse_cancellation_standard_gates))?;
     Ok(())
 }

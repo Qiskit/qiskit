@@ -59,21 +59,21 @@ pub fn transpile(
     approximation_degree: Option<f64>,
     seed: Option<u64>,
 ) -> Result<(CircuitData, TranspileLayout)> {
-    let mut dag = DAGCircuit::from_circuit_data(circuit, false, None, None, None, None)?;
+    let mut dag = DAGCircuit::from_circuit_data(circuit, false, None, None)?;
     let mut commutation_checker = get_standard_commutation_checker();
     let mut equivalence_library = generate_standard_equivalence_library();
     let mut transpile_layout: TranspileLayout = TranspileLayout::new(
         None,
         None,
         dag.qubits().objects().to_owned(),
-        dag.num_qubits() as u32,
+        dag.qubits().len() as u32,
         dag.qregs().to_vec(),
     );
 
     let unroll_3q_or_more = |dag: &mut DAGCircuit| -> Result<()> {
         let mut out_dag = run_unitary_synthesis(
             dag,
-            (0..dag.num_qubits()).collect(),
+            (0..dag.qubits().len()).collect(),
             3,
             Some(target),
             HashSet::new(),
@@ -272,7 +272,7 @@ pub fn transpile(
     }
     // Translation Stage
     let translation = |dag: &mut DAGCircuit, equiv_lib: &mut EquivalenceLibrary| -> Result<()> {
-        let num_qubits = dag.num_qubits();
+        let num_qubits = dag.qubits().len();
         *dag = run_unitary_synthesis(
             dag,
             (0..num_qubits).collect(),
@@ -323,9 +323,9 @@ pub fn transpile(
         }
     } else if optimization_level == OptimizationLevel::Level2 {
         run_consolidate_blocks(&mut dag, false, approximation_degree, Some(target))?;
-        let num_qubits = dag.num_qubits();
+        let num_qubits = dag.qubits().len();
         dag = run_unitary_synthesis(
-            &mut dag,
+            &dag,
             (0..num_qubits).collect(),
             0,
             Some(target),
@@ -357,9 +357,9 @@ pub fn transpile(
 
         while continue_loop {
             run_consolidate_blocks(&mut dag, false, approximation_degree, Some(target))?;
-            let num_qubits = dag.num_qubits();
+            let num_qubits = dag.qubits().len();
             dag = run_unitary_synthesis(
-                &mut dag,
+                &dag,
                 (0..num_qubits).collect(),
                 0,
                 Some(target),

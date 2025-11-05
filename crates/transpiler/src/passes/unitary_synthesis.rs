@@ -30,8 +30,8 @@ use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyString, PyType};
 use pyo3::wrap_pyfunction;
 
-use qiskit_circuit::converters::circuit_to_dag;
-use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder, NodeType};
+use qiskit_circuit::converters::{QuantumCircuitData, circuit_to_dag};
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder, NodeType, PyDAGCircuit};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, PythonOperation, StandardGate};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::{Qubit, VarsMode, imports};
@@ -195,7 +195,7 @@ fn apply_synth_dag(
         out_packed_instr.qubits = out_dag.insert_qargs(&mapped_qargs);
         out_dag.push_back(out_packed_instr)?;
     }
-    out_dag.add_global_phase(&synth_dag.get_global_phase())?;
+    out_dag.add_global_phase(synth_dag.global_phase())?;
     Ok(())
 }
 
@@ -251,7 +251,7 @@ fn apply_synth_sequence(
 #[pyfunction]
 #[pyo3(name = "run_main_loop", signature=(dag, qubit_indices, min_qubits, target, basis_gates, synth_gates, coupling_edges, approximation_degree=None, natural_direction=None, pulse_optimize=None))]
 pub fn py_unitary_synthesis(
-    dag: &mut DAGCircuit,
+    dag: &mut PyDAGCircuit,
     qubit_indices: Vec<usize>,
     min_qubits: usize,
     target: Option<&Target>,
@@ -261,9 +261,9 @@ pub fn py_unitary_synthesis(
     approximation_degree: Option<f64>,
     natural_direction: Option<bool>,
     pulse_optimize: Option<bool>,
-) -> PyResult<DAGCircuit> {
-    run_unitary_synthesis(
-        dag,
+) -> PyResult<()> {
+    dag.dag_circuit = run_unitary_synthesis(
+        &dag.dag_circuit,
         qubit_indices,
         min_qubits,
         target,
@@ -274,11 +274,12 @@ pub fn py_unitary_synthesis(
         natural_direction,
         pulse_optimize,
         true,
-    )
+    )?;
+    Ok(())
 }
 
 pub fn run_unitary_synthesis(
-    dag: &mut DAGCircuit,
+    dag: &DAGCircuit,
     qubit_indices: Vec<usize>,
     min_qubits: usize,
     target: Option<&Target>,
@@ -290,7 +291,7 @@ pub fn run_unitary_synthesis(
     pulse_optimize: Option<bool>,
     run_python_decomposers: bool,
 ) -> PyResult<DAGCircuit> {
-    let out_dag = dag.copy_empty_like(VarsMode::Alike)?;
+    let out_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike)?;
     let mut out_dag = out_dag.into_builder();
 
     // Iterate over dag nodes and determine unitary synthesis approach
@@ -318,8 +319,12 @@ pub fn run_unitary_synthesis(
                         .iter()
                         .map(|qarg| qubit_indices[qarg.0 as usize])
                         .collect_vec();
+                    let block: QuantumCircuitData = raw_block?.extract()?;
+                    let block_name = block.name.clone();
+                    let block_metadata = block.metadata.clone().map(|x| x.unbind());
+                    let block_unit = block.unit.clone();
                     let res = run_unitary_synthesis(
-                        &mut circuit_to_dag(raw_block?.extract()?, false, None, None)?,
+                        &circuit_to_dag(block, false, None, None)?.dag_circuit,
                         new_ids,
                         min_qubits,
                         target,
@@ -331,7 +336,14 @@ pub fn run_unitary_synthesis(
                         pulse_optimize,
                         run_python_decomposers,
                     )?;
-                    new_blocks.push(dag_to_circuit.call1((res,))?);
+                    let new_block_dag = PyDAGCircuit {
+                        name: block_name,
+                        metadata: block_metadata,
+                        unit: block_unit,
+                        duration: None, // The previous duration is no longer valid after running synthesis
+                        dag_circuit: res,
+                    };
+                    new_blocks.push(dag_to_circuit.call1((new_block_dag,))?);
                 }
                 let new_node = py_instr
                     .instruction
@@ -482,8 +494,7 @@ pub fn run_unitary_synthesis(
                     };
                     let synth_circ =
                         quantum_shannon_decomposition(&matrix, None, None, None, None)?;
-                    let synth_dag =
-                        DAGCircuit::from_circuit_data(&synth_circ, false, None, None, None, None)?;
+                    let synth_dag = DAGCircuit::from_circuit_data(&synth_circ, false, None, None)?;
                     let out_qargs = dag.get_qargs(packed_instr.qubits);
                     apply_synth_dag(&mut out_dag, out_qargs, &synth_dag)?;
                 }
@@ -1098,20 +1109,20 @@ fn synth_su4_xx_decomposer(
             (su4_mat.to_pyarray(py),),
             Some(&kwargs.into_py_dict(py)?),
         )?
-        .extract::<DAGCircuit>(py)?;
+        .extract::<PyDAGCircuit>(py)?;
     match preferred_direction {
-        None => Ok(synth_dag),
+        None => Ok(synth_dag.dag_circuit),
         Some(preferred_dir) => {
             let mut synth_direction: Option<Vec<u32>> = None;
-            for node in synth_dag.topological_op_nodes()? {
-                let inst = &synth_dag[node].unwrap_operation();
+            for node in synth_dag.dag_circuit.topological_op_nodes()? {
+                let inst = &synth_dag.dag_circuit[node].unwrap_operation();
                 if inst.op.num_qubits() == 2 {
-                    let qargs = synth_dag.get_qargs(inst.qubits);
+                    let qargs = synth_dag.dag_circuit.get_qargs(inst.qubits);
                     synth_direction = Some(vec![qargs[0].0, qargs[1].0]);
                 }
             }
             match synth_direction {
-                None => Ok(synth_dag),
+                None => Ok(synth_dag.dag_circuit),
                 Some(synth_direction) => {
                     let synth_dir = match synth_direction.as_slice() {
                         [0, 1] => true,
@@ -1130,7 +1141,7 @@ fn synth_su4_xx_decomposer(
                             approximation_degree,
                         )
                     } else {
-                        Ok(synth_dag)
+                        Ok(synth_dag.dag_circuit)
                     }
                 }
             }
@@ -1167,17 +1178,20 @@ fn reversed_synth_su4_dag(
                 (su4_mat.clone().into_pyarray(py),),
                 Some(&kwargs.into_py_dict(py)?),
             )?
-            .extract::<DAGCircuit>(py)?
+            .extract::<PyDAGCircuit>(py)?
     } else {
         unreachable!("reversed_synth_su4_dag should only be called for XXDecomposer")
     };
 
-    let target_dag = synth_dag.copy_empty_like(VarsMode::Alike)?;
+    let target_dag = synth_dag
+        .dag_circuit
+        .copy_empty_like_with_same_capacity(VarsMode::Alike)?;
     let flip_bits: [Qubit; 2] = [Qubit(1), Qubit(0)];
     let mut target_dag_builder = target_dag.into_builder();
-    for node in synth_dag.topological_op_nodes()? {
-        let mut inst = synth_dag[node].unwrap_operation().clone();
+    for node in synth_dag.dag_circuit.topological_op_nodes()? {
+        let mut inst = synth_dag.dag_circuit[node].unwrap_operation().clone();
         let qubits: Vec<Qubit> = synth_dag
+            .dag_circuit
             .qargs_interner()
             .get(inst.qubits)
             .iter()

@@ -55,7 +55,7 @@ use rand_pcg::Pcg64Mcg;
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
 use qiskit_circuit::gate_matrix::{CX_GATE, H_GATE, ONE_QUBIT_IDENTITY, S_GATE, SDG_GATE};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -2206,15 +2206,16 @@ impl TwoQubitBasisDecomposer {
     #[pyo3(signature = (unitary, basis_fidelity=None, approximate=true, _num_basis_uses=None))]
     fn to_dag(
         &self,
+        py: Python,
         unitary: PyReadonlyArray2<Complex64>,
         basis_fidelity: Option<f64>,
         approximate: bool,
         _num_basis_uses: Option<u8>,
-    ) -> PyResult<DAGCircuit> {
+    ) -> PyResult<PyDAGCircuit> {
         let sequence =
             self.generate_sequence(unitary, basis_fidelity, approximate, _num_basis_uses)?;
         let mut dag = DAGCircuit::with_capacity(2, 0, None, Some(sequence.gates.len()), None, None);
-        dag.set_global_phase(Param::Float(sequence.global_phase))?;
+        dag.set_global_phase(Param::Float(sequence.global_phase));
         dag.add_qubit_unchecked(ShareableQubit::new_anonymous())?;
         dag.add_qubit_unchecked(ShareableQubit::new_anonymous())?;
         let mut builder = dag.into_builder();
@@ -2231,7 +2232,9 @@ impl TwoQubitBasisDecomposer {
                 None,
             )?;
         }
-        Ok(builder.build())
+        let mut out = PyDAGCircuit::py_new(py);
+        out.dag_circuit = builder.build();
+        Ok(out)
     }
 
     /// Synthesizes a two qubit unitary matrix into a :class:`.CircuitData` object

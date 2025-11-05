@@ -70,7 +70,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_basis_translator(
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
 
-    let dag = DAGCircuit::from_circuit_data(circ_from_ptr, false, None, None, None, None)
+    let dag = DAGCircuit::from_circuit_data(circ_from_ptr, false, None, None)
         .expect("Circuit to DAG conversion failed");
 
     let mut equiv_lib = generate_standard_equivalence_library();

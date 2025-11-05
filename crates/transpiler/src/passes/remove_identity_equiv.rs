@@ -17,7 +17,7 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use crate::gate_metrics::rotation_trace_and_dim;
 use crate::target::Target;
 use qiskit_circuit::PhysicalQubit;
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::operations::Param;
@@ -28,6 +28,14 @@ const MINIMUM_TOL: f64 = 1e-12;
 
 #[pyfunction]
 #[pyo3(name = "remove_identity_equiv", signature=(dag, approx_degree=Some(1.0), target=None))]
+pub fn py_run_remove_identity_equiv(
+    dag: &mut PyDAGCircuit,
+    approx_degree: Option<f64>,
+    target: Option<&Target>,
+) {
+    run_remove_identity_equiv(&mut dag.dag_circuit, approx_degree, target)
+}
+
 pub fn run_remove_identity_equiv(
     dag: &mut DAGCircuit,
     approx_degree: Option<f64>,
@@ -154,6 +162,6 @@ pub fn run_remove_identity_equiv(
 }
 
 pub fn remove_identity_equiv_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(run_remove_identity_equiv))?;
+    m.add_wrapped(wrap_pyfunction!(py_run_remove_identity_equiv))?;
     Ok(())
 }

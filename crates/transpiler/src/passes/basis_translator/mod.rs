@@ -41,7 +41,7 @@ use qiskit_circuit::parameter::symbol_expr::Value;
 use qiskit_circuit::{Clbit, PhysicalQubit, Qubit, VarsMode};
 use qiskit_circuit::{
     circuit_data::CircuitData,
-    dag_circuit::DAGCircuit,
+    dag_circuit::{DAGCircuit, PyDAGCircuit},
     operations::{Operation, OperationRef, PythonOperation},
 };
 use smallvec::SmallVec;
@@ -59,16 +59,29 @@ type PhysicalQargs = SmallVec<[PhysicalQubit; 2]>;
 
 #[pyfunction(name = "base_run", signature = (dag, equiv_lib, min_qubits, target=None, target_basis=None))]
 fn py_run_basis_translator(
-    dag: &DAGCircuit,
+    dag: &PyDAGCircuit,
     equiv_lib: &mut EquivalenceLibrary,
     min_qubits: usize,
     target: Option<&Target>,
     target_basis: Option<HashSet<String>>,
-) -> PyResult<Option<DAGCircuit>> {
+) -> PyResult<Option<PyDAGCircuit>> {
     let target_basis_ref: Option<HashSet<&str>> = target_basis
         .as_ref()
         .map(|set| set.iter().map(|obj| obj.as_str()).collect());
-    run_basis_translator(dag, equiv_lib, min_qubits, target, target_basis_ref).map_err(|e| e.into())
+    Ok(run_basis_translator(
+        &dag.dag_circuit,
+        equiv_lib,
+        min_qubits,
+        target,
+        target_basis_ref,
+    )?
+    .map(|dag_circuit| PyDAGCircuit {
+        name: dag.name.clone(),
+        metadata: dag.metadata.clone(),
+        dag_circuit,
+        unit: dag.unit.clone(),
+        duration: None, // duration is no longer valid
+    }))
 }
 
 pub fn run_basis_translator(
@@ -438,9 +451,13 @@ fn apply_translation(
     qarg_mapping: Option<&HashMap<Qubit, Qubit>>,
 ) -> Result<(DAGCircuit, bool), BasisTranslatorError> {
     let mut is_updated = false;
-    let out_dag = dag.copy_empty_like(VarsMode::Alike).map_err(|_| {
-        BasisTranslatorError::BasisDAGCircuitError("Error copying DAGCircuit instance".to_string())
-    })?;
+    let out_dag = dag
+        .copy_empty_like_with_same_capacity(VarsMode::Alike)
+        .map_err(|_| {
+            BasisTranslatorError::BasisDAGCircuitError(
+                "Error copying DAGCircuit instance".to_string(),
+            )
+        })?;
     let mut out_dag_builder = out_dag.into_builder();
     for node in dag.topological_op_nodes().map_err(|_| {
         BasisTranslatorError::BasisDAGCircuitError("Error retrieving Op nodes from DAG".to_string())
@@ -462,7 +479,7 @@ fn apply_translation(
                     let mut flow_blocks = vec![];
                     let bound_obj = control_op.instruction.bind(py);
                     for block in node_obj.op.blocks() {
-                        let dag_block: DAGCircuit = DAGCircuit::from_circuit_data(&block, true, None, None, None, None)?;
+                        let dag_block: DAGCircuit = DAGCircuit::from_circuit_data(&block, true, None, None)?;
                         let updated_dag: DAGCircuit;
                         // Generate a mapping between the absolute and local qubit indices
                         // which will be used to correctly map the operation onto the dag.

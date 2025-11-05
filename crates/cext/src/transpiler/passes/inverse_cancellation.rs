@@ -69,7 +69,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_inverse_cancellation(
 ) {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
-    let mut dag = match DAGCircuit::from_circuit_data(circuit, false, None, None, None, None) {
+    let mut dag = match DAGCircuit::from_circuit_data(circuit, false, None, None) {
         Ok(dag) => dag,
         Err(_) => panic!("Internal Circuit -> DAG conversion failed"),
     };

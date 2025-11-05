@@ -15,7 +15,7 @@ use rayon::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use qiskit_circuit::Qubit;
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, PyDAGCircuit};
 use qiskit_circuit::operations::{OperationRef, StandardInstruction};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 
@@ -23,6 +23,13 @@ const PARALLEL_THRESHOLD: usize = 150;
 
 #[pyfunction]
 #[pyo3(name = "barrier_before_final_measurements", signature=(dag, label=None))]
+pub fn py_run_barrier_before_final_measurements(
+    dag: &mut PyDAGCircuit,
+    label: Option<String>,
+) -> PyResult<()> {
+    run_barrier_before_final_measurements(&mut dag.dag_circuit, label)
+}
+
 pub fn run_barrier_before_final_measurements(
     dag: &mut DAGCircuit,
     label: Option<String>,
@@ -110,7 +117,7 @@ pub fn run_barrier_before_final_measurements(
         nodes
     };
 
-    let final_ops: Vec<NodeIndex> = if dag.num_qubits() >= PARALLEL_THRESHOLD
+    let final_ops: Vec<NodeIndex> = if dag.qubits().len() >= PARALLEL_THRESHOLD
         && ::qiskit_circuit::getenv_use_multiple_threads()
     {
         dag.qubit_io_map()
@@ -140,10 +147,10 @@ pub fn run_barrier_before_final_measurements(
             None => None,
         })
         .collect();
-    let qargs: Vec<Qubit> = (0..dag.num_qubits() as u32).map(Qubit).collect();
+    let qargs: Vec<Qubit> = (0..dag.qubits().len() as u32).map(Qubit).collect();
     dag.apply_operation_back(
         PackedOperation::from_standard_instruction(StandardInstruction::Barrier(
-            dag.num_qubits() as u32
+            dag.qubits().len() as u32,
         )),
         qargs.as_slice(),
         &[],
@@ -159,6 +166,6 @@ pub fn run_barrier_before_final_measurements(
 }
 
 pub fn barrier_before_final_measurements_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(run_barrier_before_final_measurements))?;
+    m.add_wrapped(wrap_pyfunction!(py_run_barrier_before_final_measurements))?;
     Ok(())
 }
