@@ -56,7 +56,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_check_gate_direction(
     let circuit = unsafe { const_ptr_as_ref(circuit) };
     let target = unsafe { const_ptr_as_ref(target) };
 
-    let dag = DAGCircuit::from_circuit_data(circuit, false, None, None, None, None)
+    let dag = DAGCircuit::from_circuit_data(circuit, false, None, None)
         .expect("Circuit to DAG conversion failed");
 
     check_direction_target(&dag, target).expect("Unexpected error occurred in CheckGateDirection")
@@ -102,7 +102,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_gate_direction(
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
     let target = unsafe { const_ptr_as_ref(target) };
 
-    let mut dag = DAGCircuit::from_circuit_data(circuit, false, None, None, None, None)
+    let mut dag = DAGCircuit::from_circuit_data(circuit, false, None, None)
         .expect("Circuit to DAG conversion failed");
 
     fix_direction_target(&mut dag, target).expect("Unexpected error occurred in GateDirection");

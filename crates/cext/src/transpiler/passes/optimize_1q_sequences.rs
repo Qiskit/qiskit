@@ -85,7 +85,7 @@ pub unsafe extern "C" fn qk_transpiler_standalone_optimize_1q_sequences(
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
 
     // Convert the circuit to a DAG.
-    let mut circuit_as_dag = DAGCircuit::from_circuit_data(circuit, false, None, None, None, None)
+    let mut circuit_as_dag = DAGCircuit::from_circuit_data(circuit, false, None, None)
         .expect("Error while converting the circuit to a dag.");
 
     // Run the pass

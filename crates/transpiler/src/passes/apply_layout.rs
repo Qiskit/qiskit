@@ -17,7 +17,7 @@ use pyo3::wrap_pyfunction;
 use hashbrown::HashSet;
 
 use qiskit_circuit::bit::{QuantumRegister, Register};
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
 use qiskit_circuit::nlayout::NLayout;
 use qiskit_circuit::{PhysicalQubit, Qubit, VirtualQubit};
 
@@ -45,7 +45,7 @@ pub fn apply_layout(
         panic!("cannot apply a layout when one is already set");
     }
 
-    let num_virtual_qubits = dag.num_qubits() as u32;
+    let num_virtual_qubits = dag.qubits().len() as u32;
     let mut virtuals = vec![VirtualQubit::MAX; num_physical_qubits as usize];
     let mut physicals = Vec::with_capacity(num_physical_qubits as usize);
     for virt in (0..num_virtual_qubits).map(VirtualQubit::new) {
@@ -149,7 +149,7 @@ fn unique_ancilla_register_name(qregs: &[QuantumRegister]) -> String {
 #[pyo3(name = "apply_layout")]
 fn py_apply_layout<'py>(
     py: Python<'py>,
-    dag: &mut DAGCircuit,
+    dag: &mut PyDAGCircuit,
     num_virtual_qubits: u32,
     num_physical_qubits: u32,
     physical_from_virtual: Vec<PhysicalQubit>,
@@ -212,22 +212,25 @@ fn py_apply_layout<'py>(
     let mut cur_layout = TranspileLayout::new(
         None,
         permutation,
-        dag.qubits().objects().to_vec(),
+        dag.dag_circuit.qubits().objects().to_vec(),
         // We had to take `num_virtual_qubits` by value because the DAG might already have been
         // expanded with ancillas in the legacy mode.
         num_virtual_qubits,
-        dag.qregs().to_vec(),
+        dag.dag_circuit.qregs().to_vec(),
     );
-    apply_layout(dag, &mut cur_layout, num_physical_qubits, |v| {
-        physical_from_virtual[v.index()]
-    });
-    cur_layout.to_py_native(py, dag.qubits().objects())
+    apply_layout(
+        &mut dag.dag_circuit,
+        &mut cur_layout,
+        num_physical_qubits,
+        |v| physical_from_virtual[v.index()],
+    );
+    cur_layout.to_py_native(py, dag.dag_circuit.qubits().objects())
 }
 
 #[pyfunction]
 #[pyo3(name = "update_layout")]
 fn py_update_layout<'py>(
-    dag: &mut DAGCircuit,
+    dag: &mut PyDAGCircuit,
     py_layout: &Bound<'py, PyAny>,
     reorder: Vec<Qubit>,
 ) -> PyResult<Bound<'py, PyAny>> {
@@ -255,8 +258,10 @@ fn py_update_layout<'py>(
     }
 
     let mut cur_layout = TranspileLayout::from_py_native(py_layout)?;
-    update_layout(dag, &mut cur_layout, |q| reorder[q.index()]);
-    cur_layout.to_py_native(py_layout.py(), dag.qubits().objects())
+    update_layout(&mut dag.dag_circuit, &mut cur_layout, |q| {
+        reorder[q.index()]
+    });
+    cur_layout.to_py_native(py_layout.py(), dag.dag_circuit.qubits().objects())
 }
 
 pub fn apply_layout_mod(m: &Bound<PyModule>) -> PyResult<()> {

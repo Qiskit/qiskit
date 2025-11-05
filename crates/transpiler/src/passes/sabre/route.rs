@@ -35,7 +35,7 @@ use rustworkx_core::token_swapper::token_swapper;
 use smallvec::{SmallVec, smallvec};
 
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder, NodeType, Wire};
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder, NodeType, PyDAGCircuit, Wire};
 use qiskit_circuit::nlayout::NLayout;
 use qiskit_circuit::operations::{OperationRef, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
@@ -248,7 +248,14 @@ impl RoutingResult<'_> {
                             .into_iter()
                             .map(|mut dag| {
                                 dag.remove_qubits(idle.iter().copied())?;
-                                dag_to_circuit.call1((dag, false))
+                                let new_block_dag = PyDAGCircuit {
+                                    name: None,
+                                    metadata: None,
+                                    unit: "dt".to_string(),
+                                    duration: None,
+                                    dag_circuit: dag,
+                                };
+                                dag_to_circuit.call1((new_block_dag, false))
                             })
                             .collect::<Result<Vec<_>, _>>()?;
 
@@ -777,7 +784,39 @@ impl<'a> RoutingState<'a> {
 ///     A two-tuple of the newly routed :class:`.DAGCircuit`, and the layout that maps virtual
 ///     qubits to their assigned physical qubits at the *end* of the circuit execution.
 #[pyfunction]
-#[pyo3(signature=(dag, target, heuristic, initial_layout, num_trials, seed=None, run_in_parallel=None))]
+#[pyo3(name = "sabre_routing", signature=(dag, target, heuristic, initial_layout, num_trials, seed=None, run_in_parallel=None))]
+pub fn py_sabre_routing(
+    dag: &PyDAGCircuit,
+    target: &PyRoutingTarget,
+    heuristic: &Heuristic,
+    initial_layout: &NLayout,
+    num_trials: usize,
+    seed: Option<u64>,
+    run_in_parallel: Option<bool>,
+) -> PyResult<(PyDAGCircuit, NLayout)> {
+    sabre_routing(
+        &dag.dag_circuit,
+        target,
+        heuristic,
+        initial_layout,
+        num_trials,
+        seed,
+        run_in_parallel,
+    )
+    .map(|x| {
+        (
+            PyDAGCircuit {
+                name: dag.name.clone(),
+                metadata: dag.metadata.clone(),
+                dag_circuit: x.0,
+                unit: dag.unit.clone(),
+                duration: None, // Duration is no longer valid
+            },
+            x.1,
+        )
+    })
+}
+
 pub fn sabre_routing(
     dag: &DAGCircuit,
     target: &PyRoutingTarget,

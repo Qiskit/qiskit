@@ -19,7 +19,7 @@ use pyo3::types::PyDict;
 
 use crate::TranspilerError;
 use qiskit_circuit::PhysicalQubit;
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
 
 #[derive(Clone)]
 pub(crate) enum CallbackType {
@@ -33,11 +33,11 @@ impl CallbackType {
             Self::Python(inner) => {
                 let qubits: Vec<usize> = qubits.iter().map(|x| x.index()).collect();
                 Python::attach(|py| {
-                    inner
+                    Ok(inner
                         .bind(py)
                         .call1((angles, qubits))?
-                        .extract()
-                        .map_err(PyErr::from)
+                        .extract::<PyDAGCircuit>()?
+                        .dag_circuit)
                 })
             }
             Self::Native(inner) => Ok(inner(angles, qubits)),
@@ -66,8 +66,15 @@ impl PyWrapAngleRegistry {
         name: &str,
         angles: Vec<f64>,
         qubits: Vec<PhysicalQubit>,
-    ) -> PyResult<Option<DAGCircuit>> {
-        self.0.substitute_angle_bounds(name, &angles, &qubits)
+    ) -> PyResult<Option<PyDAGCircuit>> {
+        let dag_circuit = self.0.substitute_angle_bounds(name, &angles, &qubits)?;
+        Ok(dag_circuit.map(|dag_circuit| PyDAGCircuit {
+            name: None,
+            metadata: None,
+            unit: "dt".to_string(),
+            duration: None,
+            dag_circuit,
+        }))
     }
 
     pub fn add_wrapper(&mut self, name: String, callback: Py<PyAny>) {

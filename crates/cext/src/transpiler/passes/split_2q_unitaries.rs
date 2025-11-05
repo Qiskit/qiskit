@@ -56,7 +56,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_split_2q_unitaries(
 ) -> *mut TranspileLayout {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
-    let mut dag = match DAGCircuit::from_circuit_data(circuit, false, None, None, None, None) {
+    let mut dag = match DAGCircuit::from_circuit_data(circuit, false, None, None) {
         Ok(dag) => dag,
         Err(_e) => panic!("Internal circuit -> DAG conversion failed."),
     };

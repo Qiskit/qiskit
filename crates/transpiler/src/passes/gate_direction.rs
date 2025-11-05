@@ -21,8 +21,12 @@ use qiskit_circuit::imports::QUANTUM_CIRCUIT;
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{
-    Qubit, dag_circuit::DAGCircuit, operations::Operation, operations::Param,
-    operations::StandardGate, packed_instruction::PackedInstruction,
+    Qubit,
+    dag_circuit::{DAGCircuit, PyDAGCircuit},
+    operations::Operation,
+    operations::Param,
+    operations::StandardGate,
+    packed_instruction::PackedInstruction,
 };
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::{SmallVec, smallvec};
@@ -43,6 +47,13 @@ use std::f64::consts::PI;
 ///     true iff all two-qubit gates comply with the coupling constraints
 #[pyfunction]
 #[pyo3(name = "check_gate_direction_coupling")]
+pub fn py_check_direction_coupling_map(
+    dag: &PyDAGCircuit,
+    coupling_edges: HashSet<[Qubit; 2]>,
+) -> PyResult<bool> {
+    check_direction_coupling_map(&dag.dag_circuit, coupling_edges)
+}
+
 pub fn check_direction_coupling_map(
     dag: &DAGCircuit,
     coupling_edges: HashSet<[Qubit; 2]>,
@@ -64,6 +75,10 @@ pub fn check_direction_coupling_map(
 ///     true iff all two-qubit gates comply with the target's coupling constraints
 #[pyfunction]
 #[pyo3(name = "check_gate_direction_target")]
+pub fn py_check_direction_target(dag: &PyDAGCircuit, target: &Target) -> PyResult<bool> {
+    check_direction_target(&dag.dag_circuit, target)
+}
+
 pub fn check_direction_target(dag: &DAGCircuit, target: &Target) -> PyResult<bool> {
     let target_check = |inst: &PackedInstruction, op_args: &[Qubit]| -> bool {
         let qargs = [
@@ -100,8 +115,7 @@ where
         if let OperationRef::Instruction(py_inst) = packed_inst.op.view() {
             if py_inst.control_flow() {
                 for block in py_inst.blocks() {
-                    let inner_dag =
-                        DAGCircuit::from_circuit_data(&block, false, None, None, None, None)?;
+                    let inner_dag = DAGCircuit::from_circuit_data(&block, false, None, None)?;
 
                     let block_ok = if let Some(mapping) = qubit_mapping {
                         let mapping = inst_qargs // Create a temp mapping for the recursive call
@@ -157,6 +171,13 @@ where
 ///     the transformed DAGCircuit
 #[pyfunction]
 #[pyo3(name = "fix_gate_direction_coupling")]
+pub fn py_fix_direction_coupling_map(
+    dag: &mut PyDAGCircuit,
+    coupling_edges: HashSet<[Qubit; 2]>,
+) -> PyResult<()> {
+    fix_direction_coupling_map(&mut dag.dag_circuit, coupling_edges)
+}
+
 pub fn fix_direction_coupling_map(
     dag: &mut DAGCircuit,
     coupling_edges: HashSet<[Qubit; 2]>,
@@ -182,6 +203,10 @@ pub fn fix_direction_coupling_map(
 ///     the transformed DAGCircuit
 #[pyfunction]
 #[pyo3(name = "fix_gate_direction_target")]
+pub fn py_fix_direction_target(dag: &mut PyDAGCircuit, target: &Target) -> PyResult<()> {
+    fix_direction_target(&mut dag.dag_circuit, target)
+}
+
 pub fn fix_direction_target(dag: &mut DAGCircuit, target: &Target) -> PyResult<()> {
     let target_check = |inst: &PackedInstruction, op_args: &[Qubit]| -> bool {
         let qargs = smallvec![
@@ -233,8 +258,7 @@ where
 
                 let mut blocks_to_replace = Vec::with_capacity(blocks.len());
                 for block in blocks {
-                    let mut inner_dag =
-                        DAGCircuit::from_circuit_data(&block, false, None, None, None, None)?;
+                    let mut inner_dag = DAGCircuit::from_circuit_data(&block, false, None, None)?;
 
                     if let Some(mapping) = qubit_mapping {
                         let mapping = op_args // Create a temp mapping for the recursive call
@@ -340,8 +364,9 @@ where
                     .instruction
                     .bind(py)
                     .call_method1("replace_blocks", (quantum_circuits,))?;
-
-                dag.py_substitute_node(py, dag.get_node(py, node)?.bind(py), &new_op, false, None)?;
+                let mut new_inst = py_inst.clone();
+                new_inst.instruction = new_op.unbind();
+                dag.substitute_op(node, new_inst.into(), smallvec![], None)?;
             }
 
             Ok(())
@@ -536,9 +561,9 @@ fn rzx_replacement_dag(param: &[Param]) -> PyResult<DAGCircuit> {
 }
 
 pub fn gate_direction_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(check_direction_coupling_map))?;
-    m.add_wrapped(wrap_pyfunction!(check_direction_target))?;
-    m.add_wrapped(wrap_pyfunction!(fix_direction_coupling_map))?;
-    m.add_wrapped(wrap_pyfunction!(fix_direction_target))?;
+    m.add_wrapped(wrap_pyfunction!(py_check_direction_coupling_map))?;
+    m.add_wrapped(wrap_pyfunction!(py_check_direction_target))?;
+    m.add_wrapped(wrap_pyfunction!(py_fix_direction_coupling_map))?;
+    m.add_wrapped(wrap_pyfunction!(py_fix_direction_target))?;
     Ok(())
 }

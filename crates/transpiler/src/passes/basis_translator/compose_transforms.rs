@@ -83,7 +83,7 @@ pub(super) fn compose_transforms<'a>(
             placeholder_params = extract_py.params;
             extract_py.operation
         };
-        let qubits: Vec<Qubit> = (0..dag.num_qubits() as u32).map(Qubit).collect();
+        let qubits: Vec<Qubit> = (0..dag.qubits().len() as u32).map(Qubit).collect();
         dag.apply_operation_back(
             gate,
             &qubits,
@@ -144,12 +144,13 @@ pub(super) fn compose_transforms<'a>(
                         )
                     })?;
                 let replace_dag: DAGCircuit =
-                    DAGCircuit::from_circuit_data(&replacement, true, None, None, None, None)
-                        .map_err(|_| {
+                    DAGCircuit::from_circuit_data(&replacement, true, None, None).map_err(
+                        |_| {
                             BasisTranslatorError::BasisDAGCircuitError(
                                 "Error converting circuit to dag".to_string(),
                             )
-                        })?;
+                        },
+                    )?;
                 dag.substitute_node_with_dag(node, &replace_dag, None, None, None)
                     .map_err(|_| {
                         BasisTranslatorError::BasisDAGCircuitError(

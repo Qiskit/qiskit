@@ -55,7 +55,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_consolidate_blocks(
     } else {
         approximation_degree
     };
-    let mut circ_as_dag = DAGCircuit::from_circuit_data(circuit, true, None, None, None, None)
+    let mut circ_as_dag = DAGCircuit::from_circuit_data(circuit, true, None, None)
         .expect("Error while converting from CircuitData to DAGCircuit.");
 
     // Call the pass

@@ -28,7 +28,7 @@ use pyo3::types::PyTuple;
 use pyo3::{IntoPyObjectExt, create_exception, wrap_pyfunction};
 
 use qiskit_circuit::converters::circuit_to_dag;
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
 use qiskit_circuit::nlayout::NLayout;
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::packed_instruction::PackedInstruction;
@@ -316,7 +316,7 @@ impl<T: Default> VirtualInteractions<T> {
     where
         W: Fn(&mut T, &PackedInstruction, usize) -> bool,
     {
-        let id_qubit_map = (0..dag.num_qubits())
+        let id_qubit_map = (0..dag.qubits().len())
             .map(|q| VirtualQubit(q as u32))
             .collect::<Vec<_>>();
         let mut out = Self::default();
@@ -324,7 +324,7 @@ impl<T: Default> VirtualInteractions<T> {
             return Ok(None);
         }
         out.idle.extend(
-            (0..dag.num_qubits() as u32)
+            (0..dag.qubits().len() as u32)
                 .map(VirtualQubit)
                 .filter(|q| !(out.nodes.contains(q) || out.uncoupled.contains_key(q))),
         );
@@ -363,7 +363,7 @@ impl<T: Default> VirtualInteractions<T> {
                     let blocks = py_inst.instruction.bind(py).getattr("blocks")?;
                     for block in blocks.cast::<PyTuple>()?.iter() {
                         if !self.add_interactions_from(
-                            &circuit_to_dag(block.extract()?, false, None, None)?,
+                            &circuit_to_dag(block.extract()?, false, None, None)?.dag_circuit,
                             &wire_map,
                             repeats,
                             weighter,
@@ -580,7 +580,23 @@ where
 }
 
 #[pyfunction]
-#[pyo3(signature = (dag, target, config, *, strict_direction=false, avg_error_map=None))]
+#[pyo3(name="vf2_layout_pass", signature = (dag, target, config, *, strict_direction=false, avg_error_map=None))]
+pub fn py_vf2_layout_pass(
+    dag: &PyDAGCircuit,
+    target: &Target,
+    config: &Vf2PassConfiguration,
+    strict_direction: bool,
+    avg_error_map: Option<ErrorMap>,
+) -> PyResult<Vf2PassReturn> {
+    vf2_layout_pass(
+        &dag.dag_circuit,
+        target,
+        config,
+        strict_direction,
+        avg_error_map,
+    )
+}
+
 pub fn vf2_layout_pass(
     dag: &DAGCircuit,
     target: &Target,
@@ -711,7 +727,7 @@ pub fn score_layout(
 
 pub fn vf2_layout_mod(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(score_layout))?;
-    m.add_wrapped(wrap_pyfunction!(vf2_layout_pass))?;
+    m.add_wrapped(wrap_pyfunction!(py_vf2_layout_pass))?;
     m.add("MultiQEncountered", m.py().get_type::<MultiQEncountered>())?;
     m.add_class::<EdgeList>()?;
     m.add(

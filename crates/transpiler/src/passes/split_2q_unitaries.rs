@@ -18,7 +18,7 @@ use pyo3::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::{SmallVec, smallvec};
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, PyDAGCircuit, Wire};
 use qiskit_circuit::operations::{ArrayType, Operation, OperationRef, Param, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Qubit, VarsMode};
@@ -27,6 +27,27 @@ use qiskit_synthesis::two_qubit_decompose::{Specialization, TwoQubitWeylDecompos
 
 #[pyfunction]
 #[pyo3(name = "split_2q_unitaries")]
+pub fn py_run_split_2q_unitaries(
+    dag: &mut PyDAGCircuit,
+    requested_fidelity: f64,
+    split_swaps: bool,
+) -> PyResult<Option<(PyDAGCircuit, Vec<usize>)>> {
+    Ok(
+        run_split_2q_unitaries(&mut dag.dag_circuit, requested_fidelity, split_swaps)?.map(|x| {
+            (
+                PyDAGCircuit {
+                    dag_circuit: x.0,
+                    name: dag.name.clone(),
+                    metadata: dag.metadata.clone(),
+                    unit: dag.unit.clone(),
+                    duration: None, // duration isn't valid for output circuit
+                },
+                x.1,
+            )
+        }),
+    )
+}
+
 pub fn run_split_2q_unitaries(
     dag: &mut DAGCircuit,
     requested_fidelity: f64,
@@ -98,8 +119,8 @@ pub fn run_split_2q_unitaries(
     }
     // We have swap-like unitaries, so we create a new DAG in a manner similar to
     // The Elide Permutations pass, while also splitting the unitaries to 1-qubit gates
-    let mut mapping: Vec<usize> = (0..dag.num_qubits()).collect();
-    let new_dag = dag.copy_empty_like(VarsMode::Alike)?;
+    let mut mapping: Vec<usize> = (0..dag.qubits().len()).collect();
+    let new_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike)?;
     let mut new_dag = new_dag.into_builder();
     for node in dag.topological_op_nodes()? {
         let NodeType::Operation(inst) = &dag.dag()[node] else {
@@ -182,6 +203,6 @@ pub fn run_split_2q_unitaries(
 }
 
 pub fn split_2q_unitaries_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(run_split_2q_unitaries))?;
+    m.add_wrapped(wrap_pyfunction!(py_run_split_2q_unitaries))?;
     Ok(())
 }

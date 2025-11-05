@@ -125,7 +125,7 @@ pub unsafe extern "C" fn qk_dag_num_qubits(dag: *const DAGCircuit) -> u32 {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let dag = unsafe { const_ptr_as_ref(dag) };
 
-    dag.num_qubits() as u32
+    dag.qubits().len() as u32
 }
 
 /// @ingroup QkDag
@@ -154,7 +154,7 @@ pub unsafe extern "C" fn qk_dag_num_clbits(dag: *const DAGCircuit) -> u32 {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let dag = unsafe { const_ptr_as_ref(dag) };
 
-    dag.num_clbits() as u32
+    dag.clbits().len() as u32
 }
 
 /// @ingroup QkDag

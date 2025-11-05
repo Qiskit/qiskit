@@ -15,7 +15,7 @@ use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
 use qiskit_circuit::imports::CIRCUIT_TO_DAG;
 use qiskit_circuit::operations::{Operation, OperationRef};
 use qiskit_circuit::{PhysicalQubit, Qubit};
@@ -58,7 +58,7 @@ fn recurse(
                         .getattr(intern!(py, "_data"))?
                         .cast::<CircuitData>()?
                         .borrow();
-                    let new_dag: DAGCircuit =
+                    let new_dag: PyDAGCircuit =
                         circuit_to_dag.call1((block_obj.clone(),))?.extract()?;
                     let wire_map = (0..block.num_qubits())
                         .map(|inner| {
@@ -69,7 +69,7 @@ fn recurse(
                             }
                         })
                         .collect::<Vec<_>>();
-                    let res = recurse(py, &new_dag, target, Some(&wire_map))?;
+                    let res = recurse(py, &new_dag.dag_circuit, target, Some(&wire_map))?;
                     if res.is_some() {
                         return Ok(res);
                     }
@@ -89,13 +89,13 @@ fn recurse(
 #[pyo3(name = "check_map")]
 pub fn py_run_check_map(
     py: Python,
-    dag: &DAGCircuit,
+    dag: &PyDAGCircuit,
     target: &Target,
 ) -> PyResult<Option<(String, [u32; 2])>> {
-    if dag.has_control_flow() {
-        recurse(py, dag, target, None)
+    if dag.dag_circuit.has_control_flow() {
+        recurse(py, &dag.dag_circuit, target, None)
     } else {
-        Ok(run_check_map(dag, target)
+        Ok(run_check_map(&dag.dag_circuit, target)
             .map(|(name, qubits)| (name.to_string(), [qubits[0].0, qubits[1].0])))
     }
 }

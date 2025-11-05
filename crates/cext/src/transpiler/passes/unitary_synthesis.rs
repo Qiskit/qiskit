@@ -75,7 +75,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_unitary_synthesis(
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
     let target = unsafe { const_ptr_as_ref(target) };
-    let mut dag = match DAGCircuit::from_circuit_data(circuit, false, None, None, None, None) {
+    let dag = match DAGCircuit::from_circuit_data(circuit, false, None, None) {
         Ok(dag) => dag,
         Err(e) => panic!("{}", e),
     };
@@ -84,9 +84,9 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_unitary_synthesis(
     } else {
         Some(approximation_degree)
     };
-    let qubit_indices = (0..dag.num_qubits()).collect();
+    let qubit_indices = (0..dag.qubits().len()).collect();
     let out_dag = match run_unitary_synthesis(
-        &mut dag,
+        &dag,
         qubit_indices,
         min_qubits,
         Some(target),

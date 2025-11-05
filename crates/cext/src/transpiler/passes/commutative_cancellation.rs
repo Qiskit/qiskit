@@ -72,7 +72,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_commutative_cancellation(
             "Invalid value provided for approximation degree, only NAN or values between 0.0 and 1.0 inclusive are valid"
         );
     }
-    let mut dag = match DAGCircuit::from_circuit_data(circuit, false, None, None, None, None) {
+    let mut dag = match DAGCircuit::from_circuit_data(circuit, false, None, None) {
         Ok(dag) => dag,
         Err(_) => panic!("Internal circuit -> DAG conversion failed"),
     };

@@ -19,7 +19,7 @@ use pyo3::prelude::*;
 use crate::bit::{ShareableClbit, ShareableQubit};
 use crate::circuit_data::{CircuitData, CircuitVar};
 use crate::dag_circuit::DAGIdentifierInfo;
-use crate::dag_circuit::{DAGCircuit, NodeType};
+use crate::dag_circuit::{DAGCircuit, NodeType, PyDAGCircuit};
 use crate::operations::{OperationRef, PythonOperation};
 use crate::packed_instruction::PackedInstruction;
 
@@ -30,6 +30,8 @@ pub struct QuantumCircuitData<'py> {
     pub data: CircuitData,
     pub name: Option<String>,
     pub metadata: Option<Bound<'py, PyAny>>,
+    pub unit: String,
+    pub duration: Option<Bound<'py, PyAny>>,
 }
 
 impl<'a, 'py> FromPyObject<'a, 'py> for QuantumCircuitData<'py> {
@@ -43,6 +45,8 @@ impl<'a, 'py> FromPyObject<'a, 'py> for QuantumCircuitData<'py> {
             data: data_borrowed,
             name: ob.getattr(intern!(py, "name"))?.extract()?,
             metadata: ob.getattr(intern!(py, "metadata")).ok(),
+            unit: ob.getattr(intern!(py, "_unit"))?.extract()?,
+            duration: ob.getattr(intern!(py, "_duration")).ok(),
         })
     }
 }
@@ -53,11 +57,26 @@ pub fn circuit_to_dag(
     copy_operations: bool,
     qubit_order: Option<Vec<ShareableQubit>>,
     clbit_order: Option<Vec<ShareableClbit>>,
-) -> PyResult<DAGCircuit> {
-    DAGCircuit::from_circuit(quantum_circuit, copy_operations, qubit_order, clbit_order)
+) -> PyResult<PyDAGCircuit> {
+    Ok(PyDAGCircuit {
+        name: quantum_circuit.name,
+        metadata: quantum_circuit.metadata.map(|x| x.unbind()),
+        dag_circuit: DAGCircuit::from_circuit_data(
+            &quantum_circuit.data,
+            copy_operations,
+            qubit_order,
+            clbit_order,
+        )?,
+        unit: quantum_circuit.unit,
+        duration: quantum_circuit.duration.map(|x| x.unbind()),
+    })
 }
 
-#[pyfunction(signature = (dag, copy_operations = true))]
+#[pyfunction(name="dag_to_circuit", signature = (dag, copy_operations = true))]
+pub fn py_dag_to_circuit(dag: &PyDAGCircuit, copy_operations: bool) -> PyResult<CircuitData> {
+    dag_to_circuit(&dag.dag_circuit, copy_operations)
+}
+
 pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<CircuitData> {
     CircuitData::from_packed_instructions(
         dag.qubits().clone(),
@@ -102,7 +121,7 @@ pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<Circu
                 Ok(instr.clone())
             }
         }),
-        dag.get_global_phase(),
+        dag.global_phase().clone(),
         dag.identifiers() // Map and pass DAGCircuit variables and stretches to CircuitData style
             .map(|identifier| match identifier {
                 DAGIdentifierInfo::Stretch(dag_stretch_info) => CircuitVar::Stretch(
@@ -124,6 +143,6 @@ pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<Circu
 
 pub fn converters(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(circuit_to_dag, m)?)?;
-    m.add_function(wrap_pyfunction!(dag_to_circuit, m)?)?;
+    m.add_function(wrap_pyfunction!(py_dag_to_circuit, m)?)?;
     Ok(())
 }

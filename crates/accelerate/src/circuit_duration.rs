@@ -13,7 +13,7 @@
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
+use qiskit_circuit::dag_circuit::{NodeType, PyDAGCircuit, Wire};
 use qiskit_circuit::operations::{DelayUnit, Operation, OperationRef, Param, StandardInstruction};
 
 use qiskit_transpiler::target::Target;
@@ -26,16 +26,16 @@ use rustworkx_core::petgraph::visit::{EdgeRef, IntoEdgeReferences};
 
 /// Estimate the duration of a scheduled circuit in seconds
 #[pyfunction]
-pub(crate) fn compute_estimated_duration(dag: &DAGCircuit, target: &Target) -> PyResult<f64> {
+pub(crate) fn compute_estimated_duration(dag: &PyDAGCircuit, target: &Target) -> PyResult<f64> {
     let dt = target.dt;
 
     let get_duration =
         |edge: <&StableDiGraph<NodeType, Wire> as IntoEdgeReferences>::EdgeRef| -> PyResult<f64> {
-            let node_weight = &dag[edge.target()];
+            let node_weight = &dag.dag_circuit[edge.target()];
             match node_weight {
                 NodeType::Operation(inst) => {
                     let name = inst.op.name();
-                    let qubits = dag.get_qargs(inst.qubits);
+                    let qubits = dag.dag_circuit.get_qargs(inst.qubits);
                     let physical_qubits: Vec<PhysicalQubit> =
                         qubits.iter().map(|x| PhysicalQubit::new(x.0)).collect();
 
@@ -91,7 +91,7 @@ pub(crate) fn compute_estimated_duration(dag: &DAGCircuit, target: &Target) -> P
                 )),
             }
         };
-    match longest_path(dag.dag(), get_duration)? {
+    match longest_path(dag.dag_circuit.dag(), get_duration)? {
         Some((_, weight)) => Ok(weight),
         None => Err(QiskitError::new_err("Invalid circuit provided")),
     }

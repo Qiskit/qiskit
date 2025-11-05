@@ -18,7 +18,7 @@
 use std::collections::BTreeMap;
 use std::io::prelude::*;
 
-use crate::dag_circuit::{DAGCircuit, Wire};
+use crate::dag_circuit::{PyDAGCircuit, Wire};
 use pyo3::IntoPyObjectExt;
 use pyo3::prelude::*;
 use rustworkx_core::petgraph::visit::{
@@ -30,7 +30,7 @@ static EDGE: [&str; 2] = ["--", "->"];
 
 pub fn build_dot<T>(
     py: Python,
-    dag: &DAGCircuit,
+    dag: &PyDAGCircuit,
     file: &mut T,
     graph_attrs: Option<BTreeMap<String, String>>,
     node_attrs: Option<Py<PyAny>>,
@@ -39,7 +39,7 @@ pub fn build_dot<T>(
 where
     T: Write,
 {
-    let graph = dag.dag();
+    let graph = dag.dag_circuit.dag();
     writeln!(file, "{} {{", TYPE[graph.is_directed() as usize])?;
     if let Some(graph_attr_map) = graph_attrs {
         for (key, value) in graph_attr_map.iter() {
@@ -58,9 +58,24 @@ where
     }
     for edge in graph.edge_references() {
         let edge_weight = match edge.weight() {
-            Wire::Qubit(qubit) => dag.qubits().get(*qubit).cloned().into_bound_py_any(py)?,
-            Wire::Clbit(clbit) => dag.clbits().get(*clbit).cloned().into_bound_py_any(py)?,
-            Wire::Var(var) => dag.vars().get(*var).cloned().into_bound_py_any(py)?,
+            Wire::Qubit(qubit) => dag
+                .dag_circuit
+                .qubits()
+                .get(*qubit)
+                .cloned()
+                .into_bound_py_any(py)?,
+            Wire::Clbit(clbit) => dag
+                .dag_circuit
+                .clbits()
+                .get(*clbit)
+                .cloned()
+                .into_bound_py_any(py)?,
+            Wire::Var(var) => dag
+                .dag_circuit
+                .vars()
+                .get(*var)
+                .cloned()
+                .into_bound_py_any(py)?,
         };
         writeln!(
             file,

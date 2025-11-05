@@ -35,7 +35,9 @@ fn control_flow_block_dags<'a>(
         .getattr("blocks")?
         .cast::<PyTuple>()?
         .iter()
-        .map(move |block| circuit_to_dag(block.extract()?, false, None, None)))
+        .map(move |block| {
+            circuit_to_dag(block.extract()?, false, None, None).map(|x| x.dag_circuit)
+        }))
 }
 
 /// The type of a node in the Sabre interactions graph.

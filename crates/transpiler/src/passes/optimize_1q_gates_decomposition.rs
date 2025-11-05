@@ -19,7 +19,7 @@ use pyo3::wrap_pyfunction;
 use ndarray::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, PyDAGCircuit};
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
 
 use crate::target::{Target, TargetOperation};
@@ -54,6 +54,20 @@ fn compute_error_from_target_one_qubit_sequence(
 
 #[pyfunction]
 #[pyo3(name = "optimize_1q_gates_decomposition", signature = (dag, *, target=None, basis_gates=None, global_decomposers=None))]
+pub fn py_run_optimize_1q_gates_decomposition(
+    dag: &mut PyDAGCircuit,
+    target: Option<&Target>,
+    basis_gates: Option<HashSet<String>>,
+    global_decomposers: Option<Vec<String>>,
+) -> PyResult<()> {
+    run_optimize_1q_gates_decomposition(
+        &mut dag.dag_circuit,
+        target,
+        basis_gates,
+        global_decomposers,
+    )
+}
+
 pub fn run_optimize_1q_gates_decomposition(
     dag: &mut DAGCircuit,
     target: Option<&Target>,
@@ -61,7 +75,7 @@ pub fn run_optimize_1q_gates_decomposition(
     global_decomposers: Option<Vec<String>>,
 ) -> PyResult<()> {
     let runs: Vec<Vec<NodeIndex>> = dag.collect_1q_runs().unwrap().collect();
-    let dag_qubits = dag.num_qubits();
+    let dag_qubits = dag.qubits().len();
     let mut target_basis_per_qubit: Vec<EulerBasisSet> = vec![EulerBasisSet::new(); dag_qubits];
     let mut basis_gates_per_qubit: Vec<Option<HashSet<&str>>> = vec![None; dag_qubits];
     for raw_run in runs {
@@ -257,6 +271,6 @@ pub fn matmul_1q_with_slice(operator: &mut [[Complex64; 2]; 2], other: &[[Comple
 }
 
 pub fn optimize_1q_gates_decomposition_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(run_optimize_1q_gates_decomposition))?;
+    m.add_wrapped(wrap_pyfunction!(py_run_optimize_1q_gates_decomposition))?;
     Ok(())
 }

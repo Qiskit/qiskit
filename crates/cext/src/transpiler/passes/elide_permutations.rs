@@ -63,7 +63,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_elide_permutations(
 ) -> *mut TranspileLayout {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
-    let dag = match DAGCircuit::from_circuit_data(circuit, false, None, None, None, None) {
+    let dag = match DAGCircuit::from_circuit_data(circuit, false, None, None) {
         Ok(dag) => dag,
         Err(_e) => panic!("Internal circuit to DAG conversion failed."),
     };

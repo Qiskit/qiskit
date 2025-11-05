@@ -28,7 +28,7 @@ use uuid::Uuid;
 
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::converters::circuit_to_dag;
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
 use qiskit_circuit::imports::ImportOnceCell;
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardInstruction};
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -89,12 +89,12 @@ fn subgraph(graph: &CouplingMap, node_set: &HashSet<NodeIndex>) -> CouplingMap {
 
 #[pyfunction(name = "run_pass_over_connected_components")]
 pub fn py_run_pass_over_connected_components(
-    dag: Bound<DAGCircuit>,
+    dag: Bound<PyDAGCircuit>,
     target: &Target,
     run_func: Bound<PyAny>,
 ) -> PyResult<Option<Vec<Py<PyAny>>>> {
     let py = dag.py();
-    let func = |dag: Bound<DAGCircuit>, cmap: &CouplingMap| -> PyResult<Py<PyAny>> {
+    let func = |dag: Bound<PyDAGCircuit>, cmap: &CouplingMap| -> PyResult<Py<PyAny>> {
         let py = run_func.py();
         let coupling_map_cls = COUPLING_MAP.get_bound(py);
         let endpoints: Vec<[usize; 2]> = cmap
@@ -122,7 +122,7 @@ pub fn py_run_pass_over_connected_components(
     };
     let components = {
         let mut borrowed = dag.borrow_mut();
-        distribute_components(borrowed.deref_mut(), target)?
+        distribute_components(&mut borrowed.deref_mut().dag_circuit, target)?
     };
     match components {
         DisjointSplit::NoneNeeded => {
@@ -153,7 +153,14 @@ pub fn py_run_pass_over_connected_components(
                             .map(|x| NodeIndex::new(x.index()))
                             .collect(),
                     );
-                    func(component.sub_dag.into_pyobject(py)?, &cmap)
+                    let sub_dag = PyDAGCircuit {
+                        dag_circuit: component.sub_dag,
+                        name: None,
+                        metadata: None,
+                        unit: "dt".to_string(),
+                        duration: None,
+                    };
+                    func(sub_dag.into_pyobject(py)?, &cmap)
                 })
                 .collect::<PyResult<Vec<_>>>(),
         )
@@ -168,7 +175,7 @@ pub fn distribute_components(dag: &mut DAGCircuit, target: &Target) -> PyResult<
     };
     let cmap_components = connected_components(&coupling_map);
     if cmap_components.len() == 1 {
-        if dag.num_qubits() > cmap_components[0].len() {
+        if dag.qubits().len() > cmap_components[0].len() {
             return Err(TranspilerError::new_err(concat!(
                 "A connected component of the DAGCircuit is too large for any of the connected ",
                 "components in the coupling map."
@@ -266,7 +273,7 @@ fn map_components(
     let mut dag_qubits: Vec<(usize, usize)> = dag_components
         .iter()
         .enumerate()
-        .map(|(idx, dag)| (idx, dag.num_qubits()))
+        .map(|(idx, dag)| (idx, dag.qubits().len()))
         .collect();
     dag_qubits.par_sort_unstable_by_key(|x| x.1);
     dag_qubits.reverse();
@@ -334,10 +341,10 @@ struct InteractionGraphData<Ty: EdgeType> {
 }
 
 fn generate_directed_interaction(dag: &DAGCircuit) -> PyResult<InteractionGraphData<Directed>> {
-    let mut im_graph_node_map: Vec<Option<NodeIndex>> = vec![None; dag.num_qubits()];
-    let mut reverse_im_graph_node_map: Vec<Option<Qubit>> = vec![None; dag.num_qubits()];
-    let wire_map: Vec<Qubit> = (0..dag.num_qubits()).map(Qubit::new).collect();
-    let mut im_graph = DiGraph::with_capacity(dag.num_qubits(), dag.num_qubits());
+    let mut im_graph_node_map: Vec<Option<NodeIndex>> = vec![None; dag.qubits().len()];
+    let mut reverse_im_graph_node_map: Vec<Option<Qubit>> = vec![None; dag.qubits().len()];
+    let wire_map: Vec<Qubit> = (0..dag.qubits().len()).map(Qubit::new).collect();
+    let mut im_graph = DiGraph::with_capacity(dag.qubits().len(), dag.qubits().len());
     build_interaction_graph(
         dag,
         &wire_map,
@@ -375,7 +382,7 @@ fn build_interaction_graph<Ty: EdgeType>(
                     }
                     let block_dag = circuit_to_dag(block.extract()?, false, None, None)?;
                     build_interaction_graph(
-                        &block_dag,
+                        &block_dag.dag_circuit,
                         &inner_wire_map,
                         im_graph,
                         im_graph_node_map,
@@ -444,15 +451,15 @@ fn separate_dag(dag: &mut DAGCircuit) -> PyResult<Vec<DAGCircuit>> {
                 .collect::<HashSet<Qubit>>()
         })
         .collect();
-    let qubits: HashSet<Qubit> = (0..dag.num_qubits()).map(Qubit::new).collect();
+    let qubits: HashSet<Qubit> = (0..dag.qubits().len()).map(Qubit::new).collect();
     let decomposed_dags: PyResult<Vec<DAGCircuit>> = component_qubits
         .into_iter()
         .map(|dag_qubits| -> PyResult<DAGCircuit> {
-            let mut new_dag = dag.copy_empty_like(VarsMode::Alike)?;
+            let mut new_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike)?;
             let qubits_to_revmove: Vec<Qubit> = qubits.difference(&dag_qubits).copied().collect();
 
             new_dag.remove_qubits(qubits_to_revmove)?;
-            new_dag.set_global_phase(Param::Float(0.))?;
+            new_dag.set_global_phase(Param::Float(0.));
             let old_qubits = dag.qubits();
             for index in dag.topological_op_nodes()? {
                 let node = dag[index].unwrap_operation();
@@ -498,6 +505,11 @@ fn separate_dag(dag: &mut DAGCircuit) -> PyResult<Vec<DAGCircuit>> {
 }
 
 #[pyfunction]
+#[pyo3(name = "combine_barriers")]
+pub fn py_combine_barriers(dag: &mut PyDAGCircuit, retain_uuid: bool) -> PyResult<()> {
+    combine_barriers(&mut dag.dag_circuit, retain_uuid)
+}
+
 pub fn combine_barriers(dag: &mut DAGCircuit, retain_uuid: bool) -> PyResult<()> {
     let mut uuid_map: HashMap<String, NodeIndex> = HashMap::new();
     let barrier_nodes: Vec<NodeIndex> = dag
@@ -584,7 +596,7 @@ fn split_barriers(dag: &mut DAGCircuit) -> PyResult<()> {
 }
 
 pub fn disjoint_utils_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(combine_barriers))?;
+    m.add_wrapped(wrap_pyfunction!(py_combine_barriers))?;
     m.add_wrapped(wrap_pyfunction!(py_run_pass_over_connected_components))?;
     Ok(())
 }
