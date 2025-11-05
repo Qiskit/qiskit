@@ -48,7 +48,7 @@ from qiskit.circuit import QuantumRegister, Qubit
 from qiskit.qpy import common, formats, type_keys
 from qiskit.qpy.exceptions import QpyError, UnsupportedFeatureForVersion
 from qiskit.qpy.binary_io import value, schedules
-from qiskit.quantum_info.operators import SparsePauliOp, Clifford, Pauli
+from qiskit.quantum_info.operators import SparsePauliOp, Clifford
 from qiskit.circuit.library import PauliProductMeasurement
 from qiskit.synthesis import evolution as evo_synth
 from qiskit.transpiler.layout import Layout, TranspileLayout
@@ -559,7 +559,7 @@ def _read_instruction(
         }:
             gate = gate_class(params)
         elif gate_name == "PauliProductMeasurement":
-            gate = gate_class(Pauli((*params,)))
+            gate = gate_class._from_pauli_data(*params, label)
         elif gate_name == "QFTGate":
             gate = gate_class(len(qargs), *params)
         else:
@@ -985,6 +985,8 @@ def _write_instruction(
         instruction_params = [instruction.operation.tableau]
     elif isinstance(instruction.operation, AnnotatedOperation):
         instruction_params = instruction.operation.modifiers
+    elif isinstance(instruction.operation, PauliProductMeasurement):
+        instruction_params = instruction.operation._to_pauli_data()
     else:
         instruction_params = getattr(instruction.operation, "params", [])
 

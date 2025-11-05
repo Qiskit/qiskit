@@ -623,38 +623,19 @@ impl<'a, 'py> FromPyObject<'a, 'py> for OperationFromPython {
                 };
             }
         } else if ob_name == "pauli_product_measurement" {
-            let params = extract_params_no_coerce()?;
+            let z = ob
+                .getattr(intern!(py, "_pauli_z"))?
+                .extract::<PyReadonlyArray1<bool>>()?
+                .as_slice()?
+                .to_vec();
 
-            let z = if let Param::Obj(z) = &params[0] {
-                z.extract::<PyReadonlyArray1<bool>>(py)?
-                    .as_slice()?
-                    .to_vec()
-            } else {
-                return Err(PyTypeError::new_err(format!(
-                    "invalid input: {}",
-                    ob.to_owned()
-                )));
-            };
+            let x = ob
+                .getattr(intern!(py, "_pauli_x"))?
+                .extract::<PyReadonlyArray1<bool>>()?
+                .as_slice()?
+                .to_vec();
 
-            let x = if let Param::Obj(x) = &params[1] {
-                x.extract::<PyReadonlyArray1<bool>>(py)?
-                    .as_slice()?
-                    .to_vec()
-            } else {
-                return Err(PyTypeError::new_err(format!(
-                    "invalid input: {}",
-                    ob.to_owned()
-                )));
-            };
-
-            let phase = if let Param::Obj(phase) = &params[2] {
-                phase.extract::<u8>(py)?
-            } else {
-                return Err(PyTypeError::new_err(format!(
-                    "invalid input: {}",
-                    ob.to_owned()
-                )));
-            };
+            let phase = ob.getattr(intern!(py, "_pauli_phase"))?.extract::<u8>()?;
 
             let pauli_product_measurement = Box::new(PauliProductMeasurement {
                 z: z.to_owned(),
