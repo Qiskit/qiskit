@@ -187,3 +187,72 @@ pub unsafe extern "C" fn qk_dag_free(dag: *mut DAGCircuit) {
         }
     }
 }
+
+/// @ingroup QkDag
+/// Get the number of instructions in the DAG.
+///
+/// @param dag A pointer to the DAG.
+///
+/// @return The number of instructions in the DAG.
+///
+/// # Example
+/// ```c
+/// QkDag *dag = qk_dag_new();
+///
+/// todo: an example where we add 2 instructions to the DAG.
+///
+/// uint32_t num_instructions = qk_dag_num_instructions(dag);  // num_instructions==2
+/// qk_dag_free(dag);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_num_instructions(dag: *const DAGCircuit) -> u32 {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let dag = unsafe { const_ptr_as_ref(dag) };
+    dag.num_ops() as u32
+}
+
+/// @ingroup QkDag
+/// Return DAG operation nodes, in topological order.
+///
+/// @param dag A pointer to the DAG.
+/// @param order A pointer to the array of ``uint32_t`` node indices where this function
+/// will write the output to. This array must be allocated by the caller, using the
+/// an allocation of size of at least ``qk_dag_num_instructions``.
+///
+/// # Example
+/// ```c
+/// QkDag *dag = qk_dag_new();
+///
+/// ToDo: create an example.
+///
+/// qk_dag_free(dag);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``,
+/// or if ``order`` is not a valid, non-null and sufficiently large pointer to a ``u32``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_topological_op_nodes(dag: *const DAGCircuit, order: *mut u32) {
+    // SAFETY: Per documentation, ``dag`` is non-null and valid.
+    let dag = unsafe { const_ptr_as_ref(dag) };
+
+    let out_topological_op_nodes = dag.topological_op_nodes().unwrap();
+
+    // SAFETY: Per documentation, ``order`` is a valid pointer with a sufficient allocation for the output
+    // array.
+    let order = unsafe { mut_ptr_as_ref(order) };
+    unsafe {
+        let out_slice = std::slice::from_raw_parts_mut(order, dag.num_ops());
+        out_slice
+            .iter_mut()
+            .zip(out_topological_op_nodes)
+            .for_each(|(dest, src)| *dest = src.index() as u32);
+    };
+}
