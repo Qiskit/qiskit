@@ -622,7 +622,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for OperationFromPython {
                     });
                 };
             }
-        } else if ob_name == "PauliProductMeasurement" {
+        } else if ob_name == "pauli_product_measurement" {
             let params = extract_params_no_coerce()?;
 
             let z = if let Param::Obj(z) = &params[0] {

@@ -2925,7 +2925,7 @@ pub struct PauliProductMeasurement {
 
 impl Operation for PauliProductMeasurement {
     fn name(&self) -> &str {
-        "PauliProductMeasurement"
+        "pauli_product_measurement"
     }
     fn num_qubits(&self) -> u32 {
         self.z.len() as u32

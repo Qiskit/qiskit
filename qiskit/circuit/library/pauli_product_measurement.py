@@ -90,7 +90,7 @@ class PauliProductMeasurement(Instruction):
             label = _get_default_label(pauli)
 
         super().__init__(
-            name="PauliProductMeasurement",
+            name="pauli_product_measurement",
             num_qubits=num_qubits,
             num_clbits=1,
             params=params,

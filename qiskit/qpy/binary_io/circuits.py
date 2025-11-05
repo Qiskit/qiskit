@@ -503,7 +503,7 @@ def _read_instruction(
         gate_class = getattr(controlflow, gate_name)
     elif gate_name == "Clifford":
         gate_class = Clifford
-    elif gate_name == "PauliProductMeasurement":
+    elif gate_name == "pauli_product_measurement":
         gate_class = PauliProductMeasurement
     else:
         raise AttributeError(f"Invalid instruction type: {gate_name}")
