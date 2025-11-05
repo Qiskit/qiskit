@@ -14,7 +14,8 @@ Operator Schmidt decomposition utilities.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Sequence, Tuple, Optional
+from typing import Any
+from collections.abc import Sequence
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -83,7 +84,7 @@ def _permutation_matrix_from_qubit_order(new_order: Sequence[int], n: int) -> np
 
 def _check_inputs(
     op: np.ndarray, qargs: Sequence[int]
-) -> Tuple[int, Tuple[int, ...], Tuple[int, ...]]:
+) -> tuple[int, tuple[int, ...], tuple[int, ...]]:
     if not isinstance(op, np.ndarray):
         raise QiskitError("`op` must be a numpy.ndarray.")
     if op.ndim != 2 or op.shape[0] != op.shape[1]:
@@ -118,9 +119,9 @@ def operator_schmidt_decomposition(
     op: np.ndarray,
     qargs: Sequence[int],
     *,
-    k: Optional[int] = None,
+    k: int | None = None,
     return_reconstruction: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     r"""
     Compute the operator Schmidt decomposition of ``op`` across the bipartition
     defined by ``qargs`` (subsystem :math:`A`) and its complement (subsystem :math:`B`).
@@ -220,8 +221,8 @@ def operator_schmidt_decomposition(
         num = min(k, total_terms)
 
     # Build factors so that sum kron(A_r, B_r) == u_perm (permuted basis), truncated if needed.
-    a_factors: List[np.ndarray] = []
-    b_factors: List[np.ndarray] = []
+    a_factors: list[np.ndarray] = []
+    b_factors: list[np.ndarray] = []
     for i in range(num):
         vec_a = u_left[:, i] * np.sqrt(sing_vals[i])
         vec_b = np.conj(vcols[:, i]) * np.sqrt(sing_vals[i])
@@ -234,7 +235,7 @@ def operator_schmidt_decomposition(
     denom = np.linalg.norm(sing_vals)
     rel_err = float(fro_err / denom) if denom > 0 else 0.0
 
-    out: Dict[str, Any] = {
+    out: dict[str, Any] = {
         "partition": {"S": subset_a, "Sc": subset_b},
         "permutation": {
             "new_order": tuple(subset_b) + tuple(subset_a),

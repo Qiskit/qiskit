@@ -15,12 +15,11 @@ Tests for operator Schmidt decomposition utility (unittest + DDT parameterizatio
 from __future__ import annotations
 
 # --- Local/standard first (pylint C0411 import order) ---
-from test import QiskitTestCase
+from test import QiskitTestCase, slow_test
 
 import itertools
-import os
 import unittest
-from typing import Iterable, Tuple
+from collections.abc import Iterable
 
 import numpy as np
 import numpy.testing as npt
@@ -43,7 +42,6 @@ SEEDS_FAST = [7, 11, 19, 23, 42]
 
 # Optional heavy stress, controlled by env var (e.g., QISKIT_SLOW_TESTS=1).
 SEEDS_STRESS = list(range(100, 120))
-RUN_STRESS = os.getenv("QISKIT_SLOW_TESTS", "0") not in ("", "0", "false", "False")
 
 
 def _fro_error(a_mat: np.ndarray, b_mat: np.ndarray) -> float:
@@ -52,7 +50,8 @@ def _fro_error(a_mat: np.ndarray, b_mat: np.ndarray) -> float:
 
 # ---------- Helper case generators (evaluated at import time for DDT) ----------
 
-def _cases_exact_unitary() -> Iterable[Tuple[int, int, Tuple[int, ...]]]:
+
+def _cases_exact_unitary() -> Iterable[tuple[int, int, tuple[int, ...]]]:
     # (seed, n, subset_a)
     for seed in SEEDS_FAST:
         for n_qubits in (1, 2, 3):
@@ -61,7 +60,7 @@ def _cases_exact_unitary() -> Iterable[Tuple[int, int, Tuple[int, ...]]]:
                     yield (seed, n_qubits, subset_a)
 
 
-def _cases_exact_dense() -> Iterable[Tuple[int, int, Tuple[int, ...]]]:
+def _cases_exact_dense() -> Iterable[tuple[int, int, tuple[int, ...]]]:
     for seed in SEEDS_FAST:
         for n_qubits in (2, 3):  # n=1 would be trivial
             for r_size in range(1, n_qubits):
@@ -69,7 +68,7 @@ def _cases_exact_dense() -> Iterable[Tuple[int, int, Tuple[int, ...]]]:
                     yield (seed, n_qubits, subset_a)
 
 
-def _cases_qargs_order_irrelevant() -> Iterable[Tuple[int, Tuple[int, ...], Tuple[int, ...]]]:
+def _cases_qargs_order_irrelevant() -> Iterable[tuple[int, tuple[int, ...], tuple[int, ...]]]:
     # removed unused local 'n_qubits'
     for seed in SEEDS_FAST:
         # Same subsets, different order:
@@ -78,17 +77,17 @@ def _cases_qargs_order_irrelevant() -> Iterable[Tuple[int, Tuple[int, ...], Tupl
         yield (seed, (2, 1), (1, 2))
 
 
-def _cases_singular_values_props() -> Iterable[Tuple[int]]:
+def _cases_singular_values_props() -> Iterable[tuple[int]]:
     for seed in SEEDS_FAST:
         yield (seed,)
 
 
-def _cases_rank1_kron() -> Iterable[Tuple[int]]:
+def _cases_rank1_kron() -> Iterable[tuple[int]]:
     for seed in SEEDS_FAST:
         yield (seed,)
 
 
-def _cases_truncation_meta() -> Iterable[Tuple[int, int, Tuple[int, ...]]]:
+def _cases_truncation_meta() -> Iterable[tuple[int, int, tuple[int, ...]]]:
     # (seed, n, subset_a)
     for seed in SEEDS_FAST:
         yield (seed, 3, (1,))
@@ -96,12 +95,12 @@ def _cases_truncation_meta() -> Iterable[Tuple[int, int, Tuple[int, ...]]]:
         yield (seed, 4, (1, 2))
 
 
-def _cases_truncation_low_rank() -> Iterable[Tuple[int]]:
+def _cases_truncation_low_rank() -> Iterable[tuple[int]]:
     # vary rank p; n=2 fixed inside
     return [(2,), (3,)]
 
 
-def _cases_permutation(seed_list=None) -> Iterable[Tuple[int, Tuple[int, ...]]]:
+def _cases_permutation(seed_list=None) -> Iterable[tuple[int, tuple[int, ...]]]:
     if seed_list is None:
         seed_list = SEEDS_FAST
     for seed in seed_list:
@@ -109,11 +108,12 @@ def _cases_permutation(seed_list=None) -> Iterable[Tuple[int, Tuple[int, ...]]]:
             yield (seed, subset_a)
 
 
-def _cases_k_validation() -> Iterable[Tuple[int]]:
+def _cases_k_validation() -> Iterable[tuple[int]]:
     return [(0,), (-3,)]
 
 
 # ------------------------- Main test class (fast set) --------------------------
+
 
 @ddt
 class TestOperatorSchmidtDecomposition(QiskitTestCase):
@@ -122,19 +122,21 @@ class TestOperatorSchmidtDecomposition(QiskitTestCase):
     @idata(list(_cases_exact_unitary()))
     @unpack
     def test_exact_reconstruction_random_unitary(
-        self, seed: int, n_qubits: int, subset_a: Tuple[int, ...]
+        self, seed: int, n_qubits: int, subset_a: tuple[int, ...]
     ):
         """Exact reconstruction (full sum) for random unitaries."""
-        unitary = np.array(random_unitary(2 ** n_qubits, seed=seed), dtype=complex)
+        unitary = np.array(random_unitary(2**n_qubits, seed=seed), dtype=complex)
         out = operator_schmidt_decomposition(unitary, subset_a, return_reconstruction=True)
         self.assertAlmostEqual(_fro_error(unitary, out["reconstruction"]), 0.0, delta=ATOL)
 
     @idata(list(_cases_exact_dense()))
     @unpack
-    def test_exact_reconstruction_random_dense(self, seed: int, n_qubits: int, subset_a: Tuple[int, ...]):
+    def test_exact_reconstruction_random_dense(
+        self, seed: int, n_qubits: int, subset_a: tuple[int, ...]
+    ):
         """Exact reconstruction for random dense (nonunitary) operators."""
         rng = np.random.default_rng(seed)
-        dim = 2 ** n_qubits
+        dim = 2**n_qubits
         op = rng.normal(size=(dim, dim)) + 1j * rng.normal(size=(dim, dim))
         out = operator_schmidt_decomposition(op, subset_a, return_reconstruction=True)
         self.assertAlmostEqual(_fro_error(op, out["reconstruction"]), 0.0, delta=ATOL)
@@ -142,11 +144,11 @@ class TestOperatorSchmidtDecomposition(QiskitTestCase):
     @idata(list(_cases_qargs_order_irrelevant()))
     @unpack
     def test_qargs_order_irrelevant(
-        self, seed: int, subset_a_perm1: Tuple[int, ...], subset_a_perm2: Tuple[int, ...]
+        self, seed: int, subset_a_perm1: tuple[int, ...], subset_a_perm2: tuple[int, ...]
     ):
         """Singular values are invariant under reordering within the same subset."""
         n_qubits = 3
-        unitary = np.array(random_unitary(2 ** n_qubits, seed=seed), dtype=complex)
+        unitary = np.array(random_unitary(2**n_qubits, seed=seed), dtype=complex)
         out1 = operator_schmidt_decomposition(unitary, subset_a_perm1)
         out2 = operator_schmidt_decomposition(unitary, subset_a_perm2)
         npt.assert_allclose(
@@ -162,11 +164,11 @@ class TestOperatorSchmidtDecomposition(QiskitTestCase):
         """SV sanity: nonnegative, descending, and Frobenius identity."""
         n_qubits = 3
         rng = np.random.default_rng(seed)
-        dim = 2 ** n_qubits
+        dim = 2**n_qubits
         op = rng.normal(size=(dim, dim)) + 1j * rng.normal(size=(dim, dim))
         out = operator_schmidt_decomposition(op, (1,))
         sing_vals = out["singular_values"]
-        self.assertTrue(np.all(sing_vals >= -ATOL))           # nonnegative (within numerical noise)
+        self.assertTrue(np.all(sing_vals >= -ATOL))  # nonnegative (within numerical noise)
         self.assertTrue(np.all(sing_vals[:-1] + ATOL >= sing_vals[1:]))  # descending
         fro_sq = np.linalg.norm(op, ord="fro") ** 2
         self.assertAlmostEqual(np.sum(sing_vals**2), fro_sq, delta=max(ATOL, RTOL * abs(fro_sq)))
@@ -177,7 +179,7 @@ class TestOperatorSchmidtDecomposition(QiskitTestCase):
         """Hilbert–Schmidt orthogonality and normalization of Schmidt factors."""
         n_qubits = 3
         rng = np.random.default_rng(seed)
-        dim = 2 ** n_qubits
+        dim = 2**n_qubits
         op = rng.normal(size=(dim, dim)) + 1j * rng.normal(size=(dim, dim))
         subset_a = (0, 2)
         out = operator_schmidt_decomposition(op, subset_a)
@@ -196,10 +198,14 @@ class TestOperatorSchmidtDecomposition(QiskitTestCase):
         npt.assert_allclose(gram_b, diag_s, rtol=RTOL, atol=ATOL)
 
         # Orthonormality after normalization
-        a_norm = [x_mat / np.sqrt(sing_vals[i]) if sing_vals[i] > 0 else x_mat
-                  for i, x_mat in enumerate(a_factors)]
-        b_norm = [y_mat / np.sqrt(sing_vals[i]) if sing_vals[i] > 0 else y_mat
-                  for i, y_mat in enumerate(b_factors)]
+        a_norm = [
+            x_mat / np.sqrt(sing_vals[i]) if sing_vals[i] > 0 else x_mat
+            for i, x_mat in enumerate(a_factors)
+        ]
+        b_norm = [
+            y_mat / np.sqrt(sing_vals[i]) if sing_vals[i] > 0 else y_mat
+            for i, y_mat in enumerate(b_factors)
+        ]
         gram_a_n = np.array(
             [[np.vdot(x_mat.ravel(), y_mat.ravel()) for y_mat in a_norm] for x_mat in a_norm]
         )
@@ -238,11 +244,11 @@ class TestOperatorSchmidtDecomposition(QiskitTestCase):
     @idata(list(_cases_truncation_meta()))
     @unpack
     def test_truncation_frobenius_optimality_and_metadata(
-        self, seed: int, n_qubits: int, subset_a: Tuple[int, ...]
+        self, seed: int, n_qubits: int, subset_a: tuple[int, ...]
     ):
         """Top‑k truncation gives Frobenius‑optimal tail error and correct metadata."""
         rng = np.random.default_rng(seed)
-        dim = 2 ** n_qubits
+        dim = 2**n_qubits
         op = rng.normal(size=(dim, dim)) + 1j * rng.normal(size=(dim, dim))
 
         # Try multiple k values per case for robustness
@@ -284,12 +290,8 @@ class TestOperatorSchmidtDecomposition(QiskitTestCase):
     def test_truncation_exact_low_rank_sum_of_krons(self, rank_terms: int):
         """Operators with Schmidt rank p are reconstructed exactly when k >= p."""
         rng = np.random.default_rng(123 + rank_terms)  # vary seed with p
-        a_list = [
-            rng.normal(size=(2, 2)) + 1j * rng.normal(size=(2, 2)) for _ in range(rank_terms)
-        ]
-        b_list = [
-            rng.normal(size=(2, 2)) + 1j * rng.normal(size=(2, 2)) for _ in range(rank_terms)
-        ]
+        a_list = [rng.normal(size=(2, 2)) + 1j * rng.normal(size=(2, 2)) for _ in range(rank_terms)]
+        b_list = [rng.normal(size=(2, 2)) + 1j * rng.normal(size=(2, 2)) for _ in range(rank_terms)]
         op = sum(np.kron(a_mat, b_mat) for a_mat, b_mat in zip(a_list, b_list))
 
         out_full = operator_schmidt_decomposition(
@@ -309,10 +311,10 @@ class TestOperatorSchmidtDecomposition(QiskitTestCase):
 
     @idata(list(_cases_permutation()))
     @unpack
-    def test_permutation_new_order_and_matrix_contract(self, seed: int, subset_a: Tuple[int, ...]):
+    def test_permutation_new_order_and_matrix_contract(self, seed: int, subset_a: tuple[int, ...]):
         """new_order == Sc + S and P maps U to the basis where sum kron(A,B) holds."""
         n_qubits = 3
-        unitary = np.array(random_unitary(2 ** n_qubits, seed=seed), dtype=complex)
+        unitary = np.array(random_unitary(2**n_qubits, seed=seed), dtype=complex)
         out = operator_schmidt_decomposition(unitary, subset_a)
         part_info = out["partition"]
         perm_info = out["permutation"]
@@ -321,12 +323,10 @@ class TestOperatorSchmidtDecomposition(QiskitTestCase):
         self.assertEqual(tuple(perm_info["new_order"]), expected_order)
 
         perm_matrix = perm_info["matrix"]
-        self.assertEqual(perm_matrix.shape, (2 ** n_qubits, 2 ** n_qubits))
-        npt.assert_allclose(perm_matrix @ perm_matrix.T, np.eye(2 ** n_qubits), rtol=RTOL, atol=ATOL)
-        npt.assert_allclose(perm_matrix.T @ perm_matrix, np.eye(2 ** n_qubits), rtol=RTOL, atol=ATOL)
-        self.assertTrue(
-            np.all((np.abs(perm_matrix) < ATOL) | (np.abs(perm_matrix - 1) < ATOL))
-        )
+        self.assertEqual(perm_matrix.shape, (2**n_qubits, 2**n_qubits))
+        npt.assert_allclose(perm_matrix @ perm_matrix.T, np.eye(2**n_qubits), rtol=RTOL, atol=ATOL)
+        npt.assert_allclose(perm_matrix.T @ perm_matrix, np.eye(2**n_qubits), rtol=RTOL, atol=ATOL)
+        self.assertTrue(np.all((np.abs(perm_matrix) < ATOL) | (np.abs(perm_matrix - 1) < ATOL)))
 
         # In the permuted basis, Up == sum_i kron(A_i, B_i) (full, untruncated case).
         out_full = operator_schmidt_decomposition(unitary, subset_a, k=None)
@@ -341,28 +341,29 @@ class TestOperatorSchmidtDecomposition(QiskitTestCase):
 
 # ----------------------------- Stress tests (DDT) ------------------------------
 
+
 @ddt
 class TestOperatorSchmidtDecompositionStress(QiskitTestCase):
-    """Stress tests (skipped unless QISKIT_SLOW_TESTS=1)."""
+    """Stress tests (marked as @slow_test)."""
 
-    @unittest.skipUnless(RUN_STRESS, "Set QISKIT_SLOW_TESTS=1 to enable stress tests")
+    @slow_test
     @idata(list(_cases_permutation(SEEDS_STRESS)))
     @unpack
-    def test_exact_reconstruction_unitary_stress(self, seed: int, subset_a: Tuple[int, ...]):
+    def test_exact_reconstruction_unitary_stress(self, seed: int, subset_a: tuple[int, ...]):
         """Stress: exact reconstruction over many seeds/partitions (unitary inputs)."""
         n_qubits = 3
-        unitary = np.array(random_unitary(2 ** n_qubits, seed=seed), dtype=complex)
+        unitary = np.array(random_unitary(2**n_qubits, seed=seed), dtype=complex)
         out = operator_schmidt_decomposition(unitary, subset_a, return_reconstruction=True)
         self.assertAlmostEqual(_fro_error(unitary, out["reconstruction"]), 0.0, delta=ATOL)
 
-    @unittest.skipUnless(RUN_STRESS, "Set QISKIT_SLOW_TESTS=1 to enable stress tests")
+    @slow_test
     @idata([(seed,) for seed in SEEDS_STRESS])
     @unpack
     def test_singular_values_properties_stress(self, seed: int):
         """Stress: SV nonnegativity/ordering and Frobenius identity (dense random inputs)."""
         n_qubits = 3
         rng = np.random.default_rng(seed)
-        dim = 2 ** n_qubits
+        dim = 2**n_qubits
         op = rng.normal(size=(dim, dim)) + 1j * rng.normal(size=(dim, dim))
         out = operator_schmidt_decomposition(op, [1])
         sing_vals = out["singular_values"]
