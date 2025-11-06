@@ -485,10 +485,7 @@ pub fn run_commutative_optimization(
     for idx in 0..num_nodes {
         match &node_actions[idx] {
             NodeAction::Drop => {}
-            NodeAction::Keep => {
-                new_dag.push_back(dag[node_indices[idx]].unwrap_operation().clone())?;
-            }
-            NodeAction::Canonical(_, _) => {
+            NodeAction::Keep | NodeAction::Canonical(_, _) => {
                 new_dag.push_back(dag[node_indices[idx]].unwrap_operation().clone())?;
             }
             NodeAction::Replace(instruction) => {
