@@ -49,6 +49,9 @@ Data Types
 .. doxygenstruct:: QkInstructionProperties
    :members:
 
+.. doxygenstruct:: QkTargetOperation
+   :members:
+
 Functions
 =========
 
