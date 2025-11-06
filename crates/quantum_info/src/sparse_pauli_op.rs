@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use crate::sparse_observable::{BitTerm, SparseObservable};
 use ahash::RandomState;
 use pyo3::Python;
 use pyo3::exceptions::PyValueError;
@@ -892,13 +893,64 @@ pub fn sparse_pauli_op(m: &Bound<PyModule>) -> PyResult<()> {
     Ok(())
 }
 
+// inner function to convert MatrixCompressedPaulis to SparseObservable
+impl From<&MatrixCompressedPaulis> for SparseObservable {
+    fn from(paulis: &MatrixCompressedPaulis) -> Self {
+        let mut coeffs = Vec::new();
+        let mut bit_terms_flat = Vec::new();
+        let mut indices_flat = Vec::new();
+        let mut boundaries = vec![0];
+
+        for i in 0..paulis.num_ops() {
+            let phase = ((paulis.z_like[i] & paulis.x_like[i]).count_ones() % 4) as u8;
+            let coeff = paulis.coeffs[i];
+            //matching to match the SparseObservable convention, which applies the phase to the coefficient
+            //converting back from the phase corrected coefficient of MatrixCompressedPaulis to the standard form
+            coeffs.push(match phase {
+                0 => coeff,
+                1 => Complex64::new(-coeff.im, coeff.re), //  i
+                2 => -coeff,                              // -1
+                3 => Complex64::new(coeff.im, -coeff.re), // -i
+                _ => unreachable!(),
+            });
+
+            let mut term_bit_terms = Vec::new();
+            let mut term_indices = Vec::new();
+            for q in 0..paulis.num_qubits() {
+                let x = (paulis.x_like[i] >> q) & 1;
+                let z = (paulis.z_like[i] >> q) & 1;
+                if x == 1 && z == 1 {
+                    term_bit_terms.push(BitTerm::Y);
+                    term_indices.push(q as u32);
+                } else if x == 1 {
+                    term_bit_terms.push(BitTerm::X);
+                    term_indices.push(q as u32);
+                } else if z == 1 {
+                    term_bit_terms.push(BitTerm::Z);
+                    term_indices.push(q as u32);
+                }
+            }
+            bit_terms_flat.extend(term_bit_terms);
+            indices_flat.extend(term_indices);
+            boundaries.push(bit_terms_flat.len());
+        }
+
+        SparseObservable::new(
+            paulis.num_qubits as u32,
+            coeffs,
+            bit_terms_flat,
+            indices_flat,
+            boundaries,
+        )
+        .unwrap()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use ndarray::{Array1, aview2};
 
     use super::*;
-    use crate::test::*;
-
     use crate::sparse_observable::SparseObservable;
 
     #[cfg(miri)]
@@ -906,23 +958,6 @@ mod tests {
 
     // The purpose of these tests is more about exercising the `unsafe` code under Miri; we test for
     // full numerical correctness from Python space.
-
-    fn example_paulis() -> MatrixCompressedPaulis {
-        MatrixCompressedPaulis {
-            num_qubits: 4,
-            x_like: vec![0b0000, 0b0001, 0b0010, 0b1100, 0b1010, 0b0000],
-            z_like: vec![0b1000, 0b0110, 0b1001, 0b0100, 0b1010, 0b1000],
-            // Deliberately using multiples of small powers of two so the floating-point addition
-            // of them is associative.
-            coeffs: vec![
-                c64(0.25, 0.5),
-                c64(0.125, 0.25),
-                c64(0.375, 0.125),
-                c64(-0.375, 0.0625),
-                c64(-0.5, -0.25),
-            ],
-        }
-    }
 
     /// Helper struct for the decomposition testing.  This is a subset of the `DecomposeOut`
     /// struct, skipping the unnecessary algorithm-state components of it.
@@ -1040,9 +1075,14 @@ mod tests {
                 x_like,
                 z_like,
             };
-            let arr = Array1::from_vec(SparseObservable::to_matrix_dense(&paulis, false))
-                .into_shape_with_order((2, 2))
-                .unwrap();
+            let observable = SparseObservable::from(&paulis);
+            let arr = Array1::from_vec(
+                observable
+                    .to_matrix_dense(false)
+                    .expect("Failed to create dense matrix"),
+            )
+            .into_shape_with_order((2, 2))
+            .unwrap();
             let expected: DecomposeMinimal = paulis.into();
             let actual: DecomposeMinimal = decompose_dense_inner(arr.view(), 0.0).unwrap().into();
             #[cfg(not(miri))]
@@ -1084,9 +1124,14 @@ mod tests {
                 x_like,
                 z_like,
             };
-            let arr = Array1::from_vec(SparseObservable::to_matrix_dense(&paulis, false))
-                .into_shape_with_order((8, 8))
-                .unwrap();
+            let observable = SparseObservable::from(&paulis);
+            let arr = Array1::from_vec(
+                observable
+                    .to_matrix_dense(false)
+                    .expect("Failed to create dense matrix"),
+            )
+            .into_shape_with_order((8, 8))
+            .unwrap();
             let expected: DecomposeMinimal = paulis.into();
             let actual: DecomposeMinimal = decompose_dense_inner(arr.view(), 0.0).unwrap().into();
             #[cfg(not(miri))]

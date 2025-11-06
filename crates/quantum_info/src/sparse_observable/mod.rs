@@ -4670,7 +4670,8 @@ mod test {
     fn sparse_threaded_and_serial_equal_32() {
         let obs = example_observable();
         // Pre-compute the data just like the public-facing methods do.
-        let computation_data = MatrixComputationData::from_sparse_observable(&obs);
+        // using unwrap here as it appears in test code only
+        let computation_data = MatrixComputationData::from_sparse_observable(&obs).unwrap();
 
         // Directly call and compare the internal Rust functions.
         let parallel_result = sparse_observable_to_matrix_parallel_32(&computation_data);
@@ -4684,7 +4685,8 @@ mod test {
     #[test]
     fn sparse_threaded_and_serial_equal_64() {
         let obs = example_observable();
-        let computation_data = MatrixComputationData::from_sparse_observable(&obs);
+        // using unwrap here as it appears in test code only
+        let computation_data = MatrixComputationData::from_sparse_observable(&obs).unwrap();
 
         // Directly call and compare the internal Rust functions.
         let parallel_result = sparse_observable_to_matrix_parallel_64(&computation_data);
