@@ -28,8 +28,6 @@ use qiskit_circuit_library::quantum_volume::quantum_volume;
 /// [1] A. Cross et al. Validating quantum computers using randomized model circuits,
 ///     Phys. Rev. A 100, 032328 (2019). [arXiv:1811.12926](https://arxiv.org/abs/1811.12926)
 ///
-/// # Parameters
-///
 /// @param num_qubits The number qubits to use for the generated circuit.
 /// @param depth The number of layers for the generated circuit.
 /// @param seed An RNG seed used for generating the random SU(4) matrices used
