@@ -159,7 +159,25 @@ def build_homogenous_target(
     seed: int,
     ideal_gates: bool = False,
 ) -> QkTarget:
-    """Build a target with a homogenous gate set."""
+    """Build a C API QkTarget with a homogenous gate set.
+
+    This function will build a target taking a coupling map and basis gate
+    list. It assumes that all 1q gates are on all qubits and all 2q gates are on
+    all coupling map edges. Larger gates (and 0 qubit gates) are not supported
+    and will error. All gates will have a random error rate and duration assigned on
+    each qubit. Measurements will be added as a supported instruction on
+    every qubit unconditionally.
+
+    Args:
+        cmap: The coupling map representing the connectivity of the target to generate
+        basis_gates: The list of standard gate name strings to use in the target
+        seed: An rng seed
+        ideal_gates: If set to False no error rate or duration will be assigned to
+            any instruction on the target.
+
+    Returns:
+        A ctypes pointer to the C API QkTarget object
+    """
 
     name_mapping = qiskit.circuit.library.standard_gates.get_standard_gate_name_mapping()
     c_target = LIB.qk_target_new(cmap.size())
