@@ -1327,15 +1327,52 @@ pub struct CInstructionProperties {
     pub error: f64,
 }
 
+/// Representation of an operation identified within the Target.
 #[repr(C)]
 pub struct CTargetOperation {
-    op_type: COperationKind,
-    name: *const c_char,
-    num_qubits: u32,
-    params: *const f64,
-    num_params: u32,
+    /// The identifier for the current operation.
+    pub op_type: COperationKind,
+    /// The name of the operation.
+    pub name: *mut c_char,
+    /// The number of qubits this operation supports.
+    pub num_qubits: u32,
+    /// The parameters tied to this operation if fixed, as a `double`.
+    pub params: *mut f64,
+    /// The number of parameters supported by this operation.
+    pub num_params: u32,
 }
 
+/// @ingroup QkTarget
+/// Retrieves information about an operation in the Target.
+///
+/// @param target A pointer to the ``QkTarget``.
+/// @param index The index in which the gate is stored.
+/// @param op_kind A pointer to the space where the ``QkTargetOperation``
+///     will be stored.
+///
+/// @return An exit code.
+///
+/// # Example
+/// ```c
+///     QkTarget *target = qk_target_new(5);
+///
+///     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
+///     uint32_t qargs[2] = {0, 1};
+///     qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
+///     qk_target_add_instruction(target, entry);
+///
+///     QkTargetOperation op;
+///     qk_target_op_get(target, 0, &op);
+///     
+///     // Clean up after you're done
+///     qk_target_op_clear(&op);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
+/// Behavior is undefined if ``inst_props`` does not point to an address of the correct size to
+/// store ``QkInstructionProperties`` in.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_op_get(
@@ -1380,7 +1417,7 @@ pub unsafe extern "C" fn qk_target_op_get(
                 .0
                 .clone(),
         )
-        .expect("Error extracting cstring from Target name")
+        .expect("Error extracting Cstring from Target name")
         .into_raw();
         let params: Vec<f64> = operation
             .params()
@@ -1394,7 +1431,7 @@ pub unsafe extern "C" fn qk_target_op_get(
             .len()
             .try_into()
             .expect("The number of parameters exceeds the alotted amount");
-        let params_boxed = params.into_boxed_slice();
+        let mut params_boxed = params.into_boxed_slice();
         unsafe {
             write(
                 op_kind,
@@ -1402,7 +1439,7 @@ pub unsafe extern "C" fn qk_target_op_get(
                     op_type: kind,
                     name,
                     num_qubits: operation.num_qubits(),
-                    params: params_boxed.as_ptr(),
+                    params: params_boxed.as_mut_ptr(),
                     num_params,
                 },
             )
@@ -1414,6 +1451,41 @@ pub unsafe extern "C" fn qk_target_op_get(
     }
 }
 
+/// @ingroup QkTarget
+/// Tries to retrieve a ``QkGate`` based on the operation stored in an index.
+/// The user is responsible for checking whether this operation is a gate in the ``QkTarget``
+/// via using ``qk_target_op_get``. If not, the function will panic.
+///
+/// @param target A pointer to the Target instance.
+/// @param index The index at which the operation is located.
+///
+/// @return the QkGate instance in said index.
+///
+/// # Example
+/// ```c
+///     QkTarget *target = qk_target_new(5);
+///
+///     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
+///     uint32_t qargs[2] = {0, 1};
+///     qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
+///     qk_target_add_instruction(target, entry);
+///
+///     QkTargetOperation op;
+///     qk_target_op_get(target, 0, &op);
+///     
+///     // Check if the operation is a gate;
+///     if (op.op_type == QkOperationKind_Gate) {
+///         QkGate gate = qk_target_op_try_gate(target, 0);
+///         // Do something
+///     }
+///
+///     // Clean up after you're done.
+///     qk_target_op_clear(op);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if the ``target`` pointer is null or not aligned.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_op_try_gate(
@@ -1432,6 +1504,43 @@ pub unsafe extern "C" fn qk_target_op_try_gate(
             .try_standard_gate()
             .expect("Not a standard gate."),
         qiskit_transpiler::target::TargetOperation::Variadic(_) => panic!("Not a standard gate."),
+    }
+}
+
+/// @ingroup QkTarget
+/// Clears the ``QkTargetOperation`` object.
+///
+/// @param op The pointer to a ``QkTargetOperation`` object.
+///
+/// # Safety
+///
+/// The behavior will be undefined if the pointer is null or not-aligned.
+/// The data belonging to a ``QkTargetOperation`` originates in Rust and
+/// can only be freed using this function.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_op_clear(op: *mut CTargetOperation) {
+    // We need to consume both the name and the parameters
+
+    // SAFETY: As per documentation, data from pointers contained in CTargetOperation
+    // originates from rust code and are constructed internally with vecs and CStrings.
+    unsafe {
+        let op_borrowed = mut_ptr_as_ref(op);
+        if !op_borrowed.name.is_null() {
+            let _ = CString::from_raw(op_borrowed.name);
+            op_borrowed.name = std::ptr::null_mut();
+        }
+
+        if op_borrowed.num_params > 0 && !op_borrowed.params.is_null() {
+            let params = std::slice::from_raw_parts_mut(
+                op_borrowed.params,
+                op_borrowed.num_params.try_into().unwrap(),
+            );
+            let _ = Box::from_raw(params as *mut [f64]);
+            op_borrowed.params = std::ptr::null_mut();
+        }
+        op_borrowed.num_params = 0;
+        op_borrowed.num_qubits = 0;
     }
 }
 
