@@ -73,6 +73,7 @@ LIB.qk_circuit_gate.argtypes = [
     ctypes.POINTER(ctypes.c_uint32),
     ctypes.POINTER(ctypes.c_double),
 ]
+LIB.qk_circuit_gate.restype = ctypes.c_uint32
 LIB.qk_circuit_measure.argtypes = [ctypes.POINTER(QkCircuit), ctypes.c_uint32, ctypes.c_uint32]
 LIB.qk_circuit_to_python.argtypes = [
     ctypes.POINTER(QkCircuit),
@@ -82,7 +83,7 @@ LIB.qk_circuit_barrier.argtypes = [
     ctypes.POINTER(ctypes.c_uint32),
     ctypes.c_uint32,
 ]
-
+LIB.qk_circuit_barrier.restype = ctypes.c_uint32
 LIB.qk_circuit_to_python.restype = ctypes.py_object
 LIB.qk_target_new.argtypes = [
     ctypes.c_uint32,
@@ -101,7 +102,9 @@ LIB.qk_target_entry_add_property.argtypes = [
     ctypes.c_double,
     ctypes.c_double,
 ]
+LIB.qk_target_entry_add_property.restype = ctypes.c_uint32
 LIB.qk_target_add_instruction.argtypes = [ctypes.POINTER(QkTarget), ctypes.POINTER(QkTargetEntry)]
+LIB.qk_target_add_instruction.restype = ctypes.c_uint32
 LIB.qk_transpile.argtypes = [
     ctypes.POINTER(QkCircuit),
     ctypes.POINTER(QkTarget),
