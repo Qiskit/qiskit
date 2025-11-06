@@ -22,7 +22,7 @@ from collections.abc import Iterable
 
 import numpy as np
 import numpy.testing as npt
-from ddt import ddt, idata, unpack  # removed unused 'data'
+from ddt import ddt, idata, unpack 
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import random_unitary
