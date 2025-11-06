@@ -11,7 +11,6 @@
 // that they have been altered from the originals.
 
 mod dag;
-mod distance;
 pub mod heuristic;
 mod layer;
 mod layout;
