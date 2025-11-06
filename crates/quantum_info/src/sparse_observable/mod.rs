@@ -35,6 +35,7 @@ use rayon::prelude::*;
 use std::{
     borrow::Cow,
     cmp::Ordering,
+    collections::HashMap,
     collections::btree_map,
     ops::{AddAssign, DivAssign, MulAssign, SubAssign},
     sync::{Arc, RwLock, RwLockReadGuard},
@@ -394,22 +395,47 @@ pub struct SparseObservable {
 }
 
 struct MatrixComputationData {
-    x_like: Vec<u32>,
-    z_like: Vec<u32>,
+    x_like: Vec<u64>,
+    z_like: Vec<u64>,
     coeffs: Vec<Complex64>,
     num_qubits: u32,
 }
 
 impl MatrixComputationData {
+    fn combine_duplicates(&mut self) {
+        let mut map: HashMap<(u64, u64), Complex64> = HashMap::with_capacity(self.coeffs.len());
+        for (&x, &z, &c) in itertools::izip!(&self.x_like, &self.z_like, &self.coeffs) {
+            *map.entry((x, z)).or_insert(Complex64::new(0.0, 0.0)) += c;
+        }
+        let (mut x_like, mut z_like, mut coeffs) = (
+            Vec::with_capacity(map.len()),
+            Vec::with_capacity(map.len()),
+            Vec::with_capacity(map.len()),
+        );
+        for ((x, z), c) in map {
+            if c != Complex64::new(0.0, 0.0) {
+                x_like.push(x);
+                z_like.push(z);
+                coeffs.push(c);
+            }
+        }
+        self.x_like = x_like;
+        self.z_like = z_like;
+        self.coeffs = coeffs;
+    }
     /// Create optimized matrix computation data from SparseObservable
     fn from_sparse_observable(obs: &SparseObservable) -> PyResult<Self> {
         if obs.is_pure_pauli() {
             // Direct precomputation for pure Pauli, no expansion needed
-            Self::from_pauli_like(obs)
+            let mut data = Self::from_pauli_like(obs)?;
+            data.combine_duplicates();
+            Ok(data)
         } else {
             // Expand projectors once, then precompute from the expanded version
             let expanded = obs.as_paulis();
-            Self::from_pauli_like(&expanded)
+            let mut data = Self::from_pauli_like(&expanded)?;
+            data.combine_duplicates();
+            Ok(data)
         }
     }
 
@@ -424,19 +450,20 @@ impl MatrixComputationData {
             let bit_terms = obs.get_term_slice(term_idx);
             let indices = obs.get_qubit_indices(term_idx);
 
-            let mut x_bits = 0u32;
-            let mut z_bits = 0u32;
+            let mut x_bits = 0u64;
+            let mut z_bits = 0u64;
             let mut y_count = 0u32;
 
             for (bit_term, &qubit) in bit_terms.iter().zip(indices.iter()) {
+                let mask = 1u64 << qubit;
                 match bit_term {
-                    BitTerm::X => x_bits |= 1u32 << qubit,
+                    BitTerm::X => x_bits |= mask,
                     BitTerm::Y => {
-                        x_bits |= 1u32 << qubit;
-                        z_bits |= 1u32 << qubit;
+                        x_bits |= mask;
+                        z_bits |= mask;
                         y_count += 1;
                     }
-                    BitTerm::Z => z_bits |= 1u32 << qubit,
+                    BitTerm::Z => z_bits |= mask,
                     _ => {
                         return Err(PyValueError::new_err(format!(
                             "Non-Pauli term found in Pauli-like observable at qubit index {}: {:?}",
@@ -1196,14 +1223,13 @@ impl SparseObservable {
     ) -> PyResult<(Vec<Complex64>, Vec<i32>, Vec<i32>)> {
         // Single precomputation step handles both expansion and optimization
         let computation_data = MatrixComputationData::from_sparse_observable(self)?;
+        let parallel = qiskit_circuit::getenv_use_multiple_threads() && !force_serial;
 
-        let result = if qiskit_circuit::getenv_use_multiple_threads() && !force_serial {
+        Ok(if parallel {
             sparse_observable_to_matrix_parallel_32(&computation_data)
         } else {
             sparse_observable_to_matrix_serial_32(&computation_data)
-        };
-
-        Ok(result)
+        })
     }
 
     /// Convert to dense matrix format, handling the extended alphabet.
@@ -1219,7 +1245,7 @@ impl SparseObservable {
             row.fill(Complex64::new(0.0, 0.0));
             for op_idx in 0..computation_data.num_ops() {
                 let coeff =
-                    if (i_row as u32 & computation_data.z_like[op_idx]).count_ones() % 2 == 0 {
+                    if ((i_row as u64) & computation_data.z_like[op_idx]).count_ones() % 2 == 0 {
                         computation_data.coeffs[op_idx]
                     } else {
                         -computation_data.coeffs[op_idx]
