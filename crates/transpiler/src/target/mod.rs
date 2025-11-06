@@ -548,9 +548,12 @@ impl Target {
         check_angle_bounds: bool,
     ) -> PyResult<bool> {
         let mut qargs = qargs;
-        if self.num_qubits.is_none() {
+        let num_qubits = if let Some(num_qubits) = self.num_qubits {
+            num_qubits
+        } else {
             qargs = Qargs::Global;
-        }
+            0
+        };
         if let Some(operation_class) = operation_class {
             for (op_name, obj) in self._gate_name_map.iter() {
                 match obj {
@@ -560,12 +563,7 @@ impl Target {
                         }
                         // If no qargs operation class is supported
                         if let Qargs::Concrete(qargs) = &qargs {
-                            let qarg_set: HashSet<PhysicalQubit> = qargs.iter().cloned().collect();
-                            // If qargs set then validate no duplicates and all indices are valid on device
-                            return Ok(qargs
-                                .iter()
-                                .all(|qarg| qarg.0 <= self.num_qubits.unwrap_or_default())
-                                && qarg_set.len() == qargs.len());
+                            return Ok(qargs.iter().all(|qarg| qarg.0 <= num_qubits));
                         } else {
                             return Ok(true);
                         }
@@ -591,16 +589,12 @@ impl Target {
                                         let qubit_comparison =
                                             self._gate_name_map[op_name].num_qubits();
                                         return Ok(qubit_comparison == qargs_as_vec.len() as u32
-                                            && qargs_as_vec.iter().all(|x| {
-                                                x.0 < self.num_qubits.unwrap_or_default()
-                                            }));
+                                            && qargs_as_vec.iter().all(|x| x.0 < num_qubits));
                                     }
                                 } else {
                                     let qubit_comparison = obj.num_qubits();
                                     return Ok(qubit_comparison == qargs_as_vec.len() as u32
-                                        && qargs_as_vec
-                                            .iter()
-                                            .all(|x| x.0 < self.num_qubits.unwrap_or_default()));
+                                        && qargs_as_vec.iter().all(|x| x.0 < num_qubits));
                                 }
                             } else {
                                 return Ok(true);
@@ -1365,6 +1359,8 @@ impl Target {
     where
         T: Into<QargsRef<'a>>,
     {
+        // Unwrap the num_qubits and cache it
+        let num_qubits = self.num_qubits.unwrap_or_default();
         // Handle case where num_qubits is None by checking globally supported operations
         let qargs: QargsRef = if self.num_qubits.is_none() {
             QargsRef::Global
@@ -1375,11 +1371,7 @@ impl Target {
             if !parameters.is_empty() {
                 if matches!(obj, TargetOperation::Variadic(_)) {
                     if let QargsRef::Concrete(qargs_vec) = qargs {
-                        let qarg_set: HashSet<PhysicalQubit> = qargs_vec.iter().cloned().collect();
-                        return qargs_vec.iter().all(|qarg| {
-                            qarg.0 <= self.num_qubits.unwrap_or_default()
-                                && qarg_set.len() == qargs_vec.len()
-                        });
+                        return qargs_vec.iter().all(|qarg| qarg.0 <= num_qubits);
                     } else {
                         return true;
                     }
@@ -1432,18 +1424,12 @@ impl Target {
             {
                 match obj {
                     TargetOperation::Variadic(_) => {
-                        let qarg_set: HashSet<&PhysicalQubit> = qargs_as_vec.iter().collect();
-                        return qargs_as_vec
-                            .iter()
-                            .all(|qarg| qarg.0 <= self.num_qubits.unwrap_or_default())
-                            && qarg_set.len() == qargs_as_vec.len();
+                        return qargs_as_vec.iter().all(|qarg| qarg.0 <= num_qubits);
                     }
                     TargetOperation::Normal(obj) => {
                         let qubit_comparison = obj.operation.num_qubits();
                         return qubit_comparison == qargs_as_vec.len() as u32
-                            && qargs_as_vec
-                                .iter()
-                                .all(|qarg| qarg.0 < self.num_qubits.unwrap_or_default());
+                            && qargs_as_vec.iter().all(|qarg| qarg.0 < num_qubits);
                     }
                 }
             }
