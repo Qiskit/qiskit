@@ -141,7 +141,7 @@ class PauliProductMeasurement(Instruction):
 
 
 def _get_default_label(pauli: Pauli):
-    """Creates the detault label for PauliProductMeasurement instruction,
+    """Creates the default label for PauliProductMeasurement instruction,
     used for visualization.
     """
     return "PPM(" + pauli.to_label() + ")"
