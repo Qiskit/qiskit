@@ -45,6 +45,7 @@ use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
 use crate::consts::standard_gate_from_gate_class_name;
 use crate::formats;
+use crate::formats::QPYFormatV15;
 use crate::params::unpack_param;
 use crate::py_methods::get_python_gate_class;
 use crate::value::{
@@ -652,15 +653,14 @@ fn read_custom_instructions(
                 )?)
             } else {
                 Some(
-                    deserialize_circuit(
+                    unpack_circuit(
                         py,
-                        &operation.data,
+                        &deserialize::<QPYFormatV15>(&operation.data)?.0,
                         qpy_data.version,
                         py.None().bind(py),
                         qpy_data.use_symengine,
                         qpy_data.annotation_handler.annotation_factories,
                     )?
-                    .0
                     .unbind(),
                 )
             }
@@ -877,15 +877,14 @@ fn add_registers_and_bits(
     Ok(())
 }
 
-pub fn deserialize_circuit<'py>(
+pub fn unpack_circuit<'py>(
     py: Python<'py>,
-    serialized_circuit: &[u8],
+    packed_circuit: &QPYFormatV15,
     version: u32,
     metadata_deserializer: &Bound<PyAny>,
     use_symengine: bool,
     annotation_factories: &Bound<PyDict>,
-) -> PyResult<(Bound<'py, PyAny>, usize)> {
-    let (packed_circuit, pos) = deserialize::<formats::QPYFormatV15>(serialized_circuit)?;
+) -> PyResult<Bound<'py, PyAny>> {
     let instruction_capacity = packed_circuit.instructions.len();
     // create an empty circuit; we'll fill data as we go along
     let mut circuit_data =
@@ -970,7 +969,7 @@ pub fn deserialize_circuit<'py>(
     if let Some(layout) = unpacked_layout {
         circuit.setattr("_layout", layout)?;
     }
-    Ok((circuit, pos))
+    Ok(circuit)
 }
 
 #[pyfunction]
@@ -986,14 +985,16 @@ pub fn py_read_circuit<'py>(
     let pos = file_obj.call_method0("tell")?.extract::<usize>()?;
     let bytes = file_obj.call_method0("read")?;
     let serialized_circuit: &[u8] = bytes.downcast::<PyBytes>()?.as_bytes();
-    let (deserialized_ciruit, bytes_read) = deserialize_circuit(
+    let (packed_circuit, bytes_read) = deserialize::<formats::QPYFormatV15>(serialized_circuit)?;
+    println!("packed ciruit: {:?}", packed_circuit);
+    let unpacked_ciruit = unpack_circuit(
         py,
-        serialized_circuit,
+        &packed_circuit,
         version,
         metadata_deserializer,
         use_symengine,
         annotation_factories,
     )?;
     file_obj.call_method1("seek", (pos + bytes_read,))?;
-    Ok(deserialized_ciruit)
+    Ok(unpacked_ciruit)
 }

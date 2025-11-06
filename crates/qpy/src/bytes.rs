@@ -209,9 +209,24 @@ impl BinWrite for Bytes {
     }
 }
 
-impl<'py> FromPyObject<'py> for Bytes {
-    fn extract_bound(obj: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for Bytes {
+    type Error = PyErr;
+
+    // fn extract_bound(obj: &Bound<'a, 'py, PyAny>) -> PyResult<Self> {
+    //     Ok(Self(obj.extract::<Vec<u8>>()?))
+    // }
+
+    fn extract(obj: Borrowed<'a, 'py, PyAny>) -> PyResult<Self> {
         Ok(Self(obj.extract::<Vec<u8>>()?))
+        // let py = ob.py();
+        // let circuit_data = ob.getattr("_data")?;
+        // let data_borrowed = circuit_data.extract::<CircuitData>()?;
+        // Ok(QuantumCircuitData {
+        //     data: data_borrowed,
+        //     name: ob.getattr(intern!(py, "name"))?.extract()?,
+        //     metadata: ob.getattr(intern!(py, "metadata")).ok(),
+        //     custom_layout: ob.getattr(intern!(py, "layout")).ok(),
+        // })
     }
 }
 

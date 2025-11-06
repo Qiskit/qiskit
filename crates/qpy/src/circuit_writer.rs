@@ -612,13 +612,15 @@ pub fn py_write_circuit(
     version: u32,
     annotation_factories: &Bound<PyDict>,
 ) -> PyResult<usize> {
-    let serialized_circuit = serialize(&pack_circuit(
+    let packed_circuit = pack_circuit(
         circuit.extract()?,
         metadata_serializer,
         use_symengine,
         version,
         annotation_factories,
-    )?)?;
+    )?;
+    println!("Packed circuit: {:?}", packed_circuit);
+    let serialized_circuit = serialize(&packed_circuit);
     file_obj.call_method1(
         "write",
         (pyo3::types::PyBytes::new(py, &serialized_circuit),),

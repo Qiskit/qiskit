@@ -9,6 +9,7 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
+use std::backtrace::Backtrace;
 use binrw::meta::{ReadEndian, WriteEndian};
 use binrw::{binrw, BinRead, BinResult, BinWrite, Endian};
 use hashbrown::HashMap;
@@ -27,8 +28,8 @@ use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 
 use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
-use crate::circuit_reader::deserialize_circuit;
 use crate::circuit_writer::pack_circuit;
+use crate::circuit_reader::unpack_circuit;
 use crate::formats;
 use crate::params::{
     pack_py_parameter, pack_py_parameter_expression, pack_parameter_vector, unpack_parameter,
@@ -234,11 +235,11 @@ pub fn dumps_value(py_object: Py<PyAny>, qpy_data: &QPYWriteData) -> PyResult<(u
                 bytes.into()
             }
             tags::RANGE => serialize_range(py_object)?,
-            tags::TUPLE => serialize(&pack_generic_sequence(py_object, qpy_data)?)?,
-            tags::PARAMETER => serialize(&pack_py_parameter(py_object)?)?,
-            tags::PARAMETER_VECTOR => serialize(&pack_parameter_vector(py_object)?)?,
+            tags::TUPLE => serialize(&pack_generic_sequence(py_object, qpy_data)?),
+            tags::PARAMETER => serialize(&pack_py_parameter(py_object)?),
+            tags::PARAMETER_VECTOR => serialize(&pack_parameter_vector(py_object)?),
             tags::PARAMETER_EXPRESSION => {
-                serialize(&pack_py_parameter_expression(py_object, qpy_data)?)?
+                serialize(&pack_py_parameter_expression(py_object, qpy_data)?)
             }
             tags::NUMPY_OBJ => {
                 let np = py.import("numpy")?;
@@ -247,7 +248,7 @@ pub fn dumps_value(py_object: Py<PyAny>, qpy_data: &QPYWriteData) -> PyResult<(u
                 np.call_method1("save", (&buffer, py_object))?;
                 buffer.call_method0("getvalue")?.extract::<Bytes>()?
             }
-            tags::MODIFIER => serialize(&pack_modifier(py_object)?)?,
+            tags::MODIFIER => serialize(&pack_modifier(py_object)?),
             tags::STRING => py_object.extract::<String>()?.into(),
             tags::EXPRESSION => serialize_expression(py_object.extract::<Expr>()?, qpy_data)?,
             // tags::EXPRESSION => serialize_expression(py_object, qpy_data)?,
@@ -258,7 +259,7 @@ pub fn dumps_value(py_object: Py<PyAny>, qpy_data: &QPYWriteData) -> PyResult<(u
                 false,
                 QPY_VERSION,
                 qpy_data.annotation_handler.annotation_factories,
-            )?)?,
+            )?),
             _ => {
                 return Err(PyTypeError::new_err(format!(
                     "dumps_value: Unhandled type_key: {}",
@@ -377,9 +378,14 @@ fn deserialize_range(py: Python, raw_range: &Bytes) -> PyResult<Py<PyAny>> {
         .unbind())
 }
 
-fn serialize_expression(exp: Expr, qpy_data: &QPYWriteData) -> PyResult<Bytes> {
+fn serialize_expression(exp: Expr, qpy_data: &QPYWriteData) -> PyResult<Bytes> {    
     println!("got to serialize_expression with exp={:?}", exp);
-    Ok(Bytes::new())
+    let bt = Backtrace::capture();
+    println!("{}", bt);
+    let packed_expression = formats::ExpressionPack{expression: exp};
+    let serialized_expression = serialize(&packed_expression);
+    println!("serialized expression: {:?}", serialized_expression);
+    Ok(serialized_expression)
 }
 
 fn serialize_py_expression(py_object: &Bound<PyAny>, qpy_data: &QPYWriteData) -> PyResult<Bytes> {
@@ -408,10 +414,21 @@ fn serialize_py_expression(py_object: &Bound<PyAny>, qpy_data: &QPYWriteData) ->
 }
 
 fn deserialize_expression(
+    raw_expression: &Bytes,
+    qpy_data: &QPYReadData,
+) -> PyResult<Expr> {
+    let (exp_pack, _) = deserialize::<formats::ExpressionPack>(&raw_expression)?;
+    println!("got to deserialize_expression with bytes={:?}", raw_expression);
+    println!("deserialized to exp={:?}", exp_pack.expression);
+    Ok(exp_pack.expression)
+}
+
+fn deserialize_py_expression(
     py: Python,
     raw_expression: &Bytes,
     qpy_data: &QPYReadData,
 ) -> PyResult<Py<PyAny>> {
+    println!("deserialize_py_expression called");
     let clbit_indices = PyDict::new(py);
     for (key, val) in qpy_data.clbit_indices.bind(py).iter() {
         let index = val.getattr("index")?;
@@ -635,18 +652,17 @@ impl DumpedValue {
                 let data_string: &str = (&self.data).try_into()?;
                 data_string.into_py_any(py)?
             }
-            tags::EXPRESSION => deserialize_expression(py, &self.data, qpy_data)?,
+            tags::EXPRESSION => deserialize_expression(&self.data, qpy_data)?.into_py_any(py)?,
             tags::NULL => py.None(),
             tags::CASE_DEFAULT => imports::CASE_DEFAULT.get(py).clone(),
-            tags::CIRCUIT => deserialize_circuit(
+            tags::CIRCUIT => unpack_circuit(
                 py,
-                &self.data,
+                &deserialize::<formats::QPYFormatV15>(&self.data)?.0,
                 qpy_data.version,
                 py.None().bind(py),
                 qpy_data.use_symengine,
                 qpy_data.annotation_handler.annotation_factories,
             )?
-            .0
             .unbind(),
             _ => {
                 return Err(PyTypeError::new_err(format!(

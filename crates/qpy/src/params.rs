@@ -191,7 +191,7 @@ fn pack_replay_subs(
             })
             .collect::<PyResult<_>>()?;
     let mapping = formats::MappingPack { items };
-    let mapping_data = serialize(&mapping)?;
+    let mapping_data = serialize(&mapping);
     let entry = formats::ParameterExpressionSubsOpPack { mapping_data };
     Ok(formats::ParameterExpressionElementPack::Substitute(entry))
 }
@@ -415,7 +415,7 @@ pub fn pack_py_parameter_expression(
     let mut extra_symbols = PyDict::new(py);
     let packed_expression_data =
         pack_py_parameter_expression_elements(py_object, &mut extra_symbols, qpy_data)?;
-    let expression_data = serialize(&packed_expression_data)?;
+    let expression_data = serialize(&packed_expression_data);
     let mut symbol_table_data = pack_symbol_table(py, py_object, qpy_data)?;
     let (extra_symbols_keys, extra_symbols_values) =
         pack_extra_symbol_table(&extra_symbols, qpy_data)?;
@@ -711,7 +711,7 @@ pub fn dumps_instruction_param_value(
         tags::FLOAT => py_object.extract::<f64>()?.to_le_bytes().into(),
         tags::TUPLE => serialize(&pack_generic_instruction_param_sequence(
             py_object, qpy_data,
-        )?)?,
+        )?),
         tags::REGISTER => dumps_register_param(py_object)?,
         _ => {
             let (_, value) = dumps_value(py_object.clone().unbind(), qpy_data)?;
@@ -727,6 +727,7 @@ pub fn load_instruction_param_value(
     data: &Bytes,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<Py<PyAny>> {
+    println!("load_instruction_param_value called with type key {:?} and data {:?}", type_key, data);
     Ok(match type_key {
         tags::INTEGER => {
             let value = i64::from_le_bytes(data[..8].try_into()?);
@@ -789,6 +790,7 @@ pub fn unpack_param(
     packed_param: &formats::PackedParam,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<Param> {
+    println!("unpack_param called on packed_param {:?}", packed_param);
     match packed_param.type_key {
         tags::FLOAT => Ok(Param::Float(packed_param.data.try_to_le_f64()?)),
         tags::PARAMETER_EXPRESSION | tags::PARAMETER | tags::PARAMETER_VECTOR => {

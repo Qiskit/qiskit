@@ -897,7 +897,7 @@ pub fn pack_custom_instruction(
         if gate_type == circuit_instruction_types::PAULI_EVOL_GATE {
             if let OperationRef::Gate(gate) = operation.view() {
                 has_definition = true;
-                data = serialize(&pack_pauli_evolution_gate(gate.gate.bind(py), qpy_data)?)?;
+                data = serialize(&pack_pauli_evolution_gate(gate.gate.bind(py), qpy_data)?);
             }
         } else if gate_type == circuit_instruction_types::CONTROLLED_GATE {
             // For ControlledGate, we have to access and store the private `_definition` rather than the
@@ -916,7 +916,7 @@ pub fn pack_custom_instruction(
                     false,
                     qpy_data.version,
                     qpy_data.annotation_handler.annotation_factories,
-                )?)?;
+                )?);
                 num_ctrl_qubits = gate.getattr("num_ctrl_qubits")?.extract::<u32>()?;
                 ctrl_state = gate.getattr("ctrl_state")?.extract::<u32>()?;
                 base_gate = gate.getattr("base_gate")?.clone();
@@ -941,7 +941,7 @@ pub fn pack_custom_instruction(
                                 false,
                                 qpy_data.version,
                                 qpy_data.annotation_handler.annotation_factories,
-                            )?)?;
+                            )?);
                         }
                     }
                 }
@@ -957,7 +957,7 @@ pub fn pack_custom_instruction(
                                 false,
                                 qpy_data.version,
                                 qpy_data.annotation_handler.annotation_factories,
-                            )?)?;
+                            )?);
                         }
                     }
                 }
@@ -973,7 +973,7 @@ pub fn pack_custom_instruction(
                                 false,
                                 qpy_data.version,
                                 qpy_data.annotation_handler.annotation_factories,
-                            )?)?;
+                            )?);
                         }
                     }
                 }
@@ -991,7 +991,7 @@ pub fn pack_custom_instruction(
                 custom_instructions_hash,
                 new_instructions_list,
                 qpy_data,
-            )?)?;
+            )?);
         }
         Ok(formats::CustomCircuitInstructionDefPack {
             gate_type,
