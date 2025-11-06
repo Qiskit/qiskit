@@ -165,6 +165,10 @@ pub unsafe extern "C" fn qk_vf2_layout_configuration_free(config: *mut VF2Layout
 /// Limit the numbers of times that the VF2 algorithm will attempt to extend its mapping before and
 /// after it finds the first match.
 ///
+/// The VF2 algorithm keeps track of the number of steps it has taken, and terminates when it
+/// reaches the limit.  After the first match is found, the limit swaps from the "before" limit to
+/// the "after" limit without resetting the number of steps taken.
+///
 /// @param config The configuration to update.
 /// @param before The number of attempts to allow before the first match is found.  Set to a
 ///     negative number to have no bound.

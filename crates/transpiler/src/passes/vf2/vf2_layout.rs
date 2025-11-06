@@ -56,8 +56,9 @@ create_exception!(qiskit, MultiQEncountered, pyo3::exceptions::PyException);
 #[pyclass(name = "VF2PassConfiguration")]
 #[derive(Clone, Debug)]
 pub struct Vf2PassConfiguration {
-    /// Number of times to allow extending the VF2 partial solution `(before, after)` the first
-    /// solution is found.  In both cases, `None` means "no bound".
+    /// The maximum numbers of times VF2 is allowed to extend the mapping (before, after) the first
+    /// match.  In both cases, `None` means "no limit".  Steps taken before the first match is found
+    /// still count against the "after" limit.
     pub call_limit: (Option<usize>, Option<usize>),
     /// Time in seconds to spend optimizing.  This is not a tight limit; control only returns to the
     /// iterator to check for the time limit when a successful _improved_ match is found.
@@ -583,10 +584,7 @@ where
     let mut vf2 = vf2.with_call_limit(config.call_limit.0).into_iter();
     let (mut mapping, _score) = vf2.next()?.expect("error is infallible");
     if can_continue() {
-        vf2.remaining_calls = config
-            .call_limit
-            .1
-            .map(|new| new.min(vf2.remaining_calls.unwrap_or(new)));
+        vf2.call_limit = config.call_limit.1;
         if let Some((new_mapping, _score)) = vf2
             .take_while(|_| can_continue())
             .last()

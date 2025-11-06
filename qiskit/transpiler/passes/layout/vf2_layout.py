@@ -87,18 +87,17 @@ class VF2Layout(AnalysisPass):
                 coupling graph, using a given pRNG seed.  ``None`` seeds using OS entropy (and so is
                 non-deterministic).  Using ``-1`` disables the shuffling.
             call_limit (None | int | tuple[int | None, int | None]): The maximum number of times
-                that the inner VF2 isomorphism will attempt to extend the mapping.  If ``None``,
-                then no limit.  If a 2-tuple, then the first value is the number of extensions
-                allowed when trying to find the first isomorphism, and the second is the budget for
-                extensions trying to improve the score.  Extensions made to find the first
-                isomorphism also count against the budget for improvement, so that you can specify a
-                long search for _any_ isomorphism, but only a short search to improve it.
+                that the inner VF2 isomorphism search will attempt to extend the mapping. If
+                ``None``, then no limit.  If a 2-tuple, then the limit starts as the first item, and
+                swaps to the second after the first match is found, without resetting the number of
+                steps taken.  This can be used to allow a long search for any mapping, but still
+                terminate quickly with a small extension budget if one is found.
             time_limit (float): The total time limit in seconds to run ``VF2Layout``.  This is not
                 completely strict; execution will finish on the first isomorphism found (if any)
                 _after_ the time limit has been exceeded.  Setting this option breaks determinism of
                 the pass.
             max_trials (int): If set, the algorithm terminates after this many _complete_ layouts
-                have been seen.  Since the scoring is now done on-the-fly, the vast majority of
+                have been seen.  Since the scoring is done on-the-fly, the vast majority of
                 candidate layouts are pruned out of the search before ever becoming complete, so
                 this option has little meaning.  To set a low limit on the amount of time spent
                 improving an initial limit, set a low value for the second item in the
