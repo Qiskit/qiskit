@@ -2,7 +2,7 @@
 features_c:
   - |
     Add support for the :class:`.BasisTranslator` transpiler pass to the C API
-    through the function :cpp:func:`qk_transpiler_pass_standalone_basis_translator`.
+    through the function :c:func:`qk_transpiler_pass_standalone_basis_translator`.
 
     Here's an example of how it should be used.
 
