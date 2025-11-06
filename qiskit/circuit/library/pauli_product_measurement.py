@@ -129,7 +129,7 @@ class PauliProductMeasurement(Instruction):
         circuit = QuantumCircuit._from_circuit_data(
             synth_pauli_product_measurement(self),
             legacy_qubits=True,
-            name="ppm_circuit",
+            name="def_ppm",
         )
         self.definition = circuit
 
