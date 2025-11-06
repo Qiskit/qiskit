@@ -78,13 +78,14 @@ LIB.qk_circuit_measure.argtypes = [ctypes.POINTER(QkCircuit), ctypes.c_uint32, c
 LIB.qk_circuit_to_python.argtypes = [
     ctypes.POINTER(QkCircuit),
 ]
+LIB.qk_circuit_to_python.restype = ctypes.py_object
 LIB.qk_circuit_barrier.argtypes = [
     ctypes.POINTER(QkCircuit),
     ctypes.POINTER(ctypes.c_uint32),
     ctypes.c_uint32,
 ]
 LIB.qk_circuit_barrier.restype = ctypes.c_uint32
-LIB.qk_circuit_to_python.restype = ctypes.py_object
+
 LIB.qk_target_new.argtypes = [
     ctypes.c_uint32,
 ]
