@@ -116,9 +116,6 @@ class PauliProductMeasurement(Instruction):
         if not isinstance(other, PauliProductMeasurement):
             return False
 
-        if self.label != other.label:
-            return False
-
         return (
             np.all(self._pauli_z == other._pauli_z)
             and np.all(self._pauli_x == other._pauli_x)
