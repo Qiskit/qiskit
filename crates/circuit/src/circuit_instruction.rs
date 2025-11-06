@@ -640,7 +640,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for OperationFromPython {
             let pauli_product_measurement = Box::new(PauliProductMeasurement {
                 z: z.to_owned(),
                 x: x.to_owned(),
-                neg: phase == 2,
+                neg: phase == 2, // phase is only 0 (represents 1) or 2 (represents -1)
             });
 
             return Ok(OperationFromPython {
