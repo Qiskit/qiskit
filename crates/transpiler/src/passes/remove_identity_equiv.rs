@@ -84,10 +84,23 @@ where
 
     if let OperationRef::StandardGate(gate) = view {
         let (tr_over_dim, dim) = match gate {
+            StandardGate::I => {
+                return Ok((true, 0.));
+            }
+            StandardGate::GlobalPhase => {
+                if let Param::Float(angle) = inst.params_view()[0] {
+                    return Ok((true, angle));
+                } else {
+                    // We cannot get here since we skip parameterized gates,
+                    // but in theory we could return Ok((true, param)) here.
+                    return Ok((false, 0.));
+                }
+            }
             StandardGate::RX
             | StandardGate::RY
             | StandardGate::RZ
             | StandardGate::Phase
+            | StandardGate::U1
             | StandardGate::RXX
             | StandardGate::RYY
             | StandardGate::RZX
@@ -105,8 +118,40 @@ where
                     return Ok((false, 0.));
                 }
             }
+            StandardGate::H
+            | StandardGate::X
+            | StandardGate::Y
+            | StandardGate::Z
+            | StandardGate::S
+            | StandardGate::Sdg
+            | StandardGate::SX
+            | StandardGate::SXdg
+            | StandardGate::T
+            | StandardGate::Tdg
+            | StandardGate::CX
+            | StandardGate::CY
+            | StandardGate::CZ
+            | StandardGate::CH
+            | StandardGate::DCX
+            | StandardGate::ECR
+            | StandardGate::Swap
+            | StandardGate::ISwap
+            | StandardGate::CS
+            | StandardGate::CSdg
+            | StandardGate::CSX
+            | StandardGate::CCX
+            | StandardGate::CCZ
+            | StandardGate::CSwap
+            | StandardGate::RCCX
+            | StandardGate::C3X
+            | StandardGate::C3SX
+            | StandardGate::RC3X => {
+                return Ok((false, 0.));
+            }
             _ => {
-                // matrix for standard gates. Julien's comment: we can hardcode but need to support other standard rotation gates in trace computations.
+                // The remaining standard gates are R, U, U2, U3, CU, CU1, CU3, XXMinusYY and XXPlusYY.
+                // We could consider extending the function rotation_trace_and_dim to handle
+                // these gates, without needing to compute actual matrices.
                 if let Some(matrix) = gate.matrix(inst.params_view()) {
                     let dim = matrix.shape()[0] as f64;
                     let tr_over_dim = matrix.diag().iter().sum::<Complex64>() / dim;
@@ -135,7 +180,8 @@ where
         }
     }
 
-    // If view.matrix() returns None, then there is no matrix and we skip the operation.
+    // If view.matrix() returns None and matrix_from_definition is false,
+    // then there is no matrix and we skip the operation.
     if let Some(matrix) = get_matrix(
         &view,
         inst.params_view(),
