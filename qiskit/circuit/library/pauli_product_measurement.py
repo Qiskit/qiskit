@@ -68,7 +68,7 @@ class PauliProductMeasurement(Instruction):
                 "instantiated from a Pauli object."
             )
 
-        if _is_empty_pauli(pauli):
+        if len(pauli.x) == 0:
             raise CircuitError(
                 "A Pauli Product Measurement instruction can not have an empty Pauli label."
             )
@@ -145,11 +145,6 @@ def _get_default_label(pauli: Pauli):
     used for visualization.
     """
     return "PPM(" + pauli.to_label() + ")"
-
-
-def _is_empty_pauli(pauli: Pauli):
-    """Return whether a Pauli has no qubits."""
-    return len(pauli.x) == 0
 
 
 def _is_identity_pauli(pauli: Pauli):
