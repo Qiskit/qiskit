@@ -67,6 +67,7 @@ class QkTranspileResult(ctypes.Structure):
 
 LIB.qk_circuit_new.argtypes = [ctypes.c_uint32, ctypes.c_uint32]
 LIB.qk_circuit_new.restype = ctypes.POINTER(QkCircuit)
+LIB.qk_circuit_free.argtypes = [ctypes.POINTER(QkCircuit)]
 LIB.qk_circuit_gate.argtypes = [
     ctypes.POINTER(QkCircuit),
     ctypes.c_uint8,
@@ -90,6 +91,7 @@ LIB.qk_target_new.argtypes = [
     ctypes.c_uint32,
 ]
 LIB.qk_target_new.restype = ctypes.POINTER(QkTarget)
+LIB.qk_target_free.argtypes = [ctypes.POINTER(QkTarget)]
 LIB.qk_target_entry_new.argtypes = [
     ctypes.c_uint8,
 ]
