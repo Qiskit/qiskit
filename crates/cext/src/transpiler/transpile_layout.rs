@@ -14,9 +14,9 @@ use crate::pointers::const_ptr_as_ref;
 use qiskit_transpiler::transpile_layout::TranspileLayout;
 
 #[cfg(feature = "python_binding")]
-use pyo3::ffi::PyObject;
-#[cfg(feature = "python_binding")]
 use pyo3::Python;
+#[cfg(feature = "python_binding")]
+use pyo3::ffi::PyObject;
 #[cfg(feature = "python_binding")]
 use qiskit_circuit::circuit_data::CircuitData;
 
@@ -263,17 +263,19 @@ pub unsafe extern "C" fn qk_transpile_layout_free(layout: *mut TranspileLayout) 
 /// ``QkTranspileLayout`` and ``QkCircuit`` respectively. It is assumed that the thread currently
 /// executing this function holds the Python GIL. This is required to create the Python object
 /// returned by this function.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "python_binding")]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_to_python(
     layout: *const TranspileLayout,
     circuit: *const CircuitData,
 ) -> *mut PyObject {
+    // SAFETY: Per the documentation layout and circuit are valid pointers
+    // and the thread running the function holds the gil.
     unsafe {
         let layout = const_ptr_as_ref(layout);
         let circuit = const_ptr_as_ref(circuit);
-        let py = Python::assume_gil_acquired();
+        let py = Python::assume_attached();
         let res = layout.to_py_native(py, circuit.qubits().objects()).unwrap();
         res.into_ptr()
     }
