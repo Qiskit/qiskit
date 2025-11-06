@@ -121,27 +121,31 @@ LIB.qk_transpile_layout_to_python.argtypes = [
 LIB.qk_transpile_layout_to_python.restype = ctypes.py_object
 
 
+def into_c_array_ptr(lst, ctype):
+    """Convert a list into a c array pointer that we can pass to the C API."""
+    c_array = (ctype * len(lst))(*lst)
+    return ctypes.cast(c_array, ctypes.POINTER(ctype))
+
+
 def build_circuit_from_python(circuit: qiskit.circuit.QuantumCircuit) -> ctypes.POINTER(QkCircuit):
     """Convert a Python circuit to a C circuit if compatible."""
 
     c_qc = LIB.qk_circuit_new(circuit.num_qubits, circuit.num_clbits)
     for inst in circuit.data:
         qubit_idx = [circuit.find_bit(x).index for x in inst.qubits]
-        qubits = (ctypes.c_uint32 * len(qubit_idx))(*qubit_idx)
-        params = (ctypes.c_double * len(inst.params))(*inst.params)
+        qubits = into_c_array_ptr(qubit_idx, ctypes.c_uint32)
+        params = into_c_array_ptr(inst.params, ctypes.c_double)
         if isinstance(inst.operation, qiskit.circuit.Measure):
             clbit = circuit.find_bit(inst.clbits[0]).index
             LIB.qk_circuit_measure(c_qc, qubit_idx[0], clbit)
         elif isinstance(inst.operation, qiskit.circuit.Barrier):
-            LIB.qk_circuit_barrier(
-                c_qc, ctypes.cast(qubits, ctypes.POINTER(ctypes.c_uint32)), len(qubit_idx)
-            )
+            LIB.qk_circuit_barrier(c_qc, qubits, len(qubit_idx))
         else:
             LIB.qk_circuit_gate(
                 c_qc,
                 int(inst.operation._standard_gate),
-                ctypes.cast(qubits, ctypes.POINTER(ctypes.c_uint32)),
-                ctypes.cast(params, ctypes.POINTER(ctypes.c_double)),
+                qubits,
+                params,
             )
     return c_qc
 
@@ -159,34 +163,30 @@ def build_homogenous_target(
         entry = LIB.qk_target_entry_new(int(gate_obj._standard_gate))
         if gate_obj.num_qubits == 2:
             for edge in cmap.get_edges():
-                qubits = (ctypes.c_uint32 * 2)(*edge)
+                qubits = into_c_array_ptr(edge, ctypes.c_uint32)
                 if not ideal_gates:
                     error = rng.uniform(0.0, 1.0)
                     duration = rng.uniform(0.0, 1.0)
                 else:
                     error = float("nan")
                     duration = float("nan")
-                LIB.qk_target_entry_add_property(
-                    entry, ctypes.cast(qubits, ctypes.POINTER(ctypes.c_uint32)), 2, duration, error
-                )
+                LIB.qk_target_entry_add_property(entry, qubits, 2, duration, error)
         elif gate_obj.num_qubits == 1:
             for qubit in range(cmap.size()):
-                qubits = (ctypes.c_int32 * 1)(qubit)
+                qubits = into_c_array_ptr([qubit], ctypes.c_uint32)
                 if not ideal_gates:
                     error = rng.uniform(0.0, 1.0)
                     duration = rng.uniform(0.0, 1.0)
                 else:
                     error = float("nan")
                     duration = float("nan")
-                LIB.qk_target_entry_add_property(
-                    entry, ctypes.cast(qubits, ctypes.POINTER(ctypes.c_uint32)), 1, duration, error
-                )
+                LIB.qk_target_entry_add_property(entry, qubits, 1, duration, error)
         else:
             raise qiskit.transpiler.exceptions.TranspilerError(f"Invalid gate: {gate}")
         LIB.qk_target_add_instruction(c_target, entry)
     measure_entry = LIB.qk_target_entry_new_measure()
     for qubit in range(cmap.size()):
-        qubits = (ctypes.c_int32 * 1)(qubit)
+        qubits = into_c_array_ptr([qubit], ctypes.c_uint32)
         if not ideal_gates:
             error = rng.uniform(0.0, 1.0)
             duration = rng.uniform(0.0, 1.0)
@@ -194,9 +194,7 @@ def build_homogenous_target(
             error = float("nan")
             duration = float("nan")
 
-        LIB.qk_target_entry_add_property(
-            measure_entry, ctypes.cast(qubits, ctypes.POINTER(ctypes.c_uint32)), 1, duration, error
-        )
+        LIB.qk_target_entry_add_property(measure_entry, qubits, 1, duration, error)
     LIB.qk_target_add_instruction(c_target, measure_entry)
     return c_target
 
