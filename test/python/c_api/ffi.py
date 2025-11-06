@@ -121,6 +121,7 @@ LIB.qk_transpile_layout_to_python.argtypes = [
     ctypes.POINTER(QkCircuit),
 ]
 LIB.qk_transpile_layout_to_python.restype = ctypes.py_object
+LIB.qk_transpile_layout_free.argtypes = [ctypes.POINTER(QkTranspileLayout)]
 
 
 def into_c_array_ptr(lst, ctype):
@@ -237,6 +238,7 @@ def transpile_from_c(
             f"Transpilation failed: {error.contents.value.decode('utf8')}"
         )
     layout = LIB.qk_transpile_layout_to_python(result.layout, result.circuit)
+    LIB.qk_transpile_layout_free(result.layout)
     out = LIB.qk_circuit_to_python(result.circuit)
     out._layout = layout
     return out
