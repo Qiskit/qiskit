@@ -174,7 +174,7 @@ def operator_schmidt_decomposition(
             (sum of kept terms) mapped back to the **original** qubit order.
 
     Returns:
-        A dictionary with:
+        dict:
           * ``partition``: ``{"S": tuple, "Sc": tuple}`` with the chosen split.
           * ``permutation``: dict with:
               - ``new_order``: tuple of qubit indices in the permuted order ``[Sc, S]``.
