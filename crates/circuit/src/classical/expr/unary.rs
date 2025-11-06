@@ -15,7 +15,7 @@ use crate::classical::types::Type;
 use crate::imports;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
-use pyo3::{intern, IntoPyObjectExt};
+use pyo3::{IntoPyObjectExt, intern};
 
 /// A unary expression.
 #[derive(Clone, Debug, PartialEq)]
@@ -60,8 +60,10 @@ impl<'py> IntoPyObject<'py> for Unary {
     }
 }
 
-impl<'py> FromPyObject<'py> for Unary {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for Unary {
+    type Error = <PyUnary as FromPyObject<'a, 'py>>::Error;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let PyUnary(u) = ob.extract()?;
         Ok(u)
     }
@@ -77,8 +79,10 @@ impl<'py> IntoPyObject<'py> for UnaryOp {
     }
 }
 
-impl<'py> FromPyObject<'py> for UnaryOp {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for UnaryOp {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let value = ob.getattr(intern!(ob.py(), "value"))?;
         Ok(bytemuck::checked::cast(value.extract::<u8>()?))
     }

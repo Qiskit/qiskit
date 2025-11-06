@@ -20,13 +20,13 @@ use ndarray::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
-use qiskit_circuit::operations::{Operation, Param};
+use qiskit_circuit::operations::{Operation, OperationRef, Param};
 
-use crate::target::Target;
-use qiskit_circuit::{gate_matrix, PhysicalQubit};
+use crate::target::{Target, TargetOperation};
+use qiskit_circuit::{PhysicalQubit, gate_matrix};
 use qiskit_synthesis::euler_one_qubit_decomposer::{
-    unitary_to_gate_sequence_inner, EulerBasis, EulerBasisSet, OneQubitGateSequence, EULER_BASES,
-    EULER_BASIS_NAMES,
+    EULER_BASES, EULER_BASIS_NAMES, EulerBasis, EulerBasisSet, OneQubitGateSequence,
+    unitary_to_gate_sequence_inner,
 };
 
 fn compute_error_term_from_target(gate: &str, target: &Target, qubit: PhysicalQubit) -> f64 {
@@ -76,7 +76,30 @@ pub fn run_optimize_1q_gates_decomposition(
         };
         if basis_gates_per_qubit[qubit.index()].is_none() {
             let basis_gates = match target {
-                Some(target) => Some(target.operation_names_for_qargs(&[qubit]).unwrap()),
+                Some(target) => Some(
+                    target
+                        .operation_names_for_qargs(&[qubit])?
+                        .into_iter()
+                        .filter(|gate_name| {
+                            let target_op = target.operation_from_name(gate_name).unwrap();
+                            let TargetOperation::Normal(gate) = target_op else {
+                                return false;
+                            };
+                            if let OperationRef::StandardGate(_) = gate.operation.view() {
+                                // For standard gates check that the target entry accepts any
+                                // params and if so then we can use the gate in the pass
+                                // else filter the operation since arbitrary angles are not
+                                // supported
+                                gate.params
+                                    .iter()
+                                    .all(|x| matches!(x, Param::ParameterExpression(_)))
+                            } else {
+                                // For all other gates pass it through
+                                true
+                            }
+                        })
+                        .collect(),
+                ),
                 None => {
                     let basis = basis_gates.as_ref();
                     basis.map(|basis| basis.iter().map(|x| x.as_str()).collect())
@@ -84,7 +107,7 @@ pub fn run_optimize_1q_gates_decomposition(
             };
             basis_gates_per_qubit[qubit.index()] = basis_gates;
         }
-        let basis_gates = &basis_gates_per_qubit[qubit.index()].as_ref();
+        let basis_gates = basis_gates_per_qubit[qubit.index()].as_ref();
 
         let target_basis_set = &mut target_basis_per_qubit[qubit.index()];
         if !target_basis_set.initialized() {
@@ -93,10 +116,11 @@ pub fn run_optimize_1q_gates_decomposition(
                     .iter()
                     .enumerate()
                     .filter_map(|(idx, gates)| {
-                        if !gates
-                            .iter()
-                            .all(|gate| basis_gates.as_ref().unwrap().contains(gate))
-                        {
+                        if !gates.iter().all(|gate| {
+                            basis_gates
+                                .expect("the target path always provides a hash set")
+                                .contains(gate)
+                        }) {
                             return None;
                         }
                         let basis = EULER_BASIS_NAMES[idx];
@@ -104,10 +128,11 @@ pub fn run_optimize_1q_gates_decomposition(
                     })
                     .for_each(|basis| target_basis_set.add_basis(basis)),
                 None => match &global_decomposers {
-                    Some(bases) => bases
-                        .iter()
-                        .map(|basis| EulerBasis::__new__(basis).unwrap())
-                        .for_each(|basis| target_basis_set.add_basis(basis)),
+                    Some(bases) => {
+                        for basis in bases.iter() {
+                            target_basis_set.add_basis(EulerBasis::__new__(basis)?)
+                        }
+                    }
                     None => match basis_gates {
                         Some(gates) => EULER_BASES
                             .iter()
@@ -144,7 +169,9 @@ pub fn run_optimize_1q_gates_decomposition(
                     if let Some(target) = target {
                         error *= compute_error_term_from_target(inst.op.name(), target, qubit);
                     }
-                    inst.op.matrix_as_static_1q(inst.params_view()).unwrap()
+                    inst.op
+                        .matrix_as_static_1q(inst.params_view())
+                        .expect("collect_1q_runs only collects gates that can produce a matrix")
                 } else {
                     unreachable!("Can only have op nodes here")
                 }

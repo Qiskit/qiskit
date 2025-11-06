@@ -21,7 +21,7 @@ use num_complex::Complex64;
 use smallvec::SmallVec;
 
 use crate::circuit_data::CircuitData;
-use crate::imports::{get_std_gate_class, BARRIER, DELAY, MEASURE, RESET, UNITARY_GATE};
+use crate::imports::{BARRIER, DELAY, MEASURE, RESET, UNITARY_GATE, get_std_gate_class};
 use crate::interner::Interned;
 use crate::operations::{
     Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, PythonOperation,
@@ -459,28 +459,24 @@ impl PackedOperation {
             OperationRef::StandardGate(standard) => {
                 return get_std_gate_class(py, standard)?
                     .bind(py)
-                    .downcast::<PyType>()?
-                    .is_subclass(py_type)
+                    .cast::<PyType>()?
+                    .is_subclass(py_type);
             }
             OperationRef::StandardInstruction(standard) => {
                 return match standard {
-                    StandardInstruction::Barrier(_) => BARRIER
-                        .get_bound(py)
-                        .downcast::<PyType>()?
-                        .is_subclass(py_type),
-                    StandardInstruction::Delay(_) => DELAY
-                        .get_bound(py)
-                        .downcast::<PyType>()?
-                        .is_subclass(py_type),
-                    StandardInstruction::Measure => MEASURE
-                        .get_bound(py)
-                        .downcast::<PyType>()?
-                        .is_subclass(py_type),
-                    StandardInstruction::Reset => RESET
-                        .get_bound(py)
-                        .downcast::<PyType>()?
-                        .is_subclass(py_type),
-                }
+                    StandardInstruction::Barrier(_) => {
+                        BARRIER.get_bound(py).cast::<PyType>()?.is_subclass(py_type)
+                    }
+                    StandardInstruction::Delay(_) => {
+                        DELAY.get_bound(py).cast::<PyType>()?.is_subclass(py_type)
+                    }
+                    StandardInstruction::Measure => {
+                        MEASURE.get_bound(py).cast::<PyType>()?.is_subclass(py_type)
+                    }
+                    StandardInstruction::Reset => {
+                        RESET.get_bound(py).cast::<PyType>()?.is_subclass(py_type)
+                    }
+                };
             }
             OperationRef::Gate(gate) => gate.gate.bind(py),
             OperationRef::Instruction(instruction) => instruction.instruction.bind(py),
@@ -488,7 +484,7 @@ impl PackedOperation {
             OperationRef::Unitary(_) => {
                 return UNITARY_GATE
                     .get_bound(py)
-                    .downcast::<PyType>()?
+                    .cast::<PyType>()?
                     .is_subclass(py_type);
             }
         };
@@ -544,10 +540,6 @@ impl Operation for PackedOperation {
     #[inline]
     fn definition(&self, params: &[Param]) -> Option<CircuitData> {
         self.view().definition(params)
-    }
-    #[inline]
-    fn standard_gate(&self) -> Option<StandardGate> {
-        self.view().standard_gate()
     }
     #[inline]
     fn directive(&self) -> bool {
@@ -618,7 +610,7 @@ pub struct PackedInstruction {
     /// which is a simple null-pointer check.
     ///
     /// WARNING: remember that `OnceLock`'s `get_or_init` method is no-reentrant, so the initialiser
-    /// must not yield the GIL to Python space.  We avoid using `GILOnceCell` here because it
+    /// must not yield the GIL to Python space.  We avoid using `PyOnceLock` here because it
     /// requires the GIL to even `get` (of course!), which makes implementing `Clone` hard for us.
     /// We can revisit once we're on PyO3 0.22+ and have been able to disable its `py-clone`
     /// feature.

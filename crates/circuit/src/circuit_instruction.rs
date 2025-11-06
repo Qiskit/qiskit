@@ -18,16 +18,16 @@ use pyo3::basic::CompareOp;
 use pyo3::exceptions::{PyDeprecationWarning, PyTypeError};
 use pyo3::prelude::*;
 
-use pyo3::types::{PyBool, PyList, PyTuple, PyType};
 use pyo3::IntoPyObjectExt;
-use pyo3::{intern, PyObject, PyResult};
+use pyo3::types::{PyBool, PyList, PyTuple, PyType};
+use pyo3::{PyResult, intern};
 
 use nalgebra::{Dyn, MatrixView2, MatrixView4};
 use num_complex::Complex64;
 use smallvec::SmallVec;
 
 use crate::imports::{
-    CONTROLLED_GATE, CONTROL_FLOW_OP, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN,
+    CONTROL_FLOW_OP, CONTROLLED_GATE, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN,
 };
 use crate::operations::{
     ArrayType, Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
@@ -156,7 +156,7 @@ impl CircuitInstruction {
 
     /// The logical operation that this instruction represents an execution of.
     #[getter]
-    pub fn get_operation(&self, py: Python) -> PyResult<PyObject> {
+    pub fn get_operation(&self, py: Python) -> PyResult<Py<PyAny>> {
         // This doesn't use `get_or_init` because a) the initialiser is fallible and
         // `get_or_try_init` isn't stable, and b) the initialiser can yield to the Python
         // interpreter, which might suspend the thread and allow another to inadvertantly attempt to
@@ -307,7 +307,7 @@ impl CircuitInstruction {
         }
     }
 
-    pub fn __getnewargs__(&self, py: Python<'_>) -> PyResult<PyObject> {
+    pub fn __getnewargs__(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
         (
             self.get_operation(py)?,
             self.qubits.bind(py),
@@ -345,7 +345,7 @@ impl CircuitInstruction {
         )
     }
 
-    pub fn __getitem__(&self, py: Python<'_>, key: &Bound<PyAny>) -> PyResult<PyObject> {
+    pub fn __getitem__(&self, py: Python<'_>, key: &Bound<PyAny>) -> PyResult<Py<PyAny>> {
         warn_on_legacy_circuit_instruction_iteration(py)?;
         self._legacy_format(py)?
             .as_any()
@@ -353,7 +353,7 @@ impl CircuitInstruction {
             .into_py_any(py)
     }
 
-    pub fn __iter__(&self, py: Python<'_>) -> PyResult<PyObject> {
+    pub fn __iter__(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
         warn_on_legacy_circuit_instruction_iteration(py)?;
         self._legacy_format(py)?
             .as_any()
@@ -371,7 +371,7 @@ impl CircuitInstruction {
         other: &Bound<PyAny>,
         op: CompareOp,
         py: Python<'_>,
-    ) -> PyResult<PyObject> {
+    ) -> PyResult<Py<PyAny>> {
         fn params_eq(py: Python, left: &[Param], right: &[Param]) -> PyResult<bool> {
             if left.len() != right.len() {
                 return Ok(false);
@@ -415,7 +415,7 @@ impl CircuitInstruction {
             if other.is_instance_of::<PyTuple>() {
                 return Ok(Some(self_._legacy_format(py)?.eq(other)?));
             }
-            let Ok(other) = other.downcast::<CircuitInstruction>() else {
+            let Ok(other) = other.cast::<CircuitInstruction>() else {
                 return Ok(None);
             };
             let other = other.try_borrow()?;
@@ -467,13 +467,15 @@ pub struct OperationFromPython {
     pub label: Option<Box<String>>,
 }
 
-impl<'py> FromPyObject<'py> for OperationFromPython {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for OperationFromPython {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let py = ob.py();
         let ob_type = ob
             .getattr(intern!(py, "base_class"))
             .ok()
-            .map(|base| base.downcast_into::<PyType>())
+            .map(|base| base.cast_into::<PyType>())
             .transpose()?
             .unwrap_or_else(|| ob.get_type());
 
@@ -491,7 +493,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 .map(|params| {
                     params
                         .try_iter()?
-                        .map(|p| Param::extract_no_coerce(&p?))
+                        .map(|p| Param::extract_no_coerce(p?.as_borrowed()))
                         .collect()
                 })
                 .transpose()
@@ -508,8 +510,8 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
             // quickly identify them here without an `isinstance` check.
             let Some(standard) = ob_type
                 .getattr(intern!(py, "_standard_gate"))
-                .and_then(|standard| standard.extract::<StandardGate>())
                 .ok()
+                .and_then(|standard| standard.extract::<StandardGate>().ok())
             else {
                 break 'standard_gate;
             };
@@ -547,8 +549,8 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
             // read (e.g. a Barrier's number of qubits) to build the Rust representation.
             let Some(standard_type) = ob_type
                 .getattr(intern!(py, "_standard_instruction_type"))
-                .and_then(|standard| standard.extract::<StandardInstructionType>())
                 .ok()
+                .and_then(|standard| standard.extract::<StandardInstructionType>().ok())
             else {
                 break 'standard_instr;
             };
@@ -625,7 +627,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 clbits: 0,
                 params: params.len() as u32,
                 op_name: ob.getattr(intern!(py, "name"))?.extract()?,
-                gate: ob.clone().unbind(),
+                gate: ob.to_owned().unbind(),
             });
             return Ok(OperationFromPython {
                 operation: PackedOperation::from_gate(gate),
@@ -641,7 +643,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 params: params.len() as u32,
                 op_name: ob.getattr(intern!(py, "name"))?.extract()?,
                 control_flow: ob.is_instance(CONTROL_FLOW_OP.get_bound(py))?,
-                instruction: ob.clone().unbind(),
+                instruction: ob.to_owned().unbind(),
             });
             return Ok(OperationFromPython {
                 operation: PackedOperation::from_instruction(instruction),
@@ -656,7 +658,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 clbits: ob.getattr(intern!(py, "num_clbits"))?.extract()?,
                 params: params.len() as u32,
                 op_name: ob.getattr(intern!(py, "name"))?.extract()?,
-                operation: ob.clone().unbind(),
+                operation: ob.to_owned().unbind(),
             });
             return Ok(OperationFromPython {
                 operation: PackedOperation::from_operation(operation),
@@ -664,7 +666,10 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 label: None,
             });
         }
-        Err(PyTypeError::new_err(format!("invalid input: {ob}")))
+        Err(PyTypeError::new_err(format!(
+            "invalid input: {}",
+            ob.to_owned()
+        )))
     }
 }
 
@@ -674,16 +679,16 @@ fn as_tuple<'py>(py: Python<'py>, seq: Option<Bound<'py, PyAny>>) -> PyResult<Bo
         return Ok(PyTuple::empty(py));
     };
     if seq.is_instance_of::<PyTuple>() {
-        Ok(seq.downcast_into_exact::<PyTuple>()?)
+        Ok(seq.cast_into_exact::<PyTuple>()?)
     } else if seq.is_instance_of::<PyList>() {
-        Ok(seq.downcast_exact::<PyList>()?.to_tuple())
+        Ok(seq.cast_exact::<PyList>()?.to_tuple())
     } else {
         // New tuple from iterable.
         PyTuple::new(
             py,
             seq.try_iter()?
                 .map(|o| Ok(o?.unbind()))
-                .collect::<PyResult<Vec<PyObject>>>()?,
+                .collect::<PyResult<Vec<Py<PyAny>>>>()?,
         )
     }
 }

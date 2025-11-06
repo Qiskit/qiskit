@@ -10,56 +10,60 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use hashbrown::HashMap;
-
 use crate::pointers::const_ptr_as_ref;
 
+use qiskit_circuit::VirtualQubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::{PhysicalQubit, VirtualQubit};
-use qiskit_transpiler::passes::vf2_layout_pass;
+use qiskit_transpiler::passes::vf2::{Vf2PassConfiguration, Vf2PassReturn, vf2_layout_pass};
 use qiskit_transpiler::target::Target;
 
 /// The result from ``qk_transpiler_pass_standalone_vf2_layout()``.
-pub struct VF2LayoutResult(Option<HashMap<VirtualQubit, PhysicalQubit>>);
+pub struct VF2LayoutResult(Vf2PassReturn);
 
 /// @ingroup QkVF2LayoutResult
 /// Check whether a result was found.
 ///
+/// A ``true`` value includes the situation where the configuration specified to try the "trivial"
+/// layout and it was found to be the best (and consequently no qubit relabelling is necessary,
+/// other than ancilla expansion if appropriate).  See ``qk_vf2_layout_result_has_improvement`` to
+/// distinguish whether an explicit remapping is stored.
+///
 /// @param layout a pointer to the layout
 ///
-/// @returns ``true`` if the ``qk_transpiler_pass_standalone_vf2_layout()`` run found a layout
+/// @returns ``true`` if the VF2-based layout pass found any match.
 ///
 /// # Safety
 ///
 /// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a
 /// ``QkVF2LayoutResult``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_vf2_layout_result_has_match(layout: *const VF2LayoutResult) -> bool {
+    // SAFETY: per documentation this is a valid pointer to a layout.
     let layout = unsafe { const_ptr_as_ref(layout) };
-    layout.0.is_some()
+    layout.0 != Vf2PassReturn::NoSolution
 }
 
 /// @ingroup QkVF2LayoutResult
-/// Get the number of virtual qubits in the layout.
+/// Check whether the result is an improvement to the trivial layout.
 ///
 /// @param layout a pointer to the layout
 ///
-/// @returns The number of virtual qubits in the layout
+/// @returns ``true`` if the VF2-based layout pass found an improved match.
 ///
 /// # Safety
 ///
 /// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a
-/// ``QkVF2LayoutResult``. The result must have a layout found.
-#[no_mangle]
+/// ``QkVF2LayoutResult``.
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_vf2_layout_result_num_qubits(layout: *const VF2LayoutResult) -> u32 {
+pub unsafe extern "C" fn qk_vf2_layout_result_has_improvement(
+    layout: *const VF2LayoutResult,
+) -> bool {
+    // SAFETY: per documentation this is a valid pointer to a layout.
     let layout = unsafe { const_ptr_as_ref(layout) };
-    let Some(ref layout) = layout.0 else {
-        panic!("Invalid call for empty layout result");
-    };
-    layout.len() as u32
+    matches!(layout.0, Vf2PassReturn::Solution(_))
 }
 
 /// @ingroup QkVF2LayoutResult
@@ -73,21 +77,22 @@ pub unsafe extern "C" fn qk_vf2_layout_result_num_qubits(layout: *const VF2Layou
 /// # Safety
 ///
 /// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a
-/// ``QkVF2LayoutResult``. Also qubit must be a valid qubit for the circuit and
-/// there must be a result found.
-#[no_mangle]
+/// ``QkVF2LayoutResult`` containing a result, or if the qubit is out of range for the initial
+/// circuit.
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_vf2_layout_result_map_virtual_qubit(
     layout: *const VF2LayoutResult,
     qubit: u32,
 ) -> u32 {
+    // SAFETY: per documentation this is a valid pointer to a layout.
     let layout = unsafe { const_ptr_as_ref(layout) };
-    let Some(ref layout) = layout.0 else {
-        panic!("There was no layout found");
-    };
-    match layout.get(&VirtualQubit(qubit)) {
-        Some(physical) => physical.0,
-        None => panic!("The specified qubit is not in the layout: {qubit}"),
+    match &layout.0 {
+        Vf2PassReturn::NoSolution => panic!("There was no layout found!"),
+        // It's undefined behaviour to pass a qubit that's out of range, so it's not our problem
+        // that we can't tell if this is valid.
+        Vf2PassReturn::NoImprovement => qubit,
+        Vf2PassReturn::Solution(mapping) => mapping[&VirtualQubit::new(qubit)].0,
     }
 }
 
@@ -103,7 +108,7 @@ pub unsafe extern "C" fn qk_vf2_layout_result_map_virtual_qubit(
 /// # Safety
 ///
 /// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a ``QkVF2Layout``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_vf2_layout_result_free(layout: *mut VF2LayoutResult) {
     if !layout.is_null() {
@@ -118,40 +123,168 @@ pub unsafe extern "C" fn qk_vf2_layout_result_free(layout: *mut VF2LayoutResult)
     }
 }
 
-/// @ingroup QkTranspilerPasses
-/// Run the VF2Layout pass on a circuit.
+/// A set of configurations for the VF2 layout passes.
 ///
-/// VF2Layout is a pass for choosing a layout of a circuit onto a connectivity graph as
-/// a subgraph isomorphism problem solved by VF2.
+/// See the setter methods associated with this `struct` for the available configurations.
+pub struct VF2LayoutConfiguration(Vf2PassConfiguration);
+/// @ingroup QkVF2LayoutConfiguration
+/// Create a new configuration for the VF2 passes that runs everything completely unbounded.
+///
+/// Call ``qk_vf2_layout_configuration_free`` with the return value to free the memory when done.
+///
+/// @return A pointer to the configuration.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub extern "C" fn qk_vf2_layout_configuration_new() -> *mut VF2LayoutConfiguration {
+    Box::into_raw(Box::new(VF2LayoutConfiguration(
+        Vf2PassConfiguration::default_unbounded(),
+    )))
+}
+/// @ingroup QkVF2LayoutConfiguration
+/// Free a `QkVf2LayoutConfiguration` object.
+///
+/// @param config A pointer to the configuration.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``config`` is a non-null pointer, but does not point to a valid,
+/// aligned `QkVF2LayoutConfiguration` object.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_vf2_layout_configuration_free(config: *mut VF2LayoutConfiguration) {
+    if !config.is_null() {
+        if !config.is_aligned() {
+            panic!("Attempted to free a non-aligned pointer.");
+        }
+        // SAFETY: per documentation and above checks, this points to valid data that was previously
+        // boxed.
+        let _ = unsafe { Box::from_raw(config) };
+    }
+}
+/// @ingroup QkVF2LayoutConfiguration
+/// Limit the numbers of times that the VF2 algorithm will attempt to extend its mapping.
+///
+/// @param config The configuration to update.
+/// @param limit The number of attempts to allow.  Set to a negative number to have no bound.
+///
+/// # Safety
+///
+/// Behavior is undefined if `config` is not a valid, aligned, non-null pointer to a
+/// `QkVF2LayoutConfiguration`.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_vf2_layout_configuration_set_call_limit(
+    config: *mut VF2LayoutConfiguration,
+    limit: i64,
+) {
+    let lift = |limit: i64| -> Option<usize> {
+        (limit > 0).then(|| limit.try_into().unwrap_or(usize::MAX))
+    };
+    // SAFETY: per documentation this is a valid configuration pointer.
+    unsafe { (*config).0.call_limit = lift(limit) };
+}
+/// @ingroup QkVF2LayoutConfiguration
+/// Limit the runtime of the VF2 search.
+///
+/// This is not a hard limit; it is only checked when an improved layout is encountered.  Using this
+/// option also makes the pass non-deterministic. It is generally recommended to use
+/// `qk_vf2_layout_configuration_set_call_limit` instead.
+///
+/// @param config The configuration to update.
+/// @param limit The time in seconds to allow.  Set to a non-positive value to run with no limit.
+///
+/// # Safety
+///
+/// Behavior is undefined if `config` is not a valid, aligned, non-null pointer to a
+/// `QkVF2LayoutConfiguration`.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_vf2_layout_configuration_set_time_limit(
+    config: *mut VF2LayoutConfiguration,
+    limit: f64,
+) {
+    // SAFETY: per documentation this is a valid pointer to a configuration.
+    unsafe { (*config).0.time_limit = (limit > 0.0).then_some(limit) };
+}
+/// @ingroup QkVF2LayoutConfiguration
+/// Limit the total number of complete improvements found.
+///
+/// Since the VF2 search tree is pruned on-the-fly based on scoring in the `QkTarget`, this limit
+/// is not especially powerful.  See `qk_vf2_layout_configuration_set_call_limit` for a tighter
+/// bound.
+///
+/// @param config The configuration to update.
+/// @param limit The number of complete layouts to allow before terminating.  Set to 0 to run
+///     unbounded.
+///
+/// # Safety
+///
+/// Behavior is undefined if `config` is not a valid, aligned, non-null pointer to a
+/// `QkVF2LayoutConfiguration`.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_vf2_layout_configuration_set_max_trials(
+    config: *mut VF2LayoutConfiguration,
+    limit: u64,
+) {
+    // SAFETY: per documentation this is a valid pointer to a configuration.
+    unsafe { (*config).0.max_trials = Some(limit.try_into().unwrap_or(usize::MAX)) };
+}
+/// @ingroup QkVF2LayoutConfiguration
+/// Activate node shuffling of the input graphs with a given seed.
+///
+/// This effectively drives a modification of the matching order of VF2, which in theory means that
+/// the space of a bounded search is not biased based on the node indices.  In practice, Qiskit uses
+/// the VF2++ ordering improvements when running in "average" mode (corresponding to initial layout
+/// search), and starts from the identity mapping in "exact" made.  Both of these ordering
+/// heuristics are typically far more likely to find results for the given problem than
+/// randomization.
+///
+/// If this function was not called, no node shuffling takes place.
+///
+/// @param config The configuration to update.
+/// @param seed The seed to use for the activated shuffling.
+///
+/// # Safety
+///
+/// Behavior is undefined if `config` is not a valid, aligned, non-null pointer to a
+/// `QkVF2LayoutConfiguration`.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_vf2_layout_configuration_set_shuffle_seed(
+    config: *mut VF2LayoutConfiguration,
+    seed: u64,
+) {
+    // SAFETY: per documentation this is a valid pointer to a configuration.
+    unsafe { (*config).0.shuffle_seed = Some(seed) };
+}
+
+/// @ingroup QkTranspilerPasses
+/// Use the VF2 algorithm to choose a layout (if possible) for the input circuit, using a
+/// noise-aware scoring heuristic based only on hardware error rates, and not the specific gates in
+/// the circuit.
+///
+/// This function corresponds to the Python-space ``VF2Layout`` pass.
+///
+/// This function is suitable for use on circuits that have not yet been fully lowered to hardware.
+/// If your circuit has already been completely lowered to hardware and you are looking to _improve_
+/// the layout for an exact interaction graph, use ``qk_transpile_pass_standalone_vf2_layout_exact``
+/// instead.
 ///
 /// If this pass finds a solution that means there is a "perfect layout" and that no
 /// further swap mapping or routing is needed. However, there is not always a possible
 /// solution, or a solution might exist but it is not found within the limits specified
 /// when the pass is called.
 ///
-/// By default, this pass will construct a heuristic scoring map based on the error rates
-/// in the provided ``target`` argument. The function will continue searching for layouts
-/// and use the heuristic scoring to return the layout which will run with the best estimated
-/// fidelity.
-///
 /// @param circuit A pointer to the circuit to run VF2Layout on
 /// @param target A pointer to the target to run the VF2Layout pass on
-/// @param strict_direction If true the pass will consider the edge direction in the
-///     connectivity described in the ``target``. Typically setting this to ``false``
-///     is desirable as an undirected search has more degrees of freedom and is more likely
-///     to find a layout (or a better layout if there are multiple choices) and correcting
-///     directionality is a simple operation for later transpilation stages.
-/// @param call_limit The number of state visits to attempt in each execution of the VF2 algorithm.
-///     If the value is set to a negative value the VF2 algorithm will run without any limit.
-/// @param time_limit The total time in seconds to run for ``VF2Layout``. This is checked after
-///     each layout search so it is not a hard time limit, but a soft limit that when checked
-///     if the set time has elapsed the function will return the best layout it has found so
-///     far. Set this to a value less than or equal to 0.0 to run without any time limit.
-/// @param max_trials The maximum number of trials to run the VF2 algorithm to try and find
-///     layouts. If the value is negative this will be treated as unbounded which means the
-///     algorithm will run until all possible layouts are scored. If the value is 0 the number
-///     of trials will be limited based on the number of edges in the interaction or the coupling
-///     graph (whichever is larger).
+/// @param config A pointer to the ``QkVF2LayoutConfiguration`` configuration structure.  If this
+///     pointer is null, the pass defaults are used.
+/// @param strict_direction If ``true``, the pass will consider the edge direction in the
+///     connectivity described in the ``target``. Typically, setting this to ``false``
+///     is desireable as the error heuristic is already very approximate, and two-qubit gates can
+///     almost invariably be synthesised to "flip" direction using only local one-qubit gates and
+///     the native-direction two-qubit gate.
 ///
 /// @return QkVF2LayoutResult A pointer to a result object that contains the
 /// results of the pass. This object is heap allocated and will need to be freed with the
@@ -177,22 +310,25 @@ pub unsafe extern "C" fn qk_vf2_layout_result_free(layout: *mut VF2LayoutResult)
 ///             qk_circuit_gate(qc, QkGate_CX, qargs, NULL);
 ///         }
 ///     }
-///     QkVF2LayoutResult *layout_result = qk_transpiler_pass_standalone_vf2_layout(qc, target, false, -1, NAN, -1);
+///     QkVF2LayoutConfiguration *config = qk_vf2_layout_configuration_new();
+///     qk_vf2_layout_configuration_set_call_limit(config, 10000);
+///     QkVF2LayoutResult *layout_result = qk_transpiler_pass_standalone_vf2_layout(qc, target, config, false);
 ///     qk_vf2_layout_result_free(layout_result);
+///     qk_vf2_layout_configuration_free(config);
 /// ```
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``circuit`` or ``target`` is not a valid, non-null pointer to a ``QkCircuit`` and ``QkTarget``.
-#[no_mangle]
+/// Behavior is undefined if ``circuit`` or ``target`` is not a valid, non-null pointer to a
+/// ``QkCircuit`` and ``QkTarget``.  Behavior is undefined if ``config`` is a non-null pointer that
+/// does not point to a valid ``QkVF2LayoutConfiguration`` object (but a null pointer is fine).
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout(
     circuit: *const CircuitData,
     target: *const Target,
+    config: *const VF2LayoutConfiguration,
     strict_direction: bool,
-    call_limit: i64,
-    time_limit: f64,
-    max_trials: i64,
 ) -> *mut VF2LayoutResult {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
@@ -201,34 +337,14 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout(
         Ok(dag) => dag,
         Err(e) => panic!("{}", e),
     };
-    let call_limit = if call_limit < 0 {
-        None
+    let config_default = Vf2PassConfiguration::default_abstract();
+    let config = if config.is_null() {
+        &config_default
     } else {
-        Some(call_limit as usize)
+        // SAFETY: per documentation this is a valid pointer to a configuration.
+        unsafe { &const_ptr_as_ref(config).0 }
     };
-    let time_limit = if time_limit <= 0.0 {
-        None
-    } else {
-        Some(time_limit)
-    };
-    let max_trials = if max_trials < 0 {
-        Some(0)
-    } else if max_trials == 0 {
-        None
-    } else {
-        Some(max_trials as isize)
-    };
-    let layout = match vf2_layout_pass(
-        &dag,
-        target,
-        strict_direction,
-        call_limit,
-        time_limit,
-        max_trials,
-        None,
-    ) {
-        Ok(layout) => layout,
-        Err(e) => panic!("{}", e),
-    };
-    Box::into_raw(Box::new(VF2LayoutResult(layout)))
+    vf2_layout_pass(&dag, target, config, strict_direction, None)
+        .map(|result| Box::into_raw(Box::new(VF2LayoutResult(result))))
+        .unwrap()
 }

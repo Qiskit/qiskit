@@ -35,7 +35,7 @@ class HGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.h` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -43,7 +43,7 @@ class HGate(SingletonGate):
         q_0: ┤ H ├
              └───┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -57,7 +57,10 @@ class HGate(SingletonGate):
     _standard_gate = StandardGate.H
 
     def __init__(self, label: Optional[str] = None):
-        """Create new H gate."""
+        """
+        Args:
+            label: An optional label for the gate.
+        """
         super().__init__("h", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
@@ -72,7 +75,7 @@ class HGate(SingletonGate):
         #    └────────────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.H._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.H._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def control(
@@ -136,7 +139,7 @@ class CHGate(SingletonControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.ch` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -145,7 +148,7 @@ class CHGate(SingletonControlledGate):
         q_1: ┤ H ├
              └───┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -219,7 +222,7 @@ class CHGate(SingletonControlledGate):
         #      └───┘└───┘└───┘└───┘└─────┘└───┘└─────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.CH._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.CH._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def inverse(self, annotated: bool = False):

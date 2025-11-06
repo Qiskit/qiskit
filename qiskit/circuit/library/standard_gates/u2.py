@@ -38,9 +38,7 @@ class U2Gate(Gate):
           circuit = QuantumCircuit(1)
           circuit.u(pi/2, phi, lambda)
 
-
-
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -48,7 +46,7 @@ class U2Gate(Gate):
         q_0: ┤ U2(φ,λ) ├
              └─────────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -58,7 +56,7 @@ class U2Gate(Gate):
                 e^{i\phi} & e^{i(\phi+\lambda)}
             \end{pmatrix}
 
-    **Examples:**
+    Examples:
 
     .. math::
 
@@ -94,7 +92,12 @@ class U2Gate(Gate):
         lam: ParameterValueType,
         label: Optional[str] = None,
     ):
-        """Create new U2 gate."""
+        r"""
+        Args:
+            phi: The rotation angle :math:`\phi`.
+            lam: The rotation angle :math:`\lambda`.
+            label: An optional label for the gate.
+        """
         super().__init__("u2", 1, [phi, lam], label=label)
 
     def _define(self):
@@ -107,7 +110,7 @@ class U2Gate(Gate):
         #    └────────────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.U2._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.U2._get_definition(self.params), legacy_qubits=True, name=self.name
         )
 
     def inverse(self, annotated: bool = False):

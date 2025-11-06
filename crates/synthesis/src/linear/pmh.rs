@@ -11,14 +11,14 @@
 // that they have been altered from the originals.
 
 use hashbrown::HashMap;
-use ndarray::{s, Array1, Array2, ArrayViewMut2, Axis};
+use ndarray::{Array1, Array2, ArrayViewMut2, Axis, s};
 use numpy::PyReadonlyArray2;
 use smallvec::smallvec;
 use std::cmp;
 
+use qiskit_circuit::Qubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{Param, StandardGate};
-use qiskit_circuit::Qubit;
 
 use pyo3::prelude::*;
 
@@ -26,11 +26,7 @@ use super::utils::_add_row_or_col;
 
 /// This helper function allows transposed access to a matrix.
 fn _index(transpose: bool, i: usize, j: usize) -> (usize, usize) {
-    if transpose {
-        (j, i)
-    } else {
-        (i, j)
-    }
+    if transpose { (j, i) } else { (i, j) }
 }
 
 fn _ceil_fraction(numerator: usize, denominator: usize) -> usize {
