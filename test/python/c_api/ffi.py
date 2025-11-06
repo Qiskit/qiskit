@@ -153,7 +153,7 @@ def build_circuit_from_python(circuit: qiskit.circuit.QuantumCircuit) -> ctypes.
 
 
 def build_homogenous_target(
-    cmap: qiskit.transpiler.CouplingMap, basis_gates: list[str], seed: int, ideal_gates=False
+    cmap: qiskit.transpiler.CouplingMap, basis_gates: list[str], seed: int, ideal_gates: bool = False
 ) -> QkTarget:
     """Build a target with a homogenous gate set."""
 
