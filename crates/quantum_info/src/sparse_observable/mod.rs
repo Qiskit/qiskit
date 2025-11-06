@@ -572,17 +572,13 @@ macro_rules! impl_sparse_observable_to_matrix {
             }
 
             let mut order = (0..num_ops).collect::<Vec<_>>();
+            order.sort_unstable_by_key(|&op| data.x_like[op]);
             let mut values = Vec::<Complex64>::with_capacity(side * (num_ops + 1) / 2);
             let mut indices = Vec::<$int_ty>::with_capacity(side * (num_ops + 1) / 2);
             let mut indptr: Vec<$int_ty> = vec![0; side + 1];
             let mut nnz = 0;
 
             for i_row in 0..side {
-                order.sort_unstable_by(|&a, &b| {
-                    ((i_row as $uint_ty) ^ (data.x_like[a] as $uint_ty))
-                        .cmp(&((i_row as $uint_ty) ^ (data.x_like[b] as $uint_ty)))
-                });
-
                 let mut running = Complex64::new(0.0, 0.0);
                 let mut prev_index = i_row ^ (data.x_like[order[0]] as usize);
 
@@ -642,17 +638,13 @@ macro_rules! impl_sparse_observable_to_matrix {
                     let start = chunk_size * i;
                     let end = (chunk_size * (i + 1)).min(side);
                     let mut order = (0..num_ops).collect::<Vec<_>>();
+                    order.sort_unstable_by_key(|&op| data.x_like[op]);
                     let mut values =
                         Vec::<Complex64>::with_capacity(chunk_size * (num_ops + 1) / 2);
                     let mut indices = Vec::<$int_ty>::with_capacity(chunk_size * (num_ops + 1) / 2);
                     let mut nnz = 0;
 
                     for i_row in start..end {
-                        order.sort_unstable_by(|&a, &b| {
-                            ((i_row as $uint_ty) ^ (data.x_like[a] as $uint_ty))
-                                .cmp(&((i_row as $uint_ty) ^ (data.x_like[b] as $uint_ty)))
-                        });
-
                         let mut running = Complex64::new(0.0, 0.0);
                         let mut prev_index = i_row ^ (data.x_like[order[0]] as usize);
 
