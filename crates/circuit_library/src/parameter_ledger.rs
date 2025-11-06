@@ -106,7 +106,7 @@ impl ParameterLedger {
             .get_bound(py)
             .call1((parameter_prefix, num_parameters))? // get the Python ParameterVector
             .try_iter()? // iterate over the elements and cast them to Rust Params
-            .map(|ob| Param::extract_no_coerce(&ob?))
+            .map(|ob| Param::extract_no_coerce(ob?.as_borrowed()))
             .collect::<PyResult<_>>()?;
 
         // finally, distribute the parameters onto the repetitions and blocks for each

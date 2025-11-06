@@ -46,9 +46,11 @@ use pyo3::prelude::*;
 use pyo3::types::{PySequence, PyString, PyTuple};
 
 #[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject)]
+#[repr(transparent)]
 pub struct Qubit(pub u32);
 
 #[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject)]
+#[repr(transparent)]
 pub struct Clbit(pub u32);
 
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
@@ -108,9 +110,11 @@ pub struct TupleLikeArg<'py> {
     value: Bound<'py, PyTuple>,
 }
 
-impl<'py> FromPyObject<'py> for TupleLikeArg<'py> {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let value = match ob.downcast::<PySequence>() {
+impl<'a, 'py> FromPyObject<'a, 'py> for TupleLikeArg<'py> {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+        let value = match ob.cast::<PySequence>() {
             Ok(seq) => seq.to_tuple()?,
             Err(_) => PyTuple::new(
                 ob.py(),
@@ -170,9 +174,11 @@ pub enum VarsMode {
     Drop,
 }
 
-impl<'py> FromPyObject<'py> for VarsMode {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        match &*ob.downcast::<PyString>()?.to_string_lossy() {
+impl<'a, 'py> FromPyObject<'a, 'py> for VarsMode {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+        match &*ob.cast::<PyString>()?.to_string_lossy() {
             "alike" => Ok(VarsMode::Alike),
             "captures" => Ok(VarsMode::Captures),
             "drop" => Ok(VarsMode::Drop),

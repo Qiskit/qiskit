@@ -365,7 +365,7 @@ fn build_interaction_graph<Ty: EdgeType>(
                     unreachable!("Control flow must be a python instruction");
                 };
                 let raw_blocks = py_inst.instruction.getattr(py, "blocks").unwrap();
-                let blocks: &Bound<PyTuple> = raw_blocks.downcast_bound::<PyTuple>(py).unwrap();
+                let blocks: &Bound<PyTuple> = raw_blocks.cast_bound::<PyTuple>(py).unwrap();
                 for block in blocks.iter() {
                     let mut inner_wire_map = vec![Qubit(u32::MAX); wire_map.len()];
                     let node_qargs = dag.get_qargs(inst.qubits);

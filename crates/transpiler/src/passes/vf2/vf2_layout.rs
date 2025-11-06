@@ -372,7 +372,7 @@ impl<T: Default> VirtualInteractions<T> {
                     };
                     let wire_map: Vec<_> = qubits.iter().map(|i| wire_map[i.index()]).collect();
                     let blocks = py_inst.instruction.bind(py).getattr("blocks")?;
-                    for block in blocks.downcast::<PyTuple>()?.iter() {
+                    for block in blocks.cast::<PyTuple>()?.iter() {
                         if !self.add_interactions_from(
                             &circuit_to_dag(block.extract()?, false, None, None)?,
                             &wire_map,
