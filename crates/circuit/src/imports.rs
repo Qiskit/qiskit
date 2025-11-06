@@ -127,7 +127,7 @@ pub static PAULI_ROTATION_TRACE_AND_DIM: ImportOnceCell = ImportOnceCell::new(
 );
 pub static MERGE_TWO_PAULI_EVOLUTIONS: ImportOnceCell = ImportOnceCell::new(
     "qiskit.circuit.library.pauli_evolution",
-    "merge_two_pauli_evolutions",
+    "_merge_two_pauli_evolutions",
 );
 pub static QS_DECOMPOSITION: ImportOnceCell =
     ImportOnceCell::new("qiskit.synthesis.unitary.qsd", "qs_decomposition");

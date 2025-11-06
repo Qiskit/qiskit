@@ -377,6 +377,7 @@ impl CommutationChecker {
             return Ok(is_commuting);
         }
 
+        // Sort the arguments.
         let reversed = if op1.num_qubits() != op2.num_qubits() {
             op1.num_qubits() > op2.num_qubits()
         } else {
@@ -402,7 +403,7 @@ impl CommutationChecker {
         let is_cachable = |op: &OperationRef, params: &[Param]| {
             if let OperationRef::StandardGate(gate) = op {
                 SUPPORTED_OP[(*gate) as usize]
-                    || params.iter().all(|p| matches!(p, Param::Float(_)))
+                    || params.iter().all(|p| matches!(p, Param::Float(_)))  
             } else {
                 false
             }
@@ -411,8 +412,9 @@ impl CommutationChecker {
             is_cachable(first_op, first_params) && is_cachable(second_op, second_params);
 
         if !check_cache {
-            if qargs1.len() > matrix_max_num_qubits as usize
-                || qargs2.len() > matrix_max_num_qubits as usize
+            // The arguments are sorted, so if qargs1.len() > matrix_max_num_qubits, then
+            // qargs1.len() > matrix_max_num_qubits as well. 
+            if qargs2.len() > matrix_max_num_qubits as usize
             {
                 return Ok(false);
             }

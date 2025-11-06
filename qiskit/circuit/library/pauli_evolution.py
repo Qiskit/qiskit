@@ -351,7 +351,7 @@ def _get_default_label(operator):
     return f"exp(-it {_operator_label(operator)})"
 
 
-def merge_two_pauli_evolutions(
+def _merge_two_pauli_evolutions(
     gate1: PauliEvolutionGate, gate2: PauliEvolutionGate
 ) -> PauliEvolutionGate | None:
     """
@@ -367,7 +367,16 @@ def merge_two_pauli_evolutions(
     if not isinstance(gate1, PauliEvolutionGate) or not isinstance(gate2, PauliEvolutionGate):
         return None
 
-    if gate1.operator == gate2.operator:
+    if isinstance(gate1.operator, SparseObservable) and isinstance(
+        gate2.operator, SparseObservable
+    ):
+        # When both operators are SparseObservables, we can compare the canonical versions of
+        # the operators.
+        can_merge = gate1.operator.simplify() == gate2.operator.simplify()
+    else:
+        can_merge = gate1.operator == gate2.operator
+
+    if can_merge:
         return PauliEvolutionGate(gate1.operator, gate1.time + gate2.time)
 
     return None
