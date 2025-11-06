@@ -403,7 +403,7 @@ impl CommutationChecker {
         let is_cachable = |op: &OperationRef, params: &[Param]| {
             if let OperationRef::StandardGate(gate) = op {
                 SUPPORTED_OP[(*gate) as usize]
-                    || params.iter().all(|p| matches!(p, Param::Float(_)))  
+                    || params.iter().all(|p| matches!(p, Param::Float(_)))
             } else {
                 false
             }
@@ -413,9 +413,8 @@ impl CommutationChecker {
 
         if !check_cache {
             // The arguments are sorted, so if qargs1.len() > matrix_max_num_qubits, then
-            // qargs1.len() > matrix_max_num_qubits as well. 
-            if qargs2.len() > matrix_max_num_qubits as usize
-            {
+            // qargs1.len() > matrix_max_num_qubits as well.
+            if qargs2.len() > matrix_max_num_qubits as usize {
                 return Ok(false);
             }
 
@@ -529,12 +528,12 @@ impl CommutationChecker {
         if first_qarg.len() > second_qarg.len() {
             return Err(CommutationError::FirstInstructionTooLarge);
         };
-        let first_mat = match get_matrix(first_op, first_params, None, false) {
+        let first_mat = match get_matrix(first_op, first_params, None, true) {
             Some(matrix) => matrix,
             None => return Ok(false),
         };
 
-        let second_mat = match get_matrix(second_op, second_params, None, false) {
+        let second_mat = match get_matrix(second_op, second_params, None, true) {
             Some(matrix) => matrix,
             None => return Ok(false),
         };
@@ -644,13 +643,13 @@ pub fn get_matrix(
     operation: &OperationRef,
     params: &[Param],
     matrix_max_num_qubits: Option<u32>,
-    matrix_use_view_only: bool,
+    matrix_from_definition: bool,
 ) -> Option<Array2<Complex64>> {
     if let Some(matrix) = operation.matrix(params) {
         return Some(matrix);
     }
 
-    if matrix_use_view_only
+    if !matrix_from_definition
         || matrix_max_num_qubits.is_some_and(|max_qubits| max_qubits < operation.num_qubits())
     {
         return None;

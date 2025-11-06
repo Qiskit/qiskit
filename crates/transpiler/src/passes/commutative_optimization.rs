@@ -289,7 +289,7 @@ fn try_merge(
         let (can_be_removed, phase_update) = is_identity_equiv(
             &merged_instruction,
             Some(matrix_max_num_qubits),
-            false,
+            true,
             error_cutoff_fn,
         )?;
 
@@ -332,7 +332,7 @@ fn try_merge(
                 let (can_be_removed, phase_update) = is_identity_equiv(
                     &merged_instruction,
                     Some(matrix_max_num_qubits),
-                    false,
+                    true,
                     error_cutoff_fn,
                 )?;
                 if can_be_removed {
@@ -356,13 +356,13 @@ fn try_merge(
                 &view1,
                 inst1.params_view(),
                 Some(matrix_max_num_qubits),
-                false,
+                true,
             ),
             get_matrix(
                 &view2,
                 inst2.params_view(),
                 Some(matrix_max_num_qubits),
-                false,
+                true,
             ),
         ) {
             let product_mat = matrix1.dot(&matrix2);
@@ -412,7 +412,7 @@ pub fn run_commutative_optimization(
         let instr1 = dag[node_index1].unwrap_operation();
 
         let (can_be_removed, phase_update) =
-            is_identity_equiv(instr1, Some(matrix_max_num_qubits), false, error_cutoff_fn)?;
+            is_identity_equiv(instr1, Some(matrix_max_num_qubits), true, error_cutoff_fn)?;
         if can_be_removed {
             node_actions[idx1] = NodeAction::Drop;
             new_global_phase = radd_param(new_global_phase, Param::Float(phase_update));

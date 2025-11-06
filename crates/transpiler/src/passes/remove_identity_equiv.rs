@@ -58,8 +58,8 @@ pub fn can_remove(tr_over_dim: Complex64, dim: f64, error: f64) -> (bool, f64) {
 ///
 /// * `inst`: the packed instruction
 /// * `matrix_max_num_qubits`: maximum number of qubits allowed for matrix-based checks.
-/// * `matrix_use_view_only`: if `true`, the matrix of the operation is retrieved from its view;
-///   if `false` also calls the Python-space `Operator` class when the above is not sufficient.
+/// * `matrix_from_definition`: if `true`, can call the Python-space `Operator` class to
+///   construct the matrix.
 /// * `error_cutoff_fn`: function to compute the allowed error tolerance.
 ///
 /// # Returns
@@ -69,7 +69,7 @@ pub fn can_remove(tr_over_dim: Complex64, dim: f64, error: f64) -> (bool, f64) {
 pub fn is_identity_equiv<F>(
     inst: &PackedInstruction,
     matrix_max_num_qubits: Option<u32>,
-    matrix_use_view_only: bool,
+    matrix_from_definition: bool,
     error_cutoff_fn: F,
 ) -> PyResult<(bool, f64)>
 where
@@ -140,7 +140,7 @@ where
         &view,
         inst.params_view(),
         matrix_max_num_qubits,
-        matrix_use_view_only,
+        matrix_from_definition,
     ) {
         let dim = matrix.shape()[0] as f64;
         let tr_over_dim = matrix.diag().iter().sum::<Complex64>() / dim;
