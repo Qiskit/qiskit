@@ -2,9 +2,8 @@
 features_circuits:
   - |
     Added a new instruction class, :class:`.PauliProductMeasurement`, which represents
-    a fundamental operation in fault-tolerant quantum computing. 
-    Mathematically, it performs a joint projective measurement on
-    multiple qubits, where the measured observable is a tensor product of Pauli operators.
+    a joint projective measurement on multiple qubits, where the measured observable is 
+    a tensor product of Pauli operators.
     The outcome of this measurement is a single eigenvalue, either :math:`+1` or :math:`-1`,
     indicating the eigenstate of the Pauli product.
 
