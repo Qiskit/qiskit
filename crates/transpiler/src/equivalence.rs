@@ -20,7 +20,7 @@ use rustworkx_core::petgraph::csr::IndexType;
 use rustworkx_core::petgraph::stable_graph::StableDiGraph;
 use rustworkx_core::petgraph::visit::IntoEdgeReferences;
 
-use smallvec::SmallVec;
+use smallvec::{SmallVec, smallvec};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::{error::Error, fmt::Display};
@@ -40,6 +40,7 @@ use rustworkx_core::petgraph::{
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::imports::{ImportOnceCell, QUANTUM_CIRCUIT};
+use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::{Operation, OperationRef};
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -300,7 +301,11 @@ impl<'a, 'py> FromPyObject<'a, 'py> for GateOper {
         let op_struct: OperationFromPython = ob.extract()?;
         Ok(Self {
             operation: op_struct.operation,
-            params: op_struct.params,
+            params: match op_struct.params {
+                None => smallvec![],
+                Some(Parameters::Params(params)) => params,
+                Some(Parameters::Blocks(_)) => panic!("expected params"),
+            },
         })
     }
 }
