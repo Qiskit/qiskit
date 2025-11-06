@@ -94,7 +94,7 @@ pub fn synthesize_ppm(ppm: &PauliProductMeasurement) -> PyResult<CircuitData> {
         )?;
     }
 
-    // Basis change layer
+    // Flip the sign of the measurement outcome, if specified
     if ppm.neg {
         circuit.push_standard_gate(StandardGate::X, &[], &[first_qubit])?;
     }
