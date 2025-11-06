@@ -108,7 +108,7 @@ class RZZGate(Gate):
         #      └───┘└───────┘└───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.RZZ._get_definition(self.params), legacy_qubits=True, name=self.name
+            StandardGate.RZZ._get_definition(self.params), legacy_qubits=True
         )
 
     def control(

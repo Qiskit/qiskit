@@ -95,7 +95,7 @@ class PhaseGate(Gate):
         #    └──────────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.Phase._get_definition(self.params), legacy_qubits=True, name=self.name
+            StandardGate.Phase._get_definition(self.params), legacy_qubits=True
         )
 
     def control(
@@ -237,7 +237,7 @@ class CPhaseGate(ControlledGate):
         #                └───┘└─────────┘└───┘└────────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.CPhase._get_definition(self.params), legacy_qubits=True, name=self.name
+            StandardGate.CPhase._get_definition(self.params), legacy_qubits=True
         )
 
     def control(
@@ -350,7 +350,7 @@ class MCPhaseGate(ControlledGate):
         from qiskit.circuit import QuantumCircuit, QuantumRegister
 
         qr = QuantumRegister(self.num_qubits, "q")
-        qc = QuantumCircuit(qr, name=self.name)
+        qc = QuantumCircuit(qr)
 
         if self.num_ctrl_qubits == 0:
             qc.p(self.params[0], 0)
