@@ -14,7 +14,6 @@ Tests for operator Schmidt decomposition utility (unittest + DDT parameterizatio
 """
 from __future__ import annotations
 
-# --- Local/standard first (pylint C0411 import order) ---
 from test import QiskitTestCase, slow_test
 
 import itertools
