@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Added :func:operator_schmidt_decomposition. This function
+    Added :func:'operator_schmidt_decomposition'. This function
     computes the **operator Schmidt decomposition** of an operator acting on `n` qubits
     across a specified bipartition. It returns:
 
