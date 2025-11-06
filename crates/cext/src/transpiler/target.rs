@@ -20,7 +20,7 @@ use crate::exit_codes::{CInputError, ExitCode};
 use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
 use indexmap::IndexMap;
 use qiskit_circuit::PhysicalQubit;
-use qiskit_circuit::instruction::Parameters;
+use qiskit_circuit::instruction::{Instruction, Parameters};
 use qiskit_circuit::operations::StandardInstruction;
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -1384,28 +1384,24 @@ pub unsafe extern "C" fn qk_target_op_get(
     let target_borrowed = unsafe { const_ptr_as_ref(target) };
 
     if let Some(operation) = target_borrowed.get_op_by_index(index) {
-        let kind = match operation {
-            qiskit_transpiler::target::TargetOperation::Normal(normal_operation) => {
-                match normal_operation.operation.view() {
-                    qiskit_circuit::operations::OperationRef::StandardGate(_) => {
-                        COperationKind::Gate
-                    }
-                    qiskit_circuit::operations::OperationRef::StandardInstruction(
-                        standard_instruction,
-                    ) => match standard_instruction {
-                        StandardInstruction::Barrier(_) => COperationKind::Barrier,
-                        StandardInstruction::Delay(_) => COperationKind::Delay,
-                        StandardInstruction::Measure => COperationKind::Measure,
-                        StandardInstruction::Reset => COperationKind::Reset,
-                    },
-                    qiskit_circuit::operations::OperationRef::Unitary(_) => COperationKind::Unitary,
-                    _ => panic!(
-                        "Unsupported operation type found: {}",
-                        stringify!(normal_operation.view())
-                    ),
+        let TargetOperation::Normal(operation) = operation else {
+            panic!(
+                "Unsupported operation type found: {}",
+                stringify!(normal_operation.view())
+            );
+        };
+        let kind = match operation.operation.view() {
+            qiskit_circuit::operations::OperationRef::StandardGate(_) => COperationKind::Gate,
+            qiskit_circuit::operations::OperationRef::StandardInstruction(standard_instruction) => {
+                match standard_instruction {
+                    StandardInstruction::Barrier(_) => COperationKind::Barrier,
+                    StandardInstruction::Delay(_) => COperationKind::Delay,
+                    StandardInstruction::Measure => COperationKind::Measure,
+                    StandardInstruction::Reset => COperationKind::Reset,
                 }
             }
-            qiskit_transpiler::target::TargetOperation::Variadic(_) => panic!(
+            qiskit_circuit::operations::OperationRef::Unitary(_) => COperationKind::Unitary,
+            _ => panic!(
                 "Unsupported operation type found: {}",
                 stringify!(normal_operation.view())
             ),
@@ -1413,14 +1409,13 @@ pub unsafe extern "C" fn qk_target_op_get(
         let name = CString::new(
             target_borrowed
                 .get_by_index(index)
-                .expect("Inconsistent indices")
-                .0
-                .clone(),
+                .expect("An operation name should already exist.")
+                .0,
         )
-        .expect("Error extracting Cstring from Target name")
+        .expect("The string should be UTF-8 encoded.")
         .into_raw();
         let params: Vec<f64> = operation
-            .params()
+            .params_view()
             .iter()
             .filter_map(|param| match param {
                 Param::Float(number) => Some(*number),
@@ -1430,19 +1425,16 @@ pub unsafe extern "C" fn qk_target_op_get(
         let num_params = params
             .len()
             .try_into()
-            .expect("The number of parameters exceeds the alotted amount");
+            .expect("The number of parameters shouldn't exceed the alotted amount");
         let mut params_boxed = params.into_boxed_slice();
         unsafe {
-            write(
-                op_kind,
-                CTargetOperation {
-                    op_type: kind,
-                    name,
-                    num_qubits: operation.num_qubits(),
-                    params: params_boxed.as_mut_ptr(),
-                    num_params,
-                },
-            )
+            op_kind.write(CTargetOperation {
+                op_type: kind,
+                name,
+                num_qubits: operation.operation.num_qubits(),
+                params: params_boxed.as_mut_ptr(),
+                num_params,
+            })
         };
         let _ = Box::into_raw(params_boxed);
         ExitCode::Success

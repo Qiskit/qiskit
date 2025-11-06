@@ -986,6 +986,71 @@ cleanup:
     return result;
 }
 
+static int test_target_operation(void) {
+    QkTarget *target = create_sample_target(true);
+    int result = Ok;
+
+    size_t target_length = qk_target_num_instructions(target);
+    char *names[9] = {"id", "rz", "sx", "x", "cx", "y", "global_phase", "measure", "reset"};
+    QkGate std_gates[7] = {QkGate_I,  QkGate_RZ, QkGate_SX,         QkGate_X,
+                           QkGate_CX, QkGate_Y,  QkGate_GlobalPhase};
+    // Allocate for the Target operation
+    QkTargetOperation op;
+    for (size_t inst_idx = 0; inst_idx < target_length; inst_idx++) {
+
+        if (qk_target_op_get(target, inst_idx, &op) != QkExitCode_Success) {
+            printf("The number of operations in the target is inconsistent among methods: Target "
+                   "size = %zu, current index: %zu",
+                   target_length, inst_idx);
+            result = RuntimeError;
+            goto cleanup;
+        }
+
+        if (strcmp(op.name, names[inst_idx]) != 0) {
+            printf("The operation names did not match. Expected %s, got %s", names[inst_idx],
+                   op.name);
+            result = EqualityError;
+            goto cleanup;
+        }
+
+        char *op_types[6] = {"Gate", "Barrier", "Delay", "Measure", "Reset", "Unitary"};
+        if (inst_idx < 7) {
+            if (op.op_type != QkOperationKind_Gate) {
+                printf("The operation's type did not match, expected Gate, got %s",
+                       op_types[(size_t)op.op_type]);
+                result = EqualityError;
+                goto cleanup;
+            }
+            QkGate gate = qk_target_op_try_gate(target, inst_idx);
+            if (gate != std_gates[inst_idx]) {
+                printf("The gate type did not match. Expected %i, got %i", std_gates[inst_idx],
+                       gate);
+                result = EqualityError;
+                goto cleanup;
+            }
+        } else if (inst_idx == 7) {
+            if (op.op_type != QkOperationKind_Measure) {
+                printf("The operation's type did not match, expected Measure, got %s",
+                       op_types[(size_t)op.op_type]);
+                result = EqualityError;
+                goto cleanup;
+            }
+        } else {
+            if (op.op_type != QkOperationKind_Reset) {
+                printf("The operation's type did not match, expected Reset, got %s",
+                       op_types[(size_t)op.op_type]);
+                result = EqualityError;
+                goto cleanup;
+            }
+        }
+    }
+
+cleanup:
+    qk_target_op_clear(&op);
+    qk_target_free(target);
+    return result;
+}
+
 int test_target(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty_target);
@@ -997,6 +1062,7 @@ int test_target(void) {
     num_failed += RUN_TEST(test_target_iteration);
     num_failed += RUN_TEST(test_target_indexing);
     num_failed += RUN_TEST(test_target_instruction_supported);
+    num_failed += RUN_TEST(test_target_operation);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
