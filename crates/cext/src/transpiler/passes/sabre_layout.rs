@@ -45,6 +45,8 @@ pub struct SabreLayoutOptions {
 /// Build a default sabre layout options object. This builds a sabre layout with ``max_iterations``
 /// set to 4, both ``num_swap_trials`` and ``num_random_trials`` set to 20, and the seed selected
 /// by a RNG seeded from system entropy.
+///
+/// @return A ``QkSabreLayoutOptions`` object with default settings.
 #[unsafe(no_mangle)]
 pub extern "C" fn qk_sabre_layout_options_default() -> SabreLayoutOptions {
     SabreLayoutOptions {

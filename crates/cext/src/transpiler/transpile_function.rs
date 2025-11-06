@@ -68,6 +68,8 @@ impl Default for TranspileOptions {
 ///
 /// This function generates a QkTranspileOptions with the default settings
 /// This currently is ``optimization_level`` 2, no seed, and no approximation.
+///
+/// @return A ``QkTranspileOptions`` object with default settings.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_transpiler_default_options() -> TranspileOptions {
