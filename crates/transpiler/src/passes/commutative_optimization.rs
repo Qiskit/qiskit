@@ -46,23 +46,23 @@ enum NodeAction {
 }
 
 /// Returns true if the two parameter lists are equal.
-fn compare_params(params1: &[Param], params2: &[Param]) -> bool {
+fn compare_params(params1: &[Param], params2: &[Param]) -> PyResult<bool> {
     if params1.len() != params2.len() {
-        return false;
+        return Ok(false);
     }
 
     for (p1, p2) in params1.iter().zip(params2.iter()) {
-        match p1.eq(p2) {
-            Ok(true) => continue,
-            Ok(false) => return false,
-            Err(_) => return false,
+        let eq = p1.eq(p2)?;
+        if !eq {
+            return Ok(false);
         }
     }
 
-    true
+    Ok(true)
 }
 
-/// List of 2-qubit symmetric gates, that is `G(q1, q2) = G(q2, q1)`.
+/// List of symmetric gates, that is the gate remains the same under all
+/// permutations of its arguments.
 static SYMMETRIC_GATES: [StandardGate; 13] = [
     StandardGate::CZ,
     StandardGate::Swap,
@@ -263,7 +263,7 @@ fn try_merge(
         (inst1.op.view(), inst2.op.view())
     {
         if let Some((gate1inv, params1inv)) = gate1.inverse(params1) {
-            if (gate1inv == gate2) && compare_params(&params1inv, params2) {
+            if (gate1inv == gate2) && compare_params(&params1inv, params2)? {
                 return Ok((true, None, 0.));
             }
         }
