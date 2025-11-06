@@ -11,7 +11,7 @@ features_circuits:
     "A Game of Surface Codes: Large-Scale Quantum Computing with Lattice Surgery" by
     Daniel Litinski (https://arxiv.org/abs/1808.02892).
 
-    A :class:`.PauliProducMeasurement` can be instrantiated from a 
+    A :class:`.PauliProductMeasurement` can be instantiated from a 
     :class:`~.quantum_info.Pauli`, where the Pauli may include a phase of :math:`-1`,
     but not of :math:`i` or :math:`-i`. The instruction has the same number of qubits as
     the Pauli, and exactly :math:`1` classical bit.
