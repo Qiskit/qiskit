@@ -185,67 +185,14 @@ python generate_changelog.py Qiskit/qiskit (x.y.z)-1 -b 'stable/x.y' -t $MY_GITH
 In both scenarios, if there are entries under `Missing changelog entry`, label the PRs (the main and the backport) with the `Changelog:<something>` label and repeat `generate_changelog.py` until all the entries have a changelog label and `Missing changelog` section is not shown.
 See [this section](https://github.com/Qiskit/qiskit/blob/main/CONTRIBUTING.md#changelog-generation) for more details about the available `Changelog:` labels. 
 
-### 3. Submit a "Prepare x.y.z release" PR
+### 3. Prepare the release notes 
 
-Create a PR that will serve as the commit we tag for the release and label it with `Changelog:None`.
-The PR is like a regular PR in your fork and submitted like the regular PR process.
-This step differs depending on the type of release.
+Take a look to the documentation from `main`. Create a PR (like a regular PR, from `main`) with a prelude and the release notes for the coming release.
 
-Examples for **_first_ release** PRs:
+> [!WARNING]
+> Do not change version numbers in this PR. That will be done in the next step.
 
- * [release-candidate PR for Qiskit 1.3.0rc1](https://github.com/Qiskit/qiskit/pull/13397).
- * [release-candidate PR for Qiskit 2.0.0rc1](https://github.com/Qiskit/qiskit/pull/13953)
-
-Examples for **_follow-up_ release** PRs:
-
- * [patch-release PR for Qiskit 2.0.1](https://github.com/Qiskit/qiskit/pull/14339).
- * [follow-up release-candidate PR for Qiskit 1.3.0rc2](https://github.com/Qiskit/qiskit/pull/13466/).  
-
-
-#### 3.1 Create the `prepare-x.y.z` branch
-
-If this is a **_first_ release**, `stable/x.y` does not exist and you should create the branch out of `main`:
-
-```bash
-git checkout -b prepare-x.y.0rc1 upstream/main
-```
-
-If you are doing a **_follow-up_ release**, make a PR out of the stable branch:
-
-```bash
-git fetch upstream
-git checkout -b prepare-x.y.z upstream/stable/x.y
-```
-
-In both situations, your active branch now is `prepare-x.y.z`.
-
-#### 3.2 Bump version numbers
-
-Once in the `prepare-x.y.z` branch, bump the package version number to `x.y.z` (e.g. `1.4.2` for a patch, or `1.3.0rc2` for a second release candidate).
-The places to update are:
-
-* `qiskit/VERSION.txt`: the only line in the file.
-* `Cargo.toml` (only the file in the repository root and none of the other `**/Cargo.toml`s): the variable `version` and run `cargo build`. Cargo needs a dash before 'rc' dev versions. Therefore, for releasing `x.y.0rc1`, the cargo version should be `x.y.0-rc1`.
-* `crates/cext/cbindgen.toml`: the `define QISKIT_VERSION_*` macros. 
-
-
-#### 3.3 Update Rust dependencies
-
-> [!IMPORTANT]
-> Skip this step if you are doing a **_follow-up_ release**.
-
-Update any Rust dependencies in the `Cargo.lock` file, keeping the MSRV fixed.
-Beware that `cargo`'s dependency resolver will not enforce that dependencies satisfy our `rust-version` support, so you should use our MSRV
-of `cargo` to do the update and a trial build.
-This will happen by default due to our `rust-toolchain.toml` file, but if you need to temporarily override any toolchain changes you have made locally, do:
-
-```bash
-rustup install 1.61  # Install MSRV cargo, if required
-cargo +1.61 update   # Update lock file
-cargo +1.61 build    # Check build
-```
-
-#### 3.4 Add a prelude
+#### 3.1 Add a prelude
 
 Add a release note called `prepare-x.y.z` with only a `prelude` section explaining the release.
 
@@ -264,7 +211,7 @@ Consider the following guidelines:
   > Qiskit x.y.z is a small patch release, fixing several bugs found in the x.y series.
 
 
-#### 3.5 Prepare the release notes
+#### 3.2 Review the release notes
 
 In case of **_first_ release**, move all the release notes that are loose in `/releasenotes/notes` into a new folder called `/releasenotes/notes/x.y`.
 You do not need to fix typos / code / links in the release notes at this stage.
@@ -277,7 +224,76 @@ When releasing a major or minor version, check for duplicated bugfix entries, i.
 You can remove them from the release notes of `X.Y`.
 [Here is an example](https://github.com/Qiskit/qiskit/pull/14565#pullrequestreview-2938767230) of that situation. 
 
-#### 3.6 Submit the PR for review
+#### 3.3 Submit the PR with the release notes
+
+Submit the PR and let the documentation team know that it is ready for review (either via internal Slack or by [submitting an issue](https://github.com/Qiskit/documentation/issues)).  
+If the PR is not merged before the next step, it should be backported to the `prepare-x.y.z` branch created in step 4.1.
+
+### 4. Submit a "Prepare x.y.z release" PR
+
+Create a PR that will serve as the commit we tag for the release and label it with `Changelog:None`.
+The PR is like a regular PR in your fork and submitted like the regular PR process.
+This step differs depending on the type of release.
+
+Examples for **_first_ release** PRs:
+
+ * [release-candidate PR for Qiskit 1.3.0rc1](https://github.com/Qiskit/qiskit/pull/13397).
+ * [release-candidate PR for Qiskit 2.0.0rc1](https://github.com/Qiskit/qiskit/pull/13953)
+
+Examples for **_follow-up_ release** PRs:
+
+ * [patch-release PR for Qiskit 2.0.1](https://github.com/Qiskit/qiskit/pull/14339).
+ * [follow-up release-candidate PR for Qiskit 1.3.0rc2](https://github.com/Qiskit/qiskit/pull/13466/).  
+
+
+#### 4.1 Create the `prepare-x.y.z` branch
+
+If this is a **_first_ release**, `stable/x.y` does not exist and you should create the branch out of `main`:
+
+```bash
+git checkout -b prepare-x.y.0rc1 upstream/main
+```
+
+If you are doing a **_follow-up_ release**, make a PR out of the stable branch:
+
+```bash
+git fetch upstream
+git checkout -b prepare-x.y.z upstream/stable/x.y
+```
+
+In both situations, your active branch now is `prepare-x.y.z`.
+
+> [!WARNING]
+> Only make changes on this branch that apply exclusively to the coming release.
+> You should not change documentation or release notes here, but in `main`.
+
+#### 4.2 Bump version numbers
+
+Once in the `prepare-x.y.z` branch, bump the package version number to `x.y.z` (e.g. `1.4.2` for a patch, or `1.3.0rc2` for a second release candidate).
+The places to update are:
+
+* `qiskit/VERSION.txt`: the only line in the file.
+* `Cargo.toml` (only the file in the repository root and none of the other `**/Cargo.toml`s): the variable `version` and run `cargo build`. Cargo needs a dash before 'rc' dev versions. Therefore, for releasing `x.y.0rc1`, the cargo version should be `x.y.0-rc1`.
+* `crates/cext/cbindgen.toml`: the `define QISKIT_VERSION_*` macros. 
+
+
+#### 4.3 Update Rust dependencies
+
+> [!IMPORTANT]
+> Skip this step if you are doing a **_follow-up_ release**.
+
+Update any Rust dependencies in the `Cargo.lock` file, keeping the MSRV fixed.
+Beware that `cargo`'s dependency resolver will not enforce that dependencies satisfy our `rust-version` support, so you should use our MSRV
+of `cargo` to do the update and a trial build.
+This will happen by default due to our `rust-toolchain.toml` file, but if you need to temporarily override any toolchain changes you have made locally, do:
+
+```bash
+rustup install 1.61  # Install MSRV cargo, if required
+cargo +1.61 update   # Update lock file
+cargo +1.61 build    # Check build
+```
+
+#### 4.4 Submit the PR for review
 
 As any other regular PR, commit your changes (don't forget to add the prelude release note), push the branch, and create a PR.
 
@@ -289,7 +305,7 @@ Add the PR you just made to the milestone for this release.
 This is the last PR that should merge from the milestone.
 This PR undergoes the regular review process - use the reviewers to help with checking all the release notes if you need to.
 
-### 4. Tag the "Prepare x.y.z release" commit
+### 5. Tag the "Prepare x.y.z release" commit
 
 > [!WARNING]
 > To push the tag that triggers the final deployment of a release, you need to have at least `maintain` permissions on the repository.
@@ -301,7 +317,7 @@ Once the PR from the previous section is merged, the release manager tags the co
 - A tag message that says "Qiskit x.y.z"
 - Ideally, [sign your tagging using GPG](https://docs.github.com/authentication/managing-commit-signature-verification/signing-tags)
 
-#### 4.1 Create the tag locally
+#### 5.1 Create the tag locally
 
 The following are the recommended steps for tagging the "Prepare x.y.z release" commit:
 
@@ -320,7 +336,7 @@ git show upstream/stable/2.0  # Verify this is the release PR.
 git tag -s -m "Qiskit 2.0.3" 2.0.3 upstream/stable/2.0
 ```
 
-#### 4.2 Verify the tag
+#### 5.2 Verify the tag
 
 Double-check that the tag you have just created has exactly the correct name,
 and points to exactly the correct commit:
@@ -376,7 +392,7 @@ Prepare 2.0.3 release (#14626)
 Note that the tagged commit is precisely the "Prepare 2.0.3 release" commit.
 
 
-#### 4.3 Push the tag to Qiskit remote
+#### 5.3 Push the tag to Qiskit remote
 
 > [!WARNING]
 > This step triggers the release.
@@ -397,7 +413,7 @@ The GitHub Actions CD pipelines will build the sdist, and the wheels for all
 Python / OS / architecture combinations, and push them to PyPI using the
 encrypted credentials in this repository.
 
-#### 4.4 Get approval for pushing to PyPI
+#### 5.4 Get approval for pushing to PyPI
 
 The first GitHub Actions CD stage builds the [Tier 1](https://quantum.cloud.ibm.com/docs/en/guides/install-qiskit#operating-system-support) and takes between 1.5 and 2 hours.
 Once it finishes, the wheels can be pushed to PyPI by [the deploy workflow](https://github.com/Qiskit/qiskit/blob/main/.github/workflows/wheels.yml).
@@ -419,9 +435,9 @@ Traditionally, once Tier 1 is live on PyPI, the post-release actions in step 5 c
 The rest of the tiers might take even longer and they also need to be approved.
 
 
-### 5. Post-release actions
+### 6. Post-release actions
 
-#### 5.1 Announce the release on Slack
+#### 6.1 Announce the release on Slack
 
 Post a message in the relevant Slack channels:
 
@@ -454,7 +470,7 @@ For patch releases:
 > :qiskit-new: **Qiskit x.y.z has been released!**
 > This is a minor bugfix release for Qiskit x.y. You can find it on pypi (link) and in our GitHub releases (link).
 
-#### 5.2 Update the `main` branch with the next release
+#### 6.2 Update the `main` branch with the next release
 
 > [!IMPORTANT]
 > Skip this step if your PR from section Releasing the package - step 3 was to the  `main` branch
@@ -474,7 +490,7 @@ Example for post-release PR (previous to the introduction of [#14697](https://gi
 
  * [following 2.1.0rc1, a PR preparing `main` for 2.2.0](https://github.com/Qiskit/qiskit/pull/14546)
 
-#### 5.3 Create a milestone for the next patch release
+#### 6.3 Create a milestone for the next patch release
 
 > [!IMPORTANT]
 > Skip this step if you released a release candidate.
@@ -483,7 +499,7 @@ Once a package is out there, it has support for certain period of time.
 As such, there are potential patch releases coming and it is handy to have [a milestone](https://github.com/Qiskit/qiskit/milestones/) ready for that.
 If you have any estimated or time plan for this future patch release, consider adding it.
 
-#### 5.4 Update the roadmap
+#### 6.4 Update the roadmap
 
 Go to the [roadmap wiki](https://github.com/Qiskit/qiskit/wiki/Roadmap) and update it:
 
