@@ -130,8 +130,7 @@ impl Param {
                     let parameters_attr = intern!(py, "parameters");
                     let obj = obj.bind(py);
                     if obj.is_instance(imports::QUANTUM_CIRCUIT.get_bound(py))? {
-                        // TODO: are there any instructions that use a QuantumCircuit as a
-                        //   parameter now that control flow is ported to Rust?
+                        // Note: this code-path is only potentially used by custom user operations
                         let collected: Vec<Symbol> = obj
                             .getattr(parameters_attr)?
                             .try_iter()?
