@@ -21,7 +21,7 @@ use qiskit_circuit::{
 };
 use smallvec::SmallVec;
 
-use crate::{circuit_library::entanglement::get_entanglement, QiskitError};
+use crate::{QiskitError, entanglement::get_entanglement};
 
 #[derive(Debug, Clone)]
 pub enum BlockOperation {
@@ -45,13 +45,13 @@ impl BlockOperation {
                 let py_params = PyList::new(py, params.iter().map(|&p| p.clone()))?.into_any();
 
                 let job = builder.call1(py, (py_params,))?;
-                let result = job.downcast_bound::<PyTuple>(py)?;
+                let result = job.cast_bound::<PyTuple>(py)?;
 
                 let operation: OperationFromPython = result.get_item(0)?.extract()?;
                 let bound_params = result
                     .get_item(1)?
                     .try_iter()?
-                    .map(|ob| Param::extract_no_coerce(&ob?))
+                    .map(|ob| Param::extract_no_coerce(ob?.as_borrowed()))
                     .collect::<PyResult<SmallVec<[Param; 3]>>>()?;
 
                 Ok((operation.operation, bound_params))
@@ -134,10 +134,10 @@ impl Entanglement {
             .map(|layer| -> PyResult<LayerEntanglement> {
                 if entanglement.is_callable() {
                     let as_any = entanglement.call1((layer,))?;
-                    let as_list = as_any.downcast::<PyList>()?;
+                    let as_list = as_any.cast::<PyList>()?;
                     unpack_entanglement(num_qubits, layer, as_list, entanglement_blocks)
                 } else {
-                    let as_list = entanglement.downcast::<PyList>()?;
+                    let as_list = entanglement.cast::<PyList>()?;
                     unpack_entanglement(num_qubits, layer, as_list, entanglement_blocks)
                 }
             })
