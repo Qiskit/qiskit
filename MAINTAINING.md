@@ -431,9 +431,11 @@ In other words, this step ensures that the tag corresponds to the correct SHA-1 
 > Approval is the **point of no return** in the release process.  
 > Once the package is live on PyPI, it cannot be rolled back. The only option is to [yank](https://docs.pypi.org/project-management/yanking/) it.  
 
+When approving, leave a comment like:
+> I've confirmed that the <x.y.z> tag points to https://github.com/Qiskit/qiskit/commit/<sha1_commit_id> which is the `HEAD` of the `stable/<x.y+1>` and correctly updates the version numbers.
 
-Traditionally, once Tier 1 is live on PyPI, the post-release actions in step 5 can start, including the announcements.
-The rest of the tiers might take even longer and they also need to be approved.
+Usually, once Tier 1 is live on PyPI, the post-release actions in step 5 can start, including the announcements.
+The rest of the tiers might take longer and they also need to be approved.
 
 
 ### 6. Post-release actions
