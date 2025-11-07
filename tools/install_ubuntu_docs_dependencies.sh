@@ -2,7 +2,7 @@
 #
 # Prepare an Ubuntu CI machine for running 'tox -e docs'.  Assumes that Python is available.
 
-if [[ -n "$1" ]]
+if [[ -n "$GITHUB_TOKEN" ]]
 then
     set -e
 
@@ -13,7 +13,7 @@ then
     sudo apt-get install -y graphviz pandoc 
 
     # This command fetches the latest release of doxygen and its linux binaries
-    curl -H "Authorization: token $$1" \
+    curl -H "Authorization: token $$GITHUB_TOKEN" \
         https://api.github.com/repos/doxygen/doxygen/releases/latest | \
         jq '.["assets"][2]["browser_download_url"]' | \
         xargs -I {} wget {} -O ./doxygen.tar.gz
