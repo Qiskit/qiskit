@@ -26,4 +26,5 @@ then
     sudo make install
 else
     echo "No github token provided"
+    exit 1
 fi
