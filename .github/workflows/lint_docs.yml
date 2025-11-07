@@ -25,10 +25,10 @@ jobs:
           python-version: "3.9"
       - name: Install ubuntu docs dependencies
         run: tools/install_ubuntu_docs_dependencies.sh
-      - name: Run docs
-        run: tox -e docs
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+      - name: Run docs
+        run: tox -e docs
       - name: Clean up docs detritus
         run: rm -rf docs/_build/html/{.doctrees,.buildinfo}
       - name: Store built documentation artifact
