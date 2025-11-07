@@ -505,7 +505,7 @@ def _sorted_nodes(dag_layer):
     return nodes
 
 
-def _get_gate_span(qubits, clbits, node, measure_arrows):
+def _get_gate_span(qubits, node, measure_arrows):
     """Return the ordered wires this node would occupy when drawn."""
 
     if isinstance(node.op, ControlFlowOp) and not isinstance(node.op, BoxOp):
@@ -536,13 +536,13 @@ def _get_gate_span(qubits, clbits, node, measure_arrows):
     return qubits[min_index : max_index + 1]
 
 
-def _any_crossover(qubits, clbits, node, nodes, measure_arrows):
+def _any_crossover(qubits, node, nodes, measure_arrows):
     """Return True .IFF. 'node' crosses over any 'nodes'."""
     return bool(
-        set(_get_gate_span(qubits, clbits, node, measure_arrows)).intersection(
+        set(_get_gate_span(qubits, node, measure_arrows)).intersection(
             bit
             for check_node in nodes
-            for bit in _get_gate_span(qubits, clbits, check_node, measure_arrows)
+            for bit in _get_gate_span(qubits, check_node, measure_arrows)
         )
     )
 
@@ -594,7 +594,7 @@ class _LayerSpooler(list):
 
     def insertable(self, node, nodes):
         """True .IFF. we can add 'node' to layer 'nodes'"""
-        return not _any_crossover(self.qubits, self.clbits, node, nodes, self.measure_arrows)
+        return not _any_crossover(self.qubits, node, nodes, self.measure_arrows)
 
     def slide_from_left(self, node, index):
         """Insert node into first layer where there is no conflict going l > r"""
