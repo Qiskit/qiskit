@@ -24,7 +24,7 @@ jobs:
         with:
           python-version: "3.9"
       - name: Install ubuntu docs dependencies
-        run: tools/install_ubuntu_docs_dependencies.sh
+        run: tools/install_ubuntu_docs_dependencies.sh ${{secrets.GITHUB_TOKEN}}
       - name: Run docs
         run: tox -e docs
       - name: Clean up docs detritus
