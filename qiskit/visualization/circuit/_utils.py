@@ -33,7 +33,12 @@ from qiskit.circuit import (
 )
 from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier, PowerModifier
 from qiskit.circuit.controlflow import condition_resources
-from qiskit.circuit.library import PauliEvolutionGate, PhaseOracleGate, BitFlipOracleGate
+from qiskit.circuit.library import (
+    PauliEvolutionGate,
+    PauliProductMeasurement,
+    PhaseOracleGate,
+    BitFlipOracleGate,
+)
 from qiskit.circuit.tools import pi_check
 from qiskit.converters import circuit_to_dag
 from qiskit.utils import optionals as _optionals
@@ -110,7 +115,7 @@ def get_gate_ctrl_text(op, drawer, style=None):
         elif (
             (gate_text == op.name and op_type not in (Gate, Instruction))
             or (gate_text == base_name and base_type not in (Gate, Instruction))
-        ) and (op_type is not PauliEvolutionGate):
+        ) and (op_type not in [PauliEvolutionGate, PauliProductMeasurement]):
             gate_text = f"$\\mathrm{{{gate_text.capitalize()}}}$"
         else:
             gate_text = f"$\\mathrm{{{gate_text}}}$"
@@ -124,7 +129,7 @@ def get_gate_ctrl_text(op, drawer, style=None):
     elif (
         (gate_text == op.name and op_type not in (Gate, Instruction))
         or (gate_text == base_name and base_type not in (Gate, Instruction))
-    ) and (op_type is not PauliEvolutionGate):
+    ) and (op_type not in [PauliEvolutionGate, PauliProductMeasurement]):
         gate_text = gate_text.capitalize()
 
     if anno_text:
@@ -139,6 +144,7 @@ def get_param_str(op, drawer, ndigits=3):
         not hasattr(op, "params")
         or any(isinstance(param, np.ndarray) for param in op.params)
         or any(isinstance(param, QuantumCircuit) for param in op.params)
+        or op.name == "pauli_product_measurement"
     ):
         return ""
 
