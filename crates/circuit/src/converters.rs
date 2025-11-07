@@ -99,6 +99,7 @@ pub fn dag_to_circuit(
                         OperationRef::StandardGate(gate) => gate.into(),
                         OperationRef::StandardInstruction(instruction) => instruction.into(),
                         OperationRef::Unitary(unitary) => unitary.clone().into(),
+                        OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
                     };
                     Ok(PackedInstruction {
                         op,

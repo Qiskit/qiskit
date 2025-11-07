@@ -64,7 +64,7 @@ use rustworkx_core::petgraph;
 use rustworkx_core::petgraph::Incoming;
 use rustworkx_core::petgraph::prelude::StableDiGraph;
 use rustworkx_core::petgraph::prelude::*;
-use rustworkx_core::petgraph::stable_graph::{EdgeReference, IndexType, NodeIndex};
+use rustworkx_core::petgraph::stable_graph::{EdgeReference, IndexType};
 use rustworkx_core::petgraph::unionfind::UnionFind;
 use rustworkx_core::petgraph::visit::{
     EdgeIndexable, IntoEdgeReferences, IntoNodeReferences, NodeFiltered, NodeIndexable,
@@ -83,6 +83,8 @@ use std::sync::OnceLock;
 static CONTROL_FLOW_OP_NAMES: [&str; 5] =
     ["for_loop", "while_loop", "if_else", "switch_case", "box"];
 static SEMANTIC_EQ_SYMMETRIC: [&str; 4] = ["barrier", "swap", "break_loop", "continue_loop"];
+
+pub use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 #[derive(Clone, Debug)]
 pub enum NodeType {
@@ -2244,6 +2246,10 @@ impl DAGCircuit {
                                 _ => Ok(false),
                             }
                         }
+                        [
+                            OperationRef::PauliProductMeasurement(op_a),
+                            OperationRef::PauliProductMeasurement(op_b),
+                        ] => Ok(op_a == op_b),
                         _ => Ok(false),
                     }
                 }
@@ -7215,6 +7221,7 @@ impl DAGCircuit {
                         OperationRef::StandardGate(gate) => gate.into(),
                         OperationRef::StandardInstruction(instruction) => instruction.into(),
                         OperationRef::Unitary(unitary) => unitary.clone().into(),
+                        OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
                     }
                 } else {
                     instr.op.clone()
