@@ -17,16 +17,11 @@ use std::sync::Arc;
 use std::{fmt, vec};
 
 use crate::circuit_data::CircuitData;
-use crate::imports::{
-    BARRIER, BOX_OP, BREAK_LOOP_OP, CONTINUE_LOOP_OP, DEEPCOPY, DELAY, FOR_LOOP_OP, IF_ELSE_OP,
-    MEASURE, QUANTUM_CIRCUIT, RESET, SWITCH_CASE_DEFAULT, SWITCH_CASE_OP, UNITARY_GATE,
-    WHILE_LOOP_OP, get_std_gate_class,
-};
 use crate::parameter::parameter_expression::{
     ParameterExpression, PyParameter, PyParameterExpression,
 };
 use crate::parameter::symbol_expr::{Symbol, Value};
-use crate::{Qubit, gate_matrix, impl_intopyobject_for_copy_pyclass};
+use crate::{Qubit, gate_matrix, impl_intopyobject_for_copy_pyclass, imports};
 
 use nalgebra::{Matrix2, Matrix4};
 use ndarray::{Array2, ArrayView2, Dim, ShapeBuilder, array, aview2};
@@ -134,7 +129,7 @@ impl Param {
                 Python::attach(|py| -> PyResult<Box<dyn Iterator<Item = Symbol>>> {
                     let parameters_attr = intern!(py, "parameters");
                     let obj = obj.bind(py);
-                    if obj.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
+                    if obj.is_instance(imports::QUANTUM_CIRCUIT.get_bound(py))? {
                         // TODO: are there any instructions that use a QuantumCircuit as a
                         //   parameter now that control flow is ported to Rust?
                         let collected: Vec<Symbol> = obj
@@ -232,7 +227,7 @@ impl Param {
     ) -> PyResult<Self> {
         match self {
             Param::Float(f) => Ok(Param::Float(*f)),
-            _ => DEEPCOPY
+            _ => imports::DEEPCOPY
                 .get_bound(py)
                 .call1((self.clone(), memo))?
                 .extract()
@@ -565,7 +560,7 @@ impl ControlFlow {
                     },
                     None => (None, None),
                 };
-                BOX_OP.get(py).call1(
+                imports::BOX_OP.get(py).call1(
                     py,
                     (
                         blocks.next().unwrap(),
@@ -577,12 +572,12 @@ impl ControlFlow {
                 )
             }
             ControlFlow::BreakLoop { qubits, clbits } => {
-                BREAK_LOOP_OP
+                imports::BREAK_LOOP_OP
                     .get(py)
                     .call(py, (qubits, clbits), kwargs.as_ref())
             }
             ControlFlow::ContinueLoop { qubits, clbits } => {
-                CONTINUE_LOOP_OP
+                imports::CONTINUE_LOOP_OP
                     .get(py)
                     .call(py, (qubits, clbits), kwargs.as_ref())
             }
@@ -590,12 +585,12 @@ impl ControlFlow {
                 indexset,
                 loop_param,
                 ..
-            } => {
-                FOR_LOOP_OP
-                    .get(py)
-                    .call(py, (indexset, loop_param, blocks.next()), kwargs.as_ref())
-            }
-            ControlFlow::IfElse { condition, .. } => IF_ELSE_OP.get(py).call(
+            } => imports::FOR_LOOP_OP.get(py).call(
+                py,
+                (indexset, loop_param, blocks.next()),
+                kwargs.as_ref(),
+            ),
+            ControlFlow::IfElse { condition, .. } => imports::IF_ELSE_OP.get(py).call(
                 py,
                 (condition.clone(), blocks.next().unwrap(), blocks.next()),
                 kwargs.as_ref(),
@@ -605,15 +600,17 @@ impl ControlFlow {
             } => {
                 let cases_specifier: Vec<(Vec<CaseSpecifier>, Py<PyAny>)> =
                     label_spec.iter().cloned().zip(blocks).collect();
-                SWITCH_CASE_OP
-                    .get(py)
-                    .call(py, (target.clone(), cases_specifier), kwargs.as_ref())
+                imports::SWITCH_CASE_OP.get(py).call(
+                    py,
+                    (target.clone(), cases_specifier),
+                    kwargs.as_ref(),
+                )
             }
-            ControlFlow::While { condition, .. } => {
-                WHILE_LOOP_OP
-                    .get(py)
-                    .call(py, (condition.clone(), blocks.next()), kwargs.as_ref())
-            }
+            ControlFlow::While { condition, .. } => imports::WHILE_LOOP_OP.get(py).call(
+                py,
+                (condition.clone(), blocks.next()),
+                kwargs.as_ref(),
+            ),
         }
     }
 }
@@ -728,7 +725,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for CaseSpecifier {
     fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         if let Ok(i) = ob.extract::<usize>() {
             Ok(CaseSpecifier::Uint(i))
-        } else if ob.is(SWITCH_CASE_DEFAULT.get_bound(ob.py())) {
+        } else if ob.is(imports::SWITCH_CASE_DEFAULT.get_bound(ob.py())) {
             Ok(CaseSpecifier::Default)
         } else {
             Err(PyValueError::new_err("invalid case specifier"))
@@ -744,7 +741,7 @@ impl<'py> IntoPyObject<'py> for CaseSpecifier {
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         match self {
             CaseSpecifier::Uint(u) => u.into_bound_py_any(py),
-            CaseSpecifier::Default => Ok(SWITCH_CASE_DEFAULT.get_bound(py).clone()),
+            CaseSpecifier::Default => Ok(imports::SWITCH_CASE_DEFAULT.get_bound(py).clone()),
         }
     }
 }
@@ -903,17 +900,19 @@ impl StandardInstruction {
             .map(|label| [("label", label.into_py_any(py)?)].into_py_dict(py))
             .transpose()?;
         let out = match self {
-            StandardInstruction::Barrier(num_qubits) => {
-                BARRIER.get_bound(py).call((num_qubits,), kwargs.as_ref())?
-            }
+            StandardInstruction::Barrier(num_qubits) => imports::BARRIER
+                .get_bound(py)
+                .call((num_qubits,), kwargs.as_ref())?,
             StandardInstruction::Delay(unit) => {
                 let duration = params.next().unwrap();
-                DELAY
+                imports::DELAY
                     .get_bound(py)
                     .call1((duration.into_py_any(py)?, unit.to_string()))?
             }
-            StandardInstruction::Measure => MEASURE.get_bound(py).call((), kwargs.as_ref())?,
-            StandardInstruction::Reset => RESET.get_bound(py).call((), kwargs.as_ref())?,
+            StandardInstruction::Measure => {
+                imports::MEASURE.get_bound(py).call((), kwargs.as_ref())?
+            }
+            StandardInstruction::Reset => imports::RESET.get_bound(py).call((), kwargs.as_ref())?,
         };
 
         Ok(out.unbind())
@@ -1084,7 +1083,7 @@ impl StandardGate {
         params: Option<SmallVec<[Param; 3]>>,
         label: Option<&str>,
     ) -> PyResult<Py<PyAny>> {
-        let gate_class = get_std_gate_class(py, *self)?;
+        let gate_class = imports::get_std_gate_class(py, *self)?;
         let args = match params {
             None => PyTuple::empty(py),
             Some(params) => {
@@ -2659,7 +2658,7 @@ impl StandardGate {
 
     #[getter]
     pub fn get_gate_class(&self, py: Python) -> PyResult<&'static Py<PyAny>> {
-        get_std_gate_class(py, *self)
+        imports::get_std_gate_class(py, *self)
     }
 
     #[staticmethod]
@@ -2793,7 +2792,7 @@ pub struct PyInstruction {
 
 impl PythonOperation for PyInstruction {
     fn py_deepcopy(&self, py: Python, memo: Option<&Bound<'_, PyDict>>) -> PyResult<Self> {
-        let deepcopy = DEEPCOPY.get_bound(py);
+        let deepcopy = imports::DEEPCOPY.get_bound(py);
         Ok(PyInstruction {
             instruction: deepcopy.call1((&self.instruction, memo))?.unbind(),
             qubits: self.qubits,
@@ -2871,7 +2870,7 @@ pub struct PyGate {
 
 impl PythonOperation for PyGate {
     fn py_deepcopy(&self, py: Python, memo: Option<&Bound<'_, PyDict>>) -> PyResult<Self> {
-        let deepcopy = DEEPCOPY.get_bound(py);
+        let deepcopy = imports::DEEPCOPY.get_bound(py);
         Ok(PyGate {
             gate: deepcopy.call1((&self.gate, memo))?.unbind(),
             qubits: self.qubits,
@@ -2974,7 +2973,7 @@ pub struct PyOperation {
 
 impl PythonOperation for PyOperation {
     fn py_deepcopy(&self, py: Python, memo: Option<&Bound<'_, PyDict>>) -> PyResult<Self> {
-        let deepcopy = DEEPCOPY.get_bound(py);
+        let deepcopy = imports::DEEPCOPY.get_bound(py);
         Ok(PyOperation {
             operation: deepcopy.call1((&self.operation, memo))?.unbind(),
             qubits: self.qubits,
@@ -3135,7 +3134,7 @@ impl UnitaryGate {
         };
         kwargs.set_item(intern!(py, "check_input"), false)?;
         kwargs.set_item(intern!(py, "num_qubits"), self.num_qubits())?;
-        let gate = UNITARY_GATE
+        let gate = imports::UNITARY_GATE
             .get_bound(py)
             .call((out_array,), Some(&kwargs))?;
         Ok(gate.unbind())
