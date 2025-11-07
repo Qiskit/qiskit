@@ -64,10 +64,6 @@ pub fn synthesize_ppm(ppm: &PauliProductMeasurement) -> PyResult<CircuitData> {
         }
     }
 
-    if ppm.neg {
-        circuit.push_standard_gate(StandardGate::X, &[], &[first_qubit])?;
-    }
-
     // CX-layer
     for w in pauli_qubits.windows(2).rev() {
         circuit.push_standard_gate(
@@ -75,6 +71,10 @@ pub fn synthesize_ppm(ppm: &PauliProductMeasurement) -> PyResult<CircuitData> {
             &[],
             &[Qubit(w[1].0 as u32), Qubit(w[0].0 as u32)],
         )?;
+    }
+
+    if ppm.neg {
+        circuit.push_standard_gate(StandardGate::X, &[], &[first_qubit])?;
     }
 
     // Z-measurement on first qubit
@@ -85,6 +85,11 @@ pub fn synthesize_ppm(ppm: &PauliProductMeasurement) -> PyResult<CircuitData> {
         &[Clbit(0)],
     )?;
 
+    // Flip the sign of the measurement outcome, if specified
+    if ppm.neg {
+        circuit.push_standard_gate(StandardGate::X, &[], &[first_qubit])?;
+    }
+
     // CX-layer
     for w in pauli_qubits.windows(2) {
         circuit.push_standard_gate(
@@ -92,11 +97,6 @@ pub fn synthesize_ppm(ppm: &PauliProductMeasurement) -> PyResult<CircuitData> {
             &[],
             &[Qubit(w[1].0 as u32), Qubit(w[0].0 as u32)],
         )?;
-    }
-
-    // Basis change layer
-    if ppm.neg {
-        circuit.push_standard_gate(StandardGate::X, &[], &[first_qubit])?;
     }
 
     // Basis change layer

@@ -31,10 +31,7 @@ use ndarray::{Array2, ArrayView2, Dim, ShapeBuilder, array, aview2};
 use num_complex::Complex64;
 use smallvec::{SmallVec, smallvec};
 
-use numpy::IntoPyArray;
-use numpy::PyArray2;
-use numpy::PyReadonlyArray2;
-use numpy::ToPyArray;
+use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2, ToPyArray};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyList, PyTuple};
@@ -74,14 +71,16 @@ impl<'py> IntoPyObject<'py> for Param {
     }
 }
 
-impl<'py> FromPyObject<'py> for Param {
-    fn extract_bound(b: &Bound<'py, PyAny>) -> Result<Self, PyErr> {
+impl<'a, 'py> FromPyObject<'a, 'py> for Param {
+    type Error = ::std::convert::Infallible;
+
+    fn extract(b: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         Ok(if let Ok(py_expr) = b.extract::<PyParameterExpression>() {
             Param::ParameterExpression(Arc::new(py_expr.inner))
         } else if let Ok(val) = b.extract::<f64>() {
             Param::Float(val)
         } else {
-            Param::Obj(b.clone().unbind())
+            Param::Obj(b.to_owned().unbind())
         })
     }
 }
@@ -132,7 +131,7 @@ impl Param {
                         .try_iter()?
                         .map(|elem| {
                             let elem = elem?;
-                            let py_param_bound = elem.downcast::<PyParameter>()?;
+                            let py_param_bound = elem.cast::<PyParameter>()?;
                             let py_param = py_param_bound.borrow();
                             let symbol = py_param.symbol();
                             Ok(symbol.clone())
@@ -189,19 +188,19 @@ impl Param {
     /// Extract from a Python object without numeric coercion to float.  The default conversion will
     /// coerce integers into floats, but in things like `assign_parameters`, this is not always
     /// desirable.
-    pub fn extract_no_coerce(ob: &Bound<PyAny>) -> PyResult<Self> {
+    pub fn extract_no_coerce(ob: Borrowed<PyAny>) -> PyResult<Self> {
         Ok(if ob.is_instance_of::<PyFloat>() {
             Param::Float(ob.extract()?)
         } else if let Ok(py_expr) = PyParameterExpression::extract_coerce(ob) {
             // don't get confused by the `coerce` name here -- we promise to not coerce to
             // Param::Float. But if it's an int or complex we need to store it as an Obj.
             if Some(true) == py_expr.inner.is_int() || Some(true) == py_expr.inner.is_complex() {
-                Param::Obj(ob.clone().unbind())
+                Param::Obj(ob.to_owned().unbind())
             } else {
                 Param::ParameterExpression(Arc::new(py_expr.inner))
             }
         } else {
-            Param::Obj(ob.clone().unbind())
+            Param::Obj(ob.to_owned().unbind())
         })
     }
 
@@ -224,7 +223,9 @@ impl Param {
             _ => DEEPCOPY
                 .get_bound(py)
                 .call1((self.clone(), memo))?
-                .extract(),
+                .extract()
+                // The extraction is infallible.
+                .map_err(|x| match x {}),
         }
     }
 }
@@ -444,8 +445,10 @@ impl fmt::Display for DelayUnit {
     }
 }
 
-impl<'py> FromPyObject<'py> for DelayUnit {
-    fn extract_bound(b: &Bound<'py, PyAny>) -> Result<Self, PyErr> {
+impl<'a, 'py> FromPyObject<'a, 'py> for DelayUnit {
+    type Error = PyErr;
+
+    fn extract(b: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let str: String = b.extract()?;
         Ok(match str.as_str() {
             "ns" => DelayUnit::NS,
@@ -2525,7 +2528,7 @@ impl Operation for PyInstruction {
             // We expect that if PyInstruction::control_flow is true then the operation WILL
             // have a 'blocks' attribute which is a tuple of the Python QuantumCircuit.
             let raw_blocks = self.instruction.getattr(py, "blocks").unwrap();
-            let blocks: &Bound<PyTuple> = raw_blocks.downcast_bound::<PyTuple>(py).unwrap();
+            let blocks: &Bound<PyTuple> = raw_blocks.cast_bound::<PyTuple>(py).unwrap();
             blocks
                 .iter()
                 .map(|b| {
@@ -2919,7 +2922,7 @@ pub struct PauliProductMeasurement {
 
 impl Operation for PauliProductMeasurement {
     fn name(&self) -> &str {
-        "PauliProductMeasurement"
+        "pauli_product_measurement"
     }
     fn num_qubits(&self) -> u32 {
         self.z.len() as u32
@@ -2960,8 +2963,9 @@ impl Operation for PauliProductMeasurement {
 
 impl PauliProductMeasurement {
     pub fn create_py_op(&self, py: Python, label: Option<&str>) -> PyResult<Py<PyAny>> {
-        let z = PyList::new(py, &self.z)?;
-        let x = PyList::new(py, &self.x)?;
+        let z = self.z.clone().into_bound_py_any(py)?;
+        let x = self.x.clone().into_bound_py_any(py)?;
+
         let phase = if self.neg { 2 } else { 0 };
 
         let py_label = if let Some(label) = label {

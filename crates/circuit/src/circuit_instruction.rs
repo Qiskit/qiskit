@@ -418,7 +418,7 @@ impl CircuitInstruction {
             if other.is_instance_of::<PyTuple>() {
                 return Ok(Some(self_._legacy_format(py)?.eq(other)?));
             }
-            let Ok(other) = other.downcast::<CircuitInstruction>() else {
+            let Ok(other) = other.cast::<CircuitInstruction>() else {
                 return Ok(None);
             };
             let other = other.try_borrow()?;
@@ -470,13 +470,15 @@ pub struct OperationFromPython {
     pub label: Option<Box<String>>,
 }
 
-impl<'py> FromPyObject<'py> for OperationFromPython {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for OperationFromPython {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let py = ob.py();
         let ob_type = ob
             .getattr(intern!(py, "base_class"))
             .ok()
-            .map(|base| base.downcast_into::<PyType>())
+            .map(|base| base.cast_into::<PyType>())
             .transpose()?
             .unwrap_or_else(|| ob.get_type());
 
@@ -494,7 +496,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 .map(|params| {
                     params
                         .try_iter()?
-                        .map(|p| Param::extract_no_coerce(&p?))
+                        .map(|p| Param::extract_no_coerce(p?.as_borrowed()))
                         .collect()
                 })
                 .transpose()
@@ -511,8 +513,8 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
             // quickly identify them here without an `isinstance` check.
             let Some(standard) = ob_type
                 .getattr(intern!(py, "_standard_gate"))
-                .and_then(|standard| standard.extract::<StandardGate>())
                 .ok()
+                .and_then(|standard| standard.extract::<StandardGate>().ok())
             else {
                 break 'standard_gate;
             };
@@ -550,8 +552,8 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
             // read (e.g. a Barrier's number of qubits) to build the Rust representation.
             let Some(standard_type) = ob_type
                 .getattr(intern!(py, "_standard_instruction_type"))
-                .and_then(|standard| standard.extract::<StandardInstructionType>())
                 .ok()
+                .and_then(|standard| standard.extract::<StandardInstructionType>().ok())
             else {
                 break 'standard_instr;
             };
@@ -620,35 +622,25 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                     });
                 };
             }
-        } else if ob_name == "PauliProductMeasurement" {
-            let params = extract_params_no_coerce()?;
+        } else if ob_name == "pauli_product_measurement" {
+            let z = ob
+                .getattr(intern!(py, "_pauli_z"))?
+                .extract::<PyReadonlyArray1<bool>>()?
+                .as_slice()?
+                .to_vec();
 
-            let z = if let Param::Obj(z) = &params[0] {
-                z.extract::<PyReadonlyArray1<bool>>(py)?
-                    .as_slice()?
-                    .to_vec()
-            } else {
-                return Err(PyTypeError::new_err(format!("invalid input: {ob}")));
-            };
+            let x = ob
+                .getattr(intern!(py, "_pauli_x"))?
+                .extract::<PyReadonlyArray1<bool>>()?
+                .as_slice()?
+                .to_vec();
 
-            let x = if let Param::Obj(x) = &params[1] {
-                x.extract::<PyReadonlyArray1<bool>>(py)?
-                    .as_slice()?
-                    .to_vec()
-            } else {
-                return Err(PyTypeError::new_err(format!("invalid input: {ob}")));
-            };
-
-            let phase = if let Param::Obj(phase) = &params[2] {
-                phase.extract::<u8>(py)?
-            } else {
-                return Err(PyTypeError::new_err(format!("invalid input: {ob}")));
-            };
+            let phase = ob.getattr(intern!(py, "_pauli_phase"))?.extract::<u8>()?;
 
             let pauli_product_measurement = Box::new(PauliProductMeasurement {
                 z: z.to_owned(),
                 x: x.to_owned(),
-                neg: phase == 2,
+                neg: phase == 2, // phase is only 0 (represents 1) or 2 (represents -1)
             });
 
             return Ok(OperationFromPython {
@@ -665,7 +657,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 clbits: 0,
                 params: params.len() as u32,
                 op_name: ob.getattr(intern!(py, "name"))?.extract()?,
-                gate: ob.clone().unbind(),
+                gate: ob.to_owned().unbind(),
             });
             return Ok(OperationFromPython {
                 operation: PackedOperation::from_gate(gate),
@@ -681,7 +673,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 params: params.len() as u32,
                 op_name: ob.getattr(intern!(py, "name"))?.extract()?,
                 control_flow: ob.is_instance(CONTROL_FLOW_OP.get_bound(py))?,
-                instruction: ob.clone().unbind(),
+                instruction: ob.to_owned().unbind(),
             });
             return Ok(OperationFromPython {
                 operation: PackedOperation::from_instruction(instruction),
@@ -696,7 +688,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 clbits: ob.getattr(intern!(py, "num_clbits"))?.extract()?,
                 params: params.len() as u32,
                 op_name: ob.getattr(intern!(py, "name"))?.extract()?,
-                operation: ob.clone().unbind(),
+                operation: ob.to_owned().unbind(),
             });
             return Ok(OperationFromPython {
                 operation: PackedOperation::from_operation(operation),
@@ -704,7 +696,10 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 label: None,
             });
         }
-        Err(PyTypeError::new_err(format!("invalid input: {ob}")))
+        Err(PyTypeError::new_err(format!(
+            "invalid input: {}",
+            ob.to_owned()
+        )))
     }
 }
 
@@ -714,9 +709,9 @@ fn as_tuple<'py>(py: Python<'py>, seq: Option<Bound<'py, PyAny>>) -> PyResult<Bo
         return Ok(PyTuple::empty(py));
     };
     if seq.is_instance_of::<PyTuple>() {
-        Ok(seq.downcast_into_exact::<PyTuple>()?)
+        Ok(seq.cast_into_exact::<PyTuple>()?)
     } else if seq.is_instance_of::<PyList>() {
-        Ok(seq.downcast_exact::<PyList>()?.to_tuple())
+        Ok(seq.cast_exact::<PyList>()?.to_tuple())
     } else {
         // New tuple from iterable.
         PyTuple::new(

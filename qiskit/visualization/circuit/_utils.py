@@ -144,7 +144,7 @@ def get_param_str(op, drawer, ndigits=3):
         not hasattr(op, "params")
         or any(isinstance(param, np.ndarray) for param in op.params)
         or any(isinstance(param, QuantumCircuit) for param in op.params)
-        or op.name == "PauliProductMeasurement"
+        or op.name == "pauli_product_measurement"
     ):
         return ""
 

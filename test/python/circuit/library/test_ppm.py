@@ -98,6 +98,19 @@ class TestPauliProductMeasurement(QiskitTestCase):
         new_circuit = load(qpy_file)[0]
         self.assertEqual(qc, new_circuit)
 
+    def test_qpy_with_labeled_instructions(self):
+        """Test qpy for circuits with PauliProductMeasurement instructions."""
+        qc = QuantumCircuit(6, 2)
+        qc.append(PauliProductMeasurement(Pauli("XZ"), label="Alice"), [4, 1], [1])
+        qc.append(PauliProductMeasurement(Pauli("Z"), label="Bob"), [2], [0])
+        qc.h(0)
+
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
     def test_instructions_equal(self):
         """Test checking equality of PauliProductMeasurement instructions."""
         self.assertEqual(PauliProductMeasurement(Pauli("XZ")), PauliProductMeasurement(Pauli("XZ")))

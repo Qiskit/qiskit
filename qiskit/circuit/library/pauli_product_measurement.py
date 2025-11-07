@@ -68,7 +68,7 @@ class PauliProductMeasurement(Instruction):
                 "instantiated from a Pauli object."
             )
 
-        if _is_empty_pauli(pauli):
+        if len(pauli.x) == 0:
             raise CircuitError(
                 "A Pauli Product Measurement instruction can not have an empty Pauli label."
             )
@@ -84,16 +84,18 @@ class PauliProductMeasurement(Instruction):
             )
 
         num_qubits = len(pauli.z)
-        params = [pauli.z, pauli.x, pauli.phase]
+        self._pauli_z = pauli.z
+        self._pauli_x = pauli.x
+        self._pauli_phase = pauli.phase
 
         if label is None:
             label = _get_default_label(pauli)
 
         super().__init__(
-            name="PauliProductMeasurement",
+            name="pauli_product_measurement",
             num_qubits=num_qubits,
             num_clbits=1,
-            params=params,
+            params=[],
             label=label,
         )
 
@@ -101,7 +103,8 @@ class PauliProductMeasurement(Instruction):
     def _from_pauli_data(cls, z, x, phase, label):
         """
         Instantiates a PauliProductMeasurement isntruction from pauli data and label.
-        This function is used internally from within the rust code.
+        This function is used internally from within the rust code and from QPY
+        serialization.
         """
         return cls(Pauli((z, x, phase)), label)
 
@@ -113,34 +116,32 @@ class PauliProductMeasurement(Instruction):
         if not isinstance(other, PauliProductMeasurement):
             return False
 
-        if self.label != other.label:
-            return False
-
         return (
-            np.all(self.params[0] == other.params[0])
-            and np.all(self.params[1] == other.params[1])
-            and (self.params[2] == other.params[2])
+            np.all(self._pauli_z == other._pauli_z)
+            and np.all(self._pauli_x == other._pauli_x)
+            and (self._pauli_phase == other._pauli_phase)
         )
 
     def _define(self):
         circuit = QuantumCircuit._from_circuit_data(
             synth_pauli_product_measurement(self),
             legacy_qubits=True,
-            name="ppm_circuit",
+            name="def_ppm",
         )
         self.definition = circuit
 
+    def _to_pauli_data(self):
+        """Returns the pauli data that can be used to reconstruct this instruction.
+        This function is used internally from QPY serialization.
+        """
+        return [self._pauli_z, self._pauli_x, self._pauli_phase]
+
 
 def _get_default_label(pauli: Pauli):
-    """Creates the detault label for PauliProductMeasurement instruction,
+    """Creates the default label for PauliProductMeasurement instruction,
     used for visualization.
     """
     return "PPM(" + pauli.to_label() + ")"
-
-
-def _is_empty_pauli(pauli: Pauli):
-    """Return whether a Pauli has no qubits."""
-    return len(pauli.x) == 0
 
 
 def _is_identity_pauli(pauli: Pauli):
