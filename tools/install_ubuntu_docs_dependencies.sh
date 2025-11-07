@@ -2,8 +2,7 @@
 #
 # Prepare an Ubuntu CI machine for running 'tox -e docs'.  Assumes that Python is available.
 
-if [[ -n "$GITHUB_TOKEN" ]]
-then
+if [ -n "$GITHUB_TOKEN" ]; then
     set -e
 
     python -m pip install --upgrade pip setuptools wheel
