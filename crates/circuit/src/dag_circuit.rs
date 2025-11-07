@@ -32,8 +32,8 @@ use crate::error::DAGCircuitError;
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
-    ArrayType, BoxDuration, Condition, ControlFlow, Operation, OperationRef, Param,
-    PythonOperation, StandardGate, StandardInstruction, SwitchTarget,
+    ArrayType, BoxDuration, Condition, ControlFlow, ControlFlowInstruction, Operation,
+    OperationRef, Param, PythonOperation, StandardGate, StandardInstruction, SwitchTarget,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::ParameterExpression;
@@ -5092,13 +5092,13 @@ impl DAGCircuit {
         let OperationRef::ControlFlow(control) = instr.op.view() else {
             return None;
         };
-        Some(match control {
+        Some(match &control.control_flow {
             ControlFlow::Box { duration, .. } => ControlFlowView::Box(
                 duration.as_ref(),
                 self.blocks.get(instr.blocks_view()[0].index()).unwrap(),
             ),
-            ControlFlow::BreakLoop { .. } => ControlFlowView::BreakLoop,
-            ControlFlow::ContinueLoop { .. } => ControlFlowView::ContinueLoop,
+            ControlFlow::BreakLoop => ControlFlowView::BreakLoop,
+            ControlFlow::ContinueLoop => ControlFlowView::ContinueLoop,
             ControlFlow::ForLoop {
                 indexset,
                 loop_param,
@@ -6993,12 +6993,10 @@ impl DAGCircuit {
             let old_node = &other.dag[*old_node_index];
             if let NodeType::Operation(old_inst) = old_node {
                 if let OperationRef::ControlFlow(cf) = old_inst.op.view() {
-                    match cf {
+                    match &cf.control_flow {
                         ControlFlow::Switch {
                             target,
                             label_spec,
-                            qubits,
-                            clbits,
                             cases,
                         } => {
                             let mapped_target = variable_mapper
@@ -7009,26 +7007,19 @@ impl DAGCircuit {
                                 {
                                     new_inst.py_op.take();
                                 }
-                                new_inst.op = ControlFlow::Switch {
-                                    target: mapped_target,
-                                    label_spec: label_spec.clone(),
-                                    qubits: *qubits,
-                                    clbits: *clbits,
-                                    cases: *cases,
+                                new_inst.op = ControlFlowInstruction {
+                                    control_flow: ControlFlow::Switch {
+                                        target: mapped_target,
+                                        label_spec: label_spec.clone(),
+                                        cases: *cases,
+                                    },
+                                    num_qubits: cf.num_qubits,
+                                    num_clbits: cf.num_clbits,
                                 }
                                 .into();
                             }
                         }
-                        ControlFlow::IfElse {
-                            condition,
-                            qubits,
-                            clbits,
-                        }
-                        | ControlFlow::While {
-                            condition,
-                            qubits,
-                            clbits,
-                        } => {
+                        ControlFlow::IfElse { condition } | ControlFlow::While { condition } => {
                             let mapped_condition =
                                 variable_mapper.map_condition(condition, false, |new_reg| {
                                     self.add_creg(new_reg.clone())
@@ -7039,18 +7030,22 @@ impl DAGCircuit {
                                 {
                                     new_inst.py_op.take();
                                 }
-                                if matches!(cf, ControlFlow::While { .. }) {
-                                    new_inst.op = ControlFlow::While {
-                                        condition: mapped_condition,
-                                        qubits: *qubits,
-                                        clbits: *clbits,
+                                if matches!(&cf.control_flow, ControlFlow::While { .. }) {
+                                    new_inst.op = ControlFlowInstruction {
+                                        control_flow: ControlFlow::While {
+                                            condition: mapped_condition,
+                                        },
+                                        num_qubits: cf.num_qubits,
+                                        num_clbits: cf.num_clbits,
                                     }
                                     .into();
                                 } else {
-                                    new_inst.op = ControlFlow::IfElse {
-                                        condition: mapped_condition,
-                                        qubits: *qubits,
-                                        clbits: *clbits,
+                                    new_inst.op = ControlFlowInstruction {
+                                        control_flow: ControlFlow::IfElse {
+                                            condition: mapped_condition,
+                                        },
+                                        num_qubits: cf.num_qubits,
+                                        num_clbits: cf.num_clbits,
                                     }
                                     .into();
                                 }
@@ -8249,18 +8244,10 @@ impl DAGCircuit {
                         .collect::<Vec<Clbit>>();
 
                     let instr = if let Some(cf) = inst.op.try_control_flow() {
-                        let new_cf =
-                            match cf {
-                                ControlFlow::IfElse {
-                                    condition,
-                                    qubits,
-                                    clbits,
-                                }
-                                | ControlFlow::While {
-                                    condition,
-                                    qubits,
-                                    clbits,
-                                } => {
+                        let new_cf = ControlFlowInstruction {
+                            control_flow: match &cf.control_flow {
+                                ControlFlow::IfElse { condition }
+                                | ControlFlow::While { condition } => {
                                     let mapped_condition = match variable_mapper {
                                         Some(ref variable_mapper) => variable_mapper
                                             .map_condition(condition, true, reject_new_register)?,
@@ -8275,25 +8262,19 @@ impl DAGCircuit {
                                             condition
                                         }
                                     };
-                                    if matches!(cf, ControlFlow::While { .. }) {
+                                    if matches!(&cf.control_flow, ControlFlow::While { .. }) {
                                         ControlFlow::While {
                                             condition: mapped_condition,
-                                            qubits: *qubits,
-                                            clbits: *clbits,
                                         }
                                     } else {
                                         ControlFlow::IfElse {
                                             condition: mapped_condition,
-                                            qubits: *qubits,
-                                            clbits: *clbits,
                                         }
                                     }
                                 }
                                 ControlFlow::Switch {
                                     target,
                                     label_spec,
-                                    qubits,
-                                    clbits,
                                     cases,
                                 } => {
                                     let mapped_target = match variable_mapper {
@@ -8310,13 +8291,14 @@ impl DAGCircuit {
                                     ControlFlow::Switch {
                                         target: mapped_target,
                                         label_spec: label_spec.clone(),
-                                        qubits: *qubits,
-                                        clbits: *clbits,
                                         cases: *cases,
                                     }
                                 }
-                                _ => cf.clone(),
-                            };
+                                _ => cf.control_flow.clone(),
+                            },
+                            num_qubits: cf.num_qubits,
+                            num_clbits: cf.num_clbits,
+                        };
                         PackedInstruction {
                             op: new_cf.into(),
                             qubits: self.qargs_interner.insert_owned(mapped_qargs),

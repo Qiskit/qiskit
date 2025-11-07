@@ -268,7 +268,7 @@ pub trait Operation {
 /// This is the main way that we interact immutably with general circuit operations from Rust space.
 #[derive(Debug)]
 pub enum OperationRef<'a> {
-    ControlFlow(&'a ControlFlow),
+    ControlFlow(&'a ControlFlowInstruction),
     StandardGate(StandardGate),
     StandardInstruction(StandardInstruction),
     Gate(&'a PyGate),
@@ -362,69 +362,57 @@ pub enum BoxDuration {
 }
 
 #[derive(Clone, Debug)]
+pub struct ControlFlowInstruction {
+    pub control_flow: ControlFlow,
+    pub num_qubits: u32,
+    pub num_clbits: u32,
+}
+
+#[derive(Clone, Debug)]
 #[repr(align(8))]
 pub enum ControlFlow {
     Box {
         duration: Option<BoxDuration>,
         annotations: Vec<Py<PyAny>>,
-        qubits: u32,
-        clbits: u32,
     },
-    BreakLoop {
-        qubits: u32,
-        clbits: u32,
-    },
-    ContinueLoop {
-        qubits: u32,
-        clbits: u32,
-    },
+    BreakLoop,
+    ContinueLoop,
     ForLoop {
         indexset: Vec<usize>,
         loop_param: Option<Py<PyAny>>,
-        qubits: u32,
-        clbits: u32,
     },
     IfElse {
         condition: Condition,
-        qubits: u32,
-        clbits: u32,
     },
     Switch {
         target: SwitchTarget,
         label_spec: Vec<Vec<CaseSpecifier>>,
-        qubits: u32,
-        clbits: u32,
         cases: u32,
     },
     While {
         condition: Condition,
-        qubits: u32,
-        clbits: u32,
     },
 }
 
-impl ControlFlow {
+impl ControlFlowInstruction {
     /// Check if another control flow operations is equivalent to this one.
     ///
-    /// This can be removed and [ControlFlow] can be made to implement [PartialEq]
+    /// This can be removed and [ControlFlowInstruction] can be made to implement [PartialEq]
     /// instead once `annotations` gets moved to the instruction.
-    pub fn py_eq(&self, py: Python, other: &ControlFlow) -> PyResult<bool> {
-        match self {
+    pub fn py_eq(&self, py: Python, other: &ControlFlowInstruction) -> PyResult<bool> {
+        if self.num_qubits != other.num_qubits || self.num_clbits != other.num_clbits {
+            return Ok(false);
+        }
+        match &self.control_flow {
             ControlFlow::Box {
                 duration: self_duration,
                 annotations: self_annotations,
-                qubits: self_qubits,
-                clbits: self_clbits,
-            } => match other {
+            } => match &other.control_flow {
                 ControlFlow::Box {
                     duration: other_duration,
                     annotations: other_annotations,
-                    qubits: other_qubits,
-                    clbits: other_clbits,
                 } => {
-                    if self_clbits != other_clbits
-                        || self_qubits != other_qubits
-                        || self_duration != other_duration
+                    if self_duration != other_duration
                         || self_annotations.len() != other_annotations.len()
                     {
                         return Ok(false);
@@ -438,40 +426,22 @@ impl ControlFlow {
                 }
                 _ => Ok(false),
             },
-            ControlFlow::BreakLoop {
-                qubits: self_qubits,
-                clbits: self_clbits,
-            } => match other {
-                ControlFlow::BreakLoop {
-                    qubits: other_qubits,
-                    clbits: other_clbits,
-                } => Ok(self_qubits == other_qubits && self_clbits == other_clbits),
+            ControlFlow::BreakLoop {} => match &other.control_flow {
+                ControlFlow::BreakLoop => Ok(true),
                 _ => Ok(false),
             },
-            ControlFlow::ContinueLoop {
-                qubits: self_qubits,
-                clbits: self_clbits,
-            } => match other {
-                ControlFlow::ContinueLoop {
-                    qubits: other_qubits,
-                    clbits: other_clbits,
-                } => Ok(self_qubits == other_qubits && self_clbits == other_clbits),
+            ControlFlow::ContinueLoop {} => match &other.control_flow {
+                ControlFlow::ContinueLoop => Ok(true),
                 _ => Ok(false),
             },
             ControlFlow::ForLoop {
                 indexset: self_indexset,
                 loop_param: self_loop_param,
-                qubits: self_qubits,
-                clbits: self_clbits,
-            } => match other {
+            } => match &other.control_flow {
                 ControlFlow::ForLoop {
                     indexset: other_indexset,
                     loop_param: other_loop_param,
-                    qubits: other_qubits,
-                    clbits: other_clbits,
-                } => Ok(self_qubits == other_qubits
-                    && self_clbits == other_clbits
-                    && self_indexset == other_indexset
+                } => Ok(self_indexset == other_indexset
                     && self_loop_param
                         .as_ref()
                         .zip(other_loop_param.as_ref())
@@ -483,50 +453,32 @@ impl ControlFlow {
             },
             ControlFlow::IfElse {
                 condition: self_condition,
-                qubits: self_qubits,
-                clbits: self_clbits,
-            } => match other {
+            } => match &other.control_flow {
                 ControlFlow::IfElse {
                     condition: other_condition,
-                    qubits: other_qubits,
-                    clbits: other_clbits,
-                } => Ok(self_qubits == other_qubits
-                    && self_clbits == other_clbits
-                    && self_condition == other_condition),
+                } => Ok(self_condition == other_condition),
                 _ => Ok(false),
             },
             ControlFlow::Switch {
                 target: self_target,
                 label_spec: self_label_spec,
-                qubits: self_qubits,
-                clbits: self_clbits,
                 cases: self_cases,
-            } => match other {
+            } => match &other.control_flow {
                 ControlFlow::Switch {
                     target: other_target,
                     label_spec: other_label_spec,
-                    qubits: other_qubits,
-                    clbits: other_clbits,
                     cases: other_cases,
-                } => Ok(self_qubits == other_qubits
-                    && self_clbits == other_clbits
-                    && self_cases == other_cases
+                } => Ok(self_cases == other_cases
                     && self_target == other_target
                     && self_label_spec == other_label_spec),
                 _ => Ok(false),
             },
             ControlFlow::While {
                 condition: self_condition,
-                qubits: self_qubits,
-                clbits: self_clbits,
-            } => match other {
+            } => match &other.control_flow {
                 ControlFlow::While {
                     condition: other_condition,
-                    qubits: other_qubits,
-                    clbits: other_clbits,
-                } => Ok(self_qubits == other_qubits
-                    && self_clbits == other_clbits
-                    && self_condition == other_condition),
+                } => Ok(self_condition == other_condition),
                 _ => Ok(false),
             },
         }
@@ -542,11 +494,10 @@ impl ControlFlow {
         let kwargs = label
             .map(|label| [("label", label.into_py_any(py)?)].into_py_dict(py))
             .transpose()?;
-        match self {
+        match &self.control_flow {
             ControlFlow::Box {
                 duration,
                 annotations,
-                ..
             } => {
                 let (duration, unit) = match duration {
                     Some(duration) => match duration {
@@ -570,26 +521,25 @@ impl ControlFlow {
                     ),
                 )
             }
-            ControlFlow::BreakLoop { qubits, clbits } => {
-                imports::BREAK_LOOP_OP
-                    .get(py)
-                    .call(py, (qubits, clbits), kwargs.as_ref())
-            }
-            ControlFlow::ContinueLoop { qubits, clbits } => {
-                imports::CONTINUE_LOOP_OP
-                    .get(py)
-                    .call(py, (qubits, clbits), kwargs.as_ref())
-            }
+            ControlFlow::BreakLoop => imports::BREAK_LOOP_OP.get(py).call(
+                py,
+                (self.num_qubits, self.num_clbits),
+                kwargs.as_ref(),
+            ),
+            ControlFlow::ContinueLoop => imports::CONTINUE_LOOP_OP.get(py).call(
+                py,
+                (self.num_qubits, self.num_clbits),
+                kwargs.as_ref(),
+            ),
             ControlFlow::ForLoop {
                 indexset,
                 loop_param,
-                ..
             } => imports::FOR_LOOP_OP.get(py).call(
                 py,
                 (indexset, loop_param, blocks.next()),
                 kwargs.as_ref(),
             ),
-            ControlFlow::IfElse { condition, .. } => imports::IF_ELSE_OP.get(py).call(
+            ControlFlow::IfElse { condition } => imports::IF_ELSE_OP.get(py).call(
                 py,
                 (condition.clone(), blocks.next().unwrap(), blocks.next()),
                 kwargs.as_ref(),
@@ -614,9 +564,9 @@ impl ControlFlow {
     }
 }
 
-impl Operation for ControlFlow {
+impl Operation for ControlFlowInstruction {
     fn name(&self) -> &str {
-        match self {
+        match &self.control_flow {
             ControlFlow::Box { .. } => "box",
             ControlFlow::BreakLoop { .. } => "break_loop",
             ControlFlow::ContinueLoop { .. } => "continue_loop",
@@ -628,31 +578,15 @@ impl Operation for ControlFlow {
     }
 
     fn num_qubits(&self) -> u32 {
-        match self {
-            ControlFlow::Box { qubits, .. }
-            | ControlFlow::BreakLoop { qubits, .. }
-            | ControlFlow::ContinueLoop { qubits, .. }
-            | ControlFlow::ForLoop { qubits, .. }
-            | ControlFlow::IfElse { qubits, .. }
-            | ControlFlow::Switch { qubits, .. }
-            | ControlFlow::While { qubits, .. } => *qubits,
-        }
+        self.num_qubits
     }
 
     fn num_clbits(&self) -> u32 {
-        match self {
-            ControlFlow::Box { clbits, .. }
-            | ControlFlow::BreakLoop { clbits, .. }
-            | ControlFlow::ContinueLoop { clbits, .. }
-            | ControlFlow::ForLoop { clbits, .. }
-            | ControlFlow::IfElse { clbits, .. }
-            | ControlFlow::Switch { clbits, .. }
-            | ControlFlow::While { clbits, .. } => *clbits,
-        }
+        self.num_clbits
     }
 
     fn num_params(&self) -> u32 {
-        match self {
+        match &self.control_flow {
             ControlFlow::Box { .. } => 1,
             ControlFlow::BreakLoop { .. } => 0,
             ControlFlow::ContinueLoop { .. } => 0,

@@ -242,15 +242,11 @@ impl RoutingResult<'_> {
                         dag.remove_qubits(idle.iter().copied())?;
                     }
                     let mut new_op = inst.op.control_flow().clone();
-                    match &mut new_op {
-                        ControlFlow::BreakLoop { .. } | ControlFlow::ContinueLoop { .. } => {}
-                        ControlFlow::Box { qubits, .. }
-                        | ControlFlow::ForLoop { qubits, .. }
-                        | ControlFlow::IfElse { qubits, .. }
-                        | ControlFlow::Switch { qubits, .. }
-                        | ControlFlow::While { qubits, .. } => {
-                            *qubits = blocks[0].num_qubits() as u32;
-                        }
+                    if !matches!(
+                        &new_op.control_flow,
+                        ControlFlow::BreakLoop | ControlFlow::ContinueLoop
+                    ) {
+                        new_op.num_qubits = blocks[0].num_qubits() as u32;
                     }
                     let blocks = blocks.into_iter().map(|b| dag.register_block(b)).collect();
                     let new_inst = PackedInstruction::from_control_flow(

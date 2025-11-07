@@ -18,8 +18,8 @@ use crate::imports::{
 use crate::instruction::Parameters;
 use crate::interner::Interned;
 use crate::operations::{
-    ControlFlow, Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation,
-    PythonOperation, StandardGate, StandardInstruction, UnitaryGate,
+    ControlFlow, ControlFlowInstruction, Operation, OperationRef, Param, PyGate, PyInstruction,
+    PyOperation, PythonOperation, StandardGate, StandardInstruction, UnitaryGate,
 };
 use crate::{Block, Clbit, Qubit};
 use nalgebra::Matrix2;
@@ -68,7 +68,7 @@ unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
 ///     Instruction(Box<PyInstruction>),
 ///     Operation(Box<PyOperation>),
 ///     UnitaryGate(Box<UnitaryGate>),
-///     ControlFlow(Box<ControlFlow>),
+///     ControlFlow(Box<ControlFlowInstruction>),
 /// }
 /// ```
 ///
@@ -255,7 +255,9 @@ mod standard_instruction {
 
 /// A private module to encapsulate the encoding of pointer types.
 mod pointer {
-    use crate::operations::{ControlFlow, PyGate, PyInstruction, PyOperation, UnitaryGate};
+    use crate::operations::{
+        ControlFlowInstruction, PyGate, PyInstruction, PyOperation, UnitaryGate,
+    };
     use crate::packed_instruction::{PackedOperation, PackedOperationType};
     use std::ptr::NonNull;
 
@@ -338,7 +340,7 @@ mod pointer {
     impl_packable_pointer!(PyInstruction, PackedOperationType::PyInstruction);
     impl_packable_pointer!(PyOperation, PackedOperationType::PyOperation);
     impl_packable_pointer!(UnitaryGate, PackedOperationType::UnitaryGate);
-    impl_packable_pointer!(ControlFlow, PackedOperationType::ControlFlow);
+    impl_packable_pointer!(ControlFlowInstruction, PackedOperationType::ControlFlow);
 }
 
 impl PackedOperation {
@@ -349,17 +351,17 @@ impl PackedOperation {
         bytemuck::checked::cast((self.0 & Self::DISCRIMINANT_MASK) as u8)
     }
 
-    /// Get the contained `ControlFlow`, if any.
-    pub fn control_flow(&self) -> &ControlFlow {
+    /// Get the contained `ControlFlowInstruction`, if any.
+    pub fn control_flow(&self) -> &ControlFlowInstruction {
         self.try_into()
             .expect("the caller is responsible for knowing the correct type")
     }
 
-    /// Get the contained `ControlFlow`.
+    /// Get the contained `ControlFlowInstruction`.
     ///
-    /// **Panics** if this `PackedOperation` doesn't contain a `ControlFlow`; see
+    /// **Panics** if this `PackedOperation` doesn't contain a `ControlFlowInstruction`; see
     /// `try_control_flow`.
-    pub fn try_control_flow(&self) -> Option<&ControlFlow> {
+    pub fn try_control_flow(&self) -> Option<&ControlFlowInstruction> {
         self.try_into().ok()
     }
 
@@ -448,9 +450,9 @@ impl PackedOperation {
         unitary.into()
     }
 
-    /// Construct a new `PackedOperation` from an owned heap-allocated `ControlFlow`.
+    /// Construct a new `PackedOperation` from an owned heap-allocated `ControlFlowInstruction`.
     #[inline]
-    pub fn from_control_flow(control_flow: Box<ControlFlow>) -> Self {
+    pub fn from_control_flow(control_flow: Box<ControlFlowInstruction>) -> Self {
         control_flow.into()
     }
 
@@ -487,7 +489,7 @@ impl PackedOperation {
         let py = py_type.py();
         let py_op = match self.view() {
             OperationRef::ControlFlow(control_flow) => {
-                return match control_flow {
+                return match &control_flow.control_flow {
                     ControlFlow::Box { .. } => {
                         BOX_OP.get_bound(py).cast::<PyType>()?.is_subclass(py_type)
                     }
@@ -624,7 +626,7 @@ impl Drop for PackedOperation {
             PackedOperationType::PyInstruction => PyInstruction::drop_packed(self),
             PackedOperationType::PyOperation => PyOperation::drop_packed(self),
             PackedOperationType::UnitaryGate => UnitaryGate::drop_packed(self),
-            PackedOperationType::ControlFlow => ControlFlow::drop_packed(self),
+            PackedOperationType::ControlFlow => ControlFlowInstruction::drop_packed(self),
         }
     }
 }
@@ -681,9 +683,9 @@ impl PackedInstruction {
         }
     }
 
-    /// Pack a [ControlFlow] operation with blocks into a complete instruction.
+    /// Pack a [ControlFlowInstruction] operation with blocks into a complete instruction.
     pub fn from_control_flow(
-        control_flow: ControlFlow,
+        control_flow: ControlFlowInstruction,
         blocks: Vec<Block>,
         qubits: Interned<[Qubit]>,
         clbits: Interned<[Clbit]>,

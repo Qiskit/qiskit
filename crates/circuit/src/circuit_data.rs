@@ -27,7 +27,8 @@ use crate::imports::{ANNOTATED_OPERATION, DEEPCOPY, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::{ObjectRegistry, PyObjectAsKey};
 use crate::operations::{
-    ControlFlow, Operation, OperationRef, Param, PythonOperation, StandardGate,
+    ControlFlow, ControlFlowInstruction, Operation, OperationRef, Param, PythonOperation,
+    StandardGate,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::ParameterExpression;
@@ -1887,13 +1888,13 @@ impl CircuitData {
         let OperationRef::ControlFlow(control) = instr.op.view() else {
             return None;
         };
-        Some(match control {
+        Some(match &control.control_flow {
             ControlFlow::Box { duration, .. } => ControlFlowView::Box(
                 duration.as_ref(),
                 self.blocks.get(instr.blocks_view()[0]).unwrap().object(),
             ),
-            ControlFlow::BreakLoop { .. } => ControlFlowView::BreakLoop,
-            ControlFlow::ContinueLoop { .. } => ControlFlowView::ContinueLoop,
+            ControlFlow::BreakLoop => ControlFlowView::BreakLoop,
+            ControlFlow::ContinueLoop => ControlFlowView::ContinueLoop,
             ControlFlow::ForLoop {
                 indexset,
                 loop_param,
@@ -2381,7 +2382,10 @@ impl CircuitData {
                     .cloned()
                     .collect();
                 match instr.op.view() {
-                    OperationRef::ControlFlow(ControlFlow::ForLoop { loop_param, .. }) => {
+                    OperationRef::ControlFlow(ControlFlowInstruction {
+                        control_flow: ControlFlow::ForLoop { loop_param, .. },
+                        ..
+                    }) => {
                         Python::attach(|py| -> PyResult<_> {
                             // The loop param is technically a parameter in Python land, stored at
                             // argument position 1.
@@ -2473,7 +2477,10 @@ impl CircuitData {
                     .cloned()
                     .collect();
                 match instr.op.view() {
-                    OperationRef::ControlFlow(ControlFlow::ForLoop { loop_param, .. }) => {
+                    OperationRef::ControlFlow(ControlFlowInstruction {
+                        control_flow: ControlFlow::ForLoop { loop_param, .. },
+                        ..
+                    }) => {
                         Python::attach(|py| -> PyResult<_> {
                             // The loop param is technically a parameter in Python land, stored at
                             // argument position 1.
@@ -2896,9 +2903,9 @@ impl CircuitData {
                                     )
                                 };
                                 let blocks = self.data[instruction].blocks_view();
-                                let block_to_edit = match op {
-                                    ControlFlow::BreakLoop { .. } => Err(inconsistent()),
-                                    ControlFlow::ContinueLoop { .. } => Err(inconsistent()),
+                                let block_to_edit = match &op.control_flow {
+                                    ControlFlow::BreakLoop => Err(inconsistent()),
+                                    ControlFlow::ContinueLoop => Err(inconsistent()),
                                     ControlFlow::ForLoop { .. } => {
                                         match parameter {
                                             2 => {

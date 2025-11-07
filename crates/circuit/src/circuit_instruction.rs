@@ -25,9 +25,9 @@ use crate::duration::Duration;
 use crate::imports::{CONTROLLED_GATE, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN};
 use crate::instruction::{Instruction, Parameters, create_py_op};
 use crate::operations::{
-    ArrayType, BoxDuration, ControlFlow, ControlFlowType, Operation, OperationRef, Param, PyGate,
-    PyInstruction, PyOperation, StandardGate, StandardInstruction, StandardInstructionType,
-    UnitaryGate,
+    ArrayType, BoxDuration, ControlFlow, ControlFlowInstruction, ControlFlowType, Operation,
+    OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate, StandardInstruction,
+    StandardInstructionType, UnitaryGate,
 };
 use crate::packed_instruction::PackedOperation;
 use crate::parameter::parameter_expression::ParameterExpression;
@@ -204,7 +204,7 @@ impl CircuitInstruction {
             return Ok(PyList::empty(py).into_any().unbind());
         };
         match self.operation.view() {
-            OperationRef::ControlFlow(cf) => match cf {
+            OperationRef::ControlFlow(cf) => match &cf.control_flow {
                 ControlFlow::ForLoop {
                     indexset,
                     loop_param,
@@ -636,89 +636,77 @@ impl<'a, 'py> FromPyObject<'a, 'py> for OperationFromPython {
                 break 'control_flow;
             };
             let params = get_params()?;
-            let control_flow = match control_flow_type {
-                ControlFlowType::Box => {
-                    let py_duration: Option<Bound<PyAny>> =
-                        ob.getattr(intern!(py, "duration"))?.extract()?;
-                    let unit: Option<String> = ob.getattr(intern!(py, "unit"))?.extract()?;
-                    let duration = if let Some(py_duration) = py_duration {
-                        Some(match unit.as_deref().unwrap_or("dt") {
-                            "dt" => BoxDuration::Duration(Duration::dt(
-                                py_duration.extract::<f64>()? as i64,
-                            )),
-                            "s" => BoxDuration::Duration(Duration::s(py_duration.extract()?)),
-                            "ms" => BoxDuration::Duration(Duration::ms(py_duration.extract()?)),
-                            "us" => BoxDuration::Duration(Duration::us(py_duration.extract()?)),
-                            "ns" => BoxDuration::Duration(Duration::ns(py_duration.extract()?)),
-                            "ps" => BoxDuration::Duration(Duration::ps(py_duration.extract()?)),
-                            "expr" => BoxDuration::Expr(py_duration.extract()?),
-                            _ => {
-                                return Err(PyValueError::new_err(format!(
-                                    "duration unit '{}' is unsupported",
-                                    unit.unwrap()
-                                )));
-                            }
-                        })
-                    } else {
-                        None
-                    };
-                    let annotations = ob.getattr(intern!(py, "annotations"))?.extract()?;
-                    ControlFlow::Box {
-                        duration,
-                        annotations,
-                        qubits: ob.getattr("num_qubits")?.extract()?,
-                        clbits: ob.getattr("num_clbits")?.extract()?,
+            let control_flow = ControlFlowInstruction {
+                control_flow: match control_flow_type {
+                    ControlFlowType::Box => {
+                        let py_duration: Option<Bound<PyAny>> =
+                            ob.getattr(intern!(py, "duration"))?.extract()?;
+                        let unit: Option<String> = ob.getattr(intern!(py, "unit"))?.extract()?;
+                        let duration = if let Some(py_duration) = py_duration {
+                            Some(match unit.as_deref().unwrap_or("dt") {
+                                "dt" => BoxDuration::Duration(Duration::dt(
+                                    py_duration.extract::<f64>()? as i64,
+                                )),
+                                "s" => BoxDuration::Duration(Duration::s(py_duration.extract()?)),
+                                "ms" => BoxDuration::Duration(Duration::ms(py_duration.extract()?)),
+                                "us" => BoxDuration::Duration(Duration::us(py_duration.extract()?)),
+                                "ns" => BoxDuration::Duration(Duration::ns(py_duration.extract()?)),
+                                "ps" => BoxDuration::Duration(Duration::ps(py_duration.extract()?)),
+                                "expr" => BoxDuration::Expr(py_duration.extract()?),
+                                _ => {
+                                    return Err(PyValueError::new_err(format!(
+                                        "duration unit '{}' is unsupported",
+                                        unit.unwrap()
+                                    )));
+                                }
+                            })
+                        } else {
+                            None
+                        };
+                        let annotations = ob.getattr(intern!(py, "annotations"))?.extract()?;
+                        ControlFlow::Box {
+                            duration,
+                            annotations,
+                        }
                     }
-                }
-                ControlFlowType::BreakLoop => ControlFlow::BreakLoop {
-                    qubits: ob.getattr("num_qubits")?.extract()?,
-                    clbits: ob.getattr("num_clbits")?.extract()?,
-                },
-                ControlFlowType::ContinueLoop => ControlFlow::ContinueLoop {
-                    qubits: ob.getattr("num_qubits")?.extract()?,
-                    clbits: ob.getattr("num_clbits")?.extract()?,
-                },
-                ControlFlowType::ForLoop => {
-                    // We lift for-loop's indexset and loop parameter from `params` to the
-                    // operation itself for Rust since it's nicer to work with.
-                    let mut params = params.try_iter()?;
-                    let indexset = {
-                        // The indexset is an iterable of ints, so we extract each
-                        // and store them all in a Vec.
-                        let indexset = params.next().unwrap()?.try_iter()?;
-                        indexset
-                            .map(|index| index?.extract())
-                            .collect::<PyResult<_>>()?
-                    };
-                    let loop_param = params
-                        .next()
-                        .unwrap()?
-                        .extract::<Option<Bound<PyAny>>>()?
-                        .map(|p| p.unbind());
-                    ControlFlow::ForLoop {
-                        indexset,
-                        loop_param,
-                        qubits: ob.getattr("num_qubits")?.extract()?,
-                        clbits: ob.getattr("num_clbits")?.extract()?,
+                    ControlFlowType::BreakLoop => ControlFlow::BreakLoop,
+                    ControlFlowType::ContinueLoop => ControlFlow::ContinueLoop,
+                    ControlFlowType::ForLoop => {
+                        // We lift for-loop's indexset and loop parameter from `params` to the
+                        // operation itself for Rust since it's nicer to work with.
+                        let mut params = params.try_iter()?;
+                        let indexset = {
+                            // The indexset is an iterable of ints, so we extract each
+                            // and store them all in a Vec.
+                            let indexset = params.next().unwrap()?.try_iter()?;
+                            indexset
+                                .map(|index| index?.extract())
+                                .collect::<PyResult<_>>()?
+                        };
+                        let loop_param = params
+                            .next()
+                            .unwrap()?
+                            .extract::<Option<Bound<PyAny>>>()?
+                            .map(|p| p.unbind());
+                        ControlFlow::ForLoop {
+                            indexset,
+                            loop_param,
+                        }
                     }
-                }
-                ControlFlowType::IfElse => ControlFlow::IfElse {
-                    condition: ob.getattr(intern!(py, "condition"))?.extract()?,
-                    qubits: ob.getattr("num_qubits")?.extract()?,
-                    clbits: ob.getattr("num_clbits")?.extract()?,
+                    ControlFlowType::IfElse => ControlFlow::IfElse {
+                        condition: ob.getattr(intern!(py, "condition"))?.extract()?,
+                    },
+                    ControlFlowType::SwitchCase => ControlFlow::Switch {
+                        target: ob.getattr(intern!(py, "target"))?.extract()?,
+                        label_spec: ob.getattr(intern!(py, "_label_spec"))?.extract()?,
+                        cases: params.len()? as u32,
+                    },
+                    ControlFlowType::WhileLoop => ControlFlow::While {
+                        condition: ob.getattr(intern!(py, "condition"))?.extract()?,
+                    },
                 },
-                ControlFlowType::SwitchCase => ControlFlow::Switch {
-                    target: ob.getattr(intern!(py, "target"))?.extract()?,
-                    label_spec: ob.getattr(intern!(py, "_label_spec"))?.extract()?,
-                    qubits: ob.getattr("num_qubits")?.extract()?,
-                    clbits: ob.getattr("num_clbits")?.extract()?,
-                    cases: params.len()? as u32,
-                },
-                ControlFlowType::WhileLoop => ControlFlow::While {
-                    condition: ob.getattr(intern!(py, "condition"))?.extract()?,
-                    qubits: ob.getattr("num_qubits")?.extract()?,
-                    clbits: ob.getattr("num_clbits")?.extract()?,
-                },
+                num_qubits: ob.getattr("num_qubits")?.extract()?,
+                num_clbits: ob.getattr("num_clbits")?.extract()?,
             };
             let operation = PackedOperation::from_control_flow(control_flow.into());
             let params = extract_params(operation.view(), &params)?;
@@ -830,9 +818,9 @@ pub fn extract_params(
     params: &Bound<PyAny>,
 ) -> PyResult<Option<Parameters<Py<PyAny>>>> {
     Ok(match op {
-        OperationRef::ControlFlow(cf) => match cf {
-            ControlFlow::BreakLoop { .. } => None,
-            ControlFlow::ContinueLoop { .. } => None,
+        OperationRef::ControlFlow(cf) => match &cf.control_flow {
+            ControlFlow::BreakLoop => None,
+            ControlFlow::ContinueLoop => None,
             ControlFlow::ForLoop { .. } => {
                 // We skip the first two parameters (indexset and loop_param) since we
                 // store those directly on the operation in Rust.
