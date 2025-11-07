@@ -23,7 +23,7 @@ use pyo3::{PyResult, intern};
 
 use crate::duration::Duration;
 use crate::imports::{CONTROLLED_GATE, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN};
-use crate::instruction::{CreatePythonOperation, Instruction, Parameters};
+use crate::instruction::{Instruction, Parameters, create_py_op};
 use crate::operations::{
     ArrayType, BoxDuration, ControlFlow, ControlFlowType, Operation, OperationRef, Param, PyGate,
     PyInstruction, PyOperation, StandardGate, StandardInstruction, StandardInstructionType,
@@ -182,7 +182,7 @@ impl CircuitInstruction {
             }
         }
 
-        let out = self.create_py_op(py)?;
+        let out = create_py_op(py, self.op(), self.parameters().cloned(), self.label())?;
 
         #[cfg(feature = "cache_pygates")]
         {

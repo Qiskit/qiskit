@@ -114,17 +114,6 @@ pub trait Instruction {
     }
 }
 
-/// Supports creation of a Python-space representation.
-pub trait CreatePythonOperation {
-    /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into this
-    /// instruction.
-    ///
-    /// A standard-gate or standard-instruction operation object returned by this function is
-    /// disconnected from the containing circuit; updates to its parameters, label, duration, unit
-    /// and condition will not be propagated back.
-    fn create_py_op(&self, py: Python) -> PyResult<Py<PyAny>>;
-}
-
 pub fn create_py_op(
     py: Python,
     op: OperationRef,
@@ -162,13 +151,6 @@ pub fn create_py_op(
         OperationRef::Instruction(instruction) => Ok(instruction.instruction.clone_ref(py)),
         OperationRef::Operation(operation) => Ok(operation.operation.clone_ref(py)),
         OperationRef::Unitary(unitary) => unitary.create_py_op(py, label),
-    }
-}
-
-impl<T: Instruction> CreatePythonOperation for T {
-    #[inline]
-    fn create_py_op(&self, py: Python) -> PyResult<Py<PyAny>> {
-        create_py_op(py, self.op(), self.parameters().cloned(), self.label())
     }
 }
 

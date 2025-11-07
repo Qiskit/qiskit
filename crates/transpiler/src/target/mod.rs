@@ -43,7 +43,7 @@ use thiserror::Error;
 
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::instruction::{CreatePythonOperation, Instruction, Parameters};
+use qiskit_circuit::instruction::{Instruction, Parameters, create_py_op};
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::packed_instruction::PackedOperation;
 
@@ -140,11 +140,11 @@ impl<'py> IntoPyObject<'py> for NormalOperation {
     type Output = Bound<'py, Self::Target>;
     type Error = PyErr;
 
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        match self.op_object.get_or_init(|| self.create_py_op(py)) {
-            Ok(op) => Ok(op.bind(py).clone()),
-            Err(err) => Err(err.clone_ref(py)),
-        }
+    fn into_pyobject(mut self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        let op = self.op_object.take();
+        let params = self.params.take();
+        op.unwrap_or_else(|| create_py_op(py, self.op(), params, None))
+            .map(|o| o.into_bound(py))
     }
 }
 
@@ -154,7 +154,10 @@ impl<'a, 'py> IntoPyObject<'py> for &'a NormalOperation {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        match self.op_object.get_or_init(|| self.create_py_op(py)) {
+        match self
+            .op_object
+            .get_or_init(|| create_py_op(py, self.op(), self.parameters().cloned(), None))
+        {
             Ok(op) => Ok(op.bind_borrowed(py)),
             Err(err) => Err(err.clone_ref(py)),
         }
@@ -752,7 +755,12 @@ impl Target {
     fn _raw_operation_from_name(&self, py: Python, name: &str) -> PyResult<Py<PyAny>> {
         if let Some(gate) = self._gate_name_map.get(name) {
             match gate {
-                TargetOperation::Normal(normal_operation) => normal_operation.create_py_op(py),
+                TargetOperation::Normal(normal_operation) => create_py_op(
+                    py,
+                    normal_operation.op(),
+                    normal_operation.parameters().cloned(),
+                    normal_operation.label(),
+                ),
                 TargetOperation::Variadic(py_op) => Ok(py_op.clone_ref(py)),
             }
         } else {
@@ -797,7 +805,9 @@ impl Target {
         let list = PyList::empty(py);
         for (inst, qargs) in self._instructions() {
             let out_inst = match inst {
-                TargetOperation::Normal(op) => op.create_py_op(py)?,
+                TargetOperation::Normal(op) => {
+                    create_py_op(py, op.op(), op.parameters().cloned(), op.label())?
+                }
                 TargetOperation::Variadic(op_cls) => op_cls.clone_ref(py),
             };
             list.append((out_inst, qargs))?;
