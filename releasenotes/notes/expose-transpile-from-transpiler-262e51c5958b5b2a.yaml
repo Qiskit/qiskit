@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_transpiler:
   - |
     The canonical implementation of
     :func:`~qiskit.transpiler.transpile` now lives in the
@@ -9,7 +9,7 @@ upgrade:
     transpiler logic resides. The legacy
     :func:`qiskit.compiler.transpile` re-export continues to work so existing
     imports remain compatible.
-deprecate:
+deprecations_transpiler:
   - |
     Importing :func:`transpile` from :mod:`qiskit.compiler` is now formally
     deprecated. The symbol continues to re-export the same function for
