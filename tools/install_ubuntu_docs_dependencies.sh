@@ -23,7 +23,7 @@ if [ $GITHUB_TOKEN ]; then
     DOXYGEN_DIR=$(find . -maxdepth 1 -type d  -name "doxygen*")
     cd $DOXYGEN_DIR
     # Run the remainder of the setup process
-    make
+    sudo make
     sudo make install
 else
     echo "No github token provided"
