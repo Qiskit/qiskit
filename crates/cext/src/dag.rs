@@ -662,6 +662,7 @@ pub enum COperationKind {
     Measure = 3,
     Reset = 4,
     Unitary = 5,
+    PauliProductMeasurement = 6,
 }
 
 /// @ingroup QkDag
@@ -698,6 +699,7 @@ pub unsafe extern "C" fn qk_dag_op_node_kind(dag: *const DAGCircuit, node: u32) 
             StandardInstruction::Reset => COperationKind::Reset,
         },
         OperationRef::Unitary(_) => COperationKind::Unitary,
+        OperationRef::PauliProductMeasurement(_) => COperationKind::PauliProductMeasurement,
         OperationRef::Gate(_) | OperationRef::Instruction(_) | OperationRef::Operation(_) => {
             panic!("Python instances are not supported via the C API");
         }
