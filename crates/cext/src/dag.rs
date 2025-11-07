@@ -687,6 +687,7 @@ pub unsafe extern "C" fn qk_dag_apply_reset(dag: *mut DAGCircuit, qubit: u32, fr
 /// @param dag The circuit to apply to.
 /// @param qubits The qubit indices to apply the barrier to.  This can be null, in which case
 ///     `num_qubits` is not read, and the barrier is applied to all qubits in the DAG.
+/// @param num_qubits How many qubits the barrier applies to.
 /// @param front Whether to apply the barrier at the start of the circuit. Usually `false`.
 ///
 /// @return The node index of the created instruction.
