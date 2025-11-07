@@ -22,10 +22,11 @@ use num_complex::{Complex64, ComplexFloat};
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::bit::{ShareableClbit, ShareableQubit};
 use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::interner::Interner;
 use qiskit_circuit::operations::{
     ArrayType, DelayUnit, Operation, Param, StandardGate, StandardInstruction, UnitaryGate,
 };
-use qiskit_circuit::packed_instruction::PackedOperation;
+use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::{Clbit, Qubit};
 
 #[cfg(feature = "python_binding")]
@@ -851,6 +852,44 @@ pub struct CInstruction {
     /// The number of parameters for this instruction.
     num_params: u32,
 }
+impl CInstruction {
+    /// Create a `CInstruction` that owns pointers to copies of the information in the given
+    /// `PackedInstruction`.
+    ///
+    /// This must be cleared by a call to `qk_circuit_instruction_clear` to avoid leaking its
+    /// allocations.
+    ///
+    /// Panics if the operation name contains a nul, or if the instruction has non-float parameters.
+    pub(crate) fn from_packed_instruction_with_floats(
+        packed: &PackedInstruction,
+        qargs_interner: &Interner<[Qubit]>,
+        cargs_interner: &Interner<[Clbit]>,
+    ) -> Self {
+        let name = CString::new(packed.op.name())
+            .expect("names do not contain nul")
+            .into_raw();
+        let qargs = qargs_interner.get(packed.qubits);
+        let cargs = cargs_interner.get(packed.clbits);
+        let params = packed
+            .params_view()
+            .iter()
+            .map(|p| match p {
+                Param::Float(p) => Some(*p),
+                _ => None,
+            })
+            .collect::<Option<Box<[f64]>>>()
+            .expect("caller is response for ensuring all parameters are floats");
+        Self {
+            name,
+            num_qubits: qargs.len() as u32,
+            qubits: Box::leak(qargs.iter().map(|q| q.0).collect::<Box<[u32]>>()).as_mut_ptr(),
+            num_clbits: cargs.len() as u32,
+            clbits: Box::leak(cargs.iter().map(|c| c.0).collect::<Box<[u32]>>()).as_mut_ptr(),
+            num_params: params.len() as u32,
+            params: Box::leak(params).as_mut_ptr(),
+        }
+    }
+}
 
 /// @ingroup QkCircuit
 /// Return the instruction details for an instruction in the circuit.
@@ -890,63 +929,15 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
     index: usize,
     instruction: *mut CInstruction,
 ) {
-    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    // SAFETY: Per documentation, `circuit` is a pointer to valid data.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
-    if index >= circuit.__len__() {
-        panic!("Invalid index")
-    }
-    let packed_inst = &circuit.data()[index];
-    let mut qargs = {
-        let qargs = circuit.get_qargs(packed_inst.qubits);
-        let qargs_vec: Vec<u32> = qargs.iter().map(|x| x.0).collect();
-        qargs_vec.into_boxed_slice()
-    };
-    let mut cargs = {
-        let cargs = circuit.get_cargs(packed_inst.clbits);
-        let cargs_vec: Vec<u32> = cargs.iter().map(|x| x.0).collect();
-        cargs_vec.into_boxed_slice()
-    };
-    let mut params = {
-        let params = packed_inst.params_view();
-        let params_vec: Vec<f64> = params
-            .iter()
-            .map(|x| match x {
-                Param::Float(val) => *val,
-                _ => panic!("Invalid parameter on instruction"),
-            })
-            .collect();
-        params_vec.into_boxed_slice()
-    };
-    // These lists (e.g. 'qargs') are Box<[T]>, so we use .as_mut_ptr()
-    // to get a mutable pointer to the underlying slice/array on
-    // the heap and Box::into_raw() to consume the Box without freeing
-    // it (so the underlying array doesn't get freed when we return)
-    let out_qargs = qargs.as_mut_ptr();
-    let out_qargs_len = qargs.len() as u32;
-    let _ = Box::into_raw(qargs);
-    let out_cargs = cargs.as_mut_ptr();
-    let out_cargs_len = cargs.len() as u32;
-    let _ = Box::into_raw(cargs);
-    let out_params = params.as_mut_ptr();
-    let out_params_len = params.len() as u32;
-    let _ = Box::into_raw(params);
-
-    // SAFETY: The pointer must point to a CInstruction size allocation
-    // per the docstring.
-    unsafe {
-        std::ptr::write(
-            instruction,
-            CInstruction {
-                name: CString::new(packed_inst.op.name()).unwrap().into_raw(),
-                num_qubits: out_qargs_len,
-                qubits: out_qargs,
-                num_clbits: out_cargs_len,
-                clbits: out_cargs,
-                num_params: out_params_len,
-                params: out_params,
-            },
-        );
-    }
+    let inst = CInstruction::from_packed_instruction_with_floats(
+        &circuit.data()[index],
+        circuit.qargs_interner(),
+        circuit.cargs_interner(),
+    );
+    // SAFETY: per documentation, `instruction` is a pointer to a sufficient allocation.
+    unsafe { instruction.write(inst) };
 }
 
 /// @ingroup QkCircuit

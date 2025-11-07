@@ -13,12 +13,14 @@
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 use smallvec::smallvec;
 
-use qiskit_circuit::Qubit;
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeIndex, NodeType};
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, StandardGate, StandardInstruction,
 };
+use qiskit_circuit::{Clbit, Qubit};
+
+use crate::circuit::CInstruction;
 
 /// @ingroup QkDag
 /// Construct a new empty DAG.
@@ -584,6 +586,166 @@ pub unsafe extern "C" fn qk_dag_apply_gate(
 }
 
 /// @ingroup QkDag
+/// Apply a measure to a DAG.
+///
+/// @param dag The circuit to apply to.
+/// @param qubit The qubit index to measure.
+/// @param clbit The clbit index to store the result in.
+/// @param front Whether to apply the measure at the start of the circuit. Usually `false`.
+///
+/// @return The node index of the created instruction.
+///
+/// # Safety
+///
+/// Behavior is undefined if `dag` is not an aligned, non-null pointer to a valid :c:struct:`QkDag`,
+/// or if `qubit` or `clbit` are out of range.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_apply_measure(
+    dag: *mut DAGCircuit,
+    qubit: u32,
+    clbit: u32,
+    front: bool,
+) -> u32 {
+    // SAFETY: per documentation, `dag` points to valid data.
+    let dag = unsafe { mut_ptr_as_ref(dag) };
+    if front {
+        dag.apply_operation_front(
+            StandardInstruction::Measure.into(),
+            &[Qubit(qubit)],
+            &[Clbit(clbit)],
+            None,
+            None,
+            #[cfg(feature = "cache_pygates")]
+            None,
+        )
+        .expect("caller is responsible for passing inbounds bits")
+        .index() as u32
+    } else {
+        dag.apply_operation_back(
+            StandardInstruction::Measure.into(),
+            &[Qubit(qubit)],
+            &[Clbit(clbit)],
+            None,
+            None,
+            #[cfg(feature = "cache_pygates")]
+            None,
+        )
+        .expect("caller is responsible for passing inbounds bits")
+        .index() as u32
+    }
+}
+
+/// @ingroup QkDag
+/// Apply a reset to the DAG.
+///
+/// @param dag The circuit to apply to.
+/// @param qubit The qubit index to reset.
+/// @param front Whether to apply the reset at the start of the circuit. Usually `false`.
+///
+/// @return The node index of the created instruction.
+///
+/// # Safety
+///
+/// Behavior is undefined if `dag` is not an aligned, non-null pointer to a valid :c:struct:`QkDag`,
+/// or if `qubit` is out of range.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_apply_reset(dag: *mut DAGCircuit, qubit: u32, front: bool) -> u32 {
+    // SAFETY: per documentation, `dag` points to valid data.
+    let dag = unsafe { mut_ptr_as_ref(dag) };
+    if front {
+        dag.apply_operation_front(
+            StandardInstruction::Reset.into(),
+            &[Qubit(qubit)],
+            &[],
+            None,
+            None,
+            #[cfg(feature = "cache_pygates")]
+            None,
+        )
+        .expect("caller is responsible for passing inbounds bits")
+        .index() as u32
+    } else {
+        dag.apply_operation_back(
+            StandardInstruction::Reset.into(),
+            &[Qubit(qubit)],
+            &[],
+            None,
+            None,
+            #[cfg(feature = "cache_pygates")]
+            None,
+        )
+        .expect("caller is responsible for passing inbounds bits")
+        .index() as u32
+    }
+}
+
+/// @ingroup QkDag
+/// Apply a barrier to the DAG.
+///
+/// @param dag The circuit to apply to.
+/// @param qubits The qubit indices to apply the barrier to.  This can be null, in which case
+///     `num_qubits` is not read, and the barrier is applied to all qubits in the DAG.
+/// @param front Whether to apply the barrier at the start of the circuit. Usually `false`.
+///
+/// @return The node index of the created instruction.
+///
+/// # Safety
+///
+/// Behavior is undefined if:
+///
+/// * `dag` is not an aligned, non-null pointer to a valid :c:struct:`QkDag`,
+/// * `qubits` is not aligned or is not valid for `num_qubits` reads of initialized, in-bounds and
+///   unduplicated indices, unless `qubits` is null.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_apply_barrier(
+    dag: *mut DAGCircuit,
+    qubits: *const u32,
+    num_qubits: u32,
+    front: bool,
+) -> u32 {
+    // SAFETY: per documentation, `dag` points to valid data.
+    let dag = unsafe { mut_ptr_as_ref(dag) };
+    let all_qubits;
+    let qubits = if qubits.is_null() {
+        all_qubits = (0..dag.num_qubits()).map(Qubit::new).collect::<Vec<_>>();
+        all_qubits.as_slice()
+    } else {
+        // SAFETY: per documentation, `qubits` is valid, aligned, and points to `num_qubits` valid
+        // initialized u32s.
+        unsafe { std::slice::from_raw_parts(qubits.cast(), num_qubits as usize) }
+    };
+    let barrier = StandardInstruction::Barrier(qubits.len() as u32);
+    if front {
+        dag.apply_operation_front(
+            barrier.into(),
+            qubits,
+            &[],
+            None,
+            None,
+            #[cfg(feature = "cache_pygates")]
+            None,
+        )
+        .expect("caller is responsible for passing inbounds bits")
+        .index() as u32
+    } else {
+        dag.apply_operation_back(
+            barrier.into(),
+            qubits,
+            &[],
+            None,
+            None,
+            #[cfg(feature = "cache_pygates")]
+            None,
+        )
+        .expect("caller is responsible for passing inbounds bits")
+        .index() as u32
+    }
+}
+
+/// @ingroup QkDag
 /// Retrieve the standard gate of the specified node.
 ///
 /// Panics if the node is not a standard gate operation.
@@ -704,6 +866,41 @@ pub unsafe extern "C" fn qk_dag_op_node_kind(dag: *const DAGCircuit, node: u32) 
             panic!("Python instances are not supported via the C API");
         }
     }
+}
+
+/// @ingroup QkDag
+/// Return the instructino details for an instruction in the cirucit.
+///
+/// This is a mirror of :c:func:`qk_circuit_get_instruction`.  You can also use individual methods
+/// such as :c:func:`qk_dag_op_node_gate_op` to get individual properties.
+///
+/// You must call :c:func:`qk_circuit_instruction_clear` to reset the
+/// :c:struct`QkCircuitInstruction` before reusing it or dropping it.
+///
+/// @param dag The circuit to retrieve the instruction from.
+/// @param index The node index.  It is an error to pass an index that is node a valid op node.
+/// @param instruction A point to where to write out the :c:struct:`QkCircuitInstruction`.
+///
+/// # Safety
+///
+/// Behavior is undefined if either `dag` or `instruction` are not valid, aligned, non-null pointers
+/// to the relevant data type.  The fields of `instruction` need not be initialized.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_get_instruction(
+    dag: *const DAGCircuit,
+    index: u32,
+    instruction: *mut CInstruction,
+) {
+    // SAFETY: per documentation, `dag` is a pointer to valid data.
+    let dag = unsafe { const_ptr_as_ref(dag) };
+    let inst = CInstruction::from_packed_instruction_with_floats(
+        dag.dag()[NodeIndex::new(index as usize)].unwrap_operation(),
+        dag.qargs_interner(),
+        dag.cargs_interner(),
+    );
+    // SAFETY: per documentation, `instruction` is a pointer to a sufficient allocation.
+    unsafe { instruction.write(inst) };
 }
 
 /// @ingroup QkDag
