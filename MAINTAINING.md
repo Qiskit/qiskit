@@ -271,11 +271,7 @@ In both situations, your active branch now is `prepare-x.y.z`.
 #### 4.2 Bump version numbers
 
 Once in the `prepare-x.y.z` branch, bump the package version number to `x.y.z` (e.g. `1.4.2` for a patch, or `1.3.0rc2` for a second release candidate).
-The places to update are:
-
-* `qiskit/VERSION.txt`: the only line in the file.
-* `Cargo.toml` (only the file in the repository root and none of the other `**/Cargo.toml`s): the variable `version` and run `cargo build`. Cargo needs a dash before 'rc' dev versions. Therefore, for releasing `x.y.0rc1`, the cargo version should be `x.y.0-rc1`.
-* `crates/cext/cbindgen.toml`: the `define QISKIT_VERSION_*` macros. 
+Check the section [Updating the version number](#updating-the-version-number) for details on how and where.
 
 
 #### 4.3 Update Rust dependencies
@@ -480,12 +476,7 @@ For patch releases:
 
 Make a PR to the `main` branch that sets the version number to the _next_ minor (e.g. `2.2.0.dev0` if you have just released `2.1.0rc1`). Follow the convention introduced in [#14697](https://github.com/Qiskit/qiskit/pull/14697).
  
-The places to update are:
-
-* `qiskit/VERSION.txt`: the only line in the file.
-* `Cargo.toml` (only the file in the repository root and none of the other `**/Cargo.toml`s): the variable `version` and run `cargo build`.
-* `crates/cext/cbindgen.toml`: the `#define QISKIT_VERSION_*` macros.
-* `.mergify.yml`: change the `backport` action to target the new stable branch that `qiskit-bot` created as part of the release (see [*Backporting* section](#Backporting) for details on Mergify).
+The places to update are listed in the section [Updating the version number](#updating-the-version-number).
 
 This opens the `main` branch for feature development for the next release.
 
