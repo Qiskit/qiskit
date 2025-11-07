@@ -14,6 +14,7 @@ use pyo3::prelude::*;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::imports::PAULI_EVOLUTION_GATE;
+use qiskit_circuit::interner::{Interned, Interner};
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, PyGate, StandardGate, multiply_param,
 };
@@ -41,39 +42,56 @@ const ROTATION_GATE_NAMES: &[&str; 3] = &["t", "tdg", "rz"];
 
 /// Expresses a given circuit as a sequence of Pauli rotations followed by a final Clifford operator.
 /// Returns the list of rotations in the sparse format: (sign, paulis, indices).
-pub fn extract_rotations(
-    circuit: &[(&str, Vec<usize>)],
-    nqubits: usize,
-) -> Vec<(bool, String, Vec<u32>)> {
-    let mut clifford = Clifford::identity(nqubits);
-    let mut rotations: Vec<(bool, String, Vec<u32>)> = Vec::new();
-
-    for (gate_name, qbits) in circuit.iter() {
-        match *gate_name {
-            "id" => {}
-            "x" => clifford.append_x(qbits[0]),
-            "y" => clifford.append_y(qbits[0]),
-            "z" => clifford.append_z(qbits[0]),
-            "h" => clifford.append_h(qbits[0]),
-            "s" => clifford.append_s(qbits[0]),
-            "sdg" => clifford.append_sdg(qbits[0]),
-            "sx" => clifford.append_sx(qbits[0]),
-            "sxdg" => clifford.append_sxdg(qbits[0]),
-            "cx" => clifford.append_cx(qbits[0], qbits[1]),
-            "cz" => clifford.append_cz(qbits[0], qbits[1]),
-            "cy" => clifford.append_cy(qbits[0], qbits[1]),
-            "swap" => clifford.append_swap(qbits[0], qbits[1]),
-            "iswap" => clifford.append_iswap(qbits[0], qbits[1]),
-            "ecr" => clifford.append_ecr(qbits[0], qbits[1]),
-            "dcx" => clifford.append_dcx(qbits[0], qbits[1]),
-            "rz" => {
-                rotations.push(clifford.get_inverse_z(qbits[0]));
-            }
-            _ => panic!("Unsupported gate {}", gate_name),
+fn extract_rotations(
+    gate: StandardGate,
+    qbits: &Interned<[Qubit]>,
+    interner: &Interner<[Qubit]>,
+    clifford: &mut Clifford,
+) -> Option<(bool, String, Vec<Qubit>)> {
+    match gate {
+        StandardGate::I => {}
+        StandardGate::X => clifford.append_x(interner.get(*qbits)[0].index()),
+        StandardGate::Y => clifford.append_y(interner.get(*qbits)[0].index()),
+        StandardGate::Z => clifford.append_z(interner.get(*qbits)[0].index()),
+        StandardGate::H => clifford.append_h(interner.get(*qbits)[0].index()),
+        StandardGate::S => clifford.append_s(interner.get(*qbits)[0].index()),
+        StandardGate::Sdg => clifford.append_sdg(interner.get(*qbits)[0].index()),
+        StandardGate::SX => clifford.append_sx(interner.get(*qbits)[0].index()),
+        StandardGate::SXdg => clifford.append_sxdg(interner.get(*qbits)[0].index()),
+        StandardGate::CX => clifford.append_cx(
+            interner.get(*qbits)[0].index(),
+            interner.get(*qbits)[1].index(),
+        ),
+        StandardGate::CZ => clifford.append_cz(
+            interner.get(*qbits)[0].index(),
+            interner.get(*qbits)[1].index(),
+        ),
+        StandardGate::CY => clifford.append_cy(
+            interner.get(*qbits)[0].index(),
+            interner.get(*qbits)[1].index(),
+        ),
+        StandardGate::Swap => clifford.append_swap(
+            interner.get(*qbits)[0].index(),
+            interner.get(*qbits)[1].index(),
+        ),
+        StandardGate::ISwap => clifford.append_iswap(
+            interner.get(*qbits)[0].index(),
+            interner.get(*qbits)[1].index(),
+        ),
+        StandardGate::ECR => clifford.append_ecr(
+            interner.get(*qbits)[0].index(),
+            interner.get(*qbits)[1].index(),
+        ),
+        StandardGate::DCX => clifford.append_dcx(
+            interner.get(*qbits)[0].index(),
+            interner.get(*qbits)[1].index(),
+        ),
+        StandardGate::RZ => {
+            return Some(clifford.get_inverse_z(interner.get(*qbits)[0].index()));
         }
-    }
-
-    rotations
+        _ => panic!("Unsupported gate {}", gate.name()),
+    };
+    None
 }
 
 #[pyfunction]
@@ -108,70 +126,76 @@ pub fn run_litinski_transformation(
             unsupported
         )));
     }
+    let rotation_count = op_counts
+        .iter()
+        .filter_map(|(k, v)| {
+            if ROTATION_GATE_NAMES.contains(&k.as_str()) {
+                Some(v)
+            } else {
+                None
+            }
+        })
+        .sum();
+    let clifford_count = dag.size(false)? - rotation_count;
 
     let num_qubits = dag.num_qubits();
 
     // Turn the Qiskit circuit into a vector of (gate name, qubit indices).
     // Additionally, keep track of the rotation angles, an update to the global phase (produced when
     // converting T/Tdg gates to RZ-rotations), and Clifford gates in the circuit.
-    let mut circuit: Vec<(&str, Vec<usize>)> = Vec::new();
-    let mut angles: Vec<Param> = Vec::new();
+    let mut angles: Vec<Param> = Vec::with_capacity(rotation_count);
     let mut global_phase_update = 0.;
-    let mut clifford_ops: Vec<PackedInstruction> = Vec::new();
-    for node_index in dag.topological_op_nodes()? {
-        if let NodeType::Operation(inst) = &dag[node_index] {
-            let (name, angle, phase_update) = match inst.op.view() {
+    let mut clifford_ops: Vec<&PackedInstruction> = Vec::with_capacity(clifford_count);
+    let mut clifford = Clifford::identity(num_qubits);
+    let rotations: Vec<_> = dag
+        .topological_op_nodes()?
+        .filter_map(|node_index| {
+            let NodeType::Operation(inst) = &dag[node_index] else {
+                unreachable!(
+                    "Gate instructions should be either Clifford or T/Tdg/RZ at this point."
+                );
+            };
+            let (gate, angle, phase_update) = match inst.op.view() {
                 OperationRef::StandardGate(StandardGate::T) => {
-                    ("rz", Some(Param::Float(PI / 8.)), PI / 8.)
+                    (StandardGate::RZ, Some(Param::Float(PI / 8.)), PI / 8.)
                 }
                 OperationRef::StandardGate(StandardGate::Tdg) => {
-                    ("rz", Some(Param::Float(-PI / 8.0)), -PI / 8.)
+                    (StandardGate::RZ, Some(Param::Float(-PI / 8.0)), -PI / 8.)
                 }
                 OperationRef::StandardGate(StandardGate::RZ) => {
                     let param = &inst.params_view()[0];
-                    ("rz", Some(multiply_param(param, 0.5)), 0.)
+                    (StandardGate::RZ, Some(multiply_param(param, 0.5)), 0.)
                 }
-                _ => (inst.op.name(), None, 0.),
+                _ => (inst.op.try_standard_gate().unwrap(), None, 0.),
             };
 
             global_phase_update += phase_update;
-
-            let qubits: Vec<usize> = dag
-                .get_qargs(inst.qubits)
-                .iter()
-                .map(|q| q.index())
-                .collect();
-
-            circuit.push((name, qubits));
 
             if let Some(angle) = angle {
                 // This is a rotation, save the angle.
                 angles.push(angle);
             } else {
                 // This is a Clifford operation, save it.
-                clifford_ops.push(inst.clone());
+                clifford_ops.push(inst);
             }
-        } else {
-            unreachable!("Gate instructions should be either Clifford or T/Tdg/RZ at this point.");
-        }
-    }
+            extract_rotations(gate, &inst.qubits, dag.qargs_interner(), &mut clifford)
+        })
+        .collect();
 
     // Apply the Litinski transformation.
     // This returns a list of rotations with +1/-1 signs. Since we aim to preserve the
     // global phase of the circuit, we ignore the final Clifford operator, and instead
     // append the Clifford gates from the original circuit.
-    let rotations = extract_rotations(&circuit, num_qubits);
 
     let py_evo_cls = PAULI_EVOLUTION_GATE.get_bound(py);
     let no_clbits: Vec<Clbit> = Vec::new();
 
-    let mut new_dag = dag.copy_empty_like(VarsMode::Alike)?;
+    let new_dag = dag.copy_empty_like(VarsMode::Alike)?;
+    let mut new_dag = new_dag.into_builder();
     new_dag.add_global_phase(&Param::Float(global_phase_update))?;
 
     // Add Pauli rotation gates to the Qiskit circuit.
-    for ((sign, paulis, indices), angle) in rotations.iter().zip(angles) {
-        let qubits: Vec<Qubit> = indices.iter().map(|index| Qubit(*index)).collect();
-
+    for ((sign, paulis, qubits), angle) in rotations.iter().zip(angles) {
         let py_pauli =
             PySparseObservable::from_label(paulis.chars().rev().collect::<String>().as_str())?;
 
@@ -191,7 +215,7 @@ pub fn run_litinski_transformation(
 
         new_dag.apply_operation_back(
             py_gate.into(),
-            &qubits,
+            qubits,
             &no_clbits,
             Some(smallvec![time]),
             None,
@@ -202,20 +226,12 @@ pub fn run_litinski_transformation(
 
     // Add Clifford gates to the Qiskit circuit (when required).
     if fix_clifford {
-        for inst in clifford_ops {
-            new_dag.apply_operation_back(
-                inst.op,
-                dag.get_qargs(inst.qubits),
-                dag.get_cargs(inst.clbits),
-                inst.params.as_deref().cloned(),
-                inst.label.as_ref().map(|x| x.as_ref().clone()),
-                #[cfg(feature = "cache_pygates")]
-                inst.py_op.get().map(|x| x.clone_ref(py)),
-            )?;
+        for inst in clifford_ops.into_iter() {
+            new_dag.push_back(inst.clone())?;
         }
     }
 
-    Ok(Some(new_dag))
+    Ok(Some(new_dag.build()))
 }
 
 pub fn litinski_transformation_mod(m: &Bound<PyModule>) -> PyResult<()> {
