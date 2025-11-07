@@ -630,7 +630,7 @@ fn get_matrix(operation: &OperationRef, params: &[Param]) -> Option<Array2<Compl
                 Some(
                     QI_OPERATOR
                         .get_bound(py)
-                        .call1((gate.gate.clone_ref(py),))
+                        .call1((gate.instruction.clone_ref(py),))
                         .ok()?
                         .getattr(intern!(py, "data"))
                         .ok()?
@@ -644,7 +644,7 @@ fn get_matrix(operation: &OperationRef, params: &[Param]) -> Option<Array2<Compl
                 Some(
                     QI_OPERATOR
                         .get_bound(py)
-                        .call1((operation.operation.clone_ref(py),))
+                        .call1((operation.instruction.clone_ref(py),))
                         .ok()?
                         .getattr(intern!(py, "data"))
                         .ok()?

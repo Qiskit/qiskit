@@ -115,9 +115,9 @@ impl NormalOperation {
             OperationRef::StandardInstruction(standard_instruction) => {
                 standard_instruction.create_py_op(py, Some(&self.params), label)?
             }
-            OperationRef::Gate(gate) => gate.gate.clone_ref(py),
+            OperationRef::Gate(gate) => gate.instruction.clone_ref(py),
             OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
-            OperationRef::Operation(operation) => operation.operation.clone_ref(py),
+            OperationRef::Operation(operation) => operation.instruction.clone_ref(py),
             OperationRef::Unitary(unitary) => unitary.create_py_op(py, label)?,
         };
         Ok(obj)
@@ -799,9 +799,9 @@ impl Target {
                     OperationRef::StandardInstruction(standard) => standard
                         .create_py_op(py, Some(&op.params), None)?
                         .into_any(),
-                    OperationRef::Gate(gate) => gate.gate.clone_ref(py),
+                    OperationRef::Gate(gate) => gate.instruction.clone_ref(py),
                     OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
-                    OperationRef::Operation(operation) => operation.operation.clone_ref(py),
+                    OperationRef::Operation(operation) => operation.instruction.clone_ref(py),
                     OperationRef::Unitary(unitary) => unitary.create_py_op(py, None)?.into_any(),
                 },
                 TargetOperation::Variadic(op_cls) => op_cls.clone_ref(py),
