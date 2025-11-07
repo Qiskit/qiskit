@@ -33,7 +33,7 @@ fn control_flow_block_dags<'a>(
         .instruction
         .bind(py)
         .getattr("blocks")?
-        .downcast::<PyTuple>()?
+        .cast::<PyTuple>()?
         .iter()
         .map(move |block| circuit_to_dag(block.extract()?, false, None, None)))
 }

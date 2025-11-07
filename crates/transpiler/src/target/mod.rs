@@ -119,6 +119,7 @@ impl NormalOperation {
             OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
             OperationRef::Operation(operation) => operation.operation.clone_ref(py),
             OperationRef::Unitary(unitary) => unitary.create_py_op(py, label)?,
+            OperationRef::PauliProductMeasurement(ppm) => ppm.create_py_op(py, label)?,
         };
         Ok(obj)
     }
@@ -159,13 +160,15 @@ impl<'a, 'py> IntoPyObject<'py> for &'a NormalOperation {
     }
 }
 
-impl<'py> FromPyObject<'py> for NormalOperation {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for NormalOperation {
+    type Error = <OperationFromPython as FromPyObject<'a, 'py>>::Error;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let operation: OperationFromPython = ob.extract()?;
         Ok(Self {
             operation: operation.operation,
             params: operation.params,
-            op_object: Ok(ob.clone().unbind()).into(),
+            op_object: Ok(ob.to_owned().unbind()).into(),
         })
     }
 }
@@ -801,6 +804,9 @@ impl Target {
                     OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
                     OperationRef::Operation(operation) => operation.operation.clone_ref(py),
                     OperationRef::Unitary(unitary) => unitary.create_py_op(py, None)?.into_any(),
+                    OperationRef::PauliProductMeasurement(ppm) => {
+                        ppm.create_py_op(py, None)?.into_any()
+                    }
                 },
                 TargetOperation::Variadic(op_cls) => op_cls.clone_ref(py),
             };
@@ -908,7 +914,7 @@ impl Target {
                 .extract::<Vec<(Qargs, HashSet<String>)>>()?,
         );
         let angle_bounds_raw = state.get_item("angle_bounds")?.unwrap();
-        let angle_bounds_dict = angle_bounds_raw.downcast::<PyDict>()?;
+        let angle_bounds_dict = angle_bounds_raw.cast::<PyDict>()?;
         type AngleBoundIterList = Vec<(String, SmallVec<[Option<[f64; 2]>; 3]>)>;
         let angle_bounds_list: AngleBoundIterList = angle_bounds_dict.items().extract()?;
         for (gate, bounds) in angle_bounds_list {

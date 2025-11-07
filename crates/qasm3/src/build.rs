@@ -216,7 +216,7 @@ impl BuilderState {
             self.qc
                 .inner(py)
                 .getattr("qubits")?
-                .downcast::<PySequence>()?
+                .cast::<PySequence>()?
                 .to_tuple()?
         };
         let instruction = self.module.new_instruction(
