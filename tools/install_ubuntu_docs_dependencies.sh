@@ -19,7 +19,9 @@ if [ $GITHUB_TOKEN ]; then
 
     # The following commands install the binaries for doxygen
     tar -zxvf ./doxygen.tar.gz
-    cd ./doxygen
+    # Find the doxygen folder and pick the first option
+    find . -type d | grep doxygen -m 1 | xargs -I {} cd {}
+    # Run the remainder of the setup process
     ./configure
     make
     sudo make install
