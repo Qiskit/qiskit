@@ -12,11 +12,11 @@
 
 use numpy::{PyArray1, PyArrayMethods, PyReadonlyArray1};
 use pyo3::{
+    IntoPyObjectExt, PyErr,
     exceptions::{PyTypeError, PyValueError},
     intern,
     prelude::*,
     types::{PyInt, PyList, PyString, PyTuple, PyType},
-    IntoPyObjectExt, PyErr,
 };
 use std::{
     collections::btree_map,
@@ -26,9 +26,9 @@ use std::{
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 
 use super::qubit_sparse_pauli::{
-    raw_parts_from_sparse_list, ArithmeticError, CoherenceError, InnerReadError, InnerWriteError,
-    LabelError, Pauli, PyQubitSparsePauli, QubitSparsePauli, QubitSparsePauliList,
-    QubitSparsePauliView,
+    ArithmeticError, CoherenceError, InnerReadError, InnerWriteError, LabelError, Pauli,
+    PyQubitSparsePauli, QubitSparsePauli, QubitSparsePauliList, QubitSparsePauliView,
+    raw_parts_from_sparse_list,
 };
 use crate::imports;
 
@@ -800,7 +800,7 @@ impl PyPhasedQubitSparsePauli {
         if slf.is(&other) {
             return Ok(true);
         }
-        let Ok(other) = other.downcast_into::<Self>() else {
+        let Ok(other) = other.cast_into::<Self>() else {
             return Ok(false);
         };
         let slf = slf.borrow();
@@ -1039,7 +1039,7 @@ impl PyPhasedQubitSparsePauliList {
             }
             return Self::from_label(&label);
         }
-        if let Ok(pauli_list) = data.downcast_exact::<Self>() {
+        if let Ok(pauli_list) = data.cast_exact::<Self>() {
             check_num_qubits(data)?;
             let borrowed = pauli_list.borrow();
             let inner = borrowed.inner.read().map_err(|_| InnerReadError)?;
@@ -1059,7 +1059,7 @@ impl PyPhasedQubitSparsePauliList {
             };
             return Self::from_sparse_list(vec, num_qubits);
         }
-        if let Ok(term) = data.downcast_exact::<PyPhasedQubitSparsePauli>() {
+        if let Ok(term) = data.cast_exact::<PyPhasedQubitSparsePauli>() {
             return term.borrow().to_phased_qubit_sparse_pauli_list();
         };
         if let Ok(pauli_list) = Self::from_phased_qubit_sparse_paulis(data, num_qubits) {
@@ -1274,14 +1274,12 @@ impl PyPhasedQubitSparsePauliList {
                         "cannot construct an empty PhasedQubitSparsePauliList without knowing `num_qubits`",
                     ));
                 };
-                let py_term = first?.downcast::<PyPhasedQubitSparsePauli>()?.borrow();
+                let py_term = first?.cast::<PyPhasedQubitSparsePauli>()?.borrow();
                 py_term.inner.to_phased_qubit_sparse_pauli_list()
             }
         };
         for bound_py_term in iter {
-            let py_term = bound_py_term?
-                .downcast::<PyPhasedQubitSparsePauli>()?
-                .borrow();
+            let py_term = bound_py_term?.cast::<PyPhasedQubitSparsePauli>()?.borrow();
             inner.add_phased_qubit_sparse_pauli(py_term.inner.view())?;
         }
         Ok(inner.into())
@@ -1521,7 +1519,7 @@ impl PyPhasedQubitSparsePauliList {
                 return PyPhasedQubitSparsePauli {
                     inner: inner.term(index).to_term(),
                 }
-                .into_bound_py_any(py)
+                .into_bound_py_any(py);
             }
             indices => indices,
         };
@@ -1537,7 +1535,7 @@ impl PyPhasedQubitSparsePauliList {
         if slf.is(&other) {
             return Ok(true);
         }
-        let Ok(other) = other.downcast_into::<Self>() else {
+        let Ok(other) = other.cast_into::<Self>() else {
             return Ok(false);
         };
         let slf_borrowed = slf.borrow();

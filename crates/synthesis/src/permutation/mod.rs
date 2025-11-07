@@ -16,9 +16,9 @@ use smallvec::smallvec;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
+use qiskit_circuit::Qubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{Param, StandardGate};
-use qiskit_circuit::Qubit;
 
 use super::linear_phase::cz_depth_lnn::LnnGatesVec;
 

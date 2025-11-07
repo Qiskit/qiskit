@@ -27,7 +27,7 @@ use std::iter::Iterator;
 use std::marker;
 use std::num::NonZero;
 
-use hashbrown::{hash_map::Entry, HashMap};
+use hashbrown::{HashMap, hash_map::Entry};
 use indexmap::IndexMap;
 use smallvec::SmallVec;
 
@@ -39,9 +39,10 @@ use rustworkx_core::petgraph::visit::{
 };
 use rustworkx_core::petgraph::{Direction, Graph, Incoming, Outgoing};
 
-mod alias {
+pub mod alias {
     use std::hash::Hash;
 
+    use rustworkx_core::petgraph::Direction;
     use rustworkx_core::petgraph::data::DataMap;
     use rustworkx_core::petgraph::graph::IndexType;
     use rustworkx_core::petgraph::visit::{
@@ -49,7 +50,6 @@ mod alias {
         IntoEdgesDirected, IntoNeighbors, IntoNeighborsDirected, IntoNodeIdentifiers,
         NodeCompactIndexable, NodeCount, NodeIndexable,
     };
-    use rustworkx_core::petgraph::Direction;
 
     pub trait IntoVf2Graph:
         GraphBase<NodeId: Hash + Eq + 'static, EdgeId: 'static>
@@ -87,11 +87,7 @@ mod alias {
     where
         Self: 'a,
     {
-        type EdgeRef: EdgeRef<
-            NodeId = Self::NodeId,
-            EdgeId = Self::EdgeId,
-            Weight = Self::EdgeWeight,
-        >;
+        type EdgeRef: EdgeRef<NodeId = Self::NodeId, EdgeId = Self::EdgeId, Weight = Self::EdgeWeight>;
         type EdgeReferences: Iterator<Item = Self::EdgeRef>;
         type EdgesDirected: Iterator<Item = Self::EdgeRef>;
         type Neighbors: Iterator<Item = Self::NodeId>;
@@ -756,10 +752,10 @@ where
     where
         Scorer<NS>: Semantics<N::NodeWeight, H::NodeWeight>,
         Scorer<ES>: Semantics<
-            N::EdgeWeight,
-            H::EdgeWeight,
-            Score = <Scorer<NS> as Semantics<N::NodeWeight, H::NodeWeight>>::Score,
-        >,
+                N::EdgeWeight,
+                H::EdgeWeight,
+                Score = <Scorer<NS> as Semantics<N::NodeWeight, H::NodeWeight>>::Score,
+            >,
     {
         Vf2 {
             needle: self.needle,
@@ -809,6 +805,13 @@ where
     NS: Semantics<N::NodeWeight, H::NodeWeight>,
     ES: Semantics<N::EdgeWeight, H::EdgeWeight, Score = NS::Score>,
 {
+    pub fn needle(&self) -> &N {
+        &self.needle
+    }
+    pub fn haystack(&self) -> &H {
+        &self.haystack
+    }
+
     /// Add a limit to the number of candidate extensions the algorithm is allowed to attempt.
     ///
     /// This can be used to upper-bound the runtime of the algorithm while keeping it deterministic.

@@ -31,11 +31,11 @@ use hashbrown::HashSet;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use pyo3::{
+    IntoPyObjectExt,
     exceptions::{PyAttributeError, PyIndexError, PyKeyError, PyValueError},
     prelude::*,
     pyclass,
     types::{PyDict, PyList, PySet},
-    IntoPyObjectExt,
 };
 use rustworkx_core::petgraph::prelude::*;
 use smallvec::SmallVec;
@@ -119,6 +119,7 @@ impl NormalOperation {
             OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
             OperationRef::Operation(operation) => operation.operation.clone_ref(py),
             OperationRef::Unitary(unitary) => unitary.create_py_op(py, label)?,
+            OperationRef::PauliProductMeasurement(ppm) => ppm.create_py_op(py, label)?,
         };
         Ok(obj)
     }
@@ -159,13 +160,15 @@ impl<'a, 'py> IntoPyObject<'py> for &'a NormalOperation {
     }
 }
 
-impl<'py> FromPyObject<'py> for NormalOperation {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for NormalOperation {
+    type Error = <OperationFromPython as FromPyObject<'a, 'py>>::Error;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let operation: OperationFromPython = ob.extract()?;
         Ok(Self {
             operation: operation.operation,
             params: operation.params,
-            op_object: Ok(ob.clone().unbind()).into(),
+            op_object: Ok(ob.to_owned().unbind()).into(),
         })
     }
 }
@@ -352,11 +355,7 @@ impl Target {
                 "Instruction {name} is already in the target"
             )));
         }
-        let props_map = if let Some(props_map) = properties {
-            props_map
-        } else {
-            IndexMap::from_iter([(Qargs::Global, None)])
-        };
+        let props_map = properties.unwrap_or_else(|| IndexMap::from_iter([(Qargs::Global, None)]));
 
         self.inner_add_instruction(instruction, name.clone(), props_map)
             .map_err(|err| TranspilerError::new_err(err.to_string()))?;
@@ -805,6 +804,9 @@ impl Target {
                     OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
                     OperationRef::Operation(operation) => operation.operation.clone_ref(py),
                     OperationRef::Unitary(unitary) => unitary.create_py_op(py, None)?.into_any(),
+                    OperationRef::PauliProductMeasurement(ppm) => {
+                        ppm.create_py_op(py, None)?.into_any()
+                    }
                 },
                 TargetOperation::Variadic(op_cls) => op_cls.clone_ref(py),
             };
@@ -912,7 +914,7 @@ impl Target {
                 .extract::<Vec<(Qargs, HashSet<String>)>>()?,
         );
         let angle_bounds_raw = state.get_item("angle_bounds")?.unwrap();
-        let angle_bounds_dict = angle_bounds_raw.downcast::<PyDict>()?;
+        let angle_bounds_dict = angle_bounds_raw.cast::<PyDict>()?;
         type AngleBoundIterList = Vec<(String, SmallVec<[Option<[f64; 2]>; 3]>)>;
         let angle_bounds_list: AngleBoundIterList = angle_bounds_dict.items().extract()?;
         for (gate, bounds) in angle_bounds_list {
@@ -1075,11 +1077,7 @@ impl Target {
                                 qarg_slice.iter().fold(
                                     0,
                                     |acc, x| {
-                                        if acc > x.0 {
-                                            acc
-                                        } else {
-                                            x.0
-                                        }
+                                        if acc > x.0 { acc } else { x.0 }
                                     },
                                 ) + 1,
                             ));
@@ -1223,7 +1221,7 @@ impl Target {
     }
 
     /// Get an iterator over the indices of all physical qubits of the target
-    pub fn physical_qubits(&self) -> impl ExactSizeIterator<Item = PhysicalQubit> {
+    pub fn physical_qubits(&self) -> impl ExactSizeIterator<Item = PhysicalQubit> + use<> {
         (0..self.num_qubits.unwrap_or_default()).map(PhysicalQubit)
     }
 
@@ -1342,7 +1340,7 @@ impl Target {
     pub fn operations_for_qargs<'a, T>(
         &self,
         qargs: T,
-    ) -> Result<impl Iterator<Item = &NormalOperation>, TargetError>
+    ) -> Result<impl Iterator<Item = &NormalOperation> + use<'_, T>, TargetError>
     where
         T: Into<QargsRef<'a>>,
     {
@@ -1366,15 +1364,16 @@ impl Target {
     pub fn qargs_for_operation_name(
         &self,
         operation: &str,
-    ) -> Result<Option<impl Iterator<Item = &Qargs>>, TargetError> {
-        if let Some(gate_map_oper) = self.gate_map.get(operation) {
-            if gate_map_oper.contains_key(&Qargs::Global) {
-                return Ok(None);
+    ) -> Result<Option<impl Iterator<Item = &Qargs> + use<'_>>, TargetError> {
+        match self.gate_map.get(operation) {
+            Some(gate_map_oper) => {
+                if gate_map_oper.contains_key(&Qargs::Global) {
+                    return Ok(None);
+                }
+                let qargs = gate_map_oper.keys().filter(|qargs| qargs.is_concrete());
+                Ok(Some(qargs))
             }
-            let qargs = gate_map_oper.keys().filter(|qargs| qargs.is_concrete());
-            Ok(Some(qargs))
-        } else {
-            Err(TargetError::InvalidKey(operation.to_string()))
+            None => Err(TargetError::InvalidKey(operation.to_string())),
         }
     }
 
@@ -1559,7 +1558,7 @@ impl Target {
             None => {
                 return Err(TargetError::InvalidKey(format!(
                     "{name} is not an instruction in the target."
-                )))
+                )));
             }
         };
         if num_bounds != num_params {
@@ -1682,7 +1681,7 @@ mod test {
     use std::sync::Arc;
 
     use qiskit_circuit::operations::{
-        get_standard_gate_names, Operation, Param, StandardGate, STANDARD_GATE_SIZE,
+        Operation, Param, STANDARD_GATE_SIZE, StandardGate, get_standard_gate_names,
     };
     use qiskit_circuit::packed_instruction::PackedOperation;
     use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
@@ -1692,7 +1691,7 @@ mod test {
     use crate::target::QargsRef;
     use qiskit_circuit::PhysicalQubit;
 
-    use super::{instruction_properties::InstructionProperties, Qargs, Target, TargetError};
+    use super::{Qargs, Target, TargetError, instruction_properties::InstructionProperties};
 
     #[test]
     fn test_invalid_params_instruction() {
@@ -1773,7 +1772,10 @@ mod test {
         let Err(res) = result else {
             panic!("The operation did not fail as expected.");
         };
-        let expected_message = format!("The number of qubits for cz does not match the number of qubits in the properties dictionary: {:?}.", Qargs::Concrete(qargs));
+        let expected_message = format!(
+            "The number of qubits for cz does not match the number of qubits in the properties dictionary: {:?}.",
+            Qargs::Concrete(qargs)
+        );
         assert_eq!(res.to_string(), expected_message);
     }
 

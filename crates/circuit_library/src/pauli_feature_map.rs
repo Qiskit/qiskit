@@ -15,16 +15,16 @@ use pyo3::types::PySequence;
 use pyo3::types::PyString;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{
-    add_param, multiply_param, multiply_params, Param, StandardGate, StandardInstruction,
+    Param, StandardGate, StandardInstruction, add_param, multiply_param, multiply_params,
 };
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
-use smallvec::{smallvec, SmallVec};
+use smallvec::{SmallVec, smallvec};
 use std::f64::consts::PI;
 
+use crate::QiskitError;
 use crate::entanglement;
 use crate::pauli_evolution;
-use crate::QiskitError;
 
 type Instruction = (
     PackedOperation,
@@ -73,7 +73,7 @@ pub fn pauli_feature_map(
     // extract the parameters from the input variable ``parameters``
     let parameter_vector = parameters
         .try_iter()?
-        .map(|el| Param::extract_no_coerce(&el?))
+        .map(|el| Param::extract_no_coerce(el?.as_borrowed()))
         .collect::<PyResult<Vec<Param>>>()?;
 
     // construct a Barrier object Python side to (possibly) add to the circuit
@@ -230,7 +230,7 @@ fn _get_paulis(
             v.iter() // iterate over the list of Paulis
                 .map(|el| {
                     // Get the string and check whether it fits the feature dimension
-                    let as_string = (*el.downcast::<PyString>()?).to_string();
+                    let as_string = (*el.cast::<PyString>()?).to_string();
                     if as_string.len() > feature_dimension as usize {
                         Err(QiskitError::new_err(format!(
                             "feature_dimension ({feature_dimension}) smaller than the Pauli ({as_string})"

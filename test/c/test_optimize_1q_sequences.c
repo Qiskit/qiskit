@@ -133,7 +133,8 @@ static bool compare_gate_counts(QkOpCounts *counts, char **gates, uint32_t *freq
  *
  * Transpile: 0:--[H]-[H]-[H]--
  */
-static int inner_optimize_h_gates(QkTarget *target, char **gates, uint32_t *freq, int num_gates) {
+static int inner_optimize_h_gates(QkTarget *target, char **gates, uint32_t *freq,
+                                  size_t num_gates) {
     int result = Ok;
     // Build circuit
     QkCircuit *circuit = qk_circuit_new(1, 0);

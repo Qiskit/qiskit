@@ -17,7 +17,7 @@
 use pyo3::prelude::*;
 use pyo3::sync::PyOnceLock;
 
-use crate::operations::{StandardGate, STANDARD_GATE_SIZE};
+use crate::operations::{STANDARD_GATE_SIZE, StandardGate};
 
 /// Helper wrapper around `PyOnceLock` instances that are just intended to store a Python object
 /// that is lazily imported.
@@ -116,6 +116,10 @@ pub static BINARY_OP: ImportOnceCell =
 pub static UNITARY_GATE: ImportOnceCell = ImportOnceCell::new(
     "qiskit.circuit.library.generalized_gates.unitary",
     "UnitaryGate",
+);
+pub static PAULI_PRODUCT_MEASUREMENT: ImportOnceCell = ImportOnceCell::new(
+    "qiskit.circuit.library.pauli_product_measurement",
+    "PauliProductMeasurement",
 );
 pub static MCPHASE_GATE: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.library", "MCPhaseGate");

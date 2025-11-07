@@ -10,8 +10,10 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use hashbrown::hash_set::{Entry, HashSet};
 use qiskit_circuit::PhysicalQubit;
 use rustworkx_core::petgraph::visit::*;
+use thiserror::Error;
 
 /// A hash-free fixed-size sparse adjacency-list representation of the neighbors of a node.
 ///
@@ -24,7 +26,7 @@ use rustworkx_core::petgraph::visit::*;
 /// containing the neighbours.  Looking whether a node _is_ a neighbour is done by iterating through
 /// the slice (it's allowable to binary search, but in practice the degree is likely sufficiently
 /// small that a linear search is faster).
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Neighbors {
     neighbors: Vec<PhysicalQubit>,
     partition: Vec<usize>,
@@ -142,6 +144,80 @@ impl Neighbors {
         }
     }
 
+    /// Construct the object from its two constituent arrays.
+    ///
+    /// The `partition` array should:
+    ///
+    /// * be monotonically increasing for `0` to `neighbors.len()`
+    /// * be of length `num_qubits + 1`
+    ///
+    /// The `neighbors` array represents the connections between qubits.  Each slice
+    /// `neighbors[partition[i]..partition[i+1]]` represents the qubits that qubit `i` neighbors.
+    /// Each of these slices should:
+    ///
+    /// * contain only qubit indices that are less than `partition.len()`
+    /// * be in sorted order
+    /// * contain no duplicates
+    ///
+    /// The `neighbors` should be symmetric; the graph is undirected.
+    pub fn from_parts(
+        neighbors: Vec<PhysicalQubit>,
+        partition: Vec<usize>,
+    ) -> Result<Self, ConstructionError> {
+        if partition.first().copied() != Some(0)
+            || partition.last().copied() != Some(neighbors.len())
+            || !partition.iter().is_sorted()
+        {
+            return Err(ConstructionError::PartitionInconsistent);
+        }
+        let max_index = partition.len() - 1;
+        if neighbors.iter().any(|q| q.index() >= max_index) {
+            return Err(ConstructionError::QubitOutOfBounds);
+        }
+        if std::iter::zip(&partition, &partition[1..])
+            // `is_sorted` allows `<=`, but we want to reject equality (duplicates) too.
+            .any(|(&start, &end)| !neighbors[start..end].is_sorted_by(|a, b| a < b))
+        {
+            return Err(ConstructionError::Unsorted);
+        }
+        let mut asymmetry = HashSet::new();
+        for (i, (start, end)) in std::iter::zip(&partition, &partition[1..]).enumerate() {
+            let us = PhysicalQubit::new(i as u32);
+            for &other in &neighbors[*start..*end] {
+                match asymmetry.entry((us.min(other), us.max(other))) {
+                    Entry::Occupied(e) => {
+                        e.remove();
+                    }
+                    Entry::Vacant(e) => {
+                        e.insert();
+                    }
+                };
+            }
+        }
+        if !asymmetry.is_empty() {
+            return Err(ConstructionError::Asymmetric);
+        }
+        Ok(Self {
+            neighbors,
+            partition,
+        })
+    }
+
+    /// Directly construct this object without checking the values for coherence.
+    ///
+    /// See [from_parts] for an error-checking variant of this function.
+    pub fn from_parts_unchecked(neighbors: Vec<PhysicalQubit>, partition: Vec<usize>) -> Self {
+        Self {
+            neighbors,
+            partition,
+        }
+    }
+
+    /// Destructure this object into its "neighbor-list" and "partitions" components.
+    pub fn take(self) -> (Vec<PhysicalQubit>, Vec<usize>) {
+        (self.neighbors, self.partition)
+    }
+
     #[inline]
     pub fn num_qubits(&self) -> usize {
         self.partition.len() - 1
@@ -157,6 +233,7 @@ impl Neighbors {
         self[left].contains(&right)
     }
 }
+
 impl std::ops::Index<PhysicalQubit> for Neighbors {
     type Output = [PhysicalQubit];
 
@@ -165,6 +242,19 @@ impl std::ops::Index<PhysicalQubit> for Neighbors {
         let index = index.index();
         &self.neighbors[self.partition[index]..self.partition[index + 1]]
     }
+}
+
+/// The reasons that direct construction of a `Neighbors` object might fail.
+#[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConstructionError {
+    #[error("the per-qubit neighbor lists are not in sorted order or contain parallel edges")]
+    Unsorted,
+    #[error("a qubit in the adjacency list exceeds the maximum set by the partitions")]
+    QubitOutOfBounds,
+    #[error("the partitions do not monotonically increase from 0 to the length of the adjacencies")]
+    PartitionInconsistent,
+    #[error("the neighbors are not symmetric")]
+    Asymmetric,
 }
 
 /// Implementations of the various `petgraph` graph-visiting traits, which makes [Neighbors] (or
@@ -237,6 +327,10 @@ mod visit {
         fn neighbors_directed(self, n: PhysicalQubit, _: Direction) -> Self::NeighborsDirected {
             <Self as visit::IntoNeighbors>::neighbors(self, n)
         }
+    }
+
+    impl visit::GraphProp for Neighbors {
+        type EdgeType = Undirected;
     }
 
     impl visit::IntoNodeIdentifiers for &'_ Neighbors {
@@ -370,4 +464,61 @@ mod visit {
         }
     }
     impl ExactSizeIterator for Edges<'_> {}
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn from_parts_catches_errors() {
+        let lift = |idx: Vec<u32>| idx.into_iter().map(PhysicalQubit).collect::<Vec<_>>();
+        // Parition doesn't start from zero.
+        assert_eq!(
+            Neighbors::from_parts(lift(vec![1, 0]), vec![1, 2, 2]),
+            Err(ConstructionError::PartitionInconsistent)
+        );
+
+        // Partition doesn't match the length.
+        assert_eq!(
+            Neighbors::from_parts(lift(vec![]), vec![]),
+            Err(ConstructionError::PartitionInconsistent)
+        );
+        assert_eq!(
+            Neighbors::from_parts(lift(vec![1, 0]), vec![0, 1, 1]),
+            Err(ConstructionError::PartitionInconsistent),
+        );
+        assert_eq!(
+            Neighbors::from_parts(lift(vec![1, 0]), vec![0, 1, 3]),
+            Err(ConstructionError::PartitionInconsistent),
+        );
+
+        // Partition not monotonically increasing.
+        assert_eq!(
+            Neighbors::from_parts(lift(vec![1, 0]), vec![0, 3, 2]),
+            Err(ConstructionError::PartitionInconsistent),
+        );
+
+        // Neighbors not in sorted order.
+        assert_eq!(
+            Neighbors::from_parts(lift(vec![2, 1, 0, 0]), vec![0, 2, 3, 4]),
+            Err(ConstructionError::Unsorted),
+        );
+        // Neighbors contains duplicates.
+        assert_eq!(
+            Neighbors::from_parts(lift(vec![1, 1, 0, 0]), vec![0, 2, 4]),
+            Err(ConstructionError::Unsorted),
+        );
+        // Neighbors contains out-of-bounds qubits.
+        assert_eq!(
+            Neighbors::from_parts(lift(vec![2, 0]), vec![0, 1, 2]),
+            Err(ConstructionError::QubitOutOfBounds),
+        );
+
+        // Neighbors is asymmetric.
+        assert_eq!(
+            Neighbors::from_parts(lift(vec![1]), vec![0, 1, 1]),
+            Err(ConstructionError::Asymmetric),
+        );
+    }
 }
