@@ -33,7 +33,7 @@ use qiskit_circuit::{PhysicalQubit, VirtualQubit, vf2};
 
 use super::error_map::ErrorMap;
 use crate::target::{Qargs, QargsRef, Target};
-use qiskit_circuit::instruction::ControlFlowView;
+use qiskit_circuit::operations::ControlFlowView;
 
 const PARALLEL_THRESHOLD: usize = 50;
 

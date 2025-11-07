@@ -16,7 +16,7 @@ use rustworkx_core::petgraph::prelude::*;
 use thiserror::Error;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
-use qiskit_circuit::instruction::ControlFlowView;
+use qiskit_circuit::operations::ControlFlowView;
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Qubit, VirtualQubit};

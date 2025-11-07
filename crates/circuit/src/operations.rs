@@ -602,6 +602,58 @@ impl Operation for ControlFlowInstruction {
     }
 }
 
+/// An ergonomic view of a control flow operation and its blocks.
+#[derive(Clone, Debug)]
+pub enum ControlFlowView<'a, T> {
+    Box(Option<&'a BoxDuration>, &'a T),
+    BreakLoop,
+    ContinueLoop,
+    ForLoop {
+        indexset: &'a [usize],
+        loop_param: Option<&'a Py<PyAny>>,
+        body: &'a T,
+    },
+    IfElse {
+        condition: &'a Condition,
+        true_body: &'a T,
+        false_body: Option<&'a T>,
+    },
+    Switch {
+        target: &'a SwitchTarget,
+        cases_specifier: Vec<(&'a Vec<CaseSpecifier>, &'a T)>,
+    },
+    While {
+        condition: &'a Condition,
+        body: &'a T,
+    },
+}
+
+impl<'a, T> ControlFlowView<'a, T> {
+    pub fn blocks(&self) -> Vec<&'a T> {
+        match self {
+            ControlFlowView::Box(_, body) => vec![*body],
+            ControlFlowView::BreakLoop => vec![],
+            ControlFlowView::ContinueLoop => vec![],
+            ControlFlowView::ForLoop { body, .. } => vec![*body],
+            ControlFlowView::IfElse {
+                true_body,
+                false_body,
+                ..
+            } => {
+                if let Some(false_body) = false_body {
+                    vec![*true_body, *false_body]
+                } else {
+                    vec![*true_body]
+                }
+            }
+            ControlFlowView::Switch {
+                cases_specifier, ..
+            } => cases_specifier.iter().map(|(_, block)| *block).collect(),
+            ControlFlowView::While { body, .. } => vec![*body],
+        }
+    }
+}
+
 /// A control flow operation's condition.
 #[derive(Clone, Debug, PartialEq, IntoPyObject)]
 pub enum Condition {

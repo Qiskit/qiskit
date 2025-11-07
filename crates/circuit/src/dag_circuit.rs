@@ -32,8 +32,9 @@ use crate::error::DAGCircuitError;
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
-    ArrayType, BoxDuration, Condition, ControlFlow, ControlFlowInstruction, Operation,
-    OperationRef, Param, PythonOperation, StandardGate, StandardInstruction, SwitchTarget,
+    ArrayType, BoxDuration, Condition, ControlFlow, ControlFlowInstruction, ControlFlowView,
+    Operation, OperationRef, Param, PythonOperation, StandardGate, StandardInstruction,
+    SwitchTarget,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::ParameterExpression;
@@ -78,7 +79,7 @@ use rustworkx_core::traversal::{
 };
 
 use crate::imports::PARAMETER;
-use crate::instruction::{ControlFlowView, Parameters};
+use crate::instruction::Parameters;
 use crate::parameter_table::ParameterUuid;
 use approx::relative_eq;
 use std::collections::{BTreeMap, VecDeque};
