@@ -2377,6 +2377,7 @@ impl CircuitData {
                     .try_view_control_flow(instruction_index)
                     .unwrap()
                     .blocks()
+                    .into_iter()
                     .cloned()
                     .collect();
                 match instr.op.view() {
@@ -2414,6 +2415,7 @@ impl CircuitData {
                             .try_view_control_flow(instruction_index)
                             .unwrap()
                             .blocks()
+                            .into_iter()
                             .cloned()
                             .collect();
                         Python::attach(|py| -> PyResult<_> {
@@ -2467,6 +2469,7 @@ impl CircuitData {
                     .try_view_control_flow(instruction_index)
                     .unwrap()
                     .blocks()
+                    .into_iter()
                     .cloned()
                     .collect();
                 match instr.op.view() {
@@ -2504,6 +2507,7 @@ impl CircuitData {
                             .try_view_control_flow(instruction_index)
                             .unwrap()
                             .blocks()
+                            .into_iter()
                             .cloned()
                             .collect();
                         Python::attach(|py| -> PyResult<_> {

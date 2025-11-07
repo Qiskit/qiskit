@@ -43,6 +43,7 @@ impl InteractionKind {
     fn from_control_flow(cf: ControlFlowView<DAGCircuit>) -> Result<Self, SabreDAGError> {
         let blocks: Box<[_]> = cf
             .blocks()
+            .into_iter()
             .map(|dag| Ok((SabreDAG::from_dag(dag)?, dag.clone())))
             .collect::<Result<_, SabreDAGError>>()?;
         Ok(Self::ControlFlow(blocks))

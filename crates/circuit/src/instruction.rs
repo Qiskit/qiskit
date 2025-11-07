@@ -181,7 +181,7 @@ pub enum ControlFlowView<'a, T> {
 }
 
 impl<'a, T> ControlFlowView<'a, T> {
-    pub fn blocks(&self) -> impl ExactSizeIterator<Item = &'a T> {
+    pub fn blocks(&self) -> Vec<&'a T> {
         match self {
             ControlFlowView::Box(_, body) => vec![*body],
             ControlFlowView::BreakLoop => vec![],
@@ -203,6 +203,5 @@ impl<'a, T> ControlFlowView<'a, T> {
             } => cases_specifier.iter().map(|(_, block)| *block).collect(),
             ControlFlowView::While { body, .. } => vec![*body],
         }
-        .into_iter()
     }
 }

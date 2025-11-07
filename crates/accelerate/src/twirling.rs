@@ -240,6 +240,7 @@ fn generate_twirled_circuit(
         if let Some(control_flow) = circ.try_view_control_flow(index) {
             let new_blocks: Vec<_> = control_flow
                 .blocks()
+                .into_iter()
                 .map(|block| {
                     // TODO: remove this once PackedInstruction's block type is CircuitData.
                     let block = block
