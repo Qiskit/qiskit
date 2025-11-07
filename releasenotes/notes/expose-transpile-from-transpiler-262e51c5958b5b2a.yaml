@@ -1,8 +1,18 @@
 ---
-features_transpiler:
+upgrade:
   - |
-    The :func:`~qiskit.transpiler.transpile` function is now implemented in the
-    :mod:`qiskit.transpiler` package and available as
-    :func:`qiskit.transpiler.transpile`. The legacy
-    :mod:`qiskit.compiler` import path continues to re-export the function for
-    backwards compatibility.
+    The canonical implementation of
+    :func:`~qiskit.transpiler.transpile` now lives in the
+    :mod:`qiskit.transpiler` package alongside the rest of the transpiler
+    internals. Importing from :mod:`qiskit.transpiler` avoids an unnecessary
+    dependency on :mod:`qiskit.compiler` and better reflects where the
+    transpiler logic resides. The legacy
+    :func:`qiskit.compiler.transpile` re-export continues to work so existing
+    imports remain compatible.
+deprecate:
+  - |
+    Importing :func:`transpile` from :mod:`qiskit.compiler` is now formally
+    deprecated. The symbol continues to re-export the same function for
+    compatibility, but new code should import from
+    :mod:`qiskit.transpiler` instead. The compatibility alias will be
+    removed in a future release after the usual deprecation period.
