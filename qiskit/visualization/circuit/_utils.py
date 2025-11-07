@@ -507,33 +507,33 @@ def _sorted_nodes(dag_layer):
 
 def _get_gate_span(qubits, clbits, node, measure_arrows):
     """Return the ordered wires this node would occupy when drawn."""
-    wires = list(qubits) + list(clbits)
-    offset = len(qubits)
 
-    qubit_indices = [qubits.index(qreg) for qreg in node.qargs if qreg in qubits]
-    classical_indices = [offset + clbits.index(creg) for creg in node.cargs if creg in clbits]
+    if isinstance(node.op, ControlFlowOp) and not isinstance(node.op, BoxOp):
+        # Because of wrapping boxes for mpl control flow ops, this
+        # type of op must be the only op in the layer
+        # BoxOps are excepted because they have one block executed unconditionally
+        return qubits
 
-    if not qubit_indices and not classical_indices:
+    qubit_index_map = {bit: idx for idx, bit in enumerate(qubits)}
+    qubit_indices = [qubit_index_map[qarg] for qarg in node.qargs if qarg in qubit_index_map]
+
+    if not qubit_indices and not node.cargs:
         # Operations with no wires shouldn't collide with anything.
         return []
 
-    if isinstance(node.op, ControlFlowOp) and not isinstance(node.op, BoxOp):
-        # Because of wrapping boxes for mpl control flow ops, this type of op must be the only op in
-        # the layer. BoxOps are excepted because they have one block executed unconditionally.
+    if not qubit_indices:
+        # Classical-only operations conservatively reserve the circuit width.
         return qubits
 
-    min_index = min(qubit_indices + classical_indices or [offset])
-    max_index = max(qubit_indices + classical_indices or [offset])
+    min_index = min(qubit_indices)
+    max_index = max(qubit_indices)
 
-    if classical_indices:
-        span = wires[min_index : max_index + 1]
-        if isinstance(node.op, Measure) and not measure_arrows:
-            indices = sorted(set(qubit_indices + classical_indices))
-            span = [wires[index] for index in indices]
-    else:
-        span = wires[min_index : max_index + 1]
+    if node.cargs and (
+        (measure_arrows and isinstance(node.op, Measure)) or not isinstance(node.op, Measure)
+    ):
+        return qubits[min_index:]
 
-    return span
+    return qubits[min_index : max_index + 1]
 
 
 def _any_crossover(qubits, clbits, node, nodes, measure_arrows):
