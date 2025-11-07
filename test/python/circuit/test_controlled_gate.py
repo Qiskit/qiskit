@@ -1540,21 +1540,13 @@ class TestSingleControlledRotationGates(QiskitTestCase):
     gry = ry.RYGate(theta)
     grz = rz.RZGate(theta)
 
-    ugu1 = u1.U1Gate(theta).definition
-    ugrx = rx.RXGate(theta).definition
-    ugry = ry.RYGate(theta).definition
-    ugrz = rz.RZGate(theta).definition
-    ugrz.params = grz.params
-
-    cgu1 = ugu1.control(num_ctrl)
-    cgrx = ugrx.control(num_ctrl)
-    cgry = ugry.control(num_ctrl)
-    cgrz = ugrz.control(num_ctrl)
-
-    @data((gu1, cgu1), (grx, cgrx), (gry, cgry), (grz, cgrz))
-    @unpack
-    def test_single_controlled_rotation_gates(self, gate, cgate):
+    @data(gu1, grx, gry, grz)
+    def test_single_controlled_rotation_gates(self, gate):
         """Test the controlled rotation gates controlled on one qubit."""
+        as_circuit = QuantumCircuit(1)
+        as_circuit.append(gate, [0])
+        cgate = as_circuit.control(num_ctrl_qubits=2)
+
         if gate.name == "rz":
             iden = Operator.from_label("I")
             zgen = Operator.from_label("Z")
