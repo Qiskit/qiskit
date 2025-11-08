@@ -515,15 +515,12 @@ def _get_gate_span(qubits, node, measure_arrows):
         return qubits
 
     qubit_index_map = {bit: idx for idx, bit in enumerate(qubits)}
-    qubit_indices = [qubit_index_map[qarg] for qarg in node.qargs if qarg in qubit_index_map]
-
-    if not qubit_indices and not node.cargs:
-        # Operations with no wires shouldn't collide with anything.
-        return []
+    qubit_indices = [qubit_index_map[qarg] for qarg in node.qargs]
 
     if not qubit_indices:
-        # Classical-only operations conservatively reserve the circuit width.
-        return qubits
+        # We should not have operations with only classical wires,
+        # and the operations with no qubits shouldn't collide with anything.
+        return []
 
     min_index = min(qubit_indices)
     max_index = max(qubit_indices)
@@ -613,17 +610,17 @@ class _LayerSpooler(list):
             index_stop = -1
             if (condition := getattr(node.op, "condition", None)) is not None:
                 index_stop = max(
-                    (
-                        self.measure_map[bit]
-                        for bit in condition_resources(condition).clbits
-                        if bit in self.measure_map
-                    ),
+                    (self.measure_map[bit] for bit in condition_resources(condition).clbits),
                     default=index_stop,
                 )
             if node.cargs:
                 for carg in node.cargs:
-                    if carg in self.measure_map and self.measure_map[carg] > index_stop:
-                        index_stop = self.measure_map[carg]
+                    try:
+                        carg_bit = next(bit for bit in self.measure_map if carg == bit)
+                        if self.measure_map[carg_bit] > index_stop:
+                            index_stop = self.measure_map[carg_bit]
+                    except StopIteration:
+                        pass
             while curr_index > index_stop:
                 if self.is_found_in(node, self[curr_index]):
                     break
