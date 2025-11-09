@@ -939,13 +939,16 @@ cleanup:
  * Test circuit to dag conversion.
  */
 static int test_circuit_to_dag(void) {
-    QkCircuit *qc = qk_circuit_new(2, 1);
+    QkCircuit *circuit = qk_circuit_new(2, 1);
+    qk_circuit_gate(circuit, QkGate_H, (uint32_t[]){0}, NULL);
+    qk_circuit_gate(circuit, QkGate_CX, (uint32_t[]){0, 1}, NULL);
 
-    QkDag *dag = qk_circuit_to_dag(qc, (uint32_t[]){1, 0}, NULL);
-    qk_circuit_free(qc);
+    QkDag *dag = qk_circuit_to_dag(circuit, (uint32_t[]){1, 0}, NULL);
+    qk_circuit_free(circuit);
 
     int result = Ok;
-    if (qk_dag_num_qubits(dag) != 2 || qk_dag_num_clbits(dag) != 1) {
+    if (qk_dag_num_qubits(dag) != 2 || qk_dag_num_clbits(dag) != 1 ||
+        qk_dag_num_op_nodes(dag) != 2) {
         printf("Circuit to DAG conversion encountered an issue\n");
         result = EqualityError;
     }

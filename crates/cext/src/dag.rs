@@ -25,7 +25,7 @@ use qiskit_circuit::operations::{
 /// @ingroup QkDag
 /// Construct a new empty DAG.
 ///
-/// You must free the returned DAG with qk_dag_free when done with it.
+/// You must free the returned DAG with ``qk_dag_free`` when done with it.
 ///
 /// @return A pointer to the created DAG.
 ///
@@ -742,9 +742,11 @@ pub unsafe extern "C" fn qk_dag_free(dag: *mut DAGCircuit) {
 /// @ingroup QkDag
 /// Convert a given DAG to a circuit.
 ///
+/// You must free the returned circuit with ``qk_circuit_free`` when done with it.
+///
 /// @param dag A pointer to the DAG from which to create the circuit.
 ///
-/// @return A pointer to the new circuit. The pointer needs to be freed with ``qk_circuit_free``.
+/// @return A pointer to the new circuit.
 ///
 /// # Example
 /// ```c

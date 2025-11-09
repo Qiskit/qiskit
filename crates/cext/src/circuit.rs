@@ -1156,13 +1156,15 @@ pub unsafe extern "C" fn qk_circuit_delay(
 /// @ingroup QkCircuit
 /// Convert a given circuit to a DAG.
 ///
+/// The returned DAG needs to be freed with ``qk_dag_free``.
+///
 /// @param circuit A pointer to the circuit from which to create the DAG.
 /// @param qubit_order The order of the qubits in the output DAG. Defaults to the same order
 ///     as the input circuit if NULL. If not NULL, it must be of length ``qk_circuit_num_qubits()``.
 /// @param clbit_order The order of the clbits in the output DAG. Defaults to the same order
 ///     as the input circuit if NULL. If not NULL, it must be of length ``qk_circuit_num_clbits()``.
 ///
-/// @return A pointer to the new DAG. The pointer needs to be freed with ``qk_dag_free``.
+/// @return A pointer to the new DAG.
 ///
 /// # Example
 /// ```c
