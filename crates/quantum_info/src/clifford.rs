@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 use std::fmt;
 
+use crate::sparse_observable::BitTerm;
 use ndarray::{Array2, azip, s};
 use qiskit_circuit::Qubit;
 
@@ -226,29 +227,28 @@ impl Clifford {
     }
 
     /// Evolving the single-qubit Pauli-Z with Z on qubit qbit.
-    /// Returns the evolved Pauli in the sparse format: (sign, paulis, indices).
-    pub fn get_inverse_z(&self, qbit: usize) -> (bool, String, Vec<Qubit>) {
-        let mut string = String::new();
+    pub fn get_inverse_z(&self, qbit: usize) -> (bool, Vec<BitTerm>, Vec<Qubit>) {
+        let mut bit_terms = Vec::with_capacity(self.num_qubits);
         let mut pauli = vec![false; 2 * self.num_qubits];
 
         let indices = (0..self.num_qubits)
             .filter_map(|i| {
-                let x_bit = self.tableau[[i + self.num_qubits, qbit]];
                 let z_bit = self.tableau[[i, qbit]];
-                match (x_bit, z_bit) {
+                let x_bit = self.tableau[[i + self.num_qubits, qbit]];
+                match (z_bit, x_bit) {
                     (false, false) => None,
-                    (true, false) => {
-                        string.push('X');
+                    (false, true) => {
+                        bit_terms.push(BitTerm::X);
                         pauli[i] = true;
                         Some(Qubit::new(i))
                     }
-                    (false, true) => {
-                        string.push('Z');
+                    (true, false) => {
+                        bit_terms.push(BitTerm::Z);
                         pauli[i + self.num_qubits] = true;
                         Some(Qubit::new(i))
                     }
                     (true, true) => {
-                        string.push('Y');
+                        bit_terms.push(BitTerm::Y);
                         pauli[i] = true;
                         pauli[i + self.num_qubits] = true;
                         Some(Qubit::new(i))
@@ -256,9 +256,9 @@ impl Clifford {
                 }
             })
             .collect();
-
         let phase = compute_phase_product_pauli(self, &pauli);
-        (phase, string, indices)
+
+        (phase, bit_terms, indices)
     }
 }
 

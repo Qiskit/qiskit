@@ -14,85 +14,32 @@ use pyo3::prelude::*;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::imports::PAULI_EVOLUTION_GATE;
-use qiskit_circuit::interner::{Interned, Interner};
 use qiskit_circuit::operations::{
-    Operation, OperationRef, Param, PyGate, StandardGate, multiply_param,
+    Operation, OperationRef, Param, PauliProductMeasurement, PyGate, StandardGate,
+    StandardInstruction, multiply_param,
 };
 use qiskit_circuit::packed_instruction::PackedInstruction;
-use qiskit_circuit::{Clbit, Qubit, VarsMode};
+use qiskit_circuit::{Clbit, VarsMode};
 
 use qiskit_quantum_info::clifford::Clifford;
-use qiskit_quantum_info::sparse_observable::PySparseObservable;
+use qiskit_quantum_info::sparse_observable::{BitTerm, SparseObservable};
 
+use num_complex::Complex64;
 use smallvec::smallvec;
 use std::f64::consts::PI;
 
 use crate::TranspilerError;
 
-// List of gate names supported by the pass: the pass is skipped if the circuit
-// contains gate names outside of this list.
-const SUPPORTED_GATE_NAMES: &[&str; 19] = &[
+// List of gate/instruction names supported by the pass: the pass raises an error if the circuit
+// contains instruction with names outside of this list.
+static SUPPORTED_INSTRUCTION_NAMES: [&str; 20] = [
     "id", "x", "y", "z", "h", "s", "sdg", "sx", "sxdg", "cx", "cz", "cy", "swap", "iswap", "ecr",
-    "dcx", "t", "tdg", "rz",
+    "dcx", "t", "tdg", "rz", "measure",
 ];
 
-// List of rotation gate names: the pass is skipped if the circuit contains
-// no gate names in this list.
-const ROTATION_GATE_NAMES: &[&str; 3] = &["t", "tdg", "rz"];
-
-/// Expresses a given circuit as a sequence of Pauli rotations followed by a final Clifford operator.
-/// Returns the list of rotations in the sparse format: (sign, paulis, indices).
-fn extract_rotations(
-    gate: StandardGate,
-    qbits: &Interned<[Qubit]>,
-    interner: &Interner<[Qubit]>,
-    clifford: &mut Clifford,
-) -> Option<(bool, String, Vec<Qubit>)> {
-    match gate {
-        StandardGate::I => {}
-        StandardGate::X => clifford.append_x(interner.get(*qbits)[0].index()),
-        StandardGate::Y => clifford.append_y(interner.get(*qbits)[0].index()),
-        StandardGate::Z => clifford.append_z(interner.get(*qbits)[0].index()),
-        StandardGate::H => clifford.append_h(interner.get(*qbits)[0].index()),
-        StandardGate::S => clifford.append_s(interner.get(*qbits)[0].index()),
-        StandardGate::Sdg => clifford.append_sdg(interner.get(*qbits)[0].index()),
-        StandardGate::SX => clifford.append_sx(interner.get(*qbits)[0].index()),
-        StandardGate::SXdg => clifford.append_sxdg(interner.get(*qbits)[0].index()),
-        StandardGate::CX => clifford.append_cx(
-            interner.get(*qbits)[0].index(),
-            interner.get(*qbits)[1].index(),
-        ),
-        StandardGate::CZ => clifford.append_cz(
-            interner.get(*qbits)[0].index(),
-            interner.get(*qbits)[1].index(),
-        ),
-        StandardGate::CY => clifford.append_cy(
-            interner.get(*qbits)[0].index(),
-            interner.get(*qbits)[1].index(),
-        ),
-        StandardGate::Swap => clifford.append_swap(
-            interner.get(*qbits)[0].index(),
-            interner.get(*qbits)[1].index(),
-        ),
-        StandardGate::ISwap => clifford.append_iswap(
-            interner.get(*qbits)[0].index(),
-            interner.get(*qbits)[1].index(),
-        ),
-        StandardGate::ECR => clifford.append_ecr(
-            interner.get(*qbits)[0].index(),
-            interner.get(*qbits)[1].index(),
-        ),
-        StandardGate::DCX => clifford.append_dcx(
-            interner.get(*qbits)[0].index(),
-            interner.get(*qbits)[1].index(),
-        ),
-        StandardGate::RZ => {
-            return Some(clifford.get_inverse_z(interner.get(*qbits)[0].index()));
-        }
-        _ => panic!("Unsupported gate {}", gate.name()),
-    };
-    None
-}
+// List of instruction names which are modified by the pass: the pass is skipped if the circuit
+// contains no instructions with names in this list.
+static HANDLED_INSTRUCTION_NAMES: [&str; 4] = ["t", "tdg", "rz", "measure"];
 
 #[pyfunction]
 #[pyo3(signature = (dag, fix_clifford=true))]
@@ -106,7 +53,7 @@ pub fn run_litinski_transformation(
     // Skip the pass if there are no rotation gates.
     if op_counts
         .keys()
-        .all(|k| !ROTATION_GATE_NAMES.contains(&k.as_str()))
+        .all(|k| !HANDLED_INSTRUCTION_NAMES.contains(&k.as_str()))
     {
         return Ok(None);
     }
@@ -114,22 +61,22 @@ pub fn run_litinski_transformation(
     // Skip the pass if there are unsupported gates.
     if !op_counts
         .keys()
-        .all(|k| SUPPORTED_GATE_NAMES.contains(&k.as_str()))
+        .all(|k| SUPPORTED_INSTRUCTION_NAMES.contains(&k.as_str()))
     {
         let unsupported: Vec<_> = op_counts
             .keys()
-            .filter(|k| !SUPPORTED_GATE_NAMES.contains(&k.as_str()))
+            .filter(|k| !SUPPORTED_INSTRUCTION_NAMES.contains(&k.as_str()))
             .collect();
 
         return Err(TranspilerError::new_err(format!(
-            "Unable to run Litinski tranformation as the circuit contains gates not supported by the pass: {:?}",
+            "Unable to run Litinski tranformation as the circuit contains instructions not supported by the pass: {:?}",
             unsupported
         )));
     }
-    let rotation_count = op_counts
+    let rotation_count: usize = op_counts
         .iter()
         .filter_map(|(k, v)| {
-            if ROTATION_GATE_NAMES.contains(&k.as_str()) {
+            if HANDLED_INSTRUCTION_NAMES.contains(&k.as_str()) {
                 Some(v)
             } else {
                 None
@@ -138,93 +85,264 @@ pub fn run_litinski_transformation(
         .sum();
     let clifford_count = dag.size(false)? - rotation_count;
 
-    let num_qubits = dag.num_qubits();
-
-    // Turn the Qiskit circuit into a vector of (gate name, qubit indices).
-    // Additionally, keep track of the rotation angles, an update to the global phase (produced when
-    // converting T/Tdg gates to RZ-rotations), and Clifford gates in the circuit.
-    let mut angles: Vec<Param> = Vec::with_capacity(rotation_count);
-    let mut global_phase_update = 0.;
-    let mut clifford_ops: Vec<&PackedInstruction> = Vec::with_capacity(clifford_count);
-    let mut clifford = Clifford::identity(num_qubits);
-    let rotations: Vec<_> = dag
-        .topological_op_nodes()?
-        .filter_map(|node_index| {
-            let NodeType::Operation(inst) = &dag[node_index] else {
-                unreachable!(
-                    "Gate instructions should be either Clifford or T/Tdg/RZ at this point."
-                );
-            };
-            let (gate, angle, phase_update) = match inst.op.view() {
-                OperationRef::StandardGate(StandardGate::T) => {
-                    (StandardGate::RZ, Some(Param::Float(PI / 8.)), PI / 8.)
-                }
-                OperationRef::StandardGate(StandardGate::Tdg) => {
-                    (StandardGate::RZ, Some(Param::Float(-PI / 8.0)), -PI / 8.)
-                }
-                OperationRef::StandardGate(StandardGate::RZ) => {
-                    let param = &inst.params_view()[0];
-                    (StandardGate::RZ, Some(multiply_param(param, 0.5)), 0.)
-                }
-                _ => (inst.op.try_standard_gate().unwrap(), None, 0.),
-            };
-
-            global_phase_update += phase_update;
-
-            if let Some(angle) = angle {
-                // This is a rotation, save the angle.
-                angles.push(angle);
-            } else {
-                // This is a Clifford operation, save it.
-                clifford_ops.push(inst);
-            }
-            extract_rotations(gate, &inst.qubits, dag.qargs_interner(), &mut clifford)
-        })
-        .collect();
-
-    // Apply the Litinski transformation.
-    // This returns a list of rotations with +1/-1 signs. Since we aim to preserve the
-    // global phase of the circuit, we ignore the final Clifford operator, and instead
-    // append the Clifford gates from the original circuit.
+    let new_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike)?;
+    let mut new_dag = new_dag.into_builder();
 
     let py_evo_cls = PAULI_EVOLUTION_GATE.get_bound(py);
     let no_clbits: Vec<Clbit> = Vec::new();
 
-    let new_dag = dag.copy_empty_like(VarsMode::Alike)?;
-    let mut new_dag = new_dag.into_builder();
-    new_dag.add_global_phase(&Param::Float(global_phase_update))?;
+    let num_qubits = dag.num_qubits();
+    let mut clifford = Clifford::identity(num_qubits);
 
-    // Add Pauli rotation gates to the Qiskit circuit.
-    for ((sign, paulis, qubits), angle) in rotations.iter().zip(angles) {
-        let py_pauli =
-            PySparseObservable::from_label(paulis.chars().rev().collect::<String>().as_str())?;
+    // Keep track of the update to the global phase (produced when converting T/Tdg gates
+    // to RZ-rotations).
+    let mut global_phase_update = 0.;
 
-        let time = if *sign {
-            multiply_param(&angle, -1.)
-        } else {
-            angle
-        };
-        let py_evo = py_evo_cls.call1((py_pauli, time.clone()))?;
-        let py_gate = PyGate {
-            qubits: qubits.len() as u32,
-            clbits: 0,
-            params: 1,
-            op_name: "PauliEvolution".to_string(),
-            gate: py_evo.into(),
-        };
+    // Keep track of the clifford operations in the circuit.
+    let mut clifford_ops: Vec<&PackedInstruction> = Vec::with_capacity(clifford_count);
+    // Apply the Litinski transformation: that is, express a given circuit as a sequence of Pauli
+    // product rotations and Pauli product measurements, followed by a final Clifford operator.
+    for node_index in dag.topological_op_nodes()? {
+        // Convert T and Tdg gates to RZ rotations.
+        if let NodeType::Operation(inst) = &dag[node_index] {
+            let name = inst.op.name();
 
-        new_dag.apply_operation_back(
-            py_gate.into(),
-            qubits,
-            &no_clbits,
-            Some(smallvec![time]),
-            None,
-            #[cfg(feature = "cache_pygates")]
-            None,
-        )?;
+            match inst.op.view() {
+                OperationRef::StandardGate(StandardGate::I) => {
+                    if fix_clifford {
+                        clifford_ops.push(inst);
+                    }
+                }
+                OperationRef::StandardGate(StandardGate::X) => {
+                    if fix_clifford {
+                        clifford_ops.push(inst);
+                    }
+                    clifford.append_x(dag.get_qargs(inst.qubits)[0].index())
+                }
+                OperationRef::StandardGate(StandardGate::Y) => {
+                    if fix_clifford {
+                        clifford_ops.push(inst);
+                    }
+                    clifford.append_y(dag.get_qargs(inst.qubits)[0].index())
+                }
+                OperationRef::StandardGate(StandardGate::Z) => {
+                    if fix_clifford {
+                        clifford_ops.push(inst);
+                    }
+                    clifford.append_z(dag.get_qargs(inst.qubits)[0].index())
+                }
+                OperationRef::StandardGate(StandardGate::H) => {
+                    if fix_clifford {
+                        clifford_ops.push(inst);
+                    }
+                    clifford.append_h(dag.get_qargs(inst.qubits)[0].index())
+                }
+                OperationRef::StandardGate(StandardGate::S) => {
+                    if fix_clifford {
+                        clifford_ops.push(inst);
+                    }
+                    clifford.append_s(dag.get_qargs(inst.qubits)[0].index())
+                }
+                OperationRef::StandardGate(StandardGate::Sdg) => {
+                    if fix_clifford {
+                        clifford_ops.push(inst);
+                    }
+                    clifford.append_sdg(dag.get_qargs(inst.qubits)[0].index())
+                }
+                OperationRef::StandardGate(StandardGate::SX) => {
+                    if fix_clifford {
+                        clifford_ops.push(inst);
+                    }
+                    clifford.append_sx(dag.get_qargs(inst.qubits)[0].index())
+                }
+                OperationRef::StandardGate(StandardGate::SXdg) => {
+                    if fix_clifford {
+                        clifford_ops.push(inst);
+                    }
+                    clifford.append_sxdg(dag.get_qargs(inst.qubits)[0].index())
+                }
+                OperationRef::StandardGate(StandardGate::CX) => {
+                    if fix_clifford {
+                        clifford_ops.push(inst);
+                    }
+                    clifford.append_cx(
+                        dag.get_qargs(inst.qubits)[0].index(),
+                        dag.get_qargs(inst.qubits)[1].index(),
+                    )
+                }
+                OperationRef::StandardGate(StandardGate::CZ) => {
+                    if fix_clifford {
+                        clifford_ops.push(inst);
+                    }
+                    clifford.append_cz(
+                        dag.get_qargs(inst.qubits)[0].index(),
+                        dag.get_qargs(inst.qubits)[1].index(),
+                    )
+                }
+                OperationRef::StandardGate(StandardGate::CY) => {
+                    if fix_clifford {
+                        clifford_ops.push(inst);
+                    }
+                    clifford.append_cy(
+                        dag.get_qargs(inst.qubits)[0].index(),
+                        dag.get_qargs(inst.qubits)[1].index(),
+                    )
+                }
+                OperationRef::StandardGate(StandardGate::Swap) => {
+                    if fix_clifford {
+                        clifford_ops.push(inst);
+                    }
+                    clifford.append_swap(
+                        dag.get_qargs(inst.qubits)[0].index(),
+                        dag.get_qargs(inst.qubits)[1].index(),
+                    )
+                }
+                OperationRef::StandardGate(StandardGate::ISwap) => {
+                    if fix_clifford {
+                        clifford_ops.push(inst);
+                    }
+                    clifford.append_iswap(
+                        dag.get_qargs(inst.qubits)[0].index(),
+                        dag.get_qargs(inst.qubits)[1].index(),
+                    )
+                }
+                OperationRef::StandardGate(StandardGate::ECR) => {
+                    if fix_clifford {
+                        clifford_ops.push(inst);
+                    }
+                    clifford.append_ecr(
+                        dag.get_qargs(inst.qubits)[0].index(),
+                        dag.get_qargs(inst.qubits)[1].index(),
+                    )
+                }
+                OperationRef::StandardGate(StandardGate::DCX) => {
+                    if fix_clifford {
+                        clifford_ops.push(inst);
+                    }
+                    clifford.append_dcx(
+                        dag.get_qargs(inst.qubits)[0].index(),
+                        dag.get_qargs(inst.qubits)[1].index(),
+                    )
+                }
+                OperationRef::StandardGate(StandardGate::T)
+                | OperationRef::StandardGate(StandardGate::Tdg)
+                | OperationRef::StandardGate(StandardGate::RZ) => {
+                    // Convert T and Tdg gates to RZ rotations
+                    let (angle, phase_update) = match inst.op.view() {
+                        OperationRef::StandardGate(StandardGate::T) => {
+                            (Param::Float(PI / 4.), PI / 8.)
+                        }
+                        OperationRef::StandardGate(StandardGate::Tdg) => {
+                            (Param::Float(-PI / 4.0), -PI / 8.)
+                        }
+                        OperationRef::StandardGate(StandardGate::RZ) => {
+                            let param = &inst.params_view()[0];
+                            (param.clone(), 0.)
+                        }
+                        _ => {
+                            unreachable!("We cannot have gates other than T/Tdg/RZ at this point.");
+                        }
+                    };
+                    global_phase_update += phase_update;
+
+                    // Evolve the single-qubit Pauli-Z with Z on the given qubit.
+                    // Returns the evolved Pauli in the sparse format: (sign, pauli z, pauli x, indices),
+                    // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
+                    let (sign, terms, indices) =
+                        clifford.get_inverse_z(dag.get_qargs(inst.qubits)[0].index());
+                    let coeffs = vec![Complex64::new(1., 0.)];
+                    let terms_len = terms.len() as u32;
+                    let boundaries = vec![0, terms_len as usize];
+                    // SAFETY: This is computed from the clifford and has a known size based on
+                    // the returned terms that is always valid.
+                    let obs = unsafe {
+                        SparseObservable::new_unchecked(
+                            terms_len,
+                            coeffs,
+                            terms,
+                            (0..terms_len).collect(),
+                            boundaries,
+                        )
+                    };
+
+                    let time = if sign {
+                        multiply_param(&angle, -0.5)
+                    } else {
+                        multiply_param(&angle, 0.5)
+                    };
+                    let py_evo = py_evo_cls.call1((obs, time.clone()))?;
+                    let py_gate = PyGate {
+                        qubits: indices.len() as u32,
+                        clbits: 0,
+                        params: 1,
+                        op_name: "PauliEvolution".to_string(),
+                        gate: py_evo.into(),
+                    };
+
+                    new_dag.apply_operation_back(
+                        py_gate.into(),
+                        &indices,
+                        &no_clbits,
+                        Some(smallvec![time]),
+                        None,
+                        #[cfg(feature = "cache_pygates")]
+                        None,
+                    )?;
+                }
+                OperationRef::StandardInstruction(StandardInstruction::Measure) => {
+                    // Returns the evolved Pauli in the sparse format: (sign, pauli z, pauli x, indices),
+                    // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
+                    let (sign, terms, indices) =
+                        clifford.get_inverse_z(dag.get_qargs(inst.qubits)[0].index());
+                    let mut z: Vec<bool> = Vec::with_capacity(terms.len());
+                    let x: Vec<bool> = terms
+                        .into_iter()
+                        .map(|term| match term {
+                            BitTerm::X => {
+                                z.push(false);
+                                true
+                            }
+                            BitTerm::Y => {
+                                z.push(true);
+                                true
+                            }
+                            BitTerm::Z => {
+                                z.push(true);
+                                false
+                            }
+                            _ => {
+                                unreachable!("Only X, Y, Z terms returned by get_inverse_z");
+                            }
+                        })
+                        .collect();
+
+                    let ppm = PauliProductMeasurement { z, x, neg: sign };
+
+                    let ppm_clbits = dag.get_cargs(inst.clbits);
+
+                    new_dag.apply_operation_back(
+                        ppm.into(),
+                        &indices,
+                        ppm_clbits,
+                        None,
+                        None,
+                        #[cfg(feature = "cache_pygates")]
+                        None,
+                    )?;
+                }
+                _ => unreachable!(
+                    "We cannot have unsupported names at this step of Litinski Transformation: {}",
+                    name
+                ),
+            }
+        }
     }
 
+    new_dag.add_global_phase(&Param::Float(global_phase_update))?;
+
     // Add Clifford gates to the Qiskit circuit (when required).
+    // Since we aim to preserve the global phase of the circuit, we add the Clifford operations from
+    // the original circuit (and not the final Clifford operator).
     if fix_clifford {
         for inst in clifford_ops.into_iter() {
             new_dag.push_back(inst.clone())?;
