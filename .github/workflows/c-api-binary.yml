@@ -65,12 +65,6 @@ jobs:
       - name: Build Binary
         run: |
           make c C_DIR_OUT="${{ env.C_DIR_OUT }}"
-
-          # macos requires the dylib name to be changed separately
-          cd ${{ env.C_DIR_OUT }}/lib
-          install_name_tool -id libqiskit.dylib libqiskit.dylib
-          cd -
-          tree .
       - name: Validate Binaries
         run: |
           make ctest \
@@ -79,6 +73,8 @@ jobs:
             C_DIR_TEST_LIB="${{ env.C_DIR_OUT }}/lib" \
       - name: Archive Binaries
         run: |
+          # macos requires the dylib name to be changed separately
+          install_name_tool -id libqiskit.dylib ${{ env.C_DIR_OUT }}/lib/libqiskit.dylib
           tar czf ${{ env.QISKIT_CEXT_DIR }}.tar.gz ${{ env.QISKIT_CEXT_DIR }}
       - name: Release
         run: |
