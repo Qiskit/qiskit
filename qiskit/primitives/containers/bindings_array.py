@@ -100,7 +100,7 @@ class BindingsArray(ShapedMixin):
         it should be incorporated in :attr:`~shape`. When such arrays do not conflict with
         higher-dimensional data, :class:`~.BindingsArray` preserves the trailing singleton axis so
         downstream code can rely on NumPy broadcasting. For example, a sweep shaped ``(N, 1)`` will
-        combine with an observable array shaped ``(M,)`` to produce broadcast results of shape
+        combine with an observable array shaped ``(1, M)`` to produce broadcast results of shape
         ``(N, M)``.
 
         Since :class:`~.Parameter` objects are only allowed to represent float values, this
@@ -114,9 +114,8 @@ class BindingsArray(ShapedMixin):
 
         Raises:
             ValueError: If all inputs are ``None``.
-            ValueError: If the shape cannot be automatically inferred from the arrays, or if there
-                is some inconsistency in the shape of the given arrays.
-            TypeError: If some of the vaules can't be cast to a float type.
+            ValueError: If there is some inconsistency in the shape of the given arrays.
+            TypeError: If some of the values can't be cast to a float type.
         """
         super().__init__()
 
@@ -354,9 +353,9 @@ def _infer_shape(data: dict[tuple[Parameter, ...], np.ndarray]) -> tuple[int, ..
     Raises:
         ValueError: If this cannot be done unambiguously.
     """
-    only_possible_shapes = None
+    only_possible_shapes: set[tuple[int, ...]] | None = None
 
-    def examine_array(*possible_shapes):
+    def examine_array(*possible_shapes: tuple[int, ...]):
         nonlocal only_possible_shapes
         if only_possible_shapes is None:
             only_possible_shapes = set(possible_shapes)
@@ -365,27 +364,40 @@ def _infer_shape(data: dict[tuple[Parameter, ...], np.ndarray]) -> tuple[int, ..
 
     for parameters, val in data.items():
         if len(parameters) != 1:
-            # the last dimension _has_ to be over parameters
+            # Arrays bound to multiple parameters cannot hide their parameter axis.  For example,
+            # values with shape ``(5, 7, 3)`` and parameters ``(a, b, c)`` force the sweep shape to
+            # be ``(5, 7)``.
             examine_array(val.shape[:-1])
         elif val.shape and val.shape[-1] == 1:
-            if val.ndim == 1:
-                # a 1-d array with a trailing singleton most likely omits the parameter axis
-                examine_array(val.shape[:-1])
-            else:
-                # preserve trailing singleton axes so that the broadcasted shape can reflect them
-                examine_array(val.shape[:-1], val.shape)
+            # Arrays ending in a singleton axis are ambiguous: ``(1,)`` could be a scalar binding or
+            # a length-one sweep, while shapes like ``(N, 1)`` often represent column vectors.  Keep
+            # both interpretations so we can drop the axis when required by other arrays yet still
+            # broadcast with observables such as ``(1, M)``.
+            examine_array(val.shape[:-1], val.shape)
+            if val.shape == (1,):
+                # Explicitly include the scalar interpretation so legacy callers continue to see an
+                # empty sweep shape when nothing else constrains it.
+                examine_array(())
         else:
-            # otherwise, the user has left off the last axis and we'll be nice to them
+            # A trailing axis of size larger than one must correspond to parameters.  For a value
+            # shaped ``(8, 6)`` bound to a single parameter, the leading shape is ``(8,)``.
             examine_array(val.shape)
 
     if only_possible_shapes is None:
         return ()
+    if len(only_possible_shapes) == 0:
+        raise ValueError("Could not find any consistent shape.")
     if len(only_possible_shapes) == 1:
         return next(iter(only_possible_shapes))
-    elif len(only_possible_shapes) == 0:
-        raise ValueError("Could not find any consistent shape.")
-    # Choose the most expressive option (i.e. the one with the most trailing axes) so that
-    # leading singleton dimensions that do not contradict other entries are preserved.
+    
+    # Prefer keeping harmless singleton dimensions so column-vector sweeps (``(N, 1)``) can
+    # participate in broadcasting with observable arrays such as ``(1, M)``.  If the ambiguity is
+    # only between scalar interpretations, continue to return the empty shape for backward
+    # compatibility.
+    if () in only_possible_shapes:
+        non_empty = [shape for shape in only_possible_shapes if shape]
+        if not non_empty or all(len(shape) == 1 for shape in non_empty):
+            return ()
     return max(only_possible_shapes, key=lambda shape: (len(shape), shape))
 
 
