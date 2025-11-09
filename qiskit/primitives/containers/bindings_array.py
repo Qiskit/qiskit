@@ -383,9 +383,9 @@ def _infer_shape(data: dict[tuple[Parameter, ...], np.ndarray]) -> tuple[int, ..
             # shaped ``(8, 6)`` bound to a single parameter, the leading shape is ``(8,)``.
             examine_array(val.shape)
 
-    shapes = only_possible_shapes
-    if shapes is None:
+    if only_possible_shapes is None:
         return ()
+    shapes = set(only_possible_shapes)
     if len(shapes) == 0:
         raise ValueError("Could not find any consistent shape.")
     if len(shapes) == 1:
