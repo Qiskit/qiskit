@@ -383,22 +383,23 @@ def _infer_shape(data: dict[tuple[Parameter, ...], np.ndarray]) -> tuple[int, ..
             # shaped ``(8, 6)`` bound to a single parameter, the leading shape is ``(8,)``.
             examine_array(val.shape)
 
-    if only_possible_shapes is None:
+    shapes = only_possible_shapes
+    if shapes is None:
         return ()
-    if len(only_possible_shapes) == 0:
+    if len(shapes) == 0:
         raise ValueError("Could not find any consistent shape.")
-    if len(only_possible_shapes) == 1:
-        return next(iter(only_possible_shapes))
+    if len(shapes) == 1:
+        return next(iter(shapes))
 
     # Prefer keeping harmless singleton dimensions so column-vector sweeps (``(N, 1)``) can
     # participate in broadcasting with observable arrays such as ``(1, M)``.  If the ambiguity is
     # only between scalar interpretations, continue to return the empty shape for backward
     # compatibility.
-    if () in only_possible_shapes:
-        non_empty = [shape for shape in only_possible_shapes if shape]
+    if () in shapes:
+        non_empty = [shape for shape in shapes if shape]
         if not non_empty or all(len(shape) == 1 for shape in non_empty):
             return ()
-    return max(only_possible_shapes, key=lambda shape: (len(shape), shape))
+    return max(shapes, key=lambda shape: (len(shape), shape))
 
 
 def _format_key(key: tuple[Parameter | str, ...]):
