@@ -39,7 +39,7 @@ use crate::py_methods::{
 };
 use crate::value::{
     bit_types, expression_var_declaration, pack_standalone_var, pack_stretch, register_types,
-    serialize, DumpedValue, QPYWriteData, VarOrStretch,
+    serialize, DumpedPyValue, QPYWriteData,
 };
 
 use crate::UnsupportedFeatureForVersion;
@@ -250,7 +250,7 @@ fn pack_circuit_header(
     qpy_data: &QPYWriteData,
 ) -> PyResult<formats::CircuitHeaderV12Pack> {
     let metadata = serialize_metadata(&circuit.metadata, metadata_serializer)?;
-    let global_phase_data = DumpedValue::from_param(circuit.data.global_phase(), qpy_data)?;
+    let global_phase_data = DumpedPyValue::from_param(circuit.data.global_phase(), qpy_data)?;
     let qregs = pack_quantum_registers(&circuit.data);
     let cregs = pack_classical_registers(&circuit.data);
     let mut registers = qregs;
@@ -322,7 +322,7 @@ fn pack_custom_layout(
                             new_list.into_any()
                         }
                     };
-                    extra_register_list.downcast::<PyList>()?.append(qubit)?;
+                    extra_register_list.cast::<PyList>()?.append(qubit)?;
                 }
                 initial_layout_array.append((index, register))?;
             } else {
@@ -345,7 +345,7 @@ fn pack_custom_layout(
                 .collect::<Vec<_>>(),
         )?;
         let layout_mapping = initial_layout.call_method0("get_virtual_bits")?;
-        for (qubit, index) in layout_input_qubit_mapping.downcast::<PyDict>()? {
+        for (qubit, index) in layout_input_qubit_mapping.cast::<PyDict>()? {
             let register = qubit.getattr("_register")?;
             if !register.is_none()
                 && !qubit.getattr("_index")?.is_none()
@@ -359,7 +359,7 @@ fn pack_custom_layout(
                         new_list.into_any()
                     }
                 };
-                extra_register_list.downcast::<PyList>()?.append(&qubit)?;
+                extra_register_list.cast::<PyList>()?.append(&qubit)?;
             }
             input_qubit_mapping_array
                 .set_item(index.extract()?, layout_mapping.get_item(&qubit)?)?;
@@ -375,7 +375,7 @@ fn pack_custom_layout(
         for i in 0..circuit.num_qubits() {
             // this part is alternative to calling `find_bit` for the python version of the quantum circuit
             let virtual_bit = final_layout_physical
-                .downcast::<PyDict>()?
+                .cast::<PyDict>()?
                 .get_item(i)?
                 .unwrap(); // TODO: handle unwrap failure
             if virtual_bit.is_instance_of::<PyClbit>() {
@@ -408,14 +408,14 @@ fn pack_custom_layout(
 
     let mut bits = Vec::new();
     for register_bit_list in extra_registers.values() {
-        for x in register_bit_list.downcast::<PyList>()? {
+        for x in register_bit_list.cast::<PyList>()? {
             bits.push(x);
         }
     }
     let extra_registers = pack_py_registers(&extra_registers.keys(), &PyList::new(py, bits)?)?;
     let mut initial_layout_items = Vec::with_capacity(initial_layout_size.max(0) as usize);
     for item in initial_layout_array {
-        let tuple = item.downcast::<PyTuple>()?;
+        let tuple = item.cast::<PyTuple>()?;
         let index = tuple.get_item(0)?;
         let register = tuple.get_item(1)?;
         let reg_name_bytes = if !register.is_none() {
@@ -483,21 +483,24 @@ pub fn pack_custom_instructions(
     })
 }
 
-fn pack_standalone_vars(
+pub fn pack_standalone_vars(
     circuit_data: &CircuitData,
     version: u32,
-    standalone_var_indices: &mut HashMap<VarOrStretch, usize>,
+    standalone_var_indices: &mut HashMap<u128, u16>,
 ) -> PyResult<Vec<formats::ExpressionVarDeclarationPack>> {
     let mut result = Vec::new();
-    let mut index: usize = 0;
+    let mut index: u16 = 0;
+    let mut uuid: u128 = 0;
     // input vars
     for var in circuit_data.get_vars(CircuitVarType::Input) {
-        result.push(pack_standalone_var(
+        let var_pack = pack_standalone_var(
             var,
             expression_var_declaration::INPUT,
             version,
-        )?);
-        standalone_var_indices.insert(VarOrStretch::Var(var.clone()), index);
+            &mut uuid,
+        )?;
+        result.push(var_pack);
+        standalone_var_indices.insert(uuid, index);
         index += 1;
     }
 
@@ -507,8 +510,9 @@ fn pack_standalone_vars(
             var,
             expression_var_declaration::CAPTURE,
             version,
+            &mut uuid,
         )?);
-        standalone_var_indices.insert(VarOrStretch::Var(var.clone()), index);
+        standalone_var_indices.insert(uuid, index);
         index += 1;
     }
 
@@ -518,8 +522,9 @@ fn pack_standalone_vars(
             var,
             expression_var_declaration::LOCAL,
             version,
+            &mut uuid,
         )?);
-        standalone_var_indices.insert(VarOrStretch::Var(var.clone()), index);
+        standalone_var_indices.insert(uuid, index);
         index += 1;
     }
     if version < 14
@@ -536,7 +541,7 @@ fn pack_standalone_vars(
             stretch,
             expression_var_declaration::STRETCH_CAPTURE,
         ));
-        standalone_var_indices.insert(VarOrStretch::Stretch(stretch.clone()), index);
+        standalone_var_indices.insert(stretch.uuid, index);
         index += 1;
     }
     for stretch in circuit_data.get_stretches(CircuitStretchType::Declare) {
@@ -544,7 +549,7 @@ fn pack_standalone_vars(
             stretch,
             expression_var_declaration::STRETCH_LOCAL,
         ));
-        standalone_var_indices.insert(VarOrStretch::Stretch(stretch.clone()), index);
+        standalone_var_indices.insert(stretch.uuid, index);
         index += 1;
     }
     Ok(result)
@@ -557,18 +562,16 @@ pub fn pack_circuit(
     version: u32,
     annotation_factories: &Bound<PyDict>,
 ) -> PyResult<formats::QPYFormatV15> {
-    let py = metadata_serializer.py();
-    let clbit_indices = circuit.data.get_clbit_indices(py).clone();
-    let mut standalone_var_indices: HashMap<VarOrStretch, usize> = HashMap::new();
+    // let clbit_indices = circuit.data.get_clbit_indices(py).clone();
+    let mut standalone_var_indices: HashMap<u128, u16> = HashMap::new();
     let standalone_vars =
         pack_standalone_vars(&circuit.data, version, &mut standalone_var_indices)?;
     let annotation_handler = AnnotationHandler::new(annotation_factories);
     let mut qpy_data = QPYWriteData {
         version,
         _use_symengine: use_symengine,
-        clbit_indices,
-        // standalone_var_indices,
-        py_standalone_var_indices: PyDict::new(py).unbind(),
+        clbits: &circuit.data.clbits().clone(), // we need to clone since circuit_data might change when serializing custom instructions, explicitly creating the inner instructions
+        standalone_var_indices,
         annotation_handler,
     };
     let header = pack_circuit_header(&circuit, metadata_serializer, &qpy_data)?;

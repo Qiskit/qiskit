@@ -50,7 +50,7 @@ use crate::params::unpack_param;
 use crate::py_methods::get_python_gate_class;
 use crate::value::{
     bit_types, circuit_instruction_types, deserialize, deserialize_with_args,
-    expression_var_declaration, register_types, tags, unpack_generic_data, DumpedValue,
+    expression_var_declaration, register_types, tags, unpack_generic_data, DumpedPyValue,
     ExpressionType, QPYReadData,
 };
 
@@ -436,7 +436,7 @@ fn unpack_instruction(
             }
         }
         if gate_class
-            .downcast_into::<PyType>()?
+            .cast_into::<PyType>()?
             .is_subclass(imports::CONTROLLED_GATE.get_bound(py))?
             && (gate_object.getattr("num_ctrl_qubits")?.extract::<u32>()?
                 != instruction.num_ctrl_qubits
@@ -544,7 +544,7 @@ fn unpack_custom_layout<'py>(
     if layout.input_mapping_size > 0 {
         let input_qubit_mapping_data = PyDict::new(py);
         let physical_bits_object = initial_layout.call_method0(py, "get_physical_bits")?;
-        let physical_bits = physical_bits_object.downcast_bound::<PyDict>(py)?;
+        let physical_bits = physical_bits_object.cast_bound::<PyDict>(py)?;
         for (index, bit) in layout.input_mapping_items.iter().enumerate() {
             let physical_bit =
                 physical_bits
@@ -599,7 +599,7 @@ fn deserialize_pauli_evolution_gate(
         .map(|elem| {
             let data = elem.data.clone();
             let data_type = tags::NUMPY_OBJ;
-            let op_raw_data = DumpedValue { data_type, data }.to_python(py, qpy_data)?;
+            let op_raw_data = DumpedPyValue { data_type, data }.to_python(py, qpy_data)?;
             imports::SPARSE_PAULI_OP
                 .get_bound(py)
                 .call_method1("from_list", (op_raw_data,))
@@ -611,13 +611,13 @@ fn deserialize_pauli_evolution_gate(
         PyList::new(py, operators)?.into_any()
     };
 
-    let time = DumpedValue {
+    let time = DumpedPyValue {
         data_type: packed_data.time_type,
         data: packed_data.time_data,
     }
     .to_python(py, qpy_data)?;
     let synth_data = json.call_method1("loads", (packed_data.synth_data,))?;
-    let synth_data = synth_data.downcast::<PyDict>()?;
+    let synth_data = synth_data.cast::<PyDict>()?;
     let synthesis_class_name = synth_data.get_item("class")?.ok_or_else(|| {
         PyValueError::new_err("Could not find synthesis class name for Pauli Evolution Gate")
     })?;
@@ -625,9 +625,9 @@ fn deserialize_pauli_evolution_gate(
         PyValueError::new_err("Could not find synthesis class settings for Pauli Evolution Gate")
     })?;
     let synthesis_class =
-        evo_synth_library.getattr(synthesis_class_name.downcast::<PyString>()?)?;
+        evo_synth_library.getattr(synthesis_class_name.cast::<PyString>()?)?;
     let synthesis =
-        synthesis_class.call((), Some(synthesis_class_settings.downcast::<PyDict>()?))?;
+        synthesis_class.call((), Some(synthesis_class_settings.cast::<PyDict>()?))?;
     let kwargs = PyDict::new(py);
     kwargs.set_item(intern!(py, "time"), time)?;
     kwargs.set_item(intern!(py, "synthesis"), synthesis)?;
@@ -679,10 +679,10 @@ fn read_custom_instructions(
     Ok(result)
 }
 fn add_standalone_vars(
-    py: Python,
     packed_circuit: &formats::QPYFormatV15,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<()> {
+    let mut index: u16 = 0;
     for packed_var in &packed_circuit.standalone_vars {
         let ty = match packed_var.exp_type {
             ExpressionType::Bool => classical::types::Type::Bool,
@@ -694,37 +694,37 @@ fn add_standalone_vars(
         let name = packed_var.name.clone();
         match packed_var.usage {
             expression_var_declaration::LOCAL => {
-                let var = classical::expr::Var::Standalone { uuid, name, ty };
-                qpy_data.standalone_vars.bind(py).append(var.clone())?;
-                qpy_data
+                let var = qpy_data
                     .circuit_data
-                    .add_var(var, CircuitVarType::Declare)?;
+                    .add_var(classical::expr::Var::Standalone { uuid, name, ty }, CircuitVarType::Declare)?;
+                qpy_data.standalone_vars.insert(index, var);
+                index += 1;
             }
             expression_var_declaration::INPUT => {
-                let var = classical::expr::Var::Standalone { uuid, name, ty };
-                qpy_data.standalone_vars.bind(py).append(var.clone())?;
-                qpy_data.circuit_data.add_var(var, CircuitVarType::Input)?;
+                let var = qpy_data.circuit_data.add_var(classical::expr::Var::Standalone { uuid, name, ty }, CircuitVarType::Input)?;
+                qpy_data.standalone_vars.insert(index, var);
+                index += 1;
             }
             expression_var_declaration::CAPTURE => {
-                let var = classical::expr::Var::Standalone { uuid, name, ty };
-                qpy_data.standalone_vars.bind(py).append(var.clone())?;
-                qpy_data
+                let var = qpy_data
                     .circuit_data
-                    .add_var(var, CircuitVarType::Capture)?;
+                    .add_var(classical::expr::Var::Standalone { uuid, name, ty }, CircuitVarType::Capture)?;
+                qpy_data.standalone_vars.insert(index, var);
+                index += 1;
             }
             expression_var_declaration::STRETCH_LOCAL => {
-                let var = classical::expr::Stretch { uuid, name };
-                qpy_data.standalone_vars.bind(py).append(var.clone())?;
-                qpy_data
+                let stretch = qpy_data
                     .circuit_data
-                    .add_stretch(var, CircuitStretchType::Declare)?;
+                    .add_stretch(classical::expr::Stretch { uuid, name }, CircuitStretchType::Declare)?;
+                qpy_data.standalone_stretches.insert(index, stretch);
+                index += 1;
             }
             expression_var_declaration::STRETCH_CAPTURE => {
-                let var = classical::expr::Stretch { uuid, name };
-                qpy_data.standalone_vars.bind(py).append(var.clone())?;
-                qpy_data
+                let stretch = qpy_data
                     .circuit_data
-                    .add_stretch(var, CircuitStretchType::Capture)?;
+                    .add_stretch(classical::expr::Stretch { uuid, name }, CircuitStretchType::Capture)?;
+                qpy_data.standalone_stretches.insert(index, stretch);
+                index += 1;
             }
             _ => (),
         }
@@ -870,10 +870,6 @@ fn add_registers_and_bits(
         qpy_data.circuit_data.add_creg(creg, true)?;
     }
 
-    Python::attach(|py| -> PyResult<()> {
-        qpy_data.clbit_indices = qpy_data.circuit_data.get_clbit_indices(py).clone();
-        Ok(())
-    })?;
     Ok(())
 }
 
@@ -895,9 +891,9 @@ pub fn unpack_circuit<'py>(
         circuit_data: &mut circuit_data,
         version,
         use_symengine,
-        clbit_indices: PyDict::new(py).unbind(),
         cregs: PyDict::new(py).unbind(),
-        standalone_vars: PyList::empty(py).unbind(),
+        standalone_vars: HashMap::new(),
+        standalone_stretches: HashMap::new(),
         vectors: HashMap::new(),
         annotation_handler,
     };
@@ -917,7 +913,7 @@ pub fn unpack_circuit<'py>(
         .to_param(py, &mut qpy_data)?;
     qpy_data.circuit_data.set_global_phase(global_phase)?;
 
-    add_standalone_vars(py, &packed_circuit, &mut qpy_data)?;
+    add_standalone_vars(&packed_circuit, &mut qpy_data)?;
     add_registers_and_bits(&packed_circuit, &mut qpy_data)?;
 
     let custom_instructions = read_custom_instructions(py, &packed_circuit, &mut qpy_data)?;
@@ -984,7 +980,7 @@ pub fn py_read_circuit<'py>(
 ) -> PyResult<Bound<'py, PyAny>> {
     let pos = file_obj.call_method0("tell")?.extract::<usize>()?;
     let bytes = file_obj.call_method0("read")?;
-    let serialized_circuit: &[u8] = bytes.downcast::<PyBytes>()?.as_bytes();
+    let serialized_circuit: &[u8] = bytes.cast::<PyBytes>()?.as_bytes();
     let (packed_circuit, bytes_read) = deserialize::<formats::QPYFormatV15>(serialized_circuit)?;
     println!("packed ciruit: {:?}", packed_circuit);
     let unpacked_ciruit = unpack_circuit(

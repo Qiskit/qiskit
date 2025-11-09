@@ -17,6 +17,7 @@ use pyo3::{wrap_pyfunction, Bound, PyResult};
 
 mod annotations;
 mod bytes;
+mod expr;
 mod circuit_reader;
 mod circuit_writer;
 mod consts;

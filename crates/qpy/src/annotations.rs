@@ -20,6 +20,8 @@ use pyo3::types::{PyDict, PyIterator, PyNotImplemented};
 /// but it remains inside `potential_serializers` as long as it did not manage to serialize any annotation.
 /// The way to determine whether a serialization attempt succeeded is to check whether the result of `dump_annotation`
 /// was `NotImplemented`.
+
+#[derive(Debug)]
 pub struct AnnotationHandler<'a> {
     pub annotation_factories: &'a Bound<'a, PyDict>,
     factories: HashMap<String, Py<PyAny>>,

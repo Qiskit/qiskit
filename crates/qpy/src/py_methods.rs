@@ -33,13 +33,12 @@ use crate::bytes::Bytes;
 use crate::formats;
 use crate::params::{pack_param, pack_param_obj};
 use crate::value::{
-    circuit_instruction_types, dumps_value, expression_var_declaration, get_circuit_type_key,
-    pack_generic_data, serialize, DumpedValue, ExpressionType, QPYWriteData,
+    circuit_instruction_types, dumps_py_value, get_circuit_type_key,
+    pack_generic_data, serialize, DumpedPyValue, QPYWriteData,
 };
-use crate::{QpyError, UnsupportedFeatureForVersion};
 
 use crate::circuit_writer::{
-    pack_circuit, pack_custom_instructions, pack_instruction, pack_instructions,
+    pack_circuit, pack_custom_instructions, pack_instruction, pack_instructions, pack_standalone_vars
 };
 
 const UNITARY_GATE_CLASS_NAME: &str = "UnitaryGate";
@@ -160,140 +159,6 @@ pub fn getattr_or_none<'py>(
     }
 }
 
-pub fn pack_py_standalone_var(
-    var: &Bound<PyAny>,
-    usage: u8,
-    version: u32,
-) -> PyResult<formats::ExpressionVarDeclarationPack> {
-    let name = var.getattr("name")?.extract::<String>()?;
-    let exp_type = pack_expression_type(&var.getattr("type")?, version)?;
-    let uuid_bytes = var
-        .getattr("var")?
-        .getattr("bytes")?
-        .extract::<[u8; 16]>()?;
-    Ok(formats::ExpressionVarDeclarationPack {
-        uuid_bytes,
-        usage,
-        exp_type,
-        name,
-    })
-}
-
-fn pack_expression_type(exp_type: &Bound<PyAny>, version: u32) -> PyResult<ExpressionType> {
-    let kind = exp_type.getattr("kind")?;
-    let py = exp_type.py();
-    let types_module = py.import("qiskit.circuit.classical.types")?;
-    if kind.is(&types_module.getattr("Bool")?) {
-        Ok(ExpressionType::Bool)
-    } else if kind.is(&types_module.getattr("Uint")?) {
-        let width = exp_type.getattr("width")?.extract::<u32>()?;
-        Ok(ExpressionType::Uint(width))
-    } else if kind.is(&types_module.getattr("Float")?) {
-        if version < 14 {
-            return Err(UnsupportedFeatureForVersion::new_err((
-                "float-typed expressions",
-                14,
-                version,
-            )));
-        }
-        Ok(ExpressionType::Float)
-    } else if kind.is(&types_module.getattr("Duration")?) {
-        if version < 14 {
-            return Err(UnsupportedFeatureForVersion::new_err((
-                "duration-typed expressions",
-                14,
-                version,
-            )));
-        }
-        Ok(ExpressionType::Duration)
-    } else {
-        return Err(QpyError::new_err((format!(
-            "unhandled Type object {:?}",
-            exp_type
-        ),)));
-    }
-}
-
-fn pack_py_standalone_vars(
-    circuit: &Bound<PyAny>,
-    version: u32,
-    standalone_var_indices: &Bound<PyDict>,
-) -> PyResult<Vec<formats::ExpressionVarDeclarationPack>> {
-    let mut result = Vec::new();
-    let mut index = 0;
-    for item in circuit.call_method0("iter_input_vars")?.try_iter()? {
-        let var = item?;
-        result.push(pack_py_standalone_var(
-            &var,
-            expression_var_declaration::INPUT,
-            version,
-        )?);
-        standalone_var_indices.set_item(&var, index)?;
-        index += 1;
-    }
-    for item in circuit.call_method0("iter_captured_vars")?.try_iter()? {
-        let var = item?;
-        result.push(pack_py_standalone_var(
-            &var,
-            expression_var_declaration::CAPTURE,
-            version,
-        )?);
-        standalone_var_indices.set_item(&var, index)?;
-        index += 1;
-    }
-    for item in circuit.call_method0("iter_declared_vars")?.try_iter()? {
-        let var = item?;
-        result.push(pack_py_standalone_var(
-            &var,
-            expression_var_declaration::LOCAL,
-            version,
-        )?);
-        standalone_var_indices.set_item(&var, index)?;
-        index += 1;
-    }
-    if version < 14 {
-        match getattr_or_none(circuit, "num_stretches")? {
-            None => (),
-            Some(value) => {
-                if value.extract::<usize>()? > 0 {
-                    return Err(UnsupportedFeatureForVersion::new_err((
-                        "circuits containing stretch variables",
-                        14,
-                        version,
-                    )));
-                }
-            }
-        }
-    }
-    for item in circuit
-        .call_method0("iter_captured_stretches")?
-        .try_iter()?
-    {
-        let var = item?;
-        result.push(pack_py_standalone_var(
-            &var,
-            expression_var_declaration::STRETCH_CAPTURE,
-            version,
-        )?);
-        standalone_var_indices.set_item(&var, index)?;
-        index += 1;
-    }
-    for item in circuit
-        .call_method0("iter_declared_stretches")?
-        .try_iter()?
-    {
-        let var = item?;
-        result.push(pack_py_standalone_var(
-            &var,
-            expression_var_declaration::STRETCH_LOCAL,
-            version,
-        )?);
-        standalone_var_indices.set_item(&var, index)?;
-        index += 1;
-    }
-    Ok(result)
-}
-
 pub fn pack_py_registers(
     in_circ_regs: &Bound<PyAny>,
     bits: &Bound<PyList>,
@@ -320,7 +185,7 @@ pub fn pack_py_registers(
         })?;
     let mut result = Vec::new();
     in_circ_regs
-        .downcast::<PyList>()?
+        .cast::<PyList>()?
         .iter()
         .try_for_each(|register| -> PyResult<()> {
             result.push(pack_py_register(&register, &bitmap, true)?);
@@ -392,7 +257,7 @@ fn pack_py_circuit_header(
         &Some(circuit.getattr(intern!(py, "metadata"))?),
         metadata_serializer,
     )?;
-    let global_phase_data = DumpedValue::from(
+    let global_phase_data = DumpedPyValue::from(
         circuit.getattr(intern!(py, "global_phase"))?.unbind(),
         qpy_data,
     )?;
@@ -400,13 +265,13 @@ fn pack_py_circuit_header(
         &circuit.getattr(intern!(py, "qregs"))?,
         circuit
             .getattr(intern!(py, "qubits"))?
-            .downcast::<PyList>()?,
+            .cast::<PyList>()?,
     )?;
     let cregs = pack_py_registers(
         &circuit.getattr(intern!(py, "cregs"))?,
         circuit
             .getattr(intern!(py, "clbits"))?
-            .downcast::<PyList>()?,
+            .cast::<PyList>()?,
     )?;
     let mut registers = qregs;
     registers.extend(cregs);
@@ -478,7 +343,7 @@ fn pack_py_custom_layout(circuit: &Bound<PyAny>) -> PyResult<formats::LayoutV2Pa
                             new_list.into_any()
                         }
                     };
-                    extra_register_list.downcast::<PyList>()?.append(qubit)?;
+                    extra_register_list.cast::<PyList>()?.append(qubit)?;
                 }
                 initial_layout_array.append((index, register))?;
             } else {
@@ -501,7 +366,7 @@ fn pack_py_custom_layout(circuit: &Bound<PyAny>) -> PyResult<formats::LayoutV2Pa
                 .collect::<Vec<_>>(),
         )?;
         let layout_mapping = initial_layout.call_method0("get_virtual_bits")?;
-        for (qubit, index) in layout_input_qubit_mapping.downcast::<PyDict>()? {
+        for (qubit, index) in layout_input_qubit_mapping.cast::<PyDict>()? {
             let register = qubit.getattr("_register")?;
             if !register.is_none()
                 && !qubit.getattr("_index")?.is_none()
@@ -515,7 +380,7 @@ fn pack_py_custom_layout(circuit: &Bound<PyAny>) -> PyResult<formats::LayoutV2Pa
                         new_list.into_any()
                     }
                 };
-                extra_register_list.downcast::<PyList>()?.append(&qubit)?;
+                extra_register_list.cast::<PyList>()?.append(&qubit)?;
             }
             input_qubit_mapping_array
                 .set_item(index.extract()?, layout_mapping.get_item(&qubit)?)?;
@@ -529,7 +394,7 @@ fn pack_py_custom_layout(circuit: &Bound<PyAny>) -> PyResult<formats::LayoutV2Pa
         final_layout_size = final_layout.call_method0("__len__")?.extract()?;
         let final_layout_physical = final_layout.call_method0("get_physical_bits")?;
         for i in 0..num_qubits {
-            let virtual_bit = final_layout_physical.downcast::<PyDict>()?.get_item(i)?;
+            let virtual_bit = final_layout_physical.cast::<PyDict>()?.get_item(i)?;
             final_layout_array.append(
                 circuit
                     .call_method1("find_bit", (virtual_bit,))?
@@ -546,14 +411,14 @@ fn pack_py_custom_layout(circuit: &Bound<PyAny>) -> PyResult<formats::LayoutV2Pa
 
     let mut bits = Vec::new();
     for register_bit_list in extra_registers.values() {
-        for x in register_bit_list.downcast::<PyList>()? {
+        for x in register_bit_list.cast::<PyList>()? {
             bits.push(x);
         }
     }
     let extra_registers = pack_py_registers(&extra_registers.keys(), &PyList::new(py, bits)?)?;
     let mut initial_layout_items = Vec::with_capacity(initial_layout_size.max(0) as usize);
     for item in initial_layout_array {
-        let tuple = item.downcast::<PyTuple>()?;
+        let tuple = item.cast::<PyTuple>()?;
         let index = tuple.get_item(0)?;
         let register = tuple.get_item(1)?;
         let reg_name_bytes = if !register.is_none() {
@@ -612,16 +477,14 @@ pub fn pack_py_circuit(
     let py = circuit.py();
     circuit.getattr("data")?; // in case _data is lazily generated in python
     let mut circuit_data = circuit.getattr("_data")?.extract::<CircuitData>()?;
-    let clbit_indices = circuit_data.get_clbit_indices(py).clone();
-    let standalone_var_indices = PyDict::new(py);
-    let standalone_vars = pack_py_standalone_vars(circuit, version, &standalone_var_indices)?;
+    let mut standalone_var_indices: HashMap<u128, u16> = HashMap::new();
+    let standalone_vars = pack_standalone_vars(&circuit_data, version, &mut standalone_var_indices)?;
     let annotation_handler = AnnotationHandler::new(annotation_factories);
     let mut qpy_data = QPYWriteData {
         version,
         _use_symengine: use_symengine,
-        clbit_indices,
-        // standalone_var_indices: HashMap::new(),
-        py_standalone_var_indices: standalone_var_indices.unbind(),
+        clbits: &circuit_data.clbits().clone(), // we need to clone since circuit_data might change when serializing custom instructions, explicitly creating the inner instructions
+        standalone_var_indices: HashMap::new(),
         annotation_handler,
     };
     let header = pack_py_circuit_header(circuit, metadata_serializer, &qpy_data)?;
@@ -660,7 +523,7 @@ fn pack_sparse_pauli_op(
     qpy_data: &QPYWriteData,
 ) -> PyResult<formats::SparsePauliOpListElemPack> {
     let op_as_np_list = operator.call_method1("to_list", (true,))?;
-    let (_, data) = dumps_value(op_as_np_list.unbind(), qpy_data)?;
+    let (_, data) = dumps_py_value(op_as_np_list.unbind(), qpy_data)?;
     Ok(formats::SparsePauliOpListElemPack { data })
 }
 
@@ -675,14 +538,14 @@ fn pack_pauli_evolution_gate(
         standalone = true;
         PyList::new(py, [operators])?
     } else {
-        operators.downcast()?.clone()
+        operators.cast()?.clone()
     };
     let pauli_data = operator_list
         .iter()
         .map(|operator| pack_sparse_pauli_op(&operator, qpy_data))
         .collect::<PyResult<_>>()?;
 
-    let (time_type, time_data) = dumps_value(evolution_gate.getattr("time")?.unbind(), qpy_data)?;
+    let (time_type, time_data) = dumps_py_value(evolution_gate.getattr("time")?.unbind(), qpy_data)?;
     let synth_class = evolution_gate
         .getattr("synthesis")?
         .get_type()
@@ -1053,11 +916,11 @@ pub fn get_condition_data_from_inst(
             } else if condition.is_instance_of::<PyTuple>() {
                 let key = formats::condition_types::TWO_TUPLE;
                 let value = condition
-                    .downcast::<PyTuple>()?
+                    .cast::<PyTuple>()?
                     .get_item(1)?
                     .extract::<i64>()?;
                 let register =
-                    dumps_register(condition.downcast::<PyTuple>()?.get_item(0)?, circuit_data)?;
+                    dumps_register(condition.cast::<PyTuple>()?.get_item(0)?, circuit_data)?;
                 Ok(formats::ConditionPack {
                     key,
                     register_size: register.len() as u16,

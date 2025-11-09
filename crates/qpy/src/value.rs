@@ -9,22 +9,24 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
-use std::backtrace::Backtrace;
 use binrw::meta::{ReadEndian, WriteEndian};
 use binrw::{binrw, BinRead, BinResult, BinWrite, Endian};
 use hashbrown::HashMap;
 use pyo3::exceptions::{PyTypeError, PyValueError};
-use pyo3::types::{PyAny, PyBytes, PyComplex, PyDict, PyFloat, PyInt, PyList, PyString, PyTuple};
+use pyo3::types::{PyAny, PyBytes, PyComplex, PyDict, PyFloat, PyInt, PyString, PyTuple};
 use pyo3::IntoPyObjectExt;
 use pyo3::{intern, prelude::*};
 
+use qiskit_circuit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::classical::expr::{Expr, Stretch, Var};
 use qiskit_circuit::classical::types::Type;
-use qiskit_circuit::imports;
+use qiskit_circuit::{Clbit, imports};
 use qiskit_circuit::operations::{OperationRef, Param};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
+use qiskit_circuit::object_registry::ObjectRegistry;
+use qiskit_circuit::bit::{ShareableClbit};
 
 use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
@@ -55,27 +57,23 @@ pub mod bit_types {
     pub const CLBIT: u8 = b'c';
 }
 
-#[derive(Eq, PartialEq, Hash, Debug)]
-pub enum VarOrStretch {
-    Var(Var),
-    Stretch(Stretch),
-}
+#[derive(Debug)]
 pub struct QPYWriteData<'a> {
     pub version: u32,
-    pub _use_symengine: bool,
-    pub clbit_indices: Py<PyDict>,
-    // pub standalone_var_indices: HashMap<VarOrStretch, usize>, // TODO: should replace the python version once we write a visitor for Rust expressions
-    pub py_standalone_var_indices: Py<PyDict>,
+    pub _use_symengine: bool, // TODO: remove this field?
+    pub clbits: &'a ObjectRegistry<Clbit, ShareableClbit>,
+    pub standalone_var_indices: HashMap<u128, u16>, // mapping from the variable's UUID to its index in the standalone variables list
     pub annotation_handler: AnnotationHandler<'a>,
 }
-
+#[derive(Debug)]
 pub struct QPYReadData<'a> {
     pub circuit_data: &'a mut CircuitData,
     pub version: u32,
     pub use_symengine: bool,
-    pub clbit_indices: Py<PyDict>,
     pub cregs: Py<PyDict>,
-    pub standalone_vars: Py<PyList>,
+    pub standalone_vars: HashMap<u16, qiskit_circuit::Var>,
+    pub standalone_stretches: HashMap<u16, qiskit_circuit::Stretch>,
+    // pub standalone_vars: Py<PyList>,
     pub vectors: HashMap<Uuid, (Py<PyAny>, Vec<u64>)>,
     pub annotation_handler: AnnotationHandler<'a>,
 }
@@ -135,6 +133,15 @@ where
     value.write(&mut buffer).unwrap();
     buffer.into()
 }
+pub fn serialize_with_args<T, A>(value: &T, args: A) -> Bytes
+where
+    T: BinWrite<Args<'static> = A> + WriteEndian + Debug,
+    A: Clone + Debug,
+{
+    let mut buffer = Cursor::new(Vec::new());
+    value.write_args(&mut buffer, args).unwrap();
+    buffer.into()
+}
 
 pub fn deserialize<T>(bytes: &[u8]) -> PyResult<(T, usize)>
 where
@@ -149,7 +156,7 @@ where
 pub fn deserialize_with_args<T, A>(bytes: &[u8], args: A) -> PyResult<(T, usize)>
 where
     T: BinRead<Args<'static> = A> + ReadEndian + Debug,
-    A: Clone + Debug,
+    A: Clone,
 {
     let mut cursor = Cursor::new(bytes);
     let value = T::read_args(&mut cursor, args).unwrap();
@@ -220,7 +227,7 @@ pub fn get_type_key(py_object: &Bound<PyAny>) -> PyResult<u8> {
     )))
 }
 
-pub fn dumps_value(py_object: Py<PyAny>, qpy_data: &QPYWriteData) -> PyResult<(u8, Bytes)> {
+pub fn dumps_py_value(py_object: Py<PyAny>, qpy_data: &QPYWriteData) -> PyResult<(u8, Bytes)> {
     Python::attach(|py| -> PyResult<(u8, Bytes)> {
         let py_object = py_object.bind(py);
         let type_key: u8 = get_type_key(py_object)?;
@@ -228,7 +235,7 @@ pub fn dumps_value(py_object: Py<PyAny>, qpy_data: &QPYWriteData) -> PyResult<(u
             tags::INTEGER => py_object.extract::<i64>()?.to_be_bytes().into(),
             tags::FLOAT => py_object.extract::<f64>()?.to_be_bytes().into(),
             tags::COMPLEX => {
-                let complex_num = py_object.downcast::<PyComplex>()?;
+                let complex_num = py_object.cast::<PyComplex>()?;
                 let mut bytes = Vec::with_capacity(16);
                 bytes.extend_from_slice(&complex_num.real().to_be_bytes());
                 bytes.extend_from_slice(&complex_num.imag().to_be_bytes());
@@ -262,7 +269,7 @@ pub fn dumps_value(py_object: Py<PyAny>, qpy_data: &QPYWriteData) -> PyResult<(u
             )?),
             _ => {
                 return Err(PyTypeError::new_err(format!(
-                    "dumps_value: Unhandled type_key: {}",
+                    "dumps_py_value: Unhandled type_key: {}",
                     type_key
                 )))
             }
@@ -275,7 +282,7 @@ pub fn pack_generic_data(
     py_data: &Bound<PyAny>,
     qpy_data: &QPYWriteData,
 ) -> PyResult<formats::GenericDataPack> {
-    let (type_key, data) = dumps_value(py_data.clone().unbind(), qpy_data)?;
+    let (type_key, data) = dumps_py_value(py_data.clone().unbind(), qpy_data)?;
     Ok(formats::GenericDataPack { type_key, data })
 }
 
@@ -284,7 +291,7 @@ pub fn unpack_generic_data(
     data_pack: &formats::GenericDataPack,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<Py<PyAny>> {
-    DumpedValue {
+    DumpedPyValue {
         data_type: data_pack.type_key,
         data: data_pack.data.clone(),
     }
@@ -379,76 +386,16 @@ fn deserialize_range(py: Python, raw_range: &Bytes) -> PyResult<Py<PyAny>> {
 }
 
 fn serialize_expression(exp: Expr, qpy_data: &QPYWriteData) -> PyResult<Bytes> {    
-    println!("got to serialize_expression with exp={:?}", exp);
-    let bt = Backtrace::capture();
-    println!("{}", bt);
-    let packed_expression = formats::ExpressionPack{expression: exp};
-    let serialized_expression = serialize(&packed_expression);
-    println!("serialized expression: {:?}", serialized_expression);
+    let packed_expression = formats::ExpressionPack{expression: exp, _phantom: Default::default()};
+    let serialized_expression = serialize_with_args(&packed_expression, (qpy_data,));
     Ok(serialized_expression)
 }
-
-fn serialize_py_expression(py_object: &Bound<PyAny>, qpy_data: &QPYWriteData) -> PyResult<Bytes> {
-    let py = py_object.py();
-    let clbit_indices = PyDict::new(py);
-    for (key, val) in qpy_data.clbit_indices.bind(py).iter() {
-        let index = val.getattr("index")?;
-        clbit_indices.set_item(key, index)?;
-    }
-    let io = py.import("io")?;
-    let buffer = io.call_method0("BytesIO")?;
-    let value = py.import("qiskit.qpy.binary_io.value")?;
-    // TODO: I don't think unit tests cover this relatively complex part
-    value.call_method1(
-        "_write_expr",
-        (
-            &buffer,
-            py_object,
-            clbit_indices,
-            &qpy_data.py_standalone_var_indices,
-            qpy_data.version,
-        ),
-    )?;
-    let result = buffer.call_method0("getvalue")?.extract::<Bytes>()?;
-    Ok(result)
-}
-
 fn deserialize_expression(
     raw_expression: &Bytes,
     qpy_data: &QPYReadData,
 ) -> PyResult<Expr> {
-    let (exp_pack, _) = deserialize::<formats::ExpressionPack>(&raw_expression)?;
-    println!("got to deserialize_expression with bytes={:?}", raw_expression);
-    println!("deserialized to exp={:?}", exp_pack.expression);
+    let (exp_pack, _) = deserialize_with_args::<formats::ExpressionPack, (&QPYReadData,)>(&raw_expression, (qpy_data,))?;
     Ok(exp_pack.expression)
-}
-
-fn deserialize_py_expression(
-    py: Python,
-    raw_expression: &Bytes,
-    qpy_data: &QPYReadData,
-) -> PyResult<Py<PyAny>> {
-    println!("deserialize_py_expression called");
-    let clbit_indices = PyDict::new(py);
-    for (key, val) in qpy_data.clbit_indices.bind(py).iter() {
-        let index = val.getattr("index")?;
-        clbit_indices.set_item(index, key)?;
-    }
-    let io = py.import("io")?;
-    let buffer = io.call_method0("BytesIO")?;
-    buffer.call_method1("write", (raw_expression.clone(),))?;
-    buffer.call_method1("seek", (0,))?;
-    let value = py.import("qiskit.qpy.binary_io.value")?;
-    let expression = value.call_method1(
-        "_read_expr",
-        (
-            &buffer,
-            clbit_indices,
-            &qpy_data.cregs,
-            &qpy_data.standalone_vars,
-        ),
-    )?;
-    Ok(expression.unbind())
 }
 
 fn pack_modifier(modifier: &Bound<PyAny>) -> PyResult<formats::ModifierPack> {
@@ -511,10 +458,12 @@ pub fn pack_standalone_var(
     var: &Var,
     usage: u8,
     version: u32,
+    uuid_output: &mut u128
 ) -> PyResult<formats::ExpressionVarDeclarationPack> {
     match var {
         Var::Standalone { uuid, name, ty } => {
             let exp_type = pack_expression_type(ty, version)?;
+            *uuid_output = *uuid;
             let uuid_bytes = uuid.to_be_bytes();
             Ok(formats::ExpressionVarDeclarationPack {
                 uuid_bytes,
@@ -570,18 +519,18 @@ fn pack_expression_type(exp_type: &Type, version: u32) -> PyResult<ExpressionTyp
     }
 }
 
-pub struct DumpedValue {
+pub struct DumpedPyValue {
     pub data_type: u8,
     pub data: Bytes,
 }
 
-impl DumpedValue {
+impl DumpedPyValue {
     pub fn from(py_object: Py<PyAny>, qpy_data: &QPYWriteData) -> PyResult<Self> {
-        let (data_type, data) = dumps_value(py_object, qpy_data)?;
-        Ok(DumpedValue { data_type, data })
+        let (data_type, data) = dumps_py_value(py_object, qpy_data)?;
+        Ok(DumpedPyValue { data_type, data })
     }
     pub fn write<W: Write>(
-        value: &DumpedValue,
+        value: &DumpedPyValue,
         writer: &mut W,
         _endian: Endian,
         _args: (),
@@ -593,10 +542,10 @@ impl DumpedValue {
         reader: &mut R,
         _endian: Endian,
         (len, data_type): (usize, u8),
-    ) -> BinResult<DumpedValue> {
+    ) -> BinResult<DumpedPyValue> {
         let mut buf = Bytes(vec![0u8; len]);
         reader.read_exact(&mut buf)?;
-        Ok(DumpedValue {
+        Ok(DumpedPyValue {
             data_type,
             data: buf,
         })
@@ -683,32 +632,32 @@ impl DumpedValue {
             _ => Ok(Param::Obj(self.to_python(py, qpy_data)?)),
         }
     }
-    pub fn from_param(param: &Param, qpy_data: &QPYWriteData) -> PyResult<DumpedValue> {
+    pub fn from_param(param: &Param, qpy_data: &QPYWriteData) -> PyResult<DumpedPyValue> {
         match param {
-            Param::Float(value) => Ok(DumpedValue {
+            Param::Float(value) => Ok(DumpedPyValue {
                 data_type: (tags::FLOAT),
                 data: (value.into()),
             }),
-            Param::Obj(py_object) => DumpedValue::from(py_object.clone(), qpy_data),
-            Param::ParameterExpression(exp) => DumpedValue::from_parameter_expression(exp, qpy_data),
+            Param::Obj(py_object) => DumpedPyValue::from(py_object.clone(), qpy_data),
+            Param::ParameterExpression(exp) => DumpedPyValue::from_parameter_expression(exp, qpy_data),
         }
     }
     pub fn to_parameter_expression(&self, qpy_data: &mut QPYReadData) -> PyResult<ParameterExpression> {
         // TODO: implement
         Ok(ParameterExpression::default())
     }
-    pub fn from_parameter_expression(exp: &ParameterExpression, qpy_data: &QPYWriteData) -> PyResult<DumpedValue> {
+    pub fn from_parameter_expression(exp: &ParameterExpression, qpy_data: &QPYWriteData) -> PyResult<DumpedPyValue> {
         // TODO: implement!
-        Ok(DumpedValue {
+        Ok(DumpedPyValue {
             data_type: tags::PARAMETER_EXPRESSION,
             data: Bytes::new(),
         })
     }
 }
 
-impl fmt::Debug for DumpedValue {
+impl fmt::Debug for DumpedPyValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("DumpedValue")
+        f.debug_struct("DumpedPyValue")
             .field("type", &self.data_type)
             .field("data", &self.data.to_hex_string())
             .finish()

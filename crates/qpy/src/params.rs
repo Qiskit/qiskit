@@ -23,8 +23,8 @@ use crate::bytes::Bytes;
 use crate::circuit_reader::load_register;
 use crate::formats;
 use crate::value::{
-    bytes_to_uuid, deserialize, deserialize_vec, dumps_value, get_type_key, serialize, tags,
-    DumpedValue, QPYReadData, QPYWriteData,
+    bytes_to_uuid, deserialize, deserialize_vec, dumps_py_value, get_type_key, serialize, tags,
+    DumpedPyValue, QPYReadData, QPYWriteData,
 };
 use hashbrown::HashMap;
 
@@ -45,7 +45,7 @@ fn pack_parameter_replay_entry(
     r_side: bool,
     qpy_data: &QPYWriteData,
 ) -> PyResult<(u8, [u8; 16], Vec<formats::ParameterExpressionElementPack>)> {
-    // This is different from `dumps_value` since we aim specifically for [u8; 16]
+    // This is different from `dumps_py_value` since we aim specifically for [u8; 16]
     // This means parameters are not fully stored, only their uuid
     // Also integers and floats are padded with 0
     let mut extra_data = Vec::new();
@@ -174,7 +174,7 @@ fn pack_replay_subs(
     extra_symbols.call_method1("update", (&binds,))?;
 
     let items: Vec<formats::MappingItem> =
-        PyIterator::from_object(&binds.downcast::<PyDict>()?.items())?
+        PyIterator::from_object(&binds.cast::<PyDict>()?.items())?
             .map(|item| {
                 let (key, value): (Py<PyAny>, Py<PyAny>) = item?.extract()?;
                 let key_bytes = key
@@ -182,7 +182,7 @@ fn pack_replay_subs(
                     .getattr(intern!(py, "uuid"))?
                     .getattr(intern!(py, "bytes"))?
                     .extract::<Bytes>()?;
-                let (item_type, item_bytes) = dumps_value(value, qpy_data)?;
+                let (item_type, item_bytes) = dumps_py_value(value, qpy_data)?;
                 Ok(formats::MappingItem {
                     item_type,
                     key_bytes,
@@ -246,29 +246,28 @@ fn pack_parameter_expression_by_op(
     opcode: u8,
     data: formats::ParameterExpressionStandardOpPack,
 ) -> PyResult<formats::ParameterExpressionElementPack> {
-    use formats::ParameterExpressionElementPack::*;
     match opcode {
-        0 => Ok(Add(data)),
-        1 => Ok(Sub(data)),
-        2 => Ok(Mul(data)),
-        3 => Ok(Div(data)),
-        4 => Ok(Pow(data)),
-        5 => Ok(Sin(data)),
-        6 => Ok(Cos(data)),
-        7 => Ok(Tan(data)),
-        8 => Ok(Asin(data)),
-        9 => Ok(Acos(data)),
-        10 => Ok(Exp(data)),
-        11 => Ok(Log(data)),
-        12 => Ok(Sign(data)),
-        13 => Ok(Grad(data)),
-        14 => Ok(Conj(data)),
-        16 => Ok(Abs(data)),
-        17 => Ok(Atan(data)),
-        18 => Ok(Rsub(data)),
-        19 => Ok(Rdiv(data)),
-        20 => Ok(Rpow(data)),
-        255 => Ok(Expression(data)),
+        0 => Ok(formats::ParameterExpressionElementPack::Add(data)),
+        1 => Ok(formats::ParameterExpressionElementPack::Sub(data)),
+        2 => Ok(formats::ParameterExpressionElementPack::Mul(data)),
+        3 => Ok(formats::ParameterExpressionElementPack::Div(data)),
+        4 => Ok(formats::ParameterExpressionElementPack::Pow(data)),
+        5 => Ok(formats::ParameterExpressionElementPack::Sin(data)),
+        6 => Ok(formats::ParameterExpressionElementPack::Cos(data)),
+        7 => Ok(formats::ParameterExpressionElementPack::Tan(data)),
+        8 => Ok(formats::ParameterExpressionElementPack::Asin(data)),
+        9 => Ok(formats::ParameterExpressionElementPack::Acos(data)),
+        10 => Ok(formats::ParameterExpressionElementPack::Exp(data)),
+        11 => Ok(formats::ParameterExpressionElementPack::Log(data)),
+        12 => Ok(formats::ParameterExpressionElementPack::Sign(data)),
+        13 => Ok(formats::ParameterExpressionElementPack::Grad(data)),
+        14 => Ok(formats::ParameterExpressionElementPack::Conj(data)),
+        16 => Ok(formats::ParameterExpressionElementPack::Abs(data)),
+        17 => Ok(formats::ParameterExpressionElementPack::Atan(data)),
+        18 => Ok(formats::ParameterExpressionElementPack::Rsub(data)),
+        19 => Ok(formats::ParameterExpressionElementPack::Rdiv(data)),
+        20 => Ok(formats::ParameterExpressionElementPack::Rpow(data)),
+        255 => Ok(formats::ParameterExpressionElementPack::Expression(data)),
         _ => Err(PyTypeError::new_err(format!("Invalid opcode: {}", opcode))),
     }
 }
@@ -276,29 +275,28 @@ fn pack_parameter_expression_by_op(
 pub fn unpack_parameter_expression_standard_op(
     packed_parameter: formats::ParameterExpressionElementPack,
 ) -> PyResult<(u8, formats::ParameterExpressionStandardOpPack)> {
-    use formats::ParameterExpressionElementPack::*;
     match packed_parameter {
-        Add(op) => Ok((0, op)),
-        Sub(op) => Ok((1, op)),
-        Mul(op) => Ok((2, op)),
-        Div(op) => Ok((3, op)),
-        Pow(op) => Ok((4, op)),
-        Sin(op) => Ok((5, op)),
-        Cos(op) => Ok((6, op)),
-        Tan(op) => Ok((7, op)),
-        Asin(op) => Ok((8, op)),
-        Acos(op) => Ok((9, op)),
-        Exp(op) => Ok((10, op)),
-        Log(op) => Ok((11, op)),
-        Sign(op) => Ok((12, op)),
-        Grad(op) => Ok((13, op)),
-        Conj(op) => Ok((14, op)),
-        Abs(op) => Ok((16, op)),
-        Atan(op) => Ok((17, op)),
-        Rsub(op) => Ok((18, op)),
-        Rdiv(op) => Ok((19, op)),
-        Rpow(op) => Ok((20, op)),
-        Expression(op) => Ok((255, op)),
+        formats::ParameterExpressionElementPack::Add(op) => Ok((0, op)),
+        formats::ParameterExpressionElementPack::Sub(op) => Ok((1, op)),
+        formats::ParameterExpressionElementPack::Mul(op) => Ok((2, op)),
+        formats::ParameterExpressionElementPack::Div(op) => Ok((3, op)),
+        formats::ParameterExpressionElementPack::Pow(op) => Ok((4, op)),
+        formats::ParameterExpressionElementPack::Sin(op) => Ok((5, op)),
+        formats::ParameterExpressionElementPack::Cos(op) => Ok((6, op)),
+        formats::ParameterExpressionElementPack::Tan(op) => Ok((7, op)),
+        formats::ParameterExpressionElementPack::Asin(op) => Ok((8, op)),
+        formats::ParameterExpressionElementPack::Acos(op) => Ok((9, op)),
+        formats::ParameterExpressionElementPack::Exp(op) => Ok((10, op)),
+        formats::ParameterExpressionElementPack::Log(op) => Ok((11, op)),
+        formats::ParameterExpressionElementPack::Sign(op) => Ok((12, op)),
+        formats::ParameterExpressionElementPack::Grad(op) => Ok((13, op)),
+        formats::ParameterExpressionElementPack::Conj(op) => Ok((14, op)),
+        formats::ParameterExpressionElementPack::Abs(op) => Ok((16, op)),
+        formats::ParameterExpressionElementPack::Atan(op) => Ok((17, op)),
+        formats::ParameterExpressionElementPack::Rsub(op) => Ok((18, op)),
+        formats::ParameterExpressionElementPack::Rdiv(op) => Ok((19, op)),
+        formats::ParameterExpressionElementPack::Rpow(op) => Ok((20, op)),
+        formats::ParameterExpressionElementPack::Expression(op) => Ok((255, op)),
         _ => Err(PyTypeError::new_err(format!(
             "Non standard operation {:?}",
             packed_parameter
@@ -332,7 +330,7 @@ fn pack_py_symbol(
     let symbol_key = get_type_key(symbol)?;
     let (value_key, value_data): (u8, Bytes) = match value {
         None => (symbol_key, Bytes::new()),
-        Some(py_value) => dumps_value(py_value.clone().unbind(), qpy_data)?,
+        Some(py_value) => dumps_py_value(py_value.clone().unbind(), qpy_data)?,
     };
     match symbol_key {
         tags::PARAMETER_EXPRESSION => {
@@ -471,7 +469,7 @@ pub fn unpack_parameter_expression(
             formats::ParameterExpressionSymbolPack::Parameter(symbol_pack) => {
                 let symbol = unpack_parameter(py, &symbol_pack.symbol_data)?;
                 let value = if symbol_pack.value_key != parameter_tags::PARAMETER {
-                    let dumped_value = DumpedValue {
+                    let dumped_value = DumpedPyValue {
                         data_type: symbol_pack.value_key,
                         data: symbol_pack.value_data.clone(),
                     };
@@ -484,7 +482,7 @@ pub fn unpack_parameter_expression(
             formats::ParameterExpressionSymbolPack::ParameterVector(symbol_pack) => {
                 let symbol = unpack_parameter_vector(py, &symbol_pack.symbol_data, qpy_data)?;
                 let value = if symbol_pack.value_key != parameter_tags::PARAMETER_VECTOR {
-                    let dumped_value = DumpedValue {
+                    let dumped_value = DumpedPyValue {
                         data_type: symbol_pack.value_key,
                         data: symbol_pack.value_data.clone(),
                     };
@@ -515,7 +513,7 @@ pub fn unpack_parameter_expression(
             let mapping_pack = deserialize::<formats::MappingPack>(&subs.mapping_data)?.0;
             for item in mapping_pack.items {
                 let key_uuid: [u8; 16] = (&item.key_bytes).try_into()?;
-                let value = DumpedValue {
+                let value = DumpedPyValue {
                     data_type: item.item_type,
                     data: item.item_bytes.clone(),
                 };
@@ -694,6 +692,7 @@ pub fn dumps_param_expression(
     exp: &ParameterExpression,
     qpy_data: &QPYWriteData,
 ) -> PyResult<(u8, Bytes)> {
+    println!("dumps_param_expression called with exp {:?}", exp);
     // TODO: implement!
     Ok((tags::PARAMETER_EXPRESSION, Bytes::new()))
 }
@@ -714,7 +713,7 @@ pub fn dumps_instruction_param_value(
         )?),
         tags::REGISTER => dumps_register_param(py_object)?,
         _ => {
-            let (_, value) = dumps_value(py_object.clone().unbind(), qpy_data)?;
+            let (_, value) = dumps_py_value(py_object.clone().unbind(), qpy_data)?;
             value
         }
     };
@@ -727,8 +726,7 @@ pub fn load_instruction_param_value(
     data: &Bytes,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<Py<PyAny>> {
-    println!("load_instruction_param_value called with type key {:?} and data {:?}", type_key, data);
-    Ok(match type_key {
+Ok(match type_key {
         tags::INTEGER => {
             let value = i64::from_le_bytes(data[..8].try_into()?);
             PyInt::new(py, value).into()
@@ -743,7 +741,7 @@ pub fn load_instruction_param_value(
             qpy_data,
         )?,
         tags::REGISTER => load_register(py, data.clone(), qpy_data.circuit_data)?,
-        _ => DumpedValue {
+        _ => DumpedPyValue {
             data_type: type_key,
             data: data.clone(),
         }
@@ -790,11 +788,10 @@ pub fn unpack_param(
     packed_param: &formats::PackedParam,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<Param> {
-    println!("unpack_param called on packed_param {:?}", packed_param);
     match packed_param.type_key {
         tags::FLOAT => Ok(Param::Float(packed_param.data.try_to_le_f64()?)),
         tags::PARAMETER_EXPRESSION | tags::PARAMETER | tags::PARAMETER_VECTOR => {
-            let dumped_value = DumpedValue {
+            let dumped_value = DumpedPyValue {
                 data_type: packed_param.type_key,
                 data: packed_param.data.clone(),
             };

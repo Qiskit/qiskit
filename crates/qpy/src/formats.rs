@@ -11,15 +11,13 @@
 // that they have been altered from the originals.
 
 use crate::bytes::Bytes;
-use crate::value::{DumpedValue, ExpressionType, serialize, deserialize};
-use binrw::{binread, binrw, binwrite, BinRead, BinResult, BinWrite, Endian, Error};
+use crate::value::{DumpedPyValue, ExpressionType, QPYReadData, QPYWriteData};
+use crate::expr::{read_expression, write_expression};
+use binrw::{binread, binrw, binwrite, BinRead, BinResult, BinWrite, Endian,};
 use num_bigint::BigUint;
-use qiskit_circuit::bit::{ClassicalRegister, ShareableClbit};
-use qiskit_circuit::classical::expr::{Cast, Expr, Index, Stretch, Unary, Value, Var, Binary, UnaryOp, BinaryOp};
-use qiskit_circuit::classical::types::Type;
-use qiskit_circuit::duration::{self, Duration};
+use qiskit_circuit::classical::expr::Expr;
 use std::io::{Read, Seek, Write};
-
+use std::marker::PhantomData;
 
 /// The overall structure of the QPY file
 
@@ -57,9 +55,9 @@ pub struct CircuitHeaderV12Pack {
     #[br(parse_with = read_string, args(name_size as usize))]
     #[bw(write_with = write_string)]
     pub circuit_name: String,
-    #[br(parse_with = DumpedValue::read, args(global_phase_size as usize, global_phase_type))]
-    #[bw(write_with = DumpedValue::write)]
-    pub global_phase_data: DumpedValue,
+    #[br(parse_with = DumpedPyValue::read, args(global_phase_size as usize, global_phase_type))]
+    #[bw(write_with = DumpedPyValue::write)]
+    pub global_phase_data: DumpedPyValue,
     #[br(count = metadata_size)]
     pub metadata: Bytes,
     #[br(count = num_registers)]
@@ -525,14 +523,20 @@ pub struct SparsePauliOpListElemPack {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-pub struct ExpressionPack {
+#[br(import(qpy_read_data: &'a QPYReadData<'a>))]
+#[bw(import(qpy_write_data: &'a QPYWriteData<'a>))]
+pub struct ExpressionPack<'a> {
     // expressions are stored as a consecutive list of expression elements
     // that encode a tree structure in inorder traversal
     // since QPY doesn't explicitly store the number of elements in the expression
     // we need to manually handle byte-level reading along with parsing the expression
-    #[br(parse_with = read_expression)]
-    #[bw(write_with = write_expression)]
+    #[br(parse_with = read_expression, args(qpy_read_data))]
+    #[bw(write_with = write_expression, args(qpy_write_data))]
     pub expression: Expr,
+
+    #[br(ignore)]
+    #[bw(ignore)]
+    pub _phantom: PhantomData<&'a Option<Expr>>,
 }
     
 #[derive(BinWrite, BinRead, Debug)]
@@ -573,9 +577,20 @@ pub enum ExpressionVarElementPack {
     #[brw(magic = b'C')]
     Clbit(u32),
     #[brw(magic = b'R')]
-    Register(u16),
+    Register(ExpressionVarRegisterPack),
     #[brw(magic = b'U')]
     UUID(u16),
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct ExpressionVarRegisterPack {
+    #[bw(calc = name.as_bytes().len() as u16)]
+    pub name_size: u16,
+    #[br(parse_with = read_string, args(name_size as usize))]
+    #[bw(write_with = write_string)]
+    pub name: String,
 }
 
 #[derive(BinWrite, BinRead, Debug)]
@@ -628,158 +643,7 @@ pub fn unpack_biguint(big_int_pack: BigIntPack) -> BigUint {
     BigUint::from_bytes_be(&big_int_pack.bytes)
 }
 
-pub fn pack_expression_duration(duration: &Duration) -> ExpressionDurationPack {
-    match duration {
-        Duration::dt(dt) => ExpressionDurationPack::DT(*dt as u64),
-        Duration::ps(ps) => ExpressionDurationPack::PS(*ps),
-        Duration::ns(ns) => ExpressionDurationPack::NS(*ns),
-        Duration::us(us) => ExpressionDurationPack::US(*us),
-        Duration::ms(ms) => ExpressionDurationPack::MS(*ms),
-        Duration::s(s) => ExpressionDurationPack::S(*s),
-    }
-}
 
-pub fn unpack_expression_duration(duration_pack: ExpressionDurationPack) -> Duration {
-    match duration_pack {
-        ExpressionDurationPack::DT(dt) => Duration::dt(dt as i64),
-        ExpressionDurationPack::PS(ps) => Duration::ps(ps),
-        ExpressionDurationPack::NS(ns) => Duration::ns(ns),
-        ExpressionDurationPack::US(us) => Duration::us(us),
-        ExpressionDurationPack::MS(ms) => Duration::ms(ms),
-        ExpressionDurationPack::S(s) => Duration::s(s),
-    }
-}
-
-// packed expression types implicitly contain the magic number identifying them in the qpy file
-pub fn pack_expression_type(ty: &Type) -> ExpressionTypePack{
-    match ty {
-        Type::Bool => ExpressionTypePack::Bool,
-        Type::Uint(width) => ExpressionTypePack::Int(*width as u32),
-        Type::Duration => ExpressionTypePack::Duration,
-        Type::Float => ExpressionTypePack::Float
-    }
-}
-
-pub fn unpack_expression_type(type_pack: ExpressionTypePack) -> Type {
-    match type_pack {
-        ExpressionTypePack::Bool => Type::Bool,
-        ExpressionTypePack::Duration => Type::Duration,
-        ExpressionTypePack::Float => Type::Float,
-        ExpressionTypePack::Int(width) => Type::Uint(width as u16)
-    }
-}
-
-pub fn pack_expression_value(value: &Value) -> ExpressionElementPack {
-    let (ty, value_pack) = match value {
-        Value::Uint { raw, ty } => {
-            match ty {
-                Type::Bool => (ty, ExpressionValueElementPack::Bool(raw.to_bytes_le()[0])), // effectively truncating modulo 256
-                Type::Uint(_) => (ty, ExpressionValueElementPack::Int(pack_biguint(raw.clone()))),
-                _ => (ty, ExpressionValueElementPack::Bool(raw.to_bytes_le()[0])), // TODO: should this be different?
-            }
-        }   
-        Value::Float { raw, ty } => (ty, ExpressionValueElementPack::Float(*raw)),
-        Value::Duration(duration) => (&Type::Duration, ExpressionValueElementPack::Duration(pack_expression_duration(duration)))
-    };
-    ExpressionElementPack::Value(pack_expression_type(ty), value_pack)
-}
-
-pub fn unpack_expression_value(value_type_pack: ExpressionTypePack, value_element_pack: ExpressionValueElementPack) -> Value {
-    let ty = unpack_expression_type(value_type_pack);
-    match value_element_pack {
-        ExpressionValueElementPack::Bool(val) => Value::Uint { raw: BigUint::from_bytes_le(&[val]), ty },
-        ExpressionValueElementPack::Int(val) => Value::Uint { raw: unpack_biguint(val), ty },
-        ExpressionValueElementPack::Duration(duration) => Value::Duration(unpack_expression_duration(duration)),
-        ExpressionValueElementPack::Float(val) => Value::Float { raw: val, ty }
-    }
-}
-
-pub fn pack_expression_var(var: &Var) -> ExpressionElementPack {
-    let (ty, value_pack) = match var {
-        Var::Bit { bit } => (&Type::Bool, ExpressionVarElementPack::Clbit(0)), // TODO: set correct clbit value (based on clbit indices)
-        Var::Register { register, ty } => (ty, ExpressionVarElementPack::Register(0)), // TODO: set correct register value
-        Var::Standalone { uuid, name, ty } => (ty, ExpressionVarElementPack::UUID(0)) // TODO: see what's going on with the uuid
-    };
-    ExpressionElementPack::Var(pack_expression_type(ty), value_pack)
-}
-
-pub fn unpack_expression_var(var_type_pack: ExpressionTypePack, var_element_pack: ExpressionVarElementPack) -> Var {
-    let ty = unpack_expression_type(var_type_pack);
-    match var_element_pack {
-        ExpressionVarElementPack::Clbit(index) => Var::Bit { bit: ShareableClbit::new_anonymous() }, // TODO: get from qpy_data based on index
-        ExpressionVarElementPack::Register(index) => Var::Register { register: ClassicalRegister::new_owning("name", 0), ty }, // TODO: get register
-        ExpressionVarElementPack::UUID(uuid) => Var::Standalone { uuid: uuid as u128, name: "".to_string(), ty } // TODO: handle correctly - and where "name" comes from?
-    }
-}
-
-pub fn write_expression<W: Write + Seek>(
-    exp: &Expr,
-    writer: &mut W,
-    endian: Endian,
-    args: (),
-) -> binrw::BinResult<()> {
-    match exp {
-        Expr::Value(val) => {
-            pack_expression_value(val).write_options(writer, endian, args);
-        }
-        Expr::Var(var) => {
-            pack_expression_var(var).write_options(writer, endian, args);
-        }
-        Expr::Stretch(strecth) => {
-            ExpressionElementPack::Stretch(ExpressionTypePack::Duration, 0).write_options(writer, endian, args); // TODO: get strech value for standalone_var_indices
-        }
-        Expr::Index(index_node) => {
-            ExpressionElementPack::Index(pack_expression_type(&index_node.ty)).write_options(writer, endian, args);
-            write_expression(&index_node.target, writer, endian, args);
-            write_expression(&index_node.index, writer, endian, args);
-        }
-        Expr::Cast(cast_node) => {
-            ExpressionElementPack::Cast(pack_expression_type(&cast_node.ty), cast_node.implicit as u8).write_options(writer, endian, args);
-            write_expression(&cast_node.operand, writer, endian, args);
-        }
-        Expr::Unary(unary_node) => {
-            ExpressionElementPack::Unary(pack_expression_type(&unary_node.ty), unary_node.op as u8).write_options(writer, endian, args);
-            write_expression(&unary_node.operand, writer, endian, args);
-        }
-        Expr::Binary(binary_node) => {
-            ExpressionElementPack::Binary(pack_expression_type(&binary_node.ty), binary_node.op as u8).write_options(writer, endian, args);
-            write_expression(&binary_node.left, writer, endian, args);
-            write_expression(&binary_node.right, writer, endian, args);
-        }
-    };
-    Ok(())
-}
-
-pub fn read_expression<R: Read + Seek>(
-    reader: &mut R,
-    endian: Endian,
-    _: (),
-) -> BinResult<Expr> {
-    let exp_element = ExpressionElementPack::read_options(reader, endian, ())?;
-    match exp_element {
-        ExpressionElementPack::Value(value_type_pack, value_element_pack, ) => Ok(Expr::Value(unpack_expression_value(value_type_pack, value_element_pack))),
-        ExpressionElementPack::Var(var_type_pack, var_element_pack) => Ok(Expr::Var(unpack_expression_var(var_type_pack, var_element_pack))),
-        ExpressionElementPack::Stretch(_stretch_type_pack, stretch_index ) => Ok(Expr::Stretch(Stretch {uuid:0, name:"".to_string()})), // TODO: set correct values
-        ExpressionElementPack::Index(index_type_pack) => {
-            let target = read_expression(reader, endian, ())?;
-            let index = read_expression(reader, endian, ())?;
-            Ok(Expr::Index(Box::new(Index {target, index, ty: unpack_expression_type(index_type_pack), constant: false}))) // TODO: what constant should be?
-        }
-        ExpressionElementPack::Cast(cast_type_pack, implicit) => {
-            let operand = read_expression(reader, endian, ())?;
-            Ok(Expr::Cast(Box::new(Cast {operand, ty: unpack_expression_type(cast_type_pack), constant: false, implicit: implicit != 0}))) // TODO: what constant should be?
-        }
-        ExpressionElementPack::Unary(unary_type_pack, op) => {
-            let operand = read_expression(reader, endian, ())?;
-            Ok(Expr::Unary(Box::new(Unary{op: UnaryOp::from_u8(op).map_err(|_| Error::NoVariantMatch { pos: (0) })?, operand, ty: unpack_expression_type(unary_type_pack), constant: false})))
-        }
-        ExpressionElementPack::Binary(binary_type_pack, op) => {
-            let left = read_expression(reader, endian, ())?;
-            let right = read_expression(reader, endian, ())?;
-            Ok(Expr::Binary(Box::new(Binary{op: BinaryOp::from_u8(op).map_err(|_| Error::NoVariantMatch { pos: (0) })?, left, right, ty: unpack_expression_type(binary_type_pack), constant: false})))
-        }
-    }
-}
 
 // general data types
 
