@@ -12,6 +12,7 @@
 
 use pyo3::prelude::*;
 
+use qiskit_circuit::VarsMode;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::imports::PAULI_EVOLUTION_GATE;
 use qiskit_circuit::operations::{
@@ -19,7 +20,6 @@ use qiskit_circuit::operations::{
     StandardInstruction, multiply_param,
 };
 use qiskit_circuit::packed_instruction::PackedInstruction;
-use qiskit_circuit::{Clbit, VarsMode};
 
 use qiskit_quantum_info::clifford::Clifford;
 use qiskit_quantum_info::sparse_observable::{BitTerm, SparseObservable};
@@ -89,7 +89,6 @@ pub fn run_litinski_transformation(
     let mut new_dag = new_dag.into_builder();
 
     let py_evo_cls = PAULI_EVOLUTION_GATE.get_bound(py);
-    let no_clbits: Vec<Clbit> = Vec::new();
 
     let num_qubits = dag.num_qubits();
     let mut clifford = Clifford::identity(num_qubits);
@@ -282,7 +281,7 @@ pub fn run_litinski_transformation(
                     new_dag.apply_operation_back(
                         py_gate.into(),
                         &indices,
-                        &no_clbits,
+                        &[],
                         Some(smallvec![time]),
                         None,
                         #[cfg(feature = "cache_pygates")]
