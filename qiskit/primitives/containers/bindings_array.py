@@ -389,7 +389,7 @@ def _infer_shape(data: dict[tuple[Parameter, ...], np.ndarray]) -> tuple[int, ..
         raise ValueError("Could not find any consistent shape.")
     if len(only_possible_shapes) == 1:
         return next(iter(only_possible_shapes))
-    
+
     # Prefer keeping harmless singleton dimensions so column-vector sweeps (``(N, 1)``) can
     # participate in broadcasting with observable arrays such as ``(1, M)``.  If the ambiguity is
     # only between scalar interpretations, continue to return the empty shape for backward
