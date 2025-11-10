@@ -312,6 +312,34 @@ cleanup:
     return result;
 }
 
+static int test_dag_copy_empty_like(void) {
+    int result = Ok;
+
+    QkDag *dag = qk_dag_new();
+    QkQuantumRegister *qr = qk_quantum_register_new(1, "my_register");
+    qk_dag_add_quantum_register(dag, qr);
+
+    uint32_t qubit[1] = {0};
+    qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
+
+    QkDag *copied_dag = qk_dag_copy_empty_like(dag);
+    uint32_t num_ops_in_copied_dag = qk_dag_num_op_nodes(copied_dag); // 0
+
+    if (num_ops_in_copied_dag != 0) {
+        printf("Expected no operations in the copied-empty-like DAG but got %u\n",
+               num_ops_in_copied_dag);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+cleanup:
+    qk_quantum_register_free(qr);
+    qk_dag_free(dag);
+    qk_dag_free(copied_dag);
+
+    return result;
+}
+
 int test_dag(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty);
@@ -321,6 +349,7 @@ int test_dag(void) {
     num_failed += RUN_TEST(test_dag_node_type);
     num_failed += RUN_TEST(test_dag_endpoint_node_value);
     num_failed += RUN_TEST(test_op_node_bits_explicit);
+    num_failed += RUN_TEST(test_dag_copy_empty_like);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
