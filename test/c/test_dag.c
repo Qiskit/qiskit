@@ -323,10 +323,10 @@ static int test_dag_copy_empty_like(void) {
     qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
 
     QkDag *copied_dag = qk_dag_copy_empty_like(dag);
-    uint32_t num_ops_in_copied_dag = qk_dag_num_op_nodes(copied_dag); // 0
+    size_t num_ops_in_copied_dag = qk_dag_num_op_nodes(copied_dag); // 0
 
     if (num_ops_in_copied_dag != 0) {
-        printf("Expected no operations in the copied-empty-like DAG but got %u\n",
+        printf("Expected no operations in the copied-empty-like DAG but got %zu\n",
                num_ops_in_copied_dag);
         result = EqualityError;
         goto cleanup;
