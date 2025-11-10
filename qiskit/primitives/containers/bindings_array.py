@@ -369,7 +369,7 @@ def _infer_shape(data: dict[tuple[Parameter, ...], np.ndarray]) -> tuple[int, ..
             # be ``(5, 7)``.
             examine_array(val.shape[:-1])
         elif val.shape and val.shape[-1] == 1:
-            if val.ndim == (1,):
+            if val.ndim == 1:
                 # ``(1,)`` indicates a scalar binding for the single parameter, so only the empty
                 # sweep shape is viable.
                 examine_array(())
