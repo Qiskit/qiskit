@@ -1348,7 +1348,7 @@ impl Target {
     ///
     /// # Returns
     ///
-    /// * `true`` if the instruction compatible with the target, `false` if otherwise.
+    /// * `true` if the instruction is compatible with the target, `false` if otherwise.
     pub fn instruction_supported<'a, T>(
         &self,
         operation_name: &str,
