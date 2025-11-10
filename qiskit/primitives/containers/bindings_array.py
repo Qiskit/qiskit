@@ -369,18 +369,20 @@ def _infer_shape(data: dict[tuple[Parameter, ...], np.ndarray]) -> tuple[int, ..
             # be ``(5, 7)``.
             examine_array(val.shape[:-1])
         elif val.shape and val.shape[-1] == 1:
-            # Arrays ending in a singleton axis are ambiguous: ``(1,)`` could be a scalar binding or
-            # a length-one sweep, while shapes like ``(N, 1)`` often represent column vectors.  Keep
-            # both interpretations so we can drop the axis when required by other arrays yet still
-            # broadcast with observables such as ``(1, M)``.
-            examine_array(val.shape[:-1], val.shape)
-            if val.shape == (1,):
-                # Explicitly include the scalar interpretation so legacy callers continue to see an
-                # empty sweep shape when nothing else constrains it.
+            if val.ndim == (1,):
+                # ``(1,)`` indicates a scalar binding for the single parameter, so only the empty
+                # sweep shape is viable.
                 examine_array(())
+            else:
+                # Column-vector style data (for example ``(N, 1)``) frequently represents a sweep of
+                # ``N`` parameter assignments.  Keep both interpretations so we can drop the axis
+                # when required by other arrays yet still broadcast with observables such as
+                # ``(1, M)``.
+                examine_array(val.shape[:-1], val.shape)
         else:
-            # A trailing axis of size larger than one must correspond to parameters.  For a value
-            # shaped ``(8, 6)`` bound to a single parameter, the leading shape is ``(8,)``.
+            # In this convention the parameter axis has been dropped entirely, so the leading sweep
+            # shape is whatever remains.  For example, bindings shaped ``(5, 7)`` for a single
+            # parameter indicate a 5x7 grid of values.
             examine_array(val.shape)
 
     if only_possible_shapes is None:
@@ -392,13 +394,7 @@ def _infer_shape(data: dict[tuple[Parameter, ...], np.ndarray]) -> tuple[int, ..
         return next(iter(shapes))
 
     # Prefer keeping harmless singleton dimensions so column-vector sweeps (``(N, 1)``) can
-    # participate in broadcasting with observable arrays such as ``(1, M)``.  If the ambiguity is
-    # only between scalar interpretations, continue to return the empty shape for backward
-    # compatibility.
-    if () in shapes:
-        non_empty = [shape for shape in shapes if shape]
-        if not non_empty or all(len(shape) == 1 for shape in non_empty):
-            return ()
+    # participate in broadcasting with observable arrays such as ``(1, M)``.
     return max(shapes, key=lambda shape: (len(shape), shape))
 
 
