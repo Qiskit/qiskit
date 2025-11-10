@@ -546,25 +546,18 @@ impl PauliLike for SparseObservable {
 /// Copy several slices into a single flat vec, in parallel
 fn copy_flat_parallel<T, U>(slices: &[U]) -> Vec<T>
 where
-    T: Copy + Send + Sync,
-    U: AsRef<[T]> + Sync,
+    T: Copy,
+    U: AsRef<[T]>,
 {
-    let lens = slices
-        .iter()
-        .map(|slice| slice.as_ref().len())
-        .collect::<Vec<_>>();
-    let size = lens.iter().sum();
-    #[allow(clippy::uninit_vec)]
-    let mut out = {
-        let mut out = Vec::with_capacity(size);
-        out.resize_with(size, || unsafe {
-            std::mem::MaybeUninit::zeroed().assume_init()
-        });
-        out
-    };
-    out.par_uneven_chunks_mut(&lens)
-        .zip(slices.par_iter().map(|x| x.as_ref()))
-        .for_each(|(out_slice, in_slice)| out_slice.copy_from_slice(in_slice));
+    // Computing the total size
+    let total: usize = slices.iter().map(|s| s.as_ref().len()).sum();
+    let mut out = Vec::with_capacity(total);
+
+    // Further copy each contiguous chunk directly
+    for s in slices {
+        out.extend_from_slice(s.as_ref());
+    }
+
     out
 }
 
