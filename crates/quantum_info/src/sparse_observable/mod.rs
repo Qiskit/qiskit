@@ -573,21 +573,12 @@ macro_rules! impl_sparse_observable_to_matrix {
             if num_ops == 0 {
                 return (vec![], vec![], vec![0; side + 1]);
             }
-
-            eprintln!(
-                "[DEBUG][SERIAL] start: qubits={} ops={} side={}",
-                data.num_qubits(),
-                num_ops,
-                side
-            );
-
             let t_alloc = Instant::now();
             let mut order = (0..num_ops).collect::<Vec<_>>();
             order.sort_unstable_by_key(|&op| data.x_like[op]);
             let mut values = Vec::<Complex64>::with_capacity(side * (num_ops + 1) / 2);
             let mut indices = Vec::<$int_ty>::with_capacity(side * (num_ops + 1) / 2);
             let mut indptr: Vec<$int_ty> = vec![0; side + 1];
-            eprintln!("[DEBUG][SERIAL] alloc took {:?}", t_alloc.elapsed());
 
             let t_compute = Instant::now();
             let mut nnz = 0;
@@ -620,18 +611,7 @@ macro_rules! impl_sparse_observable_to_matrix {
                 values.push(running);
                 indices.push(prev_index as $int_ty);
                 indptr[i_row + 1] = nnz as $int_ty;
-
-                if i_row % 5000 == 0 {
-                    eprintln!("[DEBUG][SERIAL] progress: row={} nnz={}", i_row, nnz);
-                }
             }
-
-            eprintln!(
-                "[DEBUG][SERIAL] compute took {:?}, nnz={}, total took {:?}",
-                t_compute.elapsed(),
-                nnz,
-                t_total.elapsed()
-            );
 
             (values, indices, indptr)
         }
@@ -651,23 +631,10 @@ macro_rules! impl_sparse_observable_to_matrix {
             let num_threads = rayon::current_num_threads();
             // Skip parallel if work set too small or memory-bound
             if est_work < 5_000_000 || num_threads <= 2 {
-                eprintln!(
-                    "[DEBUG][PARALLEL] adaptive fallback -> serial (work={} threads={})",
-                    est_work, num_threads
-                );
                 return $serial_fn(data);
             }
 
             let chunk_size = side.div_ceil(num_threads);
-
-            eprintln!(
-                "[DEBUG][PARALLEL] start: qubits={} ops={} side={} threads={} chunk_size={}",
-                data.num_qubits(),
-                num_ops,
-                side,
-                num_threads,
-                chunk_size
-            );
 
             // We precompute and sharte across threads the global order of operations
             let mut global_order = (0..num_ops).collect::<Vec<_>>();
@@ -681,7 +648,6 @@ macro_rules! impl_sparse_observable_to_matrix {
 
             let mut values_chunks = Vec::with_capacity(num_threads);
             let mut indices_chunks = Vec::with_capacity(num_threads);
-            eprintln!("[DEBUG][PARALLEL] alloc took {:?}", t_alloc.elapsed());
 
             let t_compute = Instant::now();
 
@@ -732,24 +698,9 @@ macro_rules! impl_sparse_observable_to_matrix {
                         indptr_chunk[i_row - start] = nnz as $int_ty;
                     }
 
-                    eprintln!(
-                        "[DEBUG][PARALLEL] chunk {:>2}/{:>2} rows {}–{} nnz={} took {:?}",
-                        i,
-                        num_threads,
-                        start,
-                        end,
-                        nnz,
-                        t_chunk.elapsed()
-                    );
-
                     (values, indices)
                 })
                 .unzip_into_vecs(&mut values_chunks, &mut indices_chunks);
-
-            eprintln!(
-                "[DEBUG][PARALLEL] compute phase took {:?}",
-                t_compute.elapsed()
-            );
 
             let t_merge = Instant::now();
             let mut start_nnz = 0usize;
@@ -771,20 +722,6 @@ macro_rules! impl_sparse_observable_to_matrix {
 
             let values = copy_flat_parallel(&values_chunks);
             let indices = copy_flat_parallel(&indices_chunks);
-
-            eprintln!(
-                "[DEBUG][PARALLEL] merge phase took {:?}, total values={} indices={} nnz={}",
-                t_merge.elapsed(),
-                values.len(),
-                indices.len(),
-                indptr.last().copied().unwrap_or_default()
-            );
-
-            eprintln!(
-                "[DEBUG][PARALLEL] total build took {:?}",
-                t_total.elapsed()
-            );
-            eprintln!("[DEBUG][PARALLEL] === END ===");
 
             (values, indices, indptr)
         }
@@ -1322,7 +1259,6 @@ impl SparseObservable {
         let mut out = vec![Complex64::new(0.0, 0.0); side * side];
 
         let write_row = |(i_row, row): (usize, &mut [Complex64])| {
-            row.fill(Complex64::new(0.0, 0.0));
             for op_idx in 0..computation_data.num_ops() {
                 let x_mask = computation_data.x_like[op_idx] as usize;
                 let z_mask = computation_data.z_like[op_idx];
