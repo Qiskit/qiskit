@@ -387,15 +387,14 @@ def _infer_shape(data: dict[tuple[Parameter, ...], np.ndarray]) -> tuple[int, ..
 
     if only_possible_shapes is None:
         return ()
-    shapes = set(only_possible_shapes)
-    if len(shapes) == 0:
+    if len(only_possible_shapes) == 0:
         raise ValueError("Could not find any consistent shape.")
-    if len(shapes) == 1:
-        return next(iter(shapes))
+    if len(only_possible_shapes) == 1:
+        return next(iter(only_possible_shapes))
 
     # Prefer keeping harmless singleton dimensions so column-vector sweeps (``(N, 1)``) can
     # participate in broadcasting with observable arrays such as ``(1, M)``.
-    return max(shapes, key=lambda shape: (len(shape), shape))
+    return max(only_possible_shapes, key=lambda shape: (len(shape), shape))
 
 
 def _format_key(key: tuple[Parameter | str, ...]):
