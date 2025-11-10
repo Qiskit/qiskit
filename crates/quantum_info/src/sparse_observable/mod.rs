@@ -572,17 +572,31 @@ macro_rules! impl_sparse_observable_to_matrix {
     ($serial_fn:ident, $parallel_fn:ident, $int_ty:ty, $uint_ty:ty $(,)?) => {
         /// Optimized serial matrix construction
         fn $serial_fn(data: &MatrixComputationData) -> CSRData<$int_ty> {
+            use std::time::Instant;
+            let t_total = Instant::now();
+
             let side = 1 << data.num_qubits();
             let num_ops = data.num_ops();
             if num_ops == 0 {
                 return (vec![], vec![], vec![0; side + 1]);
             }
 
+            eprintln!(
+                "[DEBUG][SERIAL] start: qubits={} ops={} side={}",
+                data.num_qubits(),
+                num_ops,
+                side
+            );
+
+            let t_alloc = Instant::now();
             let mut order = (0..num_ops).collect::<Vec<_>>();
             order.sort_unstable_by_key(|&op| data.x_like[op]);
             let mut values = Vec::<Complex64>::with_capacity(side * (num_ops + 1) / 2);
             let mut indices = Vec::<$int_ty>::with_capacity(side * (num_ops + 1) / 2);
             let mut indptr: Vec<$int_ty> = vec![0; side + 1];
+            eprintln!("[DEBUG][SERIAL] alloc took {:?}", t_alloc.elapsed());
+
+            let t_compute = Instant::now();
             let mut nnz = 0;
 
             for i_row in 0..side {
@@ -591,9 +605,7 @@ macro_rules! impl_sparse_observable_to_matrix {
 
                 for &op_idx in &order {
                     let coeff = if ((i_row as $uint_ty) & (data.z_like[op_idx] as $uint_ty))
-                        .count_ones()
-                        % 2
-                        == 0
+                        .count_ones() % 2 == 0
                     {
                         data.coeffs[op_idx]
                     } else {
@@ -614,52 +626,96 @@ macro_rules! impl_sparse_observable_to_matrix {
                 nnz += 1;
                 values.push(running);
                 indices.push(prev_index as $int_ty);
-                indptr[i_row + 1] = nnz;
+                indptr[i_row + 1] = nnz as $int_ty;
+
+                if i_row % 5000 == 0 {
+                    eprintln!("[DEBUG][SERIAL] progress: row={} nnz={}", i_row, nnz);
+                }
             }
+
+            eprintln!(
+                "[DEBUG][SERIAL] compute took {:?}, nnz={}, total took {:?}",
+                t_compute.elapsed(),
+                nnz,
+                t_total.elapsed()
+            );
+
             (values, indices, indptr)
         }
 
         /// Optimized parallel matrix construction - identical to SparsePauliOp algorithm
         fn $parallel_fn(data: &MatrixComputationData) -> CSRData<$int_ty> {
+            use std::time::Instant;
+            use rayon::prelude::*;
+            let t_total = Instant::now();
+
             let side = 1 << data.num_qubits();
             let num_ops = data.num_ops();
             if num_ops == 0 {
                 return (vec![], vec![], vec![0; side + 1]);
             }
-
-            let mut indptr = Vec::<$int_ty>::with_capacity(side + 1);
-            indptr.push(0);
-            unsafe {
-                indptr.set_len(side + 1);
+            let est_work = (side as u64) * (num_ops as u64);
+            let num_threads = rayon::current_num_threads();
+            // Skip parallel if work set too small or memory-bound
+            if est_work < 5_000_000 || num_threads <= 2 {
+                eprintln!(
+                    "[DEBUG][PARALLEL] adaptive fallback -> serial (work={} threads={})",
+                    est_work, num_threads
+                );
+                return $serial_fn(data);
             }
 
-            let num_threads = rayon::current_num_threads();
             let chunk_size = side.div_ceil(num_threads);
+
+            eprintln!(
+                "[DEBUG][PARALLEL] start: qubits={} ops={} side={} threads={} chunk_size={}",
+                data.num_qubits(),
+                num_ops,
+                side,
+                num_threads,
+                chunk_size
+            );
+
+            // We precompute and sharte across threads the global order of operations
+            let mut global_order = (0..num_ops).collect::<Vec<_>>();
+            global_order.sort_unstable_by_key(|&op| data.x_like[op]);
+            let order_arc = std::sync::Arc::new(global_order);
+
+            let t_alloc = Instant::now();
+            let mut indptr = Vec::<$int_ty>::with_capacity(side + 1);
+            indptr.push(0);
+            unsafe { indptr.set_len(side + 1); }
+
             let mut values_chunks = Vec::with_capacity(num_threads);
             let mut indices_chunks = Vec::with_capacity(num_threads);
+            eprintln!("[DEBUG][PARALLEL] alloc took {:?}", t_alloc.elapsed());
+
+            let t_compute = Instant::now();
 
             indptr[1..]
                 .par_chunks_mut(chunk_size)
                 .enumerate()
                 .map(|(i, indptr_chunk)| {
+                    let t_chunk = Instant::now();
                     let start = chunk_size * i;
                     let end = (chunk_size * (i + 1)).min(side);
-                    let mut order = (0..num_ops).collect::<Vec<_>>();
-                    order.sort_unstable_by_key(|&op| data.x_like[op]);
+                    let order = order_arc.as_ref();
+
                     let mut values =
                         Vec::<Complex64>::with_capacity(chunk_size * (num_ops + 1) / 2);
-                    let mut indices = Vec::<$int_ty>::with_capacity(chunk_size * (num_ops + 1) / 2);
-                    let mut nnz = 0;
+                    let mut indices =
+                        Vec::<$int_ty>::with_capacity(chunk_size * (num_ops + 1) / 2);
+
+                    let mut nnz = 0usize;
 
                     for i_row in start..end {
                         let mut running = Complex64::new(0.0, 0.0);
                         let mut prev_index = i_row ^ (data.x_like[order[0]] as usize);
 
-                        for &op_idx in &order {
-                            let coeff = if ((i_row as $uint_ty) & (data.z_like[op_idx] as $uint_ty))
-                                .count_ones()
-                                % 2
-                                == 0
+                        for &op_idx in order {
+                            let coeff = if ((i_row as $uint_ty)
+                                & (data.z_like[op_idx] as $uint_ty))
+                                .count_ones() % 2 == 0
                             {
                                 data.coeffs[op_idx]
                             } else {
@@ -680,12 +736,29 @@ macro_rules! impl_sparse_observable_to_matrix {
                         nnz += 1;
                         values.push(running);
                         indices.push(prev_index as $int_ty);
-                        indptr_chunk[i_row - start] = nnz;
+                        indptr_chunk[i_row - start] = nnz as $int_ty;
                     }
+
+                    eprintln!(
+                        "[DEBUG][PARALLEL] chunk {:>2}/{:>2} rows {}–{} nnz={} took {:?}",
+                        i,
+                        num_threads,
+                        start,
+                        end,
+                        nnz,
+                        t_chunk.elapsed()
+                    );
+
                     (values, indices)
                 })
                 .unzip_into_vecs(&mut values_chunks, &mut indices_chunks);
 
+            eprintln!(
+                "[DEBUG][PARALLEL] compute phase took {:?}",
+                t_compute.elapsed()
+            );
+
+            let t_merge = Instant::now();
             let mut start_nnz = 0usize;
             let chunk_nnz = values_chunks
                 .iter()
@@ -705,6 +778,21 @@ macro_rules! impl_sparse_observable_to_matrix {
 
             let values = copy_flat_parallel(&values_chunks);
             let indices = copy_flat_parallel(&indices_chunks);
+
+            eprintln!(
+                "[DEBUG][PARALLEL] merge phase took {:?}, total values={} indices={} nnz={}",
+                t_merge.elapsed(),
+                values.len(),
+                indices.len(),
+                indptr.last().copied().unwrap_or_default()
+            );
+
+            eprintln!(
+                "[DEBUG][PARALLEL] total build took {:?}",
+                t_total.elapsed()
+            );
+            eprintln!("[DEBUG][PARALLEL] === END ===");
+
             (values, indices, indptr)
         }
     };
