@@ -312,6 +312,48 @@ cleanup:
     return result;
 }
 
+static int test_dag_topological_op_nodes(void) {
+    int result = Ok;
+    QkDag *dag = qk_dag_new();
+    QkQuantumRegister *qr = qk_quantum_register_new(2, "my_register");
+    qk_dag_add_quantum_register(dag, qr);
+
+    uint32_t qubit[1] = {0};
+    uint32_t h_gate_idx = qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
+    uint32_t s_gate_idx = qk_dag_apply_gate(dag, QkGate_S, qubit, NULL, false);
+
+    size_t num_ops = qk_dag_num_op_nodes(dag);
+    if (num_ops != 2) {
+        printf("The number of op nodes %zu is not 0\n", num_ops);
+        qk_dag_free(dag);
+        qk_quantum_register_free(qr);
+        return EqualityError;
+    }
+
+    uint32_t *order = malloc(sizeof(uint32_t) * num_ops);
+    qk_dag_topological_op_nodes(dag, order);
+
+    for (uint32_t i = 0; i < num_ops; i++) {
+        if (order[0] != h_gate_idx) {
+            printf("Expected gate index %u but got %u\n", h_gate_idx, order[0]);
+            result = EqualityError;
+            goto cleanup;
+        }
+
+        if (order[1] != s_gate_idx) {
+            printf("Expected gate index %u but got %u\n", s_gate_idx, order[1]);
+            result = EqualityError;
+            goto cleanup;
+        }
+    }
+
+cleanup:
+    free(order);
+    qk_dag_free(dag);
+    qk_quantum_register_free(qr);
+    return result;
+}
+
 int test_dag(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty);
@@ -321,6 +363,7 @@ int test_dag(void) {
     num_failed += RUN_TEST(test_dag_node_type);
     num_failed += RUN_TEST(test_dag_endpoint_node_value);
     num_failed += RUN_TEST(test_op_node_bits_explicit);
+    num_failed += RUN_TEST(test_dag_topological_op_nodes);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);

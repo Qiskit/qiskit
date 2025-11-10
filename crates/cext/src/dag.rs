@@ -736,56 +736,47 @@ pub unsafe extern "C" fn qk_dag_free(dag: *mut DAGCircuit) {
         }
     }
 }
-
 /// @ingroup QkDag
-/// Get the number of instructions in the DAG.
+/// Return the operation nodes in the DAG listed in topological order.
 ///
 /// @param dag A pointer to the DAG.
-///
-/// @return The number of instructions in the DAG.
+/// @param order A pointer to an array of ``qk_dag_num_op_nodes(dag)`` elements
+/// of type ``uint32_t``, where this function will write the output to.
 ///
 /// # Example
 /// ```c
 /// QkDag *dag = qk_dag_new();
+/// QkQuantumRegister *qr = qk_quantum_register_new(1, "my_register");
+/// qk_dag_add_quantum_register(dag, qr);
 ///
-/// todo: an example where we add 2 instructions to the DAG.
+/// uint32_t qubit[1] = {0};
+/// qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
+/// qk_dag_apply_gate(dag, QkGate_S, qubit, NULL, false);
 ///
-/// uint32_t num_instructions = qk_dag_num_instructions(dag);  // num_instructions==2
+/// // get the number of operation nodes
+/// uint32_t num_ops = qk_dag_num_op_nodes(dag); // 2
+/// uint32_t *order = malloc(sizeof(uint32_t) * num_ops);
+///
+/// // get operation nodes listed in topological order
+/// qk_dag_topological_op_nodes(dag, order);
+///
+/// // do something with the ordered nodes
+/// for (uint32_t i=0; i<num_ops; i++) {
+///     QkGate gate = qk_dag_op_node_gate_op(dag, order[i], NULL);
+///     printf("The gate at location %u is %u.\n", i, gate);
+/// }
+///
+/// // free the order array
+/// free(order);
+/// qk_quantum_register_free(qr);
 /// qk_dag_free(dag);
 /// ```
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
-#[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_dag_num_instructions(dag: *const DAGCircuit) -> u32 {
-    // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let dag = unsafe { const_ptr_as_ref(dag) };
-    dag.num_ops() as u32
-}
-
-/// @ingroup QkDag
-/// Return DAG operation nodes, in topological order.
-///
-/// @param dag A pointer to the DAG.
-/// @param order A pointer to the array of ``uint32_t`` node indices where this function
-/// will write the output to. This array must be allocated by the caller, using the
-/// an allocation of size of at least ``qk_dag_num_instructions``.
-///
-/// # Example
-/// ```c
-/// QkDag *dag = qk_dag_new();
-///
-/// ToDo: create an example.
-///
-/// qk_dag_free(dag);
-/// ```
-///
-/// # Safety
-///
-/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``,
-/// or if ``order`` is not a valid, non-null and sufficiently large pointer to a ``u32``.
+/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``
+/// or if ``order`` is not a valid, non-null pointer to a sequence of ``qk_dag_num_op_nodes(dag)``
+/// consecutive elements of ``uint32_t``.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_topological_op_nodes(dag: *const DAGCircuit, order: *mut u32) {
