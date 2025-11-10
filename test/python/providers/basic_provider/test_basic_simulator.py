@@ -223,6 +223,7 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
             "seed_simulator": 42,
             "shots": 100,
             "memory": True,
+            "use_clifford_optimization": False,  # ADDED FOR CLIFFORD
         }
         backend = BasicSimulator()
         backend_with_options = BasicSimulator(
@@ -253,6 +254,9 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
                     seed_simulator=in_options["seed_simulator"],
                     shots=in_options["shots"],
                     memory=in_options["memory"],
+                    use_clifford_optimization=in_options[
+                        "use_clifford_optimization"
+                    ],  # ADDED FOR CLIFFORD
                 )
                 .result()
                 .get_counts()

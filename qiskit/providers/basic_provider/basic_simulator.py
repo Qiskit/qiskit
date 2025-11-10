@@ -115,6 +115,9 @@ class BasicSimulator(BackendV2):
         self._memory = self.options.get("memory")
         self._initial_statevector = self.options.get("initial_statevector")
         self._seed_simulator = self.options.get("seed_simulator")
+        self._use_clifford_optimization = self.options.get(
+            "use_clifford_optimization"
+        )  # ADDED FOR CLIFFORD
 
     @property
     def max_circuits(self) -> None:
@@ -219,6 +222,7 @@ class BasicSimulator(BackendV2):
             memory=True,
             initial_statevector=None,
             seed_simulator=None,
+            use_clifford_optimization=False,  # ADDED FOR CLIFFORD
         )
 
     def _add_unitary(self, gate: np.ndarray, qubits: list[int]) -> None:
@@ -367,7 +371,9 @@ class BasicSimulator(BackendV2):
         self._memory = self.options.get("memory")
         self._initial_statevector = self.options.get("initial_statevector")
         self._seed_simulator = self.options.get("seed_simulator")
-
+        self._use_clifford_optimization = self.options.get(
+            "use_clifford_optimization"
+        )  # ADDED FOR CLIFFORD
         # Apply custom run options
         if run_options.get("initial_statevector", None) is not None:
             self._initial_statevector = np.array(run_options["initial_statevector"], dtype=complex)
@@ -386,6 +392,11 @@ class BasicSimulator(BackendV2):
             self._seed_simulator = np.random.randint(2147483647, dtype="int32")
         if "memory" in run_options:
             self._memory = run_options["memory"]
+
+        if "use_clifford_optimization" in run_options:
+            self._use_clifford_optimization = run_options[
+                "use_clifford_optimization"
+            ]  # ADDED FOR CLIFFORD
         # Set seed for local random number gen.
         self._local_rng = np.random.default_rng(seed=self._seed_simulator)
 
@@ -453,6 +464,9 @@ class BasicSimulator(BackendV2):
 
                 * "memory": bool. If True, the result will contain the results
                   of every individual shot simulation.
+
+                * "use_clifford_optimization": bool. If True, enables Clifford
+                  circuit optimization using stabilizer formalism. Default: False.
 
             Example::
 
@@ -540,16 +554,11 @@ class BasicSimulator(BackendV2):
         # Sample measurements
         memory = []
         if measure_ops:
-            # Sample each shot individually
+            stab_state = StabilizerState(clifford_obj, validate=False)
             for _ in range(self._shots):
-                # Create fresh StabilizerState for each shot
-                stab_state = StabilizerState(clifford_obj)
-
-                # Set seed if provided (for reproducibility)
+                # Only reset the seed. Dont create new object.
                 if self._seed_simulator is not None:
-                    # Use different seed for each shot to get random outcomes
-                    stab_state.seed(self._seed_simulator + _)
-
+                    stab_state._rng.seed(self._seed_simulator + _)
                 # Sample one measurement outcome
                 sample = stab_state.sample_memory(1)[0]
 
@@ -639,7 +648,7 @@ class BasicSimulator(BackendV2):
 
         # Check if circuit is Clifford and use optimized simulation
         # Check initial_statevector first (cheaper)
-        if self._initial_statevector is None:
+        if self._initial_statevector is None and self._use_clifford_optimization:
             clifford_obj = self._is_clifford_circuit(circuit)
             if clifford_obj is not None:
                 return self._run_clifford_circuit(circuit, clifford_obj)
