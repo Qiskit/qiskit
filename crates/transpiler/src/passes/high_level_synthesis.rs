@@ -36,6 +36,7 @@ use qiskit_circuit::operations::{Param, radd_param};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit, VarsMode};
+use qiskit_synthesis::pauli_product_measurement::synthesize_ppm;
 use smallvec::SmallVec;
 
 use crate::TranspilerError;
@@ -591,7 +592,7 @@ fn run_on_circuitdata(
                 // old_blocks_py keeps the original QuantumCircuit's appearing within control-flow ops
                 // new_blocks_py keeps the recursively synthesized circuits
                 let old_blocks_py = old_blocks_as_bound_obj.getattr(intern!(py, "blocks"))?;
-                let old_blocks_py = old_blocks_py.downcast::<PyTuple>()?;
+                let old_blocks_py = old_blocks_py.cast::<PyTuple>()?;
                 let mut new_blocks_py: Vec<Bound<PyAny>> = Vec::with_capacity(old_blocks_py.len());
 
                 // We do not allow using any additional qubits outside of the block.
@@ -803,6 +804,7 @@ fn extract_definition(
                 }
             }
         }
+        OperationRef::PauliProductMeasurement(ppm) => Ok(Some(synthesize_ppm(ppm)?)),
         _ => Ok(op.definition(params)),
     }
 }
@@ -949,6 +951,7 @@ fn synthesize_op_using_plugins(
         OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
         OperationRef::Operation(operation) => operation.operation.clone_ref(py),
         OperationRef::Unitary(unitary) => unitary.create_py_op(py, label)?.into_any(),
+        OperationRef::PauliProductMeasurement(ppm) => ppm.create_py_op(py, label)?.into_any(),
     };
     let res = HLS_SYNTHESIZE_OP_USING_PLUGINS
         .get_bound(py)
