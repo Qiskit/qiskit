@@ -89,7 +89,7 @@ pub extern "C" fn qk_sabre_layout_options_default() -> SabreLayoutOptions {
 ///
 /// [2] Li, Gushu, Yufei Ding, and Yuan Xie. "Tackling the qubit mapping problem
 /// for NISQ-era quantum devices." ASPLOS 2019.
-/// [`arXiv:1809.02573](https://arxiv.org/pdf/1809.02573.pdf)
+/// [arXiv:1809.02573](https://arxiv.org/pdf/1809.02573.pdf)
 ///
 /// @param circuit A pointer to the circuit to run SabreLayout on. The circuit
 ///     is modified in place and the original circuit's allocations are freed by this function.
