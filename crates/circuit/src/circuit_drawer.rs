@@ -15,7 +15,7 @@ use crate::dag_circuit::DAGCircuit;
 use crate::operations::{Operation, OperationRef, Param, StandardGate, StandardInstruction};
 use crate::packed_instruction::PackedInstruction;
 use crate::{Clbit, Qubit};
-use core::{num, panic};
+use core::panic;
 use hashbrown::{HashMap, HashSet};
 use itertools::{Itertools, MinMaxResult};
 use rustworkx_core::petgraph::csr::IndexType;
@@ -35,31 +35,9 @@ import_exception!(qiskit.circuit.exceptions, CircuitError);
 
 // TODO: remove when dev is done, since this is only for manual testing
 #[pyfunction(name = "draw")]
-#[pyo3(signature = (circuit, cregbundle=true, mergewires=true, fold=None))]
-pub fn py_drawer(
-    circuit: QuantumCircuitData,
-    cregbundle: bool,
-    mergewires: bool,
-    fold: Option<usize>,
-) -> PyResult<()> {
-    draw_circuit(&circuit.data, cregbundle, mergewires, fold)?;
-    Ok(())
-}
-
-pub fn draw_circuit(
-    circuit: &CircuitData,
-    cregbundle: bool,
-    mergewires: bool,
-    fold: Option<usize>,
-) -> PyResult<()> {
-    let vis_mat = VisualizationMatrix::from_circuit(circuit)?;
-
-    let circuit_rep = TextDrawer::from_visualization_matrix(&vis_mat, &cregbundle);
-    // for i in 0..circuit_rep.wires.len() {
-    //     println!("{:?}", circuit_rep.wires[i]);
-    // }
-    circuit_rep.print(mergewires, fold);
-
+#[pyo3(signature = (circuit, cregbundle=true, mergewires=true))]
+pub fn py_drawer(circuit: QuantumCircuitData, cregbundle: bool, mergewires: bool) -> PyResult<()> {
+    draw_circuit(&circuit.data, &cregbundle, &mergewires)?;
     Ok(())
 }
 
@@ -348,7 +326,6 @@ impl<'a> VisualizationLayer<'a> {
             StandardGate::ISwap
             | StandardGate::DCX
             | StandardGate::ECR
-            | StandardGate::ISwap
             | StandardGate::RXX
             | StandardGate::RYY
             | StandardGate::RZZ
@@ -378,48 +355,12 @@ impl<'a> VisualizationLayer<'a> {
             //     //             ));
             //     //         }
             // },
-            StandardGate::H
-            | StandardGate::I
-            | StandardGate::X
-            | StandardGate::Y
-            | StandardGate::Z
-            | StandardGate::Phase
-            | StandardGate::R
-            | StandardGate::RX
-            | StandardGate::RY
-            | StandardGate::RZ
-            | StandardGate::S
-            | StandardGate::Sdg
-            | StandardGate::SX
-            | StandardGate::SXdg
-            | StandardGate::T
-            | StandardGate::Tdg
-            | StandardGate::U
-            | StandardGate::U1
-            | StandardGate::U2
-            | StandardGate::U3 => {
+            StandardGate::H | StandardGate::RX | StandardGate::RZ => {
                 self.0[qargs[0].index()] = VisualizationElement::Boxed(Boxed::Single(inst));
-            }
-            StandardGate::CH
-            | StandardGate::CX
-            | StandardGate::CY
-            | StandardGate::CZ
-            | StandardGate::CRX
-            | StandardGate::CRY
-            | StandardGate::CRZ
-            | StandardGate::CS
-            | StandardGate::CSdg
-            | StandardGate::CSX
-            | StandardGate::CU
-            | StandardGate::CU1
-            | StandardGate::CU3
-            | StandardGate::CCX
-            | StandardGate::CCZ
-            | StandardGate::C3X
-            | StandardGate::C3SX
-            | StandardGate::CPhase => {
-                self.0[qargs.last().unwrap().index()] =
-                    VisualizationElement::Boxed(Boxed::Single(inst));
+            },
+            StandardGate::CX | StandardGate::CCX => {
+                self.0[qargs.last().unwrap().index()] = VisualizationElement::Boxed(Boxed::Single(inst));
+                let mut control_indices: HashSet<usize> = HashSet::new();
                 if gate.num_ctrl_qubits() > 0 {
                     self.add_controls(
                         &qargs
@@ -431,32 +372,13 @@ impl<'a> VisualizationLayer<'a> {
                     );
                 }
 
-                let vert_lines = (minima..=maxima)
-                    .filter(|idx| !(qargs.iter().map(|q| q.0 as usize)).contains(idx));
-                self.add_vertical_lines(inst, vert_lines);
             }
-            StandardGate::GlobalPhase => {}
-            StandardGate::Swap | StandardGate::CSwap => {
-                // taking the last 2 elements of qargs
-                let swap_qubits = qargs.iter().map(|q| q.0 as usize).rev().take(2);
-                for qubit in swap_qubits {
-                    if qubit == minima {
-                        self.0[qubit] =
-                            VisualizationElement::DirectOnWire(OnWire::Swap(ElementOnWire::Top));
-                    } else if qubit == maxima {
-                        self.0[qubit] =
-                            VisualizationElement::DirectOnWire(OnWire::Swap(ElementOnWire::Bot));
-                    } else {
-                        self.0[qubit] =
-                            VisualizationElement::DirectOnWire(OnWire::Swap(ElementOnWire::Mid));
-                    }
-                }
-
-                let vert_lines = (minima..=maxima)
-                    .filter(|idx| !(qargs.iter().map(|q| q.0 as usize)).contains(idx));
-                self.add_vertical_lines(inst, vert_lines);
-            }
+            _ => unimplemented!("{}", format!("{:?} is not supported yet", gate))
         }
+
+    //     let vert_lines = (minima..=maxima)
+    //         .filter(|idx| !control_indices.contains(idx) && !box_indices.contains(idx));
+    //     self.add_vertical_lines(inst, vert_lines);
     }
 
     fn add_standard_instruction(
@@ -481,11 +403,8 @@ impl<'a> VisualizationLayer<'a> {
                 }
             }
             StandardInstruction::Measure => {
-                self.0[qargs.last().unwrap().index()] =
-                    VisualizationElement::Boxed(Boxed::Single(inst));
-                self.add_vertical_lines(inst, minima + 1..maxima);
-                self.0[maxima] =
-                    VisualizationElement::DirectOnWire(OnWire::Control(ElementOnWire::Bot))
+                self.0[qargs.last().unwrap().index()] = VisualizationElement::Boxed(Boxed::Single(inst));
+                self.add_vertical_lines(inst, minima + 1..=maxima);
             }
             StandardInstruction::Delay(_) => {
                 for q in qargs {
@@ -501,8 +420,6 @@ impl<'a> VisualizationLayer<'a> {
 /// A dense representation of the circuit of size N * (M + 1), where the first
 /// layer(column) represents the qubits and clbits inputs in the circuits, and
 /// M is the number of operation layers.
-///
-/// This structure follows a column-major order, where each layer represents a column of the circuit,
 #[derive(Debug, Clone)]
 struct VisualizationMatrix<'a> {
     layers: Vec<VisualizationLayer<'a>>,
@@ -590,6 +507,8 @@ impl ElementWire {
         let top = self.top.chars().count();
         let mid = self.mid.chars().count();
         let bot = self.bot.chars().count();
+        // println!("top:{}, mid:{}, bot:{}", top, mid, bot);
+        // println!("{}", top.max(mid).max(bot));
         let max = {
             if top >= mid && top >= bot {
                 top
@@ -599,6 +518,8 @@ impl ElementWire {
                 bot
             }
         };
+        // println!("max: {}", max);
+        // println!("{}\n{}\n{}", self.top, self.mid, self.bot);
         max
     }
 
@@ -688,18 +609,6 @@ impl Index<usize> for TextDrawer {
 
     fn index(&self, index: usize) -> &Self::Output {
         &self.wires[index]
-    }
-}
-
-impl Debug for TextDrawer {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for layer in &self.wires {
-            for element in layer {
-                writeln!(f, "{:?}", element)?;
-            }
-            writeln!(f, "-----------------")?;
-        }
-        Ok(())
     }
 }
 
@@ -919,7 +828,7 @@ impl TextDrawer {
                         }
                         StandardGate::RCCX => {
                             // Relative-phase Toffoli gate
-                            Some(format!(" RCCX({}) ", instruction_param))
+                            Some(format!(" RX({}) ", instruction_param))
                         }
                         StandardGate::C3X => {
                             // 3-controlled X gate (4-qubit controlled X)
@@ -931,7 +840,7 @@ impl TextDrawer {
                         }
                         StandardGate::RC3X => {
                             // Relative-phase 3-controlled X gate
-                            Some(format!(" RC3X({}) ", instruction_param))
+                            Some(format!(" RX({}) ", instruction_param))
                         }
                     }
                 } else if let Some(std_instruction) = instruction.op.try_standard_instruction() {
@@ -941,8 +850,6 @@ impl TextDrawer {
                         Some("|0>".to_string())
                     } else if let StandardInstruction::Barrier(_) = std_instruction {
                         Some("░".to_string())
-                    } else if let StandardInstruction::Delay(delay_unit) = std_instruction {
-                        Some(format!("Delay({:?}[{}])", instruction.params, delay_unit))
                     } else {
                         // Fallback for non-standard instructions
                         Some(format!(
@@ -968,14 +875,7 @@ impl TextDrawer {
 
     fn from_visualization_matrix<'a>(vis_mat: &'a VisualizationMatrix, cregbundle: &bool) -> Self{
         let mut wires: Vec<Vec<ElementWire>> = vec![];
-        let num_wires = {
-            if *cregbundle {
-                vis_mat.circuit.num_qubits() + 1
-            } else {
-                vis_mat.num_wires()
-            }
-        };
-        for _ in 0..num_wires {
+        for _ in 0..vis_mat.num_wires() {
             wires.push(vec![]);
         }
 
@@ -1015,23 +915,7 @@ impl TextDrawer {
             }
         }
 
-        // // print final visualization matrix
-        // for i in 0..post_processed_vis_mat.num_wires() {
-        //     for j in 0..post_processed_vis_mat.layers.len() {
-        //         print!("{:?}", post_processed_vis_mat[j][i]);
-        //     }
-        //     println!();
-        // }
-
         text_drawer
-    }
-
-    fn get_layer_width(&self, ind: usize) -> usize {
-        self.wires
-            .iter()
-            .map(|wire| wire[ind].width())
-            .max()
-            .unwrap_or(0)
     }
 
     fn draw_layer(
@@ -1221,7 +1105,7 @@ impl TextDrawer {
 
                         let mid_section = if ind == mid {
                             format!(
-                                "{:^total_q$}{:^label_len$}",
+                                "{:^total_q$} {:^label_len$}",
                                 num_affected,
                                 label,
                                 total_q = qargs.len(),
@@ -1229,7 +1113,7 @@ impl TextDrawer {
                             )
                         } else {
                             format!(
-                                "{:^total_q$}{:^label_len$}",
+                                "{:^total_q$} {:^label_len$}",
                                 num_affected,
                                 " ",
                                 total_q = qargs.len(),
@@ -1442,124 +1326,36 @@ impl TextDrawer {
         }
     }
 
-    fn print(&self, mergewires: bool, fold: Option<usize>) {
-        let ranges: Vec<(usize, usize)> = match fold {
-            Some(f) => {
-                let mut temp_ranges = vec![];
-                let mut layer_counter: usize = 1;
-                let total_layers = self.wires[0].len();
-                while layer_counter < self.wires[0].len() {
-                    let mut total_width: usize = 0;
-                    total_width += self.get_layer_width(0);
+    fn print(&self, mergewires: &bool){
 
-                    let start = layer_counter;
-                    while total_width <= f && layer_counter < self.wires[0].len() {
-                        total_width += self.get_layer_width(layer_counter);
-                        layer_counter += 1;
-                    }
-                    let end = layer_counter;
-                    temp_ranges.push((start, end));
-                }
-                temp_ranges
+        if !*mergewires {
+            let mut output = String::new();
+            for i in self.wires.iter(){
+                let top_line: String = i.iter().map(|wire| wire.top.clone()).collect::<Vec<String>>().join("");
+                let mid_line: String = i.iter().map(|wire| wire.mid.clone()).collect::<Vec<String>>().join("");
+                let bot_line: String = i.iter().map(|wire| wire.bot.clone()).collect::<Vec<String>>().join("");
+                output.push_str(&format!("{}\n{}\n{}\n", top_line, mid_line, bot_line));
             }
-            None => vec![(0, self.wires[0].len())],
-        };
-
-        for (j, (start, end)) in ranges.iter().enumerate() {
-            if !mergewires {
-                let mut output = String::new();
-                for (i, element) in self.wires.iter().enumerate() {
-                    let mut top_line: String = element
-                        .iter()
-                        .enumerate()
-                        .filter(|(idx, _)| (*idx >= *start && *idx < *end) || *idx == 0) // Fix here
-                        .map(|(_, wire)| wire.top.clone()) // And here
-                        .collect::<Vec<String>>()
-                        .join("");
-                    let mut mid_line: String = element
-                        .iter()
-                        .enumerate()
-                        .filter(|(idx, _)| (*idx >= *start && *idx < *end) || *idx == 0) // Fix here too
-                        .map(|(_, wire)| wire.mid.clone()) // And here
-                        .collect::<Vec<String>>()
-                        .join("");
-                    let mut bot_line: String = element
-                        .iter()
-                        .enumerate()
-                        .filter(|(idx, _)| (*idx >= *start && *idx < *end) || *idx == 0) // And here
-                        .map(|(_, wire)| wire.bot.clone()) // And here
-                        .collect::<Vec<String>>()
-                        .join("");
-                    top_line.push_str(if j == ranges.len() - 1 { "" } else { "»" });
-                    mid_line.push_str(if j == ranges.len() - 1 { "" } else { "»" });
-                    bot_line.push_str(if j == ranges.len() - 1 { "" } else { "»" });
-                    output.push_str(&format!("{}\n{}\n{}\n", top_line, mid_line, bot_line));
+            println!("{}", output);
+        } else {
+            let num_wires = self.wires.len();
+            for i in 0..num_wires - 1 {
+                if i == 0 {
+                    let top_line = self.wires[i].iter().map(|wire| wire.top.clone()).collect::<Vec<String>>().join("");
+                    let mid_line = self.wires[i].iter().map(|wire| wire.mid.clone()).collect::<Vec<String>>().join("");
+                    println!("{}", top_line);
+                    println!("{}", mid_line);
                 }
-                println!("{}", output);
-            } else {
-                let num_wires = self.wires.len();
-                for i in 0..num_wires - 1 {
-                    if i == 0 {
-                        let mut top_line = self.wires[i]
-                            .iter()
-                            .enumerate()
-                            .filter(|(idx, _)| (*idx >= *start && *idx < *end) || *idx == 0) // Fix here
-                            .map(|(_, wire)| wire.top.clone()) // And here
-                            .collect::<Vec<String>>()
-                            .join("");
-                        top_line.push_str(if j == ranges.len() - 1 { "" } else { "»" });
-                        let mut mid_line = self.wires[i]
-                            .iter()
-                            .enumerate()
-                            .filter(|(idx, _)| (*idx >= *start && *idx < *end) || *idx == 0) // Fix here
-                            .map(|(_, wire)| wire.mid.clone()) // And here
-                            .collect::<Vec<String>>()
-                            .join("");
-                        mid_line.push_str(if j == ranges.len() - 1 { "" } else { "»" });
-                        println!("{}", top_line);
-                        println!("{}", mid_line);
-                    }
-                    let mut bot_line = self.wires[i]
-                        .iter()
-                        .enumerate()
-                        .filter(|(idx, _)| (*idx >= *start && *idx < *end) || *idx == 0) // Fix here
-                        .map(|(_, wire)| wire.bot.clone()) // And here
-                        .collect::<Vec<String>>()
-                        .join("");
-
-                    bot_line.push_str(if j == ranges.len() - 1 { "" } else { "»" });
-
-                    let mut top_line_next = self.wires[i + 1]
-                        .iter()
-                        .enumerate()
-                        .filter(|(idx, _)| (*idx >= *start && *idx < *end) || *idx == 0) // Fix here
-                        .map(|(_, wire)| wire.top.clone()) // And here
-                        .collect::<Vec<String>>()
-                        .join("");
-                    top_line_next.push_str(if j == ranges.len() - 1 { "" } else { "»" });
-                    let mut merged_line = Self::merge_lines(&bot_line, &top_line_next, "top");
-                    println!("{}", merged_line);
-                    let mut mid_line_next = self.wires[i + 1]
-                        .iter()
-                        .enumerate()
-                        .filter(|(idx, _)| (*idx >= *start && *idx < *end) || *idx == 0) // Fix here
-                        .map(|(_, wire)| wire.mid.clone()) // And here
-                        .collect::<Vec<String>>()
-                        .join("");
-                    mid_line_next.push_str(if j == ranges.len() - 1 { "" } else { "»" });
-                    println!("{}", mid_line_next);
-                }
-                let last_index = num_wires - 1;
-                let mut bot_line = self.wires[last_index]
-                    .iter()
-                    .enumerate()
-                    .filter(|(idx, _)| (*idx >= *start && *idx < *end) || *idx == 0) // Fix here
-                    .map(|(_, wire)| wire.bot.clone()) // And here
-                    .collect::<Vec<String>>()
-                    .join("");
-                bot_line.push_str(if j == ranges.len() - 1 { "" } else { "»" });
-                println!("{}", bot_line);
+                let bot_line = self.wires[i].iter().map(|wire| wire.bot.clone()).collect::<Vec<String>>().join("");
+                let top_line_next = self.wires[i + 1].iter().map(|wire| wire.top.clone()).collect::<Vec<String>>().join("");
+                let merged_line = Self::merge_lines(&bot_line, &top_line_next, "top");
+                println!("{}", merged_line);
+                let mid_line_next = self.wires[i + 1].iter().map(|wire| wire.mid.clone()).collect::<Vec<String>>().join("");
+                println!("{}", mid_line_next);
             }
+            let last_index = num_wires - 1;
+            let bot_line = self.wires[last_index].iter().map(|wire| wire.bot.clone()).collect::<Vec<String>>().join("");
+            println!("{}", bot_line);
         }
     }
 
@@ -1614,4 +1410,14 @@ impl TextDrawer {
 
         ret
     }
+}
+
+pub fn draw_circuit(circuit: &CircuitData, cregbundle: &bool, mergewires: &bool) -> PyResult<()> {
+    let dag = DAGCircuit::from_circuit_data(circuit, false, None, None, None, None)?;
+
+    let vis_mat2 = VisualizationMatrix::from_circuit(circuit)?;
+
+    let circuit_rep = TextDrawer::from_visualization_matrix(&vis_mat2, cregbundle);
+    circuit_rep.print(mergewires);
+    Ok(())
 }
