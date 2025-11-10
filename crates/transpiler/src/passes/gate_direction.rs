@@ -190,7 +190,7 @@ pub fn fix_direction_target(dag: &mut DAGCircuit, target: &Target) -> PyResult<(
         ];
 
         // Take this path so Target can check for exact match of the parameterized gate's angle
-        target.instruction_supported(inst.op.name(), qargs, inst.params_view(), true)
+        target.instruction_supported(inst.op.name(), qargs, inst.params_view(), false)
     };
 
     fix_gate_direction(dag, &target_check, None)
