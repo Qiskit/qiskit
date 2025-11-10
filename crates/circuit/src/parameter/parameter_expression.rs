@@ -252,6 +252,7 @@ impl ParameterExpression {
 
     /// Load from a sequence of [OPReplay]s. Used in serialization.
     pub fn from_qpy(replay: &[OPReplay]) -> Result<Self, ParameterError> {
+        println!("Hello world from from_qpy");
         // the stack contains the latest lhs and rhs values
         let mut stack: Vec<ParameterExpression> = Vec::new();
 
@@ -569,6 +570,7 @@ impl ParameterExpression {
             expr: res,
             name_map,
         })
+
     }
 
     /// Bind symbols to values.
@@ -1426,7 +1428,7 @@ impl PyParameterExpression {
 #[pyclass(sequence, subclass, module="qiskit._accelerate.circuit", extends=PyParameterExpression, name="Parameter")]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
 pub struct PyParameter {
-    symbol: Symbol,
+    pub symbol: Symbol,
 }
 
 impl Hash for PyParameter {
@@ -1931,6 +1933,12 @@ unsafe impl ::bytemuck::CheckedBitPattern for OpCode {
 }
 
 unsafe impl ::bytemuck::NoUninit for OpCode {}
+
+impl OpCode {
+    pub fn from_u8(value: u8) -> PyResult<OpCode> {
+        Ok(bytemuck::checked::cast::<u8, OpCode>(value))
+    }
+}
 
 #[pymethods]
 impl OpCode {

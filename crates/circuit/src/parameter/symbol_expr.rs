@@ -33,7 +33,7 @@ pub const SYMEXPR_EPSILON: f64 = f64::EPSILON * 8.0;
 
 #[derive(Debug, Clone)]
 pub struct Symbol {
-    name: String,                  // the name of the symbol
+    pub name: String,              // the name of the symbol
     pub uuid: Uuid,                // the unique identifier
     pub index: Option<u32>,        // an optional index, if part of a vector
     pub vector: Option<Py<PyAny>>, // Python only: a reference to the vector, if it is an element

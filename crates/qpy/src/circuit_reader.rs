@@ -928,7 +928,7 @@ pub fn unpack_circuit<'py>(
             .call_method0("__len__")?
             .extract::<usize>()?;
         let missing_indices: Vec<u64> = (0..vector_length as u64)
-            .filter(|x| !initialized_params.contains(x))
+            .filter(|x| !initialized_params.contains(&(*x as u32)))
             .collect();
         if initialized_params.len() != vector_length {
             let msg = format!(

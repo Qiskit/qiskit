@@ -19,6 +19,7 @@ use pyo3::types::{PyAny, PyBytes};
 use std::fmt::{Debug, Write as WriteFmt};
 use std::io::{Cursor, Read, Seek, Write};
 use std::ops::{Deref, DerefMut};
+use num_complex::Complex64;
 
 // Bytes are the format used to store serialized data which is not automatically handled by binrw
 // It's a wrapper around Vec<u8> with extended serialization/deserialization capabilities
@@ -54,15 +55,23 @@ impl Default for Bytes {
     }
 }
 
+// we also allow the case where Bytes has 16 bytes, the first 8 being 0
+// since this is how f64 are encoded inside ParameterExpressionStandardOpPack
 impl TryFrom<&Bytes> for f64 {
     type Error = PyErr;
     fn try_from(bytes: &Bytes) -> Result<Self, Self::Error> {
-        let byte_array: [u8; 8] = bytes
-            .0
-            .as_slice()
-            .try_into()
-            .map_err(|_| PyValueError::new_err("Expected exactly 8 bytes"))?;
-        Ok(f64::from_be_bytes(byte_array))
+        let data = &bytes.0;
+        match data.len() {
+            8 => {
+                let byte_array: [u8; 8] = data.as_slice().try_into().map_err(|_| PyValueError::new_err("Expected exactly 8 bytes"))?;
+                Ok(f64::from_be_bytes(byte_array))
+            }
+            16 if data[..8].iter().all(|&byte| byte == 0) => {
+                let byte_array: [u8; 8] = data[8..].try_into().map_err(|_| PyValueError::new_err("Expected exactly 16 bytes with the first 8 being 0"))?;
+                Ok(f64::from_be_bytes(byte_array))
+            }
+            _ => Err(PyValueError::new_err("Decoding Bytes to f64: Expected exactly 8 bytes or 16 bytes with the first 8 being 0"))
+        }
     }
 }
 
@@ -81,15 +90,23 @@ impl TryFrom<&Bytes> for (f64, f64) {
     }
 }
 
+// we also allow the case where Bytes has 16 bytes, the first 8 being 0
+// since this is how i64 are encoded inside ParameterExpressionStandardOpPack
 impl TryFrom<&Bytes> for i64 {
     type Error = PyErr;
     fn try_from(bytes: &Bytes) -> Result<Self, Self::Error> {
-        let byte_array: [u8; 8] = bytes
-            .0
-            .as_slice()
-            .try_into()
-            .map_err(|_| PyValueError::new_err("Expected exactly 8 bytes"))?;
-        Ok(i64::from_be_bytes(byte_array))
+        let data = &bytes.0;
+        match data.len() {
+            8 => {
+                let byte_array: [u8; 8] = data.as_slice().try_into().map_err(|_| PyValueError::new_err("Expected exactly 8 bytes"))?;
+                Ok(i64::from_be_bytes(byte_array))
+            }
+            16 if data[..8].iter().all(|&byte| byte == 0) => {
+                let byte_array: [u8; 8] = data[8..].try_into().map_err(|_| PyValueError::new_err("Expected exactly 16 bytes with the first 8 being 0"))?;
+                Ok(i64::from_be_bytes(byte_array))
+            }
+            _ => Err(PyValueError::new_err("Decoding Bytes to i64: Expected exactly 8 bytes or 16 bytes with the first 8 being 0"))
+        }
     }
 }
 
@@ -102,6 +119,20 @@ impl TryFrom<&Bytes> for [u8; 16] {
             .try_into()
             .map_err(|_| PyValueError::new_err("Expected exactly 16 bytes"))?;
         Ok(byte_array)
+    }
+}
+
+impl TryFrom<&Bytes> for Complex64 {
+    type Error = PyErr;
+    fn try_from(bytes: &Bytes) -> Result<Self, Self::Error> {
+        let byte_array: [u8; 16] = bytes
+            .0
+            .as_slice()
+            .try_into()
+            .map_err(|_| PyValueError::new_err("Expected exactly 16 bytes"))?;
+        let real = f64::from_be_bytes(byte_array[0..8].try_into()?);
+        let imag = f64::from_be_bytes(byte_array[8..16].try_into()?);
+        Ok(Complex64::new(real, imag))
     }
 }
 
@@ -136,6 +167,12 @@ impl From<[u8; 8]> for Bytes {
     }
 }
 
+impl From<[u8; 16]> for Bytes {
+    fn from(s: [u8; 16]) -> Self {
+        Bytes(s.to_vec())
+    }
+}
+
 impl From<String> for Bytes {
     fn from(s: String) -> Self {
         Bytes(s.into_bytes())
@@ -151,6 +188,15 @@ impl From<Cursor<Vec<u8>>> for Bytes {
 impl From<&f64> for Bytes {
     fn from(value: &f64) -> Self {
         Bytes(value.to_be_bytes().into())
+    }
+}
+
+impl From<&Complex64> for Bytes {
+    fn from(value: &Complex64) -> Self {
+        let mut bytes = [0u8; 16];
+        bytes[0..8].copy_from_slice(&value.re.to_be_bytes());
+        bytes[8..16].copy_from_slice(&value.im.to_be_bytes());
+        bytes.into()
     }
 }
 

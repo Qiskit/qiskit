@@ -14,7 +14,8 @@ use pyo3::types::{PyAny, PyComplex, PyDict, PyFloat, PyInt, PyIterator, PySet, P
 use pyo3::{intern, prelude::*, IntoPyObjectExt};
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::Param;
-use qiskit_circuit::parameter::parameter_expression::{OPReplay, OpCode, ParameterExpression};
+use qiskit_circuit::parameter::parameter_expression::{OPReplay, OpCode, ParameterExpression, ParameterValueType, PyParameter};
+use qiskit_circuit::parameter::symbol_expr::Symbol;
 use std::vec;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -23,8 +24,7 @@ use crate::bytes::Bytes;
 use crate::circuit_reader::load_register;
 use crate::formats;
 use crate::value::{
-    bytes_to_uuid, deserialize, deserialize_vec, dumps_py_value, get_type_key, serialize, tags,
-    DumpedPyValue, QPYReadData, QPYWriteData,
+    DumpedPyValue, GenericValue, QPYReadData, QPYWriteData, bytes_to_py_uuid, deserialize, deserialize_vec, dumps_py_value, get_type_key, load_value, serialize, tags
 };
 use hashbrown::HashMap;
 
@@ -139,31 +139,32 @@ fn pack_parameter_replay_entry(
     Ok((key_type, data, extra_data))
 }
 
-fn unpack_parameter_replay_entry(
-    py: Python,
-    opcode: u8,
-    value: [u8; 16],
-) -> PyResult<Option<Py<PyAny>>> {
-    // unpacks python data: integers, floats, complex numbers
-    match opcode {
-        tags::NULL => Ok(Some(py.None())),
-        tags::INTEGER => {
-            let value = i64::from_be_bytes(value[8..16].try_into()?);
-            Ok(Some(value.into_py_any(py)?))
-        }
-        tags::FLOAT => {
-            let value = f64::from_be_bytes(value[8..16].try_into()?);
-            Ok(Some(value.into_py_any(py)?))
-        }
-        tags::COMPLEX => {
-            let real = f64::from_be_bytes(value[0..8].try_into()?);
-            let imag = f64::from_be_bytes(value[8..16].try_into()?);
-            let complex_value = PyComplex::from_doubles(py, real, imag);
-            Ok(Some(complex_value.into_py_any(py)?))
-        }
-        _ => Ok(None),
-    }
-}
+// fn unpack_parameter_replay_entry(
+//     py: Python,
+//     opcode: u8,
+//     value: [u8; 16],
+// ) -> PyResult<Option<Py<PyAny>>> {
+//     // unpacks python data: integers, floats, complex numbers
+//     match opcode {
+//         tags::NULL => Ok(Some(py.None())),
+//         tags::INTEGER => {
+//             let value = i64::from_be_bytes(value[8..16].try_into()?);
+//             Ok(Some(value.into_py_any(py)?))
+//         }
+//         tags::FLOAT => {
+//             let value = f64::from_be_bytes(value[8..16].try_into()?);
+//             Ok(Some(value.into_py_any(py)?))
+//         }
+//         tags::COMPLEX => {
+//             let real = f64::from_be_bytes(value[0..8].try_into()?);
+//             let imag = f64::from_be_bytes(value[8..16].try_into()?);
+//             let complex_value = PyComplex::from_doubles(py, real, imag);
+//             Ok(Some(complex_value.into_py_any(py)?))
+//         }
+//         _ => Ok(None),
+//     }
+// }
+
 fn pack_replay_subs(
     subs_obj: &Bound<PyAny>,
     extra_symbols: &mut Bound<PyDict>,
@@ -409,16 +410,20 @@ pub fn pack_py_parameter_expression(
     py_object: &Bound<PyAny>,
     qpy_data: &QPYWriteData,
 ) -> PyResult<formats::ParameterExpressionPack> {
+    println!("**************pack_py_parameter_expression*****************");
     let py = py_object.py();
     let mut extra_symbols = PyDict::new(py);
+    println!("py object: {}", py_object);
     let packed_expression_data =
         pack_py_parameter_expression_elements(py_object, &mut extra_symbols, qpy_data)?;
+    println!("packed expression data: {:?}", packed_expression_data);
     let expression_data = serialize(&packed_expression_data);
-    let mut symbol_table_data = pack_symbol_table(py, py_object, qpy_data)?;
+    let mut symbol_table_data: Vec<formats::ParameterExpressionSymbolPack> = pack_symbol_table(py, py_object, qpy_data)?;
     let (extra_symbols_keys, extra_symbols_values) =
         pack_extra_symbol_table(&extra_symbols, qpy_data)?;
     symbol_table_data.extend(extra_symbols_keys);
     symbol_table_data.extend(extra_symbols_values);
+    println!("**************pack_py_parameter_expression DONE*****************");
     Ok(formats::ParameterExpressionPack {
         expression_data,
         symbol_table_data,
@@ -452,85 +457,114 @@ fn op_code_to_method(opcode: u8) -> PyResult<&'static str> {
     };
     Ok(method)
 }
+
+fn parameter_value_type_from_generic_value(value: &GenericValue) -> PyResult<ParameterValueType> {
+    match value {
+        GenericValue::Complex64(complex) => Ok(ParameterValueType::Complex(*complex)),
+        GenericValue::Int64(int) => Ok(ParameterValueType::Int(*int)),
+        GenericValue::Float64(float) => Ok(ParameterValueType::Float(*float)),
+        GenericValue::ParameterExpressionSymbol(symbol) => Ok(ParameterValueType::Parameter(PyParameter{symbol: symbol.clone()}))
+        // TODO: need to treat parameter vector differentely
+    }
+}
 pub fn unpack_parameter_expression(
     py: Python,
     parameter_expression: formats::ParameterExpressionPack,
     qpy_data: &mut QPYReadData,
-) -> PyResult<Py<PyAny>> {
-    let mut param_uuid_map: HashMap<[u8; 16], Py<PyAny>> = HashMap::new();
-    let mut name_map: HashMap<String, Py<PyAny>> = HashMap::new();
+) -> PyResult<ParameterExpression> {
+// ) -> PyResult<Py<PyAny>> {
+    println!("*************unpacking parameter expression************");
+    println!("{:?}", parameter_expression);
+    let mut param_uuid_map: HashMap<[u8; 16], GenericValue> = HashMap::new();
+    // let mut name_map: HashMap<String, Py<PyAny>> = HashMap::new();
 
-    let mut stack: Vec<Py<PyAny>> = Vec::new();
     for item in &parameter_expression.symbol_table_data {
+        println!("Going over symbol item: {:?}", item);
         let (symbol_uuid, symbol, value) = match item {
             formats::ParameterExpressionSymbolPack::ParameterExpression(_) => {
                 continue;
             }
             formats::ParameterExpressionSymbolPack::Parameter(symbol_pack) => {
-                let symbol = unpack_parameter(py, &symbol_pack.symbol_data)?;
-                let value = if symbol_pack.value_key != parameter_tags::PARAMETER {
-                    let dumped_value = DumpedPyValue {
-                        data_type: symbol_pack.value_key,
-                        data: symbol_pack.value_data.clone(),
-                    };
-                    dumped_value.to_python(py, qpy_data)?
-                } else {
-                    symbol.clone()
+                let symbol = unpack_symbol(&symbol_pack.symbol_data);
+                let value = match symbol_pack.value_key {
+                    parameter_tags::PARAMETER => GenericValue::ParameterExpressionSymbol(symbol.clone()),
+                    _ => load_value(symbol_pack.value_key, &symbol_pack.value_data, qpy_data)?
                 };
                 (symbol_pack.symbol_data.uuid, symbol, value)
             }
             formats::ParameterExpressionSymbolPack::ParameterVector(symbol_pack) => {
-                let symbol = unpack_parameter_vector(py, &symbol_pack.symbol_data, qpy_data)?;
-                let value = if symbol_pack.value_key != parameter_tags::PARAMETER_VECTOR {
-                    let dumped_value = DumpedPyValue {
-                        data_type: symbol_pack.value_key,
-                        data: symbol_pack.value_data.clone(),
-                    };
-                    dumped_value.to_python(py, qpy_data)?
-                } else {
-                    symbol.clone()
+                // this call will also create the corresponding vector and update qpy_data if needed
+                let symbol = unpack_parameter_vector_symbol(&symbol_pack.symbol_data, qpy_data)?;
+                let value = match symbol_pack.value_key {
+                    parameter_tags::PARAMETER_VECTOR => GenericValue::ParameterExpressionSymbol(symbol.clone()),
+                    _ => load_value(symbol_pack.value_key, &symbol_pack.value_data, qpy_data)?
                 };
                 (symbol_pack.symbol_data.uuid, symbol, value)
             }
         };
         param_uuid_map.insert(symbol_uuid, value.clone());
         // name_map should only be used for version < 15
-        name_map.insert(
-            value
-                .bind(py)
-                .call_method0("__str__")?
-                .extract::<String>()?,
-            symbol,
-        );
+        // name_map.insert(
+        //     value
+        //         .bind(py)
+        //         .call_method0("__str__")?
+        //         .extract::<String>()?,
+        //     symbol,
+        // );
     }
     let parameter_expression_data = deserialize_vec::<formats::ParameterExpressionElementPack>(
         &parameter_expression.expression_data,
     )?;
+    println!("Unpacked parameter_expression_data = {:?}", parameter_expression_data);
+
+    // we now convert the parameter_expression_data into Vec<OPReplay> that can be used via ParameterExpression::from_qpy
+    let mut replay: Vec<OPReplay> = Vec::new();
+
     for element in parameter_expression_data {
-        let opcode = if let formats::ParameterExpressionElementPack::Substitute(subs) = element {
+        println!("handling element {:?}", element);
+        if let formats::ParameterExpressionElementPack::Substitute(subs) = element {
+            // In the python code, substitutions were put on the stack with the rest of the operations
+            // And applied during the Parameter Expression construction phase. This seems to be unsupported in the current
+            // Rust implementation, so we assume every 
+
             // we construct a pydictionary describing the substitution and letting the python Parameter class handle it
-            let subs_mapping = PyDict::new(py);
+            // let subs_mapping = PyDict::new(py);
             let mapping_pack = deserialize::<formats::MappingPack>(&subs.mapping_data)?.0;
+            let mut subs_mapping: HashMap<Symbol, ParameterExpression> = HashMap::new();
             for item in mapping_pack.items {
                 let key_uuid: [u8; 16] = (&item.key_bytes).try_into()?;
-                let value = DumpedPyValue {
-                    data_type: item.item_type,
-                    data: item.item_bytes.clone(),
-                };
-                let key = param_uuid_map.get(&key_uuid).ok_or_else(|| {
+                let value_generic_item = load_value(item.item_type, &item.item_bytes, qpy_data)?;
+                let key_generic_item = param_uuid_map.get(&key_uuid).ok_or_else(|| {
                     PyValueError::new_err(format!("Parameter UUID not found: {:?}", &key_uuid))
                 })?;
-                subs_mapping.set_item(key, value.to_python(py, qpy_data)?)?;
+                let key = if let GenericValue::ParameterExpressionSymbol(symbol) = key_generic_item {
+                    symbol
+                } else {
+                    return Err(PyValueError::new_err(format!("Substitution command used left operand {:?} which is not a symbol", &key_generic_item)));
+                };
+
+                let value = match value_generic_item {
+                    GenericValue::ParameterExpressionSymbol(symbol) => ParameterExpression::from_symbol(symbol),
+                    _ => {
+                        return Err(PyValueError::new_err(format!("Substitution command used right operand {:?} which is not a parameter expression", &value_generic_item)));
+                    }
+                };                
+                subs_mapping.insert(key.clone(), value);
             }
-            stack.push(subs_mapping.unbind().as_any().clone());
-            15 // return substitution opcode
+            let opcode = OpCode::SUBSTITUTE;
+            // TODO: we can't push this into the stack in the current implementation
+            // but maybe after implementing the correct mechanism we can do replay.append(OPReplay {op, lhs: None, rhs: None, Some(subs_mapping)})
+            // stack.push(subs_mapping);
+            
         } else {
             let (opcode, op) = unpack_parameter_expression_standard_op(element)?;
+            println!("opcode: {:?}, op: {:?}", opcode, op);
+            // loading values from replay pack is tricky, since everything is stored using 16-bytes, even 8-byte ints and floats
             // LHS
-            match op.lhs_type {
+            let lhs: Option<ParameterValueType> = match op.lhs_type {
                 parameter_tags::PARAMETER | parameter_tags::PARAMETER_VECTOR => {
                     if let Some(value) = param_uuid_map.get(&op.lhs) {
-                        stack.push(value.clone());
+                        Some(parameter_value_type_from_generic_value(value)?)
                     } else {
                         return Err(PyValueError::new_err(format!(
                             "Parameter UUID not found: {:?}",
@@ -539,11 +573,10 @@ pub fn unpack_parameter_expression(
                     }
                 }
                 parameter_tags::FLOAT | parameter_tags::INTEGER | parameter_tags::COMPLEX => {
-                    if let Some(value) = unpack_parameter_replay_entry(py, op.lhs_type, op.lhs)? {
-                        stack.push(value);
-                    }
+                    let value = load_value(op.lhs_type, &op.lhs.into(), qpy_data)?;
+                    Some(parameter_value_type_from_generic_value(&value)?)
                 }
-                parameter_tags::NULL => (), // pass
+                parameter_tags::NULL => None, // pass
                 parameter_tags::LHS_EXPRESSION | parameter_tags::RHS_EXPRESSION => continue,
                 _ => {
                     return Err(PyValueError::new_err(format!(
@@ -551,12 +584,13 @@ pub fn unpack_parameter_expression(
                         op.lhs_type
                     )))
                 }
-            }
+            };
+            println!("got lhs: {:?}", lhs);
             // RHS
-            match op.rhs_type {
+            let rhs: Option<ParameterValueType> = match op.rhs_type {
                 parameter_tags::PARAMETER | parameter_tags::PARAMETER_VECTOR => {
                     if let Some(value) = param_uuid_map.get(&op.rhs) {
-                        stack.push(value.clone());
+                        Some(parameter_value_type_from_generic_value(value)?)
                     } else {
                         return Err(PyValueError::new_err(format!(
                             "Parameter UUID not found: {:?}",
@@ -565,11 +599,10 @@ pub fn unpack_parameter_expression(
                     }
                 }
                 parameter_tags::FLOAT | parameter_tags::INTEGER | parameter_tags::COMPLEX => {
-                    if let Some(value) = unpack_parameter_replay_entry(py, op.rhs_type, op.rhs)? {
-                        stack.push(value);
-                    }
+                    let value = load_value(op.rhs_type, &op.rhs.into(), qpy_data)?;
+                    Some(parameter_value_type_from_generic_value(&value)?)
                 }
-                parameter_tags::NULL => (), // pass
+                parameter_tags::NULL => None, // pass
                 parameter_tags::LHS_EXPRESSION | parameter_tags::RHS_EXPRESSION => continue,
                 _ => {
                     return Err(PyTypeError::new_err(format!(
@@ -577,55 +610,66 @@ pub fn unpack_parameter_expression(
                         op.rhs_type
                     )))
                 }
-            }
-            if opcode == 255 {
-                continue;
-            }
-            opcode
+            };
+            println!("got rhs: {:?}", rhs);
+            // if opcode == 255 {
+            //     continue;
+            // }
+            let op = OpCode::from_u8(opcode)?;
+            replay.push(OPReplay { op, lhs, rhs });
         };
-        let method_str = op_code_to_method(opcode)?;
+        println!("Replay: {:?}", replay);
+        // we don't need the rest of this, it's covered in from_qpy
+        // let method_str = op_code_to_method(opcode)?;
 
-        if [0, 1, 2, 3, 4, 13, 15, 18, 19, 20].contains(&opcode) {
-            let rhs = stack.pop().ok_or(PyTypeError::new_err(
-                "Stack underflow while parsing parameter expression",
-            ))?;
-            let lhs = stack.pop().ok_or(PyTypeError::new_err(
-                "Stack underflow while parsing parameter expression",
-            ))?;
-            // Reverse ops for commutative ops, which are add, mul (0 and 2 respectively)
-            // op codes 13 and 15 can never be reversed and 18, 19, 20
-            // are the reversed versions of non-commuative operations
-            // so 1, 3, 4 and 18, 19, 20 handle this explicitly.
-            if [0, 2].contains(&opcode)
-                && !lhs
-                    .bind(py)
-                    .is_instance(imports::PARAMETER_EXPRESSION.get_bound(py))?
-                && rhs
-                    .bind(py)
-                    .is_instance(imports::PARAMETER_EXPRESSION.get_bound(py))?
-            {
-                let method_str = match &opcode {
-                    0 => "__radd__",
-                    2 => "__rmul__",
-                    _ => method_str,
-                };
-                stack.push(rhs.getattr(py, method_str)?.call1(py, (lhs,))?);
-            } else {
-                stack.push(lhs.getattr(py, method_str)?.call1(py, (rhs,))?);
-            }
-        } else {
-            // unary op
-            let lhs = stack.pop().ok_or(PyValueError::new_err(
-                "Stack underflow while parsing parameter expression",
-            ))?;
-            stack.push(lhs.getattr(py, method_str)?.call0(py)?);
-        }
+        // if [0, 1, 2, 3, 4, 13, 15, 18, 19, 20].contains(&opcode) {
+        //     let rhs = stack.pop().ok_or(PyTypeError::new_err(
+        //         "Stack underflow while parsing parameter expression",
+        //     ))?;
+        //     let lhs = stack.pop().ok_or(PyTypeError::new_err(
+        //         "Stack underflow while parsing parameter expression",
+        //     ))?;
+        //     // Reverse ops for commutative ops, which are add, mul (0 and 2 respectively)
+        //     // op codes 13 and 15 can never be reversed and 18, 19, 20
+        //     // are the reversed versions of non-commuative operations
+        //     // so 1, 3, 4 and 18, 19, 20 handle this explicitly.
+        //     if [0, 2].contains(&opcode)
+        //         && !lhs
+        //             .bind(py)
+        //             .is_instance(imports::PARAMETER_EXPRESSION.get_bound(py))?
+        //         && rhs
+        //             .bind(py)
+        //             .is_instance(imports::PARAMETER_EXPRESSION.get_bound(py))?
+        //     {
+        //         let method_str = match &opcode {
+        //             0 => "__radd__",
+        //             2 => "__rmul__",
+        //             _ => method_str,
+        //         };
+        //         stack.push(rhs.getattr(py, method_str)?.call1(py, (lhs,))?);
+        //     } else {
+        //         stack.push(lhs.getattr(py, method_str)?.call1(py, (rhs,))?);
+        //     }
+        // } else {
+        //     // unary op
+        //     let lhs = stack.pop().ok_or(PyValueError::new_err(
+        //         "Stack underflow while parsing parameter expression",
+        //     ))?;
+        //     stack.push(lhs.getattr(py, method_str)?.call0(py)?);
+        // }
     }
+    let result = ParameterExpression::from_qpy(&replay).map_err(|_| {
+        PyValueError::new_err(format!(
+            "Failure while loading parameter expression"
+        ))
+    });
+    println!("Got result {:?}", result);
+    result
 
-    let result = stack.pop().ok_or(PyValueError::new_err(
-        "Stack underflow while parsing parameter expression",
-    ))?;
-    Ok(result)
+    // let result = stack.pop().ok_or(PyValueError::new_err(
+    //     "Stack underflow while parsing parameter expression",
+    // ))?;
+    // Ok(result)
 }
 
 pub fn pack_py_parameter(py_object: &Bound<PyAny>) -> PyResult<formats::ParameterPack> {
@@ -640,15 +684,75 @@ pub fn pack_py_parameter(py_object: &Bound<PyAny>) -> PyResult<formats::Paramete
     Ok(formats::ParameterPack { uuid, name })
 }
 
-pub fn unpack_parameter(py: Python, parameter: &formats::ParameterPack) -> PyResult<Py<PyAny>> {
-    let kwargs = PyDict::new(py);
-    kwargs.set_item("name", parameter.name.clone())?;
-    kwargs.set_item("uuid", bytes_to_uuid(py, parameter.uuid)?)?;
-    Ok(imports::PARAMETER
-        .get_bound(py)
-        .call((), Some(&kwargs))?
-        .unbind())
+// pub fn unpack_parameter(py: Python, parameter: &formats::ParameterPack) -> PyResult<Py<PyAny>> {
+//     let kwargs = PyDict::new(py);
+//     kwargs.set_item("name", parameter.name.clone())?;
+//     kwargs.set_item("uuid", bytes_to_uuid(py, parameter.uuid)?)?;
+//     Ok(imports::PARAMETER
+//         .get_bound(py)
+//         .call((), Some(&kwargs))?
+//         .unbind())
+// }
+pub fn unpack_symbol(parameter_pack: &formats::ParameterPack) -> Symbol {
+    let name = parameter_pack.name.clone();
+    let uuid = Uuid::from_bytes(parameter_pack.uuid);
+    Symbol{name, uuid, index: None, vector: None}
 }
+
+// parameter vector symbols are currently much more tricky than standalone symbols
+// since we don't have a rust-space concept of ParameterVector; it is a pure python object
+// which we must manage while creating its elements. Moreover, the vector itself is not stored anywhere
+// so we need to create it in an ad-hoc fashion as we encounter its elements during the parsing of the
+// qpy file. In particular we need to keep our qpy_data nearby so we can update the vector list as needed
+// and we must use python calls to create and modify the python-space ParameterVector
+pub fn unpack_parameter_vector_symbol(parameter_vector_pack: &formats::ParameterVectorPack, qpy_data: &mut QPYReadData) -> PyResult<Symbol> {
+    let name = parameter_vector_pack.name.clone();
+    let uuid = Uuid::from_bytes(parameter_vector_pack.uuid);
+    let index = parameter_vector_pack.index as u32; // sadly, the `Symbol` class does not conform to the qpy u64 format
+    // we have extracted the rust-space data, but now we must deal with the python-space vector class
+
+    // first get the uuid for the vector's "root" (it's first element)
+    // we rely on the convention that the uuid's for the vector elements are sequential
+    let root_uuid_int = uuid.as_u128() - (index as u128);
+    let root_uuid = Uuid::from_bytes(root_uuid_int.to_be_bytes());
+
+    let vector = Python::attach(|py| -> PyResult<_> {  // we use python-space to interface with the ParameterVector data
+        let vector_data = match qpy_data.vectors.get_mut(&root_uuid) {
+            Some(value) => value,
+            None => Python::attach(|py| -> PyResult<_> {  // we use python-space to create a new parameter vector
+                let vector = imports::PARAMETER_VECTOR
+                    .get_bound(py)
+                    .call1((name.clone(), parameter_vector_pack.vector_size))?
+                    .unbind();
+                qpy_data.vectors.insert(root_uuid, (vector, Vec::new()));
+                Ok(qpy_data.vectors.get_mut(&root_uuid).unwrap())
+            })?
+        };
+        let vector = vector_data.0.bind(py);
+        let vector_element = vector.get_item(index)?;
+        let vector_element_uuid = Uuid::from_bytes(
+            vector_element
+                .getattr(intern!(py, "uuid"))?
+                .getattr(intern!(py, "bytes"))?
+                .extract::<[u8; 16]>()?,
+        );
+        if vector_element_uuid != uuid {
+            // we need to create a new parameter vector element and hack it into the vector
+            vector_data.1.push(index);
+            let param_vector_element = imports::PARAMETER_VECTOR_ELEMENT
+                .get_bound(py)
+                .call1((vector, index, bytes_to_py_uuid(py, parameter_vector_pack.uuid)?))?
+                .unbind();
+            vector
+                .getattr("_params")?
+                .set_item(index, param_vector_element)?;
+        }
+        Ok(vector.clone().unbind())
+    })?;
+
+    Ok(Symbol{name, uuid, index: Some(index), vector: Some(vector)})
+}
+
 
 // sadly, we currently need this code duplication to handle the special le encoding for parameters
 pub fn pack_generic_instruction_param_data(
@@ -694,7 +798,14 @@ pub fn dumps_param_expression(
 ) -> PyResult<(u8, Bytes)> {
     println!("dumps_param_expression called with exp {:?}", exp);
     // TODO: implement!
-    Ok((tags::PARAMETER_EXPRESSION, Bytes::new()))
+    let result = Python::attach(|py| {
+        dumps_py_value(exp.clone().into_py_any(py)?, qpy_data)
+    })?;
+    println!("Got result bytes {:?}", result.1);
+    let pack = deserialize::<formats::ParameterExpressionPack>(&result.1);
+    println!("pack = {:?}", pack);
+    
+    Ok(result)
 }
 
 pub fn dumps_instruction_param_value(
@@ -795,8 +906,14 @@ pub fn unpack_param(
                 data_type: packed_param.type_key,
                 data: packed_param.data.clone(),
             };
+            println!("unpack_param called for tag {:?} and data {:?}", packed_param.type_key, dumped_value.data);
+            let (packed_parameter_expression, _) =
+                    deserialize::<formats::ParameterExpressionPack>(&dumped_value.data)?;
+            println!("parameter expression pack: {:?}", packed_parameter_expression);
+            let parameter_expression = unpack_parameter_expression(py, packed_parameter_expression, qpy_data)?;
             Ok(Param::ParameterExpression(
-                Arc::new(dumped_value.to_parameter_expression(qpy_data)?),
+                // Arc::new(parameter_expression),
+                Arc::new(parameter_expression),
             ))
         }
         _ => {
@@ -828,42 +945,42 @@ pub fn pack_parameter_vector(py_object: &Bound<PyAny>) -> PyResult<formats::Para
     })
 }
 
-pub fn unpack_parameter_vector(
-    py: Python,
-    pack: &formats::ParameterVectorPack,
-    qpy_data: &mut QPYReadData,
-) -> PyResult<Py<PyAny>> {
-    let root_uuid_int = u128::from_be_bytes(pack.uuid) - (pack.index as u128);
-    let root_uuid = Uuid::from_bytes(root_uuid_int.to_be_bytes());
-    let vector_data = match qpy_data.vectors.get_mut(&root_uuid) {
-        Some(value) => value,
-        None => {
-            let vector = imports::PARAMETER_VECTOR
-                .get_bound(py)
-                .call1((pack.name.clone(), pack.vector_size))?
-                .unbind();
-            qpy_data.vectors.insert(root_uuid, (vector, Vec::new()));
-            qpy_data.vectors.get_mut(&root_uuid).unwrap()
-        }
-    };
-    let vector = vector_data.0.bind(py);
-    let vector_element = vector.get_item(pack.index)?;
-    let vector_element_uuid = Uuid::from_bytes(
-        vector_element
-            .getattr(intern!(py, "uuid"))?
-            .getattr(intern!(py, "bytes"))?
-            .extract::<[u8; 16]>()?,
-    );
-    if vector_element_uuid != Uuid::from_bytes(pack.uuid) {
-        // we need to create a new parameter vector element and hack it into the vector
-        vector_data.1.push(pack.index);
-        let param_vector_element = imports::PARAMETER_VECTOR_ELEMENT
-            .get_bound(py)
-            .call1((vector, pack.index, bytes_to_uuid(py, pack.uuid)?))?
-            .unbind();
-        vector
-            .getattr("_params")?
-            .set_item(pack.index, param_vector_element)?;
-    }
-    Ok(vector.get_item(pack.index)?.unbind().clone())
-}
+// pub fn unpack_parameter_vector(
+//     py: Python,
+//     pack: &formats::ParameterVectorPack,
+//     qpy_data: &mut QPYReadData,
+// ) -> PyResult<Py<PyAny>> {
+//     let root_uuid_int = u128::from_be_bytes(pack.uuid) - (pack.index as u128);
+//     let root_uuid = Uuid::from_bytes(root_uuid_int.to_be_bytes());
+//     let vector_data = match qpy_data.vectors.get_mut(&root_uuid) {
+//         Some(value) => value,
+//         None => {
+//             let vector = imports::PARAMETER_VECTOR
+//                 .get_bound(py)
+//                 .call1((pack.name.clone(), pack.vector_size))?
+//                 .unbind();
+//             qpy_data.vectors.insert(root_uuid, (vector, Vec::new()));
+//             qpy_data.vectors.get_mut(&root_uuid).unwrap()
+//         }
+//     };
+//     let vector = vector_data.0.bind(py);
+//     let vector_element = vector.get_item(pack.index)?;
+//     let vector_element_uuid = Uuid::from_bytes(
+//         vector_element
+//             .getattr(intern!(py, "uuid"))?
+//             .getattr(intern!(py, "bytes"))?
+//             .extract::<[u8; 16]>()?,
+//     );
+//     if vector_element_uuid != Uuid::from_bytes(pack.uuid) {
+//         // we need to create a new parameter vector element and hack it into the vector
+//         vector_data.1.push(pack.index);
+//         let param_vector_element = imports::PARAMETER_VECTOR_ELEMENT
+//             .get_bound(py)
+//             .call1((vector, pack.index, bytes_to_uuid(py, pack.uuid)?))?
+//             .unbind();
+//         vector
+//             .getattr("_params")?
+//             .set_item(pack.index, param_vector_element)?;
+//     }
+//     Ok(vector.get_item(pack.index)?.unbind().clone())
+// }

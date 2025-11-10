@@ -5,7 +5,6 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 
-
 [lib]
 name = "qiskit_qpy"
 doctest = false
@@ -20,6 +19,7 @@ oq3_semantics = "0.7.0"
 ahash.workspace = true
 qiskit-circuit.workspace = true
 num-bigint.workspace = true
+num-complex.workspace = true
 binrw = "0.13"
 uuid = {version = "1", features = ["v4"]}
 

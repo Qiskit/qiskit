@@ -426,6 +426,9 @@ pub struct ParameterExpressionSubsOpPack {
     pub mapping_data: Bytes,
 }
 
+/// A Parameter Expression is stored in two chunks (along with length data)
+/// 1) The parameter expression data itself, already serialized
+/// 2) The symbol table for the parameter expression (to save space when using the same symbol more than once in the expression)
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]

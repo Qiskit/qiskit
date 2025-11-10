@@ -935,3 +935,179 @@ pub fn get_condition_data_from_inst(
         }
     })
 }
+
+// pub fn unpack_py_parameter_expression(
+//     py: Python,
+//     parameter_expression: formats::ParameterExpressionPack,
+//     qpy_data: &mut QPYReadData,
+// ) -> PyResult<Py<PyAny>> {
+//     let mut param_uuid_map: HashMap<[u8; 16], Py<PyAny>> = HashMap::new();
+//     let mut name_map: HashMap<String, Py<PyAny>> = HashMap::new();
+
+//     let mut stack: Vec<Py<PyAny>> = Vec::new();
+//     for item in &parameter_expression.symbol_table_data {
+//         let (symbol_uuid, symbol, value) = match item {
+//             formats::ParameterExpressionSymbolPack::ParameterExpression(_) => {
+//                 continue;
+//             }
+//             formats::ParameterExpressionSymbolPack::Parameter(symbol_pack) => {
+//                 let symbol = unpack_parameter(py, &symbol_pack.symbol_data)?;
+//                 let value = if symbol_pack.value_key != parameter_tags::PARAMETER {
+//                     let dumped_value = DumpedPyValue {
+//                         data_type: symbol_pack.value_key,
+//                         data: symbol_pack.value_data.clone(),
+//                     };
+//                     dumped_value.to_python(py, qpy_data)?
+//                 } else {
+//                     symbol.clone()
+//                 };
+//                 (symbol_pack.symbol_data.uuid, symbol, value)
+//             }
+//             formats::ParameterExpressionSymbolPack::ParameterVector(symbol_pack) => {
+//                 let symbol = unpack_parameter_vector(py, &symbol_pack.symbol_data, qpy_data)?;
+//                 let value = if symbol_pack.value_key != parameter_tags::PARAMETER_VECTOR {
+//                     let dumped_value = DumpedPyValue {
+//                         data_type: symbol_pack.value_key,
+//                         data: symbol_pack.value_data.clone(),
+//                     };
+//                     dumped_value.to_python(py, qpy_data)?
+//                 } else {
+//                     symbol.clone()
+//                 };
+//                 (symbol_pack.symbol_data.uuid, symbol, value)
+//             }
+//         };
+//         param_uuid_map.insert(symbol_uuid, value.clone());
+//         // name_map should only be used for version < 15
+//         name_map.insert(
+//             value
+//                 .bind(py)
+//                 .call_method0("__str__")?
+//                 .extract::<String>()?,
+//             symbol,
+//         );
+//     }
+//     let parameter_expression_data = deserialize_vec::<formats::ParameterExpressionElementPack>(
+//         &parameter_expression.expression_data,
+//     )?;
+//     for element in parameter_expression_data {
+//         let opcode = if let formats::ParameterExpressionElementPack::Substitute(subs) = element {
+//             // we construct a pydictionary describing the substitution and letting the python Parameter class handle it
+//             let subs_mapping = PyDict::new(py);
+//             let mapping_pack = deserialize::<formats::MappingPack>(&subs.mapping_data)?.0;
+//             for item in mapping_pack.items {
+//                 let key_uuid: [u8; 16] = (&item.key_bytes).try_into()?;
+//                 let value = DumpedPyValue {
+//                     data_type: item.item_type,
+//                     data: item.item_bytes.clone(),
+//                 };
+//                 let key = param_uuid_map.get(&key_uuid).ok_or_else(|| {
+//                     PyValueError::new_err(format!("Parameter UUID not found: {:?}", &key_uuid))
+//                 })?;
+//                 subs_mapping.set_item(key, value.to_python(py, qpy_data)?)?;
+//             }
+//             stack.push(subs_mapping.unbind().as_any().clone());
+//             15 // return substitution opcode
+//         } else {
+//             let (opcode, op) = unpack_parameter_expression_standard_op(element)?;
+//             // LHS
+//             match op.lhs_type {
+//                 parameter_tags::PARAMETER | parameter_tags::PARAMETER_VECTOR => {
+//                     if let Some(value) = param_uuid_map.get(&op.lhs) {
+//                         stack.push(value.clone());
+//                     } else {
+//                         return Err(PyValueError::new_err(format!(
+//                             "Parameter UUID not found: {:?}",
+//                             op.lhs
+//                         )));
+//                     }
+//                 }
+//                 parameter_tags::FLOAT | parameter_tags::INTEGER | parameter_tags::COMPLEX => {
+//                     if let Some(value) = unpack_parameter_replay_entry(py, op.lhs_type, op.lhs)? {
+//                         stack.push(value);
+//                     }
+//                 }
+//                 parameter_tags::NULL => (), // pass
+//                 parameter_tags::LHS_EXPRESSION | parameter_tags::RHS_EXPRESSION => continue,
+//                 _ => {
+//                     return Err(PyValueError::new_err(format!(
+//                         "Unknown ParameterExpression operation type: {}",
+//                         op.lhs_type
+//                     )))
+//                 }
+//             }
+//             // RHS
+//             match op.rhs_type {
+//                 parameter_tags::PARAMETER | parameter_tags::PARAMETER_VECTOR => {
+//                     if let Some(value) = param_uuid_map.get(&op.rhs) {
+//                         stack.push(value.clone());
+//                     } else {
+//                         return Err(PyValueError::new_err(format!(
+//                             "Parameter UUID not found: {:?}",
+//                             op.rhs
+//                         )));
+//                     }
+//                 }
+//                 parameter_tags::FLOAT | parameter_tags::INTEGER | parameter_tags::COMPLEX => {
+//                     if let Some(value) = unpack_parameter_replay_entry(py, op.rhs_type, op.rhs)? {
+//                         stack.push(value);
+//                     }
+//                 }
+//                 parameter_tags::NULL => (), // pass
+//                 parameter_tags::LHS_EXPRESSION | parameter_tags::RHS_EXPRESSION => continue,
+//                 _ => {
+//                     return Err(PyTypeError::new_err(format!(
+//                         "Unknown ParameterExpression operation type: {}",
+//                         op.rhs_type
+//                     )))
+//                 }
+//             }
+//             if opcode == 255 {
+//                 continue;
+//             }
+//             opcode
+//         };
+//         let method_str = op_code_to_method(opcode)?;
+
+//         if [0, 1, 2, 3, 4, 13, 15, 18, 19, 20].contains(&opcode) {
+//             let rhs = stack.pop().ok_or(PyTypeError::new_err(
+//                 "Stack underflow while parsing parameter expression",
+//             ))?;
+//             let lhs = stack.pop().ok_or(PyTypeError::new_err(
+//                 "Stack underflow while parsing parameter expression",
+//             ))?;
+//             // Reverse ops for commutative ops, which are add, mul (0 and 2 respectively)
+//             // op codes 13 and 15 can never be reversed and 18, 19, 20
+//             // are the reversed versions of non-commuative operations
+//             // so 1, 3, 4 and 18, 19, 20 handle this explicitly.
+//             if [0, 2].contains(&opcode)
+//                 && !lhs
+//                     .bind(py)
+//                     .is_instance(imports::PARAMETER_EXPRESSION.get_bound(py))?
+//                 && rhs
+//                     .bind(py)
+//                     .is_instance(imports::PARAMETER_EXPRESSION.get_bound(py))?
+//             {
+//                 let method_str = match &opcode {
+//                     0 => "__radd__",
+//                     2 => "__rmul__",
+//                     _ => method_str,
+//                 };
+//                 stack.push(rhs.getattr(py, method_str)?.call1(py, (lhs,))?);
+//             } else {
+//                 stack.push(lhs.getattr(py, method_str)?.call1(py, (rhs,))?);
+//             }
+//         } else {
+//             // unary op
+//             let lhs = stack.pop().ok_or(PyValueError::new_err(
+//                 "Stack underflow while parsing parameter expression",
+//             ))?;
+//             stack.push(lhs.getattr(py, method_str)?.call0(py)?);
+//         }
+//     }
+
+//     let result = stack.pop().ok_or(PyValueError::new_err(
+//         "Stack underflow while parsing parameter expression",
+//     ))?;
+//     Ok(result)
+// }

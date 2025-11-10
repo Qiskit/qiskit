@@ -27,6 +27,7 @@ use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::object_registry::ObjectRegistry;
 use qiskit_circuit::bit::{ShareableClbit};
+use qiskit_circuit::parameter::symbol_expr::Symbol;
 
 use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
@@ -34,8 +35,7 @@ use crate::circuit_writer::pack_circuit;
 use crate::circuit_reader::unpack_circuit;
 use crate::formats;
 use crate::params::{
-    pack_py_parameter, pack_py_parameter_expression, pack_parameter_vector, unpack_parameter,
-    unpack_parameter_expression, unpack_parameter_vector,
+    pack_py_parameter, pack_py_parameter_expression, pack_parameter_vector, unpack_symbol
 };
 use crate::{QpyError, UnsupportedFeatureForVersion};
 
@@ -43,6 +43,7 @@ use core::fmt;
 use std::fmt::Debug;
 use std::io::{Cursor, Read, Seek, Write};
 use uuid::Uuid;
+use num_complex::Complex64;
 
 const QPY_VERSION: u32 = 15;
 
@@ -74,7 +75,7 @@ pub struct QPYReadData<'a> {
     pub standalone_vars: HashMap<u16, qiskit_circuit::Var>,
     pub standalone_stretches: HashMap<u16, qiskit_circuit::Stretch>,
     // pub standalone_vars: Py<PyList>,
-    pub vectors: HashMap<Uuid, (Py<PyAny>, Vec<u64>)>,
+    pub vectors: HashMap<Uuid, (Py<PyAny>, Vec<u32>)>,
     pub annotation_handler: AnnotationHandler<'a>,
 }
 
@@ -225,6 +226,46 @@ pub fn get_type_key(py_object: &Bound<PyAny>) -> PyResult<u8> {
         "Unidentified type_key for: {}",
         py_object
     )))
+}
+
+// An enum for all rust-space data that might be found in a serialized ("Bytes") form inside the qpy file
+// Under ideal conditions, we won't need such an enum since every rust based value will be present explicitly
+// In the formats.rs file. However, due to the legacy of how Python-based value were stored such explicit
+// representation is not always possible or difficult to implement
+#[derive(Clone, Debug)]
+pub enum GenericValue {
+    Int64(i64),
+    Float64(f64),
+    Complex64(Complex64),
+    ParameterExpressionSymbol(Symbol),
+}
+
+pub fn load_value(type_key: u8, bytes: &Bytes, qpy_data: &QPYReadData) -> PyResult<GenericValue> {
+    match type_key {
+        tags::INTEGER => {
+            let value: i64 = bytes.try_into()?;
+            Ok(GenericValue::Int64(value))
+        }
+        tags::FLOAT => {
+            let value: f64 = bytes.try_into()?;
+            Ok(GenericValue::Float64(value))
+        }
+        tags::COMPLEX => {
+            let value: Complex64 = bytes.try_into()?;
+            Ok(GenericValue::Complex64(value))
+        }
+        tags::PARAMETER => {
+            let (parameter, _) = deserialize::<formats::ParameterPack>(bytes)?;
+            let symbol = unpack_symbol(&parameter);
+            Ok(GenericValue::ParameterExpressionSymbol(symbol))
+        }
+        _ => {
+            return Err(PyTypeError::new_err(format!(
+                "dumps_py_value: Unhandled type_key: {}",
+                type_key
+            )))
+        }
+    }
 }
 
 pub fn dumps_py_value(py_object: Py<PyAny>, qpy_data: &QPYWriteData) -> PyResult<(u8, Bytes)> {
@@ -570,21 +611,21 @@ impl DumpedPyValue {
                 deserialize::<formats::GenericDataSequencePack>(&self.data)?.0,
                 qpy_data,
             )?,
-            tags::PARAMETER => {
-                let (parameter, _) = deserialize::<formats::ParameterPack>(&self.data)?;
-                unpack_parameter(py, &parameter)?
-            }
-            tags::PARAMETER_VECTOR => {
-                let (parameter_vector, _) =
-                    deserialize::<formats::ParameterVectorPack>(&self.data)?;
-                unpack_parameter_vector(py, &parameter_vector, qpy_data)?
-            }
+            // tags::PARAMETER => {
+            //     let (parameter, _) = deserialize::<formats::ParameterPack>(&self.data)?;
+            //     unpack_symbol(py, &parameter)?
+            // }
+            // tags::PARAMETER_VECTOR => {
+            //     let (parameter_vector, _) =
+            //         deserialize::<formats::ParameterVectorPack>(&self.data)?;
+            //     unpack_parameter_vector(py, &parameter_vector, qpy_data)?
+            // }
 
-            tags::PARAMETER_EXPRESSION => {
-                let (parameter_expression, _) =
-                    deserialize::<formats::ParameterExpressionPack>(&self.data)?;
-                unpack_parameter_expression(py, parameter_expression, qpy_data)?
-            }
+            // tags::PARAMETER_EXPRESSION => {
+            //     let (parameter_expression, _) =
+            //         deserialize::<formats::ParameterExpressionPack>(&self.data)?;
+            //     unpack_parameter_expression(py, parameter_expression, qpy_data)?
+            // }
             tags::NUMPY_OBJ => {
                 let np = py.import("numpy")?;
                 let io = py.import("io")?;
@@ -642,15 +683,13 @@ impl DumpedPyValue {
             Param::ParameterExpression(exp) => DumpedPyValue::from_parameter_expression(exp, qpy_data),
         }
     }
-    pub fn to_parameter_expression(&self, qpy_data: &mut QPYReadData) -> PyResult<ParameterExpression> {
-        // TODO: implement
-        Ok(ParameterExpression::default())
-    }
     pub fn from_parameter_expression(exp: &ParameterExpression, qpy_data: &QPYWriteData) -> PyResult<DumpedPyValue> {
-        // TODO: implement!
+        let (data_type, data) = Python::attach(|py| -> PyResult<_> {
+            Ok(dumps_py_value(exp.clone().into_py_any(py)?, qpy_data)?)
+        })?;
         Ok(DumpedPyValue {
-            data_type: tags::PARAMETER_EXPRESSION,
-            data: Bytes::new(),
+            data_type,
+            data
         })
     }
 }
@@ -664,7 +703,7 @@ impl fmt::Debug for DumpedPyValue {
     }
 }
 
-pub fn bytes_to_uuid(py: Python, bytes: [u8; 16]) -> PyResult<Py<PyAny>> {
+pub fn bytes_to_py_uuid(py: Python, bytes: [u8; 16]) -> PyResult<Py<PyAny>> {
     let uuid_module = py.import("uuid")?;
     let py_bytes = PyBytes::new(py, &bytes);
     let kwargs = PyDict::new(py);
