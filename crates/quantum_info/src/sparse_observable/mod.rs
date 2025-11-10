@@ -35,7 +35,6 @@ use rayon::prelude::*;
 use std::{
     borrow::Cow,
     cmp::Ordering,
-    collections::HashMap,
     collections::btree_map,
     ops::{AddAssign, DivAssign, MulAssign, SubAssign},
     sync::{Arc, RwLock, RwLockReadGuard},
@@ -402,26 +401,32 @@ struct MatrixComputationData {
 }
 
 impl MatrixComputationData {
+    /// Combine duplicate (x_like, z_like) term pairs by summing their complex coefficients.
+    /// Done for runtime optimization before matrix construction.
+    /// This deduplicates equivalent Pauli terms within the SparseObservable,
+    /// ensuring each unique (X, Z) mask pair appears only once.
     fn combine_duplicates(&mut self) {
-        let mut map: HashMap<(u64, u64), Complex64> = HashMap::with_capacity(self.coeffs.len());
+        let mut map: btree_map::BTreeMap<(u64, u64), Complex64> = btree_map::BTreeMap::new();
+
         for (&x, &z, &c) in itertools::izip!(&self.x_like, &self.z_like, &self.coeffs) {
             *map.entry((x, z)).or_insert(Complex64::new(0.0, 0.0)) += c;
         }
-        let (mut x_like, mut z_like, mut coeffs) = (
-            Vec::with_capacity(map.len()),
-            Vec::with_capacity(map.len()),
-            Vec::with_capacity(map.len()),
-        );
+
+        self.x_like.clear();
+        self.z_like.clear();
+        self.coeffs.clear();
+
+        self.x_like.reserve(map.len());
+        self.z_like.reserve(map.len());
+        self.coeffs.reserve(map.len());
+
         for ((x, z), c) in map {
             if c != Complex64::new(0.0, 0.0) {
-                x_like.push(x);
-                z_like.push(z);
-                coeffs.push(c);
+                self.x_like.push(x);
+                self.z_like.push(z);
+                self.coeffs.push(c);
             }
         }
-        self.x_like = x_like;
-        self.z_like = z_like;
-        self.coeffs = coeffs;
     }
     /// Create optimized matrix computation data from SparseObservable
     fn from_sparse_observable(obs: &SparseObservable) -> PyResult<Self> {
@@ -511,7 +516,7 @@ trait PauliLike {
     fn num_terms(&self) -> usize;
     fn get_term_slice(&self, term_idx: usize) -> &[BitTerm];
     fn get_qubit_indices(&self, term_idx: usize) -> &[u32];
-    fn get_coeffs(&self) -> Cow<[Complex64]>;
+    fn get_coeffs(&self) -> Cow<'_, [Complex64]>;
     fn num_qubits(&self) -> u32;
 }
 
@@ -530,7 +535,7 @@ impl PauliLike for SparseObservable {
         let end = self.boundaries[term_idx + 1];
         &self.indices[start..end]
     }
-    fn get_coeffs(&self) -> Cow<[Complex64]> {
+    fn get_coeffs(&self) -> Cow<'_, [Complex64]> {
         Cow::Borrowed(&self.coeffs)
     }
     fn num_qubits(&self) -> u32 {
@@ -552,7 +557,9 @@ where
     #[allow(clippy::uninit_vec)]
     let mut out = {
         let mut out = Vec::with_capacity(size);
-        unsafe { out.set_len(size) };
+        out.resize_with(size, || unsafe {
+            std::mem::MaybeUninit::zeroed().assume_init()
+        });
         out
     };
     out.par_uneven_chunks_mut(&lens)
@@ -1236,13 +1243,15 @@ impl SparseObservable {
         let write_row = |(i_row, row): (usize, &mut [Complex64])| {
             row.fill(Complex64::new(0.0, 0.0));
             for op_idx in 0..computation_data.num_ops() {
-                let coeff =
-                    if ((i_row as u64) & computation_data.z_like[op_idx]).count_ones() % 2 == 0 {
-                        computation_data.coeffs[op_idx]
-                    } else {
-                        -computation_data.coeffs[op_idx]
-                    };
-                row[i_row ^ (computation_data.x_like[op_idx] as usize)] += coeff;
+                let x_mask = computation_data.x_like[op_idx] as usize;
+                let z_mask = computation_data.z_like[op_idx];
+                let coeff = computation_data.coeffs[op_idx];
+                let coeff_sign = if ((i_row as u64) & z_mask).count_ones() & 1 == 0 {
+                    coeff
+                } else {
+                    -coeff
+                };
+                row[i_row ^ x_mask] += coeff_sign;
             }
         };
 
