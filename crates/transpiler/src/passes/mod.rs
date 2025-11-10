@@ -30,6 +30,7 @@ mod check_map;
 mod commutation_analysis;
 mod commutation_cancellation;
 mod consolidate_blocks;
+mod convert_discrete_rotations;
 mod dense_layout;
 mod disjoint_layout;
 mod elide_permutations;
