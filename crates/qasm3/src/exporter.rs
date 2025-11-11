@@ -1277,7 +1277,7 @@ impl<'a> QASM3Builder {
                             let name = p.to_string();
                             Expression::Parameter(Parameter { obj: name })
                         }
-                        _ => panic!("Objects not supported yet"),
+                        Param::Obj(_) => panic!("Objects not supported yet"),
                     })
                     .collect::<Vec<_>>()
             })
