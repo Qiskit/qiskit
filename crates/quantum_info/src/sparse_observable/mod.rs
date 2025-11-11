@@ -445,10 +445,12 @@ impl MatrixComputationData {
         }
 
         if obs.is_pure_pauli() {
+            // Direct precomputation for pure Pauli, no expansion needed
             let mut data = Self::from_pauli_like(obs)?;
             data.combine_duplicates();
             Ok(data)
         } else {
+            // Expand projectors once, then precompute from the expanded version
             let expanded = obs.as_paulis();
             if expanded.num_terms() == 0 {
                 return Err(MatrixComputationError::InvalidObservable(
@@ -4709,6 +4711,7 @@ pub fn sparse_observable(m: &Bound<PyModule>) -> PyResult<()> {
 mod test {
     use super::*;
     use num_complex::Complex64;
+    use crate::test::in_scoped_thread_pool;
 
     fn example_observable() -> SparseObservable {
         SparseObservable {
@@ -4742,7 +4745,9 @@ mod test {
         let computation_data = MatrixComputationData::from_sparse_observable(&obs).unwrap();
 
         // Directly call and compare the internal Rust functions.
-        let parallel_result = sparse_observable_to_matrix_parallel_32(&computation_data);
+        let parallel_result =
+            in_scoped_thread_pool(|| sparse_observable_to_matrix_parallel_32(&computation_data))
+                .unwrap();
         let serial_result = sparse_observable_to_matrix_serial_32(&computation_data);
 
         assert_eq!(parallel_result, serial_result);
@@ -4757,7 +4762,9 @@ mod test {
         let computation_data = MatrixComputationData::from_sparse_observable(&obs).unwrap();
 
         // Directly call and compare the internal Rust functions.
-        let parallel_result = sparse_observable_to_matrix_parallel_64(&computation_data);
+        let parallel_result =
+            in_scoped_thread_pool(|| sparse_observable_to_matrix_parallel_64(&computation_data))
+                .unwrap();
         let serial_result = sparse_observable_to_matrix_serial_64(&computation_data);
 
         assert_eq!(parallel_result, serial_result);
