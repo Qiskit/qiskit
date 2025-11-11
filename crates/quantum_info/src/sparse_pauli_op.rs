@@ -10,7 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::sparse_observable::{BitTerm, SparseObservable};
 use ahash::RandomState;
 use pyo3::Python;
 use pyo3::exceptions::PyValueError;
@@ -235,6 +234,7 @@ impl ZXPaulisView<'_> {
 /// In other words, `row_num ^ x_like` gives the column number of an element, while
 /// `(row_num & z_like).count_ones()` counts multiplicative factors of `-1` to be applied to
 /// `coeff` when placing it at `(row_num, col_num)` in an output matrix.
+#[derive(Clone)]
 pub struct MatrixCompressedPaulis {
     num_qubits: u8,
     x_like: Vec<u64>,
@@ -893,59 +893,6 @@ pub fn sparse_pauli_op(m: &Bound<PyModule>) -> PyResult<()> {
     Ok(())
 }
 
-// inner function to convert MatrixCompressedPaulis to SparseObservable
-impl From<&MatrixCompressedPaulis> for SparseObservable {
-    fn from(paulis: &MatrixCompressedPaulis) -> Self {
-        let mut coeffs = Vec::new();
-        let mut bit_terms_flat = Vec::new();
-        let mut indices_flat = Vec::new();
-        let mut boundaries = vec![0];
-
-        for i in 0..paulis.num_ops() {
-            let phase = ((paulis.z_like[i] & paulis.x_like[i]).count_ones() % 4) as u8;
-            let coeff = paulis.coeffs[i];
-            //matching to match the SparseObservable convention, which applies the phase to the coefficient
-            //converting back from the phase corrected coefficient of MatrixCompressedPaulis to the standard form
-            coeffs.push(match phase {
-                0 => coeff,
-                1 => Complex64::new(-coeff.im, coeff.re), //  i
-                2 => -coeff,                              // -1
-                3 => Complex64::new(coeff.im, -coeff.re), // -i
-                _ => unreachable!(),
-            });
-
-            let mut term_bit_terms = Vec::new();
-            let mut term_indices = Vec::new();
-            for q in 0..paulis.num_qubits() {
-                let x = (paulis.x_like[i] >> q) & 1;
-                let z = (paulis.z_like[i] >> q) & 1;
-                if x == 1 && z == 1 {
-                    term_bit_terms.push(BitTerm::Y);
-                    term_indices.push(q as u32);
-                } else if x == 1 {
-                    term_bit_terms.push(BitTerm::X);
-                    term_indices.push(q as u32);
-                } else if z == 1 {
-                    term_bit_terms.push(BitTerm::Z);
-                    term_indices.push(q as u32);
-                }
-            }
-            bit_terms_flat.extend(term_bit_terms);
-            indices_flat.extend(term_indices);
-            boundaries.push(bit_terms_flat.len());
-        }
-
-        SparseObservable::new(
-            paulis.num_qubits as u32,
-            coeffs,
-            bit_terms_flat,
-            indices_flat,
-            boundaries,
-        )
-        .unwrap()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use ndarray::{Array1, aview2};
@@ -1022,6 +969,58 @@ mod tests {
             }
         }
     }
+    // inner function to convert MatrixCompressedPaulis to SparseObservable
+    impl From<MatrixCompressedPaulis> for SparseObservable {
+        fn from(paulis: MatrixCompressedPaulis) -> Self {
+            let mut coeffs = Vec::new();
+            let mut bit_terms_flat = Vec::new();
+            let mut indices_flat = Vec::new();
+            let mut boundaries = vec![0];
+
+            for i in 0..paulis.num_ops() {
+                let phase = ((paulis.z_like[i] & paulis.x_like[i]).count_ones() % 4) as u8;
+                let coeff = paulis.coeffs[i];
+                //matching to match the SparseObservable convention, which applies the phase to the coefficient
+                //converting back from the phase corrected coefficient of MatrixCompressedPaulis to the standard form
+                coeffs.push(match phase {
+                    0 => coeff,
+                    1 => Complex64::new(-coeff.im, coeff.re), //  i
+                    2 => -coeff,                              // -1
+                    3 => Complex64::new(coeff.im, -coeff.re), // -i
+                    _ => unreachable!(),
+                });
+
+                let mut term_bit_terms = Vec::new();
+                let mut term_indices = Vec::new();
+                for q in 0..paulis.num_qubits() {
+                    let x = (paulis.x_like[i] >> q) & 1;
+                    let z = (paulis.z_like[i] >> q) & 1;
+                    if x == 1 && z == 1 {
+                        term_bit_terms.push(BitTerm::Y);
+                        term_indices.push(q as u32);
+                    } else if x == 1 {
+                        term_bit_terms.push(BitTerm::X);
+                        term_indices.push(q as u32);
+                    } else if z == 1 {
+                        term_bit_terms.push(BitTerm::Z);
+                        term_indices.push(q as u32);
+                    }
+                }
+                bit_terms_flat.extend(term_bit_terms);
+                indices_flat.extend(term_indices);
+                boundaries.push(bit_terms_flat.len());
+            }
+
+            SparseObservable::new(
+                paulis.num_qubits as u32,
+                coeffs,
+                bit_terms_flat,
+                indices_flat,
+                boundaries,
+            )
+            .unwrap()
+        }
+    }
 
     #[test]
     fn decompose_empty_operator_fails() {
@@ -1075,7 +1074,7 @@ mod tests {
                 x_like,
                 z_like,
             };
-            let observable = SparseObservable::from(&paulis);
+            let observable = SparseObservable::from(paulis.clone());
             let arr_vec = observable
                 .to_matrix_dense(false)
                 .expect("Failed to create dense matrix");
@@ -1123,7 +1122,7 @@ mod tests {
                 x_like,
                 z_like,
             };
-            let observable = SparseObservable::from(&paulis);
+            let observable = SparseObservable::from(paulis.clone());
             let arr_vec = observable
                 .to_matrix_dense(false)
                 .expect("Failed to create dense matrix");
