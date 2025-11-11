@@ -1077,12 +1077,9 @@ mod tests {
                 z_like,
             };
             let observable = SparseObservable::from(&paulis);
-            let arr_vec = in_scoped_thread_pool(|| {
-                observable
-                    .to_matrix_dense(false)
-                    .expect("Failed to create dense matrix")
-            })
-            .unwrap();
+            let arr_vec = observable
+                .to_matrix_dense(false)
+                .expect("Failed to create dense matrix");
             let arr = Array1::from_vec(arr_vec)
                 .into_shape_with_order((2, 2))
                 .unwrap();
@@ -1128,12 +1125,9 @@ mod tests {
                 z_like,
             };
             let observable = SparseObservable::from(&paulis);
-            let arr_vec = in_scoped_thread_pool(|| {
-                observable
-                    .to_matrix_dense(false)
-                    .expect("Failed to create dense matrix")
-            })
-            .unwrap();
+            let arr_vec = observable
+                .to_matrix_dense(false)
+                .expect("Failed to create dense matrix");
             let arr = Array1::from_vec(arr_vec)
                 .into_shape_with_order((8, 8))
                 .unwrap();
