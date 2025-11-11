@@ -39,13 +39,13 @@ impl<T> Parameters<T> {
         self.len() == 0
     }
 
-    /// Unwraps the parameter list as as slice of [Param]s.
+    /// Unwraps the parameter list as params.
     ///
     /// Panics if this is not a params list.
     #[inline]
-    pub fn unwrap_params(&self) -> &[Param] {
+    pub fn unwrap_params(self) -> SmallVec<[Param; 3]> {
         match self {
-            Parameters::Params(params) => params.as_slice(),
+            Parameters::Params(params) => params,
             Parameters::Blocks(_) => panic!("expected params, got blocks"),
         }
     }
@@ -54,10 +54,10 @@ impl<T> Parameters<T> {
     ///
     /// Panics if this is not a block list.
     #[inline]
-    pub fn unwrap_blocks(&self) -> &[T] {
+    pub fn unwrap_blocks(self) -> Vec<T> {
         match self {
             Parameters::Params(_) => panic!("expected params, got blocks"),
-            Parameters::Blocks(blocks) => blocks.as_slice(),
+            Parameters::Blocks(blocks) => blocks,
         }
     }
 }

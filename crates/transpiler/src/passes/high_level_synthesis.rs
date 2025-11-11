@@ -45,7 +45,7 @@ use qiskit_synthesis::euler_one_qubit_decomposer::EulerBasis;
 use qiskit_synthesis::euler_one_qubit_decomposer::angles_from_unitary;
 use qiskit_synthesis::two_qubit_decompose::TwoQubitBasisDecomposer;
 
-use qiskit_circuit::instruction::Parameters;
+use qiskit_circuit::instruction::{Instruction, Parameters};
 
 /// Track global qubits by their state.
 /// The global qubits are numbered by consecutive integers starting at `0`,
@@ -1016,10 +1016,7 @@ fn py_synthesize_operation(
         tracker,
         &input_qubits,
         &op.operation,
-        op.params
-            .as_ref()
-            .map(|p| p.unwrap_params())
-            .unwrap_or_default(),
+        op.params_view(),
         op.label.as_deref().map(|l| l.as_str()),
     )?;
 
