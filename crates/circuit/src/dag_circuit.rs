@@ -6417,23 +6417,26 @@ impl DAGCircuit {
 
         if let Some(instr) = self.try_view_control_flow_inner(instr) {
             match instr {
-                ControlFlowView::IfElse {
-                    condition: Condition::Expr(condition),
-                    ..
-                }
-                | ControlFlowView::While {
-                    condition: Condition::Expr(condition),
-                    ..
-                } => {
-                    // TODO: do we need to add bits from non-expr condition?
-                    let (expr_clbits, expr_vars) = wires_from_expr(condition)?;
-                    for bit in expr_clbits {
-                        clbits.push(bit);
+                ControlFlowView::IfElse { condition, .. }
+                | ControlFlowView::While { condition, .. } => match condition {
+                    Condition::Bit(bit, _) => {
+                        clbits.push(self.clbits.find(bit).unwrap());
                     }
-                    for var in expr_vars {
-                        vars.push(var);
+                    Condition::Register(reg, _) => {
+                        for bit in reg.bits() {
+                            clbits.push(self.clbits.find(&bit).unwrap());
+                        }
                     }
-                }
+                    Condition::Expr(condition) => {
+                        let (expr_clbits, expr_vars) = wires_from_expr(condition)?;
+                        for bit in expr_clbits {
+                            clbits.push(bit);
+                        }
+                        for var in expr_vars {
+                            vars.push(var);
+                        }
+                    }
+                },
                 ControlFlowView::Switch { target, .. } => match target {
                     SwitchTarget::Bit(bit) => {
                         clbits.push(self.clbits.find(bit).unwrap());
@@ -6453,7 +6456,12 @@ impl DAGCircuit {
                         }
                     }
                 },
-                _ => (),
+
+                // These don't have any classical wires
+                ControlFlowView::Box(_, _) => {}
+                ControlFlowView::BreakLoop => {}
+                ControlFlowView::ContinueLoop => {}
+                ControlFlowView::ForLoop { .. } => {}
             }
             for block in instr.blocks() {
                 for var in block.captured_vars() {
