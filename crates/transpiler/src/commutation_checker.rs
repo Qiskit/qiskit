@@ -15,9 +15,14 @@ use ndarray::Array2;
 use ndarray::linalg::kron;
 use num_complex::Complex64;
 use num_complex::ComplexFloat;
+use pyo3::types::PyList;
+use pyo3::types::PyString;
 use qiskit_circuit::object_registry::PyObjectAsKey;
+use qiskit_quantum_info::sparse_observable::BitTerm;
+use qiskit_quantum_info::sparse_observable::SparseObservable;
 use smallvec::SmallVec;
 use std::fmt::Debug;
+use std::sync::LazyLock;
 
 use numpy::PyReadonlyArray2;
 use pyo3::BoundObject;
@@ -120,6 +125,115 @@ const fn build_supported_rotations() -> [Option<Option<StandardGate>>; STANDARD_
 
 static SUPPORTED_ROTATIONS: [Option<Option<StandardGate>>; STANDARD_GATE_SIZE] =
     build_supported_rotations();
+
+fn build_standard_generators() -> HashMap<usize, Vec<BitTerm>> {
+    let mut lut: HashMap<usize, Vec<BitTerm>> = HashMap::new();
+    lut.insert(StandardGate::RX as usize, vec![BitTerm::X]);
+    // lut[&(StandardGate::RX as usize)] =
+    // lut[&(StandardGate::RY as usize)] = from_bits(vec![BitTerm::Y]);
+    // lut[&(StandardGate::RZ as usize)] = from_bits(vec![BitTerm::Z]);
+    // lut[StandardGate::RZ as usize] = Some(StandardGate::Z);
+    // lut[StandardGate::Phase as usize] = Some(StandardGate::Z);
+    // lut[StandardGate::U1 as usize] = Some(StandardGate::Z);
+    // lut[StandardGate::CRX as usize] = Some(StandardGate::CX);
+    // lut[StandardGate::CRY as usize] = Some(StandardGate::CY);
+    // lut[StandardGate::CRZ as usize] = Some(StandardGate::CZ);
+    // lut[StandardGate::CPhase as usize] = Some(StandardGate::CZ);
+    // // RXXGate, RYYGate, RZXGate, and RZZGate are supported by the commutation dictionary
+    // lut[StandardGate::RXX as usize] = Some();
+    // lut[StandardGate::RYY as usize] = Some();
+    // lut[StandardGate::RZX as usize] = Some();
+    // lut[StandardGate::RZZ as usize] = Some();
+    lut
+}
+
+static STANDARD_GENERATORS: LazyLock<HashMap<usize, Vec<BitTerm>>> =
+    LazyLock::new(build_standard_generators);
+
+fn extract_op_from_pauligate(
+    pauli_gate: &OperationRef,
+    qubits: &[Qubit],
+    num_qubits: u32,
+) -> SparseObservable {
+    let OperationRef::Gate(gate) = pauli_gate else {
+        panic!("Input is required to be a PauliGate.")
+    };
+    let pauli_string = Python::attach(|py| {
+        let params = gate
+            .gate
+            .getattr(py, intern!(py, "params"))
+            .expect("Failed to read params.");
+
+        let params_list = params
+            .bind(py)
+            .cast::<PyList>()
+            .expect("Failed casting params to list");
+
+        params_list
+            .get_item(0)
+            .expect("Failed getting param content.")
+            .cast::<PyString>()
+            .expect("Failed casting to PyString")
+            .to_string()
+    });
+
+    let mut indices: Vec<u32> = Vec::new();
+    let mut bit_terms: Vec<BitTerm> = Vec::new();
+    for (i, pauli) in pauli_string.chars().enumerate() {
+        match pauli {
+            'X' => {
+                indices.push(qubits.get(i).unwrap().0);
+                bit_terms.push(BitTerm::X)
+            }
+            'Y' => {
+                indices.push(qubits.get(i).unwrap().0);
+                bit_terms.push(BitTerm::Y)
+            }
+            'Z' => {
+                indices.push(qubits.get(i).unwrap().0);
+                bit_terms.push(BitTerm::Z)
+            }
+            _ => {} // nothing to do for the identity
+        }
+    }
+    // TODO there's the all-identity edge case we should potentially handle here,
+    // not sure is it's a valid state to otherwise end up with [0, 0] boundaries
+    let boundaries = vec![0, indices.len()];
+    let coeffs = vec![Complex64::new(1., 0.)];
+
+    // SAFETY: We constructed valid data manually of the bit terms.
+    unsafe { SparseObservable::new_unchecked(num_qubits, coeffs, bit_terms, indices, boundaries) }
+}
+
+fn get_generator(
+    operation: &OperationRef,
+    qubits: &[Qubit],
+    num_qubits: u32,
+) -> Option<SparseObservable> {
+    if let OperationRef::StandardGate(gate) = operation {
+        // try extract from LUT
+        // TODO this ref-pointer-cast looks fishy
+        let Some(bit_terms) = STANDARD_GENERATORS.get(&(*gate as usize)).cloned() else {
+            return None;
+        };
+        let indices = qubits.iter().map(|q| q.0).collect();
+        let coeffs = vec![Complex64::new(1., 0.); 1];
+        let boundaries = vec![0, bit_terms.len()];
+
+        let obs = unsafe {
+            SparseObservable::new_unchecked(num_qubits, coeffs, bit_terms, indices, boundaries)
+        };
+        Some(obs)
+    } else {
+        // generic gates that have a generator, such as Pauli-based gates
+        let name = operation.name();
+        match name {
+            "pauli" => Some(extract_op_from_pauligate(operation, qubits, num_qubits)),
+            "PauliEvolutionGate" => todo!(),
+            _ => None,
+        }
+    }
+}
 
 fn get_bits_from_py<T>(
     py_bits1: &Bound<'_, PyTuple>,
@@ -329,6 +443,15 @@ impl CommutationChecker {
         // is set to max(1e-12, 1 - approximation_degree), to account for roundoffs and for
         // consistency with other places in Qiskit.
         let tol = 1e-12_f64.max(1. - approximation_degree);
+
+        // get the maximum index to use as size for the sparse observables
+        let size = qargs1.iter().max().max(qargs2.iter().max()).unwrap().0;
+
+        if let Some(gen1) = get_generator(op1, qargs1, size) {
+            if let Some(gen2) = get_generator(op2, qargs2, size) {
+                return Ok(gen1.commutes(&gen2, tol));
+            }
+        }
 
         // if we have rotation gates, we attempt to map them to their generators, for example
         // RX -> X or CPhase -> CZ

@@ -16,7 +16,7 @@ import unittest
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 import numpy as np
-from ddt import idata, ddt
+from ddt import idata, ddt, data, unpack
 
 from qiskit.circuit import (
     AnnotatedOperation,
@@ -496,6 +496,21 @@ class TestCommutationChecker(QiskitTestCase):
         )
         self.assertTrue(
             scc.commute(almost_identity, [0], [], other, [0], [], approximation_degree=1 - 1e-4)
+        )
+
+    @data(
+        ("ZZZZ", "XXXX", True),
+        ("ZZIIIIIIIY", "YYIIIIIIIY", True),
+        ("ZZIIIIIIIY", "YYIIIIIIIZ", False),
+    )
+    @unpack
+    def test_pauli_gate(self, p1, p2, expected):
+        """Test Pauli gates."""
+        gate1 = PauliGate(p1)
+        gate2 = PauliGate(p2)
+        qargs = list(range(gate1.num_qubits))
+        self.assertEqual(
+            expected, scc.commute(gate1, qargs, [], gate2, qargs, [], max_num_qubits=20)
         )
 
 
