@@ -25,7 +25,7 @@ use qiskit_circuit::{
     operations::StandardGate, packed_instruction::PackedInstruction,
 };
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
-use smallvec::{SmallVec, smallvec};
+use smallvec::SmallVec;
 use std::f64::consts::PI;
 
 //#########################################################################
@@ -71,7 +71,7 @@ pub fn check_direction_target(dag: &DAGCircuit, target: &Target) -> PyResult<boo
             PhysicalQubit::new(op_args[1].0),
         ];
 
-        target.instruction_supported(inst.op.name(), &qargs)
+        target.instruction_supported(inst.op.name(), &qargs, &[], false)
     };
 
     check_gate_direction(dag, &target_check, None)
@@ -184,29 +184,12 @@ pub fn fix_direction_coupling_map(
 #[pyo3(name = "fix_gate_direction_target")]
 pub fn fix_direction_target(dag: &mut DAGCircuit, target: &Target) -> PyResult<()> {
     let target_check = |inst: &PackedInstruction, op_args: &[Qubit]| -> bool {
-        let qargs = smallvec![
+        let qargs: &[PhysicalQubit] = &[
             PhysicalQubit::new(op_args[0].0),
-            PhysicalQubit::new(op_args[1].0)
+            PhysicalQubit::new(op_args[1].0),
         ];
 
-        // Take this path so Target can check for exact match of the parameterized gate's angle
-        if let OperationRef::StandardGate(std_gate) = inst.op.view() {
-            match std_gate {
-                StandardGate::RXX | StandardGate::RYY | StandardGate::RZZ | StandardGate::RZX => {
-                    return target
-                        .py_instruction_supported(
-                            Some(std_gate.get_name().to_string()),
-                            qargs.into(),
-                            None,
-                            Some(inst.params_view().to_vec()),
-                            false,
-                        )
-                        .unwrap_or(false);
-                }
-                _ => {}
-            }
-        }
-        target.instruction_supported(inst.op.name(), &qargs)
+        target.instruction_supported(inst.op.name(), qargs, inst.params_view(), false)
     };
 
     fix_gate_direction(dag, &target_check, None)
