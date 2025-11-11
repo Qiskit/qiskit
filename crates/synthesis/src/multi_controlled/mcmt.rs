@@ -92,7 +92,7 @@ fn ccx_chain<'a>(
 #[pyfunction]
 #[pyo3(signature = (controlled_gate, num_ctrl_qubits, num_target_qubits, control_state=None))]
 pub fn mcmt_v_chain(
-    controlled_gate: OperationFromPython,
+    mut controlled_gate: OperationFromPython,
     num_ctrl_qubits: usize,
     num_target_qubits: usize,
     control_state: Option<usize>,
@@ -101,10 +101,7 @@ pub fn mcmt_v_chain(
         return Err(QiskitError::new_err("Need at least 1 control qubit."));
     }
 
-    let gate_params: SmallVec<[Param; 3]> = controlled_gate
-        .params
-        .map(|p| p.unwrap_params())
-        .unwrap_or_default();
+    let gate_params: SmallVec<[Param; 3]> = controlled_gate.take_params().unwrap_or_default();
     let packed_controlled_gate = controlled_gate.operation;
     let num_qubits = if num_ctrl_qubits > 1 {
         2 * num_ctrl_qubits - 1 + num_target_qubits

@@ -2555,15 +2555,9 @@ impl TwoQubitControlledUDecomposer {
             OperationRef::Gate(gate) => {
                 Python::attach(|py: Python| -> PyResult<(PackedOperation, SmallVec<_>)> {
                     let raw_inverse = gate.gate.call_method0(py, intern!(py, "inverse"))?;
-                    let inverse: OperationFromPython = raw_inverse.extract(py)?;
-                    Ok((
-                        inverse.operation,
-                        match inverse.params {
-                            Some(Parameters::Params(params)) => params,
-                            None => smallvec![],
-                            _ => panic!("invalid gate parameters"),
-                        },
-                    ))
+                    let mut inverse: OperationFromPython = raw_inverse.extract(py)?;
+                    let params = inverse.take_params().unwrap_or_default();
+                    Ok((inverse.operation, params))
                 })?
             }
             // UnitaryGate isn't applicable here as the 2q gate here is the parameterized

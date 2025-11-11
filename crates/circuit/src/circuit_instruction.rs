@@ -516,6 +516,22 @@ pub struct OperationFromPython {
     pub label: Option<Box<String>>,
 }
 
+impl OperationFromPython {
+    /// Takes the params out of [OperationFromPython::params].
+    ///
+    /// Panics if params is not a parameter list.
+    pub fn take_params(&mut self) -> Option<SmallVec<[Param; 3]>> {
+        self.params.take().map(|p| p.unwrap_params())
+    }
+
+    /// Takes the blocks out of [OperationFromPython::params].
+    ///
+    /// Panics if params is not a block list.
+    pub fn take_blocks(&mut self) -> Option<Vec<Py<PyAny>>> {
+        self.params.take().map(|p| p.unwrap_blocks())
+    }
+}
+
 impl Instruction for OperationFromPython {
     fn op(&self) -> OperationRef<'_> {
         self.operation.view()
