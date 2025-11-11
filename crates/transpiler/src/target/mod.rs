@@ -73,16 +73,6 @@ impl TargetOperation {
         }
     }
 
-    /// Gets the parameters of a [TargetOperation], will panic if the operation is [TargetOperation::Variadic].
-    pub fn params(&self) -> Option<&Parameters<Py<PyAny>>> {
-        match &self {
-            TargetOperation::Normal(normal) => normal.parameters(),
-            TargetOperation::Variadic(_) => {
-                panic!("'parameters' property doesn't exist for Variadic operations")
-            }
-        }
-    }
-
     /// Creates a [TargetOperation] from an instance of [PackedOperation]
     pub fn from_packed_operation(
         operation: PackedOperation,
