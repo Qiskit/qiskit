@@ -507,16 +507,16 @@ static int test_target_update_instruction(void) {
     double inst_error = 0.0090393;
     double inst_duration = 0.020039;
     qk_target_entry_add_property(cx_entry, qargs, 2, inst_duration, inst_error);
-    // CX Gate is not paramtric. Re-use Null
+    // CX Gate is not parametric. Re-use Null
     qk_target_add_instruction(target, cx_entry);
 
-    // change the intruction property of cx
+    // Change the instruction property of cx
     double cx_new_inst_error = NAN;
     double cx_new_inst_duration = 0.09457;
     QkExitCode result_1 = qk_target_update_property(target, QkGate_CX, qargs, 2,
                                                     cx_new_inst_duration, cx_new_inst_error);
     if (result_1 != QkExitCode_Success) {
-        printf("An unexpected error occured while modifying the property.");
+        printf("An unexpected error occurred while modifying the property.");
         result = RuntimeError;
         goto cleanup;
     }

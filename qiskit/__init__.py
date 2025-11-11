@@ -84,6 +84,7 @@ sys.modules["qiskit._accelerate.euler_one_qubit_decomposer"] = (
 sys.modules["qiskit._accelerate.optimize_1q_gates_decomposition"] = (
     _accelerate.optimize_1q_gates_decomposition
 )
+sys.modules["qiskit._accelerate.optimize_clifford_t"] = _accelerate.optimize_clifford_t
 sys.modules["qiskit._accelerate.nlayout"] = _accelerate.nlayout
 sys.modules["qiskit._accelerate.optimize_1q_gates"] = _accelerate.optimize_1q_gates
 sys.modules["qiskit._accelerate.pauli_expval"] = _accelerate.pauli_expval
@@ -118,6 +119,9 @@ sys.modules["qiskit._accelerate.synthesis.evolution"] = _accelerate.synthesis.ev
 sys.modules["qiskit._accelerate.synthesis.discrete_basis"] = _accelerate.synthesis.discrete_basis
 sys.modules["qiskit._accelerate.synthesis.multi_controlled"] = (
     _accelerate.synthesis.multi_controlled
+)
+sys.modules["qiskit._accelerate.synthesis.pauli_product_measurement"] = (
+    _accelerate.synthesis.pauli_product_measurement
 )
 sys.modules["qiskit._accelerate.synthesis.qft"] = _accelerate.synthesis.qft
 sys.modules["qiskit._accelerate.split_2q_unitaries"] = _accelerate.split_2q_unitaries

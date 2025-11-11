@@ -9,9 +9,9 @@ The data model exposed by this crate is as follows.
 
 ## CircuitData
 
-The core representation of a quantum circuit in Rust is the `CircuitData` struct. This containts the list
+The core representation of a quantum circuit in Rust is the `CircuitData` struct. This contains the list
 of instructions that are comprising the circuit. Each element in this list is modeled by a
-`CircuitInstruction` struct. The `CircuitInstruction` contains the operation object and it's operands.
+`CircuitInstruction` struct. The `CircuitInstruction` contains the operation object and its operands.
 This includes the parameters and bits. It also contains the potential mutable state of the Operation representation from the legacy Python data model; namely `duration`, `unit`, `condition`, and `label`.
 In the future we'll be able to remove all of that except for label.
 
@@ -62,7 +62,7 @@ The `ParamTable` struct is used to track which circuit instructions are using `P
 objects for any of their parameters. The Python space `ParameterExpression` is comprised of a symengine
 symbolic expression that defines operations using `Parameter` objects. Each `Parameter` is modeled by
 a uuid and a name to uniquely identify it. The parameter table maps the `Parameter` objects to the
-`CircuitInstruction` in the `CircuitData` that are using them. The `Parameter` comprised of 3 `HashMaps` internally that map the uuid (as `u128`, which is accesible in Python by using `uuid.int`) to the `ParamEntry`, the `name` to the uuid, and the uuid to the PyObject for the actual `Parameter`.
+`CircuitInstruction` in the `CircuitData` that are using them. The `ParamTable` comprises 3 `HashMaps` internally that map the uuid (as `u128`, which is accesible in Python by using `uuid.int`) to the `ParamEntry`, the `name` to the uuid, and the uuid to the PyObject for the actual `Parameter`.
 
 The `ParamEntry` is just a `HashSet` of 2-tuples with usize elements. The two usizes represent the instruction index in the `CircuitData` and the index of the `CircuitInstruction.params` field of
 a give instruction where the given `Parameter` is used in the circuit. If the instruction index is
