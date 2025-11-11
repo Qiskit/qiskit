@@ -657,7 +657,7 @@ impl<'a, T> ControlFlowView<'a, T> {
 /// A control flow operation's condition.
 #[derive(Clone, Debug, PartialEq, IntoPyObject)]
 pub enum Condition {
-    Bit(ShareableClbit, usize),
+    Bit(ShareableClbit, bool),
     Register(ClassicalRegister, BigUint),
     Expr(expr::Expr),
 }
@@ -666,8 +666,8 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Condition {
     type Error = <expr::Expr as FromPyObject<'a, 'py>>::Error;
 
     fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
-        if let Ok((bit, value)) = ob.extract::<(ShareableClbit, usize)>() {
-            Ok(Condition::Bit(bit, value))
+        if let Ok((bit, value)) = ob.extract::<(ShareableClbit, Bound<PyAny>)>() {
+            Ok(Condition::Bit(bit, value.is_truthy()?))
         } else if let Ok((register, value)) = ob.extract::<(ClassicalRegister, BigUint)>() {
             Ok(Condition::Register(register, value))
         } else {
