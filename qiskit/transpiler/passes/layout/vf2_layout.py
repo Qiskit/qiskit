@@ -13,14 +13,13 @@
 
 """VF2Layout pass to find a layout using subgraph isomorphism"""
 
-import random
 from enum import Enum
 
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.layout import vf2_utils
-from qiskit._accelerate.vf2_layout import vf2_layout_pass, MultiQEncountered
+from qiskit._accelerate.vf2_layout import vf2_layout_pass, MultiQEncountered, VF2PassConfiguration
 
 
 class VF2LayoutStopReason(Enum):
@@ -84,15 +83,25 @@ class VF2Layout(AnalysisPass):
             coupling_map (CouplingMap): Directed graph representing a coupling map.
             strict_direction (bool): If True, considers the direction of the coupling map.
                                      Default is False.
-            seed (int): Sets the seed of the PRNG. -1 Means no node shuffling.
-            call_limit (int): The number of state visits to attempt in each execution of
-                VF2.
-            time_limit (float): The total time limit in seconds to run ``VF2Layout``
-            max_trials (int): The maximum number of trials to run VF2 to find
-                a layout. If this is not specified the number of trials will be limited
-                based on the number of edges in the interaction graph or the coupling graph
-                (whichever is larger) if no other limits are set. If set to a value <= 0 no
-                limit on the number of trials will be set.
+            seed (int | None): shuffle the labelling of physical qubits to node indices in the
+                coupling graph, using a given pRNG seed.  ``None`` seeds using OS entropy (and so is
+                non-deterministic).  Using ``-1`` disables the shuffling.
+            call_limit (None | int | tuple[int | None, int | None]): The maximum number of times
+                that the inner VF2 isomorphism search will attempt to extend the mapping. If
+                ``None``, then no limit.  If a 2-tuple, then the limit starts as the first item, and
+                swaps to the second after the first match is found, without resetting the number of
+                steps taken.  This can be used to allow a long search for any mapping, but still
+                terminate quickly with a small extension budget if one is found.
+            time_limit (float): The total time limit in seconds to run ``VF2Layout``.  This is not
+                completely strict; execution will finish on the first isomorphism found (if any)
+                _after_ the time limit has been exceeded.  Setting this option breaks determinism of
+                the pass.
+            max_trials (int): If set, the algorithm terminates after this many _complete_ layouts
+                have been seen.  Since the scoring is done on-the-fly, the vast majority of
+                candidate layouts are pruned out of the search before ever becoming complete, so
+                this option has little meaning.  To set a low limit on the amount of time spent
+                improving an initial limit, set a low value for the second item in the
+                ``call_limit`` 2-tuple form.
             target (Target): A target representing the backend device to run ``VF2Layout`` on.
                 If specified it will supersede a set value for
                 ``coupling_map`` if the :class:`.Target` contains connectivity constraints. If the value
@@ -131,31 +140,24 @@ class VF2Layout(AnalysisPass):
             else:
                 target = self.target
         self.avg_error_map = self.property_set["vf2_avg_error_map"]
-        if self.seed == -1:
-            # Happy path of no shuffling.
-            seed = None
-        elif self.seed is None or self.seed < -1:
-            # `seed is None` is OS entropy, `seed < -1` is a bad value (most pRNGs we're
-            # concerned with deal with `u64`), but the stdlib `random` handles it, so just use
-            # that to fix it up into something else.
-            seed = random.Random(self.seed).randrange((1 << 64) - 1)
-        else:
-            seed = self.seed
+        config = VF2PassConfiguration.from_legacy_api(
+            call_limit=self.call_limit,
+            time_limit=self.time_limit,
+            max_trials=self.max_trials,
+            shuffle_seed=self.seed,
+        )
         try:
-            layout = vf2_layout_pass(
+            output = vf2_layout_pass(
                 dag,
                 target,
                 strict_direction=self.strict_direction,
-                call_limit=self.call_limit,
-                time_limit=self.time_limit,
-                max_trials=self.max_trials,
                 avg_error_map=self.avg_error_map,
-                shuffle_seed=seed,
+                config=config,
             )
         except MultiQEncountered:
             self.property_set["VF2Layout_stop_reason"] = VF2LayoutStopReason.MORE_THAN_2Q
             return
-        if layout is None:
+        if (layout := output.new_mapping()) is None:
             self.property_set["VF2Layout_stop_reason"] = VF2LayoutStopReason.NO_SOLUTION_FOUND
             return
 

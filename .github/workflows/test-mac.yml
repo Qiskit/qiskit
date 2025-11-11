@@ -84,7 +84,7 @@ jobs:
           ls | grep -e '^[[:digit:]]' | xargs -n1 rm -f
           popd
       - name: Copy and Publish images
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: ${{ failure() }}
         with:
           name: copied-images-${{ runner.name }}-tests-Python-${{ inputs.python-version }}

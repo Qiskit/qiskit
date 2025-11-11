@@ -2,7 +2,7 @@
 features_c:
   - |
     Add support for the :class:`.Optimize1qGatesDecomposition` transpiler pass through
-    the C API, via the :cpp:func:`qk_transpiler_standalone_optimize_1q_sequences`
+    the C API, via the :c:func:`qk_transpiler_standalone_optimize_1q_sequences`
     method.
 
     Here's an example:
