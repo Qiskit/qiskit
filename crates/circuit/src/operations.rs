@@ -700,7 +700,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for SwitchTarget {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum CaseSpecifier {
-    Uint(usize),
+    Uint(BigUint),
     Default,
 }
 
@@ -708,7 +708,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for CaseSpecifier {
     type Error = PyErr;
 
     fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
-        if let Ok(i) = ob.extract::<usize>() {
+        if let Ok(i) = ob.extract::<BigUint>() {
             Ok(CaseSpecifier::Uint(i))
         } else if ob.is(imports::SWITCH_CASE_DEFAULT.get_bound(ob.py())) {
             Ok(CaseSpecifier::Default)
