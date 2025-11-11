@@ -69,7 +69,7 @@ where
 
 #[pyfunction]
 pub fn approximate_rz_rotation(theta: f64, epsilon: f64) -> PyResult<CircuitData> {
-    let gates = gridsynth_gates(&mut config_from_theta_epsilon(theta, epsilon, 0u64));
+    let gates = gridsynth_gates(&mut config_from_theta_epsilon(theta, epsilon, 0u64, false));
     let gates_iter = gates.chars();
     let instruction_capacity = gates.len();
     circuit_from_string(gates_iter, 0., instruction_capacity)
@@ -85,9 +85,10 @@ pub fn approximate_1q_unitary_inner(
     let [theta, phi, lambda, phase] = params_zxz_inner(mat);
 
     // Approximate each of the RZ, RX, RZ rotations using rsgridsynth and join the results.
-    let gates_theta = gridsynth_gates(&mut config_from_theta_epsilon(theta, epsilon, 0u64));
-    let gates_phi = gridsynth_gates(&mut config_from_theta_epsilon(phi, epsilon, 0u64));
-    let gates_lambda = gridsynth_gates(&mut config_from_theta_epsilon(lambda, epsilon, 0u64));
+    let gates_theta = gridsynth_gates(&mut config_from_theta_epsilon(theta, epsilon, 0u64, false));
+    let gates_phi = gridsynth_gates(&mut config_from_theta_epsilon(phi, epsilon, 0u64, false));
+    let gates_lambda =
+        gridsynth_gates(&mut config_from_theta_epsilon(lambda, epsilon, 0u64, false));
     let instruction_capacity = gates_theta.len() + gates_phi.len() + gates_lambda.len() + 2;
     let gates_iter = gates_lambda
         .chars()
