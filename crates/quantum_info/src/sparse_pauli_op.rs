@@ -952,7 +952,6 @@ mod tests {
 
     use super::*;
     use crate::sparse_observable::SparseObservable;
-    use crate::test::in_scoped_thread_pool;
 
     #[cfg(miri)]
     use approx::AbsDiffEq;
