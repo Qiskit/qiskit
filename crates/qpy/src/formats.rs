@@ -38,7 +38,7 @@ pub struct QPYFormatV15 {
 #[brw(big)]
 #[derive(Debug)]
 pub struct CircuitHeaderV12Pack {
-    #[bw(calc = circuit_name.as_bytes().len() as u16)]
+    #[bw(calc = circuit_name.len() as u16)]
     pub name_size: u16,
     pub global_phase_type: u8,
     #[bw(calc = global_phase_data.len() as u16)]
@@ -54,7 +54,7 @@ pub struct CircuitHeaderV12Pack {
     #[br(parse_with = read_string, args(name_size as usize))]
     #[bw(write_with = write_string)]
     pub circuit_name: String,
-    #[br(count = global_phase_size)]
+    #[br(count = global_phase_size as usize)]
     pub global_phase_data: Bytes,
     #[br(count = metadata_size)]
     pub metadata: Bytes,
@@ -323,7 +323,7 @@ pub struct PackedParam {
 #[brw(big)]
 #[derive(Debug)]
 pub struct ParameterPack {
-    #[bw(calc = name.as_bytes().len() as u16)]
+    #[bw(calc = name.len() as u16)]
     pub name_length: u16,
     pub uuid: [u8; 16],
     #[br(parse_with = read_string, args(name_length as usize))]
@@ -335,7 +335,7 @@ pub struct ParameterPack {
 #[brw(big)]
 #[derive(Debug)]
 pub struct ParameterVectorPack {
-    #[bw(calc = name.as_bytes().len() as u16)]
+    #[bw(calc = name.len() as u16)]
     pub name_size: u16,
     pub vector_size: u64,
     pub uuid: [u8; 16],
@@ -580,14 +580,14 @@ pub enum ExpressionVarElementPack {
     #[brw(magic = b'R')]
     Register(ExpressionVarRegisterPack),
     #[brw(magic = b'U')]
-    UUID(u16),
+    Uuid(u16),
 }
 
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
 pub struct ExpressionVarRegisterPack {
-    #[bw(calc = name.as_bytes().len() as u16)]
+    #[bw(calc = name.len() as u16)]
     pub name_size: u16,
     #[br(parse_with = read_string, args(name_size as usize))]
     #[bw(write_with = write_string)]
@@ -631,7 +631,7 @@ pub enum ExpressionDurationPack {
 pub struct BigIntPack {
     #[bw(calc = bytes.len() as u8)]
     num_bytes: u8,
-    #[br(count = num_bytes)]
+    #[br(count = num_bytes as usize)]
     bytes: Bytes,
 }
 
@@ -696,7 +696,7 @@ pub struct ModifierPack {
 pub struct ExpressionVarDeclarationPack {
     pub uuid_bytes: [u8; 16],
     pub usage: u8,
-    #[bw(calc = name.as_bytes().len() as u16)]
+    #[bw(calc = name.len() as u16)]
     pub name_size: u16,
     pub exp_type: ExpressionType,
     #[br(parse_with = read_string, args(name_size as usize))]
@@ -739,7 +739,7 @@ pub struct InstructionsAnnotationPack {
 #[brw(big)]
 #[derive(Debug)]
 pub struct AnnotationStateHeaderPack {
-    #[bw(calc = namespace.as_bytes().len() as u32)]
+    #[bw(calc = namespace.len() as u32)]
     pub namespace_size: u32,
     #[bw(calc = state.len() as u64)]
     pub state_size: u64,

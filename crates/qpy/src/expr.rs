@@ -123,7 +123,7 @@ pub fn pack_expression_var(var: &Var, qpy_data: &QPYWriteData) -> ExpressionElem
         ),
         Var::Standalone { uuid, name: _, ty } => (
             ty,
-            ExpressionVarElementPack::UUID(*qpy_data.standalone_var_indices.get(uuid).unwrap()),
+            ExpressionVarElementPack::Uuid(*qpy_data.standalone_var_indices.get(uuid).unwrap()),
         ),
     };
     ExpressionElementPack::Var(pack_expression_type(ty), value_pack)
@@ -153,7 +153,7 @@ pub fn unpack_expression_var(
                 .clone(),
             ty,
         }, // TODO: can we avoid cloning?
-        ExpressionVarElementPack::UUID(key) => {
+        ExpressionVarElementPack::Uuid(key) => {
             let var = qpy_data.standalone_vars.get(&key).unwrap(); // note: this is not an actual expr::Var; merely a key for this var inside the circuit data
             qpy_data.circuit_data.get_var(*var).unwrap().clone() // TODO: can we avoid cloning?
         }

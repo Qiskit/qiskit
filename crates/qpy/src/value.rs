@@ -17,7 +17,6 @@ use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyBytes, PyComplex, PyDict, PyFloat, PyInt};
 
-use qiskit_circuit;
 use qiskit_circuit::bit::ShareableClbit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::classical::expr::{Expr, Stretch, Var};

@@ -235,6 +235,10 @@ fn unpack_condition(
     }
 }
 
+/// create a new instruction from the packed data
+/// this is a relatively messy and python-heavy function
+/// due to the large number of different gates we have to deal with
+/// each gate with its own set of properties and quirks
 fn unpack_instruction(
     py: Python,
     instruction: &formats::CircuitInstructionV2Pack,
@@ -376,18 +380,10 @@ fn unpack_instruction(
                 }
                 args.push(instruction.num_ctrl_qubits.into_py_any(py)?);
                 gate_class.call1(PyTuple::new(py, args)?)?
-                // if condition:
-                // body = QuantumCircuit(qargs, cargs)
-                // body.append(gate, qargs, cargs)
-                // gate = IfElseOp(condition, body)
             }
             _ => {
                 let args = PyTuple::new(py, &py_params)?;
                 gate_class.call1(args)?
-                // if condition:
-                // body = QuantumCircuit(qargs, cargs)
-                // body.append(gate, qargs, cargs)
-                // gate = IfElseOp(condition, body)
             }
         };
         if let Some(label_text) = &label {
@@ -880,10 +876,10 @@ pub fn unpack_circuit<'py>(
     )?;
     qpy_data.circuit_data.set_global_phase(global_phase)?;
 
-    add_standalone_vars(&packed_circuit, &mut qpy_data)?;
-    add_registers_and_bits(&packed_circuit, &mut qpy_data)?;
+    add_standalone_vars(packed_circuit, &mut qpy_data)?;
+    add_registers_and_bits(packed_circuit, &mut qpy_data)?;
 
-    let custom_instructions = read_custom_instructions(py, &packed_circuit, &mut qpy_data)?;
+    let custom_instructions = read_custom_instructions(py, packed_circuit, &mut qpy_data)?;
     for instruction in &packed_circuit.instructions {
         let inst = unpack_instruction(py, instruction, &custom_instructions, &mut qpy_data)?;
         qpy_data.circuit_data.push(inst)?;
@@ -919,6 +915,8 @@ pub fn unpack_circuit<'py>(
         }
     }
 
+    // since we don't have a rust QuantumCircuit, and the metadata and custom layouts are also in python
+    // this pythonic part is unavoidable
     let unpacked_layout = unpack_layout(py, &packed_circuit.layout, &circuit_data)?;
     let metadata =
         deserialize_metadata(py, &packed_circuit.header.metadata, metadata_deserializer)?;

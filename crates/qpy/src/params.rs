@@ -123,7 +123,6 @@ pub fn unpack_parameter_expression(
 ) -> PyResult<ParameterExpression> {
     let mut param_uuid_map: HashMap<[u8; 16], GenericValue> = HashMap::new();
     for item in &parameter_expression.symbol_table_data {
-        println!("Going over symbol item: {:?}", item);
         let (symbol_uuid, _, value) = match item {
             formats::ParameterExpressionSymbolPack::ParameterExpression(_) => {
                 continue;
@@ -257,14 +256,12 @@ pub fn unpack_parameter_expression(
             replay.push(OPReplay { op, lhs, rhs });
         };
     }
-    let result = ParameterExpression::from_qpy(&replay)
-        .map_err(|_| PyValueError::new_err(format!("Failure while loading parameter expression")));
-    println!("Got result {:?}", result);
-    result
+    ParameterExpression::from_qpy(&replay)
+        .map_err(|_| PyValueError::new_err("Failure while loading parameter expression"))
 }
 
 pub fn pack_symbol(symbol: Symbol) -> formats::ParameterPack {
-    let uuid = symbol.uuid.as_bytes().clone();
+    let uuid = *symbol.uuid.as_bytes();
     let name = symbol.name.clone();
     formats::ParameterPack { uuid, name }
 }
