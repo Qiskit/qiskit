@@ -109,6 +109,15 @@ pub enum BitTerm {
     /// Projector to the negative eigenstate of Pauli Z.
     One = 0b01_01,
 }
+#[derive(Debug, Error)]
+pub enum MatrixComputationError {
+    #[error("Non-Pauli term found in Pauli-like observable at qubit index {qubit}: {term:?}")]
+    NonPauliTerm { qubit: u32, term: BitTerm },
+
+    #[error("Failed to construct matrix from observable: {0}")]
+    InvalidObservable(String),
+}
+pub type MatrixResult<T> = Result<T, MatrixComputationError>;
 impl From<BitTerm> for u8 {
     fn from(value: BitTerm) -> u8 {
         value as u8
@@ -428,15 +437,24 @@ impl MatrixComputationData {
         }
     }
     /// Create optimized matrix computation data from SparseObservable
-    fn from_sparse_observable(obs: &SparseObservable) -> PyResult<Self> {
+    fn from_sparse_observable(obs: &SparseObservable) -> Result<Self, MatrixComputationError> {
+        if obs.num_terms() == 0 {
+            return Err(MatrixComputationError::InvalidObservable(
+                "Observable contains no terms".into(),
+            ));
+        }
+
         if obs.is_pure_pauli() {
-            // Direct precomputation for pure Pauli, no expansion needed
             let mut data = Self::from_pauli_like(obs)?;
             data.combine_duplicates();
             Ok(data)
         } else {
-            // Expand projectors once, then precompute from the expanded version
             let expanded = obs.as_paulis();
+            if expanded.num_terms() == 0 {
+                return Err(MatrixComputationError::InvalidObservable(
+                    "Expanded observable contains no valid Pauli terms".into(),
+                ));
+            }
             let mut data = Self::from_pauli_like(&expanded)?;
             data.combine_duplicates();
             Ok(data)
@@ -444,7 +462,7 @@ impl MatrixComputationData {
     }
 
     /// Precompute X/Z masks from a type that implements PauliLike
-    fn from_pauli_like<T: PauliLike>(obs: &T) -> PyResult<Self> {
+    fn from_pauli_like<T: PauliLike>(obs: &T) -> Result<Self, MatrixComputationError> {
         let num_terms = obs.num_terms();
         let mut x_like = Vec::with_capacity(num_terms);
         let mut z_like = Vec::with_capacity(num_terms);
@@ -469,10 +487,10 @@ impl MatrixComputationData {
                     }
                     BitTerm::Z => z_bits |= mask,
                     _ => {
-                        return Err(PyValueError::new_err(format!(
-                            "Non-Pauli term found in Pauli-like observable at qubit index {}: {:?}",
-                            qubit, bit_term
-                        )));
+                        return Err(MatrixComputationError::NonPauliTerm {
+                            qubit,
+                            term: *bit_term,
+                        });
                     }
                 }
             }
@@ -1222,10 +1240,7 @@ impl SparseObservable {
     /// # Returns
     /// Returns either (Vec<Complex64>, Vec<i32>, Vec<i32>) or (Vec<Complex64>, Vec<i64>, Vec<i64>)
     /// depending on matrix size requirements.
-    pub fn to_matrix_sparse_32(
-        &self,
-        force_serial: bool,
-    ) -> PyResult<(Vec<Complex64>, Vec<i32>, Vec<i32>)> {
+    pub fn to_matrix_sparse_32(&self, force_serial: bool) -> MatrixResult<CSRData<i32>> {
         // Single precomputation step handles both expansion and optimization
         let computation_data = MatrixComputationData::from_sparse_observable(self)?;
         let parallel = qiskit_circuit::getenv_use_multiple_threads() && !force_serial;
@@ -1238,7 +1253,10 @@ impl SparseObservable {
     }
 
     /// Convert to dense matrix format, handling the extended alphabet.
-    pub fn to_matrix_dense(&self, force_serial: bool) -> Result<Vec<Complex64>, pyo3::PyErr> {
+    pub fn to_matrix_dense(
+        &self,
+        force_serial: bool,
+    ) -> Result<Vec<Complex64>, MatrixComputationError> {
         let computation_data = MatrixComputationData::from_sparse_observable(self)?;
         let side = 1usize << computation_data.num_qubits();
         let parallel = !force_serial && qiskit_circuit::getenv_use_multiple_threads();
@@ -3403,7 +3421,8 @@ impl PySparseObservable {
         }
 
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        let computation_data = MatrixComputationData::from_sparse_observable(&inner)?;
+        let computation_data = MatrixComputationData::from_sparse_observable(&inner)
+            .map_err(|e| PyValueError::new_err(e.to_string()))?;
 
         let num_qubits = computation_data.num_qubits() as u64;
         let max_entries_per_row = (computation_data.num_ops() as u64).min(1u64 << num_qubits);
@@ -3442,7 +3461,9 @@ impl PySparseObservable {
     ) -> PyResult<Bound<'py, PyArray2<Complex64>>> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         let side = 1usize << inner.num_qubits();
-        let matrix_data = inner.to_matrix_dense(force_serial)?;
+        let matrix_data = inner
+            .to_matrix_dense(force_serial)
+            .map_err(|e| PyValueError::new_err(e.to_string()))?;
 
         PyArray1::from_vec(py, matrix_data).reshape([side, side])
     }
