@@ -396,8 +396,8 @@ impl CircuitInstruction {
     ) -> PyResult<Py<PyAny>> {
         fn params_eq(
             py: Python,
-            left: &Option<Parameters<Py<PyAny>>>,
-            right: &Option<Parameters<Py<PyAny>>>,
+            left: Option<&Parameters<Py<PyAny>>>,
+            right: Option<&Parameters<Py<PyAny>>>,
         ) -> PyResult<bool> {
             if left.is_none() && right.is_none() {
                 return Ok(true);
@@ -474,7 +474,7 @@ impl CircuitInstruction {
                     && self_.clbits.bind(py).eq(other.clbits.bind(py))?
                     && self_.operation.py_eq(py, &other.operation)?
                     && (self_.operation.try_standard_gate().is_none()
-                        || params_eq(py, &self_.params, &other.params)?),
+                        || params_eq(py, self_.params.as_ref(), other.params.as_ref())?),
             ))
         }
 
