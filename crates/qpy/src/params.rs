@@ -14,7 +14,7 @@ use pyo3::types::{PyAny, PyComplex, PyDict, PyFloat, PyInt, PyIterator, PySet, P
 use pyo3::{intern, prelude::*, IntoPyObjectExt};
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::Param;
-use qiskit_circuit::parameter::parameter_expression::{OPReplay, OpCode, ParameterExpression, ParameterValueType, PyParameter};
+use qiskit_circuit::parameter::parameter_expression::{self, OPReplay, OpCode, ParameterExpression, ParameterValueType, PyParameter};
 use qiskit_circuit::parameter::symbol_expr::Symbol;
 use std::vec;
 use std::sync::Arc;
@@ -693,6 +693,12 @@ pub fn pack_py_parameter(py_object: &Bound<PyAny>) -> PyResult<formats::Paramete
 //         .call((), Some(&kwargs))?
 //         .unbind())
 // }
+pub fn pack_symbol(symbol: Symbol) -> formats::ParameterPack {
+    let uuid = symbol.uuid.as_bytes().clone();
+    let name = symbol.name.clone();
+    formats::ParameterPack {uuid, name}
+}
+
 pub fn unpack_symbol(parameter_pack: &formats::ParameterPack) -> Symbol {
     let name = parameter_pack.name.clone();
     let uuid = Uuid::from_bytes(parameter_pack.uuid);
@@ -797,14 +803,15 @@ pub fn dumps_param_expression(
     qpy_data: &QPYWriteData,
 ) -> PyResult<(u8, Bytes)> {
     println!("dumps_param_expression called with exp {:?}", exp);
-    // TODO: implement!
-    let result = Python::attach(|py| {
-        dumps_py_value(exp.clone().into_py_any(py)?, qpy_data)
-    })?;
-    println!("Got result bytes {:?}", result.1);
-    let pack = deserialize::<formats::ParameterExpressionPack>(&result.1);
-    println!("pack = {:?}", pack);
-    
+    // if the parameter expression is a single symbol, we should treat it like a parameter
+    let result = if let Ok(symbol) = exp.try_to_symbol() {
+        let packed_symbol = pack_symbol(symbol);
+        (tags::PARAMETER, serialize(&packed_symbol))
+    } else  {
+        Python::attach(|py| {
+            dumps_py_value(exp.clone().into_py_any(py)?, qpy_data)}
+        )?
+    };    
     Ok(result)
 }
 
@@ -878,9 +885,13 @@ pub fn pack_param_obj(
     param: &Param,
     qpy_data: &QPYWriteData,
 ) -> PyResult<formats::PackedParam> {
+    println!("Hello world from pack_param_obj");
     let (type_key, data) = match param {
         Param::Float(val) => (tags::FLOAT, val.to_le_bytes().into()), // using le instead of be for this QPY version
-        Param::ParameterExpression(exp) => dumps_param_expression(exp, qpy_data)?,
+        Param::ParameterExpression(exp) => {
+            println!("got exp = {:?}", exp);
+            dumps_param_expression(exp, qpy_data)?
+        }
         Param::Obj(py_object) => dumps_instruction_param_value(py_object.bind(py), qpy_data)?,
     };
     Ok(formats::PackedParam { type_key, data })
@@ -901,7 +912,14 @@ pub fn unpack_param(
 ) -> PyResult<Param> {
     match packed_param.type_key {
         tags::FLOAT => Ok(Param::Float(packed_param.data.try_to_le_f64()?)),
-        tags::PARAMETER_EXPRESSION | tags::PARAMETER | tags::PARAMETER_VECTOR => {
+        tags::PARAMETER => {
+            let (packed_symbol, _) = deserialize::<formats::ParameterPack>(&packed_param.data)?;
+            let parameter_expression = ParameterExpression::from_symbol(unpack_symbol(&packed_symbol));
+            Ok(Param::ParameterExpression(
+                Arc::new(parameter_expression),
+            ))
+        }
+        tags::PARAMETER_EXPRESSION | tags::PARAMETER_VECTOR => {
             let dumped_value = DumpedPyValue {
                 data_type: packed_param.type_key,
                 data: packed_param.data.clone(),
