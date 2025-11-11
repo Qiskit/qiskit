@@ -11,9 +11,9 @@
 // that they have been altered from the originals.
 
 use crate::bytes::Bytes;
-use crate::value::{DumpedPyValue, ExpressionType, QPYReadData, QPYWriteData};
 use crate::expr::{read_expression, write_expression};
-use binrw::{binread, binrw, binwrite, BinRead, BinResult, BinWrite, Endian,};
+use crate::value::{ExpressionType, QPYReadData, QPYWriteData};
+use binrw::{BinRead, BinResult, BinWrite, Endian, binread, binrw, binwrite};
 use num_bigint::BigUint;
 use qiskit_circuit::classical::expr::Expr;
 use std::io::{Read, Seek, Write};
@@ -40,9 +40,8 @@ pub struct QPYFormatV15 {
 pub struct CircuitHeaderV12Pack {
     #[bw(calc = circuit_name.as_bytes().len() as u16)]
     pub name_size: u16,
-    #[bw(calc = global_phase_data.data_type)]
     pub global_phase_type: u8,
-    #[bw(calc = global_phase_data.data.len() as u16)]
+    #[bw(calc = global_phase_data.len() as u16)]
     pub global_phase_size: u16,
     pub num_qubits: u32,
     pub num_clbits: u32,
@@ -55,9 +54,8 @@ pub struct CircuitHeaderV12Pack {
     #[br(parse_with = read_string, args(name_size as usize))]
     #[bw(write_with = write_string)]
     pub circuit_name: String,
-    #[br(parse_with = DumpedPyValue::read, args(global_phase_size as usize, global_phase_type))]
-    #[bw(write_with = DumpedPyValue::write)]
-    pub global_phase_data: DumpedPyValue,
+    #[br(count = global_phase_size)]
+    pub global_phase_data: Bytes,
     #[br(count = metadata_size)]
     pub metadata: Bytes,
     #[br(count = num_registers)]
@@ -541,7 +539,7 @@ pub struct ExpressionPack<'a> {
     #[bw(ignore)]
     pub _phantom: PhantomData<&'a Option<Expr>>,
 }
-    
+
 #[derive(BinWrite, BinRead, Debug)]
 #[brw(big)]
 pub enum ExpressionTypePack {
@@ -616,14 +614,14 @@ pub enum ExpressionDurationPack {
     DT(u64),
     #[brw(magic = b'p')] // PS
     PS(f64),
-    #[brw(magic = b'n')]  // NS
+    #[brw(magic = b'n')] // NS
     NS(f64),
     #[brw(magic = b'u')] // US
     US(f64),
     #[brw(magic = b'm')] // MS
     MS(f64),
     #[brw(magic = b's')] // S
-    S(f64)
+    S(f64),
 }
 
 // A struct for storing arbitrary-length integers, as they are saved in QPY
@@ -645,8 +643,6 @@ pub fn pack_biguint(bigint: BigUint) -> BigIntPack {
 pub fn unpack_biguint(big_int_pack: BigIntPack) -> BigUint {
     BigUint::from_bytes_be(&big_int_pack.bytes)
 }
-
-
 
 // general data types
 

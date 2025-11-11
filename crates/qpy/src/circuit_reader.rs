@@ -21,12 +21,12 @@
 
 use hashbrown::HashMap;
 use numpy::IntoPyArray;
+use pyo3::IntoPyObjectExt;
 use pyo3::exceptions::PyValueError;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::IntoPyDict;
 use pyo3::types::{PyAny, PyBytes, PyDict, PyList, PyString, PyTuple, PyType};
-use pyo3::IntoPyObjectExt;
 
 use qiskit_circuit::bit::{
     ClassicalRegister, QuantumRegister, Register, ShareableClbit, ShareableQubit,
@@ -46,12 +46,11 @@ use crate::bytes::Bytes;
 use crate::consts::standard_gate_from_gate_class_name;
 use crate::formats;
 use crate::formats::QPYFormatV15;
-use crate::params::unpack_param;
-use crate::py_methods::get_python_gate_class;
+use crate::params::{unpack_param, unpack_param_from_data};
+use crate::py_methods::{get_python_gate_class, py_load_register, py_unpack_generic_data};
 use crate::value::{
-    bit_types, circuit_instruction_types, deserialize, deserialize_with_args,
-    expression_var_declaration, register_types, tags, unpack_generic_data, DumpedPyValue,
-    ExpressionType, QPYReadData,
+    DumpedPyValue, ExpressionType, QPYReadData, bit_types, circuit_instruction_types, deserialize,
+    deserialize_with_args, expression_var_declaration, register_types, tags,
 };
 
 // This is a helper struct, designed to pass data within methods
@@ -63,46 +62,6 @@ struct CustomCircuitInstructionData {
     num_clbits: u32,
     definition_circuit: Option<Py<PyAny>>,
     base_gate_raw: Bytes,
-}
-
-pub fn load_register(
-    py: Python,
-    data_bytes: Bytes,
-    circuit_data: &CircuitData,
-) -> PyResult<Py<PyAny>> {
-    // If register name prefixed with null character it's a clbit index for single bit condition.
-    if data_bytes.is_empty() {
-        return Err(PyValueError::new_err(
-            "Failed to load register - name missing",
-        ));
-    }
-    if data_bytes[0] == 0u8 {
-        let index: Clbit = Clbit(std::str::from_utf8(&data_bytes[1..])?.parse()?);
-        match circuit_data.clbits().get(index) {
-            Some(shareable_clbit) => {
-                Ok(shareable_clbit.into_pyobject(py)?.as_any().clone().unbind())
-            }
-            None => Err(PyValueError::new_err(format!(
-                "Could not find clbit {:?}",
-                index
-            ))),
-        }
-    } else {
-        let name = std::str::from_utf8(&data_bytes)?;
-        let mut register = None;
-        for creg in circuit_data.cregs() {
-            if creg.name() == name {
-                register = Some(creg);
-            }
-        }
-        match register {
-            Some(register) => Ok(register.into_py_any(py)?),
-            None => Err(PyValueError::new_err(format!(
-                "Could not find classical register {:?}",
-                name
-            ))),
-        }
-    }
 }
 
 fn deserialize_standard_instruction(
@@ -251,7 +210,7 @@ fn unpack_custom_instruction(
             return Err(PyValueError::new_err(format!(
                 "Custom gate type {:?} not handled",
                 custom_instruction.gate_type
-            )))
+            )));
         }
     };
     Ok(inst_obj.extract::<OperationFromPython>(py)?.operation)
@@ -264,10 +223,10 @@ fn unpack_condition(
 ) -> PyResult<Option<Py<PyAny>>> {
     match &condition.data {
         formats::ConditionData::Expression(exp_data_pack) => {
-            Ok(Some(unpack_generic_data(py, exp_data_pack, qpy_data)?))
+            Ok(Some(py_unpack_generic_data(py, exp_data_pack, qpy_data)?))
         }
         formats::ConditionData::Register(register_data) => {
-            let register = load_register(py, register_data.clone(), qpy_data.circuit_data)?;
+            let register = py_load_register(py, register_data.clone(), qpy_data.circuit_data)?;
             let condition_value = condition.value.into_py_any(py)?;
             let tuple = PyTuple::new(py, &[register, condition_value])?;
             Ok(Some(tuple.into_any().unbind()))
@@ -296,10 +255,11 @@ fn unpack_instruction(
     }
     let qubits = qpy_data.circuit_data.add_qargs(&qubit_indices);
     let clbits = qpy_data.circuit_data.add_cargs(&clbit_indices);
+    // for some reason, the QPY convention for storing ints/floats params is in little endian and not big endian as usual
     let mut inst_params: Vec<Param> = instruction
         .params
         .iter()
-        .map(|packed_param| unpack_param(py, packed_param, qpy_data))
+        .map(|packed_param| unpack_param(packed_param, qpy_data, binrw::Endian::Little))
         .collect::<PyResult<_>>()?;
     let mut py_params: Vec<Bound<'_, PyAny>> = inst_params
         .iter()
@@ -624,10 +584,8 @@ fn deserialize_pauli_evolution_gate(
     let synthesis_class_settings = synth_data.get_item("settings")?.ok_or_else(|| {
         PyValueError::new_err("Could not find synthesis class settings for Pauli Evolution Gate")
     })?;
-    let synthesis_class =
-        evo_synth_library.getattr(synthesis_class_name.cast::<PyString>()?)?;
-    let synthesis =
-        synthesis_class.call((), Some(synthesis_class_settings.cast::<PyDict>()?))?;
+    let synthesis_class = evo_synth_library.getattr(synthesis_class_name.cast::<PyString>()?)?;
+    let synthesis = synthesis_class.call((), Some(synthesis_class_settings.cast::<PyDict>()?))?;
     let kwargs = PyDict::new(py);
     kwargs.set_item(intern!(py, "time"), time)?;
     kwargs.set_item(intern!(py, "synthesis"), synthesis)?;
@@ -694,35 +652,42 @@ fn add_standalone_vars(
         let name = packed_var.name.clone();
         match packed_var.usage {
             expression_var_declaration::LOCAL => {
-                let var = qpy_data
-                    .circuit_data
-                    .add_var(classical::expr::Var::Standalone { uuid, name, ty }, CircuitVarType::Declare)?;
+                let var = qpy_data.circuit_data.add_var(
+                    classical::expr::Var::Standalone { uuid, name, ty },
+                    CircuitVarType::Declare,
+                )?;
                 qpy_data.standalone_vars.insert(index, var);
                 index += 1;
             }
             expression_var_declaration::INPUT => {
-                let var = qpy_data.circuit_data.add_var(classical::expr::Var::Standalone { uuid, name, ty }, CircuitVarType::Input)?;
+                let var = qpy_data.circuit_data.add_var(
+                    classical::expr::Var::Standalone { uuid, name, ty },
+                    CircuitVarType::Input,
+                )?;
                 qpy_data.standalone_vars.insert(index, var);
                 index += 1;
             }
             expression_var_declaration::CAPTURE => {
-                let var = qpy_data
-                    .circuit_data
-                    .add_var(classical::expr::Var::Standalone { uuid, name, ty }, CircuitVarType::Capture)?;
+                let var = qpy_data.circuit_data.add_var(
+                    classical::expr::Var::Standalone { uuid, name, ty },
+                    CircuitVarType::Capture,
+                )?;
                 qpy_data.standalone_vars.insert(index, var);
                 index += 1;
             }
             expression_var_declaration::STRETCH_LOCAL => {
-                let stretch = qpy_data
-                    .circuit_data
-                    .add_stretch(classical::expr::Stretch { uuid, name }, CircuitStretchType::Declare)?;
+                let stretch = qpy_data.circuit_data.add_stretch(
+                    classical::expr::Stretch { uuid, name },
+                    CircuitStretchType::Declare,
+                )?;
                 qpy_data.standalone_stretches.insert(index, stretch);
                 index += 1;
             }
             expression_var_declaration::STRETCH_CAPTURE => {
-                let stretch = qpy_data
-                    .circuit_data
-                    .add_stretch(classical::expr::Stretch { uuid, name }, CircuitStretchType::Capture)?;
+                let stretch = qpy_data.circuit_data.add_stretch(
+                    classical::expr::Stretch { uuid, name },
+                    CircuitStretchType::Capture,
+                )?;
                 qpy_data.standalone_stretches.insert(index, stretch);
                 index += 1;
             }
@@ -791,7 +756,7 @@ fn add_registers_and_bits(
                     return Err(PyValueError::new_err(format!(
                         "Unrecognized register type for {:?}",
                         packed_register.name
-                    )))
+                    )));
                 }
             }
         }
@@ -849,7 +814,7 @@ fn add_registers_and_bits(
                 return Err(PyValueError::new_err(format!(
                     "Unrecognized register type for {:?}",
                     packed_register.name
-                )))
+                )));
             }
         }
     }
@@ -907,10 +872,12 @@ pub fn unpack_circuit<'py>(
     qpy_data
         .annotation_handler
         .load_deserializers(annotation_deserializers_data)?;
-    let global_phase = packed_circuit
-        .header
-        .global_phase_data
-        .to_param(py, &mut qpy_data)?;
+    let global_phase = unpack_param_from_data(
+        packed_circuit.header.global_phase_data.clone(),
+        packed_circuit.header.global_phase_type,
+        &mut qpy_data,
+        binrw::Endian::Big,
+    )?;
     qpy_data.circuit_data.set_global_phase(global_phase)?;
 
     add_standalone_vars(&packed_circuit, &mut qpy_data)?;
@@ -982,7 +949,6 @@ pub fn py_read_circuit<'py>(
     let bytes = file_obj.call_method0("read")?;
     let serialized_circuit: &[u8] = bytes.cast::<PyBytes>()?.as_bytes();
     let (packed_circuit, bytes_read) = deserialize::<formats::QPYFormatV15>(serialized_circuit)?;
-    println!("packed ciruit: {:?}", packed_circuit);
     let unpacked_ciruit = unpack_circuit(
         py,
         &packed_circuit,

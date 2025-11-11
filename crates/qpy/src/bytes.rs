@@ -16,10 +16,10 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyBytes};
 
+use num_complex::Complex64;
 use std::fmt::{Debug, Write as WriteFmt};
 use std::io::{Cursor, Read, Seek, Write};
 use std::ops::{Deref, DerefMut};
-use num_complex::Complex64;
 
 // Bytes are the format used to store serialized data which is not automatically handled by binrw
 // It's a wrapper around Vec<u8> with extended serialization/deserialization capabilities
@@ -36,13 +36,16 @@ impl Bytes {
                 acc
             })
     }
-    pub fn try_to_le_f64(&self) -> PyResult<f64> {
+    pub fn try_to_f64(&self, endian: Endian) -> PyResult<f64> {
         let byte_array: [u8; 8] = self
             .0
             .as_slice()
             .try_into()
             .map_err(|_| PyValueError::new_err("Expected exactly 8 bytes"))?;
-        Ok(f64::from_le_bytes(byte_array))
+        match endian {
+            Endian::Big => Ok(f64::from_be_bytes(byte_array)),
+            Endian::Little => Ok(f64::from_le_bytes(byte_array)),
+        }
     }
     pub fn new() -> Self {
         Bytes(Vec::new())
@@ -63,14 +66,21 @@ impl TryFrom<&Bytes> for f64 {
         let data = &bytes.0;
         match data.len() {
             8 => {
-                let byte_array: [u8; 8] = data.as_slice().try_into().map_err(|_| PyValueError::new_err("Expected exactly 8 bytes"))?;
+                let byte_array: [u8; 8] = data
+                    .as_slice()
+                    .try_into()
+                    .map_err(|_| PyValueError::new_err("Expected exactly 8 bytes"))?;
                 Ok(f64::from_be_bytes(byte_array))
             }
             16 if data[..8].iter().all(|&byte| byte == 0) => {
-                let byte_array: [u8; 8] = data[8..].try_into().map_err(|_| PyValueError::new_err("Expected exactly 16 bytes with the first 8 being 0"))?;
+                let byte_array: [u8; 8] = data[8..].try_into().map_err(|_| {
+                    PyValueError::new_err("Expected exactly 16 bytes with the first 8 being 0")
+                })?;
                 Ok(f64::from_be_bytes(byte_array))
             }
-            _ => Err(PyValueError::new_err("Decoding Bytes to f64: Expected exactly 8 bytes or 16 bytes with the first 8 being 0"))
+            _ => Err(PyValueError::new_err(
+                "Decoding Bytes to f64: Expected exactly 8 bytes or 16 bytes with the first 8 being 0",
+            )),
         }
     }
 }
@@ -98,14 +108,21 @@ impl TryFrom<&Bytes> for i64 {
         let data = &bytes.0;
         match data.len() {
             8 => {
-                let byte_array: [u8; 8] = data.as_slice().try_into().map_err(|_| PyValueError::new_err("Expected exactly 8 bytes"))?;
+                let byte_array: [u8; 8] = data
+                    .as_slice()
+                    .try_into()
+                    .map_err(|_| PyValueError::new_err("Expected exactly 8 bytes"))?;
                 Ok(i64::from_be_bytes(byte_array))
             }
             16 if data[..8].iter().all(|&byte| byte == 0) => {
-                let byte_array: [u8; 8] = data[8..].try_into().map_err(|_| PyValueError::new_err("Expected exactly 16 bytes with the first 8 being 0"))?;
+                let byte_array: [u8; 8] = data[8..].try_into().map_err(|_| {
+                    PyValueError::new_err("Expected exactly 16 bytes with the first 8 being 0")
+                })?;
                 Ok(i64::from_be_bytes(byte_array))
             }
-            _ => Err(PyValueError::new_err("Decoding Bytes to i64: Expected exactly 8 bytes or 16 bytes with the first 8 being 0"))
+            _ => Err(PyValueError::new_err(
+                "Decoding Bytes to i64: Expected exactly 8 bytes or 16 bytes with the first 8 being 0",
+            )),
         }
     }
 }

@@ -252,7 +252,6 @@ impl ParameterExpression {
 
     /// Load from a sequence of [OPReplay]s. Used in serialization.
     pub fn from_qpy(replay: &[OPReplay]) -> Result<Self, ParameterError> {
-        println!("Hello world from from_qpy");
         // the stack contains the latest lhs and rhs values
         let mut stack: Vec<ParameterExpression> = Vec::new();
 
@@ -570,7 +569,6 @@ impl ParameterExpression {
             expr: res,
             name_map,
         })
-
     }
 
     /// Bind symbols to values.

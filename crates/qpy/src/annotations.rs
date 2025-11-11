@@ -118,7 +118,10 @@ impl<'a> AnnotationHandler<'a> {
             deserializer.call_method1(py, "load_annotation", (payload,))
         } else {
             Err(PyIndexError::new_err(format!(
-                "Annotation deserializer index {:?} out of range (0...{:?}), is too large and would overflow", index, self.deserializers.len())))
+                "Annotation deserializer index {:?} out of range (0...{:?}), is too large and would overflow",
+                index,
+                self.deserializers.len()
+            )))
         }
     }
 

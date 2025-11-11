@@ -11,13 +11,19 @@
 // that they have been altered from the originals.
 
 // Methods for QPY serialization working directly with Python-based data
+use binrw::Endian;
 use hashbrown::HashMap;
 use numpy::ToPyArray;
-use pyo3::exceptions::{PyIOError, PyValueError};
+use pyo3::IntoPyObjectExt;
+use pyo3::exceptions::{PyAttributeError, PyIOError, PyTypeError, PyValueError};
 use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::types::{PyAny, PyDict, PyIterator, PyList, PyTuple};
+use pyo3::types::{
+    PyAny, PyComplex, PyDict, PyFloat, PyInt, PyIterator, PyList, PySet, PyString, PyTuple,
+};
+use std::io::Cursor;
 
+use qiskit_circuit::Clbit;
 use qiskit_circuit::bit::{PyClassicalRegister, PyClbit, ShareableClbit};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::CircuitInstruction;
@@ -25,20 +31,23 @@ use qiskit_circuit::classical;
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::{ArrayType, Operation, OperationRef, StandardInstruction};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
+use qiskit_circuit::parameter::parameter_expression::{OPReplay, OpCode};
 
 use uuid::Uuid;
 
 use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
 use crate::formats;
-use crate::params::{pack_param, pack_param_obj};
+use crate::params::{pack_param_obj, pack_parameter_expression_by_op, parameter_tags};
 use crate::value::{
-    circuit_instruction_types, dumps_py_value, get_circuit_type_key,
-    pack_generic_data, serialize, DumpedPyValue, QPYWriteData,
+    DumpedPyValue, QPY_VERSION, QPYReadData, QPYWriteData, circuit_instruction_types, deserialize,
+    get_circuit_type_key, modifier_types, serialize, serialize_expression, tags,
 };
+use binrw::BinWrite;
 
 use crate::circuit_writer::{
-    pack_circuit, pack_custom_instructions, pack_instruction, pack_instructions, pack_standalone_vars
+    pack_circuit, pack_custom_instructions, pack_instruction, pack_instructions,
+    pack_standalone_vars,
 };
 
 const UNITARY_GATE_CLASS_NAME: &str = "UnitaryGate";
@@ -121,6 +130,14 @@ pub fn get_python_gate_class<'a>(
     }
 }
 
+pub fn py_pack_generic_data(
+    py_data: &Bound<PyAny>,
+    qpy_data: &QPYWriteData,
+) -> PyResult<formats::GenericDataPack> {
+    let (type_key, data) = py_dumps_value(py_data.clone().unbind(), qpy_data)?;
+    Ok(formats::GenericDataPack { type_key, data })
+}
+
 // serializes python metadata to JSON using a python JSON serializer
 pub fn serialize_metadata(
     metadata_opt: &Option<Bound<PyAny>>,
@@ -146,16 +163,32 @@ pub fn serialize_metadata(
 pub fn getattr_or_none<'py>(
     py_object: &'py Bound<'py, PyAny>,
     name: &str,
-) -> PyResult<Option<Bound<'py, PyAny>>> {
-    if py_object.hasattr(name)? {
-        let attr = py_object.getattr(name)?;
-        if attr.is_none() {
-            Ok(None)
-        } else {
-            Ok(Some(attr))
+) -> Option<Bound<'py, PyAny>> {
+    match py_object.getattr(name) {
+        Ok(val) => {
+            if val.is_none() {
+                None
+            } else {
+                Some(val)
+            }
         }
-    } else {
-        Ok(None)
+        Err(_) => None,
+    }
+}
+
+fn getattr_or_py_none<'py>(
+    py_object: &'py Bound<PyAny>,
+    name: &str,
+) -> PyResult<Bound<'py, PyAny>> {
+    match py_object.getattr(name) {
+        Ok(attr) => Ok(attr),
+        Err(err) => {
+            if err.is_instance_of::<PyAttributeError>(py_object.py()) {
+                Ok(py_object.py().None().bind(py_object.py()).clone())
+            } else {
+                Err(err)
+            }
+        }
     }
 }
 
@@ -171,7 +204,7 @@ pub fn pack_py_registers(
         .enumerate()
         .try_for_each(|(index, bit)| -> PyResult<()> {
             bitmap.set_item(&bit, index)?;
-            match getattr_or_none(&bit, "_register")? {
+            match getattr_or_none(&bit, "_register") {
                 None => Ok(()),
                 Some(register) => {
                     if !(in_circ_regs.contains(&register).unwrap_or(false))
@@ -221,7 +254,7 @@ fn pack_py_register(
         {
             standalone = false;
         }
-        match getattr_or_none(&bit_val, "_index")? {
+        match getattr_or_none(&bit_val, "_index") {
             None => (),
             Some(value) => {
                 if value.extract::<usize>()? != index {
@@ -246,7 +279,7 @@ fn pack_py_register(
     Ok(packed_reg)
 }
 
-fn pack_py_circuit_header(
+fn py_pack_circuit_header(
     circuit: &Bound<PyAny>,
     metadata_serializer: &Bound<PyAny>,
     qpy_data: &QPYWriteData,
@@ -263,15 +296,11 @@ fn pack_py_circuit_header(
     )?;
     let qregs = pack_py_registers(
         &circuit.getattr(intern!(py, "qregs"))?,
-        circuit
-            .getattr(intern!(py, "qubits"))?
-            .cast::<PyList>()?,
+        circuit.getattr(intern!(py, "qubits"))?.cast::<PyList>()?,
     )?;
     let cregs = pack_py_registers(
         &circuit.getattr(intern!(py, "cregs"))?,
-        circuit
-            .getattr(intern!(py, "clbits"))?
-            .cast::<PyList>()?,
+        circuit.getattr(intern!(py, "clbits"))?.cast::<PyList>()?,
     )?;
     let mut registers = qregs;
     registers.extend(cregs);
@@ -289,7 +318,8 @@ fn pack_py_circuit_header(
             .getattr(intern!(py, "num_identifiers"))?
             .extract::<u32>()?,
         circuit_name,
-        global_phase_data,
+        global_phase_data: global_phase_data.data,
+        global_phase_type: global_phase_data.data_type,
         metadata,
         registers,
     };
@@ -467,18 +497,18 @@ fn pack_py_custom_layout(circuit: &Bound<PyAny>) -> PyResult<formats::LayoutV2Pa
     })
 }
 
-pub fn pack_py_circuit(
+pub fn py_pack_circuit(
     circuit: &Bound<PyAny>,
     metadata_serializer: &Bound<PyAny>,
     use_symengine: bool,
     version: u32,
     annotation_factories: &Bound<PyDict>,
 ) -> PyResult<formats::QPYFormatV15> {
-    let py = circuit.py();
     circuit.getattr("data")?; // in case _data is lazily generated in python
     let mut circuit_data = circuit.getattr("_data")?.extract::<CircuitData>()?;
     let mut standalone_var_indices: HashMap<u128, u16> = HashMap::new();
-    let standalone_vars = pack_standalone_vars(&circuit_data, version, &mut standalone_var_indices)?;
+    let standalone_vars =
+        pack_standalone_vars(&circuit_data, version, &mut standalone_var_indices)?;
     let annotation_handler = AnnotationHandler::new(annotation_factories);
     let mut qpy_data = QPYWriteData {
         version,
@@ -487,7 +517,7 @@ pub fn pack_py_circuit(
         standalone_var_indices: HashMap::new(),
         annotation_handler,
     };
-    let header = pack_py_circuit_header(circuit, metadata_serializer, &qpy_data)?;
+    let header = py_pack_circuit_header(circuit, metadata_serializer, &qpy_data)?;
     // Pulse has been removed in Qiskit 2.0. As long as we keep QPY at version 13,
     // we need to write an empty calibrations header since read_circuit expects it
     let calibrations = formats::CalibrationsPack { num_cals: 0 };
@@ -523,7 +553,7 @@ fn pack_sparse_pauli_op(
     qpy_data: &QPYWriteData,
 ) -> PyResult<formats::SparsePauliOpListElemPack> {
     let op_as_np_list = operator.call_method1("to_list", (true,))?;
-    let (_, data) = dumps_py_value(op_as_np_list.unbind(), qpy_data)?;
+    let (_, data) = py_dumps_value(op_as_np_list.unbind(), qpy_data)?;
     Ok(formats::SparsePauliOpListElemPack { data })
 }
 
@@ -545,7 +575,8 @@ fn pack_pauli_evolution_gate(
         .map(|operator| pack_sparse_pauli_op(&operator, qpy_data))
         .collect::<PyResult<_>>()?;
 
-    let (time_type, time_data) = dumps_py_value(evolution_gate.getattr("time")?.unbind(), qpy_data)?;
+    let (time_type, time_data) =
+        py_dumps_value(evolution_gate.getattr("time")?.unbind(), qpy_data)?;
     let synth_class = evolution_gate
         .getattr("synthesis")?
         .get_type()
@@ -619,6 +650,186 @@ pub fn gate_class_name(op: &PackedOperation) -> PyResult<String> {
     })
 }
 
+pub fn py_get_type_key(py_object: &Bound<PyAny>) -> PyResult<u8> {
+    let py = py_object.py();
+    if py_object
+        .is_instance(imports::PARAMETER_VECTOR_ELEMENT.get_bound(py))
+        .unwrap()
+    {
+        return Ok(tags::PARAMETER_VECTOR);
+    } else if py_object
+        .is_instance(imports::PARAMETER.get_bound(py))
+        .unwrap()
+    {
+        return Ok(tags::PARAMETER);
+    } else if py_object.is_instance(imports::PARAMETER_EXPRESSION.get_bound(py))? {
+        return Ok(tags::PARAMETER_EXPRESSION);
+    } else if py_object.is_instance(imports::QUANTUM_CIRCUIT.get_bound(py))? {
+        return Ok(tags::CIRCUIT);
+    } else if py_object.is_instance(imports::CLBIT.get_bound(py))?
+        || py_object.is_instance(imports::CLASSICAL_REGISTER.get_bound(py))?
+    {
+        return Ok(tags::REGISTER);
+    } else if py_object.extract::<classical::expr::Expr>().is_ok() {
+        return Ok(tags::EXPRESSION);
+    } else if py_object.is_instance(imports::BUILTIN_RANGE.get_bound(py))? {
+        return Ok(tags::RANGE);
+    } else if py_object.is_instance(imports::NUMPY_ARRAY.get_bound(py))? {
+        return Ok(tags::NUMPY_OBJ);
+    } else if py_object.is_instance(imports::MODIFIER.get_bound(py))? {
+        return Ok(tags::MODIFIER);
+    } else if py_object.is_instance_of::<PyInt>() {
+        return Ok(tags::INTEGER);
+    } else if py_object.is_instance_of::<PyFloat>() {
+        return Ok(tags::FLOAT);
+    } else if py_object.is_instance_of::<PyComplex>() {
+        return Ok(tags::COMPLEX);
+    } else if py_object.is_instance_of::<PyString>() {
+        return Ok(tags::STRING);
+    } else if py_object.is_instance_of::<PyTuple>() {
+        return Ok(tags::TUPLE);
+    } else if py_object.is(imports::CASE_DEFAULT.get_bound(py)) {
+        return Ok(tags::CASE_DEFAULT);
+    } else if py_object.is_none() {
+        return Ok(tags::NULL);
+    }
+
+    Err(PyTypeError::new_err(format!(
+        "Unidentified type_key for: {}",
+        py_object
+    )))
+}
+
+pub fn py_pack_param(
+    py_object: &Bound<PyAny>,
+    qpy_data: &QPYWriteData,
+    endian: Endian,
+) -> PyResult<formats::PackedParam> {
+    let (type_key, data) = py_dumps_instruction_param_value(py_object, qpy_data, endian)?;
+    Ok(formats::PackedParam { type_key, data })
+}
+
+pub fn py_load_instruction_param_value(
+    type_key: u8,
+    data: &Bytes,
+    qpy_data: &mut QPYReadData,
+) -> PyResult<Py<PyAny>> {
+    Python::attach(|py| -> PyResult<_> {
+        Ok(match type_key {
+            tags::INTEGER => {
+                let value = i64::from_le_bytes(data[..8].try_into()?);
+                PyInt::new(py, value).into()
+            }
+            tags::FLOAT => {
+                let value = f64::from_le_bytes(data[..8].try_into()?);
+                PyFloat::new(py, value).into()
+            }
+            tags::TUPLE => py_unpack_generic_instruction_param_sequence_to_tuple(
+                py,
+                deserialize::<formats::GenericDataSequencePack>(data)?.0,
+                qpy_data,
+            )?,
+            tags::REGISTER => py_load_register(py, data.clone(), qpy_data.circuit_data)?,
+            _ => DumpedPyValue {
+                data_type: type_key,
+                data: data.clone(),
+            }
+            .to_python(py, qpy_data)?,
+        })
+    })
+}
+
+pub fn py_unpack_generic_instruction_param_sequence_to_tuple(
+    py: Python,
+    packed_sequence: formats::GenericDataSequencePack,
+    qpy_data: &mut QPYReadData,
+) -> PyResult<Py<PyAny>> {
+    let elements: Vec<Py<PyAny>> = packed_sequence
+        .elements
+        .iter()
+        .map(|data_pack| {
+            py_load_instruction_param_value(data_pack.type_key, &data_pack.data, qpy_data)
+        })
+        .collect::<PyResult<_>>()?;
+    PyTuple::new(py, elements)?.into_py_any(py)
+}
+
+pub fn py_pack_generic_instruction_param_sequence(
+    py_sequence: &Bound<PyAny>,
+    qpy_data: &QPYWriteData,
+    endian: Endian,
+) -> PyResult<formats::GenericDataSequencePack> {
+    let elements: Vec<formats::GenericDataPack> = py_sequence
+        .try_iter()?
+        .map(|possible_data_item| {
+            let data_item = possible_data_item?;
+            pack_generic_instruction_param_data(&data_item, qpy_data, endian)
+        })
+        .collect::<PyResult<_>>()?;
+    Ok(formats::GenericDataSequencePack { elements })
+}
+
+// sadly, we currently need this code duplication to handle the special le encoding for parameters
+// TODO: verify the code duplication is still needed after all the code factorings
+pub fn pack_generic_instruction_param_data(
+    py_data: &Bound<PyAny>,
+    qpy_data: &QPYWriteData,
+    endian: Endian,
+) -> PyResult<formats::GenericDataPack> {
+    let (type_key, data) = py_dumps_instruction_param_value(py_data, qpy_data, endian)?;
+    Ok(formats::GenericDataPack { type_key, data })
+}
+
+pub fn py_dumps_instruction_param_value(
+    py_object: &Bound<PyAny>,
+    qpy_data: &QPYWriteData,
+    endian: Endian,
+) -> PyResult<(u8, Bytes)> {
+    // we need a hack here to encode floats and integers are little endian
+    // since for some reason it was done in the original python code
+    // TODO This should be fixed in next QPY version.
+    let type_key: u8 = py_get_type_key(py_object)?;
+    let value: Bytes = match type_key {
+        tags::INTEGER => {
+            let val = py_object.extract::<i64>()?;
+            match endian {
+                Endian::Little => val.to_le_bytes().into(),
+                Endian::Big => val.to_be_bytes().into(),
+            }
+        }
+
+        tags::FLOAT => {
+            let val = py_object.extract::<f64>()?;
+            match endian {
+                Endian::Little => val.to_le_bytes().into(),
+                Endian::Big => val.to_be_bytes().into(),
+            }
+        }
+        tags::TUPLE => serialize(&py_pack_generic_instruction_param_sequence(
+            py_object, qpy_data, endian,
+        )?),
+        tags::REGISTER => py_dumps_register_param(py_object)?,
+        _ => {
+            let (_, value) = py_dumps_value(py_object.clone().unbind(), qpy_data)?;
+            value
+        }
+    };
+    Ok((type_key, value))
+}
+
+pub fn py_dumps_register_param(register: &Bound<PyAny>) -> PyResult<Bytes> {
+    let py = register.py();
+    if register.is_instance(imports::CLASSICAL_REGISTER.get_bound(py))? {
+        Ok(register.getattr("name")?.extract::<String>()?.into())
+    } else {
+        let index: usize = register.getattr("_index")?.extract()?;
+        let index_string = index.to_string().as_bytes().to_vec();
+        let mut result = Bytes(vec![0x00]);
+        result.extend_from_slice(&index_string);
+        Ok(result)
+    }
+}
+
 pub fn get_instruction_params(
     instruction: &PackedInstruction,
     qpy_data: &QPYWriteData,
@@ -637,8 +848,8 @@ pub fn get_instruction_params(
                 let cases = op.call_method0("cases_specifier")?;
                 let cases_tuple = imports::BUILTIN_TUPLE.get_bound(py).call1((cases,))?;
                 return Ok(vec![
-                    pack_param(&target, qpy_data)?,
-                    pack_param(&cases_tuple, qpy_data)?,
+                    py_pack_param(&target, qpy_data, Endian::Little)?,
+                    py_pack_param(&cases_tuple, qpy_data, Endian::Little)?,
                 ]);
             }
             if inst
@@ -656,9 +867,9 @@ pub fn get_instruction_params(
                 let duration = op.getattr("duration")?;
                 let unit = op.getattr("unit")?;
                 return Ok(vec![
-                    pack_param(&first_block, qpy_data)?,
-                    pack_param(&duration, qpy_data)?,
-                    pack_param(&unit, qpy_data)?,
+                    py_pack_param(&first_block, qpy_data, Endian::Little)?,
+                    py_pack_param(&duration, qpy_data, Endian::Little)?,
+                    py_pack_param(&unit, qpy_data, Endian::Little)?,
                 ]);
             }
         }
@@ -671,7 +882,7 @@ pub fn get_instruction_params(
             {
                 let op = op.operation.bind(py);
                 let tableau = op.getattr("tableau")?;
-                return Ok(vec![pack_param(&tableau, qpy_data)?]);
+                return Ok(vec![py_pack_param(&tableau, qpy_data, Endian::Little)?]);
             }
             if op
                 .operation
@@ -682,7 +893,7 @@ pub fn get_instruction_params(
                 let modifiers = op.getattr("modifiers")?;
                 return modifiers
                     .try_iter()?
-                    .map(|modifier| pack_param(&modifier?, qpy_data))
+                    .map(|modifier| py_pack_param(&modifier?, qpy_data, Endian::Little))
                     .collect::<PyResult<_>>();
             }
         }
@@ -700,12 +911,12 @@ pub fn get_instruction_params(
                 ArrayType::OneQ(arr) => arr.to_pyarray(py),
                 ArrayType::TwoQ(arr) => arr.to_pyarray(py),
             };
-            return Ok(vec![pack_param(&out_array, qpy_data)?]);
+            return Ok(vec![py_pack_param(&out_array, qpy_data, Endian::Little)?]);
         }
         instruction
             .params_view()
             .iter()
-            .map(|x| pack_param_obj(py, x, qpy_data))
+            .map(|x| pack_param_obj(x, qpy_data, Endian::Little))
             .collect::<PyResult<_>>()
     })
 }
@@ -794,11 +1005,11 @@ pub fn pack_custom_instruction(
                 // all-around catch for "operation" field; should be easier once we switch from python to rust
                 OperationRef::Gate(pygate) => {
                     let gate = pygate.gate.bind(py);
-                    match getattr_or_none(gate, "definition")? {
+                    match getattr_or_none(gate, "definition") {
                         None => (),
                         Some(definition) => {
                             has_definition = true;
-                            data = serialize(&pack_py_circuit(
+                            data = serialize(&py_pack_circuit(
                                 &definition,
                                 py.None().bind(py),
                                 false,
@@ -810,11 +1021,11 @@ pub fn pack_custom_instruction(
                 }
                 OperationRef::Instruction(pyinst) => {
                     let inst = pyinst.instruction.bind(py);
-                    match getattr_or_none(inst, "definition")? {
+                    match getattr_or_none(inst, "definition") {
                         None => (),
                         Some(definition) => {
                             has_definition = true;
-                            data = serialize(&pack_py_circuit(
+                            data = serialize(&py_pack_circuit(
                                 &definition,
                                 py.None().bind(py),
                                 false,
@@ -826,11 +1037,11 @@ pub fn pack_custom_instruction(
                 }
                 OperationRef::Operation(pyoperation) => {
                     let operation = pyoperation.operation.bind(py);
-                    match getattr_or_none(operation, "definition")? {
+                    match getattr_or_none(operation, "definition") {
                         None => (),
                         Some(definition) => {
                             has_definition = true;
-                            data = serialize(&pack_py_circuit(
+                            data = serialize(&py_pack_circuit(
                                 &definition,
                                 py.None().bind(py),
                                 false,
@@ -897,7 +1108,7 @@ pub fn get_condition_data_from_inst(
     circuit_data: &CircuitData,
     qpy_data: &QPYWriteData,
 ) -> PyResult<formats::ConditionPack> {
-    Python::attach(|py| match getattr_or_none(inst.bind(py), "_condition")? {
+    Python::attach(|py| match getattr_or_none(inst.bind(py), "_condition") {
         None => Ok(formats::ConditionPack {
             key: formats::condition_types::NONE,
             register_size: 0u16,
@@ -906,7 +1117,7 @@ pub fn get_condition_data_from_inst(
         }),
         Some(condition) => {
             if condition.extract::<classical::expr::Expr>().is_ok() {
-                let expression = pack_generic_data(&condition, qpy_data)?;
+                let expression = py_pack_generic_data(&condition, qpy_data)?;
                 Ok(formats::ConditionPack {
                     key: formats::condition_types::EXPRESSION,
                     register_size: 0u16,
@@ -915,10 +1126,7 @@ pub fn get_condition_data_from_inst(
                 })
             } else if condition.is_instance_of::<PyTuple>() {
                 let key = formats::condition_types::TWO_TUPLE;
-                let value = condition
-                    .cast::<PyTuple>()?
-                    .get_item(1)?
-                    .extract::<i64>()?;
+                let value = condition.cast::<PyTuple>()?.get_item(1)?.extract::<i64>()?;
                 let register =
                     dumps_register(condition.cast::<PyTuple>()?.get_item(0)?, circuit_data)?;
                 Ok(formats::ConditionPack {
@@ -936,178 +1144,532 @@ pub fn get_condition_data_from_inst(
     })
 }
 
-// pub fn unpack_py_parameter_expression(
-//     py: Python,
-//     parameter_expression: formats::ParameterExpressionPack,
-//     qpy_data: &mut QPYReadData,
-// ) -> PyResult<Py<PyAny>> {
-//     let mut param_uuid_map: HashMap<[u8; 16], Py<PyAny>> = HashMap::new();
-//     let mut name_map: HashMap<String, Py<PyAny>> = HashMap::new();
+fn py_pack_parameter_expression_element(
+    replay_py_obj: &Bound<PyAny>,
+    extra_symbols: &mut Bound<PyDict>,
+    qpy_data: &QPYWriteData,
+) -> PyResult<Vec<formats::ParameterExpressionElementPack>> {
+    let py = replay_py_obj.py();
+    let mut result = Vec::new();
+    let replay_obj = replay_py_obj.extract::<OPReplay>()?;
+    if replay_obj.op == OpCode::SUBSTITUTE {
+        return Ok(vec![py_pack_replay_subs(
+            replay_py_obj,
+            extra_symbols,
+            qpy_data,
+        )?]);
+    }
 
-//     let mut stack: Vec<Py<PyAny>> = Vec::new();
-//     for item in &parameter_expression.symbol_table_data {
-//         let (symbol_uuid, symbol, value) = match item {
-//             formats::ParameterExpressionSymbolPack::ParameterExpression(_) => {
-//                 continue;
-//             }
-//             formats::ParameterExpressionSymbolPack::Parameter(symbol_pack) => {
-//                 let symbol = unpack_parameter(py, &symbol_pack.symbol_data)?;
-//                 let value = if symbol_pack.value_key != parameter_tags::PARAMETER {
-//                     let dumped_value = DumpedPyValue {
-//                         data_type: symbol_pack.value_key,
-//                         data: symbol_pack.value_data.clone(),
-//                     };
-//                     dumped_value.to_python(py, qpy_data)?
-//                 } else {
-//                     symbol.clone()
-//                 };
-//                 (symbol_pack.symbol_data.uuid, symbol, value)
-//             }
-//             formats::ParameterExpressionSymbolPack::ParameterVector(symbol_pack) => {
-//                 let symbol = unpack_parameter_vector(py, &symbol_pack.symbol_data, qpy_data)?;
-//                 let value = if symbol_pack.value_key != parameter_tags::PARAMETER_VECTOR {
-//                     let dumped_value = DumpedPyValue {
-//                         data_type: symbol_pack.value_key,
-//                         data: symbol_pack.value_data.clone(),
-//                     };
-//                     dumped_value.to_python(py, qpy_data)?
-//                 } else {
-//                     symbol.clone()
-//                 };
-//                 (symbol_pack.symbol_data.uuid, symbol, value)
-//             }
-//         };
-//         param_uuid_map.insert(symbol_uuid, value.clone());
-//         // name_map should only be used for version < 15
-//         name_map.insert(
-//             value
-//                 .bind(py)
-//                 .call_method0("__str__")?
-//                 .extract::<String>()?,
-//             symbol,
-//         );
-//     }
-//     let parameter_expression_data = deserialize_vec::<formats::ParameterExpressionElementPack>(
-//         &parameter_expression.expression_data,
-//     )?;
-//     for element in parameter_expression_data {
-//         let opcode = if let formats::ParameterExpressionElementPack::Substitute(subs) = element {
-//             // we construct a pydictionary describing the substitution and letting the python Parameter class handle it
-//             let subs_mapping = PyDict::new(py);
-//             let mapping_pack = deserialize::<formats::MappingPack>(&subs.mapping_data)?.0;
-//             for item in mapping_pack.items {
-//                 let key_uuid: [u8; 16] = (&item.key_bytes).try_into()?;
-//                 let value = DumpedPyValue {
-//                     data_type: item.item_type,
-//                     data: item.item_bytes.clone(),
-//                 };
-//                 let key = param_uuid_map.get(&key_uuid).ok_or_else(|| {
-//                     PyValueError::new_err(format!("Parameter UUID not found: {:?}", &key_uuid))
-//                 })?;
-//                 subs_mapping.set_item(key, value.to_python(py, qpy_data)?)?;
-//             }
-//             stack.push(subs_mapping.unbind().as_any().clone());
-//             15 // return substitution opcode
-//         } else {
-//             let (opcode, op) = unpack_parameter_expression_standard_op(element)?;
-//             // LHS
-//             match op.lhs_type {
-//                 parameter_tags::PARAMETER | parameter_tags::PARAMETER_VECTOR => {
-//                     if let Some(value) = param_uuid_map.get(&op.lhs) {
-//                         stack.push(value.clone());
-//                     } else {
-//                         return Err(PyValueError::new_err(format!(
-//                             "Parameter UUID not found: {:?}",
-//                             op.lhs
-//                         )));
-//                     }
-//                 }
-//                 parameter_tags::FLOAT | parameter_tags::INTEGER | parameter_tags::COMPLEX => {
-//                     if let Some(value) = unpack_parameter_replay_entry(py, op.lhs_type, op.lhs)? {
-//                         stack.push(value);
-//                     }
-//                 }
-//                 parameter_tags::NULL => (), // pass
-//                 parameter_tags::LHS_EXPRESSION | parameter_tags::RHS_EXPRESSION => continue,
-//                 _ => {
-//                     return Err(PyValueError::new_err(format!(
-//                         "Unknown ParameterExpression operation type: {}",
-//                         op.lhs_type
-//                     )))
-//                 }
-//             }
-//             // RHS
-//             match op.rhs_type {
-//                 parameter_tags::PARAMETER | parameter_tags::PARAMETER_VECTOR => {
-//                     if let Some(value) = param_uuid_map.get(&op.rhs) {
-//                         stack.push(value.clone());
-//                     } else {
-//                         return Err(PyValueError::new_err(format!(
-//                             "Parameter UUID not found: {:?}",
-//                             op.rhs
-//                         )));
-//                     }
-//                 }
-//                 parameter_tags::FLOAT | parameter_tags::INTEGER | parameter_tags::COMPLEX => {
-//                     if let Some(value) = unpack_parameter_replay_entry(py, op.rhs_type, op.rhs)? {
-//                         stack.push(value);
-//                     }
-//                 }
-//                 parameter_tags::NULL => (), // pass
-//                 parameter_tags::LHS_EXPRESSION | parameter_tags::RHS_EXPRESSION => continue,
-//                 _ => {
-//                     return Err(PyTypeError::new_err(format!(
-//                         "Unknown ParameterExpression operation type: {}",
-//                         op.rhs_type
-//                     )))
-//                 }
-//             }
-//             if opcode == 255 {
-//                 continue;
-//             }
-//             opcode
-//         };
-//         let method_str = op_code_to_method(opcode)?;
+    let lhs_object = getattr_or_py_none(replay_py_obj, "lhs")?;
+    let rhs_object = getattr_or_py_none(replay_py_obj, "rhs")?;
+    let (lhs_type, lhs, extra_lhs_data) =
+        py_pack_parameter_replay_entry(py, &lhs_object, false, qpy_data)?;
+    let (rhs_type, rhs, extra_rhs_data) =
+        py_pack_parameter_replay_entry(py, &rhs_object, true, qpy_data)?;
+    let op_code = replay_obj.op as u8;
+    let entry = formats::ParameterExpressionStandardOpPack {
+        lhs_type,
+        lhs,
+        rhs_type,
+        rhs,
+    };
+    let packed_parameter = vec![pack_parameter_expression_by_op(op_code, entry)?];
+    result.extend(extra_lhs_data);
+    result.extend(extra_rhs_data);
+    result.extend(packed_parameter);
+    Ok(result)
+}
 
-//         if [0, 1, 2, 3, 4, 13, 15, 18, 19, 20].contains(&opcode) {
-//             let rhs = stack.pop().ok_or(PyTypeError::new_err(
-//                 "Stack underflow while parsing parameter expression",
-//             ))?;
-//             let lhs = stack.pop().ok_or(PyTypeError::new_err(
-//                 "Stack underflow while parsing parameter expression",
-//             ))?;
-//             // Reverse ops for commutative ops, which are add, mul (0 and 2 respectively)
-//             // op codes 13 and 15 can never be reversed and 18, 19, 20
-//             // are the reversed versions of non-commuative operations
-//             // so 1, 3, 4 and 18, 19, 20 handle this explicitly.
-//             if [0, 2].contains(&opcode)
-//                 && !lhs
-//                     .bind(py)
-//                     .is_instance(imports::PARAMETER_EXPRESSION.get_bound(py))?
-//                 && rhs
-//                     .bind(py)
-//                     .is_instance(imports::PARAMETER_EXPRESSION.get_bound(py))?
-//             {
-//                 let method_str = match &opcode {
-//                     0 => "__radd__",
-//                     2 => "__rmul__",
-//                     _ => method_str,
-//                 };
-//                 stack.push(rhs.getattr(py, method_str)?.call1(py, (lhs,))?);
-//             } else {
-//                 stack.push(lhs.getattr(py, method_str)?.call1(py, (rhs,))?);
-//             }
-//         } else {
-//             // unary op
-//             let lhs = stack.pop().ok_or(PyValueError::new_err(
-//                 "Stack underflow while parsing parameter expression",
-//             ))?;
-//             stack.push(lhs.getattr(py, method_str)?.call0(py)?);
-//         }
-//     }
+fn py_pack_parameter_replay_entry(
+    py: Python,
+    inst: &Bound<PyAny>,
+    r_side: bool,
+    qpy_data: &QPYWriteData,
+) -> PyResult<(u8, [u8; 16], Vec<formats::ParameterExpressionElementPack>)> {
+    // This is different from `py_dumps_value` since we aim specifically for [u8; 16]
+    // This means parameters are not fully stored, only their uuid
+    // Also integers and floats are padded with 0
+    let mut extra_data = Vec::new();
+    let key_type = py_get_type_key(inst)?;
+    let data = match key_type {
+        tags::PARAMETER | tags::PARAMETER_VECTOR => inst
+            .getattr(intern!(py, "uuid"))?
+            .getattr(intern!(py, "bytes"))?
+            .extract::<[u8; 16]>()?,
+        tags::NULL => [0u8; 16],
+        tags::COMPLEX => {
+            let mut complex_data = [0u8; 16];
+            let real = inst.getattr("real")?.extract::<f64>()?.to_be_bytes();
+            let imag = inst.getattr("imag")?.extract::<f64>()?.to_be_bytes();
+            complex_data[0..8].copy_from_slice(&real);
+            complex_data[8..16].copy_from_slice(&imag);
+            complex_data
+        }
+        tags::INTEGER => 0u64
+            .to_be_bytes()
+            .into_iter()
+            .chain(inst.extract::<i64>()?.to_be_bytes())
+            .collect::<Vec<_>>()
+            .try_into()
+            .unwrap(),
+        tags::FLOAT => 0u64
+            .to_be_bytes()
+            .into_iter()
+            .chain(inst.extract::<f64>()?.to_be_bytes())
+            .collect::<Vec<_>>()
+            .try_into()
+            .unwrap(),
+        tags::PARAMETER_EXPRESSION => {
+            let entry = if r_side {
+                formats::ParameterExpressionElementPack::Expression(
+                    formats::ParameterExpressionStandardOpPack {
+                        lhs_type: parameter_tags::NULL,
+                        lhs: [0u8; 16],
+                        rhs_type: parameter_tags::LHS_EXPRESSION,
+                        rhs: [0u8; 16],
+                    },
+                )
+            } else {
+                formats::ParameterExpressionElementPack::Expression(
+                    formats::ParameterExpressionStandardOpPack {
+                        lhs_type: parameter_tags::LHS_EXPRESSION,
+                        lhs: [0u8; 16],
+                        rhs_type: parameter_tags::NULL,
+                        rhs: [0u8; 16],
+                    },
+                )
+            };
+            extra_data.push(entry);
+            let packed_expression =
+                py_pack_parameter_expression_elements(inst, &mut PyDict::new(py), qpy_data)?;
+            extra_data.extend(packed_expression);
+            let entry = if r_side {
+                formats::ParameterExpressionElementPack::Expression(
+                    formats::ParameterExpressionStandardOpPack {
+                        lhs_type: parameter_tags::NULL,
+                        lhs: [0u8; 16],
+                        rhs_type: parameter_tags::RHS_EXPRESSION,
+                        rhs: [0u8; 16],
+                    },
+                )
+            } else {
+                formats::ParameterExpressionElementPack::Expression(
+                    formats::ParameterExpressionStandardOpPack {
+                        lhs_type: parameter_tags::RHS_EXPRESSION,
+                        lhs: [0u8; 16],
+                        rhs_type: parameter_tags::NULL,
+                        rhs: [0u8; 16],
+                    },
+                )
+            };
+            extra_data.push(entry);
+            [0u8; 16] // return empty
+        }
+        _ => {
+            return Err(PyTypeError::new_err(format!(
+                "Unhandled key_type: {}",
+                key_type
+            )));
+        }
+    };
+    let key_type = match key_type {
+        tags::NULL | tags::PARAMETER_EXPRESSION => tags::NUMPY_OBJ, // in parameter replay, none is not stored as 'z' but as 'n'
+        tags::PARAMETER_VECTOR => tags::PARAMETER, // in parameter replay, treat parameters and parameter vector elements the same way
+        _ => key_type,
+    };
+    Ok((key_type, data, extra_data))
+}
 
-//     let result = stack.pop().ok_or(PyValueError::new_err(
-//         "Stack underflow while parsing parameter expression",
-//     ))?;
-//     Ok(result)
-// }
+pub fn py_load_register(
+    py: Python,
+    data_bytes: Bytes,
+    circuit_data: &CircuitData,
+) -> PyResult<Py<PyAny>> {
+    // If register name prefixed with null character it's a clbit index for single bit condition.
+    if data_bytes.is_empty() {
+        return Err(PyValueError::new_err(
+            "Failed to load register - name missing",
+        ));
+    }
+    if data_bytes[0] == 0u8 {
+        let index = Clbit(std::str::from_utf8(&data_bytes[1..])?.parse()?);
+        match circuit_data.clbits().get(index) {
+            Some(shareable_clbit) => {
+                Ok(shareable_clbit.into_pyobject(py)?.as_any().clone().unbind())
+            }
+            None => Err(PyValueError::new_err(format!(
+                "Could not find clbit {:?}",
+                index
+            ))),
+        }
+    } else {
+        let name = std::str::from_utf8(&data_bytes)?;
+        let mut register = None;
+        for creg in circuit_data.cregs() {
+            if creg.name() == name {
+                register = Some(creg);
+            }
+        }
+        match register {
+            Some(register) => Ok(register.into_py_any(py)?),
+            None => Err(PyValueError::new_err(format!(
+                "Could not find classical register {:?}",
+                name
+            ))),
+        }
+    }
+}
+
+pub fn py_dumps_value(py_object: Py<PyAny>, qpy_data: &QPYWriteData) -> PyResult<(u8, Bytes)> {
+    Python::attach(|py| -> PyResult<(u8, Bytes)> {
+        let py_object = py_object.bind(py);
+        let type_key: u8 = py_get_type_key(py_object)?;
+        let value: Bytes = match type_key {
+            tags::INTEGER => py_object.extract::<i64>()?.to_be_bytes().into(),
+            tags::FLOAT => py_object.extract::<f64>()?.to_be_bytes().into(),
+            tags::COMPLEX => {
+                let complex_num = py_object.cast::<PyComplex>()?;
+                let mut bytes = Vec::with_capacity(16);
+                bytes.extend_from_slice(&complex_num.real().to_be_bytes());
+                bytes.extend_from_slice(&complex_num.imag().to_be_bytes());
+                bytes.into()
+            }
+            tags::RANGE => py_serialize_range(py_object)?,
+            tags::TUPLE => serialize(&py_pack_generic_sequence(py_object, qpy_data)?),
+            tags::PARAMETER => serialize(&py_pack_parameter(py_object)?),
+            tags::PARAMETER_VECTOR => serialize(&py_pack_parameter_vector(py_object)?),
+            tags::PARAMETER_EXPRESSION => {
+                serialize(&py_pack_parameter_expression(py_object, qpy_data)?)
+            }
+            tags::NUMPY_OBJ => {
+                let np = py.import("numpy")?;
+                let io = py.import("io")?;
+                let buffer = io.call_method0("BytesIO")?;
+                np.call_method1("save", (&buffer, py_object))?;
+                buffer.call_method0("getvalue")?.extract::<Bytes>()?
+            }
+            tags::MODIFIER => serialize(&py_pack_modifier(py_object)?),
+            tags::STRING => py_object.extract::<String>()?.into(),
+            tags::EXPRESSION => {
+                serialize_expression(py_object.extract::<classical::expr::Expr>()?, qpy_data)?
+            }
+            tags::NULL | tags::CASE_DEFAULT => Bytes::new(),
+            tags::CIRCUIT => serialize(&pack_circuit(
+                py_object.extract()?,
+                py.None().bind(py),
+                false,
+                QPY_VERSION,
+                qpy_data.annotation_handler.annotation_factories,
+            )?),
+            _ => {
+                return Err(PyTypeError::new_err(format!(
+                    "py_dumps_value: Unhandled type_key: {}",
+                    type_key
+                )));
+            }
+        };
+        Ok((type_key, value))
+    })
+}
+
+fn py_pack_parameter_expression_elements(
+    py_object: &Bound<PyAny>,
+    extra_symbols: &mut Bound<PyDict>,
+    qpy_data: &QPYWriteData,
+) -> PyResult<Vec<formats::ParameterExpressionElementPack>> {
+    let py = py_object.py();
+    let qpy_replay = py_object
+        .getattr(intern!(py, "_qpy_replay"))?
+        .extract::<Vec<Py<PyAny>>>()?;
+    let mut result = Vec::new();
+    for replay_obj in qpy_replay.iter() {
+        let packed_parameter =
+            py_pack_parameter_expression_element(replay_obj.bind(py), extra_symbols, qpy_data)?;
+        result.extend(packed_parameter);
+    }
+    Ok(result)
+}
+
+pub fn py_pack_symbol(
+    symbol: &Bound<PyAny>,
+    value: Option<&Bound<PyAny>>,
+    qpy_data: &QPYWriteData,
+) -> PyResult<formats::ParameterExpressionSymbolPack> {
+    let symbol_key = py_get_type_key(symbol)?;
+    let (value_key, value_data): (u8, Bytes) = match value {
+        None => (symbol_key, Bytes::new()),
+        Some(py_value) => py_dumps_value(py_value.clone().unbind(), qpy_data)?,
+    };
+    match symbol_key {
+        tags::PARAMETER_EXPRESSION => {
+            let symbol_data = py_pack_parameter_expression(symbol, qpy_data)?;
+            Ok(formats::ParameterExpressionSymbolPack::ParameterExpression(
+                formats::ParameterExpressionParameterExpressionSymbolPack {
+                    value_key,
+                    symbol_data,
+                    value_data,
+                },
+            ))
+        }
+        tags::PARAMETER => {
+            let symbol_data = py_pack_parameter(symbol)?;
+            Ok(formats::ParameterExpressionSymbolPack::Parameter(
+                formats::ParameterExpressionParameterSymbolPack {
+                    value_key,
+                    symbol_data,
+                    value_data,
+                },
+            ))
+        }
+        tags::PARAMETER_VECTOR => {
+            let symbol_data = py_pack_parameter_vector(symbol)?;
+            Ok(formats::ParameterExpressionSymbolPack::ParameterVector(
+                formats::ParameterExpressionParameterVectorSymbolPack {
+                    value_key,
+                    symbol_data,
+                    value_data,
+                },
+            ))
+        }
+        _ => Err(PyTypeError::new_err(format!(
+            "Unhandled symbol_key: {}",
+            symbol_key
+        ))),
+    }
+}
+
+pub fn py_pack_parameter_expression(
+    py_object: &Bound<PyAny>,
+    qpy_data: &QPYWriteData,
+) -> PyResult<formats::ParameterExpressionPack> {
+    let py = py_object.py();
+    let mut extra_symbols = PyDict::new(py);
+    let packed_expression_data =
+        py_pack_parameter_expression_elements(py_object, &mut extra_symbols, qpy_data)?;
+    let expression_data = serialize(&packed_expression_data);
+    let mut symbol_table_data: Vec<formats::ParameterExpressionSymbolPack> =
+        py_pack_symbol_table(py, py_object, qpy_data)?;
+    let (extra_symbols_keys, extra_symbols_values) =
+        py_pack_extra_symbol_table(&extra_symbols, qpy_data)?;
+    symbol_table_data.extend(extra_symbols_keys);
+    symbol_table_data.extend(extra_symbols_values);
+    Ok(formats::ParameterExpressionPack {
+        expression_data,
+        symbol_table_data,
+    })
+}
+
+pub fn py_pack_parameter_vector(
+    py_object: &Bound<PyAny>,
+) -> PyResult<formats::ParameterVectorPack> {
+    let vector = py_object.getattr("_vector")?;
+    let name = vector.getattr("_name")?.extract::<String>()?;
+    let vector_size = vector.call_method0("__len__")?.extract()?;
+    let uuid = py_object
+        .getattr("uuid")?
+        .getattr("bytes")?
+        .extract::<[u8; 16]>()?;
+    // let index = py_object.getattr("_index")?.extract::<u64>()?;
+    let index = py_object.getattr("index")?.extract::<u64>()?;
+    Ok(formats::ParameterVectorPack {
+        vector_size,
+        uuid,
+        index,
+        name,
+    })
+}
+
+fn py_pack_symbol_table(
+    py: Python,
+    py_object: &Bound<PyAny>,
+    qpy_data: &QPYWriteData,
+) -> PyResult<Vec<formats::ParameterExpressionSymbolPack>> {
+    py_object
+        .getattr(intern!(py, "parameters"))?
+        .extract::<Bound<PySet>>()?
+        .iter()
+        .map(|symbol| py_pack_symbol(&symbol, None, qpy_data))
+        .collect::<PyResult<_>>()
+}
+
+fn py_pack_extra_symbol_table(
+    extra_symbols: &Bound<PyDict>,
+    qpy_data: &QPYWriteData,
+) -> PyResult<(
+    Vec<formats::ParameterExpressionSymbolPack>,
+    Vec<formats::ParameterExpressionSymbolPack>,
+)> {
+    let keys = PyIterator::from_object(&extra_symbols.keys())?
+        .map(|item| {
+            let symbol = item?;
+            py_pack_symbol(&symbol, Some(&symbol), qpy_data)
+        })
+        .collect::<PyResult<_>>()?;
+    let values = PyIterator::from_object(&extra_symbols.values())?
+        .map(|item| {
+            let symbol = item?;
+            py_pack_symbol(&symbol, Some(&symbol), qpy_data)
+        })
+        .collect::<PyResult<_>>()?;
+    Ok((keys, values))
+}
+
+fn py_pack_replay_subs(
+    subs_obj: &Bound<PyAny>,
+    extra_symbols: &mut Bound<PyDict>,
+    qpy_data: &QPYWriteData,
+) -> PyResult<formats::ParameterExpressionElementPack> {
+    let py = subs_obj.py();
+    let binds = subs_obj.getattr("binds")?;
+    extra_symbols.call_method1("update", (&binds,))?;
+
+    let items: Vec<formats::MappingItem> =
+        PyIterator::from_object(&binds.cast::<PyDict>()?.items())?
+            .map(|item| {
+                let (key, value): (Py<PyAny>, Py<PyAny>) = item?.extract()?;
+                let key_bytes = key
+                    .bind(py)
+                    .getattr(intern!(py, "uuid"))?
+                    .getattr(intern!(py, "bytes"))?
+                    .extract::<Bytes>()?;
+                let (item_type, item_bytes) = py_dumps_value(value, qpy_data)?;
+                Ok(formats::MappingItem {
+                    item_type,
+                    key_bytes,
+                    item_bytes,
+                })
+            })
+            .collect::<PyResult<_>>()?;
+    let mapping = formats::MappingPack { items };
+    let mapping_data = serialize(&mapping);
+    let entry = formats::ParameterExpressionSubsOpPack { mapping_data };
+    Ok(formats::ParameterExpressionElementPack::Substitute(entry))
+}
+
+fn py_serialize_range(py_object: &Bound<PyAny>) -> PyResult<Bytes> {
+    let start = py_object.getattr("start")?.extract::<i64>()?;
+    let stop = py_object.getattr("stop")?.extract::<i64>()?;
+    let step = py_object.getattr("step")?.extract::<i64>()?;
+    let range_pack = formats::RangePack { start, stop, step };
+    let mut buffer = Cursor::new(Vec::new());
+    range_pack.write(&mut buffer).unwrap();
+    Ok(buffer.into())
+}
+
+pub fn py_deserialize_range(py: Python, raw_range: &Bytes) -> PyResult<Py<PyAny>> {
+    let range_pack = deserialize::<formats::RangePack>(raw_range)?.0;
+    Ok(imports::BUILTIN_RANGE
+        .get_bound(py)
+        .call1((range_pack.start, range_pack.stop, range_pack.step))?
+        .unbind())
+}
+
+pub fn py_pack_parameter(py_object: &Bound<PyAny>) -> PyResult<formats::ParameterPack> {
+    let py = py_object.py();
+    let name = py_object
+        .getattr(intern!(py, "name"))?
+        .extract::<String>()?;
+    let uuid = py_object
+        .getattr(intern!(py, "uuid"))?
+        .getattr(intern!(py, "bytes"))?
+        .extract::<[u8; 16]>()?;
+    Ok(formats::ParameterPack { uuid, name })
+}
+
+pub fn py_pack_generic_sequence(
+    py_sequence: &Bound<PyAny>,
+    qpy_data: &QPYWriteData,
+) -> PyResult<formats::GenericDataSequencePack> {
+    let elements: Vec<formats::GenericDataPack> = py_sequence
+        .try_iter()?
+        .map(|possible_data_item| {
+            let data_item = possible_data_item?;
+            py_pack_generic_data(&data_item, qpy_data)
+        })
+        .collect::<PyResult<_>>()?;
+    Ok(formats::GenericDataSequencePack { elements })
+}
+
+pub fn py_unpack_generic_sequence_to_tuple(
+    py: Python,
+    packed_sequence: formats::GenericDataSequencePack,
+    qpy_data: &mut QPYReadData,
+) -> PyResult<Py<PyAny>> {
+    let elements: Vec<Py<PyAny>> = packed_sequence
+        .elements
+        .iter()
+        .map(|data_pack| py_unpack_generic_data(py, data_pack, qpy_data))
+        .collect::<PyResult<_>>()?;
+    elements.into_py_any(py)
+}
+
+pub fn py_unpack_generic_data(
+    py: Python,
+    data_pack: &formats::GenericDataPack,
+    qpy_data: &mut QPYReadData,
+) -> PyResult<Py<PyAny>> {
+    DumpedPyValue {
+        data_type: data_pack.type_key,
+        data: data_pack.data.clone(),
+    }
+    .to_python(py, qpy_data)
+}
+
+pub fn py_pack_modifier(modifier: &Bound<PyAny>) -> PyResult<formats::ModifierPack> {
+    let py = modifier.py();
+    let module = py.import("qiskit.circuit.annotated_operation")?;
+    if modifier.is_instance(&module.getattr("InverseModifier")?)? {
+        Ok(formats::ModifierPack {
+            modifier_type: modifier_types::INVERSE,
+            num_ctrl_qubits: 0,
+            ctrl_state: 0,
+            power: 0.0,
+        })
+    } else if modifier.is_instance(&module.getattr("ControlModifier")?)? {
+        Ok(formats::ModifierPack {
+            modifier_type: modifier_types::CONTROL,
+            num_ctrl_qubits: modifier.getattr("num_ctrl_qubits")?.extract::<u32>()?,
+            ctrl_state: modifier.getattr("ctrl_state")?.extract::<u32>()?,
+            power: 0.0,
+        })
+    } else if modifier.is_instance(&module.getattr("PowerModifier")?)? {
+        Ok(formats::ModifierPack {
+            modifier_type: modifier_types::POWER,
+            num_ctrl_qubits: 0,
+            ctrl_state: 0,
+            power: modifier.getattr("power")?.extract::<f64>()?,
+        })
+    } else {
+        Err(PyTypeError::new_err("Unsupported modifier."))
+    }
+}
+
+pub fn py_unpack_modifier(
+    py: Python,
+    packed_modifier: &formats::ModifierPack,
+) -> PyResult<Py<PyAny>> {
+    match packed_modifier.modifier_type {
+        modifier_types::INVERSE => Ok(imports::INVERSE_MODIFIER.get_bound(py).call0()?.unbind()),
+        modifier_types::CONTROL => {
+            let kwargs = PyDict::new(py);
+            kwargs.set_item(
+                intern!(py, "num_ctrl_qubits"),
+                packed_modifier.num_ctrl_qubits,
+            )?;
+            kwargs.set_item(intern!(py, "ctrl_state"), packed_modifier.ctrl_state)?;
+            Ok(imports::CONTROL_MODIFIER
+                .get_bound(py)
+                .call((), Some(&kwargs))?
+                .unbind())
+        }
+        modifier_types::POWER => {
+            let kwargs = PyDict::new(py);
+            kwargs.set_item(intern!(py, "power"), packed_modifier.power)?;
+            Ok(imports::POWER_MODIFIER
+                .get_bound(py)
+                .call((), Some(&kwargs))?
+                .unbind())
+        }
+        _ => Err(PyTypeError::new_err("Unsupported modifier.")),
+    }
+}

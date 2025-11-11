@@ -13,14 +13,14 @@
 use pyo3::import_exception;
 use pyo3::prelude::*;
 use pyo3::types::PyModule;
-use pyo3::{wrap_pyfunction, Bound, PyResult};
+use pyo3::{Bound, PyResult, wrap_pyfunction};
 
 mod annotations;
 mod bytes;
-mod expr;
 mod circuit_reader;
 mod circuit_writer;
 mod consts;
+mod expr;
 mod formats;
 mod params;
 mod py_methods;

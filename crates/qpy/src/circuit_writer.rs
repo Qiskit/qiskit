@@ -38,8 +38,8 @@ use crate::py_methods::{
     serialize_metadata,
 };
 use crate::value::{
-    bit_types, expression_var_declaration, pack_standalone_var, pack_stretch, register_types,
-    serialize, DumpedPyValue, QPYWriteData,
+    DumpedPyValue, QPYWriteData, bit_types, expression_var_declaration, pack_standalone_var,
+    pack_stretch, register_types, serialize,
 };
 
 use crate::UnsupportedFeatureForVersion;
@@ -261,7 +261,8 @@ fn pack_circuit_header(
         num_instructions: circuit.data.__len__() as u64,
         num_vars: circuit.data.num_identifiers() as u32,
         circuit_name: circuit.name.clone().unwrap_or_default(),
-        global_phase_data,
+        global_phase_data: global_phase_data.data,
+        global_phase_type: global_phase_data.data_type,
         metadata,
         registers,
     };
@@ -493,12 +494,8 @@ pub fn pack_standalone_vars(
     let mut uuid: u128 = 0;
     // input vars
     for var in circuit_data.get_vars(CircuitVarType::Input) {
-        let var_pack = pack_standalone_var(
-            var,
-            expression_var_declaration::INPUT,
-            version,
-            &mut uuid,
-        )?;
+        let var_pack =
+            pack_standalone_var(var, expression_var_declaration::INPUT, version, &mut uuid)?;
         result.push(var_pack);
         standalone_var_indices.insert(uuid, index);
         index += 1;
@@ -622,7 +619,6 @@ pub fn py_write_circuit(
         version,
         annotation_factories,
     )?;
-    println!("Packed circuit: {:?}", packed_circuit);
     let serialized_circuit = serialize(&packed_circuit);
     file_obj.call_method1(
         "write",

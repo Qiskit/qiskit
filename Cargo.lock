@@ -1797,6 +1797,7 @@ dependencies = [
  "hashbrown 0.15.5",
  "indexmap",
  "num-bigint",
+ "num-complex",
  "numpy",
  "oq3_semantics",
  "pyo3",
