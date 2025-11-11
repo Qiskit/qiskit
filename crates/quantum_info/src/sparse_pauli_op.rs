@@ -952,6 +952,7 @@ mod tests {
 
     use super::*;
     use crate::sparse_observable::SparseObservable;
+    use crate::test::in_scoped_thread_pool;
 
     #[cfg(miri)]
     use approx::AbsDiffEq;
@@ -1076,13 +1077,15 @@ mod tests {
                 z_like,
             };
             let observable = SparseObservable::from(&paulis);
-            let arr = Array1::from_vec(
+            let arr_vec = in_scoped_thread_pool(|| {
                 observable
                     .to_matrix_dense(false)
-                    .expect("Failed to create dense matrix"),
-            )
-            .into_shape_with_order((2, 2))
+                    .expect("Failed to create dense matrix")
+            })
             .unwrap();
+            let arr = Array1::from_vec(arr_vec)
+                .into_shape_with_order((2, 2))
+                .unwrap();
             let expected: DecomposeMinimal = paulis.into();
             let actual: DecomposeMinimal = decompose_dense_inner(arr.view(), 0.0).unwrap().into();
             #[cfg(not(miri))]
@@ -1125,13 +1128,15 @@ mod tests {
                 z_like,
             };
             let observable = SparseObservable::from(&paulis);
-            let arr = Array1::from_vec(
+            let arr_vec = in_scoped_thread_pool(|| {
                 observable
                     .to_matrix_dense(false)
-                    .expect("Failed to create dense matrix"),
-            )
-            .into_shape_with_order((8, 8))
+                    .expect("Failed to create dense matrix")
+            })
             .unwrap();
+            let arr = Array1::from_vec(arr_vec)
+                .into_shape_with_order((8, 8))
+                .unwrap();
             let expected: DecomposeMinimal = paulis.into();
             let actual: DecomposeMinimal = decompose_dense_inner(arr.view(), 0.0).unwrap().into();
             #[cfg(not(miri))]

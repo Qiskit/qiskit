@@ -4710,8 +4710,8 @@ pub fn sparse_observable(m: &Bound<PyModule>) -> PyResult<()> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use num_complex::Complex64;
     use crate::test::in_scoped_thread_pool;
+    use num_complex::Complex64;
 
     fn example_observable() -> SparseObservable {
         SparseObservable {
