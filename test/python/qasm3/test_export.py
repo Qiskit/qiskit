@@ -1484,6 +1484,7 @@ box[a] {
             ClassicalRegister(2, name="c_{reg}"),
             QuantumRegister(2, name="²"),
             ClassicalRegister(2, name="2c"),
+            ClassicalRegister(2, name="?!abc$%^&"),
         )
         qc.measure(qc.qubits, qc.clbits)
         out_qasm = dumps(qc)
@@ -1495,9 +1496,10 @@ box[a] {
         names. Regression test of gh-9658."""
         qc = QuantumCircuit(1)
         qc.u(Parameter("p_{0}"), 2 * Parameter("2p"), Parameter("a²"), 0)
+        qc.rz(Parameter("!$abc%$&"), 0)
         out_qasm = dumps(qc)
         matches = {match_["name"] for match_ in self.scalar_parameter_regex.finditer(out_qasm)}
-        self.assertEqual(len(matches), 3, msg=f"Observed OQ3 output:\n{out_qasm}")
+        self.assertEqual(len(matches), 4, msg=f"Observed OQ3 output:\n{out_qasm}")
 
     def test_parameter_expression_after_naming_escape(self):
         """Test that :class:`.Parameter` instances are correctly renamed when they are used with
