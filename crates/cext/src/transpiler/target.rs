@@ -912,7 +912,7 @@ pub unsafe extern "C" fn qk_target_instruction_supported(
     // SAFETY: Per the documentation the qubits pointer is an array of num_qubits elements
     let qargs: Qargs = unsafe { parse_qargs(qargs, operation.num_qubits()) };
 
-    target.instruction_supported(operation.name(), &qargs)
+    target.instruction_supported(operation.name(), &qargs, &[], false)
 }
 
 /// @ingroup QkTarget
@@ -945,11 +945,11 @@ pub unsafe extern "C" fn qk_target_reset_supported(target: *const Target, qarg: 
 
     if qarg.is_negative() {
         let qargs = QargsRef::Global;
-        target.instruction_supported(StandardInstruction::Reset.name(), qargs)
+        target.instruction_supported(StandardInstruction::Reset.name(), qargs, &[], false)
     } else {
         let bit = &[PhysicalQubit(u32::try_from(qarg).unwrap())];
         let qargs = QargsRef::Concrete(bit);
-        target.instruction_supported(StandardInstruction::Reset.name(), qargs)
+        target.instruction_supported(StandardInstruction::Reset.name(), qargs, &[], false)
     }
 }
 
@@ -983,11 +983,11 @@ pub unsafe extern "C" fn qk_target_measure_supported(target: *const Target, qarg
 
     if qarg.is_negative() {
         let qargs = QargsRef::Global;
-        target.instruction_supported(StandardInstruction::Measure.name(), qargs)
+        target.instruction_supported(StandardInstruction::Measure.name(), qargs, &[], false)
     } else {
         let bit = &[PhysicalQubit(u32::try_from(qarg).unwrap())];
         let qargs = QargsRef::Concrete(bit);
-        target.instruction_supported(StandardInstruction::Measure.name(), qargs)
+        target.instruction_supported(StandardInstruction::Measure.name(), qargs, &[], false)
     }
 }
 
