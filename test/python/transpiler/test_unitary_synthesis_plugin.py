@@ -23,7 +23,7 @@ import stevedore
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag
-from qiskit.transpiler import PassManager
+from qiskit.transpiler import PassManager, Target, CouplingMap
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes.synthesis.plugin import (
     UnitarySynthesisPlugin,
@@ -303,6 +303,40 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
             self.assertIn(kwarg, call_kwargs)
         self.MOCK_PLUGINS["_controllable"].run.assert_not_called()
         self.assertNotIn("config", call_kwargs)
+
+    def test_target_overrides_basis_gates(self):
+        """Test that when both target and basis gates are specified, but the plugin only supports
+        basis gates, the basis gates that it gets come from the target."""
+
+        self.MOCK_PLUGINS["_controllable"].support(["basis_gates"])
+
+        qc = QuantumCircuit(2)
+        qc.unitary(np.eye(4, dtype=np.complex128), [0, 1])
+
+        target_basis_gates = ["rx", "rz"]
+        standalone_basis_gates = ["cx", "u"]
+        target = Target.from_configuration(
+            num_qubits=2, basis_gates=target_basis_gates, coupling_map=CouplingMap.from_line(2)
+        )
+        pm = PassManager(
+            [
+                UnitarySynthesis(
+                    target=target, basis_gates=standalone_basis_gates, method="_controllable"
+                )
+            ]
+        )
+
+        with self.mock_default_run_method():
+            pm.run(qc)
+            self.DEFAULT_PLUGIN.run.assert_not_called()  # pylint: disable=no-member
+            self.MOCK_PLUGINS["_controllable"].run.assert_called()  # pylint: disable=no-member
+            call_kwargs = self.MOCK_PLUGINS["_controllable"].run.call_args[
+                1
+            ]  # pylint: disable=no-member
+
+        self.assertIn("basis_gates", call_kwargs)
+        self.assertEqual(call_kwargs["basis_gates"], set(target_basis_gates))
+        self.assertNotEqual(call_kwargs["basis_gates"], set(standalone_basis_gates))
 
 
 if __name__ == "__main__":
