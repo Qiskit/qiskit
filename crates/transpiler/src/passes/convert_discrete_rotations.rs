@@ -10,11 +10,16 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use qiskit_circuit::operations::StandardGate;
-
+use pyo3::prelude::*;
+use pyo3::wrap_pyfunction;
 use std::f64::consts::PI;
 
-const PI4: f64 = PI / 4.0;
+use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
+use rustworkx_core::petgraph::stable_graph::NodeIndex;
+
+const ROTATION_GATE_NAMES: &[&str; 3] = &["rx", "ry", "rz"];
+
 const PI8: f64 = PI / 8.0;
 const DEFAULT_ATOL: f64 = 1e-10;
 
@@ -24,7 +29,7 @@ fn is_angle_close_to_multiple_of_2pi_8(angle: f64) -> Option<usize> {
     let closest_ratio = angle * 4.0 / PI;
     let closest_integer = closest_ratio.round();
     if (closest_ratio - closest_integer).abs() < DEFAULT_ATOL {
-        Some((closest_integer as usize + 8) % 8)
+        Some((closest_integer as usize) % 8)
     } else {
         None
     }
@@ -33,7 +38,10 @@ fn is_angle_close_to_multiple_of_2pi_8(angle: f64) -> Option<usize> {
 /// Gets a rotation gate (RX/RY/RZ) and outputs an equivalent vector of standard gates and
 /// a global phase, when the gate is sufficiently close to Clifford+T/Tdg.
 /// Otherwise, return the original gate and global phase = 0.
-fn try_replace_rotation_by_discrete(gate: StandardGate, angle: f64) -> (Vec<StandardGate>, f64) {
+fn try_replace_rotation_by_discrete(
+    gate: StandardGate,
+    angle: f64,
+) -> Option<(Vec<StandardGate>, f64)> {
     let multiple = is_angle_close_to_multiple_of_2pi_8(angle);
     let mut discrete_sequence = Vec::<StandardGate>::with_capacity(4);
     let mut global_phase = 0.0;
@@ -159,8 +167,73 @@ fn try_replace_rotation_by_discrete(gate: StandardGate, angle: f64) -> (Vec<Stan
             discrete_sequence.push(StandardGate::SXdg);
             global_phase = -7.0 * PI8;
         }
-        _ => discrete_sequence.push(gate),
+        _ => {
+            return None;
+        }
     }
 
-    (discrete_sequence, global_phase)
+    Some((discrete_sequence, global_phase))
+}
+
+#[pyfunction]
+#[pyo3(name = "discretize_rotations")]
+pub fn run_discretize_rotations(dag: &mut DAGCircuit) -> PyResult<()> {
+    let op_counts = dag.get_op_counts();
+
+    // Skip the pass if there are no RX/RY/RZ rotation gates.
+    if op_counts
+        .keys()
+        .all(|k| !ROTATION_GATE_NAMES.contains(&k.as_str()))
+    {
+        return Ok(());
+    }
+
+    // Iterate over nodes in the DAG and collect nodes that are of the form
+    // RX/RY/RZ with an angle that is a multiply of 2*pi/8
+    let mut candidates: Vec<(NodeIndex, StandardGate, f64)> = Vec::new();
+
+    for (node_index, inst) in dag.op_nodes(true) {
+        match inst.op.view() {
+            OperationRef::StandardGate(gate) => {
+                if gate == StandardGate::RX || gate == StandardGate::RY || gate == StandardGate::RZ
+                {
+                    match inst.params_view()[0] {
+                        Param::Float(angle) => {
+                            candidates.push((node_index, gate, angle));
+                        }
+                        _ => {
+                            continue;
+                        }
+                    }
+                }
+            }
+            _ => {
+                continue;
+            }
+        }
+    }
+
+    let mut global_phase_update: f64 = 0.;
+
+    for (node_index, gate, angle) in candidates {
+        let result = try_replace_rotation_by_discrete(gate, angle);
+
+        if let Some((sequence, phase_update)) = result {
+            // we should remove the original gate, and instead add the sequence of gates
+            for new_gate in sequence {
+                dag.insert_1q_on_incoming_qubit((new_gate, &[]), node_index);
+            }
+            dag.remove_1q_sequence(&[node_index]);
+            global_phase_update += phase_update;
+        }
+    }
+
+    dag.add_global_phase(&Param::Float(global_phase_update))?;
+
+    Ok(())
+}
+
+pub fn discretize_rotations_mod(m: &Bound<PyModule>) -> PyResult<()> {
+    m.add_wrapped(wrap_pyfunction!(run_discretize_rotations))?;
+    Ok(())
 }

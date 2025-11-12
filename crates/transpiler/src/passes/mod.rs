@@ -63,6 +63,7 @@ pub use check_map::{check_map_mod, run_check_map};
 pub use commutation_analysis::{analyze_commutations, commutation_analysis_mod};
 pub use commutation_cancellation::{cancel_commutations, commutation_cancellation_mod};
 pub use consolidate_blocks::{DecomposerType, consolidate_blocks_mod, run_consolidate_blocks};
+pub use convert_discrete_rotations::{discretize_rotations_mod, run_discretize_rotations};
 pub use dense_layout::{best_subset, dense_layout_mod};
 pub use disjoint_layout::{combine_barriers, disjoint_utils_mod, distribute_components};
 pub use elide_permutations::{elide_permutations_mod, run_elide_permutations};
