@@ -31,8 +31,8 @@ use qiskit_circuit::{Clbit, imports};
 use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
 use crate::circuit_reader::unpack_circuit;
-use crate::formats;
-use crate::params::unpack_symbol;
+use crate::formats::{self, GenericDataPack, GenericDataSequencePack};
+use crate::params::{pack_symbol, unpack_symbol};
 use crate::py_methods::{
     py_deserialize_range, py_dumps_value, py_unpack_generic_sequence_to_tuple, py_unpack_modifier,
 };
@@ -79,6 +79,7 @@ pub struct QPYReadData<'a> {
 }
 
 pub mod tags {
+    pub const BOOL: u8 = b'b';
     pub const INTEGER: u8 = b'i';
     pub const FLOAT: u8 = b'f';
     pub const COMPLEX: u8 = b'c';
@@ -181,16 +182,70 @@ where
 // Under ideal conditions, we won't need such an enum since every rust based value will be present explicitly
 // In the formats.rs file. However, due to the legacy of how Python-based value were stored such explicit
 // representation is not always possible or difficult to implement
+// This is the pure rust alternative to `DumpedPyValue` which is used to serialize data given via python objects
 #[derive(Clone, Debug)]
 pub enum GenericValue {
+    Bool(bool),
     Int64(i64),
     Float64(f64),
     Complex64(Complex64),
     ParameterExpressionSymbol(Symbol),
+    Tuple(Vec<GenericValue>),
+}
+
+// we want to be able to extract the value relatively painlessly;
+// e.g. let my_bool = value.as_typed::<bool>().unwrap()
+pub trait FromGenericValue: Sized {
+    fn from_generic(value: &GenericValue) -> Option<Self>;
+}
+
+impl GenericValue {
+    pub fn as_typed<T: FromGenericValue>(&self) -> Option<T> {
+        T::from_generic(self)
+    }
+}
+
+macro_rules! impl_from_generic {
+    ($t:ty, $variant:ident) => {
+        impl FromGenericValue for $t {
+            fn from_generic(value: &GenericValue) -> Option<Self> {
+                match value {
+                    GenericValue::$variant(v) => Some(v.clone()),
+                    _ => None,
+                }
+            }
+        }
+    };
+}
+
+impl_from_generic!(bool, Bool);
+impl_from_generic!(i64, Int64);
+impl_from_generic!(f64, Float64);
+impl_from_generic!(Complex64, Complex64);
+impl_from_generic!(Symbol, ParameterExpressionSymbol);
+
+// Extracting tuples is a little more trick; we'll use macro for the easy case of Vec<T> for a specific T
+impl<T: FromGenericValue> FromGenericValue for Vec<T> {
+    fn from_generic(value: &GenericValue) -> Option<Self> {
+        match value {
+            GenericValue::Tuple(vec) => {
+                let mut out = Vec::with_capacity(vec.len());
+                for item in vec {
+                    out.push(T::from_generic(item)?);
+                }
+                Some(out)
+            }
+            _ => None,
+        }
+    }
 }
 
 pub fn load_value(type_key: u8, bytes: &Bytes) -> PyResult<GenericValue> {
     match type_key {
+        tags::BOOL => {
+            let value: bool = bytes.try_into()?;
+            Ok(GenericValue::Bool(value))
+        }
         tags::INTEGER => {
             let value: i64 = bytes.try_into()?;
             Ok(GenericValue::Int64(value))
@@ -208,11 +263,59 @@ pub fn load_value(type_key: u8, bytes: &Bytes) -> PyResult<GenericValue> {
             let symbol = unpack_symbol(&parameter);
             Ok(GenericValue::ParameterExpressionSymbol(symbol))
         }
+        tags::TUPLE => {
+            let (elements_pack, _) = deserialize::<GenericDataSequencePack>(bytes)?;
+            let values = unpack_generic_value_sequence(elements_pack)?;
+            Ok(GenericValue::Tuple(values))
+        }
         _ => Err(PyTypeError::new_err(format!(
             "py_dumps_value: Unhandled type_key: {}",
             type_key
         ))),
     }
+}
+
+/// serializes the generic value into bytes and also returns the identifying tag
+pub fn serialize_generic_value(value: &GenericValue) -> (u8, Bytes) {
+    match value {
+        GenericValue::Bool(value) => (tags::BOOL, value.into()),
+        GenericValue::Int64(value) => (tags::INTEGER, value.into()),
+        GenericValue::Float64(value) => (tags::FLOAT, value.into()),
+        GenericValue::Complex64(value) => (tags::COMPLEX, value.into()),
+        GenericValue::ParameterExpressionSymbol(symbol) => {
+            (tags::PARAMETER, serialize(&pack_symbol(symbol)))
+        }
+        GenericValue::Tuple(values) => {
+            (tags::TUPLE, serialize(&pack_generic_value_sequence(values)))
+        }
+    }
+}
+
+// packing to GenericDataPack is somewhat wasteful in many cases, since given the type_key
+// we usually know the byte length of the data and don't need to store it directly,
+// but since that's the format currently in place in QPY we don't try to optimize
+pub fn pack_generic_value(value: &GenericValue) -> GenericDataPack {
+    let (type_key, data) = serialize_generic_value(value);
+    GenericDataPack { type_key, data }
+}
+
+pub fn unpack_generic_value(value_pack: &GenericDataPack) -> PyResult<GenericValue> {
+    load_value(value_pack.type_key, &value_pack.data)
+}
+
+pub fn pack_generic_value_sequence(values: &[GenericValue]) -> GenericDataSequencePack {
+    let elements = values.iter().map(pack_generic_value).collect();
+    GenericDataSequencePack { elements }
+}
+
+pub fn unpack_generic_value_sequence(
+    value_seqeunce_pack: GenericDataSequencePack,
+) -> PyResult<Vec<GenericValue>> {
+    value_seqeunce_pack
+        .elements
+        .iter()
+        .map(unpack_generic_value)
+        .collect()
 }
 
 pub mod circuit_instruction_types {
@@ -223,12 +326,13 @@ pub mod circuit_instruction_types {
     pub const ANNOTATED_OPERATION: u8 = b'a';
 }
 
+/// Each instruction type has a char representation in qpy
 pub fn get_circuit_type_key(op: &PackedOperation) -> PyResult<u8> {
     match op.view() {
         OperationRef::StandardGate(_) => Ok(circuit_instruction_types::GATE),
-        OperationRef::StandardInstruction(_) | OperationRef::Instruction(_) => {
-            Ok(circuit_instruction_types::INSTRUCTION)
-        }
+        OperationRef::StandardInstruction(_)
+        | OperationRef::Instruction(_)
+        | OperationRef::PauliProductMeasurement(_) => Ok(circuit_instruction_types::INSTRUCTION),
         OperationRef::Unitary(_) => Ok(circuit_instruction_types::GATE),
         OperationRef::Gate(pygate) => Python::attach(|py| {
             let gate = pygate.gate.bind(py);

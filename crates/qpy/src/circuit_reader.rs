@@ -35,6 +35,7 @@ use qiskit_circuit::circuit_data::{CircuitData, CircuitStretchType, CircuitVarTy
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::classical;
 use qiskit_circuit::imports;
+use qiskit_circuit::operations::PauliProductMeasurement;
 use qiskit_circuit::operations::{Param, StandardInstruction};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::{Clbit, Qubit};
@@ -50,7 +51,7 @@ use crate::params::{unpack_param, unpack_param_from_data};
 use crate::py_methods::{get_python_gate_class, py_load_register, py_unpack_generic_data};
 use crate::value::{
     DumpedPyValue, ExpressionType, QPYReadData, bit_types, circuit_instruction_types, deserialize,
-    deserialize_with_args, expression_var_declaration, register_types, tags,
+    deserialize_with_args, expression_var_declaration, register_types, tags, unpack_generic_value,
 };
 
 // This is a helper struct, designed to pass data within methods
@@ -259,6 +260,36 @@ fn unpack_instruction(
     }
     let qubits = qpy_data.circuit_data.add_qargs(&qubit_indices);
     let clbits = qpy_data.circuit_data.add_cargs(&clbit_indices);
+
+    // PauliProductMeasurement is a relatively new operation with good rust support; we can handle it before getting to messy python-space code
+    if name == "PauliProductMeasurement" {
+        if instruction.params.len() != 3 {
+            return Err(PyValueError::new_err(
+                "Pauli Product Measurement should have exactly 3 parameters",
+            ));
+        }
+        let z = unpack_generic_value(&instruction.params[0])?
+            .as_typed::<Vec<bool>>()
+            .unwrap();
+        let x = unpack_generic_value(&instruction.params[1])?
+            .as_typed::<Vec<bool>>()
+            .unwrap();
+        let neg = unpack_generic_value(&instruction.params[2])?
+            .as_typed::<bool>()
+            .unwrap();
+        let ppm = Box::new(PauliProductMeasurement { z, x, neg });
+        let op = PackedOperation::from_ppm(ppm);
+
+        return Ok(PackedInstruction {
+            op,
+            qubits,
+            clbits,
+            params: None, // PauliProductMeasurement params are stored in the op itself
+            label,
+            #[cfg(feature = "cache_pygates")]
+            py_op: std::sync::OnceLock::new(),
+        });
+    }
     // for some reason, the QPY convention for storing ints/floats params is in little endian and not big endian as usual
     let mut inst_params: Vec<Param> = instruction
         .params
@@ -369,6 +400,7 @@ fn unpack_instruction(
                 }
                 gate_class.call1(PyTuple::new(py, args)?)?
             }
+
             "UCRXGate" | "UCRYGate" | "UCRZGate" | "DiagonalGate" => {
                 gate_class.call1((py_params,))?
             }

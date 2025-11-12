@@ -138,7 +138,7 @@ pub fn pack_instruction(
         OperationRef::Instruction(py_inst) => py_inst.ctrl_state(),
         _ => (1 << num_ctrl_qubits) - 1,
     };
-    let params: Vec<formats::PackedParam> = get_instruction_params(instruction, qpy_data)?;
+    let params: Vec<formats::GenericDataPack> = get_instruction_params(instruction, qpy_data)?;
     let bit_data = get_packed_bit_list(instruction, circuit_data);
     let condition = get_condition_data(&instruction.op, circuit_data, qpy_data)?;
     let annotations = get_instruction_annotations(instruction, qpy_data)?;

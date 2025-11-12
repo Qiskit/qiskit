@@ -23,7 +23,6 @@ use pyo3::types::{
 };
 use std::io::Cursor;
 
-use qiskit_circuit::Clbit;
 use qiskit_circuit::bit::{PyClassicalRegister, PyClbit, ShareableClbit};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::CircuitInstruction;
@@ -32,6 +31,7 @@ use qiskit_circuit::imports;
 use qiskit_circuit::operations::{ArrayType, Operation, OperationRef, StandardInstruction};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::parameter::parameter_expression::{OPReplay, OpCode};
+use qiskit_circuit::Clbit;
 
 use uuid::Uuid;
 
@@ -40,8 +40,9 @@ use crate::bytes::Bytes;
 use crate::formats;
 use crate::params::{pack_param_obj, pack_parameter_expression_by_op, parameter_tags};
 use crate::value::{
-    DumpedPyValue, QPY_VERSION, QPYReadData, QPYWriteData, circuit_instruction_types, deserialize,
-    get_circuit_type_key, modifier_types, serialize, serialize_expression, tags,
+    DumpedPyValue, GenericValue, QPY_VERSION, QPYReadData, QPYWriteData, circuit_instruction_types,
+    deserialize, get_circuit_type_key, modifier_types, pack_generic_value, serialize,
+    serialize_expression, tags,
 };
 use binrw::BinWrite;
 
@@ -65,6 +66,9 @@ fn is_python_gate(py: Python, op: &PackedOperation, python_gate: &Bound<PyAny>) 
     }
 }
 
+/// custom gates have unique UUID attached to their name
+/// this method recognizes whether we have such a gate and returns a unique name for it
+/// since custom gates are implemented in python, this is a heavy python-space function
 pub fn recognize_custom_operation(op: &PackedOperation, name: &String) -> PyResult<Option<String>> {
     Python::attach(|py| {
         let library = py.import("qiskit.circuit.library")?;
@@ -74,7 +78,7 @@ pub fn recognize_custom_operation(op: &PackedOperation, name: &String) -> PyResu
         if (!library.hasattr(name)?
             && !circuit_mod.hasattr(name)?
             && !controlflow.hasattr(name)?
-            && name != "Clifford")
+            && (name != "Clifford" && name != "PauliProductMeasurement"))
             || name == "Gate"
             || name == "Instruction"
             || is_python_gate(py, op, imports::BLUEPRINT_CIRCUIT.get_bound(py))?
@@ -107,6 +111,8 @@ pub fn recognize_custom_operation(op: &PackedOperation, name: &String) -> PyResu
     })
 }
 
+/// when trying to instantiate nonstandard gates, we turn to the relevant python clas
+/// this function obtains the class based on the gate class name
 pub fn get_python_gate_class<'a>(
     py: Python<'a>,
     gate_class_name: &String,
@@ -122,6 +128,8 @@ pub fn get_python_gate_class<'a>(
         control_flow.getattr(gate_class_name)
     } else if gate_class_name == "Clifford" {
         Ok(imports::CLIFFORD.get_bound(py).clone())
+    } else if gate_class_name == "pauli_product_measurement" {
+        Ok(imports::PAULI_PRODUCT_MEASUREMENT.get_bound(py).clone())
     } else {
         Err(PyIOError::new_err(format!(
             "Gate class not found: {:?}",
@@ -645,6 +653,10 @@ pub fn gate_class_name(op: &PackedOperation) -> PyResult<String> {
                 .getattr(intern!(py, "__class__"))?
                 .getattr(intern!(py, "__name__"))?
                 .extract::<String>(),
+            OperationRef::PauliProductMeasurement(_) => imports::PAULI_PRODUCT_MEASUREMENT
+                .get_bound(py)
+                .getattr(intern!(py, "__name__"))?
+                .extract::<String>(),
         }?;
         Ok(name)
     })
@@ -704,9 +716,9 @@ pub fn py_pack_param(
     py_object: &Bound<PyAny>,
     qpy_data: &QPYWriteData,
     endian: Endian,
-) -> PyResult<formats::PackedParam> {
+) -> PyResult<formats::GenericDataPack> {
     let (type_key, data) = py_dumps_instruction_param_value(py_object, qpy_data, endian)?;
-    Ok(formats::PackedParam { type_key, data })
+    Ok(formats::GenericDataPack { type_key, data })
 }
 
 pub fn py_load_instruction_param_value(
@@ -833,7 +845,7 @@ pub fn py_dumps_register_param(register: &Bound<PyAny>) -> PyResult<Bytes> {
 pub fn get_instruction_params(
     instruction: &PackedInstruction,
     qpy_data: &QPYWriteData,
-) -> PyResult<Vec<formats::PackedParam>> {
+) -> PyResult<Vec<formats::GenericDataPack>> {
     // The instruction params we store are about being able to reconstruct the objects; they don't
     // necessarily need to match one-to-one to the `params` field.
     Python::attach(|py| {
@@ -896,10 +908,20 @@ pub fn get_instruction_params(
                     .map(|modifier| py_pack_param(&modifier?, qpy_data, Endian::Little))
                     .collect::<PyResult<_>>();
             }
+            if op
+                .operation
+                .bind(py)
+                .is_instance(imports::PAULI_PRODUCT_MEASUREMENT.get_bound(py))?
+            {
+                let op = op.operation.bind(py);
+                let pauli_data = op.call_method0("_to_pauli_data")?;
+                return pauli_data
+                    .try_iter()?
+                    .map(|pauli| py_pack_param(&pauli?, qpy_data, Endian::Little))
+                    .collect::<PyResult<_>>();
+            }
         }
 
-        // elif isinstance(instruction.operation, AnnotatedOperation):
-        //instruction_params = instruction.operation.modifiers
         if let OperationRef::Unitary(unitary) = instruction.op.view() {
             // unitary gates are special since they are uniquely determined by a matrix, which is not
             // a "parameter", strictly speaking, but is treated as such when serializing
@@ -912,6 +934,32 @@ pub fn get_instruction_params(
                 ArrayType::TwoQ(arr) => arr.to_pyarray(py),
             };
             return Ok(vec![py_pack_param(&out_array, qpy_data, Endian::Little)?]);
+        }
+        if let OperationRef::PauliProductMeasurement(pauli_product_measurement) =
+            instruction.op.view()
+        {
+            let z_values = GenericValue::Tuple(
+                pauli_product_measurement
+                    .z
+                    .iter()
+                    .cloned()
+                    .map(GenericValue::Bool)
+                    .collect(),
+            );
+            let x_values = GenericValue::Tuple(
+                pauli_product_measurement
+                    .x
+                    .iter()
+                    .cloned()
+                    .map(GenericValue::Bool)
+                    .collect(),
+            );
+            let neg_value = GenericValue::Bool(pauli_product_measurement.neg);
+            return Ok(vec![
+                pack_generic_value(&z_values),
+                pack_generic_value(&x_values),
+                pack_generic_value(&neg_value),
+            ]);
         }
         instruction
             .params_view()

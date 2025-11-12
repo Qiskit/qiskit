@@ -22,7 +22,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::bytes::Bytes;
-use crate::formats::{self, PackedParam};
+use crate::formats::{self, GenericDataPack};
 use crate::py_methods::{
     py_dumps_instruction_param_value, py_dumps_value, py_load_instruction_param_value,
 };
@@ -115,6 +115,9 @@ fn parameter_value_type_from_generic_value(value: &GenericValue) -> PyResult<Par
                 symbol: symbol.clone(),
             }))
         } // TODO: need to treat parameter vector differentely
+        _ => Err(PyValueError::new_err(
+            "Data value that cannot be stored as a parameter value",
+        )),
     }
 }
 pub fn unpack_parameter_expression(
@@ -260,7 +263,7 @@ pub fn unpack_parameter_expression(
         .map_err(|_| PyValueError::new_err("Failure while loading parameter expression"))
 }
 
-pub fn pack_symbol(symbol: Symbol) -> formats::ParameterPack {
+pub fn pack_symbol(symbol: &Symbol) -> formats::ParameterPack {
     let uuid = *symbol.uuid.as_bytes();
     let name = symbol.name.clone();
     formats::ParameterPack { uuid, name }
@@ -351,7 +354,7 @@ pub fn dumps_param_expression(
 ) -> PyResult<(u8, Bytes)> {
     // if the parameter expression is a single symbol, we should treat it like a parameter
     let result = if let Ok(symbol) = exp.try_to_symbol() {
-        let packed_symbol = pack_symbol(symbol);
+        let packed_symbol = pack_symbol(&symbol);
         (tags::PARAMETER, serialize(&packed_symbol))
     } else {
         Python::attach(|py| py_dumps_value(exp.clone().into_py_any(py)?, qpy_data))?
@@ -363,7 +366,7 @@ pub fn pack_param_obj(
     param: &Param,
     qpy_data: &QPYWriteData,
     endian: Endian,
-) -> PyResult<formats::PackedParam> {
+) -> PyResult<formats::GenericDataPack> {
     let (type_key, data) = match param {
         Param::Float(val) => match endian {
             Endian::Little => (tags::FLOAT, val.to_le_bytes().into()),
@@ -374,11 +377,11 @@ pub fn pack_param_obj(
             py_dumps_instruction_param_value(py_object.bind(py), qpy_data, endian)
         })?,
     };
-    Ok(formats::PackedParam { type_key, data })
+    Ok(formats::GenericDataPack { type_key, data })
 }
 
 pub fn unpack_param(
-    packed_param: &formats::PackedParam,
+    packed_param: &formats::GenericDataPack,
     qpy_data: &mut QPYReadData,
     endian: Endian,
 ) -> PyResult<Param> {
@@ -418,6 +421,6 @@ pub fn unpack_param_from_data(
     qpy_data: &mut QPYReadData,
     endian: Endian,
 ) -> PyResult<Param> {
-    let packed_param = PackedParam { data, type_key };
+    let packed_param = GenericDataPack { data, type_key };
     unpack_param(&packed_param, qpy_data, endian)
 }

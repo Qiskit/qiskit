@@ -96,7 +96,7 @@ pub struct CircuitInstructionV2Pack {
     #[br(if(read_bits))]
     pub bit_data: Vec<CircuitInstructionArgPack>,
     #[br(count = num_parameters as usize)]
-    pub params: Vec<PackedParam>,
+    pub params: Vec<GenericDataPack>,
     #[br(if(has_annotations(extras_key)))]
     pub annotations: Option<InstructionsAnnotationPack>,
 }
@@ -307,17 +307,19 @@ pub struct GenericDataSequencePack {
     pub elements: Vec<GenericDataPack>,
 }
 
-// parameter related
-#[binrw]
-#[derive(Debug)]
-#[brw(big)]
-pub struct PackedParam {
-    pub type_key: u8,
-    #[bw(calc = data.len() as u64)]
-    pub data_len: u64,
-    #[br(count = data_len)]
-    pub data: Bytes,
-}
+// Parameters to circuit instructions are stored in GenericDataPack
+// Since parameters can be arbitrary pieces of data they are stored as already-serialized bytes
+// although in the future we might be able to explicitly handle most common cases
+// #[binrw]
+// #[derive(Debug)]
+// #[brw(big)]
+// pub struct GenericDataPack {
+//     pub type_key: u8,
+//     #[bw(calc = data.len() as u64)]
+//     pub data_len: u64,
+//     #[br(count = data_len)]
+//     pub data: Bytes,
+// }
 
 #[binrw]
 #[brw(big)]

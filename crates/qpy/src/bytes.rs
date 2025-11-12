@@ -168,6 +168,17 @@ impl<'a> TryFrom<&'a Bytes> for &'a str {
     }
 }
 
+impl TryFrom<&Bytes> for bool {
+    type Error = PyErr;
+    fn try_from(bytes: &Bytes) -> Result<Self, Self::Error> {
+        match bytes.0.as_slice() {
+            [0] => Ok(false),
+            [1] => Ok(true),
+            _ => Err(PyValueError::new_err("Not a boolean representation")),
+        }
+    }
+}
+
 impl From<Vec<u8>> for Bytes {
     fn from(v: Vec<u8>) -> Self {
         Bytes(v)
@@ -205,6 +216,18 @@ impl From<Cursor<Vec<u8>>> for Bytes {
 impl From<&f64> for Bytes {
     fn from(value: &f64) -> Self {
         Bytes(value.to_be_bytes().into())
+    }
+}
+
+impl From<&i64> for Bytes {
+    fn from(value: &i64) -> Self {
+        Bytes(value.to_be_bytes().into())
+    }
+}
+
+impl From<&bool> for Bytes {
+    fn from(value: &bool) -> Self {
+        Bytes(vec![*value as u8])
     }
 }
 
