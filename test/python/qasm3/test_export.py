@@ -1484,12 +1484,13 @@ box[a] {
             ClassicalRegister(2, name="c_{reg}"),
             QuantumRegister(2, name="²"),
             ClassicalRegister(2, name="2c"),
+            QuantumRegister(2, name="abc?!abc$%^&"),
             ClassicalRegister(2, name="?!abc$%^&"),
         )
         qc.measure(qc.qubits, qc.clbits)
         out_qasm = dumps(qc)
         matches = {match_["name"] for match_ in self.register_regex.finditer(out_qasm)}
-        self.assertEqual(len(matches), 4, msg=f"Observed OQ3 output:\n{out_qasm}")
+        self.assertEqual(len(matches), 6, msg=f"Observed OQ3 output:\n{out_qasm}")
 
     def test_parameters_have_escaped_names(self):
         """Test that parameters are emitted with safely escaped names if they begin with invalid
