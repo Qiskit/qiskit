@@ -2963,8 +2963,8 @@ impl Operation for PauliProductMeasurement {
 
 impl PauliProductMeasurement {
     pub fn create_py_op(&self, py: Python, label: Option<&str>) -> PyResult<Py<PyAny>> {
-        let z = self.z.clone().into_bound_py_any(py)?;
-        let x = self.x.clone().into_bound_py_any(py)?;
+        let z = self.z.to_pyarray(py);
+        let x = self.x.to_pyarray(py);
 
         let phase = if self.neg { 2 } else { 0 };
 
