@@ -898,7 +898,7 @@ mod tests {
     use ndarray::{Array1, aview2};
 
     use super::*;
-    use crate::sparse_observable::SparseObservable;
+    use crate::sparse_observable::{BitTerm, SparseObservable};
 
     #[cfg(miri)]
     use approx::AbsDiffEq;
