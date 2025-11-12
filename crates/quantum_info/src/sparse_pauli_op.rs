@@ -899,6 +899,7 @@ mod tests {
 
     use super::*;
     use crate::sparse_observable::{BitTerm, SparseObservable};
+    use crate::test::in_scoped_thread_pool;
 
     #[cfg(miri)]
     use approx::AbsDiffEq;
@@ -1075,9 +1076,12 @@ mod tests {
                 z_like,
             };
             let observable = SparseObservable::from(paulis.clone());
-            let arr_vec = observable
-                .to_matrix_dense(false)
-                .expect("Failed to create dense matrix");
+            let arr_vec = in_scoped_thread_pool(|| {
+                observable
+                    .to_matrix_dense(false)
+                    .expect("Failed to create dense matrix")
+            })
+            .unwrap();
             let arr = Array1::from_vec(arr_vec)
                 .into_shape_with_order((2, 2))
                 .unwrap();
@@ -1123,9 +1127,12 @@ mod tests {
                 z_like,
             };
             let observable = SparseObservable::from(paulis.clone());
-            let arr_vec = observable
-                .to_matrix_dense(false)
-                .expect("Failed to create dense matrix");
+            let arr_vec = in_scoped_thread_pool(|| {
+                observable
+                    .to_matrix_dense(false)
+                    .expect("Failed to create dense matrix")
+            })
+            .unwrap();
             let arr = Array1::from_vec(arr_vec)
                 .into_shape_with_order((8, 8))
                 .unwrap();
