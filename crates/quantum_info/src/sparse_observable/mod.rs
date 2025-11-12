@@ -562,8 +562,8 @@ impl PauliLike for SparseObservable {
     }
 }
 
-/// Copy several slices into a single flat vec, in parallel
-fn copy_flat_parallel<T, U>(slices: &[U]) -> Vec<T>
+/// Copy several slices into a single flat vec.
+fn copy_flatten<T, U>(slices: &[U]) -> Vec<T>
 where
     T: Copy,
     U: AsRef<[T]>,
@@ -728,8 +728,8 @@ macro_rules! impl_sparse_observable_to_matrix {
                     indptr_chunk.iter_mut().for_each(|nnz| *nnz += start_nnz);
                 });
 
-            let values = copy_flat_parallel(&values_chunks);
-            let indices = copy_flat_parallel(&indices_chunks);
+            let values = copy_flatten(&values_chunks);
+            let indices = copy_flatten(&indices_chunks);
 
             (values, indices, indptr)
         }
@@ -1254,15 +1254,23 @@ impl SparseObservable {
         })
     }
 
-    /// Convert to dense matrix format, handling the extended alphabet.
     pub fn to_matrix_dense(
         &self,
         force_serial: bool,
     ) -> Result<Vec<Complex64>, MatrixComputationError> {
         let computation_data = MatrixComputationData::from_sparse_observable(self)?;
-        let side = 1usize << computation_data.num_qubits();
-        let parallel = !force_serial && qiskit_circuit::getenv_use_multiple_threads();
+        // Combine environment variable with user request:
+        let env_parallel = qiskit_circuit::getenv_use_multiple_threads();
+        let parallel = !force_serial && env_parallel;
+        Ok(Self::to_matrix_dense_inner(&computation_data, parallel))
+    }
 
+    /// Convert to dense matrix format, handling the extended alphabet.
+    fn to_matrix_dense_inner(
+        computation_data: &MatrixComputationData,
+        parallel: bool,
+    ) -> Vec<Complex64> {
+        let side = 1usize << computation_data.num_qubits();
         // Complex64 (num_complex::Complex<f64>) does not implement Drop, so it's safe to
         // set_len on a Vec after allocating capacity and then initialize every element before reading.
         #[allow(clippy::uninit_vec)]
@@ -1301,7 +1309,7 @@ impl SparseObservable {
         } else {
             out.chunks_mut(side).enumerate().for_each(write_row);
         }
-        Ok(out)
+        out
     }
 
     /// Checks if the observable contains only Pauli terms (X, Y, Z).
@@ -4766,6 +4774,22 @@ mod test {
             in_scoped_thread_pool(|| sparse_observable_to_matrix_parallel_64(&computation_data))
                 .unwrap();
         let serial_result = sparse_observable_to_matrix_serial_64(&computation_data);
+
+        assert_eq!(parallel_result, serial_result);
+    }
+
+    /// **Consistency Check:** Ensures the dense matrix implementations
+    /// (parallel vs serial) produce identical results.
+    #[test]
+    fn dense_threaded_and_serial_equal() {
+        let obs = example_observable();
+        let computation_data = MatrixComputationData::from_sparse_observable(&obs).unwrap();
+
+        let parallel_result = in_scoped_thread_pool(|| {
+            SparseObservable::to_matrix_dense_inner(&computation_data, true)
+        })
+        .unwrap();
+        let serial_result = SparseObservable::to_matrix_dense_inner(&computation_data, false);
 
         assert_eq!(parallel_result, serial_result);
     }
