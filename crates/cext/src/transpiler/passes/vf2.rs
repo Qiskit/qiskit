@@ -276,7 +276,7 @@ pub unsafe extern "C" fn qk_vf2_layout_configuration_set_shuffle_seed(
 /// have any impact.
 ///
 /// @param config The configuration to update.
-/// @param score_inital Whether to eagerly score the initial trivial layout.
+/// @param score_initial Whether to eagerly score the initial trivial layout.
 ///
 /// # Safety
 ///
@@ -284,7 +284,7 @@ pub unsafe extern "C" fn qk_vf2_layout_configuration_set_shuffle_seed(
 /// `VF2LayoutConfiguration`.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_vf2_layout_configuration_score_initial(
+pub unsafe extern "C" fn qk_vf2_layout_configuration_set_score_initial(
     config: *mut VF2LayoutConfiguration,
     score_initial: bool,
 ) {
