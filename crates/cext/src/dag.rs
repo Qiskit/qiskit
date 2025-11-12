@@ -10,15 +10,16 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
+use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
 use smallvec::smallvec;
+use std::ptr::slice_from_raw_parts;
 
-use qiskit_circuit::Qubit;
-use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
+use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister, ShareableClbit, ShareableQubit};
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeIndex, NodeType};
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, StandardGate, StandardInstruction,
 };
+use qiskit_circuit::{Clbit, Qubit};
 
 /// @ingroup QkDag
 /// Construct a new empty DAG.
@@ -704,6 +705,88 @@ pub unsafe extern "C" fn qk_dag_op_node_kind(dag: *const DAGCircuit, node: u32) 
             panic!("Python instances are not supported via the C API");
         }
     }
+}
+
+/// @ingroup QkDag
+/// Compose the ``other`` circuit onto the ``dag`` instance with the option of a subset of
+/// of input wires of ``other`` being mapped onto a subset of output wires of this circuit.
+///
+/// ``other`` may include a smaller or equal number of wires for each type.
+///
+/// @param dag A pointer to be composed on.
+/// @param other A pointer to the DAG to compose with ``dag``.
+/// @param qubits A list of indices representing the qubit wires to compose
+///     onto.
+/// @param num_qubits The number of qubits in ``qubits``.
+/// @param clbits A list of indices representing the clbit wires to compose
+///     onto.
+/// @param num_clbits The number of qubits in ``clbits``.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``dag`` or ``other`` are not valid, non-null pointers to a ``QkDag``.
+/// If ``qubit`` nor ``clbit`` are NULL, it must contains a less or equal amount
+/// than what the circuit owns.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_compose(
+    dag: *mut DAGCircuit,
+    other: *const DAGCircuit,
+    qubits: *const u32,
+    num_qubits: usize,
+    clbits: *const u32,
+    num_clbits: usize,
+) {
+    // SAFETY: Per documentation, the pointer is to valid data.
+
+    let dag = unsafe { mut_ptr_as_ref(dag) };
+    // SAFETY: Per documentation, the pointer is to valid data.
+    let other_dag = unsafe { const_ptr_as_ref(other) };
+
+    if other_dag.qubits().len() > dag.qubits().len()
+        || other_dag.clbits().len() > dag.clbits().len()
+    {
+        panic!("Trying to compose with another DAGCircuit which has more 'in' edges.");
+    }
+
+    let qubits: Option<Vec<ShareableQubit>> = if check_ptr(qubits).is_ok() {
+        let qubits: Box<[u32]> =
+            unsafe { Box::from_raw(slice_from_raw_parts(qubits, num_qubits).cast_mut()) };
+        Some(
+            qubits
+                .into_iter()
+                .map(|bit| {
+                    dag.qubits()
+                        .get(Qubit(bit))
+                        .expect("Qubit not part of source circuit.")
+                })
+                .cloned()
+                .collect(),
+        )
+    } else {
+        None
+    };
+    let clbits: Option<Vec<ShareableClbit>> = if check_ptr(clbits).is_ok() {
+        let qubits: Box<[u32]> =
+            unsafe { Box::from_raw(slice_from_raw_parts(clbits, num_clbits).cast_mut()) };
+        Some(
+            qubits
+                .into_iter()
+                .map(|bit| {
+                    dag.clbits()
+                        .get(Clbit(bit))
+                        .expect("Clbit not part of source circuit.")
+                })
+                .cloned()
+                .collect(),
+        )
+    } else {
+        None
+    };
+
+    // Since we don't yet supposed vars in C, we can skip the include_captures check.
+    dag.compose(other_dag, qubits.as_deref(), clbits.as_deref(), false)
+        .expect("Error during circuit composition.");
 }
 
 /// @ingroup QkDag
