@@ -1606,43 +1606,66 @@ impl DAGCircuit {
             ));
         }
 
-        let qubits = qubits
+        // Map ShareableQubit/ShareableClbit to Qubit/Clbit indices
+        let qubits_mapped = qubits
             .map(|qubits| {
                 qubits
                     .iter()
-                    .map(|q| -> PyResult<ShareableQubit> {
+                    .map(|q| -> PyResult<Qubit> {
                         if q.is_instance_of::<PyInt>() {
-                            Ok(self.qubits.get(Qubit::new(q.extract()?)).unwrap().clone())
+                            Ok(Qubit::new(q.extract()?))
                         } else {
-                            q.extract::<ShareableQubit>().map_err(Into::into)
+                            let shareable_qubit = q.extract::<ShareableQubit>()?;
+                            self.qubits.find(&shareable_qubit).ok_or_else(|| {
+                                PyValueError::new_err(format!(
+                                    "Qubit {:?} not found in DAG",
+                                    shareable_qubit
+                                ))
+                            })
                         }
                     })
-                    .collect::<PyResult<Vec<ShareableQubit>>>()
+                    .collect::<PyResult<Vec<Qubit>>>()
             })
             .transpose()?;
 
-        let clbits = clbits
+        let clbits_mapped = clbits
             .map(|clbits| {
                 clbits
                     .iter()
-                    .map(|c| -> PyResult<ShareableClbit> {
+                    .map(|c| -> PyResult<Clbit> {
                         if c.is_instance_of::<PyInt>() {
-                            Ok(self.clbits.get(Clbit::new(c.extract()?)).unwrap().clone())
+                            Ok(Clbit::new(c.extract()?))
                         } else {
-                            c.extract::<ShareableClbit>().map_err(Into::into)
+                            let shareable_clbit = c.extract::<ShareableClbit>()?;
+                            self.clbits.find(&shareable_clbit).ok_or_else(|| {
+                                PyValueError::new_err(format!(
+                                    "Clbit {:?} not found in DAG",
+                                    shareable_clbit
+                                ))
+                            })
                         }
                     })
-                    .collect::<PyResult<Vec<ShareableClbit>>>()
+                    .collect::<PyResult<Vec<Clbit>>>()
             })
             .transpose()?;
 
         // Compose
         if inplace {
-            self.compose(other, qubits.as_deref(), clbits.as_deref(), inline_captures)?;
+            self.compose(
+                other,
+                qubits_mapped.as_deref(),
+                clbits_mapped.as_deref(),
+                inline_captures,
+            )?;
             Ok(None)
         } else {
             let mut dag = self.clone();
-            dag.compose(other, qubits.as_deref(), clbits.as_deref(), inline_captures)?;
+            dag.compose(
+                other,
+                qubits_mapped.as_deref(),
+                clbits_mapped.as_deref(),
+                inline_captures,
+            )?;
             let out_obj = dag.into_py_any(py)?;
             Ok(Some(out_obj))
         }
@@ -7047,8 +7070,8 @@ impl DAGCircuit {
     pub fn from_circuit(
         qc: QuantumCircuitData,
         copy_op: bool,
-        qubit_order: Option<Vec<ShareableQubit>>,
-        clbit_order: Option<Vec<ShareableClbit>>,
+        qubit_order: Option<Vec<Qubit>>,
+        clbit_order: Option<Vec<Clbit>>,
     ) -> PyResult<DAGCircuit> {
         // Extract necessary attributes
         let qc_data = qc.data;
@@ -7068,8 +7091,8 @@ impl DAGCircuit {
         copy_op: bool,
         name: Option<String>,
         metadata: Option<Py<PyAny>>,
-        qubit_order: Option<Vec<ShareableQubit>>,
-        clbit_order: Option<Vec<ShareableClbit>>,
+        qubit_order: Option<Vec<Qubit>>,
+        clbit_order: Option<Vec<Clbit>>,
     ) -> PyResult<Self> {
         let num_qubits = qc_data.num_qubits();
         let num_clbits = qc_data.num_clbits();
@@ -7104,20 +7127,42 @@ impl DAGCircuit {
 
         // Add the qubits depending on order, and produce the qargs map.
         let qarg_map = if let Some(qubit_ordering) = qubit_order {
+            if qubit_ordering.len() != num_qubits {
+                return Err(DAGCircuitError::new_err(format!(
+                    "qubit_order length {} does not match number of qubits {}",
+                    qubit_ordering.len(),
+                    num_qubits
+                )));
+            }
             let mut ordered_vec = Vec::from_iter((0..num_qubits as u32).map(Qubit));
-            qubit_ordering
-                .into_iter()
-                .try_for_each(|qubit| -> PyResult<()> {
-                    if new_dag.qubits.find(&qubit).is_some() {
-                        return Err(DAGCircuitError::new_err(format!(
-                            "duplicate qubits {:?}",
-                            &qubit
-                        )));
-                    }
-                    let qubit_index = qc_data.qubits().find(&qubit).unwrap();
-                    ordered_vec[qubit_index.index()] = new_dag.add_qubit_unchecked(qubit)?;
-                    Ok(())
-                })?;
+            // qubit_ordering contains circuit qubit indices in the order they should appear in the DAG
+            for circuit_qubit_index in qubit_ordering {
+                if circuit_qubit_index.index() >= num_qubits {
+                    return Err(DAGCircuitError::new_err(format!(
+                        "circuit qubit index {} out of range (max {})",
+                        circuit_qubit_index.index(),
+                        num_qubits - 1
+                    )));
+                }
+                // Get the ShareableQubit from circuit data
+                let shareable_qubit =
+                    qc_data.qubits().get(circuit_qubit_index).ok_or_else(|| {
+                        DAGCircuitError::new_err(format!(
+                            "qubit at index {} not found in circuit data",
+                            circuit_qubit_index.index()
+                        ))
+                    })?;
+                // Check for duplicates
+                if new_dag.qubits.find(shareable_qubit).is_some() {
+                    return Err(DAGCircuitError::new_err(format!(
+                        "duplicate qubits {:?}",
+                        shareable_qubit
+                    )));
+                }
+                // Add to DAG and store the DAG qubit index
+                let dag_qubit = new_dag.add_qubit_unchecked(shareable_qubit.clone())?;
+                ordered_vec[circuit_qubit_index.index()] = dag_qubit;
+            }
             // The `Vec::get` use is because an arbitrary interner might contain old references to
             // bit instances beyond `num_qubits`, such as if it's from a DAG that had wires removed.
             new_dag.merge_qargs(qc_data.qargs_interner(), |bit| {
@@ -7137,20 +7182,42 @@ impl DAGCircuit {
 
         // Add the clbits depending on order, and produce the cargs map.
         let carg_map = if let Some(clbit_ordering) = clbit_order {
+            if clbit_ordering.len() != num_clbits {
+                return Err(DAGCircuitError::new_err(format!(
+                    "clbit_order length {} does not match number of clbits {}",
+                    clbit_ordering.len(),
+                    num_clbits
+                )));
+            }
             let mut ordered_vec = Vec::from_iter((0..num_clbits as u32).map(Clbit));
-            clbit_ordering
-                .into_iter()
-                .try_for_each(|clbit| -> PyResult<()> {
-                    if new_dag.clbits.find(&clbit).is_some() {
-                        return Err(DAGCircuitError::new_err(format!(
-                            "duplicate clbits {:?}",
-                            &clbit
-                        )));
-                    };
-                    let clbit_index = qc_data.clbits().find(&clbit).unwrap();
-                    ordered_vec[clbit_index.index()] = new_dag.add_clbit_unchecked(clbit)?;
-                    Ok(())
-                })?;
+            // clbit_ordering contains circuit clbit indices in the order they should appear in the DAG
+            for circuit_clbit_index in clbit_ordering {
+                if circuit_clbit_index.index() >= num_clbits {
+                    return Err(DAGCircuitError::new_err(format!(
+                        "circuit clbit index {} out of range (max {})",
+                        circuit_clbit_index.index(),
+                        num_clbits - 1
+                    )));
+                }
+                // Get the ShareableClbit from circuit data
+                let shareable_clbit =
+                    qc_data.clbits().get(circuit_clbit_index).ok_or_else(|| {
+                        DAGCircuitError::new_err(format!(
+                            "clbit at index {} not found in circuit data",
+                            circuit_clbit_index.index()
+                        ))
+                    })?;
+                // Check for duplicates
+                if new_dag.clbits.find(shareable_clbit).is_some() {
+                    return Err(DAGCircuitError::new_err(format!(
+                        "duplicate clbits {:?}",
+                        shareable_clbit
+                    )));
+                }
+                // Add to DAG and store the DAG clbit index
+                let dag_clbit = new_dag.add_clbit_unchecked(shareable_clbit.clone())?;
+                ordered_vec[circuit_clbit_index.index()] = dag_clbit;
+            }
             // The `Vec::get` use is because an arbitrary interner might contain old references to
             // bit instances beyond `num_clbits`, such as if it's from a DAG that had wires removed.
             new_dag.merge_cargs(qc_data.cargs_interner(), |bit| {
@@ -7352,8 +7419,8 @@ impl DAGCircuit {
     pub fn compose(
         &mut self,
         other: &DAGCircuit,
-        qubits: Option<&[ShareableQubit]>,
-        clbits: Option<&[ShareableClbit]>,
+        qubits: Option<&[Qubit]>,
+        clbits: Option<&[Clbit]>,
         inline_captures: bool,
     ) -> PyResult<()> {
         if other.qubits.len() > self.qubits.len() || other.clbits.len() > self.clbits.len() {
@@ -7391,8 +7458,16 @@ impl DAGCircuit {
                 other_qubits
                     .iter()
                     .cloned()
-                    .zip(qubits.iter().cloned())
-                    .collect()
+                    .zip(qubits.iter())
+                    .map(|(other_qubit, &qubit_index)| -> PyResult<(ShareableQubit, ShareableQubit)> {
+                        let self_qubit = self.qubits.get(qubit_index)
+                            .ok_or_else(|| DAGCircuitError::new_err(format!(
+                                "qubit index {} out of range for self DAG",
+                                qubit_index.index()
+                            )))?;
+                        Ok((other_qubit, self_qubit.clone()))
+                    })
+                    .collect::<PyResult<HashMap<ShareableQubit, ShareableQubit>>>()?
             }
         };
 
@@ -7409,8 +7484,16 @@ impl DAGCircuit {
                 other_clbits
                     .iter()
                     .cloned()
-                    .zip(clbits.iter().cloned())
-                    .collect()
+                    .zip(clbits.iter())
+                    .map(|(other_clbit, &clbit_index)| -> PyResult<(ShareableClbit, ShareableClbit)> {
+                        let self_clbit = self.clbits.get(clbit_index)
+                            .ok_or_else(|| DAGCircuitError::new_err(format!(
+                                "clbit index {} out of range for self DAG",
+                                clbit_index.index()
+                            )))?;
+                        Ok((other_clbit, self_clbit.clone()))
+                    })
+                    .collect::<PyResult<HashMap<ShareableClbit, ShareableClbit>>>()?
             }
         };
 

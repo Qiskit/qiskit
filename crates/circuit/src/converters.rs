@@ -13,6 +13,7 @@
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
+use pyo3::exceptions::PyValueError;
 use pyo3::intern;
 use pyo3::prelude::*;
 
@@ -54,7 +55,53 @@ pub fn circuit_to_dag(
     qubit_order: Option<Vec<ShareableQubit>>,
     clbit_order: Option<Vec<ShareableClbit>>,
 ) -> PyResult<DAGCircuit> {
-    DAGCircuit::from_circuit(quantum_circuit, copy_operations, qubit_order, clbit_order)
+    // Map ShareableQubit/ShareableClbit to Qubit/Clbit indices
+    let qubit_order_mapped = qubit_order
+        .map(|order| {
+            order
+                .into_iter()
+                .map(|shareable_qubit| {
+                    quantum_circuit
+                        .data
+                        .qubits()
+                        .find(&shareable_qubit)
+                        .ok_or_else(|| {
+                            PyValueError::new_err(format!(
+                                "Qubit {:?} not found in circuit",
+                                shareable_qubit
+                            ))
+                        })
+                })
+                .collect::<PyResult<Vec<_>>>()
+        })
+        .transpose()?;
+
+    let clbit_order_mapped = clbit_order
+        .map(|order| {
+            order
+                .into_iter()
+                .map(|shareable_clbit| {
+                    quantum_circuit
+                        .data
+                        .clbits()
+                        .find(&shareable_clbit)
+                        .ok_or_else(|| {
+                            PyValueError::new_err(format!(
+                                "Clbit {:?} not found in circuit",
+                                shareable_clbit
+                            ))
+                        })
+                })
+                .collect::<PyResult<Vec<_>>>()
+        })
+        .transpose()?;
+
+    DAGCircuit::from_circuit(
+        quantum_circuit,
+        copy_operations,
+        qubit_order_mapped,
+        clbit_order_mapped,
+    )
 }
 
 #[pyfunction(signature = (dag, copy_operations = true))]
