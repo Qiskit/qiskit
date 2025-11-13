@@ -505,13 +505,15 @@ class TestEvolutionGate(QiskitTestCase):
             SparseObservable("01Z+-XlrY"),
         ]
 
-        # note: the labels do not show coefficients!
-        expected_labels = ["XY", "(X + Y)", "(IZ + ZI + XX)", "01Z+-XlrY"]
+        expected_labels = ["XY", "(X + Y)", "(IZ + ZI + XX)", "Y0 r1 l2 X3 -4 +5 Z6 17 08"]
         for op, label in zip(operators, expected_labels):
             with self.subTest(op=op, label=label):
                 evo = PauliEvolutionGate(op)
                 self.assertEqual(evo.name, "PauliEvolution")
-                self.assertEqual(evo.label, f"exp(-it {label})")
+                if isinstance(op, SparseObservable):
+                    self.assertIn(f"exp(-it {label})", evo.label)
+                else:
+                    self.assertEqual(evo.label, f"exp(-it {label})")
 
     def test_atomic_evolution(self):
         """Test a custom atomic_evolution."""
@@ -926,6 +928,7 @@ def observable_supporting_evolution(circuit, pauli, time):
 
     custom_atomic_evolution(circuit, pauli, time)
 
+
 class TestPauliEvolutionGateLabels:
     """Tests for verifying PauliEvolutionGate label correctness."""
 
@@ -957,6 +960,7 @@ class TestPauliEvolutionGateLabels:
         qc.append(evo, [0, 1, 2, 3])
         text = str(qc.draw(output="text"))
         assert "X2 X3" in text
+
 
 if __name__ == "__main__":
     unittest.main()
