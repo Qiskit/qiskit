@@ -326,6 +326,7 @@ static int test_dag_topological_op_nodes(void) {
     if (num_ops != 2) {
         printf("The number of op nodes %zu is not 0\n", num_ops);
         result = EqualityError;
+        goto early_cleanup;
     }
 
     uint32_t *order = malloc(sizeof(uint32_t) * num_ops);
