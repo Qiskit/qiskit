@@ -933,10 +933,12 @@ class TestPauliEvolutionGateLabels:
     """Tests for verifying PauliEvolutionGate label correctness."""
 
     def test_single_term_label(self):
+        """Test label generation for a single-term SparseObservable."""
         evo = PauliEvolutionGate(SparseObservable.from_list([("XXII", 1)]), time=1)
         assert evo.label == "exp(-it X2 X3)"
 
     def test_multiple_term_label(self):
+        """Test label generation for a multi-term SparseObservable."""
         evo = PauliEvolutionGate(
             SparseObservable.from_list([("IIXX", 1), ("IYYI", 2), ("ZZII", 3)]), time=1
         )
@@ -944,6 +946,7 @@ class TestPauliEvolutionGateLabels:
         assert evo.label == expected_label
 
     def test_list_of_observables_label(self):
+        """Test label generation for a list of SparseObservable operators."""
         evo = PauliEvolutionGate(
             [
                 SparseObservable.from_list([("IIXX", 1), ("IYYI", 2), ("ZZII", 3)]),
@@ -955,6 +958,7 @@ class TestPauliEvolutionGateLabels:
         assert evo.label == expected_label
 
     def test_circuit_display_labels(self):
+        """Test that the labels are correctly displayed in a circuit context."""
         evo = PauliEvolutionGate(SparseObservable.from_list([("XXII", 1)]), time=1)
         qc = QuantumCircuit(4)
         qc.append(evo, [0, 1, 2, 3])
