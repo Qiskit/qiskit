@@ -448,7 +448,7 @@ pub struct TargetEntry {
     operation: StandardOperation,
     params: Option<SmallVec<[Param; 3]>>,
     map: IndexMap<Qargs, Option<InstructionProperties>, ahash::RandomState>,
-    name: Option<String>
+    name: Option<String>,
 }
 
 impl TargetEntry {
@@ -475,13 +475,15 @@ impl TargetEntry {
         }
     }
 
-    pub fn new_fixed(operation: StandardGate, params: SmallVec<[Param; 3]>, name: *const c_char) -> Self {
+    pub fn new_fixed(
+        operation: StandardGate,
+        params: SmallVec<[Param; 3]>,
+        name: *const c_char,
+    ) -> Self {
         Self {
             operation: StandardOperation::Gate(operation),
             params: Some(params),
-            name: Some(unsafe {
-                CStr::from_ptr(name).to_str().unwrap().to_string()
-            }),
+            name: Some(unsafe { CStr::from_ptr(name).to_str().unwrap().to_string() }),
             map: Default::default(),
         }
     }
