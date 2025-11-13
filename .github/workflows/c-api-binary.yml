@@ -73,6 +73,8 @@ jobs:
             C_DIR_TEST_LIB="${{ env.C_DIR_OUT }}/lib" \
       - name: Archive Binaries
         run: |
+          # macos requires the dylib name to be changed separately
+          install_name_tool -id libqiskit.dylib ${{ env.C_DIR_OUT }}/lib/libqiskit.dylib
           tar czf ${{ env.QISKIT_CEXT_DIR }}.tar.gz ${{ env.QISKIT_CEXT_DIR }}
       - name: Release
         run: |
