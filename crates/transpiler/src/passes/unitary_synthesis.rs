@@ -133,7 +133,7 @@ struct TwoQubitUnitarySequence {
 
 /// Given a list of basis gates, find a corresponding euler basis to use.
 /// This will determine the available 1q synthesis basis for different decomposers.
-fn get_euler_basis_set(basis_list: IndexSet<&str, ::ahash::RandomState>) -> EulerBasisSet {
+fn get_euler_basis_set(basis_list: &IndexSet<&str, ::ahash::RandomState>) -> EulerBasisSet {
     let mut euler_basis_set: EulerBasisSet = EulerBasisSet::new();
     EULER_BASES
         .iter()
@@ -167,7 +167,7 @@ fn get_target_basis_set(target: &Target, qubit: PhysicalQubit) -> EulerBasisSet 
     let target_basis_list = target.operation_names_for_qargs(&[qubit]);
     match target_basis_list {
         Ok(basis_list) => {
-            target_basis_set = get_euler_basis_set(basis_list.into_iter().collect());
+            target_basis_set = get_euler_basis_set(&basis_list.into_iter().collect());
         }
         Err(_) => {
             target_basis_set.support_all();
@@ -304,7 +304,7 @@ fn synthesize_unitary_matrix(
                 None => {
                     let basis_gates: IndexSet<&str, ::ahash::RandomState> =
                         basis_gates.iter().map(String::as_str).collect();
-                    get_euler_basis_set(basis_gates)
+                    get_euler_basis_set(&basis_gates)
                 }
             };
 
@@ -516,7 +516,7 @@ fn get_2q_decomposer_from_basis(
             .map(|x| (x.name(), *x))
             .collect();
     // 1q basis (both decomposers)
-    let euler_basis = match get_euler_basis_set(basis_gates.clone())
+    let euler_basis = match get_euler_basis_set(&basis_gates)
         .get_bases()
         .map(|basis| basis.as_str())
         .next()
