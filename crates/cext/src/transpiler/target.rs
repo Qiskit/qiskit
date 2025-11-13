@@ -672,6 +672,8 @@ pub unsafe extern "C" fn qk_target_entry_free(entry: *mut TargetEntry) {
 ///     qubits.
 /// @param error The instruction's average error rate on the specific set of qubits.
 ///
+/// @return An exit code.
+///
 /// # Example
 /// ```c
 ///     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
