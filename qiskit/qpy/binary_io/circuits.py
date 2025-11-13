@@ -49,6 +49,7 @@ from qiskit.qpy import common, formats, type_keys
 from qiskit.qpy.exceptions import QpyError, UnsupportedFeatureForVersion
 from qiskit.qpy.binary_io import value, schedules
 from qiskit.quantum_info.operators import SparsePauliOp, Clifford
+from qiskit.circuit.library import PauliProductMeasurement
 from qiskit.synthesis import evolution as evo_synth
 from qiskit.transpiler.layout import Layout, TranspileLayout
 
@@ -502,6 +503,8 @@ def _read_instruction(
         gate_class = getattr(controlflow, gate_name)
     elif gate_name == "Clifford":
         gate_class = Clifford
+    elif gate_name == "pauli_product_measurement":
+        gate_class = PauliProductMeasurement
     else:
         raise AttributeError(f"Invalid instruction type: {gate_name}")
 
@@ -555,6 +558,8 @@ def _read_instruction(
             "DiagonalGate",
         }:
             gate = gate_class(params)
+        elif gate_name == "PauliProductMeasurement":
+            gate = gate_class._from_pauli_data(*params, label)
         elif gate_name == "QFTGate":
             gate = gate_class(len(qargs), *params)
         else:
@@ -901,7 +906,7 @@ def _write_instruction(
             not hasattr(library, gate_class_name)
             and not hasattr(circuit_mod, gate_class_name)
             and not hasattr(controlflow, gate_class_name)
-            and gate_class_name != "Clifford"
+            and gate_class_name not in ["Clifford", "PauliProductMeasurement"]
         )
         or gate_class_name == "Gate"
         or gate_class_name == "Instruction"
@@ -980,6 +985,8 @@ def _write_instruction(
         instruction_params = [instruction.operation.tableau]
     elif isinstance(instruction.operation, AnnotatedOperation):
         instruction_params = instruction.operation.modifiers
+    elif isinstance(instruction.operation, PauliProductMeasurement):
+        instruction_params = instruction.operation._to_pauli_data()
     else:
         instruction_params = getattr(instruction.operation, "params", [])
 

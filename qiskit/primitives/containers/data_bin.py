@@ -30,7 +30,27 @@ def _value_repr(value: Any) -> str:
 
 
 class DataBin(ShapedMixin):
-    """Namespace for storing data.
+    """The main data return from a single pub out of :class:`.PubResult`.
+
+    You access the data within this object either by attribute access (``data_bin.my_field``) or by
+    :class:`dict`-like string keys (``data_bin["my_field"]``).  This class behaves as a Python
+    immutable mapping, so you can (for example) query the available keys with :meth:`keys`, and
+    iterate through both keys and values with :meth:`items`.
+
+    This class will have different attributes and keys, depending on the primitive used and the
+    pub submitted.  These "special" attributes will have names that match the keys.  For example, if
+    you submitted a :class:`.SamplerV2` job, typically the attributes and keys are the names of the
+    :class:`.ClassicalRegister` objects that were in the circuit defining this pub.
+
+    All of the attributes and keys have the same shape associated with them, which is the
+    n-dimensional shape of the corresponding pub.  The attributes and keys will typically either be
+    :class:`.BitArray` or :class:`numpy.ndarray` instances, depending on the primitive used and the
+    input pub.
+
+    Users do not typically construct this class themselves.  Instead, you receive it as the
+    :attr:`.PubResult.data` field for a single pub's result out of a complete execution.
+
+    Examples:
 
     .. plot::
        :include-source:

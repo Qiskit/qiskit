@@ -143,6 +143,7 @@ class UnitarySynthesis(TransformationPass):
         self._target = target if target is not None and len(target.operation_names) > 0 else None
         if target is not None:
             self._coupling_map = target.build_coupling_map()
+            self._basis_gates = set(target.operation_names)
         if synth_gates:
             self._synth_gates = synth_gates
         else:
