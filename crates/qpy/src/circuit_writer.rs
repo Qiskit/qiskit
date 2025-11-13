@@ -32,14 +32,15 @@ use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 
 use crate::annotations::AnnotationHandler;
 use crate::formats;
+use crate::params::pack_param_obj;
 use crate::py_methods::{
     gate_class_name, get_condition_data_from_inst, get_instruction_annotations,
     get_instruction_params, pack_custom_instruction, pack_py_registers, recognize_custom_operation,
     serialize_metadata,
 };
 use crate::value::{
-    DumpedPyValue, QPYWriteData, bit_types, expression_var_declaration, pack_standalone_var,
-    pack_stretch, register_types, serialize,
+    QPYWriteData, bit_types, expression_var_declaration, pack_standalone_var, pack_stretch,
+    register_types, serialize,
 };
 
 use crate::UnsupportedFeatureForVersion;
@@ -272,7 +273,8 @@ fn pack_circuit_header(
     qpy_data: &QPYWriteData,
 ) -> PyResult<formats::CircuitHeaderV12Pack> {
     let metadata = serialize_metadata(&circuit.metadata, metadata_serializer)?;
-    let global_phase_data = DumpedPyValue::from_param(circuit.data.global_phase(), qpy_data)?;
+    let global_phase_data =
+        pack_param_obj(circuit.data.global_phase(), qpy_data, binrw::Endian::Big)?;
     let qregs = pack_quantum_registers(&circuit.data);
     let cregs = pack_classical_registers(&circuit.data);
     let mut registers = qregs;
@@ -284,7 +286,7 @@ fn pack_circuit_header(
         num_vars: circuit.data.num_identifiers() as u32,
         circuit_name: circuit.name.clone().unwrap_or_default(),
         global_phase_data: global_phase_data.data,
-        global_phase_type: global_phase_data.data_type,
+        global_phase_type: global_phase_data.type_key,
         metadata,
         registers,
     };

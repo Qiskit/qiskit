@@ -35,7 +35,6 @@ use qiskit_circuit::parameter::parameter_expression::{OPReplay, OpCode};
 
 use uuid::Uuid;
 
-use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
 use crate::formats;
 use crate::params::{pack_param_obj, pack_parameter_expression_by_op, parameter_tags};
@@ -46,10 +45,7 @@ use crate::value::{
 };
 use binrw::BinWrite;
 
-use crate::circuit_writer::{
-    pack_circuit, pack_custom_instructions, pack_instruction, pack_instructions,
-    pack_standalone_vars,
-};
+use crate::circuit_writer::{pack_circuit, pack_instruction};
 
 const UNITARY_GATE_CLASS_NAME: &str = "UnitaryGate";
 
@@ -285,275 +281,6 @@ fn pack_py_register(
         bit_indices,
     };
     Ok(packed_reg)
-}
-
-fn py_pack_circuit_header(
-    circuit: &Bound<PyAny>,
-    metadata_serializer: &Bound<PyAny>,
-    qpy_data: &QPYWriteData,
-) -> PyResult<formats::CircuitHeaderV12Pack> {
-    let py = circuit.py();
-    let circuit_name = circuit.getattr(intern!(py, "name"))?.extract::<String>()?;
-    let metadata = serialize_metadata(
-        &Some(circuit.getattr(intern!(py, "metadata"))?),
-        metadata_serializer,
-    )?;
-    let global_phase_data = DumpedPyValue::from(
-        circuit.getattr(intern!(py, "global_phase"))?.unbind(),
-        qpy_data,
-    )?;
-    let qregs = pack_py_registers(
-        &circuit.getattr(intern!(py, "qregs"))?,
-        circuit.getattr(intern!(py, "qubits"))?.cast::<PyList>()?,
-    )?;
-    let cregs = pack_py_registers(
-        &circuit.getattr(intern!(py, "cregs"))?,
-        circuit.getattr(intern!(py, "clbits"))?.cast::<PyList>()?,
-    )?;
-    let mut registers = qregs;
-    registers.extend(cregs);
-    let header = formats::CircuitHeaderV12Pack {
-        num_qubits: circuit
-            .getattr(intern!(py, "num_qubits"))?
-            .extract::<u32>()?,
-        num_clbits: circuit
-            .getattr(intern!(py, "num_clbits"))?
-            .extract::<u32>()?,
-        num_instructions: circuit
-            .call_method0(intern!(py, "__len__"))?
-            .extract::<u64>()?,
-        num_vars: circuit
-            .getattr(intern!(py, "num_identifiers"))?
-            .extract::<u32>()?,
-        circuit_name,
-        global_phase_data: global_phase_data.data,
-        global_phase_type: global_phase_data.data_type,
-        metadata,
-        registers,
-    };
-
-    Ok(header)
-}
-
-fn pack_py_layout(circuit: &Bound<PyAny>) -> PyResult<formats::LayoutV2Pack> {
-    if circuit.getattr(intern!(circuit.py(), "layout"))?.is_none() {
-        Ok(formats::LayoutV2Pack {
-            exists: 0,
-            initial_layout_size: -1,
-            input_mapping_size: -1,
-            final_layout_size: -1,
-            input_qubit_count: 0,
-            extra_registers: Vec::new(),
-            initial_layout_items: Vec::new(),
-            input_mapping_items: Vec::new(),
-            final_layout_items: Vec::new(),
-        })
-    } else {
-        pack_py_custom_layout(circuit)
-    }
-}
-
-fn pack_py_custom_layout(circuit: &Bound<PyAny>) -> PyResult<formats::LayoutV2Pack> {
-    let layout = circuit.getattr("layout")?;
-    let mut initial_layout_size = -1; // initial_size
-    let py = circuit.py();
-    let input_qubit_mapping = PyDict::new(py);
-    let initial_layout_array = PyList::empty(py);
-    let extra_registers = PyDict::new(py);
-
-    let initial_layout = layout.getattr("initial_layout")?;
-    let num_qubits: usize = circuit.getattr("num_qubits")?.extract()?;
-    if !initial_layout.is_none() {
-        initial_layout_size = initial_layout.call_method0("__len__")?.extract::<i32>()?;
-        let layout_mapping = initial_layout.call_method0("get_physical_bits")?;
-        for i in 0..num_qubits {
-            let qubit = layout_mapping.get_item(i)?;
-            input_qubit_mapping.set_item(&qubit, i)?;
-            let register = qubit.getattr("_register")?;
-            let index = qubit.getattr("_index")?;
-            if !register.is_none() || !index.is_none() {
-                if !circuit.getattr("qregs")?.contains(&register)? {
-                    let extra_register_list = match extra_registers.get_item(&register)? {
-                        Some(list) => list,
-                        None => {
-                            let new_list = PyList::empty(py);
-                            extra_registers.set_item(&register, &new_list)?;
-                            new_list.into_any()
-                        }
-                    };
-                    extra_register_list.cast::<PyList>()?.append(qubit)?;
-                }
-                initial_layout_array.append((index, register))?;
-            } else {
-                initial_layout_array.append((py.None(), py.None()))?;
-            }
-        }
-    }
-
-    let mut input_mapping_size: i32 = -1; //input_qubit_size
-    let mut input_qubit_mapping_array = PyList::new(py, Vec::<Bound<PyAny>>::new())?;
-    let layout_input_qubit_mapping = layout.getattr("input_qubit_mapping")?;
-    if !layout_input_qubit_mapping.is_none() {
-        input_mapping_size = layout_input_qubit_mapping
-            .call_method0("__len__")?
-            .extract()?;
-        input_qubit_mapping_array = PyList::new(
-            py,
-            std::iter::repeat(py.None())
-                .take(input_mapping_size as usize)
-                .collect::<Vec<_>>(),
-        )?;
-        let layout_mapping = initial_layout.call_method0("get_virtual_bits")?;
-        for (qubit, index) in layout_input_qubit_mapping.cast::<PyDict>()? {
-            let register = qubit.getattr("_register")?;
-            if !register.is_none()
-                && !qubit.getattr("_index")?.is_none()
-                && !circuit.getattr("qregs")?.contains(&register)?
-            {
-                let extra_register_list = match extra_registers.get_item(&register)? {
-                    Some(list) => list,
-                    None => {
-                        let new_list = PyList::empty(py);
-                        extra_registers.set_item(&register, &new_list)?;
-                        new_list.into_any()
-                    }
-                };
-                extra_register_list.cast::<PyList>()?.append(&qubit)?;
-            }
-            input_qubit_mapping_array
-                .set_item(index.extract()?, layout_mapping.get_item(&qubit)?)?;
-        }
-    }
-
-    let mut final_layout_size: i32 = -1;
-    let final_layout_array = PyList::empty(py);
-    let final_layout = layout.getattr("final_layout")?;
-    if !final_layout.is_none() {
-        final_layout_size = final_layout.call_method0("__len__")?.extract()?;
-        let final_layout_physical = final_layout.call_method0("get_physical_bits")?;
-        for i in 0..num_qubits {
-            let virtual_bit = final_layout_physical.cast::<PyDict>()?.get_item(i)?;
-            final_layout_array.append(
-                circuit
-                    .call_method1("find_bit", (virtual_bit,))?
-                    .getattr("index")?,
-            )?;
-        }
-    }
-
-    let input_qubit_count: i32 = if layout.getattr("_input_qubit_count")?.is_none() {
-        -1
-    } else {
-        layout.getattr("_input_qubit_count")?.extract()?
-    };
-
-    let mut bits = Vec::new();
-    for register_bit_list in extra_registers.values() {
-        for x in register_bit_list.cast::<PyList>()? {
-            bits.push(x);
-        }
-    }
-    let extra_registers = pack_py_registers(&extra_registers.keys(), &PyList::new(py, bits)?)?;
-    let mut initial_layout_items = Vec::with_capacity(initial_layout_size.max(0) as usize);
-    for item in initial_layout_array {
-        let tuple = item.cast::<PyTuple>()?;
-        let index = tuple.get_item(0)?;
-        let register = tuple.get_item(1)?;
-        let reg_name_bytes = if !register.is_none() {
-            Some(register.getattr("name")?.extract::<String>()?)
-        } else {
-            None
-        };
-        let index_value = if index.is_none() {
-            -1
-        } else {
-            index.extract::<i32>()?
-        };
-        let (register_name, register_name_length) = reg_name_bytes
-            .as_ref()
-            .map(|name| (name.clone(), name.len() as i32))
-            .unwrap_or((String::new(), -1));
-        initial_layout_items.push(formats::InitialLayoutItemV2Pack {
-            index_value,
-            register_name_length,
-            register_name,
-        });
-    }
-
-    let mut input_mapping_items = Vec::with_capacity(input_mapping_size.max(0) as usize);
-    for i in &input_qubit_mapping_array {
-        input_mapping_items.push(i.extract::<u32>()?);
-        // buffer.write_all(&i.extract::<u32>()?.to_be_bytes())?;
-    }
-
-    let mut final_layout_items = Vec::with_capacity(final_layout_size.max(0) as usize);
-    for i in &final_layout_array {
-        final_layout_items.push(i.extract::<u32>()?);
-        // buffer.write_all(&i.extract::<u32>()?.to_be_bytes())?;
-    }
-
-    Ok(formats::LayoutV2Pack {
-        exists: true as u8,
-        initial_layout_size,
-        input_mapping_size,
-        final_layout_size,
-        input_qubit_count,
-        extra_registers,
-        initial_layout_items,
-        input_mapping_items,
-        final_layout_items,
-    })
-}
-
-pub fn py_pack_circuit(
-    circuit: &Bound<PyAny>,
-    metadata_serializer: &Bound<PyAny>,
-    use_symengine: bool,
-    version: u32,
-    annotation_factories: &Bound<PyDict>,
-) -> PyResult<formats::QPYFormatV15> {
-    circuit.getattr("data")?; // in case _data is lazily generated in python
-    let mut circuit_data = circuit.getattr("_data")?.extract::<CircuitData>()?;
-    let mut standalone_var_indices: HashMap<u128, u16> = HashMap::new();
-    let standalone_vars =
-        pack_standalone_vars(&circuit_data, version, &mut standalone_var_indices)?;
-    let annotation_handler = AnnotationHandler::new(annotation_factories);
-    let mut qpy_data = QPYWriteData {
-        version,
-        _use_symengine: use_symengine,
-        clbits: &circuit_data.clbits().clone(), // we need to clone since circuit_data might change when serializing custom instructions, explicitly creating the inner instructions
-        standalone_var_indices: HashMap::new(),
-        annotation_handler,
-    };
-    let header = py_pack_circuit_header(circuit, metadata_serializer, &qpy_data)?;
-    // Pulse has been removed in Qiskit 2.0. As long as we keep QPY at version 13,
-    // we need to write an empty calibrations header since read_circuit expects it
-    let calibrations = formats::CalibrationsPack { num_cals: 0 };
-    let (instructions, mut custom_instructions_hash) =
-        pack_instructions(&circuit_data, &mut qpy_data)?;
-    let custom_instructions = pack_custom_instructions(
-        &mut custom_instructions_hash,
-        &mut circuit_data,
-        &mut qpy_data,
-    )?;
-    let layout = pack_py_layout(circuit)?;
-    let state_headers: Vec<formats::AnnotationStateHeaderPack> = qpy_data
-        .annotation_handler
-        .dump_serializers()?
-        .into_iter()
-        .map(|(namespace, state)| formats::AnnotationStateHeaderPack { namespace, state })
-        .collect();
-
-    let annotation_headers = formats::AnnotationHeaderStaticPack { state_headers };
-    Ok(formats::QPYFormatV15 {
-        header,
-        standalone_vars,
-        annotation_headers,
-        custom_instructions,
-        instructions,
-        calibrations,
-        layout,
-    })
 }
 
 fn pack_sparse_pauli_op(
@@ -956,9 +683,9 @@ pub fn get_instruction_params(
             );
             let neg_value = GenericValue::Bool(pauli_product_measurement.neg);
             return Ok(vec![
-                pack_generic_value(&z_values),
-                pack_generic_value(&x_values),
-                pack_generic_value(&neg_value),
+                pack_generic_value(&z_values)?,
+                pack_generic_value(&x_values)?,
+                pack_generic_value(&neg_value)?,
             ]);
         }
         instruction
@@ -1057,8 +784,8 @@ pub fn pack_custom_instruction(
                         None => (),
                         Some(definition) => {
                             has_definition = true;
-                            data = serialize(&py_pack_circuit(
-                                &definition,
+                            data = serialize(&pack_circuit(
+                                definition.extract()?,
                                 py.None().bind(py),
                                 false,
                                 qpy_data.version,
@@ -1073,8 +800,8 @@ pub fn pack_custom_instruction(
                         None => (),
                         Some(definition) => {
                             has_definition = true;
-                            data = serialize(&py_pack_circuit(
-                                &definition,
+                            data = serialize(&pack_circuit(
+                                definition.extract()?,
                                 py.None().bind(py),
                                 false,
                                 qpy_data.version,
@@ -1089,8 +816,8 @@ pub fn pack_custom_instruction(
                         None => (),
                         Some(definition) => {
                             has_definition = true;
-                            data = serialize(&py_pack_circuit(
-                                &definition,
+                            data = serialize(&pack_circuit(
+                                definition.extract()?,
                                 py.None().bind(py),
                                 false,
                                 qpy_data.version,

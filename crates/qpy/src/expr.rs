@@ -237,40 +237,44 @@ pub fn read_expression<R: Read + Seek>(
         ExpressionElementPack::Index(index_type_pack) => {
             let target = read_expression(reader, endian, (qpy_data,))?;
             let index = read_expression(reader, endian, (qpy_data,))?;
+            let constant = target.is_const() && index.is_const();
             Ok(Expr::Index(Box::new(Index {
                 target,
                 index,
                 ty: unpack_expression_type(index_type_pack),
-                constant: false,
-            }))) // TODO: what constant should be?
+                constant,
+            })))
         }
         ExpressionElementPack::Cast(cast_type_pack, implicit) => {
             let operand = read_expression(reader, endian, (qpy_data,))?;
+            let constant = operand.is_const();
             Ok(Expr::Cast(Box::new(Cast {
                 operand,
                 ty: unpack_expression_type(cast_type_pack),
-                constant: false,
+                constant,
                 implicit: implicit != 0,
-            }))) // TODO: what constant should be?
+            })))
         }
         ExpressionElementPack::Unary(unary_type_pack, op) => {
             let operand = read_expression(reader, endian, (qpy_data,))?;
+            let constant = operand.is_const();
             Ok(Expr::Unary(Box::new(Unary {
                 op: UnaryOp::from_u8(op).map_err(|_| Error::NoVariantMatch { pos: (0) })?,
                 operand,
                 ty: unpack_expression_type(unary_type_pack),
-                constant: false,
+                constant,
             })))
         }
         ExpressionElementPack::Binary(binary_type_pack, op) => {
             let left = read_expression(reader, endian, (qpy_data,))?;
             let right = read_expression(reader, endian, (qpy_data,))?;
+            let constant = left.is_const() && right.is_const();
             Ok(Expr::Binary(Box::new(Binary {
                 op: BinaryOp::from_u8(op).map_err(|_| Error::NoVariantMatch { pos: (0) })?,
                 left,
                 right,
                 ty: unpack_expression_type(binary_type_pack),
-                constant: false,
+                constant,
             })))
         }
     }

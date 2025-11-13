@@ -443,6 +443,8 @@ pub struct ParameterExpressionPack {
     pub symbol_table_data: Vec<ParameterExpressionSymbolPack>,
 }
 
+// This is the data type for the dictionary-like symbol table, storing both the parameter expression symbol
+// (serving as key) and its corresponding value (given as a generic serialized value)
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]

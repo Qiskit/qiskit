@@ -22,7 +22,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::bytes::Bytes;
-use crate::formats::{self, GenericDataPack};
+use crate::formats::{self, GenericDataPack, ParameterVectorPack};
 use crate::py_methods::{
     py_dumps_instruction_param_value, py_dumps_value, py_load_instruction_param_value,
 };
@@ -136,18 +136,18 @@ pub fn unpack_parameter_expression(
                     parameter_tags::PARAMETER => {
                         GenericValue::ParameterExpressionSymbol(symbol.clone())
                     }
-                    _ => load_value(symbol_pack.value_key, &symbol_pack.value_data)?,
+                    _ => load_value(symbol_pack.value_key, &symbol_pack.value_data, qpy_data)?,
                 };
                 (symbol_pack.symbol_data.uuid, symbol, value)
             }
             formats::ParameterExpressionSymbolPack::ParameterVector(symbol_pack) => {
                 // this call will also create the corresponding vector and update qpy_data if needed
-                let symbol = unpack_parameter_vector_symbol(&symbol_pack.symbol_data, qpy_data)?;
+                let symbol = unpack_parameter_vector(&symbol_pack.symbol_data, qpy_data)?;
                 let value = match symbol_pack.value_key {
                     parameter_tags::PARAMETER_VECTOR => {
                         GenericValue::ParameterExpressionSymbol(symbol.clone())
                     }
-                    _ => load_value(symbol_pack.value_key, &symbol_pack.value_data)?,
+                    _ => load_value(symbol_pack.value_key, &symbol_pack.value_data, qpy_data)?,
                 };
                 (symbol_pack.symbol_data.uuid, symbol, value)
             }
@@ -172,7 +172,7 @@ pub fn unpack_parameter_expression(
             let mut subs_mapping: HashMap<Symbol, ParameterExpression> = HashMap::new();
             for item in mapping_pack.items {
                 let key_uuid: [u8; 16] = (&item.key_bytes).try_into()?;
-                let value_generic_item = load_value(item.item_type, &item.item_bytes)?;
+                let value_generic_item = load_value(item.item_type, &item.item_bytes, qpy_data)?;
                 let key_generic_item = param_uuid_map.get(&key_uuid).ok_or_else(|| {
                     PyValueError::new_err(format!("Parameter UUID not found: {:?}", &key_uuid))
                 })?;
@@ -218,7 +218,7 @@ pub fn unpack_parameter_expression(
                     }
                 }
                 parameter_tags::FLOAT | parameter_tags::INTEGER | parameter_tags::COMPLEX => {
-                    let value = load_value(op.lhs_type, &op.lhs.into())?;
+                    let value = load_value(op.lhs_type, &op.lhs.into(), qpy_data)?;
                     Some(parameter_value_type_from_generic_value(&value)?)
                 }
                 parameter_tags::NULL => None, // pass
@@ -243,7 +243,7 @@ pub fn unpack_parameter_expression(
                     }
                 }
                 parameter_tags::FLOAT | parameter_tags::INTEGER | parameter_tags::COMPLEX => {
-                    let value = load_value(op.rhs_type, &op.rhs.into())?;
+                    let value = load_value(op.rhs_type, &op.rhs.into(), qpy_data)?;
                     Some(parameter_value_type_from_generic_value(&value)?)
                 }
                 parameter_tags::NULL => None, // pass
@@ -280,13 +280,40 @@ pub fn unpack_symbol(parameter_pack: &formats::ParameterPack) -> Symbol {
     }
 }
 
+// currently, the only way to extract the length of the vector the symbol belongs to
+// is via python space since the vector is stored as a python reference in the symbol
+pub fn pack_parameter_vector(symbol: &Symbol) -> PyResult<formats::ParameterVectorPack> {
+    let vector_size = Python::attach(|py| -> PyResult<_> {
+        match &symbol.vector {
+            None => Err(PyValueError::new_err(
+                "No vector data for parameter vector element",
+            )),
+            Some(vector) => vector.bind(py).call_method0("__len__")?.extract(),
+        }
+    })?;
+    let index = match symbol.index {
+        None => {
+            return Err(PyValueError::new_err(
+                "No index data for parameter vector element",
+            ));
+        }
+        Some(index_value) => index_value as u64,
+    };
+    Ok(ParameterVectorPack {
+        vector_size,
+        uuid: *symbol.uuid.as_bytes(),
+        index,
+        name: symbol.name.clone(),
+    })
+}
+
 // parameter vector symbols are currently much more tricky than standalone symbols
 // since we don't have a rust-space concept of ParameterVector; it is a pure python object
 // which we must manage while creating its elements. Moreover, the vector itself is not stored anywhere
 // so we need to create it in an ad-hoc fashion as we encounter its elements during the parsing of the
 // qpy file. In particular we need to keep our qpy_data nearby so we can update the vector list as needed
 // and we must use python calls to create and modify the python-space ParameterVector
-pub fn unpack_parameter_vector_symbol(
+pub fn unpack_parameter_vector(
     parameter_vector_pack: &formats::ParameterVectorPack,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<Symbol> {
@@ -353,9 +380,18 @@ pub fn dumps_param_expression(
     qpy_data: &QPYWriteData,
 ) -> PyResult<(u8, Bytes)> {
     // if the parameter expression is a single symbol, we should treat it like a parameter
+    // or a parameter vector, depending on whether the `vector` field exists
     let result = if let Ok(symbol) = exp.try_to_symbol() {
-        let packed_symbol = pack_symbol(&symbol);
-        (tags::PARAMETER, serialize(&packed_symbol))
+        match symbol.vector {
+            None => {
+                let packed_symbol = pack_symbol(&symbol);
+                (tags::PARAMETER, serialize(&packed_symbol))
+            }
+            Some(_) => {
+                let packed_symbol = pack_parameter_vector(&symbol)?;
+                (tags::PARAMETER_VECTOR, serialize(&packed_symbol))
+            }
+        }
     } else {
         Python::attach(|py| py_dumps_value(exp.clone().into_py_any(py)?, qpy_data))?
     };
@@ -393,7 +429,16 @@ pub fn unpack_param(
                 ParameterExpression::from_symbol(unpack_symbol(&packed_symbol));
             Ok(Param::ParameterExpression(Arc::new(parameter_expression)))
         }
-        tags::PARAMETER_EXPRESSION | tags::PARAMETER_VECTOR => {
+        tags::PARAMETER_VECTOR => {
+            let (packed_symbol, _) =
+                deserialize::<formats::ParameterVectorPack>(&packed_param.data)?;
+            let parameter_expression = ParameterExpression::from_symbol(unpack_parameter_vector(
+                &packed_symbol,
+                qpy_data,
+            )?);
+            Ok(Param::ParameterExpression(Arc::new(parameter_expression)))
+        }
+        tags::PARAMETER_EXPRESSION => {
             let dumped_value = DumpedPyValue {
                 data_type: packed_param.type_key,
                 data: packed_param.data.clone(),

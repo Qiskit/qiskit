@@ -268,13 +268,13 @@ fn unpack_instruction(
                 "Pauli Product Measurement should have exactly 3 parameters",
             ));
         }
-        let z = unpack_generic_value(&instruction.params[0])?
+        let z = unpack_generic_value(&instruction.params[0], qpy_data)?
             .as_typed::<Vec<bool>>()
             .unwrap();
-        let x = unpack_generic_value(&instruction.params[1])?
+        let x = unpack_generic_value(&instruction.params[1], qpy_data)?
             .as_typed::<Vec<bool>>()
             .unwrap();
-        let neg = unpack_generic_value(&instruction.params[2])?
+        let neg = unpack_generic_value(&instruction.params[2], qpy_data)?
             .as_typed::<bool>()
             .unwrap();
         let ppm = Box::new(PauliProductMeasurement { z, x, neg });

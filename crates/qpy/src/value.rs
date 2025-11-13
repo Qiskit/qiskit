@@ -22,9 +22,8 @@ use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::classical::expr::{Expr, Stretch, Var};
 use qiskit_circuit::classical::types::Type;
 use qiskit_circuit::object_registry::ObjectRegistry;
-use qiskit_circuit::operations::{OperationRef, Param};
+use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::Symbol;
 use qiskit_circuit::{Clbit, imports};
 
@@ -32,9 +31,9 @@ use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
 use crate::circuit_reader::unpack_circuit;
 use crate::formats::{self, GenericDataPack, GenericDataSequencePack};
-use crate::params::{pack_symbol, unpack_symbol};
+use crate::params::{pack_parameter_vector, pack_symbol, unpack_parameter_vector, unpack_symbol};
 use crate::py_methods::{
-    py_deserialize_range, py_dumps_value, py_unpack_generic_sequence_to_tuple, py_unpack_modifier,
+    py_deserialize_range, py_unpack_generic_sequence_to_tuple, py_unpack_modifier,
 };
 use crate::{QpyError, UnsupportedFeatureForVersion};
 
@@ -73,7 +72,6 @@ pub struct QPYReadData<'a> {
     pub cregs: Py<PyDict>,
     pub standalone_vars: HashMap<u16, qiskit_circuit::Var>,
     pub standalone_stretches: HashMap<u16, qiskit_circuit::Stretch>,
-    // pub standalone_vars: Py<PyList>,
     pub vectors: HashMap<Uuid, (Py<PyAny>, Vec<u32>)>,
     pub annotation_handler: AnnotationHandler<'a>,
 }
@@ -190,6 +188,7 @@ pub enum GenericValue {
     Float64(f64),
     Complex64(Complex64),
     ParameterExpressionSymbol(Symbol),
+    ParameterExpressionVectorSymbol(Symbol),
     Tuple(Vec<GenericValue>),
 }
 
@@ -222,7 +221,7 @@ impl_from_generic!(bool, Bool);
 impl_from_generic!(i64, Int64);
 impl_from_generic!(f64, Float64);
 impl_from_generic!(Complex64, Complex64);
-impl_from_generic!(Symbol, ParameterExpressionSymbol);
+// we do not implement Symbol extraction, since it is ambiguous - a symbol can be a Parameter or a ParameterVector
 
 // Extracting tuples is a little more trick; we'll use macro for the easy case of Vec<T> for a specific T
 impl<T: FromGenericValue> FromGenericValue for Vec<T> {
@@ -240,7 +239,11 @@ impl<T: FromGenericValue> FromGenericValue for Vec<T> {
     }
 }
 
-pub fn load_value(type_key: u8, bytes: &Bytes) -> PyResult<GenericValue> {
+pub fn load_value(
+    type_key: u8,
+    bytes: &Bytes,
+    qpy_data: &mut QPYReadData,
+) -> PyResult<GenericValue> {
     match type_key {
         tags::BOOL => {
             let value: bool = bytes.try_into()?;
@@ -263,9 +266,14 @@ pub fn load_value(type_key: u8, bytes: &Bytes) -> PyResult<GenericValue> {
             let symbol = unpack_symbol(&parameter);
             Ok(GenericValue::ParameterExpressionSymbol(symbol))
         }
+        tags::PARAMETER_VECTOR => {
+            let (parameter_vector_element, _) = deserialize::<formats::ParameterVectorPack>(bytes)?;
+            let symbol = unpack_parameter_vector(&parameter_vector_element, qpy_data)?;
+            Ok(GenericValue::ParameterExpressionVectorSymbol(symbol))
+        }
         tags::TUPLE => {
             let (elements_pack, _) = deserialize::<GenericDataSequencePack>(bytes)?;
-            let values = unpack_generic_value_sequence(elements_pack)?;
+            let values = unpack_generic_value_sequence(elements_pack, qpy_data)?;
             Ok(GenericValue::Tuple(values))
         }
         _ => Err(PyTypeError::new_err(format!(
@@ -276,8 +284,8 @@ pub fn load_value(type_key: u8, bytes: &Bytes) -> PyResult<GenericValue> {
 }
 
 /// serializes the generic value into bytes and also returns the identifying tag
-pub fn serialize_generic_value(value: &GenericValue) -> (u8, Bytes) {
-    match value {
+pub fn serialize_generic_value(value: &GenericValue) -> PyResult<(u8, Bytes)> {
+    Ok(match value {
         GenericValue::Bool(value) => (tags::BOOL, value.into()),
         GenericValue::Int64(value) => (tags::INTEGER, value.into()),
         GenericValue::Float64(value) => (tags::FLOAT, value.into()),
@@ -285,36 +293,48 @@ pub fn serialize_generic_value(value: &GenericValue) -> (u8, Bytes) {
         GenericValue::ParameterExpressionSymbol(symbol) => {
             (tags::PARAMETER, serialize(&pack_symbol(symbol)))
         }
-        GenericValue::Tuple(values) => {
-            (tags::TUPLE, serialize(&pack_generic_value_sequence(values)))
-        }
-    }
+        GenericValue::ParameterExpressionVectorSymbol(symbol) => (
+            tags::PARAMETER_VECTOR,
+            serialize(&pack_parameter_vector(symbol)?),
+        ),
+        GenericValue::Tuple(values) => (
+            tags::TUPLE,
+            serialize(&pack_generic_value_sequence(values)?),
+        ),
+    })
 }
 
 // packing to GenericDataPack is somewhat wasteful in many cases, since given the type_key
 // we usually know the byte length of the data and don't need to store it directly,
 // but since that's the format currently in place in QPY we don't try to optimize
-pub fn pack_generic_value(value: &GenericValue) -> GenericDataPack {
-    let (type_key, data) = serialize_generic_value(value);
-    GenericDataPack { type_key, data }
+pub fn pack_generic_value(value: &GenericValue) -> PyResult<GenericDataPack> {
+    let (type_key, data) = serialize_generic_value(value)?;
+    Ok(GenericDataPack { type_key, data })
 }
 
-pub fn unpack_generic_value(value_pack: &GenericDataPack) -> PyResult<GenericValue> {
-    load_value(value_pack.type_key, &value_pack.data)
+pub fn unpack_generic_value(
+    value_pack: &GenericDataPack,
+    qpy_data: &mut QPYReadData,
+) -> PyResult<GenericValue> {
+    load_value(value_pack.type_key, &value_pack.data, qpy_data)
 }
 
-pub fn pack_generic_value_sequence(values: &[GenericValue]) -> GenericDataSequencePack {
-    let elements = values.iter().map(pack_generic_value).collect();
-    GenericDataSequencePack { elements }
+pub fn pack_generic_value_sequence(values: &[GenericValue]) -> PyResult<GenericDataSequencePack> {
+    let elements = values
+        .iter()
+        .map(pack_generic_value)
+        .collect::<PyResult<_>>()?;
+    Ok(GenericDataSequencePack { elements })
 }
 
 pub fn unpack_generic_value_sequence(
     value_seqeunce_pack: GenericDataSequencePack,
+    qpy_data: &mut QPYReadData,
 ) -> PyResult<Vec<GenericValue>> {
     value_seqeunce_pack
         .elements
         .iter()
-        .map(unpack_generic_value)
+        .map(|data_pack| unpack_generic_value(data_pack, qpy_data))
         .collect()
 }
 
@@ -449,11 +469,6 @@ pub struct DumpedPyValue {
 }
 
 impl DumpedPyValue {
-    pub fn from(py_object: Py<PyAny>, qpy_data: &QPYWriteData) -> PyResult<Self> {
-        let (data_type, data) = py_dumps_value(py_object, qpy_data)?;
-        Ok(DumpedPyValue { data_type, data })
-    }
-
     pub fn to_python(&self, py: Python<'_>, qpy_data: &mut QPYReadData) -> PyResult<Py<PyAny>> {
         Ok(match self.data_type {
             tags::INTEGER => {
@@ -506,40 +521,6 @@ impl DumpedPyValue {
                 )));
             }
         })
-    }
-    // pub fn to_param(&self, py: Python, qpy_data: &mut QPYReadData) -> PyResult<Param> {
-    //     match self.data_type {
-    //         // sadly, QPY given different endianess for floats in
-    //         tags::FLOAT => Ok(Param::Float((&self.data).try_into()?)),
-
-    //         tags::PARAMETER_EXPRESSION | tags::PARAMETER | tags::PARAMETER_VECTOR => {
-    //             // TODO: implement for the new parameter expression
-    //             Ok(Param::Obj(self.to_python(py, qpy_data)?))
-    //             //Ok(Param::ParameterExpression(self.to_python(py, qpy_data)?))
-    //         }
-    //         _ => Ok(Param::Obj(self.to_python(py, qpy_data)?)),
-    //     }
-    // }
-    pub fn from_param(param: &Param, qpy_data: &QPYWriteData) -> PyResult<DumpedPyValue> {
-        match param {
-            Param::Float(value) => Ok(DumpedPyValue {
-                data_type: (tags::FLOAT),
-                data: (value.into()),
-            }),
-            Param::Obj(py_object) => DumpedPyValue::from(py_object.clone(), qpy_data),
-            Param::ParameterExpression(exp) => {
-                DumpedPyValue::from_parameter_expression(exp, qpy_data)
-            }
-        }
-    }
-    pub fn from_parameter_expression(
-        exp: &ParameterExpression,
-        qpy_data: &QPYWriteData,
-    ) -> PyResult<DumpedPyValue> {
-        let (data_type, data) = Python::attach(|py| -> PyResult<_> {
-            py_dumps_value(exp.clone().into_py_any(py)?, qpy_data)
-        })?;
-        Ok(DumpedPyValue { data_type, data })
     }
 }
 
