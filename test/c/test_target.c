@@ -552,8 +552,12 @@ int test_target_instruction_supported(void) {
     QkTarget *sample_target = create_sample_target(true);
     int result = Ok;
 
-    QkGate single_qubit_gates[5] = {QkGate_X, QkGate_Y, QkGate_I, QkGate_RZ, QkGate_SX};
-    char *gate_names[5] = {"x", "y", "i", "rz", "sx"};
+    char *gate_names[5] = {"x", "y", "id", "rz", "sx"};
+    QkParam **params[5] = {NULL, NULL, NULL,
+                           (QkParam *[]){
+                               qk_param_from_double(3.14),
+                           },
+                           NULL};
     for (uint32_t i = 0; i < 5; i++) {
         uint32_t qargs[1] = {i};
         bool should_be_true = i < 4;
@@ -561,7 +565,7 @@ int test_target_instruction_supported(void) {
         for (int j = 0; j < 5; j++) {
             // If i == 4 condition should be false unless we try with the y gate
             // since y is added as a global gate.
-            if (!(qk_target_instruction_supported(sample_target, single_qubit_gates[j], qargs) ==
+            if (!(qk_target_instruction_supported(sample_target, gate_names[j], qargs, params[j]) ==
                   should_be_true) &&
                 j != 1) {
                 printf("This target did not correctly demonstrate compatibility with %s and qargs "
@@ -572,8 +576,22 @@ int test_target_instruction_supported(void) {
             }
         }
 
+        // Try checking with the wrong fixed parameter for RZ
+        QkParam *param = qk_param_from_double(1.57);
+        if (qk_target_instruction_supported(sample_target, "rz", qargs,
+                                            (QkParam *[]){
+                                                param,
+                                            })) {
+            printf("This target did not correctly demonstrate compatibility with 'rz' and qargs "
+                   "[%d]",
+                   i);
+            result = RuntimeError;
+            qk_param_free(param);
+            goto cleanup;
+        }
+
         // Test standard instructions reset and measure
-        if (!(qk_target_measure_supported(sample_target, i) == (i < 2))) {
+        if (!(qk_target_instruction_supported(sample_target, "measure", qargs, NULL) == (i < 2))) {
             printf(
                 "This target did not correctly demonstrate compatibility with 'measure' and qargs "
                 "[%d]",
@@ -582,7 +600,7 @@ int test_target_instruction_supported(void) {
             goto cleanup;
         }
 
-        if (!(qk_target_reset_supported(sample_target, i) == (i < 4))) {
+        if (!(qk_target_instruction_supported(sample_target, "reset", qargs, NULL) == (i < 4))) {
             printf("This target did not correctly demonstrate compatibility with 'reset' and qargs "
                    "[%d]",
                    i);
@@ -596,7 +614,7 @@ int test_target_instruction_supported(void) {
         {3, 4}, {4, 3}, {3, 1}, {1, 3}, {1, 2}, {2, 1}, {0, 1}, {1, 0},
     };
     for (int i = 0; i < 8; i++) {
-        if (!qk_target_instruction_supported(sample_target, QkGate_CX, qarg_samples[i])) {
+        if (!qk_target_instruction_supported(sample_target, "cx", qarg_samples[i], NULL)) {
             printf("This target did incorrectly demonstrate compatibility with 'cx' and qargs [%d, "
                    "%d]",
                    qarg_samples[i][0], qarg_samples[i][1]);
@@ -607,13 +625,14 @@ int test_target_instruction_supported(void) {
 
     uint32_t cx_qargs[2] = {3, 2};
     // Instruction should not show compatibility with (3, 2)
-    if (qk_target_instruction_supported(sample_target, QkGate_CX, cx_qargs)) {
+    if (qk_target_instruction_supported(sample_target, "cx", cx_qargs, NULL)) {
         printf("This target did incorrectly demonstrate compatibility with 'cx' and qargs [3, 2]");
         result = RuntimeError;
         goto cleanup;
     }
 
 cleanup:
+    qk_param_free(params[3][0]);
     qk_target_free(sample_target);
     return result;
 }
