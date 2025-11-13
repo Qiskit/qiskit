@@ -761,12 +761,12 @@ pub unsafe extern "C" fn qk_dag_free(dag: *mut DAGCircuit) {
 /// qk_dag_topological_op_nodes(dag, order);
 ///
 /// // do something with the ordered nodes
-/// for (uint32_t i=0; i<num_ops; i++) {
+/// for (uint32_t i = 0; i < num_ops; i++) {
 ///     QkGate gate = qk_dag_op_node_gate_op(dag, order[i], NULL);
 ///     printf("The gate at location %u is %u.\n", i, gate);
 /// }
 ///
-/// // free the order array
+/// // free the order array, register, and dag pointer when done
 /// free(order);
 /// qk_quantum_register_free(qr);
 /// qk_dag_free(dag);
@@ -787,11 +787,9 @@ pub unsafe extern "C" fn qk_dag_topological_op_nodes(dag: *const DAGCircuit, ord
 
     // SAFETY: Per documentation, ``order`` is a valid pointer with a sufficient allocation for the output
     // array.
-    unsafe {
-        let out_slice = std::slice::from_raw_parts_mut(order, dag.num_ops());
-        out_slice
-            .iter_mut()
-            .zip(out_topological_op_nodes)
-            .for_each(|(dest, src)| *dest = src.index() as u32);
-    };
+    let out_slice = unsafe { std::slice::from_raw_parts_mut(order, dag.num_ops()) };
+    out_slice
+        .iter_mut()
+        .zip(out_topological_op_nodes)
+        .for_each(|(dest, src)| *dest = src.index() as u32);
 }

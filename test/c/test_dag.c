@@ -325,30 +325,27 @@ static int test_dag_topological_op_nodes(void) {
     size_t num_ops = qk_dag_num_op_nodes(dag);
     if (num_ops != 2) {
         printf("The number of op nodes %zu is not 0\n", num_ops);
-        qk_dag_free(dag);
-        qk_quantum_register_free(qr);
-        return EqualityError;
+        result = EqualityError;
     }
 
     uint32_t *order = malloc(sizeof(uint32_t) * num_ops);
     qk_dag_topological_op_nodes(dag, order);
 
-    for (uint32_t i = 0; i < num_ops; i++) {
-        if (order[0] != h_gate_idx) {
-            printf("Expected gate index %u but got %u\n", h_gate_idx, order[0]);
-            result = EqualityError;
-            goto cleanup;
-        }
+    if (order[0] != h_gate_idx) {
+        printf("Expected gate index %u but got %u\n", h_gate_idx, order[0]);
+        result = EqualityError;
+        goto cleanup;
+    }
 
-        if (order[1] != s_gate_idx) {
-            printf("Expected gate index %u but got %u\n", s_gate_idx, order[1]);
-            result = EqualityError;
-            goto cleanup;
-        }
+    if (order[1] != s_gate_idx) {
+        printf("Expected gate index %u but got %u\n", s_gate_idx, order[1]);
+        result = EqualityError;
     }
 
 cleanup:
     free(order);
+
+early_cleanup:
     qk_dag_free(dag);
     qk_quantum_register_free(qr);
     return result;
