@@ -23,6 +23,7 @@ use pyo3::types::{
 };
 use std::io::Cursor;
 
+use qiskit_circuit::Clbit;
 use qiskit_circuit::bit::{PyClassicalRegister, PyClbit, ShareableClbit};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::CircuitInstruction;
@@ -31,7 +32,6 @@ use qiskit_circuit::imports;
 use qiskit_circuit::operations::{ArrayType, Operation, OperationRef, StandardInstruction};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::parameter::parameter_expression::{OPReplay, OpCode};
-use qiskit_circuit::Clbit;
 
 use uuid::Uuid;
 

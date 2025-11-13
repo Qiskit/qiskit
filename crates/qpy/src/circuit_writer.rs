@@ -44,6 +44,7 @@ use crate::value::{
 
 use crate::UnsupportedFeatureForVersion;
 
+/// packing the qubits and clbits of a specific instruction into CircuitInstructionArgPack
 pub fn get_packed_bit_list(
     inst: &PackedInstruction,
     circuit_data: &CircuitData,
@@ -83,6 +84,8 @@ pub fn get_condition_data(
     }
 }
 
+/// pack all the instructions in the circuit, returning both the packed instructions
+/// and the dictionary of custom operations generated in the process
 pub fn pack_instructions(
     circuit_data: &CircuitData,
     qpy_data: &mut QPYWriteData,
@@ -110,6 +113,7 @@ pub fn pack_instructions(
     ))
 }
 
+/// packs one specific instruction into CircuitInstructionV2Pack, creating a new custom operation if needed
 pub fn pack_instruction(
     instruction: &PackedInstruction,
     circuit_data: &CircuitData,
@@ -168,6 +172,16 @@ fn pack_quantum_registers(circuit_data: &CircuitData) -> Vec<formats::RegisterV4
     let in_circ_lookup: HashSet<QuantumRegister> = circuit_data.qregs().iter().cloned().collect();
     let mut registers_to_pack: IndexSet<QuantumRegister> =
         circuit_data.qregs().iter().cloned().collect();
+
+    // add all owning registers for qubits in the circuits (even registers not included in the circuit itself)
+    registers_to_pack.extend(
+        circuit_data
+            .qubits()
+            .objects()
+            .iter()
+            .filter_map(|qubit| qubit.owning_register()),
+    );
+    // add all registers showing up as qubit indices for some qubit in the circuit
     registers_to_pack.extend(
         circuit_data
             .qubits()
@@ -208,6 +222,14 @@ fn pack_classical_registers(circuit_data: &CircuitData) -> Vec<formats::Register
     let in_circ_lookup: HashSet<ClassicalRegister> = circuit_data.cregs().iter().cloned().collect();
     let mut registers_to_pack: IndexSet<ClassicalRegister> =
         circuit_data.cregs().iter().cloned().collect();
+    // add all owning registers for clbits in the circuits (even registers not included in the circuit itself)
+    registers_to_pack.extend(
+        circuit_data
+            .clbits()
+            .objects()
+            .iter()
+            .filter_map(|clbit| clbit.owning_register()),
+    );
     registers_to_pack.extend(
         circuit_data
             .clbits()

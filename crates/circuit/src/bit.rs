@@ -374,6 +374,14 @@ macro_rules! create_bit_object {
                     subclass: Default::default(),
                 })
             }
+            pub fn owning_register(&self) -> Option<$reg_struct> {
+                match &self.0 {
+                    BitInfo::Owned { register, .. } => {
+                        Some($reg_struct(Arc::new(RegisterInfo::Owning(register.clone()))))
+                    }
+                    BitInfo::Anonymous { .. } => None,
+                }
+            }
         }
 
         impl ShareableBit for $bit_struct {
