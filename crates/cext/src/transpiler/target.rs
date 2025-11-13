@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+#[cfg(feature = "cbinding")]
+use std::ffi::{CStr, c_char};
 use std::sync::Arc;
 
 use crate::exit_codes::{CInputError, ExitCode};
@@ -446,6 +448,7 @@ pub struct TargetEntry {
     operation: StandardOperation,
     params: Option<SmallVec<[Param; 3]>>,
     map: IndexMap<Qargs, Option<InstructionProperties>, ahash::RandomState>,
+    name: Option<String>
 }
 
 impl TargetEntry {
@@ -468,13 +471,17 @@ impl TargetEntry {
             operation: StandardOperation::Gate(operation),
             params,
             map: Default::default(),
+            name: Some(operation.name().to_string()),
         }
     }
 
-    pub fn new_fixed(operation: StandardGate, params: SmallVec<[Param; 3]>) -> Self {
+    pub fn new_fixed(operation: StandardGate, params: SmallVec<[Param; 3]>, name: *const c_char) -> Self {
         Self {
             operation: StandardOperation::Gate(operation),
             params: Some(params),
+            name: Some(unsafe {
+                CStr::from_ptr(name).to_str().unwrap().to_string()
+            }),
             map: Default::default(),
         }
     }
@@ -484,6 +491,7 @@ impl TargetEntry {
             operation: StandardOperation::Instruction(instruction),
             params: None,
             map: Default::default(),
+            name: Some(instruction.name().to_string()),
         }
     }
 }
@@ -591,11 +599,13 @@ pub extern "C" fn qk_target_entry_new_reset() -> *mut TargetEntry {
 pub unsafe extern "C" fn qk_target_entry_new_fixed(
     operation: StandardGate,
     params: *mut f64,
+    name: *const c_char,
 ) -> *mut TargetEntry {
     unsafe {
         Box::into_raw(Box::new(TargetEntry::new_fixed(
             operation,
             parse_params(operation, params),
+            name,
         )))
     }
 }
