@@ -1558,7 +1558,9 @@ impl PyPauliLindbladMap {
             .into())
     }
 
-    /// Sample sign and Pauli operator pairs from the map.
+    /// Sample sign and Pauli operator pairs from the map. Note that the boolean sign convention in
+    /// this method is non-standard. The preferred method for this kind of sampling is 
+    /// :meth:`.PauliLindbladMap.parity_sample`, which is also more featureful.
     ///
     /// Each sign is represented by a boolean, with ``True`` representing ``+1``, and ``False``
     /// representing ``-1``.
@@ -1601,6 +1603,40 @@ impl PyPauliLindbladMap {
         (signs, paulis).into_pyobject(py)
     }
 
+    /// Sample sign and Pauli operator pairs from the map.
+    ///
+    /// Each sign is represented by a boolean, with ``True`` representing ``-1``, and ``False``
+    /// representing ``+1``.
+    ///
+    /// Given the quasi-probability representation given in the class-level documentation, each
+    /// sample is drawn via the following process:
+    ///
+    /// * Initialize the sign boolean, and a :class:`~.QubitSparsePauli` instance to the identity
+    ///   operator.
+    ///
+    /// * Iterate through each Pauli in the map. Using the pseudo-probability associated with
+    ///   each operator, randomly choose between applying the operator or not.
+    ///
+    /// * If the operator is applied, update the :class`QubitSparsePauli` by multiplying it with
+    ///   the Pauli. If the rate associated with the Pauli is negative, flip the sign boolean.
+    ///
+    /// The results are returned as a 1d array of booleans, and the corresponding sampled qubit
+    /// sparse Paulis in the form of a :class:`~.QubitSparsePauliList`.
+    /// 
+    /// The arguments ``scale`` and ``local_scale`` can be used to change the underlying rates used
+    /// in the sampling process without modifying current instance or requiring creating a new one.
+    /// The ``scale`` argument scales all rates by a fixed float, and ``local_scale`` scales rates
+    /// on a term-by-term basis.
+    ///
+    /// Args:
+    ///     num_samples (int): Number of samples to draw.
+    ///     seed (int): Random seed.
+    ///     scale (float): Scale to apply to all rates.
+    ///     local_scale (list[float]): Local scale to apply on a term-by-term basis.
+    ///
+    /// Returns:
+    ///     signs, qubit_sparse_pauli_list: The boolean array of signs and the list of qubit sparse
+    ///     paulis.
     #[pyo3(signature = (num_samples, seed=None, scale=None, local_scale=None))]
     pub fn parity_sample<'py>(
         &self,
@@ -1621,7 +1657,7 @@ impl PyPauliLindbladMap {
 
     /// For :class:`.PauliLindbladMap` instances with purely non-negative rates, sample Pauli
     /// operators from the map. If the map has negative rates, use
-    /// :meth:`.PauliLindbladMap.signed_sample`.
+    /// :meth:`.PauliLindbladMap.parity_sample`.
     ///
     /// Given the quasi-probability representation given in the class-level documentation, each
     /// sample is drawn via the following process:
@@ -1658,7 +1694,7 @@ impl PyPauliLindbladMap {
         for non_negative in inner.non_negative_rates.iter() {
             if !non_negative {
                 return Err(PyValueError::new_err(
-                    "PauliLindbladMap.sample called for a map with negative rates. Use PauliLindbladMap.signed_sample",
+                    "PauliLindbladMap.sample called for a map with negative rates. Use PauliLindbladMap.parity_sample",
                 ));
             }
         }
