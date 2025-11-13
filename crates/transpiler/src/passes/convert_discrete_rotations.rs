@@ -44,133 +44,132 @@ fn try_replace_rotation_by_discrete(
 ) -> Option<(Vec<StandardGate>, f64)> {
     let multiple = is_angle_close_to_multiple_of_2pi_8(angle);
     let mut discrete_sequence = Vec::<StandardGate>::with_capacity(4);
-    let mut global_phase = 0.0;
 
-    match (gate, multiple) {
+    let global_phase = match (gate, multiple) {
         (StandardGate::RZ, Some(0)) => {
             discrete_sequence.push(StandardGate::I);
-            global_phase = 0.0;
+            0.0
         }
         (StandardGate::RZ, Some(1)) => {
             discrete_sequence.push(StandardGate::T);
-            global_phase = -1.0 * PI8;
+            -1.0 * PI8
         }
         (StandardGate::RZ, Some(2)) => {
             discrete_sequence.push(StandardGate::S);
-            global_phase = -2.0 * PI8;
+            -2.0 * PI8
         }
         (StandardGate::RZ, Some(3)) => {
             discrete_sequence.push(StandardGate::S);
             discrete_sequence.push(StandardGate::T);
-            global_phase = -3.0 * PI8;
+            -3.0 * PI8
         }
         (StandardGate::RZ, Some(4)) => {
             discrete_sequence.push(StandardGate::Z);
-            global_phase = -4.0 * PI8;
+            -4.0 * PI8
         }
         (StandardGate::RZ, Some(5)) => {
             discrete_sequence.push(StandardGate::Z);
             discrete_sequence.push(StandardGate::T);
-            global_phase = -5.0 * PI8;
+            -5.0 * PI8
         }
         (StandardGate::RZ, Some(6)) => {
             discrete_sequence.push(StandardGate::Sdg);
-            global_phase = -6.0 * PI8;
+            -6.0 * PI8
         }
         (StandardGate::RZ, Some(7)) => {
             discrete_sequence.push(StandardGate::Tdg);
-            global_phase = -7.0 * PI8;
+            -7.0 * PI8
         }
         (StandardGate::RX, Some(0)) => {
             discrete_sequence.push(StandardGate::I);
-            global_phase = 0.0;
+            0.0
         }
         (StandardGate::RX, Some(1)) => {
             discrete_sequence.push(StandardGate::H);
             discrete_sequence.push(StandardGate::T);
             discrete_sequence.push(StandardGate::H);
-            global_phase = -1.0 * PI8;
+            -1.0 * PI8
         }
         (StandardGate::RX, Some(2)) => {
             discrete_sequence.push(StandardGate::SX);
-            global_phase = -2.0 * PI8;
+            -2.0 * PI8
         }
         (StandardGate::RX, Some(3)) => {
             discrete_sequence.push(StandardGate::SX);
             discrete_sequence.push(StandardGate::H);
             discrete_sequence.push(StandardGate::T);
             discrete_sequence.push(StandardGate::H);
-            global_phase = -3.0 * PI8;
+            -3.0 * PI8
         }
         (StandardGate::RX, Some(4)) => {
             discrete_sequence.push(StandardGate::X);
-            global_phase = -4.0 * PI8;
+            -4.0 * PI8
         }
         (StandardGate::RX, Some(5)) => {
             discrete_sequence.push(StandardGate::X);
             discrete_sequence.push(StandardGate::H);
             discrete_sequence.push(StandardGate::T);
             discrete_sequence.push(StandardGate::H);
-            global_phase = -5.0 * PI8;
+            -5.0 * PI8
         }
         (StandardGate::RX, Some(6)) => {
             discrete_sequence.push(StandardGate::SXdg);
-            global_phase = -6.0 * PI8;
+            -6.0 * PI8
         }
         (StandardGate::RX, Some(7)) => {
             discrete_sequence.push(StandardGate::H);
             discrete_sequence.push(StandardGate::Tdg);
             discrete_sequence.push(StandardGate::H);
-            global_phase = -7.0 * PI8;
+            -7.0 * PI8
         }
         (StandardGate::RY, Some(0)) => {
             discrete_sequence.push(StandardGate::I);
-            global_phase = 0.0;
+            0.0
         }
         (StandardGate::RY, Some(1)) => {
             discrete_sequence.push(StandardGate::SX);
             discrete_sequence.push(StandardGate::T);
             discrete_sequence.push(StandardGate::SXdg);
-            global_phase = -1.0 * PI8;
+            -1.0 * PI8
         }
         (StandardGate::RY, Some(2)) => {
             discrete_sequence.push(StandardGate::Z);
             discrete_sequence.push(StandardGate::H);
-            global_phase = 0.0;
+            0.0
         }
         (StandardGate::RY, Some(3)) => {
             discrete_sequence.push(StandardGate::SX);
             discrete_sequence.push(StandardGate::T);
             discrete_sequence.push(StandardGate::S);
             discrete_sequence.push(StandardGate::SXdg);
-            global_phase = -3.0 * PI8;
+            -3.0 * PI8
         }
         (StandardGate::RY, Some(4)) => {
             discrete_sequence.push(StandardGate::Y);
-            global_phase = -4.0 * PI8;
+            -4.0 * PI8
         }
         (StandardGate::RY, Some(5)) => {
             discrete_sequence.push(StandardGate::Y);
             discrete_sequence.push(StandardGate::SX);
             discrete_sequence.push(StandardGate::T);
             discrete_sequence.push(StandardGate::SXdg);
-            global_phase = -5.0 * PI8;
+            -5.0 * PI8
         }
         (StandardGate::RY, Some(6)) => {
             discrete_sequence.push(StandardGate::H);
             discrete_sequence.push(StandardGate::Z);
-            global_phase = -1.0 * PI;
+            -1.0 * PI
         }
         (StandardGate::RY, Some(7)) => {
             discrete_sequence.push(StandardGate::SX);
             discrete_sequence.push(StandardGate::Tdg);
             discrete_sequence.push(StandardGate::SXdg);
-            global_phase = -7.0 * PI8;
+            -7.0 * PI8
         }
         _ => {
             return None;
         }
-    }
+    };
 
     Some((discrete_sequence, global_phase))
 }
