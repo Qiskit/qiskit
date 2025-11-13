@@ -1231,6 +1231,135 @@ class TestPauliLindbladMap(QiskitTestCase):
         self.assertEqual(len(qubit_sparse_pauli_list), 5)
         self.assertEqual(len(signs), 5)
 
+    def test_parity_sample(self):
+
+        # test all negative rates
+        pauli_lindblad_map = PauliLindbladMap([("X", -1.0), ("Y", -1.0)])
+        probs = pauli_lindblad_map.probabilities()
+        probs_dict = {
+            "I": probs[0] * probs[1],
+            "X": probs[0] * (1 - probs[1]),
+            "Y": (1 - probs[0]) * probs[1],
+            "Z": (1 - probs[0]) * (1 - probs[1]),
+        }
+        expected_signs = {"I": False, "X": True, "Y": True, "Z": False}
+
+        num_samples = 10000
+        signs, qubit_sparse_pauli_list = pauli_lindblad_map.parity_sample(num_samples, 12312)
+
+        counts = {"I": 0, "X": 0, "Y": 0, "Z": 0}
+        for sign, q in zip(signs, qubit_sparse_pauli_list):
+            for symbol in counts:
+                if q == QubitSparsePauli(symbol):
+                    counts[symbol] += 1
+                    self.assertEqual(expected_signs[symbol], sign)
+
+        for symbol, count in counts.items():
+            self.assertTrue(np.abs(count / num_samples - probs_dict[symbol]) < 1e-2)
+
+        # test all positive rates
+        pauli_lindblad_map = PauliLindbladMap([("X", 1.0), ("Y", 1.0)])
+        probs = pauli_lindblad_map.probabilities()
+        probs_dict = {
+            "I": probs[0] * probs[1],
+            "X": probs[0] * (1 - probs[1]),
+            "Y": (1 - probs[0]) * probs[1],
+            "Z": (1 - probs[0]) * (1 - probs[1]),
+        }
+        expected_signs = {"I": False, "X": False, "Y": False, "Z": False}
+
+        num_samples = 10000
+        signs, qubit_sparse_pauli_list = pauli_lindblad_map.parity_sample(num_samples, 12312)
+
+        counts = {"I": 0, "X": 0, "Y": 0, "Z": 0}
+        for sign, q in zip(signs, qubit_sparse_pauli_list):
+            for symbol in counts:
+                if q == QubitSparsePauli(symbol):
+                    counts[symbol] += 1
+                    self.assertEqual(expected_signs[symbol], sign)
+        for symbol, count in counts.items():
+            self.assertTrue(np.abs(count / num_samples - probs_dict[symbol]) < 1e-2)
+
+        # test mix of positive and negative rates
+        pauli_lindblad_map = PauliLindbladMap([("X", 1.0), ("Y", -1.0)])
+        probs = pauli_lindblad_map.probabilities()
+        probs_dict = {
+            "I": probs[0] * probs[1],
+            "X": probs[0] * (1 - probs[1]),
+            "Y": (1 - probs[0]) * probs[1],
+            "Z": (1 - probs[0]) * (1 - probs[1]),
+        }
+        expected_signs = {"I": False, "X": False, "Y": True, "Z": True}
+
+        num_samples = 10000
+        signs, qubit_sparse_pauli_list = pauli_lindblad_map.parity_sample(num_samples, 12312)
+
+        counts = {"I": 0, "X": 0, "Y": 0, "Z": 0}
+        for sign, q in zip(signs, qubit_sparse_pauli_list):
+            for symbol in counts:
+                if q == QubitSparsePauli(symbol):
+                    counts[symbol] += 1
+                    self.assertEqual(expected_signs[symbol], sign)
+
+        for symbol, count in counts.items():
+            self.assertTrue(np.abs(count / num_samples - probs_dict[symbol]) < 1e-2)
+        
+        # test scale with mix of positive and negative rates
+        pauli_lindblad_map = PauliLindbladMap([("X", 1.), ("Y", -1.)])
+        pauli_lindblad_map_downscaled = PauliLindbladMap([("X", 0.5), ("Y", -0.5)])
+        probs = pauli_lindblad_map.probabilities()
+        probs_dict = {
+            "I": probs[0] * probs[1],
+            "X": probs[0] * (1 - probs[1]),
+            "Y": (1 - probs[0]) * probs[1],
+            "Z": (1 - probs[0]) * (1 - probs[1]),
+        }
+        expected_signs = {"I": False, "X": False, "Y": True, "Z": True}
+
+        num_samples = 10000
+        signs, qubit_sparse_pauli_list = pauli_lindblad_map_downscaled.parity_sample(num_samples, 12312, scale=2.)
+
+        counts = {"I": 0, "X": 0, "Y": 0, "Z": 0}
+        for sign, q in zip(signs, qubit_sparse_pauli_list):
+            for symbol in counts:
+                if q == QubitSparsePauli(symbol):
+                    counts[symbol] += 1
+                    self.assertEqual(expected_signs[symbol], sign)
+
+        for symbol, count in counts.items():
+            self.assertTrue(np.abs(count / num_samples - probs_dict[symbol]) < 1e-2)
+        
+        # test local_scale with mix of positive and negative rates
+        pauli_lindblad_map = PauliLindbladMap([("X", 1.), ("Y", -1.0)])
+        pauli_lindblad_map_downscaled = PauliLindbladMap([("X", 1.), ("Y", -0.5)])
+        probs = pauli_lindblad_map.probabilities()
+        probs_dict = {
+            "I": probs[0] * probs[1],
+            "X": probs[0] * (1 - probs[1]),
+            "Y": (1 - probs[0]) * probs[1],
+            "Z": (1 - probs[0]) * (1 - probs[1]),
+        }
+        expected_signs = {"I": False, "X": False, "Y": True, "Z": True}
+
+        num_samples = 10000
+        signs, qubit_sparse_pauli_list = pauli_lindblad_map_downscaled.parity_sample(num_samples, 12312, local_scale=[1., 2.])
+
+        counts = {"I": 0, "X": 0, "Y": 0, "Z": 0}
+        for sign, q in zip(signs, qubit_sparse_pauli_list):
+            for symbol in counts:
+                if q == QubitSparsePauli(symbol):
+                    counts[symbol] += 1
+                    self.assertEqual(expected_signs[symbol], sign)
+
+        for symbol, count in counts.items():
+            self.assertTrue(np.abs(count / num_samples - probs_dict[symbol]) < 1e-2)
+
+        # test callable without seed
+        signs, qubit_sparse_pauli_list = pauli_lindblad_map.parity_sample(5)
+        self.assertTrue(isinstance(qubit_sparse_pauli_list, QubitSparsePauliList))
+        self.assertEqual(len(qubit_sparse_pauli_list), 5)
+        self.assertEqual(len(signs), 5)
+
     def test_sample(self):
         pauli_lindblad_map = PauliLindbladMap([("X", 1.0), ("Y", 1.0)])
         probs = pauli_lindblad_map.probabilities()
