@@ -1303,9 +1303,9 @@ class TestPauliLindbladMap(QiskitTestCase):
 
         for symbol, count in counts.items():
             self.assertTrue(np.abs(count / num_samples - probs_dict[symbol]) < 1e-2)
-        
+
         # test scale with mix of positive and negative rates
-        pauli_lindblad_map = PauliLindbladMap([("X", 1.), ("Y", -1.)])
+        pauli_lindblad_map = PauliLindbladMap([("X", 1.0), ("Y", -1.0)])
         pauli_lindblad_map_downscaled = PauliLindbladMap([("X", 0.5), ("Y", -0.5)])
         probs = pauli_lindblad_map.probabilities()
         probs_dict = {
@@ -1317,7 +1317,9 @@ class TestPauliLindbladMap(QiskitTestCase):
         expected_signs = {"I": False, "X": False, "Y": True, "Z": True}
 
         num_samples = 10000
-        signs, qubit_sparse_pauli_list = pauli_lindblad_map_downscaled.parity_sample(num_samples, 12312, scale=2.)
+        signs, qubit_sparse_pauli_list = pauli_lindblad_map_downscaled.parity_sample(
+            num_samples, 12312, scale=2.0
+        )
 
         counts = {"I": 0, "X": 0, "Y": 0, "Z": 0}
         for sign, q in zip(signs, qubit_sparse_pauli_list):
@@ -1328,10 +1330,10 @@ class TestPauliLindbladMap(QiskitTestCase):
 
         for symbol, count in counts.items():
             self.assertTrue(np.abs(count / num_samples - probs_dict[symbol]) < 1e-2)
-        
+
         # test local_scale with mix of positive and negative rates
-        pauli_lindblad_map = PauliLindbladMap([("X", 1.), ("Y", -1.0)])
-        pauli_lindblad_map_downscaled = PauliLindbladMap([("X", 1.), ("Y", -0.5)])
+        pauli_lindblad_map = PauliLindbladMap([("X", 1.0), ("Y", -1.0)])
+        pauli_lindblad_map_downscaled = PauliLindbladMap([("X", 1.0), ("Y", -0.5)])
         probs = pauli_lindblad_map.probabilities()
         probs_dict = {
             "I": probs[0] * probs[1],
@@ -1342,7 +1344,9 @@ class TestPauliLindbladMap(QiskitTestCase):
         expected_signs = {"I": False, "X": False, "Y": True, "Z": True}
 
         num_samples = 10000
-        signs, qubit_sparse_pauli_list = pauli_lindblad_map_downscaled.parity_sample(num_samples, 12312, local_scale=[1., 2.])
+        signs, qubit_sparse_pauli_list = pauli_lindblad_map_downscaled.parity_sample(
+            num_samples, 12312, local_scale=[1.0, 2.0]
+        )
 
         counts = {"I": 0, "X": 0, "Y": 0, "Z": 0}
         for sign, q in zip(signs, qubit_sparse_pauli_list):
