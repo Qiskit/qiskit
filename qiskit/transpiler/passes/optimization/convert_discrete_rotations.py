@@ -21,7 +21,7 @@ class DiscretizeRotations(TransformationPass):
     """Convert rotation gates into {Clifford,T,Tdg} when their angles are integer multiples of 2*pi/8."""
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
-        """Run the LitiskiTransformation pass on ``dag``.
+        """Run the Discretize Rotations optimization pass on ``dag``.
         Args:
             dag: the input DAG.
         Returns:
