@@ -231,6 +231,7 @@ from .optimization import CommutativeCancellation
 from .optimization import CommutativeInverseCancellation
 from .optimization import ConsolidateBlocks
 from .optimization import ContractIdleWiresInControlFlow
+from .optimization import DiscretizeRotations
 from .optimization import ElidePermutations
 from .optimization import HoareOptimizer
 from .optimization import InverseCancellation
