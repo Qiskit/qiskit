@@ -569,6 +569,8 @@ pub unsafe extern "C" fn qk_obs_bit_terms(obs: *mut SparseObservable) -> *mut Bi
 /// @param obs A pointer to the observable.
 /// @param coeff The coefficient to multiply the observable with.
 ///
+/// @return A pointer to the result ``obs * coeff``.
+///
 /// # Example
 /// ```c
 ///     QkObs *obs = qk_obs_identity(100);
