@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use hashbrown::HashSet;
+use num_traits::float;
 use numpy::{PyArray1, PyArrayMethods, ToPyArray};
 use pyo3::{
     IntoPyObjectExt, PyErr,
@@ -384,6 +385,7 @@ impl PauliLindbladMap {
     }
 
     /// Sample sign and Pauli operator pairs from the map.
+    /// Note that here a "sign" of True means +1, and False means -1.
     pub fn sample(&self, num_samples: u64, seed: Option<u64>) -> (Vec<bool>, QubitSparsePauliList) {
         let mut rng = match seed {
             Some(seed) => Pcg64Mcg::seed_from_u64(seed),
@@ -402,6 +404,67 @@ impl PauliLindbladMap {
                 .iter()
                 .zip(self.qubit_sparse_pauli_list.iter())
                 .zip(self.non_negative_rates.iter())
+            {
+                // Sample true or false with given probability. If false, apply the Pauli
+                if !Bernoulli::new(*probability).unwrap().sample(&mut rng) {
+                    random_pauli = random_pauli.compose(&generator.to_term()).unwrap();
+                    // if rate is negative, flip random_sign
+                    random_sign = random_sign == *non_negative_rate;
+                }
+            }
+
+            random_signs.push(random_sign);
+            random_paulis
+                .add_qubit_sparse_pauli(random_pauli.view())
+                .unwrap();
+        }
+
+        (random_signs, random_paulis)
+    }
+
+    /// Sample sign and Pauli operator pairs from the map.
+    /// Note that here the "sign" bool is interpreted as the exponent of (-1)^b, which is the
+    /// opposite convention to the sample function.
+    pub fn parity_sample(&self, num_samples: u64, seed: Option<u64>, scale: Option<f64>, local_scale: Option<Vec<f64>>) -> (Vec<bool>, QubitSparsePauliList) {
+        let mut rng = match seed {
+            Some(seed) => Pcg64Mcg::seed_from_u64(seed),
+            None => Pcg64Mcg::from_os_rng(),
+        };
+
+        let (probabilities, non_negative_rates) = match (scale, &local_scale) {
+            (None, None) => (self.probabilities.clone(), self.non_negative_rates.clone()),
+            _ => {
+                let mut modified_rates = self.rates.clone();
+
+                modified_rates = match scale {
+                    None => modified_rates,
+                    Some(scale) => modified_rates.iter().map(|r| r * scale).collect()
+                };
+
+                modified_rates = match local_scale {
+                    None => modified_rates,
+                    Some(local_scale) => {
+                        modified_rates.iter().zip(local_scale.clone()).map(|(r, s)| r * s).collect()
+                    }
+                };
+
+                let (_, _probabilities, _non_negative_rates) = derived_values_from_rates(&modified_rates);
+
+                (_probabilities, _non_negative_rates)
+            }
+        };
+        let mut random_signs = Vec::with_capacity(num_samples as usize);
+        let mut random_paulis = QubitSparsePauliList::empty(self.num_qubits());
+
+        for _ in 0..num_samples {
+            let mut random_sign = false;
+            let mut random_pauli = QubitSparsePauli::identity(self.num_qubits());
+
+            for ((probability, generator), non_negative_rate) in
+                probabilities
+                .iter()
+                .zip(self.qubit_sparse_pauli_list.iter())
+                .zip(non_negative_rates.iter())
             {
                 // Sample true or false with given probability. If false, apply the Pauli
                 if !Bernoulli::new(*probability).unwrap().sample(&mut rng) {
@@ -1531,6 +1594,24 @@ impl PyPauliLindbladMap {
     ) -> PyResult<Bound<'py, PyTuple>> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         let (signs, paulis) = py.detach(|| inner.sample(num_samples, seed));
+
+        let signs = PyArray1::from_vec(py, signs);
+        let paulis = paulis.into_pyobject(py).unwrap();
+
+        (signs, paulis).into_pyobject(py)
+    }
+
+    #[pyo3(signature = (num_samples, seed=None, scale=None, local_scale=None))]
+    pub fn parity_sample<'py>(
+        &self,
+        py: Python<'py>,
+        num_samples: u64,
+        seed: Option<u64>,
+        scale: Option<f64>,
+        local_scale: Option<Vec<f64>>
+    ) -> PyResult<Bound<'py, PyTuple>> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let (signs, paulis) = py.detach(|| inner.parity_sample(num_samples, seed, scale, local_scale));
 
         let signs = PyArray1::from_vec(py, signs);
         let paulis = paulis.into_pyobject(py).unwrap();
