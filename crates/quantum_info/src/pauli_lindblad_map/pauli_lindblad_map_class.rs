@@ -384,44 +384,6 @@ impl PauliLindbladMap {
     }
 
     /// Sample sign and Pauli operator pairs from the map.
-    /// Note that here a "sign" of True means +1, and False means -1.
-    pub fn sample(&self, num_samples: u64, seed: Option<u64>) -> (Vec<bool>, QubitSparsePauliList) {
-        let mut rng = match seed {
-            Some(seed) => Pcg64Mcg::seed_from_u64(seed),
-            None => Pcg64Mcg::from_os_rng(),
-        };
-
-        let mut random_signs = Vec::with_capacity(num_samples as usize);
-        let mut random_paulis = QubitSparsePauliList::empty(self.num_qubits());
-
-        for _ in 0..num_samples {
-            let mut random_sign = true;
-            let mut random_pauli = QubitSparsePauli::identity(self.num_qubits());
-
-            for ((probability, generator), non_negative_rate) in self
-                .probabilities
-                .iter()
-                .zip(self.qubit_sparse_pauli_list.iter())
-                .zip(self.non_negative_rates.iter())
-            {
-                // Sample true or false with given probability. If false, apply the Pauli
-                if !Bernoulli::new(*probability).unwrap().sample(&mut rng) {
-                    random_pauli = random_pauli.compose(&generator.to_term()).unwrap();
-                    // if rate is negative, flip random_sign
-                    random_sign = random_sign == *non_negative_rate;
-                }
-            }
-
-            random_signs.push(random_sign);
-            random_paulis
-                .add_qubit_sparse_pauli(random_pauli.view())
-                .unwrap();
-        }
-
-        (random_signs, random_paulis)
-    }
-
-    /// Sample sign and Pauli operator pairs from the map.
     /// Note that here the "sign" bool is interpreted as the exponent of (-1)^b, which is the
     /// opposite convention to the sample function.
     pub fn parity_sample(
@@ -1602,9 +1564,9 @@ impl PyPauliLindbladMap {
         seed: Option<u64>,
     ) -> PyResult<Bound<'py, PyTuple>> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        let (signs, paulis) = py.detach(|| inner.sample(num_samples, seed));
+        let (signs, paulis) = py.detach(|| inner.parity_sample(num_samples, seed, None, None));
 
-        let signs = PyArray1::from_vec(py, signs);
+        let signs = PyArray1::from_vec(py, signs.iter().map(|b| !b).collect());
         let paulis = paulis.into_pyobject(py).unwrap();
 
         (signs, paulis).into_pyobject(py)
@@ -1707,7 +1669,7 @@ impl PyPauliLindbladMap {
             }
         }
 
-        let (_, paulis) = py.detach(|| inner.sample(num_samples, seed));
+        let (_, paulis) = py.detach(|| inner.parity_sample(num_samples, seed, None, None));
 
         paulis.into_pyobject(py)
     }
