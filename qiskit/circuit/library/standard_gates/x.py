@@ -1,4 +1,4 @@
-# This code is part of Qiskit.
+`# This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
 #
@@ -28,6 +28,14 @@ _SX_ARRAY = [[0.5 + 0.5j, 0.5 - 0.5j], [0.5 - 0.5j, 0.5 + 0.5j]]
 @with_gate_array(_X_ARRAY)
 class XGate(SingletonGate):
     r"""The single-qubit Pauli-X gate (:math:`\sigma_x`).
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.x` method.
+
+    This gate flips the qubit state: :math:`|0\rangle \rightarrow |1\rangle`
+    and :math:`|1\rangle \rightarrow |0\rangle`.
+    It is the quantum analog of the classical NOT gate.
+    """
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.x` method.
