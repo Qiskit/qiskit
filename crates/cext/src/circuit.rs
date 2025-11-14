@@ -695,6 +695,9 @@ fn is_unitary(matrix: &ArrayType, tol: f64) -> bool {
 ///     If set to False the caller is responsible for ensuring the matrix is unitary, if
 ///     the matrix is not unitary this is undefined behavior and will result in a corrupt
 ///     circuit.
+///
+/// @return An exit code.
+///
 /// # Example
 /// ```c
 ///   QkComplex64 c0 = {0, 0};  // 0+0i
