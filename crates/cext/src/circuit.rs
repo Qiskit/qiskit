@@ -695,6 +695,9 @@ fn is_unitary(matrix: &ArrayType, tol: f64) -> bool {
 ///     If set to False the caller is responsible for ensuring the matrix is unitary, if
 ///     the matrix is not unitary this is undefined behavior and will result in a corrupt
 ///     circuit.
+///
+/// @return An exit code.
+///
 /// # Example
 /// ```c
 ///   QkComplex64 c0 = {0, 0};  // 0+0i
@@ -1024,7 +1027,7 @@ pub unsafe extern "C" fn qk_opcounts_clear(op_counts: *mut OpCounts) {
         // SAFETY: We load the box from a slice pointer created from
         // the raw parts from the OpCounts::data attribute.
         unsafe {
-            let slice: Box<[OpCount]> = Box::from_raw(std::slice::from_raw_parts_mut(
+            let slice: Box<[OpCount]> = Box::from_raw(std::ptr::slice_from_raw_parts_mut(
                 op_counts.data,
                 op_counts.len,
             ));
