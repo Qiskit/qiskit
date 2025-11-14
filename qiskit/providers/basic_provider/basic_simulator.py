@@ -39,7 +39,7 @@ import warnings
 from collections import Counter
 
 import numpy as np
-
+from numpy.random import default_rng  #ADDED 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import UnitaryGate
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping, GlobalPhaseGate
@@ -554,26 +554,30 @@ class BasicSimulator(BackendV2):
         # Sample measurements
         memory = []
         if measure_ops:
+            # Create StabilizerState once
             stab_state = StabilizerState(clifford_obj, validate=False)
-            for _ in range(self._shots):
-                # Only reset the seed. Dont create new object.
-                if self._seed_simulator is not None:
-                    stab_state._rng.seed(self._seed_simulator + _)
-                # Sample one measurement outcome
-                sample = stab_state.sample_memory(1)[0]
-
-                # Map measured qubits to classical bits - use same logic as original
+            
+            # Set seed if provided
+            if self._seed_simulator is not None:
+                stab_state.seed(self._seed_simulator)
+            
+            # Sample ALL shots at once (much faster than per-shot loop!)
+            samples = stab_state.sample_memory(self._shots)
+            
+            # Process each sample
+            for sample in samples:
+                # Map measured qubits to classical bits
                 classical_memory = 0
                 for qubit, clbit in measure_ops:
-                    # Extract bit value from sample (reversed indexing)
                     bit_val = int(sample[-(qubit + 1)])
-                    # Use bitwise operations same as original _run_circuit
                     membit = 1 << clbit
                     classical_memory = (classical_memory & (~membit)) | (bit_val << clbit)
-
-                # Convert to hex format like original _run_circuit
+                
+                # Convert to hex format
                 outcome = bin(classical_memory)[2:]
                 memory.append(hex(int(outcome, 2)))
+
+
 
         # Build result data
         data = {"counts": dict(Counter(memory))}
