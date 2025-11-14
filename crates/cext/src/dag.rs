@@ -14,6 +14,7 @@ use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
 use smallvec::smallvec;
 use std::ptr::slice_from_raw_parts;
 
+use crate::exit_codes::ExitCode;
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister, ShareableClbit, ShareableQubit};
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeIndex, NodeType};
 use qiskit_circuit::operations::{
@@ -722,6 +723,8 @@ pub unsafe extern "C" fn qk_dag_op_node_kind(dag: *const DAGCircuit, node: u32) 
 ///     onto.
 /// @param num_clbits The number of qubits in ``clbits``.
 ///
+/// @return an exit code.
+///
 /// # Safety
 ///
 /// Behavior is undefined if ``dag`` or ``other`` are not valid, non-null pointers to a ``QkDag``.
@@ -736,7 +739,7 @@ pub unsafe extern "C" fn qk_dag_compose(
     num_qubits: usize,
     clbits: *const u32,
     num_clbits: usize,
-) {
+) -> ExitCode {
     // SAFETY: Per documentation, the pointer is to valid data.
 
     let dag = unsafe { mut_ptr_as_ref(dag) };
@@ -746,40 +749,45 @@ pub unsafe extern "C" fn qk_dag_compose(
     if other_dag.qubits().len() > dag.qubits().len()
         || other_dag.clbits().len() > dag.clbits().len()
     {
-        panic!("Trying to compose with another DAGCircuit which has more 'in' edges.");
+        return ExitCode::DAGComposeMismatch;
     }
 
     let qubits: Option<Vec<ShareableQubit>> = if check_ptr(qubits).is_ok() {
         let qubits: Box<[u32]> =
             unsafe { Box::from_raw(slice_from_raw_parts(qubits, num_qubits).cast_mut()) };
-        Some(
-            qubits
-                .into_iter()
-                .map(|bit| {
-                    dag.qubits()
-                        .get(Qubit(bit))
-                        .expect("Qubit not part of source circuit.")
-                })
-                .cloned()
-                .collect(),
-        )
+        let new_qubits: Result<Vec<ShareableQubit>, ExitCode> = qubits
+            .into_iter()
+            .map(|bit| -> Result<ShareableQubit, ExitCode> {
+                let Some(qubit) = dag.qubits().get(Qubit(bit)) else {
+                    return Err(ExitCode::DAGComposeMissingBit);
+                };
+                Ok(qubit.clone())
+            })
+            .collect();
+        match new_qubits {
+            Ok(qubits) => Some(qubits),
+            Err(err) => return err,
+        }
     } else {
         None
     };
+
     let clbits: Option<Vec<ShareableClbit>> = if check_ptr(clbits).is_ok() {
-        let qubits: Box<[u32]> =
+        let clbits: Box<[u32]> =
             unsafe { Box::from_raw(slice_from_raw_parts(clbits, num_clbits).cast_mut()) };
-        Some(
-            qubits
-                .into_iter()
-                .map(|bit| {
-                    dag.clbits()
-                        .get(Clbit(bit))
-                        .expect("Clbit not part of source circuit.")
-                })
-                .cloned()
-                .collect(),
-        )
+        let new_clbits: Result<Vec<ShareableClbit>, ExitCode> = clbits
+            .into_iter()
+            .map(|bit| -> Result<ShareableClbit, ExitCode> {
+                let Some(clbit) = dag.clbits().get(Clbit(bit)) else {
+                    return Err(ExitCode::DAGComposeMissingBit);
+                };
+                Ok(clbit.clone())
+            })
+            .collect();
+        match new_clbits {
+            Ok(clbits) => Some(clbits),
+            Err(err) => return err,
+        }
     } else {
         None
     };
@@ -787,6 +795,7 @@ pub unsafe extern "C" fn qk_dag_compose(
     // Since we don't yet supposed vars in C, we can skip the include_captures check.
     dag.compose(other_dag, qubits.as_deref(), clbits.as_deref(), false)
         .expect("Error during circuit composition.");
+    ExitCode::Success
 }
 
 /// @ingroup QkDag
