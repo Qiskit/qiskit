@@ -705,19 +705,12 @@ class ForLoopStatement(Statement):
         indexset: Union[Identifier, IndexSet, Range],
         parameter: Identifier,
         body: ProgramBlock,
-        type_: Optional[ClassicalType] = None,
+        type_: ClassicalType,
     ):
         self.indexset = indexset
         self.parameter = parameter
         self.body = body
-        self.type = type_ if type_ is not None else IntType()
-        if type_ is None:
-            warnings.warn(
-                "Typeless for-loops support is deprecated and it will be removed at 3.0. "
-                "Specify the type parameter explicitly.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
+        self.type = type_
 
 
 class WhileLoopStatement(Statement):
