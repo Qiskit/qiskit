@@ -27,7 +27,8 @@ _Z_ARRAY = [[1, 0], [0, -1]]
 
 @with_gate_array(_Z_ARRAY)
 class ZGate(SingletonGate):
-    r"""The single-qubit Pauli-Z gate (:math:`\sigma_z`).
+    
+r"""The single-qubit Pauli-Z gate (:math:`\sigma_z`).
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.z` method.
@@ -49,27 +50,24 @@ class ZGate(SingletonGate):
         q_0: ┤ Z ├
              └───┘
 
-    Equivalent to a :math:`\pi` radian rotation about the Z axis.
+    Example:
+        >>> from qiskit import QuantumCircuit
+        >>> from qiskit.quantum_info import Statevector
 
-    .. note::
+        >>> qc = QuantumCircuit(1)
+        >>> qc.z(0)
+        >>> qc.draw('text')
+             ┌───┐
+        q_0: ┤ Z ├
+             └───┘
 
-        A global phase difference exists between the definitions of
-        :math:`RZ(\pi)` and :math:`Z`.
-
-        .. math::
-
-            RZ(\pi) = \begin{pmatrix}
-                        -i & 0 \\
-                        0 & i
-                      \end{pmatrix}
-                    = -i Z
-
-    The gate is equivalent to a phase flip.
-
-    .. math::
-
-        |0\rangle \rightarrow |0\rangle \\
-        |1\rangle \rightarrow -|1\rangle
+        >>> sv = Statevector.from_instruction(qc)
+        >>> sv
+        Statevector([1.+0.j, 0.+0.j], dims=(2,))
+    
+    Notes:
+        - Flips the phase of the |1⟩ state: |0⟩ stays the same, |1⟩ → -|1⟩
+        - Often used to implement conditional phase shifts in circuits
     """
 
     _standard_gate = StandardGate.Z
