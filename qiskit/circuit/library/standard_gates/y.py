@@ -24,6 +24,7 @@ _Y_ARRAY = [[0, -1j], [1j, 0]]
 
 @with_gate_array(_Y_ARRAY)
 class YGate(SingletonGate):
+class YGate(SingletonGate):
     r"""The single-qubit Pauli-Y gate (:math:`\sigma_y`).
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
@@ -46,27 +47,24 @@ class YGate(SingletonGate):
         q_0: ┤ Y ├
              └───┘
 
-    Equivalent to a :math:`\pi` radian rotation about the Y axis.
+    Example:
+        >>> from qiskit import QuantumCircuit
+        >>> from qiskit.quantum_info import Statevector
 
-    .. note::
+        >>> qc = QuantumCircuit(1)
+        >>> qc.y(0)
+        >>> qc.draw('text')
+             ┌───┐
+        q_0: ┤ Y ├
+             └───┘
 
-        A global phase difference exists between the definitions of
-        :math:`RY(\pi)` and :math:`Y`.
-
-        .. math::
-
-            RY(\pi) = \begin{pmatrix}
-                        0 & -1 \\
-                        1 & 0
-                      \end{pmatrix}
-                    = -i Y
-
-    The gate is equivalent to a bit and phase flip.
-
-    .. math::
-
-        |0\rangle \rightarrow i|1\rangle \\
-        |1\rangle \rightarrow -i|0\rangle
+        >>> sv = Statevector.from_instruction(qc)
+        >>> sv
+        Statevector([0.+0.j, 0.+1.j], dims=(2,))
+    
+    Notes:
+        - Flips the state |0⟩ → i|1⟩ and |1⟩ → -i|0⟩
+        - Adds a phase of π/2 compared to the X gate
     """
 
     _standard_gate = StandardGate.Y
