@@ -67,6 +67,21 @@ r"""The single-qubit Hadamard gate (:math:`H`).
              ┌───┐
         q_0: ┤ H ├
              └───┘
+
+Example:
+        >>> from qiskit import QuantumCircuit
+        >>> qc = QuantumCircuit(1)
+        >>> qc.h(0)
+        >>> qc.draw('text')
+             ┌───┐
+        q_0: ┤ H ├
+             └───┘
+
+        >>> from qiskit.quantum_info import Statevector
+        >>> sv = Statevector.from_instruction(qc)
+        >>> sv
+        Statevector([0.70710678+0.j, 0.70710678+0.j], dims=(2,))
+
     """
 
     _standard_gate = StandardGate.H
