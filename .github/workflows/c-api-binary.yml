@@ -75,6 +75,9 @@ jobs:
         run: |
           # macos requires the dylib name to be changed separately
           install_name_tool -id libqiskit.dylib ${{ env.C_DIR_OUT }}/lib/libqiskit.dylib
+
+          # macos requires that rpath is added separately (enables using `-Wl,-rpath` in place of setting DYLD_LIBRARY_PATH)
+          install_name_tool -add_rpath ${{ env.C_DIR_OUT }}/lib ${{ env.C_DIR_OUT }}/lib/libqiskit.dylib
           tar czf ${{ env.QISKIT_CEXT_DIR }}.tar.gz ${{ env.QISKIT_CEXT_DIR }}
       - name: Release
         run: |
