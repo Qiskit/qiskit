@@ -95,16 +95,6 @@ Example:
         >>> sv
         Statevector([0.+0.j, 1.+0.j], dims=(2,))
 
-
-
-
-
-
-
-
-
-
-
     """
 
     _standard_gate = StandardGate.X
@@ -244,6 +234,23 @@ class CXGate(SingletonControlledGate):
 
     .. math::
         `|a, b\rangle \rightarrow |a, a \oplus b\rangle`
+
+Example:   # <--- Add this at the end of the docstring
+        >>> from qiskit import QuantumCircuit
+        >>> from qiskit.quantum_info import Statevector
+
+        >>> qc = QuantumCircuit(2)
+        >>> qc.cx(0, 1)
+        >>> qc.draw('text')
+        q_0: ─■─
+              │
+        q_1: ─X─
+
+        >>> sv = Statevector.from_instruction(qc)
+        >>> sv
+        Statevector([1.+0.j, 0.+0.j, 0.+0.j, 0.+0.j], dims=(2, 2))
+
+
     """
 
     _standard_gate = StandardGate.CX
