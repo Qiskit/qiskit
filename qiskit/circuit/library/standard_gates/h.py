@@ -1,3 +1,22 @@
+r"""
+The single-qubit Hadamard gate (:math:`H`) creates an equal superposition of the computational basis states.
+
+This means it transforms the standard basis states as follows:
+
+- :math:`\lvert 0 \rangle \mapsto \frac{\lvert 0 \rangle + \lvert 1 \rangle}{\sqrt{2}}`
+- :math:`\lvert 1 \rangle \mapsto \frac{\lvert 0 \rangle - \lvert 1 \rangle}{\sqrt{2}}`
+
+Applying H to a qubit in |0⟩ or |1⟩ produces a superposition state, which is fundamental in quantum algorithms
+such as the Deutsch-Jozsa, Grover's, and quantum teleportation protocols.
+
+Circuit symbol:
+
+.. code-block:: text
+
+         ┌───┐
+    q_0: ┤ H ├
+         └───┘
+"""
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -26,32 +45,28 @@ _H_ARRAY = 1 / sqrt(2) * numpy.array([[1, 1], [1, -1]], dtype=numpy.complex128)
 
 @with_gate_array(_H_ARRAY)
 class HGate(SingletonGate):
-    r"""Single-qubit Hadamard gate.
+r"""The single-qubit Hadamard gate (:math:`H`).
 
-    This gate is a \pi rotation about the X+Z axis, and has the effect of
-    changing computation basis from :math:`|0\rangle,|1\rangle` to
-    :math:`|+\rangle,|-\rangle` and vice-versa.
+    This gate creates an equal superposition of the computational basis states:
 
-    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
-    with the :meth:`~qiskit.circuit.QuantumCircuit.h` method.
+    - :math:`\lvert 0 \rangle \mapsto \frac{\lvert 0 \rangle + \lvert 1 \rangle}{\sqrt{2}}`
+    - :math:`\lvert 1 \rangle \mapsto \frac{\lvert 0 \rangle - \lvert 1 \rangle}{\sqrt{2}}`
 
-    Circuit symbol:
-
-    .. code-block:: text
-
-             ┌───┐
-        q_0: ┤ H ├
-             └───┘
+    Applying H to a qubit in |0⟩ or |1⟩ produces a superposition state,
+    which is fundamental in algorithms like Deutsch-Jozsa, Grover's, and teleportation.
 
     Matrix representation:
 
     .. math::
 
-        H = \frac{1}{\sqrt{2}}
-            \begin{pmatrix}
-                1 & 1 \\
-                1 & -1
-            \end{pmatrix}
+        H = 1/sqrt(2) * [[1, 1],
+                          [1, -1]]
+
+    Circuit symbol:
+
+             ┌───┐
+        q_0: ┤ H ├
+             └───┘
     """
 
     _standard_gate = StandardGate.H
