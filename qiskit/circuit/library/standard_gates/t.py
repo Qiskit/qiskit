@@ -24,12 +24,7 @@ from qiskit._accelerate.circuit import StandardGate
 
 @with_gate_array([[1, 0], [0, (1 + 1j) / math.sqrt(2)]])
 class TGate(SingletonGate):
-    r"""Single qubit T gate (Z**0.25).
-
-    It induces a :math:`\pi/4` phase, and is sometimes called the pi/8 gate
-    (because of how the RZ(\pi/4) matrix looks like).
-
-    This is a non-Clifford gate and a fourth-root of Pauli-Z.
+    r"""The single-qubit T (π/8) gate.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.t` method.
@@ -51,8 +46,25 @@ class TGate(SingletonGate):
         q_0: ┤ T ├
              └───┘
 
-    Equivalent to a :math:`\pi/4` radian rotation about the Z axis.
-    """
+    Example:
+        >>> from qiskit import QuantumCircuit
+        >>> from qiskit.quantum_info import Statevector
+
+        >>> qc = QuantumCircuit(1)
+        >>> qc.t(0)
+        >>> qc.draw('text')
+             ┌───┐
+        q_0: ┤ T ├
+             └───┘
+
+        >>> sv = Statevector.from_instruction(qc)
+        >>> sv
+        Statevector([1.+0.j, 0.+0.j], dims=(2,))
+
+    Notes:
+        - Adds a π/4 phase to the |1⟩ state
+        - Useful in building Trotterized or phase-rotation circuits
+"""
 
     _standard_gate = StandardGate.T
 
