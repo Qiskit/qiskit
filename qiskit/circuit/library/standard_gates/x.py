@@ -78,6 +78,33 @@ class XGate(SingletonGate):
 
         |0\rangle \rightarrow |1\rangle \\
         |1\rangle \rightarrow |0\rangle
+
+
+Example:
+        >>> from qiskit import QuantumCircuit
+        >>> from qiskit.quantum_info import Statevector
+
+        >>> qc = QuantumCircuit(1)
+        >>> qc.x(0)
+        >>> qc.draw('text')
+             ┌───┐
+        q_0: ┤ X ├
+             └───┘
+
+        >>> sv = Statevector.from_instruction(qc)
+        >>> sv
+        Statevector([0.+0.j, 1.+0.j], dims=(2,))
+
+
+
+
+
+
+
+
+
+
+
     """
 
     _standard_gate = StandardGate.X
