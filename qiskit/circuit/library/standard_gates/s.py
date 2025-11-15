@@ -29,11 +29,7 @@ _SDG_ARRAY = numpy.array([[1, 0], [0, -1j]])
 
 @with_gate_array(_S_ARRAY)
 class SGate(SingletonGate):
-    r"""Single qubit S gate (Z**0.5).
-
-    It induces a :math:`\pi/2` phase, and is sometimes called the P gate (phase).
-
-    This is a Clifford gate and a square-root of Pauli-Z.
+r"""The single-qubit S (phase) gate.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.s` method.
@@ -55,7 +51,25 @@ class SGate(SingletonGate):
         q_0: ┤ S ├
              └───┘
 
-    Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
+    Example:
+        >>> from qiskit import QuantumCircuit
+        >>> from qiskit.quantum_info import Statevector
+
+        >>> qc = QuantumCircuit(1)
+        >>> qc.s(0)
+        >>> qc.draw('text')
+             ┌───┐
+        q_0: ┤ S ├
+             └───┘
+
+        >>> sv = Statevector.from_instruction(qc)
+        >>> sv
+        Statevector([1.+0.j, 0.+0.j], dims=(2,))
+
+    Notes:
+        - Adds a π/2 phase to the |1⟩ state: |0⟩ stays the same
+        - Often used in combination with other phase and rotation gates
+
     """
 
     _standard_gate = StandardGate.S
