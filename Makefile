@@ -121,6 +121,7 @@ fix_cformat:
 $(C_LIB_CARGO_PATH):
 ifdef PROFILE_GENERATE
 	RUSTC_FLAGS="-- -Cprofile-generate=$(PROFILE_GENERATE)"
+endif
 ifdef PROFILE_USE
 	RUSTC_FLAGS="-Cprofile-use=$(PROFILE_USE)"
 endif
