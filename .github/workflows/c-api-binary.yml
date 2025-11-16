@@ -21,7 +21,27 @@ jobs:
           echo "C_DIR_OUT: $C_DIR_OUT"
       - name: Build Binary
         run: |
-          make c C_DIR_OUT="${{ env.C_DIR_OUT }}"
+          # Generate PGO profile into /tmp/pgo-data dir
+          make c \
+            C_DIR_OUT="${{ env.C_DIR_OUT }}" \
+            PROFILE_GENERATE="/tmp/pgo-data"
+
+          # Compile PGO script
+          gcc tools/pgo_scripts/test_utility_scale.c \
+            -o test_utility_scale.o \
+            -O0 \
+            -I ${{ env.C_DIR_OUT }}/include \
+            -L ${{ env.C_DIR_OUT }}/lib \
+            -lqiskit
+
+          # Install llvm-profdata tool
+          rustup component add llvm-tools-preview
+          PROFDATA="$(find ~/.rustup -name 'llvm-profdata')"
+          ./${PROFDATA} merge -o ./merged.profdata /tmp/pgo-data
+
+          make c \
+            C_DIR_OUT="${{ env.C_DIR_OUT }}" \
+            PROFILE_USE="merged.profdata"
       - name: Validate Binaries
         run: |
           make ctest \
