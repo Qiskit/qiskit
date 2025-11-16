@@ -3494,3 +3494,17 @@ box {
         )
         self.assertEqual(prog.strip(), expected.strip())
         self.assertTrue(skip_triggered)
+
+    def test_identifiers_starting_with_digits_are_escaped(self):
+        """Test that identifiers starting with digits are properly escaped."""
+        qc = QuantumCircuit(QuantumRegister(3, name="3qr"), ClassicalRegister(2, name="2cr"))
+        qasm_output = dumps(qc)
+        # The register names should be escaped (prefixed with underscore)
+        self.assertIn("_3qr", qasm_output)
+        self.assertIn("_2cr", qasm_output)
+        # Verify the output is valid OpenQASM 3 - identifiers should start with underscore
+        self.assertIn("qubit[3] _3qr", qasm_output)
+        self.assertIn("bit[2] _2cr", qasm_output)
+        # Verify unescaped identifiers don't appear as standalone words
+        # Check that we don't have identifiers starting with digits
+        self.assertNotRegex(qasm_output, r"\b[0-9][a-zA-Z_][a-zA-Z0-9_]*\b")
