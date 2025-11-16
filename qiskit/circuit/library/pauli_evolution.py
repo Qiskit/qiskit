@@ -336,8 +336,18 @@ def _to_sparse_op(
 def _operator_label(operator):
     if isinstance(operator, SparseObservable):
         if len(operator) == 1:
-            return operator[0].bit_labels()[::-1]
-        return "(" + " + ".join(term.bit_labels()[::-1] for term in operator) + ")"
+            term = operator[0]
+            labels = term.bit_labels()
+            indices = term.indices
+            return " ".join(f"{label}{idx}" for label, idx in zip(labels, indices))
+
+        term_strs = []
+        for term in operator:
+            labels = term.bit_labels()
+            indices = term.indices
+            term_str = " ".join(f"{label}{idx}" for label, idx in zip(labels, indices))
+            term_strs.append(term_str)
+        return "(" + " + ".join(term_strs) + ")"
 
     # else: is a SparsePauliOp
     if len(operator.paulis) == 1:
