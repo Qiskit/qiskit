@@ -933,24 +933,34 @@ impl TextDrawer {
 
                 // decide whether the boxed element needs a top connector or not
 
-                let is_top_case = |ve: &VisualizationElement| match ve {
+                let is_top_case = |ve: &VisualizationElement, ind: usize| match ve {
                     VisualizationElement::VerticalLine(InputType::Qubit(None))
                     | VisualizationElement::VerticalLine(InputType::Clbit(None)) => true,
                     VisualizationElement::DirectOnWire(onwire) => match onwire.is_pos(circuit, ind){
                         PosOnWire::Bot => false,
-                        _ => true
+                        PosOnWire::Mid => match onwire {
+                            OnWire::Swap(_) 
+                            | OnWire::Control(_)=> true,
+                            _ => false,
+                        },
+                        PosOnWire::Top => true,
                     },
                     _ => false,
                 };
 
                 // decide whether the boxed element needs a bottom connector or not
 
-                let is_bot_case = |ve: &VisualizationElement| match ve {
+                let is_bot_case = |ve: &VisualizationElement, ind: usize| match ve {
                     VisualizationElement::VerticalLine(InputType::Qubit(None))
                     | VisualizationElement::VerticalLine(InputType::Clbit(None)) => true,
                     VisualizationElement::DirectOnWire(onwire) => match onwire.is_pos(circuit, ind){
                         PosOnWire::Top => false,
-                        _ => true
+                        PosOnWire::Mid => match onwire {
+                            OnWire::Swap(_) 
+                            | OnWire::Control(_)=> true,
+                            _ => false,
+                        },
+                        PosOnWire::Bot => true,
                     },
                     _ => false,
                 };
@@ -973,12 +983,8 @@ impl TextDrawer {
 
                 let top_con = {
                     if ind >= 1 {
-                        if is_top_case(&vis_layer.0[ind - 1]) {
-                            if is_measure {
-                                C_WIRE_CON_TOP
-                            } else {
-                                TOP_CON
-                            }
+                        if is_top_case(&vis_layer.0[ind - 1], ind - 1) {
+                            if is_measure { C_WIRE_CON_TOP } else { TOP_CON }
                         } else {
                             Q_WIRE
                         }
@@ -988,8 +994,8 @@ impl TextDrawer {
                 };
 
                 let bot_con = {
-                    if ind + 1 <= vis_layer.0.len() {         
-                        if is_bot_case(&vis_layer.0[ind + 1]) {
+                    if ind + 1 < vis_layer.0.len() {       
+                        if is_bot_case(&vis_layer.0[ind + 1], ind + 1) {
                             if is_measure { C_BOT_CON } else { BOT_CON }
                         } else {
                             Q_WIRE
@@ -998,8 +1004,6 @@ impl TextDrawer {
                         Q_WIRE
                     }
                 };
-
-                println!("ind: {}, len: {}, bot char: {}", ind, vis_layer.0.len(), bot_con);
 
                 match sub_type {
                     Boxed::Single(inst) => {
