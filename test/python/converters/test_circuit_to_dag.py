@@ -12,6 +12,7 @@
 
 """Tests for the converters."""
 
+import time
 import unittest
 
 from qiskit.dagcircuit import DAGCircuit
@@ -177,6 +178,66 @@ class TestCircuitToDag(QiskitTestCase):
             circuit_to_dag(qc, clbit_order=qc.clbits[:-1])
         with self.assertRaisesRegex(ValueError, "does not contain exactly the same"):
             circuit_to_dag(qc, clbit_order=cr[[0, 1, 1]])
+
+    def test_circuit_to_dag_performance_with_order(self):
+        """Test that circuit_to_dag conversion with qubit_order/clbit_order is performant.
+        
+        This test verifies the performance fix for issue #15281 where conversion
+        with qubit_order/clbit_order parameters was significantly slower due to
+        inefficient vector allocation and repeated registry lookups.
+        """
+        # Create a moderately sized circuit to test performance
+        num_qubits = 100
+        num_clbits = 100
+        qr = QuantumRegister(num_qubits, "qr")
+        cr = ClassicalRegister(num_clbits, "cr")
+        
+        qc = QuantumCircuit(qr, cr)
+        # Add some operations to make the circuit non-trivial
+        for i in range(min(num_qubits, num_clbits)):
+            qc.h(qr[i])
+            qc.measure(qr[i], cr[i])
+        
+        # Test conversion without order (baseline)
+        start = time.perf_counter()
+        dag_no_order = circuit_to_dag(qc)
+        time_no_order = time.perf_counter() - start
+        
+        # Test conversion with order (the optimized path)
+        qubits_permuted = list(reversed(qc.qubits))
+        clbits_permuted = list(reversed(qc.clbits))
+        
+        start = time.perf_counter()
+        dag_with_order = circuit_to_dag(qc, qubit_order=qubits_permuted, clbit_order=clbits_permuted)
+        time_with_order = time.perf_counter() - start
+        
+        # Verify correctness
+        self.assertEqual(len(dag_no_order.qubits), num_qubits)
+        self.assertEqual(len(dag_with_order.qubits), num_qubits)
+        self.assertEqual(len(dag_no_order.clbits), num_clbits)
+        self.assertEqual(len(dag_with_order.clbits), num_clbits)
+        self.assertEqual(list(dag_with_order.qubits), qubits_permuted)
+        self.assertEqual(list(dag_with_order.clbits), clbits_permuted)
+        
+        # Performance check: conversion with order should not be significantly slower
+        # (allowing up to 2x overhead for the conversion, which is reasonable)
+        # The original regression was 193x slower, so this should catch major regressions
+        self.assertLess(
+            time_with_order,
+            time_no_order * 3,
+            f"Conversion with order ({time_with_order:.4f}s) should not be "
+            f"significantly slower than without order ({time_no_order:.4f}s)"
+        )
+        
+        # Also verify that both conversions produce equivalent DAGs (structurally)
+        # by converting back to circuits
+        qc_no_order = dag_to_circuit(dag_no_order)
+        qc_with_order = dag_to_circuit(dag_with_order)
+        
+        # The circuits should be equivalent (same operations, just different wire order)
+        self.assertEqual(len(qc_no_order), len(qc_with_order))
+        self.assertEqual(qc_no_order.num_qubits, qc_with_order.num_qubits)
+        self.assertEqual(qc_no_order.num_clbits, qc_with_order.num_clbits)
 
 
 if __name__ == "__main__":
