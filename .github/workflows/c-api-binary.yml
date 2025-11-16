@@ -44,6 +44,7 @@ jobs:
           ${PROFDATA} merge -o ./merged.profdata /tmp/pgo-data
 
           # Re-compile Qiskit C API with merged PGO data
+          make cclean
           make c \
             C_DIR_OUT="${{ env.C_DIR_OUT }}" \
             PROFILE_USE="merged.profdata"
@@ -112,10 +113,10 @@ jobs:
           ${PROFDATA} merge -o ./merged.profdata /tmp/pgo-data
 
           # Re-compile Qiskit C API with merged PGO data
+          make cclean
           make c \
             C_DIR_OUT="${{ env.C_DIR_OUT }}" \
             PROFILE_USE="merged.profdata"
-
       - name: Validate Binaries
         run: |
           make ctest \
