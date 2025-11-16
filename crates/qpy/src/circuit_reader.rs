@@ -48,9 +48,12 @@ use crate::consts::standard_gate_from_gate_class_name;
 use crate::formats;
 use crate::formats::QPYFormatV15;
 use crate::params::{unpack_param, unpack_param_from_data};
-use crate::py_methods::{get_python_gate_class, py_load_register, py_unpack_generic_data};
+use crate::py_methods::py_convert_from_generic_value;
+use crate::py_methods::{get_python_gate_class, py_load_register};
+use crate::value::GenericValue;
+use crate::value::load_value;
 use crate::value::{
-    DumpedPyValue, ExpressionType, QPYReadData, bit_types, circuit_instruction_types, deserialize,
+    ExpressionType, QPYReadData, bit_types, circuit_instruction_types, deserialize,
     deserialize_with_args, expression_var_declaration, register_types, tags, unpack_generic_value,
 };
 
@@ -224,7 +227,7 @@ fn unpack_condition(
 ) -> PyResult<Option<Py<PyAny>>> {
     match &condition.data {
         formats::ConditionData::Expression(exp_data_pack) => {
-            Ok(Some(py_unpack_generic_data(py, exp_data_pack, qpy_data)?))
+            Ok(Some(py_convert_from_generic_value(&unpack_generic_value(exp_data_pack, qpy_data)?)?))
         }
         formats::ConditionData::Register(register_data) => {
             let register = py_load_register(py, register_data.clone(), qpy_data.circuit_data)?;
@@ -585,12 +588,15 @@ fn deserialize_pauli_evolution_gate(
         .pauli_data
         .iter()
         .map(|elem| {
-            let data = elem.data.clone();
-            let data_type = tags::NUMPY_OBJ;
-            let op_raw_data = DumpedPyValue { data_type, data }.to_python(py, qpy_data)?;
-            imports::SPARSE_PAULI_OP
+            let data = load_value(tags::NUMPY_OBJ, &elem.data, qpy_data)?;
+            if let GenericValue::NumpyObject(op_raw_data)  = data {
+                imports::SPARSE_PAULI_OP
                 .get_bound(py)
                 .call_method1("from_list", (op_raw_data,))
+            }
+            else {
+                Err(PyValueError::new_err("Pauli Evolution Gate needs data list stored as numpy object"))
+            }
         })
         .collect::<PyResult<_>>()?;
     let py_operators = if packed_data.standalone_op != 0 {
@@ -598,12 +604,14 @@ fn deserialize_pauli_evolution_gate(
     } else {
         PyList::new(py, operators)?.into_any()
     };
-
-    let time = DumpedPyValue {
-        data_type: packed_data.time_type,
-        data: packed_data.time_data,
-    }
-    .to_python(py, qpy_data)?;
+    // time is of type ParameterValueType = Union[ParameterExpression, float]
+    // we don't have a rust PauliEvolutionGate so we'll convert the time to python
+    let time = load_value(packed_data.time_type, &packed_data.time_data, qpy_data)?;
+    let py_time: Py<PyAny> = match time {
+        GenericValue::Float64(value) => value.into_py_any(py),
+        GenericValue::ParameterExpression(exp) => exp.into_py_any(py),
+        _ => Err(PyValueError::new_err("Pauli Evolution Gate 'time' parameter should be either float or parameter expression")),
+    }?;
     let synth_data = json.call_method1("loads", (packed_data.synth_data,))?;
     let synth_data = synth_data.cast::<PyDict>()?;
     let synthesis_class_name = synth_data.get_item("class")?.ok_or_else(|| {
@@ -615,7 +623,7 @@ fn deserialize_pauli_evolution_gate(
     let synthesis_class = evo_synth_library.getattr(synthesis_class_name.cast::<PyString>()?)?;
     let synthesis = synthesis_class.call((), Some(synthesis_class_settings.cast::<PyDict>()?))?;
     let kwargs = PyDict::new(py);
-    kwargs.set_item(intern!(py, "time"), time)?;
+    kwargs.set_item(intern!(py, "time"), py_time)?;
     kwargs.set_item(intern!(py, "synthesis"), synthesis)?;
     Ok(imports::PAULI_EVOLUTION_GATE
         .get_bound(py)

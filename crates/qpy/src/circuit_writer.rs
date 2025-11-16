@@ -143,7 +143,8 @@ pub fn pack_instruction(
         OperationRef::Instruction(py_inst) => py_inst.ctrl_state(),
         _ => (1 << num_ctrl_qubits) - 1,
     };
-    let params: Vec<formats::GenericDataPack> = get_instruction_params(instruction, qpy_data)?;
+    // this relies heavily on python-space as instruction params are usually added ad-hoc to arbitrary field in the python instruction
+    let params: Vec<formats::GenericDataPack> = get_instruction_params(instruction, qpy_data)?; 
     let bit_data = get_packed_bit_list(instruction, circuit_data);
     let condition = get_condition_data(&instruction.op, circuit_data, qpy_data)?;
     let annotations = get_instruction_annotations(instruction, qpy_data)?;
@@ -269,7 +270,7 @@ fn pack_classical_registers(circuit_data: &CircuitData) -> Vec<formats::Register
 
 fn pack_circuit_header(
     circuit: &QuantumCircuitData,
-    metadata_serializer: &Bound<PyAny>,
+    metadata_serializer: Option<&Bound<PyAny>>,
     qpy_data: &QPYWriteData,
 ) -> PyResult<formats::CircuitHeaderV12Pack> {
     let metadata = serialize_metadata(&circuit.metadata, metadata_serializer)?;
@@ -577,8 +578,8 @@ pub fn pack_standalone_vars(
 }
 
 pub fn pack_circuit(
-    mut circuit: QuantumCircuitData,
-    metadata_serializer: &Bound<PyAny>,
+    circuit: &mut QuantumCircuitData,
+    metadata_serializer: Option<&Bound<PyAny>>,
     use_symengine: bool,
     version: u32,
     annotation_factories: &Bound<PyDict>,
@@ -637,8 +638,8 @@ pub fn py_write_circuit(
     annotation_factories: &Bound<PyDict>,
 ) -> PyResult<usize> {
     let packed_circuit = pack_circuit(
-        circuit.extract()?,
-        metadata_serializer,
+        &mut circuit.extract()?,
+        Some(metadata_serializer),
         use_symengine,
         version,
         annotation_factories,

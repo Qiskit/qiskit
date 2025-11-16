@@ -21,19 +21,22 @@ use qiskit_circuit::bit::ShareableClbit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::classical::expr::{Expr, Stretch, Var};
 use qiskit_circuit::classical::types::Type;
+use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::object_registry::ObjectRegistry;
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::symbol_expr::Symbol;
+use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::{Clbit, imports};
 
 use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
 use crate::circuit_reader::unpack_circuit;
+use crate::circuit_writer::pack_circuit;
 use crate::formats::{self, GenericDataPack, GenericDataSequencePack};
 use crate::params::{pack_parameter_vector, pack_symbol, unpack_parameter_vector, unpack_symbol};
 use crate::py_methods::{
-    py_deserialize_range, py_unpack_generic_sequence_to_tuple, py_unpack_modifier,
+    py_deserialize_range, py_serialize_numpy_object, py_serialize_range, py_unpack_modifier, py_pack_parameter_expression, py_pack_modifier, py_serialize_register_param, py_deserialize_numpy_object
 };
 use crate::{QpyError, UnsupportedFeatureForVersion};
 
@@ -94,6 +97,29 @@ pub mod tags {
     pub const EXPRESSION: u8 = b'x';
     pub const MODIFIER: u8 = b'm';
     pub const CIRCUIT: u8 = b'q';
+}
+
+pub fn type_name(type_key: u8) -> String {
+    String::from(match type_key {
+        tags::BOOL => "boolean",
+        tags::INTEGER => "integer",
+        tags::FLOAT => "float",
+        tags::COMPLEX => "complex",
+        tags::CASE_DEFAULT => "case default",
+        tags::REGISTER => "register",
+        tags::RANGE => "range",
+        tags::TUPLE => "tuple",
+        tags::NUMPY_OBJ => "numpy object",
+        tags::PARAMETER => "parameter",
+        tags::PARAMETER_VECTOR => "parameter vector",
+        tags::PARAMETER_EXPRESSION => "parameter expression",
+        tags::STRING => "string",
+        tags::NULL => "null",
+        tags::EXPRESSION => "expression",
+        tags::MODIFIER => "modifier",
+        tags::CIRCUIT => "circuit",
+        _ => "unknown type",
+    })
 }
 
 pub mod modifier_types {
@@ -176,20 +202,30 @@ where
     Ok(result)
 }
 
-// An enum for all rust-space data that might be found in a serialized ("Bytes") form inside the qpy file
+// An enum for all data that might be found in a serialized ("Bytes") form inside the qpy file
 // Under ideal conditions, we won't need such an enum since every rust based value will be present explicitly
 // In the formats.rs file. However, due to the legacy of how Python-based value were stored such explicit
 // representation is not always possible or difficult to implement
 // This is the pure rust alternative to `DumpedPyValue` which is used to serialize data given via python objects
 #[derive(Clone, Debug)]
-pub enum GenericValue {
+pub enum GenericValue<'a> {
     Bool(bool),
     Int64(i64),
     Float64(f64),
     Complex64(Complex64),
+    CaseDefault,
+    Register(Py<PyAny>),
+    Range(Py<PyAny>),
+    Tuple(Vec<GenericValue<'a>>),
+    NumpyObject(Py<PyAny>), // currently we store the python object without converting it to rust space
     ParameterExpressionSymbol(Symbol),
     ParameterExpressionVectorSymbol(Symbol),
-    Tuple(Vec<GenericValue>),
+    ParameterExpression(ParameterExpression),
+    String(String),
+    Null,
+    Expression(Expr),
+    Modifier(Py<PyAny>),
+    Circuit(QuantumCircuitData<'a>),
 }
 
 // we want to be able to extract the value relatively painlessly;
@@ -198,9 +234,17 @@ pub trait FromGenericValue: Sized {
     fn from_generic(value: &GenericValue) -> Option<Self>;
 }
 
-impl GenericValue {
+impl GenericValue<'_> {
     pub fn as_typed<T: FromGenericValue>(&self) -> Option<T> {
         T::from_generic(self)
+    }
+    // reintreprets int64 and float64 as if they were given in little endian, since this is needed when encoding instruction parameters
+    pub fn as_le(&self) -> Self {
+        match self {
+            GenericValue::Int64(value) => GenericValue::Int64(i64::from_le_bytes(value.to_be_bytes())),
+            GenericValue::Float64(value) => GenericValue::Float64(f64::from_le_bytes(value.to_be_bytes())),
+            _ => self.clone()
+        }
     }
 }
 
@@ -239,11 +283,11 @@ impl<T: FromGenericValue> FromGenericValue for Vec<T> {
     }
 }
 
-pub fn load_value(
+pub fn load_value<'a>(
     type_key: u8,
     bytes: &Bytes,
     qpy_data: &mut QPYReadData,
-) -> PyResult<GenericValue> {
+) -> PyResult<GenericValue<'a>> {
     match type_key {
         tags::BOOL => {
             let value: bool = bytes.try_into()?;
@@ -276,20 +320,26 @@ pub fn load_value(
             let values = unpack_generic_value_sequence(elements_pack, qpy_data)?;
             Ok(GenericValue::Tuple(values))
         }
+        tags::NUMPY_OBJ => {
+            let py_object = py_deserialize_numpy_object(bytes)?;
+            Ok(GenericValue::NumpyObject(py_object))
+        }
         _ => Err(PyTypeError::new_err(format!(
-            "py_dumps_value: Unhandled type_key: {}",
-            type_key
+            "Generic value loading: Unhandled type_key: {} ({})",
+            type_key, type_name(type_key)
         ))),
     }
 }
 
 /// serializes the generic value into bytes and also returns the identifying tag
-pub fn serialize_generic_value(value: &GenericValue) -> PyResult<(u8, Bytes)> {
+pub fn serialize_generic_value(value: &GenericValue, qpy_data: &QPYWriteData) -> PyResult<(u8, Bytes)> {
     Ok(match value {
         GenericValue::Bool(value) => (tags::BOOL, value.into()),
         GenericValue::Int64(value) => (tags::INTEGER, value.into()),
         GenericValue::Float64(value) => (tags::FLOAT, value.into()),
         GenericValue::Complex64(value) => (tags::COMPLEX, value.into()),
+        GenericValue::String(value) => (tags::STRING, value.into()),
+        GenericValue::CaseDefault => (tags::CASE_DEFAULT, Bytes::new()),
         GenericValue::ParameterExpressionSymbol(symbol) => {
             (tags::PARAMETER, serialize(&pack_symbol(symbol)))
         }
@@ -297,40 +347,58 @@ pub fn serialize_generic_value(value: &GenericValue) -> PyResult<(u8, Bytes)> {
             tags::PARAMETER_VECTOR,
             serialize(&pack_parameter_vector(symbol)?),
         ),
+        GenericValue::ParameterExpression(exp) => {
+            let data = Python::attach(|py| -> PyResult<_> {
+                Ok(serialize(&py_pack_parameter_expression(exp.clone().into_py_any(py)?.bind(py), qpy_data)?))
+            })?;
+            (tags::PARAMETER_EXPRESSION, data)
+        }        
         GenericValue::Tuple(values) => (
             tags::TUPLE,
-            serialize(&pack_generic_value_sequence(values)?),
+            serialize(&pack_generic_value_sequence(values, qpy_data)?),
         ),
+        GenericValue::Expression(exp) => (tags::EXPRESSION, serialize_expression(exp, qpy_data)?),
+        GenericValue::Null => (tags::NULL, Bytes::new()),
+        GenericValue::Circuit(circuit) => (tags::CIRCUIT, serialize(&pack_circuit(
+                &mut circuit.clone(), // TODO: can we avoid cloning here?
+                None,
+                false,
+                QPY_VERSION,
+                qpy_data.annotation_handler.annotation_factories,)?)),
+        GenericValue::NumpyObject(py_obj) => (tags::NUMPY_OBJ, py_serialize_numpy_object(py_obj)?),
+        GenericValue::Range(py_obj) => (tags::RANGE, py_serialize_range(py_obj)?),
+        GenericValue::Modifier(py_object) => (tags::MODIFIER, serialize(&py_pack_modifier(py_object)?)),
+        GenericValue::Register(py_object) => (tags::REGISTER, py_serialize_register_param(py_object)?),
     })
 }
 
 // packing to GenericDataPack is somewhat wasteful in many cases, since given the type_key
 // we usually know the byte length of the data and don't need to store it directly,
 // but since that's the format currently in place in QPY we don't try to optimize
-pub fn pack_generic_value(value: &GenericValue) -> PyResult<GenericDataPack> {
-    let (type_key, data) = serialize_generic_value(value)?;
+pub fn pack_generic_value(value: &GenericValue, qpy_data: &QPYWriteData) -> PyResult<GenericDataPack> {
+    let (type_key, data) = serialize_generic_value(value, qpy_data)?;
     Ok(GenericDataPack { type_key, data })
 }
 
-pub fn unpack_generic_value(
+pub fn unpack_generic_value<'a>(
     value_pack: &GenericDataPack,
     qpy_data: &mut QPYReadData,
-) -> PyResult<GenericValue> {
+) -> PyResult<GenericValue<'a>> {
     load_value(value_pack.type_key, &value_pack.data, qpy_data)
 }
 
-pub fn pack_generic_value_sequence(values: &[GenericValue]) -> PyResult<GenericDataSequencePack> {
+pub fn pack_generic_value_sequence(values: &[GenericValue], qpy_data: &QPYWriteData) -> PyResult<GenericDataSequencePack> {
     let elements = values
         .iter()
-        .map(pack_generic_value)
+        .map(|value| pack_generic_value(value, qpy_data))
         .collect::<PyResult<_>>()?;
     Ok(GenericDataSequencePack { elements })
 }
 
-pub fn unpack_generic_value_sequence(
+pub fn unpack_generic_value_sequence<'a>(
     value_seqeunce_pack: GenericDataSequencePack,
     qpy_data: &mut QPYReadData,
-) -> PyResult<Vec<GenericValue>> {
+) -> PyResult<Vec<GenericValue<'a>>> {
     value_seqeunce_pack
         .elements
         .iter()
@@ -381,9 +449,9 @@ pub fn get_circuit_type_key(op: &PackedOperation) -> PyResult<u8> {
     }
 }
 
-pub fn serialize_expression(exp: Expr, qpy_data: &QPYWriteData) -> PyResult<Bytes> {
+pub fn serialize_expression(exp: &Expr, qpy_data: &QPYWriteData) -> PyResult<Bytes> {
     let packed_expression = formats::ExpressionPack {
-        expression: exp,
+        expression: exp.clone(),
         _phantom: Default::default(),
     };
     let serialized_expression = serialize_with_args(&packed_expression, (qpy_data,));
@@ -463,75 +531,91 @@ fn pack_expression_type(exp_type: &Type, version: u32) -> PyResult<ExpressionTyp
     }
 }
 
-pub struct DumpedPyValue {
-    pub data_type: u8,
-    pub data: Bytes,
-}
+// pub struct DumpedPyValue {
+//     pub data_type: u8,
+//     pub data: Bytes,
+// }
 
-impl DumpedPyValue {
-    pub fn to_python(&self, py: Python<'_>, qpy_data: &mut QPYReadData) -> PyResult<Py<PyAny>> {
-        Ok(match self.data_type {
-            tags::INTEGER => {
-                let value: i64 = (&self.data).try_into()?;
-                PyInt::new(py, value).into()
-            }
-            tags::FLOAT => PyFloat::new(py, (&self.data).try_into()?).into(),
-            tags::COMPLEX => {
-                let (real, imag) = (&self.data).try_into()?;
-                PyComplex::from_doubles(py, real, imag).into()
-            }
-            tags::RANGE => py_deserialize_range(py, &self.data)?,
-            tags::TUPLE => py_unpack_generic_sequence_to_tuple(
-                py,
-                deserialize::<formats::GenericDataSequencePack>(&self.data)?.0,
-                qpy_data,
-            )?,
-            tags::NUMPY_OBJ => {
-                let np = py.import("numpy")?;
-                let io = py.import("io")?;
-                let buffer = io.call_method0("BytesIO")?;
-                buffer.call_method1("write", (self.data.clone(),))?;
-                buffer.call_method1("seek", (0,))?;
-                np.call_method1("load", (buffer,))?.unbind()
-            }
-            tags::MODIFIER => {
-                let (packed_modifier, _) = deserialize::<formats::ModifierPack>(&self.data)?;
-                py_unpack_modifier(py, &packed_modifier)?
-            }
-            tags::STRING => {
-                let data_string: &str = (&self.data).try_into()?;
-                data_string.into_py_any(py)?
-            }
-            tags::EXPRESSION => deserialize_expression(&self.data, qpy_data)?.into_py_any(py)?,
-            tags::NULL => py.None(),
-            tags::CASE_DEFAULT => imports::CASE_DEFAULT.get(py).clone(),
-            tags::CIRCUIT => unpack_circuit(
-                py,
-                &deserialize::<formats::QPYFormatV15>(&self.data)?.0,
-                qpy_data.version,
-                py.None().bind(py),
-                qpy_data.use_symengine,
-                qpy_data.annotation_handler.annotation_factories,
-            )?
-            .unbind(),
-            _ => {
-                return Err(PyTypeError::new_err(format!(
-                    "Dumped Value to python: Unhandled type_key: {}",
-                    self.data_type
-                )));
-            }
-        })
-    }
-}
+// impl DumpedPyValue {
+//     pub fn to_python(&self, py: Python<'_>, qpy_data: &mut QPYReadData) -> PyResult<Py<PyAny>> {
+//         Ok(match self.data_type {
+//             tags::INTEGER => {
+//                 let value: i64 = (&self.data).try_into()?;
+//                 PyInt::new(py, value).into()
+//             }
+//             tags::FLOAT => PyFloat::new(py, (&self.data).try_into()?).into(),
+//             tags::COMPLEX => {
+//                 let (real, imag) = (&self.data).try_into()?;
+//                 PyComplex::from_doubles(py, real, imag).into()
+//             }
+//             tags::RANGE => py_deserialize_range(py, &self.data)?,
+//             tags::TUPLE => py_unpack_generic_sequence_to_tuple(
+//                 py,
+//                 deserialize::<formats::GenericDataSequencePack>(&self.data)?.0,
+//                 qpy_data,
+//             )?,
+//             tags::PARAMETER => {
+//                 let unpacked_data = load_value(self.data_type, &self.data, qpy_data)?;
+//                 match unpacked_data {
+//                     GenericValue::ParameterExpressionSymbol(symbol) => symbol.into_py_any(py)
+//                 }
+//             }
+//             tags::PARAMETER_VECTOR => {
+//                 let (parameter_vector, _) =
+//                     deserialize::<formats::ParameterVectorPack>(&self.data)?;
+//                 unpack_parameter_vector(py, &parameter_vector, qpy_data)?
+//             }
+//             tags::PARAMETER_EXPRESSION => {
+//                 let (parameter_expression, _) =
+//                     deserialize::<formats::ParameterExpressionPack>(&self.data)?;
+//                 unpack_parameter_expression(py, parameter_expression, qpy_data)?
+//             }
+//             tags::NUMPY_OBJ => {
+//                 let np = py.import("numpy")?;
+//                 let io = py.import("io")?;
+//                 let buffer = io.call_method0("BytesIO")?;
+//                 buffer.call_method1("write", (self.data.clone(),))?;
+//                 buffer.call_method1("seek", (0,))?;
+//                 np.call_method1("load", (buffer,))?.unbind()
+//             }
+//             tags::MODIFIER => {
+//                 let (packed_modifier, _) = deserialize::<formats::ModifierPack>(&self.data)?;
+//                 py_unpack_modifier(py, &packed_modifier)?
+//             }
+//             tags::STRING => {
+//                 let data_string: &str = (&self.data).try_into()?;
+//                 data_string.into_py_any(py)?
+//             }
+//             tags::EXPRESSION => deserialize_expression(&self.data, qpy_data)?.into_py_any(py)?,
+//             tags::NULL => py.None(),
+//             tags::CASE_DEFAULT => imports::CASE_DEFAULT.get(py).clone(),
+//             tags::CIRCUIT => unpack_circuit(
+//                 py,
+//                 &deserialize::<formats::QPYFormatV15>(&self.data)?.0,
+//                 qpy_data.version,
+//                 py.None().bind(py),
+//                 qpy_data.use_symengine,
+//                 qpy_data.annotation_handler.annotation_factories,
+//             )?
+//             .unbind(),
+//             _ => {
+//                 return Err(PyTypeError::new_err(format!(
+//                     "Dumped Value to python: Unhandled type_key: {}",
+//                     self.data_type
+//                 )));
+//             }
+//         })
+//     }
+// }
 
-impl fmt::Debug for DumpedPyValue {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("DumpedPyValue")
-            .field("type", &self.data_type)
-            .field("data", &self.data.to_hex_string())
-            .finish()
-    }
-}
+// impl fmt::Debug for DumpedPyValue {
+//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         f.debug_struct("DumpedPyValue")
+//             .field("type", &self.data_type)
+//             .field("data", &self.data.to_hex_string())
+//             .finish()
+//     }
+// }
 
 pub fn bytes_to_py_uuid(py: Python, bytes: [u8; 16]) -> PyResult<Py<PyAny>> {
     let uuid_module = py.import("uuid")?;

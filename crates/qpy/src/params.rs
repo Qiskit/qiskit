@@ -24,11 +24,10 @@ use uuid::Uuid;
 use crate::bytes::Bytes;
 use crate::formats::{self, GenericDataPack, ParameterVectorPack};
 use crate::py_methods::{
-    py_dumps_instruction_param_value, py_dumps_value, py_load_instruction_param_value,
+    py_convert_from_generic_value, py_convert_to_generic_value, py_pack_param
 };
 use crate::value::{
-    DumpedPyValue, GenericValue, QPYReadData, QPYWriteData, bytes_to_py_uuid, deserialize,
-    deserialize_vec, load_value, serialize, tags,
+    GenericValue, QPYReadData, QPYWriteData, bytes_to_py_uuid, deserialize, deserialize_vec, load_value, serialize_generic_value, serialize, tags
 };
 use hashbrown::HashMap;
 
@@ -375,7 +374,7 @@ pub fn unpack_parameter_vector(
     })
 }
 
-pub fn dumps_param_expression(
+pub fn serialize_param_expression(
     exp: &ParameterExpression,
     qpy_data: &QPYWriteData,
 ) -> PyResult<(u8, Bytes)> {
@@ -392,10 +391,19 @@ pub fn dumps_param_expression(
                 (tags::PARAMETER_VECTOR, serialize(&packed_symbol))
             }
         }
-    } else {
-        Python::attach(|py| py_dumps_value(exp.clone().into_py_any(py)?, qpy_data))?
+    } else { // for now, we use our old python based serialization code
+        Python::attach(|py| -> PyResult<_>{
+            let py_exp = exp.clone().into_py_any(py)?;
+            let value = py_convert_to_generic_value(py_exp.bind(py), qpy_data)?;
+            serialize_generic_value(&value, qpy_data)
+        })?
     };
     Ok(result)
+}
+
+pub fn pack_param_expression(exp: &ParameterExpression, qpy_data: &QPYWriteData) -> PyResult<formats::GenericDataPack> {
+    let (type_key, data) = serialize_param_expression(exp, qpy_data)?;
+    Ok(formats::GenericDataPack { type_key, data })
 }
 
 pub fn pack_param_obj(
@@ -403,17 +411,14 @@ pub fn pack_param_obj(
     qpy_data: &QPYWriteData,
     endian: Endian,
 ) -> PyResult<formats::GenericDataPack> {
-    let (type_key, data) = match param {
+    Ok(match param {
         Param::Float(val) => match endian {
-            Endian::Little => (tags::FLOAT, val.to_le_bytes().into()),
-            Endian::Big => (tags::FLOAT, val.to_be_bytes().into()),
+            Endian::Little => formats::GenericDataPack{type_key: tags::FLOAT, data: val.to_le_bytes().into()},
+            Endian::Big => formats::GenericDataPack{type_key: tags::FLOAT, data: val.to_be_bytes().into()},
         },
-        Param::ParameterExpression(exp) => dumps_param_expression(exp, qpy_data)?,
-        Param::Obj(py_object) => Python::attach(|py| -> PyResult<_> {
-            py_dumps_instruction_param_value(py_object.bind(py), qpy_data, endian)
-        })?,
-    };
-    Ok(formats::GenericDataPack { type_key, data })
+        Param::ParameterExpression(exp) => pack_param_expression(exp, qpy_data)?,
+        Param::Obj(py_object) => Python::attach(|py| py_pack_param(&py_object.bind(py), qpy_data, endian))?,
+    })
 }
 
 pub fn unpack_param(
@@ -439,23 +444,21 @@ pub fn unpack_param(
             Ok(Param::ParameterExpression(Arc::new(parameter_expression)))
         }
         tags::PARAMETER_EXPRESSION => {
-            let dumped_value = DumpedPyValue {
-                data_type: packed_param.type_key,
-                data: packed_param.data.clone(),
-            };
-            let (packed_parameter_expression, _) =
-                deserialize::<formats::ParameterExpressionPack>(&dumped_value.data)?;
-            let parameter_expression =
-                unpack_parameter_expression(packed_parameter_expression, qpy_data)?;
-            Ok(Param::ParameterExpression(Arc::new(parameter_expression)))
+            if let GenericValue::ParameterExpression(parameter_expression) = load_value(packed_param.type_key, &packed_param.data, qpy_data)? {
+                Ok(Param::ParameterExpression(Arc::new(parameter_expression)))
+            }
+            else {
+                Err(PyValueError::new_err("error trying to deserialize parameter expression"))
+            }
         }
         _ => {
-            let param_value = py_load_instruction_param_value(
-                packed_param.type_key,
-                &packed_param.data,
-                qpy_data,
-            )?;
-            Ok(Param::Obj(param_value))
+            let param_value = load_value(packed_param.type_key, &packed_param.data, qpy_data)?;
+            let param_value = if endian == Endian::Little {
+                param_value.as_le()
+            } else {
+                param_value
+            };
+            Ok(Param::Obj(py_convert_from_generic_value(&param_value)?))
         }
     }
 }

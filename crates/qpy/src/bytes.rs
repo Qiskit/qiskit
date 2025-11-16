@@ -207,6 +207,12 @@ impl From<String> for Bytes {
     }
 }
 
+impl From<&String> for Bytes {
+    fn from(s: &String) -> Self {
+        Bytes(s.clone().into_bytes())
+    }
+}
+
 impl From<Cursor<Vec<u8>>> for Bytes {
     fn from(cursor: Cursor<Vec<u8>>) -> Self {
         Bytes(cursor.into_inner())
