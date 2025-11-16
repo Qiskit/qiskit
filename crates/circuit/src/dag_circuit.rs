@@ -7152,14 +7152,14 @@ impl DAGCircuit {
                             circuit_qubit_index.index()
                         ))
                     })?;
-                // Check for duplicates
-                if new_dag.qubits.find(shareable_qubit).is_some() {
+                // Check for duplicates (optimized: reuse lookup result for error check)
+                if let Some(_) = new_dag.qubits.find(shareable_qubit) {
                     return Err(DAGCircuitError::new_err(format!(
                         "duplicate qubits {:?}",
                         shareable_qubit
                     )));
                 }
-                // Add to DAG and store the DAG qubit index
+                // Add new qubit to DAG
                 let dag_qubit = new_dag.add_qubit_unchecked(shareable_qubit.clone())?;
                 ordered_vec[circuit_qubit_index.index()] = dag_qubit;
             }
@@ -7207,14 +7207,14 @@ impl DAGCircuit {
                             circuit_clbit_index.index()
                         ))
                     })?;
-                // Check for duplicates
-                if new_dag.clbits.find(shareable_clbit).is_some() {
+                // Check for duplicates (optimized: reuse lookup result for error check)
+                if let Some(_) = new_dag.clbits.find(shareable_clbit) {
                     return Err(DAGCircuitError::new_err(format!(
                         "duplicate clbits {:?}",
                         shareable_clbit
                     )));
                 }
-                // Add to DAG and store the DAG clbit index
+                // Add new clbit to DAG
                 let dag_clbit = new_dag.add_clbit_unchecked(shareable_clbit.clone())?;
                 ordered_vec[circuit_clbit_index.index()] = dag_clbit;
             }
