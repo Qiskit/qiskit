@@ -118,14 +118,17 @@ fix_cformat:
 
 # The library file is managed by a different build tool - pretend it's always dirty.
 .PHONY: $(C_LIB_CARGO_PATH)
-$(C_LIB_CARGO_PATH):
+
+# PROFILE_GENERATE and PROFILE_USE are variables that can be used along with
+# `make c` to use PGO (https://doc.rust-lang.org/rustc/profile-guided-optimization.html#usage).
 ifdef PROFILE_GENERATE
-	RUSTC_FLAGS="-- -Cprofile-generate=$(PROFILE_GENERATE)"
+RUSTC_FLAGS="-Cprofile-generate=$(PROFILE_GENERATE)"
 endif
 ifdef PROFILE_USE
-	RUSTC_FLAGS="-Cprofile-use=$(PROFILE_USE)"
+RUSTC_FLAGS="-Cprofile-use=$(PROFILE_USE)"
 endif
-	cargo rustc --release --crate-type cdylib -p qiskit-cext -- ${RUSTC_FLAGS}
+$(C_LIB_CARGO_PATH):
+	cargo rustc --release --crate-type cdylib -p qiskit-cext -- $(RUSTC_FLAGS)
 
 
 $(C_DIR_LIB):
