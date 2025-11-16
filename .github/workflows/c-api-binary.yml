@@ -89,7 +89,33 @@ jobs:
           echo "C_DIR_OUT: $C_DIR_OUT"
       - name: Build Binary
         run: |
-          make c C_DIR_OUT="${{ env.C_DIR_OUT }}"
+          # Compile Qiskit C API with PGO profile enabled
+          make c \
+            C_DIR_OUT="${{ env.C_DIR_OUT }}" \
+            PROFILE_GENERATE="/tmp/pgo-data"
+
+          # Compile PGO script
+          clang tools/pgo_scripts/test_utility_scale.c \
+            -o test_utility_scale.o \
+            -O0 \
+            -I ${{ env.C_DIR_OUT }}/include \
+            -L ${{ env.C_DIR_OUT }}/lib \
+            -lqiskit \
+            -Wl,-rpath,${{ env.C_DIR_OUT }}/lib
+
+          # Generate PGO profile
+          ./test_utility_scale.o
+
+          # Merge PGO profile data
+          rustup component add llvm-tools-preview
+          PROFDATA="$(find ~/.rustup -name 'llvm-profdata')"
+          ${PROFDATA} merge -o ./merged.profdata /tmp/pgo-data
+
+          # Re-compile Qiskit C API with merged PGO data
+          make c \
+            C_DIR_OUT="${{ env.C_DIR_OUT }}" \
+            PROFILE_USE="merged.profdata"
+
       - name: Validate Binaries
         run: |
           make ctest \
