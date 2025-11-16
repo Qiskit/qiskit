@@ -452,7 +452,7 @@ pub struct TargetEntry {
 }
 
 impl TargetEntry {
-    pub fn new(operation: StandardGate) -> Self {
+    pub fn new(operation: StandardGate, name: Option<String>) -> Self {
         let params = if operation.num_params() > 0 {
             Some(
                 (0..operation.num_params())
@@ -471,19 +471,19 @@ impl TargetEntry {
             operation: StandardOperation::Gate(operation),
             params,
             map: Default::default(),
-            name: Some(operation.name().to_string()),
+            name: name.or_else(|| Some(operation.name().to_string())),
         }
     }
 
     pub fn new_fixed(
         operation: StandardGate,
         params: SmallVec<[Param; 3]>,
-        name: *const c_char,
+        name: Option<String>,
     ) -> Self {
         Self {
             operation: StandardOperation::Gate(operation),
             params: Some(params),
-            name: Some(unsafe { CStr::from_ptr(name).to_str().unwrap().to_string() }),
+            name: name.or_else(|| Some(operation.name().to_string())),
             map: Default::default(),
         }
     }
@@ -505,17 +505,43 @@ impl TargetEntry {
 /// takes parameters (which can be checked with ``qk_gate_num_params``) it will be added as a
 /// an instruction on the target which accepts any parameter value. If the gate only accepts a
 /// fixed parameter value you can use ``qk_target_entry_new_fixed`` instead.
+/// @param name An optional name for the gate instance. If NULL or empty, the default gate name
+///     will be used.
 ///
 /// @return A pointer to the new ``QkTargetEntry``.
 ///
 /// # Example
 /// ```c
-///     QkTargetEntry *entry = qk_target_entry_new(QkGate_H);
+///     QkTargetEntry *entry = qk_target_entry_new(QkGate_H, NULL);
+///     // Or with a custom name:
+///     QkTargetEntry *named_entry = qk_target_entry_new(QkGate_RZ, "rz_custom");
 /// ```
+///
+/// # Safety
+///
+/// If ``name`` is not NULL, it must point to a valid null-terminated C string.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub extern "C" fn qk_target_entry_new(operation: StandardGate) -> *mut TargetEntry {
-    Box::into_raw(Box::new(TargetEntry::new(operation)))
+pub unsafe extern "C" fn qk_target_entry_new(
+    operation: StandardGate,
+    name: *const c_char,
+) -> *mut TargetEntry {
+    let name_str = if name.is_null() {
+        None
+    } else {
+        let cstr = unsafe {
+            CStr::from_ptr(name).to_str().expect(
+                "Error while extracting the given name from C string pointer.",
+            )
+        };
+        let name_string = cstr.to_string();
+        if name_string.is_empty() {
+            None
+        } else {
+            Some(name_string)
+        }
+    };
+    Box::into_raw(Box::new(TargetEntry::new(operation, name_str)))
 }
 
 /// @ingroup QkTargetEntry
@@ -580,13 +606,17 @@ pub extern "C" fn qk_target_entry_new_reset() -> *mut TargetEntry {
 ///
 /// @param operation The ``QkGate`` whose properties this target entry defines.
 /// @param params A pointer to the parameters that the instruction is calibrated for.
+/// @param name An optional name for the gate instance. If NULL or empty, the default gate name
+///     will be used.
 ///
 /// @return A pointer to the new ``QkTargetEntry``.
 ///
 /// # Example
 /// ```c
 ///     double crx_params[1] = {3.14};
-///     QkTargetEntry *entry = qk_target_entry_new_fixed(QkGate_CRX, crx_params);
+///     QkTargetEntry *entry = qk_target_entry_new_fixed(QkGate_CRX, crx_params, NULL);
+///     // Or with a custom name:
+///     QkTargetEntry *named_entry = qk_target_entry_new_fixed(QkGate_CRX, crx_params, "crx_custom");
 /// ```
 ///
 /// # Safety
@@ -596,6 +626,8 @@ pub extern "C" fn qk_target_entry_new_reset() -> *mut TargetEntry {
 /// behavior of this function is undefined as this will read outside the bounds of the array.
 /// It can be a null pointer if there are no params for a given gate. You can check
 /// ``qk_gate_num_params`` to determine how many qubits are required for a given gate.
+///
+/// If ``name`` is not NULL, it must point to a valid null-terminated C string.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_entry_new_fixed(
@@ -603,11 +635,26 @@ pub unsafe extern "C" fn qk_target_entry_new_fixed(
     params: *mut f64,
     name: *const c_char,
 ) -> *mut TargetEntry {
+    let name_str = if name.is_null() {
+        None
+    } else {
+        let cstr = unsafe {
+            CStr::from_ptr(name).to_str().expect(
+                "Error while extracting the given name from C string pointer.",
+            )
+        };
+        let name_string = cstr.to_string();
+        if name_string.is_empty() {
+            None
+        } else {
+            Some(name_string)
+        }
+    };
     unsafe {
         Box::into_raw(Box::new(TargetEntry::new_fixed(
             operation,
             parse_params(operation, params),
-            name,
+            name_str,
         )))
     }
 }
@@ -777,7 +824,7 @@ pub unsafe extern "C" fn qk_target_add_instruction(
     match target.add_instruction(
         instruction.into(),
         &entry.params.unwrap_or_default(),
-        None,
+        entry.name.as_deref(),
         property_map,
     ) {
         Ok(_) => ExitCode::Success,
