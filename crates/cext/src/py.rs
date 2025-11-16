@@ -48,7 +48,7 @@ where
 /// This is used ot define Python-space "converter" functinos for use with the `PyArg_Parse*` family
 /// of functions.
 ///
-/// On success, returns 0 and writes out the pointer in `address`.  On failure, returns 1, sets the
+/// On success, returns 1 and writes out the pointer in `address`.  On failure, returns 0, sets the
 /// Python exception state and leaves `address` untouched.
 ///
 /// # Safety
