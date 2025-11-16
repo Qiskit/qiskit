@@ -32,7 +32,8 @@ jobs:
             -O0 \
             -I ${{ env.C_DIR_OUT }}/include \
             -L ${{ env.C_DIR_OUT }}/lib \
-            -lqiskit
+            -lqiskit \
+            -Wl,-rpath,${{ env.C_DIR_OUT }}/lib
 
           # Generate PGO profile
           ./test_utility_scale.o
