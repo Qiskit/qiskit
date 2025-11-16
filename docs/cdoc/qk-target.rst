@@ -26,14 +26,14 @@ Here's an example of how this structure works:
     // duration = 0.0123
     // error = NaN
     uint32_t qargs[2] = {0, 1};
-    QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
+    QkTargetEntry *entry = qk_target_entry_new(QkGate_CX, NULL);
     qk_target_entry_add_property(entry, qargs, 2, 0.0123, NAN);
 
     // Add a CX Gate to the target
     qk_target_add_instruction(target, entry);
 
     // Add a global H gate
-    qk_target_add_instruction(target, qk_target_entry_new(QkGate_H));
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_H, NULL));
 
     // Free the created target.
     qk_target_free(target);

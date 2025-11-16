@@ -530,9 +530,9 @@ pub unsafe extern "C" fn qk_target_entry_new(
         None
     } else {
         let cstr = unsafe {
-            CStr::from_ptr(name).to_str().expect(
-                "Error while extracting the given name from C string pointer.",
-            )
+            CStr::from_ptr(name)
+                .to_str()
+                .expect("Error while extracting the given name from C string pointer.")
         };
         let name_string = cstr.to_string();
         if name_string.is_empty() {
@@ -639,9 +639,9 @@ pub unsafe extern "C" fn qk_target_entry_new_fixed(
         None
     } else {
         let cstr = unsafe {
-            CStr::from_ptr(name).to_str().expect(
-                "Error while extracting the given name from C string pointer.",
-            )
+            CStr::from_ptr(name)
+                .to_str()
+                .expect("Error while extracting the given name from C string pointer.")
         };
         let name_string = cstr.to_string();
         if name_string.is_empty() {
