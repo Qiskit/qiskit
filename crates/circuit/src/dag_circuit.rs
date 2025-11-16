@@ -3404,11 +3404,10 @@ impl DAGCircuit {
 
     /// Returns iterator of the successors of a node as :class:`.DAGOpNode`\ s and
     /// :class:`.DAGOutNode`\ s.
-    fn successors(&self, py: Python, node: &DAGNode) -> PyResult<Py<PyIterator>> {
+    #[pyo3(name = "successors")]
+    fn py_successors(&self, py: Python, node: &DAGNode) -> PyResult<Py<PyIterator>> {
         let successors: PyResult<Vec<_>> = self
-            .dag
-            .neighbors_directed(node.node.unwrap(), Outgoing)
-            .unique()
+            .successors(node.node.unwrap())
             .map(|i| self.get_node(py, i))
             .collect();
         Ok(PyTuple::new(py, successors?)?
@@ -3420,11 +3419,10 @@ impl DAGCircuit {
 
     /// Returns iterator of the predecessors of a node as :class:`.DAGOpNode`\ s and
     /// :class:`.DAGInNode`\ s.
-    fn predecessors(&self, py: Python, node: &DAGNode) -> PyResult<Py<PyIterator>> {
+    #[pyo3(name = "predecessors")]
+    fn py_predecessors(&self, py: Python, node: &DAGNode) -> PyResult<Py<PyIterator>> {
         let predecessors: PyResult<Vec<_>> = self
-            .dag
-            .neighbors_directed(node.node.unwrap(), Incoming)
-            .unique()
+            .predecessors(node.node.unwrap())
             .map(|i| self.get_node(py, i))
             .collect();
         Ok(PyTuple::new(py, predecessors?)?
@@ -7768,6 +7766,16 @@ impl DAGCircuit {
     // Returns an immutable reference to 'metadata'
     pub fn get_metadata(&self) -> Option<&Py<PyAny>> {
         self.metadata.as_ref()
+    }
+
+    // Returns an iterator over the unique successors of the given node
+    pub fn successors(&self, node: NodeIndex) -> impl Iterator<Item = NodeIndex> {
+        self.dag.neighbors_directed(node, Outgoing).unique()
+    }
+
+    // Returns an iterator over the unique predecessors of the given node
+    pub fn predecessors(&self, node: NodeIndex) -> impl Iterator<Item = NodeIndex> {
+        self.dag.neighbors_directed(node, Incoming).unique()
     }
 }
 
