@@ -23,13 +23,13 @@ const ROTATION_GATE_NAMES: &[&str; 3] = &["rx", "ry", "rz"];
 const PI8: f64 = PI / 8.0;
 const DEFAULT_ATOL: f64 = 1e-10;
 
-/// For an angle, if it is a multiple of 2*PI/8, calculate the multiplicity mod 8,
+/// For an angle, if it is a multiple of PI/8, calculate the multiplicity mod 16,
 /// Otherwise, return None.
 fn is_angle_close_to_multiple_of_2pi_8(angle: f64) -> Option<usize> {
     let closest_ratio = angle * 4.0 / PI;
     let closest_integer = closest_ratio.round();
     if (closest_ratio - closest_integer).abs() < DEFAULT_ATOL {
-        Some((closest_integer as usize) % 8)
+        Some((closest_integer as usize) % 16)
     } else {
         None
     }
@@ -37,7 +37,7 @@ fn is_angle_close_to_multiple_of_2pi_8(angle: f64) -> Option<usize> {
 
 /// Gets a rotation gate (RX/RY/RZ) and outputs an equivalent vector of standard gates and
 /// a global phase, when the gate is sufficiently close to Clifford+T/Tdg.
-/// Otherwise, return the original gate and global phase = 0.
+/// Otherwise, return None.
 fn try_replace_rotation_by_discrete(
     gate: StandardGate,
     angle: f64,
@@ -80,6 +80,40 @@ fn try_replace_rotation_by_discrete(
             discrete_sequence.push(StandardGate::Tdg);
             -7.0 * PI8
         }
+        (StandardGate::RZ, Some(8)) => {
+            discrete_sequence.push(StandardGate::I);
+            -1.0 * PI
+        }
+        (StandardGate::RZ, Some(9)) => {
+            discrete_sequence.push(StandardGate::T);
+            -9.0 * PI8
+        }
+        (StandardGate::RZ, Some(10)) => {
+            discrete_sequence.push(StandardGate::S);
+            -10.0 * PI8
+        }
+        (StandardGate::RZ, Some(11)) => {
+            discrete_sequence.push(StandardGate::S);
+            discrete_sequence.push(StandardGate::T);
+            -11.0 * PI8
+        }
+        (StandardGate::RZ, Some(12)) => {
+            discrete_sequence.push(StandardGate::Z);
+            -12.0 * PI8
+        }
+        (StandardGate::RZ, Some(13)) => {
+            discrete_sequence.push(StandardGate::Z);
+            discrete_sequence.push(StandardGate::T);
+            -13.0 * PI8
+        }
+        (StandardGate::RZ, Some(14)) => {
+            discrete_sequence.push(StandardGate::Sdg);
+            -14.0 * PI8
+        }
+        (StandardGate::RZ, Some(15)) => {
+            discrete_sequence.push(StandardGate::Tdg);
+            -15.0 * PI8
+        }
         (StandardGate::RX, Some(0)) => {
             discrete_sequence.push(StandardGate::I);
             0.0
@@ -121,6 +155,48 @@ fn try_replace_rotation_by_discrete(
             discrete_sequence.push(StandardGate::Tdg);
             discrete_sequence.push(StandardGate::H);
             -7.0 * PI8
+        }
+        (StandardGate::RX, Some(8)) => {
+            discrete_sequence.push(StandardGate::I);
+            -1.0 * PI
+        }
+        (StandardGate::RX, Some(9)) => {
+            discrete_sequence.push(StandardGate::H);
+            discrete_sequence.push(StandardGate::T);
+            discrete_sequence.push(StandardGate::H);
+            -9.0 * PI8
+        }
+        (StandardGate::RX, Some(10)) => {
+            discrete_sequence.push(StandardGate::SX);
+            -10.0 * PI8
+        }
+        (StandardGate::RX, Some(11)) => {
+            discrete_sequence.push(StandardGate::SX);
+            discrete_sequence.push(StandardGate::H);
+            discrete_sequence.push(StandardGate::T);
+            discrete_sequence.push(StandardGate::H);
+            -11.0 * PI8
+        }
+        (StandardGate::RX, Some(12)) => {
+            discrete_sequence.push(StandardGate::X);
+            -12.0 * PI8
+        }
+        (StandardGate::RX, Some(13)) => {
+            discrete_sequence.push(StandardGate::X);
+            discrete_sequence.push(StandardGate::H);
+            discrete_sequence.push(StandardGate::T);
+            discrete_sequence.push(StandardGate::H);
+            -13.0 * PI8
+        }
+        (StandardGate::RX, Some(14)) => {
+            discrete_sequence.push(StandardGate::SXdg);
+            -14.0 * PI8
+        }
+        (StandardGate::RX, Some(15)) => {
+            discrete_sequence.push(StandardGate::H);
+            discrete_sequence.push(StandardGate::Tdg);
+            discrete_sequence.push(StandardGate::H);
+            -15.0 * PI8
         }
         (StandardGate::RY, Some(0)) => {
             discrete_sequence.push(StandardGate::I);
@@ -165,6 +241,50 @@ fn try_replace_rotation_by_discrete(
             discrete_sequence.push(StandardGate::Tdg);
             discrete_sequence.push(StandardGate::SXdg);
             -7.0 * PI8
+        }
+        (StandardGate::RY, Some(8)) => {
+            discrete_sequence.push(StandardGate::I);
+            -1.0 * PI
+        }
+        (StandardGate::RY, Some(9)) => {
+            discrete_sequence.push(StandardGate::SX);
+            discrete_sequence.push(StandardGate::T);
+            discrete_sequence.push(StandardGate::SXdg);
+            -9.0 * PI8
+        }
+        (StandardGate::RY, Some(10)) => {
+            discrete_sequence.push(StandardGate::Z);
+            discrete_sequence.push(StandardGate::H);
+            -1.0 * PI
+        }
+        (StandardGate::RY, Some(11)) => {
+            discrete_sequence.push(StandardGate::SX);
+            discrete_sequence.push(StandardGate::T);
+            discrete_sequence.push(StandardGate::S);
+            discrete_sequence.push(StandardGate::SXdg);
+            -11.0 * PI8
+        }
+        (StandardGate::RY, Some(12)) => {
+            discrete_sequence.push(StandardGate::Y);
+            -12.0 * PI8
+        }
+        (StandardGate::RY, Some(13)) => {
+            discrete_sequence.push(StandardGate::Y);
+            discrete_sequence.push(StandardGate::SX);
+            discrete_sequence.push(StandardGate::T);
+            discrete_sequence.push(StandardGate::SXdg);
+            -13.0 * PI8
+        }
+        (StandardGate::RY, Some(14)) => {
+            discrete_sequence.push(StandardGate::H);
+            discrete_sequence.push(StandardGate::Z);
+            -0.0
+        }
+        (StandardGate::RY, Some(15)) => {
+            discrete_sequence.push(StandardGate::SX);
+            discrete_sequence.push(StandardGate::Tdg);
+            discrete_sequence.push(StandardGate::SXdg);
+            -15.0 * PI8
         }
         _ => {
             return None;
