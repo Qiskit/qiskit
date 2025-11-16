@@ -41,7 +41,7 @@ jobs:
           # Merge PGO profile data
           rustup component add llvm-tools-preview
           PROFDATA="$(find ~/.rustup -name 'llvm-profdata')"
-          ./${PROFDATA} merge -o ./merged.profdata /tmp/pgo-data
+          ${PROFDATA} merge -o ./merged.profdata /tmp/pgo-data
 
           # Re-compile Qiskit C API with merged PGO data
           make c \
