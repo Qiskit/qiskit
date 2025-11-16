@@ -194,23 +194,83 @@ impl PyDAGCircuit {
             let in_node = in_node.borrow();
             let wire = in_node.wire.bind(py);
             if let Ok(qubit) = wire.extract::<ShareableQubit>() {
-                NodeType::QubitIn(self.dag_circuit.qubits.find(&qubit).unwrap())
+                NodeType::QubitIn(
+                    self.dag_circuit
+                        .qubits
+                        .find(&qubit)
+                        .ok_or_else(|| {
+                            DAGCircuitError::new_err(format!(
+                                "Qubit {:?} not found in DAGCircuit",
+                                qubit
+                            ))
+                        })?,
+                )
             } else if let Ok(clbit) = wire.extract::<ShareableClbit>() {
-                NodeType::ClbitIn(self.dag_circuit.clbits.find(&clbit).unwrap())
+                NodeType::ClbitIn(
+                    self.dag_circuit
+                        .clbits
+                        .find(&clbit)
+                        .ok_or_else(|| {
+                            DAGCircuitError::new_err(format!(
+                                "Clbit {:?} not found in DAGCircuit",
+                                clbit
+                            ))
+                        })?,
+                )
             } else {
                 let var = wire.extract::<expr::Var>()?;
-                NodeType::VarIn(self.dag_circuit.vars.find(&var).unwrap())
+                NodeType::VarIn(
+                    self.dag_circuit
+                        .vars
+                        .find(&var)
+                        .ok_or_else(|| {
+                            DAGCircuitError::new_err(format!(
+                                "Variable {:?} not found in DAGCircuit",
+                                var
+                            ))
+                        })?,
+                )
             }
         } else if let Ok(out_node) = b.cast::<DAGOutNode>() {
             let out_node = out_node.borrow();
             let wire = out_node.wire.bind(py);
             if let Ok(qubit) = wire.extract::<ShareableQubit>() {
-                NodeType::QubitOut(self.dag_circuit.qubits.find(&qubit).unwrap())
+                NodeType::QubitOut(
+                    self.dag_circuit
+                        .qubits
+                        .find(&qubit)
+                        .ok_or_else(|| {
+                            DAGCircuitError::new_err(format!(
+                                "Qubit {:?} not found in DAGCircuit",
+                                qubit
+                            ))
+                        })?,
+                )
             } else if let Ok(clbit) = wire.extract::<ShareableClbit>() {
-                NodeType::ClbitOut(self.dag_circuit.clbits.find(&clbit).unwrap())
+                NodeType::ClbitOut(
+                    self.dag_circuit
+                        .clbits
+                        .find(&clbit)
+                        .ok_or_else(|| {
+                            DAGCircuitError::new_err(format!(
+                                "Clbit {:?} not found in DAGCircuit",
+                                clbit
+                            ))
+                        })?,
+                )
             } else {
                 let var = wire.extract::<expr::Var>()?;
-                NodeType::VarOut(self.dag_circuit.vars.find(&var).unwrap())
+                NodeType::VarOut(
+                    self.dag_circuit
+                        .vars
+                        .find(&var)
+                        .ok_or_else(|| {
+                            DAGCircuitError::new_err(format!(
+                                "Variable {:?} not found in DAGCircuit",
+                                var
+                            ))
+                        })?,
+                )
             }
         } else if let Ok(op_node) = b.cast::<DAGOpNode>() {
             let op_node = op_node.borrow();
@@ -264,7 +324,12 @@ impl PyDAGCircuit {
                     self.dag_circuit
                         .qubits
                         .get(*qubit)
-                        .unwrap()
+                        .ok_or_else(|| {
+                            DAGCircuitError::new_err(format!(
+                                "Qubit {:?} not found in DAGCircuit",
+                                qubit
+                            ))
+                        })?
                         .into_py_any(py)?,
                 ),
             )?
@@ -276,7 +341,12 @@ impl PyDAGCircuit {
                     self.dag_circuit
                         .qubits
                         .get(*qubit)
-                        .unwrap()
+                        .ok_or_else(|| {
+                            DAGCircuitError::new_err(format!(
+                                "Qubit {:?} not found in DAGCircuit",
+                                qubit
+                            ))
+                        })?
                         .into_py_any(py)?,
                 ),
             )?
@@ -288,7 +358,12 @@ impl PyDAGCircuit {
                     self.dag_circuit
                         .clbits
                         .get(*clbit)
-                        .unwrap()
+                        .ok_or_else(|| {
+                            DAGCircuitError::new_err(format!(
+                                "Clbit {:?} not found in DAGCircuit",
+                                clbit
+                            ))
+                        })?
                         .into_py_any(py)?,
                 ),
             )?
@@ -300,7 +375,12 @@ impl PyDAGCircuit {
                     self.dag_circuit
                         .clbits
                         .get(*clbit)
-                        .unwrap()
+                        .ok_or_else(|| {
+                            DAGCircuitError::new_err(format!(
+                                "Clbit {:?} not found in DAGCircuit",
+                                clbit
+                            ))
+                        })?
                         .into_py_any(py)?,
                 ),
             )?
@@ -342,7 +422,12 @@ impl PyDAGCircuit {
                     self.dag_circuit
                         .vars
                         .get(*var)
-                        .unwrap()
+                        .ok_or_else(|| {
+                            DAGCircuitError::new_err(format!(
+                                "Variable {:?} not found in DAGCircuit",
+                                var
+                            ))
+                        })?
                         .clone()
                         .into_py_any(py)?,
                 ),
@@ -355,7 +440,12 @@ impl PyDAGCircuit {
                     self.dag_circuit
                         .vars
                         .get(*var)
-                        .unwrap()
+                        .ok_or_else(|| {
+                            DAGCircuitError::new_err(format!(
+                                "Variable {:?} not found in DAGCircuit",
+                                var
+                            ))
+                        })?
                         .clone()
                         .into_py_any(py)?,
                 ),
