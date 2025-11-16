@@ -56,45 +56,46 @@ pub fn circuit_to_dag(
     clbit_order: Option<Vec<ShareableClbit>>,
 ) -> PyResult<DAGCircuit> {
     // Map ShareableQubit/ShareableClbit to Qubit/Clbit indices
-    let qubit_order_mapped = qubit_order
-        .map(|order| {
-            order
-                .into_iter()
-                .map(|shareable_qubit| {
-                    quantum_circuit
-                        .data
-                        .qubits()
-                        .find(&shareable_qubit)
-                        .ok_or_else(|| {
-                            PyValueError::new_err(format!(
-                                "Qubit {:?} not found in circuit",
-                                shareable_qubit
-                            ))
-                        })
-                })
-                .collect::<PyResult<Vec<_>>>()
-        })
-        .transpose()?;
+    // Optimized: Pre-allocate Vecs and get registry reference once to avoid repeated lookups
+    let qubit_order_mapped = if let Some(order) = qubit_order {
+        let qubits_registry = quantum_circuit.data.qubits();
+        let mut mapped = Vec::with_capacity(order.len());
+        for shareable_qubit in order {
+            mapped.push(
+                qubits_registry
+                    .find(&shareable_qubit)
+                    .ok_or_else(|| {
+                        PyValueError::new_err(format!(
+                            "Qubit {:?} not found in circuit",
+                            shareable_qubit
+                        ))
+                    })?,
+            );
+        }
+        Some(mapped)
+    } else {
+        None
+    };
 
-    let clbit_order_mapped = clbit_order
-        .map(|order| {
-            order
-                .into_iter()
-                .map(|shareable_clbit| {
-                    quantum_circuit
-                        .data
-                        .clbits()
-                        .find(&shareable_clbit)
-                        .ok_or_else(|| {
-                            PyValueError::new_err(format!(
-                                "Clbit {:?} not found in circuit",
-                                shareable_clbit
-                            ))
-                        })
-                })
-                .collect::<PyResult<Vec<_>>>()
-        })
-        .transpose()?;
+    let clbit_order_mapped = if let Some(order) = clbit_order {
+        let clbits_registry = quantum_circuit.data.clbits();
+        let mut mapped = Vec::with_capacity(order.len());
+        for shareable_clbit in order {
+            mapped.push(
+                clbits_registry
+                    .find(&shareable_clbit)
+                    .ok_or_else(|| {
+                        PyValueError::new_err(format!(
+                            "Clbit {:?} not found in circuit",
+                            shareable_clbit
+                        ))
+                    })?,
+            );
+        }
+        Some(mapped)
+    } else {
+        None
+    };
 
     DAGCircuit::from_circuit(
         quantum_circuit,
