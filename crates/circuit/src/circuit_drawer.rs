@@ -655,264 +655,91 @@ impl Index<usize> for TextDrawer {
 }
 
 impl TextDrawer {
-    fn get_label(instruction: &PackedInstruction) -> Option<String> {
-        let label = instruction.label();
-        let mut instruction_param = String::new();
-        for param in instruction.params_view() {
-            let param_sub_str = match param {
-                Param::Float(f) => format!("{:.2}", f),
-                _ => format!("{:?}", param),
-            };
-            if instruction_param.is_empty() {
-                instruction_param = param_sub_str;
-            } else {
-                instruction_param = format!("{}, {}", instruction_param, param_sub_str);
-            }
+    fn get_label(instruction: &PackedInstruction) -> String {
+        if let Some(label) = instruction.label() {
+            return format!(" {} ", label.to_string());
         }
-        // let instruction_param =format!("{:?}",instruction.params_view());
-        let instruction_label = match label {
-            Some(l) => Some(format!("{}{}{}", " ", l.to_string(), " ")),
-            None => {
-                if let Some(standard_gate) = instruction.op.try_standard_gate() {
-                    match standard_gate {
-                        StandardGate::GlobalPhase => {
-                            // Global phase gate - affects overall circuit phase
-                            None
-                        }
-                        StandardGate::H => {
-                            // Hadamard gate - creates superposition
-                            Some(" H ".to_string())
-                        }
-                        StandardGate::I => {
-                            // Identity gate - no operation
-                            Some(" I ".to_string())
-                        }
-                        StandardGate::X => {
-                            // Pauli-X gate (NOT gate)
-                            Some(" X ".to_string())
-                        }
-                        StandardGate::Y => {
-                            // Pauli-Y gate
-                            Some(" Y ".to_string())
-                        }
-                        StandardGate::Z => {
-                            // Pauli-Z gate
-                            Some(" Z ".to_string())
-                        }
-                        StandardGate::Phase => {
-                            // Phase gate (parameterized)
-                            Some(format!(" P({}) ", instruction_param))
-                        }
-                        StandardGate::R => {
-                            // R gate (rotation about axis in XY plane)
-                            Some(format!(" R({}) ", instruction_param))
-                        }
-                        StandardGate::RX => {
-                            // Rotation about X axis
-                            Some(format!(" RX({}) ", instruction_param))
-                        }
-                        StandardGate::RY => {
-                            // Rotation about Y axis
-                            Some(format!(" RY({}) ", instruction_param))
-                        }
-                        StandardGate::RZ => {
-                            // Rotation about Z axis
-                            Some(format!(" RZ({}) ", instruction_param))
-                        }
-                        StandardGate::S => {
-                            // S gate (phase π/2)
-                            Some(" S ".to_string())
-                        }
-                        StandardGate::Sdg => {
-                            // S dagger gate (phase -π/2)
-                            Some(" Sdg ".to_string())
-                        }
-                        StandardGate::SX => {
-                            // Square root of X gate
-                            Some(" √X ".to_string())
-                        }
-                        StandardGate::SXdg => {
-                            // Square root of X dagger gate
-                            Some(" √Xdg ".to_string())
-                        }
-                        StandardGate::T => {
-                            // T gate (phase π/4)
-                            Some(" T ".to_string())
-                        }
-                        StandardGate::Tdg => {
-                            // T dagger gate (phase -π/4)
-                            Some(" T† ".to_string())
-                        }
-                        StandardGate::U => {
-                            // Universal single-qubit gate (3 parameters)
-                            Some(format!(" U({}) ", instruction_param))
-                        }
-                        StandardGate::U1 => {
-                            // U1 gate (1 parameter - phase)
-                            Some(format!(" U1({}) ", instruction_param))
-                        }
-                        StandardGate::U2 => {
-                            // U2 gate (2 parameters)
-                            Some(format!(" U2({}) ", instruction_param))
-                        }
-                        StandardGate::U3 => {
-                            // U3 gate (3 parameters - equivalent to U)
-                            Some(format!(" U3({}) ", instruction_param))
-                        }
-                        StandardGate::CH => {
-                            // Controlled Hadamard gate
-                            Some(" H ".to_string())
-                        }
-                        StandardGate::CX => {
-                            // Controlled-X gate (CNOT)
-                            Some(" X ".to_string())
-                        }
-                        StandardGate::CY => {
-                            // Controlled-Y gate
-                            Some(" Y ".to_string())
-                        }
-                        StandardGate::CZ => {
-                            // Controlled-Z gate
-                            Some(" Z ".to_string())
-                        }
-                        StandardGate::DCX => {
-                            // Double CNOT gate
-                            Some(" DCX ".to_string())
-                        }
-                        StandardGate::ECR => {
-                            // Echoed cross-resonance gate
-                            Some(" ECR ".to_string())
-                        }
-                        StandardGate::Swap => {
-                            // Swap gate
-                            None
-                        }
-                        StandardGate::ISwap => {
-                            // i-Swap gate
-                            Some(" Iswap ".to_string())
-                        }
-                        StandardGate::CPhase => {
-                            // Controlled phase gate
 
-                            Some(format!(" P({}) ", instruction_param))
-                        }
-                        StandardGate::CRX => {
-                            // Controlled rotation about X
-                            Some(format!(" RX({}) ", instruction_param))
-                        }
-                        StandardGate::CRY => {
-                            // Controlled rotation about Y
-                            Some(format!(" RY({}) ", instruction_param))
-                        }
-                        StandardGate::CRZ => {
-                            // Controlled rotation about Z
-                            Some(format!(" RZ({}) ", instruction_param))
-                        }
-                        StandardGate::CS => {
-                            // Controlled S gate
-                            Some(" S ".to_string())
-                        }
-                        StandardGate::CSdg => {
-                            // Controlled S dagger gate
-                            Some(" Sdg ".to_string())
-                        }
-                        StandardGate::CSX => {
-                            // Controlled square root of X gate
-                            Some(" √X ".to_string())
-                        }
-                        StandardGate::CU => {
-                            // Controlled U gate (4 parameters)
-                            Some(format!(" U({}) ", instruction_param))
-                        }
-                        StandardGate::CU1 => {
-                            // Controlled U1 gate
-                            Some(format!(" U1({}) ", instruction_param))
-                        }
-                        StandardGate::CU3 => {
-                            // Controlled U3 gate
-                            Some(format!(" U3({}) ", instruction_param))
-                        }
-                        StandardGate::RXX => {
-                            // Two-qubit XX rotation
-                            Some(format!(" RXX({}) ", instruction_param))
-                        }
-                        StandardGate::RYY => {
-                            // Two-qubit YY rotation
-                            Some(format!(" RYY({}) ", instruction_param))
-                        }
-                        StandardGate::RZZ => {
-                            // Two-qubit ZZ rotation
-                            Some(format!(" RZZ({}) ", instruction_param))
-                        }
-                        StandardGate::RZX => {
-                            // Two-qubit ZX rotation
-                            Some(format!(" RZX({}) ", instruction_param))
-                        }
-                        StandardGate::XXMinusYY => {
-                            // XX-YY gate
-                            Some(format!(" XX-YY({}) ", instruction_param))
-                        }
-                        StandardGate::XXPlusYY => {
-                            // XX+YY gate
-                            Some(format!(" XX+YY({}) ", instruction_param))
-                        }
-                        StandardGate::CCX => {
-                            // Toffoli gate (controlled-controlled-X)
-                            Some(" X ".to_string())
-                        }
-                        StandardGate::CCZ => {
-                            // Controlled-controlled-Z gate
-                            Some(" Z ".to_string())
-                        }
-                        StandardGate::CSwap => {
-                            // Controlled swap gate (Fredkin gate)
-                            None
-                        }
-                        StandardGate::RCCX => {
-                            // Relative-phase Toffoli gate
-                            Some(format!(" RX({}) ", instruction_param))
-                        }
-                        StandardGate::C3X => {
-                            // 3-controlled X gate (4-qubit controlled X)
-                            Some(" X ".to_string())
-                        }
-                        StandardGate::C3SX => {
-                            // 3-controlled square root of X gate
-                            Some(" √X ".to_string())
-                        }
-                        StandardGate::RC3X => {
-                            // Relative-phase 3-controlled X gate
-                            Some(format!(" RX({}) ", instruction_param))
-                        }
-                    }
-                } else if let Some(std_instruction) = instruction.op.try_standard_instruction() {
-                    if std_instruction == StandardInstruction::Measure {
-                        Some("M".to_string())
-                    } else if std_instruction == StandardInstruction::Reset {
-                        Some("|0>".to_string())
-                    } else if let StandardInstruction::Barrier(_) = std_instruction {
-                        Some("░".to_string())
-                    } else {
-                        // Fallback for non-standard instructions
-                        Some(format!(
-                            "{}{}{}",
-                            " ",
-                            instruction.op.name().to_string(),
-                            " "
-                        ))
-                    }
-                } else {
-                    // Fallback for non-standard operations
-                    Some(format!(
-                        "{}{}{}",
-                        " ",
-                        instruction.op.name().to_string(),
-                        " "
-                    ))
-                }
+        if let Some(std_instruction) = instruction.op.try_standard_instruction() {
+            return match std_instruction {
+                StandardInstruction::Measure => "M".to_string(),
+                StandardInstruction::Reset => "|0>".to_string(),
+                StandardInstruction::Barrier(_) => "░".to_string(),
+                StandardInstruction::Delay(delay_unit) => format!("Delay({:?}[{}])", instruction.params, delay_unit),
+            };
+        }
+
+        if let Some(standard_gate) = instruction.op.try_standard_gate() {
+            let mut label = match standard_gate {
+                StandardGate::GlobalPhase => "",
+                StandardGate::H => "H",
+                StandardGate::I => "I",
+                StandardGate::X => "X",
+                StandardGate::Y => "Y",
+                StandardGate::Z => "Z",
+                StandardGate::Phase => "P",
+                StandardGate::R => "R",
+                StandardGate::RX => "RX",
+                StandardGate::RY => "RY",
+                StandardGate::RZ => "RZ",
+                StandardGate::S => "S",
+                StandardGate::Sdg => "Sdg",
+                StandardGate::SX => "√X",
+                StandardGate::SXdg => "√Xdg",
+                StandardGate::T => "T",
+                StandardGate::Tdg => "T†",
+                StandardGate::U => "U",
+                StandardGate::U1 => "U1",
+                StandardGate::U2 => "U2",
+                StandardGate::U3 => "U3",
+                StandardGate::CH => "H",
+                StandardGate::CX => "X",
+                StandardGate::CY => "Y",
+                StandardGate::CZ => "Z",
+                StandardGate::DCX => "DCX",
+                StandardGate::ECR => "ECR",
+                StandardGate::Swap => "",
+                StandardGate::ISwap => "Iswap",
+                StandardGate::CPhase => "P",
+                StandardGate::CRX => "RX",
+                StandardGate::CRY => "RY",
+                StandardGate::CRZ => "RZ",
+                StandardGate::CS => "S",
+                StandardGate::CSdg => "Sdg",
+                StandardGate::CSX => "√X",
+                StandardGate::CU => "U",
+                StandardGate::CU1 => "U1",
+                StandardGate::CU3 => "U3",
+                StandardGate::RXX => "RXX",
+                StandardGate::RYY => "RYY",
+                StandardGate::RZZ => "RZZ",
+                StandardGate::RZX => "RZX",
+                StandardGate::XXMinusYY => "XX-YY",
+                StandardGate::XXPlusYY => "XX+YY",
+                StandardGate::CCX => "X",
+                StandardGate::CCZ => "Z",
+                StandardGate::CSwap => "",
+                StandardGate::RCCX => "RCCX",
+                StandardGate::C3X => "X",
+                StandardGate::C3SX => "√X",
+                StandardGate::RC3X => "RC3X",
             }
-        };
-        instruction_label
+            .to_string();
+
+            if standard_gate.num_params() > 0 {
+                let params = instruction.params_view().iter().map(|param| match param {
+                    Param::Float(f) => format!("{}", f),
+                    _ => format!("{:?}", param),
+                })
+                .join(",");
+                label = format!("{}({})", label, params);
+            }
+
+            return format!(" {} ", label);
+        }
+
+        // Fallback for non-standard operations
+        format!(" {} ", instruction.op.name().to_string())
     }
 
     fn from_visualization_matrix<'a>(vis_mat: &'a VisualizationMatrix, cregbundle: &bool) -> Self{
@@ -1084,7 +911,7 @@ impl TextDrawer {
 
                 match sub_type {
                     Boxed::Single(inst) => {
-                        let label = Self::get_label(inst).unwrap_or(" ".to_string());
+                        let label = Self::get_label(inst);
                         let left_len = (label.len() - 1) / 2;
                         let right_len = label.len() - left_len - 1;
                         ElementWire {
@@ -1108,7 +935,7 @@ impl TextDrawer {
                         }
                     }
                     Boxed::Multi(inst) => {
-                        let label = Self::get_label(inst).unwrap_or(" ".to_string());
+                        let label = Self::get_label(inst);
                         // get all the indices affected by this multi-box
                         let qargs = circuit
                             .qargs_interner()
