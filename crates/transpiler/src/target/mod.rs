@@ -1359,6 +1359,11 @@ impl Target {
     where
         T: Into<QargsRef<'a>>,
     {
+        // If name not in _gate_name_map - return false
+        let Some(obj) = self._gate_name_map.get(operation_name) else {
+            return false;
+        };
+
         // Unwrap the num_qubits and cache it
         let num_qubits = self.num_qubits.unwrap_or_default();
         // Handle case where num_qubits is None by checking globally supported operations
@@ -1367,16 +1372,58 @@ impl Target {
         } else {
             qargs.into()
         };
-        if let Some(obj) = self._gate_name_map.get(operation_name) {
-            if !parameters.is_empty() {
-                if matches!(obj, TargetOperation::Variadic(_)) {
-                    if let QargsRef::Concrete(qargs_vec) = qargs {
-                        return qargs_vec.iter().all(|qarg| qarg.0 <= num_qubits);
-                    } else {
-                        return true;
+
+        // If non-global instructions and mismatched qargs - return false
+        if let QargsRef::Concrete(qargs_as_vec) = qargs {
+            // Check if the specific qargs are in the gate_map
+            let Some(gate_props) = self.gate_map.get(operation_name) else {
+                // If gate_map entry doesn't exist, validate qargs match the operation requirements
+                match obj {
+                    TargetOperation::Variadic(_) => {
+                        if !qargs_as_vec.iter().all(|qarg| qarg.0 <= num_qubits) {
+                            return false;
+                        }
+                    }
+                    TargetOperation::Normal(normal_obj) => {
+                        let qubit_comparison = normal_obj.operation.num_qubits();
+                        if qubit_comparison != qargs_as_vec.len() as u32
+                            || !qargs_as_vec.iter().all(|qarg| qarg.0 < num_qubits)
+                        {
+                            return false;
+                        }
                     }
                 }
+                // Continue to parameter checking
+            } else if !gate_props.contains_key(&qargs) {
+                // If not in gate_map, check if it's a global operation
+                if gate_props.contains_key(&QargsRef::Global) {
+                    // For global operations, validate qargs match the operation requirements
+                    match obj {
+                        TargetOperation::Variadic(_) => {
+                            if !qargs_as_vec.iter().all(|qarg| qarg.0 <= num_qubits) {
+                                return false;
+                            }
+                        }
+                        TargetOperation::Normal(normal_obj) => {
+                            let qubit_comparison = normal_obj.operation.num_qubits();
+                            if qubit_comparison != qargs_as_vec.len() as u32
+                                || !qargs_as_vec.iter().all(|qarg| qarg.0 < num_qubits)
+                            {
+                                return false;
+                            }
+                        }
+                    }
+                } else {
+                    // Not in gate_map and not global - qargs don't match
+                    return false;
+                }
+            }
+        }
 
+        // If parameters don't match - return false
+        if !parameters.is_empty() {
+            // Variadic operations don't have parameters to check
+            if !matches!(obj, TargetOperation::Variadic(_)) {
                 let obj_params = obj.params();
                 if parameters.len() != obj_params.len() {
                     return false;
@@ -1395,6 +1442,8 @@ impl Target {
                         return false;
                     }
                 }
+
+                // Check angle bounds if enabled
                 if check_angle_bounds
                     && self.has_angle_bounds()
                     && parameters.iter().all(|x| matches!(x, Param::Float(_)))
@@ -1413,28 +1462,10 @@ impl Target {
                     }
                 }
             }
-            let QargsRef::Concrete(qargs_as_vec) = qargs else {
-                return true;
-            };
-            if self.gate_map[operation_name].contains_key(&qargs) {
-                return true;
-            }
-            if self.gate_map.get(operation_name).is_none()
-                || self.gate_map[operation_name].contains_key(&QargsRef::Global)
-            {
-                match obj {
-                    TargetOperation::Variadic(_) => {
-                        return qargs_as_vec.iter().all(|qarg| qarg.0 <= num_qubits);
-                    }
-                    TargetOperation::Normal(obj) => {
-                        let qubit_comparison = obj.operation.num_qubits();
-                        return qubit_comparison == qargs_as_vec.len() as u32
-                            && qargs_as_vec.iter().all(|qarg| qarg.0 < num_qubits);
-                    }
-                }
-            }
         }
-        false
+
+        // Return true
+        true
     }
 
     /// Get a directionless coupling-graph representation of the target connectivity.
