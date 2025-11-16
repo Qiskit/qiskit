@@ -119,7 +119,13 @@ fix_cformat:
 # The library file is managed by a different build tool - pretend it's always dirty.
 .PHONY: $(C_LIB_CARGO_PATH)
 $(C_LIB_CARGO_PATH):
-	cargo rustc --release --crate-type cdylib -p qiskit-cext
+ifdef PROFILE_GENERATE
+	RUSTC_FLAGS="-- -Cprofile-generate=$(PROFILE_GENERATE)"
+ifdef PROFILE_USE
+	RUSTC_FLAGS="-Cprofile-use=$(PROFILE_USE)"
+endif
+	cargo rustc --release --crate-type cdylib -p qiskit-cext -- ${RUSTC_FLAGS}
+
 
 $(C_DIR_LIB):
 	mkdir -p $(C_DIR_LIB)
