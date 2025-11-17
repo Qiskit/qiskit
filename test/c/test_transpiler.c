@@ -24,7 +24,7 @@ static int test_transpile_bv(void) {
     QkTarget *target = qk_target_new(num_qubits);
     int result = Ok;
 
-    QkTargetEntry *x_entry = qk_target_entry_new(QkGate_X);
+    QkTargetEntry *x_entry = qk_target_entry_new(QkGate_X, "x_gate");
     for (uint32_t i = 0; i < num_qubits; i++) {
         uint32_t qargs[1] = {
             i,
@@ -35,7 +35,7 @@ static int test_transpile_bv(void) {
     }
     qk_target_add_instruction(target, x_entry);
 
-    QkTargetEntry *sx_entry = qk_target_entry_new(QkGate_SX);
+    QkTargetEntry *sx_entry = qk_target_entry_new(QkGate_SX, "sx_gate");
     for (uint32_t i = 0; i < num_qubits; i++) {
         uint32_t qargs[1] = {
             i,
@@ -46,7 +46,7 @@ static int test_transpile_bv(void) {
     }
     qk_target_add_instruction(target, sx_entry);
 
-    QkTargetEntry *rz_entry = qk_target_entry_new(QkGate_RZ);
+    QkTargetEntry *rz_entry = qk_target_entry_new(QkGate_RZ, "rz_gate");
     for (uint32_t i = 0; i < num_qubits; i++) {
         uint32_t qargs[1] = {
             i,
@@ -57,7 +57,7 @@ static int test_transpile_bv(void) {
     }
     qk_target_add_instruction(target, rz_entry);
 
-    QkTargetEntry *ecr_entry = qk_target_entry_new(QkGate_ECR);
+    QkTargetEntry *ecr_entry = qk_target_entry_new(QkGate_ECR, "ecr_gate");
     for (uint32_t i = 0; i < num_qubits - 1; i++) {
         uint32_t qargs[2] = {i, i + 1};
         double inst_error = 0.0090393 * (num_qubits - i);
@@ -168,7 +168,7 @@ static int test_transpile_idle_qubits(void) {
         qk_target_entry_add_property(cx_entry, (uint32_t[]){i, i + 1}, 2, 0.001 * i, 0.002 * i);
     }
     qk_target_add_instruction(target, cx_entry);
-    qk_target_add_instruction(target, qk_target_entry_new(QkGate_U));
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_U, "u_gate"));
 
     for (uint8_t opt_level = 0; opt_level < 4; opt_level++) {
         QkTranspileOptions transpile_options = {opt_level, 1234, 1.0};
@@ -214,9 +214,9 @@ cleanup:
 static int test_transpile_options_null(void) {
     const uint32_t n = 10;
     QkTarget *target = qk_target_new(n);
-    qk_target_add_instruction(target, qk_target_entry_new(QkGate_SX));
-    qk_target_add_instruction(target, qk_target_entry_new(QkGate_X));
-    qk_target_add_instruction(target, qk_target_entry_new(QkGate_RZ));
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_SX, "sx_gate"));
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_X, "x_gate"));
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_RZ, "rz_gate"));
 
     QkCircuit *circuit = qk_circuit_new(3, 0);
     for (uint32_t i = 0; i < 3; i++) {

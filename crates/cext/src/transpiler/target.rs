@@ -806,7 +806,7 @@ pub unsafe extern "C" fn qk_target_add_instruction(
     match target.add_instruction(
         instruction.into(),
         &entry.params.unwrap_or_default(),
-        None,
+        entry.name.as_deref(),
         property_map,
     ) {
         Ok(_) => ExitCode::Success,

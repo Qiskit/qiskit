@@ -22,9 +22,9 @@
 static int test_commutative_cancellation_target(void) {
     const uint32_t num_qubits = 5;
     QkTarget *target = qk_target_new(num_qubits);
-    qk_target_add_instruction(target, qk_target_entry_new(QkGate_Z));
-    qk_target_add_instruction(target, qk_target_entry_new(QkGate_SX));
-    qk_target_add_instruction(target, qk_target_entry_new(QkGate_CX));
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_Z, "Z_gate"));
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_SX, "SX_gate"));
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_CX, "CX_gate"));
 
     int result = Ok;
 

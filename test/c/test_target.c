@@ -328,7 +328,7 @@ static int test_target_add_instruction(void) {
     }
 
     // Re-add same gate, check if it fails
-    QkExitCode result_x_readded = qk_target_add_instruction(target, qk_target_entry_new(QkGate_X, "global_x"));
+    QkExitCode result_x_readded = qk_target_add_instruction(target, qk_target_entry_new(QkGate_X, "global_x_repeat"));
     if (result_x_readded != QkExitCode_TargetInstAlreadyExists) {
         printf("The addition of a repeated gate did not fail as expected.");
         result = EqualityError;

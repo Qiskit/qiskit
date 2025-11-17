@@ -18,7 +18,7 @@ static QkTarget *create_target() {
     QkTarget *target = qk_target_new(3);
 
     uint32_t qargs[3] = {0, 1, 2};
-    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
+    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX, "cx");
 
     double rzx_params[1] = {1.5};
     QkTargetEntry *rzx_entry = qk_target_entry_new_fixed(QkGate_RZX, rzx_params, "rzx");
