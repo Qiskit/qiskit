@@ -794,7 +794,7 @@ pub unsafe extern "C" fn qk_dag_borrow_from_python(
 /// @ingroup QkDag
 /// Retrieve a DAG pointer from a Python object.
 ///
-/// This borrows a Python reference and extracts the `QkDag` pointer for it into ``adress``, if it
+/// This borrows a Python reference and extracts the `QkDag` pointer for it into ``address``, if it
 /// is of the correct type.  The returned pointer is borrowed from the `object` pointer.  If the
 /// ``PyObject`` is not the correct type, the return value is 1, the exception state of the Python
 /// interpreter is set, and ``address`` is unchanged.
