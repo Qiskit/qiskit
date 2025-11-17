@@ -127,7 +127,7 @@ fn get_instruction_range(
     }
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum ElementWireInput<'a> {
     Qubit(&'a ShareableQubit),
     Clbit(&'a ShareableClbit),
@@ -153,15 +153,33 @@ impl Ord for ElementWireInput<'_> {
     }
 }
 
-impl<'a> Debug for ElementWireInput<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let name = match self {
-            ElementWireInput::Qubit(qubit) => "Qubit",
-            ElementWireInput::Clbit(clbit) => "Clbit",
-            ElementWireInput::Creg(_) => "Creg"
-        };
-
-        write!(f, "{}", name)
+impl<'a> ElementWireInput<'a> {
+    fn get_name(&self, circuit: &CircuitData) -> Option<String> {
+        match self {
+            Self::Qubit(qubit) => {
+                if let Some(bit_info) = circuit.qubit_indices().get(qubit) {
+                    let (register, index) = bit_info
+                        .registers()
+                        .first()
+                        .expect("Register cannot be empty");
+                    Some(format!("{}_{}: ", register.name(), index))
+                } else {
+                    None
+                }
+            }
+            ElementWireInput::Clbit(clbit) => {
+                if let Some(bit_info) = circuit.clbit_indices().get(clbit) {
+                    let (register, index) = bit_info
+                        .registers()
+                        .first()
+                        .expect("Register cannot be empty");
+                    Some(format!("{}_{}: ", register.name(), index))
+                } else {
+                    None
+                }
+            }
+            ElementWireInput::Creg(creg) => Some(format!("{}: {}/", creg.name(), creg.len())),
+        }
     }
 }
 
@@ -300,13 +318,14 @@ enum VisualizationElement<'a>{
     /// Vertical line (e.g for control of measure).
     /// The bool indicates whether this is a single (false) or double (true) line
     VerticalLine(bool),
+    /// Circuit input wires (qubit, clbit, creg)
     Input(ElementWireInput<'a>),
     DirectOnWire(OnWire<'a>),
     Boxed(Boxed<'a>),
 }
 
 /// A representation of a single column (called here a layer) of a visualization matrix
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 struct VisualizationLayer<'a>(Vec<VisualizationElement<'a>>);
 
 impl<'a> Index<usize> for VisualizationLayer<'a> {
@@ -1254,31 +1273,7 @@ impl TextDrawer {
                 ret
             }
             VisualizationElement::Input(wire_input) => {
-                let wire_name = match wire_input {
-                    ElementWireInput::Qubit(qubit) => {
-                        if let Some(bit_info) = circuit.qubit_indices().get(qubit) {
-                            let (register, index) = bit_info
-                                .registers()
-                                .first()
-                                .expect("Register cannot be empty");
-                            format!("{}_{}: ", register.name(), index)
-                        } else {
-                            format!("q_{}:", ind)
-                        }
-                    }
-                    ElementWireInput::Clbit(clbit) => {
-                        if let Some(bit_info) = circuit.clbit_indices().get(clbit) {
-                            let (register, index) = bit_info
-                                .registers()
-                                .first()
-                                .expect("Register cannot be empty");
-                            format!("{}_{}: ", register.name(), index)
-                        } else {
-                            format!("q_{}: ", ind)
-                        }
-                    }
-                    ElementWireInput::Creg(creg) => format!("{}: {}/", creg.name(), creg.len()),
-                };
+                let wire_name = wire_input.get_name(circuit).unwrap();
                 ElementWire {
                     top: format!("{}", " ".repeat(wire_name.len())),
                     mid: format!("{}", wire_name),
