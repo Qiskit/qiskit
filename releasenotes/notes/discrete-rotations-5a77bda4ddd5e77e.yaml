@@ -1,0 +1,7 @@
+---
+features_transpiler:
+  - |
+    Added a new transpiler pass :class:`.DiscretizeRotations`.
+    It takes a circuit containing single-qubit rotation gates, namely,
+    :class:`.RZGate`, :class:`.RXGate` and :class:`.RYGate`, whose angles are integer multiplications
+    of 2*pi/8, and converts them into discrete sets of Clifford, :class:`.TGate` and :class:`.TdgGate` gates.
