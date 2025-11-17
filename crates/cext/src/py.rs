@@ -45,7 +45,7 @@ where
 /// Extract a pointer to a Rust-native object from a PyObject representing a PyClass, storing the
 /// result in `address`.
 ///
-/// This is used ot define Python-space "converter" functinos for use with the `PyArg_Parse*` family
+/// This is used to define Python-space "converter" functions for use with the `PyArg_Parse*` family
 /// of functions.
 ///
 /// On success, returns 1 and writes out the pointer in `address`.  On failure, returns 0, sets the
