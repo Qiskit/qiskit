@@ -20,17 +20,24 @@ from qiskit._accelerate.discretize_rotations import discretize_rotations
 class DiscretizeRotations(TransformationPass):
     """Convert rotation gates into {Clifford,T,Tdg} when their angles are integer multiples of 2*pi/8."""
 
+    def __init__(self, approximation_degree: float = 1.0):
+        """
+        Args:
+            approximation_degree: Used in the tolerance computations.
+        """
+        super().__init__()
+        self.approximation_degree = approximation_degree
+
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the Discretize Rotations optimization pass on ``dag``.
+
         Args:
             dag: the input DAG.
+
         Returns:
             The output DAG.
-        Raises:
-            TranspilerError: if the circuit contains gates
-                not supported by the pass.
         """
-        new_dag = discretize_rotations(dag)
+        new_dag = discretize_rotations(dag, self.approximation_degree)
 
         # If the pass did not do anything, the result is None
         if new_dag is None:
