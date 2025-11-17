@@ -452,7 +452,7 @@ pub struct TargetEntry {
 }
 
 impl TargetEntry {
-    pub fn new(operation: StandardGate) -> Self {
+    pub fn new(operation: StandardGate, name_new: Option<String>) -> Self {
         let params = if operation.num_params() > 0 {
             Some(
                 (0..operation.num_params())
@@ -471,19 +471,19 @@ impl TargetEntry {
             operation: StandardOperation::Gate(operation),
             params,
             map: Default::default(),
-            name: Some(operation.name().to_string()),
+            name: Some(name_new.unwrap()),
         }
     }
 
     pub fn new_fixed(
         operation: StandardGate,
         params: SmallVec<[Param; 3]>,
-        name: *const c_char,
+        name_fixed: Option<String>,
     ) -> Self {
         Self {
             operation: StandardOperation::Gate(operation),
             params: Some(params),
-            name: Some(unsafe { CStr::from_ptr(name).to_str().unwrap().to_string() }),
+            name: Some(name_fixed.unwrap()),
             map: Default::default(),
         }
     }
@@ -510,12 +510,29 @@ impl TargetEntry {
 ///
 /// # Example
 /// ```c
-///     QkTargetEntry *entry = qk_target_entry_new(QkGate_H);
+///     QkTargetEntry *entry = qk_target_entry_new(QkGate_H, "hadamard");
 /// ```
+///
+/// # Safety
+///
+/// The ``name`` pointer is expected to be either a valid C string or a null pointer.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub extern "C" fn qk_target_entry_new(operation: StandardGate) -> *mut TargetEntry {
-    Box::into_raw(Box::new(TargetEntry::new(operation)))
+pub unsafe extern "C" fn qk_target_entry_new(
+    operation: StandardGate,
+    name: *const c_char,
+) -> *mut TargetEntry {
+    let name_new: Option<String> = if name.is_null() {
+        None
+    } else {
+        Some(unsafe {
+            CStr::from_ptr(name)
+                .to_str()
+                .expect("Error while extracting the given name.")
+                .to_string()
+        })
+    };
+    Box::into_raw(Box::new(TargetEntry::new(operation, name_new)))
 }
 
 /// @ingroup QkTargetEntry
@@ -586,7 +603,7 @@ pub extern "C" fn qk_target_entry_new_reset() -> *mut TargetEntry {
 /// # Example
 /// ```c
 ///     double crx_params[1] = {3.14};
-///     QkTargetEntry *entry = qk_target_entry_new_fixed(QkGate_CRX, crx_params);
+///     QkTargetEntry *entry = qk_target_entry_new_fixed(QkGate_CRX, crx_params, "rz_pi")";
 /// ```
 ///
 /// # Safety
@@ -596,6 +613,8 @@ pub extern "C" fn qk_target_entry_new_reset() -> *mut TargetEntry {
 /// behavior of this function is undefined as this will read outside the bounds of the array.
 /// It can be a null pointer if there are no params for a given gate. You can check
 /// ``qk_gate_num_params`` to determine how many qubits are required for a given gate.
+///
+/// The ``name`` pointer is expected to be either a valid C string or a null pointer.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_entry_new_fixed(
@@ -603,11 +622,21 @@ pub unsafe extern "C" fn qk_target_entry_new_fixed(
     params: *mut f64,
     name: *const c_char,
 ) -> *mut TargetEntry {
+    let name_fixed: Option<String> = if name.is_null() {
+        None
+    } else {
+        Some(unsafe {
+            CStr::from_ptr(name)
+                .to_str()
+                .expect("Error while extracting the given name.")
+                .to_string()
+        })
+    };
     unsafe {
         Box::into_raw(Box::new(TargetEntry::new_fixed(
             operation,
             parse_params(operation, params),
-            name,
+            name_fixed,
         )))
     }
 }
@@ -803,7 +832,7 @@ pub unsafe extern "C" fn qk_target_add_instruction(
 /// ```c
 ///     QkTarget *target = qk_target_new(5);
 ///     double params[1] = {3.1415};
-///     QkTargetEntry *entry = qk_target_entry_new_fixed(QkGate_CRX, params);
+///     QkTargetEntry *entry = qk_target_entry_new_fixed(QkGate_CRX, params, "crx_pi");
 ///     uint32_t qargs[2] = {0, 1};
 ///     qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
 ///     qk_target_add_instruction(target, entry);

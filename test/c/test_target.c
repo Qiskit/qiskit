@@ -146,7 +146,7 @@ cleanup:
 static int test_target_construction_ibm_like_target(void) {
     int result = Ok;
     QkTarget *target = qk_target_new(5);
-    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
+    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX, "cx_gate");
     uint32_t cx_qargs[2] = {0, 1};
     QkExitCode result_prop = qk_target_entry_add_property(cx_entry, cx_qargs, 2, 2.2e-4, 6.2e-9);
     if (result_prop != QkExitCode_Success) {
@@ -186,7 +186,7 @@ static int test_target_construction_ibm_like_target(void) {
         goto cleanup;
     }
 
-    QkTargetEntry *rz_entry = qk_target_entry_new(QkGate_RZ);
+    QkTargetEntry *rz_entry = qk_target_entry_new(QkGate_RZ, "rz_gate");
     for (uint32_t i = 0; i < 5; i++) {
         uint32_t qargs[1] = {i};
         result_prop = qk_target_entry_add_property(rz_entry, qargs, 1, 0, 0);
@@ -204,7 +204,7 @@ static int test_target_construction_ibm_like_target(void) {
         goto cleanup;
     }
 
-    QkTargetEntry *sx_entry = qk_target_entry_new(QkGate_SX);
+    QkTargetEntry *sx_entry = qk_target_entry_new(QkGate_SX, "sx_gate");
     for (uint32_t i = 0; i < 5; i++) {
         uint32_t qargs[1] = {i};
         result_prop = qk_target_entry_add_property(sx_entry, qargs, 1, 1.928e-10, 7.9829e-11);
@@ -222,7 +222,7 @@ static int test_target_construction_ibm_like_target(void) {
         goto cleanup;
     }
 
-    QkTargetEntry *x_entry = qk_target_entry_new(QkGate_X);
+    QkTargetEntry *x_entry = qk_target_entry_new(QkGate_X, "x_gate");
     for (uint32_t i = 0; i < 5; i++) {
         uint32_t qargs[1] = {i};
         result_prop = qk_target_entry_add_property(x_entry, qargs, 1, 1.928e-10, 7.9829e-11);
@@ -268,7 +268,7 @@ cleanup:
  */
 static int test_target_entry_construction(void) {
     int result = Ok;
-    QkTargetEntry *property_map = qk_target_entry_new(QkGate_CX);
+    QkTargetEntry *property_map = qk_target_entry_new(QkGate_CX, "cx_gate");
 
     // Test length
     const size_t length = qk_target_entry_num_properties(property_map);
@@ -320,7 +320,7 @@ static int test_target_add_instruction(void) {
 
     // Add an X Gate.
     // This operation is global, no property map is provided
-    QkExitCode result_x = qk_target_add_instruction(target, qk_target_entry_new(QkGate_X));
+    QkExitCode result_x = qk_target_add_instruction(target, qk_target_entry_new(QkGate_X, "global_x"));
     if (result_x != QkExitCode_Success) {
         printf("Unexpected error occurred when adding a global X gate.");
         result = EqualityError;
@@ -328,7 +328,7 @@ static int test_target_add_instruction(void) {
     }
 
     // Re-add same gate, check if it fails
-    QkExitCode result_x_readded = qk_target_add_instruction(target, qk_target_entry_new(QkGate_X));
+    QkExitCode result_x_readded = qk_target_add_instruction(target, qk_target_entry_new(QkGate_X, "global_x"));
     if (result_x_readded != QkExitCode_TargetInstAlreadyExists) {
         printf("The addition of a repeated gate did not fail as expected.");
         result = EqualityError;
@@ -353,7 +353,7 @@ static int test_target_add_instruction(void) {
     // Add a CX Gate.
     // Create prop_map for the instruction
     // Add property for (0, 1)
-    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
+    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX, "cx_gate");
     uint32_t qargs[2] = {0, 1};
     double inst_error = 0.0090393;
     double inst_duration = 0.020039;
@@ -501,7 +501,7 @@ static int test_target_update_instruction(void) {
     // Add a CX Gate.
     // Create prop_map for the instruction
     // Add property for (0, 1)
-    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
+    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX, "cx_gate");
     uint32_t qargs[2] = {0, 1};
     double inst_error = 0.0090393;
     double inst_duration = 0.020039;
