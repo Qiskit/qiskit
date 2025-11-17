@@ -830,7 +830,7 @@ def _read_calibrations(file_obj, version, vectors, metadata_deserializer):
         schedules.read_schedule_block(file_obj, version, metadata_deserializer)
 
 
-def _dumps_register(register, index_map):
+def _py_serialize_register_param(register, index_map):
     if isinstance(register, ClassicalRegister):
         return register.name.encode(common.ENCODE)
     # Clbit.
@@ -872,7 +872,7 @@ def _dumps_instruction_parameter(
         data_bytes = struct.pack("<d", param)
     elif isinstance(param, (Clbit, ClassicalRegister)):
         type_key = type_keys.Value.REGISTER
-        data_bytes = _dumps_register(param, index_map)
+        data_bytes = _py_serialize_register_param(param, index_map)
     else:
         type_key, data_bytes = value.dumps_value(
             param,
@@ -954,7 +954,9 @@ def _write_instruction(
             extra_type = type_keys.Condition.EXPRESSION
         else:
             extra_type = type_keys.Condition.TWO_TUPLE
-            condition_register = _dumps_register(instruction.operation._condition[0], index_map)
+            condition_register = _py_serialize_register_param(
+                instruction.operation._condition[0], index_map
+            )
             condition_value = int(instruction.operation._condition[1])
 
     gate_class_name = gate_class_name.encode(common.ENCODE)

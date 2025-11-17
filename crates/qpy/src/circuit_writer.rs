@@ -68,12 +68,11 @@ pub fn get_packed_bit_list(
 
 pub fn get_condition_data(
     op: &PackedOperation,
-    circuit_data: &CircuitData,
     qpy_data: &QPYWriteData,
 ) -> PyResult<formats::ConditionPack> {
     match op.view() {
         OperationRef::Instruction(py_inst) => {
-            get_condition_data_from_inst(&py_inst.instruction, circuit_data, qpy_data)
+            get_condition_data_from_inst(&py_inst.instruction, qpy_data)
         }
         // we assume only PyInstructions have condition data at this stage
         _ => Ok(formats::ConditionPack {
@@ -101,7 +100,6 @@ pub fn pack_instructions(
             .data()
             .iter()
             .map(|instruction| {
-                println!("packing instruction {:?}", instruction);
                 pack_instruction(
                     instruction,
                     circuit_data,
@@ -147,7 +145,7 @@ pub fn pack_instruction(
     // this relies heavily on python-space as instruction params are usually added ad-hoc to arbitrary field in the python instruction
     let params: Vec<formats::GenericDataPack> = get_instruction_params(instruction, qpy_data)?;
     let bit_data = get_packed_bit_list(instruction, circuit_data);
-    let condition = get_condition_data(&instruction.op, circuit_data, qpy_data)?;
+    let condition = get_condition_data(&instruction.op, qpy_data)?;
     let annotations = get_instruction_annotations(instruction, qpy_data)?;
     let mut extras_key = condition.key;
     if annotations.is_some() {
@@ -596,7 +594,7 @@ pub fn pack_circuit(
         standalone_var_indices,
         annotation_handler,
     };
-    let header = pack_circuit_header(&circuit, metadata_serializer, &qpy_data)?;
+    let header = pack_circuit_header(circuit, metadata_serializer, &qpy_data)?;
     // Pulse has been removed in Qiskit 2.0. As long as we keep QPY at version 13,
     // we need to write an empty calibrations header since read_circuit expects it
     let calibrations = formats::CalibrationsPack { num_cals: 0 };
@@ -607,7 +605,7 @@ pub fn pack_circuit(
         &mut circuit.data,
         &mut qpy_data,
     )?;
-    let layout = pack_layout(&circuit)?;
+    let layout = pack_layout(circuit)?;
     let state_headers: Vec<formats::AnnotationStateHeaderPack> = qpy_data
         .annotation_handler
         .dump_serializers()?
@@ -644,7 +642,6 @@ pub fn py_write_circuit(
         version,
         annotation_factories,
     )?;
-    println!("packed circuit: {:?}", packed_circuit);
     let serialized_circuit = serialize(&packed_circuit);
     file_obj.call_method1(
         "write",

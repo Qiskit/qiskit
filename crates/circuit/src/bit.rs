@@ -382,6 +382,12 @@ macro_rules! create_bit_object {
                     BitInfo::Anonymous { .. } => None,
                 }
             }
+            pub fn owning_register_index(&self) -> Option<u32> {
+                match &self.0 {
+                    BitInfo::Owned { index, .. } => Some(*index),
+                    BitInfo::Anonymous { .. } => None,
+                }
+            }
         }
 
         impl ShareableBit for $bit_struct {

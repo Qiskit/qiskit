@@ -15,13 +15,12 @@ use hashbrown::HashMap;
 use pyo3::IntoPyObjectExt;
 use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::{PyAny, PyBytes, PyComplex, PyDict, PyFloat, PyInt};
+use pyo3::types::PyAny;
 
 use qiskit_circuit::bit::ShareableClbit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::classical::expr::{Expr, Stretch, Var};
 use qiskit_circuit::classical::types::Type;
-use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::object_registry::ObjectRegistry;
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -39,13 +38,12 @@ use crate::params::{
     unpack_symbol,
 };
 use crate::py_methods::{
-    py_deserialize_numpy_object, py_deserialize_range, py_load_register, py_pack_modifier,
-    py_pack_parameter_expression, py_serialize_numpy_object, py_serialize_range,
+    py_deserialize_numpy_object, py_deserialize_range, py_deserialize_register_param,
+    py_pack_modifier, py_pack_parameter_expression, py_serialize_numpy_object, py_serialize_range,
     py_serialize_register_param, py_unpack_modifier,
 };
 use crate::{QpyError, UnsupportedFeatureForVersion};
 
-use core::fmt;
 use num_complex::Complex64;
 use std::fmt::Debug;
 use std::io::Cursor;
@@ -77,7 +75,6 @@ pub struct QPYReadData<'a> {
     pub circuit_data: &'a mut CircuitData,
     pub version: u32,
     pub use_symengine: bool,
-    pub cregs: Py<PyDict>,
     pub standalone_vars: HashMap<u16, qiskit_circuit::Var>,
     pub standalone_stretches: HashMap<u16, qiskit_circuit::Stretch>,
     pub vectors: HashMap<Uuid, (Py<PyAny>, Vec<u32>)>,
@@ -219,7 +216,7 @@ pub enum GenericValue {
     Float64(f64),
     Complex64(Complex64),
     CaseDefault,
-    Register(Py<PyAny>),
+    Register(Py<PyAny>), // This is not the full register data; rather, it's the name stored inside instructions
     Range(Py<PyAny>),
     Tuple(Vec<GenericValue>),
     NumpyObject(Py<PyAny>), // currently we store the python object without converting it to rust space
@@ -292,7 +289,7 @@ impl<T: FromGenericValue> FromGenericValue for Vec<T> {
     }
 }
 
-pub fn load_value<'a>(
+pub fn load_value(
     type_key: u8,
     bytes: &Bytes,
     qpy_data: &mut QPYReadData,
@@ -319,7 +316,7 @@ pub fn load_value<'a>(
             Ok(GenericValue::String(value))
         }
         tags::RANGE => {
-            let py_range = py_deserialize_range(&bytes)?;
+            let py_range = py_deserialize_range(bytes)?;
             Ok(GenericValue::Range(py_range))
         }
         tags::PARAMETER => {
@@ -360,7 +357,7 @@ pub fn load_value<'a>(
         tags::NULL => Ok(GenericValue::Null),
         tags::CASE_DEFAULT => Ok(GenericValue::CaseDefault),
         tags::REGISTER => {
-            let py_register = py_load_register(bytes, qpy_data.circuit_data)?;
+            let py_register = py_deserialize_register_param(bytes, qpy_data.circuit_data)?;
             Ok(GenericValue::Register(py_register))
         }
         tags::CIRCUIT => {
@@ -605,98 +602,4 @@ fn pack_expression_type(exp_type: &Type, version: u32) -> PyResult<ExpressionTyp
         }
         Type::Uint(width) => Ok(ExpressionType::Uint(*width as u32)),
     }
-}
-
-// pub struct DumpedPyValue {
-//     pub data_type: u8,
-//     pub data: Bytes,
-// }
-
-// impl DumpedPyValue {
-//     pub fn to_python(&self, py: Python<'_>, qpy_data: &mut QPYReadData) -> PyResult<Py<PyAny>> {
-//         Ok(match self.data_type {
-//             tags::INTEGER => {
-//                 let value: i64 = (&self.data).try_into()?;
-//                 PyInt::new(py, value).into()
-//             }
-//             tags::FLOAT => PyFloat::new(py, (&self.data).try_into()?).into(),
-//             tags::COMPLEX => {
-//                 let (real, imag) = (&self.data).try_into()?;
-//                 PyComplex::from_doubles(py, real, imag).into()
-//             }
-//             tags::RANGE => py_deserialize_range(py, &self.data)?,
-//             tags::TUPLE => py_unpack_generic_sequence_to_tuple(
-//                 py,
-//                 deserialize::<formats::GenericDataSequencePack>(&self.data)?.0,
-//                 qpy_data,
-//             )?,
-//             tags::PARAMETER => {
-//                 let unpacked_data = load_value(self.data_type, &self.data, qpy_data)?;
-//                 match unpacked_data {
-//                     GenericValue::ParameterExpressionSymbol(symbol) => symbol.into_py_any(py)
-//                 }
-//             }
-//             tags::PARAMETER_VECTOR => {
-//                 let (parameter_vector, _) =
-//                     deserialize::<formats::ParameterVectorPack>(&self.data)?;
-//                 unpack_parameter_vector(py, &parameter_vector, qpy_data)?
-//             }
-//             tags::PARAMETER_EXPRESSION => {
-//                 let (parameter_expression, _) =
-//                     deserialize::<formats::ParameterExpressionPack>(&self.data)?;
-//                 unpack_parameter_expression(py, parameter_expression, qpy_data)?
-//             }
-//             tags::NUMPY_OBJ => {
-//                 let np = py.import("numpy")?;
-//                 let io = py.import("io")?;
-//                 let buffer = io.call_method0("BytesIO")?;
-//                 buffer.call_method1("write", (self.data.clone(),))?;
-//                 buffer.call_method1("seek", (0,))?;
-//                 np.call_method1("load", (buffer,))?.unbind()
-//             }
-//             tags::MODIFIER => {
-//                 let (packed_modifier, _) = deserialize::<formats::ModifierPack>(&self.data)?;
-//                 py_unpack_modifier(py, &packed_modifier)?
-//             }
-//             tags::STRING => {
-//                 let data_string: &str = (&self.data).try_into()?;
-//                 data_string.into_py_any(py)?
-//             }
-//             tags::EXPRESSION => deserialize_expression(&self.data, qpy_data)?.into_py_any(py)?,
-//             tags::NULL => py.None(),
-//             tags::CASE_DEFAULT => imports::CASE_DEFAULT.get(py).clone(),
-//             tags::CIRCUIT => unpack_circuit(
-//                 py,
-//                 &deserialize::<formats::QPYFormatV15>(&self.data)?.0,
-//                 qpy_data.version,
-//                 py.None().bind(py),
-//                 qpy_data.use_symengine,
-//                 qpy_data.annotation_handler.annotation_factories,
-//             )?
-//             .unbind(),
-//             _ => {
-//                 return Err(PyTypeError::new_err(format!(
-//                     "Dumped Value to python: Unhandled type_key: {}",
-//                     self.data_type
-//                 )));
-//             }
-//         })
-//     }
-// }
-
-// impl fmt::Debug for DumpedPyValue {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         f.debug_struct("DumpedPyValue")
-//             .field("type", &self.data_type)
-//             .field("data", &self.data.to_hex_string())
-//             .finish()
-//     }
-// }
-
-pub fn bytes_to_py_uuid(py: Python, bytes: [u8; 16]) -> PyResult<Py<PyAny>> {
-    let uuid_module = py.import("uuid")?;
-    let py_bytes = PyBytes::new(py, &bytes);
-    let kwargs = PyDict::new(py);
-    kwargs.set_item("bytes", py_bytes)?;
-    Ok(uuid_module.call_method("UUID", (), Some(&kwargs))?.unbind())
 }

@@ -2256,6 +2256,7 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_pre_v16_rejects_ps_duration(self, version):
         """Test that dumping to older QPY versions rejects Duration.ps."""
         from qiskit.circuit import Duration
+
         self.skipTest("Temporarily disabling this check for the first version of the rust QPY")
         qc = QuantumCircuit()
         with qc.if_test(expr.less(Duration.ns(1000), Duration.ps(1))):

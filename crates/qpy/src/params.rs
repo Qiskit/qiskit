@@ -24,11 +24,11 @@ use uuid::Uuid;
 use crate::bytes::Bytes;
 use crate::formats::{self, GenericDataPack, ParameterVectorPack};
 use crate::py_methods::{
-    py_convert_from_generic_value, py_convert_to_generic_value, py_pack_param,
+    py_bytes_to_uuid, py_convert_from_generic_value, py_convert_to_generic_value, py_pack_param,
 };
 use crate::value::{
-    GenericValue, QPYReadData, QPYWriteData, bytes_to_py_uuid, deserialize, deserialize_vec,
-    load_value, serialize, serialize_generic_value, tags,
+    GenericValue, QPYReadData, QPYWriteData, deserialize, deserialize_vec, load_value, serialize,
+    serialize_generic_value, tags,
 };
 use hashbrown::HashMap;
 
@@ -357,7 +357,7 @@ pub fn unpack_parameter_vector(
                 .call1((
                     vector,
                     index,
-                    bytes_to_py_uuid(py, parameter_vector_pack.uuid)?,
+                    py_bytes_to_uuid(py, parameter_vector_pack.uuid)?,
                 ))?
                 .unbind();
             vector
@@ -396,7 +396,7 @@ pub fn serialize_param_expression(
         // for now, we use our old python based serialization code
         Python::attach(|py| -> PyResult<_> {
             let py_exp = exp.clone().into_py_any(py)?;
-            let value = py_convert_to_generic_value(py_exp.bind(py), qpy_data)?;
+            let value = py_convert_to_generic_value(py_exp.bind(py))?;
             serialize_generic_value(&value, qpy_data)
         })?
     };
@@ -429,7 +429,7 @@ pub fn pack_param_obj(
         },
         Param::ParameterExpression(exp) => pack_param_expression(exp, qpy_data)?,
         Param::Obj(py_object) => {
-            Python::attach(|py| py_pack_param(&py_object.bind(py), qpy_data, endian))?
+            Python::attach(|py| py_pack_param(py_object.bind(py), qpy_data, endian))?
         }
     })
 }

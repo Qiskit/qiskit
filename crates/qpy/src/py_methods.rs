@@ -19,10 +19,9 @@ use pyo3::exceptions::{PyAttributeError, PyIOError, PyTypeError, PyValueError};
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::{
-    PyAny, PyComplex, PyDict, PyFloat, PyInt, PyIterator, PyList, PySet, PyString, PyTuple,
+    PyAny, PyBytes, PyComplex, PyDict, PyFloat, PyInt, PyIterator, PyList, PySet, PyString, PyTuple,
 };
 use qiskit_circuit::classical::expr::Expr;
-use qiskit_circuit::converters::QuantumCircuitData;
 use std::io::Cursor;
 
 use qiskit_circuit::Clbit;
@@ -44,8 +43,7 @@ use crate::formats;
 use crate::params::{pack_param_obj, pack_parameter_expression_by_op, parameter_tags};
 use crate::value::{
     GenericValue, QPYWriteData, circuit_instruction_types, deserialize, get_circuit_type_key,
-    modifier_types, pack_generic_value, serialize, serialize_expression, serialize_generic_value,
-    tags, type_name,
+    modifier_types, pack_generic_value, serialize, serialize_generic_value, tags, type_name,
 };
 use binrw::BinWrite;
 
@@ -136,6 +134,14 @@ pub fn get_python_gate_class<'a>(
             gate_class_name
         )))
     }
+}
+
+pub fn py_bytes_to_uuid(py: Python, bytes: [u8; 16]) -> PyResult<Py<PyAny>> {
+    let uuid_module = py.import("uuid")?;
+    let py_bytes = PyBytes::new(py, &bytes);
+    let kwargs = PyDict::new(py);
+    kwargs.set_item("bytes", py_bytes)?;
+    Ok(uuid_module.call_method("UUID", (), Some(&kwargs))?.unbind())
 }
 
 // pub fn py_pack_generic_data(
@@ -315,7 +321,7 @@ fn pack_sparse_pauli_op(
     qpy_data: &QPYWriteData,
 ) -> PyResult<formats::SparsePauliOpListElemPack> {
     let op_as_np_list = operator.call_method1("to_list", (true,))?;
-    let value = py_convert_to_generic_value(&op_as_np_list, qpy_data)?;
+    let value = py_convert_to_generic_value(&op_as_np_list)?;
     let (_, data) = serialize_generic_value(&value, qpy_data)?;
     Ok(formats::SparsePauliOpListElemPack { data })
 }
@@ -338,7 +344,7 @@ fn pack_pauli_evolution_gate(
         .map(|operator| pack_sparse_pauli_op(&operator, qpy_data))
         .collect::<PyResult<_>>()?;
 
-    let time_value = py_convert_to_generic_value(&evolution_gate.getattr("time")?, qpy_data)?;
+    let time_value = py_convert_to_generic_value(&evolution_gate.getattr("time")?)?;
     let (time_type, time_data) = serialize_generic_value(&time_value, qpy_data)?;
     let synth_class = evolution_gate
         .getattr("synthesis")?
@@ -467,10 +473,7 @@ pub fn py_get_type_key(py_object: &Bound<PyAny>) -> PyResult<u8> {
     )))
 }
 
-pub fn py_convert_to_generic_value(
-    py_object: &Bound<PyAny>,
-    qpy_data: &QPYWriteData,
-) -> PyResult<GenericValue> {
+pub fn py_convert_to_generic_value(py_object: &Bound<PyAny>) -> PyResult<GenericValue> {
     let type_key: u8 = py_get_type_key(py_object)?;
     match type_key {
         tags::BOOL => Ok(GenericValue::Bool(py_object.extract::<bool>()?)),
@@ -499,7 +502,7 @@ pub fn py_convert_to_generic_value(
                 .try_iter()?
                 .map(|data_item| {
                     // let data_item = possible_data_item?;
-                    py_convert_to_generic_value(&data_item?, qpy_data)
+                    py_convert_to_generic_value(&data_item?)
                 })
                 .collect::<PyResult<_>>()?;
             Ok(GenericValue::Tuple(elements))
@@ -509,13 +512,11 @@ pub fn py_convert_to_generic_value(
         tags::NUMPY_OBJ => Ok(GenericValue::NumpyObject(py_object.clone().unbind())),
         tags::MODIFIER => Ok(GenericValue::Modifier(py_object.clone().unbind())),
         tags::REGISTER => Ok(GenericValue::Register(py_object.clone().unbind())),
-        _ => {
-            return Err(PyTypeError::new_err(format!(
-                "py_convert_to_generic_value: Unhandled type_key: {} ({})",
-                type_key,
-                type_name(type_key)
-            )));
-        }
+        _ => Err(PyTypeError::new_err(format!(
+            "py_convert_to_generic_value: Unhandled type_key: {} ({})",
+            type_key,
+            type_name(type_key)
+        ))),
     }
 }
 
@@ -547,12 +548,37 @@ pub fn py_convert_from_generic_value(value: &GenericValue) -> PyResult<Py<PyAny>
     })
 }
 
+pub fn py_serialize_range(py_object: &Py<PyAny>) -> PyResult<Bytes> {
+    Python::attach(|py| {
+        let py_object = py_object.bind(py);
+        let start = py_object.getattr("start")?.extract::<i64>()?;
+        let stop = py_object.getattr("stop")?.extract::<i64>()?;
+        let step = py_object.getattr("step")?.extract::<i64>()?;
+        let range_pack = formats::RangePack { start, stop, step };
+        let mut buffer = Cursor::new(Vec::new());
+        range_pack.write(&mut buffer).unwrap();
+        Ok(buffer.into())
+    })
+}
+
+pub fn py_deserialize_range(raw_range: &Bytes) -> PyResult<Py<PyAny>> {
+    Python::attach(|py| {
+        let range_pack = deserialize::<formats::RangePack>(raw_range)?.0;
+        Ok(imports::BUILTIN_RANGE
+            .get_bound(py)
+            .call1((range_pack.start, range_pack.stop, range_pack.step))?
+            .unbind())
+    })
+}
+
+// This functions packs an instruction parameter, which can be an arbitrary piece of data
+// Not to be confused with Parameter, which is an atom of ParameterExpression
 pub fn py_pack_param(
     py_object: &Bound<PyAny>,
     qpy_data: &QPYWriteData,
     endian: Endian,
 ) -> PyResult<formats::GenericDataPack> {
-    let value = py_convert_to_generic_value(py_object, qpy_data)?;
+    let value = py_convert_to_generic_value(py_object)?;
     let (type_key, data) = match endian {
         Endian::Big => serialize_generic_value(&value, qpy_data)?,
         Endian::Little => serialize_generic_value(&value.as_le(), qpy_data)?,
@@ -560,126 +586,68 @@ pub fn py_pack_param(
     Ok(formats::GenericDataPack { type_key, data })
 }
 
-// pub fn py_load_instruction_param_value(
-//     type_key: u8,
-//     data: &Bytes,
-//     qpy_data: &mut QPYReadData,
-// ) -> PyResult<Py<PyAny>> {
-//     Python::attach(|py| -> PyResult<_> {
-//         Ok(match type_key {
-//             tags::INTEGER => {
-//                 let value = i64::from_le_bytes(data[..8].try_into()?);
-//                 PyInt::new(py, value).into()
-//             }
-//             tags::FLOAT => {
-//                 let value = f64::from_le_bytes(data[..8].try_into()?);
-//                 PyFloat::new(py, value).into()
-//             }
-//             tags::TUPLE => py_unpack_generic_instruction_param_sequence_to_tuple(
-//                 py,
-//                 deserialize::<formats::GenericDataSequencePack>(data)?.0,
-//                 qpy_data,
-//             )?,
-//             tags::REGISTER => py_load_register(py, data.clone(), qpy_data.circuit_data)?,
-//             _ => DumpedPyValue {
-//                 data_type: type_key,
-//                 data: data.clone(),
-//             }
-//             .to_python(py, qpy_data)?,
-//         })
-//     })
-// }
-
-// pub fn py_unpack_generic_instruction_param_sequence_to_tuple(
-//     py: Python,
-//     packed_sequence: formats::GenericDataSequencePack,
-//     qpy_data: &mut QPYReadData,
-// ) -> PyResult<Py<PyAny>> {
-//     let elements: Vec<Py<PyAny>> = packed_sequence
-//         .elements
-//         .iter()
-//         .map(|data_pack| {
-
-//             // py_load_instruction_param_value(data_pack.type_key, &data_pack.data, qpy_data)
-//         })
-//         .collect::<PyResult<_>>()?;
-//     PyTuple::new(py, elements)?.into_py_any(py)
-// }
-
-// pub fn py_pack_generic_instruction_param_sequence(
-//     py_sequence: &Bound<PyAny>,
-//     qpy_data: &QPYWriteData,
-//     endian: Endian,
-// ) -> PyResult<formats::GenericDataSequencePack> {
-//     let elements: Vec<formats::GenericDataPack> = py_sequence
-//         .try_iter()?
-//         .map(|possible_data_item| {
-//             let data_item = possible_data_item?;
-//             pack_generic_instruction_param_data(&data_item, qpy_data, endian)
-//         })
-//         .collect::<PyResult<_>>()?;
-//     Ok(formats::GenericDataSequencePack { elements })
-// }
-
-// sadly, we currently need this code duplication to handle the special le encoding for parameters
-// TODO: verify the code duplication is still needed after all the code factorings
-// pub fn pack_generic_instruction_param_data(
-//     py_data: &Bound<PyAny>,
-//     qpy_data: &QPYWriteData,
-//     endian: Endian,
-// ) -> PyResult<formats::GenericDataPack> {
-//     let (type_key, data) = py_dumps_instruction_param_value(py_data, qpy_data, endian)?;
-//     Ok(formats::GenericDataPack { type_key, data })
-// }
-
-// pub fn py_dumps_instruction_param_value(
-//     py_object: &Bound<PyAny>,
-//     qpy_data: &QPYWriteData,
-//     endian: Endian,
-// ) -> PyResult<(u8, Bytes)> {
-//     // we need a hack here to encode floats and integers are little endian
-//     // since for some reason it was done in the original python code
-//     // TODO This should be fixed in next QPY version.
-//     let type_key: u8 = py_get_type_key(py_object)?;
-//     let value: Bytes = match type_key {
-//         tags::INTEGER => {
-//             let val = py_object.extract::<i64>()?;
-//             match endian {
-//                 Endian::Little => val.to_le_bytes().into(),
-//                 Endian::Big => val.to_be_bytes().into(),
-//             }
-//         }
-
-//         tags::FLOAT => {
-//             let val = py_object.extract::<f64>()?;
-//             match endian {
-//                 Endian::Little => val.to_le_bytes().into(),
-//                 Endian::Big => val.to_be_bytes().into(),
-//             }
-//         }
-//         tags::TUPLE => serialize(&py_pack_generic_instruction_param_sequence(
-//             py_object, qpy_data, endian,
-//         )?),
-//         tags::REGISTER => py_serialize_register_param(py_object)?,
-//         _ => {
-//             let (_, value) = py_dumps_value(py_object.clone().unbind(), qpy_data)?;
-//             value
-//         }
-//     };
-//     Ok((type_key, value))
-// }
-
+// When a register is stored as an instruction param, it is serialized compactly
+// For a classical register its name is saved as a string; for a clbit
+// its index is converted into a string, with 0x00 appended at the start
+// to differentiate from the register case
 pub fn py_serialize_register_param(register: &Py<PyAny>) -> PyResult<Bytes> {
     Python::attach(|py| {
         let register = register.bind(py);
-        if register.is_instance(imports::CLASSICAL_REGISTER.get_bound(py))? {
+        if register.is_instance_of::<PyClassicalRegister>() {
             Ok(register.getattr("name")?.extract::<String>()?.into())
+        } else if register.is_instance_of::<PyClbit>() {
+            let index = &register
+                .extract::<ShareableClbit>()?
+                .owning_register_index()
+                .ok_or(PyValueError::new_err("Clbit has no register index"))?;
+            let name = index.to_string();
+            let mut bytes: Bytes = Bytes(Vec::with_capacity(name.len() + 1));
+            bytes.push(0u8);
+            bytes.extend_from_slice(name.as_bytes());
+            Ok(bytes)
         } else {
-            let index: usize = register.getattr("_index")?.extract()?;
-            let index_string = index.to_string().as_bytes().to_vec();
-            let mut result = Bytes(vec![0x00]);
-            result.extend_from_slice(&index_string);
-            Ok(result)
+            Ok(Bytes::new())
+        }
+    })
+}
+
+pub fn py_deserialize_register_param(
+    data_bytes: &Bytes,
+    circuit_data: &CircuitData,
+) -> PyResult<Py<PyAny>> {
+    Python::attach(|py| {
+        // If register name prefixed with null character it's a clbit index for single bit condition.
+        if data_bytes.is_empty() {
+            return Err(PyValueError::new_err(
+                "Failed to load register - name missing",
+            ));
+        }
+        if data_bytes[0] == 0u8 {
+            let index = Clbit(std::str::from_utf8(&data_bytes[1..])?.parse()?);
+            match circuit_data.clbits().get(index) {
+                Some(shareable_clbit) => {
+                    Ok(shareable_clbit.into_pyobject(py)?.as_any().clone().unbind())
+                }
+                None => Err(PyValueError::new_err(format!(
+                    "Could not find clbit {:?}",
+                    index
+                ))),
+            }
+        } else {
+            let name = std::str::from_utf8(data_bytes)?;
+            let mut register = None;
+            for creg in circuit_data.cregs() {
+                if creg.name() == name {
+                    register = Some(creg);
+                }
+            }
+            match register {
+                Some(register) => Ok(register.into_py_any(py)?),
+                None => Err(PyValueError::new_err(format!(
+                    "Could not find classical register {:?}",
+                    name
+                ))),
+            }
         }
     })
 }
@@ -850,7 +818,6 @@ pub fn pack_custom_instruction(
         let operation = custom_instructions_hash.get(name).ok_or_else(|| {
             PyValueError::new_err(format!("Could not find operation data for {}", name))
         })?;
-        println!("packing custom instruction {:?}", name);
         let gate_type = get_circuit_type_key(operation)?;
         let mut has_definition = false;
         let mut data: Bytes = Bytes::new();
@@ -972,32 +939,67 @@ pub fn pack_custom_instruction(
     })
 }
 
-fn dumps_register(register: Bound<PyAny>, circuit_data: &CircuitData) -> PyResult<Bytes> {
-    let py = register.py();
-    if register.is_instance_of::<PyClassicalRegister>() {
-        Ok(register.getattr("name")?.extract::<String>()?.into())
-    } else if register.is_instance_of::<PyClbit>() {
-        let key = &register.extract::<ShareableClbit>()?;
-        let name = circuit_data
-            .get_clbit_indices(py)
-            .bind(py)
-            .get_item(key)?
-            .ok_or(PyErr::new::<PyValueError, _>("Clbit not found"))?
-            .getattr("index")?
-            .str()?;
-        let mut bytes: Bytes = Bytes(Vec::with_capacity(name.len()? + 1));
-        bytes.push(0u8);
-        bytes.extend_from_slice(name.extract::<String>()?.as_bytes());
-        Ok(bytes)
-    } else {
-        Ok(Bytes::new())
-    }
+pub fn py_pack_modifier(modifier: &Py<PyAny>) -> PyResult<formats::ModifierPack> {
+    Python::attach(|py| {
+        let modifier = modifier.bind(py);
+        let module = py.import("qiskit.circuit.annotated_operation")?;
+        if modifier.is_instance(&module.getattr("InverseModifier")?)? {
+            Ok(formats::ModifierPack {
+                modifier_type: modifier_types::INVERSE,
+                num_ctrl_qubits: 0,
+                ctrl_state: 0,
+                power: 0.0,
+            })
+        } else if modifier.is_instance(&module.getattr("ControlModifier")?)? {
+            Ok(formats::ModifierPack {
+                modifier_type: modifier_types::CONTROL,
+                num_ctrl_qubits: modifier.getattr("num_ctrl_qubits")?.extract::<u32>()?,
+                ctrl_state: modifier.getattr("ctrl_state")?.extract::<u32>()?,
+                power: 0.0,
+            })
+        } else if modifier.is_instance(&module.getattr("PowerModifier")?)? {
+            Ok(formats::ModifierPack {
+                modifier_type: modifier_types::POWER,
+                num_ctrl_qubits: 0,
+                ctrl_state: 0,
+                power: modifier.getattr("power")?.extract::<f64>()?,
+            })
+        } else {
+            Err(PyTypeError::new_err("Unsupported modifier."))
+        }
+    })
+}
+
+pub fn py_unpack_modifier(packed_modifier: &formats::ModifierPack) -> PyResult<Py<PyAny>> {
+    Python::attach(|py| match packed_modifier.modifier_type {
+        modifier_types::INVERSE => Ok(imports::INVERSE_MODIFIER.get_bound(py).call0()?.unbind()),
+        modifier_types::CONTROL => {
+            let kwargs = PyDict::new(py);
+            kwargs.set_item(
+                intern!(py, "num_ctrl_qubits"),
+                packed_modifier.num_ctrl_qubits,
+            )?;
+            kwargs.set_item(intern!(py, "ctrl_state"), packed_modifier.ctrl_state)?;
+            Ok(imports::CONTROL_MODIFIER
+                .get_bound(py)
+                .call((), Some(&kwargs))?
+                .unbind())
+        }
+        modifier_types::POWER => {
+            let kwargs = PyDict::new(py);
+            kwargs.set_item(intern!(py, "power"), packed_modifier.power)?;
+            Ok(imports::POWER_MODIFIER
+                .get_bound(py)
+                .call((), Some(&kwargs))?
+                .unbind())
+        }
+        _ => Err(PyTypeError::new_err("Unsupported modifier.")),
+    })
 }
 
 // condition is stored in an ad-hoc manner in the instruction's "_condition" field, and we need python to access it
 pub fn get_condition_data_from_inst(
     inst: &Py<PyAny>,
-    circuit_data: &CircuitData,
     qpy_data: &QPYWriteData,
 ) -> PyResult<formats::ConditionPack> {
     Python::attach(|py| match getattr_or_none(inst.bind(py), "_condition") {
@@ -1020,8 +1022,9 @@ pub fn get_condition_data_from_inst(
             } else if condition.is_instance_of::<PyTuple>() {
                 let key = formats::condition_types::TWO_TUPLE;
                 let value = condition.cast::<PyTuple>()?.get_item(1)?.extract::<i64>()?;
-                let register =
-                    dumps_register(condition.cast::<PyTuple>()?.get_item(0)?, circuit_data)?;
+                let register = py_serialize_register_param(
+                    &condition.cast::<PyTuple>()?.get_item(0)?.unbind(),
+                )?;
                 Ok(formats::ConditionPack {
                     key,
                     register_size: register.len() as u16,
@@ -1176,109 +1179,19 @@ fn py_pack_parameter_replay_entry(
     Ok((key_type, data, extra_data))
 }
 
-pub fn py_load_register(data_bytes: &Bytes, circuit_data: &CircuitData) -> PyResult<Py<PyAny>> {
-    Python::attach(|py| {
-        // If register name prefixed with null character it's a clbit index for single bit condition.
-        if data_bytes.is_empty() {
-            return Err(PyValueError::new_err(
-                "Failed to load register - name missing",
-            ));
-        }
-        if data_bytes[0] == 0u8 {
-            let index = Clbit(std::str::from_utf8(&data_bytes[1..])?.parse()?);
-            match circuit_data.clbits().get(index) {
-                Some(shareable_clbit) => {
-                    Ok(shareable_clbit.into_pyobject(py)?.as_any().clone().unbind())
-                }
-                None => Err(PyValueError::new_err(format!(
-                    "Could not find clbit {:?}",
-                    index
-                ))),
-            }
-        } else {
-            let name = std::str::from_utf8(&data_bytes)?;
-            let mut register = None;
-            for creg in circuit_data.cregs() {
-                if creg.name() == name {
-                    register = Some(creg);
-                }
-            }
-            match register {
-                Some(register) => Ok(register.into_py_any(py)?),
-                None => Err(PyValueError::new_err(format!(
-                    "Could not find classical register {:?}",
-                    name
-                ))),
-            }
-        }
-    })
+// This functions packes a Parameter, e.g. an atom of a ParameterExpression
+// Not to be confused with instruction paramtere which is a generic data
+pub fn py_pack_parameter(py_object: &Bound<PyAny>) -> PyResult<formats::ParameterPack> {
+    let py = py_object.py();
+    let name = py_object
+        .getattr(intern!(py, "name"))?
+        .extract::<String>()?;
+    let uuid = py_object
+        .getattr(intern!(py, "uuid"))?
+        .getattr(intern!(py, "bytes"))?
+        .extract::<[u8; 16]>()?;
+    Ok(formats::ParameterPack { uuid, name })
 }
-
-// pub fn py_pack_generic_sequence(
-//     py_sequence: &Bound<PyAny>,
-//     qpy_data: &QPYWriteData,
-// ) -> PyResult<formats::GenericDataSequencePack> {
-//     let elements: Vec<formats::GenericDataPack> = py_sequence
-//         .try_iter()?
-//         .map(|possible_data_item| {
-//             let data_item = possible_data_item?;
-//             py_pack_generic_data(&data_item, qpy_data)
-//         })
-//         .collect::<PyResult<_>>()?;
-//     Ok(formats::GenericDataSequencePack { elements })
-// }
-
-// pub fn py_dumps_value(py_object: Py<PyAny>, qpy_data: &QPYWriteData) -> PyResult<(u8, Bytes)> {
-//     Python::attach(|py| -> PyResult<(u8, Bytes)> {
-//         let py_object = py_object.bind(py);
-//         let type_key: u8 = py_get_type_key(py_object)?;
-//         let value: Bytes = match type_key {
-//             tags::INTEGER => py_object.extract::<i64>()?.to_be_bytes().into(),
-//             tags::FLOAT => py_object.extract::<f64>()?.to_be_bytes().into(),
-//             tags::COMPLEX => {
-//                 let complex_num = py_object.cast::<PyComplex>()?;
-//                 let mut bytes = Vec::with_capacity(16);
-//                 bytes.extend_from_slice(&complex_num.real().to_be_bytes());
-//                 bytes.extend_from_slice(&complex_num.imag().to_be_bytes());
-//                 bytes.into()
-//             }
-//             tags::RANGE => py_serialize_range(py_object)?,
-//             tags::TUPLE => serialize(&py_pack_generic_sequence(py_object, qpy_data)?),
-//             tags::PARAMETER => serialize(&py_pack_parameter(py_object)?),
-//             tags::PARAMETER_VECTOR => serialize(&py_pack_parameter_vector(py_object)?),
-//             tags::PARAMETER_EXPRESSION => {
-//                 serialize(&py_pack_parameter_expression(py_object, qpy_data)?)
-//             }
-//             tags::NUMPY_OBJ => {
-//                 let np = py.import("numpy")?;
-//                 let io = py.import("io")?;
-//                 let buffer = io.call_method0("BytesIO")?;
-//                 np.call_method1("save", (&buffer, py_object))?;
-//                 buffer.call_method0("getvalue")?.extract::<Bytes>()?
-//             }
-//             tags::MODIFIER => serialize(&py_pack_modifier(py_object)?),
-//             tags::STRING => py_object.extract::<String>()?.into(),
-//             tags::EXPRESSION => {
-//                 serialize_expression(py_object.extract::<classical::expr::Expr>()?, qpy_data)?
-//             }
-//             tags::NULL | tags::CASE_DEFAULT => Bytes::new(),
-//             tags::CIRCUIT => serialize(&pack_circuit(
-//                 py_object.extract()?,
-//                 py.None().bind(py),
-//                 false,
-//                 QPY_VERSION,
-//                 qpy_data.annotation_handler.annotation_factories,
-//             )?),
-//             _ => {
-//                 return Err(PyTypeError::new_err(format!(
-//                     "py_dumps_value: Unhandled type_key: {}",
-//                     type_key
-//                 )));
-//             }
-//         };
-//         Ok((type_key, value))
-//     })
-// }
 
 fn py_pack_parameter_expression_elements(
     py_object: &Bound<PyAny>,
@@ -1307,8 +1220,7 @@ pub fn py_pack_symbol(
     let (value_key, value_data): (u8, Bytes) = match value {
         None => (symbol_key, Bytes::new()),
         Some(py_value) => {
-            let value_pack =
-                pack_generic_value(&py_convert_to_generic_value(py_value, qpy_data)?, qpy_data)?;
+            let value_pack = pack_generic_value(&py_convert_to_generic_value(py_value)?, qpy_data)?;
             (value_pack.type_key, value_pack.data)
         }
     };
@@ -1444,10 +1356,8 @@ fn py_pack_replay_subs(
                     .getattr(intern!(py, "uuid"))?
                     .getattr(intern!(py, "bytes"))?
                     .extract::<Bytes>()?;
-                let value_pack = pack_generic_value(
-                    &py_convert_to_generic_value(value.bind(py), qpy_data)?,
-                    qpy_data,
-                )?;
+                let value_pack =
+                    pack_generic_value(&py_convert_to_generic_value(value.bind(py))?, qpy_data)?;
                 Ok(formats::MappingItem {
                     item_type: value_pack.type_key,
                     key_bytes,
@@ -1459,122 +1369,4 @@ fn py_pack_replay_subs(
     let mapping_data = serialize(&mapping);
     let entry = formats::ParameterExpressionSubsOpPack { mapping_data };
     Ok(formats::ParameterExpressionElementPack::Substitute(entry))
-}
-
-pub fn py_serialize_range(py_object: &Py<PyAny>) -> PyResult<Bytes> {
-    Python::attach(|py| {
-        let py_object = py_object.bind(py);
-        let start = py_object.getattr("start")?.extract::<i64>()?;
-        let stop = py_object.getattr("stop")?.extract::<i64>()?;
-        let step = py_object.getattr("step")?.extract::<i64>()?;
-        let range_pack = formats::RangePack { start, stop, step };
-        let mut buffer = Cursor::new(Vec::new());
-        range_pack.write(&mut buffer).unwrap();
-        Ok(buffer.into())
-    })
-}
-
-pub fn py_deserialize_range(raw_range: &Bytes) -> PyResult<Py<PyAny>> {
-    Python::attach(|py| {
-        let range_pack = deserialize::<formats::RangePack>(raw_range)?.0;
-        Ok(imports::BUILTIN_RANGE
-            .get_bound(py)
-            .call1((range_pack.start, range_pack.stop, range_pack.step))?
-            .unbind())
-    })
-}
-
-pub fn py_pack_parameter(py_object: &Bound<PyAny>) -> PyResult<formats::ParameterPack> {
-    let py = py_object.py();
-    let name = py_object
-        .getattr(intern!(py, "name"))?
-        .extract::<String>()?;
-    let uuid = py_object
-        .getattr(intern!(py, "uuid"))?
-        .getattr(intern!(py, "bytes"))?
-        .extract::<[u8; 16]>()?;
-    Ok(formats::ParameterPack { uuid, name })
-}
-
-// pub fn py_unpack_generic_sequence_to_tuple(
-//     py: Python,
-//     packed_sequence: formats::GenericDataSequencePack,
-//     qpy_data: &mut QPYReadData,
-// ) -> PyResult<Py<PyAny>> {
-//     let elements: Vec<Py<PyAny>> = packed_sequence
-//         .elements
-//         .iter()
-//         .map(|data_pack| py_unpack_generic_data(py, data_pack, qpy_data))
-//         .collect::<PyResult<_>>()?;
-//     elements.into_py_any(py)
-// }
-
-// pub fn py_unpack_generic_data(
-//     py: Python,
-//     data_pack: &formats::GenericDataPack,
-//     qpy_data: &mut QPYReadData,
-// ) -> PyResult<Py<PyAny>> {
-//     DumpedPyValue {
-//         data_type: data_pack.type_key,
-//         data: data_pack.data.clone(),
-//     }
-//     .to_python(py, qpy_data)
-// }
-
-pub fn py_pack_modifier(modifier: &Py<PyAny>) -> PyResult<formats::ModifierPack> {
-    Python::attach(|py| {
-        let modifier = modifier.bind(py);
-        let module = py.import("qiskit.circuit.annotated_operation")?;
-        if modifier.is_instance(&module.getattr("InverseModifier")?)? {
-            Ok(formats::ModifierPack {
-                modifier_type: modifier_types::INVERSE,
-                num_ctrl_qubits: 0,
-                ctrl_state: 0,
-                power: 0.0,
-            })
-        } else if modifier.is_instance(&module.getattr("ControlModifier")?)? {
-            Ok(formats::ModifierPack {
-                modifier_type: modifier_types::CONTROL,
-                num_ctrl_qubits: modifier.getattr("num_ctrl_qubits")?.extract::<u32>()?,
-                ctrl_state: modifier.getattr("ctrl_state")?.extract::<u32>()?,
-                power: 0.0,
-            })
-        } else if modifier.is_instance(&module.getattr("PowerModifier")?)? {
-            Ok(formats::ModifierPack {
-                modifier_type: modifier_types::POWER,
-                num_ctrl_qubits: 0,
-                ctrl_state: 0,
-                power: modifier.getattr("power")?.extract::<f64>()?,
-            })
-        } else {
-            Err(PyTypeError::new_err("Unsupported modifier."))
-        }
-    })
-}
-
-pub fn py_unpack_modifier(packed_modifier: &formats::ModifierPack) -> PyResult<Py<PyAny>> {
-    Python::attach(|py| match packed_modifier.modifier_type {
-        modifier_types::INVERSE => Ok(imports::INVERSE_MODIFIER.get_bound(py).call0()?.unbind()),
-        modifier_types::CONTROL => {
-            let kwargs = PyDict::new(py);
-            kwargs.set_item(
-                intern!(py, "num_ctrl_qubits"),
-                packed_modifier.num_ctrl_qubits,
-            )?;
-            kwargs.set_item(intern!(py, "ctrl_state"), packed_modifier.ctrl_state)?;
-            Ok(imports::CONTROL_MODIFIER
-                .get_bound(py)
-                .call((), Some(&kwargs))?
-                .unbind())
-        }
-        modifier_types::POWER => {
-            let kwargs = PyDict::new(py);
-            kwargs.set_item(intern!(py, "power"), packed_modifier.power)?;
-            Ok(imports::POWER_MODIFIER
-                .get_bound(py)
-                .call((), Some(&kwargs))?
-                .unbind())
-        }
-        _ => Err(PyTypeError::new_err("Unsupported modifier.")),
-    })
 }

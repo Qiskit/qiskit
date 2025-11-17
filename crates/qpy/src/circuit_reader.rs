@@ -49,7 +49,7 @@ use crate::formats;
 use crate::formats::QPYFormatV15;
 use crate::params::{unpack_param, unpack_param_from_data};
 use crate::py_methods::py_convert_from_generic_value;
-use crate::py_methods::{get_python_gate_class, py_load_register};
+use crate::py_methods::{get_python_gate_class, py_deserialize_register_param};
 use crate::value::GenericValue;
 use crate::value::load_value;
 use crate::value::{
@@ -118,7 +118,6 @@ fn unpack_custom_instruction(
     custom_instructions_map: &HashMap<String, CustomCircuitInstructionData>,
 ) -> PyResult<PackedOperation> {
     // TODO: should have "if version >= 11" check here once we introduce versioning to rust
-    println!("unpacking custom instruction {:?}", instruction);
     let mut gate_class_name = match instruction.gate_class_name.rfind('_') {
         Some(pos) => &instruction.gate_class_name[..pos],
         None => &instruction.gate_class_name,
@@ -231,7 +230,7 @@ fn unpack_condition(
             py_convert_from_generic_value(&unpack_generic_value(exp_data_pack, qpy_data)?)?,
         )),
         formats::ConditionData::Register(register_data) => {
-            let register = py_load_register(register_data, qpy_data.circuit_data)?;
+            let register = py_deserialize_register_param(register_data, qpy_data.circuit_data)?;
             let condition_value = condition.value.into_py_any(py)?;
             let tuple = PyTuple::new(py, &[register, condition_value])?;
             Ok(Some(tuple.into_any().unbind()))
@@ -780,13 +779,6 @@ fn add_registers_and_bits(
                             clbits[index as usize] = Some(clbit);
                         }
                     }
-                    Python::attach(|py| -> PyResult<()> {
-                        qpy_data
-                            .cregs
-                            .bind(py)
-                            .set_item(&packed_register.name, creg.clone())?;
-                        Ok(())
-                    })?;
                     if packed_register.in_circuit != 0 {
                         cregs.push(creg);
                     }
@@ -895,7 +887,6 @@ pub fn unpack_circuit(
         circuit_data: &mut circuit_data,
         version,
         use_symengine,
-        cregs: PyDict::new(py).unbind(),
         standalone_vars: HashMap::new(),
         standalone_stretches: HashMap::new(),
         vectors: HashMap::new(),
@@ -978,8 +969,8 @@ pub fn unpack_circuit(
 
 #[pyfunction]
 #[pyo3(signature = (file_obj, version, metadata_deserializer, use_symengine, annotation_factories))]
-pub fn py_read_circuit<'py>(
-    py: Python<'py>,
+pub fn py_read_circuit(
+    py: Python,
     file_obj: &Bound<PyAny>,
     version: u32,
     metadata_deserializer: &Bound<PyAny>,
