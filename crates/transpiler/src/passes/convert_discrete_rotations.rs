@@ -21,14 +21,23 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 const ROTATION_GATE_NAMES: &[&str; 3] = &["rx", "ry", "rz"];
 
 const PI8: f64 = PI / 8.0;
-const DEFAULT_ATOL: f64 = 1e-10;
+const MINIMUM_TOL: f64 = 1e-12;
 
 /// For an angle, if it is a multiple of PI/8, calculate the multiplicity mod 16,
 /// Otherwise, return None.
-fn is_angle_close_to_multiple_of_2pi_8(angle: f64) -> Option<usize> {
+fn is_angle_close_to_multiple_of_2pi_8(angle: f64, tol: f64) -> Option<usize> {
     let closest_ratio = angle * 4.0 / PI;
     let closest_integer = closest_ratio.round();
-    if (closest_ratio - closest_integer).abs() < DEFAULT_ATOL {
+    let closest_angle = closest_integer * PI / 4.0;
+    let theta = angle - closest_angle;
+
+    let tr_over_dim = (theta / 2.).cos();
+    let dim = 2.;
+
+    // fidelity-based tolerance
+    let f_pro = tr_over_dim.abs().powi(2);
+    let gate_fidelity = (dim * f_pro + 1.) / (dim + 1.);
+    if (1. - gate_fidelity).abs() < tol {
         Some((closest_integer as usize) % 16)
     } else {
         None
@@ -41,8 +50,9 @@ fn is_angle_close_to_multiple_of_2pi_8(angle: f64) -> Option<usize> {
 fn try_replace_rotation_by_discrete(
     gate: StandardGate,
     angle: f64,
+    tol: f64,
 ) -> Option<(Vec<StandardGate>, f64)> {
-    let multiple = is_angle_close_to_multiple_of_2pi_8(angle);
+    let multiple = is_angle_close_to_multiple_of_2pi_8(angle, tol);
     let mut discrete_sequence = Vec::<StandardGate>::with_capacity(4);
 
     let global_phase = match (gate, multiple) {
@@ -296,8 +306,9 @@ fn try_replace_rotation_by_discrete(
 
 #[pyfunction]
 #[pyo3(name = "discretize_rotations")]
-pub fn run_discretize_rotations(dag: &mut DAGCircuit) -> PyResult<()> {
+pub fn run_discretize_rotations(dag: &mut DAGCircuit, approximation_degree: f64) -> PyResult<()> {
     let op_counts = dag.get_op_counts();
+    let tol = MINIMUM_TOL.max(1.0 - approximation_degree);
 
     // Skip the pass if there are no RX/RY/RZ rotation gates.
     if op_counts
@@ -335,7 +346,7 @@ pub fn run_discretize_rotations(dag: &mut DAGCircuit) -> PyResult<()> {
     let mut global_phase_update: f64 = 0.;
 
     for (node_index, gate, angle) in candidates {
-        let result = try_replace_rotation_by_discrete(gate, angle);
+        let result = try_replace_rotation_by_discrete(gate, angle, tol);
 
         if let Some((sequence, phase_update)) = result {
             // we should remove the original gate, and instead add the sequence of gates
