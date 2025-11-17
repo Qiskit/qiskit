@@ -320,7 +320,7 @@ static int test_target_add_instruction(void) {
 
     // Add an X Gate.
     // This operation is global, no property map is provided
-    QkExitCode result_x = qk_target_add_instruction(target, qk_target_entry_new(QkGate_X, "global_x"));
+    QkExitCode result_x = qk_target_add_instruction(target, qk_target_entry_new(QkGate_X, NULL));
     if (result_x != QkExitCode_Success) {
         printf("Unexpected error occurred when adding a global X gate.");
         result = EqualityError;
@@ -328,7 +328,7 @@ static int test_target_add_instruction(void) {
     }
 
     // Re-add same gate, check if it fails
-    QkExitCode result_x_readded = qk_target_add_instruction(target, qk_target_entry_new(QkGate_X, "global_x_repeat"));
+    QkExitCode result_x_readded = qk_target_add_instruction(target, qk_target_entry_new(QkGate_X, NULL));
     if (result_x_readded != QkExitCode_TargetInstAlreadyExists) {
         printf("The addition of a repeated gate did not fail as expected.");
         result = EqualityError;

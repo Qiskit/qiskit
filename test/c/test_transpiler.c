@@ -163,7 +163,7 @@ static int test_transpile_idle_qubits(void) {
     params[0] = 1.681876;
     qk_circuit_gate(circuit, QkGate_CRZ, qargs, params);
     QkTarget *target = qk_target_new(num_qubits);
-    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
+    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX, NULL);
     for (uint32_t i = 0; i < num_qubits - 1; i++) {
         qk_target_entry_add_property(cx_entry, (uint32_t[]){i, i + 1}, 2, 0.001 * i, 0.002 * i);
     }
