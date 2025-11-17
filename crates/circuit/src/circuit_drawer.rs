@@ -611,9 +611,37 @@ impl<'a> Index<usize> for VisualizationMatrix<'a> {
     }
 }
 
-// [control control boxed boxed]
-// [swap swap]
-// [control swaps swaps],
+impl<'a> Debug for VisualizationMatrix<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for w in 0..self.num_wires() {
+            for l in 0..self.num_layers() {
+                let element = &self[l][w];
+                let label = match &element {
+                    VisualizationElement::Empty => "~",
+                    VisualizationElement::VerticalLine(input_type) => match input_type {
+                        InputType::Clbit(_) => "║",
+                        InputType::Qubit(_) => "|",
+                    },
+                    VisualizationElement::Input(input) => match input {
+                        ElementWireInput::Qubit(_) => "QR",
+                        ElementWireInput::Clbit(_) => "CR",
+                        ElementWireInput::Creg(_) => "C/",
+                    },
+                    VisualizationElement::DirectOnWire(on_wire) => match on_wire {
+                        OnWire::Barrier => "░",
+                        OnWire::Control(_) => "■",
+                        OnWire::Reset => "|0>",
+                        OnWire::Swap(_) => "x",
+                    },
+                    VisualizationElement::Boxed(_) => "[ ]",
+                };
+                write!(f, "{:^5}", label)?;
+            }
+            writeln!(f, "")?;
+        }
+        Ok(())
+    }
+}
 
 // better name for the struct
 #[derive(Clone)]
