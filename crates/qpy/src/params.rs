@@ -24,10 +24,11 @@ use uuid::Uuid;
 use crate::bytes::Bytes;
 use crate::formats::{self, GenericDataPack, ParameterVectorPack};
 use crate::py_methods::{
-    py_convert_from_generic_value, py_convert_to_generic_value, py_pack_param
+    py_convert_from_generic_value, py_convert_to_generic_value, py_pack_param,
 };
 use crate::value::{
-    GenericValue, QPYReadData, QPYWriteData, bytes_to_py_uuid, deserialize, deserialize_vec, load_value, serialize_generic_value, serialize, tags
+    GenericValue, QPYReadData, QPYWriteData, bytes_to_py_uuid, deserialize, deserialize_vec,
+    load_value, serialize, serialize_generic_value, tags,
 };
 use hashbrown::HashMap;
 
@@ -120,11 +121,11 @@ fn parameter_value_type_from_generic_value(value: &GenericValue) -> PyResult<Par
     }
 }
 pub fn unpack_parameter_expression(
-    parameter_expression: formats::ParameterExpressionPack,
+    parameter_expression_pack: &formats::ParameterExpressionPack,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<ParameterExpression> {
     let mut param_uuid_map: HashMap<[u8; 16], GenericValue> = HashMap::new();
-    for item in &parameter_expression.symbol_table_data {
+    for item in &parameter_expression_pack.symbol_table_data {
         let (symbol_uuid, _, value) = match item {
             formats::ParameterExpressionSymbolPack::ParameterExpression(_) => {
                 continue;
@@ -154,7 +155,7 @@ pub fn unpack_parameter_expression(
         param_uuid_map.insert(symbol_uuid, value.clone());
     }
     let parameter_expression_data = deserialize_vec::<formats::ParameterExpressionElementPack>(
-        &parameter_expression.expression_data,
+        &parameter_expression_pack.expression_data,
     )?;
 
     // we now convert the parameter_expression_data into Vec<OPReplay> that can be used via ParameterExpression::from_qpy
@@ -391,8 +392,9 @@ pub fn serialize_param_expression(
                 (tags::PARAMETER_VECTOR, serialize(&packed_symbol))
             }
         }
-    } else { // for now, we use our old python based serialization code
-        Python::attach(|py| -> PyResult<_>{
+    } else {
+        // for now, we use our old python based serialization code
+        Python::attach(|py| -> PyResult<_> {
             let py_exp = exp.clone().into_py_any(py)?;
             let value = py_convert_to_generic_value(py_exp.bind(py), qpy_data)?;
             serialize_generic_value(&value, qpy_data)
@@ -401,7 +403,10 @@ pub fn serialize_param_expression(
     Ok(result)
 }
 
-pub fn pack_param_expression(exp: &ParameterExpression, qpy_data: &QPYWriteData) -> PyResult<formats::GenericDataPack> {
+pub fn pack_param_expression(
+    exp: &ParameterExpression,
+    qpy_data: &QPYWriteData,
+) -> PyResult<formats::GenericDataPack> {
     let (type_key, data) = serialize_param_expression(exp, qpy_data)?;
     Ok(formats::GenericDataPack { type_key, data })
 }
@@ -413,11 +418,19 @@ pub fn pack_param_obj(
 ) -> PyResult<formats::GenericDataPack> {
     Ok(match param {
         Param::Float(val) => match endian {
-            Endian::Little => formats::GenericDataPack{type_key: tags::FLOAT, data: val.to_le_bytes().into()},
-            Endian::Big => formats::GenericDataPack{type_key: tags::FLOAT, data: val.to_be_bytes().into()},
+            Endian::Little => formats::GenericDataPack {
+                type_key: tags::FLOAT,
+                data: val.to_le_bytes().into(),
+            },
+            Endian::Big => formats::GenericDataPack {
+                type_key: tags::FLOAT,
+                data: val.to_be_bytes().into(),
+            },
         },
         Param::ParameterExpression(exp) => pack_param_expression(exp, qpy_data)?,
-        Param::Obj(py_object) => Python::attach(|py| py_pack_param(&py_object.bind(py), qpy_data, endian))?,
+        Param::Obj(py_object) => {
+            Python::attach(|py| py_pack_param(&py_object.bind(py), qpy_data, endian))?
+        }
     })
 }
 
@@ -444,11 +457,14 @@ pub fn unpack_param(
             Ok(Param::ParameterExpression(Arc::new(parameter_expression)))
         }
         tags::PARAMETER_EXPRESSION => {
-            if let GenericValue::ParameterExpression(parameter_expression) = load_value(packed_param.type_key, &packed_param.data, qpy_data)? {
+            if let GenericValue::ParameterExpression(parameter_expression) =
+                load_value(packed_param.type_key, &packed_param.data, qpy_data)?
+            {
                 Ok(Param::ParameterExpression(Arc::new(parameter_expression)))
-            }
-            else {
-                Err(PyValueError::new_err("error trying to deserialize parameter expression"))
+            } else {
+                Err(PyValueError::new_err(
+                    "error trying to deserialize parameter expression",
+                ))
             }
         }
         _ => {

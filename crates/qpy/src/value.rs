@@ -25,8 +25,8 @@ use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::object_registry::ObjectRegistry;
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::parameter::symbol_expr::Symbol;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
+use qiskit_circuit::parameter::symbol_expr::Symbol;
 use qiskit_circuit::{Clbit, imports};
 
 use crate::annotations::AnnotationHandler;
@@ -34,9 +34,14 @@ use crate::bytes::Bytes;
 use crate::circuit_reader::unpack_circuit;
 use crate::circuit_writer::pack_circuit;
 use crate::formats::{self, GenericDataPack, GenericDataSequencePack};
-use crate::params::{pack_parameter_vector, pack_symbol, unpack_parameter_vector, unpack_symbol};
+use crate::params::{
+    pack_parameter_vector, pack_symbol, unpack_parameter_expression, unpack_parameter_vector,
+    unpack_symbol,
+};
 use crate::py_methods::{
-    py_deserialize_range, py_serialize_numpy_object, py_serialize_range, py_unpack_modifier, py_pack_parameter_expression, py_pack_modifier, py_serialize_register_param, py_deserialize_numpy_object
+    py_deserialize_numpy_object, py_deserialize_range, py_load_register, py_pack_modifier,
+    py_pack_parameter_expression, py_serialize_numpy_object, py_serialize_range,
+    py_serialize_register_param, py_unpack_modifier,
 };
 use crate::{QpyError, UnsupportedFeatureForVersion};
 
@@ -79,6 +84,7 @@ pub struct QPYReadData<'a> {
     pub annotation_handler: AnnotationHandler<'a>,
 }
 
+// this is how tags for various value types are encoded in a QPY file
 pub mod tags {
     pub const BOOL: u8 = b'b';
     pub const INTEGER: u8 = b'i';
@@ -178,10 +184,9 @@ where
     Ok((value, bytes_read))
 }
 
-pub fn deserialize_with_args<T, A>(bytes: &[u8], args: A) -> PyResult<(T, usize)>
+pub fn deserialize_with_args<'a, T, A>(bytes: &[u8], args: A) -> PyResult<(T, usize)>
 where
-    T: BinRead<Args<'static> = A> + ReadEndian + Debug,
-    A: Clone,
+    T: BinRead<Args<'a> = A> + ReadEndian + Debug,
 {
     let mut cursor = Cursor::new(bytes);
     let value = T::read_args(&mut cursor, args).unwrap();
@@ -208,7 +213,7 @@ where
 // representation is not always possible or difficult to implement
 // This is the pure rust alternative to `DumpedPyValue` which is used to serialize data given via python objects
 #[derive(Clone, Debug)]
-pub enum GenericValue<'a> {
+pub enum GenericValue {
     Bool(bool),
     Int64(i64),
     Float64(f64),
@@ -216,7 +221,7 @@ pub enum GenericValue<'a> {
     CaseDefault,
     Register(Py<PyAny>),
     Range(Py<PyAny>),
-    Tuple(Vec<GenericValue<'a>>),
+    Tuple(Vec<GenericValue>),
     NumpyObject(Py<PyAny>), // currently we store the python object without converting it to rust space
     ParameterExpressionSymbol(Symbol),
     ParameterExpressionVectorSymbol(Symbol),
@@ -225,7 +230,7 @@ pub enum GenericValue<'a> {
     Null,
     Expression(Expr),
     Modifier(Py<PyAny>),
-    Circuit(QuantumCircuitData<'a>),
+    Circuit(Py<PyAny>), // currently we have no rust class corresponding to a circuit, only to the inner CircuitData
 }
 
 // we want to be able to extract the value relatively painlessly;
@@ -234,16 +239,20 @@ pub trait FromGenericValue: Sized {
     fn from_generic(value: &GenericValue) -> Option<Self>;
 }
 
-impl GenericValue<'_> {
+impl GenericValue {
     pub fn as_typed<T: FromGenericValue>(&self) -> Option<T> {
         T::from_generic(self)
     }
     // reintreprets int64 and float64 as if they were given in little endian, since this is needed when encoding instruction parameters
     pub fn as_le(&self) -> Self {
         match self {
-            GenericValue::Int64(value) => GenericValue::Int64(i64::from_le_bytes(value.to_be_bytes())),
-            GenericValue::Float64(value) => GenericValue::Float64(f64::from_le_bytes(value.to_be_bytes())),
-            _ => self.clone()
+            GenericValue::Int64(value) => {
+                GenericValue::Int64(i64::from_le_bytes(value.to_be_bytes()))
+            }
+            GenericValue::Float64(value) => {
+                GenericValue::Float64(f64::from_le_bytes(value.to_be_bytes()))
+            }
+            _ => self.clone(),
         }
     }
 }
@@ -287,7 +296,7 @@ pub fn load_value<'a>(
     type_key: u8,
     bytes: &Bytes,
     qpy_data: &mut QPYReadData,
-) -> PyResult<GenericValue<'a>> {
+) -> PyResult<GenericValue> {
     match type_key {
         tags::BOOL => {
             let value: bool = bytes.try_into()?;
@@ -305,15 +314,30 @@ pub fn load_value<'a>(
             let value: Complex64 = bytes.try_into()?;
             Ok(GenericValue::Complex64(value))
         }
+        tags::STRING => {
+            let value: String = bytes.try_into()?;
+            Ok(GenericValue::String(value))
+        }
+        tags::RANGE => {
+            let py_range = py_deserialize_range(&bytes)?;
+            Ok(GenericValue::Range(py_range))
+        }
         tags::PARAMETER => {
-            let (parameter, _) = deserialize::<formats::ParameterPack>(bytes)?;
-            let symbol = unpack_symbol(&parameter);
+            let (parameter_pack, _) = deserialize::<formats::ParameterPack>(bytes)?;
+            let symbol = unpack_symbol(&parameter_pack);
             Ok(GenericValue::ParameterExpressionSymbol(symbol))
         }
         tags::PARAMETER_VECTOR => {
-            let (parameter_vector_element, _) = deserialize::<formats::ParameterVectorPack>(bytes)?;
-            let symbol = unpack_parameter_vector(&parameter_vector_element, qpy_data)?;
+            let (parameter_vector_element_pack, _) =
+                deserialize::<formats::ParameterVectorPack>(bytes)?;
+            let symbol = unpack_parameter_vector(&parameter_vector_element_pack, qpy_data)?;
             Ok(GenericValue::ParameterExpressionVectorSymbol(symbol))
+        }
+        tags::PARAMETER_EXPRESSION => {
+            let (parameter_expression_pack, _) =
+                deserialize::<formats::ParameterExpressionPack>(bytes)?;
+            let exp = unpack_parameter_expression(&parameter_expression_pack, qpy_data)?;
+            Ok(GenericValue::ParameterExpression(exp))
         }
         tags::TUPLE => {
             let (elements_pack, _) = deserialize::<GenericDataSequencePack>(bytes)?;
@@ -324,15 +348,49 @@ pub fn load_value<'a>(
             let py_object = py_deserialize_numpy_object(bytes)?;
             Ok(GenericValue::NumpyObject(py_object))
         }
+        tags::MODIFIER => {
+            let (modifier_pack, _) = deserialize::<formats::ModifierPack>(bytes)?;
+            let values = py_unpack_modifier(&modifier_pack)?;
+            Ok(GenericValue::Modifier(values))
+        }
+        tags::EXPRESSION => {
+            let expression = deserialize_expression(bytes, qpy_data)?;
+            Ok(GenericValue::Expression(expression))
+        }
+        tags::NULL => Ok(GenericValue::Null),
+        tags::CASE_DEFAULT => Ok(GenericValue::CaseDefault),
+        tags::REGISTER => {
+            let py_register = py_load_register(bytes, qpy_data.circuit_data)?;
+            Ok(GenericValue::Register(py_register))
+        }
+        tags::CIRCUIT => {
+            let (packed_circuit, _) = deserialize::<formats::QPYFormatV15>(bytes)?;
+            Python::attach(|py| {
+                let circuit = unpack_circuit(
+                    py,
+                    &packed_circuit,
+                    qpy_data.version,
+                    None,
+                    qpy_data.use_symengine,
+                    qpy_data.annotation_handler.annotation_factories,
+                )?;
+                Ok(GenericValue::Circuit(circuit))
+            })
+        }
+
         _ => Err(PyTypeError::new_err(format!(
             "Generic value loading: Unhandled type_key: {} ({})",
-            type_key, type_name(type_key)
+            type_key,
+            type_name(type_key)
         ))),
     }
 }
 
 /// serializes the generic value into bytes and also returns the identifying tag
-pub fn serialize_generic_value(value: &GenericValue, qpy_data: &QPYWriteData) -> PyResult<(u8, Bytes)> {
+pub fn serialize_generic_value(
+    value: &GenericValue,
+    qpy_data: &QPYWriteData,
+) -> PyResult<(u8, Bytes)> {
     Ok(match value {
         GenericValue::Bool(value) => (tags::BOOL, value.into()),
         GenericValue::Int64(value) => (tags::INTEGER, value.into()),
@@ -349,45 +407,63 @@ pub fn serialize_generic_value(value: &GenericValue, qpy_data: &QPYWriteData) ->
         ),
         GenericValue::ParameterExpression(exp) => {
             let data = Python::attach(|py| -> PyResult<_> {
-                Ok(serialize(&py_pack_parameter_expression(exp.clone().into_py_any(py)?.bind(py), qpy_data)?))
+                Ok(serialize(&py_pack_parameter_expression(
+                    exp.clone().into_py_any(py)?.bind(py),
+                    qpy_data,
+                )?))
             })?;
             (tags::PARAMETER_EXPRESSION, data)
-        }        
+        }
         GenericValue::Tuple(values) => (
             tags::TUPLE,
             serialize(&pack_generic_value_sequence(values, qpy_data)?),
         ),
         GenericValue::Expression(exp) => (tags::EXPRESSION, serialize_expression(exp, qpy_data)?),
         GenericValue::Null => (tags::NULL, Bytes::new()),
-        GenericValue::Circuit(circuit) => (tags::CIRCUIT, serialize(&pack_circuit(
-                &mut circuit.clone(), // TODO: can we avoid cloning here?
+        GenericValue::Circuit(circuit) => Python::attach(|py| -> PyResult<_> {
+            let packed_circuit = pack_circuit(
+                &mut circuit.extract(py)?, // TODO: can we avoid cloning here?
                 None,
                 false,
                 QPY_VERSION,
-                qpy_data.annotation_handler.annotation_factories,)?)),
+                qpy_data.annotation_handler.annotation_factories,
+            )?;
+            let serialized_circuit = serialize(&packed_circuit);
+            Ok((tags::CIRCUIT, serialized_circuit))
+        })?,
         GenericValue::NumpyObject(py_obj) => (tags::NUMPY_OBJ, py_serialize_numpy_object(py_obj)?),
         GenericValue::Range(py_obj) => (tags::RANGE, py_serialize_range(py_obj)?),
-        GenericValue::Modifier(py_object) => (tags::MODIFIER, serialize(&py_pack_modifier(py_object)?)),
-        GenericValue::Register(py_object) => (tags::REGISTER, py_serialize_register_param(py_object)?),
+        GenericValue::Modifier(py_object) => {
+            (tags::MODIFIER, serialize(&py_pack_modifier(py_object)?))
+        }
+        GenericValue::Register(py_object) => {
+            (tags::REGISTER, py_serialize_register_param(py_object)?)
+        }
     })
 }
 
 // packing to GenericDataPack is somewhat wasteful in many cases, since given the type_key
 // we usually know the byte length of the data and don't need to store it directly,
 // but since that's the format currently in place in QPY we don't try to optimize
-pub fn pack_generic_value(value: &GenericValue, qpy_data: &QPYWriteData) -> PyResult<GenericDataPack> {
+pub fn pack_generic_value(
+    value: &GenericValue,
+    qpy_data: &QPYWriteData,
+) -> PyResult<GenericDataPack> {
     let (type_key, data) = serialize_generic_value(value, qpy_data)?;
     Ok(GenericDataPack { type_key, data })
 }
 
-pub fn unpack_generic_value<'a>(
+pub fn unpack_generic_value(
     value_pack: &GenericDataPack,
     qpy_data: &mut QPYReadData,
-) -> PyResult<GenericValue<'a>> {
+) -> PyResult<GenericValue> {
     load_value(value_pack.type_key, &value_pack.data, qpy_data)
 }
 
-pub fn pack_generic_value_sequence(values: &[GenericValue], qpy_data: &QPYWriteData) -> PyResult<GenericDataSequencePack> {
+pub fn pack_generic_value_sequence(
+    values: &[GenericValue],
+    qpy_data: &QPYWriteData,
+) -> PyResult<GenericDataSequencePack> {
     let elements = values
         .iter()
         .map(|value| pack_generic_value(value, qpy_data))
@@ -395,10 +471,10 @@ pub fn pack_generic_value_sequence(values: &[GenericValue], qpy_data: &QPYWriteD
     Ok(GenericDataSequencePack { elements })
 }
 
-pub fn unpack_generic_value_sequence<'a>(
+pub fn unpack_generic_value_sequence(
     value_seqeunce_pack: GenericDataSequencePack,
     qpy_data: &mut QPYReadData,
-) -> PyResult<Vec<GenericValue<'a>>> {
+) -> PyResult<Vec<GenericValue>> {
     value_seqeunce_pack
         .elements
         .iter()

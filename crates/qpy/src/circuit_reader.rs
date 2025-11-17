@@ -118,6 +118,7 @@ fn unpack_custom_instruction(
     custom_instructions_map: &HashMap<String, CustomCircuitInstructionData>,
 ) -> PyResult<PackedOperation> {
     // TODO: should have "if version >= 11" check here once we introduce versioning to rust
+    println!("unpacking custom instruction {:?}", instruction);
     let mut gate_class_name = match instruction.gate_class_name.rfind('_') {
         Some(pos) => &instruction.gate_class_name[..pos],
         None => &instruction.gate_class_name,
@@ -226,11 +227,11 @@ fn unpack_condition(
     qpy_data: &mut QPYReadData,
 ) -> PyResult<Option<Py<PyAny>>> {
     match &condition.data {
-        formats::ConditionData::Expression(exp_data_pack) => {
-            Ok(Some(py_convert_from_generic_value(&unpack_generic_value(exp_data_pack, qpy_data)?)?))
-        }
+        formats::ConditionData::Expression(exp_data_pack) => Ok(Some(
+            py_convert_from_generic_value(&unpack_generic_value(exp_data_pack, qpy_data)?)?,
+        )),
         formats::ConditionData::Register(register_data) => {
-            let register = py_load_register(py, register_data.clone(), qpy_data.circuit_data)?;
+            let register = py_load_register(register_data, qpy_data.circuit_data)?;
             let condition_value = condition.value.into_py_any(py)?;
             let tuple = PyTuple::new(py, &[register, condition_value])?;
             Ok(Some(tuple.into_any().unbind()))
@@ -457,7 +458,7 @@ fn unpack_instruction(
 fn deserialize_metadata(
     py: Python,
     metadata_bytes: &Bytes,
-    metadata_deserializer: &Bound<PyAny>,
+    metadata_deserializer: Option<&Bound<PyAny>>,
 ) -> PyResult<Py<PyAny>> {
     let json = py.import("json")?;
     let kwargs: Bound<'_, PyDict> = PyDict::new(py);
@@ -589,13 +590,14 @@ fn deserialize_pauli_evolution_gate(
         .iter()
         .map(|elem| {
             let data = load_value(tags::NUMPY_OBJ, &elem.data, qpy_data)?;
-            if let GenericValue::NumpyObject(op_raw_data)  = data {
+            if let GenericValue::NumpyObject(op_raw_data) = data {
                 imports::SPARSE_PAULI_OP
-                .get_bound(py)
-                .call_method1("from_list", (op_raw_data,))
-            }
-            else {
-                Err(PyValueError::new_err("Pauli Evolution Gate needs data list stored as numpy object"))
+                    .get_bound(py)
+                    .call_method1("from_list", (op_raw_data,))
+            } else {
+                Err(PyValueError::new_err(
+                    "Pauli Evolution Gate needs data list stored as numpy object",
+                ))
             }
         })
         .collect::<PyResult<_>>()?;
@@ -610,7 +612,11 @@ fn deserialize_pauli_evolution_gate(
     let py_time: Py<PyAny> = match time {
         GenericValue::Float64(value) => value.into_py_any(py),
         GenericValue::ParameterExpression(exp) => exp.into_py_any(py),
-        _ => Err(PyValueError::new_err("Pauli Evolution Gate 'time' parameter should be either float or parameter expression")),
+        GenericValue::ParameterExpressionVectorSymbol(symbol) => symbol.into_py_any(py),
+        GenericValue::ParameterExpressionSymbol(symbol) => symbol.into_py_any(py),
+        _ => Err(PyValueError::new_err(
+            "Pauli Evolution Gate 'time' parameter should be either float or parameter expression",
+        )),
     }?;
     let synth_data = json.call_method1("loads", (packed_data.synth_data,))?;
     let synth_data = synth_data.cast::<PyDict>()?;
@@ -646,17 +652,14 @@ fn read_custom_instructions(
                     qpy_data,
                 )?)
             } else {
-                Some(
-                    unpack_circuit(
-                        py,
-                        &deserialize::<QPYFormatV15>(&operation.data)?.0,
-                        qpy_data.version,
-                        py.None().bind(py),
-                        qpy_data.use_symengine,
-                        qpy_data.annotation_handler.annotation_factories,
-                    )?
-                    .unbind(),
-                )
+                Some(unpack_circuit(
+                    py,
+                    &deserialize::<QPYFormatV15>(&operation.data)?.0,
+                    qpy_data.version,
+                    None,
+                    qpy_data.use_symengine,
+                    qpy_data.annotation_handler.annotation_factories,
+                )?)
             }
         } else {
             None
@@ -874,14 +877,14 @@ fn add_registers_and_bits(
     Ok(())
 }
 
-pub fn unpack_circuit<'py>(
-    py: Python<'py>,
+pub fn unpack_circuit(
+    py: Python,
     packed_circuit: &QPYFormatV15,
     version: u32,
-    metadata_deserializer: &Bound<PyAny>,
+    metadata_deserializer: Option<&Bound<PyAny>>,
     use_symengine: bool,
     annotation_factories: &Bound<PyDict>,
-) -> PyResult<Bound<'py, PyAny>> {
+) -> PyResult<Py<PyAny>> {
     let instruction_capacity = packed_circuit.instructions.len();
     // create an empty circuit; we'll fill data as we go along
     let mut circuit_data =
@@ -970,7 +973,7 @@ pub fn unpack_circuit<'py>(
     if let Some(layout) = unpacked_layout {
         circuit.setattr("_layout", layout)?;
     }
-    Ok(circuit)
+    Ok(circuit.unbind().as_any().clone())
 }
 
 #[pyfunction]
@@ -982,7 +985,7 @@ pub fn py_read_circuit<'py>(
     metadata_deserializer: &Bound<PyAny>,
     use_symengine: bool,
     annotation_factories: &Bound<PyDict>,
-) -> PyResult<Bound<'py, PyAny>> {
+) -> PyResult<Py<PyAny>> {
     let pos = file_obj.call_method0("tell")?.extract::<usize>()?;
     let bytes = file_obj.call_method0("read")?;
     let serialized_circuit: &[u8] = bytes.cast::<PyBytes>()?.as_bytes();
@@ -991,7 +994,7 @@ pub fn py_read_circuit<'py>(
         py,
         &packed_circuit,
         version,
-        metadata_deserializer,
+        Some(metadata_deserializer),
         use_symengine,
         annotation_factories,
     )?;

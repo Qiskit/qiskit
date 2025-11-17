@@ -38,6 +38,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for QuantumCircuitData<'py> {
 
     fn extract(ob: Borrowed<'a, 'py, PyAny>) -> PyResult<Self> {
         let py = ob.py();
+        ob.getattr("data")?; // in case _data is lazily generated in python
         let circuit_data = ob.getattr("_data")?;
         let data_borrowed = circuit_data.extract::<CircuitData>()?;
         Ok(QuantumCircuitData {

@@ -35,7 +35,7 @@ use crate::formats;
 use crate::params::pack_param_obj;
 use crate::py_methods::{
     gate_class_name, get_condition_data_from_inst, get_instruction_annotations,
-    get_instruction_params, pack_custom_instruction, pack_py_registers, recognize_custom_operation,
+    get_instruction_params, pack_custom_instruction, py_pack_registers, recognize_custom_operation,
     serialize_metadata,
 };
 use crate::value::{
@@ -101,6 +101,7 @@ pub fn pack_instructions(
             .data()
             .iter()
             .map(|instruction| {
+                println!("packing instruction {:?}", instruction);
                 pack_instruction(
                     instruction,
                     circuit_data,
@@ -144,7 +145,7 @@ pub fn pack_instruction(
         _ => (1 << num_ctrl_qubits) - 1,
     };
     // this relies heavily on python-space as instruction params are usually added ad-hoc to arbitrary field in the python instruction
-    let params: Vec<formats::GenericDataPack> = get_instruction_params(instruction, qpy_data)?; 
+    let params: Vec<formats::GenericDataPack> = get_instruction_params(instruction, qpy_data)?;
     let bit_data = get_packed_bit_list(instruction, circuit_data);
     let condition = get_condition_data(&instruction.op, circuit_data, qpy_data)?;
     let annotations = get_instruction_annotations(instruction, qpy_data)?;
@@ -438,7 +439,7 @@ fn pack_custom_layout(
             bits.push(x);
         }
     }
-    let extra_registers = pack_py_registers(&extra_registers.keys(), &PyList::new(py, bits)?)?;
+    let extra_registers = py_pack_registers(&extra_registers.keys(), &PyList::new(py, bits)?)?;
     let mut initial_layout_items = Vec::with_capacity(initial_layout_size.max(0) as usize);
     for item in initial_layout_array {
         let tuple = item.cast::<PyTuple>()?;
@@ -584,7 +585,6 @@ pub fn pack_circuit(
     version: u32,
     annotation_factories: &Bound<PyDict>,
 ) -> PyResult<formats::QPYFormatV15> {
-    // let clbit_indices = circuit.data.get_clbit_indices(py).clone();
     let mut standalone_var_indices: HashMap<u128, u16> = HashMap::new();
     let standalone_vars =
         pack_standalone_vars(&circuit.data, version, &mut standalone_var_indices)?;
@@ -644,6 +644,7 @@ pub fn py_write_circuit(
         version,
         annotation_factories,
     )?;
+    println!("packed circuit: {:?}", packed_circuit);
     let serialized_circuit = serialize(&packed_circuit);
     file_obj.call_method1(
         "write",
