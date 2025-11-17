@@ -77,6 +77,7 @@ Optimizations
    CommutativeInverseCancellation
    ConsolidateBlocks
    ContractIdleWiresInControlFlow
+   DiscretizeRotations
    ElidePermutations
    HoareOptimizer
    InverseCancellation
