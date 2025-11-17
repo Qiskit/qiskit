@@ -189,7 +189,7 @@ enum PosOnWire{
 }
 
 impl OnWire<'_> {
-    fn is_pos(&self, circuit: &CircuitData, ind: usize) -> PosOnWire {
+    fn get_position(&self, circuit: &CircuitData, ind: usize) -> PosOnWire {
         match self {
             OnWire::Control(inst) 
             | OnWire::Swap(inst)=> {
@@ -936,7 +936,7 @@ impl TextDrawer {
                 let is_top_case = |ve: &VisualizationElement, ind: usize| match ve {
                     VisualizationElement::VerticalLine(InputType::Qubit(None))
                     | VisualizationElement::VerticalLine(InputType::Clbit(None)) => true,
-                    VisualizationElement::DirectOnWire(onwire) => match onwire.is_pos(circuit, ind){
+                    VisualizationElement::DirectOnWire(onwire) => match onwire.get_position(circuit, ind){
                         PosOnWire::Bot => false,
                         PosOnWire::Mid => match onwire {
                             OnWire::Swap(_) 
@@ -953,7 +953,7 @@ impl TextDrawer {
                 let is_bot_case = |ve: &VisualizationElement, ind: usize| match ve {
                     VisualizationElement::VerticalLine(InputType::Qubit(None))
                     | VisualizationElement::VerticalLine(InputType::Clbit(None)) => true,
-                    VisualizationElement::DirectOnWire(onwire) => match onwire.is_pos(circuit, ind){
+                    VisualizationElement::DirectOnWire(onwire) => match onwire.get_position(circuit, ind){
                         PosOnWire::Top => false,
                         PosOnWire::Mid => match onwire {
                             OnWire::Swap(_) 
@@ -1175,7 +1175,7 @@ impl TextDrawer {
 
                 let top: String = match on_wire {
                     OnWire::Control(position)
-                    | OnWire::Swap(position) => match on_wire.is_pos(circuit, ind) {
+                    | OnWire::Swap(position) => match on_wire.get_position(circuit, ind) {
                         PosOnWire::Top => " ".to_string(),
                         PosOnWire::Mid => format!("{}", connecting_wire),
                         PosOnWire::Bot => format!("{}", connecting_wire),
@@ -1187,29 +1187,31 @@ impl TextDrawer {
                 };
 
                 let bot: String = match on_wire {
-                    OnWire::Control(inst) => match on_wire.is_pos(circuit, ind) {
+                    OnWire::Control(inst) => match on_wire.get_position(circuit, ind) {
                         PosOnWire::Top => format!("{}", connecting_wire),
                         PosOnWire::Mid => format!("{}", connecting_wire),
                         PosOnWire::Bot => {
+                            println!("num qubits:{}, index:{}", circuit.num_qubits(), ind);
                             if cregbundle && ind >= circuit.num_qubits() {
-                                // we assume there will only be a single classical bit for now since the current implementation
-                                // only covers measurements as an instruction that operates both on classical and quantum bits.
-                                let clbit = circuit.cargs_interner().get(inst.clbits).first().unwrap();
-                                // getting shareable clbit
-                                let shareable_clbit = circuit.clbits().get(*clbit).unwrap();
-                                let bit_info = circuit.clbit_indices().get(shareable_clbit).unwrap();
-                                let clbit_ind = if let Some((_, index_in_creg)) = bit_info.registers().first() {
-                                    format!("{}", index_in_creg)
+                                println!("creg is true, index greater than number of qubits");
+                                let clbits = circuit.cargs_interner().get(inst.clbits);
+                                let classical_bit = clbits[0];
+                                let shareable_clbit = circuit.clbits().get(classical_bit).unwrap();
+                                let bit_register_info = circuit.clbit_indices().get(shareable_clbit).unwrap();
+                                let index_in_creg = if let Some((_, index)) = bit_register_info.registers().first() {
+                                    *index
                                 } else {
-                                    format!("{}", ind - circuit.num_qubits())
+                                    classical_bit.index() - circuit.num_qubits()
                                 };
-                                format!("{}", clbit_ind)
+                                println!("index_in_creg: {}", index_in_creg);
+                                format!("{}", index_in_creg)
                             } else {
+                                println!("else block being executed");
                                 " ".to_string()
                             }
                         }
                     },
-                    OnWire::Swap(_) => match on_wire.is_pos(circuit, ind){
+                    OnWire::Swap(_) => match on_wire.get_position(circuit, ind){
                         PosOnWire::Top => format!("{}", connecting_wire),
                         PosOnWire::Mid => format!("{}", connecting_wire),
                         PosOnWire::Bot => " ".to_string(),
@@ -1225,12 +1227,14 @@ impl TextDrawer {
                 } else {
                     C_WIRE
                 };
-
-                ElementWire {
+                println!("num qubits:{}, index:{}", circuit.num_qubits(), ind);
+                let ret = ElementWire {
                     top: format!("{}{}{}", " ", top, " "),
                     mid: format!("{}{}{}", wire, wire_char, wire),
                     bot: format!("{}{}{}", " ", bot, " "),
-                }
+                };
+                println!("ElementWire: {:?}", ret);
+                ret
             }
             VisualizationElement::Input(wire_input) => match wire_input {
                 ElementWireInput::Qubit(qubit) => {
