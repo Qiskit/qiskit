@@ -1554,3 +1554,4 @@ from .target import Target
 from .target import InstructionProperties
 from .target import QubitProperties
 from .optimization_metric import OptimizationMetric
+from .transpile import transpile
