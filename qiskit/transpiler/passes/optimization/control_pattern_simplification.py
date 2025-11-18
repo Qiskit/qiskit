@@ -12,9 +12,35 @@
 
 """Transpiler pass for simplifying multi-controlled gates with complementary control patterns."""
 
+from dataclasses import dataclass
+from typing import List, Optional, Tuple
+import numpy as np
+
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit import DAGCircuit, DAGOpNode
+from qiskit.circuit import ControlledGate, QuantumCircuit
+from qiskit.circuit.library import CXGate
 from qiskit.utils import optionals as _optionals
+
+
+@dataclass
+class ControlledGateInfo:
+    """Information about a controlled gate for optimization analysis.
+
+    Attributes:
+        node: DAGOpNode containing the gate
+        operation: The gate operation
+        control_qubits: List of control qubit indices
+        target_qubits: List of target qubit indices
+        ctrl_state: Control state pattern as binary string
+        params: Gate parameters (e.g., rotation angle)
+    """
+    node: DAGOpNode
+    operation: ControlledGate
+    control_qubits: List[int]
+    target_qubits: List[int]
+    ctrl_state: str
+    params: Tuple[float, ...]
 
 
 @_optionals.HAS_SYMPY.require_in_instance
@@ -103,6 +129,53 @@ class ControlPatternSimplification(TransformationPass):
         """
         super().__init__()
         self.tolerance = tolerance
+
+    def _extract_control_pattern(self, gate: ControlledGate, num_ctrl_qubits: int) -> str:
+        """Extract control pattern from a controlled gate as binary string.
+
+        Args:
+            gate: The controlled gate
+            num_ctrl_qubits: Number of control qubits
+
+        Returns:
+            Binary string representation of control pattern (e.g., '11', '01')
+        """
+        ctrl_state = gate.ctrl_state
+
+        if ctrl_state is None:
+            # Default: all controls must be in |1⟩ state
+            return '1' * num_ctrl_qubits
+        elif isinstance(ctrl_state, str):
+            return ctrl_state
+        elif isinstance(ctrl_state, int):
+            # Convert integer to binary string with appropriate length
+            return format(ctrl_state, f'0{num_ctrl_qubits}b')
+        else:
+            # Fallback: assume all ones
+            return '1' * num_ctrl_qubits
+
+    def _parameters_match(self, params1: Tuple, params2: Tuple) -> bool:
+        """Check if two parameter tuples match within tolerance.
+
+        Args:
+            params1: First parameter tuple
+            params2: Second parameter tuple
+
+        Returns:
+            True if parameters match within tolerance
+        """
+        if len(params1) != len(params2):
+            return False
+
+        for p1, p2 in zip(params1, params2):
+            if isinstance(p1, (int, float)) and isinstance(p2, (int, float)):
+                if not np.isclose(p1, p2, atol=self.tolerance):
+                    return False
+            elif p1 != p2:
+                # For non-numeric parameters (e.g., ParameterExpression)
+                return False
+
+        return True
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the ControlPatternSimplification pass on a DAGCircuit.
