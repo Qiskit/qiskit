@@ -18,7 +18,8 @@ from qiskit._accelerate.discretize_rotations import discretize_rotations
 
 
 class DiscretizeRotations(TransformationPass):
-    """Convert rotation gates into {Clifford,T,Tdg} when their angles are integer multiples of 2*pi/8."""
+    """Convert single-qubit rotation gates :class:`.RZGate`, :class:`.RXGate` and :class:`.RYGate`,
+    into {Clifford,T,Tdg} when their angles are integer multiples of 2*pi/8."""
 
     def __init__(self, approximation_degree: float = 1.0):
         """
