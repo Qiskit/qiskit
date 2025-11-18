@@ -64,6 +64,7 @@ pub mod bit_types {
 
 #[derive(Debug)]
 pub struct QPYWriteData<'a> {
+    pub circuit_data: &'a mut CircuitData,
     pub version: u32,
     pub _use_symengine: bool, // TODO: remove this field?
     pub clbits: &'a ObjectRegistry<Clbit, ShareableClbit>,
@@ -433,9 +434,10 @@ pub fn serialize_generic_value(
         GenericValue::Modifier(py_object) => {
             (tags::MODIFIER, serialize(&py_pack_modifier(py_object)?))
         }
-        GenericValue::Register(py_object) => {
-            (tags::REGISTER, py_serialize_register_param(py_object)?)
-        }
+        GenericValue::Register(py_object) => (
+            tags::REGISTER,
+            py_serialize_register_param(py_object, qpy_data)?,
+        ),
     })
 }
 

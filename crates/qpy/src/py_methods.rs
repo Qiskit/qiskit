@@ -588,22 +588,29 @@ pub fn py_pack_param(
 
 // When a register is stored as an instruction param, it is serialized compactly
 // For a classical register its name is saved as a string; for a clbit
-// its index is converted into a string, with 0x00 appended at the start
+// its index in the full clbit list is converted into a string, with 0x00 appended at the start
 // to differentiate from the register case
-pub fn py_serialize_register_param(register: &Py<PyAny>) -> PyResult<Bytes> {
+pub fn py_serialize_register_param(
+    register: &Py<PyAny>,
+    qpy_data: &QPYWriteData,
+) -> PyResult<Bytes> {
     Python::attach(|py| {
         let register = register.bind(py);
         if register.is_instance_of::<PyClassicalRegister>() {
             Ok(register.getattr("name")?.extract::<String>()?.into())
         } else if register.is_instance_of::<PyClbit>() {
-            let index = &register
-                .extract::<ShareableClbit>()?
-                .owning_register_index()
-                .ok_or(PyValueError::new_err("Clbit has no register index"))?;
-            let name = index.to_string();
-            let mut bytes: Bytes = Bytes(Vec::with_capacity(name.len() + 1));
+            let key = &register.extract::<ShareableClbit>()?;
+            let name = qpy_data
+                .circuit_data
+                .get_clbit_indices(py)
+                .bind(py)
+                .get_item(key)?
+                .ok_or(PyErr::new::<PyValueError, _>("Clbit not found"))?
+                .getattr("index")?
+                .str()?;
+            let mut bytes: Bytes = Bytes(Vec::with_capacity(name.len()? + 1));
             bytes.push(0u8);
-            bytes.extend_from_slice(name.as_bytes());
+            bytes.extend_from_slice(name.extract::<String>()?.as_bytes());
             Ok(bytes)
         } else {
             Ok(Bytes::new())
@@ -811,7 +818,6 @@ pub fn pack_custom_instruction(
     name: &String,
     custom_instructions_hash: &mut HashMap<String, PackedOperation>,
     new_instructions_list: &mut Vec<String>,
-    circuit_data: &mut CircuitData,
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<formats::CustomCircuitInstructionDefPack> {
     Python::attach(|py| {
@@ -915,11 +921,11 @@ pub fn pack_custom_instruction(
         let num_qubits = operation.num_qubits();
         let num_clbits = operation.num_clbits();
         if !base_gate.is_none() {
-            let instruction =
-                circuit_data.pack(py, &CircuitInstruction::py_new(&base_gate, None, None)?)?;
+            let instruction = qpy_data
+                .circuit_data
+                .pack(py, &CircuitInstruction::py_new(&base_gate, None, None)?)?;
             base_gate_raw = serialize(&pack_instruction(
                 &instruction,
-                circuit_data,
                 custom_instructions_hash,
                 new_instructions_list,
                 qpy_data,
@@ -1024,6 +1030,7 @@ pub fn get_condition_data_from_inst(
                 let value = condition.cast::<PyTuple>()?.get_item(1)?.extract::<i64>()?;
                 let register = py_serialize_register_param(
                     &condition.cast::<PyTuple>()?.get_item(0)?.unbind(),
+                    qpy_data,
                 )?;
                 Ok(formats::ConditionPack {
                     key,

@@ -87,7 +87,6 @@ pub fn get_condition_data(
 /// pack all the instructions in the circuit, returning both the packed instructions
 /// and the dictionary of custom operations generated in the process
 pub fn pack_instructions(
-    circuit_data: &CircuitData,
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<(
     Vec<formats::CircuitInstructionV2Pack>,
@@ -95,14 +94,13 @@ pub fn pack_instructions(
 )> {
     let mut custom_operations = HashMap::new();
     let mut custom_new_operations = Vec::new();
+    let instructions = qpy_data.circuit_data.data().to_vec();
     Ok((
-        circuit_data
-            .data()
+        instructions
             .iter()
             .map(|instruction| {
                 pack_instruction(
                     instruction,
-                    circuit_data,
                     &mut custom_operations,
                     &mut custom_new_operations,
                     qpy_data,
@@ -116,7 +114,6 @@ pub fn pack_instructions(
 /// packs one specific instruction into CircuitInstructionV2Pack, creating a new custom operation if needed
 pub fn pack_instruction(
     instruction: &PackedInstruction,
-    circuit_data: &CircuitData,
     custom_operations: &mut HashMap<String, PackedOperation>,
     new_custom_operations: &mut Vec<String>,
     qpy_data: &mut QPYWriteData,
@@ -144,7 +141,7 @@ pub fn pack_instruction(
     };
     // this relies heavily on python-space as instruction params are usually added ad-hoc to arbitrary field in the python instruction
     let params: Vec<formats::GenericDataPack> = get_instruction_params(instruction, qpy_data)?;
-    let bit_data = get_packed_bit_list(instruction, circuit_data);
+    let bit_data = get_packed_bit_list(instruction, qpy_data.circuit_data);
     let condition = get_condition_data(&instruction.op, qpy_data)?;
     let annotations = get_instruction_annotations(instruction, qpy_data)?;
     let mut extras_key = condition.key;
@@ -268,23 +265,28 @@ fn pack_classical_registers(circuit_data: &CircuitData) -> Vec<formats::Register
 }
 
 fn pack_circuit_header(
-    circuit: &QuantumCircuitData,
+    circuit_name: Option<String>,
+    circuit_metadata: Option<Bound<PyAny>>,
+    // circuit: &QuantumCircuitData,
     metadata_serializer: Option<&Bound<PyAny>>,
     qpy_data: &QPYWriteData,
 ) -> PyResult<formats::CircuitHeaderV12Pack> {
-    let metadata = serialize_metadata(&circuit.metadata, metadata_serializer)?;
-    let global_phase_data =
-        pack_param_obj(circuit.data.global_phase(), qpy_data, binrw::Endian::Big)?;
-    let qregs = pack_quantum_registers(&circuit.data);
-    let cregs = pack_classical_registers(&circuit.data);
+    let metadata = serialize_metadata(&circuit_metadata, metadata_serializer)?;
+    let global_phase_data = pack_param_obj(
+        qpy_data.circuit_data.global_phase(),
+        qpy_data,
+        binrw::Endian::Big,
+    )?;
+    let qregs = pack_quantum_registers(qpy_data.circuit_data);
+    let cregs = pack_classical_registers(qpy_data.circuit_data);
     let mut registers = qregs;
     registers.extend(cregs);
     let header = formats::CircuitHeaderV12Pack {
-        num_qubits: circuit.data.num_qubits() as u32,
-        num_clbits: circuit.data.num_clbits() as u32,
-        num_instructions: circuit.data.__len__() as u64,
-        num_vars: circuit.data.num_identifiers() as u32,
-        circuit_name: circuit.name.clone().unwrap_or_default(),
+        num_qubits: qpy_data.circuit_data.num_qubits() as u32,
+        num_clbits: qpy_data.circuit_data.num_clbits() as u32,
+        num_instructions: qpy_data.circuit_data.__len__() as u64,
+        num_vars: qpy_data.circuit_data.num_identifiers() as u32,
+        circuit_name: circuit_name.unwrap_or_default(),
         global_phase_data: global_phase_data.data,
         global_phase_type: global_phase_data.type_key,
         metadata,
@@ -294,7 +296,10 @@ fn pack_circuit_header(
     Ok(header)
 }
 
-pub fn pack_layout(circuit: &QuantumCircuitData) -> PyResult<formats::LayoutV2Pack> {
+pub fn pack_layout(
+    custom_layout: Option<Bound<PyAny>>,
+    qpy_data: &QPYWriteData,
+) -> PyResult<formats::LayoutV2Pack> {
     let default_layout = formats::LayoutV2Pack {
         exists: 0,
         initial_layout_size: -1,
@@ -306,13 +311,13 @@ pub fn pack_layout(circuit: &QuantumCircuitData) -> PyResult<formats::LayoutV2Pa
         input_mapping_items: Vec::new(),
         final_layout_items: Vec::new(),
     };
-    match &circuit.custom_layout {
+    match custom_layout {
         None => Ok(default_layout),
         Some(custom_layout) => {
             if custom_layout.is_none() {
                 Ok(default_layout)
             } else {
-                pack_custom_layout(custom_layout, &circuit.data)
+                pack_custom_layout(&custom_layout, qpy_data)
             }
         }
     }
@@ -320,7 +325,7 @@ pub fn pack_layout(circuit: &QuantumCircuitData) -> PyResult<formats::LayoutV2Pa
 
 fn pack_custom_layout(
     layout: &Bound<PyAny>,
-    circuit: &CircuitData,
+    qpy_data: &QPYWriteData,
 ) -> PyResult<formats::LayoutV2Pack> {
     let py = layout.py();
     let mut initial_layout_size = -1; // initial_size
@@ -332,13 +337,13 @@ fn pack_custom_layout(
     if !initial_layout.is_none() {
         initial_layout_size = initial_layout.call_method0("__len__")?.extract::<i32>()?;
         let layout_mapping = initial_layout.call_method0("get_physical_bits")?;
-        for i in 0..circuit.num_qubits() {
+        for i in 0..qpy_data.circuit_data.num_qubits() {
             let qubit = layout_mapping.get_item(i)?;
             input_qubit_mapping.set_item(&qubit, i)?;
             let register = qubit.getattr("_register")?;
             let index = qubit.getattr("_index")?;
             if !register.is_none() || !index.is_none() {
-                if !circuit.qregs().contains(&register.extract()?) {
+                if !qpy_data.circuit_data.qregs().contains(&register.extract()?) {
                     let extra_register_list = match extra_registers.get_item(&register)? {
                         Some(list) => list,
                         None => {
@@ -374,7 +379,7 @@ fn pack_custom_layout(
             let register = qubit.getattr("_register")?;
             if !register.is_none()
                 && !qubit.getattr("_index")?.is_none()
-                && !circuit.qregs().contains(&register.extract()?)
+                && !qpy_data.circuit_data.qregs().contains(&register.extract()?)
             {
                 let extra_register_list = match extra_registers.get_item(&register)? {
                     Some(list) => list,
@@ -397,14 +402,15 @@ fn pack_custom_layout(
     if !final_layout.is_none() {
         final_layout_size = final_layout.call_method0("__len__")?.extract()?;
         let final_layout_physical = final_layout.call_method0("get_physical_bits")?;
-        for i in 0..circuit.num_qubits() {
+        for i in 0..qpy_data.circuit_data.num_qubits() {
             // this part is alternative to calling `find_bit` for the python version of the quantum circuit
             let virtual_bit = final_layout_physical
                 .cast::<PyDict>()?
                 .get_item(i)?
                 .unwrap(); // TODO: handle unwrap failure
             if virtual_bit.is_instance_of::<PyClbit>() {
-                match circuit
+                match qpy_data
+                    .circuit_data
                     .get_clbit_indices(py)
                     .bind(py)
                     .get_item(virtual_bit)?
@@ -413,7 +419,8 @@ fn pack_custom_layout(
                     Some(bit_data) => final_layout_array.append(bit_data.getattr("index")?)?,
                 }
             } else if virtual_bit.is_instance_of::<PyQubit>() {
-                match circuit
+                match qpy_data
+                    .circuit_data
                     .get_qubit_indices(py)
                     .bind(py)
                     .get_item(virtual_bit)?
@@ -489,7 +496,6 @@ fn pack_custom_layout(
 
 pub fn pack_custom_instructions(
     custom_instructions_hash: &mut HashMap<String, PackedOperation>,
-    circuit_data: &mut CircuitData,
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<formats::CustomCircuitInstructionsPack> {
     let mut custom_instructions: Vec<formats::CustomCircuitInstructionDefPack> = Vec::new();
@@ -499,7 +505,6 @@ pub fn pack_custom_instructions(
             &name,
             custom_instructions_hash,
             &mut instructions_to_pack,
-            circuit_data,
             qpy_data,
         )?);
     }
@@ -587,25 +592,28 @@ pub fn pack_circuit(
     let standalone_vars =
         pack_standalone_vars(&circuit.data, version, &mut standalone_var_indices)?;
     let annotation_handler = AnnotationHandler::new(annotation_factories);
+    let clbits = circuit.data.clbits().clone();
     let mut qpy_data = QPYWriteData {
+        circuit_data: &mut circuit.data,
         version,
         _use_symengine: use_symengine,
-        clbits: &circuit.data.clbits().clone(), // we need to clone since circuit_data might change when serializing custom instructions, explicitly creating the inner instructions
+        clbits: &clbits, // we need to clone since circuit_data might change when serializing custom instructions, explicitly creating the inner instructions
         standalone_var_indices,
         annotation_handler,
     };
-    let header = pack_circuit_header(circuit, metadata_serializer, &qpy_data)?;
+    let header = pack_circuit_header(
+        circuit.name.clone(),
+        circuit.metadata.clone(),
+        metadata_serializer,
+        &qpy_data,
+    )?;
     // Pulse has been removed in Qiskit 2.0. As long as we keep QPY at version 13,
     // we need to write an empty calibrations header since read_circuit expects it
     let calibrations = formats::CalibrationsPack { num_cals: 0 };
-    let (instructions, mut custom_instructions_hash) =
-        pack_instructions(&circuit.data, &mut qpy_data)?;
-    let custom_instructions = pack_custom_instructions(
-        &mut custom_instructions_hash,
-        &mut circuit.data,
-        &mut qpy_data,
-    )?;
-    let layout = pack_layout(circuit)?;
+    let (instructions, mut custom_instructions_hash) = pack_instructions(&mut qpy_data)?;
+    let custom_instructions =
+        pack_custom_instructions(&mut custom_instructions_hash, &mut qpy_data)?;
+    let layout = pack_layout(circuit.custom_layout.clone(), &qpy_data)?;
     let state_headers: Vec<formats::AnnotationStateHeaderPack> = qpy_data
         .annotation_handler
         .dump_serializers()?
