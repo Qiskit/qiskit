@@ -6,7 +6,7 @@ features_transpiler:
     whose angles are integer multiples of 2*pi/8 into discrete sets of
     Clifford, :class:`.TGate` and :class:`.TdgGate` gates.
 
-   For example::
+    For example::
 
       from qiskit.circuit import QuantumCircuit
       from qiskit.transpiler.passes import DiscretizeRotations
