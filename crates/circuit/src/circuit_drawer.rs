@@ -981,83 +981,26 @@ impl TextDrawer {
             VisualizationElement::Boxed(sub_type) => {
                 // implement for cases where the box is on classical wires. The left and right connectors will change
                 // from single wired to double wired.
-
-                // decide whether the boxed element needs a top connector or not
-
-                let is_top_case = |ve: &VisualizationElement, ind: usize| match ve {
-                    VisualizationElement::VerticalLine(_) => true,
-                    VisualizationElement::DirectOnWire(onwire) => {
-                        match onwire.get_position(circuit, ind) {
-                            PosOnWire::Bot => false,
-                            PosOnWire::Mid => match onwire {
-                                OnWire::Swap(_) | OnWire::Control(_) => true,
-                                _ => false,
-                            },
-                            PosOnWire::Top => true,
-                        }
-                    }
-                    _ => false,
-                };
-
-                // decide whether the boxed element needs a bottom connector or not
-
-                let is_bot_case = |ve: &VisualizationElement, ind: usize| match ve {
-                    VisualizationElement::VerticalLine(_) => true,
-                    VisualizationElement::DirectOnWire(onwire) => {
-                        match onwire.get_position(circuit, ind) {
-                            PosOnWire::Top => false,
-                            PosOnWire::Mid => match onwire {
-                                OnWire::Swap(_) | OnWire::Control(_) => true,
-                                _ => false,
-                            },
-                            PosOnWire::Bot => true,
-                        }
-                    }
-                    _ => false,
-                };
-
-                // if subtype is measurement then classical connectors
-                let is_measure = match &sub_type {
-                    Boxed::Single(inst) => {
-                        if let Some(std_instruction) = inst.op.try_standard_instruction() {
-                            if std_instruction == StandardInstruction::Measure {
-                                true
-                            } else {
-                                false
-                            }
-                        } else {
-                            false
-                        }
-                    }
-                    _ => false,
-                };
-
-                let top_con = {
-                    if ind >= 1 {
-                        if is_top_case(&vis_layer.0[ind - 1], ind - 1) {
-                            if is_measure { C_WIRE_CON_TOP } else { TOP_CON }
-                        } else {
-                            Q_WIRE
-                        }
-                    } else {
-                        Q_WIRE
-                    }
-                };
-
-                let bot_con = {
-                    if ind + 1 < vis_layer.0.len() {
-                        if is_bot_case(&vis_layer.0[ind + 1], ind + 1) {
-                            if is_measure { C_BOT_CON } else { BOT_CON }
-                        } else {
-                            Q_WIRE
-                        }
-                    } else {
-                        Q_WIRE
-                    }
-                };
-
                 match sub_type {
                     Boxed::Single(inst) => {
+                        let mut top_con = Q_WIRE;
+                        let mut bot_con = Q_WIRE;
+                        if let Some(gate) = inst.op.try_standard_gate() {
+                            if gate.is_controlled_gate() {
+                                let qargs = circuit.get_qargs(inst.qubits);
+                                let (minima, maxima) = get_instruction_range(qargs, &[], 0);
+                                if qargs.last().unwrap().index() > minima {
+                                    top_con = TOP_CON;
+                                }
+                                if qargs.last().unwrap().index() < maxima {
+                                    bot_con = BOT_CON;
+                                }
+                            }
+                        } else if let Some(std_inst) = inst.op.try_standard_instruction() {
+                            if std_inst == StandardInstruction::Measure {
+                                bot_con = C_BOT_CON;
+                            }
+                        }
                         let label = Self::get_label(inst);
                         let left_len = (label.len() - 1) / 2;
                         let right_len = label.len() - left_len - 1;
@@ -1154,7 +1097,7 @@ impl TextDrawer {
                                     "{}{}{}{}{}",
                                     TOP_LEFT_BOX,
                                     Q_WIRE.to_string().repeat(left_len),
-                                    top_con,
+                                    Q_WIRE,
                                     Q_WIRE.to_string().repeat(right_len),
                                     TOP_RIGHT_BOX
                                 ),
@@ -1179,7 +1122,7 @@ impl TextDrawer {
                                     "{}{}{}{}{}",
                                     BOT_LEFT_BOX,
                                     Q_WIRE.to_string().repeat(left_len),
-                                    bot_con,
+                                    Q_WIRE,
                                     Q_WIRE.to_string().repeat(right_len),
                                     BOT_RIGHT_BOX
                                 ),
