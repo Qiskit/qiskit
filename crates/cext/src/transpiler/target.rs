@@ -471,7 +471,7 @@ impl TargetEntry {
             operation: StandardOperation::Gate(operation),
             params,
             map: Default::default(),
-            name: Some(name_new.unwrap()),
+            name: name_new,
         }
     }
 
@@ -483,7 +483,7 @@ impl TargetEntry {
         Self {
             operation: StandardOperation::Gate(operation),
             params: Some(params),
-            name: Some(name_fixed.unwrap()),
+            name: name_fixed,
             map: Default::default(),
         }
     }
