@@ -40,7 +40,7 @@ static PAULI_INTO_PY: PyOnceLock<[Option<Py<PyAny>>; 16]> = PyOnceLock::new();
 ///
 /// This is just the Rust-space representation.  We make a separate Python-space `enum.IntEnum` to
 /// represent the same information, since we enforce strongly typed interactions in Rust, including
-/// not allowing the stored values to be outside the valid `Pauli` objects, but doing so in Python would
+/// not allowing the stored values to be outside the valid `Pauli` instances, but doing so in Python would
 /// make it very difficult to use the class efficiently with Numpy array views.  We attach this
 /// sister class of `Pauli` to `QubitSparsePauli` and `QubitSparsePauliList` as a scoped class.
 ///
@@ -59,7 +59,7 @@ static PAULI_INTO_PY: PyOnceLock<[Option<Py<PyAny>>; 16]> = PyOnceLock::new();
 /// # Dev notes
 ///
 /// This type is required to be `u8`, but it's a subtype of `u8` because not all `u8` are valid
-/// `Pauli` objects.  For interop with Python space, we accept Numpy arrays of `u8` to represent this,
+/// `Pauli` instances.  For interop with Python space, we accept Numpy arrays of `u8` to represent this,
 /// which we transmute into slices of `Pauli`, after checking that all the values are correct (or
 /// skipping the check if Python space promises that it upheld the checks).
 ///
@@ -1090,7 +1090,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Pauli {
 ///
 ///     This class is attached to :class:`.QubitSparsePauli`.  Access it as
 ///     :class:`.QubitSparsePauli.Pauli`.  If this is too much typing, and you are solely
-///     dealing with :class:`QubitSparsePauliList` objects and the :class:`Pauli` name is not
+///     dealing with :class:`QubitSparsePauliList` instances and the :class:`Pauli` name is not
 ///     ambiguous, you might want to shorten it as::
 ///
 ///         >>> ops = QubitSparsePauli.Pauli

@@ -45,7 +45,7 @@ use qiskit_transpiler::target::Target;
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``circuit`` or ``target`` are not valid, non-null pointers to ``QkCircuit`` and ``QkTarget`` objects, respectively.
+/// Behavior is undefined if ``circuit`` or ``target`` are not valid, non-null pointers to ``QkCircuit`` and ``QkTarget`` instances, respectively.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_check_gate_direction(
@@ -91,7 +91,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_check_gate_direction(
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``circuit`` or ``target`` are not valid, non-null pointers to ``QkCircuit`` and ``QkTarget`` objects, respectively.
+/// Behavior is undefined if ``circuit`` or ``target`` are not valid, non-null pointers to ``QkCircuit`` and ``QkTarget`` instances, respectively.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_gate_direction(

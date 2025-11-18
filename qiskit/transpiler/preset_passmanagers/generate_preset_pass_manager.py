@@ -396,7 +396,7 @@ def _parse_coupling_map(coupling_map, backend):
 
 
 def _parse_instruction_durations(backend, dt):
-    """Create a list of ``InstructionDurations`` objects populated from the backend."""
+    """Create a list of ``InstructionDurations`` instances populated from the backend."""
     final_durations = InstructionDurations()
     backend_durations = InstructionDurations()
     if backend is not None:

@@ -25,6 +25,6 @@ features_synthesis:
     and :class:`.IntComparatorSynthesisNoAux`. To let the compiler select the optimal
     decomposition based on the availably auxiliary qubits, use :class:`.IntComparatorSynthesisDefault`.
   - |
-    Added :func:`.synth_weighted_sum_carry` to synthesize :class:`.WeightedSumGate` objects.
+    Added :func:`.synth_weighted_sum_carry` to synthesize :class:`.WeightedSumGate` instances.
     This is currently the only available synthesis method, with the corresponding
     high-level synthesis plugin :class:`.WeightedSumSynthesisDefault`.

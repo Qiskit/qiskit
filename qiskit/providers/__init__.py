@@ -20,7 +20,7 @@ Providers Interface (:mod:`qiskit.providers`)
 This module contains the classes used to build external providers for Qiskit. A
 provider is anything that provides an external service to Qiskit. The typical
 example of this is a Backend provider which provides
-:class:`~qiskit.providers.Backend` objects which can be used for executing
+:class:`~qiskit.providers.Backend` instances which can be used for executing
 :class:`~qiskit.circuit.QuantumCircuit`
 objects. This module contains the abstract classes which are used to define the
 interface between a provider and Qiskit.
@@ -123,12 +123,12 @@ Writing a New Backend
 If you have a quantum device or simulator that you would like to integrate with
 Qiskit you will need to write a backend. A provider is a collection of backends
 and will provide Qiskit with a
-method to get available :class:`~qiskit.providers.BackendV2` objects. The
+method to get available :class:`~qiskit.providers.BackendV2` instances. The
 :class:`~qiskit.providers.BackendV2` object provides both information describing
 a backend and its operation for the :mod:`~qiskit.transpiler` so that circuits
 can be compiled to something that is optimized and can execute on the
 backend. It also provides the :meth:`~qiskit.providers.BackendV2.run` method which can
-run the :class:`~qiskit.circuit.QuantumCircuit` objects. This enables users and other Qiskit
+run the :class:`~qiskit.circuit.QuantumCircuit` instances. This enables users and other Qiskit
 APIs to get results from
 executing circuits on devices in a standard
 fashion regardless of how the backend is implemented. At a high level the basic

@@ -14,7 +14,7 @@ features:
 
     If this argument is set to ``True`` the :class:`~.QuantumCircuit` subclass
     generated will not wrap the implementation into :class:`~.Gate` or
-    :class:`~.circuit.Instruction` objects. While this isn't optimal for visualization
+    :class:`~.circuit.Instruction` instances. While this isn't optimal for visualization
     it typically results in much better runtime performance, especially with
     :meth:`.QuantumCircuit.bind_parameters` and
     :meth:`.QuantumCircuit.assign_parameters` which can see a substantial

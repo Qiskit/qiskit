@@ -2,7 +2,7 @@
 features:
   - |
     The :class:`.TemplateOptimization` transpiler pass can now work
-    with :class:`~.Gate` objects that have :class:`.ParameterExpression`
+    with :class:`~.Gate` instances that have :class:`.ParameterExpression`
     parameters. An illustrative example of using :class:`.Parameter`\s
     with :class:`.TemplateOptimization` is the following::
 

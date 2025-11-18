@@ -27,7 +27,7 @@ pub trait PyRegister {
 
 macro_rules! register_type {
     ($name: ident) => {
-        /// Rust-space wrapper around Qiskit `Register` objects.
+        /// Rust-space wrapper around Qiskit `Register` instances.
         #[derive(Clone)]
         pub struct $name {
             /// The actual register instance.

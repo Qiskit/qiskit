@@ -2,7 +2,7 @@
 features:
   - |
     Introduced a new plugin interface for transpiler stages which is used to
-    enable alternative :class:`~.PassManager` objects from an external package
+    enable alternative :class:`~.PassManager` instances from an external package
     in a particular stage as part of :func:`~.transpile` or the
     :class:`~.StagedPassManager` output from
     :func:`~.generate_preset_pass_manager`, :func:`~.level_0_pass_manager`,

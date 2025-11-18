@@ -17,7 +17,7 @@ deprecations:
     :class:`qiskit.providers.models.PulseBackendConfiguration` method
     :meth:`~qiskit.providers.models.PulseBackendConfiguration.control` has been
     deprecated and will be removed in a future release. The
-    ``ControlChannel`` objects are now generated from the backend configuration
+    ``ControlChannel`` instances are now generated from the backend configuration
     ``channels`` attribute which has the information of all channels and the
     qubits they operate on. Now, the method
     :meth:`~qiskit.providers.models.PulseBackendConfiguration.control`

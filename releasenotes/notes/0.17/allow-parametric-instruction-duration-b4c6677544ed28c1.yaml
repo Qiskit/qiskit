@@ -1,10 +1,10 @@
 ---
 features:
   - |
-    Pulse :class:`qiskit.pulse.Instruction` objects and
+    Pulse :class:`qiskit.pulse.Instruction` instances and
     parametric pulse objects (eg :class:`~qiskit.pulse.library.Gaussian` now
     support using :class:`~qiskit.circuit.Parameter` and
-    :class:`~qiskit.circuit.ParameterExpression` objects for the ``duration``
+    :class:`~qiskit.circuit.ParameterExpression` instances for the ``duration``
     parameter. For example:
 
     .. code-block:: python

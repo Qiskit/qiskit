@@ -11,8 +11,8 @@ features:
     * Visualization of parametric pulses.
     * New stylesheets ``IQXStandard``, ``IQXSimple``, ``IQXDebugging``.
     * Visualization of system info (channel frequency, etc...) by specifying
-      :class:`qiskit.providers.Backend` objects for visualization.
-    * Specifying ``axis`` objects for plotting to allow further extension of
+      :class:`qiskit.providers.Backend` instances for visualization.
+    * Specifying ``axis`` instances for plotting to allow further extension of
       generated plots, i.e., for publication manipulations.
 
     New stylesheets can take callback functions that dynamically modify the appearance of

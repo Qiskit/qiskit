@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Support for disassembly of :class:`~qiskit.qobj.PulseQobj` objects has
+    Support for disassembly of :class:`~qiskit.qobj.PulseQobj` instances has
     been added to the :func:`qiskit.assembler.disassemble` function.
     For example:
 
