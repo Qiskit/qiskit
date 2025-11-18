@@ -25,7 +25,7 @@ const MINIMUM_TOL: f64 = 1e-12;
 
 /// For an angle, if it is a multiple of PI/8, calculate the multiplicity mod 16,
 /// Otherwise, return None.
-fn is_angle_close_to_multiple_of_2pi_8(angle: f64, tol: f64) -> Option<usize> {
+fn is_angle_close_to_multiple_of_2pi_8(angle: f64, tol: f64) -> Option<i32> {
     let closest_ratio = angle * 4.0 / PI;
     let closest_integer = closest_ratio.round();
     let closest_angle = closest_integer * PI / 4.0;
@@ -38,7 +38,7 @@ fn is_angle_close_to_multiple_of_2pi_8(angle: f64, tol: f64) -> Option<usize> {
     let f_pro = tr_over_dim.abs().powi(2);
     let gate_fidelity = (dim * f_pro + 1.) / (dim + 1.);
     if (1. - gate_fidelity).abs() < tol {
-        Some((closest_integer as usize) % 16)
+        Some((16 + (closest_integer as i32) % 16) % 16)
     } else {
         None
     }
