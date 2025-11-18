@@ -38,7 +38,7 @@ static int build_unitary_target(QkTarget *target, uint32_t num_qubits) {
         return RuntimeError;
     }
 
-    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX, "cx_gate");
+    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX, NULL);
     for (uint32_t i = 0; i < num_qubits - 1; i++) {
         uint32_t qargs[2] = {i, i + 1};
         double inst_error = 0.0090393 * (num_qubits - i);

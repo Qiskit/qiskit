@@ -28,8 +28,8 @@ static int test_circuit_in_basis(void) {
 
     // Create Target already compatible with the circuit.
     QkTarget *target = qk_target_new(1);
-    qk_target_add_instruction(target, qk_target_entry_new(QkGate_H, "hadamard"));
-    qk_target_add_instruction(target, qk_target_entry_new(QkGate_CX, "cx"));
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_H, NULL));
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_CX, NULL));
 
     // Run pass
     qk_transpiler_pass_standalone_basis_translator(circuit, target, 0);

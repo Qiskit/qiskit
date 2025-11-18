@@ -67,14 +67,14 @@ static int test_multiq(void) {
     uint32_t num_qubits = 5;
     QkTarget *target = qk_target_new(num_qubits);
     // Simple line of CZ gates.
-    QkTargetEntry *cz_entry = qk_target_entry_new(QkGate_CZ, "CZ");
+    QkTargetEntry *cz_entry = qk_target_entry_new(QkGate_CZ, NULL);
     for (uint32_t q = 1; q < num_qubits; q++) {
         uint32_t qargs[2] = {q - 1, q};
         qk_target_entry_add_property(cz_entry, qargs, 2, NAN, NAN);
     }
     qk_target_add_instruction(target, cz_entry);
     // Now let's add a CCX that links {0, 1, 4} so we can check there's no link in the output.
-    QkTargetEntry *ccx_entry = qk_target_entry_new(QkGate_CCX, "CCNOT");
+    QkTargetEntry *ccx_entry = qk_target_entry_new(QkGate_CCX, NULL);
     uint32_t qargs[3] = {0, 1, 4};
     qk_target_entry_add_property(ccx_entry, qargs, 3, NAN, NAN);
     qk_target_add_instruction(target, ccx_entry);
