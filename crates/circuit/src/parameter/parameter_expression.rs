@@ -10,13 +10,12 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::sync::Arc;
-
 use hashbrown::hash_map::Entry;
 use hashbrown::{HashMap, HashSet};
 use num_complex::Complex64;
 use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError, PyZeroDivisionError};
 use pyo3::types::{IntoPyDict, PyComplex, PyFloat, PyInt, PyNotImplemented, PySet, PyString};
+use std::sync::Arc;
 use thiserror::Error;
 use uuid::Uuid;
 
@@ -251,11 +250,15 @@ impl ParameterExpression {
     }
 
     /// Load from a sequence of [OPReplay]s. Used in serialization.
-    pub fn from_qpy(replay: &[OPReplay]) -> Result<Self, ParameterError> {
+    pub fn from_qpy(
+        replay: &[OPReplay],
+        subs_operations: Option<Vec<(usize, HashMap<Symbol, ParameterExpression>)>>,
+    ) -> Result<Self, ParameterError> {
         // the stack contains the latest lhs and rhs values
         let mut stack: Vec<ParameterExpression> = Vec::new();
-
-        for inst in replay.iter() {
+        let subs_operations = subs_operations.unwrap_or_default();
+        let mut current_sub_operation = subs_operations.len(); // we avoid using a queue since we only make one pass anyway
+        for (i, inst) in replay.iter().enumerate() {
             let OPReplay { op, lhs, rhs } = inst;
 
             // put the values on the stack, if they exist
@@ -302,6 +305,15 @@ impl ParameterExpression {
                 }
             };
             stack.push(result);
+            //now check whether any substitutions need to be applied at this stage
+            while current_sub_operation > 0 && subs_operations[current_sub_operation - 1].0 == i + 1
+            {
+                if let Some(exp) = stack.pop() {
+                    let sub_exp = exp.subs(&subs_operations[current_sub_operation - 1].1, false)?;
+                    stack.push(sub_exp);
+                }
+                current_sub_operation -= 1;
+            }
         }
 
         // once we're done, just return the last element in the stack
@@ -1368,7 +1380,7 @@ impl PyParameterExpression {
     fn __setstate__(&mut self, state: (Vec<OPReplay>, Option<ParameterValueType>)) -> PyResult<()> {
         // if there a replay, load from the replay
         if !state.0.is_empty() {
-            let from_qpy = ParameterExpression::from_qpy(&state.0)?;
+            let from_qpy = ParameterExpression::from_qpy(&state.0, None)?;
             self.inner = from_qpy;
         // otherwise, load from the ParameterValueType
         } else if let Some(value) = state.1 {

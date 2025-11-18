@@ -160,7 +160,9 @@ pub fn unpack_parameter_expression(
 
     // we now convert the parameter_expression_data into Vec<OPReplay> that can be used via ParameterExpression::from_qpy
     let mut replay: Vec<OPReplay> = Vec::new();
-
+    // Due to sub operations being different than the other elements of the replay, we store them separately, with an index
+    // indicating when to perform them
+    let mut sub_operations: Vec<(usize, HashMap<Symbol, ParameterExpression>)> = Vec::new();
     for element in parameter_expression_data {
         if let formats::ParameterExpressionElementPack::Substitute(subs) = element {
             // In the python code, substitutions were put on the stack with the rest of the operations
@@ -170,6 +172,7 @@ pub fn unpack_parameter_expression(
             // we construct a pydictionary describing the substitution and letting the python Parameter class handle it
             let mapping_pack = deserialize::<formats::MappingPack>(&subs.mapping_data)?.0;
             let mut subs_mapping: HashMap<Symbol, ParameterExpression> = HashMap::new();
+
             for item in mapping_pack.items {
                 let key_uuid: [u8; 16] = (&item.key_bytes).try_into()?;
                 let value_generic_item = load_value(item.item_type, &item.item_bytes, qpy_data)?;
@@ -190,6 +193,10 @@ pub fn unpack_parameter_expression(
                     GenericValue::ParameterExpressionSymbol(symbol) => {
                         ParameterExpression::from_symbol(symbol)
                     }
+                    GenericValue::ParameterExpressionVectorSymbol(symbol) => {
+                        ParameterExpression::from_symbol(symbol)
+                    }
+                    GenericValue::ParameterExpression(exp) => exp,
                     _ => {
                         return Err(PyValueError::new_err(format!(
                             "Substitution command used right operand {:?} which is not a parameter expression",
@@ -200,8 +207,7 @@ pub fn unpack_parameter_expression(
                 subs_mapping.insert(key.clone(), value);
             }
             let _opcode = OpCode::SUBSTITUTE;
-            // TODO: we can't push this into the stack in the current implementation
-            // but maybe after implementing the correct mechanism we can do replay.push(OPReplay {op, lhs: None, rhs: None, Some(subs_mapping)})
+            sub_operations.push((replay.len(), subs_mapping));
         } else {
             let (opcode, op) = unpack_parameter_expression_standard_op(element)?;
             // loading values from replay pack is tricky, since everything is stored using 16-bytes, even 8-byte ints and floats
@@ -259,7 +265,7 @@ pub fn unpack_parameter_expression(
             replay.push(OPReplay { op, lhs, rhs });
         };
     }
-    ParameterExpression::from_qpy(&replay)
+    ParameterExpression::from_qpy(&replay, Some(sub_operations))
         .map_err(|_| PyValueError::new_err("Failure while loading parameter expression"))
 }
 
