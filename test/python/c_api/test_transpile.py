@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
+# pylint: disable=missing-module-docstring,missing-class-docstring
 
 import math
 
@@ -32,6 +32,7 @@ from ..legacy_cmaps import MELBOURNE_CMAP
 class TestTranspile(QiskitTestCase):
     @ddt.data(0, 1, 2, 3)
     def test_empty_transpilation(self, opt_level):
+        """Test transpilation of empty circuit."""
         target = ffi.build_homogenous_target(CouplingMap.from_ring(10), ["cx", "u"], 42)
         self.addCleanup(ffi.LIB.qk_target_free, target)
         circuit = QuantumCircuit(5, 5)
