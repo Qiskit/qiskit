@@ -33,7 +33,7 @@ use qiskit_transpiler::target::Target;
 ///    QkTarget *target = qk_target_new(2);
 ///    uint32_t qargs[3] = {0,1};
 ///
-///    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
+///    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX, NULL);
 ///    qk_target_entry_add_property(cx_entry, qargs, 2, 0.0, 0.0);
 ///    qk_target_add_instruction(target, cx_entry);
 ///
@@ -79,7 +79,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_check_gate_direction(
 ///
 ///    uint32_t qargs[2] = {0,1};
 ///
-///    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
+///    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX, NULL);
 ///    qk_target_entry_add_property(cx_entry, qargs, 2, 0.0, 0.0);
 ///    qk_target_add_instruction(target, cx_entry);
 ///

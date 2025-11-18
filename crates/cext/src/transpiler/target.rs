@@ -368,7 +368,7 @@ pub unsafe extern "C" fn qk_target_set_acquire_alignment(
 /// # Example
 /// ```c
 ///     QkTarget *target = qk_target_new(5);
-///     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
+///     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX, NULL);
 ///     uint32_t qargs[2] = {0, 1};
 ///     qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
 ///     QkExitCode result = qk_target_add_instruction(target, entry);
@@ -651,7 +651,7 @@ pub unsafe extern "C" fn qk_target_entry_new_fixed(
 /// # Example
 /// ```c
 ///     // Create an entry for an H gate
-///     QkTargetEntry *entry = qk_target_entry_new(QkGate_H);
+///     QkTargetEntry *entry = qk_target_entry_new(QkGate_H, NULL);
 ///     size_t props_size = qk_target_entry_num_properties(entry);
 /// ```
 ///
@@ -678,7 +678,7 @@ pub unsafe extern "C" fn qk_target_entry_num_properties(entry: *const TargetEntr
 ///
 /// # Example
 /// ```c
-///     QkTargetEntry *entry = qk_target_entry_new(QkGate_H);
+///     QkTargetEntry *entry = qk_target_entry_new(QkGate_H, NULL);
 ///     qk_target_entry_free(entry);
 /// ```
 ///
@@ -715,7 +715,7 @@ pub unsafe extern "C" fn qk_target_entry_free(entry: *mut TargetEntry) {
 ///
 /// # Example
 /// ```c
-///     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
+///     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX, NULL);
 ///     uint32_t qargs[2] = {0, 1};
 ///     qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
 /// ```
@@ -765,7 +765,7 @@ pub unsafe extern "C" fn qk_target_entry_add_property(
 /// # Example
 /// ```c
 ///     QkTarget *target = qk_target_new(5);
-///     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
+///     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX, NULL);
 ///     uint32_t qargs[2] = {0, 1};
 ///     qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
 ///     QkExitCode result = qk_target_add_instruction(target, entry);
@@ -892,7 +892,7 @@ pub unsafe extern "C" fn qk_target_update_property(
 /// # Example
 /// ```c
 ///     QkTarget *target = qk_target_new(5);
-///     QkTargetEntry *target_entry = qk_target_entry_new(QkGate_H);
+///     QkTargetEntry *target_entry = qk_target_entry_new(QkGate_H, NULL);
 ///     qk_target_add_instruction(target, target_entry);
 ///
 ///     size_t num_instructions = qk_target_num_instructions(target);

@@ -41,10 +41,10 @@ use qiskit_transpiler::target::Target;
 ///
 ///    // Create a Target with global properties.
 ///    QkTarget *target = qk_target_new(3);
-///    qk_target_add_instruction(target, qk_target_entry_new(QkGate_H));
-///    qk_target_add_instruction(target, qk_target_entry_new(QkGate_T));
-///    qk_target_add_instruction(target, qk_target_entry_new(QkGate_Tdg));
-///    qk_target_add_instruction(target, qk_target_entry_new(QkGate_CX));
+///    qk_target_add_instruction(target, qk_target_entry_new(QkGate_H, NULL));
+///    qk_target_add_instruction(target, qk_target_entry_new(QkGate_T, NULL));
+///    qk_target_add_instruction(target, qk_target_entry_new(QkGate_Tdg, NULL));
+///    qk_target_add_instruction(target, qk_target_entry_new(QkGate_CX, NULL));
 ///
 ///    // Run pass
 ///    qk_transpiler_pass_standalone_basis_translator(circuit, target, 0);
