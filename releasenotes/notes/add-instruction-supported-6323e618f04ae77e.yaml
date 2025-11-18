@@ -38,5 +38,7 @@ features_c:
       QkParam *rz_params[1] = {qk_param_from_double(1.57)};
       qk_target_instruction_supported(target, "rz", NULL, rz_params);
 
+      // Free the parameters once done
+      qk_param_free(rz_params[0]);
       // Free the target once done
       qk_target_free(target);
