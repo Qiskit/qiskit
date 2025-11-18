@@ -201,7 +201,7 @@ class TestTranspile(QiskitTestCase):
         self.assertLessEqual(circ.depth(), qc.depth())
 
     @ddt.data(0, 1, 2, 3)
-    def test_1(self, level):
+    def test_single_cx_gate_circuit_on_linear_backend(self, level):
         """Simple coupling map (linear 5 qubits)."""
         basis = ["u1", "u2", "cx", "swap"]
         coupling_map = CouplingMap([(0, 1), (1, 2), (2, 3), (3, 4)])
@@ -218,7 +218,7 @@ class TestTranspile(QiskitTestCase):
         self.assertEqual(Operator.from_circuit(result), Operator(circuit))
 
     @ddt.data(0, 1, 2, 3)
-    def test_2(self, level):
+    def test_multiple_cx_gate_circuit_on_linear_backend(self, level):
         """Simple coupling map (linear 5 qubits)."""
         basis = ["u1", "u2", "cx", "swap"]
         circuit = QuantumCircuit(5)
