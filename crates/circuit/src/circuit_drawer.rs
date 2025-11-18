@@ -1,6 +1,6 @@
 // This code is part of Qiskit.
 //
-// (C) Copyright IBM 2023, 2024
+// (C) Copyright IBM 2025
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,6 +15,9 @@ use crate::dag_circuit::DAGCircuit;
 use crate::operations::{Operation, OperationRef, Param, StandardGate, StandardInstruction};
 use crate::packed_instruction::PackedInstruction;
 use crate::{Clbit, Qubit};
+use crate::circuit_data::CircuitData;
+use crate::converters::QuantumCircuitData;
+use crate::dag_circuit::NodeType;
 use crossterm::terminal::size;
 use hashbrown::{HashMap, HashSet};
 use itertools::{Itertools, MinMaxResult};
@@ -22,28 +25,21 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::ops::Index;
-
-use pyo3::import_exception;
 use pyo3::prelude::*;
-
-use crate::circuit_data::CircuitData;
-use crate::converters::QuantumCircuitData;
-use crate::dag_circuit::NodeType;
-
-import_exception!(qiskit.circuit.exceptions, CircuitError);
 
 
 /// Draw the [CircuitData] object as string.
-/// 
+///
 /// # Arguments:
-/// 
+///
 /// * circuit: The CircuitData to draw.
 /// * cregbundle: If true, classical bits of classical registers are bundled into one wire.
-/// * mergewires: If true, adjacent wires are merged when rendered. 
-/// * fold: If not None, applies line wrapping using the specified amount. 
-/// 
+/// * mergewires: If true, adjacent wires are merged when rendered.
+/// * fold: If not None, applies line wrapping using the specified amount.
+///
 /// # Returns:
-/// The String representation of the circuit. 
+/// 
+/// The String representation of the circuit.
 pub fn draw_circuit(
     circuit: &CircuitData,
     cregbundle: bool,
@@ -64,7 +60,6 @@ pub fn draw_circuit(
 
     Ok(text_drawer.draw(mergewires, fold))
 }
-
 
 /// Return a list of layers such that each layer contains a list of op node indices, representing instructions
 /// whose qubits/clbits indices do not overlap. The instruction are packed into each layer as long as there
@@ -187,14 +182,13 @@ enum VisualizationElement<'a>{
     #[default]
     /// A wire element without any associated information.
     Empty,
-    /// Vertical line (e.g for control or measure) element.
-    /// The bool indicates whether this is a single (false) or double (true) line
-    VerticalLine(bool),
-    /// Circuit input element (qubit, clbit, creg).
+    /// A Vertical line element, belonging to an instruction (e.g of a controlled gate or a measure).
+    VerticalLine(&'a PackedInstruction),
+    /// A circuit input element (qubit, clbit, creg).
     Input(WireInputElement<'a>),
-    /// Element which is drawn without a surrounding box. Used only on qubit wires
+    /// An element which is drawn without a surrounding box. Used only on qubit wires.
     DirectOnWire(OnWireElement<'a>),
-    // Boxed element which can span one or more wires. Used only on qubit wires
+    // A boxed element which can span one or more wires. Used only on qubit wires.
     Boxed(BoxedElement<'a>),
 }
 
@@ -249,12 +243,12 @@ impl<'a> VisualizationLayer<'a> {
         }
     }
 
-    fn add_vertical_lines<I>(&mut self, vertical_lines: I, double_line: bool)
+    fn add_vertical_lines<I>(&mut self, vertical_lines: I, inst: &'a PackedInstruction)
     where
         I: Iterator<Item = usize>,
     {
         for vline in vertical_lines {
-            self.0[vline] = VisualizationElement::VerticalLine(double_line);
+            self.0[vline] = VisualizationElement::VerticalLine(inst);
         }
     }
 
@@ -265,8 +259,7 @@ impl<'a> VisualizationLayer<'a> {
         circuit: &CircuitData,
     ) {
         let qargs = circuit.get_qargs(inst.qubits);
-        let (minima, maxima) =
-            get_instruction_range(qargs, &[], 0);
+        let (minima, maxima) = get_instruction_range(qargs, &[], 0);
 
         match gate {
             StandardGate::ISwap
@@ -339,7 +332,7 @@ impl<'a> VisualizationLayer<'a> {
 
                 let vert_lines = (minima..=maxima)
                     .filter(|idx| !(qargs.iter().map(|q| q.0 as usize)).contains(idx));
-                self.add_vertical_lines(vert_lines, false);
+                self.add_vertical_lines(vert_lines, inst);
             }
             StandardGate::GlobalPhase => {}
             StandardGate::Swap | StandardGate::CSwap => {
@@ -355,7 +348,7 @@ impl<'a> VisualizationLayer<'a> {
 
                 let vert_lines = (minima..=maxima)
                     .filter(|idx| !(qargs.iter().map(|q| q.0 as usize)).contains(idx));
-                self.add_vertical_lines(vert_lines, false);
+                self.add_vertical_lines(vert_lines, inst);
             }
             _ => unimplemented!("{}", format!("{:?} is not supported yet", gate))
         }
@@ -374,7 +367,7 @@ impl<'a> VisualizationLayer<'a> {
     ) {
         let qargs = circuit.get_qargs(inst.qubits);
         let (minima, maxima) =
-            get_instruction_range(qargs, &[], 0);
+            get_instruction_range(qargs, circuit.get_cargs(inst.clbits), circuit.num_qubits());
 
         match std_inst {
             StandardInstruction::Barrier(_) => {
@@ -406,7 +399,7 @@ impl<'a> VisualizationLayer<'a> {
                         circuit.num_qubits() + creg
                     }
                 };
-                self.add_vertical_lines(minima + 1..=maxima, true);
+                self.add_vertical_lines(minima + 1..=maxima, inst);
             }
             StandardInstruction::Delay(_) => {
                 for q in qargs {
@@ -433,7 +426,7 @@ struct VisualizationMatrix<'a> {
 }
 
 impl<'a> VisualizationMatrix<'a> {
-    fn from_circuit(circuit: &'a CircuitData, bundle_cregs: bool) -> PyResult<Self>{
+    fn from_circuit(circuit: &'a CircuitData, bundle_cregs: bool) -> PyResult<Self> {
         let dag = DAGCircuit::from_circuit_data(circuit, false, None, None, None, None)?;
 
         let mut node_index_to_inst: HashMap<NodeIndex, &PackedInstruction> =
@@ -506,8 +499,15 @@ impl Debug for VisualizationMatrix<'_> {
                 let element = &self[l][w];
                 let label = match &element {
                     VisualizationElement::Empty => "~",
-                    VisualizationElement::VerticalLine(true) => "║",
-                    VisualizationElement::VerticalLine(false) => "|",
+                    VisualizationElement::VerticalLine(inst) => {
+                        let mut line = "|";
+                        if let Some(std_inst) = inst.op.try_standard_instruction() {
+                            if std_inst == StandardInstruction::Measure {
+                                line = "║";
+                            }
+                        }
+                        line
+                    }
                     VisualizationElement::Input(input) => match input {
                         WireInputElement::Qubit(_) => "QR",
                         WireInputElement::Clbit(_) => "CR",
@@ -663,9 +663,9 @@ impl TextDrawer {
                 StandardGate::Z => "Z",
                 StandardGate::Phase => "P",
                 StandardGate::R => "R",
-                StandardGate::RX => "RX",
-                StandardGate::RY => "RY",
-                StandardGate::RZ => "RZ",
+                StandardGate::RX => "Rx",
+                StandardGate::RY => "Ry",
+                StandardGate::RZ => "Rz",
                 StandardGate::S => "S",
                 StandardGate::Sdg => "Sdg",
                 StandardGate::SX => "√X",
@@ -680,33 +680,33 @@ impl TextDrawer {
                 StandardGate::CX => "X",
                 StandardGate::CY => "Y",
                 StandardGate::CZ => "Z",
-                StandardGate::DCX => "DCX",
-                StandardGate::ECR => "ECR",
+                StandardGate::DCX => "Dcx",
+                StandardGate::ECR => "Ecr",
                 StandardGate::Swap => "",
                 StandardGate::ISwap => "Iswap",
                 StandardGate::CPhase => "P",
-                StandardGate::CRX => "RX",
-                StandardGate::CRY => "RY",
-                StandardGate::CRZ => "RZ",
+                StandardGate::CRX => "Rx",
+                StandardGate::CRY => "Rt",
+                StandardGate::CRZ => "Rz",
                 StandardGate::CS => "S",
                 StandardGate::CSdg => "Sdg",
                 StandardGate::CSX => "√X",
                 StandardGate::CU => "U",
                 StandardGate::CU1 => "U1",
                 StandardGate::CU3 => "U3",
-                StandardGate::RXX => "RXX",
-                StandardGate::RYY => "RYY",
-                StandardGate::RZZ => "RZZ",
-                StandardGate::RZX => "RZX",
+                StandardGate::RXX => "Rxx",
+                StandardGate::RYY => "Ryy",
+                StandardGate::RZZ => "Rzz",
+                StandardGate::RZX => "Rzx",
                 StandardGate::XXMinusYY => "XX-YY",
                 StandardGate::XXPlusYY => "XX+YY",
                 StandardGate::CCX => "X",
                 StandardGate::CCZ => "Z",
                 StandardGate::CSwap => "",
-                StandardGate::RCCX => "RCCX",
+                StandardGate::RCCX => "Rccx",
                 StandardGate::C3X => "X",
                 StandardGate::C3SX => "√X",
-                StandardGate::RC3X => "RC3X",
+                StandardGate::RC3X => "Rcccx",
             }
             .to_string();
 
@@ -918,13 +918,13 @@ impl TextDrawer {
                             get_instruction_range(circuit.get_qargs(inst.qubits), &[], 0);
                         (
                             if ind == minima {
-                                "".to_string()
+                                " ".to_string()
                             } else {
                                 CONNECTING_WIRE.to_string()
                             },
                             BULLET.to_string(),
                             if ind == maxima {
-                                "".to_string()
+                                " ".to_string()
                             } else {
                                 CONNECTING_WIRE.to_string()
                             },
@@ -935,13 +935,13 @@ impl TextDrawer {
                             get_instruction_range(circuit.get_qargs(inst.qubits), &[], 0);
                         (
                             if ind == minima {
-                                "".to_string()
+                                " ".to_string()
                             } else {
                                 CONNECTING_WIRE.to_string()
                             },
                             "X".to_string(),
                             if ind == maxima {
-                                "".to_string()
+                                " ".to_string()
                             } else {
                                 CONNECTING_WIRE.to_string()
                             },
@@ -952,7 +952,9 @@ impl TextDrawer {
                         BARRIER.to_string(),
                         BARRIER.to_string(),
                     ),
-                    OnWireElement::Reset => ("   ".to_string(), "|0>".to_string(), "   ".to_string()),
+                    OnWireElement::Reset => {
+                        ("   ".to_string(), "|0>".to_string(), "   ".to_string())
+                    }
                 };
 
                 top = format!(" {} ", wire_top);
@@ -969,8 +971,14 @@ impl TextDrawer {
                 bot = " ".repeat(input_name.len());
                 mid = input_name;
             }
-            VisualizationElement::VerticalLine(is_double) => {
-                if is_double {
+            VisualizationElement::VerticalLine(inst) => {
+                let is_double_line = if let Some(std_inst) = inst.op.try_standard_instruction() {
+                    std_inst == StandardInstruction::Measure
+                } else {
+                    false
+                };
+
+                if is_double_line {
                     top = CL_CONNECTING_WIRE.to_string();
                     bot = CL_CONNECTING_WIRE.to_string();
                     mid = {
@@ -1143,9 +1151,7 @@ impl TextDrawer {
                 ret.push('╪');
             } else if "┬│".contains(topc) && botc == '─' {
                 ret.push('┼');
-            } else if "└┘║│░".contains(topc) && botc == ' ' {
-                ret.push(topc);
-            } else if "─═".contains(topc) && botc == ' ' {
+            } else if "└┘║│░─═".contains(topc) && botc == ' ' {
                 ret.push(topc);
             } else if "║╥".contains(topc) && botc == '═' {
                 ret.push('╬');
