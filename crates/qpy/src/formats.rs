@@ -549,7 +549,7 @@ pub struct ExpressionPack<'a> {
 pub enum ExpressionTypePack {
     #[brw(magic = b'b')]
     Bool,
-    #[brw(magic = b'i')]
+    #[brw(magic = b'u')]
     Int(u32), // int type also have a width parameter
     #[brw(magic = b'f')]
     Float,
