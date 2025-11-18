@@ -384,8 +384,7 @@ impl PauliLindbladMap {
     }
 
     /// Sample sign and Pauli operator pairs from the map.
-    /// Note that here the "sign" bool is interpreted as the exponent of (-1)^b, which is the
-    /// opposite convention to the sample function.
+    /// Note that here the "sign" bool is interpreted as the exponent of (-1)^b.
     pub fn parity_sample(
         &self,
         num_samples: u64,
