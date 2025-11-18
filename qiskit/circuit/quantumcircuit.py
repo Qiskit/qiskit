@@ -378,7 +378,7 @@ class QuantumCircuit:
     :ref:`circuit-repr-real-time-classical`), can be both constructed and added with separate
     methods.
 
-    New registerless :class:`.Qubit` and :class:`.Clbit` objects are added using :meth:`add_bits`.
+    New registerless :class:`.Qubit` and :class:`.Clbit` instances are added using :meth:`add_bits`.
     These objects must not already be present in the circuit.  You can check if a bit exists in the
     circuit already using :meth:`find_bit`.
 
@@ -1077,8 +1077,8 @@ class QuantumCircuit:
         Args:
             regs: The registers to be included in the circuit.
 
-                * If a list of :class:`~.Register` objects, represents the :class:`.QuantumRegister`
-                  and/or :class:`.ClassicalRegister` objects to include in the circuit.
+                * If a list of :class:`~.Register` instances, represents the :class:`.QuantumRegister`
+                  and/or :class:`.ClassicalRegister` instances to include in the circuit.
 
                   For example:
 
@@ -1095,7 +1095,7 @@ class QuantumCircuit:
                     * ``QuantumCircuit(4) # A QuantumCircuit with 4 qubits``
                     * ``QuantumCircuit(4, 3) # A QuantumCircuit with 4 qubits and 3 classical bits``
 
-                * If a list of python lists containing :class:`.Bit` objects, a collection of
+                * If a list of python lists containing :class:`.Bit` instances, a collection of
                   :class:`.Bit` s to be added to the circuit.
 
             name: the name of the quantum circuit. If not set, an automatically generated string
@@ -4826,7 +4826,7 @@ class QuantumCircuit:
     def parameters(self) -> ParameterView:
         """The parameters defined in the circuit.
 
-        This attribute returns the :class:`.Parameter` objects in the circuit sorted
+        This attribute returns the :class:`.Parameter` instances in the circuit sorted
         alphabetically. Note that parameters instantiated with a :class:`.ParameterVector`
         are still sorted numerically.
 
@@ -4885,7 +4885,7 @@ class QuantumCircuit:
 
 
         Returns:
-            The sorted :class:`.Parameter` objects in the circuit.
+            The sorted :class:`.Parameter` instances in the circuit.
         """
         # return as parameter view, which implements the set and list interface
         return ParameterView(self._data.parameters)
@@ -4944,7 +4944,7 @@ class QuantumCircuit:
 
         If ``parameters`` is passed as a list or array, the elements are assigned to the
         current parameters in the order of :attr:`parameters` which is sorted
-        alphabetically (while respecting the ordering in :class:`.ParameterVector` objects).
+        alphabetically (while respecting the ordering in :class:`.ParameterVector` instances).
 
         The values can be assigned to the current circuit object or to a copy of it.
 
@@ -7021,7 +7021,7 @@ class QuantumCircuit:
             body_or_annotations: the first positional argument is unnamed.  If a
                 :class:`QuantumCircuit` is passed positionally, it is immediately used as the body
                 of the box, and ``qubits`` and ``clbits`` must also be specified.  If not given, or
-                if given an iterable of :class:`.Annotation` objects, the context-manager form of
+                if given an iterable of :class:`.Annotation` instances, the context-manager form of
                 this method is triggered.
             qubits: the qubits to apply the :class:`.BoxOp` to, in the explicit form.
             clbits: the qubits to apply the :class:`.BoxOp` to, in the explicit form.
@@ -7030,7 +7030,7 @@ class QuantumCircuit:
                 constrained to schedule the contained scope to match a given duration, including
                 delay insertion if required.
             unit: the unit of the ``duration``.
-            annotations: any :class:`.Annotation` objects the box should have.  When this method is
+            annotations: any :class:`.Annotation` instances the box should have.  When this method is
                 used in context-manager form, this argument can instead be passed as the only
                 positional argument.
         """

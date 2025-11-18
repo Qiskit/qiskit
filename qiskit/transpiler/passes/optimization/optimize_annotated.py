@@ -325,7 +325,7 @@ class OptimizeAnnotated(TransformationPass):
         We are given an annotated-operation ``op = M [ B ]`` (where ``B`` is the base operation and
         ``M`` is the list of modifiers) and the "conjugate decomposition" of the definition of ``B``,
         i.e. ``B = P * Q * R``, with ``R = P^{-1}`` (with ``P``, ``Q`` and ``R`` represented as
-        ``DAGCircuit`` objects).
+        ``DAGCircuit`` instances).
 
         Let ``IQ`` denote a new custom instruction with definitions ``Q``.
 

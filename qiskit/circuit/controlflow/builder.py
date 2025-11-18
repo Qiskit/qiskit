@@ -54,7 +54,7 @@ class CircuitScopeInterface(abc.ABC):
     @property
     @abc.abstractmethod
     def instructions(self) -> Sequence[CircuitInstruction]:
-        """Indexable view onto the :class:`.CircuitInstruction` objects backing this scope."""
+        """Indexable view onto the :class:`.CircuitInstruction` instances backing this scope."""
 
     @abc.abstractmethod
     def append(
@@ -628,7 +628,7 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         apply themselves across the whole scope should they need to.  The resulting
         :obj:`.QuantumCircuit` will be defined over a (nonstrict) subset of these resources.  This
         is used to let ``break`` and ``continue`` span all resources, even if they are nested within
-        several :obj:`.IfElsePlaceholder` objects, without requiring :obj:`.IfElsePlaceholder`
+        several :obj:`.IfElsePlaceholder` instances, without requiring :obj:`.IfElsePlaceholder`
         objects *without* any ``break`` or ``continue`` statements to be full-width.
 
         Args:

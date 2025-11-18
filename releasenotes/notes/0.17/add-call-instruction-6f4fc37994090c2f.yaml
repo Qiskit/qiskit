@@ -21,7 +21,7 @@ features:
     The :py:func:`qiskit.pulse.call` function can now take a
     :class:`~qiskit.circuit.Parameter` object along with a parameterized
     subroutine. This enables assigning different values to the
-    :class:`~qiskit.circuit.Parameter` objects for each subroutine call.
+    :class:`~qiskit.circuit.Parameter` instances for each subroutine call.
 
     For example,
 

@@ -5,7 +5,7 @@ features:
     kwarg for ``meas_level`` and ``meas_return``. These fields can be used
     to enable generating :class:`~qiskit.qobj.QasmQobj` job payloads that
     support ``meas_level=1`` (kerneled data) for circuit jobs (previously
-    this was only exposed for :class:`~qiskit.qobj.PulseQobj` objects).
+    this was only exposed for :class:`~qiskit.qobj.PulseQobj` instances).
     The :func:`~qiskit.compiler.assemble` function has been updated
-    to set this field for :class:`~qiskit.qobj.QasmQobj` objects it
+    to set this field for :class:`~qiskit.qobj.QasmQobj` instances it
     generates.

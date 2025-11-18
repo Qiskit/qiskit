@@ -1161,7 +1161,7 @@ impl CircuitData {
     ///
     /// In this case, the `params` field should be a list of `(index, parameters)` tuples, where the
     /// index is into the instruction's `params` attribute, and `parameters` is a Python iterable
-    /// of `Parameter` objects.
+    /// of `Parameter` instances.
     pub fn append_manual_params(
         &mut self,
         value: &Bound<CircuitInstruction>,
@@ -2018,7 +2018,7 @@ impl CircuitData {
     ///
     /// This is typically useful when iterating over a CircuitData or DAGCircuit
     /// to construct a new CircuitData from the iterator of PackedInstructions. As
-    /// such it requires that you have `BitData` and `Interner` objects to run. If
+    /// such it requires that you have `BitData` and `Interner` instances to run. If
     /// you just wish to build a circuit data from an iterator of instructions
     /// the `from_packed_operations` or `from_standard_gates` constructor methods
     /// are a better choice

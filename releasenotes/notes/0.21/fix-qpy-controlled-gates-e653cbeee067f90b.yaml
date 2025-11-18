@@ -11,14 +11,14 @@ fixes:
   - |
     Fixed support for QPY serialization (:func:`.qpy.dump`) and deserialization
     (:func:`.qpy.load`) of a :class:`~.QuantumCircuit` object containing custom
-    :class:`~.ControlledGate` objects. Previously, an exception would be raised
+    :class:`~.ControlledGate` instances. Previously, an exception would be raised
     by :func:`.qpy.load` when trying to reconstruct the custom
     :class:`~.ControlledGate`.
     Fixed `#7999 <https://github.com/Qiskit/qiskit-terra/issues/7999>`__.
   - |
     Fixed support for QPY serialization (:func:`.qpy.dump`) and deserialization
     (:func:`.qpy.load`) of a :class:`~.QuantumCircuit` object containing custom
-    :class:`~.MCPhaseGate` objects. Previously, an exception would be raised
+    :class:`~.MCPhaseGate` instances. Previously, an exception would be raised
     by :func:`.qpy.load` when trying to reconstruct the :class:`~.MCPhaseGate`.
   - |
     Fixed support for QPY serialization (:func:`.qpy.dump`) and deserialization

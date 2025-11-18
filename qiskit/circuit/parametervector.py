@@ -18,9 +18,9 @@ from qiskit._accelerate.circuit import ParameterVectorElement
 
 
 class ParameterVector:
-    """A container of many related :class:`Parameter` objects.
+    """A container of many related :class:`Parameter` instances.
 
-    This class is faster to construct than constructing many :class:`Parameter` objects
+    This class is faster to construct than constructing many :class:`Parameter` instances
     individually, and the individual names of the parameters will all share a common stem (the name
     of the vector).  For a vector called ``v`` with length 3, the individual elements will have
     names ``v[0]``, ``v[1]`` and ``v[2]``.

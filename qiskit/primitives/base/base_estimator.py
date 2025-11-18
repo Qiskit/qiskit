@@ -108,7 +108,7 @@ class BaseEstimatorV1(BasePrimitiveV1, Generic[T]):
     which takes the following inputs:
 
     * quantum circuits (:math:`\psi_i(\theta)`): list of (parameterized) quantum circuits
-      (a list of :class:`~qiskit.circuit.QuantumCircuit` objects).
+      (a list of :class:`~qiskit.circuit.QuantumCircuit` instances).
 
     * observables (:math:`H_j`): a list of :class:`~qiskit.quantum_info.SparsePauliOp`
       objects.
@@ -209,7 +209,7 @@ class BaseEstimatorV1(BasePrimitiveV1, Generic[T]):
             circuits: one or more circuit objects.
             observables: one or more observable objects. Several formats are allowed;
                 importantly, ``str`` should follow the string representation format for
-                :class:`~qiskit.quantum_info.Pauli` objects.
+                :class:`~qiskit.quantum_info.Pauli` instances.
             parameter_values: concrete parameters to be bound.
             run_options: runtime options used for circuit execution.
 

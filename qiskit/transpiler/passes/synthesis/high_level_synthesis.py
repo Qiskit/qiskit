@@ -50,7 +50,7 @@ class HLSConfig:
 
     A higher-level object is an object of type :class:`~.Operation` (e.g., :class:`.Clifford` or
     :class:`.LinearFunction`).  Each object is referred to by its :attr:`~.Operation.name` field
-    (e.g., ``"clifford"`` for :class:`.Clifford` objects), and the applicable synthesis methods are
+    (e.g., ``"clifford"`` for :class:`.Clifford` instances), and the applicable synthesis methods are
     tied to this name.
 
     In the config, each method is specified in one of several ways:
@@ -152,7 +152,7 @@ class HighLevelSynthesis(TransformationPass):
     that ``op_a``-objects have two synthesis methods ``default`` which does require any additional
     parameters and ``other`` with two optional integer parameters ``option_1`` and ``option_2``,
     that ``op_b``-objects have a single synthesis method ``default``, and ``qc`` is a quantum
-    circuit containing ``op_a`` and ``op_b`` objects. The following code snippet::
+    circuit containing ``op_a`` and ``op_b`` instances. The following code snippet::
 
         hls_config = HLSConfig(op_b=[("other", {"option_1": 7, "option_2": 4})])
         pm = PassManager([HighLevelSynthesis(hls_config=hls_config)])

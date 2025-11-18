@@ -17,10 +17,10 @@ features:
     
     This class supports much of the same functionality of the
     :class:`qiskit.quantum_info.Operator` class so
-    :class:`~qiskit.quantum_info.SparsePauliOp` objects can be tensored,
+    :class:`~qiskit.quantum_info.SparsePauliOp` instances can be tensored,
     composed, scalar multiplied, added and subtracted.
 
-    Numpy arrays or :class:`~qiskit.quantum_info.Operator` objects can be
+    Numpy arrays or :class:`~qiskit.quantum_info.Operator` instances can be
     converted to a :class:`~qiskit.quantum_info.SparsePauliOp` using the
     `:class:`~qiskit.quantum_info.SparsePauliOp.from_operator` method.
     :class:`~qiskit.quantum_info.SparsePauliOp` can be converted to a sparse
@@ -45,7 +45,7 @@ features:
     is an efficient symplectic representation of a list of N-qubit Pauli
     operators. Some features of this class are:
  
-      * :class:`~qiskit.quantum_info.PauliTable` objects may be composed, and
+      * :class:`~qiskit.quantum_info.PauliTable` instances may be composed, and
         tensored which will return a :class:`~qiskit.quantum_info.PauliTable`
         object with the combination of the operation (
         :meth:`~qiskit.quantum_info.PauliTable.compose`,

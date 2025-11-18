@@ -195,7 +195,7 @@ impl IntoIterator for SequenceIndex {
 mod sealed {
     /// Custom iterator for indices for Python sequence-likes.
     ///
-    /// In the range types, the `indices ` are `Range` objects that run from 0 to the length of the
+    /// In the range types, the `indices ` are `Range` instances that run from 0 to the length of the
     /// iterator.  In theory, we could generate the iterators ourselves, but that ends up with a lot of
     /// boilerplate.
     #[derive(Clone, Debug)]

@@ -3,5 +3,5 @@ features:
   - |
     A new method, :meth:`~qiskit.transpiler.Layout.combine_into_edge_map()`,
     was added to the :class:`qiskit.transpiler.Layout` class. This method
-    enables converting converting two :class:`~qiskit.transpiler.Layout` objects
+    enables converting converting two :class:`~qiskit.transpiler.Layout` instances
     into a qubit map for composing two circuits.

@@ -1,9 +1,9 @@
 ---
 upgrade_pulse:
   - |
-    Validation of :class:`qiskit.pulse.SymbolicPulse` objects can now be disabled. By setting
+    Validation of :class:`qiskit.pulse.SymbolicPulse` instances can now be disabled. By setting
     the class attribute :attr:`~qiskit.pulse.SymbolicPulse.disable_validation` to ``False``
-    the method :meth:`.SymbolicPulse.validate_parameters` will not be triggered for all :class:`.SymbolicPulse` objects.
+    the method :meth:`.SymbolicPulse.validate_parameters` will not be triggered for all :class:`.SymbolicPulse` instances.
     The automatic validation hindered JAX compatibility of the symbolic pulse library, and this
     upgrade will make it easier to use Qiskit Pulse with JAX. Moreover, the parameter validation will also be
     deactivated when using the :meth:`.Schedule.assign_parameters` and

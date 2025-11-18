@@ -20,5 +20,5 @@ upgrade:
     previously returned ``0``, but will now return ``-0.5*theta + 0.5*theta``.
     This change was necessary was to avoid a large runtime performance
     penalty as simplifying symbolic expressions can be quite slow, especially
-    if there are many :class:`~qiskit.circuit.ParameterExpression` objects
+    if there are many :class:`~qiskit.circuit.ParameterExpression` instances
     in a circuit.

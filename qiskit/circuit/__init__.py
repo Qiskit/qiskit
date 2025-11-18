@@ -573,7 +573,7 @@ Hardware can be instructed to apply a real-time idle period on a given qubit.  A
     :show-inheritance:
 
 Delay durations can be specified either with concrete, constant times, or with delayed-resolution
-"duration expressions" built out of :class:`.expr.Stretch` objects.  See :ref:`circuit-stretches`
+"duration expressions" built out of :class:`.expr.Stretch` instances.  See :ref:`circuit-stretches`
 for more on this.
 
 The :class:`Barrier` instruction can span an arbitrary number of qubits and clbits, and is a no-op
@@ -1097,7 +1097,7 @@ Simulating circuits
 
 
 While not part of the :mod:`qiskit.circuit` interface, one of the most common needs is to get quick
-simulation results for :class:`QuantumCircuit` objects.  This section provides a quick jumping-off
+simulation results for :class:`QuantumCircuit` instances.  This section provides a quick jumping-off
 point to other places in the documentation to find the relevant information.
 
 For unitary circuits, you can simulate the effects on the :math:`\lvert0\dotsm0\rangle` state by

@@ -3,7 +3,7 @@ features:
   - |
     Improved synthesis of multi-controlled :class:`.CZGate` gates.
   - |
-    Improved the default plugin for synthesizing :class:`~.AnnotatedOperation` objects.
+    Improved the default plugin for synthesizing :class:`~.AnnotatedOperation` instances.
     The improvement is especially useful when creating and transpiling controlled circuits
     with controlled gates within them. For example::
 

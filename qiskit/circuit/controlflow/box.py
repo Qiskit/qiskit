@@ -33,7 +33,7 @@ class BoxOp(ControlFlowOp):
     commute operations "all the way" through the box.  The box is also an explicit scope for the
     purposes of variables, stretches and compiler passes.
 
-    A box may be "annotated" with arbitrary user-defined custom :class:`.Annotation` objects.  In
+    A box may be "annotated" with arbitrary user-defined custom :class:`.Annotation` instances.  In
     cases where order is important, these should be interpreted by applying the first annotation in
     the list first, then the second, and so on.  It is generally recommended that annotations should
     not be order-dependent, wherever possible.

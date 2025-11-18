@@ -7,6 +7,6 @@ features:
     wavefunction by a user-specified Hermitian Operator and evolution time.
     The evolution time can be a :class:`~qiskit.circuit.Parameter`, allowing
     the creation of parameterized UCCSD or QAOA-style circuits which compile to
-    ``UnitaryGate`` objects if ``time`` parameters are provided. The Unitary of
+    ``UnitaryGate`` instances if ``time`` parameters are provided. The Unitary of
     a ``HamiltonianGate`` with Hamiltonian Operator ``H`` and time parameter
     ``t`` is :math:`e^{-iHt}`.

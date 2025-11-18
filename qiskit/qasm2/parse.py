@@ -91,7 +91,7 @@ class CustomInstruction:
 
     Examples:
 
-        Instruct the importer to use Qiskit's :class:`.ECRGate` and :class:`.RZXGate` objects to
+        Instruct the importer to use Qiskit's :class:`.ECRGate` and :class:`.RZXGate` instances to
         interpret ``gate`` statements that are known to have been created from those same objects
         during OpenQASM 2 export::
 
@@ -216,7 +216,7 @@ def from_bytecode(bytecode, custom_instructions: Iterable[CustomInstruction]):
     assumed to be correct by this function.
 
     The Rust code is responsible for all validation.  If this function causes any errors to be
-    raised by Qiskit (except perhaps for some symbolic manipulations of `Parameter` objects), we
+    raised by Qiskit (except perhaps for some symbolic manipulations of `Parameter` instances), we
     should consider that a bug in the Rust code."""
     # The method `QuantumCircuit._append` is a semi-public method, so isn't really subject to
     # "protected access".
@@ -247,7 +247,7 @@ def from_bytecode(bytecode, custom_instructions: Iterable[CustomInstruction]):
         # Python-space.
         opcode = op.opcode
         # `OpCode` is an `enum` in Rust, but its instances don't have the same singleton property as
-        # Python `enum.Enum` objects.
+        # Python `enum.Enum` instances.
         if opcode == OpCode.Gate:
             gate_id, parameters, op_qubits = op.operands
             qc._append(

@@ -2,7 +2,7 @@
 deprecations:
   - |
     The ``scaling`` parameter of the ``draw()`` method for the ``Schedule`` and
-    ``Pulse`` objects was deprecated and will be removed in a future release.
+    ``Pulse`` instances was deprecated and will be removed in a future release.
     Instead the new ``scale`` parameter should be used. This was done to have
     a consistent argument between pulse and circuit drawings. For example::
 

@@ -3,7 +3,7 @@ upgrade:
   - |
     The ``scoped_parameters`` and ``search_parameters`` methods have been
     removed from the :class:`.ScheduleBlock` class. These methods returned
-    :class:`.Parameter` objects that partially linked to the parameters in the
+    :class:`.Parameter` instances that partially linked to the parameters in the
     :class:`.ScheduleBlock` instance but assigning values using these objects did not
     work correctly. Users should use :attr:`.ScheduleBlock.parameters` instead and
     iterate through :attr:`.ScheduleBlock.references` and compare to the

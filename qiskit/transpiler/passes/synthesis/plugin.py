@@ -280,9 +280,9 @@ For example::
     HLSConfig(permutation=["acg"], clifford=["layers"], linear_function=["pmh"])
 
 creates a high-level synthesis configuration that uses the ``acg`` plugin
-for synthesizing :class:`.PermutationGate` objects, the ``layers`` plugin
-for synthesizing :class:`.Clifford` objects, and the ``pmh`` plugin for synthesizing
-:class:`.LinearFunction` objects.  The keyword arguments are the :attr:`.Operation.name` fields of
+for synthesizing :class:`.PermutationGate` instances, the ``layers`` plugin
+for synthesizing :class:`.Clifford` instances, and the ``pmh`` plugin for synthesizing
+:class:`.LinearFunction` instances.  The keyword arguments are the :attr:`.Operation.name` fields of
 the relevant objects.  For example, all :class:`.Clifford` operations have the
 :attr:`~.Operation.name` ``clifford``, so this is used as the keyword argument.  You can specify
 any keyword argument here that you have installed plugins to handle, including custom user objects
@@ -349,8 +349,8 @@ High Level Synthesis
 --------------------
 
 High-level synthesis plugins that are directly available in Qiskit include plugins
-for synthesizing :class:`.Clifford` objects, :class:`.LinearFunction` objects, and
-:class:`.PermutationGate` objects.
+for synthesizing :class:`.Clifford` instances, :class:`.LinearFunction` instances, and
+:class:`.PermutationGate` instances.
 Some of these plugins implicitly target all-to-all connectivity. This is not a
 practical limitation since
 :class:`~qiskit.transpiler.passes.synthesis.high_level_synthesis.HighLevelSynthesis`
@@ -383,7 +383,7 @@ should be used via the previously described :class:`.HLSConfig`, for example::
     HLSConfig(permutation=["kms"])
 
 creates a high-level synthesis configuration that uses the ``kms`` plugin
-for synthesizing :class:`.PermutationGate` objects -- i.e. those with
+for synthesizing :class:`.PermutationGate` instances -- i.e. those with
 ``name = "permutation"``. In this case, the plugin name is "kms", the plugin class
 is :class:`~.KMSSynthesisPermutation`. This particular synthesis algorithm created
 a circuit adhering to the linear nearest-neighbor connectivity.
@@ -735,7 +735,7 @@ def high_level_synthesis_plugin_names(op_name: str) -> List[str]:
     Args:
         op_name: The operation name to find the installed plugins for. For example,
             if you provide ``"clifford"`` as the input it will find all the installed
-            clifford synthesis plugins that can synthesize :class:`.Clifford` objects.
+            clifford synthesis plugins that can synthesize :class:`.Clifford` instances.
             The name refers to the :attr:`.Operation.name` attribute of the relevant objects.
 
     Returns:

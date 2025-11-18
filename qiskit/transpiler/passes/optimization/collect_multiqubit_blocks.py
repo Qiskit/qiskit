@@ -102,7 +102,7 @@ class CollectMultiQBlocks(AnalysisPass):
         "cx" gates in the circuit. u1, u2, u3, cx, id gates will be included.
 
         After the execution, ``property_set['block_list']`` is set to
-        a list of tuples of ``DAGNode`` objects
+        a list of tuples of ``DAGNode`` instances
         """
 
         self.parent = {}  # reset all variables on run

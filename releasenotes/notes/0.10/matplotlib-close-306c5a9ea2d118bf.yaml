@@ -1,7 +1,7 @@
 ---
 other:
   - |
-    ``matplotlib.figure.Figure`` objects returned by visualization functions
+    ``matplotlib.figure.Figure`` instances returned by visualization functions
     are no longer always closed by default. Instead the returned figure objects
     are only closed if the configured matplotlib backend is an inline jupyter
     backend(either set with ``%matplotlib inline`` or

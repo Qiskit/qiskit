@@ -23,7 +23,7 @@ features:
       P1.dot(P2)
 
     Pauli's can also be directly appended to
-    :class:`~qiskit.circuit.QuantumCircuit` objects
+    :class:`~qiskit.circuit.QuantumCircuit` instances
 
     .. code-block::
 

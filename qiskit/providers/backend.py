@@ -251,7 +251,7 @@ class BackendV2(Backend, ABC):
             qubit: The qubit to get the
                 :class:`.QubitProperties` object for. This can
                 be a single integer for 1 qubit or a list of qubits and a list
-                of :class:`.QubitProperties` objects will be
+                of :class:`.QubitProperties` instances will be
                 returned in the same order
         Returns:
             The :class:`~.QubitProperties` object for the
@@ -323,7 +323,7 @@ class BackendV2(Backend, ABC):
 
         Args:
             run_input (QuantumCircuit or list): An
-                individual or a list of :class:`.QuantumCircuit` objects to
+                individual or a list of :class:`.QuantumCircuit` instances to
                 run on the backend.
             options: Any kwarg options to pass to the backend for running the
                 config. If a key is also present in the options

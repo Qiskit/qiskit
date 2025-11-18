@@ -182,7 +182,7 @@ An ``EstimatorV1`` implementation is initialized with an empty parameter set.
 :class:`~BaseEstimatorV1` can be called via the ``.run()`` method with the following parameters:
 
 * quantum circuits (:math:`\psi_i(\theta)`): list of (parameterized) quantum circuits
-  (a list of :class:`~qiskit.circuit.QuantumCircuit` objects).
+  (a list of :class:`~qiskit.circuit.QuantumCircuit` instances).
 
 * observables (:math:`H_j`): a list of :class:`~qiskit.quantum_info.SparsePauliOp`
   objects.
@@ -255,7 +255,7 @@ A ``SamplerV1`` is initialized with an empty parameter set. :class:`~BaseSampler
 be called via the ``.run()`` method with the following parameters:
 
 * quantum circuits (:math:`\psi_i(\theta)`): list of (parameterized) quantum circuits.
-  (a list of :class:`~qiskit.circuit.QuantumCircuit` objects)
+  (a list of :class:`~qiskit.circuit.QuantumCircuit` instances)
 
 * parameter values (:math:`\theta_k`): list of sets of parameter values
   to be bound to the parameters of the quantum circuits.

@@ -346,7 +346,7 @@ class GateInfo:
     canonical: Gate | None
     """The canonical object for the gate.  This is a Qiskit object that is not necessarily equal to
     any usage, but is the canonical form in terms of its parameter usage, such as a standard-library
-    gate being defined in terms of the `_FIXED_PARAMETERS` objects.  A call-site gate whose
+    gate being defined in terms of the `_FIXED_PARAMETERS` instances.  A call-site gate whose
     canonical form equals this can use the corresponding symbol as the callee.
 
     This can be ``None`` if the gate was an overridden "basis gate" for this export, in which case

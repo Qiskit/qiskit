@@ -4,7 +4,7 @@ prelude: |
   a myriad of new feature and bugfixes. The highlights for this release are:
 
     * Adding initial support to the transpiler for transpiling
-      :class:`~.QuantumCircuit` objects that contain control flow instructions
+      :class:`~.QuantumCircuit` instances that contain control flow instructions
       such as :class:`~.ForLoopOp` and :class:`~.WhileLoopOp`.
 
     * Greatly improved scaling and performance for the :func:`~.transpile` function
