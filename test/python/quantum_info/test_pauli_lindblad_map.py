@@ -1155,12 +1155,12 @@ class TestPauliLindbladMap(QiskitTestCase):
     def test_signed_sample(self):
 
         # test all negative rates
-        pauli_lindblad_map = PauliLindbladMap([("X", -1.0), ("Y", -1.0)])
+        pauli_lindblad_map = PauliLindbladMap([("X", -1.0), ("Y", -0.5)])
         probs = pauli_lindblad_map.probabilities()
         probs_dict = {
             "I": probs[0] * probs[1],
-            "X": probs[0] * (1 - probs[1]),
-            "Y": (1 - probs[0]) * probs[1],
+            "X": (1 - probs[0]) * probs[1],
+            "Y": probs[0] * (1 - probs[1]),
             "Z": (1 - probs[0]) * (1 - probs[1]),
         }
         expected_signs = {"I": True, "X": False, "Y": False, "Z": True}
@@ -1179,12 +1179,12 @@ class TestPauliLindbladMap(QiskitTestCase):
             self.assertTrue(np.abs(count / num_samples - probs_dict[symbol]) < 1e-2)
 
         # test all positive rates
-        pauli_lindblad_map = PauliLindbladMap([("X", 1.0), ("Y", 1.0)])
+        pauli_lindblad_map = PauliLindbladMap([("X", 1.0), ("Y", 0.5)])
         probs = pauli_lindblad_map.probabilities()
         probs_dict = {
             "I": probs[0] * probs[1],
-            "X": probs[0] * (1 - probs[1]),
-            "Y": (1 - probs[0]) * probs[1],
+            "X": (1 - probs[0]) * probs[1],
+            "Y": probs[0] * (1 - probs[1]),
             "Z": (1 - probs[0]) * (1 - probs[1]),
         }
         expected_signs = {"I": True, "X": True, "Y": True, "Z": True}
@@ -1202,12 +1202,12 @@ class TestPauliLindbladMap(QiskitTestCase):
             self.assertTrue(np.abs(count / num_samples - probs_dict[symbol]) < 1e-2)
 
         # test mix of positive and negative rates
-        pauli_lindblad_map = PauliLindbladMap([("X", 1.0), ("Y", -1.0)])
+        pauli_lindblad_map = PauliLindbladMap([("X", 1.0), ("Y", -0.5)])
         probs = pauli_lindblad_map.probabilities()
         probs_dict = {
             "I": probs[0] * probs[1],
-            "X": probs[0] * (1 - probs[1]),
-            "Y": (1 - probs[0]) * probs[1],
+            "X": (1 - probs[0]) * probs[1],
+            "Y": probs[0] * (1 - probs[1]),
             "Z": (1 - probs[0]) * (1 - probs[1]),
         }
         expected_signs = {"I": True, "X": True, "Y": False, "Z": False}
@@ -1234,12 +1234,12 @@ class TestPauliLindbladMap(QiskitTestCase):
     def test_parity_sample(self):
 
         # test all negative rates
-        pauli_lindblad_map = PauliLindbladMap([("X", -1.0), ("Y", -1.0)])
+        pauli_lindblad_map = PauliLindbladMap([("X", -1.0), ("Y", -0.5)])
         probs = pauli_lindblad_map.probabilities()
         probs_dict = {
             "I": probs[0] * probs[1],
-            "X": probs[0] * (1 - probs[1]),
-            "Y": (1 - probs[0]) * probs[1],
+            "X": (1 - probs[0]) * probs[1],
+            "Y": probs[0] * (1 - probs[1]),
             "Z": (1 - probs[0]) * (1 - probs[1]),
         }
         expected_signs = {"I": False, "X": True, "Y": True, "Z": False}
@@ -1258,12 +1258,12 @@ class TestPauliLindbladMap(QiskitTestCase):
             self.assertTrue(np.abs(count / num_samples - probs_dict[symbol]) < 1e-2)
 
         # test all positive rates
-        pauli_lindblad_map = PauliLindbladMap([("X", 1.0), ("Y", 1.0)])
+        pauli_lindblad_map = PauliLindbladMap([("X", 1.0), ("Y", 0.5)])
         probs = pauli_lindblad_map.probabilities()
         probs_dict = {
             "I": probs[0] * probs[1],
-            "X": probs[0] * (1 - probs[1]),
-            "Y": (1 - probs[0]) * probs[1],
+            "X": (1 - probs[0]) * probs[1],
+            "Y": probs[0] * (1 - probs[1]),
             "Z": (1 - probs[0]) * (1 - probs[1]),
         }
         expected_signs = {"I": False, "X": False, "Y": False, "Z": False}
@@ -1281,12 +1281,12 @@ class TestPauliLindbladMap(QiskitTestCase):
             self.assertTrue(np.abs(count / num_samples - probs_dict[symbol]) < 1e-2)
 
         # test mix of positive and negative rates
-        pauli_lindblad_map = PauliLindbladMap([("X", 1.0), ("Y", -1.0)])
+        pauli_lindblad_map = PauliLindbladMap([("X", 1.0), ("Y", -0.5)])
         probs = pauli_lindblad_map.probabilities()
         probs_dict = {
             "I": probs[0] * probs[1],
-            "X": probs[0] * (1 - probs[1]),
-            "Y": (1 - probs[0]) * probs[1],
+            "X": (1 - probs[0]) * probs[1],
+            "Y": probs[0] * (1 - probs[1]),
             "Z": (1 - probs[0]) * (1 - probs[1]),
         }
         expected_signs = {"I": False, "X": False, "Y": True, "Z": True}
@@ -1305,13 +1305,13 @@ class TestPauliLindbladMap(QiskitTestCase):
             self.assertTrue(np.abs(count / num_samples - probs_dict[symbol]) < 1e-2)
 
         # test scale with mix of positive and negative rates
-        pauli_lindblad_map = PauliLindbladMap([("X", 1.0), ("Y", -1.0)])
-        pauli_lindblad_map_downscaled = PauliLindbladMap([("X", 0.5), ("Y", -0.5)])
+        pauli_lindblad_map = PauliLindbladMap([("X", 1.0), ("Y", -0.5)])
+        pauli_lindblad_map_downscaled = PauliLindbladMap([("X", 0.5), ("Y", -0.25)])
         probs = pauli_lindblad_map.probabilities()
         probs_dict = {
             "I": probs[0] * probs[1],
-            "X": probs[0] * (1 - probs[1]),
-            "Y": (1 - probs[0]) * probs[1],
+            "X": (1 - probs[0]) * probs[1],
+            "Y": probs[0] * (1 - probs[1]),
             "Z": (1 - probs[0]) * (1 - probs[1]),
         }
         expected_signs = {"I": False, "X": False, "Y": True, "Z": True}
@@ -1332,13 +1332,13 @@ class TestPauliLindbladMap(QiskitTestCase):
             self.assertTrue(np.abs(count / num_samples - probs_dict[symbol]) < 1e-2)
 
         # test local_scale with mix of positive and negative rates
-        pauli_lindblad_map = PauliLindbladMap([("X", 1.0), ("Y", -1.0)])
-        pauli_lindblad_map_downscaled = PauliLindbladMap([("X", 1.0), ("Y", -0.5)])
+        pauli_lindblad_map = PauliLindbladMap([("X", 1.0), ("Y", -0.5)])
+        pauli_lindblad_map_downscaled = PauliLindbladMap([("X", 1.0), ("Y", -0.25)])
         probs = pauli_lindblad_map.probabilities()
         probs_dict = {
             "I": probs[0] * probs[1],
-            "X": probs[0] * (1 - probs[1]),
-            "Y": (1 - probs[0]) * probs[1],
+            "X": (1 - probs[0]) * probs[1],
+            "Y": probs[0] * (1 - probs[1]),
             "Z": (1 - probs[0]) * (1 - probs[1]),
         }
         expected_signs = {"I": False, "X": False, "Y": True, "Z": True}
@@ -1365,12 +1365,12 @@ class TestPauliLindbladMap(QiskitTestCase):
         self.assertEqual(len(signs), 5)
 
     def test_sample(self):
-        pauli_lindblad_map = PauliLindbladMap([("X", 1.0), ("Y", 1.0)])
+        pauli_lindblad_map = PauliLindbladMap([("X", 1.0), ("Y", 0.5)])
         probs = pauli_lindblad_map.probabilities()
         probs_dict = {
             "I": probs[0] * probs[1],
-            "X": probs[0] * (1 - probs[1]),
-            "Y": (1 - probs[0]) * probs[1],
+            "X": (1 - probs[0]) * probs[1],
+            "Y": probs[0] * (1 - probs[1]),
             "Z": (1 - probs[0]) * (1 - probs[1]),
         }
 
