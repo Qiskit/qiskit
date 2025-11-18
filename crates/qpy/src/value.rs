@@ -250,6 +250,9 @@ impl GenericValue {
             GenericValue::Float64(value) => {
                 GenericValue::Float64(f64::from_le_bytes(value.to_be_bytes()))
             }
+            GenericValue::Tuple(elements) => {
+                GenericValue::Tuple(elements.iter().map(GenericValue::as_le).collect())
+            }
             _ => self.clone(),
         }
     }
