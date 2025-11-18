@@ -134,7 +134,11 @@ impl WireInputElement<'_> {
                         .registers()
                         .first()
                         .expect("Register cannot be empty");
-                    Some(format!("{}_{}: ", register.name(), index))
+                    if register.len() > 1 {
+                        Some(format!("{}_{}: ", register.name(), index))
+                    } else {
+                        Some(format!("{}: ", register.name()))
+                    }
                 } else {
                     None
                 }
@@ -145,7 +149,12 @@ impl WireInputElement<'_> {
                         .registers()
                         .first()
                         .expect("Register cannot be empty");
-                    Some(format!("{}_{}: ", register.name(), index))
+                    if register.len() > 1 {
+                        Some(format!("{}_{}: ", register.name(), index))
+                    }
+                    else {
+                        Some(format!("{}: ", register.name()))
+                    }
                 } else {
                     None
                 }
@@ -671,7 +680,7 @@ impl TextDrawer {
                 StandardGate::SX => "√X",
                 StandardGate::SXdg => "√Xdg",
                 StandardGate::T => "T",
-                StandardGate::Tdg => "T†",
+                StandardGate::Tdg => "Tdg",
                 StandardGate::U => "U",
                 StandardGate::U1 => "U1",
                 StandardGate::U2 => "U2",
@@ -686,11 +695,11 @@ impl TextDrawer {
                 StandardGate::ISwap => "Iswap",
                 StandardGate::CPhase => "P",
                 StandardGate::CRX => "Rx",
-                StandardGate::CRY => "Rt",
+                StandardGate::CRY => "Ry",
                 StandardGate::CRZ => "Rz",
                 StandardGate::CS => "S",
                 StandardGate::CSdg => "Sdg",
-                StandardGate::CSX => "√X",
+                StandardGate::CSX => "Sx",
                 StandardGate::CU => "U",
                 StandardGate::CU1 => "U1",
                 StandardGate::CU3 => "U3",
@@ -705,7 +714,7 @@ impl TextDrawer {
                 StandardGate::CSwap => "",
                 StandardGate::RCCX => "Rccx",
                 StandardGate::C3X => "X",
-                StandardGate::C3SX => "√X",
+                StandardGate::C3SX => "Sx",
                 StandardGate::RC3X => "Rcccx",
             }
             .to_string();
@@ -820,8 +829,9 @@ impl TextDrawer {
                             }
                         }
                         let label = Self::get_label(inst);
-                        let left_len = (label.len() - 1) / 2;
-                        let right_len = label.len() - left_len - 1;
+                        let label_len = label.chars().count(); // To count unicode chars properly (e.g. in √X)
+                        let left_len = (label_len - 1) / 2;
+                        let right_len = label_len - left_len - 1;
                         top = format!(
                             "{}{}{}{}{}",
                             TOP_LEFT_BOX,
@@ -842,6 +852,7 @@ impl TextDrawer {
                     }
                     BoxedElement::Multi(inst) => {
                         let label = Self::get_label(inst);
+                        let label_len = label.chars().count(); // To count unicode chars properly (e.g. in √X)
                         let qargs = circuit.get_qargs(inst.qubits);
                         let (minima, maxima) = get_instruction_range(qargs, &[], 0);
                         let mid_idx = (minima + maxima) / 2;
@@ -859,7 +870,7 @@ impl TextDrawer {
                                 num_affected,
                                 label,
                                 total_q = qargs.len(),
-                                label_len = label.len()
+                                label_len = label_len
                             )
                         } else {
                             format!(
@@ -867,7 +878,7 @@ impl TextDrawer {
                                 num_affected,
                                 " ",
                                 total_q = qargs.len(),
-                                label_len = label.len()
+                                label_len = label_len
                             )
                         };
 
