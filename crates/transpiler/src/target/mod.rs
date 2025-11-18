@@ -1128,8 +1128,6 @@ impl Target {
 
     /// Returns an iterator over all the instructions present in the `Target`
     /// as pair of `&OperationType`, `&SmallVec<[Param; 3]>` and `Option<&Qargs>`.
-    // TODO: Remove once `Target` is being consumed.
-    #[allow(dead_code)]
     pub fn instructions(&self) -> impl Iterator<Item = (&NormalOperation, &Qargs)> {
         self._instructions()
             .filter_map(|(operation, qargs)| match &operation {
@@ -1150,15 +1148,11 @@ impl Target {
     }
 
     /// Returns an iterator over the operation names in the target.
-    // TODO: Remove once `Target` is being consumed.
-    #[allow(dead_code)]
     pub fn operation_names(&self) -> impl ExactSizeIterator<Item = &str> {
         self.gate_map.keys().map(|x| x.as_str())
     }
 
     /// Get the `OperationType` objects present in the target.
-    // TODO: Remove once `Target` is being consumed.
-    #[allow(dead_code)]
     pub fn operations(&self) -> impl Iterator<Item = &NormalOperation> {
         self.gate_map
             .values()
@@ -1532,15 +1526,11 @@ impl Target {
     // IndexMap methods
 
     /// Retreive all the gate names in the Target
-    // TODO: Remove once `Target` is being consumed.
-    #[allow(dead_code)]
     pub fn keys(&self) -> impl ExactSizeIterator<Item = &str> {
         self.gate_map.keys().map(|x| x.as_str())
     }
 
     /// Retrieves an iterator over the property maps stored within the Target
-    // TODO: Remove once `Target` is being consumed.
-    #[allow(dead_code)]
     pub fn values(&self) -> impl ExactSizeIterator<Item = &PropsMap> {
         self.gate_map.values().map(|props| &props.properties)
     }
