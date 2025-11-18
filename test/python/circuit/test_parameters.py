@@ -922,7 +922,7 @@ class TestParameters(QiskitTestCase):
 
     @data("single", "vector")
     def test_parameter_equality_to_expression(self, ptype):
-        """Verify that parameters compare equal to `ParameterExpression`s that represent the same
+        """Verify that parameters compare equal to `ParameterExpression` objects that represent the same
         thing."""
 
         if ptype == "single":
