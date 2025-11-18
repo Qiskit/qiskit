@@ -18,14 +18,14 @@ use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
-const ROTATION_GATE_NAMES: &[&str; 3] = &["rx", "ry", "rz"];
+static ROTATION_GATE_NAMES: [&str; 3] = ["rx", "ry", "rz"];
 
 const PI8: f64 = PI / 8.0;
 const MINIMUM_TOL: f64 = 1e-12;
 
-/// For an angle, if it is a multiple of PI/8, calculate the multiplicity mod 16,
-/// Otherwise, return None.
-fn is_angle_close_to_multiple_of_2pi_8(angle: f64, tol: f64) -> Option<i32> {
+/// For a given angle, if it is a multiple of 2*PI/8, calculate the multiple mod 16,
+/// Otherwise, return `None`.
+fn is_angle_close_to_multiple_of_2pi_8(angle: f64, tol: f64) -> Option<usize> {
     let closest_ratio = angle * 4.0 / PI;
     let closest_integer = closest_ratio.round();
     let closest_angle = closest_integer * PI / 4.0;
@@ -38,7 +38,7 @@ fn is_angle_close_to_multiple_of_2pi_8(angle: f64, tol: f64) -> Option<i32> {
     let f_pro = tr_over_dim.abs().powi(2);
     let gate_fidelity = (dim * f_pro + 1.) / (dim + 1.);
     if (1. - gate_fidelity).abs() < tol {
-        Some((16 + (closest_integer as i32) % 16) % 16)
+        Some((closest_integer as i64).rem_euclid(16) as usize)
     } else {
         None
     }
@@ -62,7 +62,7 @@ fn try_replace_rotation_by_discrete(
         }
         (StandardGate::RZ, Some(1)) => {
             discrete_sequence.push(StandardGate::T);
-            -1.0 * PI8
+            -PI8
         }
         (StandardGate::RZ, Some(2)) => {
             discrete_sequence.push(StandardGate::S);
@@ -92,7 +92,7 @@ fn try_replace_rotation_by_discrete(
         }
         (StandardGate::RZ, Some(8)) => {
             discrete_sequence.push(StandardGate::I);
-            -1.0 * PI
+            -PI
         }
         (StandardGate::RZ, Some(9)) => {
             discrete_sequence.push(StandardGate::T);
@@ -132,7 +132,7 @@ fn try_replace_rotation_by_discrete(
             discrete_sequence.push(StandardGate::H);
             discrete_sequence.push(StandardGate::T);
             discrete_sequence.push(StandardGate::H);
-            -1.0 * PI8
+            -PI8
         }
         (StandardGate::RX, Some(2)) => {
             discrete_sequence.push(StandardGate::SX);
@@ -168,7 +168,7 @@ fn try_replace_rotation_by_discrete(
         }
         (StandardGate::RX, Some(8)) => {
             discrete_sequence.push(StandardGate::I);
-            -1.0 * PI
+            -PI
         }
         (StandardGate::RX, Some(9)) => {
             discrete_sequence.push(StandardGate::H);
@@ -216,7 +216,7 @@ fn try_replace_rotation_by_discrete(
             discrete_sequence.push(StandardGate::SX);
             discrete_sequence.push(StandardGate::T);
             discrete_sequence.push(StandardGate::SXdg);
-            -1.0 * PI8
+            -PI8
         }
         (StandardGate::RY, Some(2)) => {
             discrete_sequence.push(StandardGate::Z);
@@ -244,7 +244,7 @@ fn try_replace_rotation_by_discrete(
         (StandardGate::RY, Some(6)) => {
             discrete_sequence.push(StandardGate::H);
             discrete_sequence.push(StandardGate::Z);
-            -1.0 * PI
+            -PI
         }
         (StandardGate::RY, Some(7)) => {
             discrete_sequence.push(StandardGate::SX);
@@ -254,7 +254,7 @@ fn try_replace_rotation_by_discrete(
         }
         (StandardGate::RY, Some(8)) => {
             discrete_sequence.push(StandardGate::I);
-            -1.0 * PI
+            -PI
         }
         (StandardGate::RY, Some(9)) => {
             discrete_sequence.push(StandardGate::SX);
@@ -265,7 +265,7 @@ fn try_replace_rotation_by_discrete(
         (StandardGate::RY, Some(10)) => {
             discrete_sequence.push(StandardGate::Z);
             discrete_sequence.push(StandardGate::H);
-            -1.0 * PI
+            -PI
         }
         (StandardGate::RY, Some(11)) => {
             discrete_sequence.push(StandardGate::SX);
@@ -307,11 +307,9 @@ fn try_replace_rotation_by_discrete(
 #[pyfunction]
 #[pyo3(name = "discretize_rotations")]
 pub fn run_discretize_rotations(dag: &mut DAGCircuit, approximation_degree: f64) -> PyResult<()> {
-    let op_counts = dag.get_op_counts();
-    let tol = MINIMUM_TOL.max(1.0 - approximation_degree);
-
     // Skip the pass if there are no RX/RY/RZ rotation gates.
-    if op_counts
+    if dag
+        .get_op_counts()
         .keys()
         .all(|k| !ROTATION_GATE_NAMES.contains(&k.as_str()))
     {
@@ -319,36 +317,24 @@ pub fn run_discretize_rotations(dag: &mut DAGCircuit, approximation_degree: f64)
     }
 
     // Iterate over nodes in the DAG and collect nodes that are of the form
-    // RX/RY/RZ with an angle that is a multiply of 2*pi/8
+    // RX/RY/RZ with an angle that is a multiple of 2*pi/8
     let mut candidates: Vec<(NodeIndex, StandardGate, f64)> = Vec::new();
 
-    for (node_index, inst) in dag.op_nodes(true) {
-        match inst.op.view() {
-            OperationRef::StandardGate(gate) => {
-                if gate == StandardGate::RX || gate == StandardGate::RY || gate == StandardGate::RZ
-                {
-                    match inst.params_view()[0] {
-                        Param::Float(angle) => {
-                            candidates.push((node_index, gate, angle));
-                        }
-                        _ => {
-                            continue;
-                        }
-                    }
+    for (node_index, inst) in dag.op_nodes(false) {
+        if let OperationRef::StandardGate(gate) = inst.op.view() {
+            if matches!(gate, StandardGate::RX | StandardGate::RY | StandardGate::RZ) {
+                if let Param::Float(angle) = inst.params_view()[0] {
+                    candidates.push((node_index, gate, angle));
                 }
-            }
-            _ => {
-                continue;
             }
         }
     }
 
     let mut global_phase_update: f64 = 0.;
+    let tol = MINIMUM_TOL.max(1.0 - approximation_degree);
 
     for (node_index, gate, angle) in candidates {
-        let result = try_replace_rotation_by_discrete(gate, angle, tol);
-
-        if let Some((sequence, phase_update)) = result {
+        if let Some((sequence, phase_update)) = try_replace_rotation_by_discrete(gate, angle, tol) {
             // we should remove the original gate, and instead add the sequence of gates
             for new_gate in sequence {
                 dag.insert_1q_on_incoming_qubit((new_gate, &[]), node_index);
