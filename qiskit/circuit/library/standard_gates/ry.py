@@ -70,7 +70,7 @@ class RYGate(Gate):
         #    └──────────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.RY._get_definition(self.params), legacy_qubits=True, name=self.name
+            StandardGate.RY._get_definition(self.params), legacy_qubits=True
         )
 
     def control(
@@ -233,7 +233,7 @@ class CRYGate(ControlledGate):
         #      └─────────┘└───┘└──────────┘└───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.CRY._get_definition(self.params), legacy_qubits=True, name=self.name
+            StandardGate.CRY._get_definition(self.params), legacy_qubits=True
         )
 
     def inverse(self, annotated: bool = False):

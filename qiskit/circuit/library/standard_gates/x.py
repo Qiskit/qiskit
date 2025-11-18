@@ -93,7 +93,7 @@ class XGate(SingletonGate):
         #    └──────────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.X._get_definition(self.params), legacy_qubits=True, name=self.name
+            StandardGate.X._get_definition(self.params), legacy_qubits=True
         )
 
     def control(
@@ -389,7 +389,7 @@ class CCXGate(SingletonControlledGate):
         #      └───┘└───┘└─────┘└───┘└───┘└───┘└─────┘└───┘└───┘ └───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.CCX._get_definition(self.params), legacy_qubits=True, name=self.name
+            StandardGate.CCX._get_definition(self.params), legacy_qubits=True
         )
 
     def control(
@@ -492,7 +492,7 @@ class RCCXGate(SingletonGate):
         #      └───┘└───┘└───┘└─────┘└───┘└───┘└───┘└─────┘└───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.RCCX._get_definition(self.params), legacy_qubits=True, name=self.name
+            StandardGate.RCCX._get_definition(self.params), legacy_qubits=True
         )
 
     def __eq__(self, other):
@@ -545,7 +545,7 @@ class C3SXGate(SingletonControlledGate):
         from qiskit.circuit import QuantumCircuit
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.C3SX._get_definition(self.params), legacy_qubits=True, name=self.name
+            StandardGate.C3SX._get_definition(self.params), legacy_qubits=True
         )
 
     def __eq__(self, other):
@@ -588,7 +588,7 @@ class C3XGate(SingletonControlledGate):
         from qiskit.circuit import QuantumCircuit
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.C3X._get_definition(self.params), legacy_qubits=True, name=self.name
+            StandardGate.C3X._get_definition(self.params), legacy_qubits=True
         )
 
     def control(
@@ -689,7 +689,7 @@ class RC3XGate(SingletonGate):
         from qiskit.circuit import QuantumCircuit
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.RC3X._get_definition(self.params), legacy_qubits=True, name=self.name
+            StandardGate.RC3X._get_definition(self.params), legacy_qubits=True
         )
 
     def __eq__(self, other):
@@ -738,7 +738,7 @@ class C4XGate(SingletonControlledGate):
 
         # This is not a standard gate in Rust
         q = QuantumRegister(5, name="q")
-        qc = QuantumCircuit(q, name=self.name)
+        qc = QuantumCircuit(q)
         rules = [
             (HGate(), [q[4]], []),
             (CPhaseGate(numpy.pi / 2), [q[3], q[4]], []),
