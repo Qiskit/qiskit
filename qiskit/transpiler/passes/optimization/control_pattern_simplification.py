@@ -177,6 +177,104 @@ class ControlPatternSimplification(TransformationPass):
 
         return True
 
+    def _collect_controlled_gates(self, dag: DAGCircuit) -> List[List[ControlledGateInfo]]:
+        """Collect runs of consecutive controlled gates from the DAG.
+
+        Args:
+            dag: The DAG circuit to analyze
+
+        Returns:
+            List of runs, where each run is a list of ControlledGateInfo objects
+        """
+        runs = []
+        current_run = []
+
+        for node in dag.topological_op_nodes():
+            if isinstance(node.op, ControlledGate):
+                # Extract gate information
+                num_ctrl_qubits = node.op.num_ctrl_qubits
+                ctrl_state = self._extract_control_pattern(node.op, num_ctrl_qubits)
+
+                # Get qubit indices
+                qargs = dag.qubits.get_indices(node.qargs)
+                control_qubits = qargs[:num_ctrl_qubits]
+                target_qubits = qargs[num_ctrl_qubits:]
+
+                gate_info = ControlledGateInfo(
+                    node=node,
+                    operation=node.op,
+                    control_qubits=control_qubits,
+                    target_qubits=target_qubits,
+                    ctrl_state=ctrl_state,
+                    params=tuple(node.op.params) if node.op.params else ()
+                )
+
+                current_run.append(gate_info)
+            else:
+                # Non-controlled gate breaks the run
+                if len(current_run) > 0:
+                    runs.append(current_run)
+                    current_run = []
+
+        # Add final run if exists
+        if len(current_run) > 0:
+            runs.append(current_run)
+
+        return runs
+
+    def _group_compatible_gates(self, gates: List[ControlledGateInfo]) -> List[List[ControlledGateInfo]]:
+        """Group gates that can be optimized together.
+
+        Gates are compatible if they have:
+        - Same base gate type
+        - Same target qubits
+        - Same control qubits (same set, different patterns allowed)
+        - Same parameters
+
+        Args:
+            gates: List of controlled gate information
+
+        Returns:
+            List of groups, where each group contains compatible gates
+        """
+        if len(gates) < 2:
+            return []
+
+        groups = []
+        i = 0
+
+        while i < len(gates):
+            current_group = [gates[i]]
+            base_gate = gates[i].operation.base_gate
+            target_qubits = gates[i].target_qubits
+            control_qubits_set = set(gates[i].control_qubits)
+            params = gates[i].params
+
+            # Look for consecutive compatible gates
+            j = i + 1
+            while j < len(gates):
+                candidate = gates[j]
+
+                # Check compatibility
+                if (candidate.operation.base_gate.name == base_gate.name and
+                    candidate.target_qubits == target_qubits and
+                    set(candidate.control_qubits) == control_qubits_set and
+                    self._parameters_match(candidate.params, params) and
+                    candidate.ctrl_state != gates[i].ctrl_state):  # Different patterns
+
+                    current_group.append(candidate)
+                    j += 1
+                else:
+                    break
+
+            # Only add groups with 2+ gates
+            if len(current_group) >= 2:
+                groups.append(current_group)
+
+            i = j if j > i + 1 else i + 1
+
+        return groups
+
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the ControlPatternSimplification pass on a DAGCircuit.
 
