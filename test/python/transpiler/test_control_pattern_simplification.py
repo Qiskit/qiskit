@@ -176,6 +176,28 @@ class TestControlPatternSimplification(QiskitTestCase):
         self._verify_all_states_fidelity(qc, optimized_qc, 3)
 
     @unittest.skipUnless(optionals.HAS_SYMPY, "SymPy required for this test")
+    def test_identical_patterns_different_params_no_merge(self):
+        """Test that gates with identical patterns but different parameters are not merged."""
+        theta1 = np.pi / 4
+        theta2 = np.pi / 3
+        qc = QuantumCircuit(3)
+        qc.append(RXGate(theta1).control(2, ctrl_state="11"), [0, 1, 2])
+        qc.append(RXGate(theta2).control(2, ctrl_state="11"), [0, 1, 2])  # Same pattern, different angle
+
+        original_count = len([op for op in qc.data])
+
+        pass_ = ControlPatternSimplification()
+        optimized_qc = pass_(qc)
+
+        optimized_count = len([op for op in optimized_qc.data])
+
+        # Should NOT merge due to different parameters even with identical patterns
+        self.assertEqual(original_count, optimized_count)
+
+        # Verify state equivalence across all basis states
+        self._verify_all_states_fidelity(qc, optimized_qc, 3)
+
+    @unittest.skipUnless(optionals.HAS_SYMPY, "SymPy required for this test")
     def test_comprehensive_state_fidelity(self):
         """Test state equivalence across all basis states."""
         theta = np.pi / 5
