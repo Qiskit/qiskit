@@ -79,6 +79,23 @@ static SYMMETRIC_GATES: [StandardGate; 13] = [
     StandardGate::CCZ,
 ];
 
+/// List of single-parameter rotation gates. This gates can be merged into a gate
+/// of the same class with the summed parameter. The list should contain only the
+/// "canonical" gates that remain after `canonicalize`.`
+static MERGEABLE_ROTATION_GATES: [StandardGate; 11] = [
+    StandardGate::RX,
+    StandardGate::RY,
+    StandardGate::RZ,
+    StandardGate::RXX,
+    StandardGate::RYY,
+    StandardGate::RZX,
+    StandardGate::RZZ,
+    StandardGate::CRX,
+    StandardGate::CRY,
+    StandardGate::CRZ,
+    StandardGate::CPhase,
+];
+
 /// Computes the canonical representative of a packed instruction, and in particular:
 /// * replaces all types of Z-rotations by RZ-gates,
 /// * replaces all types of X-rotations by RX-gates,
@@ -258,45 +275,35 @@ fn try_merge(
         return Ok((false, None, 0.));
     }
 
-    // Check: both instructions are standard gates which cancel out.
+    // Both instructions are standard gates.
     if let (OperationRef::StandardGate(gate1), OperationRef::StandardGate(gate2)) =
         (inst1.op.view(), inst2.op.view())
     {
+        // Check wether the two gates are self-inverse.
         if let Some((gate1inv, params1inv)) = gate1.inverse(params1) {
             if (gate1inv == gate2) && compare_params(&params1inv, params2)? {
                 return Ok((true, None, 0.));
             }
         }
-    }
-    // Check: can merge special standard gates (currently RZ and RX rotations, but we
-    // should include more gates).
-    let merged_gate = match (inst1.op.view(), inst2.op.view()) {
-        (
-            OperationRef::StandardGate(StandardGate::RZ),
-            OperationRef::StandardGate(StandardGate::RZ),
-        ) => Some(StandardGate::RZ),
-        (
-            OperationRef::StandardGate(StandardGate::RX),
-            OperationRef::StandardGate(StandardGate::RX),
-        ) => Some(StandardGate::RX),
-        _ => None,
-    };
-    if let Some(merged_gate) = merged_gate {
-        let merged_param = radd_param(params1[0].clone(), params2[0].clone());
-        let params = Some(Box::new(smallvec![merged_param]));
-        let merged_instruction =
-            PackedInstruction::from_standard_gate(merged_gate, params, inst1.qubits);
-        let (can_be_removed, phase_update) = is_identity_equiv(
-            &merged_instruction,
-            Some(matrix_max_num_qubits),
-            true,
-            error_cutoff_fn,
-        )?;
 
-        if can_be_removed {
-            return Ok((true, None, phase_update));
-        } else {
-            return Ok((true, Some(merged_instruction), 0.));
+        // Can merge two single-parameter standard rotation gates of the same type.
+        if gate1 == gate2 && MERGEABLE_ROTATION_GATES.contains(&gate1) {
+            let merged_param = radd_param(params1[0].clone(), params2[0].clone());
+            let params = Some(Box::new(smallvec![merged_param]));
+            let merged_instruction =
+                PackedInstruction::from_standard_gate(gate1, params, inst1.qubits);
+            let (can_be_removed, phase_update) = is_identity_equiv(
+                &merged_instruction,
+                Some(matrix_max_num_qubits),
+                true,
+                error_cutoff_fn,
+            )?;
+
+            if can_be_removed {
+                return Ok((true, None, phase_update));
+            } else {
+                return Ok((true, Some(merged_instruction), 0.));
+            }
         }
     }
 
