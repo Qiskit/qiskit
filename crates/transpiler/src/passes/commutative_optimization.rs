@@ -82,7 +82,7 @@ static SYMMETRIC_GATES: [StandardGate; 13] = [
 /// List of single-parameter rotation gates. This gates can be merged into a gate
 /// of the same class with the summed parameter. The list should contain only the
 /// "canonical" gates that remain after `canonicalize`.`
-static MERGEABLE_ROTATION_GATES: [StandardGate; 11] = [
+static MERGEABLE_ROTATION_GATES: [StandardGate; 12] = [
     StandardGate::RX,
     StandardGate::RY,
     StandardGate::RZ,
@@ -94,6 +94,7 @@ static MERGEABLE_ROTATION_GATES: [StandardGate; 11] = [
     StandardGate::CRY,
     StandardGate::CRZ,
     StandardGate::CPhase,
+    StandardGate::CU1,
 ];
 
 /// Computes the canonical representative of a packed instruction, and in particular:

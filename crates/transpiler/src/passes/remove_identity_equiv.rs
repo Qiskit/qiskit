@@ -108,6 +108,7 @@ where
             | StandardGate::CRX
             | StandardGate::CRY
             | StandardGate::CRZ
+            | StandardGate::CU1
             | StandardGate::CPhase => {
                 if let Param::Float(angle) = inst.params_view()[0] {
                     let (tr_over_dim, dim) = rotation_trace_and_dim(gate, angle).expect(
@@ -149,7 +150,7 @@ where
                 return Ok((false, 0.));
             }
             _ => {
-                // The remaining standard gates are R, U, U2, U3, CU, CU1, CU3, XXMinusYY and XXPlusYY.
+                // The remaining standard gates are R, U, U2, U3, CU, CU3, XXMinusYY and XXPlusYY.
                 // We could consider extending the function rotation_trace_and_dim to handle
                 // these gates, without needing to compute actual matrices.
                 if let Some(matrix) = gate.matrix(inst.params_view()) {
