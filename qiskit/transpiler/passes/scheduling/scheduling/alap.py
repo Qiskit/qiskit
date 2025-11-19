@@ -15,6 +15,7 @@
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.scheduling.scheduling.base_scheduler import BaseScheduler
 from qiskit._accelerate.alap_schedule_analysis import alap_schedule_analysis
+from qiskit._accelerate.scheduling import NodeDurations
 
 
 class ALAPScheduleAnalysis(BaseScheduler):
@@ -41,9 +42,9 @@ class ALAPScheduleAnalysis(BaseScheduler):
         if self.property_set["time_unit"] == "stretch":
             raise TranspilerError("Scheduling cannot run on circuits with stretch durations.")
 
-        node_durations = {
-            node: self._get_node_duration(node, dag) for node in dag.topological_op_nodes()
-        }
+        node_durations = NodeDurations(
+            {node: self._get_node_duration(node, dag) for node in dag.topological_op_nodes()}
+        )
         clbit_write_latency = self.property_set.get("clbit_write_latency", 0)
         self.property_set["node_start_time"] = alap_schedule_analysis(
             dag, clbit_write_latency, node_durations
