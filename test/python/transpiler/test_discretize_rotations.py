@@ -27,10 +27,15 @@ from test import combine, QiskitTestCase  # pylint: disable=wrong-import-order
 class TestDiscretizeRotations(QiskitTestCase):
     """Test the Discretize Rotations optimization pass."""
 
-    @combine(multiple=[*range(0, 16), 23, 42, -5, -8, -17, -22, -35], gate=[RXGate, RYGate, RZGate])
-    def test_rotation_gates_transpiled(self, multiple, gate):
+    @combine(
+        multiple=[*range(0, 16), 23, 42, -5, -8, -17, -22, -35],
+        gate=[RXGate, RYGate, RZGate],
+        global_phase=[0, 1.0, -2.0],
+    )
+    def test_rotation_gates_transpiled(self, multiple, gate, global_phase):
         """Test that rotations gates are translated into Clifford+T+Tdg correctly."""
         qc = QuantumCircuit(1)
+        qc.global_phase = global_phase
         angle = np.pi / 4 * multiple
         qc.append(gate(angle), [0])
         qct = DiscretizeRotations()(qc)
@@ -61,6 +66,7 @@ class TestDiscretizeRotations(QiskitTestCase):
         num_qubits = 5
         num_gates = 10
         qc = QuantumCircuit(num_qubits)
+        qc.global_phase = 2.0
         for idx in range(num_qubits):
             cliff_qc = random_clifford_circuit(num_qubits, num_gates, seed=idx)
             qc.compose(cliff_qc, inplace=True)
@@ -80,6 +86,7 @@ class TestDiscretizeRotations(QiskitTestCase):
         are transpiled correctly."""
         num_qubits = 5
         qc = QuantumCircuit(num_qubits)
+        qc.global_phase = -2.0
         qc.t(0)
         qc.tdg(1)
         qc.rx(np.pi / 4 * (num_qubits + 2), 2)
