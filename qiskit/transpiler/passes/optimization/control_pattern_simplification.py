@@ -18,9 +18,173 @@ import numpy as np
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
-from qiskit.circuit import ControlledGate, QuantumCircuit
-from qiskit.circuit.library import CXGate
-from qiskit.utils import optionals as _optionals
+from qiskit.circuit import ControlledGate
+
+
+class BitwisePatternAnalyzer:
+    """Analyze and simplify control patterns using bitwise operations.
+
+    This class provides bitwise operations to analyze concrete control patterns
+    without requiring symbolic Boolean algebra (SymPy). It works with binary
+    string patterns like '11', '01', '110', etc.
+    """
+
+    def __init__(self, num_qubits: int):
+        """Initialize the analyzer.
+
+        Args:
+            num_qubits: Number of control qubits in the patterns
+        """
+        self.num_qubits = num_qubits
+
+    def _pattern_to_int(self, pattern: str) -> int:
+        """Convert binary pattern string to integer.
+
+        Args:
+            pattern: Binary string (e.g., '110', '01')
+                    String is read left-to-right: leftmost is qubit 0
+
+        Returns:
+            Integer representation
+        """
+        return int(pattern, 2)  # Direct conversion, no reversal
+
+    def _find_common_bits(self, patterns: List[str]) -> Tuple[int, int]:
+        """Find bits that have the same value across all patterns.
+
+        Args:
+            patterns: List of binary pattern strings
+
+        Returns:
+            Tuple of (mask, value) where:
+            - mask: bits set to 1 where all patterns have the same value
+            - value: the common bit values at those positions
+        """
+        if not patterns:
+            return (0, 0)
+
+        first = self._pattern_to_int(patterns[0])
+        mask = (1 << self.num_qubits) - 1  # All bits set
+
+        for pattern in patterns[1:]:
+            curr = self._pattern_to_int(pattern)
+            # Update mask: keep only bits that match
+            diff = first ^ curr
+            mask &= ~diff  # Clear bits that differ
+
+        return (mask, first & mask)
+
+    def _can_eliminate_bit(self, bit_idx: int, patterns: List[str]) -> bool:
+        """Check if a specific bit position can be eliminated.
+
+        A bit can be eliminated if it varies across patterns in a way that
+        allows simplification (complementary patterns).
+
+        Args:
+            bit_idx: Bit position to check (0-indexed from left)
+            patterns: List of binary pattern strings
+
+        Returns:
+            True if bit can be eliminated
+        """
+        # Get all unique values at this bit position
+        bit_values = set(p[bit_idx] for p in patterns)
+
+        if len(bit_values) == 1:
+            # Bit is constant across all patterns, cannot eliminate
+            return False
+
+        # Check if varying this bit covers complementary patterns
+        # Collect patterns for each bit value
+        patterns_by_bit = {"0": [], "1": []}
+        for p in patterns:
+            bit_val = p[bit_idx]
+            patterns_by_bit[bit_val].append(p)
+
+        # Check if patterns are identical except for this bit
+        if "0" in patterns_by_bit and "1" in patterns_by_bit:
+            patterns_0 = patterns_by_bit["0"]
+            patterns_1 = patterns_by_bit["1"]
+
+            if len(patterns_0) != len(patterns_1):
+                return False
+
+            # Remove the bit at bit_idx and compare
+            def remove_bit(p):
+                return p[:bit_idx] + p[bit_idx + 1 :]
+
+            patterns_0_stripped = sorted(remove_bit(p) for p in patterns_0)
+            patterns_1_stripped = sorted(remove_bit(p) for p in patterns_1)
+
+            return patterns_0_stripped == patterns_1_stripped
+
+        return False
+
+    def simplify_patterns(
+        self, patterns: List[str]
+    ) -> Tuple[str, Optional[List[int]], Optional[str]]:
+        """Simplify control patterns using bitwise analysis.
+
+        Args:
+            patterns: List of binary control pattern strings
+
+        Returns:
+            Tuple of (classification, qubit_indices, ctrl_state):
+            - classification: 'single', 'and', 'unconditional', 'no_optimization'
+            - qubit_indices: List of qubit indices needed for control
+            - ctrl_state: Control state string for the remaining qubits
+        """
+        if not patterns:
+            return ("no_optimization", None, None)
+
+        # Ensure all patterns are same length
+        if len(set(len(p) for p in patterns)) > 1:
+            return ("no_optimization", None, None)
+
+        # Check for complete partition (all possible states covered)
+        unique_patterns = set(patterns)
+        if len(unique_patterns) == 2**self.num_qubits:
+            return ("unconditional", [], "")
+
+        # Find which bits can be eliminated
+        eliminable_bits = []
+        for bit_idx in range(self.num_qubits):
+            if self._can_eliminate_bit(bit_idx, patterns):
+                eliminable_bits.append(bit_idx)
+
+        # Find common bits across all patterns
+        mask, value = self._find_common_bits(patterns)
+
+        # Determine which bits are needed
+        # Note: eliminable_bits uses string indices (0=leftmost)
+        # while mask/value use integer bit indices (0=LSB/rightmost)
+        needed_bits = []
+        ctrl_state_bits = []
+
+        for string_idx in range(self.num_qubits):
+            # Map string index to integer bit index
+            int_bit_idx = self.num_qubits - 1 - string_idx
+            bit_mask = 1 << int_bit_idx
+
+            if string_idx in eliminable_bits:
+                # This bit can be eliminated
+                continue
+
+            # Check if this bit has a common value
+            if mask & bit_mask:
+                # Bit is common across all patterns, keep it
+                # Convert string index to qubit index (little-endian: qubit 0 is rightmost)
+                qubit_idx = self.num_qubits - 1 - string_idx
+                needed_bits.append(qubit_idx)
+                bit_value = "1" if (value & bit_mask) else "0"
+                ctrl_state_bits.append(bit_value)
+
+        if len(needed_bits) == 0:
+            return ("unconditional", [], "")
+        elif len(needed_bits) == 1:
+            return ("single", needed_bits, "".join(ctrl_state_bits))
+        else:
+            return ("and", sorted(needed_bits), "".join(ctrl_state_bits))
 
 
 @dataclass
@@ -35,6 +199,7 @@ class ControlledGateInfo:
         ctrl_state: Control state pattern as binary string
         params: Gate parameters (e.g., rotation angle)
     """
+
     node: DAGOpNode
     operation: ControlledGate
     control_qubits: List[int]
@@ -43,13 +208,12 @@ class ControlledGateInfo:
     params: Tuple[float, ...]
 
 
-@_optionals.HAS_SYMPY.require_in_instance
 class ControlPatternSimplification(TransformationPass):
     """Simplify multi-controlled gates using Boolean algebraic pattern matching.
 
     This pass detects consecutive multi-controlled gates with identical base operations,
     target qubits, and parameters (e.g., rotation angles) but different control patterns.
-    It then applies Boolean algebraic simplification to reduce gate counts.
+    It then applies bitwise pattern analysis to reduce gate counts.
 
     **Supported Gate Types:**
 
@@ -111,10 +275,6 @@ class ControlPatternSimplification(TransformationPass):
     - Amy et al., "Fast synthesis of depth-optimal quantum circuits", IEEE TCAD 32.6 (2013).
     - Shende & Markov, "On the CNOT-cost of TOFFOLI gates", arXiv:0803.2316 (2008).
     - Barenco et al., "Elementary gates for quantum computation", Phys. Rev. A 52.5 (1995).
-
-    .. note::
-        This pass requires the optional SymPy library for Boolean expression simplification.
-        Install with: ``pip install sympy``
     """
 
     def __init__(self, tolerance=1e-10):
@@ -123,9 +283,6 @@ class ControlPatternSimplification(TransformationPass):
         Args:
             tolerance (float): Numerical tolerance for comparing gate parameters.
                 Default is 1e-10.
-
-        Raises:
-            MissingOptionalLibraryError: if SymPy is not installed.
         """
         super().__init__()
         self.tolerance = tolerance
@@ -144,15 +301,15 @@ class ControlPatternSimplification(TransformationPass):
 
         if ctrl_state is None:
             # Default: all controls must be in |1⟩ state
-            return '1' * num_ctrl_qubits
+            return "1" * num_ctrl_qubits
         elif isinstance(ctrl_state, str):
             return ctrl_state
         elif isinstance(ctrl_state, int):
             # Convert integer to binary string with appropriate length
-            return format(ctrl_state, f'0{num_ctrl_qubits}b')
+            return format(ctrl_state, f"0{num_ctrl_qubits}b")
         else:
             # Fallback: assume all ones
-            return '1' * num_ctrl_qubits
+            return "1" * num_ctrl_qubits
 
     def _parameters_match(self, params1: Tuple, params2: Tuple) -> bool:
         """Check if two parameter tuples match within tolerance.
@@ -206,7 +363,7 @@ class ControlPatternSimplification(TransformationPass):
                     control_qubits=control_qubits,
                     target_qubits=target_qubits,
                     ctrl_state=ctrl_state,
-                    params=tuple(node.op.params) if node.op.params else ()
+                    params=tuple(node.op.params) if node.op.params else (),
                 )
 
                 current_run.append(gate_info)
@@ -222,7 +379,9 @@ class ControlPatternSimplification(TransformationPass):
 
         return runs
 
-    def _group_compatible_gates(self, gates: List[ControlledGateInfo]) -> List[List[ControlledGateInfo]]:
+    def _group_compatible_gates(
+        self, gates: List[ControlledGateInfo]
+    ) -> List[List[ControlledGateInfo]]:
         """Group gates that can be optimized together.
 
         Gates are compatible if they have:
@@ -256,11 +415,13 @@ class ControlPatternSimplification(TransformationPass):
                 candidate = gates[j]
 
                 # Check compatibility
-                if (candidate.operation.base_gate.name == base_gate.name and
-                    candidate.target_qubits == target_qubits and
-                    set(candidate.control_qubits) == control_qubits_set and
-                    self._parameters_match(candidate.params, params) and
-                    candidate.ctrl_state != gates[i].ctrl_state):  # Different patterns
+                if (
+                    candidate.operation.base_gate.name == base_gate.name
+                    and candidate.target_qubits == target_qubits
+                    and set(candidate.control_qubits) == control_qubits_set
+                    and self._parameters_match(candidate.params, params)
+                    and candidate.ctrl_state != gates[i].ctrl_state
+                ):  # Different patterns
 
                     current_group.append(candidate)
                     j += 1
@@ -275,133 +436,13 @@ class ControlPatternSimplification(TransformationPass):
 
         return groups
 
-    def _pattern_to_boolean_expr(self, pattern: str, num_qubits: int):
-        """Convert a binary control pattern to a SymPy Boolean expression.
-
-        Args:
-            pattern: Binary string pattern (e.g., '11', '01', '110')
-                    Pattern is little-endian: rightmost bit corresponds to qubit 0
-            num_qubits: Number of control qubits
-
-        Returns:
-            SymPy Boolean expression representing the pattern
-        """
-        from sympy import symbols, And, Not
-
-        # Create symbols for each control qubit
-        qubit_vars = symbols(f'q0:{num_qubits}')
-
-        # Build expression: AND of all control conditions
-        # Pattern is little-endian, so reverse it to match qubit ordering
-        conditions = []
-        for i, bit in enumerate(reversed(pattern)):
-            if bit == '1':
-                conditions.append(qubit_vars[i])
-            else:  # bit == '0'
-                conditions.append(Not(qubit_vars[i]))
-
-        return And(*conditions) if len(conditions) > 1 else conditions[0]
-
-    def _combine_patterns_to_expression(self, patterns: List[str], num_qubits: int):
-        """Combine multiple control patterns into a single Boolean expression.
-
-        Args:
-            patterns: List of binary string patterns
-            num_qubits: Number of control qubits
-
-        Returns:
-            SymPy Boolean expression (OR of all pattern expressions)
-        """
-        from sympy import Or
-
-        if not patterns:
-            return None
-
-        if len(patterns) == 1:
-            return self._pattern_to_boolean_expr(patterns[0], num_qubits)
-
-        # Combine patterns with OR
-        pattern_exprs = [self._pattern_to_boolean_expr(p, num_qubits) for p in patterns]
-        return Or(*pattern_exprs)
-
-    def _simplify_boolean_expression(self, expr):
-        """Simplify a Boolean expression using SymPy.
-
-        Args:
-            expr: SymPy Boolean expression
-
-        Returns:
-            Simplified SymPy Boolean expression
-        """
-        from sympy.logic import simplify_logic
-
-        if expr is None:
-            return None
-
-        return simplify_logic(expr)
-
-    def _classify_simplified_expression(self, expr, num_qubits: int) -> Tuple[str, Optional[List[int]], Optional[str]]:
-        """Classify the simplified Boolean expression to determine optimization type.
-
-        Args:
-            expr: Simplified SymPy Boolean expression
-            num_qubits: Number of control qubits
-
-        Returns:
-            Tuple of (classification_type, relevant_qubit_indices, ctrl_state)
-            Classification types:
-            - 'single': Single variable (e.g., q0 or ~q0)
-            - 'and': AND of multiple variables (e.g., q0 & q1 or ~q0 & q1)
-            - 'unconditional': Always True
-            - 'no_optimization': No simplification possible
-            ctrl_state: Control state string for the qubits (e.g., '1', '0', '10', '01', etc.)
-        """
-        from sympy import Symbol, And, Not
-        from sympy.logic.boolalg import BooleanTrue
-
-        if expr is None:
-            return ('no_optimization', None, None)
-
-        # Check if unconditional (True)
-        if isinstance(expr, BooleanTrue) or expr == True:
-            return ('unconditional', [], '')
-
-        # Check if single variable or single NOT
-        if isinstance(expr, Symbol):
-            # Extract qubit index from symbol name (e.g., 'q0' -> 0)
-            qubit_idx = int(str(expr)[1:])
-            return ('single', [qubit_idx], '1')
-
-        if isinstance(expr, Not) and isinstance(expr.args[0], Symbol):
-            # NOT of a single variable (e.g., ~q0)
-            qubit_idx = int(str(expr.args[0])[1:])
-            return ('single', [qubit_idx], '0')
-
-        # Check if AND of variables (with potential NOTs)
-        if isinstance(expr, And):
-            qubit_indices = []
-            ctrl_state = ''
-            for arg in expr.args:
-                if isinstance(arg, Symbol):
-                    qubit_idx = int(str(arg)[1:])
-                    qubit_indices.append(qubit_idx)
-                    ctrl_state += '1'
-                elif isinstance(arg, Not) and isinstance(arg.args[0], Symbol):
-                    qubit_idx = int(str(arg.args[0])[1:])
-                    qubit_indices.append(qubit_idx)
-                    ctrl_state += '0'
-                else:
-                    # Complex expression, can't optimize simply
-                    return ('no_optimization', None, None)
-
-            return ('and', sorted(qubit_indices), ctrl_state)
-
-        # Other cases: no simple optimization
-        return ('no_optimization', None, None)
-
     def _build_single_control_gate(
-        self, base_gate, params: Tuple, control_qubit: int, target_qubits: List[int],
-        ctrl_state: str
+        self,
+        base_gate,
+        params: Tuple,
+        control_qubit: int,
+        target_qubits: List[int],
+        ctrl_state: str,
     ) -> Tuple[ControlledGate, List[int]]:
         """Build a single-controlled gate from optimization result.
 
@@ -430,8 +471,12 @@ class ControlPatternSimplification(TransformationPass):
         return (controlled_gate, qargs)
 
     def _build_multi_control_gate(
-        self, base_gate, params: Tuple, control_qubits: List[int],
-        target_qubits: List[int], ctrl_state: str
+        self,
+        base_gate,
+        params: Tuple,
+        control_qubits: List[int],
+        target_qubits: List[int],
+        ctrl_state: str,
     ) -> Tuple[ControlledGate, List[int]]:
         """Build a multi-controlled gate with reduced control qubits.
 
@@ -482,8 +527,7 @@ class ControlPatternSimplification(TransformationPass):
         return (gate, target_qubits)
 
     def _replace_gates_in_dag(
-        self, dag: DAGCircuit, original_group: List[ControlledGateInfo],
-        replacement: List[Tuple]
+        self, dag: DAGCircuit, original_group: List[ControlledGateInfo], replacement: List[Tuple]
     ):
         """Replace a group of gates in the DAG with optimized gates.
 
@@ -543,17 +587,14 @@ class ControlPatternSimplification(TransformationPass):
                 patterns = [g.ctrl_state for g in group]
                 num_qubits = len(group[0].control_qubits)
 
-                # 4. Try Boolean algebraic simplification
-                expr = self._combine_patterns_to_expression(patterns, num_qubits)
-                simplified = self._simplify_boolean_expression(expr)
-                classification, qubit_indices, ctrl_state = self._classify_simplified_expression(
-                    simplified, num_qubits
-                )
+                # 4. Try bitwise pattern simplification
+                analyzer = BitwisePatternAnalyzer(num_qubits)
+                classification, qubit_indices, ctrl_state = analyzer.simplify_patterns(patterns)
 
                 # 5. Build optimized gate based on classification
                 replacement = None
 
-                if classification == 'single' and qubit_indices and ctrl_state:
+                if classification == "single" and qubit_indices and ctrl_state:
                     # Simplified to single control qubit
                     control_qubit_pos = qubit_indices[0]
                     control_qubit = group[0].control_qubits[control_qubit_pos]
@@ -566,7 +607,7 @@ class ControlPatternSimplification(TransformationPass):
                     )
                     replacement = [(gate, qargs)]
 
-                elif classification == 'and' and qubit_indices and ctrl_state:
+                elif classification == "and" and qubit_indices and ctrl_state:
                     # Simplified to AND of multiple controls (reduced set)
                     control_qubits = [group[0].control_qubits[i] for i in qubit_indices]
                     target_qubits = group[0].target_qubits
@@ -578,15 +619,13 @@ class ControlPatternSimplification(TransformationPass):
                     )
                     replacement = [(gate, qargs)]
 
-                elif classification == 'unconditional':
+                elif classification == "unconditional":
                     # All control states covered - unconditional gate
                     target_qubits = group[0].target_qubits
                     base_gate = type(group[0].operation.base_gate)
                     params = group[0].params
 
-                    gate, qargs = self._build_unconditional_gate(
-                        base_gate, params, target_qubits
-                    )
+                    gate, qargs = self._build_unconditional_gate(base_gate, params, target_qubits)
                     replacement = [(gate, qargs)]
 
                 # Store optimization if found
