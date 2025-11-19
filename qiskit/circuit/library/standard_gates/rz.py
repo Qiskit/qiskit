@@ -121,9 +121,6 @@ class RZGate(Gate):
                 self.params[0], label=label, ctrl_state=ctrl_state, _base_label=self.label
             )
         else:
-            if annotated is None:
-                annotated = any(isinstance(p, ParameterExpression) for p in self.params)
-
             gate = super().control(
                 num_ctrl_qubits=num_ctrl_qubits,
                 label=label,
