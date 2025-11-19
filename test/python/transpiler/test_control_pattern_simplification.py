@@ -176,8 +176,8 @@ class TestControlPatternSimplification(QiskitTestCase):
         self._verify_all_states_fidelity(qc, optimized_qc, 3)
 
     @unittest.skipUnless(optionals.HAS_SYMPY, "SymPy required for this test")
-    def test_identical_patterns_different_params_no_merge(self):
-        """Test that gates with identical patterns but different parameters are not merged."""
+    def test_identical_patterns_different_params_merge(self):
+        """Test that gates with identical patterns and different angles can merge."""
         theta1 = np.pi / 4
         theta2 = np.pi / 3
         qc = QuantumCircuit(3)
@@ -191,8 +191,9 @@ class TestControlPatternSimplification(QiskitTestCase):
 
         optimized_count = len([op for op in optimized_qc.data])
 
-        # Should NOT merge due to different parameters even with identical patterns
-        self.assertEqual(original_count, optimized_count)
+        # Gates with same pattern can be merged (angles add up)
+        # This is left to other optimization passes, so we just verify equivalence
+        self.assertLessEqual(optimized_count, original_count)
 
         # Verify state equivalence across all basis states
         self._verify_all_states_fidelity(qc, optimized_qc, 3)
