@@ -16,13 +16,6 @@ upgrade_circuits:
       and ``MCMT`` gates.
 
   - |
-    For two or more controls, the controlled ``RX``,``RY`` and ``RZ`` gates that depend on
-    free parameters are now represented as :class:`.AnnotatedOperation` instead of
-    :class:`.ControlledGate`. This change does not affect the resulting synthesized circuits,
-    but defers synthesis from gate creation time to transpilation time. In addition,
-    this makes the handling of controlled parameterized gates more consistent across the standard
-    circuit library.
-  - |
     The default value of the argument ``annotated`` in :meth:`QuantumCircuit.control` is now
     ``None`` instead of ``False``. This does not affect the actual circuits, but is consistent
     with the default value of ``annotated`` used across the circuit library.
