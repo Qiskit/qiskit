@@ -377,9 +377,11 @@ def _merge_two_pauli_evolutions(
     if isinstance(gate1.operator, SparseObservable) and isinstance(
         gate2.operator, SparseObservable
     ):
-        # When both operators are SparseObservables, we can compare the canonical versions of
-        # the operators.
+        # When both operators are SparseObservables, we can compare their canonical representatives.
         can_merge = gate1.operator.simplify() == gate2.operator.simplify()
+    elif isinstance(gate1.operator, SparsePauliOp) and isinstance(gate2.operator, SparsePauliOp):
+        # SparsePauliOp already has a function that compares canonical representatives.
+        can_merge = gate1.operator.equiv(gate2.operator)
     else:
         can_merge = gate1.operator == gate2.operator
 

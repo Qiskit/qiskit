@@ -831,34 +831,25 @@ class TestEvolutionGate(QiskitTestCase):
             op = SparsePauliOp(["XYIZ"], [1])  # 4 qubits
             PauliEvolutionGate([pauli, op], time=1)
 
-    def test_merge_two_pauli_evolutions(self):
+    @data(True, False)
+    def test_merge_two_pauli_evolutions(self, use_sparse_observable):
         """Test merging two Pauli evolution gates."""
+        obs_cls = SparseObservable if use_sparse_observable else SparsePauliOp
         with self.subTest("identical"):
-            gate1 = PauliEvolutionGate(SparseObservable("XY"))
-            gate2 = PauliEvolutionGate(SparseObservable("XY"))
+            gate1 = PauliEvolutionGate(obs_cls("XY"))
+            gate2 = PauliEvolutionGate(obs_cls("XY"))
             merged = _merge_two_pauli_evolutions(gate1, gate2)
             self.assertIsNotNone(merged)
         with self.subTest("different"):
-            gate1 = PauliEvolutionGate(SparseObservable("XY"))
-            gate2 = PauliEvolutionGate(SparseObservable("YX"))
+            gate1 = PauliEvolutionGate(obs_cls("XY"))
+            gate2 = PauliEvolutionGate(obs_cls("YX"))
             merged = _merge_two_pauli_evolutions(gate1, gate2)
             self.assertIsNone(merged)
         with self.subTest("identical after canonicalization"):
-            gate1 = PauliEvolutionGate(SparseObservable("X") + SparseObservable("Z"))
-            gate2 = PauliEvolutionGate(SparseObservable("Z") + SparseObservable("X"))
+            gate1 = PauliEvolutionGate(obs_cls("X") + obs_cls("Z"))
+            gate2 = PauliEvolutionGate(obs_cls("Z") + obs_cls("X"))
             merged = _merge_two_pauli_evolutions(gate1, gate2)
             self.assertIsNotNone(merged)
-        with self.subTest("identical sparse pauli ops"):
-            gate1 = PauliEvolutionGate(SparsePauliOp("XY"))
-            gate2 = PauliEvolutionGate(SparsePauliOp("XY"))
-            merged = _merge_two_pauli_evolutions(gate1, gate2)
-            self.assertIsNotNone(merged)
-        with self.subTest("different sparse pauli ops"):
-            gate1 = PauliEvolutionGate(SparsePauliOp("XY"))
-            gate2 = PauliEvolutionGate(SparsePauliOp("YX"))
-            merged = _merge_two_pauli_evolutions(gate1, gate2)
-            self.assertIsNone(merged)
-
 
 def exact_atomic_evolution(circuit, pauli, time):
     """An exact atomic evolution for Suzuki-Trotter.
