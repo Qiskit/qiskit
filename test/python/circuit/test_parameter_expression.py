@@ -73,6 +73,7 @@ class TestParameterExpression(QiskitTestCase):
 
     @ddt.data(param_x, param_x + param_y, (param_x + 1.0).bind({param_x: 1.0}))
     def test_num_parameters(self, expr):
+        """Do the two ways of getting the number of unbound parameters agree?"""
         self.assertEqual(len(expr.parameters), expr.num_parameters)
 
     @combine(
