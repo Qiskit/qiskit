@@ -196,7 +196,7 @@ class ControlPatternSimplification(TransformationPass):
                 ctrl_state = self._extract_control_pattern(node.op, num_ctrl_qubits)
 
                 # Get qubit indices
-                qargs = dag.qubits.get_indices(node.qargs)
+                qargs = [dag.find_bit(q).index for q in node.qargs]
                 control_qubits = qargs[:num_ctrl_qubits]
                 target_qubits = qargs[num_ctrl_qubits:]
 
@@ -275,6 +275,245 @@ class ControlPatternSimplification(TransformationPass):
 
         return groups
 
+    def _pattern_to_boolean_expr(self, pattern: str, num_qubits: int):
+        """Convert a binary control pattern to a SymPy Boolean expression.
+
+        Args:
+            pattern: Binary string pattern (e.g., '11', '01', '110')
+                    Pattern is little-endian: rightmost bit corresponds to qubit 0
+            num_qubits: Number of control qubits
+
+        Returns:
+            SymPy Boolean expression representing the pattern
+        """
+        from sympy import symbols, And, Not
+
+        # Create symbols for each control qubit
+        qubit_vars = symbols(f'q0:{num_qubits}')
+
+        # Build expression: AND of all control conditions
+        # Pattern is little-endian, so reverse it to match qubit ordering
+        conditions = []
+        for i, bit in enumerate(reversed(pattern)):
+            if bit == '1':
+                conditions.append(qubit_vars[i])
+            else:  # bit == '0'
+                conditions.append(Not(qubit_vars[i]))
+
+        return And(*conditions) if len(conditions) > 1 else conditions[0]
+
+    def _combine_patterns_to_expression(self, patterns: List[str], num_qubits: int):
+        """Combine multiple control patterns into a single Boolean expression.
+
+        Args:
+            patterns: List of binary string patterns
+            num_qubits: Number of control qubits
+
+        Returns:
+            SymPy Boolean expression (OR of all pattern expressions)
+        """
+        from sympy import Or
+
+        if not patterns:
+            return None
+
+        if len(patterns) == 1:
+            return self._pattern_to_boolean_expr(patterns[0], num_qubits)
+
+        # Combine patterns with OR
+        pattern_exprs = [self._pattern_to_boolean_expr(p, num_qubits) for p in patterns]
+        return Or(*pattern_exprs)
+
+    def _simplify_boolean_expression(self, expr):
+        """Simplify a Boolean expression using SymPy.
+
+        Args:
+            expr: SymPy Boolean expression
+
+        Returns:
+            Simplified SymPy Boolean expression
+        """
+        from sympy.logic import simplify_logic
+
+        if expr is None:
+            return None
+
+        return simplify_logic(expr)
+
+    def _classify_simplified_expression(self, expr, num_qubits: int) -> Tuple[str, Optional[List[int]], Optional[str]]:
+        """Classify the simplified Boolean expression to determine optimization type.
+
+        Args:
+            expr: Simplified SymPy Boolean expression
+            num_qubits: Number of control qubits
+
+        Returns:
+            Tuple of (classification_type, relevant_qubit_indices, ctrl_state)
+            Classification types:
+            - 'single': Single variable (e.g., q0 or ~q0)
+            - 'and': AND of multiple variables (e.g., q0 & q1 or ~q0 & q1)
+            - 'unconditional': Always True
+            - 'no_optimization': No simplification possible
+            ctrl_state: Control state string for the qubits (e.g., '1', '0', '10', '01', etc.)
+        """
+        from sympy import Symbol, And, Not
+        from sympy.logic.boolalg import BooleanTrue
+
+        if expr is None:
+            return ('no_optimization', None, None)
+
+        # Check if unconditional (True)
+        if isinstance(expr, BooleanTrue) or expr == True:
+            return ('unconditional', [], '')
+
+        # Check if single variable or single NOT
+        if isinstance(expr, Symbol):
+            # Extract qubit index from symbol name (e.g., 'q0' -> 0)
+            qubit_idx = int(str(expr)[1:])
+            return ('single', [qubit_idx], '1')
+
+        if isinstance(expr, Not) and isinstance(expr.args[0], Symbol):
+            # NOT of a single variable (e.g., ~q0)
+            qubit_idx = int(str(expr.args[0])[1:])
+            return ('single', [qubit_idx], '0')
+
+        # Check if AND of variables (with potential NOTs)
+        if isinstance(expr, And):
+            qubit_indices = []
+            ctrl_state = ''
+            for arg in expr.args:
+                if isinstance(arg, Symbol):
+                    qubit_idx = int(str(arg)[1:])
+                    qubit_indices.append(qubit_idx)
+                    ctrl_state += '1'
+                elif isinstance(arg, Not) and isinstance(arg.args[0], Symbol):
+                    qubit_idx = int(str(arg.args[0])[1:])
+                    qubit_indices.append(qubit_idx)
+                    ctrl_state += '0'
+                else:
+                    # Complex expression, can't optimize simply
+                    return ('no_optimization', None, None)
+
+            return ('and', sorted(qubit_indices), ctrl_state)
+
+        # Other cases: no simple optimization
+        return ('no_optimization', None, None)
+
+    def _build_single_control_gate(
+        self, base_gate, params: Tuple, control_qubit: int, target_qubits: List[int],
+        ctrl_state: str
+    ) -> Tuple[ControlledGate, List[int]]:
+        """Build a single-controlled gate from optimization result.
+
+        Args:
+            base_gate: The base gate operation (e.g., RXGate, RYGate)
+            params: Gate parameters (e.g., rotation angle)
+            control_qubit: Index of the control qubit
+            target_qubits: List of target qubit indices
+            ctrl_state: Control state ('0' or '1')
+
+        Returns:
+            Tuple of (optimized_gate, qargs) where qargs is [control_qubit, *target_qubits]
+        """
+        # Create base gate with parameters
+        if params:
+            gate = base_gate(*params)
+        else:
+            gate = base_gate
+
+        # Create controlled version with single control
+        controlled_gate = gate.control(1, ctrl_state=ctrl_state)
+
+        # Qubit arguments: control first, then targets
+        qargs = [control_qubit] + target_qubits
+
+        return (controlled_gate, qargs)
+
+    def _build_multi_control_gate(
+        self, base_gate, params: Tuple, control_qubits: List[int],
+        target_qubits: List[int], ctrl_state: str
+    ) -> Tuple[ControlledGate, List[int]]:
+        """Build a multi-controlled gate with reduced control qubits.
+
+        Args:
+            base_gate: The base gate operation
+            params: Gate parameters
+            control_qubits: List of control qubit indices (reduced set)
+            target_qubits: List of target qubit indices
+            ctrl_state: Control state pattern for the reduced controls
+
+        Returns:
+            Tuple of (optimized_gate, qargs)
+        """
+        # Create base gate with parameters
+        if params:
+            gate = base_gate(*params)
+        else:
+            gate = base_gate
+
+        # Create controlled version with multiple controls
+        num_ctrl_qubits = len(control_qubits)
+        controlled_gate = gate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
+
+        # Qubit arguments: controls first, then targets
+        qargs = control_qubits + target_qubits
+
+        return (controlled_gate, qargs)
+
+    def _build_unconditional_gate(
+        self, base_gate, params: Tuple, target_qubits: List[int]
+    ) -> Tuple:
+        """Build an unconditional gate (no controls).
+
+        Args:
+            base_gate: The base gate operation
+            params: Gate parameters
+            target_qubits: List of target qubit indices
+
+        Returns:
+            Tuple of (gate, qargs)
+        """
+        # Create base gate with parameters (no controls)
+        if params:
+            gate = base_gate(*params)
+        else:
+            gate = base_gate
+
+        return (gate, target_qubits)
+
+    def _replace_gates_in_dag(
+        self, dag: DAGCircuit, original_group: List[ControlledGateInfo],
+        replacement: List[Tuple]
+    ):
+        """Replace a group of gates in the DAG with optimized gates.
+
+        Args:
+            dag: The DAG circuit to modify
+            original_group: List of original gate info objects to remove
+            replacement: List of (gate, qargs) tuples to insert
+
+        Returns:
+            None (modifies dag in place)
+        """
+        if not original_group or not replacement:
+            return
+
+        # Find the position of the first gate in the group
+        first_node = original_group[0].node
+
+        # Remove all gates in the group
+        for gate_info in original_group:
+            dag.remove_op_node(gate_info.node)
+
+        # Insert replacement gates at the position of the first removed gate
+        # We need to get the qubits as Qubit objects, not indices
+        for gate, qargs_indices in replacement:
+            # Convert qubit indices to Qubit objects
+            qubits = [dag.qubits[idx] for idx in qargs_indices]
+
+            # Apply the gate to the DAG
+            dag.apply_operation_back(gate, qubits)
+
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the ControlPatternSimplification pass on a DAGCircuit.
 
@@ -284,14 +523,78 @@ class ControlPatternSimplification(TransformationPass):
         Returns:
             DAGCircuit: The optimized DAG with simplified control patterns.
         """
-        # TODO: Implement the optimization logic
-        # 1. Identify runs of consecutive multi-controlled gates
-        # 2. Group gates with same base operation, target, and parameters
-        #    (works for any parametric gate: RX, RY, RZ, Phase, etc.)
-        # 3. Extract control patterns from ctrl_state
-        # 4. Apply Boolean simplification using SymPy
-        # 5. Detect XOR patterns for CNOT tricks
-        # 6. Generate optimized circuit with reduced gate count
-        # 7. Replace original gates with optimized version
+        # 1. Collect runs of consecutive controlled gates
+        gate_runs = self._collect_controlled_gates(dag)
+
+        # Track groups to optimize (collect all first to avoid modifying DAG during iteration)
+        optimizations_to_apply = []
+
+        # 2. Process each run
+        for run in gate_runs:
+            # Group gates by compatible properties
+            groups = self._group_compatible_gates(run)
+
+            # 3. Process each optimizable group
+            for group in groups:
+                if len(group) < 2:
+                    continue
+
+                # Extract control patterns
+                patterns = [g.ctrl_state for g in group]
+                num_qubits = len(group[0].control_qubits)
+
+                # 4. Try Boolean algebraic simplification
+                expr = self._combine_patterns_to_expression(patterns, num_qubits)
+                simplified = self._simplify_boolean_expression(expr)
+                classification, qubit_indices, ctrl_state = self._classify_simplified_expression(
+                    simplified, num_qubits
+                )
+
+                # 5. Build optimized gate based on classification
+                replacement = None
+
+                if classification == 'single' and qubit_indices and ctrl_state:
+                    # Simplified to single control qubit
+                    control_qubit_pos = qubit_indices[0]
+                    control_qubit = group[0].control_qubits[control_qubit_pos]
+                    target_qubits = group[0].target_qubits
+                    base_gate = type(group[0].operation.base_gate)
+                    params = group[0].params
+
+                    gate, qargs = self._build_single_control_gate(
+                        base_gate, params, control_qubit, target_qubits, ctrl_state
+                    )
+                    replacement = [(gate, qargs)]
+
+                elif classification == 'and' and qubit_indices and ctrl_state:
+                    # Simplified to AND of multiple controls (reduced set)
+                    control_qubits = [group[0].control_qubits[i] for i in qubit_indices]
+                    target_qubits = group[0].target_qubits
+                    base_gate = type(group[0].operation.base_gate)
+                    params = group[0].params
+
+                    gate, qargs = self._build_multi_control_gate(
+                        base_gate, params, control_qubits, target_qubits, ctrl_state
+                    )
+                    replacement = [(gate, qargs)]
+
+                elif classification == 'unconditional':
+                    # All control states covered - unconditional gate
+                    target_qubits = group[0].target_qubits
+                    base_gate = type(group[0].operation.base_gate)
+                    params = group[0].params
+
+                    gate, qargs = self._build_unconditional_gate(
+                        base_gate, params, target_qubits
+                    )
+                    replacement = [(gate, qargs)]
+
+                # Store optimization if found
+                if replacement:
+                    optimizations_to_apply.append((group, replacement))
+
+        # 6. Apply all optimizations to DAG
+        for group, replacement in optimizations_to_apply:
+            self._replace_gates_in_dag(dag, group, replacement)
 
         return dag
