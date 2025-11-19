@@ -244,6 +244,9 @@ impl<'a> VisualizationLayer<'a> {
             OperationRef::StandardInstruction(std_inst) => {
                 self.add_standard_instruction(cregbundle, std_inst, inst, circuit, clbit_map);
             }
+            OperationRef::Unitary(_) =>  {
+                self.add_unitary_gate(inst, circuit);
+            }
             _ => unimplemented!(
                 "{}",
                 format!(
@@ -416,6 +419,25 @@ impl<'a> VisualizationLayer<'a> {
                 for q in qargs {
                     self.0[q.index()] = VisualizationElement::Boxed(BoxedElement::Single(inst));
                 }
+            }
+        }
+    }
+
+    fn add_unitary_gate(
+        &mut self,
+        inst: &'a PackedInstruction,
+        circuit: &CircuitData,
+        ) {
+        let qargs = circuit.get_qargs(inst.qubits);
+        if qargs.len() == 1 {
+            self.0[qargs.first().unwrap().index()] = VisualizationElement::Boxed(BoxedElement::Single(inst));
+        }
+        else {
+            let (minima, maxima) =
+                get_instruction_range(qargs, &[], 0);
+
+            for q in minima..=maxima {
+                self.0[q] = VisualizationElement::Boxed(BoxedElement::Multi(inst));
             }
         }
     }
@@ -706,95 +728,96 @@ impl TextDrawer {
     }
 
     fn get_label(instruction: &PackedInstruction) -> String {
-        if let Some(std_instruction) = instruction.op.try_standard_instruction() {
-            return match std_instruction {
-                StandardInstruction::Measure => "M".to_string(),
-                StandardInstruction::Reset => "|0>".to_string(),
-                StandardInstruction::Barrier(_) => "░".to_string(),
-                StandardInstruction::Delay(delay_unit) => {
-                    format!("Delay({:?}[{}])", instruction.params, delay_unit)
+        match instruction.op.view() {
+            OperationRef::StandardInstruction(std_instruction) => {
+                match std_instruction {
+                    StandardInstruction::Measure => "M".to_string(),
+                    StandardInstruction::Reset => "|0>".to_string(),
+                    StandardInstruction::Barrier(_) => "░".to_string(),
+                    StandardInstruction::Delay(delay_unit) => 
+                    format!("Delay({:?}[{}])", instruction.params, delay_unit),
                 }
-            };
+            },
+            OperationRef::StandardGate(standard_gate) => {
+                let mut label = match standard_gate {
+                    StandardGate::GlobalPhase => "",
+                    StandardGate::H => "H",
+                    StandardGate::I => "I",
+                    StandardGate::X => "X",
+                    StandardGate::Y => "Y",
+                    StandardGate::Z => "Z",
+                    StandardGate::Phase => "P",
+                    StandardGate::R => "R",
+                    StandardGate::RX => "Rx",
+                    StandardGate::RY => "Ry",
+                    StandardGate::RZ => "Rz",
+                    StandardGate::S => "S",
+                    StandardGate::Sdg => "Sdg",
+                    StandardGate::SX => "√X",
+                    StandardGate::SXdg => "√Xdg",
+                    StandardGate::T => "T",
+                    StandardGate::Tdg => "Tdg",
+                    StandardGate::U => "U",
+                    StandardGate::U1 => "U1",
+                    StandardGate::U2 => "U2",
+                    StandardGate::U3 => "U3",
+                    StandardGate::CH => "H",
+                    StandardGate::CX => "X",
+                    StandardGate::CY => "Y",
+                    StandardGate::CZ => "Z",
+                    StandardGate::DCX => "Dcx",
+                    StandardGate::ECR => "Ecr",
+                    StandardGate::Swap => "",
+                    StandardGate::ISwap => "Iswap",
+                    StandardGate::CPhase => "P",
+                    StandardGate::CRX => "Rx",
+                    StandardGate::CRY => "Ry",
+                    StandardGate::CRZ => "Rz",
+                    StandardGate::CS => "S",
+                    StandardGate::CSdg => "Sdg",
+                    StandardGate::CSX => "Sx",
+                    StandardGate::CU => "U",
+                    StandardGate::CU1 => "U1",
+                    StandardGate::CU3 => "U3",
+                    StandardGate::RXX => "Rxx",
+                    StandardGate::RYY => "Ryy",
+                    StandardGate::RZZ => "Rzz",
+                    StandardGate::RZX => "Rzx",
+                    StandardGate::XXMinusYY => "XX-YY",
+                    StandardGate::XXPlusYY => "XX+YY",
+                    StandardGate::CCX => "X",
+                    StandardGate::CCZ => "Z",
+                    StandardGate::CSwap => "",
+                    StandardGate::RCCX => "Rccx",
+                    StandardGate::C3X => "X",
+                    StandardGate::C3SX => "Sx",
+                    StandardGate::RC3X => "Rcccx",
+                }
+                .to_string();
+
+                let custom_label = instruction.label();
+                if custom_label.is_some() && custom_label.unwrap() != label {
+                    label = custom_label.unwrap().to_string();
+                }
+                if standard_gate.num_params() > 0 {
+                    let params = instruction
+                        .params_view()
+                        .iter()
+                        .map(|param| match param {
+                            Param::Float(f) => format!("{}", f),
+                            _ => format!("{:?}", param),
+                        })
+                        .join(",");
+                    label = format!("{}({})", label, params);
+                }
+                label
+            },
+            OperationRef::Unitary(_) => {
+                instruction.label().unwrap_or(" Unitary ").to_string()
+            },
+            // Fallback for non-standard operations
+            _ => format!(" {} ", instruction.op.name())
         }
-
-        let custom_label = instruction.label();
-        if let Some(standard_gate) = instruction.op.try_standard_gate() {
-            let mut label = match standard_gate {
-                StandardGate::GlobalPhase => "",
-                StandardGate::H => "H",
-                StandardGate::I => "I",
-                StandardGate::X => "X",
-                StandardGate::Y => "Y",
-                StandardGate::Z => "Z",
-                StandardGate::Phase => "P",
-                StandardGate::R => "R",
-                StandardGate::RX => "Rx",
-                StandardGate::RY => "Ry",
-                StandardGate::RZ => "Rz",
-                StandardGate::S => "S",
-                StandardGate::Sdg => "Sdg",
-                StandardGate::SX => "√X",
-                StandardGate::SXdg => "√Xdg",
-                StandardGate::T => "T",
-                StandardGate::Tdg => "Tdg",
-                StandardGate::U => "U",
-                StandardGate::U1 => "U1",
-                StandardGate::U2 => "U2",
-                StandardGate::U3 => "U3",
-                StandardGate::CH => "H",
-                StandardGate::CX => "X",
-                StandardGate::CY => "Y",
-                StandardGate::CZ => "Z",
-                StandardGate::DCX => "Dcx",
-                StandardGate::ECR => "Ecr",
-                StandardGate::Swap => "",
-                StandardGate::ISwap => "Iswap",
-                StandardGate::CPhase => "P",
-                StandardGate::CRX => "Rx",
-                StandardGate::CRY => "Ry",
-                StandardGate::CRZ => "Rz",
-                StandardGate::CS => "S",
-                StandardGate::CSdg => "Sdg",
-                StandardGate::CSX => "Sx",
-                StandardGate::CU => "U",
-                StandardGate::CU1 => "U1",
-                StandardGate::CU3 => "U3",
-                StandardGate::RXX => "Rxx",
-                StandardGate::RYY => "Ryy",
-                StandardGate::RZZ => "Rzz",
-                StandardGate::RZX => "Rzx",
-                StandardGate::XXMinusYY => "XX-YY",
-                StandardGate::XXPlusYY => "XX+YY",
-                StandardGate::CCX => "X",
-                StandardGate::CCZ => "Z",
-                StandardGate::CSwap => "",
-                StandardGate::RCCX => "Rccx",
-                StandardGate::C3X => "X",
-                StandardGate::C3SX => "Sx",
-                StandardGate::RC3X => "Rcccx",
-            }
-            .to_string();
-
-            if custom_label.is_some() && custom_label.unwrap() != label {
-                label = custom_label.unwrap().to_string();
-            }
-            if standard_gate.num_params() > 0 {
-                let params = instruction
-                    .params_view()
-                    .iter()
-                    .map(|param| match param {
-                        Param::Float(f) => format!("{}", f),
-                        _ => format!("{:?}", param),
-                    })
-                    .join(",");
-                label = format!("{}({})", label, params);
-            }
-
-            return format!(" {} ", label);
-        }
-
-        // Fallback for non-standard operations
-        format!(" {} ", instruction.op.name().to_string())
     }
 
     fn get_layer_width(&self, ind: usize) -> usize {
