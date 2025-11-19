@@ -851,6 +851,7 @@ class TestEvolutionGate(QiskitTestCase):
             merged = _merge_two_pauli_evolutions(gate1, gate2)
             self.assertIsNotNone(merged)
 
+
 def exact_atomic_evolution(circuit, pauli, time):
     """An exact atomic evolution for Suzuki-Trotter.
 
