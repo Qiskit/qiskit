@@ -3,8 +3,12 @@ features_transpiler:
   - |
     Added a new transpiler pass :class:`.DiscretizeRotations`,
     that converts single-qubit :class:`.RZGate`, :class:`.RXGate` and :class:`.RYGate` rotations gates
-    whose angles are integer multiples of 2*pi/8 into discrete sets of
+    whose angles are integer multiples of pi/4 into discrete sets of
     Clifford, :class:`.TGate` and :class:`.TdgGate` gates.
+    Note that odd multiples of pi/4 require a single :class:`.TGate` and :class:`.TdgGate`,
+    as well as some Clifford gates,
+    while even multiples of pi/4, or equivalently, integer multiples of pi/2,
+    can be written using only Clifford gates.
 
     For example::
 
@@ -13,7 +17,7 @@ features_transpiler:
       from qiskit.quantum_info import Operator
 
       # The following quantum circuit consists of 5 Clifford gates
-      # and three single-qubit rotation gates whose angles are integer multiples of 2*pi/8.
+      # and three single-qubit rotation gates whose angles are integer multiples of pi/4.
       qc = QuantumCircuit(3)
       qc.cx(0, 1)
       qc.rz(pi/4, 0)

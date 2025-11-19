@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Convert rotation gates into {Clifford,T,Tdg} when their angles are integer multiples of 2*pi/8"""
+"""Convert rotation gates into {Clifford,T,Tdg} when their angles are integer multiples of pi/4"""
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
@@ -19,7 +19,12 @@ from qiskit._accelerate.discretize_rotations import discretize_rotations
 
 class DiscretizeRotations(TransformationPass):
     """Convert single-qubit rotation gates :class:`.RZGate`, :class:`.RXGate` and :class:`.RYGate`,
-    into {Clifford,T,Tdg} when their angles are integer multiples of 2*pi/8."""
+    into {Clifford,T,Tdg} when their angles are integer multiples of pi/4.
+    Note that odd multiples of pi/4 require a single :class:`.TGate` and :class:`.TdgGate`,
+    as well as some Clifford gates,
+    while even multiples of pi/4, or equivalently, integer multiples of pi/2,
+    can be written using only Clifford gates.
+    """
 
     def __init__(self, approximation_degree: float = 1.0):
         """

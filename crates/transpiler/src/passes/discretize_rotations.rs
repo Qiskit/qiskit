@@ -23,9 +23,9 @@ static ROTATION_GATE_NAMES: [&str; 3] = ["rx", "ry", "rz"];
 const PI8: f64 = PI / 8.0;
 const MINIMUM_TOL: f64 = 1e-12;
 
-/// For a given angle, if it is a multiple of 2*PI/8, calculate the multiple mod 16,
+/// For a given angle, if it is a multiple of PI/4, calculate the multiple mod 16,
 /// Otherwise, return `None`.
-fn is_angle_close_to_multiple_of_2pi_8(angle: f64, tol: f64) -> Option<usize> {
+fn is_angle_close_to_multiple_of_pi_4(angle: f64, tol: f64) -> Option<usize> {
     let closest_ratio = angle * 4.0 / PI;
     let closest_integer = closest_ratio.round();
     let closest_angle = closest_integer * PI / 4.0;
@@ -52,7 +52,7 @@ fn try_replace_rotation_by_discrete(
     angle: f64,
     tol: f64,
 ) -> Option<(Vec<StandardGate>, f64)> {
-    let multiple = is_angle_close_to_multiple_of_2pi_8(angle, tol);
+    let multiple = is_angle_close_to_multiple_of_pi_4(angle, tol);
     let mut discrete_sequence = Vec::<StandardGate>::with_capacity(4);
 
     let global_phase = match (gate, multiple) {
@@ -317,7 +317,7 @@ pub fn run_discretize_rotations(dag: &mut DAGCircuit, approximation_degree: f64)
     }
 
     // Iterate over nodes in the DAG and collect nodes that are of the form
-    // RX/RY/RZ with an angle that is a multiple of 2*pi/8
+    // RX/RY/RZ with an angle that is a multiple of pi/4
     let mut candidates: Vec<(NodeIndex, StandardGate, f64)> = Vec::new();
 
     for (node_index, inst) in dag.op_nodes(false) {
