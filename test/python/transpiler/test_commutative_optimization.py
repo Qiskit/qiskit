@@ -209,7 +209,7 @@ class TestCommutativeOptimization(QiskitTestCase):
         self.assertEqual(Operator(expected), Operator(qc))
         self.assertEqual(qct, expected)
 
-    def test_parametric_gates_are_merged(self):
+    def test_parametric_rz_gates_are_merged(self):
         """Test that parametric gates can merged."""
         alpha = Parameter("alpha")
         beta = Parameter("beta")
@@ -223,6 +223,22 @@ class TestCommutativeOptimization(QiskitTestCase):
 
         expected = QuantumCircuit(2, global_phase=0.5 * beta)
         expected.rz(alpha + beta + 0.1, 0)
+
+        self.assertEqual(qct, expected)
+
+    def test_parametric_rx_gates_are_merged(self):
+        """Test that parametric gates can merged."""
+        alpha = Parameter("alpha")
+
+        qc = QuantumCircuit(2)
+        qc.rx(alpha, 0)
+        qc.rx(0.1, 0)
+        qc.sx(0)
+
+        qct = CommutativeOptimization()(qc)
+
+        expected = QuantumCircuit(2, global_phase=np.pi / 4)
+        expected.rx(alpha + 0.1 + np.pi / 2, 0)
 
         self.assertEqual(qct, expected)
 
