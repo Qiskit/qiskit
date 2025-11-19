@@ -39,20 +39,17 @@ class TestDiscretizeRotations(QiskitTestCase):
         self.assertEqual(Operator(qct), Operator(qc))
         self.assertLessEqual(qct.size(), 4)
         self.assertLessEqual(set(ops.keys()), set(clifford_t_names))
-        self.assertLessEqual(
-            len(set(ops.keys()).intersection({"t", "tdg"})), 1
-        )  # at most one t/tdg gate
         if multiple % 2 == 0:  # only clifford gates
             self.assertLessEqual(qct.size(), 3)
             self.assertLessEqual(set(ops.keys()), set(get_clifford_gate_names()))
             self.assertEqual(ops.get("t", 0) + ops.get("tdg", 0), 0)
-        else:
+        else:  # at most one t/tdg gate
             self.assertEqual(ops.get("t", 0) + ops.get("tdg", 0), 1)
 
     @combine(multiple=[*range(0, 16)], eps=[0.001, -0.001], gate=[RXGate, RYGate, RZGate])
     def test_rotation_gates_do_not_change(self, multiple, eps, gate):
         """Test that the transpiler pass does not change the gates for angles that are
-        not 2*pi/8 rotations."""
+        not pi/4 rotations."""
         qc = QuantumCircuit(1)
         angle = np.pi / 4 * multiple + eps
         qc.append(gate(angle), [0])
@@ -97,16 +94,7 @@ class TestDiscretizeRotations(QiskitTestCase):
 
         qct = DiscretizeRotations()(qc)
         gate_names = (
-            get_clifford_gate_names()
-            + ["t"]
-            + ["tdg"]
-            + ["u"]
-            + ["p"]
-            + ["rzz"]
-            + ["cx"]
-            + ["cz"]
-            + ["rzz"]
-            + ["barrier"]
+            get_clifford_gate_names() + ["t"] + ["tdg"] + ["u"] + ["p"] + ["rzz"] + ["barrier"]
         )
         self.assertEqual(Operator(qct), Operator(qc))
         self.assertLessEqual(set(qct.count_ops().keys()), set(gate_names))
