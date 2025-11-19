@@ -434,7 +434,7 @@ struct VisualizationMatrix<'a> {
     layers: Vec<VisualizationLayer<'a>>,
     /// A reference to the circuit this matrix was constructed from.
     circuit: &'a CircuitData,
-    // A mapping from instruction's Clbit indices to the visualization matrix wires, 
+    // A mapping from instruction's Clbit indices to the visualization matrix wires,
     // to be used when mapping clbits to creg bundled bits
     clbit_map: Vec<usize>,
 }
@@ -522,7 +522,11 @@ impl<'a> VisualizationMatrix<'a> {
 
         println!("{:?}", clbit_map);
 
-        Ok(VisualizationMatrix { layers, circuit, clbit_map })
+        Ok(VisualizationMatrix {
+            layers,
+            circuit,
+            clbit_map,
+        })
     }
 
     fn num_wires(&self) -> usize {
@@ -689,6 +693,19 @@ impl Index<usize> for TextDrawer {
 }
 
 impl TextDrawer {
+    fn from_visualization_matrix(vis_mat: &VisualizationMatrix, cregbundle: bool) -> Self {
+        let mut text_drawer = TextDrawer {
+            wires: vec![Vec::new(); vis_mat.num_wires()],
+        };
+
+        for (i, layer) in vis_mat.layers.iter().enumerate() {
+            let layer_wires = Self::draw_layer(layer, vis_mat, cregbundle, i);
+            for (j, wire) in layer_wires.iter().enumerate() {
+                text_drawer.wires[j].push(wire.clone());
+            }
+        }
+        text_drawer
+    }
 
     fn get_label(instruction: &PackedInstruction) -> String {
         if let Some(std_instruction) = instruction.op.try_standard_instruction() {
@@ -782,20 +799,6 @@ impl TextDrawer {
         format!(" {} ", instruction.op.name().to_string())
     }
 
-    fn from_visualization_matrix(vis_mat: &VisualizationMatrix, cregbundle: bool) -> Self {
-        let mut text_drawer = TextDrawer {
-            wires: vec![Vec::new(); vis_mat.num_wires()],
-        };
-
-        for (i, layer) in vis_mat.layers.iter().enumerate() {
-            let layer_wires = Self::draw_layer(layer, vis_mat, cregbundle, i);
-            for (j, wire) in layer_wires.iter().enumerate() {
-                text_drawer.wires[j].push(wire.clone());
-            }
-        }
-        text_drawer
-    }
-
     fn get_layer_width(&self, ind: usize) -> usize {
         self.wires
             .iter()
@@ -812,7 +815,7 @@ impl TextDrawer {
     ) -> Vec<TextWireElement> {
         let mut wires: Vec<TextWireElement> = vec![];
         for (i, element) in layer.0.iter().enumerate() {
-            let wire = Self::draw_element(&element, vis_mat, cregbundle,i);
+            let wire = Self::draw_element(&element, vis_mat, cregbundle, i);
             wires.push(wire);
         }
 
@@ -1031,9 +1034,13 @@ impl TextDrawer {
                     false
                 };
 
-                if is_double_line{
+                if is_double_line {
                     let clbit = circuit.get_cargs(inst.clbits);
-                    println!("{},{}", ind, vis_mat.clbit_map[clbit.first().unwrap().index()]);
+                    println!(
+                        "{},{}",
+                        ind,
+                        vis_mat.clbit_map[clbit.first().unwrap().index()]
+                    );
                 }
                 let clbit = circuit.get_cargs(inst.clbits);
                 if ind == vis_mat.clbit_map[clbit.first().unwrap().index()] {
@@ -1048,12 +1055,14 @@ impl TextDrawer {
                         let clbits = circuit.cargs_interner().get(inst.clbits);
                         let classical_bit = clbits[0];
                         let shareable_clbit = circuit.clbits().get(classical_bit).unwrap();
-                        let bit_register_info = circuit.clbit_indices().get(shareable_clbit).unwrap();
-                        let index_in_creg = if let Some((_, index)) = bit_register_info.registers().first() {
-                            *index
-                        } else {
-                            classical_bit.index() - circuit.num_qubits()
-                        };
+                        let bit_register_info =
+                            circuit.clbit_indices().get(shareable_clbit).unwrap();
+                        let index_in_creg =
+                            if let Some((_, index)) = bit_register_info.registers().first() {
+                                *index
+                            } else {
+                                classical_bit.index() - circuit.num_qubits()
+                            };
                         index_in_creg.to_string()
                     } else {
                         " ".to_string()
