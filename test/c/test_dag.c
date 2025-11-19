@@ -329,22 +329,22 @@ static int test_dag_topological_op_nodes(void) {
         goto early_cleanup;
     }
 
-    uint32_t *order = malloc(sizeof(uint32_t) * num_ops);
-    qk_dag_topological_op_nodes(dag, order);
+    uint32_t *out_order = malloc(sizeof(uint32_t) * num_ops);
+    qk_dag_topological_op_nodes(dag, out_order);
 
-    if (order[0] != h_gate_idx) {
-        printf("Expected gate index %u but got %u\n", h_gate_idx, order[0]);
+    if (out_order[0] != h_gate_idx) {
+        printf("Expected gate index %u but got %u\n", h_gate_idx, out_order[0]);
         result = EqualityError;
         goto cleanup;
     }
 
-    if (order[1] != s_gate_idx) {
-        printf("Expected gate index %u but got %u\n", s_gate_idx, order[1]);
+    if (out_order[1] != s_gate_idx) {
+        printf("Expected gate index %u but got %u\n", s_gate_idx, out_order[1]);
         result = EqualityError;
     }
 
 cleanup:
-    free(order);
+    free(out_order);
 
 early_cleanup:
     qk_dag_free(dag);
