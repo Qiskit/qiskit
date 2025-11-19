@@ -18,7 +18,7 @@ import math
 from typing import Optional
 import numpy as np
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit._accelerate.circuit import StandardGate
 
 
