@@ -434,6 +434,9 @@ struct VisualizationMatrix<'a> {
     layers: Vec<VisualizationLayer<'a>>,
     /// A reference to the circuit this matrix was constructed from.
     circuit: &'a CircuitData,
+    // A mapping from instruction's Clbit indices to the visualization matrix wires, 
+    // to be used when mapping clbits to creg bundled bits
+    clbit_map: Vec<usize>,
 }
 
 impl<'a> VisualizationMatrix<'a> {
@@ -474,10 +477,8 @@ impl<'a> VisualizationMatrix<'a> {
             input_idx += 1;
         }
 
-        // A mapping from instruction's Clbit indices to the visualization matrix wires, to be
-        // used when mapping clbits to creg bundled bits
-        let mut clbit_map: Vec<usize> = Vec::new();
         let mut visited_cregs: HashSet<&ClassicalRegister> = HashSet::new();
+        let mut clbit_map: Vec<usize> = Vec::new();
         for clbit in circuit.clbits().objects() {
             if bundle_cregs {
                 let bit_location = circuit
@@ -519,7 +520,7 @@ impl<'a> VisualizationMatrix<'a> {
             }
         }
 
-        Ok(VisualizationMatrix { layers, circuit })
+        Ok(VisualizationMatrix { layers, circuit, clbit_map })
     }
 
     fn num_wires(&self) -> usize {
@@ -809,7 +810,7 @@ impl TextDrawer {
     ) -> Vec<TextWireElement> {
         let mut wires: Vec<TextWireElement> = vec![];
         for (i, element) in layer.0.iter().enumerate() {
-            let wire = Self::draw_element(element.clone(), vis_mat.circuit, cregbundle,i);
+            let wire = Self::draw_element(&element, vis_mat, i);
             wires.push(wire);
         }
 
@@ -836,11 +837,11 @@ impl TextDrawer {
     }
 
     pub fn draw_element(
-        vis_ele: VisualizationElement,
-        circuit: &CircuitData,
-        cregbundle: bool,
+        vis_ele: &VisualizationElement,
+        vis_mat: &VisualizationMatrix,
         ind: usize,
     ) -> TextWireElement {
+        let circuit = vis_mat.circuit;
         let (top, mid, bot);
         match vis_ele {
             VisualizationElement::Boxed(sub_type) => {
@@ -1026,6 +1027,14 @@ impl TextDrawer {
                 } else {
                     false
                 };
+
+                println!("CLBIT MAP IS {:?}",vis_mat.clbit_map);
+                if is_double_line {
+                    let clbit = circuit.get_cargs(inst.clbits).first().expect("");
+                    if vis_mat.clbit_map[clbit.index()] == ind {
+                        println!("BOOOM");
+                    }
+                }
 
                 if is_double_line {
                     top = CL_CONNECTING_WIRE.to_string();
