@@ -1,5 +1,5 @@
 ---
 features:
   - |
-    A new field `name` is added to :c:struct:`QkTargetEntry` struct to hold an optional name for the target entry.
+    A new field `name` is added to :c:struct:`QkTargetEntry` to hold an optional name for the target entry.
     This will allow us to pass a name to gates with fixed parameters.

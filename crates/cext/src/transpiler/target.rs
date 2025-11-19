@@ -452,7 +452,7 @@ pub struct TargetEntry {
 }
 
 impl TargetEntry {
-    pub fn new(operation: StandardGate, name_new: Option<String>) -> Self {
+    pub fn new(operation: StandardGate, name: Option<String>) -> Self {
         let params = if operation.num_params() > 0 {
             Some(
                 (0..operation.num_params())
@@ -471,20 +471,20 @@ impl TargetEntry {
             operation: StandardOperation::Gate(operation),
             params,
             map: Default::default(),
-            name: name_new,
+            name,
         }
     }
 
     pub fn new_fixed(
         operation: StandardGate,
         params: SmallVec<[Param; 3]>,
-        name_fixed: Option<String>,
+        name: Option<String>,
     ) -> Self {
         Self {
             operation: StandardOperation::Gate(operation),
             params: Some(params),
-            name: name_fixed,
             map: Default::default(),
+            name,
         }
     }
 
@@ -493,7 +493,7 @@ impl TargetEntry {
             operation: StandardOperation::Instruction(instruction),
             params: None,
             map: Default::default(),
-            name: Some(instruction.name().to_string()),
+            name: None,
         }
     }
 }
@@ -506,11 +506,14 @@ impl TargetEntry {
 /// an instruction on the target which accepts any parameter value. If the gate only accepts a
 /// fixed parameter value you can use ``qk_target_entry_new_fixed`` instead.
 ///
+/// @param name An optional name for the instruction in the target.
+///
 /// @return A pointer to the new ``QkTargetEntry``.
 ///
 /// # Example
 /// ```c
-///     QkTargetEntry *entry = qk_target_entry_new(QkGate_H, "hadamard");
+///     QkTargetEntry *had_entry = qk_target_entry_new(QkGate_H, "hadamard");
+///     QKTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX, NULL);
 /// ```
 ///
 /// # Safety
@@ -597,6 +600,7 @@ pub extern "C" fn qk_target_entry_new_reset() -> *mut TargetEntry {
 ///
 /// @param operation The ``QkGate`` whose properties this target entry defines.
 /// @param params A pointer to the parameters that the instruction is calibrated for.
+/// @param name An optional name for the instruction in the target.
 ///
 /// @return A pointer to the new ``QkTargetEntry``.
 ///
