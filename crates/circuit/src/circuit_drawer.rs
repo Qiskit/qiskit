@@ -10,23 +10,22 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::bit::{ShareableClbit, ShareableQubit, ClassicalRegister};
+use crate::bit::{ClassicalRegister, ShareableClbit, ShareableQubit};
+use crate::circuit_data::CircuitData;
+use crate::converters::QuantumCircuitData;
 use crate::dag_circuit::DAGCircuit;
+use crate::dag_circuit::NodeType;
 use crate::operations::{Operation, OperationRef, Param, StandardGate, StandardInstruction};
 use crate::packed_instruction::PackedInstruction;
 use crate::{Clbit, Qubit};
-use crate::circuit_data::CircuitData;
-use crate::converters::QuantumCircuitData;
-use crate::dag_circuit::NodeType;
 use crossterm::terminal::size;
 use hashbrown::{HashMap, HashSet};
 use itertools::{Itertools, MinMaxResult};
+use pyo3::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::ops::Index;
-use pyo3::prelude::*;
-
 
 /// Draw the [CircuitData] object as string.
 ///
@@ -38,7 +37,7 @@ use pyo3::prelude::*;
 /// * fold: If not None, applies line wrapping using the specified amount.
 ///
 /// # Returns:
-/// 
+///
 /// The String representation of the circuit.
 pub fn draw_circuit(
     circuit: &CircuitData,
@@ -129,12 +128,16 @@ impl WireInputElement<'_> {
     fn get_name(&self, circuit: &CircuitData) -> Option<String> {
         match self {
             Self::Qubit(qubit) => {
-                if let Some(bit_info) = circuit.qubit_indices().get(qubit) {
+                let bit_info = circuit
+                    .qubit_indices()
+                    .get(qubit)
+                    .expect("Bit should have location info");
+                if !bit_info.registers().is_empty() {
                     let (register, index) = bit_info
                         .registers()
                         .first()
                         .expect("Register cannot be empty");
-                    if register.len() > 1 {
+                    if !register.is_empty() {
                         Some(format!("{}_{}: ", register.name(), index))
                     } else {
                         Some(format!("{}: ", register.name()))
@@ -144,15 +147,19 @@ impl WireInputElement<'_> {
                 }
             }
             WireInputElement::Clbit(clbit) => {
-                if let Some(bit_info) = circuit.clbit_indices().get(clbit) {
+                let bit_info = circuit
+                    .clbit_indices()
+                    .get(clbit)
+                    .expect("Bit should have location info");
+
+                if !bit_info.registers().is_empty() {
                     let (register, index) = bit_info
                         .registers()
                         .first()
                         .expect("Register cannot be empty");
-                    if register.len() > 1 {
+                    if !register.is_empty() {
                         Some(format!("{}_{}: ", register.name(), index))
-                    }
-                    else {
+                    } else {
                         Some(format!("{}: ", register.name()))
                     }
                 } else {
@@ -228,13 +235,14 @@ impl<'a> VisualizationLayer<'a> {
         cregbundle: bool,
         inst: &'a PackedInstruction,
         circuit: &CircuitData,
+        clbit_map: &[usize],
     ) {
         match inst.op.view() {
             OperationRef::StandardGate(gate) => {
                 self.add_standard_gate(gate, inst, circuit);
             }
             OperationRef::StandardInstruction(std_inst) => {
-                self.add_standard_instruction(cregbundle, std_inst, inst, circuit);
+                self.add_standard_instruction(cregbundle, std_inst, inst, circuit, clbit_map);
             }
             _ => unimplemented!(
                 "{}",
@@ -373,9 +381,10 @@ impl<'a> VisualizationLayer<'a> {
         std_inst: StandardInstruction,
         inst: &'a PackedInstruction,
         circuit: &CircuitData,
+        clbit_map: &[usize],
     ) {
         let qargs = circuit.get_qargs(inst.qubits);
-        let (minima, maxima) =
+        let (minima, mut maxima) =
             get_instruction_range(qargs, circuit.get_cargs(inst.clbits), circuit.num_qubits());
 
         match std_inst {
@@ -392,22 +401,15 @@ impl<'a> VisualizationLayer<'a> {
             StandardInstruction::Measure => {
                 self.0[qargs.last().unwrap().index()] =
                     VisualizationElement::Boxed(BoxedElement::Single(inst));
-                let maxima = {
-                    if !cregbundle {
-                        maxima
-                    } else {
-                        let shareable_clbit = circuit
-                            .clbits()
-                            .get(circuit.get_cargs(inst.clbits)[0])
-                            .unwrap();
-                        let creg = circuit
-                            .cregs()
-                            .iter()
-                            .position(|r| r.contains(shareable_clbit))
-                            .unwrap();
-                        circuit.num_qubits() + creg
-                    }
-                };
+
+                // Some bits may be bundled, so we need to map the Clbit index to the proper wire index
+                if cregbundle {
+                    maxima = clbit_map[circuit
+                        .get_cargs(inst.clbits)
+                        .first()
+                        .expect("Measure should have a clbit arg")
+                        .index()];
+                }
                 self.add_vertical_lines(minima + 1..=maxima, inst);
             }
             StandardInstruction::Delay(_) => {
@@ -446,7 +448,20 @@ impl<'a> VisualizationMatrix<'a> {
 
         let inst_layers = build_layers(&dag);
 
-        let num_wires = circuit.num_qubits() + circuit.num_clbits();
+        let num_wires = circuit.num_qubits()
+            + if !bundle_cregs {
+                circuit.num_clbits()
+            } else {
+                // Anonymous bits are not bundled so need to be counted explicitly
+                circuit.cregs_data().len() + circuit.num_clbits()
+                    - circuit
+                        .cregs_data()
+                        .registers()
+                        .iter()
+                        .map(|r| r.len())
+                        .sum::<usize>()
+            };
+
         let mut layers = vec![
             VisualizationLayer(vec![VisualizationElement::default(); num_wires]);
             inst_layers.len() + 1
@@ -459,16 +474,38 @@ impl<'a> VisualizationMatrix<'a> {
             input_idx += 1;
         }
 
-        if bundle_cregs {
-            for creg in circuit.cregs() {
-                input_layer.add_input(WireInputElement::Creg(creg), input_idx);
-                input_idx += 1;
+        // A mapping from instruction's Clbit indices to the visualization matrix wires, to be
+        // used when mapping clbits to creg bundled bits
+        let mut clbit_map: Vec<usize> = Vec::new();
+        let mut visited_cregs: HashSet<&ClassicalRegister> = HashSet::new();
+        for clbit in circuit.clbits().objects() {
+            if bundle_cregs {
+                let bit_location = circuit
+                    .clbit_indices()
+                    .get(clbit)
+                    .expect("Bit should have bit info");
+                if !bit_location.registers().is_empty() {
+                    let creg = &bit_location
+                        .registers()
+                        .first()
+                        .expect("Registers should not be empty")
+                        .0;
+
+                    if visited_cregs.contains(creg) {
+                        clbit_map.push(input_idx - 1);
+                    } else {
+                        input_layer.add_input(WireInputElement::Creg(creg), input_idx);
+                        visited_cregs.insert(creg);
+                        clbit_map.push(input_idx);
+                        input_idx += 1;
+                    }
+                    continue;
+                }
             }
-        } else {
-            for clbit in circuit.clbits().objects() {
-                input_layer.add_input(WireInputElement::Clbit(clbit), input_idx);
-                input_idx += 1;
-            }
+
+            input_layer.add_input(WireInputElement::Clbit(clbit), input_idx);
+            clbit_map.push(input_idx);
+            input_idx += 1;
         }
 
         for (i, layer) in inst_layers.iter().enumerate() {
@@ -477,6 +514,7 @@ impl<'a> VisualizationMatrix<'a> {
                     bundle_cregs,
                     node_index_to_inst.get(node_index).unwrap(),
                     circuit,
+                    &clbit_map,
                 );
             }
         }
@@ -974,8 +1012,8 @@ impl TextDrawer {
             }
             VisualizationElement::Input(input) => {
                 let input_name = input.get_name(circuit).unwrap_or_else(|| match input {
-                    WireInputElement::Clbit(_) => format!("q_{}: ", ind),
-                    WireInputElement::Qubit(_) => format!("c_{}: ", ind),
+                    WireInputElement::Qubit(_) => format!("q_{}: ", ind),
+                    WireInputElement::Clbit(_) => format!("c_{}: ", ind - circuit.num_qubits()),
                     WireInputElement::Creg(_) => unreachable!(),
                 });
                 top = " ".repeat(input_name.len());
@@ -1135,7 +1173,7 @@ impl TextDrawer {
                 let last_index = num_wires - 1;
                 let bot_line = self.wires[last_index].iter().map(|wire| wire.bot.clone()).collect::<Vec<String>>().join("");
                 let top_line_next = self.wires[last_index + 1].iter().map(|wire| wire.top.clone()).collect::<Vec<String>>().join("");
-                let merged_line = Self::merge_lines(&bot_line, &top_line_next, "top");
+                let merged_line = Self::merge_lines(&bot_line, &top_line_next);
                 output.push_str(&format!("{}\n", merged_line));
                 let mid_line_next = self.wires[last_index + 1].iter().map(|wire| wire.mid.clone()).collect::<Vec<String>>().join("");
                 output.push_str(&format!("{}\n", mid_line_next));
