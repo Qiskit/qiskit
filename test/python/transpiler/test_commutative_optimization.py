@@ -16,6 +16,8 @@ import unittest
 
 import numpy as np
 
+from ddt import ddt, data
+
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import (
@@ -26,6 +28,18 @@ from qiskit.circuit.library import (
     PauliEvolutionGate,
     Initialize,
     U2Gate,
+    CZGate,
+    SwapGate,
+    iSwapGate,
+    CPhaseGate,
+    CSGate,
+    CSdgGate,
+    CU1Gate,
+    RXXGate,
+    RYYGate,
+    RZZGate,
+    XXMinusYYGate,
+    XXPlusYYGate,
 )
 from qiskit.circuit.parameter import Parameter
 from qiskit.transpiler.passes import CommutativeOptimization
@@ -34,6 +48,7 @@ from qiskit.quantum_info import Operator, SparsePauliOp, Clifford
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
+@ddt
 class TestCommutativeOptimization(QiskitTestCase):
     """Test CommutativeOptimization pass."""
 
@@ -65,9 +80,11 @@ class TestCommutativeOptimization(QiskitTestCase):
         qc.sdg(0)
         qc.z(0)
         qc.cz(1, 0)
+        qc.p(-0.5, 0)
         qc.tdg(0)
         qc.rz(np.pi / 2, 0)
         qc.s(0)
+        qc.append(U1Gate(0.5), [0])
 
         qct = CommutativeOptimization()(qc)
 
@@ -138,21 +155,56 @@ class TestCommutativeOptimization(QiskitTestCase):
         self.assertEqual(Operator(expected), Operator(qc))
         self.assertEqual(qct, expected)
 
-    def test_symmetric_gates_cancel(self):
+    @data(
+        CZGate(),
+        SwapGate(),
+        CPhaseGate(0.4),
+        CSGate(),
+        CSdgGate(),
+        CU1Gate(0.4),
+        RXXGate(0.4),
+        RYYGate(0.4),
+        RZZGate(0.4),
+        XXMinusYYGate(0.4),
+        XXPlusYYGate(0.4),
+    )
+    def test_symmetric_gates_cancel(self, symmetric_gate):
         """Test that various symmetric gates cancel."""
         qc = QuantumCircuit(2)
-        qc.cz(0, 1)
-        qc.cz(1, 0)
-        qc.swap(0, 1)
-        qc.swap(1, 0)
-        qc.rxx(0.1, 0, 1)
-        qc.rxx(-0.1, 1, 0)
-        qc.ryy(-0.3, 0, 1)
-        qc.ryy(0.3, 1, 0)
+        qc.append(symmetric_gate, [0, 1])
+        qc.append(symmetric_gate.inverse(), [1, 0])  # note reversed order of qubits
 
         qct = CommutativeOptimization()(qc)
 
         expected = QuantumCircuit(2)
+
+        self.assertEqual(Operator(expected), Operator(qc))
+        self.assertEqual(qct, expected)
+
+    def test_symmetric_iswap_gates_cancel(self):
+        """Test that iSwap gates cancel."""
+        # iSwap is handled separately as its inverse is not a standard gate
+        qc = QuantumCircuit(2)
+        qc.append(iSwapGate(), [1, 0])
+        qc.append(iSwapGate().inverse(), [0, 1])  # note reversed order of qubits
+
+        qct = CommutativeOptimization(matrix_max_num_qubits=2)(qc)
+
+        expected = QuantumCircuit(2)
+
+        self.assertEqual(Operator(expected), Operator(qc))
+        self.assertEqual(qct, expected)
+
+    def test_symmetric_ccz_gates_cancel(self):
+        """Test that CCZ gates cancel."""
+        # CCZ is handled separately as it's over 3 qubits
+        qc = QuantumCircuit(3)
+        qc.ccz(0, 1, 2)
+        qc.ccz(1, 2, 0)  # note different order of qubits
+
+        qct = CommutativeOptimization()(qc)
+
+        expected = QuantumCircuit(3)
 
         self.assertEqual(Operator(expected), Operator(qc))
         self.assertEqual(qct, expected)
