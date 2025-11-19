@@ -312,6 +312,18 @@ class PauliEvolutionGate(Gate):
 
         return super().validate_parameter(parameter)
 
+    def _extract_sparse_observable(self) -> SparseObservable:
+        """Return the internal operator as single SparseObservable.
+
+        This will sum all operators if given as list of commuting operators.
+        """
+        if isinstance(self.operator, list):
+            return sum(
+                map(_to_sparse_observable, self.operator[1:]),
+                _to_sparse_observable(self.operator[0]),
+            )
+        return _to_sparse_observable(self.operator)
+
 
 def _to_sparse_op(
     operator: Pauli | SparsePauliOp | SparseObservable,
@@ -331,6 +343,12 @@ def _to_sparse_op(
         raise ValueError("Operator contains ParameterExpression, which are not supported.")
 
     return sparse
+
+
+def _to_sparse_observable(operator: SparseObservable | SparsePauliOp) -> SparseObservable:
+    if isinstance(operator, SparsePauliOp):
+        return SparseObservable.from_sparse_pauli_op(operator)
+    return operator
 
 
 def _operator_label(operator):

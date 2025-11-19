@@ -19,10 +19,10 @@ use pyo3::types::PyList;
 use pyo3::types::PyString;
 use qiskit_circuit::object_registry::PyObjectAsKey;
 use qiskit_quantum_info::sparse_observable::BitTerm;
+use qiskit_quantum_info::sparse_observable::PySparseObservable;
 use qiskit_quantum_info::sparse_observable::SparseObservable;
 use smallvec::SmallVec;
 use std::fmt::Debug;
-use std::sync::LazyLock;
 
 use numpy::PyReadonlyArray2;
 use pyo3::BoundObject;
@@ -126,37 +126,17 @@ const fn build_supported_rotations() -> [Option<Option<StandardGate>>; STANDARD_
 static SUPPORTED_ROTATIONS: [Option<Option<StandardGate>>; STANDARD_GATE_SIZE] =
     build_supported_rotations();
 
-fn build_standard_generators() -> HashMap<usize, Vec<BitTerm>> {
-    let mut lut: HashMap<usize, Vec<BitTerm>> = HashMap::new();
-    lut.insert(StandardGate::RX as usize, vec![BitTerm::X]);
-    // lut[&(StandardGate::RX as usize)] =
-    // lut[&(StandardGate::RY as usize)] = from_bits(vec![BitTerm::Y]);
-    // lut[&(StandardGate::RZ as usize)] = from_bits(vec![BitTerm::Z]);
-    // lut[StandardGate::RZ as usize] = Some(StandardGate::Z);
-    // lut[StandardGate::Phase as usize] = Some(StandardGate::Z);
-    // lut[StandardGate::U1 as usize] = Some(StandardGate::Z);
-    // lut[StandardGate::CRX as usize] = Some(StandardGate::CX);
-    // lut[StandardGate::CRY as usize] = Some(StandardGate::CY);
-    // lut[StandardGate::CRZ as usize] = Some(StandardGate::CZ);
-    // lut[StandardGate::CPhase as usize] = Some(StandardGate::CZ);
-    // // RXXGate, RYYGate, RZXGate, and RZZGate are supported by the commutation dictionary
-    // lut[StandardGate::RXX as usize] = Some();
-    // lut[StandardGate::RYY as usize] = Some();
-    // lut[StandardGate::RZX as usize] = Some();
-    // lut[StandardGate::RZZ as usize] = Some();
-    lut
-}
-
-static STANDARD_GENERATORS: LazyLock<HashMap<usize, Vec<BitTerm>>> =
-    LazyLock::new(build_standard_generators);
-
+/// # Safety
+///
+/// Behavior is undefined if ``qubits`` contains a qubit index larger equal to ``num_qubits``,
+/// or if the number of Paulis in ``pauli_gate`` does not match the number of indices in ``qubits``.
 fn extract_op_from_pauligate(
     pauli_gate: &OperationRef,
     qubits: &[Qubit],
     num_qubits: u32,
 ) -> SparseObservable {
     let OperationRef::Gate(gate) = pauli_gate else {
-        panic!("Input is required to be a PauliGate.")
+        panic!("Invalid gate called 'pauli'");
     };
     let pauli_string = Python::attach(|py| {
         let params = gate
@@ -205,33 +185,49 @@ fn extract_op_from_pauligate(
     unsafe { SparseObservable::new_unchecked(num_qubits, coeffs, bit_terms, indices, boundaries) }
 }
 
-fn get_generator(
+fn extract_op_from_paulievo(
+    operation: &OperationRef,
+    qubits: &[Qubit],
+    num_qubits: u32,
+) -> SparseObservable {
+    let OperationRef::Gate(gate) = operation else {
+        panic!("Invalid gate called 'PauliEvolution'");
+    };
+
+    Python::attach(|py| {
+        let py_obs = gate
+            .gate
+            .call_method0(py, intern!(py, "_extract_sparse_observable"))
+            .expect("Failed calling _extract_sparse_observable on PauliEvolutionGate")
+            .cast_bound::<PySparseObservable>(py)
+            .expect("Failed casting to PySparseObservable")
+            .borrow();
+        let local_obs = py_obs.as_inner().expect("Failed to read");
+
+        let indices = qubits.iter().map(|q| q.0).collect();
+        // SAFETY: The internal data comes from a valid SparseObservable and we modify it in a safe
+        // fashion.
+        unsafe {
+            SparseObservable::new_unchecked(
+                num_qubits,
+                local_obs.coeffs().to_vec(),
+                local_obs.bit_terms().to_vec(),
+                indices,
+                local_obs.boundaries().to_vec(),
+            )
+        }
+    })
+}
+
+fn try_pauli_generator(
     operation: &OperationRef,
     qubits: &[Qubit],
     num_qubits: u32,
 ) -> Option<SparseObservable> {
-    if let OperationRef::StandardGate(gate) = operation {
-        // try extract from LUT
-        // TODO this ref-pointer-cast looks fishy
-        let Some(bit_terms) = STANDARD_GENERATORS.get(&(*gate as usize)).cloned() else {
-            return None;
-        };
-        let indices = qubits.iter().map(|q| q.0).collect();
-        let coeffs = vec![Complex64::new(1., 0.); 1];
-        let boundaries = vec![0, bit_terms.len()];
-
-        let obs = unsafe {
-            SparseObservable::new_unchecked(num_qubits, coeffs, bit_terms, indices, boundaries)
-        };
-        Some(obs)
-    } else {
-        // generic gates that have a generator, such as Pauli-based gates
-        let name = operation.name();
-        match name {
-            "pauli" => Some(extract_op_from_pauligate(operation, qubits, num_qubits)),
-            "PauliEvolutionGate" => todo!(),
-            _ => None,
-        }
+    match operation.name() {
+        "pauli" => Some(extract_op_from_pauligate(operation, qubits, num_qubits)),
+        "PauliEvolution" => Some(extract_op_from_paulievo(operation, qubits, num_qubits)),
+        _ => None,
     }
 }
 
@@ -447,12 +443,6 @@ impl CommutationChecker {
         // get the maximum index to use as size for the sparse observables
         let size = qargs1.iter().max().max(qargs2.iter().max()).unwrap().0;
 
-        if let Some(gen1) = get_generator(op1, qargs1, size) {
-            if let Some(gen2) = get_generator(op2, qargs2, size) {
-                return Ok(gen1.commutes(&gen2, tol));
-            }
-        }
-
         // if we have rotation gates, we attempt to map them to their generators, for example
         // RX -> X or CPhase -> CZ
         let (op1_gate, params1, trivial1) = map_rotation(op1, params1, tol);
@@ -477,6 +467,13 @@ impl CommutationChecker {
         if let Some(gates) = &self.gates {
             if !gates.is_empty() && (!gates.contains(op1.name()) || !gates.contains(op2.name())) {
                 return Ok(false);
+            }
+        }
+
+        // Handle commutations in between Pauli-based gates, like PauliGate or PauliEvolutionGate
+        if let Some(obs1) = try_pauli_generator(op1, qargs1, size) {
+            if let Some(obs2) = try_pauli_generator(op2, qargs2, size) {
+                return Ok(obs1.commutes(&obs2, tol));
             }
         }
 

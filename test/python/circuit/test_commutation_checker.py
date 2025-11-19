@@ -16,7 +16,7 @@ import unittest
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 import numpy as np
-from ddt import idata, ddt, data, unpack
+from ddt import idata, ddt, data
 
 from qiskit.circuit import (
     AnnotatedOperation,
@@ -59,8 +59,10 @@ from qiskit.circuit.library import (
     HGate,
     UnitaryGate,
     UGate,
+    PauliEvolutionGate,
 )
 from qiskit.dagcircuit import DAGOpNode
+from qiskit.quantum_info import SparseObservable
 
 ROTATION_GATES = [
     RXGate,
@@ -498,20 +500,38 @@ class TestCommutationChecker(QiskitTestCase):
             scc.commute(almost_identity, [0], [], other, [0], [], approximation_degree=1 - 1e-4)
         )
 
-    @data(
-        ("ZZZZ", "XXXX", True),
-        ("ZZIIIIIIIY", "YYIIIIIIIY", True),
-        ("ZZIIIIIIIY", "YYIIIIIIIZ", False),
-    )
-    @unpack
-    def test_pauli_gate(self, p1, p2, expected):
-        """Test Pauli gates."""
-        gate1 = PauliGate(p1)
-        gate2 = PauliGate(p2)
-        qargs = list(range(gate1.num_qubits))
-        self.assertEqual(
-            expected, scc.commute(gate1, qargs, [], gate2, qargs, [], max_num_qubits=20)
-        )
+    @data(True, False)
+    def test_pauli_based_gates(self, use_pauli_gate):
+        """Test Pauli-based gates."""
+        cases = [
+            ("ZZZZ", list(range(4)), "XXXX", list(range(4)), True),
+            ("ZZIIIIIIIY", list(range(10)), "YYIIIIIIIY", list(range(10)), True),
+            ("ZZIIIIIIIY", list(range(10)), "YYIIIIIIIZ", list(range(10)), False),
+            ("ZX", [1, 10], "ZIZYIZXXZXZ", list(range(11)), True),
+        ]
+
+        # convenience constructor for PauliGate or PauliEvolutionGate
+        def build_gate(pauli):
+            if use_pauli_gate:
+                return PauliGate(pauli)
+            return PauliEvolutionGate(SparseObservable(pauli))
+
+        for p1, q1, p2, q2, expected in cases:
+            gate1 = build_gate(p1)
+            gate2 = build_gate(p2)
+            self.assertEqual(expected, scc.commute(gate1, q1, [], gate2, q2, [], max_num_qubits=20))
+
+    def test_mix_pauli_gates(self):
+        """Test commutation relations between PauliGate and PauliEvolutionGate."""
+        cases = [
+            ("ZZIIIIIIIY", list(range(10)), "YYIIIIIIIZ", list(range(10)), False),
+            ("ZX", [1, 10], "ZIZYIZXXZXZ", list(range(11)), True),
+        ]
+
+        for p1, q1, p2, q2, expected in cases:
+            gate1 = PauliGate(p1)
+            gate2 = PauliEvolutionGate(SparseObservable(p2))
+            self.assertEqual(expected, scc.commute(gate1, q1, [], gate2, q2, [], max_num_qubits=20))
 
 
 if __name__ == "__main__":
