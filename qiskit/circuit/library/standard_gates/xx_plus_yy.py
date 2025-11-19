@@ -117,7 +117,7 @@ class XXPlusYYGate(Gate):
         #       └─────┘ └────┘└───┘     └──────────┘     └─────┘ └──────┘ └───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.XXPlusYY._get_definition(self.params), legacy_qubits=True, name=self.name
+            StandardGate.XXPlusYY._get_definition(self.params), legacy_qubits=True
         )
 
     def control(

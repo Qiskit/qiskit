@@ -141,7 +141,7 @@ class UnitaryGate(Gate):
             from qiskit.synthesis.one_qubit.one_qubit_decompose import OneQubitEulerDecomposer
 
             q = QuantumRegister(1, "q")
-            qc = QuantumCircuit(q, name=self.name)
+            qc = QuantumCircuit(q)
             theta, phi, lam, global_phase = OneQubitEulerDecomposer("U").angles_and_phase(
                 self.to_matrix()
             )

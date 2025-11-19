@@ -79,7 +79,7 @@ class SGate(SingletonGate):
         #    └────────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.S._get_definition(self.params), legacy_qubits=True, name=self.name
+            StandardGate.S._get_definition(self.params), legacy_qubits=True
         )
 
     def control(
@@ -187,7 +187,7 @@ class SdgGate(SingletonGate):
         #    └─────────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.Sdg._get_definition(self.params), legacy_qubits=True, name=self.name
+            StandardGate.Sdg._get_definition(self.params), legacy_qubits=True
         )
 
     def control(
@@ -311,7 +311,7 @@ class CSGate(SingletonControlledGate):
         #           └───┘└─────┘└───┘└───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.CS._get_definition(self.params), legacy_qubits=True, name=self.name
+            StandardGate.CS._get_definition(self.params), legacy_qubits=True
         )
 
     def inverse(self, annotated: bool = False):
@@ -401,7 +401,7 @@ class CSdgGate(SingletonControlledGate):
         #             └───┘└───┘└───┘└─────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.CSdg._get_definition(self.params), legacy_qubits=True, name=self.name
+            StandardGate.CSdg._get_definition(self.params), legacy_qubits=True
         )
 
     def inverse(self, annotated: bool = False):

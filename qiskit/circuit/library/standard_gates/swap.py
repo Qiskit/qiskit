@@ -83,7 +83,7 @@ class SwapGate(SingletonGate):
         #      └───┘     └───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.Swap._get_definition(self.params), legacy_qubits=True, name=self.name
+            StandardGate.Swap._get_definition(self.params), legacy_qubits=True
         )
 
     def control(
@@ -250,7 +250,7 @@ class CSwapGate(SingletonControlledGate):
         #           └───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.CSwap._get_definition(self.params), legacy_qubits=True, name=self.name
+            StandardGate.CSwap._get_definition(self.params), legacy_qubits=True
         )
 
     def inverse(self, annotated: bool = False):

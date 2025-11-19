@@ -71,7 +71,7 @@ class RXGate(Gate):
         #    └────────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.RX._get_definition(self.params), legacy_qubits=True, name=self.name
+            StandardGate.RX._get_definition(self.params), legacy_qubits=True
         )
 
     def control(
@@ -234,7 +234,7 @@ class CRXGate(ControlledGate):
         #      └───┘└───┘└──────────────┘└───┘└───────────┘└─────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.CRX._get_definition(self.params), legacy_qubits=True, name=self.name
+            StandardGate.CRX._get_definition(self.params), legacy_qubits=True
         )
 
     def inverse(self, annotated: bool = False):
