@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 pub mod clifford;
-mod discrete_basis;
+pub mod discrete_basis;
 pub mod euler_one_qubit_decomposer;
 mod evolution;
 pub mod linalg;

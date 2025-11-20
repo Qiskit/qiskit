@@ -23,7 +23,7 @@ use crate::TranspilerError;
 // The Clifford+T optimization pass only applies to circuits with Clifford+T/Tdg gates.
 // We return a transpiler error when the circuit contains gates outide of the following
 // list:
-const CLIFFORD_T_GATE_NAMES: &[&str; 18] = &[
+pub static CLIFFORD_T_GATE_NAMES: [&str; 18] = [
     "id", "x", "y", "z", "h", "s", "sdg", "sx", "sxdg", "cx", "cz", "cy", "swap", "iswap", "ecr",
     "dcx", "t", "tdg",
 ];
