@@ -18,4 +18,3 @@ deprecations_circuits:
 
     However, you will still be able to explicitly set ``annotated=False`` to preserve the
     previous behavior.
-    
