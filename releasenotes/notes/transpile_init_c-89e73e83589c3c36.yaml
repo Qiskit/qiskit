@@ -6,10 +6,12 @@ features_c:
 
       * :c:func:`qk_transpile_stage_init`
       * :c:func:`qk_transpile_stage_layout`
+      * :c:func:`qk_transpile_stage_routing`
       * :c:func:`qk_transpile_stage_translation`
       * :c:func:`qk_transpile_stage_optimization`
 
     run the :ref:`transpiler-preset-stage-init`, :ref:`transpiler-preset-stage-layout`,
+    :ref:`transpiler-preset-stage-routing`,
     :ref:`transpiler-preset-stage-translation`, and
     :ref:`transpiler-preset-stage-optimization` respectively.
     This function is used to run these stages from the preset pass manager
