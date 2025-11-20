@@ -1970,7 +1970,7 @@ class QuantumCircuit:
             "(unless a dedicated controlled-gate class already exists). You can explicitly set "
             "`annotated=False` to preserve the previous behavior. However, using `annotated=True` "
             "is recommended, as it defers construction of the controlled circuit to transpiler, "
-            "and furthermore enables additional controlled-gate ptimizations (typically leading "
+            "and furthermore enables additional controlled-gate optimizations (typically leading "
             "to higher-quality circuits)."
         ),
         predicate=lambda my_arg: my_arg is None,
