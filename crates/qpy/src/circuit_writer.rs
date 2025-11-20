@@ -28,7 +28,9 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyDict, PyList, PyTuple};
 
-use qiskit_circuit::bit::{ClassicalRegister, PyClbit, PyQubit, QuantumRegister, Register};
+use qiskit_circuit::bit::{
+    ClassicalRegister, PyClbit, PyQubit, QuantumRegister, Register, ShareableQubit,
+};
 use qiskit_circuit::circuit_data::{CircuitData, CircuitStretchType, CircuitVarType};
 use qiskit_circuit::circuit_instruction::CircuitInstruction;
 use qiskit_circuit::converters::QuantumCircuitData;
@@ -42,7 +44,7 @@ use crate::formats;
 use crate::params::pack_param_obj;
 use crate::py_methods::{
     gate_class_name, getattr_or_none, py_get_condition_data_from_inst,
-    py_get_instruction_annotations, py_pack_param, py_pack_pauli_evolution_gate, py_pack_registers,
+    py_get_instruction_annotations, py_pack_param, py_pack_pauli_evolution_gate,
     recognize_custom_operation, serialize_metadata,
 };
 use crate::value::{
@@ -330,25 +332,31 @@ fn pack_quantum_registers(circuit_data: &CircuitData) -> Vec<formats::RegisterV4
     );
     registers_to_pack
         .iter()
-        .map(|qreg| {
-            let bit_indices = qreg
-                .bits()
-                .map(|qubit| {
-                    circuit_data
-                        .qubit_index(qubit)
-                        .map(|index| index as i64)
-                        .unwrap_or(-1)
-                })
-                .collect();
-            formats::RegisterV4Pack {
-                register_type: register_types::QREG,
-                standalone: qreg.is_owning() as u8,
-                in_circuit: in_circ_lookup.contains(qreg) as u8,
-                name: qreg.name().to_string(),
-                bit_indices,
-            }
-        })
+        .map(|qreg| pack_quantum_register(qreg, circuit_data, in_circ_lookup.contains(qreg)))
         .collect()
+}
+
+fn pack_quantum_register(
+    qreg: &QuantumRegister,
+    circuit_data: &CircuitData,
+    in_circuit: bool,
+) -> formats::RegisterV4Pack {
+    let bit_indices = qreg
+        .bits()
+        .map(|qubit| {
+            circuit_data
+                .qubit_index(qubit)
+                .map(|index| index as i64)
+                .unwrap_or(-1)
+        })
+        .collect();
+    formats::RegisterV4Pack {
+        register_type: register_types::QREG,
+        standalone: qreg.is_owning() as u8,
+        in_circuit: in_circuit as u8,
+        name: qreg.name().to_string(),
+        bit_indices,
+    }
 }
 
 fn pack_classical_registers(circuit_data: &CircuitData) -> Vec<formats::RegisterV4Pack> {
@@ -464,35 +472,27 @@ fn pack_custom_layout(
 ) -> PyResult<formats::LayoutV2Pack> {
     let py = layout.py();
     let mut initial_layout_size = -1; // initial_size
-    let input_qubit_mapping = PyDict::new(py);
+    let mut input_qubit_mapping: HashMap<ShareableQubit, usize> = HashMap::new();
     let initial_layout_array = PyList::empty(py);
-    let extra_registers = PyDict::new(py);
+    let mut extra_registers: HashSet<QuantumRegister> = HashSet::new();
+    let mut extra_registers_qubits: HashSet<ShareableQubit> = HashSet::new();
 
     let initial_layout = layout.getattr("initial_layout")?;
     if !initial_layout.is_none() {
         initial_layout_size = initial_layout.call_method0("__len__")?.extract::<i32>()?;
         let layout_mapping = initial_layout.call_method0("get_physical_bits")?;
         for i in 0..qpy_data.circuit_data.num_qubits() {
-            let qubit = layout_mapping.get_item(i)?;
-            input_qubit_mapping.set_item(&qubit, i)?;
-            let register = qubit.getattr("_register")?;
-            let index = qubit.getattr("_index")?;
-            if !register.is_none() || !index.is_none() {
-                if !qpy_data.circuit_data.qregs().contains(&register.extract()?) {
-                    let extra_register_list = match extra_registers.get_item(&register)? {
-                        Some(list) => list,
-                        None => {
-                            let new_list = PyList::empty(py);
-                            extra_registers.set_item(&register, &new_list)?;
-                            new_list.into_any()
-                        }
-                    };
-                    extra_register_list.cast::<PyList>()?.append(qubit)?;
-                }
-                initial_layout_array.append((index, register))?;
-            } else {
-                initial_layout_array.append((py.None(), py.None()))?;
+            let qubit = layout_mapping.get_item(i)?.extract::<ShareableQubit>()?;
+            input_qubit_mapping.insert(qubit.clone(), i);
+            let register = qubit.owning_register();
+            let index = qubit.owning_register_index();
+            if let Some(reg) = register.clone() {
+                extra_registers.insert(reg);
+                extra_registers_qubits.insert(qubit);
+            } else if index.is_some() {
+                extra_registers_qubits.insert(qubit);
             }
+            initial_layout_array.append((index, register))?;
         }
     }
 
@@ -511,21 +511,15 @@ fn pack_custom_layout(
         )?;
         let layout_mapping = initial_layout.call_method0("get_virtual_bits")?;
         for (qubit, index) in layout_input_qubit_mapping.cast::<PyDict>()? {
-            let register = qubit.getattr("_register")?;
-            if !register.is_none()
-                && !qubit.getattr("_index")?.is_none()
-                && !qpy_data.circuit_data.qregs().contains(&register.extract()?)
-            {
-                let extra_register_list = match extra_registers.get_item(&register)? {
-                    Some(list) => list,
-                    None => {
-                        let new_list = PyList::empty(py);
-                        extra_registers.set_item(&register, &new_list)?;
-                        new_list.into_any()
-                    }
-                };
-                extra_register_list.cast::<PyList>()?.append(&qubit)?;
-            }
+            let qubit = qubit.extract::<ShareableQubit>()?;
+            let register = qubit.owning_register();
+            if let Some(reg) = register {
+                if qubit.owning_register_index().is_some()
+                    && !qpy_data.circuit_data.qregs().contains(&reg)
+                {
+                    extra_registers.insert(reg);
+                }
+            };
             input_qubit_mapping_array
                 .set_item(index.extract()?, layout_mapping.get_item(&qubit)?)?;
         }
@@ -573,13 +567,8 @@ fn pack_custom_layout(
         layout.getattr("_input_qubit_count")?.extract()?
     };
 
-    let mut bits = Vec::new();
-    for register_bit_list in extra_registers.values() {
-        for x in register_bit_list.cast::<PyList>()? {
-            bits.push(x);
-        }
-    }
-    let extra_registers = py_pack_registers(&extra_registers.keys(), &PyList::new(py, bits)?)?;
+    let extra_registers =
+        pack_extra_registers(&extra_registers, &extra_registers_qubits, qpy_data)?;
     let mut initial_layout_items = Vec::with_capacity(initial_layout_size.max(0) as usize);
     for item in initial_layout_array {
         let tuple = item.cast::<PyTuple>()?;
@@ -646,6 +635,29 @@ pub fn pack_custom_instructions(
     Ok(formats::CustomCircuitInstructionsPack {
         custom_instructions,
     })
+}
+
+pub fn pack_extra_registers(
+    in_circ_regs: &HashSet<QuantumRegister>,
+    qubits: &HashSet<ShareableQubit>,
+    qpy_data: &QPYWriteData,
+) -> PyResult<Vec<formats::RegisterV4Pack>> {
+    let mut out_circ_regs: HashSet<QuantumRegister> = HashSet::new();
+    for qubit in qubits.iter() {
+        if let Some(qreg) = qubit.owning_register() {
+            if !in_circ_regs.contains(&qreg) {
+                out_circ_regs.insert(qreg);
+            }
+        }
+    }
+    let mut result = Vec::new();
+    for qreg in in_circ_regs.iter() {
+        result.push(pack_quantum_register(qreg, qpy_data.circuit_data, true));
+    }
+    for qreg in out_circ_regs.iter() {
+        result.push(pack_quantum_register(qreg, qpy_data.circuit_data, false));
+    }
+    Ok(result)
 }
 
 pub fn pack_custom_instruction(
