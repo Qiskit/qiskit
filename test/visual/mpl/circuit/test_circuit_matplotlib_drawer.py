@@ -366,7 +366,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             XGate().control(3, ctrl_state="010", annotated=False), [qr[2], qr[3], qr[0], qr[1]]
         )
         circuit.append(
-            MCXGate(num_ctrl_qubits=3, ctrl_state="101", annotated=False),
+            MCXGate(num_ctrl_qubits=3, ctrl_state="101"),
             [qr[0], qr[1], qr[2], qr[4]],
         )
         with self.assertWarns(DeprecationWarning):
