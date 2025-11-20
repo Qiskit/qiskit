@@ -206,14 +206,19 @@ fn commute(
     matrix_max_num_qubits: u32,
     commutation_checker: &mut CommutationChecker,
 ) -> bool {
-    let op1 = inst1.op.view();
-    let op2 = inst2.op.view();
-    let params1 = inst1.params_view();
-    let params2 = inst2.params_view();
     let qargs1 = dag.get_qargs(inst1.qubits);
     let qargs2 = dag.get_qargs(inst2.qubits);
     let cargs1 = dag.get_cargs(inst1.clbits);
     let cargs2 = dag.get_cargs(inst2.clbits);
+
+    if !qargs1.iter().any(|e| qargs2.contains(e)) && !cargs1.iter().any(|e| cargs2.contains(e)) {
+        return true;
+    }
+
+    let op1 = inst1.op.view();
+    let op2 = inst2.op.view();
+    let params1 = inst1.params_view();
+    let params2 = inst2.params_view();
 
     commutation_checker
         .commute(
