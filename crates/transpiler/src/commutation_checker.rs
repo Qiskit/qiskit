@@ -330,6 +330,12 @@ impl CommutationChecker {
         matrix_max_num_qubits: u32,
         approximation_degree: f64,
     ) -> Result<bool, CommutationError> {
+        if let Some(is_commuting) =
+            commutation_precheck_args(qargs1, cargs1, qargs2, cargs2, max_num_qubits)
+        {
+            return Ok(is_commuting);
+        }
+
         // If the average gate infidelity is below this tolerance, they commute. The tolerance
         // is set to max(1e-12, 1 - approximation_degree), to account for roundoffs and for
         // consistency with other places in Qiskit.
@@ -362,18 +368,7 @@ impl CommutationChecker {
             }
         }
 
-        let commutation: Option<bool> = commutation_precheck(
-            op1,
-            params1,
-            qargs1,
-            cargs1,
-            op2,
-            params2,
-            qargs2,
-            cargs2,
-            max_num_qubits,
-        );
-        if let Some(is_commuting) = commutation {
+        if let Some(is_commuting) = commutation_precheck_op_params(op1, params1, op2, params2) {
             return Ok(is_commuting);
         }
 
@@ -589,28 +584,32 @@ impl CommutationChecker {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
-fn commutation_precheck(
-    op1: &OperationRef,
-    params1: &[Param],
+fn commutation_precheck_args(
     qargs1: &[Qubit],
     cargs1: &[Clbit],
-    op2: &OperationRef,
-    params2: &[Param],
     qargs2: &[Qubit],
     cargs2: &[Clbit],
     max_num_qubits: u32,
 ) -> Option<bool> {
-    if op1.control_flow() || op2.control_flow() {
-        return Some(false);
-    }
-
     // assuming the number of involved qubits to be small, this might be faster than set operations
     if !qargs1.iter().any(|e| qargs2.contains(e)) && !cargs1.iter().any(|e| cargs2.contains(e)) {
         return Some(true);
     }
 
     if qargs1.len() > max_num_qubits as usize || qargs2.len() > max_num_qubits as usize {
+        return Some(false);
+    }
+
+    None
+}
+
+fn commutation_precheck_op_params(
+    op1: &OperationRef,
+    params1: &[Param],
+    op2: &OperationRef,
+    params2: &[Param],
+) -> Option<bool> {
+    if op1.control_flow() || op2.control_flow() {
         return Some(false);
     }
 
