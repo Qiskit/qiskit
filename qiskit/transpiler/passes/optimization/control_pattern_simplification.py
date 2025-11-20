@@ -15,124 +15,335 @@
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 import numpy as np
+import sympy as sp
+from sympy.logic import simplify_logic
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.circuit import ControlledGate
+from qiskit.circuit.library import CXGate, XGate
 
+class BooleanExpressionAnalyzer:
+    """Analyzes control patterns using sympy Boolean expressions.
 
-class BitwisePatternAnalyzer:
-    """Analyze and simplify control patterns using bitwise operations.
-
-    This class provides bitwise operations to analyze concrete control patterns
-    without requiring symbolic Boolean algebra (SymPy). It works with binary
-    string patterns like '11', '01', '110', etc.
+    This class converts control patterns to Boolean expressions,
+    simplifies them using sympy, and determines if simplification occurred.
+    Follows the implementation pattern from mcrx_simplifier.py.
     """
 
     def __init__(self, num_qubits: int):
-        """Initialize the analyzer.
+        """Initialize analyzer for given number of control qubits.
 
         Args:
-            num_qubits: Number of control qubits in the patterns
+            num_qubits: Number of control qubits in patterns
         """
         self.num_qubits = num_qubits
+        # Create symbols x0, x1, x2, ... for each control qubit
+        self.symbols = [sp.Symbol(f"x{i}") for i in range(num_qubits)]
 
-    def _pattern_to_int(self, pattern: str) -> int:
-        """Convert binary pattern string to integer.
+    def pattern_to_boolean_expr(self, pattern: str) -> sp.Basic:
+        """Convert binary pattern string to Boolean expression.
 
         Args:
-            pattern: Binary string (e.g., '110', '01')
-                    String is read left-to-right: leftmost is qubit 0
+            pattern: Binary pattern string (e.g., '110')
+                    Position i corresponds to qubit i (LSB-first)
 
         Returns:
-            Integer representation
+            Sympy Boolean expression representing the pattern
         """
-        return int(pattern, 2)  # Direct conversion, no reversal
+        terms = []
+        for i, bit in enumerate(pattern):
+            if bit == '1':
+                terms.append(self.symbols[i])
+            elif bit == '0':
+                terms.append(sp.Not(self.symbols[i]))
 
-    def _find_common_bits(self, patterns: List[str]) -> Tuple[int, int]:
-        """Find bits that have the same value across all patterns.
+        if not terms:
+            return sp.true
+        elif len(terms) == 1:
+            return terms[0]
+        else:
+            return sp.And(*terms)
+
+    def patterns_to_combined_expr(self, patterns: List[str]) -> sp.Basic:
+        """Convert list of patterns to combined Boolean OR expression.
 
         Args:
             patterns: List of binary pattern strings
 
         Returns:
-            Tuple of (mask, value) where:
-            - mask: bits set to 1 where all patterns have the same value
-            - value: the common bit values at those positions
+            Sympy Boolean expression (OR of all pattern expressions)
         """
         if not patterns:
-            return (0, 0)
+            return sp.false
 
-        first = self._pattern_to_int(patterns[0])
-        mask = (1 << self.num_qubits) - 1  # All bits set
+        pattern_exprs = [self.pattern_to_boolean_expr(p) for p in patterns]
 
-        for pattern in patterns[1:]:
-            curr = self._pattern_to_int(pattern)
-            # Update mask: keep only bits that match
-            diff = first ^ curr
-            mask &= ~diff  # Clear bits that differ
+        if len(pattern_exprs) == 1:
+            return pattern_exprs[0]
+        else:
+            return sp.Or(*pattern_exprs)
 
-        return (mask, first & mask)
-
-    def _can_eliminate_bit(self, bit_idx: int, patterns: List[str]) -> bool:
-        """Check if a specific bit position can be eliminated.
-
-        A bit can be eliminated if it varies across patterns in a way that
-        allows simplification (complementary patterns).
+    def simplify_expression(self, expr: sp.Basic) -> sp.Basic:
+        """Simplify Boolean expression using sympy.
 
         Args:
-            bit_idx: Bit position to check (0-indexed from left)
-            patterns: List of binary pattern strings
+            expr: Sympy Boolean expression
 
         Returns:
-            True if bit can be eliminated
+            Simplified expression
         """
-        # Get all unique values at this bit position
-        bit_values = set(p[bit_idx] for p in patterns)
+        try:
+            return simplify_logic(expr)
+        except Exception:
+            return expr
 
-        if len(bit_values) == 1:
-            # Bit is constant across all patterns, cannot eliminate
-            return False
+    def find_xor_pairs(self, patterns: List[str]) -> List[Tuple[str, str, List[int], str]]:
+        """Find pairs of patterns that form XOR relationships.
 
-        # Check if varying this bit covers complementary patterns
-        # Collect patterns for each bit value
-        patterns_by_bit = {"0": [], "1": []}
-        for p in patterns:
-            bit_val = p[bit_idx]
-            patterns_by_bit[bit_val].append(p)
+        An XOR pair has exactly 2 bit positions that differ between the patterns.
 
-        # Check if patterns are identical except for this bit
-        if "0" in patterns_by_bit and "1" in patterns_by_bit:
-            patterns_0 = patterns_by_bit["0"]
-            patterns_1 = patterns_by_bit["1"]
+        Args:
+            patterns: List of binary control pattern strings
 
-            if len(patterns_0) != len(patterns_1):
-                return False
+        Returns:
+            List of tuples (pattern1, pattern2, diff_positions, xor_type) where:
+            - diff_positions: [pos_i, pos_j] positions that differ (0-indexed)
+            - xor_type: '10-01', '01-10', '11-00', or '00-11'
+        """
+        xor_pairs = []
+        patterns_list = list(patterns)
 
-            # Remove the bit at bit_idx and compare
-            def remove_bit(p):
-                return p[:bit_idx] + p[bit_idx + 1 :]
+        for i in range(len(patterns_list)):
+            for j in range(i + 1, len(patterns_list)):
+                p1 = patterns_list[i]
+                p2 = patterns_list[j]
 
-            patterns_0_stripped = sorted(remove_bit(p) for p in patterns_0)
-            patterns_1_stripped = sorted(remove_bit(p) for p in patterns_1)
+                # Find positions where patterns differ
+                diff_positions = [k for k in range(len(p1)) if p1[k] != p2[k]]
 
-            return patterns_0_stripped == patterns_1_stripped
+                if len(diff_positions) == 2:
+                    # This is an XOR pair
+                    pos_i, pos_j = diff_positions
 
-        return False
+                    # Determine XOR type based on bit values
+                    bits_p1 = p1[pos_i] + p1[pos_j]
+                    bits_p2 = p2[pos_i] + p2[pos_j]
+
+                    # Determine XOR pattern type
+                    if bits_p1 == '10' and bits_p2 == '01':
+                        xor_type = '10-01'
+                    elif bits_p1 == '01' and bits_p2 == '10':
+                        xor_type = '01-10'
+                    elif bits_p1 == '11' and bits_p2 == '00':
+                        xor_type = '11-00'
+                    elif bits_p1 == '00' and bits_p2 == '11':
+                        xor_type = '00-11'
+                    else:
+                        continue  # Not a standard XOR pattern
+
+                    xor_pairs.append((p1, p2, diff_positions, xor_type))
+
+        return xor_pairs
+
+    def simplify_patterns_pairwise(
+        self, patterns: List[str]
+    ) -> Optional[List[dict]]:
+        """Simplify patterns using pairwise optimizations (complementary or XOR).
+
+        This finds ONE pairwise optimization (Hamming distance 1 first, then 2).
+        For iterative simplification of multiple patterns, this should be called
+        repeatedly until no more optimizations are found.
+
+        Args:
+            patterns: List of binary control pattern strings
+
+        Returns:
+            List with single optimization dict containing:
+            - 'type': 'complementary', 'xor_standard', or 'xor_with_x'
+            - 'patterns': patterns involved in this optimization
+            - 'control_positions': qubit positions for control
+            - 'ctrl_state': control state string
+            - 'xor_qubits': (for XOR only) positions needing CX/X gates
+            - 'xor_type': (for XOR only) type of XOR pattern
+            Or None if no pairwise optimization possible
+        """
+        if not patterns or len(patterns) < 2:
+            return None
+
+        patterns_set = set(patterns)
+        patterns_list = list(patterns_set)
+
+        # Prioritize Hamming distance 1 (complementary pairs) first
+        for i in range(len(patterns_list)):
+            for j in range(i + 1, len(patterns_list)):
+                p1 = patterns_list[i]
+                p2 = patterns_list[j]
+
+                # Find differing positions
+                diff_positions = [k for k in range(len(p1)) if p1[k] != p2[k]]
+
+                if len(diff_positions) == 1:
+                    # Complementary pair - drop the differing bit
+                    pos = diff_positions[0]
+                    common_positions = [k for k in range(len(p1)) if k != pos]
+
+                    # Build ctrl_state from common positions
+                    ctrl_state = ''.join(p1[k] for k in common_positions)
+
+                    # Map positions to qubit indices (LSB-first)
+                    control_qubit_indices = [self.num_qubits - 1 - k for k in common_positions]
+
+                    return [{
+                        'type': 'complementary',
+                        'patterns': [p1, p2],
+                        'control_positions': control_qubit_indices,
+                        'ctrl_state': ctrl_state
+                    }]
+
+        # Try XOR pairs (Hamming distance 2)
+        xor_pairs = self.find_xor_pairs(patterns_list)
+
+        if xor_pairs:
+            p1, p2, diff_positions, xor_type = xor_pairs[0]
+            pos_i, pos_j = diff_positions
+
+            # Find common positions (bits that don't vary)
+            common_positions = [k for k in range(len(p1)) if k not in diff_positions]
+
+            # Determine optimization based on XOR type
+            if xor_type in ['10-01', '01-10']:
+                # Standard XOR: CX trick
+                # After CX(qi, qj), both patterns have qj=1
+                # String positions directly map to control qubit indices
+                qi = pos_i
+                qj = pos_j
+
+                # After CX, control on qj=1
+                control_qubit_indices = common_positions + [qj]
+                control_qubit_indices = sorted(control_qubit_indices)
+
+                # Build ctrl_state for control_qubit_indices
+                ctrl_state_bits = []
+                for idx in control_qubit_indices:
+                    if idx == qj:
+                        ctrl_state_bits.append('1')
+                    else:
+                        ctrl_state_bits.append(p1[idx])
+
+                ctrl_state = ''.join(ctrl_state_bits)
+
+                return [{
+                    'type': 'xor_standard',
+                    'patterns': [p1, p2],
+                    'control_positions': control_qubit_indices,
+                    'ctrl_state': ctrl_state,
+                    'xor_qubits': [qi, qj],  # For CX(qi, qj)
+                    'xor_type': xor_type
+                }]
+
+            else:  # '11-00' or '00-11'
+                # XOR with X gates
+                qi = pos_i
+                qj = pos_j
+
+                # After X(qj) + CX(qi,qj), control on qj=1
+                control_qubit_indices = common_positions + [qj]
+                control_qubit_indices = sorted(control_qubit_indices)
+
+                # Build ctrl_state
+                ctrl_state_bits = []
+                for idx in control_qubit_indices:
+                    if idx == qj:
+                        ctrl_state_bits.append('1')
+                    else:
+                        ctrl_state_bits.append(p1[idx])
+
+                ctrl_state = ''.join(ctrl_state_bits)
+
+                return [{
+                    'type': 'xor_with_x',
+                    'patterns': [p1, p2],
+                    'control_positions': control_qubit_indices,
+                    'ctrl_state': ctrl_state,
+                    'xor_qubits': [qi, qj],
+                    'xor_type': xor_type
+                }]
+
+        return None
+
+    def simplify_patterns_iterative(
+        self, patterns: List[str]
+    ) -> Tuple[str, Optional[dict], Optional[str]]:
+        """Iteratively simplify patterns using pairwise optimizations.
+
+        Repeatedly applies pairwise simplification (Hamming distance 1, then 2)
+        until no more optimizations are found. This handles complex cases like
+        5 patterns → 4 → 3 through multiple iterations.
+
+        Args:
+            patterns: List of binary control pattern strings
+
+        Returns:
+            Tuple of (classification, optimization_info, ctrl_state):
+            - If optimizations found: ("pairwise_iterative", dict with optimizations, None)
+            - If no optimization: (None, None, None)
+        """
+        if not patterns or len(patterns) == 0:
+            return (None, None, None)
+
+        remaining_patterns = set(patterns)
+        all_optimizations = []
+
+        # Iteratively find and apply pairwise optimizations
+        while len(remaining_patterns) >= 2:
+            # Try to find one pairwise optimization
+            pairwise_result = self.simplify_patterns_pairwise(list(remaining_patterns))
+
+            if not pairwise_result:
+                # No more pairwise optimizations found
+                break
+
+            # Found an optimization
+            opt = pairwise_result[0]
+            matched = set(opt['patterns'])
+
+            # Add this optimization to our list
+            all_optimizations.append(opt)
+
+            # Remove matched patterns from remaining
+            remaining_patterns -= matched
+
+        # After all iterations, check what we have
+        if len(all_optimizations) == 0:
+            # No pairwise optimizations found
+            return (None, None, None)
+
+        # We found some pairwise optimizations
+        return ("pairwise_iterative", {
+            'optimizations': all_optimizations,
+            'remaining_patterns': list(remaining_patterns)
+        }, None)
 
     def simplify_patterns(
         self, patterns: List[str]
     ) -> Tuple[str, Optional[List[int]], Optional[str]]:
-        """Simplify control patterns using bitwise analysis.
+        """Simplify control patterns using sympy Boolean expression analysis.
+
+        This is the main entry point that tries different simplification strategies:
+        1. Check for unconditional (all states covered)
+        2. Try iterative pairwise (for >2 patterns)
+        3. Try single pairwise optimization
+        4. Use sympy Boolean simplification
 
         Args:
             patterns: List of binary control pattern strings
 
         Returns:
             Tuple of (classification, qubit_indices, ctrl_state):
-            - classification: 'single', 'and', 'unconditional', 'no_optimization'
-            - qubit_indices: List of qubit indices needed for control
-            - ctrl_state: Control state string for the remaining qubits
+            - classification: 'single', 'and', 'unconditional', 'no_optimization', 'pairwise', 'pairwise_iterative'
+            - qubit_indices: List of qubit indices or optimization info
+            - ctrl_state: Control state string or None
         """
         if not patterns:
             return ("no_optimization", None, None)
@@ -146,45 +357,93 @@ class BitwisePatternAnalyzer:
         if len(unique_patterns) == 2**self.num_qubits:
             return ("unconditional", [], "")
 
-        # Find which bits can be eliminated
-        eliminable_bits = []
-        for bit_idx in range(self.num_qubits):
-            if self._can_eliminate_bit(bit_idx, patterns):
-                eliminable_bits.append(bit_idx)
+        # Try iterative pairwise optimization for complex cases (> 2 patterns)
+        if len(unique_patterns) > 2:
+            iterative_result = self.simplify_patterns_iterative(list(unique_patterns))
 
-        # Find common bits across all patterns
-        mask, value = self._find_common_bits(patterns)
+            if iterative_result[0] == "pairwise_iterative":
+                # Iterative pairwise achieved optimization
+                return iterative_result
 
-        # Determine which bits are needed
-        # Note: eliminable_bits uses string indices (0=leftmost)
-        # while mask/value use integer bit indices (0=LSB/rightmost)
-        needed_bits = []
-        ctrl_state_bits = []
+        # Try single pairwise optimization
+        pairwise_result = self.simplify_patterns_pairwise(list(unique_patterns))
 
-        for string_idx in range(self.num_qubits):
-            # Map string index to integer bit index
-            int_bit_idx = self.num_qubits - 1 - string_idx
-            bit_mask = 1 << int_bit_idx
+        if pairwise_result:
+            # Pairwise achieved some optimization
+            return ("pairwise", pairwise_result, None)
 
-            if string_idx in eliminable_bits:
-                # This bit can be eliminated
-                continue
+        # Use sympy Boolean simplification to check for simpler forms
+        original_expr = self.patterns_to_combined_expr(list(unique_patterns))
+        simplified_expr = self.simplify_expression(original_expr)
 
-            # Check if this bit has a common value
-            if mask & bit_mask:
-                # Bit is common across all patterns, keep it
-                # Convert string index to qubit index (little-endian: qubit 0 is rightmost)
-                qubit_idx = self.num_qubits - 1 - string_idx
-                needed_bits.append(qubit_idx)
-                bit_value = "1" if (value & bit_mask) else "0"
-                ctrl_state_bits.append(bit_value)
+        # Analyze the simplified expression to extract control information
+        return self._analyze_simplified_expr(simplified_expr, original_expr)
 
-        if len(needed_bits) == 0:
+    def _analyze_simplified_expr(
+        self, simplified_expr: sp.Basic, original_expr: sp.Basic
+    ) -> Tuple[str, Optional[List[int]], Optional[str]]:
+        """Analyze a simplified sympy expression to extract control pattern info.
+
+        Args:
+            simplified_expr: Simplified Boolean expression
+            original_expr: Original Boolean expression for comparison
+
+        Returns:
+            Tuple of (classification, qubit_indices, ctrl_state)
+        """
+        # Check if expression simplified to True (unconditional)
+        if simplified_expr == sp.true:
             return ("unconditional", [], "")
-        elif len(needed_bits) == 1:
-            return ("single", needed_bits, "".join(ctrl_state_bits))
-        else:
-            return ("and", sorted(needed_bits), "".join(ctrl_state_bits))
+
+        # Check if expression simplified to False (impossible, no optimization)
+        if simplified_expr == sp.false:
+            return ("no_optimization", None, None)
+
+        # Check if simplified to a single variable or its negation
+        for i, symbol in enumerate(self.symbols):
+            if simplified_expr == symbol:
+                # Single control on qubit i = 1
+                return ("single", [i], "1")
+            elif simplified_expr == sp.Not(symbol):
+                # Single control on qubit i = 0
+                return ("single", [i], "0")
+
+        # Check if it's an AND of literals (conjunction)
+        if isinstance(simplified_expr, sp.And):
+            qubit_indices = []
+            ctrl_state_bits = []
+
+            for arg in simplified_expr.args:
+                if isinstance(arg, sp.Not):
+                    # Negated variable
+                    var = arg.args[0]
+                    if var in self.symbols:
+                        qubit_idx = self.symbols.index(var)
+                        qubit_indices.append(qubit_idx)
+                        ctrl_state_bits.append('0')
+                elif arg in self.symbols:
+                    # Positive variable
+                    qubit_idx = self.symbols.index(arg)
+                    qubit_indices.append(qubit_idx)
+                    ctrl_state_bits.append('1')
+
+            if qubit_indices:
+                # Sort by qubit index
+                sorted_pairs = sorted(zip(qubit_indices, ctrl_state_bits))
+                qubit_indices = [q for q, _ in sorted_pairs]
+                ctrl_state = ''.join(c for _, c in sorted_pairs)
+
+                if len(qubit_indices) == 1:
+                    return ("single", qubit_indices, ctrl_state)
+                else:
+                    return ("and", qubit_indices, ctrl_state)
+
+        # If expression didn't simplify or is complex OR, no optimization
+        if str(simplified_expr) == str(original_expr):
+            return ("no_optimization", None, None)
+
+        # Expression simplified but we can't extract a simple pattern
+        return ("no_optimization", None, None)
 
 
 @dataclass
@@ -387,8 +646,12 @@ class ControlPatternSimplification(TransformationPass):
         Gates are compatible if they have:
         - Same base gate type
         - Same target qubits
-        - Same control qubits (same set, different patterns allowed)
+        - Same control qubits (same set)
         - Same parameters
+
+        This handles TWO types of grouping:
+        1. Identical patterns: Merge angles (e.g., 2x RX(θ) with '110' → RX(2θ) with '110')
+        2. Different patterns: Pattern simplification (e.g., '11'+'01' → '1')
 
         Args:
             gates: List of controlled gate information
@@ -408,6 +671,7 @@ class ControlPatternSimplification(TransformationPass):
             target_qubits = gates[i].target_qubits
             control_qubits_set = set(gates[i].control_qubits)
             params = gates[i].params
+            ctrl_state = gates[i].ctrl_state
 
             # Look for consecutive compatible gates
             j = i + 1
@@ -420,9 +684,8 @@ class ControlPatternSimplification(TransformationPass):
                     and candidate.target_qubits == target_qubits
                     and set(candidate.control_qubits) == control_qubits_set
                     and self._parameters_match(candidate.params, params)
-                    and candidate.ctrl_state != gates[i].ctrl_state
-                ):  # Different patterns
-
+                ):
+                    # Compatible! Can be either identical patterns OR different patterns
                     current_group.append(candidate)
                     j += 1
                 else:
@@ -526,6 +789,230 @@ class ControlPatternSimplification(TransformationPass):
 
         return (gate, target_qubits)
 
+    def _build_iterative_pairwise_gates(
+        self, group: List[ControlledGateInfo], iterative_info: dict
+    ) -> List[Tuple]:
+        """Build gates for iterative pairwise optimization.
+
+        Args:
+            group: Original group of gates
+            iterative_info: Dict with 'optimizations' list and 'remaining_patterns'
+
+        Returns:
+            List of (gate, qargs) tuples
+        """
+        optimizations = iterative_info['optimizations']
+        remaining_patterns_strs = iterative_info['remaining_patterns']
+
+        base_gate = type(group[0].operation.base_gate)
+        params = group[0].params
+        target_qubits = group[0].target_qubits
+        all_control_qubits = group[0].control_qubits
+
+        gates = []
+
+        # Build gates for each optimization
+        for opt in optimizations:
+            opt_type = opt['type']
+            control_positions = opt['control_positions']
+            ctrl_state = opt['ctrl_state']
+            control_qubits = [all_control_qubits[pos] for pos in control_positions]
+
+            # Build the optimized gate for this pair
+            if opt_type == 'complementary':
+                if len(control_qubits) == 0:
+                    gate, qargs = self._build_unconditional_gate(base_gate, params, target_qubits)
+                    gates.append((gate, qargs))
+                elif len(control_qubits) == 1:
+                    gate, qargs = self._build_single_control_gate(
+                        base_gate, params, control_qubits[0], target_qubits, ctrl_state
+                    )
+                    gates.append((gate, qargs))
+                else:
+                    gate, qargs = self._build_multi_control_gate(
+                        base_gate, params, control_qubits, target_qubits, ctrl_state
+                    )
+                    gates.append((gate, qargs))
+
+            elif opt_type == 'xor_standard':
+                qi, qj = opt['xor_qubits']
+                qi_circuit = all_control_qubits[qi]
+                qj_circuit = all_control_qubits[qj]
+
+                gates.append((CXGate(), [qi_circuit, qj_circuit]))
+
+                if len(control_qubits) == 0:
+                    gate, qargs = self._build_unconditional_gate(base_gate, params, target_qubits)
+                elif len(control_qubits) == 1:
+                    gate, qargs = self._build_single_control_gate(
+                        base_gate, params, control_qubits[0], target_qubits, ctrl_state
+                    )
+                else:
+                    gate, qargs = self._build_multi_control_gate(
+                        base_gate, params, control_qubits, target_qubits, ctrl_state
+                    )
+                gates.append((gate, qargs))
+                gates.append((CXGate(), [qi_circuit, qj_circuit]))
+
+            elif opt_type == 'xor_with_x':
+                qi, qj = opt['xor_qubits']
+                qi_circuit = all_control_qubits[qi]
+                qj_circuit = all_control_qubits[qj]
+
+                gates.append((XGate(), [qj_circuit]))
+                gates.append((CXGate(), [qi_circuit, qj_circuit]))
+
+                if len(control_qubits) == 0:
+                    gate, qargs = self._build_unconditional_gate(base_gate, params, target_qubits)
+                elif len(control_qubits) == 1:
+                    gate, qargs = self._build_single_control_gate(
+                        base_gate, params, control_qubits[0], target_qubits, ctrl_state
+                    )
+                else:
+                    gate, qargs = self._build_multi_control_gate(
+                        base_gate, params, control_qubits, target_qubits, ctrl_state
+                    )
+                gates.append((gate, qargs))
+                gates.append((CXGate(), [qi_circuit, qj_circuit]))
+                gates.append((XGate(), [qj_circuit]))
+
+        # Add gates for remaining unmatched patterns
+        remaining_patterns_int = {int(p, 2) for p in remaining_patterns_strs}
+        for gate_info in group:
+            ctrl_state_int = int(gate_info.ctrl_state, 2) if isinstance(gate_info.ctrl_state, str) else gate_info.ctrl_state
+            if ctrl_state_int in remaining_patterns_int:
+                gate = gate_info.operation
+                qargs = gate_info.control_qubits + gate_info.target_qubits
+                gates.append((gate, qargs))
+
+        return gates if gates else None
+
+    def _build_pairwise_optimized_gates(
+        self, group: List[ControlledGateInfo], pairwise_opts: List[dict]
+    ) -> List[Tuple]:
+        """Build optimized gates for pairwise optimization (complementary or XOR).
+
+        Args:
+            group: Original group of gates
+            pairwise_opts: List of pairwise optimization dicts
+
+        Returns:
+            List of (gate, qargs) tuples
+        """
+        if not pairwise_opts:
+            return None
+
+        opt = pairwise_opts[0]  # Take first optimization
+        opt_type = opt['type']
+        control_positions = opt['control_positions']
+        ctrl_state = opt['ctrl_state']
+        # Convert matched patterns to integers for comparison with gate ctrl_state
+        matched_patterns = {int(p, 2) for p in opt['patterns']}
+
+        base_gate = type(group[0].operation.base_gate)
+        params = group[0].params
+        target_qubits = group[0].target_qubits
+        all_control_qubits = group[0].control_qubits
+
+        # Map control_positions (qubit indices in pattern) to actual circuit qubits
+        control_qubits = [all_control_qubits[pos] for pos in control_positions]
+
+        gates = []
+
+        # Build gates for the pairwise optimization
+        if opt_type == 'complementary':
+            # Simple case: just reduce control qubits
+            if len(control_qubits) == 0:
+                # Unconditional
+                gate, qargs = self._build_unconditional_gate(base_gate, params, target_qubits)
+                gates.append((gate, qargs))
+            elif len(control_qubits) == 1:
+                # Single control
+                gate, qargs = self._build_single_control_gate(
+                    base_gate, params, control_qubits[0], target_qubits, ctrl_state
+                )
+                gates.append((gate, qargs))
+            else:
+                # Multi control
+                gate, qargs = self._build_multi_control_gate(
+                    base_gate, params, control_qubits, target_qubits, ctrl_state
+                )
+                gates.append((gate, qargs))
+
+        elif opt_type == 'xor_standard':
+            # Standard XOR: CX(qi, qj) + controlled_gate + CX(qi, qj)
+            qi, qj = opt['xor_qubits']
+            qi_circuit = all_control_qubits[qi]
+            qj_circuit = all_control_qubits[qj]
+
+            # Build the wrapped circuit
+            gates = []
+
+            # CX(qi, qj)
+            gates.append((CXGate(), [qi_circuit, qj_circuit]))
+
+            # Controlled gate with reduced controls
+            if len(control_qubits) == 0:
+                gate, qargs = self._build_unconditional_gate(base_gate, params, target_qubits)
+            elif len(control_qubits) == 1:
+                gate, qargs = self._build_single_control_gate(
+                    base_gate, params, control_qubits[0], target_qubits, ctrl_state
+                )
+            else:
+                gate, qargs = self._build_multi_control_gate(
+                    base_gate, params, control_qubits, target_qubits, ctrl_state
+                )
+            gates.append((gate, qargs))
+
+            # CX(qi, qj)
+            gates.append((CXGate(), [qi_circuit, qj_circuit]))
+
+        elif opt_type == 'xor_with_x':
+            # XOR with X gates: X(qj) + CX(qi, qj) + controlled_gate + CX(qi, qj) + X(qj)
+            qi, qj = opt['xor_qubits']
+            qi_circuit = all_control_qubits[qi]
+            qj_circuit = all_control_qubits[qj]
+
+            gates = []
+
+            # X(qj)
+            gates.append((XGate(), [qj_circuit]))
+
+            # CX(qi, qj)
+            gates.append((CXGate(), [qi_circuit, qj_circuit]))
+
+            # Controlled gate
+            if len(control_qubits) == 0:
+                gate, qargs = self._build_unconditional_gate(base_gate, params, target_qubits)
+            elif len(control_qubits) == 1:
+                gate, qargs = self._build_single_control_gate(
+                    base_gate, params, control_qubits[0], target_qubits, ctrl_state
+                )
+            else:
+                gate, qargs = self._build_multi_control_gate(
+                    base_gate, params, control_qubits, target_qubits, ctrl_state
+                )
+            gates.append((gate, qargs))
+
+            # CX(qi, qj)
+            gates.append((CXGate(), [qi_circuit, qj_circuit]))
+
+            # X(qj)
+            gates.append((XGate(), [qj_circuit]))
+
+        # Build gates for any unmatched patterns
+        for gate_info in group:
+            # gate_info.ctrl_state is a string like '0000', convert to int for comparison
+            ctrl_state_int = int(gate_info.ctrl_state, 2) if isinstance(gate_info.ctrl_state, str) else gate_info.ctrl_state
+            if ctrl_state_int not in matched_patterns:
+                # This pattern wasn't part of the pairwise optimization
+                # Build a separate gate for it
+                gate = gate_info.operation
+                qargs = gate_info.control_qubits + gate_info.target_qubits
+                gates.append((gate, qargs))
+
+        return gates if gates else None
+
     def _replace_gates_in_dag(
         self, dag: DAGCircuit, original_group: List[ControlledGateInfo], replacement: List[Tuple]
     ):
@@ -587,46 +1074,80 @@ class ControlPatternSimplification(TransformationPass):
                 patterns = [g.ctrl_state for g in group]
                 num_qubits = len(group[0].control_qubits)
 
-                # 4. Try bitwise pattern simplification
-                analyzer = BitwisePatternAnalyzer(num_qubits)
-                classification, qubit_indices, ctrl_state = analyzer.simplify_patterns(patterns)
-
-                # 5. Build optimized gate based on classification
-                replacement = None
-
-                if classification == "single" and qubit_indices and ctrl_state:
-                    # Simplified to single control qubit
-                    control_qubit_pos = qubit_indices[0]
-                    control_qubit = group[0].control_qubits[control_qubit_pos]
+                # 4. Check if all patterns are identical (angle merging case)
+                unique_patterns = set(patterns)
+                if len(unique_patterns) == 1:
+                    # All gates have identical patterns - merge by summing angles
+                    # This applies to parametric gates like RX, RY, RZ
+                    control_qubits = group[0].control_qubits
                     target_qubits = group[0].target_qubits
                     base_gate = type(group[0].operation.base_gate)
-                    params = group[0].params
+                    ctrl_state = group[0].ctrl_state
 
-                    gate, qargs = self._build_single_control_gate(
-                        base_gate, params, control_qubit, target_qubits, ctrl_state
-                    )
-                    replacement = [(gate, qargs)]
-
-                elif classification == "and" and qubit_indices and ctrl_state:
-                    # Simplified to AND of multiple controls (reduced set)
-                    control_qubits = [group[0].control_qubits[i] for i in qubit_indices]
-                    target_qubits = group[0].target_qubits
-                    base_gate = type(group[0].operation.base_gate)
-                    params = group[0].params
+                    # Sum the angles from all gates
+                    if group[0].params:
+                        total_angle = sum(g.params[0] for g in group)
+                        params = (total_angle,)
+                    else:
+                        params = group[0].params
 
                     gate, qargs = self._build_multi_control_gate(
                         base_gate, params, control_qubits, target_qubits, ctrl_state
                     )
                     replacement = [(gate, qargs)]
+                else:
+                    # Different patterns - try pattern simplification using sympy
+                    analyzer = BooleanExpressionAnalyzer(num_qubits)
+                    classification, qubit_indices, ctrl_state = analyzer.simplify_patterns(patterns)
 
-                elif classification == "unconditional":
-                    # All control states covered - unconditional gate
-                    target_qubits = group[0].target_qubits
-                    base_gate = type(group[0].operation.base_gate)
-                    params = group[0].params
+                    # 5. Build optimized gate based on classification
+                    replacement = None
 
-                    gate, qargs = self._build_unconditional_gate(base_gate, params, target_qubits)
-                    replacement = [(gate, qargs)]
+                    if classification == "single" and qubit_indices and ctrl_state:
+                        # Simplified to single control qubit
+                        control_qubit_pos = qubit_indices[0]
+                        control_qubit = group[0].control_qubits[control_qubit_pos]
+                        target_qubits = group[0].target_qubits
+                        base_gate = type(group[0].operation.base_gate)
+                        params = group[0].params
+
+                        gate, qargs = self._build_single_control_gate(
+                            base_gate, params, control_qubit, target_qubits, ctrl_state
+                        )
+                        replacement = [(gate, qargs)]
+
+                    elif classification == "and" and qubit_indices and ctrl_state:
+                        # Simplified to AND of multiple controls (reduced set)
+                        control_qubits = [group[0].control_qubits[i] for i in qubit_indices]
+                        target_qubits = group[0].target_qubits
+                        base_gate = type(group[0].operation.base_gate)
+                        params = group[0].params
+
+                        gate, qargs = self._build_multi_control_gate(
+                            base_gate, params, control_qubits, target_qubits, ctrl_state
+                        )
+                        replacement = [(gate, qargs)]
+
+                    elif classification == "unconditional":
+                        # All control states covered - unconditional gate
+                        target_qubits = group[0].target_qubits
+                        base_gate = type(group[0].operation.base_gate)
+                        params = group[0].params
+
+                        gate, qargs = self._build_unconditional_gate(base_gate, params, target_qubits)
+                        replacement = [(gate, qargs)]
+
+                    elif classification == "pairwise_iterative" and qubit_indices:
+                        # Iterative pairwise optimization (multiple steps)
+                        replacement = self._build_iterative_pairwise_gates(
+                            group, qubit_indices
+                        )
+
+                    elif classification == "pairwise" and qubit_indices:
+                        # Single pairwise optimization (complementary or XOR)
+                        replacement = self._build_pairwise_optimized_gates(
+                            group, qubit_indices
+                        )
 
                 # Store optimization if found
                 if replacement:
