@@ -564,7 +564,7 @@ def generate_controlled_gates():
     """Test QPY serialization with custom ControlledGates."""
     circuits = []
     qc = QuantumCircuit(3, name="custom_controlled_gates")
-    controlled_gate = DCXGate().control(1)
+    controlled_gate = DCXGate().control(1, annotated=False)
     qc.append(controlled_gate, [0, 1, 2])
     circuits.append(qc)
     custom_gate = Gate("black_box", 1, [])
@@ -574,7 +574,7 @@ def generate_controlled_gates():
     custom_gate.definition = custom_definition
     nested_qc = QuantumCircuit(3, name="nested_qc")
     qc.append(custom_gate, [0])
-    controlled_gate = custom_gate.control(2)
+    controlled_gate = custom_gate.control(2, annotated=False)
     nested_qc.append(controlled_gate, [0, 1, 2])
     circuits.append(nested_qc)
     qc_open = QuantumCircuit(2, name="open_cx")
@@ -587,7 +587,7 @@ def generate_open_controlled_gates():
     """Test QPY serialization with custom ControlledGates with open controls."""
     circuits = []
     qc = QuantumCircuit(3, name="open_controls_simple")
-    controlled_gate = DCXGate().control(1, ctrl_state=0)
+    controlled_gate = DCXGate().control(1, ctrl_state=0, annotated=False)
     qc.append(controlled_gate, [0, 1, 2])
     circuits.append(qc)
 
@@ -598,7 +598,7 @@ def generate_open_controlled_gates():
     custom_gate.definition = custom_definition
     nested_qc = QuantumCircuit(3, name="open_controls_nested")
     nested_qc.append(custom_gate, [0])
-    controlled_gate = custom_gate.control(2, ctrl_state=1)
+    controlled_gate = custom_gate.control(2, ctrl_state=1, annotated=False)
     nested_qc.append(controlled_gate, [0, 1, 2])
     circuits.append(nested_qc)
 
