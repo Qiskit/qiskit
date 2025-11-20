@@ -583,7 +583,7 @@ def generate_controlled_gates():
     return circuits
 
 
-def generate_open_controlled_gates():
+def generate_open_controlled_gates(version):
     """Test QPY serialization with custom ControlledGates with open controls."""
     circuits = []
     qc = QuantumCircuit(3, name="open_controls_simple")
@@ -598,7 +598,10 @@ def generate_open_controlled_gates():
     custom_gate.definition = custom_definition
     nested_qc = QuantumCircuit(3, name="open_controls_nested")
     nested_qc.append(custom_gate, [0])
-    controlled_gate = custom_gate.control(2, ctrl_state=1, annotated=False)
+    if version >= (2, 3, 0):
+        controlled_gate = custom_gate.control(2, ctrl_state=1, annotated=False)
+    else:
+        controlled_gate = custom_gate.control(2, ctrl_state=1)
     nested_qc.append(controlled_gate, [0, 1, 2])
     circuits.append(nested_qc)
 
@@ -973,7 +976,9 @@ def generate_circuits(version_parts, current_version, load_context=False):
     if version_parts >= (0, 24, 0):
         output_circuits["control_flow_switch.qpy"] = generate_control_flow_switch_circuits()
     if version_parts >= (0, 24, 1):
-        output_circuits["open_controlled_gates.qpy"] = generate_open_controlled_gates()
+        output_circuits["open_controlled_gates.qpy"] = generate_open_controlled_gates(
+            current_version
+        )
         output_circuits["controlled_gates.qpy"] = generate_controlled_gates()
     if version_parts >= (0, 24, 2):
         output_circuits["layout.qpy"] = generate_layout_circuits()
