@@ -159,18 +159,18 @@ fn extract_op_from_pauligate(
 
     let mut indices: Vec<u32> = Vec::new();
     let mut bit_terms: Vec<BitTerm> = Vec::new();
-    for (i, pauli) in pauli_string.chars().enumerate() {
+    for (i, pauli) in pauli_string.chars().rev().enumerate() {
         match pauli {
             'X' => {
-                indices.push(qubits.get(i).unwrap().0);
+                indices.push(i as u32);
                 bit_terms.push(BitTerm::X)
             }
             'Y' => {
-                indices.push(qubits.get(i).unwrap().0);
+                indices.push(i as u32);
                 bit_terms.push(BitTerm::Y)
             }
             'Z' => {
-                indices.push(qubits.get(i).unwrap().0);
+                indices.push(i as u32);
                 bit_terms.push(BitTerm::Z)
             }
             _ => {} // nothing to do for the identity
@@ -180,9 +180,14 @@ fn extract_op_from_pauligate(
     // not sure is it's a valid state to otherwise end up with [0, 0] boundaries
     let boundaries = vec![0, indices.len()];
     let coeffs = vec![Complex64::new(1., 0.)];
+    let local =
+        SparseObservable::new(gate.num_qubits(), coeffs, bit_terms, indices, boundaries).unwrap();
 
-    // SAFETY: We constructed valid data manually of the bit terms.
-    unsafe { SparseObservable::new_unchecked(num_qubits, coeffs, bit_terms, indices, boundaries) }
+    // There's an optimization potential here to directly construct the output SparseObservable
+    // of the right size. This would require sorting the global indices to ensure the data format
+    // is correct.
+    let out = SparseObservable::identity(num_qubits);
+    out.compose_map(&local, |i| qubits[i as usize].0)
 }
 
 fn extract_op_from_paulievo(
@@ -202,21 +207,41 @@ fn extract_op_from_paulievo(
             .cast_bound::<PySparseObservable>(py)
             .expect("Failed casting to PySparseObservable")
             .borrow();
-        let local_obs = py_obs.as_inner().expect("Failed to read");
+        let local = py_obs.as_inner().expect("Failed to read");
 
-        let indices = qubits.iter().map(|q| q.0).collect();
-        // SAFETY: The internal data comes from a valid SparseObservable and we modify it in a safe
-        // fashion.
-        unsafe {
-            SparseObservable::new_unchecked(
-                num_qubits,
-                local_obs.coeffs().to_vec(),
-                local_obs.bit_terms().to_vec(),
-                indices,
-                local_obs.boundaries().to_vec(),
-            )
-        }
+        let out = SparseObservable::identity(num_qubits);
+        out.compose_map(&local, |i| qubits[i as usize].0)
     })
+}
+
+fn extract_from_ppm(
+    operation: &OperationRef,
+    qubits: &[Qubit],
+    num_qubits: u32,
+) -> SparseObservable {
+    let OperationRef::PauliProductMeasurement(ppm) = operation else {
+        panic!("Invalid operation, expected PauliProductMeasurement");
+    };
+    let mut indices = Vec::new();
+    let mut bit_terms = Vec::new();
+    for (i, (x_i, z_i)) in ppm.x.iter().zip(ppm.z.iter()).enumerate() {
+        // The only failure case possible here is the identity, because of how we're
+        // constructing the value to convert.
+        let Ok(term) = ::bytemuck::checked::try_cast(((*x_i as u8) << 1) | (*z_i as u8)) else {
+            continue;
+        };
+        indices.push(i as u32);
+        bit_terms.push(term);
+    }
+
+    // The sign of the PPM doesn't matter for commutation checking so we just use 1
+    let coeffs = vec![Complex64::new(1., 0.)];
+    let boundaries = vec![0, bit_terms.len()];
+
+    let local =
+        SparseObservable::new(ppm.num_qubits(), coeffs, bit_terms, indices, boundaries).unwrap();
+    let out = SparseObservable::identity(num_qubits);
+    out.compose_map(&local, |i| qubits[i as usize].0)
 }
 
 fn try_pauli_generator(
@@ -227,6 +252,7 @@ fn try_pauli_generator(
     match operation.name() {
         "pauli" => Some(extract_op_from_pauligate(operation, qubits, num_qubits)),
         "PauliEvolution" => Some(extract_op_from_paulievo(operation, qubits, num_qubits)),
+        "pauli_product_measurement" => Some(extract_from_ppm(operation, qubits, num_qubits)),
         _ => None,
     }
 }
@@ -440,9 +466,6 @@ impl CommutationChecker {
         // consistency with other places in Qiskit.
         let tol = 1e-12_f64.max(1. - approximation_degree);
 
-        // get the maximum index to use as size for the sparse observables
-        let size = qargs1.iter().max().max(qargs2.iter().max()).unwrap().0;
-
         // if we have rotation gates, we attempt to map them to their generators, for example
         // RX -> X or CPhase -> CZ
         let (op1_gate, params1, trivial1) = map_rotation(op1, params1, tol);
@@ -471,6 +494,7 @@ impl CommutationChecker {
         }
 
         // Handle commutations in between Pauli-based gates, like PauliGate or PauliEvolutionGate
+        let size = qargs1.iter().max().max(qargs2.iter().max()).unwrap().0 + 1;
         if let Some(obs1) = try_pauli_generator(op1, qargs1, size) {
             if let Some(obs2) = try_pauli_generator(op2, qargs2, size) {
                 return Ok(obs1.commutes(&obs2, tol));

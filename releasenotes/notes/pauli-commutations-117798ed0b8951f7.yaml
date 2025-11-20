@@ -1,0 +1,11 @@
+---
+features_transpiler:
+  - |
+    The :class:`.CommutationChecker` now supports efficient commutation checks in-between the
+    Pauli-based gates :class:`.PauliGate`, :class:`.PauliEvolutionGate` and
+    :class:`.PauliProductMeasurement` by checking if the generating Pauli operators commute.
+    This enables optimizations in particular for circuits in Pauli-based computation format,
+    expressed in terms of Pauli evolutions and Pauli product measurements.
+    Note that commutations between these Pauli-based gates and other standard gates are not yet
+    handled in the same efficient manner.
+
