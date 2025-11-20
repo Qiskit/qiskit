@@ -121,7 +121,7 @@ fn get_instruction_range(
 enum WireInputElement<'a> {
     Qubit(&'a ShareableQubit),
     Clbit(&'a ShareableClbit),
-    Creg(&'a ClassicalRegister)
+    Creg(&'a ClassicalRegister),
 }
 
 impl WireInputElement<'_> {
@@ -187,14 +187,12 @@ enum BoxedElement<'a> {
     Multi(&'a PackedInstruction),
 }
 
-
-
 /// Enum for representing the elements stored in a visualization matrix. The elements
 /// do not directly implement visualization capabilities, but rather carry enough information
 /// to enable visualization later on by the actual drawer.
 
 #[derive(Default, Clone)]
-enum VisualizationElement<'a>{
+enum VisualizationElement<'a> {
     #[default]
     /// A wire element without any associated information.
     Empty,
@@ -244,7 +242,7 @@ impl<'a> VisualizationLayer<'a> {
             OperationRef::StandardInstruction(std_inst) => {
                 self.add_standard_instruction(cregbundle, std_inst, inst, circuit, clbit_map);
             }
-            OperationRef::Unitary(_) =>  {
+            OperationRef::Unitary(_) => {
                 self.add_unitary_gate(inst, circuit);
             }
             _ => unimplemented!(
@@ -370,12 +368,12 @@ impl<'a> VisualizationLayer<'a> {
                     .filter(|idx| !(qargs.iter().map(|q| q.0 as usize)).contains(idx));
                 self.add_vertical_lines(vert_lines, inst);
             }
-            _ => unimplemented!("{}", format!("{:?} is not supported yet", gate))
+            _ => unimplemented!("{}", format!("{:?} is not supported yet", gate)),
         }
 
-    //     let vert_lines = (minima..=maxima)
-    //         .filter(|idx| !control_indices.contains(idx) && !box_indices.contains(idx));
-    //     self.add_vertical_lines(inst, vert_lines);
+        //     let vert_lines = (minima..=maxima)
+        //         .filter(|idx| !control_indices.contains(idx) && !box_indices.contains(idx));
+        //     self.add_vertical_lines(inst, vert_lines);
     }
 
     fn add_standard_instruction(
@@ -423,18 +421,13 @@ impl<'a> VisualizationLayer<'a> {
         }
     }
 
-    fn add_unitary_gate(
-        &mut self,
-        inst: &'a PackedInstruction,
-        circuit: &CircuitData,
-        ) {
+    fn add_unitary_gate(&mut self, inst: &'a PackedInstruction, circuit: &CircuitData) {
         let qargs = circuit.get_qargs(inst.qubits);
         if qargs.len() == 1 {
-            self.0[qargs.first().unwrap().index()] = VisualizationElement::Boxed(BoxedElement::Single(inst));
-        }
-        else {
-            let (minima, maxima) =
-                get_instruction_range(qargs, &[], 0);
+            self.0[qargs.first().unwrap().index()] =
+                VisualizationElement::Boxed(BoxedElement::Single(inst));
+        } else {
+            let (minima, maxima) = get_instruction_range(qargs, &[], 0);
 
             for q in minima..=maxima {
                 self.0[q] = VisualizationElement::Boxed(BoxedElement::Multi(inst));
@@ -729,13 +722,12 @@ impl TextDrawer {
 
     fn get_label(instruction: &PackedInstruction) -> String {
         match instruction.op.view() {
-            OperationRef::StandardInstruction(std_instruction) => {
-                match std_instruction {
-                    StandardInstruction::Measure => "M".to_string(),
-                    StandardInstruction::Reset => "|0>".to_string(),
-                    StandardInstruction::Barrier(_) => "░".to_string(),
-                    StandardInstruction::Delay(delay_unit) => 
-                    format!("Delay({:?}[{}])", instruction.params, delay_unit),
+            OperationRef::StandardInstruction(std_instruction) => match std_instruction {
+                StandardInstruction::Measure => "M".to_string(),
+                StandardInstruction::Reset => "|0>".to_string(),
+                StandardInstruction::Barrier(_) => "░".to_string(),
+                StandardInstruction::Delay(delay_unit) => {
+                    format!("Delay({:?}[{}])", instruction.params, delay_unit)
                 }
             },
             OperationRef::StandardGate(standard_gate) => {
@@ -811,12 +803,10 @@ impl TextDrawer {
                     label = format!("{}({})", label, params);
                 }
                 label
-            },
-            OperationRef::Unitary(_) => {
-                instruction.label().unwrap_or(" Unitary ").to_string()
-            },
+            }
+            OperationRef::Unitary(_) => instruction.label().unwrap_or(" Unitary ").to_string(),
             // Fallback for non-standard operations
-            _ => format!(" {} ", instruction.op.name())
+            _ => format!(" {} ", instruction.op.name()),
         }
     }
 
@@ -1220,13 +1210,29 @@ impl TextDrawer {
                     output.push_str(&format!("{}\n", mid_line_next));
                 }
                 let last_index = num_wires - 1;
-                let bot_line = self.wires[last_index].iter().map(|wire| wire.bot.clone()).collect::<Vec<String>>().join("");
-                let top_line_next = self.wires[last_index + 1].iter().map(|wire| wire.top.clone()).collect::<Vec<String>>().join("");
+                let bot_line = self.wires[last_index]
+                    .iter()
+                    .map(|wire| wire.bot.clone())
+                    .collect::<Vec<String>>()
+                    .join("");
+                let top_line_next = self.wires[last_index + 1]
+                    .iter()
+                    .map(|wire| wire.top.clone())
+                    .collect::<Vec<String>>()
+                    .join("");
                 let merged_line = Self::merge_lines(&bot_line, &top_line_next);
                 output.push_str(&format!("{}\n", merged_line));
-                let mid_line_next = self.wires[last_index + 1].iter().map(|wire| wire.mid.clone()).collect::<Vec<String>>().join("");
+                let mid_line_next = self.wires[last_index + 1]
+                    .iter()
+                    .map(|wire| wire.mid.clone())
+                    .collect::<Vec<String>>()
+                    .join("");
                 output.push_str(&format!("{}\n", mid_line_next));
-                let bot_line = self.wires[last_index].iter().map(|wire| wire.bot.clone()).collect::<Vec<String>>().join("");
+                let bot_line = self.wires[last_index]
+                    .iter()
+                    .map(|wire| wire.bot.clone())
+                    .collect::<Vec<String>>()
+                    .join("");
                 output.push_str(&format!("{}\n", bot_line))
             }
         }

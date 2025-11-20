@@ -37,8 +37,8 @@ pub mod parameter_table;
 pub mod register_data;
 pub mod slice;
 pub mod util;
-pub mod vf2;
 mod variable_mapper;
+pub mod vf2;
 
 use pyo3::PyTypeInfo;
 use pyo3::exceptions::PyValueError;

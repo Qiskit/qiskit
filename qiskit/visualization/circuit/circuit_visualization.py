@@ -299,7 +299,7 @@ def circuit_drawer(
         return True
 
     cregbundle = check_clbit_in_inst(circuit, cregbundle)
-    
+
     if output == "text":
         return _text_circuit_drawer(
             circuit,
