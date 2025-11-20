@@ -31,14 +31,18 @@ class TestDiscretizeRotations(QiskitTestCase):
         multiple=[*range(0, 16), 23, 42, -5, -8, -17, -22, -35],
         gate=[RXGate, RYGate, RZGate],
         global_phase=[0, 1.0, -2.0],
+        approximation_degree=[1, 0.99999],
+        eps=[0, 1e-10],
     )
-    def test_rotation_gates_transpiled(self, multiple, gate, global_phase):
+    def test_rotation_gates_transpiled(
+        self, multiple, gate, global_phase, approximation_degree, eps
+    ):
         """Test that rotations gates are translated into Clifford+T+Tdg correctly."""
         qc = QuantumCircuit(1)
         qc.global_phase = global_phase
-        angle = np.pi / 4 * multiple
+        angle = np.pi / 4 * multiple + eps
         qc.append(gate(angle), [0])
-        qct = DiscretizeRotations()(qc)
+        qct = DiscretizeRotations(approximation_degree)(qc)
         ops = qct.count_ops()
         clifford_t_names = get_clifford_gate_names() + ["t"] + ["tdg"]
         self.assertEqual(Operator(qct), Operator(qc))
@@ -51,14 +55,19 @@ class TestDiscretizeRotations(QiskitTestCase):
         else:  # at most one t/tdg gate
             self.assertEqual(ops.get("t", 0) + ops.get("tdg", 0), 1)
 
-    @combine(multiple=[*range(0, 16)], eps=[0.001, -0.001], gate=[RXGate, RYGate, RZGate])
-    def test_rotation_gates_do_not_change(self, multiple, eps, gate):
+    @combine(
+        multiple=[*range(0, 16)],
+        eps=[0.001, -0.001],
+        gate=[RXGate, RYGate, RZGate],
+        approximation_degree=[1, 0.9999999],
+    )
+    def test_rotation_gates_do_not_change(self, multiple, eps, gate, approximation_degree):
         """Test that the transpiler pass does not change the gates for angles that are
         not pi/4 rotations."""
         qc = QuantumCircuit(1)
         angle = np.pi / 4 * multiple + eps
         qc.append(gate(angle), [0])
-        qct = DiscretizeRotations()(qc)
+        qct = DiscretizeRotations(approximation_degree)(qc)
         self.assertEqual(qc, qct)
 
     def test_random_clifford_t_rotation_circuit(self):
@@ -81,27 +90,30 @@ class TestDiscretizeRotations(QiskitTestCase):
         self.assertEqual(Operator(qct), Operator(qc))
         self.assertLessEqual(set(qct.count_ops().keys()), set(clifford_t_names))
 
-    def test_non_rotation_circuit(self):
-        """Test that pseudo-random circuits including rotation gates, other gates and barriers
-        are transpiled correctly."""
-        num_qubits = 5
-        qc = QuantumCircuit(num_qubits)
+    def test_explicit_general_circuit(self):
+        """Test the pass on a general circuit that includes rotation gates, other gates, and barriers."""
+        qc = QuantumCircuit(3)
         qc.global_phase = -2.0
         qc.t(0)
-        qc.tdg(1)
-        qc.rx(np.pi / 4 * (num_qubits + 2), 2)
-        qc.ry(np.pi / 4 * (num_qubits + 3), 2)
-        qc.rz(np.pi / 4 * (num_qubits + 4), 4)
-        qc.u(0.12, 0.34, 0.56, 3)
-        qc.cx(0, 1)
-        qc.cz(1, 2)
-        qc.rzz(0.1, 0, 1)
-        qc.p(0.34, 4)
+        qc.rx(np.pi / 4, 2)
         qc.barrier()
+        qc.cx(0, 1)
+        qc.ry(np.pi / 2, 1)
+        qc.rz(0.1, 0)
 
         qct = DiscretizeRotations()(qc)
-        gate_names = (
-            get_clifford_gate_names() + ["t"] + ["tdg"] + ["u"] + ["p"] + ["rzz"] + ["barrier"]
-        )
+
+        expected = QuantumCircuit(3)
+        expected.global_phase = -2.0 - np.pi / 8
+        expected.t(0)
+        expected.h(2)
+        expected.t(2)
+        expected.h(2)
+        expected.barrier()
+        expected.cx(0, 1)
+        expected.z(1)
+        expected.h(1)
+        expected.rz(0.1, 0)
+
+        self.assertEqual(qct, expected)
         self.assertEqual(Operator(qct), Operator(qc))
-        self.assertLessEqual(set(qct.count_ops().keys()), set(gate_names))
