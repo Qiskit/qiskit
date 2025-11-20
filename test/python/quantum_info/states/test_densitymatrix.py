@@ -14,6 +14,7 @@
 
 import logging
 import unittest
+import qiskit.quantum_info as qi
 
 import numpy as np
 from ddt import data, ddt
@@ -232,6 +233,18 @@ class TestDensityMatrix(QiskitTestCase):
             target = DensityMatrix(np.dot(op.data, rho).dot(op.adjoint().data))
             evolved = DensityMatrix(rho).evolve(op)
             self.assertEqual(target, evolved)
+
+    def test_evolve_sparseobservable(self):
+        """Test DensityMatrix.evolve with a SparseObservable."""
+        obs = qi.SparseObservable.from_label("XY")
+        H = obs.to_matrix()
+
+        rho = self.rand_rho(4)
+        target = DensityMatrix(H @ rho @ H.conjugate().transpose())
+
+        evolved = DensityMatrix(rho).evolve(obs)
+
+        self.assertEqual(evolved, target)
 
     def test_evolve_subsystem(self):
         """Test subsystem evolve method for operators."""

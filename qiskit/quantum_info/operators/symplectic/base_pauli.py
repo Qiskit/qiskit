@@ -290,6 +290,18 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         if isinstance(other, Clifford):
             return self._evolve_clifford(other, qargs=qargs, frame=frame)
 
+        if other.__class__.__name__ == "SparseObservable":
+            try:
+                C = Clifford(other)
+            except QiskitError:
+                raise TypeError(
+                    "Pauli evolution only defined for Clifford Hamiltonians; "
+                    "Observable must be a Clifford unitary."
+                )
+
+            # Delegate to Clifford evolution
+            return self._evolve_clifford(C, qargs=qargs, frame=frame)
+
         # Otherwise evolve by the inverse circuit to compute C^dg.P.C
         if frame == "s":
             return self.copy()._append_circuit(other, qargs=qargs)

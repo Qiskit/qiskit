@@ -61,6 +61,7 @@ from qiskit.compiler.transpiler import transpile
 from qiskit.exceptions import QiskitError
 from qiskit.primitives import BackendEstimatorV2
 from qiskit.providers.fake_provider import GenericBackendV2
+import qiskit.quantum_info as qi
 from qiskit.quantum_info.operators import Operator, Pauli, SparsePauliOp
 from qiskit.quantum_info.random import random_clifford, random_pauli
 from qiskit.utils import optionals
@@ -523,6 +524,31 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(value, target)
         self.assertEqual(value, value_h)
         self.assertEqual(value_inv, value_s)
+
+    def test_evolve_sparseobservable_pauli_clifford(self):
+        """Test Pauli.evolve with a SparseObservable that generates a Clifford (X)."""
+        # Clifford Hamiltonian H = X
+        obs = qi.SparseObservable.from_label("X")
+        paulis = [
+            Pauli("I"),
+            Pauli("X"),
+            Pauli("Y"),
+            Pauli("Z"),
+        ]
+        expected = [
+            Operator([[1, 0], [0, 1]]),
+            Operator([[0, 1], [1, 0]]),
+            Operator([[0, +1j], [-1j, 0]]),
+            Operator([[-1, 0], [0, 1]]),
+        ]
+
+        # Apply evolve(p -> X p X)
+        evolved = [Operator(p.evolve(obs)) for p in paulis]
+
+        self.assertListEqual(
+            evolved,
+            expected,
+        )
 
     @data("s", "h")
     def test_evolve_with_misleading_name(self, frame):

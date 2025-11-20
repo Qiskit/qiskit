@@ -601,8 +601,9 @@ class Pauli(BasePauli):
         from qiskit.quantum_info.operators.symplectic.clifford import Clifford
 
         if not isinstance(other, (Pauli, Instruction, QuantumCircuit, Clifford)):
-            # Convert to a Pauli
-            other = Pauli(other)
+            if other.__class__.__name__ != "SparseObservable":
+                # Convert to a Pauli
+                other = Pauli(other)
 
         return Pauli(super().evolve(other, qargs=qargs, frame=frame))
 

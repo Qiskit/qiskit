@@ -26,6 +26,7 @@ from qiskit import transpile
 from qiskit.circuit.library import HGate, QFTGate, GlobalPhaseGate
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.utils import optionals
+import qiskit.quantum_info as qi
 from qiskit.quantum_info.random import random_unitary, random_statevector, random_pauli
 from qiskit.quantum_info.states import Statevector
 from qiskit.quantum_info.operators.operator import Operator
@@ -276,6 +277,17 @@ class TestStatevector(QiskitTestCase):
             target = Statevector(np.dot(op.data, vec))
             evolved = Statevector(vec).evolve(op)
             self.assertEqual(target, evolved)
+
+    def test_evolve_sparseobservable(self):
+        """Test Statevector.evolve with a Clifford SparseObservable"""
+        obs = qi.SparseObservable.from_label("XY")
+        H = obs.to_matrix()
+        vec = self.rand_vec(4)
+        target = Statevector(H @ vec)
+
+        evolved = Statevector(vec).evolve(obs)
+
+        self.assertEqual(evolved, target)
 
     def test_evolve_operator_overload_dimensions(self):
         """Test that the @ operator returns a Statevector of correct dimension, type and value."""
