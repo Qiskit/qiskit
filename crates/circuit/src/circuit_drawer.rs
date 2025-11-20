@@ -186,10 +186,9 @@ enum BoxedElement<'a> {
     Multi(&'a PackedInstruction),
 }
 
-/// Enum for representing the elements stored in a visualization matrix. The elements
+/// Enum for representing the elements stored in the visualization matrix. The elements
 /// do not directly implement visualization capabilities, but rather carry enough information
 /// to enable visualization later on by the actual drawer.
-
 #[derive(Default, Clone)]
 enum VisualizationElement<'a> {
     #[default]
@@ -716,14 +715,24 @@ impl TextDrawer {
 
     fn get_label(instruction: &PackedInstruction) -> String {
         match instruction.op.view() {
-            OperationRef::StandardInstruction(std_instruction) => match std_instruction {
-                StandardInstruction::Measure => "M".to_string(),
-                StandardInstruction::Reset => "|0>".to_string(),
-                StandardInstruction::Barrier(_) => "░".to_string(),
-                StandardInstruction::Delay(delay_unit) => {
-                    format!("Delay({:?}[{}])", instruction.params, delay_unit)
+            OperationRef::StandardInstruction(std_instruction) => {
+                match std_instruction {
+                    StandardInstruction::Measure => "M".to_string(),
+                    StandardInstruction::Reset => "|0>".to_string(),
+                    StandardInstruction::Barrier(_) => "░".to_string(),
+                    StandardInstruction::Delay(delay_unit) => {
+                        match instruction.params_view().first().unwrap() {
+                            Param::Float(duration) => {
+                                format!("Delay({}[{}])", duration, delay_unit)
+                            }
+                            Param::ParameterExpression(expr) => {
+                                format!("Delay({}[{}])", expr, delay_unit)
+                            }
+                            Param::Obj(obj) => format!("Delay({:?}[{}])", obj, delay_unit), // TODO: extract the int
+                        }
+                    }
                 }
-            },
+            }
             OperationRef::StandardGate(standard_gate) => {
                 let mut label = match standard_gate {
                     StandardGate::GlobalPhase => "",
@@ -878,7 +887,7 @@ impl TextDrawer {
                                 bot_con = C_BOT_CON;
                             }
                         }
-                        let label = Self::get_label(inst);
+                        let label = format!(" {} ", Self::get_label(inst));
                         let label_len = label.chars().count(); // To count unicode chars properly (e.g. in √X)
                         let left_len = (label_len - 1) / 2;
                         let right_len = label_len - left_len - 1;
@@ -901,7 +910,7 @@ impl TextDrawer {
                         );
                     }
                     BoxedElement::Multi(inst) => {
-                        let label = Self::get_label(inst);
+                        let label = format!(" {} ", Self::get_label(inst));
                         let label_len = label.chars().count(); // To count unicode chars properly (e.g. in √X)
                         let qargs = circuit.get_qargs(inst.qubits);
                         let (minima, maxima) = get_instruction_range(qargs, &[], 0);
@@ -916,7 +925,7 @@ impl TextDrawer {
 
                         let mid_section = if ind == mid_idx {
                             format!(
-                                "{:^total_q$} {:^label_len$}",
+                                "{:^total_q$}{:^label_len$}",
                                 num_affected,
                                 label,
                                 total_q = qargs.len(),
@@ -924,7 +933,7 @@ impl TextDrawer {
                             )
                         } else {
                             format!(
-                                "{:^total_q$} {:^label_len$}",
+                                "{:^total_q$}{:^label_len$}",
                                 num_affected,
                                 " ",
                                 total_q = qargs.len(),
@@ -1101,135 +1110,80 @@ impl TextDrawer {
     }
 
     fn draw(&self, mergewires: bool, fold: usize) -> String {
-        let ranges: Vec<(usize, usize)> = {
-            let mut temp_ranges = vec![];
-            let mut layer_counter: usize = 1;
-            while layer_counter < self.wires[0].len() {
-                let mut total_width: usize = 0;
-                total_width += self.get_layer_width(0);
+        // Calculate the layer ranges for each fold of the circuit
+        let num_layers = self.wires[0].len();
+        // We skip the first (inputs) layer since it's printed for each fold, regardless
+        // of screen width limit
+        let layer_widths = (1..num_layers).map(|layer| self.get_layer_width(layer));
+        let (mut start, mut current_fold) = (1usize, 0usize);
+        let mut ranges: Vec<(usize, usize)> = Vec::new();
 
-                let start = layer_counter;
-                while total_width <= fold && layer_counter < self.wires[0].len() {
-                    total_width += self.get_layer_width(layer_counter);
-                    layer_counter += 1;
-                }
-                let end = layer_counter;
-                temp_ranges.push((start, end));
+        for (i, layer_width) in layer_widths.enumerate() {
+            current_fold += layer_width;
+            if current_fold > fold {
+                ranges.push((start, i + 1));
+                start = i + 1;
+                current_fold = layer_width;
             }
-            temp_ranges
-        };
+        }
+        ranges.push((start, num_layers));
 
         let mut output = String::new();
 
-        for (j, (start, end)) in ranges.iter().enumerate() {
-            if !mergewires {
-                for element in self.wires.iter() {
-                    let mut top_line: String = element
-                        .iter()
-                        .enumerate()
-                        .filter(|(idx, _)| (*idx >= *start && *idx < *end) || *idx == 0) // Fix here
-                        .map(|(_, wire)| wire.top.clone()) // And here
-                        .collect::<Vec<String>>()
-                        .join("");
-                    let mut mid_line: String = element
-                        .iter()
-                        .enumerate()
-                        .filter(|(idx, _)| (*idx >= *start && *idx < *end) || *idx == 0) // Fix here too
-                        .map(|(_, wire)| wire.mid.clone()) // And here
-                        .collect::<Vec<String>>()
-                        .join("");
-                    let mut bot_line: String = element
-                        .iter()
-                        .enumerate()
-                        .filter(|(idx, _)| (*idx >= *start && *idx < *end) || *idx == 0) // And here
-                        .map(|(_, wire)| wire.bot.clone()) // And here
-                        .collect::<Vec<String>>()
-                        .join("");
-                    top_line.push_str(if j == ranges.len() - 1 { "" } else { "»" });
-                    mid_line.push_str(if j == ranges.len() - 1 { "" } else { "»" });
-                    bot_line.push_str(if j == ranges.len() - 1 { "" } else { "»" });
-                    output.push_str(&format!("{}\n{}\n{}\n", top_line, mid_line, bot_line));
-                }
-            } else {
-                let num_wires = self.wires.len();
-                for i in 0..num_wires - 1 {
-                    if i == 0 {
-                        let mut top_line = self.wires[i]
-                            .iter()
-                            .enumerate()
-                            .filter(|(idx, _)| (*idx >= *start && *idx < *end) || *idx == 0) // Fix here
-                            .map(|(_, wire)| wire.top.clone()) // And here
-                            .collect::<Vec<String>>()
-                            .join("");
-                        top_line.push_str(if j == ranges.len() - 1 { "" } else { "»" });
-                        let mut mid_line = self.wires[i]
-                            .iter()
-                            .enumerate()
-                            .filter(|(idx, _)| (*idx >= *start && *idx < *end) || *idx == 0) // Fix here
-                            .map(|(_, wire)| wire.mid.clone()) // And here
-                            .collect::<Vec<String>>()
-                            .join("");
-                        mid_line.push_str(if j == ranges.len() - 1 { "" } else { "»" });
-                        output.push_str(&format!("{}\n{}\n", top_line, mid_line));
-                    }
-                    let mut bot_line = self.wires[i]
-                        .iter()
-                        .enumerate()
-                        .filter(|(idx, _)| (*idx >= *start && *idx < *end) || *idx == 0) // Fix here
-                        .map(|(_, wire)| wire.bot.clone()) // And here
-                        .collect::<Vec<String>>()
-                        .join("");
+        for (start, end) in ranges {
+            let mut wire_strings: Vec<String> = Vec::new();
 
-                    bot_line.push_str(if j == ranges.len() - 1 { "" } else { "»" });
-
-                    let mut top_line_next = self.wires[i + 1]
-                        .iter()
-                        .enumerate()
-                        .filter(|(idx, _)| (*idx >= *start && *idx < *end) || *idx == 0) // Fix here
-                        .map(|(_, wire)| wire.top.clone()) // And here
-                        .collect::<Vec<String>>()
-                        .join("");
-
-                    top_line_next.push_str(if j == ranges.len() - 1 { "" } else { "»" });
-                    let merged_line = Self::merge_lines(&bot_line, &top_line_next);
+            for wire in &self.wires {
+                let top_line: String = wire[start..end]
+                    .iter()
+                    .map(|elem| elem.top.clone())
+                    .collect::<Vec<String>>()
+                    .join("");
+                let mid_line: String = wire[start..end]
+                    .iter()
+                    .map(|elem| elem.mid.clone())
+                    .collect::<Vec<String>>()
+                    .join("");
+                let bot_line: String = wire[start..end]
+                    .iter()
+                    .map(|elem| elem.bot.clone())
+                    .collect::<Vec<String>>()
+                    .join("");
+                wire_strings.push(format!(
+                    "{}{}{}{}",
+                    if start > 1 { "«" } else { "" },
+                    wire[0].top,
+                    top_line,
+                    if end < num_layers - 1 { "»" } else { "" }
+                ));
+                wire_strings.push(format!(
+                    "{}{}{}{}",
+                    if start > 1 { "«" } else { "" },
+                    wire[0].mid,
+                    mid_line,
+                    if end < num_layers - 1 { "»" } else { "" }
+                ));
+                wire_strings.push(format!(
+                    "{}{}{}{}",
+                    if start > 1 { "«" } else { "" },
+                    wire[0].bot,
+                    bot_line,
+                    if end < num_layers - 1 { "»" } else { "" }
+                ));
+            }
+            for wire_idx in 0..wire_strings.len() {
+                if mergewires && wire_idx % 3 == 2 && wire_idx < wire_strings.len() - 3 {
+                    // Merge the bot_line of the this wire with the top_line of the next wire
+                    let merged_line =
+                        Self::merge_lines(&wire_strings[wire_idx], &wire_strings[wire_idx + 1]);
                     output.push_str(&format!("{}\n", merged_line));
-                    let mut mid_line_next = self.wires[i + 1]
-                        .iter()
-                        .enumerate()
-                        .filter(|(idx, _)| (*idx >= *start && *idx < *end) || *idx == 0) // Fix here
-                        .map(|(_, wire)| wire.mid.clone()) // And here
-                        .collect::<Vec<String>>()
-                        .join("");
-                    mid_line_next.push_str(if j == ranges.len() - 1 { "" } else { "»" });
-                    output.push_str(&format!("{}\n", mid_line_next));
+                } else if !mergewires || wire_idx % 3 != 0 || wire_idx == 0 {
+                    // if mergewires, skip all top_line strings but the very first one
+                    output.push_str(&format!("{}\n", wire_strings[wire_idx]));
                 }
-                let last_index = num_wires - 1;
-                let bot_line = self.wires[last_index]
-                    .iter()
-                    .map(|wire| wire.bot.clone())
-                    .collect::<Vec<String>>()
-                    .join("");
-                let top_line_next = self.wires[last_index + 1]
-                    .iter()
-                    .map(|wire| wire.top.clone())
-                    .collect::<Vec<String>>()
-                    .join("");
-                let merged_line = Self::merge_lines(&bot_line, &top_line_next);
-                output.push_str(&format!("{}\n", merged_line));
-                let mid_line_next = self.wires[last_index + 1]
-                    .iter()
-                    .map(|wire| wire.mid.clone())
-                    .collect::<Vec<String>>()
-                    .join("");
-                output.push_str(&format!("{}\n", mid_line_next));
-                let bot_line = self.wires[last_index]
-                    .iter()
-                    .map(|wire| wire.bot.clone())
-                    .collect::<Vec<String>>()
-                    .join("");
-                output.push_str(&format!("{}\n", bot_line))
             }
         }
+
         output
     }
 
