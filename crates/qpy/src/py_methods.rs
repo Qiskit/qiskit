@@ -15,11 +15,11 @@ use binrw::Endian;
 use hashbrown::HashMap;
 use numpy::{Complex64, ToPyArray};
 use pyo3::IntoPyObjectExt;
-use pyo3::exceptions::{PyAttributeError, PyIOError, PyTypeError, PyValueError};
+use pyo3::exceptions::{PyIOError, PyTypeError, PyValueError};
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::{
-    PyAny, PyBytes, PyComplex, PyDict, PyFloat, PyInt, PyIterator, PyList, PySet, PyString, PyTuple,
+    PyAny, PyBytes, PyComplex, PyDict, PyFloat, PyInt, PyIterator, PyList, PyString, PyTuple,
 };
 use qiskit_circuit::classical::expr::Expr;
 use std::io::Cursor;
@@ -33,14 +33,14 @@ use qiskit_circuit::imports;
 use qiskit_circuit::operations::{ArrayType, Operation, OperationRef, StandardInstruction};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::parameter::parameter_expression::{
-    OPReplay, OpCode, PyParameter, PyParameterExpression, PyParameterVectorElement,
+    PyParameter, PyParameterExpression, PyParameterVectorElement,
 };
 
 use uuid::Uuid;
 
 use crate::bytes::Bytes;
 use crate::formats;
-use crate::params::{pack_param_obj, pack_parameter_expression_by_op, parameter_tags};
+use crate::params::pack_param_obj;
 use crate::value::{
     GenericValue, QPYWriteData, circuit_instruction_types, deserialize, get_circuit_type_key,
     modifier_types, pack_generic_value, serialize, serialize_generic_value, tags, type_name,
@@ -189,22 +189,6 @@ pub fn getattr_or_none<'py>(
             }
         }
         Err(_) => None,
-    }
-}
-
-fn getattr_or_py_none<'py>(
-    py_object: &'py Bound<PyAny>,
-    name: &str,
-) -> PyResult<Bound<'py, PyAny>> {
-    match py_object.getattr(name) {
-        Ok(attr) => Ok(attr),
-        Err(err) => {
-            if err.is_instance_of::<PyAttributeError>(py_object.py()) {
-                Ok(py_object.py().None().bind(py_object.py()).clone())
-            } else {
-                Err(err)
-            }
-        }
     }
 }
 
@@ -1045,335 +1029,4 @@ pub fn get_condition_data_from_inst(
             }
         }
     })
-}
-
-// This section is dedicated to the packing of a parameter expression
-// It was written for the python code prior to parameter expressions being ported to rust
-// TODO: port this part to pure rust, it's probably feasible by now
-fn py_pack_parameter_expression_element(
-    replay_py_obj: &Bound<PyAny>,
-    extra_symbols: &mut Bound<PyDict>,
-    qpy_data: &QPYWriteData,
-) -> PyResult<Vec<formats::ParameterExpressionElementPack>> {
-    let py = replay_py_obj.py();
-    let mut result = Vec::new();
-    let replay_obj = replay_py_obj.extract::<OPReplay>()?;
-    if replay_obj.op == OpCode::SUBSTITUTE {
-        return Ok(vec![py_pack_replay_subs(
-            replay_py_obj,
-            extra_symbols,
-            qpy_data,
-        )?]);
-    }
-
-    let lhs_object = getattr_or_py_none(replay_py_obj, "lhs")?;
-    let rhs_object = getattr_or_py_none(replay_py_obj, "rhs")?;
-    let (lhs_type, lhs, extra_lhs_data) =
-        py_pack_parameter_replay_entry(py, &lhs_object, false, qpy_data)?;
-    let (rhs_type, rhs, extra_rhs_data) =
-        py_pack_parameter_replay_entry(py, &rhs_object, true, qpy_data)?;
-    let op_code = replay_obj.op as u8;
-    let entry = formats::ParameterExpressionStandardOpPack {
-        lhs_type,
-        lhs,
-        rhs_type,
-        rhs,
-    };
-    let packed_parameter = vec![pack_parameter_expression_by_op(op_code, entry)?];
-    result.extend(extra_lhs_data);
-    result.extend(extra_rhs_data);
-    result.extend(packed_parameter);
-    Ok(result)
-}
-
-fn py_pack_parameter_replay_entry(
-    py: Python,
-    inst: &Bound<PyAny>,
-    r_side: bool,
-    qpy_data: &QPYWriteData,
-) -> PyResult<(u8, [u8; 16], Vec<formats::ParameterExpressionElementPack>)> {
-    // This is different from `py_dumps_value` since we aim specifically for [u8; 16]
-    // This means parameters are not fully stored, only their uuid
-    // Also integers and floats are padded with 0
-    let mut extra_data = Vec::new();
-    let key_type = py_get_type_key(inst)?;
-    let data = match key_type {
-        tags::PARAMETER | tags::PARAMETER_VECTOR => inst
-            .getattr(intern!(py, "uuid"))?
-            .getattr(intern!(py, "bytes"))?
-            .extract::<[u8; 16]>()?,
-        tags::NULL => [0u8; 16],
-        tags::COMPLEX => {
-            let mut complex_data = [0u8; 16];
-            let real = inst.getattr("real")?.extract::<f64>()?.to_be_bytes();
-            let imag = inst.getattr("imag")?.extract::<f64>()?.to_be_bytes();
-            complex_data[0..8].copy_from_slice(&real);
-            complex_data[8..16].copy_from_slice(&imag);
-            complex_data
-        }
-        tags::INTEGER => 0u64
-            .to_be_bytes()
-            .into_iter()
-            .chain(inst.extract::<i64>()?.to_be_bytes())
-            .collect::<Vec<_>>()
-            .try_into()
-            .unwrap(),
-        tags::FLOAT => 0u64
-            .to_be_bytes()
-            .into_iter()
-            .chain(inst.extract::<f64>()?.to_be_bytes())
-            .collect::<Vec<_>>()
-            .try_into()
-            .unwrap(),
-        tags::PARAMETER_EXPRESSION => {
-            let entry = if r_side {
-                formats::ParameterExpressionElementPack::Expression(
-                    formats::ParameterExpressionStandardOpPack {
-                        lhs_type: parameter_tags::NULL,
-                        lhs: [0u8; 16],
-                        rhs_type: parameter_tags::LHS_EXPRESSION,
-                        rhs: [0u8; 16],
-                    },
-                )
-            } else {
-                formats::ParameterExpressionElementPack::Expression(
-                    formats::ParameterExpressionStandardOpPack {
-                        lhs_type: parameter_tags::LHS_EXPRESSION,
-                        lhs: [0u8; 16],
-                        rhs_type: parameter_tags::NULL,
-                        rhs: [0u8; 16],
-                    },
-                )
-            };
-            extra_data.push(entry);
-            let packed_expression =
-                py_pack_parameter_expression_elements(inst, &mut PyDict::new(py), qpy_data)?;
-            extra_data.extend(packed_expression);
-            let entry = if r_side {
-                formats::ParameterExpressionElementPack::Expression(
-                    formats::ParameterExpressionStandardOpPack {
-                        lhs_type: parameter_tags::NULL,
-                        lhs: [0u8; 16],
-                        rhs_type: parameter_tags::RHS_EXPRESSION,
-                        rhs: [0u8; 16],
-                    },
-                )
-            } else {
-                formats::ParameterExpressionElementPack::Expression(
-                    formats::ParameterExpressionStandardOpPack {
-                        lhs_type: parameter_tags::RHS_EXPRESSION,
-                        lhs: [0u8; 16],
-                        rhs_type: parameter_tags::NULL,
-                        rhs: [0u8; 16],
-                    },
-                )
-            };
-            extra_data.push(entry);
-            [0u8; 16] // return empty
-        }
-        _ => {
-            return Err(PyTypeError::new_err(format!(
-                "Unhandled key_type: {}",
-                key_type
-            )));
-        }
-    };
-    let key_type = match key_type {
-        tags::NULL | tags::PARAMETER_EXPRESSION => tags::NUMPY_OBJ, // in parameter replay, none is not stored as 'z' but as 'n'
-        tags::PARAMETER_VECTOR => tags::PARAMETER, // in parameter replay, treat parameters and parameter vector elements the same way
-        _ => key_type,
-    };
-    Ok((key_type, data, extra_data))
-}
-
-// This functions packes a Parameter, e.g. an atom of a ParameterExpression
-// Not to be confused with instruction paramtere which is a generic data
-pub fn py_pack_parameter(py_object: &Bound<PyAny>) -> PyResult<formats::ParameterPack> {
-    let py = py_object.py();
-    let name = py_object
-        .getattr(intern!(py, "name"))?
-        .extract::<String>()?;
-    let uuid = py_object
-        .getattr(intern!(py, "uuid"))?
-        .getattr(intern!(py, "bytes"))?
-        .extract::<[u8; 16]>()?;
-    Ok(formats::ParameterPack { uuid, name })
-}
-
-fn py_pack_parameter_expression_elements(
-    py_object: &Bound<PyAny>,
-    extra_symbols: &mut Bound<PyDict>,
-    qpy_data: &QPYWriteData,
-) -> PyResult<Vec<formats::ParameterExpressionElementPack>> {
-    let py = py_object.py();
-    let qpy_replay = py_object
-        .getattr(intern!(py, "_qpy_replay"))?
-        .extract::<Vec<Py<PyAny>>>()?;
-    let mut result = Vec::new();
-    for replay_obj in qpy_replay.iter() {
-        let packed_parameter =
-            py_pack_parameter_expression_element(replay_obj.bind(py), extra_symbols, qpy_data)?;
-        result.extend(packed_parameter);
-    }
-    Ok(result)
-}
-
-pub fn py_pack_symbol(
-    symbol: &Bound<PyAny>,
-    value: Option<&Bound<PyAny>>,
-    qpy_data: &QPYWriteData,
-) -> PyResult<formats::ParameterExpressionSymbolPack> {
-    let symbol_key = py_get_type_key(symbol)?;
-    let (value_key, value_data): (u8, Bytes) = match value {
-        None => (symbol_key, Bytes::new()),
-        Some(py_value) => {
-            let value_pack = pack_generic_value(&py_convert_to_generic_value(py_value)?, qpy_data)?;
-            (value_pack.type_key, value_pack.data)
-        }
-    };
-    match symbol_key {
-        tags::PARAMETER_EXPRESSION => {
-            let symbol_data = py_pack_parameter_expression(symbol, qpy_data)?;
-            Ok(formats::ParameterExpressionSymbolPack::ParameterExpression(
-                formats::ParameterExpressionParameterExpressionSymbolPack {
-                    value_key,
-                    symbol_data,
-                    value_data,
-                },
-            ))
-        }
-        tags::PARAMETER => {
-            let symbol_data = py_pack_parameter(symbol)?;
-            Ok(formats::ParameterExpressionSymbolPack::Parameter(
-                formats::ParameterExpressionParameterSymbolPack {
-                    value_key,
-                    symbol_data,
-                    value_data,
-                },
-            ))
-        }
-        tags::PARAMETER_VECTOR => {
-            let symbol_data = py_pack_parameter_vector(symbol)?;
-            Ok(formats::ParameterExpressionSymbolPack::ParameterVector(
-                formats::ParameterExpressionParameterVectorSymbolPack {
-                    value_key,
-                    symbol_data,
-                    value_data,
-                },
-            ))
-        }
-        _ => Err(PyTypeError::new_err(format!(
-            "Unhandled symbol_key: {}",
-            symbol_key
-        ))),
-    }
-}
-
-pub fn py_pack_parameter_expression(
-    py_object: &Bound<PyAny>,
-    qpy_data: &QPYWriteData,
-) -> PyResult<formats::ParameterExpressionPack> {
-    let py = py_object.py();
-    let mut extra_symbols = PyDict::new(py);
-    let packed_expression_data =
-        py_pack_parameter_expression_elements(py_object, &mut extra_symbols, qpy_data)?;
-    let expression_data = serialize(&packed_expression_data);
-    let mut symbol_table_data: Vec<formats::ParameterExpressionSymbolPack> =
-        py_pack_symbol_table(py, py_object, qpy_data)?;
-    let (extra_symbols_keys, extra_symbols_values) =
-        py_pack_extra_symbol_table(&extra_symbols, qpy_data)?;
-    symbol_table_data.extend(extra_symbols_keys);
-    symbol_table_data.extend(extra_symbols_values);
-    Ok(formats::ParameterExpressionPack {
-        expression_data,
-        symbol_table_data,
-    })
-}
-
-pub fn py_pack_parameter_vector(
-    py_object: &Bound<PyAny>,
-) -> PyResult<formats::ParameterVectorPack> {
-    let vector = py_object.getattr("_vector")?;
-    let name = vector.getattr("_name")?.extract::<String>()?;
-    let vector_size = vector.call_method0("__len__")?.extract()?;
-    let uuid = py_object
-        .getattr("uuid")?
-        .getattr("bytes")?
-        .extract::<[u8; 16]>()?;
-    // let index = py_object.getattr("_index")?.extract::<u64>()?;
-    let index = py_object.getattr("index")?.extract::<u64>()?;
-    Ok(formats::ParameterVectorPack {
-        vector_size,
-        uuid,
-        index,
-        name,
-    })
-}
-
-fn py_pack_symbol_table(
-    py: Python,
-    py_object: &Bound<PyAny>,
-    qpy_data: &QPYWriteData,
-) -> PyResult<Vec<formats::ParameterExpressionSymbolPack>> {
-    py_object
-        .getattr(intern!(py, "parameters"))?
-        .extract::<Bound<PySet>>()?
-        .iter()
-        .map(|symbol| py_pack_symbol(&symbol, None, qpy_data))
-        .collect::<PyResult<_>>()
-}
-
-fn py_pack_extra_symbol_table(
-    extra_symbols: &Bound<PyDict>,
-    qpy_data: &QPYWriteData,
-) -> PyResult<(
-    Vec<formats::ParameterExpressionSymbolPack>,
-    Vec<formats::ParameterExpressionSymbolPack>,
-)> {
-    let keys = PyIterator::from_object(&extra_symbols.keys())?
-        .map(|item| {
-            let symbol = item?;
-            py_pack_symbol(&symbol, Some(&symbol), qpy_data)
-        })
-        .collect::<PyResult<_>>()?;
-    let values = PyIterator::from_object(&extra_symbols.values())?
-        .map(|item| {
-            let symbol = item?;
-            py_pack_symbol(&symbol, Some(&symbol), qpy_data)
-        })
-        .collect::<PyResult<_>>()?;
-    Ok((keys, values))
-}
-
-fn py_pack_replay_subs(
-    subs_obj: &Bound<PyAny>,
-    extra_symbols: &mut Bound<PyDict>,
-    qpy_data: &QPYWriteData,
-) -> PyResult<formats::ParameterExpressionElementPack> {
-    let py = subs_obj.py();
-    let binds = subs_obj.getattr("binds")?;
-    extra_symbols.call_method1("update", (&binds,))?;
-
-    let items: Vec<formats::MappingItem> =
-        PyIterator::from_object(&binds.cast::<PyDict>()?.items())?
-            .map(|item| {
-                let (key, value): (Py<PyAny>, Py<PyAny>) = item?.extract()?;
-                let key_bytes = key
-                    .bind(py)
-                    .getattr(intern!(py, "uuid"))?
-                    .getattr(intern!(py, "bytes"))?
-                    .extract::<Bytes>()?;
-                let value_pack =
-                    pack_generic_value(&py_convert_to_generic_value(value.bind(py))?, qpy_data)?;
-                Ok(formats::MappingItem {
-                    item_type: value_pack.type_key,
-                    key_bytes,
-                    item_bytes: value_pack.data,
-                })
-            })
-            .collect::<PyResult<_>>()?;
-    let mapping = formats::MappingPack { items };
-    let mapping_data = serialize(&mapping);
-    let entry = formats::ParameterExpressionSubsOpPack { mapping_data };
-    Ok(formats::ParameterExpressionElementPack::Substitute(entry))
 }

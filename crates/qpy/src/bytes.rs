@@ -47,6 +47,19 @@ impl Bytes {
             Endian::Little => Ok(f64::from_le_bytes(byte_array)),
         }
     }
+    // pads with 0's in the front
+    pub fn try_to_16_byte_slice(&self) -> PyResult<[u8; 16]> {
+        if self.0.len() > 16 {
+            Err(PyValueError::new_err(
+                "Cannot convert sequence of more than 16 bytes to slice of 16 bytes",
+            ))
+        } else {
+            let mut result = [0u8; 16];
+            let start = 16 - self.0.len();
+            result[start..].copy_from_slice(&self.0);
+            Ok(result)
+        }
+    }
     pub fn new() -> Self {
         Bytes(Vec::new())
     }

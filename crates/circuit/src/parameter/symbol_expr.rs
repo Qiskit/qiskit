@@ -80,10 +80,10 @@ impl<'py> IntoPyObject<'py> for Symbol {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        match (&self.index, &self.vector) {
-            (Some(_), Some(_)) => Py::new(py, PyParameterVectorElement::from_symbol(self.clone()))?
-                .into_bound_py_any(py),
-            _ => Py::new(py, PyParameter::from_symbol(self.clone()))?.into_bound_py_any(py),
+        if self.is_vector_element() {
+            Py::new(py, PyParameterVectorElement::from_symbol(self.clone()))?.into_bound_py_any(py)
+        } else {
+            Py::new(py, PyParameter::from_symbol(self.clone()))?.into_bound_py_any(py)
         }
     }
 }
@@ -130,6 +130,9 @@ impl Symbol {
             (None, true) => format!("{}_{}", self.name, self.uuid.as_u128()),
             (None, false) => self.name.clone(),
         }
+    }
+    pub fn is_vector_element(&self) -> bool {
+        matches!((&self.index, &self.vector), (Some(_), Some(_)))
     }
 }
 

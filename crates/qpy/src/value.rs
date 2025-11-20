@@ -12,7 +12,6 @@
 use binrw::meta::{ReadEndian, WriteEndian};
 use binrw::{BinRead, BinWrite, Endian, binrw};
 use hashbrown::HashMap;
-use pyo3::IntoPyObjectExt;
 use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
@@ -34,13 +33,13 @@ use crate::circuit_reader::unpack_circuit;
 use crate::circuit_writer::pack_circuit;
 use crate::formats::{self, GenericDataPack, GenericDataSequencePack};
 use crate::params::{
-    pack_parameter_vector, pack_symbol, unpack_parameter_expression, unpack_parameter_vector,
-    unpack_symbol,
+    pack_parameter_expression, pack_parameter_vector, pack_symbol, unpack_parameter_expression,
+    unpack_parameter_vector, unpack_symbol,
 };
 use crate::py_methods::{
     py_deserialize_numpy_object, py_deserialize_range, py_deserialize_register_param,
-    py_pack_modifier, py_pack_parameter_expression, py_serialize_numpy_object, py_serialize_range,
-    py_serialize_register_param, py_unpack_modifier,
+    py_pack_modifier, py_serialize_numpy_object, py_serialize_range, py_serialize_register_param,
+    py_unpack_modifier,
 };
 use crate::{QpyError, UnsupportedFeatureForVersion};
 
@@ -406,15 +405,10 @@ pub fn serialize_generic_value(
             tags::PARAMETER_VECTOR,
             serialize(&pack_parameter_vector(symbol)?),
         ),
-        GenericValue::ParameterExpression(exp) => {
-            let data = Python::attach(|py| -> PyResult<_> {
-                Ok(serialize(&py_pack_parameter_expression(
-                    exp.clone().into_py_any(py)?.bind(py),
-                    qpy_data,
-                )?))
-            })?;
-            (tags::PARAMETER_EXPRESSION, data)
-        }
+        GenericValue::ParameterExpression(exp) => (
+            tags::PARAMETER_EXPRESSION,
+            serialize(&pack_parameter_expression(exp)?),
+        ),
         GenericValue::Tuple(values) => (
             tags::TUPLE,
             serialize(&pack_generic_value_sequence(values, qpy_data)?),

@@ -131,6 +131,13 @@ impl fmt::Display for ParameterExpression {
     }
 }
 
+impl ParameterExpression {
+    pub fn qpy_replay(&self) -> Vec<OPReplay> {
+        let mut replay = Vec::new();
+        qpy_replay(self, &self.name_map, &mut replay);
+        replay
+    }
+}
 // This needs to be implemented manually, because PyO3 does not provide built-in
 // conversions for the subclasses of ParameterExpression in Python. Specifically
 // the Python classes Parameter and ParameterVector are subclasses of
@@ -876,18 +883,15 @@ impl PyParameterExpression {
     pub fn parameters<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PySet>> {
         let py_parameters: Vec<Py<PyAny>> = self
             .inner
-            .name_map
-            .values()
+            .iter_symbols()
             .map(|symbol| {
-                match (&symbol.index, &symbol.vector) {
-                    // if index and vector is set, it is an element
-                    (Some(_index), Some(_vector)) => Ok(Py::new(
-                        py,
-                        PyParameterVectorElement::from_symbol(symbol.clone()),
-                    )?
-                    .into_any()),
-                    // else, a normal parameter
-                    _ => Ok(Py::new(py, PyParameter::from_symbol(symbol.clone()))?.into_any()),
+                if symbol.is_vector_element() {
+                    Ok(
+                        Py::new(py, PyParameterVectorElement::from_symbol(symbol.clone()))?
+                            .into_any(),
+                    )
+                } else {
+                    Ok(Py::new(py, PyParameter::from_symbol(symbol.clone()))?.into_any())
                 }
             })
             .collect::<PyResult<_>>()?;
@@ -1665,7 +1669,7 @@ impl PyParameter {
 #[pyclass(sequence, subclass, module="qiskit._accelerate.circuit", extends=PyParameter, name="ParameterVectorElement")]
 #[derive(Clone, Debug, Eq, PartialEq, PartialOrd)]
 pub struct PyParameterVectorElement {
-    symbol: Symbol,
+    pub symbol: Symbol,
 }
 
 impl<'py> IntoPyObject<'py> for PyParameterVectorElement {

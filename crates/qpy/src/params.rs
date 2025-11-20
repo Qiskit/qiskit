@@ -120,10 +120,122 @@ fn parameter_value_type_from_generic_value(value: &GenericValue) -> PyResult<Par
         )),
     }
 }
+
+// To store a parameter expression, we keep two pieces of data:
+// 1) The **expression data** which is an already serialized Vec<formats::ParameterExpressionElementPack>
+// which is an encoding of the replay used to reconstruct the expression, where each element encodes a specific operation
+// with the operand data stored in ParameterExpressionStandardOpPack
+// 2) The **symbol_table_data** where the symbols appearing anywhere in the expression are stored; only their uuid values
+// are referred to in the expression data
+// in older QPY versions, parameter expressions could have substitute commands, which made packing more complex
+// this is no longer used in the rust-based paramter expressions, so we do not fully utilize the formats
+
+pub fn pack_parameter_expression(
+    exp: &ParameterExpression,
+) -> PyResult<formats::ParameterExpressionPack> {
+    let packed_expression_data = pack_parameter_expression_elements(exp)?;
+    let expression_data = serialize(&packed_expression_data);
+    let symbol_table_data: Vec<formats::ParameterExpressionSymbolPack> = exp
+        .iter_symbols()
+        .map(pack_symbol_table_element)
+        .collect::<PyResult<_>>()?;
+    Ok(formats::ParameterExpressionPack {
+        expression_data,
+        symbol_table_data,
+    })
+}
+
+pub fn pack_symbol_table_element(
+    symbol: &Symbol,
+) -> PyResult<formats::ParameterExpressionSymbolPack> {
+    let value_data = Bytes::new(); // this was used only when packing symbol tables related to substitution commands and no longer relevant
+    if symbol.is_vector_element() {
+        let value_key = tags::PARAMETER_VECTOR;
+        let symbol_data = pack_parameter_vector(symbol)?;
+        let symbol_pack = formats::ParameterExpressionParameterVectorSymbolPack {
+            value_key,
+            value_data,
+            symbol_data,
+        };
+        Ok(formats::ParameterExpressionSymbolPack::ParameterVector(
+            symbol_pack,
+        ))
+    } else {
+        let value_key = tags::PARAMETER;
+        let symbol_data = pack_symbol(symbol);
+        let symbol_pack = formats::ParameterExpressionParameterSymbolPack {
+            value_key,
+            value_data,
+            symbol_data,
+        };
+        Ok(formats::ParameterExpressionSymbolPack::Parameter(
+            symbol_pack,
+        ))
+    }
+}
+
+fn pack_parameter_expression_elements(
+    exp: &ParameterExpression,
+) -> PyResult<Vec<formats::ParameterExpressionElementPack>> {
+    let mut result = Vec::new();
+    for replay_obj in exp.qpy_replay().iter() {
+        let packed_parameter = pack_parameter_expression_element(replay_obj)?;
+        result.extend(packed_parameter);
+    }
+    Ok(result)
+}
+
+fn pack_parameter_expression_element(
+    replay_obj: &OPReplay,
+) -> PyResult<Vec<formats::ParameterExpressionElementPack>> {
+    let mut result = Vec::new();
+    let (lhs_type, lhs) = pack_parameter_replay_entry(&replay_obj.lhs)?;
+    let (rhs_type, rhs) = pack_parameter_replay_entry(&replay_obj.rhs)?;
+    let op_code = replay_obj.op as u8;
+    let entry = formats::ParameterExpressionStandardOpPack {
+        lhs_type,
+        lhs,
+        rhs_type,
+        rhs,
+    };
+    let packed_parameter = vec![pack_parameter_expression_by_op(op_code, entry)?];
+    result.extend(packed_parameter);
+    Ok(result)
+}
+
+// this function identifies the data type of the parameter replay entry
+// and returns the u8 for the type, the [u8; 16] encoding for the data (which stores)
+// numbers explicitly, not using 8 bytes for f64 or u64, and storing uuid for more complex vals
+// subexpressions are packed using the empty [0u8; 16], followed by "extra data" of the expression's encoding
+fn pack_parameter_replay_entry(inst: &Option<ParameterValueType>) -> PyResult<(u8, [u8; 16])> {
+    // This is different from `py_dumps_value` since we aim specifically for [u8; 16]
+    // This means parameters are not fully stored, only their uuid
+    // Also integers and floats are padded with 0
+    let null_type: u8 = b'n'; // in parameter replay, none is not stored as 'z' but as 'n'
+    let value = match inst {
+        None => return Ok((null_type, [0u8; 16])),
+        Some(val) => val,
+    };
+    Ok(match value {
+        ParameterValueType::Int(val) => (tags::INTEGER, Bytes::from(val).try_to_16_byte_slice()?),
+        ParameterValueType::Float(val) => (tags::FLOAT, Bytes::from(val).try_to_16_byte_slice()?),
+        ParameterValueType::Complex(val) => {
+            (tags::COMPLEX, Bytes::from(val).try_to_16_byte_slice()?)
+        }
+        ParameterValueType::Parameter(parameter) => {
+            (tags::PARAMETER, *parameter.symbol.uuid.as_bytes())
+        }
+        ParameterValueType::VectorElement(element) => {
+            (tags::PARAMETER_VECTOR, *element.symbol.uuid.as_bytes())
+        }
+    })
+}
+
 pub fn unpack_parameter_expression(
     parameter_expression_pack: &formats::ParameterExpressionPack,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<ParameterExpression> {
+    // we begin by loading the symbol table data and hashing it according to each symbol's uuid
     let mut param_uuid_map: HashMap<[u8; 16], GenericValue> = HashMap::new();
     for item in &parameter_expression_pack.symbol_table_data {
         let (symbol_uuid, _, value) = match item {
