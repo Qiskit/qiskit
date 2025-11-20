@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 use binrw::Endian;
 use pyo3::exceptions::{PyTypeError, PyValueError};
-use pyo3::{IntoPyObjectExt, intern, prelude::*};
+use pyo3::{IntoPyObjectExt, prelude::*};
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::parameter::parameter_expression::{
@@ -24,7 +24,7 @@ use uuid::Uuid;
 use crate::bytes::Bytes;
 use crate::formats::{self, GenericDataPack, ParameterVectorPack};
 use crate::py_methods::{
-    py_bytes_to_uuid, py_convert_from_generic_value, py_convert_to_generic_value, py_pack_param,
+    py_convert_from_generic_value, py_convert_to_generic_value, py_pack_param,
 };
 use crate::value::{
     GenericValue, QPYReadData, QPYWriteData, deserialize, deserialize_vec, load_value, serialize,
@@ -460,24 +460,18 @@ pub fn unpack_parameter_vector(
             })?,
         };
         let vector = vector_data.0.bind(py);
-        let vector_element = vector.get_item(index)?;
-        let vector_element_uuid = Uuid::from_bytes(
-            vector_element
-                .getattr(intern!(py, "uuid"))?
-                .getattr(intern!(py, "bytes"))?
-                .extract::<[u8; 16]>()?,
-        );
-        if vector_element_uuid != uuid {
+        let vector_name = vector.getattr("name")?.extract::<String>()?;
+        let vector_element = vector.get_item(index)?.extract::<Symbol>()?;
+        if vector_element.uuid != uuid {
             // we need to create a new parameter vector element and hack it into the vector
             vector_data.1.push(index);
-            let param_vector_element = imports::PARAMETER_VECTOR_ELEMENT
-                .get_bound(py)
-                .call1((
-                    vector,
-                    index,
-                    py_bytes_to_uuid(py, parameter_vector_pack.uuid)?,
-                ))?
-                .unbind();
+            // let param_vector_element = PyParameterVectorElement::py_new(py, vector, index, parameter_vector_pack.uuid)
+            let param_vector_element = Symbol::py_new(
+                &vector_name,
+                Some(uuid.as_u128()),
+                Some(index),
+                Some(vector.clone().unbind()),
+            )?;
             vector
                 .getattr("_params")?
                 .set_item(index, param_vector_element)?;

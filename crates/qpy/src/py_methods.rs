@@ -12,14 +12,13 @@
 
 // Methods for QPY serialization working directly with Python-based data
 use binrw::Endian;
-use hashbrown::HashMap;
-use numpy::{Complex64, ToPyArray};
+use numpy::Complex64;
 use pyo3::IntoPyObjectExt;
 use pyo3::exceptions::{PyIOError, PyTypeError, PyValueError};
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::{
-    PyAny, PyBytes, PyComplex, PyDict, PyFloat, PyInt, PyIterator, PyList, PyString, PyTuple,
+    PyAny, PyComplex, PyDict, PyFloat, PyInt, PyIterator, PyList, PyString, PyTuple,
 };
 use qiskit_circuit::classical::expr::Expr;
 use std::io::Cursor;
@@ -27,10 +26,9 @@ use std::io::Cursor;
 use qiskit_circuit::Clbit;
 use qiskit_circuit::bit::{PyClassicalRegister, PyClbit, ShareableClbit};
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::circuit_instruction::CircuitInstruction;
 use qiskit_circuit::classical;
 use qiskit_circuit::imports;
-use qiskit_circuit::operations::{ArrayType, Operation, OperationRef, StandardInstruction};
+use qiskit_circuit::operations::{Operation, OperationRef, StandardInstruction};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::parameter::parameter_expression::{
     PyParameter, PyParameterExpression, PyParameterVectorElement,
@@ -40,14 +38,11 @@ use uuid::Uuid;
 
 use crate::bytes::Bytes;
 use crate::formats;
-use crate::params::pack_param_obj;
 use crate::value::{
-    GenericValue, QPYWriteData, circuit_instruction_types, deserialize, get_circuit_type_key,
-    modifier_types, pack_generic_value, serialize, serialize_generic_value, tags, type_name,
+    GenericValue, QPYWriteData, deserialize, modifier_types, pack_generic_value,
+    serialize_generic_value, tags, type_name,
 };
 use binrw::BinWrite;
-
-use crate::circuit_writer::{pack_circuit, pack_instruction};
 
 const UNITARY_GATE_CLASS_NAME: &str = "UnitaryGate";
 
@@ -135,22 +130,6 @@ pub fn get_python_gate_class<'a>(
         )))
     }
 }
-
-pub fn py_bytes_to_uuid(py: Python, bytes: [u8; 16]) -> PyResult<Py<PyAny>> {
-    let uuid_module = py.import("uuid")?;
-    let py_bytes = PyBytes::new(py, &bytes);
-    let kwargs = PyDict::new(py);
-    kwargs.set_item("bytes", py_bytes)?;
-    Ok(uuid_module.call_method("UUID", (), Some(&kwargs))?.unbind())
-}
-
-// pub fn py_pack_generic_data(
-//     py_data: &Bound<PyAny>,
-//     qpy_data: &QPYWriteData,
-// ) -> PyResult<formats::GenericDataPack> {
-//     let (type_key, data) = py_dumps_value(py_data.clone().unbind(), qpy_data)?;
-//     Ok(formats::GenericDataPack { type_key, data })
-// }
 
 // serializes python metadata to JSON using a python JSON serializer
 pub fn serialize_metadata(
@@ -310,7 +289,7 @@ fn pack_sparse_pauli_op(
     Ok(formats::SparsePauliOpListElemPack { data })
 }
 
-fn pack_pauli_evolution_gate(
+pub fn py_pack_pauli_evolution_gate(
     evolution_gate: &Bound<PyAny>,
     qpy_data: &QPYWriteData,
 ) -> PyResult<formats::PauliEvolutionDefPack> {
@@ -643,134 +622,7 @@ pub fn py_deserialize_register_param(
     })
 }
 
-pub fn get_instruction_params(
-    instruction: &PackedInstruction,
-    qpy_data: &QPYWriteData,
-) -> PyResult<Vec<formats::GenericDataPack>> {
-    // The instruction params we store are about being able to reconstruct the objects; they don't
-    // necessarily need to match one-to-one to the `params` field.
-    Python::attach(|py| {
-        if let OperationRef::Instruction(inst) = instruction.op.view() {
-            if inst
-                .instruction
-                .bind(py)
-                .is_instance(imports::CONTROL_FLOW_SWITCH_CASE_OP.get_bound(py))?
-            {
-                let op = inst.instruction.bind(py);
-                let target = op.getattr("target")?;
-                let cases = op.call_method0("cases_specifier")?;
-                let cases_tuple = imports::BUILTIN_TUPLE.get_bound(py).call1((cases,))?;
-                return Ok(vec![
-                    py_pack_param(&target, qpy_data, Endian::Little)?,
-                    py_pack_param(&cases_tuple, qpy_data, Endian::Little)?,
-                ]);
-            }
-            if inst
-                .instruction
-                .bind(py)
-                .is_instance(imports::CONTROL_FLOW_BOX_OP.get_bound(py))?
-            {
-                let op = inst.instruction.bind(py);
-                let first_block = op
-                    .getattr("blocks")?
-                    .try_iter()?
-                    .next()
-                    .transpose()?
-                    .ok_or_else(|| PyValueError::new_err("No blocks in box control flow op"))?;
-                let duration = op.getattr("duration")?;
-                let unit = op.getattr("unit")?;
-                return Ok(vec![
-                    py_pack_param(&first_block, qpy_data, Endian::Little)?,
-                    py_pack_param(&duration, qpy_data, Endian::Little)?,
-                    py_pack_param(&unit, qpy_data, Endian::Little)?,
-                ]);
-            }
-        }
-
-        if let OperationRef::Operation(op) = instruction.op.view() {
-            if op
-                .operation
-                .bind(py)
-                .is_instance(imports::CLIFFORD.get_bound(py))?
-            {
-                let op = op.operation.bind(py);
-                let tableau = op.getattr("tableau")?;
-                return Ok(vec![py_pack_param(&tableau, qpy_data, Endian::Little)?]);
-            }
-            if op
-                .operation
-                .bind(py)
-                .is_instance(imports::ANNOTATED_OPERATION.get_bound(py))?
-            {
-                let op = op.operation.bind(py);
-                let modifiers = op.getattr("modifiers")?;
-                return modifiers
-                    .try_iter()?
-                    .map(|modifier| py_pack_param(&modifier?, qpy_data, Endian::Little))
-                    .collect::<PyResult<_>>();
-            }
-            if op
-                .operation
-                .bind(py)
-                .is_instance(imports::PAULI_PRODUCT_MEASUREMENT.get_bound(py))?
-            {
-                let op = op.operation.bind(py);
-                let pauli_data = op.call_method0("_to_pauli_data")?;
-                return pauli_data
-                    .try_iter()?
-                    .map(|pauli| py_pack_param(&pauli?, qpy_data, Endian::Little))
-                    .collect::<PyResult<_>>();
-            }
-        }
-
-        if let OperationRef::Unitary(unitary) = instruction.op.view() {
-            // unitary gates are special since they are uniquely determined by a matrix, which is not
-            // a "parameter", strictly speaking, but is treated as such when serializing
-
-            // until we change the QPY version or verify we get the exact same result,
-            // we translate the matrix to numpy and then serialize it like python does
-            let out_array = match &unitary.array {
-                ArrayType::NDArray(arr) => arr.to_pyarray(py),
-                ArrayType::OneQ(arr) => arr.to_pyarray(py),
-                ArrayType::TwoQ(arr) => arr.to_pyarray(py),
-            };
-            return Ok(vec![py_pack_param(&out_array, qpy_data, Endian::Little)?]);
-        }
-        if let OperationRef::PauliProductMeasurement(pauli_product_measurement) =
-            instruction.op.view()
-        {
-            let z_values = GenericValue::Tuple(
-                pauli_product_measurement
-                    .z
-                    .iter()
-                    .cloned()
-                    .map(GenericValue::Bool)
-                    .collect(),
-            );
-            let x_values = GenericValue::Tuple(
-                pauli_product_measurement
-                    .x
-                    .iter()
-                    .cloned()
-                    .map(GenericValue::Bool)
-                    .collect(),
-            );
-            let neg_value = GenericValue::Bool(pauli_product_measurement.neg);
-            return Ok(vec![
-                pack_generic_value(&z_values, qpy_data)?,
-                pack_generic_value(&x_values, qpy_data)?,
-                pack_generic_value(&neg_value, qpy_data)?,
-            ]);
-        }
-        instruction
-            .params_view()
-            .iter()
-            .map(|x| pack_param_obj(x, qpy_data, Endian::Little))
-            .collect::<PyResult<_>>()
-    })
-}
-
-pub fn get_instruction_annotations(
+pub fn py_get_instruction_annotations(
     instruction: &PackedInstruction,
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<Option<formats::InstructionsAnnotationPack>> {
@@ -795,137 +647,6 @@ pub fn get_instruction_annotations(
             }
         }
         Ok(None)
-    })
-}
-
-pub fn pack_custom_instruction(
-    name: &String,
-    custom_instructions_hash: &mut HashMap<String, PackedOperation>,
-    new_instructions_list: &mut Vec<String>,
-    qpy_data: &mut QPYWriteData,
-) -> PyResult<formats::CustomCircuitInstructionDefPack> {
-    Python::attach(|py| {
-        let operation = custom_instructions_hash.get(name).ok_or_else(|| {
-            PyValueError::new_err(format!("Could not find operation data for {}", name))
-        })?;
-        let gate_type = get_circuit_type_key(operation)?;
-        let mut has_definition = false;
-        let mut data: Bytes = Bytes::new();
-        let mut num_ctrl_qubits = 0;
-        let mut ctrl_state = 0;
-        let mut base_gate: Bound<PyAny> = py.None().bind(py).clone();
-        let mut base_gate_raw: Bytes = Bytes::new();
-
-        if gate_type == circuit_instruction_types::PAULI_EVOL_GATE {
-            if let OperationRef::Gate(gate) = operation.view() {
-                has_definition = true;
-                data = serialize(&pack_pauli_evolution_gate(gate.gate.bind(py), qpy_data)?);
-            }
-        } else if gate_type == circuit_instruction_types::CONTROLLED_GATE {
-            // For ControlledGate, we have to access and store the private `_definition` rather than the
-            // public one, because the public one is mutated to include additional logic if the control
-            // state is open, and the definition setter (during a subsequent read) uses the "fully
-            // excited" control definition only.
-            if let OperationRef::Gate(pygate) = operation.view() {
-                has_definition = true;
-                // Build internal definition to support overloaded subclasses by
-                // calling definition getter on object
-                let gate = pygate.gate.bind(py);
-                gate.getattr("definition")?; // this creates the _definition field
-                data = serialize(&pack_circuit(
-                    &mut gate.getattr("_definition")?.extract()?,
-                    Some(py.None().bind(py)),
-                    false,
-                    qpy_data.version,
-                    qpy_data.annotation_handler.annotation_factories,
-                )?);
-                num_ctrl_qubits = gate.getattr("num_ctrl_qubits")?.extract::<u32>()?;
-                ctrl_state = gate.getattr("ctrl_state")?.extract::<u32>()?;
-                base_gate = gate.getattr("base_gate")?.clone();
-            }
-        } else if gate_type == circuit_instruction_types::ANNOTATED_OPERATION {
-            if let OperationRef::Operation(operation) = operation.view() {
-                has_definition = false; // just making sure
-                base_gate = operation.operation.bind(py).getattr("base_op")?.clone();
-            }
-        } else {
-            match operation.view() {
-                // all-around catch for "operation" field; should be easier once we switch from python to rust
-                OperationRef::Gate(pygate) => {
-                    let gate = pygate.gate.bind(py);
-                    match getattr_or_none(gate, "definition") {
-                        None => (),
-                        Some(definition) => {
-                            has_definition = true;
-                            data = serialize(&pack_circuit(
-                                &mut definition.extract()?,
-                                Some(py.None().bind(py)),
-                                false,
-                                qpy_data.version,
-                                qpy_data.annotation_handler.annotation_factories,
-                            )?);
-                        }
-                    }
-                }
-                OperationRef::Instruction(pyinst) => {
-                    let inst = pyinst.instruction.bind(py);
-                    match getattr_or_none(inst, "definition") {
-                        None => (),
-                        Some(definition) => {
-                            has_definition = true;
-                            data = serialize(&pack_circuit(
-                                &mut definition.extract()?,
-                                Some(py.None().bind(py)),
-                                false,
-                                qpy_data.version,
-                                qpy_data.annotation_handler.annotation_factories,
-                            )?);
-                        }
-                    }
-                }
-                OperationRef::Operation(pyoperation) => {
-                    let operation = pyoperation.operation.bind(py);
-                    match getattr_or_none(operation, "definition") {
-                        None => (),
-                        Some(definition) => {
-                            has_definition = true;
-                            data = serialize(&pack_circuit(
-                                &mut definition.extract()?,
-                                Some(py.None().bind(py)),
-                                false,
-                                qpy_data.version,
-                                qpy_data.annotation_handler.annotation_factories,
-                            )?);
-                        }
-                    }
-                }
-                _ => (),
-            }
-        }
-        let num_qubits = operation.num_qubits();
-        let num_clbits = operation.num_clbits();
-        if !base_gate.is_none() {
-            let instruction = qpy_data
-                .circuit_data
-                .pack(py, &CircuitInstruction::py_new(&base_gate, None, None)?)?;
-            base_gate_raw = serialize(&pack_instruction(
-                &instruction,
-                custom_instructions_hash,
-                new_instructions_list,
-                qpy_data,
-            )?);
-        }
-        Ok(formats::CustomCircuitInstructionDefPack {
-            gate_type,
-            num_qubits,
-            num_clbits,
-            custom_definition: has_definition as u8,
-            num_ctrl_qubits,
-            ctrl_state,
-            name: name.to_string(),
-            data,
-            base_gate_raw,
-        })
     })
 }
 
@@ -988,7 +709,7 @@ pub fn py_unpack_modifier(packed_modifier: &formats::ModifierPack) -> PyResult<P
 }
 
 // condition is stored in an ad-hoc manner in the instruction's "_condition" field, and we need python to access it
-pub fn get_condition_data_from_inst(
+pub fn py_get_condition_data_from_inst(
     inst: &Py<PyAny>,
     qpy_data: &QPYWriteData,
 ) -> PyResult<formats::ConditionPack> {
