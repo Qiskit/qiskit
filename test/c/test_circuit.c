@@ -948,7 +948,7 @@ static int test_circuit_draw(void) {
     qk_circuit_measure(circuit, 0, 0);
     QkComplex64 c0 = {0, 0};
     QkComplex64 c1 = {1, 0};
-    QkComplex64 unitary[2*2] = {c0, c1, c1, c0};
+    QkComplex64 unitary[2 * 2] = {c0, c1, c1, c0};
     qk_circuit_unitary(circuit, unitary, (uint32_t[]){5}, 1, true);
 
     QkCircuitDrawerConfig config = {false, true, 80};
