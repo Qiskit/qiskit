@@ -136,9 +136,8 @@ class SolovayKitaevDecomposition:
         warnings.warn(
             "It is suggested to pass basic_approximations in the binary format produced "
             "by SolovayKitaevDecomposition.save_basic_approximations, which is more "
-            "performant than other formats. Other formats are pending deprecation "
-            "and will be deprecated in a future release.",
-            category=PendingDeprecationWarning,
+            "performant than other formats.",
+            category=DeprecationWarning,
         )
 
         # is already a list of GateSequences
@@ -249,7 +248,6 @@ class SolovayKitaevDecomposition:
         since="2.1",
         additional_msg="Use query_basic_approximation instead, which takes a Gate or matrix "
         "as input and returns a QuantumCircuit object.",
-        pending=True,
     )
     def find_basic_approximation(self, sequence: GateSequence) -> GateSequence:
         """Find ``GateSequence`` in ``self._basic_approximations`` that approximates ``sequence``.

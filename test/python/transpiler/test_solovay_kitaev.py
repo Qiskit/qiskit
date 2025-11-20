@@ -74,7 +74,8 @@ class TestSolovayKitaev(QiskitTestCase):
     def setUp(self):
         super().setUp()
 
-        self.basic_approx = generate_basic_approximations([HGate(), TGate(), TdgGate()], 3)
+        with self.assertWarns(DeprecationWarning):
+            self.basic_approx = generate_basic_approximations([HGate(), TGate(), TdgGate()], 3)
         self.default_sk = SolovayKitaev()
 
     def test_unitary_synthesis(self):
@@ -153,8 +154,9 @@ class TestSolovayKitaev(QiskitTestCase):
         circuit = QuantumCircuit(1)
         circuit.rx(0.8, 0)
 
-        basic_approx = generate_basic_approximations(["h", "t", "s"], 3)
-        sk = SolovayKitaev(3, basic_approx)
+        with self.assertWarns(DeprecationWarning):
+            basic_approx = generate_basic_approximations(["h", "t", "s"], 3)
+            sk = SolovayKitaev(3, basic_approx)
 
         dag = circuit_to_dag(circuit)
         discretized = dag_to_circuit(sk.run(dag))
@@ -209,9 +211,13 @@ class TestSolovayKitaev(QiskitTestCase):
 
         depth = 4
         basis_gates = ["h", "t", "tdg", "s", "sdg", "z"]
-        gate_approx_library = generate_basic_approximations(basis_gates=basis_gates, depth=depth)
+        with self.assertWarns(DeprecationWarning):
+            gate_approx_library = generate_basic_approximations(
+                basis_gates=basis_gates, depth=depth
+            )
 
-        skd = SolovayKitaev(recursion_degree=2, basic_approximations=gate_approx_library)
+        with self.assertWarns(DeprecationWarning):
+            skd = SolovayKitaev(recursion_degree=2, basic_approximations=gate_approx_library)
         discretized = skd(circuit)
 
         included_gates = set(discretized.count_ops().keys())
@@ -228,16 +234,18 @@ class TestSolovayKitaev(QiskitTestCase):
             fullpath = os.path.join(tmp_dir, filename)
 
             # dump approximations to file
-            gate_approx_library = generate_basic_approximations(
-                basis_gates=["h", "s", "sdg"], depth=3, filename=fullpath
-            )
+            with self.assertWarns(DeprecationWarning):
+                gate_approx_library = generate_basic_approximations(
+                    basis_gates=["h", "s", "sdg"], depth=3, filename=fullpath
+                )
 
             # circuit to decompose and reference decomp
             circuit = QuantumCircuit(1)
             circuit.rx(0.8, 0)
 
             # Run SK pass using gate_approx_library
-            reference = SolovayKitaev(basic_approximations=gate_approx_library)(circuit)
+            with self.assertWarns(DeprecationWarning):
+                reference = SolovayKitaev(basic_approximations=gate_approx_library)(circuit)
 
             # Run SK pass using stored basis_approximations
             discretized = SolovayKitaev(basic_approximations=fullpath)(circuit)
@@ -276,10 +284,12 @@ class TestSolovayKitaev(QiskitTestCase):
             circuit.rx(0.8, 0)
 
             # Run SK pass using gate_approx_library
-            reference = SolovayKitaev(basic_approximations=approximations)(circuit)
+            with self.assertWarns(DeprecationWarning):
+                reference = SolovayKitaev(basic_approximations=approximations)(circuit)
 
             # Run SK pass using stored basis_approximations
-            discretized = SolovayKitaev(basic_approximations=fullpath)(circuit)
+            with self.assertWarns(DeprecationWarning):
+                discretized = SolovayKitaev(basic_approximations=fullpath)(circuit)
 
         # Check that both flows produce the same result
         self.assertEqual(discretized, reference)
@@ -367,7 +377,8 @@ class TestSolovayKitaev(QiskitTestCase):
         Regression test of Qiskit/qiskit-terra#9585.
         """
         basis = ["i", "x", "y", "z", "h", "t", "tdg", "s", "sdg", "sx", "sxdg"]
-        approx = generate_basic_approximations(basis, depth=2)
+        with self.assertWarns(DeprecationWarning):
+            approx = generate_basic_approximations(basis, depth=2)
 
         # This mainly checks that there are no errors in the generation (like
         # in computing the inverse as described in #9585), so a simple check is enough.
