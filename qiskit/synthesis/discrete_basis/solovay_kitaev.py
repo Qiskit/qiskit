@@ -46,6 +46,13 @@ class SolovayKitaevDecomposition:
         check_input: bool = False,
     ) -> None:
         """
+
+        .. note::
+
+            If ``basic_approximations`` is passed as ``.npy`` file, pickle is used internally
+            to load the data. This is a potential security vulnerability and only trusted files
+            should be loaded.
+
         Args:
             basic_approximations: A specification of the basic SO(3) approximations in terms
                 of discrete gates. At each iteration this algorithm, the remaining error is
