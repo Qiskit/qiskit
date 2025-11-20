@@ -26,10 +26,10 @@ use numpy::ToPyArray;
 
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::types::{PyAny, PyDict, PyList, PyTuple};
+use pyo3::types::{PyAny, PyDict};
 
 use qiskit_circuit::bit::{
-    ClassicalRegister, PyClbit, PyQubit, QuantumRegister, Register, ShareableQubit,
+    ClassicalRegister, PyClbit, PyQubit, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
 use qiskit_circuit::circuit_data::{CircuitData, CircuitStretchType, CircuitVarType};
 use qiskit_circuit::circuit_instruction::CircuitInstruction;
@@ -40,7 +40,7 @@ use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 
 use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
-use crate::formats;
+use crate::formats::{self, InitialLayoutItemV2Pack};
 use crate::params::pack_param_obj;
 use crate::py_methods::{
     gate_class_name, getattr_or_none, py_get_condition_data_from_inst,
@@ -470,10 +470,9 @@ fn pack_custom_layout(
     layout: &Bound<PyAny>,
     qpy_data: &QPYWriteData,
 ) -> PyResult<formats::LayoutV2Pack> {
-    let py = layout.py();
     let mut initial_layout_size = -1; // initial_size
     let mut input_qubit_mapping: HashMap<ShareableQubit, usize> = HashMap::new();
-    let initial_layout_array = PyList::empty(py);
+    let mut initial_layout_array: Vec<(Option<u32>, Option<QuantumRegister>)> = Vec::new();
     let mut extra_registers: HashSet<QuantumRegister> = HashSet::new();
     let mut extra_registers_qubits: HashSet<ShareableQubit> = HashSet::new();
 
@@ -492,23 +491,17 @@ fn pack_custom_layout(
             } else if index.is_some() {
                 extra_registers_qubits.insert(qubit);
             }
-            initial_layout_array.append((index, register))?;
+            initial_layout_array.push((index, register));
         }
     }
 
     let mut input_mapping_size: i32 = -1; //input_qubit_size
-    let mut input_qubit_mapping_array = PyList::new(py, Vec::<Bound<PyAny>>::new())?;
     let layout_input_qubit_mapping = layout.getattr("input_qubit_mapping")?;
-    if !layout_input_qubit_mapping.is_none() {
+    let input_mapping_items = if !layout_input_qubit_mapping.is_none() {
         input_mapping_size = layout_input_qubit_mapping
             .call_method0("__len__")?
             .extract()?;
-        input_qubit_mapping_array = PyList::new(
-            py,
-            std::iter::repeat(py.None())
-                .take(input_mapping_size as usize)
-                .collect::<Vec<_>>(),
-        )?;
+        let mut input_qubit_mapping_array: Vec<u32> = vec![0; input_mapping_size as usize];
         let layout_mapping = initial_layout.call_method0("get_virtual_bits")?;
         for (qubit, index) in layout_input_qubit_mapping.cast::<PyDict>()? {
             let qubit = qubit.extract::<ShareableQubit>()?;
@@ -520,46 +513,43 @@ fn pack_custom_layout(
                     extra_registers.insert(reg);
                 }
             };
-            input_qubit_mapping_array
-                .set_item(index.extract()?, layout_mapping.get_item(&qubit)?)?;
+            let i: usize = index.extract()?;
+            input_qubit_mapping_array[i] = layout_mapping.get_item(&qubit)?.extract::<u32>()?;
         }
-    }
+        input_qubit_mapping_array
+    } else {
+        Vec::new()
+    };
 
-    let mut final_layout_size: i32 = -1;
-    let final_layout_array = PyList::empty(py);
+    let mut final_layout_size: i32 = -1; // this is the default value if final_layout is not present
+    // let final_layout_array = PyList::empty(py);
     let final_layout = layout.getattr("final_layout")?;
-    if !final_layout.is_none() {
-        final_layout_size = final_layout.call_method0("__len__")?.extract()?;
+    let final_layout_items: Vec<u32> = if !final_layout.is_none() {
+        final_layout_size = final_layout.call_method0("__len__")?.extract::<i32>()?;
+        let mut final_layout_items: Vec<u32> = Vec::with_capacity(final_layout_size as usize);
         let final_layout_physical = final_layout.call_method0("get_physical_bits")?;
         for i in 0..qpy_data.circuit_data.num_qubits() {
-            // this part is alternative to calling `find_bit` for the python version of the quantum circuit
-            let virtual_bit = final_layout_physical
-                .cast::<PyDict>()?
-                .get_item(i)?
-                .unwrap(); // TODO: handle unwrap failure
+            let virtual_bit = final_layout_physical.get_item(i)?;
             if virtual_bit.is_instance_of::<PyClbit>() {
-                match qpy_data
+                let virtual_clbit = virtual_bit.extract::<ShareableClbit>()?;
+                let index = qpy_data
                     .circuit_data
-                    .get_clbit_indices(py)
-                    .bind(py)
-                    .get_item(virtual_bit)?
-                {
-                    None => (), // TODO: error?
-                    Some(bit_data) => final_layout_array.append(bit_data.getattr("index")?)?,
-                }
+                    .clbit_index(virtual_clbit)
+                    .ok_or_else(|| PyValueError::new_err("Clbit missing an index"))?;
+                final_layout_items.push(index);
             } else if virtual_bit.is_instance_of::<PyQubit>() {
-                match qpy_data
+                let virtual_qubit = virtual_bit.extract::<ShareableQubit>()?;
+                let index = qpy_data
                     .circuit_data
-                    .get_qubit_indices(py)
-                    .bind(py)
-                    .get_item(virtual_bit)?
-                {
-                    None => (), // TODO: error?
-                    Some(bit_data) => final_layout_array.append(bit_data.getattr("index")?)?,
-                }
+                    .qubit_index(virtual_qubit)
+                    .ok_or_else(|| PyValueError::new_err("Clbit missing an index"))?;
+                final_layout_items.push(index);
             }
         }
-    }
+        final_layout_items
+    } else {
+        Vec::new()
+    };
 
     let input_qubit_count: i32 = if layout.getattr("_input_qubit_count")?.is_none() {
         -1
@@ -569,41 +559,25 @@ fn pack_custom_layout(
 
     let extra_registers =
         pack_extra_registers(&extra_registers, &extra_registers_qubits, qpy_data)?;
-    let mut initial_layout_items = Vec::with_capacity(initial_layout_size.max(0) as usize);
-    for item in initial_layout_array {
-        let tuple = item.cast::<PyTuple>()?;
-        let index = tuple.get_item(0)?;
-        let register = tuple.get_item(1)?;
-        let reg_name_bytes = if !register.is_none() {
-            Some(register.getattr("name")?.extract::<String>()?)
-        } else {
-            None
-        };
-        let index_value = if index.is_none() {
-            -1
-        } else {
-            index.extract::<i32>()?
-        };
-        let (register_name, register_name_length) = reg_name_bytes
-            .as_ref()
-            .map(|name| (name.clone(), name.len() as i32))
-            .unwrap_or((String::new(), -1));
-        initial_layout_items.push(formats::InitialLayoutItemV2Pack {
-            index_value,
-            register_name_length,
-            register_name,
-        });
-    }
 
-    let mut input_mapping_items = Vec::with_capacity(input_mapping_size.max(0) as usize);
-    for i in &input_qubit_mapping_array {
-        input_mapping_items.push(i.extract::<u32>()?);
-    }
-
-    let mut final_layout_items = Vec::with_capacity(final_layout_size.max(0) as usize);
-    for i in &final_layout_array {
-        final_layout_items.push(i.extract::<u32>()?);
-    }
+    let initial_layout_items: Vec<InitialLayoutItemV2Pack> = initial_layout_array
+        .iter()
+        .map(|(index, qreg)| {
+            let index_value = match index {
+                None => -1,
+                Some(val) => *val as i32,
+            };
+            let (register_name, register_name_length) = match qreg {
+                None => (String::new(), -1),
+                Some(qreg_val) => (qreg_val.name().to_string(), qreg_val.name().len() as i32),
+            };
+            formats::InitialLayoutItemV2Pack {
+                index_value,
+                register_name_length,
+                register_name,
+            }
+        })
+        .collect();
 
     Ok(formats::LayoutV2Pack {
         exists: true as u8,
