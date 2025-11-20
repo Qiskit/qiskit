@@ -47,6 +47,12 @@ fn is_angle_close_to_multiple_of_pi_4(angle: f64, tol: f64) -> Option<usize> {
 /// Gets a rotation gate (RX/RY/RZ) and outputs an equivalent vector of standard gates and
 /// a global phase, when the gate is sufficiently close to Clifford+T/Tdg.
 /// Otherwise, return None.
+/// Note that odd multiples of pi/4 require a single T or Tdg gate
+//  as well as some Clifford gates,
+//  while even multiples of pi/4, or equivalently, integer multiples of pi/2,
+//  can be written using only Clifford gates.
+/// The output contains at most one T or Tdg gate, and an optimal number of
+/// Clifford gates.
 fn try_replace_rotation_by_discrete(
     gate: StandardGate,
     angle: f64,
