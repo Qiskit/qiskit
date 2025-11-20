@@ -112,6 +112,12 @@ class SolovayKitaevDecomposition:
     def load_basic_approximations(data: list | str | dict) -> list[GateSequence]:
         """Load basic approximations.
 
+        .. note::
+
+            If ``data`` is given as string, this method internally relies on pickle to load
+            the file. This is a potential security vulnerability and only trusted files should be
+            loaded.
+
         Args:
             data: If a string, specifies the path to the file from where to load the data.
                 If a dictionary, directly specifies the decompositions as ``{gates: matrix}``
@@ -156,7 +162,6 @@ class SolovayKitaevDecomposition:
             else:
                 matrix, global_phase = matrix_and_phase, 0
 
-            # gates = [_1q_gates[element] for element in gatestring.split()]
             gates = normalize_gates(gatestring.split())
             sequence = GateSequence.from_gates_and_matrix(gates, matrix, global_phase)
             sequences.append(sequence)
