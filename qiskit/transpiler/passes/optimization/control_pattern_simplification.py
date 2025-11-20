@@ -191,8 +191,9 @@ class BooleanExpressionAnalyzer:
                     # Build ctrl_state from common positions
                     ctrl_state = ''.join(p1[k] for k in common_positions)
 
-                    # Map positions to qubit indices (LSB-first)
-                    control_qubit_indices = [self.num_qubits - 1 - k for k in common_positions]
+                    # After ctrl_state reversal during extraction, pattern indices
+                    # directly correspond to qubit indices (no LSB mapping needed)
+                    control_qubit_indices = common_positions
 
                     return [{
                         'type': 'complementary',
@@ -562,10 +563,13 @@ class ControlPatternSimplification(TransformationPass):
             # Default: all controls must be in |1⟩ state
             return "1" * num_ctrl_qubits
         elif isinstance(ctrl_state, str):
-            return ctrl_state
+            # Reverse Qiskit's ctrl_state to match our LSB-first pattern convention
+            # (matching mcrx_simplifier implementation)
+            return ctrl_state[::-1]
         elif isinstance(ctrl_state, int):
-            # Convert integer to binary string with appropriate length
-            return format(ctrl_state, f"0{num_ctrl_qubits}b")
+            # Convert integer to binary string and reverse
+            # (matching mcrx_simplifier implementation)
+            return format(ctrl_state, f"0{num_ctrl_qubits}b")[::-1]
         else:
             # Fallback: assume all ones
             return "1" * num_ctrl_qubits
@@ -726,7 +730,8 @@ class ControlPatternSimplification(TransformationPass):
             gate = base_gate
 
         # Create controlled version with single control
-        controlled_gate = gate.control(1, ctrl_state=ctrl_state)
+        # Reverse ctrl_state back to Qiskit's format (matching mcrx_simplifier)
+        controlled_gate = gate.control(1, ctrl_state=ctrl_state[::-1])
 
         # Qubit arguments: control first, then targets
         qargs = [control_qubit] + target_qubits
@@ -761,7 +766,8 @@ class ControlPatternSimplification(TransformationPass):
 
         # Create controlled version with multiple controls
         num_ctrl_qubits = len(control_qubits)
-        controlled_gate = gate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
+        # Reverse ctrl_state back to Qiskit's format (matching mcrx_simplifier)
+        controlled_gate = gate.control(num_ctrl_qubits, ctrl_state=ctrl_state[::-1])
 
         # Qubit arguments: controls first, then targets
         qargs = control_qubits + target_qubits
