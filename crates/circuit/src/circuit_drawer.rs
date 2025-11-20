@@ -23,7 +23,6 @@ use hashbrown::{HashMap, HashSet};
 use itertools::{Itertools, MinMaxResult};
 use pyo3::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
-use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::ops::Index;
 
@@ -368,12 +367,7 @@ impl<'a> VisualizationLayer<'a> {
                     .filter(|idx| !(qargs.iter().map(|q| q.0 as usize)).contains(idx));
                 self.add_vertical_lines(vert_lines, inst);
             }
-            _ => unimplemented!("{}", format!("{:?} is not supported yet", gate)),
         }
-
-        //     let vert_lines = (minima..=maxima)
-        //         .filter(|idx| !control_indices.contains(idx) && !box_indices.contains(idx));
-        //     self.add_vertical_lines(inst, vert_lines);
     }
 
     fn add_standard_instruction(
