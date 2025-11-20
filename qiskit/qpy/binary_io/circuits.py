@@ -24,6 +24,7 @@ import struct
 import uuid
 import typing
 import warnings
+import pickle as _pickle
 
 import numpy as np
 
@@ -689,21 +690,11 @@ def _parse_custom_operation(
 
 
 def _read_pauli_evolution_gate(file_obj, version, vectors):
-    if version >= 17:
-        pauli_evolution_def = formats.PAULI_EVOLUTION_DEF_V17._make(
-            struct.unpack(
-                formats.PAULI_EVOLUTION_DEF_PACK_V17,
-                file_obj.read(formats.PAULI_EVOLUTION_DEF_SIZE_V17),
-            )
+    pauli_evolution_def = formats.PAULI_EVOLUTION_DEF._make(
+        struct.unpack(
+            formats.PAULI_EVOLUTION_DEF_PACK, file_obj.read(formats.PAULI_EVOLUTION_DEF_SIZE)
         )
-        sparse_operator = pauli_evolution_def.sparse_operator
-    else:
-        pauli_evolution_def = formats.PAULI_EVOLUTION_DEF._make(
-            struct.unpack(
-                formats.PAULI_EVOLUTION_DEF_PACK, file_obj.read(formats.PAULI_EVOLUTION_DEF_SIZE)
-            )
-        )
-        sparse_operator = False
+    )
 
     if pauli_evolution_def.operator_size != 1 and pauli_evolution_def.standalone_op:
         raise ValueError(
@@ -718,14 +709,17 @@ def _read_pauli_evolution_gate(file_obj, version, vectors):
                 file_obj.read(formats.SPARSE_PAULI_OP_LIST_ELEM_SIZE),
             )
         )
-        if version >= 17 and sparse_operator:
-            op_raw_data = common.data_from_binary(
-                file_obj.read(op_elem.size), np.load, allow_pickle=True
-            )
-            operator_list.append(SparseObservable.from_terms(op_raw_data))
-        else:
+
+        try:
             op_raw_data = common.data_from_binary(file_obj.read(op_elem.size), np.load)
             operator_list.append(SparsePauliOp.from_list(op_raw_data))
+        except ValueError as e:
+            if "allow_pickle=False" in str(e):
+                file_obj.seek(-op_elem.size, io.SEEK_CUR)
+                op_raw_data = common.data_from_binary(
+                    file_obj.read(op_elem.size), np.load, allow_pickle=True
+                )
+                operator_list.append(SparseObservable.from_terms(op_raw_data))
 
     if pauli_evolution_def.standalone_op:
         pauli_op = operator_list[0]
@@ -1080,11 +1074,6 @@ def _write_instruction(
 def _write_pauli_evolution_gate(file_obj, evolution_gate, version):
     operator_list = evolution_gate.operator
     standalone = False
-    sparse_operator = False
-
-    if version >= 17:
-        if isinstance(operator_list, SparseObservable):
-            sparse_operator = True
 
     if not isinstance(operator_list, list):
         operator_list = [operator_list]
@@ -1106,7 +1095,7 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate, version):
     pauli_data_buf = io.BytesIO()
 
     for operator in operator_list:
-        if version >= 17 and sparse_operator:
+        if isinstance(operator, SparseObservable):
             data = common.data_to_binary(operator, _write_elem_sparse)
         else:
             data = common.data_to_binary(operator, _write_elem)
@@ -1118,25 +1107,14 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate, version):
     settings_dict = evolution_gate.synthesis.settings
     synth_data = json.dumps({"class": synth_class, "settings": settings_dict}).encode(common.ENCODE)
     synth_size = len(synth_data)
-    if version >= 17:
-        pauli_evolution_raw = struct.pack(
-            formats.PAULI_EVOLUTION_DEF_PACK_V17,
-            num_operators,
-            sparse_operator,
-            standalone,
-            time_type,
-            time_size,
-            synth_size,
-        )
-    else:
-        pauli_evolution_raw = struct.pack(
-            formats.PAULI_EVOLUTION_DEF_PACK,
-            num_operators,
-            standalone,
-            time_type,
-            time_size,
-            synth_size,
-        )
+    pauli_evolution_raw = struct.pack(
+        formats.PAULI_EVOLUTION_DEF_PACK,
+        num_operators,
+        standalone,
+        time_type,
+        time_size,
+        synth_size,
+    )
     file_obj.write(pauli_evolution_raw)
     file_obj.write(pauli_data_buf.getvalue())
     pauli_data_buf.close()

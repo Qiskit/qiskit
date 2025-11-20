@@ -2,5 +2,5 @@
 features_qpy:
   - |
     Added features for serializing and deserializing :class:`~qiskit.quantum_info.SparseObservable`
-    in QPY format. This preserves the sparse format. QPY version upgraded to 17.
+    in QPY format. This preserves the sparse format.
     Fixed `#15070 <https://github.com/Qiskit/qiskit/issues/15070>`__.

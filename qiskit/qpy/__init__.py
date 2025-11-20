@@ -199,9 +199,6 @@ of QPY in qiskit-terra 0.18.0.
    * - Qiskit (qiskit-terra for < 1.0.0) version
      - :func:`.dump` format(s) output versions
      - :func:`.load` maximum supported version (older format versions can always be read)
-   * - 2.3.0
-     - 13, 14, 15, 16, 17
-     - 17
    * - 2.2.2
      - 13, 14, 15, 16
      - 16
@@ -448,47 +445,6 @@ Each individual circuit is composed of the following parts in order from top to 
 There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
-
-.. _qpy_version_17:
-
-Version 17
-----------
-
-Version 17 adds support for serializing and deserializing PauliEvolutionGate based on
-:class:`~qiskit.quantum_info.SparseObservable`.
-
-Changes to Write Circuit
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-A new boolean variable `sparse_operator` is added to the `PauliEvolutionGate` definition.
-When serializing a `PauliEvolutionGate`, if `sparse_operator` is found `True`, the operator is
-serialized as a `SparseObservable`.
-
-Changes to Read Circuit
-~~~~~~~~~~~~~~~~~~~~~~~
-When deserializing a `PauliEvolutionGate`, if `sparse_operator` is True, the operator is
-deserialized as a `SparseObservable`.
-
-Changes to FORMATS
-~~~~~~~~~~~~~~~~~~~
-A new namedtuple `PAULI_EVOLUTION_GATE_DEF_17` consisting of the boolean parameter `sparse_operator`
-is added to indicate whether the operator is a `SparseObservable`.
-
-.. code-block:: python
-
-    PAULI_EVOLUTION_DEF_17 = namedtuple(
-      "PAULI_EVOLUTION_DEF_17",
-      [
-          "operator_size",
-          "sparse_operator",
-          "standalone_op",
-          "time_type",
-          "time_size",
-          "synth_method_size",
-      ],
-    )
-    PAULI_EVOLUTION_DEF_PACK_17 = "!Q??1cQQ"
-    PAULI_EVOLUTION_DEF_SIZE_17 = struct.calcsize(PAULI_EVOLUTION_DEF_PACK_17)
 
 .. _qpy_version_16:
 
