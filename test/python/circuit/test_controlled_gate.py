@@ -393,7 +393,7 @@ class TestControlledGate(QiskitTestCase):
         cu3gate = u3.CU3Gate(alpha, beta, gamma)
 
         # cnu3 gate
-        cnu3 = u3gate.control(num_ctrl)
+        cnu3 = u3gate.control(num_ctrl, annotated=False)
         width = cnu3.num_qubits
         qr = QuantumRegister(width)
         qcnu3 = QuantumCircuit(qr)
@@ -412,7 +412,7 @@ class TestControlledGate(QiskitTestCase):
         qr = QuantumRegister(width)
         qc_cu3 = QuantumCircuit(qr)
 
-        c_cu3 = cu3gate.control(1)
+        c_cu3 = cu3gate.control(1, annotated=False)
         qc_cu3.append(c_cu3, qr, [])
 
         # Circuit unitaries
@@ -720,7 +720,7 @@ class TestControlledGate(QiskitTestCase):
         rot_matrix = base_gate(val).to_matrix()
         mc_matrix = _compute_control_matrix(rot_matrix, num_controls)
 
-        mc_gate = base_gate(*params).control(num_controls)
+        mc_gate = base_gate(*params).control(num_controls, annotated=False)
         circuit = QuantumCircuit(mc_gate.num_qubits)
         circuit.append(mc_gate, circuit.qubits)
 
