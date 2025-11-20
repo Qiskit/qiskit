@@ -11,3 +11,4 @@
 // that they have been altered from the originals.
 
 pub mod quantum_volume;
+pub mod iqp;
