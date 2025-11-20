@@ -109,7 +109,7 @@ pub extern "C" fn qk_transpiler_default_options() -> TranspileOptions {
 ///   to this pointer.
 /// @param error A pointer to a pointer with an nul terminated string with an error description.
 ///   If the transpiler fails a pointer to the string with the error description will be written
-///   to this pointer. That pointer needs to be freed with ``qk_str_free```. This can be a null
+///   to this pointer. That pointer needs to be freed with ``qk_str_free``. This can be a null
 ///   pointer in which case the error will not be written out.
 ///
 /// @returns The return code for the transpiler, ``QkExitCode_Success`` means success and all
@@ -119,7 +119,7 @@ pub extern "C" fn qk_transpiler_default_options() -> TranspileOptions {
 ///
 /// Behavior is undefined if ``dag``, ``target``, or ``layout``, are not valid, non-null
 /// pointers to a ``QkDag``, ``QkTarget``, or a ``QkTranspileLayout`` pointer
-/// respectively. ``options`` must be a valid pointer a to a ``QkTranspileOptions`` or ``NULL`.
+/// respectively. ``options`` must be a valid pointer a to a ``QkTranspileOptions`` or ``NULL``.
 /// ``error`` must be a valid pointer to a ``char`` pointer or ``NULL``.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
