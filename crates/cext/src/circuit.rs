@@ -22,6 +22,7 @@ use num_complex::{Complex64, ComplexFloat};
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::bit::{ShareableClbit, ShareableQubit};
 use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_drawer::draw_circuit;
 use qiskit_circuit::operations::{
     ArrayType, DelayUnit, Operation, Param, StandardGate, StandardInstruction, UnitaryGate,
 };
@@ -1153,4 +1154,82 @@ pub unsafe extern "C" fn qk_circuit_delay(
         .unwrap();
 
     ExitCode::Success
+}
+
+/// The configuration options for the ``qk_circuit_draw`` function.
+#[repr(C)]
+pub struct CCircuitDrawerConfig {
+    /// If `true`, bundles classical registers into single wires.
+    bundle_cregs: bool,
+    /// If `true`, merges the bottom and top lines of adjacent wires.
+    merge_wires: bool,
+    /// Sets the line length for wrapping the rendered text. Use 0
+    /// to auto-detect console width.
+    fold: usize,
+}
+
+/// @ingroup QkCircuit
+/// Draw the circuit as text.
+///
+/// @param circuit A pointer to the circuit to draw.
+/// @param config A pointer to the ``QkCircuitDrawerConfig`` structure or NULL. If NULL,
+///     the drawer will use these defaults:
+///     * ``bundle_cregs = true``
+///     * ``merge_wires = true``
+///     * ``fold = 0``
+///
+/// @return A pointer to a null-terminated string containing the circuit representation.
+///     You must use ``qk_str_free`` to release the allocated memory when done.
+///
+/// # Example
+/// ```c
+///     QkCircuit *circuit = qk_circuit_new(2, 1);
+///
+///     qk_circuit_gate(circuit, QkGate_H, (uint32_t[]){0}, NULL);
+///     qk_circuit_gate(circuit, QkGate_CX, (uint32_t[]){0, 1}, NULL);
+///     qk_circuit_measure(circuit, 0, 0);
+///     qk_circuit_measure(circuit, 1, 0);
+///
+///     QkCircuitDrawerConfig config = {false, true, 0};
+///
+///     char *circ_str = qk_circuit_draw(circuit, &config);
+///
+///     printf("%s", circ_str);
+///    
+///     qk_str_free(circ_str);
+///     qk_circuit_free(circuit);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``, or
+/// if ``config`` is not NULL and a non-valid pointer to a ``QkCircuitDrawerConfig`` struct.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_circuit_draw(
+    circuit: *const CircuitData,
+    config: *const CCircuitDrawerConfig,
+) -> *mut c_char {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+
+    let (bundle_cregs, merge_wires, fold) = if !config.is_null() {
+        // SAFETY: Per documentation, the pointer is to a valid QkCircuitDrawerConfig struct.
+        let config = unsafe { const_ptr_as_ref(config) };
+        (
+            config.bundle_cregs,
+            config.merge_wires,
+            if config.fold != 0 {
+                Some(config.fold)
+            } else {
+                None
+            },
+        )
+    } else {
+        (true, true, None)
+    };
+
+    let circuit_str = draw_circuit(circuit, bundle_cregs, merge_wires, fold).unwrap();
+
+    CString::new(circuit_str).unwrap().into_raw()
 }

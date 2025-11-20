@@ -932,6 +932,35 @@ cleanup:
     return result;
 }
 
+/**
+ *  A sanity check to ensure the circuit drawer handles all the supported instructions.
+ */
+static int test_circuit_draw(void) {
+    QkCircuit *circuit = qk_circuit_new(10, 2);
+
+    uint32_t qubits[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    double params[3] = {1.41, 2.71, 3.14};
+    for (uint8_t gate = 0; gate <= QkGate_RC3X; ++gate) {
+        qk_circuit_gate(circuit, gate, &qubits[gate % 8], params);
+    }
+    qk_circuit_barrier(circuit, qubits, 10);
+    qk_circuit_delay(circuit, 3, 100.0, QkDelayUnit_NS);
+    qk_circuit_measure(circuit, 0, 0);
+    QkComplex64 c0 = {0, 0};
+    QkComplex64 c1 = {1, 0};
+    QkComplex64 unitary[2*2] = {c0, c1, c1, c0};
+    qk_circuit_unitary(circuit, unitary, (uint32_t[]){5}, 1, true);
+
+    QkCircuitDrawerConfig config = {false, true, 80};
+
+    char *circ_str = qk_circuit_draw(circuit, &config);
+
+    qk_str_free(circ_str);
+    qk_circuit_free(circuit);
+
+    return Ok;
+}
+
 int test_circuit(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty);
@@ -952,6 +981,7 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_not_unitary_gate);
     num_failed += RUN_TEST(test_unitary_gate_1q);
     num_failed += RUN_TEST(test_unitary_gate_3q);
+    num_failed += RUN_TEST(test_circuit_draw);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
