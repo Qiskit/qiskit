@@ -1,0 +1,97 @@
+name: Upload C API Binaries
+on:
+  push:
+    tags:
+      - '*'
+jobs:
+  c-api-binary-linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install cbindgen
+        run: |
+          cargo install cbindgen
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+      - name: Set Environment Variables
+        run: |
+          QISKIT_CEXT_DIR="qiskit-cext-${{ env.GITHUB_REF_NAME }}-linux-amd64"
+          echo "QISKIT_CEXT_DIR=${QISKIT_CEXT_DIR}" >> $GITHUB_ENV
+          echo "C_DIR_OUT=${QISKIT_CEXT_DIR}/dist/c" >> $GITHUB_ENV
+          echo "C_DIR_OUT: $C_DIR_OUT"
+      - name: Build Binary
+        run: |
+          make c C_DIR_OUT="${{ env.C_DIR_OUT }}"
+      - name: Validate Binaries
+        run: |
+          make ctest \
+            SKIP_BUILD=1 \
+            C_DIR_TEST_INCLUDE="${{ env.C_DIR_OUT }}/include" \
+            C_DIR_TEST_LIB="${{ env.C_DIR_OUT }}/lib"
+      - name: Archive Binaries
+        run: |
+          tar czf ${{ env.QISKIT_CEXT_DIR }}.tar.gz ${{ env.QISKIT_CEXT_DIR }}
+      - name: Release
+        run: |
+          TARFILE="${{ env.QISKIT_CEXT_DIR }}.tar.gz"
+
+          if [[ ! -f "$TARFILE" ]];
+          then
+          echo "File not found: $TARFILE"
+            exit 1
+          fi
+
+          gh release upload \
+            --repo ${{ github.repository }} \
+            ${{ github.ref_name }} \
+            ${{ env.QISKIT_CEXT_DIR }}.tar.gz
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  c-api-binary-macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install cbindgen
+        run: |
+          cargo install cbindgen
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+      - name: Set Environment Variables
+        run: |
+          QISKIT_CEXT_DIR="qiskit-c-${{ env.GITHUB_REF_NAME }}-macos-arm64"
+          echo "QISKIT_CEXT_DIR=${QISKIT_CEXT_DIR}" >> $GITHUB_ENV
+          echo "C_DIR_OUT=${QISKIT_CEXT_DIR}/dist/c" >> $GITHUB_ENV
+          echo "C_DIR_OUT: $C_DIR_OUT"
+      - name: Build Binary
+        run: |
+          make c C_DIR_OUT="${{ env.C_DIR_OUT }}"
+      - name: Validate Binaries
+        run: |
+          make ctest \
+            SKIP_BUILD=1 \
+            C_DIR_TEST_INCLUDE="${{ env.C_DIR_OUT }}/include" \
+            C_DIR_TEST_LIB="${{ env.C_DIR_OUT }}/lib" \
+      - name: Archive Binaries
+        run: |
+          # macos requires the dylib name to be changed separately
+          install_name_tool -id libqiskit.dylib ${{ env.C_DIR_OUT }}/lib/libqiskit.dylib
+
+          # macos requires that rpath is added separately (enables using `-Wl,-rpath` in place of setting DYLD_LIBRARY_PATH)
+          install_name_tool -add_rpath ${{ env.C_DIR_OUT }}/lib ${{ env.C_DIR_OUT }}/lib/libqiskit.dylib
+          tar czf ${{ env.QISKIT_CEXT_DIR }}.tar.gz ${{ env.QISKIT_CEXT_DIR }}
+      - name: Release
+        run: |
+          TARFILE="${{ env.QISKIT_CEXT_DIR }}.tar.gz"
+
+          if [[ ! -f "$TARFILE" ]];
+          then
+          echo "File not found: $TARFILE"
+            exit 1
+          fi
+
+          gh release upload \
+            --repo ${{ github.repository }} \
+            ${{ github.ref_name }} \
+            ${{ env.QISKIT_CEXT_DIR }}.tar.gz
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
