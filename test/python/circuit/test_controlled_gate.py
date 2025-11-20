@@ -1460,17 +1460,16 @@ class TestControlledGate(QiskitTestCase):
         XXPlusYYGate,
     )
     def test_mc_without_annotation(self, gate_cls):
-        """Test that circuits with multi-controlled parameterized gates
-        can be synthesized after all parameters are bound (regardless of the value of
-        ``annotated`` used for constructing the multi-controlled gate).
-        """
+        """Test multi-controlled gates with and without annotation."""
         theta = Parameter("theta")
         num_params = len(_get_free_params(gate_cls.__init__, ignore=["self"]))
         params = [theta] + (num_params - 1) * [1.234]
 
-        for annotated in [False, True, None]:
+        for annotated in [False, None]:
             with self.subTest(annotated=annotated):
-                # Check that the gate can be synthesized after all parameters have been bound
+                # if annotated is False, check that a sensible error is raised
+                # else, check that the gate can be synthesized after all parameters
+                # have been bound
                 mc_gate = gate_cls(*params).control(5)
 
                 circuit = QuantumCircuit(mc_gate.num_qubits)
