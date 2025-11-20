@@ -24,7 +24,6 @@ import struct
 import uuid
 import typing
 import warnings
-import pickle as _pickle
 
 import numpy as np
 
