@@ -588,7 +588,7 @@ pub extern "C" fn qk_target_entry_new_reset() -> *mut TargetEntry {
 /// # Example
 /// ```c
 ///     double crx_params[1] = {3.14};
-///     QkTargetEntry *entry = qk_target_entry_new_fixed(QkGate_CRX, crx_params, "rz_pi")";
+///     QkTargetEntry *entry = qk_target_entry_new_fixed(QkGate_CRX, crx_params, "crx_fixed")";
 /// ```
 ///
 /// # Safety
