@@ -846,7 +846,7 @@ pub fn vf2_layout_pass_exact(
     // the rest of the graph doesn't hold in the "exact" case, so we have to have VF2 match them all
     // at once.  For example, consider a heterogeneous target where only one qubit has `rx`
     // available, but VF2 matches a non-`rx`-using qubit onto that one during the first step,
-    // because it isn't aware there's a necessary` rx` gate in the free list.
+    // because it isn't aware there's a necessary `rx` gate in the free list.
     if interactions.uncoupled.len() > 1 {
         // ... but if there's too many uncoupled qubits, there's a combinatorial explosion in the
         // matching time, so we just bail out.  It would be nice to deal with this better.
