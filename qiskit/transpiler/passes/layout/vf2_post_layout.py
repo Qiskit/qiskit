@@ -128,7 +128,7 @@ class VF2PostLayout(AnalysisPass):
     def run(self, dag):
         """run the layout method"""
         if self.target is None:
-            raise TranspilerError("A target must be specified or a coupling map must be provided")
+            raise TranspilerError("A target must be specified")
         self.avg_error_map = self.property_set["vf2_avg_error_map"]
         config = VF2PassConfiguration.from_legacy_api(
             call_limit=self.call_limit,
