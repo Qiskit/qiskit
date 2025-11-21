@@ -328,7 +328,6 @@ def apply_basic_controlled_gate(circuit, gate, controls, target):
         raise CircuitError(f"Gate {gate} not in supported basis.")
 
 
-
 def _gate_to_circuit(operation):
     """Converts a gate instance to a QuantumCircuit"""
     if hasattr(operation, "definition") and operation.definition is not None:
