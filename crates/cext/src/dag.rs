@@ -706,6 +706,146 @@ pub unsafe extern "C" fn qk_dag_op_node_kind(dag: *const DAGCircuit, node: u32) 
     }
 }
 
+/// A struct for storing successors and predecessors information
+/// retrieved from `qk_dag_successors` and `qk_dag_predecessors`, respectively.
+#[repr(C)]
+pub struct CDagNeighbors {
+    /// Array of size `num_neighbors` of node indices.
+    neighbors: *const u32,
+    /// The length of the `neighbors` array.
+    num_neighbors: usize,
+}
+
+/// @ingroup QkDag
+/// Retrieve the successors of the specified node.
+///
+/// The successors array and its length are stored in a `QkDagNeighbors` struct through
+/// the `successors` output parameter. Each element in the array is a DAG node index.
+/// You must call the `qk_dag_neighbors_clear`
+/// function when done to free the memory allocated for the struct.
+///
+/// @param dag A pointer to the DAG.
+/// @param node The node to get the successors of.
+/// @param successors A pointer to a `QkDagNeighbors` instance where the successors information will be written.
+///
+/// # Example
+/// ```c
+/// QkDag *dag = qk_dag_new();
+/// QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
+/// qk_dag_add_quantum_register(dag, qr);
+///
+/// uint32_t node_cx = qk_dag_apply_gate(dag, QkGate_CX, (uint32_t[]){0, 1}, NULL, false);
+///
+/// QkDagNeighbors successors;
+/// qk_dag_successors(dag, node_cx, &successors);
+///
+/// qk_dag_neighbors_clear(&successors);
+/// qk_dag_free(dag);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_successors(
+    dag: *const DAGCircuit,
+    node: u32,
+    successors: *mut CDagNeighbors,
+) {
+    // SAFETY: Per documentation, the pointers are to valid data.
+    let dag = unsafe { const_ptr_as_ref(dag) };
+    let dag_neighbors = unsafe { mut_ptr_as_ref(successors) };
+
+    let successors: Vec<u32> = dag
+        .successors(NodeIndex::new(node as usize))
+        .map(|node| node.index() as u32)
+        .collect();
+    dag_neighbors.num_neighbors = successors.len();
+    dag_neighbors.neighbors = Box::into_raw(successors.into_boxed_slice()) as *const u32;
+}
+
+/// @ingroup QkDag
+/// Retrieve the predecessors of the specified node.
+///
+/// The predecessors array and its length are returned in a `QkDagNeighbors` struct through
+/// the `predecessors` output parameter. Each element in the array is a DAG node index.
+/// You must call the `qk_dag_neighbors_clear`
+/// function when done to free the memory allocated for the struct.
+///
+/// @param dag A pointer to the DAG.
+/// @param node The node to get the predecessors of.
+/// @param predecessors A pointer to a `QkDagNeighbors` instance where the predecessors information will be written.
+///
+/// # Example
+/// ```c
+/// QkDag *dag = qk_dag_new();
+/// QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
+/// qk_dag_add_quantum_register(dag, qr);
+///
+/// uint32_t node_cx = qk_dag_apply_gate(dag, QkGate_CX, (uint32_t[]){0, 1}, NULL, false);
+///
+/// QkDagNeighbors predecessors;
+/// qk_dag_predecessors(dag, node_cx, &predecessors);
+///
+/// qk_dag_neighbors_clear(&predecessors);
+/// qk_dag_free(dag);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_predecessors(
+    dag: *const DAGCircuit,
+    node: u32,
+    predecessors: *mut CDagNeighbors,
+) {
+    // SAFETY: Per documentation, the pointers are to valid data.
+    let dag = unsafe { const_ptr_as_ref(dag) };
+    let dag_neighbors = unsafe { mut_ptr_as_ref(predecessors) };
+
+    let predecessors: Vec<u32> = dag
+        .predecessors(NodeIndex::new(node as usize))
+        .map(|node| node.index() as u32)
+        .collect();
+    dag_neighbors.num_neighbors = predecessors.len();
+    dag_neighbors.neighbors = Box::into_raw(predecessors.into_boxed_slice()) as *const u32;
+}
+
+/// @ingroup QkDag
+/// Clear the fields of the input `QkDagNeighbors` struct.
+///
+/// The function deallocates the memory pointed to by the `neighbors` field and sets it to NULL.
+/// It also sets the `num_neighbors` field to 0.
+///
+/// @param neighbors A pointer to a `QkDagNeighbors` object.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``neighbors`` is not a valid, non-null pointer to a QkDagNeighbors
+/// object populated with either ``qk_dag_successors`` or ``qk_dag_predecessors``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_neighbors_clear(neighbors: *mut CDagNeighbors) {
+    // SAFETY: Per documentation, the pointer is to a valid data.
+    let neighbors = unsafe { mut_ptr_as_ref(neighbors) };
+
+    if neighbors.num_neighbors > 0 {
+        let slice = std::ptr::slice_from_raw_parts_mut(
+            neighbors.neighbors as *mut u32,
+            neighbors.num_neighbors,
+        );
+        unsafe {
+            let _ = Box::from_raw(slice);
+        }
+    }
+
+    neighbors.num_neighbors = 0;
+    neighbors.neighbors = std::ptr::null();
+}
+
 /// @ingroup QkDag
 /// Free the DAG.
 ///
