@@ -86,7 +86,7 @@ pub extern "C" fn qk_transpiler_default_options() -> TranspileOptions {
 /// for execution. This function runs the first stage of the transpiler,
 /// **init**, which runs abstract-circuit optimizations, and reduces multi-qubit
 /// operations into one- and two-qubit operations. You can refer to
-/// @verbatim embed:rst:inline ::ref:`transpiler-preset-stage-init` @endverbatim for more details.
+/// @verbatim embed:rst:inline :ref:`transpiler-preset-stage-init` @endverbatim for more details.
 ///
 /// This function should only be used with circuits constructed
 /// using Qiskit's C API. It makes assumptions on the circuit only using features exposed via C,
