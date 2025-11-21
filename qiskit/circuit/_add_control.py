@@ -223,31 +223,17 @@ def apply_basic_controlled_gate(circuit, gate, controls, target):
 
     elif gate.name == "rx":
         angle = gate.params[0]
-        circuit.mcrx(
-            angle,
-            controls,
-            target,
-            use_basis_gates=False,
-        )
+        circuit.mcrx(angle, controls, target, use_basis_gates=False)
 
     elif gate.name == "ry":
         angle = gate.params[0]
-        circuit.mcry(
-            angle,
-            controls,
-            target,
-            mode="noancilla",
-            use_basis_gates=False,
-        )
+        circuit.mcry(angle, controls, target, mode="noancilla", use_basis_gates=False)
+
 
     elif gate.name == "rz":
         angle = gate.params[0]
-        circuit.mcrz(
-            angle,
-            controls,
-            target,
-            use_basis_gates=False,
-        )
+        circuit.mcrz(angle, controls, target, use_basis_gates=False)
+
 
 
     elif gate.name == "p":
