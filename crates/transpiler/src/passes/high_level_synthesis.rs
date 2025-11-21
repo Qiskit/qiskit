@@ -545,7 +545,7 @@ fn run_on_circuitdata(
         .map(|(i, j)| (*j, Qubit::new(i)))
         .collect();
 
-    for (index, inst) in input_circuit.iter().enumerate() {
+    for inst in input_circuit.iter() {
         // op's qubits as viewed globally
         let op_qubits = input_circuit
             .get_qargs(inst.qubits)
@@ -572,7 +572,7 @@ fn run_on_circuitdata(
 
         // Check if synthesis for this operation can be skipped
         if definitely_skip_op(py, data, &inst.op, &op_qubits) {
-            if let Some(cf) = input_circuit.try_view_control_flow(index) {
+            if let Some(cf) = input_circuit.try_view_control_flow(inst) {
                 let blocks: Vec<_> = Python::attach(|py| {
                     cf.blocks()
                         .into_iter()
@@ -596,7 +596,7 @@ fn run_on_circuitdata(
         // that different subcircuits may choose to use different auxiliary global qubits, and to
         // avoid complications related to tracking qubit status for while- loops.
         // In the future, this handling can potentially be improved.
-        if let Some(control_flow) = input_circuit.try_view_control_flow(index) {
+        if let Some(control_flow) = input_circuit.try_view_control_flow(inst) {
             let quantum_circuit_cls = QUANTUM_CIRCUIT.get_bound(py);
 
             // old_blocks_py keeps the original QuantumCircuit's appearing within control-flow ops

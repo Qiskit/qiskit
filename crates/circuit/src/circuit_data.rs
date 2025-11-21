@@ -855,7 +855,7 @@ impl CircuitData {
     #[pyo3(signature = (func))]
     pub fn foreach_op(&self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
         for inst in self.data.iter() {
-            func.call1((self.unpack_py_op_inner(py, inst)?,))?;
+            func.call1((self.unpack_py_op(py, inst)?,))?;
         }
         Ok(())
     }
@@ -869,7 +869,7 @@ impl CircuitData {
     #[pyo3(signature = (func))]
     pub fn foreach_op_indexed(&self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
         for (index, inst) in self.data.iter().enumerate() {
-            func.call1((index, self.unpack_py_op_inner(py, inst)?))?;
+            func.call1((index, self.unpack_py_op(py, inst)?))?;
         }
         Ok(())
     }
@@ -889,10 +889,11 @@ impl CircuitData {
     #[pyo3(signature = (func))]
     pub fn map_nonstandard_ops(&mut self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
         for index in 0..self.data.len() {
-            if self.data[index].op.try_standard_gate().is_some() {
+            let instr = &self.data[index];
+            if instr.op.try_standard_gate().is_some() {
                 continue;
             }
-            let py_op = func.call1((self.unpack_py_op(py, index)?,))?;
+            let py_op = func.call1((self.unpack_py_op(py, instr)?,))?;
             let result = py_op.extract::<OperationFromPython>()?;
             let params = match result.params {
                 Some(Parameters::Blocks(circuits)) => {
@@ -1825,14 +1826,8 @@ impl CircuitData {
     /// disconnected from the circuit; updates to its parameters, label, duration, unit
     /// and condition will not be propagated back.
     ///
-    /// Panics if `node` does not refer to an operation.
-    #[inline]
-    pub fn unpack_py_op(&self, py: Python, node: usize) -> PyResult<Py<PyAny>> {
-        let instr = &self.data[node];
-        self.unpack_py_op_inner(py, instr)
-    }
-
-    fn unpack_py_op_inner(&self, py: Python, instr: &PackedInstruction) -> PyResult<Py<PyAny>> {
+    /// The provided `instr` MUST belong to this circuit.
+    fn unpack_py_op(&self, py: Python, instr: &PackedInstruction) -> PyResult<Py<PyAny>> {
         // `OnceLock::get_or_init` and the non-stabilised `get_or_try_init`, which would otherwise
         // be nice here are both non-reentrant.  This is a problem if the init yields control to the
         // Python interpreter as this one does, since that can allow CPython to freeze the thread
@@ -1882,9 +1877,11 @@ impl CircuitData {
 
     /// Gets an immutable view of a control flow operation.
     ///
-    /// Panics if `node` does not refer to an operation.
-    pub fn try_view_control_flow(&self, index: usize) -> Option<ControlFlowView<Py<PyAny>>> {
-        let instr = &self.data[index];
+    /// The provided `instr` MUST belong to this circuit.
+    pub fn try_view_control_flow<'a>(
+        &'a self,
+        instr: &'a PackedInstruction,
+    ) -> Option<ControlFlowView<'a, Py<PyAny>>> {
         let OperationRef::ControlFlow(control) = instr.op.view() else {
             return None;
         };
@@ -2375,7 +2372,7 @@ impl CircuitData {
             }
             Parameters::Blocks(_) => {
                 let blocks: Vec<_> = self
-                    .try_view_control_flow(instruction_index)
+                    .try_view_control_flow(instr)
                     .unwrap()
                     .blocks()
                     .into_iter()
@@ -2416,7 +2413,7 @@ impl CircuitData {
                         // All the other control flow operations are simple, and their "blocks"
                         // are exactly their parameters, in the right order.
                         let blocks: Vec<_> = self
-                            .try_view_control_flow(instruction_index)
+                            .try_view_control_flow(instr)
                             .unwrap()
                             .blocks()
                             .into_iter()
@@ -2470,7 +2467,7 @@ impl CircuitData {
             }
             Parameters::Blocks(_) => {
                 let blocks: Vec<_> = self
-                    .try_view_control_flow(instruction_index)
+                    .try_view_control_flow(instr)
                     .unwrap()
                     .blocks()
                     .into_iter()
@@ -2511,7 +2508,7 @@ impl CircuitData {
                         // All the other control flow operations are simple, and their "blocks"
                         // are exactly their parameters, in the right order.
                         let blocks: Vec<_> = self
-                            .try_view_control_flow(instruction_index)
+                            .try_view_control_flow(instr)
                             .unwrap()
                             .blocks()
                             .into_iter()
@@ -2964,7 +2961,9 @@ impl CircuitData {
                                 let validate_parameter_attr = intern!(py, "validate_parameter");
                                 let assign_parameters_attr = intern!(py, "assign_parameters");
 
-                                let op = self.unpack_py_op(py, instruction)?.into_bound(py);
+                                let op = self
+                                    .unpack_py_op(py, &self.data[instruction])?
+                                    .into_bound(py);
                                 let previous = &mut self.data[instruction];
                                 // All "user" operations (e.g. PyOperation) use Parameters::Param.
                                 let previous_param = &previous.params_view()[parameter];
@@ -3076,7 +3075,7 @@ impl CircuitData {
                             // they might be an `AnnotatedOperation`, which is one of our special built-ins.
                             // This should be handled more completely in the user-customisation interface by a
                             // delegating method, but that's not the data model we currently have.
-                            let py_op = self.unpack_py_op_inner(py, instruction)?;
+                            let py_op = self.unpack_py_op(py, instruction)?;
                             let py_op = py_op.bind(py);
                             if !py_op.is_instance(ANNOTATED_OPERATION.get_bound(py))? {
                                 continue;
@@ -3085,7 +3084,7 @@ impl CircuitData {
                                 .getattr(intern!(py, "base_op"))?
                                 .getattr(_definition_attr)?
                         } else {
-                            self.unpack_py_op_inner(py, instruction)?
+                            self.unpack_py_op(py, instruction)?
                                 .bind(py)
                                 .getattr(_definition_attr)?
                         };
