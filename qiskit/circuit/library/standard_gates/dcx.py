@@ -73,7 +73,7 @@ class DCXGate(SingletonGate):
         #      └───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.DCX._get_definition(self.params), legacy_qubits=True, name=self.name
+            StandardGate.DCX._get_definition(self.params), legacy_qubits=True
         )
 
     def __eq__(self, other):
