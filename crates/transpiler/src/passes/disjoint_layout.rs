@@ -29,6 +29,7 @@ use uuid::Uuid;
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::converters::circuit_to_dag;
 use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::error::DAGCircuitError;
 use qiskit_circuit::imports::ImportOnceCell;
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardInstruction};
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -213,12 +214,34 @@ pub fn distribute_components(dag: &mut DAGCircuit, target: &Target) -> PyResult<
                 for creg in dag.cregs() {
                     out_dag.add_creg(creg.clone())?;
                 }
-                out_dag.compose(
-                    dag,
-                    Some(dag.qubits().objects()),
-                    Some(dag.clbits().objects()),
-                    false,
-                )?;
+                // Convert ShareableQubit/ShareableClbit to Qubit/Clbit indices
+                let qubit_indices: Vec<Qubit> = dag
+                    .qubits()
+                    .objects()
+                    .iter()
+                    .map(|shareable_qubit| {
+                        out_dag.qubits().find(shareable_qubit).ok_or_else(|| {
+                            DAGCircuitError::new_err(format!(
+                                "Qubit {:?} not found in out_dag",
+                                shareable_qubit
+                            ))
+                        })
+                    })
+                    .collect::<PyResult<Vec<_>>>()?;
+                let clbit_indices: Vec<Clbit> = dag
+                    .clbits()
+                    .objects()
+                    .iter()
+                    .map(|shareable_clbit| {
+                        out_dag.clbits().find(shareable_clbit).ok_or_else(|| {
+                            DAGCircuitError::new_err(format!(
+                                "Clbit {:?} not found in out_dag",
+                                shareable_clbit
+                            ))
+                        })
+                    })
+                    .collect::<PyResult<Vec<_>>>()?;
+                out_dag.compose(dag, Some(&qubit_indices), Some(&clbit_indices), false)?;
             }
             let subgraph = subgraph(&coupling_map, &cmap_components[cmap_index]);
             Ok((out_dag, subgraph))
