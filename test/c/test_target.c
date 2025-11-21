@@ -303,6 +303,7 @@ static int test_target_entry_construction(void) {
     if (error_result != QkExitCode_TargetQargMismatch) {
         printf("The operation did not fail as expected for invalid qargs.");
     }
+
     // Set name for the entry
     QkExitCode set_name_error = qk_target_entry_set_name(property_map, "cx_gate");
     if (set_name_error != QkExitCode_Success) {

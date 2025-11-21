@@ -743,6 +743,8 @@ pub unsafe extern "C" fn qk_target_entry_add_property(
 /// @param entry The pointer to the entry object.
 /// @param name The name to be set for the target entry.
 ///
+/// @return ``QkExitCode`` specifying if the operation was successful.
+///
 /// # Example
 /// ```c
 ///     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
