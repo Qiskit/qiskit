@@ -14,12 +14,13 @@ use num_complex::ComplexFloat;
 use pyo3::prelude::*;
 use rayon::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
+use rustworkx_core::petgraph::visit::NodeIndexable;
 
 use crate::gate_metrics::rotation_trace_and_dim;
 use crate::target::Target;
+use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::getenv_use_multiple_threads;
-use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::operations::Param;
@@ -154,11 +155,11 @@ pub fn run_remove_identity_equiv(
     };
     let run_in_parallel = getenv_use_multiple_threads();
     let remove_list: Vec<(NodeIndex, f64)> = if dag.num_ops() >= 5e4 as usize && run_in_parallel {
-        let node_indices = dag.dag().node_indices().collect::<Vec<_>>();
-        node_indices
+        (0..dag.dag().node_bound())
             .into_par_iter()
-            .filter_map(|index| {
-                if let NodeType::Operation(ref inst) = dag.dag()[index] {
+            .filter_map(|index_val| {
+                let index = NodeIndex::new(index_val);
+                if let Some(NodeType::Operation(inst)) = dag.dag().node_weight(index) {
                     process_node(index, inst)
                 } else {
                     None
