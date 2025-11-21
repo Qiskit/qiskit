@@ -125,7 +125,7 @@ class Isometry(Instruction):
         gate = self.inv_gate()
         gate = gate.inverse()
         q = QuantumRegister(self.num_qubits, "q")
-        iso_circuit = QuantumCircuit(q, name="isometry")
+        iso_circuit = QuantumCircuit(q)
         iso_circuit.append(gate, q[:])
         self.definition = iso_circuit
 
