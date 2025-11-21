@@ -74,7 +74,10 @@ class TestSolovayKitaev(QiskitTestCase):
     def setUp(self):
         super().setUp()
 
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            r".* is deprecated as of Qiskit 2\.3\. .* Use the SolovayKitaevDecomposition class",
+        ):
             self.basic_approx = generate_basic_approximations([HGate(), TGate(), TdgGate()], 3)
         self.default_sk = SolovayKitaev()
 
@@ -154,8 +157,16 @@ class TestSolovayKitaev(QiskitTestCase):
         circuit = QuantumCircuit(1)
         circuit.rx(0.8, 0)
 
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            r".* is deprecated as of Qiskit 2\.3\. .* Use the SolovayKitaevDecomposition class",
+        ):
             basic_approx = generate_basic_approximations(["h", "t", "s"], 3)
+
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            r"basic_approximations in the binary format produced by .* deprecated since Qiskit 2.3 ",
+        ):
             sk = SolovayKitaev(3, basic_approx)
 
         dag = circuit_to_dag(circuit)
@@ -211,12 +222,18 @@ class TestSolovayKitaev(QiskitTestCase):
 
         depth = 4
         basis_gates = ["h", "t", "tdg", "s", "sdg", "z"]
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            r".* is deprecated as of Qiskit 2\.3\. .* Use the SolovayKitaevDecomposition class",
+        ):
             gate_approx_library = generate_basic_approximations(
                 basis_gates=basis_gates, depth=depth
             )
 
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            r"basic_approximations in the binary format produced by .* deprecated since Qiskit 2.3 ",
+        ):
             skd = SolovayKitaev(recursion_degree=2, basic_approximations=gate_approx_library)
         discretized = skd(circuit)
 
@@ -234,7 +251,10 @@ class TestSolovayKitaev(QiskitTestCase):
             fullpath = os.path.join(tmp_dir, filename)
 
             # dump approximations to file
-            with self.assertWarns(DeprecationWarning):
+            with self.assertWarnsRegex(
+                DeprecationWarning,
+                r".* is deprecated as of Qiskit 2\.3\. .* Use the SolovayKitaevDecomposition class",
+            ):
                 gate_approx_library = generate_basic_approximations(
                     basis_gates=["h", "s", "sdg"], depth=3, filename=fullpath
                 )
@@ -244,7 +264,10 @@ class TestSolovayKitaev(QiskitTestCase):
             circuit.rx(0.8, 0)
 
             # Run SK pass using gate_approx_library
-            with self.assertWarns(DeprecationWarning):
+            with self.assertWarnsRegex(
+                DeprecationWarning,
+                r"basic_approximations in the binary format produced by .* deprecated since Qiskit 2.3 ",
+            ):
                 reference = SolovayKitaev(basic_approximations=gate_approx_library)(circuit)
 
             # Run SK pass using stored basis_approximations
@@ -284,11 +307,17 @@ class TestSolovayKitaev(QiskitTestCase):
             circuit.rx(0.8, 0)
 
             # Run SK pass using gate_approx_library
-            with self.assertWarns(DeprecationWarning):
+            with self.assertWarnsRegex(
+                DeprecationWarning,
+                r"basic_approximations in the binary format produced by .* deprecated since Qiskit 2.3 ",
+            ):
                 reference = SolovayKitaev(basic_approximations=approximations)(circuit)
 
             # Run SK pass using stored basis_approximations
-            with self.assertWarns(DeprecationWarning):
+            with self.assertWarnsRegex(
+                DeprecationWarning,
+                r"basic_approximations in the binary format produced by .* deprecated since Qiskit 2.3 ",
+            ):
                 discretized = SolovayKitaev(basic_approximations=fullpath)(circuit)
 
         # Check that both flows produce the same result
@@ -377,7 +406,10 @@ class TestSolovayKitaev(QiskitTestCase):
         Regression test of Qiskit/qiskit-terra#9585.
         """
         basis = ["i", "x", "y", "z", "h", "t", "tdg", "s", "sdg", "sx", "sxdg"]
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            r".* is deprecated as of Qiskit 2\.3\. .* Use the SolovayKitaevDecomposition class",
+        ):
             approx = generate_basic_approximations(basis, depth=2)
 
         # This mainly checks that there are no errors in the generation (like

@@ -149,7 +149,8 @@ class SolovayKitaevDecomposition:
         warnings.warn(
             "It is suggested to pass basic_approximations in the binary format produced "
             "by SolovayKitaevDecomposition.save_basic_approximations, which is more "
-            "performant than other formats.",
+            "performant than other formats. Passing a .npy format is deprecated since Qiskit 2.3 "
+            "and support will be removed no sooner than 3 months after the release date.",
             category=DeprecationWarning,
         )
 
@@ -257,7 +258,7 @@ class SolovayKitaevDecomposition:
         return circuit
 
     @deprecate_func(
-        since="2.1",
+        since="2.3",
         additional_msg="Use query_basic_approximation instead, which takes a Gate or matrix "
         "as input and returns a QuantumCircuit object.",
     )
