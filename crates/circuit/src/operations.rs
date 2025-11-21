@@ -12,110 +12,220 @@
 
 use approx::relative_eq;
 use std::f64::consts::PI;
+use std::sync::Arc;
 use std::{fmt, vec};
 
 use crate::circuit_data::CircuitData;
-use crate::imports::{get_std_gate_class, BARRIER, DELAY, MEASURE, RESET};
-use crate::imports::{DEEPCOPY, PARAMETER_EXPRESSION, QUANTUM_CIRCUIT, UNITARY_GATE};
-use crate::{gate_matrix, impl_intopyobject_for_copy_pyclass, Qubit};
+use crate::imports::{
+    BARRIER, DELAY, MEASURE, PAULI_PRODUCT_MEASUREMENT, RESET, get_std_gate_class,
+};
+use crate::imports::{DEEPCOPY, QUANTUM_CIRCUIT, UNITARY_GATE};
+use crate::parameter::parameter_expression::{
+    ParameterExpression, PyParameter, PyParameterExpression,
+};
+use crate::parameter::symbol_expr::{Symbol, Value};
+use crate::{Qubit, gate_matrix, impl_intopyobject_for_copy_pyclass};
 
 use nalgebra::{Matrix2, Matrix4};
-use ndarray::{array, aview2, Array2, ArrayView2, Dim, ShapeBuilder};
+use ndarray::{Array2, ArrayView2, Dim, ShapeBuilder, array, aview2};
 use num_complex::Complex64;
-use smallvec::{smallvec, SmallVec};
+use smallvec::{SmallVec, smallvec};
 
-use numpy::IntoPyArray;
-use numpy::PyArray2;
-use numpy::PyReadonlyArray2;
-use numpy::ToPyArray;
+use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2, ToPyArray};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyIterator, PyList, PyTuple};
-use pyo3::{intern, IntoPyObjectExt, Python};
+use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyList, PyTuple};
+use pyo3::{IntoPyObjectExt, Python, intern};
 
-#[derive(Clone, Debug, IntoPyObject, IntoPyObjectRef)]
+#[derive(Clone, Debug)]
 pub enum Param {
-    ParameterExpression(PyObject),
+    ParameterExpression(Arc<ParameterExpression>),
     Float(f64),
-    Obj(PyObject),
+    Obj(Py<PyAny>),
 }
 
-impl Param {
-    pub fn eq(&self, py: Python, other: &Param) -> PyResult<bool> {
-        match [self, other] {
-            [Self::Float(a), Self::Float(b)] => Ok(a == b),
-            [Self::Float(a), Self::ParameterExpression(b)] => b.bind(py).eq(a),
-            [Self::ParameterExpression(a), Self::Float(b)] => a.bind(py).eq(b),
-            [Self::ParameterExpression(a), Self::ParameterExpression(b)] => a.bind(py).eq(b),
-            [Self::Obj(_), Self::Float(_)] => Ok(false),
-            [Self::Float(_), Self::Obj(_)] => Ok(false),
-            [Self::Obj(a), Self::ParameterExpression(b)] => a.bind(py).eq(b),
-            [Self::Obj(a), Self::Obj(b)] => a.bind(py).eq(b),
-            [Self::ParameterExpression(a), Self::Obj(b)] => a.bind(py).eq(b),
-        }
-    }
+impl<'py> IntoPyObject<'py> for &Param {
+    type Target = PyAny; // target type is PyAny to cover f64, Py<PyAny> and PyParameterExpression
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
 
-    pub fn is_close(&self, py: Python, other: &Param, max_relative: f64) -> PyResult<bool> {
-        match [self, other] {
-            [Self::Float(a), Self::Float(b)] => Ok(relative_eq!(a, b, max_relative = max_relative)),
-            _ => self.eq(py, other),
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        match self {
+            Param::Float(value) => value.into_bound_py_any(py),
+            Param::Obj(py_obj) => py_obj.into_bound_py_any(py),
+            Param::ParameterExpression(expr) => {
+                let py_expr = PyParameterExpression::from(expr.as_ref().clone());
+                py_expr.coerce_into_py(py)?.into_bound_py_any(py)
+            }
         }
     }
 }
 
-impl<'py> FromPyObject<'py> for Param {
-    fn extract_bound(b: &Bound<'py, PyAny>) -> Result<Self, PyErr> {
-        Ok(if b.is_instance(PARAMETER_EXPRESSION.get_bound(b.py()))? {
-            Param::ParameterExpression(b.clone().unbind())
+impl<'py> IntoPyObject<'py> for Param {
+    type Target = PyAny;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        (&self).into_pyobject(py)
+    }
+}
+
+impl<'a, 'py> FromPyObject<'a, 'py> for Param {
+    type Error = ::std::convert::Infallible;
+
+    fn extract(b: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+        Ok(if let Ok(py_expr) = b.extract::<PyParameterExpression>() {
+            Param::ParameterExpression(Arc::new(py_expr.inner))
         } else if let Ok(val) = b.extract::<f64>() {
             Param::Float(val)
         } else {
-            Param::Obj(b.clone().unbind())
+            Param::Obj(b.to_owned().unbind())
         })
     }
 }
 
 impl Param {
-    /// Get an iterator over any Python-space `Parameter` instances tracked within this `Param`.
-    pub fn iter_parameters<'py>(&self, py: Python<'py>) -> PyResult<ParamParameterIter<'py>> {
-        let parameters_attr = intern!(py, "parameters");
+    pub fn eq(&self, other: &Param) -> PyResult<bool> {
+        match [self, other] {
+            [Self::Float(a), Self::Float(b)] => Ok(a == b),
+            [Self::Float(a), Self::ParameterExpression(b)] => {
+                Ok(&ParameterExpression::from_f64(*a) == b.as_ref())
+            }
+            [Self::ParameterExpression(a), Self::Float(b)] => {
+                Ok(a.as_ref() == &ParameterExpression::from_f64(*b))
+            }
+            [Self::ParameterExpression(a), Self::ParameterExpression(b)] => Ok(a == b),
+            [Self::Obj(_), Self::Float(_)] => Ok(false),
+            [Self::Float(_), Self::Obj(_)] => Ok(false),
+            [Self::Obj(a), Self::ParameterExpression(b)] => {
+                Python::attach(|py| a.bind(py).eq(b.as_ref().clone()))
+            }
+            [Self::Obj(a), Self::Obj(b)] => Python::attach(|py| a.bind(py).eq(b)),
+            [Self::ParameterExpression(a), Self::Obj(b)] => {
+                Python::attach(|py| a.as_ref().clone().into_bound_py_any(py)?.eq(b))
+            }
+        }
+    }
+
+    pub fn is_close(&self, other: &Param, max_relative: f64) -> PyResult<bool> {
+        match [self, other] {
+            [Self::Float(a), Self::Float(b)] => Ok(relative_eq!(a, b, max_relative = max_relative)),
+            _ => self.eq(other),
+        }
+    }
+
+    // TODO: Replace `Box<dyn Iterator>` with a custom iterator struct. The
+    // Box<dyn Iterator> is an anti-pattern which shouldn't really be needed.
+    /// Get an iterator over any `Symbol` instances tracked within this `Param`.
+    pub fn iter_parameters(&self) -> PyResult<Box<dyn Iterator<Item = Symbol> + '_>> {
         match self {
-            Param::Float(_) => Ok(ParamParameterIter(None)),
-            Param::ParameterExpression(expr) => Ok(ParamParameterIter(Some(
-                expr.bind(py).getattr(parameters_attr)?.try_iter()?,
-            ))),
-            Param::Obj(obj) => {
+            Param::Float(_) => Ok(Box::new(::std::iter::empty())),
+            Param::ParameterExpression(expr) => Ok(Box::new(expr.iter_symbols().cloned())),
+            Param::Obj(obj) => Python::attach(|py| -> PyResult<Box<dyn Iterator<Item = Symbol>>> {
+                let parameters_attr = intern!(py, "parameters");
                 let obj = obj.bind(py);
                 if obj.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
-                    Ok(ParamParameterIter(Some(
-                        obj.getattr(parameters_attr)?.try_iter()?,
-                    )))
+                    let collected: Vec<Symbol> = obj
+                        .getattr(parameters_attr)?
+                        .try_iter()?
+                        .map(|elem| {
+                            let elem = elem?;
+                            let py_param_bound = elem.cast::<PyParameter>()?;
+                            let py_param = py_param_bound.borrow();
+                            let symbol = py_param.symbol();
+                            Ok(symbol.clone())
+                        })
+                        .collect::<PyResult<_>>()?;
+                    Ok(Box::new(collected.into_iter()))
                 } else {
-                    Ok(ParamParameterIter(None))
+                    Ok(Box::new(::std::iter::empty()))
                 }
-            }
+            }),
+        }
+    }
+
+    /// Construct a [Param] from a [ParameterExpression]. Allows type coercion.
+    ///
+    /// # Arguments
+    ///
+    /// * expr - The expression to construct the [Param] from.
+    /// * coerce_to_float - If `true`, coerce integers and complex (with 0 imaginary part) types to
+    ///   [Param::Float]. If `false`, only float types are [Param::Float] and integers and
+    ///   complex numbers are represented as [Param::ParameterExpression].
+    ///
+    /// # Returns
+    ///
+    /// - `Param` - The [Param] object.
+    pub fn from_expr(expr: ParameterExpression, coerce_to_float: bool) -> PyResult<Self> {
+        match expr.try_to_value(true) {
+            Ok(value) => match value {
+                Value::Int(i) => {
+                    if coerce_to_float {
+                        Ok(Self::Float(i as f64)) // coerce integer to float
+                    } else {
+                        // Int is not a param type and only comes from Python so dump it in
+                        // there until we support DT unit delay from C
+                        Python::attach(|py| Ok(Self::Obj(i.into_py_any(py)?)))
+                    }
+                }
+                Value::Real(f) => Ok(Self::Float(f)),
+                Value::Complex(c) => {
+                    if coerce_to_float && value.is_real() {
+                        Ok(Self::Float(c.re))
+                    } else {
+                        // Complex numbers are only defined in Python custom
+                        // objects and aren't valid gate parameters for
+                        // anything else so return it as an object
+                        Python::attach(|py| Ok(Self::Obj(c.into_py_any(py)?)))
+                    }
+                }
+            },
+            Err(_) => Ok(Self::ParameterExpression(Arc::new(expr))),
         }
     }
 
     /// Extract from a Python object without numeric coercion to float.  The default conversion will
     /// coerce integers into floats, but in things like `assign_parameters`, this is not always
     /// desirable.
-    pub fn extract_no_coerce(ob: &Bound<PyAny>) -> PyResult<Self> {
+    pub fn extract_no_coerce(ob: Borrowed<PyAny>) -> PyResult<Self> {
         Ok(if ob.is_instance_of::<PyFloat>() {
             Param::Float(ob.extract()?)
-        } else if ob.is_instance(PARAMETER_EXPRESSION.get_bound(ob.py()))? {
-            Param::ParameterExpression(ob.clone().unbind())
+        } else if let Ok(py_expr) = PyParameterExpression::extract_coerce(ob) {
+            // don't get confused by the `coerce` name here -- we promise to not coerce to
+            // Param::Float. But if it's an int or complex we need to store it as an Obj.
+            if Some(true) == py_expr.inner.is_int() || Some(true) == py_expr.inner.is_complex() {
+                Param::Obj(ob.to_owned().unbind())
+            } else {
+                Param::ParameterExpression(Arc::new(py_expr.inner))
+            }
         } else {
-            Param::Obj(ob.clone().unbind())
+            Param::Obj(ob.to_owned().unbind())
         })
     }
 
     /// Clones the [Param] object safely by reference count or copying.
     pub fn clone_ref(&self, py: Python) -> Self {
         match self {
-            Param::ParameterExpression(exp) => Param::ParameterExpression(exp.clone_ref(py)),
+            Param::ParameterExpression(exp) => Param::ParameterExpression(exp.clone()),
             Param::Float(float) => Param::Float(*float),
             Param::Obj(obj) => Param::Obj(obj.clone_ref(py)),
+        }
+    }
+
+    pub fn py_deepcopy<'py>(
+        &self,
+        py: Python<'py>,
+        memo: Option<&Bound<'py, PyDict>>,
+    ) -> PyResult<Self> {
+        match self {
+            Param::Float(f) => Ok(Param::Float(*f)),
+            _ => DEEPCOPY
+                .get_bound(py)
+                .call1((self.clone(), memo))?
+                .extract()
+                // The extraction is infallible.
+                .map_err(|x| match x {}),
         }
     }
 }
@@ -136,16 +246,6 @@ impl From<f64> for Param {
     }
 }
 
-/// Struct to provide iteration over Python-space `Parameter` instances within a `Param`.
-pub struct ParamParameterIter<'py>(Option<Bound<'py, PyIterator>>);
-impl<'py> Iterator for ParamParameterIter<'py> {
-    type Item = PyResult<Bound<'py, PyAny>>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.0.as_mut().and_then(|iter| iter.next())
-    }
-}
-
 /// Trait for generic circuit operations these define the common attributes
 /// needed for something to be addable to the circuit struct
 pub trait Operation {
@@ -157,7 +257,6 @@ pub trait Operation {
     fn blocks(&self) -> Vec<CircuitData>;
     fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>>;
     fn definition(&self, params: &[Param]) -> Option<CircuitData>;
-    fn standard_gate(&self) -> Option<StandardGate>;
     fn directive(&self) -> bool;
     fn matrix_as_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]>;
     fn matrix_as_nalgebra_1q(&self, params: &[Param]) -> Option<Matrix2<Complex64>> {
@@ -179,6 +278,7 @@ pub enum OperationRef<'a> {
     Instruction(&'a PyInstruction),
     Operation(&'a PyOperation),
     Unitary(&'a UnitaryGate),
+    PauliProductMeasurement(&'a PauliProductMeasurement),
 }
 
 impl Operation for OperationRef<'_> {
@@ -191,6 +291,7 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.name(),
             Self::Operation(operation) => operation.name(),
             Self::Unitary(unitary) => unitary.name(),
+            Self::PauliProductMeasurement(ppm) => ppm.name(),
         }
     }
     #[inline]
@@ -202,6 +303,7 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.num_qubits(),
             Self::Operation(operation) => operation.num_qubits(),
             Self::Unitary(unitary) => unitary.num_qubits(),
+            Self::PauliProductMeasurement(ppm) => ppm.num_qubits(),
         }
     }
     #[inline]
@@ -213,6 +315,7 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.num_clbits(),
             Self::Operation(operation) => operation.num_clbits(),
             Self::Unitary(unitary) => unitary.num_clbits(),
+            Self::PauliProductMeasurement(ppm) => ppm.num_clbits(),
         }
     }
     #[inline]
@@ -224,6 +327,7 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.num_params(),
             Self::Operation(operation) => operation.num_params(),
             Self::Unitary(unitary) => unitary.num_params(),
+            Self::PauliProductMeasurement(ppm) => ppm.num_params(),
         }
     }
     #[inline]
@@ -235,6 +339,7 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.control_flow(),
             Self::Operation(operation) => operation.control_flow(),
             Self::Unitary(unitary) => unitary.control_flow(),
+            Self::PauliProductMeasurement(ppm) => ppm.control_flow(),
         }
     }
     #[inline]
@@ -246,6 +351,7 @@ impl Operation for OperationRef<'_> {
             OperationRef::Instruction(instruction) => instruction.blocks(),
             OperationRef::Operation(operation) => operation.blocks(),
             Self::Unitary(unitary) => unitary.blocks(),
+            Self::PauliProductMeasurement(ppm) => ppm.blocks(),
         }
     }
     #[inline]
@@ -257,6 +363,7 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.matrix(params),
             Self::Operation(operation) => operation.matrix(params),
             Self::Unitary(unitary) => unitary.matrix(params),
+            Self::PauliProductMeasurement(ppm) => ppm.matrix(params),
         }
     }
     #[inline]
@@ -268,17 +375,7 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.definition(params),
             Self::Operation(operation) => operation.definition(params),
             Self::Unitary(unitary) => unitary.definition(params),
-        }
-    }
-    #[inline]
-    fn standard_gate(&self) -> Option<StandardGate> {
-        match self {
-            Self::StandardGate(standard) => standard.standard_gate(),
-            Self::StandardInstruction(instruction) => instruction.standard_gate(),
-            Self::Gate(gate) => gate.standard_gate(),
-            Self::Instruction(instruction) => instruction.standard_gate(),
-            Self::Operation(operation) => operation.standard_gate(),
-            Self::Unitary(unitary) => unitary.standard_gate(),
+            Self::PauliProductMeasurement(ppm) => ppm.definition(params),
         }
     }
     #[inline]
@@ -290,6 +387,7 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.directive(),
             Self::Operation(operation) => operation.directive(),
             Self::Unitary(unitary) => unitary.directive(),
+            Self::PauliProductMeasurement(ppm) => ppm.directive(),
         }
     }
 
@@ -303,6 +401,7 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.matrix_as_static_1q(params),
             Self::Operation(operation) => operation.matrix_as_static_1q(params),
             Self::Unitary(unitary) => unitary.matrix_as_static_1q(params),
+            Self::PauliProductMeasurement(ppm) => ppm.matrix_as_static_1q(params),
         }
     }
 }
@@ -346,8 +445,10 @@ impl fmt::Display for DelayUnit {
     }
 }
 
-impl<'py> FromPyObject<'py> for DelayUnit {
-    fn extract_bound(b: &Bound<'py, PyAny>) -> Result<Self, PyErr> {
+impl<'a, 'py> FromPyObject<'a, 'py> for DelayUnit {
+    type Error = PyErr;
+
+    fn extract(b: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let str: String = b.extract()?;
         Ok(match str.as_str() {
             "ns" => DelayUnit::NS,
@@ -450,10 +551,6 @@ impl Operation for StandardInstruction {
     }
 
     fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
-        None
-    }
-
-    fn standard_gate(&self) -> Option<StandardGate> {
         None
     }
 
@@ -682,73 +779,53 @@ impl StandardGate {
 
     pub fn inverse(&self, params: &[Param]) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
         match self {
-            Self::GlobalPhase => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
-                (
-                    Self::GlobalPhase,
-                    smallvec![multiply_param(&params[0], -1.0, py)],
-                )
-            })),
+            Self::GlobalPhase => Some((
+                Self::GlobalPhase,
+                smallvec![multiply_param(&params[0], -1.0)],
+            )),
             Self::H => Some((Self::H, smallvec![])),
             Self::I => Some((Self::I, smallvec![])),
             Self::X => Some((Self::X, smallvec![])),
             Self::Y => Some((Self::Y, smallvec![])),
             Self::Z => Some((Self::Z, smallvec![])),
-            Self::Phase => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
-                (Self::Phase, smallvec![multiply_param(&params[0], -1.0, py)])
-            })),
-            Self::R => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
-                (
-                    Self::R,
-                    smallvec![multiply_param(&params[0], -1.0, py), params[1].clone()],
-                )
-            })),
-            Self::RX => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
-                (Self::RX, smallvec![multiply_param(&params[0], -1.0, py)])
-            })),
-            Self::RY => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
-                (Self::RY, smallvec![multiply_param(&params[0], -1.0, py)])
-            })),
-            Self::RZ => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
-                (Self::RZ, smallvec![multiply_param(&params[0], -1.0, py)])
-            })),
+            Self::Phase => Some((Self::Phase, smallvec![multiply_param(&params[0], -1.0)])),
+            Self::R => Some((
+                Self::R,
+                smallvec![multiply_param(&params[0], -1.0), params[1].clone()],
+            )),
+            Self::RX => Some((Self::RX, smallvec![multiply_param(&params[0], -1.0)])),
+            Self::RY => Some((Self::RY, smallvec![multiply_param(&params[0], -1.0)])),
+            Self::RZ => Some((Self::RZ, smallvec![multiply_param(&params[0], -1.0)])),
             Self::S => Some((Self::Sdg, smallvec![])),
             Self::Sdg => Some((Self::S, smallvec![])),
             Self::SX => Some((Self::SXdg, smallvec![])),
             Self::SXdg => Some((Self::SX, smallvec![])),
             Self::T => Some((Self::Tdg, smallvec![])),
             Self::Tdg => Some((Self::T, smallvec![])),
-            Self::U => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
-                (
-                    Self::U,
-                    smallvec![
-                        multiply_param(&params[0], -1.0, py),
-                        multiply_param(&params[2], -1.0, py),
-                        multiply_param(&params[1], -1.0, py),
-                    ],
-                )
-            })),
-            Self::U1 => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
-                (Self::U1, smallvec![multiply_param(&params[0], -1.0, py)])
-            })),
-            Self::U2 => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
-                (
-                    Self::U2,
-                    smallvec![
-                        add_param(&multiply_param(&params[1], -1.0, py), -PI, py),
-                        add_param(&multiply_param(&params[0], -1.0, py), PI, py),
-                    ],
-                )
-            })),
-            Self::U3 => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
-                (
-                    Self::U3,
-                    smallvec![
-                        multiply_param(&params[0], -1.0, py),
-                        multiply_param(&params[2], -1.0, py),
-                        multiply_param(&params[1], -1.0, py),
-                    ],
-                )
-            })),
+            Self::U => Some((
+                Self::U,
+                smallvec![
+                    multiply_param(&params[0], -1.0),
+                    multiply_param(&params[2], -1.0),
+                    multiply_param(&params[1], -1.0),
+                ],
+            )),
+            Self::U1 => Some((Self::U1, smallvec![multiply_param(&params[0], -1.0)])),
+            Self::U2 => Some((
+                Self::U2,
+                smallvec![
+                    add_param(&multiply_param(&params[1], -1.0), -PI),
+                    add_param(&multiply_param(&params[0], -1.0), PI),
+                ],
+            )),
+            Self::U3 => Some((
+                Self::U3,
+                smallvec![
+                    multiply_param(&params[0], -1.0),
+                    multiply_param(&params[2], -1.0),
+                    multiply_param(&params[1], -1.0),
+                ],
+            )),
             Self::CH => Some((Self::CH, smallvec![])),
             Self::CX => Some((Self::CX, smallvec![])),
             Self::CY => Some((Self::CY, smallvec![])),
@@ -757,72 +834,43 @@ impl StandardGate {
             Self::ECR => Some((Self::ECR, smallvec![])),
             Self::Swap => Some((Self::Swap, smallvec![])),
             Self::ISwap => None, // the inverse in not a StandardGate
-            Self::CPhase => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
-                (
-                    Self::CPhase,
-                    smallvec![multiply_param(&params[0], -1.0, py)],
-                )
-            })),
-            Self::CRX => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
-                (Self::CRX, smallvec![multiply_param(&params[0], -1.0, py)])
-            })),
-            Self::CRY => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
-                (Self::CRY, smallvec![multiply_param(&params[0], -1.0, py)])
-            })),
-            Self::CRZ => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
-                (Self::CRZ, smallvec![multiply_param(&params[0], -1.0, py)])
-            })),
+            Self::CPhase => Some((Self::CPhase, smallvec![multiply_param(&params[0], -1.0)])),
+            Self::CRX => Some((Self::CRX, smallvec![multiply_param(&params[0], -1.0)])),
+            Self::CRY => Some((Self::CRY, smallvec![multiply_param(&params[0], -1.0)])),
+            Self::CRZ => Some((Self::CRZ, smallvec![multiply_param(&params[0], -1.0)])),
             Self::CS => Some((Self::CSdg, smallvec![])),
             Self::CSdg => Some((Self::CS, smallvec![])),
             Self::CSX => None, // the inverse in not a StandardGate
-            Self::CU => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
-                (
-                    Self::CU,
-                    smallvec![
-                        multiply_param(&params[0], -1.0, py),
-                        multiply_param(&params[2], -1.0, py),
-                        multiply_param(&params[1], -1.0, py),
-                        multiply_param(&params[3], -1.0, py),
-                    ],
-                )
-            })),
-            Self::CU1 => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
-                (Self::CU1, smallvec![multiply_param(&params[0], -1.0, py)])
-            })),
-            Self::CU3 => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
-                (
-                    Self::CU3,
-                    smallvec![
-                        multiply_param(&params[0], -1.0, py),
-                        multiply_param(&params[2], -1.0, py),
-                        multiply_param(&params[1], -1.0, py),
-                    ],
-                )
-            })),
-            Self::RXX => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
-                (Self::RXX, smallvec![multiply_param(&params[0], -1.0, py)])
-            })),
-            Self::RYY => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
-                (Self::RYY, smallvec![multiply_param(&params[0], -1.0, py)])
-            })),
-            Self::RZZ => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
-                (Self::RZZ, smallvec![multiply_param(&params[0], -1.0, py)])
-            })),
-            Self::RZX => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
-                (Self::RZX, smallvec![multiply_param(&params[0], -1.0, py)])
-            })),
-            Self::XXMinusYY => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
-                (
-                    Self::XXMinusYY,
-                    smallvec![multiply_param(&params[0], -1.0, py), params[1].clone()],
-                )
-            })),
-            Self::XXPlusYY => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
-                (
-                    Self::XXPlusYY,
-                    smallvec![multiply_param(&params[0], -1.0, py), params[1].clone()],
-                )
-            })),
+            Self::CU => Some((
+                Self::CU,
+                smallvec![
+                    multiply_param(&params[0], -1.0),
+                    multiply_param(&params[2], -1.0),
+                    multiply_param(&params[1], -1.0),
+                    multiply_param(&params[3], -1.0),
+                ],
+            )),
+            Self::CU1 => Some((Self::CU1, smallvec![multiply_param(&params[0], -1.0)])),
+            Self::CU3 => Some((
+                Self::CU3,
+                smallvec![
+                    multiply_param(&params[0], -1.0),
+                    multiply_param(&params[2], -1.0),
+                    multiply_param(&params[1], -1.0),
+                ],
+            )),
+            Self::RXX => Some((Self::RXX, smallvec![multiply_param(&params[0], -1.0)])),
+            Self::RYY => Some((Self::RYY, smallvec![multiply_param(&params[0], -1.0)])),
+            Self::RZZ => Some((Self::RZZ, smallvec![multiply_param(&params[0], -1.0)])),
+            Self::RZX => Some((Self::RZX, smallvec![multiply_param(&params[0], -1.0)])),
+            Self::XXMinusYY => Some((
+                Self::XXMinusYY,
+                smallvec![multiply_param(&params[0], -1.0), params[1].clone()],
+            )),
+            Self::XXPlusYY => Some((
+                Self::XXPlusYY,
+                smallvec![multiply_param(&params[0], -1.0), params[1].clone()],
+            )),
             Self::CCX => Some((Self::CCX, smallvec![])),
             Self::CCZ => Some((Self::CCZ, smallvec![])),
             Self::CSwap => Some((Self::CSwap, smallvec![])),
@@ -1098,9 +1146,12 @@ impl Operation for StandardGate {
                 _ => None,
             },
             Self::CU => match params {
-                [Param::Float(theta), Param::Float(phi), Param::Float(lam), Param::Float(gamma)] => {
-                    Some(aview2(&gate_matrix::cu_gate(*theta, *phi, *lam, *gamma)).to_owned())
-                }
+                [
+                    Param::Float(theta),
+                    Param::Float(phi),
+                    Param::Float(lam),
+                    Param::Float(gamma),
+                ] => Some(aview2(&gate_matrix::cu_gate(*theta, *phi, *lam, *gamma)).to_owned()),
                 _ => None,
             },
             Self::CU1 => match params[0] {
@@ -1244,10 +1295,10 @@ impl Operation for StandardGate {
                 )
                 .expect("Unexpected Qiskit python bug"),
             ),
-            Self::R => Python::with_gil(|py| -> Option<CircuitData> {
-                let theta_expr = clone_param(&params[0], py);
-                let phi_expr1 = add_param(&params[1], -PI / 2., py);
-                let phi_expr2 = multiply_param(&phi_expr1, -1.0, py);
+            Self::R => {
+                let theta_expr = clone_param(&params[0]);
+                let phi_expr1 = add_param(&params[1], -PI / 2.);
+                let phi_expr2 = multiply_param(&phi_expr1, -1.0);
                 let defparams = smallvec![theta_expr, phi_expr1, phi_expr2];
                 Some(
                     CircuitData::from_standard_gates(
@@ -1257,7 +1308,7 @@ impl Operation for StandardGate {
                     )
                     .expect("Unexpected Qiskit python bug"),
                 )
-            }),
+            }
             Self::RX => {
                 let theta = &params[0];
                 Some(
@@ -1288,17 +1339,17 @@ impl Operation for StandardGate {
                     .expect("Unexpected Qiskit python bug"),
                 )
             }
-            Self::RZ => Python::with_gil(|py| -> Option<CircuitData> {
+            Self::RZ => {
                 let theta = &params[0];
                 Some(
                     CircuitData::from_standard_gates(
                         1,
                         [(Self::Phase, smallvec![theta.clone()], smallvec![Qubit(0)])],
-                        multiply_param(theta, -0.5, py),
+                        multiply_param(theta, -0.5),
                     )
                     .expect("Unexpected Qiskit python bug"),
                 )
-            }),
+            }
             Self::S => Some(
                 CircuitData::from_standard_gates(
                     1,
@@ -1513,7 +1564,7 @@ impl Operation for StandardGate {
                 )
                 .expect("Unexpected Qiskit python bug"),
             ),
-            Self::CPhase => Python::with_gil(|py| -> Option<CircuitData> {
+            Self::CPhase => {
                 let q0 = smallvec![Qubit(0)];
                 let q1 = smallvec![Qubit(1)];
                 let q0_1 = smallvec![Qubit(0), Qubit(1)];
@@ -1521,30 +1572,22 @@ impl Operation for StandardGate {
                     CircuitData::from_standard_gates(
                         2,
                         [
-                            (
-                                Self::Phase,
-                                smallvec![multiply_param(&params[0], 0.5, py)],
-                                q0,
-                            ),
+                            (Self::Phase, smallvec![multiply_param(&params[0], 0.5)], q0),
                             (Self::CX, smallvec![], q0_1.clone()),
                             (
                                 Self::Phase,
-                                smallvec![multiply_param(&params[0], -0.5, py)],
+                                smallvec![multiply_param(&params[0], -0.5)],
                                 q1.clone(),
                             ),
                             (Self::CX, smallvec![], q0_1),
-                            (
-                                Self::Phase,
-                                smallvec![multiply_param(&params[0], 0.5, py)],
-                                q1,
-                            ),
+                            (Self::Phase, smallvec![multiply_param(&params[0], 0.5)], q1),
                         ],
                         FLOAT_ZERO,
                     )
                     .expect("Unexpected Qiskit python bug"),
                 )
-            }),
-            Self::CRX => Python::with_gil(|py| -> Option<CircuitData> {
+            }
+            Self::CRX => {
                 let theta = &params[0];
                 Some(
                     CircuitData::from_standard_gates(
@@ -1554,13 +1597,13 @@ impl Operation for StandardGate {
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
                                 Self::RY,
-                                smallvec![multiply_param(theta, -0.5, py)],
+                                smallvec![multiply_param(theta, -0.5)],
                                 smallvec![Qubit(1)],
                             ),
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
                                 Self::RY,
-                                smallvec![multiply_param(theta, 0.5, py)],
+                                smallvec![multiply_param(theta, 0.5)],
                                 smallvec![Qubit(1)],
                             ),
                             (Self::Sdg, smallvec![], smallvec![Qubit(1)]),
@@ -1569,8 +1612,8 @@ impl Operation for StandardGate {
                     )
                     .expect("Unexpected Qiskit Python bug!"),
                 )
-            }),
-            Self::CRY => Python::with_gil(|py| -> Option<CircuitData> {
+            }
+            Self::CRY => {
                 let theta = &params[0];
                 Some(
                     CircuitData::from_standard_gates(
@@ -1578,13 +1621,13 @@ impl Operation for StandardGate {
                         [
                             (
                                 Self::RY,
-                                smallvec![multiply_param(theta, 0.5, py)],
+                                smallvec![multiply_param(theta, 0.5)],
                                 smallvec![Qubit(1)],
                             ),
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
                                 Self::RY,
-                                smallvec![multiply_param(theta, -0.5, py)],
+                                smallvec![multiply_param(theta, -0.5)],
                                 smallvec![Qubit(1)],
                             ),
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
@@ -1593,8 +1636,8 @@ impl Operation for StandardGate {
                     )
                     .expect("Unexpected Qiskit Python bug!"),
                 )
-            }),
-            Self::CRZ => Python::with_gil(|py| -> Option<CircuitData> {
+            }
+            Self::CRZ => {
                 let theta = &params[0];
                 Some(
                     CircuitData::from_standard_gates(
@@ -1602,13 +1645,13 @@ impl Operation for StandardGate {
                         [
                             (
                                 Self::RZ,
-                                smallvec![multiply_param(theta, 0.5, py)],
+                                smallvec![multiply_param(theta, 0.5)],
                                 smallvec![Qubit(1)],
                             ),
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
                                 Self::RZ,
-                                smallvec![multiply_param(theta, -0.5, py)],
+                                smallvec![multiply_param(theta, -0.5)],
                                 smallvec![Qubit(1)],
                             ),
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
@@ -1617,7 +1660,7 @@ impl Operation for StandardGate {
                     )
                     .expect("Unexpected Qiskit Python bug!"),
                 )
-            }),
+            }
             Self::CS => {
                 let q0 = smallvec![Qubit(0)];
                 let q1 = smallvec![Qubit(1)];
@@ -1672,21 +1715,18 @@ impl Operation for StandardGate {
                     .expect("Unexpected Qiskit python bug"),
                 )
             }
-            Self::CU => Python::with_gil(|py| -> Option<CircuitData> {
+            Self::CU => {
                 let param_second_p = radd_param(
-                    multiply_param(&params[2], 0.5, py),
-                    multiply_param(&params[1], 0.5, py),
-                    py,
+                    multiply_param(&params[2], 0.5),
+                    multiply_param(&params[1], 0.5),
                 );
                 let param_third_p = radd_param(
-                    multiply_param(&params[2], 0.5, py),
-                    multiply_param(&params[1], -0.5, py),
-                    py,
+                    multiply_param(&params[2], 0.5),
+                    multiply_param(&params[1], -0.5),
                 );
                 let param_first_u = radd_param(
-                    multiply_param(&params[1], -0.5, py),
-                    multiply_param(&params[2], -0.5, py),
-                    py,
+                    multiply_param(&params[1], -0.5),
+                    multiply_param(&params[2], -0.5),
                 );
                 Some(
                     CircuitData::from_standard_gates(
@@ -1703,7 +1743,7 @@ impl Operation for StandardGate {
                             (
                                 Self::U,
                                 smallvec![
-                                    multiply_param(&params[0], -0.5, py),
+                                    multiply_param(&params[0], -0.5),
                                     FLOAT_ZERO,
                                     param_first_u
                                 ],
@@ -1713,7 +1753,7 @@ impl Operation for StandardGate {
                             (
                                 Self::U,
                                 smallvec![
-                                    multiply_param(&params[0], 0.5, py),
+                                    multiply_param(&params[0], 0.5),
                                     params[1].clone(),
                                     FLOAT_ZERO
                                 ],
@@ -1724,50 +1764,45 @@ impl Operation for StandardGate {
                     )
                     .expect("Unexpected Qiskit python bug"),
                 )
-            }),
-            Self::CU1 => Python::with_gil(|py| -> Option<CircuitData> {
-                Some(
-                    CircuitData::from_standard_gates(
-                        2,
-                        [
-                            (
-                                Self::Phase,
-                                smallvec![multiply_param(&params[0], 0.5, py)],
-                                smallvec![Qubit(0)],
-                            ),
-                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
-                            (
-                                Self::Phase,
-                                smallvec![multiply_param(&params[0], -0.5, py)],
-                                smallvec![Qubit(1)],
-                            ),
-                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
-                            (
-                                Self::Phase,
-                                smallvec![multiply_param(&params[0], 0.5, py)],
-                                smallvec![Qubit(1)],
-                            ),
-                        ],
-                        FLOAT_ZERO,
-                    )
-                    .expect("Unexpected Qiskit python bug"),
+            }
+            Self::CU1 => Some(
+                CircuitData::from_standard_gates(
+                    2,
+                    [
+                        (
+                            Self::Phase,
+                            smallvec![multiply_param(&params[0], 0.5)],
+                            smallvec![Qubit(0)],
+                        ),
+                        (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
+                        (
+                            Self::Phase,
+                            smallvec![multiply_param(&params[0], -0.5)],
+                            smallvec![Qubit(1)],
+                        ),
+                        (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
+                        (
+                            Self::Phase,
+                            smallvec![multiply_param(&params[0], 0.5)],
+                            smallvec![Qubit(1)],
+                        ),
+                    ],
+                    FLOAT_ZERO,
                 )
-            }),
-            Self::CU3 => Python::with_gil(|py| -> Option<CircuitData> {
+                .expect("Unexpected Qiskit python bug"),
+            ),
+            Self::CU3 => {
                 let param_first_u1 = radd_param(
-                    multiply_param(&params[2], 0.5, py),
-                    multiply_param(&params[1], 0.5, py),
-                    py,
+                    multiply_param(&params[2], 0.5),
+                    multiply_param(&params[1], 0.5),
                 );
                 let param_second_u1 = radd_param(
-                    multiply_param(&params[2], 0.5, py),
-                    multiply_param(&params[1], -0.5, py),
-                    py,
+                    multiply_param(&params[2], 0.5),
+                    multiply_param(&params[1], -0.5),
                 );
                 let param_first_u3 = radd_param(
-                    multiply_param(&params[1], -0.5, py),
-                    multiply_param(&params[2], -0.5, py),
-                    py,
+                    multiply_param(&params[1], -0.5),
+                    multiply_param(&params[2], -0.5),
                 );
                 Some(
                     CircuitData::from_standard_gates(
@@ -1779,7 +1814,7 @@ impl Operation for StandardGate {
                             (
                                 Self::U,
                                 smallvec![
-                                    multiply_param(&params[0], -0.5, py),
+                                    multiply_param(&params[0], -0.5),
                                     FLOAT_ZERO,
                                     param_first_u3
                                 ],
@@ -1789,7 +1824,7 @@ impl Operation for StandardGate {
                             (
                                 Self::U,
                                 smallvec![
-                                    multiply_param(&params[0], 0.5, py),
+                                    multiply_param(&params[0], 0.5),
                                     params[1].clone(),
                                     FLOAT_ZERO
                                 ],
@@ -1800,7 +1835,7 @@ impl Operation for StandardGate {
                     )
                     .expect("Unexpected Qiskit python bug"),
                 )
-            }),
+            }
             Self::RXX => {
                 let q0 = smallvec![Qubit(0)];
                 let q1 = smallvec![Qubit(1)];
@@ -1881,7 +1916,7 @@ impl Operation for StandardGate {
                     .expect("Unexpected Qiskit python bug"),
                 )
             }
-            Self::XXMinusYY => Python::with_gil(|py| -> Option<CircuitData> {
+            Self::XXMinusYY => {
                 let q0 = smallvec![Qubit(0)];
                 let q1 = smallvec![Qubit(1)];
                 let q0_1 = smallvec![Qubit(0), Qubit(1)];
@@ -1891,26 +1926,14 @@ impl Operation for StandardGate {
                     CircuitData::from_standard_gates(
                         2,
                         [
-                            (
-                                Self::RZ,
-                                smallvec![multiply_param(beta, -1.0, py)],
-                                q1.clone(),
-                            ),
+                            (Self::RZ, smallvec![multiply_param(beta, -1.0)], q1.clone()),
                             (Self::Sdg, smallvec![], q0.clone()),
                             (Self::SX, smallvec![], q0.clone()),
                             (Self::S, smallvec![], q0.clone()),
                             (Self::S, smallvec![], q1.clone()),
                             (Self::CX, smallvec![], q0_1.clone()),
-                            (
-                                Self::RY,
-                                smallvec![multiply_param(theta, 0.5, py)],
-                                q0.clone(),
-                            ),
-                            (
-                                Self::RY,
-                                smallvec![multiply_param(theta, -0.5, py)],
-                                q1.clone(),
-                            ),
+                            (Self::RY, smallvec![multiply_param(theta, 0.5)], q0.clone()),
+                            (Self::RY, smallvec![multiply_param(theta, -0.5)], q1.clone()),
                             (Self::CX, smallvec![], q0_1),
                             (Self::Sdg, smallvec![], q1.clone()),
                             (Self::Sdg, smallvec![], q0.clone()),
@@ -1922,8 +1945,8 @@ impl Operation for StandardGate {
                     )
                     .expect("Unexpected Qiskit python bug"),
                 )
-            }),
-            Self::XXPlusYY => Python::with_gil(|py| -> Option<CircuitData> {
+            }
+            Self::XXPlusYY => {
                 let q0 = smallvec![Qubit(0)];
                 let q1 = smallvec![Qubit(1)];
                 let q1_0 = smallvec![Qubit(1), Qubit(0)];
@@ -1939,28 +1962,20 @@ impl Operation for StandardGate {
                             (Self::S, smallvec![], q1.clone()),
                             (Self::S, smallvec![], q0.clone()),
                             (Self::CX, smallvec![], q1_0.clone()),
-                            (
-                                Self::RY,
-                                smallvec![multiply_param(theta, -0.5, py)],
-                                q1.clone(),
-                            ),
-                            (
-                                Self::RY,
-                                smallvec![multiply_param(theta, -0.5, py)],
-                                q0.clone(),
-                            ),
+                            (Self::RY, smallvec![multiply_param(theta, -0.5)], q1.clone()),
+                            (Self::RY, smallvec![multiply_param(theta, -0.5)], q0.clone()),
                             (Self::CX, smallvec![], q1_0),
                             (Self::Sdg, smallvec![], q0.clone()),
                             (Self::Sdg, smallvec![], q1.clone()),
                             (Self::SXdg, smallvec![], q1.clone()),
                             (Self::S, smallvec![], q1),
-                            (Self::RZ, smallvec![multiply_param(beta, -1.0, py)], q0),
+                            (Self::RZ, smallvec![multiply_param(beta, -1.0)], q0),
                         ],
                         FLOAT_ZERO,
                     )
                     .expect("Unexpected Qiskit python bug"),
                 )
-            }),
+            }
             Self::CCX => {
                 let q0 = smallvec![Qubit(0)];
                 let q1 = smallvec![Qubit(1)];
@@ -2245,10 +2260,6 @@ impl Operation for StandardGate {
         }
     }
 
-    fn standard_gate(&self) -> Option<StandardGate> {
-        Some(*self)
-    }
-
     fn directive(&self) -> bool {
         false
     }
@@ -2379,76 +2390,68 @@ const FLOAT_ZERO: Param = Param::Float(0.0);
 
 // Return explicitly requested copy of `param`, handling
 // each variant separately.
-fn clone_param(param: &Param, py: Python) -> Param {
+fn clone_param(param: &Param) -> Param {
     match param {
         Param::Float(theta) => Param::Float(*theta),
-        Param::ParameterExpression(theta) => Param::ParameterExpression(theta.clone_ref(py)),
+        Param::ParameterExpression(theta) => Param::ParameterExpression(theta.clone()),
         Param::Obj(_) => unreachable!(),
     }
 }
 
 /// Multiply a ``Param`` with a float.
-pub fn multiply_param(param: &Param, mult: f64, py: Python) -> Param {
+pub fn multiply_param(param: &Param, mult: f64) -> Param {
     match param {
         Param::Float(theta) => Param::Float(theta * mult),
-        Param::ParameterExpression(theta) => Param::ParameterExpression(
-            theta
-                .clone_ref(py)
-                .call_method1(py, intern!(py, "__rmul__"), (mult,))
-                .expect("Multiplication of Parameter expression by float failed."),
-        ),
+        Param::ParameterExpression(theta) => {
+            // safe to unwrap as multiplication with float does not have name conflicts
+            Param::ParameterExpression(Arc::new(
+                theta.mul(&ParameterExpression::from_f64(mult)).unwrap(),
+            ))
+        }
         Param::Obj(_) => unreachable!("Unsupported multiplication of a Param::Obj."),
     }
 }
 
 /// Multiply two ``Param``s.
-pub fn multiply_params(param1: Param, param2: Param, py: Python) -> Param {
+pub fn multiply_params(param1: Param, param2: Param) -> Param {
     match (&param1, &param2) {
         (Param::Float(theta), Param::Float(lambda)) => Param::Float(theta * lambda),
-        (param, Param::Float(theta)) => multiply_param(param, *theta, py),
-        (Param::Float(theta), param) => multiply_param(param, *theta, py),
+        (param, Param::Float(theta)) => multiply_param(param, *theta),
+        (Param::Float(theta), param) => multiply_param(param, *theta),
         (Param::ParameterExpression(p1), Param::ParameterExpression(p2)) => {
-            Param::ParameterExpression(
-                p1.clone_ref(py)
-                    .call_method1(py, intern!(py, "__rmul__"), (p2,))
-                    .expect("Parameter expression multiplication failed"),
-            )
+            // TODO we could properly propagate the error here
+            Param::ParameterExpression(Arc::new(p1.mul(p2).expect("Name conflict during mul.")))
         }
         _ => unreachable!("Unsupported multiplication."),
     }
 }
 
-pub fn add_param(param: &Param, summand: f64, py: Python) -> Param {
+pub fn add_param(param: &Param, summand: f64) -> Param {
     match param {
         Param::Float(theta) => Param::Float(*theta + summand),
         Param::ParameterExpression(theta) => Param::ParameterExpression(
-            theta
-                .clone_ref(py)
-                .call_method1(py, intern!(py, "__add__"), (summand,))
-                .expect("Sum of Parameter expression and float failed."),
+            // safe to unwrap as addition with float does not have name conflicts
+            Arc::new(theta.add(&ParameterExpression::from_f64(summand)).unwrap()),
         ),
-        Param::Obj(_) => unreachable!(),
+        Param::Obj(_) => unreachable!("Unsupported addition of a Param::Obj."),
     }
 }
 
-pub fn radd_param(param1: Param, param2: Param, py: Python) -> Param {
+pub fn radd_param(param1: Param, param2: Param) -> Param {
     match [&param1, &param2] {
         [Param::Float(theta), Param::Float(lambda)] => Param::Float(theta + lambda),
-        [Param::Float(theta), Param::ParameterExpression(_lambda)] => {
-            add_param(&param2, *theta, py)
+        [Param::Float(theta), Param::ParameterExpression(_lambda)] => add_param(&param2, *theta),
+        [Param::ParameterExpression(_theta), Param::Float(lambda)] => add_param(&param1, *lambda),
+        [
+            Param::ParameterExpression(theta),
+            Param::ParameterExpression(lambda),
+        ] => {
+            // TODO we could properly propagate the error here
+            Param::ParameterExpression(Arc::new(
+                theta.add(lambda).expect("Name conflict during add."),
+            ))
         }
-        [Param::ParameterExpression(_theta), Param::Float(lambda)] => {
-            add_param(&param1, *lambda, py)
-        }
-        [Param::ParameterExpression(theta), Param::ParameterExpression(lambda)] => {
-            Param::ParameterExpression(
-                theta
-                    .clone_ref(py)
-                    .call_method1(py, intern!(py, "__radd__"), (lambda,))
-                    .expect("Parameter expression addition failed"),
-            )
-        }
-        _ => unreachable!(),
+        _ => unreachable!("Unsupported addition."),
     }
 }
 
@@ -2472,7 +2475,7 @@ pub struct PyInstruction {
     pub params: u32,
     pub op_name: String,
     pub control_flow: bool,
-    pub instruction: PyObject,
+    pub instruction: Py<PyAny>,
 }
 
 impl PythonOperation for PyInstruction {
@@ -2521,11 +2524,11 @@ impl Operation for PyInstruction {
         if !self.control_flow {
             return vec![];
         }
-        Python::with_gil(|py| -> Vec<CircuitData> {
+        Python::attach(|py| -> Vec<CircuitData> {
             // We expect that if PyInstruction::control_flow is true then the operation WILL
             // have a 'blocks' attribute which is a tuple of the Python QuantumCircuit.
             let raw_blocks = self.instruction.getattr(py, "blocks").unwrap();
-            let blocks: &Bound<PyTuple> = raw_blocks.downcast_bound::<PyTuple>(py).unwrap();
+            let blocks: &Bound<PyTuple> = raw_blocks.cast_bound::<PyTuple>(py).unwrap();
             blocks
                 .iter()
                 .map(|b| {
@@ -2541,7 +2544,7 @@ impl Operation for PyInstruction {
         None
     }
     fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
-        Python::with_gil(|py| -> Option<CircuitData> {
+        Python::attach(|py| -> Option<CircuitData> {
             match self.instruction.getattr(py, intern!(py, "definition")) {
                 Ok(definition) => definition
                     .getattr(py, intern!(py, "_data"))
@@ -2552,12 +2555,9 @@ impl Operation for PyInstruction {
             }
         })
     }
-    fn standard_gate(&self) -> Option<StandardGate> {
-        None
-    }
 
     fn directive(&self) -> bool {
-        Python::with_gil(|py| -> bool {
+        Python::attach(|py| -> bool {
             match self.instruction.getattr(py, intern!(py, "_directive")) {
                 Ok(directive) => {
                     let res: bool = directive.extract(py).unwrap();
@@ -2581,7 +2581,7 @@ pub struct PyGate {
     pub clbits: u32,
     pub params: u32,
     pub op_name: String,
-    pub gate: PyObject,
+    pub gate: Py<PyAny>,
 }
 
 impl PythonOperation for PyGate {
@@ -2628,10 +2628,10 @@ impl Operation for PyGate {
         vec![]
     }
     fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
-        Python::with_gil(|py| -> Option<Array2<Complex64>> {
+        Python::attach(|py| -> Option<Array2<Complex64>> {
             match self.gate.getattr(py, intern!(py, "to_matrix")) {
                 Ok(to_matrix) => {
-                    let res: Option<PyObject> = to_matrix.call0(py).ok()?.extract(py).ok();
+                    let res: Option<Py<PyAny>> = to_matrix.call0(py).ok()?.extract(py).ok();
                     match res {
                         Some(x) => {
                             let array: PyReadonlyArray2<Complex64> = x.extract(py).ok()?;
@@ -2645,7 +2645,7 @@ impl Operation for PyGate {
         })
     }
     fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
-        Python::with_gil(|py| -> Option<CircuitData> {
+        Python::attach(|py| -> Option<CircuitData> {
             match self.gate.getattr(py, intern!(py, "definition")) {
                 Ok(definition) => definition
                     .getattr(py, intern!(py, "_data"))
@@ -2656,14 +2656,7 @@ impl Operation for PyGate {
             }
         })
     }
-    fn standard_gate(&self) -> Option<StandardGate> {
-        Python::with_gil(|py| -> Option<StandardGate> {
-            match self.gate.getattr(py, intern!(py, "_standard_gate")) {
-                Ok(stdgate) => stdgate.extract(py).unwrap_or_default(),
-                Err(_) => None,
-            }
-        })
-    }
+
     fn directive(&self) -> bool {
         false
     }
@@ -2672,7 +2665,7 @@ impl Operation for PyGate {
         if self.num_qubits() != 1 {
             return None;
         }
-        Python::with_gil(|py| -> Option<[[Complex64; 2]; 2]> {
+        Python::attach(|py| -> Option<[[Complex64; 2]; 2]> {
             let array = self
                 .gate
                 .call_method0(py, intern!(py, "to_matrix"))
@@ -2694,7 +2687,7 @@ pub struct PyOperation {
     pub clbits: u32,
     pub params: u32,
     pub op_name: String,
-    pub operation: PyObject,
+    pub operation: Py<PyAny>,
 }
 
 impl PythonOperation for PyOperation {
@@ -2746,12 +2739,8 @@ impl Operation for PyOperation {
     fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
         None
     }
-    fn standard_gate(&self) -> Option<StandardGate> {
-        None
-    }
-
     fn directive(&self) -> bool {
-        Python::with_gil(|py| -> bool {
+        Python::attach(|py| -> bool {
             match self.operation.getattr(py, intern!(py, "_directive")) {
                 Ok(directive) => {
                     let res: bool = directive.extract(py).unwrap();
@@ -2836,10 +2825,6 @@ impl Operation for UnitaryGate {
         None
     }
 
-    fn standard_gate(&self) -> Option<StandardGate> {
-        None
-    }
-
     fn directive(&self) -> bool {
         false
     }
@@ -2921,3 +2906,85 @@ impl UnitaryGate {
         }
     }
 }
+
+/// This class represents a PauliProductMeasurement instruction.
+#[derive(Clone, Debug)]
+#[repr(align(8))]
+pub struct PauliProductMeasurement {
+    /// The z-component of the pauli.
+    pub z: Vec<bool>,
+    /// The x-component of the pauli.
+    pub x: Vec<bool>,
+    /// For a PauliProductMeasurement instruction, the phase of the Pauli can be either 0 or 2,
+    /// where the value of 2 corresponds to a sign of `-1`.
+    pub neg: bool,
+}
+
+impl Operation for PauliProductMeasurement {
+    fn name(&self) -> &str {
+        "pauli_product_measurement"
+    }
+    fn num_qubits(&self) -> u32 {
+        self.z.len() as u32
+    }
+    fn num_clbits(&self) -> u32 {
+        1
+    }
+    fn num_params(&self) -> u32 {
+        0
+    }
+    fn control_flow(&self) -> bool {
+        false
+    }
+    fn blocks(&self) -> Vec<CircuitData> {
+        vec![]
+    }
+    fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
+        None
+    }
+    fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
+        // Similarly to UnitaryGate, we do not provide the actual decomposition here.
+        // Instead, the HighLevelSynthesis transpiler pass is modified to call the
+        // relevant synthesis function when requiring the definition for a
+        // PauliProductMeasurement.
+        None
+    }
+    fn directive(&self) -> bool {
+        false
+    }
+    fn matrix_as_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+        None
+    }
+
+    fn matrix_as_nalgebra_1q(&self, _params: &[Param]) -> Option<Matrix2<Complex64>> {
+        None
+    }
+}
+
+impl PauliProductMeasurement {
+    pub fn create_py_op(&self, py: Python, label: Option<&str>) -> PyResult<Py<PyAny>> {
+        let z = self.z.to_pyarray(py);
+        let x = self.x.to_pyarray(py);
+
+        let phase = if self.neg { 2 } else { 0 };
+
+        let py_label = if let Some(label) = label {
+            label.into_py_any(py)?
+        } else {
+            py.None()
+        };
+
+        let gate = PAULI_PRODUCT_MEASUREMENT
+            .get_bound(py)
+            .call_method1(intern!(py, "_from_pauli_data"), (z, x, phase, py_label))?;
+        Ok(gate.unbind())
+    }
+}
+
+impl PartialEq for PauliProductMeasurement {
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x && self.z == other.z && self.neg == other.neg
+    }
+}
+
+impl Eq for PauliProductMeasurement {}

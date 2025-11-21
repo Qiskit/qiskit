@@ -18,8 +18,8 @@ jobs:
       RUSTUP_TOOLCHAIN: stable
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         name: Install Python
         with:
           python-version: '3.11'
@@ -65,7 +65,7 @@ jobs:
           cargo rustc --crate-type cdylib -p qiskit-cext -- -Cinstrument-coverage -Cincremental=false
           mkdir -p dist/c/include/qiskit
           cp target/qiskit.h dist/c/include/.
-          cp crates/cext/include/complex.h dist/c/include/qiskit/.
+          cp -r crates/cext/include/qiskit dist/c/include/
           cmake -S. -Btest/c/build
           cmake --build test/c/build
           ctest -V --test-dir test/c/build

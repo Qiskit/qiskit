@@ -14,6 +14,7 @@
 """Tests for Clifford class."""
 
 import unittest
+import itertools
 import numpy as np
 from ddt import ddt
 
@@ -28,6 +29,7 @@ from qiskit.circuit.library import (
     CXGate,
     CYGate,
     CZGate,
+    DCXGate,
     ECRGate,
     HGate,
     IGate,
@@ -39,6 +41,9 @@ from qiskit.circuit.library import (
     RZZGate,
     RZXGate,
     SGate,
+    SdgGate,
+    SXGate,
+    SXdgGate,
     SwapGate,
     XGate,
     XXMinusYYGate,
@@ -54,7 +59,10 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import random_clifford
 from qiskit.quantum_info.operators import Clifford, Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal
-from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_operation
+from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
+    _append_operation,
+    _prepend_operation,
+)
 from qiskit.synthesis.linear import random_invertible_binary_matrix
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 from test import combine  # pylint: disable=wrong-import-order
@@ -165,6 +173,102 @@ class TestCliffordGates(QiskitTestCase):
                 self.assertTrue(
                     np.all(np.array(value_destabilizer == [target_destabilizer[gate_name]]))
                 )
+
+    @combine(
+        gate=[
+            IGate(),
+            XGate(),
+            YGate(),
+            ZGate(),
+            HGate(),
+            SGate(),
+            SdgGate(),
+            SXGate(),
+            SXdgGate(),
+        ],
+        num_qubits=[1, 2, 3],
+    )
+    def test_append_1_qubit(self, gate, num_qubits):
+        """Test _append_operation method for 1-qubit gates"""
+        samples = 10
+        num_gates = 10
+        seed = 600
+        gates = "all"
+        for i in range(samples):
+            for qubit in range(num_qubits):
+                circ = random_clifford_circuit(num_qubits, num_gates, gates=gates, seed=seed + i)
+                cliff = Clifford(circ)
+                cliff = _append_operation(cliff, gate.name, [qubit])
+                circ.append(gate, [qubit])
+                self.assertEqual(cliff, Clifford(circ))
+
+    @combine(
+        gate=[
+            IGate(),
+            XGate(),
+            YGate(),
+            ZGate(),
+            HGate(),
+            SGate(),
+            SdgGate(),
+            SXGate(),
+            SXdgGate(),
+        ],
+        num_qubits=[1, 2, 3],
+    )
+    def test_prepend_1_qubit(self, gate, num_qubits):
+        """Test _prepend_operation method for 1-qubit gates"""
+        samples = 10
+        num_gates = 10
+        seed = 600
+        gates = "all"
+        for i in range(samples):
+            for qubit in range(num_qubits):
+                circ = random_clifford_circuit(num_qubits, num_gates, gates=gates, seed=seed + i)
+                cliff = Clifford(circ)
+                cliff = _prepend_operation(cliff, gate.name, [qubit])
+                circ1 = QuantumCircuit(num_qubits)
+                circ1.append(gate, [qubit])
+                circ1.append(circ, range(num_qubits))
+                self.assertEqual(cliff, Clifford(circ1))
+
+    @combine(
+        gate=[CXGate(), CZGate(), CYGate(), SwapGate(), iSwapGate(), ECRGate(), DCXGate()],
+        num_qubits=[2, 3],
+    )
+    def test_append_2_qubits(self, gate, num_qubits):
+        """Test _append_operation method for 2-qubit gates"""
+        samples = 10
+        num_gates = 10
+        seed = 800
+        gates = "all"
+        for i in range(samples):
+            for qubits in itertools.combinations(range(num_qubits), 2):
+                circ = random_clifford_circuit(num_qubits, num_gates, gates=gates, seed=seed + i)
+                cliff = Clifford(circ)
+                cliff = _append_operation(cliff, gate.name, qubits)
+                circ.append(gate, qubits)
+                self.assertEqual(cliff, Clifford(circ))
+
+    @combine(
+        gate=[CXGate(), CZGate(), CYGate(), SwapGate(), iSwapGate(), ECRGate(), DCXGate()],
+        num_qubits=[2, 3],
+    )
+    def test_prepend_2_qubits(self, gate, num_qubits):
+        """Test _prepend_operation method for 2-qubit gates"""
+        samples = 10
+        num_gates = 10
+        seed = 800
+        gates = "all"
+        for i in range(samples):
+            for qubits in itertools.combinations(range(num_qubits), 2):
+                circ = random_clifford_circuit(num_qubits, num_gates, gates=gates, seed=seed + i)
+                cliff = Clifford(circ)
+                cliff = _prepend_operation(cliff, gate.name, qubits)
+                circ1 = QuantumCircuit(num_qubits)
+                circ1.append(gate, qubits)
+                circ1.append(circ, range(num_qubits))
+                self.assertEqual(cliff, Clifford(circ1))
 
     def test_1_qubit_identity_relations(self):
         """Tests identity relations for 1-qubit gates"""
@@ -691,6 +795,8 @@ class TestCliffordOperators(QiskitTestCase):
             value = cliff1.compose(cliff2)
             target = Clifford(circ1.compose(circ2))
             self.assertEqual(target, value)
+            value_circ_composed = cliff1.compose(circ2)
+            self.assertEqual(target, value_circ_composed)
 
     @combine(num_qubits=[1, 2, 3])
     def test_dot_method(self, num_qubits):
@@ -709,6 +815,8 @@ class TestCliffordOperators(QiskitTestCase):
             value = cliff1.dot(cliff2)
             target = Clifford(circ2.compose(circ1))
             self.assertEqual(target, value)
+            value_circ_composed = cliff1.dot(circ2)
+            self.assertEqual(target, value_circ_composed)
 
     @combine(num_qubits_1=[1, 2, 3], num_qubits_2=[1, 2, 3])
     def test_tensor_method(self, num_qubits_1, num_qubits_2):

@@ -32,6 +32,15 @@ Quantum Circuit
    qk-quantum-register
    qk-classical-register
 
+Circuit Library
++++++++++++++++
+
+.. toctree::
+   :maxdepth: 1
+
+   qk-circuit-library
+
+
 -------------------
 Quantum information
 -------------------
@@ -44,5 +53,39 @@ Quantum information
    qk-bit-term
    qk-complex64
    qk-exit-code
+
+----------
+Transpiler
+----------
+
+Using the transpiler from the C API is intended to only cover
+circuits created solely via the C API. If you are in a hybrid mode where
+you're using the C API with Python you should invoke the transpiler via
+the Python :mod:`qiskit.transpiler` module instead; the functionality is
+the same Rust internals they just offer different entrypoints. The C API
+for transpilation makes assumptions about the input only using constructs
+exposed to the C Quantum Circuit API and you will potentially get incomplete
+results transpiling circuits from Python via the C API.
+
+.. toctree::
+   :maxdepth: 1
+
+   qk-dag
+   qk-transpiler
    qk-target
    qk-target-entry
+   qk-neighbors
+   qk-transpile-layout
+   qk-transpiler-passes
+   qk-vf2-layout
+   qk-sabre-layout-options
+
+
+---------
+Utilities
+---------
+
+.. toctree::
+   :maxdepth: 1
+
+   version

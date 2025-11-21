@@ -19,12 +19,12 @@ use crate::gate_metrics::rotation_trace_and_dim;
 use crate::target::Target;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::getenv_use_multiple_threads;
+use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::packed_instruction::PackedInstruction;
-use qiskit_circuit::PhysicalQubit;
 
 const MINIMUM_TOL: f64 = 1e-12;
 
@@ -36,9 +36,9 @@ pub fn py_remove_identity_equiv(
     approx_degree: Option<f64>,
     target: Option<&Target>,
 ) {
-    // Explicitly release GIL because threads may call Python to get a
+    // Explicitly release GIL because threads may call Python to get
     // the matrix for a PyGate
-    py.allow_threads(|| run_remove_identity_equiv(dag, approx_degree, target))
+    py.detach(|| run_remove_identity_equiv(dag, approx_degree, target))
 }
 
 pub fn run_remove_identity_equiv(

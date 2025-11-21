@@ -1,0 +1,7 @@
+---
+features_transpiler:
+  - |
+    A new method, :meth:`.DAGCircuit.structurally_equal`, can be used to if two :class:`.DAGCircuit`
+    instances have been created and modified in the exact same order.  This is a much stronger test
+    than the standard semantic equivalence check of the ``==`` overload, and can be used by
+    transpiler-pass authors to verify that their modification orders are deterministic.

@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    :meth:`.QuantumCircuit.compose` will now correctly remap anyway variables and stretches used in
+    :class:`~.circuit.Delay` instructions when the ``var_remap`` argument is specified.

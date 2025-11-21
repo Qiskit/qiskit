@@ -10,11 +10,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Provides a commutation checker that caches the determined commutation results during this session """
+"""Provides a commutation checker that caches the determined commutation results during this session"""
 
 from qiskit.circuit import CommutationChecker
 
 from qiskit.circuit._standard_gates_commutations import standard_gates_commutations
+from qiskit._accelerate.commutation_checker import get_standard_commutation_checker
 
 StandardGateCommutations = standard_gates_commutations
-SessionCommutationChecker = CommutationChecker(StandardGateCommutations)
+SessionCommutationChecker = CommutationChecker()
+SessionCommutationChecker.cc = get_standard_commutation_checker()
