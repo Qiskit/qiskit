@@ -886,7 +886,6 @@ from .generalized_gates import (
     GRX,
     GRY,
     GRZ,
-    RVGate,
     PauliGate,
     LinearFunction,
     Isometry,

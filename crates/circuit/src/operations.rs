@@ -28,7 +28,7 @@ use crate::{Qubit, gate_matrix, impl_intopyobject_for_copy_pyclass};
 
 use nalgebra::{Matrix2, Matrix4};
 use ndarray::{Array2, ArrayView2, Dim, ShapeBuilder, array, aview2};
-use num_complex::Complex64;
+use num_complex::{Complex64, ComplexFloat};
 use smallvec::{SmallVec, smallvec};
 
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2, ToPyArray};
@@ -652,6 +652,7 @@ pub enum StandardGate {
     C3X = 49,
     C3SX = 50,
     RC3X = 51,
+    RV = 52,
     // Remember to update StandardGate::is_valid_bit_pattern below
     // if you add or remove this enum's variants!
 }
@@ -672,7 +673,7 @@ static STANDARD_GATE_NUM_QUBITS: [u32; STANDARD_GATE_SIZE] = [
     1, 2, 2, 2, 2, 2, 2, 2, 2, 2, // 20-29
     2, 2, 2, 2, 2, 2, 2, 2, 2, 2, // 30-39
     2, 2, 2, 2, 2, 3, 3, 3, 3, 4, // 40-49
-    4, 4, // 50-51
+    4, 4, 1, // 50-52
 ];
 
 static STANDARD_GATE_NUM_PARAMS: [u32; STANDARD_GATE_SIZE] = [
@@ -681,7 +682,7 @@ static STANDARD_GATE_NUM_PARAMS: [u32; STANDARD_GATE_SIZE] = [
     3, 0, 0, 0, 0, 0, 0, 0, 0, 1, // 20-29
     1, 1, 1, 0, 0, 0, 4, 1, 3, 1, // 30-39
     1, 1, 1, 2, 2, 0, 0, 0, 0, 0, // 40-49
-    0, 0, // 50-51
+    0, 0, 3, // 50-52
 ];
 
 static STANDARD_GATE_NUM_CTRL_QUBITS: [u32; STANDARD_GATE_SIZE] = [
@@ -690,7 +691,7 @@ static STANDARD_GATE_NUM_CTRL_QUBITS: [u32; STANDARD_GATE_SIZE] = [
     0, 1, 1, 1, 1, 0, 0, 0, 0, 1, // 20-29
     1, 1, 1, 1, 1, 1, 1, 1, 1, 0, // 30-39
     0, 0, 0, 0, 0, 2, 2, 1, 0, 3, // 40-49
-    3, 0, // 50-51
+    3, 0, 0, // 50-52
 ];
 
 static STANDARD_GATE_NAME: [&str; STANDARD_GATE_SIZE] = [
@@ -746,6 +747,7 @@ static STANDARD_GATE_NAME: [&str; STANDARD_GATE_SIZE] = [
     "mcx",          // 49 ("c3x")
     "c3sx",         // 50
     "rcccx",        // 51 ("rc3x")
+    "rv",           // 52
 ];
 
 /// Get a slice of all standard gate names.
@@ -878,6 +880,14 @@ impl StandardGate {
             Self::C3X => Some((Self::C3X, smallvec![])),
             Self::C3SX => None, // the inverse in not a StandardGate
             Self::RC3X => None, // the inverse in not a StandardGate
+            Self::RV => Some((
+                Self::RV,
+                smallvec![
+                    multiply_param(&params[0], -1.0),
+                    multiply_param(&params[1], -1.0),
+                    multiply_param(&params[2], -1.0)
+                ],
+            )),
         }
     }
 }
@@ -962,7 +972,7 @@ impl StandardGate {
 //
 // Remove this when std::mem::variant_count() is stabilized (see
 // https://github.com/rust-lang/rust/issues/73662 )
-pub const STANDARD_GATE_SIZE: usize = 52;
+pub const STANDARD_GATE_SIZE: usize = 53;
 
 impl Operation for StandardGate {
     fn name(&self) -> &str {
@@ -1218,6 +1228,12 @@ impl Operation for StandardGate {
             },
             Self::RC3X => match params {
                 [] => Some(aview2(&gate_matrix::RC3X_GATE).to_owned()),
+                _ => None,
+            },
+            Self::RV => match params {
+                [Param::Float(v_x), Param::Float(v_y), Param::Float(v_z)] => {
+                    Some(aview2(&gate_matrix::rv_gate(*v_x, *v_y, *v_z)).to_owned())
+                }
                 _ => None,
             },
         }
@@ -2257,6 +2273,28 @@ impl Operation for StandardGate {
                 )
                 .expect("Unexpected Qiskit python bug"),
             ),
+            Self::RV => {
+                let mat = self.matrix_as_static_1q(params).unwrap();
+                let det_arg = (mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0]).arg();
+                let theta = 2. * mat[1][0].abs().atan2(mat[0][0].abs());
+                let ang1 = mat[1][1].arg();
+                let ang2 = mat[1][0].arg();
+                let phi = ang1 + ang2 - det_arg;
+                let lam = ang1 - ang2;
+                let phase = (0.5 * det_arg) - 0.5 * (phi + lam);
+                Some(
+                    CircuitData::from_standard_gates(
+                        1,
+                        [(
+                            Self::U,
+                            smallvec![Param::Float(theta), Param::Float(phi), Param::Float(lam)],
+                            smallvec![Qubit(0)],
+                        )],
+                        Param::Float(phase),
+                    )
+                    .expect("unexpected Qiskit python bug"),
+                )
+            }
         }
     }
 
@@ -2348,6 +2386,12 @@ impl Operation for StandardGate {
             Self::U3 => match params {
                 [Param::Float(theta), Param::Float(phi), Param::Float(lam)] => {
                     Some(gate_matrix::u3_gate(*theta, *phi, *lam))
+                }
+                _ => None,
+            },
+            Self::RV => match params {
+                [Param::Float(v_x), Param::Float(v_y), Param::Float(v_z)] => {
+                    Some(gate_matrix::rv_gate(*v_x, *v_y, *v_z))
                 }
                 _ => None,
             },

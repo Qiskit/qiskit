@@ -269,6 +269,8 @@ static STDGATE_IMPORT_PATHS: [[&str; 2]; STANDARD_GATE_SIZE] = [
     ["qiskit.circuit.library.standard_gates.x", "C3SXGate"],
     // RC3XGate = 51
     ["qiskit.circuit.library.standard_gates.x", "RC3XGate"],
+    // RVGate = 52
+    ["qiskit.circuit.library.standard_gates.rv", "RVGate"],
 ];
 
 /// A mapping from the enum variant in crate::operations::StandardGate to the python object for the
@@ -278,6 +280,7 @@ static STDGATE_IMPORT_PATHS: [[&str; 2]; STANDARD_GATE_SIZE] = [
 /// NOTE: the order here is significant it must match the StandardGate variant's number must match
 /// index of it's entry in this table. This is all done statically for performance
 static STDGATE_PYTHON_GATES: [PyOnceLock<Py<PyAny>>; STANDARD_GATE_SIZE] = [
+    PyOnceLock::new(),
     PyOnceLock::new(),
     PyOnceLock::new(),
     PyOnceLock::new(),
