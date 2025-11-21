@@ -229,15 +229,13 @@ def apply_basic_controlled_gate(circuit, gate, controls, target):
         angle = gate.params[0]
         circuit.mcry(angle, controls, target, mode="noancilla", use_basis_gates=False)
 
-
     elif gate.name == "rz":
         angle = gate.params[0]
         circuit.mcrz(angle, controls, target, use_basis_gates=False)
 
-
-
     elif gate.name == "p":
         from qiskit.circuit.library import MCPhaseGate
+
         circuit.append(
             MCPhaseGate(gate.params[0], num_ctrl_qubits),
             controls[:] + [target],
