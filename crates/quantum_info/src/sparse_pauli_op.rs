@@ -1161,7 +1161,7 @@ mod tests {
             }
         }
     }
-
+    #[cfg_attr(miri, ignore)]
     #[test]
     fn dense_threaded_and_serial_equal() {
         let paulis = example_paulis();
@@ -1172,7 +1172,7 @@ mod tests {
         let serial = observable.to_matrix_dense(true).unwrap();
         assert_eq!(parallel, serial);
     }
-
+    #[cfg_attr(miri, ignore)]
     #[test]
     fn sparse_threaded_and_serial_equal_32() {
         let paulis = example_paulis();
@@ -1183,7 +1183,7 @@ mod tests {
         let serial = observable.to_matrix_sparse_32(true).unwrap();
         assert_eq!(parallel, serial);
     }
-
+    #[cfg_attr(miri, ignore)]
     #[test]
     fn sparse_threaded_and_serial_equal_64() {
         let paulis = example_paulis();
