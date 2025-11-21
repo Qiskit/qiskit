@@ -765,8 +765,8 @@ pub unsafe extern "C" fn qk_circuit_unitary(
         return ExitCode::ExpectedUnitary;
     };
     let qubits = if num_qubits == 0 {
-        // This handles the case of C passing us a null pointer for a scalar matrix; Rust slices
-        // can't be backed by the null pointer.
+        // This handles the case of C passing us a null pointer for the qubits; Rust slices
+        // can't be backed by the null pointer even when empty.
         &[]
     } else {
         // SAFETY: per documentation, `qubits` is aligned and valid for `num_qubits` reads.  Per
