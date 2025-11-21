@@ -249,6 +249,7 @@ def apply_basic_controlled_gate(circuit, gate, controls, target):
             use_basis_gates=False,
         )
 
+
     elif gate.name == "p":
         from qiskit.circuit.library import MCPhaseGate
         circuit.append(
