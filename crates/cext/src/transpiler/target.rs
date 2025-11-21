@@ -580,7 +580,8 @@ pub extern "C" fn qk_target_entry_new_reset() -> *mut TargetEntry {
 ///
 /// @param operation The ``QkGate`` whose properties this target entry defines.
 /// @param params A pointer to the parameters that the instruction is calibrated for.
-/// @param name An optional name for the instruction in the target.
+/// @param name An optional name for the instruction in the target. It can be a null pointer.
+/// The name will be set to None if a null pointer is provided.
 ///
 /// @return A pointer to the new ``QkTargetEntry``.
 ///
@@ -598,7 +599,8 @@ pub extern "C" fn qk_target_entry_new_reset() -> *mut TargetEntry {
 /// It can be a null pointer if there are no params for a given gate. You can check
 /// ``qk_gate_num_params`` to determine how many qubits are required for a given gate.
 ///
-/// The ``name`` pointer is expected to be either a valid C string or a null pointer.
+/// The ``name`` pointer is expected to be either a C string comprising of valid UTF-8 characters
+/// or a null pointer.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_entry_new_fixed(
@@ -606,6 +608,7 @@ pub unsafe extern "C" fn qk_target_entry_new_fixed(
     params: *mut f64,
     name: *const c_char,
 ) -> *mut TargetEntry {
+    //SAFETY: per documentation, name points to a valid UTF-8 null-terminated string.
     let name_fixed: Option<String> = if name.is_null() {
         None
     } else {
@@ -755,7 +758,8 @@ pub unsafe extern "C" fn qk_target_entry_add_property(
 ///
 /// The behavior is undefined if ``entry`` is not a valid, non-null pointer
 /// to a ``QkTargetEntry`` object.
-/// The ``name`` pointer is expected to be either a valid C string or a null pointer.
+/// The ``name`` pointer is expected to be either a C string comprising
+/// of valid UTF-8 characters or a null pointer.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_entry_set_name(
@@ -764,6 +768,7 @@ pub unsafe extern "C" fn qk_target_entry_set_name(
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let entry = unsafe { mut_ptr_as_ref(entry) };
+    //SAFETY: per documentation, name points to a valid UTF-8 null-terminated string.
     let name_set: Option<String> = if name.is_null() {
         None
     } else {
