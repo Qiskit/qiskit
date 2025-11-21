@@ -287,7 +287,7 @@ static int test_get_gate_counts(void) {
 
     if (c2.len != 1) {
         result = EqualityError;
-        qk_opcounts_clear(&c1);
+        qk_opcounts_clear(&c2);
         goto circuit_cleanup;
     }
     qk_opcounts_clear(&c2);
