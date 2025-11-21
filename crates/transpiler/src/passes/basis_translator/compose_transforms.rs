@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::passes::basis_translator::errors::BasisTranslatorError;
+use super::errors::BasisTranslatorError;
 use hashbrown::HashMap;
 use indexmap::{IndexMap, IndexSet};
 use pyo3::prelude::*;
