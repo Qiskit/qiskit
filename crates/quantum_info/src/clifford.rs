@@ -11,7 +11,9 @@
 // that they have been altered from the originals.
 use std::fmt;
 
+use crate::sparse_observable::BitTerm;
 use ndarray::{Array2, azip, s};
+use qiskit_circuit::Qubit;
 
 /// Symplectic matrix.
 pub struct SymplecticMatrix {
@@ -225,39 +227,38 @@ impl Clifford {
     }
 
     /// Evolving the single-qubit Pauli-Z with Z on qubit qbit.
-    /// Returns the evolved Pauli in the sparse format: (sign, pauli_z, pauli_x, indices).
-    pub fn get_inverse_z(&self, qbit: usize) -> (bool, Vec<bool>, Vec<bool>, Vec<u32>) {
-        let mut z = Vec::<bool>::new();
-        let mut x = Vec::<bool>::new();
-        let mut indices = Vec::<u32>::new();
+    pub fn get_inverse_z(&self, qbit: usize) -> (bool, Vec<BitTerm>, Vec<Qubit>) {
+        let mut bit_terms = Vec::with_capacity(self.num_qubits);
         let mut pauli = vec![false; 2 * self.num_qubits];
 
-        for i in 0..self.num_qubits {
-            let z_bit = self.tableau[[i, qbit]];
-            let x_bit = self.tableau[[i + self.num_qubits, qbit]];
-            if z_bit || x_bit {
-                z.push(z_bit);
-                x.push(x_bit);
-                indices.push(i as u32);
-            }
-
-            match (z_bit, x_bit) {
-                (false, false) => {}
-                (false, true) => {
-                    pauli[i] = true;
+        let indices = (0..self.num_qubits)
+            .filter_map(|i| {
+                let z_bit = self.tableau[[i, qbit]];
+                let x_bit = self.tableau[[i + self.num_qubits, qbit]];
+                match (z_bit, x_bit) {
+                    (false, false) => None,
+                    (false, true) => {
+                        bit_terms.push(BitTerm::X);
+                        pauli[i] = true;
+                        Some(Qubit::new(i))
+                    }
+                    (true, false) => {
+                        bit_terms.push(BitTerm::Z);
+                        pauli[i + self.num_qubits] = true;
+                        Some(Qubit::new(i))
+                    }
+                    (true, true) => {
+                        bit_terms.push(BitTerm::Y);
+                        pauli[i] = true;
+                        pauli[i + self.num_qubits] = true;
+                        Some(Qubit::new(i))
+                    }
                 }
-                (true, false) => {
-                    pauli[i + self.num_qubits] = true;
-                }
-                (true, true) => {
-                    pauli[i] = true;
-                    pauli[i + self.num_qubits] = true;
-                }
-            }
-        }
+            })
+            .collect();
         let phase = compute_phase_product_pauli(self, &pauli);
 
-        (phase, z, x, indices)
+        (phase, bit_terms, indices)
     }
 }
 
