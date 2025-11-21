@@ -312,6 +312,97 @@ cleanup:
     return result;
 }
 
+static int test_dag_compose(void) {
+    int result = Ok;
+    // Build a dag of the following structure
+    //
+    //  rqr_0: |0>──■───────
+    //              │  ┌───┐
+    //  rqr_1: |0>──┼──┤ X ├
+    //              │  ├───┤
+    //  rqr_2: |0>──┼──┤ Y ├  =
+    //            ┌─┴─┐└───┘
+    //  rqr_3: |0>┤ X ├─────
+    //            └───┘┌───┐
+    //  rqr_4: |0>─────┤ Z ├
+    //                 └───┘
+    QkDag *dag_right = qk_dag_new();
+    QkQuantumRegister *rqr = qk_quantum_register_new(5, "rqr");
+    qk_dag_add_quantum_register(dag_right, rqr);
+    qk_dag_apply_gate(dag_right, QkGate_CX, (uint32_t[]){0, 3}, NULL, false);
+    qk_dag_apply_gate(dag_right, QkGate_X, (uint32_t[]){1}, NULL, false);
+    qk_dag_apply_gate(dag_right, QkGate_Y, (uint32_t[]){2}, NULL, false);
+    qk_dag_apply_gate(dag_right, QkGate_Z, (uint32_t[]){4}, NULL, false);
+
+    // Build a second dag to compose on
+    //             ┌───┐
+    // lqr_0: |0>──┤ H ├───
+    //             ├───┤
+    // lqr_1: |0>──┤ X ├───
+    //           ┌─┴───┴──┐
+    // lqr_2: |0>┤ P(0.1) ├
+    //           └────────┘
+    // lqr_3: |0>────■─────
+    //             ┌─┴─┐
+    // lqr_4: |0>──┤ X ├───
+    //             └───┘
+    // lcr_0: 0 ═══════════
+    //
+    // lcr_1: 0 ═══════════
+    QkDag *dag_left = qk_dag_new();
+    QkQuantumRegister *lqr = qk_quantum_register_new(5, "lqr");
+    QkClassicalRegister *lcr = qk_classical_register_new(2, "lcr");
+    qk_dag_add_quantum_register(dag_left, lqr);
+    qk_dag_apply_gate(dag_left, QkGate_CX, (uint32_t[]){3, 4}, NULL, false);
+    qk_dag_apply_gate(dag_left, QkGate_X, (uint32_t[]){1}, NULL, false);
+    qk_dag_apply_gate(dag_left, QkGate_H, (uint32_t[]){0}, NULL, false);
+    qk_dag_apply_gate(dag_left, QkGate_Phase, (uint32_t[]){2}, (double[]){0.1}, false);
+    size_t left_op_nodes = qk_dag_num_op_nodes(dag_left);
+
+    // Call compose
+
+    // With resulting circuit
+    //             ┌───┐
+    // lqr_0: |0>──┤ H ├─────■───────
+    //             ├───┤     │  ┌───┐
+    // lqr_1: |0>──┤ X ├─────┼──┤ X ├
+    //           ┌─┴───┴──┐  │  ├───┤
+    // lqr_2: |0>┤ P(0.1) ├──┼──┤ Y ├
+    //           └────────┘┌─┴─┐└───┘
+    // lqr_3: |0>────■─────┤ X ├─────
+    //             ┌─┴─┐   └───┘┌───┐
+    // lqr_4: |0>──┤ X ├────────┤ Z ├
+    //             └───┘        └───┘
+    // lcr_0: 0 ═══════════════════════
+    //
+    // lcr_1: 0 ═══════════════════════
+    QkExitCode res = qk_dag_compose(dag_left, dag_right, NULL, 0, NULL, 0);
+    if (res != QkExitCode_Success) {
+        result = RuntimeError;
+        printf("Error during compose, the dags did not match in number of qubits");
+        goto cleanup;
+    }
+
+    // We need to wait until we get ``qk_dag_topological_op_nodes`` to check the specific
+    // operations. For now, let's compare the number of `op_nodes` as a reference.
+    size_t new_op_nodes = qk_dag_num_op_nodes(dag_left);
+    size_t right_op_nodes = qk_dag_num_op_nodes(dag_right);
+
+    if (left_op_nodes + right_op_nodes != new_op_nodes) {
+        result = EqualityError;
+        printf("The operations did not get composed onto the left dag correcly. Expected %zu "
+               "operations, got %zu",
+               left_op_nodes + right_op_nodes, new_op_nodes);
+    }
+cleanup:
+    qk_dag_free(dag_left);
+    qk_dag_free(dag_right);
+    qk_quantum_register_free(lqr);
+    qk_classical_register_free(lcr);
+    qk_quantum_register_free(rqr);
+    return result;
+}
+
 int test_dag(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty);
@@ -321,6 +412,7 @@ int test_dag(void) {
     num_failed += RUN_TEST(test_dag_node_type);
     num_failed += RUN_TEST(test_dag_endpoint_node_value);
     num_failed += RUN_TEST(test_op_node_bits_explicit);
+    num_failed += RUN_TEST(test_dag_compose);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
