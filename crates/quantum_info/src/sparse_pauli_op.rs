@@ -899,12 +899,30 @@ mod tests {
 
     use super::*;
     use crate::sparse_observable::{BitTerm, SparseObservable};
+    use crate::test::*;
 
     #[cfg(miri)]
     use approx::AbsDiffEq;
 
     // The purpose of these tests is more about exercising the `unsafe` code under Miri; we test for
     // full numerical correctness from Python space.
+
+    fn example_paulis() -> MatrixCompressedPaulis {
+        MatrixCompressedPaulis {
+            num_qubits: 4,
+            x_like: vec![0b0000, 0b0001, 0b0010, 0b1100, 0b1010, 0b0000],
+            z_like: vec![0b1000, 0b0110, 0b1001, 0b0100, 0b1010, 0b1000],
+            // Deliberately using multiples of small powers of two so the floating-point addition
+            // of them is associative.
+            coeffs: vec![
+                c64(0.25, 0.5),
+                c64(0.125, 0.25),
+                c64(0.375, 0.125),
+                c64(-0.375, 0.0625),
+                c64(-0.5, -0.25),
+            ],
+        }
+    }
 
     /// Helper struct for the decomposition testing.  This is a subset of the `DecomposeOut`
     /// struct, skipping the unnecessary algorithm-state components of it.
@@ -1142,5 +1160,38 @@ mod tests {
                 assert_eq!(actual.num_qubits, expected.num_qubits);
             }
         }
+    }
+
+    #[test]
+    fn dense_threaded_and_serial_equal() {
+        let paulis = example_paulis();
+        let observable = SparseObservable::from(paulis);
+        let parallel = in_scoped_thread_pool(|| observable.to_matrix_dense(false))
+            .unwrap()
+            .unwrap();
+        let serial = observable.to_matrix_dense(true).unwrap();
+        assert_eq!(parallel, serial);
+    }
+
+    #[test]
+    fn sparse_threaded_and_serial_equal_32() {
+        let paulis = example_paulis();
+        let observable = SparseObservable::from(paulis);
+        let parallel = in_scoped_thread_pool(|| observable.to_matrix_sparse_32(false))
+            .unwrap()
+            .unwrap();
+        let serial = observable.to_matrix_sparse_32(true).unwrap();
+        assert_eq!(parallel, serial);
+    }
+
+    #[test]
+    fn sparse_threaded_and_serial_equal_64() {
+        let paulis = example_paulis();
+        let observable = SparseObservable::from(paulis);
+        let parallel = in_scoped_thread_pool(|| observable.to_matrix_sparse_64(false))
+            .unwrap()
+            .unwrap();
+        let serial = observable.to_matrix_sparse_64(true).unwrap();
+        assert_eq!(parallel, serial);
     }
 }

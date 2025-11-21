@@ -400,7 +400,7 @@ pub struct SparseObservable {
     /// always an explicit zero (for algorithmic ease).
     boundaries: Vec<usize>,
 }
-
+#[derive(Debug)]
 struct MatrixComputationData {
     x_like: Vec<u64>,
     z_like: Vec<u64>,
@@ -452,11 +452,6 @@ impl MatrixComputationData {
         } else {
             // Expand projectors once, then precompute from the expanded version
             let expanded = obs.as_paulis();
-            if expanded.num_terms() == 0 {
-                return Err(MatrixComputationError::InvalidObservable(
-                    "Expanded observable contains no valid Pauli terms".into(),
-                ));
-            }
             let mut data = Self::from_pauli_like(&expanded)?;
             data.combine_duplicates();
             Ok(data)
@@ -1251,6 +1246,18 @@ impl SparseObservable {
             sparse_observable_to_matrix_parallel_32(&computation_data)
         } else {
             sparse_observable_to_matrix_serial_32(&computation_data)
+        })
+    }
+
+    pub fn to_matrix_sparse_64(&self, force_serial: bool) -> MatrixResult<CSRData<i64>> {
+        // Single precomputation step handles both expansion and optimization
+        let computation_data = MatrixComputationData::from_sparse_observable(self)?;
+        let parallel = qiskit_circuit::getenv_use_multiple_threads() && !force_serial;
+
+        Ok(if parallel {
+            sparse_observable_to_matrix_parallel_64(&computation_data)
+        } else {
+            sparse_observable_to_matrix_serial_64(&computation_data)
         })
     }
 
@@ -4792,5 +4799,28 @@ mod test {
         let serial_result = SparseObservable::to_matrix_dense_inner(&computation_data, false);
 
         assert_eq!(parallel_result, serial_result);
+    }
+
+    /// Construct an observable that contains a projector term.
+    /// This must fail in from_pauli_like() because projectors are not Pauli ops.
+    #[test]
+    fn test_non_pauli_term_error() {
+        let obs = SparseObservable {
+            num_qubits: 1,
+            coeffs: vec![Complex64::new(1.0, 0.0)],
+            bit_terms: vec![BitTerm::Plus],
+            indices: vec![0],
+            boundaries: vec![0, 1],
+        };
+
+        let err = MatrixComputationData::from_pauli_like(&obs).unwrap_err();
+
+        assert!(matches!(
+            err,
+            MatrixComputationError::NonPauliTerm {
+                qubit: 0,
+                term: BitTerm::Plus
+            }
+        ));
     }
 }

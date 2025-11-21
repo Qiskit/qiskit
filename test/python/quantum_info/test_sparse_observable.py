@@ -21,6 +21,7 @@ import unittest
 import ddt
 import numpy as np
 
+from scipy.sparse import csr_matrix
 from qiskit import transpile
 from qiskit.circuit import Measure, Parameter, library, QuantumCircuit
 from qiskit.exceptions import QiskitError
@@ -59,6 +60,23 @@ def lnn_target(num_qubits):
         },
     )
     return out
+
+
+def pauli_mat(label):
+    """Return Pauli matrix from a Pauli label"""
+    mat = np.eye(1, dtype=complex)
+    for i in label:
+        if i == "I":
+            mat = np.kron(mat, np.eye(2, dtype=complex))
+        elif i == "X":
+            mat = np.kron(mat, np.array([[0, 1], [1, 0]], dtype=complex))
+        elif i == "Y":
+            mat = np.kron(mat, np.array([[0, -1j], [1j, 0]], dtype=complex))
+        elif i == "Z":
+            mat = np.kron(mat, np.array([[1, 0], [0, -1]], dtype=complex))
+        else:
+            raise QiskitError(f"Invalid Pauli string {i}")
+    return mat
 
 
 class AllowRightArithmetic:
@@ -2038,6 +2056,87 @@ class TestSparseObservable(QiskitTestCase):
             self.assertEqual(
                 canonicalize_sparse_list(expected), canonicalize_sparse_list(obs.to_sparse_list())
             )
+
+    def test_to_matrix(self):
+        """Test to_matrix method for SparseObservable."""
+        labels = ["XI", "YZ", "YY", "ZZ"]
+        coeffs = [-3, 4.4j, 0.2 - 0.1j, 66.12]
+        obs = SparseObservable.from_list(list(zip(labels, coeffs)))
+
+        target = np.zeros((4, 4), dtype=complex)
+        for coeff, label in zip(coeffs, labels):
+            target += coeff * pauli_mat(label)
+        data, indices, indptr = obs.to_matrix(sparse=True)
+        sparse_mat = csr_matrix((data, indices, indptr), shape=(4, 4)).toarray()
+
+        np.testing.assert_array_equal(obs.to_matrix(), target)
+        np.testing.assert_array_equal(sparse_mat, target)
+
+    def test_to_matrix_large(self):
+        """Test to_matrix method with a large number of qubits."""
+        reps = 5
+        labels = ["XI" * reps, "YZ" * reps, "YY" * reps, "ZZ" * reps]
+        coeffs = [-3, 4.4j, 0.2 - 0.1j, 66.12]
+        obs = SparseObservable.from_list(list(zip(labels, coeffs)))
+        size = 1 << 2 * reps
+        target = np.zeros((size, size), dtype=complex)
+        for coeff, label in zip(coeffs, labels):
+            target += coeff * pauli_mat(label)
+        data, indices, indptr = obs.to_matrix(sparse=True)
+        sparse_mat = csr_matrix((data, indices, indptr), shape=(size, size)).toarray()
+        np.testing.assert_array_equal(obs.to_matrix(), target)
+        np.testing.assert_array_equal(sparse_mat, target)
+
+    def test_to_matrix_zero_except(self):
+        """Test `to_matrix` with a zero operator."""
+        num_qubits = 4
+        zero = SparseObservable.from_list([], num_qubits=num_qubits)
+        full_msg = r"Failed to construct matrix from observable: " + r"Observable contains no terms"
+        with self.assertRaisesRegex(ValueError, full_msg):
+            zero.to_matrix(sparse=False)
+
+        with self.assertRaisesRegex(ValueError, full_msg):
+            zero.to_matrix(sparse=True)
+
+    def test_to_matrix_parallel_vs_serial(self):
+        """Parallel execution should produce the same results as serial execution up to
+        floating-point associativity effects."""
+        # Using powers-of-two coefficients to make floating-point arithmetic associative so we can
+        # do bit-for-bit assertions.  Choose labels that have at least few overlapping locations.
+        labels = ["XZIXYX", "YIIYXY", "ZZZIIZ", "IIIIII"]
+        coeffs = [0.25, 0.125j, 0.5 - 0.25j, -0.125 + 0.5j]
+        obs = SparseObservable.from_list(list(zip(labels, coeffs)))
+        num_qubits = len(labels[0])
+        size = 1 << num_qubits
+
+        data_p, indices_p, indptr_p = obs.to_matrix(sparse=True, force_serial=False)
+        data_s, indices_s, indptr_s = obs.to_matrix(sparse=True, force_serial=True)
+
+        sparse_parallel = csr_matrix((data_p, indices_p, indptr_p), shape=(size, size)).toarray()
+        sparse_serial = csr_matrix((data_s, indices_s, indptr_s), shape=(size, size)).toarray()
+
+        np.testing.assert_array_equal(sparse_parallel, sparse_serial)
+        np.testing.assert_array_equal(
+            obs.to_matrix(sparse=False, force_serial=False),
+            obs.to_matrix(sparse=False, force_serial=True),
+        )
+
+    def test_to_matrix_parameters(self):
+        """Test to_matrix with object-dtype coefficients in SparseObservable."""
+        labels = ["XI", "YZ", "YY", "ZZ"]
+        coeffs = np.array([1 + 2j, 3, 4.5j, -7 + 0.5j], dtype=object)
+
+        obs = SparseObservable.from_list(list(zip(labels, coeffs)))
+
+        num_qubits = len(labels[0])
+        size = 1 << num_qubits
+
+        target = np.zeros((size, size), dtype=complex)
+        for coeff, label in zip(coeffs, labels):
+            target += complex(coeff) * pauli_mat(label)
+
+        dense = obs.to_matrix(sparse=False)
+        np.testing.assert_array_equal(dense, target)
 
     def test_as_paulis(self):
         """Test converting to Paulis."""
