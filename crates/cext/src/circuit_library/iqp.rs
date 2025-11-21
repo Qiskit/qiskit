@@ -11,66 +11,8 @@
 // that they have been altered from the originals.
 
 use ndarray::ArrayView2;
-use qiskit_circuit::{circuit_data::CircuitData, operations::{Param, StandardGate}, Qubit};
-use smallvec::{smallvec, SmallVec};
-use qiskit_circuit_library::iqp::py_random_iqp;
-
-/// π/2 and π/4 constants reused for phase computations.
-const PI2: f64 = std::f64::consts::PI / 2.0;
-const PI4: f64 = std::f64::consts::PI / 4.0;
-
-/// Build the IQP instruction stream from the integer interaction matrix `m`.
-/// Layout:
-///   H^{⊗n}
-///   CPhase(π/2 * m[i,j]) for i<j where m[i,j] % 4 != 0
-///   Phase(π/4 * m[i,i])  where m[i,i] % 8 != 0
-///   H^{⊗n}
-
-fn iqp_instructions(interactions: ArrayView2<'_, i64>,
-) -> impl Iterator<Item = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>)> + '_ {
-
-    let num_qubits = interactions.ncols();
-
-    // The initial and final Hadamard layer.
-    let h_layer = (0..num_qubits).map(|i| (StandardGate::H, smallvec![], smallvec![Qubit(i as u32)]));
-
-    // The circuit interactions are powers of the CS gate, which is implemented by calling
-    // the CPhase gate with angles of Pi/2 times the power. The gate powers are given by the
-    // upper triangular part of the symmetric ``interactions`` matrix.
-    let connections = (0..num_qubits).flat_map(move |i| {
-        (i + 1..num_qubits)
-            .map(move |j| (j, interactions[(i, j)]))
-            .filter(move |(_, value)| value % 4 != 0)
-            .map(move |(j, value)| {
-                (
-                    StandardGate::CPhase,
-                    smallvec![Param::Float(PI2 * value as f64)],
-                    smallvec![Qubit(i as u32), Qubit(j as u32)],
-                )
-            })
-    });
-
-    // The layer of T gates. Again we use the Phase gate, now with powers of Pi/4. The powers
-    // are given by the diagonal of the ``interactions`` matrix.
-    let shifts = (0..num_qubits)
-        .map(move |i| interactions[(i, i)])
-        .enumerate()
-        .filter(|(_, value)| value % 8 != 0)
-        .map(|(i, value)| {
-            (
-                StandardGate::Phase,
-                smallvec![Param::Float(PI4 * value as f64)],
-                smallvec![Qubit(i as u32)],
-            )
-        });
-
-    h_layer
-        .clone()
-        .chain(connections)
-        .chain(shifts)
-        .chain(h_layer)
-}
-
+use qiskit_circuit::{circuit_data::CircuitData, operations::Param};
+use qiskit_circuit_library::iqp::{iqp, py_random_iqp};
 
 /// Internal helper: build `CircuitData` from a *validated* view.
 ///
@@ -83,12 +25,30 @@ fn iqp_from_view(view : ArrayView2<'_, i64>) -> CircuitData {
 
     CircuitData::from_standard_gates(
         nrows as u32,
-        iqp_instructions(view),
+        iqp(view),
         Param::Float(0.0)
     ).unwrap()
 }
 
-
+/// Generate an IQP circuit from an integer interaction matrix.
+///
+/// The `interactions` matrix is interpreted as an `n x n` row-major array of
+/// 64-bit integers, where `n = num_qubits`. The diagonal entries set T-like
+/// phase powers, and the upper triangle encodes two-qubit CPhase interactions.
+/// The matrix must be symmetric; otherwise this function returns `NULL`.
+///
+/// # Parameters
+///
+/// - `num_qubits`: Number of logical qubits (`n`). Must match the dimension of
+///   the `interactions` matrix.
+/// - `interactions`: Pointer to a row-major `n x n` matrix of type `int64_t`.
+///
+/// # Returns
+///
+/// - A newly allocated `QkCircuit*` on success (caller must free with
+///   `qk_circuit_free`).
+/// - `NULL` if the input pointer is `NULL`, `num_qubits` is zero, or the
+///   matrix is not symmetric.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_circuit_library_iqp_(
@@ -130,7 +90,14 @@ pub extern "C" fn qk_circuit_library_iqp_(
     Box::into_raw(Box::new(circuit_data))
 }
 
-
+/// Generate a random IQP circuit.
+///
+/// # Parameters
+/// - `num_qubits`: Number of qubits.
+/// - `seed`: RNG seed. If negative, entropy is drawn from the OS.
+///
+/// # Returns
+/// - A newly allocated `QkCircuit*` (caller must free with `qk_circuit_free`).
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_circuit_library_random_iqp_(
