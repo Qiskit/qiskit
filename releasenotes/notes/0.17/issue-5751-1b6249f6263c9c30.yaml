@@ -5,8 +5,8 @@ features:
     :py:class:`qiskit.transpiler.passes.RZXCalibrationBuilder`, capable
     of generating calibrations and adding them to a quantum circuit has been
     introduced. This pass takes calibrated
-    :class:`~qiskit.circuit.library.CXGate` objects and creates the
-    calibrations for :class:`qiskit.circuit.library.RZXGate` objects with an
+    :class:`~qiskit.circuit.library.CXGate` instances and creates the
+    calibrations for :class:`qiskit.circuit.library.RZXGate` instances with an
     arbitrary rotation angle. The schedules are created by stretching and
     compressing the :class:`~qiskit.pulse.GaussianSquare` pulses of the
     echoed-cross resonance gates.

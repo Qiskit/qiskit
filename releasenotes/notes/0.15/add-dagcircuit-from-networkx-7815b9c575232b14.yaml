@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    A new method for constructing :class:`qiskit.dagcircuit.DAGCircuit` objects
+    A new method for constructing :class:`qiskit.dagcircuit.DAGCircuit` instances
     has been added, :meth:`~qiskit.dagcircuit.DAGCircuit.from_networkx`. This
     method takes in a networkx ``MultiDiGraph`` object (in the format returned
     by :meth:`~qiskit.dagcircuit.DAGCircuit.to_networkx`) and will return a

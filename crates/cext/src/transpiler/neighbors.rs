@@ -158,7 +158,7 @@ pub unsafe extern "C" fn qk_neighbors_from_target(
 /// After calling this function, the `QkNeighbors` object will contain null pointers in all its
 /// allocations and present as if it represents all-to-all connectivity.
 ///
-/// This should only be called on `QkNeighbors` objects that were initialized by
+/// This should only be called on `QkNeighbors` instances that were initialized by
 /// `qk_neighbors_from_target`.
 ///
 /// @param neighbors A pointer to a ``QkNeighbors`` object.

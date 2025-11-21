@@ -332,7 +332,7 @@ class GenericBackendV2(BackendV2):
 
         Raises:
             QiskitError: If input is not :class:`~qiskit.circuit.QuantumCircuit` or a list of
-            :class:`~qiskit.circuit.QuantumCircuit` objects.
+            :class:`~qiskit.circuit.QuantumCircuit` instances.
         """
         circuits = run_input
         if not isinstance(circuits, QuantumCircuit) and (

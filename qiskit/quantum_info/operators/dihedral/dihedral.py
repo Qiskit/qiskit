@@ -90,7 +90,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
      if the number of qubits is more than two.
 
      CNOTDihedral operators can also be converted to
-     :class:`~qiskit.quantum_info.Operator` objects using the
+     :class:`~qiskit.quantum_info.Operator` instances using the
      :meth:`to_operator` method. This is done via decomposing to a circuit,
      and then simulating the circuit as a unitary operator.
 

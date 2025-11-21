@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Unbound :class:`~qiskit.circuit.Parameter` objects used in a
+    Unbound :class:`~qiskit.circuit.Parameter` instances used in a
     :class:`~qiskit.circuit.QuantumCircuit` object will now be sorted
     by name. This will take effect for the parameters returned by the
     :attr:`~qiskit.circuit.QuantumCircuit.parameters` attribute. Additionally,

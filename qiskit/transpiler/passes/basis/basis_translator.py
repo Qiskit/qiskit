@@ -38,7 +38,7 @@ class BasisTranslator(TransformationPass):
       is not already in the target_basis.
 
     If the target keyword argument is specified and that
-    :class:`~qiskit.transpiler.Target` objects contains operations
+    :class:`~qiskit.transpiler.Target` instances contains operations
     which are non-global (i.e. they are defined only for a subset of qubits),
     as calculated by :meth:`~qiskit.transpiler.Target.get_non_global_operation_names`,
     this pass will attempt to match the output translation to those constraints.

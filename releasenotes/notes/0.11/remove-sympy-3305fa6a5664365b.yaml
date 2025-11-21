@@ -16,5 +16,5 @@ other:
   - |
     All sympy parameter output type support have been been removed (or
     deprecated as noted) from qiskit-terra. This includes sympy type
-    parameters in ``QuantumCircuit`` objects, qasm ast nodes, or ``Qobj``
+    parameters in ``QuantumCircuit`` instances, qasm ast nodes, or ``Qobj``
     objects.

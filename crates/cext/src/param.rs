@@ -987,7 +987,7 @@ pub unsafe extern "C" fn qk_param_conjugate(out: *mut Param, src: *const Param) 
 /// @param lhs A pointer to the left hand side ``QkParam``.
 /// @param rhs A pointer to the right hand side ``QkParam``.
 ///
-/// @return ``true`` if the ``QkParam`` objects are equal, ``false`` otherwise.
+/// @return ``true`` if the ``QkParam`` instances are equal, ``false`` otherwise.
 ///
 /// # Example
 ///

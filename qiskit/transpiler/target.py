@@ -369,7 +369,7 @@ class Target(BaseTarget):
     def add_instruction(self, instruction, properties=None, name=None, *, angle_bounds=None):
         """Add a new instruction to the :class:`~qiskit.transpiler.Target`
 
-        As ``Target`` objects are strictly additive this is the primary method
+        As ``Target`` instances are strictly additive this is the primary method
         for modifying a ``Target``. Typically, you will use this to fully populate
         a ``Target`` before using it in :class:`~qiskit.providers.BackendV2`. For
         example::
@@ -827,7 +827,7 @@ class Target(BaseTarget):
                 be supported on all qubits (or pairs of qubits).
             instruction_durations: Optional instruction durations for instructions. If specified
                 it will take priority for setting the ``duration`` field in the
-                :class:`~InstructionProperties` objects for the instructions in the target.
+                :class:`~InstructionProperties` instances for the instructions in the target.
             concurrent_measurements(list): A list of sets of qubits that must be
                 measured together. This must be provided
                 as a nested list like ``[[0, 1], [2, 3, 4]]``.

@@ -866,7 +866,7 @@ impl PyParameterExpression {
     /// .. note::
     ///
     ///     Qiskit guarantees equality (via ``==``) of parameters retrieved from an expression
-    ///     with the original :class:`.Parameter` objects used to create this expression,
+    ///     with the original :class:`.Parameter` instances used to create this expression,
     ///     but does **not guarantee** ``is`` comparisons to succeed.
     ///
     #[getter]

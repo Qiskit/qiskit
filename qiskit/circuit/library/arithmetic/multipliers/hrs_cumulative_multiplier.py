@@ -61,7 +61,7 @@ class HRSCumulativeMultiplier(Multiplier):
 
     .. seealso::
 
-        The :class:`.MultiplierGate` objects represents a multiplication, like this circuit class,
+        The :class:`.MultiplierGate` instances represents a multiplication, like this circuit class,
         but allows the compiler to select the optimal decomposition based on the context.
         Specific implementations can be set via the :class:`.HLSConfig`, e.g. this circuit
         can be chosen via ``Multiplier=["cumulative_h18"]``.
