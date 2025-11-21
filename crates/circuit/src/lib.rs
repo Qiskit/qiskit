@@ -16,6 +16,7 @@ pub mod annotation;
 pub mod bit;
 pub mod bit_locator;
 pub mod circuit_data;
+pub mod circuit_drawer;
 pub mod circuit_instruction;
 pub mod classical;
 pub mod converters;
@@ -36,9 +37,8 @@ pub mod parameter_table;
 pub mod register_data;
 pub mod slice;
 pub mod util;
-pub mod vf2;
-
 mod variable_mapper;
+pub mod vf2;
 
 use pyo3::PyTypeInfo;
 use pyo3::exceptions::PyValueError;
@@ -256,6 +256,7 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<parameter::parameter_expression::PyParameterVectorElement>()?;
     m.add_class::<parameter::parameter_expression::OpCode>()?;
     m.add_class::<parameter::parameter_expression::OPReplay>()?;
+    m.add_function(wrap_pyfunction!(circuit_drawer::py_drawer, m)?)?;
     let classical_mod = PyModule::new(m.py(), "classical")?;
     classical::register_python(&classical_mod)?;
     m.add_submodule(&classical_mod)?;
