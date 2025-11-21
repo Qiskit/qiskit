@@ -120,7 +120,9 @@ pub extern "C" fn qk_transpiler_default_options() -> TranspileOptions {
 /// Behavior is undefined if ``dag``, ``target``, or ``layout``, are not valid, non-null
 /// pointers to a ``QkDag``, ``QkTarget``, or a ``QkTranspileLayout`` pointer
 /// respectively. ``options`` must be a valid pointer a to a ``QkTranspileOptions`` or ``NULL``.
-/// ``error`` must be a valid pointer to a ``char`` pointer or ``NULL``.
+/// ``error`` must be a valid pointer to a ``char`` pointer or ``NULL``. The value of the inner
+/// pointer for ``layout`` will be overwritten by this function. If the value pointed too needs to
+/// be freed this must be done outside of this function as it will not be freed by this function.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_stage_init(
@@ -172,7 +174,7 @@ pub unsafe extern "C" fn qk_transpile_stage_init(
             // SAFETY: Per the documentation result is a non-null aligned pointer to a pointer to
             // a QKTranspileLayout
             unsafe {
-                *layout = Box::into_raw(Box::new(out_layout));
+                layout.write(Box::into_raw(Box::new(out_layout)));
             }
             ExitCode::Success
         }
