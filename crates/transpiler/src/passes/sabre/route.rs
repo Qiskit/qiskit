@@ -44,7 +44,7 @@ use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder, NodeType, Wire}
 use qiskit_circuit::nlayout::NLayout;
 use qiskit_circuit::operations::{ControlFlow, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
-use qiskit_circuit::{PhysicalQubit, Qubit, VirtualQubit, getenv_use_multiple_threads};
+use qiskit_circuit::{BlocksMode, PhysicalQubit, Qubit, VirtualQubit, getenv_use_multiple_threads};
 
 /// Number of trials for control flow block swap epilogues.
 const SWAP_EPILOGUE_TRIALS: usize = 4;
@@ -128,7 +128,7 @@ impl RoutingResult<'_> {
             self.num_qubits(),
             self.dag.num_ops() + num_swaps,
             self.dag.dag().edge_count() + 2 * num_swaps,
-            false,
+            BlocksMode::Drop,
         )?;
         self.rebuild_onto(dag, |q| q)
     }

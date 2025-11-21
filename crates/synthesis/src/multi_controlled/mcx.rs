@@ -14,10 +14,10 @@ use pyo3::prelude::*;
 use pyo3::types::PyAnyMethods;
 use pyo3::{PyResult, Python};
 use qiskit_circuit::circuit_data::{CircuitData, CircuitError};
-use qiskit_circuit::imports;
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, PyGate, StandardGate, multiply_param,
 };
+use qiskit_circuit::{BlocksMode, imports};
 use qiskit_circuit::{Clbit, Qubit, VarsMode};
 use smallvec::SmallVec;
 
@@ -229,7 +229,8 @@ impl CircuitDataForSynthesis for CircuitData {
     fn inverse(&self) -> PyResult<CircuitData> {
         let inverse_global_phase = multiply_param(self.global_phase(), -1.0);
 
-        let mut inverse_circuit = CircuitData::copy_empty_like(self, VarsMode::Alike, true)?;
+        let mut inverse_circuit =
+            CircuitData::copy_empty_like(self, VarsMode::Alike, BlocksMode::Keep)?;
         inverse_circuit.set_global_phase(inverse_global_phase)?;
 
         let data = self.data();

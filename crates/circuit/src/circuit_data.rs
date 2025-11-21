@@ -36,7 +36,7 @@ use crate::parameter::symbol_expr::{Symbol, Value};
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
 use crate::register_data::RegisterData;
 use crate::slice::{PySequenceIndex, SequenceIndex};
-use crate::{Block, Clbit, Qubit, Stretch, Var, VarsMode, instruction};
+use crate::{Block, BlocksMode, Clbit, Qubit, Stretch, Var, VarsMode, instruction};
 
 use num_complex::Complex64;
 use numpy::PyReadonlyArray1;
@@ -740,7 +740,7 @@ impl CircuitData {
     ///     CircuitData: The shallow copy.
     #[pyo3(signature = (copy_instructions=true, deepcopy=false))]
     pub fn copy(&self, py: Python<'_>, copy_instructions: bool, deepcopy: bool) -> PyResult<Self> {
-        let mut res = self.copy_empty_like(VarsMode::Alike, true)?;
+        let mut res = self.copy_empty_like(VarsMode::Alike, BlocksMode::Keep)?;
         res.qargs_interner = self.qargs_interner.clone();
         res.cargs_interner = self.cargs_interner.clone();
         res.reserve(self.data().len());
@@ -814,7 +814,7 @@ impl CircuitData {
     /// CircuitData: The empty copy like self.
     #[pyo3(name = "copy_empty_like", signature = (*, vars_mode=VarsMode::Alike))]
     pub fn py_copy_empty_like(&self, vars_mode: VarsMode) -> PyResult<Self> {
-        self.copy_empty_like(vars_mode, false)
+        self.copy_empty_like(vars_mode, BlocksMode::Drop)
     }
 
     /// Reserves capacity for at least ``additional`` more
@@ -1933,7 +1933,7 @@ impl CircuitData {
         })
     }
 
-    pub fn copy_empty_like(&self, vars_mode: VarsMode, copy_blocks: bool) -> PyResult<Self> {
+    pub fn copy_empty_like(&self, vars_mode: VarsMode, blocks_mode: BlocksMode) -> PyResult<Self> {
         let mut res = CircuitData::new(
             Some(self.qubits.objects().clone()),
             Some(self.clbits.objects().clone()),
@@ -1945,7 +1945,7 @@ impl CircuitData {
         res.qargs_interner = self.qargs_interner.clone();
         res.cargs_interner = self.cargs_interner.clone();
 
-        if copy_blocks && !self.blocks.is_empty() {
+        if blocks_mode == BlocksMode::Keep && !self.blocks.is_empty() {
             Python::attach(|py| -> PyResult<()> {
                 // We deepcopy the blocks because QuantumCircuit.copy
                 // promises a deepcopy of all instruction params.
@@ -3150,12 +3150,12 @@ impl CircuitData {
     ///   If `None` the length of `other` will be used, if `Some` the integer
     ///   value will be used as the capacity.
     /// * vars_mode - The mode to use for handling variables.
-    /// * copy_blocks - Whether to copy basic blocks registered with the circuit.
+    /// * blocks_mode - The mode to use for handling basic blocks registered with the circuit.
     pub fn clone_empty_like(
         other: &Self,
         capacity: Option<usize>,
         vars_mode: VarsMode,
-        copy_blocks: bool,
+        blocks_mode: BlocksMode,
     ) -> PyResult<Self> {
         let mut res = CircuitData {
             data: Vec::with_capacity(capacity.unwrap_or(other.data.len())),
@@ -3163,7 +3163,7 @@ impl CircuitData {
             cargs_interner: other.cargs_interner.clone(),
             qubits: other.qubits.clone(),
             clbits: other.clbits.clone(),
-            blocks: if copy_blocks {
+            blocks: if blocks_mode == BlocksMode::Keep {
                 other.blocks.clone()
             } else {
                 Default::default()
@@ -3418,8 +3418,12 @@ impl CircuitData {
 
     /// Return a copy of the circuit with instructions in reverse order
     pub fn reverse(self) -> PyResult<Self> {
-        let mut out =
-            Self::clone_empty_like(&self, Some(self.data().len()), VarsMode::Alike, true)?;
+        let mut out = Self::clone_empty_like(
+            &self,
+            Some(self.data().len()),
+            VarsMode::Alike,
+            BlocksMode::Keep,
+        )?;
         for inst in self.data().iter().rev() {
             out.push(inst.clone())?;
         }

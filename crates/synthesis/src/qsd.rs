@@ -33,7 +33,7 @@ use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::{ArrayType, OperationRef, Param, StandardGate, UnitaryGate};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
-use qiskit_circuit::{Qubit, VarsMode};
+use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 use qiskit_quantum_info::convert_2q_block_matrix::instructions_to_matrix;
 
 const EPS: f64 = 1e-10;
@@ -730,7 +730,7 @@ fn apply_a2(
                 - ind2q.len(),
         ),
         VarsMode::Alike,
-        false,
+        BlocksMode::Drop,
     )?;
     for (idx, inst) in circ.data().iter().enumerate() {
         if let Some(new_circ) = diagonal_rollover.get(&idx) {

@@ -22,7 +22,6 @@ use pyo3::Python;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
-use qiskit_circuit::VarsMode;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::dag_to_circuit;
@@ -33,6 +32,7 @@ use qiskit_circuit::instruction::Instruction;
 use qiskit_circuit::operations::StandardGate::{I, X, Y, Z};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
+use qiskit_circuit::{BlocksMode, VarsMode};
 use qiskit_transpiler::passes::run_optimize_1q_gates_decomposition;
 use qiskit_transpiler::target::Target;
 use rand::prelude::*;
@@ -228,7 +228,7 @@ fn generate_twirled_circuit(
     custom_gate_map: Option<&CustomGateTwirlingMap>,
     optimizer_target: Option<&Target>,
 ) -> PyResult<CircuitData> {
-    let mut out_circ = CircuitData::copy_empty_like(circ, VarsMode::Alike, false)?;
+    let mut out_circ = CircuitData::copy_empty_like(circ, VarsMode::Alike, BlocksMode::Drop)?;
 
     for inst in circ.data().iter() {
         if let Some(custom_gate_map) = custom_gate_map {

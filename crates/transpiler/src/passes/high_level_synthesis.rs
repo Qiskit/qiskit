@@ -33,7 +33,7 @@ use qiskit_circuit::operations::{Operation, OperationRef};
 use qiskit_circuit::operations::{Param, radd_param};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::{Clbit, Qubit, VarsMode};
+use qiskit_circuit::{BlocksMode, Clbit, Qubit, VarsMode};
 use smallvec::SmallVec;
 
 use crate::TranspilerError;
@@ -534,7 +534,7 @@ fn run_on_circuitdata(
     // It does not distribute ancilla qubits between different operations present in the circuit.
 
     let mut output_circuit: CircuitData =
-        CircuitData::copy_empty_like(input_circuit, VarsMode::Alike, false)?;
+        CircuitData::copy_empty_like(input_circuit, VarsMode::Alike, BlocksMode::Drop)?;
     let mut output_qubits = input_qubits.to_vec();
 
     // The "inverse" map from the global qubits to the output circuit's qubits.

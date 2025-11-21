@@ -42,8 +42,8 @@ use crate::register_data::RegisterData;
 use crate::slice::PySequenceIndex;
 use crate::variable_mapper::VariableMapper;
 use crate::{
-    Block, Clbit, Qubit, Stretch, TupleLikeArg, Var, VarsMode, converters, imports, instruction,
-    vf2,
+    Block, BlocksMode, Clbit, Qubit, Stretch, TupleLikeArg, Var, VarsMode, converters, imports,
+    instruction, vf2,
 };
 
 use hashbrown::{HashMap, HashSet};
@@ -1380,7 +1380,7 @@ impl DAGCircuit {
     ///     DAGCircuit: An empty copy of self.
     #[pyo3(signature = (*, vars_mode=VarsMode::Alike))]
     pub fn copy_empty_like(&self, vars_mode: VarsMode) -> PyResult<Self> {
-        self.copy_empty_like_with_capacity(0, 0, vars_mode, false)
+        self.copy_empty_like_with_capacity(0, 0, vars_mode, BlocksMode::Drop)
     }
 
     /// Put ``self`` into the canonical physical form, with the given number of qubits.
@@ -5235,13 +5235,13 @@ impl DAGCircuit {
     pub fn copy_empty_like_with_same_capacity(
         &self,
         vars_mode: VarsMode,
-        copy_blocks: bool,
+        blocks_mode: BlocksMode,
     ) -> PyResult<Self> {
         self.copy_empty_like_with_capacity(
             self.dag.node_count().saturating_sub(2 * self.width()),
             self.dag.edge_count(),
             vars_mode,
-            copy_blocks,
+            blocks_mode,
         )
     }
 
@@ -5255,14 +5255,14 @@ impl DAGCircuit {
         num_ops: usize,
         num_edges: usize,
         vars_mode: VarsMode,
-        copy_blocks: bool,
+        blocks_mode: BlocksMode,
     ) -> PyResult<Self> {
         let mut out = self.qubitless_empty_like_with_capacity(
             self.num_qubits(),
             num_ops,
             num_edges,
             vars_mode,
-            copy_blocks,
+            blocks_mode,
         )?;
         for bit in self.qubits.objects() {
             out.add_qubit_unchecked(bit.clone())?;
@@ -5292,14 +5292,14 @@ impl DAGCircuit {
         num_qubits: usize,
         num_ops: usize,
         num_edges: usize,
-        copy_blocks: bool,
+        blocks_mode: BlocksMode,
     ) -> PyResult<Self> {
         let mut out = self.qubitless_empty_like_with_capacity(
             num_qubits,
             num_ops,
             num_edges,
             VarsMode::Alike,
-            copy_blocks,
+            blocks_mode,
         )?;
         out.add_qreg(QuantumRegister::new_owning("q", num_qubits as u32))?;
         Ok(out)
@@ -5327,7 +5327,7 @@ impl DAGCircuit {
         num_ops: usize,
         num_edges: usize,
         vars_mode: VarsMode,
-        copy_blocks: bool,
+        blocks_mode: BlocksMode,
     ) -> PyResult<Self> {
         let (num_vars, num_stretches) = match vars_mode {
             VarsMode::Drop => (0, 0),
@@ -5394,7 +5394,7 @@ impl DAGCircuit {
             }
             VarsMode::Drop => (),
         };
-        if copy_blocks {
+        if blocks_mode == BlocksMode::Keep {
             target_dag.blocks = self.blocks.clone();
         }
         Ok(target_dag)

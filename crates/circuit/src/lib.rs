@@ -192,6 +192,14 @@ impl<'a, 'py> FromPyObject<'a, 'py> for VarsMode {
     }
 }
 
+/// The mode to use when handling blocks for operations that create a new [dag_circuit::DAGCircuit]
+/// or [circuit_data::CircuitData] based on an existing one.
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum BlocksMode {
+    Drop,
+    Keep,
+}
+
 #[inline]
 pub fn getenv_use_multiple_threads() -> bool {
     let parallel_context = env::var("QISKIT_IN_PARALLEL")
