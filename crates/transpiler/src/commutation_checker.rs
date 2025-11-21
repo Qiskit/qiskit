@@ -174,7 +174,7 @@ impl CommutationChecker {
         CommutationChecker::new(Some(library), cache_max_entries, gates)
     }
 
-    #[pyo3(signature=(op1, op2, max_num_qubits=3, approximation_degree=1.))]
+    #[pyo3(signature=(op1, op2, max_num_qubits=3, approximation_degree=1., matrix_max_num_qubits=3))]
     fn commute_nodes(
         &mut self,
         py: Python,
@@ -182,6 +182,7 @@ impl CommutationChecker {
         op2: &DAGOpNode,
         max_num_qubits: u32,
         approximation_degree: f64,
+        matrix_max_num_qubits: u32,
     ) -> PyResult<bool> {
         let (qargs1, qargs2) = get_bits_from_py::<Qubit>(
             op1.instruction.qubits.bind(py),
@@ -202,11 +203,12 @@ impl CommutationChecker {
             &qargs2,
             &cargs2,
             max_num_qubits,
+            matrix_max_num_qubits,
             approximation_degree,
         )?)
     }
 
-    #[pyo3(name="commute", signature=(op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits=3, approximation_degree=1.))]
+    #[pyo3(name="commute", signature=(op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits=3, approximation_degree=1., matrix_max_num_qubits=3))]
     #[allow(clippy::too_many_arguments)]
     fn py_commute(
         &mut self,
@@ -218,6 +220,7 @@ impl CommutationChecker {
         cargs2: &Bound<'_, PyTuple>,
         max_num_qubits: u32,
         approximation_degree: f64,
+        matrix_max_num_qubits: u32,
     ) -> PyResult<bool> {
         let (qargs1, qargs2) = get_bits_from_py::<Qubit>(qargs1, qargs2)?;
         let (cargs1, cargs2) = get_bits_from_py::<Clbit>(cargs1, cargs2)?;
@@ -232,6 +235,7 @@ impl CommutationChecker {
             &qargs2,
             &cargs2,
             max_num_qubits,
+            matrix_max_num_qubits,
             approximation_degree,
         )?)
     }
@@ -323,8 +327,15 @@ impl CommutationChecker {
         qargs2: &[Qubit],
         cargs2: &[Clbit],
         max_num_qubits: u32,
+        matrix_max_num_qubits: u32,
         approximation_degree: f64,
     ) -> Result<bool, CommutationError> {
+        if let Some(is_commuting) =
+            commutation_precheck_args(qargs1, cargs1, qargs2, cargs2, max_num_qubits)
+        {
+            return Ok(is_commuting);
+        }
+
         // If the average gate infidelity is below this tolerance, they commute. The tolerance
         // is set to max(1e-12, 1 - approximation_degree), to account for roundoffs and for
         // consistency with other places in Qiskit.
@@ -357,21 +368,11 @@ impl CommutationChecker {
             }
         }
 
-        let commutation: Option<bool> = commutation_precheck(
-            op1,
-            params1,
-            qargs1,
-            cargs1,
-            op2,
-            params2,
-            qargs2,
-            cargs2,
-            max_num_qubits,
-        );
-        if let Some(is_commuting) = commutation {
+        if let Some(is_commuting) = commutation_precheck_op_params(op1, params1, op2, params2) {
             return Ok(is_commuting);
         }
 
+        // Sort the arguments.
         let reversed = if op1.num_qubits() != op2.num_qubits() {
             op1.num_qubits() > op2.num_qubits()
         } else {
@@ -406,6 +407,12 @@ impl CommutationChecker {
             is_cachable(first_op, first_params) && is_cachable(second_op, second_params);
 
         if !check_cache {
+            // The arguments are sorted, so if qargs1.len() > matrix_max_num_qubits, then
+            // qargs1.len() > matrix_max_num_qubits as well.
+            if qargs2.len() > matrix_max_num_qubits as usize {
+                return Ok(false);
+            }
+
             return self.commute_matmul(
                 first_op,
                 first_params,
@@ -437,6 +444,12 @@ impl CommutationChecker {
             if let Some(commutation) = commutation_dict.get(&(relative_placement.clone(), hashes)) {
                 return Ok(*commutation);
             }
+        }
+
+        if qargs1.len() > matrix_max_num_qubits as usize
+            || qargs2.len() > matrix_max_num_qubits as usize
+        {
+            return Ok(false);
         }
 
         // Perform matrix multiplication to determine commutation
@@ -510,12 +523,12 @@ impl CommutationChecker {
         if first_qarg.len() > second_qarg.len() {
             return Err(CommutationError::FirstInstructionTooLarge);
         };
-        let first_mat = match get_matrix(first_op, first_params) {
+        let first_mat = match get_matrix(first_op, first_params, None, true) {
             Some(matrix) => matrix,
             None => return Ok(false),
         };
 
-        let second_mat = match get_matrix(second_op, second_params) {
+        let second_mat = match get_matrix(second_op, second_params, None, true) {
             Some(matrix) => matrix,
             None => return Ok(false),
         };
@@ -571,28 +584,32 @@ impl CommutationChecker {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
-fn commutation_precheck(
-    op1: &OperationRef,
-    params1: &[Param],
+fn commutation_precheck_args(
     qargs1: &[Qubit],
     cargs1: &[Clbit],
-    op2: &OperationRef,
-    params2: &[Param],
     qargs2: &[Qubit],
     cargs2: &[Clbit],
     max_num_qubits: u32,
 ) -> Option<bool> {
-    if op1.control_flow() || op2.control_flow() {
-        return Some(false);
-    }
-
     // assuming the number of involved qubits to be small, this might be faster than set operations
     if !qargs1.iter().any(|e| qargs2.contains(e)) && !cargs1.iter().any(|e| cargs2.contains(e)) {
         return Some(true);
     }
 
     if qargs1.len() > max_num_qubits as usize || qargs2.len() > max_num_qubits as usize {
+        return Some(false);
+    }
+
+    None
+}
+
+fn commutation_precheck_op_params(
+    op1: &OperationRef,
+    params1: &[Param],
+    op2: &OperationRef,
+    params2: &[Param],
+) -> Option<bool> {
+    if op1.control_flow() || op2.control_flow() {
         return Some(false);
     }
 
@@ -621,41 +638,52 @@ fn commutation_precheck(
     None
 }
 
-fn get_matrix(operation: &OperationRef, params: &[Param]) -> Option<Array2<Complex64>> {
+pub fn get_matrix(
+    operation: &OperationRef,
+    params: &[Param],
+    matrix_max_num_qubits: Option<u32>,
+    matrix_from_definition: bool,
+) -> Option<Array2<Complex64>> {
     if let Some(matrix) = operation.matrix(params) {
-        Some(matrix)
-    } else {
-        match operation {
-            OperationRef::Gate(gate) => Python::attach(|py| -> Option<_> {
-                Some(
-                    QI_OPERATOR
-                        .get_bound(py)
-                        .call1((gate.gate.clone_ref(py),))
-                        .ok()?
-                        .getattr(intern!(py, "data"))
-                        .ok()?
-                        .extract::<PyReadonlyArray2<Complex64>>()
-                        .ok()?
-                        .as_array()
-                        .to_owned(),
-                )
-            }),
-            OperationRef::Operation(operation) => Python::attach(|py| -> Option<_> {
-                Some(
-                    QI_OPERATOR
-                        .get_bound(py)
-                        .call1((operation.operation.clone_ref(py),))
-                        .ok()?
-                        .getattr(intern!(py, "data"))
-                        .ok()?
-                        .extract::<PyReadonlyArray2<Complex64>>()
-                        .ok()?
-                        .as_array()
-                        .to_owned(),
-                )
-            }),
-            _ => None,
-        }
+        return Some(matrix);
+    }
+
+    if !matrix_from_definition
+        || matrix_max_num_qubits.is_some_and(|max_qubits| max_qubits < operation.num_qubits())
+    {
+        return None;
+    }
+
+    match operation {
+        OperationRef::Gate(gate) => Python::attach(|py| -> Option<_> {
+            Some(
+                QI_OPERATOR
+                    .get_bound(py)
+                    .call1((gate.gate.clone_ref(py),))
+                    .ok()?
+                    .getattr(intern!(py, "data"))
+                    .ok()?
+                    .extract::<PyReadonlyArray2<Complex64>>()
+                    .ok()?
+                    .as_array()
+                    .to_owned(),
+            )
+        }),
+        OperationRef::Operation(operation) => Python::attach(|py| -> Option<_> {
+            Some(
+                QI_OPERATOR
+                    .get_bound(py)
+                    .call1((operation.operation.clone_ref(py),))
+                    .ok()?
+                    .getattr(intern!(py, "data"))
+                    .ok()?
+                    .extract::<PyReadonlyArray2<Complex64>>()
+                    .ok()?
+                    .as_array()
+                    .to_owned(),
+            )
+        }),
+        _ => None,
     }
 }
 
