@@ -440,7 +440,7 @@ impl<T: Default> VirtualInteractions<T> {
             .add_node(self.uncoupled.swap_remove(&q).unwrap_or_default())
     }
 }
-impl<T: ::std::fmt::Debug> VirtualInteractions<T> {
+impl<T> VirtualInteractions<T> {
     /// Move all the uncoupled qubits into the graph.
     ///
     /// This is useful for the case that the interaction weights have sufficient semantics that we
