@@ -2335,6 +2335,21 @@ class TestSparseObservable(QiskitTestCase):
         with self.assertRaisesRegex(ValueError, "duplicate indices in qargs"):
             SparseObservable.identity(5).compose("XYZX", qargs=[0, 1, 1, 0])
 
+    @ddt.data(
+        ("Y", "Y", True),
+        ("Y", "Z", False),
+        ("XX", "ZZ", True),
+        ("0XX", "0ZZ", True),
+        ("1XX", "0ZZ", True),
+        ("+XX", "0ZZ", False),
+    )
+    @ddt.unpack
+    def test_commute(self, p1, p2, expected):
+        """Test commutation"""
+        op1 = SparseObservable(p1)
+        op2 = SparseObservable(p2)
+        self.assertEqual(op1.commutes(op2), expected)
+
 
 def canonicalize_term(pauli, indices, coeff):
     # canonicalize a sparse list term by sorting by indices (which is unique as
