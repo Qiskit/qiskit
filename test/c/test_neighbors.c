@@ -23,7 +23,7 @@ static int test_all_to_all(void) {
     QkGate gates[3] = {QkGate_RZ, QkGate_SX, QkGate_CX};
     uint32_t num_qargs[3] = {1, 1, 2};
     for (size_t i = 0; i < sizeof(gates) / sizeof(gates[0]); i++) {
-        QkTargetEntry *entry = qk_target_entry_new(gates[i], NULL);
+        QkTargetEntry *entry = qk_target_entry_new(gates[i]);
         qk_target_entry_add_property(entry, NULL, num_qargs[i], NAN, NAN);
         qk_target_add_instruction(target, entry);
     }
@@ -67,14 +67,14 @@ static int test_multiq(void) {
     uint32_t num_qubits = 5;
     QkTarget *target = qk_target_new(num_qubits);
     // Simple line of CZ gates.
-    QkTargetEntry *cz_entry = qk_target_entry_new(QkGate_CZ, NULL);
+    QkTargetEntry *cz_entry = qk_target_entry_new(QkGate_CZ);
     for (uint32_t q = 1; q < num_qubits; q++) {
         uint32_t qargs[2] = {q - 1, q};
         qk_target_entry_add_property(cz_entry, qargs, 2, NAN, NAN);
     }
     qk_target_add_instruction(target, cz_entry);
     // Now let's add a CCX that links {0, 1, 4} so we can check there's no link in the output.
-    QkTargetEntry *ccx_entry = qk_target_entry_new(QkGate_CCX, NULL);
+    QkTargetEntry *ccx_entry = qk_target_entry_new(QkGate_CCX);
     uint32_t qargs[3] = {0, 1, 4};
     qk_target_entry_add_property(ccx_entry, qargs, 3, NAN, NAN);
     qk_target_add_instruction(target, ccx_entry);

@@ -24,7 +24,7 @@ static int test_transpile_bv(void) {
     QkTarget *target = qk_target_new(num_qubits);
     int result = Ok;
 
-    QkTargetEntry *x_entry = qk_target_entry_new(QkGate_X, NULL);
+    QkTargetEntry *x_entry = qk_target_entry_new(QkGate_X);
     for (uint32_t i = 0; i < num_qubits; i++) {
         uint32_t qargs[1] = {
             i,
@@ -35,7 +35,7 @@ static int test_transpile_bv(void) {
     }
     qk_target_add_instruction(target, x_entry);
 
-    QkTargetEntry *sx_entry = qk_target_entry_new(QkGate_SX, NULL);
+    QkTargetEntry *sx_entry = qk_target_entry_new(QkGate_SX);
     for (uint32_t i = 0; i < num_qubits; i++) {
         uint32_t qargs[1] = {
             i,
@@ -46,7 +46,7 @@ static int test_transpile_bv(void) {
     }
     qk_target_add_instruction(target, sx_entry);
 
-    QkTargetEntry *rz_entry = qk_target_entry_new(QkGate_RZ, NULL);
+    QkTargetEntry *rz_entry = qk_target_entry_new(QkGate_RZ);
     for (uint32_t i = 0; i < num_qubits; i++) {
         uint32_t qargs[1] = {
             i,
@@ -57,7 +57,7 @@ static int test_transpile_bv(void) {
     }
     qk_target_add_instruction(target, rz_entry);
 
-    QkTargetEntry *ecr_entry = qk_target_entry_new(QkGate_ECR, NULL);
+    QkTargetEntry *ecr_entry = qk_target_entry_new(QkGate_ECR);
     for (uint32_t i = 0; i < num_qubits - 1; i++) {
         uint32_t qargs[2] = {i, i + 1};
         double inst_error = 0.0090393 * (num_qubits - i);
@@ -163,12 +163,12 @@ static int test_transpile_idle_qubits(void) {
     params[0] = 1.681876;
     qk_circuit_gate(circuit, QkGate_CRZ, qargs, params);
     QkTarget *target = qk_target_new(num_qubits);
-    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX, NULL);
+    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
     for (uint32_t i = 0; i < num_qubits - 1; i++) {
         qk_target_entry_add_property(cx_entry, (uint32_t[]){i, i + 1}, 2, 0.001 * i, 0.002 * i);
     }
     qk_target_add_instruction(target, cx_entry);
-    qk_target_add_instruction(target, qk_target_entry_new(QkGate_U, NULL));
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_U));
 
     for (uint8_t opt_level = 0; opt_level < 4; opt_level++) {
         QkTranspileOptions transpile_options = {opt_level, 1234, 1.0};
@@ -214,9 +214,9 @@ cleanup:
 static int test_transpile_options_null(void) {
     const uint32_t n = 10;
     QkTarget *target = qk_target_new(n);
-    qk_target_add_instruction(target, qk_target_entry_new(QkGate_SX, NULL));
-    qk_target_add_instruction(target, qk_target_entry_new(QkGate_X, NULL));
-    qk_target_add_instruction(target, qk_target_entry_new(QkGate_RZ, NULL));
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_SX));
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_X));
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_RZ));
 
     QkCircuit *circuit = qk_circuit_new(3, 0);
     for (uint32_t i = 0; i < 3; i++) {

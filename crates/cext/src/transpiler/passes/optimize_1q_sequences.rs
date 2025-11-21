@@ -41,7 +41,7 @@ use qiskit_transpiler::{passes::run_optimize_1q_gates_decomposition, target::Tar
 ///     QkTarget *target = qk_target_new(1);
 ///     double u_errors[3] = {0., 1e-4, 1e-4};
 ///     for (int idx = 0; idx < 3; idx++) {
-///         QkTargetEntry *u_entry = qk_target_entry_new(QkGate_U, NULL);
+///         QkTargetEntry *u_entry = qk_target_entry_new(QkGate_U);
 ///         uint32_t qargs[1] = {
 ///             0,
 ///         };

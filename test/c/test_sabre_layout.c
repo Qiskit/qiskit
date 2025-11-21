@@ -28,8 +28,8 @@ static int test_sabre_layout_applies_layout(void) {
     const uint32_t num_qubits = 5;
     QkTarget *target = qk_target_new(num_qubits);
 
-    qk_target_add_instruction(target, qk_target_entry_new(QkGate_U, NULL));
-    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX, NULL);
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_U));
+    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
     for (uint32_t i = 0; i < num_qubits - 1; i++) {
         uint32_t qargs[2] = {i, i + 1};
         double inst_error = 0.0090393 * (num_qubits - i);
@@ -135,8 +135,8 @@ static int test_sabre_layout_no_swap(void) {
 
     const uint32_t num_qubits = 5;
     QkTarget *target = qk_target_new(num_qubits);
-    qk_target_add_instruction(target, qk_target_entry_new(QkGate_U, NULL));
-    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX, NULL);
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_U));
+    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
     for (uint32_t i = 0; i < num_qubits - 1; i++) {
         uint32_t qargs[2] = {i, i + 1};
         double inst_error = 0.0090393 * (num_qubits - i);

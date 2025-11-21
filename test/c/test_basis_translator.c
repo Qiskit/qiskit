@@ -28,8 +28,8 @@ static int test_circuit_in_basis(void) {
 
     // Create Target already compatible with the circuit.
     QkTarget *target = qk_target_new(1);
-    qk_target_add_instruction(target, qk_target_entry_new(QkGate_H, NULL));
-    qk_target_add_instruction(target, qk_target_entry_new(QkGate_CX, NULL));
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_H));
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_CX));
 
     // Run pass
     qk_transpiler_pass_standalone_basis_translator(circuit, target, 0);
@@ -75,7 +75,7 @@ static int test_basic_basis_translator(void) {
 
     // Create Target compatible with only U gates, with global props.
     QkTarget *target = qk_target_new(1);
-    qk_target_add_instruction(target, qk_target_entry_new(QkGate_U, NULL));
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_U));
 
     // Run pass
     qk_transpiler_pass_standalone_basis_translator(circuit, target, 0);
@@ -113,10 +113,10 @@ static int test_toffoli_basis_translator(void) {
 
     // Create Target compatible with only U gates, with global props.
     QkTarget *target = qk_target_new(3);
-    qk_target_add_instruction(target, qk_target_entry_new(QkGate_H, NULL));
-    qk_target_add_instruction(target, qk_target_entry_new(QkGate_T, NULL));
-    qk_target_add_instruction(target, qk_target_entry_new(QkGate_Tdg, NULL));
-    qk_target_add_instruction(target, qk_target_entry_new(QkGate_CX, NULL));
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_H));
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_T));
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_Tdg));
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_CX));
 
     // Run pass
     qk_transpiler_pass_standalone_basis_translator(circuit, target, 0);

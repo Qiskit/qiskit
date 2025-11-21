@@ -21,24 +21,24 @@
 
 static int build_unitary_target(QkTarget *target, uint32_t num_qubits) {
     // Create a target with cx connectivity in a line.
-    QkExitCode result_x = qk_target_add_instruction(target, qk_target_entry_new(QkGate_X, NULL));
+    QkExitCode result_x = qk_target_add_instruction(target, qk_target_entry_new(QkGate_X));
     if (result_x != QkExitCode_Success) {
         printf("Unexpected error occurred when adding a global X gate.");
         return RuntimeError;
     }
-    QkExitCode result_sx = qk_target_add_instruction(target, qk_target_entry_new(QkGate_SX, NULL));
+    QkExitCode result_sx = qk_target_add_instruction(target, qk_target_entry_new(QkGate_SX));
     if (result_sx != QkExitCode_Success) {
         printf("Unexpected error occurred when adding a global SX gate.");
         return RuntimeError;
     }
 
-    QkExitCode result_rz = qk_target_add_instruction(target, qk_target_entry_new(QkGate_RZ, NULL));
+    QkExitCode result_rz = qk_target_add_instruction(target, qk_target_entry_new(QkGate_RZ));
     if (result_rz != QkExitCode_Success) {
         printf("Unexpected error occurred when adding a global RZ gate.");
         return RuntimeError;
     }
 
-    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX, NULL);
+    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
     for (uint32_t i = 0; i < num_qubits - 1; i++) {
         uint32_t qargs[2] = {i, i + 1};
         double inst_error = 0.0090393 * (num_qubits - i);

@@ -19,7 +19,10 @@ Here's an example of how this structure works:
     #include <math.h>
 
     // Create a Target Entry for a CX Gate
-    QkTargetEntry *entry = qk_target_entry_new(QkGate_CX, NULL);
+    QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
+
+    // Set a name for the entry
+    qk_target_entry_set_name(entry, "cx_gate");
 
     // Add mapping between (0,1) and properties duration of 10e-9 and unknown error.
     uint32_t qargs[2] = {0, 1};

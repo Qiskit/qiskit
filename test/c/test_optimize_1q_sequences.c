@@ -28,7 +28,7 @@ static QkTarget *get_u1_u2_u3_target(void) {
     double u_errors[3] = {0., 1e-4, 1e-4};
     QkGate u_gates[3] = {QkGate_U1, QkGate_U2, QkGate_U3};
     for (int idx = 0; idx < 3; idx++) {
-        QkTargetEntry *u_entry = qk_target_entry_new(u_gates[idx], NULL);
+        QkTargetEntry *u_entry = qk_target_entry_new(u_gates[idx]);
         uint32_t qargs[1] = {
             0,
         };
@@ -48,7 +48,7 @@ static QkTarget *get_rz_rx_target(void) {
     QkGate r_gates[2] = {QkGate_RZ, QkGate_RX};
 
     for (int idx = 0; idx < 2; idx++) {
-        QkTargetEntry *r_entry = qk_target_entry_new(r_gates[idx], NULL);
+        QkTargetEntry *r_entry = qk_target_entry_new(r_gates[idx]);
         uint32_t qargs[1] = {
             0,
         };
@@ -70,7 +70,7 @@ static QkTarget *get_rz_sx_target(void) {
 
     for (int idx = 0; idx < 2; idx++) {
         QkTargetEntry *entry;
-        entry = qk_target_entry_new(gates[idx], NULL);
+        entry = qk_target_entry_new(gates[idx]);
         uint32_t qargs[1] = {
             0,
         };
@@ -90,7 +90,7 @@ static QkTarget *get_rz_ry_u_target(void) {
     QkGate u_gates[3] = {QkGate_RZ, QkGate_RY, QkGate_U};
 
     for (int idx = 0; idx < 3; idx++) {
-        QkTargetEntry *u_entry = qk_target_entry_new(u_gates[idx], NULL);
+        QkTargetEntry *u_entry = qk_target_entry_new(u_gates[idx]);
         uint32_t qargs[1] = {
             0,
         };
@@ -108,7 +108,7 @@ static QkTarget *get_rz_ry_u_noerror_target(void) {
     QkGate u_gates[3] = {QkGate_RZ, QkGate_RY, QkGate_U};
 
     for (int idx = 0; idx < 3; idx++) {
-        QkTargetEntry *u_entry = qk_target_entry_new(u_gates[idx], NULL);
+        QkTargetEntry *u_entry = qk_target_entry_new(u_gates[idx]);
         qk_target_add_instruction(target_rz_ry_u_noerror, u_entry);
     }
     return target_rz_ry_u_noerror;

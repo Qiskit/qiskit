@@ -240,7 +240,7 @@ static int test_non_cx_target(void) {
     QkTarget *target = qk_target_new(2);
     QkGate gates[4] = {QkGate_SX, QkGate_X, QkGate_RZ, QkGate_CZ};
     for (int idx = 0; idx < 4; idx++) {
-        QkTargetEntry *entry = qk_target_entry_new(gates[idx], NULL);
+        QkTargetEntry *entry = qk_target_entry_new(gates[idx]);
         if (gates[idx] == QkGate_CZ) {
             qk_target_entry_add_property(entry, (uint32_t[2]){0, 1}, 2, NAN, NAN);
             qk_target_entry_add_property(entry, (uint32_t[2]){1, 0}, 2, NAN, NAN);
