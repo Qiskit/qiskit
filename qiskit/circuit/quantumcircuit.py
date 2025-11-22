@@ -1960,6 +1960,22 @@ class QuantumCircuit:
         power_circuit.append(gate.power(power, annotated=annotated), list(range(gate.num_qubits)))
         return power_circuit
 
+    @deprecate_arg(
+        name="annotated",
+        since="2.3",
+        additional_msg=(
+            "The method QuantumCircuit.control() no longer accepts `annotated=None`. "
+            "The new default is `annotated=True`, which represents the controlled gate "
+            "in the new quantum circuit as an `AnnotatedOperation` "
+            "(unless a dedicated controlled-gate class already exists). You can explicitly set "
+            "`annotated=False` to preserve the previous behavior. However, using `annotated=True` "
+            "is recommended, as it defers construction of the controlled circuit to transpiler, "
+            "and furthermore enables additional controlled-gate optimizations (typically leading "
+            "to higher-quality circuits)."
+        ),
+        predicate=lambda my_arg: my_arg is None,
+        removal_timeline="in Qiskit 3.0",
+    )
     def control(
         self,
         num_ctrl_qubits: int = 1,

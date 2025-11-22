@@ -489,10 +489,10 @@ class TestEvolutionGate(QiskitTestCase):
         block_2q = (Z ^ Z) + (Y ^ Y) + (X ^ X)
 
         evo = PauliEvolutionGate([block_1q, block_2q], time=1, synthesis=LieTrotter())
-        controlled = evo.control(2, ctrl_state="01")
+        controlled = evo.control(2, ctrl_state="01", annotated=False)
 
         summed = PauliEvolutionGate(block_1q + block_2q, time=1, synthesis=LieTrotter())
-        reference = summed.control(2, ctrl_state="01")
+        reference = summed.control(2, ctrl_state="01", annotated=False)
 
         self.assertEqual(reference, controlled)
 
@@ -675,7 +675,9 @@ class TestEvolutionGate(QiskitTestCase):
         reference.h([4, 5])
 
         reference.x(0)
-        reference.append(PhaseGate(-1.0).control(5, ctrl_state="11001"), reference.qubits[::-1])
+        reference.append(
+            PhaseGate(-1.0).control(5, ctrl_state="11001", annotated=False), reference.qubits[::-1]
+        )
         reference.x(0)
 
         reference.sxdg([2, 3])
@@ -799,12 +801,12 @@ class TestEvolutionGate(QiskitTestCase):
         """Test controlled evolution gate with a control state."""
         obs = SparseObservable("ZZ")
         evo = PauliEvolutionGate(obs)
-        controlled = evo.control(num_ctrl_qubits=3, ctrl_state=ctrl_state)
+        controlled = evo.control(num_ctrl_qubits=3, ctrl_state=ctrl_state, annotated=False)
         qc = controlled.definition
 
         reference = QuantumCircuit(*qc.qregs)
         reference.cx(4, 3)
-        reference.append(RZGate(2).control(3, ctrl_state="011"), [2, 1, 0, 3])
+        reference.append(RZGate(2).control(3, ctrl_state="011", annotated=False), [2, 1, 0, 3])
         reference.cx(4, 3)
         with self.subTest("check decomp"):
             self.assertEqual(reference, qc)

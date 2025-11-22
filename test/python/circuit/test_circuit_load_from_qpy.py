@@ -211,7 +211,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qc = QuantumCircuit(2)
         unitary = np.array([[0, 1], [1, 0]])
         gate = UnitaryGate(unitary)
-        qc.append(gate.control(1), [0, 1])
+        qc.append(gate.control(1, annotated=False), [0, 1])
 
         with io.BytesIO() as qpy_file:
             dump(qc, qpy_file)
@@ -1441,7 +1441,7 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_controlled_gate(self):
         """Test a custom controlled gate."""
         qc = QuantumCircuit(3)
-        controlled_gate = DCXGate().control(1)
+        controlled_gate = DCXGate().control(1, annotated=False)
         qc.append(controlled_gate, [0, 1, 2])
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
@@ -1453,7 +1453,7 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_controlled_gate_open_controls(self):
         """Test a controlled gate with open controls round-trips exactly."""
         qc = QuantumCircuit(3)
-        controlled_gate = DCXGate().control(1, ctrl_state=0)
+        controlled_gate = DCXGate().control(1, ctrl_state=0, annotated=False)
         qc.append(controlled_gate, [0, 1, 2])
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
@@ -1473,7 +1473,7 @@ class TestLoadFromQPY(QiskitTestCase):
 
         qc = QuantumCircuit(3)
         qc.append(custom_gate, [0])
-        controlled_gate = custom_gate.control(2)
+        controlled_gate = custom_gate.control(2, annotated=False)
         qc.append(controlled_gate, [0, 1, 2])
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
@@ -1562,7 +1562,7 @@ class TestLoadFromQPY(QiskitTestCase):
 
         qc = QuantumCircuit(3)
         for i in range(3):
-            c2ry = RYGate(i + 1).control(2)
+            c2ry = RYGate(i + 1).control(2, annotated=False)
             qc.append(c2ry, [i % 3, (i + 1) % 3, (i + 2) % 3])
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
@@ -1942,8 +1942,8 @@ class TestLoadFromQPY(QiskitTestCase):
         outer_2.append(inner_2.to_gate(), [0], [])
 
         qc = QuantumCircuit(2)
-        qc.append(outer_1.to_gate().control(1), [0, 1], [])
-        qc.append(outer_2.to_gate().control(1), [0, 1], [])
+        qc.append(outer_1.to_gate().control(1, annotated=False), [0, 1], [])
+        qc.append(outer_2.to_gate().control(1, annotated=False), [0, 1], [])
 
         with io.BytesIO() as fptr:
             dump(qc, fptr)

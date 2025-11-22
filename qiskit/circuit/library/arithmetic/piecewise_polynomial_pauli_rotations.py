@@ -312,7 +312,8 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
                         basis=self.basis,
                     )
                 circuit.append(
-                    poly_r.to_gate().control(), [qr_ancilla[0]] + qr_state[:] + qr_target
+                    poly_r.to_gate().control(annotated=False),
+                    [qr_ancilla[0]] + qr_state[:] + qr_target,
                 )
 
                 # uncompute comparator
@@ -490,7 +491,9 @@ class PiecewisePolynomialPauliRotationsGate(Gate):
                     coeffs=mapped_coeffs[i],
                     basis=self.basis,
                 )
-                circuit.append(poly_r.control(), qr_compare + qr_state[:] + qr_target)
+                circuit.append(
+                    poly_r.control(annotated=False), qr_compare + qr_state[:] + qr_target
+                )
 
                 # uncompute comparator
                 circuit.append(comp, qr_state_full[:])

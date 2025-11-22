@@ -56,6 +56,6 @@ def synth_mcmt_vchain(
         raise ValueError("Only single qubit gates are supported as input.")
 
     circ = QuantumCircuit._from_circuit_data(
-        mcmt_v_chain(gate.control(), num_ctrl_qubits, num_target_qubits, ctrl_state)
+        mcmt_v_chain(gate.control(annotated=False), num_ctrl_qubits, num_target_qubits, ctrl_state)
     )
     return circ
