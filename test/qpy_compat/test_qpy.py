@@ -580,7 +580,7 @@ def generate_controlled_gates(version):
     if version >= (2, 3, 0):
         controlled_gate = custom_gate.control(2, annotated=False)
     else:
-        ontrolled_gate = custom_gate.control(2)
+        controlled_gate = custom_gate.control(2)
     nested_qc.append(controlled_gate, [0, 1, 2])
     circuits.append(nested_qc)
     qc_open = QuantumCircuit(2, name="open_cx")
