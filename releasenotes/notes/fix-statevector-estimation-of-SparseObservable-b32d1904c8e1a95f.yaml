@@ -1,0 +1,8 @@
+---
+issues:
+  - Running `StatevectorEstimator` with non-Pauli observables used to raise a
+    `QiskitError` since the observables were assumed to be in a 
+    `SparsePauliOp` format.
+
+fixes:
+  - Now `StatevectorEstimator.run()` works with `SparseObservable`s.

@@ -19,7 +19,7 @@ from collections.abc import Iterable
 
 import numpy as np
 
-from qiskit.quantum_info import SparsePauliOp
+from qiskit.quantum_info import SparsePauliOp, SparseObservable
 
 from .base import BaseEstimatorV2
 from .containers import DataBin, EstimatorPubLike, PrimitiveResult, PubResult
@@ -147,26 +147,35 @@ class StatevectorEstimator(BaseEstimatorV2):
         return PrimitiveResult([self._run_pub(pub) for pub in pubs], metadata={"version": 2})
 
     def _run_pub(self, pub: EstimatorPub) -> PubResult:
+        
         rng = np.random.default_rng(self._seed)
         circuit = pub.circuit
         observables = pub.observables
         parameter_values = pub.parameter_values
         precision = pub.precision
+
         bound_circuits = parameter_values.bind_all(circuit)
         bc_circuits, bc_obs = np.broadcast_arrays(bound_circuits, observables)
+        
         evs = np.zeros_like(bc_circuits, dtype=np.float64)
         stds = np.zeros_like(bc_circuits, dtype=np.float64)
+        
         for index in np.ndindex(*bc_circuits.shape):
             bound_circuit = bc_circuits[index]
             observable = bc_obs[index]
             final_state = _statevector_from_circuit(bound_circuit, rng)
-            paulis, coeffs = zip(*observable.items())
-            obs = SparsePauliOp(paulis, coeffs)  # TODO: support non Pauli operators
-            expectation_value = np.real_if_close(final_state.expectation_value(obs))
+            
+            obs = list(observable.items())
+            sparse_obs = SparseObservable.from_list(obs)
+
+            pauli = SparsePauliOp.from_sparse_observable(sparse_obs)
+            expectation_value = np.real_if_close(final_state.expectation_value(pauli))
+
             if precision != 0:
                 if not np.isreal(expectation_value):
                     raise ValueError("Given operator is not Hermitian and noise cannot be added.")
                 expectation_value = rng.normal(expectation_value, precision)
+
             evs[index] = expectation_value
 
         data = DataBin(evs=evs, stds=stds, shape=evs.shape)
