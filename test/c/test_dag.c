@@ -326,11 +326,9 @@ static int test_dag_node_neighbors(void) {
     uint32_t node_ccx = qk_dag_apply_gate(dag, QkGate_CCX, (uint32_t[]){0, 1, 2}, NULL, false);
     uint32_t node_cx = qk_dag_apply_gate(dag, QkGate_CX, (uint32_t[]){1, 2}, NULL, false);
 
-    QkDagNeighbors successors, predecessors;
-
     // H node
-    qk_dag_successors(dag, node_h, &successors);
-    qk_dag_predecessors(dag, node_h, &predecessors);
+    QkDagNeighbors successors = qk_dag_successors(dag, node_h);
+    QkDagNeighbors predecessors = qk_dag_predecessors(dag, node_h);
     if (successors.num_neighbors != 1 || successors.neighbors[0] != node_ccx ||
         predecessors.num_neighbors != 1 ||
         qk_dag_node_type(dag, predecessors.neighbors[0]) != QkDagNodeType_QubitIn) {
@@ -348,8 +346,8 @@ static int test_dag_node_neighbors(void) {
     }
 
     // CCX node
-    qk_dag_successors(dag, node_ccx, &successors);
-    qk_dag_predecessors(dag, node_ccx, &predecessors);
+    successors = qk_dag_successors(dag, node_ccx);
+    predecessors = qk_dag_predecessors(dag, node_ccx);
     if (successors.num_neighbors != 2 || // CX is counted as a unique successor
         successors.neighbors[0] != node_cx ||
         qk_dag_node_type(dag, successors.neighbors[1]) != QkDagNodeType_QubitOut ||
@@ -365,8 +363,8 @@ static int test_dag_node_neighbors(void) {
     qk_dag_neighbors_clear(&predecessors);
 
     // CX node
-    qk_dag_successors(dag, node_cx, &successors);
-    qk_dag_predecessors(dag, node_cx, &predecessors);
+    successors = qk_dag_successors(dag, node_cx);
+    predecessors = qk_dag_predecessors(dag, node_cx);
     if (successors.num_neighbors != 2 ||
         qk_dag_node_type(dag, successors.neighbors[0]) != QkDagNodeType_QubitOut ||
         qk_dag_node_type(dag, successors.neighbors[1]) != QkDagNodeType_QubitOut ||
