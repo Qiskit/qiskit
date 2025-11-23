@@ -1965,17 +1965,24 @@ class QuantumCircuit:
         num_ctrl_qubits: int = 1,
         label: str | None = None,
         ctrl_state: str | int | None = None,
-        annotated: bool = False,
+        annotated: bool | None = None,
     ) -> "QuantumCircuit":
-        """Control this circuit on ``num_ctrl_qubits`` qubits.
+        """Return the controlled version of this circuit.
+
+        The original circuit is converted into a gate, and the resulting circuit contains
+        the controlled version of this gate.
+        This controlled gate is implemented as :class:`.ControlledGate` when ``annotated``
+        is ``False``, and as :class:`.AnnotatedOperation` when ``annotated`` is ``True``.
 
         Args:
-            num_ctrl_qubits (int): The number of control qubits.
-            label (str): An optional label to give the controlled operation for visualization.
-            ctrl_state (str or int): The control state in decimal or as a bitstring
-                (e.g. '111'). If None, use ``2**num_ctrl_qubits - 1``.
-            annotated: indicates whether the controlled gate should be implemented
-                as an annotated gate.
+            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            label: An optional label to give the controlled gate for visualization.
+                Defaults to ``None``. Ignored if the controlled gate is implemented as an annotated
+                operation.
+            ctrl_state: The control state of the gate, specified either as an integer or a bitstring
+                (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``.
+            annotated: Indicates whether the controlled gate should be implemented as a controlled gate
+                or as an annotated operation.
 
         Returns:
             QuantumCircuit: The controlled version of this circuit.
