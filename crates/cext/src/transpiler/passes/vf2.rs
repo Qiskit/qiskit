@@ -15,7 +15,9 @@ use crate::pointers::const_ptr_as_ref;
 use qiskit_circuit::VirtualQubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_transpiler::passes::vf2::{Vf2PassConfiguration, Vf2PassReturn, vf2_layout_pass};
+use qiskit_transpiler::passes::vf2::{
+    Vf2PassConfiguration, Vf2PassReturn, vf2_layout_pass_average,
+};
 use qiskit_transpiler::target::Target;
 
 /// The result from ``qk_transpiler_pass_standalone_vf2_layout()``.
@@ -162,10 +164,18 @@ pub unsafe extern "C" fn qk_vf2_layout_configuration_free(config: *mut VF2Layout
     }
 }
 /// @ingroup QkVF2LayoutConfiguration
-/// Limit the numbers of times that the VF2 algorithm will attempt to extend its mapping.
+/// Limit the numbers of times that the VF2 algorithm will attempt to extend its mapping before and
+/// after it finds the first match.
+///
+/// The VF2 algorithm keeps track of the number of steps it has taken, and terminates when it
+/// reaches the limit.  After the first match is found, the limit swaps from the "before" limit to
+/// the "after" limit without resetting the number of steps taken.
 ///
 /// @param config The configuration to update.
-/// @param limit The number of attempts to allow.  Set to a negative number to have no bound.
+/// @param before The number of attempts to allow before the first match is found.  Set to a
+///     negative number to have no bound.
+/// @param after The number of attempts to allow after the first match (if any) is found.  Set to a
+///     negative number to have no bound.
 ///
 /// # Safety
 ///
@@ -175,13 +185,12 @@ pub unsafe extern "C" fn qk_vf2_layout_configuration_free(config: *mut VF2Layout
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_vf2_layout_configuration_set_call_limit(
     config: *mut VF2LayoutConfiguration,
-    limit: i64,
+    before: i64,
+    after: i64,
 ) {
-    let lift = |limit: i64| -> Option<usize> {
-        (limit > 0).then(|| limit.try_into().unwrap_or(usize::MAX))
-    };
+    let lift = |limit: i64| usize::try_from(limit).ok();
     // SAFETY: per documentation this is a valid configuration pointer.
-    unsafe { (*config).0.call_limit = lift(limit) };
+    unsafe { (*config).0.call_limit = (lift(before), lift(after)) };
 }
 /// @ingroup QkVF2LayoutConfiguration
 /// Limit the runtime of the VF2 search.
@@ -258,6 +267,29 @@ pub unsafe extern "C" fn qk_vf2_layout_configuration_set_shuffle_seed(
     // SAFETY: per documentation this is a valid pointer to a configuration.
     unsafe { (*config).0.shuffle_seed = Some(seed) };
 }
+/// @ingroup QkVF2LayoutConfiguration
+/// Whether to eagerly score the initial "trivial" layout of the interaction graph.
+///
+/// You typically want to set this ``true`` if you are using the VF2 passes to improve a circuit
+/// that is already lowered to hardware, in order to set a baseline for the score-based pruning.  If
+/// not, you can leave this as ``false`` (the default), to avoid a calculation that likely will not
+/// have any impact.
+///
+/// @param config The configuration to update.
+/// @param score_initial Whether to eagerly score the initial trivial layout.
+///
+/// # Safety
+///
+/// Behavior is undefined if `config` is not a valid, aligned, non-null pointer to a
+/// `VF2LayoutConfiguration`.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_vf2_layout_configuration_set_score_initial(
+    config: *mut VF2LayoutConfiguration,
+    score_initial: bool,
+) {
+    unsafe { (*config).0.score_initial_layout = score_initial };
+}
 
 /// @ingroup QkTranspilerPasses
 /// Use the VF2 algorithm to choose a layout (if possible) for the input circuit, using a
@@ -267,10 +299,6 @@ pub unsafe extern "C" fn qk_vf2_layout_configuration_set_shuffle_seed(
 /// This function corresponds to the Python-space ``VF2Layout`` pass.
 ///
 /// This function is suitable for use on circuits that have not yet been fully lowered to hardware.
-/// If your circuit has already been completely lowered to hardware and you are looking to _improve_
-/// the layout for an exact interaction graph, use ``qk_transpile_pass_standalone_vf2_layout_exact``
-/// instead.
-///
 /// If this pass finds a solution that means there is a "perfect layout" and that no
 /// further swap mapping or routing is needed. However, there is not always a possible
 /// solution, or a solution might exist but it is not found within the limits specified
@@ -311,7 +339,7 @@ pub unsafe extern "C" fn qk_vf2_layout_configuration_set_shuffle_seed(
 ///         }
 ///     }
 ///     QkVF2LayoutConfiguration *config = qk_vf2_layout_configuration_new();
-///     qk_vf2_layout_configuration_set_call_limit(config, 10000);
+///     qk_vf2_layout_configuration_set_call_limit(config, 10000, 10000);
 ///     QkVF2LayoutResult *layout_result = qk_transpiler_pass_standalone_vf2_layout(qc, target, config, false);
 ///     qk_vf2_layout_result_free(layout_result);
 ///     qk_vf2_layout_configuration_free(config);
@@ -344,7 +372,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout(
         // SAFETY: per documentation this is a valid pointer to a configuration.
         unsafe { &const_ptr_as_ref(config).0 }
     };
-    vf2_layout_pass(&dag, target, config, strict_direction, None)
+    vf2_layout_pass_average(&dag, target, config, strict_direction, None)
         .map(|result| Box::into_raw(Box::new(VF2LayoutResult(result))))
         .unwrap()
 }

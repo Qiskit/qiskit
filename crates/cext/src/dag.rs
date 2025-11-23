@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
+use num_complex::Complex64;
 use smallvec::smallvec;
 
 use qiskit_circuit::Qubit;
@@ -19,8 +19,11 @@ use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeIndex, NodeType};
 use qiskit_circuit::operations::{
-    Operation, OperationRef, Param, StandardGate, StandardInstruction,
+    ArrayType, Operation, OperationRef, Param, StandardGate, StandardInstruction, UnitaryGate,
 };
+
+use crate::circuit::unitary_from_pointer;
+use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 
 /// @ingroup QkDag
 /// Construct a new empty DAG.
@@ -586,6 +589,81 @@ pub unsafe extern "C" fn qk_dag_apply_gate(
 }
 
 /// @ingroup QkDag
+/// Apply a unitary gate to a DAG.
+///
+/// The values in `matrix` should form a row-major unitary matrix of the correct size for the number
+/// of qubits.  The data is copied out of the pointer, and only needs to be valid for reads until
+/// this function returns.
+///
+/// See @verbatim embed:rst:inline ::ref:`circuit-conventions` @endverbatim for detail on the
+/// bit-labelling and matrix conventions of Qiskit.
+///
+/// @param dag The circuit to apply to.
+/// @param matrix An initialized row-major unitary matrix of total size ``4**num_qubits``.
+/// @param qubits An array of distinct ``uint32_t`` indices of the qubits.
+/// @param num_qubits The number of qubits the gate applies to.
+/// @param front Whether to apply the gate at the start of the circuit. Usually `false`.
+///
+/// @return The node index of the created instruction.
+///
+/// # Safety
+///
+/// Behavior is undefined if any of:
+/// * `dag` is not an aligned, non-null pointer to a valid ``QkDag``,
+/// * `matrix` is not an aligned pointer to `4**num_qubits` initialized values,
+/// * `qubits` is not an aligned pointer to `num_qubits` initialized values.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_apply_unitary(
+    dag: *mut DAGCircuit,
+    matrix: *const Complex64,
+    qubits: *const u32,
+    num_qubits: u32,
+    front: bool,
+) -> u32 {
+    // SAFETY: per documentation, `dag` points to valid data.
+    let dag = unsafe { mut_ptr_as_ref(dag) };
+    // SAFETY: per documentation, `matrix` is aligned and valid for `4**num_qubits` reads of
+    // initialised data.
+    let array = unsafe { unitary_from_pointer(matrix, num_qubits, None) }
+        .expect("infallible without tolerance checking");
+    let qubits = if num_qubits == 0 {
+        // This handles the case of C passing us a null pointer for a scalar matrix; Rust slices
+        // can't be backed by the null pointer.
+        &[]
+    } else {
+        // SAFETY: per documentation, `qubits` is aligned and valid for `num_qubits` reads.  Per
+        // previous check, `num_qubits` is nonzero so `qubits` cannot be null.
+        unsafe { ::std::slice::from_raw_parts(qubits as *const Qubit, num_qubits as usize) }
+    };
+    if front {
+        dag.apply_operation_front(
+            Box::new(UnitaryGate { array }).into(),
+            qubits,
+            &[],
+            None,
+            None,
+            #[cfg(feature = "cache_pygates")]
+            None,
+        )
+        .expect("caller is responsible for passing inbounds bits")
+        .index() as u32
+    } else {
+        dag.apply_operation_back(
+            Box::new(UnitaryGate { array }).into(),
+            qubits,
+            &[],
+            None,
+            None,
+            #[cfg(feature = "cache_pygates")]
+            None,
+        )
+        .expect("caller is responsible for passing inbounds bits")
+        .index() as u32
+    }
+}
+
+/// @ingroup QkDag
 /// Retrieve the standard gate of the specified node.
 ///
 /// Panics if the node is not a standard gate operation.
@@ -648,6 +726,61 @@ pub unsafe extern "C" fn qk_dag_op_node_gate_op(
         }
     }
     instr.standard_gate().unwrap()
+}
+
+/// @ingroup QkDag
+/// Copy out the unitary matrix of the corresponding node index.
+///
+/// Panics if the node is not a unitary gate.
+///
+/// @param dag The circuit to read from.
+/// @param node The node index of the unitary matrix instruction.
+/// @param out Allocated and aligned memory for `4**num_qubits` complex values in row-major order,
+///     where `num_qubits` is the number of qubits the gate applies to.
+///
+/// # Safety
+///
+/// Behavior is undefined if `dag` is not a non-null pointer to a valid `QkDag`, if `out` is
+/// unaligned, or if `out` is not valid for `4**num_qubits` writes of `QkComplex64`.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_op_node_unitary(
+    dag: *const DAGCircuit,
+    node: u32,
+    out: *mut Complex64,
+) {
+    // SAFETY: Per documentation, the pointer is to valid data.
+    let dag = unsafe { const_ptr_as_ref(dag) };
+    let instr = &dag[NodeIndex::new(node as usize)].unwrap_operation();
+    let OperationRef::Unitary(unitary) = instr.op.view() else {
+        panic!("requested node {node} was not a unitary gate");
+    };
+    match &unitary.array {
+        ArrayType::OneQ(array) => {
+            let dim = 2;
+            for row in 0..dim {
+                for col in 0..dim {
+                    // SAFETY: per documentation, `out` is aligned and valid for 4 writes.
+                    unsafe { out.add(dim * row + col).write(array[(row, col)]) };
+                }
+            }
+        }
+        ArrayType::TwoQ(array) => {
+            let dim = 4;
+            for row in 0..dim {
+                for col in 0..dim {
+                    // SAFETY: per documentation, `out` is aligned and valid for 16 writes.
+                    unsafe { out.add(dim * row + col).write(array[(row, col)]) };
+                }
+            }
+        }
+        ArrayType::NDArray(array) => {
+            for (i, val) in array.iter().enumerate() {
+                // SAFETY: per documentation, `out` is aligned and valid for `array.size()` writes.
+                unsafe { out.add(i).write(*val) };
+            }
+        }
+    }
 }
 
 /// The operation's kind.
