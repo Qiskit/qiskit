@@ -253,19 +253,21 @@ class PauliEvolutionGate(Gate):
         operator :math:`H`, tensored with :math:`|0\rangle\langle 0|` and
         :math:`|1\rangle\langle 1|` projectors (depending on the control state).
 
+        The controlled gate is implemented as :class:`.PauliEvolutionGate`,
+        regardless of the value of ``annotated``.
+
         Args:
-            num_ctrl_qubits: Number of controls to add to gate (default: ``1``).
-            label: Optional gate label. Ignored if implemented as an annotated
-                operation.
-            ctrl_state: The control state in decimal or as a bitstring
-                (e.g. ``"111"``). If ``None``, use ``2**num_ctrl_qubits - 1``.
-            annotated: Not applicable to this class. Usually, when this is ``True`` we return an
-                :class:`.AnnotatedOperation` with a control modifier set instead of a concrete
-                :class:`.Gate`. However, we can efficiently represent controlled Pauli evolutions
-                as :class:`.PauliEvolutionGate`, which is used here.
+            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            label: A label for the resulting Pauli evolution gate, to display in visualizations.
+                Per default, the label is set to ``exp(-it <operators>)`` where ``<operators>``
+                is the sum of the Paulis. Note that the label does not include any coefficients
+                of the Paulis. See the class docstring for an example.
+            ctrl_state: The control state of the gate, specified either as an integer or a bitstring
+                (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``.
+            annotated: Ignored.
 
         Returns:
-            Controlled version of the given operation.
+            A controlled version of this gate.
         """
         if ctrl_state is None:
             ctrl_state = "1" * num_ctrl_qubits
@@ -336,18 +338,9 @@ def _to_sparse_op(
 def _operator_label(operator):
     if isinstance(operator, SparseObservable):
         if len(operator) == 1:
-            term = operator[0]
-            labels = term.bit_labels()
-            indices = term.indices
-            return " ".join(f"{label}{idx}" for label, idx in zip(labels, indices))
+            return _sparse_term_label(operator[0])
 
-        term_strs = []
-        for term in operator:
-            labels = term.bit_labels()
-            indices = term.indices
-            term_str = " ".join(f"{label}{idx}" for label, idx in zip(labels, indices))
-            term_strs.append(term_str)
-        return "(" + " + ".join(term_strs) + ")"
+        return "(" + " + ".join(_sparse_term_label(term) for term in operator) + ")"
 
     # else: is a SparsePauliOp
     if len(operator.paulis) == 1:
@@ -355,7 +348,13 @@ def _operator_label(operator):
     return "(" + " + ".join(operator.paulis.to_labels()) + ")"
 
 
+def _sparse_term_label(term) -> str:
+    labels = term.bit_labels()
+    indices = term.indices
+    return " ".join(f"{label}{idx}" for label, idx in zip(labels, indices))
+
+
 def _get_default_label(operator):
     if isinstance(operator, list):
-        return f"exp(-it ({[_operator_label(op) for op in operator]}))"
+        return "exp(-it [" + ", ".join(_operator_label(op) for op in operator) + "])"
     return f"exp(-it {_operator_label(operator)})"
