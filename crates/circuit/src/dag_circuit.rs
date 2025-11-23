@@ -7768,12 +7768,12 @@ impl DAGCircuit {
         self.metadata.as_ref()
     }
 
-    // Returns an iterator over the unique successors of the given node
+    /// Returns an iterator over the unique successors of the given node
     pub fn successors(&self, node: NodeIndex) -> impl Iterator<Item = NodeIndex> {
         self.dag.neighbors_directed(node, Outgoing).unique()
     }
 
-    // Returns an iterator over the unique predecessors of the given node
+    /// Returns an iterator over the unique predecessors of the given node
     pub fn predecessors(&self, node: NodeIndex) -> impl Iterator<Item = NodeIndex> {
         self.dag.neighbors_directed(node, Incoming).unique()
     }
