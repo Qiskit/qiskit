@@ -1183,126 +1183,33 @@ pub unsafe extern "C" fn qk_circuit_delay(
 /// The returned DAG needs to be freed with ``qk_dag_free``.
 ///
 /// @param circuit A pointer to the circuit from which to create the DAG.
-/// @param qubit_order The order of the qubits in the output DAG. Defaults to the same order
-///     as the input circuit if NULL. If not NULL, it must be of length ``qk_circuit_num_qubits()``.
-/// @param clbit_order The order of the clbits in the output DAG. Defaults to the same order
-///     as the input circuit if NULL. If not NULL, it must be of length ``qk_circuit_num_clbits()``.
 ///
 /// @return A pointer to the new DAG.
 ///
 /// # Example
 /// ```c
-/// QkCircuit *qc = qk_circuit_new(0, 0);
-/// QkQuantumRegister *qr = qk_quantum_register_new(3, "qr");
-/// qk_circuit_add_quantum_register(qc, qr);
-/// qk_quantum_register_free(qr);
-///
-/// QkDag *dag = qk_circuit_to_dag(qc, (uint32_t[]){2, 0, 1}, NULL);
-///
-/// qk_dag_free(dag);
+///     QkCircuit *qc = qk_circuit_new(0, 0);
+///     QkQuantumRegister *qr = qk_quantum_register_new(3, "qr");
+///     qk_circuit_add_quantum_register(qc, qr);
+///     qk_quantum_register_free(qr);
+///     
+///     QkDag *dag = qk_circuit_to_dag(qc);
+///     
+///     qk_dag_free(dag);
+///     qk_circuit_free(qc);
 /// ```
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``, or if  
-/// ``qubit_order`` or ``clbit_order`` are not of length ``qk_circuit_num_qubits()`` and ``qk_circuit_num_clbits()``,
-/// respectively.  
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.  
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_circuit_to_dag(
-    circuit: *const CircuitData,
-    qubit_order: *const u32,
-    clbit_order: *const u32,
-) -> *mut DAGCircuit {
+pub unsafe extern "C" fn qk_circuit_to_dag(circuit: *const CircuitData) -> *mut DAGCircuit {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
 
-    let qubit_order = if qubit_order.is_null() {
-        None
-    } else {
-        // SAFETY: Per documentation, qubit_order is a valid pointer for num_qubits() reads
-        let qubits = unsafe { std::slice::from_raw_parts(qubit_order, circuit.num_qubits()) };
-        let qubits = qubits.iter().map(|q| {
-            circuit
-                .qubits()
-                .get(Qubit(*q))
-                .unwrap_or_else(|| panic!("Qubit index {} not found in the circuit", q))
-                .clone()
-        });
-
-        Some(qubits.collect())
-    };
-    let clbit_order = if clbit_order.is_null() {
-        None
-    } else {
-        // SAFETY: Per documentation, clbits_order is a valid pointer for num_clbits() reads
-        let clbits = unsafe { std::slice::from_raw_parts(clbit_order, circuit.num_clbits()) };
-        let clbits = clbits.iter().map(|c| {
-            circuit
-                .clbits()
-                .get(Clbit(*c))
-                .unwrap_or_else(|| panic!("Clbit index {} not found in the circuit", c))
-                .clone()
-        });
-        Some(clbits.collect())
-    };
-
-    let dag = DAGCircuit::from_circuit_data(circuit, true, None, None, qubit_order, clbit_order)
+    let dag = DAGCircuit::from_circuit_data(circuit, true, None, None, None, None)
         .expect("Error occurred while converting CircuitData to DAGCircuit");
 
     Box::into_raw(Box::new(dag))
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::circuit::qk_circuit_to_dag;
-    use crate::dag::qk_dag_free;
-    use crate::pointers::mut_ptr_as_ref;
-    use qiskit_circuit::bit::{ShareableClbit, ShareableQubit};
-    use qiskit_circuit::circuit_data::CircuitData;
-
-    #[test]
-    fn test_circuit_to_dag_wire_ordering() {
-        let qubits: Vec<ShareableQubit> = (0..3).map(|_| ShareableQubit::new_anonymous()).collect();
-        let clbits: Vec<ShareableClbit> = (0..3).map(|_| ShareableClbit::new_anonymous()).collect();
-
-        let circuit = CircuitData::new(
-            Some(qubits.clone()),
-            Some(clbits.clone()),
-            None,
-            0,
-            (0.).into(),
-        )
-        .unwrap();
-
-        let qubit_order: [u32; 3] = [2, 0, 1];
-        let clbit_order: [u32; 3] = [1, 2, 0];
-        let dag = unsafe {
-            mut_ptr_as_ref(qk_circuit_to_dag(
-                &circuit,
-                qubit_order.as_ptr(),
-                clbit_order.as_ptr(),
-            ))
-        };
-
-        for (l, r) in qubit_order.iter().enumerate() {
-            assert_eq!(
-                dag.qubits().objects()[l],
-                qubits[*r as usize],
-                "Unexpected qubit order. Mismatch at qubit #{}",
-                l
-            );
-        }
-        for (l, r) in clbit_order.iter().enumerate() {
-            assert_eq!(
-                dag.clbits().objects()[l],
-                clbits[*r as usize],
-                "Unexpected clbit order. Mismatch at clbit #{}",
-                l
-            );
-        }
-
-        unsafe {
-            qk_dag_free(dag);
-        }
-    }
 }

@@ -943,7 +943,7 @@ static int test_circuit_to_dag(void) {
     qk_circuit_gate(circuit, QkGate_H, (uint32_t[]){0}, NULL);
     qk_circuit_gate(circuit, QkGate_CX, (uint32_t[]){0, 1}, NULL);
 
-    QkDag *dag = qk_circuit_to_dag(circuit, (uint32_t[]){1, 0}, NULL);
+    QkDag *dag = qk_circuit_to_dag(circuit);
     qk_circuit_free(circuit);
 
     int result = Ok;

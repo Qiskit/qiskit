@@ -883,14 +883,15 @@ pub unsafe extern "C" fn qk_dag_free(dag: *mut DAGCircuit) {
 ///
 /// # Example
 /// ```c
-/// QkDag *dag = qk_dag_new();
-/// QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
-/// qk_dag_add_quantum_register(dag, qr);
-/// qk_quantum_register_free(qr);
+///    QkDag *dag = qk_dag_new();
+///    QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
+///    qk_dag_add_quantum_register(dag, qr);
+///    qk_quantum_register_free(qr);
 ///
-/// QkCircuit *qc = qk_dag_to_circuit(dag);
+///    QkCircuit *qc = qk_dag_to_circuit(dag);
 ///
-/// qk_circuit_free(qc);
+///    qk_circuit_free(qc);
+///    qk_dag_free(dag);
 /// ```
 ///
 /// # Safety
@@ -899,6 +900,7 @@ pub unsafe extern "C" fn qk_dag_free(dag: *mut DAGCircuit) {
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_to_circuit(dag: *const DAGCircuit) -> *mut CircuitData {
+    // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
     let circuit = dag_to_circuit(dag, true)
         .expect("Error occurred while converting DAGCircuit to CircuitData");
