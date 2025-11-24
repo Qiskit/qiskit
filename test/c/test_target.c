@@ -558,11 +558,11 @@ int test_target_instruction_supported(void) {
                                qk_param_from_double(3.14),
                            },
                            NULL};
-    for (uint32_t i = 0; i < 5; i++) {
+    for (uint32_t qubit = 0; qubit < 5; qubit++) {
         uint32_t qargs[1] = {i};
         bool should_be_true = i < 4;
 
-        for (int j = 0; j < 5; j++) {
+        for (int gate = 0; gate < 5; gate++) {
             // If i == 4 condition should be false unless we try with the y gate
             // since y is added as a global gate.
             if (!(qk_target_instruction_supported(sample_target, gate_names[j], qargs, params[j]) ==
