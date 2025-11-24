@@ -918,11 +918,10 @@ pub unsafe extern "C" fn qk_dag_topological_op_nodes(dag: *const DAGCircuit, out
 
     let out_topological_op_nodes = dag.topological_op_nodes().unwrap();
 
-    // SAFETY: Per documentation, ``out_order`` is a valid pointer with a sufficient allocation for the output
-    // array.
-    let out_slice = unsafe { std::slice::from_raw_parts_mut(out_order, dag.num_ops()) };
-    out_slice
-        .iter_mut()
-        .zip(out_topological_op_nodes)
-        .for_each(|(dest, src)| *dest = src.index() as u32);
+    for (i, node) in out_topological_op_nodes.enumerate() {
+        // SAFETY: per documentation, `out_order` is aligned and points to a valid
+        // aligned and maybe uninitialized block of memory valid for `num_op_nodes`
+        // writes of `u32`s.
+        unsafe { out_order.add(i).write(node.index() as u32) }
+    }
 }

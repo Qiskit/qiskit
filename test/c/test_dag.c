@@ -321,10 +321,11 @@ static int test_dag_topological_op_nodes(void) {
     uint32_t qubit[1] = {0};
     uint32_t h_gate_idx = qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
     uint32_t s_gate_idx = qk_dag_apply_gate(dag, QkGate_S, qubit, NULL, false);
+    uint32_t t_gate_idx = qk_dag_apply_gate(dag, QkGate_T, qubit, NULL, true);
 
     size_t num_ops = qk_dag_num_op_nodes(dag);
-    if (num_ops != 2) {
-        printf("The number of op nodes %zu is not 0\n", num_ops);
+    if (num_ops != 3) {
+        printf("The number of op nodes %zu shouldn't be 0\n", num_ops);
         result = EqualityError;
         goto early_cleanup;
     }
@@ -332,14 +333,20 @@ static int test_dag_topological_op_nodes(void) {
     uint32_t *out_order = malloc(sizeof(uint32_t) * num_ops);
     qk_dag_topological_op_nodes(dag, out_order);
 
-    if (out_order[0] != h_gate_idx) {
-        printf("Expected gate index %u but got %u\n", h_gate_idx, out_order[0]);
+    if (out_order[0] != t_gate_idx) {
+        printf("Expected gate index %u but got %u\n", t_gate_idx, out_order[0]);
         result = EqualityError;
         goto cleanup;
     }
 
-    if (out_order[1] != s_gate_idx) {
-        printf("Expected gate index %u but got %u\n", s_gate_idx, out_order[1]);
+    if (out_order[1] != h_gate_idx) {
+        printf("Expected gate index %u but got %u\n", h_gate_idx, out_order[1]);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    if (out_order[2] != s_gate_idx) {
+        printf("Expected gate index %u but got %u\n", s_gate_idx, out_order[2]);
         result = EqualityError;
     }
 
