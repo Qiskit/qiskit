@@ -880,7 +880,7 @@ pub unsafe extern "C" fn qk_target_num_instructions(target: *const Target) -> us
 /// @param operation_name The instruction name to check for.
 /// @param qargs The pointer to the array of ``uint32_t`` values to use as
 /// qargs. Can be ``NULL`` if global.
-/// @param params The pointer to the array of ``QkParam`` values as parameters
+/// @param params A pointer to an array of pointers of ``QkParam`` objects as parameters
 /// to check. Can be ``NULL`` if no parameters are present.
 ///
 /// @return Whether the instruction is supported or not.
@@ -890,14 +890,14 @@ pub unsafe extern "C" fn qk_target_num_instructions(target: *const Target) -> us
 ///     // Create a mock target with only a global crx entry
 ///     // and 3.14 as its rotation parameter.
 ///     QkTarget *target = qk_target_new(5);
-///     QkTargetEntry *crx_entry = qk_target_entry_new_fixed(QkGate_CRX, (QkParam *[]){qk_param_from_double(3.14)});
+///     QkTargetEntry *crx_entry = qk_target_entry_new_fixed(QkGate_CRX, (double[]){3.14});
 ///     qk_target_entry_add_property(crx_entry, NULL, 0, 0.0, 0.1);
 ///     qk_target_add_instruction(target, crx_entry);
 ///
 ///     // Check if target is compatible with a "crx" gate
 ///     // at [0, 1] with 3.14 rotation.
-///     QkParam params[1] = {qk_param_from_double(3.14),};
-///     qk_target_instruction_supported(target, "crx", (uint32_t *){0, 1}, params);
+///     QkParam *params[1] = {qk_param_from_double(3.14)};
+///     qk_target_instruction_supported(target, "crx", (uint32_t []){0, 1}, params);
 /// ```
 ///
 /// # Safety
@@ -928,7 +928,7 @@ pub unsafe extern "C" fn qk_target_instruction_supported(
     let name = unsafe {
         CStr::from_ptr(operation_name.cast())
             .to_str()
-            .expect("Error extracting gate name from target.")
+            .expect("Error extracting gate name from operation_name.")
     };
     let Some(operation) = target.operation_from_name(name) else {
         return false;
