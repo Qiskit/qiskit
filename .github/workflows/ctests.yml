@@ -18,6 +18,6 @@ jobs:
           - ubuntu-24.04-arm
           - windows-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Run tests
         run: make ctest

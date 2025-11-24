@@ -679,6 +679,36 @@ fn is_unitary(matrix: &ArrayType, tol: f64) -> bool {
     !not_unitary // using double negation to use ``any`` (faster) instead of ``all``
 }
 
+/// Create a unitary matrix `ArrayType` from a pointer to a row-major contiguous matrix of the
+/// correct dimensions.
+///
+/// If `tol` is `Some`, the unitary matrix is checked for tolerance against the given value.  If the
+/// tolerance check fails, no array is returned.
+///
+/// The data is copied out of `matrix`.
+///
+/// # Safety
+///
+/// `matrix` must be aligned and valid for `4 ** num_qubits` reads.
+pub(crate) unsafe fn unitary_from_pointer(
+    matrix: *const Complex64,
+    num_qubits: u32,
+    tol: Option<f64>,
+) -> Option<ArrayType> {
+    let dim = 1 << num_qubits;
+    // SAFETY: per documentation, `matrix` is aligned and valid for `4**num_qubits` reads.
+    let raw = unsafe { ::std::slice::from_raw_parts(matrix, dim * dim) };
+    let mat = match num_qubits {
+        1 => ArrayType::OneQ(Matrix2::from_fn(|i, j| raw[i * dim + j])),
+        2 => ArrayType::TwoQ(Matrix4::from_fn(|i, j| raw[i * dim + j])),
+        _ => ArrayType::NDArray(Array2::from_shape_fn((dim, dim), |(i, j)| raw[i * dim + j])),
+    };
+    match tol {
+        Some(tol) => is_unitary(&mat, tol).then_some(mat),
+        None => Some(mat),
+    }
+}
+
 /// @ingroup QkCircuit
 /// Append an arbitrary unitary matrix to the circuit.
 ///
@@ -700,27 +730,25 @@ fn is_unitary(matrix: &ArrayType, tol: f64) -> bool {
 ///
 /// # Example
 /// ```c
-///   QkComplex64 c0 = {0, 0};  // 0+0i
-///   QkComplex64 c1 = {1, 0};  // 1+0i
+/// QkComplex64 c0 = {0, 0};  // 0+0i
+/// QkComplex64 c1 = {1, 0};  // 1+0i
 ///
-///   const uint32_t num_qubits = 1;
-///   QkComplex64 unitary[2*2] = {c0, c1,  // row 0
-///                                     c1, c0}; // row 1
+/// const uint32_t num_qubits = 1;
+/// QkComplex64 unitary[2*2] = {c0, c1,  // row 0
+///                             c1, c0}; // row 1
 ///
-///   QkCircuit *circuit = qk_circuit_new(1, 0);  // 1 qubit circuit
-///   uint32_t qubit[1] = {0};  // qubit to apply the unitary on
-///   qk_circuit_unitary(circuit, unitary, qubit, num_qubits, true);
+/// QkCircuit *circuit = qk_circuit_new(1, 0);  // 1 qubit circuit
+/// uint32_t qubit[1] = {0};  // qubit to apply the unitary on
+/// qk_circuit_unitary(circuit, unitary, qubit, num_qubits, true);
 /// ```
 ///
 /// # Safety
 ///
 /// Behavior is undefined if any of the following is violated:
 ///
-///   * ``circuit`` is a valid, non-null pointer to a ``QkCircuit``
-///   * ``matrix`` is a pointer to a nested array of ``QkComplex64`` of dimension
-///     ``2 ^ num_qubits x 2 ^ num_qubits``
-///   * ``qubits`` is a pointer to ``num_qubits`` readable element of type ``uint32_t``
-///
+/// * ``circuit`` is a valid, non-null pointer to a ``QkCircuit``
+/// * ``matrix`` is an aligned pointer to ``4**num_qubits`` initialized ``QkComplex64`` values
+/// * ``qubits`` is an aligned pointer to ``num_qubits`` initialized ``uint32_t`` values
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_unitary(
@@ -732,31 +760,24 @@ pub unsafe extern "C" fn qk_circuit_unitary(
 ) -> ExitCode {
     // SAFETY: Caller quarantees pointer validation, alignment
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
-
-    // Dimension of the unitart: 2^n
-    let dim = 1 << num_qubits;
-
-    // Build ndarray::Array2
-    let raw = unsafe { std::slice::from_raw_parts(matrix, dim * dim * 2) };
-    let mat = match num_qubits {
-        1 => ArrayType::OneQ(Matrix2::from_fn(|i, j| raw[i * dim + j])),
-        2 => ArrayType::TwoQ(Matrix4::from_fn(|i, j| raw[i * dim + j])),
-        _ => ArrayType::NDArray(Array2::from_shape_fn((dim, dim), |(i, j)| raw[i * dim + j])),
-    };
-
-    // verify the matrix is unitary
-    if check_input && !is_unitary(&mat, 1e-12) {
+    let mat = unsafe { unitary_from_pointer(matrix, num_qubits, check_input.then_some(1e-12)) };
+    let Some(mat) = mat else {
         return ExitCode::ExpectedUnitary;
-    }
-
-    // Build qubit slice
-    let qargs: &[Qubit] =
-        unsafe { std::slice::from_raw_parts(qubits as *const Qubit, num_qubits as usize) };
+    };
+    let qubits = if num_qubits == 0 {
+        // This handles the case of C passing us a null pointer for the qubits; Rust slices
+        // can't be backed by the null pointer even when empty.
+        &[]
+    } else {
+        // SAFETY: per documentation, `qubits` is aligned and valid for `num_qubits` reads.  Per
+        // previous check, `num_qubits` is nonzero so `qubits` cannot be null.
+        unsafe { ::std::slice::from_raw_parts(qubits as *const Qubit, num_qubits as usize) }
+    };
 
     // Create PackedOperation -> push to circuit_data
     let u_gate = Box::new(UnitaryGate { array: mat });
     let op = PackedOperation::from_unitary(u_gate);
-    circuit.push_packed_operation(op, &[], qargs, &[]).unwrap();
+    circuit.push_packed_operation(op, &[], qubits, &[]).unwrap();
     // Return success
     ExitCode::Success
 }
