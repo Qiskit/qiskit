@@ -37,6 +37,15 @@ pub enum OptimizationLevel {
     Level3 = 3,
 }
 
+/// The source of the initial layout found when running [`layout_stage`].
+/// This is typically used to control whether `VF2PostLayout` is run during
+/// the [`routing_stage`]
+pub enum LayoutSource {
+    Trivial,
+    VF2,
+    Sabre,
+}
+
 impl From<u8> for OptimizationLevel {
     fn from(value: u8) -> Self {
         match value {
@@ -125,8 +134,8 @@ pub fn layout_stage(
     sabre_heuristic: &sabre::Heuristic,
     transpile_layout: &mut TranspileLayout,
     vf2_config: &vf2::Vf2PassConfiguration,
-) -> Result<bool> {
-    let mut vf2_match = false;
+) -> Result<LayoutSource> {
+    let mut layout_source = LayoutSource::Sabre;
     if optimization_level == OptimizationLevel::Level0 {
         // Apply a trivial layout
         apply_layout(dag, transpile_layout, target.num_qubits.unwrap(), |x| {
@@ -137,13 +146,14 @@ pub fn layout_stage(
         // constraints in the target and returns None if the circuit conforms to the undirected
         // connectivity constraints
         if run_check_map(dag, target).is_none() {
+            layout_source = LayoutSource::Trivial;
             apply_layout(dag, transpile_layout, target.num_qubits.unwrap(), |x| {
                 PhysicalQubit(x.0)
             });
         } else if let vf2::Vf2PassReturn::Solution(layout) =
             vf2_layout_pass_average(dag, target, vf2_config, false, None)?
         {
-            vf2_match = true;
+            layout_source = LayoutSource::VF2;
             apply_layout(dag, transpile_layout, target.num_qubits.unwrap(), |x| {
                 layout[&x]
             });
@@ -167,7 +177,7 @@ pub fn layout_stage(
         if let vf2::Vf2PassReturn::Solution(layout) =
             vf2_layout_pass_average(dag, target, vf2_config, false, None)?
         {
-            vf2_match = true;
+            layout_source = LayoutSource::VF2;
             apply_layout(dag, transpile_layout, target.num_qubits.unwrap(), |x| {
                 layout[&x]
             });
@@ -190,7 +200,7 @@ pub fn layout_stage(
     } else if let vf2::Vf2PassReturn::Solution(layout) =
         vf2_layout_pass_average(dag, target, vf2_config, false, None)?
     {
-        vf2_match = true;
+        layout_source = LayoutSource::VF2;
         apply_layout(dag, transpile_layout, target.num_qubits.unwrap(), |x| {
             layout[&x]
         });
@@ -210,7 +220,7 @@ pub fn layout_stage(
         *transpile_layout =
             layout_from_sabre_result(dag, initial_layout, &final_layout, transpile_layout);
     }
-    Ok(vf2_match)
+    Ok(layout_source)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -222,8 +232,8 @@ pub fn routing_stage(
     seed: Option<u64>,
     sabre_heuristic: &sabre::Heuristic,
     transpile_layout: &mut TranspileLayout,
+    layout_source: LayoutSource,
     vf2_config: &vf2::Vf2PassConfiguration,
-    vf2_match: bool,
 ) -> Result<()> {
     if optimization_level == OptimizationLevel::Level0 {
         let routing_target = PyRoutingTarget::from_target(target)?;
@@ -248,7 +258,7 @@ pub fn routing_stage(
                 TranspileLayout::permutation_from_layouts(initial_layout, &final_layout);
             transpile_layout.add_permutation_inside(|q| routing_permutation[q.index()]);
         }
-    } else if !vf2_match {
+    } else if !matches!(layout_source, LayoutSource::VF2 | LayoutSource::Trivial) {
         if let vf2::Vf2PassReturn::Solution(mut layout) =
             vf2_layout_pass_average(dag, target, vf2_config, false, None)?
         {
@@ -460,7 +470,7 @@ pub fn transpile(
         &mut commutation_checker,
     )?;
     // layout stage
-    let vf2_match = layout_stage(
+    let layout_source = layout_stage(
         &mut dag,
         target,
         optimization_level,
@@ -477,8 +487,8 @@ pub fn transpile(
         seed,
         &sabre_heuristic,
         &mut transpile_layout,
+        layout_source,
         &vf2_config,
-        vf2_match,
     )?;
     // Translation Stage
     translation_stage(
