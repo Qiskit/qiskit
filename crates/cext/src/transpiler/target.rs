@@ -741,7 +741,7 @@ pub unsafe extern "C" fn qk_target_entry_add_property(
 }
 
 /// @ingroup QkTargetEntry
-/// Sets a name to the target entry.
+/// Sets a custom name to the target entry.
 ///
 /// @param entry The pointer to the entry object.
 /// @param name The name to be set for the target entry.
