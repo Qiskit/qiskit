@@ -925,11 +925,9 @@ pub unsafe extern "C" fn qk_target_instruction_supported(
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
     // SAFETY: Per documentation, the pointer for operation name points to a valid null terminated string.
-    let name = unsafe {
-        CStr::from_ptr(operation_name.cast())
-            .to_str()
-            .expect("Error extracting gate name from operation_name.")
-    };
+    let name = unsafe { CStr::from_ptr(operation_name) }
+        .to_str()
+        .expect("Error extracting gate name from target.");
     let Some(operation) = target.operation_from_name(name) else {
         return false;
     };
