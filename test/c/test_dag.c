@@ -340,6 +340,128 @@ cleanup:
     return result;
 }
 
+static inline QkComplex64 complex_mul(QkComplex64 left, QkComplex64 right) {
+    return (QkComplex64){left.re * right.re - left.im * right.im,
+                         left.re * right.im + left.im * right.re};
+}
+
+static void kron(const QkComplex64 *left, size_t left_qubits, const QkComplex64 *right,
+                 size_t right_qubits, QkComplex64 *out) {
+    size_t left_dim = 1LLU << left_qubits;
+    size_t right_dim = 1LLU << right_qubits;
+    size_t out_dim = 1LLU << (left_qubits + right_qubits);
+    for (size_t left_row = 0; left_row < left_dim; left_row++) {
+        for (size_t right_row = 0; right_row < right_dim; right_row++) {
+            size_t out_row = right_dim * left_row + right_row;
+            for (size_t left_col = 0; left_col < left_dim; left_col++) {
+                for (size_t right_col = 0; right_col < right_dim; right_col++) {
+                    size_t out_col = right_dim * left_col + right_col;
+                    out[out_dim * out_row + out_col] =
+                        complex_mul(left[left_dim * left_row + left_col],
+                                    right[right_dim * right_row + right_col]);
+                }
+            }
+        }
+    }
+}
+
+static int check_unitary(const char *func, QkDag *dag, QkComplex64 scalar, const char *pauli,
+                         uint32_t *qubits, bool front) {
+    int res = Ok;
+    static const QkComplex64 mat_i[4] = {{1, 0}, {0, 0}, {0, 0}, {1, 0}};
+    static const QkComplex64 mat_x[4] = {{0, 0}, {1, 0}, {1, 0}, {0, 0}};
+    static const QkComplex64 mat_y[4] = {{0, 0}, {0, -1}, {0, 1}, {0, 0}};
+    static const QkComplex64 mat_z[4] = {{1, 0}, {0, 0}, {0, 0}, {-1, 0}};
+    uint32_t num_qubits = (uint32_t)strlen(pauli);
+    size_t dim = 1LLU << num_qubits;
+    const QkComplex64 *mat;
+    QkComplex64 *tmp;
+    QkComplex64 *cur = malloc(sizeof(*cur) * dim * dim);
+    QkComplex64 *next = malloc(sizeof(*next) * dim * dim);
+    cur[0] = scalar;
+    for (uint32_t qubit = 0; qubit < num_qubits; qubit++) {
+        switch (pauli[num_qubits - qubit - 1]) {
+        case 'I': {
+            mat = mat_i;
+            break;
+        }
+        case 'X': {
+            mat = mat_x;
+            break;
+        }
+        case 'Y': {
+            mat = mat_y;
+            break;
+        }
+        case 'Z': {
+            mat = mat_z;
+            break;
+        }
+        default: {
+            res = EqualityError;
+            printf("%s: bad pauli string '%s'\n", func, pauli);
+            goto cleanup;
+        }
+        }
+        kron(mat, 1, cur, qubit, next);
+        tmp = cur;
+        cur = next;
+        next = tmp;
+    }
+    // Zero out the other array, just to ensure that we've got clear invalid things to test
+    // against.
+    memset(next, 0, sizeof(*next) * dim * dim);
+    uint32_t node = qk_dag_apply_unitary(dag, cur, qubits, num_qubits, front);
+    QkOperationKind kind = qk_dag_op_node_kind(dag, node);
+    if (kind != QkOperationKind_Unitary) {
+        res = EqualityError;
+        printf("%s: %s kind incorrect: %d\n", func, pauli, kind);
+        goto cleanup;
+    }
+    qk_dag_op_node_unitary(dag, node, next);
+    if (memcmp(cur, next, sizeof(*cur) * dim * dim)) {
+        res = EqualityError;
+        printf("%s: %s matrices unequal\n", func, pauli);
+        goto cleanup;
+    }
+cleanup:
+    free(cur);
+    free(next);
+    return res;
+}
+
+static int test_unitary_gates(void) {
+    int res = Ok;
+    uint32_t qubits[] = {0, 1, 2};
+
+    QkDag *dag = qk_dag_new();
+    QkQuantumRegister *qr = qk_quantum_register_new(3, "q");
+    qk_dag_add_quantum_register(dag, qr);
+    qk_quantum_register_free(qr);
+
+    if ((res = check_unitary(__func__, dag, (QkComplex64){1, 0}, "X", qubits, false)))
+        goto cleanup;
+    if ((res = check_unitary(__func__, dag, (QkComplex64){1, 0}, "Y", qubits, true)))
+        goto cleanup;
+    if ((res = check_unitary(__func__, dag, (QkComplex64){0, 1}, "XY", qubits, false)))
+        goto cleanup;
+    if ((res = check_unitary(__func__, dag, (QkComplex64){-1, 0}, "YZ", &qubits[1], true)))
+        goto cleanup;
+    if ((res = check_unitary(__func__, dag, (QkComplex64){0, -1}, "XYZ", qubits, false)))
+        goto cleanup;
+    if ((res = check_unitary(__func__, dag, (QkComplex64){1, 0}, "YZZ", qubits, false)))
+        goto cleanup;
+    if ((res = check_unitary(__func__, dag, (QkComplex64){1, 0}, "", qubits, false)))
+        goto cleanup;
+    // Check that nothing bad happens if we use a null pointer for no qubits.
+    if ((res = check_unitary(__func__, dag, (QkComplex64){0, 1}, "", NULL, false)))
+        goto cleanup;
+
+cleanup:
+    qk_dag_free(dag);
+    return res;
+}
+
 int test_dag(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty);
@@ -350,6 +472,7 @@ int test_dag(void) {
     num_failed += RUN_TEST(test_dag_endpoint_node_value);
     num_failed += RUN_TEST(test_op_node_bits_explicit);
     num_failed += RUN_TEST(test_dag_copy_empty_like);
+    num_failed += RUN_TEST(test_unitary_gates);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
