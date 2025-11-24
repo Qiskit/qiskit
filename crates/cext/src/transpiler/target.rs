@@ -580,8 +580,8 @@ pub extern "C" fn qk_target_entry_new_reset() -> *mut TargetEntry {
 ///
 /// @param operation The ``QkGate`` whose properties this target entry defines.
 /// @param params A pointer to the parameters that the instruction is calibrated for.
-/// @param name An optional name for the instruction in the target. It can be a null pointer.
-/// The name will be set to None if a null pointer is provided.
+/// @param name An optional name for the instruction in the target. If a null pointer is
+/// provided, the entry will use the operation's default name.
 ///
 /// @return A pointer to the new ``QkTargetEntry``.
 ///
