@@ -50,7 +50,7 @@ static int build_target(QkTarget *target, uint32_t num_qubits) {
 /**
  * Test running VF2Layout on a line connectivity
  */
-static int test_vf2_layout_line(void) {
+static int test_vf2_average_line(void) {
     const uint32_t num_qubits = 5;
     QkTarget *target = qk_target_new(num_qubits);
     int result = Ok;
@@ -138,7 +138,7 @@ target_cleanup:
 /**
  * Test exact-match VF2 layout when no solution is possible because of available 1q operations.
  */
-int test_vf2_exact_no_layout_1q_semantics(void) {
+static int test_vf2_exact_no_layout_1q_semantics(void) {
     int result = RuntimeError;
     uint32_t num_qubits = 5;
     uint32_t line[5] = {0, 1, 2, 3, 4};
@@ -186,7 +186,7 @@ target_failure:
  * Test exact-match VF2 layout when no solution is possible because of available 2q operations, even
  * though the structure of the graph matches.
  */
-int test_vf2_exact_no_layout_2q_semantics(void) {
+static int test_vf2_exact_no_layout_2q_semantics(void) {
     int result = RuntimeError;
     uint32_t num_qubits = 5;
     uint32_t line[5] = {0, 1, 2, 3, 4};
@@ -233,7 +233,7 @@ target_failure:
  * Test exact-match VF2 layout when no solution is possible because the edge structure couldn't
  * match this interaction graph, no matter the nodes.
  */
-int test_vf2_exact_no_layout_2q_structure(void) {
+static int test_vf2_exact_no_layout_2q_structure(void) {
     int result = RuntimeError;
     uint32_t num_qubits = 5;
     uint32_t line[5] = {0, 1, 2, 3, 4};
@@ -281,7 +281,7 @@ target_failure:
 /**
  * Test exact-match VF2 layout when the existing layout is already as good as it can be.
  */
-int test_vf2_exact_no_improvement(void) {
+static int test_vf2_exact_no_improvement(void) {
     int result = RuntimeError;
     uint32_t num_qubits = 5;
     uint32_t line[5] = {0, 1, 2, 3, 4};
@@ -342,7 +342,7 @@ target_failure:
 /**
  * Test exact-match VF2 layout when there is a better mapping to find.
  */
-int test_vf2_exact_remap(void) {
+static int test_vf2_exact_remap(void) {
     int result = RuntimeError;
     uint32_t num_qubits = 5;
     uint32_t line[5] = {0, 1, 2, 3, 4};
@@ -372,10 +372,6 @@ int test_vf2_exact_remap(void) {
 
     QkVF2LayoutResult *layout_result =
         qk_transpiler_pass_standalone_vf2_layout_exact(qc, target, NULL);
-    // if (!qk_vf2_layout_result_has_match(layout_result)) {
-    //     printf("%s: failed to find a layout\n", __func__);
-    //     goto cleanup;
-    // }
     if (!qk_vf2_layout_result_has_improvement(layout_result)) {
         printf("%s: failed to improve non-optimal layout\n", __func__);
         goto cleanup;
@@ -404,7 +400,7 @@ target_failure:
 
 int test_vf2_layout(void) {
     int num_failed = 0;
-    num_failed += RUN_TEST(test_vf2_layout_line);
+    num_failed += RUN_TEST(test_vf2_average_line);
     num_failed += RUN_TEST(test_vf2_no_layout_found);
 
     num_failed += RUN_TEST(test_vf2_exact_no_layout_1q_semantics);
