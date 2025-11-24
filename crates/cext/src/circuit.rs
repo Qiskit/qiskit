@@ -26,7 +26,7 @@ use qiskit_circuit::operations::{
     ArrayType, DelayUnit, Operation, Param, StandardGate, StandardInstruction, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::{Clbit, Qubit};
+use qiskit_circuit::{Clbit, Qubit, VarsMode};
 
 #[cfg(feature = "python_binding")]
 use pyo3::ffi::PyObject;
@@ -1174,4 +1174,52 @@ pub unsafe extern "C" fn qk_circuit_delay(
         .unwrap();
 
     ExitCode::Success
+}
+
+/// @ingroup QkCircuit
+/// Return a copy of self with the same structure but empty.
+///
+/// That structure includes:
+/// * name and other metadata
+/// * global phase
+/// * duration
+/// * all the qubits and clbits, including the registers.
+///
+/// @param circuit A pointer to the circuit to copy.
+///
+/// @return The pointer to the copied circuit.
+///
+/// # Example
+/// ```c
+/// QkCircuit *qc = qk_circuit_new(10, 10);
+/// for (int i = 0; i < 10; i++) {
+///     qk_circuit_measure(qc, i, i);
+///     uint32_t qubits[1] = {i};
+///     qk_circuit_gate(qc, QkGate_H, qubits, NULL);
+/// }
+/// QkCircuit *copy = qk_circuit_copy_empty_like(qc);
+///
+/// size_t num_copy_instructions = qk_circuit_num_instructions(copy); // 0
+///
+/// // do something with the copy
+///
+/// qk_circuit_free(qc);
+/// qk_circuit_free(copy);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_circuit_copy_empty_like(
+    circuit: *const CircuitData,
+) -> *mut CircuitData {
+    // SAFETY: Per documentation, the pointer is to valid data.
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+
+    let copied_circuit = circuit
+        .copy_empty_like(VarsMode::Alike)
+        .expect("Failed to copy the circuit.");
+    Box::into_raw(Box::new(copied_circuit))
 }
