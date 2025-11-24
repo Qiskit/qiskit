@@ -608,7 +608,7 @@ pub unsafe extern "C" fn qk_target_entry_new_fixed(
     params: *mut f64,
     name: *const c_char,
 ) -> *mut TargetEntry {
-    //SAFETY: per documentation, name points to a valid UTF-8 null-terminated string.
+    // SAFETY: per documentation, name points to a valid UTF-8 null-terminated string.
     let name_fixed: Option<String> = if name.is_null() {
         None
     } else {
@@ -768,7 +768,7 @@ pub unsafe extern "C" fn qk_target_entry_set_name(
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let entry = unsafe { mut_ptr_as_ref(entry) };
-    //SAFETY: per documentation, name points to a valid UTF-8 null-terminated string.
+    // SAFETY: per documentation, name points to a valid UTF-8 null-terminated string.
     let name_set: Option<String> = if name.is_null() {
         None
     } else {
