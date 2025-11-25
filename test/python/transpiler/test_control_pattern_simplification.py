@@ -10,8 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test the ControlPatternSimplification pass.
-"""
+"""Test the ControlPatternSimplification pass."""
 
 import unittest
 import numpy as np
