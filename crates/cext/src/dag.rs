@@ -869,3 +869,59 @@ pub unsafe extern "C" fn qk_dag_free(dag: *mut DAGCircuit) {
         }
     }
 }
+/// @ingroup QkDag
+/// Return the operation nodes in the DAG listed in topological order.
+///
+/// @param dag A pointer to the DAG.
+/// @param out_order A pointer to an array of ``qk_dag_num_op_nodes(dag)`` elements
+/// of type ``uint32_t``, where this function will write the output to.
+///
+/// # Example
+/// ```c
+/// QkDag *dag = qk_dag_new();
+/// QkQuantumRegister *qr = qk_quantum_register_new(1, "my_register");
+/// qk_dag_add_quantum_register(dag, qr);
+///
+/// uint32_t qubit[1] = {0};
+/// qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
+/// qk_dag_apply_gate(dag, QkGate_S, qubit, NULL, false);
+///
+/// // get the number of operation nodes
+/// uint32_t num_ops = qk_dag_num_op_nodes(dag); // 2
+/// uint32_t *out_order = malloc(sizeof(uint32_t) * num_ops);
+///
+/// // get operation nodes listed in topological order
+/// qk_dag_topological_op_nodes(dag, out_order);
+///
+/// // do something with the ordered nodes
+/// for (uint32_t i = 0; i < num_ops; i++) {
+///     QkGate gate = qk_dag_op_node_gate_op(dag, out_order[i], NULL);
+///     printf("The gate at location %u is %u.\n", i, gate);
+/// }
+///
+/// // free the out_order array, register, and dag pointer when done
+/// free(out_order);
+/// qk_quantum_register_free(qr);
+/// qk_dag_free(dag);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``
+/// or if ``out_order`` is not a valid, non-null pointer to a sequence of ``qk_dag_num_op_nodes(dag)``
+/// consecutive elements of ``uint32_t``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_topological_op_nodes(dag: *const DAGCircuit, out_order: *mut u32) {
+    // SAFETY: Per documentation, ``dag`` is non-null and valid.
+    let dag = unsafe { const_ptr_as_ref(dag) };
+
+    let out_topological_op_nodes = dag.topological_op_nodes().unwrap();
+
+    for (i, node) in out_topological_op_nodes.enumerate() {
+        // SAFETY: per documentation, `out_order` is aligned and points to a valid
+        // aligned and maybe uninitialized block of memory valid for `num_op_nodes`
+        // writes of `u32`s.
+        unsafe { out_order.add(i).write(node.index() as u32) }
+    }
+}
