@@ -310,8 +310,11 @@ fn try_replace_rotation_by_discrete(
 }
 
 #[pyfunction]
-#[pyo3(name = "discretize_rotations")]
-pub fn run_discretize_rotations(dag: &mut DAGCircuit, approximation_degree: f64) -> PyResult<()> {
+#[pyo3(name = "substitute_pi4_rotations")]
+pub fn py_run_substitute_pi4_rotations(
+    dag: &mut DAGCircuit,
+    approximation_degree: f64,
+) -> PyResult<()> {
     // Skip the pass if there are no RX/RY/RZ rotation gates.
     if dag
         .get_op_counts()
@@ -354,7 +357,7 @@ pub fn run_discretize_rotations(dag: &mut DAGCircuit, approximation_degree: f64)
     Ok(())
 }
 
-pub fn discretize_rotations_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(run_discretize_rotations))?;
+pub fn substitute_pi4_rotations_mod(m: &Bound<PyModule>) -> PyResult<()> {
+    m.add_wrapped(wrap_pyfunction!(py_run_substitute_pi4_rotations))?;
     Ok(())
 }

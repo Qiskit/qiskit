@@ -17,15 +17,15 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.random import random_clifford_circuit
-from qiskit.transpiler.passes import DiscretizeRotations
+from qiskit.transpiler.passes import SubstitutePi4Rotations
 from qiskit.quantum_info import Operator, get_clifford_gate_names
 from qiskit.circuit.library import RXGate, RYGate, RZGate
 from test import combine, QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
-class TestDiscretizeRotations(QiskitTestCase):
-    """Test the Discretize Rotations optimization pass."""
+class TestSubstitutePi4Rotations(QiskitTestCase):
+    """Test the Substitute Pi4-Rotations optimization pass."""
 
     @combine(
         multiple=[*range(0, 16), 23, 42, -5, -8, -17, -22, -35],
@@ -42,7 +42,7 @@ class TestDiscretizeRotations(QiskitTestCase):
         qc.global_phase = global_phase
         angle = np.pi / 4 * multiple + eps
         qc.append(gate(angle), [0])
-        qct = DiscretizeRotations(approximation_degree)(qc)
+        qct = SubstitutePi4Rotations(approximation_degree)(qc)
         ops = qct.count_ops()
         clifford_t_names = get_clifford_gate_names() + ["t"] + ["tdg"]
         self.assertEqual(Operator(qct), Operator(qc))
@@ -67,7 +67,7 @@ class TestDiscretizeRotations(QiskitTestCase):
         qc = QuantumCircuit(1)
         angle = np.pi / 4 * multiple + eps
         qc.append(gate(angle), [0])
-        qct = DiscretizeRotations(approximation_degree)(qc)
+        qct = SubstitutePi4Rotations(approximation_degree)(qc)
         self.assertEqual(qc, qct)
 
     def test_random_clifford_t_rotation_circuit(self):
@@ -85,7 +85,7 @@ class TestDiscretizeRotations(QiskitTestCase):
             qc.ry(np.pi / 4 * (idx + num_qubits + 3), (idx + 3) % num_qubits)
             qc.rz(np.pi / 4 * (idx + num_qubits + 4), (idx + 4) % num_qubits)
 
-        qct = DiscretizeRotations()(qc)
+        qct = SubstitutePi4Rotations()(qc)
         clifford_t_names = get_clifford_gate_names() + ["t"] + ["tdg"]
         self.assertEqual(Operator(qct), Operator(qc))
         self.assertLessEqual(set(qct.count_ops().keys()), set(clifford_t_names))
@@ -101,7 +101,7 @@ class TestDiscretizeRotations(QiskitTestCase):
         qc.ry(np.pi / 2, 1)
         qc.rz(0.1, 0)
 
-        qct = DiscretizeRotations()(qc)
+        qct = SubstitutePi4Rotations()(qc)
 
         expected = QuantumCircuit(3)
         expected.global_phase = -2.0 - np.pi / 8

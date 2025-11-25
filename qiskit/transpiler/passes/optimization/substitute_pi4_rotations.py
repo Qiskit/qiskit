@@ -14,16 +14,16 @@
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
-from qiskit._accelerate.discretize_rotations import discretize_rotations
+from qiskit._accelerate.substitute_pi4_rotations import substitute_pi4_rotations
 
 
-class DiscretizeRotations(TransformationPass):
-    """Convert single-qubit rotation gates :class:`.RZGate`, :class:`.RXGate` and :class:`.RYGate`,
-    into {Clifford,T,Tdg} when their angles are integer multiples of pi/4.
+class SubstitutePi4Rotations(TransformationPass):
+    r"""Convert single-qubit rotation gates :class:`.RZGate`, :class:`.RXGate` and :class:`.RYGate`,
+    into {Clifford,T,Tdg} when their angles are integer multiples of `:math:`\pi/4`.
 
-    Note that odd multiples of pi/4 require a single :class:`.TGate` or :class:`.TdgGate`,
+    Note that odd multiples of `:math:`\pi/4` require a single :class:`.TGate` or :class:`.TdgGate`,
     as well as some Clifford gates,
-    while even multiples of pi/4, or equivalently, integer multiples of pi/2,
+    while even multiples of `:math:`\pi/4`, or equivalently, integer multiples of `:math:`\pi/2`,
     can be written using only Clifford gates.
     The output contains at most one :class:`.TGate` or :class:`.TdgGate`,
     and an optimal number of Clifford gates.
@@ -46,7 +46,7 @@ class DiscretizeRotations(TransformationPass):
         Returns:
             The output DAG.
         """
-        new_dag = discretize_rotations(dag, self.approximation_degree)
+        new_dag = substitute_pi4_rotations(dag, self.approximation_degree)
 
         # If the pass did not do anything, the result is None
         if new_dag is None:
