@@ -12,7 +12,7 @@
 
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
-use std::f64::consts::PI;
+use std::f64::consts::{FRAC_PI_8, PI};
 
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
@@ -20,7 +20,6 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 static ROTATION_GATE_NAMES: [&str; 3] = ["rx", "ry", "rz"];
 
-const PI8: f64 = PI / 8.0;
 const MINIMUM_TOL: f64 = 1e-12;
 
 /// For a given angle, if it is a multiple of PI/4, calculate the multiple mod 16,
@@ -68,33 +67,33 @@ fn try_replace_rotation_by_discrete(
         }
         (StandardGate::RZ, Some(1)) => {
             discrete_sequence.push(StandardGate::T);
-            -PI8
+            -FRAC_PI_8
         }
         (StandardGate::RZ, Some(2)) => {
             discrete_sequence.push(StandardGate::S);
-            -2.0 * PI8
+            -2.0 * FRAC_PI_8
         }
         (StandardGate::RZ, Some(3)) => {
             discrete_sequence.push(StandardGate::S);
             discrete_sequence.push(StandardGate::T);
-            -3.0 * PI8
+            -3.0 * FRAC_PI_8
         }
         (StandardGate::RZ, Some(4)) => {
             discrete_sequence.push(StandardGate::Z);
-            -4.0 * PI8
+            -4.0 * FRAC_PI_8
         }
         (StandardGate::RZ, Some(5)) => {
             discrete_sequence.push(StandardGate::Z);
             discrete_sequence.push(StandardGate::T);
-            -5.0 * PI8
+            -5.0 * FRAC_PI_8
         }
         (StandardGate::RZ, Some(6)) => {
             discrete_sequence.push(StandardGate::Sdg);
-            -6.0 * PI8
+            -6.0 * FRAC_PI_8
         }
         (StandardGate::RZ, Some(7)) => {
             discrete_sequence.push(StandardGate::Tdg);
-            -7.0 * PI8
+            -7.0 * FRAC_PI_8
         }
         (StandardGate::RZ, Some(8)) => {
             discrete_sequence.push(StandardGate::I);
@@ -102,33 +101,33 @@ fn try_replace_rotation_by_discrete(
         }
         (StandardGate::RZ, Some(9)) => {
             discrete_sequence.push(StandardGate::T);
-            -9.0 * PI8
+            -9.0 * FRAC_PI_8
         }
         (StandardGate::RZ, Some(10)) => {
             discrete_sequence.push(StandardGate::S);
-            -10.0 * PI8
+            -10.0 * FRAC_PI_8
         }
         (StandardGate::RZ, Some(11)) => {
             discrete_sequence.push(StandardGate::S);
             discrete_sequence.push(StandardGate::T);
-            -11.0 * PI8
+            -11.0 * FRAC_PI_8
         }
         (StandardGate::RZ, Some(12)) => {
             discrete_sequence.push(StandardGate::Z);
-            -12.0 * PI8
+            -12.0 * FRAC_PI_8
         }
         (StandardGate::RZ, Some(13)) => {
             discrete_sequence.push(StandardGate::Z);
             discrete_sequence.push(StandardGate::T);
-            -13.0 * PI8
+            -13.0 * FRAC_PI_8
         }
         (StandardGate::RZ, Some(14)) => {
             discrete_sequence.push(StandardGate::Sdg);
-            -14.0 * PI8
+            -14.0 * FRAC_PI_8
         }
         (StandardGate::RZ, Some(15)) => {
             discrete_sequence.push(StandardGate::Tdg);
-            -15.0 * PI8
+            -15.0 * FRAC_PI_8
         }
         (StandardGate::RX, Some(0)) => {
             discrete_sequence.push(StandardGate::I);
@@ -138,39 +137,39 @@ fn try_replace_rotation_by_discrete(
             discrete_sequence.push(StandardGate::H);
             discrete_sequence.push(StandardGate::T);
             discrete_sequence.push(StandardGate::H);
-            -PI8
+            -FRAC_PI_8
         }
         (StandardGate::RX, Some(2)) => {
             discrete_sequence.push(StandardGate::SX);
-            -2.0 * PI8
+            -2.0 * FRAC_PI_8
         }
         (StandardGate::RX, Some(3)) => {
             discrete_sequence.push(StandardGate::SX);
             discrete_sequence.push(StandardGate::H);
             discrete_sequence.push(StandardGate::T);
             discrete_sequence.push(StandardGate::H);
-            -3.0 * PI8
+            -3.0 * FRAC_PI_8
         }
         (StandardGate::RX, Some(4)) => {
             discrete_sequence.push(StandardGate::X);
-            -4.0 * PI8
+            -4.0 * FRAC_PI_8
         }
         (StandardGate::RX, Some(5)) => {
             discrete_sequence.push(StandardGate::X);
             discrete_sequence.push(StandardGate::H);
             discrete_sequence.push(StandardGate::T);
             discrete_sequence.push(StandardGate::H);
-            -5.0 * PI8
+            -5.0 * FRAC_PI_8
         }
         (StandardGate::RX, Some(6)) => {
             discrete_sequence.push(StandardGate::SXdg);
-            -6.0 * PI8
+            -6.0 * FRAC_PI_8
         }
         (StandardGate::RX, Some(7)) => {
             discrete_sequence.push(StandardGate::H);
             discrete_sequence.push(StandardGate::Tdg);
             discrete_sequence.push(StandardGate::H);
-            -7.0 * PI8
+            -7.0 * FRAC_PI_8
         }
         (StandardGate::RX, Some(8)) => {
             discrete_sequence.push(StandardGate::I);
@@ -180,39 +179,39 @@ fn try_replace_rotation_by_discrete(
             discrete_sequence.push(StandardGate::H);
             discrete_sequence.push(StandardGate::T);
             discrete_sequence.push(StandardGate::H);
-            -9.0 * PI8
+            -9.0 * FRAC_PI_8
         }
         (StandardGate::RX, Some(10)) => {
             discrete_sequence.push(StandardGate::SX);
-            -10.0 * PI8
+            -10.0 * FRAC_PI_8
         }
         (StandardGate::RX, Some(11)) => {
             discrete_sequence.push(StandardGate::SX);
             discrete_sequence.push(StandardGate::H);
             discrete_sequence.push(StandardGate::T);
             discrete_sequence.push(StandardGate::H);
-            -11.0 * PI8
+            -11.0 * FRAC_PI_8
         }
         (StandardGate::RX, Some(12)) => {
             discrete_sequence.push(StandardGate::X);
-            -12.0 * PI8
+            -12.0 * FRAC_PI_8
         }
         (StandardGate::RX, Some(13)) => {
             discrete_sequence.push(StandardGate::X);
             discrete_sequence.push(StandardGate::H);
             discrete_sequence.push(StandardGate::T);
             discrete_sequence.push(StandardGate::H);
-            -13.0 * PI8
+            -13.0 * FRAC_PI_8
         }
         (StandardGate::RX, Some(14)) => {
             discrete_sequence.push(StandardGate::SXdg);
-            -14.0 * PI8
+            -14.0 * FRAC_PI_8
         }
         (StandardGate::RX, Some(15)) => {
             discrete_sequence.push(StandardGate::H);
             discrete_sequence.push(StandardGate::Tdg);
             discrete_sequence.push(StandardGate::H);
-            -15.0 * PI8
+            -15.0 * FRAC_PI_8
         }
         (StandardGate::RY, Some(0)) => {
             discrete_sequence.push(StandardGate::I);
@@ -222,7 +221,7 @@ fn try_replace_rotation_by_discrete(
             discrete_sequence.push(StandardGate::SX);
             discrete_sequence.push(StandardGate::T);
             discrete_sequence.push(StandardGate::SXdg);
-            -PI8
+            -FRAC_PI_8
         }
         (StandardGate::RY, Some(2)) => {
             discrete_sequence.push(StandardGate::Z);
@@ -234,18 +233,18 @@ fn try_replace_rotation_by_discrete(
             discrete_sequence.push(StandardGate::T);
             discrete_sequence.push(StandardGate::S);
             discrete_sequence.push(StandardGate::SXdg);
-            -3.0 * PI8
+            -3.0 * FRAC_PI_8
         }
         (StandardGate::RY, Some(4)) => {
             discrete_sequence.push(StandardGate::Y);
-            -4.0 * PI8
+            -4.0 * FRAC_PI_8
         }
         (StandardGate::RY, Some(5)) => {
             discrete_sequence.push(StandardGate::Y);
             discrete_sequence.push(StandardGate::SX);
             discrete_sequence.push(StandardGate::T);
             discrete_sequence.push(StandardGate::SXdg);
-            -5.0 * PI8
+            -5.0 * FRAC_PI_8
         }
         (StandardGate::RY, Some(6)) => {
             discrete_sequence.push(StandardGate::H);
@@ -256,7 +255,7 @@ fn try_replace_rotation_by_discrete(
             discrete_sequence.push(StandardGate::SX);
             discrete_sequence.push(StandardGate::Tdg);
             discrete_sequence.push(StandardGate::SXdg);
-            -7.0 * PI8
+            -7.0 * FRAC_PI_8
         }
         (StandardGate::RY, Some(8)) => {
             discrete_sequence.push(StandardGate::I);
@@ -266,7 +265,7 @@ fn try_replace_rotation_by_discrete(
             discrete_sequence.push(StandardGate::SX);
             discrete_sequence.push(StandardGate::T);
             discrete_sequence.push(StandardGate::SXdg);
-            -9.0 * PI8
+            -9.0 * FRAC_PI_8
         }
         (StandardGate::RY, Some(10)) => {
             discrete_sequence.push(StandardGate::Z);
@@ -278,18 +277,18 @@ fn try_replace_rotation_by_discrete(
             discrete_sequence.push(StandardGate::T);
             discrete_sequence.push(StandardGate::S);
             discrete_sequence.push(StandardGate::SXdg);
-            -11.0 * PI8
+            -11.0 * FRAC_PI_8
         }
         (StandardGate::RY, Some(12)) => {
             discrete_sequence.push(StandardGate::Y);
-            -12.0 * PI8
+            -12.0 * FRAC_PI_8
         }
         (StandardGate::RY, Some(13)) => {
             discrete_sequence.push(StandardGate::Y);
             discrete_sequence.push(StandardGate::SX);
             discrete_sequence.push(StandardGate::T);
             discrete_sequence.push(StandardGate::SXdg);
-            -13.0 * PI8
+            -13.0 * FRAC_PI_8
         }
         (StandardGate::RY, Some(14)) => {
             discrete_sequence.push(StandardGate::H);
@@ -300,7 +299,7 @@ fn try_replace_rotation_by_discrete(
             discrete_sequence.push(StandardGate::SX);
             discrete_sequence.push(StandardGate::Tdg);
             discrete_sequence.push(StandardGate::SXdg);
-            -15.0 * PI8
+            -15.0 * FRAC_PI_8
         }
         _ => {
             return None;
