@@ -37,7 +37,7 @@ class CommutativeOptimization(TransformationPass):
     :class:`.CommutativeInverseCancellation` transpiler passes.
     """
 
-    def __init__(self, approximation_degree: float = 1.0, matrix_max_num_qubits: int = 4):
+    def __init__(self, approximation_degree: float = 1.0, matrix_max_num_qubits: int = 0):
         """
         Args:
             approximation_degree: Used in the tolerance computations.
