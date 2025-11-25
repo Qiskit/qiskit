@@ -21,10 +21,10 @@ use crate::commutation_checker::{CommutationChecker, get_matrix};
 use crate::passes::remove_identity_equiv::{can_remove, is_identity_equiv};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::imports;
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, StandardGate, multiply_param, radd_param,
 };
+use qiskit_circuit::{Clbit, Qubit, imports};
 
 use qiskit_circuit::VarsMode;
 use qiskit_circuit::packed_instruction::PackedInstruction;
@@ -211,10 +211,6 @@ fn commute(
     let cargs1 = dag.get_cargs(inst1.clbits);
     let cargs2 = dag.get_cargs(inst2.clbits);
 
-    if !qargs1.iter().any(|e| qargs2.contains(e)) && !cargs1.iter().any(|e| cargs2.contains(e)) {
-        return true;
-    }
-
     let op1 = inst1.op.view();
     let op2 = inst2.op.view();
     let params1 = inst1.params_view();
@@ -393,6 +389,17 @@ fn try_merge(
     Ok((false, None, 0.))
 }
 
+/// Returns whether qubits/clbits for one instruction are fully disjoint from qubit/clbits of
+/// another instruction.
+fn disjoint_instructions(
+    qargs1: &[Qubit],
+    cargs1: &[Clbit],
+    qargs2: &[Qubit],
+    cargs2: &[Clbit],
+) -> bool {
+    !qargs1.iter().any(|e| qargs2.contains(e)) && !cargs1.iter().any(|e| cargs2.contains(e))
+}
+
 #[pyfunction]
 #[pyo3(name = "commutative_optimization")]
 #[pyo3(signature = (dag, commutation_checker, approximation_degree=1., matrix_max_num_qubits=0))]
@@ -446,6 +453,9 @@ pub fn run_commutative_optimization(
             }
         };
 
+        let qargs1: &[Qubit] = new_dag.get_qargs(instr1.qubits);
+        let cargs1: &[Clbit] = new_dag.get_cargs(instr1.clbits);
+
         for idx2 in (0..idx1).rev() {
             let node_index2 = node_indices[idx2];
 
@@ -455,6 +465,15 @@ pub fn run_commutative_optimization(
                 NodeAction::Canonical(instruction, phase) => (instruction, phase.clone()),
                 NodeAction::Drop => continue,
             };
+
+            let qargs2: &[Qubit] = new_dag.get_qargs(instr2.qubits);
+            let cargs2: &[Clbit] = new_dag.get_cargs(instr2.clbits);
+
+            // If the two sets of qubit/clbits instructions are fully disjoint, we assume
+            // that the instructions cannot be merged and also that the instructions commute.
+            if disjoint_instructions(qargs1, cargs1, qargs2, cargs2) {
+                continue;
+            }
 
             let (can_be_merged, merged_instruction, phase_update) =
                 try_merge(&new_dag, instr1, instr2, tol, matrix_max_num_qubits)?;
