@@ -94,7 +94,7 @@ Optimizations
    RemoveResetInZeroState
    ResetAfterMeasureSimplification
    Split2QUnitaries
-   SubstitutePI4Rotations
+   SubstitutePi4Rotations
    TemplateOptimization
 
 Scheduling
