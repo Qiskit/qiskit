@@ -40,7 +40,7 @@ deprecations_c:
     The function :c:func:`qk_transpiler_pass_standalone_vf2_layout` is deprecated, as callers should
     now use :c:func:`qk_transpiler_pass_standalone_vf2_layout_average`.  The new function name is
     more descriptive of the scoring heuristic, and the API allows encapsulated access to the whole
-    new 
+    new configuration object, including the two-limit form of ``call_limit``.
 
     This deprecation is not entirely necessary for users, but with the C API still explicitly
     unstable, we are using this as a trial of managing deprecations and compiler-specific warnings
