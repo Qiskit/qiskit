@@ -15,20 +15,19 @@
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 import numpy as np
-import sympy as sp
-from sympy.logic import simplify_logic
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.circuit import ControlledGate
 from qiskit.circuit.library import CXGate, XGate
 
-class BooleanExpressionAnalyzer:
-    """Analyzes control patterns using sympy Boolean expressions.
 
-    This class converts control patterns to Boolean expressions,
-    simplifies them using sympy, and determines if simplification occurred.
-    Follows the implementation pattern from mcrx_simplifier.py.
+class BitwisePatternAnalyzer:
+    """Analyzes control patterns using pure bitwise operations.
+
+    This class provides pattern analysis and simplification without
+    external symbolic algebra dependencies. It uses bitwise operations
+    to detect complementary pairs, XOR patterns, and other simplifications.
     """
 
     def __init__(self, num_qubits: int):
@@ -38,65 +37,88 @@ class BooleanExpressionAnalyzer:
             num_qubits: Number of control qubits in patterns
         """
         self.num_qubits = num_qubits
-        # Create symbols x0, x1, x2, ... for each control qubit
-        self.symbols = [sp.Symbol(f"x{i}") for i in range(num_qubits)]
 
-    def pattern_to_boolean_expr(self, pattern: str) -> sp.Basic:
-        """Convert binary pattern string to Boolean expression.
+    def _hamming_distance(self, p1: str, p2: str) -> int:
+        """Calculate Hamming distance between two pattern strings."""
+        return sum(c1 != c2 for c1, c2 in zip(p1, p2))
 
-        Args:
-            pattern: Binary pattern string (e.g., '110')
-                    Position i corresponds to qubit i (LSB-first)
+    def _find_differing_positions(self, p1: str, p2: str) -> List[int]:
+        """Find positions where two patterns differ."""
+        return [i for i in range(len(p1)) if p1[i] != p2[i]]
 
-        Returns:
-            Sympy Boolean expression representing the pattern
-        """
-        terms = []
-        for i, bit in enumerate(pattern):
-            if bit == '1':
-                terms.append(self.symbols[i])
-            elif bit == '0':
-                terms.append(sp.Not(self.symbols[i]))
-
-        if not terms:
-            return sp.true
-        elif len(terms) == 1:
-            return terms[0]
-        else:
-            return sp.And(*terms)
-
-    def patterns_to_combined_expr(self, patterns: List[str]) -> sp.Basic:
-        """Convert list of patterns to combined Boolean OR expression.
-
-        Args:
-            patterns: List of binary pattern strings
+    def _find_common_bits(self, patterns: List[str]) -> Tuple[List[int], str]:
+        """Find bit positions that have the same value across all patterns.
 
         Returns:
-            Sympy Boolean expression (OR of all pattern expressions)
+            Tuple of (common_positions, common_values) where:
+            - common_positions: list of positions with same value in all patterns
+            - common_values: string of the common bit values at those positions
         """
         if not patterns:
-            return sp.false
+            return [], ""
 
-        pattern_exprs = [self.pattern_to_boolean_expr(p) for p in patterns]
+        n = len(patterns[0])
+        common_positions = []
+        common_values = []
 
-        if len(pattern_exprs) == 1:
-            return pattern_exprs[0]
-        else:
-            return sp.Or(*pattern_exprs)
+        for pos in range(n):
+            bits_at_pos = set(p[pos] for p in patterns)
+            if len(bits_at_pos) == 1:
+                common_positions.append(pos)
+                common_values.append(patterns[0][pos])
 
-    def simplify_expression(self, expr: sp.Basic) -> sp.Basic:
-        """Simplify Boolean expression using sympy.
+        return common_positions, ''.join(common_values)
 
-        Args:
-            expr: Sympy Boolean expression
+    def _check_single_variable_simplification(
+        self, patterns: List[str]
+    ) -> Optional[Tuple[int, str]]:
+        """Check if patterns simplify to a single variable control.
+
+        This happens when patterns cover all combinations of all variables
+        except one, which must have a fixed value.
 
         Returns:
-            Simplified expression
+            Tuple of (qubit_index, ctrl_state) if simplifies to single variable,
+            None otherwise.
         """
-        try:
-            return simplify_logic(expr)
-        except Exception:
-            return expr
+        if not patterns:
+            return None
+
+        n = self.num_qubits
+        pattern_set = set(patterns)
+
+        # For single variable simplification, we need 2^(n-1) patterns
+        if len(pattern_set) != 2**(n-1):
+            return None
+
+        # Check each qubit position to see if it's the controlling variable
+        for ctrl_pos in range(n):
+            # Check if fixing this position to '1' gives all patterns
+            expected_with_1 = set()
+            expected_with_0 = set()
+
+            for combo in range(2**(n-1)):
+                # Generate pattern with ctrl_pos fixed to '1'
+                pattern_1 = ""
+                pattern_0 = ""
+                bit_idx = 0
+                for pos in range(n):
+                    if pos == ctrl_pos:
+                        pattern_1 += '1'
+                        pattern_0 += '0'
+                    else:
+                        pattern_1 += str((combo >> bit_idx) & 1)
+                        pattern_0 += str((combo >> bit_idx) & 1)
+                        bit_idx += 1
+                expected_with_1.add(pattern_1)
+                expected_with_0.add(pattern_0)
+
+            if pattern_set == expected_with_1:
+                return (ctrl_pos, '1')
+            if pattern_set == expected_with_0:
+                return (ctrl_pos, '0')
+
+        return None
 
     def find_xor_pairs(self, patterns: List[str]) -> List[Tuple[str, str, List[int], str]]:
         """Find pairs of patterns that form XOR relationships.
@@ -329,13 +351,13 @@ class BooleanExpressionAnalyzer:
     def simplify_patterns(
         self, patterns: List[str]
     ) -> Tuple[str, Optional[List[int]], Optional[str]]:
-        """Simplify control patterns using sympy Boolean expression analysis.
+        """Simplify control patterns using bitwise pattern analysis.
 
         This is the main entry point that tries different simplification strategies:
         1. Check for unconditional (all states covered)
         2. Try iterative pairwise (for >2 patterns)
         3. Try single pairwise optimization
-        4. Use sympy Boolean simplification
+        4. Use bitwise analysis for remaining cases
 
         Args:
             patterns: List of binary control pattern strings
@@ -373,77 +395,42 @@ class BooleanExpressionAnalyzer:
             # Pairwise achieved some optimization
             return ("pairwise", pairwise_result, None)
 
-        # Use sympy Boolean simplification to check for simpler forms
-        original_expr = self.patterns_to_combined_expr(list(unique_patterns))
-        simplified_expr = self.simplify_expression(original_expr)
+        # Try bitwise simplification for remaining cases
+        return self._analyze_patterns_bitwise(list(unique_patterns))
 
-        # Analyze the simplified expression to extract control information
-        return self._analyze_simplified_expr(simplified_expr, original_expr)
-
-    def _analyze_simplified_expr(
-        self, simplified_expr: sp.Basic, original_expr: sp.Basic
+    def _analyze_patterns_bitwise(
+        self, patterns: List[str]
     ) -> Tuple[str, Optional[List[int]], Optional[str]]:
-        """Analyze a simplified sympy expression to extract control pattern info.
+        """Analyze patterns using pure bitwise operations.
 
         Args:
-            simplified_expr: Simplified Boolean expression
-            original_expr: Original Boolean expression for comparison
+            patterns: List of binary pattern strings
 
         Returns:
             Tuple of (classification, qubit_indices, ctrl_state)
         """
-        # Check if expression simplified to True (unconditional)
-        if simplified_expr == sp.true:
-            return ("unconditional", [], "")
+        # Check for single variable simplification
+        single_var = self._check_single_variable_simplification(patterns)
+        if single_var:
+            qubit_idx, ctrl_state = single_var
+            return ("single", [qubit_idx], ctrl_state)
 
-        # Check if expression simplified to False (impossible, no optimization)
-        if simplified_expr == sp.false:
-            return ("no_optimization", None, None)
+        # Check if all patterns share common bits (AND simplification)
+        common_positions, common_values = self._find_common_bits(patterns)
+        if common_positions and len(common_positions) < self.num_qubits:
+            # Check if remaining positions cover all combinations
+            varying_positions = [i for i in range(self.num_qubits) if i not in common_positions]
+            expected_count = 2 ** len(varying_positions)
 
-        # Check if simplified to a single variable or its negation
-        for i, symbol in enumerate(self.symbols):
-            if simplified_expr == symbol:
-                # Single control on qubit i = 1
-                return ("single", [i], "1")
-            elif simplified_expr == sp.Not(symbol):
-                # Single control on qubit i = 0
-                return ("single", [i], "0")
-
-        # Check if it's an AND of literals (conjunction)
-        if isinstance(simplified_expr, sp.And):
-            qubit_indices = []
-            ctrl_state_bits = []
-
-            for arg in simplified_expr.args:
-                if isinstance(arg, sp.Not):
-                    # Negated variable
-                    var = arg.args[0]
-                    if var in self.symbols:
-                        qubit_idx = self.symbols.index(var)
-                        qubit_indices.append(qubit_idx)
-                        ctrl_state_bits.append('0')
-                elif arg in self.symbols:
-                    # Positive variable
-                    qubit_idx = self.symbols.index(arg)
-                    qubit_indices.append(qubit_idx)
-                    ctrl_state_bits.append('1')
-
-            if qubit_indices:
-                # Sort by qubit index
-                sorted_pairs = sorted(zip(qubit_indices, ctrl_state_bits))
-                qubit_indices = [q for q, _ in sorted_pairs]
-                ctrl_state = ''.join(c for _, c in sorted_pairs)
-
-                if len(qubit_indices) == 1:
-                    return ("single", qubit_indices, ctrl_state)
+            if len(patterns) == expected_count:
+                # Patterns cover all combinations of varying bits
+                # Simplifies to AND of common bits
+                if len(common_positions) == 1:
+                    return ("single", common_positions, common_values)
                 else:
-                    return ("and", qubit_indices, ctrl_state)
+                    return ("and", common_positions, common_values)
 
-        # If expression didn't simplify or is complex OR, no optimization
-        if str(simplified_expr) == str(original_expr):
-            return ("no_optimization", None, None)
-
-        # Expression simplified but we can't extract a simple pattern
+        # No simplification found
         return ("no_optimization", None, None)
 
 
@@ -1102,8 +1089,8 @@ class ControlPatternSimplification(TransformationPass):
                     )
                     replacement = [(gate, qargs)]
                 else:
-                    # Different patterns - try pattern simplification using sympy
-                    analyzer = BooleanExpressionAnalyzer(num_qubits)
+                    # Different patterns - try pattern simplification
+                    analyzer = BitwisePatternAnalyzer(num_qubits)
                     classification, qubit_indices, ctrl_state = analyzer.simplify_patterns(patterns)
 
                     # 5. Build optimized gate based on classification
