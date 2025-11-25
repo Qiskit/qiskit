@@ -883,15 +883,15 @@ pub unsafe extern "C" fn qk_dag_free(dag: *mut DAGCircuit) {
 ///
 /// # Example
 /// ```c
-///    QkDag *dag = qk_dag_new();
-///    QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
-///    qk_dag_add_quantum_register(dag, qr);
-///    qk_quantum_register_free(qr);
-///
-///    QkCircuit *qc = qk_dag_to_circuit(dag);
-///
-///    qk_circuit_free(qc);
-///    qk_dag_free(dag);
+/// QkDag *dag = qk_dag_new();
+/// QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
+/// qk_dag_add_quantum_register(dag, qr);
+/// qk_quantum_register_free(qr);
+/// 
+/// QkCircuit *qc = qk_dag_to_circuit(dag);
+/// 
+/// qk_circuit_free(qc);
+/// qk_dag_free(dag);
 /// ```
 ///
 /// # Safety
