@@ -571,10 +571,9 @@ int test_target_instruction_supported(void) {
         for (int gate = 0; gate < 6; gate++) {
             // If i == 4 condition should be false unless we try with the y gate
             // since y is added as a global gate.
-            if (!(qk_target_instruction_supported(sample_target, gate_names[gate], qargs,
-                                                  gate != 3 ? NULL : rz_params) ==
-                  should_be_true) &&
-                gate != 1) {
+            if (qk_target_instruction_supported(sample_target, gate_names[gate], qargs,
+                                                  gate != 3 ? NULL : rz_params) !=
+                  (should_be_true || gate == 1)) {
                 printf("This target did not correctly demonstrate compatibility with %s and qargs "
                        "[%d]",
                        gate_names[gate], qubit);

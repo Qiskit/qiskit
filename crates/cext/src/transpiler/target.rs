@@ -1006,7 +1006,7 @@ pub unsafe extern "C" fn qk_target_instruction_supported(
         return false;
     };
 
-    // SAFETY: Per documentation, the params pointer points to an appropiately allocated
+    // SAFETY: Per documentation, the params pointer points to an appropriately allocated
     // array of `QkParam` objects.
     let params = if params.is_null() {
         Vec::with_capacity(0)
