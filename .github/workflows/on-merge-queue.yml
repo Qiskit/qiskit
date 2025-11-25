@@ -28,7 +28,7 @@ jobs:
       matrix:
         runner: ["ubuntu-latest", "ubuntu-24.04-arm"]
     with:
-      python-version: 3.9
+      python-version: 3.10
       install-optionals: true
       runner: ${{ matrix.runner }}
   test-linux-3-13:
@@ -47,14 +47,14 @@ jobs:
     if: github.repository_owner == 'Qiskit'
     uses: ./.github/workflows/rust-tests.yml
     with:
-      python-version: "3.9"
+      python-version: "3.10"
       runner: "ubuntu-latest"
   test-images:
     name: Image Comparison Tests
     if: github.repository_owner == 'Qiskit'
     uses: ./.github/workflows/image-tests.yml
     with:
-      python-version: "3.9"
+      python-version: "3.10"
       runner: "ubuntu-latest"
   test-mac:
     name: Python Unit Tests
