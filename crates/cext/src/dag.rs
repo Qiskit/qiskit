@@ -10,8 +10,10 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use anyhow::Error;
 use num_complex::Complex64;
 use smallvec::smallvec;
+use std::ffi::{CString, c_char};
 
 use qiskit_circuit::Qubit;
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
@@ -23,6 +25,7 @@ use qiskit_circuit::operations::{
 };
 
 use crate::circuit::unitary_from_pointer;
+use crate::exit_codes::ExitCode;
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 
 /// @ingroup QkDag
@@ -966,5 +969,98 @@ pub unsafe extern "C" fn qk_dag_topological_op_nodes(dag: *const DAGCircuit, out
         // aligned and maybe uninitialized block of memory valid for `num_op_nodes`
         // writes of `u32`s.
         unsafe { out_order.add(i).write(node.index() as u32) }
+    }
+}
+
+/// @ingroup QkDag
+/// Replace a node in a `QkDag` with a subcircuit specfied by another `QkDag`
+///
+/// @param dag A pointer to the DAG.
+/// @param node The node index of the operation to replace with the other `QkDag`. This
+///     must be the node index for an operation node in ``dag`` and the qargs and cargs
+///     count must match the number of qubits and clbits in `replacement`.
+/// @param replacement The other `QkDag` to replace `node` with. This dag must have
+///     the same number of qubits as the operation for ``node``. The node
+///     bit ordering will be ordering will be handled in order, so `qargs[0]` for
+///     `node` will be mapped to `qubits[0]` in `replacement`, `qargs[1]` to
+///     `qubits[0]`, etc. The same pattern applies to classical bits too.
+/// @param error A pointer to a pointer with an nul terminated string with an
+///     error description. If the function fails a pointer to the string with
+///     the error description will be written to this pointer. That pointer
+///     needs to be freed with `qk_str_free`. This can be a null pointer in
+///     which case the error will not be written out.
+///
+/// @returns The return code for the operation, ``QkExitCode_Success`` means success and all
+///   other values indicate an error.
+///
+/// # Example
+///
+/// ```c
+/// QkDag *dag = qk_dag_new();
+/// QkQuantumRegister *qr = qk_quantum_register_new(1, "my_register");
+/// qk_dag_add_quantum_register(dag, qr);
+///
+/// uint32_t qubit[1] = {0};
+/// uint32_t node_to_replace = qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
+/// qk_dag_apply_gate(dag, QkGate_S, qubit, NULL, false);
+///
+/// // Build replacement dag for H
+/// QkDag *replacement = qk_dag_new();
+/// QkQuantumRegister *replacement_qr = qk_quantum_register_new(1, "other");
+/// qk_dag_add_quantum_register(replacement, replacement_qr);
+/// double pi_param [1] = {3.14159,};
+/// qk_dag_apply_gate(replacement, QkGate_RZ, qubit, pi_param, false);
+/// qk_dag_apply_gate(replacement, QkGate_SX, qubit, NULL, false);
+/// qk_dag_apply_gate(replacement, QkGate_RZ, qubit, pi_param, false);
+///
+/// qk_dag_substitute_node_with_dag(dag, node_to_replace, replacement, NULL);
+///
+/// // Free the replacement dag, register, dag, and register
+/// qk_quantum_register_free(replacement_qr);
+/// qk_dag_free(replacement);
+/// qk_quantum_register_free(qr);
+/// qk_dag_free(dag);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``dag`` and ``replacement`` are not a valid, non-null pointer to a
+/// ``QkDag``. ``error`` must be a valid pointer to a ``char`` pointer or ``NULL``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_substitute_node_with_dag(
+    dag: *mut DAGCircuit,
+    node: u32,
+    replacement: *const DAGCircuit,
+    error: *mut *mut c_char,
+) -> ExitCode {
+    // SAFETY: Per documentation, ``dag`` is non-null and valid.
+    let dag = unsafe { mut_ptr_as_ref(dag) };
+    let replacement = unsafe { const_ptr_as_ref(replacement) };
+
+    match dag.substitute_node_with_dag(NodeIndex::new(node as usize), replacement, None, None, None)
+    {
+        Ok(_) => ExitCode::Success,
+        Err(e) => {
+            if !error.is_null() {
+                let err: Error = e.into();
+                // SAFETY: Per the documentation error is either null or a valid and aligned
+                // pointer to a pointer of a C string which is safe to write a pointer to the
+                // Rust heap into.
+                unsafe {
+                    // Right now we return a backtrace of the error. This at least gives a hint as to
+                    // which pass failed when we have rust errors normalized we can actually have error
+                    // messages which are user facing. But most likely this will be a PyErr and panic
+                    // when trying to extract the string.
+                    *error = CString::new(format!(
+                        "Transpilation failed with this backtrace: {}",
+                        err.backtrace()
+                    ))
+                    .unwrap()
+                    .into_raw();
+                }
+            }
+            ExitCode::DagError
+        }
     }
 }
