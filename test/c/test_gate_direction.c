@@ -21,7 +21,7 @@ static QkTarget *create_target() {
     QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
 
     double rzx_params[1] = {1.5};
-    QkTargetEntry *rzx_entry = qk_target_entry_new_fixed(QkGate_RZX, rzx_params);
+    QkTargetEntry *rzx_entry = qk_target_entry_new_fixed(QkGate_RZX, rzx_params, "rzx");
 
     if (qk_target_entry_add_property(cx_entry, qargs, 2, 0.0, 0.0) != Ok ||
         qk_target_entry_add_property(cx_entry, &qargs[1], 2, 0.0, 0.0) != Ok ||

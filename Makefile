@@ -131,7 +131,8 @@ $(C_LIBQISKIT): $(C_DIR_LIB)  $(C_LIB_CARGO_PATH)
 
 $(C_QISKIT_H): $(C_DIR_INCLUDE) $(C_LIB_CARGO_PATH)
 	cp target/qiskit.h $(C_DIR_INCLUDE)/qiskit.h
-	cp crates/cext/include/complex.h $(C_DIR_INCLUDE)/qiskit/complex.h
+	rm -rf $(C_DIR_INCLUDE)/qiskit
+	cp -r crates/cext/include/qiskit $(C_DIR_INCLUDE)/
 
 .PHONY: c cheader
 cheader: $(C_QISKIT_H)
@@ -141,7 +142,8 @@ c: $(C_LIBQISKIT) $(C_QISKIT_H)
 ctest: $(C_DIR_INCLUDE)
 	cargo rustc --crate-type cdylib -p qiskit-cext
 	cp target/qiskit.h $(C_DIR_INCLUDE)/qiskit.h
-	cp crates/cext/include/complex.h $(C_DIR_INCLUDE)/qiskit/complex.h
+	rm -rf $(C_DIR_INCLUDE)/qiskit
+	cp -r crates/cext/include/qiskit $(C_DIR_INCLUDE)/
 
 	# -S specifically specifies the source path to be the current folder
 	# -B specifically specifies the build path to be inside test/c/build
