@@ -903,7 +903,7 @@ impl CInstruction {
                 _ => None,
             })
             .collect::<Option<Box<[f64]>>>()
-            .expect("caller is response for ensuring all parameters are floats");
+            .expect("caller is responsible for ensuring all parameters are floats");
         Self {
             name,
             num_qubits: qargs.len() as u32,
