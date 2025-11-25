@@ -178,6 +178,7 @@ fn is_angle_close_to_multiple_of_pi_4(angle: f64, tol: f64) -> Option<usize> {
     let closest_angle = closest_integer * PI / 4.0;
     let theta = angle - closest_angle;
 
+    // Explicit trace calculation of RX/RY/RZ matrices
     let tr_over_dim = (theta / 2.).cos();
     let dim = 2.;
 
