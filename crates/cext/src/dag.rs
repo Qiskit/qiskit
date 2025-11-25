@@ -15,6 +15,8 @@ use smallvec::smallvec;
 
 use qiskit_circuit::Qubit;
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
+use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeIndex, NodeType};
 use qiskit_circuit::operations::{
     ArrayType, Operation, OperationRef, Param, StandardGate, StandardInstruction, UnitaryGate,
@@ -26,7 +28,7 @@ use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 /// @ingroup QkDag
 /// Construct a new empty DAG.
 ///
-/// You must free the returned DAG with qk_dag_free when done with it.
+/// You must free the returned DAG with ``qk_dag_free`` when done with it.
 ///
 /// @return A pointer to the created DAG.
 ///
@@ -869,6 +871,46 @@ pub unsafe extern "C" fn qk_dag_free(dag: *mut DAGCircuit) {
         }
     }
 }
+
+/// @ingroup QkDag
+/// Convert a given DAG to a circuit.
+///
+/// The new circuit is copied from the DAG; the original ``dag`` reference is still owned by the
+/// caller and still required to be freed with `qk_dag_free`.  You must free the returned circuit
+/// with ``qk_circuit_free`` when done with it.
+///
+/// @param dag A pointer to the DAG from which to create the circuit.
+///
+/// @return A pointer to the new circuit.
+///
+/// # Example
+///
+/// ```c
+/// QkDag *dag = qk_dag_new();
+/// QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
+/// qk_dag_add_quantum_register(dag, qr);
+/// qk_quantum_register_free(qr);
+///
+/// QkCircuit *qc = qk_dag_to_circuit(dag);
+///
+/// qk_circuit_free(qc);
+/// qk_dag_free(dag);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_to_circuit(dag: *const DAGCircuit) -> *mut CircuitData {
+    // SAFETY: Per documentation, the pointer is to valid data.
+    let dag = unsafe { const_ptr_as_ref(dag) };
+    let circuit = dag_to_circuit(dag, true)
+        .expect("Error occurred while converting DAGCircuit to CircuitData");
+
+    Box::into_raw(Box::new(circuit))
+}
+
 /// @ingroup QkDag
 /// Return the operation nodes in the DAG listed in topological order.
 ///
@@ -877,6 +919,7 @@ pub unsafe extern "C" fn qk_dag_free(dag: *mut DAGCircuit) {
 /// of type ``uint32_t``, where this function will write the output to.
 ///
 /// # Example
+///
 /// ```c
 /// QkDag *dag = qk_dag_new();
 /// QkQuantumRegister *qr = qk_quantum_register_new(1, "my_register");
