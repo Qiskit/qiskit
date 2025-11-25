@@ -10,7 +10,7 @@ The version of the Qiskit package and crates is mentioned in a few places:
 
 * `qiskit/VERSION.txt` for defining the Python package and docs
 * `Cargo.toml` for defining the Rust crates
-* `crates/cext/cbindgen.toml` for defining the C header file
+* `crates/cext/include/qiskit/version.h` for defining the C header file
 * `docs/release_notes.rst` for configuring the release-notes documentation build
 
 In principle, the first three version numbers should be the same at all times.
