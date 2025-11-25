@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: true
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           # We need to fetch the whole history so 'reno' can do its job and we can inspect tags.
           fetch-depth: 0
@@ -25,6 +25,8 @@ jobs:
           python-version: "3.9"
       - name: Install ubuntu docs dependencies
         run: tools/install_ubuntu_docs_dependencies.sh
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       - name: Run docs
         run: tox -e docs
       - name: Clean up docs detritus
@@ -44,7 +46,7 @@ jobs:
     strategy:
       fail-fast: true
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           # We need to fetch the whole history so 'reno' can do its job and we can inspect tags.
           fetch-depth: 0
