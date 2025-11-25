@@ -12,23 +12,22 @@
 
 """Test the VF2Layout pass"""
 
-import rustworkx
+import ddt
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.circuit import ControlFlowOp
-from qiskit.circuit.library import CXGate, XGate
-from qiskit.transpiler import Layout, TranspilerError
+from qiskit.circuit import ControlFlowOp, Parameter, library as lib
+from qiskit.transpiler import Layout, TranspilerError, PassManager, passes
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayout, VF2PostLayoutStopReason
 from qiskit.converters import circuit_to_dag
 from qiskit.providers.fake_provider import GenericBackendV2
-from qiskit.circuit import Qubit
 from qiskit.compiler.transpiler import transpile
 from qiskit.transpiler.target import Target, InstructionProperties
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
 
 from ..legacy_cmaps import LIMA_CMAP, YORKTOWN_CMAP, BOGOTA_CMAP
 
 
+@ddt.ddt
 class TestVF2PostLayout(QiskitTestCase):
     """Tests the VF2Layout pass"""
 
@@ -127,15 +126,7 @@ class TestVF2PostLayout(QiskitTestCase):
         initial_layout = tqc._layout
         dag = circuit_to_dag(tqc)
         pass_ = VF2PostLayout(target=backend.target, seed=self.seed, max_trials=max_trials)
-        with self.assertLogs(
-            "qiskit.transpiler.passes.layout.vf2_post_layout", level="DEBUG"
-        ) as cm:
-            pass_.run(dag)
-        self.assertIn(
-            f"DEBUG:qiskit.transpiler.passes.layout.vf2_post_layout:Trial {max_trials} "
-            f"is >= configured max trials {max_trials}",
-            cm.output,
-        )
+        pass_.run(dag)
         self.assertEqual(
             pass_.property_set["VF2PostLayout_stop_reason"], VF2PostLayoutStopReason.SOLUTION_FOUND
         )
@@ -259,7 +250,7 @@ class TestVF2PostLayout(QiskitTestCase):
         """Test that running vf2layout on a pass against a target with no error rates works."""
         n_qubits = 15
         target = Target()
-        target.add_instruction(CXGate(), {(i, i + 1): None for i in range(n_qubits - 1)})
+        target.add_instruction(lib.CXGate(), {(i, i + 1): None for i in range(n_qubits - 1)})
         vf2_pass = VF2PostLayout(target=target)
         circuit = QuantumCircuit(2)
         circuit.cx(0, 1)
@@ -272,9 +263,9 @@ class TestVF2PostLayout(QiskitTestCase):
         n_qubits = 15
         target = Target()
         target.add_instruction(
-            XGate(), {(i,): InstructionProperties(error=0.00123) for i in range(n_qubits)}
+            lib.XGate(), {(i,): InstructionProperties(error=0.00123) for i in range(n_qubits)}
         )
-        target.add_instruction(CXGate(), {(i, i + 1): None for i in range(n_qubits - 1)})
+        target.add_instruction(lib.CXGate(), {(i, i + 1): None for i in range(n_qubits - 1)})
         vf2_pass = VF2PostLayout(target=target, seed=1234, strict_direction=False)
         circuit = QuantumCircuit(2)
         circuit.h(0)
@@ -289,7 +280,8 @@ class TestVF2PostLayout(QiskitTestCase):
         n_qubits = 4
         trivial_target = Target()
         trivial_target.add_instruction(
-            CXGate(), {(i, i + 1): InstructionProperties(error=0.001) for i in range(n_qubits - 1)}
+            lib.CXGate(),
+            {(i, i + 1): InstructionProperties(error=0.001) for i in range(n_qubits - 1)},
         )
 
         circuit = QuantumCircuit(n_qubits)
@@ -309,7 +301,7 @@ class TestVF2PostLayout(QiskitTestCase):
         n_qubits = 4
         target_last_qubits_best = Target()
         target_last_qubits_best.add_instruction(
-            CXGate(),
+            lib.CXGate(),
             {(i, i + 1): InstructionProperties(error=10**-i) for i in range(n_qubits - 1)},
         )
 
@@ -324,52 +316,99 @@ class TestVF2PostLayout(QiskitTestCase):
         vf2_pass.run(dag)
         self.assertLayoutV2(dag, target_last_qubits_best, vf2_pass.property_set)
 
-
-class TestVF2PostLayoutScoring(QiskitTestCase):
-    """Test scoring heuristic function for VF2PostLayout."""
-
-    def test_empty_score(self):
-        """Test error rate is 0 for empty circuit."""
-        bit_map = {}
-        reverse_bit_map = {}
-        im_graph = rustworkx.PyDiGraph()
-        target = GenericBackendV2(
-            num_qubits=5,
-            basis_gates=["cx", "id", "rz", "sx", "x"],
-            coupling_map=YORKTOWN_CMAP,
-            seed=42,
-        ).target
-        vf2_pass = VF2PostLayout(target=target)
-        layout = Layout()
-        score = vf2_pass._score_layout(layout, bit_map, reverse_bit_map, im_graph)
-        self.assertEqual(0, score)
-
-    def test_all_1q_score(self):
-        """Test error rate for all 1q input."""
-        bit_map = {Qubit(): 0, Qubit(): 1}
-        reverse_bit_map = {v: k for k, v in bit_map.items()}
-        im_graph = rustworkx.PyDiGraph()
-        im_graph.add_node({"sx": 1})
-        im_graph.add_node({"sx": 1})
-
-        target = GenericBackendV2(
-            num_qubits=5,
-            basis_gates=["cx", "id", "rz", "sx", "x"],
-            coupling_map=YORKTOWN_CMAP,
-            seed=42,
-        ).target
-
-        target.update_instruction_properties(
-            "sx", (0,), InstructionProperties(duration=3.56e-08, error=0.0013043388897769352)
+    @combine(
+        seed=(-1, 12),  # This hits both the "seeded" and "unseeded" paths.
+        strict_direction=(True, False),
+    )
+    def test_complete_layout_with_idle_qubits(self, seed, strict_direction):
+        """Test that completely idle qubits are included in the resulting layout."""
+        qc = QuantumCircuit(3)
+        qc.cx(0, 1)
+        # We need to ensure that VF2Post actually triggers a remapping.
+        target = Target(3)
+        target.add_instruction(
+            lib.CXGate(),
+            properties={
+                (0, 1): InstructionProperties(error=1e-1),
+                (1, 0): InstructionProperties(error=1e-1),
+                (2, 1): InstructionProperties(error=1e-8),
+            },
         )
-        target.update_instruction_properties(
-            "sx", (1,), InstructionProperties(duration=3.56e-08, error=0.0016225037300878712)
+        property_set = {}
+        pass_ = VF2PostLayout(target=target, seed=seed, strict_direction=strict_direction)
+        pass_(qc, property_set=property_set)
+        unallocated = {
+            i for i, bit in enumerate(qc.qubits) if bit not in property_set["post_layout"]
+        }
+        self.assertEqual(unallocated, set())
+
+    @ddt.data(-1, 12)
+    def test_complete_layout_with_one_uncoupled_qubit(self, seed):
+        """Test that a single uncoupled qubit is handled correctly.
+
+        Regression test of https://github.com/Qiskit/qiskit/issues/14997."""
+        qc = QuantumCircuit(3)
+        qc.x(0)
+        qc.cx(1, 2)
+
+        bad = InstructionProperties(error=1e-1)
+        good = InstructionProperties(error=1e-5)
+
+        target = Target()
+        target.add_instruction(lib.XGate(), {(0,): bad, (1,): good, (2,): good})
+        target.add_instruction(lib.CXGate(), {(0, 1): good, (1, 2): bad})
+
+        pm = PassManager(
+            [
+                passes.TrivialLayout(target),
+                passes.ApplyLayout(),
+                passes.VF2PostLayout(target, seed=seed, strict_direction=True),
+                passes.ApplyLayout(),
+            ]
+        )
+        out = pm.run(qc)
+        self.assertEqual(out.layout.final_index_layout(), [2, 0, 1])
+
+    def test_can_match_heterogeneous_target_with_free_qubits(self):
+        """Test that we can successfully match onto a heterogeneous target, even if there's
+        non-interaction qubits present in the interaction graph."""
+        num_qubits = 5
+        # We don't care about the 2q links for these purposes, just heterogeneity in the 1q case.
+        target = Target()
+        target.add_instruction(
+            lib.CXGate(),
+            properties={
+                (i, i + 1): InstructionProperties(error=1e-3) for i in range(num_qubits - 1)
+            },
+        )
+        # X is available on everything, and the error gets worse as the qubit index increases, so
+        # ensure we're breaking a symmetry.
+        target.add_instruction(
+            lib.XGate(),
+            properties={
+                (i,): InstructionProperties(error=1e-5 * (i + 1)) for i in range(num_qubits)
+            },
+        )
+        # Now qubit 0, the lowest-error X gate, _also_ has RX.
+        target.add_instruction(
+            lib.RXGate(Parameter("a")), properties={(0,): InstructionProperties(error=1e-5)}
         )
 
-        vf2_pass = VF2PostLayout(target=target)
-        layout = Layout(bit_map)
-        score = vf2_pass._score_layout(layout, bit_map, reverse_bit_map, im_graph)
-        self.assertAlmostEqual(0.002925, score, places=5)
+        # The circuit is a 4q line that's all X and CX, so there's two choices for it: qubits 0-3
+        # and qubits 1-4, plus a single free RX.  If VF2 tries to do all the interacting qubits
+        # first it should reliably pick 0-3, since those are lower errors, but then there'd be no
+        # place for the RX.  We'll also reverse the circuit indices, to make sure that there's no
+        # cop-out around returning "no improvement".
+        qc = QuantumCircuit(num_qubits)
+        qc.x([0, 1, 2, 3])
+        qc.rx(0.5, 4)
+        for pair in [(3, 2), (2, 1), (1, 0)]:
+            qc.cx(*pair)
+
+        pass_ = VF2PostLayout(target=target, seed=-1, strict_direction=True)
+        pass_(qc)
+        layout = pass_.property_set["post_layout"]
+        self.assertEqual(layout, Layout(dict(zip(qc.qubits, [4, 3, 2, 1, 0]))))
 
 
 class TestVF2PostLayoutUndirected(QiskitTestCase):

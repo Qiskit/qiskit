@@ -76,5 +76,5 @@ def synth_pauli_network_rustiq(
         upto_phase=upto_phase,
         resynth_clifford_method=resynth_clifford_method,
     )
-    circuit = QuantumCircuit._from_circuit_data(out, add_regs=True)
+    circuit = QuantumCircuit._from_circuit_data(out, legacy_qubits=True)
     return circuit

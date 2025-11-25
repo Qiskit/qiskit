@@ -28,16 +28,18 @@ pub enum PySequenceIndex<'py> {
     Slice(Bound<'py, PySlice>),
 }
 
-impl<'py> FromPyObject<'py> for PySequenceIndex<'py> {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for PySequenceIndex<'py> {
+    type Error = <isize as FromPyObject<'a, 'py>>::Error;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         // `slice` can't be subclassed in Python, so it's safe (and faster) to check for it exactly.
-        // The `downcast_exact` check is just a pointer comparison, so while `slice` is the less
+        // The `cast_exact` check is just a pointer comparison, so while `slice` is the less
         // common input, doing that first has little-to-no impact on the speed of the `isize` path,
         // while the reverse makes `slice` inputs significantly slower.
-        if let Ok(slice) = ob.downcast_exact::<PySlice>() {
-            return Ok(Self::Slice(slice.clone()));
+        if let Ok(slice) = ob.cast_exact::<PySlice>() {
+            return Ok(Self::Slice(slice.to_owned()));
         }
-        Ok(Self::Int(ob.extract()?))
+        ob.extract().map(Self::Int)
     }
 }
 
@@ -340,14 +342,12 @@ mod test {
             }
             assert_eq!(
                 actual, forwards,
-                "values for {:?}\nActual  : {:?}\nExpected: {:?}",
-                index, actual, forwards,
+                "values for {index:?}\nActual  : {actual:?}\nExpected: {forwards:?}",
             );
             let expected_sizes = (0..=forwards.len()).rev().collect::<Vec<_>>();
             assert_eq!(
                 sizes, expected_sizes,
-                "sizes for {:?}\nActual  : {:?}\nExpected: {:?}",
-                index, sizes, expected_sizes,
+                "sizes for {index:?}\nActual  : {sizes:?}\nExpected: {expected_sizes:?}",
             );
         }
     }
@@ -360,8 +360,7 @@ mod test {
             let expected = forwards.into_iter().rev().collect::<Vec<_>>();
             assert_eq!(
                 actual, expected,
-                "reversed {:?}\nActual  : {:?}\nExpected: {:?}",
-                index, actual, expected,
+                "reversed {index:?}\nActual  : {actual:?}\nExpected: {expected:?}",
             );
         }
     }
@@ -374,8 +373,7 @@ mod test {
             expected.sort_by(|left, right| right.cmp(left));
             assert_eq!(
                 actual, expected,
-                "descending {:?}\nActual  : {:?}\nExpected: {:?}",
-                index, actual, expected,
+                "descending {index:?}\nActual  : {actual:?}\nExpected: {expected:?}",
             );
         }
     }
@@ -391,7 +389,7 @@ mod test {
 
         for (py_index, length, expected) in cases {
             let index = PySequenceIndex::convert_idx(py_index, length).unwrap();
-            assert_eq!(index, expected, "Expected {} but got {}", expected, index);
+            assert_eq!(index, expected, "Expected {expected} but got {index}");
         }
     }
 

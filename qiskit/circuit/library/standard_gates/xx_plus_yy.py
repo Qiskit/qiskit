@@ -21,7 +21,7 @@ from typing import Optional
 import numpy
 
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit._accelerate.circuit import StandardGate
 
 
@@ -31,7 +31,7 @@ class XXPlusYYGate(Gate):
     A 2-qubit parameterized XX+YY interaction, also known as an XY gate. Its action is to induce
     a coherent rotation by some angle between :math:`|01\rangle` and :math:`|10\rangle`.
 
-    **Circuit Symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -41,7 +41,7 @@ class XXPlusYYGate(Gate):
         q_1: ┤1              ├
              └───────────────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -97,8 +97,7 @@ class XXPlusYYGate(Gate):
         beta: ParameterValueType = 0,
         label: Optional[str] = "(XX+YY)",
     ):
-        """Create new XX+YY gate.
-
+        """
         Args:
             theta: The rotation angle.
             beta: The phase angle.
@@ -118,41 +117,8 @@ class XXPlusYYGate(Gate):
         #       └─────┘ └────┘└───┘     └──────────┘     └─────┘ └──────┘ └───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.XXPlusYY._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.XXPlusYY._get_definition(self.params), legacy_qubits=True
         )
-
-    def control(
-        self,
-        num_ctrl_qubits: int = 1,
-        label: str | None = None,
-        ctrl_state: str | int | None = None,
-        annotated: bool | None = None,
-    ):
-        """Return a (multi-)controlled-(XX+YY) gate.
-
-        Args:
-            num_ctrl_qubits: number of control qubits.
-            label: An optional label for the gate [Default: ``None``]
-            ctrl_state: control state expressed as integer,
-                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate should be implemented
-                as an annotated gate. If ``None``, this is set to ``True`` if
-                the gate contains free parameters, in which case it cannot
-                yet be synthesized.
-
-        Returns:
-            ControlledGate: controlled version of this gate.
-        """
-        if annotated is None:
-            annotated = any(isinstance(p, ParameterExpression) for p in self.params)
-
-        gate = super().control(
-            num_ctrl_qubits=num_ctrl_qubits,
-            label=label,
-            ctrl_state=ctrl_state,
-            annotated=annotated,
-        )
-        return gate
 
     def inverse(self, annotated: bool = False):
         """Return inverse XX+YY gate (i.e. with the negative rotation angle and same phase angle).

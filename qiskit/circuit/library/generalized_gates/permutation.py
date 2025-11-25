@@ -39,8 +39,7 @@ class Permutation(QuantumCircuit):
         pattern: list[int] | np.ndarray | None = None,
         seed: int | None = None,
     ) -> None:
-        """Return an n_qubit permutation circuit implemented using SWAPs.
-
+        """
         Args:
             num_qubits: circuit width.
             pattern: permutation pattern, describing which qubits occupy the
@@ -57,23 +56,25 @@ class Permutation(QuantumCircuit):
             CircuitError: if permutation pattern is malformed.
 
         Reference Circuit:
-            .. plot::
-               :alt: Diagram illustrating the previously described circuit.
 
-               from qiskit.circuit.library import Permutation
-               A = [2,4,3,0,1]
-               circuit = Permutation(5, A)
-               circuit.draw('mpl')
+        .. plot::
+            :alt: Diagram illustrating the previously described circuit.
+
+            from qiskit.circuit.library import Permutation
+            A = [2,4,3,0,1]
+            circuit = Permutation(5, A)
+            circuit.draw('mpl')
 
         Expanded Circuit:
-            .. plot::
-               :alt: Diagram illustrating the previously described circuit.
 
-               from qiskit.circuit.library import Permutation
-               from qiskit.visualization.library import _generate_circuit_library_visualization
-               A = [2,4,3,0,1]
-               circuit = Permutation(5, A)
-               _generate_circuit_library_visualization(circuit.decompose())
+        .. plot::
+            :alt: Diagram illustrating the previously described circuit.
+
+            from qiskit.circuit.library import Permutation
+            from qiskit.visualization.library import _generate_circuit_library_visualization
+            A = [2,4,3,0,1]
+            circuit = Permutation(5, A)
+            _generate_circuit_library_visualization(circuit.decompose())
         """
         if pattern is not None:
             if sorted(pattern) != list(range(num_qubits)):

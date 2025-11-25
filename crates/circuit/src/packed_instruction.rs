@@ -13,7 +13,6 @@
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyType};
 
@@ -22,11 +21,13 @@ use num_complex::Complex64;
 use smallvec::SmallVec;
 
 use crate::circuit_data::CircuitData;
-use crate::imports::{get_std_gate_class, BARRIER, DEEPCOPY, DELAY, MEASURE, RESET, UNITARY_GATE};
+use crate::imports::{
+    BARRIER, DELAY, MEASURE, PAULI_PRODUCT_MEASUREMENT, RESET, UNITARY_GATE, get_std_gate_class,
+};
 use crate::interner::Interned;
 use crate::operations::{
-    Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
-    StandardInstruction, UnitaryGate,
+    Operation, OperationRef, Param, PauliProductMeasurement, PyGate, PyInstruction, PyOperation,
+    PythonOperation, StandardGate, StandardInstruction, UnitaryGate,
 };
 use crate::{Clbit, Qubit};
 
@@ -43,13 +44,14 @@ enum PackedOperationType {
     PyInstruction = 3,
     PyOperation = 4,
     UnitaryGate = 5,
+    PauliProductMeasurement = 6,
 }
 
 unsafe impl ::bytemuck::CheckedBitPattern for PackedOperationType {
     type Bits = u8;
 
     fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
-        *bits < 6
+        *bits < 7
     }
 }
 unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
@@ -66,6 +68,7 @@ unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
 ///     Instruction(Box<PyInstruction>),
 ///     Operation(Box<PyOperation>),
 ///     UnitaryGate(Box<UnitaryGate>),
+///     PauliProductMeasurement(Box<PauliProductMeasurement>),
 /// }
 /// ```
 ///
@@ -252,7 +255,9 @@ mod standard_instruction {
 
 /// A private module to encapsulate the encoding of pointer types.
 mod pointer {
-    use crate::operations::{PyGate, PyInstruction, PyOperation, UnitaryGate};
+    use crate::operations::{
+        PauliProductMeasurement, PyGate, PyInstruction, PyOperation, UnitaryGate,
+    };
     use crate::packed_instruction::{PackedOperation, PackedOperationType};
     use std::ptr::NonNull;
 
@@ -335,6 +340,10 @@ mod pointer {
     impl_packable_pointer!(PyInstruction, PackedOperationType::PyInstruction);
     impl_packable_pointer!(PyOperation, PackedOperationType::PyOperation);
     impl_packable_pointer!(UnitaryGate, PackedOperationType::UnitaryGate);
+    impl_packable_pointer!(
+        PauliProductMeasurement,
+        PackedOperationType::PauliProductMeasurement
+    );
 }
 
 impl PackedOperation {
@@ -379,7 +388,7 @@ impl PackedOperation {
 
     /// Get a safe view onto the packed data within, without assuming ownership.
     #[inline]
-    pub fn view(&self) -> OperationRef {
+    pub fn view(&self) -> OperationRef<'_> {
         match self.discriminant() {
             PackedOperationType::StandardGate => OperationRef::StandardGate(self.standard_gate()),
             PackedOperationType::StandardInstruction => {
@@ -391,6 +400,9 @@ impl PackedOperation {
             }
             PackedOperationType::PyOperation => OperationRef::Operation(self.try_into().unwrap()),
             PackedOperationType::UnitaryGate => OperationRef::Unitary(self.try_into().unwrap()),
+            PackedOperationType::PauliProductMeasurement => {
+                OperationRef::PauliProductMeasurement(self.try_into().unwrap())
+            }
         }
     }
 
@@ -428,6 +440,10 @@ impl PackedOperation {
         unitary.into()
     }
 
+    pub fn from_ppm(ppm: Box<PauliProductMeasurement>) -> Self {
+        ppm.into()
+    }
+
     /// Check equality of the operation, including Python-space checks, if appropriate.
     pub fn py_eq(&self, py: Python, other: &PackedOperation) -> PyResult<bool> {
         match (self.view(), other.view()) {
@@ -447,86 +463,11 @@ impl PackedOperation {
                 left.operation.bind(py).eq(&right.operation)
             }
             (OperationRef::Unitary(left), OperationRef::Unitary(right)) => Ok(left == right),
+            (
+                OperationRef::PauliProductMeasurement(left),
+                OperationRef::PauliProductMeasurement(right),
+            ) => Ok(left == right),
             _ => Ok(false),
-        }
-    }
-
-    /// Copy this operation, including a Python-space deep copy, if required.
-    pub fn py_deepcopy<'py>(
-        &self,
-        py: Python<'py>,
-        memo: Option<&Bound<'py, PyDict>>,
-    ) -> PyResult<Self> {
-        let deepcopy = DEEPCOPY.get_bound(py);
-        match self.view() {
-            OperationRef::StandardGate(standard) => Ok(standard.into()),
-            OperationRef::StandardInstruction(instruction) => {
-                Ok(Self::from_standard_instruction(instruction))
-            }
-            OperationRef::Gate(gate) => Ok(PyGate {
-                gate: deepcopy.call1((&gate.gate, memo))?.unbind(),
-                qubits: gate.qubits,
-                clbits: gate.clbits,
-                params: gate.params,
-                op_name: gate.op_name.clone(),
-            }
-            .into()),
-            OperationRef::Instruction(instruction) => Ok(PyInstruction {
-                instruction: deepcopy.call1((&instruction.instruction, memo))?.unbind(),
-                qubits: instruction.qubits,
-                clbits: instruction.clbits,
-                params: instruction.params,
-                control_flow: instruction.control_flow,
-                op_name: instruction.op_name.clone(),
-            }
-            .into()),
-            OperationRef::Operation(operation) => Ok(PyOperation {
-                operation: deepcopy.call1((&operation.operation, memo))?.unbind(),
-                qubits: operation.qubits,
-                clbits: operation.clbits,
-                params: operation.params,
-                op_name: operation.op_name.clone(),
-            }
-            .into()),
-            OperationRef::Unitary(unitary) => Ok(unitary.clone().into()),
-        }
-    }
-
-    /// Copy this operation, including a Python-space call to `copy` on the `Operation` subclass, if
-    /// any.
-    pub fn py_copy(&self, py: Python) -> PyResult<Self> {
-        let copy_attr = intern!(py, "copy");
-        match self.view() {
-            OperationRef::StandardGate(standard) => Ok(standard.into()),
-            OperationRef::StandardInstruction(instruction) => {
-                Ok(Self::from_standard_instruction(instruction))
-            }
-            OperationRef::Gate(gate) => Ok(Box::new(PyGate {
-                gate: gate.gate.call_method0(py, copy_attr)?,
-                qubits: gate.qubits,
-                clbits: gate.clbits,
-                params: gate.params,
-                op_name: gate.op_name.clone(),
-            })
-            .into()),
-            OperationRef::Instruction(instruction) => Ok(Box::new(PyInstruction {
-                instruction: instruction.instruction.call_method0(py, copy_attr)?,
-                qubits: instruction.qubits,
-                clbits: instruction.clbits,
-                params: instruction.params,
-                control_flow: instruction.control_flow,
-                op_name: instruction.op_name.clone(),
-            })
-            .into()),
-            OperationRef::Operation(operation) => Ok(Box::new(PyOperation {
-                operation: operation.operation.call_method0(py, copy_attr)?,
-                qubits: operation.qubits,
-                clbits: operation.clbits,
-                params: operation.params,
-                op_name: operation.op_name.clone(),
-            })
-            .into()),
-            OperationRef::Unitary(unitary) => Ok(unitary.clone().into()),
         }
     }
 
@@ -539,28 +480,24 @@ impl PackedOperation {
             OperationRef::StandardGate(standard) => {
                 return get_std_gate_class(py, standard)?
                     .bind(py)
-                    .downcast::<PyType>()?
-                    .is_subclass(py_type)
+                    .cast::<PyType>()?
+                    .is_subclass(py_type);
             }
             OperationRef::StandardInstruction(standard) => {
                 return match standard {
-                    StandardInstruction::Barrier(_) => BARRIER
-                        .get_bound(py)
-                        .downcast::<PyType>()?
-                        .is_subclass(py_type),
-                    StandardInstruction::Delay(_) => DELAY
-                        .get_bound(py)
-                        .downcast::<PyType>()?
-                        .is_subclass(py_type),
-                    StandardInstruction::Measure => MEASURE
-                        .get_bound(py)
-                        .downcast::<PyType>()?
-                        .is_subclass(py_type),
-                    StandardInstruction::Reset => RESET
-                        .get_bound(py)
-                        .downcast::<PyType>()?
-                        .is_subclass(py_type),
-                }
+                    StandardInstruction::Barrier(_) => {
+                        BARRIER.get_bound(py).cast::<PyType>()?.is_subclass(py_type)
+                    }
+                    StandardInstruction::Delay(_) => {
+                        DELAY.get_bound(py).cast::<PyType>()?.is_subclass(py_type)
+                    }
+                    StandardInstruction::Measure => {
+                        MEASURE.get_bound(py).cast::<PyType>()?.is_subclass(py_type)
+                    }
+                    StandardInstruction::Reset => {
+                        RESET.get_bound(py).cast::<PyType>()?.is_subclass(py_type)
+                    }
+                };
             }
             OperationRef::Gate(gate) => gate.gate.bind(py),
             OperationRef::Instruction(instruction) => instruction.instruction.bind(py),
@@ -568,7 +505,13 @@ impl PackedOperation {
             OperationRef::Unitary(_) => {
                 return UNITARY_GATE
                     .get_bound(py)
-                    .downcast::<PyType>()?
+                    .cast::<PyType>()?
+                    .is_subclass(py_type);
+            }
+            OperationRef::PauliProductMeasurement(_) => {
+                return PAULI_PRODUCT_MEASUREMENT
+                    .get_bound(py)
+                    .cast::<PyType>()?
                     .is_subclass(py_type);
             }
         };
@@ -586,6 +529,7 @@ impl Operation for PackedOperation {
             OperationRef::Instruction(instruction) => instruction.name(),
             OperationRef::Operation(operation) => operation.name(),
             OperationRef::Unitary(unitary) => unitary.name(),
+            OperationRef::PauliProductMeasurement(ppm) => ppm.name(),
         };
         // SAFETY: all of the inner parts of the view are owned by `self`, so it's valid for us to
         // forcibly reborrowing up to our own lifetime. We avoid using `<OperationRef as Operation>`
@@ -626,10 +570,6 @@ impl Operation for PackedOperation {
         self.view().definition(params)
     }
     #[inline]
-    fn standard_gate(&self) -> Option<StandardGate> {
-        self.view().standard_gate()
-    }
-    #[inline]
     fn directive(&self) -> bool {
         self.view().directive()
     }
@@ -654,6 +594,7 @@ impl Clone for PackedOperation {
                 Self::from_operation(Box::new(operation.to_owned()))
             }
             OperationRef::Unitary(unitary) => Self::from_unitary(Box::new(unitary.clone())),
+            OperationRef::PauliProductMeasurement(ppm) => Self::from_ppm(Box::new(ppm.clone())),
         }
     }
 }
@@ -667,6 +608,9 @@ impl Drop for PackedOperation {
             PackedOperationType::PyInstruction => PyInstruction::drop_packed(self),
             PackedOperationType::PyOperation => PyOperation::drop_packed(self),
             PackedOperationType::UnitaryGate => UnitaryGate::drop_packed(self),
+            PackedOperationType::PauliProductMeasurement => {
+                PauliProductMeasurement::drop_packed(self)
+            }
         }
     }
 }
@@ -698,7 +642,7 @@ pub struct PackedInstruction {
     /// which is a simple null-pointer check.
     ///
     /// WARNING: remember that `OnceLock`'s `get_or_init` method is no-reentrant, so the initialiser
-    /// must not yield the GIL to Python space.  We avoid using `GILOnceCell` here because it
+    /// must not yield the GIL to Python space.  We avoid using `PyOnceLock` here because it
     /// requires the GIL to even `get` (of course!), which makes implementing `Clone` hard for us.
     /// We can revisit once we're on PyO3 0.22+ and have been able to disable its `py-clone`
     /// feature.
@@ -786,6 +730,9 @@ impl PackedInstruction {
                 OperationRef::Unitary(unitary) => {
                     unitary.create_py_op(py, self.label.as_ref().map(|x| x.as_str()))
                 }
+                OperationRef::PauliProductMeasurement(ppm) => {
+                    ppm.create_py_op(py, self.label.as_ref().map(|x| x.as_str()))
+                }
             }
         };
 
@@ -846,5 +793,25 @@ impl PackedInstruction {
             }
             _ => Ok(false),
         }
+    }
+
+    pub fn py_deepcopy_inplace<'py>(
+        &mut self,
+        py: Python<'py>,
+        memo: Option<&Bound<'py, PyDict>>,
+    ) -> PyResult<()> {
+        match self.op.view() {
+            OperationRef::Gate(gate) => self.op = gate.py_deepcopy(py, memo)?.into(),
+            OperationRef::Instruction(inst) => self.op = inst.py_deepcopy(py, memo)?.into(),
+            OperationRef::Operation(op) => self.op = op.py_deepcopy(py, memo)?.into(),
+            _ => (),
+        };
+        for param in self.params_mut() {
+            *param = param.py_deepcopy(py, memo)?;
+        }
+        #[cfg(feature = "cache_pygates")]
+        self.py_op.take();
+
+        Ok(())
     }
 }

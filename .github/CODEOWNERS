@@ -6,8 +6,8 @@
 # with an expected responsibility to review and maintain those subsections of
 # the repository.
 #
-# The @Qiskit/terra-core team is the group who're responsible for the
-# entire qiskit-terra project and are empowered to approve merge code in any
+# The @Qiskit/terra-core team is the core group who're responsible for the
+# entire Qiskit SDK project and are empowered to approve and merge code in any
 # part of the repository. Any member of the terra-core group should not be
 # listed in this file as it's redundant.
 #
@@ -23,8 +23,7 @@
 * @Qiskit/terra-core
 
 # Qiskit folders (also their corresponding tests)
-providers/            @Qiskit/terra-core @jyu00
-visualization/        @Qiskit/terra-core @nonhermitian
+providers/            @Qiskit/terra-core @kt474
 primitives/           @Qiskit/terra-core @Qiskit/qiskit-primitives
 # Override the release notes directories to have _no_ code owners, so any review
 # from somebody with write access is acceptable.

@@ -6,11 +6,14 @@
 # possible so it's easy to develop multiple packages from the same venv.
 
 # Build Rust directly
-setuptools
+#
+# The normative version of these is in `pyproject.toml`, and are included here
+# as a convenience for setting up a build/dev environment without isolation.
+setuptools>=77.0
 setuptools-rust
 
 # Style
-black[jupyter]~=24.1
+black[jupyter]~=25.1
 
 
 # Lint
@@ -45,6 +48,7 @@ threadpoolctl
 # like `sphinx-design` to make sure that `Qiskit/documentation` will be able to
 # consume it properly.
 Sphinx>=6.0,<7.2
+openqasm-pygments
 reno >= 4.1.0
 sphinxcontrib-katex==0.9.9
 breathe>=4.35.0

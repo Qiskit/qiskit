@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use qiskit_circuit::parameter::parameter_expression::ParameterError;
 use qiskit_quantum_info::sparse_observable::ArithmeticError;
 use qiskit_transpiler::target::TargetError;
 use thiserror::Error;
@@ -27,6 +28,7 @@ pub enum CInputError {
 
 /// Integer exit codes returned to C.
 #[repr(u32)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum ExitCode {
     /// Success.
     Success = 0,
@@ -38,6 +40,8 @@ pub enum ExitCode {
     AlignmentError = 102,
     /// Index out of bounds.
     IndexError = 103,
+    /// Duplicate index.
+    DuplicateIndexError = 104,
     /// Error related to arithmetic operations or similar.
     ArithmeticError = 200,
     /// Mismatching number of qubits.
@@ -54,6 +58,8 @@ pub enum ExitCode {
     TargetInvalidQargsKey = 303,
     /// Querying an operation that doesn't exist in the Target.
     TargetInvalidInstKey = 304,
+    /// Transpilation failed
+    TranspilerError = 400,
 }
 
 impl From<ArithmeticError> for ExitCode {
@@ -89,5 +95,11 @@ impl From<TargetError> for ExitCode {
             } => ExitCode::TargetInvalidQargsKey,
             _ => ExitCode::TargetError,
         }
+    }
+}
+
+impl From<ParameterError> for ExitCode {
+    fn from(_value: ParameterError) -> Self {
+        ExitCode::ArithmeticError
     }
 }

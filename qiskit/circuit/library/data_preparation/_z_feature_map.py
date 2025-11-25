@@ -29,7 +29,7 @@ class ZFeatureMap(PauliFeatureMap):
         ┌───┐┌─────────────┐┌───┐┌─────────────┐
         ┤ H ├┤ P(2.0*x[0]) ├┤ H ├┤ P(2.0*x[0]) ├
         ├───┤├─────────────┤├───┤├─────────────┤
-        ┤ H ├┤ U(2.0*x[1]) ├┤ H ├┤ P(2.0*x[1]) ├
+        ┤ H ├┤ P(2.0*x[1]) ├┤ H ├┤ P(2.0*x[1]) ├
         ├───┤├─────────────┤├───┤├─────────────┤
         ┤ H ├┤ P(2.0*x[2]) ├┤ H ├┤ P(2.0*x[2]) ├
         └───┘└─────────────┘└───┘└─────────────┘
@@ -92,8 +92,7 @@ class ZFeatureMap(PauliFeatureMap):
         insert_barriers: bool = False,
         name: str = "ZFeatureMap",
     ) -> None:
-        """Create a new first-order Pauli-Z expansion circuit.
-
+        """
         Args:
             feature_dimension: The number of features
             reps: The number of repeated circuits. Defaults to 2, has a minimum value of 1.

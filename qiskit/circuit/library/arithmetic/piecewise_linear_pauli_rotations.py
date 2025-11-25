@@ -55,8 +55,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         basis: str = "Y",
         name: str = "pw_lin",
     ) -> None:
-        """Construct piecewise-linearly-controlled Pauli rotations.
-
+        """
         Args:
             num_state_qubits: The number of qubits representing the state.
             breakpoints: The breakpoints to define the piecewise-linear function.
@@ -337,7 +336,7 @@ class PiecewiseLinearPauliRotationsGate(Gate):
         super().__init__("PwLinPauliRot", num_state_qubits + 1 + num_compare_bits, [], label=label)
 
     def _define(self):
-        circuit = QuantumCircuit(self.num_qubits, name=self.name)
+        circuit = QuantumCircuit(self.num_qubits)
 
         if len(self.breakpoints) == 1:
             qr_state = circuit.qubits[: self.num_qubits - 1]
