@@ -19,11 +19,12 @@ from qiskit._accelerate.substitute_pi4_rotations import substitute_pi4_rotations
 
 class SubstitutePi4Rotations(TransformationPass):
     r"""Convert single-qubit rotation gates :class:`.RZGate`, :class:`.RXGate` and :class:`.RYGate`,
-    into {Clifford,T,Tdg} when their angles are integer multiples of `:math:`\pi/4`.
+    whose angles are integer multiples of :math:`\pi/4` into discrete sets of
+    Clifford, :class:`.TGate` and :class:`.TdgGate` gates.
 
-    Note that odd multiples of `:math:`\pi/4` require a single :class:`.TGate` or :class:`.TdgGate`,
+    Note that odd multiples of :math:`\pi/4` require a single :class:`.TGate` or :class:`.TdgGate`,
     as well as some Clifford gates,
-    while even multiples of `:math:`\pi/4`, or equivalently, integer multiples of `:math:`\pi/2`,
+    while even multiples of :math:`\pi/4`, or equivalently, integer multiples of :math:`\pi/2`,
     can be written using only Clifford gates.
     The output contains at most one :class:`.TGate` or :class:`.TdgGate`,
     and an optimal number of Clifford gates.
