@@ -32,7 +32,7 @@ class SubstitutePi4Rotations(TransformationPass):
     For example::
 
       from qiskit.circuit import QuantumCircuit
-      from qiskit.transpiler.passes import DiscretizeRotations
+      from qiskit.transpiler.passes import SubstitutePi4Rotations
       from qiskit.quantum_info import Operator
 
       # The following quantum circuit consists of 5 Clifford gates
@@ -49,7 +49,7 @@ class SubstitutePi4Rotations(TransformationPass):
       qc.cz(2, 0)
 
       # The transformed circuit consists of Clifford, T and Tdg gates
-      qct = DiscretizeRotations()(qc)
+      qct = SubstitutePi4Rotations()(qc)
       clifford_t_names = get_clifford_gate_names() + ["t"] + ["tdg"]
       assert(set(qct.count_ops().keys()).issubset(set(clifford_t_names)))
 
@@ -67,7 +67,7 @@ class SubstitutePi4Rotations(TransformationPass):
         self.approximation_degree = approximation_degree
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
-        """Run the Discretize Rotations optimization pass on ``dag``.
+        """Run the Substitute Pi4-Rotations optimization pass on ``dag``.
 
         Args:
             dag: the input DAG.
