@@ -27,12 +27,40 @@ class SubstitutePi4Rotations(TransformationPass):
     can be written using only Clifford gates.
     The output contains at most one :class:`.TGate` or :class:`.TdgGate`,
     and an optimal number of Clifford gates.
+
+    For example::
+
+      from qiskit.circuit import QuantumCircuit
+      from qiskit.transpiler.passes import DiscretizeRotations
+      from qiskit.quantum_info import Operator
+
+      # The following quantum circuit consists of 5 Clifford gates
+      # and three single-qubit rotation gates whose angles are integer multiples of pi/4.
+
+      qc = QuantumCircuit(3)
+      qc.cx(0, 1)
+      qc.rz(pi/4, 0)
+      qc.cz(0, 1)
+      qc.rx(3*pi/4, 1)
+      qc.h(1)
+      qc.s(2)
+      qc.ry(2*pi/4, 2)
+      qc.cz(2, 0)
+
+      # The transformed circuit consists of Clifford, T and Tdg gates
+      qct = DiscretizeRotations()(qc)
+      clifford_t_names = get_clifford_gate_names() + ["t"] + ["tdg"]
+      assert(set(qct.count_ops().keys()).issubset(set(clifford_t_names)))
+
+      # The circuits before and after the transformation are equivalent
+      assert Operator(qc) == Operator(qct)
     """
 
     def __init__(self, approximation_degree: float = 1.0):
         """
         Args:
             approximation_degree: Used in the tolerance computations.
+                This gives the threshold for the average gate fidelity.
         """
         super().__init__()
         self.approximation_degree = approximation_degree
