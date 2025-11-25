@@ -263,7 +263,7 @@ class TestCommutativeOptimization(QiskitTestCase):
         qc.append(u1, [0, 1])
         qc.append(u2, [0, 1])
 
-        qct = CommutativeOptimization()(qc)
+        qct = CommutativeOptimization(matrix_max_num_qubits=2)(qc)
 
         expected = QuantumCircuit(2, global_phase=np.pi / 3)
 
@@ -1079,7 +1079,7 @@ measure q0[1] -> c0[1];
         qc.append(cx_circuit2.to_gate(), [0, 1, 2])
 
         # the two custom gates commute through cx(0, 3) and cancel each other
-        qct = CommutativeOptimization()(qc)
+        qct = CommutativeOptimization(matrix_max_num_qubits=3)(qc)
 
         expected = QuantumCircuit(4)
         expected.cx(0, 3)
@@ -1112,7 +1112,7 @@ measure q0[1] -> c0[1];
         qc.append(cliff, [0, 1])
         qc.sdg(0)
 
-        qct = CommutativeOptimization()(qc)
+        qct = CommutativeOptimization(matrix_max_num_qubits=2)(qc)
 
         # The S and Sdg gates should cancel
         expected = QuantumCircuit(2)
