@@ -875,7 +875,9 @@ pub unsafe extern "C" fn qk_dag_free(dag: *mut DAGCircuit) {
 /// @ingroup QkDag
 /// Convert a given DAG to a circuit.
 ///
-/// You must free the returned circuit with ``qk_circuit_free`` when done with it.
+/// The new circuit is copied from the DAG; the original ``dag`` reference is still owned by the
+/// caller and still required to be freed with `qk_dag_free`.  You must free the returned circuit
+/// with ``qk_circuit_free`` when done with it.
 ///
 /// @param dag A pointer to the DAG from which to create the circuit.
 ///

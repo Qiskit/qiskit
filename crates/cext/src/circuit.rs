@@ -1180,7 +1180,9 @@ pub unsafe extern "C" fn qk_circuit_delay(
 /// @ingroup QkCircuit
 /// Convert a given circuit to a DAG.
 ///
-/// The returned DAG needs to be freed with ``qk_dag_free``.
+/// The new DAG is copied from the circuit; the original ``circuit`` reference is still owned by the
+/// caller and still required to be freed with `qk_circuit_free`.  You must free the returned DAG
+/// with ``qk_dag_free`` when done with it.
 ///
 /// @param circuit A pointer to the circuit from which to create the DAG.
 ///
