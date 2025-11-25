@@ -3,42 +3,5 @@ features_c:
   - |
     Add function :c:func:`qk_target_instruction_supported` to check the compatibility of any gate
     or instruction with the instance of :c:type:`QkTarget`. This check is performed based
-    on the provided instruction's name, qargs, and parameters.
-
-    .. code-block:: c
-      
-      // Build a sample target
-      QkTarget *target = qk_target_new(0);
-      
-      // Create an entry for a CX gate
-      QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
-      
-      // Add some properties to the entry
-      qk_target_entry_add_property(cx_entry, (uint32_t[2]){3,4}, 2, 2.7022e-11, 0.00713);
-      qk_target_entry_add_property(cx_entry, (uint32_t[2]){4,3}, 2, 3.0577e-11, 0.00713);
-
-      // Add the CX Gate to the Target
-      qk_target_add_instruction(target, cx_entry);
-
-      // Add global Y Gate
-      qk_target_add_instruction(target, qk_target_entry_new(QkGate_Y));
-      
-      // Add global RZ Gate with parameters [3.14]
-      qk_target_add_instruction(target, qk_target_entry_new_fixed(QkGate_RZ, (double[1]){3.14}));
-
-      // Check if a CX gate at qargs (3, 4) is compatible
-      uint32_t cx_qargs[2] = { 3, 4 };
-      qk_target_instruction_supported(target, "cx", cx_qargs, NULL);
-
-      // Check if a Y gate at qargs (4,) is compatible
-      uint32_t y_qargs[1] = { 4, };
-      qk_target_instruction_supported(target, "y", y_qargs, NULL);
-      
-      // Check if a RZ gate with global qargs and parameters [1.57] is compatible
-      QkParam *rz_params[1] = {qk_param_from_double(1.57)};
-      qk_target_instruction_supported(target, "rz", NULL, rz_params);
-
-      // Free the parameters once done
-      qk_param_free(rz_params[0]);
-      // Free the target once done
-      qk_target_free(target);
+    on the provided instruction's name, qargs, and parameters. For more information on how it works
+    read the examples listed in the documentation for :c:func:`qk_target_instruction_supported`.

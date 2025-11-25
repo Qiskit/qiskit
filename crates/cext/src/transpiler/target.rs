@@ -898,6 +898,10 @@ pub unsafe extern "C" fn qk_target_num_instructions(target: *const Target) -> us
 ///     // at [0, 1] with 3.14 rotation.
 ///     QkParam *params[1] = {qk_param_from_double(3.14)};
 ///     qk_target_instruction_supported(target, "crx", (uint32_t []){0, 1}, params);
+///
+///     // Free the pointers
+///     qk_param_free(params[0]);  
+///     qk_target_free(target);  
 /// ```
 ///
 /// # Safety
@@ -934,7 +938,7 @@ pub unsafe extern "C" fn qk_target_instruction_supported(
 
     // SAFETY: Per documentation, the params pointer points to an appropiately allocated
     // array of `QkParam` objects.
-    let params: Vec<_> = if params.is_null() {
+    let params = if params.is_null() {
         Vec::with_capacity(0)
     } else {
         unsafe {
