@@ -49,11 +49,6 @@ cache_dir="$(pwd -P)/qpy_cache/$version"
 venv_dir="$(pwd -P)/venvs/$package-$version"
 
 if [[ ! -d $cache_dir ]] ; then
-    echo "Building docker image for $package==$version (python version $python_version)"
-    echo "Current docker space usage:"
-    docker system df
-    echo "System free space:"
-    df -h /
     docker build -t $package:$version --build-arg PYTHON_VERSION=$python_version --build-arg PACKAGE_NAME=$package --build-arg PACKAGE_VERSION=$version .
     mkdir -p "$cache_dir"
     pushd "$cache_dir"
@@ -61,12 +56,7 @@ if [[ ! -d $cache_dir ]] ; then
     # If the generation script fails, we still want to tidy up before exiting.
     docker run --rm -v "${our_dir}":/work/src -v "$PWD":/work -w /work $package:$version python src/test_qpy.py generate --version="$version" || { docker rmi $package:$version; exit 1; }
     docker rmi $package:$version
-    echo "Cleaning up Docker build cache..."
     docker builder prune -f
-    echo "Current docker space usage:"
-    docker system df
-    echo "System free space:"
-    df -h /
 else
     echo "Using cached QPY files for $version"
     pushd "${cache_dir}"
