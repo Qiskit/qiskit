@@ -73,11 +73,11 @@ Running this will give an outcome similar to `{'000': 497, '111': 503}` which is
 To illustrate the power of the Estimator, we now use the quantum information toolbox to create the operator $XXY+XYX+YXX-YYY$ and pass it to the `run()` function, along with our quantum circuit. Note that the Estimator requires a circuit _**without**_ measurements, so we use the `qc` circuit we created earlier.
 
 ```python
-# 2. Define the observable to be measured 
+# 4. Define the observable to be measured 
 from qiskit.quantum_info import SparsePauliOp
 operator = SparsePauliOp.from_list([("XXY", 1), ("XYX", 1), ("YXX", 1), ("YYY", -1)])
 
-# 3. Execute using the Estimator primitive
+# 5. Execute using the Estimator primitive
 from qiskit.primitives import StatevectorEstimator
 estimator = StatevectorEstimator()
 job = estimator.run([(qc, operator)], precision=1e-3)
