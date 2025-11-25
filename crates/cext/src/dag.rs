@@ -600,6 +600,17 @@ pub unsafe extern "C" fn qk_dag_apply_gate(
 ///
 /// @return The node index of the created instruction.
 ///
+/// # Example
+///
+/// Measure all qubits into the corresponding clbit index at the end of the circuit.
+///
+/// ```c
+/// uint32_t num_qubits = qk_dag_num_qubits(dag);
+/// for (uint32_t i = 0; i < num_qubits; i++) {
+///     qk_dag_apply_measure(dag, i, i, false);
+/// }
+/// ```
+///
 /// # Safety
 ///
 /// Behavior is undefined if `dag` is not an aligned, non-null pointer to a valid ``QkDag``,
@@ -650,6 +661,17 @@ pub unsafe extern "C" fn qk_dag_apply_measure(
 ///
 /// @return The node index of the created instruction.
 ///
+/// # Examples
+///
+/// Apply initial resets on all qubits.
+///
+/// ```c
+/// uint32_t num_qubits = qk_dag_num_qubits(dag);
+/// for (uint32_t qubit = 0; qubit < num_qubits; qubit++) {
+///     qk_dag_apply_reset(dag, qubit, true);
+/// }
+/// ```
+///
 /// # Safety
 ///
 /// Behavior is undefined if `dag` is not an aligned, non-null pointer to a valid ``QkDag``,
@@ -696,6 +718,22 @@ pub unsafe extern "C" fn qk_dag_apply_reset(dag: *mut DAGCircuit, qubit: u32, fr
 /// @param front Whether to apply the barrier at the start of the circuit. Usually `false`.
 ///
 /// @return The node index of the created instruction.
+///
+/// # Examples
+///
+/// Apply a final barrier on all qubits:
+///
+/// ```c
+/// qk_dag_apply_barrier(dag, NULL, qk_dag_num_qubits(dag), false);
+/// ```
+///
+/// Apply a barrier at the beginning of a circuit on specified qubit indices:
+///
+/// ```c
+/// uint32_t qubits[] = {0, 2, 4, 5};
+/// uint32_t num_qubits = sizeof(qubits) / sizeof(qubits[0]);
+/// qk_dag_apply_barrier(dag, qubits, num_qubits, true);
+/// ```
 ///
 /// # Safety
 ///
@@ -1007,15 +1045,38 @@ pub unsafe extern "C" fn qk_dag_op_node_kind(dag: *const DAGCircuit, node: u32) 
 /// @ingroup QkDag
 /// Return the details for an instruction in the circuit.
 ///
-/// This is a mirror of ``qk_circuit_get_instruction``.  You can also use individual methods
-/// such as :c:func:`qk_dag_op_node_gate_op` to get individual properties.
+/// This is a mirror of `qk_circuit_get_instruction`.  You can also use individual methods such as
+/// `qk_dag_op_node_gate_op` to get individual properties.
 ///
-/// You must call ``qk_circuit_instruction_clear`` to reset the
-/// ``QkCircuitInstruction`` before reusing it or dropping it.
+/// You must call `qk_circuit_instruction_clear` to reset the `QkCircuitInstruction` before reusing
+/// it or dropping it.
 ///
 /// @param dag The circuit to retrieve the instruction from.
 /// @param index The node index.  It is an error to pass an index that is node a valid op node.
-/// @param instruction A point to where to write out the ``QkCircuitInstruction``.
+/// @param instruction A point to where to write out the `QkCircuitInstruction`.
+///
+/// # Examples
+///
+/// Iterate through a DAG to find which qubits have measures on them:
+///
+/// ```c
+/// bool *measured = calloc(qk_dag_num_qubits(dag), sizeof(*measured));
+/// uint32_t num_ops = qk_dag_num_op_nodes(dag);
+/// uint32_t *ops = malloc(num_ops * sizeof(*ops));
+/// qk_dag_topological_op_nodes(dag, ops);
+///
+/// // Storage space for the instruction.
+/// QkCircuitInstruction inst;
+/// for (uint32_t i = 0; i < num_ops; i++) {
+///     qk_dag_get_instruction(dag, ops[i], &inst);
+///     if (!strcmp(inst.name, "measure"))
+///         measured[inst.qubits[0]] = true;
+///     qk_circuit_instruction_clear(&inst);
+/// }
+///
+/// free(ops);
+/// free(measured);
+/// ```
 ///
 /// # Safety
 ///
