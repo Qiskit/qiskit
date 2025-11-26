@@ -171,21 +171,23 @@ where
     }
 
     // Special handling for large pauli rotation gates.
-    if let OperationRef::Gate(py_gate) = view {
-        let result = Python::attach(|py| -> PyResult<Option<(Complex64, usize)>> {
-            let result = imports::PAULI_ROTATION_TRACE_AND_DIM
-                .get_bound(py)
-                .call1((py_gate.gate.clone_ref(py),))?
-                .extract()?;
-            Ok(result)
-        })?;
+    if view.name() == "PauliEvolution" {
+        if let OperationRef::Gate(py_gate) = view {
+            let result = Python::attach(|py| -> PyResult<Option<(Complex64, usize)>> {
+                let result = imports::PAULI_ROTATION_TRACE_AND_DIM
+                    .get_bound(py)
+                    .call1((py_gate.gate.clone_ref(py),))?
+                    .extract()?;
+                Ok(result)
+            })?;
 
-        if let Some((tr_over_dim, dim)) = result {
-            return Ok(average_gate_fidelity_below_tol(
-                tr_over_dim,
-                dim as f64,
-                error_cutoff_fn(inst),
-            ));
+            if let Some((tr_over_dim, dim)) = result {
+                return Ok(average_gate_fidelity_below_tol(
+                    tr_over_dim,
+                    dim as f64,
+                    error_cutoff_fn(inst),
+                ));
+            }
         }
     }
 
