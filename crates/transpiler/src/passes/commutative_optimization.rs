@@ -415,6 +415,11 @@ pub fn run_commutative_optimization(
         let node_index1 = node_indices[idx1];
         let instr1 = dag[node_index1].unwrap_operation();
 
+        // For now, assume that control-flow operations do not commute with anything.
+        if instr1.op.control_flow() {
+            continue;
+        }
+
         if let Some((new_instruction, phase_update)) = canonicalize(&mut new_dag, instr1) {
             node_actions[idx1] = NodeAction::Canonical(new_instruction, phase_update);
         }
@@ -440,6 +445,11 @@ pub fn run_commutative_optimization(
                 NodeAction::Canonical(instruction, phase) => (instruction, phase.clone()),
                 NodeAction::Drop => continue,
             };
+
+            // For now, assume that control-flow operations do not commute with anything.
+            if instr1.op.control_flow() {
+                break;
+            }
 
             let qargs2: &[Qubit] = new_dag.get_qargs(instr2.qubits);
             let cargs2: &[Clbit] = new_dag.get_cargs(instr2.clbits);
