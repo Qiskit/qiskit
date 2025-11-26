@@ -132,16 +132,16 @@ struct TwoQubitUnitarySequence {
     gate_sequence: TwoQubitGateSequence,
 }
 
-/// Stores unitary synthesis data, to avoid recomputing it for every
-/// synthesized gate. (In particular, we want to compute the basic approximations
-/// used in the Solovay-Kitaev algorithm at most once;
-struct UnitarySynthesisData {
+/// Stores unitary synthesis cache, to avoid recomputing the same information for
+/// every synthesized gate. (In particular, we want to compute the basic approximations
+/// used in the Solovay-Kitaev algorithm at most once).
+struct UnitarySynthesisCache {
     solovay_kitaev: Option<SolovayKitaevSynthesis>,
 }
 
-impl UnitarySynthesisData {
+impl UnitarySynthesisCache {
     fn new() -> Self {
-        UnitarySynthesisData {
+        UnitarySynthesisCache {
             solovay_kitaev: None,
         }
     }
@@ -362,7 +362,7 @@ fn synthesize_unitary_matrix(
     out_qargs: &[Qubit],
     run_python_decomposers: bool,
     mut apply_original_op: impl FnMut(&mut DAGCircuitBuilder) -> PyResult<()>,
-    unitary_synthesis_data: &mut UnitarySynthesisData,
+    unitary_synthesis_cache: &mut UnitarySynthesisCache,
 ) -> PyResult<()> {
     match num_qubits {
         // Run 1q synthesis
@@ -371,7 +371,7 @@ fn synthesize_unitary_matrix(
 
             // Special case when the basis set is of the form Clifford+T.
             if is_clifford_t_basis_set(target, basis_gates, PhysicalQubit::new(qubit.0)) {
-                let solovay_kitaev = unitary_synthesis_data.get_solovay_kitaev();
+                let solovay_kitaev = unitary_synthesis_cache.get_solovay_kitaev();
                 let matrix_nalgebra = Matrix2::from_fn(|i, j| matrix[[i, j]]);
                 let circuit = solovay_kitaev.synthesize_matrix(&matrix_nalgebra, 5);
 
@@ -496,7 +496,7 @@ pub fn run_unitary_synthesis(
 ) -> PyResult<DAGCircuit> {
     let out_dag = dag.copy_empty_like(VarsMode::Alike)?;
     let mut out_dag = out_dag.into_builder();
-    let mut unitary_synthesis_data = UnitarySynthesisData::new();
+    let mut unitary_synthesis_cache = UnitarySynthesisCache::new();
 
     // Iterate over dag nodes and determine unitary synthesis approach
     for node in dag.topological_op_nodes()? {
@@ -592,7 +592,7 @@ pub fn run_unitary_synthesis(
             out_qargs,
             run_python_decomposers,
             apply_original_op,
-            &mut unitary_synthesis_data,
+            &mut unitary_synthesis_cache,
         )?;
     }
     Ok(out_dag.build())
@@ -1589,7 +1589,7 @@ pub fn py_synthesize_unitary_matrix(
         ))
     };
 
-    let mut unitary_synthesis_data = UnitarySynthesisData::new();
+    let mut unitary_synthesis_cache = UnitarySynthesisCache::new();
 
     synthesize_unitary_matrix(
         CowArray::from(mat.view()),
@@ -1605,7 +1605,7 @@ pub fn py_synthesize_unitary_matrix(
         &out_qargs,
         true,
         apply_original_op,
-        &mut unitary_synthesis_data,
+        &mut unitary_synthesis_cache,
     )?;
 
     Ok(out_dag.build())
