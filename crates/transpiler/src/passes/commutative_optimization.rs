@@ -386,6 +386,7 @@ fn try_merge(
 
 /// Returns whether qubits/clbits for one instruction are fully disjoint from qubit/clbits of
 /// another instruction.
+#[inline]
 fn disjoint_instructions(
     qargs1: &[Qubit],
     cargs1: &[Clbit],
