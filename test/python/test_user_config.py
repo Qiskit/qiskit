@@ -276,7 +276,7 @@ class TestUserConfig(QiskitTestCase):
         self.assertEqual({"min_qpy_version": 10}, config.settings)
 
     def test_empty_min_qpy_version(self):
-        """Test that empty min_qpy_version is treated as unset."""
+        """Test that empty min_qpy_version is treated as wrong."""
         test_config = """
         [default]
         min_qpy_version = 
@@ -286,8 +286,7 @@ class TestUserConfig(QiskitTestCase):
             file.write(test_config)
             file.flush()
             config = user_config.UserConfig(self.file_path)
-            config.read_config_file()
-        self.assertEqual({}, config.settings)
+        self.assertRaises(exceptions.QiskitUserConfigError, config.read_config_file)
 
     def test_invalid_min_qpy_version_non_integer(self):
         """Test that non-integer min_qpy_version raises QiskitUserConfigError."""
