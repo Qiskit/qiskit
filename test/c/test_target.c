@@ -603,7 +603,7 @@ int test_target_instruction_supported(void) {
                 "This target did not correctly demonstrate compatibility with 'measure' and qargs "
                 "[%d]",
                 qubit);
-            result = RuntimeError;
+            result = EqualityError;
             goto cleanup;
         }
     }
@@ -617,7 +617,7 @@ int test_target_instruction_supported(void) {
             printf("This target did incorrectly demonstrate compatibility with 'cx' and qargs [%d, "
                    "%d]",
                    qarg_samples[i][0], qarg_samples[i][1]);
-            result = RuntimeError;
+            result = EqualityError;
             goto cleanup;
         }
     }
@@ -626,7 +626,7 @@ int test_target_instruction_supported(void) {
     // Instruction should not show compatibility with (3, 2)
     if (qk_target_instruction_supported(sample_target, "cx", cx_qargs, NULL)) {
         printf("This target did incorrectly demonstrate compatibility with 'cx' and qargs [3, 2]");
-        result = RuntimeError;
+        result = EqualityError;
         goto cleanup;
     }
 
