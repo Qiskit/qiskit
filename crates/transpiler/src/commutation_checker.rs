@@ -330,6 +330,9 @@ impl CommutationChecker {
         matrix_max_num_qubits: u32,
         approximation_degree: f64,
     ) -> Result<bool, CommutationError> {
+        // Check whether two operation commute / do not commute just based on their qubits/clbits,
+        // for instance two operations with completely disjoint supports trivially commute.
+        // This skips calling more expensive computations whenever possible (e.g. `map_rotation`).
         if let Some(is_commuting) =
             commutation_precheck_args(qargs1, cargs1, qargs2, cargs2, max_num_qubits)
         {
