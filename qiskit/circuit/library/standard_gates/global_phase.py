@@ -50,9 +50,7 @@ class GlobalPhaseGate(Gate):
         from qiskit.circuit import QuantumCircuit
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.GlobalPhase._get_definition(self.params),
-            legacy_qubits=True,
-            name=self.name,
+            StandardGate.GlobalPhase._get_definition(self.params), legacy_qubits=True
         )
 
     def inverse(self, annotated: bool = False):
