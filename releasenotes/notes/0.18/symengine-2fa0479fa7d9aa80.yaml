@@ -7,4 +7,4 @@ upgrade:
     on PyPi as a precompiled package for 64bit Windows) and other
     architectures. If it is installed it provides significantly improved
     performance for the evaluation of :class:`~qiskit.circuit.Parameter` and
-    :class:`~qiskit.circuit.ParameterExpression` instances.
+    :class:`~qiskit.circuit.ParameterExpression` objects.

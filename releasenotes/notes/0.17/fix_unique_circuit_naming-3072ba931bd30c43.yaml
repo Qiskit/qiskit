@@ -1,10 +1,10 @@
 ---
 fixes:
   - |
-    Fixed an issue where binding :class:`~qiskit.circuit.Parameter` instances
+    Fixed an issue where binding :class:`~qiskit.circuit.Parameter` objects
     in a :class:`~qiskit.circuit.QuantumCircuit` with the ``parameter_binds``
     in the :class:`~qiskit.execute_function.execute` function would cause all
-    the bound :class:`~qiskit.circuit.QuantumCircuit` instances would have the
+    the bound :class:`~qiskit.circuit.QuantumCircuit` objects would have the
     same :attr:`~qiskit.circuit.QuantumCircuit.name`, which meant the
     result names were also not unique. This fix causes
     the :meth:`~qiskit.circuit.QuantumCircuit.bind_parameters` and

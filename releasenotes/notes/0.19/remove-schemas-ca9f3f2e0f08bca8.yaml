@@ -17,7 +17,7 @@ upgrade:
     :meth:`.PulseQobj.to_dict`, and :meth:`.Qobj.to_dict`
     have been removed. These were deprecated in the 0.17.0 release. If you were
     using these function you will have to manually build jsonschema validation
-    functions for ``Qobj`` instances using the jsonschema files from
+    functions for ``Qobj`` objects using the jsonschema files from
     `the dedicated repository for the IBM Quantum API payload schemas <https://github.com/Qiskit/ibm-quantum-schemas>`__.
   - |
     The ``fastjsonschema`` and ``jsonschema`` packages are no longer in the requirements

@@ -3,7 +3,7 @@ features:
   - |
     Added a new attribute, :attr:`~.Target.qubit_properties` to the
     :class:`~.Target` class. This attribute contains a list of
-    :class:`~.QubitProperties` instances for each qubit in the target.
+    :class:`~.QubitProperties` objects for each qubit in the target.
     For example::
 
         target.qubit_properties[2]

@@ -86,7 +86,7 @@ features:
     both return ``True``.
 upgrade:
   - |
-    For :class:`~.Target` instances that only contain globally defined 2 qubit
+    For :class:`~.Target` objects that only contain globally defined 2 qubit
     operations without any connectivity constaints the return from the
     :meth:`.Target.build_coupling_map` method will now return ``None`` instead
     of a :class:`~.CouplingMap` object that contains ``num_qubits`` nodes

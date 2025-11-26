@@ -10,7 +10,7 @@ upgrade:
     :class:`~.StochasticSwap`. This change was made to improve the output
     quality of the transpiler, the :class:`~.SabreLayout` and
     :class:`~SabreSwap` combination typically results in fewer
-    :class:`~.SwapGate` instances being inserted into the output circuit.
+    :class:`~.SwapGate` objects being inserted into the output circuit.
     If you would like to use the previous default passes you can set
     ``layout_method='dense'`` and ``routing_method='stochastic'`` on
     :func:`~.transpile` or :func:`~.generate_preset_pass_manager` to

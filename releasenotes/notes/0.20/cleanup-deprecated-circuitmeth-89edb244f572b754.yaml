@@ -29,7 +29,7 @@ upgrade:
     gate classes has been removed. It was originally deprecated in the 0.17.0 release. Instead
     for fractional 3-controlled X gates you can use the :meth:`.C3XGate.power` method.
   - |
-    Support for using ``np.ndarray`` instances as part of the :attr:`~qiskit.circuit.Gate.params` attribute
+    Support for using ``np.ndarray`` objects as part of the :attr:`~qiskit.circuit.Gate.params` attribute
     of a :class:`~qiskit.circuit.Gate` object has been removed. This has been deprecated
     since Qiskit Terra 0.16.0 and now will no longer work. Instead one should create a new subclass
     of :class:`~qiskit.circuit.Gate` and explicitly allow a ``np.ndarray`` input by overloading the

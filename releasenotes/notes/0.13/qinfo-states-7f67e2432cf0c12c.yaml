@@ -8,7 +8,7 @@ features:
     Adds :meth:`~qiskit.quantum_info.Statevector.to_dict` and
     :meth:`~qiskit.quantum_info.DensityMatrix.to_dict` methods to convert
     :class:`qiskit.quantum_info.Statevector` and
-    :class:`qiskit.quantum_info.DensityMatrix` instances into Bra-Ket notation
+    :class:`qiskit.quantum_info.DensityMatrix` objects into Bra-Ket notation
     dictionary.
 
     Example

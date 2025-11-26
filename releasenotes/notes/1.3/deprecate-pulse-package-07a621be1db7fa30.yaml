@@ -24,7 +24,7 @@ deprecations_circuits:
 deprecations_qpy:
   - |
     As part of the Qiskit Pulse package deprecation, serializing a :class:`qiskit.pulse.ScheduleBlock`-based payloads
-    is being deprecated. In particular, passing :class:`qiskit.pulse.ScheduleBlock` instances to the `programs` argument in
+    is being deprecated. In particular, passing :class:`qiskit.pulse.ScheduleBlock` objects to the `programs` argument in
     the :func:`qiskit.qpy.dump` function is being deprecated.
 deprecations_transpiler:
   - |

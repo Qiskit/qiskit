@@ -14,7 +14,7 @@ features:
     :meth:`~qiskit.providers.BackendV1.defaults` methods that construct
     :class:`~qiskit.providers.models.BackendConfiguration`, 
     :class:`~qiskit.providers.models.BackendProperties`, and
-    :class:`~qiskit.providers.models.PulseDefaults` instances respectively,
+    :class:`~qiskit.providers.models.PulseDefaults` objects respectively,
     like in the :class:`~qiskit.providers.BackendV1` interface, the attributes
     contained in those output objects are accessible directly as attributes of
     the :class:`~qiskit.providers.BackendV2` object. For example, to get the

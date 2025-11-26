@@ -11,7 +11,7 @@ features_synthesis:
 features_transpiler:
   - |
     Added a new high-level synthesis plugin :class:`.MCXSynthesisNoAuxHP24` for
-    :class:`.MCXGate` instances. Furthermore, the default synthesis plugin
-    :class:`.MCXSynthesisDefault` for :class:`.MCXGate` instances was updated to
+    :class:`.MCXGate` objects. Furthermore, the default synthesis plugin
+    :class:`.MCXSynthesisDefault` for :class:`.MCXGate` objects was updated to
     always choose the best synthesis method depending on the available number of
     auxiliary qubits.

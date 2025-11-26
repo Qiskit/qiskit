@@ -2,7 +2,7 @@
 features_qpy:
   - |
     Added a new QPY format version 13 that adds a Qiskit native representation
-    of :class:`.ParameterExpression` instances.
+    of :class:`.ParameterExpression` objects.
 issues:
   - |
     When using QPY formats 10, 11, or 12 there is a dependency on the version
@@ -13,8 +13,8 @@ issues:
     with :func:`.qpy.load`. If this is encountered you will need to install the
     symengine version from the error message emitted to load the payload. QPY
     format version >= 13 (or < 10) will not have this issue and it is recommended
-    if you're serializing :class:`.ParameterExpression` instances as part of your
-    circuit or any :class:`.ScheduleBlock` instances you use version 13 to avoid
+    if you're serializing :class:`.ParameterExpression` objects as part of your
+    circuit or any :class:`.ScheduleBlock` objects you use version 13 to avoid
     this issue in the future.
 upgrade_qpy:
   - |

@@ -14,4 +14,4 @@ features:
 
     calling ``circuit.measure_all(add_bits=False)`` will use the existing
     classical register ``cr`` as the output target of the
-    :class:`~qiskit.circuit.Measurement` instances added to the circuit.
+    :class:`~qiskit.circuit.Measurement` objects added to the circuit.

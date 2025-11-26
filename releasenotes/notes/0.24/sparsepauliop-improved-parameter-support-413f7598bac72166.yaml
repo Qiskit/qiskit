@@ -1,6 +1,6 @@
 features:
   - |
-    Natively support the construction of :class:`.SparsePauliOp` instances with
+    Natively support the construction of :class:`.SparsePauliOp` objects with
     :class:`.ParameterExpression` coefficients, without requiring the explicit construction
     of an object-array. Now the following is supported::
 

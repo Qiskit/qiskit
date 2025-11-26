@@ -10,7 +10,7 @@ fixes:
     :class:`~qiskit.circuit.Delay` instructions in a
     :class:`~qiskit.circuit.QuantumCircuit` object were not being correctly
     treated as idle time. So when the ``idle_wires`` kwarg was set to
-    ``False`` the wires with the :class:`~qiskit.circuit.Delay` instances would
+    ``False`` the wires with the :class:`~qiskit.circuit.Delay` objects would
     still be shown. This has been fixed so that the idle wires are removed from
-    the visualization if there are only :class:`~qiskit.circuit.Delay` instances
+    the visualization if there are only :class:`~qiskit.circuit.Delay` objects
     on a wire.

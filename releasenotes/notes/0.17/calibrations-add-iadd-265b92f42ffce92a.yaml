@@ -2,7 +2,7 @@
 fixes:
   - |
     The :attr:`~qiskit.circuit.QuantumCircuit.calibrations` attribute
-    of :class:`~qiskit.circuit.QuantumCircuit` instances are now preserved when
+    of :class:`~qiskit.circuit.QuantumCircuit` objects are now preserved when
     the ``+=`` (ie the :meth:`~qiskit.circuit.QuantumCircuit.extend`
     method) and the ``+`` (ie the :meth:`~qiskit.circuit.QuantumCircuit.combine`
     method) are used.

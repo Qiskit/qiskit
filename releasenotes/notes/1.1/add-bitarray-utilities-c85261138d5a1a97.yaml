@@ -1,7 +1,7 @@
 ---
 features_primitives:
   - |
-    Added methods to join multiple :class:`~.BitArray` instances along various axes.
+    Added methods to join multiple :class:`~.BitArray` objects along various axes.
 
     - :meth:`~.BitArray.concatenate`: join arrays along an existing axis of the arrays.
     - :meth:`~.BitArray.concatenate_bits`: join arrays along the bit axis.

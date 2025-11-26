@@ -1,9 +1,9 @@
 ---
 features:
   - |
-    Introduced a new transpiler pass workflow for building :class:`~.PassManager` instances
-    for scheduling :class:`~.QuantumCircuit` instances in the transpiler. In the new
-    workflow, scheduling and alignment passes are all :class:`~.AnalysisPass` instances that
+    Introduced a new transpiler pass workflow for building :class:`~.PassManager` objects
+    for scheduling :class:`~.QuantumCircuit` objects in the transpiler. In the new
+    workflow, scheduling and alignment passes are all :class:`~.AnalysisPass` objects that
     only update the pass manager's property set, specifically a new property set item
     ``node_start_time``, which holds the absolute start time of each opnode. A separate
     :class:`~.TransformationPass` such as :class:`~.PadDelay` is subsequently used
@@ -17,7 +17,7 @@ features:
     ``scheduling -> alignment -> padding`` where the :class:`~.DAGCircuit` update only
     occurs at the end with the ``padding`` pass.
 
-    For those who are creating custom :class:`~.PassManager` instances that involve
+    For those who are creating custom :class:`~.PassManager` objects that involve
     circuit scheduling you will need to adjust your :class:`~.PassManager`
     to insert one of the :class:`~.BasePadding` passes (currently
     either :class:`~.PadDelay` or :class:`~.PadDynamicalDecoupling` can be used)
