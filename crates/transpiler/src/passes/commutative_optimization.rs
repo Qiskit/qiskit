@@ -361,14 +361,14 @@ fn try_merge(
             get_matrix(
                 &view1,
                 inst1.params_view(),
-                Some(matrix_max_num_qubits),
                 true,
+                Some(matrix_max_num_qubits),
             ),
             get_matrix(
                 &view2,
                 inst2.params_view(),
-                Some(matrix_max_num_qubits),
                 true,
+                Some(matrix_max_num_qubits),
             ),
         ) {
             let product_mat = matrix1.dot(&matrix2);

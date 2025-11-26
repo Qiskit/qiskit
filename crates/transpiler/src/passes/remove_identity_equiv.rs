@@ -196,8 +196,8 @@ where
     if let Some(matrix) = get_matrix(
         &view,
         inst.params_view(),
-        matrix_max_num_qubits,
         matrix_from_definition,
+        matrix_max_num_qubits,
     ) {
         let dim = matrix.shape()[0] as f64;
         let tr_over_dim = matrix.diag().iter().sum::<Complex64>() / dim;
