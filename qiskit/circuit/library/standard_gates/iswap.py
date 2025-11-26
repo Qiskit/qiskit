@@ -108,7 +108,7 @@ class iSwapGate(SingletonGate):
         #      └───┘     └───┘     └───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.ISwap._get_definition(self.params), legacy_qubits=True, name=self.name
+            StandardGate.ISwap._get_definition(self.params), legacy_qubits=True
         )
 
     def power(self, exponent: float, annotated: bool = False):

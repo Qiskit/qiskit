@@ -64,7 +64,7 @@ use rustworkx_core::petgraph;
 use rustworkx_core::petgraph::Incoming;
 use rustworkx_core::petgraph::prelude::StableDiGraph;
 use rustworkx_core::petgraph::prelude::*;
-use rustworkx_core::petgraph::stable_graph::{EdgeReference, IndexType, NodeIndex};
+use rustworkx_core::petgraph::stable_graph::{EdgeReference, IndexType};
 use rustworkx_core::petgraph::unionfind::UnionFind;
 use rustworkx_core::petgraph::visit::{
     EdgeIndexable, IntoEdgeReferences, IntoNodeReferences, NodeFiltered, NodeIndexable,
@@ -83,6 +83,8 @@ use std::sync::OnceLock;
 static CONTROL_FLOW_OP_NAMES: [&str; 5] =
     ["for_loop", "while_loop", "if_else", "switch_case", "box"];
 static SEMANTIC_EQ_SYMMETRIC: [&str; 4] = ["barrier", "swap", "break_loop", "continue_loop"];
+
+pub use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 #[derive(Clone, Debug)]
 pub enum NodeType {
@@ -2244,6 +2246,10 @@ impl DAGCircuit {
                                 _ => Ok(false),
                             }
                         }
+                        [
+                            OperationRef::PauliProductMeasurement(op_a),
+                            OperationRef::PauliProductMeasurement(op_b),
+                        ] => Ok(op_a == op_b),
                         _ => Ok(false),
                     }
                 }
@@ -3398,11 +3404,10 @@ impl DAGCircuit {
 
     /// Returns iterator of the successors of a node as :class:`.DAGOpNode`\ s and
     /// :class:`.DAGOutNode`\ s.
-    fn successors(&self, py: Python, node: &DAGNode) -> PyResult<Py<PyIterator>> {
+    #[pyo3(name = "successors")]
+    fn py_successors(&self, py: Python, node: &DAGNode) -> PyResult<Py<PyIterator>> {
         let successors: PyResult<Vec<_>> = self
-            .dag
-            .neighbors_directed(node.node.unwrap(), Outgoing)
-            .unique()
+            .successors(node.node.unwrap())
             .map(|i| self.get_node(py, i))
             .collect();
         Ok(PyTuple::new(py, successors?)?
@@ -3414,11 +3419,10 @@ impl DAGCircuit {
 
     /// Returns iterator of the predecessors of a node as :class:`.DAGOpNode`\ s and
     /// :class:`.DAGInNode`\ s.
-    fn predecessors(&self, py: Python, node: &DAGNode) -> PyResult<Py<PyIterator>> {
+    #[pyo3(name = "predecessors")]
+    fn py_predecessors(&self, py: Python, node: &DAGNode) -> PyResult<Py<PyIterator>> {
         let predecessors: PyResult<Vec<_>> = self
-            .dag
-            .neighbors_directed(node.node.unwrap(), Incoming)
-            .unique()
+            .predecessors(node.node.unwrap())
             .map(|i| self.get_node(py, i))
             .collect();
         Ok(PyTuple::new(py, predecessors?)?
@@ -7215,6 +7219,7 @@ impl DAGCircuit {
                         OperationRef::StandardGate(gate) => gate.into(),
                         OperationRef::StandardInstruction(instruction) => instruction.into(),
                         OperationRef::Unitary(unitary) => unitary.clone().into(),
+                        OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
                     }
                 } else {
                     instr.op.clone()
@@ -7761,6 +7766,16 @@ impl DAGCircuit {
     // Returns an immutable reference to 'metadata'
     pub fn get_metadata(&self) -> Option<&Py<PyAny>> {
         self.metadata.as_ref()
+    }
+
+    /// Returns an iterator over the unique successors of the given node
+    pub fn successors(&self, node: NodeIndex) -> impl Iterator<Item = NodeIndex> {
+        self.dag.neighbors_directed(node, Outgoing).unique()
+    }
+
+    /// Returns an iterator over the unique predecessors of the given node
+    pub fn predecessors(&self, node: NodeIndex) -> impl Iterator<Item = NodeIndex> {
+        self.dag.neighbors_directed(node, Incoming).unique()
     }
 }
 

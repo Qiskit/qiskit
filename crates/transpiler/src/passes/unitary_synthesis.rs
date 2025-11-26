@@ -164,7 +164,7 @@ impl UnitarySynthesisData {
 
 /// Given a list of basis gates, find a corresponding euler basis to use.
 /// This will determine the available 1q synthesis basis for different decomposers.
-fn get_euler_basis_set(basis_list: IndexSet<&str, ::ahash::RandomState>) -> EulerBasisSet {
+fn get_euler_basis_set(basis_list: &IndexSet<&str, ::ahash::RandomState>) -> EulerBasisSet {
     let mut euler_basis_set: EulerBasisSet = EulerBasisSet::new();
     EULER_BASES
         .iter()
@@ -198,7 +198,7 @@ fn get_target_basis_set(target: &Target, qubit: PhysicalQubit) -> EulerBasisSet 
     let target_basis_list = target.operation_names_for_qargs(&[qubit]);
     match target_basis_list {
         Ok(basis_list) => {
-            target_basis_set = get_euler_basis_set(basis_list.into_iter().collect());
+            target_basis_set = get_euler_basis_set(&basis_list.into_iter().collect());
         }
         Err(_) => {
             target_basis_set.support_all();
@@ -403,7 +403,7 @@ fn synthesize_unitary_matrix(
                     None => {
                         let basis_gates: IndexSet<&str, ::ahash::RandomState> =
                             basis_gates.iter().map(String::as_str).collect();
-                        get_euler_basis_set(basis_gates)
+                        get_euler_basis_set(&basis_gates)
                     }
                 };
 
@@ -452,7 +452,7 @@ fn synthesize_unitary_matrix(
                 ref_qubits,
                 coupling_edges,
                 target,
-                basis_gates.clone(),
+                basis_gates,
                 approximation_degree,
                 natural_direction,
                 pulse_optimize,
@@ -618,7 +618,7 @@ fn get_2q_decomposer_from_basis(
             .map(|x| (x.name(), *x))
             .collect();
     // 1q basis (both decomposers)
-    let euler_basis = match get_euler_basis_set(basis_gates.clone())
+    let euler_basis = match get_euler_basis_set(&basis_gates)
         .get_bases()
         .map(|basis| basis.as_str())
         .next()
@@ -1363,7 +1363,7 @@ fn run_2q_unitary_synthesis(
     ref_qubits: &[PhysicalQubit; 2],
     coupling_edges: &HashSet<[PhysicalQubit; 2]>,
     target: Option<&Target>,
-    basis_gates: HashSet<String>,
+    basis_gates: &HashSet<String>,
     approximation_degree: Option<f64>,
     natural_direction: Option<bool>,
     pulse_optimize: Option<bool>,
@@ -1560,7 +1560,7 @@ fn run_2q_unitary_synthesis(
 }
 
 #[pyfunction]
-#[pyo3(name = "synthesize_unitary_matrix", signature=(unitary, qubit_indices, target, basis_gates,coupling_edges, approximation_degree=None, natural_direction=None, pulse_optimize=None))]
+#[pyo3(name = "synthesize_unitary_matrix", signature=(unitary, qubit_indices, target, basis_gates, coupling_edges, approximation_degree=None, natural_direction=None, pulse_optimize=None))]
 pub fn py_synthesize_unitary_matrix(
     unitary: PyReadonlyArray2<Complex64>,
     qubit_indices: Vec<usize>,
