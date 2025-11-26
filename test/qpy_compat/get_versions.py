@@ -14,6 +14,7 @@
 
 import json
 import sys
+import re
 import urllib.request
 
 import packaging.version
@@ -63,36 +64,61 @@ def available_versions():
                 # We skip alpha and beta prereleases, but we currently want to test for
                 # compatibility with release candidates.
                 continue
-            # Note: this ignores versions that are uninstallable because we're using a Python
-            # version that's too new, which can be a problem for the oldest Terras, especially from
+            # Note: For non-docker runs, this ignores versions that are uninstallable because we're using
+            # a Python version that's too new, which can be a problem for the oldest Terras, especially from
             # before we built for abi3.  We're not counting sdists, since if we didn't release a
             # compatible wheel for the current Python version, there's no guarantee it'll install.
-            if not any(
-                tag in supported_tags
-                for release in payload
-                if release["packagetype"] == "bdist_wheel" and not release["yanked"]
-                for tag in tags_from_wheel_name(release["filename"])
-            ):
-                print(
-                    f"skipping '{other_version}', which has no installable binary artifacts",
-                    file=sys.stderr,
-                )
-                continue
-            yield other_version
+            if "--no-docker" in sys.argv:
+                if not any(
+                    tag in supported_tags
+                    for release in payload
+                    if release["packagetype"] == "bdist_wheel" and not release["yanked"]
+                    for tag in tags_from_wheel_name(release["filename"])
+                ):
+                    print(
+                        f"skipping '{other_version}', which has no installable binary artifacts",
+                        file=sys.stderr,
+                    )
+                    continue
+                # we run in no-docker mode, so the python version should be empty
+                python_version = ""
+            else:  # we run in docker mode, so we need to decide which python version to pull
+                try:
+                    python_versions = [
+                        release["python_version"]
+                        for release in payload
+                        if release["packagetype"] == "bdist_wheel" and not release["yanked"]
+                    ]
+                    python_versions = [
+                        re.sub(r"^cp(\d)(\d+)$", r"\1.\2", version) for version in python_versions
+                    ]  # convert "cp311" to "3.11"
+                    python_version = max(
+                        python_versions, key=lambda s: tuple(map(int, s.split(".")))
+                    )
+                except ValueError:
+                    print(
+                        f"skipping '{other_version}', which has no installable binary artifacts",
+                        file=sys.stderr,
+                    )
+                    continue
+            yield (other_version, python_version)
 
     yield from (
-        ("qiskit-terra", version)
-        for version in available_versions_for_package("qiskit-terra", "0.18.0", "1.0.0")
+        ("qiskit-terra", version, python_version)
+        for version, python_version in available_versions_for_package(
+            "qiskit-terra", "0.18.0", "1.0.0"
+        )
     )
     yield from (
-        ("qiskit", version) for version in available_versions_for_package("qiskit", "1.0.0")
+        ("qiskit", version, python_version)
+        for version, python_version in available_versions_for_package("qiskit", "1.0.0")
     )
 
 
 def main():
     """main"""
-    for package, version in available_versions():
-        print(package, version)
+    for package, version, python_version in available_versions():
+        print(package, version, python_version)
 
 
 if __name__ == "__main__":
