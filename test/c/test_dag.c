@@ -19,6 +19,30 @@
 #include <stdio.h>
 #include <string.h>
 
+static inline bool instructions_equal(const QkCircuitInstruction *left,
+                                      const QkCircuitInstruction *right) {
+    if (strcmp(left->name, right->name) || left->num_qubits != right->num_qubits ||
+        left->num_clbits != right->num_clbits || left->num_params != right->num_params) {
+        return false;
+    }
+    for (uint32_t i = 0; i < left->num_qubits; i++) {
+        if (left->qubits[i] != right->qubits[i]) {
+            return false;
+        }
+    }
+    for (uint32_t i = 0; i < left->num_clbits; i++) {
+        if (left->clbits[i] != right->clbits[i]) {
+            return false;
+        }
+    }
+    for (uint32_t i = 0; i < left->num_params; i++) {
+        if (left->params[i] != right->params[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
 static int test_empty(void) {
     QkDag *dag = qk_dag_new();
     uint32_t num_qubits = qk_dag_num_qubits(dag);
@@ -339,6 +363,97 @@ cleanup:
     return result;
 }
 
+static int test_dag_get_instruction(void) {
+    int result = Ok;
+    QkDag *dag = qk_dag_new();
+    QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
+    QkClassicalRegister *cr = qk_classical_register_new(2, "cr");
+    qk_dag_add_quantum_register(dag, qr);
+    qk_dag_add_classical_register(dag, cr);
+    qk_quantum_register_free(qr);
+    qk_classical_register_free(cr);
+
+    uint32_t args[2] = {0, 1};
+    uint32_t cx_node = qk_dag_apply_gate(dag, QkGate_CX, args, NULL, false);
+    uint32_t h_node = qk_dag_apply_gate(dag, QkGate_H, args, NULL, true);
+    // If the pointer is null, the number of qubits shouldn't be read.
+    uint32_t final_barrier_node = qk_dag_apply_barrier(dag, NULL, 16000, false);
+    uint32_t measure_0_node = qk_dag_apply_measure(dag, 0, 0, false);
+    uint32_t measure_1_node = qk_dag_apply_measure(dag, 1, 1, false);
+    uint32_t front_barrier_node = qk_dag_apply_barrier(dag, args, 2, true);
+    uint32_t reset_0_node = qk_dag_apply_reset(dag, 0, true);
+
+    uint32_t indices[] = {reset_0_node,       front_barrier_node, h_node,        cx_node,
+                          final_barrier_node, measure_0_node,     measure_1_node};
+    const char *desc[] = {"reset 0",       "front barrier", "h",        "cx",
+                          "final barrier", "measure 0",     "measure 1"};
+    QkCircuitInstruction expected[] = {
+        {.name = "reset",
+         .qubits = args,
+         .num_qubits = 1,
+         .clbits = NULL,
+         .num_clbits = 0,
+         .params = NULL,
+         .num_params = 0},
+        {.name = "barrier",
+         .qubits = args,
+         .num_qubits = 2,
+         .clbits = NULL,
+         .num_clbits = 0,
+         .params = NULL,
+         .num_params = 0},
+        {.name = "h",
+         .qubits = &args[0],
+         .num_qubits = 1,
+         .clbits = NULL,
+         .num_clbits = 0,
+         .params = NULL,
+         .num_params = 0},
+        {.name = "cx",
+         .qubits = args,
+         .num_qubits = 2,
+         .clbits = NULL,
+         .num_clbits = 0,
+         .params = NULL,
+         .num_params = 0},
+        {.name = "barrier",
+         .qubits = args,
+         .num_qubits = 2,
+         .clbits = NULL,
+         .num_clbits = 0,
+         .params = NULL,
+         .num_params = 0},
+        {.name = "measure",
+         .qubits = &args[0],
+         .num_qubits = 1,
+         .clbits = &args[0],
+         .num_clbits = 1,
+         .params = NULL,
+         .num_params = 0},
+        {.name = "measure",
+         .qubits = &args[1],
+         .num_qubits = 1,
+         .clbits = &args[1],
+         .num_clbits = 1,
+         .params = NULL,
+         .num_params = 0},
+    };
+
+    QkCircuitInstruction inst;
+    for (size_t i = 0; i < sizeof(indices) / sizeof(*indices); i++) {
+        qk_dag_get_instruction(dag, indices[i], &inst);
+        if (!instructions_equal(&inst, &expected[i])) {
+            printf("%s: mismatched instruction: %s\n", __func__, desc[i]);
+            result = EqualityError;
+            goto cleanup;
+        }
+        qk_circuit_instruction_clear(&inst);
+    }
+cleanup:
+    qk_dag_free(dag);
+    return result;
+}
+
 static int test_dag_topological_op_nodes(void) {
     int result = Ok;
     QkDag *dag = qk_dag_new();
@@ -587,6 +702,7 @@ int test_dag(void) {
     num_failed += RUN_TEST(test_dag_node_type);
     num_failed += RUN_TEST(test_dag_endpoint_node_value);
     num_failed += RUN_TEST(test_op_node_bits_explicit);
+    num_failed += RUN_TEST(test_dag_get_instruction);
     num_failed += RUN_TEST(test_dag_topological_op_nodes);
     num_failed += RUN_TEST(test_unitary_gates);
     num_failed += RUN_TEST(test_dag_node_neighbors);
