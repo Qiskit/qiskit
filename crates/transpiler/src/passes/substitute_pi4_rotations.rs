@@ -191,27 +191,23 @@ fn is_angle_close_to_multiple_of_pi_4(angle: f64, tol: f64) -> Option<usize> {
     }
 }
 
-/// Gets a rotation gate (RX/RY/RZ) and outputs an equivalent vector of standard gates and
-/// a global phase, when the gate is sufficiently close to Clifford+T/Tdg.
-/// Otherwise, return None.
+/// Gets a rotation gate (RX/RY/RZ) and outputs an equivalent vector of standard gates
+/// in {Clifford, T, Tdg} and a global phase, when the angle is a multiple of pi/4.
 /// Note that odd multiples of pi/4 require a single T or Tdg gate
-//  as well as some Clifford gates,
-//  while even multiples of pi/4, or equivalently, integer multiples of pi/2,
-//  can be written using only Clifford gates.
+/// as well as some Clifford gates,
+/// while even multiples of pi/4, or equivalently, integer multiples of pi/2,
+/// can be written using only Clifford gates.
 /// The output contains at most one T or Tdg gate, and an optimal number of
 /// Clifford gates.
-fn try_replace_rotation_by_discrete(
+fn replace_rotation_by_discrete(
     gate: StandardGate,
-    angle: f64,
-    tol: f64,
-) -> Option<(&'static [StandardGate], f64)> {
-    let multiple = is_angle_close_to_multiple_of_pi_4(angle, tol)?;
-
+    multiple: usize,
+) -> (&'static [StandardGate], f64) {
     match gate {
-        StandardGate::RX => Some(RX_SUBSTITUTIONS[multiple]),
-        StandardGate::RY => Some(RY_SUBSTITUTIONS[multiple]),
-        StandardGate::RZ => Some(RZ_SUBSTITUTIONS[multiple]),
-        _ => None,
+        StandardGate::RX => RX_SUBSTITUTIONS[multiple],
+        StandardGate::RY => RY_SUBSTITUTIONS[multiple],
+        StandardGate::RZ => RZ_SUBSTITUTIONS[multiple],
+        _ => unreachable!("This is only called for RX/RY/RZ gates."),
     }
 }
 
@@ -231,8 +227,8 @@ pub fn py_run_substitute_pi4_rotations(
     }
 
     // Iterate over nodes in the DAG and collect nodes that are of the form
-    // RX/RY/RZ with an angle that is a multiple of pi/4
-    // let mut candidates: Vec<(NodeIndex, StandardGate, f64)> = Vec::new();
+    // RX/RY/RZ with an angle that is sufficiently close to a multiple of pi/4
+    let tol = MINIMUM_TOL.max(1.0 - approximation_degree);
 
     let candidates: Vec<_> = dag
         .op_nodes(false)
@@ -240,7 +236,8 @@ pub fn py_run_substitute_pi4_rotations(
             if let OperationRef::StandardGate(gate) = inst.op.view() {
                 if matches!(gate, StandardGate::RX | StandardGate::RY | StandardGate::RZ) {
                     if let Param::Float(angle) = inst.params_view()[0] {
-                        Some((node_index, gate, angle))
+                        is_angle_close_to_multiple_of_pi_4(angle, tol)
+                            .map(|multiple| (node_index, gate, multiple))
                     } else {
                         None
                     }
@@ -254,17 +251,15 @@ pub fn py_run_substitute_pi4_rotations(
         .collect();
 
     let mut global_phase_update: f64 = 0.;
-    let tol = MINIMUM_TOL.max(1.0 - approximation_degree);
 
-    for (node_index, gate, angle) in candidates {
-        if let Some((sequence, phase_update)) = try_replace_rotation_by_discrete(gate, angle, tol) {
-            // we should remove the original gate, and instead add the sequence of gates
-            for new_gate in sequence {
-                dag.insert_1q_on_incoming_qubit((*new_gate, &[]), node_index);
-            }
-            dag.remove_1q_sequence(&[node_index]);
-            global_phase_update += phase_update;
+    for (node_index, gate, multiple) in candidates {
+        let (sequence, phase_update) = replace_rotation_by_discrete(gate, multiple);
+        // we should remove the original gate, and instead add the sequence of gates
+        for new_gate in sequence {
+            dag.insert_1q_on_incoming_qubit((*new_gate, &[]), node_index);
         }
+        dag.remove_1q_sequence(&[node_index]);
+        global_phase_update += phase_update;
     }
 
     dag.add_global_phase(&Param::Float(global_phase_update))?;
