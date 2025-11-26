@@ -238,7 +238,8 @@ fn commute(
 /// Arguments:
 ///
 /// * `dag`: The output [DAGCircuit] that contains all interned qubits.
-/// * `tol`: Specifies tolerance.
+/// * `tol`: Specifies tolerance to check whether the merged operation
+///   is close to the identity.
 /// * `matrix_max_num_qubits`: The maximum number of qubits to use for more expensive
 ///   matrix-based checks.
 ///
