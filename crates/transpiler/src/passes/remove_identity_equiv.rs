@@ -263,7 +263,7 @@ pub fn run_remove_identity_equiv(
     };
 
     for (op_node, inst) in dag.op_nodes(false) {
-        if let Some(phase_update) = is_identity_equiv(inst, None, true, get_error_cutoff)? {
+        if let Some(phase_update) = is_identity_equiv(inst, None, false, get_error_cutoff)? {
             remove_list.push(op_node);
             global_phase_update += phase_update;
         }
