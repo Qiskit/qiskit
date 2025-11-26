@@ -1430,12 +1430,12 @@ def write_circuit(
         version (int): The QPY format version to use for serializing this circuit
         annotation_factories (dict): a mapping of namespaces to zero-argument factory functions that
             produce instances of :class:`.annotation.QPYSerializer`.
-        use_rust (bool): whether to use the rust based serialization engine. On by default.
+        use_rust (bool): whether to use the rust based serialization engine. Off by default.
     """
     if use_rust:
         if annotation_factories is None:
             annotation_factories = {}
-        _qpy.py_write_circuit(
+        _qpy.write_circuit(
             file_obj,
             circuit,
             metadata_serializer,
@@ -1589,7 +1589,7 @@ def read_circuit(
     if use_rust:
         if annotation_factories is None:
             annotation_factories = {}
-        return _qpy.py_read_circuit(
+        return _qpy.read_circuit(
             file_obj, version, metadata_deserializer, use_symengine, annotation_factories
         )
 

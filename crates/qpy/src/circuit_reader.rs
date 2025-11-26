@@ -968,6 +968,7 @@ pub fn unpack_circuit(
 }
 
 #[pyfunction]
+#[pyo3(name = "read_circuit")]
 #[pyo3(signature = (file_obj, version, metadata_deserializer, use_symengine, annotation_factories))]
 pub fn py_read_circuit(
     py: Python,

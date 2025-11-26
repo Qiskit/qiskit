@@ -134,10 +134,7 @@ pub fn pack_instruction(
         new_custom_operations.push(gate_class_name.clone());
         custom_operations.insert(gate_class_name.clone(), instruction.op.clone());
     }
-    let label = match instruction.label() {
-        Some(label) => String::from(label),
-        None => String::from(""),
-    };
+    let label = instruction.label().unwrap_or("").to_string();
     let num_ctrl_qubits = match &instruction.op.view() {
         OperationRef::StandardGate(gate) => gate.num_ctrl_qubits(),
         OperationRef::Gate(py_gate) => py_gate.num_ctrl_qubits(),
@@ -886,6 +883,7 @@ pub fn pack_circuit(
 }
 
 #[pyfunction]
+#[pyo3(name = "write_circuit")]
 #[pyo3(signature = (file_obj, circuit, metadata_serializer, use_symengine, version, annotation_factories))]
 pub fn py_write_circuit(
     py: Python,
