@@ -869,6 +869,13 @@ impl ShareableQubit {
     pub fn is_ancilla(&self) -> bool {
         *self.subclass() == QubitSubclass::ANCILLA
     }
+
+    pub fn index(&self) -> Option<usize> {
+        match &self.0 {
+            BitInfo::Owned { index, .. } => Some(*index as usize),
+            BitInfo::Anonymous { .. } => None,
+        }
+    }
 }
 
 /// A qubit used as an ancilla.

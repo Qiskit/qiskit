@@ -612,7 +612,7 @@ impl DAGCircuit {
     ///
     /// To be removed with get_unit.
     #[getter("_unit")]
-    fn get_internal_unit(&self) -> PyResult<String> {
+    pub fn get_internal_unit(&self) -> PyResult<String> {
         Ok(self.unit.clone())
     }
 
@@ -2132,13 +2132,39 @@ impl DAGCircuit {
                         | [
                             OperationRef::StandardInstruction(_),
                             OperationRef::StandardInstruction(_),
-                        ] => Ok(inst1.py_op_eq(py, inst2)?
-                            && check_args()
-                            && inst1
-                                .params_view()
-                                .iter()
-                                .zip(inst2.params_view().iter())
-                                .all(|(a, b)| a.is_close(b, 1e-10).unwrap())),
+                        ] => {
+                            Ok(inst1.py_op_eq(py, inst2)?
+                                && check_args()
+                                && inst1
+                                    .params_view()
+                                    .iter()
+                                    .zip(inst2.params_view().iter())
+                                    .all(|(a, b)| {
+                                        match (a, b) {
+                                            // Special check for Float-to-Float comparison.
+                                            (Param::Float(val_a), Param::Float(val_b)) => {
+                                                (val_a - val_b).abs() <= 1e-10
+                                            }
+
+                                            // Special check for a Rust Float vs. a Python Object (and vice-versa).
+                                            (Param::Float(val_a), Param::Obj(py_b))
+                                            | (Param::Obj(py_b), Param::Float(val_a)) => {
+                                                if let Ok(val_b) = py_b.bind(py).extract::<f64>() {
+                                                    (val_a - val_b).abs() <= 1e-10
+                                                } else if let Ok(val_b_int) =
+                                                    py_b.bind(py).extract::<i64>()
+                                                {
+                                                    (val_a - (val_b_int as f64)).abs() <= 1e-10
+                                                } else {
+                                                    false
+                                                }
+                                            }
+
+                                            // Fallback to the regular checking logic for all other types.
+                                            _ => a.is_close(b, 1e-10).unwrap_or(false),
+                                        }
+                                    }))
+                        }
                         [
                             OperationRef::Instruction(op1),
                             OperationRef::Instruction(op2),
@@ -7675,7 +7701,7 @@ impl DAGCircuit {
         Ok(())
     }
 
-    /// Substitute a give node in the dag with a new operation from python
+    /// Substitute a given node in the dag with a new operation from python
     pub fn substitute_node_with_py_op(
         &mut self,
         node_index: NodeIndex,
