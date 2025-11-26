@@ -205,7 +205,7 @@ fn commute(
     approximation_degree: f64,
     matrix_max_num_qubits: u32,
     commutation_checker: &mut CommutationChecker,
-) -> bool {
+) -> PyResult<bool> {
     let qargs1 = dag.get_qargs(inst1.qubits);
     let qargs2 = dag.get_qargs(inst2.qubits);
     let cargs1 = dag.get_cargs(inst1.clbits);
@@ -216,21 +216,19 @@ fn commute(
     let params1 = inst1.params_view();
     let params2 = inst2.params_view();
 
-    commutation_checker
-        .commute(
-            &op1,
-            params1,
-            qargs1,
-            cargs1,
-            &op2,
-            params2,
-            qargs2,
-            cargs2,
-            u32::MAX,
-            matrix_max_num_qubits,
-            approximation_degree,
-        )
-        .expect("Commutation checker should work")
+    Ok(commutation_checker.commute(
+        &op1,
+        params1,
+        qargs1,
+        cargs1,
+        &op2,
+        params2,
+        qargs2,
+        cargs2,
+        u32::MAX,
+        matrix_max_num_qubits,
+        approximation_degree,
+    )?)
 }
 
 /// Merge two instructions.
@@ -497,7 +495,7 @@ pub fn run_commutative_optimization(
                 approximation_degree,
                 matrix_max_num_qubits,
                 commutation_checker,
-            ) {
+            )? {
                 break;
             }
         }
