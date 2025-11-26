@@ -22,6 +22,7 @@ use num_complex::{Complex64, ComplexFloat};
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::bit::{ShareableClbit, ShareableQubit};
 use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{
     ArrayType, DelayUnit, Operation, Param, StandardGate, StandardInstruction, UnitaryGate,
 };
@@ -1174,4 +1175,43 @@ pub unsafe extern "C" fn qk_circuit_delay(
         .unwrap();
 
     ExitCode::Success
+}
+
+/// @ingroup QkCircuit
+/// Convert a given circuit to a DAG.
+///
+/// The new DAG is copied from the circuit; the original ``circuit`` reference is still owned by the
+/// caller and still required to be freed with `qk_circuit_free`.  You must free the returned DAG
+/// with ``qk_dag_free`` when done with it.
+///
+/// @param circuit A pointer to the circuit from which to create the DAG.
+///
+/// @return A pointer to the new DAG.
+///
+/// # Example
+/// ```c
+///     QkCircuit *qc = qk_circuit_new(0, 0);
+///     QkQuantumRegister *qr = qk_quantum_register_new(3, "qr");
+///     qk_circuit_add_quantum_register(qc, qr);
+///     qk_quantum_register_free(qr);
+///     
+///     QkDag *dag = qk_circuit_to_dag(qc);
+///     
+///     qk_dag_free(dag);
+///     qk_circuit_free(qc);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.  
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_circuit_to_dag(circuit: *const CircuitData) -> *mut DAGCircuit {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+
+    let dag = DAGCircuit::from_circuit_data(circuit, true, None, None, None, None)
+        .expect("Error occurred while converting CircuitData to DAGCircuit");
+
+    Box::into_raw(Box::new(dag))
 }
