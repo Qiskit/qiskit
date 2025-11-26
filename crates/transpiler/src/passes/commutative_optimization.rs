@@ -17,7 +17,7 @@ use pyo3::prelude::*;
 use pyo3::{Bound, PyResult, pyfunction, wrap_pyfunction};
 use smallvec::smallvec;
 
-use crate::commutation_checker::{CommutationChecker, get_matrix};
+use crate::commutation_checker::{CommutationChecker, try_matrix_with_definition};
 use crate::passes::remove_identity_equiv::{average_gate_fidelity_below_tol, is_identity_equiv};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::DAGCircuit;
@@ -295,8 +295,8 @@ fn try_merge(
                 PackedInstruction::from_standard_gate(gate1, params, inst1.qubits);
             if let Some(phase_update) = is_identity_equiv(
                 &merged_instruction,
-                Some(matrix_max_num_qubits),
                 true,
+                Some(matrix_max_num_qubits),
                 error_cutoff_fn,
             )? {
                 return Ok((true, None, phase_update));
@@ -337,8 +337,8 @@ fn try_merge(
             if let Some(merged_instruction) = merged_instruction {
                 if let Some(phase_update) = is_identity_equiv(
                     &merged_instruction,
-                    Some(matrix_max_num_qubits),
                     true,
+                    Some(matrix_max_num_qubits),
                     error_cutoff_fn,
                 )? {
                     return Ok((true, None, phase_update));
@@ -357,18 +357,8 @@ fn try_merge(
         let view2 = inst2.op.view();
 
         if let (Some(matrix1), Some(matrix2)) = (
-            get_matrix(
-                &view1,
-                inst1.params_view(),
-                true,
-                Some(matrix_max_num_qubits),
-            ),
-            get_matrix(
-                &view2,
-                inst2.params_view(),
-                true,
-                Some(matrix_max_num_qubits),
-            ),
+            try_matrix_with_definition(&view1, inst1.params_view(), Some(matrix_max_num_qubits)),
+            try_matrix_with_definition(&view2, inst2.params_view(), Some(matrix_max_num_qubits)),
         ) {
             let product_mat = matrix1.dot(&matrix2);
             let dim = product_mat.shape()[0] as f64;
@@ -428,7 +418,7 @@ pub fn run_commutative_optimization(
         let instr1 = dag[node_index1].unwrap_operation();
 
         if let Some(phase_update) =
-            is_identity_equiv(instr1, Some(matrix_max_num_qubits), true, error_cutoff_fn)?
+            is_identity_equiv(instr1, true, Some(matrix_max_num_qubits), error_cutoff_fn)?
         {
             node_actions[idx1] = NodeAction::Drop;
             new_global_phase = radd_param(new_global_phase, Param::Float(phase_update));

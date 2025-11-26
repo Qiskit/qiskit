@@ -526,12 +526,12 @@ impl CommutationChecker {
         if first_qarg.len() > second_qarg.len() {
             return Err(CommutationError::FirstInstructionTooLarge);
         };
-        let first_mat = match get_matrix(first_op, first_params, true, None) {
+        let first_mat = match try_matrix_with_definition(first_op, first_params, None) {
             Some(matrix) => matrix,
             None => return Ok(false),
         };
 
-        let second_mat = match get_matrix(second_op, second_params, true, None) {
+        let second_mat = match try_matrix_with_definition(second_op, second_params, None) {
             Some(matrix) => matrix,
             None => return Ok(false),
         };
@@ -644,25 +644,22 @@ fn commutation_precheck_op_params(
 /// Returns matrix representation of the specified operation.
 ///
 /// For custom python gates:
-/// - If `matrix_from_definition` is set to `true`, the matrix is constructed
-///   from the gate's definition when the gate does not provide a direct
-///   `matrix` method.
+/// - The matrix is constructed from the gate's definition when the gate does
+///   not provide a direct `matrix` method.
 /// - To prevent generating excessively large matrices, use
 ///   `matrix_from_definition_max_qubits` to set an upper limit on the number
 ///   of qubits for which the construction is applied.
-pub fn get_matrix(
+pub fn try_matrix_with_definition(
     operation: &OperationRef,
     params: &[Param],
-    matrix_from_definition: bool,
     matrix_from_definition_max_qubits: Option<u32>,
 ) -> Option<Array2<Complex64>> {
     if let Some(matrix) = operation.matrix(params) {
         return Some(matrix);
     }
 
-    if !matrix_from_definition
-        || matrix_from_definition_max_qubits
-            .is_some_and(|max_qubits| max_qubits < operation.num_qubits())
+    if matrix_from_definition_max_qubits
+        .is_some_and(|max_qubits| max_qubits < operation.num_qubits())
     {
         return None;
     }

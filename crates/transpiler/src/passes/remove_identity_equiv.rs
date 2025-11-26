@@ -14,7 +14,7 @@ use num_complex::ComplexFloat;
 use pyo3::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
-use crate::commutation_checker::get_matrix;
+use crate::commutation_checker::try_matrix_with_definition;
 use crate::gate_metrics::rotation_trace_and_dim;
 use crate::target::Target;
 use qiskit_circuit::PhysicalQubit;
@@ -57,9 +57,10 @@ pub fn average_gate_fidelity_below_tol(tr_over_dim: Complex64, dim: f64, tol: f6
 /// # Arguments
 ///
 /// * `inst`: the packed instruction
-/// * `matrix_max_num_qubits`: maximum number of qubits allowed for matrix-based checks.
 /// * `matrix_from_definition`: if `true`, can call the Python-space `Operator` class to
 ///   construct the matrix.
+/// * `matrix_from_definition_max_qubits`: maximum number of qubits allowed for matrix-based
+///    checks.
 /// * `error_cutoff_fn`: function to compute the allowed error tolerance.
 ///
 /// # Returns
@@ -68,8 +69,8 @@ pub fn average_gate_fidelity_below_tol(tr_over_dim: Complex64, dim: f64, tol: f6
 /// * `None` if the operation cannot be removed.
 pub fn is_identity_equiv<F>(
     inst: &PackedInstruction,
-    matrix_max_num_qubits: Option<u32>,
     matrix_from_definition: bool,
+    matrix_from_definition_max_qubits: Option<u32>,
     error_cutoff_fn: F,
 ) -> PyResult<Option<f64>>
 where
@@ -191,14 +192,14 @@ where
         }
     }
 
-    // If view.matrix() returns None and matrix_from_definition is false,
-    // then there is no matrix and we skip the operation.
-    if let Some(matrix) = get_matrix(
-        &view,
-        inst.params_view(),
-        matrix_from_definition,
-        matrix_max_num_qubits,
-    ) {
+    // If matrix_from_definition is false and view.matrix() returns None, we skip the operation.
+    // If matrix_from_definition is true, we also attempt to construct the matrix from the python Operator.
+    if let Some(matrix) = match matrix_from_definition {
+        false => view.matrix(inst.params_view()),
+        true => {
+            try_matrix_with_definition(&view, inst.params_view(), matrix_from_definition_max_qubits)
+        }
+    } {
         let dim = matrix.shape()[0] as f64;
         let tr_over_dim = matrix.diag().iter().sum::<Complex64>() / dim;
         return Ok(average_gate_fidelity_below_tol(
@@ -265,7 +266,7 @@ pub fn run_remove_identity_equiv(
     };
 
     for (op_node, inst) in dag.op_nodes(false) {
-        if let Some(phase_update) = is_identity_equiv(inst, None, false, get_error_cutoff)? {
+        if let Some(phase_update) = is_identity_equiv(inst, false, None, get_error_cutoff)? {
             remove_list.push(op_node);
             global_phase_update += phase_update;
         }
