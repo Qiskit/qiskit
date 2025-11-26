@@ -620,8 +620,8 @@ impl Drop for PackedOperation {
 /// Much of the actual data of a `PackedInstruction` is stored in the `CircuitData` (or
 /// DAG-equivalent) context objects, and the `PackedInstruction` itself just contains handles to
 /// that data.  Components of the `PackedInstruction` can be unpacked individually by passing the
-/// `CircuitData` object to the relevant getter method.  Many `PackedInstruction` instances may contain
-/// handles to the same data within a `CircuitData` instances; we are re-using what we can.
+/// `CircuitData` object to the relevant getter method.  Many `PackedInstruction` objects may contain
+/// handles to the same data within a `CircuitData` objects; we are re-using what we can.
 ///
 /// A `PackedInstruction` in general cannot be safely mutated outside the context of its
 /// `CircuitData`, because the majority of the data is not actually stored here.
@@ -692,7 +692,7 @@ impl PackedInstruction {
             .unwrap_or(&mut [])
     }
 
-    /// Does this instruction contain any compile-time symbolic `ParameterExpression` instances?
+    /// Does this instruction contain any compile-time symbolic `ParameterExpression` objects?
     pub fn is_parameterized(&self) -> bool {
         self.params_view()
             .iter()
