@@ -1458,7 +1458,7 @@ fn run_2q_unitary_synthesis(
 }
 
 #[pyfunction]
-#[pyo3(name = "synthesize_unitary_matrix", signature=(unitary, qubit_indices, target, basis_gates,coupling_edges, approximation_degree=None, natural_direction=None, pulse_optimize=None))]
+#[pyo3(name = "synthesize_unitary_matrix", signature=(unitary, qubit_indices, target, basis_gates, coupling_edges, approximation_degree=None, natural_direction=None, pulse_optimize=None))]
 pub fn py_synthesize_unitary_matrix(
     unitary: PyReadonlyArray2<Complex64>,
     qubit_indices: Vec<usize>,
