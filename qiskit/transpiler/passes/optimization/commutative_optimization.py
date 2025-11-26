@@ -25,17 +25,17 @@ class CommutativeOptimization(TransformationPass):
     """
     Cancel/merge gates exploiting commutativity relations.
 
-    The pass will:
+    Specifically, the pass:
 
-    * Cancel pairs of inverse gates, or pairs of gates that are
+    * Cancels pairs of inverse gates, including pairs that are
       inverse up to a global phase (adjusting the global phase
-      accordingly).
-    * Attempt to merge consecutive gates, such as consecutive
-      RZ-gates, consecutive RX-gates, consecutive Pauli rotations,
-      and so on.
+      if necessary).
+    * Attempts to merge consecutive gates when possible, for example
+      sequences of RZ-gates, RX-gates, Pauli rotations, and so on.
 
-    This pass generalizes both :class:`.CommutativeCancellation` and
-    :class:`.CommutativeInverseCancellation` transpiler passes.
+    This pass unifies and extends the functionality of both
+    :class:`.CommutativeCancellation` and
+    :class:`.CommutativeInverseCancellation`.
     """
 
     def __init__(self, approximation_degree: float = 1.0, matrix_max_num_qubits: int = 0):
