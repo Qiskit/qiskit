@@ -270,21 +270,6 @@ class TestCommutativeOptimization(QiskitTestCase):
         self.assertEqual(Operator(expected), Operator(qc))
         self.assertEqual(qct, expected)
 
-    def test_unitary_equiv_to_id(self):
-        """Test inverse unitary gates that differ by a phase."""
-        qc = QuantumCircuit(2)
-        u1 = UnitaryGate([[1, 0], [0, 1]])
-        u2 = UnitaryGate([[-1, 0], [0, -1]])
-        qc.append(u1, [0])
-        qc.append(u2, [0])
-
-        qct = CommutativeOptimization()(qc)
-
-        expected = QuantumCircuit(2, global_phase=np.pi)
-
-        self.assertEqual(Operator(expected), Operator(qc))
-        self.assertEqual(qct, expected)
-
     def test_merge_pauli_evolutions(self):
         """Test that the pass merges PauliEvolutionGates when appropriate."""
         op = SparsePauliOp.from_list([("IZZ", 1), ("ZII", 2), ("ZIZ", 3)])

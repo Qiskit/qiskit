@@ -397,8 +397,6 @@ pub fn run_commutative_optimization(
 ) -> PyResult<Option<DAGCircuit>> {
     let tol = 1e-12_f64.max(1. - approximation_degree);
 
-    let error_cutoff_fn = |_inst: &PackedInstruction| -> f64 { tol };
-
     // Create output DAG.
     // We will use it to intern qubits of canonicalized instructions.
     // (In theory, we could also change qubits when merging instructions, however
@@ -416,15 +414,6 @@ pub fn run_commutative_optimization(
     for idx1 in 0..num_nodes {
         let node_index1 = node_indices[idx1];
         let instr1 = dag[node_index1].unwrap_operation();
-
-        if let Some(phase_update) =
-            is_identity_equiv(instr1, true, Some(matrix_max_num_qubits), error_cutoff_fn)?
-        {
-            node_actions[idx1] = NodeAction::Drop;
-            new_global_phase = radd_param(new_global_phase, Param::Float(phase_update));
-            modified = true;
-            continue;
-        }
 
         if let Some((new_instruction, phase_update)) = canonicalize(&mut new_dag, instr1) {
             node_actions[idx1] = NodeAction::Canonical(new_instruction, phase_update);
