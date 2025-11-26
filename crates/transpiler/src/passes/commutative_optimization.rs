@@ -18,7 +18,7 @@ use pyo3::{Bound, PyResult, pyfunction, wrap_pyfunction};
 use smallvec::smallvec;
 
 use crate::commutation_checker::{CommutationChecker, get_matrix};
-use crate::passes::remove_identity_equiv::{can_remove, is_identity_equiv};
+use crate::passes::remove_identity_equiv::{average_gate_fidelity_below_tol, is_identity_equiv};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{
@@ -375,7 +375,7 @@ fn try_merge(
             let dim = product_mat.shape()[0] as f64;
             let tr_over_dim = product_mat.diag().iter().sum::<Complex64>() / dim;
 
-            if let Some(phase_update) = can_remove(tr_over_dim, dim, tol) {
+            if let Some(phase_update) = average_gate_fidelity_below_tol(tr_over_dim, dim, tol) {
                 return Ok((true, None, phase_update));
             }
         }

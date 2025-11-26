@@ -35,16 +35,16 @@ const MINIMUM_TOL: f64 = 1e-12;
 ///
 /// * `tr_over_dim`: `|Tr(G)| / dim(G)`.
 /// * `dim`: `dim(G)`.
-/// * `error`: tolerance.
+/// * `tol`: tolerance.
 ///
 /// # Returns
 ///
-/// * `(true, update to the global phase)`` if the operation can be removed.
-/// * `(false, 0.)` if the operation cannot be removed.
-pub fn can_remove(tr_over_dim: Complex64, dim: f64, error: f64) -> Option<f64> {
+/// * `Some(update to the global phase)` if the operation can be removed.
+/// * `None` if the operation cannot be removed.
+pub fn average_gate_fidelity_below_tol(tr_over_dim: Complex64, dim: f64, tol: f64) -> Option<f64> {
     let f_pro = tr_over_dim.abs().powi(2);
     let gate_fidelity = (dim * f_pro + 1.) / (dim + 1.);
-    if (1. - gate_fidelity).abs() < error {
+    if (1. - gate_fidelity).abs() < tol {
         Some(tr_over_dim.arg())
     } else {
         None
@@ -64,8 +64,8 @@ pub fn can_remove(tr_over_dim: Complex64, dim: f64, error: f64) -> Option<f64> {
 ///
 /// # Returns
 ///
-/// * `(true, update to the global phase)`` if the operation can be removed.
-/// * `(false, 0.)` if the operation cannot be removed.
+/// * `Some(update to the global phase)` if the operation can be removed.
+/// * `None` if the operation cannot be removed.
 pub fn is_identity_equiv<F>(
     inst: &PackedInstruction,
     matrix_max_num_qubits: Option<u32>,
@@ -163,7 +163,11 @@ where
             }
         };
 
-        return Ok(can_remove(tr_over_dim, dim, error_cutoff_fn(inst)));
+        return Ok(average_gate_fidelity_below_tol(
+            tr_over_dim,
+            dim,
+            error_cutoff_fn(inst),
+        ));
     }
 
     // Special handling for large pauli rotation gates.
@@ -177,7 +181,11 @@ where
         })?;
 
         if let Some((tr_over_dim, dim)) = result {
-            return Ok(can_remove(tr_over_dim, dim as f64, error_cutoff_fn(inst)));
+            return Ok(average_gate_fidelity_below_tol(
+                tr_over_dim,
+                dim as f64,
+                error_cutoff_fn(inst),
+            ));
         }
     }
 
@@ -191,7 +199,11 @@ where
     ) {
         let dim = matrix.shape()[0] as f64;
         let tr_over_dim = matrix.diag().iter().sum::<Complex64>() / dim;
-        return Ok(can_remove(tr_over_dim, dim, error_cutoff_fn(inst)));
+        return Ok(average_gate_fidelity_below_tol(
+            tr_over_dim,
+            dim,
+            error_cutoff_fn(inst),
+        ));
     }
 
     Ok(None)
