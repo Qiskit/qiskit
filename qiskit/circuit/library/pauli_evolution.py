@@ -394,10 +394,10 @@ def _merge_two_pauli_evolutions(
 
 
 # pylint: disable=too-many-return-statements
-def pauli_rotation_trace_and_dim(gate: PauliEvolutionGate) -> tuple[complex, int] | None:
+def _pauli_rotation_trace_and_dim(gate: PauliEvolutionGate) -> tuple[complex, int] | None:
     """
     For a multi-qubit Pauli rotation, return a tuple ``(Tr(gate) / dim, dim)``.
-    Return `None` othewise.
+    For sums of Paulis, parameterized angles, or if projectors are contained, `None` is returned.
 
     This function is internal (used from within Rust code) and not a part of public API.
     """
