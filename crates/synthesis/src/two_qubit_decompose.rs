@@ -2256,7 +2256,7 @@ impl TwoQubitBasisDecomposer {
     ) -> PyResult<CircuitData> {
         let sequence =
             self.generate_sequence(unitary, basis_fidelity, approximate, _num_basis_uses)?;
-        CircuitData::from_packed_operations(
+        Ok(CircuitData::from_packed_operations(
             2,
             0,
             sequence.gates.into_iter().map(|(gate, params, qubits)| {
@@ -2268,7 +2268,7 @@ impl TwoQubitBasisDecomposer {
                 ))
             }),
             Param::Float(sequence.global_phase),
-        )
+        )?)
     }
 
     fn num_basis_gates(&self, unitary: PyReadonlyArray2<Complex64>) -> PyResult<usize> {
@@ -2951,7 +2951,7 @@ impl TwoQubitControlledUDecomposer {
         atol: Option<f64>,
     ) -> PyResult<CircuitData> {
         let sequence = self.call_inner(unitary.as_array(), atol)?;
-        CircuitData::from_packed_operations(
+        Ok(CircuitData::from_packed_operations(
             2,
             0,
             sequence.gates.into_iter().map(|(gate, params, qubits)| {
@@ -2963,7 +2963,7 @@ impl TwoQubitControlledUDecomposer {
                 ))
             }),
             Param::Float(sequence.global_phase),
-        )
+        )?)
     }
 }
 

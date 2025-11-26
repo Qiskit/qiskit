@@ -19,7 +19,7 @@ use rand_distr::StandardNormal;
 use rand_pcg::Pcg64Mcg;
 use rayon::prelude::*;
 
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
 use qiskit_circuit::getenv_use_multiple_threads;
 use qiskit_circuit::operations::{ArrayType, Param, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -92,7 +92,7 @@ pub fn quantum_volume(num_qubits: u32, depth: usize, seed: Option<u64>) -> PyRes
 
     let mut build_instruction = |(unitary_index, unitary_array): (usize, Matrix4<Complex64>),
                                  rng: &mut Pcg64Mcg|
-     -> PyResult<Instruction> {
+     -> Result<Instruction, CircuitDataError> {
         let layer_index = unitary_index % width;
         if layer_index == 0 {
             permutation.shuffle(rng);
@@ -135,7 +135,7 @@ pub fn quantum_volume(num_qubits: u32, depth: usize, seed: Option<u64>) -> PyRes
             .flat_map(|seeds| random_unitaries(seeds[0], seeds.len()))
             .collect()
     };
-    CircuitData::from_packed_operations(
+    Ok(CircuitData::from_packed_operations(
         num_qubits,
         0,
         unitaries
@@ -143,5 +143,5 @@ pub fn quantum_volume(num_qubits: u32, depth: usize, seed: Option<u64>) -> PyRes
             .enumerate()
             .map(|x| build_instruction(x, &mut outer_rng)),
         Param::Float(0.),
-    )
+    )?)
 }
