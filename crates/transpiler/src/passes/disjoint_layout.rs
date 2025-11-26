@@ -214,9 +214,7 @@ pub fn distribute_components(dag: &mut DAGCircuit, target: &Target) -> PyResult<
                 let block_map = dag
                     .iter_blocks()
                     .enumerate()
-                    .map(|(index, block)| {
-                        (Block::new(index), out_dag.add_block(block.clone()))
-                    })
+                    .map(|(index, block)| (Block::new(index), out_dag.add_block(block.clone())))
                     .collect();
                 out_dag.compose(
                     dag,
