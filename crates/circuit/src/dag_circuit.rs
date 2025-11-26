@@ -1680,7 +1680,7 @@ impl DAGCircuit {
         let block_map = other
             .iter_blocks()
             .enumerate()
-            .map(|(index, block)| (Block::new(index), self.register_block(block.clone())))
+            .map(|(index, block)| (Block::new(index), self.add_block(block.clone())))
             .collect();
 
         // Compose
@@ -3051,7 +3051,7 @@ impl DAGCircuit {
             Some(Parameters::Blocks(circuits)) => Python::attach(|py| -> PyResult<_> {
                 let mut blocks = Vec::with_capacity(circuits.len());
                 for circuit in circuits {
-                    blocks.push(self.register_block(circuit_to_dag(
+                    blocks.push(self.add_block(circuit_to_dag(
                         circuit.extract(py)?,
                         false,
                         None,
@@ -3136,7 +3136,7 @@ impl DAGCircuit {
         let block_map = input_dag
             .iter_blocks()
             .enumerate()
-            .map(|(index, block)| (Block::new(index), self.register_block(block.clone())))
+            .map(|(index, block)| (Block::new(index), self.add_block(block.clone())))
             .collect();
 
         type WireMapsTuple = (
@@ -4231,7 +4231,7 @@ impl DAGCircuit {
                             .map(|b| {
                                 *block_map.entry(*b).or_insert_with(|| {
                                     let block = self.blocks.get(b.index()).unwrap().clone();
-                                    new_layer.register_block(block)
+                                    new_layer.add_block(block)
                                 })
                             })
                             .collect();
@@ -5050,7 +5050,7 @@ impl DAGCircuit {
     /// No attempt is made to deduplicate the given block.
     /// No validation is performed to ensure that the given block is valid
     /// within the DAG.
-    pub fn register_block(&mut self, block: DAGCircuit) -> Block {
+    pub fn add_block(&mut self, block: DAGCircuit) -> Block {
         let id = self.blocks.len();
         self.blocks.push(block);
         Block::new(id)
@@ -8768,7 +8768,7 @@ impl DAGCircuitBuilder {
     /// within this DAG.
     #[inline]
     pub fn register_block(&mut self, block: DAGCircuit) -> Block {
-        self.dag.register_block(block)
+        self.dag.add_block(block)
     }
 }
 

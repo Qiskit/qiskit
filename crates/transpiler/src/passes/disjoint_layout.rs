@@ -215,7 +215,7 @@ pub fn distribute_components(dag: &mut DAGCircuit, target: &Target) -> PyResult<
                     .iter_blocks()
                     .enumerate()
                     .map(|(index, block)| {
-                        (Block::new(index), out_dag.register_block(block.clone()))
+                        (Block::new(index), out_dag.add_block(block.clone()))
                     })
                     .collect();
                 out_dag.compose(
@@ -469,7 +469,7 @@ fn separate_dag(dag: &mut DAGCircuit) -> PyResult<Vec<DAGCircuit>> {
                                 .map(|b| {
                                     *block_map.entry(*b).or_insert_with(|| {
                                         let block = dag.view_block(*b).clone();
-                                        new_dag.register_block(block)
+                                        new_dag.add_block(block)
                                     })
                                 })
                                 .collect(),
