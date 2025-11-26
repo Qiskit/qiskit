@@ -2027,7 +2027,6 @@ impl CircuitData {
     ///
     /// # Arguments
     ///
-    /// * py: A GIL handle this is needed to instantiate Qubits in Python space
     /// * num_qubits: The number of qubits in the circuit. These will be created
     ///   in Python as loose bits without a register.
     /// * num_clbits: The number of classical bits in the circuit. These will be created
