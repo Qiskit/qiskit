@@ -16,7 +16,6 @@ use std::f64::consts::{FRAC_PI_8, PI};
 
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
-use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 static ROTATION_GATE_NAMES: [&str; 3] = ["rx", "ry", "rz"];
 
@@ -233,17 +232,26 @@ pub fn py_run_substitute_pi4_rotations(
 
     // Iterate over nodes in the DAG and collect nodes that are of the form
     // RX/RY/RZ with an angle that is a multiple of pi/4
-    let mut candidates: Vec<(NodeIndex, StandardGate, f64)> = Vec::new();
+    // let mut candidates: Vec<(NodeIndex, StandardGate, f64)> = Vec::new();
 
-    for (node_index, inst) in dag.op_nodes(false) {
-        if let OperationRef::StandardGate(gate) = inst.op.view() {
-            if matches!(gate, StandardGate::RX | StandardGate::RY | StandardGate::RZ) {
-                if let Param::Float(angle) = inst.params_view()[0] {
-                    candidates.push((node_index, gate, angle));
+    let candidates: Vec<_> = dag
+        .op_nodes(false)
+        .filter_map(|(node_index, inst)| {
+            if let OperationRef::StandardGate(gate) = inst.op.view() {
+                if matches!(gate, StandardGate::RX | StandardGate::RY | StandardGate::RZ) {
+                    if let Param::Float(angle) = inst.params_view()[0] {
+                        Some((node_index, gate, angle))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
                 }
+            } else {
+                None
             }
-        }
-    }
+        })
+        .collect();
 
     let mut global_phase_update: f64 = 0.;
     let tol = MINIMUM_TOL.max(1.0 - approximation_degree);
