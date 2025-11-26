@@ -307,6 +307,14 @@ static int test_target_entry_construction(void) {
         printf("The operation did not fail as expected for invalid qargs.");
     }
 
+    // Set name for the entry
+    QkExitCode set_name_error = qk_target_entry_set_name(property_map, "cx_gate");
+    if (set_name_error != QkExitCode_Success) {
+        printf("Unexpected error occurred when setting the name of the entry.\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
 cleanup:
     qk_target_entry_free(property_map);
     return result;
@@ -395,7 +403,7 @@ static int test_target_add_instruction(void) {
     // Create prop_map for the instruction
     // Add property for (0, 1)
     double crx_params[1] = {3.14};
-    QkTargetEntry *crx_entry = qk_target_entry_new_fixed(QkGate_CRX, crx_params);
+    QkTargetEntry *crx_entry = qk_target_entry_new_fixed(QkGate_CRX, crx_params, "crx_fixed");
     uint32_t crx_qargs[2] = {1, 2};
     double crx_inst_error = 0.0129023;
     double crx_inst_duration = 0.92939;
@@ -743,7 +751,7 @@ QkTarget *create_sample_target(bool std_inst) {
     qk_target_add_instruction(target, i_entry);
 
     double rz_params[1] = {3.14};
-    QkTargetEntry *rz_entry = qk_target_entry_new_fixed(QkGate_RZ, rz_params);
+    QkTargetEntry *rz_entry = qk_target_entry_new_fixed(QkGate_RZ, rz_params, "rz_pi");
     for (int i = 0; i < 4; i++) {
         uint32_t qargs[1] = {i};
         qk_target_entry_add_property(rz_entry, qargs, 1, 0., 0.);

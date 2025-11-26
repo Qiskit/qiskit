@@ -13,7 +13,7 @@
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2};
+use numpy::{IntoPyArray, PyArray2, PyReadonlyArray1, PyReadonlyArray2};
 use pyo3::basic::CompareOp;
 use pyo3::exceptions::{PyDeprecationWarning, PyTypeError};
 use pyo3::prelude::*;
@@ -30,8 +30,8 @@ use crate::imports::{
     CONTROL_FLOW_OP, CONTROLLED_GATE, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN,
 };
 use crate::operations::{
-    ArrayType, Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
-    StandardInstruction, StandardInstructionType, UnitaryGate,
+    ArrayType, Operation, OperationRef, Param, PauliProductMeasurement, PyGate, PyInstruction,
+    PyOperation, StandardGate, StandardInstruction, StandardInstructionType, UnitaryGate,
 };
 use crate::packed_instruction::PackedOperation;
 use crate::parameter::parameter_expression::ParameterExpression;
@@ -188,6 +188,9 @@ impl CircuitInstruction {
             OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
             OperationRef::Operation(operation) => operation.operation.clone_ref(py),
             OperationRef::Unitary(unitary) => unitary
+                .create_py_op(py, self.label.as_ref().map(|x| x.as_str()))?
+                .into_any(),
+            OperationRef::PauliProductMeasurement(ppm) => ppm
                 .create_py_op(py, self.label.as_ref().map(|x| x.as_str()))?
                 .into_any(),
         };
@@ -582,7 +585,8 @@ impl<'a, 'py> FromPyObject<'a, 'py> for OperationFromPython {
         }
 
         // We need to check by name here to avoid a circular import during initial loading
-        if ob.getattr(intern!(py, "name"))?.extract::<String>()? == "unitary" {
+        let ob_name = ob.getattr(intern!(py, "name"))?.extract::<String>()?;
+        if ob_name == "unitary" {
             let params = extract_params()?;
             if let Some(Param::Obj(data)) = params.first() {
                 let py_matrix: PyReadonlyArray2<Complex64> = data.extract(py)?;
@@ -618,6 +622,32 @@ impl<'a, 'py> FromPyObject<'a, 'py> for OperationFromPython {
                     });
                 };
             }
+        } else if ob_name == "pauli_product_measurement" {
+            let z = ob
+                .getattr(intern!(py, "_pauli_z"))?
+                .extract::<PyReadonlyArray1<bool>>()?
+                .as_slice()?
+                .to_vec();
+
+            let x = ob
+                .getattr(intern!(py, "_pauli_x"))?
+                .extract::<PyReadonlyArray1<bool>>()?
+                .as_slice()?
+                .to_vec();
+
+            let phase = ob.getattr(intern!(py, "_pauli_phase"))?.extract::<u8>()?;
+
+            let pauli_product_measurement = Box::new(PauliProductMeasurement {
+                z: z.to_owned(),
+                x: x.to_owned(),
+                neg: phase == 2, // phase is only 0 (represents 1) or 2 (represents -1)
+            });
+
+            return Ok(OperationFromPython {
+                operation: PackedOperation::from_ppm(pauli_product_measurement),
+                params: SmallVec::new(),
+                label: extract_label()?,
+            });
         }
 
         if ob_type.is_subclass(GATE.get_bound(py))? {

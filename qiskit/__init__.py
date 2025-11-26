@@ -44,15 +44,6 @@ else:
             " See https://qisk.it/packaging-1-0 for more detail."
         )
 
-if sys.version_info < (3, 10):
-    warnings.warn(
-        "Using Qiskit with Python 3.9 is deprecated as of the 2.1.0 release. "
-        "Support for running Qiskit with Python 3.9 will be removed in the "
-        "2.3.0 release, which coincides with when Python 3.9 goes end of life.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-
 from . import _accelerate
 import qiskit._numpy_compat
 
@@ -119,6 +110,9 @@ sys.modules["qiskit._accelerate.synthesis.evolution"] = _accelerate.synthesis.ev
 sys.modules["qiskit._accelerate.synthesis.discrete_basis"] = _accelerate.synthesis.discrete_basis
 sys.modules["qiskit._accelerate.synthesis.multi_controlled"] = (
     _accelerate.synthesis.multi_controlled
+)
+sys.modules["qiskit._accelerate.synthesis.pauli_product_measurement"] = (
+    _accelerate.synthesis.pauli_product_measurement
 )
 sys.modules["qiskit._accelerate.synthesis.qft"] = _accelerate.synthesis.qft
 sys.modules["qiskit._accelerate.split_2q_unitaries"] = _accelerate.split_2q_unitaries
