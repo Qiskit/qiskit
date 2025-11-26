@@ -264,6 +264,23 @@ pub trait Operation {
         self.matrix_as_static_1q(params)
             .map(|arr| Matrix2::new(arr[0][0], arr[0][1], arr[1][0], arr[1][1]))
     }
+    /// Returns the Python class name for this operation.
+    ///
+    /// This method provides a Python-free way to get the Python module path and class name
+    /// for gates and instructions. It is used for QPY serialization and other cases where
+    /// the Python class name is needed without going through Python.
+    ///
+    /// # Returns
+    ///
+    /// * `Option<(&str, &str)>` - If the operation has a corresponding Python class,
+    ///   returns `Some((module_path, class_name))` where `module_path` is the Python
+    ///   module path (e.g., "qiskit.circuit.library.standard_gates.h") and `class_name`
+    ///   is the Python class name (e.g., "HGate"). Returns `None` if there is no
+    ///   corresponding Python class or if it cannot be determined without Python.
+    fn py_cls_name(&self) -> Option<(&str, &str)> {
+        // Default implementation returns None
+        None
+    }
 }
 
 /// Unpacked view object onto a `PackedOperation`.  This is the return value of
@@ -402,6 +419,18 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.matrix_as_static_1q(params),
             Self::Unitary(unitary) => unitary.matrix_as_static_1q(params),
             Self::PauliProductMeasurement(ppm) => ppm.matrix_as_static_1q(params),
+        }
+    }
+    
+    #[inline]
+    fn py_cls_name(&self) -> Option<(&str, &str)> {
+        match self {
+            Self::StandardGate(standard) => standard.py_cls_name(),
+            Self::StandardInstruction(instruction) => instruction.py_cls_name(),
+            Self::Gate(_) => None,
+            Self::Instruction(_) => None,
+            Self::Operation(_) => None,
+            Self::Unitary(_) => Some(("qiskit.circuit.library.generalized_gates.unitary", "UnitaryGate")),
         }
     }
 }
@@ -565,6 +594,15 @@ impl Operation for StandardInstruction {
 
     fn matrix_as_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
         None
+    }
+    
+    fn py_cls_name(&self) -> Option<(&str, &str)> {
+        match self {
+            StandardInstruction::Barrier(_) => Some(("qiskit.circuit", "Barrier")),
+            StandardInstruction::Delay(_) => Some(("qiskit.circuit", "Delay")),
+            StandardInstruction::Measure => Some(("qiskit.circuit", "Measure")),
+            StandardInstruction::Reset => Some(("qiskit.circuit", "Reset")),
+        }
     }
 }
 
@@ -2383,6 +2421,11 @@ impl Operation for StandardGate {
             Self::C3SX => None,
             Self::RC3X => None,
         }
+    }
+    
+    fn py_cls_name(&self) -> Option<(&str, &str)> {
+        let [module_path, class_name] = crate::imports::get_std_gate_import_path(*self);
+        Some((module_path, class_name))
     }
 }
 
