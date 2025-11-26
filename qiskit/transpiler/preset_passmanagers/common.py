@@ -529,7 +529,7 @@ def generate_translation_passmanager(
             # in basis_gates. The BasisTranslator will do the conversion if possible (and provide
             # a helpful error message otherwise).
             BasisTranslator(sel, extended_basis_gates, None),
-            # The next step is to resynthesize blocks of consecutive 1q-gates into ["h", "t", "tdg"].
+            # The next step is to resynthesize blocks of consecutive 1q-gates into Clifford+T.
             # Use Collect1qRuns and ConsolidateBlocks passes to replace such blocks by 1q "unitary"
             # gates.
             Collect1qRuns(),
@@ -555,7 +555,7 @@ def generate_translation_passmanager(
                 min_qubits=1,
                 target=None,
             ),
-            # Finally, we use BasisTranslator to translate ["h", "t", "tdg"] to the actually
+            # Finally, we use BasisTranslator to translate Clifford+T to the actually
             # specified set of basis gates.
             BasisTranslator(sel, basis_gates, target),
         ]
