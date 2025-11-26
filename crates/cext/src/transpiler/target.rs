@@ -995,6 +995,8 @@ pub unsafe extern "C" fn qk_target_op_get_index(
 /// @param target A pointer to the ``QkTarget``.
 /// @param index The index at which the gate is stored.
 ///
+/// @return The name of the operation associated with the provided index.
+///
 /// # Example
 /// ```c
 ///     QkTarget *target = qk_target_new(5);
@@ -1028,6 +1030,8 @@ pub unsafe extern "C" fn qk_target_op_name(target: *const Target, index: usize) 
 ///
 /// @param target A pointer to the ``QkTarget``.
 /// @param name A pointer to the name string which we will look up.
+///
+/// @return Whether the instruction is in the Target or not.
 ///
 /// # Example
 /// ```c
@@ -1068,6 +1072,9 @@ pub unsafe extern "C" fn qk_target_contains(target: *const Target, name: *const 
 /// @param target A pointer to the ``QkTarget``.
 /// @param index The index in which the gate is stored.
 ///
+/// @return The number of properties specified for the operation associated with
+/// that index.
+///
 /// # Example
 /// ```c
 ///     QkTarget *target = qk_target_new(5);
@@ -1099,6 +1106,7 @@ pub unsafe extern "C" fn qk_target_op_num_properties(target: *const Target, inde
 /// @param qargs A pointer to the array of ``uint32_t`` qubit indices to add the
 ///     check for, can be a null pointer to check for global properties.
 ///
+/// @return Whether the operation is compatible with the specified qargs or not.
 ///
 /// # Example
 /// ```c
@@ -1140,13 +1148,16 @@ pub unsafe extern "C" fn qk_target_op_has_qargs(
 }
 
 /// @ingroup QkTarget
-/// Retrieve the index at which some qargs are stored. Returns SIZE_MAX
+/// Retrieve the index at which some qargs are stored. Returns ``SIZE_MAX``
 /// if not found.
 ///
 /// @param target A pointer to the ``QkTarget``.
 /// @param op_idx The index at which the operation is stored.
 /// @param qargs A pointer to the array of ``uint32_t`` qubit indices to
 ///     check for, can be a null pointer to check for global properties.
+///
+/// @return The index of the qargs associated with the instruction at the
+/// specified `op_idx` index or ``SIZE_MAX`` if the qargs are not present.
 ///
 /// # Example
 /// ```c
