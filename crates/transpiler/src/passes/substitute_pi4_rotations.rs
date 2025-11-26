@@ -12,7 +12,7 @@
 
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
-use std::f64::consts::{FRAC_PI_8, PI};
+use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, FRAC_PI_8, PI};
 
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
@@ -25,20 +25,20 @@ const MINIMUM_TOL: f64 = 1e-12;
 static RZ_SUBSTITUTIONS: [(&[StandardGate], f64); 16] = [
     (&[], 0.0),
     (&[StandardGate::T], -FRAC_PI_8),
-    (&[StandardGate::S], -2.0 * FRAC_PI_8),
+    (&[StandardGate::S], -FRAC_PI_4),
     (&[StandardGate::S, StandardGate::T], -3.0 * FRAC_PI_8),
-    (&[StandardGate::Z], -4.0 * FRAC_PI_8),
+    (&[StandardGate::Z], -FRAC_PI_2),
     (&[StandardGate::Z, StandardGate::T], -5.0 * FRAC_PI_8),
-    (&[StandardGate::Sdg], -6.0 * FRAC_PI_8),
+    (&[StandardGate::Sdg], -3.0 * FRAC_PI_4),
     (&[StandardGate::Tdg], -7.0 * FRAC_PI_8),
     (&[], -PI),
-    (&[StandardGate::T], -9.0 * FRAC_PI_8),
-    (&[StandardGate::S], -10. * FRAC_PI_8),
-    (&[StandardGate::S, StandardGate::T], -11.0 * FRAC_PI_8),
-    (&[StandardGate::Z], -12.0 * FRAC_PI_8),
-    (&[StandardGate::Z, StandardGate::T], -13.0 * FRAC_PI_8),
-    (&[StandardGate::Sdg], -14.0 * FRAC_PI_8),
-    (&[StandardGate::Tdg], -15.0 * FRAC_PI_8),
+    (&[StandardGate::T], 7.0 * FRAC_PI_8),
+    (&[StandardGate::S], 3.0 * FRAC_PI_4),
+    (&[StandardGate::S, StandardGate::T], 5.0 * FRAC_PI_8),
+    (&[StandardGate::Z], FRAC_PI_2),
+    (&[StandardGate::Z, StandardGate::T], 3.0 * FRAC_PI_8),
+    (&[StandardGate::Sdg], FRAC_PI_4),
+    (&[StandardGate::Tdg], FRAC_PI_8),
 ];
 
 /// Table for RX(k * pi / 4) substitutions, with 0 <= k < 15
@@ -48,7 +48,7 @@ static RX_SUBSTITUTIONS: [(&[StandardGate], f64); 16] = [
         &[StandardGate::H, StandardGate::T, StandardGate::H],
         -FRAC_PI_8,
     ),
-    (&[StandardGate::SX], -2.0 * FRAC_PI_8),
+    (&[StandardGate::SX], -FRAC_PI_4),
     (
         &[
             StandardGate::SX,
@@ -58,7 +58,7 @@ static RX_SUBSTITUTIONS: [(&[StandardGate], f64); 16] = [
         ],
         -3.0 * FRAC_PI_8,
     ),
-    (&[StandardGate::X], -4.0 * FRAC_PI_8),
+    (&[StandardGate::X], -FRAC_PI_2),
     (
         &[
             StandardGate::X,
@@ -68,7 +68,7 @@ static RX_SUBSTITUTIONS: [(&[StandardGate], f64); 16] = [
         ],
         -5.0 * FRAC_PI_8,
     ),
-    (&[StandardGate::SXdg], -6.0 * FRAC_PI_8),
+    (&[StandardGate::SXdg], -3.0 * FRAC_PI_4),
     (
         &[StandardGate::H, StandardGate::Tdg, StandardGate::H],
         -7.0 * FRAC_PI_8,
@@ -76,9 +76,9 @@ static RX_SUBSTITUTIONS: [(&[StandardGate], f64); 16] = [
     (&[], -PI),
     (
         &[StandardGate::H, StandardGate::T, StandardGate::H],
-        -9.0 * FRAC_PI_8,
+        7.0 * FRAC_PI_8,
     ),
-    (&[StandardGate::SX], -10.0 * FRAC_PI_8),
+    (&[StandardGate::SX], 3.0 * FRAC_PI_4),
     (
         &[
             StandardGate::SX,
@@ -86,9 +86,9 @@ static RX_SUBSTITUTIONS: [(&[StandardGate], f64); 16] = [
             StandardGate::T,
             StandardGate::H,
         ],
-        -11.0 * FRAC_PI_8,
+        5.0 * FRAC_PI_8,
     ),
-    (&[StandardGate::X], -12.0 * FRAC_PI_8),
+    (&[StandardGate::X], FRAC_PI_2),
     (
         &[
             StandardGate::X,
@@ -96,12 +96,12 @@ static RX_SUBSTITUTIONS: [(&[StandardGate], f64); 16] = [
             StandardGate::T,
             StandardGate::H,
         ],
-        -13.0 * FRAC_PI_8,
+        3.0 * FRAC_PI_8,
     ),
-    (&[StandardGate::SXdg], -14.0 * FRAC_PI_8),
+    (&[StandardGate::SXdg], FRAC_PI_4),
     (
         &[StandardGate::H, StandardGate::Tdg, StandardGate::H],
-        -15.0 * FRAC_PI_8,
+        FRAC_PI_8,
     ),
 ];
 
@@ -122,7 +122,7 @@ static RY_SUBSTITUTIONS: [(&[StandardGate], f64); 16] = [
         ],
         -3.0 * FRAC_PI_8,
     ),
-    (&[StandardGate::Y], -4.0 * FRAC_PI_8),
+    (&[StandardGate::Y], -FRAC_PI_2),
     (
         &[
             StandardGate::Y,
@@ -140,7 +140,7 @@ static RY_SUBSTITUTIONS: [(&[StandardGate], f64); 16] = [
     (&[], -PI),
     (
         &[StandardGate::SX, StandardGate::T, StandardGate::SXdg],
-        -9.0 * FRAC_PI_8,
+        7.0 * FRAC_PI_8,
     ),
     (&[StandardGate::Z, StandardGate::H], -PI),
     (
@@ -150,9 +150,9 @@ static RY_SUBSTITUTIONS: [(&[StandardGate], f64); 16] = [
             StandardGate::S,
             StandardGate::SXdg,
         ],
-        -11.0 * FRAC_PI_8,
+        5.0 * FRAC_PI_8,
     ),
-    (&[StandardGate::Y], -12.0 * FRAC_PI_8),
+    (&[StandardGate::Y], FRAC_PI_2),
     (
         &[
             StandardGate::Y,
@@ -160,12 +160,12 @@ static RY_SUBSTITUTIONS: [(&[StandardGate], f64); 16] = [
             StandardGate::T,
             StandardGate::SXdg,
         ],
-        -13.0 * FRAC_PI_8,
+        3.0 * FRAC_PI_8,
     ),
     (&[StandardGate::H, StandardGate::Z], 0.0),
     (
         &[StandardGate::SX, StandardGate::Tdg, StandardGate::SXdg],
-        -15.0 * FRAC_PI_8,
+        FRAC_PI_8,
     ),
 ];
 
