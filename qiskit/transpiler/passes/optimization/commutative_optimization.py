@@ -27,11 +27,12 @@ class CommutativeOptimization(TransformationPass):
 
     The pass will:
 
-    * Cancel pairs of inverse gates.
-    * Cancels pairs of gates that are inverse up to a global phase (adjusting
-      the global phase accordingly).
-    * Combines different types of RZ-rotations into an RZ-gate.
-    * Combines different types of RX-rotations into an RX-gate.
+    * Cancel pairs of inverse gates, or pairs of gates that are
+      inverse up to a global phase (adjusting the global phase
+      accordingly).
+    * Attempt to merge consecutive gates, such as consecutive
+      RZ-gates, consecutive RX-gates, consecutive Pauli rotations,
+      and so on.
 
     This pass generalizes both :class:`.CommutativeCancellation` and
     :class:`.CommutativeInverseCancellation` transpiler passes.
@@ -40,9 +41,11 @@ class CommutativeOptimization(TransformationPass):
     def __init__(self, approximation_degree: float = 1.0, matrix_max_num_qubits: int = 0):
         """
         Args:
-            approximation_degree: Used in the tolerance computations.
-            max_qubits: Limits the number of qubits in matrix-based commutativity and
-                inverse checks.
+            approximation_degree: the threshold used in the the average gate fidelity
+                computation to decide whether pairs of gates can be considered as
+                canceling or commuting.
+            matrix_max_num_qubits: Upper-bound on the number of qubits for the matrix-based
+                commutativity and inverse checks.
         """
         super().__init__()
         self.commutation_checker = scc.cc
