@@ -25,7 +25,9 @@ import uuid
 import typing
 import warnings
 
+import re
 import numpy as np
+
 
 from qiskit import circuit as circuit_mod
 from qiskit.circuit import library, controlflow, CircuitInstruction, ControlFlowOp, IfElseOp
@@ -713,12 +715,40 @@ def _read_pauli_evolution_gate(file_obj, version, vectors):
             op_raw_data = common.data_from_binary(file_obj.read(op_elem.size), np.load)
             operator_list.append(SparsePauliOp.from_list(op_raw_data))
         except ValueError as e:
-            if "allow_pickle=False" in str(e):
+            if "allow_pickle" in str(e):
                 file_obj.seek(-op_elem.size, io.SEEK_CUR)
-                op_raw_data = common.data_from_binary(
-                    file_obj.read(op_elem.size), np.load, allow_pickle=True
+                # Read the format string for unpacking data
+                format_str_read = struct.unpack(f"{op_elem.size}s", file_obj.read(op_elem.size))[
+                    0
+                ].decode("utf-8")
+
+                # Unpack the data according to the format string
+                unpacked_data = struct.unpack(
+                    format_str_read, file_obj.read(struct.calcsize(format_str_read))
                 )
-                operator_list.append(SparseObservable.from_terms(op_raw_data))
+                pat = r"i(.*?)d"
+                coeff_dim = int(re.findall(pat, format_str_read)[0])
+                pat = r"d(.*?)i"
+                bitterm_dim = int(re.findall(pat, format_str_read)[0])
+                pat = r"i(.*?)i$"
+                inds_bounds_dim = re.findall(pat, format_str_read)[0].split("i")
+                inds_dim = int(inds_bounds_dim[1])
+
+                numq_read = unpacked_data[0]
+                coeff_read = np.empty((int(coeff_dim / 2)), dtype=np.complex128)
+                for ii in range(int(coeff_dim / 2)):
+                    coeff_read[ii] = complex(unpacked_data[2 * ii + 1], unpacked_data[2 * ii + 2])
+                bitterms_read = list(unpacked_data[coeff_dim + 1 : coeff_dim + 1 + bitterm_dim])
+                inds_read = list(
+                    unpacked_data[
+                        coeff_dim + 1 + bitterm_dim : coeff_dim + 1 + bitterm_dim + inds_dim
+                    ]
+                )
+                bounds_read = list(unpacked_data[coeff_dim + 1 + bitterm_dim + inds_dim :])
+                spop = SparseObservable.from_raw_parts(
+                    numq_read, coeff_read, bitterms_read, inds_read, bounds_read
+                )
+                operator_list.append(spop)
 
     if pauli_evolution_def.standalone_op:
         pauli_op = operator_list[0]
@@ -1086,10 +1116,27 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate, version):
         buffer.write(elem_data)
 
     def _write_elem_sparse(buffer, op):
-        elem_data = common.data_to_binary(np.array(op, dtype=object), np.save)
-        elem_metadata = struct.pack(formats.SPARSE_OBSERVABLE_OP_LIST_ELEM_PACK, len(elem_data))
+        bitterms = op.bit_terms
+        coeffs = op.coeffs
+        bounds = op.boundaries
+        inds = op.indices
+        numq = op.num_qubits
+
+        bin_data = []
+        bin_data.append(struct.pack("i", numq))
+        for coeff in coeffs:
+            bin_data.append(struct.pack("dd", coeff.real, coeff.imag))
+        bin_data.append(struct.pack(f"{len(bitterms)}i", *bitterms))
+        bin_data.append(struct.pack(f"{len(inds)}i", *inds))
+        bin_data.append(struct.pack(f"{len(bounds)}i", *bounds))
+        bin_data_comb = b"".join(bin_data)
+        format_str = f"=i{len(coeffs)*len(op)}d{len(bitterms)}i{len(inds)}i{len(bounds)}i"
+
+        bin_info = struct.pack(f"{len(format_str)}s", format_str.encode("utf-8"))
+        elem_metadata = struct.pack(formats.SPARSE_OBSERVABLE_OP_LIST_ELEM_PACK, len(format_str))
         buffer.write(elem_metadata)
-        buffer.write(elem_data)
+        buffer.write(bin_info)
+        buffer.write(bin_data_comb)
 
     pauli_data_buf = io.BytesIO()
 
