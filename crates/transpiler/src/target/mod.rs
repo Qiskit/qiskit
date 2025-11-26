@@ -1517,9 +1517,13 @@ impl Target {
         bounds: &[Option<[f64; 2]>],
     ) -> Result<(), TargetError> {
         let num_bounds = bounds.len();
-        let operation = self.operation_from_name(name);
+        let Some(operation) = self.operation_from_name(name) else {
+            return Err(TargetError::InvalidKey(format!(
+                "{name} is not an instruction in the target."
+            )));
+        };
         let num_params = match operation {
-            Some(TargetOperation::Normal(op)) => {
+            TargetOperation::Normal(op) => {
                 let params = op.params_view();
                 if params
                     .iter()
@@ -1532,11 +1536,7 @@ impl Target {
                 }
                 params.len()
             }
-            _ => {
-                return Err(TargetError::InvalidKey(format!(
-                    "{name} is not an instruction in the target."
-                )));
-            }
+            TargetOperation::Variadic(_) => 0,
         };
         if num_bounds != num_params {
             return Err(TargetError::InvalidKey(format!(
