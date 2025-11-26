@@ -8804,7 +8804,7 @@ type SortKeyType<'a> = (&'a [Qubit], &'a [Clbit]);
 #[cfg(all(test, not(miri)))]
 mod test {
     use crate::bit::{ClassicalRegister, QuantumRegister};
-    use crate::dag_circuit::{DAGCircuit, Wire};
+    use crate::dag_circuit::{BlocksMode, DAGCircuit, Wire};
     use crate::operations::{StandardGate, StandardInstruction};
     use crate::packed_instruction::{PackedInstruction, PackedOperation};
     use crate::{Clbit, Qubit};
@@ -9016,7 +9016,7 @@ mod test {
             #[cfg(feature = "cache_pygates")]
             None,
         )?;
-        let empty = dag.physical_empty_like_with_capacity(10, 0, 0, false)?;
+        let empty = dag.physical_empty_like_with_capacity(10, 0, 0, BlocksMode::Drop)?;
         assert_eq!(empty.name.as_deref(), Some("my dag"));
         assert_eq!(
             empty
