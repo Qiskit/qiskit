@@ -10,12 +10,13 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2};
+#[cfg(feature = "cache_pygates")]
+use std::sync::OnceLock;
+
+use numpy::{IntoPyArray, PyArray2, PyReadonlyArray1, PyReadonlyArray2};
 use pyo3::basic::CompareOp;
 use pyo3::exceptions::{PyDeprecationWarning, PyTypeError, PyValueError};
 use pyo3::prelude::*;
-#[cfg(feature = "cache_pygates")]
-use std::sync::OnceLock;
 
 use pyo3::IntoPyObjectExt;
 use pyo3::types::{PyBool, PyList, PyTuple, PyType};
@@ -26,8 +27,8 @@ use crate::imports::{CONTROLLED_GATE, GATE, INSTRUCTION, OPERATION, WARNINGS_WAR
 use crate::instruction::{Instruction, Parameters, create_py_op};
 use crate::operations::{
     ArrayType, BoxDuration, ControlFlow, ControlFlowInstruction, ControlFlowType, Operation,
-    OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate, StandardInstruction,
-    StandardInstructionType, UnitaryGate,
+    OperationRef, Param, PauliProductMeasurement, PyGate, PyInstruction, PyOperation, StandardGate,
+    StandardInstruction, StandardInstructionType, UnitaryGate,
 };
 use crate::packed_instruction::PackedOperation;
 use crate::parameter::parameter_expression::ParameterExpression;
@@ -734,7 +735,8 @@ impl<'a, 'py> FromPyObject<'a, 'py> for OperationFromPython {
         }
 
         // We need to check by name here to avoid a circular import during initial loading
-        if ob.getattr(intern!(py, "name"))?.extract::<String>()? == "unitary" {
+        let ob_name = ob.getattr(intern!(py, "name"))?.extract::<String>()?;
+        if ob_name == "unitary" {
             let params: SmallVec<[Param; 3]> = get_params()?.extract()?;
             if let Some(Param::Obj(data)) = params.first() {
                 let py_matrix: PyReadonlyArray2<Complex64> = data.extract(py)?;
@@ -770,6 +772,32 @@ impl<'a, 'py> FromPyObject<'a, 'py> for OperationFromPython {
                     });
                 };
             }
+        } else if ob_name == "pauli_product_measurement" {
+            let z = ob
+                .getattr(intern!(py, "_pauli_z"))?
+                .extract::<PyReadonlyArray1<bool>>()?
+                .as_slice()?
+                .to_vec();
+
+            let x = ob
+                .getattr(intern!(py, "_pauli_x"))?
+                .extract::<PyReadonlyArray1<bool>>()?
+                .as_slice()?
+                .to_vec();
+
+            let phase = ob.getattr(intern!(py, "_pauli_phase"))?.extract::<u8>()?;
+
+            let pauli_product_measurement = Box::new(PauliProductMeasurement {
+                z: z.to_owned(),
+                x: x.to_owned(),
+                neg: phase == 2, // phase is only 0 (represents 1) or 2 (represents -1)
+            });
+
+            return Ok(OperationFromPython {
+                operation: PackedOperation::from_ppm(pauli_product_measurement),
+                params: None,
+                label: extract_label()?,
+            });
         }
 
         if ob_type.is_subclass(GATE.get_bound(py))? {
@@ -879,7 +907,7 @@ pub fn extract_params(
                 StandardInstruction::Reset => None,
             }
         }
-        OperationRef::Unitary(_) => None,
+        OperationRef::Unitary(_) | OperationRef::PauliProductMeasurement(_) => None,
         OperationRef::Gate(_) | OperationRef::Instruction(_) | OperationRef::Operation(_) => {
             let params: SmallVec<[Param; 3]> = params.extract()?;
             (!params.is_empty()).then(|| Parameters::Params(params))

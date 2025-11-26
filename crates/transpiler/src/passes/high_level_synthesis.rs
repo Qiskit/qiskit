@@ -28,12 +28,13 @@ use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::CX_GATE;
 use qiskit_circuit::imports::{HLS_SYNTHESIZE_OP_USING_PLUGINS, QS_DECOMPOSITION, QUANTUM_CIRCUIT};
-use qiskit_circuit::operations::StandardGate;
-use qiskit_circuit::operations::{Operation, OperationRef};
-use qiskit_circuit::operations::{Param, radd_param};
+use qiskit_circuit::operations::{
+    Operation, OperationRef, Param, StandardGate, StandardInstruction, radd_param,
+};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{BlocksMode, Clbit, Qubit, VarsMode};
+use qiskit_synthesis::pauli_product_measurement::synthesize_ppm;
 use smallvec::SmallVec;
 
 use crate::TranspilerError;
@@ -417,7 +418,8 @@ fn all_instructions_supported(
                 if borrowed_data.use_physical_indices {
                     return Ok(false);
                 }
-                Ok(op_keys.all(|name| target.instruction_supported(name, &Qargs::Global)))
+                Ok(op_keys
+                    .all(|name| target.instruction_supported(name, &Qargs::Global, &[], false)))
             } else {
                 // If we do not have the target, we check whether every operation
                 // in op_names is inside the basis gates.
@@ -443,9 +445,9 @@ fn instruction_supported(
                 if borrowed_data.use_physical_indices {
                     let physical_qubits: Qargs =
                         qubits.iter().map(|q| PhysicalQubit(q.0)).collect();
-                    target.instruction_supported(name, &physical_qubits)
+                    target.instruction_supported(name, &physical_qubits, &[], false)
                 } else {
-                    target.instruction_supported(name, &Qargs::Global)
+                    target.instruction_supported(name, &Qargs::Global, &[], false)
                 }
             } else {
                 borrowed_data.device_insts.contains(name)
@@ -823,7 +825,14 @@ fn extract_definition(
         OperationRef::StandardGate(g) => Ok(g.definition(params)),
         OperationRef::Gate(g) => Ok(g.definition()),
         OperationRef::Instruction(i) => Ok(i.definition()),
-        _ => Ok(None),
+        OperationRef::PauliProductMeasurement(ppm) => Ok(Some(synthesize_ppm(ppm)?)),
+        OperationRef::StandardInstruction(i) => match i {
+            StandardInstruction::Measure
+            | StandardInstruction::Reset
+            | StandardInstruction::Barrier(_)
+            | StandardInstruction::Delay(_) => Ok(None),
+        },
+        OperationRef::ControlFlow(_) | OperationRef::Operation(_) => Ok(None),
     }
 }
 
@@ -970,6 +979,7 @@ fn synthesize_op_using_plugins(
         OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
         OperationRef::Operation(operation) => operation.operation.clone_ref(py),
         OperationRef::Unitary(unitary) => unitary.create_py_op(py, label)?.into_any(),
+        OperationRef::PauliProductMeasurement(ppm) => ppm.create_py_op(py, label)?.into_any(),
     };
 
     let res = HLS_SYNTHESIZE_OP_USING_PLUGINS

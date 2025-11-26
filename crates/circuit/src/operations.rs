@@ -32,9 +32,7 @@ use smallvec::{SmallVec, smallvec};
 use crate::bit::{ClassicalRegister, ShareableClbit};
 use crate::classical::expr;
 use crate::duration::Duration;
-use numpy::PyArray2;
-use numpy::PyReadonlyArray2;
-use numpy::{IntoPyArray, ToPyArray};
+use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2, ToPyArray};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyList, PyTuple};
@@ -275,6 +273,7 @@ pub enum OperationRef<'a> {
     Instruction(&'a PyInstruction),
     Operation(&'a PyOperation),
     Unitary(&'a UnitaryGate),
+    PauliProductMeasurement(&'a PauliProductMeasurement),
 }
 
 impl Operation for OperationRef<'_> {
@@ -288,6 +287,7 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.name(),
             Self::Operation(operation) => operation.name(),
             Self::Unitary(unitary) => unitary.name(),
+            Self::PauliProductMeasurement(ppm) => ppm.name(),
         }
     }
     #[inline]
@@ -300,6 +300,7 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.num_qubits(),
             Self::Operation(operation) => operation.num_qubits(),
             Self::Unitary(unitary) => unitary.num_qubits(),
+            Self::PauliProductMeasurement(ppm) => ppm.num_qubits(),
         }
     }
     #[inline]
@@ -312,6 +313,7 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.num_clbits(),
             Self::Operation(operation) => operation.num_clbits(),
             Self::Unitary(unitary) => unitary.num_clbits(),
+            Self::PauliProductMeasurement(ppm) => ppm.num_clbits(),
         }
     }
     #[inline]
@@ -324,6 +326,7 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.num_params(),
             Self::Operation(operation) => operation.num_params(),
             Self::Unitary(unitary) => unitary.num_params(),
+            Self::PauliProductMeasurement(ppm) => ppm.num_params(),
         }
     }
     #[inline]
@@ -336,6 +339,7 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.directive(),
             Self::Operation(operation) => operation.directive(),
             Self::Unitary(unitary) => unitary.directive(),
+            Self::PauliProductMeasurement(ppm) => ppm.directive(),
         }
     }
 }
@@ -3150,3 +3154,62 @@ impl UnitaryGate {
         }
     }
 }
+
+/// This class represents a PauliProductMeasurement instruction.
+#[derive(Clone, Debug)]
+#[repr(align(8))]
+pub struct PauliProductMeasurement {
+    /// The z-component of the pauli.
+    pub z: Vec<bool>,
+    /// The x-component of the pauli.
+    pub x: Vec<bool>,
+    /// For a PauliProductMeasurement instruction, the phase of the Pauli can be either 0 or 2,
+    /// where the value of 2 corresponds to a sign of `-1`.
+    pub neg: bool,
+}
+
+impl Operation for PauliProductMeasurement {
+    fn name(&self) -> &str {
+        "pauli_product_measurement"
+    }
+    fn num_qubits(&self) -> u32 {
+        self.z.len() as u32
+    }
+    fn num_clbits(&self) -> u32 {
+        1
+    }
+    fn num_params(&self) -> u32 {
+        0
+    }
+    fn directive(&self) -> bool {
+        false
+    }
+}
+
+impl PauliProductMeasurement {
+    pub fn create_py_op(&self, py: Python, label: Option<&str>) -> PyResult<Py<PyAny>> {
+        let z = self.z.to_pyarray(py);
+        let x = self.x.to_pyarray(py);
+
+        let phase = if self.neg { 2 } else { 0 };
+
+        let py_label = if let Some(label) = label {
+            label.into_py_any(py)?
+        } else {
+            py.None()
+        };
+
+        let gate = imports::PAULI_PRODUCT_MEASUREMENT
+            .get_bound(py)
+            .call_method1(intern!(py, "_from_pauli_data"), (z, x, phase, py_label))?;
+        Ok(gate.unbind())
+    }
+}
+
+impl PartialEq for PauliProductMeasurement {
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x && self.z == other.z && self.neg == other.neg
+    }
+}
+
+impl Eq for PauliProductMeasurement {}

@@ -120,7 +120,7 @@ pub fn run_basis_translator(
             &mut qargs_local_source_basis,
             min_qubits,
             &qargs_with_non_global_operation,
-            |q| q,
+            None,
         );
     } else {
         basic_instrs = ["measure", "reset", "barrier", "snapshot", "delay", "store"]
@@ -249,8 +249,9 @@ fn extract_basis_target(
     qargs_local_source_basis: &mut AhashIndexMap<PhysicalQargs, AhashIndexSet<GateIdentifier>>,
     min_qubits: usize,
     qargs_with_non_global_operation: &AhashIndexMap<Qargs, AhashIndexSet<&str>>,
-    mut qarg_mapping: impl FnMut(Qubit) -> Qubit,
+    qarg_mapping: Option<&HashMap<Qubit, Qubit>>,
 ) {
+    let qarg_mapping = |q: &Qubit| qarg_mapping.map(|map| map[q]).unwrap_or(*q);
     for (node, node_obj) in dag.op_nodes(true) {
         let qargs: &[Qubit] = dag.get_qargs(node_obj.qubits);
         if qargs.len() < min_qubits {
@@ -267,7 +268,7 @@ fn extract_basis_target(
         // and 1q operations in the same manner)
         let physical_qargs: PhysicalQargs = qargs
             .iter()
-            .map(|x| PhysicalQubit(qarg_mapping(*x).0))
+            .map(|x| PhysicalQubit(qarg_mapping(x).0))
             .collect();
         let physical_qargs_as_set: AhashIndexSet<PhysicalQubit> =
             AhashIndexSet::from_iter(physical_qargs.iter().copied());
@@ -310,16 +311,15 @@ fn extract_basis_target(
                     .iter()
                     .copied()
                     .zip((0..(block.num_qubits() as u32)).map(Qubit))
-                    .map(|(k, v)| (v, qarg_mapping(k)))
+                    .map(|(k, v)| (v, qarg_mapping(&k)))
                     .collect();
-                let qarg_mapping = |q: Qubit| -> Qubit { qarg_mapping[&q] };
                 extract_basis_target(
                     block,
                     source_basis,
                     qargs_local_source_basis,
                     min_qubits,
                     qargs_with_non_global_operation,
-                    qarg_mapping,
+                    Some(&qarg_mapping),
                 );
             }
         }
@@ -537,6 +537,7 @@ fn replace_node(
                 OperationRef::StandardGate(gate) => gate.into(),
                 OperationRef::StandardInstruction(instruction) => instruction.into(),
                 OperationRef::Unitary(unitary) => unitary.clone().into(),
+                OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
             };
             let new_params: Option<Parameters<_>> = inner_node.params.as_deref().cloned();
             dag.apply_operation_back(
@@ -610,6 +611,7 @@ fn replace_node(
                 OperationRef::StandardGate(gate) => gate.into(),
                 OperationRef::StandardInstruction(instruction) => instruction.into(),
                 OperationRef::Unitary(unitary) => unitary.clone().into(),
+                OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
             };
 
             let mut new_params: Option<Parameters<_>> = inner_node.params.as_deref().cloned();

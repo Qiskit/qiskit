@@ -13,13 +13,15 @@
 use crate::circuit_data::CircuitData;
 use crate::imports::{
     BARRIER, BOX_OP, BREAK_LOOP_OP, CONTINUE_LOOP_OP, DELAY, FOR_LOOP_OP, IF_ELSE_OP, MEASURE,
-    RESET, SWITCH_CASE_OP, UNITARY_GATE, WHILE_LOOP_OP, get_std_gate_class,
+    PAULI_PRODUCT_MEASUREMENT, RESET, SWITCH_CASE_OP, UNITARY_GATE, WHILE_LOOP_OP,
+    get_std_gate_class,
 };
 use crate::instruction::Parameters;
 use crate::interner::Interned;
 use crate::operations::{
-    ControlFlow, ControlFlowInstruction, Operation, OperationRef, Param, PyGate, PyInstruction,
-    PyOperation, PythonOperation, StandardGate, StandardInstruction, UnitaryGate,
+    ControlFlow, ControlFlowInstruction, Operation, OperationRef, Param, PauliProductMeasurement,
+    PyGate, PyInstruction, PyOperation, PythonOperation, StandardGate, StandardInstruction,
+    UnitaryGate,
 };
 use crate::{Block, Clbit, Qubit};
 use nalgebra::Matrix2;
@@ -44,14 +46,15 @@ enum PackedOperationType {
     PyInstruction = 3,
     PyOperation = 4,
     UnitaryGate = 5,
-    ControlFlow = 6,
+    PauliProductMeasurement = 6,
+    ControlFlow = 7,
 }
 
 unsafe impl ::bytemuck::CheckedBitPattern for PackedOperationType {
     type Bits = u8;
 
     fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
-        *bits < 7
+        *bits < 8
     }
 }
 unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
@@ -68,6 +71,7 @@ unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
 ///     Instruction(Box<PyInstruction>),
 ///     Operation(Box<PyOperation>),
 ///     UnitaryGate(Box<UnitaryGate>),
+///     PauliProductMeasurement(Box<PauliProductMeasurement>),
 ///     ControlFlow(Box<ControlFlowInstruction>),
 /// }
 /// ```
@@ -256,7 +260,8 @@ mod standard_instruction {
 /// A private module to encapsulate the encoding of pointer types.
 mod pointer {
     use crate::operations::{
-        ControlFlowInstruction, PyGate, PyInstruction, PyOperation, UnitaryGate,
+        ControlFlowInstruction, PauliProductMeasurement, PyGate, PyInstruction, PyOperation,
+        UnitaryGate,
     };
     use crate::packed_instruction::{PackedOperation, PackedOperationType};
     use std::ptr::NonNull;
@@ -340,6 +345,10 @@ mod pointer {
     impl_packable_pointer!(PyInstruction, PackedOperationType::PyInstruction);
     impl_packable_pointer!(PyOperation, PackedOperationType::PyOperation);
     impl_packable_pointer!(UnitaryGate, PackedOperationType::UnitaryGate);
+    impl_packable_pointer!(
+        PauliProductMeasurement,
+        PackedOperationType::PauliProductMeasurement
+    );
     impl_packable_pointer!(ControlFlowInstruction, PackedOperationType::ControlFlow);
 }
 
@@ -412,6 +421,9 @@ impl PackedOperation {
             }
             PackedOperationType::PyOperation => OperationRef::Operation(self.try_into().unwrap()),
             PackedOperationType::UnitaryGate => OperationRef::Unitary(self.try_into().unwrap()),
+            PackedOperationType::PauliProductMeasurement => {
+                OperationRef::PauliProductMeasurement(self.try_into().unwrap())
+            }
         }
     }
 
@@ -456,6 +468,12 @@ impl PackedOperation {
         control_flow.into()
     }
 
+    /// Construct a new `PackedOperation` from an owned heap-allocated `PauliProductMeasurement`.
+    #[inline]
+    pub fn from_ppm(ppm: Box<PauliProductMeasurement>) -> Self {
+        ppm.into()
+    }
+
     /// Check equality of the operation, including Python-space checks, if appropriate.
     pub fn py_eq(&self, py: Python, other: &PackedOperation) -> PyResult<bool> {
         match (self.view(), other.view()) {
@@ -478,6 +496,10 @@ impl PackedOperation {
                 left.operation.bind(py).eq(&right.operation)
             }
             (OperationRef::Unitary(left), OperationRef::Unitary(right)) => Ok(left == right),
+            (
+                OperationRef::PauliProductMeasurement(left),
+                OperationRef::PauliProductMeasurement(right),
+            ) => Ok(left == right),
             _ => Ok(false),
         }
     }
@@ -550,6 +572,12 @@ impl PackedOperation {
                     .cast::<PyType>()?
                     .is_subclass(py_type);
             }
+            OperationRef::PauliProductMeasurement(_) => {
+                return PAULI_PRODUCT_MEASUREMENT
+                    .get_bound(py)
+                    .cast::<PyType>()?
+                    .is_subclass(py_type);
+            }
         };
         py_op.is_instance(py_type)
     }
@@ -566,6 +594,7 @@ impl Operation for PackedOperation {
             OperationRef::Instruction(instruction) => instruction.name(),
             OperationRef::Operation(operation) => operation.name(),
             OperationRef::Unitary(unitary) => unitary.name(),
+            OperationRef::PauliProductMeasurement(ppm) => ppm.name(),
         };
         // SAFETY: all of the inner parts of the view are owned by `self`, so it's valid for us to
         // forcibly reborrowing up to our own lifetime. We avoid using `<OperationRef as Operation>`
@@ -613,6 +642,7 @@ impl Clone for PackedOperation {
                 Self::from_operation(Box::new(operation.to_owned()))
             }
             OperationRef::Unitary(unitary) => Self::from_unitary(Box::new(unitary.clone())),
+            OperationRef::PauliProductMeasurement(ppm) => Self::from_ppm(Box::new(ppm.clone())),
         }
     }
 }
@@ -626,6 +656,9 @@ impl Drop for PackedOperation {
             PackedOperationType::PyInstruction => PyInstruction::drop_packed(self),
             PackedOperationType::PyOperation => PyOperation::drop_packed(self),
             PackedOperationType::UnitaryGate => UnitaryGate::drop_packed(self),
+            PackedOperationType::PauliProductMeasurement => {
+                PauliProductMeasurement::drop_packed(self)
+            }
             PackedOperationType::ControlFlow => ControlFlowInstruction::drop_packed(self),
         }
     }
@@ -740,15 +773,10 @@ impl PackedInstruction {
 
     /// Does this instruction contain any compile-time symbolic `ParameterExpression`s?
     pub fn is_parameterized(&self) -> bool {
-        self.params
-            .as_deref()
-            .and_then(|p| match p {
-                Parameters::Params(p) => {
-                    Some(p.iter().any(|x| matches!(x, Param::ParameterExpression(_))))
-                }
-                _ => None,
-            })
-            .unwrap_or(false)
+        self.params.as_deref().is_some_and(|p| match p {
+            Parameters::Params(p) => p.iter().any(|x| matches!(x, Param::ParameterExpression(_))),
+            Parameters::Blocks(_) => false,
+        })
     }
 
     pub fn py_deepcopy_inplace<'py>(

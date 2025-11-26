@@ -16,7 +16,7 @@ use pyo3::prelude::*;
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::Qubit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::operations::{Operation, Param};
+use qiskit_circuit::operations::Operation;
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use rustworkx_core::petgraph::prelude::NodeIndex;
 
@@ -41,26 +41,19 @@ pub fn gates_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<
             .unwrap()
             .unwrap_operation();
         let qargs_mapped: Qargs = qargs.iter().map(|q| wire_map[q]).collect();
-        if !target.instruction_supported(gate.op.name(), &qargs_mapped) {
+        // Skip parameter checking if the gate is control flow.
+        if !target.instruction_supported(
+            gate.op.name(),
+            &qargs_mapped,
+            gate.op
+                .try_control_flow()
+                .is_none()
+                .then_some(gate.params_view())
+                .unwrap_or_default(),
+            !gate.is_parameterized() && gate.op.try_control_flow().is_none(),
+        ) {
             return Ok(true);
         }
-        if target.has_angle_bounds()
-            && target.gate_has_angle_bounds(gate.op.name())
-            && !gate.is_parameterized()
-        {
-            let params: Vec<f64> = gate
-                .params_view()
-                .iter()
-                .map(|x| {
-                    let Param::Float(val) = x else { unreachable!() };
-                    *val
-                })
-                .collect();
-            if !target.gate_supported_angle_bound(gate.op.name(), &params) {
-                return Ok(true);
-            }
-        }
-
         if let Some(control_flow) = circuit.try_view_control_flow(gate_node) {
             for block in control_flow.blocks() {
                 let block_qubits = (0..block.num_qubits()).map(Qubit::new);

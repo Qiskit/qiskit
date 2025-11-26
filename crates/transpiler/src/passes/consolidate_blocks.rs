@@ -41,7 +41,7 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::SmallVec;
 
 use crate::passes::unitary_synthesis::{PARAM_SET, TWO_QUBIT_BASIS_SET};
-use crate::target::Target;
+use crate::target::{Qargs, Target};
 use qiskit_circuit::PhysicalQubit;
 
 #[allow(clippy::large_enum_variant)]
@@ -140,7 +140,10 @@ fn is_supported(
     qargs: &[PhysicalQubit],
 ) -> bool {
     match target {
-        Some(target) => target.instruction_supported(name, qargs),
+        Some(target) => {
+            let physical_qargs: Qargs = qargs.iter().map(|bit| PhysicalQubit(bit.0)).collect();
+            target.instruction_supported(name, &physical_qargs, &[], false)
+        }
         None => match basis_gates {
             Some(basis_gates) => basis_gates.contains(name),
             None => true,
