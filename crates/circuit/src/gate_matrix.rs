@@ -516,3 +516,19 @@ pub fn xx_plus_yy_gate(theta: f64, beta: f64) -> GateArray2Q {
         [C_ZERO, C_ZERO, C_ZERO, C_ONE],
     ]
 }
+
+pub fn rv_gate(v_x: f64, v_y: f64, v_z: f64) -> GateArray1Q {
+    let angle = ((v_x * v_x) + (v_y * v_y) + (v_z * v_z)).sqrt();
+    if angle == 0. {
+        return ONE_QUBIT_IDENTITY;
+    }
+    let n_x = v_x / angle;
+    let n_y = v_y / angle;
+    let n_z = v_z / angle;
+    let sin = (angle / 2.).sin();
+    let cos = (angle / 2.).cos();
+    [
+        [cos - IM * n_z * sin, (-n_y - IM * n_x) * sin],
+        [(n_y - IM * n_x) * sin, cos + IM * n_z * sin],
+    ]
+}
