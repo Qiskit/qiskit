@@ -1382,12 +1382,14 @@ impl Target {
                     return false;
                 }
 
-                for (index, params) in parameters.iter().enumerate() {
-                    let obj_at_index = &obj_params[index];
-                    let matching_params = match (obj_at_index, params) {
+                for (params, orig_params) in parameters.iter().zip(obj_params) {
+                    let matching_params = match (orig_params, params) {
                         (Param::Float(obj_f), Param::Float(param_f)) => obj_f == param_f,
                         (Param::ParameterExpression(_), _) => true,
-                        _ => Python::attach(|py| python_compare(py, params, &obj_params[index]))
+                        (Param::Float(obj_f), Param::ParameterExpression(expr)) => {
+                            expr.try_to_value(true).is_ok_and(|value| value.eq(obj_f))
+                        }
+                        _ => Python::attach(|py| python_compare(py, params, orig_params))
                             .expect("Error comparing Python parameters."),
                     };
 
