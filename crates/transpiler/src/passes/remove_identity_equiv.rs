@@ -41,13 +41,13 @@ const MINIMUM_TOL: f64 = 1e-12;
 ///
 /// * `(true, update to the global phase)`` if the operation can be removed.
 /// * `(false, 0.)` if the operation cannot be removed.
-pub fn can_remove(tr_over_dim: Complex64, dim: f64, error: f64) -> (bool, f64) {
+pub fn can_remove(tr_over_dim: Complex64, dim: f64, error: f64) -> Option<f64> {
     let f_pro = tr_over_dim.abs().powi(2);
     let gate_fidelity = (dim * f_pro + 1.) / (dim + 1.);
     if (1. - gate_fidelity).abs() < error {
-        (true, tr_over_dim.arg())
+        Some(tr_over_dim.arg())
     } else {
-        (false, 0.)
+        None
     }
 }
 
@@ -71,13 +71,13 @@ pub fn is_identity_equiv<F>(
     matrix_max_num_qubits: Option<u32>,
     matrix_from_definition: bool,
     error_cutoff_fn: F,
-) -> PyResult<(bool, f64)>
+) -> PyResult<Option<f64>>
 where
     F: Fn(&PackedInstruction) -> f64,
 {
     if inst.is_parameterized() {
         // Skip parameterized gates
-        return Ok((false, 0.));
+        return Ok(None);
     }
 
     let view = inst.op.view();
@@ -85,15 +85,15 @@ where
     if let OperationRef::StandardGate(gate) = view {
         let (tr_over_dim, dim) = match gate {
             StandardGate::I => {
-                return Ok((true, 0.));
+                return Ok(Some(0.));
             }
             StandardGate::GlobalPhase => {
                 if let Param::Float(angle) = inst.params_view()[0] {
-                    return Ok((true, angle));
+                    return Ok(Some(angle));
                 } else {
                     // We cannot get here since we skip parameterized gates,
                     // but in theory we could return Ok((true, param)) here.
-                    return Ok((false, 0.));
+                    return Ok(None);
                 }
             }
             StandardGate::RX
@@ -116,7 +116,7 @@ where
                     );
                     (tr_over_dim, dim)
                 } else {
-                    return Ok((false, 0.));
+                    return Ok(None);
                 }
             }
             StandardGate::H
@@ -147,7 +147,7 @@ where
             | StandardGate::C3X
             | StandardGate::C3SX
             | StandardGate::RC3X => {
-                return Ok((false, 0.));
+                return Ok(None);
             }
             _ => {
                 // The remaining standard gates are R, U, U2, U3, CU, CU3, XXMinusYY and XXPlusYY.
@@ -158,7 +158,7 @@ where
                     let tr_over_dim = matrix.diag().iter().sum::<Complex64>() / dim;
                     (tr_over_dim, dim)
                 } else {
-                    return Ok((false, 0.));
+                    return Ok(None);
                 }
             }
         };
@@ -194,7 +194,7 @@ where
         return Ok(can_remove(tr_over_dim, dim, error_cutoff_fn(inst)));
     }
 
-    Ok((false, 0.))
+    Ok(None)
 }
 
 #[pyfunction]
@@ -251,8 +251,7 @@ pub fn run_remove_identity_equiv(
     };
 
     for (op_node, inst) in dag.op_nodes(false) {
-        let (can_be_removed, phase_update) = is_identity_equiv(inst, None, true, get_error_cutoff)?;
-        if can_be_removed {
+        if let Some(phase_update) = is_identity_equiv(inst, None, true, get_error_cutoff)? {
             remove_list.push(op_node);
             global_phase_update += phase_update;
         }

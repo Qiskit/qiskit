@@ -294,14 +294,12 @@ fn try_merge(
             let params = Some(Box::new(smallvec![merged_param]));
             let merged_instruction =
                 PackedInstruction::from_standard_gate(gate1, params, inst1.qubits);
-            let (can_be_removed, phase_update) = is_identity_equiv(
+            if let Some(phase_update) = is_identity_equiv(
                 &merged_instruction,
                 Some(matrix_max_num_qubits),
                 true,
                 error_cutoff_fn,
-            )?;
-
-            if can_be_removed {
+            )? {
                 return Ok((true, None, phase_update));
             } else {
                 return Ok((true, Some(merged_instruction), 0.));
@@ -338,13 +336,12 @@ fn try_merge(
             })?;
 
             if let Some(merged_instruction) = merged_instruction {
-                let (can_be_removed, phase_update) = is_identity_equiv(
+                if let Some(phase_update) = is_identity_equiv(
                     &merged_instruction,
                     Some(matrix_max_num_qubits),
                     true,
                     error_cutoff_fn,
-                )?;
-                if can_be_removed {
+                )? {
                     return Ok((true, None, phase_update));
                 } else {
                     return Ok((true, Some(merged_instruction), 0.));
@@ -378,8 +375,7 @@ fn try_merge(
             let dim = product_mat.shape()[0] as f64;
             let tr_over_dim = product_mat.diag().iter().sum::<Complex64>() / dim;
 
-            let (can_be_removed, phase_update) = can_remove(tr_over_dim, dim, tol);
-            if can_be_removed {
+            if let Some(phase_update) = can_remove(tr_over_dim, dim, tol) {
                 return Ok((true, None, phase_update));
             }
         }
@@ -431,9 +427,9 @@ pub fn run_commutative_optimization(
         let node_index1 = node_indices[idx1];
         let instr1 = dag[node_index1].unwrap_operation();
 
-        let (can_be_removed, phase_update) =
-            is_identity_equiv(instr1, Some(matrix_max_num_qubits), true, error_cutoff_fn)?;
-        if can_be_removed {
+        if let Some(phase_update) =
+            is_identity_equiv(instr1, Some(matrix_max_num_qubits), true, error_cutoff_fn)?
+        {
             node_actions[idx1] = NodeAction::Drop;
             new_global_phase = radd_param(new_global_phase, Param::Float(phase_update));
             modified = true;
