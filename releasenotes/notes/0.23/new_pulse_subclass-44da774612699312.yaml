@@ -20,7 +20,7 @@ upgrade:
     a deserializer that isn't able to handle QPY version 6. This change was
     necessary to support the introduction of :class:`~qiskit.pulse.library.ScalableSymbolicPulse`
     which was handled by adding a `class_name_size` attribute to the header
-    of dumped :class:`~qiskit.pulse.library.SymbolicPulse` instances.
+    of dumped :class:`~qiskit.pulse.library.SymbolicPulse` objects.
   - |
     The hashing option for :class:`~qiskit.pulse.library.SymbolicPulse` was removed
     to better reflect their mutable nature (via parameter assignment).

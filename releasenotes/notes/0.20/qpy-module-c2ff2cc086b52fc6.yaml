@@ -10,5 +10,5 @@ features:
     a future release). This new module was added in the interest of the future
     direction of the QPY file format, which in future versions will support
     representing :mod:`~qiskit.pulse` :class:`~.Schedule` and
-    :class:`~.ScheduleBlock` instances in addition to the
-    :class:`~.QuantumCircuit` instances it supports today.
+    :class:`~.ScheduleBlock` objects in addition to the
+    :class:`~.QuantumCircuit` objects it supports today.

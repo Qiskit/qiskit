@@ -45,4 +45,4 @@ deprecations:
     future release. Since the removal of the ``BaseBackend`` class these
     arguments don't have any effect as no backend supports execution with a
     :class:`~.Qobj` object directly and instead only work with
-    :class:`~.QuantumCircuit` instances directly.
+    :class:`~.QuantumCircuit` objects directly.

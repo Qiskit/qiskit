@@ -3,7 +3,7 @@ deprecations:
   - |
     The ``qiskit.pulse.schedule.ParameterizedSchedule`` class has been
     deprecated and will be removed in a future release. Instead you can
-    directly parameterize pulse :class:`~qiskit.pulse.Schedule` instances with
+    directly parameterize pulse :class:`~qiskit.pulse.Schedule` objects with
     a :class:`~qiskit.circuit.Parameter` object, for example::
 
       from qiskit.circuit import Parameter

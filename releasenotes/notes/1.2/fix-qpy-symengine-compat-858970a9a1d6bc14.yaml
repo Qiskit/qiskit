@@ -36,7 +36,7 @@ issues:
     including Qiskit 1.2.4.  The criteria are:
 
     * the :class:`.QuantumCircuit` or :class:`.ScheduleBlock` to be dumped
-      contained unbound :class:`.ParameterExpression` instances,
+      contained unbound :class:`.ParameterExpression` objects,
     * the installed version of ``symengine`` was in the 0.9 series (which was the
       most recent release during the support window of Qiskit 0.45),
     * the ``use_symengine=True`` flag was set (which was *not* the default).
@@ -54,7 +54,7 @@ upgrade:
     have been pre-emptively capped at < 0.14.0 (which is expected to be the next
     minor version, as of this release of Qiskit).  This has been done to protect
     against a potential incompatibility in :mod:`.qpy` when serializing
-    :class:`.ParameterExpression` instances. The serialization used in
+    :class:`.ParameterExpression` objects. The serialization used in
     :ref:`qpy_format` versions 10, 11, and 12 for :class:`.ParameterExpression`
     objects is tied to the symengine version used to generate it, and there is the potential
     for a future symengine release to not be compatible. This upper version cap is to prevent

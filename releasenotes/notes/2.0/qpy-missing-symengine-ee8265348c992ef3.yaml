@@ -25,7 +25,7 @@ upgrade_qpy:
 
     This change was necessary as QPY versions 10 through 12 requires either
     the sympy and symengine libraries to generate a serialization for
-    :class:`.ParameterExpression` instances, but in Qiskit 2.x neither library
+    :class:`.ParameterExpression` objects, but in Qiskit 2.x neither library
     is required for the :class:`.ParameterExpression` object.
 upgrade_circuits:
   - |

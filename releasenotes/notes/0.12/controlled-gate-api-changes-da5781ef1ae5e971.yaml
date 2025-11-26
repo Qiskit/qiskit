@@ -2,7 +2,7 @@
 upgrade:
   - |
     The value of the ``base_gate`` property of
-    :class:`qiskit.circuit.ControlledGate` instances has been changed from the
+    :class:`qiskit.circuit.ControlledGate` objects has been changed from the
     class of the base gate to an instance of the class of the base gate.
   - |
     The ``base_gate_name`` property of :class:`qiskit.circuit.ControlledGate`

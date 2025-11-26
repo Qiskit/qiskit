@@ -10,7 +10,7 @@ features:
     corruption of the internal equivalence graph.
 upgrade:
   - |
-    :class:`~.EquivalenceLibrary` instances that are initialized with the ``base``
+    :class:`~.EquivalenceLibrary` objects that are initialized with the ``base``
     attribute will no long have a shared reference with the
     :class:`~.EquivalenceLibrary` passed in. In earlier releases if you mutated
     ``base`` after it was used to create a new :class:`~.EquivalenceLibrary`

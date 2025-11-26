@@ -20,8 +20,8 @@ fixes:
     The :meth:`.Operator.from_circuit` constructor method has been updated
     so that it can handle the layout output from :func:`~.transpile` and
     correctly reverse the qubit permutation caused by layout in all cases.
-    Previously, if your transpiled circuit used loose :class:`~.Qubit` instances,
-    multiple :class:`~.QuantumRegister` instances, or a single
+    Previously, if your transpiled circuit used loose :class:`~.Qubit` objects,
+    multiple :class:`~.QuantumRegister` objects, or a single
     :class:`~.QuantumRegister` with a name other than ``"q"`` the constructor
     would have failed to create an :class:`~.Operator` from the circuit.
     Fixed `#8800 <https://github.com/Qiskit/qiskit-terra/issues/8800>`__.

@@ -25,7 +25,7 @@ features:
 fixes:
   - |
     Fixed an issue where running the ``==`` operator between two
-    :class:`~.SparsePauliOp` instances would raise an error when the two operators
+    :class:`~.SparsePauliOp` objects would raise an error when the two operators
     had different numbers of coefficients. For example::
 
         op = SparsePauliOp.from_list([("X", 1), ("Y", 1)])

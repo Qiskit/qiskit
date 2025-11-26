@@ -83,8 +83,8 @@ features:
   - |
     Added a new method, :meth:`~qiskit.circuit.QuantumCircuit.get_instructions`,
     was added to the :class:`~qiskit.circuit.QuantumCircuit` class. This method
-    is used to return all :class:`~qiskit.circuit.Instruction` instances in the
+    is used to return all :class:`~qiskit.circuit.Instruction` objects in the
     circuit which have a :attr:`~qiskit.circuit.Instruction.name` that matches
     the provided ``name`` argument along with its associated ``qargs`` and
     ``cargs`` lists of :class:`~qiskit.circuit.Qubit` and
-    :class:`~qiskit.circuit.Clbit` instances.
+    :class:`~qiskit.circuit.Clbit` objects.

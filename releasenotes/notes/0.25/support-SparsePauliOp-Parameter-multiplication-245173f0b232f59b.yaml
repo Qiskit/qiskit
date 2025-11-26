@@ -1,7 +1,7 @@
 features:
   - |
-    Adds support for multiplication of :class:`.SparsePauliOp` instances
-    with :class:`.Parameter` instances by using the * operator, for example::
+    Adds support for multiplication of :class:`.SparsePauliOp` objects
+    with :class:`.Parameter` objects by using the * operator, for example::
 
       from qiskit.circuit import Parameter
       from qiskit.quantum_info import SparsePauliOp

@@ -13,7 +13,7 @@ features_transpiler:
     :class:`.DAGCircuit` from Rust.
 upgrade_transpiler:
   - |
-    :class:`.DAGNode` instances (and its subclasses :class:`.DAGInNode`, :class:`.DAGOutNode`, and
+    :class:`.DAGNode` objects (and its subclasses :class:`.DAGInNode`, :class:`.DAGOutNode`, and
     :class:`.DAGOpNode`) no longer return references to the same underlying object from
     :class:`.DAGCircuit` methods. This was never a guarantee before that all returned nodes would
     be shared reference to the same object, but with the migration of the :class:`.DAGCircuit` to

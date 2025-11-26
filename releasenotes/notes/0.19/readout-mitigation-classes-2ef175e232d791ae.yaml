@@ -4,7 +4,7 @@ features:
     Added the :class:`~qiskit.result.BaseReadoutMitigator` abstract base class
     for implementing classical measurement error mitigators. These objects
     are intended for mitigation measurement errors in
-    :class:`~qiskit.result.Counts` instances returned from execution of circuits
+    :class:`~qiskit.result.Counts` objects returned from execution of circuits
     on backends with measurement errors.
 
     Readout mitigator classes have two main methods:

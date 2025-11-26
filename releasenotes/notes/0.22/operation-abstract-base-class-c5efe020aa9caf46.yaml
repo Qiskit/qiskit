@@ -4,8 +4,8 @@ features:
   - |
     Added a new :class:`.Operation` base class which provides a lightweight abstract interface
     for objects that can be put on :class:`.QuantumCircuit`. This allows to store "higher-level"
-    objects directly on a circuit (for instance, :class:`.Clifford` instances), to directly combine such objects
-    (for instance, to compose several consecutive :class:`.Clifford` instances over the same qubits), and
+    objects directly on a circuit (for instance, :class:`.Clifford` objects), to directly combine such objects
+    (for instance, to compose several consecutive :class:`.Clifford` objects over the same qubits), and
     to synthesize such objects at run time (for instance, to synthesize :class:`.Clifford` in
     a way that optimizes depth and/or exploits device connectivity).
     Previously, only subclasses of :class:`qiskit.circuit.Instruction` could be put on
@@ -41,7 +41,7 @@ features:
 
   - |
     Added a new transpiler pass :class:`.OptimizeCliffords` that collects blocks of consecutive
-    :class:`.Clifford` instances in a circuit, and replaces each block with a single :class:`.Clifford`.
+    :class:`.Clifford` objects in a circuit, and replaces each block with a single :class:`.Clifford`.
 
     For example, the following code::
 
@@ -65,7 +65,7 @@ features:
 
   - |
     Added a new transpiler pass :class:`.HighLevelSynthesis` that synthesizes higher-level objects
-    (for instance, :class:`.Clifford` instances).
+    (for instance, :class:`.Clifford` objects).
 
     For example, the following code::
 
@@ -88,6 +88,6 @@ features:
     running right after :class:`.UnitarySynthesis` pass. Thus, :func:`.transpile` will
     synthesize all higher-level Cliffords present in the circuit.
 
-    It is important to note that the work done to store :class:`.Clifford` instances as "higher-level"
+    It is important to note that the work done to store :class:`.Clifford` objects as "higher-level"
     objects and to transpile these objects using :class:`.HighLevelSynthesis` pass should be completely
     transparent, and no code changes are required.

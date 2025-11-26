@@ -81,7 +81,7 @@ upgrade_transpiler:
     :class:`.Target` or :class:`.InstructionDurations` respectively. Without these the passes will
     not be able to determine the duration of instructions in the circuit and will error. Previously
     these passes would determine these values from the now removed ``duration`` attribute of
-    :class:`~qiskit.circuit.Instruction` instances.
+    :class:`~qiskit.circuit.Instruction` objects.
   - |
     The previously deprecated argument ``propagate_condition`` on the :class:`.DAGCircuit` methods
     :meth:`~.DAGCircuit.substitute_node_with_dag` and :meth:`~.DAGCircuit.substitute_node` has been

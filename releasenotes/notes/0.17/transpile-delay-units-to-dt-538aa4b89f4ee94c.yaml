@@ -1,7 +1,7 @@
 ---
 fixes:
   - |
-    Fixed an issue with :class:`~qiskit.circuit.Delay` instances in a
+    Fixed an issue with :class:`~qiskit.circuit.Delay` objects in a
     :class:`~qiskit.circuit.QuantumCircuit` where
     :func:`qiskit.compiler.transpile` would not be convert the units of
     the :class:`~qiskit.circuit.Delay` to the units of the

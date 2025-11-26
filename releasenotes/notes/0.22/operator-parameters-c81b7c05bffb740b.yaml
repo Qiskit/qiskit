@@ -3,7 +3,7 @@ features:
   - |
     :class:`.SparsePauliOp`\ s can now be constructed with coefficient arrays
     that are general Python objects.  This is intended for use with
-    :class:`.ParameterExpression` instances; other objects may work, but do not
+    :class:`.ParameterExpression` objects; other objects may work, but do not
     have first-class support. Some :class:`.SparsePauliOp` methods (such as
     conversion to other class representations) may not work when using
     ``object`` arrays, if the desired target cannot represent these general

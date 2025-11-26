@@ -6,7 +6,7 @@ features:
     seamlessly with the :class:`~qiskit.transpiler.passes.HighLevelSynthesis`
     transpiler pass. These alternative synthesis techniques can be specified for
     any "higher-level" objects of type :class:`~.Operation`, as for example for
-    :class:`~.Clifford` and :class:`~.LinearFunction` instances. This plugin interface
+    :class:`~.Clifford` and :class:`~.LinearFunction` objects. This plugin interface
     is similar to the one for unitary synthesis. In the latter case, the details on writing
     a new plugin appear in the :mod:`qiskit.transpiler.passes.synthesis.plugin` module documentation.
 
@@ -22,7 +22,7 @@ features:
     that ``op_a``-objects have two synthesis methods ``default`` which does require any additional
     parameters and ``other`` with two optional integer parameters ``option_1`` and ``option_2``,
     that ``op_b``-objects have a single synthesis method ``default``, and ``qc`` is a quantum
-    circuit containing ``op_a`` and ``op_b`` instances. The following code snippet::
+    circuit containing ``op_a`` and ``op_b`` objects. The following code snippet::
 
         hls_config = HLSConfig(op_b=[("other", {"option_1": 7, "option_2": 4})])
         pm = PassManager([HighLevelSynthesis(hls_config=hls_config)])
