@@ -31,13 +31,13 @@ use crate::expr;
 pub struct PySymbolTable {
     /// Gate-constructor objects.
     pub gates: HashMap<SymbolId, PyGate>,
-    /// Scalar `Qubit` instances.
+    /// Scalar `Qubit` objects.
     pub qubits: HashMap<SymbolId, Py<PyAny>>,
-    /// Scalar `Clbit` instances.
+    /// Scalar `Clbit` objects.
     pub clbits: HashMap<SymbolId, Py<PyAny>>,
-    /// `QuantumRegister` instances.
+    /// `QuantumRegister` objects.
     pub qregs: HashMap<SymbolId, PyQuantumRegister>,
-    /// `ClassicalRegister` instances.
+    /// `ClassicalRegister` objects.
     pub cregs: HashMap<SymbolId, PyClassicalRegister>,
 }
 

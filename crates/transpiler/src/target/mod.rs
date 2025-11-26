@@ -504,7 +504,7 @@ impl Target {
     ///         instruction it will return ``False``. If this argument is not
     ///         specified this method will return ``True`` if the instruction
     ///         is supported independent of the instruction parameters. If
-    ///         specified with any :class:`~.Parameter` instances in the list,
+    ///         specified with any :class:`~.Parameter` objects in the list,
     ///         that entry will be treated as supporting any value, however parameter names
     ///         will not be checked (for example if an operation in the target
     ///         is listed as parameterized with ``"theta"`` and ``"phi"`` is
@@ -1117,7 +1117,7 @@ impl Target {
         self.gate_map.keys().map(|x| x.as_str())
     }
 
-    /// Get the `OperationType` instances present in the target.
+    /// Get the `OperationType` objects present in the target.
     // TODO: Remove once `Target` is being consumed.
     #[allow(dead_code)]
     pub fn operations(&self) -> impl Iterator<Item = &NormalOperation> {

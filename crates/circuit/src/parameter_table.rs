@@ -97,7 +97,7 @@ pub struct ParameterTable {
     /// Any method that adds or removes a parameter needs to invalidate this.
     order_cache: OnceLock<Vec<ParameterUuid>>,
     /// Cache of a [Symbol] objects, in order.  We only generate this specifically when asked.
-    /// Typically to provide a list to Python of all the Python space `Parameter` instances
+    /// Typically to provide a list to Python of all the Python space `Parameter` objects
     /// (which are 1:1 with a Rust space [Symbol] object).
     ///
     /// Any method that adds or removes a parameter needs to invalidate this.
@@ -181,7 +181,7 @@ impl ParameterTable {
         self.by_uuid.get(&uuid).map(|param| &param.symbol)
     }
 
-    /// Get the (maybe cached) list of the sorted `Parameter` instances.
+    /// Get the (maybe cached) list of the sorted `Parameter` objects.
     pub fn symbols(&self) -> &[Symbol] {
         self.parameters_cache.get_or_init(|| {
             self.order_cache

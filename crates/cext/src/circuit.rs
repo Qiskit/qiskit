@@ -438,7 +438,7 @@ pub unsafe extern "C" fn qk_circuit_gate(
                 Qubit(*qubits.wrapping_add(2)),
                 Qubit(*qubits.wrapping_add(3)),
             ],
-            // There are no ``QkGate`` instances > 4 qubits
+            // There are no ``QkGate`` objects > 4 qubits
             _ => unreachable!(),
         };
         let params: &[Param] = match gate.num_params() {
@@ -459,7 +459,7 @@ pub unsafe extern "C" fn qk_circuit_gate(
                 (*params.wrapping_add(2)).into(),
                 (*params.wrapping_add(3)).into(),
             ],
-            // There are no ``QkGate`` instances that take > 4 params
+            // There are no ``QkGate`` objects that take > 4 params
             _ => unreachable!(),
         };
         circuit.push_standard_gate(gate, params, qargs).unwrap()
@@ -632,11 +632,11 @@ pub struct OpCount {
     count: usize,
 }
 
-/// An array of ``OpCount`` instances representing the total counts of all
+/// An array of ``OpCount`` objects representing the total counts of all
 /// the operation types in a circuit.
 #[repr(C)]
 pub struct OpCounts {
-    /// A array of size ``len`` containing ``OpCount`` instances for each
+    /// A array of size ``len`` containing ``OpCount`` objects for each
     /// type of operation in the circuit
     data: *mut OpCount,
     /// The number of elements in ``data``
