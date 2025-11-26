@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from typing import Optional, Union
+from typing import Optional
 
 import numpy
 
@@ -79,7 +79,7 @@ class SGate(SingletonGate):
         #    └────────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.S._get_definition(self.params), legacy_qubits=True, name=self.name
+            StandardGate.S._get_definition(self.params), legacy_qubits=True
         )
 
     def control(
@@ -89,22 +89,29 @@ class SGate(SingletonGate):
         ctrl_state: int | str | None = None,
         annotated: bool | None = None,
     ):
-        """Return a (multi-)controlled-S gate.
+        """Return a controlled version of the S gate.
 
-        One control qubit returns a :class:`.CSGate`.
+        For a single control qubit, the controlled gate is implemented as :class:`.CSGate`,
+        regardless of the value of ``annotated``.
+
+        For more than one control qubit,
+        the controlled gate is implemented as :class:`.ControlledGate` when ``annotated``
+        is ``False``, and as :class:`.AnnotatedOperation` when ``annotated`` is ``True``.
 
         Args:
-            num_ctrl_qubits: number of control qubits.
-            label: An optional label for the gate [Default: ``None``]
-            ctrl_state: control state expressed as integer,
-                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate should be implemented
-                as an annotated gate. If ``None``, this is handled as ``False``.
+            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            label: Optional gate label. Defaults to ``None``.
+                Ignored if the controlled gate is implemented as an annotated operation.
+            ctrl_state: The control state of the gate, specified either as an integer or a bitstring
+                (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``.
+            annotated: Indicates whether the controlled gate should be implemented as a controlled gate
+                or as an annotated operation. If ``None``, treated as ``False``.
 
         Returns:
-            ControlledGate: controlled version of this gate.
+            A controlled version of this gate.
         """
-        if not annotated and num_ctrl_qubits == 1:
+
+        if num_ctrl_qubits == 1:
             gate = CSGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
         else:
             gate = super().control(
@@ -187,7 +194,7 @@ class SdgGate(SingletonGate):
         #    └─────────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.Sdg._get_definition(self.params), legacy_qubits=True, name=self.name
+            StandardGate.Sdg._get_definition(self.params), legacy_qubits=True
         )
 
     def control(
@@ -197,22 +204,28 @@ class SdgGate(SingletonGate):
         ctrl_state: int | str | None = None,
         annotated: bool | None = None,
     ):
-        """Return a (multi-)controlled-Sdg gate.
+        """Return a controlled version of the Sdg gate.
 
-        One control qubit returns a :class:`.CSdgGate`.
+        For a single control qubit, the controlled gate is implemented as :class:`.CSdgGate`,
+        regardless of the value of `annotated`.
+
+        For more than one control qubit,
+        the controlled gate is implemented as :class:`.ControlledGate` when ``annotated``
+        is ``False``, and as :class:`.AnnotatedOperation` when ``annotated`` is ``True``.
 
         Args:
-            num_ctrl_qubits: number of control qubits.
-            label: An optional label for the gate [Default: ``None``]
-            ctrl_state: control state expressed as integer,
-                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate should be implemented
-                as an annotated gate. If ``None``, this is handled as ``False``.
+            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            label: Optional gate label. Defaults to ``None``.
+                Ignored if the controlled gate is implemented as an annotated operation.
+            ctrl_state: The control state of the gate, specified either as an integer or a bitstring
+                (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``.
+            annotated: Indicates whether the controlled gate should be implemented as a controlled gate
+                or as an annotated operation. If ``None``, treated as ``False``.
 
         Returns:
-            ControlledGate: controlled version of this gate.
+            A controlled version of this gate.
         """
-        if not annotated and num_ctrl_qubits == 1:
+        if num_ctrl_qubits == 1:
             gate = CSdgGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
         else:
             gate = super().control(
@@ -280,8 +293,8 @@ class CSGate(SingletonControlledGate):
 
     def __init__(
         self,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
         *,
         _base_label=None,
     ):
@@ -311,7 +324,7 @@ class CSGate(SingletonControlledGate):
         #           └───┘└─────┘└───┘└───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.CS._get_definition(self.params), legacy_qubits=True, name=self.name
+            StandardGate.CS._get_definition(self.params), legacy_qubits=True
         )
 
     def inverse(self, annotated: bool = False):
@@ -371,8 +384,8 @@ class CSdgGate(SingletonControlledGate):
 
     def __init__(
         self,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
         *,
         _base_label=None,
     ):
@@ -401,7 +414,7 @@ class CSdgGate(SingletonControlledGate):
         #             └───┘└───┘└───┘└─────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.CSdg._get_definition(self.params), legacy_qubits=True, name=self.name
+            StandardGate.CSdg._get_definition(self.params), legacy_qubits=True
         )
 
     def inverse(self, annotated: bool = False):

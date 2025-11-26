@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+#[cfg(feature = "cbinding")]
+use std::ffi::{CStr, c_char};
 use std::sync::Arc;
 
 use crate::exit_codes::{CInputError, ExitCode};
@@ -446,6 +448,7 @@ pub struct TargetEntry {
     operation: StandardOperation,
     params: Option<SmallVec<[Param; 3]>>,
     map: IndexMap<Qargs, Option<InstructionProperties>, ahash::RandomState>,
+    name: Option<String>,
 }
 
 impl TargetEntry {
@@ -468,14 +471,20 @@ impl TargetEntry {
             operation: StandardOperation::Gate(operation),
             params,
             map: Default::default(),
+            name: None,
         }
     }
 
-    pub fn new_fixed(operation: StandardGate, params: SmallVec<[Param; 3]>) -> Self {
+    pub fn new_fixed(
+        operation: StandardGate,
+        params: SmallVec<[Param; 3]>,
+        name: Option<String>,
+    ) -> Self {
         Self {
             operation: StandardOperation::Gate(operation),
             params: Some(params),
             map: Default::default(),
+            name,
         }
     }
 
@@ -484,6 +493,7 @@ impl TargetEntry {
             operation: StandardOperation::Instruction(instruction),
             params: None,
             map: Default::default(),
+            name: None,
         }
     }
 }
@@ -500,7 +510,7 @@ impl TargetEntry {
 ///
 /// # Example
 /// ```c
-///     QkTargetEntry *entry = qk_target_entry_new(QkGate_H);
+///     QkTargetEntry *had_entry = qk_target_entry_new(QkGate_H);
 /// ```
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
@@ -570,13 +580,15 @@ pub extern "C" fn qk_target_entry_new_reset() -> *mut TargetEntry {
 ///
 /// @param operation The ``QkGate`` whose properties this target entry defines.
 /// @param params A pointer to the parameters that the instruction is calibrated for.
+/// @param name An optional name for the instruction in the target. If a null pointer is
+/// provided, the entry will use the operation's default name.
 ///
 /// @return A pointer to the new ``QkTargetEntry``.
 ///
 /// # Example
 /// ```c
 ///     double crx_params[1] = {3.14};
-///     QkTargetEntry *entry = qk_target_entry_new_fixed(QkGate_CRX, crx_params);
+///     QkTargetEntry *entry = qk_target_entry_new_fixed(QkGate_CRX, crx_params, "crx_fixed")";
 /// ```
 ///
 /// # Safety
@@ -586,16 +598,32 @@ pub extern "C" fn qk_target_entry_new_reset() -> *mut TargetEntry {
 /// behavior of this function is undefined as this will read outside the bounds of the array.
 /// It can be a null pointer if there are no params for a given gate. You can check
 /// ``qk_gate_num_params`` to determine how many qubits are required for a given gate.
+///
+/// The ``name`` pointer is expected to be either a C string comprising of valid UTF-8 characters
+/// or a null pointer.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_entry_new_fixed(
     operation: StandardGate,
     params: *mut f64,
+    name: *const c_char,
 ) -> *mut TargetEntry {
+    // SAFETY: per documentation, name points to a valid UTF-8 null-terminated string.
+    let name_fixed: Option<String> = if name.is_null() {
+        None
+    } else {
+        Some(unsafe {
+            CStr::from_ptr(name)
+                .to_str()
+                .expect("Error while extracting the given name.")
+                .to_string()
+        })
+    };
     unsafe {
         Box::into_raw(Box::new(TargetEntry::new_fixed(
             operation,
             parse_params(operation, params),
+            name_fixed,
         )))
     }
 }
@@ -672,6 +700,8 @@ pub unsafe extern "C" fn qk_target_entry_free(entry: *mut TargetEntry) {
 ///     qubits.
 /// @param error The instruction's average error rate on the specific set of qubits.
 ///
+/// @return An exit code.
+///
 /// # Example
 /// ```c
 ///     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
@@ -709,6 +739,49 @@ pub unsafe extern "C" fn qk_target_entry_add_property(
     entry
         .map
         .insert(qubits, Some(InstructionProperties::new(duration, error)));
+    ExitCode::Success
+}
+
+/// @ingroup QkTargetEntry
+/// Sets a custom name to the target entry.
+///
+/// @param entry The pointer to the entry object.
+/// @param name The name to be set for the target entry.
+///
+/// @return ``QkExitCode`` specifying if the operation was successful.
+///
+/// # Example
+/// ```c
+///     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
+///     qk_target_entry_set_name(entry, "cx_gate");
+/// ```
+///
+/// # Safety
+///
+/// The behavior is undefined if ``entry`` is not a valid, non-null pointer
+/// to a ``QkTargetEntry`` object.
+/// The ``name`` pointer is expected to be either a C string comprising
+/// of valid UTF-8 characters or a null pointer.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_entry_set_name(
+    entry: *mut TargetEntry,
+    name: *const c_char,
+) -> ExitCode {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let entry = unsafe { mut_ptr_as_ref(entry) };
+    // SAFETY: per documentation, name points to a valid UTF-8 null-terminated string.
+    let name_set: Option<String> = if name.is_null() {
+        None
+    } else {
+        Some(unsafe {
+            CStr::from_ptr(name)
+                .to_str()
+                .expect("Error while extracting the given name.")
+                .to_string()
+        })
+    };
+    entry.name = name_set;
     ExitCode::Success
 }
 
@@ -765,7 +838,7 @@ pub unsafe extern "C" fn qk_target_add_instruction(
     match target.add_instruction(
         instruction.into(),
         &entry.params.unwrap_or_default(),
-        None,
+        entry.name.as_deref(),
         property_map,
     ) {
         Ok(_) => ExitCode::Success,
@@ -791,7 +864,7 @@ pub unsafe extern "C" fn qk_target_add_instruction(
 /// ```c
 ///     QkTarget *target = qk_target_new(5);
 ///     double params[1] = {3.1415};
-///     QkTargetEntry *entry = qk_target_entry_new_fixed(QkGate_CRX, params);
+///     QkTargetEntry *entry = qk_target_entry_new_fixed(QkGate_CRX, params, "crx_pi");
 ///     uint32_t qargs[2] = {0, 1};
 ///     qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
 ///     qk_target_add_instruction(target, entry);

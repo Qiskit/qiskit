@@ -161,6 +161,8 @@ pub unsafe extern "C" fn qk_neighbors_from_target(
 /// This should only be called on `QkNeighbors` objects that were initialized by
 /// `qk_neighbors_from_target`.
 ///
+/// @param neighbors A pointer to a ``QkNeighbors`` object.
+///
 /// # Safety
 ///
 /// `neighbors` must point to a valid, initialized `QkNeighbors` object, which must have been

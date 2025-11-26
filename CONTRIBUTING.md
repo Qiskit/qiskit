@@ -444,8 +444,7 @@ environment that tox sets up matches the CI environment more closely and it
 runs the tests in parallel (resulting in much faster execution). To run tests
 on all installed supported python versions and lint/style checks you can simply
 run `tox`. Or if you just want to run the tests once run for a specific python
-version: `tox -epy310` (or replace py310 with the python version you want to use,
-py39 or py311).
+version: `tox -epy313` (or replace py313 with the python version you want to use).
 
 If you just want to run a subset of tests you can pass a selection regex to
 the test runner. For example, if you want to run all tests that have "dag" in

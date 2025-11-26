@@ -10,7 +10,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "qiskit"
 description = "An open-source SDK for working with quantum computers at the level of extended quantum circuits, operators, and primitives."
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = "Apache-2.0"
 license-files = [
     "LICENSE.txt",
@@ -34,7 +34,6 @@ classifiers = [
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -186,14 +185,14 @@ include = ["qiskit", "qiskit.*"]
 
 [tool.black]
 line-length = 100
-target-version = ['py39', 'py310', 'py311']
+target-version = ['py310', 'py311']
 
 [tool.cibuildwheel]
 manylinux-x86_64-image = "manylinux2014"
 manylinux-aarch64-image = "manylinux2014"
 manylinux-ppc64le-image = "manylinux2014"
 manylinux-s390x-image = "manylinux2014"
-skip = "cp38-* *musllinux* *win32 *i686 cp38-macosx_arm64"
+skip = "cp38-* cp39-* *musllinux* *win32 *i686"
 test-skip = "*win32 *linux_i686"
 test-command = "cp -r {project}/test . && QISKIT_PARALLEL=FALSE stestr --test-path test/python run --abbreviate"
 # We need to use pre-built versions of Numpy and Scipy in the tests; they have a
@@ -245,7 +244,7 @@ extension-pkg-allow-list = [
     "rustworkx",
 ]
 load-plugins = ["pylint.extensions.docparams", "pylint.extensions.docstyle", "pylint.extensions.bad_builtin"]
-py-version = "3.9"  # update it when bumping minimum supported python version
+py-version = "3.10"  # update it when bumping minimum supported python version
 
 [tool.pylint.basic]
 good-names = ["a", "b", "i", "j", "k", "d", "n", "m", "ex", "v", "w", "x", "y", "z", "Run", "_", "logger", "q", "c", "r", "qr", "cr", "qc", "nd", "pi", "op", "b", "ar", "br", "p", "cp", "ax", "dt", "__unittest", "iSwapGate", "mu"]

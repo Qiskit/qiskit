@@ -5,7 +5,7 @@ on:
       - main
     tags:
       # Only match non-prerelease tags.
-      - '[0-9]+.[0-9]+.[0-9]'
+      - "[0-9]+.[0-9]+.[0-9]"
   workflow_dispatch:
 
 jobs:
@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           # We need to fetch the whole history so 'reno' can do its job and we can inspect tags.
           fetch-depth: 0
@@ -23,12 +23,12 @@ jobs:
       - uses: actions/setup-python@v6
         name: Install Python
         with:
-          # Sync with 'documentationPythonVersion' in 'azure-pipelines.yml'.
-          python-version: '3.9'
+          python-version: "3.10"
 
       - name: Install dependencies
         run: tools/install_ubuntu_docs_dependencies.sh
-
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       - name: Determine GitHub branch name
         run: |
           # Tags like 1.0.0 and 1.0.0rc1 should point to their stable branch. We do this

@@ -71,6 +71,11 @@ real_values = [0.41, 0.9, -0.83, math.pi, -math.pi / 124, -42.42]
 class TestParameterExpression(QiskitTestCase):
     """Test parameter expression."""
 
+    @ddt.data(param_x, param_x + param_y, (param_x + 1.0).bind({param_x: 1.0}))
+    def test_num_parameters(self, expr):
+        """Do the two ways of getting the number of unbound parameters agree?"""
+        self.assertEqual(len(expr.parameters), expr.num_parameters)
+
     @combine(
         left=operands,
         right=operands,

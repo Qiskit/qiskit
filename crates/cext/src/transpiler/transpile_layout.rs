@@ -13,6 +13,13 @@
 use crate::pointers::const_ptr_as_ref;
 use qiskit_transpiler::transpile_layout::TranspileLayout;
 
+#[cfg(feature = "python_binding")]
+use pyo3::Python;
+#[cfg(feature = "python_binding")]
+use pyo3::ffi::PyObject;
+#[cfg(feature = "python_binding")]
+use qiskit_circuit::circuit_data::CircuitData;
+
 /// @ingroup QkTranspileLayout
 /// Return the number of qubits in the input circuit to the transpiler.
 ///
@@ -236,6 +243,41 @@ pub unsafe extern "C" fn qk_transpile_layout_free(layout: *mut TranspileLayout) 
         unsafe {
             let _ = Box::from_raw(layout);
         }
+    }
+}
+
+/// @ingroup QkTranspileLayout
+/// Generate a Python-space ``TranspileLayout`` object from a ``QkTranspileLayout``.
+///
+/// The created Python-space object is a copy of the ``QkTranspileLayout`` provided, the data
+/// representation is different between C and Python and the data is not moved to Python like
+/// for some other ``*_to_python`` functions.
+///
+/// @param layout a pointer to a ``QkTranspileLayout``.
+/// @param circuit a pointer to the original ``QkCircuit``.
+/// @return the PyObject pointer for the Python space TranspileLayout object.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``layout`` and ``circuit`` are not valid, non-null pointers to a
+/// ``QkTranspileLayout`` and ``QkCircuit`` respectively. It is assumed that the thread currently
+/// executing this function holds the Python GIL. This is required to create the Python object
+/// returned by this function.
+#[unsafe(no_mangle)]
+#[cfg(feature = "python_binding")]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_transpile_layout_to_python(
+    layout: *const TranspileLayout,
+    circuit: *const CircuitData,
+) -> *mut PyObject {
+    // SAFETY: Per the documentation layout and circuit are valid pointers
+    // and the thread running the function holds the gil.
+    unsafe {
+        let layout = const_ptr_as_ref(layout);
+        let circuit = const_ptr_as_ref(circuit);
+        let py = Python::assume_attached();
+        let res = layout.to_py_native(py, circuit.qubits().objects()).unwrap();
+        res.into_ptr()
     }
 }
 
