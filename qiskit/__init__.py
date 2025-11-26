@@ -44,15 +44,6 @@ else:
             " See https://qisk.it/packaging-1-0 for more detail."
         )
 
-if sys.version_info < (3, 10):
-    warnings.warn(
-        "Using Qiskit with Python 3.9 is deprecated as of the 2.1.0 release. "
-        "Support for running Qiskit with Python 3.9 will be removed in the "
-        "2.3.0 release, which coincides with when Python 3.9 goes end of life.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-
 from . import _accelerate
 import qiskit._numpy_compat
 
@@ -142,6 +133,7 @@ sys.modules["qiskit._accelerate.wrap_angles"] = _accelerate.wrap_angles
 sys.modules["qiskit._accelerate.angle_bound_registry"] = _accelerate.angle_bound_registry
 sys.modules["qiskit._accelerate.litinski_transformation"] = _accelerate.litinski_transformation
 sys.modules["qiskit._accelerate.unroll_3q_or_more"] = _accelerate.unroll_3q_or_more
+sys.modules["qiskit._accelerate.substitute_pi4_rotations"] = _accelerate.substitute_pi4_rotations
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 
