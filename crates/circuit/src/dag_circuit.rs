@@ -5057,55 +5057,7 @@ impl DAGCircuit {
         &'a self,
         instr: &'a PackedInstruction,
     ) -> Option<ControlFlowView<'a, DAGCircuit>> {
-        let OperationRef::ControlFlow(control) = instr.op.view() else {
-            return None;
-        };
-        Some(match &control.control_flow {
-            ControlFlow::Box { duration, .. } => ControlFlowView::Box(
-                duration.as_ref(),
-                self.blocks.get(instr.blocks_view()[0].index()).unwrap(),
-            ),
-            ControlFlow::BreakLoop => ControlFlowView::BreakLoop,
-            ControlFlow::ContinueLoop => ControlFlowView::ContinueLoop,
-            ControlFlow::ForLoop {
-                indexset,
-                loop_param,
-                ..
-            } => ControlFlowView::ForLoop {
-                indexset: indexset.as_slice(),
-                loop_param: loop_param.as_ref(),
-                body: self.blocks.get(instr.blocks_view()[0].index()).unwrap(),
-            },
-            ControlFlow::IfElse { condition, .. } => ControlFlowView::IfElse {
-                condition,
-                true_body: self.blocks.get(instr.blocks_view()[0].index()).unwrap(),
-                false_body: instr
-                    .blocks_view()
-                    .get(1)
-                    .map(|b| self.blocks.get(b.index()).unwrap()),
-            },
-            ControlFlow::Switch {
-                target, label_spec, ..
-            } => {
-                let cases_specifier = label_spec
-                    .iter()
-                    .zip(
-                        instr
-                            .blocks_view()
-                            .iter()
-                            .map(|case| self.blocks.get(case.index()).unwrap()),
-                    )
-                    .collect();
-                ControlFlowView::Switch {
-                    target,
-                    cases_specifier,
-                }
-            }
-            ControlFlow::While { condition, .. } => ControlFlowView::While {
-                condition,
-                body: self.blocks.get(instr.blocks_view()[0].index()).unwrap(),
-            },
-        })
+        ControlFlowView::try_view(instr, &self.blocks)
     }
 
     /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into an

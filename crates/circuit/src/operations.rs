@@ -17,6 +17,7 @@ use std::sync::Arc;
 use std::{fmt, vec};
 
 use crate::circuit_data::CircuitData;
+use crate::packed_instruction::PackedInstruction;
 use crate::parameter::parameter_expression::{
     ParameterExpression, PyParameter, PyParameterExpression,
 };
@@ -541,12 +542,12 @@ impl ControlFlowInstruction {
             ControlFlow::ForLoop {
                 indexset,
                 loop_param,
-            } => FOR_LOOP_OP.get(py).call(
+            } => imports::FOR_LOOP_OP.get(py).call(
                 py,
                 (indexset, loop_param.clone(), blocks.next()),
                 kwargs.as_ref(),
             ),
-            ControlFlow::IfElse { condition, .. } => IF_ELSE_OP.get(py).call(
+            ControlFlow::IfElse { condition, .. } => imports::IF_ELSE_OP.get(py).call(
                 py,
                 (condition.clone(), blocks.next().unwrap(), blocks.next()),
                 kwargs.as_ref(),
@@ -617,7 +618,7 @@ pub enum ControlFlowView<'a, T> {
     ContinueLoop,
     ForLoop {
         indexset: &'a [usize],
-        loop_param: Option<&'a Py<PyAny>>,
+        loop_param: Option<&'a Symbol>,
         body: &'a T,
     },
     IfElse {
@@ -636,6 +637,60 @@ pub enum ControlFlowView<'a, T> {
 }
 
 impl<'a, T> ControlFlowView<'a, T> {
+    pub fn try_view<B>(instr: &'a PackedInstruction, blocks: &'a [B]) -> Option<Self>
+    where
+        B: std::borrow::Borrow<T>,
+    {
+        let OperationRef::ControlFlow(control) = instr.op.view() else {
+            return None;
+        };
+        Some(match &control.control_flow {
+            ControlFlow::Box { duration, .. } => ControlFlowView::Box(
+                duration.as_ref(),
+                blocks[instr.blocks_view()[0].index()].borrow(),
+            ),
+            ControlFlow::BreakLoop => ControlFlowView::BreakLoop,
+            ControlFlow::ContinueLoop => ControlFlowView::ContinueLoop,
+            ControlFlow::ForLoop {
+                indexset,
+                loop_param,
+                ..
+            } => ControlFlowView::ForLoop {
+                indexset: indexset.as_slice(),
+                loop_param: loop_param.as_ref(),
+                body: blocks[instr.blocks_view()[0].index()].borrow(),
+            },
+            ControlFlow::IfElse { condition, .. } => ControlFlowView::IfElse {
+                condition,
+                true_body: blocks[instr.blocks_view()[0].index()].borrow(),
+                false_body: instr
+                    .blocks_view()
+                    .get(1)
+                    .map(|b| blocks[b.index()].borrow()),
+            },
+            ControlFlow::Switch {
+                target, label_spec, ..
+            } => {
+                let cases_specifier = label_spec
+                    .iter()
+                    .zip(
+                        instr
+                            .blocks_view()
+                            .iter()
+                            .map(|case| blocks[case.index()].borrow()),
+                    )
+                    .collect();
+                ControlFlowView::Switch {
+                    target,
+                    cases_specifier,
+                }
+            }
+            ControlFlow::While { condition, .. } => ControlFlowView::While {
+                condition,
+                body: blocks[instr.blocks_view()[0].index()].borrow(),
+            },
+        })
+    }
     pub fn blocks(&self) -> Vec<&'a T> {
         match self {
             ControlFlowView::Box(_, body) => vec![*body],

@@ -13,7 +13,7 @@
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2};
+use numpy::{IntoPyArray, PyArray2, PyReadonlyArray1, PyReadonlyArray2};
 use pyo3::IntoPyObjectExt;
 use pyo3::basic::CompareOp;
 use pyo3::exceptions::{PyDeprecationWarning, PyTypeError, PyValueError};

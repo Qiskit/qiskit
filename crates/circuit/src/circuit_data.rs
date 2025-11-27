@@ -28,8 +28,7 @@ use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
-    ControlFlow, ControlFlowInstruction, ControlFlowView, Operation, OperationRef, Param,
-    PythonOperation, StandardGate,
+    ControlFlow, ControlFlowView, Operation, OperationRef, Param, PythonOperation, StandardGate,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::ParameterExpression;
@@ -1890,55 +1889,7 @@ impl CircuitData {
         &'a self,
         instr: &'a PackedInstruction,
     ) -> Option<ControlFlowView<'a, CircuitData>> {
-        let OperationRef::ControlFlow(control) = instr.op.view() else {
-            return None;
-        };
-        Some(match &control.control_flow {
-            ControlFlow::Box { duration, .. } => ControlFlowView::Box(
-                duration.as_ref(),
-                &self.blocks[instr.blocks_view()[0].index()],
-            ),
-            ControlFlow::BreakLoop => ControlFlowView::BreakLoop,
-            ControlFlow::ContinueLoop => ControlFlowView::ContinueLoop,
-            ControlFlow::ForLoop {
-                indexset,
-                loop_param,
-                ..
-            } => ControlFlowView::ForLoop {
-                indexset: indexset.as_slice(),
-                loop_param: loop_param.as_ref(),
-                body: &self.blocks[instr.blocks_view()[0].index()],
-            },
-            ControlFlow::IfElse { condition, .. } => ControlFlowView::IfElse {
-                condition,
-                true_body: &self.blocks[instr.blocks_view()[0].index()],
-                false_body: instr
-                    .blocks_view()
-                    .get(1)
-                    .map(|b| self.blocks[b.index()].as_ref()),
-            },
-            ControlFlow::Switch {
-                target, label_spec, ..
-            } => {
-                let cases_specifier = label_spec
-                    .iter()
-                    .zip(
-                        instr
-                            .blocks_view()
-                            .iter()
-                            .map(|case| self.blocks[case.index()].as_ref()),
-                    )
-                    .collect();
-                ControlFlowView::Switch {
-                    target,
-                    cases_specifier,
-                }
-            }
-            ControlFlow::While { condition, .. } => ControlFlowView::While {
-                condition,
-                body: &self.blocks[instr.blocks_view()[0].index()],
-            },
-        })
+        ControlFlowView::try_view(instr, &self.blocks)
     }
 
     pub fn copy_empty_like(&self, vars_mode: VarsMode, blocks_mode: BlocksMode) -> PyResult<Self> {
@@ -2367,11 +2318,10 @@ impl CircuitData {
                 }
             }
             Parameters::Blocks(_) => {
-                let cf = self
-                    .try_view_control_flow(instr)
+                let cf = ControlFlowView::<CircuitData>::try_view(instr, &self.blocks)
                     .expect("instructions that have blocks are control flow");
                 let blocks: Vec<_> = cf.blocks().into_iter().cloned().collect();
-                if let ControlFlow::ForLoop { loop_param, .. } = &cf {
+                if let ControlFlowView::ForLoop { loop_param, .. } = &cf {
                     // The loop param is technically a parameter in Python land, stored at
                     // argument position 1.
                     if let Some(loop_param) = loop_param {
@@ -2428,11 +2378,10 @@ impl CircuitData {
                 }
             }
             Parameters::Blocks(_) => {
-                let cf = self
-                    .try_view_control_flow(instr)
+                let cf = ControlFlowView::<CircuitData>::try_view(instr, &self.blocks)
                     .expect("instructions that have blocks are control flow");
                 let blocks: Vec<_> = cf.blocks().into_iter().cloned().collect();
-                if let ControlFlow::ForLoop { loop_param, .. } = &cf {
+                if let ControlFlowView::ForLoop { loop_param, .. } = &cf {
                     // The loop param is technically a parameter in Python land, stored at
                     // argument position 1.
                     if let Some(loop_param) = loop_param {
@@ -2451,14 +2400,15 @@ impl CircuitData {
                     for symbol in blocks[0].parameters() {
                         self.param_table.untrack(symbol, usage)?;
                     }
-                }
-                for (idx, case) in blocks.iter().enumerate() {
-                    let usage = ParameterUse::Index {
-                        instruction: instruction_index,
-                        parameter: idx as u32,
-                    };
-                    for symbol in case.parameters() {
-                        self.param_table.untrack(symbol, usage)?;
+                } else {
+                    for (idx, case) in blocks.iter().enumerate() {
+                        let usage = ParameterUse::Index {
+                            instruction: instruction_index,
+                            parameter: idx as u32,
+                        };
+                        for symbol in case.parameters() {
+                            self.param_table.untrack(symbol, usage)?;
+                        }
                     }
                 }
             }
