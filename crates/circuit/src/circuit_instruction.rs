@@ -22,15 +22,15 @@ use pyo3::IntoPyObjectExt;
 use pyo3::types::{PyBool, PyList, PyTuple, PyType};
 use pyo3::{PyResult, intern};
 
+use crate::classical::expr::Range;
 use crate::duration::Duration;
 use crate::imports::{CONTROLLED_GATE, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN};
 use crate::instruction::{Instruction, Parameters, create_py_op};
 use crate::operations::{
-    ArrayType, BoxDuration, ControlFlow, ForLoopIndexSet, ControlFlowInstruction, ControlFlowType, Operation,
-    OperationRef, Param, PauliProductMeasurement, PyGate, PyInstruction, PyOperation, StandardGate,
-    StandardInstruction, StandardInstructionType, UnitaryGate,
+    ArrayType, BoxDuration, ControlFlow, ControlFlowInstruction, ControlFlowType, ForLoopIndexSet,
+    Operation, OperationRef, Param, PauliProductMeasurement, PyGate, PyInstruction, PyOperation,
+    StandardGate, StandardInstruction, StandardInstructionType, UnitaryGate,
 };
-use crate::classical::expr::Range;
 use crate::packed_instruction::PackedOperation;
 use crate::parameter::parameter_expression::ParameterExpression;
 use nalgebra::{Dyn, MatrixView2, MatrixView4};
@@ -220,7 +220,10 @@ impl CircuitInstruction {
                     [
                         indexset_py,
                         loop_param_py,
-                        self.blocks_view()[0].clone_ref(py).into_bound(py).into_any(),
+                        self.blocks_view()[0]
+                            .clone_ref(py)
+                            .into_bound(py)
+                            .into_any(),
                     ]
                     .into_py_any(py)
                 }

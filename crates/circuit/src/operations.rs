@@ -430,16 +430,16 @@ impl PartialEq for ForLoopIndexSet {
                 match Python::attach(|py| -> PyResult<bool> {
                     let range_a = a.bind(py);
                     let range_b = b.bind(py);
-                    
+
                     // Extract start, stop, step from both ranges
                     let start_a: i64 = range_a.getattr(intern!(py, "start"))?.extract()?;
                     let stop_a: i64 = range_a.getattr(intern!(py, "stop"))?.extract()?;
                     let step_a: i64 = range_a.getattr(intern!(py, "step"))?.extract()?;
-                    
+
                     let start_b: i64 = range_b.getattr(intern!(py, "start"))?.extract()?;
                     let stop_b: i64 = range_b.getattr(intern!(py, "stop"))?.extract()?;
                     let step_b: i64 = range_b.getattr(intern!(py, "step"))?.extract()?;
-                    
+
                     Ok(start_a == start_b && stop_a == stop_b && step_a == step_b)
                 }) {
                     Ok(result) => result,
@@ -468,11 +468,11 @@ impl ForLoopIndexSet {
                     let start: i64 = range.getattr(intern!(py, "start"))?.extract()?;
                     let stop: i64 = range.getattr(intern!(py, "stop"))?.extract()?;
                     let step: i64 = range.getattr(intern!(py, "step"))?.extract()?;
-                    
+
                     // Compute length using Python's range length formula
                     let len = if step == 0 {
                         return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                            "range() step cannot be zero"
+                            "range() step cannot be zero",
                         ));
                     } else if step > 0 {
                         // Positive step: max(0, (stop - start + step - 1) // step)
@@ -490,7 +490,8 @@ impl ForLoopIndexSet {
                         }
                     };
                     Ok(len)
-                }).ok()
+                })
+                .ok()
             }
         }
     }
