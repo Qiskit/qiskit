@@ -6441,10 +6441,10 @@ impl DAGCircuit {
                 },
 
                 // These don't have any classical wires
-                ControlFlowView::Box(_, _) => {}
-                ControlFlowView::BreakLoop => {}
-                ControlFlowView::ContinueLoop => {}
-                ControlFlowView::ForLoop { .. } => {}
+                ControlFlowView::Box(_, _)
+                | ControlFlowView::BreakLoop
+                | ControlFlowView::ContinueLoop
+                | ControlFlowView::ForLoop { .. } => {}
             }
             for block in instr.blocks() {
                 for var in block.captured_vars() {
