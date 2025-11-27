@@ -15,6 +15,7 @@ use std::f64::consts::PI;
 use num_complex::Complex64;
 use pyo3::prelude::*;
 use pyo3::{Bound, PyResult, pyfunction, wrap_pyfunction};
+use qiskit_circuit::instruction::Parameters;
 use smallvec::smallvec;
 
 use crate::commutation_checker::{CommutationChecker, try_matrix_with_definition};
@@ -318,8 +319,16 @@ fn try_merge(
                     Ok(None)
                 } else {
                     let instr: OperationFromPython = merge_result.extract()?;
+                    let merged_param = match instr
+                        .params
+                        .expect("PauliEvolution gate contains a parameter")
+                    {
+                        Parameters::Params(p) => p[0].clone(),
+                        _ => unreachable!("PauliEvolution gate contains a parameter"),
+                    };
 
-                    let merged_params = Some(Box::new(smallvec![instr.params[0].clone()]));
+                    let merged_params = Some(Box::new(Parameters::Params(smallvec![merged_param])));
+
                     Ok(Some(PackedInstruction {
                         op: instr.operation,
                         qubits: inst1.qubits,
