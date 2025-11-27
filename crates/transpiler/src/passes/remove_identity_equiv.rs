@@ -20,10 +20,9 @@ use crate::target::Target;
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::imports;
-use qiskit_circuit::operations::Operation;
-use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::StandardGate;
+use qiskit_circuit::operations::{Operation, OperationRef};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 
 const MINIMUM_TOL: f64 = 1e-12;
@@ -154,7 +153,7 @@ where
                 // The remaining standard gates are R, U, U2, U3, CU, CU3, XXMinusYY and XXPlusYY.
                 // We could consider extending the function rotation_trace_and_dim to handle
                 // these gates, without needing to compute actual matrices.
-                if let Some(matrix) = gate.matrix(inst.params_view()) {
+                if let Some(matrix) = inst.try_matrix() {
                     let dim = matrix.shape()[0] as f64;
                     let tr_over_dim = matrix.diag().iter().sum::<Complex64>() / dim;
                     (tr_over_dim, dim)
@@ -195,7 +194,7 @@ where
     // If matrix_from_definition is false and view.matrix() returns None, we skip the operation.
     // If matrix_from_definition is true, we also attempt to construct the matrix from the python Operator.
     if let Some(matrix) = match matrix_from_definition {
-        false => view.matrix(inst.params_view()),
+        false => inst.try_matrix(),
         true => {
             try_matrix_with_definition(&view, inst.params_view(), matrix_from_definition_max_qubits)
         }

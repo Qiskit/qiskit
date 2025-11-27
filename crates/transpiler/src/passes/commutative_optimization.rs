@@ -416,8 +416,8 @@ pub fn run_commutative_optimization(
         let instr1 = dag[node_index1].unwrap_operation();
 
         // For now, assume that control-flow operations do not commute with anything.
-        if instr1.op.control_flow() {
-            continue;
+        if instr1.op.try_control_flow().is_some() {
+            break;
         }
 
         if let Some((new_instruction, phase_update)) = canonicalize(&mut new_dag, instr1) {
@@ -447,7 +447,7 @@ pub fn run_commutative_optimization(
             };
 
             // For now, assume that control-flow operations do not commute with anything.
-            if instr1.op.control_flow() {
+            if instr2.op.try_control_flow().is_some() {
                 break;
             }
 
