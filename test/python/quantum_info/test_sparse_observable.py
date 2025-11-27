@@ -2138,6 +2138,108 @@ class TestSparseObservable(QiskitTestCase):
         dense = obs.to_matrix(sparse=False)
         np.testing.assert_array_equal(dense, target)
 
+    def test_to_matrix_projectors_single(self):
+        """Test to_matrix for single-qubit projector observables."""
+        I = np.array([[1, 0], [0, 1]], dtype=complex)
+        X = np.array([[0, 1], [1, 0]], dtype=complex)
+        Y = np.array([[0, -1j], [1j, 0]], dtype=complex)
+        Z = np.array([[1, 0], [0, -1]], dtype=complex)
+
+        projector_targets = {
+            "+": (I + X) / 2,
+            "-": (I - X) / 2,
+            "0": (I + Z) / 2,
+            "1": (I - Z) / 2,
+            "r": (I + Y) / 2,
+            "l": (I - Y) / 2,
+        }
+
+        for label, target in projector_targets.items():
+            obs = SparseObservable.from_list([(label, 1.0)])
+
+            np.testing.assert_array_equal(obs.to_matrix(), target)
+
+            data, indices, indptr = obs.to_matrix(sparse=True)
+            sparse_mat = csr_matrix((data, indices, indptr), shape=(2, 2)).toarray()
+            np.testing.assert_array_equal(sparse_mat, target)
+
+    def test_to_matrix_projectors_two_qubit(self):
+        """Test to_matrix for tensor products of projectors."""
+        I = np.array([[1, 0], [0, 1]], dtype=complex)
+        X = np.array([[0, 1], [1, 0]], dtype=complex)
+        Y = np.array([[0, -1j], [1j, 0]], dtype=complex)
+        Z = np.array([[1, 0], [0, -1]], dtype=complex)
+
+        proj = {
+            "+": (I + X) / 2,
+            "-": (I - X) / 2,
+            "0": (I + Z) / 2,
+            "1": (I - Z) / 2,
+            "r": (I + Y) / 2,
+            "l": (I - Y) / 2,
+        }
+
+        labels = ["0+", "1-", "r0", "l1"]
+
+        for label in labels:
+            A = proj[label[0]]
+            B = proj[label[1]]
+            target = np.kron(A, B)
+
+            obs = SparseObservable.from_list([(label, 1.0)])
+            dense = obs.to_matrix()
+
+            np.testing.assert_array_equal(dense, target)
+
+            data, indices, indptr = obs.to_matrix(sparse=True)
+            sparse_mat = csr_matrix((data, indices, indptr), shape=(4, 4)).toarray()
+            np.testing.assert_array_equal(sparse_mat, target)
+
+    def test_to_matrix_mixed_pauli_projector(self):
+        """Test to_matrix for mixed Pauli + projector terms."""
+        I = np.array([[1, 0], [0, 1]], dtype=complex)
+        X = np.array([[0, 1], [1, 0]], dtype=complex)
+        Y = np.array([[0, -1j], [1j, 0]], dtype=complex)
+        Z = np.array([[1, 0], [0, -1]], dtype=complex)
+
+        proj = {
+            "+": (I + X) / 2,
+            "-": (I - X) / 2,
+            "0": (I + Z) / 2,
+            "1": (I - Z) / 2,
+            "r": (I + Y) / 2,
+            "l": (I - Y) / 2,
+        }
+
+        labels = ["Z0", "X+", "Yr", "1X"]
+        coeffs = [1.5, -2j, 0.25, 3.2]
+
+        # Build known deterministic target matrix
+        target = np.zeros((4, 4), dtype=complex)
+        for coeff, label in zip(coeffs, labels):
+            a, b = label
+
+            if a in ("X", "Y", "Z"):
+                A = {"X": X, "Y": Y, "Z": Z}[a]
+            else:
+                A = proj[a]
+
+            if b in ("X", "Y", "Z"):
+                B = {"X": X, "Y": Y, "Z": Z}[b]
+            else:
+                B = proj[b]
+            target += coeff * np.kron(A, B)
+
+        obs = SparseObservable.from_list(list(zip(labels, coeffs)))
+
+        # Dense
+        np.testing.assert_array_equal(obs.to_matrix(), target)
+
+        # Sparse
+        data, indices, indptr = obs.to_matrix(sparse=True)
+        sparse_mat = csr_matrix((data, indices, indptr), shape=(4, 4)).toarray()
+        np.testing.assert_array_equal(sparse_mat, target)
+
     def test_as_paulis(self):
         """Test converting to Paulis."""
         # test on zero operator
