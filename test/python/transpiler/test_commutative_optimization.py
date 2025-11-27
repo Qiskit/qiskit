@@ -809,12 +809,8 @@ class TestCommutativeOptimization(QiskitTestCase):
         )
         expected.measure(0, 0)
 
-        # ToDo: after the update to control-flow in #14568, there seems to be a problem
-        # with recursing into control-flow blocks. So for now, we just check that the
-        # pass runs on the circuit with for_loop.
-        _ = CommutativeOptimization()(test)
-        # qct = CommutativeOptimization()(test)
-        # self.assertEqual(qct, expected)
+        qct = CommutativeOptimization()(test)
+        self.assertEqual(qct, expected)
 
     def test_cancellation_not_crossing_block_boundary(self):
         """Test that the pass does cancel gates across control flow op block boundaries."""

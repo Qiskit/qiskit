@@ -426,7 +426,7 @@ pub fn run_commutative_optimization(
 
         // For now, assume that control-flow operations do not commute with anything.
         if instr1.op.try_control_flow().is_some() {
-            break;
+            continue;
         }
 
         if let Some((new_instruction, phase_update)) = canonicalize(&mut new_dag, instr1) {
