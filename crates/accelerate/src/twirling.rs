@@ -255,7 +255,7 @@ fn generate_twirled_circuit(
                         custom_gate_map,
                         optimizer_target,
                     )?;
-                    Ok(out_circ.register_block(
+                    Ok(out_circ.add_block(
                         &QUANTUM_CIRCUIT
                             .get_bound(py)
                             .call_method1(intern!(py, "_from_circuit_data"), (new_block,))?,

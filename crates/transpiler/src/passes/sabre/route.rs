@@ -248,7 +248,7 @@ impl RoutingResult<'_> {
                     ) {
                         new_op.num_qubits = blocks[0].num_qubits() as u32;
                     }
-                    let blocks = blocks.into_iter().map(|b| dag.register_block(b)).collect();
+                    let blocks = blocks.into_iter().map(|b| dag.add_block(b)).collect();
                     let new_inst = PackedInstruction::from_control_flow(
                         new_op,
                         blocks,

@@ -384,7 +384,7 @@ fn apply_translation(
                     } else {
                         dag_block.clone()
                     };
-                    flow_blocks.push(out_dag_builder.register_block(flow_block));
+                    flow_blocks.push(out_dag_builder.add_block(flow_block));
                 }
                 let new_instr = PackedInstruction::from_control_flow(
                     node_obj.op.control_flow().clone(),

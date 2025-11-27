@@ -8767,7 +8767,7 @@ impl DAGCircuitBuilder {
     /// No validation is performed to ensure that the given block is valid
     /// within this DAG.
     #[inline]
-    pub fn register_block(&mut self, block: DAGCircuit) -> Block {
+    pub fn add_block(&mut self, block: DAGCircuit) -> Block {
         self.dag.add_block(block)
     }
 }

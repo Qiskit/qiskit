@@ -420,7 +420,7 @@ pub fn run_unitary_synthesis(
                     pulse_optimize,
                     run_python_decomposers,
                 )?;
-                new_blocks.push(out_dag.register_block(res));
+                new_blocks.push(out_dag.add_block(res));
             }
             packed_instr = PackedInstruction::from_control_flow(
                 packed_instr.op.control_flow().clone(),

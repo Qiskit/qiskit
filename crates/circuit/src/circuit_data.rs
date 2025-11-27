@@ -1873,7 +1873,7 @@ impl CircuitData {
     /// No attempt is made to deduplicate the given block.
     /// No validation is performed to ensure that the given block is valid
     /// within the circuit.
-    pub fn register_block(&mut self, block: &Bound<PyAny>) -> Block {
+    pub fn add_block(&mut self, block: &Bound<PyAny>) -> Block {
         self.blocks.add(PyObjectAsKey::new(block), false).unwrap()
     }
 
