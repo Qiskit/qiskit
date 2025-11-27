@@ -23,6 +23,7 @@ use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::bit::{ShareableClbit, ShareableQubit};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::interner::Interner;
 use qiskit_circuit::operations::{
     ArrayType, DelayUnit, Operation, Param, StandardGate, StandardInstruction, UnitaryGate,
@@ -38,6 +39,7 @@ use pyo3::types::PyAnyMethods;
 use pyo3::{Python, intern};
 #[cfg(feature = "python_binding")]
 use qiskit_circuit::imports::QUANTUM_CIRCUIT;
+use smallvec::smallvec;
 
 /// @ingroup QkCircuit
 /// Construct a new circuit with the given number of qubits and clbits.
@@ -539,7 +541,7 @@ pub unsafe extern "C" fn qk_circuit_measure(
     circuit
         .push_packed_operation(
             PackedOperation::from_standard_instruction(StandardInstruction::Measure),
-            &[],
+            None,
             &[Qubit(qubit)],
             &[Clbit(clbit)],
         )
@@ -572,7 +574,7 @@ pub unsafe extern "C" fn qk_circuit_reset(circuit: *mut CircuitData, qubit: u32)
     circuit
         .push_packed_operation(
             PackedOperation::from_standard_instruction(StandardInstruction::Reset),
-            &[],
+            None,
             &[Qubit(qubit)],
             &[],
         )
@@ -620,7 +622,7 @@ pub unsafe extern "C" fn qk_circuit_barrier(
     circuit
         .push_packed_operation(
             PackedOperation::from_standard_instruction(StandardInstruction::Barrier(num_qubits)),
-            &[],
+            None,
             &qubits,
             &[],
         )
@@ -779,7 +781,9 @@ pub unsafe extern "C" fn qk_circuit_unitary(
     // Create PackedOperation -> push to circuit_data
     let u_gate = Box::new(UnitaryGate { array: mat });
     let op = PackedOperation::from_unitary(u_gate);
-    circuit.push_packed_operation(op, &[], qubits, &[]).unwrap();
+    circuit
+        .push_packed_operation(op, None, qubits, &[])
+        .unwrap();
     // Return success
     ExitCode::Success
 }
@@ -1156,10 +1160,11 @@ pub unsafe extern "C" fn qk_circuit_delay(
     let duration_param: Param = duration.into();
     let delay_instruction = StandardInstruction::Delay(delay_unit_variant);
 
+    let params = Parameters::Params(smallvec![duration_param]);
     circuit
         .push_packed_operation(
             PackedOperation::from_standard_instruction(delay_instruction),
-            &[duration_param],
+            Some(params),
             &[Qubit(qubit)],
             &[],
         )

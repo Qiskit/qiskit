@@ -2101,7 +2101,7 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         with self.subTest("passed and used"):
             circuit = QuantumCircuit(1, 1)
-            with circuit.for_loop((0, 0.5 * math.pi), parameter) as received_parameter:
+            with circuit.for_loop((0, 1), parameter) as received_parameter:
                 circuit.rx(received_parameter, 0)
             self.assertIs(parameter, received_parameter)
             instruction = circuit.data[-1].operation
@@ -2111,7 +2111,7 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         with self.subTest("passed and unused"):
             circuit = QuantumCircuit(1, 1)
-            with circuit.for_loop((0, 0.5 * math.pi), parameter) as received_parameter:
+            with circuit.for_loop((0, 1), parameter) as received_parameter:
                 circuit.x(0)
             self.assertIs(parameter, received_parameter)
             instruction = circuit.data[-1].operation
@@ -2121,7 +2121,7 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         with self.subTest("generated and used"):
             circuit = QuantumCircuit(1, 1)
-            with circuit.for_loop((0, 0.5 * math.pi)) as received_parameter:
+            with circuit.for_loop((0, 1)) as received_parameter:
                 circuit.rx(received_parameter, 0)
             self.assertIsInstance(received_parameter, Parameter)
             instruction = circuit.data[-1].operation
@@ -2131,7 +2131,7 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         with self.subTest("generated and used in deferred-build if"):
             circuit = QuantumCircuit(1, 1)
-            with circuit.for_loop((0, 0.5 * math.pi)) as received_parameter:
+            with circuit.for_loop((0, 1)) as received_parameter:
                 with circuit.if_test((0, 0)):
                     circuit.rx(received_parameter, 0)
                     circuit.break_loop()
@@ -2143,7 +2143,7 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         with self.subTest("generated and used in deferred-build else"):
             circuit = QuantumCircuit(1, 1)
-            with circuit.for_loop((0, 0.5 * math.pi)) as received_parameter:
+            with circuit.for_loop((0, 1)) as received_parameter:
                 with circuit.if_test((0, 0)) as else_:
                     pass
                 with else_:

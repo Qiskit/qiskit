@@ -17,6 +17,7 @@ use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeIndex, NodeType};
+use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
     ArrayType, Operation, OperationRef, Param, StandardGate, StandardInstruction, UnitaryGate,
 };
@@ -568,7 +569,7 @@ pub unsafe extern "C" fn qk_dag_apply_gate(
                 gate.into(),
                 qargs,
                 &[],
-                params,
+                params.map(Parameters::Params),
                 None,
                 #[cfg(feature = "cache_pygates")]
                 None,
@@ -579,7 +580,7 @@ pub unsafe extern "C" fn qk_dag_apply_gate(
                 gate.into(),
                 qargs,
                 &[],
-                params,
+                params.map(Parameters::Params),
                 None,
                 #[cfg(feature = "cache_pygates")]
                 None,
@@ -909,7 +910,7 @@ pub unsafe extern "C" fn qk_dag_op_node_gate_op(
 ) -> StandardGate {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
-    let instr = dag.dag()[NodeIndex::new(node as usize)].unwrap_operation();
+    let instr = dag[NodeIndex::new(node as usize)].unwrap_operation();
     if !out_params.is_null() {
         let params = instr.params_view();
         for (i, param) in params
@@ -926,7 +927,7 @@ pub unsafe extern "C" fn qk_dag_op_node_gate_op(
             }
         }
     }
-    instr.standard_gate().unwrap()
+    instr.op.standard_gate()
 }
 
 /// @ingroup QkDag
@@ -999,6 +1000,7 @@ pub enum COperationKind {
     Reset = 4,
     Unitary = 5,
     PauliProductMeasurement = 6,
+    ControlFlow = 7,
 }
 
 /// @ingroup QkDag
@@ -1022,7 +1024,7 @@ pub enum COperationKind {
 pub unsafe extern "C" fn qk_dag_op_node_kind(dag: *const DAGCircuit, node: u32) -> COperationKind {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
-    match dag.dag()[NodeIndex::new(node as usize)]
+    match dag[NodeIndex::new(node as usize)]
         .unwrap_operation()
         .op
         .view()
@@ -1036,6 +1038,7 @@ pub unsafe extern "C" fn qk_dag_op_node_kind(dag: *const DAGCircuit, node: u32) 
         },
         OperationRef::Unitary(_) => COperationKind::Unitary,
         OperationRef::PauliProductMeasurement(_) => COperationKind::PauliProductMeasurement,
+        OperationRef::ControlFlow(_) => COperationKind::ControlFlow,
         OperationRef::Gate(_) | OperationRef::Instruction(_) | OperationRef::Operation(_) => {
             panic!("Python instances are not supported via the C API");
         }
