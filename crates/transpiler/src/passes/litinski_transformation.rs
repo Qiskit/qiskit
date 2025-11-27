@@ -19,7 +19,7 @@ use qiskit_circuit::operations::{
     Operation, OperationRef, Param, PauliProductMeasurement, PyGate, StandardGate, multiply_param,
 };
 use qiskit_circuit::packed_instruction::PackedInstruction;
-use qiskit_circuit::{Clbit, Qubit, VarsMode};
+use qiskit_circuit::{BlocksMode, Clbit, Qubit, VarsMode};
 
 use qiskit_quantum_info::clifford::Clifford;
 use qiskit_quantum_info::sparse_observable::PySparseObservable;
@@ -78,7 +78,7 @@ pub fn run_litinski_transformation(
         )));
     }
 
-    let mut new_dag = dag.copy_empty_like(VarsMode::Alike)?;
+    let mut new_dag = dag.copy_empty_like(VarsMode::Alike, BlocksMode::Keep)?;
 
     let py_evo_cls = PAULI_EVOLUTION_GATE.get_bound(py);
     let no_clbits: Vec<Clbit> = Vec::new();
