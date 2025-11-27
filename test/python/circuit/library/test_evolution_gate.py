@@ -22,6 +22,7 @@ from ddt import ddt, data, unpack
 from qiskit import transpile
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import PauliEvolutionGate, HamiltonianGate, PhaseGate, RZGate
+from qiskit.circuit.library.pauli_evolution import _merge_two_pauli_evolutions
 from qiskit.synthesis import LieTrotter, SuzukiTrotter, MatrixExponential, QDrift
 from qiskit.synthesis.evolution.product_formula import reorder_paulis
 from qiskit.converters import circuit_to_dag
@@ -829,6 +830,26 @@ class TestEvolutionGate(QiskitTestCase):
             pauli = Pauli("XYZ")  # 3 qubits
             op = SparsePauliOp(["XYIZ"], [1])  # 4 qubits
             PauliEvolutionGate([pauli, op], time=1)
+
+    @data(True, False)
+    def test_merge_two_pauli_evolutions(self, use_sparse_observable):
+        """Test merging two Pauli evolution gates."""
+        obs_cls = SparseObservable if use_sparse_observable else SparsePauliOp
+        with self.subTest("identical"):
+            gate1 = PauliEvolutionGate(obs_cls("XY"))
+            gate2 = PauliEvolutionGate(obs_cls("XY"))
+            merged = _merge_two_pauli_evolutions(gate1, gate2)
+            self.assertIsNotNone(merged)
+        with self.subTest("different"):
+            gate1 = PauliEvolutionGate(obs_cls("XY"))
+            gate2 = PauliEvolutionGate(obs_cls("YX"))
+            merged = _merge_two_pauli_evolutions(gate1, gate2)
+            self.assertIsNone(merged)
+        with self.subTest("identical after canonicalization"):
+            gate1 = PauliEvolutionGate(obs_cls("X") + obs_cls("Z"))
+            gate2 = PauliEvolutionGate(obs_cls("Z") + obs_cls("X"))
+            merged = _merge_two_pauli_evolutions(gate1, gate2)
+            self.assertIsNotNone(merged)
 
 
 def exact_atomic_evolution(circuit, pauli, time):
