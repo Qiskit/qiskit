@@ -6878,8 +6878,8 @@ impl DAGCircuit {
     /// * var_map: A mapping from the replacement DAGCircuit variables to the replaced node's variables.
     ///   Note: Inferring variable mapping automatically is currently not implemented.
     /// * block_map: A mapping from the replacement DAGCircuit block IDs to the block IDs of this
-    ///   DAGCircuit. If None, the replacement DAG is assumed to use the same block IDs as this DAG,
-    ///   and must have the same number of blocks.
+    ///   DAGCircuit. If None, and the replacement DAG has at least one block, the replacement DAG
+    ///   is assumed to use the same block IDs as this DAG, and must have the same number of blocks.
     ///
     /// # Returns
     ///
