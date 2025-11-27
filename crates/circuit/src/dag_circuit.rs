@@ -25,7 +25,7 @@ use crate::bit_locator::BitLocator;
 use crate::circuit_data::{CircuitData, CircuitIdentifierInfo, CircuitStretchType, CircuitVarType};
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::classical::expr;
-use crate::converters::{QuantumCircuitData, circuit_to_dag};
+use crate::converters::{QuantumCircuitData, dag_to_circuit};
 use crate::dag_node::{DAGInNode, DAGNode, DAGOpNode, DAGOutNode};
 use crate::dot_utils::build_dot;
 use crate::error::DAGCircuitError;
@@ -1482,15 +1482,16 @@ impl DAGCircuit {
                     .collect(),
             );
             let params = match py_op.params {
-                Some(Parameters::Blocks(circuits)) => Python::attach(|py| -> PyResult<_> {
+                Some(Parameters::Blocks(circuits)) => {
                     let mut blocks = Vec::with_capacity(circuits.len());
                     for circuit in circuits {
-                        let dag = circuit_to_dag(circuit.extract(py)?, false, None, None)?;
+                        let dag =
+                            DAGCircuit::from_circuit_data(&circuit, false, None, None, None, None)?;
                         blocks.push(Block(self.blocks.len() as u32));
                         self.blocks.push(dag);
                     }
-                    Ok(Some(Box::new(Parameters::Blocks(blocks))))
-                })?,
+                    Some(Box::new(Parameters::Blocks(blocks)))
+                }
                 Some(Parameters::Params(params)) => Some(Box::new(Parameters::Params(params))),
                 None => None,
             };
@@ -1557,15 +1558,16 @@ impl DAGCircuit {
                     .collect(),
             );
             let params = match py_op.params {
-                Some(Parameters::Blocks(circuits)) => Python::attach(|py| -> PyResult<_> {
+                Some(Parameters::Blocks(circuits)) => {
                     let mut blocks = Vec::with_capacity(circuits.len());
                     for circuit in circuits {
-                        let dag = circuit_to_dag(circuit.extract(py)?, false, None, None)?;
+                        let dag =
+                            DAGCircuit::from_circuit_data(&circuit, false, None, None, None, None)?;
                         blocks.push(Block(self.blocks.len() as u32));
                         self.blocks.push(dag);
                     }
-                    Ok(Some(Box::new(Parameters::Blocks(blocks))))
-                })?,
+                    Some(Box::new(Parameters::Blocks(blocks)))
+                }
                 Some(Parameters::Params(params)) => Some(Box::new(Parameters::Params(params))),
                 None => None,
             };
@@ -1966,7 +1968,7 @@ impl DAGCircuit {
         weak_components
     }
 
-    fn __eq__(&self, py: Python, other: &DAGCircuit) -> PyResult<bool> {
+    pub fn __eq__(&self, py: Python, other: &DAGCircuit) -> PyResult<bool> {
         fn eq_inner(
             py: Python,
             slf: &DAGCircuit,
@@ -2352,15 +2354,10 @@ impl DAGCircuit {
                                                 .call1((Uuid::new_v4().to_string(),))?;
                                             let mut body_a_circuit =
                                                 converters::dag_to_circuit(body_a, false)?;
-                                            if body_a_circuit
-                                                .get_parameters(py)?
-                                                .contains(loop_param_a)?
-                                            {
+                                            if body_a_circuit.parameters().contains(loop_param_a) {
                                                 body_a_circuit.assign_parameters_from_mapping([
                                                     (
-                                                        ParameterUuid::from_parameter(
-                                                            loop_param_a.bind(py),
-                                                        )?,
+                                                        ParameterUuid::from_symbol(loop_param_a),
                                                         Param::ParameterExpression(Arc::new(
                                                             ParameterExpression::from_symbol(
                                                                 sentinel.clone().extract()?,
@@ -2369,31 +2366,21 @@ impl DAGCircuit {
                                                     ),
                                                 ])?;
                                             }
-                                            let body_a = DAGCircuit::from_circuit(
-                                                QuantumCircuitData {
-                                                    data: body_a_circuit,
-                                                    name: body_a.name.clone(),
-                                                    metadata: body_a
-                                                        .metadata
-                                                        .as_ref()
-                                                        .map(|m| m.bind(py).clone()),
-                                                },
+                                            let body_a = DAGCircuit::from_circuit_data(
+                                                &body_a_circuit,
                                                 false,
+                                                None,
+                                                None,
                                                 None,
                                                 None,
                                             )?;
 
                                             let mut body_b_circuit =
                                                 converters::dag_to_circuit(body_b, false)?;
-                                            if body_b_circuit
-                                                .get_parameters(py)?
-                                                .contains(loop_param_b)?
-                                            {
+                                            if body_b_circuit.parameters().contains(loop_param_b) {
                                                 body_b_circuit.assign_parameters_from_mapping([
                                                     (
-                                                        ParameterUuid::from_parameter(
-                                                            loop_param_b.bind(py),
-                                                        )?,
+                                                        ParameterUuid::from_symbol(loop_param_b),
                                                         Param::ParameterExpression(Arc::new(
                                                             ParameterExpression::from_symbol(
                                                                 sentinel.clone().extract()?,
@@ -2402,16 +2389,11 @@ impl DAGCircuit {
                                                     ),
                                                 ])?;
                                             }
-                                            let body_b = DAGCircuit::from_circuit(
-                                                QuantumCircuitData {
-                                                    data: body_b_circuit,
-                                                    name: body_b.name.clone(),
-                                                    metadata: body_b
-                                                        .metadata
-                                                        .as_ref()
-                                                        .map(|m| m.bind(py).clone()),
-                                                },
+                                            let body_b = DAGCircuit::from_circuit_data(
+                                                &body_b_circuit,
                                                 false,
+                                                None,
+                                                None,
                                                 None,
                                                 None,
                                             )?;
@@ -3042,18 +3024,15 @@ impl DAGCircuit {
         let block_ids: Vec<_> = node_block.iter().map(|n| n.node.unwrap()).collect();
         let py_op = op.extract::<OperationFromPython>()?;
         let params = match py_op.params {
-            Some(Parameters::Blocks(circuits)) => Python::attach(|py| -> PyResult<_> {
+            Some(Parameters::Blocks(circuits)) => {
                 let mut blocks = Vec::with_capacity(circuits.len());
                 for circuit in circuits {
-                    blocks.push(self.add_block(circuit_to_dag(
-                        circuit.extract(py)?,
-                        false,
-                        None,
-                        None,
-                    )?));
+                    let dag =
+                        DAGCircuit::from_circuit_data(&circuit, false, None, None, None, None)?;
+                    blocks.push(self.add_block(dag));
                 }
-                Ok(Some(Parameters::Blocks(blocks)))
-            })?,
+                Some(Parameters::Blocks(blocks))
+            }
             Some(Parameters::Params(params)) => Some(Parameters::Params(params)),
             None => None,
         };
@@ -3390,7 +3369,6 @@ impl DAGCircuit {
         let node_index = node.as_ref().node.unwrap();
         self.substitute_node_with_py_op(node_index, op)?;
         if inplace {
-            let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
             let PackedInstruction {
                 params,
                 label,
@@ -3405,7 +3383,7 @@ impl DAGCircuit {
                     let mut unpacked_blocks = Vec::new();
                     for block in blocks {
                         let dag = &self.blocks[block.index()];
-                        let block = dag_to_circuit.call1((dag.clone(),))?.unbind();
+                        let block = dag_to_circuit(dag, false)?;
                         unpacked_blocks.push(block);
                     }
                     Some(Parameters::Blocks(unpacked_blocks))
@@ -5079,55 +5057,7 @@ impl DAGCircuit {
         &'a self,
         instr: &'a PackedInstruction,
     ) -> Option<ControlFlowView<'a, DAGCircuit>> {
-        let OperationRef::ControlFlow(control) = instr.op.view() else {
-            return None;
-        };
-        Some(match &control.control_flow {
-            ControlFlow::Box { duration, .. } => ControlFlowView::Box(
-                duration.as_ref(),
-                self.blocks.get(instr.blocks_view()[0].index()).unwrap(),
-            ),
-            ControlFlow::BreakLoop => ControlFlowView::BreakLoop,
-            ControlFlow::ContinueLoop => ControlFlowView::ContinueLoop,
-            ControlFlow::ForLoop {
-                indexset,
-                loop_param,
-                ..
-            } => ControlFlowView::ForLoop {
-                indexset: indexset.as_slice(),
-                loop_param: loop_param.as_ref(),
-                body: self.blocks.get(instr.blocks_view()[0].index()).unwrap(),
-            },
-            ControlFlow::IfElse { condition, .. } => ControlFlowView::IfElse {
-                condition,
-                true_body: self.blocks.get(instr.blocks_view()[0].index()).unwrap(),
-                false_body: instr
-                    .blocks_view()
-                    .get(1)
-                    .map(|b| self.blocks.get(b.index()).unwrap()),
-            },
-            ControlFlow::Switch {
-                target, label_spec, ..
-            } => {
-                let cases_specifier = label_spec
-                    .iter()
-                    .zip(
-                        instr
-                            .blocks_view()
-                            .iter()
-                            .map(|case| self.blocks.get(case.index()).unwrap()),
-                    )
-                    .collect();
-                ControlFlowView::Switch {
-                    target,
-                    cases_specifier,
-                }
-            }
-            ControlFlow::While { condition, .. } => ControlFlowView::While {
-                condition,
-                body: self.blocks.get(instr.blocks_view()[0].index()).unwrap(),
-            },
-        })
+        ControlFlowView::try_view(instr, &self.blocks)
     }
 
     /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into an
@@ -5150,13 +5080,12 @@ impl DAGCircuit {
                 return Ok(ob.clone_ref(py));
             }
         }
-        let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
         let params = match instr.params.as_deref() {
             Some(Parameters::Blocks(blocks)) => {
                 let mut unpacked_blocks = Vec::new();
                 for block in blocks {
                     let dag = &self.blocks[block.index()];
-                    let block = dag_to_circuit.call1((dag.clone(),))?.unbind();
+                    let block = dag_to_circuit(dag, false)?;
                     unpacked_blocks.push(block);
                 }
                 Some(Parameters::Blocks(unpacked_blocks))
@@ -6692,15 +6621,16 @@ impl DAGCircuit {
                     .collect(),
             );
             let params = match &op_node.instruction.params {
-                Some(Parameters::Blocks(circuits)) => Python::attach(|py| -> PyResult<_> {
+                Some(Parameters::Blocks(circuits)) => {
                     let mut blocks = Vec::with_capacity(circuits.len());
                     for circuit in circuits {
-                        let dag = circuit_to_dag(circuit.extract(py)?, false, None, None)?;
+                        let dag =
+                            DAGCircuit::from_circuit_data(circuit, false, None, None, None, None)?;
                         blocks.push(Block(self.blocks.len() as u32));
                         self.blocks.push(dag);
                     }
-                    Ok(Some(Box::new(Parameters::Blocks(blocks))))
-                })?,
+                    Some(Box::new(Parameters::Blocks(blocks)))
+                }
                 Some(Parameters::Params(params)) => {
                     Some(Box::new(Parameters::Params(params.clone())))
                 }
@@ -6746,13 +6676,12 @@ impl DAGCircuit {
             NodeType::Operation(packed) => {
                 let qubits = self.qargs_interner.get(packed.qubits);
                 let clbits = self.cargs_interner.get(packed.clbits);
-                let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
                 let params = match packed.params.as_deref() {
                     Some(Parameters::Blocks(blocks)) => {
                         let mut circuits = Vec::new();
                         for block in blocks {
                             let dag = &self.blocks[block.index()];
-                            let circuit = dag_to_circuit.call1((dag.clone(),))?.unbind();
+                            let circuit = dag_to_circuit(dag, false)?;
                             circuits.push(circuit);
                         }
                         Some(Parameters::Blocks(circuits))
@@ -7905,14 +7834,9 @@ impl DAGCircuit {
         new_dag.blocks = {
             let circuits = qc_data.iter_blocks();
             let mut dags = Vec::with_capacity(circuits.len());
-            if circuits.len() > 0 {
-                Python::attach(|py| -> PyResult<()> {
-                    for block in circuits {
-                        let dag = circuit_to_dag(block.extract(py)?, copy_op, None, None)?;
-                        dags.push(dag);
-                    }
-                    Ok(())
-                })?
+            for block in circuits {
+                let dag = DAGCircuit::from_circuit_data(block, copy_op, None, None, None, None)?;
+                dags.push(dag);
             }
             dags
         };
@@ -8422,15 +8346,16 @@ impl DAGCircuit {
         }
 
         let params = match new_op.params {
-            Some(Parameters::Blocks(circuits)) => Python::attach(|py| -> PyResult<_> {
+            Some(Parameters::Blocks(circuits)) => {
                 let mut blocks = Vec::with_capacity(circuits.len());
                 for circuit in circuits {
-                    let dag = circuit_to_dag(circuit.extract(py)?, false, None, None)?;
+                    let dag =
+                        DAGCircuit::from_circuit_data(&circuit, false, None, None, None, None)?;
                     blocks.push(Block(self.blocks.len() as u32));
                     self.blocks.push(dag);
                 }
-                Ok(Some(Box::new(Parameters::Blocks(blocks))))
-            })?,
+                Some(Box::new(Parameters::Blocks(blocks)))
+            }
             Some(Parameters::Params(params)) => Some(Box::new(Parameters::Params(params))),
             None => None,
         };

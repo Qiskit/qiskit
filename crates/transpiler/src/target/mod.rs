@@ -49,6 +49,7 @@ use qiskit_circuit::packed_instruction::PackedOperation;
 
 use crate::TranspilerError;
 use bounds::AngleBound;
+use qiskit_circuit::circuit_data::CircuitData;
 
 // Custom types
 type GateMap = IndexMap<String, PropsMap, RandomState>;
@@ -76,7 +77,7 @@ impl TargetOperation {
     /// Creates a [TargetOperation] from an instance of [PackedOperation]
     pub fn from_packed_operation(
         operation: PackedOperation,
-        params: Option<Parameters<Py<PyAny>>>,
+        params: Option<Parameters<CircuitData>>,
     ) -> Self {
         NormalOperation::from_packed_operation(operation, params).into()
     }
@@ -93,7 +94,7 @@ impl From<NormalOperation> for TargetOperation {
 #[derive(Debug)]
 pub struct NormalOperation {
     pub operation: PackedOperation,
-    pub params: Option<Parameters<Py<PyAny>>>,
+    pub params: Option<Parameters<CircuitData>>,
     op_object: OnceLock<PyResult<Py<PyAny>>>,
 }
 
@@ -101,7 +102,7 @@ impl NormalOperation {
     /// Creates a of [TargetOperation] from an instance of [PackedOperation]
     pub fn from_packed_operation(
         operation: PackedOperation,
-        params: Option<Parameters<Py<PyAny>>>,
+        params: Option<Parameters<CircuitData>>,
     ) -> Self {
         Self {
             operation,
@@ -116,7 +117,7 @@ impl Instruction for NormalOperation {
         self.operation.view()
     }
 
-    fn parameters(&self) -> Option<&Parameters<Py<PyAny>>> {
+    fn parameters(&self) -> Option<&Parameters<CircuitData>> {
         self.params.as_ref()
     }
 
@@ -946,7 +947,7 @@ impl Target {
     pub fn add_instruction(
         &mut self,
         operation: PackedOperation,
-        params: Option<Parameters<Py<PyAny>>>,
+        params: Option<Parameters<CircuitData>>,
         name: Option<&str>,
         props_map: Option<PropsMap>,
     ) -> Result<(), TargetError> {
