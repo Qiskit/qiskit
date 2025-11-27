@@ -18,12 +18,13 @@ use crate::exit_codes::{CInputError, ExitCode};
 use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
 use indexmap::IndexMap;
 use qiskit_circuit::PhysicalQubit;
+use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::StandardInstruction;
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::Symbol;
-use qiskit_transpiler::target::{InstructionProperties, Qargs, Target};
+use qiskit_transpiler::target::{InstructionProperties, Qargs, Target, TargetOperation};
 use smallvec::{SmallVec, smallvec};
 
 /// @ingroup QkTarget
@@ -837,7 +838,7 @@ pub unsafe extern "C" fn qk_target_add_instruction(
 
     match target.add_instruction(
         instruction.into(),
-        &entry.params.unwrap_or_default(),
+        entry.params.map(Parameters::Params),
         entry.name.as_deref(),
         property_map,
     ) {
@@ -1005,6 +1006,10 @@ pub unsafe extern "C" fn qk_target_instruction_supported(
     let Some(operation) = target.operation_from_name(name) else {
         return false;
     };
+    let num_params = match operation {
+        TargetOperation::Variadic(_) => 0,
+        TargetOperation::Normal(op) => op.params.as_ref().map(|p| p.len()).unwrap_or(0),
+    };
 
     // SAFETY: Per documentation, the params argument points to an appropriately allocated
     // array of valid pointers to `QkParam` objects.
@@ -1012,7 +1017,7 @@ pub unsafe extern "C" fn qk_target_instruction_supported(
         Vec::with_capacity(0)
     } else {
         unsafe {
-            std::slice::from_raw_parts(params, operation.params().len())
+            std::slice::from_raw_parts(params, num_params)
                 .iter()
                 .map(|param| const_ptr_as_ref(*param).clone())
                 .collect()
