@@ -213,16 +213,14 @@ fn commute(
 
     let op1 = inst1.op.view();
     let op2 = inst2.op.view();
-    let params1 = inst1.params_view();
-    let params2 = inst2.params_view();
 
     Ok(commutation_checker.commute(
         &op1,
-        params1,
+        inst1.params.as_deref(),
         qargs1,
         cargs1,
         &op2,
-        params2,
+        inst2.params.as_deref(),
         qargs2,
         cargs2,
         u32::MAX,
