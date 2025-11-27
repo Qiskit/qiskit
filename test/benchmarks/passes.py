@@ -19,6 +19,10 @@ from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as SEL
 from qiskit.transpiler.passes import *
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import CXGate
+from qiskit.synthesis import synth_qft_full
+from qiskit.transpiler import Target
+from qiskit.compiler import transpile
+from qiskit.quantum_info import get_clifford_gate_names
 from .utils import random_circuit
 
 
@@ -188,3 +192,24 @@ class MultiQBlockPassBenchmarks:
 
     def time_collect_multiq_block(self, _, __, max_block_size):
         CollectMultiQBlocks(max_block_size).run(self.dag)
+
+
+class LitinskiTransformationPassBenchmarks:
+    params = [5, 10, 100, 1000]
+
+    param_names = ["n_qubits"]
+    timeout = 300
+
+    def setup(self, n_qubits):
+        target = Target.from_configuration(["rz"] + get_clifford_gate_names(), n_qubits)
+        qft = synth_qft_full(n_qubits, do_swaps=False)
+        tqft = transpile(qft, target=target, seed_transpiler=0)
+        self.dag = circuit_to_dag(tqft)
+
+    def time_litinski_transformation_fix_clifford(self, _):
+        _pass = LitinskiTransformation(fix_clifford=True)
+        _pass.run(self.dag)
+
+    def time_litinski_transformation_no_fix_clifford(self, _):
+        _pass = LitinskiTransformation(fix_clifford=False)
+        _pass.run(self.dag)
