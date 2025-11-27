@@ -2140,18 +2140,18 @@ class TestSparseObservable(QiskitTestCase):
 
     def test_to_matrix_projectors_single(self):
         """Test to_matrix for single-qubit projector observables."""
-        I = np.array([[1, 0], [0, 1]], dtype=complex)
-        X = np.array([[0, 1], [1, 0]], dtype=complex)
-        Y = np.array([[0, -1j], [1j, 0]], dtype=complex)
-        Z = np.array([[1, 0], [0, -1]], dtype=complex)
+        x_mat = Pauli("X").to_matrix()
+        y_mat = Pauli("Y").to_matrix()
+        z_mat = Pauli("Z").to_matrix()
+        id_mat = Pauli("I").to_matrix()
 
         projector_targets = {
-            "+": (I + X) / 2,
-            "-": (I - X) / 2,
-            "0": (I + Z) / 2,
-            "1": (I - Z) / 2,
-            "r": (I + Y) / 2,
-            "l": (I - Y) / 2,
+            "+": (id_mat + x_mat) / 2,
+            "-": (id_mat - x_mat) / 2,
+            "0": (id_mat + z_mat) / 2,
+            "1": (id_mat - z_mat) / 2,
+            "r": (id_mat + y_mat) / 2,
+            "l": (id_mat - y_mat) / 2,
         }
 
         for label, target in projector_targets.items():
@@ -2165,26 +2165,26 @@ class TestSparseObservable(QiskitTestCase):
 
     def test_to_matrix_projectors_two_qubit(self):
         """Test to_matrix for tensor products of projectors."""
-        I = np.array([[1, 0], [0, 1]], dtype=complex)
-        X = np.array([[0, 1], [1, 0]], dtype=complex)
-        Y = np.array([[0, -1j], [1j, 0]], dtype=complex)
-        Z = np.array([[1, 0], [0, -1]], dtype=complex)
+        x_mat = Pauli("X").to_matrix()
+        y_mat = Pauli("Y").to_matrix()
+        z_mat = Pauli("Z").to_matrix()
+        id_mat = Pauli("I").to_matrix()
 
         proj = {
-            "+": (I + X) / 2,
-            "-": (I - X) / 2,
-            "0": (I + Z) / 2,
-            "1": (I - Z) / 2,
-            "r": (I + Y) / 2,
-            "l": (I - Y) / 2,
+            "+": (id_mat + x_mat) / 2,
+            "-": (id_mat - x_mat) / 2,
+            "0": (id_mat + z_mat) / 2,
+            "1": (id_mat - z_mat) / 2,
+            "r": (id_mat + y_mat) / 2,
+            "l": (id_mat - y_mat) / 2,
         }
 
         labels = ["0+", "1-", "r0", "l1"]
 
         for label in labels:
-            A = proj[label[0]]
-            B = proj[label[1]]
-            target = np.kron(A, B)
+            a = proj[label[0]]
+            b = proj[label[1]]
+            target = np.kron(a, b)
 
             obs = SparseObservable.from_list([(label, 1.0)])
             dense = obs.to_matrix()
@@ -2197,18 +2197,18 @@ class TestSparseObservable(QiskitTestCase):
 
     def test_to_matrix_mixed_pauli_projector(self):
         """Test to_matrix for mixed Pauli + projector terms."""
-        I = np.array([[1, 0], [0, 1]], dtype=complex)
-        X = np.array([[0, 1], [1, 0]], dtype=complex)
-        Y = np.array([[0, -1j], [1j, 0]], dtype=complex)
-        Z = np.array([[1, 0], [0, -1]], dtype=complex)
+        x_mat = Pauli("X").to_matrix()
+        y_mat = Pauli("Y").to_matrix()
+        z_mat = Pauli("Z").to_matrix()
+        id_mat = Pauli("I").to_matrix()
 
         proj = {
-            "+": (I + X) / 2,
-            "-": (I - X) / 2,
-            "0": (I + Z) / 2,
-            "1": (I - Z) / 2,
-            "r": (I + Y) / 2,
-            "l": (I - Y) / 2,
+            "+": (id_mat + x_mat) / 2,
+            "-": (id_mat - x_mat) / 2,
+            "0": (id_mat + z_mat) / 2,
+            "1": (id_mat - z_mat) / 2,
+            "r": (id_mat + y_mat) / 2,
+            "l": (id_mat - y_mat) / 2,
         }
 
         labels = ["Z0", "X+", "Yr", "1X"]
@@ -2220,22 +2220,20 @@ class TestSparseObservable(QiskitTestCase):
             a, b = label
 
             if a in ("X", "Y", "Z"):
-                A = {"X": X, "Y": Y, "Z": Z}[a]
+                a_map = {"X": x_mat, "Y": y_mat, "Z": z_mat}[a]
             else:
-                A = proj[a]
+                a_map = proj[a]
 
             if b in ("X", "Y", "Z"):
-                B = {"X": X, "Y": Y, "Z": Z}[b]
+                b_map = {"X": x_mat, "Y": y_mat, "Z": z_mat}[b]
             else:
-                B = proj[b]
-            target += coeff * np.kron(A, B)
+                b_map = proj[b]
+            target += coeff * np.kron(a_map, b_map)
 
         obs = SparseObservable.from_list(list(zip(labels, coeffs)))
 
-        # Dense
         np.testing.assert_array_equal(obs.to_matrix(), target)
 
-        # Sparse
         data, indices, indptr = obs.to_matrix(sparse=True)
         sparse_mat = csr_matrix((data, indices, indptr), shape=(4, 4)).toarray()
         np.testing.assert_array_equal(sparse_mat, target)

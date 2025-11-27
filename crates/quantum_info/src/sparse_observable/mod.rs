@@ -4823,4 +4823,41 @@ mod test {
             }
         ));
     }
+    #[test]
+    fn test_projector_matrix() {
+        // "+0" = |+><+| ⊗ |0><0|
+        // |+><+| = (I+X)/2 = [[0.5,0.5],[0.5,0.5]]
+        // |0><0| = [[1,0],[0,0]]
+        let obs = SparseObservable {
+            num_qubits: 2,
+            coeffs: vec![Complex64::new(1.0, 0.0)],
+            bit_terms: vec![BitTerm::Plus, BitTerm::Zero],
+            indices: vec![1, 0], // sorted by qubit index increasing
+            boundaries: vec![0, 2],
+        };
+
+        let data = MatrixComputationData::from_sparse_observable(&obs).unwrap();
+        let mat = SparseObservable::to_matrix_dense_inner(&data, false);
+
+        let expected = vec![
+            Complex64::new(0.5, 0.0),
+            Complex64::new(0.0, 0.0),
+            Complex64::new(0.5, 0.0),
+            Complex64::new(0.0, 0.0),
+            Complex64::new(0.0, 0.0),
+            Complex64::new(0.0, 0.0),
+            Complex64::new(0.0, 0.0),
+            Complex64::new(0.0, 0.0),
+            Complex64::new(0.5, 0.0),
+            Complex64::new(0.0, 0.0),
+            Complex64::new(0.5, 0.0),
+            Complex64::new(0.0, 0.0),
+            Complex64::new(0.0, 0.0),
+            Complex64::new(0.0, 0.0),
+            Complex64::new(0.0, 0.0),
+            Complex64::new(0.0, 0.0),
+        ];
+
+        assert_eq!(mat, expected);
+    }
 }
