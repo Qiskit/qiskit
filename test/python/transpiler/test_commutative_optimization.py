@@ -809,7 +809,9 @@ class TestCommutativeOptimization(QiskitTestCase):
         )
         expected.measure(0, 0)
 
-        # ToDo: for now, just check that CommutativeOptimization runs on the above circuit.
+        # ToDo: after the update to control-flow in #14568, there seems to be a problem
+        # with recursing into control-flow blocks. So for now, we just check that the
+        # pass runs on the circuit with for_loop.
         _ = CommutativeOptimization()(test)
         # qct = CommutativeOptimization()(test)
         # self.assertEqual(qct, expected)

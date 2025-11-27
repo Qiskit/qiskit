@@ -165,17 +165,9 @@ fn canonicalize(
     };
 
     if let Some((gate, param, phase_update)) = rotation {
-        let params = Some(Box::new(Parameters::Params(smallvec![param])));
+        let params = Some(Box::new(smallvec![param]));
         return Some((
-            PackedInstruction {
-                op: gate.into(),
-                qubits: inst.qubits,
-                clbits: Default::default(),
-                params,
-                label: None,
-                #[cfg(feature = "cache_pygates")]
-                py_op: std::sync::OnceLock::new(),
-            },
+            PackedInstruction::from_standard_gate(gate, params, inst.qubits),
             phase_update,
         ));
     }
@@ -331,13 +323,11 @@ fn try_merge(
                     Ok(None)
                 } else {
                     let instr: OperationFromPython = merge_result.extract()?;
-                    let merged_param = match instr
+                    let merged_param = instr
                         .params
                         .expect("PauliEvolution gate contains a parameter")
-                    {
-                        Parameters::Params(p) => p[0].clone(),
-                        _ => unreachable!("PauliEvolution gate contains a parameter"),
-                    };
+                        .unwrap_params()[0]
+                        .clone();
 
                     let merged_params = Some(Box::new(Parameters::Params(smallvec![merged_param])));
 
