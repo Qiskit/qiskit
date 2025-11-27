@@ -1730,11 +1730,7 @@ class MatplotlibDrawer:
                     stop_str = _get_display_name(indexset.stop)
                     # Only show step if it's not the default (1)
                     try:
-                        step_val = (
-                            indexset.step.value
-                            if hasattr(indexset.step, "value")
-                            else None
-                        )
+                        step_val = indexset.step.value if hasattr(indexset.step, "value") else None
                         if step_val is not None and step_val == 1:
                             idx_set = f"r({start_str}, {stop_str})"
                         else:
@@ -1758,11 +1754,7 @@ class MatplotlibDrawer:
                             # Already formatted as R(...)
                             idx_set = idx_set.lower()  # Convert R to r
                         else:
-                            idx_set = (
-                                "r(" + idx_set[6:-1] + ")"
-                                if len(idx_set) > 7
-                                else idx_set
-                            )
+                            idx_set = "r(" + idx_set[6:-1] + ")" if len(idx_set) > 7 else idx_set
                     else:
                         # If a tuple, show first 4 elements followed by '...'
                         idx_set = str(indexset)[1:-1].split(",")[:5]
