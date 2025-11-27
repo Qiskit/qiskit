@@ -161,7 +161,7 @@ impl SabreDAG {
             let NodeType::Operation(inst) = &dag[dag_node] else {
                 panic!("op nodes should always be of type `Operation`");
             };
-            let kind = if let Some(cf) = dag.try_view_control_flow(dag_node) {
+            let kind = if let Some(cf) = dag.try_view_control_flow(inst) {
                 InteractionKind::from_control_flow(cf)?
             } else {
                 InteractionKind::from_op(&inst.op, dag.get_qargs(inst.qubits))?

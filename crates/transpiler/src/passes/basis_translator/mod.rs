@@ -223,11 +223,11 @@ fn extract_basis(circuit: &DAGCircuit, min_qubits: usize) -> AhashIndexSet<GateI
         basis: &mut AhashIndexSet<GateIdentifier>,
         min_qubits: usize,
     ) {
-        for (node, operation) in circuit.op_nodes(true) {
+        for (_, operation) in circuit.op_nodes(true) {
             if circuit.get_qargs(operation.qubits).len() >= min_qubits {
                 basis.insert((operation.op.name().to_string(), operation.op.num_qubits()));
             }
-            if let Some(control_flow) = circuit.try_view_control_flow(node) {
+            if let Some(control_flow) = circuit.try_view_control_flow(operation) {
                 for block in control_flow.blocks() {
                     recurse_dag(block, basis, min_qubits);
                 }
@@ -252,8 +252,8 @@ fn extract_basis_target(
     qarg_mapping: Option<&HashMap<Qubit, Qubit>>,
 ) {
     let qarg_mapping = |q: &Qubit| qarg_mapping.map(|map| map[q]).unwrap_or(*q);
-    for (node, node_obj) in dag.op_nodes(true) {
-        let qargs: &[Qubit] = dag.get_qargs(node_obj.qubits);
+    for (_, node) in dag.op_nodes(true) {
+        let qargs: &[Qubit] = dag.get_qargs(node.qubits);
         if qargs.len() < min_qubits {
             continue;
         }
@@ -293,21 +293,21 @@ fn extract_basis_target(
             qargs_local_source_basis
                 .entry(qargs_from_set)
                 .and_modify(|set| {
-                    set.insert((node_obj.op.name().to_string(), node_obj.op.num_qubits()));
+                    set.insert((node.op.name().to_string(), node.op.num_qubits()));
                 })
                 .or_insert(AhashIndexSet::from_iter([(
-                    node_obj.op.name().to_string(),
-                    node_obj.op.num_qubits(),
+                    node.op.name().to_string(),
+                    node.op.num_qubits(),
                 )]));
         } else {
-            source_basis.insert((node_obj.op.name().to_string(), node_obj.op.num_qubits()));
+            source_basis.insert((node.op.name().to_string(), node.op.num_qubits()));
         }
         if let Some(control_flow) = dag.try_view_control_flow(node) {
             for block in control_flow.blocks() {
                 // Generate a mapping with the absolute indices and the local ones.
                 let qarg_mapping: HashMap<Qubit, Qubit> = dag
                     .qargs_interner()
-                    .get(node_obj.qubits)
+                    .get(node.qubits)
                     .iter()
                     .copied()
                     .zip((0..(block.num_qubits() as u32)).map(Qubit))
@@ -348,7 +348,7 @@ fn apply_translation(
         let node_carg = dag.get_cargs(node_obj.clbits);
         let qubit_set: AhashIndexSet<Qubit> = AhashIndexSet::from_iter(node_qarg.iter().copied());
         if target_basis.contains(node_obj.op.name()) || node_qarg.len() < min_qubits {
-            if let Some(control_flow) = dag.try_view_control_flow(node) {
+            if let Some(control_flow) = dag.try_view_control_flow(node_obj) {
                 let mut flow_blocks = vec![];
                 for dag_block in control_flow.blocks() {
                     let updated_dag: DAGCircuit;

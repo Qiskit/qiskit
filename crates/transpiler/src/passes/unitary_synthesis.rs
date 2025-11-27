@@ -397,8 +397,8 @@ pub fn run_unitary_synthesis(
 
     // Iterate over dag nodes and determine unitary synthesis approach
     for node in dag.topological_op_nodes()? {
-        let mut packed_instr = dag[node].unwrap_operation().clone();
-        if let Some(control_flow) = dag.try_view_control_flow(node) {
+        let packed_instr = dag[node].unwrap_operation();
+        let packed_instr = if let Some(control_flow) = dag.try_view_control_flow(packed_instr) {
             let blocks = control_flow.blocks();
             let mut new_blocks = Vec::with_capacity(blocks.len());
             for block in blocks {
@@ -422,14 +422,16 @@ pub fn run_unitary_synthesis(
                 )?;
                 new_blocks.push(out_dag.add_block(res));
             }
-            packed_instr = PackedInstruction::from_control_flow(
+            PackedInstruction::from_control_flow(
                 packed_instr.op.control_flow().clone(),
                 new_blocks,
                 packed_instr.qubits,
                 packed_instr.clbits,
                 packed_instr.label.as_deref().cloned(),
-            );
-        }
+            )
+        } else {
+            packed_instr.clone()
+        };
         if !(synth_gates.contains(packed_instr.op.name())
             && packed_instr.op.num_qubits() >= min_qubits as u32)
         {

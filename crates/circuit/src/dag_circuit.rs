@@ -1823,12 +1823,10 @@ impl DAGCircuit {
         }
 
         // Handle recursively.
-        for node in self.dag.node_indices() {
-            let Some(control_flow) = self.try_view_control_flow(node) else {
-                continue;
-            };
-
-            // TODO: should Box be skipped as it was before?
+        for control_flow in self
+            .op_nodes(false)
+            .filter_map(|(_, node)| self.try_view_control_flow(node))
+        {
             match control_flow {
                 ControlFlowView::ForLoop { indexset, body, .. } => {
                     // TODO: is this the intended logic?
@@ -1886,10 +1884,10 @@ impl DAGCircuit {
         }
         // Handle recursively.
         let mut node_lookup: HashMap<NodeIndex, usize> = HashMap::new();
-        for node_index in self.dag.node_indices() {
-            let Some(control_flow) = self.try_view_control_flow(node_index) else {
-                continue;
-            };
+        for (node_index, control_flow) in self
+            .op_nodes(false)
+            .filter_map(|(index, node)| self.try_view_control_flow(node).map(|cf| (index, cf)))
+        {
             let weight = if let ControlFlowView::ForLoop { indexset, .. } = control_flow {
                 indexset.len()
             } else {
@@ -2157,8 +2155,8 @@ impl DAGCircuit {
                             true
                         };
                         if let (Some(cf1), Some(cf2)) = (
-                            slf.try_view_control_flow_inner(inst1),
-                            other.try_view_control_flow_inner(inst2),
+                            slf.try_view_control_flow(inst1),
+                            other.try_view_control_flow(inst2),
                         ) {
                             if inst1.op.num_qubits() != inst2.op.num_qubits() {
                                 return Ok(false);
@@ -5081,19 +5079,7 @@ impl DAGCircuit {
     }
 
     /// Gets an immutable view of a control flow operation.
-    ///
-    /// Panics if `node` does not refer to an operation.
-    pub fn try_view_control_flow(
-        &self,
-        node: NodeIndex,
-    ) -> Option<ControlFlowView<'_, DAGCircuit>> {
-        let NodeType::Operation(instr) = &self.dag[node] else {
-            return None;
-        };
-        self.try_view_control_flow_inner(instr)
-    }
-
-    fn try_view_control_flow_inner<'a>(
+    pub fn try_view_control_flow<'a>(
         &'a self,
         instr: &'a PackedInstruction,
     ) -> Option<ControlFlowView<'a, DAGCircuit>> {
@@ -6422,7 +6408,7 @@ impl DAGCircuit {
         let mut clbits = Vec::new();
         let mut vars = Vec::new();
 
-        if let Some(instr) = self.try_view_control_flow_inner(instr) {
+        if let Some(instr) = self.try_view_control_flow(instr) {
             match instr {
                 ControlFlowView::IfElse { condition, .. }
                 | ControlFlowView::While { condition, .. } => match condition {
@@ -7704,7 +7690,7 @@ impl DAGCircuit {
                         .and_modify(|count| *count += value)
                         .or_insert(*value);
                 }
-                for node in dag.dag.node_indices() {
+                for (_, node) in dag.op_nodes(false) {
                     let Some(control_flow) = dag.try_view_control_flow(node) else {
                         continue;
                     };

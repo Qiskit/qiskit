@@ -89,10 +89,10 @@ fn check_gate_direction<T>(
 where
     T: Fn(&PackedInstruction, &[Qubit]) -> bool,
 {
-    for (node, packed_inst) in dag.op_nodes(false) {
+    for (_, packed_inst) in dag.op_nodes(false) {
         let inst_qargs = dag.get_qargs(packed_inst.qubits);
 
-        if let Some(control_flow) = dag.try_view_control_flow(node) {
+        if let Some(control_flow) = dag.try_view_control_flow(packed_inst) {
             for block in control_flow.blocks() {
                 let block_ok = if let Some(mapping) = qubit_mapping {
                     let mapping = inst_qargs // Create a temp mapping for the recursive call
@@ -200,7 +200,7 @@ where
     for (node, packed_inst) in dag.op_nodes(false) {
         let op_args = dag.get_qargs(packed_inst.qubits);
 
-        if let Some(control_flow) = dag.try_view_control_flow(node) {
+        if let Some(control_flow) = dag.try_view_control_flow(packed_inst) {
             let blocks = control_flow.blocks();
             let mut blocks_to_replace = Vec::with_capacity(blocks.len());
             for inner_dag in blocks {

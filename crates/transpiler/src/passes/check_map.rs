@@ -42,9 +42,9 @@ fn recurse(
         }
     };
 
-    for (node, inst) in dag.op_nodes(false) {
+    for (_, inst) in dag.op_nodes(false) {
         let qubits = dag.get_qargs(inst.qubits);
-        if let Some(control_flow) = dag.try_view_control_flow(node) {
+        if let Some(control_flow) = dag.try_view_control_flow(inst) {
             for block in control_flow.blocks() {
                 let wire_map = (0..block.num_qubits())
                     .map(|inner| {

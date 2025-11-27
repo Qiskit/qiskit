@@ -362,8 +362,8 @@ fn build_interaction_graph<Ty: EdgeType>(
     im_graph_node_map: &mut [Option<NodeIndex>],
     reverse_im_graph_node_map: &mut [Option<Qubit>],
 ) -> PyResult<()> {
-    for (index, inst) in dag.op_nodes(false) {
-        if let Some(control_flow) = dag.try_view_control_flow(index) {
+    for (_, inst) in dag.op_nodes(false) {
+        if let Some(control_flow) = dag.try_view_control_flow(inst) {
             for block in control_flow.blocks() {
                 let mut inner_wire_map = vec![Qubit(u32::MAX); wire_map.len()];
                 let node_qargs = dag.get_qargs(inst.qubits);
