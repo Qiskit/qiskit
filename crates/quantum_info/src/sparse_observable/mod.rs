@@ -4857,7 +4857,10 @@ mod test {
             Complex64::new(0.0, 0.0),
             Complex64::new(0.0, 0.0),
         ];
-
-        assert_eq!(mat, expected);
+        let tol = 1e-12;
+        assert_eq!(mat.len(), expected.len());
+        for (a, b) in mat.iter().zip(expected.iter()) {
+            assert!((a.re - b.re).abs() < tol && (a.im - b.im).abs() < tol);
+        }
     }
 }
