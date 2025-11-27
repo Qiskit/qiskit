@@ -515,11 +515,11 @@ impl PackedOperation {
                     ControlFlow::Box { .. } => {
                         BOX_OP.get_bound(py).cast::<PyType>()?.is_subclass(py_type)
                     }
-                    ControlFlow::BreakLoop { .. } => BREAK_LOOP_OP
+                    ControlFlow::BreakLoop => BREAK_LOOP_OP
                         .get_bound(py)
                         .cast::<PyType>()?
                         .is_subclass(py_type),
-                    ControlFlow::ContinueLoop { .. } => CONTINUE_LOOP_OP
+                    ControlFlow::ContinueLoop => CONTINUE_LOOP_OP
                         .get_bound(py)
                         .cast::<PyType>()?
                         .is_subclass(py_type),

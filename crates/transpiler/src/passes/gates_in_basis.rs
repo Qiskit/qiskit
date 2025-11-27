@@ -45,11 +45,7 @@ pub fn gates_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<
         if !target.instruction_supported(
             gate.op.name(),
             &qargs_mapped,
-            gate.op
-                .try_control_flow()
-                .is_none()
-                .then_some(gate.params_view())
-                .unwrap_or_default(),
+            gate.params_view(),
             !gate.is_parameterized() && gate.op.try_control_flow().is_none(),
         ) {
             return Ok(true);

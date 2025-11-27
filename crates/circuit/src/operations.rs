@@ -430,11 +430,11 @@ impl ControlFlowInstruction {
                 }
                 _ => Ok(false),
             },
-            ControlFlow::BreakLoop {} => match &other.control_flow {
+            ControlFlow::BreakLoop => match &other.control_flow {
                 ControlFlow::BreakLoop => Ok(true),
                 _ => Ok(false),
             },
-            ControlFlow::ContinueLoop {} => match &other.control_flow {
+            ControlFlow::ContinueLoop => match &other.control_flow {
                 ControlFlow::ContinueLoop => Ok(true),
                 _ => Ok(false),
             },
@@ -572,8 +572,8 @@ impl Operation for ControlFlowInstruction {
     fn name(&self) -> &str {
         match &self.control_flow {
             ControlFlow::Box { .. } => "box",
-            ControlFlow::BreakLoop { .. } => "break_loop",
-            ControlFlow::ContinueLoop { .. } => "continue_loop",
+            ControlFlow::BreakLoop => "break_loop",
+            ControlFlow::ContinueLoop => "continue_loop",
             ControlFlow::ForLoop { .. } => "for_loop",
             ControlFlow::IfElse { .. } => "if_else",
             ControlFlow::Switch { .. } => "switch_case",
@@ -592,8 +592,8 @@ impl Operation for ControlFlowInstruction {
     fn num_params(&self) -> u32 {
         match &self.control_flow {
             ControlFlow::Box { .. } => 1,
-            ControlFlow::BreakLoop { .. } => 0,
-            ControlFlow::ContinueLoop { .. } => 0,
+            ControlFlow::BreakLoop => 0,
+            ControlFlow::ContinueLoop => 0,
             ControlFlow::ForLoop { .. } => 3,
             ControlFlow::IfElse { .. } => 2,
             ControlFlow::Switch { cases, .. } => *cases,
