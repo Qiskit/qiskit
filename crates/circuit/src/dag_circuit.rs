@@ -2574,29 +2574,25 @@ impl DAGCircuit {
                                 // This typically only happens if we have a ControlledGate in Python
                                 // and we have mutable state set.
                                 [OperationRef::StandardGate(_), OperationRef::Gate(op2)] => {
-                                    Ok(slf.unpack_py_op_inner(py, inst1)?.bind(py).eq(&op2.gate)?
+                                    Ok(slf.unpack_py_op(py, inst1)?.bind(py).eq(&op2.gate)?
                                         && check_args())
                                 }
                                 [OperationRef::Gate(op1), OperationRef::StandardGate(_)] => {
-                                    Ok(other
-                                        .unpack_py_op_inner(py, inst2)?
-                                        .bind(py)
-                                        .eq(&op1.gate)?
+                                    Ok(other.unpack_py_op(py, inst2)?.bind(py).eq(&op1.gate)?
                                         && check_args())
                                 }
                                 [
                                     OperationRef::StandardInstruction(_),
                                     OperationRef::Instruction(op2),
-                                ] => Ok(slf
-                                    .unpack_py_op_inner(py, inst1)?
-                                    .bind(py)
-                                    .eq(&op2.instruction)?
-                                    && check_args()),
+                                ] => {
+                                    Ok(slf.unpack_py_op(py, inst1)?.bind(py).eq(&op2.instruction)?
+                                        && check_args())
+                                }
                                 [
                                     OperationRef::Instruction(op1),
                                     OperationRef::StandardInstruction(_),
                                 ] => Ok(other
-                                    .unpack_py_op_inner(py, inst2)?
+                                    .unpack_py_op(py, inst2)?
                                     .bind(py)
                                     .eq(&op1.instruction)?
                                     && check_args()),
@@ -5143,13 +5139,7 @@ impl DAGCircuit {
     /// and condition will not be propagated back.
     ///
     /// Panics if `node` does not refer to an operation.
-    #[inline]
-    pub fn unpack_py_op(&self, py: Python, node: NodeIndex) -> PyResult<Py<PyAny>> {
-        let instr = self.dag[node].unwrap_operation();
-        self.unpack_py_op_inner(py, instr)
-    }
-
-    fn unpack_py_op_inner(&self, py: Python, instr: &PackedInstruction) -> PyResult<Py<PyAny>> {
+    pub fn unpack_py_op(&self, py: Python, instr: &PackedInstruction) -> PyResult<Py<PyAny>> {
         // `OnceLock::get_or_init` and the non-stabilised `get_or_try_init`, which would otherwise
         // be nice here are both non-reentrant.  This is a problem if the init yields control to the
         // Python interpreter as this one does, since that can allow CPython to freeze the thread
