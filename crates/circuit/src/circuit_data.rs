@@ -2320,36 +2320,9 @@ impl CircuitData {
             Parameters::Blocks(_) => {
                 let cf = ControlFlowView::<CircuitData>::try_view(instr, &self.blocks)
                     .expect("instructions that have blocks are control flow");
-                let blocks: Vec<_> = cf.blocks().into_iter().cloned().collect();
-                if let ControlFlowView::ForLoop { loop_param, .. } = &cf {
-                    // The loop param is technically a parameter in Python land, stored at
-                    // argument position 1.
-                    if let Some(loop_param) = loop_param {
-                        self.param_table.track(
-                            loop_param,
-                            Some(ParameterUse::Index {
-                                instruction: instruction_index,
-                                parameter: 1,
-                            }),
-                        )?;
-                    }
-                    let usage = ParameterUse::Index {
-                        instruction: instruction_index,
-                        parameter: 2,
-                    };
-                    for symbol in blocks[0].parameters() {
-                        self.param_table.track(symbol, Some(usage))?;
-                    }
-                }
-                for (idx, case) in blocks.iter().enumerate() {
-                    let usage = ParameterUse::Index {
-                        instruction: instruction_index,
-                        parameter: idx as u32,
-                    };
-                    for symbol in case.parameters() {
-                        self.param_table.track(symbol, Some(usage))?;
-                    }
-                }
+                for_each_symbol_use_control_flow(instruction_index, cf, |symbol, usage| {
+                    self.param_table.track(symbol, Some(usage)).map(|_| ())
+                })?;
             }
         }
         Ok(())
@@ -2380,37 +2353,9 @@ impl CircuitData {
             Parameters::Blocks(_) => {
                 let cf = ControlFlowView::<CircuitData>::try_view(instr, &self.blocks)
                     .expect("instructions that have blocks are control flow");
-                let blocks: Vec<_> = cf.blocks().into_iter().cloned().collect();
-                if let ControlFlowView::ForLoop { loop_param, .. } = &cf {
-                    // The loop param is technically a parameter in Python land, stored at
-                    // argument position 1.
-                    if let Some(loop_param) = loop_param {
-                        self.param_table.untrack(
-                            loop_param,
-                            ParameterUse::Index {
-                                instruction: instruction_index,
-                                parameter: 1,
-                            },
-                        )?;
-                    }
-                    let usage = ParameterUse::Index {
-                        instruction: instruction_index,
-                        parameter: 2,
-                    };
-                    for symbol in blocks[0].parameters() {
-                        self.param_table.untrack(symbol, usage)?;
-                    }
-                } else {
-                    for (idx, case) in blocks.iter().enumerate() {
-                        let usage = ParameterUse::Index {
-                            instruction: instruction_index,
-                            parameter: idx as u32,
-                        };
-                        for symbol in case.parameters() {
-                            self.param_table.untrack(symbol, usage)?;
-                        }
-                    }
-                }
+                for_each_symbol_use_control_flow(instruction_index, cf, |symbol, usage| {
+                    self.param_table.untrack(symbol, usage).map(|_| ())
+                })?;
             }
         }
         Ok(())
@@ -3434,4 +3379,57 @@ where
         };
         Err(CircuitError::new_err(err_message))
     }
+}
+
+/// Perform an action for each `ParameterUse` of a `Symbol` within a control-flow view object.
+fn for_each_symbol_use_control_flow<F, E>(
+    index: usize,
+    cf: ControlFlowView<CircuitData>,
+    mut action: F,
+) -> Result<(), E>
+where
+    F: FnMut(&Symbol, ParameterUse) -> Result<(), E>,
+{
+    match cf {
+        ControlFlowView::ForLoop {
+            loop_param, body, ..
+        } => {
+            // The loop param is technically a parameter in Python land, stored at
+            // argument position 1.
+            if let Some(loop_param) = loop_param {
+                action(
+                    loop_param,
+                    ParameterUse::Index {
+                        instruction: index,
+                        parameter: 1,
+                    },
+                )?;
+            }
+            let usage = ParameterUse::Index {
+                instruction: index,
+                parameter: 2,
+            };
+            for symbol in body.parameters() {
+                action(symbol, usage)?;
+            }
+        }
+        // For all of these, the Python-space "params" are exactly the list of blocks.
+        ControlFlowView::While { .. }
+        | ControlFlowView::Switch { .. }
+        | ControlFlowView::IfElse { .. }
+        | ControlFlowView::Box { .. }
+        | ControlFlowView::ContinueLoop
+        | ControlFlowView::BreakLoop => {
+            for (idx, case) in cf.blocks().iter().enumerate() {
+                let usage = ParameterUse::Index {
+                    instruction: index,
+                    parameter: idx as u32,
+                };
+                for symbol in case.parameters() {
+                    action(symbol, usage)?;
+                }
+            }
+        }
+    }
+    Ok(())
 }
