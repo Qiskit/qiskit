@@ -165,9 +165,17 @@ fn canonicalize(
     };
 
     if let Some((gate, param, phase_update)) = rotation {
-        let params = Some(Box::new(smallvec![param]));
+        let params = Some(Box::new(Parameters::Params(smallvec![param])));
         return Some((
-            PackedInstruction::from_standard_gate(gate, params, inst.qubits),
+            PackedInstruction {
+                op: gate.into(),
+                qubits: inst.qubits,
+                clbits: Default::default(),
+                params,
+                label: None,
+                #[cfg(feature = "cache_pygates")]
+                py_op: std::sync::OnceLock::new(),
+            },
             phase_update,
         ));
     }
@@ -179,11 +187,15 @@ fn canonicalize(
                 let mut sorted_qargs = qargs.to_vec();
                 sorted_qargs.sort();
                 let sorted_qubits = dag.add_qargs(&sorted_qargs);
-                let canonical_instruction = PackedInstruction::from_standard_gate(
-                    standard_gate,
-                    inst.params.clone(),
-                    sorted_qubits,
-                );
+                let canonical_instruction = PackedInstruction {
+                    op: standard_gate.into(),
+                    qubits: sorted_qubits,
+                    clbits: Default::default(),
+                    params: inst.params.clone(),
+                    label: None,
+                    #[cfg(feature = "cache_pygates")]
+                    py_op: std::sync::OnceLock::new(),
+                };
                 return Some((canonical_instruction, Param::Float(0.)));
             }
         }

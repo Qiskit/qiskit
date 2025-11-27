@@ -672,6 +672,10 @@ pub fn try_matrix_with_definition(
         OperationRef::StandardGate(gate) => gate.matrix(params),
         OperationRef::Unitary(unitary) => unitary.matrix(),
         OperationRef::Gate(gate) => Python::attach(|py| -> Option<_> {
+            if let Some(matrix) = gate.matrix() {
+                return Some(matrix);
+            }
+
             if matrix_from_definition_max_qubits
                 .is_some_and(|max_qubits| max_qubits < operation.num_qubits())
             {
