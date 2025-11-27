@@ -15,7 +15,7 @@ use pyo3::prelude::*;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
-use qiskit_circuit::{Qubit, VarsMode};
+use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 
 /// Run the ElidePermutations pass on `dag`.
 ///
@@ -39,7 +39,7 @@ pub fn run_elide_permutations(dag: &DAGCircuit) -> PyResult<Option<(DAGCircuit, 
     let mut mapping: Vec<usize> = (0..dag.num_qubits()).collect();
 
     // note that DAGCircuit::copy_empty_like clones the interners
-    let mut new_dag = dag.copy_empty_like(VarsMode::Alike)?;
+    let mut new_dag = dag.copy_empty_like_with_capacity(0, 0, VarsMode::Alike, BlocksMode::Keep)?;
     for node_index in dag.topological_op_nodes()? {
         if let NodeType::Operation(inst) = &dag[node_index] {
             match inst.op.view() {
@@ -51,9 +51,11 @@ pub fn run_elide_permutations(dag: &DAGCircuit) -> PyResult<Option<(DAGCircuit, 
                 }
                 OperationRef::Gate(gate) if gate.name() == "permutation" => {
                     Python::attach(|py| -> PyResult<()> {
-                        if let Param::Obj(ref pyobj) = inst.params.as_ref().unwrap()[0] {
+                        let params = inst.params_view();
+                        if let Param::Obj(ref pyobj) = params[0] {
                             let pyarray: PyReadonlyArray1<i32> = pyobj.extract(py)?;
                             let pattern = pyarray.as_array();
+
                             let qindices: Vec<usize> = dag
                                 .get_qargs(inst.qubits)
                                 .iter()

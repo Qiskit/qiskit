@@ -18,11 +18,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-python@v6
+        # This version needs to be large enough to support Qiskit on `main`, and old enough to
+        # support the oldest version of Symengine we test against.
         with:
-          python-version: '3.9'
+          python-version: '3.10'
 
       - uses: dtolnay/rust-toolchain@stable
 

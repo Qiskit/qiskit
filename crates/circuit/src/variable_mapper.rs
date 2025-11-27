@@ -12,57 +12,13 @@
 
 use crate::bit::{ClassicalRegister, Register, ShareableClbit};
 use crate::classical::expr;
+use crate::operations::{Condition, SwitchTarget};
 use hashbrown::{HashMap, HashSet};
+use num_bigint::BigUint;
+use num_traits::Num;
+use pyo3::PyResult;
 use pyo3::prelude::*;
 use std::cell::RefCell;
-
-/// A control flow operation's condition.
-///
-/// TODO: move this to control flow mod once that's in Rust.
-#[derive(IntoPyObject)]
-pub(crate) enum Condition {
-    Bit(ShareableClbit, usize),
-    Register(ClassicalRegister, usize),
-    Expr(expr::Expr),
-}
-
-impl<'a, 'py> FromPyObject<'a, 'py> for Condition {
-    type Error = <expr::Expr as FromPyObject<'a, 'py>>::Error;
-
-    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
-        if let Ok((bit, value)) = ob.extract::<(ShareableClbit, usize)>() {
-            Ok(Condition::Bit(bit, value))
-        } else if let Ok((register, value)) = ob.extract::<(ClassicalRegister, usize)>() {
-            Ok(Condition::Register(register, value))
-        } else {
-            Ok(Condition::Expr(ob.extract()?))
-        }
-    }
-}
-
-/// A control flow operation's target.
-///
-/// TODO: move this to control flow mod once that's in Rust.
-#[derive(IntoPyObject)]
-pub(crate) enum SwitchTarget {
-    Bit(ShareableClbit),
-    Register(ClassicalRegister),
-    Expr(expr::Expr),
-}
-
-impl<'a, 'py> FromPyObject<'a, 'py> for SwitchTarget {
-    type Error = <expr::Expr as FromPyObject<'a, 'py>>::Error;
-
-    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
-        if let Ok(bit) = ob.extract::<ShareableClbit>() {
-            Ok(SwitchTarget::Bit(bit))
-        } else if let Ok(register) = ob.extract::<ClassicalRegister>() {
-            Ok(SwitchTarget::Register(register))
-        } else {
-            Ok(SwitchTarget::Expr(ob.extract()?))
-        }
-    }
-}
 
 pub(crate) struct VariableMapper {
     target_cregs: Vec<ClassicalRegister>,
@@ -121,7 +77,7 @@ impl VariableMapper {
                 if !allow_reorder {
                     return Ok(Condition::Register(
                         self.map_register(target, &mut add_register)?,
-                        *value,
+                        value.clone(),
                     ));
                 }
                 // This is maintaining the legacy behavior of `DAGCircuit.compose`.  We don't
@@ -174,7 +130,7 @@ impl VariableMapper {
 
                 Condition::Register(
                     mapped_theirs,
-                    usize::from_str_radix(&mapped_str, 2).unwrap(),
+                    BigUint::from_str_radix(&mapped_str, 2).unwrap(),
                 )
             }
         })

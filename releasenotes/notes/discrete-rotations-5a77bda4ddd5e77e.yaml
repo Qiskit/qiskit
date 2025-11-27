@@ -1,0 +1,11 @@
+---
+features_transpiler:
+  - |
+    Added a new transpiler pass :class:`.SubstitutePi4Rotations`,
+    that converts single-qubit :class:`.RZGate`, :class:`.RXGate` and :class:`.RYGate` rotations gates
+    whose angles are integer multiples of :math:`\pi/4` into discrete sets of
+    Clifford, :class:`.TGate` and :class:`.TdgGate` gates.
+    Note that odd multiples of :math:`\pi/4` require a single :class:`.TGate` and :class:`.TdgGate`,
+    as well as some Clifford gates,
+    while even multiples of :math:`\pi/4`, or equivalently, integer multiples of :math:`\pi/2`,
+    can be written using only Clifford gates.
