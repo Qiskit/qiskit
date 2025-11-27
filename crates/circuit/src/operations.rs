@@ -427,7 +427,7 @@ impl PartialEq for ForLoopIndexSet {
             (ForLoopIndexSet::PyRange(a), ForLoopIndexSet::PyRange(b)) => {
                 // Compare Python range objects by their start, stop, and step values
                 // This ensures that range(0, 5) == range(0, 5) even if they're different objects
-                match Python::attach(|py| -> PyResult<bool> {
+                Python::attach(|py| -> PyResult<bool> {
                     let range_a = a.bind(py);
                     let range_b = b.bind(py);
 
@@ -441,10 +441,8 @@ impl PartialEq for ForLoopIndexSet {
                     let step_b: i64 = range_b.getattr(intern!(py, "step"))?.extract()?;
 
                     Ok(start_a == start_b && stop_a == stop_b && step_a == step_b)
-                }) {
-                    Ok(result) => result,
-                    Err(_) => false, // Python::attach failed (shouldn't happen)
-                }
+                })
+                .unwrap_or(false)
             }
             _ => false,
         }
@@ -492,6 +490,21 @@ impl ForLoopIndexSet {
                     Ok(len)
                 })
                 .ok()
+            }
+        }
+    }
+
+    /// Check if the indexset is empty.
+    /// - For List: checks if the list is empty
+    /// - For PyRange: checks if length is 0
+    /// - For Range (expr.Range): returns None since length may be dynamic
+    pub fn is_empty(&self) -> Option<bool> {
+        match self {
+            ForLoopIndexSet::List(indices) => Some(indices.is_empty()),
+            ForLoopIndexSet::Range(_) => None, // Dynamic - can't determine at compile time
+            ForLoopIndexSet::PyRange(_) => {
+                // Python range objects have a known length
+                self.len().map(|len| len == 0)
             }
         }
     }
