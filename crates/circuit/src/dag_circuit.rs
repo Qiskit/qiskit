@@ -1830,7 +1830,16 @@ impl DAGCircuit {
             match control_flow {
                 ControlFlowView::ForLoop { indexset, body, .. } => {
                     // TODO: is this the intended logic?
-                    length += indexset.len() * body.size(true)?;
+                    // For lists, use the original logic (direct length access)
+                    // For ranges, use fallback since length may be dynamic
+                    let indexset_len = if let Some(slice) = indexset.as_slice() {
+                        // Original logic for lists: direct length access
+                        slice.len()
+                    } else {
+                        // For ranges (expr.Range or PyRange), use len() with fallback
+                        indexset.len().unwrap_or(1)
+                    };
+                    length += indexset_len * body.size(true)?;
                 }
                 _ => {
                     for block in control_flow.blocks() {
@@ -1889,7 +1898,15 @@ impl DAGCircuit {
             .filter_map(|(index, node)| self.try_view_control_flow(node).map(|cf| (index, cf)))
         {
             let weight = if let ControlFlowView::ForLoop { indexset, .. } = control_flow {
-                indexset.len()
+                // For lists, use the original logic (direct length access)
+                // For ranges, use fallback since length may be dynamic
+                if let Some(slice) = indexset.as_slice() {
+                    // Original logic for lists: direct length access
+                    slice.len()
+                } else {
+                    // For ranges (expr.Range or PyRange), use len() with fallback
+                    indexset.len().unwrap_or(1)
+                }
             } else {
                 1
             };
@@ -5094,7 +5111,7 @@ impl DAGCircuit {
                 loop_param,
                 ..
             } => ControlFlowView::ForLoop {
-                indexset: indexset.as_slice(),
+                indexset,
                 loop_param: loop_param.as_ref(),
                 body: self.blocks.get(instr.blocks_view()[0].index()).unwrap(),
             },

@@ -1899,7 +1899,7 @@ impl CircuitData {
                 loop_param,
                 ..
             } => ControlFlowView::ForLoop {
-                indexset: indexset.as_slice(),
+                indexset,
                 loop_param: loop_param.as_ref(),
                 body: self.blocks.get(instr.blocks_view()[0]).unwrap().object(),
             },

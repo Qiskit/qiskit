@@ -26,10 +26,11 @@ use crate::duration::Duration;
 use crate::imports::{CONTROLLED_GATE, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN};
 use crate::instruction::{Instruction, Parameters, create_py_op};
 use crate::operations::{
-    ArrayType, BoxDuration, ControlFlow, ControlFlowInstruction, ControlFlowType, Operation,
+    ArrayType, BoxDuration, ControlFlow, ForLoopIndexSet, ControlFlowInstruction, ControlFlowType, Operation,
     OperationRef, Param, PauliProductMeasurement, PyGate, PyInstruction, PyOperation, StandardGate,
     StandardInstruction, StandardInstructionType, UnitaryGate,
 };
+use crate::classical::expr::Range;
 use crate::packed_instruction::PackedOperation;
 use crate::parameter::parameter_expression::ParameterExpression;
 use nalgebra::{Dyn, MatrixView2, MatrixView4};
@@ -210,12 +211,19 @@ impl CircuitInstruction {
                     indexset,
                     loop_param,
                     ..
-                } => [
-                    indexset.into_py_any(py)?,
-                    loop_param.into_py_any(py)?,
-                    self.blocks_view()[0].clone_ref(py),
-                ]
-                .into_py_any(py),
+                } => {
+                    let indexset_py = indexset.clone().into_pyobject(py)?;
+                    let loop_param_py = match loop_param {
+                        Some(param) => param.clone().into_bound(py).into_any(),
+                        None => py.None().into_bound(py).into_any(),
+                    };
+                    [
+                        indexset_py,
+                        loop_param_py,
+                        self.blocks_view()[0].clone_ref(py).into_bound(py).into_any(),
+                    ]
+                    .into_py_any(py)
+                }
                 _ => self.blocks_view().into_py_any(py),
             },
             _ => self.params_view().into_py_any(py),
@@ -692,13 +700,25 @@ impl<'a, 'py> FromPyObject<'a, 'py> for OperationFromPython {
                         // We lift for-loop's indexset and loop parameter from `params` to the
                         // operation itself for Rust since it's nicer to work with.
                         let mut params = params.try_iter()?;
+                        let indexset_param = params.next().unwrap()?;
                         let indexset = {
-                            // The indexset is an iterable of ints, so we extract each
-                            // and store them all in a Vec.
-                            let indexset = params.next().unwrap()?.try_iter()?;
-                            indexset
-                                .map(|index| index?.extract())
-                                .collect::<PyResult<_>>()?
+                            // Check if it's an expr.Range object first
+                            if let Ok(range) = indexset_param.extract::<Range>() {
+                                ForLoopIndexSet::Range(range)
+                            } else {
+                                // Check if it's a Python range object by checking type name
+                                let type_name = indexset_param.get_type().name()?;
+                                if type_name == "range" {
+                                    ForLoopIndexSet::PyRange(indexset_param.to_owned().unbind())
+                                } else {
+                                    // Otherwise, treat as iterable list of integers
+                                    let indexset_iter = indexset_param.try_iter()?;
+                                    let indices: Vec<usize> = indexset_iter
+                                        .map(|index| index?.extract::<usize>())
+                                        .collect::<PyResult<_>>()?;
+                                    ForLoopIndexSet::List(indices)
+                                }
+                            }
                         };
                         let loop_param = params
                             .next()

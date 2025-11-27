@@ -352,7 +352,7 @@ impl<T: Default> VirtualInteractions<T> {
             let qubits = dag.get_qargs(inst.qubits);
             if let Some(control_flow) = dag.try_view_control_flow(inst) {
                 let repeats = if let ControlFlowView::ForLoop { indexset, .. } = control_flow {
-                    repeats * indexset.len()
+                    repeats * indexset.len().unwrap_or(1)
                 } else {
                     repeats
                 };

@@ -372,6 +372,140 @@ pub struct ControlFlowInstruction {
     pub num_clbits: u32,
 }
 
+/// Represents the indexset for a ForLoop operation.
+/// Can be either a list of integers, an expr.Range object, or a Python range object.
+#[derive(Clone, Debug)]
+pub enum ForLoopIndexSet {
+    /// A list/tuple of integer indices
+    List(Vec<usize>),
+    /// An expr.Range object from qiskit.circuit.classical.expr
+    Range(expr::Range),
+    /// A Python range object (preserved as-is)
+    PyRange(Py<PyAny>),
+}
+
+impl<'py> IntoPyObject<'py> for &ForLoopIndexSet {
+    type Target = PyAny;
+    type Output = Bound<'py, PyAny>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        match self {
+            ForLoopIndexSet::List(indices) => {
+                // Convert Vec<usize> to Python tuple
+                let tuple = PyTuple::new(py, indices.iter().map(|&i| i as i64))?;
+                Ok(tuple.into_any())
+            }
+            ForLoopIndexSet::Range(range) => {
+                // Convert expr::Range back to Python Range object
+                range.clone().into_pyobject(py)
+            }
+            ForLoopIndexSet::PyRange(py_range) => {
+                // Return the preserved Python range object
+                // Clone the Py<PyAny> since we only have a reference
+                Ok(py_range.clone().into_bound(py))
+            }
+        }
+    }
+}
+
+impl<'py> IntoPyObject<'py> for ForLoopIndexSet {
+    type Target = PyAny;
+    type Output = Bound<'py, PyAny>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        (&self).into_pyobject(py)
+    }
+}
+
+impl PartialEq for ForLoopIndexSet {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (ForLoopIndexSet::List(a), ForLoopIndexSet::List(b)) => a == b,
+            (ForLoopIndexSet::Range(a), ForLoopIndexSet::Range(b)) => a == b,
+            (ForLoopIndexSet::PyRange(a), ForLoopIndexSet::PyRange(b)) => {
+                // Compare Python range objects by their start, stop, and step values
+                // This ensures that range(0, 5) == range(0, 5) even if they're different objects
+                match Python::attach(|py| -> PyResult<bool> {
+                    let range_a = a.bind(py);
+                    let range_b = b.bind(py);
+                    
+                    // Extract start, stop, step from both ranges
+                    let start_a: i64 = range_a.getattr(intern!(py, "start"))?.extract()?;
+                    let stop_a: i64 = range_a.getattr(intern!(py, "stop"))?.extract()?;
+                    let step_a: i64 = range_a.getattr(intern!(py, "step"))?.extract()?;
+                    
+                    let start_b: i64 = range_b.getattr(intern!(py, "start"))?.extract()?;
+                    let stop_b: i64 = range_b.getattr(intern!(py, "stop"))?.extract()?;
+                    let step_b: i64 = range_b.getattr(intern!(py, "step"))?.extract()?;
+                    
+                    Ok(start_a == start_b && stop_a == stop_b && step_a == step_b)
+                }) {
+                    Ok(result) => result,
+                    Err(_) => false, // Python::attach failed (shouldn't happen)
+                }
+            }
+            _ => false,
+        }
+    }
+}
+
+impl ForLoopIndexSet {
+    /// Get the length of the indexset.
+    /// - For List: returns the actual length
+    /// - For PyRange: computes length from start/stop/step (Python ranges have known length)
+    /// - For Range (expr.Range): returns None since length may be dynamic (depends on runtime values)
+    pub fn len(&self) -> Option<usize> {
+        match self {
+            ForLoopIndexSet::List(indices) => Some(indices.len()),
+            ForLoopIndexSet::Range(_) => None, // Dynamic - depends on runtime variable values
+            ForLoopIndexSet::PyRange(py_range) => {
+                // Python range objects have a known length that can be computed
+                Python::attach(|py| -> PyResult<usize> {
+                    let range = py_range.bind(py);
+                    // Python range objects have start, stop, and step attributes
+                    let start: i64 = range.getattr(intern!(py, "start"))?.extract()?;
+                    let stop: i64 = range.getattr(intern!(py, "stop"))?.extract()?;
+                    let step: i64 = range.getattr(intern!(py, "step"))?.extract()?;
+                    
+                    // Compute length using Python's range length formula
+                    let len = if step == 0 {
+                        return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                            "range() step cannot be zero"
+                        ));
+                    } else if step > 0 {
+                        // Positive step: max(0, (stop - start + step - 1) // step)
+                        if stop <= start {
+                            0
+                        } else {
+                            ((stop - start + step - 1) / step) as usize
+                        }
+                    } else {
+                        // Negative step: max(0, (stop - start + step + 1) // step)
+                        if stop >= start {
+                            0
+                        } else {
+                            ((stop - start + step + 1) / step) as usize
+                        }
+                    };
+                    Ok(len)
+                }).ok()
+            }
+        }
+    }
+
+    /// Get a slice of the indexset if it's a list.
+    /// Returns None for Range and PyRange (they're not stored as slices).
+    pub fn as_slice(&self) -> Option<&[usize]> {
+        match self {
+            ForLoopIndexSet::List(indices) => Some(indices.as_slice()),
+            ForLoopIndexSet::Range(_) => None,
+            ForLoopIndexSet::PyRange(_) => None,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 #[repr(align(8))]
 pub enum ControlFlow {
@@ -382,7 +516,7 @@ pub enum ControlFlow {
     BreakLoop,
     ContinueLoop,
     ForLoop {
-        indexset: Vec<usize>,
+        indexset: ForLoopIndexSet,
         loop_param: Option<Py<PyAny>>,
     },
     IfElse {
@@ -613,7 +747,7 @@ pub enum ControlFlowView<'a, T> {
     BreakLoop,
     ContinueLoop,
     ForLoop {
-        indexset: &'a [usize],
+        indexset: &'a ForLoopIndexSet,
         loop_param: Option<&'a Py<PyAny>>,
         body: &'a T,
     },
