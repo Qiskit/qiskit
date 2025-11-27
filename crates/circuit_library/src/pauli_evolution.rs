@@ -474,7 +474,7 @@ fn add_control(gate: StandardGate, params: &[Param], control_state: &[bool]) -> 
     // We know that all calls here should be valid and unwrap eagerly.
     Python::attach(|py| {
         let pygate = gate
-            .create_py_op(py, Some(params), None)
+            .create_py_op(py, Some(params.iter().cloned().collect()), None)
             .expect("Failed to create Py version of standard gate.");
         let num_controls = control_state.len();
         let py_control_state = PyString::new(
