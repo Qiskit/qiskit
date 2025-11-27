@@ -2352,15 +2352,10 @@ impl DAGCircuit {
                                                 .call1((Uuid::new_v4().to_string(),))?;
                                             let mut body_a_circuit =
                                                 converters::dag_to_circuit(body_a, false)?;
-                                            if body_a_circuit
-                                                .get_parameters(py)?
-                                                .contains(loop_param_a)?
-                                            {
+                                            if body_a_circuit.uses_parameter(loop_param_a) {
                                                 body_a_circuit.assign_parameters_from_mapping([
                                                     (
-                                                        ParameterUuid::from_parameter(
-                                                            loop_param_a.bind(py),
-                                                        )?,
+                                                        ParameterUuid::from_symbol(loop_param_a),
                                                         Param::ParameterExpression(Arc::new(
                                                             ParameterExpression::from_symbol(
                                                                 sentinel.clone().extract()?,
@@ -2385,15 +2380,10 @@ impl DAGCircuit {
 
                                             let mut body_b_circuit =
                                                 converters::dag_to_circuit(body_b, false)?;
-                                            if body_b_circuit
-                                                .get_parameters(py)?
-                                                .contains(loop_param_b)?
-                                            {
+                                            if body_b_circuit.uses_parameter(loop_param_b) {
                                                 body_b_circuit.assign_parameters_from_mapping([
                                                     (
-                                                        ParameterUuid::from_parameter(
-                                                            loop_param_b.bind(py),
-                                                        )?,
+                                                        ParameterUuid::from_symbol(loop_param_b),
                                                         Param::ParameterExpression(Arc::new(
                                                             ParameterExpression::from_symbol(
                                                                 sentinel.clone().extract()?,
