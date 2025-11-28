@@ -297,6 +297,44 @@ class BitwisePatternAnalyzer:
                     }
                 ]
 
+        # Try XOR chain for all-bits-differ patterns (Hamming distance = length)
+        # Example: '000' vs '111' → CX chain reduces to (n-1) controls
+        for i in range(len(patterns_list)):
+            for j in range(i + 1, len(patterns_list)):
+                p1 = patterns_list[i]
+                p2 = patterns_list[j]
+
+                # Find positions where patterns differ
+                diff_positions = [k for k in range(len(p1)) if p1[k] != p2[k]]
+
+                # All bits differ (complement patterns)
+                if len(diff_positions) == len(p1) and len(p1) >= 2:
+                    # Use CX chain from first position to all others
+                    # This transforms the XOR condition into a simpler check
+                    anchor = diff_positions[0]
+                    targets = diff_positions[1:]
+
+                    # After CX chain from anchor to all targets:
+                    # - If p1[anchor]='0', targets become p1[k] XOR 0 = p1[k]
+                    # - Pattern match when all targets match their expected values
+                    # Control qubits: all targets (anchor is used for CX but not control)
+                    control_qubit_indices = targets
+
+                    # ctrl_state: all zeros (since XOR makes them match p1's bits)
+                    # For 000 vs 111: after CX(0,1), CX(0,2), we control on q1=0, q2=0
+                    ctrl_state = p1[anchor] * len(targets)
+
+                    return [
+                        {
+                            "type": "xor_chain",
+                            "patterns": [p1, p2],
+                            "control_positions": control_qubit_indices,
+                            "ctrl_state": ctrl_state,
+                            "xor_anchor": anchor,
+                            "xor_targets": targets,
+                        }
+                    ]
+
         return None
 
     def simplify_patterns_iterative(
@@ -874,6 +912,35 @@ class ControlPatternSimplification(TransformationPass):
                 gates.append((CXGate(), [qi_circuit, qj_circuit]))
                 gates.append((XGate(), [qj_circuit]))
 
+            elif opt_type == "xor_chain":
+                # XOR chain for all-bits-differ patterns
+                anchor = opt["xor_anchor"]
+                targets = opt["xor_targets"]
+
+                anchor_circuit = all_control_qubits[anchor]
+                target_circuits = [all_control_qubits[t] for t in targets]
+
+                # CX chain: CX(anchor, target) for each target
+                for tc in target_circuits:
+                    gates.append((CXGate(), [anchor_circuit, tc]))
+
+                # Controlled gate with reduced controls
+                if len(control_qubits) == 0:
+                    gate, qargs = self._build_unconditional_gate(base_gate, params, target_qubits)
+                elif len(control_qubits) == 1:
+                    gate, qargs = self._build_single_control_gate(
+                        base_gate, params, control_qubits[0], target_qubits, ctrl_state
+                    )
+                else:
+                    gate, qargs = self._build_multi_control_gate(
+                        base_gate, params, control_qubits, target_qubits, ctrl_state
+                    )
+                gates.append((gate, qargs))
+
+                # Reverse CX chain
+                for tc in reversed(target_circuits):
+                    gates.append((CXGate(), [anchor_circuit, tc]))
+
         # Add gates for remaining unmatched patterns
         remaining_patterns_int = {int(p, 2) for p in remaining_patterns_strs}
         for gate_info in group:
@@ -1001,6 +1068,38 @@ class ControlPatternSimplification(TransformationPass):
 
             # X(qj)
             gates.append((XGate(), [qj_circuit]))
+
+        elif opt_type == "xor_chain":
+            # XOR chain: CX(anchor, t1), CX(anchor, t2), ... + controlled_gate + reverse CX chain
+            # Used for patterns where ALL bits differ (e.g., '000' vs '111')
+            anchor = opt["xor_anchor"]
+            targets = opt["xor_targets"]
+
+            anchor_circuit = all_control_qubits[anchor]
+            target_circuits = [all_control_qubits[t] for t in targets]
+
+            gates = []
+
+            # CX chain: CX(anchor, target) for each target
+            for tc in target_circuits:
+                gates.append((CXGate(), [anchor_circuit, tc]))
+
+            # Controlled gate with reduced controls
+            if len(control_qubits) == 0:
+                gate, qargs = self._build_unconditional_gate(base_gate, params, target_qubits)
+            elif len(control_qubits) == 1:
+                gate, qargs = self._build_single_control_gate(
+                    base_gate, params, control_qubits[0], target_qubits, ctrl_state
+                )
+            else:
+                gate, qargs = self._build_multi_control_gate(
+                    base_gate, params, control_qubits, target_qubits, ctrl_state
+                )
+            gates.append((gate, qargs))
+
+            # Reverse CX chain
+            for tc in reversed(target_circuits):
+                gates.append((CXGate(), [anchor_circuit, tc]))
 
         # Build gates for any unmatched patterns
         for gate_info in group:

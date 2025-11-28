@@ -956,6 +956,53 @@ class TestControlPatternSimplification(QiskitTestCase):
             "Optimized circuit should have at most the expected gate count",
         )
 
+    def test_3controlled_rx_xor_000_111_to_cx_mcrx(self):
+        """3-controlled RX with XOR pattern '000'+'111' → CX sandwich + 2-controlled RX.
+
+        From reviewer example:
+        - MCRX open controls 0, 1, 2 target 3 (ctrl_state='000')
+        - MCRX closed controls 0, 1, 2 target 3 (ctrl_state='111')
+
+        XOR analysis:
+        - All 3 positions differ (000 vs 111) - Hamming distance 3
+        - Use CX chain to reduce: CX(0,1), CX(0,2) creates XOR dependencies
+
+        Expected reduction:
+        - cx(0,1), cx(0,2), MCRX(ctrl_state='00') on [1,2,3], cx(0,2), cx(0,1)
+        - 2 MCRXs → 1 MCRX + 4 CX gates (5 total)
+        """
+        theta = np.pi / 4
+
+        # Unsimplified: 2 three-controlled RX gates
+        unsimplified_qc = QuantumCircuit(4)
+        unsimplified_qc.append(RXGate(theta).control(3, ctrl_state="000"), [0, 1, 2, 3])
+        unsimplified_qc.append(RXGate(theta).control(3, ctrl_state="111"), [0, 1, 2, 3])
+
+        # Expected: CX sandwich with 2-controlled RX (open controls)
+        expected_qc = QuantumCircuit(4)
+        expected_qc.cx(0, 1)  # CX before
+        expected_qc.cx(0, 2)  # CX before
+        expected_qc.append(RXGate(theta).control(2, ctrl_state="00"), [1, 2, 3])
+        expected_qc.cx(0, 2)  # CX after (undo)
+        expected_qc.cx(0, 1)  # CX after (undo)
+
+        # Run optimization
+        pass_ = ControlPatternSimplification()
+        optimized_qc = pass_(unsimplified_qc)
+
+        # Verify expected circuit matches unsimplified
+        self._verify_circuits_equivalent(unsimplified_qc, expected_qc, 4)
+
+        # Verify optimized circuit matches unsimplified
+        self._verify_circuits_equivalent(unsimplified_qc, optimized_qc, 4)
+
+        # Verify gate count reduction (5 gates vs 2 original multi-controlled)
+        self.assertLessEqual(
+            len(optimized_qc.data),
+            len(expected_qc.data),
+            "Optimized circuit should have at most the expected gate count",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
