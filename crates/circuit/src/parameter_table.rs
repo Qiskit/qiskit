@@ -115,8 +115,9 @@ impl ParameterTable {
     }
 
     /// Does this table track the given parameter?
-    pub fn contains(&self, uuid: &ParameterUuid) -> bool {
-        self.by_uuid.contains_key(uuid)
+    pub fn contains(&self, symbol: &Symbol) -> bool {
+        self.by_uuid
+            .contains_key(&ParameterUuid::from_symbol(symbol))
     }
 
     /// Add a new usage of a parameter coming in, optionally adding a first usage to it.

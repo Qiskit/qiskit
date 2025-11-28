@@ -2621,7 +2621,7 @@ impl CircuitData {
 
     /// Does the circuit use this `Symbol` as a parameter?
     pub fn uses_parameter(&self, sym: &Symbol) -> bool {
-        self.param_table.contains(&ParameterUuid::from_symbol(sym))
+        self.param_table.contains(sym)
     }
 
     /// Get the unsorted symbols in this circuit.
