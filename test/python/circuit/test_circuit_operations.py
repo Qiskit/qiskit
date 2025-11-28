@@ -1604,7 +1604,7 @@ class TestCircuitOperations(QiskitTestCase):
         control_flow_ops = [
             IfElseOp((circ.clbits[1], 1), circuit_1, circuit_2),
             WhileLoopOp((circ.clbits[1], 1), circuit_1),
-            ForLoopOp((circ.clbits[1], 1), None, body=circuit_1),
+            ForLoopOp((0, 1), None, body=circuit_1),
             SwitchCaseOp(circ.clbits[1], [(0, circuit_1), (1, circuit_2)]),
             BoxOp(circuit_1),
         ]

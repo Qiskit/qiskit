@@ -506,32 +506,31 @@ def _sorted_nodes(dag_layer):
 
 
 def _get_gate_span(qubits, node, measure_arrows):
-    """Get the list of qubits drawing this gate would cover
-    qiskit-terra #2802
-    """
-    min_index = len(qubits)
-    max_index = 0
-    for qreg in node.qargs:
-        index = qubits.index(qreg)
-
-        if index < min_index:
-            min_index = index
-        if index > max_index:
-            max_index = index
+    """Return the ordered wires this node would occupy when drawn."""
 
     if isinstance(node.op, ControlFlowOp) and not isinstance(node.op, BoxOp):
         # Because of wrapping boxes for mpl control flow ops, this
         # type of op must be the only op in the layer
         # BoxOps are excepted because they have one block executed unconditionally
-        span = qubits
-    elif node.cargs and (
-        (measure_arrows and isinstance(node.op, Measure)) or getattr(node.op, "condition", None)
-    ):
-        span = qubits[min_index : len(qubits)]
-    else:
-        span = qubits[min_index : max_index + 1]
+        return qubits
 
-    return span
+    qubit_index_map = {bit: idx for idx, bit in enumerate(qubits)}
+    qubit_indices = [qubit_index_map[qarg] for qarg in node.qargs]
+
+    if not qubit_indices:
+        # We should not have operations with only classical wires,
+        # and the operations with no qubits shouldn't collide with anything.
+        return []
+
+    min_index = min(qubit_indices)
+    max_index = max(qubit_indices)
+
+    if node.cargs and (
+        (measure_arrows and isinstance(node.op, Measure)) or not isinstance(node.op, Measure)
+    ):
+        return qubits[min_index:]
+
+    return qubits[min_index : max_index + 1]
 
 
 def _any_crossover(qubits, node, nodes, measure_arrows):
