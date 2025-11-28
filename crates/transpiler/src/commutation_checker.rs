@@ -15,10 +15,7 @@ use ndarray::Array2;
 use ndarray::linalg::kron;
 use num_complex::Complex64;
 use num_complex::ComplexFloat;
-use pyo3::types::PyList;
-use pyo3::types::PyString;
 use qiskit_circuit::object_registry::PyObjectAsKey;
-use qiskit_quantum_info::sparse_observable::BitTerm;
 use qiskit_quantum_info::sparse_observable::PySparseObservable;
 use qiskit_quantum_info::sparse_observable::SparseObservable;
 use smallvec::SmallVec;
@@ -127,101 +124,73 @@ const fn build_supported_rotations() -> [Option<Option<StandardGate>>; STANDARD_
 static SUPPORTED_ROTATIONS: [Option<Option<StandardGate>>; STANDARD_GATE_SIZE] =
     build_supported_rotations();
 
+/// Try extracting the operator from a Python `PauliGate`. Upon failure, `None` is returned.
+///
 /// # Safety
 ///
 /// Behavior is undefined if ``qubits`` contains a qubit index larger equal to ``num_qubits``,
 /// or if the number of Paulis in ``pauli_gate`` does not match the number of indices in ``qubits``.
-fn extract_op_from_pauligate(
+fn try_extract_op_from_pauli_gate(
     pauli_gate: &OperationRef,
     qubits: &[Qubit],
     num_qubits: u32,
-) -> SparseObservable {
+) -> Option<SparseObservable> {
     let OperationRef::Gate(gate) = pauli_gate else {
-        panic!("Invalid gate called 'pauli'");
-    };
-    let pauli_string = Python::attach(|py| {
-        let params = gate
-            .gate
-            .getattr(py, intern!(py, "params"))
-            .expect("Failed to read params.");
-
-        let params_list = params
-            .bind(py)
-            .cast::<PyList>()
-            .expect("Failed casting params to list");
-
-        params_list
-            .get_item(0)
-            .expect("Failed getting param content.")
-            .cast::<PyString>()
-            .expect("Failed casting to PyString")
-            .to_string()
-    });
-
-    let mut indices: Vec<u32> = Vec::new();
-    let mut bit_terms: Vec<BitTerm> = Vec::new();
-    for (i, pauli) in pauli_string.chars().rev().enumerate() {
-        match pauli {
-            'X' => {
-                indices.push(i as u32);
-                bit_terms.push(BitTerm::X)
-            }
-            'Y' => {
-                indices.push(i as u32);
-                bit_terms.push(BitTerm::Y)
-            }
-            'Z' => {
-                indices.push(i as u32);
-                bit_terms.push(BitTerm::Z)
-            }
-            _ => {} // nothing to do for the identity
-        }
-    }
-    // TODO there's the all-identity edge case we should potentially handle here,
-    // not sure is it's a valid state to otherwise end up with [0, 0] boundaries
-    let boundaries = vec![0, indices.len()];
-    let coeffs = vec![Complex64::new(1., 0.)];
-    let local =
-        SparseObservable::new(gate.num_qubits(), coeffs, bit_terms, indices, boundaries).unwrap();
-
-    // There's an optimization potential here to directly construct the output SparseObservable
-    // of the right size. This would require sorting the global indices to ensure the data format
-    // is correct.
-    let out = SparseObservable::identity(num_qubits);
-    out.compose_map(&local, |i| qubits[i as usize].0)
-}
-
-fn extract_op_from_paulievo(
-    operation: &OperationRef,
-    qubits: &[Qubit],
-    num_qubits: u32,
-) -> SparseObservable {
-    let OperationRef::Gate(gate) = operation else {
-        panic!("Invalid gate called 'PauliEvolution'");
+        // Gate is called "pauli" but is not a Python gate
+        return None;
     };
 
+    // Call the internal _extract_sparse_observable method. If the gate doesn't have this,
+    // it means the user passed a Python gate called "pauli" which is not actually a PauliGate.
+    // In that case we return None.
     Python::attach(|py| {
         let py_obs = gate
             .gate
             .call_method0(py, intern!(py, "_extract_sparse_observable"))
-            .expect("Failed calling _extract_sparse_observable on PauliEvolutionGate")
+            .ok()? // Return None if the method didn't exist
             .cast_bound::<PySparseObservable>(py)
             .expect("Failed casting to PySparseObservable")
             .borrow();
         let local = py_obs.as_inner().expect("Failed to read");
 
         let out = SparseObservable::identity(num_qubits);
-        out.compose_map(&local, |i| qubits[i as usize].0)
+        Some(out.compose_map(&local, |i| qubits[i as usize].0))
     })
 }
 
-fn extract_from_ppm(
+fn try_extract_op_from_pauli_evo(
     operation: &OperationRef,
     qubits: &[Qubit],
     num_qubits: u32,
-) -> SparseObservable {
+) -> Option<SparseObservable> {
+    let OperationRef::Gate(gate) = operation else {
+        // Gate is called "PauliEvo" but is not a Python gate
+        return None;
+    };
+
+    Python::attach(|py| {
+        let py_obs = gate
+            .gate
+            .call_method0(py, intern!(py, "_extract_sparse_observable"))
+            .ok()? // Return None if the method didn't exist
+            .cast_bound::<PySparseObservable>(py)
+            .expect("Failed casting to PySparseObservable")
+            .borrow();
+        let local = py_obs.as_inner().expect("Failed to read");
+
+        let out = SparseObservable::identity(num_qubits);
+        Some(out.compose_map(&local, |i| qubits[i as usize].0))
+    })
+}
+
+fn try_extract_op_from_ppm(
+    operation: &OperationRef,
+    qubits: &[Qubit],
+    num_qubits: u32,
+) -> Option<SparseObservable> {
     let OperationRef::PauliProductMeasurement(ppm) = operation else {
-        panic!("Invalid operation, expected PauliProductMeasurement");
+        // Gate is called "pauli_product_measurement" but is not actually a PPM...
+        return None;
     };
     let mut indices = Vec::new();
     let mut bit_terms = Vec::new();
@@ -239,10 +208,14 @@ fn extract_from_ppm(
     let coeffs = vec![Complex64::new(1., 0.)];
     let boundaries = vec![0, bit_terms.len()];
 
-    let local =
-        SparseObservable::new(ppm.num_qubits(), coeffs, bit_terms, indices, boundaries).unwrap();
+    // SAFETY: We know the data is consistent since we constructed it manually, and that indices are
+    // sorted in ascending order. Hence, calling new_unchecked is safe.
+    let local = unsafe {
+        SparseObservable::new_unchecked(ppm.num_qubits(), coeffs, bit_terms, indices, boundaries)
+    };
+
     let out = SparseObservable::identity(num_qubits);
-    out.compose_map(&local, |i| qubits[i as usize].0)
+    Some(out.compose_map(&local, |i| qubits[i as usize].0))
 }
 
 fn try_pauli_generator(
@@ -251,9 +224,9 @@ fn try_pauli_generator(
     num_qubits: u32,
 ) -> Option<SparseObservable> {
     match operation.name() {
-        "pauli" => Some(extract_op_from_pauligate(operation, qubits, num_qubits)),
-        "PauliEvolution" => Some(extract_op_from_paulievo(operation, qubits, num_qubits)),
-        "pauli_product_measurement" => Some(extract_from_ppm(operation, qubits, num_qubits)),
+        "pauli" => try_extract_op_from_pauli_gate(operation, qubits, num_qubits),
+        "PauliEvolution" => try_extract_op_from_pauli_evo(operation, qubits, num_qubits),
+        "pauli_product_measurement" => try_extract_op_from_ppm(operation, qubits, num_qubits),
         _ => None,
     }
 }
@@ -508,7 +481,7 @@ impl CommutationChecker {
         }
 
         // Handle commutations in between Pauli-based gates, like PauliGate or PauliEvolutionGate
-        let size = qargs1.iter().max().max(qargs2.iter().max()).unwrap().0 + 1;
+        let size = qargs1.iter().chain(qargs2.iter()).max().unwrap().0 + 1;
         if let Some(obs1) = try_pauli_generator(op1, qargs1, size) {
             if let Some(obs2) = try_pauli_generator(op2, qargs2, size) {
                 return Ok(obs1.commutes(&obs2, tol));

@@ -1063,7 +1063,7 @@ impl SparseObservable {
     /// # Arguments
     ///
     /// * `tol` - If coefficients in the product of `self` and `other` are below the tolerance
-    ///   (in magnitude), the terms are removed.
+    ///   (in magnitude), the terms are ignored.
     ///
     /// # Returns
     ///
@@ -3613,8 +3613,8 @@ impl PySparseObservable {
     ///
     /// Args:
     ///     other (SparseObservable): The other observable to check commutation with.
-    ///     tol (float): The tolerance for checking the product of self and other, resp. other
-    ///         and self, are equal.
+    ///     tol (float): If coefficients in the product of `self` and `other` are below the
+    ///         tolerance (in magnitude), the terms are ignored.
     ///
     /// Returns:
     ///     ``True`` if the terms commute, up to tolerance, ``False`` otherwise.

@@ -505,6 +505,7 @@ class TestCommutationChecker(QiskitTestCase):
     def test_pauli_based_gates(self, gate_type):
         """Test Pauli-based gates."""
         cases = [
+            ("I", [0], "XYZ", list(range(3)), True),
             ("ZZZZ", list(range(4)), "XXXX", list(range(4)), True),
             ("ZZIZ", list(range(4)), "XXIX", list(range(4)), False),
             ("ZZIIIIIIIY", list(range(10)), "YYIIIIIIIY", list(range(10)), True),
@@ -513,6 +514,9 @@ class TestCommutationChecker(QiskitTestCase):
         ]
 
         for p1, q1, p2, q2, expected in cases:
+            if p1 == "I" and gate_type == "measure":
+                continue  # PPM doesn't support all-identity gates
+
             gate1 = build_pauli_gate(p1, gate_type)
             gate2 = build_pauli_gate(p2, gate_type)
             self.assertEqual(expected, scc.commute(gate1, q1, [], gate2, q2, []))

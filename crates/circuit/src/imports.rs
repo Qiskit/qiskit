@@ -120,6 +120,7 @@ pub static PAULI_PRODUCT_MEASUREMENT: ImportOnceCell = ImportOnceCell::new(
 );
 pub static MCPHASE_GATE: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.library", "MCPhaseGate");
+pub static PAULI_GATE: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.library", "PauliGate");
 pub static PAULI_EVOLUTION_GATE: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.library", "PauliEvolutionGate");
 pub static QS_DECOMPOSITION: ImportOnceCell =
