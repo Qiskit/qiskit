@@ -1,0 +1,7 @@
+---
+features_c:
+  - |
+    Added a new function :c:func:`qk_transpile_stage_init` to the C API.
+    This function is used to run the init stage from the preset pass manager
+    on a ``QkDag`` object. The goal of this function is to enable composable
+    transpilation workflows from C when combined with custom transpiler passes.
