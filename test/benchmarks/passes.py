@@ -14,7 +14,9 @@
 # pylint: disable=attribute-defined-outside-init,unsubscriptable-object
 # pylint: disable=unused-wildcard-import,wildcard-import,undefined-variable
 
+import os
 
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as SEL
 from qiskit.transpiler.passes import *
 from qiskit.converters import circuit_to_dag
@@ -194,7 +196,7 @@ class MultiQBlockPassBenchmarks:
         CollectMultiQBlocks(max_block_size).run(self.dag)
 
 
-class LitinskiTransformationPassBenchmarks:
+class LitinskiTransformationPassQFTBenchmarks:
     params = [5, 10, 100, 1000]
 
     param_names = ["n_qubits"]
@@ -213,3 +215,40 @@ class LitinskiTransformationPassBenchmarks:
     def time_litinski_transformation_no_fix_clifford(self, _):
         _pass = LitinskiTransformation(fix_clifford=False)
         _pass.run(self.dag)
+
+
+class LitinskiTransformationPassQasmBenchmarks:
+
+    def build_from_qasm(self, benchmark_name):
+        full_name = os.path.join(self.qasm_dir, benchmark_name)
+        qc = QuantumCircuit.from_qasm_file(full_name)
+        transpiled_qc = transpile(qc, basis_gates=self.basis_gates, seed_transpiler=0)
+        transpiled_dag = circuit_to_dag(transpiled_qc)
+        return transpiled_dag
+
+    def setup(self):
+        self.qasm_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "qasm")
+        self.basis_gates = ["rz"] + get_clifford_gate_names()
+
+        self.qft = self.build_from_qasm("qft_N100.qasm")
+        self.square_heisenberg = self.build_from_qasm("square_heisenberg_N100.qasm")
+        self.qaoa = self.build_from_qasm("qaoa_barabasi_albert_N100_3reps.qasm")
+        self.dtc = self.build_from_qasm("dtc_100_cx_12345.qasm")
+        self.eoh = self.build_from_qasm("test_eoh_qasm.qasm")
+
+        self.pass_ = LitinskiTransformation(fix_clifford=False)
+
+    def time_qft(self):
+        self.pass_.run(self.qft)
+
+    def time_square_heisenberg(self):
+        self.pass_.run(self.square_heisenberg)
+
+    def time_qaoa(self):
+        self.pass_.run(self.qaoa)
+
+    def time_dtc(self):
+        self.pass_.run(self.dtc)
+
+    def time_eoh(self):
+        self.pass_.run(self.eoh)
