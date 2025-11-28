@@ -790,9 +790,9 @@ impl TextDrawer {
                 }
                 .to_string();
 
-                let custom_label = instruction.label();
-                if custom_label.is_some() && custom_label.unwrap() != label {
-                    label = custom_label.unwrap().to_string();
+                let custom_label = instruction.label.clone();
+                if custom_label.is_some() && *custom_label.unwrap() != label {
+                    label = *instruction.label.clone().unwrap()
                 }
                 if standard_gate.num_params() > 0 {
                     let params = instruction
@@ -807,7 +807,10 @@ impl TextDrawer {
                 }
                 label
             }
-            OperationRef::Unitary(_) => instruction.label().unwrap_or(" Unitary ").to_string(),
+            OperationRef::Unitary(_) => *instruction
+                .label
+                .clone()
+                .unwrap_or(Box::new(" Unitary ".to_string())),
             // Fallback for non-standard operations
             _ => format!(" {} ", instruction.op.name()),
         }
