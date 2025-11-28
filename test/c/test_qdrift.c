@@ -45,8 +45,8 @@ static int test_qdrift_single_zz(void) {
 
     size_t instr_count = qk_circuit_num_instructions(circ);
     if (instr_count != 1) {
-        printf("Expected 1 instruction for single ZZ term, got %lu\n",
-               (unsigned long)instr_count);
+        printf("Expected 1 instruction for single ZZ term, got %zu\n",
+               instr_count);
         result = EqualityError;
         goto cleanup_circ;
     }
@@ -120,8 +120,8 @@ static int test_qdrift_xi_plus_zz(void) {
     // For H = XI + ZZ, lambda = 2, t = 0.5, reps = 1:
     // num_gates = ceil(2 * lambda^2 * t^2 * reps) = ceil(2) = 2.
     if (instr_count != 2) {
-        printf("Expected 2 instructions for XI+ZZ, got %lu\n",
-               (unsigned long)instr_count);
+        printf("Expected 2 instructions for XI+ZZ, got %zu\n",
+               instr_count);
         result = EqualityError;
         goto cleanup_circ;
     }
@@ -204,7 +204,7 @@ static int test_qdrift_gate_count_scaling(void) {
 
         size_t n = qk_circuit_num_instructions(circ);
         if (n != 1) {
-            printf("[scaling] Expected 1 gate, got %lu\n", (unsigned long)n);
+            printf("[scaling] Expected 1 gate, got %zu\n", n);
             result = EqualityError;
         }
         qk_circuit_free(circ);
@@ -219,7 +219,7 @@ static int test_qdrift_gate_count_scaling(void) {
 
         size_t n = qk_circuit_num_instructions(circ);
         if (n != 2) {
-            printf("[scaling] Expected 2 gates, got %lu\n", (unsigned long)n);
+            printf("[scaling] Expected 2 gates, got %zu\n", n);
             result = EqualityError;
         }
         qk_circuit_free(circ);
@@ -234,7 +234,7 @@ static int test_qdrift_gate_count_scaling(void) {
 
         size_t n = qk_circuit_num_instructions(circ);
         if (n != 4) {
-            printf("[scaling] Expected 4 gates, got %lu\n", (unsigned long)n);
+            printf("[scaling] Expected 4 gates, got %zu\n", n);
             result = EqualityError;
         }
         qk_circuit_free(circ);
@@ -374,7 +374,7 @@ static int test_qdrift_non_pauli_as_pauli(void) {
     }
 
     size_t instr_count = qk_circuit_num_instructions(circ);
-    printf("[plus] QDRIFT produced %lu instructions\n", (unsigned long)instr_count);
+    printf("[plus] QDRIFT produced %zu instructions\n", instr_count);
 
     for (size_t k = 0; k < instr_count; ++k) {
         QkCircuitInstruction instr;
@@ -382,16 +382,16 @@ static int test_qdrift_non_pauli_as_pauli(void) {
 
         // Single-qubit only
         if (instr.num_qubits != 1) {
-            printf("[plus] Instruction %lu has %u qubits (expected 1)\n",
-                   (unsigned long)k, (unsigned)instr.num_qubits);
+            printf("[plus] Instruction %zu has %u qubits (expected 1)\n",
+                   k, instr.num_qubits);
             result = EqualityError;
             goto cleanup_circ;
         }
 
         // Must be qubit 0
         if (instr.qubits[0] != 0) {
-            printf("[plus] Instruction %lu acts on qubit %u (expected 0)\n",
-                   (unsigned long)k, instr.qubits[0]);
+            printf("[plus] Instruction %zu acts on qubit %u (expected 0)\n",
+                   k, instr.qubits[0]);
             result = EqualityError;
             goto cleanup_circ;
         }
@@ -458,8 +458,8 @@ static int test_qdrift_global_phase(void) {
     // Expect no nontrivial instructions for H = I (pure global phase).
     size_t instr_count = qk_circuit_num_instructions(circ);
     if (instr_count != 0) {
-        printf("[global_phase] Expected 0 instructions for identity Hamiltonian, got %lu\n",
-               (unsigned long)instr_count);
+        printf("[global_phase] Expected 0 instructions for identity Hamiltonian, got %zu\n",
+               instr_count);
         // Not necessarily a hard failure, but this likely indicates a bug.
         result = EqualityError;
         // continue anyway to inspect phase
