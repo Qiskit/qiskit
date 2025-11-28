@@ -52,30 +52,51 @@ fn qdrift_build_circuit(
     
     let bit_terms = obs.bit_terms();
     let boundaries = obs.boundaries();
+    let coeffs = obs.coeffs();
     let indices = obs.indices();
 
-    let n_terms = obs.coeffs().len();
+    let n_terms = coeffs.len();
     let mut mags: Vec<f64> = Vec::with_capacity(n_terms);
     let mut signs: Vec<f64> = Vec::with_capacity(n_terms);
     let mut lambda = 0.0f64;
+    let mut kappa = 0.0f64;
     
-    for &c in obs.coeffs() {
+    for (i, &c) in obs.coeffs().iter().enumerate() {
+        let start = boundaries[i];
+        let end = boundaries[i + 1];
+        let is_identity = start == end;
+        
         let r = approx_real(&c);
-        // artificially make weights positive
-        let m = r.abs();
-        if m == 0.0 {
+
+        if is_identity {
+            kappa += r;
             mags.push(0.0);
             signs.push(0.0);
             continue
+        } else {
+            // artificially make weights positive
+            let m = r.abs();
+                if m == 0.0 {
+                    mags.push(0.0);
+                    signs.push(0.0);
+                    continue
+                }
+            mags.push(m);
+            signs.push(r.signum());
+            lambda += m;
         }
-        mags.push(m);
-        signs.push(r.signum());
-        lambda += m;
+        
     }
     
     // Zero hamiltonian
+    let global_phase = Param::Float(-time * kappa);
     if lambda == 0.0 {
-        return Err(ExitCode::Success)
+        return CircuitData::from_packed_operations(
+            num_qubits as u32,
+            0,
+            std::iter::empty(),
+            global_phase,
+        ).map_err(|_| ExitCode::ArithmeticError)
     }
 
     let num_gates = (2.0 * lambda.powi(2) * time.powi(2) * reps as f64).ceil() as usize;
@@ -97,6 +118,11 @@ fn qdrift_build_circuit(
     for i in sampled_indices {
         let start = boundaries[i];
         let end = boundaries[i + 1];
+
+        if start == end {
+            // identity term, skip
+            continue
+        }
 
         let term_bits = &bit_terms[start..end];
         let term_indices = &indices[start..end];
@@ -134,10 +160,6 @@ fn qdrift_build_circuit(
             inner.map(|inst: Instruction| Ok::<Instruction, _>(inst))
         });
     
-    let global_phase = Param::Float(0.0);
-    
-    // use CircuitData::from_packed_operations(num_qubits as u32, 0, evos, global_phase);
-    // to assemble the circuit
     CircuitData::from_packed_operations(
         num_qubits as u32,
         0,
