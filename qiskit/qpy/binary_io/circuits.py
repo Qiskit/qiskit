@@ -25,7 +25,6 @@ import uuid
 import typing
 import warnings
 
-import re
 import numpy as np
 
 
@@ -704,51 +703,56 @@ def _read_pauli_evolution_gate(file_obj, version, vectors):
 
     operator_list = []
     for _ in range(pauli_evolution_def.operator_size):
-        op_elem = formats.SPARSE_PAULI_OP_LIST_ELEM._make(
-            struct.unpack(
-                formats.SPARSE_PAULI_OP_LIST_ELEM_PACK,
-                file_obj.read(formats.SPARSE_PAULI_OP_LIST_ELEM_SIZE),
-            )
-        )
+        sparse_operator = struct.unpack("?", file_obj.read(1))[0]
 
-        try:
+        if not sparse_operator:
+            # Read SparsePauliOp type operator
+            op_elem = formats.SPARSE_PAULI_OP_LIST_ELEM._make(
+                struct.unpack(
+                    formats.SPARSE_PAULI_OP_LIST_ELEM_PACK,
+                    file_obj.read(formats.SPARSE_PAULI_OP_LIST_ELEM_SIZE),
+                )
+            )
             op_raw_data = common.data_from_binary(file_obj.read(op_elem.size), np.load)
             operator_list.append(SparsePauliOp.from_list(op_raw_data))
-        except ValueError as e:
-            if "allow_pickle" in str(e):
-                file_obj.seek(-op_elem.size, io.SEEK_CUR)
-                # Read the format string for unpacking data
-                format_str_read = struct.unpack(f"{op_elem.size}s", file_obj.read(op_elem.size))[
-                    0
-                ].decode("utf-8")
+        else:
+            # Read SparseObservable type operator
+            op_elem = formats.SPARSE_OBSERVABLE_OP_LIST_ELEM._make(
+                struct.unpack(
+                    formats.SPARSE_OBSERVABLE_OP_LIST_ELEM_PACK,
+                    file_obj.read(formats.SPARSE_OBSERVABLE_OP_LIST_ELEM_SIZE),
+                )
+            )
+            # number of Pauli strings
+            num_paulis = int(op_elem.coeff_data_len / (2 * struct.calcsize("d")))
 
-                # Unpack the data according to the format string
-                unpacked_data = struct.unpack(
-                    format_str_read, file_obj.read(struct.calcsize(format_str_read))
-                )
-                pat = r"i(.*?)d"
-                coeff_dim = int(re.findall(pat, format_str_read)[0])
-                pat = r"d(.*?)i"
-                bitterm_dim = int(re.findall(pat, format_str_read)[0])
-                pat = r"i(.*?)i$"
-                inds_bounds_dim = re.findall(pat, format_str_read)[0].split("i")
-                inds_dim = int(inds_bounds_dim[1])
+            # reading coeffs
+            coeff_data = struct.unpack(f"{2*num_paulis}d", file_obj.read(op_elem.coeff_data_len))
+            coeff_read = np.empty(num_paulis, dtype=np.complex128)
+            for ii in range(num_paulis):
+                coeff_read[ii] = complex(coeff_data[2 * ii], coeff_data[2 * ii + 1])
 
-                numq_read = unpacked_data[0]
-                coeff_read = np.empty((int(coeff_dim / 2)), dtype=np.complex128)
-                for ii in range(int(coeff_dim / 2)):
-                    coeff_read[ii] = complex(unpacked_data[2 * ii + 1], unpacked_data[2 * ii + 2])
-                bitterms_read = list(unpacked_data[coeff_dim + 1 : coeff_dim + 1 + bitterm_dim])
-                inds_read = list(
-                    unpacked_data[
-                        coeff_dim + 1 + bitterm_dim : coeff_dim + 1 + bitterm_dim + inds_dim
-                    ]
+            # reading bit_terms
+            num_bitterms = int(op_elem.bitterm_data_len / struct.calcsize("i"))
+            bitterms_read = list(
+                struct.unpack(f"{num_bitterms}i", file_obj.read(op_elem.bitterm_data_len))
+            )
+
+            # reading indices
+            num_inds = int(op_elem.inds_data_len / struct.calcsize("i"))
+            inds_read = list(struct.unpack(f"{num_inds}i", file_obj.read(op_elem.inds_data_len)))
+
+            # reading boundaries
+            num_bounds = int(op_elem.bounds_data_len / struct.calcsize("i"))
+            bounds_read = list(
+                struct.unpack(f"{num_bounds}i", file_obj.read(op_elem.bounds_data_len))
+            )
+
+            operator_list.append(
+                SparseObservable.from_raw_parts(
+                    op_elem.numq, coeff_read, bitterms_read, inds_read, bounds_read
                 )
-                bounds_read = list(unpacked_data[coeff_dim + 1 + bitterm_dim + inds_dim :])
-                spop = SparseObservable.from_raw_parts(
-                    numq_read, coeff_read, bitterms_read, inds_read, bounds_read
-                )
-                operator_list.append(spop)
+            )
 
     if pauli_evolution_def.standalone_op:
         pauli_op = operator_list[0]
@@ -1112,6 +1116,8 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate, version):
     def _write_elem(buffer, op):
         elem_data = common.data_to_binary(op.to_list(array=True), np.save)
         elem_metadata = struct.pack(formats.SPARSE_PAULI_OP_LIST_ELEM_PACK, len(elem_data))
+        elem_sparse_operator = struct.pack("?", False)
+        buffer.write(elem_sparse_operator)
         buffer.write(elem_metadata)
         buffer.write(elem_data)
 
@@ -1122,21 +1128,34 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate, version):
         inds = op.indices
         numq = op.num_qubits
 
-        bin_data = []
-        bin_data.append(struct.pack("i", numq))
+        coeff_real = []
+        coeff_imag = []
         for coeff in coeffs:
-            bin_data.append(struct.pack("dd", coeff.real, coeff.imag))
-        bin_data.append(struct.pack(f"{len(bitterms)}i", *bitterms))
-        bin_data.append(struct.pack(f"{len(inds)}i", *inds))
-        bin_data.append(struct.pack(f"{len(bounds)}i", *bounds))
-        bin_data_comb = b"".join(bin_data)
-        format_str = f"=i{len(coeffs)*len(op)}d{len(bitterms)}i{len(inds)}i{len(bounds)}i"
+            coeff_real.append(coeff.real)
+            coeff_imag.append(coeff.imag)
+        coeff_data = struct.pack(
+            f"{len(coeffs)*2}d", *(val for pair in zip(coeff_real, coeff_imag) for val in pair)
+        )
+        bitterm_data = struct.pack(f"{len(bitterms)}i", *bitterms)
+        inds_data = struct.pack(f"{len(inds)}i", *inds)
+        bounds_data = struct.pack(f"{len(bounds)}i", *bounds)
 
-        bin_info = struct.pack(f"{len(format_str)}s", format_str.encode("utf-8"))
-        elem_metadata = struct.pack(formats.SPARSE_OBSERVABLE_OP_LIST_ELEM_PACK, len(format_str))
-        buffer.write(elem_metadata)
-        buffer.write(bin_info)
-        buffer.write(bin_data_comb)
+        sparse_observable_data_length = struct.pack(
+            formats.SPARSE_OBSERVABLE_OP_LIST_ELEM_PACK,
+            numq,
+            len(coeff_data),
+            len(bitterm_data),
+            len(inds_data),
+            len(bounds_data),
+        )
+
+        elem_sparse_operator = struct.pack("?", True)
+        buffer.write(elem_sparse_operator)
+        buffer.write(sparse_observable_data_length)
+        buffer.write(coeff_data)
+        buffer.write(bitterm_data)
+        buffer.write(inds_data)
+        buffer.write(bounds_data)
 
     pauli_data_buf = io.BytesIO()
 
