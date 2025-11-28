@@ -7524,6 +7524,11 @@ impl DAGCircuit {
         self.qargs_interner.get(index)
     }
 
+    /// Insert qargs into the interner and return the interned value
+    pub fn add_qargs(&mut self, qubits: &[Qubit]) -> Interned<[Qubit]> {
+        self.qargs_interner.insert(qubits)
+    }
+
     /// Get cargs from an intern index
     pub fn get_cargs(&self, index: Interned<[Clbit]>) -> &[Clbit] {
         self.cargs_interner.get(index)
