@@ -230,7 +230,7 @@ impl Clifford {
         let mut z = Vec::<bool>::new();
         let mut x = Vec::<bool>::new();
         let mut indices = Vec::<u32>::new();
-        let mut pauli_indices = Vec::<usize>::new();
+        let mut pauli_indices = Vec::<usize>::with_capacity(2 * self.num_qubits);
         // Compute the y-count to avoid recomputing it later
         let mut pauli_y_count: u32 = 0;
 
@@ -247,9 +247,7 @@ impl Clifford {
                 if z_bit {
                     pauli_indices.push(i + self.num_qubits);
                 }
-                if x_bit && z_bit {
-                    pauli_y_count += 1;
-                }
+                pauli_y_count += (x_bit && z_bit) as u32;
             }
         }
         let phase = compute_phase_product_pauli(self, &pauli_indices, pauli_y_count);
