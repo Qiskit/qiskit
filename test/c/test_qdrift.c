@@ -414,6 +414,12 @@ cleanup_obs:
     return result;
 }
 
+/*
+* Test QDRIFT circuit synthesis correctly accounts for global phase from
+* identity terms in the observable.
+* Note: the 2 pi periodicity of global phase means we check the result
+* modulo 2 pi.
+*/
 static int test_qdrift_global_phase(void) {
     int result = Ok;
     QkExitCode code;
