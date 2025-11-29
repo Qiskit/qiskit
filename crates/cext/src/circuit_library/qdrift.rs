@@ -21,14 +21,11 @@ use qiskit_circuit_library::pauli_evolution::Instruction;
 use qiskit_circuit_library::pauli_evolution::sparse_term_evolution;
 use qiskit_quantum_info::sparse_observable::SparseObservable;
 
-use rand::distr::{
-    Distribution,
-    weighted::WeightedIndex
-};
+use rand::distr::{Distribution, weighted::WeightedIndex};
 
 use std::ptr;
 
-/// Internal helper to extract real part of a complex number, 
+/// Internal helper to extract real part of a complex number,
 /// panicking if imaginary part is non-zero.
 fn approx_real(z: &Complex64) -> f64 {
     if z.im.abs() > 1e-12 {
@@ -37,7 +34,7 @@ fn approx_real(z: &Complex64) -> f64 {
     z.re
 }
 
-/// This is an internal helper function to build the QDrift circuit. 
+/// This is an internal helper function to build the QDrift circuit.
 /// The same safety requirements as for `qk_circuit_library_qdrift` apply.
 fn qdrift_build_circuit(
     obs: &SparseObservable,
@@ -46,13 +43,13 @@ fn qdrift_build_circuit(
 ) -> Result<CircuitData, ExitCode> {
     let num_qubits = obs.num_qubits();
     if reps == 0 || num_qubits == 0 || obs.coeffs().is_empty() {
-        return Err(ExitCode::CInputError)
+        return Err(ExitCode::CInputError);
     }
 
     // If the observable contains projectors, convert to Paulis
     let pauli_obs = obs.as_paulis();
     let obs = &pauli_obs;
-    
+
     let bit_terms = obs.bit_terms();
     let boundaries = obs.boundaries();
     let coeffs = obs.coeffs();
@@ -63,43 +60,43 @@ fn qdrift_build_circuit(
     let mut signs: Vec<f64> = Vec::with_capacity(n_terms);
     let mut lambda = 0.0f64;
     let mut kappa = 0.0f64;
-    
+
     for (i, &c) in obs.coeffs().iter().enumerate() {
         let start = boundaries[i];
         let end = boundaries[i + 1];
         let is_identity = start == end;
-        
+
         let r = approx_real(&c);
 
         if is_identity {
             kappa += r;
             mags.push(0.0);
             signs.push(0.0);
-            continue
+            continue;
         } else {
             // artificially make weights positive
             let m = r.abs();
-                if m == 0.0 {
-                    mags.push(0.0);
-                    signs.push(0.0);
-                    continue
-                }
+            if m == 0.0 {
+                mags.push(0.0);
+                signs.push(0.0);
+                continue;
+            }
             mags.push(m);
             signs.push(r.signum());
             lambda += m;
         }
-        
     }
-    
+
     // Zero hamiltonian
     let global_phase = Param::Float(-time * kappa);
     if lambda == 0.0 {
         return CircuitData::from_packed_operations(
-            num_qubits as u32,
+            num_qubits,
             0,
             std::iter::empty(),
             global_phase,
-        ).map_err(|_| ExitCode::ArithmeticError)
+        )
+        .map_err(|_| ExitCode::ArithmeticError);
     }
 
     let num_gates = (2.0 * lambda.powi(2) * time.powi(2) * reps as f64).ceil() as usize;
@@ -113,8 +110,7 @@ fn qdrift_build_circuit(
     let rescaled_time = 2.0 * lambda / num_gates as f64 * time;
 
     // sample term indices (0..n_terms)
-    let sampled_indices: Vec<usize> =
-        (0..num_gates).map(|_| dist.sample(&mut rng)).collect();
+    let sampled_indices: Vec<usize> = (0..num_gates).map(|_| dist.sample(&mut rng)).collect();
     let mut pauli_strings: Vec<String> = Vec::with_capacity(num_gates);
     let mut pauli_indices: Vec<Vec<u32>> = Vec::with_capacity(num_gates);
     let mut pauli_thetas: Vec<Param> = Vec::with_capacity(num_gates);
@@ -124,7 +120,7 @@ fn qdrift_build_circuit(
 
         if start == end {
             // identity term, skip
-            continue
+            continue;
         }
 
         let term_bits = &bit_terms[start..end];
@@ -146,34 +142,30 @@ fn qdrift_build_circuit(
     }
 
     // Construct the evolutions
-    let evos = pauli_strings.iter()
-        .zip(pauli_indices.into_iter())
-        .zip(pauli_thetas.into_iter())
+    let evos = pauli_strings
+        .iter()
+        .zip(pauli_indices)
+        .zip(pauli_thetas)
         .flat_map(move |((pauli_str, idxs), time_param)| {
             let inner = sparse_term_evolution(
                 pauli_str.as_str(),
                 idxs,
                 time_param,
-                false,  // no phase gate for Paulis
-                false,  // use chain CX structure
+                false, // no phase gate for Paulis
+                false, // use chain CX structure
             );
             // This will never return a PyErr, so we can safely infer the error type
             // Infallible will not work directly since CircuitData::from_packed_operations expects
             // the items in the iterator to be PyResult<_>
             inner.map(|inst: Instruction| Ok::<Instruction, _>(inst))
         });
-    
-    CircuitData::from_packed_operations(
-        num_qubits as u32,
-        0,
-        evos,
-        global_phase,
-    ).map_err(|_| ExitCode::ArithmeticError)
+
+    CircuitData::from_packed_operations(num_qubits, 0, evos, global_phase)
+        .map_err(|_| ExitCode::ArithmeticError)
 }
 
-
-/// The QDrift Trotterization method, which selects each term in the Trotterization randomly, 
-/// with a probability proportional to its weight. 
+/// The QDrift Trotterization method, which selects each term in the Trotterization randomly,
+/// with a probability proportional to its weight.
 /// Based on the work of Earl Campbell in Ref. [1].
 ///
 /// # Parameters
@@ -181,7 +173,7 @@ fn qdrift_build_circuit(
 /// - `obs`: Pointer to a valid `QkObs` with the following conditions?
 ///   - Contain only *real* coefficients `c_j` (imaginary parts must be
 ///     numerically zero).
-///   - Projectors are computationally inefficient - For example, the decomposition acting on a 
+///   - Projectors are computationally inefficient - For example, the decomposition acting on a
 ///     term with :math:`n` projectors :math:`|+><+|` will use :math:`2^n` Pauli terms.
 /// - `reps`: The number of outer repetitions `n` in the product formula,
 ///   i.e. QDRIFT approximates `exp(-i * time * H)` by a product of
@@ -223,7 +215,7 @@ fn qdrift_build_circuit(
 ///
 /// # Safety
 ///
-/// This function is `extern "C"` and assumes:
+/// This function assumes:
 ///
 /// - `obs` is a valid pointer to an observable allocated and managed by the
 ///   Qiskit C API.
@@ -231,14 +223,14 @@ fn qdrift_build_circuit(
 ///   `*mut CircuitData`.
 ///
 /// Violating these conditions may cause undefined behavior.
-/// 
+///
 /// # References
 /// - [1]: E. Campbell, “A random compiler for fast Hamiltonian simulation” (2018).[https://arxiv.org/abs/1811.08017](https://arxiv.org/abs/1811.08017)
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub extern "C" fn qk_circuit_library_qdrift(
+pub unsafe extern "C" fn qk_circuit_library_qdrift(
     obs: *const SparseObservable, // H in e^{-i t H}
-    reps: usize, // n in e^{-it/n H}^n
+    reps: usize,                  // n in e^{-it/n H}^n
     // insert_barriers: bool, // TODO wait for C implementation of barriers
     // cx_structure: CXStructure, // use chain by default
     // atomic_evolution: AtomicEvolution, // TODO add later
@@ -246,7 +238,7 @@ pub extern "C" fn qk_circuit_library_qdrift(
     // wrap: bool,  // TODO wait for C support
     // preserve_order: bool, // TODO add later
     // atomic_evolution_sparse_observable: bool // TODO add later
-    time: f64, // evolution time e in e^{-i t H}
+    time: f64,                  // evolution time e in e^{-i t H}
     out: *mut *mut CircuitData, // output pointer to CircuitData
 ) -> ExitCode {
     // Safety: obs must be a valid pointer to a QkObs object created by Rust code.
@@ -260,8 +252,8 @@ pub extern "C" fn qk_circuit_library_qdrift(
             let boxed = Box::new(circuit);
             *out_ref = Box::into_raw(boxed);
         }
-        Err(e) => return e
+        Err(e) => return e,
     }
 
-    return ExitCode::Success
+    ExitCode::Success
 }
