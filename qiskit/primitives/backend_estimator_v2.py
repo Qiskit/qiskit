@@ -198,7 +198,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
     the number of shots, and :math:`\epsilon` is the target precision [1].
 
     Each tuple of ``(circuit, observables, <optional> parameter values, <optional> precision)``,
-    called an estimator primitive unified bloc (PUB), produces its own array-based result. The
+    called an estimator primitive unified block (PUB), produces its own array-based result. The
     :meth:`~.BackendEstimatorV2.run` method can be given a sequence of pubs to run in one call.
 
     The options for :class:`~.BackendEstimatorV2` consist of the following items.
@@ -424,7 +424,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
         Returns:
             The map of expectation values takes a pair of an index of the bindings array and
             a pauli string as a key and returns the expectation value of the pauli string
-            with the the pub's circuit bound against the parameter value set in the index of
+            with the pub's circuit bound against the parameter value set in the index of
             the bindings array.
         """
         expval_map: dict[tuple[tuple[int, ...], str], tuple[float, float]] = {}
