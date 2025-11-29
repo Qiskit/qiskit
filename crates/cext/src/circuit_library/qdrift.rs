@@ -28,7 +28,8 @@ use rand::distr::{
 
 use std::ptr;
 
-
+/// Internal helper to extract real part of a complex number, 
+/// panicking if imaginary part is non-zero.
 fn approx_real(z: &Complex64) -> f64 {
     if z.im.abs() > 1e-12 {
         panic!("Complex coefficient with imaginary part encountered in QDRIFT.")
@@ -36,6 +37,8 @@ fn approx_real(z: &Complex64) -> f64 {
     z.re
 }
 
+/// This is an internal helper function to build the QDrift circuit. 
+/// The same safety requirements as for `qk_circuit_library_qdrift` apply.
 fn qdrift_build_circuit(
     obs: &SparseObservable,
     reps: usize,
@@ -168,6 +171,69 @@ fn qdrift_build_circuit(
     ).map_err(|_| ExitCode::ArithmeticError)
 }
 
+
+/// The QDrift Trotterization method, which selects each term in the Trotterization randomly, 
+/// with a probability proportional to its weight. 
+/// Based on the work of Earl Campbell in Ref. [1].
+///
+/// # Parameters
+///
+/// - `obs`: Pointer to a valid `QkObs` with the following conditions?
+///   - Contain only *real* coefficients `c_j` (imaginary parts must be
+///     numerically zero).
+///   - Projectors are computationally inefficient - For example, the decomposition acting on a 
+///     term with :math:`n` projectors :math:`|+><+|` will use :math:`2^n` Pauli terms.
+/// - `reps`: The number of outer repetitions `n` in the product formula,
+///   i.e. QDRIFT approximates `exp(-i * time * H)` by a product of
+///   `reps` independently sampled segments.  Must be strictly positive;
+///   `reps == 0` is rejected with a non-success `ExitCode`. :contentReference[oaicite:2]{index=2}
+/// - `time`: Evolution time `t` in `exp(-i * t * H)`.  This is a real
+///   scalar and may be positive, negative, or zero.  The total number of
+///   gates scales quadratically in `|time|`.
+/// - `out`: Output parameter. On success, `*out` is set to point to a newly
+///   allocated circuit object (*QkCircuitData) representing the synthesized
+///   QDRIFT circuit.  On failure, `*out` is set to `NULL`.
+///
+/// # Returns
+///
+/// - `ExitCode::Success` if a circuit was successfully synthesized and
+///   written to `*out`.
+/// - A non-success `ExitCode` if:
+///   - `obs` is null or otherwise invalid,
+///   - `reps` is zero,
+///   - the observable contains non-real coefficients,
+///   - an internal allocation or conversion fails.
+///
+/// In all error cases, `*out` is set to `NULL` and no circuit is leaked.
+///
+/// # Behavior and guarantees
+///
+/// - **Gate count scaling**: For a Hamiltonian with :math:`\lambda = \sum_j |c_j|`, the
+///   target gate count is :math:`N = \lceil 2 \lambda^2 \, \text{time}^2 \, \text{reps} \rceil`.  For small
+///   examples this yields, for instance, `N = 1` for :math:`\lambda = 1`, `time = 0.5`,
+///   `reps = 1`; `N = 2` for :math:`\lambda = 1`, `time = 1.0`, `reps = 1`; and
+///   `N = 4` for the same Hamiltonian with `reps = 2`.
+/// - **Identity terms**: Pure-identity Hamiltonians (e.g. `H = I`) produce
+///   circuits with zero nontrivial instructions and a nonzero global phase
+///   equal to the analytically expected value (e.g. `-time` for `H = I`).
+/// - **Stochasticity**: Because term indices are sampled randomly,
+///   different calls with the same `(obs, reps, time)` may produce
+///   different gate *sequences*, but they will share the same distribution
+///   over term types and the same expected gate count.
+///
+/// # Safety
+///
+/// This function is `extern "C"` and assumes:
+///
+/// - `obs` is a valid pointer to an observable allocated and managed by the
+///   Qiskit C API.
+/// - `out` is a valid, writable pointer to a location that can hold a
+///   `*mut CircuitData`.
+///
+/// Violating these conditions may cause undefined behavior.
+/// 
+/// # References
+/// - [1]: E. Campbell, “A random compiler for fast Hamiltonian simulation” (2018).[https://arxiv.org/abs/1811.08017](https://arxiv.org/abs/1811.08017)
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_circuit_library_qdrift(
