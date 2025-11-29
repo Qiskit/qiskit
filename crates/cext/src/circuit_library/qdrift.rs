@@ -174,11 +174,11 @@ fn qdrift_build_circuit(
 ///   - Contain only *real* coefficients `c_j` (imaginary parts must be
 ///     numerically zero).
 ///   - Projectors are computationally inefficient - For example, the decomposition acting on a
-///     term with :math:`n` projectors :math:`|+><+|` will use :math:`2^n` Pauli terms.
+///     term with :math:`n` projectors will use :math:`2^n` Pauli terms.
 /// - `reps`: The number of outer repetitions `n` in the product formula,
 ///   i.e. QDRIFT approximates `exp(-i * time * H)` by a product of
 ///   `reps` independently sampled segments.  Must be strictly positive;
-///   `reps == 0` is rejected with a non-success `ExitCode`. :contentReference[oaicite:2]{index=2}
+///   `reps == 0` is rejected with a non-success `ExitCode`.
 /// - `time`: Evolution time `t` in `exp(-i * t * H)`.  This is a real
 ///   scalar and may be positive, negative, or zero.  The total number of
 ///   gates scales quadratically in `|time|`.
