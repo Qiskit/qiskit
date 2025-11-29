@@ -11,6 +11,10 @@
 * copyright notice, and modified files need to carry a notice indicating
 * that they have been altered from the originals.
 **/
+// Required for M_PI using MSVC toolchain
+#ifdef _WIN32
+    #define _USE_MATH_DEFINES
+#endif
 #include "common.h"
 #include <math.h>
 #include <stdio.h>
@@ -129,7 +133,6 @@ static int test_qdrift_xi_plus_zz(void) {
     // Because QDRIFT is stochastic, we don't assert *which* terms appear where.
     // We just check all instructions are either X-like or ZZ-like and on the
     // expected qubits.
-
     for (size_t k = 0; k < instr_count; ++k) {
         QkCircuitInstruction instr;
         qk_circuit_get_instruction(circ, k, &instr);
@@ -260,7 +263,7 @@ static int test_qdrift_qubit_bounds(void) {
         QkBitTerm bit[1] = {QkBitTerm_X};
         uint32_t idx[1] = {q};
         QkComplex64 coeff = {1, 0};
-        QkObsTerm term = {coeff, 1, bit, idx, 1};
+        QkObsTerm term = {coeff, 1, bit, idx, 4};
         code = qk_obs_add_term(obs, &term);
         if (code != QkExitCode_Success) {
             printf("[bounds] Failed add term at q=%u\n", q);
@@ -374,8 +377,6 @@ static int test_qdrift_non_pauli_as_pauli(void) {
     }
 
     size_t instr_count = qk_circuit_num_instructions(circ);
-    printf("[plus] QDRIFT produced %zu instructions\n", instr_count);
-
     for (size_t k = 0; k < instr_count; ++k) {
         QkCircuitInstruction instr;
         qk_circuit_get_instruction(circ, k, &instr);
@@ -426,16 +427,17 @@ static int test_qdrift_global_phase(void) {
 
     // Identity term: no bits, no indices.
     QkComplex64 coeff = {1, 0};
+    // TODO this is hacky, there is probably a better / more correct way of creating an all-identity observable
     // Dummy arrays of length 1, never used because len = 0, but non-null.
     QkBitTerm dummy_bits[1] = { QkBitTerm_X };   // value doesn’t matter
     uint32_t  dummy_idxs[1] = { 0 };             // value doesn’t matter
 
     QkObsTerm term_I = {
         coeff,
-        1,            // num_qubits in the observable
+        0,            // len = 0 for all identity
         dummy_bits,   // non-null pointer
         dummy_idxs,   // non-null pointer
-        0             // len = 0  → identity term
+        1             // num_qubits
     };
 
     code = qk_obs_add_term(obs, &term_I);
@@ -470,10 +472,18 @@ static int test_qdrift_global_phase(void) {
 
     // Mathematically, for H = I, global phase should be ~ -time.
     double expected = -time;
+    double two_pi = 2.0 * M_PI;
 
-    if (fabs(phase - expected) > 1e-6) {
-        printf("[global_phase] Expected global phase ~ %g, got %g\n",
-               expected, phase);
+    double delta = fmod(phase - expected, two_pi);
+    if (delta > M_PI) {
+        delta -= two_pi;
+    } else if (delta < -M_PI) {
+        delta += two_pi;
+    }
+
+    if (fabs(delta) > 1e-6) {
+        printf("[global_phase] Expected global phase ~ %g (mod 2*pi), got %g (delta=%g)\n",
+               expected, phase, delta);
         result = EqualityError;
     }
 
