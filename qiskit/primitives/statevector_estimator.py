@@ -38,7 +38,7 @@ class StatevectorEstimator(BaseEstimatorV2):
     observables.
 
     Each tuple of ``(circuit, observables, <optional> parameter values, <optional> precision)``,
-    called an estimator primitive unified block (PUB), produces its own array-based result. The
+    called an estimator primitive unified bloc (PUB), produces its own array-based result. The
     :meth:`~.StatevectorEstimator.run` method can be given a sequence of pubs to run in one call.
 
 
