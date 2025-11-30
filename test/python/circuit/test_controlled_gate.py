@@ -101,6 +101,13 @@ from .gate_utils import _get_free_params
 class TestControlledGate(QiskitTestCase):
     """Tests for controlled gates and the ControlledGate class."""
 
+    def test_raises_warning_without_annotated(self):
+        """Test warning is raised when annotated is not explicitly set
+        and ControlledGate needs to be created.
+        """
+        with self.assertWarns(DeprecationWarning):
+            _ = HGate().control(3)
+
     def test_controlled_x(self):
         """Test creation of controlled x gate"""
         self.assertEqual(XGate().control(annotated=False), CXGate())
