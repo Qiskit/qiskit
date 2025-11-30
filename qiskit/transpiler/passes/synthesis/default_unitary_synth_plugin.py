@@ -45,7 +45,7 @@ or to avoid recomputing approximations for multiple circuits, you can invoke
 :class:`.SolovayKitaevSynthesis` unitary synthesis plugin instead of this default plugin.
 
 At present, Qiskit does not include algorithms for approximating 2+ qubit unitaries
-directly in the Clifford+T basis set. Therefor, the preset pass manager first decomposes
+directly in the Clifford+T basis set. Therefore, the preset pass manager first decomposes
 such gates into ``["cx", "u"]`` basis, and then applies Solovay-Kitaev to the resulting
 1-qubit unitary gates.
 
