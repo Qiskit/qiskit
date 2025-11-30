@@ -312,9 +312,9 @@ fn apply_synth_sequence(
 /// Iterate over `DAGCircuit` to perform unitary synthesis.
 /// For each eligible gate: find decomposers, select the synthesis
 /// method with the highest fidelity score and apply decompositions. The available methods are:
-///     * 1q synthesis: OneQubitEulerDecomposer
+///     * 1q synthesis: OneQubitEulerDecomposer, SolovayKitaevSynthesis
 ///     * 2q synthesis: TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer, XXDecomposer (Python, only if target is provided)
-///     * 3q+ synthesis: QuantumShannonDecomposer (Python)
+///     * 3q+ synthesis: QuantumShannonDecomposer
 /// This function is currently used in the Python `UnitarySynthesis`` transpiler pass as a replacement for the `_run_main_loop` method.
 /// It returns a new `DAGCircuit` with the different synthesized gates.
 #[pyfunction]
