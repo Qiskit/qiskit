@@ -1003,6 +1003,145 @@ class TestControlPatternSimplification(QiskitTestCase):
             "Optimized circuit should have at most the expected gate count",
         )
 
+    def test_complement_3of4_patterns_to_unconditional_plus_negative(self):
+        """Complement optimization: 3 of 4 patterns → unconditional + negative gate.
+
+        Patterns [00, 01, 10] (missing 11) can be optimized to:
+        - RZ(θ) unconditional
+        - RZ(-θ) controlled on 11
+
+        This reduces 3 multi-controlled gates to 2 gates (1 unconditional + 1 controlled).
+        """
+        theta = np.pi / 4
+
+        # Original: 3 gates covering all patterns except 11
+        unsimplified_qc = QuantumCircuit(3)
+        unsimplified_qc.append(RZGate(theta).control(2, ctrl_state="00"), [0, 1, 2])
+        unsimplified_qc.append(RZGate(theta).control(2, ctrl_state="01"), [0, 1, 2])
+        unsimplified_qc.append(RZGate(theta).control(2, ctrl_state="10"), [0, 1, 2])
+
+        # Expected: unconditional + negative on missing pattern
+        expected_qc = QuantumCircuit(3)
+        expected_qc.rz(theta, 2)  # Unconditional
+        expected_qc.append(RZGate(-theta).control(2, ctrl_state="11"), [0, 1, 2])
+
+        # Run optimization
+        pass_ = ControlPatternSimplification()
+        optimized_qc = pass_(unsimplified_qc)
+
+        # Verify equivalence
+        self._verify_circuits_equivalent(unsimplified_qc, expected_qc, 3)
+        self._verify_circuits_equivalent(unsimplified_qc, optimized_qc, 3)
+
+        # Should reduce from 3 to 2 gates
+        self.assertEqual(len(optimized_qc.data), 2)
+
+    def test_complement_7of8_patterns_3qubits(self):
+        """Complement optimization with 3 control qubits: 7 of 8 patterns.
+
+        Patterns [000, 001, 010, 011, 100, 101, 110] (missing 111) optimizes to:
+        - RY(θ) unconditional
+        - RY(-θ) controlled on 111
+
+        Reduces 7 gates to 2 gates.
+        """
+        theta = np.pi / 3
+
+        # Original: 7 gates covering all patterns except 111
+        unsimplified_qc = QuantumCircuit(4)
+        for i in range(7):  # 000 to 110
+            ctrl_state = format(i, "03b")
+            unsimplified_qc.append(RYGate(theta).control(3, ctrl_state=ctrl_state), [0, 1, 2, 3])
+
+        # Expected: unconditional + negative on 111
+        expected_qc = QuantumCircuit(4)
+        expected_qc.ry(theta, 3)
+        expected_qc.append(RYGate(-theta).control(3, ctrl_state="111"), [0, 1, 2, 3])
+
+        # Run optimization
+        pass_ = ControlPatternSimplification()
+        optimized_qc = pass_(unsimplified_qc)
+
+        # Verify equivalence
+        self._verify_circuits_equivalent(unsimplified_qc, expected_qc, 4)
+        self._verify_circuits_equivalent(unsimplified_qc, optimized_qc, 4)
+
+        # Should reduce from 7 to 2 gates
+        self.assertEqual(len(optimized_qc.data), 2)
+
+    def test_complement_example_00_10_11(self):
+        """Complement example: patterns [00, 10, 11] missing 01.
+
+        - RZ(θ) controlled by x=0 & y=0 → pattern '00'
+        - RZ(θ) controlled by x=1 & y=0 → pattern '10'
+        - RZ(θ) controlled by x=1 & y=1 → pattern '11'
+
+        The complement is x=0 & y=1 (pattern '01'), so this optimizes to:
+        - RZ(θ) unconditional
+        - RZ(-θ) controlled on 01
+        """
+        theta = np.pi / 4
+
+        # Original: 3 gates with patterns 00, 10, 11 (missing 01)
+        unsimplified_qc = QuantumCircuit(3)
+        unsimplified_qc.append(RZGate(theta).control(2, ctrl_state="00"), [0, 1, 2])
+        unsimplified_qc.append(RZGate(theta).control(2, ctrl_state="10"), [0, 1, 2])
+        unsimplified_qc.append(RZGate(theta).control(2, ctrl_state="11"), [0, 1, 2])
+
+        # Expected: unconditional + negative on missing pattern 01
+        expected_qc = QuantumCircuit(3)
+        expected_qc.rz(theta, 2)  # Unconditional
+        expected_qc.append(RZGate(-theta).control(2, ctrl_state="01"), [0, 1, 2])
+
+        # Run optimization
+        pass_ = ControlPatternSimplification()
+        optimized_qc = pass_(unsimplified_qc)
+
+        # Verify equivalence
+        self._verify_circuits_equivalent(unsimplified_qc, expected_qc, 3)
+        self._verify_circuits_equivalent(unsimplified_qc, optimized_qc, 3)
+
+        # Should reduce from 3 to 2 gates
+        self.assertEqual(len(optimized_qc.data), 2)
+
+    def test_mixed_control_counts_to_unconditional(self):
+        """Mixed control counts forming complete partition.
+
+        - RZ(θ) controlled by x=0 (1 control qubit)
+        - RZ(θ) controlled by x=1 & y=0 (2 control qubits)
+        - RZ(θ) controlled by x=1 & y=1 (2 control qubits)
+
+        These form a complete partition:
+        x=0 OR (x=1 & y=0) OR (x=1 & y=1) = TRUE
+
+        Should simplify to unconditional RZ(θ).
+        """
+        theta = np.pi / 4
+
+        # Original: 3 gates with different control counts
+        unsimplified_qc = QuantumCircuit(3)
+        # x=0: fire when q0=0
+        unsimplified_qc.append(RZGate(theta).control(1, ctrl_state="0"), [0, 2])
+        # x=1 & y=0: fire when q0=1, q1=0
+        unsimplified_qc.append(RZGate(theta).control(2, ctrl_state="01"), [0, 1, 2])
+        # x=1 & y=1: fire when q0=1, q1=1
+        unsimplified_qc.append(RZGate(theta).control(2, ctrl_state="11"), [0, 1, 2])
+
+        # Expected: unconditional RZ
+        expected_qc = QuantumCircuit(3)
+        expected_qc.rz(theta, 2)
+
+        # Run optimization
+        pass_ = ControlPatternSimplification()
+        optimized_qc = pass_(unsimplified_qc)
+
+        # Verify equivalence
+        self._verify_circuits_equivalent(unsimplified_qc, expected_qc, 3)
+        self._verify_circuits_equivalent(unsimplified_qc, optimized_qc, 3)
+
+        # Should reduce from 3 to 1 gate
+        self.assertEqual(len(optimized_qc.data), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

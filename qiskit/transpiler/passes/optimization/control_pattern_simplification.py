@@ -191,6 +191,16 @@ class BitwisePatternAnalyzer:
         if len(unique) == 2**self.num_qubits:
             return ("unconditional", [], "")
 
+        # Complement optimization: if patterns cover "all but 1", use:
+        # unconditional gate + negative gate on missing pattern
+        # e.g., [00, 01, 10] missing 11 -> RZ(θ) + RZ(-θ) on 11 = 2 gates instead of 3
+        if len(unique) == 2**self.num_qubits - 1:
+            all_patterns = {format(i, f"0{self.num_qubits}b") for i in range(2**self.num_qubits)}
+            missing = all_patterns - set(unique)
+            if len(missing) == 1:
+                missing_pattern = list(missing)[0]
+                return ("complement", list(range(self.num_qubits)), missing_pattern)
+
         # Try iterative pairwise for > 2 patterns
         if len(unique) > 2:
             result = self.simplify_patterns_iterative(unique)
@@ -308,7 +318,7 @@ class ControlPatternSimplification(TransformationPass):
     def _group_compatible_gates(
         self, gates: List[ControlledGateInfo]
     ) -> List[List[ControlledGateInfo]]:
-        """Group gates that can be optimized together."""
+        """Group gates that can be optimized together (same control qubits)."""
         if len(gates) < 2:
             return []
 
@@ -336,6 +346,74 @@ class ControlPatternSimplification(TransformationPass):
             i = j if j > i + 1 else i + 1
 
         return groups
+
+    def _group_mixed_control_gates(
+        self, gates: List[ControlledGateInfo]
+    ) -> List[List[ControlledGateInfo]]:
+        """Group gates with subset/superset control qubits for mixed-count optimization."""
+        if len(gates) < 2:
+            return []
+
+        groups = []
+        used = set()
+
+        for i, base in enumerate(gates):
+            if i in used:
+                continue
+            group = [base]
+            base_ctrls = set(base.control_qubits)
+
+            for j, cand in enumerate(gates[i + 1 :], start=i + 1):
+                if j in used:
+                    continue
+                cand_ctrls = set(cand.control_qubits)
+                # Check if controls are subset/superset and other properties match
+                if (
+                    cand.operation.base_gate.name == base.operation.base_gate.name
+                    and cand.target_qubits == base.target_qubits
+                    and self._parameters_match(cand.params, base.params)
+                    and (base_ctrls <= cand_ctrls or cand_ctrls <= base_ctrls)
+                ):
+                    group.append(cand)
+                    used.add(j)
+
+            if len(group) >= 2:
+                # Check if there are different control counts in the group
+                ctrl_counts = set(len(g.control_qubits) for g in group)
+                if len(ctrl_counts) > 1:
+                    groups.append(group)
+                    used.add(i)
+
+        return groups
+
+    def _expand_pattern_to_superset(
+        self, pattern: str, gate_ctrls: List[int], superset_ctrls: List[int]
+    ) -> List[str]:
+        """Expand a pattern to a superset of control qubits.
+
+        For missing qubits, generate all combinations (0 and 1).
+        E.g., pattern '0' on [q0] expanded to [q0, q1] gives ['00', '01'].
+        """
+        missing_qubits = [q for q in superset_ctrls if q not in gate_ctrls]
+        if not missing_qubits:
+            return [pattern]
+
+        # Build expanded patterns
+        expanded = []
+        num_missing = len(missing_qubits)
+        for combo in range(2**num_missing):
+            new_pattern = ""
+            pattern_idx = 0
+            combo_idx = 0
+            for q in superset_ctrls:
+                if q in gate_ctrls:
+                    new_pattern += pattern[pattern_idx]
+                    pattern_idx += 1
+                else:
+                    new_pattern += str((combo >> combo_idx) & 1)
+                    combo_idx += 1
+            expanded.append(new_pattern)
+        return expanded
 
     def _build_controlled_gate(
         self,
@@ -442,13 +520,57 @@ class ControlPatternSimplification(TransformationPass):
             qubits = [dag.qubits[idx] for idx in qargs_indices]
             dag.apply_operation_back(gate, qubits)
 
+    def _process_mixed_control_group(
+        self, group: List[ControlledGateInfo]
+    ) -> Optional[List[Tuple]]:
+        """Process a group with mixed control counts by expanding patterns."""
+        # Find the superset of all control qubits
+        all_ctrl_qubits = set()
+        for g in group:
+            all_ctrl_qubits.update(g.control_qubits)
+        superset_ctrls = sorted(all_ctrl_qubits)
+        num_qubits = len(superset_ctrls)
+
+        # Expand all patterns to the superset
+        expanded_patterns = []
+        for g in group:
+            expanded = self._expand_pattern_to_superset(
+                g.ctrl_state, g.control_qubits, superset_ctrls
+            )
+            expanded_patterns.extend(expanded)
+
+        # Check if expanded patterns form a complete partition
+        unique = set(expanded_patterns)
+        if len(unique) == 2**num_qubits:
+            # All patterns covered → unconditional gate
+            base_gate = type(group[0].operation.base_gate)
+            return [
+                self._build_controlled_gate(
+                    base_gate, group[0].params, [], group[0].target_qubits, ""
+                )
+            ]
+        return None
+
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the ControlPatternSimplification pass on a DAGCircuit."""
         gate_runs = self._collect_controlled_gates(dag)
         optimizations_to_apply = []
 
         for run in gate_runs:
-            for group in self._group_compatible_gates(run):
+            # First try mixed control count optimization
+            used_gates = set()
+            for group in self._group_mixed_control_gates(run):
+                replacement = self._process_mixed_control_group(group)
+                if replacement:
+                    optimizations_to_apply.append((group, replacement))
+                    for g in group:
+                        used_gates.add(id(g))
+
+            # Filter out gates already optimized
+            remaining = [g for g in run if id(g) not in used_gates]
+
+            # Then try same-control-count optimization
+            for group in self._group_compatible_gates(remaining):
                 if len(group) < 2:
                     continue
 
@@ -507,6 +629,28 @@ class ControlPatternSimplification(TransformationPass):
                                 group[0].target_qubits,
                                 "",
                             )
+                        ]
+
+                    elif classification == "complement" and info and ctrl_state:
+                        # All but one pattern: unconditional + negative on missing
+                        base_gate = type(group[0].operation.base_gate)
+                        params = group[0].params
+                        ctrl_qubits = [group[0].control_qubits[i] for i in info]
+                        # Negate params for the complement gate
+                        neg_params = tuple(-p for p in params) if params else ()
+                        replacement = [
+                            # Unconditional gate
+                            self._build_controlled_gate(
+                                base_gate, params, [], group[0].target_qubits, ""
+                            ),
+                            # Negative gate on missing pattern
+                            self._build_controlled_gate(
+                                base_gate,
+                                neg_params,
+                                ctrl_qubits,
+                                group[0].target_qubits,
+                                ctrl_state,
+                            ),
                         ]
 
                     elif classification == "pairwise_iterative" and info:
