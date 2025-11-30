@@ -937,6 +937,9 @@ cleanup:
     return result;
 }
 
+/**
+ * Test adding delay instruction to a circuit.
+ */
 static int test_delay_instruction(void) {
     QkCircuit *qc = qk_circuit_new(2, 0);
     int result = Ok;
@@ -951,6 +954,28 @@ static int test_delay_instruction(void) {
 
 cleanup:
     qk_circuit_free(qc);
+    return result;
+}
+
+/**
+ * Test circuit to dag conversion.
+ */
+static int test_circuit_to_dag(void) {
+    QkCircuit *circuit = qk_circuit_new(2, 1);
+    qk_circuit_gate(circuit, QkGate_H, (uint32_t[]){0}, NULL);
+    qk_circuit_gate(circuit, QkGate_CX, (uint32_t[]){0, 1}, NULL);
+
+    QkDag *dag = qk_circuit_to_dag(circuit);
+    qk_circuit_free(circuit);
+
+    int result = Ok;
+    if (qk_dag_num_qubits(dag) != 2 || qk_dag_num_clbits(dag) != 1 ||
+        qk_dag_num_op_nodes(dag) != 2) {
+        printf("Circuit to DAG conversion encountered an issue\n");
+        result = EqualityError;
+    }
+
+    qk_dag_free(dag);
     return result;
 }
 
@@ -975,6 +1000,7 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_not_unitary_gate);
     num_failed += RUN_TEST(test_unitary_gate_1q);
     num_failed += RUN_TEST(test_unitary_gate_3q);
+    num_failed += RUN_TEST(test_circuit_to_dag);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
