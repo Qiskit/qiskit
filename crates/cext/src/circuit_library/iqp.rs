@@ -20,14 +20,10 @@ use qiskit_circuit_library::iqp::{iqp, py_random_iqp};
 ///   - `view` is square and symmetric.
 ///   - Any error from `from_standard_gates` is considered unreachable for valid
 ///     inputs, so we use `unwrap()` like other cext code.
-fn iqp_from_view(view : ArrayView2<'_, i64>) -> CircuitData {
+fn iqp_from_view(view: ArrayView2<'_, i64>) -> CircuitData {
     let nrows = view.nrows();
 
-    CircuitData::from_standard_gates(
-        nrows as u32,
-        iqp(view),
-        Param::Float(0.0)
-    ).unwrap()
+    CircuitData::from_standard_gates(nrows as u32, iqp(view), Param::Float(0.0)).unwrap()
 }
 
 /// Generate an IQP circuit from an integer interaction matrix.
@@ -55,7 +51,7 @@ pub extern "C" fn qk_circuit_library_iqp_(
     num_qubits: u32,
     interactions: *const i64, // row major nxn
 ) -> *mut CircuitData {
-    if interactions.is_null(){
+    if interactions.is_null() {
         return std::ptr::null_mut();
     }
 
@@ -66,7 +62,7 @@ pub extern "C" fn qk_circuit_library_iqp_(
 
     // SAFETY: caller guarantees at least n*n elements are readable.
     let len = num_qubits * num_qubits;
-    let buf = unsafe{std::slice::from_raw_parts(interactions, len)};
+    let buf = unsafe { std::slice::from_raw_parts(interactions, len) };
 
     // Wrap the flat buffer as an `ndarray` view with shape (n, n).
     let view = ndarray::ArrayView2::from_shape((num_qubits, num_qubits), buf).unwrap();
@@ -100,10 +96,7 @@ pub extern "C" fn qk_circuit_library_iqp_(
 /// - A newly allocated `QkCircuit*` (caller must free with `qk_circuit_free`).
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub extern "C" fn qk_circuit_library_random_iqp_(
-    num_qubits: u32,
-    seed: i64
-) -> *mut CircuitData {
+pub extern "C" fn qk_circuit_library_random_iqp_(num_qubits: u32, seed: i64) -> *mut CircuitData {
     let seed = if seed < 0 { None } else { Some(seed as u64) };
     Box::into_raw(Box::new(py_random_iqp(num_qubits, seed).unwrap()))
 }
