@@ -179,10 +179,16 @@ static int test_circuit_copy_empty_like(void) {
     }
     QkCircuit *copy = qk_circuit_copy_empty_like(qc);
 
+    size_t num_instructions = qk_circuit_num_instructions(qc);        // not 0
     size_t num_copy_instructions = qk_circuit_num_instructions(copy); // 0
 
     qk_circuit_free(qc);
     qk_circuit_free(copy);
+
+    if (num_instructions == 0) {
+        printf("Expected the original circuit to remain unchanged, but it is now empty\n");
+        return EqualityError;
+    }
 
     if (num_copy_instructions != 0) {
         printf("Expected no operations in the copied-empty-like circuit, but got %zu\n",
