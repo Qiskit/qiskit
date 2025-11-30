@@ -198,7 +198,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
     the number of shots, and :math:`\epsilon` is the target precision [1].
 
     Each tuple of ``(circuit, observables, <optional> parameter values, <optional> precision)``,
-    called an estimator primitive unified block (PUB), produces its own array-based result. The
+    called an estimator primitive unified bloc (PUB), produces its own array-based result. The
     :meth:`~.BackendEstimatorV2.run` method can be given a sequence of pubs to run in one call.
 
     The options for :class:`~.BackendEstimatorV2` consist of the following items.
