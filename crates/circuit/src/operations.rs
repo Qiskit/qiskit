@@ -377,6 +377,13 @@ pub struct PyRange {
     pub step: NonZero<isize>,
 }
 impl PyRange {
+    pub fn is_empty(&self) -> bool {
+        let step = self.step.unsigned_abs().get();
+        let diff = self.start.abs_diff(self.stop);
+        (self.step.get() > 0 && self.start < self.stop
+            || (self.step.get() < 0 && self.start > self.stop))
+            && diff >= step
+    }
     pub fn len(&self) -> usize {
         let step = self.step.unsigned_abs().get();
         let diff = self.start.abs_diff(self.stop);
@@ -399,7 +406,7 @@ impl<'py> IntoPyObject<'py> for PyRange {
         ::pyo3::types::PyRange::new_with_step(py, self.start, self.stop, self.step.get())
     }
 }
-impl<'a, 'py> IntoPyObject<'py> for &'a PyRange {
+impl<'py> IntoPyObject<'py> for &'_ PyRange {
     type Target = <PyRange as IntoPyObject<'py>>::Target;
     type Output = <PyRange as IntoPyObject<'py>>::Output;
     type Error = <PyRange as IntoPyObject<'py>>::Error;
@@ -430,6 +437,12 @@ pub enum ForCollection {
     List(Vec<usize>),
 }
 impl ForCollection {
+    pub fn is_empty(&self) -> bool {
+        match self {
+            Self::PyRange(xs) => xs.is_empty(),
+            Self::List(xs) => xs.is_empty(),
+        }
+    }
     pub fn len(&self) -> usize {
         match self {
             Self::PyRange(xs) => xs.len(),
