@@ -34,20 +34,17 @@ use rustworkx_core::shortest_path::{dijkstra, distance_matrix};
 use rustworkx_core::token_swapper::token_swapper;
 use smallvec::{SmallVec, smallvec};
 
-use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder, NodeType, Wire};
-use qiskit_circuit::nlayout::NLayout;
-use qiskit_circuit::operations::{OperationRef, StandardGate};
-use qiskit_circuit::packed_instruction::PackedInstruction;
-use qiskit_circuit::{PhysicalQubit, Qubit, VirtualQubit, getenv_use_multiple_threads, imports};
-
-use crate::TranspilerError;
-use crate::neighbors::Neighbors;
-use crate::target::{Target, TargetCouplingError};
-
 use super::dag::{InteractionKind, SabreDAG};
 use super::heuristic::{BasicHeuristic, DecayHeuristic, Heuristic, LookaheadHeuristic, SetScaling};
 use super::layer::{ExtendedSet, FrontLayer};
+use crate::TranspilerError;
+use crate::neighbors::Neighbors;
+use crate::target::{Target, TargetCouplingError};
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder, NodeType, Wire};
+use qiskit_circuit::nlayout::NLayout;
+use qiskit_circuit::operations::{ControlFlow, StandardGate};
+use qiskit_circuit::packed_instruction::PackedInstruction;
+use qiskit_circuit::{BlocksMode, PhysicalQubit, Qubit, VirtualQubit, getenv_use_multiple_threads};
 
 /// Number of trials for control flow block swap epilogues.
 const SWAP_EPILOGUE_TRIALS: usize = 4;
@@ -131,6 +128,7 @@ impl RoutingResult<'_> {
             self.num_qubits(),
             self.dag.num_ops() + num_swaps,
             self.dag.dag().edge_count() + 2 * num_swaps,
+            BlocksMode::Drop,
         )?;
         self.rebuild_onto(dag, |q| q)
     }
@@ -207,7 +205,7 @@ impl RoutingResult<'_> {
             match item.kind {
                 RoutedItemKind::Simple => apply_op(inst, &layout, &mut dag)?,
                 RoutedItemKind::ControlFlow(num_blocks) => {
-                    let blocks = blocks
+                    let mut blocks = blocks
                         .by_ref()
                         .take(num_blocks.get() as usize)
                         .map(|block| block.rebuild())
@@ -240,36 +238,24 @@ impl RoutingResult<'_> {
                             idle.push(qubit);
                         }
                     }
-                    let new_inst = Python::attach(|py| -> PyResult<_> {
-                        // TODO: have to use Python-space `dag_to_circuit` because the Rust-space is
-                        // only half the conversion (since it doesn't handle vars or stretches).
-                        let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
-                        let blocks = blocks
-                            .into_iter()
-                            .map(|mut dag| {
-                                dag.remove_qubits(idle.iter().copied())?;
-                                dag_to_circuit.call1((dag, false))
-                            })
-                            .collect::<Result<Vec<_>, _>>()?;
-
-                        let OperationRef::Instruction(py_inst) = inst.op.view() else {
-                            panic!("control-flow nodes must be PyInstruction");
-                        };
-                        let new_node = py_inst
-                            .instruction
-                            .bind(py)
-                            .call_method1("replace_blocks", (blocks,))?;
-                        let op: OperationFromPython = new_node.extract()?;
-                        Ok(PackedInstruction {
-                            op: op.operation,
-                            qubits: dag.insert_qargs(&qargs),
-                            clbits: inst.clbits,
-                            params: (!op.params.is_empty()).then(|| Box::new(op.params)),
-                            label: op.label,
-                            #[cfg(feature = "cache_pygates")]
-                            py_op: new_node.unbind().into(),
-                        })
-                    })?;
+                    for dag in &mut blocks {
+                        dag.remove_qubits(idle.iter().copied())?;
+                    }
+                    let mut new_op = inst.op.control_flow().clone();
+                    if !matches!(
+                        &new_op.control_flow,
+                        ControlFlow::BreakLoop | ControlFlow::ContinueLoop
+                    ) {
+                        new_op.num_qubits = blocks[0].num_qubits() as u32;
+                    }
+                    let blocks = blocks.into_iter().map(|b| dag.add_block(b)).collect();
+                    let new_inst = PackedInstruction::from_control_flow(
+                        new_op,
+                        blocks,
+                        dag.insert_qargs(&qargs),
+                        inst.clbits,
+                        inst.label.as_deref().cloned(),
+                    );
                     dag.push_back(new_inst)?
                 }
             };

@@ -31,11 +31,9 @@ use crate::two_qubit_decompose::{TwoQubitBasisDecomposer, two_qubit_decompose_up
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::interner::Interned;
-use qiskit_circuit::operations::{
-    ArrayType, Operation, OperationRef, Param, StandardGate, UnitaryGate,
-};
+use qiskit_circuit::operations::{ArrayType, OperationRef, Param, StandardGate, UnitaryGate};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
-use qiskit_circuit::{Qubit, VarsMode};
+use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 use qiskit_quantum_info::convert_2q_block_matrix::instructions_to_matrix;
 
 const EPS: f64 = 1e-10;
@@ -674,7 +672,7 @@ fn apply_a2(
             let OperationRef::Unitary(unitary) = circ.data()[*idx].op.view() else {
                 unreachable!("diagonal unitary is not a unitary gate");
             };
-            (*idx, unitary.matrix(&[]).unwrap())
+            (*idx, unitary.matrix().unwrap())
         })
         .collect();
     for ind in ind2q.windows(2) {
@@ -721,14 +719,18 @@ fn apply_a2(
         phase,
     )?;
     diagonal_rollover.insert(*last_idx, qc3);
-    let mut out_circ = circ.copy_empty_like_with_capacity(
-        circ.data().len()
-            + diagonal_rollover
-                .values()
-                .map(|x| x.data().len())
-                .sum::<usize>()
-            - ind2q.len(),
+    let mut out_circ = CircuitData::clone_empty_like(
+        circ,
+        Some(
+            circ.data().len()
+                + diagonal_rollover
+                    .values()
+                    .map(|x| x.data().len())
+                    .sum::<usize>()
+                - ind2q.len(),
+        ),
         VarsMode::Alike,
+        BlocksMode::Drop,
     )?;
 
     for (idx, inst) in circ.data().iter().enumerate() {

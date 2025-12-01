@@ -29,6 +29,7 @@ use pyo3::types::{PyBool, PyDict, PyTuple};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_node::DAGOpNode;
 use qiskit_circuit::imports::QI_OPERATOR;
+use qiskit_circuit::instruction::{Instruction, Parameters};
 use qiskit_circuit::object_registry::ObjectRegistry;
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, STANDARD_GATE_SIZE, StandardGate,
@@ -174,7 +175,7 @@ impl CommutationChecker {
         CommutationChecker::new(Some(library), cache_max_entries, gates)
     }
 
-    #[pyo3(signature=(op1, op2, max_num_qubits=3, approximation_degree=1.))]
+    #[pyo3(signature=(op1, op2, max_num_qubits=3, approximation_degree=1., matrix_max_num_qubits=3))]
     fn commute_nodes(
         &mut self,
         py: Python,
@@ -182,6 +183,7 @@ impl CommutationChecker {
         op2: &DAGOpNode,
         max_num_qubits: u32,
         approximation_degree: f64,
+        matrix_max_num_qubits: u32,
     ) -> PyResult<bool> {
         let (qargs1, qargs2) = get_bits_from_py::<Qubit>(
             op1.instruction.qubits.bind(py),
@@ -194,19 +196,20 @@ impl CommutationChecker {
 
         Ok(self.commute(
             &op1.instruction.operation.view(),
-            &op1.instruction.params,
+            op1.instruction.parameters(),
             &qargs1,
             &cargs1,
             &op2.instruction.operation.view(),
-            &op2.instruction.params,
+            op2.instruction.parameters(),
             &qargs2,
             &cargs2,
             max_num_qubits,
+            matrix_max_num_qubits,
             approximation_degree,
         )?)
     }
 
-    #[pyo3(name="commute", signature=(op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits=3, approximation_degree=1.))]
+    #[pyo3(name="commute", signature=(op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits=3, approximation_degree=1., matrix_max_num_qubits=3))]
     #[allow(clippy::too_many_arguments)]
     fn py_commute(
         &mut self,
@@ -218,20 +221,22 @@ impl CommutationChecker {
         cargs2: &Bound<'_, PyTuple>,
         max_num_qubits: u32,
         approximation_degree: f64,
+        matrix_max_num_qubits: u32,
     ) -> PyResult<bool> {
         let (qargs1, qargs2) = get_bits_from_py::<Qubit>(qargs1, qargs2)?;
         let (cargs1, cargs2) = get_bits_from_py::<Clbit>(cargs1, cargs2)?;
 
         Ok(self.commute(
             &op1.operation.view(),
-            &op1.params,
+            op1.parameters(),
             &qargs1,
             &cargs1,
             &op2.operation.view(),
-            &op2.params,
+            op2.parameters(),
             &qargs2,
             &cargs2,
             max_num_qubits,
+            matrix_max_num_qubits,
             approximation_degree,
         )?)
     }
@@ -312,23 +317,37 @@ impl CommutationChecker {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn commute(
+    pub fn commute<T>(
         &mut self,
         op1: &OperationRef,
-        params1: &[Param],
+        params1: Option<&Parameters<T>>,
         qargs1: &[Qubit],
         cargs1: &[Clbit],
         op2: &OperationRef,
-        params2: &[Param],
+        params2: Option<&Parameters<T>>,
         qargs2: &[Qubit],
         cargs2: &[Clbit],
         max_num_qubits: u32,
+        matrix_max_num_qubits: u32,
         approximation_degree: f64,
     ) -> Result<bool, CommutationError> {
         // If the average gate infidelity is below this tolerance, they commute. The tolerance
         // is set to max(1e-12, 1 - approximation_degree), to account for roundoffs and for
         // consistency with other places in Qiskit.
         let tol = 1e-12_f64.max(1. - approximation_degree);
+
+        let params1 = params1
+            .map(|p| match p {
+                Parameters::Params(p) => p.as_slice(),
+                _ => &[],
+            })
+            .unwrap_or_default();
+        let params2 = params2
+            .map(|p| match p {
+                Parameters::Params(p) => p.as_slice(),
+                _ => &[],
+            })
+            .unwrap_or_default();
 
         // if we have rotation gates, we attempt to map them to their generators, for example
         // RX -> X or CPhase -> CZ
@@ -372,6 +391,7 @@ impl CommutationChecker {
             return Ok(is_commuting);
         }
 
+        // Sort the arguments.
         let reversed = if op1.num_qubits() != op2.num_qubits() {
             op1.num_qubits() > op2.num_qubits()
         } else {
@@ -406,6 +426,12 @@ impl CommutationChecker {
             is_cachable(first_op, first_params) && is_cachable(second_op, second_params);
 
         if !check_cache {
+            // The arguments are sorted, so if qargs1.len() > matrix_max_num_qubits, then
+            // qargs1.len() > matrix_max_num_qubits as well.
+            if qargs2.len() > matrix_max_num_qubits as usize {
+                return Ok(false);
+            }
+
             return self.commute_matmul(
                 first_op,
                 first_params,
@@ -437,6 +463,12 @@ impl CommutationChecker {
             if let Some(commutation) = commutation_dict.get(&(relative_placement.clone(), hashes)) {
                 return Ok(*commutation);
             }
+        }
+
+        if qargs1.len() > matrix_max_num_qubits as usize
+            || qargs2.len() > matrix_max_num_qubits as usize
+        {
+            return Ok(false);
         }
 
         // Perform matrix multiplication to determine commutation
@@ -510,12 +542,12 @@ impl CommutationChecker {
         if first_qarg.len() > second_qarg.len() {
             return Err(CommutationError::FirstInstructionTooLarge);
         };
-        let first_mat = match get_matrix(first_op, first_params) {
+        let first_mat = match try_matrix_with_definition(first_op, first_params, None) {
             Some(matrix) => matrix,
             None => return Ok(false),
         };
 
-        let second_mat = match get_matrix(second_op, second_params) {
+        let second_mat = match try_matrix_with_definition(second_op, second_params, None) {
             Some(matrix) => matrix,
             None => return Ok(false),
         };
@@ -583,7 +615,9 @@ fn commutation_precheck(
     cargs2: &[Clbit],
     max_num_qubits: u32,
 ) -> Option<bool> {
-    if op1.control_flow() || op2.control_flow() {
+    if matches!(op1, OperationRef::ControlFlow { .. })
+        || matches!(op2, OperationRef::ControlFlow { .. })
+    {
         return Some(false);
     }
 
@@ -621,41 +655,67 @@ fn commutation_precheck(
     None
 }
 
-fn get_matrix(operation: &OperationRef, params: &[Param]) -> Option<Array2<Complex64>> {
-    if let Some(matrix) = operation.matrix(params) {
-        Some(matrix)
-    } else {
-        match operation {
-            OperationRef::Gate(gate) => Python::attach(|py| -> Option<_> {
-                Some(
-                    QI_OPERATOR
-                        .get_bound(py)
-                        .call1((gate.gate.clone_ref(py),))
-                        .ok()?
-                        .getattr(intern!(py, "data"))
-                        .ok()?
-                        .extract::<PyReadonlyArray2<Complex64>>()
-                        .ok()?
-                        .as_array()
-                        .to_owned(),
-                )
-            }),
-            OperationRef::Operation(operation) => Python::attach(|py| -> Option<_> {
-                Some(
-                    QI_OPERATOR
-                        .get_bound(py)
-                        .call1((operation.operation.clone_ref(py),))
-                        .ok()?
-                        .getattr(intern!(py, "data"))
-                        .ok()?
-                        .extract::<PyReadonlyArray2<Complex64>>()
-                        .ok()?
-                        .as_array()
-                        .to_owned(),
-                )
-            }),
-            _ => None,
-        }
+/// Returns matrix representation of the specified operation.
+///
+/// For custom python gates:
+/// - The matrix is constructed from the gate's definition when the gate does
+///   not provide a direct `matrix` method.
+/// - To prevent generating excessively large matrices, use
+///   `matrix_from_definition_max_qubits` to set an upper limit on the number
+///   of qubits for which the construction is applied.
+pub fn try_matrix_with_definition(
+    operation: &OperationRef,
+    params: &[Param],
+    matrix_from_definition_max_qubits: Option<u32>,
+) -> Option<Array2<Complex64>> {
+    match operation {
+        OperationRef::StandardGate(gate) => gate.matrix(params),
+        OperationRef::Unitary(unitary) => unitary.matrix(),
+        OperationRef::Gate(gate) => Python::attach(|py| -> Option<_> {
+            if let Some(matrix) = gate.matrix() {
+                return Some(matrix);
+            }
+
+            if matrix_from_definition_max_qubits
+                .is_some_and(|max_qubits| max_qubits < operation.num_qubits())
+            {
+                return None;
+            }
+
+            Some(
+                QI_OPERATOR
+                    .get_bound(py)
+                    .call1((gate.gate.clone_ref(py),))
+                    .ok()?
+                    .getattr(intern!(py, "data"))
+                    .ok()?
+                    .extract::<PyReadonlyArray2<Complex64>>()
+                    .ok()?
+                    .as_array()
+                    .to_owned(),
+            )
+        }),
+        OperationRef::Operation(operation) => Python::attach(|py| -> Option<_> {
+            if matrix_from_definition_max_qubits
+                .is_some_and(|max_qubits| max_qubits < operation.num_qubits())
+            {
+                return None;
+            }
+
+            Some(
+                QI_OPERATOR
+                    .get_bound(py)
+                    .call1((operation.operation.clone_ref(py),))
+                    .ok()?
+                    .getattr(intern!(py, "data"))
+                    .ok()?
+                    .extract::<PyReadonlyArray2<Complex64>>()
+                    .ok()?
+                    .as_array()
+                    .to_owned(),
+            )
+        }),
+        _ => None,
     }
 }
 

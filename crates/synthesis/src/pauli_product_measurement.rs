@@ -80,7 +80,7 @@ pub fn synthesize_ppm(ppm: &PauliProductMeasurement) -> PyResult<CircuitData> {
     // Z-measurement on first qubit
     circuit.push_packed_operation(
         PackedOperation::from_standard_instruction(StandardInstruction::Measure),
-        &[],
+        None,
         &[first_qubit],
         &[Clbit(0)],
     )?;

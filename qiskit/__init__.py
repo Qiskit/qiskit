@@ -104,6 +104,7 @@ sys.modules["qiskit._accelerate.barrier_before_final_measurement"] = (
 sys.modules["qiskit._accelerate.commutation_checker"] = _accelerate.commutation_checker
 sys.modules["qiskit._accelerate.commutation_analysis"] = _accelerate.commutation_analysis
 sys.modules["qiskit._accelerate.commutation_cancellation"] = _accelerate.commutation_cancellation
+sys.modules["qiskit._accelerate.commutative_optimization"] = _accelerate.commutative_optimization
 sys.modules["qiskit._accelerate.consolidate_blocks"] = _accelerate.consolidate_blocks
 sys.modules["qiskit._accelerate.synthesis.linear_phase"] = _accelerate.synthesis.linear_phase
 sys.modules["qiskit._accelerate.synthesis.evolution"] = _accelerate.synthesis.evolution
@@ -133,6 +134,7 @@ sys.modules["qiskit._accelerate.wrap_angles"] = _accelerate.wrap_angles
 sys.modules["qiskit._accelerate.angle_bound_registry"] = _accelerate.angle_bound_registry
 sys.modules["qiskit._accelerate.litinski_transformation"] = _accelerate.litinski_transformation
 sys.modules["qiskit._accelerate.unroll_3q_or_more"] = _accelerate.unroll_3q_or_more
+sys.modules["qiskit._accelerate.substitute_pi4_rotations"] = _accelerate.substitute_pi4_rotations
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 
