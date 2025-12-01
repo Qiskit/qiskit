@@ -230,7 +230,9 @@ impl Clifford {
         let mut z = Vec::<bool>::new();
         let mut x = Vec::<bool>::new();
         let mut indices = Vec::<u32>::new();
-        let mut pauli = vec![false; 2 * self.num_qubits];
+        let mut pauli_indices = Vec::<usize>::with_capacity(2 * self.num_qubits);
+        // Compute the y-count to avoid recomputing it later
+        let mut pauli_y_count: u32 = 0;
 
         for i in 0..self.num_qubits {
             let z_bit = self.tableau[[i, qbit]];
@@ -239,64 +241,56 @@ impl Clifford {
                 z.push(z_bit);
                 x.push(x_bit);
                 indices.push(i as u32);
-            }
-
-            match (z_bit, x_bit) {
-                (false, false) => {}
-                (false, true) => {
-                    pauli[i] = true;
+                if x_bit {
+                    pauli_indices.push(i);
                 }
-                (true, false) => {
-                    pauli[i + self.num_qubits] = true;
+                if z_bit {
+                    pauli_indices.push(i + self.num_qubits);
                 }
-                (true, true) => {
-                    pauli[i] = true;
-                    pauli[i + self.num_qubits] = true;
-                }
+                pauli_y_count += (x_bit && z_bit) as u32;
             }
         }
-        let phase = compute_phase_product_pauli(self, &pauli);
+        let phase = compute_phase_product_pauli(self, &pauli_indices, pauli_y_count);
 
         (phase, z, x, indices)
     }
 }
 
 /// Computes the sign (either +1 or -1) when conjugating a Pauli by a Clifford
-fn compute_phase_product_pauli(clifford: &Clifford, pauli: &[bool]) -> bool {
-    let phase = pauli.iter().enumerate().fold(false, |acc, (j, &item)| {
-        acc ^ (clifford.tableau[[j, 2 * clifford.num_qubits]] & item)
+fn compute_phase_product_pauli(
+    clifford: &Clifford,
+    pauli_indices: &[usize],
+    pauli_y_count: u32,
+) -> bool {
+    let phase = pauli_indices.iter().fold(false, |acc, &pauli_index| {
+        acc ^ (clifford.tableau[[pauli_index, 2 * clifford.num_qubits]])
     });
 
-    let mut ifact: u8 = (0..clifford.num_qubits)
-        .filter(|&i| pauli[i] & pauli[i + clifford.num_qubits])
-        .count() as u8
-        % 4;
+    let mut ifact: u8 = pauli_y_count as u8 % 4;
 
     for j in 0..clifford.num_qubits {
         let mut x = false;
         let mut z = false;
-        for (i, &item) in pauli.iter().enumerate() {
-            if item {
-                let x1: bool = clifford.tableau[[i, j]];
-                let z1: bool = clifford.tableau[[i, j + clifford.num_qubits]];
+        for &pauli_index in pauli_indices.iter() {
+            let x1: bool = clifford.tableau[[pauli_index, j]];
+            let z1: bool = clifford.tableau[[pauli_index, j + clifford.num_qubits]];
 
-                match (x1, z1, x, z) {
-                    (false, true, true, true)
-                    | (true, false, false, true)
-                    | (true, true, true, false) => {
-                        ifact += 1;
-                    }
-                    (false, true, true, false)
-                    | (true, false, true, true)
-                    | (true, true, false, true) => {
-                        ifact += 3;
-                    }
-                    _ => {}
-                };
-                x ^= x1;
-                z ^= z1;
-                ifact %= 4;
-            }
+            match (x1, z1, x, z) {
+                (false, true, true, true)
+                | (true, false, false, true)
+                | (true, true, true, false) => {
+                    ifact += 1;
+                }
+                (false, true, true, false)
+                | (true, false, true, true)
+                | (true, true, false, true) => {
+                    ifact += 3;
+                }
+                _ => {}
+            };
+            x ^= x1;
+            z ^= z1;
+            ifact %= 4;
         }
     }
     (((ifact % 4) >> 1) != 0) ^ phase
