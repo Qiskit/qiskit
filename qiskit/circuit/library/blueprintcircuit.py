@@ -141,7 +141,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
     def parameters(self) -> ParameterView:
         """The parameters defined in the circuit.
 
-        This attribute returns the :class:`.Parameter` instances in the circuit sorted
+        This attribute returns the :class:`.Parameter` objects in the circuit sorted
         alphabetically. Note that parameters instantiated with a :class:`.ParameterVector`
         are still sorted numerically.
 
@@ -194,7 +194,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
 
 
         Returns:
-            The sorted :class:`.Parameter` instances in the circuit.
+            The sorted :class:`.Parameter` objects in the circuit.
         """
         if not self._is_built:
             self._build()

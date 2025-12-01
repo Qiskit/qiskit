@@ -99,7 +99,7 @@ class BindingsArray(ShapedMixin):
         In this case, it can't be decided whether that one is an index over parameters, or whether
         it should be incorporated in :attr:`~shape`.
 
-        Since :class:`~.Parameter` instances are only allowed to represent float values, this
+        Since :class:`~.Parameter` objects are only allowed to represent float values, this
         class casts all given values to float. If an incompatible dtype is given, such as complex
         numbers, a ``TypeError`` will be raised.
 

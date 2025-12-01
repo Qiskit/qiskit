@@ -225,7 +225,7 @@ def iter_namespaces(namespace: str) -> Iterator[str]:
 
 
 class QPYSerializer(abc.ABC):
-    """The interface for serializers and deserializers of :class:`.Annotation` instances to QPY.
+    """The interface for serializers and deserializers of :class:`.Annotation` objects to QPY.
 
     For more information on QPY, see :mod:`qiskit.qpy`.
 
@@ -239,7 +239,7 @@ class QPYSerializer(abc.ABC):
     The structure of calls during serialization of a single circuit is:
 
     1. many calls to :meth:`dump_annotation`, which will all share the same ``namespace`` argument,
-       which will always be a (non-strict) prefix of all the :class:`.Annotation` instances given.
+       which will always be a (non-strict) prefix of all the :class:`.Annotation` objects given.
     2. one call to :meth:`dump_state`.
 
     The general structure of calls during deserialization of a single circuit out of a QPY payload
@@ -333,7 +333,7 @@ class QPYSerializer(abc.ABC):
         When in a QPY loading context, this method will be called exactly once, before all calls to
         :meth:`load_annotation`.  The ``namespace`` will be the same namespace that was passed to
         all calls to :meth:`dump_annotation` in the dumping context; that is, a (non-strict) prefix
-        of the namespaces of all the :class:`.Annotation` instances its counterpart was asked to
+        of the namespaces of all the :class:`.Annotation` objects its counterpart was asked to
         serialize.  For example, if the QPY dump was configured with::
 
             from qiskit import qpy
@@ -367,7 +367,7 @@ class QPYSerializer(abc.ABC):
 
 
 class OpenQASM3Serializer(abc.ABC):
-    """The interface for serializers and deserializers of :class:`.Annotation` instances to
+    """The interface for serializers and deserializers of :class:`.Annotation` objects to
     OpenQASM 3.
 
     For more information on OpenQASM 3 support in Qiskit, see :mod:`qiskit.qasm3`.

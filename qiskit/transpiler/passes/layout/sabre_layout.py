@@ -51,7 +51,7 @@ class SabreLayout(TransformationPass):
     circuit so that the layout is applied to the input dag (meaning that the output
     circuit will have ancilla qubits allocated for unused qubits on the coupling map
     and the qubits will be reordered to match the mapped physical qubits) and then
-    routing will be applied (inserting :class:`~.SwapGate` instances to account for limited
+    routing will be applied (inserting :class:`~.SwapGate` objects to account for limited
     connectivity). This is unlike most other layout passes which are :class:`~.AnalysisPass`
     objects and just find an initial layout and set that on the property set. This is
     done because by default the pass will run parallel seed trials with different random
@@ -70,7 +70,7 @@ class SabreLayout(TransformationPass):
     ``sabre_starting_layouts`` will be run in addition to those. The output which results
     in the lowest amount of swap gates (whether from the random trials or the property
     set starting point) will be used. The value for this property set field should be a
-    list of :class:`.Layout` instances representing the starting layouts to use. If a
+    list of :class:`.Layout` objects representing the starting layouts to use. If a
     virtual qubit is missing from an :class:`.Layout` object in the list a random qubit
     will be selected.
 
@@ -78,7 +78,7 @@ class SabreLayout(TransformationPass):
     ------------------------
 
     ``sabre_starting_layouts`` (``list[Layout]``)
-        An optional list of :class:`~.Layout` instances to use for additional layout trials. This is
+        An optional list of :class:`~.Layout` objects to use for additional layout trials. This is
         in addition to the full random trials specified with the ``layout_trials`` argument.
 
     Property Set Values Written

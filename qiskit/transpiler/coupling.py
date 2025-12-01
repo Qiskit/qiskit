@@ -430,7 +430,7 @@ class CouplingMap:
         For a connected :class:`~.CouplingMap` object there is only a single connected
         component, the entire :class:`~.CouplingMap`.
 
-        This method will return a list of :class:`~.CouplingMap` instances, one for each connected
+        This method will return a list of :class:`~.CouplingMap` objects, one for each connected
         component in this :class:`~.CouplingMap`. The data payload of each node in the
         :attr:`~.CouplingMap.graph` attribute will contain the qubit number in the original
         graph. This will enables mapping the qubit index in a component subgraph to
@@ -445,7 +445,7 @@ class CouplingMap:
         will print ``3`` as index ``0`` in the second component is qubit 3 in the original cmap.
 
         Returns:
-            list: A list of :class:`~.CouplingMap` instances for each connected
+            list: A list of :class:`~.CouplingMap` objects for each connected
                 components. The order of this list is deterministic but
                 implementation specific and shouldn't be relied upon as
                 part of the API.

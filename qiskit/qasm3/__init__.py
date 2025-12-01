@@ -222,7 +222,7 @@ available on this module, if you wish to build on top of it:
 
 .. py:data:: STDGATES_INC_GATES
 
-    A tuple of :class:`CustomGate` instances specifying the Qiskit constructors to use for the
+    A tuple of :class:`CustomGate` objects specifying the Qiskit constructors to use for the
     ``stdgates.inc`` include file.
 """
 
