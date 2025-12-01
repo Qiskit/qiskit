@@ -3,7 +3,7 @@ deprecations_circuits:
   - |
     Since Qiskit 1.0, the methods :meth:`.Gate.control` and :meth:`.QuantumCircuit.control`
     accept the argument ``annotated`` which can be either ``False``, ``True`` or ``None``.
-    Presently, a controlled gate is represented using a deidicated controlled-gate class 
+    Presently, a controlled gate is represented using a dedicated controlled-gate class
     when it exists, regardless of the value of ``annotated``, for instance a two-controlled
     version of an  :class:`.XGate` is a :class:`.CCXGate`. If a dedicated controlled-gate
     class does not exist, the controlled gate is represented as a :class:`.ControlledGate`
