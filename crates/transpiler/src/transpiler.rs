@@ -483,7 +483,6 @@ pub fn transpile(
     .with_lookahead(0.5, 20, sabre::SetScaling::Size)
     .with_decay(0.001, 5)?;
 
-
     let mut transpile_layout: TranspileLayout = TranspileLayout::new(
         None,
         None,
