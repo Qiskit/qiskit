@@ -14,6 +14,7 @@ use pyo3::prelude::*;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::imports::PAULI_EVOLUTION_GATE;
+use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, PauliProductMeasurement, PyGate, StandardGate, multiply_param,
 };
@@ -23,10 +24,9 @@ use qiskit_circuit::{Clbit, Qubit, VarsMode};
 use qiskit_quantum_info::clifford::Clifford;
 use qiskit_quantum_info::sparse_observable::PySparseObservable;
 
+use crate::TranspilerError;
 use smallvec::smallvec;
 use std::f64::consts::PI;
-
-use crate::TranspilerError;
 
 // List of gate/instruction names supported by the pass: the pass raises an error if the circuit
 // contains instruction with names outside of this list.
@@ -184,7 +184,7 @@ pub fn run_litinski_transformation(
                         py_gate.into(),
                         &evo_qubits,
                         &no_clbits,
-                        Some(smallvec![time]),
+                        Some(Parameters::Params(smallvec![time])),
                         None,
                         #[cfg(feature = "cache_pygates")]
                         None,

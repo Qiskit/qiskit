@@ -360,7 +360,7 @@ class TestCommutationChecker(QiskitTestCase):
     def test_c7x_gate(self):
         """Test wide gate works correctly."""
         qargs = [Qubit() for _ in [None] * 8]
-        res = scc.commute(XGate(), qargs[:1], [], XGate().control(7), qargs, [])
+        res = scc.commute(XGate(), qargs[:1], [], XGate().control(7, annotated=False), qargs, [])
         self.assertFalse(res)
 
     def test_wide_gates_over_nondisjoint_qubits(self):
