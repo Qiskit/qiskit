@@ -41,6 +41,7 @@ from qiskit.visualization import circuit_drawer
 from qiskit.visualization.circuit import text as elements
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.circuit.classical import expr, types
+from qiskit.circuit.controlflow import ForLoopOp
 from qiskit.circuit.library import (
     HGate,
     U2Gate,
@@ -1440,6 +1441,130 @@ q_4: ───────────────────────┤   
         circuit.swap(qr[0], qr[1])
         circuit.rz(11111, qr[2])
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
+
+    def test_text_classical_wires_break_layers(self):
+        """Instructions spanning classical wires do not share layers."""
+
+        instruction_a = Instruction("NameA", 4, 1, [], label="A")
+        instruction_b = Instruction("NameB", 2, 1, [], label="B")
+        instruction_c = Instruction("NameC", 1, 1, [], label="C")
+
+        circuit = QuantumCircuit(4, 4)
+        circuit.append(instruction_a, [0, 1, 2, 3], [0])
+        circuit.append(instruction_b, [0, 1], [1])
+        circuit.append(instruction_c, [2], [2])
+
+        expected = "\n".join(
+            [
+                "        ┌────┐┌────┐      ",
+                "q_0: |0>┤0   ├┤0   ├──────",
+                "        │    ││    │      ",
+                "q_1: |0>┤1   ├┤1   ├──────",
+                "        │    ││    │┌────┐",
+                "q_2: |0>┤2 A ├┤    ├┤0   ├",
+                "        │    ││  B ││    │",
+                "q_3: |0>┤3   ├┤    ├┤    ├",
+                "        │    ││    ││    │",
+                " c_0: 0 ╡0   ╞╡    ╞╡  C ╞",
+                "        └────┘│    ││    │",
+                " c_1: 0 ══════╡0   ╞╡    ╞",
+                "              └────┘│    │",
+                " c_2: 0 ════════════╡0   ╞",
+                "                    └────┘",
+                " c_3: 0 ══════════════════",
+                "                          ",
+            ]
+        )
+
+        self.assertEqual(
+            str(circuit_drawer(circuit, output="text", initial_state=True, cregbundle=False)),
+            expected,
+        )
+
+    def test_text_classical_wires_break_layers_right_justify(self):
+        """Hybrid classical writes stay separated when ``justify='right'``."""
+
+        instruction_a = Instruction("NameA", 4, 1, [], label="A")
+        instruction_b = Instruction("NameB", 2, 1, [], label="B")
+        instruction_c = Instruction("NameC", 1, 1, [], label="C")
+
+        circuit = QuantumCircuit(4, 4)
+        circuit.append(instruction_a, [0, 1, 2, 3], [0])
+        circuit.append(instruction_b, [0, 1], [1])
+        circuit.append(instruction_c, [2], [2])
+
+        expected = "\n".join(
+            [
+                "        ┌────┐      ┌────┐",
+                "q_0: |0>┤0   ├──────┤0   ├",
+                "        │    │      │    │",
+                "q_1: |0>┤1   ├──────┤1   ├",
+                "        │    │┌────┐│    │",
+                "q_2: |0>┤2 A ├┤0   ├┤    ├",
+                "        │    ││    ││  B │",
+                "q_3: |0>┤3   ├┤    ├┤    ├",
+                "        │    ││    ││    │",
+                " c_0: 0 ╡0   ╞╡  C ╞╡    ╞",
+                "        └────┘│    ││    │",
+                " c_1: 0 ══════╡    ╞╡0   ╞",
+                "              │    │└────┘",
+                " c_2: 0 ══════╡0   ╞══════",
+                "              └────┘      ",
+                " c_3: 0 ══════════════════",
+                "                          ",
+            ]
+        )
+
+        self.assertEqual(
+            str(
+                circuit_drawer(
+                    circuit,
+                    output="text",
+                    initial_state=True,
+                    cregbundle=False,
+                    justify="right",
+                )
+            ),
+            expected,
+        )
+
+    def test_text_hybrid_writes_preserve_conditional_order(self):
+        """Hybrid classical writes remain ordered around subsequent measurements."""
+
+        write = Instruction("Writer", 4, 1, [], label="A")
+        follow = Instruction("Follower", 1, 1, [], label="C")
+
+        circuit = QuantumCircuit(4, 4)
+        circuit.append(write, [0, 1, 2, 3], [0])
+        circuit.measure(3, 0)
+        circuit.append(follow, [2], [2])
+
+        expected = "\n".join(
+            [
+                "        ┌────┐         ",
+                "q_0: |0>┤0   ├─────────",
+                "        │    │         ",
+                "q_1: |0>┤1   ├─────────",
+                "        │    │   ┌────┐",
+                "q_2: |0>┤2 A ├───┤0   ├",
+                "        │    │┌─┐│    │",
+                "q_3: |0>┤3   ├┤M├┤    ├",
+                "        │    │└╥┘│    │",
+                " c_0: 0 ╡0   ╞═╩═╡  C ╞",
+                "        └────┘   │    │",
+                " c_1: 0 ═════════╡    ╞",
+                "                 │    │",
+                " c_2: 0 ═════════╡0   ╞",
+                "                 └────┘",
+                " c_3: 0 ═══════════════",
+                "                       ",
+            ]
+        )
+
+        self.assertEqual(
+            str(circuit_drawer(circuit, output="text", initial_state=True, cregbundle=False)),
+            expected,
+        )
 
 
 class TestTextDrawerLabels(QiskitTestCase):
@@ -4466,6 +4591,23 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
 
         actual = str(qc.draw("text", fold=-1, initial_state=False))
         self.assertEqual(actual, expected)
+
+    def test_control_flow_different_registers(self):
+        """Test drawing with control flow where the blocks are defined on separate registers."""
+        # define a block on custom registers
+        block_qreg = QuantumRegister(2, "qb")
+        block = QuantumCircuit(block_qreg)
+        block.ecr(0, 1)
+        for_loop = ForLoopOp([0, 1, 2], None, block)
+
+        # append to a circuit and check drawing works
+        qreg = QuantumRegister(2, name="qc")
+        circuit = QuantumCircuit(qreg)
+        circuit.append(for_loop, qreg)
+
+        # we don't check the full drawing, we just check the drawing didn't fail
+        out = str(circuit_drawer(circuit, output="text"))
+        self.assertTrue("For-0 (0, 1, 2)" in out)
 
     def test_nested_switch_op_var(self):
         """Test switch with standalone Var."""
