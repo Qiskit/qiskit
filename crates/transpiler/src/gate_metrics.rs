@@ -40,7 +40,7 @@ pub fn rotation_trace_and_dim(rotation: StandardGate, angle: f64) -> Option<(Com
             Complex64::new(0.5 + 0.5 * (angle / 2.).cos(), 0.)
         }
         StandardGate::Phase | StandardGate::U1 => (1. + Complex64::new(0., angle).exp()) / 2.,
-        StandardGate::CPhase => (3. + Complex64::new(0., angle).exp()) / 4.,
+        StandardGate::CPhase | StandardGate::CU1 => (3. + Complex64::new(0., angle).exp()) / 4.,
         _ => return None,
     };
     Some((trace_over_dim, dim))

@@ -53,7 +53,7 @@ pub enum Duration {
 #[pymethods]
 impl Duration {
     /// The corresponding ``unit`` of the duration.
-    fn unit(&self) -> &'static str {
+    pub fn unit(&self) -> &'static str {
         match self {
             Duration::dt(_) => "dt",
             Duration::ps(_) => "ps",
@@ -69,7 +69,7 @@ impl Duration {
     /// This will be a Python ``int`` if the :meth:`~Duration.unit` is ``"dt"``,
     /// else a ``float``.
     #[pyo3(name = "value")]
-    fn py_value(&self, py: Python) -> PyResult<Py<PyAny>> {
+    pub fn py_value(&self, py: Python) -> PyResult<Py<PyAny>> {
         match self {
             Duration::dt(v) => v.into_py_any(py),
             Duration::ps(v)
