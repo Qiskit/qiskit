@@ -358,9 +358,9 @@ pub fn py_pauli_evolution(
     let mut modified_phase = false; // keep track of whether we modified the phase
 
     for el in sparse_paulis.iter() {
-        let tuple = el.downcast::<PyTuple>()?;
-        let pauli = tuple.get_item(0)?.downcast::<PyString>()?.to_string();
-        let time = Param::extract_no_coerce(&tuple.get_item(2)?)?;
+        let tuple = el.cast::<PyTuple>()?;
+        let pauli = tuple.get_borrowed_item(0)?.cast::<PyString>()?.to_string();
+        let time = Param::extract_no_coerce(tuple.get_borrowed_item(2)?)?;
 
         if pauli.as_str().chars().all(|p| p == 'i') {
             global_phase = radd_param(global_phase, time);
@@ -474,7 +474,7 @@ fn add_control(gate: StandardGate, params: &[Param], control_state: &[bool]) -> 
     // We know that all calls here should be valid and unwrap eagerly.
     Python::attach(|py| {
         let pygate = gate
-            .create_py_op(py, Some(params), None)
+            .create_py_op(py, Some(params.iter().cloned().collect()), None)
             .expect("Failed to create Py version of standard gate.");
         let num_controls = control_state.len();
         let py_control_state = PyString::new(

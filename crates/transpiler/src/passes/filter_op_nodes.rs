@@ -48,8 +48,8 @@ pub fn py_filter_op_nodes(
 #[pyfunction]
 pub fn filter_labeled_op(dag: &mut DAGCircuit, label: String) {
     let predicate = |node: &PackedInstruction| -> bool {
-        match node.label() {
-            Some(inst_label) => inst_label != label,
+        match node.label.as_deref() {
+            Some(inst_label) => inst_label != &label,
             None => false,
         }
     };

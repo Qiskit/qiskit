@@ -77,8 +77,9 @@ class TestSolovayKitaev(QiskitTestCase):
         self.basic_approx = generate_basic_approximations([HGate(), TGate(), TdgGate()], 3)
         self.default_sk = SolovayKitaev()
 
-    def test_unitary_synthesis(self):
-        """Test the unitary synthesis transpiler pass with Solovay-Kitaev."""
+    @data("default", "sk")
+    def test_unitary_synthesis(self, method):
+        """Test the unitary synthesis transpiler pass with Clifford+T basis set."""
         circuit = QuantumCircuit(2)
         circuit.rx(0.8, 0)
         circuit.cx(0, 1)
@@ -86,7 +87,7 @@ class TestSolovayKitaev(QiskitTestCase):
 
         _1q = Collect1qRuns()
         _cons = ConsolidateBlocks()
-        _synth = UnitarySynthesis(["h", "t", "tdg"], method="sk")
+        _synth = UnitarySynthesis(["h", "t", "tdg"], method=method)
         passes = PassManager([_1q, _cons, _synth])
         compiled = passes.run(circuit)
 

@@ -218,7 +218,7 @@ class LinearPauliRotationsGate(Gate):
         self.basis = basis.lower()
 
     def _define(self):
-        circuit = QuantumCircuit(self.num_qubits, name=self.name)
+        circuit = QuantumCircuit(self.num_qubits)
 
         # build the circuit
         qr_state = circuit.qubits[: self.num_qubits - 1]
