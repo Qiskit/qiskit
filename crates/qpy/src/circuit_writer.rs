@@ -407,7 +407,6 @@ fn pack_classical_registers(circuit_data: &CircuitData) -> Vec<formats::Register
 fn pack_circuit_header(
     circuit_name: Option<String>,
     circuit_metadata: Option<Bound<PyAny>>,
-    // circuit: &QuantumCircuitData,
     metadata_serializer: Option<&Bound<PyAny>>,
     qpy_data: &QPYWriteData,
 ) -> PyResult<formats::CircuitHeaderV12Pack> {
