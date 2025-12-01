@@ -6,6 +6,6 @@ project (Qiskit)
 enable_testing ()
 
 # Generally include the directory for the ``qiskit.h`` file.
-include_directories (${CMAKE_CURRENT_SOURCE_DIR}/dist/c/include)
+include_directories (${CMAKE_SOURCE_DIR}/dist/c/include)
 # The remaining CMake configuration is done inside of the C API test suite.
-add_subdirectory (${CMAKE_CURRENT_SOURCE_DIR}/test/c)
+add_subdirectory (${CMAKE_SOURCE_DIR}/test/c)
