@@ -388,7 +388,8 @@ class PadDynamicalDecoupling(BasePadding):
                 tau = taus[dd_ind]
                 if tau > 0:
                     self._apply_scheduled_op(dag, idle_after, Delay(tau, dag._unit), qubit)
-                    idle_after += tau
+                    # Cast tau to int from np.float64 to avoid type changes
+                    idle_after += int(tau)
             if dd_ind < len(self._dd_sequence):
                 gate = self._dd_sequence[dd_ind]
                 gate_length = self._dd_sequence_lengths[qubit][dd_ind]
