@@ -27,6 +27,9 @@ Data Types
 
 .. doxygenenum:: QkOperationKind
 
+.. doxygenstruct:: QkDagNeighbors
+   :members:
+
 Functions
 =========
 

@@ -105,7 +105,7 @@ pub fn init_stage(
             transpile_layout.add_permutation_inside(|q| Qubit::new(permutation[q.index()]));
         };
         run_remove_diagonal_before_measure(dag);
-        run_remove_identity_equiv(dag, approximation_degree, Some(target));
+        run_remove_identity_equiv(dag, approximation_degree, Some(target))?;
         run_inverse_cancellation_standard_gates(dag);
         cancel_commutations(dag, commutation_checker, None, 1.0)?;
         run_consolidate_blocks(dag, false, approximation_degree, None)?;
@@ -390,7 +390,7 @@ pub fn optimization_stage(
         while new_depth != depth || new_size != size {
             depth = new_depth;
             size = new_size;
-            run_remove_identity_equiv(dag, approximation_degree, Some(target));
+            run_remove_identity_equiv(dag, approximation_degree, Some(target))?;
             run_optimize_1q_gates_decomposition(dag, Some(target), None, None)?;
             cancel_commutations(dag, commutation_checker, None, 1.0)?;
             if gates_missing_from_target(dag, target)? {
@@ -419,7 +419,7 @@ pub fn optimization_stage(
                 None,
                 false,
             )?;
-            run_remove_identity_equiv(dag, approximation_degree, Some(target));
+            run_remove_identity_equiv(dag, approximation_degree, Some(target))?;
             run_optimize_1q_gates_decomposition(dag, Some(target), None, None)?;
             cancel_commutations(dag, commutation_checker, None, 1.0)?;
             if gates_missing_from_target(dag, target)? {
@@ -604,7 +604,9 @@ mod tests {
     use super::*;
     use crate::target::InstructionProperties;
     use crate::target::Target;
+    use pyo3::prelude::*;
     use qiskit_circuit::circuit_data::CircuitData;
+    use qiskit_circuit::instruction::Parameters;
     use qiskit_circuit::operations::{Operation, Param, StandardGate, StandardInstruction};
     use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
     use qiskit_circuit::parameter::symbol_expr::Symbol;
@@ -614,7 +616,7 @@ mod tests {
 
     fn build_universal_star_target() -> Target {
         let mut target = Target::default();
-        let u_params = [
+        let u_params: Option<Parameters<Py<PyAny>>> = Some(Parameters::Params(smallvec![
             Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
                 "a", None, None,
             )))),
@@ -624,7 +626,7 @@ mod tests {
             Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
                 "c", None, None,
             )))),
-        ];
+        ]));
 
         let props = (0..5)
             .map(|i| {
@@ -638,7 +640,7 @@ mod tests {
             })
             .collect();
         target
-            .add_instruction(StandardGate::U.into(), &u_params, None, Some(props))
+            .add_instruction(StandardGate::U.into(), u_params, None, Some(props))
             .unwrap();
         let props = (0..5)
             .map(|i| {
@@ -652,7 +654,7 @@ mod tests {
             })
             .collect();
         target
-            .add_instruction(StandardInstruction::Measure.into(), &[], None, Some(props))
+            .add_instruction(StandardInstruction::Measure.into(), None, None, Some(props))
             .unwrap();
         let props = (1..5)
             .map(|i| {
@@ -666,7 +668,7 @@ mod tests {
             })
             .collect();
         target
-            .add_instruction(StandardGate::ECR.into(), &[], None, Some(props))
+            .add_instruction(StandardGate::ECR.into(), None, None, Some(props))
             .unwrap();
         target
     }
