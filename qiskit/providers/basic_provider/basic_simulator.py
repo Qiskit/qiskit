@@ -27,6 +27,13 @@ Where the input is a :class:`.QuantumCircuit` object and the output is a
 :class:`.BasicProviderJob` object,
 which can later be queried for the Result object. The result will contain a 'memory' data
 field, which is a result of measurements for each shot.
+
+
+# The simulator supports:
+# - Up to 24 qubits for statevector simulation (memory scales exponentially)
+# - Up to 2048 qubits for Clifford/Stabilizer simulation (memory scales quadratically)
+
+
 """
 
 from __future__ import annotations
@@ -39,7 +46,6 @@ import warnings
 from collections import Counter
 
 import numpy as np
-from numpy.random import default_rng  #ADDED 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import UnitaryGate
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping, GlobalPhaseGate
@@ -71,9 +77,12 @@ class BasicSimulator(BackendV2):
     """Python implementation of a basic (non-efficient) quantum simulator."""
 
     # Formerly calculated as `int(log2(local_hardware_info()["memory"]*(1024**3)/16))`.
-    # After the removal of `local_hardware_info()`, it's hardcoded to 24 qubits,
+    # After the removal of `local_hardware_info()`, Statevector simulation is limited to 24 qubits.
+    # Clifford/Stabilizer simulation can use 2048 qubits.
     # which matches the ~268 MB of required memory.
-    MAX_QUBITS_MEMORY = 24
+
+    MAX_QUBITS_STATEVECTOR = 24  # For statevector
+    MAX_QUBITS_CLIFFORD = 2048  # For Clifford/Stabilizer simulation
 
     def __init__(
         self,
@@ -556,14 +565,14 @@ class BasicSimulator(BackendV2):
         if measure_ops:
             # Create StabilizerState once
             stab_state = StabilizerState(clifford_obj, validate=False)
-            
+
             # Set seed if provided
             if self._seed_simulator is not None:
                 stab_state.seed(self._seed_simulator)
-            
+
             # Sample ALL shots at once (much faster than per-shot loop!)
             samples = stab_state.sample_memory(self._shots)
-            
+
             # Process each sample
             for sample in samples:
                 # Map measured qubits to classical bits
@@ -572,12 +581,10 @@ class BasicSimulator(BackendV2):
                     bit_val = int(sample[-(qubit + 1)])
                     membit = 1 << clbit
                     classical_memory = (classical_memory & (~membit)) | (bit_val << clbit)
-                
+
                 # Convert to hex format
                 outcome = bin(classical_memory)[2:]
                 memory.append(hex(int(outcome, 2)))
-
-
 
         # Build result data
         data = {"counts": dict(Counter(memory))}
@@ -795,21 +802,18 @@ class BasicSimulator(BackendV2):
 
     def _validate(self, run_input: list[QuantumCircuit]) -> None:
         """Semantic validations of the input."""
-        max_qubits = self.MAX_QUBITS_MEMORY
-
         for circuit in run_input:
+            # Check which path: Clifford or Statevector
+            use_clifford = (
+                self._use_clifford_optimization and self._is_clifford_circuit(circuit) is not None
+            )
+            if use_clifford:
+                max_qubits = self.MAX_QUBITS_CLIFFORD
+            else:
+                max_qubits = self.MAX_QUBITS_STATEVECTOR
+
             if circuit.num_qubits > max_qubits:
                 raise BasicProviderError(
                     f"Number of qubits {circuit.num_qubits} is greater than maximum ({max_qubits}) "
                     f'for "{self.name}".'
-                )
-            name = circuit.name
-            if len(circuit.cregs) == 0:
-                logger.warning(
-                    'No classical registers in circuit "%s", counts will be empty.', name
-                )
-            elif "measure" not in [op.name for op in circuit.data]:
-                logger.warning(
-                    'No measurements in circuit "%s", classical register will remain all zeros.',
-                    name,
                 )

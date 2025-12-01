@@ -18,7 +18,7 @@ import numpy as np
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.compiler import transpile
-from qiskit.providers.basic_provider import BasicSimulator
+from qiskit.providers.basic_provider import BasicSimulator, BasicProviderError
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -438,6 +438,70 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
 
         # Should have valid counts
         self.assertEqual(sum(counts.values()), shots)
+
+        # --- Qubit Limit & Pathway Tests ---
+
+    def test_statevector_qubit_limit_exceeded(self):
+        """Should error if more than 24 qubits in statevector simulation."""
+        sim = BasicSimulator()
+        qc = QuantumCircuit(25)
+        with self.assertRaises(BasicProviderError):  # Or BasicProviderError
+            sim.run(qc, use_clifford_optimization=False)
+
+    def test_clifford_qubit_limit_exceeded(self):
+        """Should error if non-Clifford circuits above 24 qubits fall back to statevector."""
+        sim = BasicSimulator()
+        qc = QuantumCircuit(32)
+        qc.h(range(32))
+        qc.t(0)
+        with self.assertRaises(BasicProviderError):
+            sim.run(qc, use_clifford_optimization=True)
+
+    def test_statevector_qubit_limit_pass(self):
+        """Should succeed for exactly 24 qubits with statevector."""
+        sim = BasicSimulator()
+        qc = QuantumCircuit(24)
+        qc.h(range(24))
+        job = sim.run(qc, use_clifford_optimization=False)
+        result = job.result()
+        self.assertTrue(result.success)
+
+    def test_clifford_qubit_limit_pass(self):
+        """Should succeed for a small Clifford circuit when optimization is on."""
+        sim = BasicSimulator()
+        n_qubits = 10
+        qc = QuantumCircuit(n_qubits)
+        qc.h(0)
+        for i in range(n_qubits - 1):
+            qc.cx(i, i + 1)
+        job = sim.run(qc, use_clifford_optimization=True)
+        result = job.result()
+        self.assertTrue(result.success)
+
+    def test_simulation_path_selection(self):
+        """Simulator uses correct pathway for each optimization."""
+        sim = BasicSimulator()
+        qc_sv = QuantumCircuit(10)
+        qc_sv.h(range(10))
+        job_sv = sim.run(qc_sv, use_clifford_optimization=False)
+        self.assertTrue(job_sv.result().success)
+        qc_cl = QuantumCircuit(10)
+        qc_cl.h(range(10))
+        job_cl = sim.run(qc_cl, use_clifford_optimization=True)
+        self.assertTrue(job_cl.result().success)
+
+    def test_error_message_contains_limit(self):
+        """Error should mention the correct qubit limit."""
+        sim = BasicSimulator()
+        qc = QuantumCircuit(25)
+        with self.assertRaises(BasicProviderError) as cm:
+            sim.run(qc, use_clifford_optimization=False)
+        self.assertTrue("24" in str(cm.exception) or "statevector" in str(cm.exception))
+        qc = QuantumCircuit(2049)
+        qc.h(range(2049))
+        with self.assertRaises(BasicProviderError) as cm:
+            sim.run(qc, use_clifford_optimization=True)
+        self.assertTrue("2048" in str(cm.exception) or "Clifford" in str(cm.exception))
 
 
 if __name__ == "__main__":
