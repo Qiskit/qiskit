@@ -143,6 +143,26 @@ class TestCliffordTPassManager(QiskitTestCase):
         self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
 
     @data(0, 1, 2, 3)
+    def test_multiplier(self, optimization_level):
+        """Clifford+T transpilation of a multiplier gate, using different optimization levels."""
+        gate = MultiplierGate(4)
+        qc = QuantumCircuit(gate.num_qubits)
+        qc.append(gate, qc.qubits)
+
+        # Transpile to a Clifford+T basis set
+        basis_gates = get_clifford_gate_names() + ["t", "tdg"]
+        pm = generate_preset_pass_manager(
+            basis_gates=basis_gates, optimization_level=optimization_level, seed_transpiler=0
+        )
+        transpiled = pm.run(qc)
+        self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
+        t_count = _get_t_count(transpiled)
+
+        # expected T-count based on optimization level
+        expected_t_count = {0: 1085, 1: 1083, 2: 1071, 3: 1071}
+        self.assertEqual(_get_t_count(transpiled), 0)
+
+    @data(0, 1, 2, 3)
     def test_iqp(self, optimization_level):
         """Clifford+T transpilation of IQP circuits."""
         interactions = np.array([[6, 5, 1], [5, 4, 3], [1, 3, 2]])
