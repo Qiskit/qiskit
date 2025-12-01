@@ -990,5 +990,5 @@ pub fn py_read_circuit(
         annotation_factories,
     )?;
     file_obj.call_method1("seek", (pos + bytes_read,))?;
-    Ok(unpacked_ciruit)
+    Ok(unpacked_circuit)
 }
