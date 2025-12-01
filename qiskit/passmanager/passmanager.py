@@ -85,13 +85,13 @@ class BasePassManager(ABC):
             tasks: A set of pass manager tasks to be added to schedule.
 
         Raises:
-            TypeError: When any element of tasks is not a subclass of passmanager Task.
+            TypeError: When any element of tasks is not a subclass of pass manager Task.
             PassManagerError: If the index is not found.
         """
         try:
             self._tasks[index] = tasks
         except IndexError as ex:
-            raise PassManagerError(f"Index to replace {index} does not exists") from ex
+            raise PassManagerError(f"Index to replace {index} does not exist") from ex
 
     def remove(self, index: int) -> None:
         """Removes a particular pass in the scheduler.
@@ -105,7 +105,7 @@ class BasePassManager(ABC):
         try:
             del self._tasks[index]
         except IndexError as ex:
-            raise PassManagerError(f"Index to replace {index} does not exists") from ex
+            raise PassManagerError(f"Index to replace {index} does not exist") from ex
 
     def __setitem__(self, index, item):
         self.replace(index, item)
