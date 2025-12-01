@@ -130,8 +130,6 @@ pub static MERGE_TWO_PAULI_EVOLUTIONS: ImportOnceCell = ImportOnceCell::new(
     "qiskit.circuit.library.pauli_evolution",
     "_merge_two_pauli_evolutions",
 );
-pub static QS_DECOMPOSITION: ImportOnceCell =
-    ImportOnceCell::new("qiskit.synthesis.unitary.qsd", "qs_decomposition");
 pub static XX_DECOMPOSER: ImportOnceCell =
     ImportOnceCell::new("qiskit.synthesis.two_qubit.xx_decompose", "XXDecomposer");
 pub static XX_EMBODIMENTS: ImportOnceCell =
