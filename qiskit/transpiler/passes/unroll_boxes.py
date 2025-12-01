@@ -3,10 +3,11 @@ UnrollBoxes transpiler pass.
 """
 
 from typing import Callable, Optional
+
 from qiskit.circuit import BoxOp
-from qiskit.transpiler import TransformationPass
-from qiskit.transpiler.passes.utils.control_flow import trivial_recurse
 from qiskit.converters import circuit_to_dag
+from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.passes.utils.control_flow import trivial_recurse
 
 
 class UnrollBoxes(TransformationPass):
