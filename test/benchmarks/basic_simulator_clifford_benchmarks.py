@@ -1,6 +1,10 @@
+"""BasicSimulator Clifford benchmarks."""
+
 from qiskit import QuantumCircuit
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.quantum_info import random_clifford
+
+# pylint: disable=attribute-defined-outside-init
 
 
 class BasicSimulatorGHZBenchmark:
@@ -10,6 +14,8 @@ class BasicSimulatorGHZBenchmark:
     param_names = ("n_qubits",)
 
     def setup(self, n_qubits):
+        """Setup GHZ circuit for given n_qubits."""
+
         qc = QuantumCircuit(n_qubits, n_qubits)
         qc.h(0)
         for i in range(n_qubits - 1):
@@ -18,6 +24,8 @@ class BasicSimulatorGHZBenchmark:
         self.ghz_circuit = qc
 
     def time_statevector(self, n_qubits):
+        """Time statevector simulation of GHZ circuit."""
+        _ = n_qubits  # ASV parameter
         backend = BasicSimulator()
         backend.run(
             self.ghz_circuit,
@@ -26,6 +34,8 @@ class BasicSimulatorGHZBenchmark:
         ).result()
 
     def time_clifford(self, n_qubits):
+        """Time Clifford-optimized simulation of GHZ circuit."""
+        _ = n_qubits  # ASV parameter
         backend = BasicSimulator()
         backend.run(
             self.ghz_circuit,
@@ -41,12 +51,16 @@ class BasicSimulatorRandomCliffordBenchmark:
     param_names = ("n_qubits",)
 
     def setup(self, n_qubits):
+        """Setup random Clifford circuit for given n_qubits."""
+
         cliff = random_clifford(n_qubits)
         qc = cliff.to_circuit()
         qc.measure_all()
         self.clifford_circuit = qc
 
     def time_statevector(self, n_qubits):
+        """Time statevector simulation of random Clifford circuit."""
+        _ = n_qubits  # ASV parameter
         backend = BasicSimulator()
         backend.run(
             self.clifford_circuit,
@@ -55,6 +69,8 @@ class BasicSimulatorRandomCliffordBenchmark:
         ).result()
 
     def time_clifford(self, n_qubits):
+        """Time Clifford-optimized simulation of random Clifford circuit."""
+        _ = n_qubits  # ASV parameter
         backend = BasicSimulator()
         backend.run(
             self.clifford_circuit,
