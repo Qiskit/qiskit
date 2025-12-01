@@ -35,7 +35,7 @@ static int test_iqp_from_interactions(void) {
         0,
     };
 
-    QkCircuit *iqp = qk_circuit_library_iqp_(num_qubits, interactions);
+    QkCircuit *iqp = qk_circuit_library_iqp(num_qubits, interactions, true);
     if (iqp == NULL) {
         printf("iqp_from_interactions returned NULL\n");
         return EqualityError;
@@ -96,7 +96,7 @@ static int test_iqp_non_symmetric(void) {
         1,
     };
 
-    QkCircuit *iqp = qk_circuit_library_iqp_(num_qubits, interactions);
+    QkCircuit *iqp = qk_circuit_library_iqp(num_qubits, interactions, true);
     if (iqp != NULL) {
         printf("Expected NULL circuit for non-symmetric matrix, got non-NULL\n");
         qk_circuit_free(iqp);
@@ -113,7 +113,7 @@ static int test_random_iqp(void) {
     int result = Ok;
 
     // Fixed seed for deterministic behavior
-    QkCircuit *iqp = qk_circuit_library_random_iqp_(num_qubits, 1234);
+    QkCircuit *iqp = qk_circuit_library_random_iqp(num_qubits, 1234);
     if (iqp == NULL) {
         printf("random_iqp returned NULL\n");
         return EqualityError;
