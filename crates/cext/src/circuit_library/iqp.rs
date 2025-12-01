@@ -16,21 +16,18 @@ use qiskit_circuit_library::iqp::{iqp, py_random_iqp};
 
 /// Generate an IQP circuit from an integer interaction matrix.
 ///
-/// The `interactions` matrix is interpreted as an `n × n` row-major array of
+/// The `interactions` matrix is interpreted as an `n x n` row-major array of
 /// 64-bit integers, where `n = num_qubits`. The diagonal entries set T-like
 /// phase powers, and the upper triangle encodes two-qubit CPhase interactions.
-///
-/// If `check_input` is `true`, this function verifies that the matrix is
-/// symmetric and returns `NULL` if it is not. If `check_input` is `false`,
-/// the caller is responsible for ensuring the matrix is a valid IQP
-/// interaction matrix; no symmetry check is performed.
 ///
 /// # Parameters
 ///
 /// - `num_qubits`: Number of logical qubits (`n`). Must match the dimension of
 ///   the `interactions` matrix.
-/// - `interactions`: Pointer to a row-major `n × n` matrix of type `int64_t`.
-/// - `check_input`: When `true`, verify that `interactions` is symmetric.
+/// - `interactions`: Pointer to a row-major `n x n` matrix of type `int64_t`.
+/// - `check_input`: When `true`, this function verifies that the matrix is
+///   symmetric and returns `NULL` if it is not. When `false`, no additional
+///   validation is performed.
 ///
 /// # Returns
 ///
@@ -38,9 +35,19 @@ use qiskit_circuit_library::iqp::{iqp, py_random_iqp};
 ///   `qk_circuit_free`).
 /// - `NULL` if `num_qubits > 0` and `interactions` is `NULL`, or if
 ///   `check_input` is `true` and the matrix is not symmetric.
+///
+/// # Safety
+///
+/// - If `num_qubits > 0`, `interactions` **must** be a valid, non-null pointer
+///   to at least `num_qubits * num_qubits` contiguous `i64` values in
+///   row-major order.
+/// - The memory pointed to by `interactions` must be properly aligned, readable
+///   for the duration of this call, and not mutably aliased.
+/// - Passing an invalid pointer or a buffer that is too small results in
+///   undefined behaviour.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub extern "C" fn qk_circuit_library_iqp(
+pub unsafe extern "C" fn qk_circuit_library_iqp(
     num_qubits: u32,
     interactions: *const i64, // row-major n×n
     check_input: bool,
