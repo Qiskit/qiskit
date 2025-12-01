@@ -292,10 +292,9 @@ pub fn routing_stage(
             },
         };
 
-        if let vf2::Vf2PassReturn::Solution(mut layout) =
+        if let vf2::Vf2PassReturn::Solution(layout) =
             vf2_layout_pass_average(dag, target, &vf2_config, false, None)?
         {
-            allocate_idle_qubits(dag, target, &mut layout);
             update_layout(dag, transpile_layout, |x| {
                 Qubit(layout[&VirtualQubit(x.0)].0)
             });
@@ -446,10 +445,9 @@ pub fn optimization_stage(
             },
         };
 
-        if let vf2::Vf2PassReturn::Solution(mut layout) =
+        if let vf2::Vf2PassReturn::Solution(layout) =
             vf2_layout_pass_exact(dag, target, &vf2_config)?
         {
-            allocate_idle_qubits(dag, target, &mut layout);
             update_layout(dag, transpile_layout, |x| {
                 Qubit(layout[&VirtualQubit(x.0)].0)
             });
@@ -819,7 +817,13 @@ mod tests {
         )
         .unwrap();
         for opt_level in 0..=3 {
-            let result = match transpile(&qc, &target, opt_level.into(), Some(1.0), Some(42)) {
+            let result = match transpile(
+                &qc,
+                &target,
+                opt_level.into(),
+                Some(1.0),
+                Some(2_025_120_142),
+            ) {
                 Ok(res) => res,
                 Err(e) => panic!("Error: {}", e.backtrace()),
             };

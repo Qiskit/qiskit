@@ -14,14 +14,13 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
-use hashbrown::{HashMap, HashSet};
+use hashbrown::HashSet;
 
 use qiskit_circuit::bit::{QuantumRegister, Register};
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::nlayout::NLayout;
 use qiskit_circuit::{PhysicalQubit, Qubit, VirtualQubit};
 
-use crate::target::Target;
 use crate::transpile_layout::TranspileLayout;
 
 /// Map the qubits of a DAG defined over virtual qubits into physical qubits.
@@ -116,24 +115,6 @@ pub fn update_layout(
 ) {
     dag.reindex_qargs(&mut layout_fn);
     cur_layout.relabel_initial_layout(|q| layout_fn(q.into()).into());
-}
-
-/// Allocate the idle virtual qubits in the input DAG to arbitrary physical qubits.
-pub fn allocate_idle_qubits(
-    dag: &DAGCircuit,
-    target: &Target,
-    layout: &mut HashMap<VirtualQubit, PhysicalQubit>,
-) {
-    let used_physical: HashSet<PhysicalQubit> = layout.values().copied().collect();
-    let mut unused_physical = (0..target.num_qubits.unwrap())
-        .map(PhysicalQubit)
-        .filter(|i| !used_physical.contains(i));
-    for bit in 0..dag.num_qubits() {
-        let virt = VirtualQubit::new(bit as u32);
-        if !layout.contains_key(&virt) {
-            layout.insert(virt, unused_physical.next().unwrap());
-        }
-    }
 }
 
 fn unique_ancilla_register_name(qregs: &[QuantumRegister]) -> String {
