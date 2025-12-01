@@ -67,7 +67,7 @@ pub fn get_packed_bit_list(
             index: (qubit.index() as u32),
         });
     }
-    for clbit in circuit_data.get_cargs(inst.clbits).iter() {
+    for clbit in circuit_data.get_cargs(inst.clbits) {
         result.push(formats::CircuitInstructionArgPack {
             bit_type: bit_types::CLBIT,
             index: (clbit.index() as u32),
