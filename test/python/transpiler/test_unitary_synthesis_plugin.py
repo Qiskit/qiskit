@@ -22,6 +22,7 @@ import numpy as np
 import stevedore
 
 from qiskit.circuit import QuantumCircuit
+from qiskit.quantum_info import Operator
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import PassManager, Target, CouplingMap
 from qiskit.transpiler.passes import UnitarySynthesis
@@ -337,6 +338,100 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
         self.assertIn("basis_gates", call_kwargs)
         self.assertEqual(call_kwargs["basis_gates"], set(target_basis_gates))
         self.assertNotEqual(call_kwargs["basis_gates"], set(standalone_basis_gates))
+
+    def test_fallback_on_default(self):
+        """Test that ``fallback_on_default`` works as expected."""
+        self.MOCK_PLUGINS["_controllable"].min_qubits = 0
+        self.MOCK_PLUGINS["_controllable"].max_qubits = np.inf
+        self.MOCK_PLUGINS["_controllable"].support([])
+
+        circ = QuantumCircuit(1)
+        circ.h(0)
+
+        qc = QuantumCircuit(1)
+        qc.unitary(Operator(circ).data, [0])
+
+        # The returned circuit consists of a single H-gate.
+        return_dag = circuit_to_dag(circ)
+
+        # Basis gates contain H and fallback is disabled:
+        # the default plugin should not be called.
+        with self.subTest("no fallback, synthesized circuit conforms"):
+            pm = PassManager(
+                [
+                    UnitarySynthesis(
+                        basis_gates=["t", "tdg", "h"],
+                        method="_controllable",
+                        fallback_on_default=False,
+                    )
+                ]
+            )
+            with unittest.mock.patch.object(
+                ControllableSynthesis, "run", return_value=return_dag
+            ) as plugin_mock:
+                with self.mock_default_run_method():
+                    pm.run(qc)
+                    plugin_mock.assert_called()
+                    self.DEFAULT_PLUGIN.run.assert_not_called()  # pylint: disable=no-member
+
+        # Basis gates do not contain H and fallback is disabled:
+        # the default plugin should not be called, even though the synthesized circuit
+        # does not conform to the target.
+        with self.subTest("no fallback, synthesized circuit does not conform"):
+            pm = PassManager(
+                [
+                    UnitarySynthesis(
+                        basis_gates=["t", "tdg"], method="_controllable", fallback_on_default=False
+                    )
+                ]
+            )
+            with unittest.mock.patch.object(
+                ControllableSynthesis, "run", return_value=return_dag
+            ) as plugin_mock:
+                with self.mock_default_run_method():
+                    pm.run(qc)
+                    plugin_mock.assert_called()
+                    self.DEFAULT_PLUGIN.run.assert_not_called()  # pylint: disable=no-member
+
+        # Basis gates contain H and fallback is enabled:
+        # the default plugin should not be called as the synthesized circuit conforms
+        # to the target.
+        with self.subTest("with fallback, synthesized circuit conforms"):
+            pm = PassManager(
+                [
+                    UnitarySynthesis(
+                        basis_gates=["t", "tdg", "h"],
+                        method="_controllable",
+                        fallback_on_default=True,
+                    )
+                ]
+            )
+            with unittest.mock.patch.object(
+                ControllableSynthesis, "run", return_value=return_dag
+            ) as plugin_mock:
+                with self.mock_default_run_method():
+                    pm.run(qc)
+                    plugin_mock.assert_called()
+                    self.DEFAULT_PLUGIN.run.assert_not_called()  # pylint: disable=no-member
+
+        # Basis gates do not contain H and fallback is enabled:
+        # this time the default plugin should be called as the synthesized circuit conforms
+        # to the target.
+        with self.subTest("with fallback, synthesized circuit does not conform"):
+            pm = PassManager(
+                [
+                    UnitarySynthesis(
+                        basis_gates=["t", "tdg"], method="_controllable", fallback_on_default=True
+                    )
+                ]
+            )
+            with unittest.mock.patch.object(
+                ControllableSynthesis, "run", return_value=return_dag
+            ) as plugin_mock:
+                with self.mock_default_run_method():
+                    pm.run(qc)
+                    plugin_mock.assert_called()
+                    self.DEFAULT_PLUGIN.run.assert_called()  # pylint: disable=no-member
 
 
 if __name__ == "__main__":
