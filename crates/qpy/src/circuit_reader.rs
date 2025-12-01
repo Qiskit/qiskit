@@ -981,7 +981,7 @@ pub fn py_read_circuit(
     let bytes = file_obj.call_method0("read")?;
     let serialized_circuit: &[u8] = bytes.cast::<PyBytes>()?.as_bytes();
     let (packed_circuit, bytes_read) = deserialize::<formats::QPYFormatV15>(serialized_circuit)?;
-    let unpacked_ciruit = unpack_circuit(
+    let unpacked_circuit = unpack_circuit(
         py,
         &packed_circuit,
         version,
