@@ -436,7 +436,7 @@ In other words, this step ensures that the tag corresponds to the correct SHA-1 
 When approving, leave a comment like:
 > I've confirmed that the <x.y.z> tag points to https://github.com/Qiskit/qiskit/commit/<sha1_commit_id> which is the `HEAD` of the `stable/<x.y+1>` and correctly updates the version numbers.
 
-Usually, once Tier 1 is live on PyPI, the post-release actions in step 5 can start, including the announcements.
+Usually, once Tier 1 is live on PyPI, the post-release actions in step 6 can start, including the announcements.
 The rest of the tiers might take longer and they also need to be approved.
 
 
