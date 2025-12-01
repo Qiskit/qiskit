@@ -498,7 +498,7 @@ class _SingletonInstructionOverrides(Instruction):
 
 
 class SingletonInstruction(Instruction, _SingletonBase, overrides=_SingletonInstructionOverrides):
-    """A base class to use for :class:`~.circuit.Instruction` instances that by default are singleton
+    """A base class to use for :class:`~.circuit.Instruction` objects that by default are singleton
     instances.
 
     This class should be used for instruction classes that have fixed definitions and do not contain
@@ -528,7 +528,7 @@ class _SingletonGateOverrides(_SingletonInstructionOverrides, Gate):
 
 
 class SingletonGate(Gate, _SingletonBase, overrides=_SingletonGateOverrides):
-    """A base class to use for :class:`.Gate` instances that by default are singleton instances.
+    """A base class to use for :class:`.Gate` objects that by default are singleton instances.
 
     This class is very similar to :class:`SingletonInstruction`, except implies unitary
     :class:`.Gate` semantics as well.  The same caveats around setting attributes in that class
@@ -552,7 +552,7 @@ class SingletonControlledGate(
     _SingletonBase,
     overrides=_SingletonControlledGateOverrides,
 ):
-    """A base class to use for :class:`.ControlledGate` instances that by default are singleton instances
+    """A base class to use for :class:`.ControlledGate` objects that by default are singleton instances
 
     This class is very similar to :class:`SingletonInstruction`, except implies unitary
     :class:`.ControlledGate` semantics as well.  The same caveats around setting attributes in

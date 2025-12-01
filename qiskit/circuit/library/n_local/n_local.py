@@ -728,7 +728,7 @@ class NLocal(BlueprintCircuit):
 
         This does not change when the parameters are bound or exchanged for same parameters,
         and therefore is different from ``num_parameters`` which counts the number of unique
-        :class:`~qiskit.circuit.Parameter` instances currently in the circuit.
+        :class:`~qiskit.circuit.Parameter` objects currently in the circuit.
 
         Returns:
             The number of parameters originally available in the circuit.

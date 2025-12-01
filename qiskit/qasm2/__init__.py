@@ -260,7 +260,7 @@ you can change this.
         for filename in filenames
     ]
 
-Sometimes you may want to influence the :class:`.Gate` instances that the importer emits for given
+Sometimes you may want to influence the :class:`.Gate` objects that the importer emits for given
 named instructions.  Gates that are defined by the statement ``include "qelib1.inc";`` will
 automatically be associated with a suitable Qiskit circuit-library gate, but you can extend this:
 
