@@ -16,14 +16,15 @@ Default Unitary Synthesis Plugin
 ================================
 
 The default unitary synthesis plugin defines the default algorithm used by
-:class:`.UnitarySynthesis` transpiler pass to synthesize or approximate unitary
+:class:`.UnitarySynthesis` transpiler pass to synthesize unitary
 gates in the circuit. Its behavior depends on the number of qubits in the
-target unitary and whether the target basis is Clifford+T.
+target unitary and the target basis.
 
-Non Clifford+T basis sets
--------------------------
+Continuous basis sets
+---------------------
 
-When the target basis is not Clifford+T, the plugin uses the following decompositions:
+When the target basis is continuous (i.e. not Clifford+T), the plugin uses the
+following decompositions:
 
 * 1-qubit gates: Euler angle decompositions (see :class:`.OneQubitEulerDecomposer`).
 * 2-qubit gates: KAK/Cartan decompositions (see :class:`.TwoQubitBasisDecomposer`,
@@ -38,7 +39,7 @@ Clifford+T basis sets
 
 When the target basis is Clifford+T, the plugin uses the Solovay-Kitaev algorithm (see
 :class:`.SolovayKitaevDecomposition`) to approximate 1-qubit unitaries. The
-settings used to create basic approximations are ``basis_gates=["H", "T", "Tdg"]``,
+settings used to create basic approximations are ``basis_gates=["h", "t", "tdg"]``,
 ``depth=12`` and ``recursion_degree=5``, and were chosen empirically to balance
 approximation quality with computational cost. To use Solovay-Kitaev with custom parameters,
 or to avoid recomputing approximations for multiple circuits, you can invoke
