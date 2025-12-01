@@ -768,68 +768,77 @@ fn pack_custom_instruction(
 }
 
 fn pack_standalone_vars(
-    circuit_data: &CircuitData,
-    version: u32,
-    standalone_var_indices: &mut HashMap<u128, u16>,
+    qpy_data: &mut QPYWriteData,
 ) -> PyResult<Vec<formats::ExpressionVarDeclarationPack>> {
     let mut result = Vec::new();
     let mut index: u16 = 0;
     let mut uuid: u128 = 0;
     // input vars
-    for var in circuit_data.get_vars(CircuitVarType::Input) {
-        let var_pack =
-            pack_standalone_var(var, expression_var_declaration::INPUT, version, &mut uuid)?;
+    for var in qpy_data.circuit_data.get_vars(CircuitVarType::Input) {
+        let var_pack = pack_standalone_var(
+            var,
+            expression_var_declaration::INPUT,
+            qpy_data.version,
+            &mut uuid,
+        )?;
         result.push(var_pack);
-        standalone_var_indices.insert(uuid, index);
+        qpy_data.standalone_var_indices.insert(uuid, index);
         index += 1;
     }
 
     // captured vars
-    for var in circuit_data.get_vars(CircuitVarType::Capture) {
+    for var in qpy_data.circuit_data.get_vars(CircuitVarType::Capture) {
         result.push(pack_standalone_var(
             var,
             expression_var_declaration::CAPTURE,
-            version,
+            qpy_data.version,
             &mut uuid,
         )?);
-        standalone_var_indices.insert(uuid, index);
+        qpy_data.standalone_var_indices.insert(uuid, index);
         index += 1;
     }
 
     // declared vars
-    for var in circuit_data.get_vars(CircuitVarType::Declare) {
+    for var in qpy_data.circuit_data.get_vars(CircuitVarType::Declare) {
         result.push(pack_standalone_var(
             var,
             expression_var_declaration::LOCAL,
-            version,
+            qpy_data.version,
             &mut uuid,
         )?);
-        standalone_var_indices.insert(uuid, index);
+        qpy_data.standalone_var_indices.insert(uuid, index);
         index += 1;
     }
-    if version < 14
-        && (circuit_data.num_captured_stretches() > 0 || circuit_data.num_declared_stretches() > 0)
+    if qpy_data.version < 14
+        && (qpy_data.circuit_data.num_captured_stretches() > 0
+            || qpy_data.circuit_data.num_declared_stretches() > 0)
     {
         return Err(UnsupportedFeatureForVersion::new_err((
             "circuits containing stretch variables",
             14,
-            version,
+            qpy_data.version,
         )));
     }
-    for stretch in circuit_data.get_stretches(CircuitStretchType::Capture) {
+    for stretch in qpy_data
+        .circuit_data
+        .get_stretches(CircuitStretchType::Capture)
+    {
         result.push(pack_stretch(
             stretch,
             expression_var_declaration::STRETCH_CAPTURE,
         ));
-        standalone_var_indices.insert(stretch.uuid, index);
+        qpy_data.standalone_var_indices.insert(stretch.uuid, index);
         index += 1;
     }
-    for stretch in circuit_data.get_stretches(CircuitStretchType::Declare) {
+    for stretch in qpy_data
+        .circuit_data
+        .get_stretches(CircuitStretchType::Declare)
+    {
         result.push(pack_stretch(
             stretch,
             expression_var_declaration::STRETCH_LOCAL,
         ));
-        standalone_var_indices.insert(stretch.uuid, index);
+        qpy_data.standalone_var_indices.insert(stretch.uuid, index);
         index += 1;
     }
     Ok(result)
@@ -842,9 +851,6 @@ pub fn pack_circuit(
     version: u32,
     annotation_factories: &Bound<PyDict>,
 ) -> PyResult<formats::QPYFormatV15> {
-    let mut standalone_var_indices: HashMap<u128, u16> = HashMap::new();
-    let standalone_vars =
-        pack_standalone_vars(&circuit.data, version, &mut standalone_var_indices)?;
     let annotation_handler = AnnotationHandler::new(annotation_factories);
     let clbits = circuit.data.clbits().clone();
     let mut qpy_data = QPYWriteData {
@@ -852,9 +858,10 @@ pub fn pack_circuit(
         version,
         _use_symengine: use_symengine,
         clbits: &clbits, // we need to clone since circuit_data might change when serializing custom instructions, explicitly creating the inner instructions
-        standalone_var_indices,
+        standalone_var_indices: HashMap::new(),
         annotation_handler,
     };
+    let standalone_vars = pack_standalone_vars(&mut qpy_data)?;
     let header = pack_circuit_header(
         circuit.name.clone(),
         circuit.metadata.clone(),
