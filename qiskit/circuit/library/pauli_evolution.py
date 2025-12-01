@@ -358,3 +358,88 @@ def _get_default_label(operator):
     if isinstance(operator, list):
         return "exp(-it [" + ", ".join(_operator_label(op) for op in operator) + "])"
     return f"exp(-it {_operator_label(operator)})"
+
+
+def _merge_two_pauli_evolutions(
+    gate1: PauliEvolutionGate, gate2: PauliEvolutionGate
+) -> PauliEvolutionGate | None:
+    """
+    Attempts to merge two PauliEvolutionGates can be merged.
+
+    Returns:
+
+    * None if the arguments are not of type PauliEvolutionGate or cannot be merged,
+    * Combined PauliEvolutionGate otherwise.
+
+    This function is internal (used from within Rust code) and not a part of public API.
+    """
+    if not isinstance(gate1, PauliEvolutionGate) or not isinstance(gate2, PauliEvolutionGate):
+        return None
+
+    if isinstance(gate1.operator, SparseObservable) and isinstance(
+        gate2.operator, SparseObservable
+    ):
+        # When both operators are SparseObservables, we can compare their canonical representatives.
+        can_merge = gate1.operator.simplify() == gate2.operator.simplify()
+    elif isinstance(gate1.operator, SparsePauliOp) and isinstance(gate2.operator, SparsePauliOp):
+        # SparsePauliOp already has a function that compares canonical representatives.
+        can_merge = gate1.operator.equiv(gate2.operator)
+    else:
+        can_merge = gate1.operator == gate2.operator
+
+    if can_merge:
+        return PauliEvolutionGate(gate1.operator, gate1.time + gate2.time)
+
+    return None
+
+
+# pylint: disable=too-many-return-statements
+def _pauli_rotation_trace_and_dim(gate: PauliEvolutionGate) -> tuple[complex, int] | None:
+    """
+    For a multi-qubit Pauli rotation, return a tuple ``(Tr(gate) / dim, dim)``.
+    For sums of Paulis, parameterized angles, or if projectors are contained, `None` is returned.
+
+    This function is internal (used from within Rust code) and not a part of public API.
+    """
+    # Is it even a PauliEvolutionGate?
+    if not isinstance(gate, PauliEvolutionGate):
+        return None
+
+    if gate.is_parameterized():
+        return None
+
+    # If the operator is a list, it should only have a single element.
+    if isinstance(gate.operator, list):
+        if len(gate.operator) == 1:
+            operator = gate.operator[0]
+        else:
+            return None
+    else:
+        operator = gate.operator
+
+    # If the operator is a SparseObservable, it should have a single term
+    # without projects.
+    if isinstance(operator, SparseObservable):
+        if len(operator) == 1:
+            label = operator[0].bit_labels()
+            if any(c in label for c in ["+", "-", "0", "1", "l", "r"]):
+                return None
+            dim = len(label)
+            angle = operator.coeffs[0].real * gate.time
+        else:
+            return None
+    # If the operator is a SparsePauliOp, it should have a single term.
+    else:
+        if len(operator.paulis) == 1:
+            label = operator.paulis.to_labels()[0]
+            label = label.replace("I", "")
+            dim = len(label)
+            angle = operator.coeffs[0].real * gate.time
+        else:
+            return None
+
+    if dim == 0:
+        # This is an identity Pauli rotation.
+        return (np.exp(-1j * angle), dim)
+
+    return (np.cos(angle), dim)

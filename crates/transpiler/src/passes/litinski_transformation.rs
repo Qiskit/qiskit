@@ -12,23 +12,23 @@
 
 use pyo3::prelude::*;
 
-use qiskit_circuit::VarsMode;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::imports::PAULI_EVOLUTION_GATE;
+use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, PauliProductMeasurement, PyGate, StandardGate,
     StandardInstruction, multiply_param,
 };
 use qiskit_circuit::packed_instruction::PackedInstruction;
+use qiskit_circuit::{BlocksMode, VarsMode};
 
 use qiskit_quantum_info::clifford::Clifford;
 use qiskit_quantum_info::sparse_observable::{BitTerm, SparseObservable};
 
+use crate::TranspilerError;
 use num_complex::Complex64;
 use smallvec::smallvec;
 use std::f64::consts::PI;
-
-use crate::TranspilerError;
 
 // List of gate/instruction names supported by the pass: the pass raises an error if the circuit
 // contains instruction with names outside of this list.
@@ -85,7 +85,7 @@ pub fn run_litinski_transformation(
         .sum();
     let clifford_count = dag.size(false)? - rotation_count;
 
-    let new_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike)?;
+    let new_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike, BlocksMode::Keep)?;
     let mut new_dag = new_dag.into_builder();
 
     let py_evo_cls = PAULI_EVOLUTION_GATE.get_bound(py);
@@ -282,7 +282,7 @@ pub fn run_litinski_transformation(
                         py_gate.into(),
                         &indices,
                         &[],
-                        Some(smallvec![time]),
+                        Some(Parameters::Params(smallvec![time])),
                         None,
                         #[cfg(feature = "cache_pygates")]
                         None,

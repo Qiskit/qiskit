@@ -229,75 +229,77 @@ impl Clifford {
     /// Evolving the single-qubit Pauli-Z with Z on qubit qbit.
     pub fn get_inverse_z(&self, qbit: usize) -> (bool, Vec<BitTerm>, Vec<Qubit>) {
         let mut bit_terms = Vec::with_capacity(self.num_qubits);
-        let mut pauli = vec![false; 2 * self.num_qubits];
+        let mut pauli_indices = Vec::<usize>::with_capacity(2 * self.num_qubits);
+        // Compute the y-count to avoid recomputing it later
+        let mut pauli_y_count: u32 = 0;
 
         let indices = (0..self.num_qubits)
             .filter_map(|i| {
                 let z_bit = self.tableau[[i, qbit]];
                 let x_bit = self.tableau[[i + self.num_qubits, qbit]];
-                match (z_bit, x_bit) {
-                    (false, false) => None,
-                    (false, true) => {
-                        bit_terms.push(BitTerm::X);
-                        pauli[i] = true;
-                        Some(Qubit::new(i))
-                    }
-                    (true, false) => {
-                        bit_terms.push(BitTerm::Z);
-                        pauli[i + self.num_qubits] = true;
-                        Some(Qubit::new(i))
-                    }
-                    (true, true) => {
+                match [z_bit, x_bit] {
+                    [true, true] => {
+                        pauli_y_count += 1;
                         bit_terms.push(BitTerm::Y);
-                        pauli[i] = true;
-                        pauli[i + self.num_qubits] = true;
+                        pauli_indices.push(i);
+                        pauli_indices.push(i + self.num_qubits);
                         Some(Qubit::new(i))
                     }
+                    [false, true] => {
+                        bit_terms.push(BitTerm::X);
+                        pauli_indices.push(i);
+                        Some(Qubit::new(i))
+                    }
+                    [true, false] => {
+                        bit_terms.push(BitTerm::Z);
+                        pauli_indices.push(i + self.num_qubits);
+                        Some(Qubit::new(i))
+                    }
+                    [false, false] => None,
                 }
             })
             .collect();
-        let phase = compute_phase_product_pauli(self, &pauli);
+        let phase = compute_phase_product_pauli(self, &pauli_indices, pauli_y_count);
 
         (phase, bit_terms, indices)
     }
 }
 
 /// Computes the sign (either +1 or -1) when conjugating a Pauli by a Clifford
-fn compute_phase_product_pauli(clifford: &Clifford, pauli: &[bool]) -> bool {
-    let phase = pauli.iter().enumerate().fold(false, |acc, (j, &item)| {
-        acc ^ (clifford.tableau[[j, 2 * clifford.num_qubits]] & item)
+fn compute_phase_product_pauli(
+    clifford: &Clifford,
+    pauli_indices: &[usize],
+    pauli_y_count: u32,
+) -> bool {
+    let phase = pauli_indices.iter().fold(false, |acc, &pauli_index| {
+        acc ^ (clifford.tableau[[pauli_index, 2 * clifford.num_qubits]])
     });
 
-    let mut ifact: u8 = (0..clifford.num_qubits)
-        .filter(|&i| pauli[i] & pauli[i + clifford.num_qubits])
-        .count() as u8
-        % 4;
+    let mut ifact: u8 = pauli_y_count as u8 % 4;
 
     for j in 0..clifford.num_qubits {
         let mut x = false;
         let mut z = false;
-        for (i, &item) in pauli.iter().enumerate() {
-            if item {
-                let x1: bool = clifford.tableau[[i, j]];
-                let z1: bool = clifford.tableau[[i, j + clifford.num_qubits]];
+        for &pauli_index in pauli_indices.iter() {
+            let x1: bool = clifford.tableau[[pauli_index, j]];
+            let z1: bool = clifford.tableau[[pauli_index, j + clifford.num_qubits]];
 
-                match (x1, z1, x, z) {
-                    (false, true, true, true)
-                    | (true, false, false, true)
-                    | (true, true, true, false) => {
-                        ifact += 1;
-                    }
-                    (false, true, true, false)
-                    | (true, false, true, true)
-                    | (true, true, false, true) => {
-                        ifact += 3;
-                    }
-                    _ => {}
-                };
-                x ^= x1;
-                z ^= z1;
-                ifact %= 4;
-            }
+            match (x1, z1, x, z) {
+                (false, true, true, true)
+                | (true, false, false, true)
+                | (true, true, true, false) => {
+                    ifact += 1;
+                }
+                (false, true, true, false)
+                | (true, false, true, true)
+                | (true, true, false, true) => {
+                    ifact += 3;
+                }
+                _ => {}
+            };
+            x ^= x1;
+            z ^= z1;
+            ifact %= 4;
         }
     }
     (((ifact % 4) >> 1) != 0) ^ phase
