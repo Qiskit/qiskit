@@ -26,6 +26,7 @@ pub mod duration;
 pub mod error;
 pub mod gate_matrix;
 pub mod imports;
+pub mod instruction;
 pub mod interner;
 pub mod nlayout;
 pub mod object_registry;
@@ -46,9 +47,11 @@ use pyo3::prelude::*;
 use pyo3::types::{PySequence, PyString, PyTuple};
 
 #[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject)]
+#[repr(transparent)]
 pub struct Qubit(pub u32);
 
 #[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject)]
+#[repr(transparent)]
 pub struct Clbit(pub u32);
 
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
@@ -56,6 +59,9 @@ pub struct Var(u32);
 
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, PartialOrd)]
 pub struct Stretch(u32);
+
+#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+pub struct Block(u32);
 
 pub use nlayout::PhysicalQubit;
 pub use nlayout::VirtualQubit;
@@ -103,14 +109,17 @@ impl_circuit_identifier!(Qubit);
 impl_circuit_identifier!(Clbit);
 impl_circuit_identifier!(Var);
 impl_circuit_identifier!(Stretch);
+impl_circuit_identifier!(Block);
 
 pub struct TupleLikeArg<'py> {
     value: Bound<'py, PyTuple>,
 }
 
-impl<'py> FromPyObject<'py> for TupleLikeArg<'py> {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let value = match ob.downcast::<PySequence>() {
+impl<'a, 'py> FromPyObject<'a, 'py> for TupleLikeArg<'py> {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+        let value = match ob.cast::<PySequence>() {
             Ok(seq) => seq.to_tuple()?,
             Err(_) => PyTuple::new(
                 ob.py(),
@@ -170,9 +179,11 @@ pub enum VarsMode {
     Drop,
 }
 
-impl<'py> FromPyObject<'py> for VarsMode {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        match &*ob.downcast::<PyString>()?.to_string_lossy() {
+impl<'a, 'py> FromPyObject<'a, 'py> for VarsMode {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+        match &*ob.cast::<PyString>()?.to_string_lossy() {
             "alike" => Ok(VarsMode::Alike),
             "captures" => Ok(VarsMode::Captures),
             "drop" => Ok(VarsMode::Drop),
@@ -181,6 +192,14 @@ impl<'py> FromPyObject<'py> for VarsMode {
             ))),
         }
     }
+}
+
+/// The mode to use when handling blocks for operations that create a new [dag_circuit::DAGCircuit]
+/// or [circuit_data::CircuitData] based on an existing one.
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum BlocksMode {
+    Drop,
+    Keep,
 }
 
 #[inline]
@@ -243,6 +262,7 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<dag_node::DAGOutNode>()?;
     m.add_class::<dag_node::DAGOpNode>()?;
     m.add_class::<dag_circuit::PyBitLocations>()?;
+    m.add_class::<operations::ControlFlowType>()?;
     m.add_class::<operations::StandardGate>()?;
     m.add_class::<operations::StandardInstructionType>()?;
     m.add_class::<parameter::parameter_expression::PyParameterExpression>()?;

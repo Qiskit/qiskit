@@ -42,3 +42,81 @@ class TestOptimizeCliffordT(QiskitTestCase):
         optimized = OptimizeCliffordT()(transpiled)
 
         self.assertTrue(Operator(transpiled), Operator(optimized))
+
+    def test_removes_t_tdg_gates(self):
+        """A simple test that a pair of T,Tdg-gates gets removed."""
+        qc = QuantumCircuit(1)
+        qc.t(0)
+        qc.s(0)
+        qc.h(0)
+        qc.s(0)
+        qc.h(0)
+        qc.s(0)
+        qc.h(0)
+        qc.tdg(0)
+        optimized = OptimizeCliffordT()(qc)
+
+        # The Clifford gates in the middle correspond to an identity
+        # Clifford up a global phase of pi/4. The T and Tdg gates
+        # should cancel out.
+        expected = QuantumCircuit(1, global_phase=np.pi / 4)
+        self.assertEqual(Operator(qc), Operator(expected))
+
+        self.assertEqual(optimized, expected)
+
+    def test_combines_t_gates(self):
+        """A simple test that a pair of T-gates gets combined."""
+        qc = QuantumCircuit(1)
+        qc.t(0)
+        qc.s(0)
+        qc.h(0)
+        qc.s(0)
+        qc.h(0)
+        qc.s(0)
+        qc.h(0)
+        qc.t(0)
+        optimized = OptimizeCliffordT()(qc)
+
+        # The Clifford gates in the middle correspond to an identity
+        # Clifford up a global phase of pi/4. The two T gates at the ends
+        # can be combined into an S-gate.
+        expected = QuantumCircuit(1, global_phase=np.pi / 4)
+        expected.s(0)
+        self.assertEqual(Operator(qc), Operator(expected))
+
+        self.assertEqual(optimized, expected)
+
+    def test_combines_tdg_gates(self):
+        """A simple test that a pair of Tdg-gates gets removed."""
+        qc = QuantumCircuit(1)
+        qc.tdg(0)
+        qc.s(0)
+        qc.h(0)
+        qc.s(0)
+        qc.h(0)
+        qc.s(0)
+        qc.h(0)
+        qc.tdg(0)
+        optimized = OptimizeCliffordT()(qc)
+
+        # The Clifford gates in the middle correspond to an identity
+        # Clifford up a global phase of pi/4. The two Tdg gates on the ends
+        # can be combined into an Sdg-gate (which gets implemented as S,Z).
+        expected = QuantumCircuit(1, global_phase=np.pi / 4)
+        expected.s(0)
+        expected.z(0)
+        self.assertEqual(Operator(qc), Operator(expected))
+
+        self.assertEqual(optimized, expected)
+
+    def test_does_not_remove_t_gates(self):
+        """A simple test for the case that a pair T-gates cannot be removed."""
+        qc = QuantumCircuit(1)
+        qc.t(0)
+        qc.h(0)
+        qc.t(0)
+
+        # The pass should not remove anything.
+        optimized = OptimizeCliffordT()(qc)
+
+        self.assertEqual(optimized, qc)

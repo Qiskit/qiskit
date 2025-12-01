@@ -95,6 +95,7 @@ Optimizations
    RemoveResetInZeroState
    ResetAfterMeasureSimplification
    Split2QUnitaries
+   SubstitutePi4Rotations
    TemplateOptimization
 
 Scheduling
@@ -229,6 +230,7 @@ from .optimization import CollectLinearFunctions
 from .optimization import CollectMultiQBlocks
 from .optimization import CommutationAnalysis
 from .optimization import CommutativeCancellation
+from .optimization import CommutativeOptimization
 from .optimization import CommutativeInverseCancellation
 from .optimization import ConsolidateBlocks
 from .optimization import ContractIdleWiresInControlFlow
@@ -250,6 +252,7 @@ from .optimization import RemoveIdentityEquivalent
 from .optimization import RemoveResetInZeroState
 from .optimization import ResetAfterMeasureSimplification
 from .optimization import Split2QUnitaries
+from .optimization import SubstitutePi4Rotations
 from .optimization import TemplateOptimization
 
 # circuit analysis

@@ -39,7 +39,7 @@ use rustworkx_core::petgraph::visit::{
 };
 use rustworkx_core::petgraph::{Direction, Graph, Incoming, Outgoing};
 
-mod alias {
+pub mod alias {
     use std::hash::Hash;
 
     use rustworkx_core::petgraph::Direction;
@@ -805,6 +805,13 @@ where
     NS: Semantics<N::NodeWeight, H::NodeWeight>,
     ES: Semantics<N::EdgeWeight, H::EdgeWeight, Score = NS::Score>,
 {
+    pub fn needle(&self) -> &N {
+        &self.needle
+    }
+    pub fn haystack(&self) -> &H {
+        &self.haystack
+    }
+
     /// Add a limit to the number of candidate extensions the algorithm is allowed to attempt.
     ///
     /// This can be used to upper-bound the runtime of the algorithm while keeping it deterministic.
@@ -948,7 +955,8 @@ where
             restriction: self.restriction,
             score_stack,
             loop_stack,
-            remaining_calls: self.call_limit,
+            num_calls: 0,
+            call_limit: self.call_limit,
         }
     }
 }
@@ -1229,7 +1237,8 @@ where
     restriction: Option<Restriction<NS::Score>>,
     score_stack: Vec<NS::Score>,
     loop_stack: Vec<Frame<N::NodeId, H::NodeId>>,
-    remaining_calls: Option<usize>,
+    num_calls: usize,
+    pub call_limit: Option<usize>,
 }
 
 impl<N, H, NId, HId, NS, ES> Vf2IntoIter<N, H, NId, HId, NS, ES>
@@ -1798,11 +1807,10 @@ where
     /// Increase the call count of the mapper.  Returns `None` if we're already exhausted.
     #[inline]
     fn try_add_call(&mut self) -> Option<()> {
-        self.remaining_calls = self.remaining_calls.map(|rem| rem.saturating_sub(1));
-        match self.remaining_calls {
-            Some(0) => None,
-            Some(_) | None => Some(()),
-        }
+        self.num_calls += 1;
+        self.call_limit
+            .is_none_or(|limit| self.num_calls < limit)
+            .then_some(())
     }
 }
 
