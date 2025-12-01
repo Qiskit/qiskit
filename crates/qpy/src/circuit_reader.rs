@@ -53,15 +53,15 @@ use crate::py_methods::{get_python_gate_class, py_deserialize_register_param};
 use crate::value::GenericValue;
 use crate::value::load_value;
 use crate::value::{
-    ExpressionType, QPYReadData, bit_types, circuit_instruction_types, deserialize,
-    deserialize_with_args, expression_var_declaration, register_types, tags, unpack_generic_value,
+    BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, QPYReadData,
+    RegisterType, ValueType, deserialize, deserialize_with_args, unpack_generic_value,
 };
 
 // This is a helper struct, designed to pass data within methods
 // It is not meant to be serialized, so it's not in formats.rs
 #[derive(Debug)]
 struct CustomCircuitInstructionData {
-    gate_type: u8,
+    gate_type: CircuitInstructionType,
     num_qubits: u32,
     num_clbits: u32,
     definition_circuit: Option<Py<PyAny>>,
@@ -86,10 +86,10 @@ fn deserialize_standard_instruction(
                 } else {
                     // only duration; check whether it's an expression
                     if [
-                        tags::EXPRESSION,
-                        tags::PARAMETER_EXPRESSION,
-                        tags::PARAMETER,
-                        tags::PARAMETER_VECTOR,
+                        ValueType::Expression,
+                        ValueType::ParameterExpression,
+                        ValueType::Parameter,
+                        ValueType::ParameterVector,
                     ]
                     .contains(&instruction.params[0].type_key)
                     {
@@ -123,7 +123,7 @@ fn unpack_custom_instruction(
         None => &instruction.gate_class_name,
     };
     let inst_obj = match custom_instruction.gate_type {
-        circuit_instruction_types::GATE => {
+        CircuitInstructionType::Gate => {
             let gate_object = imports::GATE.get_bound(py).call1((
                 &gate_class_name,
                 custom_instruction.num_qubits,
@@ -137,7 +137,7 @@ fn unpack_custom_instruction(
             }
             gate_object.unbind()
         }
-        circuit_instruction_types::INSTRUCTION => {
+        CircuitInstructionType::Instruction => {
             let instruction_object = imports::INSTRUCTION.get_bound(py).call1((
                 &gate_class_name,
                 custom_instruction.num_qubits,
@@ -152,7 +152,7 @@ fn unpack_custom_instruction(
             }
             instruction_object.unbind()
         }
-        circuit_instruction_types::PAULI_EVOL_GATE => {
+        CircuitInstructionType::PauliEvolutionGate => {
             if let Some(definition) = &custom_instruction.definition_circuit {
                 let inst = definition.clone();
                 if let Some(label_string) = label {
@@ -165,7 +165,7 @@ fn unpack_custom_instruction(
                 ));
             }
         }
-        circuit_instruction_types::CONTROLLED_GATE => {
+        CircuitInstructionType::ControlledGate => {
             let packed_base_gate = deserialize_with_args::<
                 formats::CircuitInstructionV2Pack,
                 (bool,),
@@ -194,7 +194,7 @@ fn unpack_custom_instruction(
             }
             controlled_gate_object.unbind()
         }
-        circuit_instruction_types::ANNOTATED_OPERATION => {
+        CircuitInstructionType::AnnotatedOperation => {
             let packed_base_gate = deserialize_with_args::<
                 formats::CircuitInstructionV2Pack,
                 (bool,),
@@ -209,12 +209,6 @@ fn unpack_custom_instruction(
                 .get_bound(py)
                 .call((), Some(&kwargs))?
                 .unbind()
-        }
-        _ => {
-            return Err(PyValueError::new_err(format!(
-                "Custom gate type {:?} not handled",
-                custom_instruction.gate_type
-            )));
         }
     };
     Ok(inst_obj.extract::<OperationFromPython>(py)?.operation)
@@ -256,9 +250,8 @@ fn unpack_instruction(
     let mut clbit_indices = Vec::new();
     for arg in &instruction.bit_data {
         match arg.bit_type {
-            bit_types::QUBIT => qubit_indices.push(Qubit(arg.index)),
-            bit_types::CLBIT => clbit_indices.push(Clbit(arg.index)),
-            _ => return Err(PyValueError::new_err("Unrecognized bit type")),
+            BitType::Qubit => qubit_indices.push(Qubit(arg.index)),
+            BitType::Clbit => clbit_indices.push(Clbit(arg.index)),
         };
     }
     let qubits = qpy_data.circuit_data.add_qargs(&qubit_indices);
@@ -491,7 +484,7 @@ fn unpack_custom_layout<'py>(
     let mut extra_register_map = HashMap::new();
     let mut existing_register_map = HashMap::new();
     for packed_register in &layout.extra_registers {
-        if packed_register.register_type == bit_types::QUBIT {
+        if packed_register.register_type == BitType::Qubit as u8 {
             let register = QuantumRegister::new_owning(
                 packed_register.name.clone(),
                 packed_register.bit_indices.len() as u32,
@@ -588,7 +581,7 @@ fn deserialize_pauli_evolution_gate(
         .pauli_data
         .iter()
         .map(|elem| {
-            let data = load_value(tags::NUMPY_OBJ, &elem.data, qpy_data)?;
+            let data = load_value(ValueType::NumpyObject, &elem.data, qpy_data)?;
             if let GenericValue::NumpyObject(op_raw_data) = data {
                 imports::SPARSE_PAULI_OP
                     .get_bound(py)
@@ -689,7 +682,7 @@ fn add_standalone_vars(
         let uuid = u128::from_be_bytes(packed_var.uuid_bytes);
         let name = packed_var.name.clone();
         match packed_var.usage {
-            expression_var_declaration::LOCAL => {
+            ExpressionVarDeclaration::Local => {
                 let var = qpy_data.circuit_data.add_var(
                     classical::expr::Var::Standalone { uuid, name, ty },
                     CircuitVarType::Declare,
@@ -697,7 +690,7 @@ fn add_standalone_vars(
                 qpy_data.standalone_vars.insert(index, var);
                 index += 1;
             }
-            expression_var_declaration::INPUT => {
+            ExpressionVarDeclaration::Input => {
                 let var = qpy_data.circuit_data.add_var(
                     classical::expr::Var::Standalone { uuid, name, ty },
                     CircuitVarType::Input,
@@ -705,7 +698,7 @@ fn add_standalone_vars(
                 qpy_data.standalone_vars.insert(index, var);
                 index += 1;
             }
-            expression_var_declaration::CAPTURE => {
+            ExpressionVarDeclaration::Capture => {
                 let var = qpy_data.circuit_data.add_var(
                     classical::expr::Var::Standalone { uuid, name, ty },
                     CircuitVarType::Capture,
@@ -713,7 +706,7 @@ fn add_standalone_vars(
                 qpy_data.standalone_vars.insert(index, var);
                 index += 1;
             }
-            expression_var_declaration::STRETCH_LOCAL => {
+            ExpressionVarDeclaration::StretchLocal => {
                 let stretch = qpy_data.circuit_data.add_stretch(
                     classical::expr::Stretch { uuid, name },
                     CircuitStretchType::Declare,
@@ -721,7 +714,7 @@ fn add_standalone_vars(
                 qpy_data.standalone_stretches.insert(index, stretch);
                 index += 1;
             }
-            expression_var_declaration::STRETCH_CAPTURE => {
+            ExpressionVarDeclaration::StretchCapture => {
                 let stretch = qpy_data.circuit_data.add_stretch(
                     classical::expr::Stretch { uuid, name },
                     CircuitStretchType::Capture,
@@ -729,7 +722,6 @@ fn add_standalone_vars(
                 qpy_data.standalone_stretches.insert(index, stretch);
                 index += 1;
             }
-            _ => (),
         }
     }
     Ok(())
@@ -752,8 +744,8 @@ fn add_registers_and_bits(
         if packed_register.standalone == 0 {
             non_standalone_registers.push(packed_register);
         } else {
-            match packed_register.register_type {
-                register_types::QREG => {
+            match RegisterType::from(packed_register.register_type) {
+                RegisterType::Qreg => {
                     let qreg = QuantumRegister::new_owning(
                         &packed_register.name,
                         packed_register.bit_indices.len() as u32,
@@ -768,7 +760,7 @@ fn add_registers_and_bits(
                         qregs.push(qreg);
                     }
                 }
-                register_types::CREG => {
+                RegisterType::Creg => {
                     let creg = ClassicalRegister::new_owning(
                         &packed_register.name,
                         packed_register.bit_indices.len() as u32,
@@ -782,12 +774,6 @@ fn add_registers_and_bits(
                     if packed_register.in_circuit != 0 {
                         cregs.push(creg);
                     }
-                }
-                _ => {
-                    return Err(PyValueError::new_err(format!(
-                        "Unrecognized register type for {:?}",
-                        packed_register.name
-                    )));
                 }
             }
         }
@@ -810,8 +796,8 @@ fn add_registers_and_bits(
 
     // We collected owning registers to qregs, cregs and added all remaining bits and can now deal with the non-standalone registers
     for packed_register in non_standalone_registers {
-        match packed_register.register_type {
-            register_types::QREG => {
+        match RegisterType::from(packed_register.register_type) {
+            RegisterType::Qreg => {
                 let bits: Vec<ShareableQubit> = packed_register
                     .bit_indices
                     .iter()
@@ -826,7 +812,7 @@ fn add_registers_and_bits(
                 let qreg = QuantumRegister::new_alias(Some(packed_register.name.clone()), bits);
                 qregs.push(qreg);
             }
-            register_types::CREG => {
+            RegisterType::Creg => {
                 let bits: Vec<ShareableClbit> = packed_register
                     .bit_indices
                     .iter()
@@ -840,12 +826,6 @@ fn add_registers_and_bits(
                     .collect();
                 let creg = ClassicalRegister::new_alias(Some(packed_register.name.clone()), bits);
                 cregs.push(creg);
-            }
-            _ => {
-                return Err(PyValueError::new_err(format!(
-                    "Unrecognized register type for {:?}",
-                    packed_register.name
-                )));
             }
         }
     }

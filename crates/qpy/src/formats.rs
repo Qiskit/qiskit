@@ -12,7 +12,11 @@
 
 use crate::bytes::Bytes;
 use crate::expr::{read_expression, write_expression};
-use crate::value::{ExpressionType, QPYReadData, QPYWriteData};
+use crate::params::ParameterType;
+use crate::value::{
+    BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, ModifierType,
+    QPYReadData, QPYWriteData, ValueType,
+};
 use binrw::{BinRead, BinResult, BinWrite, Endian, binread, binrw, binwrite};
 use num_bigint::BigUint;
 use qiskit_circuit::classical::expr::Expr;
@@ -40,7 +44,7 @@ pub struct QPYFormatV15 {
 pub struct CircuitHeaderV12Pack {
     #[bw(calc = circuit_name.len() as u16)]
     pub name_size: u16,
-    pub global_phase_type: u8,
+    pub global_phase_type: ValueType,
     #[bw(calc = global_phase_data.len() as u16)]
     pub global_phase_size: u16,
     pub num_qubits: u32,
@@ -119,7 +123,7 @@ fn extract_conditional_key(extras_key: u8) -> u8 {
 #[brw(big)]
 #[derive(Debug)]
 pub struct CircuitInstructionArgPack {
-    pub bit_type: u8,
+    pub bit_type: BitType,
     pub index: u32,
 }
 
@@ -141,7 +145,7 @@ pub struct CustomCircuitInstructionsPack {
 pub struct CustomCircuitInstructionDefPack {
     #[bw(calc = name.len() as u16)]
     pub gate_name_size: u16,
-    pub gate_type: u8,
+    pub gate_type: CircuitInstructionType,
     pub num_qubits: u32,
     pub num_clbits: u32,
     pub custom_definition: u8,
@@ -290,7 +294,7 @@ pub struct InitialLayoutItemV2Pack {
 #[brw(big)]
 #[derive(Debug)]
 pub struct GenericDataPack {
-    pub type_key: u8,
+    pub type_key: ValueType,
     #[bw(calc = data.len() as u64)]
     pub data_len: u64,
     #[br(count = data_len)]
@@ -399,9 +403,9 @@ pub enum ParameterExpressionElementPack {
 #[derive(BinWrite, BinRead, Debug)]
 #[brw(big)]
 pub struct ParameterExpressionStandardOpPack {
-    pub lhs_type: u8,
+    pub lhs_type: ParameterType,
     pub lhs: [u8; 16],
-    pub rhs_type: u8,
+    pub rhs_type: ParameterType,
     pub rhs: [u8; 16],
 }
 #[binrw]
@@ -461,7 +465,7 @@ pub enum ParameterExpressionSymbolPack {
 #[brw(big)]
 #[derive(Debug)]
 pub struct ParameterExpressionParameterSymbolPack {
-    pub value_key: u8,
+    pub value_key: ValueType,
     #[bw(calc = value_data.len() as u64)]
     pub value_data_len: u64,
     pub symbol_data: ParameterPack,
@@ -473,7 +477,7 @@ pub struct ParameterExpressionParameterSymbolPack {
 #[brw(big)]
 #[derive(Debug)]
 pub struct ParameterExpressionParameterVectorSymbolPack {
-    pub value_key: u8,
+    pub value_key: ValueType,
     #[bw(calc = value_data.len() as u64)]
     pub value_data_len: u64,
     pub symbol_data: ParameterVectorPack,
@@ -500,7 +504,7 @@ pub struct PauliEvolutionDefPack {
     #[bw(calc = pauli_data.len() as u64)]
     pub operator_size: u64,
     pub standalone_op: u8,
-    pub time_type: u8,
+    pub time_type: ValueType,
     #[bw(calc = time_data.len() as u64)]
     pub time_size: u64,
     #[bw(calc = synth_data.len() as u64)]
@@ -666,7 +670,7 @@ pub struct MappingPack {
 pub struct MappingItem {
     #[bw(calc = key_bytes.len() as u16)]
     pub key_size: u16,
-    pub item_type: u8,
+    pub item_type: ValueType,
     #[bw(calc = item_bytes.len() as u16)]
     pub size: u16,
     #[br(count = usize::from(key_size))]
@@ -688,7 +692,7 @@ pub struct RangePack {
 #[brw(big)]
 #[derive(Debug)]
 pub struct ModifierPack {
-    pub modifier_type: u8,
+    pub modifier_type: ModifierType,
     pub num_ctrl_qubits: u32,
     pub ctrl_state: u32,
     pub power: f64,
@@ -699,7 +703,7 @@ pub struct ModifierPack {
 #[derive(Debug)]
 pub struct ExpressionVarDeclarationPack {
     pub uuid_bytes: [u8; 16],
-    pub usage: u8,
+    pub usage: ExpressionVarDeclaration,
     #[bw(calc = name.len() as u16)]
     pub name_size: u16,
     pub exp_type: ExpressionType,

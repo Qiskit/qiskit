@@ -27,20 +27,58 @@ use crate::py_methods::{
     py_convert_from_generic_value, py_convert_to_generic_value, py_pack_param,
 };
 use crate::value::{
-    GenericValue, QPYReadData, QPYWriteData, deserialize, deserialize_vec, load_value, serialize,
-    serialize_generic_value, tags,
+    GenericValue, QPYReadData, QPYWriteData, ValueType, deserialize, deserialize_vec, load_value,
+    serialize, serialize_generic_value,
 };
+use binrw::binrw;
 use hashbrown::HashMap;
 
-pub mod parameter_tags {
-    pub const INTEGER: u8 = b'i';
-    pub const FLOAT: u8 = b'f';
-    pub const COMPLEX: u8 = b'c';
-    pub const PARAMETER: u8 = b'p';
-    pub const PARAMETER_VECTOR: u8 = b'v';
-    pub const NULL: u8 = b'n';
-    pub const LHS_EXPRESSION: u8 = b's';
-    pub const RHS_EXPRESSION: u8 = b'e';
+#[binrw]
+#[brw(repr = u8)]
+#[repr(u8)]
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum ParameterType {
+    Integer = b'i',
+    Float = b'f',
+    Complex = b'c',
+    Parameter = b'p',
+    ParameterVector = b'v',
+    Null = b'n',
+    LhsExpression = b's',
+    RhsExpression = b'e',
+}
+
+fn parameter_type_name(type_key: &ParameterType) -> String {
+    String::from(match type_key {
+        ParameterType::Integer => "integer",
+        ParameterType::Float => "float",
+        ParameterType::Complex => "complex",
+        ParameterType::Parameter => "parameter",
+        ParameterType::ParameterVector => "parameter vector",
+        ParameterType::Null => "null",
+        ParameterType::LhsExpression => "lhs expression",
+        ParameterType::RhsExpression => "rhs expression",
+    })
+}
+
+impl std::fmt::Display for ParameterType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", parameter_type_name(self),)
+    }
+}
+
+impl From<ParameterType> for ValueType {
+    fn from(value: ParameterType) -> Self {
+        match value {
+            ParameterType::Complex => ValueType::Complex,
+            ParameterType::Float => ValueType::Float,
+            ParameterType::Integer => ValueType::Integer,
+            ParameterType::Null => ValueType::Null,
+            ParameterType::ParameterVector => ValueType::ParameterVector,
+            ParameterType::Parameter => ValueType::Parameter,
+            _ => panic!("Cannot convert to value type {value}"),
+        }
+    }
 }
 
 pub fn pack_parameter_expression_by_op(
@@ -150,7 +188,7 @@ pub fn pack_symbol_table_element(
 ) -> PyResult<formats::ParameterExpressionSymbolPack> {
     let value_data = Bytes::new(); // this was used only when packing symbol tables related to substitution commands and no longer relevant
     if symbol.is_vector_element() {
-        let value_key = tags::PARAMETER_VECTOR;
+        let value_key = ValueType::ParameterVector;
         let symbol_data = pack_parameter_vector(symbol)?;
         let symbol_pack = formats::ParameterExpressionParameterVectorSymbolPack {
             value_key,
@@ -161,7 +199,7 @@ pub fn pack_symbol_table_element(
             symbol_pack,
         ))
     } else {
-        let value_key = tags::PARAMETER;
+        let value_key = ValueType::Parameter;
         let symbol_data = pack_symbol(symbol);
         let symbol_pack = formats::ParameterExpressionParameterSymbolPack {
             value_key,
@@ -207,27 +245,36 @@ fn pack_parameter_expression_element(
 // and returns the u8 for the type, the [u8; 16] encoding for the data (which stores)
 // numbers explicitly, not using 8 bytes for f64 or u64, and storing uuid for more complex vals
 // subexpressions are packed using the empty [0u8; 16], followed by "extra data" of the expression's encoding
-fn pack_parameter_replay_entry(inst: &Option<ParameterValueType>) -> PyResult<(u8, [u8; 16])> {
+fn pack_parameter_replay_entry(
+    inst: &Option<ParameterValueType>,
+) -> PyResult<(ParameterType, [u8; 16])> {
     // This is different from `py_dumps_value` since we aim specifically for [u8; 16]
     // This means parameters are not fully stored, only their uuid
     // Also integers and floats are padded with 0
-    let null_type: u8 = b'n'; // in parameter replay, none is not stored as 'z' but as 'n'
     let value = match inst {
-        None => return Ok((null_type, [0u8; 16])),
+        None => return Ok((ParameterType::Null, [0u8; 16])),
         Some(val) => val,
     };
     Ok(match value {
-        ParameterValueType::Int(val) => (tags::INTEGER, Bytes::from(val).try_to_16_byte_slice()?),
-        ParameterValueType::Float(val) => (tags::FLOAT, Bytes::from(val).try_to_16_byte_slice()?),
-        ParameterValueType::Complex(val) => {
-            (tags::COMPLEX, Bytes::from(val).try_to_16_byte_slice()?)
-        }
+        ParameterValueType::Int(val) => (
+            ParameterType::Integer,
+            Bytes::from(val).try_to_16_byte_slice()?,
+        ),
+        ParameterValueType::Float(val) => (
+            ParameterType::Float,
+            Bytes::from(val).try_to_16_byte_slice()?,
+        ),
+        ParameterValueType::Complex(val) => (
+            ParameterType::Complex,
+            Bytes::from(val).try_to_16_byte_slice()?,
+        ),
         ParameterValueType::Parameter(parameter) => {
-            (tags::PARAMETER, *parameter.symbol.uuid.as_bytes())
+            (ParameterType::Parameter, *parameter.symbol.uuid.as_bytes())
         }
-        ParameterValueType::VectorElement(element) => {
-            (tags::PARAMETER_VECTOR, *element.symbol.uuid.as_bytes())
-        }
+        ParameterValueType::VectorElement(element) => (
+            ParameterType::ParameterVector,
+            *element.symbol.uuid.as_bytes(),
+        ),
     })
 }
 
@@ -245,9 +292,7 @@ pub fn unpack_parameter_expression(
             formats::ParameterExpressionSymbolPack::Parameter(symbol_pack) => {
                 let symbol = unpack_symbol(&symbol_pack.symbol_data);
                 let value = match symbol_pack.value_key {
-                    parameter_tags::PARAMETER => {
-                        GenericValue::ParameterExpressionSymbol(symbol.clone())
-                    }
+                    ValueType::Parameter => GenericValue::ParameterExpressionSymbol(symbol.clone()),
                     _ => load_value(symbol_pack.value_key, &symbol_pack.value_data, qpy_data)?,
                 };
                 (symbol_pack.symbol_data.uuid, symbol, value)
@@ -256,7 +301,7 @@ pub fn unpack_parameter_expression(
                 // this call will also create the corresponding vector and update qpy_data if needed
                 let symbol = unpack_parameter_vector(&symbol_pack.symbol_data, qpy_data)?;
                 let value = match symbol_pack.value_key {
-                    parameter_tags::PARAMETER_VECTOR => {
+                    ValueType::ParameterVector => {
                         GenericValue::ParameterExpressionSymbol(symbol.clone())
                     }
                     _ => load_value(symbol_pack.value_key, &symbol_pack.value_data, qpy_data)?,
@@ -325,7 +370,7 @@ pub fn unpack_parameter_expression(
             // loading values from replay pack is tricky, since everything is stored using 16-bytes, even 8-byte ints and floats
             // LHS
             let lhs: Option<ParameterValueType> = match op.lhs_type {
-                parameter_tags::PARAMETER | parameter_tags::PARAMETER_VECTOR => {
+                ParameterType::Parameter | ParameterType::ParameterVector => {
                     if let Some(value) = param_uuid_map.get(&op.lhs) {
                         Some(parameter_value_type_from_generic_value(value)?)
                     } else {
@@ -335,22 +380,16 @@ pub fn unpack_parameter_expression(
                         )));
                     }
                 }
-                parameter_tags::FLOAT | parameter_tags::INTEGER | parameter_tags::COMPLEX => {
-                    let value = load_value(op.lhs_type, &op.lhs.into(), qpy_data)?;
+                ParameterType::Float | ParameterType::Integer | ParameterType::Complex => {
+                    let value = load_value(ValueType::from(op.lhs_type), &op.lhs.into(), qpy_data)?;
                     Some(parameter_value_type_from_generic_value(&value)?)
                 }
-                parameter_tags::NULL => None, // pass
-                parameter_tags::LHS_EXPRESSION | parameter_tags::RHS_EXPRESSION => continue,
-                _ => {
-                    return Err(PyValueError::new_err(format!(
-                        "Unknown ParameterExpression operation type: {}",
-                        op.lhs_type
-                    )));
-                }
+                ParameterType::Null => None, // pass
+                ParameterType::LhsExpression | ParameterType::RhsExpression => continue,
             };
             // RHS
             let rhs: Option<ParameterValueType> = match op.rhs_type {
-                parameter_tags::PARAMETER | parameter_tags::PARAMETER_VECTOR => {
+                ParameterType::Parameter | ParameterType::ParameterVector => {
                     if let Some(value) = param_uuid_map.get(&op.rhs) {
                         Some(parameter_value_type_from_generic_value(value)?)
                     } else {
@@ -360,18 +399,12 @@ pub fn unpack_parameter_expression(
                         )));
                     }
                 }
-                parameter_tags::FLOAT | parameter_tags::INTEGER | parameter_tags::COMPLEX => {
-                    let value = load_value(op.rhs_type, &op.rhs.into(), qpy_data)?;
+                ParameterType::Float | ParameterType::Integer | ParameterType::Complex => {
+                    let value = load_value(ValueType::from(op.rhs_type), &op.rhs.into(), qpy_data)?;
                     Some(parameter_value_type_from_generic_value(&value)?)
                 }
-                parameter_tags::NULL => None, // pass
-                parameter_tags::LHS_EXPRESSION | parameter_tags::RHS_EXPRESSION => continue,
-                _ => {
-                    return Err(PyTypeError::new_err(format!(
-                        "Unknown ParameterExpression operation type: {}",
-                        op.rhs_type
-                    )));
-                }
+                ParameterType::Null => None, // pass
+                ParameterType::LhsExpression | ParameterType::RhsExpression => continue,
             };
             let op = OpCode::from_u8(opcode)?;
             replay.push(OPReplay { op, lhs, rhs });
@@ -490,18 +523,18 @@ pub fn unpack_parameter_vector(
 pub fn serialize_param_expression(
     exp: &ParameterExpression,
     qpy_data: &QPYWriteData,
-) -> PyResult<(u8, Bytes)> {
+) -> PyResult<(ValueType, Bytes)> {
     // if the parameter expression is a single symbol, we should treat it like a parameter
     // or a parameter vector, depending on whether the `vector` field exists
     let result = if let Ok(symbol) = exp.try_to_symbol() {
         match symbol.vector {
             None => {
                 let packed_symbol = pack_symbol(&symbol);
-                (tags::PARAMETER, serialize(&packed_symbol))
+                (ValueType::Parameter, serialize(&packed_symbol))
             }
             Some(_) => {
                 let packed_symbol = pack_parameter_vector(&symbol)?;
-                (tags::PARAMETER_VECTOR, serialize(&packed_symbol))
+                (ValueType::ParameterVector, serialize(&packed_symbol))
             }
         }
     } else {
@@ -531,11 +564,11 @@ pub fn pack_param_obj(
     Ok(match param {
         Param::Float(val) => match endian {
             Endian::Little => formats::GenericDataPack {
-                type_key: tags::FLOAT,
+                type_key: ValueType::Float,
                 data: val.to_le_bytes().into(),
             },
             Endian::Big => formats::GenericDataPack {
-                type_key: tags::FLOAT,
+                type_key: ValueType::Float,
                 data: val.to_be_bytes().into(),
             },
         },
@@ -552,14 +585,14 @@ pub fn unpack_param(
     endian: Endian,
 ) -> PyResult<Param> {
     match packed_param.type_key {
-        tags::FLOAT => Ok(Param::Float(packed_param.data.try_to_f64(endian)?)),
-        tags::PARAMETER => {
+        ValueType::Float => Ok(Param::Float(packed_param.data.try_to_f64(endian)?)),
+        ValueType::Parameter => {
             let (packed_symbol, _) = deserialize::<formats::ParameterPack>(&packed_param.data)?;
             let parameter_expression =
                 ParameterExpression::from_symbol(unpack_symbol(&packed_symbol));
             Ok(Param::ParameterExpression(Arc::new(parameter_expression)))
         }
-        tags::PARAMETER_VECTOR => {
+        ValueType::ParameterVector => {
             let (packed_symbol, _) =
                 deserialize::<formats::ParameterVectorPack>(&packed_param.data)?;
             let parameter_expression = ParameterExpression::from_symbol(unpack_parameter_vector(
@@ -568,7 +601,7 @@ pub fn unpack_param(
             )?);
             Ok(Param::ParameterExpression(Arc::new(parameter_expression)))
         }
-        tags::PARAMETER_EXPRESSION => {
+        ValueType::ParameterExpression => {
             if let GenericValue::ParameterExpression(parameter_expression) =
                 load_value(packed_param.type_key, &packed_param.data, qpy_data)?
             {
@@ -593,7 +626,7 @@ pub fn unpack_param(
 
 pub fn unpack_param_from_data(
     data: Bytes,
-    type_key: u8,
+    type_key: ValueType,
     qpy_data: &mut QPYReadData,
     endian: Endian,
 ) -> PyResult<Param> {

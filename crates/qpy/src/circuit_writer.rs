@@ -48,8 +48,8 @@ use crate::py_methods::{
     recognize_custom_operation, serialize_metadata,
 };
 use crate::value::{
-    GenericValue, QPYWriteData, bit_types, circuit_instruction_types, expression_var_declaration,
-    get_circuit_type_key, pack_generic_value, pack_standalone_var, pack_stretch, register_types,
+    BitType, CircuitInstructionType, ExpressionVarDeclaration, GenericValue, QPYWriteData,
+    RegisterType, get_circuit_type_key, pack_generic_value, pack_standalone_var, pack_stretch,
     serialize,
 };
 
@@ -63,13 +63,13 @@ fn get_packed_bit_list(
     let mut result: Vec<formats::CircuitInstructionArgPack> = Vec::new();
     for qubit in circuit_data.get_qargs(inst.qubits) {
         result.push(formats::CircuitInstructionArgPack {
-            bit_type: bit_types::QUBIT,
+            bit_type: BitType::Qubit,
             index: (qubit.index() as u32),
         });
     }
     for clbit in circuit_data.get_cargs(inst.clbits) {
         result.push(formats::CircuitInstructionArgPack {
-            bit_type: bit_types::CLBIT,
+            bit_type: BitType::Clbit,
             index: (clbit.index() as u32),
         });
     }
@@ -347,7 +347,7 @@ fn pack_quantum_register(
         })
         .collect();
     formats::RegisterV4Pack {
-        register_type: register_types::QREG,
+        register_type: RegisterType::Qreg as u8,
         standalone: qreg.is_owning() as u8,
         in_circuit: in_circuit as u8,
         name: qreg.name().to_string(),
@@ -393,7 +393,7 @@ fn pack_classical_registers(circuit_data: &CircuitData) -> Vec<formats::Register
                 })
                 .collect();
             formats::RegisterV4Pack {
-                register_type: register_types::CREG,
+                register_type: RegisterType::Creg as u8,
                 standalone: creg.is_owning() as u8,
                 in_circuit: in_circ_lookup.contains(creg) as u8,
                 name: creg.name().to_string(),
@@ -647,12 +647,12 @@ fn pack_custom_instruction(
         let mut base_gate: Bound<PyAny> = py.None().bind(py).clone();
         let mut base_gate_raw: Bytes = Bytes::new();
 
-        if gate_type == circuit_instruction_types::PAULI_EVOL_GATE {
+        if gate_type == CircuitInstructionType::PauliEvolutionGate {
             if let OperationRef::Gate(gate) = operation.view() {
                 has_definition = true;
                 data = serialize(&py_pack_pauli_evolution_gate(gate.gate.bind(py), qpy_data)?);
             }
-        } else if gate_type == circuit_instruction_types::CONTROLLED_GATE {
+        } else if gate_type == CircuitInstructionType::ControlledGate {
             // For ControlledGate, we have to access and store the private `_definition` rather than the
             // public one, because the public one is mutated to include additional logic if the control
             // state is open, and the definition setter (during a subsequent read) uses the "fully
@@ -674,7 +674,7 @@ fn pack_custom_instruction(
                 ctrl_state = gate.getattr("ctrl_state")?.extract::<u32>()?;
                 base_gate = gate.getattr("base_gate")?.clone();
             }
-        } else if gate_type == circuit_instruction_types::ANNOTATED_OPERATION {
+        } else if gate_type == CircuitInstructionType::AnnotatedOperation {
             if let OperationRef::Operation(operation) = operation.view() {
                 has_definition = false; // just making sure
                 base_gate = operation.operation.bind(py).getattr("base_op")?.clone();
@@ -777,7 +777,7 @@ fn pack_standalone_vars(
     for var in qpy_data.circuit_data.get_vars(CircuitVarType::Input) {
         let var_pack = pack_standalone_var(
             var,
-            expression_var_declaration::INPUT,
+            ExpressionVarDeclaration::Input,
             qpy_data.version,
             &mut uuid,
         )?;
@@ -790,7 +790,7 @@ fn pack_standalone_vars(
     for var in qpy_data.circuit_data.get_vars(CircuitVarType::Capture) {
         result.push(pack_standalone_var(
             var,
-            expression_var_declaration::CAPTURE,
+            ExpressionVarDeclaration::Capture,
             qpy_data.version,
             &mut uuid,
         )?);
@@ -802,7 +802,7 @@ fn pack_standalone_vars(
     for var in qpy_data.circuit_data.get_vars(CircuitVarType::Declare) {
         result.push(pack_standalone_var(
             var,
-            expression_var_declaration::LOCAL,
+            ExpressionVarDeclaration::Local,
             qpy_data.version,
             &mut uuid,
         )?);
@@ -825,7 +825,7 @@ fn pack_standalone_vars(
     {
         result.push(pack_stretch(
             stretch,
-            expression_var_declaration::STRETCH_CAPTURE,
+            ExpressionVarDeclaration::StretchCapture,
         ));
         qpy_data.standalone_var_indices.insert(stretch.uuid, index);
         index += 1;
@@ -836,7 +836,7 @@ fn pack_standalone_vars(
     {
         result.push(pack_stretch(
             stretch,
-            expression_var_declaration::STRETCH_LOCAL,
+            ExpressionVarDeclaration::StretchLocal,
         ));
         qpy_data.standalone_var_indices.insert(stretch.uuid, index);
         index += 1;

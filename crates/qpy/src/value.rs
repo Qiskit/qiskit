@@ -12,7 +12,7 @@
 use binrw::meta::{ReadEndian, WriteEndian};
 use binrw::{BinRead, BinWrite, Endian, binrw};
 use hashbrown::HashMap;
-use pyo3::exceptions::{PyTypeError, PyValueError};
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
 
@@ -51,14 +51,42 @@ use uuid::Uuid;
 pub const QPY_VERSION: u32 = 15;
 
 // Standard char representation of register types: 'q' qreg, 'c' for creg
-pub mod register_types {
-    pub const QREG: u8 = b'q';
-    pub const CREG: u8 = b'c';
+#[binrw]
+#[brw(repr = u8)]
+#[repr(u8)]
+#[derive(Debug)]
+pub enum RegisterType {
+    Qreg = b'q',
+    Creg = b'c',
 }
 
-pub mod bit_types {
-    pub const QUBIT: u8 = b'q';
-    pub const CLBIT: u8 = b'c';
+impl From<u8> for RegisterType {
+    fn from(value: u8) -> Self {
+        match value {
+            b'q' => Self::Qreg,
+            b'c' => Self::Creg,
+            _ => panic!("Invalid register type specified {value}"),
+        }
+    }
+}
+
+#[binrw]
+#[brw(repr = u8)]
+#[repr(u8)]
+#[derive(Debug)]
+pub enum BitType {
+    Qubit = b'q',
+    Clbit = b'c',
+}
+
+impl From<u8> for BitType {
+    fn from(value: u8) -> Self {
+        match value {
+            b'q' => Self::Qubit,
+            b'c' => Self::Clbit,
+            _ => panic!("Invalid bit type specified {value}"),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -82,53 +110,66 @@ pub struct QPYReadData<'a> {
 }
 
 // this is how tags for various value types are encoded in a QPY file
-pub mod tags {
-    pub const BOOL: u8 = b'b';
-    pub const INTEGER: u8 = b'i';
-    pub const FLOAT: u8 = b'f';
-    pub const COMPLEX: u8 = b'c';
-    pub const CASE_DEFAULT: u8 = b'd';
-    pub const REGISTER: u8 = b'R';
-    pub const RANGE: u8 = b'r';
-    pub const TUPLE: u8 = b't';
-    pub const NUMPY_OBJ: u8 = b'n';
-    pub const PARAMETER: u8 = b'p';
-    pub const PARAMETER_VECTOR: u8 = b'v';
-    pub const PARAMETER_EXPRESSION: u8 = b'e';
-    pub const STRING: u8 = b's';
-    pub const NULL: u8 = b'z';
-    pub const EXPRESSION: u8 = b'x';
-    pub const MODIFIER: u8 = b'm';
-    pub const CIRCUIT: u8 = b'q';
+#[binrw]
+#[brw(repr = u8)]
+#[repr(u8)]
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum ValueType {
+    Bool = b'b',
+    Integer = b'i',
+    Float = b'f',
+    Complex = b'c',
+    CaseDefault = b'd',
+    Register = b'R',
+    Range = b'r',
+    Tuple = b't',
+    NumpyObject = b'n',
+    Parameter = b'p',
+    ParameterVector = b'v',
+    ParameterExpression = b'e',
+    String = b's',
+    Null = b'z',
+    Expression = b'x',
+    Modifier = b'm',
+    Circuit = b'q',
 }
 
-pub fn type_name(type_key: u8) -> String {
+pub fn type_name(type_key: &ValueType) -> String {
     String::from(match type_key {
-        tags::BOOL => "boolean",
-        tags::INTEGER => "integer",
-        tags::FLOAT => "float",
-        tags::COMPLEX => "complex",
-        tags::CASE_DEFAULT => "case default",
-        tags::REGISTER => "register",
-        tags::RANGE => "range",
-        tags::TUPLE => "tuple",
-        tags::NUMPY_OBJ => "numpy object",
-        tags::PARAMETER => "parameter",
-        tags::PARAMETER_VECTOR => "parameter vector",
-        tags::PARAMETER_EXPRESSION => "parameter expression",
-        tags::STRING => "string",
-        tags::NULL => "null",
-        tags::EXPRESSION => "expression",
-        tags::MODIFIER => "modifier",
-        tags::CIRCUIT => "circuit",
-        _ => "unknown type",
+        ValueType::Bool => "boolean",
+        ValueType::Integer => "integer",
+        ValueType::Float => "float",
+        ValueType::Complex => "complex",
+        ValueType::CaseDefault => "case default",
+        ValueType::Register => "register",
+        ValueType::Range => "range",
+        ValueType::Tuple => "tuple",
+        ValueType::NumpyObject => "numpy object",
+        ValueType::Parameter => "parameter",
+        ValueType::ParameterVector => "parameter vector",
+        ValueType::ParameterExpression => "parameter expression",
+        ValueType::String => "string",
+        ValueType::Null => "null",
+        ValueType::Expression => "expression",
+        ValueType::Modifier => "modifier",
+        ValueType::Circuit => "circuit",
     })
 }
 
-pub mod modifier_types {
-    pub const INVERSE: u8 = b'i';
-    pub const CONTROL: u8 = b'c';
-    pub const POWER: u8 = b'p';
+impl std::fmt::Display for ValueType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", type_name(self),)
+    }
+}
+
+#[binrw]
+#[brw(repr = u8)]
+#[repr(u8)]
+#[derive(Debug)]
+pub enum ModifierType {
+    Inverse = b'i',
+    Control = b'c',
+    Power = b'p',
 }
 
 #[binrw]
@@ -144,12 +185,28 @@ pub enum ExpressionType {
     Duration,
 }
 
-pub mod expression_var_declaration {
-    pub const INPUT: u8 = b'I';
-    pub const CAPTURE: u8 = b'C';
-    pub const LOCAL: u8 = b'L';
-    pub const STRETCH_CAPTURE: u8 = b'A';
-    pub const STRETCH_LOCAL: u8 = b'O';
+#[binrw]
+#[brw(repr = u8)]
+#[repr(u8)]
+#[derive(Debug)]
+pub enum ExpressionVarDeclaration {
+    Input = b'I',
+    Capture = b'C',
+    Local = b'L',
+    StretchCapture = b'A',
+    StretchLocal = b'O',
+}
+
+#[binrw]
+#[brw(repr = u8)]
+#[repr(u8)]
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum CircuitInstructionType {
+    Instruction = b'i',
+    Gate = b'g',
+    PauliEvolutionGate = b'p',
+    ControlledGate = b'c',
+    AnnotatedOperation = b'a',
 }
 
 pub fn serialize<T>(value: &T) -> Bytes
@@ -293,77 +350,77 @@ impl<T: FromGenericValue> FromGenericValue for Vec<T> {
 }
 
 pub fn load_value(
-    type_key: u8,
+    type_key: ValueType,
     bytes: &Bytes,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<GenericValue> {
     match type_key {
-        tags::BOOL => {
+        ValueType::Bool => {
             let value: bool = bytes.try_into()?;
             Ok(GenericValue::Bool(value))
         }
-        tags::INTEGER => {
+        ValueType::Integer => {
             let value: i64 = bytes.try_into()?;
             Ok(GenericValue::Int64(value))
         }
-        tags::FLOAT => {
+        ValueType::Float => {
             let value: f64 = bytes.try_into()?;
             Ok(GenericValue::Float64(value))
         }
-        tags::COMPLEX => {
+        ValueType::Complex => {
             let value: Complex64 = bytes.try_into()?;
             Ok(GenericValue::Complex64(value))
         }
-        tags::STRING => {
+        ValueType::String => {
             let value: String = bytes.try_into()?;
             Ok(GenericValue::String(value))
         }
-        tags::RANGE => {
+        ValueType::Range => {
             let py_range = py_deserialize_range(bytes)?;
             Ok(GenericValue::Range(py_range))
         }
-        tags::PARAMETER => {
+        ValueType::Parameter => {
             let (parameter_pack, _) = deserialize::<formats::ParameterPack>(bytes)?;
             let symbol = unpack_symbol(&parameter_pack);
             Ok(GenericValue::ParameterExpressionSymbol(symbol))
         }
-        tags::PARAMETER_VECTOR => {
+        ValueType::ParameterVector => {
             let (parameter_vector_element_pack, _) =
                 deserialize::<formats::ParameterVectorPack>(bytes)?;
             let symbol = unpack_parameter_vector(&parameter_vector_element_pack, qpy_data)?;
             Ok(GenericValue::ParameterExpressionVectorSymbol(symbol))
         }
-        tags::PARAMETER_EXPRESSION => {
+        ValueType::ParameterExpression => {
             let (parameter_expression_pack, _) =
                 deserialize::<formats::ParameterExpressionPack>(bytes)?;
             let exp = unpack_parameter_expression(&parameter_expression_pack, qpy_data)?;
             Ok(GenericValue::ParameterExpression(exp))
         }
-        tags::TUPLE => {
+        ValueType::Tuple => {
             let (elements_pack, _) = deserialize::<GenericDataSequencePack>(bytes)?;
             let values = unpack_generic_value_sequence(elements_pack, qpy_data)?;
             Ok(GenericValue::Tuple(values))
         }
-        tags::NUMPY_OBJ => {
+        ValueType::NumpyObject => {
             let py_object = py_deserialize_numpy_object(bytes)?;
             Ok(GenericValue::NumpyObject(py_object))
         }
-        tags::MODIFIER => {
+        ValueType::Modifier => {
             let (modifier_pack, _) = deserialize::<formats::ModifierPack>(bytes)?;
             let values = py_unpack_modifier(&modifier_pack)?;
             Ok(GenericValue::Modifier(values))
         }
-        tags::EXPRESSION => {
+        ValueType::Expression => {
             let expression = deserialize_expression(bytes, qpy_data)?;
             Ok(GenericValue::Expression(expression))
         }
-        tags::NULL => Ok(GenericValue::Null),
-        tags::CASE_DEFAULT => Ok(GenericValue::CaseDefault),
-        tags::REGISTER => {
+        ValueType::Null => Ok(GenericValue::Null),
+        ValueType::CaseDefault => Ok(GenericValue::CaseDefault),
+        ValueType::Register => {
             let py_register = py_deserialize_register_param(bytes, qpy_data.circuit_data)?;
             Ok(GenericValue::Register(py_register))
         }
-        tags::CIRCUIT => {
+        ValueType::Circuit => {
             let (packed_circuit, _) = deserialize::<formats::QPYFormatV15>(bytes)?;
             Python::attach(|py| {
                 let circuit = unpack_circuit(
@@ -377,12 +434,6 @@ pub fn load_value(
                 Ok(GenericValue::Circuit(circuit))
             })
         }
-
-        _ => Err(PyTypeError::new_err(format!(
-            "Generic value loading: Unhandled type_key: {} ({})",
-            type_key,
-            type_name(type_key)
-        ))),
     }
 }
 
@@ -390,31 +441,33 @@ pub fn load_value(
 pub fn serialize_generic_value(
     value: &GenericValue,
     qpy_data: &QPYWriteData,
-) -> PyResult<(u8, Bytes)> {
+) -> PyResult<(ValueType, Bytes)> {
     Ok(match value {
-        GenericValue::Bool(value) => (tags::BOOL, value.into()),
-        GenericValue::Int64(value) => (tags::INTEGER, value.into()),
-        GenericValue::Float64(value) => (tags::FLOAT, value.into()),
-        GenericValue::Complex64(value) => (tags::COMPLEX, value.into()),
-        GenericValue::String(value) => (tags::STRING, value.into()),
-        GenericValue::CaseDefault => (tags::CASE_DEFAULT, Bytes::new()),
+        GenericValue::Bool(value) => (ValueType::Bool, value.into()),
+        GenericValue::Int64(value) => (ValueType::Integer, value.into()),
+        GenericValue::Float64(value) => (ValueType::Float, value.into()),
+        GenericValue::Complex64(value) => (ValueType::Complex, value.into()),
+        GenericValue::String(value) => (ValueType::String, value.into()),
+        GenericValue::CaseDefault => (ValueType::CaseDefault, Bytes::new()),
         GenericValue::ParameterExpressionSymbol(symbol) => {
-            (tags::PARAMETER, serialize(&pack_symbol(symbol)))
+            (ValueType::Parameter, serialize(&pack_symbol(symbol)))
         }
         GenericValue::ParameterExpressionVectorSymbol(symbol) => (
-            tags::PARAMETER_VECTOR,
+            ValueType::ParameterVector,
             serialize(&pack_parameter_vector(symbol)?),
         ),
         GenericValue::ParameterExpression(exp) => (
-            tags::PARAMETER_EXPRESSION,
+            ValueType::ParameterExpression,
             serialize(&pack_parameter_expression(exp)?),
         ),
         GenericValue::Tuple(values) => (
-            tags::TUPLE,
+            ValueType::Tuple,
             serialize(&pack_generic_value_sequence(values, qpy_data)?),
         ),
-        GenericValue::Expression(exp) => (tags::EXPRESSION, serialize_expression(exp, qpy_data)?),
-        GenericValue::Null => (tags::NULL, Bytes::new()),
+        GenericValue::Expression(exp) => {
+            (ValueType::Expression, serialize_expression(exp, qpy_data)?)
+        }
+        GenericValue::Null => (ValueType::Null, Bytes::new()),
         GenericValue::Circuit(circuit) => Python::attach(|py| -> PyResult<_> {
             let packed_circuit = pack_circuit(
                 &mut circuit.extract(py)?, // TODO: can we avoid cloning here?
@@ -424,15 +477,18 @@ pub fn serialize_generic_value(
                 qpy_data.annotation_handler.annotation_factories,
             )?;
             let serialized_circuit = serialize(&packed_circuit);
-            Ok((tags::CIRCUIT, serialized_circuit))
+            Ok((ValueType::Circuit, serialized_circuit))
         })?,
-        GenericValue::NumpyObject(py_obj) => (tags::NUMPY_OBJ, py_serialize_numpy_object(py_obj)?),
-        GenericValue::Range(py_obj) => (tags::RANGE, py_serialize_range(py_obj)?),
-        GenericValue::Modifier(py_object) => {
-            (tags::MODIFIER, serialize(&py_pack_modifier(py_object)?))
+        GenericValue::NumpyObject(py_obj) => {
+            (ValueType::NumpyObject, py_serialize_numpy_object(py_obj)?)
         }
+        GenericValue::Range(py_obj) => (ValueType::Range, py_serialize_range(py_obj)?),
+        GenericValue::Modifier(py_object) => (
+            ValueType::Modifier,
+            serialize(&py_pack_modifier(py_object)?),
+        ),
         GenericValue::Register(py_object) => (
-            tags::REGISTER,
+            ValueType::Register,
             py_serialize_register_param(py_object, qpy_data)?,
         ),
     })
@@ -478,30 +534,22 @@ pub fn unpack_generic_value_sequence(
         .collect()
 }
 
-pub mod circuit_instruction_types {
-    pub const INSTRUCTION: u8 = b'i';
-    pub const GATE: u8 = b'g';
-    pub const PAULI_EVOL_GATE: u8 = b'p';
-    pub const CONTROLLED_GATE: u8 = b'c';
-    pub const ANNOTATED_OPERATION: u8 = b'a';
-}
-
 /// Each instruction type has a char representation in qpy
-pub fn get_circuit_type_key(op: &PackedOperation) -> PyResult<u8> {
+pub fn get_circuit_type_key(op: &PackedOperation) -> PyResult<CircuitInstructionType> {
     match op.view() {
-        OperationRef::StandardGate(_) => Ok(circuit_instruction_types::GATE),
+        OperationRef::StandardGate(_) => Ok(CircuitInstructionType::Gate),
         OperationRef::StandardInstruction(_)
         | OperationRef::Instruction(_)
-        | OperationRef::PauliProductMeasurement(_) => Ok(circuit_instruction_types::INSTRUCTION),
-        OperationRef::Unitary(_) => Ok(circuit_instruction_types::GATE),
+        | OperationRef::PauliProductMeasurement(_) => Ok(CircuitInstructionType::Instruction),
+        OperationRef::Unitary(_) => Ok(CircuitInstructionType::Gate),
         OperationRef::Gate(pygate) => Python::attach(|py| {
             let gate = pygate.gate.bind(py);
             if gate.is_instance(imports::PAULI_EVOLUTION_GATE.get_bound(py))? {
-                Ok(circuit_instruction_types::PAULI_EVOL_GATE)
+                Ok(CircuitInstructionType::PauliEvolutionGate)
             } else if gate.is_instance(imports::CONTROLLED_GATE.get_bound(py))? {
-                Ok(circuit_instruction_types::CONTROLLED_GATE)
+                Ok(CircuitInstructionType::ControlledGate)
             } else {
-                Ok(circuit_instruction_types::GATE)
+                Ok(CircuitInstructionType::Gate)
             }
         }),
         OperationRef::Operation(operation) => Python::attach(|py| {
@@ -510,7 +558,7 @@ pub fn get_circuit_type_key(op: &PackedOperation) -> PyResult<u8> {
                 .bind(py)
                 .is_instance(imports::ANNOTATED_OPERATION.get_bound(py))?
             {
-                Ok(circuit_instruction_types::ANNOTATED_OPERATION)
+                Ok(CircuitInstructionType::AnnotatedOperation)
             } else {
                 Err(PyErr::new::<PyValueError, _>(format!(
                     "Unable to determine circuit type key for {:?}",
@@ -540,7 +588,7 @@ pub fn deserialize_expression(raw_expression: &Bytes, qpy_data: &QPYReadData) ->
 
 pub fn pack_standalone_var(
     var: &Var,
-    usage: u8,
+    usage: ExpressionVarDeclaration,
     version: u32,
     uuid_output: &mut u128,
 ) -> PyResult<formats::ExpressionVarDeclarationPack> {
@@ -563,7 +611,10 @@ pub fn pack_standalone_var(
     }
 }
 
-pub fn pack_stretch(stretch: &Stretch, usage: u8) -> formats::ExpressionVarDeclarationPack {
+pub fn pack_stretch(
+    stretch: &Stretch,
+    usage: ExpressionVarDeclaration,
+) -> formats::ExpressionVarDeclarationPack {
     formats::ExpressionVarDeclarationPack {
         uuid_bytes: stretch.uuid.to_be_bytes(),
         usage,

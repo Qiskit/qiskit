@@ -39,8 +39,8 @@ use uuid::Uuid;
 use crate::bytes::Bytes;
 use crate::formats;
 use crate::value::{
-    GenericValue, QPYWriteData, deserialize, modifier_types, pack_generic_value,
-    serialize_generic_value, tags, type_name,
+    GenericValue, ModifierType, QPYWriteData, ValueType, deserialize, pack_generic_value,
+    serialize_generic_value,
 };
 use binrw::BinWrite;
 
@@ -299,48 +299,48 @@ pub fn gate_class_name(op: &PackedOperation) -> PyResult<String> {
     })
 }
 
-pub fn py_get_type_key(py_object: &Bound<PyAny>) -> PyResult<u8> {
+pub fn py_get_type_key(py_object: &Bound<PyAny>) -> PyResult<ValueType> {
     let py: Python<'_> = py_object.py();
     if py_object
         .is_instance(imports::PARAMETER_VECTOR_ELEMENT.get_bound(py))
         .unwrap()
     {
-        return Ok(tags::PARAMETER_VECTOR);
+        return Ok(ValueType::ParameterVector);
     } else if py_object
         .is_instance(imports::PARAMETER.get_bound(py))
         .unwrap()
     {
-        return Ok(tags::PARAMETER);
+        return Ok(ValueType::Parameter);
     } else if py_object.is_instance(imports::PARAMETER_EXPRESSION.get_bound(py))? {
-        return Ok(tags::PARAMETER_EXPRESSION);
+        return Ok(ValueType::ParameterExpression);
     } else if py_object.is_instance(imports::QUANTUM_CIRCUIT.get_bound(py))? {
-        return Ok(tags::CIRCUIT);
+        return Ok(ValueType::Circuit);
     } else if py_object.is_instance(imports::CLBIT.get_bound(py))?
         || py_object.is_instance(imports::CLASSICAL_REGISTER.get_bound(py))?
     {
-        return Ok(tags::REGISTER);
+        return Ok(ValueType::Register);
     } else if py_object.extract::<classical::expr::Expr>().is_ok() {
-        return Ok(tags::EXPRESSION);
+        return Ok(ValueType::Expression);
     } else if py_object.is_instance(imports::BUILTIN_RANGE.get_bound(py))? {
-        return Ok(tags::RANGE);
+        return Ok(ValueType::Range);
     } else if py_object.is_instance(imports::NUMPY_ARRAY.get_bound(py))? {
-        return Ok(tags::NUMPY_OBJ);
+        return Ok(ValueType::NumpyObject);
     } else if py_object.is_instance(imports::MODIFIER.get_bound(py))? {
-        return Ok(tags::MODIFIER);
+        return Ok(ValueType::Modifier);
     } else if py_object.is_instance_of::<PyInt>() {
-        return Ok(tags::INTEGER);
+        return Ok(ValueType::Integer);
     } else if py_object.is_instance_of::<PyFloat>() {
-        return Ok(tags::FLOAT);
+        return Ok(ValueType::Float);
     } else if py_object.is_instance_of::<PyComplex>() {
-        return Ok(tags::COMPLEX);
+        return Ok(ValueType::Complex);
     } else if py_object.is_instance_of::<PyString>() {
-        return Ok(tags::STRING);
+        return Ok(ValueType::String);
     } else if py_object.is_instance_of::<PyTuple>() {
-        return Ok(tags::TUPLE);
+        return Ok(ValueType::Tuple);
     } else if py_object.is(imports::CASE_DEFAULT.get_bound(py)) {
-        return Ok(tags::CASE_DEFAULT);
+        return Ok(ValueType::CaseDefault);
     } else if py_object.is_none() {
-        return Ok(tags::NULL);
+        return Ok(ValueType::Null);
     }
 
     Err(PyTypeError::new_err(format!(
@@ -350,30 +350,30 @@ pub fn py_get_type_key(py_object: &Bound<PyAny>) -> PyResult<u8> {
 }
 
 pub fn py_convert_to_generic_value(py_object: &Bound<PyAny>) -> PyResult<GenericValue> {
-    let type_key: u8 = py_get_type_key(py_object)?;
+    let type_key = py_get_type_key(py_object)?;
     match type_key {
-        tags::BOOL => Ok(GenericValue::Bool(py_object.extract::<bool>()?)),
-        tags::INTEGER => Ok(GenericValue::Int64(py_object.extract::<i64>()?)),
-        tags::FLOAT => Ok(GenericValue::Float64(py_object.extract::<f64>()?)),
-        tags::COMPLEX => Ok(GenericValue::Complex64(py_object.extract::<Complex64>()?)),
-        tags::STRING => Ok(GenericValue::String(py_object.extract::<String>()?)),
-        tags::EXPRESSION => Ok(GenericValue::Expression(py_object.extract::<Expr>()?)),
-        tags::CASE_DEFAULT => Ok(GenericValue::CaseDefault),
-        tags::NULL => Ok(GenericValue::Null),
-        tags::PARAMETER => Ok(GenericValue::ParameterExpressionSymbol(
+        ValueType::Bool => Ok(GenericValue::Bool(py_object.extract::<bool>()?)),
+        ValueType::Integer => Ok(GenericValue::Int64(py_object.extract::<i64>()?)),
+        ValueType::Float => Ok(GenericValue::Float64(py_object.extract::<f64>()?)),
+        ValueType::Complex => Ok(GenericValue::Complex64(py_object.extract::<Complex64>()?)),
+        ValueType::String => Ok(GenericValue::String(py_object.extract::<String>()?)),
+        ValueType::Expression => Ok(GenericValue::Expression(py_object.extract::<Expr>()?)),
+        ValueType::CaseDefault => Ok(GenericValue::CaseDefault),
+        ValueType::Null => Ok(GenericValue::Null),
+        ValueType::Parameter => Ok(GenericValue::ParameterExpressionSymbol(
             py_object.extract::<PyParameter>()?.symbol().clone(),
         )),
-        tags::PARAMETER_VECTOR => Ok(GenericValue::ParameterExpressionVectorSymbol(
+        ValueType::ParameterVector => Ok(GenericValue::ParameterExpressionVectorSymbol(
             py_object
                 .extract::<PyParameterVectorElement>()?
                 .symbol()
                 .clone(),
         )),
-        tags::PARAMETER_EXPRESSION => Ok(GenericValue::ParameterExpression(
+        ValueType::ParameterExpression => Ok(GenericValue::ParameterExpression(
             py_object.extract::<PyParameterExpression>()?.inner,
         )),
-        tags::CIRCUIT => Ok(GenericValue::Circuit(py_object.clone().unbind())),
-        tags::TUPLE => {
+        ValueType::Circuit => Ok(GenericValue::Circuit(py_object.clone().unbind())),
+        ValueType::Tuple => {
             let elements: Vec<GenericValue> = py_object
                 .try_iter()?
                 .map(|data_item| {
@@ -384,15 +384,10 @@ pub fn py_convert_to_generic_value(py_object: &Bound<PyAny>) -> PyResult<Generic
             Ok(GenericValue::Tuple(elements))
         }
         // the python-managed data types
-        tags::RANGE => Ok(GenericValue::Range(py_object.clone().unbind())),
-        tags::NUMPY_OBJ => Ok(GenericValue::NumpyObject(py_object.clone().unbind())),
-        tags::MODIFIER => Ok(GenericValue::Modifier(py_object.clone().unbind())),
-        tags::REGISTER => Ok(GenericValue::Register(py_object.clone().unbind())),
-        _ => Err(PyTypeError::new_err(format!(
-            "py_convert_to_generic_value: Unhandled type_key: {} ({})",
-            type_key,
-            type_name(type_key)
-        ))),
+        ValueType::Range => Ok(GenericValue::Range(py_object.clone().unbind())),
+        ValueType::NumpyObject => Ok(GenericValue::NumpyObject(py_object.clone().unbind())),
+        ValueType::Modifier => Ok(GenericValue::Modifier(py_object.clone().unbind())),
+        ValueType::Register => Ok(GenericValue::Register(py_object.clone().unbind())),
     }
 }
 
@@ -569,21 +564,21 @@ pub fn py_pack_modifier(modifier: &Py<PyAny>) -> PyResult<formats::ModifierPack>
         let module = py.import("qiskit.circuit.annotated_operation")?;
         if modifier.is_instance(&module.getattr("InverseModifier")?)? {
             Ok(formats::ModifierPack {
-                modifier_type: modifier_types::INVERSE,
+                modifier_type: ModifierType::Inverse,
                 num_ctrl_qubits: 0,
                 ctrl_state: 0,
                 power: 0.0,
             })
         } else if modifier.is_instance(&module.getattr("ControlModifier")?)? {
             Ok(formats::ModifierPack {
-                modifier_type: modifier_types::CONTROL,
+                modifier_type: ModifierType::Control,
                 num_ctrl_qubits: modifier.getattr("num_ctrl_qubits")?.extract::<u32>()?,
                 ctrl_state: modifier.getattr("ctrl_state")?.extract::<u32>()?,
                 power: 0.0,
             })
         } else if modifier.is_instance(&module.getattr("PowerModifier")?)? {
             Ok(formats::ModifierPack {
-                modifier_type: modifier_types::POWER,
+                modifier_type: ModifierType::Power,
                 num_ctrl_qubits: 0,
                 ctrl_state: 0,
                 power: modifier.getattr("power")?.extract::<f64>()?,
@@ -596,8 +591,8 @@ pub fn py_pack_modifier(modifier: &Py<PyAny>) -> PyResult<formats::ModifierPack>
 
 pub fn py_unpack_modifier(packed_modifier: &formats::ModifierPack) -> PyResult<Py<PyAny>> {
     Python::attach(|py| match packed_modifier.modifier_type {
-        modifier_types::INVERSE => Ok(imports::INVERSE_MODIFIER.get_bound(py).call0()?.unbind()),
-        modifier_types::CONTROL => {
+        ModifierType::Inverse => Ok(imports::INVERSE_MODIFIER.get_bound(py).call0()?.unbind()),
+        ModifierType::Control => {
             let kwargs = PyDict::new(py);
             kwargs.set_item(
                 intern!(py, "num_ctrl_qubits"),
@@ -609,7 +604,7 @@ pub fn py_unpack_modifier(packed_modifier: &formats::ModifierPack) -> PyResult<P
                 .call((), Some(&kwargs))?
                 .unbind())
         }
-        modifier_types::POWER => {
+        ModifierType::Power => {
             let kwargs = PyDict::new(py);
             kwargs.set_item(intern!(py, "power"), packed_modifier.power)?;
             Ok(imports::POWER_MODIFIER
@@ -617,7 +612,6 @@ pub fn py_unpack_modifier(packed_modifier: &formats::ModifierPack) -> PyResult<P
                 .call((), Some(&kwargs))?
                 .unbind())
         }
-        _ => Err(PyTypeError::new_err("Unsupported modifier.")),
     })
 }
 
