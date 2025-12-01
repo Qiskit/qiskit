@@ -155,12 +155,16 @@ class TestCliffordTPassManager(QiskitTestCase):
             basis_gates=basis_gates, optimization_level=optimization_level, seed_transpiler=0
         )
         transpiled = pm.run(qc)
+
         self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
         t_count = _get_t_count(transpiled)
 
-        # expected T-count based on optimization level
-        expected_t_count = {0: 1085, 1: 1083, 2: 1071, 3: 1071}
-        self.assertEqual(_get_t_count(transpiled), 0)
+        # This is the T-count with optimization level 0.
+        # We should not expect to see more T-gates with higher optimization levels
+        # (while this is technically possible, it means that Clifford+T transpiler
+        # pipeline is not setup correctly).
+        expected_t_count = 1085
+        self.assertLessEqual(t_count, expected_t_count)
 
     @data(0, 1, 2, 3)
     def test_iqp(self, optimization_level):
