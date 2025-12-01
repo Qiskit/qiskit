@@ -61,7 +61,7 @@ pub fn get_packed_bit_list(
     circuit_data: &CircuitData,
 ) -> Vec<formats::CircuitInstructionArgPack> {
     let mut result: Vec<formats::CircuitInstructionArgPack> = Vec::new();
-    for qubit in circuit_data.get_qargs(inst.qubits).iter() {
+    for qubit in circuit_data.get_qargs(inst.qubits) {
         result.push(formats::CircuitInstructionArgPack {
             bit_type: bit_types::QUBIT,
             index: (qubit.index() as u32),
