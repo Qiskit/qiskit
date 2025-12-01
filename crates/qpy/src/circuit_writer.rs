@@ -32,7 +32,7 @@ use qiskit_circuit::bit::{
     ClassicalRegister, PyClbit, PyQubit, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
 use qiskit_circuit::circuit_data::{CircuitData, CircuitStretchType, CircuitVarType};
-use qiskit_circuit::circuit_instruction::CircuitInstruction;
+use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::{ArrayType, Operation, OperationRef};
@@ -56,7 +56,7 @@ use crate::value::{
 use crate::UnsupportedFeatureForVersion;
 
 /// packing the qubits and clbits of a specific instruction into CircuitInstructionArgPack
-pub fn get_packed_bit_list(
+fn get_packed_bit_list(
     inst: &PackedInstruction,
     circuit_data: &CircuitData,
 ) -> Vec<formats::CircuitInstructionArgPack> {
@@ -76,7 +76,7 @@ pub fn get_packed_bit_list(
     result
 }
 
-pub fn get_condition_data(
+fn get_condition_data(
     op: &PackedOperation,
     qpy_data: &QPYWriteData,
 ) -> PyResult<formats::ConditionPack> {
@@ -96,7 +96,7 @@ pub fn get_condition_data(
 
 /// pack all the instructions in the circuit, returning both the packed instructions
 /// and the dictionary of custom operations generated in the process
-pub fn pack_instructions(
+fn pack_instructions(
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<(
     Vec<formats::CircuitInstructionV2Pack>,
@@ -122,7 +122,7 @@ pub fn pack_instructions(
 }
 
 /// packs one specific instruction into CircuitInstructionV2Pack, creating a new custom operation if needed
-pub fn pack_instruction(
+fn pack_instruction(
     instruction: &PackedInstruction,
     custom_operations: &mut HashMap<String, PackedOperation>,
     new_custom_operations: &mut Vec<String>,
@@ -170,124 +170,123 @@ pub fn pack_instruction(
     })
 }
 
-pub fn get_instruction_params(
+fn get_instruction_params(
     instruction: &PackedInstruction,
     qpy_data: &QPYWriteData,
 ) -> PyResult<Vec<formats::GenericDataPack>> {
     // The instruction params we store are about being able to reconstruct the objects; they don't
     // necessarily need to match one-to-one to the `params` field.
     Python::attach(|py| {
-        if let OperationRef::Instruction(inst) = instruction.op.view() {
-            if inst
-                .instruction
-                .bind(py)
-                .is_instance(imports::CONTROL_FLOW_SWITCH_CASE_OP.get_bound(py))?
-            {
-                let op = inst.instruction.bind(py);
-                let target = op.getattr("target")?;
-                let cases = op.call_method0("cases_specifier")?;
-                let cases_tuple = imports::BUILTIN_TUPLE.get_bound(py).call1((cases,))?;
+        match instruction.op.view() {
+            OperationRef::Instruction(inst) => {
+                if inst
+                    .instruction
+                    .bind(py)
+                    .is_instance(imports::CONTROL_FLOW_SWITCH_CASE_OP.get_bound(py))?
+                {
+                    let op = inst.instruction.bind(py);
+                    let target = op.getattr("target")?;
+                    let cases = op.call_method0("cases_specifier")?;
+                    let cases_tuple = imports::BUILTIN_TUPLE.get_bound(py).call1((cases,))?;
+                    return Ok(vec![
+                        py_pack_param(&target, qpy_data, Endian::Little)?,
+                        py_pack_param(&cases_tuple, qpy_data, Endian::Little)?,
+                    ]);
+                }
+                if inst
+                    .instruction
+                    .bind(py)
+                    .is_instance(imports::CONTROL_FLOW_BOX_OP.get_bound(py))?
+                {
+                    let op = inst.instruction.bind(py);
+                    let first_block = op
+                        .getattr("blocks")?
+                        .try_iter()?
+                        .next()
+                        .transpose()?
+                        .ok_or_else(|| PyValueError::new_err("No blocks in box control flow op"))?;
+                    let duration = op.getattr("duration")?;
+                    let unit = op.getattr("unit")?;
+                    return Ok(vec![
+                        py_pack_param(&first_block, qpy_data, Endian::Little)?,
+                        py_pack_param(&duration, qpy_data, Endian::Little)?,
+                        py_pack_param(&unit, qpy_data, Endian::Little)?,
+                    ]);
+                }
+            }
+            OperationRef::Operation(op) => {
+                if op
+                    .operation
+                    .bind(py)
+                    .is_instance(imports::CLIFFORD.get_bound(py))?
+                {
+                    let op = op.operation.bind(py);
+                    let tableau = op.getattr("tableau")?;
+                    return Ok(vec![py_pack_param(&tableau, qpy_data, Endian::Little)?]);
+                }
+                if op
+                    .operation
+                    .bind(py)
+                    .is_instance(imports::ANNOTATED_OPERATION.get_bound(py))?
+                {
+                    let op = op.operation.bind(py);
+                    let modifiers = op.getattr("modifiers")?;
+                    return modifiers
+                        .try_iter()?
+                        .map(|modifier| py_pack_param(&modifier?, qpy_data, Endian::Little))
+                        .collect::<PyResult<_>>();
+                }
+                if op
+                    .operation
+                    .bind(py)
+                    .is_instance(imports::PAULI_PRODUCT_MEASUREMENT.get_bound(py))?
+                {
+                    let op = op.operation.bind(py);
+                    let pauli_data = op.call_method0("_to_pauli_data")?;
+                    return pauli_data
+                        .try_iter()?
+                        .map(|pauli| py_pack_param(&pauli?, qpy_data, Endian::Little))
+                        .collect::<PyResult<_>>();
+                }
+            }
+            OperationRef::Unitary(unitary) => {
+                // unitary gates are special since they are uniquely determined by a matrix, which is not
+                // a "parameter", strictly speaking, but is treated as such when serializing
+
+                // until we change the QPY version or verify we get the exact same result,
+                // we translate the matrix to numpy and then serialize it like python does
+                let out_array = match &unitary.array {
+                    ArrayType::NDArray(arr) => arr.to_pyarray(py),
+                    ArrayType::OneQ(arr) => arr.to_pyarray(py),
+                    ArrayType::TwoQ(arr) => arr.to_pyarray(py),
+                };
+                return Ok(vec![py_pack_param(&out_array, qpy_data, Endian::Little)?]);
+            }
+            OperationRef::PauliProductMeasurement(pauli_product_measurement) => {
+                let z_values = GenericValue::Tuple(
+                    pauli_product_measurement
+                        .z
+                        .iter()
+                        .cloned()
+                        .map(GenericValue::Bool)
+                        .collect(),
+                );
+                let x_values = GenericValue::Tuple(
+                    pauli_product_measurement
+                        .x
+                        .iter()
+                        .cloned()
+                        .map(GenericValue::Bool)
+                        .collect(),
+                );
+                let neg_value = GenericValue::Bool(pauli_product_measurement.neg);
                 return Ok(vec![
-                    py_pack_param(&target, qpy_data, Endian::Little)?,
-                    py_pack_param(&cases_tuple, qpy_data, Endian::Little)?,
+                    pack_generic_value(&z_values, qpy_data)?,
+                    pack_generic_value(&x_values, qpy_data)?,
+                    pack_generic_value(&neg_value, qpy_data)?,
                 ]);
             }
-            if inst
-                .instruction
-                .bind(py)
-                .is_instance(imports::CONTROL_FLOW_BOX_OP.get_bound(py))?
-            {
-                let op = inst.instruction.bind(py);
-                let first_block = op
-                    .getattr("blocks")?
-                    .try_iter()?
-                    .next()
-                    .transpose()?
-                    .ok_or_else(|| PyValueError::new_err("No blocks in box control flow op"))?;
-                let duration = op.getattr("duration")?;
-                let unit = op.getattr("unit")?;
-                return Ok(vec![
-                    py_pack_param(&first_block, qpy_data, Endian::Little)?,
-                    py_pack_param(&duration, qpy_data, Endian::Little)?,
-                    py_pack_param(&unit, qpy_data, Endian::Little)?,
-                ]);
-            }
-        }
-
-        if let OperationRef::Operation(op) = instruction.op.view() {
-            if op
-                .operation
-                .bind(py)
-                .is_instance(imports::CLIFFORD.get_bound(py))?
-            {
-                let op = op.operation.bind(py);
-                let tableau = op.getattr("tableau")?;
-                return Ok(vec![py_pack_param(&tableau, qpy_data, Endian::Little)?]);
-            }
-            if op
-                .operation
-                .bind(py)
-                .is_instance(imports::ANNOTATED_OPERATION.get_bound(py))?
-            {
-                let op = op.operation.bind(py);
-                let modifiers = op.getattr("modifiers")?;
-                return modifiers
-                    .try_iter()?
-                    .map(|modifier| py_pack_param(&modifier?, qpy_data, Endian::Little))
-                    .collect::<PyResult<_>>();
-            }
-            if op
-                .operation
-                .bind(py)
-                .is_instance(imports::PAULI_PRODUCT_MEASUREMENT.get_bound(py))?
-            {
-                let op = op.operation.bind(py);
-                let pauli_data = op.call_method0("_to_pauli_data")?;
-                return pauli_data
-                    .try_iter()?
-                    .map(|pauli| py_pack_param(&pauli?, qpy_data, Endian::Little))
-                    .collect::<PyResult<_>>();
-            }
-        }
-
-        if let OperationRef::Unitary(unitary) = instruction.op.view() {
-            // unitary gates are special since they are uniquely determined by a matrix, which is not
-            // a "parameter", strictly speaking, but is treated as such when serializing
-
-            // until we change the QPY version or verify we get the exact same result,
-            // we translate the matrix to numpy and then serialize it like python does
-            let out_array = match &unitary.array {
-                ArrayType::NDArray(arr) => arr.to_pyarray(py),
-                ArrayType::OneQ(arr) => arr.to_pyarray(py),
-                ArrayType::TwoQ(arr) => arr.to_pyarray(py),
-            };
-            return Ok(vec![py_pack_param(&out_array, qpy_data, Endian::Little)?]);
-        }
-        if let OperationRef::PauliProductMeasurement(pauli_product_measurement) =
-            instruction.op.view()
-        {
-            let z_values = GenericValue::Tuple(
-                pauli_product_measurement
-                    .z
-                    .iter()
-                    .cloned()
-                    .map(GenericValue::Bool)
-                    .collect(),
-            );
-            let x_values = GenericValue::Tuple(
-                pauli_product_measurement
-                    .x
-                    .iter()
-                    .cloned()
-                    .map(GenericValue::Bool)
-                    .collect(),
-            );
-            let neg_value = GenericValue::Bool(pauli_product_measurement.neg);
-            return Ok(vec![
-                pack_generic_value(&z_values, qpy_data)?,
-                pack_generic_value(&x_values, qpy_data)?,
-                pack_generic_value(&neg_value, qpy_data)?,
-            ]);
+            _ => (),
         }
         instruction
             .params_view()
@@ -435,7 +434,7 @@ fn pack_circuit_header(
     Ok(header)
 }
 
-pub fn pack_layout(
+fn pack_layout(
     custom_layout: Option<Bound<PyAny>>,
     qpy_data: &QPYWriteData,
 ) -> PyResult<formats::LayoutV2Pack> {
@@ -588,7 +587,7 @@ fn pack_custom_layout(
     })
 }
 
-pub fn pack_custom_instructions(
+fn pack_custom_instructions(
     custom_instructions_hash: &mut HashMap<String, PackedOperation>,
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<formats::CustomCircuitInstructionsPack> {
@@ -607,7 +606,7 @@ pub fn pack_custom_instructions(
     })
 }
 
-pub fn pack_extra_registers(
+fn pack_extra_registers(
     in_circ_regs: &HashSet<QuantumRegister>,
     qubits: &HashSet<ShareableQubit>,
     qpy_data: &QPYWriteData,
@@ -630,7 +629,7 @@ pub fn pack_extra_registers(
     Ok(result)
 }
 
-pub fn pack_custom_instruction(
+fn pack_custom_instruction(
     name: &String,
     custom_instructions_hash: &mut HashMap<String, PackedOperation>,
     new_instructions_list: &mut Vec<String>,
@@ -737,9 +736,16 @@ pub fn pack_custom_instruction(
         let num_qubits = operation.num_qubits();
         let num_clbits = operation.num_clbits();
         if !base_gate.is_none() {
-            let instruction = qpy_data
-                .circuit_data
-                .pack(py, &CircuitInstruction::py_new(&base_gate, None, None)?)?;
+            let op_parts = base_gate.extract::<OperationFromPython>()?;
+            let instruction = PackedInstruction {
+                op: op_parts.operation,
+                qubits: Default::default(),
+                clbits: Default::default(),
+                params: Some(Box::new(op_parts.params)),
+                label: op_parts.label,
+                #[cfg(feature = "cache_pygates")]
+                py_op: std::sync::OnceLock::new(),
+            };
             base_gate_raw = serialize(&pack_instruction(
                 &instruction,
                 custom_instructions_hash,
@@ -761,7 +767,7 @@ pub fn pack_custom_instruction(
     })
 }
 
-pub fn pack_standalone_vars(
+fn pack_standalone_vars(
     circuit_data: &CircuitData,
     version: u32,
     standalone_var_indices: &mut HashMap<u128, u16>,

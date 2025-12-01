@@ -889,7 +889,7 @@ pub fn unpack_circuit(
         standalone_vars: HashMap::new(),
         standalone_stretches: HashMap::new(),
         vectors: HashMap::new(),
-        annotation_handler: AnnotationHandler::new(annotation_factories)
+        annotation_handler: AnnotationHandler::new(annotation_factories),
     };
 
     let annotation_deserializers_data: Vec<(String, Bytes)> = packed_circuit
