@@ -265,7 +265,7 @@ def structurally_equivalent(
     right_var_key: typing.Callable[[typing.Any], typing.Any] | None = None,
 ) -> bool:
     """Do these two expressions have exactly the same tree structure, up to some key function for
-    the :class:`~.expr.Var` instances?
+    the :class:`~.expr.Var` objects?
 
     In other words, are these two expressions the exact same trees, except we compare the
     :attr:`.Var.var` fields by calling the appropriate ``*_var_key`` function on them, and comparing

@@ -383,7 +383,7 @@ class Layout:
 
         Args:
             other: The existing :class:`.Layout` to compose this :class:`.Layout` with.
-            qubits: A list of :class:`.Qubit` instances over which ``other`` is defined,
+            qubits: A list of :class:`.Qubit` objects over which ``other`` is defined,
                 used to establish the correspondence between the positions of the ``other``
                 qubits and the actual qubits.
 
@@ -404,9 +404,9 @@ class Layout:
         to the positions of the P-qubits.
 
         Args:
-            source_qubits: A list of :class:`.Qubit` instances representing the domain
+            source_qubits: A list of :class:`.Qubit` objects representing the domain
                 of the layout.
-            target_qubits: A list of :class:`.Qubit` instances representing the image
+            target_qubits: A list of :class:`.Qubit` objects representing the image
                 of the layout.
 
         Returns:
@@ -531,7 +531,7 @@ class TranspileLayout:
       * :attr:`initial_layout` - This attribute is used to model the
         permutation caused by the :ref:`transpiler-preset-stage-layout`. It is a
         :class:`~.Layout` object that maps the input :class:`~.QuantumCircuit`\s
-        :class:`~.circuit.Qubit` instances to the position in the output
+        :class:`~.circuit.Qubit` objects to the position in the output
         :class:`.QuantumCircuit.qubits` list.
       * :attr:`input_qubit_mapping` - This attribute is used to retain
         input ordering of the original :class:`~.QuantumCircuit` object. It
@@ -564,7 +564,7 @@ class TranspileLayout:
     def initial_virtual_layout(self, filter_ancillas: bool = False) -> Layout:
         """Return a :class:`.Layout` object for the initial layout.
 
-        This returns a mapping of virtual :class:`~.circuit.Qubit` instances in the input
+        This returns a mapping of virtual :class:`~.circuit.Qubit` objects in the input
         circuit to the positions of the physical qubits selected during layout.
         This is analogous to the :attr:`.initial_layout` attribute.
 

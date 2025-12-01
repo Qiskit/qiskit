@@ -107,7 +107,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
     @staticmethod
     def _commute_through(blocker, run, front=True):
         """
-        Pulls `DAGOpNode` instances from the front of `run` (or the back, if `front == False`) until it
+        Pulls `DAGOpNode` objects from the front of `run` (or the back, if `front == False`) until it
         encounters a gate which does not commute with `blocker`.
 
         Returns a pair of lists whose concatenation is `run`.
@@ -154,7 +154,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
 
     def _resynthesize(self, run, qubit):
         """
-        Synthesizes an efficient circuit from a sequence `run` of `DAGOpNode` instances.
+        Synthesizes an efficient circuit from a sequence `run` of `DAGOpNode` objects.
 
         NOTE: Returns None when resynthesis is not possible.
         """
@@ -172,7 +172,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
     @staticmethod
     def _replace_subdag(dag, old_run, new_dag):
         """
-        Replaces a nonempty sequence `old_run` of `DAGNode` instances, assumed to be a complete chain in
+        Replaces a nonempty sequence `old_run` of `DAGNode` objects, assumed to be a complete chain in
         `dag`, with the circuit `new_circ`.
         """
 

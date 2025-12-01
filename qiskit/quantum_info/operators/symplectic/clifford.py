@@ -132,7 +132,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         :class:`~qiskit.circuit.library.CZGate` two-qubit gate.
 
     Clifford operators can also be converted to
-    :class:`~qiskit.quantum_info.Operator` instances using the
+    :class:`~qiskit.quantum_info.Operator` objects using the
     :meth:`to_operator` method. This is done via decomposing to a circuit, and then
     simulating the circuit as a unitary operator.
 

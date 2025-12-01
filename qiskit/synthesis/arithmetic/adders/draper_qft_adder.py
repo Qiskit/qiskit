@@ -54,7 +54,7 @@ def adder_qft_d00(
             the most-significant bit, but the fixed-sized adder doesn't and hence performs
             addition modulo ``2 ** num_state_qubits``.
         annotated: If ``True``, creates appropriate control and inverse operations as
-            ``AnnotatedOperation`` instances.
+            ``AnnotatedOperation`` objects.
 
     References:
 

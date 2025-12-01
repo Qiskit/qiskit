@@ -140,7 +140,7 @@ load that QPY file with qiskit-terra 0.19.0 and a hypothetical qiskit-terra
 0.29.0. However, loading that QPY file with 0.18.0 is not supported and may not
 work.
 
-Note that circuit metadata and custom :class:`.Annotation` instances are serialized and deserialized
+Note that circuit metadata and custom :class:`.Annotation` objects are serialized and deserialized
 by user-supplied classes, as the objects themselves are completely user-custom, so the forwards- and
 backwards-compatibility of these is limited by what the user provides.
 
@@ -386,7 +386,7 @@ QPY Format
 ==========
 
 The QPY serialization format is a portable cross-platform binary
-serialization format for :class:`~qiskit.circuit.QuantumCircuit` instances in Qiskit. The basic
+serialization format for :class:`~qiskit.circuit.QuantumCircuit` objects in Qiskit. The basic
 file format is as follows:
 
 A QPY file (or memory object) always starts with the following 6
@@ -1335,7 +1335,7 @@ Version 6
 ---------
 
 Version 6 adds support for :class:`.~ScalableSymbolicPulse`. These objects are saved and read
-like `SymbolicPulse` instances, and the class name is added to the data to correctly handle
+like `SymbolicPulse` objects, and the class name is added to the data to correctly handle
 the class selection.
 
 `SymbolicPulse` block now starts with SYMBOLIC_PULSE_V2 header:
@@ -1363,7 +1363,7 @@ Version 5
 
 Version 5 changes from :ref:`qpy_version_4` by adding support for ``ScheduleBlock``
 and changing two payloads the INSTRUCTION metadata payload and the CUSTOM_INSTRUCTION block.
-These now have new fields to better account for :class:`~.ControlledGate` instances in a circuit.
+These now have new fields to better account for :class:`~.ControlledGate` objects in a circuit.
 In addition, new payload MAP_ITEM is defined to implement the :ref:`qpy_mapping` block.
 
 With the support of ``ScheduleBlock``, now :class:`~.QuantumCircuit` can be

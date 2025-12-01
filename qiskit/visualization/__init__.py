@@ -157,7 +157,7 @@ Here is an example of using :func:`plot_state_city` to visualize a quantum state
    plot_state_city(state)
 
 The state can be array-like list of lists, ``numpy.array``, or more commonly
-:class:`~qiskit.quantum_info.Statevector` or :class:`~qiskit.quantum_info.DensityMatrix` instances
+:class:`~qiskit.quantum_info.Statevector` or :class:`~qiskit.quantum_info.DensityMatrix` objects
 obtained from a :class:`~qiskit.circuit.QuantumCircuit`:
 
 .. plot::

@@ -29,7 +29,7 @@ class SabrePreLayout(AnalysisPass):
     ---------------------------
 
     ``sabre_starting_layouts`` (``list[Layout]``)
-        An optional list of :class:`~.Layout` instances to use for additional Sabre layout trials.
+        An optional list of :class:`~.Layout` objects to use for additional Sabre layout trials.
 
     **References:**
 

@@ -28,7 +28,7 @@ All types inherit from an abstract base class:
 
 Types should be considered immutable objects, and you must not mutate them.  It is permissible to
 reuse a :class:`Type` that you take from another object without copying it, and generally this will
-be the best approach for performance.  :class:`Type` instances are designed to be small amounts of
+be the best approach for performance.  :class:`Type` objects are designed to be small amounts of
 data, and it's best to point to the same instance of the data where possible rather than
 heap-allocating a new version of the same thing.  Where possible, the class constructors will return
 singleton instances to facilitate this.

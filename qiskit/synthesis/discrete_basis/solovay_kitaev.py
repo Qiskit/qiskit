@@ -62,7 +62,7 @@ class SolovayKitaevDecomposition:
                 ``{gates: effective_SO3_matrix}`` pairs,
                 e.g. ``{"h t": np.array([[0, 0.7071, -0.7071], [0, -0.7071, -0.7071], [-1, 0, 0]]}``.
                 If a list, this contains the same information as the dict, but already converted to
-                :class:`.GateSequence` instances, which contain the SO(3) matrix and gates.
+                :class:`.GateSequence` objects, which contain the SO(3) matrix and gates.
 
                 Either this parameter, or ``basis_gates`` and ``depth`` can be specified.
             basis_gates: A list of discrete (i.e., non-parameterized) standard gates.

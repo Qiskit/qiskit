@@ -187,7 +187,7 @@ class _CUGateParams(list):
     # This awful class is to let `CUGate.params` have its keys settable (as
     # `QuantumCircuit.assign_parameters` requires), while accounting for the problem that `CUGate`
     # was defined to have a different number of parameters to its `base_gate`, which breaks
-    # `ControlledGate`'s assumptions, and would make most parametric `CUGate` instances invalid.
+    # `ControlledGate`'s assumptions, and would make most parametric `CUGate` objects invalid.
     #
     # It's constructed only as part of the `CUGate.params` getter, and given that the general
     # circuit model assumes that that's a directly mutable list that _must_ be kept in sync with the

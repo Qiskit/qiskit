@@ -315,7 +315,7 @@ def _define_custom_operation(operation, gates_to_define):
     # These are built-in gates that are known to be safe to construct by passing the correct number
     # of `Parameter` instances positionally, and have no other information.  We can't guarantee that
     # if they've been subclassed, though.  This is a total hack; ideally we'd be able to inspect the
-    # "calling" signatures of Qiskit `Gate` instances to know whether they're safe to re-parameterise.
+    # "calling" signatures of Qiskit `Gate` objects to know whether they're safe to re-parameterise.
     known_good_parameterized = {
         lib.PhaseGate,
         lib.RGate,

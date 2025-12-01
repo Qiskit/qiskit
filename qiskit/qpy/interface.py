@@ -161,15 +161,15 @@ def dump(
             .. note::
 
                 If serializing a :class:`.QuantumCircuit` that contains
-                :class:`.ParameterExpression` instances with ``version`` set low with the intent to
+                :class:`.ParameterExpression` objects with ``version`` set low with the intent to
                 load the payload using a historical release of Qiskit, it is safest to set the
                 ``use_symengine`` flag to ``False``.  Versions of Qiskit prior to 1.2.4 cannot load
-                QPY files containing ``symengine``-serialized :class:`.ParameterExpression` instances
+                QPY files containing ``symengine``-serialized :class:`.ParameterExpression` objects
                 unless the version of ``symengine`` used between the loading and generating
                 environments matches.
         annotation_factories: Mapping of namespaces to functions that create new instances of
             :class:`.annotation.QPUSerializer`, for handling the dumping of custom
-            :class:`.Annotation` instances.  The subsequent call to :func:`load` will need to use
+            :class:`.Annotation` objects.  The subsequent call to :func:`load` will need to use
             similar serializer objects, that understand the custom output format of those
             serializers.
 
@@ -279,7 +279,7 @@ def load(
     """Load a QPY binary file
 
     This function is used to load a serialized QPY Qiskit program file and create
-    :class:`~qiskit.circuit.QuantumCircuit` instances from its contents.
+    :class:`~qiskit.circuit.QuantumCircuit` objects from its contents.
     For example:
 
     .. code-block:: python
@@ -300,7 +300,7 @@ def load(
             circuits = qpy.load(fd)
 
     which will read the contents of the qpy and return a list of
-    :class:`~qiskit.circuit.QuantumCircuit` instances from the file.
+    :class:`~qiskit.circuit.QuantumCircuit` objects from the file.
 
     Args:
         file_obj: A file like object that contains the QPY binary
@@ -314,7 +314,7 @@ def load(
             the default ``JSONDecoder`` class.
         annotation_factories: Mapping of namespaces to functions that create new instances of
             :class:`.annotation.QPUSerializer`, for handling the loading of custom
-            :class:`.Annotation` instances.
+            :class:`.Annotation` objects.
 
     Returns:
         The list of Qiskit programs contained in the QPY data.

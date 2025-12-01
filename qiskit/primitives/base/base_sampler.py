@@ -84,7 +84,7 @@ class BaseSamplerV1(BasePrimitiveV1, Generic[T]):
     method. This method is called with the following parameters
 
     * quantum circuits (:math:`\psi_i(\theta)`): list of (parameterized) quantum circuits.
-      (a list of :class:`~qiskit.circuit.QuantumCircuit` instances)
+      (a list of :class:`~qiskit.circuit.QuantumCircuit` objects)
 
     * parameter values (:math:`\theta_k`): list of sets of parameter values
       to be bound to the parameters of the quantum circuits.

@@ -36,7 +36,7 @@ class ElidePermutations(TransformationPass):
     selected and there are connectivity constraints to adhere to.
 
     For tracking purposes this pass sets 3 values in the property set if there
-    are any :class:`~.SwapGate` or :class:`~.PermutationGate` instances in the circuit
+    are any :class:`~.SwapGate` or :class:`~.PermutationGate` objects in the circuit
     and the pass isn't a no-op.
 
     * ``original_layout``: The trivial :class:`~.Layout` for the input to this pass being run
