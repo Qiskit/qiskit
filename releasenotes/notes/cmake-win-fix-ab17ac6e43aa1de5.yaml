@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    Fixes a bug where qiskit_cext is not found on Windows 
-    systems due to `.dll.lib` files not being detected by CMake with 
-    certain toolchain configurations. A conditional flag in CMakeLists.txt now 
-    adds the filetype to the library search on Windows platforms.
