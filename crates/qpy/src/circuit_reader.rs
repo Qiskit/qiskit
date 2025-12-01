@@ -882,7 +882,6 @@ pub fn unpack_circuit(
     let mut circuit_data =
         CircuitData::with_capacity(0, 0, instruction_capacity, Param::Float(0.0))?;
 
-    let annotation_handler = AnnotationHandler::new(annotation_factories);
     let mut qpy_data = QPYReadData {
         circuit_data: &mut circuit_data,
         version,
@@ -890,7 +889,7 @@ pub fn unpack_circuit(
         standalone_vars: HashMap::new(),
         standalone_stretches: HashMap::new(),
         vectors: HashMap::new(),
-        annotation_handler,
+        annotation_handler: AnnotationHandler::new(annotation_factories)
     };
 
     let annotation_deserializers_data: Vec<(String, Bytes)> = packed_circuit
