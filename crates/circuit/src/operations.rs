@@ -383,7 +383,7 @@ pub enum ControlFlow {
     ContinueLoop,
     ForLoop {
         indexset: Vec<usize>,
-        loop_param: Option<Py<PyAny>>,
+        loop_param: Option<Symbol>,
     },
     IfElse {
         condition: Condition,
@@ -445,14 +445,7 @@ impl ControlFlowInstruction {
                 ControlFlow::ForLoop {
                     indexset: other_indexset,
                     loop_param: other_loop_param,
-                } => Ok(self_indexset == other_indexset
-                    && self_loop_param
-                        .as_ref()
-                        .zip(other_loop_param.as_ref())
-                        .map(|(p1, p2)| p1.bind(py).eq(p2))
-                        .unwrap_or_else(|| {
-                            Ok(self_loop_param.is_none() && other_loop_param.is_none())
-                        })?),
+                } => Ok(self_indexset == other_indexset && self_loop_param == other_loop_param),
                 _ => Ok(false),
             },
             ControlFlow::IfElse {
@@ -540,7 +533,7 @@ impl ControlFlowInstruction {
                 loop_param,
             } => imports::FOR_LOOP_OP.get(py).call(
                 py,
-                (indexset, loop_param, blocks.next()),
+                (indexset, loop_param.clone(), blocks.next()),
                 kwargs.as_ref(),
             ),
             ControlFlow::IfElse { condition } => imports::IF_ELSE_OP.get(py).call(
@@ -614,7 +607,7 @@ pub enum ControlFlowView<'a, T> {
     ContinueLoop,
     ForLoop {
         indexset: &'a [usize],
-        loop_param: Option<&'a Py<PyAny>>,
+        loop_param: Option<&'a Symbol>,
         body: &'a T,
     },
     IfElse {

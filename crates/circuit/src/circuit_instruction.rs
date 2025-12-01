@@ -32,6 +32,7 @@ use crate::operations::{
 };
 use crate::packed_instruction::PackedOperation;
 use crate::parameter::parameter_expression::ParameterExpression;
+use crate::parameter::symbol_expr::Symbol;
 use nalgebra::{Dyn, MatrixView2, MatrixView4};
 use num_complex::Complex64;
 use smallvec::SmallVec;
@@ -212,7 +213,7 @@ impl CircuitInstruction {
                     ..
                 } => [
                     indexset.into_py_any(py)?,
-                    loop_param.into_py_any(py)?,
+                    loop_param.clone().into_py_any(py)?,
                     self.blocks_view()[0].clone_ref(py),
                 ]
                 .into_py_any(py),
@@ -700,11 +701,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for OperationFromPython {
                                 .map(|index| index?.extract())
                                 .collect::<PyResult<_>>()?
                         };
-                        let loop_param = params
-                            .next()
-                            .unwrap()?
-                            .extract::<Option<Bound<PyAny>>>()?
-                            .map(|p| p.unbind());
+                        let loop_param = params.next().unwrap()?.extract::<Option<Symbol>>()?;
                         ControlFlow::ForLoop {
                             indexset,
                             loop_param,
