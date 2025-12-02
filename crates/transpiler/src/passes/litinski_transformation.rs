@@ -23,7 +23,7 @@ use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::{BlocksMode, VarsMode};
 
 use qiskit_quantum_info::clifford::Clifford;
-use qiskit_quantum_info::sparse_observable::{BitTerm, SparseObservable};
+use qiskit_quantum_info::sparse_observable::SparseObservable;
 
 use crate::TranspilerError;
 use num_complex::Complex64;
@@ -291,30 +291,8 @@ pub fn run_litinski_transformation(
                 OperationRef::StandardInstruction(StandardInstruction::Measure) => {
                     // Returns the evolved Pauli in the sparse format: (sign, pauli z, pauli x, indices),
                     // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
-                    let (sign, terms, indices) =
-                        clifford.get_inverse_z(dag.get_qargs(inst.qubits)[0].index());
-                    let mut z: Vec<bool> = Vec::with_capacity(terms.len());
-                    let x: Vec<bool> = terms
-                        .into_iter()
-                        .map(|term| match term {
-                            BitTerm::X => {
-                                z.push(false);
-                                true
-                            }
-                            BitTerm::Y => {
-                                z.push(true);
-                                true
-                            }
-                            BitTerm::Z => {
-                                z.push(true);
-                                false
-                            }
-                            _ => {
-                                unreachable!("Only X, Y, Z terms returned by get_inverse_z");
-                            }
-                        })
-                        .collect();
-
+                    let (sign, z, x, indices) = clifford
+                        .get_inverse_z_for_measurement(dag.get_qargs(inst.qubits)[0].index());
                     let ppm = PauliProductMeasurement { z, x, neg: sign };
 
                     let ppm_clbits = dag.get_cargs(inst.clbits);

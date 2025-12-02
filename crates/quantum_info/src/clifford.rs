@@ -227,6 +227,8 @@ impl Clifford {
     }
 
     /// Evolving the single-qubit Pauli-Z with Z on qubit qbit.
+    /// Returns the evolved Pauli in the sparse format: (bool, bit_terms, indices)
+    /// This is typically used for constructing a [`SparseObservable`] from the return.
     pub fn get_inverse_z(&self, qbit: usize) -> (bool, Vec<BitTerm>, Vec<Qubit>) {
         let mut bit_terms = Vec::with_capacity(self.num_qubits);
         let mut pauli_indices = Vec::<usize>::with_capacity(2 * self.num_qubits);
@@ -262,6 +264,40 @@ impl Clifford {
         let phase = compute_phase_product_pauli(self, &pauli_indices, pauli_y_count);
 
         (phase, bit_terms, indices)
+    }
+
+    /// Evolving the single-qubit Pauli-Z with Z on qubit qbit.
+    /// Returns the evolved Pauli in the sparse format: (bool, pauli_z, pauli_x, indices)
+    /// This is typically used for constructing a [`PauliProductMeasurement`] from the return
+    pub fn get_inverse_z_for_measurement(
+        &self,
+        qbit: usize,
+    ) -> (bool, Vec<bool>, Vec<bool>, Vec<Qubit>) {
+        let mut z = Vec::with_capacity(self.num_qubits);
+        let mut x = Vec::with_capacity(self.num_qubits);
+        let mut indices = Vec::with_capacity(self.num_qubits);
+        let mut pauli_indices = Vec::<usize>::with_capacity(2 * self.num_qubits);
+        // Compute the y-count to avoid recomputing it later
+        let mut pauli_y_count: u32 = 0;
+        for i in 0..self.num_qubits {
+            let z_bit = self.tableau[[i, qbit]];
+            let x_bit = self.tableau[[i + self.num_qubits, qbit]];
+            if z_bit || x_bit {
+                z.push(z_bit);
+                x.push(x_bit);
+                indices.push(Qubit::new(i));
+                if x_bit {
+                    pauli_indices.push(i);
+                }
+                if z_bit {
+                    pauli_indices.push(i + self.num_qubits);
+                }
+                pauli_y_count += (x_bit && z_bit) as u32;
+            }
+        }
+        let phase = compute_phase_product_pauli(self, &pauli_indices, pauli_y_count);
+
+        (phase, z, x, indices)
     }
 }
 
