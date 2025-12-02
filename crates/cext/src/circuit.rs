@@ -1214,7 +1214,8 @@ pub unsafe extern "C" fn qk_circuit_to_dag(circuit: *const CircuitData) -> *mut 
 
 /// @ingroup QkCircuit
 ///
-/// The mode to copy the classical variables.
+/// The mode to copy the classical variables, for operations that create a new
+/// circuit based on an existing one.
 #[repr(u8)]
 pub enum CVarsMode {
     /// Each variable has the same type it had in the input.
@@ -1237,7 +1238,8 @@ impl From<CVarsMode> for VarsMode {
 
 /// @ingroup QkCircuit
 ///
-/// The mode to use when handling blocks for operations.
+/// The mode to use to copy blocks in control-flow instructions, for operations that
+/// create a new circuit based on an existing one.
 #[repr(u8)]
 pub enum CBlocksMode {
     /// Drop the blocks.
@@ -1276,6 +1278,9 @@ impl From<CBlocksMode> for BlocksMode {
 ///     uint32_t qubits[1] = {i};
 ///     qk_circuit_gate(qc, QkGate_H, qubits, NULL);
 /// }
+///
+/// // As the circuit does not contain any control-flow instructions,
+/// // vars_mode and blocks_mode do not have any effect.
 /// QkCircuit *copy = qk_circuit_copy_empty_like(qc, QkVarsMode_Alike, QkBlocksMode_Drop);
 ///
 /// size_t num_copy_instructions = qk_circuit_num_instructions(copy); // 0
