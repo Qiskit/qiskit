@@ -713,27 +713,31 @@ def _read_pauli_evolution_gate(file_obj, version, vectors):
                         file_obj.read(formats.SPARSE_OBSERVABLE_OP_LIST_ELEM_SIZE),
                     )
                 )
-                # number of Pauli strings
+                # setting data lengths
                 num_paulis = int(op_elem.coeff_data_len / (2 * struct.calcsize("d")))
+                num_bitterms = int(op_elem.bitterm_data_len / struct.calcsize("i"))
+                num_inds = int(op_elem.inds_data_len / struct.calcsize("i"))
+                num_bounds = int(op_elem.bounds_data_len / struct.calcsize("i"))
 
                 # reading coeffs
-                coeff_data = struct.unpack(f"{2*num_paulis}d", file_obj.read(op_elem.coeff_data_len))
+                coeff_data = struct.unpack(
+                    f"{2*num_paulis}d", file_obj.read(op_elem.coeff_data_len)
+                )
                 coeff_read = np.empty(num_paulis, dtype=np.complex128)
                 for ii in range(num_paulis):
                     coeff_read[ii] = complex(coeff_data[2 * ii], coeff_data[2 * ii + 1])
 
                 # reading bit_terms
-                num_bitterms = int(op_elem.bitterm_data_len / struct.calcsize("i"))
                 bitterms_read = list(
                     struct.unpack(f"{num_bitterms}i", file_obj.read(op_elem.bitterm_data_len))
                 )
 
                 # reading indices
-                num_inds = int(op_elem.inds_data_len / struct.calcsize("i"))
-                inds_read = list(struct.unpack(f"{num_inds}i", file_obj.read(op_elem.inds_data_len)))
+                inds_read = list(
+                    struct.unpack(f"{num_inds}i", file_obj.read(op_elem.inds_data_len))
+                )
 
                 # reading boundaries
-                num_bounds = int(op_elem.bounds_data_len / struct.calcsize("i"))
                 bounds_read = list(
                     struct.unpack(f"{num_bounds}i", file_obj.read(op_elem.bounds_data_len))
                 )
