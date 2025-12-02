@@ -703,9 +703,48 @@ def _read_pauli_evolution_gate(file_obj, version, vectors):
 
     operator_list = []
     for _ in range(pauli_evolution_def.operator_size):
-        sparse_operator = struct.unpack("?", file_obj.read(1))[0]
+        sparse_operator = False
+        if version >= 17:
+            sparse_operator = struct.unpack("?", file_obj.read(1))[0]
+            if sparse_operator:
+                op_elem = formats.SPARSE_OBSERVABLE_OP_LIST_ELEM._make(
+                    struct.unpack(
+                        formats.SPARSE_OBSERVABLE_OP_LIST_ELEM_PACK,
+                        file_obj.read(formats.SPARSE_OBSERVABLE_OP_LIST_ELEM_SIZE),
+                    )
+                )
+                # number of Pauli strings
+                num_paulis = int(op_elem.coeff_data_len / (2 * struct.calcsize("d")))
 
-        if not sparse_operator:
+                # reading coeffs
+                coeff_data = struct.unpack(f"{2*num_paulis}d", file_obj.read(op_elem.coeff_data_len))
+                coeff_read = np.empty(num_paulis, dtype=np.complex128)
+                for ii in range(num_paulis):
+                    coeff_read[ii] = complex(coeff_data[2 * ii], coeff_data[2 * ii + 1])
+
+                # reading bit_terms
+                num_bitterms = int(op_elem.bitterm_data_len / struct.calcsize("i"))
+                bitterms_read = list(
+                    struct.unpack(f"{num_bitterms}i", file_obj.read(op_elem.bitterm_data_len))
+                )
+
+                # reading indices
+                num_inds = int(op_elem.inds_data_len / struct.calcsize("i"))
+                inds_read = list(struct.unpack(f"{num_inds}i", file_obj.read(op_elem.inds_data_len)))
+
+                # reading boundaries
+                num_bounds = int(op_elem.bounds_data_len / struct.calcsize("i"))
+                bounds_read = list(
+                    struct.unpack(f"{num_bounds}i", file_obj.read(op_elem.bounds_data_len))
+                )
+
+                operator_list.append(
+                    SparseObservable.from_raw_parts(
+                        op_elem.numq, coeff_read, bitterms_read, inds_read, bounds_read
+                    )
+                )
+
+        if version < 17 or not sparse_operator:
             # Read SparsePauliOp type operator
             op_elem = formats.SPARSE_PAULI_OP_LIST_ELEM._make(
                 struct.unpack(
@@ -715,44 +754,6 @@ def _read_pauli_evolution_gate(file_obj, version, vectors):
             )
             op_raw_data = common.data_from_binary(file_obj.read(op_elem.size), np.load)
             operator_list.append(SparsePauliOp.from_list(op_raw_data))
-        else:
-            # Read SparseObservable type operator
-            op_elem = formats.SPARSE_OBSERVABLE_OP_LIST_ELEM._make(
-                struct.unpack(
-                    formats.SPARSE_OBSERVABLE_OP_LIST_ELEM_PACK,
-                    file_obj.read(formats.SPARSE_OBSERVABLE_OP_LIST_ELEM_SIZE),
-                )
-            )
-            # number of Pauli strings
-            num_paulis = int(op_elem.coeff_data_len / (2 * struct.calcsize("d")))
-
-            # reading coeffs
-            coeff_data = struct.unpack(f"{2*num_paulis}d", file_obj.read(op_elem.coeff_data_len))
-            coeff_read = np.empty(num_paulis, dtype=np.complex128)
-            for ii in range(num_paulis):
-                coeff_read[ii] = complex(coeff_data[2 * ii], coeff_data[2 * ii + 1])
-
-            # reading bit_terms
-            num_bitterms = int(op_elem.bitterm_data_len / struct.calcsize("i"))
-            bitterms_read = list(
-                struct.unpack(f"{num_bitterms}i", file_obj.read(op_elem.bitterm_data_len))
-            )
-
-            # reading indices
-            num_inds = int(op_elem.inds_data_len / struct.calcsize("i"))
-            inds_read = list(struct.unpack(f"{num_inds}i", file_obj.read(op_elem.inds_data_len)))
-
-            # reading boundaries
-            num_bounds = int(op_elem.bounds_data_len / struct.calcsize("i"))
-            bounds_read = list(
-                struct.unpack(f"{num_bounds}i", file_obj.read(op_elem.bounds_data_len))
-            )
-
-            operator_list.append(
-                SparseObservable.from_raw_parts(
-                    op_elem.numq, coeff_read, bitterms_read, inds_read, bounds_read
-                )
-            )
 
     if pauli_evolution_def.standalone_op:
         pauli_op = operator_list[0]
@@ -1116,8 +1117,9 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate, version):
     def _write_elem(buffer, op):
         elem_data = common.data_to_binary(op.to_list(array=True), np.save)
         elem_metadata = struct.pack(formats.SPARSE_PAULI_OP_LIST_ELEM_PACK, len(elem_data))
-        elem_sparse_operator = struct.pack("?", False)
-        buffer.write(elem_sparse_operator)
+        if version >= 17:
+            elem_sparse_operator = struct.pack("?", False)
+            buffer.write(elem_sparse_operator)
         buffer.write(elem_metadata)
         buffer.write(elem_data)
 

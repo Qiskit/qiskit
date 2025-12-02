@@ -57,7 +57,7 @@ class TestPauliEvolution(QiskitTestCase):
         evo = PauliEvolutionGate(op)
         circuit = QuantumCircuit(evo.num_qubits)
         circuit.append(evo, circuit.qubits)
-        version = 16
+        version = 17
 
         with io.BytesIO() as container:
             qpy.dump(circuit, container, version=version)
@@ -96,7 +96,7 @@ class TestPauliEvolution(QiskitTestCase):
         evo = PauliEvolutionGate([op1, op2], time=0.5)
         circuit = QuantumCircuit(evo.num_qubits)
         circuit.append(evo, circuit.qubits)
-        version = 16
+        version = 17
 
         with io.BytesIO() as container:
             qpy.dump(circuit, container, version=version)

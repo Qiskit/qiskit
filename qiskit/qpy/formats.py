@@ -173,7 +173,7 @@ SPARSE_PAULI_OP_LIST_ELEM = namedtuple("SPARSE_PAULI_OP_LIST_ELEMENT", ["size"])
 SPARSE_PAULI_OP_LIST_ELEM_PACK = "!Q"
 SPARSE_PAULI_OP_LIST_ELEM_SIZE = struct.calcsize(SPARSE_PAULI_OP_LIST_ELEM_PACK)
 
-# SparseObservable List
+# SparseObservable List - Version 17+
 SPARSE_OBSERVABLE_OP_LIST_ELEM = namedtuple(
     "SPARSE_OBSERVABLE_OP_LIST_ELEM",
     ["numq", "coeff_data_len", "bitterm_data_len", "inds_data_len", "bounds_data_len"],
