@@ -732,6 +732,7 @@ fn apply_a2(
         VarsMode::Alike,
         BlocksMode::Drop,
     )?;
+
     for (idx, inst) in circ.data().iter().enumerate() {
         if let Some(new_circ) = diagonal_rollover.get(&idx) {
             let block_index_map = circ.get_qargs(circ.data()[idx].qubits);

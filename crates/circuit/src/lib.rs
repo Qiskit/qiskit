@@ -39,6 +39,7 @@ pub mod slice;
 pub mod util;
 pub mod vf2;
 
+mod var_stretch_container;
 mod variable_mapper;
 
 use pyo3::PyTypeInfo;
