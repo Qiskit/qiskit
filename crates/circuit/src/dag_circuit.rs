@@ -42,8 +42,8 @@ use crate::register_data::RegisterData;
 use crate::slice::PySequenceIndex;
 use crate::variable_mapper::VariableMapper;
 use crate::{
-    Block, BlocksMode, Clbit, Qubit, Stretch, TupleLikeArg, Var, VarsMode, converters, imports,
-    instruction, vf2,
+    Block, BlockMapper, BlocksMode, Clbit, Qubit, Stretch, TupleLikeArg, Var, VarsMode, converters,
+    imports, instruction, vf2,
 };
 
 use hashbrown::{HashMap, HashSet};
@@ -1380,8 +1380,13 @@ impl DAGCircuit {
     ///
     /// Returns:
     ///     DAGCircuit: An empty copy of self.
-    #[pyo3(signature = (*, vars_mode=VarsMode::Alike))]
-    pub fn copy_empty_like(&self, vars_mode: VarsMode) -> PyResult<Self> {
+    // NOTE: this is typically not want you want from Rust, because you should be making decisions
+    // about the `BlocksMode`.  Python always wants `Drop` (because you can't reproduce references
+    // to existing blocks from Python space), but in Rust you should decide.
+    //
+    // You likely want `copy_empty_like_with_same_capacity`.
+    #[pyo3(name = "copy_empty_like", signature = (*, vars_mode=VarsMode::Alike))]
+    pub fn py_copy_empty_like(&self, vars_mode: VarsMode) -> PyResult<Self> {
         self.copy_empty_like_with_capacity(0, 0, vars_mode, BlocksMode::Drop)
     }
 
@@ -3439,12 +3444,13 @@ impl DAGCircuit {
         let dags = PyList::empty(py);
 
         for comp_nodes in connected_components.iter() {
-            let mut new_dag = self.copy_empty_like(vars_mode)?;
+            let mut new_dag = self.copy_empty_like(vars_mode, BlocksMode::Drop)?;
             new_dag.global_phase = Param::Float(0.);
 
             // A map from nodes in the this DAGCircuit to nodes in the new dag. Used for adding edges
             let mut node_map: HashMap<NodeIndex, NodeIndex> =
                 HashMap::with_capacity(comp_nodes.len());
+            let mut block_map = BlockMapper::new();
 
             // Adding the nodes to the new dag
             let mut non_classical = false;
@@ -3478,8 +3484,11 @@ impl DAGCircuit {
                             node_map.insert(*node, var_out);
                         }
                         NodeType::Operation(pi) => {
-                            let new_node = new_dag.dag.add_node(NodeType::Operation(pi.clone()));
+                            let pi = block_map.map_instruction(pi, |b| {
+                                new_dag.add_block(self.blocks[b.index()].clone())
+                            });
                             new_dag.increment_op(pi.op.name());
+                            let new_node = new_dag.dag.add_node(NodeType::Operation(pi));
                             node_map.insert(*node, new_node);
                             non_classical = true;
                         }
@@ -4204,28 +4213,14 @@ impl DAGCircuit {
                 return Ok(PyIterator::from_object(&layer_list)?.into());
             }
 
-            let mut new_layer = self.copy_empty_like(vars_mode)?;
-            let mut block_map = HashMap::new();
+            let mut new_layer = self.copy_empty_like(vars_mode, BlocksMode::Drop)?;
+            let mut block_map = BlockMapper::new();
             let data: Vec<_> = op_nodes
                 .iter()
                 .map(|(inst, _)| {
-                    if let Some(Parameters::Blocks(blocks)) = inst.params.as_deref() {
-                        let mapped_blocks = blocks
-                            .iter()
-                            .map(|b| {
-                                *block_map.entry(*b).or_insert_with(|| {
-                                    let block = self.blocks.get(b.index()).unwrap().clone();
-                                    new_layer.add_block(block)
-                                })
-                            })
-                            .collect();
-                        PackedInstruction {
-                            params: Some(Box::new(Parameters::Blocks(mapped_blocks))),
-                            ..(*inst).clone()
-                        }
-                    } else {
-                        (*inst).clone()
-                    }
+                    block_map.map_instruction(inst, |b| {
+                        new_layer.add_block(self.blocks[b.index()].clone())
+                    })
                 })
                 .collect();
             new_layer.extend(data)?;
@@ -4262,7 +4257,8 @@ impl DAGCircuit {
                 Some(NodeType::Operation(node)) => node,
                 _ => unreachable!("A non-operation node was obtained from topological_op_nodes."),
             };
-            let mut new_layer = self.copy_empty_like(vars_mode)?;
+            let mut new_layer = self.copy_empty_like(vars_mode, BlocksMode::Drop)?;
+            let mut block_map = BlockMapper::new();
 
             // Save the support of the operation we add to the layer
             let support_list = PyList::empty(py);
@@ -4274,7 +4270,10 @@ impl DAGCircuit {
                     .map(|qubit| self.qubits.get(*qubit)),
             )?
             .unbind();
-            new_layer.push_back(retrieved_node.clone())?;
+            let inst = block_map.map_instruction(retrieved_node, |b| {
+                new_layer.add_block(self.blocks[b.index()].clone())
+            });
+            new_layer.push_back(inst)?;
 
             if !retrieved_node.op.directive() {
                 support_list.append(qubits)?;
@@ -5198,6 +5197,16 @@ impl DAGCircuit {
             stretches_capture: HashSet::new(),
             stretches_declare: Vec::new(),
         }
+    }
+    /// Create an empty DAG, but with all the same qubit data, classical data and metadata
+    /// (including global phase).
+    ///
+    /// This method clones both the `qargs_interner` and `cargs_interner` of `self`;
+    /// `Interned<[Qubit]>` and `Interned<[Clbit]>` keys from `self` are valid in the output DAG.
+    ///
+    /// This does not include any pre-allocated capacity.
+    pub fn copy_empty_like(&self, vars_mode: VarsMode, blocks_mode: BlocksMode) -> PyResult<Self> {
+        self.copy_empty_like_with_capacity(0, 0, vars_mode, blocks_mode)
     }
 
     /// Create an empty DAG, but with all the same qubit data, classical data and metadata

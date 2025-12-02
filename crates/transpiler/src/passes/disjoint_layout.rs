@@ -30,10 +30,11 @@ use crate::target::{Qargs, Target};
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::imports::ImportOnceCell;
-use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardInstruction};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::{Block, Clbit, PhysicalQubit, Qubit, VarsMode, VirtualQubit};
+use qiskit_circuit::{
+    Block, BlockMapper, BlocksMode, Clbit, PhysicalQubit, Qubit, VarsMode, VirtualQubit,
+};
 
 create_exception!(qiskit, MultiQEncountered, pyo3::exceptions::PyException);
 
@@ -443,13 +444,13 @@ fn separate_dag(dag: &mut DAGCircuit) -> PyResult<Vec<DAGCircuit>> {
     let decomposed_dags: PyResult<Vec<DAGCircuit>> = component_qubits
         .into_iter()
         .map(|dag_qubits| -> PyResult<DAGCircuit> {
-            let mut new_dag = dag.copy_empty_like(VarsMode::Alike)?;
+            let mut new_dag = dag.copy_empty_like(VarsMode::Alike, BlocksMode::Drop)?;
             let qubits_to_revmove: Vec<Qubit> = qubits.difference(&dag_qubits).copied().collect();
 
             new_dag.remove_qubits(qubits_to_revmove)?;
             new_dag.set_global_phase(Param::Float(0.))?;
             let old_qubits = dag.qubits();
-            let mut block_map = HashMap::new();
+            let mut block_map = BlockMapper::new();
             for index in dag.topological_op_nodes()? {
                 let node = dag[index].unwrap_operation();
                 let qargs: HashSet<Qubit> = dag.get_qargs(node.qubits).iter().copied().collect();
@@ -460,20 +461,9 @@ fn separate_dag(dag: &mut DAGCircuit) -> PyResult<Vec<DAGCircuit>> {
                         new_dag.qubits().map_objects(qarg_bits)?.collect();
                     let mapped_clbits: Vec<Clbit> =
                         new_dag.cargs_interner().get(node.clbits).to_vec();
-                    let mapped_params = match node.params.as_deref() {
-                        Some(Parameters::Blocks(blocks)) => Some(Parameters::Blocks(
-                            blocks
-                                .iter()
-                                .map(|b| {
-                                    *block_map.entry(*b).or_insert_with(|| {
-                                        let block = dag.view_block(*b).clone();
-                                        new_dag.add_block(block)
-                                    })
-                                })
-                                .collect(),
-                        )),
-                        _ => node.params.as_deref().cloned(),
-                    };
+                    let mapped_params = node.params.as_deref().map(|p| {
+                        block_map.map_params(p, |b| new_dag.add_block(dag.view_block(b).clone()))
+                    });
                     new_dag.apply_operation_back(
                         node.op.clone(),
                         &mapped_qubits,
