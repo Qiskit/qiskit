@@ -702,7 +702,7 @@ static int test_dag_copy_empty_like(void) {
     uint32_t qubit[1] = {0};
     qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
 
-    QkDag *copied_dag = qk_dag_copy_empty_like(dag);
+    QkDag *copied_dag = qk_dag_copy_empty_like(dag, QkVarsMode_Alike, QkBlocksMode_Drop);
 
     size_t num_ops_in_dag = qk_dag_num_op_nodes(dag);               // not 0
     size_t num_ops_in_copied_dag = qk_dag_num_op_nodes(copied_dag); // 0

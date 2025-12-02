@@ -21,9 +21,9 @@ use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
     ArrayType, Operation, OperationRef, Param, StandardGate, StandardInstruction, UnitaryGate,
 };
-use qiskit_circuit::{Clbit, Qubit, VarsMode};
+use qiskit_circuit::{Clbit, Qubit};
 
-use crate::circuit::CInstruction;
+use crate::circuit::{CBlocksMode, CInstruction, CVarsMode};
 
 use crate::circuit::unitary_from_pointer;
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
@@ -1380,6 +1380,8 @@ pub unsafe extern "C" fn qk_dag_topological_op_nodes(dag: *const DAGCircuit, out
 /// * all the qubits and clbits, including the registers.
 ///
 /// @param dag A pointer to the DAG to copy.
+/// @param vars_mode The mode for handling classical variables.
+/// @param blocks_mode The mode for handling blocks.
 ///
 /// @return The pointer to the copied DAG circuit.
 ///
@@ -1392,7 +1394,7 @@ pub unsafe extern "C" fn qk_dag_topological_op_nodes(dag: *const DAGCircuit, out
 /// uint32_t qubit[1] = {0};
 /// qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
 ///
-/// QkDag *copied_dag = qk_dag_copy_empty_like(dag);
+/// QkDag *copied_dag = qk_dag_copy_empty_like(dag, QkVarsMode_Alike, QkBlocksMode_Drop);
 /// uint32_t num_ops_in_copied_dag = qk_dag_num_op_nodes(copied_dag); // 0
 ///
 /// // do something with copied_dag
@@ -1407,12 +1409,18 @@ pub unsafe extern "C" fn qk_dag_topological_op_nodes(dag: *const DAGCircuit, out
 /// Behavior is undefined if ``dag`` is not a valid pointer to a ``QkDag``.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_dag_copy_empty_like(dag: *const DAGCircuit) -> *mut DAGCircuit {
+pub unsafe extern "C" fn qk_dag_copy_empty_like(
+    dag: *const DAGCircuit,
+    vars_mode: CVarsMode,
+    blocks_mode: CBlocksMode,
+) -> *mut DAGCircuit {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
+    let vars_mode = vars_mode.into();
+    let blocks_mode = blocks_mode.into();
 
     let copied_dag = dag
-        .copy_empty_like(VarsMode::Alike)
+        .copy_empty_like_with_capacity(0, 0, vars_mode, blocks_mode)
         .expect("Failed to copy the DAG.");
     Box::into_raw(Box::new(copied_dag))
 }
