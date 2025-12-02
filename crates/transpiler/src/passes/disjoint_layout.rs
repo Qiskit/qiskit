@@ -18,7 +18,6 @@ use pyo3::create_exception;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyList;
-use rayon::prelude::*;
 use rustworkx_core::connectivity::connected_components;
 use rustworkx_core::petgraph::EdgeType;
 use rustworkx_core::petgraph::prelude::*;
@@ -273,10 +272,10 @@ fn map_components(
         .enumerate()
         .map(|(idx, dag)| (idx, dag.num_qubits()))
         .collect();
-    dag_qubits.par_sort_unstable_by_key(|x| x.1);
+    dag_qubits.sort_unstable_by_key(|x| x.1);
     dag_qubits.reverse();
     let mut cmap_indices = (0..cmap_components.len()).collect::<Vec<_>>();
-    cmap_indices.par_sort_unstable_by_key(|x| free_qubits[*x]);
+    cmap_indices.sort_unstable_by_key(|x| free_qubits[*x]);
     cmap_indices.reverse();
     for (dag_index, dag_num_qubits) in dag_qubits {
         let mut found = false;
