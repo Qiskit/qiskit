@@ -12,7 +12,6 @@
 
 #include "common.h"
 #include <complex.h>
-#include <math.h>
 #include <qiskit.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -20,7 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 
-int build_unitary_target(QkTarget *target, uint32_t num_qubits) {
+static int build_unitary_target(QkTarget *target, uint32_t num_qubits) {
     // Create a target with cx connectivity in a line.
     QkExitCode result_x = qk_target_add_instruction(target, qk_target_entry_new(QkGate_X));
     if (result_x != QkExitCode_Success) {
@@ -63,7 +62,7 @@ int build_unitary_target(QkTarget *target, uint32_t num_qubits) {
 /**
  * Test running UnitarySynthesis on a single gate
  */
-int test_unitary_synthesis_identity_matrix(void) {
+static int test_unitary_synthesis_identity_matrix(void) {
     const uint32_t num_qubits = 5;
     QkTarget *target = qk_target_new(num_qubits);
     int result = Ok;
@@ -92,9 +91,44 @@ cleanup:
     return result;
 }
 
+/**
+ * Test running UnitarySynthesis on a single gate
+ */
+static int test_unitary_synthesis_multiqubit_identity_matrix(void) {
+    const uint32_t num_qubits = 5;
+    QkTarget *target = qk_target_new(num_qubits);
+    int result = Ok;
+    result = build_unitary_target(target, num_qubits);
+    if (result != Ok) {
+        goto cleanup;
+    }
+    // Create a circuit with line connectivity.
+    QkCircuit *qc = qk_circuit_new(3, 0);
+    QkComplex64 c0 = {0., 0.};
+    QkComplex64 c1 = {1., 0.};
+    QkComplex64 unitary[64] = {c1, c0, c0, c0, c0, c0, c0, c0, c0, c1, c0, c0, c0, c0, c0, c0,
+                               c0, c0, c1, c0, c0, c0, c0, c0, c0, c0, c0, c1, c0, c0, c0, c0,
+                               c0, c0, c0, c0, c1, c0, c0, c0, c0, c0, c0, c0, c0, c1, c0, c0,
+                               c0, c0, c0, c0, c0, c0, c1, c0, c0, c0, c0, c0, c0, c0, c0, c1};
+    uint32_t qargs[3] = {0, 1, 2};
+    qk_circuit_unitary(qc, unitary, qargs, 3, false);
+    qk_transpiler_pass_standalone_unitary_synthesis(qc, target, 0, 1.0);
+    size_t num_instructions = qk_circuit_num_instructions(qc);
+    if (num_instructions != 0) {
+        printf("Identity unitary not removed from the circuit as expected");
+        result = EqualityError;
+    }
+    qk_circuit_free(qc);
+
+cleanup:
+    qk_target_free(target);
+    return result;
+}
+
 int test_unitary_synthesis(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_unitary_synthesis_identity_matrix);
+    num_failed += RUN_TEST(test_unitary_synthesis_multiqubit_identity_matrix);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);

@@ -14,7 +14,7 @@ use crate::classical::expr::{Expr, ExprKind, PyExpr};
 use crate::classical::types::Type;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
-use pyo3::{intern, IntoPyObjectExt};
+use pyo3::{IntoPyObjectExt, intern};
 
 /// A cast from one type to another, implied by the use of an expression in a different
 /// context.
@@ -36,8 +36,10 @@ impl<'py> IntoPyObject<'py> for Cast {
     }
 }
 
-impl<'py> FromPyObject<'py> for Cast {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for Cast {
+    type Error = <PyCast as FromPyObject<'a, 'py>>::Error;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let PyCast(c) = ob.extract()?;
         Ok(c)
     }

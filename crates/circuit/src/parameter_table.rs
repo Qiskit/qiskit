@@ -62,10 +62,10 @@ impl ParameterUuid {
     /// Extract a UUID from a Python-space `Parameter` object. This assumes that the object is known
     /// to be a parameter.
     pub fn from_parameter(ob: &Bound<PyAny>) -> PyResult<Self> {
-        let uuid = if let Ok(param) = ob.downcast::<PyParameter>() {
+        let uuid = if let Ok(param) = ob.cast::<PyParameter>() {
             // this downcast should cover both PyParameterVectorElement and PyParameter
             param.borrow().symbol().uuid.as_u128()
-        } else if let Ok(expr) = ob.downcast::<PyParameterExpression>() {
+        } else if let Ok(expr) = ob.cast::<PyParameterExpression>() {
             let expr_borrowed = expr.borrow();
             // We know the ParameterExpression is in fact representing a single Symbol
             let symbol = &expr_borrowed.inner.try_to_symbol()?;
@@ -112,6 +112,12 @@ impl ParameterTable {
     /// Get the number of parameters tracked by the table.
     pub fn num_parameters(&self) -> usize {
         self.by_uuid.len()
+    }
+
+    /// Does this table track the given parameter?
+    pub fn contains(&self, symbol: &Symbol) -> bool {
+        self.by_uuid
+            .contains_key(&ParameterUuid::from_symbol(symbol))
     }
 
     /// Add a new usage of a parameter coming in, optionally adding a first usage to it.
@@ -266,7 +272,7 @@ impl ParameterTable {
     /// The clearing effect is eager and not dependent on the iteration.
     pub fn drain_ordered(
         &mut self,
-    ) -> impl ExactSizeIterator<Item = (Symbol, HashSet<ParameterUse>)> {
+    ) -> impl ExactSizeIterator<Item = (Symbol, HashSet<ParameterUse>)> + use<> {
         let order = self
             .order_cache
             .take()

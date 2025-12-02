@@ -150,7 +150,7 @@ class TestStatevector(QiskitTestCase):
         qc.x(0)
         qc.h(1)
         gate = qc.to_gate()
-        gate_ctrl = gate.control()
+        gate_ctrl = gate.control(annotated=False)
 
         circuit = QuantumCircuit(3)
         circuit.x(0)
@@ -276,6 +276,16 @@ class TestStatevector(QiskitTestCase):
             target = Statevector(np.dot(op.data, vec))
             evolved = Statevector(vec).evolve(op)
             self.assertEqual(target, evolved)
+
+    def test_evolve_operator_overload_dimensions(self):
+        """Test that the @ operator returns a Statevector of correct dimension, type and value."""
+        op = random_unitary(4)  # 4x4 unitary
+        vec = Statevector(self.rand_vec(4))  # 4-dim state vector
+        result = op @ vec
+        target = op.data @ vec.data
+        self.assertIsInstance(result, Statevector)
+        self.assertEqual(result.data.shape, (4,))
+        self.assertTrue(np.array_equal(result.data, target))
 
     def test_evolve_subsystem(self):
         """Test subsystem _evolve method."""
@@ -485,6 +495,14 @@ class TestStatevector(QiskitTestCase):
                     key = f"{i},{j}"
                     target[key] = 2 * i + j + 1
             self.assertDictAlmostEqual(target, vec.to_dict())
+
+    def test_to_dict_decimals(self):
+        """Test to_dict method with decimals argument."""
+        decimal = 3
+        sv = np.array([1 / np.sqrt(2), 0, 0, -1 / np.sqrt(2)], dtype=np.complex128)
+        vec_rounded = Statevector(sv).to_dict(decimals=decimal)
+        expected = {"00": 0.707, "11": -0.707}
+        self.assertEqual(vec_rounded, expected)
 
     def test_probabilities_product(self):
         """Test probabilities method for product state"""
@@ -1167,6 +1185,18 @@ class TestStatevector(QiskitTestCase):
         self.assertAlmostEqual(expval_state_1_n1, 4 + 0j)
         self.assertAlmostEqual(expval_state_1_n2, 5 + 0j)
 
+        for prefix, factor in [("", 1), ("-", -1), ("i", 1j), ("-i", -1j)]:
+            pauli_label = f"{prefix}I"
+            identity_pauli_1 = Pauli(pauli_label)
+            with self.subTest(pauli=pauli_label):
+                self.assertAlmostEqual(state_1.expectation_value(identity_pauli_1), factor + 0j)
+                self.assertAlmostEqual(
+                    state_1_n1.expectation_value(identity_pauli_1), factor * 4 + 0j
+                )
+                self.assertAlmostEqual(
+                    state_1_n2.expectation_value(identity_pauli_1), factor * 5 + 0j
+                )
+
         # Let's try a multi-qubit case
         n_qubits = 3
         state_coeff = 3 - 4j
@@ -1176,6 +1206,20 @@ class TestStatevector(QiskitTestCase):
         expval = state_test.expectation_value(op_test)
         target = op_coeff * np.abs(state_coeff) ** 2
         self.assertAlmostEqual(expval, target)
+
+        coeffs = np.array([1 + 2j, -3j, 4])
+        op_multi = SparsePauliOp.from_list([("I" * n_qubits, coeff) for coeff in coeffs])
+        expval_multi = state_test.expectation_value(op_multi)
+        target_multi = np.sum(coeffs) * np.abs(state_coeff) ** 2
+        self.assertAlmostEqual(expval_multi, target_multi)
+
+        for prefix, factor in [("", 1), ("-", -1), ("i", 1j), ("-i", -1j)]:
+            pauli_label = f"{prefix}{'I' * n_qubits}"
+            identity_pauli_n = Pauli(pauli_label)
+            with self.subTest(pauli=pauli_label):
+                expval_pauli = state_test.expectation_value(identity_pauli_n)
+                target_pauli = factor * np.abs(state_coeff) ** 2
+                self.assertAlmostEqual(expval_pauli, target_pauli)
 
     @data(*(qargs for i in range(4) for qargs in permutations(range(4), r=i + 1)))
     def test_probabilities_qargs(self, qargs):

@@ -20,7 +20,7 @@ use rustworkx_core::petgraph::csr::IndexType;
 use rustworkx_core::petgraph::stable_graph::StableDiGraph;
 use rustworkx_core::petgraph::visit::IntoEdgeReferences;
 
-use smallvec::SmallVec;
+use smallvec::{SmallVec, smallvec};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::{error::Error, fmt::Display};
@@ -40,6 +40,7 @@ use rustworkx_core::petgraph::{
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::imports::{ImportOnceCell, QUANTUM_CIRCUIT};
+use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::{Operation, OperationRef};
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -47,8 +48,8 @@ use qiskit_circuit::packed_instruction::PackedOperation;
 use crate::standard_equivalence_library::generate_standard_equivalence_library;
 
 mod exceptions {
-    use pyo3::import_exception_bound;
-    import_exception_bound! {qiskit.circuit.exceptions, CircuitError}
+    use pyo3::import_exception;
+    import_exception! {qiskit.circuit.exceptions, CircuitError}
 }
 pub static PYDIGRAPH: ImportOnceCell = ImportOnceCell::new("rustworkx", "PyDiGraph");
 
@@ -293,12 +294,18 @@ pub struct GateOper {
     params: SmallVec<[Param; 3]>,
 }
 
-impl<'py> FromPyObject<'py> for GateOper {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for GateOper {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let op_struct: OperationFromPython = ob.extract()?;
         Ok(Self {
             operation: op_struct.operation,
-            params: op_struct.params,
+            params: match op_struct.params {
+                None => smallvec![],
+                Some(Parameters::Params(params)) => params,
+                Some(Parameters::Blocks(_)) => panic!("expected params"),
+            },
         })
     }
 }
@@ -328,11 +335,13 @@ impl<'py> IntoPyObject<'py> for CircuitFromPython {
     }
 }
 
-impl FromPyObject<'_> for CircuitFromPython {
-    fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for CircuitFromPython {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         if ob.is_instance(QUANTUM_CIRCUIT.get_bound(ob.py()))? {
             let data: Bound<PyAny> = ob.getattr("_data")?;
-            let data_downcast: Bound<CircuitData> = data.downcast_into()?;
+            let data_downcast: Bound<CircuitData> = data.cast_into()?;
             let data_extract: CircuitData = data_downcast.extract()?;
             Ok(Self(data_extract))
         } else {
@@ -359,7 +368,7 @@ pub struct EquivalenceLibrary {
     graph: GraphType,
     key_to_node_index: KTIType,
     rule_id: usize,
-    _graph: Option<PyObject>,
+    _graph: Option<Py<PyAny>>,
 }
 
 #[pymethods]
@@ -489,7 +498,7 @@ impl EquivalenceLibrary {
     /// Returns:
     ///     PyDiGraph: A graph object with equivalence data in each node.
     #[getter]
-    fn get_graph(&mut self, py: Python) -> PyResult<PyObject> {
+    fn get_graph(&mut self, py: Python) -> PyResult<Py<PyAny>> {
         if let Some(graph) = &self._graph {
             Ok(graph.clone_ref(py))
         } else {
@@ -516,7 +525,7 @@ impl EquivalenceLibrary {
     /// Returns:
     ///     List: Keys to the key to node index map.
     #[pyo3(name = "keys")]
-    fn py_keys(slf: PyRef<Self>) -> PyResult<PyObject> {
+    fn py_keys(slf: PyRef<Self>) -> PyResult<Py<PyAny>> {
         let py_dict = PyDict::new(slf.py());
         for key in slf.keys() {
             py_dict.set_item(key.clone(), slf.py().None())?;
@@ -567,9 +576,9 @@ impl EquivalenceLibrary {
     fn __setstate__(mut slf: PyRefMut<Self>, state: &Bound<PyDict>) -> PyResult<()> {
         slf.rule_id = state.get_item("rule_id")?.unwrap().extract()?;
         let graph_nodes_ref: Bound<PyAny> = state.get_item("graph_nodes")?.unwrap();
-        let graph_nodes: &Bound<PyList> = graph_nodes_ref.downcast()?;
+        let graph_nodes: &Bound<PyList> = graph_nodes_ref.cast()?;
         let graph_edge_ref: Bound<PyAny> = state.get_item("graph_edges")?.unwrap();
-        let graph_edges: &Bound<PyList> = graph_edge_ref.downcast()?;
+        let graph_edges: &Bound<PyList> = graph_edge_ref.cast()?;
         slf.graph = GraphType::new();
         for node_weight in graph_nodes {
             slf.graph.add_node(node_weight.extract()?);
@@ -810,7 +819,10 @@ impl Display for EquivalenceError {
 
 // Conversion helpers
 
-fn to_pygraph<'py, N, E>(py: Python<'py>, pet_graph: &'py StableDiGraph<N, E>) -> PyResult<PyObject>
+fn to_pygraph<'py, N, E>(
+    py: Python<'py>,
+    pet_graph: &'py StableDiGraph<N, E>,
+) -> PyResult<Py<PyAny>>
 where
     N: IntoPyObject<'py> + Clone,
     E: IntoPyObject<'py> + Clone,

@@ -12,7 +12,6 @@
 
 #include "common.h"
 #include <complex.h>
-#include <math.h>
 #include <qiskit.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -20,7 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 
-int test_transpile_bv(void) {
+static int test_transpile_bv(void) {
     const uint32_t num_qubits = 10;
     QkTarget *target = qk_target_new(num_qubits);
     int result = Ok;
@@ -153,7 +152,7 @@ circuit_cleanup:
     return result;
 }
 
-int test_transpile_idle_qubits(void) {
+static int test_transpile_idle_qubits(void) {
     int result = Ok;
     uint32_t num_qubits = 3;
     QkCircuit *circuit = qk_circuit_new(num_qubits, 0);
@@ -171,7 +170,7 @@ int test_transpile_idle_qubits(void) {
     qk_target_add_instruction(target, cx_entry);
     qk_target_add_instruction(target, qk_target_entry_new(QkGate_U));
 
-    for (unsigned short opt_level = 0; opt_level < 4; opt_level++) {
+    for (uint8_t opt_level = 0; opt_level < 4; opt_level++) {
         QkTranspileOptions transpile_options = {opt_level, 1234, 1.0};
         QkTranspileResult transpile_result;
         char *error;
@@ -183,23 +182,23 @@ int test_transpile_idle_qubits(void) {
             qk_str_free(error);
             goto cleanup;
         }
-        uint32_t num_instructions = qk_circuit_num_instructions(transpile_result.circuit);
+        size_t num_instructions = qk_circuit_num_instructions(transpile_result.circuit);
         qk_circuit_free(transpile_result.circuit);
         qk_transpile_layout_free(transpile_result.layout);
         if (opt_level == 0 && num_instructions != 12) {
-            printf("opt_level: %d num_instructions: %d is not the expected value 12\n", opt_level,
+            printf("opt_level: %d num_instructions: %zu is not the expected value 12\n", opt_level,
                    num_instructions);
             result = EqualityError;
             goto cleanup;
         }
         if ((opt_level == 1 || opt_level == 3) && num_instructions != 8) {
-            printf("opt_level: %d num_instructions: %d is not the expected value 8\n", opt_level,
+            printf("opt_level: %d num_instructions: %zu is not the expected value 8\n", opt_level,
                    num_instructions);
             result = EqualityError;
             goto cleanup;
         }
         if (opt_level == 2 && num_instructions != 7) {
-            printf("opt_level: %d num_instructions: %d is not the expected value 7\n", opt_level,
+            printf("opt_level: %d num_instructions: %zu is not the expected value 7\n", opt_level,
                    num_instructions);
             result = EqualityError;
             goto cleanup;
@@ -212,7 +211,7 @@ cleanup:
     return result;
 }
 
-int test_transpile_options_null(void) {
+static int test_transpile_options_null(void) {
     const uint32_t n = 10;
     QkTarget *target = qk_target_new(n);
     qk_target_add_instruction(target, qk_target_entry_new(QkGate_SX));
@@ -249,11 +248,45 @@ cleanup:
     return result;
 }
 
+int test_init_stage_empty(void) {
+    int result = Ok;
+    uint32_t num_qubits = 2048;
+    QkTarget *target = qk_target_new(num_qubits);
+    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
+    for (uint32_t i = 0; i < num_qubits - 1; i++) {
+        qk_target_entry_add_property(cx_entry, (uint32_t[]){i, i + 1}, 2, 0.001 * i, 0.002 * i);
+    }
+    qk_target_add_instruction(target, cx_entry);
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_U));
+
+    QkDag *dag = qk_dag_new();
+    QkQuantumRegister *qr = qk_quantum_register_new(1024, "qr");
+    qk_dag_add_quantum_register(dag, qr);
+    QkTranspileLayout **layout = malloc(sizeof(QkTranspileLayout *));
+    int compile_result = qk_transpile_stage_init(dag, target, NULL, layout, NULL);
+    if (compile_result != 0) {
+        result = EqualityError;
+        printf("Running the init stage failed\n");
+        goto cleanup;
+    }
+    uint32_t num_dag_qubits = qk_dag_num_qubits(dag);
+    if (num_dag_qubits != 1024) {
+        result = EqualityError;
+        printf("Number of dag qubits %u does not match expected result 1024", num_dag_qubits);
+    }
+cleanup:
+    qk_target_free(target);
+    qk_dag_free(dag);
+    qk_transpile_layout_free(*layout);
+    return result;
+}
+
 int test_transpiler(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_transpile_bv);
     num_failed += RUN_TEST(test_transpile_idle_qubits);
     num_failed += RUN_TEST(test_transpile_options_null);
+    num_failed += RUN_TEST(test_init_stage_empty);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);

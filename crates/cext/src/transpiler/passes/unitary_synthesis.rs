@@ -26,9 +26,6 @@ use qiskit_transpiler::target::Target;
 /// The UnitarySynthesis transpiler pass will synthesize any UnitaryGates in the circuit into gates
 /// available in the target.
 ///
-/// Right now from C this pass only supports 1 and 2 qubit UnitaryGates. Larger unitary matrices
-/// will be supported in a future release.
-///
 /// @param circuit A pointer to the circuit to run UnitarySynthesis on
 /// @param target A pointer to the target to run UnitarySynthesis on
 /// @param min_qubits The minimum number of qubits in the unitary to synthesize. If the unitary
@@ -67,7 +64,7 @@ use qiskit_transpiler::target::Target;
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` or ``target`` is not a valid, non-null pointer to a ``QkCircuit`` and ``QkTarget``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_unitary_synthesis(
     circuit: *mut CircuitData,
@@ -114,16 +111,18 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_unitary_synthesis(
 #[cfg(all(test, not(miri)))]
 mod tests {
     use super::*;
+    use pyo3::prelude::*;
 
-    use std::sync::Arc;
-
+    use qiskit_circuit::Qubit;
     use qiskit_circuit::bit::ShareableQubit;
     use qiskit_circuit::circuit_data::CircuitData;
-    use qiskit_circuit::operations::{ArrayType, Operation, Param, StandardGate, UnitaryGate};
+    use qiskit_circuit::instruction::Parameters;
+    use qiskit_circuit::operations::{ArrayType, Param, StandardGate, UnitaryGate};
     use qiskit_circuit::packed_instruction::PackedOperation;
     use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
     use qiskit_circuit::parameter::symbol_expr::Symbol;
-    use qiskit_circuit::Qubit;
+    use smallvec::smallvec;
+    use std::sync::Arc;
 
     #[test]
     fn test_pass_synthesis() {
@@ -140,35 +139,35 @@ mod tests {
             array: ArrayType::NDArray(array),
         };
         let operation = PackedOperation::from_unitary(Box::new(gate));
-        qc.push_packed_operation(operation, &[], &[Qubit(0), Qubit(1)], &[])
+        qc.push_packed_operation(operation, None, &[Qubit(0), Qubit(1)], &[])
             .unwrap();
         let array = StandardGate::DCX.matrix(&[]).unwrap();
         let gate = UnitaryGate {
             array: ArrayType::NDArray(array),
         };
         let operation = PackedOperation::from_unitary(Box::new(gate));
-        qc.push_packed_operation(operation, &[], &[Qubit(1), Qubit(2)], &[])
+        qc.push_packed_operation(operation, None, &[Qubit(1), Qubit(2)], &[])
             .unwrap();
         let array = StandardGate::DCX.matrix(&[]).unwrap();
         let gate = UnitaryGate {
             array: ArrayType::NDArray(array),
         };
         let operation = PackedOperation::from_unitary(Box::new(gate));
-        qc.push_packed_operation(operation, &[], &[Qubit(1), Qubit(2)], &[])
+        qc.push_packed_operation(operation, None, &[Qubit(1), Qubit(2)], &[])
             .unwrap();
         let array = StandardGate::Tdg.matrix(&[]).unwrap();
         let gate = UnitaryGate {
             array: ArrayType::NDArray(array),
         };
         let operation = PackedOperation::from_unitary(Box::new(gate));
-        qc.push_packed_operation(operation, &[], &[Qubit(1)], &[])
+        qc.push_packed_operation(operation, None, &[Qubit(1)], &[])
             .unwrap();
         let array = StandardGate::CY.matrix(&[]).unwrap();
         let gate = UnitaryGate {
             array: ArrayType::NDArray(array),
         };
         let operation = PackedOperation::from_unitary(Box::new(gate));
-        qc.push_packed_operation(operation, &[], &[Qubit(0), Qubit(2)], &[])
+        qc.push_packed_operation(operation, None, &[Qubit(0), Qubit(2)], &[])
             .unwrap();
 
         let mut target = Target::new(
@@ -183,7 +182,7 @@ mod tests {
             None,    // concurrent_measurements
         )
         .unwrap();
-        let params: [Param; 3] = [
+        let params: Option<Parameters<Py<PyAny>>> = Some(Parameters::Params(smallvec![
             Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
                 "ϴ", None, None,
             )))),
@@ -193,11 +192,11 @@ mod tests {
             Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
                 "λ", None, None,
             )))),
-        ];
+        ]));
         target
             .add_instruction(
                 PackedOperation::from_standard_gate(StandardGate::U),
-                &params,
+                params,
                 None,
                 None,
             )
@@ -205,7 +204,7 @@ mod tests {
         target
             .add_instruction(
                 PackedOperation::from_standard_gate(StandardGate::CX),
-                &[],
+                None,
                 None,
                 None,
             )

@@ -69,7 +69,7 @@ class UnitarySynthesis(TransformationPass):
     ):
         """Synthesize unitaries over some basis gates.
 
-        This pass can approximate 2-qubit unitaries given some
+        This pass can approximate unitaries given some
         gate fidelities (via ``target``).
         More approximation can be forced by setting a heuristic dial
         ``approximation_degree``.
@@ -143,6 +143,7 @@ class UnitarySynthesis(TransformationPass):
         self._target = target if target is not None and len(target.operation_names) > 0 else None
         if target is not None:
             self._coupling_map = target.build_coupling_map()
+            self._basis_gates = set(target.operation_names)
         if synth_gates:
             self._synth_gates = synth_gates
         else:

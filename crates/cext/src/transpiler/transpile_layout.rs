@@ -13,6 +13,13 @@
 use crate::pointers::const_ptr_as_ref;
 use qiskit_transpiler::transpile_layout::TranspileLayout;
 
+#[cfg(feature = "python_binding")]
+use pyo3::Python;
+#[cfg(feature = "python_binding")]
+use pyo3::ffi::PyObject;
+#[cfg(feature = "python_binding")]
+use qiskit_circuit::circuit_data::CircuitData;
+
 /// @ingroup QkTranspileLayout
 /// Return the number of qubits in the input circuit to the transpiler.
 ///
@@ -24,7 +31,7 @@ use qiskit_transpiler::transpile_layout::TranspileLayout;
 ///
 /// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a
 /// ``QkTranspileLayout``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_num_input_qubits(
     layout: *const TranspileLayout,
@@ -44,7 +51,7 @@ pub unsafe extern "C" fn qk_transpile_layout_num_input_qubits(
 ///
 /// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a
 /// ``QkTranspileLayout``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_num_output_qubits(
     layout: *const TranspileLayout,
@@ -86,7 +93,7 @@ pub unsafe extern "C" fn qk_transpile_layout_num_output_qubits(
 /// this will be number of input qubits (which can be checked with
 /// ``qk_transpile_layout_num_input_qubits()``) or the number of output qubits if ``filter_ancillas``
 /// is false (which can be queried with ``qk_transpile_layout_num_output_qubits()``).
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_initial_layout(
     layout: *const TranspileLayout,
@@ -141,7 +148,7 @@ pub unsafe extern "C" fn qk_transpile_layout_initial_layout(
 /// allocation to store the size necessary for the output_permutation. This will always be the number
 /// of output qubits in the ``QkTranspileLayout`` which can be queried with
 /// ``qk_transpile_layout_num_output_qubits()``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_output_permutation(
     layout: *const TranspileLayout,
@@ -195,7 +202,7 @@ pub unsafe extern "C" fn qk_transpile_layout_output_permutation(
 /// this will be number of input qubits (which can be checked with
 /// ``qk_transpile_layout_num_input_qubits()``) or the number of output qubits if ``filter_ancillas``
 /// is false (which can be queried with ``qk_transpile_layout_num_output_qubits()``).
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_final_layout(
     layout: *const TranspileLayout,
@@ -224,7 +231,7 @@ pub unsafe extern "C" fn qk_transpile_layout_final_layout(
 /// # Safety
 ///
 /// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a ``QkTranspileLayout``.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_free(layout: *mut TranspileLayout) {
     if !layout.is_null() {
@@ -239,12 +246,47 @@ pub unsafe extern "C" fn qk_transpile_layout_free(layout: *mut TranspileLayout) 
     }
 }
 
+/// @ingroup QkTranspileLayout
+/// Generate a Python-space ``TranspileLayout`` object from a ``QkTranspileLayout``.
+///
+/// The created Python-space object is a copy of the ``QkTranspileLayout`` provided, the data
+/// representation is different between C and Python and the data is not moved to Python like
+/// for some other ``*_to_python`` functions.
+///
+/// @param layout a pointer to a ``QkTranspileLayout``.
+/// @param circuit a pointer to the original ``QkCircuit``.
+/// @return the PyObject pointer for the Python space TranspileLayout object.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``layout`` and ``circuit`` are not valid, non-null pointers to a
+/// ``QkTranspileLayout`` and ``QkCircuit`` respectively. It is assumed that the thread currently
+/// executing this function holds the Python GIL. This is required to create the Python object
+/// returned by this function.
+#[unsafe(no_mangle)]
+#[cfg(feature = "python_binding")]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_transpile_layout_to_python(
+    layout: *const TranspileLayout,
+    circuit: *const CircuitData,
+) -> *mut PyObject {
+    // SAFETY: Per the documentation layout and circuit are valid pointers
+    // and the thread running the function holds the gil.
+    unsafe {
+        let layout = const_ptr_as_ref(layout);
+        let circuit = const_ptr_as_ref(circuit);
+        let py = Python::assume_attached();
+        let res = layout.to_py_native(py, circuit.qubits().objects()).unwrap();
+        res.into_ptr()
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
+    use qiskit_circuit::Qubit;
     use qiskit_circuit::bit::ShareableQubit;
     use qiskit_circuit::nlayout::{NLayout, PhysicalQubit};
-    use qiskit_circuit::Qubit;
     use qiskit_transpiler::transpile_layout::TranspileLayout;
 
     #[test]
@@ -280,6 +322,7 @@ mod test {
             Some(routing_permutation),
             input_qubits,
             3,
+            vec![],
         );
         let result = layout.final_index_layout(true);
         let expected = vec![PhysicalQubit(3), PhysicalQubit(5), PhysicalQubit(2)];
@@ -323,6 +366,7 @@ mod test {
             Some(routing_permutation),
             input_qubits,
             3,
+            vec![],
         );
         let result = layout.final_index_layout(false);
         let expected = vec![
@@ -377,6 +421,7 @@ mod test {
             Some(routing_permutation),
             input_qubits,
             3,
+            vec![],
         );
         let expected: Vec<u32> = [PhysicalQubit(9), PhysicalQubit(4), PhysicalQubit(0)]
             .into_iter()
@@ -421,6 +466,7 @@ mod test {
             Some(routing_permutation),
             input_qubits,
             3,
+            vec![],
         );
         let mut result: Vec<u32> = vec![u32::MAX; layout.num_output_qubits() as usize];
         assert!(unsafe { qk_transpile_layout_initial_layout(&layout, false, result.as_mut_ptr()) });
@@ -430,7 +476,7 @@ mod test {
     #[test]
     fn test_initial_layout_no_layout() {
         let input_qubits = vec![ShareableQubit::new_anonymous(); 10000];
-        let layout = TranspileLayout::new(None, None, input_qubits, 10000);
+        let layout = TranspileLayout::new(None, None, input_qubits, 10000, vec![]);
         let mut result: Vec<u32> = vec![u32::MAX; layout.num_input_qubits() as usize];
         assert!(!unsafe { qk_transpile_layout_initial_layout(&layout, true, result.as_mut_ptr()) });
     }
@@ -469,6 +515,7 @@ mod test {
             Some(routing_permutation),
             input_qubits,
             3,
+            vec![],
         );
         let mut result: Vec<u32> = vec![u32::MAX; layout.num_output_qubits() as usize];
         assert!(unsafe { qk_transpile_layout_output_permutation(&layout, result.as_mut_ptr()) });
@@ -478,7 +525,7 @@ mod test {
     #[test]
     fn test_output_permutation_not_set() {
         let input_qubits = vec![ShareableQubit::new_anonymous(); 10000];
-        let layout = TranspileLayout::new(None, None, input_qubits, 10000);
+        let layout = TranspileLayout::new(None, None, input_qubits, 10000, vec![]);
         let mut result: Vec<u32> = vec![u32::MAX; layout.num_output_qubits() as usize];
         assert!(!unsafe { qk_transpile_layout_output_permutation(&layout, result.as_mut_ptr()) });
     }
@@ -488,7 +535,7 @@ mod test {
         let initial_layout_vec = (0..256).rev().map(PhysicalQubit::new).collect();
         let initial_layout = NLayout::from_virtual_to_physical(initial_layout_vec).unwrap();
         let input_qubits = vec![ShareableQubit::new_anonymous(); 256];
-        let layout = TranspileLayout::new(Some(initial_layout), None, input_qubits, 3);
+        let layout = TranspileLayout::new(Some(initial_layout), None, input_qubits, 3, vec![]);
         unsafe {
             assert_eq!(qk_transpile_layout_num_input_qubits(&layout), 3);
         }
@@ -499,7 +546,7 @@ mod test {
         let initial_layout_vec = (0..256).rev().map(PhysicalQubit::new).collect();
         let initial_layout = NLayout::from_virtual_to_physical(initial_layout_vec).unwrap();
         let input_qubits = vec![ShareableQubit::new_anonymous(); 256];
-        let layout = TranspileLayout::new(Some(initial_layout), None, input_qubits, 3);
+        let layout = TranspileLayout::new(Some(initial_layout), None, input_qubits, 3, vec![]);
         unsafe {
             assert_eq!(qk_transpile_layout_num_output_qubits(&layout), 256);
         }
