@@ -532,7 +532,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aa4d037166f25435671ecc6054ae76b964f17da513353f1617690470680efdf0"
 dependencies = [
  "faer",
- "ndarray",
+ "ndarray 0.16.1",
  "num-complex",
 ]
 
@@ -1105,6 +1105,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "ndarray"
+version = "0.17.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c7c9125e8f6f10c9da3aad044cc918cf8784fa34de857b1aa68038eb05a50a9"
+dependencies = [
+ "approx",
+ "matrixmultiply",
+ "num-complex",
+ "num-integer",
+ "num-traits",
+ "portable-atomic",
+ "portable-atomic-util",
+ "rawpointer",
+ "rayon",
+]
+
+[[package]]
 name = "ndarray-einsum"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1112,7 +1129,7 @@ checksum = "f4b2d52dfff9b24d072b6080eab1587cbd54ae24da7b8370072c3a84db221e05"
 dependencies = [
  "hashbrown 0.15.5",
  "lazy_static",
- "ndarray",
+ "ndarray 0.16.1",
  "num-traits",
  "regex",
 ]
@@ -1233,7 +1250,7 @@ checksum = "0fa24ffc88cf9d43f7269d6b6a0d0a00010924a8cc90604a21ef9c433b66998d"
 dependencies = [
  "libc",
  "nalgebra",
- "ndarray",
+ "ndarray 0.16.1",
  "num-complex",
  "num-integer",
  "num-traits",
@@ -1549,7 +1566,7 @@ version = "0.27.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ab53c047fcd1a1d2a8820fe84f05d6be69e9526be40cb03b73f86b6b03e6d87d"
 dependencies = [
- "hashbrown 0.15.5",
+ "hashbrown 0.16.1",
  "indexmap",
  "indoc",
  "libc",
@@ -1630,7 +1647,7 @@ dependencies = [
  "hashbrown 0.15.5",
  "itertools 0.14.0",
  "nalgebra",
- "ndarray",
+ "ndarray 0.17.1",
  "num-bigint",
  "num-complex",
  "numpy",
@@ -1656,7 +1673,7 @@ dependencies = [
  "hashbrown 0.15.5",
  "indexmap",
  "nalgebra",
- "ndarray",
+ "ndarray 0.17.1",
  "num-complex",
  "pyo3",
  "qiskit-circuit",
@@ -1681,7 +1698,7 @@ dependencies = [
  "indexmap",
  "itertools 0.14.0",
  "nalgebra",
- "ndarray",
+ "ndarray 0.17.1",
  "nom",
  "nom-language",
  "nom-unicode",
@@ -1704,7 +1721,7 @@ dependencies = [
  "hashbrown 0.15.5",
  "itertools 0.14.0",
  "nalgebra",
- "ndarray",
+ "ndarray 0.17.1",
  "num-complex",
  "numpy",
  "pyo3",
@@ -1770,7 +1787,7 @@ dependencies = [
  "indexmap",
  "itertools 0.14.0",
  "nalgebra",
- "ndarray",
+ "ndarray 0.17.1",
  "ndarray-einsum",
  "num-complex",
  "num-traits",
@@ -1799,7 +1816,7 @@ dependencies = [
  "indexmap",
  "itertools 0.14.0",
  "nalgebra",
- "ndarray",
+ "ndarray 0.17.1",
  "num-complex",
  "num-traits",
  "numpy",
@@ -1831,7 +1848,7 @@ dependencies = [
  "indexmap",
  "itertools 0.14.0",
  "nalgebra",
- "ndarray",
+ "ndarray 0.17.1",
  "num-complex",
  "numpy",
  "pyo3",
@@ -2104,7 +2121,7 @@ dependencies = [
  "foldhash",
  "hashbrown 0.15.5",
  "indexmap",
- "ndarray",
+ "ndarray 0.16.1",
  "num-traits",
  "petgraph 0.8.3",
  "priority-queue",
