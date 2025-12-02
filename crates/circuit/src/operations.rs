@@ -13,6 +13,7 @@
 use approx::relative_eq;
 use std::f64::consts::PI;
 use std::fmt::Debug;
+use std::num::NonZero;
 use std::sync::Arc;
 use std::{fmt, vec};
 
@@ -365,6 +366,91 @@ pub enum BoxDuration {
     Expr(expr::Expr),
 }
 
+/// A literal Python range extracted to a Rust object.
+///
+/// This is separate to `PyO3`'s `PyRange` type, since that keeps everything internally safe for
+/// subclassing and modification the Python heap.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PyRange {
+    pub start: isize,
+    pub stop: isize,
+    pub step: NonZero<isize>,
+}
+impl PyRange {
+    pub fn is_empty(&self) -> bool {
+        let step = self.step.unsigned_abs().get();
+        let diff = self.start.abs_diff(self.stop);
+        (self.step.get() > 0 && self.start < self.stop
+            || (self.step.get() < 0 && self.start > self.stop))
+            && diff >= step
+    }
+    pub fn len(&self) -> usize {
+        let step = self.step.unsigned_abs().get();
+        let diff = self.start.abs_diff(self.stop);
+        if (self.step.get() > 0 && self.start < self.stop)
+            || (self.step.get() < 0 && self.start > self.stop)
+        {
+            // The `diff-1` is guaranteed safe because the `start < stop` or `start > stop`
+            // conditions guarantee that `diff` is at least 1.
+            1 + (diff - 1) / step
+        } else {
+            0
+        }
+    }
+}
+impl<'py> IntoPyObject<'py> for PyRange {
+    type Target = ::pyo3::types::PyRange;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        ::pyo3::types::PyRange::new_with_step(py, self.start, self.stop, self.step.get())
+    }
+}
+impl<'py> IntoPyObject<'py> for &'_ PyRange {
+    type Target = <PyRange as IntoPyObject<'py>>::Target;
+    type Output = <PyRange as IntoPyObject<'py>>::Output;
+    type Error = <PyRange as IntoPyObject<'py>>::Error;
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        (*self).into_pyobject(py)
+    }
+}
+impl<'a, 'py> FromPyObject<'a, 'py> for PyRange {
+    type Error = PyErr;
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+        use pyo3::types::PyRangeMethods;
+
+        let ob = ob.cast::<pyo3::types::PyRange>()?;
+        Ok(Self {
+            start: ob.start()?,
+            stop: ob.stop()?,
+            step: NonZero::new(ob.step()?).expect("Python does not allow zero steps"),
+        })
+    }
+}
+
+/// Possible specifications of the "collection" that a for loop iterates over.
+#[derive(Clone, Debug, IntoPyObject, IntoPyObjectRef, FromPyObject, PartialEq, Eq)]
+pub enum ForCollection {
+    /// A literal Python `range` object extracted to Rust.
+    PyRange(PyRange),
+    /// Some ordered collection of integers.
+    List(Vec<usize>),
+}
+impl ForCollection {
+    pub fn is_empty(&self) -> bool {
+        match self {
+            Self::PyRange(xs) => xs.is_empty(),
+            Self::List(xs) => xs.is_empty(),
+        }
+    }
+    pub fn len(&self) -> usize {
+        match self {
+            Self::PyRange(xs) => xs.len(),
+            Self::List(xs) => xs.len(),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct ControlFlowInstruction {
     pub control_flow: ControlFlow,
@@ -382,7 +468,7 @@ pub enum ControlFlow {
     BreakLoop,
     ContinueLoop,
     ForLoop {
-        indexset: Vec<usize>,
+        collection: ForCollection,
         loop_param: Option<Symbol>,
     },
     IfElse {
@@ -439,13 +525,13 @@ impl ControlFlowInstruction {
                 _ => Ok(false),
             },
             ControlFlow::ForLoop {
-                indexset: self_indexset,
+                collection: self_collection,
                 loop_param: self_loop_param,
             } => match &other.control_flow {
                 ControlFlow::ForLoop {
-                    indexset: other_indexset,
+                    collection: other_collection,
                     loop_param: other_loop_param,
-                } => Ok(self_indexset == other_indexset && self_loop_param == other_loop_param),
+                } => Ok(self_collection == other_collection && self_loop_param == other_loop_param),
                 _ => Ok(false),
             },
             ControlFlow::IfElse {
@@ -529,11 +615,11 @@ impl ControlFlowInstruction {
                 kwargs.as_ref(),
             ),
             ControlFlow::ForLoop {
-                indexset,
+                collection,
                 loop_param,
             } => imports::FOR_LOOP_OP.get(py).call(
                 py,
-                (indexset, loop_param.clone(), blocks.next()),
+                (collection, loop_param.clone(), blocks.next()),
                 kwargs.as_ref(),
             ),
             ControlFlow::IfElse { condition } => imports::IF_ELSE_OP.get(py).call(
@@ -606,7 +692,7 @@ pub enum ControlFlowView<'a, T> {
     BreakLoop,
     ContinueLoop,
     ForLoop {
-        indexset: &'a [usize],
+        collection: &'a ForCollection,
         loop_param: Option<&'a Symbol>,
         body: &'a T,
     },

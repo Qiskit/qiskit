@@ -1833,9 +1833,11 @@ impl DAGCircuit {
             .filter_map(|(_, node)| self.try_view_control_flow(node))
         {
             match control_flow {
-                ControlFlowView::ForLoop { indexset, body, .. } => {
+                ControlFlowView::ForLoop {
+                    collection, body, ..
+                } => {
                     // TODO: is this the intended logic?
-                    length += indexset.len() * body.size(true)?;
+                    length += collection.len() * body.size(true)?;
                 }
                 _ => {
                     for block in control_flow.blocks() {
@@ -1893,8 +1895,8 @@ impl DAGCircuit {
             .op_nodes(false)
             .filter_map(|(index, node)| self.try_view_control_flow(node).map(|cf| (index, cf)))
         {
-            let weight = if let ControlFlowView::ForLoop { indexset, .. } = control_flow {
-                indexset.len()
+            let weight = if let ControlFlowView::ForLoop { collection, .. } = control_flow {
+                collection.len()
             } else {
                 1
             };
@@ -2335,17 +2337,17 @@ impl DAGCircuit {
                                 }
                                 (
                                     ControlFlowView::ForLoop {
-                                        indexset: indexset_a,
+                                        collection: collection_a,
                                         loop_param: loop_param_a,
                                         body: body_a,
                                     },
                                     ControlFlowView::ForLoop {
-                                        indexset: indexset_b,
+                                        collection: collection_b,
                                         loop_param: loop_param_b,
                                         body: body_b,
                                     },
                                 ) => {
-                                    if indexset_a != indexset_b {
+                                    if collection_a != collection_b {
                                         return Ok(false);
                                     }
                                     match (loop_param_a, loop_param_b) {
@@ -5079,11 +5081,11 @@ impl DAGCircuit {
             ControlFlow::BreakLoop => ControlFlowView::BreakLoop,
             ControlFlow::ContinueLoop => ControlFlowView::ContinueLoop,
             ControlFlow::ForLoop {
-                indexset,
+                collection,
                 loop_param,
                 ..
             } => ControlFlowView::ForLoop {
-                indexset: indexset.as_slice(),
+                collection,
                 loop_param: loop_param.as_ref(),
                 body: self.blocks.get(instr.blocks_view()[0].index()).unwrap(),
             },
