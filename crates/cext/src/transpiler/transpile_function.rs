@@ -234,7 +234,7 @@ pub unsafe extern "C" fn qk_transpile_stage_init(
 ///   set for the inner value of the layout here.
 /// @param error A pointer to a pointer with an nul terminated string with an error description.
 ///   If the transpiler fails a pointer to the string with the error description will be written
-///   to this pointer. That pointer needs to be freed with ``qk_str_free```. This can be a null
+///   to this pointer. That pointer needs to be freed with ``qk_str_free``. This can be a null
 ///   pointer in which case the error will not be written out.
 ///
 /// @returns The return code for the transpiler, ``QkExitCode_Success`` means success and all
@@ -245,7 +245,7 @@ pub unsafe extern "C" fn qk_transpile_stage_init(
 /// Behavior is undefined if ``dag`` or ``target``, are not valid, non-null
 /// pointers to a ``QkDag``, or a ``QkTarget`` respectively. Behavior is also undefined if ``layout``
 /// is not a valid, aligned, pointer to a pointer to a ``QkTranspileLayout`` or a pointer to a
-/// `NULL` pointer. ``options`` must be a valid pointer a to a ``QkTranspileOptions`` or ``NULL`.
+/// ``NULL`` pointer. ``options`` must be a valid pointer a to a ``QkTranspileOptions`` or ``NULL``.
 /// ``error`` must be a valid pointer to a ``char`` pointer or ``NULL``.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
