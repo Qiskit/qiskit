@@ -73,7 +73,7 @@ pub fn run_litinski_transformation(
             unsupported
         )));
     }
-    let rotation_count: usize = op_counts
+    let non_clifford_handled_count: usize = op_counts
         .iter()
         .filter_map(|(k, v)| {
             if HANDLED_INSTRUCTION_NAMES.contains(&k.as_str()) {
@@ -83,7 +83,7 @@ pub fn run_litinski_transformation(
             }
         })
         .sum();
-    let clifford_count = dag.size(false)? - rotation_count;
+    let clifford_count = dag.size(false)? - non_clifford_handled_count;
 
     let new_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike, BlocksMode::Keep)?;
     let mut new_dag = new_dag.into_builder();
