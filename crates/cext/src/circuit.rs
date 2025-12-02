@@ -1240,7 +1240,9 @@ impl From<CVarsMode> for VarsMode {
 /// The mode to use when handling blocks for operations.
 #[repr(u8)]
 pub enum CBlocksMode {
+    /// Drop the blocks.
     Drop = 0,
+    /// Keep the blocks.
     Keep = 1,
 }
 
