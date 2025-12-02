@@ -490,7 +490,7 @@ fn add_control(gate: StandardGate, params: &[Param], control_state: &[bool]) -> 
             .call_method1(
                 py,
                 intern!(py, "control"),
-                (num_controls, label, py_control_state),
+                (num_controls, label, py_control_state, false),
             )
             .expect("Failed to call .control()")
             .extract::<OperationFromPython>(py)
