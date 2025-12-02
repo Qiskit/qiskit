@@ -1394,7 +1394,7 @@ pub unsafe extern "C" fn qk_dag_topological_op_nodes(dag: *const DAGCircuit, out
 /// uint32_t qubit[1] = {0};
 /// qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
 ///
-/// // As the circuit does not contain any control-flow instructions,
+/// // As the DAG does not contain any control-flow instructions,
 /// // vars_mode and blocks_mode do not have any effect.
 /// QkDag *copied_dag = qk_dag_copy_empty_like(dag, QkVarsMode_Alike, QkBlocksMode_Drop);
 /// uint32_t num_ops_in_copied_dag = qk_dag_num_op_nodes(copied_dag); // 0
