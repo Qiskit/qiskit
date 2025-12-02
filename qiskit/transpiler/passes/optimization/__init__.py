@@ -19,6 +19,7 @@ from .collect_multiqubit_blocks import CollectMultiQBlocks
 from .consolidate_blocks import ConsolidateBlocks
 from .commutation_analysis import CommutationAnalysis
 from .commutative_cancellation import CommutativeCancellation
+from .commutative_optimization import CommutativeOptimization
 from .commutative_inverse_cancellation import CommutativeInverseCancellation
 from .optimize_1q_commutation import Optimize1qGatesSimpleCommutation
 from .optimize_swap_before_measure import OptimizeSwapBeforeMeasure
@@ -41,3 +42,4 @@ from .collect_and_collapse import CollectAndCollapse
 from .contract_idle_wires_in_control_flow import ContractIdleWiresInControlFlow
 from .optimize_clifford_t import OptimizeCliffordT
 from .litinski_transformation import LitinskiTransformation
+from .substitute_pi4_rotations import SubstitutePi4Rotations
