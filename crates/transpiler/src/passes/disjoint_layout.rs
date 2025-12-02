@@ -17,8 +17,12 @@ use hashbrown::{HashMap, HashSet};
 use pyo3::create_exception;
 use pyo3::intern;
 use pyo3::prelude::*;
+<<<<<<< HEAD
 use pyo3::types::{PyList, PyTuple};
 use rayon::prelude::*;
+=======
+use pyo3::types::PyList;
+>>>>>>> cae0817b7 (Stop using a parallel sort in disjoint utils (#15410))
 use rustworkx_core::connectivity::connected_components;
 use rustworkx_core::petgraph::prelude::*;
 use rustworkx_core::petgraph::visit::{IntoEdgeReferences, IntoNodeReferences, NodeFiltered};
@@ -268,10 +272,10 @@ fn map_components(
         .enumerate()
         .map(|(idx, dag)| (idx, dag.num_qubits()))
         .collect();
-    dag_qubits.par_sort_unstable_by_key(|x| x.1);
+    dag_qubits.sort_unstable_by_key(|x| x.1);
     dag_qubits.reverse();
     let mut cmap_indices = (0..cmap_components.len()).collect::<Vec<_>>();
-    cmap_indices.par_sort_unstable_by_key(|x| free_qubits[*x]);
+    cmap_indices.sort_unstable_by_key(|x| free_qubits[*x]);
     cmap_indices.reverse();
     for (dag_index, dag_num_qubits) in dag_qubits {
         let mut found = false;
