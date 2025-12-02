@@ -177,7 +177,7 @@ static int test_circuit_copy_empty_like(void) {
         uint32_t qubits[1] = {i};
         qk_circuit_gate(qc, QkGate_H, qubits, NULL);
     }
-    QkCircuit *copy = qk_circuit_copy_empty_like(qc);
+    QkCircuit *copy = qk_circuit_copy_empty_like(qc, QkVarsMode_Alike, QkBlocksMode_Drop);
 
     size_t num_instructions = qk_circuit_num_instructions(qc);        // not 0
     size_t num_copy_instructions = qk_circuit_num_instructions(copy); // 0

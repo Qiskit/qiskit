@@ -1213,6 +1213,47 @@ pub unsafe extern "C" fn qk_circuit_to_dag(circuit: *const CircuitData) -> *mut 
 }
 
 /// @ingroup QkCircuit
+///
+/// The mode to copy the classical variables.
+#[repr(u8)]
+pub enum CVarsMode {
+    /// Each variable has the same type it had in the input.
+    Alike = 0,
+    /// Each variable becomes a "capture".
+    Captures = 1,
+    /// Do not copy the variable data.
+    Drop = 2,
+}
+
+impl From<CVarsMode> for VarsMode {
+    fn from(value: CVarsMode) -> Self {
+        match value {
+            CVarsMode::Alike => VarsMode::Alike,
+            CVarsMode::Captures => VarsMode::Captures,
+            CVarsMode::Drop => VarsMode::Drop,
+        }
+    }
+}
+
+/// @ingroup QkCircuit
+///
+/// The mode to use when handling blocks for operations.
+#[repr(u8)]
+pub enum CBlocksMode {
+    Drop = 0,
+    Keep = 1,
+}
+
+impl From<CBlocksMode> for BlocksMode {
+    fn from(value: CBlocksMode) -> Self {
+        match value {
+            CBlocksMode::Drop => BlocksMode::Drop,
+            CBlocksMode::Keep => BlocksMode::Keep,
+        }
+    }
+}
+
+/// @ingroup QkCircuit
 /// Return a copy of self with the same structure but empty.
 ///
 /// That structure includes:
@@ -1220,6 +1261,8 @@ pub unsafe extern "C" fn qk_circuit_to_dag(circuit: *const CircuitData) -> *mut 
 /// * all the qubits and clbits, including the registers.
 ///
 /// @param circuit A pointer to the circuit to copy.
+/// @param vars_mode The mode for handling classical variables.
+/// @param blocks_mode The mode for handling blocks.
 ///
 /// @return The pointer to the copied circuit.
 ///
@@ -1231,7 +1274,7 @@ pub unsafe extern "C" fn qk_circuit_to_dag(circuit: *const CircuitData) -> *mut 
 ///     uint32_t qubits[1] = {i};
 ///     qk_circuit_gate(qc, QkGate_H, qubits, NULL);
 /// }
-/// QkCircuit *copy = qk_circuit_copy_empty_like(qc);
+/// QkCircuit *copy = qk_circuit_copy_empty_like(qc, QkVarsMode_Alike, QkBlocksMode_Drop);
 ///
 /// size_t num_copy_instructions = qk_circuit_num_instructions(copy); // 0
 ///
@@ -1248,12 +1291,16 @@ pub unsafe extern "C" fn qk_circuit_to_dag(circuit: *const CircuitData) -> *mut 
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_copy_empty_like(
     circuit: *const CircuitData,
+    vars_mode: CVarsMode,
+    blocks_mode: CBlocksMode,
 ) -> *mut CircuitData {
     // SAFETY: Per documentation, the pointer is to valid data.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
+    let vars_mode = vars_mode.into();
+    let blocks_mode = blocks_mode.into();
 
     let copied_circuit = circuit
-        .copy_empty_like(VarsMode::Alike, BlocksMode::Drop)
+        .copy_empty_like(vars_mode, blocks_mode)
         .expect("Failed to copy the circuit.");
     Box::into_raw(Box::new(copied_circuit))
 }
