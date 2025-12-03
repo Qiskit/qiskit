@@ -94,7 +94,7 @@ class U3Gate(Gate):
     ):
         r"""
         Args:
-            theta: The angle :math:`\theta corresponding to the :math:`R_Y(\theta)` rotation.
+            theta: The angle :math:`\theta` corresponding to the :math:`R_Y(\theta)` rotation.
             phi: The angle :math:`\phi` corresponding to the :math:`R_Z(\phi)` rotation.
             lam: The angle :math:`\lambda` corresponding to the :math:`R_Z(\lambda)` rotation.
             label: An optional label for the gate.
