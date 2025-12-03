@@ -330,7 +330,7 @@ class PauliEvolutionGate(Gate):
 def _to_sparse_op(
     operator: Pauli | SparsePauliOp | SparseObservable,
 ) -> SparsePauliOp | SparseObservable:
-    """Cast the operator to a SparsePauliOp."""
+    """Cast the operator to a sparse format; either SparseObservable or SparsePauliOp."""
 
     if isinstance(operator, Pauli):
         sparse = SparsePauliOp(operator)
@@ -348,6 +348,7 @@ def _to_sparse_op(
 
 
 def _to_sparse_observable(operator: SparseObservable | SparsePauliOp) -> SparseObservable:
+    """Coerce SparsePauliOp or SparseObservable into a SparseObservable."""
     if isinstance(operator, SparsePauliOp):
         return SparseObservable.from_sparse_pauli_op(operator)
     return operator
