@@ -57,6 +57,15 @@ class PauliEvolutionGate(Gate):
     Note that the order in which the approximation and methods like :meth:`control` and
     :meth:`power` are called matters. Changing the order can lead to different unitaries.
 
+    Commutation checks:
+
+    Qiskit supports efficient commutation checks of :class:`PauliEvolutionGate` instances
+    with other Pauli-based gates, such as :class:`.PauliGate` or :class:`.PauliProductMeasurement`.
+    However, these checks require conversion of the operator into :class:`.SparseObservable` format,
+    hence we strongly suggest to build operators using this operator class if a large number
+    of commutation checks are expected (e.g. if you have a circuit with a large number of
+    sequential :class:`PauliEvolutionGate`\ s).
+
     Examples:
 
     .. plot::

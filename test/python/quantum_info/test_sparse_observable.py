@@ -2369,14 +2369,14 @@ class TestSparseObservable(QiskitTestCase):
         z_pairs = SparseObservable.from_sparse_list(
             [("ZZ", [i, i + 1], 1) for i in range(n - 1)], num_qubits=n
         )
-        self.assertTrue(x_pairs.commute(x_pairs))
-        self.assertFalse(z_pairs.commute(x_pairs))
+        self.assertTrue(x_pairs.commutes(x_pairs))
+        self.assertFalse(z_pairs.commutes(x_pairs))
 
         xxyy = SparseObservable.from_sparse_list(
             [("XX", [0, 1], 1), ("YY", [0, 1], 1)], num_qubits=2
         )
         zz = SparseObservable.from_sparse_list([("ZZ", [0, 1], 1)], num_qubits=2)
-        self.asserTrue(zz.commutes(xxyy))
+        self.assertTrue(zz.commutes(xxyy))
 
 
 def canonicalize_term(pauli, indices, coeff):

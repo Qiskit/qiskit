@@ -284,13 +284,13 @@ impl CommutationChecker {
         CommutationChecker::new(Some(library), cache_max_entries, gates)
     }
 
-    #[pyo3(signature=(op1, op2, max_num_qubits=3, approximation_degree=1., matrix_max_num_qubits=3))]
+    #[pyo3(signature=(op1, op2, max_num_qubits=None, approximation_degree=1., matrix_max_num_qubits=3))]
     fn commute_nodes(
         &mut self,
         py: Python,
         op1: &DAGOpNode,
         op2: &DAGOpNode,
-        max_num_qubits: u32,
+        max_num_qubits: Option<u32>,
         approximation_degree: f64,
         matrix_max_num_qubits: u32,
     ) -> PyResult<bool> {
@@ -318,7 +318,7 @@ impl CommutationChecker {
         )?)
     }
 
-    #[pyo3(name="commute", signature=(op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits=3, approximation_degree=1., matrix_max_num_qubits=3))]
+    #[pyo3(name="commute", signature=(op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits=None, approximation_degree=1., matrix_max_num_qubits=3))]
     #[allow(clippy::too_many_arguments)]
     fn py_commute(
         &mut self,
@@ -328,7 +328,7 @@ impl CommutationChecker {
         op2: OperationFromPython,
         qargs2: &Bound<'_, PyTuple>,
         cargs2: &Bound<'_, PyTuple>,
-        max_num_qubits: u32,
+        max_num_qubits: Option<u32>,
         approximation_degree: f64,
         matrix_max_num_qubits: u32,
     ) -> PyResult<bool> {
@@ -436,7 +436,7 @@ impl CommutationChecker {
         params2: Option<&Parameters<T>>,
         qargs2: &[Qubit],
         cargs2: &[Clbit],
-        max_num_qubits: u32,
+        max_num_qubits: Option<u32>,
         matrix_max_num_qubits: u32,
         approximation_degree: f64,
     ) -> Result<bool, CommutationError> {
@@ -485,6 +485,25 @@ impl CommutationChecker {
             }
         }
 
+        let precheck_status = commutation_precheck(
+            op1,
+            qargs1,
+            cargs1,
+            params1,
+            op2,
+            qargs2,
+            cargs2,
+            params2,
+            max_num_qubits,
+        );
+
+        // Check if we can already return after the pre-check, or if further evaluations are required
+        match precheck_status {
+            PrecheckStatus::Commuting => return Ok(true),
+            PrecheckStatus::NonCommuting => return Ok(false),
+            _ => (),
+        };
+
         // Handle commutations in between Pauli-based gates, like PauliGate or PauliEvolutionGate
         let size = qargs1.iter().chain(qargs2.iter()).max().unwrap().0 + 1;
         if let Some(obs1) = try_pauli_generator(op1, qargs1, size) {
@@ -493,19 +512,9 @@ impl CommutationChecker {
             }
         }
 
-        let commutation: Option<bool> = commutation_precheck(
-            op1,
-            params1,
-            qargs1,
-            cargs1,
-            op2,
-            params2,
-            qargs2,
-            cargs2,
-            max_num_qubits,
-        );
-        if let Some(is_commuting) = commutation {
-            return Ok(is_commuting);
+        // Now there are no more parameterized gates that are allowed
+        if matches!(precheck_status, PrecheckStatus::Parameterized) {
+            return Ok(false);
         }
 
         // Sort the arguments.
@@ -720,37 +729,51 @@ impl CommutationChecker {
     }
 }
 
+/// A pre-check status.
+///
+/// Used to differentiate between the reasons why gates might not commute, which allow
+/// the commutation checker to handle cases individually. E.g. a ``PauliEvolutionGate`` can
+/// still be checked even if the gate is parameterized.
+enum PrecheckStatus {
+    Commuting,     // gates commute for sure
+    NonCommuting,  // gates do not commute for sure
+    Parameterized, // a gate is parameterized and is likely disqualified from being checked
+    Unknown,       // the precheck is inconclusive
+}
+
 #[allow(clippy::too_many_arguments)]
 fn commutation_precheck(
     op1: &OperationRef,
-    params1: &[Param],
     qargs1: &[Qubit],
     cargs1: &[Clbit],
+    params1: &[Param],
     op2: &OperationRef,
-    params2: &[Param],
     qargs2: &[Qubit],
     cargs2: &[Clbit],
-    max_num_qubits: u32,
-) -> Option<bool> {
+    params2: &[Param],
+    max_num_qubits: Option<u32>,
+) -> PrecheckStatus {
     if matches!(op1, OperationRef::ControlFlow { .. })
         || matches!(op2, OperationRef::ControlFlow { .. })
     {
-        return Some(false);
+        return PrecheckStatus::NonCommuting;
     }
 
     // assuming the number of involved qubits to be small, this might be faster than set operations
     if !qargs1.iter().any(|e| qargs2.contains(e)) && !cargs1.iter().any(|e| cargs2.contains(e)) {
-        return Some(true);
+        return PrecheckStatus::Commuting;
     }
 
-    if qargs1.len() > max_num_qubits as usize || qargs2.len() > max_num_qubits as usize {
-        return Some(false);
+    if let Some(limit) = max_num_qubits {
+        if qargs1.len() > limit as usize || qargs2.len() > limit as usize {
+            return PrecheckStatus::NonCommuting;
+        }
     }
 
     if let OperationRef::StandardGate(gate_1) = op1 {
         if let OperationRef::StandardGate(gate_2) = op2 {
             if SUPPORTED_OP[(*gate_1) as usize] && SUPPORTED_OP[(*gate_2) as usize] {
-                return None;
+                return PrecheckStatus::Unknown;
             }
         }
     }
@@ -762,14 +785,14 @@ fn commutation_precheck(
         op2,
         OperationRef::StandardInstruction(_) | OperationRef::Instruction(_)
     ) {
-        return Some(false);
+        return PrecheckStatus::NonCommuting;
     }
 
     if is_parameterized(params1) || is_parameterized(params2) {
-        return Some(false);
+        return PrecheckStatus::Parameterized;
     }
 
-    None
+    PrecheckStatus::Unknown
 }
 
 /// Returns matrix representation of the specified operation.

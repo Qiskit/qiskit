@@ -106,7 +106,7 @@ pub fn analyze_commutations(
                             packed_inst1.params.as_deref(),
                             qargs2,
                             cargs2,
-                            MAX_NUM_QUBITS,
+                            None,
                             MAX_NUM_QUBITS,
                             approximation_degree,
                         )?;
