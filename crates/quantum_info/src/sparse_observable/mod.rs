@@ -116,6 +116,9 @@ pub enum MatrixComputationError {
 
     #[error("Failed to construct matrix from observable: {0}")]
     InvalidObservable(String),
+
+    #[error("Mismatched lengths in SparseObservable term")]
+    InconsistentTerm,
 }
 pub type MatrixResult<T> = Result<T, MatrixComputationError>;
 impl From<BitTerm> for u8 {
@@ -400,12 +403,260 @@ pub struct SparseObservable {
     /// always an explicit zero (for algorithmic ease).
     boundaries: Vec<usize>,
 }
+// ---------------------------------------------------------------------------
+//  Local 2x2 operator tables for BitTerms (Paulis + projectors)
+// ---------------------------------------------------------------------------
+
+#[derive(Clone, Copy, Debug)]
+struct LocalEntry(u8, Complex64); // (output_bit, amplitude)
+
+#[derive(Clone, Copy, Debug)]
+struct Local2x2 {
+    out0: &'static [LocalEntry], // transitions when input bit = 0
+    out1: &'static [LocalEntry], // transitions when input bit = 1
+}
+
+// Pauli X
+static L_X_OUT0: [LocalEntry; 1] = [LocalEntry(1, Complex64::new(1.0, 0.0))];
+static L_X_OUT1: [LocalEntry; 1] = [LocalEntry(0, Complex64::new(1.0, 0.0))];
+
+// Pauli Z
+static L_Z_OUT0: [LocalEntry; 1] = [LocalEntry(0, Complex64::new(1.0, 0.0))];
+static L_Z_OUT1: [LocalEntry; 1] = [LocalEntry(1, Complex64::new(-1.0, 0.0))];
+
+// Pauli Y
+static L_Y_OUT0: [LocalEntry; 1] = [LocalEntry(1, Complex64::new(0.0, -1.0))]; // -i
+static L_Y_OUT1: [LocalEntry; 1] = [LocalEntry(0, Complex64::new(0.0, 1.0))]; // +i
+
+// |+><+|
+static L_PLUS_OUT0: [LocalEntry; 2] = [
+    LocalEntry(0, Complex64::new(0.5, 0.0)),
+    LocalEntry(1, Complex64::new(0.5, 0.0)),
+];
+static L_PLUS_OUT1: [LocalEntry; 2] = [
+    LocalEntry(0, Complex64::new(0.5, 0.0)),
+    LocalEntry(1, Complex64::new(0.5, 0.0)),
+];
+
+// |-><-|
+static L_MINUS_OUT0: [LocalEntry; 2] = [
+    LocalEntry(0, Complex64::new(0.5, 0.0)),
+    LocalEntry(1, Complex64::new(-0.5, 0.0)),
+];
+static L_MINUS_OUT1: [LocalEntry; 2] = [
+    LocalEntry(0, Complex64::new(-0.5, 0.0)),
+    LocalEntry(1, Complex64::new(0.5, 0.0)),
+];
+
+// |0><0|
+static L_ZERO_OUT0: [LocalEntry; 1] = [LocalEntry(0, Complex64::new(1.0, 0.0))];
+static L_ZERO_OUT1: [LocalEntry; 0] = [];
+
+// |1><1|
+static L_ONE_OUT0: [LocalEntry; 0] = [];
+static L_ONE_OUT1: [LocalEntry; 1] = [LocalEntry(1, Complex64::new(1.0, 0.0))];
+
+// |r><r|
+// right eigenstate of Y = +i
+static L_RIGHT_OUT0: [LocalEntry; 2] = [
+    LocalEntry(0, Complex64::new(0.5, 0.0)),
+    LocalEntry(1, Complex64::new(0.0, -0.5)),
+];
+static L_RIGHT_OUT1: [LocalEntry; 2] = [
+    LocalEntry(0, Complex64::new(0.0, 0.5)),
+    LocalEntry(1, Complex64::new(0.5, 0.0)),
+];
+
+// |l><l|
+// left eigenstate of Y = -i
+static L_LEFT_OUT0: [LocalEntry; 2] = [
+    LocalEntry(0, Complex64::new(0.5, 0.0)),
+    LocalEntry(1, Complex64::new(0.0, 0.5)),
+];
+static L_LEFT_OUT1: [LocalEntry; 2] = [
+    LocalEntry(0, Complex64::new(0.0, -0.5)),
+    LocalEntry(1, Complex64::new(0.5, 0.0)),
+];
+
+static L2X: Local2x2 = Local2x2 {
+    out0: &L_X_OUT0,
+    out1: &L_X_OUT1,
+};
+static L2Y: Local2x2 = Local2x2 {
+    out0: &L_Y_OUT0,
+    out1: &L_Y_OUT1,
+};
+static L2Z: Local2x2 = Local2x2 {
+    out0: &L_Z_OUT0,
+    out1: &L_Z_OUT1,
+};
+
+static L2PLUS: Local2x2 = Local2x2 {
+    out0: &L_PLUS_OUT0,
+    out1: &L_PLUS_OUT1,
+};
+static L2MINUS: Local2x2 = Local2x2 {
+    out0: &L_MINUS_OUT0,
+    out1: &L_MINUS_OUT1,
+};
+
+static L2ZERO: Local2x2 = Local2x2 {
+    out0: &L_ZERO_OUT0,
+    out1: &L_ZERO_OUT1,
+};
+static L2ONE: Local2x2 = Local2x2 {
+    out0: &L_ONE_OUT0,
+    out1: &L_ONE_OUT1,
+};
+
+static L2RIGHT: Local2x2 = Local2x2 {
+    out0: &L_RIGHT_OUT0,
+    out1: &L_RIGHT_OUT1,
+};
+static L2LEFT: Local2x2 = Local2x2 {
+    out0: &L_LEFT_OUT0,
+    out1: &L_LEFT_OUT1,
+};
+
+// ---------------------------------------------------------------------------
+
+//  BitTerm to Local2x2 table mapper
+fn local_for_bitterm(bt: BitTerm) -> Option<&'static Local2x2> {
+    match bt {
+        BitTerm::X => Some(&L2X),
+        BitTerm::Y => Some(&L2Y),
+        BitTerm::Z => Some(&L2Z),
+
+        BitTerm::Plus => Some(&L2PLUS),
+        BitTerm::Minus => Some(&L2MINUS),
+
+        BitTerm::Zero => Some(&L2ZERO),
+        BitTerm::One => Some(&L2ONE),
+
+        BitTerm::Right => Some(&L2RIGHT),
+        BitTerm::Left => Some(&L2LEFT),
+    }
+}
+
+// Compact compiled form of a SparseObservable term
+#[derive(Clone, Debug)]
+struct TermDecomp {
+    qubits: Vec<u32>,
+    mask: u64,
+    dest_offsets: Vec<u64>,
+    locals: Vec<&'static Local2x2>,
+    coeff: Complex64,
+}
+
+impl TermDecomp {
+    ///from raw byte-coded bit terms
+    fn from_term_bits(
+        bit_terms: &[BitTerm],
+        indices: &[u32],
+        coeff: Complex64,
+    ) -> Result<Self, MatrixComputationError> {
+        if bit_terms.len() != indices.len() {
+            return Err(MatrixComputationError::InconsistentTerm);
+        }
+
+        let k = indices.len();
+        if k == 0 {
+            return Ok(Self {
+                qubits: Vec::new(),
+                mask: 0,
+                dest_offsets: vec![0u64],
+                locals: Vec::new(),
+                coeff,
+            });
+        }
+
+        let mut qubits = Vec::with_capacity(k);
+        let mut locals = Vec::with_capacity(k);
+        let mut mask: u64 = 0;
+
+        for (&bt, &q) in bit_terms.iter().zip(indices.iter()) {
+            let local = local_for_bitterm(bt).unwrap(); // safe: all BitTerms have Local2x2
+            qubits.push(q);
+            locals.push(local);
+            mask |= 1u64 << q;
+        }
+
+        // precompute dest offsets
+        let s_count = 1usize << k;
+        let mut dest_offsets = Vec::with_capacity(s_count);
+        for s in 0..s_count {
+            let mut off = 0u64;
+            for (j, &q) in qubits.iter().enumerate() {
+                let s_j = ((s >> j) & 1) as u64;
+                off |= s_j << q;
+            }
+            dest_offsets.push(off);
+        }
+
+        Ok(TermDecomp {
+            qubits,
+            mask,
+            dest_offsets,
+            locals,
+            coeff,
+        })
+    }
+
+    #[inline]
+    fn apply_to_row(&self, r: u64, out: &mut Vec<(usize, Complex64)>) {
+        let base = r & !self.mask;
+
+        let mut b = 0usize;
+        for (j, &q) in self.qubits.iter().enumerate() {
+            b |= (((r >> q) & 1) as usize) << j;
+        }
+
+        // iterate all output patterns s
+        let k = self.qubits.len();
+        let s_count = 1usize << k;
+
+        for s in 0..s_count {
+            let mut mult = Complex64::new(1.0, 0.0);
+            let mut zero = false;
+
+            for j in 0..k {
+                let b_j = (b >> j) & 1;
+                let s_j = ((s >> j) & 1) as u8;
+                let local = self.locals[j];
+
+                let row = if b_j == 0 { local.out0 } else { local.out1 };
+
+                let mut found = false;
+                for le in row {
+                    if le.0 == s_j {
+                        mult *= le.1;
+                        found = true;
+                        break;
+                    }
+                }
+                if !found {
+                    zero = true;
+                    break;
+                }
+            }
+
+            if zero {
+                continue;
+            }
+
+            let dest = (base | self.dest_offsets[s]) as usize;
+            out.push((dest, self.coeff * mult));
+        }
+    }
+}
+
 #[derive(Debug)]
 struct MatrixComputationData {
     x_like: Vec<u64>,
     z_like: Vec<u64>,
     coeffs: Vec<Complex64>,
     num_qubits: u32,
+    pub ops: Option<Vec<TermDecomp>>,
 }
 
 impl MatrixComputationData {
@@ -436,6 +687,30 @@ impl MatrixComputationData {
             }
         }
     }
+    /// optimized matrix computation data from projector sparse observable
+    fn from_sparse_observable_general(
+        obs: &SparseObservable,
+    ) -> Result<Self, MatrixComputationError> {
+        // Remove duplicates and merge coefficients.
+        let cleaned = obs.canonicalize(0.0);
+
+        let num_q = cleaned.num_qubits();
+        let mut ops = Vec::with_capacity(cleaned.num_terms());
+
+        for term in cleaned.iter() {
+            let td = TermDecomp::from_term_bits(term.bit_terms, term.indices, term.coeff)?;
+            ops.push(td);
+        }
+
+        Ok(Self {
+            x_like: Vec::new(),
+            z_like: Vec::new(),
+            coeffs: Vec::new(),
+            num_qubits: num_q,
+            ops: Some(ops),
+        })
+    }
+
     /// Create optimized matrix computation data from SparseObservable
     fn from_sparse_observable(obs: &SparseObservable) -> Result<Self, MatrixComputationError> {
         if obs.num_terms() == 0 {
@@ -450,10 +725,8 @@ impl MatrixComputationData {
             data.combine_duplicates();
             Ok(data)
         } else {
-            // Expand projectors once, then precompute from the expanded version
-            let expanded = obs.as_paulis();
-            let mut data = Self::from_pauli_like(&expanded)?;
-            data.combine_duplicates();
+            // branch logic for projectors
+            let data = Self::from_sparse_observable_general(obs)?;
             Ok(data)
         }
     }
@@ -513,6 +786,7 @@ impl MatrixComputationData {
             z_like,
             coeffs: new_coeffs,
             num_qubits: obs.num_qubits(),
+            ops: None,
         })
     }
 
@@ -574,7 +848,165 @@ where
 
     out
 }
+// ---------------------------------------------------------------------------
+// General (non-Pauli) SparseObservable; CSR matrix conversion
+// ---------------------------------------------------------------------------
 
+macro_rules! impl_general_to_matrix {
+    ($serial_fn:ident, $parallel_fn:ident, $int_ty:ty) => {
+        /// Optimized serial matrix construction for general SparseObservable
+        fn $serial_fn(data: &MatrixComputationData) -> CSRData<$int_ty> {
+            let side = 1usize << data.num_qubits();
+
+            let ops = match &data.ops {
+                Some(v) => v,
+                None => {
+                    return (vec![], vec![], vec![0 as $int_ty; side + 1]);
+                }
+            };
+
+            let mut values: Vec<Complex64> = Vec::new();
+            let mut indices: Vec<$int_ty> = Vec::new();
+            let mut indptr: Vec<$int_ty> = vec![0 as $int_ty; side + 1];
+
+            let mut tmp: Vec<(usize, Complex64)> = Vec::new();
+
+            for i_row in 0..side {
+                tmp.clear();
+
+                for op in ops.iter() {
+                    op.apply_to_row(i_row as u64, &mut tmp);
+                }
+
+                if !tmp.is_empty() {
+                    tmp.sort_unstable_by_key(|&(d, _)| d);
+
+                    let mut i = 0usize;
+                    while i < tmp.len() {
+                        let d = tmp[i].0;
+                        let mut acc = tmp[i].1;
+                        i += 1;
+                        while i < tmp.len() && tmp[i].0 == d {
+                            acc += tmp[i].1;
+                            i += 1;
+                        }
+                        if !(acc.re == 0.0 && acc.im == 0.0) {
+                            values.push(acc);
+                            indices.push(d as $int_ty);
+                        }
+                    }
+                }
+
+                indptr[i_row + 1] = values.len() as $int_ty;
+            }
+
+            (values, indices, indptr)
+        }
+
+        /// Optimized parallel matrix construction for general SparseObservable
+        fn $parallel_fn(data: &MatrixComputationData) -> CSRData<$int_ty> {
+            let side = 1usize << data.num_qubits();
+
+            let ops = match &data.ops {
+                Some(v) => v,
+                None => return (vec![], vec![], vec![0 as $int_ty; side + 1]),
+            };
+
+            let num_threads = rayon::current_num_threads();
+            if side == 0 || num_threads <= 1 || side < 100 {
+                return $serial_fn(data);
+            }
+
+            // Use actual number of chunks needed, not num_threads
+            let num_chunks = num_threads.min(side);
+            let chunk_size = side.div_ceil(num_chunks);
+
+            let ops_arc = std::sync::Arc::new(ops.as_slice());
+
+            let chunks: Vec<(Vec<Complex64>, Vec<$int_ty>, Vec<$int_ty>)> = (0..num_chunks)
+                .into_par_iter()
+                .map(|chunk_id| {
+                    let start = chunk_id * chunk_size;
+                    let end = ((chunk_id + 1) * chunk_size).min(side);
+
+                    let mut local_values = Vec::<Complex64>::new();
+                    let mut local_indices = Vec::<$int_ty>::new();
+                    let mut local_indptr = Vec::<$int_ty>::with_capacity(end - start + 1);
+                    local_indptr.push(0 as $int_ty);
+
+                    let mut tmp: Vec<(usize, Complex64)> = Vec::new();
+
+                    for i_row in start..end {
+                        tmp.clear();
+
+                        for op in ops_arc.iter() {
+                            op.apply_to_row(i_row as u64, &mut tmp);
+                        }
+
+                        if !tmp.is_empty() {
+                            tmp.sort_unstable_by_key(|&(d, _)| d);
+                            let mut i = 0usize;
+                            while i < tmp.len() {
+                                let d = tmp[i].0;
+                                let mut acc = tmp[i].1;
+                                i += 1;
+                                while i < tmp.len() && tmp[i].0 == d {
+                                    acc += tmp[i].1;
+                                    i += 1;
+                                }
+                                if !(acc.re == 0.0 && acc.im == 0.0) {
+                                    local_values.push(acc);
+                                    local_indices.push(d as $int_ty);
+                                }
+                            }
+                        }
+
+                        local_indptr.push(local_values.len() as $int_ty);
+                    }
+
+                    (local_values, local_indices, local_indptr)
+                })
+                .collect();
+
+            // Stitch together
+            let mut values = Vec::<Complex64>::new();
+            let mut indices = Vec::<$int_ty>::new();
+            let mut indptr = vec![0 as $int_ty; side + 1];
+
+            let mut global_row = 0usize;
+            for (lv, li, lp) in chunks {
+                let base_nnz = values.len() as $int_ty;
+                values.extend(lv);
+                indices.extend(li);
+
+                // lp has (rows_in_this_chunk + 1) entries
+                let rows_in_chunk = lp.len() - 1;
+                for local_row in 0..rows_in_chunk {
+                    global_row += 1;
+                    indptr[global_row] = base_nnz + lp[local_row + 1];
+                }
+            }
+
+            (values, indices, indptr)
+        }
+    };
+}
+
+impl_general_to_matrix!(
+    sparse_observable_to_matrix_serial_general_32,
+    sparse_observable_to_matrix_parallel_general_32,
+    i32
+);
+
+impl_general_to_matrix!(
+    sparse_observable_to_matrix_serial_general_64,
+    sparse_observable_to_matrix_parallel_general_64,
+    i64
+);
+
+// ---------------------------------------------------------------------------
+// PauliSparseObservable; CSR matrix conversion (Pure Pauli case)
+// ---------------------------------------------------------------------------
 macro_rules! impl_sparse_observable_to_matrix {
     ($serial_fn:ident, $parallel_fn:ident, $int_ty:ty, $uint_ty:ty $(,)?) => {
         /// Optimized serial matrix construction
@@ -647,11 +1079,7 @@ macro_rules! impl_sparse_observable_to_matrix {
             global_order.sort_unstable_by_key(|&op| data.x_like[op]);
             let order_arc = std::sync::Arc::new(global_order);
 
-            let mut indptr = Vec::<$int_ty>::with_capacity(side + 1);
-            indptr.push(0);
-            unsafe {
-                indptr.set_len(side + 1);
-            }
+            let mut indptr = vec![0 as $int_ty; side + 1];
 
             let mut values_chunks = Vec::with_capacity(num_threads);
             let mut indices_chunks = Vec::with_capacity(num_threads);
@@ -1243,7 +1671,13 @@ impl SparseObservable {
         let parallel = qiskit_circuit::getenv_use_multiple_threads() && !force_serial;
 
         Ok(if parallel {
-            sparse_observable_to_matrix_parallel_32(&computation_data)
+            if computation_data.ops.is_some() {
+                sparse_observable_to_matrix_parallel_general_32(&computation_data)
+            } else {
+                sparse_observable_to_matrix_parallel_32(&computation_data)
+            }
+        } else if computation_data.ops.is_some() {
+            sparse_observable_to_matrix_serial_general_32(&computation_data)
         } else {
             sparse_observable_to_matrix_serial_32(&computation_data)
         })
@@ -1255,7 +1689,13 @@ impl SparseObservable {
         let parallel = qiskit_circuit::getenv_use_multiple_threads() && !force_serial;
 
         Ok(if parallel {
-            sparse_observable_to_matrix_parallel_64(&computation_data)
+            if computation_data.ops.is_some() {
+                sparse_observable_to_matrix_parallel_general_64(&computation_data)
+            } else {
+                sparse_observable_to_matrix_parallel_64(&computation_data)
+            }
+        } else if computation_data.ops.is_some() {
+            sparse_observable_to_matrix_serial_general_64(&computation_data)
         } else {
             sparse_observable_to_matrix_serial_64(&computation_data)
         })
@@ -1287,7 +1727,26 @@ impl SparseObservable {
             unsafe { v.set_len(side * side) };
             v
         };
+        if computation_data.ops.is_some() {
+            let (values, indices, indptr) = if parallel {
+                sparse_observable_to_matrix_parallel_general_64(computation_data)
+            } else {
+                sparse_observable_to_matrix_serial_general_64(computation_data)
+            };
 
+            let mut dense = vec![Complex64::new(0.0, 0.0); side * side];
+
+            for row in 0..side {
+                let start = indptr[row] as usize;
+                let end = indptr[row + 1] as usize;
+                for p in start..end {
+                    let col = indices[p] as usize;
+                    dense[row * side + col] += values[p];
+                }
+            }
+
+            return dense;
+        }
         // Local references to avoid repeated indexing of computation_data
         let x_like = &computation_data.x_like;
         let z_like = &computation_data.z_like;
@@ -3450,7 +3909,13 @@ impl PySparseObservable {
 
         if use_32_bit {
             let csr_data = if parallel {
-                sparse_observable_to_matrix_parallel_32(&computation_data)
+                if computation_data.ops.is_some() {
+                    sparse_observable_to_matrix_parallel_general_32(&computation_data)
+                } else {
+                    sparse_observable_to_matrix_parallel_32(&computation_data)
+                }
+            } else if computation_data.ops.is_some() {
+                sparse_observable_to_matrix_serial_general_32(&computation_data)
             } else {
                 sparse_observable_to_matrix_serial_32(&computation_data)
             };
@@ -3462,7 +3927,13 @@ impl PySparseObservable {
                 )));
             }
             let csr_data = if parallel {
-                sparse_observable_to_matrix_parallel_64(&computation_data)
+                if computation_data.ops.is_some() {
+                    sparse_observable_to_matrix_parallel_general_64(&computation_data)
+                } else {
+                    sparse_observable_to_matrix_parallel_64(&computation_data)
+                }
+            } else if computation_data.ops.is_some() {
+                sparse_observable_to_matrix_serial_general_64(&computation_data)
             } else {
                 sparse_observable_to_matrix_serial_64(&computation_data)
             };
@@ -4862,5 +5333,16 @@ mod test {
         for (a, b) in mat.iter().zip(expected.iter()) {
             assert!((a.re - b.re).abs() < tol && (a.im - b.im).abs() < tol);
         }
+    }
+    #[test]
+    fn test_inconsistent_term() {
+        // boundary says “two operators” but we only give 1 index
+        let bit_terms = &[BitTerm::Plus, BitTerm::Zero];
+        let indices = &[0];
+        let coeff = Complex64::new(1.0, 0.0);
+
+        let err = TermDecomp::from_term_bits(bit_terms, indices, coeff).unwrap_err();
+
+        assert!(matches!(err, MatrixComputationError::InconsistentTerm));
     }
 }
