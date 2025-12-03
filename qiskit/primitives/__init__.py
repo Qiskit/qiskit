@@ -408,6 +408,16 @@ level, however, here are some notable differences keep in mind when migrating fr
 Primitives API
 ==============
 
+Parameters V2
+-------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   ParameterLike
+   BindingsArray
+   BindingsArrayLike
+
 Estimator V2
 ------------
 
@@ -417,6 +427,11 @@ Estimator V2
    BaseEstimatorV2
    StatevectorEstimator
    BackendEstimatorV2
+   EstimatorPub
+   EstimatorPubLike
+   ObservablesArray
+   ObservablesArrayLike
+   ObservableLike
 
 Sampler V2
 ----------
@@ -427,6 +442,40 @@ Sampler V2
    BaseSamplerV2
    StatevectorSampler
    BackendSamplerV2
+   SamplerPub
+
+.. list-table:: bla
+   :widths: auto
+   :header-rows: 0
+
+   * - SamplerPubLike
+     - Alias of
+
+       .. code-block:: python
+
+           Union[
+               SamplerPub,
+               QuantumCircuit,
+               Tuple[QuantumCircuit],
+               Tuple[QuantumCircuit, BindingsArrayLike],
+               Tuple[QuantumCircuit, BindingsArrayLike,Union[Integral, None]]
+           ]
+     
+       A Pub (Primitive Unified Bloc) for a Sampler.
+
+       A fully specified sample Pub is a tuple ``(circuit, parameter_values, shots)``.
+
+       If shots are provided this number of shots will be run with the sampler,
+       if ``shots=None`` the number of run shots is determined by the sampler.
+
+       .. note::
+
+           A Sampler Pub can also be initialized in the following formats which
+           will be converted to the full Pub tuple:
+
+           * ``circuit``
+           * ``(circuit,)``
+           * ``(circuit, parameter_values)``
 
 Results V2
 ----------
@@ -476,11 +525,16 @@ from .containers import (
     DataBin,
     PrimitiveResult,
     PubResult,
+    EstimatorPub,
     EstimatorPubLike,
+    SamplerPub,
     SamplerPubLike,
     SamplerPubResult,
+    ParameterLike,
+    BindingsArray,
     BindingsArrayLike,
     ObservableLike,
+    ObservablesArray,
     ObservablesArrayLike,
 )
 from .primitive_job import BasePrimitiveJob, PrimitiveJob
