@@ -1,7 +1,7 @@
 ---
 features_transpiler:
   - |
-    Added a new option, ``fallback_on_default``, to :class:`.UnitarySynthesis`
+    Added a new option, ``fallback_on_default``, to the :class:`.UnitarySynthesis`
     transpiler pass. This option applies when the pass is called with a
     non-default synthesis plugin, specified via the argument ``method``.
 
@@ -15,7 +15,7 @@ features_transpiler:
     the unitary is synthesized using the :class:`~.DefaultUnitarySynthesis`
     plugin.
     
-    This is useful for instance in the CLifford+T transpilation pipeline, where
+    This is useful, for instance, in the Clifford+T transpilation pipeline, where
     users may want to write custom synthesis plugins but still fall back on
-    predefined synthesis methods when the circuit produced by the custom plugin
+    predefined synthesis methods when the circuit produced by a custom plugin
     does not conform to the Clifford+T basis set.
