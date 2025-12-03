@@ -176,7 +176,7 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
         qc.unitary(np.eye(4, dtype=np.complex128), [0, 1])
         pm = PassManager([UnitarySynthesis(basis_gates=["u", "cx"], method="_controllable")])
         with self.mock_default_run_method():
-            pm.run(qc)
+            _ = pm.run(qc)
             self.DEFAULT_PLUGIN.run.assert_not_called()  # pylint: disable=no-member
         self.MOCK_PLUGINS["_controllable"].run.assert_called()
 
@@ -189,7 +189,7 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
         qc.unitary(np.eye(4, dtype=np.complex128), [0, 1])
         pm = PassManager([UnitarySynthesis(basis_gates=["u", "cx"], method="_controllable")])
         with self.mock_default_run_method():
-            pm.run(qc)
+            _ = pm.run(qc)
             self.DEFAULT_PLUGIN.run.assert_called()  # pylint: disable=no-member
         self.MOCK_PLUGINS["_controllable"].run.assert_not_called()
 
@@ -202,7 +202,7 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
         qc.unitary(np.eye(4, dtype=np.complex128), [0, 1])
         pm = PassManager([UnitarySynthesis(basis_gates=["u", "cx"], method="_controllable")])
         with self.mock_default_run_method():
-            pm.run(qc)
+            _ = pm.run(qc)
             self.DEFAULT_PLUGIN.run.assert_called()  # pylint: disable=no-member
         self.MOCK_PLUGINS["_controllable"].run.assert_not_called()
 
@@ -219,7 +219,7 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
         qc.unitary(np.eye(4, dtype=np.complex128), [0, 1])
         pm = PassManager([UnitarySynthesis(basis_gates=["u", "cx"], method="_controllable")])
         with self.mock_default_run_method():
-            pm.run(qc)
+            _ = pm.run(qc)
             self.DEFAULT_PLUGIN.run.assert_called()  # pylint: disable=no-member
             # This access should be `run.call_args.kwargs`, but the namedtuple access wasn't added
             # until Python 3.8.
@@ -255,7 +255,7 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
         with unittest.mock.patch.object(
             ControllableSynthesis, "run", return_value=return_dag
         ) as plugin_mock:
-            pm.run(qc)
+            _ = pm.run(qc)
             plugin_mock.assert_called()
             # This access should be `run.call_args.kwargs`, but the namedtuple access wasn't added
             # until Python 3.8.
@@ -287,7 +287,7 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
             ]
         )
         with self.mock_default_run_method():
-            pm.run(qc)
+            _ = pm.run(qc)
             self.DEFAULT_PLUGIN.run.assert_called()  # pylint: disable=no-member
             # This access should be `run.call_args.kwargs`, but the namedtuple access wasn't added
             # until Python 3.8.
@@ -328,7 +328,7 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
         )
 
         with self.mock_default_run_method():
-            pm.run(qc)
+            _ = pm.run(qc)
             self.DEFAULT_PLUGIN.run.assert_not_called()  # pylint: disable=no-member
             self.MOCK_PLUGINS["_controllable"].run.assert_called()  # pylint: disable=no-member
             call_kwargs = self.MOCK_PLUGINS["_controllable"].run.call_args[
@@ -370,7 +370,7 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
                 ControllableSynthesis, "run", return_value=return_dag
             ) as plugin_mock:
                 with self.mock_default_run_method():
-                    pm.run(qc)
+                    _ = pm.run(qc)
                     plugin_mock.assert_called()
                     self.DEFAULT_PLUGIN.run.assert_not_called()  # pylint: disable=no-member
 
@@ -389,7 +389,7 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
                 ControllableSynthesis, "run", return_value=return_dag
             ) as plugin_mock:
                 with self.mock_default_run_method():
-                    pm.run(qc)
+                    _ = pm.run(qc)
                     plugin_mock.assert_called()
                     self.DEFAULT_PLUGIN.run.assert_not_called()  # pylint: disable=no-member
 
@@ -410,7 +410,7 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
                 ControllableSynthesis, "run", return_value=return_dag
             ) as plugin_mock:
                 with self.mock_default_run_method():
-                    pm.run(qc)
+                    _ = pm.run(qc)
                     plugin_mock.assert_called()
                     self.DEFAULT_PLUGIN.run.assert_not_called()  # pylint: disable=no-member
 
@@ -429,7 +429,7 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
                 ControllableSynthesis, "run", return_value=return_dag
             ) as plugin_mock:
                 with self.mock_default_run_method():
-                    pm.run(qc)
+                    _ = pm.run(qc)
                     plugin_mock.assert_called()
                     self.DEFAULT_PLUGIN.run.assert_called()  # pylint: disable=no-member
 

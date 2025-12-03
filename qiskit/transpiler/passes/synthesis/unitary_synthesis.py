@@ -121,10 +121,10 @@ class UnitarySynthesis(TransformationPass):
             target: The optional :class:`~.Target` for the target device the pass
                 is compiling for. If specified this will supersede the values
                 set for ``basis_gates`` and ``coupling_map``.
-            fallback_on_default: specifies whether the default synthesis method in the case
-                that a non-default synthesis ``method`` is specified but is either unable
-                to synthesize the operation or the synthesized circuit does not conform to the
-                target.
+            fallback_on_default: specifies whether the default synthesis method should be used
+                in the case that a non-default synthesis ``method`` is specified but is either
+                unable to synthesize the operation or the synthesized circuit does not conform
+                to the target.
 
         Raises:
             TranspilerError: if ``method`` was specified but is not found in the
