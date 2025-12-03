@@ -164,27 +164,24 @@ impl PyRangeExpr {
         let is_implicit_promotion = ty.is_none();
 
         // Determine the target type for the Range and its expressions
-        let target_ty = match ty {
-            Some(explicit_ty) => {
-                // Verify that the explicit type is indeed a Uint
-                if !matches!(explicit_ty, Type::Uint(_)) {
-                    return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
-                        "Range type must be an unsigned integer type",
-                    ));
-                }
-                explicit_ty
+        let target_ty = if let Some(explicit_ty) = ty {
+            // Verify that the explicit type is indeed a Uint
+            if !matches!(explicit_ty, Type::Uint(_)) {
+                return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+                    "Range type must be an unsigned integer type",
+                ));
             }
-            None => {
-                // When no explicit type is provided, determine the common type from start and stop
-                // If step is provided, include it in the type determination
-                let mut types = vec![start_expr.ty(), stop_expr.ty()];
-                if let Some(step) = step {
-                    // If step is provided, we need to convert it first to get its type
-                    let step_expr_temp = py_value_to_expr(py, step)?;
-                    types.push(step_expr_temp.ty());
-                }
-                determine_common_max_type(&types)
+            explicit_ty
+        } else {
+            // When no explicit type is provided, determine the common type from start and stop
+            // If step is provided, include it in the type determination
+            let mut types = vec![start_expr.ty(), stop_expr.ty()];
+            if let Some(step) = step {
+                // If step is provided, we need to convert it first to get its type
+                let step_expr_temp = py_value_to_expr(py, step)?;
+                types.push(step_expr_temp.ty());
             }
+            determine_common_max_type(&types)
         };
 
         // Create step expression - either from provided value or default to 1 in the target type
@@ -209,58 +206,60 @@ impl PyRangeExpr {
         let constant = start_expr.is_const() && stop_expr.is_const() && step_expr.is_const();
 
         // Apply casts to any expressions with types different from the target type
+        // For Range expressions, we only handle Uint types
+        if !matches!(target_ty, Type::Uint(_)) {
+            return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+                "Range type must be an unsigned integer type",
+            ));
+        }
+
         let (start_expr, stop_expr, step_expr) = {
-            // For Range expressions, we only handle Uint types
-            match target_ty {
-                Type::Uint(_) => {
-                    // Create necessary Cast expressions for start if needed
-                    let start_expr = if target_ty != start_expr.ty() {
-                        Expr::Cast(Box::new(Cast {
-                            operand: start_expr.clone(),
-                            ty: target_ty,
-                            constant: start_expr.is_const(),
-                            // Mark as implicit if the type was determined via promotion
-                            implicit: is_implicit_promotion,
-                        }))
-                    } else {
-                        start_expr.clone()
-                    };
+            // Create necessary Cast expressions for start if needed
+            let start_ty = start_expr.ty();
+            let start_const = start_expr.is_const();
+            let start_expr = if target_ty != start_ty {
+                Expr::Cast(Box::new(Cast {
+                    operand: start_expr,
+                    ty: target_ty,
+                    constant: start_const,
+                    // Mark as implicit if the type was determined via promotion
+                    implicit: is_implicit_promotion,
+                }))
+            } else {
+                start_expr
+            };
 
-                    // Create necessary Cast expressions for stop if needed
-                    let stop_expr = if target_ty != stop_expr.ty() {
-                        Expr::Cast(Box::new(Cast {
-                            operand: stop_expr.clone(),
-                            ty: target_ty,
-                            constant: stop_expr.is_const(),
-                            // Mark as implicit if the type was determined via promotion
-                            implicit: is_implicit_promotion,
-                        }))
-                    } else {
-                        stop_expr.clone()
-                    };
+            // Create necessary Cast expressions for stop if needed
+            let stop_ty = stop_expr.ty();
+            let stop_const = stop_expr.is_const();
+            let stop_expr = if target_ty != stop_ty {
+                Expr::Cast(Box::new(Cast {
+                    operand: stop_expr,
+                    ty: target_ty,
+                    constant: stop_const,
+                    // Mark as implicit if the type was determined via promotion
+                    implicit: is_implicit_promotion,
+                }))
+            } else {
+                stop_expr
+            };
 
-                    // Create necessary Cast expressions for step if needed
-                    let step_expr = if target_ty != step_expr.ty() {
-                        Expr::Cast(Box::new(Cast {
-                            operand: step_expr.clone(),
-                            ty: target_ty,
-                            constant: step_expr.is_const(),
-                            // Mark as implicit if the type was determined via promotion
-                            implicit: is_implicit_promotion,
-                        }))
-                    } else {
-                        step_expr.clone()
-                    };
+            // Create necessary Cast expressions for step if needed
+            let step_ty = step_expr.ty();
+            let step_const = step_expr.is_const();
+            let step_expr = if target_ty != step_ty {
+                Expr::Cast(Box::new(Cast {
+                    operand: step_expr,
+                    ty: target_ty,
+                    constant: step_const,
+                    // Mark as implicit if the type was determined via promotion
+                    implicit: is_implicit_promotion,
+                }))
+            } else {
+                step_expr
+            };
 
-                    (start_expr, stop_expr, step_expr)
-                }
-                _ => {
-                    // If not a Uint type, we can't cast
-                    return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
-                        "Range type must be an unsigned integer type",
-                    ));
-                }
-            }
+            (start_expr, stop_expr, step_expr)
         };
 
         Ok((
@@ -320,10 +319,10 @@ impl PyRangeExpr {
     }
 
     fn __repr__(&self, py: Python) -> PyResult<String> {
-        let start = self.0.start.clone().into_py_any(py)?.bind(py).repr()?;
-        let stop = self.0.stop.clone().into_py_any(py)?.bind(py).repr()?;
-        let step = self.0.step.clone().into_py_any(py)?.bind(py).repr()?;
-        let ty = self.0.ty.into_py_any(py)?.bind(py).repr()?;
+        let start = self.get_start(py)?.bind(py).repr()?;
+        let stop = self.get_stop(py)?.bind(py).repr()?;
+        let step = self.get_step(py)?.bind(py).repr()?;
+        let ty = self.get_type(py)?.bind(py).repr()?;
         Ok(format!("Range({}, {}, {}, {})", start, stop, step, ty))
     }
 
